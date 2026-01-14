@@ -35,6 +35,7 @@ import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_experiment.ExperimentDirectories;
 import plugins.fmp.multitools.fmp_experiment.LazyExperiment;
 import plugins.fmp.multitools.fmp_experiment.LazyExperiment.ExperimentMetadata;
+import plugins.fmp.multitools.fmp_experiment.cages.Cage;
 import plugins.fmp.multitools.fmp_tools.DescriptorsIO;
 import plugins.fmp.multitools.fmp_tools.Directories;
 import plugins.fmp.multitools.fmp_tools.JComponents.SequenceNameListRenderer;
@@ -370,7 +371,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	 */
 	private int countCagesWithFlyPositions(Experiment exp) {
 		int count = 0;
-		for (plugins.fmp.multicafe.fmp_experiment.cages.Cage cage : exp.getCages().getCageList()) {
+		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage.flyPositions != null && cage.flyPositions.flyPositionList != null
 					&& !cage.flyPositions.flyPositionList.isEmpty()) {
 				count++;
@@ -391,7 +392,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		int cageCount = exp.getCages().getCageList().size();
 		int cagesWithFlyPositions = countCagesWithFlyPositions(exp);
 		int totalFlyPositions = 0;
-		for (plugins.fmp.multicafe.fmp_experiment.cages.Cage cage : exp.getCages().getCageList()) {
+		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage.flyPositions != null && cage.flyPositions.flyPositionList != null
 					&& !cage.flyPositions.flyPositionList.isEmpty()) {
 				totalFlyPositions += cage.flyPositions.flyPositionList.size();
