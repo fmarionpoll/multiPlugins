@@ -22,7 +22,7 @@ import plugins.fmp.multicafe.dlg.levels.MCLevels_;
 import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_tools.DescriptorIndex;
 import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multicafe.workinprogress_gpu.MCSpots_;
+import plugins.fmp.multitools.fmp_workinprogress_gpu.MCSpots_;
 
 public class MultiCAFE extends PluginActionable {
 	public IcyFrame mainFrame = new IcyFrame("MultiCAFE January 12, 2026", true, true, true, true);

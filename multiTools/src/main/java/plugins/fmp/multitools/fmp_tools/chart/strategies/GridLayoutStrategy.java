@@ -16,12 +16,13 @@ import plugins.fmp.multitools.fmp_tools.chart.ChartCagePair;
 public class GridLayoutStrategy implements ChartLayoutStrategy {
 
 	@Override
-	public void arrangePanels(JPanel mainPanel, ChartCagePair[][] chartArray, 
-	                          int nPanelsX, int nPanelsY, boolean singleCageMode) {
+	public void arrangePanels(JPanel mainPanel, ChartCagePair[][] chartArray, int nPanelsX, int nPanelsY,
+			boolean singleCageMode) {
 		mainPanel.removeAll();
-		
+
 		if (singleCageMode) {
-			// When displaying a single cage, the array is 1x1 and the panel is always at [0][0]
+			// When displaying a single cage, the array is 1x1 and the panel is always at
+			// [0][0]
 			if (chartArray != null && chartArray.length > 0 && chartArray[0].length > 0) {
 				ChartCagePair pair = chartArray[0][0];
 				if (pair != null && pair.getChartPanel() != null) {
@@ -62,5 +63,3 @@ public class GridLayoutStrategy implements ChartLayoutStrategy {
 		return new GridLayout(nPanelsY, nPanelsX);
 	}
 }
-
-
