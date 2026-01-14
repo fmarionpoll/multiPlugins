@@ -28,7 +28,7 @@ import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
 import plugins.fmp.multitools.fmp_series.DetectLevels;
 import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.fmp_tools.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.fmp_tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;

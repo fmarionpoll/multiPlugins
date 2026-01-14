@@ -39,7 +39,7 @@ import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
 import plugins.fmp.multitools.fmp_experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.fmp_tools.Directories;
 import plugins.fmp.multitools.fmp_tools.ViewerFMP;
-import plugins.fmp.multitools.fmp_tools.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 
 public class Display extends JPanel implements ViewerListener {
 	/**

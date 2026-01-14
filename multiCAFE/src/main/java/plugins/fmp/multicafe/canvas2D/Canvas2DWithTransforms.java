@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.fmp_tools.canvas2D;
+package plugins.fmp.multicafe.canvas2D;
 
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
@@ -14,7 +14,7 @@ import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.resource.icon.IcyIcon;
 import icy.sequence.Sequence;
-import plugins.fmp.multitools.fmp_resource.ResourceUtilFMP;
+import plugins.fmp.multicafe.resource.ResourceUtilFMP;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformOptions;

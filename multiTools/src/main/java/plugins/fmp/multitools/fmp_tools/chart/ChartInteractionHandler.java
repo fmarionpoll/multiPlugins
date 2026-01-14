@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.levels;
+package plugins.fmp.multitools.fmp_tools.chart;
 
 import org.jfree.chart.ChartMouseListener;
 

@@ -29,7 +29,7 @@ import plugins.fmp.multitools.fmp_experiment.cages.Cage;
 import plugins.fmp.multitools.fmp_series.FlyDetect2;
 import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.fmp_service.SequenceLoaderService;
-import plugins.fmp.multitools.fmp_tools.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformOptions;
 import plugins.fmp.multitools.fmp_tools.overlay.OverlayThreshold;

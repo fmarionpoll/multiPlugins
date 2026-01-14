@@ -85,6 +85,11 @@
                 <version>1.0.24</version>
             </dependency>
             <dependency>
+                <groupId>org.jfree</groupId>
+                <artifactId>jfreechart</artifactId>
+                <version>1.5.3</version>
+            </dependency>
+            <dependency>
                 <groupId>org.bioimageanalysis.icy</groupId>
                 <artifactId>parallel-colt</artifactId>
                 <version>5.5.2</version>

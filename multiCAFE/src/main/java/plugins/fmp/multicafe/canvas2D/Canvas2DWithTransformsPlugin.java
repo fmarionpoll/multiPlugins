@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.fmp_tools.canvas2D;
+package plugins.fmp.multicafe.canvas2D;
 
 import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;

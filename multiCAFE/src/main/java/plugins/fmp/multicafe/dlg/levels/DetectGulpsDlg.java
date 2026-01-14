@@ -24,7 +24,7 @@ import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
 import plugins.fmp.multitools.fmp_series.DetectGulps;
 import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.fmp_tools.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
 
 public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {

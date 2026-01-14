@@ -5,6 +5,7 @@ import java.awt.Point;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import plugins.fmp.multitools.fmp_experiment.Experiment;
+import plugins.fmp.multitools.fmp_experiment.ExperimentProperties;
 import plugins.fmp.multitools.fmp_experiment.cages.Cage;
 import plugins.fmp.multitools.fmp_experiment.cages.FlyPositions;
 import plugins.fmp.multitools.fmp_experiment.sequence.ImageLoader;
@@ -112,15 +113,15 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	/**
 	 * Exports fly position data to a specific sheet.
 	 * 
-	 * @param exp           The experiment to export
-	 * @param sheet         The sheet to write to
+	 * @param exp        The experiment to export
+	 * @param sheet      The sheet to write to
 	 * @param resultType The export type
-	 * @param col0          The starting column
-	 * @param charSeries    The series identifier
+	 * @param col0       The starting column
+	 * @param charSeries The series identifier
 	 * @return The next available column
 	 */
-	protected int xlsExportExperimentFlyPositionDataToSheet(Experiment exp, SXSSFSheet sheet,
-			EnumResults resultType, int col0, String charSeries) {
+	protected int xlsExportExperimentFlyPositionDataToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType,
+			int col0, String charSeries) {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
@@ -147,19 +148,19 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	/**
 	 * Gets the results for fly positions.
 	 * 
-	 * @param exp              The experiment
-	 * @param cage             The cage
-	 * @param flyPositions     The fly positions
+	 * @param exp            The experiment
+	 * @param cage           The cage
+	 * @param flyPositions   The fly positions
 	 * @param resultsOptions The export options
 	 * @return The XLS results
 	 */
-	public Results getResultsDataValuesFromFlyPositionMeasures(Experiment exp, Cage cage,
-			FlyPositions flyPositions, ResultsOptions resultsOptions) {
+	public Results getResultsDataValuesFromFlyPositionMeasures(Experiment exp, Cage cage, FlyPositions flyPositions,
+			ResultsOptions resultsOptions) {
 		int nOutputFrames = getNOutputFrames(exp, resultsOptions);
 
 		// Create XLSResults with cage properties
-		Results results = new Results("Cage_" + cage.getProperties().getCageID(),
-				cage.getProperties().getCageNFlies(), cage.getProperties().getCageID(), 0, resultsOptions.resultType);
+		Results results = new Results("Cage_" + cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(),
+				cage.getProperties().getCageID(), 0, resultsOptions.resultType);
 		results.initValuesOutArray(nOutputFrames, Double.NaN);
 
 		// Get bin durations
@@ -175,7 +176,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	/**
 	 * Gets the number of output frames for the experiment.
 	 * 
-	 * @param exp     The experiment
+	 * @param exp            The experiment
 	 * @param resultsOptions The export options
 	 * @return The number of output frames
 	 */
@@ -209,11 +210,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	/**
 	 * Writes experiment fly position information to the sheet.
 	 * 
-	 * @param sheet         The sheet to write to
-	 * @param pt            The starting point
-	 * @param exp           The experiment
-	 * @param charSeries    The series identifier
-	 * @param cage          The cage
+	 * @param sheet      The sheet to write to
+	 * @param pt         The starting point
+	 * @param exp        The experiment
+	 * @param charSeries The series identifier
+	 * @param cage       The cage
 	 * @param resultType The export type
 	 * @return The updated point
 	 */
@@ -261,7 +262,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 */
 	private void writeExperimentPropertiesForFlyPosition(SXSSFSheet sheet, int x, int y, boolean transpose,
 			Experiment exp, String charSeries) {
-		plugins.fmp.multicafe.fmp_experiment.ExperimentProperties props = exp.getProperties();
+		ExperimentProperties props = exp.getProperties();
 
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_BOXID);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_EXPT);

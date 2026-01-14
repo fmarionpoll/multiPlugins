@@ -29,7 +29,6 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
-import plugins.fmp.multicafe.dlg.levels.ChartInteractionHandler;
 import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_experiment.cages.Cage;
 import plugins.fmp.multitools.fmp_tools.Logger;
@@ -194,8 +193,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 		mainChartPanel = new JPanel();
 		// Single-cage mode: first == last and both are positive
-		boolean flag = (options.cageIndexFirst == options.cageIndexLast 
-				&& options.cageIndexFirst >= 0);
+		boolean flag = (options.cageIndexFirst == options.cageIndexLast && options.cageIndexFirst >= 0);
 		nPanelsAlongX = flag ? 1 : exp.getCages().nCagesAlongX;
 		nPanelsAlongY = flag ? 1 : exp.getCages().nCagesAlongY;
 
@@ -348,7 +346,7 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected void createChartsPanel(ResultsOptions resultsOptions) {
 		// Determine if we're in single-cage mode: first == last and both are positive
-		boolean flag = (resultsOptions.cageIndexFirst == resultsOptions.cageIndexLast 
+		boolean flag = (resultsOptions.cageIndexFirst == resultsOptions.cageIndexLast
 				&& resultsOptions.cageIndexFirst >= 0);
 
 		// Filter cages based on the new semantics:
@@ -530,7 +528,7 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected void arrangePanelsInDisplay(ResultsOptions resultsOptions) {
 		// Single-cage mode: first == last and both are positive
-		boolean singleCageMode = (resultsOptions.cageIndexFirst == resultsOptions.cageIndexLast 
+		boolean singleCageMode = (resultsOptions.cageIndexFirst == resultsOptions.cageIndexLast
 				&& resultsOptions.cageIndexFirst >= 0);
 		layoutStrategy.arrangePanels(mainChartPanel, chartPanelArray, nPanelsAlongX, nPanelsAlongY, singleCageMode);
 	}
