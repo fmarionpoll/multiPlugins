@@ -22,7 +22,6 @@ import plugins.fmp.multicafe.dlg.levels.MCLevels_;
 import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_tools.DescriptorIndex;
 import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multitools.fmp_workinprogress_gpu.MCSpots_;
 
 public class MultiCAFE extends PluginActionable {
 	public IcyFrame mainFrame = new IcyFrame("MultiCAFE January 12, 2026", true, true, true, true);
@@ -35,7 +34,6 @@ public class MultiCAFE extends PluginActionable {
 	public MCCapillaries_ paneCapillaries = new MCCapillaries_();
 	public MCKymos_ paneKymos = new MCKymos_();
 	public MCLevels_ paneLevels = new MCLevels_();
-	public MCSpots_ paneSpots = new MCSpots_();
 	public MCCages_ paneCages = new MCCages_();
 	public MCExcel_ paneExcel = new MCExcel_();
 

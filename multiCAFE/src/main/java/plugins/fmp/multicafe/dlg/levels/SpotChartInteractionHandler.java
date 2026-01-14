@@ -3,7 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.event.MouseEvent;
 import java.awt.geom.Point2D;
 import java.util.List;
-import plugins.fmp.multitools.fmp_tools.Logger;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
@@ -20,18 +19,19 @@ import icy.roi.ROI2D;
 import plugins.fmp.multitools.fmp_experiment.Experiment;
 import plugins.fmp.multitools.fmp_experiment.cages.Cage;
 import plugins.fmp.multitools.fmp_experiment.spots.Spot;
+import plugins.fmp.multitools.fmp_tools.Logger;
 import plugins.fmp.multitools.fmp_tools.chart.ChartCagePair;
 import plugins.fmp.multitools.fmp_tools.chart.ChartCagePanel;
+import plugins.fmp.multitools.fmp_tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.fmp_tools.results.ResultsOptions;
 
 /**
- * Handler for spot-related chart interactions. Manages user clicks on spot charts
- * to select spots, navigate to images, and display kymographs.
+ * Handler for spot-related chart interactions. Manages user clicks on spot
+ * charts to select spots, navigate to images, and display kymographs.
  * 
  * @author MultiCAFE
  */
 public class SpotChartInteractionHandler implements ChartInteractionHandler {
-
 
 	private static final String CHART_ID_DELIMITER = ":";
 	private static final int MAX_DESCRIPTION_LENGTH = 16;
@@ -321,4 +321,3 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 		}
 	}
 }
-

@@ -9,8 +9,9 @@ import org.jfree.data.Range;
 
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.fmp_tools.chart.ChartCagePair;
+import plugins.fmp.multitools.fmp_tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.fmp_tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.fmp_tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.fmp_tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.fmp_tools.chart.builders.CageSeriesBuilder;
@@ -21,13 +22,15 @@ import plugins.fmp.multitools.fmp_tools.results.EnumResults;
 import plugins.fmp.multitools.fmp_tools.results.ResultsOptions;
 
 /**
- * Chart display class for capillary and spot data visualization. This class creates and
- * manages a grid of charts displaying measurements for different cages in an experiment.
+ * Chart display class for capillary and spot data visualization. This class
+ * creates and manages a grid of charts displaying measurements for different
+ * cages in an experiment.
  * 
  * <p>
- * This class is a wrapper around the generic {@link ChartCagesFrame} that provides
- * a convenient API for the levels dialog. It automatically configures the appropriate
- * data builder, interaction handlers, and UI controls for capillary/spot measurements.
+ * This class is a wrapper around the generic {@link ChartCagesFrame} that
+ * provides a convenient API for the levels dialog. It automatically configures
+ * the appropriate data builder, interaction handlers, and UI controls for
+ * capillary/spot measurements.
  * </p>
  * 
  * <p>
@@ -62,29 +65,24 @@ public class ChartCageArrayFrame extends IcyFrame {
 		// Create strategies
 		GridLayoutStrategy layoutStrategy = new GridLayoutStrategy();
 		uiControlsFactory = new ComboBoxUIControlsFactory();
-		
+
 		// Select appropriate data builder based on result type
 		CageSeriesBuilder dataBuilder = selectDataBuilder(options != null ? options.resultType : null);
-		
+
 		// Create interaction handler factory
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override
-			public plugins.fmp.multicafe.dlg.levels.ChartInteractionHandler createHandler(
-					Experiment experiment, ResultsOptions resultsOptions, ChartCagePair[][] chartArray) {
+			public ChartInteractionHandler createHandler(Experiment experiment, ResultsOptions resultsOptions,
+					ChartCagePair[][] chartArray) {
 				return createInteractionHandler(experiment, resultsOptions, chartArray);
 			}
 		};
-		
-		genericFrame = new ChartCagesFrame(
-			dataBuilder,
-			handlerFactory,
-			layoutStrategy,
-			uiControlsFactory
-		);
-		
+
+		genericFrame = new ChartCagesFrame(dataBuilder, handlerFactory, layoutStrategy, uiControlsFactory);
+
 		genericFrame.createMainChartPanel(title, exp, options);
 	}
-	
+
 	/**
 	 * Selects the appropriate data builder based on result type.
 	 * 
@@ -111,12 +109,12 @@ public class ChartCageArrayFrame extends IcyFrame {
 		if (genericFrame == null) {
 			throw new IllegalStateException("createMainChartPanel must be called first");
 		}
-		
+
 		// Check if we need to recreate the frame with a different builder
 		// (e.g., if result type changed from capillary to spot or vice versa)
 		// For now, we'll recreate it if the builder type would be different
 		// This is a limitation - ideally the framework would support changing builders
-		
+
 		genericFrame.displayData(exp, resultsOptions);
 	}
 
@@ -128,8 +126,8 @@ public class ChartCageArrayFrame extends IcyFrame {
 	 * @param chartArray     the chart panel array
 	 * @return the appropriate interaction handler
 	 */
-	private ChartInteractionHandler createInteractionHandler(Experiment exp, ResultsOptions resultsOptions, 
-	                                                         ChartCagePair[][] chartArray) {
+	private ChartInteractionHandler createInteractionHandler(Experiment exp, ResultsOptions resultsOptions,
+			ChartCagePair[][] chartArray) {
 		if (isSpotResultType(resultsOptions.resultType)) {
 			return new SpotChartInteractionHandler(exp, resultsOptions, chartArray);
 		} else {
