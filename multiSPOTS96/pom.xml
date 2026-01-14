@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Parent Multi Plugins POM -->
+    <parent>
+        <groupId>plugins.fmp</groupId>
+        <artifactId>multiPlugins</artifactId>
+        <version>2.2.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <!-- Project Information -->
+    <artifactId>multiSPOTS96</artifactId>
+    <version>2.3.0</version>
+    
+    <packaging>jar</packaging>
+
+    <name>MultiSPOTS96</name>
+    <description>This plugin allows measuring how much flies drink from capillaries filled with liquid. Capillaries are defined by the user as polyLine ROIS. We generate kymographs from these ROIs, to detect the liquid level in each capillary across time and export these values to Excel files. Cages and the position of individual flies can also be detected and exported to Excel. No provision is made to detect more than one fly by cage. Each experiment is described by a series of parameters exported along with the measures.</description>
+    <url></url>
+    <inceptionYear>2024</inceptionYear>
+
+    <organization>
+        <name>IDEEV UMR EGCE (CNRS-IRD-Paris-Saclay)</name>
+        <url>https://www.egce.universite-paris-saclay.fr/</url>
+    </organization>
+
+    <licenses>
+        <license>
+            <name>GNU GPLv3</name>
+            <url>https://www.gnu.org/licenses/gpl-3.0.en.html</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>mygithublogin</id>
+            <name>Frederic Marion-Poll</name>
+            <url>https://mywebpage.net</url>
+            <roles>
+                <role>founder</role>
+                <role>lead</role>
+                <role>architect</role>
+                <role>developer</role>
+                <role>debugger</role>
+                <role>tester</role>
+                <role>maintainer</role>
+                <role>support</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <!-- List of project's dependencies -->
+    <dependencies>
+        <!-- Multi Tools shared library -->
+        <dependency>
+            <groupId>plugins.fmp</groupId>
+            <artifactId>multiTools</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        
+		<!-- The core of Icy -->
+		<dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>icy-kernel</artifactId>
+		</dependency>
+		
+        <!-- The EzPlug library, simplifies writing UI for Icy plugins. -->
+        <dependency>
+            <groupId>org.bioimageanalysis.icy</groupId>
+            <artifactId>ezplug</artifactId>
+        </dependency>
+
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>flanagan</artifactId>
+        </dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>vecmath</artifactId>
+        </dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>jfree-common</artifactId>
+        </dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>parallel-colt</artifactId>
+        </dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>javacl</artifactId>
+        </dependency>
+        
+        <dependency>
+        	<groupId>org.apache.poi</groupId>
+        	<artifactId>poi-ooxml</artifactId>
+        </dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>nherve-toolbox</artifactId>
+        </dependency>
+        <dependency>
+			  <groupId>org.bioimageanalysis.icy</groupId>
+			  <artifactId>mask-editor</artifactId>
+		</dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>roi-statistics</artifactId>
+        	</dependency>
+        <dependency>
+        	<groupId>org.apache.commons</groupId>
+        	<artifactId>commons-csv</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.openpnp</groupId>
+            <artifactId>opencv</artifactId>
+        </dependency>
+        <dependency>
+        	<groupId>org.bioimageanalysis.icy</groupId>
+        	<artifactId>xuggler</artifactId>
+        </dependency>
+        
+        <!-- SLF4J for logging -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+        </dependency>
+    </dependencies>
+</project>
