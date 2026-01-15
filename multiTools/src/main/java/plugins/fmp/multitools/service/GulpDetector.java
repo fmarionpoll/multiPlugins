@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.service;
+package plugins.fmp.multiSPOTS96.service;
 
 import java.awt.geom.Point2D;
 import java.io.File;

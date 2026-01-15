@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series;
+package plugins.fmp.multiSPOTS96.series;
 
 /**
  * Interface for progress reporting during series processing.

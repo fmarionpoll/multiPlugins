@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools;
+package plugins.fmp.multiSPOTS96.tools;
 
 import java.util.Comparator;
 

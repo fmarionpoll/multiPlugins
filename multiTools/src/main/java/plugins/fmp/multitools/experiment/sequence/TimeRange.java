@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.sequence;
+package plugins.fmp.multiSPOTS96.experiment.sequence;
 
 /**
  * Immutable data class representing a time range with duration information.

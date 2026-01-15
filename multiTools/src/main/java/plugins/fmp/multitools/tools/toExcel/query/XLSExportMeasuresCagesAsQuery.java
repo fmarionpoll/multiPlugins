@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.toExcel.query;
+package plugins.fmp.multiSPOTS96.tools.toExcel.query;
 
 import java.awt.Point;
 import java.text.SimpleDateFormat;

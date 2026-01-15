@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.imageTransform.transforms;
+package plugins.fmp.multiSPOTS96.tools.imageTransform.transforms;
 
 import java.awt.Dimension;
 

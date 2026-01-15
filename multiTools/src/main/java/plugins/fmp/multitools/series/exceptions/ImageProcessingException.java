@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series.exceptions;
+package plugins.fmp.multiSPOTS96.series.exceptions;
 
 /**
  * Exception for image processing errors. Provides specific error handling for

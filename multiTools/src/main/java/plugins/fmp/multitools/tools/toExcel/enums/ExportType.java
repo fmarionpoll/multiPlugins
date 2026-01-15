@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.toExcel.enums;
+package plugins.fmp.multiSPOTS96.tools.toExcel.enums;
 
 /**
  * Enumeration of export data types for Excel export operations.

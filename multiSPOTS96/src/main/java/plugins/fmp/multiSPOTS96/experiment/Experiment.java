@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment;
+package plugins.fmp.multiSPOTS96.experiment;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;

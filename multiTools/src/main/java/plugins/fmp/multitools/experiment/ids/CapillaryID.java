@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.ids;
+package plugins.fmp.multiSPOTS96.experiment.ids;
 
 import java.util.Objects;
 

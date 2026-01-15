@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.sequence;
+package plugins.fmp.multiSPOTS96.experiment.sequence;
 
 import java.util.Iterator;
 import java.util.List;

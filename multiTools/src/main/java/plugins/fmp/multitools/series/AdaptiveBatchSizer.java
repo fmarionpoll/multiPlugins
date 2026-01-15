@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series;
+package plugins.fmp.multiSPOTS96.series;
 
 /**
  * Adaptive batch sizing based on available memory.

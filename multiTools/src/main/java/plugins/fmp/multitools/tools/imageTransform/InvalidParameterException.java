@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.imageTransform;
+package plugins.fmp.multiSPOTS96.tools.imageTransform;
 
 /**
  * Exception thrown when invalid parameters are provided to a transform.

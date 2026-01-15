@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.toExcel.config;
+package plugins.fmp.multiSPOTS96.tools.toExcel.config;
 
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.results.EnumResults;

@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series;
+package plugins.fmp.multiSPOTS96.series;
 
 import java.awt.Point;
 import java.util.ArrayList;

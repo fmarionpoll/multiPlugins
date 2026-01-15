@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment;
+package plugins.fmp.multiSPOTS96.experiment;
 
 public class BinDescription {
 	private long firstKymoColMs = 0;

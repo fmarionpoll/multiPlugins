@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools;
+package plugins.fmp.multiSPOTS96.tools;
 
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;

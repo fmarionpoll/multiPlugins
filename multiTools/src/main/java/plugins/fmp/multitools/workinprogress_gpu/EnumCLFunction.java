@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.workinprogress_gpu;
+package plugins.fmp.multiSPOTS96.workinprogress_gpu;
 
 public enum EnumCLFunction {
 	MULTIPLY2ARRAYS("Multiply2Arrays"),

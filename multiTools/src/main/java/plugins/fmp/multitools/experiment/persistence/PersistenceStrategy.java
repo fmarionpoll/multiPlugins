@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.persistence;
+package plugins.fmp.multiSPOTS96.experiment.persistence;
 
 /**
  * Common interface for all persistence operations in multiCAFE. Provides a

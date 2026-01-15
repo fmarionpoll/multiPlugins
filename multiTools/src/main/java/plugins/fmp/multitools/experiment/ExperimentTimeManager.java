@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment;
+package plugins.fmp.multiSPOTS96.experiment;
 
 import java.nio.file.attribute.FileTime;
 

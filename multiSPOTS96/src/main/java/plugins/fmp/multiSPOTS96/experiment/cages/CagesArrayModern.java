@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.cages;
+package plugins.fmp.multiSPOTS96.experiment.cages;
 
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;

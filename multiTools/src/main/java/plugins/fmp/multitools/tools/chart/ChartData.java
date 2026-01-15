@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.chart;
+package plugins.fmp.multiSPOTS96.tools.chart;
 
 import org.jfree.data.xy.XYSeriesCollection;
 

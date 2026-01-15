@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.NHDistance;
+package plugins.fmp.multiSPOTS96.tools.NHDistance;
 
 import java.awt.Color;
 

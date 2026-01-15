@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series.options;
+package plugins.fmp.multiSPOTS96.series.options;
 
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 

@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.cages;
+package plugins.fmp.multiSPOTS96.experiment.cages;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;

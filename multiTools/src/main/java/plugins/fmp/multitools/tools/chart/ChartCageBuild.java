@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.chart;
+package plugins.fmp.multiSPOTS96.tools.chart;
 
 import java.awt.BasicStroke;
 import java.awt.Color;

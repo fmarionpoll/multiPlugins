@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.chart.strategies;
+package plugins.fmp.multiSPOTS96.tools.chart.strategies;
 
 import java.awt.LayoutManager;
 

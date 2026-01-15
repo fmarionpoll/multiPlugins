@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.JComponents;
+package plugins.fmp.multiSPOTS96.tools.JComponents;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;

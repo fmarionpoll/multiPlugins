@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.service;
+package plugins.fmp.multiSPOTS96.service;
 
 import java.awt.Rectangle;
 import java.io.File;

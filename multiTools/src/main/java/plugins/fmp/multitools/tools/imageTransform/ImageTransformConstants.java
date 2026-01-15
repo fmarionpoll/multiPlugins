@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.imageTransform;
+package plugins.fmp.multiSPOTS96.tools.imageTransform;
 
 /**
  * Constants used throughout the ImageTransform subsystem.

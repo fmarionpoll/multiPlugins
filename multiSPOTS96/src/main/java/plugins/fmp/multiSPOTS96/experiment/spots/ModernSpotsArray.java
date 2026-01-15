@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.spots;
+package plugins.fmp.multiSPOTS96.experiment.spots;
 
 import java.awt.Rectangle;
 import java.io.IOException;

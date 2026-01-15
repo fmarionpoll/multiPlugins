@@ -14,6 +14,7 @@ import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.resource.icon.IcyIcon;
 import icy.sequence.Sequence;
+import plugins.fmp.multicafe.resource.ResourceUtilFMP;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;

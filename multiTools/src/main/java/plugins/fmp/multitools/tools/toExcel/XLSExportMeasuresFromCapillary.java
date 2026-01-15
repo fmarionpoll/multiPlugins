@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.toExcel;
+package plugins.fmp.multiSPOTS96.tools.toExcel;
 
 import java.awt.Point;
 import java.util.ArrayList;

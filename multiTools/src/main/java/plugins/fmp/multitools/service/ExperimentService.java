@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.service;
+package plugins.fmp.multiSPOTS96.service;
 
 import java.util.List;
 

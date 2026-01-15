@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.JComponents.exceptions;
+package plugins.fmp.multiSPOTS96.tools.JComponents.exceptions;
 
 /**
  * Exception thrown when file dialog operations fail. This includes file

@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.ROI2D;
+package plugins.fmp.multiSPOTS96.tools.ROI2D;
 
 /**
  * Constants and configuration values for ROI2D operations.

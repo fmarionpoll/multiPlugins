@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools.JComponents.exceptions;
+package plugins.fmp.multiSPOTS96.tools.JComponents.exceptions;
 
 /**
  * Base exception class for all JComponent related errors. Provides structured

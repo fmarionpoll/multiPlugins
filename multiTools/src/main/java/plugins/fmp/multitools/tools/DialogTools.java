@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.tools;
+package plugins.fmp.multiSPOTS96.tools;
 
 import java.awt.Component;
 import java.awt.GridBagConstraints;

@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series.exceptions;
+package plugins.fmp.multiSPOTS96.series.exceptions;
 
 /**
  * Base exception for series processing errors. Provides better error handling

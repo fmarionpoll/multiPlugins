@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.series;
+package plugins.fmp.multiSPOTS96.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
