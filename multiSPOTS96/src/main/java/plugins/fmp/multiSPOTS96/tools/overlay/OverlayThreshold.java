@@ -19,9 +19,9 @@ import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceEvent.SequenceEventSourceType;
 import icy.sequence.SequenceEvent.SequenceEventType;
 import icy.sequence.SequenceListener;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 /**
  * Threshold overlay that applies image transformations and thresholding operations

@@ -7,10 +7,10 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.ExperimentDirectories;
-import plugins.fmp.multiSPOTS96.experiment.ExperimentProperties;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.ExperimentProperties;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 
 /**
  * Shared LazyExperiment implementation that can be used across different

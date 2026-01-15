@@ -9,12 +9,12 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import icy.sequence.Sequence;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.GaspardRigidRegistration;
-import plugins.fmp.multiSPOTS96.tools.ViewerFMP;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ROI2DWithMask;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 
 public class BuildSpotsKymos extends BuildSeries {
 	public Sequence seqData = new Sequence();

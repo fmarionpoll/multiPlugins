@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment;
+package plugins.fmp.multitools.experiment;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +17,7 @@ import javax.swing.JOptionPane;
 
 import icy.file.FileUtil;
 import icy.gui.dialog.LoaderDialog;
-import plugins.fmp.multiSPOTS96.tools.Directories;
+import plugins.fmp.multitools.tools.Directories;
 
 public class ExperimentDirectories {
 	private String cameraImagesDirectory = null;

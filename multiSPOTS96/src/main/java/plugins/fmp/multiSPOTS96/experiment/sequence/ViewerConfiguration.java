@@ -1,7 +1,7 @@
-package plugins.fmp.multiSPOTS96.experiment.sequence;
+package plugins.fmp.multitools.experiment.sequence;
 
 import java.awt.Rectangle;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
  * Configuration class for viewer settings and operations.

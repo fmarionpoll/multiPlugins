@@ -28,11 +28,11 @@ import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceEvent.SequenceEventSourceType;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.ExperimentDirectories;
-import plugins.fmp.multiSPOTS96.tools.LazyExperiment;
-import plugins.fmp.multiSPOTS96.tools.LazyExperiment.ExperimentMetadata;
-import plugins.fmp.multiSPOTS96.tools.JComponents.SequenceNameListRenderer;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.tools.LazyExperiment;
+import plugins.fmp.multitools.tools.LazyExperiment.ExperimentMetadata;
+import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
 public class LoadSaveExperiment extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
 
@@ -315,7 +315,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				@Override
 				protected Void doInBackground() throws Exception {
 					for (int i = 0; i < parent0.expListComboLazy.getItemCount(); i++) {
-						plugins.fmp.multiSPOTS96.experiment.Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+						plugins.fmp.multitools.experiment.Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
 						String path = plugins.fmp.multiSPOTS96.tools.DescriptorsIO
 								.getDescriptorsFullName(exp.getResultsDirectory());
 						java.io.File f = new java.io.File(path);

@@ -31,16 +31,16 @@ import icy.sequence.Sequence;
 import icy.type.collection.array.Array1DUtil;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.series.ProcessingResult;
-import plugins.fmp.multiSPOTS96.series.ProgressReporter;
-import plugins.fmp.multiSPOTS96.series.RegistrationOptions;
-import plugins.fmp.multiSPOTS96.series.RegistrationProcessor;
-import plugins.fmp.multiSPOTS96.series.SafeRegistrationProcessor;
-import plugins.fmp.multiSPOTS96.tools.GaspardRigidRegistration;
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.series.ProcessingResult;
+import plugins.fmp.multitools.series.ProgressReporter;
+import plugins.fmp.multitools.series.RegistrationOptions;
+import plugins.fmp.multitools.series.RegistrationProcessor;
+import plugins.fmp.multitools.series.SafeRegistrationProcessor;
+import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class CorrectDrift extends JPanel implements ViewerListener, PropertyChangeListener {
 	/**

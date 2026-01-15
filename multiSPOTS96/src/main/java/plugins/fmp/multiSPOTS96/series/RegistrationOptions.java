@@ -1,6 +1,6 @@
 package plugins.fmp.multiSPOTS96.series;
 
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 /**
  * Configuration options for image registration operations. Encapsulates all

@@ -10,7 +10,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class Options extends JPanel {
 	private static final long serialVersionUID = 6565346204580890307L;

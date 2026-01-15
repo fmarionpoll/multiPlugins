@@ -4,7 +4,7 @@ import java.util.logging.Logger;
 
 import org.jfree.data.xy.XYSeriesCollection;
 
-import plugins.fmp.multiSPOTS96.tools.MaxMinDouble;
+import plugins.fmp.multitools.tools.MaxMinDouble;
 
 /**
  * Container class for chart data including axis ranges and dataset. This class

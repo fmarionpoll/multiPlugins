@@ -32,15 +32,15 @@ import javax.swing.event.ChangeListener;
 import icy.roi.ROI2D;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS96.series.DetectSpotsOutline;
-import plugins.fmp.multiSPOTS96.tools.Comparators;
-import plugins.fmp.multiSPOTS96.tools.canvas2D.Canvas2D_3Transforms;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multiSPOTS96.tools.overlay.OverlayThreshold;
+import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.series.BuildSeriesOptions;
+import plugins.fmp.multitools.series.DetectSpotsOutline;
+import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
 public class DetectSpots extends JPanel implements ChangeListener, PropertyChangeListener {

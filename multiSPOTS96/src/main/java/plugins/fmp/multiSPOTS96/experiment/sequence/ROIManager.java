@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.sequence;
+package plugins.fmp.multitools.experiment.sequence;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,7 +12,7 @@ import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
-import plugins.fmp.multiSPOTS96.tools.Comparators;
+import plugins.fmp.multitools.tools.Comparators;
 
 public class ROIManager {
     private static final Logger LOGGER = Logger.getLogger(ROIManager.class.getName());

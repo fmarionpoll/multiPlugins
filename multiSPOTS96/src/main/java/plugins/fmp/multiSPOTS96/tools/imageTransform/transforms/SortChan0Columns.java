@@ -4,9 +4,9 @@ import java.util.Arrays;
 
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformFunctionAbstract;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class SortChan0Columns extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	@Override

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.sequence;
+package plugins.fmp.multitools.experiment.sequence;
 
 import java.awt.Rectangle;
 import java.lang.reflect.InvocationTargetException;
@@ -7,9 +7,9 @@ import java.util.logging.Logger;
 import javax.swing.SwingUtilities;
 
 import icy.sequence.Sequence;
-import plugins.fmp.multiSPOTS96.tools.ViewerFMP;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multiSPOTS96.tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class ViewerManager {
 	private static final Logger LOGGER = Logger.getLogger(ViewerManager.class.getName());

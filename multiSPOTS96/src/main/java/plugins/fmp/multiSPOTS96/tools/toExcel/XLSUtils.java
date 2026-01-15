@@ -6,7 +6,7 @@ import org.apache.poi.xssf.streaming.SXSSFCell;
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
-import plugins.fmp.multiSPOTS96.experiment.ExperimentProperties;
+import plugins.fmp.multitools.experiment.ExperimentProperties;
 
 public class XLSUtils {
 	public static void setValue(SXSSFSheet sheet, Point pt, boolean transpose, int ivalue) {

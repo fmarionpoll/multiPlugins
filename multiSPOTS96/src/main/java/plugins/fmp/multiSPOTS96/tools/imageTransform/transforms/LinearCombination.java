@@ -3,13 +3,13 @@ package plugins.fmp.multiSPOTS96.tools.imageTransform.transforms;
 import java.util.logging.Logger;
 
 import icy.image.IcyBufferedImage;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.AlgorithmException;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ArrayOperationCache;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformBase;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformConstants;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformException;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.InvalidParameterException;
+import plugins.fmp.multitools.tools.imageTransform.AlgorithmException;
+import plugins.fmp.multitools.tools.imageTransform.ArrayOperationCache;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformBase;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformConstants;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformException;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.InvalidParameterException;
 
 /**
  * Enhanced linear combination transform with improved architecture.

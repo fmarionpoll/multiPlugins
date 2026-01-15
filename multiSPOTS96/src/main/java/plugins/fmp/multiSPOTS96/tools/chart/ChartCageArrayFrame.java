@@ -29,10 +29,10 @@ import icy.gui.util.GuiUtil;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.toExcel.XLSExportOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
 
 /**
  * Chart display class for spot data visualization. This class creates and
@@ -58,9 +58,9 @@ import plugins.fmp.multiSPOTS96.tools.toExcel.XLSExportOptions;
  * 
  * @author MultiSPOTS96
  * @see org.jfree.chart.ChartPanel
- * @see plugins.fmp.multiSPOTS96.experiment.Experiment
- * @see plugins.fmp.multiSPOTS96.experiment.cages.Cage
- * @see plugins.fmp.multiSPOTS96.experiment.spots.Spot
+ * @see plugins.fmp.multitools.experiment.Experiment
+ * @see plugins.fmp.multitools.experiment.cages.Cage
+ * @see plugins.fmp.multitools.experiment.spots.Spot
  */
 public class ChartCageArrayFrame extends IcyFrame {
 

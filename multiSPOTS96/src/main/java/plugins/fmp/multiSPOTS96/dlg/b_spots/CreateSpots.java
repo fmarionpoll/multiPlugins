@@ -19,14 +19,14 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.ExperimentUtils;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.GeometryException;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ROI2DGrid;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ROI2DPolygonPlus;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ProcessingException;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ValidationException;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.tools.ROI2D.GeometryException;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DGrid;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DPolygonPlus;
+import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
+import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class CreateSpots extends JPanel {

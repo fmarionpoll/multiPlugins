@@ -21,10 +21,10 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.FlyPositions;
-import plugins.fmp.multiSPOTS96.tools.MaxMinDouble;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.tools.MaxMinDouble;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
 
 /**
  * Chart display class for fly position data. This class creates and manages
@@ -48,7 +48,7 @@ import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
  * 
  * @author MultiSPOTS96
  * @see org.jfree.chart.ChartPanel
- * @see plugins.fmp.multiSPOTS96.experiment.cages.Cage
+ * @see plugins.fmp.multitools.experiment.cages.Cage
  * @see plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport
  */
 public class ChartFlyPositions extends IcyFrame {

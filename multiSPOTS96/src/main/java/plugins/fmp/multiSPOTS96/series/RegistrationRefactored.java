@@ -2,7 +2,7 @@ package plugins.fmp.multiSPOTS96.series;
 
 import java.util.logging.Logger;
 
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 /**
  * Refactored Registration class following clean code principles.

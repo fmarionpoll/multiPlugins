@@ -23,10 +23,10 @@ import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.CageTable;
-import plugins.fmp.multiSPOTS96.experiment.cages.CagesArray;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.CageTable;
+import plugins.fmp.multitools.experiment.cages.CagesArray;
 
 public class InfosCageTable extends JPanel implements ListSelectionListener {
 	/**

@@ -18,11 +18,11 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.FlyPositions;
-import plugins.fmp.multiSPOTS96.tools.chart.ChartFlyPositions;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.tools.chart.ChartFlyPositions;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
 
 public class PlotFliesPositions extends JPanel implements SequenceListener {
 	/**

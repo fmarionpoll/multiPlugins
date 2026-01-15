@@ -19,14 +19,14 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.CageString;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.chart.ChartCageArrayFrame;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
-import plugins.fmp.multiSPOTS96.tools.toExcel.XLSExportOptions;
-import plugins.fmp.multiSPOTS96.tools.toExcel.XLSExportOptionsBuilder;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.CageString;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.chart.ChartCageArrayFrame;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
+import plugins.fmp.multitools.tools.toExcel.XLSExportOptionsBuilder;
 
 public class Charts extends JPanel implements SequenceListener {
 	/**

@@ -19,9 +19,9 @@ import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
 import icy.system.thread.Processor;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.tools.ViewerFMP;
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 public abstract class BuildSeries extends SwingWorker<Integer, Integer> {

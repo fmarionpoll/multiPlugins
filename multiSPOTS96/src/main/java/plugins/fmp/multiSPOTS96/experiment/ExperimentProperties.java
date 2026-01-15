@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment;
+package plugins.fmp.multitools.experiment;
 
 import java.util.Arrays;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.List;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 
 public class ExperimentProperties {
 

@@ -9,7 +9,7 @@ import org.apache.poi.ss.usermodel.Font;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 
-import plugins.fmp.multiSPOTS96.tools.toExcel.exceptions.ExcelResourceException;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 
 /**
  * Manages Excel resources with proper lifecycle management and cleanup.

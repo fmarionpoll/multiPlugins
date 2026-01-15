@@ -1,6 +1,6 @@
 package plugins.fmp.multiSPOTS96.series;
 
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 /**
  * Test class demonstrating memory-optimized usage of BuildSpotsMeasuresAdvanced.

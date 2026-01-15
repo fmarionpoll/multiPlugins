@@ -6,12 +6,12 @@ import java.util.logging.Logger;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.FlyPosition;
-import plugins.fmp.multiSPOTS96.experiment.cages.FlyPositions;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.toExcel.XLSResults;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.FlyPosition;
+import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.toExcel.XLSResults;
 
 /**
  * Collection of comparator classes for MultiSPOTS96 data structures. This class

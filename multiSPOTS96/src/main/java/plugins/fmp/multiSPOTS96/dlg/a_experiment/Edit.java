@@ -16,10 +16,10 @@ import javax.swing.SwingWorker;
 
 import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.tools.DescriptorsIO;
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.DescriptorsIO;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 
 public class Edit extends JPanel {
 	/**

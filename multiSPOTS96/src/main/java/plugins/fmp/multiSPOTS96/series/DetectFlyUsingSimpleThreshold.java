@@ -5,9 +5,9 @@ import java.util.List;
 
 import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 	public boolean buildBackground = true;

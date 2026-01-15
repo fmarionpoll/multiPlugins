@@ -14,16 +14,16 @@ import icy.image.IcyBufferedImageCursor;
 import icy.sequence.Sequence;
 import icy.system.SystemUtil;
 import icy.system.thread.Processor;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.sequence.SequenceCamData;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.ViewerFMP;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ProcessingException;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ValidationException;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ROI2DWithMask;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
+import plugins.fmp.multitools.tools.ROI2D.ValidationException;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 /**
  * Advanced optimized version of BuildSpotsMeasures with streaming processing,

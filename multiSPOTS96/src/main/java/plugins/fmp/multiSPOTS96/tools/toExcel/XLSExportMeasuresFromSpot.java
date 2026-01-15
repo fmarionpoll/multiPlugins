@@ -4,13 +4,13 @@ import java.awt.Point;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.sequence.ImageLoader;
-import plugins.fmp.multiSPOTS96.experiment.sequence.TimeManager;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multiSPOTS96.tools.toExcel.exceptions.ExcelResourceException;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.sequence.ImageLoader;
+import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 
 /**
  * Excel export implementation for spot measurements. Uses the Template Method

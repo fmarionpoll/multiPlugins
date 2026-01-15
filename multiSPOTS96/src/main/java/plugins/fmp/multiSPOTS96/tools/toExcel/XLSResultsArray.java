@@ -2,9 +2,9 @@ package plugins.fmp.multiSPOTS96.tools.toExcel;
 
 import java.util.ArrayList;
 
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.CagesArray;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.CagesArray;
+import plugins.fmp.multitools.experiment.spots.Spot;
 
 public class XLSResultsArray {
 	ArrayList<XLSResults> resultsList = null;

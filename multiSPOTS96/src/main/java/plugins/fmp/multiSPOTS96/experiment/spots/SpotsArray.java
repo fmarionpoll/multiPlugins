@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.spots;
+package plugins.fmp.multitools.experiment.spots;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -17,8 +17,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.series.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
 
 /**
  * Manages a collection of spots with comprehensive operations and data

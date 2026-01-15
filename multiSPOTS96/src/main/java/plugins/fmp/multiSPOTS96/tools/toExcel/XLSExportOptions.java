@@ -1,6 +1,6 @@
 package plugins.fmp.multiSPOTS96.tools.toExcel;
 
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class XLSExportOptions {
 	public boolean xyImage = true;

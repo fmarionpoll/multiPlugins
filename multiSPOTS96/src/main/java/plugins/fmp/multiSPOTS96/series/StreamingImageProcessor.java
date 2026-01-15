@@ -3,7 +3,7 @@ package plugins.fmp.multiSPOTS96.series;
 import java.util.ArrayList;
 
 import icy.image.IcyBufferedImage;
-import plugins.fmp.multiSPOTS96.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 
 /**
  * Streaming image processor to avoid loading entire stack.

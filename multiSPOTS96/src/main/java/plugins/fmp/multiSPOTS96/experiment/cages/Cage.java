@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.cages;
+package plugins.fmp.multitools.experiment.cages;
 
 import java.awt.Rectangle;
 import java.awt.geom.Ellipse2D;
@@ -17,10 +17,10 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.experiment.spots.SpotString;
-import plugins.fmp.multiSPOTS96.experiment.spots.SpotsArray;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.SpotString;
+import plugins.fmp.multitools.experiment.spots.SpotsArray;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;

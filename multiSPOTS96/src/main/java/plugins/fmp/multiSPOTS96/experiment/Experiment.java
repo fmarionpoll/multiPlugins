@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment;
+package plugins.fmp.multitools.experiment;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
@@ -19,14 +19,14 @@ import icy.image.ImageUtil;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.CagesArray;
-import plugins.fmp.multiSPOTS96.experiment.sequence.ImageLoader;
-import plugins.fmp.multiSPOTS96.experiment.sequence.SequenceCamData;
-import plugins.fmp.multiSPOTS96.experiment.sequence.TimeManager;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.Directories;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.CagesArray;
+import plugins.fmp.multitools.experiment.sequence.ImageLoader;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.Directories;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 
 public class Experiment {
 	public final static String RESULTS = "results";

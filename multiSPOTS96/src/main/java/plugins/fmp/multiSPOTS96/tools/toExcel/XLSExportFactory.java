@@ -1,6 +1,6 @@
 package plugins.fmp.multiSPOTS96.tools.toExcel;
 
-import plugins.fmp.multiSPOTS96.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
 /**
  * Factory class for creating appropriate XLSExport implementations based on

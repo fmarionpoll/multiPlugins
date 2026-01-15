@@ -14,7 +14,7 @@ import javax.swing.SwingConstants;
 import icy.gui.frame.progress.ProgressFrame;
 import icy.gui.util.FontUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class LoadSavePositions extends JPanel {
 	/**

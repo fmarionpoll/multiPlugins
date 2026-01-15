@@ -12,13 +12,13 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.CageProperties;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.experiment.spots.SpotMeasure;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
-import plugins.fmp.multiSPOTS96.tools.toExcel.XLSExportOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.CageProperties;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.SpotMeasure;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
 
 /**
  * Utility class for creating and managing cage charts. This class provides
@@ -47,7 +47,7 @@ import plugins.fmp.multiSPOTS96.tools.toExcel.XLSExportOptions;
  * @author MultiSPOTS96
  * @see org.jfree.chart.plot.XYPlot
  * @see org.jfree.data.xy.XYSeriesCollection
- * @see plugins.fmp.multiSPOTS96.experiment.cages.Cage
+ * @see plugins.fmp.multitools.experiment.cages.Cage
  */
 public class ChartCageBuild {
 

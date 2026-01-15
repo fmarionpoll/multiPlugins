@@ -1,7 +1,7 @@
 package plugins.fmp.multiSPOTS96.tools.toExcel;
 
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multiSPOTS96.tools.toExcel.ExcelExportConstants.DefaultOptions;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.toExcel.ExcelExportConstants.DefaultOptions;
 
 /**
  * Builder pattern implementation for XLSExportOptions. Provides a fluent

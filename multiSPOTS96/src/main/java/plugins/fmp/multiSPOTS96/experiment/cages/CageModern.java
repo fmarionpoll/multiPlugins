@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.cages;
+package plugins.fmp.multitools.experiment.cages;
 
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
@@ -8,9 +8,9 @@ import java.util.logging.Logger;
 
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.experiment.spots.SpotString;
-import plugins.fmp.multiSPOTS96.experiment.spots.SpotsArray;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.SpotString;
+import plugins.fmp.multitools.experiment.spots.SpotsArray;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
 /**

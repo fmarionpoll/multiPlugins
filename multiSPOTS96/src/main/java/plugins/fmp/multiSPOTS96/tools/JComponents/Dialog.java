@@ -8,7 +8,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
 
 import icy.file.FileUtil;
 import icy.gui.dialog.ConfirmDialog;
-import plugins.fmp.multiSPOTS96.tools.JComponents.exceptions.FileDialogException;
+import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 
 /**
  * Utility class for file dialog operations.

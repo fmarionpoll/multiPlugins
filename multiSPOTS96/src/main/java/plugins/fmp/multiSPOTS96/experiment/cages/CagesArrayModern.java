@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.cages;
+package plugins.fmp.multitools.experiment.cages;
 
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
@@ -14,7 +14,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import icy.roi.ROI2D;
-import plugins.fmp.multiSPOTS96.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 
 /**
  * Modern, thread-safe implementation of cages array management with clean code

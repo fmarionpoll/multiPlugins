@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.spots;
+package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Rectangle;
 import java.io.IOException;
@@ -16,8 +16,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import plugins.fmp.multiSPOTS96.experiment.sequence.TIntervalsArray;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.experiment.sequence.TIntervalsArray;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
 
 /**
  * Modern, thread-safe implementation of spots array management with clean code

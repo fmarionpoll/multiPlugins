@@ -12,9 +12,9 @@ import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageUtil;
 import icy.image.ImageUtil;
 import icy.type.geom.Polygon2D;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.tools.GaspardRigidRegistration;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
  * Safe implementation of RegistrationProcessor with proper error handling.

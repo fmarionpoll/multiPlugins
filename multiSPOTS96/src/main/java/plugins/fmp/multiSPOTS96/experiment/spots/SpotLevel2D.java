@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.spots;
+package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Color;
 import java.awt.geom.Point2D;
@@ -8,7 +8,7 @@ import java.util.Objects;
 
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
-import plugins.fmp.multiSPOTS96.tools.polyline.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class SpotLevel2D {

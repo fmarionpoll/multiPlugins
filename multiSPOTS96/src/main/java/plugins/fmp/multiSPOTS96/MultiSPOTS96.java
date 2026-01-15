@@ -17,8 +17,8 @@ import plugins.fmp.multiSPOTS96.dlg.a_experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS96.dlg.b_spots._DlgSpots_;
 import plugins.fmp.multiSPOTS96.dlg.d_spotsMeasures._DlgSpotMeasure_;
 import plugins.fmp.multiSPOTS96.dlg.f_excel._DlgExcel_;
-import plugins.fmp.multiSPOTS96.tools.DescriptorIndex;
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.DescriptorIndex;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS96 extends PluginActionable {
 

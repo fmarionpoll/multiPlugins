@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.resource;
+package plugins.fmp.multiSPOTS96.canvas2D;
 
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 

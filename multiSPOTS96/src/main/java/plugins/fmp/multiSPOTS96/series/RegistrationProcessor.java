@@ -1,7 +1,7 @@
 package plugins.fmp.multiSPOTS96.series;
 
 import icy.image.IcyBufferedImage;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 /**
  * Service interface for image registration operations. Provides abstraction for

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.cages;
+package plugins.fmp.multitools.experiment.cages;
 
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -10,9 +10,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.tools.Comparators;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.Measures;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.ROI2D.Measures;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
 import plugins.kernel.roi.roi2d.ROI2DArea;
 
 public class FlyPositions {

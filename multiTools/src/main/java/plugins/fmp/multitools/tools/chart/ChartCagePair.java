@@ -29,9 +29,6 @@ import plugins.fmp.multitools.experiment.cages.Cage;
  * Cage cageData = pair.getCage();
  * </pre>
  * 
- * @author MultiSPOTS96
- * @see org.jfree.chart.ChartPanel
- * @see plugins.fmp.multiSPOTS96.experiment.cages.Cage
  */
 public class ChartCagePair {
 

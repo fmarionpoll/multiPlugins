@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.sequence;
+package plugins.fmp.multitools.experiment.sequence;
 
 public class TInterval {
 	public long start = -1;

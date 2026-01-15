@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.sequence;
+package plugins.fmp.multitools.experiment.sequence;
 
 import java.awt.Rectangle;
 import java.io.File;
@@ -23,13 +23,13 @@ import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
 import loci.formats.FormatException;
 import ome.xml.meta.OMEXMLMetadata;
-import plugins.fmp.multiSPOTS96.experiment.EnumStatus;
-import plugins.fmp.multiSPOTS96.experiment.ExperimentDirectories;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.cages.CagesArray;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.Comparators;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.Utilities;
+import plugins.fmp.multitools.experiment.EnumStatus;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.CagesArray;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.ROI2D.Utilities;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 /**

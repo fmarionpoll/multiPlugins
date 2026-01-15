@@ -22,9 +22,9 @@ import javax.swing.event.ChangeListener;
 
 import icy.gui.viewer.Viewer;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.ExperimentDirectories;
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxMs;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class Intervals extends JPanel implements ItemListener {
 	/**

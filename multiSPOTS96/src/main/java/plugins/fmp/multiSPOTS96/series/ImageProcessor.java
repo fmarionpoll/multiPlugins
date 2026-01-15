@@ -1,7 +1,7 @@
 package plugins.fmp.multiSPOTS96.series;
 
 import icy.image.IcyBufferedImage;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 /**
  * Service interface for image processing operations.

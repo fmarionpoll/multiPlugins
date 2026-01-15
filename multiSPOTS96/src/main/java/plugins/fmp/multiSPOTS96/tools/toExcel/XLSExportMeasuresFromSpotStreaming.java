@@ -8,12 +8,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import icy.gui.frame.progress.ProgressFrame;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS96.experiment.sequence.TimeManager;
-import plugins.fmp.multiSPOTS96.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS96.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multiSPOTS96.tools.toExcel.exceptions.ExcelResourceException;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 
 /**
  * Ultra-memory-efficient Excel export implementation using streaming and chunked processing.

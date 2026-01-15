@@ -4,7 +4,7 @@ import java.util.logging.Logger;
 
 import org.jfree.chart.ChartPanel;
 
-import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.Cage;
 
 /**
  * Container class that pairs a chart panel with its associated cage. This class
@@ -33,7 +33,7 @@ import plugins.fmp.multiSPOTS96.experiment.cages.Cage;
  * 
  * @author MultiSPOTS96
  * @see org.jfree.chart.ChartPanel
- * @see plugins.fmp.multiSPOTS96.experiment.cages.Cage
+ * @see plugins.fmp.multitools.experiment.cages.Cage
  */
 public class ChartCagePair {
 

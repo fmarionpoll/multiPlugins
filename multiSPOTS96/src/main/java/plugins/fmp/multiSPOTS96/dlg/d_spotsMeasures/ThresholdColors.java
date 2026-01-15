@@ -21,7 +21,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.tools.JComponents.JComboBoxColorRenderer;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxColorRenderer;
 
 public class ThresholdColors extends JPanel implements PropertyChangeListener {
 

@@ -20,8 +20,8 @@ import org.jfree.data.Range;
 
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.experiment.Experiment;
-import plugins.fmp.multiSPOTS96.tools.chart.ChartCageArrayFrame;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.chart.ChartCageArrayFrame;
 
 public class AxisOptions extends JPanel {
 	/**

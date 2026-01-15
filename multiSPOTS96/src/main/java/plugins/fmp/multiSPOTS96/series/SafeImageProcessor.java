@@ -9,7 +9,7 @@ import javax.imageio.ImageIO;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import icy.image.ImageUtil;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 /**
  * Safe implementation of ImageProcessor with proper error handling. Replaces

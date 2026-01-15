@@ -1,6 +1,6 @@
-package plugins.fmp.multiSPOTS96.tools.canvas2D;
+package plugins.fmp.multicafe.canvas2D;
 
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
  * Constants used throughout the Canvas2D subsystem. Centralizes configuration

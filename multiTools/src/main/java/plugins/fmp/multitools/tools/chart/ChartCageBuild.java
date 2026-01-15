@@ -36,10 +36,6 @@ import plugins.fmp.multitools.tools.results.EnumResults;
  * XYPlot plot = chartBuilder.buildXYPlot(data, xAxis, yAxis);
  * </pre>
  * 
- * @author MultiSPOTS96
- * @see org.jfree.chart.plot.XYPlot
- * @see org.jfree.data.xy.XYSeriesCollection
- * @see plugins.fmp.multiSPOTS96.experiment.cages.Cage
  */
 public class ChartCageBuild {
 

@@ -2,7 +2,7 @@ package plugins.fmp.multiSPOTS96.series;
 
 import java.util.Optional;
 
-import plugins.fmp.multiSPOTS96.series.exceptions.SeriesProcessingException;
+import plugins.fmp.multitools.series.exceptions.SeriesProcessingException;
 
 /**
  * Generic processing result that can represent success or failure.

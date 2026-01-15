@@ -5,12 +5,12 @@ import java.awt.Color;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageUtil;
 import icy.type.DataType;
-import plugins.fmp.multiSPOTS96.tools.NHDistance.NHDistanceColor;
-import plugins.fmp.multiSPOTS96.tools.NHDistance.NHDistanceColorL1;
-import plugins.fmp.multiSPOTS96.tools.NHDistance.NHDistanceColorL2;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformFunctionAbstract;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.NHDistance.NHDistanceColor;
+import plugins.fmp.multitools.tools.NHDistance.NHDistanceColorL1;
+import plugins.fmp.multitools.tools.NHDistance.NHDistanceColorL2;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class ThresholdColors extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	@Override

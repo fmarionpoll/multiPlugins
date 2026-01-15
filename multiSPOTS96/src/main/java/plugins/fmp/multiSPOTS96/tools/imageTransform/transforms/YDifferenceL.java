@@ -3,9 +3,9 @@ package plugins.fmp.multiSPOTS96.tools.imageTransform.transforms;
 import icy.image.IcyBufferedImage;
 import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformFunctionAbstract;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class YDifferenceL extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	int spanx = 0;

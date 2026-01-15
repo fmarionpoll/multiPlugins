@@ -1,6 +1,6 @@
 package plugins.fmp.multiSPOTS96.series.options;
 
-import plugins.fmp.multiSPOTS96.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
  * Configuration for image transformation parameters.

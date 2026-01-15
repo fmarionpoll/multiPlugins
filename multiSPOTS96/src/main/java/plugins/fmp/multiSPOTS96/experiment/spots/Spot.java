@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.spots;
+package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Point;
 import java.awt.Rectangle;
@@ -13,10 +13,10 @@ import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.Utilities;
-import plugins.fmp.multiSPOTS96.tools.ROI2D.ROI2DWithMask;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSColumnHeader;
-import plugins.fmp.multiSPOTS96.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.tools.ROI2D.Utilities;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
