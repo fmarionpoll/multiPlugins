@@ -30,8 +30,8 @@ import plugins.fmp.multiSPOTS.experiment.spots.Spot;
 import plugins.fmp.multiSPOTS.experiment.spots.SpotsArray;
 import plugins.fmp.multiSPOTS.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multiSPOTS.tools.polyline.PolygonUtilities;
-import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -60,8 +60,9 @@ public class CreateSpots extends JPanel {
 	private boolean silent = false;
 
 	// Helper methods for multiTools architecture compatibility
-	// These methods provide a bridge between old (spotsArray) and new (getSpots) architectures
-	
+	// These methods provide a bridge between old (spotsArray) and new (getSpots)
+	// architectures
+
 	@SuppressWarnings("unused")
 	private Spots getAllSpots(Experiment exp) {
 		try {
@@ -82,8 +83,8 @@ public class CreateSpots extends JPanel {
 			try {
 				java.lang.reflect.Method getSpotListMethod = cage.getClass().getMethod("getSpotList", Spots.class);
 				@SuppressWarnings("unchecked")
-				java.util.List<plugins.fmp.multitools.experiment.spots.Spot> cageSpots = 
-					(java.util.List<plugins.fmp.multitools.experiment.spots.Spot>) getSpotListMethod.invoke(cage, allSpots);
+				java.util.List<plugins.fmp.multitools.experiment.spots.Spot> cageSpots = (java.util.List<plugins.fmp.multitools.experiment.spots.Spot>) getSpotListMethod
+						.invoke(cage, allSpots);
 				if (cageSpots != null) {
 					for (plugins.fmp.multitools.experiment.spots.Spot spot : cageSpots) {
 						allSpots.removeSpot(spot);
@@ -186,18 +187,18 @@ public class CreateSpots extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-					if (exp != null) {
-						polygon2D = getPolygonEnclosingSpotsFromSelectedRoi(exp);
-						if (polygon2D != null) {
-							createSpotsFromPolygon(exp, polygon2D);
-							ExperimentUtils.transferSpotsToCamDataSequence(exp);
-							int nbFliesPerCage = (int) nFliesPerCageJSpinner.getValue();
-							Spots allSpots = getAllSpots(exp);
-							if (allSpots == null) {
-								exp.spotsArray.initSpotsWithNFlies(nbFliesPerCage);
-							}
+				if (exp != null) {
+					polygon2D = getPolygonEnclosingSpotsFromSelectedRoi(exp);
+					if (polygon2D != null) {
+						createSpotsFromPolygon(exp, polygon2D);
+						ExperimentUtils.transferSpotsToCamDataSequence(exp);
+						int nbFliesPerCage = (int) nFliesPerCageJSpinner.getValue();
+						Spots allSpots = getAllSpots(exp);
+						if (allSpots == null) {
+							exp.spotsArray.initSpotsWithNFlies(nbFliesPerCage);
 						}
 					}
+				}
 			}
 		});
 
@@ -264,7 +265,7 @@ public class CreateSpots extends JPanel {
 			} else if (exp.spotsArray != null && exp.spotsArray.spotsList.size() > 0) {
 				hasSpots = true;
 			}
-			
+
 			if (hasSpots) {
 				if (allSpots != null) {
 					polygon2D = getPolygon2DEnclosingAllSpotsFromMultiTools(exp, allSpots);
@@ -300,7 +301,7 @@ public class CreateSpots extends JPanel {
 
 		int nColumnsPerPlate = exp.spotsArray != null ? exp.spotsArray.nColumnsPerPlate : 12;
 		int nRowsPerPlate = exp.spotsArray != null ? exp.spotsArray.nRowsPerPlate : 8;
-		
+
 		for (plugins.fmp.multitools.experiment.spots.Spot spot : allSpots.getSpotList()) {
 			int col = spot.getProperties().getCagePosition() % nColumnsPerPlate;
 			int row = spot.getProperties().getCagePosition() / nColumnsPerPlate;
@@ -349,7 +350,7 @@ public class CreateSpots extends JPanel {
 		}
 		// erase existing spots
 		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("spot", exp.seqCamData.seq), false);
-		
+
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {
 			allSpots.clearSpotList();
@@ -370,7 +371,7 @@ public class CreateSpots extends JPanel {
 			exp.spotsArray.spotsList.clear();
 			exp.spotsArray = new SpotsArray();
 		}
-		
+
 		Point2D.Double[][] arrayPoints = PolygonUtilities.createArrayOfPointsFromPolygon(polygon2D, n_columns, n_rows);
 		convertPoint2DArrayToSpots(exp, arrayPoints, n_columns, n_rows, radius);
 		updateCageDescriptorsOfSpots(exp);
@@ -427,8 +428,8 @@ public class CreateSpots extends JPanel {
 				ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
 				roiEllipse.setName("spot_" + String.format("%03d", row) + String.format("%03d", column));
 
-				plugins.fmp.multitools.experiment.spots.Spot spot = 
-					new plugins.fmp.multitools.experiment.spots.Spot(roiEllipse);
+				plugins.fmp.multitools.experiment.spots.Spot spot = new plugins.fmp.multitools.experiment.spots.Spot(
+						roiEllipse);
 				spot.getProperties().setSpotRadius(radius);
 				spot.getProperties().setSpotXCoord((int) point.getX());
 				spot.getProperties().setSpotYCoord((int) point.getY());
@@ -449,7 +450,7 @@ public class CreateSpots extends JPanel {
 
 		int nColsPerCage = (int) nColsPerCageJSpinner.getValue();
 		int nRowsPerCage = (int) nRowsPerCageJSpinner.getValue();
-		
+
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {
 			updateCageDescriptorsOfSpotsMultiTools(exp, allSpots, nColsPerCage, nRowsPerCage);

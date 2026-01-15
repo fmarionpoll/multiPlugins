@@ -7,7 +7,7 @@ import javax.swing.JTable;
 import javax.swing.ListSelectionModel;
 import javax.swing.table.TableColumnModel;
 
-import plugins.fmp.multiSPOTS96.MultiSPOTS96;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.TableCellColorEditor;
 import plugins.fmp.multitools.tools.JComponents.TableCellColorRenderer;
 
@@ -21,10 +21,10 @@ public class CageTable extends JTable {
 	Color cellsOrigBackColor;
 	Color cellsOrigForeColor;
 
-	public CageTable(MultiSPOTS96 parent0) {
+	public CageTable(JComboBoxExperimentLazy expListComboLazy) {
 		cellsOrigBackColor = this.getBackground();
 		cellsOrigForeColor = this.getForeground();
-		cageTableModel = new CageTableModel(parent0.expListComboLazy);
+		cageTableModel = new CageTableModel(expListComboLazy);
 		setModel(cageTableModel);
 		setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 

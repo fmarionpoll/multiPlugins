@@ -8,10 +8,10 @@ import java.awt.event.ActionListener;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 
-import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class Infos extends JPanel {
 	/**
@@ -23,11 +23,11 @@ public class Infos extends JPanel {
 	private JButton editSpotsButton = new JButton("Edit spots infos...");
 	private InfosCageTable infosCageTable = null;
 	private InfosSpotTable infosSpotTable = null;
-	private MultiSPOTS96 parent0 = null;
+	private JComboBoxExperimentLazy expListComboLazy = null;
 
-	void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
+	void init(GridLayout gridLayout, JComboBoxExperimentLazy expListComboLazy) {
 		setLayout(gridLayout);
-		this.parent0 = parent0;
+		this.expListComboLazy = expListComboLazy;
 
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
@@ -47,7 +47,7 @@ public class Infos extends JPanel {
 		editCagesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null)
 					editCagesInfos(exp);
 			}
@@ -56,7 +56,7 @@ public class Infos extends JPanel {
 		editSpotsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null)
 					editSpotsInfos(exp);
 			}
@@ -68,7 +68,7 @@ public class Infos extends JPanel {
 			infosCageTable.close();
 		}
 		infosCageTable = new InfosCageTable();
-		infosCageTable.initialize(parent0);
+		infosCageTable.initialize(expListComboLazy);
 		infosCageTable.requestFocus();
 	}
 
@@ -77,17 +77,19 @@ public class Infos extends JPanel {
 			infosSpotTable.close();
 		}
 		infosSpotTable = new InfosSpotTable();
-		infosSpotTable.initialize(parent0);
+		infosSpotTable.initialize(expListComboLazy);
 		infosSpotTable.requestFocus();
 	}
-	
+
 	public void selectCage(Cage cage) {
-		if (infosCageTable == null) return;
-		infosCageTable.selectRowFromCage(cage);		
+		if (infosCageTable == null)
+			return;
+		infosCageTable.selectRowFromCage(cage);
 	}
-	
+
 	public void selectSpot(Spot spot) {
-		if (infosSpotTable == null) return;
-		infosSpotTable.selectRowFromSpot(spot);		
+		if (infosSpotTable == null)
+			return;
+		infosSpotTable.selectRowFromSpot(spot);
 	}
 }

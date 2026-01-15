@@ -23,7 +23,7 @@ import icy.type.geom.Polygon2D;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.ROI2D.Utilities;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -205,7 +205,7 @@ public class EditSpots extends JPanel {
 		}
 		enclosedRois = listRoisSelected.size() > 0 ? listRoisSelected : listRoisPresent;
 
-		Polygon2D polygon = Utilities.getPolygonEnclosingROI2Ds(enclosedRois, selectedRoiType);
+		Polygon2D polygon = ROI2DUtilities.getPolygonEnclosingROI2Ds(enclosedRois, selectedRoiType);
 		roiPerimeter = new ROI2DPolygon(polygon);
 		roiPerimeter.setName("perimeter");
 		roiPerimeter.setColor(Color.YELLOW);
@@ -239,7 +239,7 @@ public class EditSpots extends JPanel {
 		if (enclosedRois.size() > 0) {
 			for (ROI2D roi : enclosedRois) {
 				exp.getSeqCamData().getSequence().removeROI(roi);
-				roi = Utilities.resizeROI(roi, delta);
+				roi = ROI2DUtilities.resizeROI(roi, delta);
 				exp.getSeqCamData().getSequence().addROI(roi);
 			}
 		} else {

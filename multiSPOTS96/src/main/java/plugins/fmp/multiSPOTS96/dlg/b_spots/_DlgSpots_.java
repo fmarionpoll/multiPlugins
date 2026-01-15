@@ -82,7 +82,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 //		id_shape = order;
 //		order++;
 
-		tabInfos.init(gridLayout, parent0);
+		tabInfos.init(gridLayout, parent0.expListComboLazy);
 		tabInfos.addPropertyChangeListener(this);
 		tabbedPane.addTab("Infos", null, tabInfos, "Edit infos");
 		id_infos = order;

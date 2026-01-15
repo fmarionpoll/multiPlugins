@@ -49,8 +49,8 @@ public class LoadSaveSpots extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.load_MS96_cages();
-					exp.transferCagesROI_toSequence();
+					exp.load_cages_description_and_measures();
+					exp.load_spots_description_and_measures();
 					exp.transferSpotsROI_toSequence();
 					firePropertyChange("SPOTS_ROIS_OPEN", false, true);
 				}
@@ -64,7 +64,6 @@ public class LoadSaveSpots extends JPanel {
 				if (exp != null) {
 					exp.saveExperimentDescriptors();
 					exp.saveSpotsArray_file();
-					exp.saveCagesArray_File();
 					firePropertyChange("SPOTS_ROIS_SAVE", false, true);
 				}
 			}

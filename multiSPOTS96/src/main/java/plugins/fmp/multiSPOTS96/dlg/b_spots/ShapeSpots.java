@@ -31,7 +31,8 @@ import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.series.BuildSeriesOptions;
+import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.ROI2D.Measures;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
@@ -122,8 +123,8 @@ public class ShapeSpots extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
-					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-							.getCanvas();
+					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence()
+							.getFirstViewer().getCanvas();
 					updateTransformFunctionsOfCanvas(exp);
 					if (!spotsViewButton.isSelected()) {
 						spotsViewButton.setSelected(true);
@@ -263,12 +264,13 @@ public class ShapeSpots extends JPanel {
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp) {
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
+				.getCanvas();
 		if (canvas.getTransformStep1ItemCount() < (spotsTransformsComboBox.getItemCount() + 1)) {
-			canvas.updateTransformsComboStep1(transforms);
+			canvas.updateTransformsStep1(transforms);
 		}
 		int index = spotsTransformsComboBox.getSelectedIndex();
-		canvas.selectImageTransformFunctionStep1(index + 1, null);
+		canvas.setTransformStep1(index + 1, null);
 	}
 
 	private void detectContours(Experiment exp) {
@@ -284,8 +286,10 @@ public class ShapeSpots extends JPanel {
 		IcyBufferedImage sourceImage = seq.getImage(t, 0);
 		IcyBufferedImage workImage = transformFunction.getTransformedImage(sourceImage, transformOptions);
 		boolean detectSelectedROIs = selectedSpotCheckBox.isSelected();
+		Spots allSpots = exp.getSpots();
+
 		for (Cage cage : exp.getCages().cagesList) {
-			for (Spot spot : cage.spotsArray.getSpotsList()) {
+			for (Spot spot : cage.getSpotList(allSpots)) {
 				ROI2D roi_in = spot.getRoi();
 				if (detectSelectedROIs && !roi_in.isSelected())
 					continue;
@@ -313,8 +317,10 @@ public class ShapeSpots extends JPanel {
 
 	private void restoreContours(Experiment exp) {
 		boolean detectSelectedROIs = selectedSpotCheckBox.isSelected();
+		Spots allSpots = exp.getSpots();
+
 		for (Cage cage : exp.getCages().cagesList) {
-			for (Spot spot : cage.spotsArray.getSpotsList()) {
+			for (Spot spot : cage.getSpotList(allSpots)) {
 				ROI2D roi_in = spot.getRoi();
 				if (detectSelectedROIs && !roi_in.isSelected())
 					continue;
@@ -354,8 +360,9 @@ public class ShapeSpots extends JPanel {
 		if (roi == null)
 			return;
 
+		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
-			for (Spot spot : cage.spotsArray.getSpotsList()) {
+			for (Spot spot : cage.getSpotList(allSpots)) {
 				ROI2D spotRoi = spot.getRoi();
 				try {
 					if (!spotRoi.intersects(roi))

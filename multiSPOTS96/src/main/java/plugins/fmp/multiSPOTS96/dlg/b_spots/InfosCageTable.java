@@ -22,11 +22,12 @@ import javax.swing.table.TableColumnModel;
 import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
-import plugins.fmp.multiSPOTS96.MultiSPOTS96;
+import plugins.fmp.multiSPOTS96.experiment.cages.CageTable;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
-import plugins.fmp.multitools.experiment.cages.CageTable;
-import plugins.fmp.multitools.experiment.cages.CagesArray;
+import plugins.fmp.multitools.experiment.cages.Cages;
+import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class InfosCageTable extends JPanel implements ListSelectionListener {
 	/**
@@ -40,15 +41,14 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	private JButton selectedCageButton = new JButton("Locate selected cage");
 
 	private JButton duplicateAllButton = new JButton("Cage to all");
-	private MultiSPOTS96 parent0 = null;
-	private CagesArray cagesArrayCopy = null;
+	private JComboBoxExperimentLazy expListComboLazy = null;
+	private Cages cagesArrayCopy = null;
 
 	// -------------------------
 
-	public void initialize(MultiSPOTS96 parent0) {
-		this.parent0 = parent0;
-
-		cageTable = new CageTable(parent0);
+	public void initialize(JComboBoxExperimentLazy expListComboLazy) {
+		this.expListComboLazy = expListComboLazy;
+		cageTable = new CageTable(expListComboLazy);
 		cageTable.setPreferredScrollableViewportSize(new Dimension(500, 400));
 		cageTable.setFillsViewportHeight(true);
 		TableColumnModel columnModel = cageTable.getColumnModel();
@@ -91,7 +91,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		copyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					cagesArrayCopy = exp.getCages();
 					pasteButton.setEnabled(true);
@@ -102,7 +102,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		pasteButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					for (Cage cageFrom : cagesArrayCopy.cagesList) {
 						cageFrom.valid = false;
@@ -121,7 +121,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		duplicateAllButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int rowIndex = cageTable.getSelectedRow();
 					int columnIndex = cageTable.getSelectedColumn();
@@ -139,11 +139,12 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		selectedCageButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					ArrayList<ROI> roiList = exp.getSeqCamData().getSequence().getSelectedROIs();
 					if (roiList.size() > 0) {
 						Cage cage = null;
+						Spots allSpots = exp.getSpots();
 						for (ROI roi : roiList) {
 							String name = roi.getName();
 							if (name.contains("cage")) {
@@ -151,7 +152,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 								break;
 							}
 							if (name.contains("spot")) {
-								cage = exp.getCages().getCageFromSpotROIName(name);
+								cage = exp.getCages().getCageFromSpotROIName(name, allSpots);
 								break;
 							}
 						}
@@ -169,7 +170,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 
 	public void close() {
 		dialogFrame.close();
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			exp.saveSpotsArray_file();
 		}
@@ -183,7 +184,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	}
 
 	void selectCage(int cageID) {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			Cage cage = exp.getCages().getCageFromID(cageID);
 			ROI2D roi = cage.getRoi();

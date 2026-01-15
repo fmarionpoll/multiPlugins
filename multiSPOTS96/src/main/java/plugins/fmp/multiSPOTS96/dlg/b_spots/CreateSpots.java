@@ -9,6 +9,7 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -22,6 +23,8 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
 import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.ROI2D.GeometryException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DGrid;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DPolygonPlus;
@@ -145,17 +148,24 @@ public class CreateSpots extends JPanel {
 
 	private void createSpotsForAllCages(Experiment exp, ROI2DGrid roiGrid, Point2D.Double referenceCagePosition) {
 		ArrayList<ROI2DPolygonPlus> listSelectedAreas = roiGrid.getSelectedAreaRois();
+		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
 			ROI2D cageRoi = cage.getRoi();
 			ROI2DGrid cageGrid = createGrid(cageRoi);
-			cage.spotsArray.getSpotsList().clear();
+			
+			List<Spot> cageSpots = cage.getSpotList(allSpots);
+			for (Spot spot : cageSpots) {
+				allSpots.removeSpot(spot);
+			}
+			cage.getSpotIDs().clear();
+			
 			for (ROI2DPolygonPlus roi : listSelectedAreas) {
 				try {
 					ROI2DPolygonPlus roiP = cageGrid.getAreaAt(roi.getCagePosition());
 					Rectangle2D rect = roiP.getBounds2D();
 					Point2D.Double center = (Double) roiP.getPosition2D();
 					int radius = (int) (rect.getHeight() / 2);
-					cage.addEllipseSpot(center, radius);
+					cage.addEllipseSpot(center, radius, allSpots);
 				} catch (ValidationException e) {
 					System.err
 							.println("Error getting area at position " + roi.getCagePosition() + ": " + e.getMessage());
