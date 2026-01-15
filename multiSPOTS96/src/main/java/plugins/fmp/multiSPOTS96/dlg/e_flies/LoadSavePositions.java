@@ -72,10 +72,8 @@ public class LoadSavePositions extends JPanel {
 		if (exp == null)
 			return false;
 		ProgressFrame progress = new ProgressFrame("load fly positions");
-		boolean flag = exp.load_MS96_fliesPositions();
+		boolean flag = exp.loadCagesMeasures();
 		if (flag) {
-//			parent0.paneCages.tabGraphics.moveCheckbox.setEnabled(true);
-//			parent0.paneCages.tabGraphics.displayResultsButton.setEnabled(true);
 			exp.updateROIsAt(0);
 		}
 		progress.close();
@@ -84,7 +82,8 @@ public class LoadSavePositions extends JPanel {
 
 	public void saveMeasures(Experiment exp) {
 		if (exp != null) {
-			exp.save_MS96_fliesPositions();
+			exp.getCages().updateCagesFromSequence(exp.getSeqCamData());
+			exp.saveCagesMeasures();
 		}
 	}
 }

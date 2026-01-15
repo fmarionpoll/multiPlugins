@@ -28,7 +28,7 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildBackground;
-import plugins.fmp.multitools.series.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -166,7 +166,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		if (exp != null) {
 			boolean flag = exp.loadReferenceImage();
 			if (flag) {
-				Viewer v = new Viewer(exp.seqReference, true);
+				Viewer v = new Viewer(exp.getSeqReference(), true);
 				Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBoundsInternal();
 				v.setBounds(rectv);
 			} else {

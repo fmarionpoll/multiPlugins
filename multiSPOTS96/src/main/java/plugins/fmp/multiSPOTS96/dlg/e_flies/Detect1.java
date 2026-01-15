@@ -28,8 +28,8 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.series.BuildSeriesOptions;
-import plugins.fmp.multitools.series.DetectFlyUsingSimpleThreshold;
+import plugins.fmp.multitools.series.FlyDetect1;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -67,7 +67,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private OverlayThreshold overlayThreshold1 = null;
-	private DetectFlyUsingSimpleThreshold flyDetect1 = null;
+	private FlyDetect1 flyDetect1 = null;
 
 	// -----------------------------------------------------
 
@@ -172,7 +172,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		seqCamData.getSequence().addOverlay(overlayThreshold1);
 		boolean ifGreater = true;
 		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
-		overlayThreshold1.setThresholdSingle(exp.getCages().detect_threshold, transformOp, ifGreater);
+		overlayThreshold1.setThresholdSingle(exp.getCages().getDetect_threshold(), transformOp, ifGreater);
 		overlayThreshold1.painterChanged();
 	}
 
@@ -186,13 +186,13 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		if (e.getSource() == thresholdSpinner) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-				exp.getCages().detect_threshold = (int) thresholdSpinner.getValue();
+				exp.getCages().setDetect_threshold((int) thresholdSpinner.getValue());
 				updateOverlay(exp);
 			}
 		}
 	}
 
-	private BuildSeriesOptions initTrackParameters() {
+	private BuildSeriesOptions initTrackParameters(Experiment exp) {
 		BuildSeriesOptions options = new BuildSeriesOptions();
 		options.expList = parent0.expListComboLazy;
 		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
@@ -200,7 +200,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
-//		parent0.paneKymos.tabDisplay.indexImagesCombo = parent0.paneKymos.tabDisplay.kymographsCombo.getSelectedIndex();
 
 		options.btrackWhite = whiteObjectCheckBox.isSelected();
 		options.blimitLow = objectLowsizeCheckBox.isSelected();
@@ -209,7 +208,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.limitUp = (int) objectUpsizeSpinner.getValue();
 		options.limitRatio = (int) limitRatioSpinner.getValue();
 		options.jitter = (int) jitterTextField.getValue();
-		options.videoChannel = 0; // colorChannelComboBox.getSelectedIndex();
+		options.videoChannel = 0;
 		options.transformop = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		options.nFliesPresent = (int) nFliesPresentSpinner.getValue();
 
@@ -222,6 +221,9 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.t_Ms_BinDuration = parent0.dlgExcel.tabCommonOptions.getBinMs();
 
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
+		if (exp != null) {
+			options.binSubDirectory = exp.getBinSubDirectory();
+		}
 		options.detectCage = allCagesComboBox.getSelectedIndex() - 1;
 
 		return options;
@@ -233,8 +235,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			return;
 		parent0.dlgBrowse.loadSaveExperiment.closeViewsForCurrentExperiment(exp);
 
-		flyDetect1 = new DetectFlyUsingSimpleThreshold();
-		flyDetect1.options = initTrackParameters();
+		flyDetect1 = new FlyDetect1();
+		flyDetect1.options = initTrackParameters(exp);
 		flyDetect1.stopFlag = false;
 		flyDetect1.buildBackground = false;
 		flyDetect1.detectFlies = true;
@@ -263,12 +265,15 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		int nitems = 1;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null)
-			nitems = exp.getCages().cagesList.size() + 1;
+			nitems = exp.getCages().getCageList().size() + 1;
 		if (allCagesComboBox.getItemCount() != nitems) {
 			allCagesComboBox.removeAllItems();
 			allCagesComboBox.addItem("all cages");
-			for (Cage cage : exp.getCages().cagesList)
-				allCagesComboBox.addItem(cage.getCageNumberFromRoiName());
+			if (exp != null) {
+				for (Cage cage : exp.getCages().getCageList()) {
+					allCagesComboBox.addItem(cage.getCageNumberFromRoiName());
+				}
+			}
 		}
 	}
 

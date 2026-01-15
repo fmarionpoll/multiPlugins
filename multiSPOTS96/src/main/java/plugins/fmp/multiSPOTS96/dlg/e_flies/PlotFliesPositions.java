@@ -21,8 +21,8 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.cages.FlyPositions;
-import plugins.fmp.multitools.tools.chart.ChartFlyPositions;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
+import plugins.fmp.multitools.tools.chart.ChartPositions;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 public class PlotFliesPositions extends JPanel implements SequenceListener {
 	/**
@@ -30,10 +30,10 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 	 */
 	private static final long serialVersionUID = -7079184380174992501L;
 
-	private ChartFlyPositions ypositionsChart = null;
-	private ChartFlyPositions distanceChart = null;
-	private ChartFlyPositions aliveChart = null;
-	private ChartFlyPositions sleepChart = null;
+	private ChartPositions ypositionsChart = null;
+	private ChartPositions distanceChart = null;
+	private ChartPositions aliveChart = null;
+	private ChartPositions sleepChart = null;
 	private MultiSPOTS96 parent0 = null;
 
 	public JCheckBox moveCheckbox = new JCheckBox("y position", true);
@@ -88,60 +88,66 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		exp.getSeqCamData().getSequence().addListener(this);
 
 		if (moveCheckbox.isSelected()) {
-			displayYPos("flies Y positions", ypositionsChart, rectv, ptRelative, exp, EnumXLSExport.XYTOPCAGE);
+			ypositionsChart = plotYToChart("flies Y positions", ypositionsChart, rectv, ptRelative, exp, EnumResults.XYTOPCAGE);
 			ptRelative.y += deltay;
-		}
+		} else if (ypositionsChart != null)
+			ypositionsChart = closeChart(ypositionsChart);
 
 		if (distanceCheckbox.isSelected()) {
-			displayYPos("distance between positions at t+1 and t", distanceChart, rectv, ptRelative, exp,
-					EnumXLSExport.DISTANCE);
+			distanceChart = plotYToChart("distance between positions at t+1 and t", distanceChart, rectv, ptRelative, exp,
+					EnumResults.DISTANCE);
 			ptRelative.y += deltay;
-		}
+		} else if (distanceChart != null)
+			distanceChart = closeChart(distanceChart);
 
 		if (aliveCheckbox.isSelected()) {
 			double threshold = (double) aliveThresholdSpinner.getValue();
-			for (Cage cage : exp.getCages().cagesList) {
-				FlyPositions posSeries = cage.flyPositions;
-				posSeries.moveThreshold = threshold;
+			for (Cage cage : exp.getCages().getCageList()) {
+				FlyPositions posSeries = cage.getFlyPositions();
+				posSeries.setMoveThreshold(threshold);
 				posSeries.computeIsAlive();
 			}
-			displayYPos("flies alive", aliveChart, rectv, ptRelative, exp, EnumXLSExport.ISALIVE);
+			aliveChart = plotYToChart("flies alive", aliveChart, rectv, ptRelative, exp, EnumResults.ISALIVE);
 			ptRelative.y += deltay;
-		}
+		} else if (aliveChart != null)
+			aliveChart = closeChart(aliveChart);
 
 		if (sleepCheckbox.isSelected()) {
-			for (Cage cage : exp.getCages().cagesList) {
-				FlyPositions posSeries = cage.flyPositions;
+			for (Cage cage : exp.getCages().getCageList()) {
+				FlyPositions posSeries = cage.getFlyPositions();
 				posSeries.computeSleep();
 			}
-			displayYPos("flies asleep", sleepChart, rectv, ptRelative, exp, EnumXLSExport.SLEEP);
+			sleepChart = plotYToChart("flies asleep", sleepChart, rectv, ptRelative, exp, EnumResults.SLEEP);
 			ptRelative.y += deltay;
-		}
+		} else if (sleepChart != null)
+			sleepChart = closeChart(sleepChart);
 	}
 
-	private void displayYPos(String title, ChartFlyPositions iChart, Rectangle rectv, Point ptRelative, Experiment exp,
-			EnumXLSExport option) {
-		if (iChart == null || !iChart.getMainChartPanel().isValid()) {
-			iChart = new ChartFlyPositions();
-			iChart.createPanel(title);
-			iChart.setLocationRelativeToPoint(new Point(rectv.x, rectv.y), ptRelative);
-		}
-		iChart.displayData(exp.getCages().cagesList, option);
+	private ChartPositions plotYToChart(String title, ChartPositions iChart, Rectangle rectv, Point ptRelative,
+			Experiment exp, EnumResults resultType) {
+		if (iChart != null)
+			iChart.mainChartFrame.dispose();
+
+		iChart = new ChartPositions();
+		iChart.createPanel(title);
+		iChart.setLocationRelativeToRectangle(rectv, ptRelative);
+		iChart.displayData(exp.getCages().getCageList(), resultType);
 		iChart.mainChartFrame.toFront();
+		iChart.mainChartFrame.requestFocus();
+		return iChart;
 	}
 
 	public void closeAllCharts() {
-		close(ypositionsChart);
-		close(distanceChart);
-		close(aliveChart);
-		close(sleepChart);
+		ypositionsChart = closeChart(ypositionsChart);
+		distanceChart = closeChart(distanceChart);
+		aliveChart = closeChart(aliveChart);
+		sleepChart = closeChart(sleepChart);
 	}
 
-	private void close(ChartFlyPositions chart) {
-		if (chart != null) {
-			chart.mainChartFrame.close();
-			chart = null;
-		}
+	private ChartPositions closeChart(ChartPositions chart) {
+		if (chart != null)
+			chart.mainChartFrame.dispose();
+		return null;
 	}
 
 	@Override
