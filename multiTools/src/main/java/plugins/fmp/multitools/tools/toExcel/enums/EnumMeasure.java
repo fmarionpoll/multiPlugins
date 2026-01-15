@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.toExcel.enums;
+package plugins.fmp.multitools.tools.toExcel.enums;
 
 public enum EnumMeasure {
 	TS("t", "s"), TI("i", "n"), X("x", "mm"), Y("y", "mm"), W("w", "mm"), H("h", "mm"), ALIVE("alive", "0/1"),

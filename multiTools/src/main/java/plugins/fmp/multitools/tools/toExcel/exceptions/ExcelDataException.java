@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.toExcel.exceptions;
+package plugins.fmp.multitools.tools.toExcel.exceptions;
 
 /**
  * Exception thrown when Excel export encounters data processing issues. This

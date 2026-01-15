@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.series;
+package plugins.fmp.multitools.series;
 
 import java.awt.Point;
 import java.lang.reflect.InvocationTargetException;

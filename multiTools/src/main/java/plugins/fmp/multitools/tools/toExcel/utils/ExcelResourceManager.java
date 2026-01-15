@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.toExcel.utils;
+package plugins.fmp.multitools.tools.toExcel.utils;
 
 import java.io.FileOutputStream;
 import java.io.IOException;

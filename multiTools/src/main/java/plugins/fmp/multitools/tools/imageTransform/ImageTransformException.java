@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.imageTransform;
+package plugins.fmp.multitools.tools.imageTransform;
 
 /**
  * Base exception class for all image transformation errors.

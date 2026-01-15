@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools;
+package plugins.fmp.multitools.tools;
 
 import java.io.File;
 import java.io.IOException;

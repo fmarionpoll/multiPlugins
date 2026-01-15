@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.results;
+package plugins.fmp.multitools.tools.results;
 
 /**
  * Specific accessor methods for stored measurement data.

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.ROI2D;
+package plugins.fmp.multitools.tools.ROI2D;
 
 /**
  * Base exception class for ROI2D operations. Provides a foundation for specific

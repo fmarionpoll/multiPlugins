@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools;
+package plugins.fmp.multitools.tools;
 
 /**
  * Utility class for tracking minimum and maximum double values. This class

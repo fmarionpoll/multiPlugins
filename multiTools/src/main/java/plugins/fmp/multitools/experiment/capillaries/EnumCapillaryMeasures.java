@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.capillaries;
+package plugins.fmp.multitools.experiment.capillaries;
 
 public enum EnumCapillaryMeasures {
 	TOPRAW("TOPRAW", "top capillary limit relative to tO"), //

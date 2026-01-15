@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.series;
+package plugins.fmp.multitools.series;
 
 import icy.image.IcyBufferedImageUtil;
 import plugins.fmp.multitools.experiment.Experiment;

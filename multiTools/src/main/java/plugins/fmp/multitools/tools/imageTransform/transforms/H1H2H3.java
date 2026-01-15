@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.imageTransform.transforms;
+package plugins.fmp.multitools.tools.imageTransform.transforms;
 
 import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;

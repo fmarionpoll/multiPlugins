@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.toExcel.enums;
+package plugins.fmp.multitools.tools.toExcel.enums;
 
 import java.util.Arrays;
 import java.util.Map;

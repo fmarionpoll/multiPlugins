@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.NHDistance;
+package plugins.fmp.multitools.tools.NHDistance;
 
 /**
  * The Interface Distance. author Nicolas HERVE

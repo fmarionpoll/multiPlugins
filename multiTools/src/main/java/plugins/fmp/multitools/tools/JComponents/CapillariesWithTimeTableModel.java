@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.JComponents;
+package plugins.fmp.multitools.tools.JComponents;
 
 import java.util.ArrayList;
 

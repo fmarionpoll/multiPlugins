@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.capillaries;
+package plugins.fmp.multitools.experiment.capillaries;
 
 import org.w3c.dom.Node;
 

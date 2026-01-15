@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.imageTransform;
+package plugins.fmp.multitools.tools.imageTransform;
 
 import java.awt.Color;
 import java.util.ArrayList;

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.series.options;
+package plugins.fmp.multitools.series.options;
 
 import java.util.ArrayList;
 import java.util.Collections;

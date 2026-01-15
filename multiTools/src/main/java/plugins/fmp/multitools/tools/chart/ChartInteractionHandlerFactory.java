@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.chart;
+package plugins.fmp.multitools.tools.chart;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.results.ResultsOptions;

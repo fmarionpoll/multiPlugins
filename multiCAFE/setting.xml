@@ -135,6 +135,7 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
+<key name="lastUploadDate" value="1768460233512"/>
 </section>
 <section name="plugins">
 <section name="fmp">

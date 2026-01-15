@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.capillaries.computations;
+package plugins.fmp.multitools.experiment.capillaries.computations;
 
 import java.util.ArrayList;
 

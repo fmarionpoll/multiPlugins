@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.ROI2D;
+package plugins.fmp.multitools.tools.ROI2D;
 
 import java.awt.geom.Point2D;
 import java.util.List;

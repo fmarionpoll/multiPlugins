@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment;
+package plugins.fmp.multitools.experiment;
 
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;

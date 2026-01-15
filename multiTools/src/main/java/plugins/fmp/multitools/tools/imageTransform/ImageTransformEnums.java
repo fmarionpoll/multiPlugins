@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.imageTransform;
+package plugins.fmp.multitools.tools.imageTransform;
 
 import plugins.fmp.multitools.tools.imageTransform.transforms.Deriche;
 import plugins.fmp.multitools.tools.imageTransform.transforms.H1H2H3;

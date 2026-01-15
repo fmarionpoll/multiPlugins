@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.chart;
+package plugins.fmp.multitools.tools.chart;
 
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;

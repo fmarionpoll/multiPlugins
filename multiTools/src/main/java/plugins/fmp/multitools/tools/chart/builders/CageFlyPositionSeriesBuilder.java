@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.chart.builders;
+package plugins.fmp.multitools.tools.chart.builders;
 
 import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;

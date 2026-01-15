@@ -6,7 +6,7 @@
 <item classname="plugins.adufour.activecontours.ActiveContours" priority="low"/>
 <item classname="plugins.vannary.morphomaths.AnalyzeSkeleton" priority="low"/>
 <item classname="plugins.fmp.multicafe.viewer1D.Chart1DCanvas" priority="low"/>
-<item classname="plugins.fmp.multitools.fmp_tools.imageTransform.transforms.ChessboardImage" priority="low"/>
+<item classname="plugins.fmp.multitools.tools.imageTransform.transforms.ChessboardImage" priority="low"/>
 <item classname="plugins.vannary.morphomaths.blocks.ClosingBinary" priority="low"/>
 <item classname="plugins.adufour.connectedcomponents.ConnectedComponents" priority="low"/>
 <item classname="plugins.adufour.roi.Convexify" priority="low"/>

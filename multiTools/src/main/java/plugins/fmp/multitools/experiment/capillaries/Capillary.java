@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.capillaries;
+package plugins.fmp.multitools.experiment.capillaries;
 
 import java.awt.Color;
 import java.awt.geom.Line2D;

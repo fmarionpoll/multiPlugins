@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.JComponents.exceptions;
+package plugins.fmp.multitools.tools.JComponents.exceptions;
 
 /**
  * Exception thrown when experiment processing operations fail. This includes

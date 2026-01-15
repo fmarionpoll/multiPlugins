@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.ROI2D;
+package plugins.fmp.multitools.tools.ROI2D;
 
 import java.awt.Polygon;
 import java.awt.Rectangle;

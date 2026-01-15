@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.cages;
+package plugins.fmp.multitools.experiment.cages;
 
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spots.Spots;

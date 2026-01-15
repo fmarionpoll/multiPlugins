@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.spots;
+package plugins.fmp.multitools.experiment.spots;
 
 public enum EnumSpotMeasures {
 	SPOTS_DESCRIPTION("DESCRIPTION", "experiment description fields"), //

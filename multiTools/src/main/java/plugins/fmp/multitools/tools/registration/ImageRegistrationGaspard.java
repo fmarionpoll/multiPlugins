@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.registration;
+package plugins.fmp.multitools.tools.registration;
 
 import java.io.File;
 

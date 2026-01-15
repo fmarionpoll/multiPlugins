@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.series;
+package plugins.fmp.multitools.series;
 
 public class ResultsThreshold {
 	double sumOverThreshold = 0.;

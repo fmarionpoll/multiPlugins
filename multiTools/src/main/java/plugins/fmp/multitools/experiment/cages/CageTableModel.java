@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.cages;
+package plugins.fmp.multitools.experiment.cages;
 
 import java.awt.Color;
 

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.spots;
+package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Point;
 import java.awt.Rectangle;

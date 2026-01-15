@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.polyline;
+package plugins.fmp.multitools.tools.polyline;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;

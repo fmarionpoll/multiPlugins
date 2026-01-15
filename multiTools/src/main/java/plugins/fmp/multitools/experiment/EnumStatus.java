@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment;
+package plugins.fmp.multitools.experiment;
 
 public enum EnumStatus {
 	AVIFILE, FILESTACK, REGULAR, KYMOGRAPH, FAILURE

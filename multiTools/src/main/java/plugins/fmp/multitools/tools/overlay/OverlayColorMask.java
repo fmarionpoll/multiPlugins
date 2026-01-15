@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools.overlay;
+package plugins.fmp.multitools.tools.overlay;
 
 import java.awt.Color;
 

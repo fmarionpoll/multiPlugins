@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.capillaries;
+package plugins.fmp.multitools.experiment.capillaries;
 
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;

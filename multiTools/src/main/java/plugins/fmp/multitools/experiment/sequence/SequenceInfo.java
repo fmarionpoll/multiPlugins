@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.experiment.sequence;
+package plugins.fmp.multitools.experiment.sequence;
 
 import plugins.fmp.multitools.experiment.EnumStatus;
 
