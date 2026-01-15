@@ -18,10 +18,13 @@ import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.Range;
 
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
+
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
+import plugins.fmp.multiSPOTS96.tools.chart.ChartCageArrayFrame;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.chart.ChartCageArrayFrame;
+import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 
 public class AxisOptions extends JPanel {
 	/**
@@ -31,6 +34,7 @@ public class AxisOptions extends JPanel {
 	IcyFrame dialogFrame = null;
 	private MultiSPOTS96 parent0 = null;
 	private ChartCageArrayFrame chartCageArrayFrame = null;
+	private ChartCagesFrame chartCagesFrame = null;
 	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 255., 1.));
 	private JSpinner upperXSpinner = new JSpinner(new SpinnerNumberModel(120., 0., 255., 1.));
 	private JSpinner lowerYSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 255., 1.));
@@ -41,6 +45,13 @@ public class AxisOptions extends JPanel {
 	public void initialize(MultiSPOTS96 parent0, ChartCageArrayFrame chartSpots) {
 		this.parent0 = parent0;
 		this.chartCageArrayFrame = chartSpots;
+		this.chartCagesFrame = null;
+	}
+
+	public void initialize(MultiSPOTS96 parent0, ChartCagesFrame chartSpots) {
+		this.parent0 = parent0;
+		this.chartCageArrayFrame = null;
+		this.chartCagesFrame = chartSpots;
 
 		JPanel topPanel = new JPanel(new GridLayout(2, 1));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
@@ -103,6 +114,14 @@ public class AxisOptions extends JPanel {
 	}
 
 	private void collectValuesFromAllCharts() {
+		if (chartCageArrayFrame != null) {
+			collectValuesFromChartCageArrayFrame();
+		} else if (chartCagesFrame != null) {
+			collectValuesFromChartCagesFrame();
+		}
+	}
+
+	private void collectValuesFromChartCageArrayFrame() {
 		int nrows = chartCageArrayFrame.chartPanelArray.length;
 		int ncolumns = chartCageArrayFrame.chartPanelArray[0].length;
 		chartCageArrayFrame.setXRange(null);
@@ -136,7 +155,55 @@ public class AxisOptions extends JPanel {
 		}
 	}
 
+	private void collectValuesFromChartCagesFrame() {
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
+		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0)
+			return;
+
+		int nrows = chartPanelArray.length;
+		int ncolumns = chartPanelArray[0].length;
+		chartCagesFrame.setXRange(null);
+		chartCagesFrame.setYRange(null);
+
+		for (int column = 0; column < ncolumns; column++) {
+			for (int row = 0; row < nrows; row++) {
+				ChartPanel chartPanel = chartPanelArray[row][column] != null
+						? chartPanelArray[row][column].getChartPanel()
+						: null;
+				if (chartPanel == null)
+					continue;
+				XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+				if (plot == null)
+					continue;
+				ValueAxis xAxis = plot.getDomainAxis();
+				ValueAxis yAxis = plot.getRangeAxis();
+
+				if (xAxis != null)
+					chartCagesFrame.setXRange(Range.combine(chartCagesFrame.getXRange(), xAxis.getRange()));
+				if (yAxis != null)
+					chartCagesFrame.setYRange(Range.combine(chartCagesFrame.getYRange(), yAxis.getRange()));
+			}
+		}
+
+		if (chartCagesFrame.getXRange() != null) {
+			lowerXSpinner.setValue(chartCagesFrame.getXRange().getLowerBound());
+			upperXSpinner.setValue(chartCagesFrame.getXRange().getUpperBound());
+		}
+		if (chartCagesFrame.getYRange() != null) {
+			lowerYSpinner.setValue(chartCagesFrame.getYRange().getLowerBound());
+			upperYSpinner.setValue(chartCagesFrame.getYRange().getUpperBound());
+		}
+	}
+
 	private void updateXAxis() {
+		if (chartCageArrayFrame != null) {
+			updateXAxisChartCageArrayFrame();
+		} else if (chartCagesFrame != null) {
+			updateXAxisChartCagesFrame();
+		}
+	}
+
+	private void updateXAxisChartCageArrayFrame() {
 		int nrows = chartCageArrayFrame.chartPanelArray.length;
 		int ncolumns = chartCageArrayFrame.chartPanelArray[0].length;
 
@@ -155,7 +222,40 @@ public class AxisOptions extends JPanel {
 		}
 	}
 
+	private void updateXAxisChartCagesFrame() {
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
+		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0)
+			return;
+
+		int nrows = chartPanelArray.length;
+		int ncolumns = chartPanelArray[0].length;
+
+		double upper = (double) upperXSpinner.getValue();
+		double lower = (double) lowerXSpinner.getValue();
+		for (int column = 0; column < ncolumns; column++) {
+			for (int row = 0; row < nrows; row++) {
+				ChartPanel chartPanel = chartPanelArray[row][column] != null
+						? chartPanelArray[row][column].getChartPanel()
+						: null;
+				if (chartPanel == null)
+					continue;
+				XYPlot xyPlot = (XYPlot) chartPanel.getChart().getPlot();
+				NumberAxis xAxis = (NumberAxis) xyPlot.getDomainAxis();
+				xAxis.setAutoRange(false);
+				xAxis.setRange(lower, upper);
+			}
+		}
+	}
+
 	private void updateYAxis() {
+		if (chartCageArrayFrame != null) {
+			updateYAxisChartCageArrayFrame();
+		} else if (chartCagesFrame != null) {
+			updateYAxisChartCagesFrame();
+		}
+	}
+
+	private void updateYAxisChartCageArrayFrame() {
 		int nrows = chartCageArrayFrame.chartPanelArray.length;
 		int ncolumns = chartCageArrayFrame.chartPanelArray[0].length;
 
@@ -164,6 +264,31 @@ public class AxisOptions extends JPanel {
 		for (int column = 0; column < ncolumns; column++) {
 			for (int row = 0; row < nrows; row++) {
 				ChartPanel chartPanel = chartCageArrayFrame.chartPanelArray[row][column].getChartPanel();
+				if (chartPanel == null)
+					continue;
+				XYPlot xyPlot = (XYPlot) chartPanel.getChart().getPlot();
+				NumberAxis yAxis = (NumberAxis) xyPlot.getRangeAxis();
+				yAxis.setAutoRange(false);
+				yAxis.setRange(lower, upper);
+			}
+		}
+	}
+
+	private void updateYAxisChartCagesFrame() {
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
+		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0)
+			return;
+
+		int nrows = chartPanelArray.length;
+		int ncolumns = chartPanelArray[0].length;
+
+		double upper = (double) upperYSpinner.getValue();
+		double lower = (double) lowerYSpinner.getValue();
+		for (int column = 0; column < ncolumns; column++) {
+			for (int row = 0; row < nrows; row++) {
+				ChartPanel chartPanel = chartPanelArray[row][column] != null
+						? chartPanelArray[row][column].getChartPanel()
+						: null;
 				if (chartPanel == null)
 					continue;
 				XYPlot xyPlot = (XYPlot) chartPanel.getChart().getPlot();

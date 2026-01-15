@@ -27,8 +27,8 @@ import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.AdvancedMemoryOptions;
-import plugins.fmp.multitools.series.BuildSeriesOptions;
 import plugins.fmp.multitools.series.BuildSpotsMeasuresAdvanced;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class ThresholdSimple extends JPanel implements PropertyChangeListener {

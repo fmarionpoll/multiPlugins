@@ -22,28 +22,32 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.cages.CageString;
+import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.tools.chart.ChartCageArrayFrame;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSExport;
-import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
-import plugins.fmp.multitools.tools.toExcel.XLSExportOptionsBuilder;
+import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
+import plugins.fmp.multitools.tools.chart.strategies.NoUIControlsFactory;
+import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
+import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
 public class Charts extends JPanel implements SequenceListener {
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = -7079184380174992501L;
-	private ChartCageArrayFrame chartCageArrayFrame = null;
+	private ChartCagesFrame chartCageArrayFrame = null;
 	private MultiSPOTS96 parent0 = null;
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
 	private AxisOptions graphOptions = null;
-	private EnumXLSExport[] measures = new EnumXLSExport[] { //
-			EnumXLSExport.AREA_SUM, //
-			EnumXLSExport.AREA_SUMCLEAN // ,
+	private EnumSpotMeasures[] measures = new EnumSpotMeasures[] { //
+			EnumSpotMeasures.AREA_SUM, //
+			EnumSpotMeasures.AREA_SUMCLEAN // ,
 			// EnumXLSExportType.AREA_DIFF
 	};
-	private JComboBox<EnumXLSExport> exportTypeComboBox = new JComboBox<EnumXLSExport>(measures);
+	private JComboBox<EnumSpotMeasures> exportTypeComboBox = new JComboBox<EnumSpotMeasures>(measures);
 	private JCheckBox relativeToCheckbox = new JCheckBox("relative to max", false);
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
@@ -107,7 +111,7 @@ public class Charts extends JPanel implements SequenceListener {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
+				if (exp != null && chartCageArrayFrame != null) {
 					if (graphOptions != null) {
 						graphOptions.close();
 					}
@@ -147,21 +151,20 @@ public class Charts extends JPanel implements SequenceListener {
 
 	public void displayChartPanels(Experiment exp) {
 		exp.getSeqCamData().getSequence().removeListener(this);
-		EnumXLSExport exportType = (EnumXLSExport) exportTypeComboBox.getSelectedItem();
+		EnumSpotMeasures exportType = (EnumSpotMeasures) exportTypeComboBox.getSelectedItem();
 		if (isThereAnyDataToDisplay(exp, exportType))
 			chartCageArrayFrame = plotSpotMeasuresToChart(exp, exportType, chartCageArrayFrame);
 		exp.getSeqCamData().getSequence().addListener(this);
 	}
 
-	private ChartCageArrayFrame plotSpotMeasuresToChart(Experiment exp, EnumXLSExport exportType,
-			ChartCageArrayFrame iChart) {
+	private ChartCagesFrame plotSpotMeasuresToChart(Experiment exp, EnumSpotMeasures exportType, ChartCagesFrame iChart) {
 		if (iChart != null)
 			iChart.getMainChartFrame().dispose();
 
 		int first = 0;
 		int last = exp.getCages().cagesList.size() - 1;
 		if (!displayAllButton.isSelected()) {
-			Cage cageFound = exp.getCages().findFirstCageWithSelectedSpot();
+			Cage cageFound = exp.getCages().findFirstCageWithSelectedSpot(exp.getSpots());
 			if (cageFound == null)
 				cageFound = exp.getCages().findFirstSelectedCage();
 			if (cageFound == null)
@@ -172,17 +175,39 @@ public class Charts extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		XLSExportOptions options = XLSExportOptionsBuilder.forChart().withBuildExcelStepMs(60000)
-				.withRelativeToT0(relativeToCheckbox.isSelected()).withExportType(exportType).withCageRange(first, last)
-				.build();
+		EnumResults resultType = convertSpotMeasureToResult(exportType);
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000)
+				.withResultType(resultType).withCageRange(first, last).build();
+		options.relativeToMaximum = relativeToCheckbox.isSelected();
 
-		iChart = new ChartCageArrayFrame();
-		iChart.createMainChartPanel("Spots measures", exp, options, parent0);
-		iChart.setChartSpotUpperLeftLocation(getInitialUpperLeftPosition(exp));
+		if (iChart == null) {
+			iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), null, new GridLayoutStrategy(),
+					new NoUIControlsFactory());
+		}
+		iChart.createMainChartPanel("Spots measures", exp, options);
+		Rectangle initialPos = getInitialUpperLeftPosition(exp);
+		if (iChart.getMainChartFrame() != null) {
+			iChart.getMainChartFrame().setLocation(initialPos.x, initialPos.y);
+		}
 		iChart.displayData(exp, options);
-		iChart.getMainChartFrame().toFront();
-		iChart.getMainChartFrame().requestFocus();
+		if (iChart.getMainChartFrame() != null) {
+			iChart.getMainChartFrame().toFront();
+			iChart.getMainChartFrame().requestFocus();
+		}
 		return iChart;
+	}
+
+	private EnumResults convertSpotMeasureToResult(EnumSpotMeasures spotMeasure) {
+		switch (spotMeasure) {
+		case AREA_SUM:
+			return EnumResults.AREA_SUM;
+		case AREA_SUMCLEAN:
+			return EnumResults.AREA_SUMCLEAN;
+		case AREA_FLYPRESENT:
+			return EnumResults.AREA_FLYPRESENT;
+		default:
+			return EnumResults.AREA_SUM;
+		}
 	}
 
 	public void closeAllCharts() {
@@ -191,13 +216,15 @@ public class Charts extends JPanel implements SequenceListener {
 		chartCageArrayFrame = null;
 	}
 
-	private boolean isThereAnyDataToDisplay(Experiment exp, EnumXLSExport option) {
+	private boolean isThereAnyDataToDisplay(Experiment exp, EnumSpotMeasures option) {
+		EnumResults resultType = convertSpotMeasureToResult(option);
 		boolean flag = false;
 		for (Cage cage : exp.getCages().cagesList) {
-			for (Spot spot : cage.spotsArray.getSpotsList()) {
-				flag = spot.hasMeasurements(option);
-				if (flag)
+			for (Spot spot : cage.getSpotList(exp.getSpots())) {
+				if (spot.isThereAnyMeasuresDone(resultType) > 0) {
+					flag = true;
 					break;
+				}
 			}
 			if (flag)
 				break;

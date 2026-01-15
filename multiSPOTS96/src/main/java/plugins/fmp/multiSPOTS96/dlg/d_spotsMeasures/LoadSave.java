@@ -14,6 +14,7 @@ import javax.swing.SwingConstants;
 import icy.gui.util.FontUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 
 public class LoadSave extends JPanel {
 	/**
@@ -68,16 +69,10 @@ public class LoadSave extends JPanel {
 	}
 
 	public boolean dlg_spotsmeasures_loadSpotsArray_File(Experiment exp) {
-		boolean flag = exp.load_MS96_cages();
+		boolean flag = exp.load_cages_description_and_measures();
 		if (flag) {
 			exp.load_spots_description_and_measures();
-			exp.getSeqCamData().removeROIsContainingString("spot");
-			exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData());
-//			if (exp.seqKymos != null) {
-//				Sequence seq = exp.seqKymos.getSequence();
-//				if (seq != null && seq.getName() != null)
-//					exp.getCages().transferSpotsMeasuresToSequenceAsROIs(exp.seqKymos.getSequence());
-//			}
+			CagesSequenceMapper.pushSpotsToSequence(exp.getCages(), exp.getSpots(), exp.getSeqCamData());
 		}
 		return flag;
 	}
@@ -85,9 +80,9 @@ public class LoadSave extends JPanel {
 	public boolean saveSpotsArray_file(Experiment exp) {
 		parent0.dlgExperiment.getExperimentInfosFromDialog(exp);
 		boolean flag = exp.saveExperimentDescriptors();
-		exp.getCages().transferROIsFromSequenceToCageSpots(exp.getSeqCamData());
+		CagesSequenceMapper.pullSpotsFromSequence(exp.getCages(), exp.getSpots(), exp.getSeqCamData());
 		flag &= exp.save_cages_description_and_measures();
-		flag &= exp.save_MS96_spotsMeasures();
+		flag &= exp.save_spots_description_and_measures();
 		return flag;
 	}
 
