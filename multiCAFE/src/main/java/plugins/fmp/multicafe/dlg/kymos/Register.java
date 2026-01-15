@@ -18,11 +18,11 @@ import javax.swing.SwingUtilities;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.registration.ImageRegistration;
-import plugins.fmp.multitools.fmp_tools.registration.ImageRegistrationFeatures;
-import plugins.fmp.multitools.fmp_tools.registration.ImageRegistrationFeaturesGPU;
-import plugins.fmp.multitools.fmp_tools.registration.ImageRegistrationGaspard;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.registration.ImageRegistration;
+import plugins.fmp.multitools.tools.registration.ImageRegistrationFeatures;
+import plugins.fmp.multitools.tools.registration.ImageRegistrationFeaturesGPU;
+import plugins.fmp.multitools.tools.registration.ImageRegistrationGaspard;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class Register extends JPanel {

@@ -24,13 +24,13 @@ import javax.swing.event.PopupMenuListener;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.cages.Cage;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.fmp_series.FlyDetect1;
-import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.series.FlyDetect1;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect1 extends JPanel implements ChangeListener, ItemListener, PropertyChangeListener, PopupMenuListener {
 	/**

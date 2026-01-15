@@ -16,12 +16,12 @@ import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.LazyExperiment;
-import plugins.fmp.multitools.fmp_tools.DialogTools;
-import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multitools.fmp_tools.JComponents.MultiSelectDialog;
-import plugins.fmp.multitools.fmp_tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.LazyExperiment;
+import plugins.fmp.multitools.tools.DialogTools;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.JComponents.MultiSelectDialog;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Filter extends JPanel {
 	/**

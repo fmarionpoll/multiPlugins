@@ -10,7 +10,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
-import plugins.fmp.multitools.fmp_tools.Logger;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -31,16 +30,17 @@ import icy.sequence.Sequence;
 import icy.type.collection.array.Array1DUtil;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_series.ProcessingResult;
-import plugins.fmp.multitools.fmp_series.ProgressReporter;
-import plugins.fmp.multitools.fmp_series.RegistrationOptions;
-import plugins.fmp.multitools.fmp_series.RegistrationProcessor;
-import plugins.fmp.multitools.fmp_series.SafeRegistrationProcessor;
-import plugins.fmp.multitools.fmp_tools.GaspardRigidRegistration;
-import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.series.ProcessingResult;
+import plugins.fmp.multitools.series.ProgressReporter;
+import plugins.fmp.multitools.series.RegistrationOptions;
+import plugins.fmp.multitools.series.RegistrationProcessor;
+import plugins.fmp.multitools.series.SafeRegistrationProcessor;
+import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class CorrectDrift extends JPanel implements ViewerListener, PropertyChangeListener {
 	/**

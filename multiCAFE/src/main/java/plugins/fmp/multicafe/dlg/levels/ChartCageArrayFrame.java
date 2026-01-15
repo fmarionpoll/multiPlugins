@@ -8,18 +8,18 @@ import javax.swing.JPanel;
 import org.jfree.data.Range;
 
 import icy.gui.frame.IcyFrame;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.chart.ChartCagePair;
-import plugins.fmp.multitools.fmp_tools.chart.ChartCagesFrame;
-import plugins.fmp.multitools.fmp_tools.chart.ChartInteractionHandler;
-import plugins.fmp.multitools.fmp_tools.chart.ChartInteractionHandlerFactory;
-import plugins.fmp.multitools.fmp_tools.chart.builders.CageCapillarySeriesBuilder;
-import plugins.fmp.multitools.fmp_tools.chart.builders.CageSeriesBuilder;
-import plugins.fmp.multitools.fmp_tools.chart.builders.CageSpotSeriesBuilder;
-import plugins.fmp.multitools.fmp_tools.chart.strategies.ComboBoxUIControlsFactory;
-import plugins.fmp.multitools.fmp_tools.chart.strategies.GridLayoutStrategy;
-import plugins.fmp.multitools.fmp_tools.results.EnumResults;
-import plugins.fmp.multitools.fmp_tools.results.ResultsOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
+import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
+import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
+import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
+import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
  * Chart display class for capillary and spot data visualization. This class

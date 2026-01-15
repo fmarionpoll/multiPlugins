@@ -18,11 +18,11 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.cages.Cage;
-import plugins.fmp.multitools.fmp_experiment.cages.FlyPositions;
-import plugins.fmp.multitools.fmp_tools.chart.ChartPositions;
-import plugins.fmp.multitools.fmp_tools.results.EnumResults;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.tools.chart.ChartPositions;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	/**

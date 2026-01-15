@@ -24,11 +24,11 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceKymosUtils;
-import plugins.fmp.multitools.fmp_tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymosUtils;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 

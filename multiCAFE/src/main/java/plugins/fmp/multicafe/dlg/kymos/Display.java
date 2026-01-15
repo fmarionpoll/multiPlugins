@@ -33,12 +33,12 @@ import icy.roi.ROI;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceKymos;
-import plugins.fmp.multitools.fmp_tools.Directories;
-import plugins.fmp.multitools.fmp_tools.ViewerFMP;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.tools.Directories;
+import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 
 public class Display extends JPanel implements ViewerListener {

@@ -27,13 +27,13 @@ import icy.roi.ROI2D;
 import icy.type.DataType;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.fmp_tools.ROI2D.ROI2DUtilities;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.overlay.OverlayThreshold;
-import plugins.fmp.multitools.fmp_tools.polyline.Blobs;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.tools.polyline.Blobs;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class BuildCagesFromContours extends JPanel implements ChangeListener {

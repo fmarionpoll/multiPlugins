@@ -32,8 +32,8 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import icy.preferences.XMLPreferences;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
 
 public class SelectFiles1 extends JPanel {
 	/**

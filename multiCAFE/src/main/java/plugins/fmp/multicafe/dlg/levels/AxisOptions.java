@@ -23,8 +23,8 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.chart.ChartCagePair;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
 
 public class AxisOptions extends JPanel {
 	/**

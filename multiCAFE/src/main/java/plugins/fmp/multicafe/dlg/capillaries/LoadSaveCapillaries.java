@@ -13,7 +13,7 @@ import javax.swing.SwingConstants;
 
 import icy.gui.util.FontUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class LoadSaveCapillaries extends JPanel {
 	/**

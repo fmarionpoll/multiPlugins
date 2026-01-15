@@ -24,8 +24,8 @@ import icy.main.Icy;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.ViewerFMP;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.ViewerFMP;
 
 public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListener {
 	/**

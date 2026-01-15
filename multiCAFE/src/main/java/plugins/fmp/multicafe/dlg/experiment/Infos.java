@@ -17,9 +17,9 @@ import icy.canvas.Canvas2D;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.JComponents.SortedComboBoxModel;
-import plugins.fmp.multitools.fmp_tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.JComponents.SortedComboBoxModel;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Infos extends JPanel {
 	/**

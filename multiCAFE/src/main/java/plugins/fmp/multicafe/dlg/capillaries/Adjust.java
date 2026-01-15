@@ -21,9 +21,9 @@ import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.fmp_tools.Line2DPlus;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.tools.Line2DPlus;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class Adjust extends JPanel {

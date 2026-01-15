@@ -15,9 +15,9 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
 
 public class Infos extends JPanel {
 	/**

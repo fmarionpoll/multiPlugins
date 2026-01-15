@@ -28,11 +28,11 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_tools.JComponents.CapillariesWithTimeTableModel;
-import plugins.fmp.multitools.fmp_tools.ROI2D.AlongT;
-import plugins.fmp.multitools.fmp_tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.tools.JComponents.CapillariesWithTimeTableModel;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class EditPositionWithTime extends JPanel implements ListSelectionListener {

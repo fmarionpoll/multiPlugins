@@ -20,9 +20,9 @@ import javax.swing.table.TableColumnModel;
 
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_tools.JComponents.CapillaryTableModel;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.tools.JComponents.CapillaryTableModel;
 
 public class InfosCapillaryTable extends JPanel {
 	/**

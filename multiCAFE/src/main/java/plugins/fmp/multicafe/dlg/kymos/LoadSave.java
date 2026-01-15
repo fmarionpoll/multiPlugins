@@ -24,12 +24,12 @@ import icy.image.IcyBufferedImage;
 import icy.system.thread.ThreadUtil;
 import loci.formats.FormatException;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.ImageFileDescriptor;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_experiment.sequence.ImageFileData;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceKymos;
-import plugins.fmp.multitools.fmp_service.KymographService;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ImageFileDescriptor;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.sequence.ImageFileData;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.service.KymographService;
 
 public class LoadSave extends JPanel {
 	/**

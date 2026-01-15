@@ -20,12 +20,12 @@ import javax.swing.SwingConstants;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_series.DetectGulps;
-import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.series.DetectGulps;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 	/**

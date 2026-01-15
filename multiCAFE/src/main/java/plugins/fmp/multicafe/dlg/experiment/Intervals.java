@@ -14,8 +14,8 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxMs;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class Intervals extends JPanel {
 	/**

@@ -19,9 +19,9 @@ import plugins.fmp.multicafe.dlg.excel.MCExcel_;
 import plugins.fmp.multicafe.dlg.experiment.MCExperiment_;
 import plugins.fmp.multicafe.dlg.kymos.MCKymos_;
 import plugins.fmp.multicafe.dlg.levels.MCLevels_;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_tools.DescriptorIndex;
-import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.DescriptorIndex;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiCAFE extends PluginActionable {
 	public IcyFrame mainFrame = new IcyFrame("MultiCAFE January 12, 2026", true, true, true, true);

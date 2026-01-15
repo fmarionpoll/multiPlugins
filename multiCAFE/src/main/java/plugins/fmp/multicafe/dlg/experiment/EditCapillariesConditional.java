@@ -5,7 +5,11 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import plugins.fmp.multitools.fmp_tools.Logger;
+
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -15,9 +19,6 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class EditCapillariesConditional extends JPanel {
 	private static final long serialVersionUID = 1L;

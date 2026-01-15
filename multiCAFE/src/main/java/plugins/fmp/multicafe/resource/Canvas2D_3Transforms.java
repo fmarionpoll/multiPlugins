@@ -14,10 +14,10 @@ import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.resource.icon.IcyIcon;
 import icy.sequence.Sequence;
-import plugins.fmp.multitools.fmp_tools.Logger;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 /**
  * Enhanced Canvas2D implementation with dual-step image transformations.

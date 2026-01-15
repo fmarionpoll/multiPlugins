@@ -19,8 +19,8 @@ import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 
 public class Edit extends JPanel {

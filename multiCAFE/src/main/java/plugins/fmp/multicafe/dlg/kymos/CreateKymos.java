@@ -21,10 +21,10 @@ import javax.swing.SwingConstants;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_series.BuildKymosFromCapillaries;
-import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.fmp_tools.JComponents.JComboBoxMs;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.series.BuildKymosFromCapillaries;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class CreateKymos extends JPanel implements PropertyChangeListener {
 	/**

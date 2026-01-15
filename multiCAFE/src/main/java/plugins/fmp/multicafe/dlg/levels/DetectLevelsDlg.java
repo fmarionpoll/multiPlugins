@@ -24,13 +24,13 @@ import javax.swing.event.ChangeListener;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_series.DetectLevels;
-import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.series.DetectLevels;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {

@@ -14,14 +14,14 @@ import javax.swing.JPanel;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceKymos;
-import plugins.fmp.multitools.fmp_series.AdjustMeasuresToDimensions;
-import plugins.fmp.multitools.fmp_series.ClipCageMeasuresToSmallest;
-import plugins.fmp.multitools.fmp_series.CropMeasuresToDimensions;
-import plugins.fmp.multitools.fmp_series.CurvesRestoreLength;
-import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.series.AdjustMeasuresToDimensions;
+import plugins.fmp.multitools.series.ClipCageMeasuresToSmallest;
+import plugins.fmp.multitools.series.CropMeasuresToDimensions;
+import plugins.fmp.multitools.series.CurvesRestoreLength;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 
 public class Adjust extends JPanel implements PropertyChangeListener {
 	/**

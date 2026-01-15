@@ -22,13 +22,13 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.cages.Cage;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_tools.results.EnumResults;
-import plugins.fmp.multitools.fmp_tools.results.ResultsOptions;
-import plugins.fmp.multitools.fmp_tools.results.ResultsOptionsBuilder;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
+import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
 public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	/**

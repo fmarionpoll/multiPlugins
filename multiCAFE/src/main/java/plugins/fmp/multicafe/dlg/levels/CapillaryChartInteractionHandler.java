@@ -23,14 +23,14 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.cages.Cage;
-import plugins.fmp.multitools.fmp_experiment.capillaries.Capillary;
-import plugins.fmp.multitools.fmp_tools.Logger;
-import plugins.fmp.multitools.fmp_tools.chart.ChartCagePair;
-import plugins.fmp.multitools.fmp_tools.chart.ChartCagePanel;
-import plugins.fmp.multitools.fmp_tools.chart.ChartInteractionHandler;
-import plugins.fmp.multitools.fmp_tools.results.ResultsOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
+import plugins.fmp.multitools.tools.chart.ChartCagePanel;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
  * Handler for capillary-related chart interactions. Manages user clicks on

@@ -26,14 +26,14 @@ import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageUtil;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
-import plugins.fmp.multitools.fmp_experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.fmp_series.BuildBackground;
-import plugins.fmp.multitools.fmp_series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.fmp_service.SequenceLoaderService;
-import plugins.fmp.multitools.fmp_tools.Logger;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.series.BuildBackground;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.service.SequenceLoaderService;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect2Background extends JPanel implements ChangeListener, PropertyChangeListener {
 	private static final long serialVersionUID = 1L;

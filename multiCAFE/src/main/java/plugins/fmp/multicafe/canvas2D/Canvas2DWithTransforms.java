@@ -15,9 +15,9 @@ import icy.image.IcyBufferedImage;
 import icy.resource.icon.IcyIcon;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.resource.ResourceUtilFMP;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.fmp_tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
 public class Canvas2DWithTransforms extends Canvas2D {
 	/**

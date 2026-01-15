@@ -15,7 +15,7 @@ import javax.swing.event.ChangeListener;
 import icy.gui.component.PopupPanel;
 import icy.gui.viewer.Viewer;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multitools.fmp_experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeListener {
 	/**
