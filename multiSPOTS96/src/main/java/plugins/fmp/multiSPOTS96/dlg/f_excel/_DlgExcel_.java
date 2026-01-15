@@ -18,10 +18,10 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
-import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresCagesAsQuery;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
-import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.query.XLSExportMeasuresCagesAsQuery;
 
 public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	/**
@@ -85,13 +85,14 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 			String file = defineXlsFileName(exp, "_spotsareas.xlsx");
 			if (file == null)
 				return;
-			updateExperrimentsParameters(exp);
+			updateParametersCurrentExperiment(exp);
 			ThreadUtil.bgRun(new Runnable() {
 				@Override
 				public void run() {
 					XLSExportMeasuresFromSpot xlsExport = new XLSExportMeasuresFromSpot();
 					try {
-						xlsExport.exportToFile(file, getSpotsOptions());
+						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+						xlsExport.exportToFile(file, getSpotsOptions(exp));
 					} catch (ExcelExportException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -103,13 +104,14 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 			String file = defineXlsFileName(exp, "_asQ.xlsx");
 			if (file == null)
 				return;
-			updateExperrimentsParameters(exp);
+			updateParametersCurrentExperiment(exp);
 			ThreadUtil.bgRun(new Runnable() {
 				@Override
 				public void run() {
 					XLSExportMeasuresCagesAsQuery xlsExport = new XLSExportMeasuresCagesAsQuery();
 					try {
-						xlsExport.exportQToFile(file, getSpotsOptions());
+						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+						xlsExport.exportQToFile(file, getSpotsOptions(exp));
 					} catch (ExcelExportException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -133,40 +135,45 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 		}
 	}
 
-	private void updateExperrimentsParameters(Experiment exp) {
-		parent0.dlgExperiment.tabInfos.getExperimentInfosFromDialog(exp.getProperties());
+	private void updateParametersCurrentExperiment(Experiment exp) {
+		parent0.dlgExperiment.tabInfos.getExperimentInfosFromDialog(exp);
 	}
 
-	private XLSExportOptions getSpotsOptions() {
-		int first = 0;
-		int last = parent0.expListComboLazy.getItemCount() - 1;
-		if (!tabCommonOptions.exportAllFilesCheckBox.isSelected()) {
-			first = parent0.expListComboLazy.getSelectedIndex();
-			last = parent0.expListComboLazy.getSelectedIndex();
+	private ResultsOptions getSpotsOptions(Experiment exp) {
+		ResultsOptions resultsOptions = new ResultsOptions();
+
+		resultsOptions.spotAreas = true;
+		resultsOptions.sum = spotsAreas.areaCheckBox.isSelected();
+		resultsOptions.nPixels = spotsAreas.nPixelsCheckBox.isSelected();
+		resultsOptions.relativeToMaximum = spotsAreas.t0CheckBox.isSelected();
+		resultsOptions.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
+
+		getCommonOptions(resultsOptions, exp);
+
+		return resultsOptions;
+	}
+
+	private void getCommonOptions(ResultsOptions resultsOptions, Experiment exp) {
+		resultsOptions.transpose = tabCommonOptions.transposeCheckBox.isSelected();
+		resultsOptions.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
+		resultsOptions.buildExcelUnitMs = tabCommonOptions.binUnit.getMsUnitValue();
+		resultsOptions.fixedIntervals = tabCommonOptions.isFixedFrameButton.isSelected();
+		resultsOptions.startAll_Ms = tabCommonOptions.getStartAllMs();
+		resultsOptions.endAll_Ms = tabCommonOptions.getEndAllMs();
+		resultsOptions.exportAllFiles = tabCommonOptions.exportAllFilesCheckBox.isSelected();
+
+		resultsOptions.expList = parent0.expListComboLazy;
+		resultsOptions.expList.expListBinSubDirectory = exp.getBinSubDirectory();
+		if (tabCommonOptions.exportAllFilesCheckBox.isSelected()) {
+			resultsOptions.firstExp = 0;
+			int itemCount = resultsOptions.expList.getItemCount();
+			resultsOptions.lastExp = (itemCount > 0) ? itemCount - 1 : 0;
+		} else {
+			int selectedIndex = parent0.expListComboLazy.getSelectedIndex();
+			resultsOptions.firstExp = (selectedIndex >= 0) ? selectedIndex : 0;
+			resultsOptions.lastExp = resultsOptions.firstExp;
 		}
-
-		XLSExportOptions options = new XLSExportOptions();
-		options.spotAreas = true;
-		options.sum = spotsAreas.areaCheckBox.isSelected();
-		options.nPixels = spotsAreas.nPixelsCheckBox.isSelected();
-		options.relativeToT0 = spotsAreas.t0CheckBox.isSelected();
-
-		options.transpose = tabCommonOptions.transposeCheckBox.isSelected();
-		options.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
-		options.buildExcelUnitMs = tabCommonOptions.binUnit.getMsUnitValue();
-		boolean fixedIntervals = tabCommonOptions.isFixedFrameButton.isSelected();
-		options.fixedIntervals = fixedIntervals;
-		options.startAll_Ms = tabCommonOptions.getStartAllMs();
-		options.endAll_Ms = tabCommonOptions.getEndAllMs();
-		options.collateSeries = false;
-		options.padIntervals = false;
-		options.absoluteTime = false;
-		options.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
-		options.exportAllFiles = tabCommonOptions.exportAllFilesCheckBox.isSelected();
-		options.expList = parent0.expListComboLazy;
-		options.experimentIndexFirst = first;
-		options.experimentIndexLast = last;
-
-		return options;
+		resultsOptions.experimentIndexFirst = resultsOptions.firstExp;
+		resultsOptions.experimentIndexLast = resultsOptions.lastExp;
 	}
 }
