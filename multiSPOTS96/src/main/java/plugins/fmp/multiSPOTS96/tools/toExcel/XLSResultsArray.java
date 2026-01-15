@@ -38,20 +38,20 @@ public class XLSResultsArray {
 
 	// ---------------------------------------------------
 
-	public void getSpotsArrayResults_T0(CagesArray cagesArray, EnumXLSExport exportType, int nOutputFrames,
+	public void getSpotsArrayResults_T0(CagesArray getCages(), EnumXLSExport exportType, int nOutputFrames,
 			long kymoBinCol_Ms, XLSExportOptions xlsExportOptions) {
 		xlsExportOptions.exportType = exportType;
-		buildSpotsDataForPass1(cagesArray, nOutputFrames, kymoBinCol_Ms, xlsExportOptions);
+		buildSpotsDataForPass1(getCages(), nOutputFrames, kymoBinCol_Ms, xlsExportOptions);
 	}
 
-	public void getSpotsArrayResults1(CagesArray cagesArray, int nOutputFrames, long kymoBinCol_Ms,
+	public void getSpotsArrayResults1(CagesArray getCages(), int nOutputFrames, long kymoBinCol_Ms,
 			XLSExportOptions xlsExportOptions) {
-		buildSpotsDataForPass1(cagesArray, nOutputFrames, kymoBinCol_Ms, xlsExportOptions);
+		buildSpotsDataForPass1(getCages(), nOutputFrames, kymoBinCol_Ms, xlsExportOptions);
 	}
 
-	private void buildSpotsDataForPass1(CagesArray cagesArray, int nOutputFrames, long kymoBinCol_Ms,
+	private void buildSpotsDataForPass1(CagesArray getCages(), int nOutputFrames, long kymoBinCol_Ms,
 			XLSExportOptions xlsExportOptions) {
-		for (Cage cage : cagesArray.cagesList) {
+		for (Cage cage : getCages().cagesList) {
 			double scalingFactorToPhysicalUnits = cage.spotsArray
 					.getScalingFactorToPhysicalUnits(xlsExportOptions.exportType);
 			for (Spot spot : cage.spotsArray.getSpotsList()) {

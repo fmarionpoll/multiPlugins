@@ -142,33 +142,33 @@ public class EditSpots extends JPanel {
 		if (show) {
 			setEnclosingFrame(exp);
 		} else {
-			exp.seqCamData.getSequence().removeROI(roiPerimeter);
+			exp.getSeqCamData().getSequence().removeROI(roiPerimeter);
 			roiPerimeter = null;
 		}
 	}
 
 	private void setEnclosingFrame(Experiment exp) {
-		exp.seqCamData.getSequence().removeROI(roiPerimeter);
+		exp.getSeqCamData().getSequence().removeROI(roiPerimeter);
 		showSnake(exp, false);
 		createPerimeterEnclosingRois(exp);
-		exp.seqCamData.getSequence().addROI(roiPerimeter);
-		exp.seqCamData.getSequence().setSelectedROI(roiPerimeter);
+		exp.getSeqCamData().getSequence().addROI(roiPerimeter);
+		exp.getSeqCamData().getSequence().setSelectedROI(roiPerimeter);
 
 		makeSureRectangleIsVisible(exp, roiPerimeter.getBounds());
 	}
 
 	private void makeSureRectangleIsVisible(Experiment exp, Rectangle rect) {
-		Viewer v = exp.seqCamData.getSequence().getFirstViewer();
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		Canvas2D canvas = (Canvas2D) v.getCanvas();
 		canvas.centerOn(rect);
 	}
 
 	private void showSnake(Experiment exp, boolean show) {
-		exp.seqCamData.getSequence().removeROI(roiSnake);
+		exp.getSeqCamData().getSequence().removeROI(roiSnake);
 		String selectedRoiType = (String) typeCombo.getSelectedItem();
 
 		if (show) {
-			exp.seqCamData.getSequence().removeROI(roiPerimeter);
+			exp.getSeqCamData().getSequence().removeROI(roiPerimeter);
 			if (enclosedRois.size() > 0) {
 				ArrayList<Point2D> listPoint = new ArrayList<Point2D>();
 				for (ROI2D roi : enclosedRois) {
@@ -182,22 +182,22 @@ public class EditSpots extends JPanel {
 				}
 				roiSnake = new ROI2DPolyLine(listPoint);
 				roiSnake.setName("snake");
-				exp.seqCamData.getSequence().addROI(roiSnake);
-				exp.seqCamData.getSequence().setSelectedROI(roiSnake);
+				exp.getSeqCamData().getSequence().addROI(roiSnake);
+				exp.getSeqCamData().getSequence().setSelectedROI(roiSnake);
 
-				exp.seqCamData.displaySpecificROIs(false, selectedRoiType);
+				exp.getSeqCamData().displaySpecificROIs(false, selectedRoiType);
 				makeSureRectangleIsVisible(exp, roiSnake.getBounds());
 			}
 		} else {
 			roiSnake = null;
-			exp.seqCamData.getSequence().addROI(roiPerimeter);
-			exp.seqCamData.displaySpecificROIs(true, selectedRoiType);
+			exp.getSeqCamData().getSequence().addROI(roiPerimeter);
+			exp.getSeqCamData().displaySpecificROIs(true, selectedRoiType);
 		}
 	}
 
 	private void createPerimeterEnclosingRois(Experiment exp) {
 		String selectedRoiType = (String) typeCombo.getSelectedItem();
-		ArrayList<ROI2D> listRoisPresent = exp.seqCamData.getROIsContainingString(selectedRoiType);
+		ArrayList<ROI2D> listRoisPresent = exp.getSeqCamData().getROIsContainingString(selectedRoiType);
 		ArrayList<ROI2D> listRoisSelected = new ArrayList<ROI2D>();
 		for (ROI2D roi : listRoisPresent) {
 			if (roi.isSelected())
@@ -232,15 +232,15 @@ public class EditSpots extends JPanel {
 			roi.setPosition2D(point);
 		}
 
-		exp.seqCamData.displaySpecificROIs(true, selectedRoiType);
+		exp.getSeqCamData().displaySpecificROIs(true, selectedRoiType);
 	}
 
 	private void resizeRois(Experiment exp, int delta) {
 		if (enclosedRois.size() > 0) {
 			for (ROI2D roi : enclosedRois) {
-				exp.seqCamData.getSequence().removeROI(roi);
+				exp.getSeqCamData().getSequence().removeROI(roi);
 				roi = Utilities.resizeROI(roi, delta);
-				exp.seqCamData.getSequence().addROI(roi);
+				exp.getSeqCamData().getSequence().addROI(roi);
 			}
 		} else {
 			ConfirmDialog.confirm("At least one spot must be selected");
@@ -250,8 +250,8 @@ public class EditSpots extends JPanel {
 	public void clearTemporaryROIs() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			exp.seqCamData.getSequence().removeROI(roiSnake);
-			exp.seqCamData.getSequence().removeROI(roiPerimeter);
+			exp.getSeqCamData().getSequence().removeROI(roiSnake);
+			exp.getSeqCamData().getSequence().removeROI(roiPerimeter);
 			roiSnake = null;
 			roiPerimeter = null;
 			displaySnakeCheckBox.setSelected(false);

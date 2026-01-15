@@ -66,7 +66,7 @@ public class BuildBackground extends BuildSeries {
 	private void runBuildBackground(Experiment exp) {
 		exp.cleanPreviousDetectedFliesROIs();
 		flyDetectTools.initParametersForDetection(exp, options);
-		exp.cagesArray.initFlyPositions(options.detectCage);
+		exp.getCages().initFlyPositions(options.detectCage);
 		options.threshold = options.thresholdDiff;
 
 		openBackgroundViewers(exp);
@@ -93,8 +93,8 @@ public class BuildBackground extends BuildSeries {
 		transformOptions.backgroundImage = imageIORead(
 				exp.seqCamData.getFileNameFromImageList(options.backgroundFirst));
 
-		long first_ms = exp.cagesArray.detectFirst_Ms + (options.backgroundFirst * exp.seqCamData.binImage_ms);
-		final int t_first = (int) ((first_ms - exp.cagesArray.detectFirst_Ms) / exp.seqCamData.binImage_ms);
+		long first_ms = exp.getCages().detectFirst_Ms + (options.backgroundFirst * exp.seqCamData.binImage_ms);
+		final int t_first = (int) ((first_ms - exp.getCages().detectFirst_Ms) / exp.seqCamData.binImage_ms);
 
 		int t_last = options.backgroundFirst + options.backgroundNFrames;
 		if (t_last > exp.seqCamData.nTotalFrames)

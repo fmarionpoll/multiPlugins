@@ -78,7 +78,7 @@ public class Infos extends JPanel {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 				if (exp != null) {
 //					exp.spotsArray.transferDescriptionToSpots();
-					exp.cagesArray.transferNFliesFromSpotsToCages(exp.spotsArray);
+					exp.getCages().transferNFliesFromSpotsToCages(exp.spotsArray);
 					dialog = new InfosTable();
 					dialog.initialize(parent0, cagesArrayCopy);
 				}
@@ -114,7 +114,7 @@ public class Infos extends JPanel {
 		if (exp != null) {
 			exp.spotsArray.transferROIsFromSequenceToSpots(exp.seqCamData.seq);
 			if (exp.spotsArray.spotsList.size() > 0) {
-				int npixels = exp.cagesArray.getHorizontalSpanOfCages();
+				int npixels = exp.getCages().getHorizontalSpanOfCages();
 				if (npixels > 0)
 					pixelsSpinner.setValue(npixels);
 			}

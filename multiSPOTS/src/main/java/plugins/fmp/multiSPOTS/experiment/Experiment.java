@@ -41,7 +41,7 @@ public class Experiment {
 	public Sequence seqReference = null;
 
 	public SpotsArray spotsArray = new SpotsArray();
-	public CagesArray cagesArray = new CagesArray();
+	public CagesArray getCages() = new CagesArray();
 
 	public FileTime firstImage_FileTime;
 	public FileTime lastImage_FileTime;
@@ -443,7 +443,7 @@ public class Experiment {
 		String filename = getXMLDrosoTrackLocation();
 		if (filename == null)
 			return false;
-		return cagesArray.xmlReadCagesFromFileNoQuestion(filename, this);
+		return getCages().xmlReadCagesFromFileNoQuestion(filename, this);
 
 	}
 
@@ -451,7 +451,7 @@ public class Experiment {
 		for (Spot spot : spotsArray.spotsList) {
 			ROI2D spotRoi = spot.getRoi();
 			spot.cageID = -1;
-			for (Cage cage : cagesArray.cagesList) {
+			for (Cage cage : getCages().cagesList) {
 				ROI2D cageRoi = cage.getRoi();
 				boolean flag = false;
 				try {
@@ -479,11 +479,11 @@ public class Experiment {
 	}
 
 	public boolean load_CagesMeasures() {
-		return cagesArray.loadCagesMeasures(getResultsDirectory());
+		return getCages().loadCagesMeasures(getResultsDirectory());
 	}
 
 	public boolean save_CagesMeasures() {
-		return cagesArray.saveCagesMeasures(getResultsDirectory());
+		return getCages().saveCagesMeasures(getResultsDirectory());
 	}
 
 	// ----------------------------------
@@ -631,13 +631,13 @@ public class Experiment {
 			if (roi.getName().contains("det"))
 				seqCamData.seq.removeROI(roi);
 		}
-		seqCamData.seq.addROIs(cagesArray.getPositionsAsListOfROI2DRectanglesAtT(t), false);
+		seqCamData.seq.addROIs(getCages().getPositionsAsListOfROI2DRectanglesAtT(t), false);
 		seqCamData.seq.endUpdate();
 	}
 
 	public void saveDetRoisToPositions() {
 		List<ROI2D> detectedROIsList = seqCamData.seq.getROI2Ds();
-		for (Cage cage : cagesArray.cagesList) {
+		for (Cage cage : getCages().cagesList) {
 			cage.transferRoisToPositions(detectedROIsList);
 		}
 	}
@@ -661,7 +661,7 @@ public class Experiment {
 			if (filename == null)
 				return false;
 		}
-		return cagesArray.xmlReadCagesFromFileNoQuestion(filename, this);
+		return getCages().xmlReadCagesFromFileNoQuestion(filename, this);
 	}
 
 	private String findFile_3Locations(String xmlFileName, int first, int second, int third) {

@@ -156,11 +156,11 @@ public class CreateCages extends JPanel {
 	void updateNColumnsFieldFromSequence() {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
-			int nrois = exp.cagesArray.cagesList.size();
+			int nrois = exp.getCages().cagesList.size();
 			if (nrois > 0) {
-				exp.cagesArray.updateArrayIndexes();
-				nCagesPerPlateAlongXJSpinner.setValue(exp.cagesArray.nCagesAlongX);
-				nCagesPerPlateAlongYJSpinner.setValue(exp.cagesArray.nCagesAlongY);
+				exp.getCages().updateArrayIndexes();
+				nCagesPerPlateAlongXJSpinner.setValue(exp.getCages().nCagesAlongX);
+				nCagesPerPlateAlongYJSpinner.setValue(exp.getCages().nCagesAlongY);
 			}
 		}
 	}
@@ -190,8 +190,8 @@ public class CreateCages extends JPanel {
 
 	private Polygon2D getCagesPolygon(Experiment exp) {
 
-		if (exp.cagesArray.cagesList.size() > 0) {
-			polygon2D = exp.cagesArray.getPolygon2DEnclosingAllCages();
+		if (exp.getCages().cagesList.size() > 0) {
+			polygon2D = exp.getCages().getPolygon2DEnclosingAllCages();
 		} else {
 			Rectangle rect = exp.seqCamData.seq.getBounds2D();
 			List<Point2D> points = new ArrayList<Point2D>();
@@ -219,8 +219,8 @@ public class CreateCages extends JPanel {
 
 		// erase existing cages
 		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq), false);
-		exp.cagesArray.cagesList.clear();
-		exp.cagesArray = new CagesArray();
+		exp.getCages().cagesList.clear();
+		exp.getCages() = new CagesArray();
 		createCagesArray(exp, polygon2D, n_columns, n_rows, width_cage, width_interval);
 	}
 
@@ -255,7 +255,7 @@ public class CreateCages extends JPanel {
 
 				index++;
 				exp.seqCamData.seq.addROI(roiP);
-				exp.cagesArray.cagesList.add(cage);
+				exp.getCages().cagesList.add(cage);
 			}
 		}
 	}

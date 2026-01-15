@@ -165,7 +165,7 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && viewButton2.isSelected()) {
 					int index = fliesTransformsComboBox.getSelectedIndex();
-					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer()
+					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 							.getCanvas();
 					updateTransformFunctions2OfCanvas(canvas);
 					if (!viewButton2.isSelected())
@@ -250,8 +250,8 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			if (exp.seqCamData != null)
-				exp.seqCamData.updateOverlayThreshold(threshold, transform, ifGreater);
+			if (exp.getSeqCamData() != null)
+				exp.getSeqCamData().updateOverlayThreshold(threshold, transform, ifGreater);
 //			if (exp.seqKymos != null)
 //				exp.seqKymos.updateOverlayThreshold(threshold, transform, ifGreater);
 		}
@@ -338,12 +338,12 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 
 	private void displayTransform2(Experiment exp) {
 		if (viewButton2.isSelected()) {
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer()
+			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 					.getCanvas();
 			updateTransformFunctions2OfCanvas(canvas);
 		} else {
 			removeOverlays(exp);
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer()
+			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 					.getCanvas();
 			canvas.setTransformStep1Index(0);
 		}
@@ -358,23 +358,23 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 	}
 
 	private void setOverlays(Experiment exp) {
-		if (exp.seqCamData != null) {
-			exp.seqCamData.updateOverlay();
+		if (exp.getSeqCamData() != null) {
+			exp.getSeqCamData().updateOverlay();
 		}
 //		if (exp.seqKymos != null)
 //			exp.seqKymos.updateOverlay();
 	}
 
 	private void removeOverlays(Experiment exp) {
-		if (exp.seqCamData != null)
-			exp.seqCamData.removeOverlay();
+		if (exp.getSeqCamData() != null)
+			exp.getSeqCamData().removeOverlay();
 //		if (exp.seqKymos != null)
 //			exp.seqKymos.removeOverlay();
 	}
 
 	private void updateCanvasFunctions(Experiment exp, int index) {
-		if (exp.seqCamData != null)
-			updateCanvasFunction(exp.seqCamData, index);
+		if (exp.getSeqCamData() != null)
+			updateCanvasFunction(exp.getSeqCamData(), index);
 //		if (exp.seqKymos != null)
 //			updateCanvasFunction(exp.seqKymos, index);
 	}
@@ -479,7 +479,7 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 			long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 
 			// Use original loading method for now (will be optimized later)
-			boolean success = exp.load_MS96_spotsMeasures();
+			boolean success = exp.load_spots_description_and_measures();
 
 			long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
 			long memoryIncrease = endMemory - startMemory;
@@ -496,7 +496,7 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 		} catch (Exception e) {
 			System.err.println("Error during optimized experiment loading: " + e.getMessage());
 			// Fallback to original method
-			exp.load_MS96_spotsMeasures();
+			exp.load_spots_description_and_measures();
 		}
 	}
 

@@ -162,8 +162,8 @@ public class ChartCageArrayFrame extends IcyFrame {
 
 		mainChartPanel = new JPanel();
 		boolean flag = (xlsExportOptions.cageIndexFirst == xlsExportOptions.cageIndexLast);
-		nPanelsAlongX = flag ? 1 : exp.cagesArray.nCagesAlongX;
-		nPanelsAlongY = flag ? 1 : exp.cagesArray.nCagesAlongY;
+		nPanelsAlongX = flag ? 1 : exp.getCages().nCagesAlongX;
+		nPanelsAlongY = flag ? 1 : exp.getCages().nCagesAlongY;
 
 		mainChartPanel.setLayout(new GridLayout(nPanelsAlongY, nPanelsAlongX));
 		mainChartFrame = GuiUtil.generateTitleFrame(title, new JPanel(),
@@ -187,8 +187,8 @@ public class ChartCageArrayFrame extends IcyFrame {
 	 */
 	private NumberAxis setYaxis(String label, int row, int col, XLSExportOptions xlsExportOptions) {
 		NumberAxis yAxis = new NumberAxis();
-		row = row * experiment.cagesArray.nRowsPerCage;
-		col = col * experiment.cagesArray.nColumnsPerCage;
+		row = row * experiment.getCages().nRowsPerCage;
+		col = col * experiment.getCages().nColumnsPerCage;
 		String yLegend = label + " " + String.valueOf((char) (row + 'A')) + Integer.toString(col);
 		yAxis.setLabel(yLegend);
 
@@ -248,12 +248,12 @@ public class ChartCageArrayFrame extends IcyFrame {
 	 */
 	private void createChartPanelArray(XLSExportOptions xlsExportOptions) {
 		int indexCage = 0;
-		for (int row = 0; row < experiment.cagesArray.nCagesAlongY; row++) {
-			for (int col = 0; col < experiment.cagesArray.nCagesAlongX; col++, indexCage++) {
+		for (int row = 0; row < experiment.getCages().nCagesAlongY; row++) {
+			for (int col = 0; col < experiment.getCages().nCagesAlongX; col++, indexCage++) {
 				if (indexCage < xlsExportOptions.cageIndexFirst || indexCage > xlsExportOptions.cageIndexLast)
 					continue;
 
-				Cage cage = experiment.cagesArray.getCageFromRowColCoordinates(row, col);
+				Cage cage = experiment.getCages().getCageFromRowColCoordinates(row, col);
 				if (cage == null) {
 					LOGGER.warning("No cage found at row " + row + ", col " + col);
 					continue;
@@ -336,8 +336,8 @@ public class ChartCageArrayFrame extends IcyFrame {
 	private void arrangePanelsInDisplay(XLSExportOptions xlsExportOptions) {
 		if (xlsExportOptions.cageIndexFirst == xlsExportOptions.cageIndexLast) {
 			int indexCage = xlsExportOptions.cageIndexFirst;
-			int row = indexCage / experiment.cagesArray.nCagesAlongX;
-			int col = indexCage % experiment.cagesArray.nCagesAlongX;
+			int row = indexCage / experiment.getCages().nCagesAlongX;
+			int col = indexCage % experiment.getCages().nCagesAlongX;
 
 			if (row >= 0 && row < chartPanelArray.length && col >= 0 && col < chartPanelArray[0].length) {
 				ChartCagePair pair = chartPanelArray[row][col];
@@ -462,7 +462,7 @@ public class ChartCageArrayFrame extends IcyFrame {
 				XYDataset xyDataset = xyPlot.getDataset(0);
 				if (xyDataset != null && xyDataset.getSeriesCount() > 0) {
 					description = (String) xyDataset.getSeriesKey(0);
-					spotFound = experiment.cagesArray.getSpotFromROIName(description);
+					spotFound = experiment.getCages().getSpotFromROIName(description);
 				}
 			} else {
 				if (cage.spotsArray.getSpotsCount() > 0) {
@@ -475,7 +475,7 @@ public class ChartCageArrayFrame extends IcyFrame {
 				return null;
 			}
 
-			int index = experiment.cagesArray.getSpotGlobalPosition(spotFound);
+			int index = experiment.getCages().getSpotGlobalPosition(spotFound);
 			spotFound.setSpotKymographT(index);
 			return spotFound;
 
@@ -513,7 +513,7 @@ public class ChartCageArrayFrame extends IcyFrame {
 
 		description = description.substring(0, Math.min(description.length(), MAX_DESCRIPTION_LENGTH));
 
-		Spot spotFound = experiment.cagesArray.getSpotFromROIName(description);
+		Spot spotFound = experiment.getCages().getSpotFromROIName(description);
 		if (spotFound == null) {
 			LOGGER.warning("Graph clicked but source not found - description (roiName)=" + description);
 			return null;
@@ -537,8 +537,8 @@ public class ChartCageArrayFrame extends IcyFrame {
 
 		ROI2D roi = spot.getRoi();
 		if (roi != null) {
-			exp.seqCamData.getSequence().setFocusedROI(roi);
-			exp.seqCamData.centerDisplayOnRoi(roi);
+			exp.getSeqCamData().getSequence().setFocusedROI(roi);
+			exp.getSeqCamData().centerDisplayOnRoi(roi);
 		}
 	}
 
@@ -555,10 +555,10 @@ public class ChartCageArrayFrame extends IcyFrame {
 			return;
 		}
 
-		Viewer v = exp.seqCamData.getSequence().getFirstViewer();
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v != null && spot.getSpotCamDataT() > 0) {
 			int frameIndex = (int) (spot.getSpotCamDataT() * xlsExportOptions.buildExcelStepMs
-					/ exp.seqCamData.getTimeManager().getBinDurationMs());
+					/ exp.getSeqCamData().getTimeManager().getBinDurationMs());
 			v.setPositionT(frameIndex);
 		}
 	}
@@ -602,14 +602,14 @@ public class ChartCageArrayFrame extends IcyFrame {
 
 		ROI2D roi = clickedSpot.getRoi();
 		if (roi != null) {
-			exp.seqCamData.getSequence().setSelectedROI(roi);
+			exp.getSeqCamData().getSequence().setSelectedROI(roi);
 		}
 
 		String spotName = clickedSpot.getRoi().getName();
-		Cage cage = exp.cagesArray.getCageFromSpotROIName(spotName);
+		Cage cage = exp.getCages().getCageFromSpotROIName(spotName);
 		if (cage != null) {
 			ROI2D cageRoi = cage.getRoi();
-			exp.seqCamData.centerDisplayOnRoi(cageRoi);
+			exp.getSeqCamData().centerDisplayOnRoi(cageRoi);
 		} else {
 			LOGGER.warning("Could not find cage for spot: " + spotName);
 		}
@@ -701,7 +701,7 @@ public class ChartCageArrayFrame extends IcyFrame {
 			Spot clickedSpot = getSpotFromClickedChart(e);
 			if (clickedSpot != null) {
 				chartSelectClickedSpot(experiment, xlsOptions, clickedSpot);
-				Cage cage = experiment.cagesArray.getCageFromID(clickedSpot.getProperties().getCageID());
+				Cage cage = experiment.getCages().getCageFromID(clickedSpot.getProperties().getCageID());
 				if (cage != null && parent != null && parent.dlgSpots != null) {
 					parent.dlgSpots.tabInfos.selectCage(cage);
 					parent.dlgSpots.tabInfos.selectSpot(clickedSpot);

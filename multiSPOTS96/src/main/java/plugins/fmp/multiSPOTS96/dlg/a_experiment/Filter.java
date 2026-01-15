@@ -12,16 +12,15 @@ import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JPanel;
 import javax.swing.JLabel;
+import javax.swing.JPanel;
 
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.ExperimentProperties;
+import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.tools.DialogTools;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
-import plugins.fmp.multitools.tools.LazyExperiment;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Filter extends JPanel {
 	/**
@@ -58,7 +57,7 @@ public class Filter extends JPanel {
 
 	private JButton applyButton = new JButton("Apply");
 	private JButton clearButton = new JButton("Clear");
-    private JLabel indexStatusLabel = new JLabel("index: loading...");
+	private JLabel indexStatusLabel = new JLabel("index: loading...");
 
 	private MultiSPOTS96 parent0 = null;
 	public JComboBoxExperimentLazy filterExpList = new JComboBoxExperimentLazy();
@@ -81,8 +80,8 @@ public class Filter extends JPanel {
 		// line 0
 		c.gridx = 0;
 		c.gridy = 0;
-		DialogTools.addFiveComponentOnARow(this, experimentCheck, exptBtn, boxIDCheck, boxIDBtn, applyButton, c,
-				delta1, delta2);
+		DialogTools.addFiveComponentOnARow(this, experimentCheck, exptBtn, boxIDCheck, boxIDBtn, applyButton, c, delta1,
+				delta2);
 		// line 2
 		c.gridy = 1;
 		c.gridx = 0;
@@ -91,13 +90,11 @@ public class Filter extends JPanel {
 		// line 1
 		c.gridy = 2;
 		c.gridx = 0;
-		DialogTools.addFiveComponentOnARow(this, stim1Check, stim1Btn, conc1Check, conc1Btn, null, c, delta1,
-				delta2);
+		DialogTools.addFiveComponentOnARow(this, stim1Check, stim1Btn, conc1Check, conc1Btn, null, c, delta1, delta2);
 		// line 3
 		c.gridy = 3;
 		c.gridx = 0;
-		DialogTools.addFiveComponentOnARow(this, stim2Check, stim2Btn, conc2Check, conc2Btn, null, c, delta1,
-				delta2);
+		DialogTools.addFiveComponentOnARow(this, stim2Check, stim2Btn, conc2Check, conc2Btn, null, c, delta1, delta2);
 		// line 4 - index status
 		c.gridy = 4;
 		c.gridx = 0;
@@ -336,8 +333,7 @@ public class Filter extends JPanel {
 			if (exp instanceof LazyExperiment) {
 				value = ((LazyExperiment) exp).getFieldValue(header);
 			} else {
-				ExperimentProperties prop = exp.getProperties();
-				value = prop.getExperimentField(header);
+				value = exp.getExperimentField(header);
 			}
 			if (!allowed.contains(value))
 				iterator.remove();

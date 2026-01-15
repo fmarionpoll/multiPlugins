@@ -85,7 +85,7 @@ public class XLSExportMeasuresFromSpot extends XLSExport {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			double scalingFactorToPhysicalUnits = cage.spotsArray.getScalingFactorToPhysicalUnits(xlsExportType);
 			cage.updateSpotsStimulus_i();
 
@@ -120,7 +120,7 @@ public class XLSExportMeasuresFromSpot extends XLSExport {
 
 		XLSResults xlsResults = new XLSResults(cage.getProperties(), spot.getProperties(), nOutputFrames);
 
-		long binData = exp.seqCamData.getTimeManager().getBinDurationMs();
+		long binData = exp.getSeqCamData().getTimeManager().getBinDurationMs();
 		long binExcel = xlsExportOptions.buildExcelStepMs;
 		xlsResults.getDataFromSpot(spot, binData, binExcel, xlsExportOptions);
 		return xlsResults;
@@ -133,8 +133,8 @@ public class XLSExportMeasuresFromSpot extends XLSExport {
 	 * @return The number of output frames
 	 */
 	protected int getNOutputFrames(Experiment exp, XLSExportOptions options) {
-		TimeManager timeManager = exp.seqCamData.getTimeManager();
-		ImageLoader imgLoader = exp.seqCamData.getImageLoader();
+		TimeManager timeManager = exp.getSeqCamData().getTimeManager();
+		ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 		long durationMs = timeManager.getBinLast_ms() - timeManager.getBinFirst_ms();
 		int nOutputFrames = (int) (durationMs / options.buildExcelStepMs + 1);
 

@@ -62,7 +62,7 @@ public class LoadSaveSpots extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.save_MS96_experiment();
+					exp.saveExperimentDescriptors();
 					exp.saveSpotsArray_file();
 					exp.saveCagesArray_File();
 					firePropertyChange("SPOTS_ROIS_SAVE", false, true);

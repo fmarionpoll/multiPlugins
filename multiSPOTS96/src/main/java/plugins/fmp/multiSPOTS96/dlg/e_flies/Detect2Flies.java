@@ -155,12 +155,12 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		if (e.getSource() == thresholdSpinner) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null)
-				exp.cagesArray.detect_threshold = (int) thresholdSpinner.getValue();
+				exp.getCages().detect_threshold = (int) thresholdSpinner.getValue();
 		}
 	}
 
 	private void updateOverlay(Experiment exp, int threshold) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
 
@@ -168,7 +168,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 
 		if (overlayThreshold2 == null) {
 			overlayThreshold2 = new OverlayThreshold(seqCamData.getSequence());
-			exp.seqCamData.setReferenceImage(IcyBufferedImageUtil.getCopy(exp.seqCamData.getSeqImage(0, 0)));
+			exp.getSeqCamData().setReferenceImage(IcyBufferedImageUtil.getCopy(exp.getSeqCamData().getSeqImage(0, 0)));
 		} else {
 			seqCamData.getSequence().removeOverlay(overlayThreshold2);
 			overlayThreshold2.setSequence(seqCamData.getSequence());
@@ -197,19 +197,19 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.seqCamData.getSequence() != null) {
-			exp.seqCamData.getSequence().removeOverlay(overlayThreshold2);
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold2);
 			updateTransformFunctionsOfCanvas(exp, false);
 		}
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp, boolean display) {
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer().getCanvas();
+		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
 		if (display) {
 			canvas.updateTransformsComboStep1(transforms);
 			canvas.selectImageTransformFunctionStep1(1, null);
 			exp.loadReferenceImage();
-			canvas.setTransformStep1ReferenceImage(exp.seqCamData.getReferenceImage());
+			canvas.setTransformStep1ReferenceImage(exp.getSeqCamData().getReferenceImage());
 		} else
 			canvas.selectImageTransformFunctionStep1(0, null);
 	}
@@ -277,11 +277,11 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		int nitems = 1;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null)
-			nitems = exp.cagesArray.cagesList.size() + 1;
+			nitems = exp.getCages().cagesList.size() + 1;
 		if (allCagesComboBox.getItemCount() != nitems) {
 			allCagesComboBox.removeAllItems();
 			allCagesComboBox.addItem("all cages");
-			for (Cage cage : exp.cagesArray.cagesList)
+			for (Cage cage : exp.getCages().cagesList)
 				allCagesComboBox.addItem(cage.getCageNumberFromRoiName());
 		}
 	}

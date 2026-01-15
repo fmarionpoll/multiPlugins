@@ -175,7 +175,7 @@ public class BuildBackground extends BuildSeries {
     private void initializeDetectionParameters(Experiment experiment) {
         experiment.cleanPreviousDetectedFliesROIs();
         flyDetectionTools.initParametersForDetection(experiment, options);
-        experiment.cagesArray.initFlyPositions(options.detectCage);
+        experiment.getCages().initFlyPositions(options.detectCage);
         options.threshold = options.thresholdDiff;
     }
     
@@ -279,9 +279,9 @@ public class BuildBackground extends BuildSeries {
      * Calculates the frame range for background processing.
      */
     private FrameRange calculateFrameRange(Experiment experiment) {
-        long firstMs = experiment.cagesArray.detectFirst_Ms + 
+        long firstMs = experiment.getCages().detectFirst_Ms + 
                       (options.backgroundFirst * experiment.seqCamData.getTimeManager().getBinImage_ms());
-        int firstFrame = (int) ((firstMs - experiment.cagesArray.detectFirst_Ms) / 
+        int firstFrame = (int) ((firstMs - experiment.getCages().detectFirst_Ms) / 
                                experiment.seqCamData.getTimeManager().getBinImage_ms());
         
         int lastFrame = options.backgroundFirst + options.backgroundNFrames;

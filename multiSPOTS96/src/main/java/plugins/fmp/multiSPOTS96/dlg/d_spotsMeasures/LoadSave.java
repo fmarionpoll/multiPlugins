@@ -70,13 +70,13 @@ public class LoadSave extends JPanel {
 	public boolean dlg_spotsmeasures_loadSpotsArray_File(Experiment exp) {
 		boolean flag = exp.load_MS96_cages();
 		if (flag) {
-			exp.load_MS96_spotsMeasures();
-			exp.seqCamData.removeROIsContainingString("spot");
-			exp.cagesArray.transferCageSpotsToSequenceAsROIs(exp.seqCamData);
+			exp.load_spots_description_and_measures();
+			exp.getSeqCamData().removeROIsContainingString("spot");
+			exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData());
 //			if (exp.seqKymos != null) {
 //				Sequence seq = exp.seqKymos.getSequence();
 //				if (seq != null && seq.getName() != null)
-//					exp.cagesArray.transferSpotsMeasuresToSequenceAsROIs(exp.seqKymos.getSequence());
+//					exp.getCages().transferSpotsMeasuresToSequenceAsROIs(exp.seqKymos.getSequence());
 //			}
 		}
 		return flag;
@@ -84,9 +84,9 @@ public class LoadSave extends JPanel {
 
 	public boolean saveSpotsArray_file(Experiment exp) {
 		parent0.dlgExperiment.getExperimentInfosFromDialog(exp);
-		boolean flag = exp.save_MS96_experiment();
-		exp.cagesArray.transferROIsFromSequenceToCageSpots(exp.seqCamData);
-		flag &= exp.save_MS96_cages();
+		boolean flag = exp.saveExperimentDescriptors();
+		exp.getCages().transferROIsFromSequenceToCageSpots(exp.getSeqCamData());
+		flag &= exp.save_cages_description_and_measures();
 		flag &= exp.save_MS96_spotsMeasures();
 		return flag;
 	}

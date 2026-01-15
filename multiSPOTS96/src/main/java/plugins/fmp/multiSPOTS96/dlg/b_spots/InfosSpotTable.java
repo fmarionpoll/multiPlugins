@@ -95,7 +95,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					allSpotsCopy = exp.cagesArray.getAllSpotsArray();
+					allSpotsCopy = exp.getCages().getAllSpotsArray();
 					pasteButton.setEnabled(true);
 				}
 			}
@@ -106,7 +106,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					SpotsArray spotsArray = exp.cagesArray.getAllSpotsArray();
+					SpotsArray spotsArray = exp.getCages().getAllSpotsArray();
 					allSpotsCopy.pasteSpotsInfo(spotsArray);
 				}
 			}
@@ -184,17 +184,17 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	}
 
 	private void locateSelectedROI(Experiment exp) {
-		ArrayList<ROI> roiList = exp.seqCamData.getSequence().getSelectedROIs();
+		ArrayList<ROI> roiList = exp.getSeqCamData().getSequence().getSelectedROIs();
 		if (roiList.size() > 0) {
 			Spot spot = null;
 			for (ROI roi : roiList) {
 				String name = roi.getName();
 				if (name.contains("spot")) {
-					spot = exp.cagesArray.getSpotFromROIName(name);
+					spot = exp.getCages().getSpotFromROIName(name);
 					continue;
 				}
 				if (name.contains("cage")) {
-					Cage cage = exp.cagesArray.getCageFromName(name);
+					Cage cage = exp.getCages().getCageFromName(name);
 					spot = cage.spotsArray.getSpotsList().get(0);
 					break;
 				}
@@ -206,11 +206,11 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 
 	private void measureNPixelsForAllSpots(Experiment exp) {
 		int columnIndex = 1;
-		for (Cage cage : exp.cagesArray.cagesList)
+		for (Cage cage : exp.getCages().cagesList)
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				try {
 					int value = (int) spot.getRoi().getNumberOfPoints();
-					int iID = exp.cagesArray.getSpotGlobalPosition(spot);
+					int iID = exp.getCages().getSpotGlobalPosition(spot);
 					spotTable.spotTableModel.setValueAt(value, iID, columnIndex);
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -220,7 +220,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	}
 
 	private void transferFromSpot(Experiment exp, Spot spotTo, Spot spotFrom) {
-		int iID = exp.cagesArray.getSpotGlobalPosition(spotTo);
+		int iID = exp.getCages().getSpotGlobalPosition(spotTo);
 		int columnIndex = 2;
 		SpotProperties prop = spotFrom.getProperties();
 		spotTable.spotTableModel.setValueAt(prop.getSpotVolume(), iID, columnIndex);
@@ -240,7 +240,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			return;
 
 		String spotName = (String) spotTable.getValueAt(rowIndex, 0);
-		Spot spotFrom = exp.cagesArray.getSpotFromROIName(spotName);
+		Spot spotFrom = exp.getCages().getSpotFromROIName(spotName);
 		if (spotFrom == null) {
 			System.out.println("spot not found: " + spotName);
 			return;
@@ -251,7 +251,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		int cagePosition = prop.getCagePosition();
 		int cageID = prop.getCageID();
 
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			if (cage.getProperties().getCageID() == cageID)
 				continue;
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
@@ -272,14 +272,14 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			return;
 
 		String spotName = (String) spotTable.getValueAt(rowFrom, 0);
-		Spot spotFrom = exp.cagesArray.getSpotFromROIName(spotName);
+		Spot spotFrom = exp.getCages().getSpotFromROIName(spotName);
 		if (spotFrom == null) {
 			System.out.println("spot not found or invalid: " + spotName);
 			return;
 		}
 
 		spotName = (String) spotTable.getValueAt(rowTo, 0);
-		Spot spotTo = exp.cagesArray.getSpotFromROIName(spotName);
+		Spot spotTo = exp.getCages().getSpotFromROIName(spotName);
 		if (spotTo == null) {
 			System.out.println("spot not found or invalid: " + spotName);
 			return;
@@ -294,9 +294,9 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			return;
 
 		Object value = spotTable.spotTableModel.getValueAt(rowIndex, columnIndex);
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
-				int iID = exp.cagesArray.getSpotGlobalPosition(spot);
+				int iID = exp.getCages().getSpotGlobalPosition(spot);
 				spotTable.spotTableModel.setValueAt(value, iID, columnIndex);
 			}
 		}
@@ -307,11 +307,11 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		if (rowIndex < 0)
 			return;
 
-		Spot spotFromSelectedRow = exp.cagesArray.getSpotAtGlobalIndex(rowIndex);
+		Spot spotFromSelectedRow = exp.getCages().getSpotAtGlobalIndex(rowIndex);
 		int cageIDFrom = spotFromSelectedRow.getProperties().getCageID();
-		Cage cageFrom = exp.cagesArray.getCageFromSpotName(spotFromSelectedRow.getRoi().getName());
+		Cage cageFrom = exp.getCages().getCageFromSpotName(spotFromSelectedRow.getRoi().getName());
 
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			if (cage.getProperties().getCageID() == cageIDFrom)
 				continue;
 
@@ -351,18 +351,18 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			ROI2D roiSpot = spot.getRoi();
 			if (name == null)
 				name = roiSpot.getName();
-			Cage cage = exp.cagesArray.getCageFromSpotROIName(name);
+			Cage cage = exp.getCages().getCageFromSpotROIName(name);
 			if (cage != null) {
 				ROI2D cageRoi = cage.getRoi();
 				if (cageRoi != null)
-					exp.seqCamData.centerDisplayOnRoi(cageRoi);
+					exp.getSeqCamData().centerDisplayOnRoi(cageRoi);
 				else
 					System.out.println("cage roi not found");
 			} else
 				System.out.println("cage is null");
 
-			exp.seqCamData.getSequence().setFocusedROI(roiSpot);
-			// exp.seqCamData.centerOnRoi(roi);
+			exp.getSeqCamData().getSequence().setFocusedROI(roiSpot);
+			// exp.getSeqCamData().centerOnRoi(roi);
 			roiSpot.setSelected(true);
 		}
 	}

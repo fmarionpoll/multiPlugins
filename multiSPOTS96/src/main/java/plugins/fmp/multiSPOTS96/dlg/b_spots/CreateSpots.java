@@ -85,14 +85,14 @@ public class CreateSpots extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.seqCamData.removeROIsContainingString("carre");
-					exp.seqCamData.removeROIsContainingString("spot");
-					Cage cageFound = exp.cagesArray.findFirstSelectedCage();
+					exp.getSeqCamData().removeROIsContainingString("carre");
+					exp.getSeqCamData().removeROIsContainingString("spot");
+					Cage cageFound = exp.getCages().findFirstSelectedCage();
 					if (cageFound == null)
-						cageFound = exp.cagesArray.cagesList.get(0);
+						cageFound = exp.getCages().cagesList.get(0);
 
 					if (cageFound != null) {
-						exp.seqCamData.centerDisplayOnRoi(cageFound.getRoi());
+						exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
 						changeGrid(exp, cageFound);
 					}
 
@@ -122,10 +122,10 @@ public class CreateSpots extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.seqCamData.removeROIsContainingString("spot");
+					exp.getSeqCamData().removeROIsContainingString("spot");
 					createSpotsForAllCages(exp, roiGrid, referencePosition);
 					ExperimentUtils.transferSpotsToCamDataSequence(exp);
-					exp.seqCamData.removeROIsContainingString("carre");
+					exp.getSeqCamData().removeROIsContainingString("carre");
 				}
 			}
 		});
@@ -139,13 +139,13 @@ public class CreateSpots extends JPanel {
 		for (ROI2DPolygonPlus roi : listCarres) {
 			roi.setSelected(roi.isSelected());
 			if (!roi.getSelected())
-				exp.seqCamData.getSequence().removeROI(roi);
+				exp.getSeqCamData().getSequence().removeROI(roi);
 		}
 	}
 
 	private void createSpotsForAllCages(Experiment exp, ROI2DGrid roiGrid, Point2D.Double referenceCagePosition) {
 		ArrayList<ROI2DPolygonPlus> listSelectedAreas = roiGrid.getSelectedAreaRois();
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			ROI2D cageRoi = cage.getRoi();
 			ROI2DGrid cageGrid = createGrid(cageRoi);
 			cage.spotsArray.getSpotsList().clear();
@@ -168,7 +168,7 @@ public class CreateSpots extends JPanel {
 
 	void changeGrid(Experiment exp, Cage cage) {
 		if (roiGrid != null) {
-			Sequence sequence = exp.seqCamData.getSequence();
+			Sequence sequence = exp.getSeqCamData().getSequence();
 			try {
 				roiGrid.clearGridRois(sequence);
 			} catch (ValidationException e) {
@@ -177,7 +177,7 @@ public class CreateSpots extends JPanel {
 			}
 		}
 		roiGrid = createGrid(cage.getRoi());
-		exp.seqCamData.getSequence().addROIs(roiGrid.getAreaRois(), false);
+		exp.getSeqCamData().getSequence().addROIs(roiGrid.getAreaRois(), false);
 	}
 
 	private ROI2DGrid createGrid(ROI2D roi) {

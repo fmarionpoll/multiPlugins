@@ -136,7 +136,7 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExport {
         pt = writeExperimentSeparator(sheet, pt);
 
         // Process cages in chunks
-        for (Cage cage : exp.cagesArray.cagesList) {
+        for (Cage cage : exp.getCages().cagesList) {
             double scalingFactorToPhysicalUnits = cage.spotsArray.getScalingFactorToPhysicalUnits(xlsExportType);
             cage.updateSpotsStimulus_i();
 
@@ -320,7 +320,7 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExport {
      */
     private int calculateTotalSpots(Experiment exp) {
         int total = 0;
-        for (Cage cage : exp.cagesArray.cagesList) {
+        for (Cage cage : exp.getCages().cagesList) {
             total += cage.spotsArray.getSpotsList().size();
         }
         return total;
@@ -428,13 +428,13 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExport {
      * @return The number of output frames
      */
     protected int getNOutputFrames(Experiment exp, XLSExportOptions options) {
-        TimeManager timeManager = exp.seqCamData.getTimeManager();
+        TimeManager timeManager = exp.getSeqCamData().getTimeManager();
         long durationMs = timeManager.getBinLast_ms() - timeManager.getBinFirst_ms();
         int nOutputFrames = (int) (durationMs / options.buildExcelStepMs + 1);
 
         if (nOutputFrames <= 1) {
             long binLastMs = timeManager.getBinFirst_ms()
-                    + exp.seqCamData.getImageLoader().getNTotalFrames() * timeManager.getBinDurationMs();
+                    + exp.getSeqCamData().getImageLoader().getNTotalFrames() * timeManager.getBinDurationMs();
             timeManager.setBinLast_ms(binLastMs);
 
             if (binLastMs <= 0) {
@@ -444,7 +444,7 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExport {
             nOutputFrames = (int) ((binLastMs - timeManager.getBinFirst_ms()) / options.buildExcelStepMs + 1);
 
             if (nOutputFrames <= 1) {
-                nOutputFrames = exp.seqCamData.getImageLoader().getNTotalFrames();
+                nOutputFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
                 handleExportError(exp, nOutputFrames);
             }
         }

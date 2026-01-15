@@ -100,7 +100,7 @@ public class PlotPositions extends JPanel implements SequenceListener {
 
 		if (aliveCheckbox.isSelected()) {
 			double threshold = (double) aliveThresholdSpinner.getValue();
-			for (Cage cage : exp.cagesArray.cagesList) {
+			for (Cage cage : exp.getCages().cagesList) {
 				FlyPositions posSeries = cage.flyPositions;
 				posSeries.moveThreshold = threshold;
 				posSeries.computeIsAlive();
@@ -110,7 +110,7 @@ public class PlotPositions extends JPanel implements SequenceListener {
 		}
 
 		if (sleepCheckbox.isSelected()) {
-			for (Cage cage : exp.cagesArray.cagesList) {
+			for (Cage cage : exp.getCages().cagesList) {
 				FlyPositions posSeries = cage.flyPositions;
 				posSeries.computeSleep();
 			}
@@ -126,7 +126,7 @@ public class PlotPositions extends JPanel implements SequenceListener {
 			iChart.createPanel(title);
 			iChart.setLocationRelativeToRectangle(rectv, ptRelative);
 		}
-		iChart.displayData(exp.cagesArray.cagesList, option);
+		iChart.displayData(exp.getCages().cagesList, option);
 		iChart.mainChartFrame.toFront();
 	}
 

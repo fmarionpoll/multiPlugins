@@ -130,7 +130,7 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private Rectangle getInitialUpperLeftPosition(Experiment exp) {
 		Rectangle rectv = new Rectangle(50, 500, 10, 10);
-		Viewer v = exp.seqCamData.getSequence().getFirstViewer();
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v != null) {
 			rectv = v.getBounds();
 			rectv.translate(0, rectv.height);
@@ -146,11 +146,11 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	public void displayChartPanels(Experiment exp) {
-		exp.seqCamData.getSequence().removeListener(this);
+		exp.getSeqCamData().getSequence().removeListener(this);
 		EnumXLSExport exportType = (EnumXLSExport) exportTypeComboBox.getSelectedItem();
 		if (isThereAnyDataToDisplay(exp, exportType))
 			chartCageArrayFrame = plotSpotMeasuresToChart(exp, exportType, chartCageArrayFrame);
-		exp.seqCamData.getSequence().addListener(this);
+		exp.getSeqCamData().getSequence().addListener(this);
 	}
 
 	private ChartCageArrayFrame plotSpotMeasuresToChart(Experiment exp, EnumXLSExport exportType,
@@ -159,14 +159,14 @@ public class Charts extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 
 		int first = 0;
-		int last = exp.cagesArray.cagesList.size() - 1;
+		int last = exp.getCages().cagesList.size() - 1;
 		if (!displayAllButton.isSelected()) {
-			Cage cageFound = exp.cagesArray.findFirstCageWithSelectedSpot();
+			Cage cageFound = exp.getCages().findFirstCageWithSelectedSpot();
 			if (cageFound == null)
-				cageFound = exp.cagesArray.findFirstSelectedCage();
+				cageFound = exp.getCages().findFirstSelectedCage();
 			if (cageFound == null)
 				return null;
-			exp.seqCamData.centerDisplayOnRoi(cageFound.getRoi());
+			exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
 			String cageNumber = CageString.getCageNumberFromCageRoiName(cageFound.getRoi().getName());
 			first = Integer.parseInt(cageNumber);
 			last = first;
@@ -193,7 +193,7 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumXLSExport option) {
 		boolean flag = false;
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				flag = spot.hasMeasurements(option);
 				if (flag)

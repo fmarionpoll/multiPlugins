@@ -58,10 +58,10 @@ public class DetectSpotsTools {
 	public void findSpots(Experiment exp, Sequence seqNegative, BuildSeriesOptions options, IcyBufferedImage workimage)
 			throws InterruptedException {
 
-		exp.cagesArray.computeBooleanMasksForCages();
+		exp.getCages().computeBooleanMasksForCages();
 		final ROI2DArea binarizedImageRoi = binarizeImage(workimage, options);
 
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			if (!options.selectedIndexes.contains(cage.getProperties().getCageID()))
 				continue;
 

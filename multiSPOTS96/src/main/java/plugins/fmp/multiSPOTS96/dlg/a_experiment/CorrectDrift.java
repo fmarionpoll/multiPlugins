@@ -167,8 +167,8 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		startFrameJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				Experiment exp = getCurrentExperiment();
-				if (exp != null && exp.seqCamData.getSequence() != null) {
-					Viewer v = exp.seqCamData.getSequence().getFirstViewer();
+				if (exp != null && exp.getSeqCamData().getSequence() != null) {
+					Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 					if (v != null) {
 						int newValue = (int) startFrameJSpinner.getValue();
 						if (v.getPositionT() != newValue)
@@ -457,7 +457,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 
 		int testFrame = (int) startFrameJSpinner.getValue();
 		int referenceFrame = (int) referenceFrameJSpinner.getValue();
-		Sequence seq = exp.seqCamData.getSequence();
+		Sequence seq = exp.getSeqCamData().getSequence();
 		IcyBufferedImage imageTest = seq.getImage(testFrame, 0);
 		IcyBufferedImage imageReference = seq.getImage(referenceFrame, 0);
 		Sequence chessSeq = createChessboardImage(imageTest, imageReference, squareSize);
@@ -468,12 +468,12 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	private boolean applyTranslation(Experiment exp, int x, int y) {
 		Vector2d translation = new Vector2d(x, y);
 		int t = (int) referenceFrameJSpinner.getValue();
-		Sequence seq = exp.seqCamData.getSequence();
+		Sequence seq = exp.getSeqCamData().getSequence();
 		IcyBufferedImage workImage = seq.getImage(t, 0);
 		workImage = GaspardRigidRegistration.applyTranslation2D(workImage, -1, translation, true);
 		seq.setImage(t, 0, workImage);
 
-		String fileName = exp.seqCamData.getFileNameFromImageList(t);
+		String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
 		File outputfile = new File(fileName);
 		RenderedImage image = ImageUtil.toRGBImage(workImage);
 		return ImageUtil.save(image, "jpg", outputfile);
@@ -482,12 +482,12 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	private boolean applyRotation(Experiment exp, double angleDegrees) {
 		int t = (int) referenceFrameJSpinner.getValue();
 		double angleRadians = Math.toRadians(angleDegrees);
-		Sequence seq = exp.seqCamData.getSequence();
+		Sequence seq = exp.getSeqCamData().getSequence();
 		IcyBufferedImage workImage = seq.getImage(t, 0);
 		workImage = GaspardRigidRegistration.applyRotation2D(workImage, -1, angleRadians, true);
 		seq.setImage(t, 0, workImage);
 
-		String fileName = exp.seqCamData.getFileNameFromImageList(t);
+		String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
 		File outputfile = new File(fileName);
 		RenderedImage image = ImageUtil.toRGBImage(workImage);
 		return ImageUtil.save(image, "jpg", outputfile);

@@ -119,7 +119,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 
 		// Create metadata from the experiment
 		ExperimentMetadata metadata = new ExperimentMetadata(
-				exp.seqCamData != null ? exp.seqCamData.getImagesDirectory() : exp.toString(),
+				exp.getSeqCamData() != null ? exp.getSeqCamData().getImagesDirectory() : exp.toString(),
 				exp.getResultsDirectory(), exp.getBinDirectory());
 		return new LazyExperiment(metadata);
 	}
@@ -212,7 +212,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 					if (diff < 1) {
 						System.out.println("ExperimentCombo:get_MsTime_of_StartAndEnd_AllExperiments() Expt # " + i
 								+ ": FileTime difference between last and first image < 1; set dt between images = 1 ms");
-						diff = exp.seqCamData.getSequence().getSizeT();
+						diff = exp.getSeqCamData().getSequence().getSizeT();
 					}
 					if (expAll.seqCamData.getLastImageMs() < diff)
 						expAll.seqCamData.setLastImageMs(diff);
@@ -250,16 +250,16 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 						((LazyExperiment) exp).loadIfNeeded();
 					}
 
-					exp.load_MS96_experiment();
+					exp.xmlLoad_MCExperiment();
 					exp.load_MS96_cages();
 					if (loadSpots)
-						exp.load_MS96_spotsMeasures();
+						exp.load_spots_description_and_measures();
 
 					if (loadDrosoTrack)
 						exp.zopenPositionsMeasures();
 
-					int nCages = exp.cagesArray.cagesList.size();
-					int nSpotsPerCage = exp.cagesArray.nColumnsPerCage * exp.cagesArray.nRowsPerCage;
+					int nCages = exp.getCages().cagesList.size();
+					int nSpotsPerCage = exp.getCages().nColumnsPerCage * exp.getCages().nRowsPerCage;
 					int nMaxSpots = nCages * nSpotsPerCage;
 					if (maxSizeOfSpotsArrays < nMaxSpots) {
 						maxSizeOfSpotsArrays = nMaxSpots;
@@ -396,7 +396,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 				if (exp instanceof LazyExperiment) {
 					((LazyExperiment) exp).loadIfNeeded();
 				}
-				exp.load_MS96_experiment();
+				exp.xmlLoad_MCExperiment();
 				addIfUniqueStrings(textList, exp.getFieldValues(field));
 			}
 		}

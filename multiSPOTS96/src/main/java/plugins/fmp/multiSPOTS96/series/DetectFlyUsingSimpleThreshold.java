@@ -23,17 +23,17 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 			return;
 
 		runFlyDetect1(exp);
-		exp.cagesArray.orderFlyPositions();
+		exp.getCages().orderFlyPositions();
 		if (!stopFlag)
 			exp.save_MS96_fliesPositions();
-		exp.seqCamData.closeSequence();
+		exp.getSeqCamData().closeSequence();
 		closeSequence(seqNegative);
 	}
 
 	private void runFlyDetect1(Experiment exp) {
 		exp.cleanPreviousDetectedFliesROIs();
 		find_flies.initParametersForDetection(exp, options);
-		exp.cagesArray.initFlyPositions(options.detectCage);
+		exp.getCages().initFlyPositions(options.detectCage);
 
 		openFlyDetectViewers(exp);
 		findFliesInAllFrames(exp);
@@ -42,13 +42,13 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 	private void getReferenceImage(Experiment exp, int t, ImageTransformOptions options) {
 		switch (options.transformOption) {
 		case SUBTRACT_TM1:
-			options.backgroundImage = imageIORead(exp.seqCamData.getFileNameFromImageList(t));
+			options.backgroundImage = imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
 			break;
 
 		case SUBTRACT_T0:
 		case SUBTRACT_REF:
 			if (options.backgroundImage == null)
-				options.backgroundImage = imageIORead(exp.seqCamData.getFileNameFromImageList(0));
+				options.backgroundImage = imageIORead(exp.getSeqCamData().getFileNameFromImageList(0));
 			break;
 
 		case NONE:
@@ -64,14 +64,14 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 		ImageTransformInterface transformFunction = options.transformop.getFunction();
 
 		int t_previous = 0;
-		int totalFrames = exp.seqCamData.getImageLoader().getNTotalFrames();
+		int totalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 
 		for (int index = 0; index < totalFrames; index++) {
 			int t_from = index;
-			String title = "Frame #" + t_from + "/" + exp.seqCamData.getImageLoader().getNTotalFrames();
+			String title = "Frame #" + t_from + "/" + exp.getSeqCamData().getImageLoader().getNTotalFrames();
 			progressBar.setMessage(title);
 
-			IcyBufferedImage sourceImage = imageIORead(exp.seqCamData.getFileNameFromImageList(t_from));
+			IcyBufferedImage sourceImage = imageIORead(exp.getSeqCamData().getFileNameFromImageList(t_from));
 			getReferenceImage(exp, t_previous, transformOptions);
 			IcyBufferedImage workImage = transformFunction.getTransformedImage(sourceImage, transformOptions);
 			try {

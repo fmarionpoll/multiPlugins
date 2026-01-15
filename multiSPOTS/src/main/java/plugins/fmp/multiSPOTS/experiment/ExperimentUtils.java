@@ -72,7 +72,7 @@ public class ExperimentUtils {
 
 		List<ROI> roisAlreadyTransferred = ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq);
 		// roi with no corresponding cap? add ROI
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			boolean found = false;
 			for (ROI roi : roisAlreadyTransferred) {
 				if (roi.getName().equals(cage.getRoi().getName())) {

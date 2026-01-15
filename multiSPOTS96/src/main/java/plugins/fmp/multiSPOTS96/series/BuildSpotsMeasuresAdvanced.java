@@ -20,8 +20,8 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spots.Spot;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
-import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
+import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
 
@@ -103,7 +103,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 			this.batchCount = 0;
 			getTimeLimitsOfSequence(exp);
 			loadExperimentDataToMeasureSpots(exp);
-			exp.cagesArray.setReadyToAnalyze(true, options);
+			exp.getCages().setReadyToAnalyze(true, options);
 			openViewers(exp);
 
 			boolean processed = measureSpotsAdvanced(exp);
@@ -112,7 +112,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 
 			logMemoryUsage("After Processing");
 
-			exp.cagesArray.setReadyToAnalyze(false, options);
+			exp.getCages().setReadyToAnalyze(false, options);
 			closeViewers();
 			cleanupResources();
 			enhancedPostProcessingCleanup();
@@ -120,7 +120,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		} finally {
 			// Ensure cleanup happens even if exceptions occur
 			try {
-//				exp.cagesArray.setReadyToAnalyze(false, options);
+//				exp.getCages().setReadyToAnalyze(false, options);
 //				closeViewers();
 //				cleanupResources();
 //				enhancedPostProcessingCleanup();
@@ -131,12 +131,12 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	}
 
 	private boolean loadExperimentDataToMeasureSpots(Experiment exp) {
-		exp.load_MS96_experiment();
-		exp.seqCamData.attachSequence(
-				exp.seqCamData.getImageLoader().initSequenceFromFirstImage(exp.seqCamData.getImagesList(true)));
+		exp.xmlLoad_MCExperiment();
+		exp.getSeqCamData().attachSequence(exp.getSeqCamData().getImageLoader()
+				.initSequenceFromFirstImage(exp.getSeqCamData().getImagesList(true)));
 
 		boolean flag = exp.load_MS96_cages();
-		if (exp.seqCamData.getTimeManager().getBinDurationMs() == 0)
+		if (exp.getSeqCamData().getTimeManager().getBinDurationMs() == 0)
 			exp.loadFileIntervalsFromSeqCamData();
 
 		return flag;
@@ -147,10 +147,10 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		if (directory == null)
 			return;
 
-		exp.cagesArray.transferMeasuresToLevel2D();
-		exp.cagesArray.medianFilterFromSumToSumClean();
+		exp.getCages().transferMeasuresToLevel2D();
+		exp.getCages().medianFilterFromSumToSumClean();
 
-		exp.save_MS96_experiment();
+		exp.saveExperimentDescriptors();
 		exp.save_MS96_spotsMeasures();
 	}
 
@@ -173,19 +173,19 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	}
 
 	private boolean measureSpotsAdvanced(Experiment exp) {
-		if (exp.cagesArray.getTotalNumberOfSpots() < 1) {
+		if (exp.getCages().getTotalNumberOfSpots() < 1) {
 //			System.out.println("DetectAreas:measureAreas Abort (1): nbspots = 0");
 			return false;
 		}
 
 		threadRunning = true;
 		stopFlag = false;
-		if (!exp.seqCamData.build_MsTimesArray_From_FileNamesList())
+		if (!exp.getSeqCamData().build_MsTimesArray_From_FileNamesList())
 			return false;
 
 		int iiFirst = 0;
-		int iiLast = exp.seqCamData.getImageLoader().getNTotalFrames();
-		vData.setTitle(exp.seqCamData.getCSCamFileName() + ": " + iiFirst + "-" + iiLast);
+		int iiLast = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		vData.setTitle(exp.getSeqCamData().getCSCamFileName() + ": " + iiFirst + "-" + iiLast);
 		ProgressFrame progressBar1 = new ProgressFrame("Analyze stack (Advanced)");
 
 		// Initialize with adaptive batch sizing
@@ -193,7 +193,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		initMeasureSpots(exp);
 
 		// Initialize streaming processor
-		streamingProcessor.start(exp.seqCamData, iiFirst, iiLast);
+		streamingProcessor.start(exp.getSeqCamData(), iiFirst, iiLast);
 
 //		long startTime = System.currentTimeMillis();
 //		int processedBatches = 0;
@@ -268,7 +268,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 			progressBar1.setMessage("Analyze frame: " + t + "//" + iiLast);
 
 			// Load image once and pass to processing method (like original)
-			String fileName = exp.seqCamData.getFileNameFromImageList(t);
+			String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
 			if (fileName == null) {
 				System.out.println("filename null at t=" + t);
 				continue;
@@ -360,7 +360,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 			totalCursorsCreated += 2;
 
 			int ii_local = frameIndex - iiFirst;
-			for (Cage cage : exp.cagesArray.cagesList) {
+			for (Cage cage : exp.getCages().cagesList) {
 				for (Spot spot : cage.spotsArray.getSpotsList()) {
 					if (!spot.isReadyForAnalysis()) {
 						continue;
@@ -509,9 +509,9 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	}
 
 	private void initSpotsDataArrays(Experiment exp) {
-		int nFrames = exp.seqCamData.getImageLoader().getNTotalFrames();
+		int nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		int spotArrayGlobalIndex = 0;
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			int spotPosition = 0;
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				spot.getProperties().setCagePosition(spotPosition);
@@ -527,12 +527,12 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	}
 
 	private void initMasks2DCompressed(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData.getSequence() == null)
-			seqCamData.attachSequence(
-					exp.seqCamData.getImageLoader().initSequenceFromFirstImage(exp.seqCamData.getImagesList(true)));
+			seqCamData.attachSequence(exp.getSeqCamData().getImageLoader()
+					.initSequenceFromFirstImage(exp.getSeqCamData().getImagesList(true)));
 
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				ROI2DWithMask roiT = null;
 				try {
@@ -568,7 +568,8 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
-					seqData = newSequence(exp.seqCamData.getCSCamFileName(), exp.seqCamData.getSeqImage(0, 0));
+					seqData = newSequence(exp.getSeqCamData().getCSCamFileName(),
+							exp.getSeqCamData().getSeqImage(0, 0));
 					vData = new ViewerFMP(seqData, true, true);
 				}
 			});

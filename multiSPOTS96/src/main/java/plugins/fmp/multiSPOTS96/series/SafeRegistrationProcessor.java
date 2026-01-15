@@ -195,7 +195,7 @@ public class SafeRegistrationProcessor implements RegistrationProcessor {
 			return ProcessingResult.failure("Experiment must have camera data");
 		}
 
-		if (experiment.cagesArray == null) {
+		if (experiment.getCages() == null) {
 			return ProcessingResult.failure("Experiment must have cages array");
 		}
 
@@ -298,7 +298,7 @@ public class SafeRegistrationProcessor implements RegistrationProcessor {
 	 * Extracts the region of interest from the image.
 	 */
 	private IcyBufferedImage extractRegionOfInterest(IcyBufferedImage image, Experiment experiment) {
-		Polygon2D polygon2D = experiment.cagesArray.getPolygon2DEnclosingAllCages();
+		Polygon2D polygon2D = experiment.getCages().getPolygon2DEnclosingAllCages();
 		Rectangle rect = polygon2D.getBounds();
 		return IcyBufferedImageUtil.getSubImage(image, rect.x, rect.y, rect.height, rect.width);
 	}

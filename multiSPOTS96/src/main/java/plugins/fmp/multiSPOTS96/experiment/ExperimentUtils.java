@@ -14,13 +14,13 @@ import plugins.kernel.roi.roi2d.ROI2DPolygon;
 public class ExperimentUtils {
 
 	public static void transferCamDataROI2DsToSpots(Experiment exp) {
-		if (exp.cagesArray == null)
-			exp.cagesArray = new CagesArray();
+		if (exp.getCages() == null)
+			exp.getCages() = new CagesArray();
 
-		List<ROI2D> listROIsSpots = exp.seqCamData.getROIsContainingString("spot");
+		List<ROI2D> listROIsSpots = exp.getSeqCamData().getROIsContainingString("spot");
 		for (ROI2D roi : listROIsSpots) {
 			boolean found = false;
-			for (Cage cage : exp.cagesArray.cagesList) {
+			for (Cage cage : exp.getCages().cagesList) {
 				for (Spot spot : cage.spotsArray.getSpotsList()) {
 					if (spot.getRoi() != null && roi.getName().equals(spot.getRoi().getName())) {
 						found = true;
@@ -34,7 +34,7 @@ public class ExperimentUtils {
 				int cageID = SpotString.getCageIDFromSpotName(name);
 				int cagePosition = SpotString.getSpotCagePositionFromSpotName(name);
 				if (cageID >= 0 && cagePosition >= 0) {
-					Cage cage = exp.cagesArray.getCageFromID(cageID);
+					Cage cage = exp.getCages().getCageFromID(cageID);
 					cage.spotsArray.getSpotsList().add(new Spot(roi_new));
 				}
 			}
@@ -42,13 +42,13 @@ public class ExperimentUtils {
 	}
 
 	public void removeSpotsWithNoCamDataROI(Experiment exp) {
-		if (exp.cagesArray == null)
-			exp.cagesArray = new CagesArray();
+		if (exp.getCages() == null)
+			exp.getCages() = new CagesArray();
 
-		List<ROI2D> listROIsSpots = exp.seqCamData.getROIsContainingString("spot");
+		List<ROI2D> listROIsSpots = exp.getSeqCamData().getROIsContainingString("spot");
 
 		// spot with no corresponding roi? remove
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			Iterator<Spot> iterator = cage.spotsArray.getSpotsList().iterator();
 			while (iterator.hasNext()) {
 				Spot spot = iterator.next();
@@ -66,12 +66,12 @@ public class ExperimentUtils {
 	}
 
 	public static void transferSpotsToCamDataSequence(Experiment exp) {
-		if (exp.cagesArray == null)
+		if (exp.getCages() == null)
 			return;
 
-		List<ROI2D> listROISSpots = exp.seqCamData.getROIsContainingString("spot");
+		List<ROI2D> listROISSpots = exp.getSeqCamData().getROIsContainingString("spot");
 		// roi with no corresponding cap? add ROI
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				boolean found = false;
 				for (ROI roi : listROISSpots) {
@@ -81,18 +81,18 @@ public class ExperimentUtils {
 					}
 				}
 				if (!found)
-					exp.seqCamData.getSequence().addROI(spot.getRoi());
+					exp.getSeqCamData().getSequence().addROI(spot.getRoi());
 			}
 		}
 	}
 
 	public static void transferCagesToCamDataSequence(Experiment exp) {
-		if (exp.cagesArray == null)
+		if (exp.getCages() == null)
 			return;
 
-		List<ROI2D> roisAlreadyTransferred = exp.seqCamData.getROIsContainingString("cage");
+		List<ROI2D> roisAlreadyTransferred = exp.getSeqCamData().getROIsContainingString("cage");
 		// roi with no corresponding cap? add ROI
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			boolean found = false;
 			for (ROI roi : roisAlreadyTransferred) {
 				if (roi.getName().equals(cage.getRoi().getName())) {
@@ -101,19 +101,19 @@ public class ExperimentUtils {
 				}
 			}
 			if (!found)
-				exp.seqCamData.getSequence().addROI(cage.getRoi());
+				exp.getSeqCamData().getSequence().addROI(cage.getRoi());
 		}
 	}
 
 	public static void removeCageAndSpotROISFromCamDataSequence(Experiment exp) {
-		if (exp.cagesArray == null)
+		if (exp.getCages() == null)
 			return;
 
-		List<ROI2D> roisCages = exp.seqCamData.getROIsContainingString("cage");
-		exp.seqCamData.getSequence().removeROIs(roisCages, false);
+		List<ROI2D> roisCages = exp.getSeqCamData().getROIsContainingString("cage");
+		exp.getSeqCamData().getSequence().removeROIs(roisCages, false);
 
-		List<ROI2D> roisSpots = exp.seqCamData.getROIsContainingString("spot");
-		exp.seqCamData.getSequence().removeROIs(roisSpots, false);
+		List<ROI2D> roisSpots = exp.getSeqCamData().getROIsContainingString("spot");
+		exp.getSeqCamData().getSequence().removeROIs(roisSpots, false);
 
 	}
 }

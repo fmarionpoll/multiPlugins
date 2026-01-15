@@ -65,7 +65,7 @@ public class LazyExperiment extends Experiment {
 					Experiment fullExp = new Experiment(expDirectories);
 					// Copy essential public properties from the fully loaded experiment
 					this.seqCamData = fullExp.seqCamData;
-					this.cagesArray = fullExp.cagesArray;
+					this.getCages() = fullExp.getCages();
 					this.firstImage_FileTime = fullExp.firstImage_FileTime;
 					this.lastImage_FileTime = fullExp.lastImage_FileTime;
 					this.col = fullExp.col;

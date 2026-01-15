@@ -23,7 +23,7 @@ public class FlyDetect1 extends BuildSeries {
 			return;
 
 		runFlyDetect1(exp);
-		exp.cagesArray.orderFlyPositions();
+		exp.getCages().orderFlyPositions();
 		if (!stopFlag)
 			exp.save_CagesMeasures();
 		exp.seqCamData.closeSequence();
@@ -33,7 +33,7 @@ public class FlyDetect1 extends BuildSeries {
 	private void runFlyDetect1(Experiment exp) {
 		exp.cleanPreviousDetectedFliesROIs();
 		find_flies.initParametersForDetection(exp, options);
-		exp.cagesArray.initFlyPositions(options.detectCage);
+		exp.getCages().initFlyPositions(options.detectCage);
 
 		openFlyDetectViewers(exp);
 		findFliesInAllFrames(exp);

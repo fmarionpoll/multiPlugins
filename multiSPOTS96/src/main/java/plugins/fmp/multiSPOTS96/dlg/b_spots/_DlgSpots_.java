@@ -146,7 +146,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 			tabEditSpots.clearTemporaryROIs();
 		if (selectedIndex != id_createCages)
 			tabCreateCages.clearTemporaryROIs();
-//		exp.seqCamData.displaySpecificROIs(true, "spots");
+//		exp.getSeqCamData().displaySpecificROIs(true, "spots");
 	}
 
 }

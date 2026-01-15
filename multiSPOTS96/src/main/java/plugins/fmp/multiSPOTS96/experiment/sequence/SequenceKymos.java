@@ -285,14 +285,14 @@ public class SequenceKymos extends SequenceCamData {
 	 * Creates a list of potential kymograph files from spots in cages.
 	 * 
 	 * @param baseDirectory the base directory
-	 * @param cagesArray    the cages array
+	 * @param getCages()    the cages array
 	 * @return list of image file descriptors
 	 */
-	public List<ImageFileDescriptor> createKymographFileList(String baseDirectory, CagesArray cagesArray) {
+	public List<ImageFileDescriptor> createKymographFileList(String baseDirectory, CagesArray getCages()) {
 		if (baseDirectory == null || baseDirectory.trim().isEmpty()) {
 			throw new IllegalArgumentException("Base directory cannot be null or empty");
 		}
-		if (cagesArray == null) {
+		if (getCages() == null) {
 			throw new IllegalArgumentException("Cages array cannot be null");
 		}
 
@@ -300,23 +300,23 @@ public class SequenceKymos extends SequenceCamData {
 		try {
 			String fullDirectory = baseDirectory + File.separator;
 
-			if (cagesArray.cagesList.isEmpty()) {
+			if (getCages().cagesList.isEmpty()) {
 				LOGGER.warning("No cages found in cages array");
 				return new ArrayList<>();
 			}
 
-			Cage firstCage = cagesArray.cagesList.get(0);
+			Cage firstCage = getCages().cagesList.get(0);
 			if (firstCage.spotsArray == null || firstCage.spotsArray.getSpotsList().isEmpty()) {
 				LOGGER.warning("No spots found in first cage");
 				return new ArrayList<>();
 			}
 
 			// Calculate total expected files
-			int totalExpectedFiles = cagesArray.cagesList.size() * firstCage.spotsArray.getSpotsList().size();
+			int totalExpectedFiles = getCages().cagesList.size() * firstCage.spotsArray.getSpotsList().size();
 			List<ImageFileDescriptor> fileList = new ArrayList<>(totalExpectedFiles);
 
 			// Generate file descriptors for each spot in each cage
-			for (Cage cage : cagesArray.cagesList) {
+			for (Cage cage : getCages().cagesList) {
 				if (cage.spotsArray == null)
 					continue;
 
@@ -329,7 +329,7 @@ public class SequenceKymos extends SequenceCamData {
 			}
 
 //			LOGGER.info(String.format("Created %d kymograph file descriptors from %d cages", fileList.size(),
-//					cagesArray.cagesList.size()));
+//					getCages().cagesList.size()));
 
 			return fileList;
 
@@ -381,8 +381,8 @@ public class SequenceKymos extends SequenceCamData {
 	 * @deprecated Use {@link #createKymographFileList(String, CagesArray)} instead
 	 */
 	@Deprecated
-	public List<ImageFileDescriptor> loadListOfPotentialKymographsFromSpots(String dir, CagesArray cagesArray) {
-		return createKymographFileList(dir, cagesArray);
+	public List<ImageFileDescriptor> loadListOfPotentialKymographsFromSpots(String dir, CagesArray getCages()) {
+		return createKymographFileList(dir, getCages());
 	}
 
 	/**

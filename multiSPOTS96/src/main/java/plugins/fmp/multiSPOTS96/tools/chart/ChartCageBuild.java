@@ -247,9 +247,9 @@ public class ChartCageBuild {
 			XLSExportOptions xlsExportOptions) {
 		XYSeries seriesXY = new XYSeries(spot.getName(), false);
 
-		if (exp.seqCamData.getTimeManager().getCamImagesTime_Ms() == null)
-			exp.seqCamData.build_MsTimesArray_From_FileNamesList();
-		double[] camImages_time_min = exp.seqCamData.getTimeManager().getCamImagesTime_Minutes();
+		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
+			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
+		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
 		SpotMeasure spotMeasure = spot.getMeasurements(xlsExportOptions.exportType);
 		double divider = 1.;
 		if (xlsExportOptions.relativeToT0 && xlsExportOptions.exportType != EnumXLSExport.AREA_FLYPRESENT) {

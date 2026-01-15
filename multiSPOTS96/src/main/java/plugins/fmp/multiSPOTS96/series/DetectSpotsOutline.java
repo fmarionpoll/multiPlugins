@@ -22,9 +22,9 @@ public class DetectSpotsOutline extends BuildSeries {
 		openFlyDetectViewers(exp);
 		runSpotsDetect(exp);
 		if (!stopFlag)
-			exp.save_MS96_cages();
+			exp.save_cages_description_and_measures();
 
-		exp.seqCamData.closeSequence();
+		exp.getSeqCamData().closeSequence();
 		closeSequence(seqNegative);
 	}
 
@@ -33,7 +33,7 @@ public class DetectSpotsOutline extends BuildSeries {
 		transformOptions.transformOption = options.transformop;
 		ImageTransformInterface transformFunction = options.transformop.getFunction();
 		int t_from = (int) options.fromFrame;
-		String fileName = exp.seqCamData.getFileNameFromImageList(t_from);
+		String fileName = exp.getSeqCamData().getFileNameFromImageList(t_from);
 
 		ProgressFrame progressBar = new ProgressFrame("Detecting spots from " + fileName);
 		IcyBufferedImage sourceImage = imageIORead(fileName);

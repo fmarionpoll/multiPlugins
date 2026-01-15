@@ -19,7 +19,7 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Edit extends JPanel {
 	/**
@@ -178,21 +178,20 @@ public class Edit extends JPanel {
 					case EXP_CONC2:
 						isChanged = exp.replaceExperimentFieldIfEqualOldValue(fieldEnumCode, oldValue, newValue);
 						if (isChanged)
-							exp.save_MS96_experiment();
+							exp.saveExperimentDescriptors();
 						break;
 					case CAGE_SEX:
 					case CAGE_STRAIN:
 					case CAGE_AGE:
 						isChanged = exp.replaceCageFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
 						if (isChanged)
-							exp.save_MS96_cages();
+							exp.save_cages_description_and_measures();
 						break;
 					case SPOT_STIM:
 					case SPOT_CONC:
 					case SPOT_VOLUME:
 						isChanged = exp.replaceSpotsFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
-						if (isChanged)
-							exp.save_MS96_cages();
+						exp.save_cages_description_and_measures();
 						break;
 					default:
 						break;
@@ -219,7 +218,7 @@ public class Edit extends JPanel {
 				setCursor(Cursor.getDefaultCursor());
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.load_MS96_spotsMeasures();
+					exp.load_spots_description_and_measures();
 					parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 				}
 				// Incremental update of in-memory index for the edited field only

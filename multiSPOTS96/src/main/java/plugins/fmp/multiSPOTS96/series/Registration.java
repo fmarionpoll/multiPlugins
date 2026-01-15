@@ -139,10 +139,10 @@ public class Registration extends BuildSeries {
 		transformOptions.transformOption = options.transformop;
 		ImageTransformInterface transformFunction = transformOptions.transformOption.getFunction();
 
-		Polygon2D polygon2D = exp.cagesArray.getPolygon2DEnclosingAllCages();
+		Polygon2D polygon2D = exp.getCages().getPolygon2DEnclosingAllCages();
 		Rectangle rect = polygon2D.getBounds();
 
-		String fileNameReference = exp.seqCamData.getFileNameFromImageList(referenceFrame);
+		String fileNameReference = exp.getSeqCamData().getFileNameFromImageList(referenceFrame);
 		IcyBufferedImage referenceImage = imageIORead(fileNameReference);
 		IcyBufferedImage refImageTransformed = transformFunction.getTransformedImage(referenceImage, transformOptions);
 		final IcyBufferedImage reducedReferenceImage = IcyBufferedImageUtil.getSubImage(refImageTransformed, rect.x,
@@ -153,7 +153,7 @@ public class Registration extends BuildSeries {
 			// Update progress
 			progressBar1.setMessage("Analyze frame: " + frame + "//" + iiLast);
 
-			String fileName = exp.seqCamData.getFileNameFromImageList(frame);
+			String fileName = exp.getSeqCamData().getFileNameFromImageList(frame);
 			if (fileName == null) {
 				System.out.println("filename null at t=" + frame);
 				continue;

@@ -27,7 +27,7 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
 import plugins.fmp.multitools.experiment.cages.Cage;
-import plugins.fmp.multitools.experiment.cages.CagesArray;
+import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.tools.ROI2D.GeometryException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DGrid;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
@@ -104,7 +104,7 @@ public class CreateCages extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					selectRoiPerimeterEnclosingCages(exp);
-					exp.seqCamData.removeROIsContainingString("cage");
+					exp.getSeqCamData().removeROIsContainingString("cage");
 					removeGrid(exp);
 				}
 			}
@@ -127,7 +127,7 @@ public class CreateCages extends JPanel {
 				if (exp != null) {
 					createCages(exp);
 					removeGrid(exp);
-					exp.saveCagesArray_File();
+					exp.saveCages_File();
 				}
 			}
 		});
@@ -137,8 +137,8 @@ public class CreateCages extends JPanel {
 	private void removeGrid(Experiment exp) {
 		if (roiGrid == null)
 			return;
-		exp.seqCamData.getSequence().removeROIs(roiGrid.getHorizontalRois(), false);
-		exp.seqCamData.getSequence().removeROIs(roiGrid.getVerticalRois(), false);
+		exp.getSeqCamData().getSequence().removeROIs(roiGrid.getHorizontalRois(), false);
+		exp.getSeqCamData().getSequence().removeROIs(roiGrid.getVerticalRois(), false);
 	}
 
 	private void createCages(Experiment exp) {
@@ -153,25 +153,25 @@ public class CreateCages extends JPanel {
 
 	private Polygon2D getPolygonFromCagesPerimeterRoi(Experiment exp) {
 		selectRoiPerimeterEnclosingCages(exp);
-		ROI2D roi = (ROI2D) exp.seqCamData.getSequence().getSelectedROI();
+		ROI2D roi = (ROI2D) exp.getSeqCamData().getSequence().getSelectedROI();
 		polygon2D = PolygonUtilities.orderVerticesOf4CornersPolygon(((ROI2DPolygon) roi).getPolygon());
-		exp.seqCamData.getSequence().removeROI(roi);
+		exp.getSeqCamData().getSequence().removeROI(roi);
 		return polygon2D;
 	}
 
 	void updateNColumnsFieldFromSequence() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			int nrois = exp.cagesArray.cagesList.size();
+			int nrois = exp.getCages().cagesList.size();
 			if (nrois > 0) {
-				nCagesPerPlateAlongXJSpinner.setValue(exp.cagesArray.nCagesAlongX);
-				nCagesPerPlateAlongYJSpinner.setValue(exp.cagesArray.nCagesAlongY);
+				nCagesPerPlateAlongXJSpinner.setValue(exp.getCages().nCagesAlongX);
+				nCagesPerPlateAlongYJSpinner.setValue(exp.getCages().nCagesAlongY);
 			}
 		}
 	}
 
 	private void selectRoiPerimeterEnclosingCages(Experiment exp) {
-		Sequence seq = exp.seqCamData.getSequence();
+		Sequence seq = exp.getSeqCamData().getSequence();
 		if (roiCagesPerimeter == null) {
 			roiCagesPerimeter = new ROI2DPolygon(getPolygonEnclosingAllCages(exp));
 			roiCagesPerimeter.setName("perimeter");
@@ -183,10 +183,10 @@ public class CreateCages extends JPanel {
 	}
 
 	private Polygon2D getPolygonEnclosingAllCages(Experiment exp) {
-		if (exp.cagesArray.cagesList.size() > 0) {
-			polygon2D = exp.cagesArray.getPolygon2DEnclosingAllCages();
+		if (exp.getCages().cagesList.size() > 0) {
+			polygon2D = exp.getCages().getPolygon2DEnclosingAllCages();
 		} else {
-			// Rectangle rect = exp.seqCamData.getSequence().getBounds2D();
+			// Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 			Rectangle rect = new Rectangle(318, 125, 1260, 836);
 			List<Point2D> points = new ArrayList<Point2D>();
 			points.add(new Point2D.Double(rect.x, rect.y));
@@ -212,9 +212,9 @@ public class CreateCages extends JPanel {
 		}
 
 		// erase existing cages
-		exp.seqCamData.removeROIsContainingString("cage");
-		exp.cagesArray.cagesList.clear();
-		exp.cagesArray = new CagesArray(n_columns, n_rows);
+		exp.getSeqCamData().removeROIsContainingString("cage");
+		exp.getCages().cagesList.clear();
+		exp.setCages(new Cages(n_columns, n_rows));
 		createCagesArrayFromGrid(exp, roiGrid, n_columns, n_rows, width_interval, height_interval);
 	}
 
@@ -242,8 +242,8 @@ public class CreateCages extends JPanel {
 				cage.getProperties().setArrayRow(row);
 
 				index++;
-				exp.seqCamData.getSequence().addROI(roiP);
-				exp.cagesArray.cagesList.add(cage);
+				exp.getSeqCamData().getSequence().addROI(roiP);
+				exp.getCages().cagesList.add(cage);
 			}
 		}
 	}
@@ -275,9 +275,9 @@ public class CreateCages extends JPanel {
 	}
 
 	private void createGrid(Experiment exp) {
-		exp.seqCamData.removeROIsContainingString("cage");
-		exp.seqCamData.removeROIsContainingString("row");
-		exp.seqCamData.removeROIsContainingString("col");
+		exp.getSeqCamData().removeROIsContainingString("cage");
+		exp.getSeqCamData().removeROIsContainingString("row");
+		exp.getSeqCamData().removeROIsContainingString("col");
 		int n_columns = 6;
 		int n_rows = 8;
 		try {
@@ -291,8 +291,8 @@ public class CreateCages extends JPanel {
 		roiGrid = new ROI2DGrid();
 		try {
 			roiGrid.createGridFromFrame(polyGon, n_columns, n_rows);
-			exp.seqCamData.getSequence().addROIs(roiGrid.getHorizontalRois(), false);
-			exp.seqCamData.getSequence().addROIs(roiGrid.getVerticalRois(), false);
+			exp.getSeqCamData().getSequence().addROIs(roiGrid.getHorizontalRois(), false);
+			exp.getSeqCamData().getSequence().addROIs(roiGrid.getVerticalRois(), false);
 		} catch (ValidationException | GeometryException e) {
 			System.err.println("Error creating grid from frame: " + e.getMessage());
 			e.printStackTrace();
@@ -304,7 +304,7 @@ public class CreateCages extends JPanel {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			removeGrid(exp);
-			exp.seqCamData.getSequence().removeROI(roiCagesPerimeter);
+			exp.getSeqCamData().getSequence().removeROI(roiCagesPerimeter);
 			roiGrid = null;
 			polygon2D = null;
 			roiCagesPerimeter = null;

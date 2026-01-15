@@ -87,7 +87,7 @@ public class LoadSaveSpots extends JPanel {
 	public boolean loadCagesArray_File(Experiment exp) {
 		boolean flag = exp.load_Cages();
 		if (flag) {
-			exp.cagesArray.transferCagesToSequenceAsROIs(exp.seqCamData.seq);
+			exp.getCages().transferCagesToSequenceAsROIs(exp.seqCamData.seq);
 		}
 		return flag;
 	}
@@ -95,7 +95,7 @@ public class LoadSaveSpots extends JPanel {
 	public boolean saveCagesArray_File(Experiment exp) {
 		boolean flag = false;
 		if (exp != null) {
-			exp.cagesArray.transferROIsFromSequenceToCages(exp.seqCamData.seq);
+			exp.getCages().transferROIsFromSequenceToCages(exp.seqCamData.seq);
 			flag = exp.save_CagesMeasures();
 		}
 		return flag;

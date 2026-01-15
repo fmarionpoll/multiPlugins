@@ -66,6 +66,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private volatile boolean isProcessing = false;
 	private final AtomicInteger processingCount = new AtomicInteger(0);
 
+	// Track currently loading experiment to prevent concurrent loads
+	private volatile Experiment currentlyLoadingExperiment = null;
+	private volatile int currentlyLoadingIndex = -1;
+
 	public LoadSaveExperiment() {
 	}
 
@@ -332,49 +336,219 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		}
 	}
 
+	/**
+	 * Validates that the experiment is still selected and not being saved.
+	 * 
+	 * @param exp           The experiment to validate
+	 * @param expIndex      The index of the experiment
+	 * @param progressFrame The progress frame to close if validation fails
+	 * @return true if validation passes, false otherwise
+	 */
+	private boolean validateExperimentSelection(Experiment exp, int expIndex, ProgressFrame progressFrame) {
+		if (parent0.expListComboLazy.getSelectedItem() != exp) {
+			Logger.info("Skipping load for experiment [" + expIndex + "] - no longer selected");
+			return false;
+		}
+
+		if (exp.isSaving()) {
+			Logger.warn("Cannot load experiment [" + expIndex + "] - save operation in progress: " + exp.toString());
+			progressFrame.close();
+			return false;
+		}
+
+		return true;
+	}
+
+	/**
+	 * Initializes the experiment load by setting flags and tracking state.
+	 * 
+	 * @param exp      The experiment being loaded
+	 * @param expIndex The index of the experiment
+	 */
+	private void initializeExperimentLoad(Experiment exp, int expIndex) {
+		exp.setLoading(true);
+		currentlyLoadingExperiment = exp;
+		currentlyLoadingIndex = expIndex;
+	}
+
+	/**
+	 * Aborts the experiment load and cleans up state.
+	 * 
+	 * @param exp           The experiment being aborted
+	 * @param expIndex      The index of the experiment
+	 * @param progressFrame The progress frame to close
+	 * @param reason        The reason for aborting (for logging)
+	 * @return false to indicate load was aborted
+	 */
+	private boolean abortExperimentLoad(Experiment exp, int expIndex, ProgressFrame progressFrame, String reason) {
+		Logger.info("Aborting load for experiment [" + expIndex + "] - " + reason);
+		exp.setLoading(false);
+		if (currentlyLoadingExperiment == exp) {
+			currentlyLoadingExperiment = null;
+			currentlyLoadingIndex = -1;
+		}
+		progressFrame.close();
+		return false;
+	}
+
+	/**
+	 * Loads experiment metadata (lazy or XML).
+	 * 
+	 * @param exp           The experiment to load metadata for
+	 * @param expIndex      The index of the experiment
+	 * @param progressFrame The progress frame to update
+	 * @return true if successful, false if aborted
+	 */
+	private boolean loadExperimentMetadata(Experiment exp, int expIndex, ProgressFrame progressFrame) {
+		if (exp instanceof LazyExperiment) {
+			progressFrame.setMessage("Loading experiment metadata...");
+			((LazyExperiment) exp).loadIfNeeded();
+		} else {
+			exp.xmlLoad_MCExperiment();
+		}
+
+		if (parent0.expListComboLazy.getSelectedItem() != exp) {
+			return abortExperimentLoad(exp, expIndex, progressFrame, "different experiment selected after lazy load");
+		}
+
+		return true;
+	}
+
+	/**
+	 * Loads experiment images and updates the viewer.
+	 * 
+	 * @param exp           The experiment to load images for
+	 * @param expIndex      The index of the experiment
+	 * @param progressFrame The progress frame to update
+	 * @return true if successful, false if aborted or failed
+	 */
+	private boolean loadExperimentImages(Experiment exp, int expIndex, ProgressFrame progressFrame) {
+		progressFrame.setMessage("Load image");
+		List<String> imagesList = ExperimentDirectories
+				.getImagesListFromPathV2(exp.getSeqCamData().getImagesDirectory(), "jpg");
+		exp.getSeqCamData().loadImageList(imagesList);
+
+		if (parent0.expListComboLazy.getSelectedItem() != exp) {
+			return abortExperimentLoad(exp, expIndex, progressFrame,
+					"different experiment selected after loading images");
+		}
+
+		parent0.dlgExperiment.updateViewerForSequenceCam(exp);
+
+		if (parent0.expListComboLazy.getSelectedItem() != exp) {
+			return abortExperimentLoad(exp, expIndex, progressFrame, "different experiment selected during load");
+		}
+
+		if (exp.getSeqCamData() == null) {
+			Logger.error("LoadSaveExperiments:openSelectedExperiment() [" + expIndex
+					+ "] Error: no jpg files found for this experiment\n");
+			progressFrame.close();
+			exp.setLoading(false);
+			if (currentlyLoadingExperiment == exp) {
+				currentlyLoadingExperiment = null;
+				currentlyLoadingIndex = -1;
+			}
+			return false;
+		}
+
+		if (exp.getSeqCamData().getSequence() != null) {
+			exp.getSeqCamData().getSequence().addListener(this);
+		}
+
+		return true;
+	}
+
+	/**
+	 * Logs experiment load completion with timing and statistics.
+	 * 
+	 * @param exp       The experiment that was loaded
+	 * @param expIndex  The index of the experiment
+	 * @param startTime The start time in nanoseconds
+	 * @param endTime   The end time in nanoseconds
+	 */
+	private void logCageLoadCompletion(Experiment exp, int expIndex, long startTime, long endTime) {
+		int cageCount = exp.getCages() != null ? exp.getCages().getCageList().size() : 0;
+		System.out.println("LoadExperiment: openSelectedExperiment [" + expIndex + "] load completed, total time: "
+				+ (endTime - startTime) / 1e6 + " ms, cages: " + cageCount);
+	}
+
 	public boolean openSelectedExperiment(Experiment exp) {
+		final long startTime = System.nanoTime();
+		int expIndex = parent0.expListComboLazy.getSelectedIndex();
+
 		ProgressFrame progressFrame = new ProgressFrame("Load Experiment Data");
 
+		if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
+			return false;
+		}
+
+		initializeExperimentLoad(exp, expIndex);
+
 		try {
-			// If it's a LazyExperiment, load the data first
-			if (exp instanceof LazyExperiment) {
-				progressFrame.setMessage("Loading experiment data...");
-				((LazyExperiment) exp).loadIfNeeded();
+			if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
+				return abortExperimentLoad(exp, expIndex, progressFrame, "different experiment selected");
 			}
 
-			progressFrame.setMessage("Loading experiment data...");
-			exp.load_MS96_experiment();
-
-			progressFrame.setMessage("Loading images...");
-			List<String> imagesList = ExperimentDirectories
-					.getImagesListFromPathV2(exp.getSeqCamData().getImagesDirectory(), "jpg");
-			exp.getSeqCamData().loadImageList(imagesList);
-			exp.getSeqCamData().getSequence().addListener(this);
-			if (exp.getSeqCamData() != null) {
-				progressFrame.setMessage("Loading cages and spots...");
-				exp.load_MS96_cages();
-				exp.transferCagesROI_toSequence();
-				exp.transferSpotsROI_toSequence();
-				exp.load_MS96_spotsMeasures();
-				parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
-
-				progressFrame.setMessage("Updating dialogs...");
-				parent0.dlgExperiment.updateDialogs(exp);
-				parent0.dlgSpots.updateDialogs(exp);
-			} else {
-				Logger.warn("No jpg files found for experiment: " + exp.toString());
-				progressFrame.close();
+			if (!loadExperimentMetadata(exp, expIndex, progressFrame)) {
 				return false;
 			}
 
-			parent0.dlgExperiment.tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
-			progressFrame.close();
-			parent0.dlgExperiment.updateViewerForSequenceCam(exp);
-			return true;
+			if (!loadExperimentImages(exp, expIndex, progressFrame)) {
+				return false;
+			}
 
-		} catch (Exception e) {
-			Logger.error("Error opening experiment: " + e.getMessage());
+			if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
+				return abortExperimentLoad(exp, expIndex, progressFrame,
+						"different experiment selected before cage load");
+			}
+
+			progressFrame.setMessage("Loading cages and spots...");
+			exp.load_cages_description_and_measures();
+			exp.transferCagesROI_toSequence();
+			exp.transferSpotsROI_toSequence();
+			exp.load_spots_description_and_measures();
+
+			if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
+				return abortExperimentLoad(exp, expIndex, progressFrame,
+						"different experiment selected during cage/spot load");
+			}
+
+			parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
+
+			exp.updateROIsAt(0);
+			progressFrame.setMessage("Load data: update dialogs");
+
+			parent0.dlgExperiment.updateDialogs(exp);
+			parent0.dlgSpots.updateDialogs(exp);
+
+			parent0.dlgExperiment.tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
+
+			long endTime = System.nanoTime();
+			logCageLoadCompletion(exp, expIndex, startTime, endTime);
+
+			exp.setLoading(false);
+			if (currentlyLoadingExperiment == exp) {
+				currentlyLoadingExperiment = null;
+				currentlyLoadingIndex = -1;
+			}
+
 			progressFrame.close();
+			return true;
+		} catch (Exception e) {
+			Logger.error("Error opening experiment [" + expIndex + "]: "
+					+ (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
+			Logger.error("Exception details [" + expIndex + "]: " + e.toString(), e);
+			progressFrame.close();
+
+			exp.setLoading(false);
+			if (currentlyLoadingExperiment == exp) {
+				currentlyLoadingExperiment = null;
+				currentlyLoadingIndex = -1;
+			}
+
+			long endTime = System.nanoTime();
+			System.out.println("LoadExperiment: openSelectedExperiment [" + expIndex + "] failed, took "
+					+ (endTime - startTime) / 1e6 + " ms");
 			return false;
 		}
 	}
@@ -443,6 +617,15 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
+				if (currentlyLoadingExperiment != null && currentlyLoadingExperiment != exp) {
+					Logger.info(
+							"Cancelling load for experiment [" + currentlyLoadingIndex + "] - new experiment selected");
+					if (currentlyLoadingExperiment != null) {
+						currentlyLoadingExperiment.setLoading(false);
+					}
+					currentlyLoadingExperiment = null;
+					currentlyLoadingIndex = -1;
+				}
 				openSelectedExperiment(exp);
 			}
 		} else if (e.getStateChange() == ItemEvent.DESELECTED) {

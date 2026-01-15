@@ -74,7 +74,7 @@ public class LoadSaveCages extends JPanel {
 		ProgressFrame progress = new ProgressFrame("load cages");
 		boolean flag = exp.load_Cages();
 		if (flag) {
-			exp.cagesArray.transferCagesToSequenceAsROIs(exp.seqCamData.seq);
+			exp.getCages().transferCagesToSequenceAsROIs(exp.seqCamData.seq);
 		}
 		progress.close();
 		return flag;
@@ -82,7 +82,7 @@ public class LoadSaveCages extends JPanel {
 
 	public void saveCages(Experiment exp) {
 		if (exp != null) {
-			exp.cagesArray.transferROIsFromSequenceToCages(exp.seqCamData.seq);
+			exp.getCages().transferROIsFromSequenceToCages(exp.seqCamData.seq);
 			exp.save_CagesMeasures();
 		}
 	}

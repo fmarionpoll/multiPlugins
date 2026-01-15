@@ -129,20 +129,20 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	}
 
 	protected boolean checkBoundsForCages(Experiment exp) {
-		exp.cagesArray.detectBin_Ms = options.t_Ms_BinDuration;
+		exp.getCages().detectBin_Ms = options.t_Ms_BinDuration;
 		if (options.isFrameFixed) {
-			exp.cagesArray.detectFirst_Ms = options.t_Ms_First;
-			exp.cagesArray.detectLast_Ms = options.t_Ms_Last;
-			if (exp.cagesArray.detectLast_Ms > exp.seqCamData.lastImage_ms)
-				exp.cagesArray.detectLast_Ms = exp.seqCamData.lastImage_ms;
+			exp.getCages().detectFirst_Ms = options.t_Ms_First;
+			exp.getCages().detectLast_Ms = options.t_Ms_Last;
+			if (exp.getCages().detectLast_Ms > exp.seqCamData.lastImage_ms)
+				exp.getCages().detectLast_Ms = exp.seqCamData.lastImage_ms;
 		} else {
-			exp.cagesArray.detectFirst_Ms = exp.seqCamData.firstImage_ms;
-			exp.cagesArray.detectLast_Ms = exp.seqCamData.lastImage_ms;
+			exp.getCages().detectFirst_Ms = exp.seqCamData.firstImage_ms;
+			exp.getCages().detectLast_Ms = exp.seqCamData.lastImage_ms;
 		}
-		exp.cagesArray.detect_threshold = options.threshold;
+		exp.getCages().detect_threshold = options.threshold;
 
 		boolean flag = true;
-		if (exp.cagesArray.cagesList.size() < 1) {
+		if (exp.getCages().cagesList.size() < 1) {
 			System.out.println(
 					"BuildSeries:checkBoundsForCages ! skipped experiment with no cage: " + exp.getResultsDirectory());
 			flag = false;

@@ -93,7 +93,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					cagesArrayCopy = exp.cagesArray;
+					cagesArrayCopy = exp.getCages();
 					pasteButton.setEnabled(true);
 				}
 			}
@@ -106,7 +106,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 				if (exp != null) {
 					for (Cage cageFrom : cagesArrayCopy.cagesList) {
 						cageFrom.valid = false;
-						for (Cage cageTo : exp.cagesArray.cagesList) {
+						for (Cage cageTo : exp.getCages().cagesList) {
 							if (!cageFrom.getRoi().getName().equals(cageTo.getRoi().getName()))
 								continue;
 							cageFrom.valid = true;
@@ -127,7 +127,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 					int columnIndex = cageTable.getSelectedColumn();
 					if (rowIndex >= 0) {
 						Object value = cageTable.cageTableModel.getValueAt(rowIndex, columnIndex);
-						for (Cage cage : exp.cagesArray.cagesList) {
+						for (Cage cage : exp.getCages().cagesList) {
 							int iID = cage.getProperties().getCageID();
 							cageTable.cageTableModel.setValueAt(value, iID, columnIndex);
 						}
@@ -141,17 +141,17 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					ArrayList<ROI> roiList = exp.seqCamData.getSequence().getSelectedROIs();
+					ArrayList<ROI> roiList = exp.getSeqCamData().getSequence().getSelectedROIs();
 					if (roiList.size() > 0) {
 						Cage cage = null;
 						for (ROI roi : roiList) {
 							String name = roi.getName();
 							if (name.contains("cage")) {
-								cage = exp.cagesArray.getCageFromName(name);
+								cage = exp.getCages().getCageFromName(name);
 								break;
 							}
 							if (name.contains("spot")) {
-								cage = exp.cagesArray.getCageFromSpotROIName(name);
+								cage = exp.getCages().getCageFromSpotROIName(name);
 								break;
 							}
 						}
@@ -185,10 +185,10 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	void selectCage(int cageID) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			Cage cage = exp.cagesArray.getCageFromID(cageID);
+			Cage cage = exp.getCages().getCageFromID(cageID);
 			ROI2D roi = cage.getRoi();
-			exp.seqCamData.getSequence().setFocusedROI(roi);
-			exp.seqCamData.centerDisplayOnRoi(roi);
+			exp.getSeqCamData().getSequence().setFocusedROI(roi);
+			exp.getSeqCamData().centerDisplayOnRoi(roi);
 			roi.setSelected(true);
 		}
 	}

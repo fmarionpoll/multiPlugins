@@ -24,17 +24,17 @@ public class DetectFlyFromCleanBackground extends BuildSeries {
 			return;
 
 		runFlyDetect2(exp);
-		exp.cagesArray.orderFlyPositions();
+		exp.getCages().orderFlyPositions();
 		if (!stopFlag)
 			exp.save_MS96_fliesPositions();
-		exp.seqCamData.closeSequence();
+		exp.getSeqCamData().closeSequence();
 //		closeSequence(seqNegative);
 	}
 
 	private void runFlyDetect2(Experiment exp) {
 		exp.cleanPreviousDetectedFliesROIs();
 		find_flies.initParametersForDetection(exp, options);
-		exp.cagesArray.initFlyPositions(options.detectCage);
+		exp.getCages().initFlyPositions(options.detectCage);
 		options.threshold = options.thresholdDiff;
 
 		if (exp.loadReferenceImage()) {
@@ -47,16 +47,16 @@ public class DetectFlyFromCleanBackground extends BuildSeries {
 		ProgressFrame progressBar = new ProgressFrame("Detecting flies...");
 		ImageTransformOptions transformOptions = new ImageTransformOptions();
 		transformOptions.transformOption = ImageTransformEnums.SUBTRACT_REF;
-		transformOptions.backgroundImage = IcyBufferedImageUtil.getCopy(exp.seqCamData.getReferenceImage());
+		transformOptions.backgroundImage = IcyBufferedImageUtil.getCopy(exp.getSeqCamData().getReferenceImage());
 		ImageTransformInterface transformFunction = transformOptions.transformOption.getFunction();
 
-		int totalFrames = exp.seqCamData.getImageLoader().getNTotalFrames();
+		int totalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		for (int index = 0; index < totalFrames; index++) {
 			int t_from = index;
-			String title = "Frame #" + t_from + "/" + exp.seqCamData.getImageLoader().getNTotalFrames();
+			String title = "Frame #" + t_from + "/" + exp.getSeqCamData().getImageLoader().getNTotalFrames();
 			progressBar.setMessage(title);
 
-			IcyBufferedImage workImage = imageIORead(exp.seqCamData.getFileNameFromImageList(t_from));
+			IcyBufferedImage workImage = imageIORead(exp.getSeqCamData().getFileNameFromImageList(t_from));
 			IcyBufferedImage negativeImage = transformFunction.getTransformedImage(workImage, transformOptions);
 			try {
 				seqNegative.beginUpdate();

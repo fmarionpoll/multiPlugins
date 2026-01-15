@@ -125,7 +125,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 			boolean displayCapillaries = (selectedIndex == id_threshold);
 			if (displayCapillaries) // && exp.spotsArray.getSpotsList().size() < 1)
 				exp.loadCamDataSpots();
-			exp.seqCamData.displaySpecificROIs(true, "spots");
+			exp.getSeqCamData().displaySpecificROIs(true, "spots");
 		}
 	}
 

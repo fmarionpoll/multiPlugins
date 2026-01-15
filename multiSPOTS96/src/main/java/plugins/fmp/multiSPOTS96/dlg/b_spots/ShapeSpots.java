@@ -122,7 +122,7 @@ public class ShapeSpots extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
-					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer()
+					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 							.getCanvas();
 					updateTransformFunctionsOfCanvas(exp);
 					if (!spotsViewButton.isSelected()) {
@@ -161,7 +161,7 @@ public class ShapeSpots extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.seqCamData.removeROIsContainingString("_mask");
+					exp.getSeqCamData().removeROIsContainingString("_mask");
 					detectContours(exp);
 					exp.saveSpotsArray_file();
 				}
@@ -192,17 +192,17 @@ public class ShapeSpots extends JPanel {
 
 	void updateOverlay(Experiment exp) {
 		if (overlayThreshold == null)
-			overlayThreshold = new OverlayThreshold(exp.seqCamData.getSequence());
+			overlayThreshold = new OverlayThreshold(exp.getSeqCamData().getSequence());
 		else {
-			exp.seqCamData.getSequence().removeOverlay(overlayThreshold);
-			overlayThreshold.setSequence(exp.seqCamData.getSequence());
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
+			overlayThreshold.setSequence(exp.getSeqCamData().getSequence());
 		}
-		exp.seqCamData.getSequence().addOverlay(overlayThreshold);
+		exp.getSeqCamData().getSequence().addOverlay(overlayThreshold);
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.seqCamData.getSequence() != null)
-			exp.seqCamData.getSequence().removeOverlay(overlayThreshold);
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 	}
 
 	void updateOverlayThreshold() {
@@ -255,7 +255,7 @@ public class ShapeSpots extends JPanel {
 		} else {
 			removeOverlay(exp);
 			spotsOverlayCheckBox.setSelected(false);
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer()
+			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 					.getCanvas();
 			canvas.setTransformStep1Index(0);
 		}
@@ -263,7 +263,7 @@ public class ShapeSpots extends JPanel {
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp) {
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer().getCanvas();
+		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
 		if (canvas.getTransformStep1ItemCount() < (spotsTransformsComboBox.getItemCount() + 1)) {
 			canvas.updateTransformsComboStep1(transforms);
 		}
@@ -278,19 +278,19 @@ public class ShapeSpots extends JPanel {
 		transformOptions.setSingleThreshold(options.spotThreshold, options.spotThresholdUp);
 		ImageTransformInterface transformFunction = options.transform01.getFunction();
 
-		Sequence seq = exp.seqCamData.getSequence();
+		Sequence seq = exp.getSeqCamData().getSequence();
 		int t = seq.getFirstViewer().getPositionT();
 
 		IcyBufferedImage sourceImage = seq.getImage(t, 0);
 		IcyBufferedImage workImage = transformFunction.getTransformedImage(sourceImage, transformOptions);
 		boolean detectSelectedROIs = selectedSpotCheckBox.isSelected();
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				ROI2D roi_in = spot.getRoi();
 				if (detectSelectedROIs && !roi_in.isSelected())
 					continue;
 
-				exp.seqCamData.getSequence().removeROI(roi_in);
+				exp.getSeqCamData().getSequence().removeROI(roi_in);
 				try {
 					spot.setMask2DSpot(spot.getRoi().getBooleanMask2D(0, 0, 1, true));
 				} catch (InterruptedException e) {
@@ -306,21 +306,21 @@ public class ShapeSpots extends JPanel {
 					roi_new.setColor(spot.getRoi().getColor());
 					spot.setRoi(roi_new);
 				}
-				exp.seqCamData.getSequence().addROI(spot.getRoi());
+				exp.getSeqCamData().getSequence().addROI(spot.getRoi());
 			}
 		}
 	}
 
 	private void restoreContours(Experiment exp) {
 		boolean detectSelectedROIs = selectedSpotCheckBox.isSelected();
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				ROI2D roi_in = spot.getRoi();
 				if (detectSelectedROIs && !roi_in.isSelected())
 					continue;
 
 				String roiName = roi_in.getName();
-				exp.seqCamData.getSequence().removeROI(roi_in);
+				exp.getSeqCamData().getSequence().removeROI(roi_in);
 				Point2D point = new Point2D.Double(spot.getProperties().getSpotXCoord(),
 						spot.getProperties().getSpotYCoord());
 				double x = point.getX() - spot.getProperties().getSpotRadius();
@@ -330,14 +330,14 @@ public class ShapeSpots extends JPanel {
 				ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
 				roiEllipse.setName(roiName);
 				spot.setRoi(roiEllipse);
-				exp.seqCamData.getSequence().addROI(spot.getRoi());
+				exp.getSeqCamData().getSequence().addROI(spot.getRoi());
 			}
 		}
 	}
 
 	private void replaceRoi(Experiment exp, Spot spot, ROI2D roi_old, ROI2D roi_new) {
-		exp.seqCamData.getSequence().removeROI(roi_new);
-		exp.seqCamData.getSequence().removeROI(roi_old);
+		exp.getSeqCamData().getSequence().removeROI(roi_new);
+		exp.getSeqCamData().getSequence().removeROI(roi_old);
 		roi_new.setName(roi_old.getName());
 		roi_new.setColor(roi_old.getColor());
 		spot.setRoi((ROI2DShape) roi_new);
@@ -346,15 +346,15 @@ public class ShapeSpots extends JPanel {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		exp.seqCamData.getSequence().addROI(roi_new);
+		exp.getSeqCamData().getSequence().addROI(roi_new);
 	}
 
 	void cutAndInterpolate(Experiment exp) {
-		ROI2D roi = exp.seqCamData.getSequence().getSelectedROI2D();
+		ROI2D roi = exp.getSeqCamData().getSequence().getSelectedROI2D();
 		if (roi == null)
 			return;
 
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				ROI2D spotRoi = spot.getRoi();
 				try {

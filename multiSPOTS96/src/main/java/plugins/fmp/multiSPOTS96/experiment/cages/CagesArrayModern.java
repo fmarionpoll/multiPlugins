@@ -36,16 +36,16 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
  * Usage example:
  * 
  * <pre>{@code
- * ModernCagesArray cagesArray = ModernCagesArray.builder().withConfiguration(CagesArrayConfiguration.highPerformance())
+ * ModernCagesArray getCages() = ModernCagesArray.builder().withConfiguration(CagesArrayConfiguration.highPerformance())
  * 		.build();
  * 
- * CageOperationResult result = cagesArray.addCage(cage);
+ * CageOperationResult result = getCages().addCage(cage);
  * if (result.isSuccess()) {
  * 	System.out.println("Added cage successfully");
  * }
  * 
  * // Fast O(1) lookups
- * Optional<ModernCage> cage = cagesArray.findCageById(42);
+ * Optional<ModernCage> cage = getCages().findCageById(42);
  * }</pre>
  * 
  * @author MultiSPOTS96

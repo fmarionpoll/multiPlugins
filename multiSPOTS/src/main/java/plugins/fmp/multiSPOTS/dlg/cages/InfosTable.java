@@ -84,7 +84,7 @@ public class InfosTable extends JPanel {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 				if (exp != null) {
 					cageArrayCopy.clear();
-					for (Cage cage : exp.cagesArray.cagesList) {
+					for (Cage cage : exp.getCages().cagesList) {
 						cageArrayCopy.add(cage);
 					}
 					pasteButton.setEnabled(true);
@@ -99,7 +99,7 @@ public class InfosTable extends JPanel {
 				if (exp != null) {
 					for (Cage cageFrom : cageArrayCopy) {
 						cageFrom.valid = false;
-						for (Cage cageTo : exp.cagesArray.cagesList) {
+						for (Cage cageTo : exp.getCages().cagesList) {
 							if (!cageFrom.getRoi().getName().equals(cageTo.getRoi().getName()))
 								continue;
 							cageFrom.valid = true;
@@ -123,8 +123,8 @@ public class InfosTable extends JPanel {
 					int rowIndex = tableView.getSelectedRow();
 					int columnIndex = tableView.getSelectedColumn();
 					if (rowIndex >= 0) {
-						Cage cage0 = exp.cagesArray.cagesList.get(rowIndex);
-						for (Cage cage : exp.cagesArray.cagesList) {
+						Cage cage0 = exp.getCages().cagesList.get(rowIndex);
+						for (Cage cage : exp.getCages().cagesList) {
 							if (cage.getRoi().getName().equals(cage0.getRoi().getName()))
 								continue;
 							switch (columnIndex) {
@@ -157,7 +157,7 @@ public class InfosTable extends JPanel {
 		dialogFrame.close();
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
-			exp.cagesArray.transferNFliesFromCagesToSpots(exp.spotsArray);
+			exp.getCages().transferNFliesFromCagesToSpots(exp.spotsArray);
 			parent0.dlgSpots.tabFile.saveSpotsArray_file(exp);
 		}
 	}

@@ -82,10 +82,10 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		final Rectangle rectv = exp.seqCamData.getSequence().getFirstViewer().getBounds();
+		final Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBounds();
 		Point ptRelative = new Point(0, 30);
 		final int deltay = 230;
-		exp.seqCamData.getSequence().addListener(this);
+		exp.getSeqCamData().getSequence().addListener(this);
 
 		if (moveCheckbox.isSelected()) {
 			displayYPos("flies Y positions", ypositionsChart, rectv, ptRelative, exp, EnumXLSExport.XYTOPCAGE);
@@ -100,7 +100,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 
 		if (aliveCheckbox.isSelected()) {
 			double threshold = (double) aliveThresholdSpinner.getValue();
-			for (Cage cage : exp.cagesArray.cagesList) {
+			for (Cage cage : exp.getCages().cagesList) {
 				FlyPositions posSeries = cage.flyPositions;
 				posSeries.moveThreshold = threshold;
 				posSeries.computeIsAlive();
@@ -110,7 +110,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		}
 
 		if (sleepCheckbox.isSelected()) {
-			for (Cage cage : exp.cagesArray.cagesList) {
+			for (Cage cage : exp.getCages().cagesList) {
 				FlyPositions posSeries = cage.flyPositions;
 				posSeries.computeSleep();
 			}
@@ -126,7 +126,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 			iChart.createPanel(title);
 			iChart.setLocationRelativeToPoint(new Point(rectv.x, rectv.y), ptRelative);
 		}
-		iChart.displayData(exp.cagesArray.cagesList, option);
+		iChart.displayData(exp.getCages().cagesList, option);
 		iChart.mainChartFrame.toFront();
 	}
 

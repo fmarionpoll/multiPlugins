@@ -137,7 +137,7 @@ public abstract class XLSExport {
 
 			for (int index = options.experimentIndexFirst; index <= options.experimentIndexLast; index++) {
 				Experiment exp = expList.getItemAt(index);
-				exp.load_MS96_spotsMeasures();
+				exp.load_spots_description_and_measures();
 				if (shouldSkipExperiment(exp)) {
 					continue;
 				}
@@ -325,7 +325,7 @@ public abstract class XLSExport {
 	private void writeFileInformation(SXSSFSheet sheet, int x, int y, boolean transpose, Experiment exp) {
 		String filename = exp.getResultsDirectory();
 		if (filename == null) {
-			filename = exp.seqCamData.getImagesDirectory();
+			filename = exp.getSeqCamData().getImagesDirectory();
 		}
 
 		Path path = Paths.get(filename);
@@ -423,8 +423,8 @@ public abstract class XLSExport {
 	 */
 	protected void handleExportError(Experiment exp, int nOutputFrames) {
 		String error = String.format(ExcelExportConstants.ErrorMessages.EXPORT_ERROR_FORMAT, exp.getResultsDirectory(),
-				nOutputFrames, exp.seqCamData.getTimeManager().getBinFirst_ms(),
-				exp.seqCamData.getTimeManager().getBinLast_ms());
+				nOutputFrames, exp.getSeqCamData().getTimeManager().getBinFirst_ms(),
+				exp.getSeqCamData().getTimeManager().getBinLast_ms());
 		System.err.println(error);
 	}
 

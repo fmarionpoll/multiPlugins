@@ -84,7 +84,7 @@ public class Edit extends JPanel implements PropertyChangeListener {
 //			return;
 //
 //		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-//		Spot spot = exp.cagesArray.getSpotAtGlobalIndex(t);
+//		Spot spot = exp.getCages().getSpotAtGlobalIndex(t);
 //		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 //		if (optionSelected.contains("sum"))
 //			removeAndUpdate(seqKymos, spot, spot.getSum(), roiRect);
@@ -101,7 +101,7 @@ public class Edit extends JPanel implements PropertyChangeListener {
 //			return;
 //
 //		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-//		Spot spot = exp.cagesArray.getSpotAtGlobalIndex(t);
+//		Spot spot = exp.getCages().getSpotAtGlobalIndex(t);
 //		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 //		if (optionSelected.contains("sum"))
 //			compensateAndUpdate(seqKymos, spot, spot.getSum(), roiRect);
@@ -128,7 +128,7 @@ public class Edit extends JPanel implements PropertyChangeListener {
 			buildMedianButton.setText(buildMedianString);
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-				exp.load_MS96_spotsMeasures();
+				exp.load_spots_description_and_measures();
 				parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 			}
 		}

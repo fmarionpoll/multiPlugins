@@ -95,11 +95,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	}
 
 	public void getExperimentInfosFromDialog(Experiment exp) {
-		tabInfos.getExperimentInfosFromDialog(exp.getProperties());
+		tabInfos.getExperimentInfosFromDialog(exp);
 	}
 
 	public void updateViewerForSequenceCam(Experiment exp) {
-		final Sequence seq = exp.seqCamData.getSequence();
+		final Sequence seq = exp.getSeqCamData().getSequence();
 		final ViewerListener parent = this;
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
@@ -119,7 +119,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					placeViewerNextToDialogBox(v, parent0.mainFrame);
 					v.toFront();
 					v.requestFocus();
-					v.setTitle(exp.seqCamData.getDecoratedImageName(0));
+					v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 					v.setRepeat(false);
 
 					v.addListener(parent);
@@ -147,10 +147,10 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-				int idCurrentSeqCamData = exp.seqCamData.getSequence().getId();
+				int idCurrentSeqCamData = exp.getSeqCamData().getSequence().getId();
 				if (idViewer == idCurrentSeqCamData) {
 					int t = v.getPositionT();
-					v.setTitle(exp.seqCamData.getDecoratedImageName(t));
+					v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
 					// TODO _CAGES if (parent0.dlgCages.bTrapROIsEdit)
 					// TODO _CAGES exp.saveDetRoisToPositions();
 					exp.updateROIsAt(t);

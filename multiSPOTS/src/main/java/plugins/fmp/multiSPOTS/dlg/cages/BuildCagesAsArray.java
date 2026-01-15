@@ -92,11 +92,11 @@ public class BuildCagesAsArray extends JPanel {
 				if (exp != null) {
 					exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq),
 							false);
-					exp.cagesArray.removeCages();
+					exp.getCages().removeCages();
 					createROIsFromSelectedPolygon(exp);
-					exp.cagesArray.transferROIsFromSequenceToCages(exp.seqCamData.seq);
+					exp.getCages().transferROIsFromSequenceToCages(exp.seqCamData.seq);
 					if (exp.spotsArray.spotsList.size() > 0)
-						exp.cagesArray.transferNFliesFromSpotsToCages(exp.spotsArray);
+						exp.getCages().transferNFliesFromSpotsToCages(exp.spotsArray);
 				}
 			}
 		});
@@ -114,7 +114,7 @@ public class BuildCagesAsArray extends JPanel {
 	void updateNColumnsFieldFromSequence() {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
-			int nrois = exp.cagesArray.cagesList.size();
+			int nrois = exp.getCages().cagesList.size();
 			if (nrois > 0) {
 				nColumnsTextField.setValue(nrois);
 				ncolumns = nrois;

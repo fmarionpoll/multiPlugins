@@ -120,7 +120,7 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private String defineXlsFileName(Experiment exp, String pattern) {
-		String filename0 = exp.seqCamData.getFileNameFromImageList(0);
+		String filename0 = exp.getSeqCamData().getFileNameFromImageList(0);
 		Path directory = Paths.get(filename0).getParent();
 		Path subpath = directory.getName(directory.getNameCount() - 1);
 		String tentativeName = subpath.toString() + pattern;

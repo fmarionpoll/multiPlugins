@@ -36,8 +36,8 @@ import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.series.BuildSeriesOptions;
 import plugins.fmp.multitools.series.DetectSpotsOutline;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
@@ -240,19 +240,19 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		if (e.getSource() == spotsThresholdSpinner) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null)
-				exp.cagesArray.detect_threshold = (int) spotsThresholdSpinner.getValue();
+				exp.getCages().detect_threshold = (int) spotsThresholdSpinner.getValue();
 		}
 	}
 
 	public void updateOverlay(Experiment exp) {
 		if (overlayThreshold == null) {
-			overlayThreshold = new OverlayThreshold(exp.seqCamData.getSequence());
+			overlayThreshold = new OverlayThreshold(exp.getSeqCamData().getSequence());
 		} else {
-			exp.seqCamData.getSequence().removeOverlay(overlayThreshold);
-			overlayThreshold.setSequence(exp.seqCamData.getSequence());
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
+			overlayThreshold.setSequence(exp.getSeqCamData().getSequence());
 		}
-		// overlayThreshold.setReferenceImage(exp.seqCamData.getReferenceImage());
-		exp.seqCamData.getSequence().addOverlay(overlayThreshold);
+		// overlayThreshold.setReferenceImage(exp.getSeqCamData().getReferenceImage());
+		exp.getSeqCamData().getSequence().addOverlay(overlayThreshold);
 	}
 
 	private void displayTransform(Experiment exp) {
@@ -263,7 +263,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		} else {
 			removeOverlay(exp);
 			spotsOverlayCheckBox.setSelected(false);
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer()
+			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 					.getCanvas();
 			canvas.setTransformStep1Index(0);
 		}
@@ -271,7 +271,8 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp) {
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.seqCamData.getSequence().getFirstViewer().getCanvas();
+		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
+				.getCanvas();
 		if (canvas.getTransformStep1ItemCount() < (spotsTransformsComboBox.getItemCount() + 1)) {
 			canvas.updateTransformsStep1(transforms);
 		}
@@ -312,19 +313,19 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 //		options.binSubDirectory = exp.getBinSubDirectory();
 
-		options.fromFrame = exp.seqCamData.getCurrentFrame();
+		options.fromFrame = exp.getSeqCamData().getCurrentFrame();
 
 		options.transformop = (ImageTransformEnums) spotsTransformsComboBox.getSelectedItem();
 		int iselected = allCellsComboBox.getSelectedIndex() - 1;
-		options.selectedIndexes = new ArrayList<Integer>(exp.cagesArray.cagesList.size());
+		options.selectedIndexes = new ArrayList<Integer>(exp.getCages().cagesList.size());
 		options.selectedIndexes.addAll(getSelectedCages(exp, iselected));
 		options.detectCage = iselected;
 		return options;
 	}
 
 	ArrayList<Integer> getSelectedCages(Experiment exp, int iSelectedOption) {
-		ArrayList<Integer> indexes = new ArrayList<Integer>(exp.cagesArray.cagesList.size());
-		for (Cage cage : exp.cagesArray.cagesList) {
+		ArrayList<Integer> indexes = new ArrayList<Integer>(exp.getCages().cagesList.size());
+		for (Cage cage : exp.getCages().cagesList) {
 			boolean bselected = true;
 			if (iSelectedOption == 0)
 				bselected = cage.getRoi().isSelected();
@@ -367,7 +368,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			if (!selectedCagesList.contains(cage.getProperties().getCageID()))
 				continue;
 			cage.getRoi().setSelected(true);
@@ -375,18 +376,18 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.seqCamData.getSequence() != null)
-			exp.seqCamData.getSequence().removeOverlay(overlayThreshold);
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 	}
 
 	void deleteSelectedSpot(Experiment exp) {
-		if (exp.seqCamData.getSequence() != null) {
-			ArrayList<ROI2D> listROIs = exp.seqCamData.getSequence().getSelectedROI2Ds();
+		if (exp.getSeqCamData().getSequence() != null) {
+			ArrayList<ROI2D> listROIs = exp.getSeqCamData().getSequence().getSelectedROI2Ds();
 			for (ROI2D roi : listROIs) {
 				String name = roi.getName();
 				if (!name.contains("spot"))
 					continue;
-				Cage cage = exp.cagesArray.getCageFromSpotName(name);
+				Cage cage = exp.getCages().getCageFromSpotName(name);
 				Iterator<Spot> iterator = cage.spotsArray.getSpotsList().iterator();
 				while (iterator.hasNext()) {
 					Spot spot = iterator.next();
@@ -402,13 +403,13 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	}
 
 	void duplicateSelectedSpot(Experiment exp) {
-		if (exp.seqCamData.getSequence() != null) {
-			ArrayList<ROI2D> listROIs = exp.seqCamData.getSequence().getSelectedROI2Ds();
+		if (exp.getSeqCamData().getSequence() != null) {
+			ArrayList<ROI2D> listROIs = exp.getSeqCamData().getSequence().getSelectedROI2Ds();
 			for (ROI2D roi : listROIs) {
 				String name = roi.getName();
 				if (!name.contains("spot"))
 					continue;
-				Cage cage = exp.cagesArray.getCageFromSpotName(name);
+				Cage cage = exp.getCages().getCageFromSpotName(name);
 				ArrayList<Spot> spotsToDuplicate = new ArrayList<Spot>();
 				Iterator<Spot> iterator = cage.spotsArray.getSpotsList().iterator();
 				while (iterator.hasNext()) {
@@ -426,7 +427,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 						pos.setLocation(pos.getX() + 5, pos.getY() + 5);
 						cage.addEllipseSpot(pos, radius);
 						Spot newSpot = cage.spotsArray.getSpotsList().get(cage.spotsArray.getSpotsList().size() - 1);
-						exp.seqCamData.getSequence().addROI(newSpot.getRoi());
+						exp.getSeqCamData().getSequence().addROI(newSpot.getRoi());
 					}
 				}
 			}
@@ -437,7 +438,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 
 	void convertBlobsToCircularSpots(Experiment exp, int diameter) {
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			if (bOnlySelectedCages && !cage.getRoi().isSelected())
 				continue;
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
@@ -455,8 +456,8 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				spot.setRoi(roiEllipse);
 			}
 		}
-		exp.seqCamData.removeROIsContainingString("spot");
-		exp.cagesArray.transferCageSpotsToSequenceAsROIs(exp.seqCamData);
+		exp.getSeqCamData().removeROIsContainingString("spot");
+		exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData());
 		exp.saveSpotsArray_file();
 	}
 
@@ -466,13 +467,13 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	}
 
 	private void cleanUpSpotNames(Experiment exp) {
-		for (Cage cage : exp.cagesArray.cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			cage.mapSpotsToCageColumnRow();
 			Collections.sort(cage.spotsArray.getSpotsList(), new Comparators.Spot_cagePosition());
 			cage.cleanUpSpotNames();
 		}
-		exp.seqCamData.removeROIsContainingString("spot");
-		exp.cagesArray.transferCageSpotsToSequenceAsROIs(exp.seqCamData);
+		exp.getSeqCamData().removeROIsContainingString("spot");
+		exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData());
 		exp.saveSpotsArray_file();
 	}
 

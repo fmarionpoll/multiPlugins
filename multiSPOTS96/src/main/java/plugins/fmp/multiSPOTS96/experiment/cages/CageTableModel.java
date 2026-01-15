@@ -30,7 +30,7 @@ public class CageTableModel extends AbstractTableModel {
 	public int getRowCount() {
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			return exp.cagesArray.cagesList.size();
+			return exp.getCages().cagesList.size();
 		}
 		return 0;
 	}
@@ -45,7 +45,7 @@ public class CageTableModel extends AbstractTableModel {
 		Cage cage = null;
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			cage = exp.cagesArray.cagesList.get(rowIndex);
+			cage = exp.getCages().cagesList.get(rowIndex);
 		}
 		if (cage != null) {
 			switch (columnIndex) {
@@ -103,7 +103,7 @@ public class CageTableModel extends AbstractTableModel {
 		Cage cage = null;
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			cage = exp.cagesArray.cagesList.get(rowIndex);
+			cage = exp.getCages().cagesList.get(rowIndex);
 		}
 		if (cage != null) {
 			switch (columnIndex) {

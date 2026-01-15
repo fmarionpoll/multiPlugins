@@ -39,7 +39,7 @@ public class Experiment {
 	public SequenceCamData seqCamData = null;
 //	public SequenceKymos seqKymos = null;
 	public Sequence seqReference = null;
-	public CagesArray cagesArray = new CagesArray();
+	public CagesArray getCages() = new CagesArray();
 
 	public FileTime firstImage_FileTime;
 	public FileTime lastImage_FileTime;
@@ -224,7 +224,7 @@ public class Experiment {
 		load_MS96_cages();
 		if (seqCamData != null && seqCamData.getSequence() != null) {
 			seqCamData.removeROIsContainingString("spot");
-			cagesArray.transferCageSpotsToSequenceAsROIs(seqCamData);
+			getCages().transferCageSpotsToSequenceAsROIs(seqCamData);
 		}
 		return (seqCamData != null && seqCamData.getSequence() != null);
 	}
@@ -456,23 +456,23 @@ public class Experiment {
 	}
 
 	public boolean load_MS96_cages() {
-		String fileName = getXML_MS96_cages_Location(cagesArray.ID_MS96_cages_XML);
-		return cagesArray.xmlReadCagesFromFileNoQuestion(fileName);
+		String fileName = getXML_MS96_cages_Location(getCages().ID_MS96_cages_XML);
+		return getCages().xmlReadCagesFromFileNoQuestion(fileName);
 	}
 
 	public boolean save_MS96_cages() {
-		String fileName = getXML_MS96_cages_Location(cagesArray.ID_MS96_cages_XML);
-		return cagesArray.xmlWriteCagesToFileNoQuestion(fileName);
+		String fileName = getXML_MS96_cages_Location(getCages().ID_MS96_cages_XML);
+		return getCages().xmlWriteCagesToFileNoQuestion(fileName);
 	}
 
 	// -------------------------------
 
 	public boolean load_MS96_spotsMeasures() {
-		return cagesArray.load_SpotsMeasures(getResultsDirectory());
+		return getCages().load_SpotsMeasures(getResultsDirectory());
 	}
 
 	public boolean save_MS96_spotsMeasures() {
-		return cagesArray.save_SpotsMeasures(getResultsDirectory());
+		return getCages().save_SpotsMeasures(getResultsDirectory());
 	}
 
 	public boolean load_MS96_fliesPositions() {
@@ -594,13 +594,13 @@ public class Experiment {
 			if (roi.getName().contains("det"))
 				seqCamData.getSequence().removeROI(roi);
 		}
-		seqCamData.getSequence().addROIs(cagesArray.getPositionsAsListOfROI2DRectanglesAtT(t), false);
+		seqCamData.getSequence().addROIs(getCages().getPositionsAsListOfROI2DRectanglesAtT(t), false);
 		seqCamData.getSequence().endUpdate();
 	}
 
 	public void saveDetRoisToPositions() {
 		List<ROI2D> detectedROIsList = seqCamData.getSequence().getROI2Ds();
-		for (Cage cage : cagesArray.cagesList) {
+		for (Cage cage : getCages().cagesList) {
 			cage.transferRoisToPositions(detectedROIsList);
 		}
 	}
@@ -620,11 +620,11 @@ public class Experiment {
 
 	private boolean zxmlReadDrosoTrack(String filename) {
 		if (filename == null) {
-			filename = getXML_MS96_cages_Location(cagesArray.ID_MS96_cages_XML);
+			filename = getXML_MS96_cages_Location(getCages().ID_MS96_cages_XML);
 			if (filename == null)
 				return false;
 		}
-		return cagesArray.xmlReadCagesFromFileNoQuestion(filename);
+		return getCages().xmlReadCagesFromFileNoQuestion(filename);
 	}
 
 	private String findFile_3Locations(String xmlFileName, int first, int second, int third) {
@@ -690,7 +690,7 @@ public class Experiment {
 			String newValue) {
 		load_MS96_cages();
 		boolean flag = false;
-		for (Cage cage : cagesArray.cagesList) {
+		for (Cage cage : getCages().cagesList) {
 			for (Spot spot : cage.spotsArray.getSpotsList()) {
 				String current = spot.getField(fieldEnumCode);
 				if (current != null && oldValue != null && current.trim().equals(oldValue.trim())) {
@@ -706,7 +706,7 @@ public class Experiment {
 			String newValue) {
 		load_MS96_cages();
 		boolean flag = false;
-		for (Cage cage : cagesArray.cagesList) {
+		for (Cage cage : getCages().cagesList) {
 			String current = cage.getField(fieldEnumCode);
 			if (current != null && oldValue != null && current.trim().equals(oldValue.trim())) {
 				cage.setField(fieldEnumCode, newValue);
@@ -726,7 +726,7 @@ public class Experiment {
 	private List<String> getSpotsFieldValues(EnumXLSColumnHeader fieldEnumCode) {
 		load_MS96_cages();
 		List<String> textList = new ArrayList<String>();
-		for (Cage cage : cagesArray.cagesList)
+		for (Cage cage : getCages().cagesList)
 			for (Spot spot : cage.spotsArray.getSpotsList())
 				addValueIfUnique(spot.getField(fieldEnumCode), textList);
 		return textList;
@@ -735,7 +735,7 @@ public class Experiment {
 	private List<String> getCagesFieldValues(EnumXLSColumnHeader fieldEnumCode) {
 		load_MS96_cages();
 		List<String> textList = new ArrayList<String>();
-		for (Cage cage : cagesArray.cagesList)
+		for (Cage cage : getCages().cagesList)
 			addValueIfUnique(cage.getField(fieldEnumCode), textList);
 		return textList;
 	}
@@ -763,22 +763,22 @@ public class Experiment {
 
 	public void transferCagesROI_toSequence() {
 		seqCamData.removeROIsContainingString("cage");
-		cagesArray.transferCagesToSequenceAsROIs(seqCamData);
+		getCages().transferCagesToSequenceAsROIs(seqCamData);
 	}
 
 	public void transferSpotsROI_toSequence() {
 		seqCamData.removeROIsContainingString("spot");
-		cagesArray.transferCageSpotsToSequenceAsROIs(seqCamData);
+		getCages().transferCageSpotsToSequenceAsROIs(seqCamData);
 	}
 
 	public boolean saveCagesArray_File() {
-		cagesArray.transferROIsFromSequenceToCages(seqCamData);
+		getCages().transferROIsFromSequenceToCages(seqCamData);
 		save_MS96_cages();
 		return save_MS96_spotsMeasures();
 	}
 
 	public boolean saveSpotsArray_file() {
-		cagesArray.transferROIsFromSequenceToCageSpots(seqCamData);
+		getCages().transferROIsFromSequenceToCageSpots(seqCamData);
 		boolean flag = save_MS96_cages();
 		flag &= save_MS96_spotsMeasures();
 		return flag;

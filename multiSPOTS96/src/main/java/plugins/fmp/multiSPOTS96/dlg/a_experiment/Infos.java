@@ -17,10 +17,9 @@ import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.tools.DialogTools;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxModelSorted;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Infos extends JPanel {
 	/**
@@ -107,7 +106,7 @@ public class Infos extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					exp.load_MS96_experiment();
+					exp.xmlLoad_MCExperiment();
 					transferPreviousExperimentInfosToDialog(exp, exp);
 				}
 			}
@@ -118,9 +117,8 @@ public class Infos extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					ExperimentProperties expDesc = exp.getProperties();
-					getExperimentInfosFromDialog(expDesc);
-					exp.save_MS96_experiment();
+					getExperimentInfosFromDialog(exp);
+					exp.saveExperimentDescriptors();
 				}
 			}
 		});
@@ -155,24 +153,24 @@ public class Infos extends JPanel {
 
 	private void setInfoCombo(Experiment exp_dest, Experiment exp_source, JComboBox<String> combo,
 			EnumXLSColumnHeader field) {
-		String altText = exp_source.getProperties().getExperimentField(field);
-		String text = exp_dest.getProperties().getExperimentField(field);
+		String altText = exp_source.getExperimentField(field);
+		String text = exp_dest.getExperimentField(field);
 		if (text.equals(".."))
-			exp_dest.getProperties().setExperimentFieldNoTest(field, altText);
-		text = exp_dest.getProperties().getExperimentField(field);
+			exp_dest.setExperimentFieldNoTest(field, altText);
+		text = exp_dest.getExperimentField(field);
 		addItemToComboIfNew(text, combo);
 		combo.setSelectedItem(text);
 	}
 
-	public void getExperimentInfosFromDialog(ExperimentProperties expDesc) {
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_BOXID, (String) boxIDCombo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_EXPT, (String) exptCombo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM1, (String) stim1Combo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC1, (String) conc1Combo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STRAIN, (String) strainCombo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_SEX, (String) sexCombo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM2, (String) stim2Combo.getSelectedItem());
-		expDesc.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC2, (String) conc2Combo.getSelectedItem());
+	public void getExperimentInfosFromDialog(Experiment exp) {
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_BOXID, (String) boxIDCombo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_EXPT, (String) exptCombo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM1, (String) stim1Combo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC1, (String) conc1Combo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STRAIN, (String) strainCombo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_SEX, (String) sexCombo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM2, (String) stim2Combo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC2, (String) conc2Combo.getSelectedItem());
 	}
 
 	private void addItemToComboIfNew(String toAdd, JComboBox<String> combo) {
@@ -237,7 +235,7 @@ public class Infos extends JPanel {
 	}
 
 	void zoomToUpperCorner(Experiment exp) {
-		Sequence seq = exp.seqCamData.getSequence();
+		Sequence seq = exp.getSeqCamData().getSequence();
 		Viewer v = seq.getFirstViewer();
 		if (v != null) {
 			Canvas2D canvas = (Canvas2D) v.getCanvas();

@@ -122,20 +122,20 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	}
 
 	protected boolean checkBoundsForCages(Experiment exp) {
-		exp.cagesArray.detectBin_Ms = options.t_Ms_BinDuration;
+		exp.getCages().detectBin_Ms = options.t_Ms_BinDuration;
 		if (options.isFrameFixed) {
-			exp.cagesArray.detectFirst_Ms = options.t_Ms_First;
-			exp.cagesArray.detectLast_Ms = options.t_Ms_Last;
-			if (exp.cagesArray.detectLast_Ms > exp.seqCamData.getLastImageMs())
-				exp.cagesArray.detectLast_Ms = exp.seqCamData.getLastImageMs();
+			exp.getCages().detectFirst_Ms = options.t_Ms_First;
+			exp.getCages().detectLast_Ms = options.t_Ms_Last;
+			if (exp.getCages().detectLast_Ms > exp.getSeqCamData().getLastImageMs())
+				exp.getCages().detectLast_Ms = exp.getSeqCamData().getLastImageMs();
 		} else {
-			exp.cagesArray.detectFirst_Ms = exp.seqCamData.getFirstImageMs();
-			exp.cagesArray.detectLast_Ms = exp.seqCamData.getLastImageMs();
+			exp.getCages().detectFirst_Ms = exp.getSeqCamData().getFirstImageMs();
+			exp.getCages().detectLast_Ms = exp.getSeqCamData().getLastImageMs();
 		}
-		exp.cagesArray.detect_threshold = options.threshold;
+		exp.getCages().detect_threshold = options.threshold;
 
 		boolean flag = true;
-		if (exp.cagesArray.cagesList.size() < 1) {
+		if (exp.getCages().cagesList.size() < 1) {
 			System.out.println(
 					"BuildSeries:checkBoundsForCages ! skipped experiment with no cage: " + exp.getResultsDirectory());
 			flag = false;
@@ -145,21 +145,21 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 	protected void getTimeLimitsOfSequence(Experiment exp) {
 		exp.getFileIntervalsFromSeqCamData();
-		if (exp.seqCamData.getTimeManager().getBinImage_ms() == 0)
+		if (exp.getSeqCamData().getTimeManager().getBinImage_ms() == 0)
 			exp.loadFileIntervalsFromSeqCamData();
-		exp.seqCamData.getTimeManager().setBinDurationMs(exp.seqCamData.getTimeManager().getBinImage_ms());
+		exp.getSeqCamData().getTimeManager().setBinDurationMs(exp.getSeqCamData().getTimeManager().getBinImage_ms());
 
 		if (options.isFrameFixed) {
-			exp.seqCamData.getTimeManager().setBinFirst_ms(options.t_Ms_First);
-			exp.seqCamData.getTimeManager().setBinLast_ms(options.t_Ms_Last);
-			if (exp.seqCamData.getTimeManager().getBinLast_ms() + exp.seqCamData.getFirstImageMs() > exp.seqCamData
+			exp.getSeqCamData().getTimeManager().setBinFirst_ms(options.t_Ms_First);
+			exp.getSeqCamData().getTimeManager().setBinLast_ms(options.t_Ms_Last);
+			if (exp.getSeqCamData().getTimeManager().getBinLast_ms() + exp.getSeqCamData().getFirstImageMs() > exp.getSeqCamData()
 					.getLastImageMs())
-				exp.seqCamData.getTimeManager()
-						.setBinLast_ms(exp.seqCamData.getLastImageMs() - exp.seqCamData.getFirstImageMs());
+				exp.getSeqCamData().getTimeManager()
+						.setBinLast_ms(exp.getSeqCamData().getLastImageMs() - exp.getSeqCamData().getFirstImageMs());
 		} else {
-			exp.seqCamData.getTimeManager().setBinFirst_ms(0);
-			exp.seqCamData.getTimeManager()
-					.setBinLast_ms(exp.seqCamData.getLastImageMs() - exp.seqCamData.getFirstImageMs());
+			exp.getSeqCamData().getTimeManager().setBinFirst_ms(0);
+			exp.getSeqCamData().getTimeManager()
+					.setBinLast_ms(exp.getSeqCamData().getLastImageMs() - exp.getSeqCamData().getFirstImageMs());
 		}
 	}
 
@@ -174,8 +174,8 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	}
 
 	protected boolean loadSeqCamDataAndCages(Experiment exp) {
-		exp.seqCamData.attachSequence(
-				exp.seqCamData.getImageLoader().initSequenceFromFirstImage(exp.seqCamData.getImagesList(true)));
+		exp.getSeqCamData().attachSequence(
+				exp.getSeqCamData().getImageLoader().initSequenceFromFirstImage(exp.getSeqCamData().getImagesList(true)));
 		boolean flag = exp.load_MS96_cages();
 		return flag;
 	}
@@ -215,7 +215,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				public void run() {
-					seqNegative = newSequence("detectionImage", exp.seqCamData.getReferenceImage());
+					seqNegative = newSequence("detectionImage", exp.getSeqCamData().getReferenceImage());
 					vNegative = new ViewerFMP(seqNegative, false, true);
 					vNegative.setVisible(true);
 				}

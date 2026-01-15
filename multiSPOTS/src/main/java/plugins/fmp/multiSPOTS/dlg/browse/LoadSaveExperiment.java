@@ -283,7 +283,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			exp.spotsArray.transferSpotsToSequenceAsROIs(exp.seqCamData.seq);
 
 			exp.load_Cages();
-			exp.cagesArray.transferCagesToSequenceAsROIs(exp.seqCamData.seq);
+			exp.getCages().transferCagesToSequenceAsROIs(exp.seqCamData.seq);
 
 			parent0.dlgMeasure.tabGraphs.displayGraphsPanels(exp);
 
