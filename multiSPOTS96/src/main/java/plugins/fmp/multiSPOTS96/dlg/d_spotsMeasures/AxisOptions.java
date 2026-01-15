@@ -18,12 +18,10 @@ import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.Range;
 
-import plugins.fmp.multitools.tools.chart.ChartCagePair;
-
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.tools.chart.ChartCageArrayFrame;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 
 public class AxisOptions extends JPanel {
@@ -33,7 +31,7 @@ public class AxisOptions extends JPanel {
 	private static final long serialVersionUID = 1L;
 	IcyFrame dialogFrame = null;
 	private MultiSPOTS96 parent0 = null;
-	private ChartCageArrayFrame chartCageArrayFrame = null;
+	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartCagesFrame chartCagesFrame = null;
 	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 255., 1.));
 	private JSpinner upperXSpinner = new JSpinner(new SpinnerNumberModel(120., 0., 255., 1.));
@@ -41,12 +39,6 @@ public class AxisOptions extends JPanel {
 	private JSpinner upperYSpinner = new JSpinner(new SpinnerNumberModel(80., 0., 255., 1.));
 	private JButton setYaxis = new JButton("set Y axis values");
 	private JButton setXaxis = new JButton("set X axis values");
-
-	public void initialize(MultiSPOTS96 parent0, ChartCageArrayFrame chartSpots) {
-		this.parent0 = parent0;
-		this.chartCageArrayFrame = chartSpots;
-		this.chartCagesFrame = null;
-	}
 
 	public void initialize(MultiSPOTS96 parent0, ChartCagesFrame chartSpots) {
 		this.parent0 = parent0;

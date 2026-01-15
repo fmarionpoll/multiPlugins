@@ -20,6 +20,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.tools.DialogTools;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.JComponents.MultiSelectDialog;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Filter extends JPanel {
@@ -143,8 +144,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_EXPT);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(exptBtn,
-						EnumXLSColumnHeader.EXP_EXPT.toString(), all, selExpt);
+				List<String> chosen = MultiSelectDialog.showDialog(exptBtn, EnumXLSColumnHeader.EXP_EXPT.toString(),
+						all, selExpt);
 				if (chosen != null) {
 					selExpt.clear();
 					selExpt.addAll(chosen);
@@ -156,8 +157,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_BOXID);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(boxIDBtn,
-						EnumXLSColumnHeader.EXP_BOXID.toString(), all, selBoxID);
+				List<String> chosen = MultiSelectDialog.showDialog(boxIDBtn, EnumXLSColumnHeader.EXP_BOXID.toString(),
+						all, selBoxID);
 				if (chosen != null) {
 					selBoxID.clear();
 					selBoxID.addAll(chosen);
@@ -169,8 +170,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_STIM1);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(stim1Btn,
-						EnumXLSColumnHeader.EXP_STIM1.toString(), all, selStim1);
+				List<String> chosen = MultiSelectDialog.showDialog(stim1Btn, EnumXLSColumnHeader.EXP_STIM1.toString(),
+						all, selStim1);
 				if (chosen != null) {
 					selStim1.clear();
 					selStim1.addAll(chosen);
@@ -182,8 +183,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_CONC1);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(conc1Btn,
-						EnumXLSColumnHeader.EXP_CONC1.toString(), all, selConc1);
+				List<String> chosen = MultiSelectDialog.showDialog(conc1Btn, EnumXLSColumnHeader.EXP_CONC1.toString(),
+						all, selConc1);
 				if (chosen != null) {
 					selConc1.clear();
 					selConc1.addAll(chosen);
@@ -195,8 +196,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_SEX);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(sexBtn,
-						EnumXLSColumnHeader.EXP_SEX.toString(), all, selSex);
+				List<String> chosen = MultiSelectDialog.showDialog(sexBtn, EnumXLSColumnHeader.EXP_SEX.toString(), all,
+						selSex);
 				if (chosen != null) {
 					selSex.clear();
 					selSex.addAll(chosen);
@@ -208,8 +209,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_STRAIN);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(strainBtn,
-						EnumXLSColumnHeader.EXP_STRAIN.toString(), all, selStrain);
+				List<String> chosen = MultiSelectDialog.showDialog(strainBtn, EnumXLSColumnHeader.EXP_STRAIN.toString(),
+						all, selStrain);
 				if (chosen != null) {
 					selStrain.clear();
 					selStrain.addAll(chosen);
@@ -221,8 +222,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_STIM2);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(stim2Btn,
-						EnumXLSColumnHeader.EXP_STIM2.toString(), all, selStim2);
+				List<String> chosen = MultiSelectDialog.showDialog(stim2Btn, EnumXLSColumnHeader.EXP_STIM2.toString(),
+						all, selStim2);
 				if (chosen != null) {
 					selStim2.clear();
 					selStim2.addAll(chosen);
@@ -234,8 +235,8 @@ public class Filter extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_CONC2);
-				List<String> chosen = plugins.fmp.multiSPOTS96.tools.JComponents.MultiSelectDialog.showDialog(conc2Btn,
-						EnumXLSColumnHeader.EXP_CONC2.toString(), all, selConc2);
+				List<String> chosen = MultiSelectDialog.showDialog(conc2Btn, EnumXLSColumnHeader.EXP_CONC2.toString(),
+						all, selConc2);
 				if (chosen != null) {
 					selConc2.clear();
 					selConc2.addAll(chosen);
