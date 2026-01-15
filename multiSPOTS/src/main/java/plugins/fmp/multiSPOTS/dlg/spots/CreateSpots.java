@@ -30,6 +30,8 @@ import plugins.fmp.multiSPOTS.experiment.spots.Spot;
 import plugins.fmp.multiSPOTS.experiment.spots.SpotsArray;
 import plugins.fmp.multiSPOTS.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multiSPOTS.tools.polyline.PolygonUtilities;
+import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -56,6 +58,77 @@ public class CreateSpots extends JPanel {
 
 	private MultiSPOTS parent0 = null;
 	private boolean silent = false;
+
+	// Helper methods for multiTools architecture compatibility
+	// These methods provide a bridge between old (spotsArray) and new (getSpots) architectures
+	
+	@SuppressWarnings("unused")
+	private Spots getAllSpots(Experiment exp) {
+		try {
+			java.lang.reflect.Method getSpotsMethod = exp.getClass().getMethod("getSpots");
+			Object result = getSpotsMethod.invoke(exp);
+			if (result instanceof Spots) {
+				return (Spots) result;
+			}
+		} catch (Exception e) {
+		}
+		return null;
+	}
+
+	@SuppressWarnings("unused")
+	private void clearSpotsForCage(Experiment exp, plugins.fmp.multiSPOTS.experiment.cages.Cage cage) {
+		Spots allSpots = getAllSpots(exp);
+		if (allSpots != null) {
+			try {
+				java.lang.reflect.Method getSpotListMethod = cage.getClass().getMethod("getSpotList", Spots.class);
+				@SuppressWarnings("unchecked")
+				java.util.List<plugins.fmp.multitools.experiment.spots.Spot> cageSpots = 
+					(java.util.List<plugins.fmp.multitools.experiment.spots.Spot>) getSpotListMethod.invoke(cage, allSpots);
+				if (cageSpots != null) {
+					for (plugins.fmp.multitools.experiment.spots.Spot spot : cageSpots) {
+						allSpots.removeSpot(spot);
+					}
+				}
+				java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+				@SuppressWarnings("unchecked")
+				java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+				if (spotIDs != null) {
+					spotIDs.clear();
+				}
+			} catch (Exception e) {
+			}
+		} else {
+			java.util.Iterator<Spot> iterator = exp.spotsArray.spotsList.iterator();
+			while (iterator.hasNext()) {
+				Spot spot = iterator.next();
+				if (spot.cageID == cage.cageID) {
+					iterator.remove();
+				}
+			}
+		}
+	}
+
+	@SuppressWarnings("unused")
+	private void addSpotEllipseToCage(Experiment exp, plugins.fmp.multiSPOTS.experiment.cages.Cage cage,
+			Point2D.Double center, int radius) {
+		Spots allSpots = getAllSpots(exp);
+		if (allSpots != null) {
+			try {
+				java.lang.reflect.Method addEllipseSpotMethod = cage.getClass().getMethod("addEllipseSpot",
+						Point2D.Double.class, int.class, Spots.class);
+				addEllipseSpotMethod.invoke(cage, center, radius, allSpots);
+			} catch (Exception e) {
+			}
+		} else {
+			Spot spot = new Spot(new ROI2DEllipse(
+					new Ellipse2D.Double(center.x - radius, center.y - radius, 2 * radius, 2 * radius)));
+			spot.spotRadius = radius;
+			spot.spotXCoord = (int) center.getX();
+			spot.spotYCoord = (int) center.getY();
+			spot.cageID = cage.cageID;
+			exp.spotsArray.spotsList.add(spot);
+		}
+	}
 
 	// ----------------------------------------------------------
 
@@ -113,15 +186,18 @@ public class CreateSpots extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-				if (exp != null) {
-					polygon2D = getPolygonEnclosingSpotsFromSelectedRoi(exp);
-					if (polygon2D != null) {
-						createSpotsFromPolygon(exp, polygon2D);
-						ExperimentUtils.transferSpotsToCamDataSequence(exp);
-						int nbFliesPerCage = (int) nFliesPerCageJSpinner.getValue();
-						exp.spotsArray.initSpotsWithNFlies(nbFliesPerCage);
+					if (exp != null) {
+						polygon2D = getPolygonEnclosingSpotsFromSelectedRoi(exp);
+						if (polygon2D != null) {
+							createSpotsFromPolygon(exp, polygon2D);
+							ExperimentUtils.transferSpotsToCamDataSequence(exp);
+							int nbFliesPerCage = (int) nFliesPerCageJSpinner.getValue();
+							Spots allSpots = getAllSpots(exp);
+							if (allSpots == null) {
+								exp.spotsArray.initSpotsWithNFlies(nbFliesPerCage);
+							}
+						}
 					}
-				}
 			}
 		});
 
@@ -181,8 +257,20 @@ public class CreateSpots extends JPanel {
 
 	private Polygon2D getSpotsPolygon(Experiment exp) {
 		if (polygon2D == null) {
-			if (exp.spotsArray.spotsList.size() > 0) {
-				polygon2D = exp.spotsArray.getPolygon2DEnclosingAllSpots();
+			Spots allSpots = getAllSpots(exp);
+			boolean hasSpots = false;
+			if (allSpots != null && allSpots.getSpotListCount() > 0) {
+				hasSpots = true;
+			} else if (exp.spotsArray != null && exp.spotsArray.spotsList.size() > 0) {
+				hasSpots = true;
+			}
+			
+			if (hasSpots) {
+				if (allSpots != null) {
+					polygon2D = getPolygon2DEnclosingAllSpotsFromMultiTools(exp, allSpots);
+				} else {
+					polygon2D = exp.spotsArray.getPolygon2DEnclosingAllSpots();
+				}
 			} else {
 				Rectangle rect = exp.seqCamData.seq.getBounds2D();
 				List<Point2D> points = new ArrayList<Point2D>();
@@ -194,6 +282,46 @@ public class CreateSpots extends JPanel {
 			}
 		}
 		return polygon2D;
+	}
+
+	private Polygon2D getPolygon2DEnclosingAllSpotsFromMultiTools(Experiment exp, Spots allSpots) {
+		if (allSpots == null || allSpots.getSpotListCount() < 1) {
+			return null;
+		}
+		List<Point2D> points = new ArrayList<Point2D>();
+		plugins.fmp.multitools.experiment.spots.Spot firstSpot = allSpots.getSpotList().get(0);
+		int spotX = firstSpot.getProperties().getSpotXCoord();
+		int spotY = firstSpot.getProperties().getSpotYCoord();
+		points.add(new Point2D.Double(spotX, spotY));
+		points.add(new Point2D.Double(spotX + 1, spotY));
+		points.add(new Point2D.Double(spotX + 1, spotY + 1));
+		points.add(new Point2D.Double(spotX, spotY + 1));
+		Polygon2D polygon = new Polygon2D(points);
+
+		int nColumnsPerPlate = exp.spotsArray != null ? exp.spotsArray.nColumnsPerPlate : 12;
+		int nRowsPerPlate = exp.spotsArray != null ? exp.spotsArray.nRowsPerPlate : 8;
+		
+		for (plugins.fmp.multitools.experiment.spots.Spot spot : allSpots.getSpotList()) {
+			int col = spot.getProperties().getCagePosition() % nColumnsPerPlate;
+			int row = spot.getProperties().getCagePosition() / nColumnsPerPlate;
+			int spotXCoord = spot.getProperties().getSpotXCoord();
+			int spotYCoord = spot.getProperties().getSpotYCoord();
+
+			if (col == 0 && row == 0) {
+				polygon.xpoints[0] = spotXCoord;
+				polygon.ypoints[0] = spotYCoord;
+			} else if (col == (nColumnsPerPlate - 1) && row == 0) {
+				polygon.xpoints[1] = spotXCoord;
+				polygon.ypoints[1] = spotYCoord;
+			} else if (col == (nColumnsPerPlate - 1) && row == (nRowsPerPlate - 1)) {
+				polygon.xpoints[2] = spotXCoord;
+				polygon.ypoints[2] = spotYCoord;
+			} else if (col == 0 && row == (nRowsPerPlate - 1)) {
+				polygon.xpoints[3] = spotXCoord;
+				polygon.ypoints[3] = spotYCoord;
+			}
+		}
+		return polygon;
 	}
 
 	private Polygon2D getPolygonEnclosingSpotsFromSelectedRoi(Experiment exp) {
@@ -221,8 +349,28 @@ public class CreateSpots extends JPanel {
 		}
 		// erase existing spots
 		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("spot", exp.seqCamData.seq), false);
-		exp.spotsArray.spotsList.clear();
-		exp.spotsArray = new SpotsArray();
+		
+		Spots allSpots = getAllSpots(exp);
+		if (allSpots != null) {
+			allSpots.clearSpotList();
+			if (exp.getCages() != null) {
+				for (plugins.fmp.multiSPOTS.experiment.cages.Cage cage : exp.getCages().cagesList) {
+					try {
+						java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+						@SuppressWarnings("unchecked")
+						java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+						if (spotIDs != null) {
+							spotIDs.clear();
+						}
+					} catch (Exception e) {
+					}
+				}
+			}
+		} else {
+			exp.spotsArray.spotsList.clear();
+			exp.spotsArray = new SpotsArray();
+		}
+		
 		Point2D.Double[][] arrayPoints = PolygonUtilities.createArrayOfPointsFromPolygon(polygon2D, n_columns, n_rows);
 		convertPoint2DArrayToSpots(exp, arrayPoints, n_columns, n_rows, radius);
 		updateCageDescriptorsOfSpots(exp);
@@ -230,9 +378,46 @@ public class CreateSpots extends JPanel {
 
 	private void convertPoint2DArrayToSpots(Experiment exp, Point2D.Double[][] arrayPoints, int nbcols, int nbrows,
 			int radius) {
+		Spots allSpots = getAllSpots(exp);
+		if (allSpots != null) {
+			convertPoint2DArrayToSpotsMultiTools(exp, arrayPoints, nbcols, nbrows, radius, allSpots);
+		} else {
+			exp.spotsArray.nColumnsPerPlate = nbcols;
+			exp.spotsArray.nRowsPerPlate = nbrows;
+			int spotIndex = 0;
+			for (int row = 0; row < nbrows; row++) {
+				for (int column = 0; column < nbcols; column++) {
+					Point2D point = arrayPoints[column][row];
+					double x = point.getX() - radius;
+					double y = point.getY() - radius;
+					Ellipse2D ellipse = new Ellipse2D.Double(x, y, 2 * radius, 2 * radius);
+					ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
+					roiEllipse.setName("spot_" + String.format("%03d", row) + String.format("%03d", column));
+
+					Spot spot = new Spot(roiEllipse);
+					spot.plateIndex = spotIndex;
+					spot.plateColumn = column;
+					spot.plateRow = row;
+					spot.spotRadius = radius;
+					spot.spotXCoord = (int) point.getX();
+					spot.spotYCoord = (int) point.getY();
+					try {
+						spot.spotNPixels = (int) roiEllipse.getNumberOfPoints();
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+
+					exp.spotsArray.spotsList.add(spot);
+					spotIndex++;
+				}
+			}
+		}
+	}
+
+	private void convertPoint2DArrayToSpotsMultiTools(Experiment exp, Point2D.Double[][] arrayPoints, int nbcols,
+			int nbrows, int radius, Spots allSpots) {
 		exp.spotsArray.nColumnsPerPlate = nbcols;
 		exp.spotsArray.nRowsPerPlate = nbrows;
-		int spotIndex = 0;
 		for (int row = 0; row < nbrows; row++) {
 			for (int column = 0; column < nbcols; column++) {
 				Point2D point = arrayPoints[column][row];
@@ -242,22 +427,18 @@ public class CreateSpots extends JPanel {
 				ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
 				roiEllipse.setName("spot_" + String.format("%03d", row) + String.format("%03d", column));
 
-				Spot spot = new Spot(roiEllipse);
-				spot.plateIndex = spotIndex;
-				spot.plateColumn = column;
-				spot.plateRow = row;
-				spot.spotRadius = radius;
-				spot.spotXCoord = (int) point.getX();
-				spot.spotYCoord = (int) point.getY();
+				plugins.fmp.multitools.experiment.spots.Spot spot = 
+					new plugins.fmp.multitools.experiment.spots.Spot(roiEllipse);
+				spot.getProperties().setSpotRadius(radius);
+				spot.getProperties().setSpotXCoord((int) point.getX());
+				spot.getProperties().setSpotYCoord((int) point.getY());
 				try {
-					spot.spotNPixels = (int) roiEllipse.getNumberOfPoints();
+					spot.getProperties().setSpotNPixels((int) roiEllipse.getNumberOfPoints());
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 
-				exp.spotsArray.spotsList.add(spot);
-				spotIndex++;
+				allSpots.addSpot(spot);
 			}
 		}
 	}
@@ -268,14 +449,77 @@ public class CreateSpots extends JPanel {
 
 		int nColsPerCage = (int) nColsPerCageJSpinner.getValue();
 		int nRowsPerCage = (int) nRowsPerCageJSpinner.getValue();
-		exp.spotsArray.updatePlateIndexToCageIndexes(nColsPerCage, nRowsPerCage);
+		
+		Spots allSpots = getAllSpots(exp);
+		if (allSpots != null) {
+			updateCageDescriptorsOfSpotsMultiTools(exp, allSpots, nColsPerCage, nRowsPerCage);
+		} else {
+			exp.spotsArray.updatePlateIndexToCageIndexes(nColsPerCage, nRowsPerCage);
+		}
+	}
+
+	private void updateCageDescriptorsOfSpotsMultiTools(Experiment exp, Spots allSpots, int nColsPerCage,
+			int nRowsPerCage) {
+		exp.spotsArray.nColumnsPerCage = nColsPerCage;
+		exp.spotsArray.nRowsPerCage = nRowsPerCage;
+
+		int nColumnsPerPlate = exp.spotsArray.nColumnsPerPlate;
+		int nCagesAlongX = nColumnsPerPlate / nColsPerCage;
+
+		if (exp.getCages() == null) {
+			return;
+		}
+
+		for (plugins.fmp.multiSPOTS.experiment.cages.Cage cage : exp.getCages().cagesList) {
+			try {
+				java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+				@SuppressWarnings("unchecked")
+				java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+				if (spotIDs != null) {
+					spotIDs.clear();
+				}
+			} catch (Exception e) {
+			}
+		}
+
+		int spotIndex = 0;
+		for (plugins.fmp.multitools.experiment.spots.Spot spot : allSpots.getSpotList()) {
+			int plateColumn = spotIndex % nColumnsPerPlate;
+			int plateRow = spotIndex / nColumnsPerPlate;
+			int cageColumn = plateColumn / nColsPerCage;
+			int cageRow = plateRow / nRowsPerCage;
+			int cageID = cageRow * nCagesAlongX + cageColumn;
+
+			int spotCageColumn = plateColumn % nColsPerCage;
+			int spotCageRow = plateRow % nRowsPerCage;
+			int cagePosition = spotCageRow * nColsPerCage + spotCageColumn;
+
+			spot.getProperties().setCageID(cageID);
+			spot.getProperties().setCagePosition(cagePosition);
+
+			plugins.fmp.multiSPOTS.experiment.cages.Cage cage = exp.getCages().getCageFromNumber(cageID);
+			if (cage != null) {
+				try {
+					java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+					@SuppressWarnings("unchecked")
+					java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+					if (spotIDs != null) {
+						spotIDs.add(new SpotID(cageID, cagePosition));
+					}
+				} catch (Exception e) {
+				}
+			}
+			spotIndex++;
+		}
 	}
 
 	public void updateDialog(Experiment exp) {
 		if (exp != null) {
 			silent = true;
-			nColsPerCageJSpinner.setValue(exp.spotsArray.nColumnsPerCage);
-			nRowsPerCageJSpinner.setValue(exp.spotsArray.nRowsPerCage);
+			if (exp.spotsArray != null) {
+				nColsPerCageJSpinner.setValue(exp.spotsArray.nColumnsPerCage);
+				nRowsPerCageJSpinner.setValue(exp.spotsArray.nRowsPerCage);
+			}
 			silent = false;
 		}
 	}
