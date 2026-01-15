@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import plugins.fmp.multiSPOTS96.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cages.Cage;

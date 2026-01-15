@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.tools;
+package plugins.fmp.multiSPOTS96.experiment;
 
 import java.io.File;
 import java.util.logging.Logger;

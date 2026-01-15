@@ -30,8 +30,8 @@ import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
-import plugins.fmp.multitools.tools.LazyExperiment;
-import plugins.fmp.multitools.tools.LazyExperiment.ExperimentMetadata;
+import plugins.fmp.multitools.experiment.LazyExperiment;
+import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
 public class LoadSaveExperiment extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
