@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -30,7 +31,6 @@ import javax.swing.ScrollPaneConstants;
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import icy.preferences.XMLPreferences;
-import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 
@@ -40,7 +40,8 @@ public class SelectFilesPanel extends JPanel {
 	 */
 	private static final long serialVersionUID = 4172927636287523049L;
 	IcyFrame dialogFrame = null;
-	private JComboBox<String> filterCombo = new JComboBox<String>(new String[] { "cam", "grabs", "MS96_experiment" });
+	private JComboBox<String> filterCombo = new JComboBox<String>(
+			new String[] { "cam", "grabs", "MS96_experiment", "Experiment" });
 	private JButton findButton = new JButton("Select root directory and search...");
 	private JButton clearSelectedButton = new JButton("Clear selected");
 	private JButton clearAllButton = new JButton("Clear all");
@@ -49,12 +50,12 @@ public class SelectFilesPanel extends JPanel {
 	private JRadioButton rbFile = new JRadioButton("file", true);
 	private JRadioButton rbDirectory = new JRadioButton("directory");
 	private JList<String> directoriesJList = new JList<String>(new DefaultListModel<String>());
-	private MultiSPOTS96 parent0 = null;
+	private XMLPreferences guiPrefs = null;
 	List<String> selectedNames = null;
 
-	public void initialize(MultiSPOTS96 parent0, List<String> stringList) {
-		this.parent0 = parent0;
-		addPropertyChangeListener(parent0.dlgBrowse.loadSaveExperiment);
+	public void initialize(XMLPreferences guiPrefs, PropertyChangeListener listener, List<String> stringList) {
+		this.guiPrefs = guiPrefs;
+		addPropertyChangeListener(listener);
 		selectedNames = stringList;
 
 		JPanel mainPanel = GuiUtil.generatePanelWithoutBorder();
@@ -161,13 +162,16 @@ public class SelectFilesPanel extends JPanel {
 	}
 
 	private void setPreferencesPath(String pathString) {
-		XMLPreferences guiPrefs = parent0.getPreferences("gui");
-		guiPrefs.put("lastUsedPath", pathString);
+		if (guiPrefs != null) {
+			guiPrefs.put("lastUsedPath", pathString);
+		}
 	}
 
 	private String getPreferencesPath() {
-		XMLPreferences guiPrefs = parent0.getPreferences("gui");
-		return guiPrefs.get("lastUsedPath", "");
+		if (guiPrefs != null) {
+			return guiPrefs.get("lastUsedPath", "");
+		}
+		return "";
 	}
 
 	private boolean getListofFilesMatchingFileNamePattern(String pattern, File directory) {

@@ -59,7 +59,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	// Data structures
 	public List<String> selectedNames = new ArrayList<String>();
-	private SelectFiles1 dialogSelect = null;
+	private SelectFilesPanel dialogSelect = null;
 
 	// Navigation buttons
 	private JButton previousButton = new JButton("<");
@@ -316,8 +316,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 		} catch (Exception e) {
-			Logger.warn(
-					"Failed to process metadata for file [" + fileIndex + "] " + fileName + ": " + e.getMessage(), e);
+			Logger.warn("Failed to process metadata for file [" + fileIndex + "] " + fileName + ": " + e.getMessage(),
+					e);
 		}
 	}
 
@@ -553,7 +553,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			Logger.warn("LoadSaveExperiment:loadKymographsAndMeasures() No capillaries loaded, cannot load kymographs");
 			return;
 		}
-		
+
 		progressFrame.setMessage("Load kymographs");
 		boolean kymosLoaded = false;
 		if (selectedBinDir != null) {
@@ -561,10 +561,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			if (kymosLoaded && exp.getSeqKymos() != null) {
 				parent0.paneKymos.tabDisplay.displayUpdateOnSwingThread();
 			} else {
-				Logger.warn("LoadSaveExperiment:loadKymographsAndMeasures() Failed to load kymographs (loaded: " + kymosLoaded + ", seqKymos: " + (exp.getSeqKymos() != null) + ")");
+				Logger.warn("LoadSaveExperiment:loadKymographsAndMeasures() Failed to load kymographs (loaded: "
+						+ kymosLoaded + ", seqKymos: " + (exp.getSeqKymos() != null) + ")");
 			}
 		} else {
-			Logger.warn("LoadSaveExperiment:loadKymographsAndMeasures() No bin directory selected, cannot load kymographs");
+			Logger.warn(
+					"LoadSaveExperiment:loadKymographsAndMeasures() No bin directory selected, cannot load kymographs");
 		}
 
 		progressFrame.setMessage("Load capillary measures");
@@ -613,7 +615,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		}
 	}
 
-
 	boolean openSelectedExperiment(Experiment exp) {
 		final long startTime = System.nanoTime();
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
@@ -657,11 +658,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			prepareCageMeasuresFile(exp);
-			
-			// Load cages synchronously (this method handles ROI transfer and preserves capillaries)
+
+			// Load cages synchronously (this method handles ROI transfer and preserves
+			// capillaries)
 			progressFrame.setMessage("Load cage measures...");
 			boolean cagesLoaded = exp.load_cages_description_and_measures();
-			
+
 			if (!cagesLoaded) {
 				Logger.warn("Failed to load cages for experiment [" + expIndex + "]");
 			}
@@ -803,8 +805,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	private void handleSearchButton() {
 		selectedNames = new ArrayList<String>();
-		dialogSelect = new SelectFiles1();
-		dialogSelect.initialize(parent0, selectedNames);
+		dialogSelect = new SelectFilesPanel();
+		dialogSelect.initialize(parent0.getPreferences("gui"), this, selectedNames);
 	}
 
 	private void handleCloseButton() {
@@ -879,6 +881,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		parent0.paneExperiment.tabFilter.filterExpList.removeAllItems();
 		parent0.paneExperiment.tabInfos.clearCombos();
 		filteredCheck.setSelected(false);
+		experimentMetadataList.clear();
+		if (parent0.descriptorIndex != null)
+			parent0.descriptorIndex.clear();
 	}
 
 	public void closeViewsForCurrentExperiment(Experiment exp) {
@@ -890,7 +895,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				return;
 			}
 
-			// Don't start a new save if one is already in progress (prevents concurrent saves)
+			// Don't start a new save if one is already in progress (prevents concurrent
+			// saves)
 			if (exp.isSaving()) {
 				Logger.warn("LoadSaveExperiment: Skipping save for experiment - save operation already in progress: "
 						+ exp.toString());
@@ -905,10 +911,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
 					exp.cleanPreviousDetectedFliesROIs();
 				}
-				
+
 				if (exp.getSeqCamData() != null) {
 					exp.saveExperimentDescriptors();
-					
+
 					// Save capillaries using new dual-file system (descriptions + measures)
 					exp.save_capillaries_description_and_measures();
 
@@ -926,15 +932,15 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 					// Save spots using new dual-file system
 					exp.save_spots_description_and_measures();
-					
+
 					// Save MS96_descriptors.xml (synchronous, but quick)
 					if (exp.getSeqCamData() != null) {
 						DescriptorsIO.buildFromExperiment(exp);
 					}
-
-					// Close sequences after all saves complete
-					exp.closeSequences();
 				}
+				// Close sequences after all saves complete
+				exp.closeSequences();
+
 			} catch (Exception e) {
 				Logger.error("Error in closeViewsForCurrentExperiment: " + e.getMessage(), e);
 			} finally {

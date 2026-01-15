@@ -10,10 +10,10 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.logging.Logger;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -32,12 +32,13 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
+import plugins.fmp.multitools.tools.DescriptorsIO;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
 public class LoadSaveExperiment extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
 
 	private static final long serialVersionUID = -690874563607080412L;
-	private static final Logger LOGGER = Logger.getLogger(LoadSaveExperiment.class.getName());
 
 	// Performance constants for metadata-only processing
 	private static final int METADATA_BATCH_SIZE = 20; // Process 20 experiments at a time
@@ -177,7 +178,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			if (isProcessing) {
-				LOGGER.warning("File processing already in progress, ignoring new request");
+				Logger.warn("File processing already in progress, ignoring new request");
 				return;
 			}
 
@@ -214,7 +215,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	private void processMetadataOnly(ProgressFrame progressFrame) {
-		final String subDir = parent0.expListComboLazy.stringExpBinSubDirectory;
+		final String subDir = parent0.expListComboLazy.expListBinSubDirectory;
 		final int totalFiles = selectedNames.size();
 
 		try {
@@ -264,7 +265,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			selectedNames.clear();
 
 		} catch (Exception e) {
-			LOGGER.severe("Error processing experiment metadata: " + e.getMessage());
+			Logger.error("Error processing experiment metadata: " + e.getMessage());
 			SwingUtilities.invokeLater(() -> {
 				progressFrame.setMessage("Error: " + e.getMessage());
 			});
@@ -285,7 +286,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 		} catch (Exception e) {
-			LOGGER.warning("Failed to process metadata for file " + fileName + ": " + e.getMessage());
+			Logger.warn("Failed to process metadata for file " + fileName + ": " + e.getMessage());
 		}
 	}
 
@@ -311,16 +312,15 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			});
 
 			// Also generate descriptors files in background for any experiment missing it
-			new javax.swing.SwingWorker<Void, Void>() {
+			new SwingWorker<Void, Void>() {
 				@Override
 				protected Void doInBackground() throws Exception {
 					for (int i = 0; i < parent0.expListComboLazy.getItemCount(); i++) {
-						plugins.fmp.multitools.experiment.Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
-						String path = plugins.fmp.multiSPOTS96.tools.DescriptorsIO
-								.getDescriptorsFullName(exp.getResultsDirectory());
-						java.io.File f = new java.io.File(path);
+						Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+						String path = DescriptorsIO.getDescriptorsFullName(exp.getResultsDirectory());
+						File f = new File(path);
 						if (!f.exists()) {
-							plugins.fmp.multiSPOTS96.tools.DescriptorsIO.buildFromExperiment(exp);
+							DescriptorsIO.buildFromExperiment(exp);
 						}
 					}
 					return null;
@@ -328,7 +328,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}.execute();
 
 		} catch (Exception e) {
-			LOGGER.warning("Error adding metadata to UI: " + e.getMessage());
+			Logger.warn("Error adding metadata to UI: " + e.getMessage());
 		}
 	}
 
@@ -346,11 +346,11 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			exp.load_MS96_experiment();
 
 			progressFrame.setMessage("Loading images...");
-			List<String> imagesList = ExperimentDirectories.getImagesListFromPathV2(exp.seqCamData.getImagesDirectory(),
-					"jpg");
-			exp.seqCamData.loadImageList(imagesList);
-			exp.seqCamData.getSequence().addListener(this);
-			if (exp.seqCamData != null) {
+			List<String> imagesList = ExperimentDirectories
+					.getImagesListFromPathV2(exp.getSeqCamData().getImagesDirectory(), "jpg");
+			exp.getSeqCamData().loadImageList(imagesList);
+			exp.getSeqCamData().getSequence().addListener(this);
+			if (exp.getSeqCamData() != null) {
 				progressFrame.setMessage("Loading cages and spots...");
 				exp.load_MS96_cages();
 				exp.transferCagesROI_toSequence();
@@ -362,7 +362,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				parent0.dlgExperiment.updateDialogs(exp);
 				parent0.dlgSpots.updateDialogs(exp);
 			} else {
-				LOGGER.warning("No jpg files found for experiment: " + exp.toString());
+				Logger.warn("No jpg files found for experiment: " + exp.toString());
 				progressFrame.close();
 				return false;
 			}
@@ -373,7 +373,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			return true;
 
 		} catch (Exception e) {
-			LOGGER.severe("Error opening experiment: " + e.getMessage());
+			Logger.error("Error opening experiment: " + e.getMessage());
 			progressFrame.close();
 			return false;
 		}
@@ -381,7 +381,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	private void handleOpenButton() {
 		ExperimentDirectories eDAF = new ExperimentDirectories();
-		final String binDirectory = parent0.expListComboLazy.stringExpBinSubDirectory;
+		final String binDirectory = parent0.expListComboLazy.expListBinSubDirectory;
 		if (eDAF.getDirectoriesFromDialog(binDirectory, null, false)) {
 			String camDataImagesDirectory = eDAF.getCameraImagesDirectory();
 			String resultsDirectory = eDAF.getResultsDirectory();
@@ -398,7 +398,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private void handleSearchButton() {
 		selectedNames = new ArrayList<String>();
 		dialogSelect = new SelectFilesPanel();
-		dialogSelect.initialize(parent0, selectedNames);
+		dialogSelect.initialize(parent0.getPreferences("gui"), this, selectedNames);
 	}
 
 	private void handleCloseButton() {
@@ -421,8 +421,15 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	@Override
 	public void sequenceChanged(SequenceEvent sequenceEvent) {
 		if (sequenceEvent.getSourceType() == SequenceEventSourceType.SEQUENCE_DATA) {
-			// Handle sequence changes for currently loaded experiment
-			// Note: This will only work for the currently loaded experiment
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (exp.getSeqCamData().getSequence() != null
+						&& sequenceEvent.getSequence() == exp.getSeqCamData().getSequence()) {
+					Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+					int t = v.getPositionT();
+					v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
+				}
+			}
 		}
 	}
 
@@ -449,17 +456,67 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	public void closeViewsForCurrentExperiment(Experiment exp) {
 		if (exp != null) {
-			if (exp.seqCamData != null) {
-				// TODO??? Avoid auto-saving analysis when closing; saving should be explicit
-				exp.save_MS96_experiment();
-
-				if (exp.seqCamData.getSequence() != null) {
-					Viewer v = exp.seqCamData.getSequence().getFirstViewer();
-					if (v != null)
-						v.close();
-				}
+			// Don't save if loading is still in progress (prevents race condition)
+			if (exp.isLoading()) {
+				Logger.warn("LoadSaveExperiment: Skipping save for experiment - loading still in progress: "
+						+ exp.toString());
+				return;
 			}
-			exp.closeSequences();
+
+			// Don't start a new save if one is already in progress (prevents concurrent
+			// saves)
+			if (exp.isSaving()) {
+				Logger.warn("LoadSaveExperiment: Skipping save for experiment - save operation already in progress: "
+						+ exp.toString());
+				return;
+			}
+
+			// Set saving flag to prevent concurrent saves and loads
+			exp.setSaving(true);
+
+			try {
+				// Clean up fly detection ROIs before closing
+				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+					exp.cleanPreviousDetectedFliesROIs();
+				}
+
+				if (exp.getSeqCamData() != null) {
+					exp.saveExperimentDescriptors();
+
+					// Update cages from sequence before saving
+					exp.getCages().updateCagesFromSequence(exp.getSeqCamData());
+
+					// Save cages descriptions synchronously
+					exp.getCages().getPersistence().saveCages(exp.getCages(), exp.getResultsDirectory(), exp);
+
+					// Save cage measures to bin directory
+					String binDir = exp.getKymosBinFullDirectory();
+					if (binDir != null) {
+						exp.getCages().getPersistence().saveCagesMeasures(exp.getCages(), binDir);
+					}
+
+					// Save spots using new dual-file system
+					exp.save_spots_description_and_measures();
+
+					// Save MS96_descriptors.xml (synchronous, but quick)
+					if (exp.getSeqCamData() != null) {
+						DescriptorsIO.buildFromExperiment(exp);
+					}
+
+//					if (exp.getSeqCamData().getSequence() != null) {
+//						Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+//						if (v != null)
+//							v.close();
+//					}
+				}
+				// Close sequences after all saves complete
+				exp.closeSequences();
+			} catch (Exception e) {
+				Logger.error("Error in closeViewsForCurrentExperiment: " + e.getMessage(), e);
+			} finally {
+				// Always clear saving flag, even if save fails
+				exp.setSaving(false);
+			}
 		}
 	}
 
