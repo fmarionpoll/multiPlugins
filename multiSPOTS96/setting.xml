@@ -6,6 +6,7 @@
 <key name="mainMenuTip" value="false"/>
 <key name="virtualMode" value="false"/>
 <key name="magicWand" value="false"/>
+<key name="viewerVirtual" value="false"/>
 </section>
 <section name="confirms">
 <key name="exit" value="false"/>
@@ -77,8 +78,11 @@
 <key name="lastUpdateCheckTime" value="1768597851113"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
+<key name="loaderFolder" value="C:\Users\fred\Desktop\Bea multispot a analyser\2025-10-28_ cafeine 1mM"/>
 </section>
-<section name="canvas"/>
+<section name="canvas">
+<section name="Canvas2D"/>
+</section>
 <section name="magicWand"/>
 <section name="network"/>
 <section name="repositories"/>
@@ -135,26 +139,31 @@
 <section name="imageLoader">
 <key name="width" value="600"/>
 <key name="heigth" value="400"/>
+<key name="loadtype" value="0"/>
+<key name="extension" value="All image files / Bio-Formats"/>
 </section>
+</section>
+<section name="gui.histo">
+<key name="logView" value="true"/>
 </section>
 </section>
 <section name="plugins"/>
 <section name="frame">
 <section name="main">
-<key name="XE" value="80"/>
+<key name="XE" value="1234"/>
 <key name="YE" value="50"/>
-<key name="WidthE" value="3340"/>
+<key name="WidthE" value="2186"/>
 <key name="HeightE" value="1292"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="3032"/>
+<key name="XC" value="1712"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
-<key name="WidthC" value="300"/>
+<key name="WidthC" value="466"/>
 <key name="HeightC" value="1130"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
@@ -172,7 +181,7 @@
 <key name="YE" value="100"/>
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
-<key name="WidthC" value="292"/>
+<key name="WidthC" value="458"/>
 <key name="HeightC" value="1040"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
@@ -190,7 +199,7 @@
 <key name="YE" value="200"/>
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
-<key name="WidthC" value="292"/>
+<key name="WidthC" value="458"/>
 <key name="HeightC" value="1040"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>

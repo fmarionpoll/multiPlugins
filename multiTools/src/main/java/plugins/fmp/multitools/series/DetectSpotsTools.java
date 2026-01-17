@@ -77,9 +77,10 @@ public class DetectSpotsTools {
 				if (blobs == null) {
 					System.out.println("no blobs found for cage " + cage.getRoi().getName());
 					continue;
-				} else {
-					System.out.println(cage.getRoi().getName() + " n blobs=" + blobs.length);
 				}
+//				else {				
+//					System.out.println(cage.getRoi().getName() + " n blobs=" + blobs.length);
+//				}
 
 				for (int i = 0; i < blobs.length; i++) {
 					int npoints = blobs[i].getNumberOfPoints();

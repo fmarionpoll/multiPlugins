@@ -16,7 +16,9 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -68,7 +70,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
 
-	private JButton convertSpotToEllipseButton = new JButton("Convert blobs to spots");
+	private JButton convertBlobsToSpotButton = new JButton("Convert blobs to spots");
 	private JSpinner spotDiameterSpinner = new JSpinner(new SpinnerNumberModel(22, 1, 1200, 1));
 
 	private JButton deleteSelectedSpotsButton = new JButton("Remove selected spots");
@@ -104,7 +106,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
-		panel2.add(convertSpotToEllipseButton);
+		panel2.add(convertBlobsToSpotButton);
 		panel2.add(new JLabel("size (pixels="));
 		panel2.add(spotDiameterSpinner);
 		add(panel2);
@@ -207,13 +209,13 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 			}
 		});
 
-		convertSpotToEllipseButton.addActionListener(new ActionListener() {
+		convertBlobsToSpotButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int diameter = (int) spotDiameterSpinner.getValue();
-					convertBlobsToCircularSpots(exp, diameter);
+					convertBlobsToSpots(exp, diameter);
 				}
 			}
 		});
@@ -453,27 +455,40 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		exp.saveSpotsArray_file();
 	}
 
-	void convertBlobsToCircularSpots(Experiment exp, int diameter) {
+	void convertBlobsToSpots(Experiment exp, int diameter) {
 		Spots allSpots = exp.getSpots();
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
-		for (Cage cage : exp.getCages().cagesList) {
-			if (bOnlySelectedCages && !cage.getRoi().isSelected())
-				continue;
-			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			for (Spot spot : cageSpots) {
-				ROI2D roiP = spot.getRoi();
-				Point center = roiP.getPosition();
-				Rectangle rect = roiP.getBounds();
-				center.x += rect.getWidth() / 2;
-				center.y += rect.getHeight() / 2;
-
-				String name = spot.getRoi().getName();
-				Ellipse2D ellipse = new Ellipse2D.Double(center.x - diameter / 2, center.y - diameter / 2, diameter,
-						diameter);
-				ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
-				roiEllipse.setName(name);
-				spot.setRoi(roiEllipse);
+		
+		Set<Integer> selectedCageIDs = null;
+		if (bOnlySelectedCages) {
+			selectedCageIDs = new HashSet<>();
+			for (Cage cage : exp.getCages().cagesList) {
+				if (cage.getRoi().isSelected()) {
+					selectedCageIDs.add(cage.getProperties().getCageID());
+				}
 			}
+		}
+		
+		for (Spot spot : allSpots.getSpotList()) {
+			if (bOnlySelectedCages && selectedCageIDs != null) {
+				int cageID = spot.getProperties().getCageID();
+				if (!selectedCageIDs.contains(cageID)) {
+					continue;
+				}
+			}
+			
+			ROI2D roiP = spot.getRoi();
+			Point center = roiP.getPosition();
+			Rectangle rect = roiP.getBounds();
+			center.x += rect.getWidth() / 2;
+			center.y += rect.getHeight() / 2;
+
+			String name = spot.getRoi().getName();
+			Ellipse2D ellipse = new Ellipse2D.Double(center.x - diameter / 2, center.y - diameter / 2, diameter,
+					diameter);
+			ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
+			roiEllipse.setName(name);
+			spot.setRoi(roiEllipse);
 		}
 		exp.getSeqCamData().removeROIsContainingString("spot");
 		exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData(), allSpots);
@@ -482,7 +497,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 
 	void changeSpotsDiameter(Experiment exp) {
 		int diameter = (int) spotDiameterSpinner.getValue();
-		convertBlobsToCircularSpots(exp, diameter);
+		convertBlobsToSpots(exp, diameter);
 	}
 
 	private void cleanUpSpotNames(Experiment exp) {

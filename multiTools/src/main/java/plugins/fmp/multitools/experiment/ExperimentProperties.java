@@ -38,8 +38,8 @@ public class ExperimentProperties {
 	// Legacy field names (for backward compatibility)
 	private final static String ID_BOXID = "boxID";
 	private final static String ID_EXPERIMENT = "experiment";
-	private final static String ID_STIM1_OLD = "comment"; // MS96Experiment.xml format
-	private final static String ID_CONC1_OLD = "comment2"; // MS96Experiment.xml format
+	private final static String ID_STIM1_OLD = "stim"; // MS96Experiment.xml format
+	private final static String ID_CONC1_OLD = "conc"; // MS96Experiment.xml format
 	private final static String ID_STIM2_OLD = "cond1"; // MS96Experiment.xml format
 	private final static String ID_CONC2_OLD = "cond2"; // MS96Experiment.xml format
 	private final static String ID_STRAIN = "strain";

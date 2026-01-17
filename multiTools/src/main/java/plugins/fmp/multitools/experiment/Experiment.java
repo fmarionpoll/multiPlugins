@@ -1590,6 +1590,11 @@ public class Experiment {
 		if (binSubDirectory == null || resultsDirectory == null) {
 			return false;
 		}
+		// Extract just the subdirectory name if binSubDirectory is a full path
+		File binDirFile = new File(binSubDirectory);
+		if (binDirFile.isAbsolute()) {
+			binSubDirectory = binDirFile.getName();
+		}
 		String binFullDir = resultsDirectory + File.separator + binSubDirectory;
 		boolean loaded = binDescriptionPersistence.load(activeBinDescription, binFullDir);
 		if (loaded) {
@@ -1617,6 +1622,11 @@ public class Experiment {
 	public boolean saveBinDescription(String binSubDirectory) {
 		if (binSubDirectory == null || resultsDirectory == null) {
 			return false;
+		}
+		// Extract just the subdirectory name if binSubDirectory is a full path
+		File binDirFile = new File(binSubDirectory);
+		if (binDirFile.isAbsolute()) {
+			binSubDirectory = binDirFile.getName();
 		}
 		// Update activeBinDescription with current values before saving
 		activeBinDescription.setFirstKymoColMs(getKymoFirst_ms());
