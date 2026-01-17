@@ -118,10 +118,9 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			return result;
 		}
 		for (SpotID spotID : spotIDs) {
-			// Find spot by matching cageID and positionID
+			// Find spot by matching unique ID
 			for (Spot spot : allSpots.getSpotList()) {
-				if (spot.getProperties().getCageID() == spotID.getCageID() 
-						&& spot.getProperties().getCagePositionID() == spotID.getPosition()) {
+				if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
 					result.add(spot);
 					break;
 				}
@@ -629,8 +628,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			for (int i = 0; i < spotIDs.size(); i++) {
 				Element spotIDElement = XMLUtil.addElement(xmlVal2, ID_SPOTID_ + i);
 				SpotID spotID = spotIDs.get(i);
-				XMLUtil.setElementIntValue(spotIDElement, "cageID", spotID.getCageID());
-				XMLUtil.setElementIntValue(spotIDElement, "position", spotID.getPosition());
+				XMLUtil.setElementIntValue(spotIDElement, "id", spotID.getId());
 			}
 			return true;
 		} catch (Exception e) {
@@ -650,10 +648,18 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			for (int i = 0; i < nitems; i++) {
 				Element spotIDElement = XMLUtil.getElement(xmlVal2, ID_SPOTID_ + i);
 				if (spotIDElement != null) {
-					int cageID = XMLUtil.getElementIntValue(spotIDElement, "cageID", -1);
-					int position = XMLUtil.getElementIntValue(spotIDElement, "position", -1);
-					if (cageID >= 0 && position >= 0) {
-						spotIDs.add(new SpotID(cageID, position));
+					// Try new format (just id)
+					int id = XMLUtil.getElementIntValue(spotIDElement, "id", -1);
+					if (id >= 0) {
+						spotIDs.add(new SpotID(id));
+					} else {
+						// Legacy format (cageID, position) - will need migration
+						int cageID = XMLUtil.getElementIntValue(spotIDElement, "cageID", -1);
+						int position = XMLUtil.getElementIntValue(spotIDElement, "position", -1);
+						if (cageID >= 0 && position >= 0) {
+							// Legacy format: spotIDs will be rebuilt after spots are loaded
+							// For now, skip adding legacy format IDs
+						}
 					}
 				}
 			}
@@ -751,12 +757,14 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 	public int addEllipseSpot(Point2D.Double center, int radius, Spots allSpots) {
 		int position = spotIDs.size();
-		SpotID spotID = new SpotID(prop.getCageID(), position);
-		spotIDs.add(spotID);
-		// Add spot to global SpotsArray
+		// Add spot to global SpotsArray first to get unique ID
 		if (allSpots != null) {
+			int uniqueSpotID = allSpots.getNextUniqueSpotID();
+			SpotID spotUniqueID = new SpotID(uniqueSpotID);
 			Spot spot = createEllipseSpot(position, center, radius);
+			spot.getProperties().setSpotUniqueID(spotUniqueID);
 			allSpots.addSpot(spot);
+			spotIDs.add(spotUniqueID);
 		}
 		return spotIDs.size();
 	}

@@ -40,11 +40,14 @@ public class ExperimentUtils {
 				if (cageID >= 0 && cagePosition >= 0) {
 					Cage cage = exp.getCages().getCageFromID(cageID);
 					Spot newSpot = new Spot(roi_new);
+					int uniqueSpotID = allSpots.getNextUniqueSpotID();
+					SpotID spotUniqueID = new SpotID(uniqueSpotID);
 					newSpot.getProperties().setCageID(cageID);
+					newSpot.getProperties().setSpotUniqueID(spotUniqueID);
 					newSpot.getProperties().setCagePositionID(cagePosition);
 					newSpot.getProperties().setCagePosition(cagePosition);
 					allSpots.addSpot(newSpot);
-					cage.getSpotIDs().add(new SpotID(cageID, cagePosition));
+					cage.getSpotIDs().add(spotUniqueID);
 				}
 			}
 		}

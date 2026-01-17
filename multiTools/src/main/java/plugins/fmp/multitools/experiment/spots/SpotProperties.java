@@ -10,6 +10,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.ids.SpotID;
 
 /**
  * Encapsulates properties of a spot with clean access patterns and validation.
@@ -38,6 +39,7 @@ public class SpotProperties {
 	private static final String ID_CAGEID = "cageID";
 	private static final String ID_CAGEPOSITION = "cagePosition";
 	private static final String ID_CAGEPOSITIONID = "cagePositionID";
+	private static final String ID_SPOTUNIQUEID = "spotUniqueID";
 	private static final String ID_CAGECOLUMN = "cageColumn";
 	private static final String ID_CAGEROW = "cageRow";
 	private static final String ID_SPOTARRAYINDEX = "spotArrayIndex";
@@ -60,6 +62,7 @@ public class SpotProperties {
 	private int version;
 	private String name;
 	private int cageID;
+	private SpotID spotUniqueID = null;
 	private int cagePositionID = -1;
 	private boolean cagePositionIDLocked = false;
 	private int cagePosition;
@@ -131,6 +134,7 @@ public class SpotProperties {
 		this.version = source.version;
 		this.name = source.name;
 		this.cageID = source.cageID;
+		this.spotUniqueID = source.spotUniqueID;
 		this.cagePositionID = source.cagePositionID;
 		this.cagePositionIDLocked = source.cagePositionIDLocked;
 		this.cagePosition = source.cagePosition;
@@ -163,7 +167,7 @@ public class SpotProperties {
 		}
 
 		return !Objects.equals(this.name, other.name) || this.cageID != other.cageID
-				|| this.cagePositionID != other.cagePositionID || this.cagePosition != other.cagePosition || this.cageRow != other.cageRow
+				|| !Objects.equals(this.spotUniqueID, other.spotUniqueID) || this.cagePositionID != other.cagePositionID || this.cagePosition != other.cagePosition || this.cageRow != other.cageRow
 				|| this.cageColumn != other.cageColumn || this.spotArrayIndex != other.spotArrayIndex
 				|| !Objects.equals(this.color, other.color) || !Objects.equals(this.stimulus, other.stimulus)
 				|| !Objects.equals(this.concentration, other.concentration)
@@ -210,6 +214,30 @@ public class SpotProperties {
 	 */
 	public void setCageID(int cageID) {
 		this.cageID = cageID;
+	}
+
+	/**
+	 * Gets the unique spot ID (immutable, used for SpotID).
+	 * 
+	 * @return the unique spot ID, or null if not set
+	 */
+	public SpotID getSpotUniqueID() {
+		return spotUniqueID;
+	}
+
+	/**
+	 * Sets the unique spot ID. Once set, it becomes immutable to preserve spot identity.
+	 * 
+	 * @param spotUniqueID the unique spot ID
+	 * @throws IllegalStateException if trying to modify after ID has been set
+	 */
+	public void setSpotUniqueID(SpotID spotUniqueID) {
+		if (this.spotUniqueID != null && !this.spotUniqueID.equals(spotUniqueID)) {
+			throw new IllegalStateException(
+					"Cannot modify spotUniqueID after it has been set. Current value: " + this.spotUniqueID
+							+ ", attempted value: " + spotUniqueID);
+		}
+		this.spotUniqueID = spotUniqueID;
 	}
 
 	/**
@@ -678,6 +706,10 @@ public class SpotProperties {
 		try {
 			this.spotArrayIndex = XMLUtil.getElementIntValue(nodeParameters, ID_SPOTARRAYINDEX, spotArrayIndex);
 			this.cageID = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEID, cageID);
+			int loadedSpotUniqueID = XMLUtil.getElementIntValue(nodeParameters, ID_SPOTUNIQUEID, -1);
+			if (loadedSpotUniqueID >= 0) {
+				this.spotUniqueID = new SpotID(loadedSpotUniqueID);
+			}
 			this.cagePositionID = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEPOSITIONID, cagePositionID);
 			if (this.cagePositionID < 0 && cagePosition >= 0) {
 				this.cagePositionID = cagePosition;
@@ -724,6 +756,9 @@ public class SpotProperties {
 		try {
 			XMLUtil.setElementIntValue(nodeParameters, ID_SPOTARRAYINDEX, spotArrayIndex);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEID, cageID);
+			if (spotUniqueID != null) {
+				XMLUtil.setElementIntValue(nodeParameters, ID_SPOTUNIQUEID, spotUniqueID.getId());
+			}
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEPOSITIONID, cagePositionID);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEPOSITION, cagePosition);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGECOLUMN, cageColumn);
@@ -777,6 +812,13 @@ public class SpotProperties {
 			this.cagePositionID = this.cagePosition;
 			if (this.cagePositionID >= 0) {
 				this.cagePositionIDLocked = true;
+			}
+
+			if (data.length >= 12) {
+				int spotUniqueIDValue = Integer.parseInt(data[index++]);
+				if (spotUniqueIDValue >= 0) {
+					this.spotUniqueID = new SpotID(spotUniqueIDValue);
+				}
 			}
 
 			if (data.length >= 11) {
@@ -850,7 +892,7 @@ public class SpotProperties {
 		if (obj == null || getClass() != obj.getClass())
 			return false;
 		SpotProperties other = (SpotProperties) obj;
-		return Objects.equals(name, other.name) && cageID == other.cageID && cagePositionID == other.cagePositionID && cagePosition == other.cagePosition
+		return Objects.equals(name, other.name) && cageID == other.cageID && Objects.equals(spotUniqueID, other.spotUniqueID) && cagePositionID == other.cagePositionID && cagePosition == other.cagePosition
 				&& cageRow == other.cageRow && cageColumn == other.cageColumn && spotArrayIndex == other.spotArrayIndex
 				&& Objects.equals(color, other.color) && Objects.equals(stimulus, other.stimulus)
 				&& Objects.equals(concentration, other.concentration) && Objects.equals(stimulusI, other.stimulusI)
@@ -861,7 +903,7 @@ public class SpotProperties {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, cageID, cagePositionID, cagePosition, cageRow, cageColumn, spotArrayIndex, color, stimulus,
+		return Objects.hash(name, cageID, spotUniqueID, cagePositionID, cagePosition, cageRow, cageColumn, spotArrayIndex, color, stimulus,
 				concentration, stimulusI, spotVolume, spotNPixels, spotRadius, spotXCoord, spotYCoord, descriptionOK,
 				versionInfos);
 	}
@@ -869,7 +911,7 @@ public class SpotProperties {
 	@Override
 	public String toString() {
 		return String.format(
-				"SpotProperties{name='%s', cageID=%d, positionID=%d, position=%d, stimulus='%s', concentration='%s', volume=%.2f}",
-				name, cageID, cagePositionID, cagePosition, stimulus, concentration, spotVolume);
+				"SpotProperties{name='%s', cageID=%d, spotUniqueID=%s, positionID=%d, position=%d, stimulus='%s', concentration='%s', volume=%.2f}",
+				name, cageID, spotUniqueID, cagePositionID, cagePosition, stimulus, concentration, spotVolume);
 	}
 }

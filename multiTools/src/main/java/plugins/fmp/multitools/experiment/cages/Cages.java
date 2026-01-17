@@ -684,9 +684,7 @@ public class Cages {
 				}
 				if (!found) {
 					// Remove spot ID if ROI not found
-					SpotID spotID = new SpotID(spot.getProperties().getCageID(),
-							spot.getProperties().getCagePosition());
-					cage.getSpotIDs().remove(spotID);
+					cage.getSpotIDs().remove(spot.getSpotID());
 					allSpots.getSpotList().remove(spot);
 				}
 			}

@@ -3,30 +3,31 @@ package plugins.fmp.multitools.experiment.ids;
 import java.util.Objects;
 
 /**
- * Immutable composite identifier for a Spot.
- * Combines cageID and position within the cage to create a unique identifier.
+ * Immutable unique identifier for a Spot.
+ * Uses a simple integer ID that is unique across all spots.
  */
 public final class SpotID {
-	private final int cageID;
-	private final int position;
+	private final int id;
 
-	public SpotID(int cageID, int position) {
-		if (cageID < 0) {
-			throw new IllegalArgumentException("SpotID cageID must be >= 0, got: " + cageID);
+	public SpotID(int id) {
+		if (id < 0) {
+			throw new IllegalArgumentException("SpotID must be >= 0, got: " + id);
 		}
-		if (position < 0) {
-			throw new IllegalArgumentException("SpotID position must be >= 0, got: " + position);
-		}
-		this.cageID = cageID;
-		this.position = position;
+		this.id = id;
 	}
 
+	public int getId() {
+		return id;
+	}
+
+	@Deprecated
 	public int getCageID() {
-		return cageID;
+		throw new UnsupportedOperationException("getCageID() is deprecated. Use getId() for unique spot ID.");
 	}
 
+	@Deprecated
 	public int getPosition() {
-		return position;
+		throw new UnsupportedOperationException("getPosition() is deprecated. Use getId() for unique spot ID.");
 	}
 
 	@Override
@@ -35,18 +36,18 @@ public final class SpotID {
 			return true;
 		if (obj == null || getClass() != obj.getClass())
 			return false;
-		SpotID other = (SpotID) obj;
-		return cageID == other.cageID && position == other.position;
+		SpotID spotID = (SpotID) obj;
+		return id == spotID.id;
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(cageID, position);
+		return Objects.hash(id);
 	}
 
 	@Override
 	public String toString() {
-		return "SpotID{cageID=" + cageID + ", position=" + position + "}";
+		return "SpotID{id=" + id + "}";
 	}
 }
 

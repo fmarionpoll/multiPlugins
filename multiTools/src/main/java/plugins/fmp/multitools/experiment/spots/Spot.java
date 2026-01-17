@@ -327,10 +327,10 @@ public class Spot implements Comparable<Spot> {
 	/**
 	 * Gets the SpotID for this spot.
 	 * 
-	 * @return the SpotID combining cageID and positionID
+	 * @return the SpotID (unique identifier), or null if not set
 	 */
 	public SpotID getSpotID() {
-		return new SpotID(properties.getCageID(), properties.getCagePositionID());
+		return properties.getSpotUniqueID();
 	}
 
 	/**
@@ -341,9 +341,7 @@ public class Spot implements Comparable<Spot> {
 	 */
 	public void setSpotID(SpotID spotID) {
 		Objects.requireNonNull(spotID, "SpotID cannot be null");
-		properties.setCageID(spotID.getCageID());
-		properties.setCagePositionID(spotID.getPosition());
-		properties.setCagePosition(spotID.getPosition());
+		properties.setSpotUniqueID(spotID);
 	}
 
 	// === FIELD ACCESS ===

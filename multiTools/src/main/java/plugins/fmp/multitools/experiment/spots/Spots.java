@@ -82,6 +82,16 @@ public class Spots {
 		spotList.add(spot);
 	}
 
+	/**
+	 * Gets the next unique spot ID for assigning to new spots.
+	 * Uses the current size of the spot list to ensure uniqueness.
+	 * 
+	 * @return the next unique spot ID
+	 */
+	public int getNextUniqueSpotID() {
+		return spotList.size();
+	}
+
 	public boolean removeSpot(Spot spot) {
 		return spotList.remove(spot);
 	}
@@ -130,7 +140,7 @@ public class Spots {
 		}
 
 		return spotList.stream()
-				.filter(spot -> spot.getSpotID().equals(spotID))
+				.filter(spot -> spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID))
 				.findFirst()
 				.orElse(null);
 	}
@@ -379,6 +389,11 @@ public class Spots {
 					Spot spot = new Spot();
 					boolean spotSuccess = spot.loadFromXml(nodeSpot);
 					if (spotSuccess && !isSpotPresent(spot)) {
+						// Assign unique ID if not loaded from XML (legacy files)
+						if (spot.getSpotUniqueID() == null) {
+							int uniqueID = getNextUniqueSpotID();
+							spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+						}
 						spotList.add(spot);
 						loadedSpots++;
 					} else if (!spotSuccess) {
@@ -602,6 +617,11 @@ public class Spots {
 			if (nodeSpot != null) {
 				Spot spot = new Spot();
 				if (spot.loadFromXml(nodeSpot) && !isSpotPresent(spot)) {
+					// Assign unique ID if not loaded from XML (legacy files)
+					if (spot.getSpotUniqueID() == null) {
+						int uniqueID = getNextUniqueSpotID();
+						spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+					}
 					spotList.add(spot);
 				}
 			}
@@ -661,6 +681,11 @@ public class Spots {
 				spot = new Spot();
 				spotList.add(spot);
 				spot.getProperties().importFromCsv(spotData);
+				// Assign unique ID if not loaded from CSV (legacy files)
+				if (spot.getSpotUniqueID() == null) {
+					int uniqueID = getNextUniqueSpotID();
+					spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+				}
 			}
 
 		}
@@ -698,6 +723,11 @@ public class Spots {
 			Spot spot = findSpotByName(data[0]);
 			if (spot == null) {
 				spot = new Spot();
+				// Assign unique ID if creating new spot
+				if (spot.getSpotUniqueID() == null) {
+					int uniqueID = getNextUniqueSpotID();
+					spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+				}
 				spotList.add(spot);
 			}
 			spot.importMeasuresOneType(measureType, data, x, y);

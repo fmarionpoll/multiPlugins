@@ -70,6 +70,7 @@ public class DetectSpotsTools {
 
 			// Clear existing spots for this cage
 			cage.getSpotIDs().clear();
+			int cageID = cage.getCageID();
 			int spotID = 0;
 			BooleanMask2D[] blobs;
 			try {
@@ -96,13 +97,16 @@ public class DetectSpotsTools {
 									.collect(Collectors.toList());
 							ROI2DPolygon roi = new ROI2DPolygon(points2s);
 							Spot spot = new Spot(roi);
-							spot.setName(cage.getProperties().getCageID(), spotID);
-							spot.getProperties().setCageID(cage.getCageID());
+							int uniqueSpotID = allSpots.getNextUniqueSpotID();
+							SpotID spotUniqueID = new SpotID(uniqueSpotID);
+							spot.setName(cageID, spotID);
+							spot.getProperties().setCageID(cageID);
+							spot.getProperties().setSpotUniqueID(spotUniqueID);
 							spot.getProperties().setCagePositionID(spotID);
 							spot.getProperties().setCagePosition(spotID);
 							allSpots.addSpot(spot);
 							// Add ID to cage
-							cage.getSpotIDs().add(new SpotID(cage.getCageID(), spotID));
+							cage.getSpotIDs().add(spotUniqueID);
 							spotID++;
 						}
 					} catch (InterruptedException e) {

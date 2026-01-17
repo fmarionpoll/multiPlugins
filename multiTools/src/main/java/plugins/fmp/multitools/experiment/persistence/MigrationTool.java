@@ -166,12 +166,11 @@ public class MigrationTool {
 		Spots globalSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().getCageList()) {
 			List<SpotID> spotIDs = new ArrayList<>();
-			// Find all spots belonging to this cage
+			// Find all spots belonging to this cage and collect their unique IDs
 			for (Spot spot : globalSpots.getSpotList()) {
 				int cageID = spot.getProperties().getCageID();
-				int position = spot.getProperties().getCagePosition();
-				if (cageID == cage.getCageID() && position >= 0) {
-					spotIDs.add(new SpotID(cageID, position));
+				if (cageID == cage.getCageID() && spot.getSpotUniqueID() != null) {
+					spotIDs.add(spot.getSpotUniqueID());
 				}
 			}
 			cage.setSpotIDs(spotIDs);
