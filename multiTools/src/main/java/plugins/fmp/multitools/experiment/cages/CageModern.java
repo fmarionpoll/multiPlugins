@@ -327,7 +327,6 @@ public final class CageModern implements Comparable<CageModern>, AutoCloseable {
 
 		Spot spot = new Spot(roiEllipse);
 		spot.getProperties().setCageID(data.getProperties().getCageID());
-		spot.getProperties().setCagePositionID(position);
 		spot.getProperties().setCagePosition(position);
 		spot.getProperties().setSpotRadius(radius);
 		// spotUniqueID will be set when added to Spots collection via addEllipseSpot

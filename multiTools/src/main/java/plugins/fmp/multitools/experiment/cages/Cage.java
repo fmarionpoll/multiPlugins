@@ -9,6 +9,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+
+import icy.roi.BooleanMask2D;
+import icy.roi.ROI;
+import icy.roi.ROI2D;
+import icy.type.geom.Polygon2D;
+import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
@@ -18,15 +26,6 @@ import plugins.fmp.multitools.experiment.spots.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
-
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-
-import icy.roi.BooleanMask2D;
-import icy.roi.ROI;
-import icy.roi.ROI2D;
-import icy.type.geom.Polygon2D;
-import icy.util.XMLUtil;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
@@ -41,11 +40,11 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	public CageMeasures measures = new CageMeasures();
 
 	public FlyPositions flyPositions = new FlyPositions();
-	
+
 	// ID-based references (new approach)
 	private List<SpotID> spotIDs = new ArrayList<>();
 	private List<CapillaryID> capillaryIDs = new ArrayList<>();
-	
+
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 
 	public boolean valid = false;
@@ -89,23 +88,23 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 	// ------------------------------------
 	// ID-based access methods
-	
+
 	public List<SpotID> getSpotIDs() {
 		return spotIDs;
 	}
-	
+
 	public void setSpotIDs(List<SpotID> spotIDs) {
 		this.spotIDs = spotIDs != null ? new ArrayList<>(spotIDs) : new ArrayList<>();
 	}
-	
+
 	public List<CapillaryID> getCapillaryIDs() {
 		return capillaryIDs;
 	}
-	
+
 	public void setCapillaryIDs(List<CapillaryID> capillaryIDs) {
 		this.capillaryIDs = capillaryIDs != null ? new ArrayList<>(capillaryIDs) : new ArrayList<>();
 	}
-	
+
 	/**
 	 * Resolves SpotIDs to actual Spot objects from the global SpotsArray.
 	 * 
@@ -120,7 +119,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		for (SpotID spotID : spotIDs) {
 			// Find spot by matching unique ID
 			for (Spot spot : allSpots.getSpotList()) {
-				if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
+				if (spot.getSpotUniqueID() != null
+						&& spot.getSpotUniqueID().equals(spotID)) {
 					result.add(spot);
 					break;
 				}
@@ -128,9 +128,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 		return result;
 	}
-	
+
 	/**
-	 * Resolves CapillaryIDs to actual Capillary objects from the global Capillaries.
+	 * Resolves CapillaryIDs to actual Capillary objects from the global
+	 * Capillaries.
 	 * 
 	 * @param allCapillaries the global Capillaries containing all capillaries
 	 * @return list of Capillary objects for this cage
@@ -151,7 +152,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 		return result;
 	}
-	
+
 //	// Backward-compatible getters (deprecated, use ID-based methods)
 //	@Deprecated
 //	public SpotsArray getSpotsArray() {
@@ -236,7 +237,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	// ------------------------------------------
-	
+
 	public FlyPositions getFlyPositions() {
 		return flyPositions;
 	}
@@ -279,7 +280,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			capillaryIDs.add(capID);
 		}
 	}
-	
+
 	public void addCapillaryIDIfUnique(CapillaryID capID) {
 		if (capID != null && !capillaryIDs.contains(capID)) {
 			capillaryIDs.add(capID);
@@ -459,7 +460,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 			// Load spot IDs (new format)
 			if (!xmlLoadSpotIDs(xmlVal)) {
-				// Legacy format: spots are loaded via transparent fallback in Legacy persistence classes
+				// Legacy format: spots are loaded via transparent fallback in Legacy
+				// persistence classes
 				// Users can manually save in new format when desired
 			}
 
@@ -713,7 +715,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 	}
 
-
 	/**
 	 * Adds a SpotID to this cage if it's not already present.
 	 */
@@ -762,7 +763,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			int uniqueSpotID = allSpots.getNextUniqueSpotID();
 			SpotID spotUniqueID = new SpotID(uniqueSpotID);
 			Spot spot = createEllipseSpot(position, center, radius);
-			spot.getProperties().setSpotUniqueID(spotUniqueID);
+			spot.setSpotUniqueID(spotUniqueID);
 			allSpots.addSpot(spot);
 			spotIDs.add(spotUniqueID);
 		}
@@ -775,7 +776,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		roiEllipse.setName(SpotString.createSpotString(prop.getCageID(), cagePosition));
 		Spot spot = new Spot(roiEllipse);
 		spot.getProperties().setCageID(prop.getCageID());
-		spot.getProperties().setCagePositionID(cagePosition);
 		spot.getProperties().setCagePosition(cagePosition);
 		spot.getProperties().setSpotRadius(radius);
 		spot.getProperties().setSpotXCoord((int) center.getX());
@@ -796,7 +796,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		int cagePosition = SpotString.getSpotCagePositionFromSpotName(name);
 		List<Spot> spots = getSpotList(allSpots);
 		for (Spot spot : spots) {
-			if (spot.getProperties().getCagePositionID() == cagePosition)
+			if (spot.getProperties().getCagePosition() == cagePosition)
 				return spot;
 		}
 		return null;
@@ -824,8 +824,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		List<Spot> spots = getSpotList(allSpots);
 		for (int i = 0; i < spots.size(); i++) {
 			Spot spot = spots.get(i);
-			int originalPositionID = spot.getProperties().getCagePositionID();
-			spot.setName(prop.getCageID(), originalPositionID);
+			int originalPosition = spot.getProperties().getCagePosition();
+			spot.setName(prop.getCageID(), originalPosition);
 			spot.getProperties().setCageID(prop.getCageID());
 			spot.getProperties().setCagePosition(i);
 		}

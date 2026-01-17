@@ -43,8 +43,7 @@ public class ExperimentUtils {
 					int uniqueSpotID = allSpots.getNextUniqueSpotID();
 					SpotID spotUniqueID = new SpotID(uniqueSpotID);
 					newSpot.getProperties().setCageID(cageID);
-					newSpot.getProperties().setSpotUniqueID(spotUniqueID);
-					newSpot.getProperties().setCagePositionID(cagePosition);
+					newSpot.setSpotUniqueID(spotUniqueID);
 					newSpot.getProperties().setCagePosition(cagePosition);
 					allSpots.addSpot(newSpot);
 					cage.getSpotIDs().add(spotUniqueID);
@@ -75,8 +74,7 @@ public class ExperimentUtils {
 				}
 				if (!found) {
 					// Remove spot ID and spot from global array
-					SpotID spotID = new SpotID(
-							spot.getProperties().getCageID(), spot.getProperties().getCagePosition());
+					SpotID spotID = spot.getSpotUniqueID();
 					cage.getSpotIDs().remove(spotID);
 					allSpots.getSpotList().remove(spot);
 					iterator.remove();

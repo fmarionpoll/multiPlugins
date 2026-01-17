@@ -15,7 +15,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
-import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.sequence.ROIOperation;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.TIntervalsArray;
@@ -684,7 +683,7 @@ public class Cages {
 				}
 				if (!found) {
 					// Remove spot ID if ROI not found
-					cage.getSpotIDs().remove(spot.getSpotID());
+					cage.getSpotIDs().remove(spot.getSpotUniqueID());
 					allSpots.getSpotList().remove(spot);
 				}
 			}
@@ -834,8 +833,7 @@ public class Cages {
 				// Update IDs after merge
 				cage.getSpotIDs().clear();
 				for (Spot spot : temp1.getSpotList()) {
-					cage.getSpotIDs()
-							.add(spot.getSpotID());
+					cage.getSpotIDs().add(spot.getSpotUniqueID());
 				}
 			}
 		}

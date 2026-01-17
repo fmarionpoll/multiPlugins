@@ -18,13 +18,14 @@ import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Migrates experiments from old format (spots in cage XML) to new format
- * (spots in CSV, IDs in cage XML).
+ * Migrates experiments from old format (spots in cage XML) to new format (spots
+ * in CSV, IDs in cage XML).
  * 
- * @deprecated Migration is no longer needed. Legacy persistence classes now provide
- * transparent fallback to read old formats automatically. Users can manually save
- * in new format when desired, or use an auto-save flag on experiment close.
- * This class is kept for reference but is no longer used.
+ * @deprecated Migration is no longer needed. Legacy persistence classes now
+ *             provide transparent fallback to read old formats automatically.
+ *             Users can manually save in new format when desired, or use an
+ *             auto-save flag on experiment close. This class is kept for
+ *             reference but is no longer used.
  */
 @Deprecated
 public class MigrationTool {
@@ -70,34 +71,37 @@ public class MigrationTool {
 
 			// Step 6: Save in new format
 			// Save descriptions to results directory, measures to bin directory
-			
+
 			// Save spots descriptions to new format
-			boolean spotsDescriptionsSaved = exp.getSpots().getPersistence().saveSpotsDescription(exp.getSpots(), directory);
+			boolean spotsDescriptionsSaved = exp.getSpots().getPersistence().saveSpotsDescription(exp.getSpots(),
+					directory);
 			if (!spotsDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save spot descriptions to CSV");
 			}
-			
+
 			// Save cages descriptions to new format
-			boolean cagesDescriptionsSaved = exp.getCages().getPersistence().saveCagesDescription(exp.getCages(), directory);
+			boolean cagesDescriptionsSaved = exp.getCages().getPersistence().saveCagesDescription(exp.getCages(),
+					directory);
 			if (!cagesDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save cage descriptions");
 			}
-			
+
 			// Save capillary descriptions to new format (if available)
-			boolean capillariesDescriptionsSaved = exp.getCapillaries().getPersistence().saveCapillariesDescription(exp.getCapillaries(), directory);
+			boolean capillariesDescriptionsSaved = exp.getCapillaries().getPersistence()
+					.saveCapillariesDescription(exp.getCapillaries(), directory);
 			if (!capillariesDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save capillary descriptions");
 			}
-			
+
 			// Save measures to bin directory (if available)
 			String binDir = exp.getKymosBinFullDirectory();
 			if (binDir != null) {
 				// Save spots measures
 				exp.getSpots().getPersistence().saveSpotsMeasures(exp.getSpots(), binDir);
-				
+
 				// Save cages measures
 				exp.getCages().getPersistence().saveCagesMeasures(exp.getCages(), binDir);
-				
+
 				// Save capillary measures
 				exp.getCapillaries().getPersistence().save_CapillariesMeasures(exp.getCapillaries(), binDir);
 			}
@@ -141,11 +145,12 @@ public class MigrationTool {
 	private void extractSpotsFromCages(Experiment exp) {
 		Spots globalSpots = exp.getSpots();
 		// Spots should already be in global array if loaded from XML
-		// This method is kept for compatibility but spots are now loaded directly to global array
+		// This method is kept for compatibility but spots are now loaded directly to
+		// global array
 		// Ensure coordinates are saved for all spots
 		for (Spot spot : globalSpots.getSpotList()) {
-			if (spot.getRoi() != null && (spot.getProperties().getSpotXCoord() < 0
-					|| spot.getProperties().getSpotYCoord() < 0)) {
+			if (spot.getRoi() != null
+					&& (spot.getProperties().getSpotXCoord() < 0 || spot.getProperties().getSpotYCoord() < 0)) {
 				// Extract coordinates from ROI
 				java.awt.geom.Rectangle2D bounds = spot.getRoi().getBounds2D();
 				spot.getProperties().setSpotXCoord((int) bounds.getCenterX());
@@ -169,9 +174,8 @@ public class MigrationTool {
 			// Find all spots belonging to this cage and collect their unique IDs
 			for (Spot spot : globalSpots.getSpotList()) {
 				int cageID = spot.getProperties().getCageID();
-				if (cageID == cage.getCageID() && spot.getSpotUniqueID() != null) {
+				if (cageID == cage.getCageID() && spot.getSpotUniqueID() != null)
 					spotIDs.add(spot.getSpotUniqueID());
-				}
 			}
 			cage.setSpotIDs(spotIDs);
 		}
@@ -196,4 +200,3 @@ public class MigrationTool {
 		Logger.info("MigrationTool:convertCageCapillariesToIDs() Converted capillaries to IDs for all cages");
 	}
 }
-

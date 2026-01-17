@@ -83,8 +83,8 @@ public class Spots {
 	}
 
 	/**
-	 * Gets the next unique spot ID for assigning to new spots.
-	 * Uses the current size of the spot list to ensure uniqueness.
+	 * Gets the next unique spot ID for assigning to new spots. Uses the current
+	 * size of the spot list to ensure uniqueness.
 	 * 
 	 * @return the next unique spot ID
 	 */
@@ -139,10 +139,8 @@ public class Spots {
 			return null;
 		}
 
-		return spotList.stream()
-				.filter(spot -> spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID))
-				.findFirst()
-				.orElse(null);
+		return spotList.stream().filter(spot -> spot.getSpotUniqueID() != null
+				&& spot.getSpotUniqueID().equals(spotID)).findFirst().orElse(null);
 	}
 
 	// === DATA LOADING ===
@@ -286,8 +284,10 @@ public class Spots {
 
 	/**
 	 * Saves spots array to XML.
-	 * @deprecated Spots now use CSV-only persistence. ROIs are regenerated from coordinates.
-	 * This method is kept for backward compatibility during migration.
+	 * 
+	 * @deprecated Spots now use CSV-only persistence. ROIs are regenerated from
+	 *             coordinates. This method is kept for backward compatibility
+	 *             during migration.
 	 * 
 	 * @param node the XML node
 	 * @return true if successful
@@ -308,12 +308,12 @@ public class Spots {
 			XMLUtil.setElementIntValue(nodeSpotsArray, ID_NSPOTS, spotList.size());
 
 			sortSpotList();
-			
+
 			// If no spots, successfully save empty array
 			if (spotList.isEmpty()) {
 				return true;
 			}
-			
+
 			int savedSpots = 0;
 			for (int i = 0; i < spotList.size(); i++) {
 				try {
@@ -350,7 +350,9 @@ public class Spots {
 
 	/**
 	 * Loads spots array from XML.
-	 * @deprecated Spots now use CSV-only persistence. This method is kept for backward compatibility during migration.
+	 * 
+	 * @deprecated Spots now use CSV-only persistence. This method is kept for
+	 *             backward compatibility during migration.
 	 * 
 	 * @param node the XML node
 	 * @return true if successful
@@ -392,7 +394,7 @@ public class Spots {
 						// Assign unique ID if not loaded from XML (legacy files)
 						if (spot.getSpotUniqueID() == null) {
 							int uniqueID = getNextUniqueSpotID();
-							spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+							spot.setSpotUniqueID(new SpotID(uniqueID));
 						}
 						spotList.add(spot);
 						loadedSpots++;
@@ -526,7 +528,7 @@ public class Spots {
 		if (sequence == null || spotList.isEmpty()) {
 			return;
 		}
-		
+
 		List<ROI2D> spotROIList = new ArrayList<ROI2D>(spotList.size());
 		for (Spot spot : spotList) {
 			ROI2D roi = spot.getRoi();
@@ -537,9 +539,12 @@ public class Spots {
 		Collections.sort(spotROIList, (r1, r2) -> {
 			String name1 = r1.getName();
 			String name2 = r2.getName();
-			if (name1 == null && name2 == null) return 0;
-			if (name1 == null) return -1;
-			if (name2 == null) return 1;
+			if (name1 == null && name2 == null)
+				return 0;
+			if (name1 == null)
+				return -1;
+			if (name2 == null)
+				return 1;
 			return name1.compareTo(name2);
 		});
 		sequence.addROIs(spotROIList, true);
@@ -620,7 +625,7 @@ public class Spots {
 					// Assign unique ID if not loaded from XML (legacy files)
 					if (spot.getSpotUniqueID() == null) {
 						int uniqueID = getNextUniqueSpotID();
-						spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+						spot.setSpotUniqueID(new SpotID(uniqueID));
 					}
 					spotList.add(spot);
 				}
@@ -684,7 +689,7 @@ public class Spots {
 				// Assign unique ID if not loaded from CSV (legacy files)
 				if (spot.getSpotUniqueID() == null) {
 					int uniqueID = getNextUniqueSpotID();
-					spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+					spot.setSpotUniqueID(new SpotID(uniqueID));
 				}
 			}
 
@@ -726,7 +731,7 @@ public class Spots {
 				// Assign unique ID if creating new spot
 				if (spot.getSpotUniqueID() == null) {
 					int uniqueID = getNextUniqueSpotID();
-					spot.getProperties().setSpotUniqueID(new SpotID(uniqueID));
+					spot.setSpotUniqueID(new SpotID(uniqueID));
 				}
 				spotList.add(spot);
 			}

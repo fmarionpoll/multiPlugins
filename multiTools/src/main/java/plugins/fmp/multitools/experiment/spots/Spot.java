@@ -243,8 +243,7 @@ public class Spot implements Comparable<Spot> {
 				int cageID = properties.getCageID();
 				int position = properties.getCagePosition();
 				if (cageID >= 0 && position >= 0) {
-					roiEllipse.setName(
-							SpotString.createSpotString(cageID, position));
+					roiEllipse.setName(SpotString.createSpotString(cageID, position));
 				}
 			}
 
@@ -329,7 +328,7 @@ public class Spot implements Comparable<Spot> {
 	 * 
 	 * @return the SpotID (unique identifier), or null if not set
 	 */
-	public SpotID getSpotID() {
+	public SpotID getSpotUniqueID() {
 		return properties.getSpotUniqueID();
 	}
 
@@ -339,7 +338,7 @@ public class Spot implements Comparable<Spot> {
 	 * @param spotID the SpotID to set
 	 * @throws IllegalArgumentException if spotID is null
 	 */
-	public void setSpotID(SpotID spotID) {
+	public void setSpotUniqueID(SpotID spotID) {
 		Objects.requireNonNull(spotID, "SpotID cannot be null");
 		properties.setSpotUniqueID(spotID);
 	}
@@ -764,11 +763,6 @@ public class Spot implements Comparable<Spot> {
 			return false;
 		}
 
-		// Memory monitoring before loading
-//		long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		// System.out.println(" Loading Spot - Memory: " + (startMemory / 1024 / 1024) +
-		// " MB");
-
 		try {
 			// Load properties with error handling
 			if (!properties.loadFromXml(node)) {
@@ -800,13 +794,6 @@ public class Spot implements Comparable<Spot> {
 				System.err.println("ERROR: Failed to load spot measurements");
 				return false;
 			}
-
-			// Memory monitoring after loading
-//			long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-//			long memoryIncrease = endMemory - startMemory;
-			// System.out.println(" Spot loaded - Memory increase: " + (memoryIncrease /
-			// 1024 / 1024) + " MB");
-			// System.out.println(" Spot name: " + getProperties().getName());
 
 			return true;
 

@@ -392,7 +392,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				for (Spot spot : cageSpots) {
 					if (name.equals(spot.getRoi().getName())) {
 						allSpots.removeSpot(spot);
-						cage.getSpotIDs().remove(spot.getSpotID());
+						cage.getSpotIDs().remove(spot.getSpotUniqueID());
 						break;
 					}
 				}
