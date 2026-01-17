@@ -13,12 +13,12 @@
 
     <!-- Parent Project Information -->
     <groupId>plugins.fmp</groupId>
-    <artifactId>multiPlugins</artifactId>
+    <artifactId>m_multiPlugins</artifactId>
     <version>2.2.0</version>
     <packaging>pom</packaging>
 
     <name>Multi Plugins Parent</name>
-    <description>Parent project for multiCAFE, multiSPOTS, multiSPOTS96 and multiTools shared library</description>
+    <description>Parent project for m_multiCAFE, m_multiSPOTS, m_multiSPOTS96 and m_multiTools shared library</description>
 
     <organization>
         <name>IDEEV UMR EGCE (CNRS-IRD-Paris-Saclay)</name>
@@ -52,10 +52,10 @@
     </developers>
 
     <modules>
-        <module>multiTools</module>
-        <module>multiCAFE</module>
-        <module>multiSPOTS</module>
-        <module>multiSPOTS96</module>
+        <module>m_multiTools</module>
+        <module>m_multiCAFE</module>
+        <module>m_multiSPOTS</module>
+        <module>m_multiSPOTS96</module>
     </modules>
 
     <properties>

@@ -2,8 +2,8 @@
 
 ## Project Overview
 
-**Project Name:** multiPlugins  
-**Location:** `C:\Users\fred\git\multiPlugins`  
+**Project Name:** m_multiPlugins  
+**Location:** `C:\Users\fred\git\m_multiPlugins`  
 **Type:** Maven Multi-Module Project  
 **Purpose:** Parent project containing ICY plugins that share common code
 
@@ -11,13 +11,13 @@
 
 ### Parent Project
 - **Group ID:** `plugins.fmp`
-- **Artifact ID:** `multiPlugins`
+- **Artifact ID:** `m_multiPlugins`
 - **Version:** `2.2.0`
 - **Packaging:** `pom` (parent POM)
 
 ### Modules
 
-1. **multiTools** - Shared library module
+1. **m_multiTools** - Shared library module
    - Contains all common code shared across plugins
    - Package: `plugins.fmp.multitools.*`
    - Sub-packages:
@@ -27,22 +27,22 @@
      - `tools` - Charts, Excel export, utilities, image transforms, ROI2D, etc.
      - `workinprogress_gpu` - GPU-related code (OpenCL)
 
-2. **multiCAFE** - MultiCAFE plugin module
+2. **m_multiCAFE** - MultiCAFE plugin module
    - Package: `plugins.fmp.multicafe.*`
    - Plugin-specific code: dialogs (dlg/), viewers (viewer1D/), GPU work
-   - Depends on: multiTools
+   - Depends on: m_multiTools
 
-3. **multiSPOTS** - MultiSPOTS plugin module
+3. **m_multiSPOTS** - MultiSPOTS plugin module
    - Package: `plugins.fmp.multispots.*`
    - Plugin-specific code: dialogs (dlg/), experiment (experiment/), series (series/), tools
-   - Depends on: multiTools
+   - Depends on: m_multiTools
 
-4. **multiSPOTS96** - MultiSPOTS96 plugin module
+4. **m_multiSPOTS96** - MultiSPOTS96 plugin module
    - Package: `plugins.fmp.multispots96.*`
    - Most comprehensive plugin with extensive codebase
    - Plugin-specific code: dialogs, experiment (55 files), series (31 files), tools
    - Includes test suite
-   - Depends on: multiTools
+   - Depends on: m_multiTools
 
 ## Key Technologies & Dependencies
 
@@ -65,11 +65,11 @@
 
 ## Package Naming Conventions
 
-- **Shared code (multiTools):** `plugins.fmp.multitools.*`
+- **Shared code (m_multiTools):** `plugins.fmp.multitools.*`
 - **Plugin-specific code:**
-  - multiCAFE: `plugins.fmp.multicafe.*`
-  - multiSPOTS: `plugins.fmp.multispots.*`
-  - multiSPOTS96: `plugins.fmp.multispots96.*`
+  - m_multiCAFE: `plugins.fmp.multicafe.*`
+  - m_multiSPOTS: `plugins.fmp.multispots.*`
+  - m_multiSPOTS96: `plugins.fmp.multispots96.*`
 
 ## Build System
 
@@ -77,25 +77,25 @@
 
 **Build all modules:**
 ```bash
-cd C:\Users\fred\git\multiPlugins
+cd C:\Users\fred\git\m_multiPlugins
 mvn clean install
 ```
 
 **Build specific module:**
 ```bash
-cd C:\Users\fred\git\multiPlugins\multiCAFE
+cd C:\Users\fred\git\m_multiPlugins\m_multiCAFE
 mvn clean install
 ```
 
-Maven automatically builds dependencies (multiTools) first.
+Maven automatically builds dependencies (m_multiTools) first.
 
 ### Output Artifacts
 
 Each module produces its own JAR:
-- `multiTools/target/multiTools-2.2.3.jar`
-- `multiCAFE/target/multiCAFE-2.2.3.jar`
-- `multiSPOTS/target/multiSPOTS-<version>.jar`
-- `multiSPOTS96/target/multiSPOTS96-<version>.jar`
+- `m_multiTools/target/m_multiTools-2.2.3.jar`
+- `m_multiCAFE/target/m_multiCAFE-2.2.3.jar`
+- `m_multiSPOTS/target/m_multiSPOTS-<version>.jar`
+- `m_multiSPOTS96/target/m_multiSPOTS96-<version>.jar`
 
 ## Development Environment
 
@@ -103,21 +103,21 @@ Each module produces its own JAR:
 
 1. **Import parent project:**
    - File → Import → Existing Maven Projects
-   - Select `C:\Users\fred\git\multiPlugins\pom.xml`
+   - Select `C:\Users\fred\git\m_multiPlugins\pom.xml`
    - Eclipse automatically imports all modules
 
 2. **Modules appear in Package Explorer:**
-   - multiPlugins (parent)
-   - multiTools
-   - multiCAFE
-   - multiSPOTS
-   - multiSPOTS96
+   - m_multiPlugins (parent)
+   - m_multiTools
+   - m_multiCAFE
+   - m_multiSPOTS
+   - m_multiSPOTS96
 
 ### Code Organization
 
 - **Source:** `src/main/java/`
 - **Resources:** `src/main/resources/`
-- **Tests:** `src/test/java/` (present in multiSPOTS96)
+- **Tests:** `src/test/java/` (present in m_multiSPOTS96)
 
 ## Migration History
 
@@ -130,7 +130,7 @@ Previously, each plugin had duplicate `fmp_*` packages. These have been consolid
 
 ### Package Migration
 
-- All `fmp_*` packages moved to `multiTools`
+- All `fmp_*` packages moved to `m_multiTools`
 - Package names changed from `plugins.fmp.<plugin>.fmp_*` to `plugins.fmp.multitools.*`
 - Imports in plugin code updated automatically
 - Old `fmp_*` directories removed from plugin sources
@@ -139,15 +139,15 @@ Previously, each plugin had duplicate `fmp_*` packages. These have been consolid
 
 ### Completed
 - ✅ Multi-module Maven structure created
-- ✅ multiTools shared library extracted and consolidated
-- ✅ multiCAFE migrated to new structure
-- ✅ multiSPOTS and multiSPOTS96 added to parent POM
+- ✅ m_multiTools shared library extracted and consolidated
+- ✅ m_multiCAFE migrated to new structure
+- ✅ m_multiSPOTS and m_multiSPOTS96 added to parent POM
 - ✅ Package refactoring completed
 
 ### Known Structure
 - Original projects still exist at their original locations (`C:\Users\fred\git\MultiCAFE\`, etc.)
-- `multiPlugins/` contains **copies** of the code (not links)
-- Changes in `multiPlugins/` do not affect original projects
+- `m_multiPlugins/` contains **copies** of the code (not links)
+- Changes in `m_multiPlugins/` do not affect original projects
 - Two separate codebases exist during transition period
 
 ## Important Directories
@@ -163,7 +163,7 @@ Previously, each plugin had duplicate `fmp_*` packages. These have been consolid
 
 ### Source Code Organization
 
-**multiTools** (Shared Library):
+**m_multiTools** (Shared Library):
 - `experiment/` - Core data models (Experiment, Cage, Spot, Capillary)
 - `series/` - Time series processing
 - `service/` - Services (KymographBuilder, etc.)
@@ -179,14 +179,14 @@ Previously, each plugin had duplicate `fmp_*` packages. These have been consolid
 **Plugin-Specific Code:**
 - Each plugin has its own `dlg/` (dialogs) directory for UI
 - Plugin-specific viewers, experiment handling, and tools
-- No `fmp_*` directories (moved to multiTools)
+- No `fmp_*` directories (moved to m_multiTools)
 
 ## Development Guidelines
 
 ### Adding New Modules
 
-1. Copy plugin structure to `multiPlugins/<moduleName>/`
-2. Create `pom.xml` based on `multiCAFE/pom.xml` template
+1. Copy plugin structure to `m_multiPlugins/<moduleName>/`
+2. Create `pom.xml` based on `m_multiCAFE/pom.xml` template
 3. Update imports: replace `import plugins.fmp.<plugin>.fmp_*` with `import plugins.fmp.multitools.*`
 4. Remove old `fmp_*` directories from plugin source
 5. Add module to parent `pom.xml` `<modules>` section
@@ -194,17 +194,17 @@ Previously, each plugin had duplicate `fmp_*` packages. These have been consolid
 
 ### Code Organization Rules
 
-- **Shared code** → `multiTools`
+- **Shared code** → `m_multiTools`
 - **Plugin-specific code** → respective plugin module
-- **Common utilities** → `multiTools/tools/`
+- **Common utilities** → `m_multiTools/tools/`
 - **Plugin UI** → `pluginName/dlg/`
 
 ### Deployment
 
 For end users:
-1. **Fat JAR approach (recommended):** Bundle multiTools inside each plugin JAR
+1. **Fat JAR approach (recommended):** Bundle m_multiTools inside each plugin JAR
    - Add Maven Shade plugin to each plugin's `pom.xml`
-2. **Separate distribution:** Distribute multiTools separately on ICY server
+2. **Separate distribution:** Distribute m_multiTools separately on ICY server
 
 ## Common Tasks
 
@@ -213,11 +213,11 @@ For end users:
 - Specific module: `cd <module>` then `mvn clean install`
 
 ### Refactoring
-- Changes in multiTools are immediately visible in dependent projects
+- Changes in m_multiTools are immediately visible in dependent projects
 - Single workspace for all plugins enables easy cross-module refactoring
 
 ### Testing
-- Test suites present in `multiSPOTS96/src/test/java/`
+- Test suites present in `m_multiSPOTS96/src/test/java/`
 - Can be extended to other modules as needed
 
 ## License & Organization
@@ -230,5 +230,5 @@ For end users:
 
 - Avoid redundant comments (user preference)
 - Original projects at `C:\Users\fred\git\MultiCAFE\`, `C:\Users\fred\git\multiSPOTS\`, `C:\Users\fred\git\multiSPOTS96\` are separate and unchanged
-- `multiPlugins/` is the active development location
-- Code in `multiPlugins/` is a copy, not linked to originals
+- `m_multiPlugins/` is the active development location
+- Code in `m_multiPlugins/` is a copy, not linked to originals

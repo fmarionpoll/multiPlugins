@@ -7,13 +7,13 @@
     <!-- Parent Multi Plugins POM -->
     <parent>
         <groupId>plugins.fmp</groupId>
-        <artifactId>multiPlugins</artifactId>
+        <artifactId>m_multiPlugins</artifactId>
         <version>2.2.0</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
     <!-- Project Information -->
-    <artifactId>multiCAFE</artifactId>
+    <artifactId>m_multiCAFE</artifactId>
     
     <packaging>jar</packaging>
 
@@ -58,7 +58,7 @@
         <!-- Multi Tools shared library -->
         <dependency>
             <groupId>plugins.fmp</groupId>
-            <artifactId>multiTools</artifactId>
+            <artifactId>m_multiTools</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
         
