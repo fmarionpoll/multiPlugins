@@ -189,7 +189,8 @@ public class Experiment {
 	public long getKymoBin_ms() {
 		long timeManagerValue = timeManager.getKymoBin_ms();
 		long activeBinValue = (activeBinDescription != null && activeBinDescription.getBinKymoColMs() > 0)
-				? activeBinDescription.getBinKymoColMs() : 0;
+				? activeBinDescription.getBinKymoColMs()
+				: 0;
 
 		// Generic checks to determine if timeManager has been explicitly set
 		// 1. Check if camImageBin_ms has been calculated (indicates refresh from files)
@@ -681,8 +682,16 @@ public class Experiment {
 			long kymoBinMs = getKymoBin_ms();
 			if (kymoBinMs > 0) {
 				String expectedBinDir = getBinNameFromKymoFrameStep();
+				// Extract just the subdirectory name from binDirectory if it's a full path
+				String currentBinDirName = binDirectory;
+				if (currentBinDirName != null) {
+					File binDirFile = new File(currentBinDirName);
+					if (binDirFile.isAbsolute()) {
+						currentBinDirName = binDirFile.getName();
+					}
+				}
 				// Update binDirectory if it doesn't match the calculated interval
-				if (binDirectory == null || !binDirectory.equals(expectedBinDir)) {
+				if (binDirectory == null || currentBinDirName == null || !currentBinDirName.equals(expectedBinDir)) {
 					setBinSubDirectory(expectedBinDir);
 				}
 				// Now save with correct directory name
@@ -787,8 +796,10 @@ public class Experiment {
 			long binDurationMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
 
 			// Only migrate if binDurationMs was explicitly found in XML (>= 0)
-			// If binDurationMs is missing, skip migration entirely - let it be calculated from files later
-			// This prevents creating bin_60 with default value before interval is calculated
+			// If binDurationMs is missing, skip migration entirely - let it be calculated
+			// from files later
+			// This prevents creating bin_60 with default value before interval is
+			// calculated
 			if (binDurationMs >= 0) {
 				// Determine target bin directory (use current binDirectory or default to
 				// bin_60)
@@ -825,8 +836,10 @@ public class Experiment {
 			} else {
 				// No bin parameters in XML, try to load from current bin directory
 				// Only load if interval hasn't been calculated yet (need saved values)
-				// If interval was calculated, skip loading to avoid overwriting calculated values
-				// Use this.timeManager to access instance variable (local timeManager shadows it)
+				// If interval was calculated, skip loading to avoid overwriting calculated
+				// values
+				// Use this.timeManager to access instance variable (local timeManager shadows
+				// it)
 				if (binDirectory != null && this.timeManager.getCamImageBin_ms() < 0) {
 					// Extract subdirectory name if binDirectory is a full path
 					String binSubDir = binDirectory;
@@ -985,10 +998,12 @@ public class Experiment {
 			measuresLoaded = capillaries.getPersistence().load_CapillariesMeasures(capillaries, binDir);
 		}
 
-		// Transfer capillaries to ROIs on sequence if capillaries exist (even if descriptions didn't load)
+		// Transfer capillaries to ROIs on sequence if capillaries exist (even if
+		// descriptions didn't load)
 		// Capillaries might have been loaded from XML files directly
 		if (capillaries.getList().size() > 0 && seqCamData != null && seqCamData.getSequence() != null) {
-			// Remove only capillary ROIs (containing "line"), preserving cages and other ROIs
+			// Remove only capillary ROIs (containing "line"), preserving cages and other
+			// ROIs
 			seqCamData.removeROIsContainingString("line");
 			// Add capillary ROIs to sequence
 			for (Capillary cap : capillaries.getList()) {
@@ -1019,10 +1034,11 @@ public class Experiment {
 
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			// Check if any measures are actually loaded before saving to prevent overwriting with empty data
+			// Check if any measures are actually loaded before saving to prevent
+			// overwriting with empty data
 			boolean hasMeasures = false;
 			for (Capillary cap : capillaries.getList()) {
-				if (cap.isThereAnyMeasuresDone(EnumResults.TOPLEVEL) 
+				if (cap.isThereAnyMeasuresDone(EnumResults.TOPLEVEL)
 						|| cap.isThereAnyMeasuresDone(EnumResults.BOTTOMLEVEL)
 						|| cap.isThereAnyMeasuresDone(EnumResults.DERIVEDVALUES)
 						|| cap.isThereAnyMeasuresDone(EnumResults.SUMGULPS)) {
@@ -1030,8 +1046,9 @@ public class Experiment {
 					break;
 				}
 			}
-			
-			// Only save measures if they are actually loaded, or use the protected saveCapillariesMeasures method
+
+			// Only save measures if they are actually loaded, or use the protected
+			// saveCapillariesMeasures method
 			if (hasMeasures) {
 				capillaries.getPersistence().save_CapillariesMeasures(capillaries, binDir);
 			} else {
@@ -1617,12 +1634,12 @@ public class Experiment {
 			// 2. Interval hasn't been calculated yet (we need to load saved values)
 			// If setting a new directory name after interval is calculated, don't load
 			// to avoid loading wrong values from existing directories
-			boolean shouldLoad = (bin.equals(oldBinDirectory)) 
-					|| (timeManager.getCamImageBin_ms() < 0);
+			boolean shouldLoad = (bin.equals(oldBinDirectory)) || (timeManager.getCamImageBin_ms() < 0);
 			if (shouldLoad) {
 				loadBinDescription(bin);
 			} else {
-				// Setting new directory after interval calculated - initialize from current values
+				// Setting new directory after interval calculated - initialize from current
+				// values
 				if (activeBinDescription != null) {
 					activeBinDescription.setBinDirectory(bin);
 					activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
@@ -1660,7 +1677,8 @@ public class Experiment {
 			if (timeManager.getCamImageBin_ms() < 0) {
 				timeManager.setKymoBin_ms(activeBinDescription.getBinKymoColMs());
 			} else {
-				// Interval was calculated from files, sync activeBinDescription with timeManager instead
+				// Interval was calculated from files, sync activeBinDescription with
+				// timeManager instead
 				activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
 			}
 		} else {
@@ -1675,7 +1693,8 @@ public class Experiment {
 				activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
 			}
 			// Otherwise, leave activeBinDescription.binKymoColMs at its default (60000)
-			// but this won't be saved unless interval is calculated (guard in saveBinDescription)
+			// but this won't be saved unless interval is calculated (guard in
+			// saveBinDescription)
 			activeBinDescription.setBinDirectory(binSubDirectory);
 		}
 		return loaded;
@@ -1696,12 +1715,12 @@ public class Experiment {
 		if (binDirFile.isAbsolute()) {
 			binSubDirectory = binDirFile.getName();
 		}
-		// Get kymo bin value - only save if interval has been calculated or value is explicitly set
+		// Get kymo bin value - only save if interval has been calculated or value is
+		// explicitly set
 		long kymoBinMs = getKymoBin_ms();
 		// Don't save with default 60000 if interval hasn't been calculated yet
 		// (camImageBin_ms < 0 means interval wasn't calculated from files)
-		if (timeManager.getCamImageBin_ms() < 0 && kymoBinMs == 60000 && 
-				timeManager.getKymoBin_ms() == 60000) {
+		if (timeManager.getCamImageBin_ms() < 0 && kymoBinMs == 60000 && timeManager.getKymoBin_ms() == 60000) {
 			// This is likely the default value, not a real value
 			// Don't save yet to avoid creating bin_60 prematurely
 			return false;
@@ -2061,7 +2080,8 @@ public class Experiment {
 		// Transfer ROIs if capillaries exist, even if descriptions didn't load
 		// (capillaries might have been loaded from XML files directly)
 		if (capillaries.getList().size() > 0 && seqCamData != null && seqCamData.getSequence() != null) {
-			// Remove only capillary ROIs (containing "line"), preserving cages and other ROIs
+			// Remove only capillary ROIs (containing "line"), preserving cages and other
+			// ROIs
 			seqCamData.removeROIsContainingString("line");
 			// Add capillary ROIs to sequence
 			for (Capillary cap : capillaries.getList()) {
