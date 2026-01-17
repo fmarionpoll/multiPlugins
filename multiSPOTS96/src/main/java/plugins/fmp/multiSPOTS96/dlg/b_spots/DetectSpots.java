@@ -339,7 +339,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		if (exp == null)
 			return;
 		parent0.dlgBrowse.loadSaveExperiment.closeViewsForCurrentExperiment(exp);
-
 		detectSpots = new DetectSpotsOutline();
 		detectSpots.options = initTrackParameters(exp);
 		detectSpots.stopFlag = false;
@@ -444,12 +443,15 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 
 	void convertBlobsToCircles(Experiment exp, int diameter) {
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
+		Spots allSpots = exp.getSpots();
+		int nspots = allSpots.getSpotListCount();
+
 		for (Cage cage : exp.getCages().cagesList) {
 			if (bOnlySelectedCages && !cage.getRoi().isSelected())
 				continue;
 			List<SpotID> spotIDList = cage.getSpotIDs();
 			for (SpotID spotID : spotIDList) {
-				Spot spot = exp.getSpots().findSpotwithID(spotID);
+				Spot spot = allSpots.findSpotwithID(spotID);
 				if (spot == null) {
 					continue;
 				}

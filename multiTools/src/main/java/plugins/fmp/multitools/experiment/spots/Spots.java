@@ -233,7 +233,14 @@ public class Spots {
 			// Process chunk
 			for (int j = i; j < endIndex; j++) {
 				Spot spot = spotList.get(j);
-				writer.write(spot.getProperties().exportToCsv(CSV_SEPARATOR));
+				// Only save valid spots with name and cage association
+				if (spot != null && spot.getProperties() != null) {
+					String name = spot.getProperties().getName();
+					int cageID = spot.getProperties().getCageID();
+					if (name != null && !name.trim().isEmpty() && cageID >= 0) {
+						writer.write(spot.getProperties().exportToCsv(CSV_SEPARATOR));
+					}
+				}
 			}
 
 			processed += (endIndex - i);
@@ -776,7 +783,14 @@ public class Spots {
 				+ "npixels" + CSV_SEPARATOR + "radius" + CSV_SEPARATOR + "stim" + CSV_SEPARATOR + "conc\n");
 
 		for (Spot spot : spotList) {
-			writer.write(spot.getProperties().exportToCsv(CSV_SEPARATOR));
+			// Only save valid spots with name and cage association
+			if (spot != null && spot.getProperties() != null) {
+				String name = spot.getProperties().getName();
+				int cageID = spot.getProperties().getCageID();
+				if (name != null && !name.trim().isEmpty() && cageID >= 0) {
+					writer.write(spot.getProperties().exportToCsv(CSV_SEPARATOR));
+				}
+			}
 		}
 
 		return true;

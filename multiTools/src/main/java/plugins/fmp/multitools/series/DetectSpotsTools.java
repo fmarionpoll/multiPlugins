@@ -64,12 +64,29 @@ public class DetectSpotsTools {
 		final ROI2DArea binarizedImageRoi = binarizeImage(workimage, options);
 
 		Spots allSpots = exp.getSpots();
+		int nspots = allSpots.getSpotListCount();
+		// Note: allSpots may already contain spots loaded from previously saved CSV files
+		// when the experiment was opened (via load_Spots() in LoadSaveExperiment).
+		// These spots are from previous detection runs. The code below only clears
+		// spots for selected cages, leaving spots from other cages intact.
+		// If you want to start completely fresh, uncomment the line below:
+		// allSpots.getSpotList().clear();
+
 		for (Cage cage : exp.getCages().cagesList) {
 			if (!options.selectedIndexes.contains(cage.getProperties().getCageID()))
 				continue;
 
 			// Clear existing spots for this cage
+			// First, remove the corresponding Spot objects from allSpots
+			for (SpotID spotID : cage.getSpotIDs()) {
+				Spot spot = allSpots.findSpotwithID(spotID);
+				if (spot != null) {
+					allSpots.removeSpot(spot);
+				}
+			}
+			// Then clear the cage's spotIDs list
 			cage.getSpotIDs().clear();
+
 			int cageID = cage.getCageID();
 			int cagePosition = 0;
 			BooleanMask2D[] blobs;
@@ -96,6 +113,7 @@ public class DetectSpotsTools {
 									.map(point -> new Point2D.Double(point.getX(), point.getY()))
 									.collect(Collectors.toList());
 							ROI2DPolygon roi = new ROI2DPolygon(points2s);
+
 							Spot spot = new Spot(roi);
 							int uniqueSpotID = allSpots.getNextUniqueSpotID();
 							SpotID spotUniqueID = new SpotID(uniqueSpotID);
@@ -107,6 +125,8 @@ public class DetectSpotsTools {
 							allSpots.addSpot(spot);
 							// Add ID to cage
 							cage.getSpotIDs().add(spotUniqueID);
+							System.out.println(
+									"cageID:" + cageID + " - cagePosition=" + cagePosition + " spotID=" + spotUniqueID);
 							cagePosition++;
 						}
 					} catch (InterruptedException e) {

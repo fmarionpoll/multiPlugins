@@ -21,8 +21,10 @@ public class DetectSpotsOutline extends BuildSeries {
 
 		openFlyDetectViewers1(exp);
 		runSpotsDetect(exp);
-		if (!stopFlag)
+		if (!stopFlag) {
 			exp.save_cages_description_and_measures();
+			exp.save_spots_description_and_measures();
+		}
 
 		exp.getSeqCamData().closeSequence();
 		closeSequence(seqNegative);

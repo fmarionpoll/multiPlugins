@@ -91,10 +91,12 @@ public class ExperimentUtils {
 		List<ROI2D> listROISSpots = exp.getSeqCamData().getROIsContainingString("spot");
 		// roi with no corresponding cap? add ROI
 		for (Cage cage : exp.getCages().cagesList) {
-			List<Spot> spots = cage.getSpotList(allSpots);
-			for (Spot spot : spots) {
+			List<Spot> spotList = cage.getSpotList(allSpots);
+			for (Spot spot : spotList) {
 				boolean found = false;
 				for (ROI roi : listROISSpots) {
+					if (spot.getRoi() == null)
+						continue;
 					if (roi.getName().equals(spot.getRoi().getName())) {
 						found = true;
 						break;

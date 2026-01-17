@@ -2,6 +2,7 @@ package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +19,7 @@ import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -230,9 +232,8 @@ public class Spot implements Comparable<Spot> {
 		try {
 			// Create ellipse ROI from center coordinates and radius
 			// The ellipse bounds are: (x - radius, y - radius, 2*radius, 2*radius)
-			java.awt.geom.Ellipse2D ellipse = new java.awt.geom.Ellipse2D.Double(x - radius, y - radius, 2 * radius,
-					2 * radius);
-			plugins.kernel.roi.roi2d.ROI2DEllipse roiEllipse = new plugins.kernel.roi.roi2d.ROI2DEllipse(ellipse);
+			Ellipse2D ellipse = new Ellipse2D.Double(x - radius, y - radius, 2 * radius, 2 * radius);
+			ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
 
 			// Set the name if available
 			String name = properties.getName();

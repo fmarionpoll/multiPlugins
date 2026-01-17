@@ -667,6 +667,9 @@ public class Cages {
 			Iterator<Spot> iteratorSpots = spots.iterator();
 			while (iteratorSpots.hasNext()) {
 				Spot spot = iteratorSpots.next();
+				if (spot.getRoi() == null)
+					continue;
+
 				String spotRoiName = spot.getRoi().getName();
 				boolean found = false;
 
