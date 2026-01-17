@@ -837,7 +837,7 @@ public class Cages {
 				cage.getSpotIDs().clear();
 				for (Spot spot : temp1.getSpotList()) {
 					cage.getSpotIDs()
-							.add(new SpotID(spot.getProperties().getCageID(), spot.getProperties().getCagePosition()));
+							.add(spot.getSpotID());
 				}
 			}
 		}

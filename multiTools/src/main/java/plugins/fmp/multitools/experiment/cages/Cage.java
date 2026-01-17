@@ -118,10 +118,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			return result;
 		}
 		for (SpotID spotID : spotIDs) {
-			// Find spot by matching cageID and position
+			// Find spot by matching cageID and positionID
 			for (Spot spot : allSpots.getSpotList()) {
 				if (spot.getProperties().getCageID() == spotID.getCageID() 
-						&& spot.getProperties().getCagePosition() == spotID.getPosition()) {
+						&& spot.getProperties().getCagePositionID() == spotID.getPosition()) {
 					result.add(spot);
 					break;
 				}
@@ -756,7 +756,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		// Add spot to global SpotsArray
 		if (allSpots != null) {
 			Spot spot = createEllipseSpot(position, center, radius);
-			spot.getProperties().setCagePosition(position);
 			allSpots.addSpot(spot);
 		}
 		return spotIDs.size();
@@ -768,6 +767,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		roiEllipse.setName(SpotString.createSpotString(prop.getCageID(), cagePosition));
 		Spot spot = new Spot(roiEllipse);
 		spot.getProperties().setCageID(prop.getCageID());
+		spot.getProperties().setCagePositionID(cagePosition);
 		spot.getProperties().setCagePosition(cagePosition);
 		spot.getProperties().setSpotRadius(radius);
 		spot.getProperties().setSpotXCoord((int) center.getX());
@@ -788,7 +788,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		int cagePosition = SpotString.getSpotCagePositionFromSpotName(name);
 		List<Spot> spots = getSpotList(allSpots);
 		for (Spot spot : spots) {
-			if (spot.getProperties().getCagePosition() == cagePosition)
+			if (spot.getProperties().getCagePositionID() == cagePosition)
 				return spot;
 		}
 		return null;
@@ -816,7 +816,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		List<Spot> spots = getSpotList(allSpots);
 		for (int i = 0; i < spots.size(); i++) {
 			Spot spot = spots.get(i);
-			spot.setName(prop.getCageID(), i);
+			int originalPositionID = spot.getProperties().getCagePositionID();
+			spot.setName(prop.getCageID(), originalPositionID);
 			spot.getProperties().setCageID(prop.getCageID());
 			spot.getProperties().setCagePosition(i);
 		}

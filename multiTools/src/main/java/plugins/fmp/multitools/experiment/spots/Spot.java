@@ -13,6 +13,7 @@ import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -321,6 +322,28 @@ public class Spot implements Comparable<Spot> {
 
 	public SpotProperties getProperties() {
 		return properties;
+	}
+
+	/**
+	 * Gets the SpotID for this spot.
+	 * 
+	 * @return the SpotID combining cageID and positionID
+	 */
+	public SpotID getSpotID() {
+		return new SpotID(properties.getCageID(), properties.getCagePositionID());
+	}
+
+	/**
+	 * Sets the SpotID for this spot.
+	 * 
+	 * @param spotID the SpotID to set
+	 * @throws IllegalArgumentException if spotID is null
+	 */
+	public void setSpotID(SpotID spotID) {
+		Objects.requireNonNull(spotID, "SpotID cannot be null");
+		properties.setCageID(spotID.getCageID());
+		properties.setCagePositionID(spotID.getPosition());
+		properties.setCagePosition(spotID.getPosition());
 	}
 
 	// === FIELD ACCESS ===

@@ -41,6 +41,7 @@ public class ExperimentUtils {
 					Cage cage = exp.getCages().getCageFromID(cageID);
 					Spot newSpot = new Spot(roi_new);
 					newSpot.getProperties().setCageID(cageID);
+					newSpot.getProperties().setCagePositionID(cagePosition);
 					newSpot.getProperties().setCagePosition(cagePosition);
 					allSpots.addSpot(newSpot);
 					cage.getSpotIDs().add(new SpotID(cageID, cagePosition));

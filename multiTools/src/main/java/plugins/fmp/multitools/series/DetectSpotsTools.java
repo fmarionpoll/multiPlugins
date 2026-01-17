@@ -97,12 +97,12 @@ public class DetectSpotsTools {
 							ROI2DPolygon roi = new ROI2DPolygon(points2s);
 							Spot spot = new Spot(roi);
 							spot.setName(cage.getProperties().getCageID(), spotID);
-							spot.getProperties().setCageID(cage.getProperties().getCageID());
+							spot.getProperties().setCageID(cage.getCageID());
+							spot.getProperties().setCagePositionID(spotID);
 							spot.getProperties().setCagePosition(spotID);
-							// Add to global SpotsArray
 							allSpots.addSpot(spot);
 							// Add ID to cage
-							cage.getSpotIDs().add(new SpotID(cage.getProperties().getCageID(), spotID));
+							cage.getSpotIDs().add(new SpotID(cage.getCageID(), spotID));
 							spotID++;
 						}
 					} catch (InterruptedException e) {

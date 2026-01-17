@@ -517,17 +517,14 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		int spotArrayGlobalIndex = 0;
 		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
-			int spotPosition = 0;
 			List<Spot> spots = cage.getSpotList(allSpots);
 			for (Spot spot : spots) {
-				spot.getProperties().setCagePosition(spotPosition);
 				spot.getProperties().setCageID(cage.getProperties().getCageID());
 				spot.getProperties().setSpotArrayIndex(spotArrayGlobalIndex);
 				spot.getSum().setValues(new double[nFrames]);
 				spot.getSumClean().setValues(new double[nFrames]);
 				spot.getFlyPresent().setIsPresent(new int[nFrames]);
 				spotArrayGlobalIndex++;
-				spotPosition++;
 			}
 		}
 	}

@@ -19,6 +19,7 @@ import org.w3c.dom.Node;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
@@ -121,6 +122,17 @@ public class Spots {
 				return true;
 		}
 		return false;
+	}
+
+	public Spot findSpotwithID(SpotID spotID) {
+		if (spotID == null) {
+			return null;
+		}
+
+		return spotList.stream()
+				.filter(spot -> spot.getSpotID().equals(spotID))
+				.findFirst()
+				.orElse(null);
 	}
 
 	// === DATA LOADING ===

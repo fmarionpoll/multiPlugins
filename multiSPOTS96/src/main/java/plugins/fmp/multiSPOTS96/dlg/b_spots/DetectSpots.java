@@ -3,7 +3,6 @@ package plugins.fmp.multiSPOTS96.dlg.b_spots;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -16,9 +15,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -39,7 +36,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.experiment.spots.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.DetectSpotsOutline;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
@@ -216,7 +212,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int diameter = (int) spotDiameterSpinner.getValue();
-					convertBlobsToSpots(exp, diameter);
+					convertBlobsToCircles(exp, diameter);
 				}
 			}
 		});
@@ -316,8 +312,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		options.detectFlies = false;
 
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
-//		options.binSubDirectory = exp.getBinSubDirectory();
-
 		options.fromFrame = exp.getSeqCamData().getCurrentFrame();
 
 		options.transformop = (ImageTransformEnums) spotsTransformsComboBox.getSelectedItem();
@@ -398,8 +392,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				for (Spot spot : cageSpots) {
 					if (name.equals(spot.getRoi().getName())) {
 						allSpots.removeSpot(spot);
-						cage.getSpotIDs().remove(
-								new SpotID(spot.getProperties().getCageID(), spot.getProperties().getCagePosition()));
+						cage.getSpotIDs().remove(spot.getSpotID());
 						break;
 					}
 				}
@@ -436,14 +429,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 						List<SpotID> spotIDs = cage.getSpotIDs();
 						if (!spotIDs.isEmpty()) {
 							SpotID lastID = spotIDs.get(spotIDs.size() - 1);
-							Spot newSpot = null;
-							for (Spot s : allSpots.getSpotList()) {
-								if (s.getProperties().getCageID() == lastID.getCageID()
-										&& s.getProperties().getCagePosition() == lastID.getPosition()) {
-									newSpot = s;
-									break;
-								}
-							}
+							Spot newSpot = allSpots.findSpotwithID(lastID);
 							if (newSpot != null) {
 								exp.getSeqCamData().getSequence().addROI(newSpot.getRoi());
 							}
@@ -456,143 +442,46 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		exp.saveSpotsArray_file();
 	}
 
-	void convertBlobsToSpots(Experiment exp, int diameter) {
-		Spots allSpots = exp.getSpots();
+	void convertBlobsToCircles(Experiment exp, int diameter) {
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
-
-		Set<Integer> selectedCageIDs = null;
-		if (bOnlySelectedCages) {
-			selectedCageIDs = new HashSet<>();
-			for (Cage cage : exp.getCages().cagesList) {
-				if (cage.getRoi().isSelected()) {
-					selectedCageIDs.add(cage.getProperties().getCageID());
-				}
-			}
-		}
-
-		List<ROI2D> spotROIList = new ArrayList<ROI2D>();
-
-		// Case 1: Spots already exist in collection
-		if (!allSpots.getSpotList().isEmpty()) {
-			// Remove existing spot ROIs only (by name matching)
-			List<ROI2D> existingSpotROIs = exp.getSeqCamData().findROIsMatchingNamePattern("spot");
-			for (ROI2D roi : existingSpotROIs) {
-				String roiName = roi.getName();
-				boolean isExistingSpot = false;
-				for (Spot spot : allSpots.getSpotList()) {
-					if (roiName != null && roiName.equals(spot.getRoi().getName())) {
-						isExistingSpot = true;
-						break;
-					}
-				}
-				if (isExistingSpot) {
-					exp.getSeqCamData().getSequence().removeROI(roi);
-				}
-			}
-
-			// Convert existing spots
-			for (Spot spot : allSpots.getSpotList()) {
-				if (bOnlySelectedCages && selectedCageIDs != null) {
-					int cageID = spot.getProperties().getCageID();
-					if (!selectedCageIDs.contains(cageID)) {
-						continue;
-					}
+		for (Cage cage : exp.getCages().cagesList) {
+			if (bOnlySelectedCages && !cage.getRoi().isSelected())
+				continue;
+			List<SpotID> spotIDList = cage.getSpotIDs();
+			for (SpotID spotID : spotIDList) {
+				Spot spot = exp.getSpots().findSpotwithID(spotID);
+				if (spot == null) {
+					continue;
 				}
 
 				ROI2D roiP = spot.getRoi();
-				Point center = roiP.getPosition();
+				if (roiP == null) {
+					continue;
+				}
 				Rectangle rect = roiP.getBounds();
-				center.x += rect.getWidth() / 2;
-				center.y += rect.getHeight() / 2;
+				if (rect == null) {
+					continue;
+				}
+
+				double centerX = rect.getCenterX();
+				double centerY = rect.getCenterY();
+				double radius = diameter / 2.0;
 
 				String name = spot.getRoi().getName();
-				Ellipse2D ellipse = new Ellipse2D.Double(center.x - diameter / 2, center.y - diameter / 2, diameter,
-						diameter);
+				Ellipse2D ellipse = new Ellipse2D.Double(centerX - radius, centerY - radius, diameter, diameter);
 				ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
 				roiEllipse.setName(name);
 				spot.setRoi(roiEllipse);
-				spotROIList.add(spot.getRoi());
 			}
-		} 
-		// Case 2: No spots exist, convert blob ROIs
-		else {
-			List<ROI2D> blobROIs = exp.getSeqCamData().findROIsMatchingNamePattern("spot");
-
-			for (ROI2D blobROI : blobROIs) {
-				String blobName = blobROI.getName();
-				if (blobName == null) {
-					continue;
-				}
-
-				// Find which cage this blob belongs to
-				int cageID = SpotString.getCageIDFromSpotName(blobName);
-				Cage cage = null;
-				
-				if (cageID >= 0) {
-					cage = exp.getCages().getCageFromID(cageID);
-				}
-				
-				// If no cageID in name, find cage using center point
-				if (cage == null) {
-					Rectangle rect = blobROI.getBounds();
-					double centerX = rect.getCenterX();
-					double centerY = rect.getCenterY();
-					
-					for (Cage c : exp.getCages().cagesList) {
-						if (c.getRoi().contains((int) centerX, (int) centerY)) {
-							cage = c;
-							break;
-						}
-					}
-				}
-
-				// Skip if no cage found or not in selected cages
-				if (cage == null) {
-					continue;
-				}
-
-				if (bOnlySelectedCages && selectedCageIDs != null) {
-					if (!selectedCageIDs.contains(cage.getProperties().getCageID())) {
-						continue;
-					}
-				}
-
-				// Calculate center and create ellipse
-				Rectangle rect = blobROI.getBounds();
-				double centerX = rect.getCenterX();
-				double centerY = rect.getCenterY();
-				Point2D.Double center = new Point2D.Double(centerX, centerY);
-				int radius = diameter / 2;
-
-				// Create ellipse spot (position is set automatically by addEllipseSpot)
-				cage.addEllipseSpot(center, radius, allSpots);
-
-				// Find the newly created spot and add to list
-				SpotID lastID = cage.getSpotIDs().get(cage.getSpotIDs().size() - 1);
-				for (Spot spot : allSpots.getSpotList()) {
-					if (spot.getProperties().getCageID() == lastID.getCageID()
-							&& spot.getProperties().getCagePosition() == lastID.getPosition()) {
-						spotROIList.add(spot.getRoi());
-						break;
-					}
-				}
-			}
-
-			// Remove blob ROIs after processing
-			exp.getSeqCamData().removeROIsContainingString("spot");
 		}
-
-		// Transfer all converted spots to sequence
-		if (!spotROIList.isEmpty()) {
-			exp.getSeqCamData().getSequence().addROIs(spotROIList, true);
-		}
-
+		exp.getSeqCamData().removeROIsContainingString("spot");
+		exp.getSpots().transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
 		exp.saveSpotsArray_file();
 	}
 
 	void changeSpotsDiameter(Experiment exp) {
 		int diameter = (int) spotDiameterSpinner.getValue();
-		convertBlobsToSpots(exp, diameter);
+		convertBlobsToCircles(exp, diameter);
 	}
 
 	private void cleanUpSpotNames(Experiment exp) {

@@ -37,6 +37,7 @@ public class SpotProperties {
 	private static final String ID_CONCENTRATION = "concentration";
 	private static final String ID_CAGEID = "cageID";
 	private static final String ID_CAGEPOSITION = "cagePosition";
+	private static final String ID_CAGEPOSITIONID = "cagePositionID";
 	private static final String ID_CAGECOLUMN = "cageColumn";
 	private static final String ID_CAGEROW = "cageRow";
 	private static final String ID_SPOTARRAYINDEX = "spotArrayIndex";
@@ -59,6 +60,8 @@ public class SpotProperties {
 	private int version;
 	private String name;
 	private int cageID;
+	private int cagePositionID = -1;
+	private boolean cagePositionIDLocked = false;
 	private int cagePosition;
 	private int cageRow;
 	private int cageColumn;
@@ -94,6 +97,7 @@ public class SpotProperties {
 		this.countAggregatedSpots = 1;
 		this.color = DEFAULT_COLOR;
 		this.cageID = -1;
+		this.cagePositionID = -1;
 		this.cagePosition = 0;
 		this.cageRow = -1;
 		this.cageColumn = -1;
@@ -127,6 +131,8 @@ public class SpotProperties {
 		this.version = source.version;
 		this.name = source.name;
 		this.cageID = source.cageID;
+		this.cagePositionID = source.cagePositionID;
+		this.cagePositionIDLocked = source.cagePositionIDLocked;
 		this.cagePosition = source.cagePosition;
 		this.cageRow = source.cageRow;
 		this.cageColumn = source.cageColumn;
@@ -157,7 +163,7 @@ public class SpotProperties {
 		}
 
 		return !Objects.equals(this.name, other.name) || this.cageID != other.cageID
-				|| this.cagePosition != other.cagePosition || this.cageRow != other.cageRow
+				|| this.cagePositionID != other.cagePositionID || this.cagePosition != other.cagePosition || this.cageRow != other.cageRow
 				|| this.cageColumn != other.cageColumn || this.spotArrayIndex != other.spotArrayIndex
 				|| !Objects.equals(this.color, other.color) || !Objects.equals(this.stimulus, other.stimulus)
 				|| !Objects.equals(this.concentration, other.concentration)
@@ -207,7 +213,35 @@ public class SpotProperties {
 	}
 
 	/**
-	 * Gets the cage position.
+	 * Gets the cage position ID (immutable, used for SpotID).
+	 * 
+	 * @return the cage position ID
+	 */
+	public int getCagePositionID() {
+		return cagePositionID;
+	}
+
+	/**
+	 * Sets the cage position ID. Once set to a valid value (>= 0), it becomes
+	 * immutable to preserve the relationship with SpotID.
+	 * 
+	 * @param cagePositionID the cage position ID
+	 * @throws IllegalStateException if trying to modify after position ID has been locked
+	 */
+	public void setCagePositionID(int cagePositionID) {
+		if (cagePositionIDLocked && this.cagePositionID != cagePositionID) {
+			throw new IllegalStateException(
+					"Cannot modify cagePositionID after it has been set. Current value: " + this.cagePositionID
+							+ ", attempted value: " + cagePositionID);
+		}
+		this.cagePositionID = cagePositionID;
+		if (cagePositionID >= 0) {
+			this.cagePositionIDLocked = true;
+		}
+	}
+
+	/**
+	 * Gets the cage position (flexible, used for display/sorting).
 	 * 
 	 * @return the cage position
 	 */
@@ -216,7 +250,7 @@ public class SpotProperties {
 	}
 
 	/**
-	 * Sets the cage position.
+	 * Sets the cage position (flexible, can be changed for display/sorting purposes).
 	 * 
 	 * @param cagePosition the cage position
 	 */
@@ -518,7 +552,7 @@ public class SpotProperties {
 	 * @return true if valid
 	 */
 	public boolean isValid() {
-		return name != null && !name.trim().isEmpty() && cageID >= -1 && cagePosition >= 0 && cageRow >= -1
+		return name != null && !name.trim().isEmpty() && cageID >= -1 && cagePositionID >= 0 && cagePosition >= 0 && cageRow >= -1
 				&& cageColumn >= -1 && spotArrayIndex >= -1 && color != null && stimulus != null
 				&& !stimulus.trim().isEmpty() && concentration != null && !concentration.trim().isEmpty()
 				&& stimulusI != null && !stimulusI.trim().isEmpty() && spotVolume > 0 && spotNPixels > 0
@@ -539,6 +573,10 @@ public class SpotProperties {
 
 		if (cageID < -1) {
 			errors.add("Cage ID must be >= -1");
+		}
+
+		if (cagePositionID < 0) {
+			errors.add("Cage position ID must be >= 0");
 		}
 
 		if (cagePosition < 0) {
@@ -640,6 +678,13 @@ public class SpotProperties {
 		try {
 			this.spotArrayIndex = XMLUtil.getElementIntValue(nodeParameters, ID_SPOTARRAYINDEX, spotArrayIndex);
 			this.cageID = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEID, cageID);
+			this.cagePositionID = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEPOSITIONID, cagePositionID);
+			if (this.cagePositionID < 0 && cagePosition >= 0) {
+				this.cagePositionID = cagePosition;
+			}
+			if (this.cagePositionID >= 0) {
+				this.cagePositionIDLocked = true;
+			}
 			this.cagePosition = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEPOSITION, cagePosition);
 			this.cageColumn = XMLUtil.getElementIntValue(nodeParameters, ID_CAGECOLUMN, cageColumn);
 			this.cageRow = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEROW, cageRow);
@@ -679,6 +724,7 @@ public class SpotProperties {
 		try {
 			XMLUtil.setElementIntValue(nodeParameters, ID_SPOTARRAYINDEX, spotArrayIndex);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEID, cageID);
+			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEPOSITIONID, cagePositionID);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEPOSITION, cagePosition);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGECOLUMN, cageColumn);
 			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEROW, cageRow);
@@ -728,6 +774,10 @@ public class SpotProperties {
 			}
 
 			this.cagePosition = Integer.parseInt(data[index++]);
+			this.cagePositionID = this.cagePosition;
+			if (this.cagePositionID >= 0) {
+				this.cagePositionIDLocked = true;
+			}
 
 			if (data.length >= 11) {
 				this.cageColumn = Integer.parseInt(data[index++]);
@@ -800,7 +850,7 @@ public class SpotProperties {
 		if (obj == null || getClass() != obj.getClass())
 			return false;
 		SpotProperties other = (SpotProperties) obj;
-		return Objects.equals(name, other.name) && cageID == other.cageID && cagePosition == other.cagePosition
+		return Objects.equals(name, other.name) && cageID == other.cageID && cagePositionID == other.cagePositionID && cagePosition == other.cagePosition
 				&& cageRow == other.cageRow && cageColumn == other.cageColumn && spotArrayIndex == other.spotArrayIndex
 				&& Objects.equals(color, other.color) && Objects.equals(stimulus, other.stimulus)
 				&& Objects.equals(concentration, other.concentration) && Objects.equals(stimulusI, other.stimulusI)
@@ -811,7 +861,7 @@ public class SpotProperties {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, cageID, cagePosition, cageRow, cageColumn, spotArrayIndex, color, stimulus,
+		return Objects.hash(name, cageID, cagePositionID, cagePosition, cageRow, cageColumn, spotArrayIndex, color, stimulus,
 				concentration, stimulusI, spotVolume, spotNPixels, spotRadius, spotXCoord, spotYCoord, descriptionOK,
 				versionInfos);
 	}
@@ -819,7 +869,7 @@ public class SpotProperties {
 	@Override
 	public String toString() {
 		return String.format(
-				"SpotProperties{name='%s', cageID=%d, position=%d, stimulus='%s', concentration='%s', volume=%.2f}",
-				name, cageID, cagePosition, stimulus, concentration, spotVolume);
+				"SpotProperties{name='%s', cageID=%d, positionID=%d, position=%d, stimulus='%s', concentration='%s', volume=%.2f}",
+				name, cageID, cagePositionID, cagePosition, stimulus, concentration, spotVolume);
 	}
 }
