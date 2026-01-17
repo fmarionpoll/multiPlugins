@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
+import icy.roi.ROI2D;
+import icy.sequence.Sequence;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -489,6 +491,31 @@ public class Spots {
 
 	public void transferMeasuresToLevel2D() {
 		spotList.forEach(Spot::transferMeasuresToLevel2D);
+	}
+
+	// === SEQUENCE OPERATIONS ===
+
+	public void transferSpotsToSequenceAsROIs(Sequence sequence) {
+		if (sequence == null || spotList.isEmpty()) {
+			return;
+		}
+		
+		List<ROI2D> spotROIList = new ArrayList<ROI2D>(spotList.size());
+		for (Spot spot : spotList) {
+			ROI2D roi = spot.getRoi();
+			if (roi != null) {
+				spotROIList.add(roi);
+			}
+		}
+		Collections.sort(spotROIList, (r1, r2) -> {
+			String name1 = r1.getName();
+			String name2 = r2.getName();
+			if (name1 == null && name2 == null) return 0;
+			if (name1 == null) return -1;
+			if (name2 == null) return 1;
+			return name1.compareTo(name2);
+		});
+		sequence.addROIs(spotROIList, true);
 	}
 
 	// === UTILITY OPERATIONS ===
