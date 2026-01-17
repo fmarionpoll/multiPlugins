@@ -147,11 +147,21 @@
 <key name="logView" value="true"/>
 </section>
 </section>
-<section name="plugins"/>
+<section name="plugins">
+<section name="fmp">
+<section name="multiSPOTS96">
+<section name="MultiSPOTS96">
+<section name="gui">
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\Bea multispot a analyser"/>
+</section>
+</section>
+</section>
+</section>
+</section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="1234"/>
-<key name="YE" value="50"/>
+<key name="XE" value="815"/>
+<key name="YE" value="258"/>
 <key name="WidthE" value="2186"/>
 <key name="HeightE" value="1292"/>
 <key name="MaximizedE" value="false"/>

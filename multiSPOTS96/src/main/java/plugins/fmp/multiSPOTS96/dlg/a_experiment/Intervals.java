@@ -138,6 +138,8 @@ public class Intervals extends JPanel implements ItemListener {
 				if (exp != null) {
 					long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
 					exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
+					exp.setCamImageBin_ms(bin_ms);
+					exp.setKymoBin_ms(bin_ms);
 					exp.getSeqCamData().getTimeManager()
 							.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
 					exp.getSeqCamData().getTimeManager().setBinLast_ms(
@@ -149,9 +151,10 @@ public class Intervals extends JPanel implements ItemListener {
 	}
 
 	private void setExperimentParameters(Experiment exp) {
-		exp.getSeqCamData().getTimeManager()
-				.setBinImage_ms((long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue()));
-		long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+		long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
+		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
+		exp.setCamImageBin_ms(bin_ms);
+		exp.setKymoBin_ms(bin_ms);
 		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage((long) indexFirstImageJSpinner.getValue());
 		exp.getSeqCamData().getTimeManager()
 				.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
@@ -161,7 +164,6 @@ public class Intervals extends JPanel implements ItemListener {
 		else
 			exp.getSeqCamData().getTimeManager()
 					.setBinLast_ms((exp.getSeqCamData().getImageLoader().getNTotalFrames() - 1) * bin_ms);
-		// tentative
 
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v != null)
@@ -183,9 +185,13 @@ public class Intervals extends JPanel implements ItemListener {
 
 	private void refreshBinSize(Experiment exp) {
 		exp.loadFileIntervalsFromSeqCamData();
+		long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+		if (bin_ms > 0) {
+			exp.setCamImageBin_ms(bin_ms);
+			exp.setKymoBin_ms(bin_ms);
+		}
 		binUnit.setSelectedIndex(1);
-		binSizeJSpinner
-				.setValue(exp.getSeqCamData().getTimeManager().getBinImage_ms() / (double) binUnit.getMsUnitValue());
+		binSizeJSpinner.setValue(bin_ms / (double) binUnit.getMsUnitValue());
 	}
 
 	@Override

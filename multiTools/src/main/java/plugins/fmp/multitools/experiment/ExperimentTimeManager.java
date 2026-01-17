@@ -39,6 +39,10 @@ public class ExperimentTimeManager {
 				else
 					camImageBin_ms = 0;
 
+				if (camImageBin_ms > 0) {
+					seqCamData.getTimeManager().setBinImage_ms(camImageBin_ms);
+				}
+
 				if (camImageBin_ms == 0)
 					Logger.warn("ExperimentTimeManager:loadFileIntervalsFromSeqCamData() error / file interval size");
 			} else {

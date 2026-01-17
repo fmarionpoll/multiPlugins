@@ -13,6 +13,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -106,7 +107,7 @@ public class SelectFilesPanel extends JPanel {
 		findButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				String pattern = (String) filterCombo.getSelectedItem();
+				String pattern = ((String) filterCombo.getSelectedItem()).toLowerCase();
 				boolean isFileName = rbFile.isSelected();
 				if (pattern.contains("grabs") || pattern.contains("cam"))
 					isFileName = false;
@@ -174,6 +175,41 @@ public class SelectFilesPanel extends JPanel {
 		return "";
 	}
 
+	private boolean isLegacyExperimentFile(Path path) {
+		String fileName = path.getFileName().toString().toLowerCase();
+		return fileName.equals("mcexperiment.xml") || fileName.equals("ms96_experiment.xml");
+	}
+
+	private boolean isNewFormatExperimentFile(Path path) {
+		String fileName = path.getFileName().toString().toLowerCase();
+		return fileName.equals("v2_experiment.xml");
+	}
+
+	private List<Path> deduplicateExperimentFiles(List<Path> files) {
+		if (files == null || files.isEmpty()) {
+			return files;
+		}
+
+		Map<Path, List<Path>> filesByDirectory = files.stream().collect(Collectors.groupingBy(Path::getParent));
+
+		List<Path> deduplicated = new ArrayList<>();
+		for (Map.Entry<Path, List<Path>> entry : filesByDirectory.entrySet()) {
+			List<Path> dirFiles = entry.getValue();
+			List<Path> newFormatFiles = dirFiles.stream().filter(this::isNewFormatExperimentFile)
+					.collect(Collectors.toList());
+			List<Path> legacyFiles = dirFiles.stream().filter(this::isLegacyExperimentFile)
+					.collect(Collectors.toList());
+
+			if (!newFormatFiles.isEmpty() && !legacyFiles.isEmpty()) {
+				deduplicated.addAll(newFormatFiles);
+			} else {
+				deduplicated.addAll(dirFiles);
+			}
+		}
+		deduplicated.sort((p1, p2) -> p1.toString().compareToIgnoreCase(p2.toString()));
+		return deduplicated;
+	}
+
 	private boolean getListofFilesMatchingFileNamePattern(String pattern, File directory) {
 		final String lastUsedPathString = directory.getAbsolutePath();
 		Path lastPath = Paths.get(lastUsedPathString);
@@ -181,11 +217,14 @@ public class SelectFilesPanel extends JPanel {
 		List<Path> result = null;
 		try (Stream<Path> walk = Files.walk(lastPath)) {
 			result = walk.filter(Files::isRegularFile) // is a file
-					.filter(p -> p.getFileName().toString().contains(pattern)).collect(Collectors.toList());
+					.filter(p -> p.getFileName().toString().toLowerCase().contains(pattern))
+					.collect(Collectors.toList());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
+		if (result != null && pattern.toLowerCase().contains("experiment")) {
+			result = deduplicateExperimentFiles(result);
+		}
 		boolean flag = false;
 		if (result != null && result.size() > 0) {
 			flag = true;

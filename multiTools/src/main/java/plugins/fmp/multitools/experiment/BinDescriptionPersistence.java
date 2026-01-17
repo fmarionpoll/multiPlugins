@@ -6,6 +6,7 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class BinDescriptionPersistence {
 
@@ -48,6 +49,31 @@ public class BinDescriptionPersistence {
 		if (binDirectory == null) {
 			return false;
 		}
+		// CRITICAL: Check if this is a default value that shouldn't be saved yet
+		// If binKymoColMs is 60000 (default), we should only save if directory name matches
+		// This prevents creating bin_60 directories prematurely during loading
+		long binKymoColMs = binDescription.getBinKymoColMs();
+		if (binKymoColMs == 60000) {
+			// Extract just the subdirectory name (e.g., "bin_60" from full path)
+			File binDirFile = new File(binDirectory);
+			String binSubDirName = binDirFile.getName();
+			// Check if directory name matches the value
+			// (e.g., bin_60 directory with 60000 value is OK, but bin_20 with 60000 is not)
+			if (binSubDirName.startsWith(Experiment.BIN)) {
+				String expectedBinValue = binSubDirName.substring(Experiment.BIN.length());
+				try {
+					long expectedMs = Long.parseLong(expectedBinValue) * 1000;
+					if (expectedMs != binKymoColMs) {
+						// Directory name doesn't match the value - likely a default that shouldn't be saved yet
+						// Don't create directory prematurely
+						return false;
+					}
+				} catch (NumberFormatException e) {
+					// Can't parse directory name - be conservative, don't save default
+					return false;
+				}
+			}
+		}
 		// Ensure directory exists
 		File dir = new File(binDirectory);
 		if (!dir.exists()) {
@@ -81,8 +107,10 @@ public class BinDescriptionPersistence {
 			binDescription.setLastKymoColMs(lastKymoColMs);
 		if (binKymoColMs >= 0)
 			binDescription.setBinKymoColMs(binKymoColMs);
-		else if (binDescription.getBinKymoColMs() <= 0)
-			binDescription.setBinKymoColMs(60000); // Default value
+		// Don't default to 60000 here - let the calling code decide the default
+		// This prevents creating bin_60 directories prematurely during migration
+		// else if (binDescription.getBinKymoColMs() <= 0)
+		//	binDescription.setBinKymoColMs(60000); // Default value
 
 		return true;
 	}

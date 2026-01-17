@@ -74,7 +74,7 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1768429296404"/>
+<key name="lastUpdateCheckTime" value="1768635688676"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
 </section>
@@ -135,7 +135,7 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1768460233512"/>
+<key name="lastUploadDate" value="1768635686323"/>
 </section>
 <section name="plugins">
 <section name="fmp">
@@ -152,12 +152,12 @@
 <section name="main">
 <key name="XE" value="80"/>
 <key name="YE" value="50"/>
-<key name="WidthE" value="3340"/>
+<key name="WidthE" value="1400"/>
 <key name="HeightE" value="1292"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="3032"/>
+<key name="XC" value="1092"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>

@@ -36,8 +36,6 @@ public class BuildKymosFromSpots extends BuildSeries {
 	}
 
 	private void saveComputation(Experiment exp) {
-//		if (options.doCreateBinDir)
-//			exp.setBinSubDirectory(exp.getBinNameFromKymoFrameStep());
 		String directory = exp.getDirectoryToSaveResults();
 		if (directory == null)
 			return;

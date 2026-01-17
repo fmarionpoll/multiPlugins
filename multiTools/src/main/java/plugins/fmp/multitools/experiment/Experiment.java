@@ -187,10 +187,32 @@ public class Experiment {
 	}
 
 	public long getKymoBin_ms() {
-		if (activeBinDescription != null && activeBinDescription.getBinKymoColMs() > 0) {
-			return activeBinDescription.getBinKymoColMs();
+		long timeManagerValue = timeManager.getKymoBin_ms();
+		long activeBinValue = (activeBinDescription != null && activeBinDescription.getBinKymoColMs() > 0)
+				? activeBinDescription.getBinKymoColMs() : 0;
+
+		// Generic checks to determine if timeManager has been explicitly set
+		// 1. Check if camImageBin_ms has been calculated (indicates refresh from files)
+		boolean intervalCalculated = timeManager.getCamImageBin_ms() >= 0;
+		// 2. Check if values differ (timeManager assumed more recent)
+		boolean valuesDiffer = timeManagerValue != activeBinValue && activeBinValue > 0;
+
+		// Prioritize timeManager if interval was calculated or if values differ
+		if (intervalCalculated || (valuesDiffer && timeManagerValue > 0)) {
+			// Sync activeBinDescription for consistency
+			if (activeBinDescription != null) {
+				activeBinDescription.setBinKymoColMs(timeManagerValue);
+			}
+			return timeManagerValue;
 		}
-		return timeManager.getKymoBin_ms();
+
+		// Fall back to activeBinDescription if it has a value
+		if (activeBinValue > 0) {
+			return activeBinValue;
+		}
+
+		// Default to timeManager value
+		return timeManagerValue;
 	}
 
 	public void setKymoBin_ms(long ms) {
@@ -604,7 +626,7 @@ public class Experiment {
 	}
 
 	public String getBinNameFromKymoFrameStep() {
-		return timeManager.getBinNameFromKymoFrameStep();
+		return Experiment.BIN + getKymoBin_ms() / 1000;
 	}
 
 	public long[] build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(long firstImage_ms) {
@@ -652,9 +674,20 @@ public class Experiment {
 	public boolean saveExperimentDescriptors() {
 		ExperimentPersistence persistence = new ExperimentPersistence();
 		boolean saved = persistence.saveExperimentDescriptors(this);
-		// Also save bin description if bin directory is set
-		if (saved && binDirectory != null) {
-			saveBinDescription();
+		// Also save bin description if interval has been calculated
+		// Update binDirectory to match calculated interval before saving
+		if (saved && this.timeManager.getCamImageBin_ms() >= 0) {
+			// Interval was calculated - ensure binDirectory matches the interval
+			long kymoBinMs = getKymoBin_ms();
+			if (kymoBinMs > 0) {
+				String expectedBinDir = getBinNameFromKymoFrameStep();
+				// Update binDirectory if it doesn't match the calculated interval
+				if (binDirectory == null || !binDirectory.equals(expectedBinDir)) {
+					setBinSubDirectory(expectedBinDir);
+				}
+				// Now save with correct directory name
+				saveBinDescription();
+			}
 		}
 		return saved;
 	}
@@ -753,11 +786,10 @@ public class Experiment {
 			long binLastMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
 			long binDurationMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
 
-			if (binDurationMs < 0)
-				binDurationMs = 60000; // Default value
-
-			// If bin parameters exist in old format, migrate them to bin directory
-			if (binFirstMs >= 0 || binLastMs >= 0 || binDurationMs >= 0) {
+			// Only migrate if binDurationMs was explicitly found in XML (>= 0)
+			// If binDurationMs is missing, skip migration entirely - let it be calculated from files later
+			// This prevents creating bin_60 with default value before interval is calculated
+			if (binDurationMs >= 0) {
 				// Determine target bin directory (use current binDirectory or default to
 				// bin_60)
 				String targetBinDir = binDirectory;
@@ -792,7 +824,10 @@ public class Experiment {
 				}
 			} else {
 				// No bin parameters in XML, try to load from current bin directory
-				if (binDirectory != null) {
+				// Only load if interval hasn't been calculated yet (need saved values)
+				// If interval was calculated, skip loading to avoid overwriting calculated values
+				// Use this.timeManager to access instance variable (local timeManager shadows it)
+				if (binDirectory != null && this.timeManager.getCamImageBin_ms() < 0) {
 					// Extract subdirectory name if binDirectory is a full path
 					String binSubDir = binDirectory;
 					File binDirFile = new File(binDirectory);
@@ -1574,9 +1609,27 @@ public class Experiment {
 	}
 
 	public void setBinSubDirectory(String bin) {
+		String oldBinDirectory = binDirectory;
 		binDirectory = bin;
 		if (bin != null) {
-			loadBinDescription(bin);
+			// Only load from existing directory if:
+			// 1. It's the same directory as before (just reloading), OR
+			// 2. Interval hasn't been calculated yet (we need to load saved values)
+			// If setting a new directory name after interval is calculated, don't load
+			// to avoid loading wrong values from existing directories
+			boolean shouldLoad = (bin.equals(oldBinDirectory)) 
+					|| (timeManager.getCamImageBin_ms() < 0);
+			if (shouldLoad) {
+				loadBinDescription(bin);
+			} else {
+				// Setting new directory after interval calculated - initialize from current values
+				if (activeBinDescription != null) {
+					activeBinDescription.setBinDirectory(bin);
+					activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
+					activeBinDescription.setFirstKymoColMs(timeManager.getKymoFirst_ms());
+					activeBinDescription.setLastKymoColMs(timeManager.getKymoLast_ms());
+				}
+			}
 		}
 	}
 
@@ -1602,12 +1655,27 @@ public class Experiment {
 			// Sync with TimeManager for backward compatibility
 			timeManager.setKymoFirst_ms(activeBinDescription.getFirstKymoColMs());
 			timeManager.setKymoLast_ms(activeBinDescription.getLastKymoColMs());
-			timeManager.setKymoBin_ms(activeBinDescription.getBinKymoColMs());
+			// Only sync kymoBin_ms if interval hasn't been calculated from files
+			// (camImageBin_ms < 0 means it wasn't calculated from file timestamps)
+			if (timeManager.getCamImageBin_ms() < 0) {
+				timeManager.setKymoBin_ms(activeBinDescription.getBinKymoColMs());
+			} else {
+				// Interval was calculated from files, sync activeBinDescription with timeManager instead
+				activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
+			}
 		} else {
 			// If loading failed, initialize from TimeManager (for backward compatibility)
 			activeBinDescription.setFirstKymoColMs(timeManager.getKymoFirst_ms());
 			activeBinDescription.setLastKymoColMs(timeManager.getKymoLast_ms());
-			activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
+			// Only set from TimeManager if interval has been calculated from files
+			// Don't use default 60000 if interval hasn't been calculated yet
+			// (camImageBin_ms < 0 means interval wasn't calculated from file timestamps)
+			if (timeManager.getCamImageBin_ms() >= 0) {
+				// Interval was calculated, safe to use kymoBin_ms
+				activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
+			}
+			// Otherwise, leave activeBinDescription.binKymoColMs at its default (60000)
+			// but this won't be saved unless interval is calculated (guard in saveBinDescription)
 			activeBinDescription.setBinDirectory(binSubDirectory);
 		}
 		return loaded;
@@ -1628,10 +1696,20 @@ public class Experiment {
 		if (binDirFile.isAbsolute()) {
 			binSubDirectory = binDirFile.getName();
 		}
+		// Get kymo bin value - only save if interval has been calculated or value is explicitly set
+		long kymoBinMs = getKymoBin_ms();
+		// Don't save with default 60000 if interval hasn't been calculated yet
+		// (camImageBin_ms < 0 means interval wasn't calculated from files)
+		if (timeManager.getCamImageBin_ms() < 0 && kymoBinMs == 60000 && 
+				timeManager.getKymoBin_ms() == 60000) {
+			// This is likely the default value, not a real value
+			// Don't save yet to avoid creating bin_60 prematurely
+			return false;
+		}
 		// Update activeBinDescription with current values before saving
 		activeBinDescription.setFirstKymoColMs(getKymoFirst_ms());
 		activeBinDescription.setLastKymoColMs(getKymoLast_ms());
-		activeBinDescription.setBinKymoColMs(getKymoBin_ms());
+		activeBinDescription.setBinKymoColMs(kymoBinMs);
 		activeBinDescription.setBinDirectory(binSubDirectory);
 
 		String binFullDir = resultsDirectory + File.separator + binSubDirectory;

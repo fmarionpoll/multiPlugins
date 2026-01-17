@@ -86,11 +86,10 @@ public class ExperimentPersistenceLegacy {
 			long lastKymoColMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
 			long binKymoColMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
 
-			if (binKymoColMs < 0)
-				binKymoColMs = 60000; // Default value
-
-			// If bin parameters exist in old format, migrate them to bin directory
-			if (firstKymoColMs >= 0 || lastKymoColMs >= 0 || binKymoColMs >= 0) {
+			// Only migrate if binKymoColMs was explicitly found in XML (>= 0)
+			// If binKymoColMs is missing, skip migration entirely - let it be calculated from files later
+			// This prevents creating bin_60 with default value before interval is calculated
+			if (binKymoColMs >= 0) {
 				// Determine target bin directory (use current binDirectory or default to bin_60)
 				String targetBinDir = exp.getBinSubDirectory();
 				if (targetBinDir != null) {
@@ -125,11 +124,15 @@ public class ExperimentPersistenceLegacy {
 				}
 			} else {
 				// No bin parameters in XML, try to load from current bin directory
-				String currentBinDir = exp.getBinSubDirectory();
-				if (currentBinDir != null) {
-					File binDirFile = new File(currentBinDir);
-					String binSubDir = binDirFile.isAbsolute() ? binDirFile.getName() : currentBinDir;
-					exp.loadBinDescription(binSubDir);
+				// Only load if interval hasn't been calculated yet (need saved values)
+				// If interval was calculated, skip loading to avoid overwriting calculated values
+				if (exp.getCamImageBin_ms() < 0) {
+					String currentBinDir = exp.getBinSubDirectory();
+					if (currentBinDir != null) {
+						File binDirFile = new File(currentBinDir);
+						String binSubDir = binDirFile.isAbsolute() ? binDirFile.getName() : currentBinDir;
+						exp.loadBinDescription(binSubDir);
+					}
 				}
 			}
 
