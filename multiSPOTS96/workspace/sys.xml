@@ -1,0 +1,36 @@
+<root description="System workspace" name="sys">
+<task name="Plugins">
+<band name="Setup"/>
+<band name="New"/>
+<band name="Others">
+<item classname="plugins.adufour.activecontours.ActiveContours" priority="low"/>
+<item classname="plugins.vannary.morphomaths.AnalyzeSkeleton" priority="low"/>
+<item classname="plugins.fmp.multitools.tools.imageTransform.transforms.ChessboardImage" priority="low"/>
+<item classname="plugins.vannary.morphomaths.blocks.ClosingBinary" priority="low"/>
+<item classname="plugins.adufour.connectedcomponents.ConnectedComponents" priority="low"/>
+<item classname="plugins.adufour.roi.Convexify" priority="low"/>
+<item classname="plugins.vannary.morphomaths.blocks.Dilation" priority="low"/>
+<item classname="plugins.vannary.morphomaths.blocks.DistanceMap" priority="low"/>
+<item classname="plugins.vannary.morphomaths.blocks.Erosion" priority="low"/>
+<item classname="plugins.adufour.morphology.FillHolesInROI" priority="low"/>
+<item classname="plugins.adufour.filtering.FilterToolbox" priority="low"/>
+<item classname="plugins.adufour.hierarchicalkmeans.HierarchicalKMeans" priority="low"/>
+<item classname="plugins.adufour.roi.LabelExtractor" priority="low"/>
+<item classname="plugins.nchenouard.linearprogrammingfullsimplex.LinearProgrammingICYPlugin" priority="low"/>
+<item classname="plugins.nherve.maskeditor.MaskEditor" priority="low"/>
+<item classname="plugins.vannary.morphomaths.MorphoMaths" priority="low"/>
+<item classname="plugins.fmp.multiSPOTS96.MultiSPOTS96" priority="low"/>
+<item classname="plugins.vannary.morphomaths.blocks.OpeningBinary" priority="low"/>
+<item classname="plugins.adufour.protocols.Protocols" priority="low"/>
+<item classname="plugins.adufour.roi.ROIMeasures" priority="low"/>
+<item classname="plugins.fab.ROIPool.ROIPool" priority="low"/>
+<item classname="plugins.adufour.roi.ROIStatistics" priority="low"/>
+<item classname="plugins.fab.ROITagger.ROITagger" priority="low"/>
+<item classname="plugins.fab.spotDetector.SpotDetector" priority="low"/>
+<item classname="plugins.nchenouard.particletracking.SpotTrackingPlugin" priority="low"/>
+<item classname="plugins.adufour.thresholder.Thresholder" priority="low"/>
+<item classname="plugins.fab.trackmanager.TrackManager" priority="low"/>
+<item classname="plugins.adufour.workbooks.Workbooks" priority="low"/>
+</band>
+</task>
+</root>
