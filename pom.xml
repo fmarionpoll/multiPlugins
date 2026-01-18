@@ -13,7 +13,7 @@
 
     <!-- Parent Project Information -->
     <groupId>plugins.fmp</groupId>
-    <artifactId>m_multiPlugins</artifactId>
+    <artifactId>multiPlugins</artifactId>
     <version>2.2.0</version>
     <packaging>pom</packaging>
 
@@ -51,12 +51,6 @@
         </developer>
     </developers>
 
-    <modules>
-        <module>m_multiTools</module>
-        <module>m_multiCAFE</module>
-        <module>m_multiSPOTS</module>
-        <module>m_multiSPOTS96</module>
-    </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -144,4 +138,10 @@
             <url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
         </repository>
     </repositories>
+    <modules>
+    	<module>multiCAFE</module>
+    	<module>multiSPOTS</module>
+    	<module>multiSPOTS96</module>
+    	<module>multiTools</module>
+    </modules>
 </project>

@@ -7,13 +7,13 @@
     <!-- Parent Project -->
     <parent>
         <groupId>plugins.fmp</groupId>
-        <artifactId>m_multiPlugins</artifactId>
+        <artifactId>multiPlugins</artifactId>
         <version>2.2.0</version>
-        <relativePath>../pom.xml</relativePath>
+        <relativePath>..</relativePath>
     </parent>
 
     <!-- Module Information -->
-    <artifactId>m_multiTools</artifactId>
+    <artifactId>multiTools</artifactId>
     <packaging>jar</packaging>
 
     <name>Multi Tools Shared Library</name>
