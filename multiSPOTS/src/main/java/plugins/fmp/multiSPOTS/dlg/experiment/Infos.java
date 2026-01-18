@@ -13,9 +13,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.tools.JComponents.JComboBoxModelSorted;
-import plugins.fmp.multiSPOTS.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxModelSorted;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 
 public class Infos extends JPanel {
 	/**

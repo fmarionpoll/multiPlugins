@@ -25,7 +25,29 @@ import plugins.fmp.multitools.experiment.ids.SpotID;
  */
 public class SpotProperties {
 
-	// === CONSTANTS ===
+	// === FIELDS ===
+	private int version;
+	private String name;
+	private int cageID;
+	private SpotID spotUniqueID = null;
+	private int cagePosition;
+	private int cageRow;
+	private int cageColumn;
+	private int spotArrayIndex;
+	private Color color;
+	private String stimulus;
+	private String concentration;
+	private String stimulusI;
+	private double spotVolume;
+	private int spotNPixels;
+	private int countAggregatedSpots;
+	private int spotRadius;
+	private int spotXCoord;
+	private int spotYCoord;
+	private boolean descriptionOK;
+	private int versionInfos;
+
+	// === XML CONSTANTS ===
 	private static final String IDS_SPOTPROPS = "spotProperties";
 	private static final String ID_DESCOK = "descriptionOK";
 	private static final String ID_VERSIONINFOS = "versionInfos";
@@ -56,28 +78,6 @@ public class SpotProperties {
 	private static final Color DEFAULT_COLOR = Color.GREEN;
 	private static final int DEFAULT_VERSION = 1;
 	private static final int DEFAULT_VERSION_INFOS = 0;
-
-	// === CORE FIELDS ===
-	private int version;
-	private String name;
-	private int cageID;
-	private SpotID spotUniqueID = null;
-	private int cagePosition;
-	private int cageRow;
-	private int cageColumn;
-	private int spotArrayIndex;
-	private Color color;
-	private String stimulus;
-	private String concentration;
-	private String stimulusI;
-	private double spotVolume;
-	private int spotNPixels;
-	private int countAggregatedSpots;
-	private int spotRadius;
-	private int spotXCoord;
-	private int spotYCoord;
-	private boolean descriptionOK;
-	private int versionInfos;
 
 	// === CONSTRUCTORS ===
 
@@ -161,9 +161,10 @@ public class SpotProperties {
 		}
 
 		return !Objects.equals(this.name, other.name) || this.cageID != other.cageID
-				|| !Objects.equals(this.spotUniqueID, other.spotUniqueID) || this.cagePosition != other.cagePosition || this.cageRow != other.cageRow
-				|| this.cageColumn != other.cageColumn || this.spotArrayIndex != other.spotArrayIndex
-				|| !Objects.equals(this.color, other.color) || !Objects.equals(this.stimulus, other.stimulus)
+				|| !Objects.equals(this.spotUniqueID, other.spotUniqueID) || this.cagePosition != other.cagePosition
+				|| this.cageRow != other.cageRow || this.cageColumn != other.cageColumn
+				|| this.spotArrayIndex != other.spotArrayIndex || !Objects.equals(this.color, other.color)
+				|| !Objects.equals(this.stimulus, other.stimulus)
 				|| !Objects.equals(this.concentration, other.concentration)
 				|| !Objects.equals(this.stimulusI, other.stimulusI)
 				|| Double.compare(this.spotVolume, other.spotVolume) != 0 || this.spotNPixels != other.spotNPixels
@@ -220,16 +221,16 @@ public class SpotProperties {
 	}
 
 	/**
-	 * Sets the unique spot ID. Once set, it becomes immutable to preserve spot identity.
+	 * Sets the unique spot ID. Once set, it becomes immutable to preserve spot
+	 * identity.
 	 * 
 	 * @param spotUniqueID the unique spot ID
 	 * @throws IllegalStateException if trying to modify after ID has been set
 	 */
 	public void setSpotUniqueID(SpotID spotUniqueID) {
 		if (this.spotUniqueID != null && !this.spotUniqueID.equals(spotUniqueID)) {
-			throw new IllegalStateException(
-					"Cannot modify spotUniqueID after it has been set. Current value: " + this.spotUniqueID
-							+ ", attempted value: " + spotUniqueID);
+			throw new IllegalStateException("Cannot modify spotUniqueID after it has been set. Current value: "
+					+ this.spotUniqueID + ", attempted value: " + spotUniqueID);
 		}
 		this.spotUniqueID = spotUniqueID;
 	}
@@ -244,7 +245,8 @@ public class SpotProperties {
 	}
 
 	/**
-	 * Sets the cage position (flexible, can be changed for display/sorting purposes).
+	 * Sets the cage position (flexible, can be changed for display/sorting
+	 * purposes).
 	 * 
 	 * @param cagePosition the cage position
 	 */
@@ -842,7 +844,8 @@ public class SpotProperties {
 		if (obj == null || getClass() != obj.getClass())
 			return false;
 		SpotProperties other = (SpotProperties) obj;
-		return Objects.equals(name, other.name) && cageID == other.cageID && Objects.equals(spotUniqueID, other.spotUniqueID) && cagePosition == other.cagePosition
+		return Objects.equals(name, other.name) && cageID == other.cageID
+				&& Objects.equals(spotUniqueID, other.spotUniqueID) && cagePosition == other.cagePosition
 				&& cageRow == other.cageRow && cageColumn == other.cageColumn && spotArrayIndex == other.spotArrayIndex
 				&& Objects.equals(color, other.color) && Objects.equals(stimulus, other.stimulus)
 				&& Objects.equals(concentration, other.concentration) && Objects.equals(stimulusI, other.stimulusI)
@@ -853,9 +856,9 @@ public class SpotProperties {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, cageID, spotUniqueID, cagePosition, cageRow, cageColumn, spotArrayIndex, color, stimulus,
-				concentration, stimulusI, spotVolume, spotNPixels, spotRadius, spotXCoord, spotYCoord, descriptionOK,
-				versionInfos);
+		return Objects.hash(name, cageID, spotUniqueID, cagePosition, cageRow, cageColumn, spotArrayIndex, color,
+				stimulus, concentration, stimulusI, spotVolume, spotNPixels, spotRadius, spotXCoord, spotYCoord,
+				descriptionOK, versionInfos);
 	}
 
 	@Override

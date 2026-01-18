@@ -19,11 +19,11 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS.tools.chart.ChartSpots;
-import plugins.fmp.multiSPOTS.tools.toExcel.EnumXLSExportType;
-import plugins.fmp.multiSPOTS.tools.toExcel.XLSExportOptions;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.chart.ChartSpots;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSExportType;
+import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
 
 public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 	/**

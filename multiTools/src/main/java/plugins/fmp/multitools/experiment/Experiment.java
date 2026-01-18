@@ -1982,7 +1982,7 @@ public class Experiment {
 				continue;
 			}
 
-			int nflies = cap.getProperties().nFlies;
+			int nflies = cap.getProperties().getNFlies();
 			int cageID = cap.getCageID();
 			Cage cage = cages.getCageFromID(cageID);
 			if (cage == null) {

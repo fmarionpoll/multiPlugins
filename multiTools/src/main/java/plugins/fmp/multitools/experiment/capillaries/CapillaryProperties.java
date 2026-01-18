@@ -13,17 +13,17 @@ public class CapillaryProperties {
 
 	// === FIELDS ===
 
-	public String stimulus = "..";
-	public String concentration = "..";
-	public String side = ".";
-	public int nFlies = 1;
-	public int cageID = 0;
-	public double volume = 5.;
-	public int pixels = 5;
-	public boolean descriptionOK = false;
-	public boolean valid = true;
-	public int versionInfos = 0;
-	public BuildSeriesOptions limitsOptions = new BuildSeriesOptions();
+	private String stimulus = "..";
+	private String concentration = "..";
+	private String side = ".";
+	private int nFlies = 1;
+	private int cageID = 0;
+	private double volume = 5.;
+	private int pixels = 5;
+	private boolean descriptionOK = false;
+	private boolean valid = true;
+	private int versionInfos = 0;
+	private BuildSeriesOptions limitsOptions = new BuildSeriesOptions();
 
 	// === XML CONSTANTS ===
 
@@ -126,9 +126,6 @@ public class CapillaryProperties {
 	}
 
 	// === GETTERS/SETTERS ===
-	// (Keeping fields public for now as per plan implies refactoring accessors
-	// later,
-	// but creating this class first. I will add getters/setters for future use.)
 
 	public String getStimulus() {
 		return stimulus;
@@ -200,6 +197,14 @@ public class CapillaryProperties {
 
 	public void setVersionInfos(int versionInfos) {
 		this.versionInfos = versionInfos;
+	}
+
+	public boolean getValid() {
+		return valid;
+	}
+
+	public void setValid(boolean valid) {
+		this.valid = valid;
 	}
 
 	public BuildSeriesOptions getLimitsOptions() {

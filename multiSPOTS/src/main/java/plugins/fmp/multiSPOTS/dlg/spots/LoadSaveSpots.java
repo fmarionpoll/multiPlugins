@@ -13,7 +13,7 @@ import javax.swing.SwingConstants;
 
 import icy.gui.util.FontUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class LoadSaveSpots extends JPanel {
 	/**

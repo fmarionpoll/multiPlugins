@@ -17,8 +17,8 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.Cage;
 
 public class Infos extends JPanel {
 	/**

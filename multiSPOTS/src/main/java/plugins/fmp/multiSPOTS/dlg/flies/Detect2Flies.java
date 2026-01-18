@@ -25,14 +25,14 @@ import javax.swing.event.PopupMenuListener;
 import icy.image.IcyBufferedImageUtil;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.SequenceCamData;
-import plugins.fmp.multiSPOTS.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.cages.Cage;
 import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
 import plugins.fmp.multiSPOTS.series.FlyDetect2;
-import plugins.fmp.multiSPOTS.tools.canvas2D.Canvas2D_2Transforms;
-import plugins.fmp.multiSPOTS.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multiSPOTS.tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.tools.canvas2D.Canvas2D_2Transforms;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect2Flies extends JPanel implements ChangeListener, PropertyChangeListener, PopupMenuListener {
 	private static final long serialVersionUID = -5257698990389571518L;

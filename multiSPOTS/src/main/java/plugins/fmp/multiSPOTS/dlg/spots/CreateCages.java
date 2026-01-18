@@ -23,13 +23,13 @@ import icy.gui.frame.progress.AnnounceFrame;
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.ExperimentUtils;
-import plugins.fmp.multiSPOTS.experiment.SequenceCamData;
-import plugins.fmp.multiSPOTS.experiment.cages.Cage;
-import plugins.fmp.multiSPOTS.experiment.cages.CagesArray;
-import plugins.fmp.multiSPOTS.tools.ROI2D.ROIUtilities;
-import plugins.fmp.multiSPOTS.tools.polyline.PolygonUtilities;
+import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.Cages;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.tools.polyline.PolygonUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class CreateCages extends JPanel {
@@ -220,7 +220,7 @@ public class CreateCages extends JPanel {
 		// erase existing cages
 		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq), false);
 		exp.getCages().cagesList.clear();
-		exp.getCages() = new CagesArray();
+		exp.setCages(new Cages());
 		createCagesArray(exp, polygon2D, n_columns, n_rows, width_cage, width_interval);
 	}
 

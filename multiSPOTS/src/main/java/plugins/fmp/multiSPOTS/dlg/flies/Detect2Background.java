@@ -25,12 +25,12 @@ import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImageUtil;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.SequenceCamData;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multiSPOTS.series.BuildBackground;
 import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multiSPOTS.tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect2Background extends JPanel implements ChangeListener, PropertyChangeListener {
 	private static final long serialVersionUID = 1L;

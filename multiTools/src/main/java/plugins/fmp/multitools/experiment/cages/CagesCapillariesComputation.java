@@ -55,7 +55,7 @@ public class CagesCapillariesComputation {
 
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
-				if (cap.getProperties().nFlies == 0 && cap.getTopLevel() != null
+				if (cap.getProperties().getNFlies() == 0 && cap.getTopLevel() != null
 						&& cap.getTopLevel().polylineLevel != null && cap.getTopLevel().polylineLevel.npoints > 0) {
 					// Determine side from capSide or capillary name
 					String side = getCapillarySide(cap);
@@ -126,8 +126,8 @@ public class CagesCapillariesComputation {
 	// Helper methods for capillary computation
 
 	private String getCapillarySide(Capillary cap) {
-		if (cap.getProperties().side != null && !cap.getProperties().side.equals("."))
-			return cap.getProperties().side;
+		if (cap.getProperties().getSide() != null && !cap.getProperties().getSide().equals("."))
+			return cap.getProperties().getSide();
 		// Try to get from name
 		String name = cap.getRoiName();
 		if (name != null) {

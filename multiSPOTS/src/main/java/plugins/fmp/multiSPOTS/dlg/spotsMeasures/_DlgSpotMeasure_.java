@@ -15,7 +15,7 @@ import javax.swing.event.ChangeListener;
 
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, ChangeListener {
 	/**

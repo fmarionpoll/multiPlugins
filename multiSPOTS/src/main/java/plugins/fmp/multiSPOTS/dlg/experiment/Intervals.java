@@ -21,9 +21,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.ExperimentDirectories;
-import plugins.fmp.multiSPOTS.tools.JComponents.JComboBoxMs;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class Intervals extends JPanel implements ItemListener {
 	/**

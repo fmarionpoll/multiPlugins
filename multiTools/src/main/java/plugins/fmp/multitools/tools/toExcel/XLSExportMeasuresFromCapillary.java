@@ -147,10 +147,10 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 
 				Results results = convertXYSeriesToResults(exp, cap, series, resultsOptions, resultType);
 				if (results != null) {
-			pt.y = 0;
-			pt = writeExperimentCapInfos(sheet, pt, exp, charSeries, cage, cap, resultType);
-			writeXLSResult(sheet, pt, results);
-			pt.x++;
+					pt.y = 0;
+					pt = writeExperimentCapInfos(sheet, pt, exp, charSeries, cage, cap, resultType);
+					writeXLSResult(sheet, pt, results);
+					pt.x++;
 				}
 			}
 		}
@@ -158,12 +158,12 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 	}
 
 	/**
-	 * Finds the appropriate XYSeries for a given capillary based on the result type.
-	 * For LR types, maps L capillary to Sum series and R capillary to PI series.
-	 * For regular types, finds series matching the capillary side.
+	 * Finds the appropriate XYSeries for a given capillary based on the result
+	 * type. For LR types, maps L capillary to Sum series and R capillary to PI
+	 * series. For regular types, finds series matching the capillary side.
 	 * 
 	 * @param dataset    The XYSeriesCollection from the builder
-	 * @param exp       The experiment
+	 * @param exp        The experiment
 	 * @param cage       The cage containing the capillary
 	 * @param cap        The capillary to find series for
 	 * @param resultType The export result type
@@ -230,7 +230,8 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 	 * 
 	 * @param exp            The experiment
 	 * @param cap            The capillary
-	 * @param series         The XYSeries to convert (X values in minutes from start)
+	 * @param series         The XYSeries to convert (X values in minutes from
+	 *                       start)
 	 * @param resultsOptions The export options
 	 * @param resultType     The result type
 	 * @return A Results object with valuesOut array populated
@@ -254,7 +255,7 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
 
 		// Create Results object
-		ResultsCapillaries results = new ResultsCapillaries(cap.getKymographName(), cap.getProperties().nFlies,
+		ResultsCapillaries results = new ResultsCapillaries(cap.getKymographName(), cap.getProperties().getNFlies(),
 				cap.getCageID(), 0, resultType);
 		results.setStimulus(cap.getStimulus());
 		results.setConcentration(cap.getConcentration());

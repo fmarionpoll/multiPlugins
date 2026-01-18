@@ -13,9 +13,9 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.tools.JComponents.JComboBoxExperiment;
-import plugins.fmp.multiSPOTS.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperiment;
+import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
 
 public class Edit extends JPanel {
 	/**

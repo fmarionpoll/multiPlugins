@@ -264,8 +264,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		int nOutputFrames = getNOutputFrames(exp, resultsOptions);
 
 		// Create XLSResults with capillary properties
-		Results results = new Results(capillary.getRoiName(), capillary.getProperties().nFlies, capillary.getCageID(),
-				0, resultsOptions.resultType);
+		Results results = new Results(capillary.getRoiName(), capillary.getProperties().getNFlies(),
+				capillary.getCageID(), 0, resultsOptions.resultType);
 		results.setStimulus(capillary.getStimulus());
 		results.setConcentration(capillary.getConcentration());
 		results.initValuesOutArray(nOutputFrames, Double.NaN);
@@ -501,7 +501,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
 
 		// Create Results object
-		ResultsCapillaries results = new ResultsCapillaries(cap.getKymographName(), cap.getProperties().nFlies,
+		ResultsCapillaries results = new ResultsCapillaries(cap.getKymographName(), cap.getProperties().getNFlies(),
 				cap.getCageID(), 0, resultType);
 		results.setStimulus(cap.getStimulus());
 		results.setConcentration(cap.getConcentration());

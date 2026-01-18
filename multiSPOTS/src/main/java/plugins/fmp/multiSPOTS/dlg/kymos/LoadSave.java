@@ -24,10 +24,10 @@ import icy.image.IcyBufferedImage;
 import icy.system.thread.ThreadUtil;
 import loci.formats.FormatException;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.ImageFileDescriptor;
-import plugins.fmp.multiSPOTS.experiment.SequenceKymos;
-import plugins.fmp.multiSPOTS.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ImageFileDescriptor;
+import plugins.fmp.multitools.experiment.SequenceKymos;
+import plugins.fmp.multitools.experiment.spots.Spot;
 
 public class LoadSave extends JPanel {
 	/**

@@ -54,7 +54,8 @@ public class ResultsCapillaries extends Results {
 		} else {
 			// Side unclear, try first capillary as L, second as R
 			List<Capillary> caps = exp.getCages().getCageList().stream().filter(c -> c.getCageID() == cageID)
-					.findFirst().map(c -> c.getCapillaries(exp.getCapillaries())).orElse(java.util.Collections.emptyList());
+					.findFirst().map(c -> c.getCapillaries(exp.getCapillaries()))
+					.orElse(java.util.Collections.emptyList());
 
 			if (!caps.isEmpty() && caps.get(0) == capillary) {
 				measure = cageComp.getSumMeasure();
@@ -119,8 +120,8 @@ public class ResultsCapillaries extends Results {
 	 * Helper method to determine capillary side from capSide or name.
 	 */
 	private String getCapillarySide(Capillary cap) {
-		if (cap.getProperties().side != null && !cap.getProperties().side.equals("."))
-			return cap.getProperties().side;
+		if (cap.getProperties().getSide() != null && !cap.getProperties().getSide().equals("."))
+			return cap.getProperties().getSide();
 		// Try to get from name
 		String name = cap.getRoiName();
 		if (name != null) {

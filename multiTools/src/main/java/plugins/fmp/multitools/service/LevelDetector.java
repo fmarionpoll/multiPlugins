@@ -60,7 +60,7 @@ public class LevelDetector {
 
 			capi.getDerivative().clear();
 			capi.getGulps().clear();
-			capi.getProperties().limitsOptions.copyFrom(options);
+			capi.getProperties().getLimitsOptions().copyFrom(options);
 			final IcyBufferedImage rawImage = loader.imageIORead(fullPath);
 
 			futures.add(processor.submit(new Runnable() {

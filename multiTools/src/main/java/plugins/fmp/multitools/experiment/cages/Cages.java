@@ -458,7 +458,7 @@ public class Cages {
 			int cagenb = cage.getCageID();
 			for (Capillary cap : capList) {
 				if (cap.getCageID() == cagenb) {
-					cage.setCageNFlies(cap.getProperties().nFlies);
+					cage.setCageNFlies(cap.getProperties().getNFlies());
 					break;
 				}
 			}
@@ -471,7 +471,7 @@ public class Cages {
 			for (Capillary cap : capList) {
 				if (cap.getCageID() != cageIndex)
 					continue;
-				cap.getProperties().nFlies = cage.getCageNFlies();
+				cap.getProperties().setNFlies(cage.getCageNFlies());
 			}
 		}
 	}

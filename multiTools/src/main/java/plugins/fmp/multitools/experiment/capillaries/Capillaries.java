@@ -130,7 +130,7 @@ public class Capillaries {
 
 		String name = cap.getRoiName();
 		String letter = name.substring(name.length() - 1);
-		cap.getProperties().side = letter;
+		cap.getProperties().setSide(letter);
 		if (letter.equals("R")) {
 			String nameL = name.substring(0, name.length() - 1) + "L";
 			Capillary cap0 = getCapillaryFromRoiName(nameL);
@@ -196,7 +196,7 @@ public class Capillaries {
 		// Do NOT create new capillaries from ROIs - capillaries should come from saved
 		// data
 		for (Capillary cap : getList()) {
-			cap.getProperties().valid = false;
+			cap.getProperties().setValid(false);
 			String capName = Capillary.replace_LR_with_12(cap.getRoiName());
 			Iterator<ROI2D> iterator = listROISCap.iterator();
 			while (iterator.hasNext()) {
@@ -204,7 +204,7 @@ public class Capillaries {
 				String roiName = Capillary.replace_LR_with_12(roi.getName());
 				if (roiName.equals(capName)) {
 					cap.setRoi((ROI2DShape) roi);
-					cap.getProperties().valid = true;
+					cap.getProperties().setValid(true);
 					iterator.remove();
 					break;
 				}
@@ -216,7 +216,7 @@ public class Capillaries {
 		Iterator<Capillary> iterator = getList().iterator();
 		while (iterator.hasNext()) {
 			Capillary cap = iterator.next();
-			if (!cap.getProperties().valid)
+			if (!cap.getProperties().getValid())
 				iterator.remove();
 		}
 
@@ -230,7 +230,8 @@ public class Capillaries {
 	}
 
 	public void transferCapillaryRoiToSequence(Sequence seq) {
-		// Remove only capillary ROIs (containing "line"), preserving cages and other ROIs
+		// Remove only capillary ROIs (containing "line"), preserving cages and other
+		// ROIs
 		List<ROI2D> allROIs = seq.getROI2Ds();
 		List<ROI2D> toRemove = new ArrayList<>();
 		for (ROI2D roi : allROIs) {
@@ -253,9 +254,9 @@ public class Capillaries {
 		int capArraySize = getList().size();
 		for (int i = 0; i < capArraySize; i++) {
 			Capillary cap = getList().get(i);
-			cap.getProperties().nFlies = nflies;
+			cap.getProperties().setNFlies(nflies);
 			if (optionZeroFlyFirstLastCapillary && (i <= 1 || i >= capArraySize - 2))
-				cap.getProperties().nFlies = 0;
+				cap.getProperties().setNFlies(0);
 			cap.setCageID(i / 2);
 		}
 	}
@@ -264,15 +265,15 @@ public class Capillaries {
 		int capArraySize = getList().size();
 		for (int i = 0; i < capArraySize; i++) {
 			Capillary cap = getList().get(i);
-			cap.getProperties().nFlies = 1;
+			cap.getProperties().setNFlies(1);
 			if (i <= 1) {
-				cap.getProperties().nFlies = 0;
+				cap.getProperties().setNFlies(0);
 				cap.setCageID(0);
 			} else if (i >= capArraySize - 2) {
-				cap.getProperties().nFlies = 0;
+				cap.getProperties().setNFlies(0);
 				cap.setCageID(5);
 			} else {
-				cap.getProperties().nFlies = nflies;
+				cap.getProperties().setNFlies(nflies);
 				cap.setCageID(1 + (i - 2) / 4);
 			}
 		}

@@ -221,10 +221,10 @@ public class InfosCapillaryTable extends JPanel {
 	}
 
 	private void storeCapillaryValues(Capillary sourceCapillary, Capillary destinationCapillary) {
-		destinationCapillary.getProperties().nFlies = sourceCapillary.getProperties().nFlies;
-		destinationCapillary.getProperties().volume = sourceCapillary.getProperties().volume;
+		destinationCapillary.getProperties().setNFlies(sourceCapillary.getProperties().getNFlies());
+		destinationCapillary.getProperties().setVolume(sourceCapillary.getProperties().getVolume());
 		destinationCapillary.setStimulus(sourceCapillary.getStimulus());
-		destinationCapillary.getProperties().concentration = sourceCapillary.getProperties().concentration;
+		destinationCapillary.getProperties().setConcentration(sourceCapillary.getProperties().getConcentration());
 		destinationCapillary.setSide(sourceCapillary.getSide());
 	}
 
@@ -257,11 +257,11 @@ public class InfosCapillaryTable extends JPanel {
 
 	private void pasteInfos(Experiment exp) {
 		for (Capillary capFrom : capillariesArrayCopy) {
-			capFrom.getProperties().valid = false;
+			capFrom.getProperties().setValid(false);
 			for (Capillary capTo : exp.getCapillaries().getList()) {
 				if (!capFrom.getRoiName().equals(capTo.getRoiName()))
 					continue;
-				capFrom.getProperties().valid = true;
+				capFrom.getProperties().setValid(true);
 				capTo.setCageID(capFrom.getCageID());
 				capTo.setNFlies(capFrom.getNFlies());
 				capTo.setVolume(capFrom.getVolume());
@@ -276,9 +276,9 @@ public class InfosCapillaryTable extends JPanel {
 		for (int i = 0; i < ncapillaries; i++) {
 			Capillary cap = exp.getCapillaries().getList().get(i);
 			if (i < 2 || i >= ncapillaries - 2) {
-				cap.getProperties().nFlies = 0;
+				cap.getProperties().setNFlies(0);
 			} else {
-				cap.getProperties().nFlies = 1;
+				cap.getProperties().setNFlies(1);
 			}
 		}
 	}

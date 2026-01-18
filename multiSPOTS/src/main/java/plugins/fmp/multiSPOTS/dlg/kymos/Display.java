@@ -31,14 +31,14 @@ import icy.roi.ROI;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.SequenceKymos;
-import plugins.fmp.multiSPOTS.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS.experiment.spots.SpotsArray;
-import plugins.fmp.multiSPOTS.tools.Directories;
-import plugins.fmp.multiSPOTS.tools.ViewerFMP;
-import plugins.fmp.multiSPOTS.tools.canvas2D.Canvas2D_2Transforms;
-import plugins.fmp.multiSPOTS.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.SequenceKymos;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.SpotsArray;
+import plugins.fmp.multitools.tools.Directories;
+import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.canvas2D.Canvas2D_2Transforms;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class Display extends JPanel implements ViewerListener {
 	/**

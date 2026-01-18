@@ -24,8 +24,8 @@ import icy.main.Icy;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.tools.ViewerFMP;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.ViewerFMP;
 
 public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeListener {
 	/**

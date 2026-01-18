@@ -24,9 +24,9 @@ import javax.swing.event.ChangeListener;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.series.DetectLevels;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
@@ -308,7 +308,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	}
 
 	void setDialogFromOptions(Capillary cap) {
-		BuildSeriesOptions options = cap.getProperties().limitsOptions;
+		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
 
 		pass1CheckBox.setSelected(options.pass1);
 		pass2CheckBox.setSelected(options.pass2);
@@ -331,7 +331,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	}
 
 	void setOptionsFromDialog(Capillary cap) {
-		BuildSeriesOptions options = cap.getProperties().limitsOptions;
+		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
 		options.pass1 = pass1CheckBox.isSelected();
 		options.pass2 = pass2CheckBox.isSelected();
 		options.transform01 = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();

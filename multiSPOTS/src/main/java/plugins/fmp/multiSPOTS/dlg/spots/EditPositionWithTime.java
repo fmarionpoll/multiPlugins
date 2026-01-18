@@ -28,11 +28,11 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS.tools.JComponents.TableModelSpotWithTime;
-import plugins.fmp.multiSPOTS.tools.ROI2D.ROI2DAlongT;
-import plugins.fmp.multiSPOTS.tools.ROI2D.Utilities;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.JComponents.TableModelSpotWithTime;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DAlongT;
+import plugins.fmp.multitools.tools.ROI2D.Utilities;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class EditPositionWithTime extends JPanel implements ListSelectionListener {

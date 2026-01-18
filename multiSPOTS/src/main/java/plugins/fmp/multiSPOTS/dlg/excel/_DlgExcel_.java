@@ -15,10 +15,10 @@ import javax.swing.JTabbedPane;
 import icy.gui.component.PopupPanel;
 import icy.system.thread.ThreadUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.tools.JComponents.Dialog;
-import plugins.fmp.multiSPOTS.tools.toExcel.XLSExportOptions;
-import plugins.fmp.multiSPOTS.tools.toExcel.XLSExportSpotMeasures;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.JComponents.Dialog;
+import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
+import plugins.fmp.multitools.tools.toExcel.XLSExportSpotMeasures;
 
 public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	/**

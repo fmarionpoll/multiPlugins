@@ -676,11 +676,11 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	public void setGulpsOptions(BuildSeriesOptions options) {
-		properties.limitsOptions = options;
+		properties.setLimitsOptions(options);
 	}
 
 	public BuildSeriesOptions getGulpsOptions() {
-		return properties.limitsOptions;
+		return properties.getLimitsOptions();
 	}
 
 	public void initGulps() {
@@ -691,9 +691,9 @@ public class Capillary implements Comparable<Capillary> {
 		int npoints = (measurements.ptsTop != null) ? measurements.ptsTop.getNPoints() : 0;
 		measurements.ptsGulps.ensureSize(npoints);
 
-		if (properties.limitsOptions.analyzePartOnly) {
-			int searchFromXFirst = (int) properties.limitsOptions.searchArea.getX();
-			int searchFromXLast = (int) properties.limitsOptions.searchArea.getWidth() + searchFromXFirst;
+		if (properties.getLimitsOptions().analyzePartOnly) {
+			int searchFromXFirst = (int) properties.getLimitsOptions().searchArea.getX();
+			int searchFromXLast = (int) properties.getLimitsOptions().searchArea.getWidth() + searchFromXFirst;
 			measurements.ptsGulps.removeGulpsWithinInterval(searchFromXFirst, searchFromXLast);
 		} else {
 			measurements.ptsGulps.clear();
@@ -711,12 +711,12 @@ public class Capillary implements Comparable<Capillary> {
 
 		int firstPixel = 1; // delta uses t-1
 		int lastPixel = npoints;
-		if (properties.limitsOptions.analyzePartOnly) {
-			firstPixel = (int) properties.limitsOptions.searchArea.getX();
-			lastPixel = (int) properties.limitsOptions.searchArea.getWidth() + firstPixel;
+		if (properties.getLimitsOptions().analyzePartOnly) {
+			firstPixel = (int) properties.getLimitsOptions().searchArea.getX();
+			lastPixel = (int) properties.getLimitsOptions().searchArea.getWidth() + firstPixel;
 
 		}
-		int threshold = (int) ((properties.limitsOptions.detectGulpsThreshold_uL / properties.getVolume())
+		int threshold = (int) ((properties.getLimitsOptions().detectGulpsThreshold_uL / properties.getVolume())
 				* properties.getPixels());
 
 		// First-pass detection:

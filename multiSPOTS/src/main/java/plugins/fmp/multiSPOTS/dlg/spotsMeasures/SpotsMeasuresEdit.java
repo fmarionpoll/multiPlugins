@@ -17,10 +17,10 @@ import javax.swing.SwingConstants;
 import icy.roi.ROI2D;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.SequenceKymos;
-import plugins.fmp.multiSPOTS.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS.experiment.spots.SpotMeasure;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.SequenceKymos;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.SpotMeasure;
 import plugins.fmp.multiSPOTS.series.BuildMedianFromSpotMeasure;
 import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
 

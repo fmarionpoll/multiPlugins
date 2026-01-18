@@ -20,9 +20,9 @@ import javax.swing.table.TableColumnModel;
 
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.Experiment;
-import plugins.fmp.multiSPOTS.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS.tools.JComponents.TableModelSpot;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.tools.JComponents.TableModelSpot;
 
 public class SpotTablePanel extends JPanel {
 	/**
