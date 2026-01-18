@@ -5,11 +5,11 @@ import java.awt.Point;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
-import plugins.fmp.multitools.experiment.spots.spot.Spot;
-import plugins.fmp.multitools.experiment.spots.spots.Spots;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;

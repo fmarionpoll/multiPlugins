@@ -2,7 +2,7 @@ package plugins.fmp.multitools.tools.chart;
 
 import org.jfree.chart.ChartPanel;
 
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.Cage;
 
 /**
  * Container class that pairs a chart panel with its associated cage. This class

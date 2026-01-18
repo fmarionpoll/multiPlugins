@@ -13,8 +13,8 @@ import icy.roi.BooleanMask2D;
 import icy.system.SystemUtil;
 import icy.system.thread.Processor;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cages.Cages;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.kernel.roi.roi2d.ROI2DArea;
 

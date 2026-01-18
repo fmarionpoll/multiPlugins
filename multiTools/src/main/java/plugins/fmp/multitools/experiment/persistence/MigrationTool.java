@@ -8,13 +8,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.capillaries.capillaries.Capillaries;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
 import plugins.fmp.multitools.experiment.ids.SpotID;
-import plugins.fmp.multitools.experiment.spots.spot.Spot;
-import plugins.fmp.multitools.experiment.spots.spots.Spots;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
 
 /**

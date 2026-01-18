@@ -16,9 +16,9 @@ import org.w3c.dom.Node;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
-import plugins.fmp.multitools.experiment.spots.spot.Spot;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class DescriptorsIO {

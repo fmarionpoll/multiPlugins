@@ -21,7 +21,7 @@ import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
 import loci.formats.FormatException;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;

@@ -2,8 +2,8 @@ package plugins.fmp.multitools.experiment;
 
 import java.util.ArrayList;
 
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cage.FlyPositions;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.FlyPositions;
 
 public class CombinedExperiment extends Experiment {
 	ArrayList<Experiment> experimentList = null;

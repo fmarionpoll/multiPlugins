@@ -10,11 +10,11 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cage.CageProperties;
-import plugins.fmp.multitools.experiment.capillaries.capillaries.Capillaries;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillaries.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;

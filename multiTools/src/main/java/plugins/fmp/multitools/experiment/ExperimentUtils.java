@@ -5,12 +5,12 @@ import java.util.List;
 
 import icy.roi.ROI;
 import icy.roi.ROI2D;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cages.Cages;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.ids.SpotID;
-import plugins.fmp.multitools.experiment.spots.spot.Spot;
-import plugins.fmp.multitools.experiment.spots.spot.SpotString;
-import plugins.fmp.multitools.experiment.spots.spots.Spots;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotString;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class ExperimentUtils {

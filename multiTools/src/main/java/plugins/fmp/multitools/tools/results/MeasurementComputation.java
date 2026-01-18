@@ -3,7 +3,7 @@ package plugins.fmp.multitools.tools.results;
 import java.util.ArrayList;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 
 /**
  * Functional interface for computing derived measurements from capillary data.

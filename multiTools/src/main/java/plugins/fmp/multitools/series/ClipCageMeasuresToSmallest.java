@@ -3,7 +3,7 @@ package plugins.fmp.multitools.series;
 import java.util.ArrayList;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 
 public class ClipCageMeasuresToSmallest extends BuildSeries {

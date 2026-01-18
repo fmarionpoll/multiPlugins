@@ -3,7 +3,7 @@ package plugins.fmp.multitools.tools.JComponents;
 import javax.swing.table.AbstractTableModel;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.Cage;
 
 public class CageTableModel extends AbstractTableModel {
 	/**

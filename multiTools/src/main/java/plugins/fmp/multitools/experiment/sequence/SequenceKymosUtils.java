@@ -5,8 +5,8 @@ import java.util.List;
 
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.capillaries.Capillaries;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 

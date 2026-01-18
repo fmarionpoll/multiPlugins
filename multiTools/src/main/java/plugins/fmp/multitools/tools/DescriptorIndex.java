@@ -14,9 +14,9 @@ import javax.swing.SwingWorker;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.LazyExperiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.spots.spot.Spot;
-import plugins.fmp.multitools.experiment.spots.spots.Spots;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 

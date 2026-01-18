@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 
 /**
  * Utility class for directory and file operations. This class provides various
