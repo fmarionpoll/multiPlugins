@@ -17,6 +17,7 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.cages.cages.EnumCageMeasures;
 import plugins.fmp.multitools.experiment.capillaries.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
@@ -119,8 +120,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		for (SpotID spotID : spotIDs) {
 			// Find spot by matching unique ID
 			for (Spot spot : allSpots.getSpotList()) {
-				if (spot.getSpotUniqueID() != null
-						&& spot.getSpotUniqueID().equals(spotID)) {
+				if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
 					result.add(spot);
 					break;
 				}

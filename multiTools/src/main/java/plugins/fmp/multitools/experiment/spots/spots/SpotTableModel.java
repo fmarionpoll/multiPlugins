@@ -5,6 +5,7 @@ import java.awt.Color;
 import javax.swing.table.AbstractTableModel;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class SpotTableModel extends AbstractTableModel {

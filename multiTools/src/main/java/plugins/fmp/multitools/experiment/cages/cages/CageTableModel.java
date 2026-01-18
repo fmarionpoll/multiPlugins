@@ -1,10 +1,11 @@
-package plugins.fmp.multitools.experiment.cages.cage;
+package plugins.fmp.multitools.experiment.cages.cages;
 
 import java.awt.Color;
 
 import javax.swing.table.AbstractTableModel;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class CageTableModel extends AbstractTableModel {

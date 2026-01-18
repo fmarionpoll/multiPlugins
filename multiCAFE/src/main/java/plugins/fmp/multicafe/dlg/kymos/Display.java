@@ -33,13 +33,13 @@ import icy.roi.ROI;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.ViewerFMP;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 
 public class Display extends JPanel implements ViewerListener {
 	/**
@@ -61,7 +61,7 @@ public class Display extends JPanel implements ViewerListener {
 
 	// Global window position - shared across all experiments
 	private static Rectangle globalKymographViewerBounds = null;
-	
+
 	// ComponentListener to track window position changes
 	private ComponentAdapter kymographViewerBoundsListener = null;
 
@@ -261,7 +261,7 @@ public class Display extends JPanel implements ViewerListener {
 				}
 				// Ensure listener is added (safe to call even if already added)
 				existingViewer.addListener(this);
-				
+
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(existingViewer);
 			}
@@ -338,11 +338,11 @@ public class Display extends JPanel implements ViewerListener {
 	private void addKymographViewerBoundsListener(Viewer viewer) {
 		// Remove existing listener if any
 		removeKymographViewerBoundsListener(viewer);
-		
+
 		if (viewer == null) {
 			return;
 		}
-		
+
 		// Create new listener to track window position changes
 		kymographViewerBoundsListener = new ComponentAdapter() {
 			@Override
@@ -361,7 +361,7 @@ public class Display extends JPanel implements ViewerListener {
 				}
 			}
 		};
-		
+
 		// Try to get the frame using reflection (Viewer likely has an internal frame)
 		try {
 			// Try to get the frame using reflection
@@ -374,7 +374,7 @@ public class Display extends JPanel implements ViewerListener {
 		} catch (Exception e) {
 			// Reflection failed, try alternative approach
 		}
-		
+
 		// Alternative: try to access frame through parent hierarchy
 		try {
 			// Viewer might extend IcyFrame or have a getParentFrame method
@@ -387,7 +387,7 @@ public class Display extends JPanel implements ViewerListener {
 		} catch (Exception e) {
 			// Method doesn't exist, continue
 		}
-		
+
 		// Note: If reflection fails, we'll save bounds in viewerChanged instead
 	}
 
@@ -395,7 +395,7 @@ public class Display extends JPanel implements ViewerListener {
 		if (kymographViewerBoundsListener == null || viewer == null) {
 			return;
 		}
-		
+
 		// Try to get the frame using reflection
 		try {
 			java.lang.reflect.Method getFrameMethod = viewer.getClass().getMethod("getFrame");
@@ -408,7 +408,7 @@ public class Display extends JPanel implements ViewerListener {
 		} catch (Exception e) {
 			// Reflection failed, try alternative approach
 		}
-		
+
 		// Alternative: try to access frame through parent hierarchy
 		try {
 			java.lang.reflect.Method getParentFrameMethod = viewer.getClass().getMethod("getParentFrame");
@@ -421,7 +421,7 @@ public class Display extends JPanel implements ViewerListener {
 		} catch (Exception e) {
 			// Method doesn't exist, continue
 		}
-		
+
 		kymographViewerBoundsListener = null;
 	}
 
@@ -481,7 +481,7 @@ public class Display extends JPanel implements ViewerListener {
 		if (v != null) {
 			// Preserve current viewer bounds before sequence update
 			savedBounds = v.getBounds();
-			
+
 			int icurrent = v.getPositionT();
 			if (icurrent != isel)
 				v.setPositionT(isel);
@@ -498,7 +498,7 @@ public class Display extends JPanel implements ViewerListener {
 			} else if (savedBounds != null) {
 				boundsToApply = savedBounds;
 			}
-			
+
 			if (boundsToApply != null) {
 				Rectangle currentBounds = v.getBounds();
 				// Only apply if bounds have changed (to avoid unnecessary updates)
@@ -539,9 +539,11 @@ public class Display extends JPanel implements ViewerListener {
 			String title = kymographsCombo.getItemAt(t) + "  :" + viewsCombo.getSelectedItem() + " s";
 			v.setTitle(title);
 		}
-		
-		// Fallback: save bounds whenever viewer changes (as backup if ComponentListener doesn't work)
-		// This ensures position is saved even if the ComponentListener attachment failed
+
+		// Fallback: save bounds whenever viewer changes (as backup if ComponentListener
+		// doesn't work)
+		// This ensures position is saved even if the ComponentListener attachment
+		// failed
 		Viewer v = event.getSource();
 		if (v != null && v.isVisible()) {
 			// Only save if this is the kymograph viewer for the current experiment

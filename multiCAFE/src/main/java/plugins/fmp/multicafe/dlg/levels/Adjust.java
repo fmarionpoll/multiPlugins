@@ -15,7 +15,7 @@ import javax.swing.JPanel;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.series.AdjustMeasuresToDimensions;
 import plugins.fmp.multitools.series.ClipCageMeasuresToSmallest;

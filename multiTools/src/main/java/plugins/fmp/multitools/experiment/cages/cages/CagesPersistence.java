@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.EnumCageMeasures;
 import plugins.fmp.multitools.tools.Logger;
 
 public class CagesPersistence {

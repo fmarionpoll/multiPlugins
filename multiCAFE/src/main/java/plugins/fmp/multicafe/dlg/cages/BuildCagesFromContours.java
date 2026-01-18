@@ -28,7 +28,7 @@ import icy.type.DataType;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;

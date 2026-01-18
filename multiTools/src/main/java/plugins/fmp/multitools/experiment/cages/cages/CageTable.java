@@ -1,4 +1,4 @@
-package plugins.fmp.multitools.experiment.cages.cage;
+package plugins.fmp.multitools.experiment.cages.cages;
 
 import java.awt.Color;
 import java.awt.Dimension;

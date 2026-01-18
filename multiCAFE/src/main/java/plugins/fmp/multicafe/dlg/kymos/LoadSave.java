@@ -26,7 +26,7 @@ import loci.formats.FormatException;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ImageFileDescriptor;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.service.KymographService;
@@ -149,8 +149,10 @@ public class LoadSave extends JPanel {
 			flag = new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, true);
 //			flag = seqKymos.loadImagesFromList(myList);
 			parent0.paneKymos.tabDisplay.transferCapillaryNamesToComboBox(exp);
-			// Don't transfer measures here - they will be transferred after loading in loadKymographsAndMeasures()
-			// Transferring here would happen before measures are loaded, potentially clearing existing measures
+			// Don't transfer measures here - they will be transferred after loading in
+			// loadKymographsAndMeasures()
+			// Transferring here would happen before measures are loaded, potentially
+			// clearing existing measures
 		} else
 			seqKymos.closeSequence();
 		return flag;

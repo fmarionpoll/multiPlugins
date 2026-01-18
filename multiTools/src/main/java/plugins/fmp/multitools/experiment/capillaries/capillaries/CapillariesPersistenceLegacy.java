@@ -19,6 +19,7 @@ import org.w3c.dom.NodeList;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -807,18 +808,18 @@ public class CapillariesPersistenceLegacy {
 								break;
 							case "TOPLEVEL_CORRECTED":
 								measuresLoaded = true;
-								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVEL, sep,
-										row.contains("xi"));
+								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVEL,
+										sep, row.contains("xi"));
 								break;
 							case "BOTTOMLEVEL":
 								measuresLoaded = true;
-								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.BOTTOMLEVEL, sep,
-										row.contains("xi"));
+								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.BOTTOMLEVEL,
+										sep, row.contains("xi"));
 								break;
 							case "TOPDERIVATIVE":
 								measuresLoaded = true;
-								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPDERIVATIVE,
-										sep, row.contains("xi"));
+								csvLoad_Capillaries_Measures(capillaries, csvReader,
+										EnumCapillaryMeasures.TOPDERIVATIVE, sep, row.contains("xi"));
 								break;
 							case "GULPS":
 							case "GULPS_CORRECTED":
@@ -848,14 +849,14 @@ public class CapillariesPersistenceLegacy {
 						return true;
 					}
 				} catch (Exception e) {
-					Logger.error(
-							"CapillariesPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV: " + e.getMessage(),
-							e);
+					Logger.error("CapillariesPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV: "
+							+ e.getMessage(), e);
 				}
 			}
 		}
 
-		// Priority 3: Try legacy CSV format (CapillariesMeasures.csv) in results directory (if not already loaded)
+		// Priority 3: Try legacy CSV format (CapillariesMeasures.csv) in results
+		// directory (if not already loaded)
 		String resultsDir = binDirectory;
 		if (binDirectory.contains(File.separator + "bin")) {
 			// Extract results directory from bin directory
@@ -938,7 +939,8 @@ public class CapillariesPersistenceLegacy {
 				}
 			} catch (Exception e) {
 				Logger.error(
-						"CapillariesPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV from results directory: " + e.getMessage(),
+						"CapillariesPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV from results directory: "
+								+ e.getMessage(),
 						e);
 			}
 		}

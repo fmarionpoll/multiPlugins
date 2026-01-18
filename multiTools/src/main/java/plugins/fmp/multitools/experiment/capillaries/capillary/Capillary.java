@@ -14,6 +14,7 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Level2D;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;

@@ -8,6 +8,7 @@ import org.w3c.dom.Node;
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.spots.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -73,19 +74,13 @@ public class SpotPersistence {
 	public static String csvExportSpotDescription(Spot spot, String sep) {
 		SpotProperties props = spot.getProperties();
 		StringBuilder sbf = new StringBuilder();
-		List<String> row = Arrays.asList(
-			props.getName() != null ? props.getName() : "",
-			String.valueOf(props.getSpotArrayIndex()),
-			String.valueOf(props.getCageID()),
-			String.valueOf(props.getCagePosition()),
-			String.valueOf(props.getCageColumn()),
-			String.valueOf(props.getCageRow()),
-			String.valueOf(props.getSpotVolume()),
-			String.valueOf(props.getSpotNPixels()),
-			String.valueOf(props.getSpotRadius()),
-			props.getStimulus() != null ? props.getStimulus().replace(",", ".") : "",
-			props.getConcentration() != null ? props.getConcentration().replace(",", ".") : ""
-		);
+		List<String> row = Arrays.asList(props.getName() != null ? props.getName() : "",
+				String.valueOf(props.getSpotArrayIndex()), String.valueOf(props.getCageID()),
+				String.valueOf(props.getCagePosition()), String.valueOf(props.getCageColumn()),
+				String.valueOf(props.getCageRow()), String.valueOf(props.getSpotVolume()),
+				String.valueOf(props.getSpotNPixels()), String.valueOf(props.getSpotRadius()),
+				props.getStimulus() != null ? props.getStimulus().replace(",", ".") : "",
+				props.getConcentration() != null ? props.getConcentration().replace(",", ".") : "");
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
 		return sbf.toString();
@@ -128,42 +123,42 @@ public class SpotPersistence {
 		if (data == null || data.length < 6) {
 			throw new IllegalArgumentException("CSV data must have at least 6 elements");
 		}
-		
+
 		SpotProperties props = spot.getProperties();
 		try {
 			int index = 0;
 			props.setName(data[index++]);
 			props.setSpotArrayIndex(Integer.parseInt(data[index++]));
 			props.setCageID(Integer.parseInt(data[index++]));
-			
+
 			if (props.getCageID() < 0) {
 				props.setCageID(SpotString.getCageIDFromSpotName(props.getName()));
 			}
-			
+
 			props.setCagePosition(Integer.parseInt(data[index++]));
-			
+
 			if (data.length >= 12) {
 				int spotUniqueIDValue = Integer.parseInt(data[index++]);
 				if (spotUniqueIDValue >= 0) {
 					props.setSpotUniqueID(new SpotID(spotUniqueIDValue));
 				}
 			}
-			
+
 			if (data.length >= 11) {
 				props.setCageColumn(Integer.parseInt(data[index++]));
 				props.setCageRow(Integer.parseInt(data[index++]));
 			}
-			
+
 			if (data.length == 10) {
 				Integer.parseInt(data[index++]); // dummy read for radius
 			}
-			
+
 			props.setSpotVolume(Double.parseDouble(data[index++]));
 			props.setSpotNPixels(Integer.parseInt(data[index++]));
 			props.setSpotRadius(Integer.parseInt(data[index++]));
 			props.setStimulus(data[index++]);
 			props.setConcentration(data[index++]);
-			
+
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Invalid numeric value in CSV data", e);
 		} catch (ArrayIndexOutOfBoundsException e) {

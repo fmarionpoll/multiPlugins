@@ -10,6 +10,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.spot.SpotPersistence;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
@@ -32,7 +34,7 @@ public class SpotsPersistenceLegacy {
 	 * Loads spot descriptions with fallback logic. Replicates original MultiCAFE0
 	 * behavior: checks for legacy CSV files (SpotsArray.csv or SpotsMeasures.csv).
 	 * 
-	 * @param spotsArray        The SpotsArray to populate
+	 * @param spotsArray       The SpotsArray to populate
 	 * @param resultsDirectory The results directory
 	 * @return true if successful
 	 */
@@ -70,16 +72,18 @@ public class SpotsPersistenceLegacy {
 							case "AREA_SUMCLEAN":
 							case "AREA_FLYPRESENT":
 								// Stop reading when we hit measures section
-								Logger.info("SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
-										+ ID_SPOTSARRAY_CSV);
+								Logger.info(
+										"SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
+												+ ID_SPOTSARRAY_CSV);
 								return descriptionLoaded || spotsLoaded;
 							default:
 								// Check if it's a measure type
 								EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
 								if (measure != null) {
 									// Stop reading when we hit measures section
-									Logger.info("SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
-											+ ID_SPOTSARRAY_CSV);
+									Logger.info(
+											"SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
+													+ ID_SPOTSARRAY_CSV);
 									return descriptionLoaded || spotsLoaded;
 								}
 								break;
@@ -119,9 +123,10 @@ public class SpotsPersistenceLegacy {
 
 	/**
 	 * Loads spot measures with fallback logic. Replicates original MultiCAFE0
-	 * behavior: checks for legacy CSV files (SpotsArrayMeasures.csv or SpotsMeasures.csv).
+	 * behavior: checks for legacy CSV files (SpotsArrayMeasures.csv or
+	 * SpotsMeasures.csv).
 	 * 
-	 * @param spotsArray    The SpotsArray to populate
+	 * @param spotsArray   The SpotsArray to populate
 	 * @param binDirectory The bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -155,8 +160,9 @@ public class SpotsPersistenceLegacy {
 						+ ID_SPOTSARRAYMEASURES_CSV);
 				return true;
 			} catch (Exception e) {
-				Logger.error("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV: "
-						+ e.getMessage(), e, true);
+				Logger.error(
+						"SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV: " + e.getMessage(),
+						e, true);
 			}
 		}
 
@@ -196,23 +202,26 @@ public class SpotsPersistenceLegacy {
 				}
 				return success;
 			} catch (Exception e) {
-				Logger.error("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Error loading combined CSV from results: "
-						+ e.getMessage(), e, true);
+				Logger.error(
+						"SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Error loading combined CSV from results: "
+								+ e.getMessage(),
+						e, true);
 			}
 		}
 
 		return false;
 	}
-	
+
 	// ========================================================================
 	// CSV Load/Save methods moved from Spots.java
 	// ========================================================================
-	
+
 	/**
-	 * Loads spot descriptions from CSV reader.
-	 * Previously csvLoadSpotsArray() in Spots.java.
+	 * Loads spot descriptions from CSV reader. Previously csvLoadSpotsArray() in
+	 * Spots.java.
 	 */
-	static String csvLoad_Spots_Description(Spots spots, BufferedReader reader, String csvSeparator) throws IOException {
+	static String csvLoad_Spots_Description(Spots spots, BufferedReader reader, String csvSeparator)
+			throws IOException {
 		String line = reader.readLine();
 		while ((line = reader.readLine()) != null) {
 			String[] data = line.split(csvSeparator);
@@ -230,12 +239,13 @@ public class SpotsPersistenceLegacy {
 		}
 		return null;
 	}
-	
+
 	/**
-	 * Loads spots array metadata from CSV reader.
-	 * Previously csvLoadSpotsDescription() in Spots.java.
+	 * Loads spots array metadata from CSV reader. Previously
+	 * csvLoadSpotsDescription() in Spots.java.
 	 */
-	static String csvLoad_SpotsArray_Metadata(Spots spots, BufferedReader reader, String csvSeparator) throws IOException {
+	static String csvLoad_SpotsArray_Metadata(Spots spots, BufferedReader reader, String csvSeparator)
+			throws IOException {
 		String line = reader.readLine();
 		String[] data = line.split(csvSeparator);
 		String motif = data[0].substring(0, Math.min(data[0].length(), 6));
@@ -252,13 +262,13 @@ public class SpotsPersistenceLegacy {
 		}
 		return null;
 	}
-	
+
 	/**
-	 * Loads spot measures from CSV reader.
-	 * Previously csvLoadSpotsMeasures() in Spots.java.
+	 * Loads spot measures from CSV reader. Previously csvLoadSpotsMeasures() in
+	 * Spots.java.
 	 */
-	static String csvLoad_Spots_Measures(Spots spots, BufferedReader reader, EnumSpotMeasures measureType, String csvSeparator)
-			throws IOException {
+	static String csvLoad_Spots_Measures(Spots spots, BufferedReader reader, EnumSpotMeasures measureType,
+			String csvSeparator) throws IOException {
 		String line = reader.readLine();
 		boolean y = true;
 		boolean x = line.contains("xi");
@@ -280,10 +290,10 @@ public class SpotsPersistenceLegacy {
 		}
 		return null;
 	}
-	
+
 	/**
-	 * Saves spots array section to CSV writer.
-	 * Previously csvSaveSpotsArraySection() in Spots.java.
+	 * Saves spots array section to CSV writer. Previously
+	 * csvSaveSpotsArraySection() in Spots.java.
 	 */
 	static boolean csvSave_DescriptionSection(Spots spots, FileWriter writer, String csvSeparator) throws IOException {
 		writer.write("#" + csvSeparator + "#\n");
@@ -304,12 +314,13 @@ public class SpotsPersistenceLegacy {
 
 		return true;
 	}
-	
+
 	/**
-	 * Saves spot measures section to CSV writer.
-	 * Previously csvSaveMeasuresSection() in Spots.java.
+	 * Saves spot measures section to CSV writer. Previously
+	 * csvSaveMeasuresSection() in Spots.java.
 	 */
-	static boolean csvSave_MeasuresSection(Spots spots, FileWriter writer, EnumSpotMeasures measureType, String csvSeparator) throws IOException {
+	static boolean csvSave_MeasuresSection(Spots spots, FileWriter writer, EnumSpotMeasures measureType,
+			String csvSeparator) throws IOException {
 		writer.write(SpotPersistence.csvExportMeasureSectionHeader(measureType, csvSeparator));
 
 		for (Spot spot : spots.getSpotList()) {

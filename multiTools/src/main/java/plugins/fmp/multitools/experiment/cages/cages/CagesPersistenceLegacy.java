@@ -12,7 +12,7 @@ import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cage.EnumCageMeasures;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPositions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 
@@ -750,8 +750,8 @@ public class CagesPersistenceLegacy {
 					return true;
 				}
 			} catch (Exception e) {
-				Logger.error("CagesPersistenceLegacy:loadDescriptionWithFallback() Error loading CSV: "
-						+ e.getMessage(), e);
+				Logger.error(
+						"CagesPersistenceLegacy:loadDescriptionWithFallback() Error loading CSV: " + e.getMessage(), e);
 			}
 		}
 
@@ -777,8 +777,7 @@ public class CagesPersistenceLegacy {
 		String pathToXml = resultsDirectory + File.separator + ID_MCDROSOTRACK_XML;
 		File xmlFile = new File(pathToXml);
 		if (xmlFile.isFile()) {
-			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying legacy XML format: "
-					+ pathToXml);
+			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying legacy XML format: " + pathToXml);
 			boolean loaded = xmlReadCagesFromFileNoQuestion(cages, pathToXml);
 			if (loaded) {
 				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy XML: "
@@ -832,8 +831,8 @@ public class CagesPersistenceLegacy {
 				}
 				csvReader.close();
 			} catch (Exception e) {
-				Logger.error("CagesPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV: "
-						+ e.getMessage(), e);
+				Logger.error("CagesPersistenceLegacy:loadMeasuresWithFallback() Error loading CSV: " + e.getMessage(),
+						e);
 			}
 		}
 
@@ -884,8 +883,7 @@ public class CagesPersistenceLegacy {
 		String pathToXml = resultsDir + File.separator + ID_MCDROSOTRACK_XML;
 		File xmlFile = new File(pathToXml);
 		if (xmlFile.isFile()) {
-			Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Trying legacy XML format: "
-					+ pathToXml);
+			Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Trying legacy XML format: " + pathToXml);
 			// Load fly positions from XML
 			boolean loaded = xmlLoadFlyPositionsFromXML(cages, pathToXml);
 			if (loaded) {

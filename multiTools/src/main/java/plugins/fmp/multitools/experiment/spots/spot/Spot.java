@@ -14,6 +14,7 @@ import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.spots.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;

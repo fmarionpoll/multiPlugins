@@ -6,11 +6,6 @@ import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
-import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
-import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
-
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -19,6 +14,10 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class EditCapillariesConditional extends JPanel {
 	private static final long serialVersionUID = 1L;
@@ -415,7 +414,7 @@ public class EditCapillariesConditional extends JPanel {
 		long startTime = System.currentTimeMillis();
 		long pollIntervalMs = 100; // Check every 100ms
 
-			Logger.info("Waiting for save operation to complete for experiment [" + expIndex + "]: " + exp.toString());
+		Logger.info("Waiting for save operation to complete for experiment [" + expIndex + "]: " + exp.toString());
 
 		while (exp.isSaving() && (System.currentTimeMillis() - startTime) < timeoutMs) {
 			try {

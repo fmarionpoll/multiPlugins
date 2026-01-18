@@ -8,6 +8,7 @@ import java.util.List;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.capillaries.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 
@@ -192,20 +193,21 @@ public class CapillaryPersistence {
 		}
 
 		// Build base row data
-		List<String> row = new ArrayList<>(Arrays.asList(capPrefix, Integer.toString(cap.getKymographIndex()), cap.getKymographName(),
-				cap.getKymographFileName(), Integer.toString(props.getCageID()), Integer.toString(props.getNFlies()),
-				Double.toString(props.getVolume()), Integer.toString(props.getPixels()), props.getStimulus(),
-				props.getConcentration(), props.getSide()));
-		
+		List<String> row = new ArrayList<>(Arrays.asList(capPrefix, Integer.toString(cap.getKymographIndex()),
+				cap.getKymographName(), cap.getKymographFileName(), Integer.toString(props.getCageID()),
+				Integer.toString(props.getNFlies()), Double.toString(props.getVolume()),
+				Integer.toString(props.getPixels()), props.getStimulus(), props.getConcentration(), props.getSide()));
+
 		// Add ROI name and points (similar to cages format)
 		String roiName = (cap.getRoi() != null && cap.getRoi().getName() != null) ? cap.getRoi().getName() : "";
 		row.add(roiName);
-		
+
 		// Extract ROI points (for ROI2DPolyLine or ROI2DLine)
 		int npoints = 0;
 		if (cap.getRoi() != null) {
 			if (cap.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DPolyLine) {
-				plugins.kernel.roi.roi2d.ROI2DPolyLine polyLineRoi = (plugins.kernel.roi.roi2d.ROI2DPolyLine) cap.getRoi();
+				plugins.kernel.roi.roi2d.ROI2DPolyLine polyLineRoi = (plugins.kernel.roi.roi2d.ROI2DPolyLine) cap
+						.getRoi();
 				icy.type.geom.Polyline2D polyline = polyLineRoi.getPolyline2D();
 				npoints = polyline.npoints;
 				row.add(Integer.toString(npoints));
@@ -230,7 +232,7 @@ public class CapillaryPersistence {
 		} else {
 			row.add("0"); // No ROI
 		}
-		
+
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
 		return sbf.toString();
@@ -317,19 +319,19 @@ public class CapillaryPersistence {
 		i++;
 		props.setSide(data[i]);
 		i++;
-		
+
 		// Load ROI information if present (new format with ROI coordinates)
 		if (i < data.length && data[i] != null && !data[i].isEmpty()) {
 			String roiName = data[i];
 			i++;
-			
+
 			// Read number of points
 			if (i < data.length) {
 				int npoints = 0;
 				try {
 					npoints = Integer.valueOf(data[i]);
 					i++;
-					
+
 					// Reconstruct ROI from coordinates if npoints > 0
 					if (npoints > 0 && i + (npoints * 2) <= data.length) {
 						if (npoints == 2) {
@@ -338,7 +340,7 @@ public class CapillaryPersistence {
 							int y1 = Integer.valueOf(data[i + 1]);
 							int x2 = Integer.valueOf(data[i + 2]);
 							int y2 = Integer.valueOf(data[i + 3]);
-							
+
 							java.awt.geom.Line2D line = new java.awt.geom.Line2D.Double(x1, y1, x2, y2);
 							plugins.kernel.roi.roi2d.ROI2DLine roiLine = new plugins.kernel.roi.roi2d.ROI2DLine(line);
 							roiLine.setName(roiName);
@@ -351,9 +353,10 @@ public class CapillaryPersistence {
 								xpoints[j] = Integer.valueOf(data[i + j * 2]);
 								ypoints[j] = Integer.valueOf(data[i + j * 2 + 1]);
 							}
-							
+
 							icy.type.geom.Polyline2D polyline = new icy.type.geom.Polyline2D(xpoints, ypoints, npoints);
-							plugins.kernel.roi.roi2d.ROI2DPolyLine roiPolyline = new plugins.kernel.roi.roi2d.ROI2DPolyLine(polyline);
+							plugins.kernel.roi.roi2d.ROI2DPolyLine roiPolyline = new plugins.kernel.roi.roi2d.ROI2DPolyLine(
+									polyline);
 							roiPolyline.setName(roiName);
 							cap.setRoi(roiPolyline);
 						}
