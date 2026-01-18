@@ -25,7 +25,7 @@ import javax.swing.event.PopupMenuListener;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.series.FlyDetect2;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;

@@ -21,7 +21,7 @@ import javax.swing.table.TableColumnModel;
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.JComponents.CapillaryTableModel;
 
 public class InfosCapillaryTable extends JPanel {

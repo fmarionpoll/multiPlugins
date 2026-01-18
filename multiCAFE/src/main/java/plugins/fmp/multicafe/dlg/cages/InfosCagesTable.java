@@ -18,8 +18,8 @@ import javax.swing.table.TableColumnModel;
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.tools.JComponents.CageTableModel;
 
 public class InfosCagesTable extends JPanel {
