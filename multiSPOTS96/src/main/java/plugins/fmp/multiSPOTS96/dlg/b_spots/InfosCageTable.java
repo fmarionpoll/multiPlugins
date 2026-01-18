@@ -24,9 +24,9 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.cages.cage.CageTable;
+import plugins.fmp.multitools.experiment.cages.cages.CageTable;
 import plugins.fmp.multitools.experiment.cages.cages.Cages;
-import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.experiment.spots.spots.Spots;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class InfosCageTable extends JPanel implements ListSelectionListener {

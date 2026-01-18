@@ -23,12 +23,12 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
 import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.spots.Spots;
 import plugins.fmp.multitools.tools.ROI2D.GeometryException;
+import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DGrid;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DPolygonPlus;
-import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -152,13 +152,13 @@ public class CreateSpots extends JPanel {
 		for (Cage cage : exp.getCages().cagesList) {
 			ROI2D cageRoi = cage.getRoi();
 			ROI2DGrid cageGrid = createGrid(cageRoi);
-			
+
 			List<Spot> cageSpots = cage.getSpotList(allSpots);
 			for (Spot spot : cageSpots) {
 				allSpots.removeSpot(spot);
 			}
 			cage.getSpotIDs().clear();
-			
+
 			for (ROI2DPolygonPlus roi : listSelectedAreas) {
 				try {
 					ROI2DPolygonPlus roiP = cageGrid.getAreaAt(roi.getCagePosition());

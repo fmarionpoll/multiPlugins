@@ -22,8 +22,8 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.cage.CageString;
-import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
-import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
@@ -157,7 +157,8 @@ public class Charts extends JPanel implements SequenceListener {
 		exp.getSeqCamData().getSequence().addListener(this);
 	}
 
-	private ChartCagesFrame plotSpotMeasuresToChart(Experiment exp, EnumSpotMeasures exportType, ChartCagesFrame iChart) {
+	private ChartCagesFrame plotSpotMeasuresToChart(Experiment exp, EnumSpotMeasures exportType,
+			ChartCagesFrame iChart) {
 		if (iChart != null)
 			iChart.getMainChartFrame().dispose();
 
@@ -176,8 +177,8 @@ public class Charts extends JPanel implements SequenceListener {
 		}
 
 		EnumResults resultType = convertSpotMeasureToResult(exportType);
-		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000)
-				.withResultType(resultType).withCageRange(first, last).build();
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(resultType)
+				.withCageRange(first, last).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected();
 
 		if (iChart == null) {
