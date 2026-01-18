@@ -22,11 +22,11 @@ import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.spots.spot.Spot;
-import plugins.fmp.multitools.experiment.spots.spot.SpotProperties;
-import plugins.fmp.multitools.experiment.spots.spots.SpotTable;
-import plugins.fmp.multitools.experiment.spots.spots.Spots;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotProperties;
+import plugins.fmp.multitools.experiment.spots.SpotTable;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class InfosSpotTable extends JPanel implements ListSelectionListener {
