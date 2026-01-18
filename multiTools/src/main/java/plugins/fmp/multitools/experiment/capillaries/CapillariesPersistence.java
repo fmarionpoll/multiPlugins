@@ -92,8 +92,8 @@ public class CapillariesPersistence {
 		private static final String csvSep = ";";
 
 		/**
-		 * Loads capillary descriptions (DESCRIPTION section) from v2 format file.
-		 * If v2 format is not found, delegates to Legacy class for fallback handling.
+		 * Loads capillary descriptions (DESCRIPTION section) from v2 format file. If v2
+		 * format is not found, delegates to Legacy class for fallback handling.
 		 * 
 		 * @param capillaries      the Capillaries to populate
 		 * @param resultsDirectory the results directory
@@ -157,8 +157,8 @@ public class CapillariesPersistence {
 		}
 
 		/**
-		 * Loads capillary measures from v2 format file in bin directory.
-		 * If v2 format is not found, delegates to Legacy class for fallback handling.
+		 * Loads capillary measures from v2 format file in bin directory. If v2 format
+		 * is not found, delegates to Legacy class for fallback handling.
 		 * 
 		 * @param capillaries  the Capillaries to populate
 		 * @param binDirectory the bin directory (e.g., results/bin60)
@@ -203,13 +203,13 @@ public class CapillariesPersistence {
 						case "TOPLEVEL":
 						case "TOPRAW":
 							measuresLoaded = true;
-							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPRAW,
-									sep, row.contains("xi"));
+							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.TOPRAW, sep, row.contains("xi"));
 							break;
 						case "TOPLEVEL_CORRECTED":
 							measuresLoaded = true;
-							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVEL,
-									sep, row.contains("xi"));
+							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.TOPLEVEL, sep, row.contains("xi"));
 							break;
 						case "BOTTOMLEVEL":
 							measuresLoaded = true;
@@ -228,14 +228,14 @@ public class CapillariesPersistence {
 								break;
 							}
 							measuresLoaded = true;
-							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.GULPS,
-									sep, true);
+							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.GULPS, sep, true);
 							break;
 						case "GULPS_FLAT":
 							seenGulpsFlat = true;
 							measuresLoaded = true;
-							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.GULPS,
-									sep, true);
+							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.GULPS, sep, true);
 							break;
 						default:
 							break;
@@ -273,7 +273,8 @@ public class CapillariesPersistence {
 
 			try {
 				// Always save to v2_ format
-				FileWriter csvWriter = new FileWriter(resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV);
+				FileWriter csvWriter = new FileWriter(
+						resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV);
 				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
@@ -309,13 +310,17 @@ public class CapillariesPersistence {
 
 			try {
 				// Always save to v2_ format
-				FileWriter csvWriter = new FileWriter(
-						binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter, EnumCapillaryMeasures.TOPRAW, csvSep);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter, EnumCapillaryMeasures.TOPLEVEL, csvSep);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter, EnumCapillaryMeasures.BOTTOMLEVEL, csvSep);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter, EnumCapillaryMeasures.TOPDERIVATIVE, csvSep);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter, EnumCapillaryMeasures.GULPS, csvSep);
+				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
+				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
+						EnumCapillaryMeasures.TOPRAW, csvSep);
+				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
+						EnumCapillaryMeasures.TOPLEVEL, csvSep);
+				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
+						EnumCapillaryMeasures.BOTTOMLEVEL, csvSep);
+				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
+						EnumCapillaryMeasures.TOPDERIVATIVE, csvSep);
+				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
+						EnumCapillaryMeasures.GULPS, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
 				Logger.info("CapillariesPersistence:save_CapillariesArrayMeasures() Saved measures to "
@@ -328,7 +333,4 @@ public class CapillariesPersistence {
 		}
 	}
 
-	// ========================================================================
-	// Legacy format persistence has been moved to CapillariesPersistenceLegacy
-	// ========================================================================
 }

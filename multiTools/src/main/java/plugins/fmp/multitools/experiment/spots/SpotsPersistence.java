@@ -193,11 +193,11 @@ public class SpotsPersistence {
 							switch (data[1]) {
 							case "SPOTS_ARRAY":
 								descriptionLoaded = true;
-								spotsArray.csvLoadSpotsDescription(reader, sep);
+								SpotsPersistenceLegacy.csvLoad_SpotsArray_Metadata(spotsArray, reader, sep);
 								break;
 							case "SPOTS":
 								spotsLoaded = true;
-								spotsArray.csvLoadSpotsArray(reader, sep);
+								SpotsPersistenceLegacy.csvLoad_Spots_Description(spotsArray, reader, sep);
 								break;
 							case "AREA_SUM":
 							case "AREA_SUMCLEAN":
@@ -255,7 +255,7 @@ public class SpotsPersistence {
 							EnumSpotMeasures measure = 
 								EnumSpotMeasures.findByText(data[1]);
 							if (measure != null) {
-								spotsArray.csvLoadSpotsMeasures(reader, measure, sep);
+								SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
 						}
 					}
@@ -287,7 +287,7 @@ public class SpotsPersistence {
 			Path csvPath = Paths.get(resultsDirectory, ID_V2_SPOTSARRAY_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
 				// Save spots array section
-				if (!spotsArray.csvSaveSpotsArraySection(writer)) {
+				if (!SpotsPersistenceLegacy.csvSave_DescriptionSection(spotsArray, writer, ";")) {
 					return false;
 				}
 				Logger.info("SpotsArrayPersistence:saveSpotsArray() saved " + spotsArray.getSpotListCount()
@@ -319,10 +319,10 @@ public class SpotsPersistence {
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
 				// Save measures sections
-				if (!spotsArray.csvSaveMeasuresSection(writer, EnumSpotMeasures.AREA_SUM)) {
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUM, ";")) {
 					return false;
 				}
-				if (!spotsArray.csvSaveMeasuresSection(writer, EnumSpotMeasures.AREA_SUMCLEAN)) {
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUMCLEAN, ";")) {
 					return false;
 				}
 				Logger.info("SpotsArrayPersistence:save_SpotsArrayMeasures() saved measures to " + ID_V2_SPOTSARRAYMEASURES_CSV);

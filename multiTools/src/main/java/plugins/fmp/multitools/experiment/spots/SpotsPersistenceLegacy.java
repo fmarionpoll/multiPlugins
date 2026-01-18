@@ -3,10 +3,13 @@ package plugins.fmp.multitools.experiment.spots;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
@@ -57,11 +60,11 @@ public class SpotsPersistenceLegacy {
 							switch (data[1]) {
 							case "SPOTS_ARRAY":
 								descriptionLoaded = true;
-								spotsArray.csvLoadSpotsDescription(reader, sep);
+								csvLoad_SpotsArray_Metadata(spotsArray, reader, sep);
 								break;
 							case "SPOTS":
 								spotsLoaded = true;
-								spotsArray.csvLoadSpotsArray(reader, sep);
+								csvLoad_Spots_Description(spotsArray, reader, sep);
 								break;
 							case "AREA_SUM":
 							case "AREA_SUMCLEAN":
@@ -143,7 +146,7 @@ public class SpotsPersistenceLegacy {
 						if (data.length > 1) {
 							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
 							if (measure != null) {
-								spotsArray.csvLoadSpotsMeasures(reader, measure, sep);
+								csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
 						}
 					}
@@ -199,5 +202,120 @@ public class SpotsPersistenceLegacy {
 		}
 
 		return false;
+	}
+	
+	// ========================================================================
+	// CSV Load/Save methods moved from Spots.java
+	// ========================================================================
+	
+	/**
+	 * Loads spot descriptions from CSV reader.
+	 * Previously csvLoadSpotsArray() in Spots.java.
+	 */
+	static String csvLoad_Spots_Description(Spots spots, BufferedReader reader, String csvSeparator) throws IOException {
+		String line = reader.readLine();
+		while ((line = reader.readLine()) != null) {
+			String[] data = line.split(csvSeparator);
+			if (data[0].equals("#"))
+				return data[1];
+
+			Spot spot = spots.findSpotByName(data[0]);
+			if (spot == null) {
+				spot = new Spot();
+				int uniqueID = spots.getNextUniqueSpotID();
+				spot.setSpotUniqueID(new SpotID(uniqueID));
+				spots.getSpotList().add(spot);
+			}
+			SpotPersistence.csvImportSpotDescription(spot, data);
+		}
+		return null;
+	}
+	
+	/**
+	 * Loads spots array metadata from CSV reader.
+	 * Previously csvLoadSpotsDescription() in Spots.java.
+	 */
+	static String csvLoad_SpotsArray_Metadata(Spots spots, BufferedReader reader, String csvSeparator) throws IOException {
+		String line = reader.readLine();
+		String[] data = line.split(csvSeparator);
+		String motif = data[0].substring(0, Math.min(data[0].length(), 6));
+		if (motif.equals("n spot")) {
+			int nspots = Integer.valueOf(data[1]);
+			if (nspots < spots.getSpotList().size())
+				spots.getSpotList().subList(nspots, spots.getSpotList().size()).clear();
+			line = reader.readLine();
+			if (line != null)
+				data = line.split(csvSeparator);
+		}
+		if (data[0].equals("#")) {
+			return data[1];
+		}
+		return null;
+	}
+	
+	/**
+	 * Loads spot measures from CSV reader.
+	 * Previously csvLoadSpotsMeasures() in Spots.java.
+	 */
+	static String csvLoad_Spots_Measures(Spots spots, BufferedReader reader, EnumSpotMeasures measureType, String csvSeparator)
+			throws IOException {
+		String line = reader.readLine();
+		boolean y = true;
+		boolean x = line.contains("xi");
+		while ((line = reader.readLine()) != null) {
+			String[] data = line.split(csvSeparator);
+			if (data[0].equals("#"))
+				return data[1];
+
+			Spot spot = spots.findSpotByName(data[0]);
+			if (spot == null) {
+				spot = new Spot();
+				if (spot.getSpotUniqueID() == null) {
+					int uniqueID = spots.getNextUniqueSpotID();
+					spot.setSpotUniqueID(new SpotID(uniqueID));
+				}
+				spots.getSpotList().add(spot);
+			}
+			SpotPersistence.csvImportSpotData(spot, measureType, data, x, y);
+		}
+		return null;
+	}
+	
+	/**
+	 * Saves spots array section to CSV writer.
+	 * Previously csvSaveSpotsArraySection() in Spots.java.
+	 */
+	static boolean csvSave_DescriptionSection(Spots spots, FileWriter writer, String csvSeparator) throws IOException {
+		writer.write("#" + csvSeparator + "#\n");
+		writer.write("#" + csvSeparator + "SPOTS_ARRAY" + csvSeparator + "multiSPOTS data\n");
+		writer.write("n spots=" + csvSeparator + spots.getSpotList().size() + "\n");
+		writer.write("#" + csvSeparator + "#\n");
+		writer.write(SpotPersistence.csvExportSpotSubSectionHeader(csvSeparator));
+
+		for (Spot spot : spots.getSpotList()) {
+			if (spot != null && spot.getProperties() != null) {
+				String name = spot.getProperties().getName();
+				int cageID = spot.getProperties().getCageID();
+				if (name != null && !name.trim().isEmpty() && cageID >= 0) {
+					writer.write(SpotPersistence.csvExportSpotDescription(spot, csvSeparator));
+				}
+			}
+		}
+
+		return true;
+	}
+	
+	/**
+	 * Saves spot measures section to CSV writer.
+	 * Previously csvSaveMeasuresSection() in Spots.java.
+	 */
+	static boolean csvSave_MeasuresSection(Spots spots, FileWriter writer, EnumSpotMeasures measureType, String csvSeparator) throws IOException {
+		writer.write(SpotPersistence.csvExportMeasureSectionHeader(measureType, csvSeparator));
+
+		for (Spot spot : spots.getSpotList()) {
+			writer.write(SpotPersistence.csvExportMeasuresOneType(spot, measureType, csvSeparator));
+		}
+
+		return true;
 	}
 }

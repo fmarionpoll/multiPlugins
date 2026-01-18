@@ -1,12 +1,5 @@
 package plugins.fmp.multitools.experiment.spots;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,8 +36,6 @@ public class Spots {
 	private static final String ID_NSPOTS = "N_spots";
 	private static final String ID_LISTOFSPOTS = "List_of_spots";
 	private static final String ID_SPOT_ = "spot_";
-	private static final String CSV_FILENAME = "SpotsMeasures.csv";
-	private static final String CSV_SEPARATOR = ";";
 	private static final int DEFAULT_VERSION = 2;
 
 	// === CORE FIELDS ===
@@ -146,143 +137,27 @@ public class Spots {
 	// === DATA LOADING ===
 
 	public boolean loadSpotsMeasures(String directory) {
-		return loadSpots(directory, EnumSpotMeasures.SPOTS_MEASURES);
+		return persistence.loadSpotsMeasures(this, directory);
 	}
 
 	public boolean loadSpotsAll(String directory) {
-		return loadSpots(directory, EnumSpotMeasures.ALL);
-	}
-
-	private boolean loadSpots(String directory, EnumSpotMeasures measureType) {
-		if (directory == null) {
-			return false;
-		}
-
-		try {
-			return csvLoadSpots(directory, measureType);
-		} catch (Exception e) {
-			System.err.println("Error loading spots: " + e.getMessage());
-			return false;
-		}
+		return persistence.load_SpotsArray(this, directory);
 	}
 
 	// === DATA SAVING ===
 
 	public boolean saveSpotsAll(String directory) {
-		if (directory == null) {
-			return false;
-		}
-		return csvSaveSpots(directory);
+		return persistence.save_SpotsArray(this, directory);
 	}
 
 	public boolean saveSpotsMeasures(String directory) {
-		if (directory == null) {
-			return false;
-		}
-		return csvSaveSpots(directory);
+		return persistence.saveSpotsMeasures(this, directory);
 	}
 
 	// === OPTIMIZED CSV WRITING ===
 
 	public boolean saveSpotsMeasuresOptimized(String directory) {
-		if (directory == null) {
-			return false;
-		}
-		return csvSaveSpotsOptimized(directory);
-	}
-
-	private boolean csvSaveSpotsOptimized(String directory) {
-		Path csvPath = Paths.get(directory, CSV_FILENAME);
-		try (FileWriter writer = new FileWriter(csvPath.toFile())) {
-			// Write header sections
-			writeCsvHeader(writer);
-
-			// Write spots data in chunks to reduce memory pressure
-			writeSpotsDataOptimized(writer);
-			writeMeasuresDataOptimized(writer, EnumSpotMeasures.AREA_SUM);
-			writeMeasuresDataOptimized(writer, EnumSpotMeasures.AREA_SUMCLEAN);
-
-			return true;
-		} catch (IOException e) {
-			System.err.println("Error in optimized CSV writing: " + e.getMessage());
-			return false;
-		} finally {
-			// Force cleanup after writing
-			forcePostWritingCleanup();
-		}
-	}
-
-	private void writeCsvHeader(FileWriter writer) throws IOException {
-		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write("#" + CSV_SEPARATOR + "SPOTS_ARRAY" + CSV_SEPARATOR + "multiSPOTS data\n");
-		writer.write("n spots=" + CSV_SEPARATOR + spotList.size() + "\n");
-		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write("#" + CSV_SEPARATOR + "SPOTS" + CSV_SEPARATOR + "multiSPOTS data\n");
-		writer.write("name" + CSV_SEPARATOR + "index" + CSV_SEPARATOR + "cageID" + CSV_SEPARATOR + "cagePos"
-				+ CSV_SEPARATOR + "cageColumn" + CSV_SEPARATOR + "cageRow" + CSV_SEPARATOR + "volume" + CSV_SEPARATOR
-				+ "npixels" + CSV_SEPARATOR + "radius" + CSV_SEPARATOR + "stim" + CSV_SEPARATOR + "conc\n");
-	}
-
-	private void writeSpotsDataOptimized(FileWriter writer) throws IOException {
-		int chunkSize = 100; // Process 100 spots at a time
-		int processed = 0;
-
-		for (int i = 0; i < spotList.size(); i += chunkSize) {
-			int endIndex = Math.min(i + chunkSize, spotList.size());
-
-			// Process chunk
-			for (int j = i; j < endIndex; j++) {
-				Spot spot = spotList.get(j);
-				// Only save valid spots with name and cage association
-				if (spot != null && spot.getProperties() != null) {
-					String name = spot.getProperties().getName();
-					int cageID = spot.getProperties().getCageID();
-					if (name != null && !name.trim().isEmpty() && cageID >= 0) {
-						writer.write(SpotPersistence.csvExportSpotDescription(spot, CSV_SEPARATOR));
-					}
-				}
-			}
-
-			processed += (endIndex - i);
-
-			// Light cleanup every 400 spots for better performance
-			if (processed % 400 == 0) {
-				System.gc();
-				Thread.yield();
-			}
-		}
-	}
-
-	private void writeMeasuresDataOptimized(FileWriter writer, EnumSpotMeasures measureType) throws IOException {
-		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write("#" + CSV_SEPARATOR + measureType.toString() + CSV_SEPARATOR + "v0\n");
-		writer.write("name" + CSV_SEPARATOR + "index" + CSV_SEPARATOR + "npts" + CSV_SEPARATOR + "yi\n");
-
-		int chunkSize = 100; // Process 100 spots at a time
-		int processed = 0;
-
-		for (int i = 0; i < spotList.size(); i += chunkSize) {
-			int endIndex = Math.min(i + chunkSize, spotList.size());
-
-			// Process chunk
-			for (int j = i; j < endIndex; j++) {
-				Spot spot = spotList.get(j);
-				writer.write(spot.exportMeasuresOneType(measureType, CSV_SEPARATOR));
-			}
-
-			processed += (endIndex - i);
-
-			// Light cleanup every 400 spots for better performance
-			if (processed % 400 == 0) {
-				System.gc();
-				Thread.yield();
-			}
-		}
-	}
-
-	private void forcePostWritingCleanup() {
-		System.gc();
-		Thread.yield();
+		return persistence.saveSpotsMeasures(this, directory);
 	}
 
 	// === XML OPERATIONS ===
@@ -637,162 +512,6 @@ public class Spots {
 					spotList.add(spot);
 				}
 			}
-		}
-
-		return true;
-	}
-
-	private boolean csvLoadSpots(String directory, EnumSpotMeasures measureType) throws Exception {
-		Path csvPath = Paths.get(directory, CSV_FILENAME);
-		if (!Files.exists(csvPath)) {
-			return false;
-		}
-
-		try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
-			String line;
-			String sep = CSV_SEPARATOR;
-			while ((line = reader.readLine()) != null) {
-				if (line.charAt(0) == '#')
-					sep = String.valueOf(line.charAt(1));
-				String[] data = line.split(sep);
-				if (data[0].equals("#")) {
-					switch (data[1]) {
-					case "SPOTS_ARRAY":
-						csvLoadSpotsDescription(reader, sep);
-						break;
-
-					case "SPOTS":
-						csvLoadSpotsArray(reader, sep);
-						break;
-
-					case "AREA_SUM":
-					case "AREA_SUMCLEAN":
-					case "AREA_FLYPRESENT":
-					default:
-						EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
-						if (measure != null)
-							csvLoadSpotsMeasures(reader, measure, sep);
-						break;
-					}
-				}
-			}
-			reader.close();
-			return true;
-		}
-	}
-
-	String csvLoadSpotsArray(BufferedReader reader, String csvSeparator) throws IOException {
-		String line = reader.readLine();
-		while ((line = reader.readLine()) != null) {
-			String[] data = line.split(csvSeparator);
-			if (data[0].equals("#"))
-				return data[1];
-
-			Spot spot = findSpotByName(data[0]);
-			if (spot == null) {
-				spot = new Spot();
-				int uniqueID = getNextUniqueSpotID();
-				spot.setSpotUniqueID(new SpotID(uniqueID));
-				spotList.add(spot);
-			}
-			SpotPersistence.csvImportSpotDescription(spot, data);
-		}
-		return null;
-	}
-
-	String csvLoadSpotsDescription(BufferedReader reader, String csvSeparator) throws IOException {
-		String line = reader.readLine();
-		String[] data = line.split(csvSeparator);
-		String motif = data[0].substring(0, Math.min(data[0].length(), 6));
-		if (motif.equals("n spot")) {
-			int nspots = Integer.valueOf(data[1]);
-			if (nspots < spotList.size())
-				spotList.subList(nspots, spotList.size()).clear();
-			line = reader.readLine();
-			if (line != null)
-				data = line.split(csvSeparator);
-		}
-		if (data[0].equals("#")) {
-			return data[1];
-		}
-		return null;
-	}
-
-	String csvLoadSpotsMeasures(BufferedReader reader, EnumSpotMeasures measureType, String csvSeparator)
-			throws IOException {
-		String line = reader.readLine();
-		boolean y = true;
-		boolean x = line.contains("xi");
-		while ((line = reader.readLine()) != null) {
-			String[] data = line.split(csvSeparator);
-			if (data[0].equals("#"))
-				return data[1];
-
-			Spot spot = findSpotByName(data[0]);
-			if (spot == null) {
-				spot = new Spot();
-				// Assign unique ID if creating new spot
-				if (spot.getSpotUniqueID() == null) {
-					int uniqueID = getNextUniqueSpotID();
-					spot.setSpotUniqueID(new SpotID(uniqueID));
-				}
-				spotList.add(spot);
-			}
-			SpotPersistence.csvImportSpotData(spot, measureType, data, x, y);
-		}
-		return null;
-	}
-
-	private boolean csvSaveSpots(String directory) {
-		Path csvPath = Paths.get(directory, CSV_FILENAME);
-
-		try (FileWriter writer = new FileWriter(csvPath.toFile())) {
-			// Save spots array section
-			if (!csvSaveSpotsArraySection(writer)) {
-				return false;
-			}
-
-			// Save measures section
-			if (!csvSaveMeasuresSection(writer, EnumSpotMeasures.AREA_SUM)) {
-				return false;
-			}
-
-			if (!csvSaveMeasuresSection(writer, EnumSpotMeasures.AREA_SUMCLEAN)) {
-				return false;
-			}
-
-			return true;
-		} catch (IOException e) {
-			System.err.println("Error saving spots to CSV: " + e.getMessage());
-			return false;
-		}
-	}
-
-	boolean csvSaveSpotsArraySection(FileWriter writer) throws IOException {
-		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write("#" + CSV_SEPARATOR + "SPOTS_ARRAY" + CSV_SEPARATOR + "multiSPOTS data\n");
-		writer.write("n spots=" + CSV_SEPARATOR + spotList.size() + "\n");
-		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write(SpotPersistence.csvExportSpotSubSectionHeader(CSV_SEPARATOR));
-
-		for (Spot spot : spotList) {
-			if (spot != null && spot.getProperties() != null) {
-				String name = spot.getProperties().getName();
-				int cageID = spot.getProperties().getCageID();
-				if (name != null && !name.trim().isEmpty() && cageID >= 0) {
-					writer.write(SpotPersistence.csvExportSpotDescription(spot, CSV_SEPARATOR));
-				}
-			}
-		}
-
-		return true;
-	}
-
-	boolean csvSaveMeasuresSection(FileWriter writer, EnumSpotMeasures measureType) throws IOException {
-		writer.write(SpotPersistence.csvExportMeasureSectionHeader(measureType, CSV_SEPARATOR));
-
-		for (Spot spot : spotList) {
-			writer.write(SpotPersistence.csvExportMeasuresOneType(spot, measureType, CSV_SEPARATOR));
 		}
 
 		return true;
