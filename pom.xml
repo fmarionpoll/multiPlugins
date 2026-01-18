@@ -137,6 +137,17 @@
             <name>Icy's Nexus</name>
             <url>https://icy-nexus.pasteur.fr/repository/Icy/</url>
         </repository>
+        <repository>
+            <id>freehep</id>
+            <name>FreeHEP Repository</name>
+            <url>http://java.freehep.org/maven2</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
     </repositories>
     <modules>
     	<module>multiCAFE</module>
