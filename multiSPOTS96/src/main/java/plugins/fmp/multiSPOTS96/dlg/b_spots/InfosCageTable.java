@@ -172,7 +172,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		dialogFrame.close();
 		Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			exp.saveSpotsArray_file();
+			exp.saveSpots_File();
 		}
 	}
 

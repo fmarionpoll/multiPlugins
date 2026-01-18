@@ -38,6 +38,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
@@ -918,8 +919,7 @@ public class Experiment {
 
 		// Transfer cages to ROIs on sequence if loaded successfully
 		if (cagesLoaded && seqCamData != null && seqCamData.getSequence() != null) {
-			CagesSequenceMapper.pushCagesToSequence(cages, seqCamData);
-			CagesSequenceMapper.pullCagesFromSequence(cages, seqCamData);
+			CagesSequenceMapper.transferROIsFromCagesToSequence(cages, seqCamData);
 		}
 
 		return cagesLoaded;
@@ -1523,24 +1523,21 @@ public class Experiment {
 	}
 
 	public void transferCagesROI_toSequence() {
-		CagesSequenceMapper.pushCagesToSequence(cages, seqCamData);
-	}
-
-	public void transferSpotsROI_toSequence() {
-		CagesSequenceMapper.pushSpotsToSequence(cages, spots, seqCamData);
+		CagesSequenceMapper.transferROIsFromCagesToSequence(cages, seqCamData);
 	}
 
 	public boolean saveCages_File() {
 		CagesSequenceMapper.syncCagesFromSequenceBeforeSave(cages, seqCamData);
-		save_cages_description_and_measures();
+		return save_cages_description_and_measures();
+	}
+
+	public boolean saveSpots_File() {
+		SpotsSequenceMapper.transferROIsFromSequenceToSpots(spots, seqCamData);
 		return save_spots_description_and_measures();
 	}
 
-	public boolean saveSpotsArray_file() {
-		CagesSequenceMapper.pullSpotsFromSequence(cages, spots, seqCamData);
-		boolean flag = save_cages_description_and_measures();
-		flag &= save_spots_description_and_measures();
-		return flag;
+	public void transferSpotsROI_toSequence() {
+		SpotsSequenceMapper.transferROIsFromSpotsToSequence(spots, seqCamData);
 	}
 
 	public ExperimentProperties getProperties() {
@@ -1871,8 +1868,7 @@ public class Experiment {
 		}
 
 		if (measuresLoaded && seqCamData.getSequence() != null) {
-			CagesSequenceMapper.pushCagesToSequence(cages, seqCamData);
-			CagesSequenceMapper.pullCagesFromSequence(cages, seqCamData);
+			CagesSequenceMapper.transferROIsFromCagesToSequence(cages, seqCamData);
 		}
 
 		// If cages list is empty after loading, create cages from capillaries

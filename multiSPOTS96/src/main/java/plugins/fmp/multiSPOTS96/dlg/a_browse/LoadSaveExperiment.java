@@ -505,6 +505,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			progressFrame.setMessage("Loading cages and spots...");
 			exp.load_cages_description_and_measures();
 			exp.transferCagesROI_toSequence();
+
 			exp.load_spots_description_and_measures();
 			exp.transferSpotsROI_toSequence();
 
@@ -667,12 +668,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					exp.saveExperimentDescriptors();
 
 					// Update cages from sequence before saving
-					exp.getCages().updateCagesFromSequence(exp.getSeqCamData());
-
-					// Save cages descriptions synchronously
+					exp.getCages().transferROIsFromSequenceToCages(exp.getSeqCamData());
 					exp.getCages().getPersistence().saveCages(exp.getCages(), exp.getResultsDirectory(), exp);
-
-					// Save cage measures to bin directory
 					String binDir = exp.getKymosBinFullDirectory();
 					if (binDir != null) {
 						exp.getCages().getPersistence().saveCagesMeasures(exp.getCages(), binDir);

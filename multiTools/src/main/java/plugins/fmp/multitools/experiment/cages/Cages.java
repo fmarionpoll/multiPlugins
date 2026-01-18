@@ -387,7 +387,7 @@ public class Cages {
 
 	// --------------
 
-	public void transferCagesToSequenceAsROIs(SequenceCamData seqCamData) {
+	public void transferROIsFromCagesToSequence(SequenceCamData seqCamData) {
 		// Use modern ROI operation for removing existing cage ROIs
 		seqCamData.processROIs(ROIOperation.removeROIs("cage"));
 
@@ -402,7 +402,7 @@ public class Cages {
 			sequence.addROIs(cageROIList, true);
 	}
 
-	public void updateCagesFromSequence(SequenceCamData seqCamData) {
+	public void transferROIsFromSequenceToCages(SequenceCamData seqCamData) {
 		List<ROI2D> roiList = seqCamData.findROIsMatchingNamePattern("cage");
 		Collections.sort(roiList, new Comparators.ROI2D_Name());
 		transferROIsToCages(roiList);
@@ -495,7 +495,7 @@ public class Cages {
 	}
 
 	public void cagesToROIs(SequenceCamData seqCamData) {
-		transferCagesToSequenceAsROIs(seqCamData);
+		transferROIsFromCagesToSequence(seqCamData);
 	}
 
 	public List<ROI2D> getPositionsAsListOfROI2DRectanglesAtT(int t) {

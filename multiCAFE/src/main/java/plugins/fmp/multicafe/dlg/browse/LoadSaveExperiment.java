@@ -919,7 +919,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					exp.save_capillaries_description_and_measures();
 
 					// Update cages from sequence before saving
-					exp.getCages().updateCagesFromSequence(exp.getSeqCamData());
+					exp.getCages().transferROIsFromSequenceToCages(exp.getSeqCamData());
 
 					// Save cages descriptions synchronously
 					exp.getCages().getPersistence().saveCages(exp.getCages(), exp.getResultsDirectory(), exp);

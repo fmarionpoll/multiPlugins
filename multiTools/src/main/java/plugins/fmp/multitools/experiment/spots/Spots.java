@@ -2,6 +2,7 @@ package plugins.fmp.multitools.experiment.spots;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -13,10 +14,14 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.sequence.ROIOperation;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.kernel.roi.roi2d.ROI2DShape;
 
 /**
  * Manages a collection of spots with comprehensive operations and data
@@ -525,4 +530,52 @@ public class Spots {
 	public String toString() {
 		return String.format("SpotsArray{spotsCount=%d}", spotList.size());
 	}
+
+	// === communcation with sequence
+
+	public void transferROIsfromSpotsToSequence(SequenceCamData seqCamData) {
+		// Use modern ROI operation for removing existing cage ROIs
+		seqCamData.processROIs(ROIOperation.removeROIs("spot"));
+
+		List<ROI2D> spotROIList = new ArrayList<ROI2D>(spotList.size());
+		for (Spot spot : spotList) {
+			ROI2D roi = spot.getRoi();
+			if (roi != null)
+				spotROIList.add(roi);
+		}
+		Sequence sequence = seqCamData.getSequence();
+		if (sequence != null)
+			sequence.addROIs(spotROIList, true);
+	}
+
+	public void transferROIsfromSequenceToSpots(SequenceCamData seqCamData) {
+		List<ROI2D> roiList = seqCamData.findROIsMatchingNamePattern("spot");
+		Collections.sort(roiList, new Comparators.ROI2D_Name());
+		transferROIsToSpots(roiList);
+		// addMissingSpots(roiList);
+		Collections.sort(spotList, new Comparators.Spot_Name());
+	}
+
+	private void transferROIsToSpots(List<ROI2D> roiList) {
+		if (spotList.size() < 1)
+			return;
+
+		for (Spot spot : spotList) {
+			if (roiList.isEmpty())
+				return;
+
+			String spotName = spot.getName();
+			Iterator<ROI2D> iterator = roiList.iterator();
+			while (iterator.hasNext()) {
+				ROI2D roi = iterator.next();
+				String roiName = roi.getName();
+				if (roiName != null && roiName.contains(spotName)) {
+					spot.setRoi((ROI2DShape) roi);
+					iterator.remove();
+					break;
+				}
+			}
+		}
+	}
+
 }

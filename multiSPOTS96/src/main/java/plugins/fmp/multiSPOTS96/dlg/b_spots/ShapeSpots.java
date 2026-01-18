@@ -164,7 +164,7 @@ public class ShapeSpots extends JPanel {
 				if (exp != null) {
 					exp.getSeqCamData().removeROIsContainingString("_mask");
 					detectContours(exp);
-					exp.saveSpotsArray_file();
+					exp.saveSpots_File();
 				}
 			}
 		});
@@ -185,7 +185,7 @@ public class ShapeSpots extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					cutAndInterpolate(exp);
-					exp.saveSpotsArray_file();
+					exp.saveSpots_File();
 				}
 			}
 		});

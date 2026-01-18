@@ -90,7 +90,7 @@ public class AxisOptions extends JPanel {
 		if (parent0 != null) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-				exp.saveSpotsArray_file();
+				exp.saveSpots_File();
 			}
 		}
 	}
