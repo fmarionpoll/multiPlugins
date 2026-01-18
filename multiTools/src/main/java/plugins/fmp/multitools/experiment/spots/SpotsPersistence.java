@@ -75,12 +75,12 @@ public class SpotsPersistence {
 	 * Loads spot descriptions (SPOTS_ARRAY and SPOTS sections) from SpotsArray.csv.
 	 * Stops reading when it encounters measure sections.
 	 * 
-	 * @param spotsArray the SpotsArray to populate
+	 * @param spots the SpotsArray to populate
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
-	public boolean loadSpotsDescription(Spots spotsArray, String resultsDirectory) {
-		return Persistence.loadDescription(spotsArray, resultsDirectory);
+	public boolean loadSpotsDescription(Spots spots, String resultsDirectory) {
+		return Persistence.loadDescription(spots, resultsDirectory);
 	}
 	
 	/**

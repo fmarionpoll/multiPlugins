@@ -505,8 +505,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			progressFrame.setMessage("Loading cages and spots...");
 			exp.load_cages_description_and_measures();
 			exp.transferCagesROI_toSequence();
-			exp.transferSpotsROI_toSequence();
 			exp.load_spots_description_and_measures();
+			exp.transferSpotsROI_toSequence();
 
 			if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
 				return abortExperimentLoad(exp, expIndex, progressFrame,

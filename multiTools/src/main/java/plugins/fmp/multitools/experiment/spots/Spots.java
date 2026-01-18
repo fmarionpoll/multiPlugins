@@ -139,8 +139,8 @@ public class Spots {
 			return null;
 		}
 
-		return spotList.stream().filter(spot -> spot.getSpotUniqueID() != null
-				&& spot.getSpotUniqueID().equals(spotID)).findFirst().orElse(null);
+		return spotList.stream().filter(spot -> spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID))
+				.findFirst().orElse(null);
 	}
 
 	// === DATA LOADING ===
@@ -684,22 +684,18 @@ public class Spots {
 	String csvLoadSpotsArray(BufferedReader reader, String csvSeparator) throws IOException {
 		String line = reader.readLine();
 		while ((line = reader.readLine()) != null) {
-			String[] spotData = line.split(csvSeparator);
-			if (spotData[0].equals("#"))
-				return spotData[1];
+			String[] data = line.split(csvSeparator);
+			if (data[0].equals("#"))
+				return data[1];
 
-			Spot spot = findSpotByName(spotData[0]);
+			Spot spot = findSpotByName(data[0]);
 			if (spot == null) {
 				spot = new Spot();
+				int uniqueID = getNextUniqueSpotID();
+				spot.setSpotUniqueID(new SpotID(uniqueID));
 				spotList.add(spot);
-				spot.getProperties().importFromCsv(spotData);
-				// Assign unique ID if not loaded from CSV (legacy files)
-				if (spot.getSpotUniqueID() == null) {
-					int uniqueID = getNextUniqueSpotID();
-					spot.setSpotUniqueID(new SpotID(uniqueID));
-				}
 			}
-
+			spot.getProperties().importFromCsv(data);
 		}
 		return null;
 	}
