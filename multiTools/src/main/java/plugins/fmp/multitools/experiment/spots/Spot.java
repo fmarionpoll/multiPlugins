@@ -13,9 +13,7 @@ import org.w3c.dom.Node;
 import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
-import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.ids.SpotID;
-import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -36,13 +34,6 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
  * @version 2.3.3
  */
 public class Spot implements Comparable<Spot> {
-
-	// === CONSTANTS ===
-	private static final String ID_META = "metaMC";
-//	private static final String DEFAULT_STIMULUS = "..";
-//	private static final String DEFAULT_CONCENTRATION = "..";
-//	private static final double DEFAULT_SPOT_VOLUME = 0.5;
-	private static final int DATA_OFFSET = 3;
 
 	// === CORE FIELDS ===
 	private ROI2DShape spotROI2D;
@@ -717,151 +708,78 @@ public class Spot implements Comparable<Spot> {
 
 	/**
 	 * Exports measures section header to CSV.
-	 * 
+	 *
 	 * @param measureType  the measure type
 	 * @param csvSeparator the CSV separator
 	 * @return the CSV header string
 	 */
 	public String exportMeasuresSectionHeader(EnumSpotMeasures measureType, String csvSeparator) {
-		return measurements.exportSectionHeader(measureType, csvSeparator);
+		return SpotPersistence.csvExportMeasureSectionHeader(measureType, csvSeparator);
 	}
 
 	/**
 	 * Exports measures of one type to CSV.
-	 * 
+	 *
 	 * @param measureType  the measure type
 	 * @param csvSeparator the CSV separator
 	 * @return the CSV data string
 	 */
 	public String exportMeasuresOneType(EnumSpotMeasures measureType, String csvSeparator) {
-		return measurements.exportOneType(properties.getName(), properties.getSpotArrayIndex(), measureType,
-				csvSeparator);
+		return SpotPersistence.csvExportMeasuresOneType(this, measureType, csvSeparator);
 	}
 
 	/**
 	 * Imports measures of one type from CSV.
-	 * 
+	 *
 	 * @param measureType the measure type
 	 * @param data        the CSV data
 	 * @param includeX    whether to include X coordinates
 	 * @param includeY    whether to include Y coordinates
 	 */
 	public void importMeasuresOneType(EnumSpotMeasures measureType, String[] data, boolean includeX, boolean includeY) {
-		measurements.importOneType(measureType, data, includeX, includeY);
+		SpotPersistence.csvImportSpotData(this, measureType, data, includeX, includeY);
 	}
 
 	// === XML SERIALIZATION ===
 
 	/**
+	 * Loads measurements from XML. Used by SpotPersistence.xmlLoadMeasures.
+	 *
+	 * @param node the XML node
+	 * @return true if successful
+	 */
+	public boolean loadMeasurementsFromXml(Node node) {
+		return measurements.loadFromXml(node);
+	}
+
+	/**
+	 * Saves measurements to XML. Used by SpotPersistence.xmlSaveSpot.
+	 *
+	 * @param node the XML node
+	 * @return true if successful
+	 */
+	public boolean saveMeasurementsToXml(Node node) {
+		return measurements.saveToXml(node);
+	}
+
+	/**
 	 * Loads spot data from XML.
-	 * 
+	 *
 	 * @param node the XML node
 	 * @return true if successful
 	 */
 	public boolean loadFromXml(Node node) {
-		if (node == null) {
-			System.err.println("ERROR: Null node provided for Spot load");
-			return false;
-		}
-
-		try {
-			// Load properties with error handling
-			if (!properties.loadFromXml(node)) {
-				System.err.println("ERROR: Failed to load spot properties");
-				return false;
-			}
-
-			// Load ROI metadata with error handling
-			final Node nodeMeta = XMLUtil.getElement(node, ID_META);
-			if (nodeMeta != null) {
-				try {
-					spotROI2D = (ROI2DShape) ROI2DUtilities.loadFromXML_ROI(nodeMeta);
-					if (spotROI2D != null) {
-						spotROI2D.setColor(getProperties().getColor());
-						getProperties().setName(spotROI2D.getName());
-						// System.out.println(" Loaded ROI: " + spotROI2D.getName());
-					} else {
-						System.err.println("WARNING: Failed to create ROI from XML");
-					}
-				} catch (Exception e) {
-					System.err.println("ERROR loading ROI: " + e.getMessage());
-				}
-			} else {
-				// System.out.println(" No ROI metadata found");
-			}
-
-			// Load measurements with error handling
-			if (!measurements.loadFromXml(node)) {
-				System.err.println("ERROR: Failed to load spot measurements");
-				return false;
-			}
-
-			return true;
-
-		} catch (Exception e) {
-			System.err.println("ERROR during spot XML loading: " + e.getMessage());
-			e.printStackTrace();
-			return false;
-		}
+		return SpotPersistence.xmlLoadSpot(node, this);
 	}
 
 	/**
 	 * Saves spot data to XML.
-	 * 
+	 *
 	 * @param node the XML node
 	 * @return true if successful
 	 */
 	public boolean saveToXml(Node node) {
-		if (node == null) {
-			System.err.println("ERROR: Null node provided for Spot save");
-			return false;
-		}
-
-		// Memory monitoring before saving
-//		long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		// System.out.println(" Saving Spot - Memory: " + (startMemory / 1024 / 1024) +
-		// " MB");
-
-		try {
-			// Save properties with error handling
-			if (!properties.saveToXml(node)) {
-				System.err.println("ERROR: Failed to save spot properties");
-				return false;
-			}
-
-			// Save measurements with error handling
-			if (!measurements.saveToXml(node)) {
-				System.err.println("ERROR: Failed to save spot measurements");
-				return false;
-			}
-
-			// Save ROI metadata with error handling
-			final Node nodeMeta = XMLUtil.setElement(node, ID_META);
-			if (nodeMeta != null && spotROI2D != null) {
-				try {
-					ROI2DUtilities.saveToXML_ROI(nodeMeta, spotROI2D);
-					// System.out.println(" Saved ROI: " + spotROI2D.getName());
-				} catch (Exception e) {
-					System.err.println("ERROR saving ROI: " + e.getMessage());
-				}
-			} else {
-				// System.out.println(" No ROI to save");
-			}
-
-			// Memory monitoring after saving
-//			long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-//			long memoryIncrease = endMemory - startMemory;
-			// System.out.println(" Spot saved - Memory increase: " + (memoryIncrease / 1024
-			// / 1024) + " MB");
-			// System.out.println(" Spot name: " + getProperties().getName());
-
-			return true;
-
-		} catch (Exception e) {
-			System.err.println("ERROR during spot XML saving: " + e.getMessage());
-			e.printStackTrace();
-			return false;
-		}
+		return SpotPersistence.xmlSaveSpot(node, this);
 	}
 
 	// === INNER CLASSES ===
@@ -1019,72 +937,12 @@ public class Spot implements Comparable<Spot> {
 		}
 
 		boolean loadFromXml(Node node) {
-			// Implementation would depend on SpotMeasure XML loading
 			return true;
 		}
 
 		boolean saveToXml(Node node) {
-			// Implementation would depend on SpotMeasure XML saving
 			return true;
 		}
-
-		String exportSectionHeader(EnumSpotMeasures measureType, String csvSeparator) {
-			// Implementation for CSV export header
-			return "#" + csvSeparator + measureType.toString() + "\n";
-		}
-
-		String exportOneType(String sourceName, int spotArrayIndex, EnumSpotMeasures measureType, String csvSeparator) {
-			StringBuilder sbf = new StringBuilder();
-			sbf.append(sourceName + csvSeparator + spotArrayIndex + csvSeparator);
-			switch (measureType) {
-			case AREA_SUM:
-				sumIn.exportYDataToCsv(sbf, csvSeparator);
-				break;
-			case AREA_SUMCLEAN:
-				sumClean.exportYDataToCsv(sbf, csvSeparator);
-				break;
-			case AREA_FLYPRESENT:
-				flyPresent.exportYDataToCsv(sbf, csvSeparator);
-				break;
-			default:
-				break;
-			}
-			sbf.append("\n");
-			return sbf.toString();
-		}
-
-		void importOneType(EnumSpotMeasures measureType, String[] data, boolean includeX, boolean includeY) {
-			if (includeX && includeY) {
-				switch (measureType) {
-				case AREA_SUM:
-					sumIn.importXYDataFromCsv(data, DATA_OFFSET);
-					break;
-				case AREA_SUMCLEAN:
-					sumClean.importXYDataFromCsv(data, DATA_OFFSET);
-					break;
-				case AREA_FLYPRESENT:
-					flyPresent.importXYDataFromCsv(data, DATA_OFFSET);
-					break;
-				default:
-					break;
-				}
-			} else if (!includeX && includeY) {
-				switch (measureType) {
-				case AREA_SUM:
-					sumIn.importYDataFromCsv(data, DATA_OFFSET);
-					break;
-				case AREA_SUMCLEAN:
-					sumClean.importYDataFromCsv(data, DATA_OFFSET);
-					break;
-				case AREA_FLYPRESENT:
-					flyPresent.importYDataFromCsv(data, DATA_OFFSET);
-					break;
-				default:
-					break;
-				}
-			}
-		}
-
 	}
 
 	/**

@@ -1,12 +1,10 @@
 package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Color;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
 import org.w3c.dom.Document;
-import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
@@ -48,7 +46,7 @@ public class SpotProperties {
 	private int versionInfos;
 
 	// === XML CONSTANTS ===
-	private static final String IDS_SPOTPROPS = "spotProperties";
+	static final String IDS_SPOTPROPS = "spotProperties";
 	private static final String ID_DESCOK = "descriptionOK";
 	private static final String ID_VERSIONINFOS = "versionInfos";
 	private static final String ID_SPOTVOLUME = "volume";
@@ -658,37 +656,36 @@ public class SpotProperties {
 	/**
 	 * Loads properties from XML.
 	 * 
-	 * @param node the XML node
+	 * @param spotPropertiesNode the spotProperties XML node
 	 * @return true if successful
 	 */
-	public boolean loadFromXml(Node node) {
-		Element nodeParameters = XMLUtil.getElement(node, IDS_SPOTPROPS);
-		if (nodeParameters == null) {
+	public boolean loadFromXml(Node spotPropertiesNode) {
+		if (spotPropertiesNode == null) {
 			return false;
 		}
 
 		try {
-			this.spotArrayIndex = XMLUtil.getElementIntValue(nodeParameters, ID_SPOTARRAYINDEX, spotArrayIndex);
-			this.cageID = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEID, cageID);
-			int loadedSpotUniqueID = XMLUtil.getElementIntValue(nodeParameters, ID_SPOTUNIQUEID, -1);
+			this.spotArrayIndex = XMLUtil.getElementIntValue(spotPropertiesNode, ID_SPOTARRAYINDEX, spotArrayIndex);
+			this.cageID = XMLUtil.getElementIntValue(spotPropertiesNode, ID_CAGEID, cageID);
+			int loadedSpotUniqueID = XMLUtil.getElementIntValue(spotPropertiesNode, ID_SPOTUNIQUEID, -1);
 			if (loadedSpotUniqueID >= 0) {
 				this.spotUniqueID = new SpotID(loadedSpotUniqueID);
 			}
-			this.cagePosition = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEPOSITION, cagePosition);
-			this.cageColumn = XMLUtil.getElementIntValue(nodeParameters, ID_CAGECOLUMN, cageColumn);
-			this.cageRow = XMLUtil.getElementIntValue(nodeParameters, ID_CAGEROW, cageRow);
-			this.descriptionOK = XMLUtil.getElementBooleanValue(nodeParameters, ID_DESCOK, false);
-			this.spotVolume = XMLUtil.getElementDoubleValue(nodeParameters, ID_SPOTVOLUME, Double.NaN);
-			this.spotNPixels = XMLUtil.getElementIntValue(nodeParameters, ID_PIXELS, DEFAULT_SPOT_N_PIXELS);
-			this.spotRadius = XMLUtil.getElementIntValue(nodeParameters, ID_RADIUS, DEFAULT_SPOT_RADIUS);
-			this.spotXCoord = XMLUtil.getElementIntValue(nodeParameters, ID_XCOORD, DEFAULT_SPOT_X_COORD);
-			this.spotYCoord = XMLUtil.getElementIntValue(nodeParameters, ID_YCOORD, DEFAULT_SPOT_Y_COORD);
-			this.stimulus = XMLUtil.getElementValue(nodeParameters, ID_SPOTSTIMULUS, DEFAULT_STIMULUS);
-			this.concentration = XMLUtil.getElementValue(nodeParameters, ID_CONCENTRATION, DEFAULT_CONCENTRATION);
+			this.cagePosition = XMLUtil.getElementIntValue(spotPropertiesNode, ID_CAGEPOSITION, cagePosition);
+			this.cageColumn = XMLUtil.getElementIntValue(spotPropertiesNode, ID_CAGECOLUMN, cageColumn);
+			this.cageRow = XMLUtil.getElementIntValue(spotPropertiesNode, ID_CAGEROW, cageRow);
+			this.descriptionOK = XMLUtil.getElementBooleanValue(spotPropertiesNode, ID_DESCOK, false);
+			this.spotVolume = XMLUtil.getElementDoubleValue(spotPropertiesNode, ID_SPOTVOLUME, Double.NaN);
+			this.spotNPixels = XMLUtil.getElementIntValue(spotPropertiesNode, ID_PIXELS, DEFAULT_SPOT_N_PIXELS);
+			this.spotRadius = XMLUtil.getElementIntValue(spotPropertiesNode, ID_RADIUS, DEFAULT_SPOT_RADIUS);
+			this.spotXCoord = XMLUtil.getElementIntValue(spotPropertiesNode, ID_XCOORD, DEFAULT_SPOT_X_COORD);
+			this.spotYCoord = XMLUtil.getElementIntValue(spotPropertiesNode, ID_YCOORD, DEFAULT_SPOT_Y_COORD);
+			this.stimulus = XMLUtil.getElementValue(spotPropertiesNode, ID_SPOTSTIMULUS, DEFAULT_STIMULUS);
+			this.concentration = XMLUtil.getElementValue(spotPropertiesNode, ID_CONCENTRATION, DEFAULT_CONCENTRATION);
 
-			int r = XMLUtil.getElementIntValue(nodeParameters, ID_COLOR_R, color.getRed());
-			int g = XMLUtil.getElementIntValue(nodeParameters, ID_COLOR_G, color.getGreen());
-			int b = XMLUtil.getElementIntValue(nodeParameters, ID_COLOR_B, color.getBlue());
+			int r = XMLUtil.getElementIntValue(spotPropertiesNode, ID_COLOR_R, color.getRed());
+			int g = XMLUtil.getElementIntValue(spotPropertiesNode, ID_COLOR_G, color.getGreen());
+			int b = XMLUtil.getElementIntValue(spotPropertiesNode, ID_COLOR_B, color.getBlue());
 			this.color = new Color(r, g, b);
 
 			return true;
@@ -701,138 +698,41 @@ public class SpotProperties {
 	/**
 	 * Saves properties to XML.
 	 * 
-	 * @param node the XML node
+	 * @param spotPropertiesNode the spotProperties XML node
 	 * @return true if successful
 	 */
-	public boolean saveToXml(Node node) {
-		final Node nodeParameters = XMLUtil.setElement(node, IDS_SPOTPROPS);
-		if (nodeParameters == null) {
+	public boolean saveToXml(Node spotPropertiesNode) {
+		if (spotPropertiesNode == null) {
 			return false;
 		}
 
 		try {
-			XMLUtil.setElementIntValue(nodeParameters, ID_SPOTARRAYINDEX, spotArrayIndex);
-			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEID, cageID);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_SPOTARRAYINDEX, spotArrayIndex);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_CAGEID, cageID);
 			if (spotUniqueID != null) {
-				XMLUtil.setElementIntValue(nodeParameters, ID_SPOTUNIQUEID, spotUniqueID.getId());
+				XMLUtil.setElementIntValue(spotPropertiesNode, ID_SPOTUNIQUEID, spotUniqueID.getId());
 			}
-			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEPOSITION, cagePosition);
-			XMLUtil.setElementIntValue(nodeParameters, ID_CAGECOLUMN, cageColumn);
-			XMLUtil.setElementIntValue(nodeParameters, ID_CAGEROW, cageRow);
-			XMLUtil.setElementIntValue(nodeParameters, ID_VERSIONINFOS, versionInfos);
-			XMLUtil.setElementBooleanValue(nodeParameters, ID_DESCOK, descriptionOK);
-			XMLUtil.setElementDoubleValue(nodeParameters, ID_SPOTVOLUME, spotVolume);
-			XMLUtil.setElementIntValue(nodeParameters, ID_PIXELS, spotNPixels);
-			XMLUtil.setElementIntValue(nodeParameters, ID_RADIUS, spotRadius);
-			XMLUtil.setElementIntValue(nodeParameters, ID_XCOORD, spotXCoord);
-			XMLUtil.setElementIntValue(nodeParameters, ID_YCOORD, spotYCoord);
-			XMLUtil.setElementValue(nodeParameters, ID_SPOTSTIMULUS, stimulus);
-			XMLUtil.setElementValue(nodeParameters, ID_CONCENTRATION, concentration);
-			XMLUtil.setElementIntValue(nodeParameters, ID_COLOR_R, color.getRed());
-			XMLUtil.setElementIntValue(nodeParameters, ID_COLOR_G, color.getGreen());
-			XMLUtil.setElementIntValue(nodeParameters, ID_COLOR_B, color.getBlue());
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_CAGEPOSITION, cagePosition);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_CAGECOLUMN, cageColumn);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_CAGEROW, cageRow);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_VERSIONINFOS, versionInfos);
+			XMLUtil.setElementBooleanValue(spotPropertiesNode, ID_DESCOK, descriptionOK);
+			XMLUtil.setElementDoubleValue(spotPropertiesNode, ID_SPOTVOLUME, spotVolume);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_PIXELS, spotNPixels);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_RADIUS, spotRadius);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_XCOORD, spotXCoord);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_YCOORD, spotYCoord);
+			XMLUtil.setElementValue(spotPropertiesNode, ID_SPOTSTIMULUS, stimulus);
+			XMLUtil.setElementValue(spotPropertiesNode, ID_CONCENTRATION, concentration);
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_COLOR_R, color.getRed());
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_COLOR_G, color.getGreen());
+			XMLUtil.setElementIntValue(spotPropertiesNode, ID_COLOR_B, color.getBlue());
 
 			return true;
 		} catch (Exception e) {
 			System.err.println("Error saving properties to XML: " + e.getMessage());
 			return false;
 		}
-	}
-
-	// === CSV IMPORT/EXPORT ===
-
-	/**
-	 * Imports properties from CSV data.
-	 * 
-	 * @param data the CSV data array
-	 * @throws IllegalArgumentException if data is null or invalid
-	 */
-	public void importFromCsv(String[] data) {
-		Objects.requireNonNull(data, "CSV data cannot be null");
-
-		if (data.length < 6) {
-			throw new IllegalArgumentException("CSV data must have at least 6 elements");
-		}
-
-		try {
-			int index = 0;
-			this.name = data[index++];
-			this.spotArrayIndex = Integer.parseInt(data[index++]);
-			this.cageID = Integer.parseInt(data[index++]);
-
-			if (this.cageID < 0) {
-				this.cageID = SpotString.getCageIDFromSpotName(this.name);
-			}
-
-			this.cagePosition = Integer.parseInt(data[index++]);
-
-			if (data.length >= 12) {
-				int spotUniqueIDValue = Integer.parseInt(data[index++]);
-				if (spotUniqueIDValue >= 0) {
-					this.spotUniqueID = new SpotID(spotUniqueIDValue);
-				}
-			}
-
-			if (data.length >= 11) {
-				this.cageColumn = Integer.parseInt(data[index++]);
-				this.cageRow = Integer.parseInt(data[index++]);
-			}
-
-			if (data.length == 10) {
-				this.spotRadius = Integer.parseInt(data[index++]); // dummy read
-			}
-
-			this.spotVolume = Double.parseDouble(data[index++]);
-			this.spotNPixels = Integer.parseInt(data[index++]);
-			this.spotRadius = Integer.parseInt(data[index++]);
-			this.stimulus = data[index++];
-			this.concentration = data[index++];
-
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Invalid numeric value in CSV data", e);
-		} catch (ArrayIndexOutOfBoundsException e) {
-			throw new IllegalArgumentException("Insufficient data in CSV array", e);
-		}
-	}
-
-	/**
-	 * Exports spot properties header to CSV.
-	 * 
-	 * @param csvSeparator the CSV separator
-	 * @return the CSV header string
-	 */
-	public static String exportHeaderToCsv(String csvSeparator) {
-		Objects.requireNonNull(csvSeparator, "CSV separator cannot be null");
-
-		StringBuilder sbf = new StringBuilder();
-		sbf.append("#").append(csvSeparator).append("#\n");
-		sbf.append("#").append(csvSeparator).append("SPOTS").append(csvSeparator).append("multiSPOTS data\n");
-
-		List<String> row2 = Arrays.asList("name", "index", "cageID", "cagePos", "cageColumn", "cageRow", "volume",
-				"npixels", "radius", "stim", "conc");
-		sbf.append(String.join(csvSeparator, row2));
-		sbf.append("\n");
-		return sbf.toString();
-	}
-
-	/**
-	 * Exports spot properties to CSV.
-	 * 
-	 * @param csvSeparator the CSV separator
-	 * @return the CSV data string
-	 */
-	public String exportToCsv(String csvSeparator) {
-		Objects.requireNonNull(csvSeparator, "CSV separator cannot be null");
-
-		StringBuilder sbf = new StringBuilder();
-		List<String> row = Arrays.asList(name != null ? name : "", String.valueOf(spotArrayIndex),
-				String.valueOf(cageID), String.valueOf(cagePosition), String.valueOf(cageColumn),
-				String.valueOf(cageRow), String.valueOf(spotVolume), String.valueOf(spotNPixels),
-				String.valueOf(spotRadius), stimulus != null ? stimulus.replace(",", ".") : "",
-				concentration != null ? concentration.replace(",", ".") : "");
-		sbf.append(String.join(csvSeparator, row));
-		sbf.append("\n");
-		return sbf.toString();
 	}
 
 	// === UTILITY METHODS ===

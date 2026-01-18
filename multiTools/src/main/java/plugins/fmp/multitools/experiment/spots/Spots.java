@@ -238,7 +238,7 @@ public class Spots {
 					String name = spot.getProperties().getName();
 					int cageID = spot.getProperties().getCageID();
 					if (name != null && !name.trim().isEmpty() && cageID >= 0) {
-						writer.write(spot.getProperties().exportToCsv(CSV_SEPARATOR));
+						writer.write(SpotPersistence.csvExportSpotDescription(spot, CSV_SEPARATOR));
 					}
 				}
 			}
@@ -695,7 +695,7 @@ public class Spots {
 				spot.setSpotUniqueID(new SpotID(uniqueID));
 				spotList.add(spot);
 			}
-			spot.getProperties().importFromCsv(data);
+			SpotPersistence.csvImportSpotDescription(spot, data);
 		}
 		return null;
 	}
@@ -738,7 +738,7 @@ public class Spots {
 				}
 				spotList.add(spot);
 			}
-			spot.importMeasuresOneType(measureType, data, x, y);
+			SpotPersistence.csvImportSpotData(spot, measureType, data, x, y);
 		}
 		return null;
 	}
@@ -773,18 +773,14 @@ public class Spots {
 		writer.write("#" + CSV_SEPARATOR + "SPOTS_ARRAY" + CSV_SEPARATOR + "multiSPOTS data\n");
 		writer.write("n spots=" + CSV_SEPARATOR + spotList.size() + "\n");
 		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write("#" + CSV_SEPARATOR + "SPOTS" + CSV_SEPARATOR + "multiSPOTS data\n");
-		writer.write("name" + CSV_SEPARATOR + "index" + CSV_SEPARATOR + "cageID" + CSV_SEPARATOR + "cagePos"
-				+ CSV_SEPARATOR + "cageColumn" + CSV_SEPARATOR + "cageRow" + CSV_SEPARATOR + "volume" + CSV_SEPARATOR
-				+ "npixels" + CSV_SEPARATOR + "radius" + CSV_SEPARATOR + "stim" + CSV_SEPARATOR + "conc\n");
+		writer.write(SpotPersistence.csvExportSpotSubSectionHeader(CSV_SEPARATOR));
 
 		for (Spot spot : spotList) {
-			// Only save valid spots with name and cage association
 			if (spot != null && spot.getProperties() != null) {
 				String name = spot.getProperties().getName();
 				int cageID = spot.getProperties().getCageID();
 				if (name != null && !name.trim().isEmpty() && cageID >= 0) {
-					writer.write(spot.getProperties().exportToCsv(CSV_SEPARATOR));
+					writer.write(SpotPersistence.csvExportSpotDescription(spot, CSV_SEPARATOR));
 				}
 			}
 		}
@@ -793,12 +789,10 @@ public class Spots {
 	}
 
 	boolean csvSaveMeasuresSection(FileWriter writer, EnumSpotMeasures measureType) throws IOException {
-		writer.write("#" + CSV_SEPARATOR + "#\n");
-		writer.write("#" + CSV_SEPARATOR + measureType.toString() + CSV_SEPARATOR + "v0\n");
-		writer.write("name" + CSV_SEPARATOR + "index" + CSV_SEPARATOR + "npts" + CSV_SEPARATOR + "yi\n");
+		writer.write(SpotPersistence.csvExportMeasureSectionHeader(measureType, CSV_SEPARATOR));
 
 		for (Spot spot : spotList) {
-			writer.write(spot.exportMeasuresOneType(measureType, CSV_SEPARATOR));
+			writer.write(SpotPersistence.csvExportMeasuresOneType(spot, measureType, CSV_SEPARATOR));
 		}
 
 		return true;
