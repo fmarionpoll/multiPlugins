@@ -17,7 +17,7 @@ import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.spots.spot.Spot;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 

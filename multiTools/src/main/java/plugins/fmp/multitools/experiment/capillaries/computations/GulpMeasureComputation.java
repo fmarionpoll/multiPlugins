@@ -2,7 +2,7 @@ package plugins.fmp.multitools.experiment.capillaries.computations;
 
 import java.util.ArrayList;
 
-import plugins.fmp.multitools.experiment.capillaries.CapillaryGulps;
+import plugins.fmp.multitools.experiment.capillaries.capillary.CapillaryGulps;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;
 

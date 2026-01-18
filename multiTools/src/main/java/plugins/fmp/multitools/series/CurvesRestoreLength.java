@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 
 public class CurvesRestoreLength extends BuildSeries {

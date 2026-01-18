@@ -10,7 +10,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.cage.CageProperties;
 import plugins.fmp.multitools.experiment.cages.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cages.cage.FlyPositions;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
 import plugins.fmp.multitools.experiment.spots.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.spot.SpotProperties;
 

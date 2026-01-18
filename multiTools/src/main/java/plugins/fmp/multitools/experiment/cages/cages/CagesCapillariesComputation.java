@@ -6,9 +6,9 @@ import java.util.List;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.cage.Cage;
-import plugins.fmp.multitools.experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.experiment.capillaries.Capillary;
-import plugins.fmp.multitools.experiment.capillaries.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillaries.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.Level2D;
 
 /**

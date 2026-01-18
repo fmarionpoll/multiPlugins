@@ -4,7 +4,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.experiment.capillaries.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillaries.capillary.CapillaryMeasure;
 
 /**
  * Stores cage-level measures (SUM, PI, etc.).
