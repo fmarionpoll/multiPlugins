@@ -14,7 +14,7 @@ import javax.swing.SwingConstants;
 import icy.gui.util.FontUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
+import plugins.fmp.multitools.experiment.cages.cages.CagesSequenceMapper;
 
 public class LoadSave extends JPanel {
 	/**

@@ -17,7 +17,7 @@ import org.jfree.data.xy.XYDataset;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.experiment.spots.Spot;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;

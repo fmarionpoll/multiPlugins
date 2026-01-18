@@ -23,7 +23,7 @@ import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
 import plugins.fmp.multitools.tools.results.EnumResults;

@@ -20,7 +20,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.tools.MaxMinDouble;
 import plugins.fmp.multitools.tools.chart.builders.CageFlyPositionSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;

@@ -4,9 +4,9 @@ import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
-import plugins.fmp.multitools.experiment.cages.FlyPosition;
-import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPosition;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPositions;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;

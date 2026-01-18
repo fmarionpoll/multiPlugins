@@ -23,9 +23,9 @@ import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
-import plugins.fmp.multitools.experiment.cages.CageTable;
-import plugins.fmp.multitools.experiment.cages.Cages;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.CageTable;
+import plugins.fmp.multitools.experiment.cages.cages.Cages;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 

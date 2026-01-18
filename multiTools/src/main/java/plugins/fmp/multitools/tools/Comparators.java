@@ -6,11 +6,11 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
-import plugins.fmp.multitools.experiment.cages.FlyPosition;
-import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPosition;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
-import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
 import plugins.fmp.multitools.tools.results.Results;
 
 public class Comparators {

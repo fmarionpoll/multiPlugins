@@ -34,7 +34,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;

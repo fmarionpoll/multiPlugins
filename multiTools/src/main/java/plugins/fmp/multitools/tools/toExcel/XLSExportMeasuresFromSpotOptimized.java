@@ -7,10 +7,10 @@ import java.util.List;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
-import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.spots.Spots;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;

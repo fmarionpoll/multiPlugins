@@ -77,7 +77,7 @@ public class CreateSpots extends JPanel {
 	}
 
 	@SuppressWarnings("unused")
-	private void clearSpotsForCage(Experiment exp, plugins.fmp.multiSPOTS.experiment.cages.Cage cage) {
+	private void clearSpotsForCage(Experiment exp, plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage) {
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {
 			try {
@@ -110,7 +110,7 @@ public class CreateSpots extends JPanel {
 	}
 
 	@SuppressWarnings("unused")
-	private void addSpotEllipseToCage(Experiment exp, plugins.fmp.multiSPOTS.experiment.cages.Cage cage,
+	private void addSpotEllipseToCage(Experiment exp, plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage,
 			Point2D.Double center, int radius) {
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {
@@ -355,7 +355,7 @@ public class CreateSpots extends JPanel {
 		if (allSpots != null) {
 			allSpots.clearSpotList();
 			if (exp.getCages() != null) {
-				for (plugins.fmp.multiSPOTS.experiment.cages.Cage cage : exp.getCages().cagesList) {
+				for (plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage : exp.getCages().cagesList) {
 					try {
 						java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
 						@SuppressWarnings("unchecked")
@@ -471,7 +471,7 @@ public class CreateSpots extends JPanel {
 			return;
 		}
 
-		for (plugins.fmp.multiSPOTS.experiment.cages.Cage cage : exp.getCages().cagesList) {
+		for (plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage : exp.getCages().cagesList) {
 			try {
 				java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
 				@SuppressWarnings("unchecked")
@@ -498,7 +498,7 @@ public class CreateSpots extends JPanel {
 			spot.getProperties().setCageID(cageID);
 			spot.getProperties().setCagePosition(cagePosition);
 
-			plugins.fmp.multiSPOTS.experiment.cages.Cage cage = exp.getCages().getCageFromNumber(cageID);
+			plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage = exp.getCages().getCageFromNumber(cageID);
 			if (cage != null) {
 				try {
 					java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");

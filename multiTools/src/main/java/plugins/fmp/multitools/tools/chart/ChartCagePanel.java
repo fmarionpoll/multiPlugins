@@ -8,7 +8,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.plot.XYPlot;
 
 import icy.util.StringUtil;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 
 public class ChartCagePanel extends ChartPanel implements PropertyChangeListener, AutoCloseable {

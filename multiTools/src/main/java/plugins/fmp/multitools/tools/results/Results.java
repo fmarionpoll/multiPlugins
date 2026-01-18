@@ -7,12 +7,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.CageProperties;
-import plugins.fmp.multitools.experiment.cages.FlyPosition;
-import plugins.fmp.multitools.experiment.cages.FlyPositions;
+import plugins.fmp.multitools.experiment.cages.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPosition;
+import plugins.fmp.multitools.experiment.cages.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.capillaries.Capillary;
-import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.experiment.spots.SpotProperties;
+import plugins.fmp.multitools.experiment.spots.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.spot.SpotProperties;
 
 public class Results {
 	private String name = null;

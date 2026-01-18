@@ -22,7 +22,7 @@ import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cages.Cage;
+import plugins.fmp.multitools.experiment.cages.cage.Cage;
 import plugins.fmp.multitools.experiment.spots.Spot;
 import plugins.fmp.multitools.experiment.spots.SpotProperties;
 import plugins.fmp.multitools.experiment.spots.Spots;
