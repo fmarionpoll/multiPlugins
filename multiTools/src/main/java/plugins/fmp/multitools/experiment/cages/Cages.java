@@ -48,6 +48,56 @@ public class Cages {
 		return persistence;
 	}
 
+	// === DATA LOADING ===
+	// New standardized method names (v2.3.3+)
+
+	/**
+	 * Loads cage descriptions from the results directory.
+	 * Descriptions include cage properties but not time-series measures (fly positions).
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean loadDescriptions(String resultsDirectory) {
+		return persistence.loadDescriptions(this, resultsDirectory);
+	}
+
+	/**
+	 * Loads cage measures from the bin directory (e.g., results/bin60).
+	 * Measures include fly position data over time.
+	 * 
+	 * @param binDirectory the bin directory
+	 * @return true if successful
+	 */
+	public boolean loadMeasures(String binDirectory) {
+		return persistence.loadMeasures(this, binDirectory);
+	}
+
+	// === DATA SAVING ===
+	// New standardized method names (v2.3.3+)
+
+	/**
+	 * Saves cage descriptions to the results directory.
+	 * Descriptions include cage properties but not time-series measures (fly positions).
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean saveDescriptions(String resultsDirectory) {
+		return persistence.saveDescriptions(this, resultsDirectory);
+	}
+
+	/**
+	 * Saves cage measures to the bin directory (e.g., results/bin60).
+	 * Measures include fly position data over time.
+	 * 
+	 * @param binDirectory the bin directory
+	 * @return true if successful
+	 */
+	public boolean saveMeasures(String binDirectory) {
+		return persistence.saveMeasures(this, binDirectory);
+	}
+
 	public int nCagesAlongX = 6;
 	public int nCagesAlongY = 8;
 	public int nColumnsPerCage = 2;
@@ -183,11 +233,11 @@ public class Cages {
 	// -------------
 
 	public boolean saveCagesMeasures(String directory) {
-		return persistence.save_Cages(this, directory);
+		return persistence.saveDescriptions(this, directory);
 	}
 
 	public boolean loadCagesMeasures(String directory) {
-		return persistence.load_Cages(this, directory);
+		return persistence.loadDescriptions(this, directory);
 	}
 
 	// -----------------------------------------------------
@@ -385,9 +435,16 @@ public class Cages {
 		return created;
 	}
 
-	// --------------
+	// === SEQUENCE COMMUNICATION ===
+	// New standardized method names (v2.3.3+)
 
-	public void transferROIsFromCagesToSequence(SequenceCamData seqCamData) {
+	/**
+	 * Transfers cage ROIs to the camera sequence.
+	 * Removes existing cage ROIs and adds all current cage ROIs.
+	 * 
+	 * @param seqCamData the camera sequence
+	 */
+	public void transferROIsToSequence(SequenceCamData seqCamData) {
 		// Use modern ROI operation for removing existing cage ROIs
 		seqCamData.processROIs(ROIOperation.removeROIs("cage"));
 
@@ -402,12 +459,36 @@ public class Cages {
 			sequence.addROIs(cageROIList, true);
 	}
 
-	public void transferROIsFromSequenceToCages(SequenceCamData seqCamData) {
+	/**
+	 * Transfers ROIs from the camera sequence back to cages.
+	 * Updates cage positions based on ROIs with names containing "cage".
+	 * 
+	 * @param seqCamData the camera sequence
+	 */
+	public void transferROIsFromSequence(SequenceCamData seqCamData) {
 		List<ROI2D> roiList = seqCamData.findROIsMatchingNamePattern("cage");
 		Collections.sort(roiList, new Comparators.ROI2D_Name());
 		transferROIsToCages(roiList);
 		addMissingCages(roiList);
 		Collections.sort(cagesList, new Comparators.Cage_Name());
+	}
+
+	// === DEPRECATED METHODS ===
+
+	/**
+	 * @deprecated Use {@link #transferROIsToSequence(SequenceCamData)} instead.
+	 */
+	@Deprecated
+	public void transferROIsFromCagesToSequence(SequenceCamData seqCamData) {
+		transferROIsToSequence(seqCamData);
+	}
+
+	/**
+	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
+	 */
+	@Deprecated
+	public void transferROIsFromSequenceToCages(SequenceCamData seqCamData) {
+		transferROIsFromSequence(seqCamData);
 	}
 
 	private void transferROIsToCages(List<ROI2D> roiList) {
@@ -950,7 +1031,7 @@ public class Cages {
 		if (allSpots == null) {
 			return false;
 		}
-		boolean flag = allSpots.loadSpotsMeasures(directory);
+		boolean flag = allSpots.loadMeasures(directory);
 		return flag;
 	}
 
@@ -958,7 +1039,7 @@ public class Cages {
 		if (allSpots == null) {
 			return false;
 		}
-		boolean flag = allSpots.loadSpotsAll(directory);
+		boolean flag = allSpots.loadDescriptions(directory);
 		return flag;
 	}
 
@@ -966,14 +1047,14 @@ public class Cages {
 		if (allSpots == null) {
 			return false;
 		}
-		boolean flag = allSpots.saveSpotsAll(directory);
+		boolean flag = allSpots.saveDescriptions(directory);
 		return flag;
 	}
 
 	public boolean save_SpotsMeasures(String directory, Spots allSpots) {
 		if (directory == null || allSpots == null)
 			return false;
-		allSpots.saveSpotsMeasuresOptimized(directory);
+		allSpots.saveMeasures(directory);
 		return true;
 	}
 

@@ -205,8 +205,17 @@ public class Spot implements Comparable<Spot> {
 
 	/**
 	 * Regenerates the ROI from stored coordinates (spotXCoord, spotYCoord,
-	 * spotRadius). This is used when ROIs are not persisted (CSV-only persistence)
-	 * and need to be recreated for display purposes.
+	 * spotRadius). 
+	 * 
+	 * <p><b>Backward Compatibility:</b> This method is primarily used for loading
+	 * old CSV files (v2.0 and earlier) that don't contain full ROI data. Starting
+	 * from v2.1, ROI coordinates are saved in the CSV file and loaded directly,
+	 * preserving user modifications. This method is kept for:
+	 * <ul>
+	 *   <li>Loading legacy files without ROI columns</li>
+	 *   <li>Fallback when ROI reconstruction fails</li>
+	 *   <li>Programmatic spot creation without GUI</li>
+	 * </ul>
 	 * 
 	 * @return true if ROI was successfully regenerated, false if coordinates are
 	 *         invalid

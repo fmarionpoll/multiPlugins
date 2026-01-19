@@ -52,18 +52,77 @@ public class Capillaries {
 		return this.capillariesList.add(capillary);
 	}
 
-	// ---------------------------------
+	// === PERSISTENCE ===
 
 	public CapillariesPersistence getPersistence() {
 		return persistence;
 	}
 
-	// ---------------------------------
+	// === DATA LOADING ===
+	// New standardized method names (v2.3.3+)
 
+	/**
+	 * Loads capillary descriptions from the results directory.
+	 * Descriptions include capillary properties but not time-series measures.
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean loadDescriptions(String resultsDirectory) {
+		return persistence.loadDescriptions(this, resultsDirectory);
+	}
+
+	/**
+	 * Loads capillary measures from the bin directory (e.g., results/bin60).
+	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
+	 * 
+	 * @param binDirectory the bin directory
+	 * @return true if successful
+	 */
+	public boolean loadMeasures(String binDirectory) {
+		return persistence.loadMeasures(this, binDirectory);
+	}
+
+	// === DATA SAVING ===
+	// New standardized method names (v2.3.3+)
+
+	/**
+	 * Saves capillary descriptions to the results directory.
+	 * Descriptions include capillary properties but not time-series measures.
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean saveDescriptions(String resultsDirectory) {
+		return persistence.saveDescriptions(this, resultsDirectory);
+	}
+
+	/**
+	 * Saves capillary measures to the bin directory (e.g., results/bin60).
+	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
+	 * 
+	 * @param binDirectory the bin directory
+	 * @return true if successful
+	 */
+	public boolean saveMeasures(String binDirectory) {
+		return persistence.saveMeasures(this, binDirectory);
+	}
+
+	// === DEPRECATED METHODS ===
+	// Old method names kept for backward compatibility (will be removed in v3.0)
+
+	/**
+	 * @deprecated Use {@link #getXMLNameToAppend()} from persistence instead.
+	 */
+	@Deprecated
 	public String getXMLNameToAppend() {
 		return persistence.getXMLNameToAppend();
 	}
 
+	/**
+	 * @deprecated XML persistence is deprecated. Use CSV persistence methods instead.
+	 */
+	@Deprecated
 	public boolean xmlSaveCapillaries_Descriptors(String csFileName) {
 		return persistence.xmlSaveCapillaries_Descriptors(this, csFileName);
 	}
@@ -188,7 +247,22 @@ public class Capillaries {
 		return capFound;
 	}
 
-	public void updateCapillariesFromSequence(SequenceCamData seqCamData) {
+	// === SEQUENCE COMMUNICATION ===
+	// New standardized method names (v2.3.3+)
+
+	/**
+	 * Transfers ROIs from the camera sequence back to capillaries.
+	 * 
+	 * <p>Updates existing capillaries based on ROIs with names containing "line".
+	 * This is a capillary-driven approach: only existing capillaries are updated;
+	 * no new capillaries are created from ROIs.
+	 * 
+	 * <p>Capillaries without matching ROIs are removed, allowing users to delete
+	 * capillaries by removing their ROIs from the sequence.
+	 * 
+	 * @param seqCamData the camera sequence
+	 */
+	public void transferROIsFromSequence(SequenceCamData seqCamData) {
 		List<ROI2D> listROISCap = seqCamData.findROIsMatchingNamePattern("line");
 		Collections.sort(listROISCap, new Comparators.ROI2D_Name());
 
@@ -227,10 +301,17 @@ public class Capillaries {
 		// saved data
 
 		Collections.sort(getList());
-		return;
 	}
 
-	public void transferCapillaryRoiToSequence(Sequence seq) {
+	/**
+	 * Transfers capillary ROIs to the camera sequence.
+	 * 
+	 * <p>Removes existing capillary ROIs (containing "line") and adds all current
+	 * capillary ROIs to the sequence.
+	 * 
+	 * @param seq the sequence
+	 */
+	public void transferROIsToSequence(Sequence seq) {
 		// Remove only capillary ROIs (containing "line"), preserving cages and other
 		// ROIs
 		List<ROI2D> allROIs = seq.getROI2Ds();
@@ -249,6 +330,24 @@ public class Capillaries {
 				seq.addROI(cap.getRoi());
 			}
 		}
+	}
+
+	// === DEPRECATED METHODS ===
+
+	/**
+	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
+	 */
+	@Deprecated
+	public void updateCapillariesFromSequence(SequenceCamData seqCamData) {
+		transferROIsFromSequence(seqCamData);
+	}
+
+	/**
+	 * @deprecated Use {@link #transferROIsToSequence(Sequence)} instead.
+	 */
+	@Deprecated
+	public void transferCapillaryRoiToSequence(Sequence seq) {
+		transferROIsToSequence(seq);
 	}
 
 	public void initCapillariesWith10Cages(int nflies, boolean optionZeroFlyFirstLastCapillary) {

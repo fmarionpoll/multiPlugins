@@ -21,9 +21,12 @@ public class CagesPersistence {
 //	private static final String ID_NCOLUMNSPERCAGE = "N_columns_per_cage";
 //	private static final String ID_NROWSPERCAGE = "N_rows_per_cage";
 
-	// New v2 format filenames
-	private static final String ID_V2_CAGESDESCRIPTION_CSV = "v2_cages_description.csv";
-	private static final String ID_V2_CAGESMEASURES_CSV = "v2_cages_measures.csv";
+	// New v2.1 format filenames (with ROI type support)
+	private static final String ID_V2_CAGESDESCRIPTION_CSV = "v2.1_cages_description.csv";
+	private static final String ID_V2_CAGESMEASURES_CSV = "v2.1_cages_measures.csv";
+	
+	// Version for CSV files
+	private static final String CSV_VERSION = "2.1";
 
 //	// Legacy filenames (for fallback)
 //	private static final String ID_CAGESARRAY_CSV = "CagesArray.csv";
@@ -32,76 +35,111 @@ public class CagesPersistence {
 
 	// ========================================================================
 	// Public API methods (delegate to nested classes)
+	// New standardized method names (v2.3.3+)
 	// ========================================================================
 
-	public boolean load_Cages(Cages cages, String directory) {
-		// Try v2 format first, then delegate to Legacy for all fallback logic
-		// Legacy fallback handles: legacy CSV → XML, with proper ROI and fly positions
-		// handling
-		return Persistence.loadDescription(cages, directory);
-	}
-
-	public boolean save_Cages(Cages cages, String directory) {
-		if (directory == null) {
-			Logger.warn("CagesPersistence:save_Cages() directory is null");
-			return false;
-		}
-
-		Path path = Paths.get(directory);
-		if (!Files.exists(path)) {
-			Logger.warn("CagesPersistence:save_Cages() directory does not exist: " + directory);
-			return false;
-		}
-
-		// Save descriptions to v2_ format file (includes ROI coordinates in CSV)
-		return Persistence.saveDescription(cages, directory);
-	}
-
 	/**
-	 * Saves cage descriptions (DESCRIPTION and CAGE sections) to CagesArray.csv in
-	 * results directory.
+	 * Loads cage descriptions from the results directory.
+	 * Descriptions include cage properties but not time-series measures (fly positions).
+	 * Tries new v2.1 format first, then falls back to legacy format.
 	 * 
-	 * @param cages            the Cages to save
+	 * @param cages the Cages to populate
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
-	public boolean saveCagesDescription(Cages cages, String resultsDirectory) {
-		return Persistence.saveDescription(cages, resultsDirectory);
-	}
-
-	/**
-	 * Saves cage measures (POSITION section) to CagesMeasures.csv in bin directory.
-	 * 
-	 * @param cages        the CagesArray to save
-	 * @param binDirectory the bin directory (e.g., results/bin60)
-	 * @return true if successful
-	 */
-	public boolean saveCagesMeasures(Cages cages, String binDirectory) {
-		return Persistence.saveMeasures(cages, binDirectory);
-	}
-
-	/**
-	 * Loads cage descriptions (DESCRIPTION and CAGE sections) from CagesArray.csv.
-	 * Stops reading when it encounters a POSITION section.
-	 * 
-	 * @param cages            the Cages to populate
-	 * @param resultsDirectory the results directory
-	 * @return true if successful
-	 */
-	public boolean loadCagesDescription(Cages cages, String resultsDirectory) {
+	public boolean loadDescriptions(Cages cages, String resultsDirectory) {
 		return Persistence.loadDescription(cages, resultsDirectory);
 	}
 
 	/**
-	 * Loads cage measures (POSITION section) from CagesMeasures.csv in bin
-	 * directory.
+	 * Loads cage measures from the bin directory (e.g., results/bin60).
+	 * Measures include fly position data over time.
+	 * Tries new v2.1 format first, then falls back to legacy format.
 	 * 
-	 * @param cages        the Cages to populate
+	 * @param cages the Cages to populate
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
-	public boolean loadCagesMeasures(Cages cages, String binDirectory) {
+	public boolean loadMeasures(Cages cages, String binDirectory) {
 		return Persistence.loadMeasures(cages, binDirectory);
+	}
+
+	/**
+	 * Saves cage descriptions to the results directory.
+	 * Descriptions include cage properties but not time-series measures (fly positions).
+	 * Uses new v2.1 format.
+	 * 
+	 * @param cages the Cages to save
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean saveDescriptions(Cages cages, String resultsDirectory) {
+		return Persistence.saveDescription(cages, resultsDirectory);
+	}
+
+	/**
+	 * Saves cage measures to the bin directory (e.g., results/bin60).
+	 * Measures include fly position data over time.
+	 * Uses new v2.1 format.
+	 * 
+	 * @param cages the Cages to save
+	 * @param binDirectory the bin directory (e.g., results/bin60)
+	 * @return true if successful
+	 */
+	public boolean saveMeasures(Cages cages, String binDirectory) {
+		return Persistence.saveMeasures(cages, binDirectory);
+	}
+
+	// ========================================================================
+	// Deprecated methods - kept for backward compatibility (will be removed in v3.0)
+	// ========================================================================
+
+	/**
+	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean load_Cages(Cages cages, String directory) {
+		return Persistence.loadDescription(cages, directory);
+	}
+
+	/**
+	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean save_Cages(Cages cages, String directory) {
+		return Persistence.saveDescription(cages, directory);
+	}
+
+	/**
+	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean saveCagesDescription(Cages cages, String resultsDirectory) {
+		return saveDescriptions(cages, resultsDirectory);
+	}
+
+	/**
+	 * @deprecated Use {@link #saveMeasures(String)} instead.
+	 */
+	@Deprecated
+	public boolean saveCagesMeasures(Cages cages, String binDirectory) {
+		return saveMeasures(cages, binDirectory);
+	}
+
+	/**
+	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean loadCagesDescription(Cages cages, String resultsDirectory) {
+		return loadDescriptions(cages, resultsDirectory);
+	}
+
+	/**
+	 * @deprecated Use {@link #loadMeasures(String)} instead.
+	 */
+	@Deprecated
+	public boolean loadCagesMeasures(Cages cages, String binDirectory) {
+		return loadMeasures(cages, binDirectory);
 	}
 
 	// ========================================================================
@@ -294,7 +332,7 @@ public class CagesPersistence {
 
 		/**
 		 * Saves cage descriptions (DESCRIPTION and CAGE sections) to Cages.csv in
-		 * results directory. Always saves to v2_ format.
+		 * results directory. Always saves to v2.1 format.
 		 */
 		public static boolean saveDescription(Cages cages, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -309,8 +347,10 @@ public class CagesPersistence {
 			}
 
 			try {
-				// Always save to v2_ format
+				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(resultsDirectory + File.separator + ID_V2_CAGESDESCRIPTION_CSV);
+				// Write version header
+				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CagesPersistenceLegacy.csvSaveDESCRIPTIONSection(cages, csvWriter, csvSep);
 				CagesPersistenceLegacy.csvSaveCAGESection(cages, csvWriter, csvSep);
 				csvWriter.flush();
@@ -325,7 +365,7 @@ public class CagesPersistence {
 
 		/**
 		 * Saves cage measures (POSITION section) to CagesMeasures.csv in bin directory.
-		 * Always saves to v2_ format.
+		 * Always saves to v2.1 format.
 		 */
 		public static boolean saveMeasures(Cages cages, String binDirectory) {
 			if (binDirectory == null) {
@@ -340,8 +380,10 @@ public class CagesPersistence {
 			}
 
 			try {
-				// Always save to v2_ format
+				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAGESMEASURES_CSV);
+				// Write version header
+				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CagesPersistenceLegacy.csvSaveMeasuresSection(cages, csvWriter, EnumCageMeasures.POSITION, csvSep);
 				csvWriter.flush();
 				csvWriter.close();

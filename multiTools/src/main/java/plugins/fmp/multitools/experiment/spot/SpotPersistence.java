@@ -10,6 +10,7 @@ import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
 /**
@@ -68,7 +69,7 @@ public class SpotPersistence {
 	public static String csvExportSpotSubSectionHeader(String sep) {
 		return "#" + sep + "SPOTS" + sep + "multiSPOTS data\n" + "name" + sep + "index" + sep + "cageID" + sep
 				+ "cagePos" + sep + "cageColumn" + sep + "cageRow" + sep + "volume" + sep + "npixels" + sep + "radius"
-				+ sep + "stim" + sep + "conc\n";
+				+ sep + "stim" + sep + "conc" + sep + "roiType" + sep + "roiData\n";
 	}
 
 	public static String csvExportSpotDescription(Spot spot, String sep) {
@@ -82,6 +83,16 @@ public class SpotPersistence {
 				props.getStimulus() != null ? props.getStimulus().replace(",", ".") : "",
 				props.getConcentration() != null ? props.getConcentration().replace(",", ".") : "");
 		sbf.append(String.join(sep, row));
+		
+		// Add ROI type and data columns (v2.1 format)
+		sbf.append(sep);
+		if (spot.getRoi() != null) {
+			String roiExport = ROIPersistenceUtils.exportROITypeAndData(spot.getRoi(), sep);
+			sbf.append(roiExport);
+		} else {
+			sbf.append(sep); // Empty roiType and roiData
+		}
+		
 		sbf.append("\n");
 		return sbf.toString();
 	}
@@ -158,6 +169,35 @@ public class SpotPersistence {
 			props.setSpotRadius(Integer.parseInt(data[index++]));
 			props.setStimulus(data[index++]);
 			props.setConcentration(data[index++]);
+			
+			// Check for ROI data (v2.1 format with roiType and roiData columns)
+			if (index < data.length && index + 1 < data.length) {
+				String roiType = data[index++];
+				String roiData = data[index++];
+				
+				if (roiType != null && !roiType.trim().isEmpty() && !roiType.equals("unknown")) {
+					// Reconstruct ROI from CSV data
+					ROI2D reconstructedROI = ROIPersistenceUtils.importROIFromCSV(
+						roiType, roiData, props.getName());
+					if (reconstructedROI instanceof ROI2DShape) {
+						spot.setRoi((ROI2DShape) reconstructedROI);
+					} else if (reconstructedROI != null) {
+						System.err.println("Warning: Reconstructed ROI is not ROI2DShape for spot: " + props.getName());
+						// Fall back to regeneration
+						spot.regenerateROIFromCoordinates();
+					} else {
+						// Reconstruction failed, regenerate from coordinates
+						spot.regenerateROIFromCoordinates();
+					}
+				} else {
+					// No ROI data or unknown type, regenerate from coordinates
+					spot.regenerateROIFromCoordinates();
+				}
+			} else {
+				// Old format (v2.0 or earlier) without ROI columns
+				// Regenerate ROI from stored coordinates (backward compatibility)
+				spot.regenerateROIFromCoordinates();
+			}
 
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Invalid numeric value in CSV data", e);

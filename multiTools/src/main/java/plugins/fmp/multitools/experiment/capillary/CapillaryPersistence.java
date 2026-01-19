@@ -11,6 +11,8 @@ import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
+import plugins.fmp.multitools.tools.ROI2D.ROIType;
 
 /**
  * Handles persistence (XML loading/saving, CSV export/import) for Capillary.
@@ -149,7 +151,7 @@ public class CapillaryPersistence {
 		StringBuffer sbf = new StringBuffer();
 		sbf.append("#" + sep + "CAPILLARIES" + sep + "describe each capillary\n");
 		List<String> row2 = Arrays.asList("cap_prefix", "kymoIndex", "kymographName", "kymoFile", "cap_cage",
-				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "npoints");
+				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType", "npoints");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -198,9 +200,13 @@ public class CapillaryPersistence {
 				Integer.toString(props.getNFlies()), Double.toString(props.getVolume()),
 				Integer.toString(props.getPixels()), props.getStimulus(), props.getConcentration(), props.getSide()));
 
-		// Add ROI name and points (similar to cages format)
+		// Add ROI name and type (v2.1 format)
 		String roiName = (cap.getRoi() != null && cap.getRoi().getName() != null) ? cap.getRoi().getName() : "";
 		row.add(roiName);
+		
+		// Add ROI type
+		ROIType roiType = ROIPersistenceUtils.detectROIType(cap.getRoi());
+		row.add(roiType.toCsvString());
 
 		// Extract ROI points (for ROI2DPolyLine or ROI2DLine)
 		int npoints = 0;
@@ -324,6 +330,16 @@ public class CapillaryPersistence {
 		if (i < data.length && data[i] != null && !data[i].isEmpty()) {
 			String roiName = data[i];
 			i++;
+			
+			// Read ROI type (v2.1 format)
+			@SuppressWarnings("unused")
+			String roiTypeStr = "";
+			if (i < data.length && !isNumeric(data[i])) {
+				roiTypeStr = data[i];
+				i++;
+			}
+			// Note: roiTypeStr is read for v2.1 format compatibility
+			// Current reconstruction logic infers type from npoints (2=LINE, >2=POLYLINE)
 
 			// Read number of points
 			if (i < data.length) {
@@ -365,6 +381,24 @@ public class CapillaryPersistence {
 					// Invalid npoints, skip ROI reconstruction
 				}
 			}
+		}
+	}
+
+	/**
+	 * Checks if a string represents a numeric value.
+	 * 
+	 * @param str the string to check
+	 * @return true if the string is numeric
+	 */
+	private static boolean isNumeric(String str) {
+		if (str == null || str.trim().isEmpty()) {
+			return false;
+		}
+		try {
+			Integer.parseInt(str.trim());
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
 		}
 	}
 

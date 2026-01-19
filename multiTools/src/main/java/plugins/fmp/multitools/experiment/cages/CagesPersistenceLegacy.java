@@ -15,6 +15,8 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
+import plugins.fmp.multitools.tools.ROI2D.ROIType;
 
 /**
  * Legacy persistence for cages files. Handles loading from legacy XML and CSV
@@ -597,7 +599,7 @@ public class CagesPersistenceLegacy {
 		try {
 			csvWriter.append("#" + csvSep + "CAGE" + csvSep + "Cage properties\n");
 			csvWriter.append("cageID" + csvSep + "nFlies" + csvSep + "age" + csvSep + "Comment" + csvSep + "strain"
-					+ csvSep + "sect" + csvSep + "ROIname" + csvSep + "npoints\n");
+					+ csvSep + "sect" + csvSep + "ROIname" + csvSep + "roiType" + csvSep + "npoints\n");
 
 			for (Cage cage : cages.cagesList) {
 				csvWriter.append(String.format("%d%s%d%s%d%s%s%s%s%s%s%s", cage.getProperties().getCageID(), csvSep,
@@ -609,6 +611,10 @@ public class CagesPersistenceLegacy {
 				String roiName = (cage.getRoi() != null && cage.getRoi().getName() != null) ? cage.getRoi().getName()
 						: "cage" + String.format("%03d", cage.getProperties().getCageID());
 				csvWriter.append(roiName + csvSep);
+				
+				// Add ROI type (v2.1 format)
+				ROIType roiType = ROIPersistenceUtils.detectROIType(cage.getRoi());
+				csvWriter.append(roiType.toCsvString() + csvSep);
 
 				if (cage.getRoi() != null && cage.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DPolygon) {
 					plugins.kernel.roi.roi2d.ROI2DPolygon polyRoi = (plugins.kernel.roi.roi2d.ROI2DPolygon) cage
@@ -619,6 +625,14 @@ public class CagesPersistenceLegacy {
 						csvWriter.append(csvSep + Integer.toString((int) polygon.xpoints[i]));
 						csvWriter.append(csvSep + Integer.toString((int) polygon.ypoints[i]));
 					}
+				} else if (cage.getRoi() != null && cage.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DRectangle) {
+					plugins.kernel.roi.roi2d.ROI2DRectangle rectRoi = (plugins.kernel.roi.roi2d.ROI2DRectangle) cage.getRoi();
+					java.awt.Rectangle rect = rectRoi.getBounds();
+					csvWriter.append("4");  // Rectangle has 4 corner points
+					csvWriter.append(csvSep + Integer.toString(rect.x));
+					csvWriter.append(csvSep + Integer.toString(rect.y));
+					csvWriter.append(csvSep + Integer.toString(rect.width));
+					csvWriter.append(csvSep + Integer.toString(rect.height));
 				} else {
 					csvWriter.append("0");
 				}

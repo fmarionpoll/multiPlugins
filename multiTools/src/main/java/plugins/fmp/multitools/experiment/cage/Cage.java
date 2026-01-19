@@ -26,6 +26,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.ROIType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
@@ -971,14 +972,21 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			i++;
 		}
 
-		// Parse ROI name (if present in legacy CAGES section format)
+		// Parse ROI name (if present in CAGES section format)
 		String cageROI_name = "";
 		if (i < data.length) {
 			cageROI_name = data[i];
 			i++;
 		}
+		
+		// Parse ROI type (v2.1 format) - check if next field is a string (not a number)
+		String roiTypeStr = "";
+		if (i < data.length && !isNumeric(data[i])) {
+			roiTypeStr = data[i];
+			i++;
+		}
 
-		// Parse npoints (if present in legacy CAGES section format)
+		// Parse npoints (if present in CAGES section format)
 		int npoints = 0;
 		if (i < data.length) {
 			try {
@@ -989,27 +997,67 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			}
 		}
 
-		// Parse polygon vertices (x, y pairs) if present in legacy CAGES section format
+		// Parse ROI data based on type
 		if (npoints > 0 && i + (npoints * 2) <= data.length) {
-			double[] x = new double[npoints];
-			double[] y = new double[npoints];
-			for (int j = 0; j < npoints; j++) {
+			// If roiType is specified, use it; otherwise infer from npoints
+			ROIType roiType = ROIType.fromString(roiTypeStr);
+			
+			if (roiType == ROIType.RECTANGLE && npoints == 4) {
+				// Rectangle format: x, y, width, height
 				try {
-					x[j] = Double.valueOf(data[i]);
-					i++;
-					y[j] = Double.valueOf(data[i]);
-					i++;
+					int x = Integer.valueOf(data[i++]);
+					int y = Integer.valueOf(data[i++]);
+					int width = Integer.valueOf(data[i++]);
+					int height = Integer.valueOf(data[i++]);
+					
+					cageROI2D = new ROI2DRectangle(x, y, width, height);
+					if (cageROI_name != null && !cageROI_name.isEmpty()) {
+						cageROI2D.setName(cageROI_name);
+					}
+					cageROI2D.setColor(Color.MAGENTA);
 				} catch (NumberFormatException e) {
-					System.err.println("Cage:csvImport_CAGE_Header() Invalid coordinate at index " + j);
-					break;
+					System.err.println("Cage:csvImport_CAGE_Header() Invalid rectangle parameters");
 				}
+			} else {
+				// Polygon format: x,y coordinate pairs
+				double[] x = new double[npoints];
+				double[] y = new double[npoints];
+				for (int j = 0; j < npoints; j++) {
+					try {
+						x[j] = Double.valueOf(data[i]);
+						i++;
+						y[j] = Double.valueOf(data[i]);
+						i++;
+					} catch (NumberFormatException e) {
+						System.err.println("Cage:csvImport_CAGE_Header() Invalid coordinate at index " + j);
+						break;
+					}
+				}
+				Polygon2D polygon = new Polygon2D(x, y, npoints);
+				cageROI2D = new ROI2DPolygon(polygon);
+				if (cageROI_name != null && !cageROI_name.isEmpty()) {
+					cageROI2D.setName(cageROI_name);
+				}
+				cageROI2D.setColor(Color.MAGENTA);
 			}
-			Polygon2D polygon = new Polygon2D(x, y, npoints);
-			cageROI2D = new ROI2DPolygon(polygon);
-			if (cageROI_name != null && !cageROI_name.isEmpty()) {
-				cageROI2D.setName(cageROI_name);
-			}
-			cageROI2D.setColor(Color.MAGENTA);
+		}
+	}
+	
+	/**
+	 * Checks if a string represents a numeric value.
+	 * 
+	 * @param str the string to check
+	 * @return true if the string is numeric
+	 */
+	private boolean isNumeric(String str) {
+		if (str == null || str.trim().isEmpty()) {
+			return false;
+		}
+		try {
+			Integer.parseInt(str.trim());
+			return true;
+		} catch (NumberFormatException e) {
+			return false;
 		}
 	}
 

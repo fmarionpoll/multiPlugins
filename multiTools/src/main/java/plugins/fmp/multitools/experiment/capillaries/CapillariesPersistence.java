@@ -18,9 +18,12 @@ public class CapillariesPersistence {
 	public final static String ID_LISTOFCAPILLARIES = "List_of_capillaries";
 	public final static String ID_CAPILLARY_ = "capillary_";
 
-	// New v2 format filenames
-	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "v2_capillaries_description.csv";
-	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "v2_capillaries_measures.csv";
+	// New v2.1 format filenames (with ROI type support)
+	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "v2.1_capillaries_description.csv";
+	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "v2.1_capillaries_measures.csv";
+	
+	// Version for CSV files
+	private static final String CSV_VERSION = "2.1";
 
 	// Legacy filenames (for fallback)
 	public final static String ID_CAPILLARIESARRAY_CSV = "CapillariesArray.csv";
@@ -29,51 +32,95 @@ public class CapillariesPersistence {
 
 	// ========================================================================
 	// Public API methods (delegate to nested classes)
+	// New standardized method names (v2.3.3+)
 	// ========================================================================
 
 	/**
-	 * Loads capillary descriptions (DESCRIPTION section) from CapillariesArray.csv.
+	 * Loads capillary descriptions from the results directory.
+	 * Descriptions include capillary properties but not time-series measures.
+	 * Tries new v2 format first, then falls back to legacy format.
 	 * 
-	 * @param capillaries      the Capillaries to populate
+	 * @param capillaries the Capillaries to populate
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
-	public boolean load_CapillariesDescription(Capillaries capillaries, String resultsDirectory) {
+	public boolean loadDescriptions(Capillaries capillaries, String resultsDirectory) {
 		return Persistence.loadDescription(capillaries, resultsDirectory);
 	}
 
 	/**
-	 * Loads capillary measures from CapillariesArrayMeasures.csv in bin directory.
+	 * Loads capillary measures from the bin directory (e.g., results/bin60).
+	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
+	 * Tries new v2 format first, then falls back to legacy format.
 	 * 
-	 * @param capillaries  the Capillaries to populate
+	 * @param capillaries the Capillaries to populate
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
-	public boolean load_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
+	public boolean loadMeasures(Capillaries capillaries, String binDirectory) {
 		return Persistence.loadMeasures(capillaries, binDirectory);
 	}
 
 	/**
-	 * Saves capillary descriptions (DESCRIPTION section) to CapillariesArray.csv in
-	 * results directory.
+	 * Saves capillary descriptions to the results directory.
+	 * Descriptions include capillary properties but not time-series measures.
+	 * Uses new v2 format.
 	 * 
-	 * @param capillaries      the Capillaries to save
+	 * @param capillaries the Capillaries to save
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
-	public boolean saveCapillariesDescription(Capillaries capillaries, String resultsDirectory) {
+	public boolean saveDescriptions(Capillaries capillaries, String resultsDirectory) {
 		return Persistence.saveDescription(capillaries, resultsDirectory);
 	}
 
 	/**
-	 * Saves capillary measures to CapillariesArrayMeasures.csv in bin directory.
+	 * Saves capillary measures to the bin directory (e.g., results/bin60).
+	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
+	 * Uses new v2 format.
 	 * 
-	 * @param capillaries  the Capillaries to save
+	 * @param capillaries the Capillaries to save
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
-	public boolean save_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
+	public boolean saveMeasures(Capillaries capillaries, String binDirectory) {
 		return Persistence.saveMeasures(capillaries, binDirectory);
+	}
+
+	// ========================================================================
+	// Deprecated methods - kept for backward compatibility (will be removed in v3.0)
+	// ========================================================================
+
+	/**
+	 * @deprecated Use {@link #loadDescriptions(Capillaries, String)} instead.
+	 */
+	@Deprecated
+	public boolean load_CapillariesDescription(Capillaries capillaries, String resultsDirectory) {
+		return loadDescriptions(capillaries, resultsDirectory);
+	}
+
+	/**
+	 * @deprecated Use {@link #loadMeasures(Capillaries, String)} instead.
+	 */
+	@Deprecated
+	public boolean load_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
+		return loadMeasures(capillaries, binDirectory);
+	}
+
+	/**
+	 * @deprecated Use {@link #saveDescriptions(Capillaries, String)} instead.
+	 */
+	@Deprecated
+	public boolean saveCapillariesDescription(Capillaries capillaries, String resultsDirectory) {
+		return saveDescriptions(capillaries, resultsDirectory);
+	}
+
+	/**
+	 * @deprecated Use {@link #saveMeasures(Capillaries, String)} instead.
+	 */
+	@Deprecated
+	public boolean save_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
+		return saveMeasures(capillaries, binDirectory);
 	}
 
 	public String getXMLNameToAppend() {
@@ -252,7 +299,7 @@ public class CapillariesPersistence {
 
 		/**
 		 * Saves capillary descriptions (DESCRIPTION section) to CapillariesArray.csv in
-		 * results directory. Always saves to v2_ format.
+		 * results directory. Always saves to v2.1 format.
 		 * 
 		 * @param capillaries      the Capillaries to save
 		 * @param resultsDirectory the results directory
@@ -272,9 +319,11 @@ public class CapillariesPersistence {
 			}
 
 			try {
-				// Always save to v2_ format
+				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(
 						resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV);
+				// Write version header
+				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
@@ -289,7 +338,7 @@ public class CapillariesPersistence {
 
 		/**
 		 * Saves capillary measures to CapillariesArrayMeasures.csv in bin directory.
-		 * Always saves to v2_ format.
+		 * Always saves to v2.1 format.
 		 * 
 		 * @param capillaries  the Capillaries to save
 		 * @param binDirectory the bin directory (e.g., results/bin60)
@@ -309,8 +358,10 @@ public class CapillariesPersistence {
 			}
 
 			try {
-				// Always save to v2_ format
+				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
+				// Write version header
+				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumCapillaryMeasures.TOPRAW, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,

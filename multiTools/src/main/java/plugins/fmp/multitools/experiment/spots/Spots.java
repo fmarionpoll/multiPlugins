@@ -142,29 +142,96 @@ public class Spots {
 	}
 
 	// === DATA LOADING ===
+	// New standardized method names (v2.3.3+)
 
-	public boolean loadSpotsMeasures(String directory) {
-		return persistence.loadSpotsMeasures(this, directory);
+	/**
+	 * Loads spot descriptions from the results directory.
+	 * Descriptions include spot properties but not time-series measures.
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean loadDescriptions(String resultsDirectory) {
+		return persistence.loadDescriptions(this, resultsDirectory);
 	}
 
-	public boolean loadSpotsAll(String directory) {
-		return persistence.load_SpotsArray(this, directory);
+	/**
+	 * Loads spot measures from the bin directory (e.g., results/bin60).
+	 * Measures include time-series data like area_sum, area_clean, flypresent.
+	 * 
+	 * @param binDirectory the bin directory
+	 * @return true if successful
+	 */
+	public boolean loadMeasures(String binDirectory) {
+		return persistence.loadMeasures(this, binDirectory);
 	}
 
 	// === DATA SAVING ===
+	// New standardized method names (v2.3.3+)
 
+	/**
+	 * Saves spot descriptions to the results directory.
+	 * Descriptions include spot properties but not time-series measures.
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if successful
+	 */
+	public boolean saveDescriptions(String resultsDirectory) {
+		return persistence.saveDescriptions(this, resultsDirectory);
+	}
+
+	/**
+	 * Saves spot measures to the bin directory (e.g., results/bin60).
+	 * Measures include time-series data like area_sum, area_clean, flypresent.
+	 * 
+	 * @param binDirectory the bin directory
+	 * @return true if successful
+	 */
+	public boolean saveMeasures(String binDirectory) {
+		return persistence.saveMeasures(this, binDirectory);
+	}
+
+	// === DEPRECATED METHODS ===
+	// Old method names kept for backward compatibility (will be removed in v3.0)
+
+	/**
+	 * @deprecated Use {@link #loadMeasures(String)} instead.
+	 */
+	@Deprecated
+	public boolean loadSpotsMeasures(String directory) {
+		return loadMeasures(directory);
+	}
+
+	/**
+	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean loadSpotsAll(String directory) {
+		return loadDescriptions(directory);
+	}
+
+	/**
+	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+	 */
+	@Deprecated
 	public boolean saveSpotsAll(String directory) {
-		return persistence.save_SpotsArray(this, directory);
+		return saveDescriptions(directory);
 	}
 
+	/**
+	 * @deprecated Use {@link #saveMeasures(String)} instead.
+	 */
+	@Deprecated
 	public boolean saveSpotsMeasures(String directory) {
-		return persistence.saveSpotsMeasures(this, directory);
+		return saveMeasures(directory);
 	}
 
-	// === OPTIMIZED CSV WRITING ===
-
+	/**
+	 * @deprecated Use {@link #saveMeasures(String)} instead.
+	 */
+	@Deprecated
 	public boolean saveSpotsMeasuresOptimized(String directory) {
-		return persistence.saveSpotsMeasures(this, directory);
+		return saveMeasures(directory);
 	}
 
 	// === XML OPERATIONS ===
@@ -531,10 +598,17 @@ public class Spots {
 		return String.format("SpotsArray{spotsCount=%d}", spotList.size());
 	}
 
-	// === communcation with sequence
+	// === SEQUENCE COMMUNICATION ===
+	// New standardized method names (v2.3.3+)
 
-	public void transferROIsfromSpotsToSequence(SequenceCamData seqCamData) {
-		// Use modern ROI operation for removing existing cage ROIs
+	/**
+	 * Transfers spot ROIs to the camera sequence.
+	 * Removes existing spot ROIs and adds all current spot ROIs.
+	 * 
+	 * @param seqCamData the camera sequence
+	 */
+	public void transferROIsToSequence(SequenceCamData seqCamData) {
+		// Use modern ROI operation for removing existing spot ROIs
 		seqCamData.processROIs(ROIOperation.removeROIs("spot"));
 
 		List<ROI2D> spotROIList = new ArrayList<ROI2D>(spotList.size());
@@ -544,16 +618,40 @@ public class Spots {
 				spotROIList.add(roi);
 		}
 		Sequence sequence = seqCamData.getSequence();
-		if (sequence != null)
+		if (sequence != null && spotROIList.size() > 0)
 			sequence.addROIs(spotROIList, true);
 	}
 
-	public void transferROIsfromSequenceToSpots(SequenceCamData seqCamData) {
+	/**
+	 * Transfers ROIs from the camera sequence back to spots.
+	 * Updates spot positions based on ROIs with names containing "spot".
+	 * 
+	 * @param seqCamData the camera sequence
+	 */
+	public void transferROIsFromSequence(SequenceCamData seqCamData) {
 		List<ROI2D> roiList = seqCamData.findROIsMatchingNamePattern("spot");
 		Collections.sort(roiList, new Comparators.ROI2D_Name());
 		transferROIsToSpots(roiList);
 		// addMissingSpots(roiList);
 		Collections.sort(spotList, new Comparators.Spot_Name());
+	}
+
+	// === DEPRECATED METHODS ===
+
+	/**
+	 * @deprecated Use {@link #transferROIsToSequence(SequenceCamData)} instead.
+	 */
+	@Deprecated
+	public void transferROIsfromSpotsToSequence(SequenceCamData seqCamData) {
+		transferROIsToSequence(seqCamData);
+	}
+
+	/**
+	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
+	 */
+	@Deprecated
+	public void transferROIsfromSequenceToSpots(SequenceCamData seqCamData) {
+		transferROIsFromSequence(seqCamData);
 	}
 
 	private void transferROIsToSpots(List<ROI2D> roiList) {
