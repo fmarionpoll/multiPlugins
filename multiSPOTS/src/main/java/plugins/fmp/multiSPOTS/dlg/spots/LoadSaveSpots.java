@@ -95,7 +95,7 @@ public class LoadSaveSpots extends JPanel {
 	public boolean saveCagesArray_File(Experiment exp) {
 		boolean flag = false;
 		if (exp != null) {
-			exp.getCages().transferROIsFromSequenceToCages(exp.seqCamData.seq);
+			exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 			flag = exp.save_CagesMeasures();
 		}
 		return flag;

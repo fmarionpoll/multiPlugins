@@ -29,7 +29,6 @@ import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.experiment.spots.Spot;
 import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
@@ -106,7 +105,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 							false);
 					exp.getCages().removeCages();
 					createROIsFromSelectedPolygonAndSpots(exp);
-					exp.getCages().transferROIsFromSequenceToCages(exp.seqCamData.seq);
+					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 					if (exp.spotsArray.spotsList.size() > 0)
 						exp.getCages().transferNFliesFromSpotsToCages(exp.spotsArray);
 				}

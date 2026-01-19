@@ -52,8 +52,8 @@ public class Cages {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Loads cage descriptions from the results directory.
-	 * Descriptions include cage properties but not time-series measures (fly positions).
+	 * Loads cage descriptions from the results directory. Descriptions include cage
+	 * properties but not time-series measures (fly positions).
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
@@ -63,8 +63,8 @@ public class Cages {
 	}
 
 	/**
-	 * Loads cage measures from the bin directory (e.g., results/bin60).
-	 * Measures include fly position data over time.
+	 * Loads cage measures from the bin directory (e.g., results/bin60). Measures
+	 * include fly position data over time.
 	 * 
 	 * @param binDirectory the bin directory
 	 * @return true if successful
@@ -77,8 +77,8 @@ public class Cages {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Saves cage descriptions to the results directory.
-	 * Descriptions include cage properties but not time-series measures (fly positions).
+	 * Saves cage descriptions to the results directory. Descriptions include cage
+	 * properties but not time-series measures (fly positions).
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
@@ -88,8 +88,8 @@ public class Cages {
 	}
 
 	/**
-	 * Saves cage measures to the bin directory (e.g., results/bin60).
-	 * Measures include fly position data over time.
+	 * Saves cage measures to the bin directory (e.g., results/bin60). Measures
+	 * include fly position data over time.
 	 * 
 	 * @param binDirectory the bin directory
 	 * @return true if successful
@@ -233,11 +233,13 @@ public class Cages {
 	// -------------
 
 	public boolean saveCagesMeasures(String directory) {
-		return persistence.saveDescriptions(this, directory);
+		persistence.saveDescriptions(this, directory);
+		return persistence.loadMeasures(this, directory);
 	}
 
 	public boolean loadCagesMeasures(String directory) {
-		return persistence.loadDescriptions(this, directory);
+		persistence.loadDescriptions(this, directory);
+		return persistence.loadMeasures(this, directory);
 	}
 
 	// -----------------------------------------------------
@@ -439,8 +441,8 @@ public class Cages {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Transfers cage ROIs to the camera sequence.
-	 * Removes existing cage ROIs and adds all current cage ROIs.
+	 * Transfers cage ROIs to the camera sequence. Removes existing cage ROIs and
+	 * adds all current cage ROIs.
 	 * 
 	 * @param seqCamData the camera sequence
 	 */
@@ -460,8 +462,8 @@ public class Cages {
 	}
 
 	/**
-	 * Transfers ROIs from the camera sequence back to cages.
-	 * Updates cage positions based on ROIs with names containing "cage".
+	 * Transfers ROIs from the camera sequence back to cages. Updates cage positions
+	 * based on ROIs with names containing "cage".
 	 * 
 	 * @param seqCamData the camera sequence
 	 */
@@ -475,21 +477,21 @@ public class Cages {
 
 	// === DEPRECATED METHODS ===
 
-	/**
-	 * @deprecated Use {@link #transferROIsToSequence(SequenceCamData)} instead.
-	 */
-	@Deprecated
-	public void transferROIsFromCagesToSequence(SequenceCamData seqCamData) {
-		transferROIsToSequence(seqCamData);
-	}
+//	/**
+//	 * @deprecated Use {@link #transferROIsToSequence(SequenceCamData)} instead.
+//	 */
+//	@Deprecated
+//	public void transferROIsFromCagesToSequence(SequenceCamData seqCamData) {
+//		transferROIsToSequence(seqCamData);
+//	}
 
-	/**
-	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
-	 */
-	@Deprecated
-	public void transferROIsFromSequenceToCages(SequenceCamData seqCamData) {
-		transferROIsFromSequence(seqCamData);
-	}
+//	/**
+//	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
+//	 */
+//	@Deprecated
+//	public void transferROIsFromSequenceToCages(SequenceCamData seqCamData) {
+//		transferROIsFromSequence(seqCamData);
+//	}
 
 	private void transferROIsToCages(List<ROI2D> roiList) {
 		if (cagesList.size() < 1)
@@ -576,7 +578,7 @@ public class Cages {
 	}
 
 	public void cagesToROIs(SequenceCamData seqCamData) {
-		transferROIsFromCagesToSequence(seqCamData);
+		transferROIsToSequence(seqCamData);
 	}
 
 	public List<ROI2D> getPositionsAsListOfROI2DRectanglesAtT(int t) {

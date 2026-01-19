@@ -6,6 +6,7 @@
 <key name="mainMenuTip" value="false"/>
 <key name="virtualMode" value="false"/>
 <key name="magicWand" value="false"/>
+<key name="viewerVirtual" value="false"/>
 </section>
 <section name="confirms">
 <key name="exit" value="false"/>
@@ -74,7 +75,7 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1768735513234"/>
+<key name="lastUpdateCheckTime" value="1768841696833"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
 </section>
@@ -135,14 +136,14 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1768735510861"/>
+<key name="lastUploadDate" value="1768841694230"/>
 </section>
 <section name="plugins">
 <section name="fmp">
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS\30+_vs_30"/>
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS\30+_vs_30\17-10-26_Caffeine"/>
 </section>
 </section>
 </section>
@@ -150,21 +151,21 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="80"/>
-<key name="YE" value="50"/>
-<key name="WidthE" value="2030"/>
-<key name="HeightE" value="1292"/>
+<key name="XE" value="-1823"/>
+<key name="YE" value="277"/>
+<key name="WidthE" value="1581"/>
+<key name="HeightE" value="1096"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1722"/>
+<key name="XC" value="1273"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
 <key name="WidthC" value="300"/>
-<key name="HeightC" value="1130"/>
+<key name="HeightC" value="934"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
 <key name="WidthI" value="300"/>
@@ -182,7 +183,7 @@
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
 <key name="WidthC" value="292"/>
-<key name="HeightC" value="1040"/>
+<key name="HeightC" value="844"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
 <key name="WidthI" value="400"/>
@@ -200,7 +201,7 @@
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
 <key name="WidthC" value="292"/>
-<key name="HeightC" value="1040"/>
+<key name="HeightC" value="844"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>
 <key name="WidthI" value="400"/>

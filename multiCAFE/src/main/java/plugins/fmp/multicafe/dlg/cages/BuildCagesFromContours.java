@@ -103,7 +103,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					createROIsFromSelectedPolygon(exp);
-					exp.getCages().transferROIsFromSequenceToCages(exp.getSeqCamData());
+					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 					if (exp.getCapillaries().getList().size() > 0)
 						exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
 				}

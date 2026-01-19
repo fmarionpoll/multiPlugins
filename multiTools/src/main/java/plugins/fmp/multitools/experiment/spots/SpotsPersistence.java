@@ -11,18 +11,18 @@ import java.nio.file.Paths;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Handles CSV-only persistence for SpotsArray.
- * ROIs are not persisted - they are regenerated from coordinates when needed for display.
+ * Handles CSV-only persistence for SpotsArray. ROIs are not persisted - they
+ * are regenerated from coordinates when needed for display.
  */
 public class SpotsPersistence {
 
 	// New v2.1 format filenames (with ROI type support)
 	private static final String ID_V2_SPOTSARRAY_CSV = "v2.1_spots_description.csv";
 	private static final String ID_V2_SPOTSARRAYMEASURES_CSV = "v2.1_spots_measures.csv";
-	
+
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
-	
+
 	// Legacy filenames (for fallback)
 	private static final String ID_SPOTSARRAY_CSV = "SpotsArray.csv";
 	private static final String ID_SPOTSARRAYMEASURES_CSV = "SpotsArrayMeasures.csv";
@@ -34,11 +34,11 @@ public class SpotsPersistence {
 	// ========================================================================
 
 	/**
-	 * Loads spot descriptions from the results directory.
-	 * Descriptions include spot properties but not time-series measures.
-	 * Tries new v2 format first, then falls back to legacy format.
+	 * Loads spot descriptions from the results directory. Descriptions include spot
+	 * properties but not time-series measures. Tries new v2 format first, then
+	 * falls back to legacy format.
 	 * 
-	 * @param spots the Spots to populate
+	 * @param spots            the Spots to populate
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
@@ -47,11 +47,11 @@ public class SpotsPersistence {
 	}
 
 	/**
-	 * Loads spot measures from the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like area_sum, area_clean, flypresent.
-	 * Tries new v2 format first, then falls back to legacy format.
+	 * Loads spot measures from the bin directory (e.g., results/bin60). Measures
+	 * include time-series data like area_sum, area_clean, flypresent. Tries new v2
+	 * format first, then falls back to legacy format.
 	 * 
-	 * @param spots the Spots to populate
+	 * @param spots        the Spots to populate
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -60,11 +60,10 @@ public class SpotsPersistence {
 	}
 
 	/**
-	 * Saves spot descriptions to the results directory.
-	 * Descriptions include spot properties but not time-series measures.
-	 * Uses new v2 format.
+	 * Saves spot descriptions to the results directory. Descriptions include spot
+	 * properties but not time-series measures. Uses new v2 format.
 	 * 
-	 * @param spots the Spots to save
+	 * @param spots            the Spots to save
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
@@ -73,11 +72,11 @@ public class SpotsPersistence {
 	}
 
 	/**
-	 * Saves spot measures to the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like area_sum, area_clean, flypresent.
-	 * Uses new v2 format.
+	 * Saves spot measures to the bin directory (e.g., results/bin60). Measures
+	 * include time-series data like area_sum, area_clean, flypresent. Uses new v2
+	 * format.
 	 * 
-	 * @param spots the Spots to save
+	 * @param spots        the Spots to save
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -86,56 +85,57 @@ public class SpotsPersistence {
 	}
 
 	// ========================================================================
-	// Deprecated methods - kept for backward compatibility (will be removed in v3.0)
+	// Deprecated methods - kept for backward compatibility (will be removed in
+	// v3.0)
 	// ========================================================================
 
-	/**
-	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
-	 */
-	@Deprecated
-	public boolean load_SpotsArray(Spots spotsArray, String directory) {
-		return loadDescriptions(spotsArray, directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean load_SpotsArray(Spots spotsArray, String directory) {
+//		return loadDescriptions(spotsArray, directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
-	 */
-	@Deprecated
-	public boolean loadSpotsDescription(Spots spots, String resultsDirectory) {
-		return loadDescriptions(spots, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean loadSpotsDescription(Spots spots, String resultsDirectory) {
+//		return loadDescriptions(spots, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #loadMeasures(Spots, String)} instead.
-	 */
-	@Deprecated
-	public boolean loadSpotsMeasures(Spots spotsArray, String binDirectory) {
-		return loadMeasures(spotsArray, binDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadMeasures(Spots, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean loadSpotsMeasures(Spots spotsArray, String binDirectory) {
+//		return loadMeasures(spotsArray, binDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
-	 */
-	@Deprecated
-	public boolean save_SpotsArray(Spots spotsArray, String resultsDirectory) {
-		return saveDescriptions(spotsArray, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean save_SpotsArray(Spots spotsArray, String resultsDirectory) {
+//		return saveDescriptions(spotsArray, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
-	 */
-	@Deprecated
-	public boolean saveSpotsDescription(Spots spotsArray, String resultsDirectory) {
-		return saveDescriptions(spotsArray, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveSpotsDescription(Spots spotsArray, String resultsDirectory) {
+//		return saveDescriptions(spotsArray, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveMeasures(Spots, String)} instead.
-	 */
-	@Deprecated
-	public boolean saveSpotsMeasures(Spots spotsArray, String binDirectory) {
-		return saveMeasures(spotsArray, binDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveMeasures(Spots, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveSpotsMeasures(Spots spotsArray, String binDirectory) {
+//		return saveMeasures(spotsArray, binDirectory);
+//	}
 
 	/**
 	 * Gets the CSV filename used for persistence (descriptions).
@@ -145,7 +145,7 @@ public class SpotsPersistence {
 	public String getCSVFilename() {
 		return ID_SPOTSARRAY_CSV;
 	}
-	
+
 	/**
 	 * Gets the CSV filename used for measures persistence.
 	 * 
@@ -154,7 +154,7 @@ public class SpotsPersistence {
 	public String getMeasuresCSVFilename() {
 		return ID_SPOTSARRAYMEASURES_CSV;
 	}
-	
+
 	/**
 	 * Gets the legacy CSV filename (for fallback).
 	 * 
@@ -169,7 +169,7 @@ public class SpotsPersistence {
 	// ========================================================================
 
 	public static class Persistence {
-		
+
 		/**
 		 * Loads spot descriptions (SPOTS_ARRAY and SPOTS sections) from v2 format file.
 		 * If v2 format is not found, delegates to Legacy class for fallback handling.
@@ -192,11 +192,11 @@ public class SpotsPersistence {
 				String sep = ";";
 				boolean descriptionLoaded = false;
 				boolean spotsLoaded = false;
-				
+
 				while ((line = reader.readLine()) != null) {
 					if (line.length() > 0 && line.charAt(0) == '#')
 						sep = String.valueOf(line.charAt(1));
-					
+
 					String[] data = line.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
@@ -216,8 +216,7 @@ public class SpotsPersistence {
 								return descriptionLoaded || spotsLoaded;
 							default:
 								// Check if it's a measure type
-								EnumSpotMeasures measure = 
-									EnumSpotMeasures.findByText(data[1]);
+								EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
 								if (measure != null) {
 									// Stop reading when we hit measures section
 									return descriptionLoaded || spotsLoaded;
@@ -233,10 +232,10 @@ public class SpotsPersistence {
 				return false;
 			}
 		}
-		
+
 		/**
-		 * Loads spot measures from v2 format file in bin directory.
-		 * If v2 format is not found, delegates to Legacy class for fallback handling.
+		 * Loads spot measures from v2 format file in bin directory. If v2 format is not
+		 * found, delegates to Legacy class for fallback handling.
 		 */
 		public static boolean loadMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
@@ -254,16 +253,15 @@ public class SpotsPersistence {
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String line;
 				String sep = ";";
-				
+
 				while ((line = reader.readLine()) != null) {
 					if (line.length() > 0 && line.charAt(0) == '#')
 						sep = String.valueOf(line.charAt(1));
-					
+
 					String[] data = line.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
-							EnumSpotMeasures measure = 
-								EnumSpotMeasures.findByText(data[1]);
+							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
 							if (measure != null) {
 								SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
@@ -310,10 +308,10 @@ public class SpotsPersistence {
 				return false;
 			}
 		}
-		
+
 		/**
-		 * Saves spot measures (AREA_SUM, AREA_SUMCLEAN sections) to SpotsArrayMeasures.csv in bin directory.
-		 * Always saves to v2_ format.
+		 * Saves spot measures (AREA_SUM, AREA_SUMCLEAN sections) to
+		 * SpotsArrayMeasures.csv in bin directory. Always saves to v2_ format.
 		 */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
@@ -323,7 +321,8 @@ public class SpotsPersistence {
 
 			Path path = Paths.get(binDirectory);
 			if (!Files.exists(path)) {
-				Logger.warn("SpotsArrayPersistence:save_SpotsArrayMeasures() directory does not exist: " + binDirectory);
+				Logger.warn(
+						"SpotsArrayPersistence:save_SpotsArrayMeasures() directory does not exist: " + binDirectory);
 				return false;
 			}
 
@@ -333,13 +332,16 @@ public class SpotsPersistence {
 				// Write version header
 				writer.write("#;version;" + CSV_VERSION + "\n");
 				// Save measures sections
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUM, ";")) {
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUM,
+						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUMCLEAN, ";")) {
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUMCLEAN,
+						";")) {
 					return false;
 				}
-				Logger.info("SpotsArrayPersistence:save_SpotsArrayMeasures() saved measures to " + ID_V2_SPOTSARRAYMEASURES_CSV);
+				Logger.info("SpotsArrayPersistence:save_SpotsArrayMeasures() saved measures to "
+						+ ID_V2_SPOTSARRAYMEASURES_CSV);
 				return true;
 			} catch (IOException e) {
 				Logger.error("SpotsArrayPersistence:save_SpotsArrayMeasures() Failed: " + e.getMessage(), e, true);

@@ -82,7 +82,7 @@ public class LoadSavePositions extends JPanel {
 
 	public void saveMeasures(Experiment exp) {
 		if (exp != null) {
-			exp.getCages().transferROIsFromSequenceToCages(exp.getSeqCamData());
+			exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 			exp.saveCagesMeasures();
 		}
 	}

@@ -94,7 +94,7 @@ public class BuildCagesAsArray extends JPanel {
 							false);
 					exp.getCages().removeCages();
 					createROIsFromSelectedPolygon(exp);
-					exp.getCages().transferROIsFromSequenceToCages(exp.seqCamData.seq);
+					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 					if (exp.spotsArray.spotsList.size() > 0)
 						exp.getCages().transferNFliesFromSpotsToCages(exp.spotsArray);
 				}

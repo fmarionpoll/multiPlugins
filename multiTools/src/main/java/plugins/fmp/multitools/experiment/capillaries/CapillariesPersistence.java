@@ -21,7 +21,7 @@ public class CapillariesPersistence {
 	// New v2.1 format filenames (with ROI type support)
 	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "v2.1_capillaries_description.csv";
 	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "v2.1_capillaries_measures.csv";
-	
+
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
 
@@ -36,11 +36,11 @@ public class CapillariesPersistence {
 	// ========================================================================
 
 	/**
-	 * Loads capillary descriptions from the results directory.
-	 * Descriptions include capillary properties but not time-series measures.
-	 * Tries new v2 format first, then falls back to legacy format.
+	 * Loads capillary descriptions from the results directory. Descriptions include
+	 * capillary properties but not time-series measures. Tries new v2 format first,
+	 * then falls back to legacy format.
 	 * 
-	 * @param capillaries the Capillaries to populate
+	 * @param capillaries      the Capillaries to populate
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
@@ -50,10 +50,10 @@ public class CapillariesPersistence {
 
 	/**
 	 * Loads capillary measures from the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
-	 * Tries new v2 format first, then falls back to legacy format.
+	 * Measures include time-series data like toplevel, bottomlevel, derivative,
+	 * gulps. Tries new v2 format first, then falls back to legacy format.
 	 * 
-	 * @param capillaries the Capillaries to populate
+	 * @param capillaries  the Capillaries to populate
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -62,11 +62,10 @@ public class CapillariesPersistence {
 	}
 
 	/**
-	 * Saves capillary descriptions to the results directory.
-	 * Descriptions include capillary properties but not time-series measures.
-	 * Uses new v2 format.
+	 * Saves capillary descriptions to the results directory. Descriptions include
+	 * capillary properties but not time-series measures. Uses new v2 format.
 	 * 
-	 * @param capillaries the Capillaries to save
+	 * @param capillaries      the Capillaries to save
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
@@ -75,11 +74,11 @@ public class CapillariesPersistence {
 	}
 
 	/**
-	 * Saves capillary measures to the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
-	 * Uses new v2 format.
+	 * Saves capillary measures to the bin directory (e.g., results/bin60). Measures
+	 * include time-series data like toplevel, bottomlevel, derivative, gulps. Uses
+	 * new v2 format.
 	 * 
-	 * @param capillaries the Capillaries to save
+	 * @param capillaries  the Capillaries to save
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -88,40 +87,41 @@ public class CapillariesPersistence {
 	}
 
 	// ========================================================================
-	// Deprecated methods - kept for backward compatibility (will be removed in v3.0)
+	// Deprecated methods - kept for backward compatibility (will be removed in
+	// v3.0)
 	// ========================================================================
 
-	/**
-	 * @deprecated Use {@link #loadDescriptions(Capillaries, String)} instead.
-	 */
-	@Deprecated
-	public boolean load_CapillariesDescription(Capillaries capillaries, String resultsDirectory) {
-		return loadDescriptions(capillaries, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadDescriptions(Capillaries, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean load_CapillariesDescription(Capillaries capillaries, String resultsDirectory) {
+//		return loadDescriptions(capillaries, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #loadMeasures(Capillaries, String)} instead.
-	 */
-	@Deprecated
-	public boolean load_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
-		return loadMeasures(capillaries, binDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadMeasures(Capillaries, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean load_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
+//		return loadMeasures(capillaries, binDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveDescriptions(Capillaries, String)} instead.
-	 */
-	@Deprecated
-	public boolean saveCapillariesDescription(Capillaries capillaries, String resultsDirectory) {
-		return saveDescriptions(capillaries, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveDescriptions(Capillaries, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveCapillariesDescription(Capillaries capillaries, String resultsDirectory) {
+//		return saveDescriptions(capillaries, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveMeasures(Capillaries, String)} instead.
-	 */
-	@Deprecated
-	public boolean save_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
-		return saveMeasures(capillaries, binDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveMeasures(Capillaries, String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean save_CapillariesMeasures(Capillaries capillaries, String binDirectory) {
+//		return saveMeasures(capillaries, binDirectory);
+//	}
 
 	public String getXMLNameToAppend() {
 		return ID_MCCAPILLARIES_XML;

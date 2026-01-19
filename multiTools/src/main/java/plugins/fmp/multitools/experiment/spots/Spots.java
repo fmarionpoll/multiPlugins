@@ -145,8 +145,8 @@ public class Spots {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Loads spot descriptions from the results directory.
-	 * Descriptions include spot properties but not time-series measures.
+	 * Loads spot descriptions from the results directory. Descriptions include spot
+	 * properties but not time-series measures.
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
@@ -156,8 +156,8 @@ public class Spots {
 	}
 
 	/**
-	 * Loads spot measures from the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like area_sum, area_clean, flypresent.
+	 * Loads spot measures from the bin directory (e.g., results/bin60). Measures
+	 * include time-series data like area_sum, area_clean, flypresent.
 	 * 
 	 * @param binDirectory the bin directory
 	 * @return true if successful
@@ -170,8 +170,8 @@ public class Spots {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Saves spot descriptions to the results directory.
-	 * Descriptions include spot properties but not time-series measures.
+	 * Saves spot descriptions to the results directory. Descriptions include spot
+	 * properties but not time-series measures.
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
@@ -181,8 +181,8 @@ public class Spots {
 	}
 
 	/**
-	 * Saves spot measures to the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like area_sum, area_clean, flypresent.
+	 * Saves spot measures to the bin directory (e.g., results/bin60). Measures
+	 * include time-series data like area_sum, area_clean, flypresent.
 	 * 
 	 * @param binDirectory the bin directory
 	 * @return true if successful
@@ -194,45 +194,45 @@ public class Spots {
 	// === DEPRECATED METHODS ===
 	// Old method names kept for backward compatibility (will be removed in v3.0)
 
-	/**
-	 * @deprecated Use {@link #loadMeasures(String)} instead.
-	 */
-	@Deprecated
-	public boolean loadSpotsMeasures(String directory) {
-		return loadMeasures(directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadMeasures(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean loadSpotsMeasures(String directory) {
+//		return loadMeasures(directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #loadDescriptions(String)} instead.
-	 */
-	@Deprecated
-	public boolean loadSpotsAll(String directory) {
-		return loadDescriptions(directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean loadSpotsAll(String directory) {
+//		return loadDescriptions(directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveDescriptions(String)} instead.
-	 */
-	@Deprecated
-	public boolean saveSpotsAll(String directory) {
-		return saveDescriptions(directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveSpotsAll(String directory) {
+//		return saveDescriptions(directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveMeasures(String)} instead.
-	 */
-	@Deprecated
-	public boolean saveSpotsMeasures(String directory) {
-		return saveMeasures(directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveMeasures(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveSpotsMeasures(String directory) {
+//		return saveMeasures(directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveMeasures(String)} instead.
-	 */
-	@Deprecated
-	public boolean saveSpotsMeasuresOptimized(String directory) {
-		return saveMeasures(directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveMeasures(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveSpotsMeasuresOptimized(String directory) {
+//		return saveMeasures(directory);
+//	}
 
 	// === XML OPERATIONS ===
 	// NOTE: XML operations are deprecated. Spots now use CSV-only persistence.
@@ -602,8 +602,8 @@ public class Spots {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Transfers spot ROIs to the camera sequence.
-	 * Removes existing spot ROIs and adds all current spot ROIs.
+	 * Transfers spot ROIs to the camera sequence. Removes existing spot ROIs and
+	 * adds all current spot ROIs.
 	 * 
 	 * @param seqCamData the camera sequence
 	 */
@@ -623,8 +623,8 @@ public class Spots {
 	}
 
 	/**
-	 * Transfers ROIs from the camera sequence back to spots.
-	 * Updates spot positions based on ROIs with names containing "spot".
+	 * Transfers ROIs from the camera sequence back to spots. Updates spot positions
+	 * based on ROIs with names containing "spot".
 	 * 
 	 * @param seqCamData the camera sequence
 	 */

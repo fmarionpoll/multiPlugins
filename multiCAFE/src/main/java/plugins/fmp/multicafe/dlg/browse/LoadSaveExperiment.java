@@ -919,7 +919,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					exp.save_capillaries_description_and_measures();
 
 					// Update cages from sequence before saving
-					exp.getCages().transferROIsFromSequenceToCages(exp.getSeqCamData());
+					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 
 					// Save cages descriptions synchronously
 					exp.getCages().getPersistence().saveCages(exp.getCages(), exp.getResultsDirectory(), exp);
@@ -927,7 +927,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					// Save cage measures to bin directory
 					String binDir = exp.getKymosBinFullDirectory();
 					if (binDir != null) {
-						exp.getCages().getPersistence().saveCagesMeasures(exp.getCages(), binDir);
+						exp.getCages().getPersistence().saveMeasures(exp.getCages(), binDir);
 					}
 
 					// Save spots using new dual-file system

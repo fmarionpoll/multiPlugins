@@ -106,7 +106,7 @@ public class SpotsPersistenceLegacy {
 		csvPath = Paths.get(resultsDirectory, CSV_FILENAME);
 		if (Files.exists(csvPath)) {
 			try {
-				boolean success = spotsArray.loadSpotsAll(resultsDirectory);
+				boolean success = spotsArray.loadDescriptions(resultsDirectory);
 				if (success) {
 					Logger.info("SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
 							+ CSV_FILENAME);
@@ -170,7 +170,7 @@ public class SpotsPersistenceLegacy {
 		csvPath = Paths.get(binDirectory, CSV_FILENAME);
 		if (Files.exists(csvPath)) {
 			try {
-				boolean success = spotsArray.loadSpotsMeasures(binDirectory);
+				boolean success = spotsArray.loadMeasures(binDirectory);
 				if (success) {
 					Logger.info("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 							+ CSV_FILENAME);
@@ -195,7 +195,7 @@ public class SpotsPersistenceLegacy {
 		csvPath = Paths.get(resultsDir, CSV_FILENAME);
 		if (Files.exists(csvPath)) {
 			try {
-				boolean success = spotsArray.loadSpotsMeasures(resultsDir);
+				boolean success = spotsArray.loadMeasures(resultsDir);
 				if (success) {
 					Logger.info("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 							+ CSV_FILENAME);

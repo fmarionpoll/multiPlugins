@@ -73,14 +73,14 @@ public class MigrationTool {
 			// Save descriptions to results directory, measures to bin directory
 
 			// Save spots descriptions to new format
-			boolean spotsDescriptionsSaved = exp.getSpots().getPersistence().saveSpotsDescription(exp.getSpots(),
+			boolean spotsDescriptionsSaved = exp.getSpots().getPersistence().saveDescriptions(exp.getSpots(),
 					directory);
 			if (!spotsDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save spot descriptions to CSV");
 			}
 
 			// Save cages descriptions to new format
-			boolean cagesDescriptionsSaved = exp.getCages().getPersistence().saveCagesDescription(exp.getCages(),
+			boolean cagesDescriptionsSaved = exp.getCages().getPersistence().saveDescriptions(exp.getCages(),
 					directory);
 			if (!cagesDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save cage descriptions");
@@ -88,7 +88,7 @@ public class MigrationTool {
 
 			// Save capillary descriptions to new format (if available)
 			boolean capillariesDescriptionsSaved = exp.getCapillaries().getPersistence()
-					.saveCapillariesDescription(exp.getCapillaries(), directory);
+					.saveDescriptions(exp.getCapillaries(), directory);
 			if (!capillariesDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save capillary descriptions");
 			}
@@ -97,13 +97,13 @@ public class MigrationTool {
 			String binDir = exp.getKymosBinFullDirectory();
 			if (binDir != null) {
 				// Save spots measures
-				exp.getSpots().getPersistence().saveSpotsMeasures(exp.getSpots(), binDir);
+				exp.getSpots().getPersistence().saveMeasures(exp.getSpots(), binDir);
 
 				// Save cages measures
-				exp.getCages().getPersistence().saveCagesMeasures(exp.getCages(), binDir);
+				exp.getCages().getPersistence().saveMeasures(exp.getCages(), binDir);
 
 				// Save capillary measures
-				exp.getCapillaries().getPersistence().save_CapillariesMeasures(exp.getCapillaries(), binDir);
+				exp.getCapillaries().getPersistence().saveMeasures(exp.getCapillaries(), binDir);
 			}
 
 			Logger.info("MigrationTool:migrateExperiment() Migration completed successfully");

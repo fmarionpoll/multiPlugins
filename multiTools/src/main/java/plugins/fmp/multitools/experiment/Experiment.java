@@ -22,6 +22,7 @@ import icy.sequence.Sequence;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
+import plugins.fmp.multitools.experiment.cages.CagesPersistence.Persistence;
 import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesDescription;
@@ -909,17 +910,17 @@ public class Experiment {
 
 		// Load descriptions from results directory (Legacy classes handle fallback
 		// transparently)
-		boolean cagesLoaded = cages.getPersistence().load_Cages(cages, resultsDir);
+		boolean cagesLoaded = Persistence.loadDescription(cages, resultsDir);
 
 		// Load measures from bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			cages.getPersistence().loadCagesMeasures(cages, binDir);
+			cages.getPersistence().loadMeasures(cages, binDir);
 		}
 
 		// Transfer cages to ROIs on sequence if loaded successfully
 		if (cagesLoaded && seqCamData != null && seqCamData.getSequence() != null) {
-			CagesSequenceMapper.transferROIsFromCagesToSequence(cages, seqCamData);
+			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}
 
 		return cagesLoaded;
@@ -929,12 +930,12 @@ public class Experiment {
 		String resultsDir = getResultsDirectory();
 		// Always sync latest cage geometry from sequence before persisting.
 		CagesSequenceMapper.syncCagesFromSequenceBeforeSave(cages, seqCamData);
-		boolean descriptionsSaved = cages.getPersistence().save_Cages(cages, resultsDir);
+		boolean descriptionsSaved = Persistence.saveDescription(cages, resultsDir);
 
 		// Also save measures to bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			cages.getPersistence().saveCagesMeasures(cages, binDir);
+			cages.getPersistence().saveMeasures(cages, binDir);
 		}
 
 		return descriptionsSaved;
@@ -950,12 +951,12 @@ public class Experiment {
 	 */
 	public boolean load_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		boolean descriptionsLoaded = spots.getPersistence().loadSpotsDescription(spots, resultsDir);
+		boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
 
 		// Load measures from bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			spots.getPersistence().loadSpotsMeasures(spots, binDir);
+			spots.getPersistence().loadMeasures(spots, binDir);
 		}
 
 		return descriptionsLoaded;
@@ -969,12 +970,12 @@ public class Experiment {
 	 */
 	public boolean save_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		boolean descriptionsSaved = spots.getPersistence().saveSpotsDescription(spots, resultsDir);
+		boolean descriptionsSaved = spots.getPersistence().saveDescriptions(spots, resultsDir);
 
 		// Also save measures to bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			spots.getPersistence().saveSpotsMeasures(spots, binDir);
+			spots.getPersistence().saveMeasures(spots, binDir);
 		}
 
 		return descriptionsSaved;
@@ -990,12 +991,12 @@ public class Experiment {
 	 */
 	public boolean load_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		boolean descriptionsLoaded = capillaries.getPersistence().load_CapillariesDescription(capillaries, resultsDir);
+		boolean descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
 
 		String binDir = getKymosBinFullDirectory();
 		boolean measuresLoaded = false;
 		if (binDir != null) {
-			measuresLoaded = capillaries.getPersistence().load_CapillariesMeasures(capillaries, binDir);
+			measuresLoaded = capillaries.getPersistence().loadMeasures(capillaries, binDir);
 		}
 
 		// Transfer capillaries to ROIs on sequence if capillaries exist (even if
@@ -1030,7 +1031,7 @@ public class Experiment {
 	public boolean save_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
 		// Save descriptions to new format
-		boolean descriptionsSaved = capillaries.getPersistence().saveCapillariesDescription(capillaries, resultsDir);
+		boolean descriptionsSaved = capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
 
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
@@ -1050,7 +1051,7 @@ public class Experiment {
 			// Only save measures if they are actually loaded, or use the protected
 			// saveCapillariesMeasures method
 			if (hasMeasures) {
-				capillaries.getPersistence().save_CapillariesMeasures(capillaries, binDir);
+				capillaries.getPersistence().saveMeasures(capillaries, binDir);
 			} else {
 				// Use the protected method which will load measures if needed
 				saveCapillariesMeasures(binDir);
@@ -1063,7 +1064,7 @@ public class Experiment {
 	public boolean load_FliesPositions() {
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			return cages.getPersistence().loadCagesMeasures(cages, binDir);
+			return cages.getPersistence().loadMeasures(cages, binDir);
 		}
 		return false;
 	}
@@ -1073,7 +1074,7 @@ public class Experiment {
 		// results/bin60/CagesMeasures.csv)
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
-			return cages.getPersistence().saveCagesMeasures(cages, binDir);
+			return cages.getPersistence().saveMeasures(cages, binDir);
 		}
 		return false;
 	}
@@ -1523,7 +1524,7 @@ public class Experiment {
 	}
 
 	public void transferCagesROI_toSequence() {
-		CagesSequenceMapper.transferROIsFromCagesToSequence(cages, seqCamData);
+		CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 	}
 
 	public boolean saveCages_File() {
@@ -1809,7 +1810,7 @@ public class Experiment {
 	public boolean loadMCCapillaries_Only() {
 		// Try to load from CSV first (new format)
 		String resultsDir = getResultsDirectory();
-		boolean csvLoaded = capillaries.getPersistence().load_CapillariesDescription(capillaries, resultsDir);
+		boolean csvLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
 
 		// New format methods already have internal fallback to legacy formats
 		boolean flag = csvLoaded;
@@ -1857,18 +1858,18 @@ public class Experiment {
 
 		String resultsDir = getResultsDirectory();
 		// Try new format: descriptions from results, measures from bin
-		boolean descriptionsLoaded = cages.getPersistence().loadCagesDescription(cages, resultsDir);
+		boolean descriptionsLoaded = cages.getPersistence().loadDescriptions(cages, resultsDir);
 		if (!descriptionsLoaded)
 			return descriptionsLoaded;
 
 		String binDir = getKymosBinFullDirectory();
 		boolean measuresLoaded = false;
 		if (binDir != null) {
-			measuresLoaded = cages.getPersistence().loadCagesMeasures(cages, binDir);
+			measuresLoaded = cages.getPersistence().loadMeasures(cages, binDir);
 		}
 
 		if (measuresLoaded && seqCamData.getSequence() != null) {
-			CagesSequenceMapper.transferROIsFromCagesToSequence(cages, seqCamData);
+			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}
 
 		// If cages list is empty after loading, create cages from capillaries
@@ -1890,13 +1891,13 @@ public class Experiment {
 
 	public boolean saveCagesMeasures() {
 		String resultsDir = getResultsDirectory();
-		boolean descriptionsSaved = cages.getPersistence().save_Cages(cages, resultsDir);
+		boolean descriptionsSaved = Persistence.saveDescription(cages, resultsDir);
 
 		// Also save measures to bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
 		System.out.println(binDir);
 		if (binDir != null) {
-			cages.getPersistence().saveCagesMeasures(cages, binDir);
+			cages.getPersistence().saveMeasures(cages, binDir);
 		}
 
 		return descriptionsSaved;
@@ -1945,14 +1946,14 @@ public class Experiment {
 			// Also try to load the actual measures if kymos directory exists
 			String binDir = getKymosBinFullDirectory();
 			if (binDir != null) {
-				capillaries.getPersistence().load_CapillariesMeasures(capillaries, binDir);
+				capillaries.getPersistence().loadMeasures(capillaries, binDir);
 			}
 		}
 
 		if (seqKymos != null && seqKymos.getSequence() != null) {
 			CapillariesKymosMapper.pullCapillaryMeasuresFromKymos(capillaries, seqKymos);
 		}
-		return capillaries.getPersistence().save_CapillariesMeasures(capillaries, directory);
+		return capillaries.getPersistence().saveMeasures(capillaries, directory);
 	}
 
 	// ---------------------------------------------------------

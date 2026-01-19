@@ -24,7 +24,7 @@ public class CagesPersistence {
 	// New v2.1 format filenames (with ROI type support)
 	private static final String ID_V2_CAGESDESCRIPTION_CSV = "v2.1_cages_description.csv";
 	private static final String ID_V2_CAGESMEASURES_CSV = "v2.1_cages_measures.csv";
-	
+
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
 
@@ -39,11 +39,11 @@ public class CagesPersistence {
 	// ========================================================================
 
 	/**
-	 * Loads cage descriptions from the results directory.
-	 * Descriptions include cage properties but not time-series measures (fly positions).
-	 * Tries new v2.1 format first, then falls back to legacy format.
+	 * Loads cage descriptions from the results directory. Descriptions include cage
+	 * properties but not time-series measures (fly positions). Tries new v2.1
+	 * format first, then falls back to legacy format.
 	 * 
-	 * @param cages the Cages to populate
+	 * @param cages            the Cages to populate
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
@@ -52,11 +52,11 @@ public class CagesPersistence {
 	}
 
 	/**
-	 * Loads cage measures from the bin directory (e.g., results/bin60).
-	 * Measures include fly position data over time.
-	 * Tries new v2.1 format first, then falls back to legacy format.
+	 * Loads cage measures from the bin directory (e.g., results/bin60). Measures
+	 * include fly position data over time. Tries new v2.1 format first, then falls
+	 * back to legacy format.
 	 * 
-	 * @param cages the Cages to populate
+	 * @param cages        the Cages to populate
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -65,11 +65,11 @@ public class CagesPersistence {
 	}
 
 	/**
-	 * Saves cage descriptions to the results directory.
-	 * Descriptions include cage properties but not time-series measures (fly positions).
-	 * Uses new v2.1 format.
+	 * Saves cage descriptions to the results directory. Descriptions include cage
+	 * properties but not time-series measures (fly positions). Uses new v2.1
+	 * format.
 	 * 
-	 * @param cages the Cages to save
+	 * @param cages            the Cages to save
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
 	 */
@@ -78,11 +78,10 @@ public class CagesPersistence {
 	}
 
 	/**
-	 * Saves cage measures to the bin directory (e.g., results/bin60).
-	 * Measures include fly position data over time.
-	 * Uses new v2.1 format.
+	 * Saves cage measures to the bin directory (e.g., results/bin60). Measures
+	 * include fly position data over time. Uses new v2.1 format.
 	 * 
-	 * @param cages the Cages to save
+	 * @param cages        the Cages to save
 	 * @param binDirectory the bin directory (e.g., results/bin60)
 	 * @return true if successful
 	 */
@@ -91,56 +90,57 @@ public class CagesPersistence {
 	}
 
 	// ========================================================================
-	// Deprecated methods - kept for backward compatibility (will be removed in v3.0)
+	// Deprecated methods - kept for backward compatibility (will be removed in
+	// v3.0)
 	// ========================================================================
 
-	/**
-	 * @deprecated Use {@link #loadDescriptions(String)} instead.
-	 */
-	@Deprecated
-	public boolean load_Cages(Cages cages, String directory) {
-		return Persistence.loadDescription(cages, directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean load_Cages(Cages cages, String directory) {
+//		return Persistence.loadDescription(cages, directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveDescriptions(String)} instead.
-	 */
-	@Deprecated
-	public boolean save_Cages(Cages cages, String directory) {
-		return Persistence.saveDescription(cages, directory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean save_Cages(Cages cages, String directory) {
+//		return Persistence.saveDescription(cages, directory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveDescriptions(String)} instead.
-	 */
-	@Deprecated
-	public boolean saveCagesDescription(Cages cages, String resultsDirectory) {
-		return saveDescriptions(cages, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveCagesDescription(Cages cages, String resultsDirectory) {
+//		return saveDescriptions(cages, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #saveMeasures(String)} instead.
-	 */
-	@Deprecated
-	public boolean saveCagesMeasures(Cages cages, String binDirectory) {
-		return saveMeasures(cages, binDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #saveMeasures(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean saveCagesMeasures(Cages cages, String binDirectory) {
+//		return saveMeasures(cages, binDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #loadDescriptions(String)} instead.
-	 */
-	@Deprecated
-	public boolean loadCagesDescription(Cages cages, String resultsDirectory) {
-		return loadDescriptions(cages, resultsDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean loadCagesDescription(Cages cages, String resultsDirectory) {
+//		return loadDescriptions(cages, resultsDirectory);
+//	}
 
-	/**
-	 * @deprecated Use {@link #loadMeasures(String)} instead.
-	 */
-	@Deprecated
-	public boolean loadCagesMeasures(Cages cages, String binDirectory) {
-		return loadMeasures(cages, binDirectory);
-	}
+//	/**
+//	 * @deprecated Use {@link #loadMeasures(String)} instead.
+//	 */
+//	@Deprecated
+//	public boolean loadCagesMeasures(Cages cages, String binDirectory) {
+//		return loadMeasures(cages, binDirectory);
+//	}
 
 	// ========================================================================
 	// Legacy methods - private, only for internal use within persistence class
@@ -167,13 +167,13 @@ public class CagesPersistence {
 
 		try {
 			// Use existing synchronous load method to load descriptions
-			boolean descriptionsLoaded = load_Cages(cages, directory);
+			boolean descriptionsLoaded = Persistence.loadDescription(cages, directory);
 
 			// Also load measures from bin directory (if available)
 			if (exp != null) {
 				String binDir = exp.getKymosBinFullDirectory();
 				if (binDir != null) {
-					loadCagesMeasures(cages, binDir);
+					loadMeasures(cages, binDir);
 				}
 			}
 
@@ -207,7 +207,7 @@ public class CagesPersistence {
 
 		try {
 			// Save descriptions to new format (Cages.csv in results directory)
-			return saveCagesDescription(cages, directory);
+			return saveDescriptions(cages, directory);
 		} catch (Exception e) {
 			Logger.error("CagesPersistence:saveCages() Error: " + e.getMessage(), e);
 			return false;
