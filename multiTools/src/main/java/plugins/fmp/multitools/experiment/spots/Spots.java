@@ -524,16 +524,6 @@ public class Spots {
 		return 1.0;
 	}
 
-//	public Polygon2D get2DPolygonEnclosingSpots() {
-//		if (spotsList.isEmpty()) {
-//			return new Polygon2D();
-//		}
-//
-//		// Implementation would create a polygon encompassing all spots
-//		// This is a placeholder for the actual implementation
-//		return new Polygon2D();
-//	}
-
 	public void setReadyToAnalyze(boolean setFilter, BuildSeriesOptions options) {
 		spotList.forEach(spot -> spot.setReadyForAnalysis(setFilter));
 	}

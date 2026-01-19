@@ -59,7 +59,7 @@ public class ExperimentService {
 	public boolean loadCamDataCapillaries(Experiment exp) {
 		exp.loadMCCapillaries_Only();
 		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
-			exp.getCapillaries().transferCapillaryRoiToSequence(exp.getSeqCamData().getSequence());
+			exp.getCapillaries().transferROIsToSequence(exp.getSeqCamData().getSequence());
 
 		return (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null);
 	}

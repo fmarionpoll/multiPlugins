@@ -1533,12 +1533,12 @@ public class Experiment {
 	}
 
 	public boolean saveSpots_File() {
-		SpotsSequenceMapper.transferROIsFromSequenceToSpots(spots, seqCamData);
+		SpotsSequenceMapper.transferROIsFromSequence(spots, seqCamData);
 		return save_spots_description_and_measures();
 	}
 
 	public void transferSpotsROI_toSequence() {
-		SpotsSequenceMapper.transferROIsFromSpotsToSequence(spots, seqCamData);
+		SpotsSequenceMapper.transferROIsToSequence(spots, seqCamData);
 	}
 
 	public ExperimentProperties getProperties() {

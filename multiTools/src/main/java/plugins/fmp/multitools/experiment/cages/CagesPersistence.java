@@ -94,53 +94,53 @@ public class CagesPersistence {
 	// v3.0)
 	// ========================================================================
 
-//	/**
-//	 * @deprecated Use {@link #loadDescriptions(String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean load_Cages(Cages cages, String directory) {
-//		return Persistence.loadDescription(cages, directory);
-//	}
+	/**
+	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean load_Cages(Cages cages, String directory) {
+		return Persistence.loadDescription(cages, directory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #saveDescriptions(String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean save_Cages(Cages cages, String directory) {
-//		return Persistence.saveDescription(cages, directory);
-//	}
+	/**
+	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean save_Cages(Cages cages, String directory) {
+		return Persistence.saveDescription(cages, directory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #saveDescriptions(String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean saveCagesDescription(Cages cages, String resultsDirectory) {
-//		return saveDescriptions(cages, resultsDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #saveDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean saveCagesDescription(Cages cages, String resultsDirectory) {
+		return saveDescriptions(cages, resultsDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #saveMeasures(String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean saveCagesMeasures(Cages cages, String binDirectory) {
-//		return saveMeasures(cages, binDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #saveMeasures(String)} instead.
+	 */
+	@Deprecated
+	public boolean saveCagesMeasures(Cages cages, String binDirectory) {
+		return saveMeasures(cages, binDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #loadDescriptions(String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean loadCagesDescription(Cages cages, String resultsDirectory) {
-//		return loadDescriptions(cages, resultsDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #loadDescriptions(String)} instead.
+	 */
+	@Deprecated
+	public boolean loadCagesDescription(Cages cages, String resultsDirectory) {
+		return loadDescriptions(cages, resultsDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #loadMeasures(String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean loadCagesMeasures(Cages cages, String binDirectory) {
-//		return loadMeasures(cages, binDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #loadMeasures(String)} instead.
+	 */
+	@Deprecated
+	public boolean loadCagesMeasures(Cages cages, String binDirectory) {
+		return loadMeasures(cages, binDirectory);
+	}
 
 	// ========================================================================
 	// Legacy methods - private, only for internal use within persistence class

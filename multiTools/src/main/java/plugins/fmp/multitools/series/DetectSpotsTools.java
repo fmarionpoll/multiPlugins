@@ -64,8 +64,9 @@ public class DetectSpotsTools {
 		final ROI2DArea binarizedImageRoi = binarizeImage(workimage, options);
 
 		Spots allSpots = exp.getSpots();
-		int nspots = allSpots.getSpotListCount();
-		// Note: allSpots may already contain spots loaded from previously saved CSV files
+//		int nspots = allSpots.getSpotListCount();
+		// Note: allSpots may already contain spots loaded from previously saved CSV
+		// files
 		// when the experiment was opened (via load_Spots() in LoadSaveExperiment).
 		// These spots are from previous detection runs. The code below only clears
 		// spots for selected cages, leaving spots from other cages intact.

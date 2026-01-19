@@ -89,53 +89,53 @@ public class SpotsPersistence {
 	// v3.0)
 	// ========================================================================
 
-//	/**
-//	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean load_SpotsArray(Spots spotsArray, String directory) {
-//		return loadDescriptions(spotsArray, directory);
-//	}
+	/**
+	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
+	 */
+	@Deprecated
+	public boolean load_SpotsArray(Spots spotsArray, String directory) {
+		return loadDescriptions(spotsArray, directory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean loadSpotsDescription(Spots spots, String resultsDirectory) {
-//		return loadDescriptions(spots, resultsDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #loadDescriptions(Spots, String)} instead.
+	 */
+	@Deprecated
+	public boolean loadSpotsDescription(Spots spots, String resultsDirectory) {
+		return loadDescriptions(spots, resultsDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #loadMeasures(Spots, String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean loadSpotsMeasures(Spots spotsArray, String binDirectory) {
-//		return loadMeasures(spotsArray, binDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #loadMeasures(Spots, String)} instead.
+	 */
+	@Deprecated
+	public boolean loadSpotsMeasures(Spots spotsArray, String binDirectory) {
+		return loadMeasures(spotsArray, binDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean save_SpotsArray(Spots spotsArray, String resultsDirectory) {
-//		return saveDescriptions(spotsArray, resultsDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
+	 */
+	@Deprecated
+	public boolean save_SpotsArray(Spots spotsArray, String resultsDirectory) {
+		return saveDescriptions(spotsArray, resultsDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean saveSpotsDescription(Spots spotsArray, String resultsDirectory) {
-//		return saveDescriptions(spotsArray, resultsDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #saveDescriptions(Spots, String)} instead.
+	 */
+	@Deprecated
+	public boolean saveSpotsDescription(Spots spotsArray, String resultsDirectory) {
+		return saveDescriptions(spotsArray, resultsDirectory);
+	}
 
-//	/**
-//	 * @deprecated Use {@link #saveMeasures(Spots, String)} instead.
-//	 */
-//	@Deprecated
-//	public boolean saveSpotsMeasures(Spots spotsArray, String binDirectory) {
-//		return saveMeasures(spotsArray, binDirectory);
-//	}
+	/**
+	 * @deprecated Use {@link #saveMeasures(Spots, String)} instead.
+	 */
+	@Deprecated
+	public boolean saveSpotsMeasures(Spots spotsArray, String binDirectory) {
+		return saveMeasures(spotsArray, binDirectory);
+	}
 
 	/**
 	 * Gets the CSV filename used for persistence (descriptions).
