@@ -26,9 +26,14 @@ public class ExperimentTimeManager {
 	public void loadFileIntervalsFromSeqCamData(SequenceCamData seqCamData, String imagesDirectory) {
 		if (seqCamData != null) {
 			seqCamData.setImagesDirectory(imagesDirectory);
+			int nTotalFrames = seqCamData.getImageLoader().getNTotalFrames();
+			if (nTotalFrames <= 0) {
+				Logger.warn("ExperimentTimeManager:loadFileIntervalsFromSeqCamData() - No frames available (nTotalFrames="
+						+ nTotalFrames + ")");
+				return;
+			}
 			firstImage_FileTime = seqCamData.getFileTimeFromStructuredName(0);
-			lastImage_FileTime = seqCamData
-					.getFileTimeFromStructuredName(seqCamData.getImageLoader().getNTotalFrames() - 1);
+			lastImage_FileTime = seqCamData.getFileTimeFromStructuredName(nTotalFrames - 1);
 
 			if (firstImage_FileTime != null && lastImage_FileTime != null) {
 				camImageFirst_ms = firstImage_FileTime.toMillis();

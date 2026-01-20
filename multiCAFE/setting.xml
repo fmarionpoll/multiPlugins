@@ -151,20 +151,20 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="-1823"/>
-<key name="YE" value="277"/>
+<key name="XE" value="751"/>
+<key name="YE" value="128"/>
 <key name="WidthE" value="1726"/>
 <key name="HeightE" value="1096"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1418"/>
+<key name="XC" value="1718"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
-<key name="WidthC" value="300"/>
+<key name="WidthC" value="0"/>
 <key name="HeightC" value="934"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
@@ -182,7 +182,7 @@
 <key name="YE" value="100"/>
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
-<key name="WidthC" value="292"/>
+<key name="WidthC" value="-8"/>
 <key name="HeightC" value="844"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
@@ -200,7 +200,7 @@
 <key name="YE" value="200"/>
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
-<key name="WidthC" value="292"/>
+<key name="WidthC" value="-8"/>
 <key name="HeightC" value="844"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>

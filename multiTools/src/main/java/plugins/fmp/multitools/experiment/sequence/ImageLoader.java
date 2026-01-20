@@ -182,6 +182,10 @@ public class ImageLoader {
 	public void setImagesList(List<String> images) {
 		imagesList.clear();
 		imagesList = new ArrayList<>(images);
+		// Auto-update nTotalFrames if not already set
+		if (nTotalFrames == 0 && !imagesList.isEmpty()) {
+			nTotalFrames = imagesList.size();
+		}
 	}
 
 	public int getImagesCount() {
@@ -209,6 +213,10 @@ public class ImageLoader {
 	}
 
 	public int getNTotalFrames() {
+		// Auto-compute from imagesList if not set
+		if (nTotalFrames == 0 && !imagesList.isEmpty()) {
+			nTotalFrames = imagesList.size();
+		}
 		return nTotalFrames;
 	}
 

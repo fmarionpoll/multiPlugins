@@ -84,16 +84,21 @@ public class LazyExperiment extends Experiment {
 					imgLoader.setImagesDirectory(expDirectories.getCameraImagesDirectory());
 					List<String> imagesList = ExperimentDirectories
 							.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
-					// Use setImagesList instead of loadImageList to avoid loading the sequence
-					getSeqCamData().setImagesList(imagesList);
+				// Use setImagesList instead of loadImageList to avoid loading the sequence
+				getSeqCamData().setImagesList(imagesList);
 
-					// Calculate file intervals if needed (lightweight operation)
-					if (expDirectories.cameraImagesList.size() > 1) {
-						getFileIntervalsFromSeqCamData();
-					}
+				// Calculate file intervals if needed (lightweight operation)
+				if (imagesList != null && imagesList.size() > 1) {
+					getFileIntervalsFromSeqCamData();
+				}
 
-					// Initialize cages array (empty, will be loaded when needed)
-					// Don't load cages here - they will be loaded when experiment is opened
+				// Load bin description if available (needed for time calculations)
+				if (expDirectories.getBinSubDirectory() != null) {
+					loadBinDescription(expDirectories.getBinSubDirectory());
+				}
+
+				// Initialize cages array (empty, will be loaded when needed)
+				// Don't load cages here - they will be loaded when experiment is opened
 
 					// Copy cached properties to parent's prop object
 					if (cachedExperimentProperties != null) {
