@@ -21,7 +21,7 @@ public class CapillaryPersistence {
 
 	private static final String ID_META = "metaMC";
 	private static final String ID_VERSION = "version";
-	private static final String ID_VERSIONNUM = "1.0.0";
+	private static final String ID_VERSIONNUM = "2.0.0";
 	private static final String ID_INDEXIMAGE = "indexImageMC";
 	private static final String ID_NAME = "nameMC";
 	private static final String ID_NAMETIFF = "filenameTIFF";

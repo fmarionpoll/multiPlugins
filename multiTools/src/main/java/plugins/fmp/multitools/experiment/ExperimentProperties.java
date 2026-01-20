@@ -38,10 +38,10 @@ public class ExperimentProperties {
 	// Legacy field names (for backward compatibility)
 	private final static String ID_BOXID = "boxID";
 	private final static String ID_EXPERIMENT = "experiment";
-	private final static String ID_STIM1_OLD = "stim"; // MS96Experiment.xml format
-	private final static String ID_CONC1_OLD = "conc"; // MS96Experiment.xml format
-	private final static String ID_STIM2_OLD = "cond1"; // MS96Experiment.xml format
-	private final static String ID_CONC2_OLD = "cond2"; // MS96Experiment.xml format
+	private final static String ID_STIM1_OLD = "comment"; // Legacy MCexperiment.xml format
+	private final static String ID_CONC1_OLD = "comment2"; // Legacy MCexperiment.xml format
+	private final static String ID_STIM2_OLD = "cond1"; // Legacy MCexperiment.xml format
+	private final static String ID_CONC2_OLD = "cond2"; // Legacy MCexperiment.xml format
 	private final static String ID_STRAIN = "strain";
 	private final static String ID_SEX = "sex";
 
@@ -82,10 +82,10 @@ public class ExperimentProperties {
 			field_string2 = XMLUtil.getElementValue(node, ID_STRING2, "..");
 		} else {
 			// Old format: try to load from legacy field names
-			// Try MS96Experiment.xml format first (stim/conc/cond1/cond2)
+			// Legacy MCexperiment.xml format (comment/comment2/cond1/cond2)
 			Node stimOldNode = XMLUtil.getElement(node, ID_STIM1_OLD);
 			if (stimOldNode != null) {
-				// MS96Experiment.xml format
+				// Legacy MCexperiment.xml format
 				field_stim1 = XMLUtil.getElementValue(node, ID_STIM1_OLD, "..");
 				field_conc1 = XMLUtil.getElementValue(node, ID_CONC1_OLD, "..");
 				field_stim2 = XMLUtil.getElementValue(node, ID_STIM2_OLD, "..");

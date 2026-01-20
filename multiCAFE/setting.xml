@@ -143,7 +143,7 @@
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS\30+_vs_30\17-10-26_Caffeine"/>
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS"/>
 </section>
 </section>
 </section>
@@ -153,12 +153,12 @@
 <section name="main">
 <key name="XE" value="-1823"/>
 <key name="YE" value="277"/>
-<key name="WidthE" value="1581"/>
+<key name="WidthE" value="1726"/>
 <key name="HeightE" value="1096"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1273"/>
+<key name="XC" value="1418"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>

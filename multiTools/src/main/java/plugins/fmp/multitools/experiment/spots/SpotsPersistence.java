@@ -21,7 +21,7 @@ public class SpotsPersistence {
 	private static final String ID_V2_SPOTSARRAYMEASURES_CSV = "SpotsMeasures.csv";
 
 	// Version for CSV files
-	private static final String CSV_VERSION = "2.1";
+	private static final String CSV_VERSION = "2.0";
 
 	// Legacy filenames (for fallback)
 	private static final String ID_SPOTSARRAY_CSV = "SpotsArray.csv";

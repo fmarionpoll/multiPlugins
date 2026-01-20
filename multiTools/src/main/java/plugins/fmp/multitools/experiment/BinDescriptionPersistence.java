@@ -10,7 +10,7 @@ import icy.util.XMLUtil;
 public class BinDescriptionPersistence {
 
 	private final static String ID_VERSION = "version";
-	private final static String ID_VERSIONNUM = "1.0.0";
+	private final static String ID_VERSIONNUM = "2.0.0";
 	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
 	private final static String ID_LASTKYMOCOLMS = "lastKymoColMs";
 	private final static String ID_BINKYMOCOLMS = "binKymoColMs";

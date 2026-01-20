@@ -228,7 +228,7 @@ public class Experiment {
 	// _________________________________________________
 
 	private final static String ID_VERSION = "version";
-	private final static String ID_VERSIONNUM = "1.0.0";
+	private final static String ID_VERSIONNUM = "2.0.0";
 	private final static String ID_FRAMEFIRST = "indexFrameFirst";
 	private final static String ID_NFRAMES = "nFrames";
 	private final static String ID_FRAMEDELTA = "indexFrameDelta";

@@ -23,7 +23,7 @@ public class CapillariesPersistence {
 	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "CapillariesMeasures.csv";
 
 	// Version for CSV files
-	private static final String CSV_VERSION = "2.1";
+	private static final String CSV_VERSION = "2.0";
 
 	// Legacy filenames (for fallback)
 	public final static String ID_CAPILLARIESARRAY_CSV = "CapillariesArray.csv";

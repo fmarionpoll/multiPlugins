@@ -26,7 +26,7 @@ public class CagesPersistence {
 	private static final String ID_V2_CAGESMEASURES_CSV = "CagesMeasures.csv";
 
 	// Version for CSV files
-	private static final String CSV_VERSION = "2.1";
+	private static final String CSV_VERSION = "2.0";
 
 //	// Legacy filenames (for fallback)
 //	private static final String ID_CAGESARRAY_CSV = "CagesArray.csv";
