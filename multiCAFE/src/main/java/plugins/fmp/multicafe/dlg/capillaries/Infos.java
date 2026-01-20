@@ -94,7 +94,7 @@ public class Infos extends JPanel {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		int npixels = 0;
 		if (exp != null) {
-			exp.getCapillaries().updateCapillariesFromSequence(exp.getSeqCamData());
+			exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
 			if (exp.getCapillaries().getList().size() > 0) {
 				Capillary cap = exp.getCapillaries().getList().get(0);
 				npixels = cap.getCapillaryROILength();

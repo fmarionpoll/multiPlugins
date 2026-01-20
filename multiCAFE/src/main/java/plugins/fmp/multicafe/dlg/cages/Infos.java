@@ -137,7 +137,7 @@ public class Infos extends JPanel {
 	void measureCellsSpan() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			exp.getCapillaries().updateCapillariesFromSequence(exp.getSeqCamData());
+			exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
 			if (exp.getCapillaries().getList().size() > 0) {
 				int npixels = exp.getCages().getHorizontalSpanOfCages();
 				if (npixels > 0)

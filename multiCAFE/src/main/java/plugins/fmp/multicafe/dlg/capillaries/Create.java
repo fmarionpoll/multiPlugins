@@ -112,7 +112,7 @@ public class Create extends JPanel {
 					}
 					capillariesRoiPolygon = new ROI2DPolygon(extPolygon);
 					exp.getCapillaries().deleteAllCapillaries();
-					exp.getCapillaries().updateCapillariesFromSequence(exp.getSeqCamData());
+					exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
 					exp.getSeqCamData().getSequence().removeAllROI();
 					final String dummyname = "perimeter_enclosing_capillaries";
 					capillariesRoiPolygon.setName(dummyname);
