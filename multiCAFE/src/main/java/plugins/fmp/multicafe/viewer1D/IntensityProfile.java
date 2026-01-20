@@ -178,10 +178,11 @@ public class IntensityProfile {
 							dataArr[i] = "";
 						}
 
-						for (int c = 0; c < xyDataset.getSeriesCount(); c++) {
-							XYSeries seriesXY = xyDataset.getSeries(c);
-							List<XYDataItem> it = seriesXY.getItems();
-							int size = it.size();
+					for (int c = 0; c < xyDataset.getSeriesCount(); c++) {
+						XYSeries seriesXY = xyDataset.getSeries(c);
+						@SuppressWarnings("unchecked")
+						List<XYDataItem> it = seriesXY.getItems();
+						int size = it.size();
 							dataArr[0] += seriesXY.getKey().toString() + "(X)\t" + seriesXY.getKey().toString()
 									+ "(Y)\t";
 							for (int i = 1; i < maxSize + 1; i++) {
@@ -198,13 +199,15 @@ public class IntensityProfile {
 						}
 					} catch (Exception e1) {
 						e1.printStackTrace();
-					} finally {
-						try {
-							// Close the writer regardless of what happens...
+				} finally {
+					try {
+						// Close the writer regardless of what happens...
+						if (writer != null) {
 							writer.close();
-						} catch (Exception e1) {
 						}
+					} catch (Exception e1) {
 					}
+				}
 				}
 			}
 		});
@@ -532,30 +535,32 @@ public class IntensityProfile {
 					}
 				}
 			}
-			for (int c = 0; c < sequence.getSizeC(); c++) {
-				for (int i = 0; i < result[c].length; i++) {
-					result[c][i] /= sequence.getSizeZ();
+			if (result != null) {
+				for (int c = 0; c < sequence.getSizeC(); c++) {
+					for (int i = 0; i < result[c].length; i++) {
+						result[c][i] /= sequence.getSizeZ();
+					}
 				}
-			}
 
-			for (int c = 0; c < sequence.getSizeC(); c++) {
-				boolean found = false;
-				XYSeries seriesXY2 = null;
-				try {
-					seriesXY2 = xyDataset.getSeries("Mean along Z c" + c);
+				for (int c = 0; c < sequence.getSizeC(); c++) {
+					boolean found = false;
+					XYSeries seriesXY2 = null;
+					try {
+						seriesXY2 = xyDataset.getSeries("Mean along Z c" + c);
 
-					found = true;
-				} catch (Exception e) {
+						found = true;
+					} catch (Exception e) {
+
+					}
+					XYSeries seriesXY = new XYSeries("Mean along Z c" + c);
+					for (int i = 0; i < result[c].length; i++) {
+						seriesXY.add(i * pixelSize, result[c][i]);
+					}
+					xyDataset.addSeries(seriesXY);
+					if (found && seriesXY2 != null)
+						xyDataset.removeSeries(seriesXY2);
 
 				}
-				XYSeries seriesXY = new XYSeries("Mean along Z c" + c);
-				for (int i = 0; i < result[c].length; i++) {
-					seriesXY.add(i * pixelSize, result[c][i]);
-				}
-				xyDataset.addSeries(seriesXY);
-				if (found && seriesXY2 != null)
-					xyDataset.removeSeries(seriesXY2);
-
 			}
 		}
 
@@ -578,31 +583,32 @@ public class IntensityProfile {
 					}
 				}
 			}
-			for (int c = 0; c < sequence.getSizeC(); c++) {
-				for (int i = 0; i < result[c].length; i++) {
-					result[c][i] /= sequence.getSizeT();
+			if (result != null) {
+				for (int c = 0; c < sequence.getSizeC(); c++) {
+					for (int i = 0; i < result[c].length; i++) {
+						result[c][i] /= sequence.getSizeT();
+					}
+				}
+
+				for (int c = 0; c < sequence.getSizeC(); c++) {
+					boolean found = false;
+					XYSeries seriesXY2 = null;
+					try {
+						seriesXY2 = xyDataset.getSeries("Mean along T c" + c);
+
+						found = true;
+					} catch (Exception e) {
+
+					}
+					XYSeries seriesXY = new XYSeries("Mean along T c" + c);
+					for (int i = 0; i < result[c].length; i++) {
+						seriesXY.add(i * pixelSize, result[c][i]);
+					}
+					xyDataset.addSeries(seriesXY);
+					if (found && seriesXY2 != null)
+						xyDataset.removeSeries(seriesXY2);
 				}
 			}
-
-			for (int c = 0; c < sequence.getSizeC(); c++) {
-				boolean found = false;
-				XYSeries seriesXY2 = null;
-				try {
-					seriesXY2 = xyDataset.getSeries("Mean along T c" + c);
-
-					found = true;
-				} catch (Exception e) {
-
-				}
-				XYSeries seriesXY = new XYSeries("Mean along T c" + c);
-				for (int i = 0; i < result[c].length; i++) {
-					seriesXY.add(i * pixelSize, result[c][i]);
-				}
-				xyDataset.addSeries(seriesXY);
-				if (found && seriesXY2 != null)
-					xyDataset.removeSeries(seriesXY2);
-			}
-
 		}
 
 	}
