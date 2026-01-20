@@ -18,9 +18,9 @@ public class CapillariesPersistence {
 	public final static String ID_LISTOFCAPILLARIES = "List_of_capillaries";
 	public final static String ID_CAPILLARY_ = "capillary_";
 
-	// New v2.1 format filenames (with ROI type support)
-	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "v2.1_capillaries_description.csv";
-	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "v2.1_capillaries_measures.csv";
+	// Current format filenames (version stored internally in file header)
+	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "CapillariesDescription.csv";
+	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "CapillariesMeasures.csv";
 
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
@@ -140,7 +140,7 @@ public class CapillariesPersistence {
 
 		/**
 		 * Loads capillary descriptions (DESCRIPTION section) from v2 format file. If v2
-		 * format is not found, delegates to Legacy class for fallback handling.
+		 * format is not found or missing version header, delegates to Legacy class for fallback handling.
 		 * 
 		 * @param capillaries      the Capillaries to populate
 		 * @param resultsDirectory the results directory
@@ -151,15 +151,41 @@ public class CapillariesPersistence {
 				return false;
 			}
 
-			// Try v2_ format ONLY
 			String pathToCsv = resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				// v2 format not found - delegate to Legacy class for all fallback logic
 				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 			}
 
-			// Load from v2 format
+			// Validate version header before committing to new format parser
+			try {
+				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
+				String firstLine = csvReader.readLine();
+				csvReader.close();
+				
+				if (firstLine == null || !firstLine.startsWith("#")) {
+					Logger.info("CapillariesPersistence: No header found in " + ID_V2_CAPILLARIESDESCRIPTION_CSV + ", using legacy parser");
+					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				}
+				
+				String sep = String.valueOf(firstLine.charAt(1));
+				String[] versionData = firstLine.split(sep);
+				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					Logger.info("CapillariesPersistence: First line is not version header in " + ID_V2_CAPILLARIESDESCRIPTION_CSV + ", using legacy parser");
+					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				}
+				
+				String fileVersion = versionData[2];
+				if (!fileVersion.equals(CSV_VERSION)) {
+					Logger.warn("CapillariesPersistence: File version " + fileVersion + 
+							   " differs from current version " + CSV_VERSION);
+				}
+			} catch (IOException e) {
+				Logger.error("CapillariesPersistence: Error reading file header: " + e.getMessage(), e);
+				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+			}
+
+			// Version validated - proceed with new format parser
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String row;
@@ -172,11 +198,12 @@ public class CapillariesPersistence {
 					String[] data = row.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						switch (data[1]) {
+						case "version":
+							break;
 						case "DESCRIPTION":
 							CapillariesPersistenceLegacy.csvLoad_Description(capillaries, csvReader, sep);
 							break;
 						case "CAPILLARIES":
-							// Load CAPILLARIES section with ROI coordinates
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Description(capillaries, csvReader, sep);
 							csvReader.close();
 							return true;
@@ -187,7 +214,6 @@ public class CapillariesPersistence {
 						case "GULPS":
 						case "GULPS_CORRECTED":
 						case "GULPS_FLAT":
-							// Stop reading when we hit measures section
 							csvReader.close();
 							return true;
 						default:
@@ -205,7 +231,7 @@ public class CapillariesPersistence {
 
 		/**
 		 * Loads capillary measures from v2 format file in bin directory. If v2 format
-		 * is not found, delegates to Legacy class for fallback handling.
+		 * is not found or missing version header, delegates to Legacy class for fallback handling.
 		 * 
 		 * @param capillaries  the Capillaries to populate
 		 * @param binDirectory the bin directory (e.g., results/bin60)
@@ -216,15 +242,41 @@ public class CapillariesPersistence {
 				return false;
 			}
 
-			// Try v2_ format ONLY
 			String pathToCsv = binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				// v2 format not found - delegate to Legacy class for all fallback logic
 				return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 			}
 
-			// Load from v2 format
+			// Validate version header before committing to new format parser
+			try {
+				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
+				String firstLine = csvReader.readLine();
+				csvReader.close();
+				
+				if (firstLine == null || !firstLine.startsWith("#")) {
+					Logger.info("CapillariesPersistence: No header found in " + ID_V2_CAPILLARIESMEASURES_CSV + ", using legacy parser");
+					return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+				}
+				
+				String sep = String.valueOf(firstLine.charAt(1));
+				String[] versionData = firstLine.split(sep);
+				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					Logger.info("CapillariesPersistence: First line is not version header in " + ID_V2_CAPILLARIESMEASURES_CSV + ", using legacy parser");
+					return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+				}
+				
+				String fileVersion = versionData[2];
+				if (!fileVersion.equals(CSV_VERSION)) {
+					Logger.warn("CapillariesPersistence: File version " + fileVersion + 
+							   " differs from current version " + CSV_VERSION);
+				}
+			} catch (IOException e) {
+				Logger.error("CapillariesPersistence: Error reading file header: " + e.getMessage(), e);
+				return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+			}
+
+			// Version validated - proceed with new format parser
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String row;
@@ -239,12 +291,12 @@ public class CapillariesPersistence {
 					String[] data = row.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						switch (data[1]) {
+						case "version":
+							break;
 						case "DESCRIPTION":
-							// Skip description section in measures file
 							CapillariesPersistenceLegacy.csvSkipSection(csvReader, sep);
 							break;
 						case "CAPILLARIES":
-							// Skip CAPILLARIES section
 							CapillariesPersistenceLegacy.csvSkipSection(csvReader, sep);
 							break;
 						case "TOPLEVEL":
@@ -298,8 +350,8 @@ public class CapillariesPersistence {
 		}
 
 		/**
-		 * Saves capillary descriptions (DESCRIPTION section) to CapillariesArray.csv in
-		 * results directory. Always saves to v2.1 format.
+		 * Saves capillary descriptions (DESCRIPTION section) to CapillariesDescription.csv in
+		 * results directory. Always saves with version header.
 		 * 
 		 * @param capillaries      the Capillaries to save
 		 * @param resultsDirectory the results directory
@@ -319,10 +371,8 @@ public class CapillariesPersistence {
 			}
 
 			try {
-				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(
 						resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV);
-				// Write version header
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
@@ -337,8 +387,8 @@ public class CapillariesPersistence {
 		}
 
 		/**
-		 * Saves capillary measures to CapillariesArrayMeasures.csv in bin directory.
-		 * Always saves to v2.1 format.
+		 * Saves capillary measures to CapillariesMeasures.csv in bin directory.
+		 * Always saves with version header.
 		 * 
 		 * @param capillaries  the Capillaries to save
 		 * @param binDirectory the bin directory (e.g., results/bin60)
@@ -358,9 +408,7 @@ public class CapillariesPersistence {
 			}
 
 			try {
-				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
-				// Write version header
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumCapillaryMeasures.TOPRAW, csvSep);

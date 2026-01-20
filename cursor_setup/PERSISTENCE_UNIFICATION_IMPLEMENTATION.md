@@ -362,9 +362,9 @@ CapillariesSequenceMapper.transferAllFromSequences(capillaries, seqCamData, seqK
 
 5. **CSV Format Version 2.1** ✅
    - Updated all CSV files to v2.1
-   - Added version header in files
-   - Updated filenames: `v2.1_*_description.csv`, `v2.1_*_measures.csv`
-   - Full backward compatibility with v2.0
+   - Added version header in files (version stored internally)
+   - Updated filenames: `*Description.csv`, `*Measures.csv` (PascalCase, version-agnostic)
+   - Full backward compatibility with v2.0 and legacy formats
 
 ### New Files Created (Phase 2):
 1. `multiTools/.../tools/ROI2D/ROIType.java`

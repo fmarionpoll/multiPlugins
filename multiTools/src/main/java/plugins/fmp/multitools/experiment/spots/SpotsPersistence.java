@@ -16,9 +16,9 @@ import plugins.fmp.multitools.tools.Logger;
  */
 public class SpotsPersistence {
 
-	// New v2.1 format filenames (with ROI type support)
-	private static final String ID_V2_SPOTSARRAY_CSV = "v2.1_spots_description.csv";
-	private static final String ID_V2_SPOTSARRAYMEASURES_CSV = "v2.1_spots_measures.csv";
+	// Current format filenames (version stored internally in file header)
+	private static final String ID_V2_SPOTSARRAY_CSV = "SpotsDescription.csv";
+	private static final String ID_V2_SPOTSARRAYMEASURES_CSV = "SpotsMeasures.csv";
 
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
@@ -172,21 +172,44 @@ public class SpotsPersistence {
 
 		/**
 		 * Loads spot descriptions (SPOTS_ARRAY and SPOTS sections) from v2 format file.
-		 * If v2 format is not found, delegates to Legacy class for fallback handling.
+		 * If v2 format is not found or missing version header, delegates to Legacy class for fallback handling.
 		 */
 		public static boolean loadDescription(Spots spotsArray, String resultsDirectory) {
 			if (resultsDirectory == null) {
 				return false;
 			}
 
-			// Try v2_ format ONLY
 			Path csvPath = Paths.get(resultsDirectory, ID_V2_SPOTSARRAY_CSV);
 			if (!Files.exists(csvPath)) {
-				// v2 format not found - delegate to Legacy class for all fallback logic
 				return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
 			}
 
-			// Load from v2 format
+			// Validate version header before committing to new format parser
+			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
+				String firstLine = reader.readLine();
+				if (firstLine == null || !firstLine.startsWith("#")) {
+					Logger.info("SpotsPersistence: No header found in " + ID_V2_SPOTSARRAY_CSV + ", using legacy parser");
+					return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
+				}
+				
+				String sep = String.valueOf(firstLine.charAt(1));
+				String[] versionData = firstLine.split(sep);
+				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAY_CSV + ", using legacy parser");
+					return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
+				}
+				
+				String fileVersion = versionData[2];
+				if (!fileVersion.equals(CSV_VERSION)) {
+					Logger.warn("SpotsPersistence: File version " + fileVersion + 
+							   " differs from current version " + CSV_VERSION);
+				}
+			} catch (IOException e) {
+				Logger.error("SpotsPersistence: Error reading file header: " + e.getMessage(), e);
+				return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
+			}
+
+			// Version validated - proceed with new format parser
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String line;
 				String sep = ";";
@@ -201,6 +224,8 @@ public class SpotsPersistence {
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
 							switch (data[1]) {
+							case "version":
+								break;
 							case "SPOTS_ARRAY":
 								descriptionLoaded = true;
 								SpotsPersistenceLegacy.csvLoad_SpotsArray_Metadata(spotsArray, reader, sep);
@@ -212,13 +237,10 @@ public class SpotsPersistence {
 							case "AREA_SUM":
 							case "AREA_SUMCLEAN":
 							case "AREA_FLYPRESENT":
-								// Stop reading when we hit measures section
 								return descriptionLoaded || spotsLoaded;
 							default:
-								// Check if it's a measure type
 								EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
 								if (measure != null) {
-									// Stop reading when we hit measures section
 									return descriptionLoaded || spotsLoaded;
 								}
 								break;
@@ -235,21 +257,44 @@ public class SpotsPersistence {
 
 		/**
 		 * Loads spot measures from v2 format file in bin directory. If v2 format is not
-		 * found, delegates to Legacy class for fallback handling.
+		 * found or missing version header, delegates to Legacy class for fallback handling.
 		 */
 		public static boolean loadMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
 				return false;
 			}
 
-			// Try v2_ format ONLY
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			if (!Files.exists(csvPath)) {
-				// v2 format not found - delegate to Legacy class for all fallback logic
 				return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
 			}
 
-			// Load from v2 format
+			// Validate version header before committing to new format parser
+			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
+				String firstLine = reader.readLine();
+				if (firstLine == null || !firstLine.startsWith("#")) {
+					Logger.info("SpotsPersistence: No header found in " + ID_V2_SPOTSARRAYMEASURES_CSV + ", using legacy parser");
+					return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
+				}
+				
+				String sep = String.valueOf(firstLine.charAt(1));
+				String[] versionData = firstLine.split(sep);
+				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAYMEASURES_CSV + ", using legacy parser");
+					return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
+				}
+				
+				String fileVersion = versionData[2];
+				if (!fileVersion.equals(CSV_VERSION)) {
+					Logger.warn("SpotsPersistence: File version " + fileVersion + 
+							   " differs from current version " + CSV_VERSION);
+				}
+			} catch (IOException e) {
+				Logger.error("SpotsPersistence: Error reading file header: " + e.getMessage(), e);
+				return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
+			}
+
+			// Version validated - proceed with new format parser
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String line;
 				String sep = ";";
@@ -261,6 +306,9 @@ public class SpotsPersistence {
 					String[] data = line.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
+							if (data[1].equals("version")) {
+								continue;
+							}
 							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
 							if (measure != null) {
 								SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
@@ -276,8 +324,8 @@ public class SpotsPersistence {
 		}
 
 		/**
-		 * Saves spot descriptions (SPOTS_ARRAY and SPOTS sections) to SpotsArray.csv.
-		 * Always saves to v2_ format.
+		 * Saves spot descriptions (SPOTS_ARRAY and SPOTS sections) to SpotsDescription.csv.
+		 * Always saves with version header.
 		 */
 		public static boolean saveDescription(Spots spotsArray, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -291,12 +339,9 @@ public class SpotsPersistence {
 				return false;
 			}
 
-			// Always save to v2.1 format
 			Path csvPath = Paths.get(resultsDirectory, ID_V2_SPOTSARRAY_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
-				// Write version header
 				writer.write("#;version;" + CSV_VERSION + "\n");
-				// Save spots array section
 				if (!SpotsPersistenceLegacy.csvSave_DescriptionSection(spotsArray, writer, ";")) {
 					return false;
 				}
@@ -311,7 +356,7 @@ public class SpotsPersistence {
 
 		/**
 		 * Saves spot measures (AREA_SUM, AREA_SUMCLEAN sections) to
-		 * SpotsArrayMeasures.csv in bin directory. Always saves to v2_ format.
+		 * SpotsMeasures.csv in bin directory. Always saves with version header.
 		 */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
@@ -326,12 +371,9 @@ public class SpotsPersistence {
 				return false;
 			}
 
-			// Always save to v2.1 format
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
-				// Write version header
 				writer.write("#;version;" + CSV_VERSION + "\n");
-				// Save measures sections
 				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUM,
 						";")) {
 					return false;

@@ -26,8 +26,8 @@ All CSV files now include a version header:
 ```
 
 **Location:**
-- In filename: `v2.1_spots_description.csv` (was `v2_spots_description.csv`)
-- In header: First line of every CSV file
+- In filename: `SpotsDescription.csv` (PascalCase, version-agnostic)
+- In header: First line of every CSV file contains `#;version;2.1`
 
 ### ROI Type Indicators
 
@@ -45,7 +45,7 @@ All entities now save ROI type before coordinate data:
 
 ### Spots Description (v2.0 → v2.1)
 
-**Filename:** `v2_spots_description.csv` → `v2.1_spots_description.csv`
+**Filename:** `v2_spots_description.csv` → `SpotsDescription.csv`
 
 **Old Format (v2.0):**
 ```csv
@@ -68,7 +68,7 @@ spot_001_000;0;1;0;0;0;0.5;100;10;water;0;ellipse;150.0;200.0;10.0;10.0
 
 ### Capillaries Description (v2.0 → v2.1)
 
-**Filename:** `v2_capillaries_description.csv` → `v2.1_capillaries_description.csv`
+**Filename:** `v2_capillaries_description.csv` → `CapillariesDescription.csv`
 
 **Old Format (v2.0):**
 ```csv
@@ -93,7 +93,7 @@ cap_prefix;kymoIndex;kymographName;...;ROIname;roiType;npoints
 
 ### Cages Description (v2.0 → v2.1)
 
-**Filename:** `v2_cages_description.csv` → `v2.1_cages_description.csv`
+**Filename:** `v2_cages_description.csv` → `CagesDescription.csv`
 
 **Old Format (v2.0):**
 ```csv
@@ -128,9 +128,9 @@ name;index;npts;yi
 ```
 
 **Filenames:**
-- `v2.1_spots_measures.csv` (was `v2_spots_measures.csv`)
-- `v2.1_capillaries_measures.csv` (was `v2_capillaries_measures.csv`)
-- `v2.1_cages_measures.csv` (was `v2_cages_measures.csv`)
+- `SpotsMeasures.csv` (PascalCase, version-agnostic)
+- `CapillariesMeasures.csv` (PascalCase, version-agnostic)
+- `CagesMeasures.csv` (PascalCase, version-agnostic)
 
 ---
 
@@ -250,8 +250,8 @@ The v2.1 loaders automatically handle v2.0 files:
 ### Fallback Chain
 
 All loaders follow this priority:
-1. Try v2.1 format file (e.g., `v2.1_spots_description.csv`)
-2. Fall back to v2.0 format file (e.g., `v2_spots_description.csv`)
+1. Try current format file (e.g., `SpotsDescription.csv`) with version header validation
+2. If no version header found, fall back to v2.0 format file (e.g., `v2_spots_description.csv`)
 3. Fall back to legacy CSV format (e.g., `SpotsArray.csv`)
 4. Fall back to XML format (deprecated, if available)
 
@@ -267,11 +267,11 @@ if (!Files.exists(csvPath)) {
 
 ### Writing Files
 
-All saves use v2.1 format exclusively:
-- Always creates `v2.1_*` files
-- Includes version header
+All saves use current format exclusively:
+- Always creates PascalCase files (e.g., `SpotsDescription.csv`)
+- Includes version header (`#;version;2.1`) as first line
 - Includes roiType column
-- Old v2.0 files are not overwritten (different filename)
+- Old format files are not overwritten (different filenames)
 
 ---
 
@@ -452,8 +452,8 @@ public enum ROIType {
 **Symptom:** Error loading v2.1 file, or loads as wrong version.
 
 **Diagnosis:**
-- Check version header: `#;version;2.1`
-- Check filename: `v2.1_*.csv`
+- Check version header: `#;version;2.1` (must be first line)
+- Check filename: `*Description.csv` or `*Measures.csv` (PascalCase)
 
 **Solution:**
 - Verify version header is first line
@@ -481,16 +481,16 @@ public enum ROIType {
 
 ```java
 // Load spots
-spots.loadDescriptions(resultsDir);          // v2.1_spots_description.csv
-spots.loadMeasures(binDir);                  // v2.1_spots_measures.csv
+spots.loadDescriptions(resultsDir);          // SpotsDescription.csv (with version header validation)
+spots.loadMeasures(binDir);                  // SpotsMeasures.csv
 
 // Load capillaries
-capillaries.loadDescriptions(resultsDir);    // v2.1_capillaries_description.csv
-capillaries.loadMeasures(binDir);            // v2.1_capillaries_measures.csv
+capillaries.loadDescriptions(resultsDir);    // CapillariesDescription.csv
+capillaries.loadMeasures(binDir);            // CapillariesMeasures.csv
 
 // Load cages
-cages.loadDescriptions(resultsDir);          // v2.1_cages_description.csv
-cages.loadMeasures(binDir);                  // v2.1_cages_measures.csv
+cages.loadDescriptions(resultsDir);          // CagesDescription.csv
+cages.loadMeasures(binDir);                  // CagesMeasures.csv
 ```
 
 ### Saving Experiment (v2.1)

@@ -28,17 +28,17 @@ This document analyzes the current persistence classes for Spot/Spots and Capill
 #### Spots
 ```
 results/
-  └── v2_spots_description.csv      # Descriptions (name, cage, position, coordinates, etc.)
-results/bin_60/                      # or bin_120, etc.
-  └── v2_spots_measures.csv         # Measures (area_sum, area_clean, flypresent)
+  └── SpotsDescription.csv      # Descriptions (name, cage, position, coordinates, ROI type, etc.)
+results/bin_60/                  # or bin_120, etc.
+  └── SpotsMeasures.csv         # Measures (area_sum, area_clean, flypresent)
 ```
 
 #### Capillaries
 ```
 results/
-  └── v2_capillaries_description.csv    # Descriptions + ROI coordinates
-results/bin_60/                          # or bin_120, etc.
-  └── v2_capillaries_measures.csv       # Measures (toplevel, bottom, derivative, gulps)
+  └── CapillariesDescription.csv    # Descriptions + ROI coordinates + ROI type
+results/bin_60/                      # or bin_120, etc.
+  └── CapillariesMeasures.csv       # Measures (toplevel, bottom, derivative, gulps)
 ```
 
 ### Persistence Class Structure
@@ -89,10 +89,12 @@ public boolean regenerateROIFromCoordinates() {
 }
 ```
 
-**CSV Format (v2_spots_description.csv):**
+**CSV Format (SpotsDescription.csv):**
 ```
-name;index;cageID;cagePos;cageColumn;cageRow;volume;npixels;radius;stim;conc
-spot_001_000;0;1;0;0;0;0.5;100;10;water;0
+#;version;2.1
+#;SPOTS;multiSPOTS data
+name;index;cageID;cagePos;cageColumn;cageRow;volume;npixels;radius;stim;conc;roiType;roiData
+spot_001_000;0;1;0;0;0;0.5;100;10;water;0;ellipse;150.0;200.0;10.0;10.0
 ```
 
 #### Capillaries ROI Persistence
@@ -103,10 +105,12 @@ spot_001_000;0;1;0;0;0;0.5;100;10;water;0
 - No regeneration needed - ROIs loaded directly from CSV
 - No dedicated mapper class for sequence transfer
 
-**CSV Format (v2_capillaries_description.csv):**
+**CSV Format (CapillariesDescription.csv):**
 ```
-cap_prefix;kymoIndex;kymographName;kymoFile;cap_cage;...;ROIname;npoints
-0L;0;line01;kymo.tif;0;1;0.5;100;water;0;L;line0L;5
+#;version;2.1
+#;CAPILLARIES;describe each capillary
+cap_prefix;kymoIndex;kymographName;kymoFile;cap_cage;...;ROIname;roiType;npoints
+0L;0;line01;kymo.tif;0;1;0.5;100;water;0;L;line0L;polyline;5
 50;100;55;105;60;110;65;115;70;120  # ROI x,y coordinates follow
 ```
 
@@ -306,11 +310,11 @@ Both already follow the same pattern - keep it:
 
 ```
 results/
-  ├── v2_spots_description.csv
-  ├── v2_capillaries_description.csv
+  ├── SpotsDescription.csv
+  ├── CapillariesDescription.csv
   └── bin_60/  (or bin_120, etc.)
-      ├── v2_spots_measures.csv
-      └── v2_capillaries_measures.csv
+      ├── SpotsMeasures.csv
+      └── CapillariesMeasures.csv
 ```
 
 ---

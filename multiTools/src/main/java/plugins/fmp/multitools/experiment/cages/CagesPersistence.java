@@ -21,9 +21,9 @@ public class CagesPersistence {
 //	private static final String ID_NCOLUMNSPERCAGE = "N_columns_per_cage";
 //	private static final String ID_NROWSPERCAGE = "N_rows_per_cage";
 
-	// New v2.1 format filenames (with ROI type support)
-	private static final String ID_V2_CAGESDESCRIPTION_CSV = "v2.1_cages_description.csv";
-	private static final String ID_V2_CAGESMEASURES_CSV = "v2.1_cages_measures.csv";
+	// Current format filenames (version stored internally in file header)
+	private static final String ID_V2_CAGESDESCRIPTION_CSV = "CagesDescription.csv";
+	private static final String ID_V2_CAGESMEASURES_CSV = "CagesMeasures.csv";
 
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
@@ -223,22 +223,48 @@ public class CagesPersistence {
 
 		/**
 		 * Loads cage descriptions (DESCRIPTION and CAGE sections) from v2 format file.
-		 * If v2 format is not found, delegates to Legacy class for fallback handling.
+		 * If v2 format is not found or missing version header, delegates to Legacy class for fallback handling.
 		 */
 		public static boolean loadDescription(Cages cages, String resultsDirectory) {
 			if (resultsDirectory == null) {
 				return false;
 			}
 
-			// Try v2_ format ONLY
 			String pathToCsv = resultsDirectory + File.separator + ID_V2_CAGESDESCRIPTION_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				// v2 format not found - delegate to Legacy class for all fallback logic
 				return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
 			}
 
-			// Load from v2 format
+			// Validate version header before committing to new format parser
+			try {
+				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
+				String firstLine = csvReader.readLine();
+				csvReader.close();
+				
+				if (firstLine == null || !firstLine.startsWith("#")) {
+					Logger.info("CagesPersistence: No header found in " + ID_V2_CAGESDESCRIPTION_CSV + ", using legacy parser");
+					return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+				}
+				
+				String sep = String.valueOf(firstLine.charAt(1));
+				String[] versionData = firstLine.split(sep);
+				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					Logger.info("CagesPersistence: First line is not version header in " + ID_V2_CAGESDESCRIPTION_CSV + ", using legacy parser");
+					return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+				}
+				
+				String fileVersion = versionData[2];
+				if (!fileVersion.equals(CSV_VERSION)) {
+					Logger.warn("CagesPersistence: File version " + fileVersion + 
+							   " differs from current version " + CSV_VERSION);
+				}
+			} catch (IOException e) {
+				Logger.error("CagesPersistence: Error reading file header: " + e.getMessage(), e);
+				return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+			}
+
+			// Version validated - proceed with new format parser
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String row;
@@ -254,6 +280,8 @@ public class CagesPersistence {
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
 							switch (data[1]) {
+							case "version":
+								break;
 							case "DESCRIPTION":
 								descriptionLoaded = true;
 								CagesPersistenceLegacy.csvLoad_DESCRIPTION(cages, csvReader, sep);
@@ -264,7 +292,6 @@ public class CagesPersistence {
 								CagesPersistenceLegacy.csvLoad_CAGE(cages, csvReader, sep);
 								break;
 							case "POSITION":
-								// Stop reading when we hit measures section
 								csvReader.close();
 								return descriptionLoaded || cageLoaded;
 							default:
@@ -283,22 +310,48 @@ public class CagesPersistence {
 
 		/**
 		 * Loads cage measures (POSITION section) from v2 format file in bin directory.
-		 * If v2 format is not found, delegates to Legacy class for fallback handling.
+		 * If v2 format is not found or missing version header, delegates to Legacy class for fallback handling.
 		 */
 		public static boolean loadMeasures(Cages cages, String binDirectory) {
 			if (binDirectory == null) {
 				return false;
 			}
 
-			// Try v2_ format ONLY
 			String pathToCsv = binDirectory + File.separator + ID_V2_CAGESMEASURES_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				// v2 format not found - delegate to Legacy class for all fallback logic
 				return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
 			}
 
-			// Load from v2 format
+			// Validate version header before committing to new format parser
+			try {
+				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
+				String firstLine = csvReader.readLine();
+				csvReader.close();
+				
+				if (firstLine == null || !firstLine.startsWith("#")) {
+					Logger.info("CagesPersistence: No header found in " + ID_V2_CAGESMEASURES_CSV + ", using legacy parser");
+					return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+				}
+				
+				String sep = String.valueOf(firstLine.charAt(1));
+				String[] versionData = firstLine.split(sep);
+				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					Logger.info("CagesPersistence: First line is not version header in " + ID_V2_CAGESMEASURES_CSV + ", using legacy parser");
+					return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+				}
+				
+				String fileVersion = versionData[2];
+				if (!fileVersion.equals(CSV_VERSION)) {
+					Logger.warn("CagesPersistence: File version " + fileVersion + 
+							   " differs from current version " + CSV_VERSION);
+				}
+			} catch (IOException e) {
+				Logger.error("CagesPersistence: Error reading file header: " + e.getMessage(), e);
+				return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+			}
+
+			// Version validated - proceed with new format parser
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String row;
@@ -312,6 +365,9 @@ public class CagesPersistence {
 					String[] data = row.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
+							if (data[1].equals("version")) {
+								continue;
+							}
 							if (data[1].equals("POSITION")) {
 								CagesPersistenceLegacy.csvLoad_Measures(cages, csvReader, EnumCageMeasures.POSITION,
 										sep);
@@ -331,8 +387,8 @@ public class CagesPersistence {
 		}
 
 		/**
-		 * Saves cage descriptions (DESCRIPTION and CAGE sections) to Cages.csv in
-		 * results directory. Always saves to v2.1 format.
+		 * Saves cage descriptions (DESCRIPTION and CAGE sections) to CagesDescription.csv in
+		 * results directory. Always saves with version header.
 		 */
 		public static boolean saveDescription(Cages cages, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -347,9 +403,7 @@ public class CagesPersistence {
 			}
 
 			try {
-				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(resultsDirectory + File.separator + ID_V2_CAGESDESCRIPTION_CSV);
-				// Write version header
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CagesPersistenceLegacy.csvSaveDESCRIPTIONSection(cages, csvWriter, csvSep);
 				CagesPersistenceLegacy.csvSaveCAGESection(cages, csvWriter, csvSep);
@@ -365,7 +419,7 @@ public class CagesPersistence {
 
 		/**
 		 * Saves cage measures (POSITION section) to CagesMeasures.csv in bin directory.
-		 * Always saves to v2.1 format.
+		 * Always saves with version header.
 		 */
 		public static boolean saveMeasures(Cages cages, String binDirectory) {
 			if (binDirectory == null) {
@@ -380,9 +434,7 @@ public class CagesPersistence {
 			}
 
 			try {
-				// Always save to v2.1 format
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAGESMEASURES_CSV);
-				// Write version header
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CagesPersistenceLegacy.csvSaveMeasuresSection(cages, csvWriter, EnumCageMeasures.POSITION, csvSep);
 				csvWriter.flush();
