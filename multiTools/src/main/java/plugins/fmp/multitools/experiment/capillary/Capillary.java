@@ -415,6 +415,52 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	/**
+	 * Derives the kymographIndex from the position of kymographFilename in the kymograph images list.
+	 * This accounts for missing/deleted kymographs by using actual position rather than name-based numbering.
+	 * 
+	 * @param kymographImagesList the list of kymograph image filenames from seqKymos
+	 * @return the derived kymograph index, or -1 if it cannot be determined
+	 */
+	private int deriveKymographIndexFromImageList(List<String> kymographImagesList) {
+		if (kymographImagesList == null || kymographImagesList.isEmpty()) {
+			return -1;
+		}
+		
+		// First attempt: match using kymographFilename if available
+		if (kymographFilename != null && !kymographFilename.isEmpty()) {
+			String targetFilename = new java.io.File(kymographFilename).getName();
+			
+			for (int i = 0; i < kymographImagesList.size(); i++) {
+				String imageFilename = new java.io.File(kymographImagesList.get(i)).getName();
+				if (imageFilename.equals(targetFilename)) {
+					return i;
+				}
+			}
+		}
+		
+		// Second attempt: match using kymographName (without extension)
+		if (metadata.kymographName != null && !metadata.kymographName.isEmpty()) {
+			for (int i = 0; i < kymographImagesList.size(); i++) {
+				String imagePath = kymographImagesList.get(i);
+				String imageFilename = new java.io.File(imagePath).getName();
+				
+				// Remove extension from image filename to compare with kymographName
+				String imageNameWithoutExt = imageFilename;
+				int lastDotIndex = imageFilename.lastIndexOf('.');
+				if (lastDotIndex > 0) {
+					imageNameWithoutExt = imageFilename.substring(0, lastDotIndex);
+				}
+				
+				if (imageNameWithoutExt.equals(metadata.kymographName)) {
+					return i;
+				}
+			}
+		}
+		
+		return -1;
+	}
+
+	/**
 	 * Extracts prefix from ROI name (e.g., "line0L" -> "0L", "line1R" -> "1R")
 	 */
 	private String extractPrefixFromRoiName(String roiName) {
@@ -805,24 +851,40 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	public List<ROI2D> transferMeasuresToROIs() {
+		return transferMeasuresToROIs(null);
+	}
+
+	public List<ROI2D> transferMeasuresToROIs(List<String> kymographImagesList) {
 		List<ROI2D> listrois = new ArrayList<ROI2D>();
-		getROIFromCapillaryLevel(measurements.ptsTop, listrois);
-		getROIFromCapillaryLevel(measurements.ptsBottom, listrois);
-		getROIFromCapillaryLevel(measurements.ptsDerivative, listrois);
-		getROIsFromCapillaryGulps(measurements.ptsGulps, listrois);
+		getROIFromCapillaryLevel(measurements.ptsTop, listrois, kymographImagesList);
+		getROIFromCapillaryLevel(measurements.ptsBottom, listrois, kymographImagesList);
+		getROIFromCapillaryLevel(measurements.ptsDerivative, listrois, kymographImagesList);
+		getROIsFromCapillaryGulps(measurements.ptsGulps, listrois, kymographImagesList);
 		return listrois;
 	}
 
-	private void getROIFromCapillaryLevel(CapillaryMeasure capLevel, List<ROI2D> listrois) {
+	private void getROIFromCapillaryLevel(CapillaryMeasure capLevel, List<ROI2D> listrois, 
+			List<String> kymographImagesList) {
 		if (capLevel.polylineLevel == null || capLevel.polylineLevel.npoints == 0)
 			return;
 
 		ROI2D roi = new ROI2DPolyLine(capLevel.polylineLevel);
 		String name = metadata.kymographPrefix + "_" + capLevel.capName;
 		roi.setName(name);
-		roi.setT(kymographIndex);
-		if (kymographIndex < 0)
-			System.out.println("capillary:" + metadata.roiCap.getName() + " kymographIndex=" + kymographIndex);
+		
+		int tIndex = kymographIndex;
+		if (tIndex < 0) {
+			tIndex = deriveKymographIndexFromImageList(kymographImagesList);
+			if (tIndex >= 0) {
+				kymographIndex = tIndex;
+			} else {
+				System.out.println("capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName) 
+						+ " kymographIndex=" + kymographIndex 
+						+ " kymographFilename=" + kymographFilename
+						+ " (could not derive from image list)");
+			}
+		}
+		roi.setT(tIndex);
 
 		if (capLevel.capName.contains(ID_DERIVATIVE)) {
 			roi.setColor(Color.yellow);
@@ -831,7 +893,8 @@ public class Capillary implements Comparable<Capillary> {
 		listrois.add(roi);
 	}
 
-	private void getROIsFromCapillaryGulps(CapillaryGulps capGulps, List<ROI2D> listrois) {
+	private void getROIsFromCapillaryGulps(CapillaryGulps capGulps, List<ROI2D> listrois, 
+			List<String> kymographImagesList) {
 		if (capGulps == null || capGulps.getAmplitudeSeries() == null || capGulps.getAmplitudeSeries().npoints == 0)
 			return;
 
@@ -854,7 +917,15 @@ public class Capillary implements Comparable<Capillary> {
 
 		roiDots.setName(metadata.kymographPrefix + "_gulps");
 		roiDots.setColor(Color.red);
-		roiDots.setT(kymographIndex);
+		
+		int tIndex = kymographIndex;
+		if (tIndex < 0) {
+			tIndex = deriveKymographIndexFromImageList(kymographImagesList);
+			if (tIndex >= 0) {
+				kymographIndex = tIndex;
+			}
+		}
+		roiDots.setT(tIndex);
 		listrois.add(roiDots);
 	}
 

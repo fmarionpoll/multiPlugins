@@ -62,6 +62,52 @@ public class CapillariesPersistence {
 	}
 
 	/**
+	 * Checks if any capillary description files exist in the results directory.
+	 * This is useful to determine if an experiment has capillaries data.
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if any capillary description file exists
+	 */
+	public boolean hasCapillariesDescriptionFiles(String resultsDirectory) {
+		if (resultsDirectory == null) {
+			return false;
+		}
+		
+		Path v2Path = Paths.get(resultsDirectory, ID_V2_CAPILLARIESDESCRIPTION_CSV);
+		if (Files.exists(v2Path)) {
+			return true;
+		}
+		
+		Path legacyPath = Paths.get(resultsDirectory, ID_CAPILLARIESARRAY_CSV);
+		if (Files.exists(legacyPath)) {
+			return true;
+		}
+		
+		Path xmlPath = Paths.get(resultsDirectory, ID_MCCAPILLARIES_XML);
+		return Files.exists(xmlPath);
+	}
+
+	/**
+	 * Checks if any capillary measures files exist in the bin directory.
+	 * 
+	 * @param binDirectory the bin directory (e.g., results/bin60)
+	 * @return true if any capillary measures file exists
+	 */
+	public boolean hasCapillariesMeasuresFiles(String binDirectory) {
+		if (binDirectory == null) {
+			return false;
+		}
+		
+		Path v2Path = Paths.get(binDirectory, ID_V2_CAPILLARIESMEASURES_CSV);
+		if (Files.exists(v2Path)) {
+			return true;
+		}
+		
+		Path legacyPath = Paths.get(binDirectory, ID_CAPILLARIESARRAYMEASURES_CSV);
+		return Files.exists(legacyPath);
+	}
+
+	/**
 	 * Saves capillary descriptions to the results directory. Descriptions include
 	 * capillary properties but not time-series measures. Uses new v2 format.
 	 * 

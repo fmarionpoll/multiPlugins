@@ -948,14 +948,29 @@ public class Experiment {
 	 * <p>
 	 * Description comes from the results directory, measures from the bin
 	 * directory.
+	 * <p>
+	 * <b>Experiment Type Behavior:</b>
+	 * <ul>
+	 * <li><b>multiCAFE:</b> No spots files exist - returns false immediately (no error)</li>
+	 * <li><b>multiSPOTS/multiSPOTS96:</b> Loads spot measures successfully</li>
+	 * </ul>
+	 * This early exit for multiCAFE experiments improves performance by avoiding
+	 * unnecessary file system checks.
 	 */
 	public boolean load_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
+		
+		// Check if spots files exist before attempting to load
+		// This avoids unnecessary file system checks for multiCAFE experiments
+		if (!spots.hasSpotsFiles(resultsDir)) {
+			return false;
+		}
+		
 		boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
 
 		// Load measures from bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
-		if (binDir != null) {
+		if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
 			spots.getPersistence().loadMeasures(spots, binDir);
 		}
 
@@ -988,14 +1003,32 @@ public class Experiment {
 	 * <p>
 	 * Description comes from the results directory, measures from the bin
 	 * directory.
+	 * <p>
+	 * <b>Experiment Type Behavior:</b>
+	 * <ul>
+	 * <li><b>multiCAFE:</b> Loads capillary measures (main data) + kymographs</li>
+	 * <li><b>multiSPOTS/multiSPOTS96:</b> No capillaries files exist - returns false immediately (no error)</li>
+	 * </ul>
+	 * This early exit for multiSPOTS experiments improves performance by avoiding
+	 * unnecessary file system checks.
+	 * <p>
+	 * Note: Kymographs are always present in multiCAFE (used to construct measures),
+	 * but optional in multiSPOTS.
 	 */
 	public boolean load_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
+		
+		// Check if capillaries files exist before attempting to load
+		// This avoids unnecessary file system checks for experiments without capillaries
+		if (!capillaries.getPersistence().hasCapillariesDescriptionFiles(resultsDir)) {
+			return false;
+		}
+		
 		boolean descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
 
 		String binDir = getKymosBinFullDirectory();
 		boolean measuresLoaded = false;
-		if (binDir != null) {
+		if (binDir != null && capillaries.getPersistence().hasCapillariesMeasuresFiles(binDir)) {
 			measuresLoaded = capillaries.getPersistence().loadMeasures(capillaries, binDir);
 		}
 

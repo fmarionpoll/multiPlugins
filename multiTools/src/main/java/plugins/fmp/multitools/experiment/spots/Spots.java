@@ -166,6 +166,17 @@ public class Spots {
 		return persistence.loadMeasures(this, binDirectory);
 	}
 
+	/**
+	 * Checks if spots description files exist in the results directory.
+	 * Useful to determine if an experiment has spots data.
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if spots description files exist
+	 */
+	public boolean hasSpotsFiles(String resultsDirectory) {
+		return persistence.hasSpotsDescriptionFiles(resultsDirectory);
+	}
+
 	// === DATA SAVING ===
 	// New standardized method names (v2.3.3+)
 

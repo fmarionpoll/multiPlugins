@@ -335,8 +335,9 @@ public class SequenceKymos extends SequenceCamData {
 
 		List<ROI2D> newRoisList = new ArrayList<ROI2D>();
 		int ncapillaries = capillaries.getList().size();
+		List<String> imagesList = getImagesList();
 		for (int i = 0; i < ncapillaries; i++) {
-			List<ROI2D> listOfRois = capillaries.getList().get(i).transferMeasuresToROIs();
+			List<ROI2D> listOfRois = capillaries.getList().get(i).transferMeasuresToROIs(imagesList);
 			newRoisList.addAll(listOfRois);
 		}
 

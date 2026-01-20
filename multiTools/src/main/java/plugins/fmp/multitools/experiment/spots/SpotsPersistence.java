@@ -47,6 +47,28 @@ public class SpotsPersistence {
 	}
 
 	/**
+	 * Checks if any spots description files exist in the results directory.
+	 * This is useful to determine if an experiment has spots data (multiSPOTS)
+	 * or not (multiCAFE).
+	 * 
+	 * @param resultsDirectory the results directory
+	 * @return true if any spots description file exists
+	 */
+	public boolean hasSpotsDescriptionFiles(String resultsDirectory) {
+		if (resultsDirectory == null) {
+			return false;
+		}
+		
+		Path v2Path = Paths.get(resultsDirectory, ID_V2_SPOTSARRAY_CSV);
+		if (Files.exists(v2Path)) {
+			return true;
+		}
+		
+		Path legacyPath = Paths.get(resultsDirectory, ID_SPOTSARRAY_CSV);
+		return Files.exists(legacyPath);
+	}
+
+	/**
 	 * Loads spot measures from the bin directory (e.g., results/bin60). Measures
 	 * include time-series data like area_sum, area_clean, flypresent. Tries new v2
 	 * format first, then falls back to legacy format.
@@ -57,6 +79,26 @@ public class SpotsPersistence {
 	 */
 	public boolean loadMeasures(Spots spots, String binDirectory) {
 		return Persistence.loadMeasures(spots, binDirectory);
+	}
+
+	/**
+	 * Checks if any spots measures files exist in the bin directory.
+	 * 
+	 * @param binDirectory the bin directory (e.g., results/bin60)
+	 * @return true if any spots measures file exists
+	 */
+	public boolean hasSpotsMeasuresFiles(String binDirectory) {
+		if (binDirectory == null) {
+			return false;
+		}
+		
+		Path v2Path = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
+		if (Files.exists(v2Path)) {
+			return true;
+		}
+		
+		Path legacyPath = Paths.get(binDirectory, ID_SPOTSARRAYMEASURES_CSV);
+		return Files.exists(legacyPath);
 	}
 
 	/**

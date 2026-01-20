@@ -1,7 +1,6 @@
 package plugins.fmp.multitools.experiment.spots;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -22,7 +21,6 @@ public class SpotsPersistenceLegacy {
 
 	private static final String ID_SPOTSARRAY_CSV = "SpotsArray.csv";
 	private static final String ID_SPOTSARRAYMEASURES_CSV = "SpotsArrayMeasures.csv";
-	private static final String CSV_FILENAME = "SpotsMeasures.csv";
 	private static final String csvSep = ";";
 
 	// ========================================================================
@@ -102,23 +100,9 @@ public class SpotsPersistenceLegacy {
 			}
 		}
 
-		// Priority 2: Try legacy CSV format (SpotsMeasures.csv) - combined file
-		csvPath = Paths.get(resultsDirectory, CSV_FILENAME);
-		if (Files.exists(csvPath)) {
-			try {
-				boolean success = spotsArray.loadDescriptions(resultsDirectory);
-				if (success) {
-					Logger.info("SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
-							+ CSV_FILENAME);
-				}
-				return success;
-			} catch (Exception e) {
-				Logger.error("SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Error loading combined CSV: "
-						+ e.getMessage(), e, true);
-			}
-		}
-
-		return false;
+	// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
+	// multiCAFE data does not have spots persistence files, so we return false
+	return false;
 	}
 
 	/**
@@ -166,50 +150,9 @@ public class SpotsPersistenceLegacy {
 			}
 		}
 
-		// Priority 2: Try legacy CSV format (SpotsMeasures.csv) in bin directory
-		csvPath = Paths.get(binDirectory, CSV_FILENAME);
-		if (Files.exists(csvPath)) {
-			try {
-				boolean success = spotsArray.loadMeasures(binDirectory);
-				if (success) {
-					Logger.info("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
-							+ CSV_FILENAME);
-				}
-				return success;
-			} catch (Exception e) {
-				Logger.error("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Error loading combined CSV: "
-						+ e.getMessage(), e, true);
-			}
-		}
-
-		// Priority 3: Try legacy CSV format (SpotsMeasures.csv) in results directory
-		// Check if binDirectory is actually results directory
-		String resultsDir = binDirectory;
-		if (binDirectory.contains(File.separator + "bin")) {
-			// Extract results directory from bin directory
-			int binIndex = binDirectory.lastIndexOf(File.separator + "bin");
-			if (binIndex > 0) {
-				resultsDir = binDirectory.substring(0, binIndex);
-			}
-		}
-		csvPath = Paths.get(resultsDir, CSV_FILENAME);
-		if (Files.exists(csvPath)) {
-			try {
-				boolean success = spotsArray.loadMeasures(resultsDir);
-				if (success) {
-					Logger.info("SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
-							+ CSV_FILENAME);
-				}
-				return success;
-			} catch (Exception e) {
-				Logger.error(
-						"SpotsArrayPersistenceLegacy:loadMeasuresWithFallback() Error loading combined CSV from results: "
-								+ e.getMessage(),
-						e, true);
-			}
-		}
-
-		return false;
+	// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
+	// multiCAFE data does not have spots persistence files, so we return false
+	return false;
 	}
 
 	// ========================================================================

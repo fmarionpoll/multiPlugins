@@ -75,7 +75,7 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1768841696833"/>
+<key name="lastUpdateCheckTime" value="1768928689177"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
 </section>
@@ -136,7 +136,7 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1768841694230"/>
+<key name="lastUploadDate" value="1768928686793"/>
 </section>
 <section name="plugins">
 <section name="fmp">
