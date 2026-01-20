@@ -29,8 +29,8 @@ public class ExperimentPersistence {
 
 	private final static String ID_IMAGESDIRECTORY = "imagesDirectory";
 	private final static String ID_MCEXPERIMENT = "MCexperiment";
-	// New v2 format filename
-	public final static String ID_V2_EXPERIMENT_XML = "v2_Experiment.xml";
+	// Current format filename (version stored internally in XML)
+	public final static String ID_V2_EXPERIMENT_XML = "Experiment.xml";
 	// Legacy filenames (for fallback)
 	public final static String ID_MCEXPERIMENT_XML = "MCexperiment.xml";
 //	private final static String ID_MS96_EXPERIMENT_XML_LEGACY = "MS96_experiment.xml";
@@ -273,10 +273,10 @@ public class ExperimentPersistence {
 				XMLUtil.setElementLongValue(node, ID_TIMEFIRSTIMAGEMS, firstMs);
 				XMLUtil.setElementLongValue(node, ID_TIMELASTIMAGEMS, lastMs);
 
-				XMLUtil.setElementLongValue(node, ID_BINT0, exp.getBinT0());
-				// Bin parameters (firstKymoColMs, lastKymoColMs, binKymoColMs) are now stored
-				// in v2_bindescription.xml files in each bin directory, not in
-				// v2_Experiment.xml
+			XMLUtil.setElementLongValue(node, ID_BINT0, exp.getBinT0());
+			// Bin parameters (firstKymoColMs, lastKymoColMs, binKymoColMs) are now stored
+			// in BinDescription.xml files in each bin directory, not in
+			// Experiment.xml
 
 				// Save ImageLoader configuration
 				if (exp.getSeqCamData() != null) {

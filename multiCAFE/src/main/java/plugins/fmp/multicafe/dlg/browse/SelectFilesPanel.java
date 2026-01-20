@@ -187,7 +187,7 @@ public class SelectFilesPanel extends JPanel {
 
 	private boolean isNewFormatExperimentFile(Path path) {
 		String fileName = path.getFileName().toString().toLowerCase();
-		return fileName.equals("v2_experiment.xml");
+		return fileName.equals("experiment.xml");
 	}
 
 	private List<Path> deduplicateExperimentFiles(List<Path> files) {

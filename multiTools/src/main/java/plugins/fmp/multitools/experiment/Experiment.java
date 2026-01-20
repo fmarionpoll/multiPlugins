@@ -240,8 +240,8 @@ public class Experiment {
 	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
 
 	private final static String ID_MCEXPERIMENT = "MCexperiment";
-	// New v2 format filename
-	private final String ID_V2_EXPERIMENT_XML = "v2_Experiment.xml";
+	// Current format filename (version stored internally in XML)
+	private final String ID_V2_EXPERIMENT_XML = "Experiment.xml";
 	// Legacy filenames (for fallback)
 	private final String ID_MS96_experiment_XML = "MCexperiment.xml";
 	private final String ID_MCEXPERIMENT_XML_LEGACY = "MS96_experiment.xml";

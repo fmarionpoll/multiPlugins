@@ -23,8 +23,8 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class DescriptorsIO {
 
-	// New v2 format filename
-	private static final String V2_FILE_NAME = "v2_Descriptors.xml";
+	// Current format filename (version stored internally in XML)
+	private static final String V2_FILE_NAME = "Descriptors.xml";
 	// Legacy filename (for fallback)
 	private static final String FILE_NAME = "MS96_descriptors.xml";
 	private static final String ROOT = "MS96_DESCRIPTORS";

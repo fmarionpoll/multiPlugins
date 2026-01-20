@@ -16,7 +16,7 @@ public class BinDescriptionPersistence {
 	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
 	private final static String ID_BINDESCRIPTION = "binDescription";
 
-	public final static String ID_V2_BINDESCRIPTION_XML = "v2_bindescription.xml";
+	public final static String ID_V2_BINDESCRIPTION_XML = "BinDescription.xml";
 
 	// ========================================================================
 	// Public API methods
