@@ -143,7 +143,7 @@
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS\5+_vs_1\18-04-09_Escin"/>
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS"/>
 </section>
 </section>
 </section>
@@ -151,21 +151,21 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="110"/>
-<key name="YE" value="199"/>
-<key name="WidthE" value="2004"/>
-<key name="HeightE" value="1096"/>
+<key name="XE" value="80"/>
+<key name="YE" value="59"/>
+<key name="WidthE" value="2027"/>
+<key name="HeightE" value="1286"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1696"/>
+<key name="XC" value="1719"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
 <key name="WidthC" value="300"/>
-<key name="HeightC" value="934"/>
+<key name="HeightC" value="1124"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
 <key name="WidthI" value="300"/>
@@ -183,7 +183,7 @@
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
 <key name="WidthC" value="292"/>
-<key name="HeightC" value="844"/>
+<key name="HeightC" value="1034"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
 <key name="WidthI" value="400"/>
@@ -201,7 +201,7 @@
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
 <key name="WidthC" value="292"/>
-<key name="HeightC" value="844"/>
+<key name="HeightC" value="1034"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>
 <key name="WidthI" value="400"/>

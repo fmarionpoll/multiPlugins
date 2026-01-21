@@ -309,18 +309,57 @@ public class LevelDetector {
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			int i = cap.getKymographIndex();
 			if (i < 0) {
-				// Find kymograph index by searching for the kymograph name in the image list
-				// This handles cases where capillaries have been deleted
-				i = cap.deriveKymographIndexFromImageList(kymographImagesList);
-				if (i >= 0) {
-					cap.setKymographIndex(i);
+				// Derive kymograph name from current ROI name (not from potentially stale metadata)
+				// This handles cases where capillaries have been deleted after kymograph generation
+				String roiName = cap.getRoiName();
+				if (roiName != null) {
+					String kymographName = Capillary.replace_LR_with_12(roiName);
+					i = findKymographIndexByName(kymographImagesList, kymographName);
+					if (i >= 0) {
+						cap.setKymographIndex(i);
+						cap.setKymographName(kymographName);
+						if (cap.getKymographFileName() == null || cap.getKymographFileName().isEmpty()) {
+							cap.setKymographFileName(kymographName + ".tiff");
+						}
+						System.out.println(
+								"buildCapillaries - ROI=" + roiName + " index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
+					} else {
+						System.out.println(
+								"buildCapillaries - ROI=" + roiName + " kymograph not found for name=" + kymographName);
+					}
 				}
-				if (cap.getKymographFileName() == null || cap.getKymographFileName().isEmpty()) {
-					cap.setKymographFileName(cap.getKymographName() + ".tiff");
-				}
-				System.out.println(
-						"buildCapillaries - index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
 			}
 		}
+	}
+
+	/**
+	 * Finds kymograph index by searching for the name in the image list.
+	 * 
+	 * @param kymographImagesList list of kymograph image file paths
+	 * @param kymographName       name to search for (without extension)
+	 * @return index in the list, or -1 if not found
+	 */
+	private int findKymographIndexByName(List<String> kymographImagesList, String kymographName) {
+		if (kymographImagesList == null || kymographImagesList.isEmpty() || kymographName == null) {
+			return -1;
+		}
+
+		for (int i = 0; i < kymographImagesList.size(); i++) {
+			String imagePath = kymographImagesList.get(i);
+			String imageFilename = new File(imagePath).getName();
+
+			// Remove extension from image filename to compare with kymographName
+			String imageNameWithoutExt = imageFilename;
+			int lastDotIndex = imageFilename.lastIndexOf('.');
+			if (lastDotIndex > 0) {
+				imageNameWithoutExt = imageFilename.substring(0, lastDotIndex);
+			}
+
+			if (imageNameWithoutExt.equals(kymographName)) {
+				return i;
+			}
+		}
+
+		return -1;
 	}
 }

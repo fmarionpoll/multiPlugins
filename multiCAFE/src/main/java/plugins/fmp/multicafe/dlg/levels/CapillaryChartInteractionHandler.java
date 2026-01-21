@@ -367,14 +367,10 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			return;
 		}
 
-		// Use kymographIndex if available, otherwise find by kymograph name
-		int kymographIndex = capillary.getKymographIndex();
-		if (kymographIndex < 0) {
-			// Find kymograph index by searching for the kymograph name in the image list
-			// This handles cases where capillaries have been deleted
-			List<String> kymographImagesList = exp.getSeqKymos().getImagesList();
-			kymographIndex = capillary.deriveKymographIndexFromImageList(kymographImagesList);
-		}
+		// Always find kymograph index by searching for the kymograph name in the image list
+		// Don't trust the stored index as it may be stale after capillaries are deleted
+		List<String> kymographImagesList = exp.getSeqKymos().getImagesList();
+		int kymographIndex = capillary.deriveKymographIndexFromImageList(kymographImagesList);
 
 		if (kymographIndex >= 0 && kymographIndex < exp.getSeqKymos().getSequence().getSizeT()) {
 			v.setPositionT(kymographIndex);

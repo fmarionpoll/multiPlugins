@@ -342,7 +342,56 @@ public class Comparators {
 				return -1;
 			}
 
-			return name1.compareTo(name2);
+			// Use natural ordering (numeric) instead of lexicographic (alphabetic)
+			// This ensures "line1L" comes before "line10L" instead of after
+			return compareNaturalOrder(name1, name2);
+		}
+		
+		/**
+		 * Compares two strings using natural ordering where numbers are compared numerically.
+		 * For example: "line1L" < "line2L" < "line10L" (not "line1L" < "line10L" < "line2L")
+		 */
+		private int compareNaturalOrder(String s1, String s2) {
+			int len1 = s1.length();
+			int len2 = s2.length();
+			int i1 = 0;
+			int i2 = 0;
+			
+			while (i1 < len1 && i2 < len2) {
+				char c1 = s1.charAt(i1);
+				char c2 = s2.charAt(i2);
+				
+				// Check if both characters are digits
+				if (Character.isDigit(c1) && Character.isDigit(c2)) {
+					// Extract the full numeric part
+					int num1 = 0;
+					while (i1 < len1 && Character.isDigit(s1.charAt(i1))) {
+						num1 = num1 * 10 + (s1.charAt(i1) - '0');
+						i1++;
+					}
+					
+					int num2 = 0;
+					while (i2 < len2 && Character.isDigit(s2.charAt(i2))) {
+						num2 = num2 * 10 + (s2.charAt(i2) - '0');
+						i2++;
+					}
+					
+					// Compare numbers numerically
+					if (num1 != num2) {
+						return Integer.compare(num1, num2);
+					}
+				} else {
+					// Compare characters lexicographically
+					if (c1 != c2) {
+						return Character.compare(c1, c2);
+					}
+					i1++;
+					i2++;
+				}
+			}
+			
+			// If all compared parts are equal, shorter string comes first
+			return Integer.compare(len1, len2);
 		}
 	}
 

@@ -519,10 +519,29 @@ public class Display extends JPanel implements ViewerListener {
 
 	private void selectCapillary(Experiment exp, int isel) {
 		Capillaries capillaries = exp.getCapillaries();
+		
+		// First deselect all capillaries
 		for (Capillary cap : capillaries.getList()) {
 			if (cap.getRoi() != null) {
 				cap.getRoi().setSelected(false);
-				Capillary capSel = capillaries.getList().get(isel);
+			}
+		}
+		
+		// Find the capillary that corresponds to the kymograph at position isel
+		// Don't use list index - find by kymograph name
+		if (isel >= 0 && isel < exp.getSeqKymos().getImagesList().size()) {
+			String kymographPath = exp.getSeqKymos().getFileNameFromImageList(isel);
+			String kymographName = new java.io.File(kymographPath).getName();
+			
+			// Remove extension
+			int lastDotIndex = kymographName.lastIndexOf('.');
+			if (lastDotIndex > 0) {
+				kymographName = kymographName.substring(0, lastDotIndex);
+			}
+			
+			// Find capillary with matching kymograph name
+			Capillary capSel = capillaries.getCapillaryFromKymographName(kymographName);
+			if (capSel != null && capSel.getRoi() != null) {
 				capSel.getRoi().setSelected(true);
 			}
 		}

@@ -872,17 +872,16 @@ public class Capillary implements Comparable<Capillary> {
 		String name = metadata.kymographPrefix + "_" + capLevel.capName;
 		roi.setName(name);
 		
-		int tIndex = kymographIndex;
-		if (tIndex < 0) {
-			tIndex = deriveKymographIndexFromImageList(kymographImagesList);
-			if (tIndex >= 0) {
-				kymographIndex = tIndex;
-			} else {
-				System.out.println("capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName) 
-						+ " kymographIndex=" + kymographIndex 
-						+ " kymographFilename=" + kymographFilename
-						+ " (could not derive from image list)");
-			}
+		// Always derive kymograph index from image list (don't trust stored value)
+		int tIndex = deriveKymographIndexFromImageList(kymographImagesList);
+		if (tIndex >= 0) {
+			kymographIndex = tIndex;
+		} else {
+			System.out.println("capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName) 
+					+ " kymographIndex=" + kymographIndex 
+					+ " kymographFilename=" + kymographFilename
+					+ " (could not derive from image list)");
+			tIndex = kymographIndex; // Fallback to stored value if search fails
 		}
 		roi.setT(tIndex);
 
@@ -918,12 +917,12 @@ public class Capillary implements Comparable<Capillary> {
 		roiDots.setName(metadata.kymographPrefix + "_gulps");
 		roiDots.setColor(Color.red);
 		
-		int tIndex = kymographIndex;
-		if (tIndex < 0) {
-			tIndex = deriveKymographIndexFromImageList(kymographImagesList);
-			if (tIndex >= 0) {
-				kymographIndex = tIndex;
-			}
+		// Always derive kymograph index from image list (don't trust stored value)
+		int tIndex = deriveKymographIndexFromImageList(kymographImagesList);
+		if (tIndex >= 0) {
+			kymographIndex = tIndex;
+		} else {
+			tIndex = kymographIndex; // Fallback to stored value if search fails
 		}
 		roiDots.setT(tIndex);
 		listrois.add(roiDots);

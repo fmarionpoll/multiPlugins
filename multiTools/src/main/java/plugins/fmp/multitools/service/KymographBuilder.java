@@ -107,14 +107,23 @@ public class KymographBuilder {
 		int index = 0;
 
 		for (Capillary cap : exp.getCapillaries().getList()) {
+			// Derive kymograph name from current ROI name (not from potentially stale metadata)
+			String roiName = cap.getRoiName();
+			if (roiName != null) {
+				String kymographName = Capillary.replace_LR_with_12(roiName);
+				cap.setKymographName(kymographName);
+				cap.setKymographFileName(kymographName + ".tiff");
+			}
+			
+			// Assign sequential index for building (will be corrected later when matching to files)
 			int i = cap.getKymographIndex();
 			if (i < 0) {
 				i = index;
 				cap.setKymographIndex(i);
-				cap.setKymographFileName(cap.getKymographName() + ".tiff");
-				System.out.println(
-						"buildkymos - index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
 			}
+			System.out.println(
+					"buildkymos - ROI=" + roiName + " index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
+			
 			index++;
 			cap.setKymographBuild(i >= options.kymoFirst && i <= options.kymoLast);
 		}
