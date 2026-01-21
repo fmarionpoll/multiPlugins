@@ -367,17 +367,61 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			return;
 		}
 
-		// Use kymographIndex if available, otherwise find by capillary position
+		// Use kymographIndex if available, otherwise find by kymograph name
 		int kymographIndex = capillary.getKymographIndex();
 		if (kymographIndex < 0) {
-			// Find capillary index in the list
-			List<Capillary> capillaries = exp.getCapillaries().getList();
-			kymographIndex = capillaries.indexOf(capillary);
+			// Find kymograph index by searching for the kymograph name in the image list
+			// This handles cases where capillaries have been deleted
+			kymographIndex = findKymographIndexByName(exp, capillary);
 		}
 
 		if (kymographIndex >= 0 && kymographIndex < exp.getSeqKymos().getSequence().getSizeT()) {
 			v.setPositionT(kymographIndex);
 		}
+	}
+
+	/**
+	 * Finds the kymograph index by searching for the kymograph name in the seqKymos image list.
+	 * This handles cases where capillaries have been deleted and the index in the capillary list
+	 * no longer matches the kymograph image index.
+	 * 
+	 * @param exp       the experiment
+	 * @param capillary the capillary whose kymograph to find
+	 * @return the kymograph index, or -1 if not found
+	 */
+	private int findKymographIndexByName(Experiment exp, Capillary capillary) {
+		if (exp == null || capillary == null) {
+			return -1;
+		}
+
+		String kymographName = capillary.getKymographName();
+		if (kymographName == null || kymographName.isEmpty()) {
+			return -1;
+		}
+
+		List<String> kymographImagesList = exp.getSeqKymos().getImagesList();
+		if (kymographImagesList == null || kymographImagesList.isEmpty()) {
+			return -1;
+		}
+
+		// Search for the kymograph by name in the image list
+		for (int i = 0; i < kymographImagesList.size(); i++) {
+			String imagePath = kymographImagesList.get(i);
+			String imageFilename = new java.io.File(imagePath).getName();
+
+			// Remove extension from image filename to compare with kymographName
+			String imageNameWithoutExt = imageFilename;
+			int lastDotIndex = imageFilename.lastIndexOf('.');
+			if (lastDotIndex > 0) {
+				imageNameWithoutExt = imageFilename.substring(0, lastDotIndex);
+			}
+
+			if (imageNameWithoutExt.equals(kymographName)) {
+				return i;
+			}
+		}
+
+		return -1;
 	}
 
 	/**
