@@ -4,6 +4,7 @@ import java.awt.Rectangle;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -304,17 +305,22 @@ public class LevelDetector {
 
 	private void initArrayToBuildCapillaries(Experiment exp, BuildSeriesOptions options) {
 		Collections.sort(exp.getCapillaries().getList(), new Comparators.Capillary_ROIName());
-		int index = 0;
+		List<String> kymographImagesList = exp.getSeqKymos().getImagesList();
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			int i = cap.getKymographIndex();
 			if (i < 0) {
-				i = index;
-				cap.setKymographIndex(i);
-				cap.setKymographFileName(cap.getKymographName() + ".tiff");
+				// Find kymograph index by searching for the kymograph name in the image list
+				// This handles cases where capillaries have been deleted
+				i = cap.deriveKymographIndexFromImageList(kymographImagesList);
+				if (i >= 0) {
+					cap.setKymographIndex(i);
+				}
+				if (cap.getKymographFileName() == null || cap.getKymographFileName().isEmpty()) {
+					cap.setKymographFileName(cap.getKymographName() + ".tiff");
+				}
 				System.out.println(
 						"buildCapillaries - index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
 			}
-			index++;
 		}
 	}
 }

@@ -421,7 +421,7 @@ public class Capillary implements Comparable<Capillary> {
 	 * @param kymographImagesList the list of kymograph image filenames from seqKymos
 	 * @return the derived kymograph index, or -1 if it cannot be determined
 	 */
-	private int deriveKymographIndexFromImageList(List<String> kymographImagesList) {
+	public int deriveKymographIndexFromImageList(List<String> kymographImagesList) {
 		if (kymographImagesList == null || kymographImagesList.isEmpty()) {
 			return -1;
 		}
