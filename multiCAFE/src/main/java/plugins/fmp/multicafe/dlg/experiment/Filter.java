@@ -118,111 +118,33 @@ public class Filter extends JPanel {
 			btn.setText(selected.size() + " selected");
 	}
 
+	private ActionListener createFilterButtonListener(JButton button, EnumXLSColumnHeader field,
+			List<String> selectionList, JCheckBox checkBox) {
+		return new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				List<String> all = getValuesForField(field);
+				List<String> chosen = MultiSelectDialog.showDialog(button, field.toString(), all, selectionList);
+				if (chosen != null) {
+					selectionList.clear();
+					selectionList.addAll(chosen);
+					updateButtonLabel(button, selectionList);
+					checkBox.setSelected(!selectionList.isEmpty());
+				}
+			}
+		};
+	}
+
 	private void defineActionListeners() {
-		exptBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_EXPT);
-				List<String> chosen = MultiSelectDialog.showDialog(exptBtn,
-						EnumXLSColumnHeader.EXP_EXPT.toString(), all, selExpt);
-				if (chosen != null) {
-					selExpt.clear();
-					selExpt.addAll(chosen);
-					updateButtonLabel(exptBtn, selExpt);
-				}
-			}
-		});
-		boxIDBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_BOXID);
-				List<String> chosen = MultiSelectDialog.showDialog(boxIDBtn,
-						EnumXLSColumnHeader.EXP_BOXID.toString(), all, selBoxID);
-				if (chosen != null) {
-					selBoxID.clear();
-					selBoxID.addAll(chosen);
-					updateButtonLabel(boxIDBtn, selBoxID);
-				}
-			}
-		});
-		stim1Btn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_STIM1);
-				List<String> chosen = MultiSelectDialog.showDialog(stim1Btn,
-						EnumXLSColumnHeader.EXP_STIM1.toString(), all, selStim1);
-				if (chosen != null) {
-					selStim1.clear();
-					selStim1.addAll(chosen);
-					updateButtonLabel(stim1Btn, selStim1);
-				}
-			}
-		});
-		conc1Btn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_CONC1);
-				List<String> chosen = MultiSelectDialog.showDialog(conc1Btn,
-						EnumXLSColumnHeader.EXP_CONC1.toString(), all, selConc1);
-				if (chosen != null) {
-					selConc1.clear();
-					selConc1.addAll(chosen);
-					updateButtonLabel(conc1Btn, selConc1);
-				}
-			}
-		});
-		sexBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_SEX);
-				List<String> chosen = MultiSelectDialog.showDialog(sexBtn,
-						EnumXLSColumnHeader.EXP_SEX.toString(), all, selSex);
-				if (chosen != null) {
-					selSex.clear();
-					selSex.addAll(chosen);
-					updateButtonLabel(sexBtn, selSex);
-				}
-			}
-		});
-		strainBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_STRAIN);
-				List<String> chosen = MultiSelectDialog.showDialog(strainBtn,
-						EnumXLSColumnHeader.EXP_STRAIN.toString(), all, selStrain);
-				if (chosen != null) {
-					selStrain.clear();
-					selStrain.addAll(chosen);
-					updateButtonLabel(strainBtn, selStrain);
-				}
-			}
-		});
-		stim2Btn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_STIM2);
-				List<String> chosen = MultiSelectDialog.showDialog(stim2Btn,
-						EnumXLSColumnHeader.EXP_STIM2.toString(), all, selStim2);
-				if (chosen != null) {
-					selStim2.clear();
-					selStim2.addAll(chosen);
-					updateButtonLabel(stim2Btn, selStim2);
-				}
-			}
-		});
-		conc2Btn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_CONC2);
-				List<String> chosen = MultiSelectDialog.showDialog(conc2Btn,
-						EnumXLSColumnHeader.EXP_CONC2.toString(), all, selConc2);
-				if (chosen != null) {
-					selConc2.clear();
-					selConc2.addAll(chosen);
-					updateButtonLabel(conc2Btn, selConc2);
-				}
-			}
-		});
+		exptBtn.addActionListener(createFilterButtonListener(exptBtn, EnumXLSColumnHeader.EXP_EXPT, selExpt, experimentCheck));
+		boxIDBtn.addActionListener(createFilterButtonListener(boxIDBtn, EnumXLSColumnHeader.EXP_BOXID, selBoxID, boxIDCheck));
+		stim1Btn.addActionListener(createFilterButtonListener(stim1Btn, EnumXLSColumnHeader.EXP_STIM1, selStim1, stim1Check));
+		conc1Btn.addActionListener(createFilterButtonListener(conc1Btn, EnumXLSColumnHeader.EXP_CONC1, selConc1, conc1Check));
+		sexBtn.addActionListener(createFilterButtonListener(sexBtn, EnumXLSColumnHeader.EXP_SEX, selSex, sexCheck));
+		strainBtn.addActionListener(createFilterButtonListener(strainBtn, EnumXLSColumnHeader.EXP_STRAIN, selStrain, strainCheck));
+		stim2Btn.addActionListener(createFilterButtonListener(stim2Btn, EnumXLSColumnHeader.EXP_STIM2, selStim2, stim2Check));
+		conc2Btn.addActionListener(createFilterButtonListener(conc2Btn, EnumXLSColumnHeader.EXP_CONC2, selConc2, conc2Check));
+
 		applyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
