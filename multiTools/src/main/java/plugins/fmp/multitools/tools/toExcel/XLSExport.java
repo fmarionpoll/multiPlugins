@@ -295,11 +295,14 @@ public abstract class XLSExport {
 		boolean transpose = options.transpose;
 		Point pt = new Point(0, row);
 
-		long duration = expAll.getSeqCamData().getLastImageMs() - expAll.getSeqCamData().getFirstImageMs();
+		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
+		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
+		long duration = lastImageMs - firstImageMs;
 		long interval = 0;
 
 		while (interval < duration) {
-			int i = (int) (interval / options.buildExcelUnitMs);
+			long absoluteTime = firstImageMs + interval;
+			int i = (int) (absoluteTime / options.buildExcelUnitMs);
 			XLSUtils.setValue(sheet, pt, transpose, ExcelExportConstants.TIME_COLUMN_PREFIX + i);
 			pt.y++;
 			interval += options.buildExcelStepMs;

@@ -518,13 +518,13 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			// Convert minutes to milliseconds (time from start)
 			long timeMsFromStart = (long) (timeMinutes * 60.0 * 1000.0);
 
-			// Calculate bin index (bins are also relative to firstImageMs)
-			// Since both are relative to start, we can directly calculate the bin
-			if (timeMsFromStart < 0) {
-				continue; // Skip data points before experiment start
+			// Check if data point is within the export time range
+			if (timeMsFromStart < firstImageMs || timeMsFromStart >= lastImageMs) {
+				continue; // Skip data points outside the requested time range
 			}
 
-			int binIndex = (int) (timeMsFromStart / buildExcelStepMs);
+			// Calculate bin index relative to the export start time
+			int binIndex = (int) ((timeMsFromStart - firstImageMs) / buildExcelStepMs);
 			if (binIndex >= 0 && binIndex < nBins) {
 				results.getValuesOut()[binIndex] = value;
 			}
