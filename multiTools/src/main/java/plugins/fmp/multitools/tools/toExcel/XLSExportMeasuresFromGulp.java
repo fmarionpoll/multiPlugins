@@ -508,32 +508,103 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		results.setCapSide(cap.getCageID() + "_" + cap.getCapillarySide());
 		results.initValuesOutArray(nBins, Double.NaN);
 
-		// Convert XYSeries data points to binned array
+		// Get experiment's actual duration for validation
+		// XYSeries time values are in minutes from experiment start (time 0)
+		// Calculate the actual experiment duration from image count and bin duration
+		long binMs = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+		int nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		long expDurationMs = 0;
+		if (binMs > 0 && nFrames > 0) {
+			// Duration = (nFrames - 1) * binMs (time from first to last image)
+			expDurationMs = (nFrames - 1) * binMs;
+		} else {
+			// Fallback: use binLast_ms if available
+			long expLastMs = exp.getSeqCamData().getTimeManager().getBinLast_ms();
+			long expFirstMs = exp.getSeqCamData().getTimeManager().getBinFirst_ms();
+			if (expLastMs > expFirstMs) {
+				expDurationMs = expLastMs - expFirstMs;
+			}
+		}
+
+		// Build array of data points with times in milliseconds for interpolation
 		// XYSeries X values are in minutes from experiment start (time 0)
-		// Need to convert to milliseconds and map to bins
-		for (int i = 0; i < series.getItemCount(); i++) {
+		int nDataPoints = series.getItemCount();
+		if (nDataPoints == 0) {
+			return results;
+		}
+
+		double[] dataTimesMs = new double[nDataPoints];
+		double[] dataValues = new double[nDataPoints];
+		for (int i = 0; i < nDataPoints; i++) {
 			double timeMinutes = series.getX(i).doubleValue();
-			double value = series.getY(i).doubleValue();
+			dataTimesMs[i] = timeMinutes * 60.0 * 1000.0; // Convert to milliseconds
+			dataValues[i] = series.getY(i).doubleValue();
+		}
 
-			// Convert minutes to milliseconds (time from start)
-			long timeMsFromStart = (long) (timeMinutes * 60.0 * 1000.0);
+		// Use linear interpolation to fill all output bins
+		// For each output bin, find the interpolated value from the nearest data points
+		for (int binIndex = 0; binIndex < nBins; binIndex++) {
+			long binTimeMs = firstImageMs + binIndex * buildExcelStepMs;
 
-			// Check if data point is within the export time range
-			if (timeMsFromStart < firstImageMs || timeMsFromStart >= lastImageMs) {
-				continue; // Skip data points outside the requested time range
+			// Check if bin time is within experiment's actual duration
+			if (expDurationMs > 0 && binTimeMs > expDurationMs) {
+				continue; // Skip bins beyond experiment duration
 			}
 
-			// Calculate bin index relative to the export start time
-			// Use rounding instead of truncation to handle timing jitter
-			// This finds the nearest bin, which is more appropriate when actual
-			// sampling intervals don't exactly match requested intervals
-			int binIndex = (int) Math.round((timeMsFromStart - firstImageMs) / (double) buildExcelStepMs);
-			if (binIndex >= 0 && binIndex < nBins) {
-				results.getValuesOut()[binIndex] = value;
+			// Find interpolated value at binTimeMs
+			double interpolatedValue = linearInterpolate(dataTimesMs, dataValues, binTimeMs);
+			if (!Double.isNaN(interpolatedValue)) {
+				results.getValuesOut()[binIndex] = interpolatedValue;
 			}
 		}
 
 		return results;
+	}
+
+	/**
+	 * Performs linear interpolation to find the value at the given time.
+	 * 
+	 * @param timesMs  Array of time values in milliseconds (must be sorted)
+	 * @param values   Array of corresponding values
+	 * @param targetTimeMs Target time in milliseconds
+	 * @return Interpolated value, or NaN if target is outside the data range
+	 */
+	private double linearInterpolate(double[] timesMs, double[] values, long targetTimeMs) {
+		if (timesMs == null || values == null || timesMs.length == 0 || timesMs.length != values.length) {
+			return Double.NaN;
+		}
+
+		double targetTime = (double) targetTimeMs;
+
+		// Check if target is before first data point
+		if (targetTime <= timesMs[0]) {
+			return values[0];
+		}
+
+		// Check if target is after last data point
+		if (targetTime >= timesMs[timesMs.length - 1]) {
+			return values[values.length - 1];
+		}
+
+		// Find the two data points to interpolate between
+		for (int i = 0; i < timesMs.length - 1; i++) {
+			if (targetTime >= timesMs[i] && targetTime <= timesMs[i + 1]) {
+				// Linear interpolation: y = y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+				double x0 = timesMs[i];
+				double x1 = timesMs[i + 1];
+				double y0 = values[i];
+				double y1 = values[i + 1];
+
+				if (x1 == x0) {
+					return y0; // Avoid division by zero
+				}
+
+				double interpolated = y0 + (y1 - y0) * (targetTime - x0) / (x1 - x0);
+				return interpolated;
+			}
+		}
+
+		return Double.NaN;
 	}
 
 	/**

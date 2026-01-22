@@ -210,10 +210,24 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 						expLast.getSeqCamData().getTimeManager().setBinLast_ms(
 								expLast.getSeqCamData().getLastImageMs() - expLast.getSeqCamData().getFirstImageMs());
 					}
+					
 					lastOffset_Ms = expLast.getSeqCamData().getTimeManager().getBinLast_ms()
 							+ expLast.getSeqCamData().getFirstImageMs();
 
 					long diff = lastOffset_Ms - firstOffset_Ms;
+					
+					// Calculate experiment duration more accurately from actual image count
+					// This ensures we account for all images, not just what binLast_ms indicates
+					long binMs = expLast.getSeqCamData().getTimeManager().getBinImage_ms();
+					int nFrames = expLast.getSeqCamData().getImageLoader().getNTotalFrames();
+					long actualDurationMs = 0;
+					
+					if (binMs > 0 && nFrames > 0) {
+						// Duration from first to last image: (nFrames - 1) * binMs
+						// This is the actual time span covered by the images
+						actualDurationMs = (nFrames - 1) * binMs;
+					}
+					
 					if (diff < 1) {
 						// Debug: print actual values to understand why diff is < 1
 						System.out.println("ExperimentCombo:get_MsTime_of_StartAndEnd_AllExperiments() Expt # " + i
@@ -224,6 +238,12 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 								+ expFirst.getSeqCamData().getFirstImageMs() + ", lastImageMs="
 								+ expLast.getSeqCamData().getLastImageMs() + "); using sequence size instead");
 						diff = exp.getSeqCamData().getSequence().getSizeT();
+					}
+					
+					// Use the larger of calculated diff or actual duration from image count
+					// This ensures expAll.lastImageMs covers all experiments fully
+					if (actualDurationMs > 0 && actualDurationMs > diff) {
+						diff = actualDurationMs;
 					}
 					if (expAll.getSeqCamData().getLastImageMs() < diff)
 						expAll.getSeqCamData().setLastImageMs(diff);

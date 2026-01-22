@@ -78,6 +78,7 @@
 <key name="lastUpdateCheckTime" value="1769073526179"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
+<key name="loaderFolder" value="C:\Users\fred\Desktop\test evaporation\2026-01-21\cam05"/>
 </section>
 <section name="canvas">
 <section name="Canvas2D"/>
@@ -137,6 +138,14 @@
 <key name="logView" value="true"/>
 </section>
 <key name="lastUploadDate" value="1769078477130"/>
+<section name="frame">
+<section name="imageLoader">
+<key name="loadtype" value="0"/>
+<key name="extension" value="All image files / Bio-Formats"/>
+<key name="width" value="600"/>
+<key name="heigth" value="400"/>
+</section>
+</section>
 </section>
 <section name="plugins">
 <section name="fmp">
