@@ -96,10 +96,10 @@
 </section>
 <section name="online"/>
 </section>
-<key name="id" value="128768939"/>
+<key name="id" value="20110613"/>
 <key name="os" value="win64"/>
-<key name="clientCpuNumber" value="20"/>
-<key name="clientTotalMemory" value="34078785536"/>
+<key name="clientCpuNumber" value="16"/>
+<key name="clientTotalMemory" value="67880230912"/>
 <key name="appFolder" value="C:/Users/fred/.m2/repository/org/bioimageanalysis/icy/icy-kernel/2.5.1"/>
 <section name="loader">
 <section name="entry0">
@@ -152,7 +152,7 @@
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\test evaporation"/>
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS"/>
 </section>
 </section>
 </section>

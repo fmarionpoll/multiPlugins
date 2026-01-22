@@ -215,7 +215,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultType);
 
 					pt.y = 0;
-					pt = writeExperimentGulpInfos(sheet, pt, exp, charSeries, cap, resultType);
+					pt = writeExperimentGulpInfos(sheet, pt, exp, charSeries, cage, cap, resultType);
 					writeXLSResult(sheet, pt, results);
 					pt.x++;
 				}
@@ -326,12 +326,13 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 * @param pt         The starting point
 	 * @param exp        The experiment
 	 * @param charSeries The series identifier
+	 * @param cage       The cage
 	 * @param capillary  The capillary
 	 * @param resultType The export type
 	 * @return The updated point
 	 */
 	protected Point writeExperimentGulpInfos(SXSSFSheet sheet, Point pt, Experiment exp, String charSeries,
-			Capillary capillary, EnumResults resultType) {
+			Cage cage, Capillary capillary, EnumResults resultType) {
 		int x = pt.x;
 		int y = pt.y;
 		boolean transpose = options.transpose;
@@ -341,6 +342,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 
 		// Write experiment properties
 		writeExperimentPropertiesForGulp(sheet, x, y, transpose, exp, charSeries);
+
+		// Write cage properties (same as capillary export)
+		writeCageProperties(sheet, pt, transpose, cage);
 
 		// Write capillary properties (same as capillary export)
 		writeCapillaryProperties(sheet, x, y, transpose, capillary, charSeries, resultType);
