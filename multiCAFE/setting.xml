@@ -162,18 +162,18 @@
 <section name="main">
 <key name="XE" value="80"/>
 <key name="YE" value="59"/>
-<key name="WidthE" value="2240"/>
+<key name="WidthE" value="2531"/>
 <key name="HeightE" value="1286"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1720"/>
+<key name="XC" value="2223"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
-<key name="WidthC" value="512"/>
+<key name="WidthC" value="300"/>
 <key name="HeightC" value="1124"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
@@ -191,7 +191,7 @@
 <key name="YE" value="100"/>
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
-<key name="WidthC" value="504"/>
+<key name="WidthC" value="292"/>
 <key name="HeightC" value="1034"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
@@ -209,7 +209,7 @@
 <key name="YE" value="200"/>
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
-<key name="WidthC" value="504"/>
+<key name="WidthC" value="292"/>
 <key name="HeightC" value="1034"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>

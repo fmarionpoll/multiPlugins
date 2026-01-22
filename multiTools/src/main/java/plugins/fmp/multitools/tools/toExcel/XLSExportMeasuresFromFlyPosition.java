@@ -55,30 +55,45 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
 		int column = startColumn;
+		int colmax = startColumn;
 
 		if (options.xyImage) {
 			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYIMAGE);
+			if (column > colmax)
+				colmax = column;
 		}
 		if (options.xyCage) {
-			getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYTOPCAGE);
+			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYTOPCAGE);
+			if (column > colmax)
+				colmax = column;
 		}
 		if (options.xyCapillaries) {
-			getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYTIPCAPS);
+			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYTIPCAPS);
+			if (column > colmax)
+				colmax = column;
 		}
 		if (options.ellipseAxes) {
-			getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.ELLIPSEAXES);
+			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.ELLIPSEAXES);
+			if (column > colmax)
+				colmax = column;
 		}
 		if (options.distance) {
-			getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.DISTANCE);
+			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.DISTANCE);
+			if (column > colmax)
+				colmax = column;
 		}
 		if (options.alive) {
-			getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.ISALIVE);
+			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.ISALIVE);
+			if (column > colmax)
+				colmax = column;
 		}
 		if (options.sleep) {
-			getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.SLEEP);
+			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.SLEEP);
+			if (column > colmax)
+				colmax = column;
 		}
 
-		return column;
+		return colmax;
 	}
 
 	/**
