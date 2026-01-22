@@ -75,7 +75,7 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1768977304396"/>
+<key name="lastUpdateCheckTime" value="1769073526179"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
 </section>
@@ -95,10 +95,10 @@
 </section>
 <section name="online"/>
 </section>
-<key name="id" value="250809445"/>
+<key name="id" value="128768939"/>
 <key name="os" value="win64"/>
-<key name="clientCpuNumber" value="16"/>
-<key name="clientTotalMemory" value="67880230912"/>
+<key name="clientCpuNumber" value="20"/>
+<key name="clientTotalMemory" value="34078785536"/>
 <key name="appFolder" value="C:/Users/fred/.m2/repository/org/bioimageanalysis/icy/icy-kernel/2.5.1"/>
 <section name="loader">
 <section name="entry0">
@@ -136,14 +136,14 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1768928686793"/>
+<key name="lastUploadDate" value="1769078477130"/>
 </section>
 <section name="plugins">
 <section name="fmp">
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS"/>
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\test evaporation"/>
 </section>
 </section>
 </section>
@@ -158,13 +158,13 @@
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1932"/>
+<key name="XC" value="1720"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
-<key name="WidthC" value="300"/>
+<key name="WidthC" value="512"/>
 <key name="HeightC" value="1124"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
@@ -182,7 +182,7 @@
 <key name="YE" value="100"/>
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
-<key name="WidthC" value="292"/>
+<key name="WidthC" value="504"/>
 <key name="HeightC" value="1034"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
@@ -200,7 +200,7 @@
 <key name="YE" value="200"/>
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
-<key name="WidthC" value="292"/>
+<key name="WidthC" value="504"/>
 <key name="HeightC" value="1034"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>

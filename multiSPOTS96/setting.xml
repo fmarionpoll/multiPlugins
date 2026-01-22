@@ -75,7 +75,7 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1768923324512"/>
+<key name="lastUpdateCheckTime" value="1769081368896"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
 <key name="loaderFolder" value="C:\Users\fred\Desktop\Bea multispot a analyser\2025-10-28_ cafeine 1mM"/>
@@ -96,10 +96,10 @@
 </section>
 <section name="online"/>
 </section>
-<key name="id" value="29219921"/>
+<key name="id" value="73871697"/>
 <key name="os" value="win64"/>
-<key name="clientCpuNumber" value="16"/>
-<key name="clientTotalMemory" value="67880230912"/>
+<key name="clientCpuNumber" value="20"/>
+<key name="clientTotalMemory" value="34078785536"/>
 <key name="appFolder" value="C:/Users/fred/.m2/repository/org/bioimageanalysis/icy/icy-kernel/2.5.1"/>
 <section name="loader">
 <section name="entry0">
@@ -134,7 +134,7 @@
 </section>
 </section>
 <key name="version" value="2.5.1.0"/>
-<key name="lastUploadDate" value="1768856755679"/>
+<key name="lastUploadDate" value="1769081867258"/>
 <section name="frame">
 <section name="imageLoader">
 <key name="width" value="600"/>
@@ -160,7 +160,7 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="-1816"/>
+<key name="XE" value="80"/>
 <key name="YE" value="270"/>
 <key name="WidthE" value="1728"/>
 <key name="HeightE" value="1075"/>
