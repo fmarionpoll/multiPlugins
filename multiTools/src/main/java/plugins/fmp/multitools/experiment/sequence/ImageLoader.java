@@ -90,9 +90,14 @@ public class ImageLoader {
 		if (images.isEmpty()) {
 			return;
 		}
+		// Preserve fixedNumberOfImages value - don't overwrite user settings
+		// This allows the user to control the number of images via the UI
+		// If fixedNumberOfImages is -1 (not set), it will remain -1 and clipImagesList
+		// will include all images from the starting index
+		long savedFixedNumberOfImages = fixedNumberOfImages;
 		List<String> clippedList = clipImagesList(images);
 		setImagesList(clippedList);
-		fixedNumberOfImages = images.size();
+		fixedNumberOfImages = savedFixedNumberOfImages;
 		nTotalFrames = clippedList.size();
 		Sequence seq = loadSequenceFromImagesList(imagesList);
 		seqCamData.attachSequence(seq);

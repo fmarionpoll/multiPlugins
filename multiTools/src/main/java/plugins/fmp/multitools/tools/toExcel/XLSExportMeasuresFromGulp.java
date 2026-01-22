@@ -524,7 +524,10 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			}
 
 			// Calculate bin index relative to the export start time
-			int binIndex = (int) ((timeMsFromStart - firstImageMs) / buildExcelStepMs);
+			// Use rounding instead of truncation to handle timing jitter
+			// This finds the nearest bin, which is more appropriate when actual
+			// sampling intervals don't exactly match requested intervals
+			int binIndex = (int) Math.round((timeMsFromStart - firstImageMs) / (double) buildExcelStepMs);
 			if (binIndex >= 0 && binIndex < nBins) {
 				results.getValuesOut()[binIndex] = value;
 			}
