@@ -96,10 +96,10 @@
 </section>
 <section name="online"/>
 </section>
-<key name="id" value="20110613"/>
+<key name="id" value="103826906"/>
 <key name="os" value="win64"/>
-<key name="clientCpuNumber" value="16"/>
-<key name="clientTotalMemory" value="67880230912"/>
+<key name="clientCpuNumber" value="20"/>
+<key name="clientTotalMemory" value="34078785536"/>
 <key name="appFolder" value="C:/Users/fred/.m2/repository/org/bioimageanalysis/icy/icy-kernel/2.5.1"/>
 <section name="loader">
 <section name="entry0">
@@ -137,7 +137,7 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1769078477130"/>
+<key name="lastUploadDate" value="1769178247098"/>
 <section name="frame">
 <section name="imageLoader">
 <key name="loadtype" value="0"/>
@@ -160,8 +160,8 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="79"/>
-<key name="YE" value="59"/>
+<key name="XE" value="-63"/>
+<key name="YE" value="76"/>
 <key name="WidthE" value="2531"/>
 <key name="HeightE" value="1286"/>
 <key name="MaximizedE" value="false"/>

@@ -39,6 +39,7 @@ import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
+import plugins.fmp.multicafe.dlg.browse.SelectFilesPanel;
 
 public class LoadSaveExperiment extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
 	/**
