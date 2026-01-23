@@ -37,6 +37,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
 	private ChartCageArrayFrame chartCageArrayFrame = null;
+	private ChartCombinedFrame chartCombinedFrame = null;
 	private MultiCAFE parent0 = null;
 
 	// Listener references for dynamic updates
@@ -65,6 +66,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	private JButton axisOptionsButton = new JButton("Axis options");
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
+	private JRadioButton viewGridButton = new JRadioButton("grid");
+	private JRadioButton viewCombinedButton = new JRadioButton("combined");
 
 	private AxisOptions graphOptions = null;
 
@@ -78,6 +81,11 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		JPanel panel = new JPanel(layout);
 		panel.add(resultTypeComboBox);
 		add(panel);
+
+		JPanel panelView = new JPanel(layout);
+		panelView.add(viewGridButton);
+		panelView.add(viewCombinedButton);
+		add(panelView);
 
 		JPanel panel1 = new JPanel(layout);
 		panel1.add(displayAllButton);
@@ -94,6 +102,11 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		group1.add(displaySelectedButton);
 		displayAllButton.setSelected(true);
 
+		ButtonGroup groupView = new ButtonGroup();
+		groupView.add(viewGridButton);
+		groupView.add(viewCombinedButton);
+		viewGridButton.setSelected(true);
+
 		resultTypeComboBox.setSelectedIndex(0);
 		defineActionListeners();
 	}
@@ -106,6 +119,29 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					displayChartPanels(exp); // displayGraphsPanels(exp);
+				}
+			}
+		});
+
+		viewGridButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				axisOptionsButton.setEnabled(true);
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					displayChartPanels(exp);
+				}
+			}
+		});
+
+		viewCombinedButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				// AxisOptions is currently implemented for grid charts only
+				axisOptionsButton.setEnabled(false);
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					displayChartPanels(exp);
 				}
 			}
 		});
@@ -128,7 +164,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 					if (graphOptions != null) {
 						graphOptions.close();
 					}
-					if (chartCageArrayFrame != null) {
+					if (chartCageArrayFrame != null && viewGridButton.isSelected()) {
 						graphOptions = new AxisOptions();
 						graphOptions.initialize(parent0, chartCageArrayFrame);
 					}
@@ -165,9 +201,55 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		exp.getSeqCamData().getSequence().removeListener(this);
 		exp.dispatchCapillariesToCages();
 		EnumResults exportType = (EnumResults) resultTypeComboBox.getSelectedItem();
-		if (isThereAnyDataToDisplay(exp, exportType))
-			chartCageArrayFrame = plotCapillaryMeasuresToChart(exp, exportType, chartCageArrayFrame);
+		if (isThereAnyDataToDisplay(exp, exportType)) {
+			if (viewCombinedButton.isSelected()) {
+				chartCombinedFrame = plotCapillaryMeasuresToCombinedChart(exp, exportType, chartCombinedFrame);
+			} else {
+				chartCageArrayFrame = plotCapillaryMeasuresToChart(exp, exportType, chartCageArrayFrame);
+			}
+		}
 		exp.getSeqCamData().getSequence().addListener(this);
+	}
+
+	private ChartCombinedFrame plotCapillaryMeasuresToCombinedChart(Experiment exp, EnumResults resultType,
+			ChartCombinedFrame iChart) {
+		// Dispose existing frame if it exists
+		if (iChart != null && iChart.getMainChartFrame() != null) {
+			IcyFrame oldFrame = iChart.getMainChartFrame();
+			if (oldFrame.getParent() != null || oldFrame.isVisible()) {
+				oldFrame.setVisible(false);
+				oldFrame.dispose();
+			}
+		}
+
+		int first = 0;
+		int last = exp.getCages().getCageList().size() - 1;
+		if (exp.getCages().getCageList().size() > 0) {
+			first = exp.getCages().getCageList().get(first).getCageID();
+			last = exp.getCages().getCageList().get(last).getCageID();
+		}
+
+		if (!displayAllButton.isSelected()) {
+			Cage cageFound = findSelectedCage(exp);
+			if (cageFound == null)
+				return null;
+			exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
+			first = cageFound.getProperties().getCageID();
+			last = first;
+		}
+
+		ResultsOptions options = ResultsOptionsBuilder.forChart() //
+				.withBuildExcelStepMs(60000) //
+				.withSubtractT0(true) //
+				.withResultType(resultType) //
+				.withCageRange(first, last) //
+				.build();
+
+		iChart = new ChartCombinedFrame();
+		iChart.createMainChartPanel("Capillary level measures", exp, options);
+		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
+		iChart.displayData(exp, options);
+		return iChart;
 	}
 
 	private ChartCageArrayFrame plotCapillaryMeasuresToChart(Experiment exp, EnumResults resultType,
@@ -250,6 +332,13 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				chartCageArrayFrame.getMainChartFrame().dispose();
 			}
 			chartCageArrayFrame = null;
+		}
+
+		if (chartCombinedFrame != null) {
+			if (chartCombinedFrame.getMainChartFrame() != null) {
+				chartCombinedFrame.getMainChartFrame().dispose();
+			}
+			chartCombinedFrame = null;
 		}
 	}
 
