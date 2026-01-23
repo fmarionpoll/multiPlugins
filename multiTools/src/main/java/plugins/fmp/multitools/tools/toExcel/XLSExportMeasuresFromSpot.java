@@ -13,9 +13,7 @@ import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 
 /**
  * Excel export implementation for spot measurements. Uses the Template Method
@@ -35,58 +33,28 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 	@Override
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
-		int column = startColumn;
 
-		if (options.spotAreas) {
-			column = getSpotDataAndExport(exp, column, charSeries, EnumResults.AREA_SUM);
-			getSpotDataAndExport(exp, column, charSeries, EnumResults.AREA_FLYPRESENT);
-			getSpotDataAndExport(exp, column, charSeries, EnumResults.AREA_SUMCLEAN);
-		}
+		OptionToResultsMapping[] mappings = {
+			new OptionToResultsMapping(() -> options.spotAreas, EnumResults.AREA_SUM, EnumResults.AREA_FLYPRESENT, EnumResults.AREA_SUMCLEAN)
+		};
 
-		return column;
-	}
-
-	/**
-	 * Exports spot data for a specific export type.
-	 * 
-	 * @param exp        The experiment to export
-	 * @param col0       The starting column
-	 * @param charSeries The series identifier
-	 * @param resultType The export type
-	 * @return The next available column
-	 * @throws ExcelExportException If export fails
-	 */
-	protected int getSpotDataAndExport(Experiment exp, int col0, String charSeries, EnumResults resultType)
-			throws ExcelExportException {
-		try {
-			options.resultType = resultType;
-			SXSSFSheet sheet = getSheet(resultType.toString(), resultType);
-			int colmax = xlsExportExperimentSpotDataToSheet(exp, sheet, resultType, col0, charSeries);
-
-			if (options.onlyalive) {
-				sheet = getSheet(resultType.toString() + ExcelExportConstants.ALIVE_SHEET_SUFFIX, resultType);
-				xlsExportExperimentSpotDataToSheet(exp, sheet, resultType, col0, charSeries);
+		int colmax = 0;
+		for (OptionToResultsMapping mapping : mappings) {
+			if (mapping.isEnabled()) {
+				for (EnumResults resultType : mapping.getResults()) {
+					int col = exportResultType(exp, startColumn, charSeries, resultType, "spot");
+					if (col > colmax)
+						colmax = col;
+				}
 			}
-
-			return colmax;
-		} catch (ExcelResourceException e) {
-			throw new ExcelExportException("Failed to export spot data", "get_spot_data_and_export",
-					resultType.toString(), e);
 		}
+
+		return colmax;
 	}
 
-	/**
-	 * Exports spot data to a specific sheet.
-	 * 
-	 * @param exp           The experiment to export
-	 * @param sheet         The sheet to write to
-	 * @param resultType The export type
-	 * @param col0          The starting column
-	 * @param charSeries    The series identifier
-	 * @return The next available column
-	 */
-	protected int xlsExportExperimentSpotDataToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType,
-			int col0, String charSeries) {
+	@Override
+	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
+			String charSeries) {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 

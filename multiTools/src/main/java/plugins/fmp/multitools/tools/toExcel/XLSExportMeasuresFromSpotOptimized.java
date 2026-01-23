@@ -13,9 +13,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 
 /**
  * Memory-optimized Excel export implementation for spot measurements.
@@ -70,58 +68,28 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 	@Override
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
-		int column = startColumn;
 
-		if (options.spotAreas) {
-			column = exportSpotDataStreaming(exp, column, charSeries, EnumResults.AREA_SUM);
-			exportSpotDataStreaming(exp, column, charSeries, EnumResults.AREA_FLYPRESENT);
-			exportSpotDataStreaming(exp, column, charSeries, EnumResults.AREA_SUMCLEAN);
-		}
+		OptionToResultsMapping[] mappings = {
+			new OptionToResultsMapping(() -> options.spotAreas, EnumResults.AREA_SUM, EnumResults.AREA_FLYPRESENT, EnumResults.AREA_SUMCLEAN)
+		};
 
-		return column;
-	}
-
-	/**
-	 * Exports spot data using streaming approach to minimize memory usage.
-	 * 
-	 * @param exp        The experiment to export
-	 * @param col0       The starting column
-	 * @param charSeries The series identifier
-	 * @param resultType The export type
-	 * @return The next available column
-	 * @throws ExcelExportException If export fails
-	 */
-	protected int exportSpotDataStreaming(Experiment exp, int col0, String charSeries, EnumResults resultType)
-			throws ExcelExportException {
-		try {
-			options.resultType = resultType;
-			SXSSFSheet sheet = getSheet(resultType.toString(), resultType);
-			int colmax = writeExperimentDataToSheetStreaming(exp, sheet, resultType, col0, charSeries);
-
-			if (options.onlyalive) {
-				sheet = getSheet(resultType.toString() + ExcelExportConstants.ALIVE_SHEET_SUFFIX, resultType);
-				writeExperimentDataToSheetStreaming(exp, sheet, resultType, col0, charSeries);
+		int colmax = 0;
+		for (OptionToResultsMapping mapping : mappings) {
+			if (mapping.isEnabled()) {
+				for (EnumResults resultType : mapping.getResults()) {
+					int col = exportResultType(exp, startColumn, charSeries, resultType, "spot");
+					if (col > colmax)
+						colmax = col;
+				}
 			}
-
-			return colmax;
-		} catch (ExcelResourceException e) {
-			throw new ExcelExportException("Failed to export spot data", "export_spot_data_streaming",
-					resultType.toString(), e);
 		}
+
+		return colmax;
 	}
 
-	/**
-	 * Writes experiment data to sheet using streaming approach.
-	 * 
-	 * @param exp           The experiment to export
-	 * @param sheet         The sheet to write to
-	 * @param resultType The export type
-	 * @param col0          The starting column
-	 * @param charSeries    The series identifier
-	 * @return The next available column
-	 */
-	protected int writeExperimentDataToSheetStreaming(Experiment exp, SXSSFSheet sheet, EnumResults resultType,
-			int col0, String charSeries) {
+	@Override
+	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
+			String charSeries) {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
@@ -134,13 +102,11 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 				pt.y = 0;
 				pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, spot, resultType);
 
-				// Process spot data directly without intermediate XLSResults
 				writeSpotDataDirectly(sheet, pt, spot, scalingFactorToPhysicalUnits, resultType);
 
 				pt.x++;
 				processedSpots++;
 
-				// Force garbage collection periodically
 				if (processedSpots % GC_INTERVAL == 0) {
 					System.gc();
 				}
