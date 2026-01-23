@@ -1,12 +1,14 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
+import java.util.List;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
@@ -54,46 +56,47 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	@Override
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
-		int column = startColumn;
-		int colmax = startColumn;
 
-		if (options.xyImage) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYIMAGE);
-			if (column > colmax)
-				colmax = column;
-		}
-		if (options.xyCage) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYTOPCAGE);
-			if (column > colmax)
-				colmax = column;
-		}
-		if (options.xyCapillaries) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.XYTIPCAPS);
-			if (column > colmax)
-				colmax = column;
-		}
-		if (options.ellipseAxes) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.ELLIPSEAXES);
-			if (column > colmax)
-				colmax = column;
-		}
-		if (options.distance) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.DISTANCE);
-			if (column > colmax)
-				colmax = column;
-		}
-		if (options.alive) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.ISALIVE);
-			if (column > colmax)
-				colmax = column;
-		}
-		if (options.sleep) {
-			column = getFlyPositionDataAndExport(exp, column, charSeries, EnumResults.SLEEP);
-			if (column > colmax)
-				colmax = column;
+		OptionToResultsMapping[] mappings = {
+			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
+			new OptionToResultsMapping(() -> options.xyCage, EnumResults.XYTOPCAGE),
+			new OptionToResultsMapping(() -> options.xyCapillaries, EnumResults.XYTIPCAPS),
+			new OptionToResultsMapping(() -> options.ellipseAxes, EnumResults.ELLIPSEAXES),
+			new OptionToResultsMapping(() -> options.distance, EnumResults.DISTANCE),
+			new OptionToResultsMapping(() -> options.alive, EnumResults.ISALIVE),
+			new OptionToResultsMapping(() -> options.sleep, EnumResults.SLEEP)
+		};
+
+		int colmax = 0;
+		for (OptionToResultsMapping mapping : mappings) {
+			if (mapping.isEnabled()) {
+				for (EnumResults resultType : mapping.getResults()) {
+					int col = getFlyPositionDataAndExport(exp, startColumn, charSeries, resultType);
+					if (col > colmax)
+						colmax = col;
+				}
+			}
 		}
 
 		return colmax;
+	}
+
+	private static class OptionToResultsMapping {
+		private final java.util.function.Supplier<Boolean> optionCheck;
+		private final List<EnumResults> results;
+
+		OptionToResultsMapping(java.util.function.Supplier<Boolean> optionCheck, EnumResults... results) {
+			this.optionCheck = optionCheck;
+			this.results = java.util.Arrays.asList(results);
+		}
+
+		boolean isEnabled() {
+			return optionCheck.get();
+		}
+
+		List<EnumResults> getResults() {
+			return results;
+		}
 	}
 
 	/**
@@ -143,7 +146,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		// For fly positions, scaling is typically 1.0 (already in physical units)
 		double scalingFactorToPhysicalUnits = 1.0;
 
-		for (Cage cage : exp.getCages().cagesList) {
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+
 			FlyPositions flyPositions = cage.flyPositions;
 			if (flyPositions == null || flyPositions.flyPositionList == null
 					|| flyPositions.flyPositionList.isEmpty()) {
@@ -153,9 +160,18 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			pt.y = 0;
 			pt = writeExperimentFlyPositionInfos(sheet, pt, exp, charSeries, cage, resultType);
 			Results results = getResultsDataValuesFromFlyPositionMeasures(exp, cage, flyPositions, options);
-			results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultType);
-			writeXLSResult(sheet, pt, results);
-			pt.x++;
+			if (results != null) {
+				if (scalingFactorToPhysicalUnits != 1.0) {
+					for (int i = 0; i < results.getValuesOutLength(); i++) {
+						if (!Double.isNaN(results.getValuesOut()[i])) {
+							results.getValuesOut()[i] *= scalingFactorToPhysicalUnits;
+						}
+					}
+				}
+				int currentColumn = pt.x;
+				writeXLSResult(sheet, pt, results);
+				pt.x = currentColumn + 1;
+			}
 		}
 		return pt.x;
 	}
@@ -171,21 +187,94 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 */
 	public Results getResultsDataValuesFromFlyPositionMeasures(Experiment exp, Cage cage, FlyPositions flyPositions,
 			ResultsOptions resultsOptions) {
-		int nOutputFrames = getNOutputFrames(exp, resultsOptions);
+		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
+		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
+		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
 
-		// Create XLSResults with cage properties
+		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
+			return null;
+		}
+
+		long durationMs = lastImageMs - firstImageMs;
+		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
+
 		Results results = new Results("Cage_" + cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(),
 				cage.getProperties().getCageID(), 0, resultsOptions.resultType);
-		results.initValuesOutArray(nOutputFrames, Double.NaN);
+		results.initValuesOutArray(nBins, Double.NaN);
 
-		// Get bin durations
-		long binData = exp.getSeqCamData().getTimeManager().getBinDurationMs();
-		long binExcel = resultsOptions.buildExcelStepMs;
+		if (flyPositions == null || flyPositions.flyPositionList == null || flyPositions.flyPositionList.isEmpty()) {
+			return results;
+		}
 
-		// Get data from fly positions
-		results.getDataFromFlyPositions(flyPositions, binData, binExcel, resultsOptions);
+		EnumResults resultType = resultsOptions.resultType;
+
+		switch (resultType) {
+		case DISTANCE:
+			flyPositions.computeDistanceBetweenConsecutivePoints();
+			break;
+		case ISALIVE:
+			flyPositions.computeIsAlive();
+			break;
+		case SLEEP:
+			flyPositions.computeSleep();
+			break;
+		case ELLIPSEAXES:
+			flyPositions.computeEllipseAxes();
+			break;
+		case XYIMAGE:
+		case XYTOPCAGE:
+		case XYTIPCAPS:
+			// These types use direct coordinate values, no computation needed
+			break;
+		default:
+			// Other result types not applicable to fly position measurements
+			break;
+		}
+
+		for (int binIndex = 0; binIndex < nBins; binIndex++) {
+			long binTimeMs = firstImageMs + binIndex * buildExcelStepMs;
+			long binEndTime = binTimeMs + buildExcelStepMs;
+
+			java.util.List<Double> binValues = new java.util.ArrayList<>();
+			for (FlyPosition pos : flyPositions.flyPositionList) {
+				if (pos.tMs >= binTimeMs && pos.tMs < binEndTime) {
+					Double value = extractValueFromFlyPosition(pos, resultType);
+					if (value != null && !Double.isNaN(value)) {
+						binValues.add(value);
+					}
+				}
+			}
+
+			if (!binValues.isEmpty()) {
+				double sum = 0.0;
+				for (Double val : binValues) {
+					sum += val;
+				}
+				results.getValuesOut()[binIndex] = sum / binValues.size();
+			}
+		}
 
 		return results;
+	}
+
+	private Double extractValueFromFlyPosition(FlyPosition pos, EnumResults resultType) {
+		switch (resultType) {
+		case XYIMAGE:
+		case XYTOPCAGE:
+			return pos.getCenterRectangle().getY();
+		case XYTIPCAPS:
+			return pos.getCenterRectangle().getX();
+		case DISTANCE:
+			return pos.distance;
+		case ISALIVE:
+			return pos.bAlive ? 1.0 : 0.0;
+		case SLEEP:
+			return pos.bSleep ? 1.0 : 0.0;
+		case ELLIPSEAXES:
+			return pos.axis1;
+		default:
+			return pos.getCenterRectangle().getY();
+		}
 	}
 
 	/**

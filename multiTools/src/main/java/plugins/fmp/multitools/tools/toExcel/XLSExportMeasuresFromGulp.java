@@ -60,40 +60,50 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	@Override
 	protected int exportExperimentData(Experiment exp, ResultsOptions xlsExportOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
-		int column = startColumn;
 
-		if (options.sumGulps) {
-			column = getGulpDataAndExport(exp, column, charSeries, EnumResults.SUMGULPS);
-		}
-		if (options.lrPI && options.sumGulps) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.SUMGULPS_LR);
-		}
-		if (options.nbGulps) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.NBGULPS);
-		}
-		if (options.amplitudeGulps) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.AMPLITUDEGULPS);
-		}
-		if (options.tToNextGulp) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.TTOGULP);
-		}
-		if (options.tToNextGulp_LR) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.TTOGULP_LR);
-		}
-		if (options.markovChain) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.MARKOV_CHAIN);
-		}
-		if (options.autocorrelation) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.AUTOCORREL);
-		}
-		if (options.crosscorrelation) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.CROSSCORREL);
-		}
-		if (options.crosscorrelationLR) {
-			getGulpDataAndExport(exp, column, charSeries, EnumResults.CROSSCORREL_LR);
+		OptionToResultsMapping[] mappings = {
+			new OptionToResultsMapping(() -> options.sumGulps, EnumResults.SUMGULPS),
+			new OptionToResultsMapping(() -> options.lrPI && options.sumGulps, EnumResults.SUMGULPS_LR),
+			new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
+			new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
+			new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
+			new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),
+			new OptionToResultsMapping(() -> options.markovChain, EnumResults.MARKOV_CHAIN),
+			new OptionToResultsMapping(() -> options.autocorrelation, EnumResults.AUTOCORREL),
+			new OptionToResultsMapping(() -> options.crosscorrelation, EnumResults.CROSSCORREL),
+			new OptionToResultsMapping(() -> options.crosscorrelationLR, EnumResults.CROSSCORREL_LR)
+		};
+
+		int colmax = 0;
+		for (OptionToResultsMapping mapping : mappings) {
+			if (mapping.isEnabled()) {
+				for (EnumResults resultType : mapping.getResults()) {
+					int col = getGulpDataAndExport(exp, startColumn, charSeries, resultType);
+					if (col > colmax)
+						colmax = col;
+				}
+			}
 		}
 
-		return column;
+		return colmax;
+	}
+
+	private static class OptionToResultsMapping {
+		private final java.util.function.Supplier<Boolean> optionCheck;
+		private final List<EnumResults> results;
+
+		OptionToResultsMapping(java.util.function.Supplier<Boolean> optionCheck, EnumResults... results) {
+			this.optionCheck = optionCheck;
+			this.results = java.util.Arrays.asList(results);
+		}
+
+		boolean isEnabled() {
+			return optionCheck.get();
+		}
+
+		List<EnumResults> getResults() {
+			return results;
+		}
 	}
 
 	/**

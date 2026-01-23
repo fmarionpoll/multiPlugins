@@ -1,7 +1,6 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
@@ -57,33 +56,44 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
 
-		List<EnumResults> resultsToExport = new ArrayList<EnumResults>();
+		OptionToResultsMapping[] mappings = {
+			new OptionToResultsMapping(() -> options.topLevel, EnumResults.TOPRAW, EnumResults.TOPLEVEL),
+			new OptionToResultsMapping(() -> options.lrPI, EnumResults.TOPLEVEL_LR),
+			new OptionToResultsMapping(() -> options.bottomLevel, EnumResults.BOTTOMLEVEL),
+			new OptionToResultsMapping(() -> options.derivative, EnumResults.DERIVEDVALUES)
+		};
 
-		if (options.topLevel) {
-			resultsToExport.add(EnumResults.TOPRAW);
-			resultsToExport.add(EnumResults.TOPLEVEL);
-		}
-
-		if (options.lrPI) {
-			resultsToExport.add(EnumResults.TOPLEVEL_LR);
-		}
-
-		if (options.bottomLevel) {
-			resultsToExport.add(EnumResults.BOTTOMLEVEL);
-		}
-		if (options.derivative) {
-			resultsToExport.add(EnumResults.DERIVEDVALUES);
-		}
-
-		int colmax = 0;
 		exp.dispatchCapillariesToCages();
-		for (EnumResults resultType : resultsToExport) {
-			int col = getCapDataAndExport(exp, startColumn, charSeries, resultType);
-			if (col > colmax)
-				colmax = col;
+		int colmax = 0;
+		for (OptionToResultsMapping mapping : mappings) {
+			if (mapping.isEnabled()) {
+				for (EnumResults resultType : mapping.getResults()) {
+					int col = getCapDataAndExport(exp, startColumn, charSeries, resultType);
+					if (col > colmax)
+						colmax = col;
+				}
+			}
 		}
 
 		return colmax;
+	}
+
+	private static class OptionToResultsMapping {
+		private final java.util.function.Supplier<Boolean> optionCheck;
+		private final List<EnumResults> results;
+
+		OptionToResultsMapping(java.util.function.Supplier<Boolean> optionCheck, EnumResults... results) {
+			this.optionCheck = optionCheck;
+			this.results = java.util.Arrays.asList(results);
+		}
+
+		boolean isEnabled() {
+			return optionCheck.get();
+		}
+
+		List<EnumResults> getResults() {
+			return results;
+		}
 	}
 
 	protected int getCapDataAndExport(Experiment exp, int col0, String charSeries, EnumResults resultType)
@@ -318,8 +328,8 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 	/**
 	 * Performs linear interpolation to find the value at the given time.
 	 * 
-	 * @param timesMs  Array of time values in milliseconds (must be sorted)
-	 * @param values   Array of corresponding values
+	 * @param timesMs      Array of time values in milliseconds (must be sorted)
+	 * @param values       Array of corresponding values
 	 * @param targetTimeMs Target time in milliseconds
 	 * @return Interpolated value, or NaN if target is outside the data range
 	 */
