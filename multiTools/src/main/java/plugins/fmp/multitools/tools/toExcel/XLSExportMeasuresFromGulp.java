@@ -20,7 +20,6 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 /**
@@ -78,7 +77,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		for (OptionToResultsMapping mapping : mappings) {
 			if (mapping.isEnabled()) {
 				for (EnumResults resultType : mapping.getResults()) {
-					int col = getGulpDataAndExport(exp, startColumn, charSeries, resultType);
+					int col = exportResultType(exp, startColumn, charSeries, resultType, "gulp");
 					if (col > colmax)
 						colmax = col;
 				}
@@ -88,64 +87,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		return colmax;
 	}
 
-	private static class OptionToResultsMapping {
-		private final java.util.function.Supplier<Boolean> optionCheck;
-		private final List<EnumResults> results;
-
-		OptionToResultsMapping(java.util.function.Supplier<Boolean> optionCheck, EnumResults... results) {
-			this.optionCheck = optionCheck;
-			this.results = java.util.Arrays.asList(results);
-		}
-
-		boolean isEnabled() {
-			return optionCheck.get();
-		}
-
-		List<EnumResults> getResults() {
-			return results;
-		}
-	}
-
-	/**
-	 * Exports gulp data for a specific export type.
-	 * 
-	 * @param exp        The experiment to export
-	 * @param col0       The starting column
-	 * @param charSeries The series identifier
-	 * @param resultType The export type
-	 * @return The next available column
-	 * @throws ExcelExportException If export fails
-	 */
-	protected int getGulpDataAndExport(Experiment exp, int col0, String charSeries, EnumResults resultType)
-			throws ExcelExportException {
-		try {
-			options.resultType = resultType;
-			SXSSFSheet sheet = getSheet(resultType.toString(), resultType);
-			int colmax = xlsExportExperimentGulpDataToSheet(exp, sheet, resultType, col0, charSeries);
-
-			if (options.onlyalive) {
-				sheet = getSheet(resultType.toString() + ExcelExportConstants.ALIVE_SHEET_SUFFIX, resultType);
-				xlsExportExperimentGulpDataToSheet(exp, sheet, resultType, col0, charSeries);
-			}
-
-			return colmax;
-		} catch (ExcelResourceException e) {
-			throw new ExcelExportException("Failed to export gulp data", "get_gulp_data_and_export",
-					resultType.toString(), e);
-		}
-	}
-
-	/**
-	 * Exports gulp data to a specific sheet.
-	 * 
-	 * @param exp        The experiment to export
-	 * @param sheet      The sheet to write to
-	 * @param resultType The export type
-	 * @param col0       The starting column
-	 * @param charSeries The series identifier
-	 * @return The next available column
-	 */
-	protected int xlsExportExperimentGulpDataToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
+	@Override
+	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);

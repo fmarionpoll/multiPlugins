@@ -57,6 +57,26 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		if (options == null || options.resultType == null) {
 			return new XYSeriesCollection();
 		}
+
+		// Ensure required computations are performed based on result type
+		EnumResults resultType = options.resultType;
+		switch (resultType) {
+		case DISTANCE:
+			flyPositions.computeDistanceBetweenConsecutivePoints();
+			break;
+		case ISALIVE:
+			flyPositions.computeIsAlive();
+			break;
+		case SLEEP:
+			flyPositions.computeSleep();
+			break;
+		case ELLIPSEAXES:
+			flyPositions.computeEllipseAxes();
+			break;
+		default:
+			// No computation needed for position types
+			break;
+		}
 		
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		String name = cage.getRoi() != null ? cage.getRoi().getName() : 
@@ -65,7 +85,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		XYSeries seriesXY = new XYSeries(name, false);
 		seriesXY.setDescription(name);
 		
-		addPointsToXYSeries(cage, flyPositions, options.resultType, seriesXY);
+		addPointsToXYSeries(cage, flyPositions, resultType, seriesXY);
 		
 		if (seriesXY.getItemCount() > 0) {
 			dataset.addSeries(seriesXY);
@@ -108,7 +128,19 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			processSleepData(flyPositions, seriesXY, itmax);
 			break;
 
+		case ELLIPSEAXES:
+			processEllipseAxesData(flyPositions, seriesXY, itmax);
+			break;
+
+		case XYIMAGE:
 		case XYTOPCAGE:
+			processPositionData(flyPositions, seriesXY, itmax, cage);
+			break;
+
+		case XYTIPCAPS:
+			processXPositionData(flyPositions, seriesXY, itmax);
+			break;
+
 		default:
 			processPositionData(flyPositions, seriesXY, itmax, cage);
 			break;
@@ -117,21 +149,13 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 
 	/**
 	 * Processes distance data for a cage.
+	 * Uses the precomputed distance value from flyPositions.computeDistanceBetweenConsecutivePoints().
 	 */
 	private void processDistanceData(FlyPositions results, XYSeries seriesXY, int itmax, Cage cage) {
-		if (itmax == 0) {
-			return;
-		}
-		
-		FlyPosition firstPos = results.flyPositionList.get(0);
-		double previousY = firstPos.rectPosition.getY() + firstPos.rectPosition.getHeight() / 2;
-
 		for (int it = 0; it < itmax; it++) {
-			FlyPosition currentPos = results.flyPositionList.get(it);
-			double currentY = currentPos.rectPosition.getY() + currentPos.rectPosition.getHeight() / 2;
-			double ypos = currentY - previousY;
-			addxyPos(seriesXY, currentPos, ypos);
-			previousY = currentY;
+			FlyPosition pos = results.flyPositionList.get(it);
+			double distance = pos.distance;
+			addxyPos(seriesXY, pos, distance);
 		}
 	}
 
@@ -160,7 +184,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
-	 * Processes position data for a cage.
+	 * Processes Y position data for a cage (XYIMAGE, XYTOPCAGE).
 	 */
 	private void processPositionData(FlyPositions results, XYSeries seriesXY, int itmax, Cage cage) {
 		Rectangle rect1 = null;
@@ -186,7 +210,31 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
+	 * Processes X position data for a cage (XYTIPCAPS).
+	 */
+	private void processXPositionData(FlyPositions results, XYSeries seriesXY, int itmax) {
+		for (int it = 0; it < itmax; it++) {
+			FlyPosition pos = results.flyPositionList.get(it);
+			double xpos = pos.getCenterRectangle().getX();
+			addxyPos(seriesXY, pos, xpos);
+		}
+	}
+
+	/**
+	 * Processes ellipse axes data for a cage.
+	 */
+	private void processEllipseAxesData(FlyPositions results, XYSeries seriesXY, int itmax) {
+		for (int it = 0; it < itmax; it++) {
+			FlyPosition pos = results.flyPositionList.get(it);
+			double axis1 = pos.axis1;
+			addxyPos(seriesXY, pos, axis1);
+		}
+	}
+
+	/**
 	 * Adds a single data point to the series.
+	 * Converts time from milliseconds to minutes to match the pattern used by
+	 * other builders (Capillary, Gulp).
 	 */
 	private void addxyPos(XYSeries seriesXY, FlyPosition pos, Double ypos) {
 		if (seriesXY == null || pos == null) {
@@ -194,7 +242,8 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			return;
 		}
 
-		double indexT = pos.flyIndexT;
-		seriesXY.add(indexT, ypos);
+		// Convert time from milliseconds to minutes (matching Capillary/Gulp pattern)
+		double timeMinutes = pos.tMs / (60.0 * 1000.0);
+		seriesXY.add(timeMinutes, ypos);
 	}
 }

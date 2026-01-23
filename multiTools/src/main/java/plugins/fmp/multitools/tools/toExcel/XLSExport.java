@@ -4,7 +4,9 @@ import java.awt.Point;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Supplier;
 
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.util.CellReference;
@@ -231,6 +233,92 @@ public abstract class XLSExport {
 	 */
 	protected abstract int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException;
+
+	/**
+	 * Template method for exporting a specific result type to sheets. Handles common
+	 * logic like sheet creation, "onlyalive" sheet handling, and error management.
+	 * Subclasses provide the specific export implementation via
+	 * exportResultTypeToSheet.
+	 * 
+	 * @param exp         The experiment to export
+	 * @param col0        The starting column
+	 * @param charSeries  The series identifier
+	 * @param resultType  The result type to export
+	 * @param errorContext The context string for error messages (e.g., "capillary", "gulp", "fly position")
+	 * @return The next available column
+	 * @throws ExcelExportException If export fails
+	 */
+	protected int exportResultType(Experiment exp, int col0, String charSeries, EnumResults resultType,
+			String errorContext) throws ExcelExportException {
+		try {
+			options.resultType = resultType;
+			SXSSFSheet sheet = getSheet(resultType.toString(), resultType);
+			int colmax = exportResultTypeToSheet(exp, sheet, resultType, col0, charSeries);
+
+			if (options.onlyalive) {
+				sheet = getSheet(resultType.toString() + ExcelExportConstants.ALIVE_SHEET_SUFFIX, resultType);
+				exportResultTypeToSheet(exp, sheet, resultType, col0, charSeries);
+			}
+
+			return colmax;
+		} catch (ExcelResourceException e) {
+			throw new ExcelExportException("Failed to export " + errorContext + " data", "export_result_type",
+					resultType.toString(), e);
+		}
+	}
+
+	/**
+	 * Exports a specific result type to a sheet. Must be implemented by subclasses
+	 * to provide the specific export logic.
+	 * 
+	 * @param exp        The experiment to export
+	 * @param sheet      The sheet to write to
+	 * @param resultType The result type being exported
+	 * @param col0       The starting column
+	 * @param charSeries The series identifier
+	 * @return The next available column
+	 */
+	protected abstract int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
+			String charSeries);
+
+	/**
+	 * Helper class for mapping export options to their corresponding result types.
+	 * Used to declaratively define which result types should be exported based on
+	 * option flags.
+	 */
+	protected static class OptionToResultsMapping {
+		private final Supplier<Boolean> optionCheck;
+		private final List<EnumResults> results;
+
+		/**
+		 * Creates a mapping from an option check to one or more result types.
+		 * 
+		 * @param optionCheck A supplier that returns true if the option is enabled
+		 * @param results     The result types to export when the option is enabled
+		 */
+		OptionToResultsMapping(Supplier<Boolean> optionCheck, EnumResults... results) {
+			this.optionCheck = optionCheck;
+			this.results = Arrays.asList(results);
+		}
+
+		/**
+		 * Checks if the option is enabled.
+		 * 
+		 * @return true if the option is enabled
+		 */
+		boolean isEnabled() {
+			return optionCheck.get();
+		}
+
+		/**
+		 * Gets the list of result types associated with this option.
+		 * 
+		 * @return The list of result types
+		 */
+		List<EnumResults> getResults() {
+			return results;
+		}
+	}
 
 	/**
 	 * Cleanup method called after export completion. Subclasses can override to add

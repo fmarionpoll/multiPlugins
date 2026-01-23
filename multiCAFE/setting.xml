@@ -75,7 +75,7 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1769073526179"/>
+<key name="lastUpdateCheckTime" value="1769153950273"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
 <key name="loaderFolder" value="C:\Users\fred\Desktop\test evaporation\2026-01-21\cam05"/>
@@ -160,7 +160,7 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="80"/>
+<key name="XE" value="79"/>
 <key name="YE" value="59"/>
 <key name="WidthE" value="2531"/>
 <key name="HeightE" value="1286"/>

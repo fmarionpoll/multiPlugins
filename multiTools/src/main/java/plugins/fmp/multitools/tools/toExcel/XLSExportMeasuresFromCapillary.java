@@ -15,10 +15,8 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsCapillaries;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 /**
@@ -68,7 +66,7 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		for (OptionToResultsMapping mapping : mappings) {
 			if (mapping.isEnabled()) {
 				for (EnumResults resultType : mapping.getResults()) {
-					int col = getCapDataAndExport(exp, startColumn, charSeries, resultType);
+					int col = exportResultType(exp, startColumn, charSeries, resultType, "capillary");
 					if (col > colmax)
 						colmax = col;
 				}
@@ -78,43 +76,8 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		return colmax;
 	}
 
-	private static class OptionToResultsMapping {
-		private final java.util.function.Supplier<Boolean> optionCheck;
-		private final List<EnumResults> results;
-
-		OptionToResultsMapping(java.util.function.Supplier<Boolean> optionCheck, EnumResults... results) {
-			this.optionCheck = optionCheck;
-			this.results = java.util.Arrays.asList(results);
-		}
-
-		boolean isEnabled() {
-			return optionCheck.get();
-		}
-
-		List<EnumResults> getResults() {
-			return results;
-		}
-	}
-
-	protected int getCapDataAndExport(Experiment exp, int col0, String charSeries, EnumResults resultType)
-			throws ExcelExportException {
-		try {
-			options.resultType = resultType;
-			SXSSFSheet sheet = getSheet(resultType.toString(), resultType);
-			int colmax = xlsExportExperimentCapDataToSheet(exp, sheet, resultType, col0, charSeries);
-			if (options.onlyalive) {
-				sheet = getSheet(resultType.toString() + ExcelExportConstants.ALIVE_SHEET_SUFFIX, resultType);
-				xlsExportExperimentCapDataToSheet(exp, sheet, resultType, col0, charSeries);
-			}
-
-			return colmax;
-		} catch (ExcelResourceException e) {
-			throw new ExcelExportException("Failed to export spot data", "get_spot_data_and_export",
-					resultType.toString(), e);
-		}
-	}
-
-	protected int xlsExportExperimentCapDataToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
+	@Override
+	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);

@@ -1,9 +1,10 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
-import java.util.List;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
@@ -12,13 +13,13 @@ import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.tools.chart.builders.CageFlyPositionSeriesBuilder;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 /**
@@ -71,7 +72,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		for (OptionToResultsMapping mapping : mappings) {
 			if (mapping.isEnabled()) {
 				for (EnumResults resultType : mapping.getResults()) {
-					int col = getFlyPositionDataAndExport(exp, startColumn, charSeries, resultType);
+					int col = exportResultType(exp, startColumn, charSeries, resultType, "fly position");
 					if (col > colmax)
 						colmax = col;
 				}
@@ -81,103 +82,187 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		return colmax;
 	}
 
-	private static class OptionToResultsMapping {
-		private final java.util.function.Supplier<Boolean> optionCheck;
-		private final List<EnumResults> results;
-
-		OptionToResultsMapping(java.util.function.Supplier<Boolean> optionCheck, EnumResults... results) {
-			this.optionCheck = optionCheck;
-			this.results = java.util.Arrays.asList(results);
-		}
-
-		boolean isEnabled() {
-			return optionCheck.get();
-		}
-
-		List<EnumResults> getResults() {
-			return results;
-		}
-	}
-
-	/**
-	 * Exports fly position data for a specific export type.
-	 * 
-	 * @param exp        The experiment to export
-	 * @param col0       The starting column
-	 * @param charSeries The series identifier
-	 * @param resultType The export type
-	 * @return The next available column
-	 * @throws ExcelExportException If export fails
-	 */
-	protected int getFlyPositionDataAndExport(Experiment exp, int col0, String charSeries, EnumResults resultType)
-			throws ExcelExportException {
-		try {
-			options.resultType = resultType;
-			SXSSFSheet sheet = getSheet(resultType.toString(), resultType);
-			int colmax = xlsExportExperimentFlyPositionDataToSheet(exp, sheet, resultType, col0, charSeries);
-
-			if (options.onlyalive) {
-				sheet = getSheet(resultType.toString() + ExcelExportConstants.ALIVE_SHEET_SUFFIX, resultType);
-				xlsExportExperimentFlyPositionDataToSheet(exp, sheet, resultType, col0, charSeries);
-			}
-
-			return colmax;
-		} catch (ExcelResourceException e) {
-			throw new ExcelExportException("Failed to export fly position data", "get_fly_position_data_and_export",
-					resultType.toString(), e);
-		}
-	}
-
-	/**
-	 * Exports fly position data to a specific sheet.
-	 * 
-	 * @param exp        The experiment to export
-	 * @param sheet      The sheet to write to
-	 * @param resultType The export type
-	 * @param col0       The starting column
-	 * @param charSeries The series identifier
-	 * @return The next available column
-	 */
-	protected int xlsExportExperimentFlyPositionDataToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType,
-			int col0, String charSeries) {
+	@Override
+	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
+			String charSeries) {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
-		// For fly positions, scaling is typically 1.0 (already in physical units)
-		double scalingFactorToPhysicalUnits = 1.0;
+		ResultsOptions resultsOptions = new ResultsOptions();
+		long kymoBin_ms = exp.getKymoBin_ms();
+		if (kymoBin_ms <= 0) {
+			kymoBin_ms = 60000;
+		}
+		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
+		resultsOptions.relativeToMaximum = false;
+		resultsOptions.subtractT0 = false;
+		resultsOptions.correctEvaporation = false;
+		resultsOptions.resultType = resultType;
+
+		CageFlyPositionSeriesBuilder builder = new CageFlyPositionSeriesBuilder();
 
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
 			}
 
-			FlyPositions flyPositions = cage.flyPositions;
-			if (flyPositions == null || flyPositions.flyPositionList == null
-					|| flyPositions.flyPositionList.isEmpty()) {
+			XYSeriesCollection dataset = builder.build(exp, cage, resultsOptions);
+			if (dataset == null || dataset.getSeriesCount() == 0) {
 				continue;
 			}
 
-			pt.y = 0;
-			pt = writeExperimentFlyPositionInfos(sheet, pt, exp, charSeries, cage, resultType);
-			Results results = getResultsDataValuesFromFlyPositionMeasures(exp, cage, flyPositions, options);
+			XYSeries series = dataset.getSeries(0);
+			if (series == null) {
+				continue;
+			}
+
+			Results results = convertXYSeriesToResults(exp, cage, series, resultsOptions, resultType);
 			if (results != null) {
-				if (scalingFactorToPhysicalUnits != 1.0) {
-					for (int i = 0; i < results.getValuesOutLength(); i++) {
-						if (!Double.isNaN(results.getValuesOut()[i])) {
-							results.getValuesOut()[i] *= scalingFactorToPhysicalUnits;
-						}
-					}
-				}
-				int currentColumn = pt.x;
+				pt.y = 0;
+				pt = writeExperimentFlyPositionInfos(sheet, pt, exp, charSeries, cage, resultType);
 				writeXLSResult(sheet, pt, results);
-				pt.x = currentColumn + 1;
+				pt.x++;
 			}
 		}
 		return pt.x;
 	}
 
 	/**
-	 * Gets the results for fly positions.
+	 * Converts an XYSeries (time in minutes from start, value) to a Results object
+	 * with binned values indexed by time bin.
+	 * 
+	 * @param exp            The experiment
+	 * @param cage           The cage
+	 * @param series         The XYSeries to convert (X values in minutes from
+	 *                       start)
+	 * @param resultsOptions The export options
+	 * @param resultType     The result type
+	 * @return A Results object with valuesOut array populated
+	 */
+	private Results convertXYSeriesToResults(Experiment exp, Cage cage, XYSeries series,
+			ResultsOptions resultsOptions, EnumResults resultType) {
+		if (exp == null || cage == null || series == null || resultsOptions == null) {
+			return null;
+		}
+
+		// Calculate the number of output bins based on expAll (combined time range)
+		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
+		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
+		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
+
+		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
+			return null;
+		}
+
+		long durationMs = lastImageMs - firstImageMs;
+		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
+
+		// Create Results object
+		Results results = new Results("Cage_" + cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(),
+				cage.getProperties().getCageID(), 0, resultType);
+		results.initValuesOutArray(nBins, Double.NaN);
+
+		// Get experiment's actual duration for validation
+		// XYSeries time values are in minutes from experiment start (time 0)
+		// Calculate the actual experiment duration from image count and bin duration
+		long binMs = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+		int nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		long expDurationMs = 0;
+		if (binMs > 0 && nFrames > 0) {
+			// Duration = (nFrames - 1) * binMs (time from first to last image)
+			expDurationMs = (nFrames - 1) * binMs;
+		} else {
+			// Fallback: use binLast_ms if available
+			long expLastMs = exp.getSeqCamData().getTimeManager().getBinLast_ms();
+			long expFirstMs = exp.getSeqCamData().getTimeManager().getBinFirst_ms();
+			if (expLastMs > expFirstMs) {
+				expDurationMs = expLastMs - expFirstMs;
+			}
+		}
+
+		// Build array of data points with times in milliseconds for interpolation
+		// XYSeries X values are in minutes from experiment start (time 0)
+		int nDataPoints = series.getItemCount();
+		if (nDataPoints == 0) {
+			return results;
+		}
+
+		double[] dataTimesMs = new double[nDataPoints];
+		double[] dataValues = new double[nDataPoints];
+		for (int i = 0; i < nDataPoints; i++) {
+			double timeMinutes = series.getX(i).doubleValue();
+			dataTimesMs[i] = timeMinutes * 60.0 * 1000.0; // Convert to milliseconds
+			dataValues[i] = series.getY(i).doubleValue();
+		}
+
+		// Use linear interpolation to fill all output bins
+		// For each output bin, find the interpolated value from the nearest data points
+		for (int binIndex = 0; binIndex < nBins; binIndex++) {
+			long binTimeMs = firstImageMs + binIndex * buildExcelStepMs;
+
+			// Check if bin time is within experiment's actual duration
+			if (expDurationMs > 0 && binTimeMs > expDurationMs) {
+				continue; // Skip bins beyond experiment duration
+			}
+
+			// Find interpolated value at binTimeMs
+			double interpolatedValue = linearInterpolate(dataTimesMs, dataValues, binTimeMs);
+			if (!Double.isNaN(interpolatedValue)) {
+				results.getValuesOut()[binIndex] = interpolatedValue;
+			}
+		}
+
+		return results;
+	}
+
+	/**
+	 * Performs linear interpolation to find the value at the given time.
+	 * 
+	 * @param timesMs      Array of time values in milliseconds (must be sorted)
+	 * @param values       Array of corresponding values
+	 * @param targetTimeMs Target time in milliseconds
+	 * @return Interpolated value, or NaN if target is outside the data range
+	 */
+	private double linearInterpolate(double[] timesMs, double[] values, long targetTimeMs) {
+		if (timesMs == null || values == null || timesMs.length == 0 || timesMs.length != values.length) {
+			return Double.NaN;
+		}
+
+		double targetTime = (double) targetTimeMs;
+
+		// Check if target is before first data point
+		if (targetTime <= timesMs[0]) {
+			return values[0];
+		}
+
+		// Check if target is after last data point
+		if (targetTime >= timesMs[timesMs.length - 1]) {
+			return values[values.length - 1];
+		}
+
+		// Find the two data points to interpolate between
+		for (int i = 0; i < timesMs.length - 1; i++) {
+			if (targetTime >= timesMs[i] && targetTime <= timesMs[i + 1]) {
+				// Linear interpolation: y = y0 + (y1 - y0) * (x - x0) / (x1 - x0)
+				double x0 = timesMs[i];
+				double x1 = timesMs[i + 1];
+				double y0 = values[i];
+				double y1 = values[i + 1];
+
+				if (x1 == x0) {
+					return y0; // Avoid division by zero
+				}
+
+				double interpolated = y0 + (y1 - y0) * (targetTime - x0) / (x1 - x0);
+				return interpolated;
+			}
+		}
+
+		return Double.NaN;
+	}
+
+	/**
+	 * Gets the results for fly positions (legacy method, kept for backward compatibility).
 	 * 
 	 * @param exp            The experiment
 	 * @param cage           The cage
