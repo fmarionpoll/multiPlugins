@@ -69,8 +69,11 @@ public class ImageLoader {
 		if (imagesList.isEmpty()) {
 			return false;
 		}
-		Sequence seq = loadSequenceFromImagesList(imagesList);
-		nTotalFrames = (int) (seq.getSizeT() - absoluteIndexFirstImage);
+		long savedFixedNumberOfImages = fixedNumberOfImages;
+		List<String> clippedList = clipImagesList(imagesList);
+		fixedNumberOfImages = savedFixedNumberOfImages;
+		nTotalFrames = clippedList.size();
+		Sequence seq = loadSequenceFromImagesList(clippedList);
 		seqCamData.attachSequence(seq);
 		return (seq != null);
 	}

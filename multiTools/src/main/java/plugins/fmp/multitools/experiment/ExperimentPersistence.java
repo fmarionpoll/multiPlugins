@@ -107,13 +107,11 @@ public class ExperimentPersistence {
 			exp.setCamImageFirst_ms(XMLUtil.getElementLongValue(node, ID_TIMEFIRSTIMAGEMS, -1));
 			exp.setCamImageLast_ms(XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGEMS, -1));
 			if (exp.getCamImageLast_ms() < 0) {
-				exp.setCamImageFirst_ms(XMLUtil.getElementLongValue(node, ID_TIMEFIRSTIMAGE, 0) * 60000);
-				exp.setCamImageLast_ms(XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGE, 0) * 60000);
-			}
+			exp.setCamImageFirst_ms(XMLUtil.getElementLongValue(node, ID_TIMEFIRSTIMAGE, 0) * 60000);
+			exp.setCamImageLast_ms(XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGE, 0) * 60000);
+		}
 
-			exp.setBinT0(XMLUtil.getElementLongValue(node, ID_BINT0, 0));
-
-			// Migration: Extract bin parameters from old XML format and migrate to bin
+		// Migration: Extract bin parameters from old XML format and migrate to bin
 			// directory
 			long firstKymoColMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
 			long lastKymoColMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
@@ -176,6 +174,10 @@ public class ExperimentPersistence {
 			if (exp.getSeqCamData() != null) {
 				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 				long frameFirst = XMLUtil.getElementLongValue(node, ID_FRAMEFIRST, 0);
+				if (frameFirst < 0) {
+					// Fallback: try to read from legacy binT0 parameter
+					frameFirst = XMLUtil.getElementLongValue(node, ID_BINT0, 0);
+				}
 				if (frameFirst < 0)
 					frameFirst = 0;
 				imgLoader.setAbsoluteIndexFirstImage(frameFirst);
@@ -273,7 +275,6 @@ public class ExperimentPersistence {
 				XMLUtil.setElementLongValue(node, ID_TIMEFIRSTIMAGEMS, firstMs);
 				XMLUtil.setElementLongValue(node, ID_TIMELASTIMAGEMS, lastMs);
 
-			XMLUtil.setElementLongValue(node, ID_BINT0, exp.getBinT0());
 			// Bin parameters (firstKymoColMs, lastKymoColMs, binKymoColMs) are now stored
 			// in BinDescription.xml files in each bin directory, not in
 			// Experiment.xml

@@ -152,14 +152,6 @@ public class Experiment {
 		timeManager.setCamImages_ms(ms);
 	}
 
-	public long getBinT0() {
-		return timeManager.getBinT0();
-	}
-
-	public void setBinT0(long val) {
-		timeManager.setBinT0(val);
-	}
-
 	public long getKymoFirst_ms() {
 		if (activeBinDescription != null && activeBinDescription.getFirstKymoColMs() >= 0) {
 			return activeBinDescription.getFirstKymoColMs();

@@ -157,7 +157,8 @@ public class Intervals extends JPanel implements ItemListener {
 		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
 		exp.setCamImageBin_ms(bin_ms);
 		exp.setKymoBin_ms(bin_ms);
-		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage((long) indexFirstImageJSpinner.getValue());
+		long firstImageIndex = (long) indexFirstImageJSpinner.getValue();
+		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(firstImageIndex);
 		exp.getSeqCamData().getTimeManager()
 				.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
 		if (exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() > 0)

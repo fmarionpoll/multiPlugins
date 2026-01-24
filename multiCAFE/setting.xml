@@ -75,10 +75,10 @@
 </section>
 <section name="export"/>
 </section>
-<key name="lastUpdateCheckTime" value="1769153950273"/>
+<key name="lastUpdateCheckTime" value="1769242188486"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
-<key name="loaderFolder" value="C:\Users\fred\Desktop\test evaporation\2026-01-21\cam05"/>
+<key name="loaderFolder" value="D:\test evaporation\2026-01-23"/>
 </section>
 <section name="canvas">
 <section name="Canvas2D"/>
@@ -96,10 +96,10 @@
 </section>
 <section name="online"/>
 </section>
-<key name="id" value="103826906"/>
+<key name="id" value="77146076"/>
 <key name="os" value="win64"/>
-<key name="clientCpuNumber" value="20"/>
-<key name="clientTotalMemory" value="34078785536"/>
+<key name="clientCpuNumber" value="16"/>
+<key name="clientTotalMemory" value="67880230912"/>
 <key name="appFolder" value="C:/Users/fred/.m2/repository/org/bioimageanalysis/icy/icy-kernel/2.5.1"/>
 <section name="loader">
 <section name="entry0">
@@ -137,7 +137,7 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1769178247098"/>
+<key name="lastUploadDate" value="1769266232925"/>
 <section name="frame">
 <section name="imageLoader">
 <key name="loadtype" value="0"/>
@@ -152,7 +152,7 @@
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\article1_court\data_article_court\CS\30+_vs_30\17-10-26_Caffeine"/>
+<key name="lastUsedPath" value="D:\test evaporation"/>
 </section>
 </section>
 </section>
@@ -160,7 +160,7 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="-63"/>
+<key name="XE" value="80"/>
 <key name="YE" value="76"/>
 <key name="WidthE" value="2531"/>
 <key name="HeightE" value="1286"/>

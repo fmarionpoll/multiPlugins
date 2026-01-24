@@ -13,7 +13,6 @@ public class ExperimentTimeManager {
 	private long camImageBin_ms = -1;
 	private long[] camImages_ms = null;
 
-	private long binT0 = 0;
 	private long kymoFirst_ms = 0;
 	private long kymoLast_ms = 0;
 	private long kymoBin_ms = 60000;
@@ -135,14 +134,6 @@ public class ExperimentTimeManager {
 
 	public void setCamImages_ms(long[] camImages_ms) {
 		this.camImages_ms = camImages_ms;
-	}
-
-	public long getBinT0() {
-		return binT0;
-	}
-
-	public void setBinT0(long binT0) {
-		this.binT0 = binT0;
 	}
 
 	public long getKymoFirst_ms() {

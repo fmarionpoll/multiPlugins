@@ -79,8 +79,6 @@ public class ExperimentPersistenceLegacy {
 				exp.setCamImageLast_ms(XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGE, 0) * 60000);
 			}
 
-			exp.setBinT0(XMLUtil.getElementLongValue(node, ID_BINT0, 0));
-
 			// Load bin parameters (legacy format - these are now migrated to bin directories)
 			long firstKymoColMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
 			long lastKymoColMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
@@ -140,6 +138,10 @@ public class ExperimentPersistenceLegacy {
 			if (exp.getSeqCamData() != null) {
 				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 				long frameFirst = XMLUtil.getElementLongValue(node, ID_FRAMEFIRST, 0);
+				if (frameFirst < 0) {
+					// Fallback: read from legacy binT0 parameter and map to indexFrameFirst
+					frameFirst = XMLUtil.getElementLongValue(node, ID_BINT0, 0);
+				}
 				if (frameFirst < 0)
 					frameFirst = 0;
 				imgLoader.setAbsoluteIndexFirstImage(frameFirst);
