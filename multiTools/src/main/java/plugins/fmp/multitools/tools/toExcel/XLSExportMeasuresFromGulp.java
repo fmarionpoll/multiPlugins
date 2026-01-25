@@ -7,10 +7,13 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import java.util.Map;
+
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.computations.CorrelationComputation;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -46,6 +49,16 @@ import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
  * @version 2.3.3
  */
 public class XLSExportMeasuresFromGulp extends XLSExport {
+	
+	// Track column position per result type (each has its own sheet)
+	private java.util.Map<EnumResults, Integer> columnPositionMap = new java.util.HashMap<>();
+
+	@Override
+	protected void cleanup() {
+		// Reset column tracking for new export session
+		columnPositionMap.clear();
+		super.cleanup();
+	}
 
 	/**
 	 * Exports gulp data for a single experiment.
@@ -77,9 +90,13 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		for (OptionToResultsMapping mapping : mappings) {
 			if (mapping.isEnabled()) {
 				for (EnumResults resultType : mapping.getResults()) {
-					int col = exportResultType(exp, startColumn, charSeries, resultType, "gulp");
-					if (col > colmax)
-						colmax = col;
+					// Get the current column for this result type's sheet, or use startColumn if first time
+					int currentCol = columnPositionMap.getOrDefault(resultType, startColumn);
+					int nextCol = exportResultType(exp, currentCol, charSeries, resultType, "gulp");
+					// Update the column position for this result type's sheet
+					columnPositionMap.put(resultType, nextCol);
+					if (nextCol > colmax)
+						colmax = nextCol;
 				}
 			}
 		}
@@ -123,6 +140,11 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 */
 	private int xlsExportExperimentGulpDataToSheetUsingBuilder(Experiment exp, SXSSFSheet sheet, EnumResults resultType,
 			Point pt, String charSeries) {
+
+		// Special handling for MARKOV_CHAIN: export all 16 transitions per cage
+		if (resultType == EnumResults.MARKOV_CHAIN) {
+			return xlsExportMarkovChainTransitions(exp, sheet, pt, charSeries);
+		}
 
 		ResultsOptions resultsOptions = new ResultsOptions();
 		long kymoBin_ms = exp.getKymoBin_ms();
@@ -258,14 +280,38 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					}
 				}
 			}
+			
+			// If still invalid, try to get from sequence data
+			if (kymoLast_ms <= kymoFirst_ms && exp.getSeqCamData() != null) {
+				long expFirstMs = exp.getSeqCamData().getTimeManager().getBinFirst_ms();
+				long expLastMs = exp.getSeqCamData().getTimeManager().getBinLast_ms();
+				if (expLastMs > expFirstMs) {
+					kymoFirst_ms = expFirstMs;
+					kymoLast_ms = expLastMs;
+				} else {
+					// Try from image loader
+					if (exp.getSeqCamData().getImageLoader() != null) {
+						long binMs = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+						int nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+						if (binMs > 0 && nFrames > 0) {
+							kymoFirst_ms = exp.getSeqCamData().getFirstImageMs();
+							kymoLast_ms = kymoFirst_ms + (nFrames - 1) * binMs;
+						}
+					}
+				}
+			}
 		}
 
 		long durationMs = kymoLast_ms - kymoFirst_ms;
 		int nOutputFrames = (int) (durationMs / resultsOptions.buildExcelStepMs + 1);
 
 		if (nOutputFrames <= 1) {
-			handleExportError(exp, -1);
-			// Fallback to a reasonable default
+			// Only log error if we really couldn't determine timing
+			if (kymoFirst_ms == 0 && kymoLast_ms == 0) {
+				handleExportError(exp, -1);
+			}
+			// Fallback: try to estimate from transition data size if available
+			// Otherwise use a reasonable default
 			nOutputFrames = 1000;
 		}
 
@@ -445,12 +491,21 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			return null;
 		}
 
-		// Calculate the number of output bins
+		// Calculate the number of output bins based on expAll (combined time range)
+		if (expAll == null || expAll.getSeqCamData() == null) {
+			System.err.println("XLSExportMeasuresFromGulp: expAll or expAll.getSeqCamData() is null for experiment: " + 
+				(exp != null ? exp.getExperimentDirectory() : "null"));
+			return null;
+		}
+		
 		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
 
 		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
+			System.err.println("XLSExportMeasuresFromGulp: Invalid timing for experiment: " + 
+				(exp != null ? exp.getExperimentDirectory() : "null") + 
+				" firstImageMs=" + firstImageMs + " lastImageMs=" + lastImageMs + " buildExcelStepMs=" + buildExcelStepMs);
 			return null;
 		}
 
@@ -562,6 +617,140 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		}
 
 		return Double.NaN;
+	}
+
+	/**
+	 * Exports Markov chain transitions for all cages.
+	 * Creates one row per transition type per cage, with transition description in Dum4.
+	 * 
+	 * @param exp        The experiment to export
+	 * @param sheet      The sheet to write to
+	 * @param pt         The starting point (after separator)
+	 * @param charSeries The series identifier
+	 * @return The next available column
+	 */
+	private int xlsExportMarkovChainTransitions(Experiment exp, SXSSFSheet sheet, Point pt, String charSeries) {
+		ResultsOptions resultsOptions = new ResultsOptions();
+		long kymoBin_ms = exp.getKymoBin_ms();
+		if (kymoBin_ms <= 0) {
+			kymoBin_ms = 60000;
+		}
+		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
+		resultsOptions.relativeToMaximum = false;
+		resultsOptions.subtractT0 = false;
+		resultsOptions.correctEvaporation = false;
+		resultsOptions.resultType = EnumResults.MARKOV_CHAIN;
+
+		exp.dispatchCapillariesToCages();
+		exp.getCages().prepareComputations(exp, resultsOptions);
+
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+
+			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
+			if (capillaries == null || capillaries.size() < 2) {
+				continue;
+			}
+
+			// Get a representative capillary for metadata (use first capillary or L capillary)
+			Capillary representativeCap = capillaries.get(0);
+			for (Capillary cap : capillaries) {
+				String side = cap.getCapillarySide();
+				if (side != null && (side.contains("L") || side.contains("1"))) {
+					representativeCap = cap;
+					break;
+				}
+			}
+
+			// Compute all 16 transitions for this cage
+			Map<String, int[]> transitionsMap = CorrelationComputation.computeMarkovChainCageLevel(exp, cage, resultsOptions);
+			
+			if (transitionsMap.isEmpty()) {
+				continue;
+			}
+
+			// Get number of time bins from the first transition array (all should have same size)
+			int nBins = 0;
+			for (int[] transitionArray : transitionsMap.values()) {
+				if (transitionArray != null && transitionArray.length > 0) {
+					nBins = transitionArray.length;
+					break;
+				}
+			}
+			
+			// Fallback to getNOutputFrames if transition arrays are empty
+			if (nBins == 0) {
+				nBins = getNOutputFrames(exp, resultsOptions);
+			}
+
+			// Export one row per transition type
+			for (String transitionType : CorrelationComputation.MARKOV_TRANSITIONS) {
+				int[] transitionArray = transitionsMap.get(transitionType);
+				if (transitionArray == null) {
+					continue;
+				}
+
+				// Create Results object with transition data
+				Results results = new Results(representativeCap.getRoiName(), representativeCap.getProperties().getNFlies(),
+						cage.getCageID(), 0, EnumResults.MARKOV_CHAIN);
+				results.setStimulus(representativeCap.getStimulus());
+				results.setConcentration(representativeCap.getConcentration());
+				results.initValuesOutArray(nBins, 0.0);
+
+				// Copy transition data (0/1) to valuesOut array
+				// Note: transitionArray[0] is always 0 (no transition at first bin)
+				// transitionArray[i] = 1 if transition occurred at bin i, else 0
+				for (int i = 0; i < Math.min(transitionArray.length, nBins); i++) {
+					results.getValuesOut()[i] = transitionArray[i];
+				}
+
+				// Write metadata and transition description
+				pt.y = 0;
+				pt = writeExperimentGulpInfosWithTransition(sheet, pt, exp, charSeries, cage, representativeCap, transitionType);
+				writeXLSResult(sheet, pt, results);
+				pt.x++;
+			}
+		}
+		return pt.x;
+	}
+
+	/**
+	 * Writes experiment gulp information to the sheet with transition type in Dum4.
+	 * 
+	 * @param sheet          The sheet to write to
+	 * @param pt             The starting point
+	 * @param exp            The experiment
+	 * @param charSeries     The series identifier
+	 * @param cage           The cage
+	 * @param capillary      The representative capillary
+	 * @param transitionType The transition type description (e.g., "L0R0->L0R1")
+	 * @return The updated point
+	 */
+	protected Point writeExperimentGulpInfosWithTransition(SXSSFSheet sheet, Point pt, Experiment exp, String charSeries,
+			Cage cage, Capillary capillary, String transitionType) {
+		int x = pt.x;
+		int y = pt.y;
+		boolean transpose = options.transpose;
+
+		// Write basic file information
+		writeFileInformationForGulp(sheet, x, y, transpose, exp);
+
+		// Write experiment properties
+		writeExperimentPropertiesForGulp(sheet, x, y, transpose, exp, charSeries);
+
+		// Write cage properties
+		writeCageProperties(sheet, pt, transpose, cage);
+
+		// Write capillary properties
+		writeCapillaryProperties(sheet, x, y, transpose, capillary, charSeries, EnumResults.MARKOV_CHAIN);
+
+		// Write transition type to Dum4 column
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DUM4.getValue(), transpose, transitionType);
+
+		pt.y = y + getDescriptorRowCount();
+		return pt;
 	}
 
 	/**

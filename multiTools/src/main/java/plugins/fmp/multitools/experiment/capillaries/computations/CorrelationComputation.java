@@ -1,7 +1,9 @@
 package plugins.fmp.multitools.experiment.capillaries.computations;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
@@ -15,6 +17,17 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * Computations for correlation-based measures (AUTOCORREL, CROSSCORREL, MARKOV_CHAIN).
  */
 public class CorrelationComputation {
+
+	/**
+	 * All 16 possible Markov chain transitions between L and R capillaries.
+	 * Format: "L{0|1}R{0|1}->L{0|1}R{0|1}" where 0 = no feeding, 1 = feeding
+	 */
+	public static final String[] MARKOV_TRANSITIONS = {
+		"L0R0->L0R0", "L0R0->L0R1", "L0R0->L1R0", "L0R0->L1R1",
+		"L0R1->L0R0", "L0R1->L0R1", "L0R1->L1R0", "L0R1->L1R1",
+		"L1R0->L0R0", "L1R0->L0R1", "L1R0->L1R0", "L1R0->L1R1",
+		"L1R1->L0R0", "L1R1->L0R1", "L1R1->L1R0", "L1R1->L1R1"
+	};
 
 	/**
 	 * Computes autocorrelation for a single capillary (AUTOCORREL).
@@ -190,6 +203,83 @@ public class CorrelationComputation {
 
 			return transitions;
 		};
+	}
+
+	/**
+	 * Computes all 16 Markov chain transitions for a cage with L and R capillaries.
+	 * Returns a map where each key is a transition type (e.g., "L0R0->L0R1") and
+	 * the value is an array of 0/1 indicating if that transition occurred at each time bin.
+	 * 
+	 * @param exp The experiment
+	 * @param cage The cage containing L and R capillaries
+	 * @param options The results options
+	 * @return Map of transition type -> array of 0/1 values (one per time bin)
+	 */
+	public static Map<String, int[]> computeMarkovChainCageLevel(Experiment exp, Cage cage, ResultsOptions options) {
+		Map<String, int[]> transitionsMap = new HashMap<>();
+		
+		if (exp == null || cage == null) {
+			return transitionsMap;
+		}
+
+		List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
+		if (capillaries == null || capillaries.size() < 2) {
+			return transitionsMap;
+		}
+
+		// Find L and R capillaries
+		Capillary capL = null;
+		Capillary capR = null;
+		for (Capillary c : capillaries) {
+			String side = c.getCapillarySide();
+			if (side != null && (side.contains("L") || side.contains("1"))) {
+				capL = c;
+			} else if (side != null && (side.contains("R") || side.contains("2"))) {
+				capR = c;
+			}
+		}
+
+		if (capL == null || capR == null) {
+			return transitionsMap;
+		}
+
+		// Get binary states for L and R capillaries
+		ArrayList<Integer> eventsL = getGulpEvents(exp, capL, options);
+		ArrayList<Integer> eventsR = getGulpEvents(exp, capR, options);
+
+		if (eventsL == null || eventsR == null || eventsL.isEmpty() || eventsR.isEmpty()) {
+			return transitionsMap;
+		}
+
+		// Align sizes
+		int size = Math.min(eventsL.size(), eventsR.size());
+		if (size < 2) {
+			return transitionsMap;
+		}
+
+		// Initialize all transition arrays with zeros
+		for (String transition : MARKOV_TRANSITIONS) {
+			transitionsMap.put(transition, new int[size]);
+		}
+
+		// Compute transitions for each time bin (starting from bin 1, since bin 0 has no previous state)
+		for (int t = 1; t < size; t++) {
+			int lPrev = eventsL.get(t - 1) > 0 ? 1 : 0;
+			int rPrev = eventsR.get(t - 1) > 0 ? 1 : 0;
+			int lCurr = eventsL.get(t) > 0 ? 1 : 0;
+			int rCurr = eventsR.get(t) > 0 ? 1 : 0;
+
+			// Build transition string: "L{prev}R{prev}->L{curr}R{curr}"
+			String transition = String.format("L%dR%d->L%dR%d", lPrev, rPrev, lCurr, rCurr);
+			
+			// Mark this transition as occurring at time bin t
+			int[] transitionArray = transitionsMap.get(transition);
+			if (transitionArray != null) {
+				transitionArray[t] = 1;
+			}
+		}
+
+		return transitionsMap;
 	}
 
 	// Helper methods

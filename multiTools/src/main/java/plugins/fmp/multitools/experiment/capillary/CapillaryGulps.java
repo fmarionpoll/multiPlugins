@@ -169,10 +169,12 @@ public class CapillaryGulps {
 		case AUTOCORREL_LR:
 		case CROSSCORREL:
 		case CROSSCORREL_LR:
+		case MARKOV_CHAIN:
 			data_in = getAmplitudeGulpsFromAmplitudeSeries(npoints);
 			convertPositiveAmplitudesIntoEvent(data_in);
 			data_in = stretchArrayToOutputBins(data_in, seriesBinMs, outputBinMs);
 			break;
+
 		default:
 			break;
 		}

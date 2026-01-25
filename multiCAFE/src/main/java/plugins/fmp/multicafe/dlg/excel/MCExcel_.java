@@ -174,15 +174,12 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 		ResultsOptions resultsOptions = new ResultsOptions();
 		resultsOptions.sumGulps = false;
 		resultsOptions.nbGulps = false;
-
 		resultsOptions.topLevel = tabLevels.topLevelCheckBox.isSelected();
-//		resultsOptions.topLevelDelta = tabLevels.topLevelDeltaCheckBox.isSelected();
 		resultsOptions.bottomLevel = tabLevels.bottomLevelCheckBox.isSelected();
 		resultsOptions.sumGulps = false;
 		resultsOptions.lrPI = tabLevels.lrPICheckBox.isSelected();
 		resultsOptions.lrPIThreshold = (double) tabLevels.lrPIThresholdJSpinner.getValue();
 		resultsOptions.sumPerCage = tabLevels.sumPerCageCheckBox.isSelected();
-		// options.t0 = tabLevels.t0CheckBox.isSelected();
 		resultsOptions.correctEvaporation = tabLevels.subtractEvaporationCheckBox.isSelected();
 		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
@@ -195,16 +192,16 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.bottomLevel = false;
 		resultsOptions.derivative = tabGulps.derivativeCheckBox.isSelected();
 		resultsOptions.sumPerCage = false;
-//		options.t0 = false;
+
 		resultsOptions.sumGulps = tabGulps.sumGulpsCheckBox.isSelected();
 		resultsOptions.lrPI = tabGulps.sumCheckBox.isSelected();
 		resultsOptions.nbGulps = tabGulps.nbGulpsCheckBox.isSelected();
 		resultsOptions.amplitudeGulps = tabGulps.amplitudeGulpsCheckBox.isSelected();
 
 		resultsOptions.markovChain = tabGulps.markovChainCheckBox.isSelected();
-		resultsOptions.autocorrelation = tabGulps.autocorrelationCheckBox.isSelected();
-		resultsOptions.crosscorrelation = tabGulps.crosscorrelationCheckBox.isSelected();
-		resultsOptions.nBinsCorrelation = (int) tabGulps.nbinsJSpinner.getValue();
+//		resultsOptions.autocorrelation = tabGulps.autocorrelationCheckBox.isSelected();
+//		resultsOptions.crosscorrelation = tabGulps.crosscorrelationCheckBox.isSelected();
+//		resultsOptions.nBinsCorrelation = (int) tabGulps.nbinsJSpinner.getValue();
 
 		resultsOptions.correctEvaporation = false;
 		getCommonOptions(resultsOptions, exp);
