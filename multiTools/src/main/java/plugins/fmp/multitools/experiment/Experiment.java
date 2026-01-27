@@ -1062,69 +1062,23 @@ public class Experiment {
 					seqCamData.getSequence().addROI(cap.getRoi());
 					roisAdded++;
 					if (roisAdded <= 3) { // Log first 3 for debugging
-						String msgRoi = "Experiment:load_capillaries_description_and_measures() Added ROI: " + roiName + 
-								", contains 'line': " + (roiName != null && roiName.contains("line"));
-						Logger.info(msgRoi);
-						System.out.println(msgRoi);
-					}
-				} else {
-					if (roisAdded == 0) { // Log first null ROI
-						String msgNull = "Experiment:load_capillaries_description_and_measures() Capillary has null ROI: " + cap.getRoiName();
-						Logger.warn(msgNull);
-						System.out.println("WARN: " + msgNull);
+					String msgRoi = "Experiment:load_capillaries_description_and_measures() Added ROI: " + roiName + 
+							", contains 'line': " + (roiName != null && roiName.contains("line"));
+					Logger.info(msgRoi);
 					}
 				}
 			}
 			
 			// Make sure ROIs are visible after being added
 			icy.gui.viewer.Viewer viewer = seqCamData.getSequence().getFirstViewer();
-			String msgViewer = "Experiment:load_capillaries_description_and_measures() Viewer check - roisAdded: " + roisAdded + 
-					", viewer: " + (viewer != null);
-			Logger.info(msgViewer);
-			System.out.println(msgViewer);
-			
-			if (roisAdded > 0) {
-				if (viewer != null) {
-					seqCamData.displaySpecificROIs(true, "line");
-					String msgVisible = "Experiment:load_capillaries_description_and_measures() Made " + roisAdded + " capillary ROIs visible";
-					Logger.info(msgVisible);
-					System.out.println(msgVisible);
-				} else {
-					String msgNoViewer = "Experiment:load_capillaries_description_and_measures() WARNING: Viewer is null, cannot make ROIs visible yet";
-					Logger.warn(msgNoViewer);
-					System.out.println("WARN: " + msgNoViewer);
-				}
+			if (roisAdded > 0 && viewer != null) {
+				seqCamData.displaySpecificROIs(true, "line");
 			}
-			
-			String msg1 = "Experiment:load_capillaries_description_and_measures() Added " + roisAdded + 
-					" capillary ROIs to seqCamData (total capillaries: " + capillaries.getList().size() + ")";
-			Logger.info(msg1);
-			System.out.println(msg1);
-		} else {
-			String msg2 = "Experiment:load_capillaries_description_and_measures() NOT adding ROIs - capillaries.size=" + 
-					capillaries.getList().size() + ", seqCamData=" + (seqCamData != null) + 
-					", seqCamData.sequence=" + (seqCamData != null && seqCamData.getSequence() != null);
-			Logger.warn(msg2);
-			System.out.println("WARN: " + msg2);
 		}
 
 		// Transfer measures to kymographs if measures loaded successfully
 		if (measuresLoaded && seqKymos != null && seqKymos.getSequence() != null) {
-			String msg3 = "Experiment:load_capillaries_description_and_measures() Transferring measures to kymos - measuresLoaded=" + 
-					measuresLoaded + ", seqKymos=" + (seqKymos != null) + 
-					", seqKymos.sequence=" + (seqKymos.getSequence() != null);
-			Logger.info(msg3);
-			System.out.println(msg3);
 			CapillariesKymosMapper.pushCapillaryMeasuresToKymos(capillaries, seqKymos);
-			String msg4 = "Experiment:load_capillaries_description_and_measures() Measures transferred to kymos";
-			Logger.info(msg4);
-			System.out.println(msg4);
-		} else {
-			String msg5 = "Experiment:load_capillaries_description_and_measures() NOT transferring measures - measuresLoaded=" + 
-					measuresLoaded + ", seqKymos=" + (seqKymos != null) + 
-					", seqKymos.sequence=" + (seqKymos != null && seqKymos.getSequence() != null);
-			Logger.warn(msg5);
-			System.out.println("WARN: " + msg5);
 		}
 
 		return descriptionsLoaded || measuresLoaded;
@@ -2075,14 +2029,9 @@ public class Experiment {
 	// ---------------------------------------------------------
 
 	public void dispatchCapillariesToCages() {
-		if (capillaries.getList().size() < 1) {
-			Logger.warn("Experiment.dispatchCapillariesToCages() - No capillaries to dispatch (list size: 0)");
+		if (capillaries.getList().size() < 1)
 			return;
-		}
 
-		int dispatchedCount = 0;
-		int skippedCount = 0;
-		
 		// Clear capillary ID lists in all cages
 		for (Cage cage : cages.getCageList()) {
 			cage.clearCapillaryList();
@@ -2097,7 +2046,6 @@ public class Experiment {
 				Logger.warn(
 						"Experiment.dispatchCapillariesToCages() - Skipping capillary with invalid kymographIndex (-1): "
 								+ cap.getKymographName() + ". This may indicate incomplete persistence data.");
-				skippedCount++;
 				continue;
 			}
 
@@ -2115,13 +2063,7 @@ public class Experiment {
 			cage.addCapillaryIDIfUnique(capID);
 			// Also update legacy field for backward compatibility
 			cage.addCapillaryIfUnique(cap);
-			dispatchedCount++;
 		}
-		
-		String msg = "Experiment.dispatchCapillariesToCages() - Dispatched " + dispatchedCount + " capillaries to " + 
-		             cages.getCageList().size() + " cages (skipped: " + skippedCount + ")";
-		Logger.info(msg);
-		System.out.println(msg);
 
 		if (cages.getCageList().size() > 0) {
 			cages.checkAndCorrectCagePositions();

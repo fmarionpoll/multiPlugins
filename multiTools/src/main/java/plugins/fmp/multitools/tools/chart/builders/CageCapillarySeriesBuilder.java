@@ -36,15 +36,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		Capillaries allCapillaries = exp.getCapillaries();
 		List<Capillary> capillaries = cage.getCapillaries(allCapillaries);
 		if (capillaries == null || capillaries.isEmpty()) {
-			String msg = "CageCapillarySeriesBuilder:build() - Cage " + cage.getCageID() + " has no capillaries (list is null or empty)";
-			plugins.fmp.multitools.tools.Logger.warn(msg);
-			System.out.println("WARN: " + msg);
 			return new XYSeriesCollection();
 		}
-
-		String msg1 = "CageCapillarySeriesBuilder:build() - Cage " + cage.getCageID() + " has " + capillaries.size() + " capillaries";
-		plugins.fmp.multitools.tools.Logger.info(msg1);
-		System.out.println(msg1);
 
 		if (ChartCageBuild.isLRType(options.resultType)) {
 			return buildLR(exp, cage, options);
@@ -52,33 +45,14 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		int i = 0;
-		int seriesCreated = 0;
 		for (Capillary cap : capillaries) {
 			XYSeries series = createXYSeriesFromCapillaryMeasure(exp, cap, options);
 			if (series != null) {
 				series.setDescription(buildSeriesDescription(cage, cap, i));
 				dataset.addSeries(series);
-				seriesCreated++;
-				String msg2 = "CageCapillarySeriesBuilder:build() - Created series for capillary " + cap.getKymographName() + 
-				              ", itemCount=" + series.getItemCount();
-				if (series.getItemCount() == 0) {
-					plugins.fmp.multitools.tools.Logger.warn(msg2 + " (EMPTY SERIES!)");
-					System.out.println("WARN: " + msg2 + " (EMPTY SERIES!)");
-				} else {
-					plugins.fmp.multitools.tools.Logger.info(msg2);
-					System.out.println(msg2);
-				}
-			} else {
-				String msg3 = "CageCapillarySeriesBuilder:build() - Failed to create series for capillary " + cap.getKymographName();
-				plugins.fmp.multitools.tools.Logger.warn(msg3);
-				System.out.println("WARN: " + msg3);
 			}
 			i++;
 		}
-		
-		String msg4 = "CageCapillarySeriesBuilder:build() - Cage " + cage.getCageID() + " total series created: " + seriesCreated + "/" + capillaries.size();
-		plugins.fmp.multitools.tools.Logger.info(msg4);
-		System.out.println(msg4);
 
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
@@ -206,10 +180,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	}
 
 	private static XYSeries createXYSeriesFromCapillaryMeasure(Experiment exp, Capillary cap, ResultsOptions options) {
-		if (exp == null || cap == null || options == null) {
-			plugins.fmp.multitools.tools.Logger.warn("CageCapillarySeriesBuilder:createXYSeriesFromCapillaryMeasure() - null parameter: exp=" + (exp == null) + ", cap=" + (cap == null) + ", options=" + (options == null));
+		if (exp == null || cap == null || options == null)
 			return null;
-		}
 
 		XYSeries seriesXY = new XYSeries(cap.getCageID() + "_" + cap.getCapillarySide(), false);
 
@@ -218,23 +190,12 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
 
 		CapillaryMeasure capMeasure = cap.getMeasurements(options.resultType, exp, options);
-		if (capMeasure == null) {
-			String msg = "CageCapillarySeriesBuilder:createXYSeriesFromCapillaryMeasure() - getMeasurements returned null for capillary " + 
-			             cap.getKymographName() + ", resultType=" + options.resultType;
-			plugins.fmp.multitools.tools.Logger.warn(msg);
-			System.out.println("WARN: " + msg);
+		if (capMeasure == null)
 			return null;
-		}
 
 		int npoints = capMeasure.getNPoints();
 		if (camImages_time_min != null && npoints > camImages_time_min.length)
 			npoints = camImages_time_min.length;
-
-		String msgMeasure = "CageCapillarySeriesBuilder:createXYSeriesFromCapillaryMeasure() - Capillary " + cap.getKymographName() + 
-		                    ", npoints=" + npoints + ", camImages_time_min.length=" + 
-		                    (camImages_time_min != null ? camImages_time_min.length : "null");
-		plugins.fmp.multitools.tools.Logger.info(msgMeasure);
-		System.out.println(msgMeasure);
 
 		double scalingFactor = 1.0;
 		if ("volume (ul)".equals(options.resultType.toUnit())) {
@@ -247,12 +208,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			double y = capMeasure.getValueAt(j) * scalingFactor;
 			seriesXY.add(x, y);
 		}
-		
-		String msgFinal = "CageCapillarySeriesBuilder:createXYSeriesFromCapillaryMeasure() - Capillary " + cap.getKymographName() + 
-		                 ", final series itemCount=" + seriesXY.getItemCount();
-		plugins.fmp.multitools.tools.Logger.info(msgFinal);
-		System.out.println(msgFinal);
-		
 		return seriesXY;
 	}
 }

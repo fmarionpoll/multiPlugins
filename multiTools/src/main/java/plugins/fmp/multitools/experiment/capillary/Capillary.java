@@ -1212,16 +1212,8 @@ public class Capillary implements Comparable<Capillary> {
 			break;
 
 		case TOPRAW:
-			if (measurements.ptsTop == null) {
-				plugins.fmp.multitools.tools.Logger.warn("Capillary.getMeasurementsDirect(TOPRAW) - measurements.ptsTop is null for " + getKymographName());
-				return null;
-			}
 			measure = new CapillaryMeasure(measurements.ptsTop.capName);
 			measure.copy(measurements.ptsTop);
-			if (measure.polylineLevel == null || measure.polylineLevel.npoints == 0) {
-				plugins.fmp.multitools.tools.Logger.warn("Capillary.getMeasurementsDirect(TOPRAW) - measure.polylineLevel is null or empty (npoints=" + 
-				                                         (measure.polylineLevel != null ? measure.polylineLevel.npoints : 0) + ") for " + getKymographName());
-			}
 			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
 				measure.polylineLevel.offsetToStartWithZeroAmplitude();
 			break;
