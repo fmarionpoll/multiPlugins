@@ -781,17 +781,8 @@ public class Experiment {
 				// only set if present and valid in XML (positive value)
 				imgLoader.setFixedNumberOfImages(nImages);
 				imgLoader.setNTotalFrames((int) (nImages - frameFirst));
-				
-				// Fix: If nTotalFrames is invalid (0 or 1), refresh from actual image list
-				int nTotalFrames = imgLoader.getNTotalFrames();
-				if (nTotalFrames <= 1 && nTotalFrames >= -1) {
-					int actualImageCount = imgLoader.getImagesCount();
-					if (actualImageCount > 1) {
-						nImages = actualImageCount + frameFirst;
-						imgLoader.setFixedNumberOfImages(nImages);
-						imgLoader.setNTotalFrames(actualImageCount);
-					}
-				}
+				// getNTotalFrames() will auto-correct if value is invalid (-1, 0, or 1)
+				imgLoader.getNTotalFrames();
 			} else {
 				// nFrames is -1 (missing), 0 (undetermined), or negative - don't set yet
 				// Will be determined later when images are actually loaded

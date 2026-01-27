@@ -221,9 +221,13 @@ public class ImageLoader {
 	}
 
 	public int getNTotalFrames() {
-		// Auto-compute from imagesList if not set
-		if (nTotalFrames == 0 && !imagesList.isEmpty()) {
+		// Auto-compute from imagesList if invalid (-1, 0, or 1) or not set
+		if (nTotalFrames <= 1 && nTotalFrames >= -1 && !imagesList.isEmpty() && imagesList.size() > 1) {
 			nTotalFrames = imagesList.size();
+			// Also update fixedNumberOfImages to keep them in sync
+			if (fixedNumberOfImages <= 0) {
+				fixedNumberOfImages = imagesList.size() + absoluteIndexFirstImage;
+			}
 		}
 		return nTotalFrames;
 	}
