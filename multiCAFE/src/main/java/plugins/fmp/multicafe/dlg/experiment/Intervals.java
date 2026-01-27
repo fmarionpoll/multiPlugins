@@ -24,6 +24,7 @@ import icy.gui.viewer.Viewer;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class Intervals extends JPanel implements ItemListener {
@@ -40,6 +41,7 @@ public class Intervals extends JPanel implements ItemListener {
 	JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
 			new String[] { "up to last frame acquired", "clip number of frames to" });
 	JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
+	JButton updateNFramesButton = new JButton("Update");
 	JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
 	JComboBoxMs binUnit = new JComboBoxMs();
 	JButton applyButton = new JButton("Apply changes");
@@ -56,6 +58,7 @@ public class Intervals extends JPanel implements ItemListener {
 		indexFirstImageJSpinner.setPreferredSize(dimension);
 		binSizeJSpinner.setPreferredSize(dimension);
 		fixedNumberOfImagesJSpinner.setPreferredSize(dimension);
+		updateNFramesButton.setPreferredSize(new Dimension(70, bHeight));
 
 		FlowLayout layout1 = new FlowLayout(FlowLayout.LEFT);
 		layout1.setVgap(1);
@@ -65,6 +68,7 @@ public class Intervals extends JPanel implements ItemListener {
 		panel0.add(indexFirstImageJSpinner);
 		panel0.add(clipNumberImagesCombo);
 		panel0.add(fixedNumberOfImagesJSpinner);
+		panel0.add(updateNFramesButton);
 		panel0.add(applyButton);
 		add(panel0);
 
@@ -120,17 +124,35 @@ public class Intervals extends JPanel implements ItemListener {
 		fixedNumberOfImagesJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				long newValue = (long) fixedNumberOfImagesJSpinner.getValue();
-				if (exp != null && exp.getSeqCamData() != null
-						&& exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() != newValue) {
-					exp.getSeqCamData().getImageLoader().setFixedNumberOfImages(newValue);
-					List<String> imagesList = (ArrayList<String>) ExperimentDirectories
-							.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
-					exp.getSeqCamData().loadImageList(imagesList);
-					long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-					exp.getSeqCamData().getTimeManager().setBinLast_ms((long) (fixedNumberOfImagesJSpinner.getValue())
-							- exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
+				if (exp == null || exp.getSeqCamData() == null) {
+					return;
 				}
+				long requested = (long) fixedNumberOfImagesJSpinner.getValue();
+				ImageLoader imgLoader = exp.getSeqCamData()
+						.getImageLoader();
+				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
+						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
+				long available = Math.max(0L, imagesOnDisk.size() - imgLoader.getAbsoluteIndexFirstImage());
+				if (available <= 0) {
+					fixedNumberOfImagesJSpinner.setValue(0L);
+					imgLoader.setFixedNumberOfImages(0L);
+					imgLoader.setNTotalFrames(0);
+					return;
+				}
+				long clamped = Math.min(Math.max(1L, requested), available);
+				if (clamped != requested) {
+					fixedNumberOfImagesJSpinner.setValue(clamped);
+				}
+				if (imgLoader.getFixedNumberOfImages() == clamped) {
+					return;
+				}
+				imgLoader.setFixedNumberOfImages(clamped);
+				imgLoader.setNTotalFrames((int) clamped);
+				exp.getSeqCamData().loadImageList(imagesOnDisk);
+				long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+				exp.getSeqCamData().getTimeManager()
+						.setBinLast_ms((clamped - imgLoader.getAbsoluteIndexFirstImage()) * bin_ms);
+				exp.saveExperimentDescriptors();
 			}
 		});
 
@@ -147,6 +169,32 @@ public class Intervals extends JPanel implements ItemListener {
 					exp.getSeqCamData().getTimeManager().setBinLast_ms(
 							(exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() - 1) * bin_ms);
 				}
+			}
+		});
+
+		updateNFramesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp == null || exp.getSeqCamData() == null) {
+					return;
+				}
+				ImageLoader imgLoader = exp.getSeqCamData()
+						.getImageLoader();
+				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
+						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
+				long available = Math.max(0L, imagesOnDisk.size() - imgLoader.getAbsoluteIndexFirstImage());
+				if (available <= 0) {
+					fixedNumberOfImagesJSpinner.setValue(0L);
+					imgLoader.setFixedNumberOfImages(0L);
+					imgLoader.setNTotalFrames(0);
+					return;
+				}
+				imgLoader.setFixedNumberOfImages(available);
+				imgLoader.setNTotalFrames((int) available);
+				fixedNumberOfImagesJSpinner.setValue(available);
+				exp.getSeqCamData().loadImageList(imagesOnDisk);
+				exp.saveExperimentDescriptors();
 			}
 		});
 
