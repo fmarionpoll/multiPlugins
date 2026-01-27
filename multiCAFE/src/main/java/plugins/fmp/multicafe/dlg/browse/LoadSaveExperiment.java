@@ -398,9 +398,13 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				totalFlyPositions += cage.flyPositions.flyPositionList.size();
 			}
 		}
+		int nFrames = 0;
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getImageLoader() != null) {
+			nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		}
 		System.out.println("LoadExperiment: openSelectedExperiment [" + expIndex + "] load completed, total time: "
 				+ (endTime - startTime) / 1e6 + " ms, cages: " + cageCount + ", with fly positions: "
-				+ cagesWithFlyPositions + ", total fly positions: " + totalFlyPositions);
+				+ cagesWithFlyPositions + ", total fly positions: " + totalFlyPositions + ", frames: " + nFrames);
 	}
 
 	/**

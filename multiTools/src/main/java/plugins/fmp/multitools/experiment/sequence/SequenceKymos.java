@@ -306,9 +306,6 @@ public class SequenceKymos extends SequenceCamData {
 			if (roi instanceof ROI2D && ((ROI2D) roi).getT() == t)
 				roisAtT.add(roi);
 		}
-
-//		cap.filenameTIFF = getFileNameFromImageList(t);
-//		cap.kymographIndex = t;
 		cap.transferROIsToMeasures(roisAtT);
 
 		return true;
@@ -316,14 +313,15 @@ public class SequenceKymos extends SequenceCamData {
 
 	public void transferCapillariesMeasuresToKymos(Capillaries capillaries) {
 		// Remove existing measure ROIs to prevent duplication
-		// Measure ROIs have names like "prefix_toplevel", "prefix_bottomlevel", "prefix_derivative", "prefix_gulps"
+		// Measure ROIs have names like "prefix_toplevel", "prefix_bottomlevel",
+		// "prefix_derivative", "prefix_gulps"
 		List<ROI2D> allROIs = getSequence().getROI2Ds();
 		List<ROI2D> roisToRemove = new ArrayList<ROI2D>();
 		for (ROI2D roi : allROIs) {
 			if (roi instanceof ROI2DPolyLine && roi.getName() != null) {
 				String name = roi.getName();
 				// Check if this ROI matches the pattern of measure ROIs
-				if (name.contains("_") && (name.contains("toplevel") || name.contains("bottomlevel") 
+				if (name.contains("_") && (name.contains("toplevel") || name.contains("bottomlevel")
 						|| name.contains("derivative") || name.contains("gulps"))) {
 					roisToRemove.add(roi);
 				}
@@ -331,27 +329,20 @@ public class SequenceKymos extends SequenceCamData {
 		}
 		if (!roisToRemove.isEmpty()) {
 			getSequence().removeROIs(roisToRemove, false);
-			plugins.fmp.multitools.tools.Logger.info("SequenceKymos:transferCapillariesMeasuresToKymos() Removed " + roisToRemove.size() + " existing measure ROIs");
-			System.out.println("SequenceKymos:transferCapillariesMeasuresToKymos() Removed " + roisToRemove.size() + " existing measure ROIs");
 		}
 
 		List<ROI2D> newRoisList = new ArrayList<ROI2D>();
 		int ncapillaries = capillaries.getList().size();
 		List<String> imagesList = getImagesList();
-		int totalRoisCreated = 0;
+
 		for (int i = 0; i < ncapillaries; i++) {
 			List<ROI2D> listOfRois = capillaries.getList().get(i).transferMeasuresToROIs(imagesList);
 			if (listOfRois != null) {
 				newRoisList.addAll(listOfRois);
-				totalRoisCreated += listOfRois.size();
 			}
 		}
 
 		getSequence().addROIs(newRoisList, false);
-		String msg = "SequenceKymos:transferCapillariesMeasuresToKymos() Created and added " + totalRoisCreated + 
-				" measure ROIs from " + ncapillaries + " capillaries";
-		plugins.fmp.multitools.tools.Logger.info(msg);
-		System.out.println(msg);
 	}
 
 	public void saveKymosCurvesToCapillariesMeasures(Experiment exp) {
@@ -447,11 +438,10 @@ public class SequenceKymos extends SequenceCamData {
 	 * Creates a list of potential kymograph files from spots in cages.
 	 * 
 	 * @param baseDirectory the base directory
-	 * @param cages    the cages array
+	 * @param cages         the cages array
 	 * @return list of image file descriptors
 	 */
-	public List<ImageFileData> createKymographFileList(String baseDirectory, Cages cages,
-			Spots allSpots) {
+	public List<ImageFileData> createKymographFileList(String baseDirectory, Cages cages, Spots allSpots) {
 		if (baseDirectory == null || baseDirectory.trim().isEmpty()) {
 			throw new IllegalArgumentException("Base directory cannot be null or empty");
 		}
@@ -542,13 +532,11 @@ public class SequenceKymos extends SequenceCamData {
 	}
 
 	/**
-	 * @deprecated Use
-	 *             {@link #createKymographFileList(String, Cages, Spots)}
+	 * @deprecated Use {@link #createKymographFileList(String, Cages, Spots)}
 	 *             instead
 	 */
 	@Deprecated
-	public List<ImageFileData> loadListOfPotentialKymographsFromSpots(String dir, Cages cages,
-			Spots allSpots) {
+	public List<ImageFileData> loadListOfPotentialKymographsFromSpots(String dir, Cages cages, Spots allSpots) {
 		return createKymographFileList(dir, cages, allSpots);
 	}
 

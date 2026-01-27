@@ -27,6 +27,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
@@ -310,9 +311,16 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		ROI2D roi = capillary.getRoi();
 		if (roi != null) {
 			if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+				// Ensure viewer exists before selecting ROI
+				Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+				if (v == null) {
+					v = new ViewerFMP(exp.getSeqCamData().getSequence(), true, true);
+				}
+				
 				exp.getSeqCamData().getSequence().setFocusedROI(roi);
 				exp.getSeqCamData().centerDisplayOnRoi(roi);
 				exp.getSeqCamData().getSequence().setSelectedROI(roi);
+				v.toFront();
 			}
 		}
 	}
@@ -332,17 +340,43 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			return;
 		}
 
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return;
+		}
+
+		// Always call getNTotalFrames() directly to get auto-corrected value
+		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		int actualImageCount = exp.getSeqCamData().getImageLoader().getImagesCount();
+		
+		// Validate nTotalFrames - must be > 1 and match actual image count
+		if (nTotalFrames <= 1 || nTotalFrames != actualImageCount) {
+			Logger.warn("CapillaryChartInteractionHandler: Invalid nTotalFrames=" + nTotalFrames 
+					+ " (actualImageCount=" + actualImageCount + "). Chart interaction disabled.");
+			return;
+		}
+
+		// Validate time array size matches nTotalFrames
+		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
+		if (timeArray == null || timeArray.length != nTotalFrames) {
+			Logger.warn("CapillaryChartInteractionHandler: Time array size mismatch. Array length=" 
+					+ (timeArray != null ? timeArray.length : 0) + ", nTotalFrames=" + nTotalFrames 
+					+ ". Chart interaction disabled.");
+			return;
+		}
+
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v == null) {
-			return;
+			// Ensure viewer exists - create it if needed
+			v = new ViewerFMP(exp.getSeqCamData().getSequence(), true, true);
 		}
 
 		// Convert time (minutes) to frame index
 		if (timeMinutes >= 0) {
-			// Find nearest frame index
+			// Find nearest frame index - use getNTotalFrames() directly to ensure correct value
 			int frameIndex = exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch(
 					(long) (timeMinutes * 60000), 0, exp.getSeqCamData().getImageLoader().getNTotalFrames());
 			v.setPositionT(frameIndex);
+			v.toFront();
 		}
 	}
 
@@ -364,7 +398,8 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 
 		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
 		if (v == null) {
-			return;
+			// Ensure viewer exists - create it if needed
+			v = new ViewerFMP(exp.getSeqKymos().getSequence(), true, true);
 		}
 
 		// Always find kymograph index by searching for the kymograph name in the image list
@@ -374,6 +409,7 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 
 		if (kymographIndex >= 0 && kymographIndex < exp.getSeqKymos().getSequence().getSizeT()) {
 			v.setPositionT(kymographIndex);
+			v.toFront();
 		}
 	}
 

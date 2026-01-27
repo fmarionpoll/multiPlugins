@@ -345,12 +345,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults resultType) {
-		boolean flag = false;
 		Capillaries capillaries = exp.getCapillaries();
 		if (capillaries == null || capillaries.getList() == null) {
-			String msg = "Chart:isThereAnyDataToDisplay() capillaries is null";
-			plugins.fmp.multitools.tools.Logger.warn(msg);
-			System.out.println("WARN: " + msg);
 			return false;
 		}
 
@@ -359,16 +355,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			boolean hasMeasures = cap.isThereAnyMeasuresDone(resultType);
 			if (hasMeasures) {
 				capillariesWithData++;
-				flag = true;
 			}
 		}
-
-		String msg = "Chart:isThereAnyDataToDisplay() resultType=" + resultType + ", capillariesWithData="
-				+ capillariesWithData + "/" + capillaries.getList().size();
-		plugins.fmp.multitools.tools.Logger.info(msg);
-		System.out.println(msg);
-
-		return flag;
+		return capillariesWithData > 0;
 	}
 
 	private Capillary findCapillaryFromKymographT(Experiment exp, int t) {
