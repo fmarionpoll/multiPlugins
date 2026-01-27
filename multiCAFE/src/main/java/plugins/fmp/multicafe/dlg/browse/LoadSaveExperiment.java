@@ -499,9 +499,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		int actualImageCount = imgLoader.getImagesCount();
 		int loadedNFrames = imgLoader.getNTotalFrames();
 		if (actualImageCount > 0 && loadedNFrames > 0 && actualImageCount != loadedNFrames) {
-			String msg = "LoadSaveExperiment:loadExperimentImages() - nFrames mismatch detected: " +
-			             "actualImageCount=" + actualImageCount + ", loadedNFrames=" + loadedNFrames + 
-			             ". Recalculating from actual image count.";
+			String msg = "LoadSaveExperiment:loadExperimentImages() - nFrames mismatch detected: " + "actualImageCount="
+					+ actualImageCount + ", loadedNFrames=" + loadedNFrames
+					+ ". Recalculating from actual image count.";
 			plugins.fmp.multitools.tools.Logger.warn(msg);
 			System.out.println("WARN: " + msg);
 			long frameFirst = imgLoader.getAbsoluteIndexFirstImage();
@@ -516,14 +516,16 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		}
 
 		parent0.paneExperiment.updateViewerForSequenceCam(exp);
-		
-		// Apply checkbox state to capillary ROIs now that viewer is created synchronously
-		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null 
-				&& exp.getSeqCamData().getSequence().getFirstViewer() != null
-				&& exp.getCapillaries() != null && exp.getCapillaries().getList().size() > 0) {
+
+		// Apply checkbox state to capillary ROIs now that viewer is created
+		// synchronously
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null
+				&& exp.getSeqCamData().getSequence().getFirstViewer() != null && exp.getCapillaries() != null
+				&& exp.getCapillaries().getList().size() > 0) {
 			boolean shouldBeVisible = parent0.paneExperiment.tabOptions.viewCapillariesCheckBox.isSelected();
 			parent0.paneExperiment.tabOptions.displayROIsCategory(shouldBeVisible, "line");
-			String msgVisible = "LoadSaveExperiment:openSelectedExperiment() Applied checkbox state to capillary ROIs: " + shouldBeVisible;
+			String msgVisible = "LoadSaveExperiment:openSelectedExperiment() Applied checkbox state to capillary ROIs: "
+					+ shouldBeVisible;
 			Logger.info(msgVisible);
 			System.out.println(msgVisible);
 		}
@@ -563,26 +565,27 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		String msg1 = "LoadSaveExperiment:loadCapillariesData() Starting - resultsDir=" + resultsDir;
 		Logger.info(msg1);
 		System.out.println(msg1);
-		
+
 		// Check if description files exist before attempting load
 		boolean hasDescFiles = exp.getCapillaries().getPersistence().hasCapillariesDescriptionFiles(resultsDir);
 		String msg2 = "LoadSaveExperiment:loadCapillariesData() hasCapillariesDescriptionFiles=" + hasDescFiles;
 		Logger.info(msg2);
 		System.out.println(msg2);
-		
+
 		boolean loaded = exp.loadCamDataCapillaries();
 		int capCount = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
-		
+
 		if (loaded) {
 			String msg3 = "LoadSaveExperiment:loadCapillariesData() Loaded " + capCount + " capillaries";
 			Logger.info(msg3);
 			System.out.println(msg3);
 		} else {
-			String msg4 = "LoadSaveExperiment:loadCapillariesData() Failed to load capillaries (returned false), but found " + capCount + " capillaries in list";
+			String msg4 = "LoadSaveExperiment:loadCapillariesData() Failed to load capillaries (returned false), but found "
+					+ capCount + " capillaries in list";
 			Logger.warn(msg4);
 			System.out.println("WARN: " + msg4);
 		}
-		
+
 		// Additional check: verify capillaries actually have data
 		if (capCount == 0 && hasDescFiles) {
 			String msg5 = "LoadSaveExperiment:loadCapillariesData() WARNING: Description files exist but 0 capillaries loaded! This may indicate a loading bug.";
@@ -601,10 +604,11 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private void loadKymographsAndMeasures(Experiment exp, String selectedBinDir, ProgressFrame progressFrame) {
 		// Check if capillaries are loaded before trying to load kymographs
 		int capCount = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
-		String msg1 = "LoadSaveExperiment:loadKymographsAndMeasures() START - capillaries.count=" + capCount + ", selectedBinDir=" + selectedBinDir;
+		String msg1 = "LoadSaveExperiment:loadKymographsAndMeasures() START - capillaries.count=" + capCount
+				+ ", selectedBinDir=" + selectedBinDir;
 		Logger.info(msg1);
 		System.out.println(msg1);
-		
+
 		if (exp.getCapillaries() == null || capCount == 0) {
 			String msg2 = "LoadSaveExperiment:loadKymographsAndMeasures() No capillaries loaded, cannot load kymographs";
 			Logger.warn(msg2);
@@ -616,16 +620,18 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		boolean kymosLoaded = false;
 		if (selectedBinDir != null) {
 			kymosLoaded = parent0.paneKymos.tabLoadSave.loadDefaultKymos(exp);
-			String msg3 = "LoadSaveExperiment:loadKymographsAndMeasures() loadDefaultKymos returned: " + kymosLoaded 
+			String msg3 = "LoadSaveExperiment:loadKymographsAndMeasures() loadDefaultKymos returned: " + kymosLoaded
 					+ ", seqKymos: " + (exp.getSeqKymos() != null);
 			Logger.info(msg3);
 			System.out.println(msg3);
-			
+
 			if (kymosLoaded && exp.getSeqKymos() != null) {
-				// Don't call displayUpdateOnSwingThread here - wait until after measures are loaded
+				// Don't call displayUpdateOnSwingThread here - wait until after measures are
+				// loaded
 				// and combo box is populated
-				String msg4 = "LoadSaveExperiment:loadKymographsAndMeasures() Kymographs loaded, seqKymos.frameCount=" 
-						+ (exp.getSeqKymos().getSequence() != null ? exp.getSeqKymos().getSequence().getSizeT() : "null");
+				String msg4 = "LoadSaveExperiment:loadKymographsAndMeasures() Kymographs loaded, seqKymos.frameCount="
+						+ (exp.getSeqKymos().getSequence() != null ? exp.getSeqKymos().getSequence().getSizeT()
+								: "null");
 				Logger.info(msg4);
 				System.out.println(msg4);
 			} else {
@@ -646,14 +652,17 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			String binFullDir = exp.getKymosBinFullDirectory();
 			if (binFullDir != null) {
 				exp.load_capillaries_description_and_measures();
-				
-				// Populate combo box AFTER measures are loaded to ensure capillaries are fully populated
-				if (exp.getSeqKymos() != null && exp.getCapillaries() != null && exp.getCapillaries().getList().size() > 0) {
+
+				// Populate combo box AFTER measures are loaded to ensure capillaries are fully
+				// populated
+				if (exp.getSeqKymos() != null && exp.getCapillaries() != null
+						&& exp.getCapillaries().getList().size() > 0) {
 					parent0.paneKymos.tabDisplay.transferCapillaryNamesToComboBox(exp);
-					String msg7 = "LoadSaveExperiment:loadKymographsAndMeasures() Called transferCapillaryNamesToComboBox after measures loaded, capillaries.count=" + exp.getCapillaries().getList().size();
+					String msg7 = "LoadSaveExperiment:loadKymographsAndMeasures() Called transferCapillaryNamesToComboBox after measures loaded, capillaries.count="
+							+ exp.getCapillaries().getList().size();
 					Logger.info(msg7);
 					System.out.println(msg7);
-					
+
 					// Now display the kymograph viewer after combo box is populated
 					// Use invokeLater to ensure combo box population completes first
 					javax.swing.SwingUtilities.invokeLater(new Runnable() {
@@ -671,10 +680,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 //				}
 			}
 		}
-//
-//		if (loadMeasures && kymosLoaded && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
-//			exp.getSeqKymos().transferCapillariesMeasuresToKymos(exp.getCapillaries());
-//		}
+
+		if (loadMeasures && kymosLoaded && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+			exp.getSeqKymos().getSequence().addListener(this);
+		}
 	}
 
 	/**
@@ -708,10 +717,11 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	boolean openSelectedExperiment(Experiment exp) {
 		final long startTime = System.nanoTime();
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
-		
-		Logger.info("LoadSaveExperiment:openSelectedExperiment() START - exp=" + (exp != null ? exp.getResultsDirectory() : "null") 
-				+ ", isLazy=" + (exp instanceof LazyExperiment) 
-				+ ", capillaries.count=" + (exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : "N/A"));
+
+		Logger.info("LoadSaveExperiment:openSelectedExperiment() START - exp="
+				+ (exp != null ? exp.getResultsDirectory() : "null") + ", isLazy=" + (exp instanceof LazyExperiment)
+				+ ", capillaries.count="
+				+ (exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : "N/A"));
 
 		ProgressFrame progressFrame = new ProgressFrame("Load Experiment Data");
 
@@ -761,29 +771,30 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			exp.updateROIsAt(0);
-			
-			// Display graphs AFTER cages are loaded (dispatchCapillariesToCages needs cages to be loaded)
+
+			// Display graphs AFTER cages are loaded (dispatchCapillariesToCages needs cages
+			// to be loaded)
 			displayGraphsIfEnabled(exp);
-			
+
 			progressFrame.setMessage("Load data: update dialogs");
 
 			parent0.paneExperiment.updateDialogs(exp);
 			parent0.paneKymos.updateDialogs(exp);
 			parent0.paneCapillaries.updateDialogs(exp);
 
-		parent0.paneExperiment.tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
+			parent0.paneExperiment.tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
 
-		long endTime = System.nanoTime();
-		logCageLoadCompletion(exp, expIndex, startTime, endTime);
-		
-		exp.setLoading(false);
-		if (currentlyLoadingExperiment == exp) {
-			currentlyLoadingExperiment = null;
-			currentlyLoadingIndex = -1;
-		}
+			long endTime = System.nanoTime();
+			logCageLoadCompletion(exp, expIndex, startTime, endTime);
 
-		progressFrame.close();
-		return true;
+			exp.setLoading(false);
+			if (currentlyLoadingExperiment == exp) {
+				currentlyLoadingExperiment = null;
+				currentlyLoadingIndex = -1;
+			}
+
+			progressFrame.close();
+			return true;
 		} catch (Exception e) {
 			Logger.error("Error opening experiment [" + expIndex + "]: "
 					+ (e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName()), e);
@@ -941,6 +952,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	@Override
 	public void sequenceClosed(Sequence sequence) {
 		sequence.removeListener(this);
+		ArrayList<Viewer> listViewers = sequence.getViewers();
+		for (Viewer v : listViewers) {
+			v.close();
+		}
 	}
 
 	@Override
@@ -1013,7 +1028,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 					// Save capillaries using new dual-file system (descriptions + measures)
 					int capCountBeforeSave = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
-					Logger.info("LoadSaveExperiment:closeViewsForCurrentExperiment() About to save capillaries - count=" + capCountBeforeSave + ", exp=" + exp.getResultsDirectory());
+					Logger.info("LoadSaveExperiment:closeViewsForCurrentExperiment() About to save capillaries - count="
+							+ capCountBeforeSave + ", exp=" + exp.getResultsDirectory());
 					exp.save_capillaries_description_and_measures();
 
 					// Update cages from sequence before saving
