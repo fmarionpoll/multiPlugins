@@ -186,6 +186,17 @@ public class ExperimentPersistence {
 				if (nImages > 0) {
 					imgLoader.setFixedNumberOfImages(nImages);
 					imgLoader.setNTotalFrames((int) (nImages - frameFirst));
+					
+					// Fix: If nTotalFrames is invalid (0 or 1), refresh from actual image list
+					int nTotalFrames = imgLoader.getNTotalFrames();
+					if (nTotalFrames <= 1 && nTotalFrames >= -1) {
+						int actualImageCount = imgLoader.getImagesCount();
+						if (actualImageCount > 1) {
+							nImages = actualImageCount + frameFirst;
+							imgLoader.setFixedNumberOfImages(nImages);
+							imgLoader.setNTotalFrames(actualImageCount);
+						}
+					}
 				} else {
 					int loadedImagesCount = imgLoader.getImagesCount();
 					if (loadedImagesCount > 0) {

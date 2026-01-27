@@ -87,6 +87,16 @@ public class LazyExperiment extends Experiment {
 				// Use setImagesList instead of loadImageList to avoid loading the sequence
 				getSeqCamData().setImagesList(imagesList);
 
+				// Fix: If nTotalFrames is invalid (-1, 0, or 1), refresh from actual image list
+				ImageLoader imgLoader = getSeqCamData().getImageLoader();
+				int nTotalFrames = imgLoader.getNTotalFrames();
+				if (nTotalFrames <= 1 && nTotalFrames >= -1 && imagesList != null && imagesList.size() > 1) {
+					long frameFirst = imgLoader.getAbsoluteIndexFirstImage();
+					long nImages = imagesList.size() + frameFirst;
+					imgLoader.setFixedNumberOfImages(nImages);
+					imgLoader.setNTotalFrames(imagesList.size());
+				}
+
 				// Calculate file intervals if needed (lightweight operation)
 				if (imagesList != null && imagesList.size() > 1) {
 					getFileIntervalsFromSeqCamData();

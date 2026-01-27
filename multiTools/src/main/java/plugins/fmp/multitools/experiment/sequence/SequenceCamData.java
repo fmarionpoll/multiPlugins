@@ -232,7 +232,24 @@ public class SequenceCamData implements AutoCloseable {
 			currentFrame = t;
 			String fileName = imageLoader.getFileName();
 			if (seq != null) {
-				return fileName + " [" + t + "/" + (seq.getSizeT() - 1) + "]";
+				int seqSizeT = seq.getSizeT();
+				int displayedTotalFrames = seqSizeT - 1;
+				
+				// Fix: If displayed frame count is invalid (-1, 0, or 1), refresh from actual image list
+				if (displayedTotalFrames <= 1 && displayedTotalFrames >= -1) {
+					int actualImageCount = imageLoader.getImagesCount();
+					if (actualImageCount > 1) {
+						// Update nTotalFrames in ImageLoader to match actual count
+						long frameFirst = imageLoader.getAbsoluteIndexFirstImage();
+						long nImages = actualImageCount + frameFirst;
+						imageLoader.setFixedNumberOfImages(nImages);
+						imageLoader.setNTotalFrames(actualImageCount);
+						// Use actual count for display (subtract 1 because display uses 0-based indexing)
+						displayedTotalFrames = actualImageCount - 1;
+					}
+				}
+				
+				return fileName + " [" + t + "/" + displayedTotalFrames + "]";
 			} else {
 				return fileName + "[]";
 			}
