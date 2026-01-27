@@ -285,7 +285,19 @@ public class ExperimentPersistence {
 					long frameFirst = imgLoader.getAbsoluteIndexFirstImage();
 					long nImages = imgLoader.getFixedNumberOfImages();
 					XMLUtil.setElementLongValue(node, ID_FRAMEFIRST, frameFirst);
-					XMLUtil.setElementLongValue(node, ID_NFRAMES, nImages);
+					
+					// Only save nFrames if it's a valid positive value
+					// -1 or 0 means "undetermined" - will be calculated from actual images on next load
+					if (nImages > 0) {
+						XMLUtil.setElementLongValue(node, ID_NFRAMES, nImages);
+					} else {
+						// Remove nFrames element if it exists (to indicate undetermined)
+						// This allows the next load to determine it from actual image count
+						org.w3c.dom.Node nFramesNode = XMLUtil.getElement(node, ID_NFRAMES);
+						if (nFramesNode != null) {
+							node.removeChild(nFramesNode);
+						}
+					}
 
 					// Save TimeManager configuration
 					TimeManager timeManager = exp.getSeqCamData().getTimeManager();

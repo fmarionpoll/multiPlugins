@@ -743,8 +743,26 @@ public class Experiment {
 			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
 			// System.out.println("XML Version: " + version);
 			if (!version.equals(ID_VERSIONNUM)) {
-				Logger.warn("Experiment: Version mismatch. Expected: " + ID_VERSIONNUM + ", Found: " + version);
-				return false;
+				// Accept any 2.x.x version (major version match)
+				// Parse version string to check major version
+				boolean versionCompatible = false;
+				try {
+					String[] versionParts = version.split("\\.");
+					if (versionParts.length >= 1) {
+						int majorVersion = Integer.parseInt(versionParts[0]);
+						versionCompatible = (majorVersion == 2);
+					}
+				} catch (NumberFormatException e) {
+					// If version string can't be parsed, fall back to exact match
+					versionCompatible = false;
+				}
+				
+				if (!versionCompatible) {
+					Logger.warn("Experiment: Version mismatch. Expected: " + ID_VERSIONNUM + " or 2.x.x, Found: " + version);
+					return false;
+				} else {
+					Logger.info("Experiment: Loading with version " + version + " (compatible with " + ID_VERSIONNUM + ")");
+				}
 			}
 
 			// Load ImageLoader configuration with validation
@@ -757,19 +775,24 @@ public class Experiment {
 			imgLoader.setAbsoluteIndexFirstImage(frameFirst);
 
 			// nframes is optional - older XML files may not have it
+			// Treat 0 the same as -1 (undetermined) - it means frames haven't been counted yet
 			long nImages = XMLUtil.getElementLongValue(node, ID_NFRAMES, -1);
 			if (nImages > 0) {
-				// only set if present and valid in XML
+				// only set if present and valid in XML (positive value)
 				imgLoader.setFixedNumberOfImages(nImages);
 				imgLoader.setNTotalFrames((int) (nImages - frameFirst));
 			} else {
-				// nFrames not in XML
+				// nFrames is -1 (missing), 0 (undetermined), or negative - don't set yet
+				// Will be determined later when images are actually loaded
 				int loadedImagesCount = imgLoader.getImagesCount();
 				if (loadedImagesCount > 0) {
+					// Images already loaded - use actual count
 					nImages = loadedImagesCount + frameFirst;
 					imgLoader.setFixedNumberOfImages(nImages);
 					imgLoader.setNTotalFrames((int) (nImages - frameFirst));
 				}
+				// If loadedImagesCount is 0, images haven't been loaded yet - 
+				// nTotalFrames will be set correctly when loadExperimentImages() is called
 			}
 
 			// Load TimeManager configuration with validation
@@ -1027,6 +1050,7 @@ public class Experiment {
 		// Transfer capillaries to ROIs on sequence if capillaries exist (even if
 		// descriptions didn't load)
 		// Capillaries might have been loaded from XML files directly
+		int roisAdded = 0;
 		if (capillaries.getList().size() > 0 && seqCamData != null && seqCamData.getSequence() != null) {
 			// Remove only capillary ROIs (containing "line"), preserving cages and other
 			// ROIs
@@ -1034,14 +1058,73 @@ public class Experiment {
 			// Add capillary ROIs to sequence
 			for (Capillary cap : capillaries.getList()) {
 				if (cap.getRoi() != null) {
+					String roiName = cap.getRoi().getName();
 					seqCamData.getSequence().addROI(cap.getRoi());
+					roisAdded++;
+					if (roisAdded <= 3) { // Log first 3 for debugging
+						String msgRoi = "Experiment:load_capillaries_description_and_measures() Added ROI: " + roiName + 
+								", contains 'line': " + (roiName != null && roiName.contains("line"));
+						Logger.info(msgRoi);
+						System.out.println(msgRoi);
+					}
+				} else {
+					if (roisAdded == 0) { // Log first null ROI
+						String msgNull = "Experiment:load_capillaries_description_and_measures() Capillary has null ROI: " + cap.getRoiName();
+						Logger.warn(msgNull);
+						System.out.println("WARN: " + msgNull);
+					}
 				}
 			}
+			
+			// Make sure ROIs are visible after being added
+			icy.gui.viewer.Viewer viewer = seqCamData.getSequence().getFirstViewer();
+			String msgViewer = "Experiment:load_capillaries_description_and_measures() Viewer check - roisAdded: " + roisAdded + 
+					", viewer: " + (viewer != null);
+			Logger.info(msgViewer);
+			System.out.println(msgViewer);
+			
+			if (roisAdded > 0) {
+				if (viewer != null) {
+					seqCamData.displaySpecificROIs(true, "line");
+					String msgVisible = "Experiment:load_capillaries_description_and_measures() Made " + roisAdded + " capillary ROIs visible";
+					Logger.info(msgVisible);
+					System.out.println(msgVisible);
+				} else {
+					String msgNoViewer = "Experiment:load_capillaries_description_and_measures() WARNING: Viewer is null, cannot make ROIs visible yet";
+					Logger.warn(msgNoViewer);
+					System.out.println("WARN: " + msgNoViewer);
+				}
+			}
+			
+			String msg1 = "Experiment:load_capillaries_description_and_measures() Added " + roisAdded + 
+					" capillary ROIs to seqCamData (total capillaries: " + capillaries.getList().size() + ")";
+			Logger.info(msg1);
+			System.out.println(msg1);
+		} else {
+			String msg2 = "Experiment:load_capillaries_description_and_measures() NOT adding ROIs - capillaries.size=" + 
+					capillaries.getList().size() + ", seqCamData=" + (seqCamData != null) + 
+					", seqCamData.sequence=" + (seqCamData != null && seqCamData.getSequence() != null);
+			Logger.warn(msg2);
+			System.out.println("WARN: " + msg2);
 		}
 
 		// Transfer measures to kymographs if measures loaded successfully
 		if (measuresLoaded && seqKymos != null && seqKymos.getSequence() != null) {
+			String msg3 = "Experiment:load_capillaries_description_and_measures() Transferring measures to kymos - measuresLoaded=" + 
+					measuresLoaded + ", seqKymos=" + (seqKymos != null) + 
+					", seqKymos.sequence=" + (seqKymos.getSequence() != null);
+			Logger.info(msg3);
+			System.out.println(msg3);
 			CapillariesKymosMapper.pushCapillaryMeasuresToKymos(capillaries, seqKymos);
+			String msg4 = "Experiment:load_capillaries_description_and_measures() Measures transferred to kymos";
+			Logger.info(msg4);
+			System.out.println(msg4);
+		} else {
+			String msg5 = "Experiment:load_capillaries_description_and_measures() NOT transferring measures - measuresLoaded=" + 
+					measuresLoaded + ", seqKymos=" + (seqKymos != null) + 
+					", seqKymos.sequence=" + (seqKymos != null && seqKymos.getSequence() != null);
+			Logger.warn(msg5);
+			System.out.println("WARN: " + msg5);
 		}
 
 		return descriptionsLoaded || measuresLoaded;
@@ -1055,8 +1138,16 @@ public class Experiment {
 	 */
 	public boolean save_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		// Save descriptions to new format
-		boolean descriptionsSaved = capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
+		
+		// Guard: Don't save descriptions if capillaries list is empty
+		// This prevents overwriting existing data with empty files
+		boolean descriptionsSaved = false;
+		if (capillaries.getList().size() > 0) {
+			// Save descriptions to new format
+			descriptionsSaved = capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
+		} else {
+			Logger.warn("Experiment:save_capillaries_description_and_measures() Skipping save - capillaries list is empty. This may indicate capillaries were not loaded.");
+		}
 
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {

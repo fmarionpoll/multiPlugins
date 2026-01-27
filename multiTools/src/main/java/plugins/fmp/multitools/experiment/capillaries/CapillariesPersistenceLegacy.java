@@ -404,19 +404,39 @@ public class CapillariesPersistenceLegacy {
 			EnumCapillaryMeasures measureType, String sep, boolean x) {
 		String row;
 		final boolean y = true;
+		int rowsProcessed = 0;
+		int rowsSkipped = 0;
 		try {
 			while ((row = csvReader.readLine()) != null) {
 				String[] data = row.split(sep);
 				if (data.length > 0 && data[0].equals("#"))
 					return data.length > 1 ? data[1] : null;
 
+				if (data.length < 1 || data[0] == null || data[0].isEmpty()) {
+					rowsSkipped++;
+					continue;
+				}
+
 				Capillary cap = capillaries.getCapillaryFromRoiNamePrefix(data[0]);
-				if (cap == null)
-					cap = new Capillary();
+				if (cap == null) {
+					String warnMsg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Capillary not found for prefix: " + data[0];
+					Logger.warn(warnMsg);
+					System.out.println("WARN: " + warnMsg);
+					rowsSkipped++;
+					continue;
+				}
+				
 				cap.csvImport_CapillaryData(measureType, data, x, y);
+				rowsProcessed++;
 			}
+			String msg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() " + measureType + 
+					" - processed: " + rowsProcessed + ", skipped: " + rowsSkipped;
+			Logger.info(msg);
+			System.out.println(msg);
 		} catch (IOException e) {
 			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Failed to read CSV file", e);
+		} catch (Exception e) {
+			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Error processing " + measureType, e);
 		}
 		return null;
 	}

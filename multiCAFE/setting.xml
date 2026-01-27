@@ -78,7 +78,7 @@
 <key name="lastUpdateCheckTime" value="1769506204321"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
-<key name="loaderFolder" value="D:\test evaporation\2026-01-23"/>
+<key name="loaderFolder" value="D:\test evaporation\2026-01-14\cam01-boite avec drosos"/>
 </section>
 <section name="canvas">
 <section name="Canvas2D"/>
@@ -96,10 +96,10 @@
 </section>
 <section name="online"/>
 </section>
-<key name="id" value="59339352"/>
+<key name="id" value="126985054"/>
 <key name="os" value="win64"/>
-<key name="clientCpuNumber" value="20"/>
-<key name="clientTotalMemory" value="34078785536"/>
+<key name="clientCpuNumber" value="16"/>
+<key name="clientTotalMemory" value="67880230912"/>
 <key name="appFolder" value="C:/Users/fred/.m2/repository/org/bioimageanalysis/icy/icy-kernel/2.5.1"/>
 <section name="loader">
 <section name="entry0">
@@ -137,7 +137,7 @@
 <section name="gui.histo">
 <key name="logView" value="true"/>
 </section>
-<key name="lastUploadDate" value="1769436961386"/>
+<key name="lastUploadDate" value="1769528102189"/>
 <section name="frame">
 <section name="imageLoader">
 <key name="loadtype" value="0"/>
@@ -152,7 +152,7 @@
 <section name="multicafe">
 <section name="MultiCAFE">
 <section name="gui">
-<key name="lastUsedPath" value="C:\Users\fred\Desktop\test evaporation"/>
+<key name="lastUsedPath" value="C:\Users\fred\Desktop\2026"/>
 </section>
 </section>
 </section>
@@ -160,21 +160,21 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="154"/>
-<key name="YE" value="214"/>
-<key name="WidthE" value="2171"/>
-<key name="HeightE" value="1286"/>
+<key name="XE" value="-1836"/>
+<key name="YE" value="246"/>
+<key name="WidthE" value="1702"/>
+<key name="HeightE" value="1080"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1863"/>
+<key name="XC" value="1163"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>
 <key name="XI" value="600"/>
 <key name="YI" value="140"/>
-<key name="WidthC" value="300"/>
-<key name="HeightC" value="1124"/>
+<key name="WidthC" value="531"/>
+<key name="HeightC" value="918"/>
 <key name="WidthE" value="300"/>
 <key name="HeightE" value="600"/>
 <key name="WidthI" value="300"/>
@@ -191,8 +191,8 @@
 <key name="YE" value="100"/>
 <key name="XI" value="100"/>
 <key name="YI" value="100"/>
-<key name="WidthC" value="292"/>
-<key name="HeightC" value="1034"/>
+<key name="WidthC" value="523"/>
+<key name="HeightC" value="828"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="600"/>
 <key name="WidthI" value="400"/>
@@ -209,8 +209,8 @@
 <key name="YE" value="200"/>
 <key name="XI" value="200"/>
 <key name="YI" value="200"/>
-<key name="WidthC" value="292"/>
-<key name="HeightC" value="1034"/>
+<key name="WidthC" value="523"/>
+<key name="HeightC" value="828"/>
 <key name="WidthE" value="400"/>
 <key name="HeightE" value="300"/>
 <key name="WidthI" value="400"/>

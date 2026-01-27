@@ -201,12 +201,33 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		exp.getSeqCamData().getSequence().removeListener(this);
 		exp.dispatchCapillariesToCages();
 		EnumResults exportType = (EnumResults) resultTypeComboBox.getSelectedItem();
-		if (isThereAnyDataToDisplay(exp, exportType)) {
+		
+		int capCount = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
+		String msg1 = "Chart:displayChartPanels() START - capillaries.count=" + capCount + ", exportType=" + exportType;
+		plugins.fmp.multitools.tools.Logger.info(msg1);
+		System.out.println(msg1);
+		
+		boolean hasData = isThereAnyDataToDisplay(exp, exportType);
+		String msg2 = "Chart:displayChartPanels() isThereAnyDataToDisplay=" + hasData;
+		plugins.fmp.multitools.tools.Logger.info(msg2);
+		System.out.println(msg2);
+		
+		if (hasData) {
 			if (viewCombinedButton.isSelected()) {
+				String msg3 = "Chart:displayChartPanels() Displaying combined chart";
+				plugins.fmp.multitools.tools.Logger.info(msg3);
+				System.out.println(msg3);
 				chartCombinedFrame = plotCapillaryMeasuresToCombinedChart(exp, exportType, chartCombinedFrame);
 			} else {
+				String msg4 = "Chart:displayChartPanels() Displaying cage array chart";
+				plugins.fmp.multitools.tools.Logger.info(msg4);
+				System.out.println(msg4);
 				chartCageArrayFrame = plotCapillaryMeasuresToChart(exp, exportType, chartCageArrayFrame);
 			}
+		} else {
+			String msg5 = "Chart:displayChartPanels() No data to display for " + exportType;
+			plugins.fmp.multitools.tools.Logger.warn(msg5);
+			System.out.println("WARN: " + msg5);
 		}
 		exp.getSeqCamData().getSequence().addListener(this);
 	}
@@ -345,11 +366,26 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults resultType) {
 		boolean flag = false;
 		Capillaries capillaries = exp.getCapillaries();
-		for (Capillary cap : capillaries.getList()) {
-			flag = cap.isThereAnyMeasuresDone(resultType);
-			if (flag)
-				break;
+		if (capillaries == null || capillaries.getList() == null) {
+			String msg = "Chart:isThereAnyDataToDisplay() capillaries is null";
+			plugins.fmp.multitools.tools.Logger.warn(msg);
+			System.out.println("WARN: " + msg);
+			return false;
 		}
+		
+		int capillariesWithData = 0;
+		for (Capillary cap : capillaries.getList()) {
+			boolean hasMeasures = cap.isThereAnyMeasuresDone(resultType);
+			if (hasMeasures) {
+				capillariesWithData++;
+				flag = true;
+			}
+		}
+		
+		String msg = "Chart:isThereAnyDataToDisplay() resultType=" + resultType + ", capillariesWithData=" + capillariesWithData + "/" + capillaries.getList().size();
+		plugins.fmp.multitools.tools.Logger.info(msg);
+		System.out.println(msg);
+		
 		return flag;
 	}
 

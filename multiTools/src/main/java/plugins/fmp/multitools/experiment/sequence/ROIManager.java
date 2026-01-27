@@ -21,22 +21,30 @@ public class ROIManager {
 
 	public void displaySpecificROIs(Sequence seq, boolean isVisible, String pattern) {
 		if (seq == null) {
-			Logger.warn("Cannot display ROIs: sequence is null");
+			Logger.warn("ROIManager:displaySpecificROIs() Cannot display ROIs: sequence is null");
+			System.out.println("WARN: ROIManager:displaySpecificROIs() sequence is null");
 			return;
 		}
 
 		Viewer v = seq.getFirstViewer();
 		if (v == null) {
-			Logger.warn("Cannot display ROIs: viewer is null");
+			Logger.warn("ROIManager:displaySpecificROIs() Cannot display ROIs: viewer is null");
+			System.out.println("WARN: ROIManager:displaySpecificROIs() viewer is null");
 			return;
 		}
 
 		IcyCanvas canvas = v.getCanvas();
 		List<Layer> layers = canvas.getLayers(false);
 		if (layers == null) {
+			Logger.warn("ROIManager:displaySpecificROIs() Cannot display ROIs: layers is null");
+			System.out.println("WARN: ROIManager:displaySpecificROIs() layers is null");
 			return;
 		}
 
+		int totalLayers = layers.size();
+		int matchingLayers = 0;
+		int visibleSet = 0;
+		
 		for (Layer layer : layers) {
 			ROI roi = layer.getAttachedROI();
 			if (roi == null) {
@@ -44,9 +52,25 @@ public class ROIManager {
 			}
 			String name = roi.getName();
 			if (name != null && name.contains(pattern)) {
+				matchingLayers++;
+				boolean wasVisible = layer.isVisible();
 				layer.setVisible(isVisible);
+				if (isVisible && !wasVisible) {
+					visibleSet++;
+				}
+				if (matchingLayers <= 3) { // Log first 3 matches
+					String msg = "ROIManager:displaySpecificROIs() ROI: " + name + ", pattern: " + pattern + 
+							", setVisible: " + isVisible + ", wasVisible: " + wasVisible;
+					Logger.info(msg);
+					System.out.println(msg);
+				}
 			}
 		}
+		
+		String msgSummary = "ROIManager:displaySpecificROIs() pattern: " + pattern + ", isVisible: " + isVisible + 
+				", totalLayers: " + totalLayers + ", matchingLayers: " + matchingLayers + ", visibleSet: " + visibleSet;
+		Logger.info(msgSummary);
+		System.out.println(msgSummary);
 	}
 
 	public ArrayList<ROI2D> getROIsContainingString(Sequence seq, String pattern) {

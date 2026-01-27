@@ -9,6 +9,7 @@ import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
@@ -301,29 +302,57 @@ public class CapillaryPersistence {
 	}
 
 	public static void csvImportCapillaryDescription(Capillary cap, String[] data) {
+		if (data == null || data.length < 3) {
+			Logger.warn("CapillaryPersistence:csvImportCapillaryDescription() Insufficient data fields: " + (data != null ? data.length : 0) + " (minimum 3 required)");
+			return;
+		}
+		
 		int i = 0;
-		cap.setKymographPrefix(data[i]);
+		// Required fields (minimum 3: prefix, index, name)
+		cap.setKymographPrefix(i < data.length ? data[i] : "");
 		i++;
-		cap.setKymographIndex(Integer.valueOf(data[i]));
+		try {
+			cap.setKymographIndex(i < data.length && !data[i].isEmpty() ? Integer.valueOf(data[i]) : -1);
+		} catch (NumberFormatException e) {
+			cap.setKymographIndex(-1);
+		}
 		i++;
-		cap.setKymographName(data[i]);
+		cap.setKymographName(i < data.length ? data[i] : "");
 		i++;
-		cap.setKymographFileName(data[i]);
+		
+		// Optional fields (legacy format may only have 3 fields)
+		cap.setKymographFileName(i < data.length && data[i] != null && !data[i].isEmpty() ? data[i] : "");
 		i++;
 		CapillaryProperties props = cap.getProperties();
-		props.setCageID(Integer.valueOf(data[i]));
+		try {
+			props.setCageID(i < data.length && data[i] != null && !data[i].isEmpty() ? Integer.valueOf(data[i]) : 0);
+		} catch (NumberFormatException e) {
+			props.setCageID(0);
+		}
 		i++;
-		props.setNFlies(Integer.valueOf(data[i]));
+		try {
+			props.setNFlies(i < data.length && data[i] != null && !data[i].isEmpty() ? Integer.valueOf(data[i]) : 0);
+		} catch (NumberFormatException e) {
+			props.setNFlies(0);
+		}
 		i++;
-		props.setVolume(Double.valueOf(data[i]));
+		try {
+			props.setVolume(i < data.length && data[i] != null && !data[i].isEmpty() ? Double.valueOf(data[i]) : 0.0);
+		} catch (NumberFormatException e) {
+			props.setVolume(0.0);
+		}
 		i++;
-		props.setPixels(Integer.valueOf(data[i]));
+		try {
+			props.setPixels(i < data.length && data[i] != null && !data[i].isEmpty() ? Integer.valueOf(data[i]) : 0);
+		} catch (NumberFormatException e) {
+			props.setPixels(0);
+		}
 		i++;
-		props.setStimulus(data[i]);
+		props.setStimulus(i < data.length && data[i] != null ? data[i] : "");
 		i++;
-		props.setConcentration(data[i]);
+		props.setConcentration(i < data.length && data[i] != null ? data[i] : "");
 		i++;
-		props.setSide(data[i]);
+		props.setSide(i < data.length && data[i] != null ? data[i] : "");
 		i++;
 
 		// Load ROI information if present (new format with ROI coordinates)
@@ -404,36 +433,45 @@ public class CapillaryPersistence {
 
 	public static void csvImportCapillaryData(Capillary cap, EnumCapillaryMeasures measureType, String[] data,
 			boolean x, boolean y) {
-		switch (measureType) {
-		case TOPRAW:
-			if (x && y)
-				cap.getTopLevel().csvImportXYDataFromRow(data, 2);
-			else if (!x && y)
-				cap.getTopLevel().csvImportYDataFromRow(data, 2);
-			break;
-		case TOPLEVEL:
-			if (x && y)
-				cap.getTopCorrected().csvImportXYDataFromRow(data, 2);
-			else if (!x && y)
-				cap.getTopCorrected().csvImportYDataFromRow(data, 2);
-			break;
-		case BOTTOMLEVEL:
-			if (x && y)
-				cap.getBottomLevel().csvImportXYDataFromRow(data, 2);
-			else if (!x && y)
-				cap.getBottomLevel().csvImportYDataFromRow(data, 2);
-			break;
-		case TOPDERIVATIVE:
-			if (x && y)
-				cap.getDerivative().csvImportXYDataFromRow(data, 2);
-			else if (!x && y)
-				cap.getDerivative().csvImportYDataFromRow(data, 2);
-			break;
-		case GULPS:
-			cap.getGulps().csvImportDataFromRow(data, 2);
-			break;
-		default:
-			break;
+		try {
+			switch (measureType) {
+			case TOPRAW:
+				if (x && y)
+					cap.getTopLevel().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getTopLevel().csvImportYDataFromRow(data, 2);
+				break;
+			case TOPLEVEL:
+				if (x && y)
+					cap.getTopCorrected().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getTopCorrected().csvImportYDataFromRow(data, 2);
+				break;
+			case BOTTOMLEVEL:
+				if (x && y)
+					cap.getBottomLevel().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getBottomLevel().csvImportYDataFromRow(data, 2);
+				break;
+			case TOPDERIVATIVE:
+				if (x && y)
+					cap.getDerivative().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getDerivative().csvImportYDataFromRow(data, 2);
+				break;
+			case GULPS:
+				cap.getGulps().csvImportDataFromRow(data, 2);
+				break;
+			default:
+				break;
+			}
+		} catch (Exception e) {
+			String capId = cap.getKymographPrefix() != null ? cap.getKymographPrefix() : "unknown";
+			String errorMsg = "CapillaryPersistence:csvImportCapillaryData() Error importing " + measureType + 
+					" for capillary " + capId + " (data.length=" + data.length + "): " + e.getMessage();
+			Logger.error(errorMsg, e);
+			System.out.println("ERROR: " + errorMsg);
+			e.printStackTrace();
 		}
 	}
 }

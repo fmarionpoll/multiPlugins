@@ -148,7 +148,9 @@ public class LoadSave extends JPanel {
 			ImageFileDescriptor.getExistingFileNames(myList);
 			flag = new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, true);
 //			flag = seqKymos.loadImagesFromList(myList);
-			parent0.paneKymos.tabDisplay.transferCapillaryNamesToComboBox(exp);
+			// Don't call transferCapillaryNamesToComboBox here - it will be called after measures are loaded
+			// in loadKymographsAndMeasures() to ensure capillaries are fully populated
+			// parent0.paneKymos.tabDisplay.transferCapillaryNamesToComboBox(exp);
 			// Don't transfer measures here - they will be transferred after loading in
 			// loadKymographsAndMeasures()
 			// Transferring here would happen before measures are loaded, potentially
