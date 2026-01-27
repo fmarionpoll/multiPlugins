@@ -78,7 +78,7 @@
 <key name="lastUpdateCheckTime" value="1769506204321"/>
 <key name="sequencePersistence" value="false"/>
 <key name="virtualMode" value="true"/>
-<key name="loaderFolder" value="D:\test evaporation\2026-01-14\cam01-boite avec drosos"/>
+<key name="loaderFolder" value="D:\test evaporation\2026-01-14"/>
 </section>
 <section name="canvas">
 <section name="Canvas2D"/>
@@ -160,14 +160,14 @@
 </section>
 <section name="frame">
 <section name="main">
-<key name="XE" value="-1836"/>
-<key name="YE" value="246"/>
-<key name="WidthE" value="1702"/>
+<key name="XE" value="-2022"/>
+<key name="YE" value="313"/>
+<key name="WidthE" value="1861"/>
 <key name="HeightE" value="1080"/>
 <key name="MaximizedE" value="false"/>
 </section>
 <section name="inspector">
-<key name="XC" value="1163"/>
+<key name="XC" value="1322"/>
 <key name="YC" value="0"/>
 <key name="XE" value="600"/>
 <key name="YE" value="140"/>

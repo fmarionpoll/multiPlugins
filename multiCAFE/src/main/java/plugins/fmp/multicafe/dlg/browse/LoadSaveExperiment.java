@@ -493,6 +493,23 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		progressFrame.setMessage("Load image");
 		exp.getSeqCamData().loadImages();
 
+		// Fix: Recalculate nTotalFrames from actual image count if there's a mismatch
+		// This handles the case where nFrames=1 was incorrectly saved to Experiment.xml
+		plugins.fmp.multitools.experiment.sequence.ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+		int actualImageCount = imgLoader.getImagesCount();
+		int loadedNFrames = imgLoader.getNTotalFrames();
+		if (actualImageCount > 0 && loadedNFrames > 0 && actualImageCount != loadedNFrames) {
+			String msg = "LoadSaveExperiment:loadExperimentImages() - nFrames mismatch detected: " +
+			             "actualImageCount=" + actualImageCount + ", loadedNFrames=" + loadedNFrames + 
+			             ". Recalculating from actual image count.";
+			plugins.fmp.multitools.tools.Logger.warn(msg);
+			System.out.println("WARN: " + msg);
+			long frameFirst = imgLoader.getAbsoluteIndexFirstImage();
+			long nImages = actualImageCount + frameFirst;
+			imgLoader.setFixedNumberOfImages(nImages);
+			imgLoader.setNTotalFrames(actualImageCount);
+		}
+
 		if (parent0.expListComboLazy.getSelectedItem() != exp) {
 			return abortExperimentLoad(exp, expIndex, progressFrame,
 					"different experiment selected after loading images");
@@ -726,10 +743,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			loadKymographsAndMeasures(exp, selectedBinDir, progressFrame);
-			
-			// Display graphs AFTER measures are loaded (they're loaded synchronously in loadKymographsAndMeasures)
-			// but we do it here to ensure the call happens after all loading is complete
-			displayGraphsIfEnabled(exp);
 
 			if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
 				return abortExperimentLoad(exp, expIndex, progressFrame,
@@ -748,6 +761,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			exp.updateROIsAt(0);
+			
+			// Display graphs AFTER cages are loaded (dispatchCapillariesToCages needs cages to be loaded)
+			displayGraphsIfEnabled(exp);
 			
 			progressFrame.setMessage("Load data: update dialogs");
 

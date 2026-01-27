@@ -2075,9 +2075,14 @@ public class Experiment {
 	// ---------------------------------------------------------
 
 	public void dispatchCapillariesToCages() {
-		if (capillaries.getList().size() < 1)
+		if (capillaries.getList().size() < 1) {
+			Logger.warn("Experiment.dispatchCapillariesToCages() - No capillaries to dispatch (list size: 0)");
 			return;
+		}
 
+		int dispatchedCount = 0;
+		int skippedCount = 0;
+		
 		// Clear capillary ID lists in all cages
 		for (Cage cage : cages.getCageList()) {
 			cage.clearCapillaryList();
@@ -2092,6 +2097,7 @@ public class Experiment {
 				Logger.warn(
 						"Experiment.dispatchCapillariesToCages() - Skipping capillary with invalid kymographIndex (-1): "
 								+ cap.getKymographName() + ". This may indicate incomplete persistence data.");
+				skippedCount++;
 				continue;
 			}
 
@@ -2109,7 +2115,13 @@ public class Experiment {
 			cage.addCapillaryIDIfUnique(capID);
 			// Also update legacy field for backward compatibility
 			cage.addCapillaryIfUnique(cap);
+			dispatchedCount++;
 		}
+		
+		String msg = "Experiment.dispatchCapillariesToCages() - Dispatched " + dispatchedCount + " capillaries to " + 
+		             cages.getCageList().size() + " cages (skipped: " + skippedCount + ")";
+		Logger.info(msg);
+		System.out.println(msg);
 
 		if (cages.getCageList().size() > 0) {
 			cages.checkAndCorrectCagePositions();
