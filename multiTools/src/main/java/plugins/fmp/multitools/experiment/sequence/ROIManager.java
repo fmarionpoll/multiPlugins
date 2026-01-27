@@ -12,7 +12,6 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.tools.Comparators;
-import plugins.fmp.multitools.tools.Logger;
 
 public class ROIManager {
 
@@ -21,30 +20,20 @@ public class ROIManager {
 
 	public void displaySpecificROIs(Sequence seq, boolean isVisible, String pattern) {
 		if (seq == null) {
-			Logger.warn("ROIManager:displaySpecificROIs() Cannot display ROIs: sequence is null");
-			System.out.println("WARN: ROIManager:displaySpecificROIs() sequence is null");
 			return;
 		}
 
 		Viewer v = seq.getFirstViewer();
 		if (v == null) {
-			Logger.warn("ROIManager:displaySpecificROIs() Cannot display ROIs: viewer is null");
-			System.out.println("WARN: ROIManager:displaySpecificROIs() viewer is null");
 			return;
 		}
 
 		IcyCanvas canvas = v.getCanvas();
 		List<Layer> layers = canvas.getLayers(false);
 		if (layers == null) {
-			Logger.warn("ROIManager:displaySpecificROIs() Cannot display ROIs: layers is null");
-			System.out.println("WARN: ROIManager:displaySpecificROIs() layers is null");
 			return;
 		}
 
-		int totalLayers = layers.size();
-		int matchingLayers = 0;
-		int visibleSet = 0;
-		
 		for (Layer layer : layers) {
 			ROI roi = layer.getAttachedROI();
 			if (roi == null) {
@@ -52,30 +41,13 @@ public class ROIManager {
 			}
 			String name = roi.getName();
 			if (name != null && name.contains(pattern)) {
-				matchingLayers++;
-				boolean wasVisible = layer.isVisible();
 				layer.setVisible(isVisible);
-				if (isVisible && !wasVisible) {
-					visibleSet++;
-				}
-				if (matchingLayers <= 3) { // Log first 3 matches
-					String msg = "ROIManager:displaySpecificROIs() ROI: " + name + ", pattern: " + pattern + 
-							", setVisible: " + isVisible + ", wasVisible: " + wasVisible;
-					Logger.info(msg);
-					System.out.println(msg);
-				}
 			}
 		}
-		
-		String msgSummary = "ROIManager:displaySpecificROIs() pattern: " + pattern + ", isVisible: " + isVisible + 
-				", totalLayers: " + totalLayers + ", matchingLayers: " + matchingLayers + ", visibleSet: " + visibleSet;
-		Logger.info(msgSummary);
-		System.out.println(msgSummary);
 	}
 
 	public ArrayList<ROI2D> getROIsContainingString(Sequence seq, String pattern) {
 		if (seq == null) {
-			Logger.warn("Cannot get ROIs: sequence is null");
 			return new ArrayList<>();
 		}
 
@@ -93,7 +65,6 @@ public class ROIManager {
 
 	public ArrayList<ROI2D> getROIsMissingString(Sequence seq, String pattern) {
 		if (seq == null) {
-			Logger.warn("Cannot get ROIs: sequence is null");
 			return new ArrayList<>();
 		}
 
@@ -111,7 +82,6 @@ public class ROIManager {
 
 	public void removeROIsContainingString(Sequence seq, String pattern) {
 		if (seq == null) {
-			Logger.warn("Cannot remove ROIs: sequence is null");
 			return;
 		}
 
@@ -124,7 +94,6 @@ public class ROIManager {
 
 	public void removeROIsMissingString(Sequence seq, String pattern) {
 		if (seq == null) {
-			Logger.warn("Cannot remove ROIs: sequence is null");
 			return;
 		}
 
@@ -136,13 +105,11 @@ public class ROIManager {
 
 	public void centerOnRoi(Sequence seq, ROI2D roi) {
 		if (seq == null || roi == null) {
-			Logger.warn("Cannot center on ROI: sequence or ROI is null");
 			return;
 		}
 
 		Viewer v = seq.getFirstViewer();
 		if (v == null) {
-			Logger.warn("Cannot center on ROI: viewer is null");
 			return;
 		}
 
@@ -150,13 +117,12 @@ public class ROIManager {
 			Canvas2D canvas = (Canvas2D) v.getCanvas();
 			canvas.centerOn(roi.getBounds());
 		} catch (ClassCastException e) {
-			Logger.warn("Cannot center on ROI: canvas is not Canvas2D");
+			// Canvas is not Canvas2D, cannot center
 		}
 	}
 
 	public void selectRoi(Sequence seq, ROI2D roi, boolean select) {
 		if (seq == null || roi == null) {
-			Logger.warn("Cannot select ROI: sequence or ROI is null");
 			return;
 		}
 
@@ -169,7 +135,6 @@ public class ROIManager {
 
 	public void clearAllROIs(Sequence seq) {
 		if (seq == null) {
-			Logger.warn("Cannot clear ROIs: sequence is null");
 			return;
 		}
 		seq.removeAllROI();
@@ -177,7 +142,6 @@ public class ROIManager {
 
 	public void addROI(Sequence seq, ROI roi) {
 		if (seq == null || roi == null) {
-			Logger.warn("Cannot add ROI: sequence or ROI is null");
 			return;
 		}
 		seq.addROI(roi);

@@ -10,7 +10,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.tools.Logger;
 
 public class CapillariesPersistence {
 
@@ -212,26 +211,15 @@ public class CapillariesPersistence {
 				csvReader.close();
 
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					Logger.info("CapillariesPersistence: No header found in " + ID_V2_CAPILLARIESDESCRIPTION_CSV
-							+ ", using legacy parser");
 					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 				}
 
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					Logger.info("CapillariesPersistence: First line is not version header in "
-							+ ID_V2_CAPILLARIESDESCRIPTION_CSV + ", using legacy parser");
 					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 				}
-
-				String fileVersion = versionData[2];
-				if (!fileVersion.equals(CSV_VERSION)) {
-					Logger.warn("CapillariesPersistence: File version " + fileVersion + " differs from current version "
-							+ CSV_VERSION);
-				}
 			} catch (IOException e) {
-				Logger.error("CapillariesPersistence: Error reading file header: " + e.getMessage(), e);
 				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 			}
 
@@ -274,7 +262,6 @@ public class CapillariesPersistence {
 				csvReader.close();
 				return false;
 			} catch (Exception e) {
-				Logger.error("CapillariesPersistence:loadDescription() Error: " + e.getMessage(), e);
 				return false;
 			}
 		}
@@ -306,26 +293,15 @@ public class CapillariesPersistence {
 				csvReader.close();
 
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					Logger.info("CapillariesPersistence: No header found in " + ID_V2_CAPILLARIESMEASURES_CSV
-							+ ", using legacy parser");
 					return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 				}
 
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					Logger.info("CapillariesPersistence: First line is not version header in "
-							+ ID_V2_CAPILLARIESMEASURES_CSV + ", using legacy parser");
 					return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 				}
-
-				String fileVersion = versionData[2];
-				if (!fileVersion.equals(CSV_VERSION)) {
-					Logger.warn("CapillariesPersistence: File version " + fileVersion + " differs from current version "
-							+ CSV_VERSION);
-				}
 			} catch (IOException e) {
-				Logger.error("CapillariesPersistence: Error reading file header: " + e.getMessage(), e);
 				return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 			}
 
@@ -343,11 +319,6 @@ public class CapillariesPersistence {
 
 					String[] data = row.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
-						if (data.length > 1) {
-							String msg = "CapillariesPersistence:loadMeasures() Found section header: " + data[1];
-							Logger.info(msg);
-							System.out.println(msg);
-						}
 						switch (data.length > 1 ? data[1] : "") {
 						case "version":
 							break;
@@ -360,10 +331,6 @@ public class CapillariesPersistence {
 						case "TOPLEVEL":
 						case "TOPRAW":
 							measuresLoaded = true;
-							String msgTopRaw = "CapillariesPersistence:loadMeasures() Loading TOPRAW section, capillaries.count="
-									+ capillaries.getList().size();
-							Logger.info(msgTopRaw);
-							System.out.println(msgTopRaw);
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.TOPRAW, sep, row.contains("xi"));
 							break;
@@ -375,20 +342,12 @@ public class CapillariesPersistence {
 						case "BOTTOMLEVEL":
 						case "BOTTOM":
 							measuresLoaded = true;
-							String msgBottom = "CapillariesPersistence:loadMeasures() Loading BOTTOMLEVEL section, capillaries.count="
-									+ capillaries.getList().size();
-							Logger.info(msgBottom);
-							System.out.println(msgBottom);
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.BOTTOMLEVEL, sep, row.contains("xi"));
 							break;
 						case "TOPDERIVATIVE":
 						case "TOPDER":
 							measuresLoaded = true;
-							String msgDeriv = "CapillariesPersistence:loadMeasures() Loading TOPDERIVATIVE section, capillaries.count="
-									+ capillaries.getList().size();
-							Logger.info(msgDeriv);
-							System.out.println(msgDeriv);
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.TOPDERIVATIVE, sep, row.contains("xi"));
 							break;
@@ -399,9 +358,6 @@ public class CapillariesPersistence {
 								break;
 							}
 							measuresLoaded = true;
-							Logger.info(
-									"CapillariesPersistence:loadMeasures() Loading GULPS section, capillaries.count="
-											+ capillaries.getList().size());
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.GULPS, sep, true);
 							break;
@@ -409,9 +365,6 @@ public class CapillariesPersistence {
 						case "GULPS_F":
 							seenGulpsFlat = true;
 							measuresLoaded = true;
-							Logger.info(
-									"CapillariesPersistence:loadMeasures() Loading GULPS_FLAT section, capillaries.count="
-											+ capillaries.getList().size());
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.GULPS, sep, true);
 							break;
@@ -421,27 +374,8 @@ public class CapillariesPersistence {
 					}
 				}
 				csvReader.close();
-
-				// Log summary of loaded measures
-				if (measuresLoaded) {
-					int capillariesWithTopRaw = 0;
-					int capillariesWithBottom = 0;
-					for (Capillary cap : capillaries.getList()) {
-						if (cap.isThereAnyMeasuresDone(plugins.fmp.multitools.tools.results.EnumResults.TOPRAW))
-							capillariesWithTopRaw++;
-						if (cap.isThereAnyMeasuresDone(plugins.fmp.multitools.tools.results.EnumResults.BOTTOMLEVEL))
-							capillariesWithBottom++;
-					}
-					String msgSummary = "CapillariesPersistence:loadMeasures() Summary - total capillaries: "
-							+ capillaries.getList().size() + ", with TOPRAW: " + capillariesWithTopRaw
-							+ ", with BOTTOMLEVEL: " + capillariesWithBottom;
-					Logger.info(msgSummary);
-					System.out.println(msgSummary);
-				}
-
 				return measuresLoaded;
 			} catch (Exception e) {
-				Logger.error("CapillariesPersistence:loadMeasures() Error: " + e.getMessage(), e);
 				return false;
 			}
 		}
@@ -457,14 +391,11 @@ public class CapillariesPersistence {
 		 */
 		public static boolean saveDescription(Capillaries capillaries, String resultsDirectory) {
 			if (resultsDirectory == null) {
-				Logger.warn("CapillariesPersistence:saveCapillariesArrayDescription() directory is null");
 				return false;
 			}
 
 			Path path = Paths.get(resultsDirectory);
 			if (!Files.exists(path)) {
-				Logger.warn("CapillariesPersistence:saveCapillariesArrayDescription() directory does not exist: "
-						+ resultsDirectory);
 				return false;
 			}
 
@@ -475,11 +406,8 @@ public class CapillariesPersistence {
 				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
-				Logger.info("CapillariesPersistence:saveCapillariesArrayDescription() Saved descriptions to "
-						+ ID_V2_CAPILLARIESDESCRIPTION_CSV);
 				return true;
 			} catch (IOException e) {
-				Logger.error("CapillariesPersistence:saveCapillariesArrayDescription() Error: " + e.getMessage(), e);
 				return false;
 			}
 		}
@@ -494,14 +422,11 @@ public class CapillariesPersistence {
 		 */
 		public static boolean saveMeasures(Capillaries capillaries, String binDirectory) {
 			if (binDirectory == null) {
-				Logger.warn("CapillariesPersistence:save_CapillariesArrayMeasures() directory is null");
 				return false;
 			}
 
 			Path path = Paths.get(binDirectory);
 			if (!Files.exists(path)) {
-				Logger.warn("CapillariesPersistence:save_CapillariesArrayMeasures() directory does not exist: "
-						+ binDirectory);
 				return false;
 			}
 
@@ -520,11 +445,8 @@ public class CapillariesPersistence {
 						EnumCapillaryMeasures.GULPS, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
-				Logger.info("CapillariesPersistence:save_CapillariesArrayMeasures() Saved measures to "
-						+ ID_V2_CAPILLARIESMEASURES_CSV);
 				return true;
 			} catch (IOException e) {
-				Logger.error("CapillariesPersistence:save_CapillariesArrayMeasures() Error: " + e.getMessage(), e);
 				return false;
 			}
 		}
