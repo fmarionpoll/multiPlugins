@@ -20,7 +20,6 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JToolBar;
-import javax.swing.SwingUtilities;
 
 import icy.canvas.Canvas2D;
 import icy.canvas.IcyCanvas;
@@ -160,47 +159,19 @@ public class Display extends JPanel implements ViewerListener {
 	}
 
 	public void transferCapillaryNamesToComboBox(Experiment exp) {
-		// Log before async call
-		int capCountBefore = exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
-		String expDirBefore = exp != null ? exp.getResultsDirectory() : "null";
-		String msg0 = "Display:transferCapillaryNamesToComboBox() CALLED - exp: " + expDirBefore + 
-				", capillaries.count (before async): " + capCountBefore;
-		plugins.fmp.multitools.tools.Logger.info(msg0);
-		System.out.println(msg0);
-		
-		// Capture capillary names NOW, before async call, to avoid timing issues
-		final java.util.List<String> capillaryNames = new java.util.ArrayList<String>();
+		kymographsCombo.removeAllItems();
 		if (exp != null && exp.getCapillaries() != null && exp.getCapillaries().getList() != null) {
+			List<String> capillaryNames = new java.util.ArrayList<String>();
 			for (Capillary cap : exp.getCapillaries().getList()) {
 				if (cap != null && cap.getRoiName() != null) {
 					capillaryNames.add(cap.getRoiName());
 				}
 			}
 			Collections.sort(capillaryNames);
-		}
-		
-		String msgCapture = "Display:transferCapillaryNamesToComboBox() Captured " + capillaryNames.size() + " capillary names before async";
-		plugins.fmp.multitools.tools.Logger.info(msgCapture);
-		System.out.println(msgCapture);
-		
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				// Use captured names instead of reading from experiment (which might be cleared)
-				kymographsCombo.removeAllItems();
-				
-				String msg1 = "Display:transferCapillaryNamesToComboBox() Populating combo with " + capillaryNames.size() + " capillaries (from captured list)";
-				plugins.fmp.multitools.tools.Logger.info(msg1);
-				System.out.println(msg1);
-				
-				for (String name : capillaryNames) {
-					kymographsCombo.addItem(name);
-				}
-				
-				String msg2 = "Display:transferCapillaryNamesToComboBox() Combo populated, item count: " + kymographsCombo.getItemCount();
-				plugins.fmp.multitools.tools.Logger.info(msg2);
-				System.out.println(msg2);
+			for (String name : capillaryNames) {
+				kymographsCombo.addItem(name);
 			}
-		});
+		}
 	}
 
 	public void displayROIsAccordingToUserSelection() {
@@ -232,17 +203,10 @@ public class Display extends JPanel implements ViewerListener {
 
 	void displayON() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		String msg1 = "Display:displayON() START - exp: " + (exp != null ? exp.getResultsDirectory() : "null");
-		plugins.fmp.multitools.tools.Logger.info(msg1);
-		System.out.println(msg1);
-		
+
 		if (exp != null) {
 			SequenceKymos seqKymographs = exp.getSeqKymos();
 			if (seqKymographs == null || seqKymographs.getSequence() == null) {
-				String msg2 = "Display:displayON() EARLY RETURN - seqKymographs: " + (seqKymographs != null) + 
-						", sequence: " + (seqKymographs != null && seqKymographs.getSequence() != null);
-				plugins.fmp.multitools.tools.Logger.warn(msg2);
-				System.out.println("WARN: " + msg2);
 				return;
 			}
 
@@ -250,14 +214,8 @@ public class Display extends JPanel implements ViewerListener {
 			Rectangle initialBounds = calculateKymographViewerBounds(exp);
 
 			ArrayList<Viewer> vList = seqKymographs.getSequence().getViewers();
-			String msg3 = "Display:displayON() Existing viewers count: " + vList.size();
-			plugins.fmp.multitools.tools.Logger.info(msg3);
-			System.out.println(msg3);
-			
+
 			if (vList.size() == 0) {
-				String msg4 = "Display:displayON() Creating new kymograph viewer";
-				plugins.fmp.multitools.tools.Logger.info(msg4);
-				System.out.println(msg4);
 				// Create viewer with visible=false to prevent flickering
 				ViewerFMP viewerKymographs = new ViewerFMP(seqKymographs.getSequence(), false, true);
 
@@ -280,9 +238,6 @@ public class Display extends JPanel implements ViewerListener {
 
 				// Now make the viewer visible with the correct position already set
 				viewerKymographs.setVisible(true);
-				String msg5 = "Display:displayON() Viewer created and setVisible(true)";
-				plugins.fmp.multitools.tools.Logger.info(msg5);
-				System.out.println(msg5);
 
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(viewerKymographs);
@@ -291,9 +246,7 @@ public class Display extends JPanel implements ViewerListener {
 				isel = selectKymographImage(isel);
 				selectKymographComboItem(isel);
 			} else {
-				String msg6 = "Display:displayON() Viewer already exists, repositioning";
-				plugins.fmp.multitools.tools.Logger.info(msg6);
-				System.out.println(msg6);
+
 				// Viewer already exists (might have been auto-created by ICY) - reposition it
 				// immediately
 				Viewer existingViewer = vList.get(0);
@@ -478,28 +431,16 @@ public class Display extends JPanel implements ViewerListener {
 	}
 
 	public void displayUpdateOnSwingThread() {
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				int isel = selectKymographImage(displayUpdate());
-				selectKymographComboItem(isel);
-			}
-		});
+		int isel = selectKymographImage(displayUpdate());
+		selectKymographComboItem(isel);
 	}
 
 	int displayUpdate() {
 		int item = -1;
-		int comboCount = kymographsCombo.getItemCount();
-		String msg1 = "Display:displayUpdate() START - combo item count: " + comboCount;
-		plugins.fmp.multitools.tools.Logger.info(msg1);
-		System.out.println(msg1);
-		
-		if (comboCount < 1) {
-			String msg2 = "Display:displayUpdate() EARLY RETURN - combo box is empty, viewer will not be created";
-			plugins.fmp.multitools.tools.Logger.warn(msg2);
-			System.out.println("WARN: " + msg2);
+		if (kymographsCombo.getItemCount() < 1) {
 			return item;
 		}
-		
+
 		displayON();
 
 		item = kymographsCombo.getSelectedIndex();
@@ -507,9 +448,6 @@ public class Display extends JPanel implements ViewerListener {
 			item = indexImagesCombo >= 0 ? indexImagesCombo : 0;
 			indexImagesCombo = -1;
 		}
-		String msg3 = "Display:displayUpdate() END - selected item: " + item;
-		plugins.fmp.multitools.tools.Logger.info(msg3);
-		System.out.println(msg3);
 		return item;
 	}
 
@@ -584,26 +522,26 @@ public class Display extends JPanel implements ViewerListener {
 
 	private void selectCapillary(Experiment exp, int isel) {
 		Capillaries capillaries = exp.getCapillaries();
-		
+
 		// First deselect all capillaries
 		for (Capillary cap : capillaries.getList()) {
 			if (cap.getRoi() != null) {
 				cap.getRoi().setSelected(false);
 			}
 		}
-		
+
 		// Find the capillary that corresponds to the kymograph at position isel
 		// Don't use list index - find by kymograph name
 		if (isel >= 0 && isel < exp.getSeqKymos().getImagesList().size()) {
 			String kymographPath = exp.getSeqKymos().getFileNameFromImageList(isel);
 			String kymographName = new java.io.File(kymographPath).getName();
-			
+
 			// Remove extension
 			int lastDotIndex = kymographName.lastIndexOf('.');
 			if (lastDotIndex > 0) {
 				kymographName = kymographName.substring(0, lastDotIndex);
 			}
-			
+
 			// Find capillary with matching kymograph name
 			Capillary capSel = capillaries.getCapillaryFromKymographName(kymographName);
 			if (capSel != null && capSel.getRoi() != null) {

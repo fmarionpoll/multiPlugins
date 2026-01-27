@@ -9,7 +9,6 @@ import java.util.List;
 
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
-import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -97,25 +96,17 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 	}
 
 	/**
-	 * Updates or creates the viewer for the camera sequence (synchronous version).
-	 * This ensures the viewer exists immediately, allowing ROI visibility to be set correctly.
+	 * Updates or creates the viewer for the camera sequence. This ensures the
+	 * viewer exists immediately, allowing ROI visibility to be set correctly.
 	 */
 	public void updateViewerForSequenceCam(Experiment exp) {
-		updateViewerForSequenceCamSync(exp);
-	}
-	
-	/**
-	 * Synchronous version of viewer creation.
-	 * This ensures proper synchronization with ROI visibility settings.
-	 */
-	private void updateViewerForSequenceCamSync(Experiment exp) {
 		Sequence seq = exp.getSeqCamData().getSequence();
 		if (seq == null)
 			return;
 
 		ViewerListener parent = this;
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
-		
+
 		// Check if this experiment is still the selected one
 		Experiment currentlySelected = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (currentlySelected != exp) {
@@ -171,91 +162,6 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 			v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 		}
 		v.setRepeat(false);
-	}
-	
-	/**
-	 * Asynchronous version of viewer creation (LEGACY - can be deleted if sync version works well).
-	 * Kept as backup in case we need to revert to async behavior.
-	 * 
-	 * @deprecated Use updateViewerForSequenceCamSync() instead. This method can be deleted
-	 *             once synchronous version is confirmed stable.
-	 */
-	@Deprecated
-	private void updateViewerForSequenceCamAsync(Experiment exp) {
-		Sequence seq = exp.getSeqCamData().getSequence();
-		if (seq == null)
-			return;
-
-		final ViewerListener parent = this;
-		final int expIndex = parent0.expListComboLazy.getSelectedIndex();
-		SwingUtilities.invokeLater(new Runnable() {
-			public void run() {
-				// Check if this experiment is still the selected one
-				Experiment currentlySelected = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (currentlySelected != exp) {
-					System.err.println("MCExperiment_:updateViewerForSequenceCamAsync [" + expIndex
-							+ "] - Experiment no longer selected, aborting viewer creation");
-					return;
-				}
-
-				// Re-check sequence is still valid (may have changed during async execution)
-				Sequence currentSeq = exp.getSeqCamData() != null ? exp.getSeqCamData().getSequence() : null;
-				if (currentSeq == null) {
-					System.err.println("MCExperiment_:updateViewerForSequenceCamAsync [" + expIndex
-							+ "] - Sequence became null before viewer creation");
-					return;
-				}
-
-				// Calculate position before any viewer operations to avoid flickering
-				Rectangle initialBounds = calculateCamDataViewerBounds(parent0.mainFrame);
-
-				ViewerFMP v = (ViewerFMP) currentSeq.getFirstViewer();
-				if (v == null) {
-					try {
-						// Create viewer with visible=false to prevent flickering
-						// currentSeq is already validated above
-						v = new ViewerFMP(currentSeq, false, true);
-						List<String> list = IcyCanvas.getCanvasPluginNames();
-						String pluginName = list.stream().filter(s -> s.contains("Canvas2DWithTransforms")).findFirst()
-								.orElse(null);
-						v.setCanvas(pluginName);
-
-						// Set position before making viewer visible
-						if (initialBounds != null) {
-							v.setBounds(initialBounds);
-						}
-
-						// Now make the viewer visible with the correct position already set
-						v.setVisible(true);
-					} catch (Exception e) {
-						System.err.println("MCExperiment_:updateViewerForSequenceCamAsync [" + expIndex
-								+ "] - Failed to create viewer: " + e.getMessage());
-						return;
-					}
-				} else {
-					// Viewer already exists - reposition it immediately
-					if (initialBounds != null) {
-						// Hide viewer, set bounds, then show to avoid flickering
-						boolean wasVisible = v.isVisible();
-						if (wasVisible) {
-							v.setVisible(false);
-						}
-						v.setBounds(initialBounds);
-						if (wasVisible) {
-							v.setVisible(true);
-						}
-					}
-				}
-
-				v.toFront();
-				v.requestFocus();
-				v.addListener(parent);
-				if (exp.getSeqCamData() != null) {
-					v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
-				}
-				v.setRepeat(false);
-			}
-		});
 	}
 
 	private Rectangle calculateCamDataViewerBounds(IcyFrame mainFrame) {

@@ -166,6 +166,11 @@ public class EditLevels extends JPanel {
 		if (roi == null)
 			return;
 
+		if (exp.getCapillaries() == null || exp.getCapillaries().getList().size() < 1) {
+			System.out.println("capillaries not defined!");
+			return;
+		}
+
 		Capillary cap = exp.getCapillaries().getList().get(t);
 		if (cap == null) {
 			System.out.println("capillary not found!");
