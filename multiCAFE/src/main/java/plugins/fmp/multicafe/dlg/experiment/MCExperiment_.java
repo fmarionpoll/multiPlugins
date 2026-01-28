@@ -124,9 +124,8 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 		ViewerFMP v = (ViewerFMP) seq.getFirstViewer();
 		if (v == null) {
 			try {
-
-				// Create viewer with visible=true (like multiSPOTS does)
-				v = new ViewerFMP(seq, true, true);
+				// Create viewer hidden to avoid brief "loading canvas" display
+				v = new ViewerFMP(seq, false, true);
 				List<String> list = IcyCanvas.getCanvasPluginNames();
 				String pluginName = list.stream().filter(s -> s.contains("Canvas2DWithTransforms")).findFirst()
 						.orElse(null);
@@ -135,15 +134,16 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 				} else {
 					System.err.println("MCExperiment_:updateViewerForSequenceCam - Canvas plugin not found!");
 				}
-
-				// Set position and ensure visible
 				if (initialBounds != null) {
 					v.setBounds(initialBounds);
 				}
-
-				// Ensure viewer is visible (in case it was created with visible=false)
-				v.setVisible(true);
-
+				// Defer showing so first frame can paint before window is visible
+				final ViewerFMP vRef = v;
+				javax.swing.SwingUtilities.invokeLater(() -> {
+					if (vRef != null && seq.getFirstViewer() == vRef) {
+						vRef.setVisible(true);
+					}
+				});
 			} catch (Exception e) {
 				System.err.println("MCExperiment_:updateViewerForSequenceCam [" + expIndex
 						+ "] - Failed to create viewer: " + e.getMessage());
@@ -173,6 +173,12 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 			v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 		}
 		v.setRepeat(false);
+		
+		// End update mode now that viewer is properly configured
+		// This allows the sequence to update and display correctly
+		if (seq.isUpdating()) {
+			seq.endUpdate();
+		}
 	}
 
 	private Rectangle calculateCamDataViewerBounds(IcyFrame mainFrame) {

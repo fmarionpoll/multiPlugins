@@ -90,7 +90,11 @@ public class ImageLoader {
 		fixedNumberOfImages = savedFixedNumberOfImages;
 		nTotalFrames = clippedList.size();
 		Sequence seq = loadSequenceFromImagesList(clippedList);
-		seqCamData.attachSequence(seq);
+		if (seq != null) {
+			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
+			seqCamData.attachSequence(seq);
+			// Note: endUpdate() will be called after our viewer is created in updateViewerForSequenceCam()
+		}
 		return (seq != null);
 	}
 
@@ -101,7 +105,10 @@ public class ImageLoader {
 		List<String> singleImageList = new ArrayList<>();
 		singleImageList.add(imagesList.get(0));
 		Sequence seq = loadSequenceFromImagesList(singleImageList);
-		seqCamData.attachSequence(seq);
+		if (seq != null) {
+			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
+			seqCamData.attachSequence(seq);
+		}
 		return (seq != null);
 	}
 
@@ -126,7 +133,10 @@ public class ImageLoader {
 		fixedNumberOfImages = savedFixedNumberOfImages;
 		nTotalFrames = clippedList.size();
 		Sequence seq = loadSequenceFromImagesList(imagesList);
-		seqCamData.attachSequence(seq);
+		if (seq != null) {
+			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
+			seqCamData.attachSequence(seq);
+		}
 	}
 
 	private List<String> clipImagesList(List<String> images) {
@@ -167,7 +177,7 @@ public class ImageLoader {
 					false, // auto-order
 					true, // directory
 					false, // add to recent
-					true // show progress
+					false // show progress - set to false to prevent auto-viewer creation
 			);
 
 			if (sequenceList.isEmpty()) {
@@ -175,7 +185,22 @@ public class ImageLoader {
 				return null;
 			}
 
-			return sequenceList.get(0);
+			Sequence seq = sequenceList.get(0);
+			// Immediately suppress updates to prevent any auto-created viewers from displaying
+			// This prevents the brief "loading canvas" flash when switching experiments
+			if (seq != null) {
+				seq.beginUpdate();
+				// Close any viewers that might have been auto-created during loading
+				List<icy.gui.viewer.Viewer> autoViewers = seq.getViewers();
+				if (autoViewers != null && !autoViewers.isEmpty()) {
+					for (icy.gui.viewer.Viewer viewer : autoViewers) {
+						if (viewer != null) {
+							viewer.close();
+						}
+					}
+				}
+			}
+			return seq;
 		} catch (Exception e) {
 			Logger.error("Error loading sequence: " + e.getMessage());
 			return null;

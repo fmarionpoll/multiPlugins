@@ -103,11 +103,13 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 			public void run() {
 				ViewerFMP v = (ViewerFMP) seq.getFirstViewer();
 				if (v == null) {
-					v = new ViewerFMP(exp.seqCamData.seq, true, true);
+					v = new ViewerFMP(exp.seqCamData.seq, false, true);
 					List<String> list = IcyCanvas.getCanvasPluginNames();
 					String pluginName = list.stream().filter(s -> s.contains("Canvas2D_2Transforms")).findFirst()
 							.orElse(null);
 					v.setCanvas(pluginName);
+					placeViewerNextToDialogBox(v, parent0.mainFrame);
+					v.setVisible(true);
 				}
 
 				if (v != null) {
@@ -117,6 +119,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					v.addListener(parent);
 					v.setTitle(exp.seqCamData.getDecoratedImageName(0));
 					v.setRepeat(false);
+					
+					// End update mode now that viewer is properly configured
+					if (seq.isUpdating()) {
+						seq.endUpdate();
+					}
 				}
 			}
 		});
