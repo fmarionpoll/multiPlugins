@@ -316,7 +316,7 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 				if (v == null) {
 					v = new ViewerFMP(exp.getSeqCamData().getSequence(), true, true);
 				}
-				
+
 				exp.getSeqCamData().getSequence().setFocusedROI(roi);
 				exp.getSeqCamData().centerDisplayOnRoi(roi);
 				exp.getSeqCamData().getSequence().setSelectedROI(roi);
@@ -347,19 +347,19 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		// Always call getNTotalFrames() directly to get auto-corrected value
 		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		int actualImageCount = exp.getSeqCamData().getImageLoader().getImagesCount();
-		
+
 		// Validate nTotalFrames - must be > 1 and match actual image count
 		if (nTotalFrames <= 1 || nTotalFrames != actualImageCount) {
-			Logger.warn("CapillaryChartInteractionHandler: Invalid nTotalFrames=" + nTotalFrames 
-					+ " (actualImageCount=" + actualImageCount + "). Chart interaction disabled.");
+			Logger.warn("CapillaryChartInteractionHandler: Invalid nTotalFrames=" + nTotalFrames + " (actualImageCount="
+					+ actualImageCount + "). Chart interaction disabled.");
 			return;
 		}
 
 		// Validate time array size matches nTotalFrames
 		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
 		if (timeArray == null || timeArray.length != nTotalFrames) {
-			Logger.warn("CapillaryChartInteractionHandler: Time array size mismatch. Array length=" 
-					+ (timeArray != null ? timeArray.length : 0) + ", nTotalFrames=" + nTotalFrames 
+			Logger.warn("CapillaryChartInteractionHandler: Time array size mismatch. Array length="
+					+ (timeArray != null ? timeArray.length : 0) + ", nTotalFrames=" + nTotalFrames
 					+ ". Chart interaction disabled.");
 			return;
 		}
@@ -372,7 +372,8 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 
 		// Convert time (minutes) to frame index
 		if (timeMinutes >= 0) {
-			// Find nearest frame index - use getNTotalFrames() directly to ensure correct value
+			// Find nearest frame index - use getNTotalFrames() directly to ensure correct
+			// value
 			int frameIndex = exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch(
 					(long) (timeMinutes * 60000), 0, exp.getSeqCamData().getImageLoader().getNTotalFrames());
 			v.setPositionT(frameIndex);
@@ -402,7 +403,8 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			v = new ViewerFMP(exp.getSeqKymos().getSequence(), true, true);
 		}
 
-		// Always find kymograph index by searching for the kymograph name in the image list
+		// Always find kymograph index by searching for the kymograph name in the image
+		// list
 		// Don't trust the stored index as it may be stale after capillaries are deleted
 		List<String> kymographImagesList = exp.getSeqKymos().getImagesList();
 		int kymographIndex = capillary.deriveKymographIndexFromImageList(kymographImagesList);
