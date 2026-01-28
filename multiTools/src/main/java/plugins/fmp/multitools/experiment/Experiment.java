@@ -701,21 +701,8 @@ public class Experiment {
 			resultsDirectory = camDataImagesDirectory + File.separator + RESULTS;
 		}
 
-		// Priority 1: Try new v2_ format
-		String v2FileName = concatenateExptDirectoryWithSubpathAndName(null, ID_V2_EXPERIMENT_XML);
-		if (load_MS96_experiment(v2FileName)) {
-			return true;
-		}
-
-		// Priority 2: Try legacy MCexperiment.xml
-		String legacyFileName = concatenateExptDirectoryWithSubpathAndName(null, ID_MS96_experiment_XML);
-		if (load_MS96_experiment(legacyFileName)) {
-			return true;
-		}
-
-		// Priority 3: Try legacy MS96_experiment.xml
-		String legacy2FileName = concatenateExptDirectoryWithSubpathAndName(null, ID_MCEXPERIMENT_XML_LEGACY);
-		return load_MS96_experiment(legacy2FileName);
+		ExperimentPersistence persistence = new ExperimentPersistence();
+		return persistence.loadExperimentDescriptors(this);
 	}
 
 	private boolean load_MS96_experiment(String csFileName) {

@@ -69,6 +69,10 @@ public class ImageLoader {
 		if (imagesList.isEmpty()) {
 			return false;
 		}
+		// Fix: Auto-correct nTotalFrames and fixedNumberOfImages if they're invalid
+		// This must happen BEFORE clipImagesList() to prevent incorrect clipping
+		getNTotalFrames();
+		
 		long savedFixedNumberOfImages = fixedNumberOfImages;
 		List<String> clippedList = clipImagesList(imagesList);
 		fixedNumberOfImages = savedFixedNumberOfImages;
@@ -93,6 +97,13 @@ public class ImageLoader {
 		if (images.isEmpty()) {
 			return;
 		}
+		// Fix: Set imagesList temporarily so getNTotalFrames() can auto-correct
+		// invalid values (like nFrames=1 from XML) before clipping
+		setImagesList(images);
+		// Auto-correct nTotalFrames and fixedNumberOfImages if they're invalid
+		// This must happen BEFORE clipImagesList() to prevent incorrect clipping
+		getNTotalFrames();
+		
 		// Preserve fixedNumberOfImages value - don't overwrite user settings
 		// This allows the user to control the number of images via the UI
 		// If fixedNumberOfImages is -1 (not set), it will remain -1 and clipImagesList
