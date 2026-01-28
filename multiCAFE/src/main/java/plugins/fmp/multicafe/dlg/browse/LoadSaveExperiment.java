@@ -514,6 +514,14 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					"different experiment selected after loading images");
 		}
 
+		// Ensure sequence exists before creating viewer
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == null) {
+			Logger.warn("LoadSaveExperiment: Sequence is null after loadImages()");
+			return abortExperimentLoad(exp, expIndex, progressFrame, "sequence is null after loading images");
+		}
+
+		// Create viewer - we're already on EDT from itemStateChanged, so call directly
 		parent0.paneExperiment.updateViewerForSequenceCam(exp);
 
 		// Apply checkbox state to capillary ROIs now that viewer is created

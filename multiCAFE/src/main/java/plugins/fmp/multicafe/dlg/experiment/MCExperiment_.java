@@ -101,8 +101,11 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 	 */
 	public void updateViewerForSequenceCam(Experiment exp) {
 		Sequence seq = exp.getSeqCamData().getSequence();
-		if (seq == null)
+		if (seq == null) {
+			System.err.println("MCExperiment_:updateViewerForSequenceCam - Sequence is null for experiment: "
+					+ (exp != null ? exp.getResultsDirectory() : "null"));
 			return;
+		}
 
 		ViewerListener parent = this;
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
@@ -110,7 +113,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 		// Check if this experiment is still the selected one
 		Experiment currentlySelected = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (currentlySelected != exp) {
-			System.err.println("MCExperiment_:updateViewerForSequenceCamSync [" + expIndex
+			System.err.println("MCExperiment_:updateViewerForSequenceCam [" + expIndex
 					+ "] - Experiment no longer selected, aborting viewer creation");
 			return;
 		}
@@ -121,26 +124,34 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 		ViewerFMP v = (ViewerFMP) seq.getFirstViewer();
 		if (v == null) {
 			try {
-				// Create viewer with visible=false to prevent flickering
-				v = new ViewerFMP(seq, false, true);
+
+				// Create viewer with visible=true (like multiSPOTS does)
+				v = new ViewerFMP(seq, true, true);
 				List<String> list = IcyCanvas.getCanvasPluginNames();
 				String pluginName = list.stream().filter(s -> s.contains("Canvas2DWithTransforms")).findFirst()
 						.orElse(null);
-				v.setCanvas(pluginName);
+				if (pluginName != null) {
+					v.setCanvas(pluginName);
+				} else {
+					System.err.println("MCExperiment_:updateViewerForSequenceCam - Canvas plugin not found!");
+				}
 
-				// Set position before making viewer visible
+				// Set position and ensure visible
 				if (initialBounds != null) {
 					v.setBounds(initialBounds);
 				}
 
-				// Now make the viewer visible with the correct position already set
+				// Ensure viewer is visible (in case it was created with visible=false)
 				v.setVisible(true);
+
 			} catch (Exception e) {
-				System.err.println("MCExperiment_:updateViewerForSequenceCamSync [" + expIndex
+				System.err.println("MCExperiment_:updateViewerForSequenceCam [" + expIndex
 						+ "] - Failed to create viewer: " + e.getMessage());
+				e.printStackTrace();
 				return;
 			}
 		} else {
+
 			// Viewer already exists - reposition it immediately
 			if (initialBounds != null) {
 				// Hide viewer, set bounds, then show to avoid flickering

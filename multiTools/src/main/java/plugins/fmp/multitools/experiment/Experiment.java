@@ -217,32 +217,6 @@ public class Experiment {
 		timeManager.setKymoBin_ms(ms);
 	}
 
-	// _________________________________________________
-
-	private final static String ID_VERSION = "version";
-	private final static String ID_VERSIONNUM = "2.0.0";
-	private final static String ID_FRAMEFIRST = "indexFrameFirst";
-	private final static String ID_NFRAMES = "nFrames";
-	private final static String ID_FRAMEDELTA = "indexFrameDelta";
-
-	private final static String ID_TIMEFIRSTIMAGEMS = "fileTimeImageFirstMs";
-	private final static String ID_TIMELASTIMAGEMS = "fileTimeImageLastMs";
-	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
-	private final static String ID_LASTKYMOCOLMS = "lastKymoColMs";
-	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
-
-	private final static String ID_MCEXPERIMENT = "MCexperiment";
-	// Current format filename (version stored internally in XML)
-	private final String ID_V2_EXPERIMENT_XML = "Experiment.xml";
-	// Legacy filenames (for fallback)
-	private final String ID_MS96_experiment_XML = "MCexperiment.xml";
-	private final String ID_MCEXPERIMENT_XML_LEGACY = "MS96_experiment.xml";
-	private final static String ID_MCDROSOTRACK_XML = "MCdrosotrack.xml";
-	private final static String ID_GENERATOR_PROGRAM = "generatorProgram";
-
-//	private final static int EXPT_DIRECTORY = 1;
-//	private final static int IMG_DIRECTORY = 2;
-//	private final static int BIN_DIRECTORY = 3;
 	// ----------------------------------
 
 	public Experiment() {
@@ -702,188 +676,17 @@ public class Experiment {
 		}
 
 		ExperimentPersistence persistence = new ExperimentPersistence();
-		return persistence.loadExperimentDescriptors(this);
-	}
-
-	private boolean load_MS96_experiment(String csFileName) {
-		try {
-			final Document doc = XMLUtil.loadDocument(csFileName);
-			if (doc == null) {
-				String resultsDir = getResultsDirectory();
-				File resultsDirFile = new File(resultsDir);
-				if (!resultsDirFile.exists() || !resultsDirFile.isDirectory()) {
-					return false;
-				}
-				Logger.warn("Experiment: Could not load XML document from " + csFileName);
-				return false;
-			}
-
-			// Schema validation removed as requested
-
-			Node node = XMLUtil.getElement(XMLUtil.getRootElement(doc), ID_MCEXPERIMENT);
-			if (node == null) {
-				Logger.warn("Experiment: Could not find MCexperiment node in XML");
-				return false;
-			}
-
-			// Version validation with detailed logging
-			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
-			// System.out.println("XML Version: " + version);
-			if (!version.equals(ID_VERSIONNUM)) {
-				// Accept any 2.x.x version (major version match)
-				// Parse version string to check major version
-				boolean versionCompatible = false;
-				try {
-					String[] versionParts = version.split("\\.");
-					if (versionParts.length >= 1) {
-						int majorVersion = Integer.parseInt(versionParts[0]);
-						versionCompatible = (majorVersion == 2);
-					}
-				} catch (NumberFormatException e) {
-					// If version string can't be parsed, fall back to exact match
-					versionCompatible = false;
-				}
-				
-				if (!versionCompatible) {
-					Logger.warn("Experiment: Version mismatch. Expected: " + ID_VERSIONNUM + " or 2.x.x, Found: " + version);
-					return false;
-				} else {
-					Logger.info("Experiment: Loading with version " + version + " (compatible with " + ID_VERSIONNUM + ")");
-				}
-			}
-
-			// Load ImageLoader configuration with validation
-			ImageLoader imgLoader = seqCamData.getImageLoader();
-			long frameFirst = XMLUtil.getElementLongValue(node, ID_FRAMEFIRST, 0);
-			if (frameFirst < 0) {
-				// System.out.println("WARNING: frameFirst < 0, setting to 0");
-				frameFirst = 0;
-			}
-			imgLoader.setAbsoluteIndexFirstImage(frameFirst);
-
-			// nframes is optional - older XML files may not have it
-			// Treat 0 the same as -1 (undetermined) - it means frames haven't been counted yet
-			long nImages = XMLUtil.getElementLongValue(node, ID_NFRAMES, -1);
-			if (nImages > 0) {
-				// only set if present and valid in XML (positive value)
-				imgLoader.setFixedNumberOfImages(nImages);
-				imgLoader.setNTotalFrames((int) (nImages - frameFirst));
-				// getNTotalFrames() will auto-correct if value is invalid (-1, 0, or 1)
-				imgLoader.getNTotalFrames();
-			} else {
-				// nFrames is -1 (missing), 0 (undetermined), or negative - don't set yet
-				// Will be determined later when images are actually loaded
-				int loadedImagesCount = imgLoader.getImagesCount();
-				if (loadedImagesCount > 0) {
-					// Images already loaded - use actual count
-					nImages = loadedImagesCount + frameFirst;
-					imgLoader.setFixedNumberOfImages(nImages);
-					imgLoader.setNTotalFrames((int) (nImages - frameFirst));
-				}
-				// If loadedImagesCount is 0, images haven't been loaded yet - 
-				// nTotalFrames will be set correctly when loadExperimentImages() is called
-			}
-
-			// Load TimeManager configuration with validation
-			TimeManager timeManager = seqCamData.getTimeManager();
-			long firstMs = XMLUtil.getElementLongValue(node, ID_TIMEFIRSTIMAGEMS, 0);
-			timeManager.setFirstImageMs(firstMs);
-			long lastMs = XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGEMS, 0);
-			timeManager.setLastImageMs(lastMs);
-			long durationMs = lastMs - firstMs;
-			timeManager.setDurationMs(durationMs);
-			long frameDelta = XMLUtil.getElementLongValue(node, ID_FRAMEDELTA, 1);
-			timeManager.setDeltaImage(frameDelta);
-
-			// Migration: Extract bin parameters from old XML format and migrate to bin
-			// directory
-			long binFirstMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
-			long binLastMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
-			long binDurationMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
-
-			// Only migrate if binDurationMs was explicitly found in XML (>= 0)
-			// If binDurationMs is missing, skip migration entirely - let it be calculated
-			// from files later
-			// This prevents creating bin_60 with default value before interval is
-			// calculated
-			if (binDurationMs >= 0) {
-				// Determine target bin directory (use current binDirectory or default to
-				// bin_60)
-				String targetBinDir = binDirectory;
-				if (targetBinDir != null) {
-					// Extract just the subdirectory name if binDirectory is a full path
-					File binDirFile = new File(targetBinDir);
-					if (binDirFile.isAbsolute()) {
-						// Extract just the last component of the path (e.g., "bin_60")
-						targetBinDir = binDirFile.getName();
-					}
-				} else {
-					// No bin directory set, default based on duration
-					targetBinDir = BIN + (binDurationMs / 1000);
-				}
-
-				// Create BinDescription and save to bin directory
-				BinDescription binDesc = new BinDescription();
-				if (binFirstMs >= 0)
-					binDesc.setFirstKymoColMs(binFirstMs);
-				if (binLastMs >= 0)
-					binDesc.setLastKymoColMs(binLastMs);
-				binDesc.setBinKymoColMs(binDurationMs);
-				binDesc.setBinDirectory(targetBinDir);
-
-				// Save to bin directory
-				if (resultsDirectory != null) {
-					String binFullDir = resultsDirectory + File.separator + targetBinDir;
-					binDescriptionPersistence.save(binDesc, binFullDir);
-
-					// Load into active bin description (using subdirectory name, not full path)
-					loadBinDescription(targetBinDir);
-				}
-			} else {
-				// No bin parameters in XML, try to load from current bin directory
-				// Only load if interval hasn't been calculated yet (need saved values)
-				// If interval was calculated, skip loading to avoid overwriting calculated
-				// values
-				// Use this.timeManager to access instance variable (local timeManager shadows
-				// it)
-				if (binDirectory != null && this.timeManager.getCamImageBin_ms() < 0) {
-					// Extract subdirectory name if binDirectory is a full path
-					String binSubDir = binDirectory;
-					File binDirFile = new File(binDirectory);
-					if (binDirFile.isAbsolute()) {
-						binSubDir = binDirFile.getName();
-					}
-					loadBinDescription(binSubDir);
-				}
-			}
-
-			// Load properties with error handling
-			try {
-				prop.loadXML_Properties(node);
-				// System.out.println("Experiment properties loaded successfully");
-			} catch (Exception e) {
-				Logger.error("Experiment: Failed to load experiment properties: " + e.getMessage(), e);
-				return false;
-			}
-
-			// Load generator program (optional field)
-			String generatorProgramValue = XMLUtil.getElementValue(node, ID_GENERATOR_PROGRAM, null);
-			if (generatorProgramValue != null) {
-				generatorProgram = generatorProgramValue;
-			}
-
-			ugly_checkOffsetValues();
-
-			return true;
-
-		} catch (Exception e) {
-			Logger.error("Experiment: Error during experiment XML loading: " + e.getMessage(), e);
-			e.printStackTrace();
-			return false;
+		boolean loaded = persistence.loadExperimentDescriptors(this);
+		if (loaded) {
+			checkOffsetValues();
 		}
+		return loaded;
 	}
 
-	private void ugly_checkOffsetValues() {
+	private void checkOffsetValues() {
+		if (seqCamData == null)
+			return;
+
 		if (seqCamData.getFirstImageMs() < 0)
 			seqCamData.setFirstImageMs(0);
 		if (seqCamData.getLastImageMs() < 0)
@@ -955,7 +758,8 @@ public class Experiment {
 	 * <p>
 	 * <b>Experiment Type Behavior:</b>
 	 * <ul>
-	 * <li><b>multiCAFE:</b> No spots files exist - returns false immediately (no error)</li>
+	 * <li><b>multiCAFE:</b> No spots files exist - returns false immediately (no
+	 * error)</li>
 	 * <li><b>multiSPOTS/multiSPOTS96:</b> Loads spot measures successfully</li>
 	 * </ul>
 	 * This early exit for multiCAFE experiments improves performance by avoiding
@@ -963,13 +767,13 @@ public class Experiment {
 	 */
 	public boolean load_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		
+
 		// Check if spots files exist before attempting to load
 		// This avoids unnecessary file system checks for multiCAFE experiments
 		if (!spots.hasSpotsFiles(resultsDir)) {
 			return false;
 		}
-		
+
 		boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
 
 		// Load measures from bin directory (if available)
@@ -1011,23 +815,25 @@ public class Experiment {
 	 * <b>Experiment Type Behavior:</b>
 	 * <ul>
 	 * <li><b>multiCAFE:</b> Loads capillary measures (main data) + kymographs</li>
-	 * <li><b>multiSPOTS/multiSPOTS96:</b> No capillaries files exist - returns false immediately (no error)</li>
+	 * <li><b>multiSPOTS/multiSPOTS96:</b> No capillaries files exist - returns
+	 * false immediately (no error)</li>
 	 * </ul>
 	 * This early exit for multiSPOTS experiments improves performance by avoiding
 	 * unnecessary file system checks.
 	 * <p>
-	 * Note: Kymographs are always present in multiCAFE (used to construct measures),
-	 * but optional in multiSPOTS.
+	 * Note: Kymographs are always present in multiCAFE (used to construct
+	 * measures), but optional in multiSPOTS.
 	 */
 	public boolean load_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		
+
 		// Check if capillaries files exist before attempting to load
-		// This avoids unnecessary file system checks for experiments without capillaries
+		// This avoids unnecessary file system checks for experiments without
+		// capillaries
 		if (!capillaries.getPersistence().hasCapillariesDescriptionFiles(resultsDir)) {
 			return false;
 		}
-		
+
 		boolean descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
 
 		String binDir = getKymosBinFullDirectory();
@@ -1051,13 +857,13 @@ public class Experiment {
 					seqCamData.getSequence().addROI(cap.getRoi());
 					roisAdded++;
 					if (roisAdded <= 3) { // Log first 3 for debugging
-					String msgRoi = "Experiment:load_capillaries_description_and_measures() Added ROI: " + roiName + 
-							", contains 'line': " + (roiName != null && roiName.contains("line"));
-					Logger.info(msgRoi);
+						String msgRoi = "Experiment:load_capillaries_description_and_measures() Added ROI: " + roiName
+								+ ", contains 'line': " + (roiName != null && roiName.contains("line"));
+						Logger.info(msgRoi);
 					}
 				}
 			}
-			
+
 			// Make sure ROIs are visible after being added
 			icy.gui.viewer.Viewer viewer = seqCamData.getSequence().getFirstViewer();
 			if (roisAdded > 0 && viewer != null) {
@@ -1081,7 +887,7 @@ public class Experiment {
 	 */
 	public boolean save_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		
+
 		// Guard: Don't save descriptions if capillaries list is empty
 		// This prevents overwriting existing data with empty files
 		boolean descriptionsSaved = false;
@@ -1089,7 +895,8 @@ public class Experiment {
 			// Save descriptions to new format
 			descriptionsSaved = capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
 		} else {
-			Logger.warn("Experiment:save_capillaries_description_and_measures() Skipping save - capillaries list is empty. This may indicate capillaries were not loaded.");
+			Logger.warn(
+					"Experiment:save_capillaries_description_and_measures() Skipping save - capillaries list is empty. This may indicate capillaries were not loaded.");
 		}
 
 		String binDir = getKymosBinFullDirectory();
@@ -1402,10 +1209,6 @@ public class Experiment {
 		seqCamData.removeROIsContainingString("det");
 	}
 
-	public String zgetMCDrosoTrackFullName() {
-		return resultsDirectory + File.separator + ID_MCDROSOTRACK_XML;
-	}
-
 	public void updateROIsAt(int t) {
 		seqCamData.getSequence().beginUpdate();
 		List<ROI2D> rois = seqCamData.getSequence().getROI2Ds();
@@ -1525,13 +1328,6 @@ public class Experiment {
 			}
 		}
 		return flag;
-	}
-
-	private String concatenateExptDirectoryWithSubpathAndName(String subpath, String name) {
-		if (subpath != null)
-			return resultsDirectory + File.separator + subpath + File.separator + name;
-		else
-			return resultsDirectory + File.separator + name;
 	}
 
 	private List<String> getSpotsFieldValues(EnumXLSColumnHeader fieldEnumCode) {
@@ -2160,6 +1956,34 @@ public class Experiment {
 			addValueIfUnique(cap.getCapillaryField(fieldEnumCode), textList);
 	}
 
+	// -------------------------------------------------------------
+
+	private final static String ID_VERSION = "version";
+	private final static String ID_VERSIONNUM = "2.0.0";
+	private final static String ID_FRAMEFIRST = "indexFrameFirst";
+	private final static String ID_NFRAMES = "nFrames";
+	private final static String ID_FRAMEDELTA = "indexFrameDelta";
+
+	private final static String ID_TIMEFIRSTIMAGEMS = "fileTimeImageFirstMs";
+	private final static String ID_TIMELASTIMAGEMS = "fileTimeImageLastMs";
+	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
+	private final static String ID_LASTKYMOCOLMS = "lastKymoColMs";
+	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
+
+	private final static String ID_MCEXPERIMENT = "MCexperiment";
+	// Current format filename (version stored internally in XML)
+	private final String ID_V2_EXPERIMENT_XML = "Experiment.xml";
+	// Legacy filenames (for fallback)
+	private final String ID_MS96_experiment_XML = "MCexperiment.xml";
+	private final String ID_MCEXPERIMENT_XML_LEGACY = "MS96_experiment.xml";
+	private final static String ID_GENERATOR_PROGRAM = "generatorProgram";
+
+	private final static String ID_MCDROSOTRACK_XML = "MCdrosotrack.xml";
+
+	private final static int EXPT_DIRECTORY = 1;
+	private final static int IMG_DIRECTORY = 2;
+	private final static int BIN_DIRECTORY = 3;
+
 //	private EnumXLSColumnHeader convertToOldEnum(EnumXLSColumnHeader newEnum) {
 //		// Convert new enum values to old enum values for Capillary compatibility
 //		switch (newEnum) {
@@ -2171,5 +1995,197 @@ public class Experiment {
 //			return null;
 //		}
 //	}
+
+	private boolean load_MS96_experiment(String csFileName) {
+		try {
+			final Document doc = XMLUtil.loadDocument(csFileName);
+			if (doc == null) {
+				String resultsDir = getResultsDirectory();
+				File resultsDirFile = new File(resultsDir);
+				if (!resultsDirFile.exists() || !resultsDirFile.isDirectory()) {
+					return false;
+				}
+				Logger.warn("Experiment: Could not load XML document from " + csFileName);
+				return false;
+			}
+
+			// Schema validation removed as requested
+
+			Node node = XMLUtil.getElement(XMLUtil.getRootElement(doc), ID_MCEXPERIMENT);
+			if (node == null) {
+				Logger.warn("Experiment: Could not find MCexperiment node in XML");
+				return false;
+			}
+
+			// Version validation with detailed logging
+			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
+			// System.out.println("XML Version: " + version);
+			if (!version.equals(ID_VERSIONNUM)) {
+				// Accept any 2.x.x version (major version match)
+				// Parse version string to check major version
+				boolean versionCompatible = false;
+				try {
+					String[] versionParts = version.split("\\.");
+					if (versionParts.length >= 1) {
+						int majorVersion = Integer.parseInt(versionParts[0]);
+						versionCompatible = (majorVersion == 2);
+					}
+				} catch (NumberFormatException e) {
+					// If version string can't be parsed, fall back to exact match
+					versionCompatible = false;
+				}
+
+				if (!versionCompatible) {
+					Logger.warn("Experiment: Version mismatch. Expected: " + ID_VERSIONNUM + " or 2.x.x, Found: "
+							+ version);
+					return false;
+				} else {
+					Logger.info(
+							"Experiment: Loading with version " + version + " (compatible with " + ID_VERSIONNUM + ")");
+				}
+			}
+
+			// Load ImageLoader configuration with validation
+			ImageLoader imgLoader = seqCamData.getImageLoader();
+			long frameFirst = XMLUtil.getElementLongValue(node, ID_FRAMEFIRST, 0);
+			if (frameFirst < 0) {
+				// System.out.println("WARNING: frameFirst < 0, setting to 0");
+				frameFirst = 0;
+			}
+			imgLoader.setAbsoluteIndexFirstImage(frameFirst);
+
+			// nframes is optional - older XML files may not have it
+			// Treat 0 the same as -1 (undetermined) - it means frames haven't been counted
+			// yet
+			long nImages = XMLUtil.getElementLongValue(node, ID_NFRAMES, -1);
+			if (nImages > 0) {
+				// only set if present and valid in XML (positive value)
+				imgLoader.setFixedNumberOfImages(nImages);
+				imgLoader.setNTotalFrames((int) (nImages - frameFirst));
+				// getNTotalFrames() will auto-correct if value is invalid (-1, 0, or 1)
+				imgLoader.getNTotalFrames();
+			} else {
+				// nFrames is -1 (missing), 0 (undetermined), or negative - don't set yet
+				// Will be determined later when images are actually loaded
+				int loadedImagesCount = imgLoader.getImagesCount();
+				if (loadedImagesCount > 0) {
+					// Images already loaded - use actual count
+					nImages = loadedImagesCount + frameFirst;
+					imgLoader.setFixedNumberOfImages(nImages);
+					imgLoader.setNTotalFrames((int) (nImages - frameFirst));
+				}
+				// If loadedImagesCount is 0, images haven't been loaded yet -
+				// nTotalFrames will be set correctly when loadExperimentImages() is called
+			}
+
+			// Load TimeManager configuration with validation
+			TimeManager timeManager = seqCamData.getTimeManager();
+			long firstMs = XMLUtil.getElementLongValue(node, ID_TIMEFIRSTIMAGEMS, 0);
+			timeManager.setFirstImageMs(firstMs);
+			long lastMs = XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGEMS, 0);
+			timeManager.setLastImageMs(lastMs);
+			long durationMs = lastMs - firstMs;
+			timeManager.setDurationMs(durationMs);
+			long frameDelta = XMLUtil.getElementLongValue(node, ID_FRAMEDELTA, 1);
+			timeManager.setDeltaImage(frameDelta);
+
+			// Migration: Extract bin parameters from old XML format and migrate to bin
+			// directory
+			long binFirstMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
+			long binLastMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
+			long binDurationMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
+
+			// Only migrate if binDurationMs was explicitly found in XML (>= 0)
+			// If binDurationMs is missing, skip migration entirely - let it be calculated
+			// from files later
+			// This prevents creating bin_60 with default value before interval is
+			// calculated
+			if (binDurationMs >= 0) {
+				// Determine target bin directory (use current binDirectory or default to
+				// bin_60)
+				String targetBinDir = binDirectory;
+				if (targetBinDir != null) {
+					// Extract just the subdirectory name if binDirectory is a full path
+					File binDirFile = new File(targetBinDir);
+					if (binDirFile.isAbsolute()) {
+						// Extract just the last component of the path (e.g., "bin_60")
+						targetBinDir = binDirFile.getName();
+					}
+				} else {
+					// No bin directory set, default based on duration
+					targetBinDir = BIN + (binDurationMs / 1000);
+				}
+
+				// Create BinDescription and save to bin directory
+				BinDescription binDesc = new BinDescription();
+				if (binFirstMs >= 0)
+					binDesc.setFirstKymoColMs(binFirstMs);
+				if (binLastMs >= 0)
+					binDesc.setLastKymoColMs(binLastMs);
+				binDesc.setBinKymoColMs(binDurationMs);
+				binDesc.setBinDirectory(targetBinDir);
+
+				// Save to bin directory
+				if (resultsDirectory != null) {
+					String binFullDir = resultsDirectory + File.separator + targetBinDir;
+					binDescriptionPersistence.save(binDesc, binFullDir);
+
+					// Load into active bin description (using subdirectory name, not full path)
+					loadBinDescription(targetBinDir);
+				}
+			} else {
+				// No bin parameters in XML, try to load from current bin directory
+				// Only load if interval hasn't been calculated yet (need saved values)
+				// If interval was calculated, skip loading to avoid overwriting calculated
+				// values
+				// Use this.timeManager to access instance variable (local timeManager shadows
+				// it)
+				if (binDirectory != null && this.timeManager.getCamImageBin_ms() < 0) {
+					// Extract subdirectory name if binDirectory is a full path
+					String binSubDir = binDirectory;
+					File binDirFile = new File(binDirectory);
+					if (binDirFile.isAbsolute()) {
+						binSubDir = binDirFile.getName();
+					}
+					loadBinDescription(binSubDir);
+				}
+			}
+
+			// Load properties with error handling
+			try {
+				prop.loadXML_Properties(node);
+				// System.out.println("Experiment properties loaded successfully");
+			} catch (Exception e) {
+				Logger.error("Experiment: Failed to load experiment properties: " + e.getMessage(), e);
+				return false;
+			}
+
+			// Load generator program (optional field)
+			String generatorProgramValue = XMLUtil.getElementValue(node, ID_GENERATOR_PROGRAM, null);
+			if (generatorProgramValue != null) {
+				generatorProgram = generatorProgramValue;
+			}
+
+			checkOffsetValues();
+
+			return true;
+
+		} catch (Exception e) {
+			Logger.error("Experiment: Error during experiment XML loading: " + e.getMessage(), e);
+			e.printStackTrace();
+			return false;
+		}
+	}
+
+	private String concatenateExptDirectoryWithSubpathAndName(String subpath, String name) {
+		if (subpath != null)
+			return resultsDirectory + File.separator + subpath + File.separator + name;
+		else
+			return resultsDirectory + File.separator + name;
+	}
+
+	public String zgetMCDrosoTrackFullName() {
+		return resultsDirectory + File.separator + ID_MCDROSOTRACK_XML;
+	}
 
 }

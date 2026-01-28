@@ -47,6 +47,7 @@ public class Intervals extends JPanel implements ItemListener {
 	JButton applyButton = new JButton("Apply changes");
 	JButton refreshButton = new JButton("Refresh");
 	private MultiCAFE parent0 = null;
+	private boolean updatingFromExperiment = false;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -105,6 +106,8 @@ public class Intervals extends JPanel implements ItemListener {
 
 		indexFirstImageJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
+				if (updatingFromExperiment)
+					return;
 				long newValue = (long) indexFirstImageJSpinner.getValue();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null
@@ -123,6 +126,8 @@ public class Intervals extends JPanel implements ItemListener {
 
 		fixedNumberOfImagesJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
+				if (updatingFromExperiment)
+					return;
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null || exp.getSeqCamData() == null) {
 					return;
@@ -227,14 +232,19 @@ public class Intervals extends JPanel implements ItemListener {
 	}
 
 	public void getExptParms(Experiment exp) {
-		refreshBinSize(exp);
-		long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-		long dFirst = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
-		indexFirstImageJSpinner.setValue(dFirst);
-		if (exp.getSeqCamData().getTimeManager().getBinLast_ms() <= 0)
-			exp.getSeqCamData().getTimeManager()
-					.setBinLast_ms((long) (exp.getSeqCamData().getImageLoader().getNTotalFrames() - 1) * bin_ms);
-		fixedNumberOfImagesJSpinner.setValue(exp.getSeqCamData().getImageLoader().getFixedNumberOfImages());
+		updatingFromExperiment = true;
+		try {
+			refreshBinSize(exp);
+			long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+			long dFirst = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
+			indexFirstImageJSpinner.setValue(dFirst);
+			if (exp.getSeqCamData().getTimeManager().getBinLast_ms() <= 0)
+				exp.getSeqCamData().getTimeManager()
+						.setBinLast_ms((long) (exp.getSeqCamData().getImageLoader().getNTotalFrames() - 1) * bin_ms);
+			fixedNumberOfImagesJSpinner.setValue(exp.getSeqCamData().getImageLoader().getFixedNumberOfImages());
+		} finally {
+			updatingFromExperiment = false;
+		}
 	}
 
 	public void displayCamDataIntervals(Experiment exp) {

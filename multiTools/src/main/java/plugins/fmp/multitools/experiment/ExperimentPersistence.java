@@ -116,7 +116,30 @@ public class ExperimentPersistence {
 
 		private static boolean isVersionCompatible(Node node) {
 			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
-			return version.equals(ID_VERSIONNUM);
+			if (version.equals(ID_VERSIONNUM)) {
+				return true;
+			}
+
+			boolean versionCompatible = false;
+			try {
+				String[] versionParts = version.split("\\.");
+				if (versionParts.length >= 1) {
+					int majorVersion = Integer.parseInt(versionParts[0]);
+					versionCompatible = (majorVersion == 2);
+				}
+			} catch (NumberFormatException e) {
+				versionCompatible = false;
+			}
+
+			if (!versionCompatible) {
+				Logger.warn("ExperimentPersistence: Version mismatch. Expected: " + ID_VERSIONNUM
+						+ " or 2.x.x, Found: " + version);
+			} else {
+				Logger.info("ExperimentPersistence: Loading with version " + version + " (compatible with "
+						+ ID_VERSIONNUM + ")");
+			}
+
+			return versionCompatible;
 		}
 
 		private static void loadTiming(Experiment exp, Node node) {
@@ -291,17 +314,25 @@ public class ExperimentPersistence {
 					ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 					long frameFirst = imgLoader.getAbsoluteIndexFirstImage();
 					long nImages = imgLoader.getFixedNumberOfImages();
+					// Use actual frame count when fixedNumberOfImages is invalid (<=0 or 1)
+					if (nImages <= 0 || nImages == 1) {
+						int actual = imgLoader.getNTotalFrames();
+						if (actual <= 1 && exp.getSeqCamData().getSequence() != null) {
+							int sizeT = exp.getSeqCamData().getSequence().getSizeT();
+							if (sizeT > 1)
+								actual = sizeT;
+						}
+						if (actual > 1) {
+							nImages = actual + frameFirst;
+							imgLoader.setFixedNumberOfImages(nImages);
+						}
+					}
 					XMLUtil.setElementLongValue(node, ID_FRAMEFIRST, frameFirst);
 
-					// Only save nFrames if it's a valid positive value
-					// -1 or 0 means "undetermined" - will be calculated from actual images on next
-					// load
-					if (nImages > 0) {
+					if (nImages > 1) {
 						XMLUtil.setElementLongValue(node, ID_NFRAMES, nImages);
 					} else {
-						// Remove nFrames element if it exists (to indicate undetermined)
-						// This allows the next load to determine it from actual image count
-						org.w3c.dom.Node nFramesNode = XMLUtil.getElement(node, ID_NFRAMES);
+						Node nFramesNode = XMLUtil.getElement(node, ID_NFRAMES);
 						if (nFramesNode != null) {
 							node.removeChild(nFramesNode);
 						}

@@ -69,10 +69,22 @@ public class ImageLoader {
 		if (imagesList.isEmpty()) {
 			return false;
 		}
+		// Skip if sequence already exists and has correct size (avoid recreating
+		// unnecessarily)
+		// This prevents closing viewers that were just created
+		Sequence existingSeq = seqCamData.getSequence();
+		if (existingSeq != null) {
+			int expectedSize = getNTotalFrames();
+			if (expectedSize > 0 && existingSeq.getSizeT() == expectedSize) {
+				// Sequence already exists with correct size - don't recreate
+				// This preserves any viewers that were already created
+				return true;
+			}
+		}
 		// Fix: Auto-correct nTotalFrames and fixedNumberOfImages if they're invalid
 		// This must happen BEFORE clipImagesList() to prevent incorrect clipping
 		getNTotalFrames();
-		
+
 		long savedFixedNumberOfImages = fixedNumberOfImages;
 		List<String> clippedList = clipImagesList(imagesList);
 		fixedNumberOfImages = savedFixedNumberOfImages;
@@ -103,7 +115,7 @@ public class ImageLoader {
 		// Auto-correct nTotalFrames and fixedNumberOfImages if they're invalid
 		// This must happen BEFORE clipImagesList() to prevent incorrect clipping
 		getNTotalFrames();
-		
+
 		// Preserve fixedNumberOfImages value - don't overwrite user settings
 		// This allows the user to control the number of images via the UI
 		// If fixedNumberOfImages is -1 (not set), it will remain -1 and clipImagesList
@@ -235,8 +247,8 @@ public class ImageLoader {
 		// Auto-compute from imagesList if invalid (-1, 0, or 1) or not set
 		if (nTotalFrames <= 1 && nTotalFrames >= -1 && !imagesList.isEmpty() && imagesList.size() > 1) {
 			nTotalFrames = imagesList.size();
-			// Also update fixedNumberOfImages to keep them in sync
-			if (fixedNumberOfImages <= 0) {
+			// Also update fixedNumberOfImages when invalid so clipImagesList uses full list
+			if (fixedNumberOfImages <= 1) {
 				fixedNumberOfImages = imagesList.size() + absoluteIndexFirstImage;
 			}
 		}
@@ -245,9 +257,6 @@ public class ImageLoader {
 
 	public boolean checkIfNFramesIsValid() {
 		int nFrames = getImagesCount();
-		if (nFrames != getNTotalFrames())
-			System.out.println("error: nFrames (seqCamData.camImagesList.size()):" + nFrames
-					+ " is different from seqCamData.getImageLoader().getNTotalFrames():" + getNTotalFrames());
 		if (nFrames < 1)
 			return false;
 		return true;

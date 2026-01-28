@@ -233,13 +233,13 @@ public class Create extends JPanel {
 		Sequence seq = exp.getSeqCamData().getSequence();
 		final String dummyname = "perimeter_enclosing_capillaries";
 		capillariesRoiPolygon = (ROI2DPolygon) isRoiPresent(seq, dummyname);
-		if (capillariesRoiPolygon == null) {
-			capillariesRoiPolygon = new ROI2DPolygon(getCapillariesPolygon(seq));
-			capillariesRoiPolygon.setName(dummyname);
-			seq.addROI(capillariesRoiPolygon);
-		}
+		if (capillariesRoiPolygon != null)
+			seq.removeROI(capillariesRoiPolygon);
 
-		seq.setSelectedROI(capillariesRoiPolygon);
+		capillariesRoiPolygon = new ROI2DPolygon(getCapillariesPolygon(seq));
+		capillariesRoiPolygon.setName(dummyname);
+		if (seq.addROI(capillariesRoiPolygon))
+			seq.setSelectedROI(capillariesRoiPolygon);
 	}
 
 	private ROI2D isRoiPresent(Sequence seq, String dummyname) {

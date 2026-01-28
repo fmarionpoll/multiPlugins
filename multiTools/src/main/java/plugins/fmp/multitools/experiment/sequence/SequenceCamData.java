@@ -6,13 +6,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
-import plugins.fmp.multitools.experiment.EnumStatus;
-import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
+import plugins.fmp.multitools.experiment.EnumStatus;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
  * Manages camera sequence data including images, ROIs, timing, and viewer
@@ -234,8 +234,9 @@ public class SequenceCamData implements AutoCloseable {
 			if (seq != null) {
 				int seqSizeT = seq.getSizeT();
 				int displayedTotalFrames = seqSizeT - 1;
-				
-				// Fix: If displayed frame count is invalid (-1, 0, or 1), refresh from actual image list
+
+				// Fix: If displayed frame count is invalid (-1, 0, or 1), refresh from actual
+				// image list
 				if (displayedTotalFrames <= 1 && displayedTotalFrames >= -1) {
 					int actualImageCount = imageLoader.getImagesCount();
 					if (actualImageCount > 1) {
@@ -244,11 +245,12 @@ public class SequenceCamData implements AutoCloseable {
 						long nImages = actualImageCount + frameFirst;
 						imageLoader.setFixedNumberOfImages(nImages);
 						imageLoader.setNTotalFrames(actualImageCount);
-						// Use actual count for display (subtract 1 because display uses 0-based indexing)
+						// Use actual count for display (subtract 1 because display uses 0-based
+						// indexing)
 						displayedTotalFrames = actualImageCount - 1;
 					}
 				}
-				
+
 				return fileName + " [" + t + "/" + displayedTotalFrames + "]";
 			} else {
 				return fileName + "[]";
@@ -562,7 +564,9 @@ public class SequenceCamData implements AutoCloseable {
 	// === SEQUENCE MANAGEMENT ===
 
 	/**
-	 * Attaches an existing sequence to this object.
+	 * Attaches an existing sequence to this object. Closes the previous sequence
+	 * (if different) to ensure viewers are properly cleaned up and reattached to
+	 * the new sequence.
 	 * 
 	 * @param sequence the sequence to attach
 	 * @throws IllegalArgumentException if sequence is null
@@ -575,6 +579,28 @@ public class SequenceCamData implements AutoCloseable {
 		ensureNotClosed();
 		lock.lock();
 		try {
+			// If attaching the same sequence, do nothing (preserve viewers)
+			if (this.seq == sequence) {
+				return;
+			}
+
+			// Close old sequence if it's different from the new one
+			// This ensures viewers attached to the old sequence are closed
+			// and will be recreated for the new sequence
+			if (this.seq != null) {
+				// Remove ROIs but don't close viewers here - closeSequence() handles that
+				// We'll close the sequence properly below
+				this.seq.removeAllROI();
+				List<Viewer> oldViewers = this.seq.getViewers();
+				if (oldViewers != null) {
+					for (Viewer viewer : oldViewers) {
+						if (viewer != null) {
+							viewer.close();
+						}
+					}
+				}
+				this.seq.close();
+			}
 			this.seq = sequence;
 			this.status = EnumStatus.FILESTACK;
 		} finally {
