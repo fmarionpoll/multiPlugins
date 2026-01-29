@@ -22,6 +22,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
@@ -510,6 +511,18 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		}
 		seq.addOverlay(overlayThreshold);
 
+		Viewer v = seq.getFirstViewer();
+		if (v != null) {
+			IcyCanvas canvas = v.getCanvas();
+			if (canvas != null) {
+				if (!canvas.hasLayer(overlayThreshold))
+					canvas.addLayer(overlayThreshold);
+				if (!canvas.isLayersVisible())
+					canvas.setLayersVisible(true);
+				canvas.refresh();
+			}
+		}
+
 		updateOverlayThreshold();
 		seq.overlayChanged(overlayThreshold);
 		seq.dataChanged();
@@ -546,6 +559,12 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		if (overlayThreshold.getSequence() != null) {
 			overlayThreshold.getSequence().overlayChanged(overlayThreshold);
 			overlayThreshold.getSequence().dataChanged();
+			Viewer v = overlayThreshold.getSequence().getFirstViewer();
+			if (v != null) {
+				IcyCanvas canvas = v.getCanvas();
+				if (canvas != null)
+					canvas.refresh();
+			}
 		}
 	}
 
@@ -581,8 +600,19 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null)
-			exp.getSeqKymos().getSequence().removeOverlay(overlayThreshold);
+		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return;
+		Sequence seq = exp.getSeqKymos().getSequence();
+		Viewer v = seq.getFirstViewer();
+		if (v != null) {
+			IcyCanvas canvas = v.getCanvas();
+			if (canvas != null) {
+				if (canvas.hasLayer(overlayThreshold))
+					canvas.removeLayer(overlayThreshold);
+				canvas.refresh();
+			}
+		}
+		seq.removeOverlay(overlayThreshold);
 	}
 
 }
