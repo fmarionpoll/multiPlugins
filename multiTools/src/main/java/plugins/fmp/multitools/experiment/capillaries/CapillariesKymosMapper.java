@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.experiment.capillaries;
 
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 
 /**
@@ -19,25 +20,37 @@ public final class CapillariesKymosMapper {
 	}
 
 	/**
-	 * Pushes all capillary measures to the kymograph sequence as ROIs.
+	 * Pushes capillary measures for the current kymograph frame to the sequence as ROIs.
 	 */
 	public static void pushCapillaryMeasuresToKymos(Capillaries capillaries, SequenceKymos seqKymos) {
 		if (capillaries == null || seqKymos == null || seqKymos.getSequence() == null) {
 			return;
 		}
-		seqKymos.transferCapillariesMeasuresToKymos(capillaries);
+		int t = seqKymos.getCurrentFrame();
+		if (t < 0 && seqKymos.getSequence().getFirstViewer() != null)
+			t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		if (t < 0)
+			t = 0;
+		seqKymos.syncROIsForCurrentFrame(t, capillaries);
 	}
 
 	/**
-	 * Pulls capillary measures from ROIs defined on the kymograph sequence back
-	 * into the {@link Capillaries} model.
+	 * Pulls capillary measures from the current frame's ROIs on the kymograph sequence
+	 * back into the {@link Capillaries} model.
 	 */
 	public static void pullCapillaryMeasuresFromKymos(Capillaries capillaries, SequenceKymos seqKymos) {
 		if (capillaries == null || seqKymos == null || seqKymos.getSequence() == null) {
 			return;
 		}
-		seqKymos.validateROIs();
-		seqKymos.transferKymosRoisToCapillaries_Measures(capillaries);
+		int t = seqKymos.getCurrentFrame();
+		if (t < 0 && seqKymos.getSequence().getFirstViewer() != null)
+			t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		if (t >= 0) {
+			seqKymos.validateRoisAtT(t);
+			Capillary cap = capillaries.getCapillaryAtT(t);
+			if (cap != null)
+				seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(t, cap);
+		}
 	}
 }
 

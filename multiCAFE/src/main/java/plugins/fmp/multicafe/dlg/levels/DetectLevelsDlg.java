@@ -130,6 +130,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		defineActionListeners();
 		defineItemListeners();
 		allowItemsAccordingToSelection();
+		overlayPass1CheckBox.setEnabled(false);
+		overlayPass2CheckBox.setEnabled(false);
 	}
 
 	private void defineItemListeners() {
@@ -232,6 +234,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 
 					}
 					overlayPass1CheckBox.setEnabled(displayCheckOverlay);
+					overlayPass2CheckBox.setEnabled(false);
 				}
 			}
 		});
@@ -254,7 +257,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 						overlayPass2CheckBox.setSelected(false);
 						getKymosCanvas(exp).transformsCombo1.setSelectedIndex(0);
 					}
-					overlayPass1CheckBox.setEnabled(displayCheckOverlay);
+					overlayPass2CheckBox.setEnabled(displayCheckOverlay);
+					overlayPass1CheckBox.setEnabled(false);
 				}
 			}
 		});
@@ -479,6 +483,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		if (transformPass1DisplayButton.isSelected() || transformPass2DisplayButton.isSelected()) {
 			exp.getSeqKymos().getSequence().addOverlay(overlayThreshold);
 			updateOverlayThreshold();
+			exp.getSeqKymos().getSequence().overlayChanged(overlayThreshold);
+			exp.getSeqKymos().getSequence().dataChanged();
 		}
 	}
 
@@ -509,6 +515,10 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		} else
 			return;
 		overlayThreshold.painterChanged();
+		if (overlayThreshold.getSequence() != null) {
+			overlayThreshold.getSequence().overlayChanged(overlayThreshold);
+			overlayThreshold.getSequence().dataChanged();
+		}
 	}
 
 	private int[] getInitialLevelPositions() {

@@ -11,7 +11,6 @@ import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -138,7 +137,7 @@ public class Display extends JPanel implements ViewerListener {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				int isel = kymographsCombo.getSelectedIndex() - 1;
-				if (isel < kymographsCombo.getItemCount()) {
+				if (isel >= 0) {
 					isel = selectKymographImage(isel);
 					selectKymographComboItem(isel);
 				}
@@ -158,19 +157,36 @@ public class Display extends JPanel implements ViewerListener {
 
 	}
 
+	/**
+	 * Fills the combo in kymograph sequence order (index = t). Each item is the
+	 * capillary/display name for that frame (from capillary or from kymograph file name, e.g. line0L).
+	 */
 	public void transferCapillaryNamesToComboBox(Experiment exp) {
 		kymographsCombo.removeAllItems();
-		if (exp != null && exp.getCapillaries() != null && exp.getCapillaries().getList() != null) {
-			List<String> capillaryNames = new java.util.ArrayList<String>();
-			for (Capillary cap : exp.getCapillaries().getList()) {
-				if (cap != null && cap.getRoiName() != null) {
-					capillaryNames.add(cap.getRoiName());
+		if (exp == null || exp.getCapillaries() == null || exp.getSeqKymos() == null
+				|| exp.getSeqKymos().getSequence() == null)
+			return;
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		Capillaries capillaries = exp.getCapillaries();
+		int sizeT = seqKymos.getSequence().getSizeT();
+		for (int t = 0; t < sizeT; t++) {
+			Capillary cap = seqKymos.getCapillaryForFrame(t, capillaries);
+			String name;
+			if (cap != null && cap.getRoiName() != null) {
+				name = cap.getRoiName();
+			} else {
+				String path = seqKymos.getFileNameFromImageList(t);
+				if (path != null) {
+					String base = new java.io.File(path).getName();
+					int lastDot = base.lastIndexOf('.');
+					if (lastDot > 0)
+						base = base.substring(0, lastDot);
+					name = base.replaceAll("1$", "L").replaceAll("2$", "R");
+				} else {
+					name = "t=" + t;
 				}
 			}
-			Collections.sort(capillaryNames);
-			for (String name : capillaryNames) {
-				kymographsCombo.addItem(name);
-			}
+			kymographsCombo.addItem(name);
 		}
 	}
 
@@ -431,8 +447,13 @@ public class Display extends JPanel implements ViewerListener {
 	}
 
 	public void displayUpdateOnSwingThread() {
-		int isel = selectKymographImage(displayUpdate());
-		selectKymographComboItem(isel);
+		isActionEnabled = false;
+		try {
+			int isel = selectKymographImage(displayUpdate());
+			selectKymographComboItem(isel);
+		} finally {
+			isActionEnabled = true;
+		}
 	}
 
 	int displayUpdate() {
@@ -478,20 +499,25 @@ public class Display extends JPanel implements ViewerListener {
 		if (isel >= seqKymos.getSequence().getSizeT())
 			isel = seqKymos.getSequence().getSizeT() - 1;
 
-		seqKymos.getSequence().beginUpdate();
 		Viewer v = seqKymos.getSequence().getFirstViewer();
+		if (v == null) {
+			displayON();
+			v = seqKymos.getSequence().getFirstViewer();
+		}
 		Rectangle savedBounds = null;
 		if (v != null) {
-			// Preserve current viewer bounds before sequence update
 			savedBounds = v.getBounds();
-
 			int icurrent = v.getPositionT();
+			if (icurrent != isel && icurrent >= 0) {
+				Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
+				if (capOld != null)
+					seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
+			}
 			if (icurrent != isel)
 				v.setPositionT(isel);
-			seqKymos.validateRoisAtT(seqKymos.getCurrentFrame());
-			seqKymos.setCurrentFrame(isel);
 		}
-		seqKymos.getSequence().endUpdate();
+		seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
+		seqKymos.setCurrentFrame(isel);
 
 		// Apply saved position if available, otherwise preserve current bounds
 		if (v != null) {
@@ -554,12 +580,26 @@ public class Display extends JPanel implements ViewerListener {
 	public void viewerChanged(ViewerEvent event) {
 		if ((event.getType() == ViewerEvent.ViewerEventType.POSITION_CHANGED) && (event.getDim() == DimensionId.T)) {
 			Viewer v = event.getSource();
-			int t = v.getPositionT();
-			if (t >= 0)
-				selectKymographComboItem(t);
-
-			String title = kymographsCombo.getItemAt(t) + "  :" + viewsCombo.getSelectedItem() + " s";
-			v.setTitle(title);
+			int tNew = v.getPositionT();
+			if (v.getSequence() == null)
+				return;
+			Experiment exp = findExperimentOwningSequence(v.getSequence());
+			if (exp != null) {
+				SequenceKymos seqKymos = exp.getSeqKymos();
+				int tOld = seqKymos.getCurrentFrame();
+				if (tOld >= 0 && tOld != tNew) {
+					Capillary capOld = seqKymos.getCapillaryForFrame(tOld, exp.getCapillaries());
+					if (capOld != null)
+						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
+				}
+				seqKymos.syncROIsForCurrentFrame(tNew, exp.getCapillaries());
+				seqKymos.setCurrentFrame(tNew);
+			}
+			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
+				selectKymographComboItem(tNew);
+				String title = kymographsCombo.getItemAt(tNew) + "  :" + viewsCombo.getSelectedItem() + " s";
+				v.setTitle(title);
+			}
 		}
 
 		// Fallback: save bounds whenever viewer changes (as backup if ComponentListener
@@ -587,6 +627,23 @@ public class Display extends JPanel implements ViewerListener {
 		// Remove ComponentListener to prevent memory leaks
 		removeKymographViewerBoundsListener(viewer);
 		viewer.removeListener(this);
+	}
+
+	/**
+	 * Finds the experiment that owns the given sequence (e.g. its kymograph sequence).
+	 * Used so we sync ROIs when the viewer position changes even if the experiment combo selection differs.
+	 */
+	private Experiment findExperimentOwningSequence(Sequence sequence) {
+		if (sequence == null)
+			return null;
+		for (int i = 0; i < parent0.expListComboLazy.getItemCount(); i++) {
+			Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+			if (exp != null && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null
+					&& exp.getSeqKymos().getSequence().getId() == sequence.getId()) {
+				return exp;
+			}
+		}
+		return null;
 	}
 
 	public void updateResultsAvailable(Experiment exp) {
