@@ -24,6 +24,7 @@ import javax.swing.event.ChangeListener;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageUtil;
 import icy.roi.ROI2D;
+import icy.sequence.Sequence;
 import icy.type.DataType;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -136,21 +137,22 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 
 	public void updateOverlay(Experiment exp) {
 		SequenceCamData seqCamData = exp.getSeqCamData();
-		if (seqCamData == null)
+		if (seqCamData == null || seqCamData.getSequence() == null)
 			return;
+
+		Sequence seq = seqCamData.getSequence();
 		if (overlayThreshold == null) {
-			overlayThreshold = new OverlayThreshold(seqCamData.getSequence());
-			seqCamData.getSequence().addOverlay(overlayThreshold);
+			overlayThreshold = new OverlayThreshold(seq);
 		} else {
-			seqCamData.getSequence().removeOverlay(overlayThreshold);
-			overlayThreshold.setSequence(seqCamData.getSequence());
-			seqCamData.getSequence().addOverlay(overlayThreshold);
+			seq.removeOverlay(overlayThreshold);
+			overlayThreshold.setSequence(seq);
 		}
+		seq.addOverlay(overlayThreshold);
 		exp.getCages().setDetect_threshold((int) thresholdSpinner.getValue());
 		overlayThreshold.setThresholdTransform(exp.getCages().getDetect_threshold(),
 				(ImageTransformEnums) transformForLevelsComboBox.getSelectedItem(), false);
-		seqCamData.getSequence().overlayChanged(overlayThreshold);
-		seqCamData.getSequence().dataChanged();
+		seq.overlayChanged(overlayThreshold);
+		seq.dataChanged();
 	}
 
 	public void removeOverlay(Experiment exp) {
@@ -160,21 +162,21 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 
 	@Override
 	public void stateChanged(ChangeEvent e) {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+
 		if (e.getSource() == thresholdSpinner) {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null)
-				updateOverlay(exp);
+			updateOverlay(exp);
+
 		} else if (e.getSource() == overlayCheckBox) {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				if (overlayCheckBox.isSelected()) {
-					if (overlayThreshold == null)
-						overlayThreshold = new OverlayThreshold(exp.getSeqCamData().getSequence());
-					exp.getSeqCamData().getSequence().addOverlay(overlayThreshold);
-					updateOverlay(exp);
-				} else
-					removeOverlay(exp);
-			}
+			if (overlayCheckBox.isSelected()) {
+				if (overlayThreshold == null)
+					overlayThreshold = new OverlayThreshold(exp.getSeqCamData().getSequence());
+				exp.getSeqCamData().getSequence().addOverlay(overlayThreshold);
+				updateOverlay(exp);
+			} else
+				removeOverlay(exp);
 		}
 	}
 

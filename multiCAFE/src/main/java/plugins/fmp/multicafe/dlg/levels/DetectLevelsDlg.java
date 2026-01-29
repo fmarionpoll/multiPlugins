@@ -22,6 +22,8 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.gui.viewer.Viewer;
+import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
@@ -139,8 +141,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			public void itemStateChanged(ItemEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					if (overlayPass1CheckBox.isSelected())
-						updateOverlay(exp);
+					if (transformPass1DisplayButton.isSelected() && overlayPass1CheckBox.isSelected())
+						addOverlayToSequence(exp);
 					else
 						removeOverlay(exp);
 				}
@@ -151,8 +153,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			public void itemStateChanged(ItemEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					if (overlayPass2CheckBox.isSelected())
-						updateOverlay(exp);
+					if (transformPass2DisplayButton.isSelected() && overlayPass2CheckBox.isSelected())
+						addOverlayToSequence(exp);
 					else
 						removeOverlay(exp);
 				}
@@ -184,9 +186,12 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null) {
-					int index = transformPass1ComboBox.getSelectedIndex();
-					getKymosCanvas(exp).transformsCombo1.setSelectedIndex(index + 1);
-					updateOverlayThreshold();
+					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					if (canvas != null) {
+						int index = transformPass1ComboBox.getSelectedIndex();
+						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						updateOverlayThreshold();
+					}
 				}
 			}
 		});
@@ -196,10 +201,13 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			public void actionPerformed(final ActionEvent e) {
 				allowItemsAccordingToSelection();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData() != null) {
-					int index = transformPass2ComboBox.getSelectedIndex();
-					getKymosCanvas(exp).transformsCombo1.setSelectedIndex(index + 1);
-					updateOverlayThreshold();
+				if (exp != null && exp.getSeqKymos() != null) {
+					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					if (canvas != null) {
+						int index = transformPass2ComboBox.getSelectedIndex();
+						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						updateOverlayThreshold();
+					}
 				}
 			}
 		});
@@ -218,49 +226,60 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					boolean displayCheckOverlay = false;
-					if (transformPass1DisplayButton.isSelected()) {
-						transformPass2DisplayButton.setSelected(false);
-						Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+				if (exp == null)
+					return;
+
+				boolean displayCheckOverlay = false;
+				if (transformPass1DisplayButton.isSelected()) {
+					transformPass2DisplayButton.setSelected(false);
+					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					if (canvas != null) {
 						canvas.updateTransformsComboStep1(transformPass1);
 						int index = transformPass1ComboBox.getSelectedIndex();
 						canvas.selectIndexStep1(index + 1, null);
 						displayCheckOverlay = true;
-					} else {
-						removeOverlay(exp);
-						overlayPass1CheckBox.setSelected(false);
-						getKymosCanvas(exp).transformsCombo1.setSelectedIndex(0);
-
 					}
-					overlayPass1CheckBox.setEnabled(displayCheckOverlay);
-					overlayPass2CheckBox.setEnabled(false);
+				} else {
+					removeOverlay(exp);
+					overlayPass1CheckBox.setSelected(false);
+					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					if (canvas != null)
+						canvas.transformsCombo1.setSelectedIndex(0);
 				}
+				overlayPass1CheckBox.setEnabled(displayCheckOverlay);
+				overlayPass2CheckBox.setEnabled(false);
 			}
+
 		});
 
 		transformPass2DisplayButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					boolean displayCheckOverlay = false;
-					if (transformPass2DisplayButton.isSelected()) {
-						transformPass1DisplayButton.setSelected(false);
-						Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+				if (exp == null)
+					return;
+
+				boolean displayCheckOverlay = false;
+				if (transformPass2DisplayButton.isSelected()) {
+					transformPass1DisplayButton.setSelected(false);
+					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					if (canvas != null) {
 						canvas.updateTransformsComboStep1(transformPass2);
 						int index = transformPass2ComboBox.getSelectedIndex();
 						canvas.selectIndexStep1(index + 1, null);
 						displayCheckOverlay = true;
-					} else {
-						removeOverlay(exp);
-						overlayPass2CheckBox.setSelected(false);
-						getKymosCanvas(exp).transformsCombo1.setSelectedIndex(0);
 					}
-					overlayPass2CheckBox.setEnabled(displayCheckOverlay);
-					overlayPass1CheckBox.setEnabled(false);
+				} else {
+					removeOverlay(exp);
+					overlayPass2CheckBox.setSelected(false);
+					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					if (canvas != null)
+						canvas.transformsCombo1.setSelectedIndex(0);
 				}
+				overlayPass2CheckBox.setEnabled(displayCheckOverlay);
+				overlayPass1CheckBox.setEnabled(false);
 			}
+
 		});
 
 		allSeriesCheckBox.addActionListener(new ActionListener() {
@@ -465,45 +484,51 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	}
 
 	protected Canvas2DWithTransforms getKymosCanvas(Experiment exp) {
-		Canvas2DWithTransforms canvas = (Canvas2DWithTransforms) exp.getSeqKymos().getSequence().getFirstViewer()
-				.getCanvas();
-		return canvas;
+		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return null;
+		if (exp.getSeqKymos().getSequence().getFirstViewer() == null)
+			parent0.paneKymos.tabDisplay.displayON();
+		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
+		if (v == null)
+			return null;
+		return (Canvas2DWithTransforms) v.getCanvas();
 	}
 
-	void updateOverlay(Experiment exp) {
-		if (exp.getSeqKymos() == null)
+	void addOverlayToSequence(Experiment exp) {
+		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
 			return;
-		if (overlayThreshold == null)
-			overlayThreshold = new OverlayThreshold(exp.getSeqKymos().getSequence());
-		else {
-			exp.getSeqKymos().getSequence().removeOverlay(overlayThreshold);
-			overlayThreshold.setSequence(exp.getSeqKymos().getSequence());
-		}
 
-		if (transformPass1DisplayButton.isSelected() || transformPass2DisplayButton.isSelected()) {
-			exp.getSeqKymos().getSequence().addOverlay(overlayThreshold);
-			updateOverlayThreshold();
-			exp.getSeqKymos().getSequence().overlayChanged(overlayThreshold);
-			exp.getSeqKymos().getSequence().dataChanged();
+		Sequence seq = exp.getSeqKymos().getSequence();
+		if (seq.getFirstViewer() == null)
+			parent0.paneKymos.tabDisplay.displayON();
+
+		if (overlayThreshold == null)
+			overlayThreshold = new OverlayThreshold(seq);
+		else {
+			seq.removeOverlay(overlayThreshold);
+			overlayThreshold.setSequence(seq);
 		}
+		seq.addOverlay(overlayThreshold);
+
+		updateOverlayThreshold();
+		seq.overlayChanged(overlayThreshold);
+		seq.dataChanged();
 	}
 
 	void updateOverlayThreshold() {
 		if (overlayThreshold == null)
 			return;
 
-		boolean ifGreater = true;
-		int threshold = 0;
-		ImageTransformEnums transform = ImageTransformEnums.NONE;
-		if (transformPass1DisplayButton.isSelected()) {
-			ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
-			threshold = (int) threshold1Spinner.getValue();
-			transform = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
+		if (transformPass1DisplayButton.isSelected() && overlayPass1CheckBox.isSelected()) {
+			boolean ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
+			int threshold = (int) threshold1Spinner.getValue();
+			ImageTransformEnums transform = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
 			overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
-		} else if (transformPass2DisplayButton.isSelected()) {
-			ifGreater = (direction2ComboBox.getSelectedIndex() == 0);
-			threshold = (int) threshold2Spinner.getValue();
-			transform = (ImageTransformEnums) transformPass2ComboBox.getSelectedItem();
+
+		} else if (transformPass2DisplayButton.isSelected() && overlayPass2CheckBox.isSelected()) {
+			boolean ifGreater = (direction2ComboBox.getSelectedIndex() == 0);
+			int threshold = (int) threshold2Spinner.getValue();
+			ImageTransformEnums transform = (ImageTransformEnums) transformPass2ComboBox.getSelectedItem();
 			int jitter2 = (int) jitter2Spinner.getValue();
 
 			int[] initialLevels = getInitialLevelPositions();
@@ -512,8 +537,11 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			} else {
 				overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
 			}
-		} else
+
+		} else {
 			return;
+		}
+
 		overlayThreshold.painterChanged();
 		if (overlayThreshold.getSequence() != null) {
 			overlayThreshold.getSequence().overlayChanged(overlayThreshold);

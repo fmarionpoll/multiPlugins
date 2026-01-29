@@ -217,7 +217,7 @@ public class Display extends JPanel implements ViewerListener {
 		}
 	}
 
-	void displayON() {
+	public void displayON() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 
 		if (exp != null) {
@@ -230,8 +230,10 @@ public class Display extends JPanel implements ViewerListener {
 			Rectangle initialBounds = calculateKymographViewerBounds(exp);
 
 			ArrayList<Viewer> vList = seqKymographs.getSequence().getViewers();
+			Viewer existingViewer = (vList != null && !vList.isEmpty()) ? vList.get(0) : null;
+			boolean reuseViewer = existingViewer != null && existingViewer.isVisible();
 
-			if (vList.size() == 0) {
+			if (!reuseViewer) {
 				// Create viewer with visible=false to prevent flickering
 				ViewerFMP viewerKymographs = new ViewerFMP(seqKymographs.getSequence(), false, true);
 
@@ -261,11 +263,8 @@ public class Display extends JPanel implements ViewerListener {
 				int isel = seqKymographs.getCurrentFrame();
 				isel = selectKymographImage(isel);
 				selectKymographComboItem(isel);
-			} else {
-
-				// Viewer already exists (might have been auto-created by ICY) - reposition it
-				// immediately
-				Viewer existingViewer = vList.get(0);
+			} else if (existingViewer != null) {
+				// Viewer already exists and is visible - reposition it immediately
 				if (initialBounds != null) {
 					// Hide viewer, set bounds, then show to avoid flickering
 					boolean wasVisible = existingViewer.isVisible();
