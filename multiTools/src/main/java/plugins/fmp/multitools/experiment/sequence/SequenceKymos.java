@@ -396,10 +396,14 @@ public class SequenceKymos extends SequenceCamData {
 
 	/**
 	 * Syncs the sequence so only capillary measure ROIs for frame t are present
-	 * (same pattern as Experiment.updateROIsAt for fly positions).
+	 * (same pattern as Experiment.updateROIsAt for fly positions). No-op if t
+	 * equals current frame to avoid redundant work and repeated calls from
+	 * viewer/combo events.
 	 */
 	public void syncROIsForCurrentFrame(int t, Capillaries capillaries) {
 		if (getSequence() == null || capillaries == null)
+			return;
+		if (t == getCurrentFrame())
 			return;
 		Capillary cap = getCapillaryForFrame(t, capillaries);
 		List<ROI2D> roisForT = null;
@@ -410,6 +414,7 @@ public class SequenceKymos extends SequenceCamData {
 					roi.setT(t);
 		}
 		MeasureRoiSync.updateMeasureROIsAt(t, getSequence(), MeasureRoiFilter.CAPILLARY_MEASURES, roisForT);
+		setCurrentFrame(t);
 	}
 
 	public void saveKymosCurvesToCapillariesMeasures(Experiment exp) {

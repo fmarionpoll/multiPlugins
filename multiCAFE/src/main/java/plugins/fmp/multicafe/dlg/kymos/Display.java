@@ -515,9 +515,10 @@ public class Display extends JPanel implements ViewerListener {
 			}
 		}
 		seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
-		seqKymos.setCurrentFrame(isel);
 		if (v != null && icurrent != isel)
 			v.setPositionT(isel);
+		if (v != null && v.getCanvas() != null)
+			v.getCanvas().refresh();
 
 		// Apply saved position if available, otherwise preserve current bounds
 		if (v != null) {
@@ -593,7 +594,8 @@ public class Display extends JPanel implements ViewerListener {
 						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
 				}
 				seqKymos.syncROIsForCurrentFrame(tNew, exp.getCapillaries());
-				seqKymos.setCurrentFrame(tNew);
+				if (v.getCanvas() != null)
+					v.getCanvas().refresh();
 			}
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
 				selectKymographComboItem(tNew);
