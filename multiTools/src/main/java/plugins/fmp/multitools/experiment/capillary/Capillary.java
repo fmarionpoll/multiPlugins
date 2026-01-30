@@ -438,25 +438,25 @@ public class Capillary implements Comparable<Capillary> {
 			}
 		}
 		
-		// Second attempt: match using kymographName (without extension)
+		// Second attempt: match using kymographName (without extension).
+		// Treat 1/L and 2/R as equivalent so "line01" matches capillary "line0L" and vice versa.
 		if (metadata.kymographName != null && !metadata.kymographName.isEmpty()) {
+			String kymoNormalized = replace_LR_with_12(metadata.kymographName);
 			for (int i = 0; i < kymographImagesList.size(); i++) {
 				String imagePath = kymographImagesList.get(i);
 				String imageFilename = new java.io.File(imagePath).getName();
-				
-				// Remove extension from image filename to compare with kymographName
 				String imageNameWithoutExt = imageFilename;
 				int lastDotIndex = imageFilename.lastIndexOf('.');
 				if (lastDotIndex > 0) {
 					imageNameWithoutExt = imageFilename.substring(0, lastDotIndex);
 				}
-				
-				if (imageNameWithoutExt.equals(metadata.kymographName)) {
+				if (imageNameWithoutExt.equals(metadata.kymographName)
+						|| replace_LR_with_12(imageNameWithoutExt).equals(kymoNormalized)) {
 					return i;
 				}
 			}
 		}
-		
+
 		return -1;
 	}
 

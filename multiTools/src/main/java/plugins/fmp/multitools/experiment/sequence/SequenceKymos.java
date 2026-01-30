@@ -371,6 +371,12 @@ public class SequenceKymos extends SequenceCamData {
 			cap = capillaries.getCapillaryFromKymographName(displayName);
 			if (cap != null)
 				return cap;
+			String numericName = Capillary.replace_LR_with_12(baseName);
+			if (!numericName.equals(baseName)) {
+				cap = capillaries.getCapillaryFromKymographName(numericName);
+				if (cap != null)
+					return cap;
+			}
 			String prefix = prefixFromKymographBaseName(baseName);
 			if (prefix != null) {
 				cap = capillaries.getCapillaryFromRoiNamePrefix(prefix);

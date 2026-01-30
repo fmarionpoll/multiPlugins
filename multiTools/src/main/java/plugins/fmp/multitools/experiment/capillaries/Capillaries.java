@@ -226,14 +226,15 @@ public class Capillaries {
 	}
 
 	public Capillary getCapillaryFromRoiNamePrefix(String name) {
-		Capillary capFound = null;
+		if (name == null)
+			return null;
 		for (Capillary cap : getList()) {
-			if (cap.getKymographPrefix().equals(name)) {
-				capFound = cap;
-				break;
+			String prefix = cap.getKymographPrefix();
+			if (prefix != null && prefix.equals(name)) {
+				return cap;
 			}
 		}
-		return capFound;
+		return null;
 	}
 
 	public Capillary getCapillaryAtT(int t) {

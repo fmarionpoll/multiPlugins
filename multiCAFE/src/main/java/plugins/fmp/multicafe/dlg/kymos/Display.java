@@ -226,10 +226,15 @@ public class Display extends JPanel implements ViewerListener {
 				return;
 			}
 
+			icy.sequence.Sequence seq = seqKymographs.getSequence();
+			if (seq.isUpdating()) {
+				seq.endUpdate();
+			}
+
 			// Calculate position before any viewer operations to avoid flickering
 			Rectangle initialBounds = calculateKymographViewerBounds(exp);
 
-			ArrayList<Viewer> vList = seqKymographs.getSequence().getViewers();
+			ArrayList<Viewer> vList = seq.getViewers();
 			// xMultiCAFE0 pattern: create new viewer only when none exist, else reuse (keep its canvas)
 			if (vList == null || vList.size() == 0) {
 				// Create viewer with visible=false to prevent flickering
@@ -258,6 +263,9 @@ public class Display extends JPanel implements ViewerListener {
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(viewerKymographs);
 
+				// Force sync for frame 0: LoadSaveLevels may have already called syncROIsForCurrentFrame(0)
+				// and set currentFrame=0, so sync would be skipped. Reset so first display always syncs.
+				seqKymographs.setCurrentFrame(-1);
 				int isel = seqKymographs.getCurrentFrame();
 				isel = selectKymographImage(isel);
 				selectKymographComboItem(isel);
@@ -283,11 +291,14 @@ public class Display extends JPanel implements ViewerListener {
 
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(existingViewer);
-			}
 
-			icy.sequence.Sequence seq = seqKymographs.getSequence();
-			if (seq.isUpdating()) {
-				seq.endUpdate();
+				// Sync ROIs and combo/title for current frame (e.g. frame 0) so name shows line0L and ROIs are visible
+				int currentT = existingViewer.getPositionT();
+				if (currentT < 0)
+					currentT = 0;
+				seqKymographs.setCurrentFrame(-1);
+				selectKymographImage(currentT);
+				selectKymographComboItem(currentT);
 			}
 		}
 	}
