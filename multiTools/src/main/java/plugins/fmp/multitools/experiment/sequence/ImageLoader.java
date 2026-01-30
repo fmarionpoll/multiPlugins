@@ -132,7 +132,9 @@ public class ImageLoader {
 		setImagesList(clippedList);
 		fixedNumberOfImages = savedFixedNumberOfImages;
 		nTotalFrames = clippedList.size();
-		Sequence seq = loadSequenceFromImagesList(imagesList);
+		// Keep auto-created viewers for kymos so displayON can reuse (matches xMultiCAFE0, ROIs display)
+		boolean closeAutoViewers = !(seqCamData instanceof SequenceKymos);
+		Sequence seq = loadSequenceFromImagesList(imagesList, closeAutoViewers);
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
@@ -164,6 +166,18 @@ public class ImageLoader {
 	}
 
 	public Sequence loadSequenceFromImagesList(List<String> images) {
+		return loadSequenceFromImagesList(images, true);
+	}
+
+	/**
+	 * Loads a sequence from an image list.
+	 *
+	 * @param images            list of image paths
+	 * @param closeAutoViewers  if true, close any auto-created viewers (e.g. for cam data);
+	 *                          if false, keep them so displayON can reuse (e.g. kymos, matches xMultiCAFE0)
+	 * @return the loaded sequence, or null on failure
+	 */
+	public Sequence loadSequenceFromImagesList(List<String> images, boolean closeAutoViewers) {
 		if (images.isEmpty()) {
 			Logger.warn("Empty images list provided");
 			return null;
@@ -186,16 +200,15 @@ public class ImageLoader {
 			}
 
 			Sequence seq = sequenceList.get(0);
-			// Immediately suppress updates to prevent any auto-created viewers from displaying
-			// This prevents the brief "loading canvas" flash when switching experiments
 			if (seq != null) {
 				seq.beginUpdate();
-				// Close any viewers that might have been auto-created during loading
-				List<icy.gui.viewer.Viewer> autoViewers = seq.getViewers();
-				if (autoViewers != null && !autoViewers.isEmpty()) {
-					for (icy.gui.viewer.Viewer viewer : autoViewers) {
-						if (viewer != null) {
-							viewer.close();
+				if (closeAutoViewers) {
+					List<icy.gui.viewer.Viewer> autoViewers = seq.getViewers();
+					if (autoViewers != null && !autoViewers.isEmpty()) {
+						for (icy.gui.viewer.Viewer viewer : autoViewers) {
+							if (viewer != null) {
+								viewer.close();
+							}
 						}
 					}
 				}

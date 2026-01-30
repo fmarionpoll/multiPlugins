@@ -32,7 +32,6 @@ import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
 import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -94,6 +93,7 @@ public class SequenceKymos extends SequenceCamData {
 		super();
 		this.configuration = KymographConfiguration.defaultConfiguration();
 		setStatus(EnumStatus.KYMOGRAPH);
+		setCurrentFrame(-1);
 	}
 
 	/**
@@ -107,6 +107,7 @@ public class SequenceKymos extends SequenceCamData {
 		super(name, image);
 		this.configuration = KymographConfiguration.defaultConfiguration();
 		setStatus(EnumStatus.KYMOGRAPH);
+		setCurrentFrame(-1);
 	}
 
 	/**
@@ -121,6 +122,7 @@ public class SequenceKymos extends SequenceCamData {
 			throw new IllegalArgumentException("Image names list cannot be null or empty");
 		}
 		this.configuration = KymographConfiguration.defaultConfiguration();
+		setCurrentFrame(-1);
 		List<String> convertedNames = new KymographService().convertLinexLRFileNames(imageNames);
 		setImagesList(convertedNames);
 		setStatus(EnumStatus.KYMOGRAPH);
@@ -415,6 +417,9 @@ public class SequenceKymos extends SequenceCamData {
 		}
 		MeasureRoiSync.updateMeasureROIsAt(t, getSequence(), MeasureRoiFilter.CAPILLARY_MEASURES, roisForT);
 		setCurrentFrame(t);
+		icy.gui.viewer.Viewer v = getSequence().getFirstViewer();
+		if (v != null && v.getCanvas() != null)
+			v.getCanvas().refresh();
 	}
 
 	public void saveKymosCurvesToCapillariesMeasures(Experiment exp) {
@@ -479,6 +484,8 @@ public class SequenceKymos extends SequenceCamData {
 			loadImageList(acceptedFiles);
 			setSequenceNameFromFirstImage(acceptedFiles);
 			setStatus(EnumStatus.KYMOGRAPH);
+			if (getSequence() != null)
+				getSequence().endUpdate();
 
 			long processingTime = System.currentTimeMillis() - startTime;
 

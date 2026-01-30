@@ -49,37 +49,29 @@ public final class MeasureRoiSync {
 	 * @param roisForT    ROIs for frame t (can be null or empty to only remove)
 	 */
 	public static void updateMeasureROIsAt(int t, Sequence seq, MeasureRoiFilter filter, List<ROI2D> roisForT) {
-		boolean isCapillaryMeasures = (filter == MeasureRoiFilter.CAPILLARY_MEASURES);
-
-			System.out.println("capMeasures:"+ isCapillaryMeasures + " - display rois for "+seq.getName());
-			for (ROI2D roi: roisForT)
-				System.out.println(roi.getName());
-		
 		if (seq == null || filter == null)
 			return;
-		seq.beginUpdate();
-		try {
-			List<ROI2D> all = seq.getROI2Ds();
-			List<ROI2D> toRemove = new ArrayList<>();
-			for (ROI2D roi : all) {
-				if (roi.getName() == null)
-					continue;
-				String name = roi.getName();
-				if (filter.nameRequired != null && !filter.nameRequired.isEmpty() && !name.contains(filter.nameRequired))
-					continue;
-				for (String token : filter.removeTokens) {
-					if (name.contains(token)) {
-						toRemove.add(roi);
-						break;
-					}
+		List<ROI2D> all = seq.getROI2Ds();
+		List<ROI2D> toRemove = new ArrayList<>();
+		for (ROI2D roi : all) {
+			if (roi.getName() == null)
+				continue;
+			String name = roi.getName();
+			if (filter.nameRequired != null && !filter.nameRequired.isEmpty() && !name.contains(filter.nameRequired))
+				continue;
+			for (String token : filter.removeTokens) {
+				if (name.contains(token)) {
+					toRemove.add(roi);
+					break;
 				}
 			}
-			if (!toRemove.isEmpty())
-				seq.removeROIs(toRemove, false);
-			if (roisForT != null && !roisForT.isEmpty())
-				seq.addROIs(roisForT, false);
-		} finally {
-			seq.endUpdate();
+		}
+		if (!toRemove.isEmpty())
+			seq.removeROIs(toRemove, true);
+		if (roisForT != null && !roisForT.isEmpty()) {
+			seq.addROIs(roisForT, true);
+			for (ROI2D roi : roisForT)
+				seq.roiChanged(roi);
 		}
 	}
 }

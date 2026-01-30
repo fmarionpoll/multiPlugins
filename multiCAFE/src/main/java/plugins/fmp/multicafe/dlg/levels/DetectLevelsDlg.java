@@ -448,6 +448,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	}
 
 	private void displaySearchArea(Experiment exp) {
+		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return;
 		if (searchRectangleROI2D == null) {
 			Rectangle searchRectangle = exp.getSeqKymos().getSequence().getBounds2D();
 			searchRectangle.width -= 1;
@@ -456,8 +458,18 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			searchRectangleROI2D.setName(SEARCHRECT);
 			searchRectangleROI2D.setColor(Color.ORANGE);
 		}
+		int t = exp.getSeqKymos().getCurrentFrame() >= 0 ? exp.getSeqKymos().getCurrentFrame()
+				: (exp.getSeqKymos().getSequence().getFirstViewer() != null
+						? exp.getSeqKymos().getSequence().getFirstViewer().getPositionT()
+						: 0);
+		searchRectangleROI2D.setT(t);
 		exp.getSeqKymos().getSequence().addROI(searchRectangleROI2D);
 		exp.getSeqKymos().getSequence().setSelectedROI(searchRectangleROI2D);
+		exp.getSeqKymos().getSequence().roiChanged(searchRectangleROI2D);
+		
+		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
+		if (v != null && v.getCanvas() != null)
+			v.getCanvas().refresh();
 	}
 
 	private Rectangle getSearchAreaFromSearchRectangle(Experiment exp, boolean fitSmallerRectangle) {

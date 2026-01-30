@@ -230,10 +230,10 @@ public class Display extends JPanel implements ViewerListener {
 			Rectangle initialBounds = calculateKymographViewerBounds(exp);
 
 			ArrayList<Viewer> vList = seqKymographs.getSequence().getViewers();
-			Viewer existingViewer = (vList != null && !vList.isEmpty()) ? vList.get(0) : null;
-			boolean reuseViewer = existingViewer != null && existingViewer.isVisible();
+			// Match xMultiCAFE0: create new viewer only when none exist (reuse existing so its canvas is kept)
+			boolean createNewViewer = (vList == null || vList.isEmpty());
 
-			if (!reuseViewer) {
+			if (createNewViewer) {
 				// Create viewer with visible=false to prevent flickering
 				ViewerFMP viewerKymographs = new ViewerFMP(seqKymographs.getSequence(), false, true);
 
@@ -263,8 +263,9 @@ public class Display extends JPanel implements ViewerListener {
 				int isel = seqKymographs.getCurrentFrame();
 				isel = selectKymographImage(isel);
 				selectKymographComboItem(isel);
-			} else if (existingViewer != null) {
-				// Viewer already exists and is visible - reposition it immediately
+			} else {
+				// Viewer already exists (e.g. auto-created by ICY when loading) - reposition, keep its canvas
+				Viewer existingViewer = vList.get(0);
 				if (initialBounds != null) {
 					// Hide viewer, set bounds, then show to avoid flickering
 					boolean wasVisible = existingViewer.isVisible();
@@ -513,10 +514,10 @@ public class Display extends JPanel implements ViewerListener {
 				if (capOld != null)
 					seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
 			}
+			if (icurrent != isel)
+				v.setPositionT(isel);
 		}
 		seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
-		if (v != null && icurrent != isel)
-			v.setPositionT(isel);
 		if (v != null && v.getCanvas() != null)
 			v.getCanvas().refresh();
 
