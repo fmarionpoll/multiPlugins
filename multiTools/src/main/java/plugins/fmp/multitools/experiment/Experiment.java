@@ -16,7 +16,6 @@ import icy.image.IcyBufferedImage;
 import icy.image.ImageUtil;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
-
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.cages.CagesPersistence.Persistence;
@@ -29,11 +28,12 @@ import plugins.fmp.multitools.experiment.ids.CapillaryID;
 import plugins.fmp.multitools.experiment.sequence.ImageAdjustmentOptions;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.sequence.ImageProcessingResult;
 import plugins.fmp.multitools.experiment.sequence.KymographInfo;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
-
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
@@ -1207,14 +1207,8 @@ public class Experiment {
 	}
 
 	public void updateROIsAt(int t) {
-		seqCamData.getSequence().beginUpdate();
-		List<ROI2D> rois = seqCamData.getSequence().getROI2Ds();
-		for (ROI2D roi : rois) {
-			if (roi.getName().contains("det"))
-				seqCamData.getSequence().removeROI(roi);
-		}
-		seqCamData.getSequence().addROIs(cages.getPositionsAsListOfROI2DRectanglesAtT(t), false);
-		seqCamData.getSequence().endUpdate();
+		MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), MeasureRoiFilter.FLY_POSITION,
+				cages.getPositionsAsListOfROI2DRectanglesAtT(t));
 	}
 
 	public void saveDetRoisToPositions() {

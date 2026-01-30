@@ -32,6 +32,8 @@ import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
@@ -347,62 +349,67 @@ public class SequenceKymos extends SequenceCamData {
 	}
 
 	/**
-	 * Resolves the capillary for kymograph frame t: first by kymographIndex, then by
-	 * matching the t-th image file name (without extension) to capillary kymograph name.
+	 * Resolves the capillary for kymograph frame t. The t-th frame shows the t-th
+	 * image in the list; we resolve by that image's filename first (source of
+	 * truth), then by list index, then by kymographIndex.
 	 */
 	public Capillary getCapillaryForFrame(int t, Capillaries capillaries) {
 		if (capillaries == null || t < 0)
 			return null;
-		Capillary cap = capillaries.getCapillaryAtT(t);
-		if (cap != null)
-			return cap;
 		String path = getFileNameFromImageList(t);
-		if (path == null)
+		if (path != null) {
+			String baseName = new File(path).getName();
+			int lastDot = baseName.lastIndexOf('.');
+			if (lastDot > 0)
+				baseName = baseName.substring(0, lastDot);
+			Capillary cap = capillaries.getCapillaryFromKymographName(baseName);
+			if (cap != null)
+				return cap;
+			String displayName = baseName.replaceAll("1$", "L").replaceAll("2$", "R");
+			cap = capillaries.getCapillaryFromKymographName(displayName);
+			if (cap != null)
+				return cap;
+			String prefix = prefixFromKymographBaseName(baseName);
+			if (prefix != null) {
+				cap = capillaries.getCapillaryFromRoiNamePrefix(prefix);
+				if (cap != null)
+					return cap;
+			}
+		}
+		List<Capillary> list = capillaries.getList();
+		if (t < list.size())
+			return list.get(t);
+		return capillaries.getCapillaryAtT(t);
+	}
+
+	private static String prefixFromKymographBaseName(String baseName) {
+		if (baseName == null || baseName.length() < 6 || !baseName.startsWith("line"))
 			return null;
-		String baseName = new File(path).getName();
-		int lastDot = baseName.lastIndexOf('.');
-		if (lastDot > 0)
-			baseName = baseName.substring(0, lastDot);
-		cap = capillaries.getCapillaryFromKymographName(baseName);
-		if (cap != null)
-			return cap;
-		String displayName = baseName.replaceAll("1$", "L").replaceAll("2$", "R");
-		return capillaries.getCapillaryFromKymographName(displayName);
+		String number = baseName.substring(4, baseName.length() - 1);
+		String last = baseName.substring(baseName.length() - 1);
+		if ("1".equals(last))
+			return number + "L";
+		if ("2".equals(last))
+			return number + "R";
+		return baseName.substring(baseName.length() - 2);
 	}
 
 	/**
-	 * Syncs the sequence so only ROIs for kymograph frame t are present (fly-position
-	 * style). Removes all measure ROIs, then adds only the capillary at t's ROIs.
+	 * Syncs the sequence so only capillary measure ROIs for frame t are present
+	 * (same pattern as Experiment.updateROIsAt for fly positions).
 	 */
 	public void syncROIsForCurrentFrame(int t, Capillaries capillaries) {
 		if (getSequence() == null || capillaries == null)
 			return;
-		getSequence().beginUpdate();
-		try {
-			List<ROI2D> allROIs = getSequence().getROI2Ds();
-			List<ROI2D> roisToRemove = new ArrayList<>();
-			for (ROI2D roi : allROIs) {
-				if (roi.getName() == null)
-					continue;
-				String name = roi.getName();
-				if (name.contains("_") && (name.contains("toplevel") || name.contains("bottomlevel")
-						|| name.contains("derivative") || name.contains("gulps"))) {
-					roisToRemove.add(roi);
-				}
-			}
-			if (!roisToRemove.isEmpty())
-				getSequence().removeROIs(roisToRemove, false);
-
-			Capillary cap = getCapillaryForFrame(t, capillaries);
-			if (cap != null) {
-				List<ROI2D> listOfRois = cap.transferMeasuresToROIs(getImagesList());
-				if (listOfRois != null && !listOfRois.isEmpty())
-					getSequence().addROIs(listOfRois, false);
-			}
-		} finally {
-			getSequence().endUpdate();
-			getSequence().dataChanged();
+		Capillary cap = getCapillaryForFrame(t, capillaries);
+		List<ROI2D> roisForT = null;
+		if (cap != null) {
+			roisForT = cap.transferMeasuresToROIs(getImagesList());
+			if (roisForT != null)
+				for (ROI2D roi : roisForT)
+					roi.setT(t);
 		}
+		MeasureRoiSync.updateMeasureROIsAt(t, getSequence(), MeasureRoiFilter.CAPILLARY_MEASURES, roisForT);
 	}
 
 	public void saveKymosCurvesToCapillariesMeasures(Experiment exp) {

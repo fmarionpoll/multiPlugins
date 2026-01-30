@@ -504,19 +504,20 @@ public class Display extends JPanel implements ViewerListener {
 			v = seqKymos.getSequence().getFirstViewer();
 		}
 		Rectangle savedBounds = null;
+		int icurrent = -1;
 		if (v != null) {
 			savedBounds = v.getBounds();
-			int icurrent = v.getPositionT();
+			icurrent = v.getPositionT();
 			if (icurrent != isel && icurrent >= 0) {
 				Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
 				if (capOld != null)
 					seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
 			}
-			if (icurrent != isel)
-				v.setPositionT(isel);
 		}
 		seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
 		seqKymos.setCurrentFrame(isel);
+		if (v != null && icurrent != isel)
+			v.setPositionT(isel);
 
 		// Apply saved position if available, otherwise preserve current bounds
 		if (v != null) {
