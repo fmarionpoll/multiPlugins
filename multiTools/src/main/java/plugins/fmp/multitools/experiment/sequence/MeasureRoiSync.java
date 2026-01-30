@@ -50,6 +50,11 @@ public final class MeasureRoiSync {
 	 */
 	public static void updateMeasureROIsAt(int t, Sequence seq, MeasureRoiFilter filter, List<ROI2D> roisForT) {
 		boolean isCapillaryMeasures = (filter == MeasureRoiFilter.CAPILLARY_MEASURES);
+
+			System.out.println("capMeasures:"+ isCapillaryMeasures + " - display rois for "+seq.getName());
+			for (ROI2D roi: roisForT)
+				System.out.println(roi.getName());
+		
 		if (seq == null || filter == null)
 			return;
 		seq.beginUpdate();
