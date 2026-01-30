@@ -23,7 +23,9 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import icy.canvas.IcyCanvas;
+import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
+import icy.roi.ROI;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -450,26 +452,44 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	private void displaySearchArea(Experiment exp) {
 		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
 			return;
+		
+		Sequence seq = exp.getSeqKymos().getSequence(); 
 		if (searchRectangleROI2D == null) {
-			Rectangle searchRectangle = exp.getSeqKymos().getSequence().getBounds2D();
+			Rectangle searchRectangle = seq.getBounds2D();
 			searchRectangle.width -= 1;
 			searchRectangle.height -= 1;
 			searchRectangleROI2D = new ROI2DRectangle(searchRectangle);
 			searchRectangleROI2D.setName(SEARCHRECT);
 			searchRectangleROI2D.setColor(Color.ORANGE);
 		}
-		int t = exp.getSeqKymos().getCurrentFrame() >= 0 ? exp.getSeqKymos().getCurrentFrame()
-				: (exp.getSeqKymos().getSequence().getFirstViewer() != null
-						? exp.getSeqKymos().getSequence().getFirstViewer().getPositionT()
-						: 0);
-		searchRectangleROI2D.setT(t);
-		exp.getSeqKymos().getSequence().addROI(searchRectangleROI2D);
-		exp.getSeqKymos().getSequence().setSelectedROI(searchRectangleROI2D);
-		exp.getSeqKymos().getSequence().roiChanged(searchRectangleROI2D);
-		
-		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
-		if (v != null && v.getCanvas() != null)
-			v.getCanvas().refresh();
+		searchRectangleROI2D.setT(-1);
+		seq.addROI(searchRectangleROI2D);
+		seq.setSelectedROI(searchRectangleROI2D);
+		seq.roiChanged(searchRectangleROI2D);
+
+		Viewer v = seq.getFirstViewer();
+		if (v != null && v.getCanvas() != null) {
+			IcyCanvas canvas = v.getCanvas();
+			canvas.refresh();
+			setSearchRectangleLayerVisible(canvas);
+			javax.swing.SwingUtilities.invokeLater(() -> setSearchRectangleLayerVisible(canvas));
+		}
+	}
+
+	private void setSearchRectangleLayerVisible(IcyCanvas canvas) {
+		if (searchRectangleROI2D == null || canvas == null)
+			return;
+		java.util.List<Layer> layers = canvas.getLayers(false);
+		if (layers == null)
+			return;
+		for (Layer layer : layers) {
+			ROI roi = layer.getAttachedROI();
+			if (roi == searchRectangleROI2D) {
+				layer.setVisible(true);
+				canvas.refresh();
+				break;
+			}
+		}
 	}
 
 	private Rectangle getSearchAreaFromSearchRectangle(Experiment exp, boolean fitSmallerRectangle) {

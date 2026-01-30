@@ -132,9 +132,7 @@ public class ImageLoader {
 		setImagesList(clippedList);
 		fixedNumberOfImages = savedFixedNumberOfImages;
 		nTotalFrames = clippedList.size();
-		// Keep auto-created viewers for kymos so displayON can reuse (matches xMultiCAFE0, ROIs display)
-		boolean closeAutoViewers = !(seqCamData instanceof SequenceKymos);
-		Sequence seq = loadSequenceFromImagesList(imagesList, closeAutoViewers);
+		Sequence seq = loadSequenceFromImagesList(imagesList);
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
@@ -165,19 +163,11 @@ public class ImageLoader {
 		}
 	}
 
-	public Sequence loadSequenceFromImagesList(List<String> images) {
-		return loadSequenceFromImagesList(images, true);
-	}
-
 	/**
-	 * Loads a sequence from an image list.
-	 *
-	 * @param images            list of image paths
-	 * @param closeAutoViewers  if true, close any auto-created viewers (e.g. for cam data);
-	 *                          if false, keep them so displayON can reuse (e.g. kymos, matches xMultiCAFE0)
-	 * @return the loaded sequence, or null on failure
+	 * Loads a sequence from an image list. Single responsibility: load only; does not
+	 * close viewers (caller or displayON handles viewer lifecycle; matches xMultiCAFE0).
 	 */
-	public Sequence loadSequenceFromImagesList(List<String> images, boolean closeAutoViewers) {
+	public Sequence loadSequenceFromImagesList(List<String> images) {
 		if (images.isEmpty()) {
 			Logger.warn("Empty images list provided");
 			return null;
@@ -191,7 +181,7 @@ public class ImageLoader {
 					false, // auto-order
 					true, // directory
 					false, // add to recent
-					false // show progress - set to false to prevent auto-viewer creation
+					false // show progress
 			);
 
 			if (sequenceList.isEmpty()) {
@@ -200,19 +190,8 @@ public class ImageLoader {
 			}
 
 			Sequence seq = sequenceList.get(0);
-			if (seq != null) {
+			if (seq != null)
 				seq.beginUpdate();
-				if (closeAutoViewers) {
-					List<icy.gui.viewer.Viewer> autoViewers = seq.getViewers();
-					if (autoViewers != null && !autoViewers.isEmpty()) {
-						for (icy.gui.viewer.Viewer viewer : autoViewers) {
-							if (viewer != null) {
-								viewer.close();
-							}
-						}
-					}
-				}
-			}
 			return seq;
 		} catch (Exception e) {
 			Logger.error("Error loading sequence: " + e.getMessage());

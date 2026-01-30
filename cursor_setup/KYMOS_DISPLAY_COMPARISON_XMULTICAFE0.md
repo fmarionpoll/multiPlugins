@@ -18,19 +18,10 @@
   - **Create new viewer** (set Canvas2DWithTransforms, toolbar, bounds, visible, then `selectKymographImage` / `selectKymographComboItem`).
   - **Else**: reuse **existing** viewer (`vList.get(0)`): only reposition, set fit-to-canvas, add listener. **Does not set the canvas.** So the existing viewer keeps whatever canvas it had (typically ICY default if it was auto-created when the sequence was loaded).
 
-### multiCAFE (current)
+### multiCAFE (current, aligned with xMultiCAFE0)
 
-- Uses **`reuseViewer = existingViewer != null && existingViewer.isVisible()`**:
-  - **Create** when `!reuseViewer` (no viewer or existing not visible).
-  - **Reuse** when an existing visible viewer is present.
-- In addition, **ImageLoader.loadSequenceFromImagesList** (multiTools) **closes all auto-created viewers** on the sequence after loading (lines 195–203). So when kymos are loaded, the sequence always has **0** viewers when `displayON()` runs. So multiCAFE **always** creates a new viewer and **always** sets Canvas2DWithTransforms for kymos.
-
-### Important difference
-
-- In xMultiCAFE0, **SequenceLoaderService.loadSequenceFromImagesList** does **not** close viewers. So the sequence can still have an auto-created viewer (default canvas) when `displayON()` runs. Then `vList.size() != 0`, the code **reuses** that viewer and never sets Canvas2DWithTransforms, so ROIs are shown with the default canvas.
-- In multiCAFE, viewers are closed during load, so we always create a new viewer and force Canvas2DWithTransforms; we never get the “reuse default canvas” path that works in xMultiCAFE0.
-
-So the behavioral difference for ROIs likely comes from **when we create vs reuse** and **whether we close viewers on load**, not from Canvas2DWithTransforms itself.
+- **displayON()**: Uses **`if (vList == null || vList.size() == 0)`** to create; else reuse (reposition only, do not set canvas). Same pattern as xMultiCAFE0.
+- **loadSequenceFromImagesList**: Single responsibility – load only; does not close viewers. Keeps auto-created viewers so displayON can reuse. (matches xMultiCAFE0).
 
 ---
 

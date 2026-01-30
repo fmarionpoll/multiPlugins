@@ -230,10 +230,8 @@ public class Display extends JPanel implements ViewerListener {
 			Rectangle initialBounds = calculateKymographViewerBounds(exp);
 
 			ArrayList<Viewer> vList = seqKymographs.getSequence().getViewers();
-			// Match xMultiCAFE0: create new viewer only when none exist (reuse existing so its canvas is kept)
-			boolean createNewViewer = (vList == null || vList.isEmpty());
-
-			if (createNewViewer) {
+			// xMultiCAFE0 pattern: create new viewer only when none exist, else reuse (keep its canvas)
+			if (vList == null || vList.size() == 0) {
 				// Create viewer with visible=false to prevent flickering
 				ViewerFMP viewerKymographs = new ViewerFMP(seqKymographs.getSequence(), false, true);
 
@@ -506,20 +504,26 @@ public class Display extends JPanel implements ViewerListener {
 		}
 		Rectangle savedBounds = null;
 		int icurrent = -1;
-		if (v != null) {
-			savedBounds = v.getBounds();
-			icurrent = v.getPositionT();
-			if (icurrent != isel && icurrent >= 0) {
-				Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
-				if (capOld != null)
-					seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
+		icy.sequence.Sequence seq = seqKymos.getSequence();
+		seq.beginUpdate();
+		try {
+			if (v != null) {
+				savedBounds = v.getBounds();
+				icurrent = v.getPositionT();
+				if (icurrent != isel && icurrent >= 0) {
+					Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
+					if (capOld != null)
+						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
+				}
+				if (icurrent != isel)
+					v.setPositionT(isel);
 			}
-			if (icurrent != isel)
-				v.setPositionT(isel);
+			seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
+			if (v != null && v.getCanvas() != null)
+				v.getCanvas().refresh();
+		} finally {
+			seq.endUpdate();
 		}
-		seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
-		if (v != null && v.getCanvas() != null)
-			v.getCanvas().refresh();
 
 		// Apply saved position if available, otherwise preserve current bounds
 		if (v != null) {
@@ -588,15 +592,21 @@ public class Display extends JPanel implements ViewerListener {
 			Experiment exp = findExperimentOwningSequence(v.getSequence());
 			if (exp != null) {
 				SequenceKymos seqKymos = exp.getSeqKymos();
+				icy.sequence.Sequence seq = seqKymos.getSequence();
 				int tOld = seqKymos.getCurrentFrame();
 				if (tOld >= 0 && tOld != tNew) {
 					Capillary capOld = seqKymos.getCapillaryForFrame(tOld, exp.getCapillaries());
 					if (capOld != null)
 						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
 				}
-				seqKymos.syncROIsForCurrentFrame(tNew, exp.getCapillaries());
-				if (v.getCanvas() != null)
-					v.getCanvas().refresh();
+				seq.beginUpdate();
+				try {
+					seqKymos.syncROIsForCurrentFrame(tNew, exp.getCapillaries());
+					if (v.getCanvas() != null)
+						v.getCanvas().refresh();
+				} finally {
+					seq.endUpdate();
+				}
 			}
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
 				selectKymographComboItem(tNew);
