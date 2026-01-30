@@ -23,9 +23,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import icy.canvas.IcyCanvas;
-import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
-import icy.roi.ROI;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -73,7 +71,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
-	private JCheckBox fromCheckBox = new JCheckBox(" detection from ROI rectangle", false);
+	private JCheckBox fromRectangleCheckBox = new JCheckBox(" detection from ROI rectangle", false);
 
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox leftCheckBox = new JCheckBox("L", true);
@@ -128,7 +126,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		JPanel panel03 = new JPanel(layoutLeft);
 		panel03.add(new JLabel("pass2 vertical jitter"));
 		panel03.add(jitter2Spinner);
-		panel03.add(fromCheckBox);
+		panel03.add(fromRectangleCheckBox);
 		panel03.add(runBackwardsCheckBox);
 		add(panel03);
 
@@ -296,13 +294,13 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			}
 		});
 
-		fromCheckBox.addActionListener(new ActionListener() {
+		fromRectangleCheckBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
-				if (fromCheckBox.isSelected())
+				if (fromRectangleCheckBox.isSelected())
 					displaySearchArea(exp);
 				else if (searchRectangleROI2D != null)
 					exp.getSeqKymos().getSequence().removeROI(searchRectangleROI2D);
@@ -353,7 +351,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		leftCheckBox.setSelected(options.detectL);
 		rightCheckBox.setSelected(options.detectR);
 
-		fromCheckBox.setSelected(false);
+		fromRectangleCheckBox.setSelected(false);
 	}
 
 	void setOptionsFromDialog(Capillary cap) {
@@ -406,9 +404,9 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		options.detectLevel2Threshold = (int) threshold2Spinner.getValue();
 		options.jitter2 = (int) jitter2Spinner.getValue();
 
-		options.analyzePartOnly = fromCheckBox.isSelected();
+		options.analyzePartOnly = fromRectangleCheckBox.isSelected();
 		options.searchArea = getSearchAreaFromSearchRectangle(exp,
-				fromCheckBox.isSelected() && searchRectangleROI2D != null);
+				fromRectangleCheckBox.isSelected() && searchRectangleROI2D != null);
 
 		options.spanDiffTop = (int) spanTopSpinner.getValue();
 		options.detectL = leftCheckBox.isSelected();
@@ -445,15 +443,15 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			System.out.println("thread_ended");
 			parent0.paneKymos.tabDisplay.selectKymographImage(currentKymographImage);
 			parent0.paneKymos.tabDisplay.indexImagesCombo = -1;
-			fromCheckBox.setSelected(false);
+			fromRectangleCheckBox.setSelected(false);
 		}
 	}
 
 	private void displaySearchArea(Experiment exp) {
 		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
 			return;
-		
-		Sequence seq = exp.getSeqKymos().getSequence(); 
+
+		Sequence seq = exp.getSeqKymos().getSequence();
 		if (searchRectangleROI2D == null) {
 			Rectangle searchRectangle = seq.getBounds2D();
 			searchRectangle.width -= 1;
@@ -466,30 +464,6 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		seq.addROI(searchRectangleROI2D);
 		seq.setSelectedROI(searchRectangleROI2D);
 		seq.roiChanged(searchRectangleROI2D);
-
-		Viewer v = seq.getFirstViewer();
-		if (v != null && v.getCanvas() != null) {
-			IcyCanvas canvas = v.getCanvas();
-			canvas.refresh();
-			setSearchRectangleLayerVisible(canvas);
-			javax.swing.SwingUtilities.invokeLater(() -> setSearchRectangleLayerVisible(canvas));
-		}
-	}
-
-	private void setSearchRectangleLayerVisible(IcyCanvas canvas) {
-		if (searchRectangleROI2D == null || canvas == null)
-			return;
-		java.util.List<Layer> layers = canvas.getLayers(false);
-		if (layers == null)
-			return;
-		for (Layer layer : layers) {
-			ROI roi = layer.getAttachedROI();
-			if (roi == searchRectangleROI2D) {
-				layer.setVisible(true);
-				canvas.refresh();
-				break;
-			}
-		}
 	}
 
 	private Rectangle getSearchAreaFromSearchRectangle(Experiment exp, boolean fitSmallerRectangle) {
@@ -551,7 +525,6 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 					canvas.addLayer(overlayThreshold);
 				if (!canvas.isLayersVisible())
 					canvas.setLayersVisible(true);
-				canvas.refresh();
 			}
 		}
 
@@ -591,12 +564,6 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		if (overlayThreshold.getSequence() != null) {
 			overlayThreshold.getSequence().overlayChanged(overlayThreshold);
 			overlayThreshold.getSequence().dataChanged();
-			Viewer v = overlayThreshold.getSequence().getFirstViewer();
-			if (v != null) {
-				IcyCanvas canvas = v.getCanvas();
-				if (canvas != null)
-					canvas.refresh();
-			}
 		}
 	}
 
@@ -638,11 +605,8 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		Viewer v = seq.getFirstViewer();
 		if (v != null) {
 			IcyCanvas canvas = v.getCanvas();
-			if (canvas != null) {
-				if (canvas.hasLayer(overlayThreshold))
-					canvas.removeLayer(overlayThreshold);
-				canvas.refresh();
-			}
+			if (canvas != null && canvas.hasLayer(overlayThreshold))
+				canvas.removeLayer(overlayThreshold);
 		}
 		seq.removeOverlay(overlayThreshold);
 	}

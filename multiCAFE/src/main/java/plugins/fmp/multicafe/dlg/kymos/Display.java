@@ -284,6 +284,11 @@ public class Display extends JPanel implements ViewerListener {
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(existingViewer);
 			}
+
+			icy.sequence.Sequence seq = seqKymographs.getSequence();
+			if (seq.isUpdating()) {
+				seq.endUpdate();
+			}
 		}
 	}
 
@@ -519,8 +524,6 @@ public class Display extends JPanel implements ViewerListener {
 					v.setPositionT(isel);
 			}
 			seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
-			if (v != null && v.getCanvas() != null)
-				v.getCanvas().refresh();
 		} finally {
 			seq.endUpdate();
 		}
@@ -602,8 +605,6 @@ public class Display extends JPanel implements ViewerListener {
 				seq.beginUpdate();
 				try {
 					seqKymos.syncROIsForCurrentFrame(tNew, exp.getCapillaries());
-					if (v.getCanvas() != null)
-						v.getCanvas().refresh();
 				} finally {
 					seq.endUpdate();
 				}
