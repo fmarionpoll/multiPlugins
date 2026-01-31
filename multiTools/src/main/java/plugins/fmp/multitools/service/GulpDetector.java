@@ -183,9 +183,8 @@ public class GulpDetector {
 		}
 		
 		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
-				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold",
-				firstEmptyCageCap.getKymographIndex(),
-				null);
+				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold");
+		thresholdMeasure.capIndexKymo = firstEmptyCageCap.getKymographIndex();
 		thresholdMeasure.polylineLevel = new plugins.fmp.multitools.tools.Level2D(xpoints, thresholdValues, npoints);
 		
 		firstEmptyCageCap.setThreshold(thresholdMeasure);
