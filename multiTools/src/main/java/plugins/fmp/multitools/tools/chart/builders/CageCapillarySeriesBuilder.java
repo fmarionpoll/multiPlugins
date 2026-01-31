@@ -54,6 +54,13 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			i++;
 		}
 
+		if (options.resultType == EnumResults.DERIVEDVALUES) {
+			XYSeries thresholdSeries = createThresholdSeries(exp, cage, options);
+			if (thresholdSeries != null) {
+				dataset.addSeries(thresholdSeries);
+			}
+		}
+
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
 	}
@@ -209,5 +216,48 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			seriesXY.add(x, y);
 		}
 		return seriesXY;
+	}
+
+	private static XYSeries createThresholdSeries(Experiment exp, Cage cage, ResultsOptions options) {
+		if (exp == null || cage == null || options == null)
+			return null;
+
+		plugins.fmp.multitools.experiment.capillary.CapillaryMeasure thresholdMeasure = exp.getGulpThresholdMeasure();
+		if (thresholdMeasure == null || thresholdMeasure.polylineLevel == null
+				|| thresholdMeasure.polylineLevel.npoints == 0)
+			return null;
+
+		XYSeries thresholdSeries = new XYSeries(cage.getCageID() + "_threshold", false);
+
+		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
+			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
+		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+
+		int npoints = thresholdMeasure.getNPoints();
+		if (camImages_time_min != null && npoints > camImages_time_min.length)
+			npoints = camImages_time_min.length;
+
+		double scalingFactor = 1.0;
+		if ("volume (ul)".equals(options.resultType.toUnit())) {
+			List<plugins.fmp.multitools.experiment.capillary.Capillary> capillaries = cage
+					.getCapillaries(exp.getCapillaries());
+			if (capillaries != null && !capillaries.isEmpty()) {
+				plugins.fmp.multitools.experiment.capillary.Capillary firstCap = capillaries.get(0);
+				if (firstCap.getPixels() > 0)
+					scalingFactor = firstCap.getVolume() / firstCap.getPixels();
+			}
+		}
+
+		for (int j = 0; j < npoints; j++) {
+			double x = camImages_time_min != null ? camImages_time_min[j] : j;
+			double y = thresholdMeasure.getValueAt(j) * scalingFactor;
+			thresholdSeries.add(x, y);
+		}
+
+		CageProperties cageProp = cage.getProperties();
+		thresholdSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
+				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.BLACK));
+
+		return thresholdSeries;
 	}
 }
