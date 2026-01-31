@@ -22,7 +22,6 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
-import plugins.kernel.roi.roi2d.ROI2DArea;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
@@ -415,21 +414,23 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	/**
-	 * Derives the kymographIndex from the position of kymographFilename in the kymograph images list.
-	 * This accounts for missing/deleted kymographs by using actual position rather than name-based numbering.
+	 * Derives the kymographIndex from the position of kymographFilename in the
+	 * kymograph images list. This accounts for missing/deleted kymographs by using
+	 * actual position rather than name-based numbering.
 	 * 
-	 * @param kymographImagesList the list of kymograph image filenames from seqKymos
+	 * @param kymographImagesList the list of kymograph image filenames from
+	 *                            seqKymos
 	 * @return the derived kymograph index, or -1 if it cannot be determined
 	 */
 	public int deriveKymographIndexFromImageList(List<String> kymographImagesList) {
 		if (kymographImagesList == null || kymographImagesList.isEmpty()) {
 			return -1;
 		}
-		
+
 		// First attempt: match using kymographFilename if available
 		if (kymographFilename != null && !kymographFilename.isEmpty()) {
 			String targetFilename = new java.io.File(kymographFilename).getName();
-			
+
 			for (int i = 0; i < kymographImagesList.size(); i++) {
 				String imageFilename = new java.io.File(kymographImagesList.get(i)).getName();
 				if (imageFilename.equals(targetFilename)) {
@@ -437,9 +438,10 @@ public class Capillary implements Comparable<Capillary> {
 				}
 			}
 		}
-		
+
 		// Second attempt: match using kymographName (without extension).
-		// Treat 1/L and 2/R as equivalent so "line01" matches capillary "line0L" and vice versa.
+		// Treat 1/L and 2/R as equivalent so "line01" matches capillary "line0L" and
+		// vice versa.
 		if (metadata.kymographName != null && !metadata.kymographName.isEmpty()) {
 			String kymoNormalized = replace_LR_with_12(metadata.kymographName);
 			for (int i = 0; i < kymographImagesList.size(); i++) {
@@ -863,7 +865,7 @@ public class Capillary implements Comparable<Capillary> {
 		return listrois;
 	}
 
-	private void getROIFromCapillaryLevel(CapillaryMeasure capLevel, List<ROI2D> listrois, 
+	private void getROIFromCapillaryLevel(CapillaryMeasure capLevel, List<ROI2D> listrois,
 			List<String> kymographImagesList) {
 		if (capLevel.polylineLevel == null || capLevel.polylineLevel.npoints == 0)
 			return;
@@ -871,16 +873,16 @@ public class Capillary implements Comparable<Capillary> {
 		ROI2D roi = new ROI2DPolyLine(capLevel.polylineLevel);
 		String name = metadata.kymographPrefix + "_" + capLevel.capName;
 		roi.setName(name);
-		
+
 		// Always derive kymograph index from image list (don't trust stored value)
 		int tIndex = deriveKymographIndexFromImageList(kymographImagesList);
 		if (tIndex >= 0) {
 			kymographIndex = tIndex;
 		} else {
-			System.out.println("capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName) 
-					+ " kymographIndex=" + kymographIndex 
-					+ " kymographFilename=" + kymographFilename
-					+ " (could not derive from image list)");
+			System.out.println(
+					"capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName)
+							+ " kymographIndex=" + kymographIndex + " kymographFilename=" + kymographFilename
+							+ " (could not derive from image list)");
 			tIndex = kymographIndex; // Fallback to stored value if search fails
 		}
 		roi.setT(tIndex);
@@ -892,40 +894,49 @@ public class Capillary implements Comparable<Capillary> {
 		listrois.add(roi);
 	}
 
-	private void getROIsFromCapillaryGulps(CapillaryGulps capGulps, List<ROI2D> listrois, 
+	private void getROIsFromCapillaryGulps(CapillaryGulps capGulps, List<ROI2D> listrois,
 			List<String> kymographImagesList) {
 		if (capGulps == null || capGulps.getAmplitudeSeries() == null || capGulps.getAmplitudeSeries().npoints == 0)
 			return;
 
-		ROI2DArea roiDots = new ROI2DArea();
-		// Display-only dots: show positive gulp intervals at the current top level y.
-		// (Signed amplitudes are stored, but negatives are not counted/displayed as
-		// gulps by default.)
-		for (int x = 0; x < capGulps.getAmplitudeSeries().npoints; x++) {
-			if (capGulps.getAmplitudeSeries().ypoints[x] > 0) {
-				int y = 0;
-				if (measurements != null && measurements.ptsTop != null && measurements.ptsTop.polylineLevel != null
-						&& x < measurements.ptsTop.polylineLevel.npoints) {
-					y = (int) measurements.ptsTop.polylineLevel.ypoints[x];
-				}
-				roiDots.addPoint(x, y);
-			}
-		}
-		if (roiDots.getBounds().isEmpty())
-			return;
-
-		roiDots.setName(metadata.kymographPrefix + "_gulps");
-		roiDots.setColor(Color.red);
-		
-		// Always derive kymograph index from image list (don't trust stored value)
+		// Derive kymograph index once for all gulp ROIs
 		int tIndex = deriveKymographIndexFromImageList(kymographImagesList);
 		if (tIndex >= 0) {
 			kymographIndex = tIndex;
 		} else {
 			tIndex = kymographIndex; // Fallback to stored value if search fails
 		}
-		roiDots.setT(tIndex);
-		listrois.add(roiDots);
+
+		// Create one vertical line ROI per gulp
+		for (int x = 0; x < (capGulps.getAmplitudeSeries().npoints - 1); x++) {
+			int value = (int) capGulps.getAmplitudeSeries().ypoints[x];
+			if (value > 0) {
+				// Get bottom and top y-coordinates at this x position
+				int yBottom = 0;
+				int yTop = 0;
+				if (measurements != null && measurements.ptsTop != null && measurements.ptsTop.polylineLevel != null
+						&& x < measurements.ptsTop.polylineLevel.npoints) {
+					yTop = (int) measurements.ptsTop.polylineLevel.ypoints[x];
+				}
+				if (measurements != null && measurements.ptsBottom != null
+						&& measurements.ptsBottom.polylineLevel != null
+						&& x < measurements.ptsBottom.polylineLevel.npoints) {
+					yBottom = yTop - value;
+				}
+
+				// Create vertical line polyline (2 points)
+				List<Point2D> points = new ArrayList<>(2);
+				points.add(new Point2D.Double(x, yBottom));
+				points.add(new Point2D.Double(x, yTop));
+
+				ROI2DPolyLine gulpRoi = new ROI2DPolyLine(points);
+				gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
+				gulpRoi.setColor(Color.red);
+				gulpRoi.setT(tIndex);
+
+				listrois.add(gulpRoi);
+			}
+		}
 	}
 
 	public void transferROIsToMeasures(List<ROI> listRois) {

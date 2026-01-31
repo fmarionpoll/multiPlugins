@@ -352,33 +352,64 @@ public class CapillaryGulps {
 	// -------------------------------
 
 	public void buildGulpsFromROIs(ArrayList<ROI2D> rois) {
-		// Legacy path: build list of gulp polylines then derive dense series
+		// Clear existing gulp data
 		gulps = new ArrayList<Polyline2D>(rois.size());
+
+		// Determine the expected size for the amplitude series
+		int maxX = 0;
+		for (ROI2D roi : rois) {
+			Rectangle rect = roi.getBounds();
+			if (!rect.isEmpty()) {
+				int endX = rect.x + rect.width;
+				if (endX > maxX) {
+					maxX = endX;
+				}
+			}
+		}
+
+		// Initialize amplitude series if we found any ROIs
+		if (maxX > 0) {
+			ensureSize(maxX);
+		}
+
 		for (ROI2D roi : rois) {
 			if (roi instanceof ROI2DPolyLine) {
 				Polyline2D gulpPolyline = ((ROI2DPolyLine) roi).getPolyline2D();
 				gulps.add(gulpPolyline);
+
+				// Extract x position and amplitude from gulp ROI (vertical or horizontal)
+				if (gulpPolyline.npoints >= 1 && gulpAmplitude != null && gulpAmplitude.npoints > 0) {
+					int x;
+					double amplitude;
+					if (gulpPolyline.npoints == 2) {
+						double x0 = gulpPolyline.xpoints[0], x1 = gulpPolyline.xpoints[1];
+						double y0 = gulpPolyline.ypoints[0], y1 = gulpPolyline.ypoints[1];
+						double height = Math.abs(y1 - y0);
+						double width = Math.abs(x1 - x0);
+						// Vertical segment (along toplevel): use x from first point, amplitude = height
+						if (height >= width) {
+							x = (int) Math.round(x0);
+							amplitude = height;
+						} else {
+							// Horizontal segment (across toplevel): use center x, amplitude = 1
+							x = (int) Math.round((x0 + x1) / 2);
+							amplitude = 1.0;
+						}
+					} else {
+						x = (int) gulpPolyline.xpoints[0];
+						amplitude = 1.0;
+					}
+					if (x >= 0 && x < gulpAmplitude.npoints)
+						gulpAmplitude.ypoints[x] = amplitude;
+				}
 			} else if (roi instanceof ROI2DArea) {
-				// Handle ROI2DArea (compacted gulps)
-				// An ROI2DArea is a mask. We can extract points but they are unordered.
-				// However, gulps are "events" at specific times. If we assume gulps are single
-				// points
-				// or vertical segments on the kymo, we can reconstruct them.
-				// Or, maybe we just need the points to compute measures.
-				// The methods below (getCumSum, etc.) iterate over 'gulps' (Polylines).
-				// If we convert the Area into a set of 1-point Polylines or reconstruct
-				// segments, it might work.
-
-				// Let's try to extract points from the Area and create Polylines.
-				// Since we don't know the connectivity, we can treat each point as a tiny gulp
-				// or group them by X?
-				// Grouping by X (time) seems safest for kymographs.
-
+				// Handle ROI2DArea (legacy compacted gulps format)
 				Rectangle rect = roi.getBounds();
 				if (rect.isEmpty())
 					continue;
 
 				// Iterate over the bounding box and check containment
+				// Group points by X (time) to reconstruct gulp events
 				for (int x = rect.x; x < rect.x + rect.width; x++) {
 					ArrayList<Point2D> pts = new ArrayList<>();
 					for (int y = rect.y; y < rect.y + rect.height; y++) {
@@ -388,11 +419,14 @@ public class CapillaryGulps {
 					}
 					if (!pts.isEmpty()) {
 						addNewGulpFromPoints(pts);
+						// Mark this x position as having a gulp in the amplitude series
+						if (x >= 0 && x < gulpAmplitude.npoints) {
+							gulpAmplitude.ypoints[x] = 1.0;
+						}
 					}
 				}
 			}
 		}
-		transferGulpsToLevel2D();
 	}
 
 	public void transferROIsToMeasures(List<ROI> listRois) {
@@ -407,7 +441,7 @@ public class CapillaryGulps {
 					rois.add((ROI2DArea) roi);
 			}
 		}
-		// buildGulpsFromROIs(rois);
+		buildGulpsFromROIs(rois);
 	}
 
 	ArrayList<Integer> getCumSumFromGulps(int npoints) {
