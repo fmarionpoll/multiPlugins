@@ -1846,6 +1846,20 @@ public class Experiment {
 		}
 	}
 
+	public plugins.fmp.multitools.experiment.capillary.CapillaryMeasure getGulpThresholdMeasure() {
+		for (plugins.fmp.multitools.experiment.capillary.Capillary cap : capillaries.getList()) {
+			int cageID = cap.getCageID();
+			Cage cage = cages.getCageFromID(cageID);
+			if (cage != null && cage.getCageNFlies() == 0) {
+				plugins.fmp.multitools.experiment.capillary.CapillaryMeasure threshold = cap.getThreshold();
+				if (threshold != null && threshold.polylineLevel != null && threshold.polylineLevel.npoints > 0) {
+					return threshold;
+				}
+			}
+		}
+		return null;
+	}
+
 	public void getCapillaryMeasures(EnumResults resultType, boolean subtractEvaporation) {
 		ResultsOptions resultsOptions = new ResultsOptions();
 		resultsOptions.resultType = resultType;

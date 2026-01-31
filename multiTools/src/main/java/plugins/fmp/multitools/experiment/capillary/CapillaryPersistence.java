@@ -35,6 +35,7 @@ public class CapillaryPersistence {
 	private static final String ID_BOTTOMLEVEL = "bottomlevel";
 	private static final String ID_DERIVATIVE = "derivative";
 	private static final String ID_TOPLEVEL_CORRECTED = "toplevel_corrected";
+	private static final String ID_THRESHOLD = "threshold";
 
 	/**
 	 * Loads capillary configuration from XML (Meta).
@@ -142,6 +143,7 @@ public class CapillaryPersistence {
 		result |= cap.getBottomLevel().loadCapillaryLimitFromXML(node, ID_BOTTOMLEVEL, header) > 0;
 		result |= cap.getDerivative().loadCapillaryLimitFromXML(node, ID_DERIVATIVE, header) > 0;
 		result |= cap.getTopCorrected().loadCapillaryLimitFromXML(node, ID_TOPLEVEL_CORRECTED, header) > 0;
+		result |= cap.getThreshold().loadCapillaryLimitFromXML(node, ID_THRESHOLD, header) > 0;
 		result |= cap.getGulps().loadGulpsFromXML(node);
 		return result;
 	}
@@ -263,6 +265,9 @@ public class CapillaryPersistence {
 		case TOPDERIVATIVE:
 			sbf.append("#" + sep + "TOPDERIVATIVE" + sep + explanation1);
 			break;
+		case THRESHOLD:
+			sbf.append("#" + sep + "THRESHOLD" + sep + explanation1);
+			break;
 		case GULPS:
 			sbf.append("#" + sep + "GULPS_FLAT" + sep + explanation2);
 			break;
@@ -290,6 +295,10 @@ public class CapillaryPersistence {
 			break;
 		case TOPDERIVATIVE:
 			cap.getDerivative().cvsExportYDataToRow(sbf, sep);
+			break;
+		case THRESHOLD:
+			if (cap.getThreshold() != null && cap.getThreshold().isThereAnyMeasuresDone())
+				cap.getThreshold().cvsExportYDataToRow(sbf, sep);
 			break;
 		case GULPS:
 			cap.getGulps().csvExportDataFlatToRow(sbf, sep);
@@ -453,15 +462,21 @@ public class CapillaryPersistence {
 				else if (!x && y)
 					cap.getBottomLevel().csvImportYDataFromRow(data, 2);
 				break;
-			case TOPDERIVATIVE:
-				if (x && y)
-					cap.getDerivative().csvImportXYDataFromRow(data, 2);
-				else if (!x && y)
-					cap.getDerivative().csvImportYDataFromRow(data, 2);
-				break;
-			case GULPS:
-				cap.getGulps().csvImportDataFromRow(data, 2);
-				break;
+		case TOPDERIVATIVE:
+			if (x && y)
+				cap.getDerivative().csvImportXYDataFromRow(data, 2);
+			else if (!x && y)
+				cap.getDerivative().csvImportYDataFromRow(data, 2);
+			break;
+		case THRESHOLD:
+			if (x && y)
+				cap.getThreshold().csvImportXYDataFromRow(data, 2);
+			else if (!x && y)
+				cap.getThreshold().csvImportYDataFromRow(data, 2);
+			break;
+		case GULPS:
+			cap.getGulps().csvImportDataFromRow(data, 2);
+			break;
 			default:
 				break;
 			}

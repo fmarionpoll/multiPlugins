@@ -22,6 +22,23 @@ import plugins.fmp.multitools.tools.Logger;
 public class GulpDetector {
 
 	public void detectGulps(Experiment exp, BuildSeriesOptions options) {
+		exp.getSeqKymos().getSequence().beginUpdate();
+
+		if (options.buildDerivative) {
+			buildDerivatives(exp, options);
+		}
+
+		CapillaryMeasure thresholdMeasure = null;
+		if (options.buildGulps) {
+			thresholdMeasure = computeThresholdFromEmptyCages(exp, options);
+			detectGulps(exp, options, thresholdMeasure);
+		}
+
+		exp.save_capillaries_description_and_measures();
+		exp.getSeqKymos().getSequence().endUpdate();
+	}
+
+	private void buildDerivatives(Experiment exp, BuildSeriesOptions options) {
 		int jitter = options.jitter;
 		int firstKymo = 0;
 		int lastKymo = exp.getSeqKymos().getSequence().getSizeT() - 1;
@@ -29,11 +46,10 @@ public class GulpDetector {
 			firstKymo = options.kymoFirst;
 			lastKymo = firstKymo;
 		}
-		exp.getSeqKymos().getSequence().beginUpdate();
 
 		int nframes = lastKymo - firstKymo + 1;
 		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
-		processor.setThreadName("detect_levels");
+		processor.setThreadName("build_derivatives");
 		processor.setPriority(Processor.NORM_PRIORITY);
 		ArrayList<Future<?>> futures = new ArrayList<Future<?>>(nframes);
 		futures.clear();
@@ -53,23 +69,51 @@ public class GulpDetector {
 			futures.add(processor.submit(new Runnable() {
 				@Override
 				public void run() {
-					if (options.buildDerivative)
-						capi.setDerivative(new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
-								capi.getKymographIndex(), getDerivativeProfile(seqAnalyzed, capi, jitter)));
-
-					if (options.buildGulps) {
-						capi.initGulps();
-						capi.detectGulps();
-					}
+					capi.setDerivative(new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
+							capi.getKymographIndex(), getDerivativeProfile(seqAnalyzed, capi, jitter)));
 				}
 			}));
 		}
-
 		waitFuturesCompletion(processor, futures);
-		exp.save_capillaries_description_and_measures();
-
 		processor.shutdown();
-		exp.getSeqKymos().getSequence().endUpdate();
+	}
+
+	private void detectGulps(Experiment exp, BuildSeriesOptions options, CapillaryMeasure thresholdMeasure) {
+		int firstKymo = 0;
+		int lastKymo = exp.getSeqKymos().getSequence().getSizeT() - 1;
+		if (options.detectSelectedKymo) {
+			firstKymo = options.kymoFirst;
+			lastKymo = firstKymo;
+		}
+
+		int nframes = lastKymo - firstKymo + 1;
+		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
+		processor.setThreadName("detect_gulps");
+		processor.setPriority(Processor.NORM_PRIORITY);
+		ArrayList<Future<?>> futures = new ArrayList<Future<?>>(nframes);
+		futures.clear();
+
+		for (int tKymo = firstKymo; tKymo <= lastKymo; tKymo++) {
+			String fullPath = exp.getSeqKymos().getFileNameFromImageList(tKymo);
+			String nameWithoutExt = new File(fullPath).getName().replaceFirst("[.][^.]+$", "");
+			final Capillary capi = exp.getCapillaries().getCapillaryFromKymographName(nameWithoutExt);
+			if (capi == null)
+				continue;
+			if (tKymo != capi.getKymographIndex())
+				System.out.println(
+						"discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
+			capi.setGulpsOptions(options);
+			final CapillaryMeasure threshold = thresholdMeasure;
+			futures.add(processor.submit(new Runnable() {
+				@Override
+				public void run() {
+					capi.initGulps();
+					capi.detectGulps(threshold);
+				}
+			}));
+		}
+		waitFuturesCompletion(processor, futures);
+		processor.shutdown();
 	}
 
 	private void waitFuturesCompletion(Processor processor, ArrayList<Future<?>> futuresArray) {
@@ -84,6 +128,93 @@ public class GulpDetector {
 			}
 			futuresArray.remove(f);
 		}
+	}
+
+	private CapillaryMeasure computeThresholdFromEmptyCages(Experiment exp, BuildSeriesOptions options) {
+		List<Capillary> emptyCageCapillaries = new ArrayList<>();
+		
+		for (Capillary cap : exp.getCapillaries().getList()) {
+			int cageID = cap.getCageID();
+			plugins.fmp.multitools.experiment.cage.Cage cage = exp.getCages().getCageFromID(cageID);
+			if (cage != null && cage.getCageNFlies() == 0) {
+				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null 
+						&& cap.getDerivative().polylineLevel.npoints > 0) {
+					emptyCageCapillaries.add(cap);
+				}
+			}
+		}
+
+		if (emptyCageCapillaries.isEmpty()) {
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - No empty cages found, using fixed threshold");
+			return null;
+		}
+
+		if (emptyCageCapillaries.size() < 2) {
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Only " + emptyCageCapillaries.size() 
+					+ " empty cage(s) found, statistics may be unreliable");
+		}
+
+		Capillary firstEmptyCageCap = emptyCageCapillaries.get(0);
+		int npoints = firstEmptyCageCap.getDerivative().polylineLevel.npoints;
+		
+		double[] thresholdValues = new double[npoints];
+		double[] xpoints = new double[npoints];
+		
+		for (int t = 0; t < npoints; t++) {
+			xpoints[t] = t;
+			List<Double> derivativeValuesAtT = new ArrayList<>();
+			
+			for (Capillary cap : emptyCageCapillaries) {
+				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
+						&& t < cap.getDerivative().polylineLevel.npoints) {
+					double derivValue = cap.getDerivative().polylineLevel.ypoints[t];
+					derivativeValuesAtT.add(derivValue);
+				}
+			}
+			
+			if (derivativeValuesAtT.isEmpty()) {
+				thresholdValues[t] = 0;
+				continue;
+			}
+			
+			double avg = computeMean(derivativeValuesAtT);
+			double std = computeStdDev(derivativeValuesAtT, avg);
+			thresholdValues[t] = avg + 2.0 * std;
+		}
+		
+		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
+				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold",
+				firstEmptyCageCap.getKymographIndex(),
+				null);
+		thresholdMeasure.polylineLevel = new plugins.fmp.multitools.tools.Level2D(xpoints, thresholdValues, npoints);
+		
+		firstEmptyCageCap.setThreshold(thresholdMeasure);
+		
+		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from " 
+				+ emptyCageCapillaries.size() + " empty cage(s)");
+		
+		return thresholdMeasure;
+	}
+
+	private double computeMean(List<Double> values) {
+		if (values.isEmpty())
+			return 0.0;
+		double sum = 0.0;
+		for (Double value : values) {
+			sum += value;
+		}
+		return sum / values.size();
+	}
+
+	private double computeStdDev(List<Double> values, double mean) {
+		if (values.size() < 2)
+			return 0.0;
+		double sumSquaredDiff = 0.0;
+		for (Double value : values) {
+			double diff = value - mean;
+			sumSquaredDiff += diff * diff;
+		}
+		return Math.sqrt(sumSquaredDiff / values.size());
 	}
 
 	private List<Point2D> getDerivativeProfile(Sequence seq, Capillary cap, int jitter) {

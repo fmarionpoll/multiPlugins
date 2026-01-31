@@ -9,8 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-import plugins.fmp.multitools.experiment.capillary.Capillary;
-
 public class CapillariesPersistence {
 
 	public final static String ID_CAPILLARYTRACK = "capillaryTrack";
@@ -351,6 +349,11 @@ public class CapillariesPersistence {
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.TOPDERIVATIVE, sep, row.contains("xi"));
 							break;
+						case "THRESHOLD":
+							measuresLoaded = true;
+							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.THRESHOLD, sep, row.contains("xi"));
+							break;
 						case "GULPS":
 						case "GULPS_CORRECTED":
 							if (seenGulpsFlat) {
@@ -441,6 +444,8 @@ public class CapillariesPersistence {
 						EnumCapillaryMeasures.BOTTOMLEVEL, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumCapillaryMeasures.TOPDERIVATIVE, csvSep);
+				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
+						EnumCapillaryMeasures.THRESHOLD, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumCapillaryMeasures.GULPS, csvSep);
 				csvWriter.flush();

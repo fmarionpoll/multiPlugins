@@ -219,6 +219,14 @@ public class Capillary implements Comparable<Capillary> {
 		measurements.ptsDerivative = derivative;
 	}
 
+	public CapillaryMeasure getThreshold() {
+		return measurements.ptsThreshold;
+	}
+
+	public void setThreshold(CapillaryMeasure threshold) {
+		measurements.ptsThreshold = threshold;
+	}
+
 	public CapillaryGulps getGulps() {
 		return measurements.ptsGulps;
 	}
@@ -751,6 +759,10 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	public void detectGulps() {
+		detectGulps(null);
+	}
+
+	public void detectGulps(CapillaryMeasure thresholdMeasure) {
 		if (measurements.ptsTop.polylineLevel == null || measurements.ptsDerivative.polylineLevel == null)
 			return;
 
@@ -765,14 +777,22 @@ public class Capillary implements Comparable<Capillary> {
 			lastPixel = (int) properties.getLimitsOptions().searchArea.getWidth() + firstPixel;
 
 		}
-		int threshold = (int) ((properties.getLimitsOptions().detectGulpsThreshold_uL / properties.getVolume())
-				* properties.getPixels());
 
 		// First-pass detection:
 		// - If derivative(t-1) >= threshold, mark the interval t as a gulp interval
 		// - Store signed amplitude as topraw(t) - topraw(t-1)
 		for (int indexPixel = firstPixel; indexPixel < lastPixel; indexPixel++) {
 			int derivativeValue = (int) measurements.ptsDerivative.polylineLevel.ypoints[indexPixel - 1];
+			int threshold;
+			
+			if (thresholdMeasure != null && thresholdMeasure.polylineLevel != null
+					&& indexPixel - 1 < thresholdMeasure.polylineLevel.npoints) {
+				threshold = (int) thresholdMeasure.polylineLevel.ypoints[indexPixel - 1];
+			} else {
+				threshold = (int) ((properties.getLimitsOptions().detectGulpsThreshold_uL / properties.getVolume())
+						* properties.getPixels());
+			}
+			
 			if (derivativeValue >= threshold) {
 				double deltaTop = measurements.ptsTop.polylineLevel.ypoints[indexPixel]
 						- measurements.ptsTop.polylineLevel.ypoints[indexPixel - 1];
@@ -1260,6 +1280,7 @@ public class Capillary implements Comparable<Capillary> {
 		public CapillaryMeasure ptsDerivative = new CapillaryMeasure("derivative");
 		public CapillaryGulps ptsGulps = new CapillaryGulps();
 		public CapillaryMeasure ptsTopCorrected = new CapillaryMeasure("toplevel_corrected");
+		public CapillaryMeasure ptsThreshold = new CapillaryMeasure("threshold");
 
 		void copyFrom(CapillaryMeasurements source) {
 			ptsGulps.copy(source.ptsGulps);
@@ -1267,6 +1288,7 @@ public class Capillary implements Comparable<Capillary> {
 			ptsBottom.copy(source.ptsBottom);
 			ptsDerivative.copy(source.ptsDerivative);
 			ptsTopCorrected.copy(source.ptsTopCorrected);
+			ptsThreshold.copy(source.ptsThreshold);
 		}
 
 		void cropMeasuresToNPoints(int npoints) {
@@ -1311,6 +1333,7 @@ public class Capillary implements Comparable<Capillary> {
 			ptsBottom.clear();
 			ptsDerivative.clear();
 			ptsTopCorrected.clear();
+			ptsThreshold.clear();
 		}
 	}
 
