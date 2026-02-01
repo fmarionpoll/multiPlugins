@@ -98,12 +98,12 @@ public class CapillaryMeasure {
 		polylineLevel = new Level2D(pol);
 	}
 
-	void copy(CapillaryMeasure cap) {
+	public void copy(CapillaryMeasure cap) {
 		if (cap.polylineLevel != null)
 			polylineLevel = cap.polylineLevel.clone();
 	}
 
-	boolean isThereAnyMeasuresDone() {
+	public boolean isThereAnyMeasuresDone() {
 		return (polylineLevel != null && polylineLevel.npoints > 0);
 	}
 

@@ -7,6 +7,7 @@ import java.util.List;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.ReferenceMeasures;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.Level2D;
@@ -81,6 +82,12 @@ public class CagesCapillariesComputation {
 		if (avgEvapR != null && avgEvapR.npoints > 0)
 			avgEvapR.offsetToStartWithZeroAmplitude();
 
+		ReferenceMeasures ref = allCapillaries.getReferenceMeasures();
+		if (avgEvapL != null && avgEvapL.npoints > 0)
+			ref.setEvaporationL(level2DToCapillaryMeasure(avgEvapL, "_ref_evaporationL"));
+		if (avgEvapR != null && avgEvapR.npoints > 0)
+			ref.setEvaporationR(level2DToCapillaryMeasure(avgEvapR, "_ref_evaporationR"));
+
 		// Apply evaporation correction to all capillaries
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
@@ -116,6 +123,7 @@ public class CagesCapillariesComputation {
 			return;
 
 		Capillaries allCapillaries = exp.getCapillaries();
+		allCapillaries.getReferenceMeasures().clear();
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
 				cap.clearComputedMeasures();
@@ -193,6 +201,14 @@ public class CagesCapillariesComputation {
 		}
 
 		return new Level2D(xpoints, avgY, maxPoints);
+	}
+
+	private CapillaryMeasure level2DToCapillaryMeasure(Level2D level, String name) {
+		if (level == null || level.npoints == 0)
+			return null;
+		CapillaryMeasure m = new CapillaryMeasure(name);
+		m.polylineLevel = level.clone();
+		return m;
 	}
 
 	private CapillaryMeasure subtractEvaporation(CapillaryMeasure original, Level2D evaporation) {

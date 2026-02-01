@@ -371,12 +371,17 @@ public class CapillariesPersistence {
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
 									EnumCapillaryMeasures.GULPS, sep, true);
 							break;
+						case "REFERENCE":
+							measuresLoaded = true;
+							CapillariesPersistenceLegacy.csvLoad_ReferenceMeasures(capillaries, csvReader, sep);
+							break;
 						default:
 							break;
 						}
 					}
 				}
 				csvReader.close();
+				capillaries.migrateThresholdFromCapillariesIfNeeded();
 				return measuresLoaded;
 			} catch (Exception e) {
 				return false;
@@ -434,6 +439,7 @@ public class CapillariesPersistence {
 			}
 
 			try {
+				capillaries.copyThresholdToFirstEmptyCapillaryForLegacySave();
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
@@ -448,6 +454,7 @@ public class CapillariesPersistence {
 						EnumCapillaryMeasures.THRESHOLD, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumCapillaryMeasures.GULPS, csvSep);
+				CapillariesPersistenceLegacy.csvSave_ReferenceSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
 				return true;

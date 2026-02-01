@@ -190,7 +190,7 @@ public class GulpDetector {
 		thresholdMeasure.capIndexKymo = firstEmptyCageCap.getKymographIndex();
 		thresholdMeasure.polylineLevel = new plugins.fmp.multitools.tools.Level2D(xpoints, thresholdValues, npoints);
 
-		firstEmptyCageCap.setThreshold(thresholdMeasure);
+		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
 		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from "
 				+ emptyCageCapillaries.size() + " empty cage(s)");

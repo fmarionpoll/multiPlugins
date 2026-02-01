@@ -1847,6 +1847,14 @@ public class Experiment {
 	}
 
 	public plugins.fmp.multitools.experiment.capillary.CapillaryMeasure getGulpThresholdMeasure() {
+		plugins.fmp.multitools.experiment.capillary.CapillaryMeasure t = capillaries.getReferenceMeasures()
+				.getDerivativeThreshold();
+		if (t != null && t.polylineLevel != null && t.polylineLevel.npoints > 0)
+			return t;
+		return getGulpThresholdMeasureFromCapillaries();
+	}
+
+	private plugins.fmp.multitools.experiment.capillary.CapillaryMeasure getGulpThresholdMeasureFromCapillaries() {
 		for (plugins.fmp.multitools.experiment.capillary.Capillary cap : capillaries.getList()) {
 			int cageID = cap.getCageID();
 			Cage cage = cages.getCageFromID(cageID);

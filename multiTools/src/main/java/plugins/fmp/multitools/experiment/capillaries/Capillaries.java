@@ -23,6 +23,7 @@ public class Capillaries {
 	private List<Capillary> capillariesList = new ArrayList<Capillary>();
 	private KymoIntervals capillariesListTimeIntervals = null;
 	private CapillariesPersistence persistence = new CapillariesPersistence();
+	private ReferenceMeasures referenceMeasures = new ReferenceMeasures();
 
 	public CapillariesDescription getCapillariesDescription() {
 		return capillariesDescription;
@@ -56,6 +57,33 @@ public class Capillaries {
 
 	public CapillariesPersistence getPersistence() {
 		return persistence;
+	}
+
+	public ReferenceMeasures getReferenceMeasures() {
+		return referenceMeasures;
+	}
+
+	public void migrateThresholdFromCapillariesIfNeeded() {
+		if (referenceMeasures.getDerivativeThreshold().isThereAnyMeasuresDone())
+			return;
+		for (Capillary cap : capillariesList) {
+			if (cap.getProperties().getNFlies() == 0 && cap.getThreshold() != null
+					&& cap.getThreshold().isThereAnyMeasuresDone()) {
+				referenceMeasures.setDerivativeThreshold(cap.getThreshold());
+				return;
+			}
+		}
+	}
+
+	public void copyThresholdToFirstEmptyCapillaryForLegacySave() {
+		if (!referenceMeasures.getDerivativeThreshold().isThereAnyMeasuresDone())
+			return;
+		for (Capillary cap : capillariesList) {
+			if (cap.getProperties().getNFlies() == 0) {
+				cap.setThreshold(referenceMeasures.getDerivativeThreshold());
+				return;
+			}
+		}
 	}
 
 	// === DATA LOADING ===
@@ -131,6 +159,7 @@ public class Capillaries {
 
 	public void copy(Capillaries cap) {
 		capillariesDescription.copy(cap.capillariesDescription);
+		referenceMeasures.copy(cap.referenceMeasures);
 		getList().clear();
 		for (Capillary ccap : cap.getList()) {
 			if (ccap == null || ccap.getRoi() == null)

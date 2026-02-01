@@ -337,6 +337,38 @@ public class CapillariesPersistenceLegacy {
 		}
 	}
 
+	static void csvLoad_ReferenceMeasures(Capillaries capillaries, BufferedReader csvReader, String sep)
+			throws IOException {
+		String row;
+		ReferenceMeasures ref = capillaries.getReferenceMeasures();
+		while ((row = csvReader.readLine()) != null) {
+			String[] data = row.split(sep);
+			if (data.length > 0 && "#".equals(data[0]))
+				return;
+			if (data.length >= 2 && data[0] != null && data[0].startsWith("_ref_")) {
+				ref.csvImportRow(data, sep);
+			}
+		}
+	}
+
+	static void csvSave_ReferenceSection(Capillaries capillaries, FileWriter csvWriter, String csvSep)
+			throws IOException {
+		ReferenceMeasures ref = capillaries.getReferenceMeasures();
+		if (!ref.hasAnyData())
+			return;
+		csvWriter.append("#" + csvSep + "REFERENCE\n");
+		String row = ref.csvExportRow("_ref_evaporationL", ref.getEvaporationL(), csvSep);
+		if (!row.isEmpty())
+			csvWriter.append(row);
+		row = ref.csvExportRow("_ref_evaporationR", ref.getEvaporationR(), csvSep);
+		if (!row.isEmpty())
+			csvWriter.append(row);
+		row = ref.csvExportRow("_ref_threshold", ref.getDerivativeThreshold(), csvSep);
+		if (!row.isEmpty())
+			csvWriter.append(row);
+		csvWriter.append("#" + csvSep + "#\n");
+	}
+
 	/**
 	 * Loads capillary descriptions from CSV.
 	 */
@@ -783,6 +815,7 @@ public class CapillariesPersistenceLegacy {
 				}
 				csvReader.close();
 				if (measuresLoaded) {
+					capillaries.migrateThresholdFromCapillariesIfNeeded();
 					Logger.info("CapillariesPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 							+ ID_CAPILLARIESARRAYMEASURES_CSV);
 					return true;
@@ -864,6 +897,7 @@ public class CapillariesPersistenceLegacy {
 					}
 					csvReader.close();
 					if (measuresLoaded) {
+						capillaries.migrateThresholdFromCapillariesIfNeeded();
 						Logger.info("CapillariesPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 								+ ID_CAPILLARIESMEASURES_CSV);
 						return true;
@@ -953,6 +987,7 @@ public class CapillariesPersistenceLegacy {
 				}
 				csvReader.close();
 				if (measuresLoaded) {
+					capillaries.migrateThresholdFromCapillariesIfNeeded();
 					Logger.info("CapillariesPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 							+ ID_CAPILLARIESMEASURES_CSV);
 					return true;
@@ -977,6 +1012,7 @@ public class CapillariesPersistenceLegacy {
 		}
 		boolean loaded = xmlLoadCapillaries_Measures(capillaries, binDirectory);
 		if (loaded) {
+			capillaries.migrateThresholdFromCapillariesIfNeeded();
 			Logger.info("CapillariesPersistenceLegacy:loadMeasuresWithFallback() Loaded measures from legacy XML");
 		} else {
 			Logger.warn(
