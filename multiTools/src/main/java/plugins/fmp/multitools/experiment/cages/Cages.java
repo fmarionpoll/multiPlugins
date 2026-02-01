@@ -1140,15 +1140,13 @@ public class Cages {
 		 * e.getMessage()); } } }
 		 */
 
-		// TOPLEVEL is defined as evaporation-corrected and displayed as (t - t0).
-		// TOPRAW is handled as (t - t0) at display/export level without evaporation.
-		if (resultsOptions.resultType == EnumResults.TOPLEVEL) {
+		if (resultsOptions.resultType == EnumResults.TOPRAW
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_LR) {
 			computeEvaporationCorrection(exp);
 		}
 
-		// Compute L+R measures if needed (must be done after evaporation correction)
 		if (resultsOptions.resultType == EnumResults.TOPLEVEL_LR) {
-			computeEvaporationCorrection(exp);
 			computeLRMeasures(exp, resultsOptions.lrPIThreshold);
 		}
 	}

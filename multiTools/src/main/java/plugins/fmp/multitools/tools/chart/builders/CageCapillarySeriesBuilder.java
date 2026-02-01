@@ -61,6 +61,13 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 		}
 
+		if (options.resultType == EnumResults.TOPRAW || options.resultType == EnumResults.TOPLEVEL) {
+			XYSeries evaporationSeries = createEvaporationSeries(exp, cage, options);
+			if (evaporationSeries != null) {
+				dataset.addSeries(evaporationSeries);
+			}
+		}
+
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
 	}
@@ -259,5 +266,47 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.BLACK));
 
 		return thresholdSeries;
+	}
+
+	private static XYSeries createEvaporationSeries(Experiment exp, Cage cage, ResultsOptions options) {
+		if (exp == null || cage == null || options == null || exp.getCapillaries() == null)
+			return null;
+
+		CapillaryMeasure evaporationMeasure = exp.getCapillaries().getReferenceMeasures().getEvaporationForDisplay();
+		if (evaporationMeasure == null || evaporationMeasure.polylineLevel == null
+				|| evaporationMeasure.polylineLevel.npoints == 0)
+			return null;
+
+		XYSeries evaporationSeries = new XYSeries(cage.getCageID() + "_evaporation", false);
+
+		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
+			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
+		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+
+		int npoints = evaporationMeasure.getNPoints();
+		if (camImages_time_min != null && npoints > camImages_time_min.length)
+			npoints = camImages_time_min.length;
+
+		double scalingFactor = 1.0;
+		if ("volume (ul)".equals(options.resultType.toUnit())) {
+			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
+			if (capillaries != null && !capillaries.isEmpty()) {
+				Capillary firstCap = capillaries.get(0);
+				if (firstCap.getPixels() > 0)
+					scalingFactor = firstCap.getVolume() / firstCap.getPixels();
+			}
+		}
+
+		for (int j = 0; j < npoints; j++) {
+			double x = camImages_time_min != null ? camImages_time_min[j] : j;
+			double y = evaporationMeasure.getValueAt(j) * scalingFactor;
+			evaporationSeries.add(x, y);
+		}
+
+		CageProperties cageProp = cage.getProperties();
+		evaporationSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
+				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.BLACK));
+
+		return evaporationSeries;
 	}
 }

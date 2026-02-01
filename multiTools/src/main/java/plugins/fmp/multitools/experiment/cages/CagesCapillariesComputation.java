@@ -52,6 +52,7 @@ public class CagesCapillariesComputation {
 			return;
 
 		// Collect all capillaries with zero flies for evaporation calculation
+		List<Capillary> zeroFliesCapillariesAll = new ArrayList<>();
 		List<Capillary> zeroFliesCapillariesL = new ArrayList<>();
 		List<Capillary> zeroFliesCapillariesR = new ArrayList<>();
 
@@ -59,14 +60,13 @@ public class CagesCapillariesComputation {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
 				if (cap.getProperties().getNFlies() == 0 && cap.getTopLevel() != null
 						&& cap.getTopLevel().polylineLevel != null && cap.getTopLevel().polylineLevel.npoints > 0) {
-					// Determine side from capSide or capillary name
+					zeroFliesCapillariesAll.add(cap);
 					String side = getCapillarySide(cap);
 					if (side.contains("L") || side.contains("1")) {
 						zeroFliesCapillariesL.add(cap);
 					} else if (side.contains("R") || side.contains("2")) {
 						zeroFliesCapillariesR.add(cap);
 					} else {
-						// If side unclear, add to both (sameLR case)
 						zeroFliesCapillariesL.add(cap);
 						zeroFliesCapillariesR.add(cap);
 					}
@@ -74,40 +74,38 @@ public class CagesCapillariesComputation {
 			}
 		}
 
-		// Compute average evaporation for L and R sides
+		Level2D avgEvapCombined = computeAverageMeasure(zeroFliesCapillariesAll);
 		Level2D avgEvapL = computeAverageMeasure(zeroFliesCapillariesL);
 		Level2D avgEvapR = computeAverageMeasure(zeroFliesCapillariesR);
+		if (avgEvapCombined != null && avgEvapCombined.npoints > 0)
+			avgEvapCombined.offsetToStartWithZeroAmplitude();
 		if (avgEvapL != null && avgEvapL.npoints > 0)
 			avgEvapL.offsetToStartWithZeroAmplitude();
 		if (avgEvapR != null && avgEvapR.npoints > 0)
 			avgEvapR.offsetToStartWithZeroAmplitude();
 
 		ReferenceMeasures ref = allCapillaries.getReferenceMeasures();
+		if (avgEvapCombined != null && avgEvapCombined.npoints > 0)
+			ref.setEvaporation(level2DToCapillaryMeasure(avgEvapCombined, "_ref_evaporation"));
 		if (avgEvapL != null && avgEvapL.npoints > 0)
 			ref.setEvaporationL(level2DToCapillaryMeasure(avgEvapL, "_ref_evaporationL"));
 		if (avgEvapR != null && avgEvapR.npoints > 0)
 			ref.setEvaporationR(level2DToCapillaryMeasure(avgEvapR, "_ref_evaporationR"));
 
-		// Apply evaporation correction to all capillaries
+		Level2D evaporationForCorrection = avgEvapCombined;
+		if (evaporationForCorrection == null && avgEvapL != null)
+			evaporationForCorrection = avgEvapL;
+		if (evaporationForCorrection == null && avgEvapR != null)
+			evaporationForCorrection = avgEvapR;
+
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
 				if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null
 						|| cap.getTopLevel().polylineLevel.npoints == 0)
 					continue;
 
-				String side = getCapillarySide(cap);
-				Level2D avgEvap = null;
-				if (side.contains("L") || side.contains("1")) {
-					avgEvap = avgEvapL;
-				} else if (side.contains("R") || side.contains("2")) {
-					avgEvap = avgEvapR;
-				} else {
-					avgEvap = avgEvapL; // Default to L if side unclear
-				}
-
-				if (avgEvap != null) {
-					// Create corrected measure by subtracting evaporation
-					cap.setTopCorrected(subtractEvaporation(cap.getTopLevel(), avgEvap));
+				if (evaporationForCorrection != null) {
+					cap.setTopCorrected(subtractEvaporation(cap.getTopLevel(), evaporationForCorrection));
 				}
 			}
 		}
@@ -123,7 +121,6 @@ public class CagesCapillariesComputation {
 			return;
 
 		Capillaries allCapillaries = exp.getCapillaries();
-		allCapillaries.getReferenceMeasures().clear();
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
 				cap.clearComputedMeasures();

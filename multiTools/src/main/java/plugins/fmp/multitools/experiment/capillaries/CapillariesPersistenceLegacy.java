@@ -357,7 +357,10 @@ public class CapillariesPersistenceLegacy {
 		if (!ref.hasAnyData())
 			return;
 		csvWriter.append("#" + csvSep + "REFERENCE\n");
-		String row = ref.csvExportRow("_ref_evaporationL", ref.getEvaporationL(), csvSep);
+		String row = ref.csvExportRow("_ref_evaporation", ref.getEvaporation(), csvSep);
+		if (!row.isEmpty())
+			csvWriter.append(row);
+		row = ref.csvExportRow("_ref_evaporationL", ref.getEvaporationL(), csvSep);
 		if (!row.isEmpty())
 			csvWriter.append(row);
 		row = ref.csvExportRow("_ref_evaporationR", ref.getEvaporationR(), csvSep);
