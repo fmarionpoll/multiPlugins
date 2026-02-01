@@ -19,7 +19,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class LevelDetector {
 
@@ -131,7 +131,7 @@ public class LevelDetector {
 
 	private void detectPass1(IcyBufferedImage rawImage, ImageTransformInterface transformPass1, Capillary capi,
 			int imageWidth, int imageHeight, Rectangle searchRect, int jitter, BuildSeriesOptions options) {
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformedImage1 = transformPass1.getTransformedImage(rawImage, transformOptions);
 		Object transformedArray1 = transformedImage1.getDataXY(0);
 		int[] transformed1DArray1 = Array1DUtil.arrayToIntArray(transformedArray1,
@@ -171,7 +171,7 @@ public class LevelDetector {
 
 		if (capi.getTopLevel().limit == null)
 			capi.getTopLevel().setTempDataFromPolylineLevel();
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformedImage2 = transformPass2.getTransformedImage(rawImage, transformOptions);
 		Object transformedArray2 = transformedImage2.getDataXY(0);
 		int[] transformed1DArray2 = Array1DUtil.arrayToIntArray(transformedArray2,

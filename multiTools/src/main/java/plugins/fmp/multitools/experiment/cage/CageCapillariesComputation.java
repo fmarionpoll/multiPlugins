@@ -7,7 +7,7 @@ import java.util.List;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
-import plugins.fmp.multitools.tools.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
  * Handles cage-level capillary measure computations for a specific Cage

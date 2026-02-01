@@ -37,10 +37,10 @@ import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.RegistrationOptions;
 import plugins.fmp.multitools.series.RegistrationProcessor;
 import plugins.fmp.multitools.series.SafeRegistrationProcessor;
-import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class CorrectDrift extends JPanel implements ViewerListener, PropertyChangeListener {
 	/**
@@ -420,8 +420,8 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 				});
 	}
 
-	private ImageTransformOptions createTransformOptions(ImageTransformEnums transform) {
-		ImageTransformOptions options = new ImageTransformOptions();
+	private CanvasImageTransformOptions createTransformOptions(ImageTransformEnums transform) {
+		CanvasImageTransformOptions options = new CanvasImageTransformOptions();
 		options.transformOption = transform;
 		return options;
 	}

@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 import icy.image.IcyBufferedImage;
 
-public class ImageTransformOptions {
+public class CanvasImageTransformOptions {
 	public ImageTransformEnums transformOption;
 	public IcyBufferedImage backgroundImage = null;
 	public IcyBufferedImage secondImage = null;

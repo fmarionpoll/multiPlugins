@@ -11,7 +11,7 @@ import icy.roi.ROI;
 import icy.type.geom.Polyline2D;
 import icy.util.StringUtil;
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.tools.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class CapillaryMeasure {
@@ -257,9 +257,9 @@ public class CapillaryMeasure {
 			int newSize = imageSize;
 			if (npoints < npoints_old)
 				newSize = imageSize * npoints / npoints_old;
-			polylineLevel = polylineLevel.expandPolylineToNewSize(newSize);
+			polylineLevel = polylineLevel.expandPolylineToNewWidth(newSize);
 			if (npoints_old != 0)
-				polyline_old = polyline_old.expandPolylineToNewSize(imageSize);
+				polyline_old = polyline_old.expandPolylineToNewWidth(imageSize);
 		}
 	}
 
@@ -278,7 +278,7 @@ public class CapillaryMeasure {
 
 		// reduce polyline npoints to imageSize
 		int newSize = imageSize;
-		polylineLevel = polylineLevel.cropPolylineToNewSize(newSize);
+		polylineLevel = polylineLevel.cropPolylineToNewWidth(newSize);
 	}
 
 	// ----------------------------------------------------------------------

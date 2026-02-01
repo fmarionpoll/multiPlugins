@@ -31,7 +31,7 @@ import plugins.fmp.multitools.series.FlyDetect2;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect2Flies extends JPanel implements ChangeListener, PropertyChangeListener, PopupMenuListener {
@@ -311,7 +311,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 				.getCanvas();
 		ImageTransformEnums[] imageTransformStep1 = new ImageTransformEnums[] { ImageTransformEnums.NONE,
 				ImageTransformEnums.SUBTRACT_REF };
-		ImageTransformOptions optionsStep1 = canvas.getOptionsStep1();
+		CanvasImageTransformOptions optionsStep1 = canvas.getOptionsStep1();
 
 		optionsStep1.backgroundImage = null;
 		int index = 0;

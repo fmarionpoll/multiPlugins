@@ -11,7 +11,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Refactored BuildBackground class with improved architecture. Demonstrates
@@ -239,7 +239,7 @@ public class BuildBackground extends BuildSeries {
 	 */
 	private ProcessingResult<Void> executeBackgroundBuilding(Experiment experiment) {
 		try {
-			ImageTransformOptions transformOptions = createTransformOptions();
+			CanvasImageTransformOptions transformOptions = createTransformOptions();
 			ProcessingResult<Void> buildResult = buildBackgroundImages(experiment, transformOptions);
 			return buildResult;
 		} catch (Exception e) {
@@ -250,8 +250,8 @@ public class BuildBackground extends BuildSeries {
 	/**
 	 * Creates transformation options for background building.
 	 */
-	private ImageTransformOptions createTransformOptions() {
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+	private CanvasImageTransformOptions createTransformOptions() {
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = ImageTransformEnums.SUBTRACT;
 		transformOptions.setSingleThreshold(options.backgroundThreshold, stopFlag);
 		transformOptions.background_delta = options.background_delta;
@@ -263,7 +263,7 @@ public class BuildBackground extends BuildSeries {
 	 * Builds background images with proper progress reporting.
 	 */
 	private ProcessingResult<Void> buildBackgroundImages(Experiment experiment,
-			ImageTransformOptions transformOptions) {
+			CanvasImageTransformOptions transformOptions) {
 		progressReporter.updateMessage("Building background image...");
 
 		try {
@@ -359,7 +359,7 @@ public class BuildBackground extends BuildSeries {
 	 * Processes frames for background building with proper error handling.
 	 */
 	private ProcessingResult<Void> processFramesForBackground(Experiment experiment,
-			ImageTransformOptions transformOptions, FrameRange frameRange) {
+			CanvasImageTransformOptions transformOptions, FrameRange frameRange) {
 		if (transformOptions.backgroundImage == null) {
 			return ProcessingResult.failure("Background image is null - cannot process frames");
 		}

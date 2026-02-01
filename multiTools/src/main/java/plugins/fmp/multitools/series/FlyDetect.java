@@ -12,7 +12,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public abstract class FlyDetect extends BuildSeries {
 	public DetectFlyTools find_flies = new DetectFlyTools();
@@ -79,7 +79,7 @@ public abstract class FlyDetect extends BuildSeries {
 	protected void findFliesInAllFrames(Experiment exp) {
 		ProgressFrame progressBar = new ProgressFrame("Detecting flies...");
 
-		ImageTransformOptions transformOptions = setupTransformOptions(exp);
+		CanvasImageTransformOptions transformOptions = setupTransformOptions(exp);
 		ImageTransformInterface transformFunction = transformOptions.transformOption.getFunction();
 
 		int t_previous = 0;
@@ -112,9 +112,9 @@ public abstract class FlyDetect extends BuildSeries {
 		progressBar.close();
 	}
 
-	protected abstract ImageTransformOptions setupTransformOptions(Experiment exp);
+	protected abstract CanvasImageTransformOptions setupTransformOptions(Experiment exp);
 
-	protected void updateTransformOptions(Experiment exp, int t, int t_previous, ImageTransformOptions options) {
+	protected void updateTransformOptions(Experiment exp, int t, int t_previous, CanvasImageTransformOptions options) {
 		// default does nothing
 	}
 

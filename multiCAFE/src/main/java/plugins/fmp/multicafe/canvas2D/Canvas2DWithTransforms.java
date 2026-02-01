@@ -17,7 +17,7 @@ import icy.sequence.Sequence;
 import plugins.fmp.multicafe.resource.ResourceUtilFMP;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class Canvas2DWithTransforms extends Canvas2D {
 	/**
@@ -33,8 +33,8 @@ public class Canvas2DWithTransforms extends Canvas2D {
 			ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB, ImageTransformEnums.SUBTRACT_REF };
 	public JComboBox<ImageTransformEnums> transformsCombo1 = new JComboBox<ImageTransformEnums>(imageTransformStep1);
 	ImageTransformInterface transformStep1 = ImageTransformEnums.NONE.getFunction();
-	ImageTransformOptions optionsStep1 = new ImageTransformOptions();
-	ImageTransformOptions optionsStep2 = new ImageTransformOptions();
+	CanvasImageTransformOptions optionsStep1 = new CanvasImageTransformOptions();
+	CanvasImageTransformOptions optionsStep2 = new CanvasImageTransformOptions();
 
 	public ImageTransformEnums[] imageTransformStep2 = new ImageTransformEnums[] { ImageTransformEnums.NONE,
 			ImageTransformEnums.SORT_SUMDIFFCOLS, ImageTransformEnums.SORT_CHAN0COLS };
@@ -159,41 +159,41 @@ public class Canvas2DWithTransforms extends Canvas2D {
 			imageTransformFunctionsCombo.addActionListener(listeners[i]);
 	}
 
-	public ImageTransformOptions getOptionsStep1() {
+	public CanvasImageTransformOptions getOptionsStep1() {
 		return optionsStep1;
 	}
 
-	public void setOptionsStep1(ImageTransformOptions options) {
+	public void setOptionsStep1(CanvasImageTransformOptions options) {
 		optionsStep1 = options;
 	}
 
-	public ImageTransformOptions getOptionsStep2() {
+	public CanvasImageTransformOptions getOptionsStep2() {
 		return optionsStep2;
 	}
 
-	public void setOptionsStep2(ImageTransformOptions options) {
+	public void setOptionsStep2(CanvasImageTransformOptions options) {
 		optionsStep2 = options;
 	}
 
-	public void selectIndexStep1(int iselected, ImageTransformOptions options) {
+	public void selectIndexStep1(int iselected, CanvasImageTransformOptions options) {
 		transformsCombo1.setSelectedIndex(iselected);
 		if (options != null)
 			optionsStep1 = options;
 	}
 
-	public void selectItemStep1(ImageTransformEnums item, ImageTransformOptions options) {
+	public void selectItemStep1(ImageTransformEnums item, CanvasImageTransformOptions options) {
 		transformsCombo1.setSelectedItem(item);
 		if (options != null)
 			optionsStep1 = options;
 	}
 
-	public void selectIndexStep2(int iselected, ImageTransformOptions options) {
+	public void selectIndexStep2(int iselected, CanvasImageTransformOptions options) {
 		transformsCombo2.setSelectedIndex(iselected);
 		if (options != null)
 			optionsStep2 = options;
 	}
 
-	public void selectItemStep2(ImageTransformEnums item, ImageTransformOptions options) {
+	public void selectItemStep2(ImageTransformEnums item, CanvasImageTransformOptions options) {
 		transformsCombo2.setSelectedItem(item);
 		if (options != null)
 			optionsStep2 = options;

@@ -12,10 +12,10 @@ import icy.image.IcyBufferedImageUtil;
 import icy.image.ImageUtil;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class Registration extends BuildSeries {
 //	private final ImageProcessor imageProcessor;
@@ -132,7 +132,7 @@ public class Registration extends BuildSeries {
 			int referenceFrame) {
 		ProgressFrame progressBar1 = new ProgressFrame("Analyze stack");
 
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = options.transformop;
 		ImageTransformInterface transformFunction = transformOptions.transformOption.getFunction();
 

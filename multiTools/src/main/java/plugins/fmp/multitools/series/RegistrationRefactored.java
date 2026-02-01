@@ -3,7 +3,7 @@ package plugins.fmp.multitools.series;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Refactored Registration class following clean code principles.
@@ -103,10 +103,10 @@ public class RegistrationRefactored extends BuildSeries {
     /**
      * Creates ImageTransformOptions from ImageTransformEnums.
      */
-    private ImageTransformOptions createImageTransformOptions(
+    private CanvasImageTransformOptions createImageTransformOptions(
             ImageTransformEnums transformEnum) {
-        ImageTransformOptions options = 
-            new ImageTransformOptions();
+        CanvasImageTransformOptions options = 
+            new CanvasImageTransformOptions();
         options.transformOption = transformEnum;
         return options;
     }

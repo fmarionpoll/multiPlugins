@@ -5,7 +5,7 @@ import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class YDifferenceL extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	int spanx = 0;
@@ -23,7 +23,7 @@ public class YDifferenceL extends ImageTransformFunctionAbstract implements Imag
 	}
 
 	@Override
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
 		IcyBufferedImage img2 = new IcyBufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), 3,
 				sourceImage.getDataType_());
 		double[] Rn = Array1DUtil.arrayToDoubleArray(sourceImage.getDataXY(0), sourceImage.isSignedDataType());

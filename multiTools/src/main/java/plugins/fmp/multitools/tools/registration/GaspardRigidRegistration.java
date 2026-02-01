@@ -18,16 +18,36 @@ import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageUtil;
 import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
+import plugins.fmp.multitools.tools.Logger;
 
+/**
+ * Rigid registration utility for image alignment using FFT-based correlation.
+ * Uses sub-pixel translation (parabolic fit) and optional sub-pixel apply
+ * via AffineTransform. Rotation is estimated in log-polar space.
+ */
 public class GaspardRigidRegistration {
+
+	private static final int DEFAULT_SIZE_THETA = 1080;
+	private static final int DEFAULT_SIZE_RHO = 360;
+	private static final double MIN_TRANSLATION_THRESHOLD = 0.001;
+	private static final double MIN_ROTATION_THRESHOLD = 0.001;
 
 	public static Vector2d findTranslation2D(IcyBufferedImage source, int sourceC, IcyBufferedImage target,
 			int targetC) {
+		if (source == null)
+			throw new IllegalArgumentException("Source image cannot be null");
+		if (target == null)
+			throw new IllegalArgumentException("Target image cannot be null");
+		if (sourceC < 0 || sourceC >= source.getSizeC())
+			throw new IllegalArgumentException("Invalid source channel: " + sourceC);
+		if (targetC < 0 || targetC >= target.getSizeC())
+			throw new IllegalArgumentException("Invalid target channel: " + targetC);
 		if (!source.getBounds().equals(target.getBounds()))
 			throw new UnsupportedOperationException("Cannot register images of different size (yet)");
 
 		int width = source.getWidth();
 		int height = source.getHeight();
+		Logger.debug("Finding translation between images: " + width + "x" + height);
 
 		float[] _source = Array1DUtil.arrayToFloatArray(source.getDataXY(sourceC), source.isSignedDataType());
 		float[] _target = Array1DUtil.arrayToFloatArray(target.getDataXY(targetC), target.isSignedDataType());
@@ -69,14 +89,34 @@ public class GaspardRigidRegistration {
 		if (finalY > height / 2)
 			finalY -= height;
 
-		// recover (x,y)
-		return new Vector2d(-finalX, -finalY);
+		Vector2d translation = new Vector2d(-finalX, -finalY);
+		Logger.debug("Found translation: (" + translation.x + ", " + translation.y + ")");
+		return translation;
+	}
+
+	public static Vector2d getTranslation2D(IcyBufferedImage img, IcyBufferedImage ref, int referenceChannel) {
+		if (img == null)
+			throw new IllegalArgumentException("Image cannot be null");
+		if (ref == null)
+			throw new IllegalArgumentException("Reference image cannot be null");
+		Vector2d translation = new Vector2d();
+		int n = 0;
+		int minC = referenceChannel == -1 ? 0 : referenceChannel;
+		int maxC = referenceChannel == -1 ? img.getSizeC() - 1 : referenceChannel;
+		for (int c = minC; c <= maxC; c++) {
+			translation.add(findTranslation2D(img, c, ref, c));
+			n++;
+		}
+		translation.scale(1.0 / n);
+		return translation;
 	}
 
 	private static float[] spectralCorrelation(float[] a1, float[] a2, int width, int height) {
-		// JTransforms's FFT takes dimensions as (rows, columns)
+		if (a1 == null || a2 == null)
+			throw new IllegalArgumentException("Input arrays cannot be null");
+		if (width <= 0 || height <= 0)
+			throw new IllegalArgumentException("Invalid dimensions: " + width + "x" + height);
 		FloatFFT_2D fft = new FloatFFT_2D(height, width);
-
 		return spectralCorrelation(a1, a2, width, height, fft);
 	}
 
@@ -108,6 +148,8 @@ public class GaspardRigidRegistration {
 	}
 
 	private static int argMax(float[] array, int n) {
+		if (array == null || n <= 0 || n > array.length)
+			throw new IllegalArgumentException("Invalid array or length");
 		int argMax = 0;
 		float max = array[0];
 		for (int i = 1; i < n; i++) {
@@ -121,6 +163,8 @@ public class GaspardRigidRegistration {
 	}
 
 	private static float[] forwardFFT(float[] realData, FloatFFT_2D fft) {
+		if (realData == null)
+			throw new IllegalArgumentException("Real data cannot be null");
 		float[] out = new float[realData.length * 2];
 
 		// format the input as a complex array
@@ -133,6 +177,8 @@ public class GaspardRigidRegistration {
 	}
 
 	private static float[] inverseFFT(float[] cplxData, FloatFFT_2D fft) {
+		if (cplxData == null)
+			throw new IllegalArgumentException("Complex data cannot be null");
 		float[] out = new float[cplxData.length / 2];
 
 		fft.complexInverse(cplxData, true);
@@ -146,28 +192,22 @@ public class GaspardRigidRegistration {
 	}
 
 	public static boolean correctTranslation2D(IcyBufferedImage img, IcyBufferedImage ref, int referenceChannel) {
+		Vector2d translation = getTranslation2D(img, ref, referenceChannel);
 		boolean change = false;
-		Vector2d translation = new Vector2d();
-		int n = 0;
-		int minC = referenceChannel == -1 ? 0 : referenceChannel;
-		int maxC = referenceChannel == -1 ? img.getSizeC() - 1 : referenceChannel;
-
-		for (int c = minC; c <= maxC; c++) {
-			translation.add(findTranslation2D(img, c, ref, c));
-			n++;
-		}
-
-		translation.scale(1.0 / n);
-		if (translation.lengthSquared() != 0) {
+		if (translation.lengthSquared() > MIN_TRANSLATION_THRESHOLD) {
 			change = true;
 			img = applyTranslation2D(img, -1, translation, true);
+			Logger.info("Applied translation correction: (" + translation.x + ", " + translation.y + ")");
 		}
 		return change;
 	}
 
 	public static IcyBufferedImage applyTranslation2D(IcyBufferedImage image, int channel, Vector2d vector,
 			boolean preserveImageSize) {
-		
+		if (image == null)
+			throw new IllegalArgumentException("Image cannot be null");
+		if (vector == null)
+			throw new IllegalArgumentException("Translation vector cannot be null");
 		// Check for integer shift (with small tolerance)
 		if (Math.abs(vector.x - Math.round(vector.x)) < 0.01 && Math.abs(vector.y - Math.round(vector.y)) < 0.01) {
 			int dx = (int) Math.round(vector.x);
@@ -175,7 +215,7 @@ public class GaspardRigidRegistration {
 			// System.out.println("GasparRigidRegistration:applyTranslation2D() dx=" + dx + " dy=" + dy);
 			if (dx == 0 && dy == 0)
 				return image;
-
+			Logger.debug("Applying translation: dx=" + dx + " dy=" + dy);
 			Rectangle newSize = image.getBounds();
 			newSize.width += Math.abs(dx);
 			newSize.height += Math.abs(dy);
@@ -238,23 +278,29 @@ public class GaspardRigidRegistration {
 		return newImg;
 	}
 
-	public static boolean correctRotation2D(IcyBufferedImage img, IcyBufferedImage ref, int referenceChannel) {
-		boolean change = false;
+	public static double getRotation2D(IcyBufferedImage img, IcyBufferedImage ref, int referenceChannel) {
+		if (img == null)
+			throw new IllegalArgumentException("Image cannot be null");
+		if (ref == null)
+			throw new IllegalArgumentException("Reference image cannot be null");
 		double angle = 0.0;
 		int n = 0;
-
 		int minC = referenceChannel == -1 ? 0 : referenceChannel;
-		int maxC = referenceChannel == -1 ? ref.getSizeC() : referenceChannel;
-
+		int maxC = referenceChannel == -1 ? ref.getSizeC() - 1 : referenceChannel;
 		for (int c = minC; c <= maxC; c++) {
 			angle += findRotation2D(img, c, ref, c);
 			n++;
 		}
+		return n > 0 ? angle / n : 0.0;
+	}
 
-		angle /= n;
-		if (angle != 0.0) {
+	public static boolean correctRotation2D(IcyBufferedImage img, IcyBufferedImage ref, int referenceChannel) {
+		double angle = getRotation2D(img, ref, referenceChannel);
+		boolean change = false;
+		if (Math.abs(angle) > MIN_ROTATION_THRESHOLD) {
 			change = true;
 			img = applyRotation2D(img, -1, angle, true);
+			Logger.info("Applied rotation correction: " + Math.toDegrees(angle) + " degrees");
 		}
 		return change;
 	}
@@ -265,6 +311,10 @@ public class GaspardRigidRegistration {
 
 	public static double findRotation2D(IcyBufferedImage source, int sourceC, IcyBufferedImage target, int targetC,
 			Vector2d previousTranslation) {
+		if (source == null)
+			throw new IllegalArgumentException("Source image cannot be null");
+		if (target == null)
+			throw new IllegalArgumentException("Target image cannot be null");
 		if (!source.getBounds().equals(target.getBounds())) {
 			// Both sizes are different. What to do?
 
@@ -306,16 +356,19 @@ public class GaspardRigidRegistration {
 
 		if (rotX > width / 2)
 			rotX -= width;
-
-		return -rotX * 2 * Math.PI / width;
+		double rotation = -rotX * 2 * Math.PI / width;
+		Logger.debug("Found rotation: " + Math.toDegrees(rotation) + " degrees");
+		return rotation;
 	}
 
 	private static IcyBufferedImage toLogPolar(IcyBufferedImage image) {
-		return toLogPolar(image, image.getWidth() / 2, image.getHeight() / 2, 1080, 360);
+		return toLogPolar(image, image.getWidth() / 2, image.getHeight() / 2, DEFAULT_SIZE_THETA, DEFAULT_SIZE_RHO);
 	}
 
 	private static IcyBufferedImage toLogPolar(IcyBufferedImage image, int centerX, int centerY, int sizeTheta,
 			int sizeRho) {
+		if (image == null)
+			throw new IllegalArgumentException("Image cannot be null");
 		int sizeC = image.getSizeC();
 
 		// create the log-polar image (X = theta, Y = rho)
@@ -357,6 +410,8 @@ public class GaspardRigidRegistration {
 	}
 
 	private static float getPixelValue(IcyBufferedImage img, double x, double y, int c) {
+		if (img == null)
+			return 0f;
 		int width = img.getWidth();
 		int height = img.getHeight();
 		Object data = img.getDataXY(c);
@@ -393,8 +448,12 @@ public class GaspardRigidRegistration {
 
 	public static IcyBufferedImage applyRotation2D(IcyBufferedImage img, int channel, double angle,
 			boolean preserveImageSize) {
-		if (angle == 0.0)
+		if (img == null)
+			throw new IllegalArgumentException("Image cannot be null");
+		if (Math.abs(angle) < MIN_ROTATION_THRESHOLD) {
+			Logger.debug("No rotation needed (angle too small)");
 			return img;
+		}
 
 		// start with the rotation to calculate the largest bounds
 		IcyBufferedImage rotImg = IcyBufferedImageUtil.rotate(img.getImage(channel), angle);

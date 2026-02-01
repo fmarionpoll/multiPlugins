@@ -7,7 +7,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.CageCapillariesComputation;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
-import plugins.fmp.multitools.tools.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class ResultsCapillaries extends Results {
 

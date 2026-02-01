@@ -14,7 +14,7 @@ import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
 import icy.util.StringUtil;
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.tools.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DArea;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;

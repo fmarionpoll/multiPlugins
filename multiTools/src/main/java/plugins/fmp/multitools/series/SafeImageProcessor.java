@@ -9,7 +9,7 @@ import javax.imageio.ImageIO;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import icy.image.ImageUtil;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Safe implementation of ImageProcessor with proper error handling. Replaces
@@ -94,7 +94,7 @@ public class SafeImageProcessor implements ImageProcessor {
 
 	@Override
 	public ProcessingResult<IcyBufferedImage> transformImage(IcyBufferedImage sourceImage,
-			ImageTransformOptions options) {
+			CanvasImageTransformOptions options) {
 		if (sourceImage == null) {
 			return ProcessingResult.failure("Source image cannot be null");
 		}
@@ -116,7 +116,7 @@ public class SafeImageProcessor implements ImageProcessor {
 
 	@Override
 	public ProcessingResult<BackgroundTransformResult> transformBackground(IcyBufferedImage sourceImage,
-			IcyBufferedImage backgroundImage, ImageTransformOptions options) {
+			IcyBufferedImage backgroundImage, CanvasImageTransformOptions options) {
 
 		if (sourceImage == null || backgroundImage == null) {
 			return ProcessingResult.failure("Source and background images cannot be null");
@@ -177,7 +177,7 @@ public class SafeImageProcessor implements ImageProcessor {
 	}
 
 	private int performBackgroundTransformation(IcyBufferedImage sourceImage, IcyBufferedImage backgroundImage,
-			ImageTransformOptions options) {
+			CanvasImageTransformOptions options) {
 		// Refactored version of the transformBackground method from BuildBackground
 		int width = sourceImage.getSizeX();
 		int height = sourceImage.getSizeY();

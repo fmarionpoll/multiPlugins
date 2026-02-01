@@ -36,7 +36,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.ROI2D.Measures;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
@@ -275,7 +275,7 @@ public class ShapeSpots extends JPanel {
 
 	private void detectContours(Experiment exp) {
 		BuildSeriesOptions options = initDetectOptions(exp);
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = options.transform01;
 		transformOptions.setSingleThreshold(options.spotThreshold, options.spotThresholdUp);
 		ImageTransformInterface transformFunction = options.transform01.getFunction();

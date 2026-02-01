@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.series;
 
 import icy.image.IcyBufferedImage;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Service interface for image processing operations.
@@ -30,7 +30,7 @@ public interface ImageProcessor {
      * @param options The transformation options
      * @return ProcessingResult containing the transformed image or error information
      */
-    ProcessingResult<IcyBufferedImage> transformImage(IcyBufferedImage sourceImage, ImageTransformOptions options);
+    ProcessingResult<IcyBufferedImage> transformImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options);
     
     /**
      * Transforms background image using specific algorithm.
@@ -42,7 +42,7 @@ public interface ImageProcessor {
     ProcessingResult<BackgroundTransformResult> transformBackground(
         IcyBufferedImage sourceImage, 
         IcyBufferedImage backgroundImage, 
-        ImageTransformOptions options
+        CanvasImageTransformOptions options
     );
     
     /**

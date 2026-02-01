@@ -138,6 +138,25 @@ public class Line2DPlus extends Line2D.Double {
 	}
 
 	/**
+	 * Calculates the Y-coordinate for a given X-coordinate on this line.
+	 *
+	 * @param x the X-coordinate for which to find the corresponding Y-coordinate
+	 * @return the Y-coordinate corresponding to the given X-coordinate
+	 * @throws IllegalArgumentException if x is NaN or infinite
+	 */
+	public double getYfromX(double x) {
+		if (java.lang.Double.isNaN(x) || java.lang.Double.isInfinite(x)) {
+			throw new IllegalArgumentException("X-coordinate must be a finite number: " + x);
+		}
+		if (Math.abs(getX1() - getX2()) < EPSILON) {
+			return getY1();
+		}
+		double slope = (getY1() - getY2()) / (getX1() - getX2());
+		double intercept = getY1() - getX1() * slope;
+		return slope * x + intercept;
+	}
+
+	/**
 	 * Finds the intersection point between this line and another line.
 	 * 
 	 * <p>

@@ -7,7 +7,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 	public boolean buildBackground = true;
@@ -39,7 +39,7 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 		findFliesInAllFrames(exp);
 	}
 
-	private void getReferenceImage(Experiment exp, int t, ImageTransformOptions options) {
+	private void getReferenceImage(Experiment exp, int t, CanvasImageTransformOptions options) {
 		switch (options.transformOption) {
 		case SUBTRACT_TM1:
 			options.backgroundImage = imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
@@ -59,7 +59,7 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 
 	private void findFliesInAllFrames(Experiment exp) {
 		ProgressFrame progressBar = new ProgressFrame("Detecting flies...");
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = options.transformop;
 		ImageTransformInterface transformFunction = options.transformop.getFunction();
 

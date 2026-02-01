@@ -182,7 +182,7 @@ public class SpotLevel2D {
 		}
 
 		if (level2D.npoints > imageWidth) {
-			level2D.cropPolylineToNewWidth(imageWidth);
+			level2D = level2D.cropPolylineToNewWidth(imageWidth);
 		}
 	}
 

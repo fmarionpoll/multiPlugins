@@ -10,7 +10,7 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.ReferenceMeasures;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
-import plugins.fmp.multitools.tools.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
  * Handles experiment-wide capillary measure computations that require access to

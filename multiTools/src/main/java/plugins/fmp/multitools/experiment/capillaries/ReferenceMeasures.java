@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.capillaries;
 
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class ReferenceMeasures {
 
@@ -133,7 +134,7 @@ public class ReferenceMeasures {
 			x[i] = i;
 			y[i] = (a.getValueAt(i) + b.getValueAt(i)) / 2.0;
 		}
-		avg.polylineLevel = new plugins.fmp.multitools.tools.Level2D(x, y, n);
+		avg.polylineLevel = new Level2D(x, y, n);
 		return avg;
 	}
 }

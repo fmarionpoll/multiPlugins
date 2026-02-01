@@ -20,7 +20,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
-import plugins.fmp.multitools.tools.JComponents.CageTableModel;
+import plugins.fmp.multitools.experiment.cages.CageTableModel;
 
 public class InfosCagesTable extends JPanel {
 	/**

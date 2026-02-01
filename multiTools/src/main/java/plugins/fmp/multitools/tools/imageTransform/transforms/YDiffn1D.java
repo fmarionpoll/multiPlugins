@@ -5,7 +5,7 @@ import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class YDiffn1D extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	int spanDiff = 5;
@@ -15,7 +15,7 @@ public class YDiffn1D extends ImageTransformFunctionAbstract implements ImageTra
 	}
 
 	@Override
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
 		int imageSizeX = sourceImage.getSizeX();
 		int imageSizeY = sourceImage.getSizeY();
 		IcyBufferedImage img2 = new IcyBufferedImage(imageSizeX, imageSizeY, 3, sourceImage.getDataType_());

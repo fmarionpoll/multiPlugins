@@ -35,7 +35,7 @@ import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multitools.tools.canvas2D.Canvas2D_2Transforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
@@ -273,7 +273,7 @@ public class DetectContours extends JPanel {
 
 	private void detectContours(Experiment exp) {
 		BuildSeriesOptions options = initDetectOptions(exp);
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = options.transform01;
 		transformOptions.setSingleThreshold(options.spotThreshold, options.spotThresholdUp);
 		ImageTransformInterface transformFunction = options.transform01.getFunction();

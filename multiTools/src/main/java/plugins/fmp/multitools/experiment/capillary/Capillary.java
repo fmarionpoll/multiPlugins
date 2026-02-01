@@ -16,7 +16,7 @@ import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.tools.Level2D;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;

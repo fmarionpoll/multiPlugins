@@ -18,7 +18,7 @@ import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.resource.ResourceUtilFMP;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Enhanced Canvas2D implementation with dual-step image transformations.
@@ -55,8 +55,8 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	// Transform state
 	private ImageTransformInterface transformStep1;
 	private ImageTransformInterface transformStep2;
-	private final ImageTransformOptions optionsStep1;
-	private final ImageTransformOptions optionsStep2;
+	private final CanvasImageTransformOptions optionsStep1;
+	private final CanvasImageTransformOptions optionsStep2;
 
 	// Action handlers as inner classes for better organization
 	private final TransformStep1Handler transformStep1Handler;
@@ -73,8 +73,8 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		super(viewer);
 
 		// Initialize transform options
-		this.optionsStep1 = new ImageTransformOptions();
-		this.optionsStep2 = new ImageTransformOptions();
+		this.optionsStep1 = new CanvasImageTransformOptions();
+		this.optionsStep2 = new CanvasImageTransformOptions();
 
 		// Initialize UI components
 		this.transformsComboStep1 = new JComboBox<>(Canvas2DConstants.DefaultTransforms.STEP1_TRANSFORMS);
@@ -278,7 +278,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * 
 	 * @return Step 1 options
 	 */
-	public ImageTransformOptions getOptionsStep1() {
+	public CanvasImageTransformOptions getOptionsStep1() {
 		return optionsStep1;
 	}
 
@@ -287,7 +287,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * 
 	 * @param options The new options (can be null)
 	 */
-	public void setOptionsStep1(ImageTransformOptions options) {
+	public void setOptionsStep1(CanvasImageTransformOptions options) {
 		if (options != null) {
 			copyOptionsFields(options, this.optionsStep1);
 		}
@@ -298,7 +298,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * 
 	 * @return Step 2 options
 	 */
-	public ImageTransformOptions getOptionsStep2() {
+	public CanvasImageTransformOptions getOptionsStep2() {
 		return optionsStep2;
 	}
 
@@ -307,7 +307,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * 
 	 * @param options The new options (can be null)
 	 */
-	public void setOptionsStep2(ImageTransformOptions options) {
+	public void setOptionsStep2(CanvasImageTransformOptions options) {
 		if (options != null) {
 			copyOptionsFields(options, this.optionsStep2);
 		}
@@ -320,7 +320,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * @param options Optional transform options
 	 * @throws IllegalArgumentException If index is invalid
 	 */
-	public void setTransformStep1(int index, ImageTransformOptions options) {
+	public void setTransformStep1(int index, CanvasImageTransformOptions options) {
 		validateTransformIndex(index, transformsComboStep1.getItemCount());
 		transformsComboStep1.setSelectedIndex(index);
 		if (options != null) {
@@ -335,7 +335,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * @param options   Optional transform options
 	 * @throws IllegalArgumentException If transform is null
 	 */
-	public void setTransformStep1(ImageTransformEnums transform, ImageTransformOptions options) {
+	public void setTransformStep1(ImageTransformEnums transform, CanvasImageTransformOptions options) {
 		if (transform == null) {
 			throw new IllegalArgumentException(Canvas2DConstants.ErrorMessages.NULL_TRANSFORM_ENUM);
 		}
@@ -390,7 +390,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * @param options Optional transform options
 	 * @throws IllegalArgumentException If index is invalid
 	 */
-	public void setTransformStep2(int index, ImageTransformOptions options) {
+	public void setTransformStep2(int index, CanvasImageTransformOptions options) {
 		validateTransformIndex(index, transformsComboStep2.getItemCount());
 		transformsComboStep2.setSelectedIndex(index);
 		if (options != null) {
@@ -405,7 +405,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * @param options   Optional transform options
 	 * @throws IllegalArgumentException If transform is null
 	 */
-	public void setTransformStep2(ImageTransformEnums transform, ImageTransformOptions options) {
+	public void setTransformStep2(ImageTransformEnums transform, CanvasImageTransformOptions options) {
 		if (transform == null) {
 			throw new IllegalArgumentException(Canvas2DConstants.ErrorMessages.NULL_TRANSFORM_ENUM);
 		}
@@ -437,7 +437,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	 * @param source The source options to copy from
 	 * @param target The target options to copy to
 	 */
-	private void copyOptionsFields(ImageTransformOptions source, ImageTransformOptions target) {
+	private void copyOptionsFields(CanvasImageTransformOptions source, CanvasImageTransformOptions target) {
 		if (source == null || target == null) {
 			return;
 		}
@@ -475,32 +475,32 @@ public class Canvas2D_3Transforms extends Canvas2D {
 
 	// Legacy methods kept for backward compatibility but deprecated
 	@Deprecated
-	public void selectImageTransformFunctionStep1(int iselected, ImageTransformOptions options) {
+	public void selectImageTransformFunctionStep1(int iselected, CanvasImageTransformOptions options) {
 		setTransformStep1(iselected, options);
 	}
 
 	@Deprecated
-	public void selectImageTransformFunctionStep2(int iselected, ImageTransformOptions options) {
+	public void selectImageTransformFunctionStep2(int iselected, CanvasImageTransformOptions options) {
 		setTransformStep2(iselected, options);
 	}
 
 	@Deprecated
-	public void selectIndexStep1(int iselected, ImageTransformOptions options) {
+	public void selectIndexStep1(int iselected, CanvasImageTransformOptions options) {
 		setTransformStep1(iselected, options);
 	}
 
 	@Deprecated
-	public void selectItemStep1(ImageTransformEnums item, ImageTransformOptions options) {
+	public void selectItemStep1(ImageTransformEnums item, CanvasImageTransformOptions options) {
 		setTransformStep1(item, options);
 	}
 
 	@Deprecated
-	public void selectIndexStep2(int iselected, ImageTransformOptions options) {
+	public void selectIndexStep2(int iselected, CanvasImageTransformOptions options) {
 		setTransformStep2(iselected, options);
 	}
 
 	@Deprecated
-	public void selectItemStep2(ImageTransformEnums item, ImageTransformOptions options) {
+	public void selectItemStep2(ImageTransformEnums item, CanvasImageTransformOptions options) {
 		setTransformStep2(item, options);
 	}
 

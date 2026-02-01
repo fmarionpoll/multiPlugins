@@ -1,6 +1,6 @@
 package plugins.fmp.multitools.series;
 
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Configuration options for image registration operations. Encapsulates all
@@ -18,7 +18,7 @@ public class RegistrationOptions {
 	private double rotationThreshold;
 
 	// Transform options
-	private ImageTransformOptions transformOptions;
+	private CanvasImageTransformOptions transformOptions;
 
 	// Processing options
 	private boolean saveCorrectedImages;
@@ -37,7 +37,7 @@ public class RegistrationOptions {
 		this.referenceFrame = 0;
 		this.translationThreshold = 0.001;
 		this.rotationThreshold = 0.001;
-		this.transformOptions = new ImageTransformOptions();
+		this.transformOptions = new CanvasImageTransformOptions();
 		this.saveCorrectedImages = true;
 		this.preserveImageSize = true;
 		this.referenceChannel = 0;
@@ -70,7 +70,7 @@ public class RegistrationOptions {
 		return this;
 	}
 
-	public RegistrationOptions transformOptions(ImageTransformOptions options) {
+	public RegistrationOptions transformOptions(CanvasImageTransformOptions options) {
 		this.transformOptions = options;
 		return this;
 	}
@@ -116,7 +116,7 @@ public class RegistrationOptions {
 		return rotationThreshold;
 	}
 
-	public ImageTransformOptions getTransformOptions() {
+	public CanvasImageTransformOptions getTransformOptions() {
 		return transformOptions;
 	}
 

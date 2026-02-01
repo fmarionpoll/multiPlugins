@@ -4,7 +4,7 @@ import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class RGBtoHSV extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	int channelOut = 0;
@@ -15,7 +15,7 @@ public class RGBtoHSV extends ImageTransformFunctionAbstract implements ImageTra
 	}
 
 	@Override
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
 		IcyBufferedImage img = functionRGBtoHSB(sourceImage);
 		if (channelOut >= 0)
 			img = functionRGB_keepOneChan(img, channelOut);

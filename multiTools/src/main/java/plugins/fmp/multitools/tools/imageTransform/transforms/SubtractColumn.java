@@ -4,7 +4,7 @@ import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class SubtractColumn extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	int column = 0;
@@ -14,7 +14,7 @@ public class SubtractColumn extends ImageTransformFunctionAbstract implements Im
 	}
 
 	@Override
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
 		int nchannels = sourceImage.getSizeC();
 		int imageSizeX = sourceImage.getSizeX();
 		int imageSizeY = sourceImage.getSizeY();

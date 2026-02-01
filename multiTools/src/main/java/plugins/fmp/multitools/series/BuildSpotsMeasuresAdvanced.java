@@ -25,7 +25,7 @@ import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 /**
  * Advanced optimized version of BuildSpotsMeasures with streaming processing,
@@ -65,9 +65,9 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	// === TRADITIONAL FIELDS ===
 	public Sequence seqData = new Sequence();
 	private ViewerFMP vData = null;
-	private ImageTransformOptions transformOptions01 = null;
+	private CanvasImageTransformOptions transformOptions01 = null;
 	ImageTransformInterface transformFunctionSpot = null;
-	ImageTransformOptions transformOptions02 = null;
+	CanvasImageTransformOptions transformOptions02 = null;
 	ImageTransformInterface transformFunctionFly = null;
 
 	// --------------------------------------------
@@ -161,13 +161,13 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		initSpotsDataArrays(exp);
 
 		if (transformFunctionSpot == null) {
-			transformOptions01 = new ImageTransformOptions();
+			transformOptions01 = new CanvasImageTransformOptions();
 			transformOptions01.transformOption = options.transform01;
 			transformOptions01.copyResultsToThe3planes = false;
 			transformOptions01.setSingleThreshold(options.spotThreshold, options.spotThresholdUp);
 			transformFunctionSpot = options.transform01.getFunction();
 
-			transformOptions02 = new ImageTransformOptions();
+			transformOptions02 = new CanvasImageTransformOptions();
 			transformOptions02.transformOption = options.transform02;
 			transformOptions02.copyResultsToThe3planes = false;
 			transformFunctionFly = options.transform02.getFunction();

@@ -7,7 +7,7 @@ import plugins.fmp.multitools.tools.imageTransform.ArrayOperationCache;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformBase;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformConstants;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformException;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.InvalidParameterException;
 
 /**
@@ -89,7 +89,7 @@ public class LinearCombination extends ImageTransformBase {
     
     @Override
     protected void validateTransformSpecificParameters(IcyBufferedImage sourceImage, 
-                                                      ImageTransformOptions options,
+                                                      CanvasImageTransformOptions options,
                                                       String transformName) throws ImageTransformException {
         
         // Validate that image has at least 3 channels for RGB operations
@@ -120,7 +120,7 @@ public class LinearCombination extends ImageTransformBase {
     }
     
     @Override
-    protected IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, ImageTransformOptions options) 
+    protected IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) 
             throws ImageTransformException {
         
         try {

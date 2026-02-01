@@ -20,7 +20,7 @@ import plugins.fmp.multitools.service.LevelDetector;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import icy.sequence.SequenceListener;
 import icy.type.collection.array.Array1DUtil;
 import java.awt.geom.Point2D;
@@ -65,7 +65,7 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     private final OverlayColorMask colorMap;
     
     /** Options for image transformations */
-    private final ImageTransformOptions imageTransformOptions;
+    private final CanvasImageTransformOptions imageTransformOptions;
     
     /** Function for image transformation */
     private ImageTransformInterface imageTransformFunction;
@@ -104,7 +104,7 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
         super(DEFAULT_OVERLAY_NAME);
         
         this.colorMap = new OverlayColorMask(DEFAULT_COLOR_MAP_NAME, DEFAULT_MASK_COLOR);
-        this.imageTransformOptions = new ImageTransformOptions();
+        this.imageTransformOptions = new CanvasImageTransformOptions();
         this.imageTransformFunction = ImageTransformEnums.NONE.getFunction();
         this.imageThresholdFunction = ImageTransformEnums.NONE.getFunction();
         

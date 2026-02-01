@@ -30,7 +30,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
     private static final ArrayOperationCache arrayCache = new ArrayOperationCache();
     
     @Override
-    public final IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+    public final IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
         String transformName = getClass().getSimpleName();
         
         try {
@@ -60,7 +60,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      * @return The transformed image
      * @throws ImageTransformException If the transformation fails
      */
-    protected abstract IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, ImageTransformOptions options) 
+    protected abstract IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) 
             throws ImageTransformException;
     
     /**
@@ -71,7 +71,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      * @param transformName The name of the transform for error context
      * @throws ImageTransformException If validation fails
      */
-    protected void validateInputs(IcyBufferedImage sourceImage, ImageTransformOptions options, String transformName) 
+    protected void validateInputs(IcyBufferedImage sourceImage, CanvasImageTransformOptions options, String transformName) 
             throws ImageTransformException {
         
         // Null checks
@@ -125,7 +125,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      * @throws ImageTransformException If validation fails
      */
     protected void validateTransformSpecificParameters(IcyBufferedImage sourceImage, 
-                                                      ImageTransformOptions options, 
+                                                      CanvasImageTransformOptions options, 
                                                       String transformName) throws ImageTransformException {
         // Default implementation - no additional validation
         // Override in subclasses for specific validation needs
@@ -135,7 +135,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      * Safely executes the transformation with comprehensive error handling.
      */
     private IcyBufferedImage executeTransformSafely(IcyBufferedImage sourceImage, 
-                                                   ImageTransformOptions options, 
+                                                   CanvasImageTransformOptions options, 
                                                    String transformName) throws ImageTransformException {
         
         try {
@@ -171,7 +171,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      * @param sourceImage The source image
      * @param options The transformation options
      */
-    protected void preprocessImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+    protected void preprocessImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
         // Default implementation - no pre-processing
     }
     
@@ -183,7 +183,7 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      * @param options The transformation options
      * @return The post-processed image (may be the same as input)
      */
-    protected IcyBufferedImage postprocessImage(IcyBufferedImage result, ImageTransformOptions options) {
+    protected IcyBufferedImage postprocessImage(IcyBufferedImage result, CanvasImageTransformOptions options) {
         // Default implementation - no post-processing
         return result;
     }

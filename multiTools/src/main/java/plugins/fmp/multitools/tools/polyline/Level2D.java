@@ -39,7 +39,6 @@ import plugins.fmp.multitools.tools.Logger;
  */
 public class Level2D extends Polyline2D {
 
-
 	/**
 	 * Creates an empty Level2D polyline.
 	 */
@@ -253,6 +252,47 @@ public class Level2D extends Polyline2D {
 		} catch (Exception e) {
 			Logger.error("Error cropping polyline", e);
 			return new Level2D(imageWidth);
+		}
+	}
+
+	public Level2D contractPolylineToNewSize(int imageSize) {
+		if (imageSize <= 0) {
+			throw new IllegalArgumentException("Image size must be positive: " + imageSize);
+		}
+		double[] nxpoints = new double[imageSize];
+		double[] nypoints = new double[imageSize];
+		for (int i = 0; i < imageSize; i++) {
+			int j = i * npoints / imageSize;
+			nxpoints[i] = i;
+			nypoints[i] = ypoints[j];
+		}
+		return new Level2D(nxpoints, nypoints, imageSize);
+	}
+
+	public boolean insertSeriesofYPoints(List<Point2D> points, int start, int end) {
+		if (start < 0 || end > (this.npoints - 1))
+			return false;
+		int i_list = 0;
+		for (int i_array = start; i_array < end; i_array++, i_list++)
+			ypoints[i_array] = points.get(i_list).getY();
+		return true;
+	}
+
+	public boolean insertYPoints(int[] points, int start, int end) {
+		if (start < 0 || end > (this.npoints - 1))
+			return false;
+		int i_list = 0;
+		for (int i_array = start; i_array <= end; i_array++, i_list++)
+			this.ypoints[i_array] = points[i_list];
+		return true;
+	}
+
+	public void offsetToStartWithZeroAmplitude() {
+		if (npoints == 0 || ypoints == null)
+			return;
+		double value0 = ypoints[0];
+		for (int i = 0; i < npoints; i++) {
+			ypoints[i] -= value0;
 		}
 	}
 

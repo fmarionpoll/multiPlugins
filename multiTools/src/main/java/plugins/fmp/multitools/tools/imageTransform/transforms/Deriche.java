@@ -4,7 +4,7 @@ import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class Deriche extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	double alpha = 0;
@@ -16,7 +16,7 @@ public class Deriche extends ImageTransformFunctionAbstract implements ImageTran
 	}
 
 	@Override
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
 		IcyBufferedImage img2 = doDeriche(sourceImage, this.alpha);
 		if (transformToGrey)
 			img2 = transformToGrey(img2, options.copyResultsToThe3planes);

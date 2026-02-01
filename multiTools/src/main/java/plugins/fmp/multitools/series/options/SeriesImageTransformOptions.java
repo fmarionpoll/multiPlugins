@@ -6,7 +6,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
  * Configuration for image transformation parameters. Replaces image
  * transform-related fields from BuildSeriesOptions.
  */
-public class ImageTransformOptions {
+public class SeriesImageTransformOptions {
 	private final ImageTransformEnums transform01;
 	private final ImageTransformEnums transform02;
 	private final ImageTransformEnums overlayTransform;
@@ -31,7 +31,7 @@ public class ImageTransformOptions {
 	private final int backgroundDelta;
 	private final int backgroundJitter;
 
-	private ImageTransformOptions(Builder builder) {
+	private SeriesImageTransformOptions(Builder builder) {
 		this.transform01 = validateTransform(builder.transform01, "transform01");
 		this.transform02 = validateTransform(builder.transform02, "transform02");
 		this.overlayTransform = validateTransform(builder.overlayTransform, "overlayTransform");
@@ -351,8 +351,8 @@ public class ImageTransformOptions {
 			return this;
 		}
 
-		public ImageTransformOptions build() {
-			return new ImageTransformOptions(this);
+		public SeriesImageTransformOptions build() {
+			return new SeriesImageTransformOptions(this);
 		}
 	}
 
@@ -361,7 +361,7 @@ public class ImageTransformOptions {
 	}
 
 	// Create from legacy BuildSeriesOptions
-	public static ImageTransformOptions fromLegacyOptions(BuildSeriesOptions legacy) {
+	public static SeriesImageTransformOptions fromLegacyOptions(BuildSeriesOptions legacy) {
 		return builder().transform01(legacy.transform01).transform02(legacy.transform02)
 				.overlayTransform(legacy.overlayTransform).transformop(legacy.transformop)
 				.overlayIfGreater(legacy.overlayIfGreater).trackWhite(legacy.btrackWhite).limitLow(legacy.blimitLow)

@@ -11,7 +11,7 @@ import icy.image.IcyBufferedImageUtil;
 import icy.image.ImageUtil;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.GaspardRigidRegistration;
+import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 

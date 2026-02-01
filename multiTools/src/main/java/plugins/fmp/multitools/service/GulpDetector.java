@@ -3,6 +3,7 @@ package plugins.fmp.multitools.service;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -14,6 +15,7 @@ import icy.system.thread.Processor;
 import icy.type.collection.array.Array1DUtil;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
@@ -22,6 +24,7 @@ import plugins.fmp.multitools.series.options.GulpThresholdMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.SavitzkyGolayFilter;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class GulpDetector {
 
@@ -121,8 +124,8 @@ public class GulpDetector {
 	}
 
 	private void detectGulpsForCapillary(Capillary cap, CapillaryMeasure thresholdMeasure) {
-		if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null
-				|| cap.getDerivative() == null || cap.getDerivative().polylineLevel == null)
+		if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null || cap.getDerivative() == null
+				|| cap.getDerivative().polylineLevel == null)
 			return;
 
 		CapillaryMeasure ptsTop = cap.getTopLevel();
@@ -180,7 +183,7 @@ public class GulpDetector {
 
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			int cageID = cap.getCageID();
-			plugins.fmp.multitools.experiment.cage.Cage cage = exp.getCages().getCageFromID(cageID);
+			Cage cage = exp.getCages().getCageFromID(cageID);
 			if (cage != null && cage.getCageNFlies() == 0) {
 				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
 						&& cap.getDerivative().polylineLevel.npoints > 0) {
@@ -230,7 +233,7 @@ public class GulpDetector {
 		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
 				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold");
 		thresholdMeasure.capIndexKymo = firstEmptyCageCap.getKymographIndex();
-		thresholdMeasure.polylineLevel = new plugins.fmp.multitools.tools.Level2D(xpoints, thresholdValues, npoints);
+		thresholdMeasure.polylineLevel = new Level2D(xpoints, thresholdValues, npoints);
 
 		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
@@ -293,7 +296,7 @@ public class GulpDetector {
 		int i = 0;
 		for (Double v : values)
 			sorted[i++] = v;
-		java.util.Arrays.sort(sorted);
+		Arrays.sort(sorted);
 		int mid = sorted.length / 2;
 		if (sorted.length % 2 == 0)
 			return (sorted[mid - 1] + sorted[mid]) / 2;
@@ -316,7 +319,7 @@ public class GulpDetector {
 		int i = 0;
 		for (Double v : values)
 			sorted[i++] = v;
-		java.util.Arrays.sort(sorted);
+		Arrays.sort(sorted);
 		int q1idx = values.size() / 4;
 		int q3idx = (3 * values.size()) / 4;
 		if (q3idx >= sorted.length)

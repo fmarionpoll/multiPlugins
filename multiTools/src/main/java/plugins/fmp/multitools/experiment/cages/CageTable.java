@@ -16,7 +16,7 @@ public class CageTable extends JTable {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	public CageTableModel cageTableModel = null;
+	public CageTableModelForSpots cageTableModel = null;
 
 	Color cellsOrigBackColor;
 	Color cellsOrigForeColor;
@@ -24,7 +24,7 @@ public class CageTable extends JTable {
 	public CageTable(JComboBoxExperimentLazy expListComboLazy) {
 		cellsOrigBackColor = this.getBackground();
 		cellsOrigForeColor = this.getForeground();
-		cageTableModel = new CageTableModel(expListComboLazy);
+		cageTableModel = new CageTableModelForSpots(expListComboLazy);
 		setModel(cageTableModel);
 		setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 

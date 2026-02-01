@@ -9,7 +9,7 @@ import icy.image.IcyBufferedImageUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class DetectFlyFromCleanBackground extends BuildSeries {
 	private DetectFlyTools find_flies = new DetectFlyTools();
@@ -46,7 +46,7 @@ public class DetectFlyFromCleanBackground extends BuildSeries {
 
 	private void findFliesInAllFrames(Experiment exp) {
 		ProgressFrame progressBar = new ProgressFrame("Detecting flies...");
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = ImageTransformEnums.SUBTRACT_REF;
 		transformOptions.backgroundImage = IcyBufferedImageUtil.getCopy(exp.getSeqCamData().getReferenceImage());
 		ImageTransformInterface transformFunction = transformOptions.transformOption.getFunction();

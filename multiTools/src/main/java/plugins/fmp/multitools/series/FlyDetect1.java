@@ -2,7 +2,7 @@ package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.service.SequenceLoaderService;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class FlyDetect1 extends FlyDetect {
 	public boolean buildBackground = true;
@@ -21,14 +21,14 @@ public class FlyDetect1 extends FlyDetect {
 	}
 
 	@Override
-	protected ImageTransformOptions setupTransformOptions(Experiment exp) {
-		ImageTransformOptions transformOptions = new ImageTransformOptions();
+	protected CanvasImageTransformOptions setupTransformOptions(Experiment exp) {
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		transformOptions.transformOption = options.transformop;
 		return transformOptions;
 	}
 
 	@Override
-	protected void updateTransformOptions(Experiment exp, int t, int t_previous, ImageTransformOptions options) {
+	protected void updateTransformOptions(Experiment exp, int t, int t_previous, CanvasImageTransformOptions options) {
 		SequenceLoaderService loader = new SequenceLoaderService();
 		switch (options.transformOption) {
 		case SUBTRACT_TM1:

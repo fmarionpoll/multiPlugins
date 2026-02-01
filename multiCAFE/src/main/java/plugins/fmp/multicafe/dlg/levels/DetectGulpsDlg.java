@@ -16,7 +16,6 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingConstants;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -48,7 +47,6 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 	private JCheckBox from_pixel_checkbox = new JCheckBox("from (pixel)", false);
 	private JToggleButton display_button = new JToggleButton("Display");
 
-	private JSpinner detectGulpsThresholdSpinner = new JSpinner(new SpinnerNumberModel(.5, 0., 500., .1));
 	private JComboBox<GulpThresholdMethod> thresholdMethodCombo = new JComboBox<>(GulpThresholdMethod.values());
 	private JSpinner thresholdMultiplierSpinner = new JSpinner(new SpinnerNumberModel(3.0, 1.0, 10.0, 0.5));
 	private JComboBox<GulpThresholdSmoothing> thresholdSmoothingCombo = new JComboBox<>(
@@ -77,8 +75,6 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
-		panel01.add(new JLabel("threshold", SwingConstants.RIGHT));
-		panel01.add(detectGulpsThresholdSpinner);
 		panel01.add(gulpTransforms_comboBox);
 		panel01.add(display_button);
 		add(panel01);
@@ -178,7 +174,6 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 			options.kymoFirst = 0;
 			options.kymoLast = exp.getSeqKymos().getSequence().getSizeT() - 1;
 		}
-		options.detectGulpsThreshold_uL = (double) detectGulpsThresholdSpinner.getValue();
 		options.transformForGulps = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
 		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
 		options.thresholdMethod = (GulpThresholdMethod) thresholdMethodCombo.getSelectedItem();
@@ -212,7 +207,6 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 
 	void setInfos(Capillary cap) {
 		BuildSeriesOptions options = cap.getGulpsOptions();
-		detectGulpsThresholdSpinner.setValue(options.detectGulpsThreshold_uL);
 		gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
 		selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
 		thresholdMethodCombo.setSelectedItem(options.thresholdMethod);

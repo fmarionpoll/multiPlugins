@@ -10,11 +10,11 @@ import plugins.fmp.multitools.tools.NHDistance.NHDistanceColorL1;
 import plugins.fmp.multitools.tools.NHDistance.NHDistanceColorL2;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class ThresholdColors extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	@Override
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, ImageTransformOptions options) {
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
 		if (options.colorarray.size() == 0)
 			return null;
 
