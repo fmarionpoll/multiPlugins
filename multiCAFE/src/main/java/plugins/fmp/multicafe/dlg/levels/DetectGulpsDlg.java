@@ -25,6 +25,8 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectGulps;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.GulpThresholdMethod;
+import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
@@ -47,6 +49,12 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 	private JToggleButton display_button = new JToggleButton("Display");
 
 	private JSpinner detectGulpsThresholdSpinner = new JSpinner(new SpinnerNumberModel(.5, 0., 500., .1));
+	private JComboBox<GulpThresholdMethod> thresholdMethodCombo = new JComboBox<>(GulpThresholdMethod.values());
+	private JSpinner thresholdMultiplierSpinner = new JSpinner(new SpinnerNumberModel(3.0, 1.0, 10.0, 0.5));
+	private JComboBox<GulpThresholdSmoothing> thresholdSmoothingCombo = new JComboBox<>(
+			GulpThresholdSmoothing.values());
+	private JSpinner thresholdSmoothingWindowSpinner = new JSpinner(new SpinnerNumberModel(5, 3, 21, 2));
+	private JSpinner thresholdSmoothingAlphaSpinner = new JSpinner(new SpinnerNumberModel(0.3, 0.01, 0.99, 0.05));
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox all_checkbox = new JCheckBox("ALL (current to last)", false);
@@ -74,6 +82,19 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		panel01.add(gulpTransforms_comboBox);
 		panel01.add(display_button);
 		add(panel01);
+
+		JPanel panel01b = new JPanel(layoutLeft);
+		panel01b.add(new JLabel("ref curve"));
+		panel01b.add(thresholdMethodCombo);
+		panel01b.add(new JLabel("k"));
+		panel01b.add(thresholdMultiplierSpinner);
+		panel01b.add(new JLabel("smooth"));
+		panel01b.add(thresholdSmoothingCombo);
+		panel01b.add(new JLabel("win"));
+		panel01b.add(thresholdSmoothingWindowSpinner);
+		panel01b.add(new JLabel("alpha"));
+		panel01b.add(thresholdSmoothingAlphaSpinner);
+		add(panel01b);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(from_pixel_checkbox);
@@ -159,8 +180,12 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		}
 		options.detectGulpsThreshold_uL = (double) detectGulpsThresholdSpinner.getValue();
 		options.transformForGulps = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
-		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();// options.spanDiff = (int)
-																		// spanTransf2Spinner.getValue();
+		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
+		options.thresholdMethod = (GulpThresholdMethod) thresholdMethodCombo.getSelectedItem();
+		options.thresholdSdMultiplier = (double) thresholdMultiplierSpinner.getValue();
+		options.thresholdSmoothing = (GulpThresholdSmoothing) thresholdSmoothingCombo.getSelectedItem();
+		options.thresholdSmoothingWindow = (int) thresholdSmoothingWindowSpinner.getValue();
+		options.thresholdSmoothingAlpha = (double) thresholdSmoothingAlphaSpinner.getValue();
 		options.buildGulps = gulps_checkbox.isSelected();
 		options.buildDerivative = derivative_checkbox.isSelected();
 		options.analyzePartOnly = from_pixel_checkbox.isSelected();
@@ -190,6 +215,11 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		detectGulpsThresholdSpinner.setValue(options.detectGulpsThreshold_uL);
 		gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
 		selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
+		thresholdMethodCombo.setSelectedItem(options.thresholdMethod);
+		thresholdMultiplierSpinner.setValue(options.thresholdSdMultiplier);
+		thresholdSmoothingCombo.setSelectedItem(options.thresholdSmoothing);
+		thresholdSmoothingWindowSpinner.setValue(options.thresholdSmoothingWindow);
+		thresholdSmoothingAlphaSpinner.setValue(options.thresholdSmoothingAlpha);
 	}
 
 	private void stopComputation() {

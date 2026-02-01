@@ -44,6 +44,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public ImageTransformEnums transformForGulps = ImageTransformEnums.XDIFFN;
 	public boolean buildGulps = true;
 
+	public GulpThresholdMethod thresholdMethod = GulpThresholdMethod.MEAN_PLUS_SD;
+	public double thresholdSdMultiplier = 3.0;
+	public GulpThresholdSmoothing thresholdSmoothing = GulpThresholdSmoothing.NONE;
+	public int thresholdSmoothingWindow = 5;
+	public double thresholdSmoothingAlpha = 0.3;
+
 	public boolean detectSelectedROIs = false;
 	public ArrayList<Integer> selectedIndexes = null;
 	public boolean detectAllSeries = true;
@@ -86,8 +92,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int detectLevel1Threshold = 35;
 
 	public Rectangle searchArea = new Rectangle();
-//	public int spanDiffTop = 3;
-	public int spanDiff = 3;
+	public int spanDiffTop = 3;
 
 	public int backgroundNFrames = 60;
 	public int backgroundFirst = 0;

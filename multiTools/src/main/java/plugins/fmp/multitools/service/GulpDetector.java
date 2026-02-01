@@ -17,7 +17,10 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.GulpThresholdMethod;
+import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.SavitzkyGolayFilter;
 
 public class GulpDetector {
 
@@ -177,10 +180,10 @@ public class GulpDetector {
 				continue;
 			}
 
-			double avg = computeMean(derivativeValuesAtT);
-			double std = computeStdDev(derivativeValuesAtT, avg);
-			thresholdValues[t] = avg + 3.0 * std;
+			thresholdValues[t] = computeThresholdAtT(derivativeValuesAtT, options);
 		}
+
+		thresholdValues = applySmoothing(thresholdValues, options);
 
 		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
 				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold");
@@ -214,6 +217,99 @@ public class GulpDetector {
 			sumSquaredDiff += diff * diff;
 		}
 		return Math.sqrt(sumSquaredDiff / values.size());
+	}
+
+	private double computeThresholdAtT(List<Double> values, BuildSeriesOptions options) {
+		GulpThresholdMethod method = options.thresholdMethod;
+		double k = options.thresholdSdMultiplier;
+
+		switch (method) {
+		case MEAN_PLUS_SD: {
+			double avg = computeMean(values);
+			double std = computeStdDev(values, avg);
+			return avg + k * std;
+		}
+		case MEDIAN_PLUS_IQR: {
+			double median = computeMedian(values);
+			double iqr = computeIQR(values);
+			return median + k * iqr;
+		}
+		case MEDIAN_PLUS_MAD: {
+			double median = computeMedian(values);
+			double mad = computeMAD(values, median);
+			return median + k * mad;
+		}
+		default:
+			return computeMean(values) + 3.0 * computeStdDev(values, computeMean(values));
+		}
+	}
+
+	private double computeMedian(List<Double> values) {
+		if (values.isEmpty())
+			return 0.0;
+		double[] sorted = new double[values.size()];
+		int i = 0;
+		for (Double v : values)
+			sorted[i++] = v;
+		java.util.Arrays.sort(sorted);
+		int mid = sorted.length / 2;
+		if (sorted.length % 2 == 0)
+			return (sorted[mid - 1] + sorted[mid]) / 2;
+		return sorted[mid];
+	}
+
+	private double computeMAD(List<Double> values, double median) {
+		if (values.isEmpty())
+			return 0.0;
+		List<Double> absDevs = new ArrayList<>();
+		for (Double v : values)
+			absDevs.add(Math.abs(v - median));
+		return computeMedian(absDevs);
+	}
+
+	private double computeIQR(List<Double> values) {
+		if (values.size() < 2)
+			return 0.0;
+		double[] sorted = new double[values.size()];
+		int i = 0;
+		for (Double v : values)
+			sorted[i++] = v;
+		java.util.Arrays.sort(sorted);
+		int q1idx = values.size() / 4;
+		int q3idx = (3 * values.size()) / 4;
+		if (q3idx >= sorted.length)
+			q3idx = sorted.length - 1;
+		return sorted[q3idx] - sorted[q1idx];
+	}
+
+	private double[] applySmoothing(double[] data, BuildSeriesOptions options) {
+		if (options.thresholdSmoothing == GulpThresholdSmoothing.NONE)
+			return data;
+		if (options.thresholdSmoothingWindow < 1)
+			return data;
+
+		switch (options.thresholdSmoothing) {
+		case BACKWARDS_RECURSION: {
+			double alpha = Math.max(0.01, Math.min(0.99, options.thresholdSmoothingAlpha));
+			double[] out = new double[data.length];
+			for (int i = data.length - 1; i >= 0; i--) {
+				if (i == data.length - 1)
+					out[i] = data[i];
+				else
+					out[i] = alpha * out[i + 1] + (1 - alpha) * data[i];
+			}
+			return out;
+		}
+		case SAVITZKY_GOLAY: {
+			int win = options.thresholdSmoothingWindow;
+			if (win % 2 == 0)
+				win++;
+			int order = Math.min(2, win - 1);
+			return SavitzkyGolayFilter.smooth(data, win, order);
+		}
+		default:
+			return data;
+		}
 	}
 
 	private List<Point2D> getDerivativeProfile(Sequence seq, Capillary cap, int jitter) {
