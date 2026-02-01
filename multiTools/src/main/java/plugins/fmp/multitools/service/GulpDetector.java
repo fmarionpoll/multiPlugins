@@ -132,12 +132,12 @@ public class GulpDetector {
 
 	private CapillaryMeasure computeThresholdFromEmptyCages(Experiment exp, BuildSeriesOptions options) {
 		List<Capillary> emptyCageCapillaries = new ArrayList<>();
-		
+
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			int cageID = cap.getCageID();
 			plugins.fmp.multitools.experiment.cage.Cage cage = exp.getCages().getCageFromID(cageID);
 			if (cage != null && cage.getCageNFlies() == 0) {
-				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null 
+				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
 						&& cap.getDerivative().polylineLevel.npoints > 0) {
 					emptyCageCapillaries.add(cap);
 				}
@@ -150,20 +150,20 @@ public class GulpDetector {
 		}
 
 		if (emptyCageCapillaries.size() < 2) {
-			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Only " + emptyCageCapillaries.size() 
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Only " + emptyCageCapillaries.size()
 					+ " empty cage(s) found, statistics may be unreliable");
 		}
 
 		Capillary firstEmptyCageCap = emptyCageCapillaries.get(0);
 		int npoints = firstEmptyCageCap.getDerivative().polylineLevel.npoints;
-		
+
 		double[] thresholdValues = new double[npoints];
 		double[] xpoints = new double[npoints];
-		
+
 		for (int t = 0; t < npoints; t++) {
 			xpoints[t] = t;
 			List<Double> derivativeValuesAtT = new ArrayList<>();
-			
+
 			for (Capillary cap : emptyCageCapillaries) {
 				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
 						&& t < cap.getDerivative().polylineLevel.npoints) {
@@ -171,27 +171,27 @@ public class GulpDetector {
 					derivativeValuesAtT.add(derivValue);
 				}
 			}
-			
+
 			if (derivativeValuesAtT.isEmpty()) {
 				thresholdValues[t] = 0;
 				continue;
 			}
-			
+
 			double avg = computeMean(derivativeValuesAtT);
 			double std = computeStdDev(derivativeValuesAtT, avg);
-			thresholdValues[t] = avg + 2.0 * std;
+			thresholdValues[t] = avg + 3.0 * std;
 		}
-		
+
 		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
 				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold");
 		thresholdMeasure.capIndexKymo = firstEmptyCageCap.getKymographIndex();
 		thresholdMeasure.polylineLevel = new plugins.fmp.multitools.tools.Level2D(xpoints, thresholdValues, npoints);
-		
+
 		firstEmptyCageCap.setThreshold(thresholdMeasure);
-		
-		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from " 
+
+		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from "
 				+ emptyCageCapillaries.size() + " empty cage(s)");
-		
+
 		return thresholdMeasure;
 	}
 

@@ -34,7 +34,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 public class KymographService {
 
 	public void buildFiltered(Experiment exp, int zChannelSource, int zChannelDestination,
-			ImageTransformEnums transformop1, int spanDiff) {
+			ImageTransformEnums transformop1) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		int nimages = seqKymos.getSequence().getSizeT();
 		seqKymos.getSequence().beginUpdate();

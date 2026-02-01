@@ -27,7 +27,7 @@ public class DetectGulps extends BuildSeries {
 		if (exp.getSeqKymos() == null)
 			return;
 		int zChannelDestination = 2;
-		new KymographService().buildFiltered(exp, 0, zChannelDestination, options.transformForGulps, options.spanDiff);
+		new KymographService().buildFiltered(exp, 0, zChannelDestination, options.transformForGulps);
 	}
 
 }

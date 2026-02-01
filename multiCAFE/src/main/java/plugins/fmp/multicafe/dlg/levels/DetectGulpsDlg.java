@@ -45,7 +45,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 
 	private JCheckBox from_pixel_checkbox = new JCheckBox("from (pixel)", false);
 	private JToggleButton display_button = new JToggleButton("Display");
-	private JSpinner spanTransf2Spinner = new JSpinner(new SpinnerNumberModel(3, 0, 500, 1));
+
 	private JSpinner detectGulpsThresholdSpinner = new JSpinner(new SpinnerNumberModel(.5, 0., 500., .1));
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
@@ -159,8 +159,8 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		}
 		options.detectGulpsThreshold_uL = (double) detectGulpsThresholdSpinner.getValue();
 		options.transformForGulps = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
-		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
-		options.spanDiff = (int) spanTransf2Spinner.getValue();
+		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();// options.spanDiff = (int)
+																		// spanTransf2Spinner.getValue();
 		options.buildGulps = gulps_checkbox.isSelected();
 		options.buildDerivative = derivative_checkbox.isSelected();
 		options.analyzePartOnly = from_pixel_checkbox.isSelected();

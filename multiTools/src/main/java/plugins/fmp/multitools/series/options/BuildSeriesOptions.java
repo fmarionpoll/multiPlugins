@@ -86,7 +86,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int detectLevel1Threshold = 35;
 
 	public Rectangle searchArea = new Rectangle();
-	public int spanDiffTop = 3;
+//	public int spanDiffTop = 3;
 	public int spanDiff = 3;
 
 	public int backgroundNFrames = 60;
