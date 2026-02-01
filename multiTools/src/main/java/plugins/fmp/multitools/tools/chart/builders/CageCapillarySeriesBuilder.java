@@ -61,7 +61,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 		}
 
-		if (options.resultType == EnumResults.TOPRAW || options.resultType == EnumResults.TOPLEVEL) {
+		if (options.resultType == EnumResults.TOPRAW) {
 			XYSeries evaporationSeries = createEvaporationSeries(exp, cage, options);
 			if (evaporationSeries != null) {
 				dataset.addSeries(evaporationSeries);

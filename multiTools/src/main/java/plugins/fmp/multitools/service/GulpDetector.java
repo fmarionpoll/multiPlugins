@@ -15,6 +15,7 @@ import icy.type.collection.array.Array1DUtil;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.series.options.GulpThresholdMethod;
@@ -111,12 +112,53 @@ public class GulpDetector {
 				@Override
 				public void run() {
 					capi.initGulps();
-					capi.detectGulps(threshold);
+					detectGulpsForCapillary(capi, threshold);
 				}
 			}));
 		}
 		waitFuturesCompletion(processor, futures);
 		processor.shutdown();
+	}
+
+	private void detectGulpsForCapillary(Capillary cap, CapillaryMeasure thresholdMeasure) {
+		if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null
+				|| cap.getDerivative() == null || cap.getDerivative().polylineLevel == null)
+			return;
+
+		CapillaryMeasure ptsTop = cap.getTopLevel();
+		CapillaryMeasure ptsDerivative = cap.getDerivative();
+		CapillaryGulps ptsGulps = cap.getGulps();
+		if (ptsGulps == null)
+			return;
+
+		int npoints = ptsTop.polylineLevel.npoints;
+		ptsGulps.ensureSize(npoints);
+
+		int firstPixel = 1;
+		int lastPixel = npoints;
+		if (cap.getProperties().getLimitsOptions().analyzePartOnly) {
+			firstPixel = (int) cap.getProperties().getLimitsOptions().searchArea.getX();
+			lastPixel = (int) cap.getProperties().getLimitsOptions().searchArea.getWidth() + firstPixel;
+		}
+
+		for (int indexPixel = firstPixel; indexPixel < lastPixel; indexPixel++) {
+			int derivativeValue = (int) ptsDerivative.polylineLevel.ypoints[indexPixel - 1];
+			int threshold;
+			if (thresholdMeasure != null && thresholdMeasure.polylineLevel != null
+					&& indexPixel - 1 < thresholdMeasure.polylineLevel.npoints) {
+				threshold = (int) thresholdMeasure.polylineLevel.ypoints[indexPixel - 1];
+			} else {
+				threshold = (int) ((cap.getProperties().getLimitsOptions().detectGulpsThreshold_uL / cap.getVolume())
+						* cap.getPixels());
+			}
+			if (derivativeValue >= threshold) {
+				double deltaTop = ptsTop.polylineLevel.ypoints[indexPixel]
+						- ptsTop.polylineLevel.ypoints[indexPixel - 1];
+				ptsGulps.setAmplitudeAt(indexPixel, deltaTop);
+			} else {
+				ptsGulps.setAmplitudeAt(indexPixel, 0);
+			}
+		}
 	}
 
 	private void waitFuturesCompletion(Processor processor, ArrayList<Future<?>> futuresArray) {

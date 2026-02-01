@@ -758,51 +758,6 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
-	public void detectGulps() {
-		detectGulps(null);
-	}
-
-	public void detectGulps(CapillaryMeasure thresholdMeasure) {
-		if (measurements.ptsTop.polylineLevel == null || measurements.ptsDerivative.polylineLevel == null)
-			return;
-
-		// Dense gulp amplitude series aligned to topraw indices
-		int npoints = measurements.ptsTop.polylineLevel.npoints;
-		measurements.ptsGulps.ensureSize(npoints);
-
-		int firstPixel = 1; // delta uses t-1
-		int lastPixel = npoints;
-		if (properties.getLimitsOptions().analyzePartOnly) {
-			firstPixel = (int) properties.getLimitsOptions().searchArea.getX();
-			lastPixel = (int) properties.getLimitsOptions().searchArea.getWidth() + firstPixel;
-
-		}
-
-		// First-pass detection:
-		// - If derivative(t-1) >= threshold, mark the interval t as a gulp interval
-		// - Store signed amplitude as topraw(t) - topraw(t-1)
-		for (int indexPixel = firstPixel; indexPixel < lastPixel; indexPixel++) {
-			int derivativeValue = (int) measurements.ptsDerivative.polylineLevel.ypoints[indexPixel - 1];
-			int threshold;
-			
-			if (thresholdMeasure != null && thresholdMeasure.polylineLevel != null
-					&& indexPixel - 1 < thresholdMeasure.polylineLevel.npoints) {
-				threshold = (int) thresholdMeasure.polylineLevel.ypoints[indexPixel - 1];
-			} else {
-				threshold = (int) ((properties.getLimitsOptions().detectGulpsThreshold_uL / properties.getVolume())
-						* properties.getPixels());
-			}
-			
-			if (derivativeValue >= threshold) {
-				double deltaTop = measurements.ptsTop.polylineLevel.ypoints[indexPixel]
-						- measurements.ptsTop.polylineLevel.ypoints[indexPixel - 1];
-				measurements.ptsGulps.setAmplitudeAt(indexPixel, deltaTop);
-			} else {
-				measurements.ptsGulps.setAmplitudeAt(indexPixel, 0);
-			}
-		}
-	}
-
 	public int getLastMeasure(EnumResults resultType) {
 		int lastMeasure = 0;
 		switch (resultType) {
