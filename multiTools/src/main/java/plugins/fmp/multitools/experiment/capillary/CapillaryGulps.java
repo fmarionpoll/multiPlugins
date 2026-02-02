@@ -225,27 +225,6 @@ public class CapillaryGulps {
 
 	// -------------------------------
 
-	@Deprecated
-	public boolean csvExportDataToRow(StringBuffer sbf, String sep) {
-		// This method is deprecated or should not be used if we want consistent
-		// lengths.
-		// However, for backward compatibility or self-contained export, we keep it but
-		// it calculates npoints itself.
-		int npoints = 0;
-		if (gulps != null) {
-			for (Polyline2D gulp : gulps) {
-				if (gulp.npoints > 0) {
-					for (int i = 0; i < gulp.npoints; i++) {
-						if (gulp.xpoints[i] > npoints)
-							npoints = (int) gulp.xpoints[i];
-					}
-				}
-			}
-		}
-		npoints++;
-		return csvExportDataToRow(sbf, sep, npoints);
-	}
-
 	public boolean csvExportDataFlatToRow(StringBuffer sbf, String sep) {
 		Level2D polylineLevel = transferGulpsToLevel2D();
 		if (polylineLevel == null)

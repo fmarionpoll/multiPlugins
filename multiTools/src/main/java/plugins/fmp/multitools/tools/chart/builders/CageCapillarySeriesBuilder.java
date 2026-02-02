@@ -305,7 +305,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		CageProperties cageProp = cage.getProperties();
 		evaporationSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
-				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.BLACK));
+				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.LIGHT_GRAY)); // Color.BLACK));
 
 		return evaporationSeries;
 	}
