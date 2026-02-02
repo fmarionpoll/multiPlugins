@@ -19,9 +19,8 @@ import javax.swing.SwingConstants;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.SequenceKymos;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS.series.BuildSpotsKymos;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+
 
 public class Create extends JPanel implements PropertyChangeListener {
 	/**
@@ -104,26 +103,26 @@ public class Create extends JPanel implements PropertyChangeListener {
 	}
 
 	private void setExptParms(Experiment exp) {
-		long bin_ms = exp.seqCamData.binImage_ms;
-		if (exp.seqSpotKymos == null)
-			exp.seqSpotKymos = new SequenceKymos();
-		exp.seqSpotKymos.absoluteIndexFirstImage = (long) kymosFrameFirstJSpinner.getValue();
-		exp.seqSpotKymos.deltaImage = (long) kymosFrameDeltaJSpinner.getValue();
-		exp.seqSpotKymos.binFirst_ms = exp.seqCamData.absoluteIndexFirstImage * bin_ms;
-		exp.seqSpotKymos.binLast_ms = ((long) kymosFrameLastJSpinner.getValue()) * bin_ms;
+		long bin_ms = exp.getSeqCamData().binImage_ms;
+		if (exp.getSeqKymos() == null)
+			exp.setSeqKymos( new SequenceKymos());
+		exp.getSeqKymos().absoluteIndexFirstImage = (long) kymosFrameFirstJSpinner.getValue();
+		exp.getSeqKymos().deltaImage = (long) kymosFrameDeltaJSpinner.getValue();
+		exp.getSeqKymos().binFirst_ms = exp.getSeqCamData().absoluteIndexFirstImage * bin_ms;
+		exp.getSeqKymos().binLast_ms = ((long) kymosFrameLastJSpinner.getValue()) * bin_ms;
 	}
 
 	public void getExptParms(Experiment exp) {
-		long bin_ms = exp.seqCamData.binImage_ms;
-		if (exp.seqSpotKymos == null) {
-			exp.seqSpotKymos = new SequenceKymos();
+		long bin_ms = exp.getSeqCamData().binImage_ms;
+		if (exp.getSeqKymos() == null) {
+			exp.setSeqSpotKymos( new SequenceKymos());
 		}
-		long dFirst = exp.seqSpotKymos.absoluteIndexFirstImage;
+		long dFirst = exp.getSeqKymos().absoluteIndexFirstImage;
 		kymosFrameFirstJSpinner.setValue(dFirst);
-		kymosFrameDeltaJSpinner.setValue(exp.seqCamData.deltaImage);
-		if (exp.seqCamData.binLast_ms <= 0)
-			exp.seqCamData.binLast_ms = (long) (exp.seqCamData.nTotalFrames) * bin_ms;
-		long dLast = (long) exp.seqCamData.binLast_ms / bin_ms;
+		kymosFrameDeltaJSpinner.setValue(exp.getSeqCamData().deltaImage);
+		if (exp.getSeqCamData().binLast_ms <= 0)
+			exp.getSeqCamData().binLast_ms = (long) (exp.getSeqCamData().nTotalFrames) * bin_ms;
+		long dLast = (long) exp.getSeqCamData().binLast_ms / bin_ms;
 		kymosFrameLastJSpinner.setValue(dLast);
 		exp.getFileIntervalsFromSeqCamData();
 	}
@@ -139,9 +138,9 @@ public class Create extends JPanel implements PropertyChangeListener {
 			options.expList.index1 = options.expList.index0;
 		options.isFrameFixed = false; // getIsFixedFrame();
 		exp.loadFileIntervalsFromSeqCamData();
-		options.t_Ms_First = exp.seqCamData.firstImage_ms; // getStartMs();
-		options.t_Ms_Last = exp.seqCamData.lastImage_ms;// getEndMs();
-		options.t_Ms_BinDuration = exp.seqCamData.binImage_ms;
+		options.t_Ms_First = exp.getSeqCamData().firstImage_ms; // getStartMs();
+		options.t_Ms_Last = exp.getSeqCamData().lastImage_ms;// getEndMs();
+		options.t_Ms_BinDuration = exp.getSeqCamData().binImage_ms;
 		options.doCreateBinDir = true;
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = Experiment.BIN + options.t_Ms_BinDuration / 1000;

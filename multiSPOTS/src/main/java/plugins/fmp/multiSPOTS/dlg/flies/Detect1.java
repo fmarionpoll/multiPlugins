@@ -28,8 +28,8 @@ import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS.series.FlyDetect1;
+import plugins.fmp.multitools.series.FlyDetect1;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -160,16 +160,16 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	}
 
 	public void updateOverlay(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
 		if (overlayThreshold1 == null)
-			overlayThreshold1 = new OverlayThreshold(seqCamData.seq);
+			overlayThreshold1 = new OverlayThreshold(seqCamData.getSequence());
 		else {
-			seqCamData.seq.removeOverlay(overlayThreshold1);
-			overlayThreshold1.setSequence(seqCamData.seq);
+			seqCamData.getSequence().removeOverlay(overlayThreshold1);
+			overlayThreshold1.setSequence(seqCamData.getSequence());
 		}
-		seqCamData.seq.addOverlay(overlayThreshold1);
+		seqCamData.getSequence().addOverlay(overlayThreshold1);
 		boolean ifGreater = true;
 		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		overlayThreshold1.setThresholdSingle(exp.getCages().detect_threshold, transformOp, ifGreater);
@@ -177,7 +177,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	}
 
 	public void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null)
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold1);
 	}
 

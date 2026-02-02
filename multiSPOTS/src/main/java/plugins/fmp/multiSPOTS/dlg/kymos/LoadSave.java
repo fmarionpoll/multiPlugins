@@ -26,8 +26,9 @@ import loci.formats.FormatException;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ImageFileDescriptor;
-import plugins.fmp.multitools.experiment.SequenceKymos;
-import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.experiment.spot.Spot;
+
 
 public class LoadSave extends JPanel {
 	/**
@@ -86,7 +87,7 @@ public class LoadSave extends JPanel {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		SequenceKymos seqKymos = exp.seqSpotKymos;
+		SequenceKymos seqKymos = exp.getSeqKymos();
 		if (directory == null) {
 			directory = exp.getDirectoryToSaveResults();
 			try {
@@ -101,7 +102,7 @@ public class LoadSave extends JPanel {
 		int returnedval = f.showSaveDialog(null);
 		if (returnedval == JFileChooser.APPROVE_OPTION) {
 			outputpath = f.getSelectedFile().getAbsolutePath();
-			for (int t = 0; t < seqKymos.seq.getSizeT(); t++) {
+			for (int t = 0; t < seqKymos.getSequence().getSizeT(); t++) {
 				Spot spot = exp.spotsArray.spotsList.get(t);
 				progress.setMessage("Save kymograph file : " + spot.getRoi().getName());
 				spot.spot_filenameTIFF = outputpath + File.separator + spot.getRoi().getName() + ".tiff";
@@ -126,7 +127,7 @@ public class LoadSave extends JPanel {
 
 	public boolean loadDefaultKymos(Experiment exp) {
 		boolean flag = false;
-		SequenceKymos seqKymos = exp.seqSpotKymos;
+		SequenceKymos seqKymos = exp.getSeqKymos();
 		if (seqKymos == null || exp.spotsArray == null) {
 			System.out.println("LoadSaveKymos:loadDefaultKymos() no parent sequence or no spots found");
 			return flag;
@@ -139,12 +140,12 @@ public class LoadSave extends JPanel {
 		} else
 			exp.setBinSubDirectory(localString);
 
-		List<ImageFileDescriptor> myList = exp.seqSpotKymos
+		List<ImageFileDescriptor> myList = exp.getSeqKymos()
 				.loadListOfPotentialKymographsFromSpots(exp.getKymosBinFullDirectory(), exp.spotsArray);
 		int nItems = ImageFileDescriptor.getExistingFileNames(myList);
 		if (nItems > 0) {
 			flag = seqKymos.loadKymographImagesFromList(myList, true);
-			exp.spotsArray.transferSpotsMeasuresToSequenceAsROIs(exp.seqSpotKymos.seq);
+			exp.spotsArray.transferSpotsMeasuresToSequenceAsROIs(exp.getSeqKymos().getSequence());
 			parent0.dlgKymos.tabDisplay.transferSpotNamesToComboBox(exp);
 		} else
 			seqKymos.closeSequence();

@@ -29,7 +29,7 @@ import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.fmp.multitools.tools.polyline.Blobs;
@@ -137,26 +137,26 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 	}
 
 	public void updateOverlay(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
 		if (overlayThreshold == null) {
-			overlayThreshold = new OverlayThreshold(seqCamData.seq);
-			seqCamData.seq.addOverlay(overlayThreshold);
+			overlayThreshold = new OverlayThreshold(seqCamData.getSequence());
+			seqCamData.getSequence().addOverlay(overlayThreshold);
 		} else {
-			seqCamData.seq.removeOverlay(overlayThreshold);
-			overlayThreshold.setSequence(seqCamData.seq);
-			seqCamData.seq.addOverlay(overlayThreshold);
+			seqCamData.getSequence().removeOverlay(overlayThreshold);
+			overlayThreshold.setSequence(seqCamData.getSequence());
+			seqCamData.getSequence().addOverlay(overlayThreshold);
 		}
 		exp.getCages().detect_threshold = (int) thresholdSpinner.getValue();
 		overlayThreshold.setThresholdTransform(exp.getCages().detect_threshold,
 				(ImageTransformEnums) transformForLevelsComboBox.getSelectedItem(), false);
-		seqCamData.seq.overlayChanged(overlayThreshold);
-		seqCamData.seq.dataChanged();
+		seqCamData.getSequence().overlayChanged(overlayThreshold);
+		seqCamData.getSequence().dataChanged();
 	}
 
 	public void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null)
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 	}
 
@@ -184,7 +184,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 		exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("cage", exp.getSeqCamData().getSequence()), false);
 		exp.getCages().removeCages();
 
-		int t = exp.seqCamData.currentFrame;
+		int t = exp.getSeqCamData().currentFrame;
 		IcyBufferedImage img0 = IcyBufferedImageUtil.convertToType(overlayThreshold.getTransformedImage(t),
 				DataType.INT, false);
 
@@ -228,8 +228,8 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 	}
 
 	void deletePointsIncluded(Experiment exp) throws InterruptedException {
-		SequenceCamData seqCamData = exp.seqCamData;
-		ROI2D roiSnip = seqCamData.seq.getSelectedROI2D();
+		SequenceCamData seqCamData = exp.getSeqCamData();
+		ROI2D roiSnip = seqCamData.getSequence().getSelectedROI2D();
 		if (roiSnip == null)
 			return;
 

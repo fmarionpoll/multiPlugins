@@ -23,7 +23,6 @@ import icy.gui.frame.progress.AnnounceFrame;
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
 import plugins.fmp.multitools.experiment.cage.Cage;
@@ -142,14 +141,14 @@ public class CreateCages extends JPanel {
 	}
 
 	private Polygon2D getPolygonEnclosingCagesFromSelectedRoi(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
-		ROI2D roi = seqCamData.seq.getSelectedROI2D();
+		SequenceCamData seqCamData = exp.getSeqCamData();
+		ROI2D roi = seqCamData.getSequence().getSelectedROI2D();
 		if (!(roi instanceof ROI2DPolygon)) {
 			new AnnounceFrame("The frame must be a ROI2D Polygon");
 			return null;
 		}
 		polygon2D = PolygonUtilities.orderVerticesOf4CornersPolygon(((ROI2DPolygon) roi).getPolygon());
-		seqCamData.seq.removeROI(roi);
+		seqCamData.getSequence().removeROI(roi);
 		return polygon2D;
 	}
 
@@ -166,21 +165,21 @@ public class CreateCages extends JPanel {
 	}
 
 	private void selectRoiEnclosingCages(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		final String dummyname = "perimeter_enclosing_cages";
 		ROI2D roi = getRoiWithSpecificName(seqCamData, dummyname);
 		if (roi == null) {
 			roi = new ROI2DPolygon(getCagesPolygon(exp));
 			roi.setName(dummyname);
-			seqCamData.seq.addROI(roi);
+			seqCamData.getSequence().addROI(roi);
 		}
 		roi.setColor(Color.orange);
 		roi.setStroke(.2f);
-		seqCamData.seq.setSelectedROI(roi);
+		seqCamData.getSequence().setSelectedROI(roi);
 	}
 
 	private ROI2D getRoiWithSpecificName(SequenceCamData seqCamData, String dummyname) {
-		ArrayList<ROI2D> listRois = seqCamData.seq.getROI2Ds();
+		ArrayList<ROI2D> listRois = seqCamData.getSequence().getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (roi.getName().equals(dummyname))
 				return roi;

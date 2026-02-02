@@ -21,8 +21,8 @@ import javax.swing.table.TableColumnModel;
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.tools.JComponents.TableModelSpot;
+import plugins.fmp.multitools.experiment.spot.Spot;
+
 
 public class SpotTablePanel extends JPanel {
 	/**

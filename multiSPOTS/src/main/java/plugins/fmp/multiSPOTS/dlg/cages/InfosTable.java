@@ -19,7 +19,7 @@ import icy.gui.frame.IcyFrame;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.tools.JComponents.TableModelCage;
+
 
 public class InfosTable extends JPanel {
 	/**

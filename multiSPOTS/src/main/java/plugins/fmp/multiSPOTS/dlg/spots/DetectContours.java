@@ -28,11 +28,9 @@ import icy.sequence.Sequence;
 import plugins.adufour.quickhull.QuickHull2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.ROI2D.Measures;
-import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
-import plugins.fmp.multitools.tools.canvas2D.Canvas2D_2Transforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
@@ -120,7 +118,7 @@ public class DetectContours extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-				if (exp != null && exp.seqSpotKymos != null) {
+				if (exp != null && exp.getSeqKymos() != null) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
 					Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 							.getCanvas();
@@ -202,7 +200,7 @@ public class DetectContours extends JPanel {
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null)
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 	}
 

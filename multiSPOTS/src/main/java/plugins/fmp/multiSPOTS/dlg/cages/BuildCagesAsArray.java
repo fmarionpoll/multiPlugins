@@ -22,7 +22,6 @@ import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multitools.tools.polyline.PolygonUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -163,8 +162,8 @@ public class BuildCagesAsArray extends JPanel {
 			new AnnounceFrame("Can't interpret one of the ROI parameters value");
 		}
 
-		SequenceCamData seqCamData = exp.seqCamData;
-		ROI2D roi = seqCamData.seq.getSelectedROI2D();
+		SequenceCamData seqCamData = exp.getSeqCamData();
+		ROI2D roi = seqCamData.getSequence().getSelectedROI2D();
 		boolean flag = (roi.getName().length() > 4 && roi.getName().substring(0, 4).contains("cage"));
 		if (!(roi instanceof ROI2DPolygon) || flag) {
 			if (!(roi instanceof ROI2DPolygon))
@@ -175,7 +174,7 @@ public class BuildCagesAsArray extends JPanel {
 		}
 
 		Polygon2D roiPolygonMin = PolygonUtilities.orderVerticesOf4CornersPolygon(((ROI2DPolygon) roi).getPolygon());
-		seqCamData.seq.removeROI(roi);
+		seqCamData.getSequence().removeROI(roi);
 
 		// generate cage frames
 		exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("cage", exp.getSeqCamData().getSequence()), false);
@@ -244,7 +243,7 @@ public class BuildCagesAsArray extends JPanel {
 				ROI2DPolygon roiP = new ROI2DPolygon(points);
 				roiP.setName(cageRoot + String.format("%03d", iRoot));
 				iRoot++;
-				seqCamData.seq.addROI(roiP);
+				seqCamData.getSequence().addROI(roiP);
 			}
 		}
 	}

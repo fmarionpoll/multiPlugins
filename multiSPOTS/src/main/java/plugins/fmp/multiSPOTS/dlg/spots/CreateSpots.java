@@ -8,7 +8,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -23,14 +25,12 @@ import icy.gui.frame.progress.AnnounceFrame;
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.experiment.spots.SpotsArray;
-import plugins.fmp.multiSPOTS.tools.ROI2D.ROIUtilities;
-import plugins.fmp.multiSPOTS.tools.polyline.PolygonUtilities;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
@@ -77,29 +77,29 @@ public class CreateSpots extends JPanel {
 	}
 
 	@SuppressWarnings("unused")
-	private void clearSpotsForCage(Experiment exp, plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage) {
+	private void clearSpotsForCage(Experiment exp, Cage cage) {
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {
 			try {
-				java.lang.reflect.Method getSpotListMethod = cage.getClass().getMethod("getSpotList", Spots.class);
+				Method getSpotListMethod = cage.getClass().getMethod("getSpotList", Spots.class);
 				@SuppressWarnings("unchecked")
-				java.util.List<plugins.fmp.multitools.experiment.spots.Spot> cageSpots = (java.util.List<plugins.fmp.multitools.experiment.spots.Spot>) getSpotListMethod
+				List<Spot> cageSpots = (List<Spot>) getSpotListMethod
 						.invoke(cage, allSpots);
 				if (cageSpots != null) {
-					for (plugins.fmp.multitools.experiment.spots.Spot spot : cageSpots) {
+					for (Spot spot : cageSpots) {
 						allSpots.removeSpot(spot);
 					}
 				}
-				java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+				Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
 				@SuppressWarnings("unchecked")
-				java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+				List<SpotID> spotIDs = (List<SpotID>) getSpotIDsMethod.invoke(cage);
 				if (spotIDs != null) {
 					spotIDs.clear();
 				}
 			} catch (Exception e) {
 			}
 		} else {
-			java.util.Iterator<Spot> iterator = exp.spotsArray.spotsList.iterator();
+			Iterator<Spot> iterator = exp.spotsArray.spotsList.iterator();
 			while (iterator.hasNext()) {
 				Spot spot = iterator.next();
 				if (spot.cageID == cage.cageID) {
@@ -110,7 +110,7 @@ public class CreateSpots extends JPanel {
 	}
 
 	@SuppressWarnings("unused")
-	private void addSpotEllipseToCage(Experiment exp, plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage,
+	private void addSpotEllipseToCage(Experiment exp, Cage cage,
 			Point2D.Double center, int radius) {
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {
@@ -236,19 +236,19 @@ public class CreateSpots extends JPanel {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		final String dummyname = "perimeter_enclosing_spots";
 		if (isRoiPresent(seqCamData, dummyname))
 			return;
 
 		ROI2DPolygon roi = new ROI2DPolygon(getSpotsPolygon(exp));
 		roi.setName(dummyname);
-		seqCamData.seq.addROI(roi);
-		seqCamData.seq.setSelectedROI(roi);
+		seqCamData.getSequence().addROI(roi);
+		seqCamData.getSequence().setSelectedROI(roi);
 	}
 
 	private boolean isRoiPresent(SequenceCamData seqCamData, String dummyname) {
-		ArrayList<ROI2D> listRois = seqCamData.seq.getROI2Ds();
+		ArrayList<ROI2D> listRois = seqCamData.getSequence().getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (roi.getName().equals(dummyname))
 				return true;
@@ -290,7 +290,7 @@ public class CreateSpots extends JPanel {
 			return null;
 		}
 		List<Point2D> points = new ArrayList<Point2D>();
-		plugins.fmp.multitools.experiment.spots.Spot firstSpot = allSpots.getSpotList().get(0);
+		Spot firstSpot = allSpots.getSpotList().get(0);
 		int spotX = firstSpot.getProperties().getSpotXCoord();
 		int spotY = firstSpot.getProperties().getSpotYCoord();
 		points.add(new Point2D.Double(spotX, spotY));
@@ -302,7 +302,7 @@ public class CreateSpots extends JPanel {
 		int nColumnsPerPlate = exp.spotsArray != null ? exp.spotsArray.nColumnsPerPlate : 12;
 		int nRowsPerPlate = exp.spotsArray != null ? exp.spotsArray.nRowsPerPlate : 8;
 
-		for (plugins.fmp.multitools.experiment.spots.Spot spot : allSpots.getSpotList()) {
+		for (Spot spot : allSpots.getSpotList()) {
 			int col = spot.getProperties().getCagePosition() % nColumnsPerPlate;
 			int row = spot.getProperties().getCagePosition() / nColumnsPerPlate;
 			int spotXCoord = spot.getProperties().getSpotXCoord();
@@ -326,14 +326,14 @@ public class CreateSpots extends JPanel {
 	}
 
 	private Polygon2D getPolygonEnclosingSpotsFromSelectedRoi(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
-		ROI2D roi = seqCamData.seq.getSelectedROI2D();
+		SequenceCamData seqCamData = exp.getSeqCamData();
+		ROI2D roi = seqCamData.getSequence().getSelectedROI2D();
 		if (!(roi instanceof ROI2DPolygon)) {
 			new AnnounceFrame("The frame must be a ROI2D Polygon");
 			return null;
 		}
 		polygon2D = PolygonUtilities.orderVerticesOf4CornersPolygon(((ROI2DPolygon) roi).getPolygon());
-		seqCamData.seq.removeROI(roi);
+		seqCamData.getSequence().removeROI(roi);
 		return polygon2D;
 	}
 
@@ -355,11 +355,11 @@ public class CreateSpots extends JPanel {
 		if (allSpots != null) {
 			allSpots.clearSpotList();
 			if (exp.getCages() != null) {
-				for (plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage : exp.getCages().cagesList) {
+				for (Cage cage : exp.getCages().cagesList) {
 					try {
-						java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+						Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
 						@SuppressWarnings("unchecked")
-						java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+						List<SpotID> spotIDs = (List<SpotID>) getSpotIDsMethod.invoke(cage);
 						if (spotIDs != null) {
 							spotIDs.clear();
 						}
@@ -428,7 +428,7 @@ public class CreateSpots extends JPanel {
 				ROI2DEllipse roiEllipse = new ROI2DEllipse(ellipse);
 				roiEllipse.setName("spot_" + String.format("%03d", row) + String.format("%03d", column));
 
-				plugins.fmp.multitools.experiment.spots.Spot spot = new plugins.fmp.multitools.experiment.spots.Spot(
+				Spot spot = new Spot(
 						roiEllipse);
 				spot.getProperties().setSpotRadius(radius);
 				spot.getProperties().setSpotXCoord((int) point.getX());
@@ -471,7 +471,7 @@ public class CreateSpots extends JPanel {
 			return;
 		}
 
-		for (plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage : exp.getCages().cagesList) {
+		for (Cage cage : exp.getCages().cagesList) {
 			try {
 				java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
 				@SuppressWarnings("unchecked")
@@ -484,7 +484,7 @@ public class CreateSpots extends JPanel {
 		}
 
 		int spotIndex = 0;
-		for (plugins.fmp.multitools.experiment.spots.Spot spot : allSpots.getSpotList()) {
+		for (Spot spot : allSpots.getSpotList()) {
 			int plateColumn = spotIndex % nColumnsPerPlate;
 			int plateRow = spotIndex / nColumnsPerPlate;
 			int cageColumn = plateColumn / nColsPerCage;
@@ -498,12 +498,12 @@ public class CreateSpots extends JPanel {
 			spot.getProperties().setCageID(cageID);
 			spot.getProperties().setCagePosition(cagePosition);
 
-			plugins.fmp.multitools.experiment.cages.cage.experiment.cages.Cage cage = exp.getCages().getCageFromNumber(cageID);
+			Cage cage = exp.getCages().getCageFromNumber(cageID);
 			if (cage != null) {
 				try {
-					java.lang.reflect.Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
+					Method getSpotIDsMethod = cage.getClass().getMethod("getSpotIDs");
 					@SuppressWarnings("unchecked")
-					java.util.List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
+					List<SpotID> spotIDs = (java.util.List<SpotID>) getSpotIDsMethod.invoke(cage);
 					if (spotIDs != null) {
 						spotIDs.add(new SpotID(cageID, cagePosition));
 					}

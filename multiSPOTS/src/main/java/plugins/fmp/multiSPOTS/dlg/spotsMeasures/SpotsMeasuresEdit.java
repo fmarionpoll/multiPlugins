@@ -18,11 +18,11 @@ import icy.roi.ROI2D;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.SequenceKymos;
-import plugins.fmp.multitools.experiment.spots.Spot;
-import plugins.fmp.multitools.experiment.spots.SpotMeasure;
-import plugins.fmp.multiSPOTS.series.BuildMedianFromSpotMeasure;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+
 
 public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener {
 	/**
@@ -132,12 +132,12 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 	}
 
 	void cutAndInterpolate(Experiment exp) {
-		SequenceKymos seqKymos = exp.seqSpotKymos;
-		ROI2D roiRect = seqKymos.seq.getSelectedROI2D();
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		ROI2D roiRect = seqKymos.getSequence().getSelectedROI2D();
 		if (roiRect == null)
 			return;
 
-		int t = seqKymos.seq.getFirstViewer().getPositionT();
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
 		Spot spot = exp.spotsArray.spotsList.get(t);
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 		if (optionSelected.contains("sum"))
@@ -149,12 +149,12 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 	}
 
 	void compensate(Experiment exp) {
-		SequenceKymos seqKymos = exp.seqSpotKymos;
-		ROI2D roiRect = seqKymos.seq.getSelectedROI2D();
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		ROI2D roiRect = seqKymos.getSequence().getSelectedROI2D();
 		if (roiRect == null)
 			return;
 
-		int t = seqKymos.seq.getFirstViewer().getPositionT();
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
 		Spot spot = exp.spotsArray.spotsList.get(t);
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 		if (optionSelected.contains("sum"))

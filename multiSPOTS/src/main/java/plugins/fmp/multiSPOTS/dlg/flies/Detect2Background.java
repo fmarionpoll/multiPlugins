@@ -27,8 +27,8 @@ import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multiSPOTS.series.BuildBackground;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
+import plugins.fmp.multitools.series.BuildBackground;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -112,7 +112,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 				if (exp != null)
-					exp.saveReferenceImage(exp.seqCamData.refImage);
+					exp.saveReferenceImage(exp.getSeqCamData().refImage);
 			}
 		});
 
@@ -176,18 +176,18 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	}
 
 	private void updateOverlay(Experiment exp) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
 		if (ov == null) {
-			ov = new OverlayThreshold(seqCamData.seq);
-			int t = exp.seqCamData.currentFrame;
-			exp.seqCamData.refImage = IcyBufferedImageUtil.getCopy(exp.seqCamData.getSeqImage(t, 0));
+			ov = new OverlayThreshold(seqCamData.getSequence());
+			int t = exp.getSeqCamData().currentFrame;
+			exp.getSeqCamData().refImage = IcyBufferedImageUtil.getCopy(exp.getSeqCamData().getSeqImage(t, 0));
 		} else {
-			seqCamData.seq.removeOverlay(ov);
-			ov.setSequence(seqCamData.seq);
+			seqCamData.getSequence().removeOverlay(ov);
+			ov.setSequence(seqCamData.getSequence());
 		}
-		ov.setReferenceImage(exp.seqCamData.refImage);
+		ov.setReferenceImage(exp.getSeqCamData().refImage);
 		seqCamData.seq.addOverlay(ov);
 
 		boolean ifGreater = true;
@@ -198,7 +198,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	}
 
 	private void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null)
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
 			exp.getSeqCamData().getSequence().removeOverlay(ov);
 	}
 
@@ -216,7 +216,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		options.backgroundThreshold = (int) backgroundThresholdSpinner.getValue();
 		options.backgroundNFrames = (int) backgroundNFramesSpinner.getValue();
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-		options.backgroundFirst = (int) exp.seqCamData.currentFrame;
+		options.backgroundFirst = (int) exp.getSeqCamData().currentFrame;
 
 		options.forceBuildBackground = true;
 		options.detectFlies = false;

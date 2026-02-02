@@ -23,9 +23,7 @@ import javax.swing.event.ChangeListener;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS.series.BuildSpotsMeasures;
-import plugins.fmp.multitools.tools.canvas2D.Canvas2D_2Transforms;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -126,7 +124,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-				if (exp != null && exp.seqSpotKymos != null && viewButton1.isSelected()) {
+				if (exp != null && exp.getSeqKymos() != null && viewButton1.isSelected()) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
 					Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 							.getCanvas();
@@ -144,7 +142,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-				if (exp != null && exp.seqSpotKymos != null && viewButton2.isSelected()) {
+				if (exp != null && exp.getSeqKymos() != null && viewButton2.isSelected()) {
 					int index = fliesTransformsComboBox.getSelectedIndex();
 					Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 							.getCanvas();
@@ -214,7 +212,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 	}
 
 	void updateOverlay(Experiment exp) {
-		if (exp.seqSpotKymos == null)
+		if (exp.getSeqKymos() == null)
 			return;
 
 		if (overlayThreshold == null)
@@ -227,7 +225,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null)
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 	}
 

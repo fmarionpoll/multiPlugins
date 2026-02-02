@@ -17,8 +17,7 @@ import icy.system.thread.ThreadUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
-import plugins.fmp.multitools.tools.toExcel.XLSExportOptions;
-import plugins.fmp.multitools.tools.toExcel.XLSExportSpotMeasures;
+
 
 public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	/**
@@ -104,7 +103,7 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private String defineXlsFileName(Experiment exp, String pattern) {
-		String filename0 = exp.seqCamData.getFileNameFromImageList(0);
+		String filename0 = exp.getSeqCamData().getFileNameFromImageList(0);
 		Path directory = Paths.get(filename0).getParent();
 		Path subpath = directory.getName(directory.getNameCount() - 1);
 		String tentativeName = subpath.toString() + pattern;

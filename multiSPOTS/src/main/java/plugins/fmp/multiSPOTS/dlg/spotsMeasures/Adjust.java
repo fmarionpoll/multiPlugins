@@ -24,7 +24,6 @@ import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.tools.ROI2D.ROIUtilities;
 import plugins.fmp.multitools.tools.polyline.Line2DPlus;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
@@ -67,15 +66,15 @@ public class Adjust extends JPanel {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		refLineUpper = roiRefLineUpper.getLine();
 		refLineLower = roiRefLineLower.getLine();
 
 		int chan = 0;
 		int jitter = (int) jitterJSpinner.getValue();
 		int t = seqCamData.currentFrame;
-		seqCamData.seq.setPositionT(t);
-		IcyBufferedImage vinputImage = seqCamData.seq.getImage(t, 0, chan);
+		seqCamData.getSequence().setPositionT(t);
+		IcyBufferedImage vinputImage = seqCamData.getSequence().getImage(t, 0, chan);
 		if (vinputImage == null) {
 			System.out.println("Adjust:roisCenterLinestoAllCapillaries() An error occurred while reading image: " + t);
 			return;
@@ -206,15 +205,15 @@ public class Adjust extends JPanel {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
 
 		if (display) {
 			// take as ref the whole image otherwise, we won't see the lines if the use has
 			// not defined any capillaries
-			int seqheight = seqCamData.seq.getHeight();
-			int seqwidth = seqCamData.seq.getWidth();
+			int seqheight = seqCamData.getSequence().getHeight();
+			int seqwidth = seqCamData.getSequence().getWidth();
 			refLineUpper = new Line2D.Double(0, seqheight / 3, seqwidth, seqheight / 3);
 			refLineLower = new Line2D.Double(0, 2 * seqheight / 3, seqwidth, 2 * seqheight / 3);
 
@@ -237,11 +236,11 @@ public class Adjust extends JPanel {
 			roiRefLineLower.setName("refBarLower");
 			roiRefLineLower.setColor(Color.YELLOW);
 
-			seqCamData.seq.addROI(roiRefLineUpper);
-			seqCamData.seq.addROI(roiRefLineLower);
+			seqCamData.getSequence().addROI(roiRefLineUpper);
+			seqCamData.getSequence().addROI(roiRefLineLower);
 		} else {
-			seqCamData.seq.removeROI(roiRefLineUpper);
-			seqCamData.seq.removeROI(roiRefLineLower);
+			seqCamData.getSequence().removeROI(roiRefLineUpper);
+			seqCamData.getSequence().removeROI(roiRefLineLower);
 		}
 	}
 }

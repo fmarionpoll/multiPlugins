@@ -72,7 +72,7 @@ public class SpotsMeasuresLoadSave extends JPanel {
 		if (flag) {
 			exp.load_SpotsMeasures();
 			exp.spotsArray.transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
-			exp.spotsArray.transferSpotsMeasuresToSequenceAsROIs(exp.seqSpotKymos.seq);
+			exp.spotsArray.transferSpotsMeasuresToSequenceAsROIs(exp.getSeqKymos().getSequence());
 		}
 		return flag;
 	}

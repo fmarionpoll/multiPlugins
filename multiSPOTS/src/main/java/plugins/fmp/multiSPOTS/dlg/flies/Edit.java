@@ -139,7 +139,7 @@ public class Edit extends JPanel {
 	}
 
 	boolean findFirst(Experiment exp) {
-		int dataSize = exp.seqCamData.nTotalFrames;
+		int dataSize = exp.getSeqCamData().nTotalFrames;
 		foundT = -1;
 		foundCage = -1;
 		for (int frame = 0; frame < dataSize; frame++) {
@@ -164,7 +164,7 @@ public class Edit extends JPanel {
 
 	void findAllMissedPoints(Experiment exp) {
 		foundCombo.removeAllItems();
-		int dataSize = exp.seqCamData.nTotalFrames;
+		int dataSize = exp.getSeqCamData().nTotalFrames;
 		for (int frame = 0; frame < dataSize; frame++) {
 			for (Cage cage : exp.getCages().cagesList) {
 				if (frame >= cage.flyPositions.flyPositionList.size())

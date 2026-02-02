@@ -28,9 +28,8 @@ import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multiSPOTS.series.BuildSeriesOptions;
-import plugins.fmp.multiSPOTS.series.FlyDetect2;
-import plugins.fmp.multitools.tools.canvas2D.Canvas2D_2Transforms;
+import plugins.fmp.multitools.series.FlyDetect2;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -160,20 +159,20 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	private void updateOverlay(Experiment exp, int threshold) {
-		SequenceCamData seqCamData = exp.seqCamData;
+		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
 
 		updateTransformFunctionsOfCanvas(exp, true);
 
 		if (overlayThreshold2 == null) {
-			overlayThreshold2 = new OverlayThreshold(seqCamData.seq);
-			exp.seqCamData.refImage = IcyBufferedImageUtil.getCopy(exp.seqCamData.getSeqImage(0, 0));
+			overlayThreshold2 = new OverlayThreshold(seqCamData.getSequence());
+			exp.getSeqCamData().refImage = IcyBufferedImageUtil.getCopy(exp.getSeqCamData().getSeqImage(0, 0));
 		} else {
-			seqCamData.seq.removeOverlay(overlayThreshold2);
-			overlayThreshold2.setSequence(seqCamData.seq);
+			seqCamData.getSequence().removeOverlay(overlayThreshold2);
+			overlayThreshold2.setSequence(seqCamData.getSequence());
 		}
-		seqCamData.seq.addOverlay(overlayThreshold2);
+		seqCamData.getSequence().addOverlay(overlayThreshold2);
 		boolean ifGreater = (spotsDirectionComboBox.getSelectedIndex() == 0);
 		overlayThreshold2.setThresholdSingle(threshold, ImageTransformEnums.SUBTRACT_REF, ifGreater);
 		overlayThreshold2.painterChanged();
@@ -197,7 +196,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null) {
+		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold2);
 			updateTransformFunctionsOfCanvas(exp, false);
 		}
@@ -209,7 +208,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 			canvas.updateTransformsComboStep1(transforms);
 			canvas.selectImageTransformFunctionStep1(1);
 			exp.loadReferenceImage();
-			canvas.setTransformStep1ReferenceImage(exp.seqCamData.refImage);
+			canvas.setTransformStep1ReferenceImage(exp.getSeqCamData().refImage);
 		} else
 			canvas.selectImageTransformFunctionStep1(0);
 	}

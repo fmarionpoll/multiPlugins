@@ -138,8 +138,8 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
 			boolean displayCapillaries = (selectedIndex == id_create);
-			exp.seqCamData.displaySpecificROIs(displayCapillaries, "line");
-			exp.seqCamData.displaySpecificROIs(true, "spots");
+			exp.getSeqCamData().displaySpecificROIs(displayCapillaries, "line");
+			exp.getSeqCamData().displaySpecificROIs(true, "spots");
 		}
 	}
 

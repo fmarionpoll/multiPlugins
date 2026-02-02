@@ -12,7 +12,8 @@ import javax.swing.JPanel;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.spots.Spot;
+import plugins.fmp.multitools.experiment.spot.Spot;
+
 
 public class Infos extends JPanel {
 	/**

@@ -22,7 +22,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.tools.chart.ChartPositions;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSExportType;
+
 
 public class PlotPositions extends JPanel implements SequenceListener {
 	/**
