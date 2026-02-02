@@ -244,7 +244,7 @@ public class Display extends JPanel implements ViewerListener {
 	}
 
 	void placeKymoViewerNextToCamViewer(Experiment exp) {
-		Sequence seqCamData = exp.seqCamData.seq;
+		Sequence seqCamData = exp.getSeqCamData().getSequence();
 		Viewer viewerCamData = seqCamData.getFirstViewer();
 		if (viewerCamData == null)
 			return;

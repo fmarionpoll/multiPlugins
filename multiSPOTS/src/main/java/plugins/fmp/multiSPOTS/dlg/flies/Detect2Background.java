@@ -140,8 +140,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 				if (exp != null) {
 					if (overlayCheckBox.isSelected()) {
 						if (ov == null)
-							ov = new OverlayThreshold(exp.seqCamData.seq);
-						exp.seqCamData.seq.addOverlay(ov);
+							ov = new OverlayThreshold(exp.getSeqCamData().getSequence());
+						exp.getSeqCamData().getSequence().addOverlay(ov);
 						updateOverlay(exp);
 					} else
 						removeOverlay(exp);
@@ -167,7 +167,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			boolean flag = exp.loadReferenceImage();
 			if (flag) {
 				Viewer v = new Viewer(exp.seqReference, true);
-				Rectangle rectv = exp.seqCamData.seq.getFirstViewer().getBoundsInternal();
+				Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBoundsInternal();
 				v.setBounds(rectv);
 			} else {
 				MessageDialog.showDialog("Reference file not found on disk", MessageDialog.ERROR_MESSAGE);
@@ -198,8 +198,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	}
 
 	private void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.seqCamData.seq != null)
-			exp.seqCamData.seq.removeOverlay(ov);
+		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null)
+			exp.getSeqCamData().getSequence().removeOverlay(ov);
 	}
 
 	private BuildSeriesOptions initTrackParameters() {

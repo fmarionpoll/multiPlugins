@@ -96,7 +96,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	public void closeViewsForCurrentExperiment(Experiment exp) {
 		if (exp != null) {
-			if (exp.seqCamData != null) {
+			if (exp.getSeqCamData() != null) {
 				exp.saveXML_MCExperiment();
 				exp.save_SpotsMeasures();
 			}
@@ -204,10 +204,11 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		if (sequenceEvent.getSourceType() == SequenceEventSourceType.SEQUENCE_DATA) {
 			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 			if (exp != null) {
-				if (exp.seqCamData.seq != null && sequenceEvent.getSequence() == exp.seqCamData.seq) {
-					Viewer v = exp.seqCamData.seq.getFirstViewer();
+				if (exp.getSeqCamData().getSequence() != null
+						&& sequenceEvent.getSequence() == exp.getSeqCamData().getSequence()) {
+					Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 					int t = v.getPositionT();
-					v.setTitle(exp.seqCamData.getDecoratedImageName(t));
+					v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
 				}
 				// TODO: check if the lines below are necessary
 				if (exp.seqSpotKymos.seq != null && sequenceEvent.getSequence() == exp.seqSpotKymos.seq) {
@@ -272,18 +273,18 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		boolean flag = true;
 		progressFrame.setMessage("Load image");
 		List<String> imagesList = (ArrayList<String>) ExperimentDirectories
-				.getImagesListFromPathV2(exp.seqCamData.imagesDirectory, "jpg");
-		exp.seqCamData.loadImageList(imagesList);
+				.getImagesListFromPathV2(exp.getSeqCamData().imagesDirectory, "jpg");
+		exp.getSeqCamData().loadImageList(imagesList);
 		parent0.dlgExperiment.updateViewerForSequenceCam(exp);
 
-		exp.seqCamData.seq.addListener(this);
-		if (exp.seqCamData != null) {
+		exp.getSeqCamData().getSequence().addListener(this);
+		if (exp.getSeqCamData() != null) {
 			exp.load_Spots();
 			exp.load_SpotsMeasures();
-			exp.spotsArray.transferSpotsToSequenceAsROIs(exp.seqCamData.seq);
+			exp.spotsArray.transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
 
 			exp.load_Cages();
-			exp.getCages().pushROIsFromCagesToSequence(exp.seqCamData.seq);
+			exp.getCages().pushROIsFromCagesToSequence(exp.getSeqCamData().getSequence());
 
 			parent0.dlgMeasure.tabGraphs.displayGraphsPanels(exp);
 

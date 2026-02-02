@@ -74,7 +74,7 @@ public class LoadSaveCages extends JPanel {
 		ProgressFrame progress = new ProgressFrame("load cages");
 		boolean flag = exp.load_Cages();
 		if (flag) {
-			exp.getCages().pushROIsFromCagesToSequence(exp.seqCamData.seq);
+			exp.getCages().pushROIsFromCagesToSequence(exp.getSeqCamData().getSequence());
 		}
 		progress.close();
 		return flag;

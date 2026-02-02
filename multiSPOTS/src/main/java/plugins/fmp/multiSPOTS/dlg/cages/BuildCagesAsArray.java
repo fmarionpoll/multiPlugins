@@ -90,7 +90,7 @@ public class BuildCagesAsArray extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 				if (exp != null) {
-					exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq),
+					exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("cage", exp.getSeqCamData().getSequence()),
 							false);
 					exp.getCages().removeCages();
 					createROIsFromSelectedPolygon(exp);
@@ -125,7 +125,7 @@ public class BuildCagesAsArray extends JPanel {
 	// TODO: same routine in BuildCagesFromContour
 	private void create2DPolygon(Experiment exp) {
 		final String dummyname = "perimeter_enclosing";
-		ArrayList<ROI2D> listRois = exp.seqCamData.seq.getROI2Ds();
+		ArrayList<ROI2D> listRois = exp.getSeqCamData().getSequence().getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (roi.getName().equals(dummyname))
 				return;
@@ -135,7 +135,7 @@ public class BuildCagesAsArray extends JPanel {
 		if (exp.spotsArray.spotsList.size() > 0) {
 			polygon = exp.spotsArray.get2DPolygonEnclosingSpots();
 		} else {
-			Rectangle rect = exp.seqCamData.seq.getBounds2D();
+			Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 			List<Point2D> points = new ArrayList<Point2D>();
 			int rectleft = rect.x + rect.width / 6;
 			int rectright = rect.x + rect.width * 5 / 6;
@@ -148,8 +148,8 @@ public class BuildCagesAsArray extends JPanel {
 		}
 		ROI2DPolygon roi = new ROI2DPolygon(polygon);
 		roi.setName(dummyname);
-		exp.seqCamData.seq.addROI(roi);
-		exp.seqCamData.seq.setSelectedROI(roi);
+		exp.getSeqCamData().getSequence().addROI(roi);
+		exp.getSeqCamData().getSequence().setSelectedROI(roi);
 	}
 
 	private void createROIsFromSelectedPolygon(Experiment exp) {
@@ -178,7 +178,7 @@ public class BuildCagesAsArray extends JPanel {
 		seqCamData.seq.removeROI(roi);
 
 		// generate cage frames
-		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq), false);
+		exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("cage", exp.getSeqCamData().getSequence()), false);
 		int iRoot = 0;
 		String cageRoot = "cage";
 

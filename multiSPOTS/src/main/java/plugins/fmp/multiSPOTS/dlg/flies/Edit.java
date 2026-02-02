@@ -115,7 +115,7 @@ public class Edit extends JPanel {
 				if (indexT < 0)
 					return;
 				selectImageT(exp, indexT);
-				List<ROI2D> roiList = exp.seqCamData.seq.getROI2Ds();
+				List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
 				for (ROI2D roi : roiList) {
 					String csName = roi.getName();
 					if (roi instanceof ROI2DPoint && csName.equals(filter)) {
@@ -158,7 +158,7 @@ public class Edit extends JPanel {
 	}
 
 	void selectImageT(Experiment exp, int t) {
-		Viewer viewer = exp.seqCamData.seq.getFirstViewer();
+		Viewer viewer = exp.getSeqCamData().getSequence().getFirstViewer();
 		viewer.setPositionT(t);
 	}
 
@@ -193,7 +193,7 @@ public class Edit extends JPanel {
 
 	void moveROItoCageCenter(Experiment exp, ROI2D roi, int frame) {
 		roi.setColor(Color.RED);
-		exp.seqCamData.seq.setSelectedROI(roi);
+		exp.getSeqCamData().getSequence().setSelectedROI(roi);
 		String csName = roi.getName();
 		int cageNumber = getCageNumberFromName(csName);
 		if (cageNumber >= 0) {

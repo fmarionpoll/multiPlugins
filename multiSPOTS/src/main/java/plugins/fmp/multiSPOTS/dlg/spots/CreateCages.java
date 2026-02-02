@@ -193,7 +193,7 @@ public class CreateCages extends JPanel {
 		if (exp.getCages().cagesList.size() > 0) {
 			polygon2D = exp.getCages().getPolygon2DEnclosingAllCages();
 		} else {
-			Rectangle rect = exp.seqCamData.seq.getBounds2D();
+			Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 			List<Point2D> points = new ArrayList<Point2D>();
 			points.add(new Point2D.Double(rect.x + rect.width / 5, rect.y + rect.height / 5));
 			points.add(new Point2D.Double(rect.x + rect.width * 4 / 5, rect.y + rect.height / 5));
@@ -218,7 +218,7 @@ public class CreateCages extends JPanel {
 		}
 
 		// erase existing cages
-		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("cage", exp.seqCamData.seq), false);
+		exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("cage", exp.getSeqCamData().getSequence()), false);
 		exp.getCages().cagesList.clear();
 		exp.setCages(new Cages());
 		createCagesArray(exp, polygon2D, n_columns, n_rows, width_cage, width_interval);
@@ -254,7 +254,7 @@ public class CreateCages extends JPanel {
 				cage.arrayRow = row;
 
 				index++;
-				exp.seqCamData.seq.addROI(roiP);
+				exp.getSeqCamData().getSequence().addROI(roiP);
 				exp.getCages().cagesList.add(cage);
 			}
 		}

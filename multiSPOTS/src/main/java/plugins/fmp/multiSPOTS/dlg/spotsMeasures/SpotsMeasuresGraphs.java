@@ -121,7 +121,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 
 	private Rectangle getInitialUpperLeftPosition(Experiment exp) {
 		Rectangle rectv = new Rectangle(50, 500, 10, 10);
-		Viewer v = exp.seqCamData.seq.getFirstViewer();
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v != null) {
 			rectv = v.getBounds();
 			rectv.translate(0, rectv.height);
@@ -136,7 +136,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 		Rectangle rectv = getInitialUpperLeftPosition(exp);
 		int dx = 5;
 		int dy = 10;
-		exp.seqCamData.seq.addListener(this);
+		exp.getSeqCamData().getSequence().addListener(this);
 		EnumXLSExportType exportType = (EnumXLSExportType) exportTypeComboBox.getSelectedItem();
 		if (isThereAnyDataToDisplay(exp, exportType)) {
 			rectv.translate(dx, dy);

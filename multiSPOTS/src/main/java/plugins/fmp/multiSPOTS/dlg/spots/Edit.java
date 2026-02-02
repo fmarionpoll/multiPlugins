@@ -182,7 +182,7 @@ public class Edit extends JPanel {
 			return;
 
 		if (show) {
-			int t = exp.seqCamData.seq.getFirstViewer().getPositionT();
+			int t = exp.getSeqCamData().getSequence().getFirstViewer().getPositionT();
 			addFrameAroundSpots(t, exp);
 		} else {
 			removeSpotsFrame(exp);
@@ -204,9 +204,9 @@ public class Edit extends JPanel {
 			spotsFrame.setColor(Color.YELLOW);
 		}
 
-		exp.seqCamData.seq.removeROI(spotsFrame);
-		exp.seqCamData.seq.addROI(spotsFrame);
-		exp.seqCamData.seq.setSelectedROI(spotsFrame);
+		exp.getSeqCamData().getSequence().removeROI(spotsFrame);
+		exp.getSeqCamData().getSequence().addROI(spotsFrame);
+		exp.getSeqCamData().getSequence().setSelectedROI(spotsFrame);
 		removeSnake(exp);
 	}
 
@@ -218,20 +218,20 @@ public class Edit extends JPanel {
 				listPoint.add(new Point2D.Double(spot.spotXCoord, spot.spotYCoord));
 			}
 			snakeRoi = new ROI2DPolyLine(listPoint);
-			exp.seqCamData.seq.addROI(snakeRoi);
-			exp.seqCamData.seq.setSelectedROI(snakeRoi);
+			exp.getSeqCamData().getSequence().addROI(snakeRoi);
+			exp.getSeqCamData().getSequence().setSelectedROI(snakeRoi);
 		}
 	}
 
 	private void removeSnake(Experiment exp) {
 		if (snakeRoi != null)
-			exp.seqCamData.seq.removeROI(snakeRoi);
+			exp.getSeqCamData().getSequence().removeROI(snakeRoi);
 		snakeRoi = null;
 	}
 
 	private void removeSpotsFrame(Experiment exp) {
 		if (spotsFrame != null)
-			exp.seqCamData.seq.removeROI(spotsFrame);
+			exp.getSeqCamData().getSequence().removeROI(spotsFrame);
 		spotsFrame = null;
 	}
 
@@ -255,10 +255,10 @@ public class Edit extends JPanel {
 		if (enclosedSpots.size() > 0) {
 			for (Spot spot : enclosedSpots) {
 				ROI2DShape roi = (ROI2DShape) spot.getRoi();
-				exp.seqCamData.seq.removeROI(roi);
+				exp.getSeqCamData().getSequence().removeROI(roi);
 				roi = (ROI2DShape) Utilities.resizeROI(roi, delta);
 				spot.setRoi(roi);
-				exp.seqCamData.seq.addROI(roi);
+				exp.getSeqCamData().getSequence().addROI(roi);
 			}
 		} else {
 			ConfirmDialog.confirm("At least one spot must be selected");

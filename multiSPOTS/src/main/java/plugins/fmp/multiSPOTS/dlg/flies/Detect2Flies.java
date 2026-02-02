@@ -197,14 +197,14 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	void removeOverlay(Experiment exp) {
-		if (exp.seqCamData != null && exp.seqCamData.seq != null) {
-			exp.seqCamData.seq.removeOverlay(overlayThreshold2);
+		if (exp.seqCamData != null && exp.getSeqCamData().getSequence() != null) {
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold2);
 			updateTransformFunctionsOfCanvas(exp, false);
 		}
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp, boolean display) {
-		Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.seqCamData.seq.getFirstViewer().getCanvas();
+		Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
 		if (display) {
 			canvas.updateTransformsComboStep1(transforms);
 			canvas.selectImageTransformFunctionStep1(1);

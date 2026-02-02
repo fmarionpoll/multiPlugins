@@ -169,7 +169,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		Sequence seq = exp.seqCamData.seq;
+		Sequence seq = exp.getSeqCamData().getSequence();
 		ArrayList<ROI2D> listRois = seq.getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (!roi.getName().contains("spot"))
@@ -185,11 +185,11 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			return;
 
 		if (show) {
-			int t = exp.seqCamData.seq.getFirstViewer().getPositionT();
+			int t = exp.getSeqCamData().getSequence().getFirstViewer().getPositionT();
 			// TODO select current interval and return only rois2D from that interval
 			addFrameAroundSpots(t, exp);
 		} else
-			removeFrameAroundSpots(exp.seqCamData.seq);
+			removeFrameAroundSpots(exp.getSeqCamData().getSequence());
 	}
 
 	private void addFrameAroundSpots(int t, Experiment exp) {
@@ -200,14 +200,14 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		}
 		Polygon2D polygon = Utilities.getPolygonEnclosingROI2Ds(listRoisAtT);
 
-		removeFrameAroundSpots(exp.seqCamData.seq);
+		removeFrameAroundSpots(exp.getSeqCamData().getSequence());
 		envelopeRoi_initial = new ROI2DPolygon(polygon);
 		envelopeRoi = new ROI2DPolygon(polygon);
 		envelopeRoi.setName(dummyname);
 		envelopeRoi.setColor(Color.YELLOW);
 
-		exp.seqCamData.seq.addROI(envelopeRoi);
-		exp.seqCamData.seq.setSelectedROI(envelopeRoi);
+		exp.getSeqCamData().getSequence().addROI(envelopeRoi);
+		exp.getSeqCamData().getSequence().setSelectedROI(envelopeRoi);
 	}
 
 	private void removeFrameAroundSpots(Sequence seq) {
@@ -220,7 +220,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		if (exp == null)
 			return;
 
-		Viewer v = exp.seqCamData.seq.getFirstViewer();
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		long intervalT = v.getPositionT();
 
 		if (exp.spotsArray.findKymoROI2DIntervalStart(intervalT) < 0) {
@@ -233,7 +233,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		if (exp == null)
 			return;
 
-		Viewer v = exp.seqCamData.seq.getFirstViewer();
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		long intervalT = v.getPositionT();
 
 		if (exp.spotsArray.findKymoROI2DIntervalStart(intervalT) >= 0) {
@@ -245,7 +245,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		Sequence seq = exp.seqCamData.seq;
+		Sequence seq = exp.getSeqCamData().getSequence();
 
 		int intervalT = (int) exp.spotsArray.getKymoROI2DIntervalsStartAt(selectedRow);
 		seq.removeAllROI();
@@ -262,7 +262,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp == null)
 			return;
-		Sequence seq = exp.seqCamData.seq;
+		Sequence seq = exp.getSeqCamData().getSequence();
 
 		int intervalT = (int) exp.spotsArray.getKymoROI2DIntervalsStartAt(selectedRow);
 		List<ROI2D> listRois = seq.getROI2Ds();

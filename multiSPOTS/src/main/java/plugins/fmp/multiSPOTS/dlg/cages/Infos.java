@@ -112,7 +112,7 @@ public class Infos extends JPanel {
 	void measureCagesSpan() {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
-			exp.spotsArray.transferROIsFromSequenceToSpots(exp.seqCamData.seq);
+			exp.spotsArray.transferROIsFromSequenceToSpots(exp.getSeqCamData().getSequence());
 			if (exp.spotsArray.spotsList.size() > 0) {
 				int npixels = exp.getCages().getHorizontalSpanOfCages();
 				if (npixels > 0)

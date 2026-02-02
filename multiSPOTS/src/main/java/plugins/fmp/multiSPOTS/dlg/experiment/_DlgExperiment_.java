@@ -94,7 +94,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	}
 
 	public void updateViewerForSequenceCam(Experiment exp) {
-		Sequence seq = exp.seqCamData.seq;
+		Sequence seq = exp.getSeqCamData().getSequence();
 		if (seq == null)
 			return;
 
@@ -103,7 +103,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 			public void run() {
 				ViewerFMP v = (ViewerFMP) seq.getFirstViewer();
 				if (v == null) {
-					v = new ViewerFMP(exp.seqCamData.seq, false, true);
+					v = new ViewerFMP(exp.getSeqCamData().getSequence(), false, true);
 					List<String> list = IcyCanvas.getCanvasPluginNames();
 					String pluginName = list.stream().filter(s -> s.contains("Canvas2D_2Transforms")).findFirst()
 							.orElse(null);
@@ -117,9 +117,9 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					v.toFront();
 					v.requestFocus();
 					v.addListener(parent);
-					v.setTitle(exp.seqCamData.getDecoratedImageName(0));
+					v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 					v.setRepeat(false);
-					
+
 					// End update mode now that viewer is properly configured
 					if (seq.isUpdating()) {
 						seq.endUpdate();
@@ -146,11 +146,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 			if (exp != null) {
-				int idCurrentSeqCamData = exp.seqCamData.seq.getId();
+				int idCurrentSeqCamData = exp.getSeqCamData().getSequence().getId();
 				if (idViewer == idCurrentSeqCamData) {
 					int t = v.getPositionT();
 //					System.out.println("ViewerChanged -> _DlgExperiment_ t=" + t);
-					v.setTitle(exp.seqCamData.getDecoratedImageName(t));
+					v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
 					// TODO _CAGES if (parent0.dlgCages.bTrapROIsEdit)
 					// TODO _CAGES exp.saveDetRoisToPositions();
 					exp.updateROIsAt(t);

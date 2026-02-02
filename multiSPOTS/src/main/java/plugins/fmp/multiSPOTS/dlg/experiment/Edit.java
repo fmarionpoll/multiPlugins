@@ -14,8 +14,8 @@ import javax.swing.JTextField;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.JComponents.JComboBoxExperiment;
-import plugins.fmp.multitools.tools.toExcel.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Edit extends JPanel {
 	/**
@@ -25,15 +25,15 @@ public class Edit extends JPanel {
 
 	private JComboBox<EnumXLSColumnHeader> fieldNamesCombo = new JComboBox<EnumXLSColumnHeader>(
 			new EnumXLSColumnHeader[] { EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_BOXID,
-					EnumXLSColumnHeader.EXP_STIM, EnumXLSColumnHeader.EXP_CONC, EnumXLSColumnHeader.EXP_STRAIN,
-					EnumXLSColumnHeader.EXP_SEX, EnumXLSColumnHeader.EXP_COND1, EnumXLSColumnHeader.EXP_COND2,
+					EnumXLSColumnHeader.EXP_STIM1, EnumXLSColumnHeader.EXP_CONC1, EnumXLSColumnHeader.EXP_STRAIN,
+					EnumXLSColumnHeader.EXP_SEX, EnumXLSColumnHeader.EXP_STIM2, EnumXLSColumnHeader.EXP_CONC2,
 					EnumXLSColumnHeader.CAP_STIM, EnumXLSColumnHeader.CAP_CONC });
 
 	private JComboBox<String> fieldOldValuesCombo = new JComboBox<String>();
 	private JTextField newValueTextField = new JTextField(10);
 	private JButton applyButton = new JButton("Apply");
 	private MultiSPOTS parent0 = null;
-	JComboBoxExperiment editExpList = new JComboBoxExperiment();
+	JComboBoxExperimentLazy editExpList = new JComboBoxExperimentLazy();
 
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
 		this.parent0 = parent0;

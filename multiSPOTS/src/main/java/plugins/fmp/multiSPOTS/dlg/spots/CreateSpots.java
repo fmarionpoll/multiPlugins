@@ -273,7 +273,7 @@ public class CreateSpots extends JPanel {
 					polygon2D = exp.spotsArray.getPolygon2DEnclosingAllSpots();
 				}
 			} else {
-				Rectangle rect = exp.seqCamData.seq.getBounds2D();
+				Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 				List<Point2D> points = new ArrayList<Point2D>();
 				points.add(new Point2D.Double(rect.x + rect.width / 5, rect.y + rect.height / 5));
 				points.add(new Point2D.Double(rect.x + rect.width * 4 / 5, rect.y + rect.height / 5));
@@ -349,7 +349,7 @@ public class CreateSpots extends JPanel {
 			new AnnounceFrame("Can't interpret one of the ROI parameters value");
 		}
 		// erase existing spots
-		exp.seqCamData.seq.removeROIs(ROIUtilities.getROIsContainingString("spot", exp.seqCamData.seq), false);
+		exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("spot", exp.getSeqCamData().getSequence()), false);
 
 		Spots allSpots = getAllSpots(exp);
 		if (allSpots != null) {

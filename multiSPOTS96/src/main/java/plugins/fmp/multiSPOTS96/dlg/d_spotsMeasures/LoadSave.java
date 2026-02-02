@@ -72,7 +72,7 @@ public class LoadSave extends JPanel {
 		boolean flag = exp.load_cages_description_and_measures();
 		if (flag) {
 			exp.load_spots_description_and_measures();
-			SpotsSequenceMapper.transferROIsFromSpotsToSequence(exp.getSpots(), exp.getSeqCamData());
+			SpotsSequenceMapper.transferROIsToSequence(exp.getSpots(), exp.getSeqCamData());
 		}
 		return flag;
 	}
@@ -80,7 +80,7 @@ public class LoadSave extends JPanel {
 	public boolean saveSpotsArray_file(Experiment exp) {
 		parent0.dlgExperiment.getExperimentInfosFromDialog(exp);
 		boolean flag = exp.saveExperimentDescriptors();
-		SpotsSequenceMapper.transferROIsFromSequenceToSpots(exp.getSpots(), exp.getSeqCamData());
+		SpotsSequenceMapper.transferROIsFromSequence(exp.getSpots(), exp.getSeqCamData());
 		flag &= exp.save_cages_description_and_measures();
 		flag &= exp.save_spots_description_and_measures();
 		return flag;
