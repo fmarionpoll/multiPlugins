@@ -71,18 +71,18 @@ public class SpotsMeasuresLoadSave extends JPanel {
 		boolean flag = exp.loadMCSpots_Only();
 		if (flag) {
 			exp.load_SpotsMeasures();
-			exp.spotsArray.transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
-			exp.spotsArray.transferSpotsMeasuresToSequenceAsROIs(exp.getSeqKymos().getSequence());
+			exp.getSpots().transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
+			exp.getSpots().transferSpotsMeasuresToSequenceAsROIs(exp.getSeqKymos().getSequence());
 		}
 		return flag;
 	}
 
 	public boolean saveSpotsArray_file(Experiment exp) {
 		parent0.dlgExperiment.getExperimentInfosFromDialog(exp);
-//		exp.spotsArray.transferDescriptionToSpots();
+//		exp.getSpots().transferDescriptionToSpots();
 		boolean flag = exp.saveXML_MCExperiment();
-		exp.spotsArray.transferROIsFromSequenceToSpots(exp.getSeqCamData().getSequence());
-		exp.spotsArray.transferROIsMeasuresFromSequenceToSpots();
+		exp.getSpots().transferROIsFromSequenceToSpots(exp.getSeqCamData().getSequence());
+		exp.getSpots().transferROIsMeasuresFromSequenceToSpots();
 		flag &= exp.save_MCSpots_Only();
 		flag &= exp.save_SpotsMeasures();
 		return flag;

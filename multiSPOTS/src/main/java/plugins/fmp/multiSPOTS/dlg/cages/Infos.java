@@ -77,8 +77,8 @@ public class Infos extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 				if (exp != null) {
-//					exp.spotsArray.transferDescriptionToSpots();
-					exp.getCages().transferNFliesFromSpotsToCages(exp.spotsArray);
+//					exp.getSpots().transferDescriptionToSpots();
+					exp.getCages().transferNFliesFromSpotsToCages(exp.getSpots());
 					dialog = new InfosTable();
 					dialog.initialize(parent0, cagesArrayCopy);
 				}
@@ -112,8 +112,8 @@ public class Infos extends JPanel {
 	void measureCagesSpan() {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
-			exp.spotsArray.transferROIsFromSequenceToSpots(exp.getSeqCamData().getSequence());
-			if (exp.spotsArray.spotsList.size() > 0) {
+			exp.getSpots().transferROIsFromSequenceToSpots(exp.getSeqCamData().getSequence());
+			if (exp.getSpots().getSpotList().size() > 0) {
 				int npixels = exp.getCages().getHorizontalSpanOfCages();
 				if (npixels > 0)
 					pixelsSpinner.setValue(npixels);

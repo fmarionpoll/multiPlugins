@@ -191,7 +191,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 	private void addFrameAroundSpots(int t, Experiment exp) {
 		ArrayList<ROI2D> listRoisAtT = new ArrayList<ROI2D>();
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			ROI2DAlongT kymoROI2D = spot.getROIAtT(t);
 			listRoisAtT.add(kymoROI2D.getRoi_in());
 		}
@@ -220,8 +220,8 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		long intervalT = v.getPositionT();
 
-		if (exp.spotsArray.findKymoROI2DIntervalStart(intervalT) < 0) {
-			exp.spotsArray.addKymoROI2DInterval(intervalT);
+		if (exp.getSpots().findKymoROI2DIntervalStart(intervalT) < 0) {
+			exp.getSpots().addKymoROI2DInterval(intervalT);
 		}
 	}
 
@@ -233,8 +233,8 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		long intervalT = v.getPositionT();
 
-		if (exp.spotsArray.findKymoROI2DIntervalStart(intervalT) >= 0) {
-			exp.spotsArray.deleteKymoROI2DInterval(intervalT);
+		if (exp.getSpots().findKymoROI2DIntervalStart(intervalT) >= 0) {
+			exp.getSpots().deleteKymoROI2DInterval(intervalT);
 		}
 	}
 
@@ -244,10 +244,10 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			return;
 		Sequence seq = exp.getSeqCamData().getSequence();
 
-		int intervalT = (int) exp.spotsArray.getKymoROI2DIntervalsStartAt(selectedRow);
+		int intervalT = (int) exp.getSpots().getKymoROI2DIntervalsStartAt(selectedRow);
 		seq.removeAllROI();
 		List<ROI2D> listRois = new ArrayList<ROI2D>();
-		for (Spot spot : exp.spotsArray.spotsList)
+		for (Spot spot : exp.getSpots().spotsList)
 			listRois.add(spot.getROIAtT((int) intervalT).getRoi_in());
 		seq.addROIs(listRois, false);
 
@@ -261,12 +261,12 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			return;
 		Sequence seq = exp.getSeqCamData().getSequence();
 
-		int intervalT = (int) exp.spotsArray.getKymoROI2DIntervalsStartAt(selectedRow);
+		int intervalT = (int) exp.getSpots().getKymoROI2DIntervalsStartAt(selectedRow);
 		List<ROI2D> listRois = seq.getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (!roi.getName().contains("line"))
 				continue;
-			Spot spot = exp.spotsArray.getSpotFromName(roi.getName());
+			Spot spot = exp.getSpots().getSpotFromName(roi.getName());
 			if (spot != null) {
 				ROI2D roilocal = (ROI2D) roi.getCopy();
 				spot.getROIAtT(intervalT).setRoi_in(roilocal);

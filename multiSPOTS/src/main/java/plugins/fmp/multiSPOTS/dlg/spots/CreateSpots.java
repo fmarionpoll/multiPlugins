@@ -99,7 +99,7 @@ public class CreateSpots extends JPanel {
 			} catch (Exception e) {
 			}
 		} else {
-			Iterator<Spot> iterator = exp.spotsArray.spotsList.iterator();
+			Iterator<Spot> iterator = exp.getSpots().getSpotList().iterator();
 			while (iterator.hasNext()) {
 				Spot spot = iterator.next();
 				if (spot.cageID == cage.cageID) {
@@ -127,7 +127,7 @@ public class CreateSpots extends JPanel {
 			spot.spotXCoord = (int) center.getX();
 			spot.spotYCoord = (int) center.getY();
 			spot.cageID = cage.cageID;
-			exp.spotsArray.spotsList.add(spot);
+			exp.getSpots().getSpotList().add(spot);
 		}
 	}
 
@@ -195,7 +195,7 @@ public class CreateSpots extends JPanel {
 						int nbFliesPerCage = (int) nFliesPerCageJSpinner.getValue();
 						Spots allSpots = getAllSpots(exp);
 						if (allSpots == null) {
-							exp.spotsArray.initSpotsWithNFlies(nbFliesPerCage);
+							exp.getSpots().initSpotsWithNFlies(nbFliesPerCage);
 						}
 					}
 				}
@@ -262,7 +262,7 @@ public class CreateSpots extends JPanel {
 			boolean hasSpots = false;
 			if (allSpots != null && allSpots.getSpotListCount() > 0) {
 				hasSpots = true;
-			} else if (exp.spotsArray != null && exp.spotsArray.spotsList.size() > 0) {
+			} else if (exp.spotsArray != null && exp.getSpots().getSpotList().size() > 0) {
 				hasSpots = true;
 			}
 
@@ -270,7 +270,7 @@ public class CreateSpots extends JPanel {
 				if (allSpots != null) {
 					polygon2D = getPolygon2DEnclosingAllSpotsFromMultiTools(exp, allSpots);
 				} else {
-					polygon2D = exp.spotsArray.getPolygon2DEnclosingAllSpots();
+					polygon2D = exp.getSpots().getPolygon2DEnclosingAllSpots();
 				}
 			} else {
 				Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
@@ -299,8 +299,8 @@ public class CreateSpots extends JPanel {
 		points.add(new Point2D.Double(spotX, spotY + 1));
 		Polygon2D polygon = new Polygon2D(points);
 
-		int nColumnsPerPlate = exp.spotsArray != null ? exp.spotsArray.nColumnsPerPlate : 12;
-		int nRowsPerPlate = exp.spotsArray != null ? exp.spotsArray.nRowsPerPlate : 8;
+		int nColumnsPerPlate = exp.spotsArray != null ? exp.getSpots().nColumnsPerPlate : 12;
+		int nRowsPerPlate = exp.spotsArray != null ? exp.getSpots().nRowsPerPlate : 8;
 
 		for (Spot spot : allSpots.getSpotList()) {
 			int col = spot.getProperties().getCagePosition() % nColumnsPerPlate;
@@ -368,7 +368,7 @@ public class CreateSpots extends JPanel {
 				}
 			}
 		} else {
-			exp.spotsArray.spotsList.clear();
+			exp.getSpots().getSpotList().clear();
 			exp.spotsArray = new SpotsArray();
 		}
 
@@ -383,8 +383,8 @@ public class CreateSpots extends JPanel {
 		if (allSpots != null) {
 			convertPoint2DArrayToSpotsMultiTools(exp, arrayPoints, nbcols, nbrows, radius, allSpots);
 		} else {
-			exp.spotsArray.nColumnsPerPlate = nbcols;
-			exp.spotsArray.nRowsPerPlate = nbrows;
+			exp.getSpots().nColumnsPerPlate = nbcols;
+			exp.getSpots().nRowsPerPlate = nbrows;
 			int spotIndex = 0;
 			for (int row = 0; row < nbrows; row++) {
 				for (int column = 0; column < nbcols; column++) {
@@ -408,7 +408,7 @@ public class CreateSpots extends JPanel {
 						e.printStackTrace();
 					}
 
-					exp.spotsArray.spotsList.add(spot);
+					exp.getSpots().getSpotList().add(spot);
 					spotIndex++;
 				}
 			}
@@ -417,8 +417,8 @@ public class CreateSpots extends JPanel {
 
 	private void convertPoint2DArrayToSpotsMultiTools(Experiment exp, Point2D.Double[][] arrayPoints, int nbcols,
 			int nbrows, int radius, Spots allSpots) {
-		exp.spotsArray.nColumnsPerPlate = nbcols;
-		exp.spotsArray.nRowsPerPlate = nbrows;
+		exp.getSpots().nColumnsPerPlate = nbcols;
+		exp.getSpots().nRowsPerPlate = nbrows;
 		for (int row = 0; row < nbrows; row++) {
 			for (int column = 0; column < nbcols; column++) {
 				Point2D point = arrayPoints[column][row];
@@ -455,16 +455,16 @@ public class CreateSpots extends JPanel {
 		if (allSpots != null) {
 			updateCageDescriptorsOfSpotsMultiTools(exp, allSpots, nColsPerCage, nRowsPerCage);
 		} else {
-			exp.spotsArray.updatePlateIndexToCageIndexes(nColsPerCage, nRowsPerCage);
+			exp.getSpots().updatePlateIndexToCageIndexes(nColsPerCage, nRowsPerCage);
 		}
 	}
 
 	private void updateCageDescriptorsOfSpotsMultiTools(Experiment exp, Spots allSpots, int nColsPerCage,
 			int nRowsPerCage) {
-		exp.spotsArray.nColumnsPerCage = nColsPerCage;
-		exp.spotsArray.nRowsPerCage = nRowsPerCage;
+		exp.getSpots().nColumnsPerCage = nColsPerCage;
+		exp.getSpots().nRowsPerCage = nRowsPerCage;
 
-		int nColumnsPerPlate = exp.spotsArray.nColumnsPerPlate;
+		int nColumnsPerPlate = exp.getSpots().nColumnsPerPlate;
 		int nCagesAlongX = nColumnsPerPlate / nColsPerCage;
 
 		if (exp.getCages() == null) {
@@ -518,8 +518,8 @@ public class CreateSpots extends JPanel {
 		if (exp != null) {
 			silent = true;
 			if (exp.spotsArray != null) {
-				nColsPerCageJSpinner.setValue(exp.spotsArray.nColumnsPerCage);
-				nRowsPerCageJSpinner.setValue(exp.spotsArray.nRowsPerCage);
+				nColsPerCageJSpinner.setValue(exp.getSpots().nColumnsPerCage);
+				nRowsPerCageJSpinner.setValue(exp.getSpots().nRowsPerCage);
 			}
 			silent = false;
 		}

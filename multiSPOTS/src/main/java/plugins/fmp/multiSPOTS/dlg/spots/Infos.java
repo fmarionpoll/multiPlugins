@@ -47,7 +47,7 @@ public class Infos extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 				if (exp != null) {
-//					exp.spotsArray.transferDescriptionToSpots();
+//					exp.getSpots().transferDescriptionToSpots();
 					if (infosSpotTable != null) {
 						infosSpotTable.close();
 					}

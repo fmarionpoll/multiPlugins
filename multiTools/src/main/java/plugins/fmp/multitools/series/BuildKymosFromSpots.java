@@ -97,7 +97,7 @@ public class BuildKymosFromSpots extends BuildSeries {
 //		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 //		processor.setThreadName("buildKymograph");
 //		processor.setPriority(Processor.NORM_PRIORITY);
-//		int ntasks = iiLast - iiFirst; // exp.spotsArray.getSpotsList().size(); //
+//		int ntasks = iiLast - iiFirst; // exp.getSpots().getSpotsList().size(); //
 //		ArrayList<Future<?>> tasks = new ArrayList<Future<?>>(ntasks);
 //		tasks.clear();
 //
@@ -121,7 +121,7 @@ public class BuildKymosFromSpots extends BuildSeries {
 //					int sizeC = sourceImage.getSizeC();
 //					IcyBufferedImageCursor cursorSource = new IcyBufferedImageCursor(sourceImage);
 //					for (Cage cage : exp.cages.cagesList) {
-//						for (Spot spot : cage.spotsArray.getSpotsList()) {
+//						for (Spot spot : cage.getSpots().getSpotsList()) {
 //							analyzeImageWithSpot2(cursorSource, spot, t - iiFirst, sizeC);
 //						}
 //					}
@@ -195,7 +195,7 @@ public class BuildKymosFromSpots extends BuildSeries {
 //
 //		int indexSpot = 0;
 //		for (Cage cage : exp.cages.cagesList) {
-//			for (Spot spot : cage.spotsArray.getSpotsList()) {
+//			for (Spot spot : cage.getSpots().getSpotsList()) {
 //				final int indexSpotKymo = indexSpot;
 //				tasks.add(processor.submit(new Runnable() {
 //					@Override
@@ -216,7 +216,7 @@ public class BuildKymosFromSpots extends BuildSeries {
 //	private int getMaxImageHeight(Experiment exp) {
 //		int maxImageHeight = 0;
 //		for (Cage cage : exp.getCages().cagesList) {
-//			for (Spot spot : cage.spotsArray.getList()) {
+//			for (Spot spot : cage.getSpots().getList()) {
 //				int height = spot.getSpotImage().getHeight();
 //				if (height > maxImageHeight)
 //					maxImageHeight = height;
@@ -250,7 +250,7 @@ public class BuildKymosFromSpots extends BuildSeries {
 //			dataType = DataType.UBYTE;
 //
 //		for (Cage cage : exp.cages.cagesList) {
-//			for (Spot spot : cage.spotsArray.getSpotsList()) {
+//			for (Spot spot : cage.getSpots().getSpotsList()) {
 //				int imageHeight = 0;
 //				ROI2DWithMask roiT = null;
 //				try {

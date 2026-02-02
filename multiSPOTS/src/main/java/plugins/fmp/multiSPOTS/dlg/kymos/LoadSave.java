@@ -103,7 +103,7 @@ public class LoadSave extends JPanel {
 		if (returnedval == JFileChooser.APPROVE_OPTION) {
 			outputpath = f.getSelectedFile().getAbsolutePath();
 			for (int t = 0; t < seqKymos.getSequence().getSizeT(); t++) {
-				Spot spot = exp.spotsArray.spotsList.get(t);
+				Spot spot = exp.getSpots().getSpotList().get(t);
 				progress.setMessage("Save kymograph file : " + spot.getRoi().getName());
 				spot.spot_filenameTIFF = outputpath + File.separator + spot.getRoi().getName() + ".tiff";
 				final File file = new File(spot.spot_filenameTIFF);
@@ -145,7 +145,7 @@ public class LoadSave extends JPanel {
 		int nItems = ImageFileDescriptor.getExistingFileNames(myList);
 		if (nItems > 0) {
 			flag = seqKymos.loadKymographImagesFromList(myList, true);
-			exp.spotsArray.transferSpotsMeasuresToSequenceAsROIs(exp.getSeqKymos().getSequence());
+			exp.getSpots().transferSpotsMeasuresToSequenceAsROIs(exp.getSeqKymos().getSequence());
 			parent0.dlgKymos.tabDisplay.transferSpotNamesToComboBox(exp);
 		} else
 			seqKymos.closeSequence();

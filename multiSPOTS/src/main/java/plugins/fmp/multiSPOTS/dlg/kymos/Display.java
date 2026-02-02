@@ -172,10 +172,10 @@ public class Display extends JPanel implements ViewerListener {
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				kymographsCombo.removeAllItems();
-				Collections.sort(exp.spotsArray.spotsList);
-				int nspotsArray = exp.spotsArray.spotsList.size();
+				Collections.sort(exp.getSpots().spotsList);
+				int nspotsArray = exp.getSpots().getSpotList().size();
 				for (int i = 0; i < nspotsArray; i++) {
-					Spot spot = exp.spotsArray.spotsList.get(i);
+					Spot spot = exp.getSpots().getSpotList().get(i);
 					String name = spot.getPlateCoordinatesAsString();
 					kymographsCombo.addItem(name);
 				}
@@ -369,7 +369,7 @@ public class Display extends JPanel implements ViewerListener {
 			spot.getRoi().setFocused(false);
 		}
 		if (isel >= 0) {
-			Spot selectedSpot = spotsArray.spotsList.get(isel);
+			Spot selectedSpot = spotsArray.getSpotList().get(isel);
 			selectedSpot.getRoi().setFocused(true);
 		}
 	}

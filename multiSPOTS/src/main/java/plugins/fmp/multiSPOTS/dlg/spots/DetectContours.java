@@ -282,7 +282,7 @@ public class DetectContours extends JPanel {
 		IcyBufferedImage sourceImage = seq.getImage(t, 0);
 		IcyBufferedImage workImage = transformFunction.getTransformedImage(sourceImage, transformOptions);
 		boolean detectSelectedROIs = selectedSpotCheckBox.isSelected();
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 
 			ROI2D roi_in = spot.getRoi();
 			if (detectSelectedROIs && !roi_in.isSelected())
@@ -311,7 +311,7 @@ public class DetectContours extends JPanel {
 
 	private void restoreContours(Experiment exp) {
 		boolean detectSelectedROIs = selectedSpotCheckBox.isSelected();
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 
 			ROI2D roi_in = spot.getRoi();
 			if (detectSelectedROIs && !roi_in.isSelected())
@@ -350,7 +350,7 @@ public class DetectContours extends JPanel {
 		if (roi == null)
 			return;
 
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			ROI2D spotRoi = spot.getRoi();
 			try {
 				if (!spotRoi.intersects(roi))

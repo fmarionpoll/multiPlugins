@@ -138,7 +138,7 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 			return;
 
 		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		Spot spot = exp.spotsArray.spotsList.get(t);
+		Spot spot = exp.getSpots().getSpotList().get(t);
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 		if (optionSelected.contains("sum"))
 			removeAndUpdate(seqKymos, spot, spot.sum_in, roiRect);
@@ -155,7 +155,7 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 			return;
 
 		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		Spot spot = exp.spotsArray.spotsList.get(t);
+		Spot spot = exp.getSpots().getSpotList().get(t);
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 		if (optionSelected.contains("sum"))
 			compensateAndUpdate(seqKymos, spot, spot.sum_in, roiRect);

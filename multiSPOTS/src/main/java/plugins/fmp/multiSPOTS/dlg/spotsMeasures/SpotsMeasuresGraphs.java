@@ -161,7 +161,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 			xlsExportOptions.cageIndexFirst = -1;
 		} else {
 			int ikymo = (parent0.dlgKymos.tabDisplay.kymographsCombo.getSelectedIndex());
-			xlsExportOptions.cageIndexFirst = exp.spotsArray.getCageIndexFromPlateIndex(ikymo);
+			xlsExportOptions.cageIndexFirst = exp.getSpots().getCageIndexFromPlateIndex(ikymo);
 			xlsExportOptions.cageIndexLast = xlsExportOptions.cageIndexFirst;
 		}
 
@@ -184,7 +184,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumXLSExportType option) {
 		boolean flag = false;
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			flag = spot.isThereAnyMeasuresDone(option);
 			if (flag)
 				break;

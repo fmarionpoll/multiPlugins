@@ -161,7 +161,7 @@ public class Edit extends JPanel {
 	public void openDialog() {
 		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
 		if (exp != null) {
-//			exp.spotsArray.transferDescriptionToSpots();
+//			exp.getSpots().transferDescriptionToSpots();
 			if (editSpotsTable == null)
 				editSpotsTable = new EditPositionWithTime();
 			editSpotsTable.initialize(parent0, getFramePosition());
@@ -191,7 +191,7 @@ public class Edit extends JPanel {
 	private void addFrameAroundSpots(int t, Experiment exp) {
 		if (spotsFrame == null) {
 			ArrayList<ROI2D> listRoisAtT = new ArrayList<ROI2D>();
-			for (Spot spot : exp.spotsArray.spotsList) {
+			for (Spot spot : exp.getSpots().spotsList) {
 				ROI2DAlongT kymoROI2D = spot.getROIAtT(t);
 				listRoisAtT.add(kymoROI2D.getRoi_in());
 			}
@@ -209,7 +209,7 @@ public class Edit extends JPanel {
 	}
 
 	private void displaySnake(Experiment exp) {
-		enclosedSpots = exp.spotsArray.getSpotsEnclosed(spotsFrame);
+		enclosedSpots = exp.getSpots().getSpotsEnclosed(spotsFrame);
 		if (enclosedSpots.size() > 0) {
 			ArrayList<Point2D> listPoint = new ArrayList<Point2D>();
 			for (Spot spot : enclosedSpots) {
@@ -249,7 +249,7 @@ public class Edit extends JPanel {
 	}
 
 	private void resizeSpots(Experiment exp, int delta) {
-		enclosedSpots = exp.spotsArray.getSpotsEnclosed(spotsFrame);
+		enclosedSpots = exp.getSpots().getSpotsEnclosed(spotsFrame);
 		if (enclosedSpots.size() > 0) {
 			for (Spot spot : enclosedSpots) {
 				ROI2DShape roi = (ROI2DShape) spot.getRoi();

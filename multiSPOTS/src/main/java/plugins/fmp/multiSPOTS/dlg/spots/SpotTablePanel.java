@@ -159,7 +159,7 @@ public class SpotTablePanel extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-				if (exp == null || (exp.spotsArray.nColumnsPerCage * exp.spotsArray.nRowsPerCage) != 2)
+				if (exp == null || (exp.getSpots().nColumnsPerCage * exp.getSpots().nRowsPerCage) != 2)
 					return;
 				exchangeLR(exp);
 			}
@@ -206,14 +206,14 @@ public class SpotTablePanel extends JPanel {
 		int columnIndex = jTable.getSelectedColumn();
 		if (columnIndex < 0)
 			columnIndex = 5;
-		int side0 = exp.spotsArray.spotsList.get(0).cagePosition;
+		int side0 = exp.getSpots().getSpotList().get(0).cagePosition;
 		Spot spot0 = new Spot();
-		spot0.copySpot(exp.spotsArray.spotsList.get(0));
+		spot0.copySpot(exp.getSpots().getSpotList().get(0));
 
 		Spot spot1 = new Spot();
-		spot1.copySpot(exp.spotsArray.spotsList.get(1));
+		spot1.copySpot(exp.getSpots().getSpotList().get(1));
 
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			if ((spot.cagePosition == side0))
 				copySingleSpotValue(spot1, spot, columnIndex);
 			else
@@ -246,7 +246,7 @@ public class SpotTablePanel extends JPanel {
 
 	private void copyInfos(Experiment exp) {
 		spotsArrayCopy.clear();
-		for (Spot spot : exp.spotsArray.spotsList)
+		for (Spot spot : exp.getSpots().spotsList)
 			spotsArrayCopy.add(spot);
 		pasteButton.setEnabled(true);
 	}
@@ -254,7 +254,7 @@ public class SpotTablePanel extends JPanel {
 	private void pasteInfos(Experiment exp) {
 		for (Spot spotFrom : spotsArrayCopy) {
 			spotFrom.valid = false;
-			for (Spot spotTo : exp.spotsArray.spotsList) {
+			for (Spot spotTo : exp.getSpots().spotsList) {
 				if (!spotFrom.getRoi().getName().equals(spotTo.getRoi().getName()))
 					continue;
 				spotFrom.valid = true;
@@ -269,7 +269,7 @@ public class SpotTablePanel extends JPanel {
 	}
 
 	private void setSpotsNPixels(Experiment exp) {
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			try {
 				spot.spotNPixels = (int) spot.getRoi().getNumberOfPoints();
 			} catch (InterruptedException e) {
@@ -285,10 +285,10 @@ public class SpotTablePanel extends JPanel {
 		if (rowIndex < 0)
 			return;
 
-		Spot spot0 = exp.spotsArray.spotsList.get(rowIndex);
+		Spot spot0 = exp.getSpots().getSpotList().get(rowIndex);
 		int cageIndex = spot0.cagePosition;
 
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			if (spot.getRoi().getName().equals(spot0.getRoi().getName()))
 				continue;
 
@@ -323,8 +323,8 @@ public class SpotTablePanel extends JPanel {
 		if (rowIndex < 0)
 			return;
 
-		Spot spotFrom = exp.spotsArray.spotsList.get(rowIndex);
-		for (Spot spot : exp.spotsArray.spotsList) {
+		Spot spotFrom = exp.getSpots().getSpotList().get(rowIndex);
+		for (Spot spot : exp.getSpots().spotsList) {
 			if (spot.getRoi().getName().equals(spotFrom.getRoi().getName()))
 				continue;
 			switch (columnIndex) {
@@ -355,7 +355,7 @@ public class SpotTablePanel extends JPanel {
 		if (rowIndex < 0)
 			return;
 
-		Spot spotFrom = exp.spotsArray.spotsList.get(rowIndex);
+		Spot spotFrom = exp.getSpots().getSpotList().get(rowIndex);
 		int cageFrom = spotFrom.cageID;
 		int cageTo = -1;
 
@@ -363,8 +363,8 @@ public class SpotTablePanel extends JPanel {
 		int indexFirstSpotOfCageFrom = getIndexFirstSpotOfCage(exp, cageFrom);
 		int indexFirstSpotOfCageTo = -1;
 
-		for (int i = 0; i < exp.spotsArray.spotsList.size(); i++) {
-			Spot spot = exp.spotsArray.spotsList.get(i);
+		for (int i = 0; i < exp.getSpots().getSpotList().size(); i++) {
+			Spot spot = exp.getSpots().getSpotList().get(i);
 			if (spot.cageID == cageFrom)
 				continue;
 
@@ -377,7 +377,7 @@ public class SpotTablePanel extends JPanel {
 				continue;
 
 			int indexFrom = i - indexFirstSpotOfCageTo + indexFirstSpotOfCageFrom;
-			Spot spot0 = exp.spotsArray.spotsList.get(indexFrom);
+			Spot spot0 = exp.getSpots().getSpotList().get(indexFrom);
 
 			switch (columnIndex) {
 			case 3:
@@ -404,7 +404,7 @@ public class SpotTablePanel extends JPanel {
 
 	private int getCageNSpots(Experiment exp, int cageID) {
 		int nSpots = 0;
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().spotsList) {
 			if (spot.cageID == cageID)
 				nSpots++;
 		}
@@ -413,8 +413,8 @@ public class SpotTablePanel extends JPanel {
 
 	private int getIndexFirstSpotOfCage(Experiment exp, int cageID) {
 		int index = -1;
-		for (int i = 0; i < exp.spotsArray.spotsList.size(); i++) {
-			Spot spot = exp.spotsArray.spotsList.get(i);
+		for (int i = 0; i < exp.getSpots().getSpotList().size(); i++) {
+			Spot spot = exp.getSpots().getSpotList().get(i);
 			if (spot.cageID == cageID) {
 				index = i;
 				break;

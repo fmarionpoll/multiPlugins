@@ -106,8 +106,8 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 					exp.getCages().removeCages();
 					createROIsFromSelectedPolygonAndSpots(exp);
 					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
-					if (exp.spotsArray.spotsList.size() > 0)
-						exp.getCages().transferNFliesFromSpotsToCages(exp.spotsArray);
+					if (exp.getSpots().getSpotList().size() > 0)
+						exp.getCages().transferNFliesFromSpotsToCages(exp.getSpots());
 				}
 			}
 		});
@@ -201,7 +201,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 		blobs.fillBlanksPixelsWithinBlobs();
 
 		List<Integer> blobsfound = new ArrayList<Integer>();
-		for (Spot spot : exp.spotsArray.spotsList) {
+		for (Spot spot : exp.getSpots().getSpotList()) {
 			Point2D pt = spot.getSpotCenter();
 			if (pt != null) {
 				int ix = (int) (pt.getX() - rectGrid.x);
@@ -233,7 +233,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 		if (roiSnip == null)
 			return;
 
-		List<ROI> roiList = ROIUtilities.getROIsContainingString("cage", seqCamData.seq);
+		List<ROI> roiList = ROIUtilities.getROIsContainingString("cage", seqCamData.getSequence());
 		for (ROI cageRoi : roiList) {
 			if (roiSnip.intersects(cageRoi) && cageRoi instanceof ROI2DPolygon) {
 				Polygon2D oldPolygon = ((ROI2DPolygon) cageRoi).getPolygon2D();
@@ -260,8 +260,8 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 		}
 
 		Polygon2D polygon = null;
-		if (exp.spotsArray.spotsList.size() > 0) {
-			polygon = exp.spotsArray.get2DPolygonEnclosingSpots();
+		if (exp.getSpots().getSpotList().size() > 0) {
+			polygon = exp.getSpots().get2DPolygonEnclosingSpots();
 		} else {
 			Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 			List<Point2D> points = new ArrayList<Point2D>();
