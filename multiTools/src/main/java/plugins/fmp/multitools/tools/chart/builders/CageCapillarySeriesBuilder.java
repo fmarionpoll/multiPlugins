@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.jfree.chart.ChartColor;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -305,7 +306,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		CageProperties cageProp = cage.getProperties();
 		evaporationSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
-				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.LIGHT_GRAY)); // Color.BLACK));
+				cageProp.getCagePosition(), cageProp.getCageNFlies(), ChartColor.BLACK)); // Color.BLACK));
 
 		return evaporationSeries;
 	}

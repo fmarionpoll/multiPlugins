@@ -34,6 +34,7 @@ public final class CageChartPlotFactory {
 
 	// Token used historically to mark secondary series (dashed)
 	private static final String SECONDARY_DATA_TOKEN = "*";
+	private static final String REFERENCE_SERIES_SUFFIX = "_evaporation";
 
 	private CageChartPlotFactory() {
 	}
@@ -125,9 +126,10 @@ public final class CageChartPlotFactory {
 
 		Stroke dashedStroke = new BasicStroke(DEFAULT_STROKE_WIDTH, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND, 1.0f,
 				DASH_PATTERN, DASH_PHASE);
+
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = (String) dataset.getSeriesKey(i);
-			if (key != null && key.contains(SECONDARY_DATA_TOKEN)) {
+			if (key != null && (key.contains(SECONDARY_DATA_TOKEN) || key.endsWith(REFERENCE_SERIES_SUFFIX))) {
 				renderer.setSeriesStroke(i, dashedStroke);
 			}
 		}
