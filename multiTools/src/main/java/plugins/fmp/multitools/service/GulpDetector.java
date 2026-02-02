@@ -205,30 +205,39 @@ public class GulpDetector {
 		Capillary firstEmptyCageCap = emptyCageCapillaries.get(0);
 		int npoints = firstEmptyCageCap.getDerivative().polylineLevel.npoints;
 
+		double[] smoothedReference = computeSmoothedReferenceCurve(emptyCageCapillaries, options);
+		if (smoothedReference == null || smoothedReference.length != npoints) {
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Failed to compute smoothed reference curve");
+			return null;
+		}
+
+		List<double[]> residualArrays = new ArrayList<>();
+		for (Capillary cap : emptyCageCapillaries) {
+			double[] residuals = computeResiduals(cap, smoothedReference);
+			if (residuals != null) {
+				residualArrays.add(residuals);
+			}
+		}
+
+		if (residualArrays.isEmpty()) {
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Failed to compute residuals");
+			return null;
+		}
+
+		double[] temporalNoise = computeTemporalNoise(residualArrays, options, npoints);
+		if (temporalNoise == null || temporalNoise.length != npoints) {
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Failed to compute temporal noise");
+			return null;
+		}
+
 		double[] thresholdValues = new double[npoints];
 		double[] xpoints = new double[npoints];
+		double k = options.thresholdSdMultiplier;
 
 		for (int t = 0; t < npoints; t++) {
 			xpoints[t] = t;
-			List<Double> derivativeValuesAtT = new ArrayList<>();
-
-			for (Capillary cap : emptyCageCapillaries) {
-				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
-						&& t < cap.getDerivative().polylineLevel.npoints) {
-					double derivValue = cap.getDerivative().polylineLevel.ypoints[t];
-					derivativeValuesAtT.add(derivValue);
-				}
-			}
-
-			if (derivativeValuesAtT.isEmpty()) {
-				thresholdValues[t] = 0;
-				continue;
-			}
-
-			thresholdValues[t] = computeThresholdAtT(derivativeValuesAtT, options);
+			thresholdValues[t] = smoothedReference[t] + k * temporalNoise[t];
 		}
-
-		thresholdValues = applySmoothing(thresholdValues, options);
 
 		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
 				firstEmptyCageCap.getLast2ofCapillaryName() + "_threshold");
@@ -238,7 +247,7 @@ public class GulpDetector {
 		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
 		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from "
-				+ emptyCageCapillaries.size() + " empty cage(s)");
+				+ emptyCageCapillaries.size() + " empty cage(s) using smoothed reference and temporal noise model");
 
 		return thresholdMeasure;
 	}
@@ -355,6 +364,111 @@ public class GulpDetector {
 		default:
 			return data;
 		}
+	}
+
+	private double[] computeSmoothedReferenceCurve(List<Capillary> emptyCageCapillaries, BuildSeriesOptions options) {
+		if (emptyCageCapillaries.isEmpty())
+			return null;
+
+		Capillary firstCap = emptyCageCapillaries.get(0);
+		if (firstCap.getDerivative() == null || firstCap.getDerivative().polylineLevel == null)
+			return null;
+
+		int npoints = firstCap.getDerivative().polylineLevel.npoints;
+		double[] referenceCurve = new double[npoints];
+
+		for (int t = 0; t < npoints; t++) {
+			List<Double> derivativeValuesAtT = new ArrayList<>();
+
+			for (Capillary cap : emptyCageCapillaries) {
+				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
+						&& t < cap.getDerivative().polylineLevel.npoints) {
+					double derivValue = cap.getDerivative().polylineLevel.ypoints[t];
+					derivativeValuesAtT.add(derivValue);
+				}
+			}
+
+			if (derivativeValuesAtT.isEmpty()) {
+				referenceCurve[t] = 0.0;
+			} else {
+				referenceCurve[t] = computeMean(derivativeValuesAtT);
+			}
+		}
+
+		return applySmoothing(referenceCurve, options);
+	}
+
+	private double[] computeResiduals(Capillary cap, double[] smoothedReference) {
+		if (cap.getDerivative() == null || cap.getDerivative().polylineLevel == null || smoothedReference == null)
+			return null;
+
+		int npoints = cap.getDerivative().polylineLevel.npoints;
+		int refLength = smoothedReference.length;
+		double[] residuals = new double[Math.min(npoints, refLength)];
+
+		for (int t = 0; t < residuals.length; t++) {
+			double derivativeValue = cap.getDerivative().polylineLevel.ypoints[t];
+			residuals[t] = derivativeValue - smoothedReference[t];
+		}
+
+		return residuals;
+	}
+
+	private double[] computeTemporalNoise(List<double[]> residualArrays, BuildSeriesOptions options, int npoints) {
+		if (residualArrays == null || residualArrays.isEmpty())
+			return null;
+
+		double[] temporalNoise = new double[npoints];
+		int temporalWindow = Math.max(5, options.thresholdSmoothingWindow);
+
+		for (int t = 0; t < npoints; t++) {
+			List<Double> residualsInWindow = new ArrayList<>();
+
+			int windowStart = Math.max(0, t - temporalWindow / 2);
+			int windowEnd = Math.min(npoints, t + temporalWindow / 2 + 1);
+
+			for (double[] residuals : residualArrays) {
+				if (residuals == null || residuals.length == 0)
+					continue;
+
+				for (int w = windowStart; w < windowEnd && w < residuals.length; w++) {
+					residualsInWindow.add(residuals[w]);
+				}
+			}
+
+			if (residualsInWindow.isEmpty()) {
+				temporalNoise[t] = 0.0;
+			} else {
+				GulpThresholdMethod method = options.thresholdMethod;
+				switch (method) {
+				case MEAN_PLUS_SD: {
+					double mean = computeMean(residualsInWindow);
+					double std = computeStdDev(residualsInWindow, mean);
+					temporalNoise[t] = Math.abs(std);
+					break;
+				}
+				case MEDIAN_PLUS_IQR: {
+					double iqr = computeIQR(residualsInWindow);
+					temporalNoise[t] = Math.abs(iqr);
+					break;
+				}
+				case MEDIAN_PLUS_MAD: {
+					double median = computeMedian(residualsInWindow);
+					double mad = computeMAD(residualsInWindow, median);
+					temporalNoise[t] = Math.abs(mad);
+					break;
+				}
+				default: {
+					double mean = computeMean(residualsInWindow);
+					double std = computeStdDev(residualsInWindow, mean);
+					temporalNoise[t] = Math.abs(std);
+					break;
+				}
+				}
+			}
+		}
+
+		return temporalNoise;
 	}
 
 	private List<Point2D> getDerivativeProfile(Sequence seq, Capillary cap, int jitter) {

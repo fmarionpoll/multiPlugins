@@ -11,6 +11,7 @@ import java.beans.PropertyChangeListener;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -34,7 +35,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 	 */
 	private static final long serialVersionUID = -5590697762090397890L;
 
-	JCheckBox selectedKymoCheckBox = new JCheckBox("selected kymograph", false);
+	JCheckBox selectedKymoCheckBox = new JCheckBox("selected", false);
 	ImageTransformEnums[] gulpTransforms = new ImageTransformEnums[] { ImageTransformEnums.XDIFFN,
 			ImageTransformEnums.YDIFFN, ImageTransformEnums.YDIFFN2, ImageTransformEnums.XYDIFFN };
 
@@ -44,7 +45,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 	JCheckBox derivative_checkbox = new JCheckBox("derivative", true);
 	JCheckBox gulps_checkbox = new JCheckBox("gulps", true);
 
-	private JCheckBox from_pixel_checkbox = new JCheckBox("from (pixel)", false);
+	private JCheckBox from_pixel_checkbox = new JCheckBox("from pixel", false);
 	private JToggleButton display_button = new JToggleButton("Display");
 
 	private JComboBox<GulpThresholdMethod> thresholdMethodCombo = new JComboBox<>(GulpThresholdMethod.values());
@@ -53,9 +54,9 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 			GulpThresholdSmoothing.values());
 	private JSpinner thresholdSmoothingWindowSpinner = new JSpinner(new SpinnerNumberModel(5, 3, 21, 2));
 	private JSpinner thresholdSmoothingAlphaSpinner = new JSpinner(new SpinnerNumberModel(0.3, 0.01, 0.99, 0.05));
-	private String detectString = "        Detect     ";
+	private String detectString = " Detect ";
 	private JButton detectButton = new JButton(detectString);
-	private JCheckBox all_checkbox = new JCheckBox("ALL (current to last)", false);
+	private JCheckBox all_checkbox = new JCheckBox("ALL", false);
 	private DetectGulps threadDetectGulps = null;
 	private MultiCAFE parent0 = null;
 
@@ -70,20 +71,34 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		panel0.add(detectButton);
 		panel0.add(all_checkbox);
 		panel0.add(selectedKymoCheckBox);
-		panel0.add(derivative_checkbox);
-		panel0.add(gulps_checkbox);
+		panel0.add(from_pixel_checkbox);
+		panel0.add(start_spinner);
+		JSpinner.DefaultEditor editor1 = (JSpinner.DefaultEditor) start_spinner.getEditor();
+		JFormattedTextField textField1 = editor1.getTextField();
+		textField1.setColumns(3);
+		panel0.add(new JLabel("to"));
+		panel0.add(end_spinner);
+		JSpinner.DefaultEditor editor2 = (JSpinner.DefaultEditor) end_spinner.getEditor();
+		JFormattedTextField textField2 = editor2.getTextField();
+		textField2.setColumns(4);
+		
 		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
+		panel01.add(derivative_checkbox);
 		panel01.add(gulpTransforms_comboBox);
 		panel01.add(display_button);
 		add(panel01);
+		
+		JPanel panel01a = new JPanel(layoutLeft);
+		panel01a.add(gulps_checkbox);
+		panel01a.add(new JLabel("ref curve"));
+		panel01a.add(thresholdMethodCombo);
+		panel01a.add(new JLabel("k"));
+		panel01a.add(thresholdMultiplierSpinner);
+		add(panel01a);
 
-		JPanel panel01b = new JPanel(layoutLeft);
-		panel01b.add(new JLabel("ref curve"));
-		panel01b.add(thresholdMethodCombo);
-		panel01b.add(new JLabel("k"));
-		panel01b.add(thresholdMultiplierSpinner);
+		JPanel panel01b = new JPanel(layoutLeft);	
 		panel01b.add(new JLabel("smooth"));
 		panel01b.add(thresholdSmoothingCombo);
 		panel01b.add(new JLabel("win"));
@@ -92,12 +107,6 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		panel01b.add(thresholdSmoothingAlphaSpinner);
 		add(panel01b);
 
-		JPanel panel1 = new JPanel(layoutLeft);
-		panel1.add(from_pixel_checkbox);
-		panel1.add(start_spinner);
-		panel1.add(new JLabel("to"));
-		panel1.add(end_spinner);
-		add(panel1);
 
 		gulpTransforms_comboBox.setSelectedItem(ImageTransformEnums.XDIFFN);
 		defineActionListeners();
