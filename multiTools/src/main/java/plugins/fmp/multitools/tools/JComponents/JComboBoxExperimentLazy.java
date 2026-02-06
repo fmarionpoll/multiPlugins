@@ -414,16 +414,19 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 
 	public List<String> getFieldValuesFromAllExperimentsLightweight(EnumXLSColumnHeader field) {
 		List<String> textList = new ArrayList<>();
-		// Capillary, spot, and cage fields require full experiment loading (including
-		// cages)
-		// because they are stored on individual capillaries/spots/cages, not in
-		// experiment properties
 		boolean requiresFullLoad = field.toType() == EnumColumnType.CAP || field.toType() == EnumColumnType.SPOT
 				|| field == EnumXLSColumnHeader.CAGE_SEX || field == EnumXLSColumnHeader.CAGE_STRAIN
 				|| field == EnumXLSColumnHeader.CAGE_AGE || field == EnumXLSColumnHeader.CAP_STIM
 				|| field == EnumXLSColumnHeader.CAP_CONC || field == EnumXLSColumnHeader.CAP_VOLUME;
 
-		// Iterate through all experiments
+		if (!requiresFullLoad) {
+			for (int i = 0; i < getItemCount(); i++) {
+				Experiment exp = getItemAtNoLoad(i);
+				if (exp instanceof LazyExperiment)
+					((LazyExperiment) exp).invalidatePropertiesCache();
+			}
+		}
+
 		for (int i = 0; i < getItemCount(); i++) {
 			Experiment exp = getItemAtNoLoad(i);
 			if (exp == null)
@@ -453,7 +456,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 					if (exp instanceof LazyExperiment) {
 						LazyExperiment lazyExp = (LazyExperiment) exp;
 						String fieldValue = lazyExp.getFieldValue(field);
-						if (fieldValue != null && !fieldValue.isEmpty() && !fieldValue.equals("..")) {
+						if (fieldValue != null && !fieldValue.isEmpty()) {
 							addIfUniqueString(textList, fieldValue);
 						}
 					} else {

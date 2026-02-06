@@ -193,6 +193,11 @@ public class LazyExperiment extends Experiment {
 		return experimentPropertiesLoaded;
 	}
 
+	public void invalidatePropertiesCache() {
+		experimentPropertiesLoaded = false;
+		cachedExperimentProperties = null;
+	}
+
 	public ExperimentMetadata getMetadata() {
 		return metadata;
 	}
