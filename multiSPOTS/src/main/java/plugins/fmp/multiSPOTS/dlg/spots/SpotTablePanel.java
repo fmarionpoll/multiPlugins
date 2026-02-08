@@ -50,7 +50,7 @@ public class SpotTablePanel extends JPanel {
 		this.parent0 = parent0;
 		spotsArrayCopy = spotCopy;
 
-		spotTableModel = new TableModelSpot(parent0.expListCombo);
+		spotTableModel = new TableModelSpot(parent0.expListComboLazy);
 		jTable.setModel(spotTableModel);
 		jTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		jTable.setPreferredScrollableViewportSize(new Dimension(500, 400));
@@ -110,7 +110,7 @@ public class SpotTablePanel extends JPanel {
 		copyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					copyInfos(exp);
 			}
@@ -119,7 +119,7 @@ public class SpotTablePanel extends JPanel {
 		pasteButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					pasteInfos(exp);
 				spotTableModel.fireTableDataChanged();
@@ -129,7 +129,7 @@ public class SpotTablePanel extends JPanel {
 		nPixelsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					setSpotsNPixels(exp);
 					spotTableModel.fireTableDataChanged();
@@ -140,7 +140,7 @@ public class SpotTablePanel extends JPanel {
 		duplicateLRButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					duplicateLR(exp);
 			}
@@ -149,7 +149,7 @@ public class SpotTablePanel extends JPanel {
 		duplicateCageButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					duplicateCage(exp);
 			}
@@ -158,7 +158,7 @@ public class SpotTablePanel extends JPanel {
 		exchangeLRButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null || (exp.getSpots().nColumnsPerCage * exp.getSpots().nRowsPerCage) != 2)
 					return;
 				exchangeLR(exp);
@@ -168,7 +168,7 @@ public class SpotTablePanel extends JPanel {
 		duplicateAllButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					duplicateAll(exp);
 				}
@@ -178,7 +178,7 @@ public class SpotTablePanel extends JPanel {
 		getNfliesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getCages().cagesList.size() > 0) {
 					exp.getCages().transferNFliesFromCagesToSpots(exp.spotsArray);
 					spotTableModel.fireTableDataChanged();
@@ -189,7 +189,7 @@ public class SpotTablePanel extends JPanel {
 		setCageNoButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					exp.getCages().setCageNbFromSpotsArray(exp.spotsArray);
 					spotTableModel.fireTableDataChanged();

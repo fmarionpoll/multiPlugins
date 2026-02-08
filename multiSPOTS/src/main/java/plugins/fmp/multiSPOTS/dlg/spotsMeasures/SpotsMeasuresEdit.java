@@ -70,7 +70,7 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 		cutAndInterpolateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					cutAndInterpolate(exp);
 			}
@@ -79,7 +79,7 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 		compensateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					compensate(exp);
 			}
@@ -97,7 +97,7 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 	}
 
 	void startDetection() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			threadbuildMedian = new BuildMedianFromSpotMeasure();
 			threadbuildMedian.options = initDetectOptions(exp);
@@ -115,12 +115,12 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 	private BuildSeriesOptions initDetectOptions(Experiment exp) {
 		BuildSeriesOptions options = new BuildSeriesOptions();
 		// list of stack experiments
-		options.expList = parent0.expListCombo;
-		options.expList.index0 = parent0.expListCombo.getSelectedIndex();
+		options.expList = parent0.expListComboLazy;
+		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
 		if (allSeriesCheckBox.isSelected())
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
-			options.expList.index1 = parent0.expListCombo.getSelectedIndex();
+			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 		options.detectAllSeries = allSeriesCheckBox.isSelected();
 		if (!allSeriesCheckBox.isSelected()) {
 			options.seriesLast = options.seriesFirst;
@@ -180,7 +180,7 @@ public class SpotsMeasuresEdit extends JPanel implements PropertyChangeListener 
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			buildMedianButton.setText(buildMedianString);
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_SpotsMeasures();
 				parent0.dlgMeasure.tabGraphs.displayGraphsPanels(exp);

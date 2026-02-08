@@ -22,7 +22,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
 	public IcyFrame mainFrame = new IcyFrame("multiSPOTS ov 14, 2025", true, true, true, true);
-	public JComboBoxExperimentLazy expListCombo = new JComboBoxExperimentLazy();
+	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 
 	public _DlgBrowse_ dlgBrowse = new _DlgBrowse_();
 	public _DlgExperiment_ dlgExperiment = new _DlgExperiment_();

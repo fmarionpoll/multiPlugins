@@ -91,7 +91,7 @@ public class CreateCages extends JPanel {
 		displayFrameDButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					selectRoiEnclosingCages(exp);
 				}
@@ -101,7 +101,7 @@ public class CreateCages extends JPanel {
 		createCagesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					buildCages(exp);
 				}
@@ -111,7 +111,7 @@ public class CreateCages extends JPanel {
 		nCagesPerPlateAlongXJSpinner.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					selectRoiEnclosingCages(exp);
 					buildCages(exp);
@@ -122,7 +122,7 @@ public class CreateCages extends JPanel {
 		nCagesPerPlateAlongYJSpinner.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					selectRoiEnclosingCages(exp);
 					buildCages(exp);
@@ -153,7 +153,7 @@ public class CreateCages extends JPanel {
 	}
 
 	void updateNColumnsFieldFromSequence() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			int nrois = exp.getCages().cagesList.size();
 			if (nrois > 0) {

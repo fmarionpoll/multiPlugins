@@ -75,7 +75,7 @@ public class Infos extends JPanel {
 		editCagesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 //					exp.getSpots().transferDescriptionToSpots();
 					exp.getCages().transferNFliesFromSpotsToCages(exp.getSpots());
@@ -110,7 +110,7 @@ public class Infos extends JPanel {
 	}
 
 	void measureCagesSpan() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			exp.getSpots().transferROIsFromSequenceToSpots(exp.getSeqCamData().getSequence());
 			if (exp.getSpots().getSpotList().size() > 0) {

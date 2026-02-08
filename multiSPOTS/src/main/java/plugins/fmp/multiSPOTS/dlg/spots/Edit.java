@@ -81,7 +81,7 @@ public class Edit extends JPanel {
 		editSpotsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 				openDialog();
@@ -91,7 +91,7 @@ public class Edit extends JPanel {
 		showFrameButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 				updateButtonsState(showFrameButton.isSelected());
@@ -102,7 +102,7 @@ public class Edit extends JPanel {
 		displaySnakeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 				if (displaySnakeButton.isSelected())
@@ -116,7 +116,7 @@ public class Edit extends JPanel {
 		updateSpotsFromSnakeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 				updateSpotsFromSnake(exp);
@@ -126,7 +126,7 @@ public class Edit extends JPanel {
 		dilateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 				resizeSpots(exp, +1);
@@ -136,7 +136,7 @@ public class Edit extends JPanel {
 		erodeButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 				resizeSpots(exp, -1);
@@ -159,7 +159,7 @@ public class Edit extends JPanel {
 	}
 
 	public void openDialog() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 //			exp.getSpots().transferDescriptionToSpots();
 			if (editSpotsTable == null)
@@ -175,7 +175,7 @@ public class Edit extends JPanel {
 	// --------------------------------------
 
 	private void showFrame(boolean show) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 

@@ -130,10 +130,10 @@ public class Create extends JPanel implements PropertyChangeListener {
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {
 		setExptParms(exp);
 		BuildSeriesOptions options = new BuildSeriesOptions();
-		options.expList = parent0.expListCombo;
-		options.expList.index0 = parent0.expListCombo.getSelectedIndex();
+		options.expList = parent0.expListComboLazy;
+		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
 		if (allSeriesCheckBox.isSelected())
-			options.expList.index1 = parent0.expListCombo.getItemCount() - 1;
+			options.expList.index1 = parent0.expListComboLazy.getItemCount() - 1;
 		else
 			options.expList.index1 = options.expList.index0;
 		options.isFrameFixed = false; // getIsFixedFrame();
@@ -150,7 +150,7 @@ public class Create extends JPanel implements PropertyChangeListener {
 
 	private void startComputation() {
 		sComputation = EnumStatusComputation.STOP_COMPUTATION;
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null)
 			parent0.dlgSpots.tabFile.saveSpotsArray_file(exp);
 

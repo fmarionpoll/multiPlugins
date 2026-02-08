@@ -20,6 +20,7 @@ import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.gui.viewer.Viewer;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
@@ -84,7 +85,7 @@ public class Intervals extends JPanel implements ItemListener {
 		applyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					setExperimentParameters(exp);
 			}
@@ -93,7 +94,7 @@ public class Intervals extends JPanel implements ItemListener {
 		refreshButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					refreshBinSize(exp);
 			}
@@ -102,43 +103,48 @@ public class Intervals extends JPanel implements ItemListener {
 		indexFirstImageJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				long newValue = (long) indexFirstImageJSpinner.getValue();
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
-				if (exp != null && exp.getSeqCamData().absoluteIndexFirstImage != newValue) {
-					exp.getSeqCamData().absoluteIndexFirstImage = newValue;
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null && exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() != newValue) {
+					exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(newValue);
 					List<String> imagesList = ExperimentDirectories
-							.getImagesListFromPathV2(exp.seqCamData.imagesDirectory, "jpg");
+							.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
 					exp.getSeqCamData().loadImageList(imagesList);
-					long bin_ms = exp.getSeqCamData().binImage_ms;
-					exp.getSeqCamData().binFirst_ms = exp.getSeqCamData().absoluteIndexFirstImage * bin_ms;
-					exp.saveXML_MCExperiment();
+					long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+					exp.getSeqCamData().getTimeManager()
+							.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
+					exp.saveExperimentDescriptors();
 				}
 			}
 		});
 
 		fixedNumberOfImagesJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				long newValue = (long) fixedNumberOfImagesJSpinner.getValue();
-				if (exp != null && exp.getSeqCamData().fixedNumberOfImages != newValue) {
-					exp.getSeqCamData().fixedNumberOfImages = newValue;
+				if (exp != null && exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() != newValue) {
+					exp.getSeqCamData().getImageLoader().setFixedNumberOfImages(newValue);
 					List<String> imagesList = (ArrayList<String>) ExperimentDirectories
-							.getImagesListFromPathV2(exp.getSeqCamData().imagesDirectory, "jpg");
+							.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
 					exp.getSeqCamData().loadImageList(imagesList);
-					long bin_ms = exp.getSeqCamData().binImage_ms;
-					exp.getSeqCamData().binLast_ms = ((long) (fixedNumberOfImagesJSpinner.getValue())
-							- exp.getSeqCamData().absoluteIndexFirstImage) * bin_ms;
+					long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+					exp.getSeqCamData().getTimeManager().setBinLast_ms((long) (fixedNumberOfImagesJSpinner.getValue())
+							- exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
 				}
 			}
 		});
 
 		binSizeJSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
-					exp.getSeqCamData().binImage_ms = bin_ms;
-					exp.getSeqCamData().binFirst_ms = exp.getSeqCamData().absoluteIndexFirstImage * bin_ms;
-					exp.getSeqCamData().binLast_ms = (exp.getSeqCamData().fixedNumberOfImages - 1) * bin_ms;
+					exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
+					exp.setCamImageBin_ms(bin_ms);
+					exp.setKymoBin_ms(bin_ms);
+					exp.getSeqCamData().getTimeManager()
+							.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
+					exp.getSeqCamData().getTimeManager().setBinLast_ms(
+							(exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() - 1) * bin_ms);
 				}
 			}
 		});
@@ -146,14 +152,26 @@ public class Intervals extends JPanel implements ItemListener {
 	}
 
 	private void setExperimentParameters(Experiment exp) {
-		exp.getSeqCamData().binImage_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
-		long bin_ms = exp.getSeqCamData().binImage_ms;
-		exp.getSeqCamData().absoluteIndexFirstImage = (long) indexFirstImageJSpinner.getValue();
-		exp.getSeqCamData().binFirst_ms = exp.getSeqCamData().absoluteIndexFirstImage * bin_ms;
-		if (exp.getSeqCamData().fixedNumberOfImages > 0)
-			exp.getSeqCamData().binLast_ms = (exp.getSeqCamData().fixedNumberOfImages - 1) * bin_ms;
+		long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
+		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
+		exp.setCamImageBin_ms(bin_ms);
+		exp.setKymoBin_ms(bin_ms);
+		long firstImageIndex = (long) indexFirstImageJSpinner.getValue();
+		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(firstImageIndex);
+		exp.getSeqCamData().getTimeManager()
+				.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
+		if (exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() > 0)
+			exp.getSeqCamData().getTimeManager()
+					.setBinLast_ms((exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() - 1) * bin_ms);
 		else
-			exp.getSeqCamData().binLast_ms = (exp.getSeqCamData().nTotalFrames - 1) * bin_ms;
+			exp.getSeqCamData().getTimeManager()
+					.setBinLast_ms((exp.getSeqCamData().getImageLoader().getNTotalFrames() - 1) * bin_ms);
+
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (v != null)
+			v.close();
+		parent0.dlgBrowse.loadSaveExperiment.closeCurrentExperiment();
+		parent0.dlgBrowse.loadSaveExperiment.openSelectedExperiment(exp);
 	}
 
 	public void getExptParms(Experiment exp) {
@@ -180,7 +198,7 @@ public class Intervals extends JPanel implements ItemListener {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			Object source = e.getSource();
 			if (source instanceof JComboBox) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					boolean clipped = clipNumberImagesCombo.getSelectedIndex() == 1 ? true : false;
 					fixedNumberOfImagesJSpinner.setVisible(clipped);

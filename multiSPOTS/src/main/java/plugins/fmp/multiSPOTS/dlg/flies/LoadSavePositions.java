@@ -47,7 +47,7 @@ public class LoadSavePositions extends JPanel {
 		openCagesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					loadCages(exp);
 					firePropertyChange("LOAD_DATA", false, true);
@@ -59,7 +59,7 @@ public class LoadSavePositions extends JPanel {
 		saveCagesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					saveMeasures(exp);
 					// TODO _CAGES parent0.dlgDetectFlies.tabsPane.setSelectedIndex(3);

@@ -144,7 +144,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 			Viewer v = event.getSource();
 			int idViewer = v.getSequence().getId();
 
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				int idCurrentSeqCamData = exp.getSeqCamData().getSequence().getId();
 				if (idViewer == idCurrentSeqCamData) {

@@ -13,10 +13,10 @@ public class _DlgBrowse_ extends JPanel {
 	 * 
 	 */
 	private static final long serialVersionUID = -6826269677524125173L;
-	public LoadSaveExperiment panelLoadSave = new LoadSaveExperiment();
+	public LoadSaveExperiment loadSaveExperiment = new LoadSaveExperiment();
 
 	public void init(JPanel mainPanel, String string, MultiSPOTS parent0) {
-		JPanel filesPanel = panelLoadSave.initPanel(parent0);
+		JPanel filesPanel = loadSaveExperiment.initPanel(parent0);
 		mainPanel.add(filesPanel, BorderLayout.CENTER);
 		mainPanel.addComponentListener(new ComponentAdapter() {
 			@Override

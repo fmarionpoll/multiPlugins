@@ -109,7 +109,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 	private void declareListeners() {
 		spotsOverlayCheckBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					if (spotsOverlayCheckBox.isSelected()) {
 						updateOverlay(exp);
@@ -123,7 +123,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 		spotsTransformsComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null && viewButton1.isSelected()) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
 					Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
@@ -141,7 +141,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 		fliesTransformsComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null && viewButton2.isSelected()) {
 					int index = fliesTransformsComboBox.getSelectedIndex();
 					Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
@@ -185,7 +185,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 		viewButton1.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayTransform1(exp);
 			}
@@ -194,7 +194,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 		viewButton2.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayTransform2(exp);
 			}
@@ -251,7 +251,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 	}
 
 	void startDetection() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			threadDetectLevels = new BuildSpotsMeasures();
 			threadDetectLevels.options = initDetectOptions(exp);
@@ -269,12 +269,12 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 	private BuildSeriesOptions initDetectOptions(Experiment exp) {
 		BuildSeriesOptions options = new BuildSeriesOptions();
 
-		options.expList = parent0.expListCombo;
-		options.expList.index0 = parent0.expListCombo.getSelectedIndex();
+		options.expList = parent0.expListComboLazy;
+		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
 		if (allSeriesCheckBox.isSelected())
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
-			options.expList.index1 = parent0.expListCombo.getSelectedIndex();
+			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 		options.detectAllSeries = allSeriesCheckBox.isSelected();
 		if (!allSeriesCheckBox.isSelected()) {
 			options.seriesLast = options.seriesFirst;
@@ -357,7 +357,7 @@ public class SpotsMeasuresThresholdSimple extends JPanel implements PropertyChan
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_SpotsMeasures();
 				parent0.dlgMeasure.tabGraphs.displayGraphsPanels(exp);

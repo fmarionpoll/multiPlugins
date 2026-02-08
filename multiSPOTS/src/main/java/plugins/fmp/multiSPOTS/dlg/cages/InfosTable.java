@@ -41,7 +41,7 @@ public class InfosTable extends JPanel {
 		this.parent0 = parent0;
 		cageArrayCopy = cageCopy;
 
-		viewModel = new TableModelCage(parent0.expListCombo);
+		viewModel = new TableModelCage(parent0.expListComboLazy);
 		tableView.setModel(viewModel);
 		tableView.setPreferredScrollableViewportSize(new Dimension(500, 400));
 		tableView.setFillsViewportHeight(true);
@@ -81,7 +81,7 @@ public class InfosTable extends JPanel {
 		copyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					cageArrayCopy.clear();
 					for (Cage cage : exp.getCages().cagesList) {
@@ -95,7 +95,7 @@ public class InfosTable extends JPanel {
 		pasteButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					for (Cage cageFrom : cageArrayCopy) {
 						cageFrom.valid = false;
@@ -118,7 +118,7 @@ public class InfosTable extends JPanel {
 		duplicateAllButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int rowIndex = tableView.getSelectedRow();
 					int columnIndex = tableView.getSelectedColumn();
@@ -155,7 +155,7 @@ public class InfosTable extends JPanel {
 
 	void close() {
 		dialogFrame.close();
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			exp.getCages().transferNFliesFromCagesToSpots(exp.spotsArray);
 			parent0.dlgSpots.tabFile.saveSpotsArray_file(exp);
