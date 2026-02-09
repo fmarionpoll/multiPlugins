@@ -21,7 +21,7 @@ public class CapillariesPersistence {
 	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "CapillariesMeasures.csv";
 
 	// Version for CSV files
-	private static final String CSV_VERSION = "2.0";
+	private static final String CSV_VERSION = "2.1";
 
 	// Legacy filenames (for fallback)
 	public final static String ID_CAPILLARIESARRAY_CSV = "CapillariesArray.csv";
@@ -182,6 +182,21 @@ public class CapillariesPersistence {
 	public static class Persistence {
 		private static final String csvSep = ";";
 
+		private static double parseVersion(String v) {
+			if (v == null || v.isEmpty()) {
+				return 0;
+			}
+			try {
+				String[] parts = v.trim().split("\\.");
+				if (parts.length >= 2) {
+					return Double.parseDouble(parts[0] + "." + parts[1]);
+				}
+				return Double.parseDouble(v);
+			} catch (NumberFormatException e) {
+				return 0;
+			}
+		}
+
 		/**
 		 * Loads capillary descriptions (DESCRIPTION section) from v2 format file. If v2
 		 * format is not found or missing version header, delegates to Legacy class for
@@ -202,7 +217,8 @@ public class CapillariesPersistence {
 				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 			}
 
-			// Validate version header before committing to new format parser
+			// Parse version and apply strict version rules
+			double fileVersion = 0;
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String firstLine = csvReader.readLine();
@@ -217,23 +233,30 @@ public class CapillariesPersistence {
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
 					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 				}
+
+				fileVersion = parseVersion(versionData[2]);
+				if (fileVersion < 2.0) {
+					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				}
 			} catch (IOException e) {
 				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 			}
 
-			// Version validated - proceed with new format parser
+			boolean allowXmlFallback = (fileVersion < 2.1);
+
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String row;
 				String sep = csvSep;
 
+				boolean loaded = false;
 				while ((row = csvReader.readLine()) != null) {
 					if (row.length() > 0 && row.charAt(0) == '#')
 						sep = String.valueOf(row.charAt(1));
 
 					String[] data = row.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
-						switch (data[1]) {
+						switch (data.length > 1 ? data[1] : "") {
 						case "version":
 							break;
 						case "DESCRIPTION":
@@ -241,8 +264,15 @@ public class CapillariesPersistence {
 							break;
 						case "CAPILLARIES":
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Description(capillaries, csvReader, sep);
-							csvReader.close();
-							return true;
+							loaded = true;
+							break;
+						case "ALONGT":
+							try {
+								CapillariesPersistenceLegacy.csvLoad_AlongT(capillaries, csvReader, sep);
+							} catch (IOException e) {
+								// ignore
+							}
+							break;
 						case "TOPLEVEL":
 						case "TOPRAW":
 						case "BOTTOMLEVEL":
@@ -258,8 +288,17 @@ public class CapillariesPersistence {
 					}
 				}
 				csvReader.close();
+				if (loaded) {
+					return true;
+				}
+				if (allowXmlFallback) {
+					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				}
 				return false;
 			} catch (Exception e) {
+				if (allowXmlFallback) {
+					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				}
 				return false;
 			}
 		}

@@ -519,12 +519,53 @@ public class CapillariesPersistenceLegacy {
 				for (Capillary cap : capillaries.getList())
 					csvWriter.append(cap.csvExport_CapillaryDescription(csvSep));
 				csvWriter.append("#" + csvSep + "#\n");
+				csvSave_AlongTSection(capillaries, csvWriter, csvSep);
 			}
 		} catch (IOException e) {
 			Logger.error("CapillariesPersistenceLegacy:csvSave_DescriptionSection()", e);
 		}
 
 		return true;
+	}
+
+	static void csvSave_AlongTSection(Capillaries capillaries, FileWriter csvWriter, String csvSep)
+			throws IOException {
+		csvWriter.append("#" + csvSep + "ALONGT" + csvSep + "cap_prefix;start;roiType;npoints;x1;y1;...\n");
+		for (Capillary cap : capillaries.getList()) {
+			for (plugins.fmp.multitools.tools.ROI2D.AlongT at : cap.getROIsForKymo()) {
+				String row = plugins.fmp.multitools.experiment.capillary.CapillaryPersistence
+						.csvExportAlongTRow(cap, at, csvSep);
+				if (!row.isEmpty())
+					csvWriter.append(row);
+			}
+		}
+		csvWriter.append("#" + csvSep + "#\n");
+	}
+
+	static String csvLoad_AlongT(Capillaries capillaries, BufferedReader csvReader, String sep)
+			throws IOException {
+		for (Capillary cap : capillaries.getList())
+			cap.getROIsForKymo().clear();
+		String row;
+		String nextSection = null;
+		while ((row = csvReader.readLine()) != null) {
+			String[] data = row.split(sep);
+			if (data.length > 0 && data[0].equals("#")) {
+				nextSection = data.length > 1 ? data[1] : null;
+				break;
+			}
+			if (data.length < 5)
+				continue;
+			String prefix = data[0];
+			Capillary cap = capillaries.getCapillaryFromRoiNamePrefix(prefix);
+			if (cap != null)
+				plugins.fmp.multitools.experiment.capillary.CapillaryPersistence.csvImportAlongTRow(cap, data);
+		}
+		for (Capillary cap : capillaries.getList()) {
+			if (cap.getROIsForKymo().isEmpty() && cap.getRoi() != null)
+				cap.getROIsForKymo().add(new plugins.fmp.multitools.tools.ROI2D.AlongT(0, cap.getRoi()));
+		}
+		return nextSection;
 	}
 
 	/**
