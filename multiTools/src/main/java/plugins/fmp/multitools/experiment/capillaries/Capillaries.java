@@ -206,10 +206,26 @@ public class Capillaries {
 	}
 
 	public void clearAllMeasures(int first, int last) {
+		clearAllMeasures(first, last, true, true);
+	}
+
+	/**
+	 * Clears measures only for capillaries in [first, last] that match the given L/R
+	 * selection, so that partial detection (e.g. only L or only R) does not erase the other side.
+	 */
+	public void clearAllMeasures(int first, int last, boolean detectL, boolean detectR) {
 		for (Capillary cap : getList()) {
 			int i = cap.getKymographIndex();
-			if (first < 0 || last < 0 || (i >= first && i <= last))
-				cap.clearAllMeasures();
+			if (first >= 0 && last >= 0 && (i < first || i > last))
+				continue;
+			String name = cap.getKymographName();
+			if (name != null) {
+				if (name.endsWith("1") && !detectL)
+					continue;
+				if (name.endsWith("2") && !detectR)
+					continue;
+			}
+			cap.clearAllMeasures();
 		}
 	}
 
