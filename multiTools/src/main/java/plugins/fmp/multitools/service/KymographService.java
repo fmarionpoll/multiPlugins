@@ -24,7 +24,6 @@ import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
-import plugins.fmp.multitools.experiment.sequence.KymographInfo;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymosUtils;
 import plugins.fmp.multitools.tools.Logger;
@@ -182,8 +181,13 @@ public class KymographService {
 			if (ibufImage1 == null)
 				continue;
 
-			KymographInfo kymoInfo = seqKymos.getKymographInfo();
-			IcyBufferedImage ibufImage2 = new IcyBufferedImage(kymoInfo.getMaxWidth(), kymoInfo.getMaxHeight(),
+			int destWidth = rect.width;
+			int destHeight = rect.height;
+			if (ibufImage1.getSizeX() > destWidth || ibufImage1.getSizeY() > destHeight) {
+				destWidth = Math.max(destWidth, ibufImage1.getSizeX());
+				destHeight = Math.max(destHeight, ibufImage1.getSizeY());
+			}
+			IcyBufferedImage ibufImage2 = new IcyBufferedImage(destWidth, destHeight,
 					ibufImage1.getSizeC(), ibufImage1.getDataType_());
 			transferImage1To2(ibufImage1, ibufImage2);
 
