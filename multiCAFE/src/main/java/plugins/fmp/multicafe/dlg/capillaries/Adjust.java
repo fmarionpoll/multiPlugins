@@ -275,6 +275,10 @@ public class Adjust extends JPanel {
 				((ROI2DLine) roi).setLine(line);
 			}
 		}
+		if (!capillaryRois.isEmpty() && !exp.getCapillaries().getList().isEmpty()
+				&& !exp.getCapillaries().getList().get(0).getROIsForKymo().isEmpty()) {
+			exp.saveCapillaryRoisAtT(t);
+		}
 	}
 
 	private Line2D roisCenterLinetoCapillary(double[] sourceValues, int xwidth, ROI2DLine roi, int jitter) {
