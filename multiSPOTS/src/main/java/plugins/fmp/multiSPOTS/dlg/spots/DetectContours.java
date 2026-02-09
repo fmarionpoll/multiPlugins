@@ -101,7 +101,7 @@ public class DetectContours extends JPanel {
 	private void declareListeners() {
 		spotsOverlayCheckBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					if (spotsOverlayCheckBox.isSelected()) {
 						updateOverlay(exp);
@@ -117,7 +117,7 @@ public class DetectContours extends JPanel {
 		spotsTransformsComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
 					Canvas2D_2Transforms canvas = (Canvas2D_2Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
@@ -148,7 +148,7 @@ public class DetectContours extends JPanel {
 		spotsViewButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayTransform(exp);
 			}
@@ -157,7 +157,7 @@ public class DetectContours extends JPanel {
 		detectContoursButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					exp.getSeqCamData().getSequence().removeROIs(ROIUtilities.getROIsContainingString("_mask", exp.getSeqCamData().getSequence()),
 							false);
@@ -170,7 +170,7 @@ public class DetectContours extends JPanel {
 		restoreContoursButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					restoreContours(exp);
 				}
@@ -180,7 +180,7 @@ public class DetectContours extends JPanel {
 		cutAndInterpolateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					cutAndInterpolate(exp);
 					parent0.dlgSpots.tabFile.saveSpotsArray_file(exp);
@@ -209,7 +209,7 @@ public class DetectContours extends JPanel {
 			return;
 
 		if (overlayThreshold == null) {
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null)
 				updateOverlay(exp);
 		}
@@ -225,9 +225,9 @@ public class DetectContours extends JPanel {
 		BuildSeriesOptions options = new BuildSeriesOptions();
 
 		// list of stack experiments
-		options.expList = parent0.expListCombo;
-		options.expList.index0 = parent0.expListCombo.getSelectedIndex();
-		options.expList.index1 = parent0.expListCombo.getSelectedIndex();
+		options.expList = parent0.expListComboLazy;
+		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
+		options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 		options.detectAllSeries = false;
 		options.seriesFirst = 0;
 

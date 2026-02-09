@@ -682,12 +682,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					if (exp.getSeqCamData() != null) {
 						DescriptorsIO.buildFromExperiment(exp);
 					}
-
-//					if (exp.getSeqCamData().getSequence() != null) {
-//						Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-//						if (v != null)
-//							v.close();
-//					}
 				}
 				// Close sequences after all saves complete
 				exp.closeSequences();

@@ -89,7 +89,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	@Override
 	public void propertyChange(PropertyChangeEvent event) {
 		if (event.getPropertyName().equals("SPOTS_ROIS_OPEN")) {
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				displaySpotsInformation(exp);
 				tabsPane.setSelectedIndex(id_threshold);
@@ -113,7 +113,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	public void stateChanged(ChangeEvent e) {
 		JTabbedPane tabbedPane = (JTabbedPane) e.getSource();
 		int selectedIndex = tabbedPane.getSelectedIndex();
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			boolean displayCapillaries = (selectedIndex == id_threshold);
 			if (displayCapillaries && exp.getSpots().getSpotList().size() < 1)

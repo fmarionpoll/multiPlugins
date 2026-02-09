@@ -92,7 +92,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 		exportTypeComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayGraphsPanels(exp);
 			}
@@ -101,7 +101,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 		displayResultsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayGraphsPanels(exp);
 			}
@@ -110,7 +110,7 @@ public class SpotsMeasuresGraphs extends JPanel implements SequenceListener {
 		relativeToCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayGraphsPanels(exp);
 			}

@@ -80,7 +80,7 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 	}
 
 	void tabsPaneSelected() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
 		int iselected = tabsPane.getSelectedIndex();

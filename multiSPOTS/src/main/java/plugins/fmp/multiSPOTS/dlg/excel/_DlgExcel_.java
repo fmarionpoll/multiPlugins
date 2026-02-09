@@ -69,7 +69,7 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 
@@ -155,13 +155,13 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 		options.onlyalive = tabCommonOptions.onlyAliveCheckBox.isSelected();
 		options.exportAllFiles = tabCommonOptions.exportAllFilesCheckBox.isSelected();
 
-		options.expList = parent0.expListCombo;
+		options.expList = parent0.expListComboLazy;
 		if (tabCommonOptions.exportAllFilesCheckBox.isSelected()) {
 			options.experimentIndexFirst = 0;
 			options.experimentIndexLast = options.expList.getItemCount() - 1;
 		} else {
-			options.experimentIndexFirst = parent0.expListCombo.getSelectedIndex();
-			options.experimentIndexLast = parent0.expListCombo.getSelectedIndex();
+			options.experimentIndexFirst = parent0.expListComboLazy.getSelectedIndex();
+			options.experimentIndexLast = parent0.expListComboLazy.getSelectedIndex();
 		}
 	}
 }

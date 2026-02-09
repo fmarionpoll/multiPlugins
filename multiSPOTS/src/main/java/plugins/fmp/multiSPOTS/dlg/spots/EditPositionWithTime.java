@@ -57,7 +57,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 	public void initialize(MultiSPOTS parent0, Point pt) {
 		this.parent0 = parent0;
-		spotsWithTimeTablemodel = new TableModelSpotWithTime(parent0.expListCombo);
+		spotsWithTimeTablemodel = new TableModelSpotWithTime(parent0.expListComboLazy);
 
 		JPanel topPanel = new JPanel(new GridLayout(3, 1));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
@@ -163,7 +163,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	private void shiftPositionOfSpots(double deltaX, double deltaY) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 		Sequence seq = exp.getSeqCamData().getSequence();
@@ -177,7 +177,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	private void showFrame(boolean show) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 
@@ -213,7 +213,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	private void addTableItem() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 
@@ -226,7 +226,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	private void deleteTableItem(int selectedRow) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 
@@ -239,7 +239,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	private void displaySpotsForSelectedInterval(int selectedRow) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 		Sequence seq = exp.getSeqCamData().getSequence();
@@ -256,7 +256,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	private void saveSpots(int selectedRow) {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 		Sequence seq = exp.getSeqCamData().getSequence();

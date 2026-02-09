@@ -102,7 +102,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 	@Override
 	public void propertyChange(PropertyChangeEvent event) {
 		if (event.getPropertyName().equals("SPOTS_ROIS_OPEN")) {
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				displaySpotsInformation(exp);
 				tabbedPane.setSelectedIndex(id_infos);
@@ -135,7 +135,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 	public void stateChanged(ChangeEvent e) {
 		JTabbedPane tabbedPane = (JTabbedPane) e.getSource();
 		int selectedIndex = tabbedPane.getSelectedIndex();
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			boolean displayCapillaries = (selectedIndex == id_create);
 			exp.getSeqCamData().displaySpecificROIs(displayCapillaries, "line");

@@ -186,7 +186,7 @@ public class CreateSpots extends JPanel {
 		createCirclesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					polygon2D = getPolygonEnclosingSpotsFromSelectedRoi(exp);
 					if (polygon2D != null) {
@@ -214,7 +214,7 @@ public class CreateSpots extends JPanel {
 		nColsPerCageJSpinner.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					updateCageDescriptorsOfSpots(exp);
 			}
@@ -223,7 +223,7 @@ public class CreateSpots extends JPanel {
 		nRowsPerCageJSpinner.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					updateCageDescriptorsOfSpots(exp);
 			}
@@ -233,7 +233,7 @@ public class CreateSpots extends JPanel {
 	// ---------------------------------
 
 	private void create2DPolygon() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 		SequenceCamData seqCamData = exp.getSeqCamData();

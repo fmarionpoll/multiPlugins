@@ -124,7 +124,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private void defineActionListeners() {
 		overlayCheckBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					if (overlayCheckBox.isSelected()) {
 						if (overlayThreshold1 == null)
@@ -184,7 +184,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	@Override
 	public void stateChanged(ChangeEvent e) {
 		if (e.getSource() == thresholdSpinner) {
-			Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.getCages().detect_threshold = (int) thresholdSpinner.getValue();
 				updateOverlay(exp);
@@ -194,12 +194,12 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 	private BuildSeriesOptions initTrackParameters() {
 		BuildSeriesOptions options = new BuildSeriesOptions();
-		options.expList = parent0.expListCombo;
-		options.expList.index0 = parent0.expListCombo.getSelectedIndex();
+		options.expList = parent0.expListComboLazy;
+		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
 		if (allCheckBox.isSelected())
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
-			options.expList.index1 = parent0.expListCombo.getSelectedIndex();
+			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 //		parent0.paneKymos.tabDisplay.indexImagesCombo = parent0.paneKymos.tabDisplay.kymographsCombo.getSelectedIndex();
 
 		options.btrackWhite = whiteObjectCheckBox.isSelected();
@@ -228,10 +228,10 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	}
 
 	void startComputation() {
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		parent0.dlgBrowse.panelLoadSave.closeViewsForCurrentExperiment(exp);
+		parent0.dlgBrowse.loadSaveExperiment.closeViewsForCurrentExperiment(exp);
 
 		flyDetect1 = new FlyDetect1();
 		flyDetect1.options = initTrackParameters();
@@ -261,7 +261,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	@Override
 	public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
 		int nitems = 1;
-		Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null)
 			nitems = exp.getCages().cagesList.size() + 1;
 		if (allCagesComboBox.getItemCount() != nitems) {
@@ -288,7 +288,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			Object source = e.getSource();
 			if (source instanceof JComboBox) {
-				Experiment exp = (Experiment) parent0.expListCombo.getSelectedItem();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				updateOverlay(exp);
 			}
 		}
