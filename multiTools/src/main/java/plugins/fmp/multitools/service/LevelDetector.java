@@ -14,12 +14,14 @@ import icy.system.thread.Processor;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class LevelDetector {
 
@@ -79,8 +81,10 @@ public class LevelDetector {
 								options);
 
 					int columnFirst = (int) searchRect.getX();
-					int columnLast = (int) (searchRect.getWidth() + columnFirst);
+					int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
 					if (options.analyzePartOnly) {
+						ensureFullWidthPolylineForPartialUpdate(capi.getTopLevel(), imageWidth, columnLast);
+						ensureFullWidthPolylineForPartialUpdate(capi.getBottomLevel(), imageWidth, columnLast);
 						if (capi.getTopLevel() != null && capi.getTopLevel().polylineLevel != null
 								&& capi.getTopLevel().limit != null)
 							capi.getTopLevel().polylineLevel.insertYPoints(capi.getTopLevel().limit, columnFirst,
@@ -129,6 +133,13 @@ public class LevelDetector {
 		processor.shutdown();
 	}
 
+	private void ensureFullWidthPolylineForPartialUpdate(CapillaryMeasure measure, int imageWidth, int columnLastInclusive) {
+		if (measure == null || imageWidth <= 0)
+			return;
+		if (measure.polylineLevel == null || measure.polylineLevel.npoints <= columnLastInclusive)
+			measure.polylineLevel = new Level2D(imageWidth);
+	}
+
 	private void detectPass1(IcyBufferedImage rawImage, ImageTransformInterface transformPass1, Capillary capi,
 			int imageWidth, int imageHeight, Rectangle searchRect, int jitter, BuildSeriesOptions options) {
 		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
@@ -138,7 +149,7 @@ public class LevelDetector {
 				transformedImage1.isSignedDataType());
 		int topSearchFrom = 0;
 		int columnFirst = (int) searchRect.getX();
-		int columnLast = (int) (searchRect.getWidth() + columnFirst);
+		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
 		int n_measures = columnLast - columnFirst + 1;
 		capi.getTopLevel().limit = new int[n_measures];
 		capi.getBottomLevel().limit = new int[n_measures];
@@ -177,7 +188,7 @@ public class LevelDetector {
 		int[] transformed1DArray2 = Array1DUtil.arrayToIntArray(transformedArray2,
 				transformedImage2.isSignedDataType());
 		int columnFirst = (int) searchRect.getX();
-		int columnLast = (int) (searchRect.getWidth() + columnFirst);
+		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
 		switch (options.transform02) {
 		case COLORDISTANCE_L1_Y:
 		case COLORDISTANCE_L2_Y:

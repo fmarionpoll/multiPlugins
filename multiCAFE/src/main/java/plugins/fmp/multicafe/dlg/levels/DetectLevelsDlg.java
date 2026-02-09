@@ -423,9 +423,11 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 
 			threadDetectLevels = new DetectLevels();
 			threadDetectLevels.options = initBuildParameters(exp);
-			exp.getCapillaries().clearAllMeasures(threadDetectLevels.options.kymoFirst,
-					threadDetectLevels.options.kymoLast, threadDetectLevels.options.detectL,
-					threadDetectLevels.options.detectR);
+			if (!fromRectangleCheckBox.isSelected()) {
+				exp.getCapillaries().clearAllMeasures(threadDetectLevels.options.kymoFirst,
+						threadDetectLevels.options.kymoLast, threadDetectLevels.options.detectL,
+						threadDetectLevels.options.detectR);
+			}
 			threadDetectLevels.addPropertyChangeListener(this);
 			threadDetectLevels.execute();
 			detectButton.setText("STOP");
@@ -468,27 +470,22 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	}
 
 	private Rectangle getSearchAreaFromSearchRectangle(Experiment exp, boolean fitSmallerRectangle) {
-		Rectangle seqRectangle = exp.getSeqKymos().getSequence().getBounds2D();
-		seqRectangle.height -= 1;
-		seqRectangle.width -= 1;
-		if (fitSmallerRectangle) {
-			Rectangle rectangle = searchRectangleROI2D.getBounds();
-			if (rectangle.x < 0) {
-				rectangle.width += rectangle.x;
-				rectangle.x = 0;
-			}
-			if (rectangle.y < 0) {
-				rectangle.height += rectangle.y;
-				rectangle.y = 0;
-			}
-			if ((rectangle.width + rectangle.x) > seqRectangle.width)
-				rectangle.width = seqRectangle.width - rectangle.x;
-			if ((rectangle.height + rectangle.y) > (seqRectangle.height))
-				rectangle.height = seqRectangle.height - rectangle.y;
-			return rectangle;
+		Rectangle seqBounds = exp.getSeqKymos().getSequence().getBounds2D();
+		int seqW = Math.max(0, seqBounds.width - 1);
+		int seqH = Math.max(0, seqBounds.height - 1);
+		if (fitSmallerRectangle && searchRectangleROI2D != null) {
+			Rectangle r = searchRectangleROI2D.getBounds();
+			int x = Math.max(0, r.x);
+			int y = Math.max(0, r.y);
+			int w = r.width;
+			int h = r.height;
+			if (x + w > seqW)
+				w = seqW - x;
+			if (y + h > seqH)
+				h = seqH - y;
+			return new Rectangle(x, y, Math.max(0, w), Math.max(0, h));
 		}
-
-		return seqRectangle;
+		return new Rectangle(0, 0, seqW, seqH);
 	}
 
 	protected Canvas2DWithTransforms getKymosCanvas(Experiment exp) {
