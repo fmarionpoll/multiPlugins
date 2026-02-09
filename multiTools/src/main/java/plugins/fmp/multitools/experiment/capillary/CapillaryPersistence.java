@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.experiment.capillary;
 
+import java.awt.geom.Line2D;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,6 +9,7 @@ import java.util.List;
 import org.w3c.dom.Node;
 
 import icy.roi.ROI2D;
+import icy.type.geom.Polyline2D;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.tools.Logger;
@@ -15,6 +17,8 @@ import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.fmp.multitools.tools.ROI2D.ROIType;
+import plugins.kernel.roi.roi2d.ROI2DLine;
+import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 /**
  * Handles persistence (XML loading/saving, CSV export/import) for Capillary.
@@ -155,7 +159,8 @@ public class CapillaryPersistence {
 		StringBuffer sbf = new StringBuffer();
 		sbf.append("#" + sep + "CAPILLARIES" + sep + "describe each capillary\n");
 		List<String> row2 = Arrays.asList("cap_prefix", "kymoIndex", "kymographName", "kymoFile", "cap_cage",
-				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType", "npoints");
+				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType",
+				"npoints");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -207,7 +212,7 @@ public class CapillaryPersistence {
 		// Add ROI name and type (v2.1 format)
 		String roiName = (cap.getRoi() != null && cap.getRoi().getName() != null) ? cap.getRoi().getName() : "";
 		row.add(roiName);
-		
+
 		// Add ROI type
 		ROIType roiType = ROIPersistenceUtils.detectROIType(cap.getRoi());
 		row.add(roiType.toCsvString());
@@ -215,10 +220,9 @@ public class CapillaryPersistence {
 		// Extract ROI points (for ROI2DPolyLine or ROI2DLine)
 		int npoints = 0;
 		if (cap.getRoi() != null) {
-			if (cap.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DPolyLine) {
-				plugins.kernel.roi.roi2d.ROI2DPolyLine polyLineRoi = (plugins.kernel.roi.roi2d.ROI2DPolyLine) cap
-						.getRoi();
-				icy.type.geom.Polyline2D polyline = polyLineRoi.getPolyline2D();
+			if (cap.getRoi() instanceof ROI2DPolyLine) {
+				ROI2DPolyLine polyLineRoi = (ROI2DPolyLine) cap.getRoi();
+				Polyline2D polyline = polyLineRoi.getPolyline2D();
 				npoints = polyline.npoints;
 				row.add(Integer.toString(npoints));
 				// Add x, y coordinates for each point
@@ -226,9 +230,9 @@ public class CapillaryPersistence {
 					row.add(Integer.toString((int) polyline.xpoints[i]));
 					row.add(Integer.toString((int) polyline.ypoints[i]));
 				}
-			} else if (cap.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DLine) {
-				plugins.kernel.roi.roi2d.ROI2DLine lineRoi = (plugins.kernel.roi.roi2d.ROI2DLine) cap.getRoi();
-				java.awt.geom.Line2D line = lineRoi.getLine();
+			} else if (cap.getRoi() instanceof ROI2DLine) {
+				ROI2DLine lineRoi = (ROI2DLine) cap.getRoi();
+				Line2D line = lineRoi.getLine();
 				npoints = 2; // Line has 2 points
 				row.add(Integer.toString(npoints));
 				// Add x, y coordinates for both points
@@ -321,15 +325,15 @@ public class CapillaryPersistence {
 		ROIType roiType = ROIPersistenceUtils.detectROIType(at.getRoi());
 		row.add(roiType.toCsvString());
 		ROI2D roi = at.getRoi();
-		if (roi instanceof plugins.kernel.roi.roi2d.ROI2DPolyLine) {
-			icy.type.geom.Polyline2D polyline = ((plugins.kernel.roi.roi2d.ROI2DPolyLine) roi).getPolyline2D();
+		if (roi instanceof ROI2DPolyLine) {
+			Polyline2D polyline = ((ROI2DPolyLine) roi).getPolyline2D();
 			row.add(Integer.toString(polyline.npoints));
 			for (int i = 0; i < polyline.npoints; i++) {
 				row.add(Integer.toString((int) polyline.xpoints[i]));
 				row.add(Integer.toString((int) polyline.ypoints[i]));
 			}
-		} else if (roi instanceof plugins.kernel.roi.roi2d.ROI2DLine) {
-			java.awt.geom.Line2D line = ((plugins.kernel.roi.roi2d.ROI2DLine) roi).getLine();
+		} else if (roi instanceof ROI2DLine) {
+			Line2D line = ((ROI2DLine) roi).getLine();
 			row.add("2");
 			row.add(Integer.toString((int) line.getX1()));
 			row.add(Integer.toString((int) line.getY1()));
@@ -359,8 +363,8 @@ public class CapillaryPersistence {
 			int y1 = Integer.parseInt(data[i + 1]);
 			int x2 = Integer.parseInt(data[i + 2]);
 			int y2 = Integer.parseInt(data[i + 3]);
-			java.awt.geom.Line2D line = new java.awt.geom.Line2D.Double(x1, y1, x2, y2);
-			plugins.kernel.roi.roi2d.ROI2DLine roiLine = new plugins.kernel.roi.roi2d.ROI2DLine(line);
+			Line2D.Double line = new Line2D.Double(x1, y1, x2, y2);
+			ROI2DLine roiLine = new ROI2DLine(line);
 			roiLine.setName(cap.getRoiName());
 			roi = roiLine;
 		} else if (npoints > 2) {
@@ -370,8 +374,8 @@ public class CapillaryPersistence {
 				xpoints[j] = Integer.parseInt(data[i + j * 2]);
 				ypoints[j] = Integer.parseInt(data[i + j * 2 + 1]);
 			}
-			icy.type.geom.Polyline2D polyline = new icy.type.geom.Polyline2D(xpoints, ypoints, npoints);
-			plugins.kernel.roi.roi2d.ROI2DPolyLine roiPolyline = new plugins.kernel.roi.roi2d.ROI2DPolyLine(polyline);
+			Polyline2D polyline = new Polyline2D(xpoints, ypoints, npoints);
+			ROI2DPolyLine roiPolyline = new ROI2DPolyLine(polyline);
 			roiPolyline.setName(cap.getRoiName());
 			roi = roiPolyline;
 		}
@@ -387,10 +391,11 @@ public class CapillaryPersistence {
 
 	public static void csvImportCapillaryDescription(Capillary cap, String[] data) {
 		if (data == null || data.length < 3) {
-			Logger.warn("CapillaryPersistence:csvImportCapillaryDescription() Insufficient data fields: " + (data != null ? data.length : 0) + " (minimum 3 required)");
+			Logger.warn("CapillaryPersistence:csvImportCapillaryDescription() Insufficient data fields: "
+					+ (data != null ? data.length : 0) + " (minimum 3 required)");
 			return;
 		}
-		
+
 		int i = 0;
 		// Required fields (minimum 3: prefix, index, name)
 		cap.setKymographPrefix(i < data.length ? data[i] : "");
@@ -403,7 +408,7 @@ public class CapillaryPersistence {
 		i++;
 		cap.setKymographName(i < data.length ? data[i] : "");
 		i++;
-		
+
 		// Optional fields (legacy format may only have 3 fields)
 		cap.setKymographFileName(i < data.length && data[i] != null && !data[i].isEmpty() ? data[i] : "");
 		i++;
@@ -443,7 +448,7 @@ public class CapillaryPersistence {
 		if (i < data.length && data[i] != null && !data[i].isEmpty()) {
 			String roiName = data[i];
 			i++;
-			
+
 			// Read ROI type (v2.1 format)
 			@SuppressWarnings("unused")
 			String roiTypeStr = "";
@@ -470,8 +475,8 @@ public class CapillaryPersistence {
 							int x2 = Integer.valueOf(data[i + 2]);
 							int y2 = Integer.valueOf(data[i + 3]);
 
-							java.awt.geom.Line2D line = new java.awt.geom.Line2D.Double(x1, y1, x2, y2);
-							plugins.kernel.roi.roi2d.ROI2DLine roiLine = new plugins.kernel.roi.roi2d.ROI2DLine(line);
+							Line2D line = new Line2D.Double(x1, y1, x2, y2);
+							ROI2DLine roiLine = new ROI2DLine(line);
 							roiLine.setName(roiName);
 							cap.setRoi(roiLine);
 						} else {
@@ -483,9 +488,8 @@ public class CapillaryPersistence {
 								ypoints[j] = Integer.valueOf(data[i + j * 2 + 1]);
 							}
 
-							icy.type.geom.Polyline2D polyline = new icy.type.geom.Polyline2D(xpoints, ypoints, npoints);
-							plugins.kernel.roi.roi2d.ROI2DPolyLine roiPolyline = new plugins.kernel.roi.roi2d.ROI2DPolyLine(
-									polyline);
+							Polyline2D polyline = new Polyline2D(xpoints, ypoints, npoints);
+							ROI2DPolyLine roiPolyline = new ROI2DPolyLine(polyline);
 							roiPolyline.setName(roiName);
 							cap.setRoi(roiPolyline);
 						}
@@ -537,28 +541,28 @@ public class CapillaryPersistence {
 				else if (!x && y)
 					cap.getBottomLevel().csvImportYDataFromRow(data, 2);
 				break;
-		case TOPDERIVATIVE:
-			if (x && y)
-				cap.getDerivative().csvImportXYDataFromRow(data, 2);
-			else if (!x && y)
-				cap.getDerivative().csvImportYDataFromRow(data, 2);
-			break;
-		case THRESHOLD:
-			if (x && y)
-				cap.getThreshold().csvImportXYDataFromRow(data, 2);
-			else if (!x && y)
-				cap.getThreshold().csvImportYDataFromRow(data, 2);
-			break;
-		case GULPS:
-			cap.getGulps().csvImportDataFromRow(data, 2);
-			break;
+			case TOPDERIVATIVE:
+				if (x && y)
+					cap.getDerivative().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getDerivative().csvImportYDataFromRow(data, 2);
+				break;
+			case THRESHOLD:
+				if (x && y)
+					cap.getThreshold().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getThreshold().csvImportYDataFromRow(data, 2);
+				break;
+			case GULPS:
+				cap.getGulps().csvImportDataFromRow(data, 2);
+				break;
 			default:
 				break;
 			}
 		} catch (Exception e) {
 			String capId = cap.getKymographPrefix() != null ? cap.getKymographPrefix() : "unknown";
-			String errorMsg = "CapillaryPersistence:csvImportCapillaryData() Error importing " + measureType + 
-					" for capillary " + capId + " (data.length=" + data.length + "): " + e.getMessage();
+			String errorMsg = "CapillaryPersistence:csvImportCapillaryData() Error importing " + measureType
+					+ " for capillary " + capId + " (data.length=" + data.length + "): " + e.getMessage();
 			Logger.error(errorMsg, e);
 			System.out.println("ERROR: " + errorMsg);
 			e.printStackTrace();

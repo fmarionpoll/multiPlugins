@@ -696,6 +696,8 @@ public class CapillariesPersistenceLegacy {
 			return false;
 		}
 
+		capillaries.invalidateKymoIntervalsCache();
+
 		// Priority 1: Try legacy CSV format (CapillariesArray.csv)
 		String pathToCsv = resultsDirectory + File.separator + ID_CAPILLARIESARRAY_CSV;
 		File csvFile = new File(pathToCsv);

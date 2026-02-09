@@ -84,6 +84,7 @@ public class Edit extends JPanel {
 	public void openDialog() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
+			exp.getCapillaries().invalidateKymoIntervalsCache();
 			exp.getCapillaries().transferDescriptionToCapillaries();
 			if (editCapillariesTable == null)
 				editCapillariesTable = new EditPositionWithTime();

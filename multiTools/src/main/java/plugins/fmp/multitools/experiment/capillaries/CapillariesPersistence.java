@@ -246,6 +246,8 @@ public class CapillariesPersistence {
 
 			boolean allowXmlFallback = (fileVersion < 2.1);
 
+			capillaries.invalidateKymoIntervalsCache();
+
 			try {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String row;
@@ -271,7 +273,6 @@ public class CapillariesPersistence {
 						case "ALONGT":
 							try {
 								CapillariesPersistenceLegacy.csvLoad_AlongT(capillaries, csvReader, sep);
-								capillaries.invalidateKymoIntervalsCache();
 							} catch (IOException e) {
 								// ignore
 							}
