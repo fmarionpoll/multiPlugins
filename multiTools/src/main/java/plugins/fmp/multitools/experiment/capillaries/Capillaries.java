@@ -350,6 +350,25 @@ public class Capillaries {
 	}
 
 	/**
+	 * Returns the capillary ROIs to display at frame t. Each capillary contributes
+	 * the ROI from its interval containing t (getROI2DKymoAtIntervalT). Returns
+	 * copies so edits on the sequence do not affect storage until save.
+	 *
+	 * @param t frame index
+	 * @return list of ROI copies, one per capillary
+	 */
+	public List<ROI2D> getCapillaryROIsAtT(int t) {
+		List<ROI2D> list = new ArrayList<>(capillariesList.size());
+		for (Capillary cap : capillariesList) {
+			AlongT at = cap.getROI2DKymoAtIntervalT(t);
+			if (at != null && at.getRoi() != null) {
+				list.add((ROI2D) at.getRoi().getCopy());
+			}
+		}
+		return list;
+	}
+
+	/**
 	 * Transfers capillary ROIs to the camera sequence.
 	 * 
 	 * <p>Removes existing capillary ROIs (containing "line") and adds all current

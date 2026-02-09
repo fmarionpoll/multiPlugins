@@ -21,6 +21,7 @@ public class Edit extends JPanel {
 	private static final long serialVersionUID = -7582410775062671523L;
 
 	private JButton editCapillariesButton = new JButton("Edit capillaries position with time");
+	private JButton saveAtTButton = new JButton("Save capillary positions at current T");
 	private MultiCAFE parent0 = null;
 	private EditPositionWithTime editCapillariesTable = null;
 
@@ -37,6 +38,10 @@ public class Edit extends JPanel {
 		panel1.add(editCapillariesButton);
 		add(panel1);
 
+		JPanel panel2 = new JPanel(flowLayout);
+		panel2.add(saveAtTButton);
+		add(panel2);
+
 		defineActionListeners();
 		this.parent0 = parent0;
 	}
@@ -46,6 +51,18 @@ public class Edit extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				openDialog();
+			}
+		});
+		saveAtTButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null && exp.getSeqCamData() != null) {
+					icy.gui.viewer.Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+					if (v != null) {
+						exp.saveCapillaryRoisAtT(v.getPositionT());
+					}
+				}
 			}
 		});
 	}

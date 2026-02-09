@@ -38,6 +38,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
 import plugins.fmp.multitools.service.KymographService;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -1209,12 +1210,30 @@ public class Experiment {
 	public void updateROIsAt(int t) {
 		MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), MeasureRoiFilter.FLY_POSITION,
 				cages.getPositionsAsListOfROI2DRectanglesAtT(t));
+		MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), MeasureRoiFilter.CAPILLARY_LINES,
+				capillaries.getCapillaryROIsAtT(t));
 	}
 
 	public void saveDetRoisToPositions() {
 		List<ROI2D> detectedROIsList = seqCamData.getSequence().getROI2Ds();
 		for (Cage cage : cages.cagesList) {
 			cage.transferRoisToPositions(detectedROIsList);
+		}
+	}
+
+	public void saveCapillaryRoisAtT(int t) {
+		if (seqCamData == null || seqCamData.getSequence() == null)
+			return;
+		List<ROI2D> listRois = seqCamData.getSequence().getROI2Ds();
+		for (ROI2D roi : listRois) {
+			if (roi.getName() == null || !roi.getName().contains("line"))
+				continue;
+			Capillary cap = capillaries.getCapillaryFromRoiName(roi.getName());
+			if (cap != null) {
+				AlongT at = cap.getROI2DKymoAtIntervalT(t);
+				if (at != null)
+					at.setRoi((ROI2D) roi.getCopy());
+			}
 		}
 	}
 

@@ -35,6 +35,8 @@ public final class MeasureRoiSync {
 
 		public static final MeasureRoiFilter FLY_POSITION = new MeasureRoiFilter(null,
 				Collections.singletonList("det"));
+		public static final MeasureRoiFilter CAPILLARY_LINES = new MeasureRoiFilter(null,
+				Collections.singletonList("line"));
 		public static final MeasureRoiFilter CAPILLARY_MEASURES = new MeasureRoiFilter("_",
 				Arrays.asList("toplevel", "bottomlevel", "derivative", "gulps"));
 	}

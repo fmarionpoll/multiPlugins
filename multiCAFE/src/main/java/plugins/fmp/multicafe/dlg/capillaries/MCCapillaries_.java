@@ -137,7 +137,8 @@ public class MCCapillaries_ extends JPanel implements PropertyChangeListener, Ch
 //		boolean disableCapillaries = (selectedIndex != ID_FILTER);
 //		parent0.paneExperiment.tabOptions.displayROIsCategory(disableCapillaries, "line");
 
-		parent0.paneExperiment.tabOptions.viewCapillariesCheckBox.setSelected(selectedIndex == ID_INFOS);
+		parent0.paneExperiment.tabOptions.viewCapillariesCheckBox
+				.setSelected(selectedIndex == ID_INFOS || selectedIndex == ID_EDIT);
 		if (selectedIndex == ID_EDIT) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
@@ -145,6 +146,7 @@ public class MCCapillaries_ extends JPanel implements PropertyChangeListener, Ch
 				if (v != null) {
 					v.toFront();
 					v.requestFocus();
+					exp.updateROIsAt(v.getPositionT());
 				}
 			}
 			tabEdit.openDialog();
