@@ -497,35 +497,30 @@ public class CapillariesPersistenceLegacy {
 			csvWriter.flush();
 			csvWriter.close();
 
+			return true;
 		} catch (IOException e) {
 			Logger.error("CapillariesPersistenceLegacy:csvSave_Capillaries()", e);
+			return false;
 		}
-
-		return true;
 	}
 
 	/**
 	 * Saves description section to CSV.
 	 */
-	static boolean csvSave_DescriptionSection(Capillaries capillaries, FileWriter csvWriter, String csvSep) {
-		try {
-			csvWriter.append(capillaries.getCapillariesDescription().csvExportSectionHeader(csvSep));
-			csvWriter.append(capillaries.getCapillariesDescription().csvExportExperimentDescriptors(csvSep));
-			csvWriter.append("n caps=" + csvSep + Integer.toString(capillaries.getList().size()) + "\n");
+	static void csvSave_DescriptionSection(Capillaries capillaries, FileWriter csvWriter, String csvSep)
+			throws IOException {
+		csvWriter.append(capillaries.getCapillariesDescription().csvExportSectionHeader(csvSep));
+		csvWriter.append(capillaries.getCapillariesDescription().csvExportExperimentDescriptors(csvSep));
+		csvWriter.append("n caps=" + csvSep + Integer.toString(capillaries.getList().size()) + "\n");
+		csvWriter.append("#" + csvSep + "#\n");
+
+		if (capillaries.getList().size() > 0) {
+			csvWriter.append(capillaries.getList().get(0).csvExport_CapillarySubSectionHeader(csvSep));
+			for (Capillary cap : capillaries.getList())
+				csvWriter.append(cap.csvExport_CapillaryDescription(csvSep));
 			csvWriter.append("#" + csvSep + "#\n");
-
-			if (capillaries.getList().size() > 0) {
-				csvWriter.append(capillaries.getList().get(0).csvExport_CapillarySubSectionHeader(csvSep));
-				for (Capillary cap : capillaries.getList())
-					csvWriter.append(cap.csvExport_CapillaryDescription(csvSep));
-				csvWriter.append("#" + csvSep + "#\n");
-				csvSave_AlongTSection(capillaries, csvWriter, csvSep);
-			}
-		} catch (IOException e) {
-			Logger.error("CapillariesPersistenceLegacy:csvSave_DescriptionSection()", e);
+			csvSave_AlongTSection(capillaries, csvWriter, csvSep);
 		}
-
-		return true;
 	}
 
 	static void csvSave_AlongTSection(Capillaries capillaries, FileWriter csvWriter, String csvSep)

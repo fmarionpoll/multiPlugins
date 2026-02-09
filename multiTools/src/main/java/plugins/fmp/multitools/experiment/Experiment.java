@@ -886,12 +886,18 @@ public class Experiment {
 	public boolean save_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
 
-		// Guard: Don't save descriptions if capillaries list is empty
-		// This prevents overwriting existing data with empty files
+		if (resultsDir == null) {
+			Logger.warn("Experiment:save_capillaries_description_and_measures() resultsDir is null");
+			return false;
+		}
+
 		boolean descriptionsSaved = false;
 		if (capillaries.getList().size() > 0) {
-			// Save descriptions to new format
 			descriptionsSaved = capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
+			if (!descriptionsSaved) {
+				Logger.warn("Experiment:save_capillaries_description_and_measures() saveDescriptions failed for "
+						+ resultsDir);
+			}
 		} else {
 			Logger.warn(
 					"Experiment:save_capillaries_description_and_measures() Skipping save - capillaries list is empty. This may indicate capillaries were not loaded.");

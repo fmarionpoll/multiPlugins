@@ -278,6 +278,7 @@ public class Adjust extends JPanel {
 		if (!capillaryRois.isEmpty() && !exp.getCapillaries().getList().isEmpty()
 				&& !exp.getCapillaries().getList().get(0).getROIsForKymo().isEmpty()) {
 			exp.saveCapillaryRoisAtT(t);
+			exp.save_capillaries_description_and_measures();
 		}
 	}
 

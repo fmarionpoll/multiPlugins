@@ -226,6 +226,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 		if (exp.getCapillaries().findKymoROI2DIntervalStart(intervalT) < 0) {
 			exp.getCapillaries().addKymoROI2DInterval(intervalT);
+			exp.save_capillaries_description_and_measures();
 		}
 	}
 
@@ -239,6 +240,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 		if (exp.getCapillaries().findKymoROI2DIntervalStart(intervalT) >= 0) {
 			exp.getCapillaries().deleteKymoROI2DInterval(intervalT);
+			exp.save_capillaries_description_and_measures();
 		}
 	}
 
@@ -277,6 +279,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 				cap.getROI2DKymoAtIntervalT(intervalT).setRoi(roilocal);
 			}
 		}
+		exp.save_capillaries_description_and_measures();
 	}
 
 	@Override

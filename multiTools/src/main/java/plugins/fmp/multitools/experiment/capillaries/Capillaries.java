@@ -446,6 +446,10 @@ public class Capillaries {
 
 	// -------------------------------------------------
 
+	public void invalidateKymoIntervalsCache() {
+		capillariesListTimeIntervals = null;
+	}
+
 	public KymoIntervals getKymoIntervalsFromCapillaries() {
 		if (capillariesListTimeIntervals == null) {
 			capillariesListTimeIntervals = new KymoIntervals();
@@ -461,6 +465,7 @@ public class Capillaries {
 	}
 
 	public int addKymoROI2DInterval(long start) {
+		getKymoIntervalsFromCapillaries();
 		Long[] interval = { start, (long) -1 };
 		int item = capillariesListTimeIntervals.addIfNew(interval);
 

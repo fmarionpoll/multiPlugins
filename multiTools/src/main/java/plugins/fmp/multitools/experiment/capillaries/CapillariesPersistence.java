@@ -9,6 +9,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import plugins.fmp.multitools.tools.Logger;
+
 public class CapillariesPersistence {
 
 	public final static String ID_CAPILLARYTRACK = "capillaryTrack";
@@ -269,6 +271,7 @@ public class CapillariesPersistence {
 						case "ALONGT":
 							try {
 								CapillariesPersistenceLegacy.csvLoad_AlongT(capillaries, csvReader, sep);
+								capillaries.invalidateKymoIntervalsCache();
 							} catch (IOException e) {
 								// ignore
 							}
@@ -438,12 +441,21 @@ public class CapillariesPersistence {
 		 */
 		public static boolean saveDescription(Capillaries capillaries, String resultsDirectory) {
 			if (resultsDirectory == null) {
+				Logger.warn("CapillariesPersistence:saveDescription() resultsDirectory is null");
 				return false;
 			}
 
 			Path path = Paths.get(resultsDirectory);
 			if (!Files.exists(path)) {
-				return false;
+				try {
+					Files.createDirectories(path);
+				} catch (IOException e) {
+					Logger.error(
+							"CapillariesPersistence:saveDescription() cannot create results directory: "
+									+ resultsDirectory,
+							e);
+					return false;
+				}
 			}
 
 			try {
@@ -455,6 +467,10 @@ public class CapillariesPersistence {
 				csvWriter.close();
 				return true;
 			} catch (IOException e) {
+				Logger.error(
+						"CapillariesPersistence:saveDescription() failed to write "
+								+ ID_V2_CAPILLARIESDESCRIPTION_CSV + ": " + e.getMessage(),
+						e);
 				return false;
 			}
 		}
