@@ -60,11 +60,7 @@ public class CapillaryPersistence {
 
 			// Load properties
 			cap.getProperties().loadFromXml(nodeMeta);
-
-			// Load ROI
 			cap.setRoi(ROI2DUtilities.loadFromXML_ROI(nodeMeta));
-
-			// Load Intervals
 			xmlLoadIntervals(node, cap);
 		}
 		return flag;
@@ -158,9 +154,8 @@ public class CapillaryPersistence {
 	public static String csvExportCapillarySubSectionHeader(String sep) {
 		StringBuffer sbf = new StringBuffer();
 		sbf.append("#" + sep + "CAPILLARIES" + sep + "describe each capillary\n");
-		List<String> row2 = Arrays.asList("cap_prefix", "kymoIndex", "kymographName", "kymoFile", "cap_cage",
-				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType",
-				"npoints");
+		List<String> row2 = Arrays.asList("cap_prefix", "kymoIndex", "roiName", "kymoFile", "cap_cage", "cap_nflies",
+				"cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType", "npoints");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -318,7 +313,9 @@ public class CapillaryPersistence {
 	public static String csvExportAlongTRow(Capillary cap, AlongT at, String sep) {
 		if (at == null || at.getRoi() == null)
 			return "";
-		String prefix = cap.getKymographPrefix() != null ? cap.getKymographPrefix() : "";
+		// String prefix = cap.getKymographPrefix() != null ? cap.getKymographPrefix() :
+		// "";
+		String prefix = cap.getRoiName();
 		List<String> row = new ArrayList<>();
 		row.add(prefix);
 		row.add(Long.toString(at.getStart()));
@@ -381,9 +378,7 @@ public class CapillaryPersistence {
 		}
 		if (roi != null) {
 			AlongT at = new AlongT(start, roi);
-			cap.getROIsForKymo().add(at);
-			if (cap.getROIsForKymo().size() == 1)
-				cap.setRoi(roi);
+			cap.addAlongTFromImport(at);
 			return true;
 		}
 		return false;

@@ -20,7 +20,9 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryPersistence;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
 /**
@@ -454,24 +456,26 @@ public class CapillariesPersistenceLegacy {
 
 				Capillary cap = capillaries.getCapillaryFromRoiNamePrefix(data[0]);
 				if (cap == null) {
-					String warnMsg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Capillary not found for prefix: " + data[0];
+					String warnMsg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Capillary not found for prefix: "
+							+ data[0];
 					Logger.warn(warnMsg);
 					System.out.println("WARN: " + warnMsg);
 					rowsSkipped++;
 					continue;
 				}
-				
+
 				cap.csvImport_CapillaryData(measureType, data, x, y);
 				rowsProcessed++;
 			}
-			String msg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() " + measureType + 
-					" - processed: " + rowsProcessed + ", skipped: " + rowsSkipped;
+			String msg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() " + measureType + " - processed: "
+					+ rowsProcessed + ", skipped: " + rowsSkipped;
 			Logger.info(msg);
 			System.out.println(msg);
 		} catch (IOException e) {
 			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Failed to read CSV file", e);
 		} catch (Exception e) {
-			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Error processing " + measureType, e);
+			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Error processing " + measureType,
+					e);
 		}
 		return null;
 	}
@@ -523,13 +527,11 @@ public class CapillariesPersistenceLegacy {
 		}
 	}
 
-	static void csvSave_AlongTSection(Capillaries capillaries, FileWriter csvWriter, String csvSep)
-			throws IOException {
-		csvWriter.append("#" + csvSep + "ALONGT" + csvSep + "cap_prefix;start;roiType;npoints;x1;y1;...\n");
+	static void csvSave_AlongTSection(Capillaries capillaries, FileWriter csvWriter, String csvSep) throws IOException {
+		csvWriter.append("#" + csvSep + "ALONGT" + csvSep + "roi_name;start;roiType;npoints;x1;y1;...\n");
 		for (Capillary cap : capillaries.getList()) {
-			for (plugins.fmp.multitools.tools.ROI2D.AlongT at : cap.getROIsForKymo()) {
-				String row = plugins.fmp.multitools.experiment.capillary.CapillaryPersistence
-						.csvExportAlongTRow(cap, at, csvSep);
+			for (AlongT at : cap.getROIsForKymo()) {
+				String row = CapillaryPersistence.csvExportAlongTRow(cap, at, csvSep);
 				if (!row.isEmpty())
 					csvWriter.append(row);
 			}
@@ -537,10 +539,10 @@ public class CapillariesPersistenceLegacy {
 		csvWriter.append("#" + csvSep + "#\n");
 	}
 
-	static String csvLoad_AlongT(Capillaries capillaries, BufferedReader csvReader, String sep)
-			throws IOException {
+	static String csvLoad_AlongT(Capillaries capillaries, BufferedReader csvReader, String sep) throws IOException {
 		for (Capillary cap : capillaries.getList())
 			cap.getROIsForKymo().clear();
+
 		String row;
 		String nextSection = null;
 		while ((row = csvReader.readLine()) != null) {
@@ -552,13 +554,13 @@ public class CapillariesPersistenceLegacy {
 			if (data.length < 5)
 				continue;
 			String prefix = data[0];
-			Capillary cap = capillaries.getCapillaryFromRoiNamePrefix(prefix);
+			Capillary cap = capillaries.getCapillaryFromRoiName(prefix);
 			if (cap != null)
-				plugins.fmp.multitools.experiment.capillary.CapillaryPersistence.csvImportAlongTRow(cap, data);
+				CapillaryPersistence.csvImportAlongTRow(cap, data);
 		}
 		for (Capillary cap : capillaries.getList()) {
 			if (cap.getROIsForKymo().isEmpty() && cap.getRoi() != null)
-				cap.getROIsForKymo().add(new plugins.fmp.multitools.tools.ROI2D.AlongT(0, cap.getRoi()));
+				cap.getROIsForKymo().add(new AlongT(0, cap.getRoi()));
 		}
 		return nextSection;
 	}
