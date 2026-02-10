@@ -1059,8 +1059,11 @@ public class Capillary implements Comparable<Capillary> {
 
 	public void addAlongTFromImport(AlongT at) {
 		metadata.roisForKymo.add(at);
-		if (metadata.roisForKymo.size() == 1 && at.getRoi() != null)
-			setRoi(at.getRoi());
+		if (metadata.roisForKymo.size() == 1 && at.getRoi() != null) {
+			metadata.roiCap = at.getRoi();
+			if (metadata.kymographPrefix == null || metadata.kymographPrefix.isEmpty())
+				metadata.kymographPrefix = extractPrefixFromRoiName(at.getRoi().getName());
+		}
 	}
 
 	public void setVolumeAndPixels(double volume, int pixels) {
