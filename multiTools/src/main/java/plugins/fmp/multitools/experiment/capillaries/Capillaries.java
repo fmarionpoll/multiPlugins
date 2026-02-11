@@ -9,6 +9,7 @@ import java.util.List;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
+import icy.gui.viewer.Viewer;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Comparators;
@@ -312,10 +313,8 @@ public class Capillaries {
 		List<ROI2D> listROISCap = seqCamData.findROIsMatchingNamePattern("line");
 		Collections.sort(listROISCap, new Comparators.ROI2D_Name());
 
-		// Capillary-driven approach: Only update existing capillaries with ROIs from
-		// sequence
-		// Do NOT create new capillaries from ROIs - capillaries should come from saved
-		// data
+		int t = getCurrentFrameFromSequence(seqCamData);
+
 		for (Capillary cap : getList()) {
 			cap.getProperties().setValid(false);
 			String capName = Capillary.replace_LR_with_12(cap.getRoiName());
@@ -324,7 +323,12 @@ public class Capillaries {
 				ROI2D roi = iterator.next();
 				String roiName = Capillary.replace_LR_with_12(roi.getName());
 				if (roiName.equals(capName)) {
-					cap.setRoi((ROI2DShape) roi);
+					if (cap.getROIsForKymo().size() > 1) {
+						if (!cap.updateROIAtFrameT(t, roi))
+							cap.setRoi((ROI2DShape) roi);
+					} else {
+						cap.setRoi((ROI2DShape) roi);
+					}
 					cap.getProperties().setValid(true);
 					iterator.remove();
 					break;
@@ -347,6 +351,18 @@ public class Capillaries {
 		// saved data
 
 		Collections.sort(getList());
+	}
+
+	private static int getCurrentFrameFromSequence(SequenceCamData seqCamData) {
+		if (seqCamData == null)
+			return 0;
+		Sequence seq = seqCamData.getSequence();
+		if (seq != null) {
+			Viewer v = seq.getFirstViewer();
+			if (v != null)
+				return v.getPositionT();
+		}
+		return seqCamData.getCurrentFrame();
 	}
 
 	/**

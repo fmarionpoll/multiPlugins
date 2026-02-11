@@ -46,7 +46,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 	private JButton addItemButton = new JButton("Add");
 	private JButton deleteItemButton = new JButton("Delete");
-	private JButton saveCapillariesButton = new JButton("Save capillaries");
+	private JButton saveCapillariesButton = new JButton("Update capillaries from ROIs");
 	private JCheckBox showFrameButton = new JCheckBox("Show frame");
 	private JButton fitToFrameButton = new JButton("Fit capillaries to frame");
 	private JTable tableView = new JTable();

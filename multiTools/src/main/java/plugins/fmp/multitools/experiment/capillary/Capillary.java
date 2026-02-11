@@ -1060,6 +1060,24 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
+	/**
+	 * Updates the ROI of the AlongT interval containing frame t, without clearing
+	 * roisForKymo. Use when saving capillary ROIs from the sequence to preserve
+	 * multiple AlongT intervals.
+	 *
+	 * @param t   frame index
+	 * @param roi ROI from the sequence
+	 * @return true if an AlongT was updated, false if none contains t
+	 */
+	public boolean updateROIAtFrameT(long t, ROI2D roi) {
+		AlongT at = getAlongTAtT(t);
+		if (at == null || roi == null)
+			return false;
+		at.setRoi(roi);
+		metadata.roiCap = at.getRoi();
+		return true;
+	}
+
 	public void setVolumeAndPixels(double volume, int pixels) {
 		properties.setVolume(volume);
 		properties.setPixels(pixels);
