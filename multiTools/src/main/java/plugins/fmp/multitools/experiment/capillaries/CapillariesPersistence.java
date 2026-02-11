@@ -21,7 +21,6 @@ public class CapillariesPersistence {
 	// Current format filenames (version stored internally in file header)
 	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "CapillariesDescription.csv";
 	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "CapillariesMeasures.csv";
-
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.1";
 

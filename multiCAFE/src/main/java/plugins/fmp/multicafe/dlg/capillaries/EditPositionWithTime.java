@@ -60,6 +60,9 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 	public void initialize(MultiCAFE parent0, Point pt) {
 		this.parent0 = parent0;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp != null)
+			exp.getCapillaries().unifyAlongTIntervalsForDialog();
 		capillariesWithTimeTablemodel = new CapillariesWithTimeTableModel(parent0.expListComboLazy);
 
 		JPanel topPanel = new JPanel(new GridLayout(3, 1));
@@ -151,6 +154,11 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	}
 
 	void close() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp != null) {
+			exp.getCapillaries().compressRedundantAlongTPerCapillary();
+			exp.save_capillaries_description_and_measures();
+		}
 		dialogFrame.close();
 	}
 

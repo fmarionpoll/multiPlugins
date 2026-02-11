@@ -5,6 +5,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.w3c.dom.Node;
@@ -17,6 +18,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;
@@ -1061,6 +1063,53 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	/**
+	 * Inserts an AlongT at start if the capillary does not have one. Copies the ROI
+	 * from the interval that would be active at (start-1). For use by the dialog
+	 * converter to fill gaps.
+	 *
+	 * @param start interval start frame
+	 */
+	public void addAlongTAtStartIfMissing(long start) {
+		for (AlongT item : metadata.roisForKymo) {
+			if (item.getStart() == start)
+				return;
+		}
+		AlongT prev = getAlongTAtT(start - 1);
+		ROI2D roiCopy = prev != null && prev.getRoi() != null ? (ROI2D) prev.getRoi().getCopy()
+				: metadata.roiCap != null ? (ROI2D) metadata.roiCap.getCopy() : null;
+		if (roiCopy == null)
+			return;
+		int idx = 0;
+		for (AlongT item : metadata.roisForKymo) {
+			if (item.getStart() > start)
+				break;
+			idx++;
+		}
+		metadata.roisForKymo.add(idx, new AlongT(start, roiCopy));
+	}
+
+	/**
+	 * Removes AlongT intervals where the ROI geometry equals the previous one.
+	 * Keeps at least one interval.
+	 */
+	public void compressRedundantAlongT() {
+		if (metadata.roisForKymo.size() <= 1)
+			return;
+		List<AlongT> toRemove = new ArrayList<>();
+		AlongT prev = null;
+		for (AlongT at : metadata.roisForKymo) {
+			if (prev != null && at.getRoi() != null && prev.getRoi() != null
+					&& ROI2DUtilities.roiGeometryEquals(at.getRoi(), prev.getRoi()))
+				toRemove.add(at);
+			else
+				prev = at;
+		}
+		metadata.roisForKymo.removeAll(toRemove);
+		if (metadata.roisForKymo.isEmpty() && metadata.roiCap != null)
+			metadata.roisForKymo.add(new AlongT(0, metadata.roiCap));
+	}
+
+	/**
 	 * Updates the ROI of the AlongT interval containing frame t, without clearing
 	 * roisForKymo. Use when saving capillary ROIs from the sequence to preserve
 	 * multiple AlongT intervals.
@@ -1076,6 +1125,34 @@ public class Capillary implements Comparable<Capillary> {
 		at.setRoi(roi);
 		metadata.roiCap = at.getRoi();
 		return true;
+	}
+
+	/**
+	 * Injects tracked ROIs into roisForKymo for the range [tStart, tEnd]. Removes
+	 * existing AlongT whose start falls in that range, adds new AlongT from tracked,
+	 * sorts by start, then compresses redundant intervals.
+	 */
+	public void injectTrackedRoisIntoAlongT(long tStart, long tEnd, Map<Long, ROI2D> tracked) {
+		if (tracked == null || tracked.isEmpty())
+			return;
+		metadata.roisForKymo.removeIf(at -> {
+			long s = at.getStart();
+			return s >= tStart && s <= tEnd;
+		});
+		for (Map.Entry<Long, ROI2D> e : tracked.entrySet()) {
+			long t = e.getKey();
+			if (t < tStart || t > tEnd)
+				continue;
+			ROI2D roi = e.getValue();
+			if (roi != null) {
+				ROI2D copy = (ROI2D) roi.getCopy();
+				if (metadata.roiCap != null && copy.getName() == null)
+					copy.setName(metadata.roiCap.getName());
+				metadata.roisForKymo.add(new AlongT(t, copy));
+			}
+		}
+		metadata.roisForKymo.sort((a, b) -> Long.compare(a.getStart(), b.getStart()));
+		compressRedundantAlongT();
 	}
 
 	public void setVolumeAndPixels(double volume, int pixels) {

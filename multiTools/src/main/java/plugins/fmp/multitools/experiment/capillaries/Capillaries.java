@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
@@ -377,9 +378,8 @@ public class Capillaries {
 		List<ROI2D> list = new ArrayList<>(capillariesList.size());
 		for (Capillary cap : capillariesList) {
 			AlongT at = cap.getAlongTAtT(t);
-			if (at != null && at.getRoi() != null) {
+			if (at != null && at.getRoi() != null)
 				list.add((ROI2D) at.getRoi().getCopy());
-			}
 		}
 		return list;
 	}
@@ -499,6 +499,42 @@ public class Capillaries {
 		capillariesListTimeIntervals.deleteIntervalStartingAt(start);
 		for (Capillary cap : getList())
 			cap.removeROI2DIntervalStartingAt(start);
+	}
+
+	/**
+	 * Fills gaps per capillary so each has an AlongT at every global interval
+	 * boundary. For use when opening EditPositionWithTime with per-capillary AlongT.
+	 */
+	public void unifyAlongTIntervalsForDialog() {
+		invalidateKymoIntervalsCache();
+		KymoIntervals global = getKymoIntervalsFromCapillaries();
+		for (int i = 0; i < global.intervals.size(); i++) {
+			long start = global.intervals.get(i)[0];
+			for (Capillary cap : getList())
+				cap.addAlongTAtStartIfMissing(start);
+		}
+	}
+
+	/**
+	 * Injects tracked ROIs into the capillary at capIndex for range [tStart, tEnd],
+	 * then invalidates the kymo intervals cache.
+	 */
+	public void injectTrackedRoisForCapillary(int capIndex, long tStart, long tEnd, Map<Long, ROI2D> tracked) {
+		if (capIndex < 0 || capIndex >= capillariesList.size())
+			return;
+		capillariesList.get(capIndex).injectTrackedRoisIntoAlongT(tStart, tEnd, tracked);
+		invalidateKymoIntervalsCache();
+	}
+
+	/**
+	 * Removes AlongT intervals where the ROI geometry equals the previous one.
+	 * Keeps at least one interval per capillary. For use when closing
+	 * EditPositionWithTime.
+	 */
+	public void compressRedundantAlongTPerCapillary() {
+		for (Capillary cap : getList())
+			cap.compressRedundantAlongT();
+		invalidateKymoIntervalsCache();
 	}
 
 	public int findKymoROI2DIntervalStart(long intervalT) {

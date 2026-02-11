@@ -21,9 +21,11 @@ public class Edit extends JPanel {
 	private static final long serialVersionUID = -7582410775062671523L;
 
 	private JButton editCapillariesButton = new JButton("Edit capillaries position with time");
+	private JButton trackCapillariesButton = new JButton("Track capillaries");
 	private JButton saveAtTButton = new JButton("Save capillary positions at current T");
 	private MultiCAFE parent0 = null;
 	private EditPositionWithTime editCapillariesTable = null;
+	private TrackCapillaries trackCapillariesDialog = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -36,6 +38,7 @@ public class Edit extends JPanel {
 
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(editCapillariesButton);
+		panel1.add(trackCapillariesButton);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
@@ -51,6 +54,12 @@ public class Edit extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				openDialog();
+			}
+		});
+		trackCapillariesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				openTrackCapillariesDialog();
 			}
 		});
 		saveAtTButton.addActionListener(new ActionListener() {
@@ -93,6 +102,20 @@ public class Edit extends JPanel {
 	}
 
 	public void closeDialog() {
-		editCapillariesTable.close();
+		if (editCapillariesTable != null)
+			editCapillariesTable.close();
+		if (trackCapillariesDialog != null)
+			trackCapillariesDialog.close();
+	}
+
+	private void openTrackCapillariesDialog() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp != null) {
+			exp.getCapillaries().invalidateKymoIntervalsCache();
+			exp.getCapillaries().transferDescriptionToCapillaries();
+			if (trackCapillariesDialog == null)
+				trackCapillariesDialog = new TrackCapillaries();
+			trackCapillariesDialog.initialize(parent0, getFramePosition());
+		}
 	}
 }

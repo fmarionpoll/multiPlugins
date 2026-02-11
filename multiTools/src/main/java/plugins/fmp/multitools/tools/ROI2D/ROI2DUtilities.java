@@ -436,6 +436,47 @@ public class ROI2DUtilities {
 		return points;
 	}
 
+	private static final double GEOM_EPSILON = 0.01;
+
+	/**
+	 * Returns a copy of the ROI with all points translated by (dx, dy). Supports
+	 * ROI2DLine and ROI2DPolyLine (capillary ROIs).
+	 */
+	public static ROI2D translateROI(ROI2D roi, double dx, double dy) {
+		if (roi == null)
+			return null;
+		ROI2D copy = (ROI2D) roi.getCopy();
+		if (copy instanceof ROI2DPolyLine) {
+			ArrayList<Point2D> pts = getCapillaryPoints(roi);
+			List<Point2D> translated = new ArrayList<>(pts.size());
+			for (Point2D p : pts)
+				translated.add(new Point2D.Double(p.getX() + dx, p.getY() + dy));
+			((ROI2DPolyLine) copy).setPoints(translated);
+		} else if (copy instanceof ROI2DLine) {
+			Line2D line = ((ROI2DLine) roi).getLine();
+			Line2D.Double newLine = new Line2D.Double(line.getP1().getX() + dx, line.getP1().getY() + dy,
+					line.getP2().getX() + dx, line.getP2().getY() + dy);
+			((ROI2DLine) copy).setLine(newLine);
+		}
+		return copy;
+	}
+
+	public static boolean roiGeometryEquals(ROI2D a, ROI2D b) {
+		if (a == null || b == null)
+			return a == b;
+		ArrayList<Point2D> pa = getCapillaryPoints(a);
+		ArrayList<Point2D> pb = getCapillaryPoints(b);
+		if (pa.isEmpty() || pb.isEmpty() || pa.size() != pb.size())
+			return false;
+		for (int i = 0; i < pa.size(); i++) {
+			Point2D p1 = pa.get(i);
+			Point2D p2 = pb.get(i);
+			if (Math.abs(p1.getX() - p2.getX()) > GEOM_EPSILON || Math.abs(p1.getY() - p2.getY()) > GEOM_EPSILON)
+				return false;
+		}
+		return true;
+	}
+
 	public static Polygon2D inflate(Polygon2D roiPolygon, int ncolumns, int nrows, int width_cage, int width_interval) {
 		double width_x_current = ncolumns * (width_cage + 2 * width_interval) - 2 * width_interval;
 		double deltax_top = (roiPolygon.xpoints[3] - roiPolygon.xpoints[0]) * width_interval / width_x_current;
