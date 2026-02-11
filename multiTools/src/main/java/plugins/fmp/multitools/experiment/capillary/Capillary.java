@@ -16,8 +16,8 @@ import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -1023,23 +1023,17 @@ public class Capillary implements Comparable<Capillary> {
 		return metadata.roisForKymo;
 	}
 
-	public AlongT getROI2DKymoAt(int i) {
-		if (metadata.roisForKymo.size() < 1)
-			initROI2DForKymoList();
-		return metadata.roisForKymo.get(i);
-	}
-
-	public AlongT getROI2DKymoAtIntervalT(long t) {
+	public AlongT getAlongTAtT(long t) {
 		if (metadata.roisForKymo.size() < 1)
 			initROI2DForKymoList();
 
-		AlongT capRoi = null;
+		AlongT alongT = null;
 		for (AlongT item : metadata.roisForKymo) {
 			if (t < item.getStart())
 				break;
-			capRoi = item;
+			alongT = item;
 		}
-		return capRoi;
+		return alongT;
 	}
 
 	public void removeROI2DIntervalStartingAt(long start) {

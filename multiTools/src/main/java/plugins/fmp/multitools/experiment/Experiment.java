@@ -28,19 +28,19 @@ import plugins.fmp.multitools.experiment.ids.CapillaryID;
 import plugins.fmp.multitools.experiment.sequence.ImageAdjustmentOptions;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
-import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
-import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.sequence.ImageProcessingResult;
 import plugins.fmp.multitools.experiment.sequence.KymographInfo;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
 import plugins.fmp.multitools.service.KymographService;
-import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsArray;
@@ -1227,16 +1227,17 @@ public class Experiment {
 		}
 	}
 
-	public void saveCapillaryRoisAtT(int t) {
+	public void updateCapillaryRoisAtT(int t) {
 		if (seqCamData == null || seqCamData.getSequence() == null)
 			return;
+
 		List<ROI2D> listRois = seqCamData.getSequence().getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (roi.getName() == null || !roi.getName().contains("line"))
 				continue;
 			Capillary cap = capillaries.getCapillaryFromRoiName(roi.getName());
 			if (cap != null) {
-				AlongT at = cap.getROI2DKymoAtIntervalT(t);
+				AlongT at = cap.getAlongTAtT(t);
 				if (at != null)
 					at.setRoi((ROI2D) roi.getCopy());
 			}

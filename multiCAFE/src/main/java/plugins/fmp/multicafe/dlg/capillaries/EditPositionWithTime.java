@@ -196,7 +196,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	private void addFrameAroundCapillaries(int t, Experiment exp) {
 		ArrayList<ROI2D> listRoisAtT = new ArrayList<ROI2D>();
 		for (Capillary cap : exp.getCapillaries().getList()) {
-			AlongT kymoROI2D = cap.getROI2DKymoAtIntervalT(t);
+			AlongT kymoROI2D = cap.getAlongTAtT(t);
 			listRoisAtT.add(kymoROI2D.getRoi());
 		}
 		Polygon2D polygon = ROI2DUtilities.getPolygonEnclosingCapillaries(listRoisAtT);
@@ -254,7 +254,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		seq.removeAllROI();
 		List<ROI2D> listRois = new ArrayList<ROI2D>();
 		for (Capillary cap : exp.getCapillaries().getList()) {
-			listRois.add(cap.getROI2DKymoAtIntervalT((int) intervalT).getRoi());
+			listRois.add(cap.getAlongTAtT((int) intervalT).getRoi());
 		}
 		seq.addROIs(listRois, false);
 
@@ -276,7 +276,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			Capillary cap = exp.getCapillaries().getCapillaryFromRoiName(roi.getName());
 			if (cap != null) {
 				ROI2D roilocal = (ROI2D) roi.getCopy();
-				cap.getROI2DKymoAtIntervalT(intervalT).setRoi(roilocal);
+				cap.getAlongTAtT(intervalT).setRoi(roilocal);
 			}
 		}
 		exp.save_capillaries_description_and_measures();

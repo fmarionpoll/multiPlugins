@@ -256,7 +256,7 @@ public class Adjust extends JPanel {
 
 		int chan = 0;
 		int jitter = (int) jitterJSpinner.getValue();
-		int t = seqCamData.getCurrentFrame();
+		int t = seqCamData.getSequence().getFirstViewer().getPositionT();
 		seqCamData.getSequence().setPositionT(t);
 		IcyBufferedImage vinputImage = seqCamData.getSequence().getImage(t, 0, chan);
 		if (vinputImage == null) {
@@ -267,17 +267,18 @@ public class Adjust extends JPanel {
 		double[] sourceValues = Array1DUtil.arrayToDoubleArray(vinputImage.getDataXY(0),
 				vinputImage.isSignedDataType());
 
-		// loop through all lines
-		List<ROI2D> capillaryRois = seqCamData.findROIsMatchingNamePattern("line");
-		for (ROI2D roi : capillaryRois) {
+		// loop through all lines and center ROIs on the view
+		List<ROI2D> viewerRois = seqCamData.findROIsMatchingNamePattern("line");
+		for (ROI2D roi : viewerRois) {
 			if (roi instanceof ROI2DLine) {
 				Line2D line = roisCenterLinetoCapillary(sourceValues, xwidth, (ROI2DLine) roi, jitter);
 				((ROI2DLine) roi).setLine(line);
 			}
 		}
-		if (!capillaryRois.isEmpty() && !exp.getCapillaries().getList().isEmpty()
+		// transfer ROIs to capillaries
+		if (!viewerRois.isEmpty() && !exp.getCapillaries().getList().isEmpty()
 				&& !exp.getCapillaries().getList().get(0).getROIsForKymo().isEmpty()) {
-			exp.saveCapillaryRoisAtT(t);
+			exp.updateCapillaryRoisAtT(t);
 			exp.save_capillaries_description_and_measures();
 		}
 	}

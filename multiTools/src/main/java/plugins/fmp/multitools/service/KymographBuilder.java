@@ -145,7 +145,7 @@ public class KymographBuilder {
 	}
 
 	private void analyzeImageUnderCapillary(IcyBufferedImage sourceImage, Capillary cap, int t, int kymographColumn) {
-		AlongT capiROI2DatT = cap.getROI2DKymoAtIntervalT(t);
+		AlongT capiROI2DatT = cap.getAlongTAtT(t);
 		int sizeC = sourceImage.getSizeC();
 		IcyBufferedImage capImage = cap.getCap_Image();
 		int kymoImageWidth = capImage.getWidth();

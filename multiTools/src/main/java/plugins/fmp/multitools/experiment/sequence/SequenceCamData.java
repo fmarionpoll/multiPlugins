@@ -601,10 +601,11 @@ public class SequenceCamData implements AutoCloseable {
 				}
 				this.seq.close();
 			}
-			
+
 			// Close any auto-created viewers on the new sequence before attaching
 			// This prevents the brief "loading canvas" display when switching experiments
-			// ICY's Loader.loadSequences() may auto-create viewers, which we want to replace
+			// ICY's Loader.loadSequences() may auto-create viewers, which we want to
+			// replace
 			// with our own properly configured viewers
 			// Note: sequence should already be in beginUpdate() mode from ImageLoader
 			List<Viewer> newSequenceViewers = sequence.getViewers();
@@ -615,7 +616,7 @@ public class SequenceCamData implements AutoCloseable {
 					}
 				}
 			}
-			
+
 			this.seq = sequence;
 			this.status = EnumStatus.FILESTACK;
 		} finally {

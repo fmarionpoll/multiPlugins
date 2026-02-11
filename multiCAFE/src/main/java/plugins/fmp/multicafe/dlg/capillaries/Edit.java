@@ -60,7 +60,7 @@ public class Edit extends JPanel {
 				if (exp != null && exp.getSeqCamData() != null) {
 					icy.gui.viewer.Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 					if (v != null) {
-						exp.saveCapillaryRoisAtT(v.getPositionT());
+						exp.updateCapillaryRoisAtT(v.getPositionT());
 						exp.save_capillaries_description_and_measures();
 					}
 				}

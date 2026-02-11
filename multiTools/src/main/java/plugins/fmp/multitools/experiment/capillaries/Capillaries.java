@@ -360,7 +360,7 @@ public class Capillaries {
 	public List<ROI2D> getCapillaryROIsAtT(int t) {
 		List<ROI2D> list = new ArrayList<>(capillariesList.size());
 		for (Capillary cap : capillariesList) {
-			AlongT at = cap.getROI2DKymoAtIntervalT(t);
+			AlongT at = cap.getAlongTAtT(t);
 			if (at != null && at.getRoi() != null) {
 				list.add((ROI2D) at.getRoi().getCopy());
 			}
