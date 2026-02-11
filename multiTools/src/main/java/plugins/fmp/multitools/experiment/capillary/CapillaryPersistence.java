@@ -67,7 +67,7 @@ public class CapillaryPersistence {
 	}
 
 	private static boolean xmlLoadIntervals(Node node, Capillary cap) {
-		cap.getRoisForKymo().clear();
+		cap.getAlongTList().clear();
 		final Node nodeMeta2 = XMLUtil.getElement(node, ID_INTERVALS);
 		if (nodeMeta2 == null)
 			return false;
@@ -86,10 +86,10 @@ public class CapillaryPersistence {
 				// Re-implementing logic:
 				AlongT roiInterval = new AlongT();
 				roiInterval.loadFromXML(node_i);
-				cap.getRoisForKymo().add(roiInterval);
+				cap.getAlongTList().add(roiInterval);
 
 				if (i == 0) {
-					cap.setRoi(cap.getRoisForKymo().get(0).getRoi());
+					cap.setRoi(cap.getAlongTList().get(0).getRoi());
 				}
 			}
 		}
@@ -126,7 +126,7 @@ public class CapillaryPersistence {
 		if (nodeMeta2 == null)
 			return false;
 
-		List<AlongT> rois = cap.getRoisForKymo();
+		List<AlongT> rois = cap.getAlongTList();
 		int nitems = rois.size();
 		XMLUtil.setElementIntValue(nodeMeta2, ID_NINTERVALS, nitems);
 		if (nitems > 0) {

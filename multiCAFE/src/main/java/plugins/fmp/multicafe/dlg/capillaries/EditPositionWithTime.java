@@ -45,7 +45,8 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	IcyFrame dialogFrame = null;
 
 	private JButton addItemButton = new JButton("Add");
-	private JButton deleteItemButton = new JButton("Delete");
+	private JButton deleteItemButton = new JButton("Delete current");
+	private JButton deleteAllButton = new JButton("Delete all");
 	private JButton saveCapillariesButton = new JButton("Update capillaries from ROIs");
 	private JCheckBox showFrameButton = new JCheckBox("Show frame");
 	private JButton fitToFrameButton = new JButton("Fit capillaries to frame");
@@ -72,6 +73,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		panel1.add(new JLabel("Viewer frame T:"));
 		panel1.add(addItemButton);
 		panel1.add(deleteItemButton);
+		panel1.add(deleteAllButton);
 		topPanel.add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
@@ -140,6 +142,13 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			}
 		});
 
+		deleteAllButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				deleteAllRows();
+			}
+		});
+
 		saveCapillariesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -151,6 +160,16 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 	private void defineSelectionListener() {
 		tableView.getSelectionModel().addListSelectionListener(this);
+	}
+
+	private void deleteAllRows() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		for (Capillary cap : exp.getCapillaries().getList()) {
+			cap.retainFirstAlongT();
+		}
+		exp.save_capillaries_description_and_measures();
 	}
 
 	void close() {

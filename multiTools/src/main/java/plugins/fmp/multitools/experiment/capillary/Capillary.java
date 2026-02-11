@@ -259,10 +259,23 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
-	public List<AlongT> getRoisForKymo() {
+	public List<AlongT> getAlongTList() {
 		if (metadata.roisForKymo.size() < 1)
 			initROI2DForKymoList();
 		return metadata.roisForKymo;
+	}
+
+	public void setAlongTList(List<AlongT> list) {
+		metadata.roisForKymo = list != null ? new ArrayList<>(list) : new ArrayList<>();
+	}
+
+	/** Keeps only the first AlongT interval; removes all others. */
+	public void retainFirstAlongT() {
+		if (metadata.roisForKymo.size() <= 1)
+			return;
+		AlongT first = metadata.roisForKymo.get(0);
+		metadata.roisForKymo.clear();
+		metadata.roisForKymo.add(first);
 	}
 
 	public String getKymographName() {
@@ -1129,8 +1142,8 @@ public class Capillary implements Comparable<Capillary> {
 
 	/**
 	 * Injects tracked ROIs into roisForKymo for the range [tStart, tEnd]. Removes
-	 * existing AlongT whose start falls in that range, adds new AlongT from tracked,
-	 * sorts by start, then compresses redundant intervals.
+	 * existing AlongT whose start falls in that range, adds new AlongT from
+	 * tracked, sorts by start, then compresses redundant intervals.
 	 */
 	public void injectTrackedRoisIntoAlongT(long tStart, long tEnd, Map<Long, ROI2D> tracked) {
 		if (tracked == null || tracked.isEmpty())

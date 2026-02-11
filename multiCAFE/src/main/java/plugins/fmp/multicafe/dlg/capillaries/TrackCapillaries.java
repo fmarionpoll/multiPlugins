@@ -23,6 +23,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
+import plugins.fmp.multitools.series.TrackCapillariesAlongTimeFrameByFrame;
 import plugins.fmp.multitools.tools.JComponents.CapillariesWithTimeTableModel;
 
 public class TrackCapillaries extends JPanel {
@@ -34,7 +35,8 @@ public class TrackCapillaries extends JPanel {
 
 	private JSpinner tStartSpinner;
 	private JSpinner tEndSpinner;
-	private JButton runButton = new JButton("Run tracking");
+	private JButton runButton = new JButton("Run tracking (by capillary)");
+	private JButton runFrameByFrameButton = new JButton("Run tracking (frame-by-frame)");
 	private JButton saveButton = new JButton("Save");
 	private JTable tableView = new JTable();
 	private CapillariesWithTimeTableModel tableModel;
@@ -71,6 +73,7 @@ public class TrackCapillaries extends JPanel {
 
 		JPanel p2 = new JPanel(flow);
 		p2.add(runButton);
+		p2.add(runFrameByFrameButton);
 		p2.add(saveButton);
 		topPanel.add(p2);
 
@@ -96,6 +99,7 @@ public class TrackCapillaries extends JPanel {
 		dialogFrame.setVisible(true);
 
 		runButton.addActionListener(e -> runTracking());
+		runFrameByFrameButton.addActionListener(e -> runTrackingFrameByFrame());
 		saveButton.addActionListener(e -> save());
 	}
 
@@ -107,13 +111,44 @@ public class TrackCapillaries extends JPanel {
 		int t0 = (Integer) tStartSpinner.getValue();
 		int tEnd = (Integer) tEndSpinner.getValue();
 
-		ProgressFrame pf = new ProgressFrame("Tracking capillaries");
+		ProgressFrame pf = new ProgressFrame("Tracking capillaries (by capillary)");
 		ProgressReporter progress = progressReporterFor(pf);
 
 		new SwingWorker<Void, Void>() {
 			@Override
 			protected Void doInBackground() {
+				long t0Ms = System.currentTimeMillis();
 				new TrackCapillariesAlongTime().run(exp, t0, tEnd, progress);
+				long elapsed = System.currentTimeMillis() - t0Ms;
+				System.out.println("Track capillaries (by capillary): " + elapsed + " ms");
+				return null;
+			}
+
+			@Override
+			protected void done() {
+				tableModel.fireTableDataChanged();
+			}
+		}.execute();
+	}
+
+	private void runTrackingFrameByFrame() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null)
+			return;
+
+		int t0 = (Integer) tStartSpinner.getValue();
+		int tEnd = (Integer) tEndSpinner.getValue();
+
+		ProgressFrame pf = new ProgressFrame("Tracking capillaries (frame-by-frame)");
+		ProgressReporter progress = progressReporterFor(pf);
+
+		new SwingWorker<Void, Void>() {
+			@Override
+			protected Void doInBackground() {
+				long t0Ms = System.currentTimeMillis();
+				new TrackCapillariesAlongTimeFrameByFrame().run(exp, t0, tEnd, progress);
+				long elapsed = System.currentTimeMillis() - t0Ms;
+				System.out.println("Track capillaries (frame-by-frame): " + elapsed + " ms");
 				return null;
 			}
 

@@ -119,6 +119,40 @@ public class CapillaryTracker {
 		return track(cap, seqCamData, t0, tEnd, DEFAULT_CROP_MARGIN_PX);
 	}
 
+	/**
+	 * Tracks one frame step: given ROI at t-1 and images at t-1 and t, returns ROI
+	 * at t. For frame-by-frame processing where images are loaded once and shared.
+	 */
+	public ROI2D trackOneFrame(ROI2D roiPrev, IcyBufferedImage imgPrev, IcyBufferedImage imgCurr) {
+		return trackOneFrame(roiPrev, imgPrev, imgCurr, DEFAULT_CROP_MARGIN_PX);
+	}
+
+	public ROI2D trackOneFrame(ROI2D roiPrev, IcyBufferedImage imgPrev, IcyBufferedImage imgCurr, int marginPx) {
+		if (roiPrev == null || imgPrev == null || imgCurr == null)
+			return null;
+		int w = imgCurr.getWidth();
+		int h = imgCurr.getHeight();
+		Rectangle cropRect = cropRectForRoi(roiPrev, w, h, marginPx);
+		if (cropRect.width < 16 || cropRect.height < 16)
+			return (ROI2D) roiPrev.getCopy();
+		IcyBufferedImage cropPrev = IcyBufferedImageUtil.getSubImage(imgPrev, cropRect.x, cropRect.y, cropRect.height,
+				cropRect.width);
+		IcyBufferedImage cropCurr = IcyBufferedImageUtil.getSubImage(imgCurr, cropRect.x, cropRect.y, cropRect.height,
+				cropRect.width);
+		Vector2d translation;
+		try {
+			translation = GaspardRigidRegistration.findTranslation2D(cropCurr, CHANNEL, cropPrev, CHANNEL);
+		} catch (Exception e) {
+			return (ROI2D) roiPrev.getCopy();
+		}
+		double dx = -translation.x;
+		double dy = -translation.y;
+		ROI2D roiTranslated = ROI2DUtilities.translateROI(roiPrev, dx, dy);
+		if (roiTranslated != null)
+			roiTranslated.setName(roiPrev.getName());
+		return roiTranslated;
+	}
+
 	private Rectangle cropRectForRoi(ROI2D roi, int imgW, int imgH, int margin) {
 		Rectangle bounds = roi.getBounds();
 		int w = Math.max(32, bounds.width + 2 * margin);
