@@ -297,7 +297,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			return;
 		Sequence seq = exp.getSeqCamData().getSequence();
 
-		int intervalT = (int) exp.getCapillaries().getKymoROI2DIntervalsStartAt(selectedRow);
+		int intervalT = (int) exp.getCapillaries().getKymoROI2DIntervalsStartAt(selectedRow < 0 ? 0 : selectedRow);
 		List<ROI2D> listRois = seq.getROI2Ds();
 		for (ROI2D roi : listRois) {
 			if (!roi.getName().contains("line"))

@@ -24,7 +24,7 @@ import plugins.fmp.multitools.tools.ROI2D.AlongT;
  * all capillaries for that frame pair, then advances. Uses futures for parallel
  * image loading and parallel per-capillary phase correlation within each frame.
  */
-public class TrackCapillariesAlongTimeFrameByFrame {
+public class TrackCapillariesAlongTime {
 
 	private final CapillaryTracker tracker = new CapillaryTracker();
 	private final SequenceLoaderService loadSvc = new SequenceLoaderService();

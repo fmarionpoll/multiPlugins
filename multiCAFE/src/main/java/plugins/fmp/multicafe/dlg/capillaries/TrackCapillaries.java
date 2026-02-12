@@ -1,7 +1,6 @@
 package plugins.fmp.multicafe.dlg.capillaries;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
@@ -9,10 +8,7 @@ import java.awt.Point;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
-import javax.swing.JTable;
-import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -22,8 +18,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.ProgressReporter;
-import plugins.fmp.multitools.series.TrackCapillariesAlongTimeFrameByFrame;
-import plugins.fmp.multitools.tools.JComponents.CapillariesWithTimeTableModel;
+import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
 
 public class TrackCapillaries extends JPanel {
 
@@ -36,8 +31,6 @@ public class TrackCapillaries extends JPanel {
 	private JSpinner tEndSpinner;
 	private JButton runFrameByFrameButton = new JButton("Run tracking");
 	private JButton saveButton = new JButton("Save");
-	private JTable tableView = new JTable();
-	private CapillariesWithTimeTableModel tableModel;
 
 	public void initialize(MultiCAFE parent0, Point pt) {
 		this.parent0 = parent0;
@@ -51,12 +44,6 @@ public class TrackCapillaries extends JPanel {
 
 		tStartSpinner = new JSpinner(new SpinnerNumberModel(0, 0, nFrames - 1, 1));
 		tEndSpinner = new JSpinner(new SpinnerNumberModel(Math.min(nFrames - 1, 100), 0, nFrames - 1, 1));
-
-		tableModel = new CapillariesWithTimeTableModel(parent0.expListComboLazy);
-		tableView.setModel(tableModel);
-		tableView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		tableView.setPreferredScrollableViewportSize(new Dimension(180, 200));
-		tableView.setFillsViewportHeight(true);
 
 		JPanel topPanel = new JPanel(new GridLayout(4, 1));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
@@ -75,21 +62,12 @@ public class TrackCapillaries extends JPanel {
 		topPanel.add(p2);
 
 		JPanel p3 = new JPanel(flow);
-		p3.add(new JLabel(
-				"<html>Tracking will replace AlongT intervals in the selected range. Intervals outside the range are unchanged.</html>"));
+		p3.add(new JLabel("Tracking will replace AlongT intervals in the selected range"));
+		p3.add(new JLabel("Intervals outside the range are unchanged"));
 		topPanel.add(p3);
-
-		JPanel p4 = new JPanel(flow);
-		p4.add(new JLabel("Intervals after compress:"));
-		topPanel.add(p4);
-
-		JScrollPane scrollPane = new JScrollPane(tableView);
-		JPanel tablePanel = new JPanel();
-		tablePanel.add(scrollPane);
 
 		dialogFrame = new IcyFrame("Track capillaries along time", true, true);
 		dialogFrame.add(topPanel, BorderLayout.NORTH);
-		dialogFrame.add(tablePanel, BorderLayout.CENTER);
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
@@ -107,22 +85,22 @@ public class TrackCapillaries extends JPanel {
 		int t0 = (Integer) tStartSpinner.getValue();
 		int tEnd = (Integer) tEndSpinner.getValue();
 
-		ProgressFrame pf = new ProgressFrame("Tracking capillaries (frame-by-frame)");
+		final ProgressFrame pf = new ProgressFrame("Tracking capillaries (dlg)");
 		ProgressReporter progress = progressReporterFor(pf);
 
 		new SwingWorker<Void, Void>() {
 			@Override
 			protected Void doInBackground() {
 				long t0Ms = System.currentTimeMillis();
-				new TrackCapillariesAlongTimeFrameByFrame().run(exp, t0, tEnd, progress);
+				new TrackCapillariesAlongTime().run(exp, t0, tEnd, progress);
 				long elapsed = System.currentTimeMillis() - t0Ms;
-				System.out.println("Track capillaries (frame-by-frame): " + elapsed + " ms");
+				System.out.println("Track capillaries: " + elapsed + " ms");
 				return null;
 			}
 
 			@Override
 			protected void done() {
-				tableModel.fireTableDataChanged();
+				pf.close();
 			}
 		}.execute();
 	}
