@@ -169,6 +169,8 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			cap.retainFirstAlongT();
 		}
+		exp.getCapillaries().invalidateKymoIntervalsCache();
+		capillariesWithTimeTablemodel.fireTableDataChanged();
 		exp.save_capillaries_description_and_measures();
 	}
 
