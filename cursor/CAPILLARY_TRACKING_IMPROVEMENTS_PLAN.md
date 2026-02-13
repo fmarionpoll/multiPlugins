@@ -22,7 +22,11 @@
 - User moves to the frame where tracking failed, manually repositions the capillary, then runs tracking from that frame.
 - Uses the corrected ROI at current T as the new seed.
 
-**Action:** Add button and wire to use viewer position as tStart.
+**Status:** Done. "Run from current T" and "Run backwards from current T" added; backward uses seed at current T and fills down to From.
+
+**Length check when running backwards:** After a jump the user corrects ROIs at e.g. t+4 but may have (1) altered length or (2) slightly misplaced vertical position. We now:
+- **(1) Length:** Before running backwards, compare each capillary’s current ROI (path length and point count) to the reference at tCurr−1. If any differ beyond tolerance (2 px or 3%), a dialog offers: Cancel, Continue anyway, or **Normalize length and run** (resample current ROIs to reference point count via arc-length resampling). Implemented in `TrackCapillaries.runBackwardFromCurrentT` and `ROI2DUtilities.getPolylinePathLength` / `resamplePolylineToNPoints`.
+- **(2) Vertical position:** No automatic correction yet. A possible future improvement is optional recentering: sample intensity in a narrow band perpendicular to the line and shift each point to the intensity centroid or peak (see also §4).
 
 ---
 

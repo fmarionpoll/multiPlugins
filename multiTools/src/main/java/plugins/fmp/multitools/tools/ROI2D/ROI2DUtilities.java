@@ -436,6 +436,20 @@ public class ROI2DUtilities {
 		return points;
 	}
 
+	/** Centroid of capillary ROI points (for displacement comparison). */
+	public static Point2D getRoiCentroid(ROI2D roi) {
+		ArrayList<Point2D> pts = getCapillaryPoints(roi);
+		if (pts.isEmpty())
+			return null;
+		double sx = 0, sy = 0;
+		for (Point2D p : pts) {
+			sx += p.getX();
+			sy += p.getY();
+		}
+		int n = pts.size();
+		return new Point2D.Double(sx / n, sy / n);
+	}
+
 	private static final double GEOM_EPSILON = 0.01;
 
 	/**
@@ -541,6 +555,78 @@ public class ROI2DUtilities {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Path length in pixels (sum of segment lengths). For ROI2DLine: segment length.
+	 * For ROI2DPolyLine: sum of segment lengths.
+	 */
+	public static double getPolylinePathLength(ROI2D roi) {
+		if (roi == null)
+			return 0;
+		ArrayList<Point2D> pts = getCapillaryPoints(roi);
+		if (pts.size() < 2)
+			return 0;
+		double len = 0;
+		for (int i = 1; i < pts.size(); i++) {
+			Point2D a = pts.get(i - 1);
+			Point2D b = pts.get(i);
+			len += Math.hypot(b.getX() - a.getX(), b.getY() - a.getY());
+		}
+		return len;
+	}
+
+	public static int getPolylinePointCount(ROI2D roi) {
+		if (roi == null)
+			return 0;
+		ArrayList<Point2D> pts = getCapillaryPoints(roi);
+		return pts.size();
+	}
+
+	/**
+	 * Resamples the ROI to nPoints points by arc length (even spacing along the path).
+	 * Preserves shape; useful to match reference length/npoints after manual correction.
+	 * Returns a new ROI with the same name.
+	 */
+	public static ROI2D resamplePolylineToNPoints(ROI2D roi, int nPoints) {
+		if (roi == null || nPoints < 2)
+			return roi != null ? (ROI2D) roi.getCopy() : null;
+		ArrayList<Point2D> pts = getCapillaryPoints(roi);
+		if (pts.isEmpty() || pts.size() < 2)
+			return (ROI2D) roi.getCopy();
+		double[] cumLen = new double[pts.size()];
+		cumLen[0] = 0;
+		for (int i = 1; i < pts.size(); i++) {
+			Point2D a = pts.get(i - 1);
+			Point2D b = pts.get(i);
+			cumLen[i] = cumLen[i - 1] + Math.hypot(b.getX() - a.getX(), b.getY() - a.getY());
+		}
+		double totalLen = cumLen[cumLen.length - 1];
+		if (totalLen <= 0)
+			return (ROI2D) roi.getCopy();
+		ArrayList<Point2D> out = new ArrayList<>(nPoints);
+		for (int j = 0; j < nPoints; j++) {
+			double t = (nPoints == 1) ? 0 : (j * totalLen / (nPoints - 1));
+			int i = 0;
+			while (i + 1 < cumLen.length && cumLen[i + 1] < t)
+				i++;
+			double segStart = cumLen[i];
+			double segEnd = (i + 1 < cumLen.length) ? cumLen[i + 1] : totalLen;
+			double frac = (segEnd > segStart) ? ((t - segStart) / (segEnd - segStart)) : 0;
+			Point2D p0 = pts.get(i);
+			Point2D p1 = (i + 1 < pts.size()) ? pts.get(i + 1) : p0;
+			out.add(new Point2D.Double(
+					p0.getX() + frac * (p1.getX() - p0.getX()),
+					p0.getY() + frac * (p1.getY() - p0.getY())));
+		}
+		Polyline2D poly = new Polyline2D(
+				out.stream().mapToDouble(Point2D::getX).toArray(),
+				out.stream().mapToDouble(Point2D::getY).toArray(),
+				nPoints);
+		ROI2D result = new ROI2DPolyLine(poly);
+		if (roi.getName() != null)
+			result.setName(roi.getName());
+		return result;
 	}
 
 }

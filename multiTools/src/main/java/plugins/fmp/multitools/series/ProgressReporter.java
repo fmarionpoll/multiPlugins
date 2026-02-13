@@ -1,5 +1,9 @@
 package plugins.fmp.multitools.series;
 
+import java.util.List;
+
+import plugins.fmp.multitools.experiment.capillary.Capillary;
+
 /**
  * Interface for progress reporting during series processing.
  * Allows decoupling of UI progress updates from business logic.
@@ -54,7 +58,18 @@ public interface ProgressReporter {
      * @return true if the process should be cancelled
      */
     boolean isCancelled();
-    
+
+    /**
+     * Called when outlier capillaries are detected at a frame (unusual movement vs others).
+     * @param frameT frame index where outliers were detected
+     * @param outlierIndices capillary indices (into experiment's list) that are outliers
+     * @param caps full list of capillaries (to resolve names)
+     * @return 0 = continue and apply all, 1 = stop tracking, 2 = skip outliers for this frame only and continue
+     */
+    default int reportOutliers(int frameT, List<Integer> outlierIndices, List<Capillary> caps) {
+        return 0;
+    }
+
     /**
      * No-op implementation for cases where progress reporting is not needed.
      */
@@ -74,4 +89,8 @@ public interface ProgressReporter {
         @Override
         public boolean isCancelled() { return false; }
     };
+
+    int CONTINUE_APPLY_ALL = 0;
+    int STOP_TRACKING = 1;
+    int SKIP_OUTLIERS_THIS_FRAME = 2;
 } 
