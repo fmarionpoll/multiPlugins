@@ -40,6 +40,7 @@ import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 /**
@@ -230,13 +231,22 @@ public class SequenceKymos extends SequenceCamData {
 				roi.setT(t);
 			if (roi.getT() != t)
 				continue;
-			// interpolate missing points if necessary
-			if (roi.getName().contains("level") || roi.getName().contains("gulp")) {
+			// interpolate or expand to full width so transfer back to capillary keeps length
+			if (roi.getName().contains("level") || roi.getName().contains("derivative")) {
+				ROI2DPolyLine roiLine = (ROI2DPolyLine) roi;
+				Polyline2D line = roiLine.getPolyline2D();
+				if (line != null && line.npoints > 0 && line.npoints < width) {
+					Level2D expanded = new Level2D(line).expandPolylineToNewWidth(width);
+					roiLine.setPolyline2D(expanded);
+				} else {
+					ROI2DUtilities.interpolateMissingPointsAlongXAxis(roiLine, width);
+				}
+				continue;
+			}
+			if (roi.getName().contains("gulp")) {
 				ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, width);
 				continue;
 			}
-			if (roi.getName().contains("deriv"))
-				continue;
 			// if gulp not found - add an index to it
 			ROI2DPolyLine roiLine = (ROI2DPolyLine) roi;
 			Polyline2D line = roiLine.getPolyline2D();

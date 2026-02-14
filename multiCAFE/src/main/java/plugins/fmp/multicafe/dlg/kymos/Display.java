@@ -527,6 +527,7 @@ public class Display extends JPanel implements ViewerListener {
 				savedBounds = v.getBounds();
 				icurrent = v.getPositionT();
 				if (icurrent != isel && icurrent >= 0) {
+					seqKymos.validateRoisAtT(icurrent);
 					Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
 					if (capOld != null)
 						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
@@ -609,6 +610,7 @@ public class Display extends JPanel implements ViewerListener {
 				icy.sequence.Sequence seq = seqKymos.getSequence();
 				int tOld = seqKymos.getCurrentFrame();
 				if (tOld >= 0 && tOld != tNew) {
+					seqKymos.validateRoisAtT(tOld);
 					Capillary capOld = seqKymos.getCapillaryForFrame(tOld, exp.getCapillaries());
 					if (capOld != null)
 						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
