@@ -60,8 +60,9 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 			analyzeExperiment(exp);
 			long endTime2InNs = System.nanoTime();
-			System.out.println("BuildSeries ("+index+"/"+expList.index1+ "):doInBackground process ended - duration: "
-					+ ((endTime2InNs - startTimeInNs) / 1000000000f) + " s");
+			System.out.println(
+					"BuildSeries (" + index + " / " + expList.index1 + "):doInBackground process ended - duration: "
+							+ ((endTime2InNs - startTimeInNs) / 1000000000f) + " s");
 
 			// Force multiple GC passes with delays to help free memory for next experiment
 			for (int i = 0; i < 3; i++) {

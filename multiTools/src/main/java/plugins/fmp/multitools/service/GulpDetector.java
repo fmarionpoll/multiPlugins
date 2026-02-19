@@ -67,8 +67,10 @@ public class GulpDetector {
 			String fullPath = exp.getSeqKymos().getFileNameFromImageList(tKymo);
 			String nameWithoutExt = new File(fullPath).getName().replaceFirst("[.][^.]+$", "");
 			final Capillary capi = exp.getCapillaries().getCapillaryFromKymographName(nameWithoutExt);
-			if (capi == null)
+			if (capi == null) {
+				System.out.println("for kymo=" + tKymo + " capi is null");
 				continue;
+			}
 			if (tKymo != capi.getKymographIndex())
 				System.out.println(
 						"discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
@@ -79,8 +81,11 @@ public class GulpDetector {
 					List<Point2D> profile = getDerivativeProfile(seqAnalyzed, capi, jitter,
 							BuildSeriesOptions.Z_INDEX_FILTERED_FOR_GULPS);
 					if (profile != null) {
-						capi.setDerivative(new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
-								capi.getKymographIndex(), profile));
+						CapillaryMeasure measure = new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
+								capi.getKymographIndex(), profile);
+						if (measure.getNPoints() == 0)
+							System.out.println("measure = no points");
+						capi.setDerivative(measure);
 					}
 				}
 			}));
@@ -183,7 +188,7 @@ public class GulpDetector {
 	}
 
 	private CapillaryMeasure computeThresholdFromEmptyCages(Experiment exp, BuildSeriesOptions options) {
-		List<Capillary> emptyCageCapillaries = new ArrayList<>();
+		List<Capillary> noFlyCapillaries = new ArrayList<>();
 
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			int cageID = cap.getCageID();
@@ -191,32 +196,32 @@ public class GulpDetector {
 			if (cage != null && cage.getCageNFlies() == 0) {
 				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
 						&& cap.getDerivative().polylineLevel.npoints > 0) {
-					emptyCageCapillaries.add(cap);
+					noFlyCapillaries.add(cap);
 				}
 			}
 		}
 
-		if (emptyCageCapillaries.isEmpty()) {
+		if (noFlyCapillaries.isEmpty()) {
 			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - No empty cages found, using fixed threshold");
 			return null;
 		}
 
-		if (emptyCageCapillaries.size() < 2) {
-			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Only " + emptyCageCapillaries.size()
+		if (noFlyCapillaries.size() < 2) {
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Only " + noFlyCapillaries.size()
 					+ " empty cage(s) found, statistics may be unreliable");
 		}
 
-		Capillary firstEmptyCageCap = emptyCageCapillaries.get(0);
+		Capillary firstEmptyCageCap = noFlyCapillaries.get(0);
 		int npoints = firstEmptyCageCap.getDerivative().polylineLevel.npoints;
 
-		double[] smoothedReference = computeSmoothedReferenceCurve(emptyCageCapillaries, options);
+		double[] smoothedReference = computeSmoothedReferenceCurve(noFlyCapillaries, options);
 		if (smoothedReference == null || smoothedReference.length != npoints) {
 			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - Failed to compute smoothed reference curve");
 			return null;
 		}
 
 		List<double[]> residualArrays = new ArrayList<>();
-		for (Capillary cap : emptyCageCapillaries) {
+		for (Capillary cap : noFlyCapillaries) {
 			double[] residuals = computeResiduals(cap, smoothedReference);
 			if (residuals != null) {
 				residualArrays.add(residuals);
@@ -250,8 +255,8 @@ public class GulpDetector {
 
 		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
-		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from "
-				+ emptyCageCapillaries.size() + " empty cage(s) using smoothed reference and temporal noise model");
+		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from " + noFlyCapillaries.size()
+				+ " empty cage(s) using smoothed reference and temporal noise model");
 
 		return thresholdMeasure;
 	}
@@ -484,7 +489,7 @@ public class GulpDetector {
 		if (polylineTopLevel == null)
 			return null;
 		if (zIndex < 0 || zIndex >= seq.getSizeZ()) {
-			Logger.warn("GulpDetector:getDerivativeProfile - zIndex " + zIndex + " out of range [0, "
+			System.out.println("GulpDetector:getDerivativeProfile - zIndex " + zIndex + " out of range [0, "
 					+ (seq.getSizeZ() - 1) + "], sequence may not have been filtered");
 			return null;
 		}
