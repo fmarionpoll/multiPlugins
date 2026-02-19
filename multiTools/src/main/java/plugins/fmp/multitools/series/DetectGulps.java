@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.GulpDetector;
 import plugins.fmp.multitools.service.KymographService;
 
@@ -26,8 +27,8 @@ public class DetectGulps extends BuildSeries {
 	private void buildFilteredImage(Experiment exp) {
 		if (exp.getSeqKymos() == null)
 			return;
-		int zChannelDestination = 2;
-		new KymographService().buildFiltered(exp, 0, zChannelDestination, options.transformForGulps);
+		new KymographService().buildFiltered(exp, 0, BuildSeriesOptions.Z_INDEX_FILTERED_FOR_GULPS,
+				options.transformForGulps);
 	}
 
 }

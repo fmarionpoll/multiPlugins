@@ -41,6 +41,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int kymoFirst = 0;
 	public int kymoLast = 0;
 	public double detectGulpsThreshold_uL = .3;
+	public static final int Z_INDEX_FILTERED_FOR_GULPS = 2;
 	public ImageTransformEnums transformForGulps = ImageTransformEnums.XDIFFN;
 	public boolean buildGulps = true;
 

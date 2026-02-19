@@ -77,7 +77,8 @@ public class GulpDetector {
 				@Override
 				public void run() {
 					capi.setDerivative(new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
-							capi.getKymographIndex(), getDerivativeProfile(seqAnalyzed, capi, jitter)));
+							capi.getKymographIndex(),
+							getDerivativeProfile(seqAnalyzed, capi, jitter, BuildSeriesOptions.Z_INDEX_FILTERED_FOR_GULPS)));
 				}
 			}));
 		}
@@ -273,30 +274,30 @@ public class GulpDetector {
 		return Math.sqrt(sumSquaredDiff / values.size());
 	}
 
-	private double computeThresholdAtT(List<Double> values, BuildSeriesOptions options) {
-		GulpThresholdMethod method = options.thresholdMethod;
-		double k = options.thresholdSdMultiplier;
-
-		switch (method) {
-		case MEAN_PLUS_SD: {
-			double avg = computeMean(values);
-			double std = computeStdDev(values, avg);
-			return avg + k * std;
-		}
-		case MEDIAN_PLUS_IQR: {
-			double median = computeMedian(values);
-			double iqr = computeIQR(values);
-			return median + k * iqr;
-		}
-		case MEDIAN_PLUS_MAD: {
-			double median = computeMedian(values);
-			double mad = computeMAD(values, median);
-			return median + k * mad;
-		}
-		default:
-			return computeMean(values) + 3.0 * computeStdDev(values, computeMean(values));
-		}
-	}
+//	private double computeThresholdAtT(List<Double> values, BuildSeriesOptions options) {
+//		GulpThresholdMethod method = options.thresholdMethod;
+//		double k = options.thresholdSdMultiplier;
+//
+//		switch (method) {
+//		case MEAN_PLUS_SD: {
+//			double avg = computeMean(values);
+//			double std = computeStdDev(values, avg);
+//			return avg + k * std;
+//		}
+//		case MEDIAN_PLUS_IQR: {
+//			double median = computeMedian(values);
+//			double iqr = computeIQR(values);
+//			return median + k * iqr;
+//		}
+//		case MEDIAN_PLUS_MAD: {
+//			double median = computeMedian(values);
+//			double mad = computeMAD(values, median);
+//			return median + k * mad;
+//		}
+//		default:
+//			return computeMean(values) + 3.0 * computeStdDev(values, computeMean(values));
+//		}
+//	}
 
 	private double computeMedian(List<Double> values) {
 		if (values.isEmpty())
@@ -471,23 +472,31 @@ public class GulpDetector {
 		return temporalNoise;
 	}
 
-	private List<Point2D> getDerivativeProfile(Sequence seq, Capillary cap, int jitter) {
-		Polyline2D polyline = cap.getTopLevel().polylineLevel;
-		if (polyline == null)
+	/**
+	 * Max-intensity profile along the top level. Expects image at zIndex to be the
+	 * transform (e.g. XDIFFN) from KymographService.buildFiltered.
+	 */
+	private List<Point2D> getDerivativeProfile(Sequence seq, Capillary cap, int jitter, int zIndex) {
+		Polyline2D polylineTopLevel = cap.getTopLevel().polylineLevel;
+		if (polylineTopLevel == null)
 			return null;
+		if (zIndex < 0 || zIndex >= seq.getSizeZ()) {
+			Logger.warn("GulpDetector:getDerivativeProfile - zIndex " + zIndex + " out of range [0, "
+					+ (seq.getSizeZ() - 1) + "], sequence may not have been filtered");
+			return null;
+		}
 
-		int z = seq.getSizeZ() - 1;
 		int c = 0;
-		IcyBufferedImage image = seq.getImage(cap.getKymographIndex(), z, c);
+		IcyBufferedImage image = seq.getImage(cap.getKymographIndex(), zIndex, c);
 		List<Point2D> listOfMaxPoints = new ArrayList<>();
 		int[] kymoImageValues = Array1DUtil.arrayToIntArray(image.getDataXY(c), image.isSignedDataType());
 		int xwidth = image.getSizeX();
 		int yheight = image.getSizeY();
 
-		for (int ix = 1; ix < polyline.npoints; ix++) {
+		for (int ix = 1; ix < polylineTopLevel.npoints; ix++) {
 			// for each point of topLevelArray, define a bracket of rows to look at
 			// ("jitter" = 10)
-			int low = (int) polyline.ypoints[ix] - jitter;
+			int low = (int) polylineTopLevel.ypoints[ix] - jitter;
 			int high = low + 2 * jitter;
 			if (low < 0)
 				low = 0;
