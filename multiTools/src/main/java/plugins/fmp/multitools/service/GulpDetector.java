@@ -76,9 +76,12 @@ public class GulpDetector {
 			futures.add(processor.submit(new Runnable() {
 				@Override
 				public void run() {
-					capi.setDerivative(new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
-							capi.getKymographIndex(),
-							getDerivativeProfile(seqAnalyzed, capi, jitter, BuildSeriesOptions.Z_INDEX_FILTERED_FOR_GULPS)));
+					List<Point2D> profile = getDerivativeProfile(seqAnalyzed, capi, jitter,
+							BuildSeriesOptions.Z_INDEX_FILTERED_FOR_GULPS);
+					if (profile != null) {
+						capi.setDerivative(new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
+								capi.getKymographIndex(), profile));
+					}
 				}
 			}));
 		}

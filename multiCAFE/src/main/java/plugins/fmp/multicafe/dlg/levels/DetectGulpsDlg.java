@@ -109,6 +109,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 
 
 		gulpTransforms_comboBox.setSelectedItem(ImageTransformEnums.XDIFFN);
+		thresholdMethodCombo.setSelectedItem(GulpThresholdMethod.MEDIAN_PLUS_MAD);
 		defineActionListeners();
 	}
 
