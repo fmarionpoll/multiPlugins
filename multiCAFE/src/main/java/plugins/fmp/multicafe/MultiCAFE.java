@@ -28,6 +28,7 @@ public class MultiCAFE extends PluginActionable {
 
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
+	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
 
 	public MCBrowse_ paneBrowse = new MCBrowse_();
 	public MCExperiment_ paneExperiment = new MCExperiment_();
@@ -45,6 +46,8 @@ public class MultiCAFE extends PluginActionable {
 	public void run() {
 		// Set the program context so it can be saved in MCExperiment.xml
 		Experiment.setProgramContext("multiCAFE");
+
+		viewOptions.load(getPreferences("viewOptions"));
 
 		JPanel mainPanel = GuiUtil.generatePanelWithoutBorder();
 		paneBrowse.init(mainPanel, "Browse", this);

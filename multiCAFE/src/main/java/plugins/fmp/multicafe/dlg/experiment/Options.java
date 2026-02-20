@@ -36,6 +36,11 @@ public class Options extends JPanel {
 		setLayout(capLayout);
 		this.parent0 = parent0;
 
+		viewCapillariesCheckBox.setSelected(parent0.viewOptions.isViewCapillaries());
+		viewCellsCheckbox.setSelected(parent0.viewOptions.isViewCages());
+		viewFlyCheckbox.setSelected(parent0.viewOptions.isViewFliesCenter());
+		viewFlyRectCheckbox.setSelected(parent0.viewOptions.isViewFliesRect());
+
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(1);
 
@@ -59,33 +64,49 @@ public class Options extends JPanel {
 		defineActionListeners();
 	}
 
+	private void saveViewOptions() {
+		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+	}
+
 	private void defineActionListeners() {
 		viewCapillariesCheckBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewCapillariesCheckBox.isSelected(), "line");
+				boolean sel = viewCapillariesCheckBox.isSelected();
+				parent0.viewOptions.setViewCapillaries(sel);
+				saveViewOptions();
+				displayROIsCategory(sel, "line");
 			}
 		});
 
 		viewCellsCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewCellsCheckbox.isSelected(), "cell");
-				displayROIsCategory(viewCellsCheckbox.isSelected(), "cage");
+				boolean sel = viewCellsCheckbox.isSelected();
+				parent0.viewOptions.setViewCages(sel);
+				saveViewOptions();
+				displayROIsCategory(sel, "cell");
+				displayROIsCategory(sel, "cage");
 			}
 		});
 
 		viewFlyCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewFlyCheckbox.isSelected(), "det");
+				boolean sel = viewFlyCheckbox.isSelected();
+				parent0.viewOptions.setViewFliesCenter(sel);
+				saveViewOptions();
+				displayROIsCategory(sel || viewFlyRectCheckbox.isSelected(), "det");
 			}
 		});
 
 		viewFlyRectCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewFlyRectCheckbox.isSelected(), "det");
+				boolean sel = viewFlyRectCheckbox.isSelected();
+				parent0.viewOptions.setViewFliesRect(sel);
+				saveViewOptions();
+				displayROIsCategory(sel || viewFlyCheckbox.isSelected(), "det");
 			}
 		});
 	}
@@ -95,6 +116,8 @@ public class Options extends JPanel {
 		if (exp == null)
 			return;
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (v == null)
+			return;
 		IcyCanvas canvas = v.getCanvas();
 		List<Layer> layers = canvas.getLayers(false);
 		if (layers == null)
@@ -105,6 +128,40 @@ public class Options extends JPanel {
 				continue;
 			String cs = roi.getName();
 			if (cs.contains(pattern))
+				layer.setVisible(isVisible);
+		}
+	}
+
+	/**
+	 * Applies central view options to the given experiment's cam viewer. Used on
+	 * viewer T change and when a new experiment is loaded.
+	 */
+	public void applyCentralViewOptionsToCamViewer(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (v == null)
+			return;
+		plugins.fmp.multicafe.ViewOptionsHolder opts = parent0.viewOptions;
+		displayROIsCategory(v, "line", opts.isViewCapillaries());
+		displayROIsCategory(v, "cell", opts.isViewCages());
+		displayROIsCategory(v, "cage", opts.isViewCages());
+		displayROIsCategory(v, "det", opts.isViewFliesCenter() || opts.isViewFliesRect());
+	}
+
+	private void displayROIsCategory(Viewer v, String pattern, boolean isVisible) {
+		if (v == null)
+			return;
+		IcyCanvas canvas = v.getCanvas();
+		List<Layer> layers = canvas.getLayers(false);
+		if (layers == null)
+			return;
+		for (Layer layer : layers) {
+			ROI roi = layer.getAttachedROI();
+			if (roi == null)
+				continue;
+			String cs = roi.getName();
+			if (cs != null && cs.contains(pattern))
 				layer.setVisible(isVisible);
 		}
 	}

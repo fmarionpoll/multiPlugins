@@ -25,7 +25,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
 	public CreateKymos tabCreate = new CreateKymos();
-	public Display tabDisplay = new Display();
+	public Options tabDisplay = new Options();
 	public Intervals tabIntervals = new Intervals();
 	public LoadSave tabLoadSave = new LoadSave();
 	public Register tabRegister = new Register();

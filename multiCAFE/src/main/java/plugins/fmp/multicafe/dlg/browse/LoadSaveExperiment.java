@@ -524,14 +524,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		// Create viewer - we're already on EDT from itemStateChanged, so call directly
 		parent0.paneExperiment.updateViewerForSequenceCam(exp);
 
-		// Apply checkbox state to capillary ROIs now that viewer is created
-		// synchronously
-		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null
-				&& exp.getSeqCamData().getSequence().getFirstViewer() != null && exp.getCapillaries() != null
-				&& exp.getCapillaries().getList().size() > 0) {
-			boolean shouldBeVisible = parent0.paneExperiment.tabOptions.viewCapillariesCheckBox.isSelected();
-			parent0.paneExperiment.tabOptions.displayROIsCategory(shouldBeVisible, "line");
-		}
+		parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
 
 		if (parent0.expListComboLazy.getSelectedItem() != exp) {
 			return abortExperimentLoad(exp, expIndex, progressFrame, "different experiment selected during load");

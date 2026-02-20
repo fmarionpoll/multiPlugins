@@ -59,19 +59,19 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabGraphs.addPropertyChangeListener(this);
 		tabsPane.addTab("Graphs", null, tabGraphs, "Display results as a graph");
 
+		tabFileLevels.init(capLayout, parent0);
+		tabFileLevels.addPropertyChangeListener(this);
+		tabsPane.addTab("Load/Save", null, tabFileLevels, "Load/Save kymographs");
+
 		tabDetectLevelsDirect.init(capLayout, parent0);
 		tabDetectLevelsDirect.addPropertyChangeListener(this);
-		tabsPane.addTab("Levels (direct)", null, tabDetectLevelsDirect,
+		tabsPane.addTab("-- Levels (direct)", null, tabDetectLevelsDirect,
 				"Find limits of the columns of liquid directly from images");
 
 		tabDetectLevelsKMeans.init(capLayout, parent0);
 		tabDetectLevelsKMeans.addPropertyChangeListener(this);
-		tabsPane.addTab("Levels (KMeans)", null, tabDetectLevelsKMeans,
+		tabsPane.addTab("-- Levels (KMeans)", null, tabDetectLevelsKMeans,
 				"Find limits of the columns of liquid from kymo colors");
-
-		tabFileLevels.init(capLayout, parent0);
-		tabFileLevels.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, tabFileLevels, "Load/Save kymographs");
 
 		capPanel.add(tabsPane);
 		tabDetectLevels.transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);

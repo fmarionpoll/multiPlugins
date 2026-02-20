@@ -1259,6 +1259,7 @@ public class Experiment {
 		if (v == null || v.getSequence() == null)
 			return;
 		int viewerSeqId = v.getSequence().getId();
+
 		if (seqCamData != null && seqCamData.getSequence() != null && viewerSeqId == seqCamData.getSequence().getId()) {
 			v.setTitle(seqCamData.getDecoratedImageName(t));
 			if (saveDetRoisToPositions)
@@ -1266,6 +1267,7 @@ public class Experiment {
 			updateROIsAt(t);
 			return;
 		}
+
 		if (seqKymos != null && seqKymos.getSequence() != null && viewerSeqId == seqKymos.getSequence().getId()) {
 			Sequence seq = seqKymos.getSequence();
 			int tOld = seqKymos.getCurrentFrame();

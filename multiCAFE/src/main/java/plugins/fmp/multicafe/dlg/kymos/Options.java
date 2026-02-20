@@ -39,7 +39,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.ViewerFMP;
 
-public class Display extends JPanel implements ViewerListener {
+public class Options extends JPanel implements ViewerListener {
 	/**
 	 * 
 	 */
@@ -66,6 +66,10 @@ public class Display extends JPanel implements ViewerListener {
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
+
+		viewLevelsCheckbox.setSelected(parent0.viewOptions.isViewLevels());
+		viewDerivativeCheckbox.setSelected(parent0.viewOptions.isViewDerivative());
+		viewGulpsCheckbox.setSelected(parent0.viewOptions.isViewGulps());
 
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(0);
@@ -104,21 +108,30 @@ public class Display extends JPanel implements ViewerListener {
 		viewDerivativeCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIs("deriv", viewDerivativeCheckbox.isSelected());
+				boolean sel = viewDerivativeCheckbox.isSelected();
+				parent0.viewOptions.setViewDerivative(sel);
+				saveViewOptions();
+				displayROIs("deriv", sel);
 			}
 		});
 
 		viewGulpsCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIs("gulp", viewGulpsCheckbox.isSelected());
+				boolean sel = viewGulpsCheckbox.isSelected();
+				parent0.viewOptions.setViewGulps(sel);
+				saveViewOptions();
+				displayROIs("gulp", sel);
 			}
 		});
 
 		viewLevelsCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIs("level", viewLevelsCheckbox.isSelected());
+				boolean sel = viewLevelsCheckbox.isSelected();
+				parent0.viewOptions.setViewLevels(sel);
+				saveViewOptions();
+				displayROIs("level", sel);
 			}
 		});
 
@@ -190,10 +203,44 @@ public class Display extends JPanel implements ViewerListener {
 		}
 	}
 
+	private void saveViewOptions() {
+		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+	}
+
 	public void displayROIsAccordingToUserSelection() {
 		displayROIs("deriv", viewDerivativeCheckbox.isSelected());
 		displayROIs("gulp", viewGulpsCheckbox.isSelected());
 		displayROIs("level", viewLevelsCheckbox.isSelected());
+	}
+
+	/**
+	 * Applies central view options to the kymos viewer. Used on viewer T change and
+	 * when opening kymos / selecting frame.
+	 */
+	public void applyCentralViewOptionsToKymosViewer(Viewer v) {
+		if (v == null)
+			return;
+		plugins.fmp.multicafe.ViewOptionsHolder opts = parent0.viewOptions;
+		displayROIsOnViewer(v, "deriv", opts.isViewDerivative());
+		displayROIsOnViewer(v, "gulp", opts.isViewGulps());
+		displayROIsOnViewer(v, "level", opts.isViewLevels());
+	}
+
+	private void displayROIsOnViewer(Viewer v, String filter, boolean visible) {
+		if (v == null)
+			return;
+		IcyCanvas canvas = v.getCanvas();
+		List<Layer> layers = canvas.getLayers(false);
+		if (layers != null) {
+			for (Layer layer : layers) {
+				ROI roi = layer.getAttachedROI();
+				if (roi != null) {
+					String cs = roi.getName();
+					if (cs != null && cs.contains(filter))
+						layer.setVisible(visible);
+				}
+			}
+		}
 	}
 
 	private void displayROIs(String filter, boolean visible) {
@@ -562,7 +609,7 @@ public class Display extends JPanel implements ViewerListener {
 		}
 
 		selectedImageIndex = seqKymos.getCurrentFrame();
-		parent0.paneKymos.tabDisplay.displayROIsAccordingToUserSelection();
+		applyCentralViewOptionsToKymosViewer(v);
 		selectCapillary(exp, selectedImageIndex);
 		return selectedImageIndex;
 	}
@@ -607,6 +654,7 @@ public class Display extends JPanel implements ViewerListener {
 			Experiment exp = findExperimentOwningSequence(v.getSequence());
 			if (exp != null)
 				exp.onViewerTPositionChanged(v, tNew, false);
+			applyCentralViewOptionsToKymosViewer(v);
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
 				selectKymographComboItem(tNew);
 				String title = kymographsCombo.getItemAt(tNew) + "  :" + viewsCombo.getSelectedItem() + " s";
