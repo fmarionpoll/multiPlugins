@@ -81,7 +81,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		JSpinner.DefaultEditor editor2 = (JSpinner.DefaultEditor) end_spinner.getEditor();
 		JFormattedTextField textField2 = editor2.getTextField();
 		textField2.setColumns(4);
-		
+
 		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
@@ -89,7 +89,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		panel01.add(gulpTransforms_comboBox);
 		panel01.add(display_button);
 		add(panel01);
-		
+
 		JPanel panel01a = new JPanel(layoutLeft);
 		panel01a.add(gulps_checkbox);
 		panel01a.add(new JLabel("ref curve"));
@@ -98,7 +98,7 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		panel01a.add(thresholdMultiplierSpinner);
 		add(panel01a);
 
-		JPanel panel01b = new JPanel(layoutLeft);	
+		JPanel panel01b = new JPanel(layoutLeft);
 		panel01b.add(new JLabel("smooth"));
 		panel01b.add(thresholdSmoothingCombo);
 		panel01b.add(new JLabel("win"));
@@ -107,9 +107,8 @@ public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
 		panel01b.add(thresholdSmoothingAlphaSpinner);
 		add(panel01b);
 
-
 		gulpTransforms_comboBox.setSelectedItem(ImageTransformEnums.XDIFFN);
-		thresholdMethodCombo.setSelectedItem(GulpThresholdMethod.MEDIAN_PLUS_MAD);
+		thresholdMethodCombo.setSelectedItem(GulpThresholdMethod.MEAN_PLUS_SD);
 		defineActionListeners();
 	}
 

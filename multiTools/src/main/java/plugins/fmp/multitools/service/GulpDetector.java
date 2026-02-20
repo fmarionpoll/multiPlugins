@@ -239,13 +239,18 @@ public class GulpDetector {
 			return null;
 		}
 
+		List<Double> noiseList = new ArrayList<>(npoints);
+		for (int i = 0; i < npoints; i++)
+			noiseList.add(temporalNoise[i]);
+		double globalNoise = computeMedian(noiseList);
+
 		double[] thresholdValues = new double[npoints];
 		double[] xpoints = new double[npoints];
 		double k = options.thresholdSdMultiplier;
 
 		for (int t = 0; t < npoints; t++) {
 			xpoints[t] = t;
-			thresholdValues[t] = smoothedReference[t] + k * temporalNoise[t];
+			thresholdValues[t] = smoothedReference[t] + k * globalNoise;
 		}
 
 		CapillaryMeasure thresholdMeasure = new CapillaryMeasure(
@@ -256,7 +261,7 @@ public class GulpDetector {
 		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
 		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from " + noFlyCapillaries.size()
-				+ " empty cage(s) using smoothed reference and temporal noise model");
+				+ " empty cage(s) using smoothed reference and global noise (median of local variabilities)");
 
 		return thresholdMeasure;
 	}

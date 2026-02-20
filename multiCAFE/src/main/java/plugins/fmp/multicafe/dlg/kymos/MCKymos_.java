@@ -46,7 +46,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 
 		tabDisplay.init(capLayout, parent0);
 		tabDisplay.addPropertyChangeListener(this);
-		tabsPane.addTab("Display", null, tabDisplay, "Display options of data & kymographs");
+		tabsPane.addTab("Options", null, tabDisplay, "Display options of data & kymographs");
 
 		tabIntervals.init(capLayout, parent0);
 		tabIntervals.addPropertyChangeListener(this);
