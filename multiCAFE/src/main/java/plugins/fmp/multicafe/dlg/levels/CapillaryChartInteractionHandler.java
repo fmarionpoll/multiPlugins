@@ -23,15 +23,16 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
+import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
-import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
  * Handler for capillary-related chart interactions. Manages user clicks on
@@ -45,7 +46,6 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
-	private final ResultsOptions resultsOptions;
 
 	/**
 	 * Creates a new capillary chart interaction handler.
@@ -55,10 +55,9 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 	 * @param chartPanelArray the array of chart panel pairs (unused, kept for
 	 *                        interface compatibility)
 	 */
-	public CapillaryChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
+	public CapillaryChartInteractionHandler(Experiment experiment,
 			@SuppressWarnings("unused") ChartCagePair[][] chartPanelArray) {
 		this.experiment = experiment;
-		this.resultsOptions = resultsOptions;
 	}
 
 	@Override
@@ -297,87 +296,40 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 	}
 
 	/**
-	 * Selects a capillary ROI in the experiment.
-	 * 
-	 * @param exp       the experiment
-	 * @param capillary the capillary to select
+	 * Selects the capillary ROI for the given frame in the experiment. Uses the ROI
+	 * from the capillary's AlongT interval at frameIndex when available, so the
+	 * displayed selection matches what the view shows at that T.
 	 */
-	private void chartSelectCapillary(Experiment exp, Capillary capillary) {
+	private void chartSelectCapillary(Experiment exp, Capillary capillary, int frameIndex) {
 		if (exp == null || capillary == null) {
 			Logger.warn("Cannot select capillary: experiment or capillary is null");
 			return;
 		}
 
-		ROI2D roi = capillary.getRoi();
-		if (roi != null) {
-			if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
-				// Ensure viewer exists before selecting ROI
-				Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-				if (v == null) {
-					v = new ViewerFMP(exp.getSeqCamData().getSequence(), true, true);
-				}
-
-				exp.getSeqCamData().getSequence().setFocusedROI(roi);
-				exp.getSeqCamData().centerDisplayOnRoi(roi);
-				exp.getSeqCamData().getSequence().setSelectedROI(roi);
-				v.toFront();
+		ROI2D roi = null;
+		if (frameIndex >= 0) {
+			AlongT at = capillary.getAlongTAtT(frameIndex);
+			if (at != null && at.getRoi() != null) {
+				roi = at.getRoi();
 			}
 		}
-	}
-
-	/**
-	 * Selects the time position for a capillary based on the clicked X coordinate.
-	 * 
-	 * @param exp            the experiment
-	 * @param resultsOptions the export options
-	 * @param capillary      the capillary
-	 * @param timeMinutes    the time in minutes from the clicked X coordinate
-	 */
-	private void selectTForCapillary(Experiment exp, ResultsOptions resultsOptions, Capillary capillary,
-			double timeMinutes) {
-		if (exp == null || capillary == null) {
-			Logger.warn("Cannot select time: experiment or capillary is null");
-			return;
+		if (roi == null) {
+			roi = capillary.getRoi();
 		}
-
-		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
-			return;
-		}
-
-		// Always call getNTotalFrames() directly to get auto-corrected value
-		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		int actualImageCount = exp.getSeqCamData().getImageLoader().getImagesCount();
-
-		// Validate nTotalFrames - must be > 1 and match actual image count
-		if (nTotalFrames <= 1 || nTotalFrames != actualImageCount) {
-			Logger.warn("CapillaryChartInteractionHandler: Invalid nTotalFrames=" + nTotalFrames + " (actualImageCount="
-					+ actualImageCount + "). Chart interaction disabled.");
-			return;
-		}
-
-		// Validate time array size matches nTotalFrames
-		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
-		if (timeArray == null || timeArray.length != nTotalFrames) {
-			Logger.warn("CapillaryChartInteractionHandler: Time array size mismatch. Array length="
-					+ (timeArray != null ? timeArray.length : 0) + ", nTotalFrames=" + nTotalFrames
-					+ ". Chart interaction disabled.");
-			return;
-		}
-
-		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-		if (v == null) {
-			// Ensure viewer exists - create it if needed
-			v = new ViewerFMP(exp.getSeqCamData().getSequence(), true, true);
-		}
-
-		// Convert time (minutes) to frame index
-		if (timeMinutes >= 0) {
-			// Find nearest frame index - use getNTotalFrames() directly to ensure correct
-			// value
-			int frameIndex = exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch(
-					(long) (timeMinutes * 60000), 0, exp.getSeqCamData().getImageLoader().getNTotalFrames());
-			v.setPositionT(frameIndex);
+		if (roi != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+			Sequence seq = exp.getSeqCamData().getSequence();
+			Viewer v = seq.getFirstViewer();
+			if (v == null) {
+				v = new ViewerFMP(seq, true, true);
+			}
 			v.toFront();
+
+			if (frameIndex >= 0) {
+				v.setPositionT(frameIndex);
+			}
+
+			seq.setFocusedROI(roi);
+			seq.setSelectedROI(roi);
 		}
 	}
 
@@ -423,18 +375,16 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 	 * @param clickedCapillary the clicked capillary
 	 * @param timeMinutes      the time in minutes from the clicked X coordinate
 	 */
-	private void chartSelectClickedCapillary(Experiment exp, ResultsOptions resultsOptions, Capillary clickedCapillary,
-			double timeMinutes) {
+	private void chartSelectClickedCapillary(Experiment exp, Capillary clickedCapillary, double timeMinutes) {
 		if (clickedCapillary == null) {
 			Logger.warn("Clicked capillary is null");
 			return;
 		}
 
-		chartSelectCapillary(exp, clickedCapillary);
-		selectTForCapillary(exp, resultsOptions, clickedCapillary, timeMinutes);
+		int frameIndex = getFrameIndexFromTimeMinutes(exp, timeMinutes);
+
 		chartSelectKymographForCapillary(exp, clickedCapillary);
 
-		// Center display on cage ROI
 		Cage cage = exp.getCages().getCageFromRowColCoordinates(
 				clickedCapillary.getCageID() / exp.getCages().nCagesAlongX,
 				clickedCapillary.getCageID() % exp.getCages().nCagesAlongX);
@@ -444,6 +394,24 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 				exp.getSeqCamData().centerDisplayOnRoi(cageRoi);
 			}
 		}
+		chartSelectCapillary(exp, clickedCapillary, frameIndex);
+	}
+
+	private int getFrameIndexFromTimeMinutes(Experiment exp, double timeMinutes) {
+		if (exp == null || exp.getSeqCamData() == null || timeMinutes < 0) {
+			return -1;
+		}
+		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		int actualImageCount = exp.getSeqCamData().getImageLoader().getImagesCount();
+		if (nTotalFrames <= 1 || nTotalFrames != actualImageCount) {
+			return -1;
+		}
+		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
+		if (timeArray == null || timeArray.length != nTotalFrames) {
+			return -1;
+		}
+		return exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch((long) (timeMinutes * 60000), 0,
+				nTotalFrames);
 	}
 
 	/**
@@ -484,7 +452,7 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 					ChartPanel panel = (ChartPanel) source;
 					XYPlot plot = (XYPlot) chart.getPlot();
 					double timeMinutes = getTimeMinutesFromEvent(e, panel, plot);
-					chartSelectClickedCapillary(experiment, resultsOptions, clickedCapillary, timeMinutes);
+					chartSelectClickedCapillary(experiment, clickedCapillary, timeMinutes);
 				}
 			}
 		}

@@ -132,7 +132,7 @@ public class ChartCageArrayFrame extends IcyFrame {
 			return new SpotChartInteractionHandler(exp, resultsOptions, chartArray);
 		} else {
 			// Default to capillary handler for capillary types and others
-			return new CapillaryChartInteractionHandler(exp, resultsOptions, chartArray);
+			return new CapillaryChartInteractionHandler(exp, chartArray);
 		}
 	}
 
