@@ -29,7 +29,7 @@ import plugins.nherve.toolbox.image.segmentation.Segmentation;
 import plugins.nherve.toolbox.image.segmentation.SegmentationException;
 import plugins.nherve.toolbox.image.toolboxes.ColorSpaceTools;
 
-public class LevelsKMeans extends JPanel {
+public class DetectLevelsDlgKMeans extends JPanel {
 	/**
 	 * 
 	 */

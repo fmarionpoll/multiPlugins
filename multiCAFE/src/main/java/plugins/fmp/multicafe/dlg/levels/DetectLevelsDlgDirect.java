@@ -36,7 +36,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
-public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
+public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -6329863521455897561L;
 
 	private JCheckBox pass1CheckBox = new JCheckBox("pass1", true);
@@ -67,7 +67,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	private JCheckBox overlayPass2CheckBox = new JCheckBox("overlay");
 	private JSpinner jitter2Spinner = new JSpinner(new SpinnerNumberModel(5, 0, 255, 1));
 
-	private JCheckBox selectedKymoCheckBox = new JCheckBox("selected kymograph", false);
+	private JCheckBox selectedKymoCheckBox = new JCheckBox("selected capillary", false);
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
@@ -381,15 +381,14 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
 
-		if (selectedKymoCheckBox.isSelected()) {
-			options.kymoFirst = exp.getSeqKymos().getSequence().getFirstViewer().getPositionT();
-			options.kymoLast = options.kymoFirst;
-			currentKymographImage = options.kymoFirst;
-		} else {
-			options.kymoFirst = 0;
-			options.kymoLast = exp.getSeqKymos().getSequence().getSizeT() - 1;
-			currentKymographImage = 0;
-		}
+		options.kymoFirst = 0;
+		long step = exp.getKymoBin_ms();
+		if (step <= 0)
+			step = 1;
+		int nTimeBins = (int) ((exp.getKymoLast_ms() - exp.getKymoFirst_ms()) / step + 1);
+		options.kymoLast = Math.max(0, nTimeBins - 1);
+		currentKymographImage = 0;
+
 		// other parameters
 		options.pass1 = pass1CheckBox.isSelected();
 		options.transform01 = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
@@ -412,7 +411,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = parent0.expListComboLazy.expListBinSubDirectory;
 		options.runBackwards = runBackwardsCheckBox.isSelected();
-		options.sourceCamDirect = false;
+		options.sourceCamDirect = true;
 		return options;
 	}
 

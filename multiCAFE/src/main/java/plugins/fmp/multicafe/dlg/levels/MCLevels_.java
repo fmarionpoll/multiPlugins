@@ -22,7 +22,9 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	PopupPanel capPopupPanel = null;
 	private JTabbedPane tabsPane = new JTabbedPane();
 	public LoadSaveLevels tabFileLevels = new LoadSaveLevels();
-	DetectLevelsDlg tabDetectLevels2 = new DetectLevelsDlg();
+	DetectLevelsDlg tabDetectLevels = new DetectLevelsDlg();
+	DetectLevelsDlgDirect tabDetectLevelsDirect = new DetectLevelsDlgDirect();
+	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
 
 	// DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
 	DetectGulpsDlg tabDetectGulps = new DetectGulpsDlg();
@@ -41,9 +43,9 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 		GridLayout capLayout = new GridLayout(4, 1);
 
-		tabDetectLevels2.init(capLayout, parent0);
-		tabDetectLevels2.addPropertyChangeListener(this);
-		tabsPane.addTab("Levels", null, tabDetectLevels2, "Find limits of the columns of liquid");
+		tabDetectLevels.init(capLayout, parent0);
+		tabDetectLevels.addPropertyChangeListener(this);
+		tabsPane.addTab("Levels", null, tabDetectLevels, "Find limits of the columns of liquid using kymographs");
 
 		tabDetectGulps.init(capLayout, parent0);
 		tabsPane.addTab("Gulps", null, tabDetectGulps, "Detect gulps");
@@ -57,12 +59,22 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabGraphs.addPropertyChangeListener(this);
 		tabsPane.addTab("Graphs", null, tabGraphs, "Display results as a graph");
 
+		tabDetectLevelsDirect.init(capLayout, parent0);
+		tabDetectLevelsDirect.addPropertyChangeListener(this);
+		tabsPane.addTab("Levels (direct)", null, tabDetectLevelsDirect,
+				"Find limits of the columns of liquid directly from images");
+
+		tabDetectLevelsKMeans.init(capLayout, parent0);
+		tabDetectLevelsKMeans.addPropertyChangeListener(this);
+		tabsPane.addTab("Levels (KMeans)", null, tabDetectLevelsKMeans,
+				"Find limits of the columns of liquid from kymo colors");
+
 		tabFileLevels.init(capLayout, parent0);
 		tabFileLevels.addPropertyChangeListener(this);
 		tabsPane.addTab("Load/Save", null, tabFileLevels, "Load/Save kymographs");
 
 		capPanel.add(tabsPane);
-		tabDetectLevels2.transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+		tabDetectLevels.transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		tabsPane.setSelectedIndex(0);
 
 		capPopupPanel.addComponentListener(new ComponentAdapter() {
