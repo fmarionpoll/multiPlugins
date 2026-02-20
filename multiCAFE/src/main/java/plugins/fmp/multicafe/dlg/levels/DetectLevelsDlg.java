@@ -68,6 +68,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 	private JSpinner jitter2Spinner = new JSpinner(new SpinnerNumberModel(5, 0, 255, 1));
 
 	private JCheckBox selectedKymoCheckBox = new JCheckBox("selected kymograph", false);
+	private JCheckBox sourceCamDirectCheckBox = new JCheckBox("Source: Cam (direct)", false);
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
@@ -97,6 +98,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
+		panel0.add(sourceCamDirectCheckBox);
 		panel0.add(allSeriesCheckBox);
 		panel0.add(selectedKymoCheckBox);
 		panel0.add(leftCheckBox);
@@ -379,14 +381,20 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
-		// list of kymographs
 		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
 
-		if (selectedKymoCheckBox.isSelected()) {
+		if (sourceCamDirectCheckBox.isSelected()) {
+			options.kymoFirst = 0;
+			long step = exp.getKymoBin_ms();
+			if (step <= 0)
+				step = 1;
+			int nTimeBins = (int) ((exp.getKymoLast_ms() - exp.getKymoFirst_ms()) / step + 1);
+			options.kymoLast = Math.max(0, nTimeBins - 1);
+			currentKymographImage = 0;
+		} else if (selectedKymoCheckBox.isSelected()) {
 			options.kymoFirst = exp.getSeqKymos().getSequence().getFirstViewer().getPositionT();
-			;
 			options.kymoLast = options.kymoFirst;
-			currentKymographImage = exp.getSeqKymos().getSequence().getFirstViewer().getPositionT();
+			currentKymographImage = options.kymoFirst;
 		} else {
 			options.kymoFirst = 0;
 			options.kymoLast = exp.getSeqKymos().getSequence().getSizeT() - 1;
@@ -414,6 +422,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = parent0.expListComboLazy.expListBinSubDirectory;
 		options.runBackwards = runBackwardsCheckBox.isSelected();
+		options.sourceCamDirect = sourceCamDirectCheckBox.isSelected();
 		return options;
 	}
 

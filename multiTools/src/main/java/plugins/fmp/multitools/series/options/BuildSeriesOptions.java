@@ -84,6 +84,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean buildDerivative = true;
 	public boolean pass1 = true;
 	public boolean pass2 = false;
+	/** When true, detect levels directly from cam images (no kymograph build/load). */
+	public boolean sourceCamDirect = false;
 	public boolean directionUp2 = true;
 	public int detectLevel2Threshold = 35;
 	public int jitter2 = 5;

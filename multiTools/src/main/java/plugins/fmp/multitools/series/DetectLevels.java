@@ -2,10 +2,15 @@ package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.service.LevelDetector;
+import plugins.fmp.multitools.service.LevelDetectorFromCam;
 
 public class DetectLevels extends BuildSeries {
 	void analyzeExperiment(Experiment exp) {
-		if (loadExperimentDataToDetectLevels(exp)) {
+		if (options.sourceCamDirect) {
+			exp.xmlLoad_MCExperiment();
+			exp.load_capillaries_description_and_measures();
+			new LevelDetectorFromCam().detectLevels(exp, options);
+		} else if (loadExperimentDataToDetectLevels(exp)) {
 			exp.getSeqKymos().displayViewerAtRectangle(options.parent0Rect);
 			new LevelDetector().detectLevels(exp, options);
 		}

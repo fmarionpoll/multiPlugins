@@ -201,6 +201,10 @@ public class LevelDetector {
 					imageHeight, options.jitter2, options.detectLevel2Threshold, options.directionUp2);
 			break;
 		case DERICHE:
+		case DERICHE_COLOR:
+		case YDIFFN:
+		case YDIFFN2:
+		case MINUSHORIZAVG:
 			findBestPosition(capi.getTopLevel().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
 					imageHeight, options.jitter2, options.detectLevel2Threshold, options.directionUp2);
 			break;
