@@ -201,23 +201,17 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 
 	@Override
 	public void viewerChanged(ViewerEvent event) {
-		if ((event.getType() == ViewerEventType.POSITION_CHANGED)) {
-			if (event.getDim() == DimensionId.T) {
-				Viewer v = event.getSource();
-				int idViewer = v.getSequence().getId();
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int idCurrentExp = exp.getSeqCamData().getSequence().getId();
-					if (idViewer == idCurrentExp) {
-						int t = v.getPositionT();
-						v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
-						if (parent0.paneCages.bTrapROIsEdit)
-							exp.saveDetRoisToPositions();
-						exp.updateROIsAt(t);
-					}
-				}
-			}
-		}
+		if (event.getType() != ViewerEventType.POSITION_CHANGED || event.getDim() != DimensionId.T)
+			return;
+		Viewer v = event.getSource();
+		if (v.getSequence() == null)
+			return;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		if (v.getSequence().getId() != exp.getSeqCamData().getSequence().getId())
+			return;
+		exp.onViewerTPositionChanged(v, v.getPositionT(), parent0.paneCages.bTrapROIsEdit);
 	}
 
 	@Override

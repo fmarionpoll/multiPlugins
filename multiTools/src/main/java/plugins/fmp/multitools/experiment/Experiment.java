@@ -12,6 +12,7 @@ import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.image.ImageUtil;
 import icy.roi.ROI2D;
@@ -32,6 +33,7 @@ import plugins.fmp.multitools.experiment.sequence.ImageProcessingResult;
 import plugins.fmp.multitools.experiment.sequence.KymographInfo;
 import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
 import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
+import plugins.fmp.multitools.experiment.sequence.ROIsAtTProvider;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -1214,10 +1216,72 @@ public class Experiment {
 	}
 
 	public void updateROIsAt(int t) {
-		MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), MeasureRoiFilter.FLY_POSITION,
-				cages.getPositionsAsListOfROI2DRectanglesAtT(t));
-		MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), MeasureRoiFilter.CAPILLARY_LINES,
-				capillaries.getCapillaryROIsAtT(t));
+		if (seqCamData == null || seqCamData.getSequence() == null)
+			return;
+		for (ROIsAtTProvider p : getCamRoiProviders()) {
+			MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), p.getFilter(), p.getROIsAtT(t));
+		}
+	}
+
+	private List<ROIsAtTProvider> getCamRoiProviders() {
+		List<ROIsAtTProvider> list = new ArrayList<>(2);
+		list.add(new ROIsAtTProvider() {
+			@Override
+			public MeasureRoiFilter getFilter() {
+				return MeasureRoiFilter.FLY_POSITION;
+			}
+
+			@Override
+			public List<ROI2D> getROIsAtT(int t) {
+				return cages.getPositionsAsListOfROI2DRectanglesAtT(t);
+			}
+		});
+		list.add(new ROIsAtTProvider() {
+			@Override
+			public MeasureRoiFilter getFilter() {
+				return MeasureRoiFilter.CAPILLARY_LINES;
+			}
+
+			@Override
+			public List<ROI2D> getROIsAtT(int t) {
+				return capillaries.getCapillaryROIsAtT(t);
+			}
+		});
+		return list;
+	}
+
+	/**
+	 * Central entry point when a viewer's T position changes. Dispatches to cam or
+	 * kymo handling: title, optional saveDetRois, and ROI sync for cam; validate
+	 * previous frame and syncROIsForCurrentFrame for kymo.
+	 */
+	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions) {
+		if (v == null || v.getSequence() == null)
+			return;
+		int viewerSeqId = v.getSequence().getId();
+		if (seqCamData != null && seqCamData.getSequence() != null && viewerSeqId == seqCamData.getSequence().getId()) {
+			v.setTitle(seqCamData.getDecoratedImageName(t));
+			if (saveDetRoisToPositions)
+				saveDetRoisToPositions();
+			updateROIsAt(t);
+			return;
+		}
+		if (seqKymos != null && seqKymos.getSequence() != null && viewerSeqId == seqKymos.getSequence().getId()) {
+			Sequence seq = seqKymos.getSequence();
+			int tOld = seqKymos.getCurrentFrame();
+			if (tOld >= 0 && tOld != t) {
+				seqKymos.validateRoisAtT(tOld);
+				Capillary capOld = seqKymos.getCapillaryForFrame(tOld, capillaries);
+				if (capOld != null)
+					seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
+			}
+			seq.beginUpdate();
+			try {
+				seqKymos.syncROIsForCurrentFrame(t, capillaries);
+			} finally {
+				seq.endUpdate();
+			}
+		}
 	}
 
 	public void saveDetRoisToPositions() {
@@ -1256,65 +1320,6 @@ public class Experiment {
 		}
 		return step;
 	}
-
-//	private String findFile_3Locations(String xmlFileName, int first, int second, int third) {
-//		// current directory
-//		String xmlFullFileName = findFile_1Location(xmlFileName, first);
-//		if (xmlFullFileName == null)
-//			xmlFullFileName = findFile_1Location(xmlFileName, second);
-//		if (xmlFullFileName == null)
-//			xmlFullFileName = findFile_1Location(xmlFileName, third);
-//		return xmlFullFileName;
-//	}
-
-//	private String findFile_1Location(String xmlFileName, int item) {
-//		String xmlFullFileName = File.separator + xmlFileName;
-//		switch (item) {
-//		case IMG_DIRECTORY:
-//			camDataImagesDirectory = getRootWithNoResultNorBinString(resultsDirectory);
-//			xmlFullFileName = camDataImagesDirectory + File.separator + xmlFileName;
-//			break;
-//
-//		case BIN_DIRECTORY:
-//			// any directory (below)
-//			Path dirPath = Paths.get(resultsDirectory);
-//			List<Path> subFolders = Directories.getAllSubPathsOfDirectory(resultsDirectory, 1);
-//			if (subFolders == null)
-//				return null;
-//			List<String> resultsDirList = Directories.getPathsContainingString(subFolders, RESULTS);
-//			List<String> binDirList = Directories.getPathsContainingString(subFolders, BIN);
-//			resultsDirList.addAll(binDirList);
-//			for (String resultsSub : resultsDirList) {
-//				Path dir = dirPath.resolve(resultsSub + File.separator + xmlFileName);
-//				if (Files.notExists(dir))
-//					continue;
-//				xmlFullFileName = dir.toAbsolutePath().toString();
-//				break;
-//			}
-//			break;
-//
-//		case EXPT_DIRECTORY:
-//		default:
-//			xmlFullFileName = resultsDirectory + xmlFullFileName;
-//			break;
-//		}
-//
-//		// current directory
-//		if (xmlFullFileName != null && fileExists(xmlFullFileName)) {
-//			if (item == IMG_DIRECTORY) {
-//				camDataImagesDirectory = getRootWithNoResultNorBinString(resultsDirectory);
-//				ExperimentDirectories.moveAndRename(xmlFileName, camDataImagesDirectory, xmlFileName, resultsDirectory);
-//				xmlFullFileName = resultsDirectory + xmlFullFileName;
-//			}
-//			return xmlFullFileName;
-//		}
-//		return null;
-//	}
-
-//	private boolean fileExists(String fileName) {
-//		File f = new File(fileName);
-//		return (f.exists() && !f.isDirectory());
-//	}
 
 	public boolean replaceSpotsFieldValueWithNewValueIfOld(EnumXLSColumnHeader fieldEnumCode, String oldValue,
 			String newValue) {

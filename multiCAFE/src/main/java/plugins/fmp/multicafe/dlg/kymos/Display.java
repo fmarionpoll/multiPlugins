@@ -605,23 +605,8 @@ public class Display extends JPanel implements ViewerListener {
 			if (v.getSequence() == null)
 				return;
 			Experiment exp = findExperimentOwningSequence(v.getSequence());
-			if (exp != null) {
-				SequenceKymos seqKymos = exp.getSeqKymos();
-				icy.sequence.Sequence seq = seqKymos.getSequence();
-				int tOld = seqKymos.getCurrentFrame();
-				if (tOld >= 0 && tOld != tNew) {
-					seqKymos.validateRoisAtT(tOld);
-					Capillary capOld = seqKymos.getCapillaryForFrame(tOld, exp.getCapillaries());
-					if (capOld != null)
-						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
-				}
-				seq.beginUpdate();
-				try {
-					seqKymos.syncROIsForCurrentFrame(tNew, exp.getCapillaries());
-				} finally {
-					seq.endUpdate();
-				}
-			}
+			if (exp != null)
+				exp.onViewerTPositionChanged(v, tNew, false);
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
 				selectKymographComboItem(tNew);
 				String title = kymographsCombo.getItemAt(tNew) + "  :" + viewsCombo.getSelectedItem() + " s";

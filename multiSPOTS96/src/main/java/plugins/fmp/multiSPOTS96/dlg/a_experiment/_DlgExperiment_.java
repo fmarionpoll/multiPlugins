@@ -148,22 +148,17 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 	@Override
 	public void viewerChanged(ViewerEvent event) {
-		if ((event.getType() == ViewerEventType.POSITION_CHANGED) && (event.getDim() == DimensionId.T)) {
-			Viewer v = event.getSource();
-			int idViewer = v.getSequence().getId();
-
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				int idCurrentSeqCamData = exp.getSeqCamData().getSequence().getId();
-				if (idViewer == idCurrentSeqCamData) {
-					int t = v.getPositionT();
-					v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
-					// TODO _CAGES if (parent0.dlgCages.bTrapROIsEdit)
-					// TODO _CAGES exp.saveDetRoisToPositions();
-					exp.updateROIsAt(t);
-				}
-			}
-		}
+		if (event.getType() != ViewerEventType.POSITION_CHANGED || event.getDim() != DimensionId.T)
+			return;
+		Viewer v = event.getSource();
+		if (v.getSequence() == null)
+			return;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		if (v.getSequence().getId() != exp.getSeqCamData().getSequence().getId())
+			return;
+		exp.onViewerTPositionChanged(v, v.getPositionT(), false);
 	}
 
 	@Override

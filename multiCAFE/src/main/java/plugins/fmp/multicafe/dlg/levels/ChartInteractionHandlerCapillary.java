@@ -300,7 +300,7 @@ public class ChartInteractionHandlerCapillary implements ChartInteractionHandler
 	 * from the capillary's AlongT interval at frameIndex when available, so the
 	 * displayed selection matches what the view shows at that T.
 	 */
-	private void chartSelectCapillary(Experiment exp, Capillary capillary, int frameIndex) {
+	private void selectCapillaryAtT(Experiment exp, Capillary capillary, int frameIndex) {
 		if (exp == null || capillary == null) {
 			Logger.warn("Cannot select capillary: experiment or capillary is null");
 			return;
@@ -394,7 +394,7 @@ public class ChartInteractionHandlerCapillary implements ChartInteractionHandler
 				exp.getSeqCamData().centerDisplayOnRoi(cageRoi);
 			}
 		}
-		chartSelectCapillary(exp, clickedCapillary, frameIndex);
+		selectCapillaryAtT(exp, clickedCapillary, frameIndex);
 	}
 
 	private int getFrameIndexFromTimeMinutes(Experiment exp, double timeMinutes) {
