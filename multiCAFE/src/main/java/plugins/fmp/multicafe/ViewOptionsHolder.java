@@ -1,6 +1,7 @@
 package plugins.fmp.multicafe;
 
 import icy.preferences.XMLPreferences;
+import plugins.fmp.multitools.experiment.ViewOptionsDTO;
 
 /**
  * Central holder for view options (cam and kymos). Persisted in the UI via
@@ -103,5 +104,17 @@ public class ViewOptionsHolder {
 		prefs.put(KEY_VIEW_LEVELS, String.valueOf(viewLevels));
 		prefs.put(KEY_VIEW_DERIVATIVE, String.valueOf(viewDerivative));
 		prefs.put(KEY_VIEW_GULPS, String.valueOf(viewGulps));
+	}
+
+	public ViewOptionsDTO toViewOptionsDTO() {
+		ViewOptionsDTO dto = new ViewOptionsDTO();
+		dto.setViewCapillaries(viewCapillaries);
+		dto.setViewCages(viewCages);
+		dto.setViewFliesCenter(viewFliesCenter);
+		dto.setViewFliesRect(viewFliesRect);
+		dto.setViewLevels(viewLevels);
+		dto.setViewDerivative(viewDerivative);
+		dto.setViewGulps(viewGulps);
+		return dto;
 	}
 }

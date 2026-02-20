@@ -685,6 +685,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			exp.updateROIsAt(0);
+			parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
 
 			// Display graphs AFTER cages are loaded (dispatchCapillariesToCages needs cages
 			// to be loaded)

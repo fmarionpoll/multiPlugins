@@ -211,8 +211,8 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 			return;
 		if (v.getSequence().getId() != exp.getSeqCamData().getSequence().getId())
 			return;
-		exp.onViewerTPositionChanged(v, v.getPositionT(), parent0.paneCages.bTrapROIsEdit);
-		parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
+		exp.onViewerTPositionChanged(v, v.getPositionT(), parent0.paneCages.bTrapROIsEdit,
+				parent0.viewOptions.toViewOptionsDTO());
 	}
 
 	@Override

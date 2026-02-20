@@ -12,8 +12,11 @@ import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import icy.canvas.IcyCanvas;
+import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
+import icy.roi.ROI;
 import icy.image.ImageUtil;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
@@ -1253,9 +1256,14 @@ public class Experiment {
 	/**
 	 * Central entry point when a viewer's T position changes. Dispatches to cam or
 	 * kymo handling: title, optional saveDetRois, and ROI sync for cam; validate
-	 * previous frame and syncROIsForCurrentFrame for kymo.
+	 * previous frame and syncROIsForCurrentFrame for kymo. If viewOptions is
+	 * non-null, applies layer visibility from the DTO after syncing.
 	 */
 	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions) {
+		onViewerTPositionChanged(v, t, saveDetRoisToPositions, null);
+	}
+
+	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions, ViewOptionsDTO viewOptions) {
 		if (v == null || v.getSequence() == null)
 			return;
 		int viewerSeqId = v.getSequence().getId();
@@ -1265,6 +1273,8 @@ public class Experiment {
 			if (saveDetRoisToPositions)
 				saveDetRoisToPositions();
 			updateROIsAt(t);
+			if (viewOptions != null)
+				applyCamViewOptions(v, viewOptions);
 			return;
 		}
 
@@ -1283,6 +1293,54 @@ public class Experiment {
 			} finally {
 				seq.endUpdate();
 			}
+			if (viewOptions != null)
+				applyKymosViewOptions(v, viewOptions);
+		}
+	}
+
+	private void applyCamViewOptions(Viewer v, ViewOptionsDTO opts) {
+		IcyCanvas canvas = v.getCanvas();
+		if (canvas == null)
+			return;
+		List<Layer> layers = canvas.getLayers(false);
+		if (layers == null)
+			return;
+		for (Layer layer : layers) {
+			ROI roi = layer.getAttachedROI();
+			if (roi == null)
+				continue;
+			String name = roi.getName();
+			if (name == null)
+				continue;
+			if (name.contains("line"))
+				layer.setVisible(opts.isViewCapillaries());
+			else if (name.contains("cell") || name.contains("cage"))
+				layer.setVisible(opts.isViewCages());
+			else if (name.contains("det"))
+				layer.setVisible(opts.isViewFliesCenter() || opts.isViewFliesRect());
+		}
+	}
+
+	private void applyKymosViewOptions(Viewer v, ViewOptionsDTO opts) {
+		IcyCanvas canvas = v.getCanvas();
+		if (canvas == null)
+			return;
+		List<Layer> layers = canvas.getLayers(false);
+		if (layers == null)
+			return;
+		for (Layer layer : layers) {
+			ROI roi = layer.getAttachedROI();
+			if (roi == null)
+				continue;
+			String name = roi.getName();
+			if (name == null)
+				continue;
+			if (name.contains("level"))
+				layer.setVisible(opts.isViewLevels());
+			else if (name.contains("deriv"))
+				layer.setVisible(opts.isViewDerivative());
+			else if (name.contains("gulp"))
+				layer.setVisible(opts.isViewGulps());
 		}
 	}
 
