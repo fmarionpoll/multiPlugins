@@ -41,7 +41,7 @@ import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
  * 
  * @author MultiCAFE
  */
-public class CapillaryChartInteractionHandler implements ChartInteractionHandler {
+public class ChartInteractionHandlerCapillary implements ChartInteractionHandler {
 
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
@@ -55,7 +55,7 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 	 * @param chartPanelArray the array of chart panel pairs (unused, kept for
 	 *                        interface compatibility)
 	 */
-	public CapillaryChartInteractionHandler(Experiment experiment,
+	public ChartInteractionHandlerCapillary(Experiment experiment,
 			@SuppressWarnings("unused") ChartCagePair[][] chartPanelArray) {
 		this.experiment = experiment;
 	}

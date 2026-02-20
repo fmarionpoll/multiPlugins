@@ -31,7 +31,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * 
  * @author MultiCAFE
  */
-public class SpotChartInteractionHandler implements ChartInteractionHandler {
+public class ChartInteractionHandlerSpot implements ChartInteractionHandler {
 
 	private static final String CHART_ID_DELIMITER = ":";
 	private static final int MAX_DESCRIPTION_LENGTH = 16;
@@ -48,7 +48,7 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 	 * @param resultsOptions  the export options
 	 * @param chartPanelArray the array of chart panel pairs
 	 */
-	public SpotChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
+	public ChartInteractionHandlerSpot(Experiment experiment, ResultsOptions resultsOptions,
 			ChartCagePair[][] chartPanelArray) {
 		this.experiment = experiment;
 		this.resultsOptions = resultsOptions;

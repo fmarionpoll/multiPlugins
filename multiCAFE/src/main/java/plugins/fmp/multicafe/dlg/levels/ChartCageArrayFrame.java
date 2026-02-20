@@ -129,10 +129,10 @@ public class ChartCageArrayFrame extends IcyFrame {
 	private ChartInteractionHandler createInteractionHandler(Experiment exp, ResultsOptions resultsOptions,
 			ChartCagePair[][] chartArray) {
 		if (isSpotResultType(resultsOptions.resultType)) {
-			return new SpotChartInteractionHandler(exp, resultsOptions, chartArray);
+			return new ChartInteractionHandlerSpot(exp, resultsOptions, chartArray);
 		} else {
 			// Default to capillary handler for capillary types and others
-			return new CapillaryChartInteractionHandler(exp, chartArray);
+			return new ChartInteractionHandlerCapillary(exp, chartArray);
 		}
 	}
 
