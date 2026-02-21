@@ -24,7 +24,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	public LoadSaveLevels tabFileLevels = new LoadSaveLevels();
 	DetectLevelsDlg tabDetectLevels = new DetectLevelsDlg();
 	DetectLevelsDlgDirect tabDetectLevelsDirect = new DetectLevelsDlgDirect();
-	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
+//	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
 
 	// DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
 	DetectGulpsDlg tabDetectGulps = new DetectGulpsDlg();
@@ -68,10 +68,10 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabsPane.addTab("-- Levels (direct)", null, tabDetectLevelsDirect,
 				"Find limits of the columns of liquid directly from images");
 
-		tabDetectLevelsKMeans.init(capLayout, parent0);
-		tabDetectLevelsKMeans.addPropertyChangeListener(this);
-		tabsPane.addTab("-- Levels (KMeans)", null, tabDetectLevelsKMeans,
-				"Find limits of the columns of liquid from kymo colors");
+//		tabDetectLevelsKMeans.init(capLayout, parent0);
+//		tabDetectLevelsKMeans.addPropertyChangeListener(this);
+//		tabsPane.addTab("-- Levels (KMeans)", null, tabDetectLevelsKMeans,
+//				"Find limits of the columns of liquid from kymo colors");
 
 		capPanel.add(tabsPane);
 		tabDetectLevels.transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
