@@ -38,6 +38,8 @@ public class CapillaryPersistence {
 
 	private static final String ID_TOPLEVEL = "toplevel";
 	private static final String ID_BOTTOMLEVEL = "bottomlevel";
+	private static final String ID_TOPLEVELDIRECT = "topleveldirect";
+	private static final String ID_BOTTOMLEVELDIRECT = "bottomleveldirect";
 	private static final String ID_DERIVATIVE = "derivative";
 	private static final String ID_TOPLEVEL_CORRECTED = "toplevel_corrected";
 	private static final String ID_THRESHOLD = "threshold";
@@ -142,6 +144,8 @@ public class CapillaryPersistence {
 		String header = cap.getLast2ofCapillaryName() + "_";
 		boolean result = cap.getTopLevel().loadCapillaryLimitFromXML(node, ID_TOPLEVEL, header) > 0;
 		result |= cap.getBottomLevel().loadCapillaryLimitFromXML(node, ID_BOTTOMLEVEL, header) > 0;
+		result |= cap.getTopLevelDirect().loadCapillaryLimitFromXML(node, ID_TOPLEVELDIRECT, header) > 0;
+		result |= cap.getBottomLevelDirect().loadCapillaryLimitFromXML(node, ID_BOTTOMLEVELDIRECT, header) > 0;
 		result |= cap.getDerivative().loadCapillaryLimitFromXML(node, ID_DERIVATIVE, header) > 0;
 		result |= cap.getTopCorrected().loadCapillaryLimitFromXML(node, ID_TOPLEVEL_CORRECTED, header) > 0;
 		result |= cap.getThreshold().loadCapillaryLimitFromXML(node, ID_THRESHOLD, header) > 0;
@@ -262,6 +266,12 @@ public class CapillaryPersistence {
 		case BOTTOMLEVEL:
 			sbf.append("#" + sep + "BOTTOMLEVEL" + sep + explanation1);
 			break;
+		case TOPLEVELDIRECT:
+			sbf.append("#" + sep + "TOPLEVELDIRECT" + sep + explanation1);
+			break;
+		case BOTTOMLEVELDIRECT:
+			sbf.append("#" + sep + "BOTTOMLEVELDIRECT" + sep + explanation1);
+			break;
 		case TOPDERIVATIVE:
 			sbf.append("#" + sep + "TOPDERIVATIVE" + sep + explanation1);
 			break;
@@ -292,6 +302,12 @@ public class CapillaryPersistence {
 			break;
 		case BOTTOMLEVEL:
 			cap.getBottomLevel().cvsExportYDataToRow(sbf, sep);
+			break;
+		case TOPLEVELDIRECT:
+			cap.getTopLevelDirect().cvsExportYDataToRow(sbf, sep);
+			break;
+		case BOTTOMLEVELDIRECT:
+			cap.getBottomLevelDirect().cvsExportYDataToRow(sbf, sep);
 			break;
 		case TOPDERIVATIVE:
 			cap.getDerivative().cvsExportYDataToRow(sbf, sep);
@@ -535,6 +551,18 @@ public class CapillaryPersistence {
 					cap.getBottomLevel().csvImportXYDataFromRow(data, 2);
 				else if (!x && y)
 					cap.getBottomLevel().csvImportYDataFromRow(data, 2);
+				break;
+			case TOPLEVELDIRECT:
+				if (x && y)
+					cap.getTopLevelDirect().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getTopLevelDirect().csvImportYDataFromRow(data, 2);
+				break;
+			case BOTTOMLEVELDIRECT:
+				if (x && y)
+					cap.getBottomLevelDirect().csvImportXYDataFromRow(data, 2);
+				else if (!x && y)
+					cap.getBottomLevelDirect().csvImportYDataFromRow(data, 2);
 				break;
 			case TOPDERIVATIVE:
 				if (x && y)

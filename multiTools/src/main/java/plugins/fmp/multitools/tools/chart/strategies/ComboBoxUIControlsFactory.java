@@ -266,6 +266,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		}
 		// Fallback default list
 		return new EnumResults[] { EnumResults.TOPRAW, EnumResults.TOPLEVEL, EnumResults.BOTTOMLEVEL,
+				EnumResults.TOPLEVELDIRECT, EnumResults.BOTTOMLEVELDIRECT,
 				EnumResults.TOPLEVEL_LR, EnumResults.DERIVEDVALUES, EnumResults.SUMGULPS, EnumResults.SUMGULPS_LR };
 	}
 

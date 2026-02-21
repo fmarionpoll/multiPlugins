@@ -213,6 +213,14 @@ public class Capillary implements Comparable<Capillary> {
 		return measurements.ptsBottom;
 	}
 
+	public CapillaryMeasure getTopLevelDirect() {
+		return measurements.ptsTopDirect;
+	}
+
+	public CapillaryMeasure getBottomLevelDirect() {
+		return measurements.ptsBottomDirect;
+	}
+
 	public CapillaryMeasure getDerivative() {
 		return measurements.ptsDerivative;
 	}
@@ -620,6 +628,12 @@ public class Capillary implements Comparable<Capillary> {
 		case BOTTOMLEVEL:
 			yes = measurements.ptsBottom.isThereAnyMeasuresDone();
 			break;
+		case TOPLEVELDIRECT:
+			yes = measurements.ptsTopDirect.isThereAnyMeasuresDone();
+			break;
+		case BOTTOMLEVELDIRECT:
+			yes = measurements.ptsBottomDirect.isThereAnyMeasuresDone();
+			break;
 		case TOPLEVEL:
 		default:
 			yes = measurements.ptsTop.isThereAnyMeasuresDone();
@@ -711,6 +725,12 @@ public class Capillary implements Comparable<Capillary> {
 		case BOTTOMLEVEL:
 			datai = measurements.ptsBottom.getMeasures(seriesBinMs, outputBinMs);
 			break;
+		case TOPLEVELDIRECT:
+			datai = measurements.ptsTopDirect.getMeasures(seriesBinMs, outputBinMs);
+			break;
+		case BOTTOMLEVELDIRECT:
+			datai = measurements.ptsBottomDirect.getMeasures(seriesBinMs, outputBinMs);
+			break;
 		case TOPLEVEL:
 			// Use evaporation-corrected measure if available, otherwise raw
 			if (measurements.ptsTopCorrected != null && measurements.ptsTopCorrected.polylineLevel != null
@@ -788,6 +808,12 @@ public class Capillary implements Comparable<Capillary> {
 		case BOTTOMLEVEL:
 			lastMeasure = measurements.ptsBottom.getLastMeasure();
 			break;
+		case TOPLEVELDIRECT:
+			lastMeasure = measurements.ptsTopDirect.getLastMeasure();
+			break;
+		case BOTTOMLEVELDIRECT:
+			lastMeasure = measurements.ptsBottomDirect.getLastMeasure();
+			break;
 		case TOPLEVEL:
 		default:
 			lastMeasure = measurements.ptsTop.getLastMeasure();
@@ -811,6 +837,12 @@ public class Capillary implements Comparable<Capillary> {
 		case BOTTOMLEVEL:
 			lastMeasure = measurements.ptsBottom.getLastDeltaMeasure();
 			break;
+		case TOPLEVELDIRECT:
+			lastMeasure = measurements.ptsTopDirect.getLastDeltaMeasure();
+			break;
+		case BOTTOMLEVELDIRECT:
+			lastMeasure = measurements.ptsBottomDirect.getLastDeltaMeasure();
+			break;
 		case TOPLEVEL:
 		default:
 			lastMeasure = measurements.ptsTop.getLastDeltaMeasure();
@@ -833,6 +865,12 @@ public class Capillary implements Comparable<Capillary> {
 			break;
 		case BOTTOMLEVEL:
 			t0Measure = measurements.ptsBottom.getT0Measure();
+			break;
+		case TOPLEVELDIRECT:
+			t0Measure = measurements.ptsTopDirect.getT0Measure();
+			break;
+		case BOTTOMLEVELDIRECT:
+			t0Measure = measurements.ptsBottomDirect.getT0Measure();
 			break;
 		case TOPLEVEL:
 		default:
@@ -1295,6 +1333,15 @@ public class Capillary implements Comparable<Capillary> {
 		case BOTTOMLEVEL:
 			measure = measurements.ptsBottom;
 			break;
+		case TOPLEVELDIRECT:
+			measure = new CapillaryMeasure(measurements.ptsTopDirect.capName);
+			measure.copy(measurements.ptsTopDirect);
+			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
+				measure.polylineLevel.offsetToStartWithZeroAmplitude();
+			break;
+		case BOTTOMLEVELDIRECT:
+			measure = measurements.ptsBottomDirect;
+			break;
 		case TOPLEVEL:
 		case TOPLEVEL_LR:
 			if (measurements.ptsTopCorrected != null && measurements.ptsTopCorrected.isThereAnyMeasuresDone()) {
@@ -1343,6 +1390,8 @@ public class Capillary implements Comparable<Capillary> {
 	private static class CapillaryMeasurements {
 		public CapillaryMeasure ptsTop = new CapillaryMeasure("toplevel");
 		public CapillaryMeasure ptsBottom = new CapillaryMeasure("bottomlevel");
+		public CapillaryMeasure ptsTopDirect = new CapillaryMeasure("topleveldirect");
+		public CapillaryMeasure ptsBottomDirect = new CapillaryMeasure("bottomleveldirect");
 		public CapillaryMeasure ptsDerivative = new CapillaryMeasure("derivative");
 		public CapillaryGulps ptsGulps = new CapillaryGulps();
 		public CapillaryMeasure ptsTopCorrected = new CapillaryMeasure("toplevel_corrected");
@@ -1352,6 +1401,8 @@ public class Capillary implements Comparable<Capillary> {
 			ptsGulps.copy(source.ptsGulps);
 			ptsTop.copy(source.ptsTop);
 			ptsBottom.copy(source.ptsBottom);
+			ptsTopDirect.copy(source.ptsTopDirect);
+			ptsBottomDirect.copy(source.ptsBottomDirect);
 			ptsDerivative.copy(source.ptsDerivative);
 			ptsTopCorrected.copy(source.ptsTopCorrected);
 			ptsThreshold.copy(source.ptsThreshold);
@@ -1362,6 +1413,10 @@ public class Capillary implements Comparable<Capillary> {
 				ptsTop.cropToNPoints(npoints);
 			if (ptsBottom.polylineLevel != null)
 				ptsBottom.cropToNPoints(npoints);
+			if (ptsTopDirect.polylineLevel != null)
+				ptsTopDirect.cropToNPoints(npoints);
+			if (ptsBottomDirect.polylineLevel != null)
+				ptsBottomDirect.cropToNPoints(npoints);
 			if (ptsDerivative.polylineLevel != null)
 				ptsDerivative.cropToNPoints(npoints);
 		}
@@ -1371,6 +1426,10 @@ public class Capillary implements Comparable<Capillary> {
 				ptsTop.restoreNPoints();
 			if (ptsBottom.polylineLevel != null)
 				ptsBottom.restoreNPoints();
+			if (ptsTopDirect.polylineLevel != null)
+				ptsTopDirect.restoreNPoints();
+			if (ptsBottomDirect.polylineLevel != null)
+				ptsBottomDirect.restoreNPoints();
 			if (ptsDerivative.polylineLevel != null)
 				ptsDerivative.restoreNPoints();
 		}
@@ -1378,6 +1437,8 @@ public class Capillary implements Comparable<Capillary> {
 		void adjustToImageWidth(int imageWidth) {
 			ptsTop.adjustToImageWidth(imageWidth);
 			ptsBottom.adjustToImageWidth(imageWidth);
+			ptsTopDirect.adjustToImageWidth(imageWidth);
+			ptsBottomDirect.adjustToImageWidth(imageWidth);
 			ptsDerivative.adjustToImageWidth(imageWidth);
 			// safest: invalidate gulps when width changes; they must be re-detected
 			ptsGulps.clear();
@@ -1387,6 +1448,8 @@ public class Capillary implements Comparable<Capillary> {
 		void cropToImageWidth(int imageWidth) {
 			ptsTop.cropToImageWidth(imageWidth);
 			ptsBottom.cropToImageWidth(imageWidth);
+			ptsTopDirect.cropToImageWidth(imageWidth);
+			ptsBottomDirect.cropToImageWidth(imageWidth);
 			ptsDerivative.cropToImageWidth(imageWidth);
 			// safest: invalidate gulps when width changes; they must be re-detected
 			ptsGulps.clear();
@@ -1397,6 +1460,8 @@ public class Capillary implements Comparable<Capillary> {
 			ptsGulps.clear();
 			ptsTop.clear();
 			ptsBottom.clear();
+			ptsTopDirect.clear();
+			ptsBottomDirect.clear();
 			ptsDerivative.clear();
 			ptsTopCorrected.clear();
 			ptsThreshold.clear();

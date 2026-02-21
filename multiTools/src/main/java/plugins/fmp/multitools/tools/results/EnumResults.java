@@ -24,6 +24,8 @@ public enum EnumResults {
 	TOPRAW("topraw", "volume (ul)", "top liquid level (t-t0)", StoredDataAccessors.accessStored_TOPRAW()),
 	TOPLEVEL("toplevel", "volume (ul)", "top liquid compensated for evaporation (t-t0)", StoredDataAccessors.accessStored_TOPLEVEL()),
 	BOTTOMLEVEL("bottomlevel", "volume (ul)", "bottom liquid level (t-t0)", StoredDataAccessors.accessStored_BOTTOMLEVEL()),
+	TOPLEVELDIRECT("topleveldirect", "volume (ul)", "top liquid from direct cam detection (t-t0)", StoredDataAccessors.accessStored_TOPLEVELDIRECT()),
+	BOTTOMLEVELDIRECT("bottomleveldirect", "volume (ul)", "bottom liquid from direct cam detection (t-t0)", StoredDataAccessors.accessStored_BOTTOMLEVELDIRECT()),
 	DERIVEDVALUES("derivative", "volume (ul)", "derived top liquid level (t-t0)", StoredDataAccessors.accessStored_DERIVEDVALUES()),
 
 	TOPLEVEL_LR("toplevel_L+R", "volume (ul)", "volume consumed in capillaries / cage (t-t0)", StoredDataAccessors.accessStored_TOPLEVEL_LR()),

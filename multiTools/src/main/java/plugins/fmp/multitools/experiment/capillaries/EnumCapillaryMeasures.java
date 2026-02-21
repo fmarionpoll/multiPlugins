@@ -4,6 +4,8 @@ public enum EnumCapillaryMeasures {
 	TOPRAW("TOPRAW", "top capillary limit relative to tO"), //
 	TOPLEVEL("TOPLEVEL", "top capillary limit minus evaporation"), //
 	BOTTOMLEVEL("BOTTOMLEVEL", "bottom capillary limit"), //
+	TOPLEVELDIRECT("TOPLEVELDIRECT", "top level from direct cam detection"), //
+	BOTTOMLEVELDIRECT("BOTTOMLEVELDIRECT", "bottom level from direct cam detection"), //
 	TOPDERIVATIVE("TOPDERIVATIVE", "derivative of top capillary limit"), //
 	THRESHOLD("THRESHOLD", "dynamic threshold computed from empty cages"), //
 	GULPS("GULPS", "gulps detected from derivative"), ALL("ALL", "all options");

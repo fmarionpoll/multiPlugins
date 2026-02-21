@@ -41,6 +41,28 @@ public class StoredDataAccessors {
 	}
 
 	/**
+	 * Accesses stored TOPLEVELDIRECT data from measurements.ptsTopDirect.
+	 * Used via: cap.getTopLevelDirect()
+	 */
+	public static MeasurementComputation accessStored_TOPLEVELDIRECT() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"TOPLEVELDIRECT uses stored data from measurements.ptsTopDirect - access via cap.getTopLevelDirect(), not computation");
+		};
+	}
+
+	/**
+	 * Accesses stored BOTTOMLEVELDIRECT data from measurements.ptsBottomDirect.
+	 * Used via: cap.getBottomLevelDirect()
+	 */
+	public static MeasurementComputation accessStored_BOTTOMLEVELDIRECT() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"BOTTOMLEVELDIRECT uses stored data from measurements.ptsBottomDirect - access via cap.getBottomLevelDirect(), not computation");
+		};
+	}
+
+	/**
 	 * Accesses stored DERIVEDVALUES data from measurements.ptsDerivative.
 	 * Used via: cap.getDerivative()
 	 */

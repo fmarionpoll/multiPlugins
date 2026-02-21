@@ -916,6 +916,8 @@ public class Experiment {
 			for (Capillary cap : capillaries.getList()) {
 				if (cap.isThereAnyMeasuresDone(EnumResults.TOPLEVEL)
 						|| cap.isThereAnyMeasuresDone(EnumResults.BOTTOMLEVEL)
+						|| cap.isThereAnyMeasuresDone(EnumResults.TOPLEVELDIRECT)
+						|| cap.isThereAnyMeasuresDone(EnumResults.BOTTOMLEVELDIRECT)
 						|| cap.isThereAnyMeasuresDone(EnumResults.DERIVEDVALUES)
 						|| cap.isThereAnyMeasuresDone(EnumResults.SUMGULPS)) {
 					hasMeasures = true;

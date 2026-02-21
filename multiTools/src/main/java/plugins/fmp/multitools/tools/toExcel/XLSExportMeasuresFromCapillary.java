@@ -55,9 +55,9 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 			String charSeries) throws ExcelExportException {
 
 		OptionToResultsMapping[] mappings = {
-			new OptionToResultsMapping(() -> options.topLevel, EnumResults.TOPRAW, EnumResults.TOPLEVEL),
+			new OptionToResultsMapping(() -> options.topLevel, EnumResults.TOPRAW, EnumResults.TOPLEVEL, EnumResults.TOPLEVELDIRECT),
 			new OptionToResultsMapping(() -> options.lrPI, EnumResults.TOPLEVEL_LR),
-			new OptionToResultsMapping(() -> options.bottomLevel, EnumResults.BOTTOMLEVEL),
+			new OptionToResultsMapping(() -> options.bottomLevel, EnumResults.BOTTOMLEVEL, EnumResults.BOTTOMLEVELDIRECT),
 			new OptionToResultsMapping(() -> options.derivative, EnumResults.DERIVEDVALUES)
 		};
 
@@ -90,7 +90,7 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
 		resultsOptions.relativeToMaximum = false;
 		resultsOptions.subtractT0 = false;
-		resultsOptions.correctEvaporation = resultType == EnumResults.TOPLEVEL ? true : false;
+		resultsOptions.correctEvaporation = (resultType == EnumResults.TOPLEVEL || resultType == EnumResults.TOPLEVELDIRECT) ? true : false;
 		resultsOptions.resultType = resultType;
 
 		exp.dispatchCapillariesToCages();

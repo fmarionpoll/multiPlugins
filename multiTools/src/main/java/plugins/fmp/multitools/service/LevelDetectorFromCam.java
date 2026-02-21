@@ -66,8 +66,8 @@ public class LevelDetectorFromCam {
 			cap.getDerivative().clear();
 			cap.getGulps().clear();
 			cap.getProperties().getLimitsOptions().copyFrom(options);
-			cap.getTopLevel().limit = new int[nTimeBins];
-			cap.getBottomLevel().limit = new int[nTimeBins];
+			cap.getTopLevelDirect().limit = new int[nTimeBins];
+			cap.getBottomLevelDirect().limit = new int[nTimeBins];
 		}
 
 		SequenceLoaderService loader = new SequenceLoaderService();
@@ -116,8 +116,8 @@ public class LevelDetectorFromCam {
 								options, levelDetector);
 					}
 					if (options.pass2) {
-						if (cap.getTopLevel().limit == null)
-							cap.getTopLevel().setTempDataFromPolylineLevel();
+						if (cap.getTopLevelDirect().limit == null)
+							cap.getTopLevelDirect().setTempDataFromPolylineLevel();
 						detectPass2OneColumn(thinImage, transformPass2, cap, profileLen, searchRect, timeIndex,
 								options, levelDetector);
 					}
@@ -132,13 +132,13 @@ public class LevelDetectorFromCam {
 		for (Capillary cap : toProcess) {
 			String name = cap.getLast2ofCapillaryName();
 			if (name != null) {
-				if (cap.getTopLevel() != null)
-					cap.getTopLevel().setPolylineLevelFromTempData(name + "_toplevel", 0, columnFirst, columnLast);
-				if (cap.getBottomLevel() != null)
-					cap.getBottomLevel().setPolylineLevelFromTempData(name + "_bottomlevel", 0, columnFirst, columnLast);
+				if (cap.getTopLevelDirect() != null)
+					cap.getTopLevelDirect().setPolylineLevelFromTempData(name + "_topleveldirect", 0, columnFirst, columnLast);
+				if (cap.getBottomLevelDirect() != null)
+					cap.getBottomLevelDirect().setPolylineLevelFromTempData(name + "_bottomleveldirect", 0, columnFirst, columnLast);
 			}
-			cap.getTopLevel().limit = null;
-			cap.getBottomLevel().limit = null;
+			cap.getTopLevelDirect().limit = null;
+			cap.getBottomLevelDirect().limit = null;
 		}
 
 		exp.save_capillaries_description_and_measures();
@@ -171,14 +171,14 @@ public class LevelDetectorFromCam {
 		int imageWidth = 1;
 		int imageHeight = profileLen;
 		int ix = 0;
-		int topSearchFrom = timeIndex > 0 ? capi.getTopLevel().limit[timeIndex - 1] : 0;
+		int topSearchFrom = timeIndex > 0 ? capi.getTopLevelDirect().limit[timeIndex - 1] : 0;
 		int iyTop = detectThresholdFromTop(ix, topSearchFrom, JITTER_PASS1, arr, imageWidth, imageHeight, options,
 				searchRect);
 		int iyBottom = detectThresholdFromBottom(ix, JITTER_PASS1, arr, imageWidth, imageHeight, options, searchRect);
 		if (iyBottom <= iyTop)
 			iyTop = topSearchFrom;
-		capi.getTopLevel().limit[timeIndex] = iyTop;
-		capi.getBottomLevel().limit[timeIndex] = iyBottom;
+		capi.getTopLevelDirect().limit[timeIndex] = iyTop;
+		capi.getBottomLevelDirect().limit[timeIndex] = iyBottom;
 	}
 
 	private static int detectThresholdFromTop(int ix, int searchFrom, int jitter, int[] tabValues, int imageWidth,
@@ -226,7 +226,7 @@ public class LevelDetectorFromCam {
 		int imageHeight = profileLen;
 		int columnFirst = 0;
 		int columnLast = 0;
-		int[] limit = new int[] { capi.getTopLevel().limit[timeIndex] };
+		int[] limit = new int[] { capi.getTopLevelDirect().limit[timeIndex] };
 		switch (options.transform02) {
 		case COLORDISTANCE_L1_Y:
 		case COLORDISTANCE_L2_Y:
@@ -249,7 +249,7 @@ public class LevelDetectorFromCam {
 		default:
 			break;
 		}
-		capi.getTopLevel().limit[timeIndex] = limit[0];
+		capi.getTopLevelDirect().limit[timeIndex] = limit[0];
 	}
 
 	private static void waitFutures(Processor processor, ArrayList<Future<?>> futures) {

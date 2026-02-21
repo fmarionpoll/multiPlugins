@@ -9,6 +9,10 @@ public class DetectLevels extends BuildSeries {
 		if (options.sourceCamDirect) {
 			exp.xmlLoad_MCExperiment();
 			exp.load_capillaries_description_and_measures();
+			exp.getSeqCamData().loadImages();
+			exp.getFileIntervalsFromSeqCamData();
+			exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getCamImageFirst_ms());
+			getTimeLimitsOfSequence(exp);
 			new LevelDetectorFromCam().detectLevels(exp, options);
 		} else if (loadExperimentDataToDetectLevels(exp)) {
 			exp.getSeqKymos().displayViewerAtRectangle(options.parent0Rect);
