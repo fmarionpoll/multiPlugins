@@ -43,13 +43,13 @@ public class ThresholdColors extends ImageTransformFunctionAbstract implements I
 		int npixels = binaryResultArray.length;
 		Color pixel = new Color(0, 0, 0);
 		for (int ipixel = 0; ipixel < npixels; ipixel++) {
-			byte val = options.byteFALSE;
+			byte val = options.byteTRUE;
 			pixel = new Color(sourceBuffer[0][ipixel] & 0xFF, sourceBuffer[1][ipixel] & 0xFF,
 					sourceBuffer[2][ipixel] & 0xFF);
 			for (int k = 0; k < options.colorarray.size(); k++) {
 				Color color = options.colorarray.get(k);
 				if (distance.computeDistance(pixel, color) <= options.colorthreshold) {
-					val = options.byteTRUE;
+					val = options.byteFALSE;
 					break;
 				}
 			}

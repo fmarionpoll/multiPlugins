@@ -27,17 +27,11 @@ public class ThresholdSingleValue extends ImageTransformFunctionAbstract impleme
 
 		byte on = options.byteTRUE;
 		byte off = options.byteFALSE;
-		if (!options.ifGreater) {
-			off = options.byteTRUE;
-			on = options.byteFALSE;
-		}
 
 		for (int x = 0; x < binaryMapDataBuffer.length; x++) {
 			int val = imageSourceDataBuffer[x] & 0xFF;
-			if (val > options.simplethreshold)
-				binaryMapDataBuffer[x] = off;
-			else
-				binaryMapDataBuffer[x] = on;
+			boolean passes = options.ifGreater ? (val > options.simplethreshold) : (val < options.simplethreshold);
+			binaryMapDataBuffer[x] = passes ? off : on;
 		}
 
 		return binaryMap;

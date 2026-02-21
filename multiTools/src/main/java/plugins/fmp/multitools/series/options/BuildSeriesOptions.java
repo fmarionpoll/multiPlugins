@@ -24,6 +24,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public Rectangle parent0Rect = null;
 	public String binSubDirectory = null;
 	public int diskRadius = 5;
+	/** When true (default), profile uses segment perpendicular to capillary; when false, horizontal line at each point. */
+	public boolean profilePerpendicular = true;
 	public boolean doRegistration = false;
 	public int referenceFrame = 0;
 	public int fromFrame = 0;

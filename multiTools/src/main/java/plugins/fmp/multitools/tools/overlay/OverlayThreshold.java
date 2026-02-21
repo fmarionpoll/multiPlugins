@@ -88,6 +88,9 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     /** LevelDetector instance for calling detection methods */
     private final LevelDetector levelDetector = new LevelDetector();
 
+    /** When true, draw only the boundary lines (top/bottom threshold crossing) instead of the red mask. */
+    private boolean boundaryOnlyMode = false;
+
     /**
      * Creates a new threshold overlay with default settings.
      */
@@ -247,6 +250,14 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
      * @param threshold the threshold value for color distance
      * @throws IllegalArgumentException if colorArray is null or empty
      */
+    public void setBoundaryOnlyMode(boolean boundaryOnly) {
+        this.boundaryOnlyMode = boundaryOnly;
+    }
+
+    public boolean isBoundaryOnlyMode() {
+        return boundaryOnlyMode;
+    }
+
     public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold) {
         if (colorArray == null || colorArray.isEmpty()) {
             throw new IllegalArgumentException("Color array cannot be null or empty");
@@ -330,6 +341,14 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
                         drawDetectionPath(graphics, rawImage, transformedImage);
                     }
                 }
+            } else if (boundaryOnlyMode) {
+                IcyBufferedImage rawImage = sequence.getImage(timePosition, 0);
+                if (rawImage != null) {
+                    IcyBufferedImage transformedImage = imageTransformFunction.getTransformedImage(rawImage, imageTransformOptions);
+                    if (transformedImage != null) {
+                        drawBoundaryLines(graphics, transformedImage);
+                    }
+                }
             } else {
                 IcyBufferedImage thresholdedImage = getTransformedImage(timePosition);
                 if (thresholdedImage != null) {
@@ -338,6 +357,55 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
             }
         } catch (Exception e) {
             Logger.warn("Error painting overlay", e);
+        }
+    }
+
+    /**
+     * Draws only the top and bottom boundary lines where the threshold is crossed (no red mask).
+     * Uses the same logic as level detection: from top find first row passing condition, from bottom same.
+     */
+    private void drawBoundaryLines(Graphics2D graphics, IcyBufferedImage transformedImage) {
+        if (transformedImage == null)
+            return;
+        Object data = transformedImage.getDataXY(0);
+        int[] arr = Array1DUtil.arrayToIntArray(data, transformedImage.isSignedDataType());
+        int w = transformedImage.getSizeX();
+        int h = transformedImage.getSizeY();
+        int thresh = imageTransformOptions.simplethreshold;
+        boolean ifGreater = imageTransformOptions.ifGreater;
+
+        int[] yTop = new int[w];
+        int[] yBottom = new int[w];
+        for (int ix = 0; ix < w; ix++) {
+            int yT = h - 1;
+            for (int iy = 0; iy < h; iy++) {
+                int val = arr[ix + iy * w] & 0xFF;
+                boolean passes = ifGreater ? (val > thresh) : (val < thresh);
+                if (passes) {
+                    yT = iy;
+                    break;
+                }
+            }
+            yTop[ix] = yT;
+            int yB = 0;
+            for (int iy = h - 1; iy >= 0; iy--) {
+                int val = arr[ix + iy * w] & 0xFF;
+                boolean passes = ifGreater ? (val > thresh) : (val < thresh);
+                if (passes) {
+                    yB = iy;
+                    break;
+                }
+            }
+            yBottom[ix] = yB;
+        }
+
+        graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+        graphics.setColor(Color.RED);
+        for (int ix = 0; ix < w - 1; ix++) {
+            graphics.drawLine(ix, yTop[ix], ix + 1, yTop[ix + 1]);
+        }
+        for (int ix = 0; ix < w - 1; ix++) {
+            graphics.drawLine(ix, yBottom[ix], ix + 1, yBottom[ix + 1]);
         }
     }
 

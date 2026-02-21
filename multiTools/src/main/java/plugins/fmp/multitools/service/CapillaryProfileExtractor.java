@@ -36,6 +36,56 @@ public final class CapillaryProfileExtractor {
 		return masks;
 	}
 
+	/**
+	 * Builds the list of pixel masks along the ROI using a segment perpendicular to
+	 * the capillary axis at each point. Same list shape as buildMasksAlongRoi so
+	 * extractProfileFromMasks can be reused. For direct-from-cam level detection.
+	 */
+	public static List<ArrayList<int[]>> buildMasksAlongRoiPerpendicular(ROI2D roi, int imageWidth, int imageHeight,
+			int halfLength) {
+		List<ArrayList<int[]>> masks = new ArrayList<>();
+		ArrayList<Point2D> points = ROI2DUtilities.getCapillaryPoints(roi);
+		if (points == null || points.isEmpty())
+			return masks;
+		ArrayList<int[]> pixels = Bresenham.getPixelsAlongLineFromROI2D(points);
+		int n = pixels.size();
+		if (n == 0)
+			return masks;
+		int len = Math.max(0, halfLength);
+		for (int i = 0; i < n; i++) {
+			double tx, ty;
+			if (n == 1) {
+				tx = 1;
+				ty = 0;
+			} else if (i == 0) {
+				tx = pixels.get(1)[0] - pixels.get(0)[0];
+				ty = pixels.get(1)[1] - pixels.get(0)[1];
+			} else if (i == n - 1) {
+				tx = pixels.get(n - 1)[0] - pixels.get(n - 2)[0];
+				ty = pixels.get(n - 1)[1] - pixels.get(n - 2)[1];
+			} else {
+				tx = pixels.get(i + 1)[0] - pixels.get(i - 1)[0];
+				ty = pixels.get(i + 1)[1] - pixels.get(i - 1)[1];
+			}
+			double plen = Math.hypot(tx, ty);
+			if (plen < 1e-6) {
+				tx = 1;
+				ty = 0;
+				plen = 1;
+			}
+			double px = -ty / plen;
+			double py = tx / plen;
+			int[] c = pixels.get(i);
+			int x1 = clip((int) Math.round(c[0] - len * px), 0, imageWidth - 1);
+			int y1 = clip((int) Math.round(c[1] - len * py), 0, imageHeight - 1);
+			int x2 = clip((int) Math.round(c[0] + len * px), 0, imageWidth - 1);
+			int y2 = clip((int) Math.round(c[1] + len * py), 0, imageHeight - 1);
+			ArrayList<int[]> seg = Bresenham.getPixelsBetween2Points(x1, y1, x2, y2);
+			masks.add(seg);
+		}
+		return masks;
+	}
+
 	private static ArrayList<int[]> getPixelsInDisk(int[] center, int diskRadius, int sizex, int sizey) {
 		ArrayList<int[]> list = new ArrayList<>();
 		double r2 = (double) diskRadius * diskRadius;
@@ -87,5 +137,53 @@ public final class CapillaryProfileExtractor {
 			profile[i] = n > 0 ? (int) (sum / n) : 0;
 		}
 		return profile;
+	}
+
+	/**
+	 * Extracts R, G, B profiles (one value per mask per channel) by averaging pixel
+	 * values in each mask. Use for direct-from-cam detection so color transforms
+	 * (e.g. 2G-(R+B)) get real R,G,B and do not zero out.
+	 *
+	 * @return new int[3][masks.size()] with {R, G, B} profiles, or null if masks empty or image null
+	 */
+	public static int[][] extractRgbProfileFromMasks(IcyBufferedImage sourceImage, List<ArrayList<int[]>> masks) {
+		if (sourceImage == null || masks == null || masks.isEmpty())
+			return null;
+		int w = sourceImage.getSizeX();
+		int h = sourceImage.getSizeY();
+		int nCh = Math.min(3, sourceImage.getSizeC());
+		int[][] channels = new int[nCh][];
+		for (int c = 0; c < nCh; c++) {
+			Object data = sourceImage.getDataXY(c);
+			channels[c] = Array1DUtil.arrayToIntArray(data, sourceImage.isSignedDataType());
+		}
+		int n = masks.size();
+		int[][] rgb = new int[3][n];
+		for (int i = 0; i < n; i++) {
+			ArrayList<int[]> mask = masks.get(i);
+			long[] sum = new long[3];
+			int count = 0;
+			for (int[] p : mask) {
+				int x = p[0];
+				int y = p[1];
+				if (x >= 0 && x < w && y >= 0 && y < h) {
+					int idx = x + y * w;
+					for (int c = 0; c < nCh; c++)
+						sum[c] += channels[c][idx];
+					count++;
+				}
+			}
+			for (int c = 0; c < nCh; c++)
+				rgb[c][i] = count > 0 ? (int) (sum[c] / count) : 0;
+		}
+		if (nCh < 3) {
+			for (int i = 0; i < n; i++) {
+				if (nCh == 1)
+					rgb[1][i] = rgb[2][i] = rgb[0][i];
+				else
+					rgb[2][i] = rgb[1][i];
+			}
+		}
+		return rgb;
 	}
 }

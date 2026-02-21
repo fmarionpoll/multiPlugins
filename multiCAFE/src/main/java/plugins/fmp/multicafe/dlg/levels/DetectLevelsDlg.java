@@ -512,6 +512,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			seq.removeOverlay(overlayThreshold);
 			overlayThreshold.setSequence(seq);
 		}
+		overlayThreshold.setBoundaryOnlyMode(true);
 		seq.addOverlay(overlayThreshold);
 
 		Viewer v = seq.getFirstViewer();
@@ -556,7 +557,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 		} else {
 			return;
 		}
-
+		overlayThreshold.setBoundaryOnlyMode(true);
 		overlayThreshold.painterChanged();
 		if (overlayThreshold.getSequence() != null) {
 			overlayThreshold.getSequence().overlayChanged(overlayThreshold);

@@ -58,6 +58,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox fromRectangleCheckBox = new JCheckBox(" detection from ROI rectangle", false);
+	private JCheckBox profilePerpendicularCheckBox = new JCheckBox("profile perpendicular to capillary", true);
 
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox leftCheckBox = new JCheckBox("L", true);
@@ -102,6 +103,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 		JPanel panel03 = new JPanel(layoutLeft);
 
 		panel03.add(fromRectangleCheckBox);
+		panel03.add(profilePerpendicularCheckBox);
 		panel03.add(runBackwardsCheckBox);
 		add(panel03);
 
@@ -230,6 +232,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 		selectedCapillaryCheckBox.setSelected(!options.detectSelectedKymo);
 		leftCheckBox.setSelected(options.detectL);
 		rightCheckBox.setSelected(options.detectR);
+		profilePerpendicularCheckBox.setSelected(options.profilePerpendicular);
 
 		fromRectangleCheckBox.setSelected(false);
 	}
@@ -245,6 +248,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 
 		options.detectL = leftCheckBox.isSelected();
 		options.detectR = rightCheckBox.isSelected();
+		options.profilePerpendicular = profilePerpendicularCheckBox.isSelected();
 	}
 
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {
@@ -282,6 +286,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = parent0.expListComboLazy.expListBinSubDirectory;
 		options.runBackwards = runBackwardsCheckBox.isSelected();
+		options.profilePerpendicular = profilePerpendicularCheckBox.isSelected();
 		options.sourceCamDirect = true;
 		return options;
 	}

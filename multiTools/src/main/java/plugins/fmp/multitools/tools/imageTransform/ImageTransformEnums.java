@@ -34,7 +34,7 @@ public enum ImageTransformEnums {
 	RBMINUS_2G("(R+B)-2G", new LinearCombination(1, -2, 1)), //
 	RGMINUS_2B("(R+G)-2B", new LinearCombination(1, 1, -2)), //
 	RGB_DIFFS("S(diffRGB)", new SumDiff()), //
-	RGB("(R+G+B)/3", new LinearCombination(1 / 3, 1 / 3, 1 / 3)), //
+	RGB("(R+G+B)/3", new LinearCombination(.3333, .3333, .3333)), //
 	H_HSB("H(HSB)", new RGBtoHSB(0)), //
 	S_HSB("S(HSB)", new RGBtoHSB(1)), //
 	B_HSB("B(HSB)", new RGBtoHSB(2)), //

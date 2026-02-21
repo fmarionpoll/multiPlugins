@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.kymos;
+package plugins.fmp.multicafe.dlg.experiment;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;

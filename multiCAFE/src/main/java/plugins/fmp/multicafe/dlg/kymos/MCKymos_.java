@@ -28,7 +28,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	public Options tabDisplay = new Options();
 	public Intervals tabIntervals = new Intervals();
 	public LoadSave tabLoadSave = new LoadSave();
-	public Register tabRegister = new Register();
+
 	private MultiCAFE parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
@@ -51,9 +51,6 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 		tabIntervals.init(capLayout, parent0);
 		tabIntervals.addPropertyChangeListener(this);
 		tabsPane.addTab("Edit", null, tabIntervals, "Time resolution of kymograph");
-
-		tabRegister.init(capLayout, parent0);
-		tabsPane.addTab("Registration", null, tabRegister, "Register source images");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);

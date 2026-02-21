@@ -37,6 +37,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 	public Options tabOptions = new Options();
 	public Infos tabInfos = new Infos();
 	public Filter tabFilter = new Filter();
+	public Register tabRegister = new Register();
 	public EditCapillariesConditional tabEditCond = new EditCapillariesConditional();
 	public Intervals tabIntervals = new Intervals();
 
@@ -64,6 +65,9 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 
 		tabIntervals.init(tabsLayout, parent0);
 		tabsPane.addTab("Intervals", null, tabIntervals, "View/edit time-lapse intervals");
+
+		tabRegister.init(tabsLayout, parent0);
+		tabsPane.addTab("Registration", null, tabRegister, "Register source images");
 
 		tabOptions.init(tabsLayout, parent0);
 		tabsPane.addTab("Options", null, tabOptions, "Options to display data");
@@ -173,7 +177,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 			v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 		}
 		v.setRepeat(false);
-		
+
 		// End update mode now that viewer is properly configured
 		// This allows the sequence to update and display correctly
 		if (seq.isUpdating()) {

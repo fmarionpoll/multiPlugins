@@ -31,6 +31,10 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 public class LevelDetectorFromCam {
 
 	private static final int JITTER_PASS1 = 10;
+	/** Set true to print transformed profile values for one capillary, first frame. See DEBUG_CAPILLARY_INDEX. */
+	public static final boolean DEBUG_PRINT_PROFILE_VALUES = false;
+	/** Capillary index (in toProcess) to print when DEBUG_PRINT_PROFILE_VALUES is true (e.g. 2 = third capillary). */
+	public static final int DEBUG_CAPILLARY_INDEX = 2;
 
 	public void detectLevels(Experiment exp, BuildSeriesOptions options) {
 		Capillaries capillaries = exp.getCapillaries();
@@ -92,24 +96,29 @@ public class LevelDetectorFromCam {
 			final int camW = camImage.getSizeX();
 			final int camH = camImage.getSizeY();
 
+			final boolean debugFirstCapFirstFrame = (timeIndex == 0 && toProcess.size() > 0);
 			futures.add(processor.submit(() -> {
-				for (Capillary cap : toProcess) {
+				for (int capIdx = 0; capIdx < toProcess.size(); capIdx++) {
+					Capillary cap = toProcess.get(capIdx);
 					AlongT at = cap.getAlongTAtT(camFrameIndex);
 					if (at == null || at.getRoi() == null)
 						continue;
-					List<ArrayList<int[]>> masks = CapillaryProfileExtractor.buildMasksAlongRoi(at.getRoi(), camW, camH,
-							diskRadius);
+					List<ArrayList<int[]>> masks = options.profilePerpendicular
+							? CapillaryProfileExtractor.buildMasksAlongRoiPerpendicular(at.getRoi(), camW, camH, diskRadius)
+							: CapillaryProfileExtractor.buildMasksAlongRoi(at.getRoi(), camW, camH, diskRadius);
 					if (masks.isEmpty())
 						continue;
-					int[] profile = CapillaryProfileExtractor.extractProfileFromMasks(camImage, masks);
-					if (profile.length == 0)
+					int[][] rgbProfile = CapillaryProfileExtractor.extractRgbProfileFromMasks(camImage, masks);
+					if (rgbProfile == null || rgbProfile[0].length == 0)
 						continue;
 
-					IcyBufferedImage thinImage = profileToImage(profile);
-					int profileLen = profile.length;
+					IcyBufferedImage thinImage = rgbProfileToImage(rgbProfile);
+					int profileLen = rgbProfile[0].length;
 					Rectangle searchRect = new Rectangle(0, 0, 1, profileLen);
+					boolean debugPrint = DEBUG_PRINT_PROFILE_VALUES && debugFirstCapFirstFrame
+							&& (capIdx == DEBUG_CAPILLARY_INDEX && toProcess.size() > DEBUG_CAPILLARY_INDEX);
 					detectPass1OneColumn(thinImage, transformPass1, cap, profileLen, searchRect, timeIndex, options,
-							levelDetector);
+							levelDetector, debugPrint);
 
 				}
 			}));
@@ -137,13 +146,13 @@ public class LevelDetectorFromCam {
 		exp.saveMCCapillaries_Only();
 	}
 
-	private static IcyBufferedImage profileToImage(int[] profile) {
-		int h = profile.length;
+	private static IcyBufferedImage rgbProfileToImage(int[][] rgbProfile) {
+		int h = rgbProfile[0].length;
 		IcyBufferedImage img = new IcyBufferedImage(1, h, 3, DataType.UBYTE);
 		for (int c = 0; c < 3; c++) {
 			byte[] channel = new byte[h];
 			for (int y = 0; y < h; y++) {
-				int v = profile[y];
+				int v = rgbProfile[c][y];
 				if (v < 0)
 					v = 0;
 				if (v > 255)
@@ -157,11 +166,27 @@ public class LevelDetectorFromCam {
 
 	private static void detectPass1OneColumn(IcyBufferedImage thinImage, ImageTransformInterface transformPass1,
 			Capillary capi, int profileLen, Rectangle searchRect, int timeIndex, BuildSeriesOptions options,
-			LevelDetector levelDetector) {
+			LevelDetector levelDetector, boolean debugPrint) {
 		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformed = transformPass1.getTransformedImage(thinImage, transformOptions);
 		Object data = transformed.getDataXY(0);
 		int[] arr = Array1DUtil.arrayToIntArray(data, transformed.isSignedDataType());
+		if (debugPrint && arr != null && arr.length > 0) {
+			int min = arr[0], max = arr[0], negCount = 0;
+			for (int v : arr) {
+				if (v < min) min = v;
+				if (v > max) max = v;
+				if (v < 0) negCount++;
+			}
+			String name = capi.getLast2ofCapillaryName() != null ? capi.getLast2ofCapillaryName() : capi.getRoiName();
+			System.out.println("[LevelDetectorFromCam] capillary index " + DEBUG_CAPILLARY_INDEX + ", first frame, transform="
+					+ options.transform01 + " | profileLen=" + arr.length + " min=" + min + " max=" + max
+					+ " negCount=" + negCount + " (cap=" + name + ")");
+			StringBuilder sb = new StringBuilder("  all values: ");
+			for (int i = 0; i < arr.length; i++)
+				sb.append(arr[i]).append(i < arr.length - 1 ? ", " : "");
+			System.out.println(sb);
+		}
 		int imageWidth = 1;
 		int imageHeight = profileLen;
 		int ix = 0;

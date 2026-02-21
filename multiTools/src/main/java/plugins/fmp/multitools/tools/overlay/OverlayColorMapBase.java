@@ -77,15 +77,12 @@ public abstract class OverlayColorMapBase extends IcyColorMap {
      * @param colorBackground the background color
      */
     private void setupColorChannels(Color colorMask, Color colorBackground) {
-        final int maskPosition = MAX_INDEX;
-        final int flatStart = 0;
-        final int flatEnd = MAX_INDEX - 1;
+        final int maskPosition = 0;
+        final int flatStart = 1;
+        final int flatEnd = MAX_INDEX;
         
-        // Set background color for the flat region
         setColorChannelValues(flatStart, colorBackground, ALPHA_TRANSPARENT);
         setColorChannelValues(flatEnd, colorBackground, ALPHA_TRANSPARENT);
-        
-        // Set mask color at the maximum position
         setMaskColorValues(maskPosition, colorMask, colorBackground);
     }
     
