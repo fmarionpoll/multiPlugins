@@ -243,6 +243,28 @@ public class Capillaries {
 		}
 	}
 
+	/**
+	 * Clears only kymograph-based measures (top, bottom, derivative, gulps, etc.)
+	 * for capillaries in [first, last] matching detectL/detectR. Leaves
+	 * TOPLEVELDIRECT and BOTTOMLEVELDIRECT untouched so that kymo detection does
+	 * not erase direct-from-cam measures.
+	 */
+	public void clearKymoMeasuresOnly(int first, int last, boolean detectL, boolean detectR) {
+		for (Capillary cap : getList()) {
+			int i = cap.getKymographIndex();
+			if (first >= 0 && last >= 0 && (i < first || i > last))
+				continue;
+			String name = cap.getKymographName();
+			if (name != null) {
+				if (name.endsWith("1") && !detectL)
+					continue;
+				if (name.endsWith("2") && !detectR)
+					continue;
+			}
+			cap.clearKymoMeasuresOnly();
+		}
+	}
+
 	private void transferCapGroupCageIDToCapillary(Capillary cap) {
 		if (capillariesDescription.getGrouping() != 2)
 			return;

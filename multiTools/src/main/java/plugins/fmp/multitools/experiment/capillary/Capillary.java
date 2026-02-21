@@ -1385,6 +1385,14 @@ public class Capillary implements Comparable<Capillary> {
 		measurements.clearAllMeasures();
 	}
 
+	/**
+	 * Clears only kymograph-based measures (top, bottom, derivative, gulps,
+	 * corrected, threshold). Leaves TOPLEVELDIRECT and BOTTOMLEVELDIRECT untouched.
+	 */
+	public void clearKymoMeasuresOnly() {
+		measurements.clearKymoMeasuresOnly();
+	}
+
 	// === INNER CLASSES ===
 
 	private static class CapillaryMeasurements {
@@ -1462,6 +1470,15 @@ public class Capillary implements Comparable<Capillary> {
 			ptsBottom.clear();
 			ptsTopDirect.clear();
 			ptsBottomDirect.clear();
+			ptsDerivative.clear();
+			ptsTopCorrected.clear();
+			ptsThreshold.clear();
+		}
+
+		void clearKymoMeasuresOnly() {
+			ptsGulps.clear();
+			ptsTop.clear();
+			ptsBottom.clear();
 			ptsDerivative.clear();
 			ptsTopCorrected.clear();
 			ptsThreshold.clear();

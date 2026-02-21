@@ -423,7 +423,7 @@ public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
 			threadDetectLevels = new DetectLevels();
 			threadDetectLevels.options = initBuildParameters(exp);
 			if (!fromRectangleCheckBox.isSelected()) {
-				exp.getCapillaries().clearAllMeasures(threadDetectLevels.options.kymoFirst,
+				exp.getCapillaries().clearKymoMeasuresOnly(threadDetectLevels.options.kymoFirst,
 						threadDetectLevels.options.kymoLast, threadDetectLevels.options.detectL,
 						threadDetectLevels.options.detectR);
 			}
