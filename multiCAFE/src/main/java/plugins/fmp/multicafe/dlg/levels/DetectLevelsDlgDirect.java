@@ -292,7 +292,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 
 			threadDetectLevels = new DetectLevels();
 			threadDetectLevels.options = initBuildParameters(exp);
-			if (!fromRectangleCheckBox.isSelected()) {
+			if (!threadDetectLevels.options.sourceCamDirect && !fromRectangleCheckBox.isSelected()) {
 				exp.getCapillaries().clearAllMeasures(threadDetectLevels.options.kymoFirst,
 						threadDetectLevels.options.kymoLast, threadDetectLevels.options.detectL,
 						threadDetectLevels.options.detectR);

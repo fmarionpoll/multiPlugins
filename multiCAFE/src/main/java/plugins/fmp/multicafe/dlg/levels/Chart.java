@@ -48,16 +48,19 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			EnumResults.TOPRAW, //
 			EnumResults.TOPLEVEL, //
 			EnumResults.BOTTOMLEVEL, //
+			EnumResults.TOPLEVELDIRECT, //
+			EnumResults.BOTTOMLEVELDIRECT, //
 			EnumResults.TOPLEVEL_LR, //
 			EnumResults.DERIVEDVALUES, //
 			EnumResults.SUMGULPS, //
 			EnumResults.SUMGULPS_LR, //
 			EnumResults.NBGULPS, //
 			EnumResults.AMPLITUDEGULPS, //
-			EnumResults.TTOGULP, //
-			EnumResults.MARKOV_CHAIN, //
-			EnumResults.AUTOCORREL, //
-			EnumResults.CROSSCORREL };
+			EnumResults.TTOGULP };
+//	, //
+//			EnumResults.MARKOV_CHAIN, //
+//			EnumResults.AUTOCORREL, //
+//			EnumResults.CROSSCORREL };
 	private JComboBox<EnumResults> resultTypeComboBox = new JComboBox<EnumResults>(measures);
 
 	// private JCheckBox correctEvaporationCheckbox = new JCheckBox("correct

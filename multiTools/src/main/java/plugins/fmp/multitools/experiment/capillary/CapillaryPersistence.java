@@ -289,6 +289,10 @@ public class CapillaryPersistence {
 	}
 
 	public static String csvExportMeasuresOneType(Capillary cap, EnumCapillaryMeasures measureType, String sep) {
+		if (measureType == EnumCapillaryMeasures.THRESHOLD) {
+			if (cap.getThreshold() == null || !cap.getThreshold().isThereAnyMeasuresDone())
+				return "";
+		}
 		StringBuffer sbf = new StringBuffer();
 		sbf.append(cap.getKymographPrefix() + sep + cap.getKymographIndex() + sep);
 
@@ -313,8 +317,7 @@ public class CapillaryPersistence {
 			cap.getDerivative().cvsExportYDataToRow(sbf, sep);
 			break;
 		case THRESHOLD:
-			if (cap.getThreshold() != null && cap.getThreshold().isThereAnyMeasuresDone())
-				cap.getThreshold().cvsExportYDataToRow(sbf, sep);
+			cap.getThreshold().cvsExportYDataToRow(sbf, sep);
 			break;
 		case GULPS:
 			cap.getGulps().csvExportDataFlatToRow(sbf, sep);

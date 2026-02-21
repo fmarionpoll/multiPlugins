@@ -231,6 +231,18 @@ public class Capillaries {
 		}
 	}
 
+	/**
+	 * Clears only TOPLEVELDIRECT and BOTTOMLEVELDIRECT for all capillaries. Used
+	 * before direct-from-cam detection so that other measures (TOPRAW, BOTTOMLEVEL,
+	 * TOPDERIVATIVE, etc.) loaded from CSV remain untouched.
+	 */
+	public void clearDirectMeasuresOnly() {
+		for (Capillary cap : getList()) {
+			cap.getTopLevelDirect().clear();
+			cap.getBottomLevelDirect().clear();
+		}
+	}
+
 	private void transferCapGroupCageIDToCapillary(Capillary cap) {
 		if (capillariesDescription.getGrouping() != 2)
 			return;

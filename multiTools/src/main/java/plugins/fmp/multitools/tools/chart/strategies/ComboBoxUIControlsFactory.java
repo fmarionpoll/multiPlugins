@@ -111,18 +111,19 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		});
 
 		topPanel.add(resultTypeComboBox);
-		
+
 		JButton updateButton = new JButton("Update");
 		updateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				if (changeListener != null) {
-					changeListener.actionPerformed(new ActionEvent(updateButton, ActionEvent.ACTION_PERFORMED, "update"));
+					changeListener
+							.actionPerformed(new ActionEvent(updateButton, ActionEvent.ACTION_PERFORMED, "update"));
 				}
 			}
 		});
 		topPanel.add(updateButton);
-		
+
 		return topPanel;
 	}
 
@@ -203,7 +204,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 			bottomPanel.add(new LegendItem("R", Color.RED));
 			return;
 		}
-		
+
 		List<Capillary> referenceCapillaries = new ArrayList<>();
 		for (Cage cage : experiment.getCages().getCageList()) {
 			List<Capillary> cageCaps = cage.getCapillaries(allCapillaries);
@@ -265,9 +266,19 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 			return measurementTypes;
 		}
 		// Fallback default list
-		return new EnumResults[] { EnumResults.TOPRAW, EnumResults.TOPLEVEL, EnumResults.BOTTOMLEVEL,
-				EnumResults.TOPLEVELDIRECT, EnumResults.BOTTOMLEVELDIRECT,
-				EnumResults.TOPLEVEL_LR, EnumResults.DERIVEDVALUES, EnumResults.SUMGULPS, EnumResults.SUMGULPS_LR };
+		return new EnumResults[] { //
+				EnumResults.TOPRAW, //
+				EnumResults.TOPLEVEL, //
+				EnumResults.BOTTOMLEVEL, //
+				EnumResults.TOPLEVELDIRECT, //
+				EnumResults.BOTTOMLEVELDIRECT, //
+				EnumResults.TOPLEVEL_LR, //
+				EnumResults.DERIVEDVALUES, //
+				EnumResults.SUMGULPS, //
+				EnumResults.SUMGULPS_LR, //
+				EnumResults.NBGULPS, //
+				EnumResults.AMPLITUDEGULPS, //
+				EnumResults.TTOGULP };
 	}
 
 	/**

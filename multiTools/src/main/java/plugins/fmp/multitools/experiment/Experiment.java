@@ -830,9 +830,6 @@ public class Experiment {
 	public boolean load_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
 
-		// Check if capillaries files exist before attempting to load
-		// This avoids unnecessary file system checks for experiments without
-		// capillaries
 		if (!capillaries.getPersistence().hasCapillariesDescriptionFiles(resultsDir)) {
 			return false;
 		}
@@ -845,41 +842,51 @@ public class Experiment {
 			measuresLoaded = capillaries.getPersistence().loadMeasures(capillaries, binDir);
 		}
 
-		// Transfer capillaries to ROIs on sequence if capillaries exist (even if
-		// descriptions didn't load)
-		// Capillaries might have been loaded from XML files directly
-		int roisAdded = 0;
-		if (capillaries.getList().size() > 0 && seqCamData != null && seqCamData.getSequence() != null) {
-			// Remove only capillary ROIs (containing "line"), preserving cages and other
-			// ROIs
-			seqCamData.removeROIsContainingString("line");
-			// Add capillary ROIs to sequence
-			for (Capillary cap : capillaries.getList()) {
-				if (cap.getRoi() != null) {
-					String roiName = cap.getRoi().getName();
-					seqCamData.getSequence().addROI(cap.getRoi());
-					roisAdded++;
-					if (roisAdded <= 3) { // Log first 3 for debugging
-						String msgRoi = "Experiment:load_capillaries_description_and_measures() Added ROI: " + roiName
-								+ ", contains 'line': " + (roiName != null && roiName.contains("line"));
-						Logger.info(msgRoi);
-					}
-				}
-			}
+		transferCapillaryRoisToSequence();
 
-			// Make sure ROIs are visible after being added
-			icy.gui.viewer.Viewer viewer = seqCamData.getSequence().getFirstViewer();
-			if (roisAdded > 0 && viewer != null) {
-				seqCamData.displaySpecificROIs(true, "line");
-			}
-		}
-
-		// Transfer measures to kymographs if measures loaded successfully
 		if (measuresLoaded && seqKymos != null && seqKymos.getSequence() != null) {
 			CapillariesKymosMapper.pushCapillaryMeasuresToKymos(capillaries, seqKymos);
 		}
 
 		return descriptionsLoaded || measuresLoaded;
+	}
+
+	/**
+	 * Loads capillary descriptions only (no measures). Use when running direct
+	 * detection so existing in-memory top/bottom/derivative/gulps are preserved.
+	 */
+	public boolean load_capillaries_description_only() {
+		String resultsDir = getResultsDirectory();
+
+		if (!capillaries.getPersistence().hasCapillariesDescriptionFiles(resultsDir)) {
+			return false;
+		}
+
+		boolean descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
+		transferCapillaryRoisToSequence();
+		return descriptionsLoaded;
+	}
+
+	private void transferCapillaryRoisToSequence() {
+		if (capillaries.getList().size() == 0 || seqCamData == null || seqCamData.getSequence() == null)
+			return;
+		seqCamData.removeROIsContainingString("line");
+		int roisAdded = 0;
+		for (Capillary cap : capillaries.getList()) {
+			if (cap.getRoi() != null) {
+				String roiName = cap.getRoi().getName();
+				seqCamData.getSequence().addROI(cap.getRoi());
+				roisAdded++;
+				if (roisAdded <= 3) {
+					Logger.info("Experiment:transferCapillaryRoisToSequence() Added ROI: " + roiName
+							+ ", contains 'line': " + (roiName != null && roiName.contains("line")));
+				}
+			}
+		}
+		icy.gui.viewer.Viewer viewer = seqCamData.getSequence().getFirstViewer();
+		if (roisAdded > 0 && viewer != null) {
+			seqCamData.displaySpecificROIs(true, "line");
+		}
 	}
 
 	/**
