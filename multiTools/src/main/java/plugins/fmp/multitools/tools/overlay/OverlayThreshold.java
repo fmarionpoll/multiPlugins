@@ -16,7 +16,7 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceEvent.SequenceEventSourceType;
 import icy.sequence.SequenceEvent.SequenceEventType;
-import plugins.fmp.multitools.service.LevelDetector;
+import plugins.fmp.multitools.service.LevelDetectorFromKymo;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
@@ -86,7 +86,7 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     private ROI2DPolyLine detectionROI = null;
     
     /** LevelDetector instance for calling detection methods */
-    private final LevelDetector levelDetector = new LevelDetector();
+    private final LevelDetectorFromKymo levelDetector = new LevelDetectorFromKymo();
 
     /** When true, draw only the boundary lines (top/bottom threshold crossing) instead of the red mask. */
     private boolean boundaryOnlyMode = false;

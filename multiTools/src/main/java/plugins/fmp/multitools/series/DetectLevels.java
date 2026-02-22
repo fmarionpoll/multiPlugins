@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.service.LevelDetector;
+import plugins.fmp.multitools.service.LevelDetectorFromKymo;
 import plugins.fmp.multitools.service.LevelDetectorFromCam;
 
 public class DetectLevels extends BuildSeries {
@@ -18,7 +18,7 @@ public class DetectLevels extends BuildSeries {
 
 		} else if (loadExperimentDataToDetectLevels(exp)) {
 			exp.getSeqKymos().displayViewerAtRectangle(options.parent0Rect);
-			new LevelDetector().detectLevels(exp, options);
+			new LevelDetectorFromKymo().detectLevels(exp, options);
 		}
 		exp.closeSequences();
 	}

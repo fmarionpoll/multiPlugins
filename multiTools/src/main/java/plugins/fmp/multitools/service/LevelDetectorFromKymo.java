@@ -23,7 +23,7 @@ import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
-public class LevelDetector {
+public class LevelDetectorFromKymo {
 
 	private static final int TOP_SEARCH_OFFSET_PIXELS = 5;
 

@@ -65,7 +65,7 @@ public class LevelDetectorFromCam {
 		ImageTransformInterface transformPass1 = options.transform01.getFunction();
 
 		int diskRadius = Math.max(0, options.diskRadius);
-		LevelDetector levelDetector = new LevelDetector();
+		LevelDetectorFromKymo levelDetector = new LevelDetectorFromKymo();
 
 		Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("detectlevel-cam");
@@ -165,7 +165,7 @@ public class LevelDetectorFromCam {
 
 	private static void detectPass1OneColumn(IcyBufferedImage thinImage, ImageTransformInterface transformPass1,
 			Capillary capi, int profileLen, Rectangle searchRect, int timeIndex, BuildSeriesOptions options,
-			LevelDetector levelDetector) {
+			LevelDetectorFromKymo levelDetector) {
 		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformed = transformPass1.getTransformedImage(thinImage, transformOptions);
 		Object data = transformed.getDataXY(0);
