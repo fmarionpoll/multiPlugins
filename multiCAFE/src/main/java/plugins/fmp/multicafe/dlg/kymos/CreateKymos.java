@@ -186,8 +186,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 		threadBuildKymo = new BuildKymosFromCapillaries();
 		threadBuildKymo.options = initBuildParameters(exp);
-		exp.getCapillaries().clearAllMeasures(threadBuildKymo.options.kymoFirst, threadBuildKymo.options.kymoLast);
-
 		threadBuildKymo.addPropertyChangeListener(this);
 		threadBuildKymo.execute();
 		startComputationButton.setText("STOP");

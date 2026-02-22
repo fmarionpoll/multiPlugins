@@ -19,17 +19,13 @@ import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class LevelDetector {
 
 	private static final int TOP_SEARCH_OFFSET_PIXELS = 5;
-	/** Set true to print column 0 of transformed kymograph for comparison with direct profile. */
-	public static final boolean DEBUG_PRINT_KYMO_COLUMN0 = false;
-	/** Kymograph index (tKymo) to print when DEBUG_PRINT_KYMO_COLUMN0 is true (e.g. 2 = third capillary). */
-	public static final int DEBUG_KYMO_INDEX = 2;
 
 	public void detectLevels(Experiment exp, BuildSeriesOptions options) {
 		final SequenceKymos seqKymos = exp.getSeqKymos();
@@ -71,8 +67,6 @@ public class LevelDetector {
 			capi.getGulps().clear();
 			capi.getProperties().getLimitsOptions().copyFrom(options);
 			final IcyBufferedImage rawImage = loader.imageIORead(fullPath);
-			final int tKymoFinal = tKymo;
-			final boolean debugPrintKymo = DEBUG_PRINT_KYMO_COLUMN0 && (tKymoFinal == DEBUG_KYMO_INDEX);
 
 			futures.add(processor.submit(new Runnable() {
 				@Override
@@ -82,7 +76,7 @@ public class LevelDetector {
 
 					if (options.pass1)
 						detectPass1(rawImage, transformPass1, capi, imageWidth, imageHeight, searchRect, jitter,
-								options, debugPrintKymo);
+								options);
 
 					if (options.pass2)
 						detectPass2(rawImage, transformPass2, capi, imageWidth, imageHeight, searchRect, jitter,
@@ -141,7 +135,8 @@ public class LevelDetector {
 		processor.shutdown();
 	}
 
-	private void ensureFullWidthPolylineForPartialUpdate(CapillaryMeasure measure, int imageWidth, int columnLastInclusive) {
+	private void ensureFullWidthPolylineForPartialUpdate(CapillaryMeasure measure, int imageWidth,
+			int columnLastInclusive) {
 		if (measure == null || imageWidth <= 0)
 			return;
 		if (measure.polylineLevel == null || measure.polylineLevel.npoints <= columnLastInclusive)
@@ -149,28 +144,13 @@ public class LevelDetector {
 	}
 
 	private void detectPass1(IcyBufferedImage rawImage, ImageTransformInterface transformPass1, Capillary capi,
-			int imageWidth, int imageHeight, Rectangle searchRect, int jitter, BuildSeriesOptions options,
-			boolean debugPrintColumn0) {
+			int imageWidth, int imageHeight, Rectangle searchRect, int jitter, BuildSeriesOptions options) {
 		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformedImage1 = transformPass1.getTransformedImage(rawImage, transformOptions);
 		Object transformedArray1 = transformedImage1.getDataXY(0);
 		int[] transformed1DArray1 = Array1DUtil.arrayToIntArray(transformedArray1,
 				transformedImage1.isSignedDataType());
-		if (debugPrintColumn0 && transformed1DArray1 != null && imageWidth > 0) {
-			int min = transformed1DArray1[0], max = transformed1DArray1[0];
-			for (int iy = 0; iy < imageHeight; iy++) {
-				int v = transformed1DArray1[0 + iy * imageWidth];
-				if (v < min) min = v;
-				if (v > max) max = v;
-			}
-			String name = capi.getLast2ofCapillaryName() != null ? capi.getLast2ofCapillaryName() : capi.getKymographName();
-			System.out.println("[LevelDetector kymo] capillary index " + DEBUG_KYMO_INDEX + ", column 0 (first time), transform="
-					+ options.transform01 + " | height=" + imageHeight + " min=" + min + " max=" + max + " (cap=" + name + ")");
-			StringBuilder sb = new StringBuilder("  all values column 0: ");
-			for (int iy = 0; iy < imageHeight; iy++)
-				sb.append(transformed1DArray1[0 + iy * imageWidth]).append(iy < imageHeight - 1 ? ", " : "");
-			System.out.println(sb);
-		}
+
 		int topSearchFrom = Math.min(searchRect.y + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
 		int columnFirst = (int) searchRect.getX();
 		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
@@ -351,8 +331,10 @@ public class LevelDetector {
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			int i = cap.getKymographIndex();
 			if (i < 0) {
-				// Derive kymograph name from current ROI name (not from potentially stale metadata)
-				// This handles cases where capillaries have been deleted after kymograph generation
+				// Derive kymograph name from current ROI name (not from potentially stale
+				// metadata)
+				// This handles cases where capillaries have been deleted after kymograph
+				// generation
 				String roiName = cap.getRoiName();
 				if (roiName != null) {
 					String kymographName = Capillary.replace_LR_with_12(roiName);
@@ -363,8 +345,8 @@ public class LevelDetector {
 						if (cap.getKymographFileName() == null || cap.getKymographFileName().isEmpty()) {
 							cap.setKymographFileName(kymographName + ".tiff");
 						}
-						System.out.println(
-								"buildCapillaries - ROI=" + roiName + " index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
+						System.out.println("buildCapillaries - ROI=" + roiName + " index=" + cap.getKymographIndex()
+								+ " name=" + cap.getKymographFileName());
 					} else {
 						System.out.println(
 								"buildCapillaries - ROI=" + roiName + " kymograph not found for name=" + kymographName);

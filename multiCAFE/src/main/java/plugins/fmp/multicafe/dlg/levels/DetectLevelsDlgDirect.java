@@ -3,7 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -34,12 +33,10 @@ import plugins.fmp.multitools.series.DetectLevels;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
-import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -6329863521455897561L;
 
-	private JCheckBox pass1CheckBox = new JCheckBox("pass1", true);
 	private JComboBox<String> direction1ComboBox = new JComboBox<String>(
 			new String[] { " threshold >", " threshold <" });
 	private JSpinner threshold1Spinner = new JSpinner(new SpinnerNumberModel(35, 1, 255, 1));
@@ -57,19 +54,15 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
-	private JCheckBox fromRectangleCheckBox = new JCheckBox(" detection from ROI rectangle", false);
 	private JCheckBox profilePerpendicularCheckBox = new JCheckBox("profile perpendicular to capillary", true);
 
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox leftCheckBox = new JCheckBox("L", true);
 	private JCheckBox rightCheckBox = new JCheckBox("R", true);
-	private JCheckBox runBackwardsCheckBox = new JCheckBox("run backwards", false);
 
 	private MultiCAFE parent0 = null;
 	private DetectLevels threadDetectLevels = null;
 
-	private String SEARCHRECT = new String("search_rectangle");
-	private ROI2DRectangle searchRectangleROI2D = null;
 	private OverlayThreshold overlayThreshold = null;
 	private int currentKymographImage = 0;
 
@@ -91,7 +84,6 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
-		panel01.add(pass1CheckBox);
 		panel01.add(direction1ComboBox);
 		((JLabel) direction1ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 		panel01.add(threshold1Spinner);
@@ -102,9 +94,8 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 
 		JPanel panel03 = new JPanel(layoutLeft);
 
-		panel03.add(fromRectangleCheckBox);
 		panel03.add(profilePerpendicularCheckBox);
-		panel03.add(runBackwardsCheckBox);
+
 		add(panel03);
 
 		defineActionListeners();
@@ -200,19 +191,6 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 			}
 		});
 
-		fromRectangleCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				if (fromRectangleCheckBox.isSelected())
-					displaySearchArea(exp);
-				else if (searchRectangleROI2D != null)
-					exp.getSeqCamData().getSequence().removeROI(searchRectangleROI2D);
-			}
-		});
-
 		direction1ComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -224,7 +202,6 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 	void setDialogFromOptions(Capillary cap) {
 		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
 
-		pass1CheckBox.setSelected(options.pass1);
 		transformPass1ComboBox.setSelectedItem(options.transform01);
 		int index = options.directionUp1 ? 0 : 1;
 		direction1ComboBox.setSelectedIndex(index);
@@ -233,14 +210,12 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 		leftCheckBox.setSelected(options.detectL);
 		rightCheckBox.setSelected(options.detectR);
 		profilePerpendicularCheckBox.setSelected(options.profilePerpendicular);
-
-		fromRectangleCheckBox.setSelected(false);
 	}
 
 	void setOptionsFromDialog(Capillary cap) {
 		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
-		options.pass1 = pass1CheckBox.isSelected();
-		options.pass2 = false; // pass2CheckBox.isSelected();
+		options.pass1 = true;
+		options.pass2 = false;
 		options.transform01 = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
 		options.directionUp1 = (direction1ComboBox.getSelectedIndex() == 0);
 		options.detectLevel1Threshold = (int) threshold1Spinner.getValue();
@@ -271,21 +246,16 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 		currentKymographImage = 0;
 
 		// other parameters
-		options.pass1 = pass1CheckBox.isSelected();
 		options.transform01 = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
 		options.directionUp1 = (direction1ComboBox.getSelectedIndex() == 0);
 		options.detectLevel1Threshold = (int) threshold1Spinner.getValue();
-
-		options.analyzePartOnly = fromRectangleCheckBox.isSelected();
-		options.searchArea = getSearchAreaFromSearchRectangle(exp,
-				fromRectangleCheckBox.isSelected() && searchRectangleROI2D != null);
 
 		options.spanDiffTop = (int) spanTopSpinner.getValue();
 		options.detectL = leftCheckBox.isSelected();
 		options.detectR = rightCheckBox.isSelected();
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = parent0.expListComboLazy.expListBinSubDirectory;
-		options.runBackwards = runBackwardsCheckBox.isSelected();
+		options.runBackwards = false;
 		options.profilePerpendicular = profilePerpendicularCheckBox.isSelected();
 		options.sourceCamDirect = true;
 		return options;
@@ -297,7 +267,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 
 			threadDetectLevels = new DetectLevels();
 			threadDetectLevels.options = initBuildParameters(exp);
-			if (!threadDetectLevels.options.sourceCamDirect && !fromRectangleCheckBox.isSelected()) {
+			if (!threadDetectLevels.options.sourceCamDirect) {
 				exp.getCapillaries().clearAllMeasures(threadDetectLevels.options.kymoFirst,
 						threadDetectLevels.options.kymoLast, threadDetectLevels.options.detectL,
 						threadDetectLevels.options.detectR);
@@ -320,46 +290,7 @@ public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListe
 			System.out.println("thread_ended");
 			parent0.paneKymos.tabDisplay.selectKymographImage(currentKymographImage);
 			parent0.paneKymos.tabDisplay.indexImagesCombo = -1;
-			fromRectangleCheckBox.setSelected(false);
 		}
-	}
-
-	private void displaySearchArea(Experiment exp) {
-		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
-			return;
-
-		Sequence seq = exp.getSeqCamData().getSequence();
-		if (searchRectangleROI2D == null) {
-			Rectangle searchRectangle = seq.getBounds2D();
-			searchRectangle.width -= 1;
-			searchRectangle.height -= 1;
-			searchRectangleROI2D = new ROI2DRectangle(searchRectangle);
-			searchRectangleROI2D.setName(SEARCHRECT);
-			searchRectangleROI2D.setColor(Color.ORANGE);
-		}
-		searchRectangleROI2D.setT(-1);
-		seq.addROI(searchRectangleROI2D);
-		seq.setSelectedROI(searchRectangleROI2D);
-		seq.roiChanged(searchRectangleROI2D);
-	}
-
-	private Rectangle getSearchAreaFromSearchRectangle(Experiment exp, boolean fitSmallerRectangle) {
-		Rectangle seqBounds = exp.getSeqCamData().getSequence().getBounds2D();
-		int seqW = Math.max(0, seqBounds.width - 1);
-		int seqH = Math.max(0, seqBounds.height - 1);
-		if (fitSmallerRectangle && searchRectangleROI2D != null) {
-			Rectangle r = searchRectangleROI2D.getBounds();
-			int x = Math.max(0, r.x);
-			int y = Math.max(0, r.y);
-			int w = r.width;
-			int h = r.height;
-			if (x + w > seqW)
-				w = seqW - x;
-			if (y + h > seqH)
-				h = seqH - y;
-			return new Rectangle(x, y, Math.max(0, w), Math.max(0, h));
-		}
-		return new Rectangle(0, 0, seqW, seqH);
 	}
 
 	protected Canvas2DWithTransforms getCamDataCanvas(Experiment exp) {

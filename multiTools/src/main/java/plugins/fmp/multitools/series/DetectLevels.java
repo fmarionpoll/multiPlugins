@@ -15,6 +15,7 @@ public class DetectLevels extends BuildSeries {
 			exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getCamImageFirst_ms());
 			getTimeLimitsOfSequence(exp);
 			new LevelDetectorFromCam().detectLevels(exp, options);
+
 		} else if (loadExperimentDataToDetectLevels(exp)) {
 			exp.getSeqKymos().displayViewerAtRectangle(options.parent0Rect);
 			new LevelDetector().detectLevels(exp, options);
