@@ -29,7 +29,7 @@ import plugins.fmp.multitools.series.options.GulpThresholdMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
-public class DetectGulpsDlg extends JPanel implements PropertyChangeListener {
+public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeListener {
 	/**
 	 * 
 	 */

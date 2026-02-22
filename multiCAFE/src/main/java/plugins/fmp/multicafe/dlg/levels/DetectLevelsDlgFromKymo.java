@@ -36,7 +36,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
-public class DetectLevelsDlg extends JPanel implements PropertyChangeListener {
+public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -6329863521455897561L;
 
 	private JCheckBox pass1CheckBox = new JCheckBox("pass1", true);

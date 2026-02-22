@@ -34,7 +34,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class DetectLevelsDlgDirect extends JPanel implements PropertyChangeListener {
+public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -6329863521455897561L;
 
 	private JComboBox<String> direction1ComboBox = new JComboBox<String>(

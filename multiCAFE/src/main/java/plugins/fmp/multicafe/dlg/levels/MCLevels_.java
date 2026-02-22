@@ -22,12 +22,12 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	PopupPanel capPopupPanel = null;
 	private JTabbedPane tabsPane = new JTabbedPane();
 	public LoadSaveLevels tabFileLevels = new LoadSaveLevels();
-	DetectLevelsDlg tabDetectLevels = new DetectLevelsDlg();
-	DetectLevelsDlgDirect tabDetectLevelsDirect = new DetectLevelsDlgDirect();
+	DetectLevelsDlgFromKymo tabDetectLevels = new DetectLevelsDlgFromKymo();
+	DetectLevelsDlgFromCam tabDetectLevelsDirect = new DetectLevelsDlgFromCam();
 //	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
 
 	// DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
-	DetectGulpsDlg tabDetectGulps = new DetectGulpsDlg();
+	DetectGulpsDlgFromKymo tabDetectGulps = new DetectGulpsDlgFromKymo();
 	EditLevels tabEdit = new EditLevels();
 	Adjust tabAdjust = new Adjust();
 	public Chart tabGraphs = new Chart();

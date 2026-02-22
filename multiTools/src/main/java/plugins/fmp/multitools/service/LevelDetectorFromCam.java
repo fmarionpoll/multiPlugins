@@ -51,7 +51,21 @@ public class LevelDetectorFromCam {
 		if (nCamFrames <= 0)
 			return;
 
-		List<Capillary> toProcess = buildCapillariesToProcess(capillaries, options);
+		List<Capillary> built = buildCapillariesToProcess(capillaries, options);
+		if (options.detectSelectedKymo) {
+			int selectedKymoIdx = capillaries.getSelectedCapillary();
+			if (selectedKymoIdx >= 0) {
+				List<Capillary> filtered = new ArrayList<>();
+				for (Capillary cap : built) {
+					if (cap.getKymographIndex() == selectedKymoIdx) {
+						filtered.add(cap);
+						break;
+					}
+				}
+				built = filtered;
+			}
+		}
+		final List<Capillary> toProcess = built;
 		if (toProcess.isEmpty())
 			return;
 

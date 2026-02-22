@@ -39,6 +39,9 @@ public class LevelDetectorFromKymo {
 		int tLastKymo = options.kymoLast;
 		if (tLastKymo >= seqKymos.getSequence().getSizeT())
 			tLastKymo = seqKymos.getSequence().getSizeT() - 1;
+		if (options.detectSelectedKymo) {
+			tLastKymo = tFirsKymo;
+		}
 
 		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("detectlevel");
