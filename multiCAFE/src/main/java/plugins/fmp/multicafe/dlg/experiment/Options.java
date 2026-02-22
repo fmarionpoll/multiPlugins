@@ -28,8 +28,7 @@ public class Options extends JPanel {
 
 	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries", true);
 	public JCheckBox viewCellsCheckbox = new JCheckBox("cages", true);
-	JCheckBox viewFlyCheckbox = new JCheckBox("flies center", false);
-	JCheckBox viewFlyRectCheckbox = new JCheckBox("flies rect", false);
+	JCheckBox viewFlyCheckbox = new JCheckBox("flies", false);
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
@@ -39,7 +38,6 @@ public class Options extends JPanel {
 		viewCapillariesCheckBox.setSelected(parent0.viewOptions.isViewCapillaries());
 		viewCellsCheckbox.setSelected(parent0.viewOptions.isViewCages());
 		viewFlyCheckbox.setSelected(parent0.viewOptions.isViewFliesCenter());
-		viewFlyRectCheckbox.setSelected(parent0.viewOptions.isViewFliesRect());
 
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(1);
@@ -58,7 +56,6 @@ public class Options extends JPanel {
 		panel1.add(viewCapillariesCheckBox);
 		panel1.add(viewCellsCheckbox);
 		panel1.add(viewFlyCheckbox);
-		panel1.add(viewFlyRectCheckbox);
 		add(panel1);
 
 		defineActionListeners();
@@ -96,19 +93,10 @@ public class Options extends JPanel {
 				boolean sel = viewFlyCheckbox.isSelected();
 				parent0.viewOptions.setViewFliesCenter(sel);
 				saveViewOptions();
-				displayROIsCategory(sel || viewFlyRectCheckbox.isSelected(), "det");
+				displayROIsCategory(sel, "det");
 			}
 		});
 
-		viewFlyRectCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewFlyRectCheckbox.isSelected();
-				parent0.viewOptions.setViewFliesRect(sel);
-				saveViewOptions();
-				displayROIsCategory(sel || viewFlyCheckbox.isSelected(), "det");
-			}
-		});
 	}
 
 	public void displayROIsCategory(boolean isVisible, String pattern) {

@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.capillary;
 
 import java.awt.Rectangle;
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -17,6 +18,7 @@ import icy.util.XMLUtil;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DArea;
+import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class CapillaryGulps {
@@ -109,6 +111,21 @@ public class CapillaryGulps {
 		}
 		Polyline2D gulpLine = new Polyline2D(xpoints, ypoints, npoints);
 		gulps.add(gulpLine);
+	}
+
+	/**
+	 * Adds one gulp from a vertical segment at xPixel with given y bounds.
+	 * Ensures gulpAmplitude size, appends to legacy gulps, and sets amplitude (overwrite at xPixel).
+	 */
+	public void addGulpFromVerticalSegment(int xPixel, double yBottom, double yTop, int npoints) {
+		if (npoints <= 0 || xPixel < 0 || xPixel >= npoints)
+			return;
+		ensureSize(npoints);
+		double amplitude = Math.abs(yTop - yBottom);
+		double[] xpoints = new double[] { xPixel, xPixel };
+		double[] ypoints = new double[] { yBottom, yTop };
+		gulps.add(new Polyline2D(xpoints, ypoints, 2));
+		gulpAmplitude.ypoints[xPixel] = amplitude;
 	}
 
 	boolean isThereAnyMeasuresDone() {
@@ -334,22 +351,25 @@ public class CapillaryGulps {
 		// Clear existing gulp data
 		gulps = new ArrayList<Polyline2D>(rois.size());
 
-		// Determine the expected size for the amplitude series
 		int maxX = 0;
 		for (ROI2D roi : rois) {
-			Rectangle rect = roi.getBounds();
-			if (!rect.isEmpty()) {
-				int endX = rect.x + rect.width;
-				if (endX > maxX) {
-					maxX = endX;
+			if (roi instanceof ROI2DLine) {
+				Line2D line = ((ROI2DLine) roi).getLine();
+				int xPixel = (int) Math.round((line.getX1() + line.getX2()) / 2);
+				if (xPixel + 1 > maxX)
+					maxX = xPixel + 1;
+			} else {
+				Rectangle rect = roi.getBounds();
+				if (!rect.isEmpty()) {
+					int endX = rect.x + rect.width;
+					if (endX > maxX)
+						maxX = endX;
 				}
 			}
 		}
 
-		// Initialize amplitude series if we found any ROIs
-		if (maxX > 0) {
+		if (maxX > 0)
 			ensureSize(maxX);
-		}
 
 		for (ROI2D roi : rois) {
 			if (roi instanceof ROI2DPolyLine) {
@@ -404,6 +424,18 @@ public class CapillaryGulps {
 						}
 					}
 				}
+			} else if (roi instanceof ROI2DLine) {
+				// Same conversion as EditLevels.addGulpFromLine: middle x, y range, amplitude
+				Line2D line = ((ROI2DLine) roi).getLine();
+				double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
+				int xPixel = (int) Math.round((x1 + x2) / 2);
+				double yBottom = Math.min(y1, y2);
+				double yTop = Math.max(y1, y2);
+				double amplitude = Math.abs(yTop - yBottom);
+				if (amplitude > 0 && gulpAmplitude != null && gulpAmplitude.npoints > 0 && xPixel >= 0 && xPixel < gulpAmplitude.npoints) {
+					gulps.add(new Polyline2D(new double[] { xPixel, xPixel }, new double[] { yBottom, yTop }, 2));
+					gulpAmplitude.ypoints[xPixel] = amplitude;
+				}
 			}
 		}
 	}
@@ -413,11 +445,14 @@ public class CapillaryGulps {
 		for (ROI roi : listRois) {
 			String roiname = roi.getName();
 			if (roi instanceof ROI2DPolyLine) {
-				if (roiname.contains("gulp"))
+				if (roiname != null && roiname.contains("gulp"))
 					rois.add((ROI2DPolyLine) roi);
 			} else if (roi instanceof ROI2DArea) {
-				if (roiname.contains("gulp"))
+				if (roiname != null && roiname.contains("gulp"))
 					rois.add((ROI2DArea) roi);
+			} else if (roi instanceof ROI2DLine) {
+				if (roiname != null && roiname.contains("gulp"))
+					rois.add((ROI2DLine) roi);
 			}
 		}
 		buildGulpsFromROIs(rois);

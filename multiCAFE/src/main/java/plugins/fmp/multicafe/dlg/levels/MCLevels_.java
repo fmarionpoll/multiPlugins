@@ -47,8 +47,13 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectLevels.addPropertyChangeListener(this);
 		tabsPane.addTab("Levels", null, tabDetectLevels, "Find limits of the columns of liquid using kymographs");
 
+		tabDetectLevelsDirect.init(capLayout, parent0);
+		tabDetectLevelsDirect.addPropertyChangeListener(this);
+		tabsPane.addTab("-- Levels (direct)", null, tabDetectLevelsDirect,
+				"Find limits of the columns of liquid directly from images");
+
 		tabDetectGulps.init(capLayout, parent0);
-		tabsPane.addTab("Gulps", null, tabDetectGulps, "Detect gulps");
+		tabsPane.addTab("Gulps", null, tabDetectGulps, "Detect gulps from kymographs");
 		tabDetectGulps.addPropertyChangeListener(this);
 
 		tabEdit.init(capLayout, parent0);
@@ -61,12 +66,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 		tabFileLevels.init(capLayout, parent0);
 		tabFileLevels.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, tabFileLevels, "Load/Save kymographs");
-
-		tabDetectLevelsDirect.init(capLayout, parent0);
-		tabDetectLevelsDirect.addPropertyChangeListener(this);
-		tabsPane.addTab("-- Levels (direct)", null, tabDetectLevelsDirect,
-				"Find limits of the columns of liquid directly from images");
+		tabsPane.addTab("Load/Save", null, tabFileLevels, "Load/Save capillary measures");
 
 //		tabDetectLevelsKMeans.init(capLayout, parent0);
 //		tabDetectLevelsKMeans.addPropertyChangeListener(this);

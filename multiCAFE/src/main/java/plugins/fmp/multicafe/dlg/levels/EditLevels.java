@@ -1,9 +1,12 @@
 package plugins.fmp.multicafe.dlg.levels;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,6 +14,7 @@ import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
@@ -22,9 +26,12 @@ import icy.type.geom.Polyline2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.tools.polyline.Level2D;
+import plugins.kernel.roi.roi2d.ROI2DLine;
+import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class EditLevels extends JPanel {
 	/**
@@ -37,6 +44,8 @@ public class EditLevels extends JPanel {
 	private JComboBox<String> roiTypeCombo = new JComboBox<String>(
 			new String[] { " top level", "bottom level", "top & bottom levels", "derivative", "gulps" });
 	private JButton cutAndInterpolateButton = new JButton("Cut & interpolate");
+	private JButton addGulpButton = new JButton("Add");
+	private JButton updateGulpButton = new JButton("Update");
 	private JButton cropButton = new JButton("Crop from left");
 	private JButton restoreButton = new JButton("Restore");
 
@@ -50,7 +59,15 @@ public class EditLevels extends JPanel {
 		panel1.add(roiTypeCombo, BorderLayout.CENTER);
 
 		add(GuiUtil.besidesPanel(new JLabel(" "), panel1));
-		add(GuiUtil.besidesPanel(new JLabel(" "), cutAndInterpolateButton));
+		JPanel panelCutAdd = new JPanel();
+		panelCutAdd.add(cutAndInterpolateButton);
+		panelCutAdd.add(addGulpButton);
+		panelCutAdd.add(updateGulpButton);
+		add(GuiUtil.besidesPanel(new JLabel(" "), panelCutAdd));
+
+		addGulpButton.setVisible(false);
+		updateGulpButton.setVisible(false);
+		updateGulpButtonsVisibility();
 
 		JPanel panel2 = new JPanel();
 		panel2.setLayout(new BorderLayout());
@@ -61,13 +78,45 @@ public class EditLevels extends JPanel {
 		defineListeners();
 	}
 
+	private void updateGulpButtonsVisibility() {
+		String option = (String) roiTypeCombo.getSelectedItem();
+		boolean gulpsSelected = option != null && option.contains("gulp");
+		addGulpButton.setVisible(gulpsSelected);
+		updateGulpButton.setVisible(gulpsSelected);
+	}
+
 	private void defineListeners() {
+		roiTypeCombo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateGulpButtonsVisibility();
+			}
+		});
+
 		cutAndInterpolateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					cutAndInterpolate(exp);
+			}
+		});
+
+		addGulpButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					addGulpFromLine(exp);
+			}
+		});
+
+		updateGulpButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					updateGulpROIsFromMeasures(exp);
 			}
 		});
 
@@ -157,6 +206,100 @@ public class EditLevels extends JPanel {
 			return;
 		for (ROI roi : listGulpsSelected)
 			seq.removeROI(roi);
+	}
+
+	void addGulpFromLine(Experiment exp) {
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		Capillary cap = exp.getCapillaries().getList().size() > t ? exp.getCapillaries().getList().get(t) : null;
+		if (cap == null) {
+			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
+			return;
+		}
+		seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(t, cap);
+
+		ROI2D roi = seqKymos.getSequence().getSelectedROI2D();
+		if (roi == null) {
+			JOptionPane.showMessageDialog(this, "Select a line ROI on the kymograph.");
+			return;
+		}
+		if (!(roi instanceof ROI2DLine)) {
+			JOptionPane.showMessageDialog(this, "Select a line ROI (not a polygon or other shape).");
+			return;
+		}
+
+		Line2D line = ((ROI2DLine) roi).getLine();
+		double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
+		int xPixel = (int) Math.round((x1 + x2) / 2);
+		double yBottom = Math.min(y1, y2);
+		double yTop = Math.max(y1, y2);
+		double amplitude = yTop - yBottom;
+		if (amplitude <= 0) {
+			JOptionPane.showMessageDialog(this, "Line has no vertical extent (draw a vertical or diagonal line).");
+			return;
+		}
+
+		int npoints = cap.getTopLevel() != null ? cap.getTopLevel().getNPoints() : 0;
+		if (npoints <= 0) {
+			JOptionPane.showMessageDialog(this, "No level data for this capillary.");
+			return;
+		}
+		if (xPixel < 0 || xPixel >= npoints) {
+			JOptionPane.showMessageDialog(this, "Line position is outside capillary range (0-" + (npoints - 1) + ").");
+			return;
+		}
+
+		CapillaryGulps gulps = cap.getGulps();
+		if (gulps == null)
+			return;
+		gulps.addGulpFromVerticalSegment(xPixel, yBottom, yTop, npoints);
+
+		String prefix = cap.getKymographPrefix();
+		if (prefix == null)
+			prefix = "";
+		List<Point2D> points = new ArrayList<>(2);
+		points.add(new Point2D.Double(xPixel, yBottom));
+		points.add(new Point2D.Double(xPixel, yTop));
+		ROI2DPolyLine gulpRoi = new ROI2DPolyLine(points);
+		gulpRoi.setName(prefix + "_gulp" + String.format("%07d", xPixel));
+		gulpRoi.setColor(Color.red);
+		gulpRoi.setT(t);
+		seqKymos.getSequence().addROI(gulpRoi);
+		seqKymos.getSequence().roiChanged(gulpRoi);
+	}
+
+	void updateGulpROIsFromMeasures(Experiment exp) {
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		Capillary cap = exp.getCapillaries().getList().size() > t ? exp.getCapillaries().getList().get(t) : null;
+		if (cap == null) {
+			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
+			return;
+		}
+		Sequence seq = seqKymos.getSequence();
+		List<ROI2D> allRois = seq.getROI2Ds();
+		List<ROI2D> toRemove = new ArrayList<>();
+		for (ROI2D r : allRois) {
+			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
+				toRemove.add(r);
+		}
+		for (ROI2D r : toRemove)
+			seq.removeROI(r);
+		List<ROI2D> fromCap = cap.transferMeasuresToROIs(seqKymos.getImagesList());
+		if (fromCap == null)
+			return;
+		List<ROI2D> gulpRois = new ArrayList<>();
+		for (ROI2D r : fromCap) {
+			if (r.getName() != null && r.getName().contains("gulp")) {
+				r.setT(t);
+				gulpRois.add(r);
+			}
+		}
+		if (!gulpRois.isEmpty()) {
+			seq.addROIs(gulpRois, false);
+			for (ROI2D r : gulpRois)
+				seq.roiChanged(r);
+		}
 	}
 
 	void cutAndInterpolate(Experiment exp) {
