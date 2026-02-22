@@ -42,8 +42,8 @@ public class EditLevels extends JPanel {
 	private JComboBox<String> roiTypeCombo = new JComboBox<String>(
 			new String[] { " top level", "bottom level", "top & bottom levels", "derivative", "gulps" });
 	private JButton cutAndInterpolateButton = new JButton("Cut & interpolate");
-	private JButton addGulpButton = new JButton("Add");
-	private JButton updateGulpButton = new JButton("Update");
+	private JButton addGulpButton = new JButton("Add gulp");
+	private JButton validateGulpsButton = new JButton("Validate changes");
 	private JButton cropButton = new JButton("Crop from left");
 	private JButton restoreButton = new JButton("Restore");
 
@@ -61,11 +61,11 @@ public class EditLevels extends JPanel {
 		JPanel panelCutAdd = new JPanel(layoutLeft);
 		panelCutAdd.add(cutAndInterpolateButton);
 		panelCutAdd.add(addGulpButton);
-		panelCutAdd.add(updateGulpButton);
+		panelCutAdd.add(validateGulpsButton);
 		add(panelCutAdd);
 
 		addGulpButton.setVisible(false);
-		updateGulpButton.setVisible(false);
+		validateGulpsButton.setVisible(false);
 		updateGulpButtonsVisibility();
 
 		JPanel panel2 = new JPanel(layoutLeft);
@@ -80,7 +80,7 @@ public class EditLevels extends JPanel {
 		String option = (String) roiTypeCombo.getSelectedItem();
 		boolean gulpsSelected = option != null && option.contains("gulp");
 		addGulpButton.setVisible(gulpsSelected);
-		updateGulpButton.setVisible(gulpsSelected);
+		validateGulpsButton.setVisible(gulpsSelected);
 	}
 
 	private void defineListeners() {
@@ -105,16 +105,16 @@ public class EditLevels extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
-					addGulpFromLine(exp);
+					addGulp(exp);
 			}
 		});
 
-		updateGulpButton.addActionListener(new ActionListener() {
+		validateGulpsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
-					updateGulpROIsFromMeasures(exp);
+					updateGulps(exp);
 			}
 		});
 
@@ -206,7 +206,7 @@ public class EditLevels extends JPanel {
 			seq.removeROI(roi);
 	}
 
-	void addGulpFromLine(Experiment exp) {
+	void addGulp(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
 		Capillary cap = exp.getCapillaries().getList().size() > t ? exp.getCapillaries().getList().get(t) : null;
@@ -266,7 +266,7 @@ public class EditLevels extends JPanel {
 		seqKymos.getSequence().roiChanged(gulpRoi);
 	}
 
-	void updateGulpROIsFromMeasures(Experiment exp) {
+	void updateGulps(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
 		Capillary cap = exp.getCapillaries().getList().size() > t ? exp.getCapillaries().getList().get(t) : null;

@@ -187,12 +187,16 @@ public class SequenceKymos extends SequenceCamData {
 				}
 
 				try {
-					if (roi.getName() != null && (roi.getName().contains("level") || roi.getName().contains("gulp"))) {
+					if (roi.getName() != null && roi.getName().contains("level")) {
 						ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, sequenceWidth);
 						processed++;
 						continue;
-					} else if (roi.getName() != null && roi.getName().contains("derivative")) {
-						// Skip derivative ROIs
+					}
+					if (roi.getName() != null && roi.getName().contains("derivative")) {
+						continue;
+					}
+					if (roi.getName() != null && roi.getName().contains("gulp")) {
+						// Gulps are vertical segments; do not interpolate along X
 						continue;
 					}
 					// if gulp not found - add an index to it
@@ -244,7 +248,7 @@ public class SequenceKymos extends SequenceCamData {
 				continue;
 			}
 			if (roi.getName().contains("gulp")) {
-				ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, width);
+				// Gulps are vertical segments (same x); do not interpolate along X or amplitude is lost
 				continue;
 			}
 			// if gulp not found - add an index to it
