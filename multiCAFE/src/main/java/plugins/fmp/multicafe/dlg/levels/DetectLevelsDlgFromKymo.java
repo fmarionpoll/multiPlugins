@@ -89,19 +89,17 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	// -----------------------------------------------------
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
-
+		setLayout(capLayout);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
-		JPanel panel0 = new JPanel(layoutLeft);
-		panel0.add(detectButton);
-		panel0.add(allSeriesCheckBox);
-		panel0.add(selectedKymoCheckBox);
-		panel0.add(leftCheckBox);
-		panel0.add(rightCheckBox);
-		add(panel0);
+		JPanel panel00 = new JPanel(layoutLeft);
+		panel00.add(detectButton);
+		panel00.add(allSeriesCheckBox);
+		panel00.add(selectedKymoCheckBox);
+		panel00.add(leftCheckBox);
+		panel00.add(rightCheckBox);
 
 		JPanel panel01 = new JPanel(layoutLeft);
 		panel01.add(pass1CheckBox);
@@ -111,7 +109,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel01.add(transformPass1ComboBox);
 		panel01.add(transformPass1DisplayButton);
 		panel01.add(overlayPass1CheckBox);
-		add(panel01);
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(pass2CheckBox);
@@ -121,13 +118,16 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel02.add(transformPass2ComboBox);
 		panel02.add(transformPass2DisplayButton);
 		panel02.add(overlayPass2CheckBox);
-		add(panel02);
 
 		JPanel panel03 = new JPanel(layoutLeft);
 		panel03.add(new JLabel("pass2 vertical jitter"));
 		panel03.add(jitter2Spinner);
 		panel03.add(fromRectangleCheckBox);
 		panel03.add(runBackwardsCheckBox);
+
+		add(panel00);
+		add(panel01);
+		add(panel02);
 		add(panel03);
 
 		defineActionListeners();

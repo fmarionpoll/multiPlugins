@@ -1,7 +1,7 @@
 package plugins.fmp.multicafe.dlg.levels;
 
-import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -16,9 +16,7 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
-import javax.swing.SwingConstants;
 
-import icy.gui.util.GuiUtil;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
@@ -52,28 +50,28 @@ public class EditLevels extends JPanel {
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
+		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
+		layoutLeft.setVgap(0);
 
-		JPanel panel1 = new JPanel();
-		panel1.setLayout(new BorderLayout());
-		panel1.add(new JLabel("Apply to ", SwingConstants.LEFT), BorderLayout.WEST);
-		panel1.add(roiTypeCombo, BorderLayout.CENTER);
+		JPanel panel1 = new JPanel(layoutLeft);
+		panel1.add(new JLabel("Apply to "));
+		panel1.add(roiTypeCombo);
+		add(panel1);
 
-		add(GuiUtil.besidesPanel(new JLabel(" "), panel1));
-		JPanel panelCutAdd = new JPanel();
+		JPanel panelCutAdd = new JPanel(layoutLeft);
 		panelCutAdd.add(cutAndInterpolateButton);
 		panelCutAdd.add(addGulpButton);
 		panelCutAdd.add(updateGulpButton);
-		add(GuiUtil.besidesPanel(new JLabel(" "), panelCutAdd));
+		add(panelCutAdd);
 
 		addGulpButton.setVisible(false);
 		updateGulpButton.setVisible(false);
 		updateGulpButtonsVisibility();
 
-		JPanel panel2 = new JPanel();
-		panel2.setLayout(new BorderLayout());
-		panel2.add(cropButton, BorderLayout.CENTER);
-		panel2.add(restoreButton, BorderLayout.EAST);
-		add(GuiUtil.besidesPanel(new JLabel(" "), panel2));
+		JPanel panel2 = new JPanel(layoutLeft);
+		panel2.add(cropButton);
+		panel2.add(restoreButton);
+		add(panel2);
 
 		defineListeners();
 	}

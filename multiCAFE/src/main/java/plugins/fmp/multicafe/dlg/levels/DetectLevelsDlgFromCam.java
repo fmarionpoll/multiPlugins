@@ -71,9 +71,8 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	// -----------------------------------------------------
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
-
+		setLayout(capLayout);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
@@ -83,7 +82,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		panel0.add(selectedCapillaryCheckBox);
 		panel0.add(leftCheckBox);
 		panel0.add(rightCheckBox);
-		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
 		panel01.add(direction1ComboBox);
@@ -92,14 +90,16 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		panel01.add(transformPass1ComboBox);
 		panel01.add(transformPass1DisplayButton);
 		panel01.add(overlayPass1CheckBox);
-		add(panel01);
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(profilePerpendicularCheckBox);
-		add(panel02);
 
 		JPanel panel03 = new JPanel(layoutLeft);
 		panel03.add(transferButton);
+
+		add(panel0);
+		add(panel01);
+		add(panel02);
 		add(panel03);
 
 		defineActionListeners();

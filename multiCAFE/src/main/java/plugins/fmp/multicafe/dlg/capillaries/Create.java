@@ -60,6 +60,7 @@ public class Create extends JPanel {
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
+		this.parent0 = parent0;
 		setLayout(capLayout);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
@@ -94,7 +95,6 @@ public class Create extends JPanel {
 		add(panel2);
 
 		defineDlgItemsListeners();
-		this.parent0 = parent0;
 	}
 
 	private void defineDlgItemsListeners() {
