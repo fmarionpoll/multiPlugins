@@ -17,6 +17,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JToolBar;
 
@@ -574,8 +575,21 @@ public class Options extends JPanel implements ViewerListener {
 				savedBounds = v.getBounds();
 				icurrent = v.getPositionT();
 				if (icurrent != isel && icurrent >= 0) {
-					seqKymos.validateRoisAtT(icurrent);
 					Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
+					if (capOld != null && capOld.isGulpMeasuresDirty()) {
+						String[] options = new String[] { "Save", "Discard", "Cancel" };
+						int choice = JOptionPane.showOptionDialog(this,
+								"Unsaved gulp changes. Save, Discard, or Cancel?",
+								"Gulp changes", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
+								options, options[0]);
+						if (choice == 2 || choice == JOptionPane.CLOSED_OPTION)
+							return icurrent;
+						if (choice == 0)
+							seqKymos.validateGulpROIsAtT(exp, icurrent);
+						else
+							capOld.setGulpMeasuresDirty(false);
+					}
+					seqKymos.validateRoisAtT(icurrent);
 					if (capOld != null)
 						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
 				}

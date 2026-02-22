@@ -45,6 +45,8 @@ public class Capillary implements Comparable<Capillary> {
 	// === METADATA ===
 	private final CapillaryMetadata metadata;
 
+	private boolean gulpMeasuresDirty = false;
+
 	// === PUBLIC FIELDS (Deprecated/Moved logic) ===
 	// These are now delegated to properties but kept for backward compatibility
 	// (where not private)
@@ -113,6 +115,14 @@ public class Capillary implements Comparable<Capillary> {
 
 	public void setKymographBuild(boolean flag) {
 		kymographBuild = flag;
+	}
+
+	public boolean isGulpMeasuresDirty() {
+		return gulpMeasuresDirty;
+	}
+
+	public void setGulpMeasuresDirty(boolean dirty) {
+		this.gulpMeasuresDirty = dirty;
 	}
 
 	public IcyBufferedImage getCap_Image() {

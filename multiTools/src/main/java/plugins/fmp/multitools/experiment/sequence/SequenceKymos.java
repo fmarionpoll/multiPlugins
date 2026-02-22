@@ -330,6 +330,51 @@ public class SequenceKymos extends SequenceCamData {
 		return true;
 	}
 
+	/**
+	 * Rebuilds capillary gulps from current gulp ROIs at frame t, then refreshes
+	 * gulp ROIs on the sequence. Clears the capillary's gulpMeasuresDirty flag.
+	 * Call from EditLevels (Validate) or Options (Save unsaved changes).
+	 */
+	public void validateGulpROIsAtT(Experiment exp, int t) {
+		if (exp == null || getSequence() == null)
+			return;
+		Capillary cap = getCapillaryForFrame(t, exp.getCapillaries());
+		if (cap == null)
+			return;
+		List<ROI2D> allRois = getSequence().getROI2Ds();
+		ArrayList<ROI2D> gulpRois = new ArrayList<>();
+		for (ROI2D r : allRois) {
+			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
+				gulpRois.add(r);
+		}
+		cap.getGulps().buildGulpsFromROIs(gulpRois);
+
+		List<ROI2D> toRemove = new ArrayList<>();
+		for (ROI2D r : allRois) {
+			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
+				toRemove.add(r);
+		}
+		for (ROI2D r : toRemove)
+			getSequence().removeROI(r);
+
+		List<ROI2D> fromCap = cap.transferMeasuresToROIs(getImagesList());
+		if (fromCap != null) {
+			List<ROI2D> newGulps = new ArrayList<>();
+			for (ROI2D r : fromCap) {
+				if (r.getName() != null && r.getName().contains("gulp")) {
+					r.setT(t);
+					newGulps.add(r);
+				}
+			}
+			if (!newGulps.isEmpty()) {
+				getSequence().addROIs(newGulps, false);
+				for (ROI2D r : newGulps)
+					getSequence().roiChanged(r);
+			}
+		}
+		cap.setGulpMeasuresDirty(false);
+	}
+
 	public void transferCapillariesMeasuresToKymos(Capillaries capillaries) {
 		// Remove existing measure ROIs to prevent duplication
 		// Measure ROIs have names like "prefix_toplevel", "prefix_bottomlevel",

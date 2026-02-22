@@ -5,11 +5,11 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -19,17 +19,17 @@ import javax.swing.JPanel;
 
 import icy.roi.ROI;
 import icy.roi.ROI2D;
+import icy.roi.ROIEvent;
+import icy.roi.ROIListener;
 import icy.sequence.Sequence;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DLine;
-import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class EditLevels extends JPanel {
 	/**
@@ -38,14 +38,17 @@ public class EditLevels extends JPanel {
 	private static final long serialVersionUID = 2580935598417087197L;
 	private MultiCAFE parent0;
 	private boolean[] isInside = null;
-//	private ArrayList<ROI> 		listGulpsSelected = null;
 	private JComboBox<String> roiTypeCombo = new JComboBox<String>(
 			new String[] { " top level", "bottom level", "top & bottom levels", "derivative", "gulps" });
 	private JButton cutAndInterpolateButton = new JButton("Cut & interpolate");
 	private JButton addGulpButton = new JButton("Add gulp");
-	private JButton validateGulpsButton = new JButton("Validate changes");
+	private JButton validateGulpsButton = new JButton("Validate gulps");
 	private JButton cropButton = new JButton("Crop from left");
 	private JButton restoreButton = new JButton("Restore");
+
+	private int gulpAddedCounter = 0;
+	private int gulpAddedFrame = -1;
+	private final Map<ROI, ROIListener> gulpRoiListeners = new HashMap<>();
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -79,8 +82,65 @@ public class EditLevels extends JPanel {
 	private void updateGulpButtonsVisibility() {
 		String option = (String) roiTypeCombo.getSelectedItem();
 		boolean gulpsSelected = option != null && option.contains("gulp");
-		addGulpButton.setVisible(gulpsSelected);
-		validateGulpsButton.setVisible(gulpsSelected);
+		if (gulpsSelected) {
+			cutAndInterpolateButton.setText("Delete");
+			addGulpButton.setVisible(true);
+			validateGulpsButton.setVisible(true);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				attachGulpRoiListeners(exp);
+			refreshValidateButtonState();
+		} else {
+			removeGulpRoiListeners();
+			cutAndInterpolateButton.setText("Cut & interpolate");
+			addGulpButton.setVisible(false);
+			validateGulpsButton.setVisible(false);
+		}
+	}
+
+	private void refreshValidateButtonState() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null) {
+			validateGulpsButton.setEnabled(false);
+			return;
+		}
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		if (seqKymos == null || seqKymos.getSequence() == null) {
+			validateGulpsButton.setEnabled(false);
+			return;
+		}
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
+		validateGulpsButton.setEnabled(cap != null && cap.isGulpMeasuresDirty());
+	}
+
+	private void removeGulpRoiListeners() {
+		for (Map.Entry<ROI, ROIListener> e : gulpRoiListeners.entrySet()) {
+			e.getKey().removeListener(e.getValue());
+		}
+		gulpRoiListeners.clear();
+	}
+
+	private void attachGulpRoiListeners(Experiment exp) {
+		removeGulpRoiListeners();
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		if (seqKymos == null || seqKymos.getSequence() == null)
+			return;
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
+		if (cap == null)
+			return;
+		Capillary capRef = cap;
+		for (ROI2D r : seqKymos.getSequence().getROI2Ds()) {
+			if (r.getT() != t || r.getName() == null || !r.getName().contains("gulp"))
+				continue;
+			ROIListener listener = (ROIEvent evt) -> {
+				capRef.setGulpMeasuresDirty(true);
+				refreshValidateButtonState();
+			};
+			r.addListener(listener);
+			gulpRoiListeners.put(r, listener);
+		}
 	}
 
 	private void defineListeners() {
@@ -95,7 +155,12 @@ public class EditLevels extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
+				if (exp == null)
+					return;
+				String option = (String) roiTypeCombo.getSelectedItem();
+				if (option != null && option.contains("gulp"))
+					deleteGulpsInRegion(exp);
+				else
 					cutAndInterpolate(exp);
 			}
 		});
@@ -206,98 +271,93 @@ public class EditLevels extends JPanel {
 			seq.removeROI(roi);
 	}
 
-	void addGulp(Experiment exp) {
+	void deleteGulpsInRegion(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
-		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		Capillary cap = exp.getCapillaries().getList().size() > t ? exp.getCapillaries().getList().get(t) : null;
-		if (cap == null) {
-			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
+		if (seqKymos == null || seqKymos.getSequence() == null)
 			return;
-		}
-		seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(t, cap);
-
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
 		ROI2D roi = seqKymos.getSequence().getSelectedROI2D();
 		if (roi == null) {
-			JOptionPane.showMessageDialog(this, "Select a line ROI on the kymograph.");
+			JOptionPane.showMessageDialog(this, "Select a polygon ROI to define the region.");
 			return;
 		}
-		if (!(roi instanceof ROI2DLine)) {
-			JOptionPane.showMessageDialog(this, "Select a line ROI (not a polygon or other shape).");
+		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
+		if (cap == null)
 			return;
-		}
-
-		Line2D line = ((ROI2DLine) roi).getLine();
-		double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
-		int xPixel = (int) Math.round((x1 + x2) / 2);
-		double yBottom = Math.min(y1, y2);
-		double yTop = Math.max(y1, y2);
-		double amplitude = yTop - yBottom;
-		if (amplitude <= 0) {
-			JOptionPane.showMessageDialog(this, "Line has no vertical extent (draw a vertical or diagonal line).");
-			return;
-		}
-
-		int npoints = cap.getTopLevel() != null ? cap.getTopLevel().getNPoints() : 0;
-		if (npoints <= 0) {
-			JOptionPane.showMessageDialog(this, "No level data for this capillary.");
-			return;
-		}
-		if (xPixel < 0 || xPixel >= npoints) {
-			JOptionPane.showMessageDialog(this, "Line position is outside capillary range (0-" + (npoints - 1) + ").");
-			return;
-		}
-
-		CapillaryGulps gulps = cap.getGulps();
-		if (gulps == null)
-			return;
-		gulps.addGulpFromVerticalSegment(xPixel, yBottom, yTop, npoints);
-
-		String prefix = cap.getKymographPrefix();
-		if (prefix == null)
-			prefix = "";
-		List<Point2D> points = new ArrayList<>(2);
-		points.add(new Point2D.Double(xPixel, yBottom));
-		points.add(new Point2D.Double(xPixel, yTop));
-		ROI2DPolyLine gulpRoi = new ROI2DPolyLine(points);
-		gulpRoi.setName(prefix + "_gulp" + String.format("%07d", xPixel));
-		gulpRoi.setColor(Color.red);
-		gulpRoi.setT(t);
-		seqKymos.getSequence().addROI(gulpRoi);
-		seqKymos.getSequence().roiChanged(gulpRoi);
+		List<ROI> list = selectGulpsWithinRoi(roi, seqKymos.getSequence(), t);
+		deleteGulps(seqKymos, list);
+		cap.setGulpMeasuresDirty(true);
+		refreshValidateButtonState();
 	}
 
-	void updateGulps(Experiment exp) {
+	private boolean hasGulpAddedAt(Sequence seq, int t, double cx, double cy) {
+		List<ROI2D> rois = seq.getROI2Ds();
+		for (ROI2D r : rois) {
+			if (r.getT() != t || r.getName() == null || !r.getName().contains("_gulp_added_"))
+				continue;
+			if (r.contains(cx, cy))
+				return true;
+		}
+		return false;
+	}
+
+	void addGulp(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
+		if (seqKymos == null || seqKymos.getSequence() == null)
+			return;
 		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		Capillary cap = exp.getCapillaries().getList().size() > t ? exp.getCapillaries().getList().get(t) : null;
+		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 		if (cap == null) {
 			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
 			return;
 		}
 		Sequence seq = seqKymos.getSequence();
-		List<ROI2D> allRois = seq.getROI2Ds();
-		List<ROI2D> toRemove = new ArrayList<>();
-		for (ROI2D r : allRois) {
-			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
-				toRemove.add(r);
+		int width = seq.getWidth();
+		int height = seq.getHeight();
+		String prefix = cap.getKymographPrefix();
+		if (prefix == null)
+			prefix = "";
+		String prefix2 = prefix.length() >= 2 ? prefix.substring(0, 2) : prefix;
+		if (t != gulpAddedFrame) {
+			gulpAddedFrame = t;
+			gulpAddedCounter = 0;
 		}
-		for (ROI2D r : toRemove)
-			seq.removeROI(r);
-		List<ROI2D> fromCap = cap.transferMeasuresToROIs(seqKymos.getImagesList());
-		if (fromCap == null)
+		gulpAddedCounter++;
+		int cx = width / 2;
+		int cy = height / 2;
+		int tryCx = cx;
+		int tryCy = cy;
+		for (int attempt = 0; attempt < 10; attempt++) {
+			tryCx = cx - 2 * attempt;
+			tryCy = cy + 2 * attempt;
+			if (!hasGulpAddedAt(seq, t, tryCx, tryCy))
+				break;
+		}
+		ROI2DLine lineRoi = new ROI2DLine(tryCx, tryCy - 5, tryCx, tryCy + 5);
+		lineRoi.setName(prefix2 + "_gulp_added_" + gulpAddedCounter);
+		lineRoi.setColor(Color.green);
+		lineRoi.setT(t);
+		seq.addROI(lineRoi);
+		lineRoi.setSelected(true);
+		seq.roiChanged(lineRoi);
+		cap.setGulpMeasuresDirty(true);
+		attachGulpRoiListeners(exp);
+		refreshValidateButtonState();
+	}
+
+	void updateGulps(Experiment exp) {
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		if (seqKymos == null || seqKymos.getSequence() == null)
 			return;
-		List<ROI2D> gulpRois = new ArrayList<>();
-		for (ROI2D r : fromCap) {
-			if (r.getName() != null && r.getName().contains("gulp")) {
-				r.setT(t);
-				gulpRois.add(r);
-			}
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
+		if (cap == null) {
+			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
+			return;
 		}
-		if (!gulpRois.isEmpty()) {
-			seq.addROIs(gulpRois, false);
-			for (ROI2D r : gulpRois)
-				seq.roiChanged(r);
-		}
+		seqKymos.validateGulpROIsAtT(exp, t);
+		attachGulpRoiListeners(exp);
+		refreshValidateButtonState();
 	}
 
 	void cutAndInterpolate(Experiment exp) {
@@ -306,37 +366,17 @@ public class EditLevels extends JPanel {
 		ROI2D roi = seqKymos.getSequence().getSelectedROI2D();
 		if (roi == null)
 			return;
-
-		if (exp.getCapillaries() == null || exp.getCapillaries().getList().size() < 1) {
-			System.out.println("capillaries not defined!");
+		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
+		if (cap == null)
 			return;
-		}
-
-		Capillary cap = exp.getCapillaries().getList().get(t);
-		if (cap == null) {
-			System.out.println("capillary not found!");
-			return;
-		}
-
 		seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(t, cap);
-
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
-		if (optionSelected.contains("gulp")) {
-			List<ROI> listGulpsSelected = selectGulpsWithinRoi(roi, seqKymos.getSequence(), seqKymos.getCurrentFrame());
-			deleteGulps(seqKymos, listGulpsSelected);
-			seqKymos.removeROIsPolylineAtT(t);
-			List<ROI2D> listOfRois = cap.transferMeasuresToROIs();
-			seqKymos.getSequence().addROIs(listOfRois, false);
-			for (ROI lroi : listOfRois)
-				seqKymos.getSequence().roiChanged(lroi);
-		} else {
-			if (optionSelected.contains("top"))
-				removeAndUpdate(seqKymos, cap, cap.getTopLevel(), roi);
-			if (optionSelected.contains("bottom"))
-				removeAndUpdate(seqKymos, cap, cap.getBottomLevel(), roi);
-			if (optionSelected.contains("deriv"))
-				removeAndUpdate(seqKymos, cap, cap.getDerivative(), roi);
-		}
+		if (optionSelected.contains("top"))
+			removeAndUpdate(seqKymos, cap, cap.getTopLevel(), roi);
+		if (optionSelected.contains("bottom"))
+			removeAndUpdate(seqKymos, cap, cap.getBottomLevel(), roi);
+		if (optionSelected.contains("deriv"))
+			removeAndUpdate(seqKymos, cap, cap.getDerivative(), roi);
 	}
 
 	private void removeAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roi) {
