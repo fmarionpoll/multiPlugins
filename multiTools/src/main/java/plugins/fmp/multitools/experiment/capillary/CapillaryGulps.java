@@ -5,7 +5,6 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import org.w3c.dom.Node;
@@ -34,22 +33,12 @@ public class CapillaryGulps {
 	 */
 	private Level2D gulpAmplitude = new Level2D();
 
-	/**
-	 * Legacy representation (no longer the primary storage). Kept for minimal
-	 * compatibility with older ROI-based code paths.
-	 */
-	@Deprecated
-	public ArrayList<Polyline2D> gulps = new ArrayList<Polyline2D>();
-
 	// -------------------------------
 
 	public void copy(CapillaryGulps capG) {
 		if (capG == null)
 			return;
 		this.gulpAmplitude = capG.gulpAmplitude != null ? capG.gulpAmplitude.clone() : new Level2D();
-		// legacy
-		this.gulps = new ArrayList<Polyline2D>(capG.gulps.size());
-		this.gulps.addAll(capG.gulps);
 	}
 
 	public boolean loadGulpsFromXML(Node node) {
@@ -99,32 +88,37 @@ public class CapillaryGulps {
 	}
 
 	public void addNewGulpFromPoints(ArrayList<Point2D> gulpPoints) {
-		int npoints = gulpPoints.size();
-		if (npoints < 1)
+		if (gulpPoints == null || gulpPoints.isEmpty())
 			return;
-
-		double[] xpoints = new double[npoints];
-		double[] ypoints = new double[npoints];
-		for (int i = 0; i < npoints; i++) {
-			xpoints[i] = gulpPoints.get(i).getX();
-			ypoints[i] = gulpPoints.get(i).getY();
+		double minX = gulpPoints.get(0).getX(), maxX = minX;
+		double minY = gulpPoints.get(0).getY(), maxY = minY;
+		for (Point2D p : gulpPoints) {
+			minX = Math.min(minX, p.getX());
+			maxX = Math.max(maxX, p.getX());
+			minY = Math.min(minY, p.getY());
+			maxY = Math.max(maxY, p.getY());
 		}
-		Polyline2D gulpLine = new Polyline2D(xpoints, ypoints, npoints);
-		gulps.add(gulpLine);
+		int x = (int) Math.round(gulpPoints.get(0).getX());
+		double height = maxY - minY;
+		double width = maxX - minX;
+		double amplitude = height >= width ? height : 1.0;
+		if (amplitude <= 0)
+			amplitude = 1.0;
+		int size = Math.max((int) Math.ceil(maxX), x) + 1;
+		ensureSize(size);
+		if (x >= 0 && x < gulpAmplitude.npoints)
+			gulpAmplitude.ypoints[x] = amplitude;
 	}
 
 	/**
-	 * Adds one gulp from a vertical segment at xPixel with given y bounds.
-	 * Ensures gulpAmplitude size, appends to legacy gulps, and sets amplitude (overwrite at xPixel).
+	 * Adds one gulp from a vertical segment at xPixel with given y bounds. Ensures
+	 * gulpAmplitude size and sets amplitude at xPixel.
 	 */
 	public void addGulpFromVerticalSegment(int xPixel, double yBottom, double yTop, int npoints) {
 		if (npoints <= 0 || xPixel < 0 || xPixel >= npoints)
 			return;
 		ensureSize(npoints);
 		double amplitude = Math.abs(yTop - yBottom);
-		double[] xpoints = new double[] { xPixel, xPixel };
-		double[] ypoints = new double[] { yBottom, yTop };
-		gulps.add(new Polyline2D(xpoints, ypoints, 2));
 		gulpAmplitude.ypoints[xPixel] = amplitude;
 	}
 
@@ -223,68 +217,35 @@ public class CapillaryGulps {
 	}
 
 	public void removeGulpsWithinInterval(int startPixel, int endPixel) {
-		// Dense series: zero-out samples in the interval
 		if (gulpAmplitude != null && gulpAmplitude.npoints > 0) {
 			int start = Math.max(0, startPixel);
 			int end = Math.min(endPixel, gulpAmplitude.npoints - 1);
 			for (int i = start; i <= end; i++)
 				gulpAmplitude.ypoints[i] = 0;
 		}
-		// Legacy list
-		Iterator<Polyline2D> iterator = gulps.iterator();
-		while (iterator.hasNext()) {
-			Polyline2D gulp = iterator.next();
-			Rectangle rect = ((Polyline2D) gulp).getBounds();
-			if (rect.x >= startPixel && rect.x <= endPixel)
-				iterator.remove();
-		}
 	}
 
 	// -------------------------------
 
 	public boolean csvExportDataFlatToRow(StringBuffer sbf, String sep) {
-		Level2D polylineLevel = transferGulpsToLevel2D();
-		if (polylineLevel == null)
-			polylineLevel = new Level2D();
-		int npoints = polylineLevel.npoints;
+		Level2D level2D = transferGulpsToLevel2D();
+		if (level2D == null)
+			level2D = new Level2D();
+		int npoints = level2D.npoints;
 		sbf.append(Integer.toString(npoints) + sep);
 		for (int i = 0; i < npoints; i++) {
-			sbf.append(StringUtil.toString((double) polylineLevel.ypoints[i]));
+			sbf.append(StringUtil.toString((double) level2D.ypoints[i]));
 			sbf.append(sep);
 		}
 		return true;
 	}
 
 	private Level2D transferGulpsToLevel2D() {
-		// Canonical representation
-		if (gulpAmplitude != null && gulpAmplitude.npoints > 0)
-			return gulpAmplitude;
-
-		// Fallback to legacy conversion if needed (should be rare)
-		int npoints = 0;
-		if (gulps != null) {
-			for (Polyline2D gulpPolyline : gulps) {
-				if (gulpPolyline.npoints > 0) {
-					for (int i = 0; i < gulpPolyline.npoints; i++)
-						npoints = Math.max(npoints, (int) gulpPolyline.xpoints[i]);
-				}
-			}
-		}
-		npoints++;
-		ensureSize(npoints);
-		ArrayList<Integer> amp = getAmplitudeGulpsFromROIsArray(npoints);
-		if (amp != null) {
-			for (int i = 0; i < npoints; i++)
-				gulpAmplitude.ypoints[i] = amp.get(i);
-		}
-		return gulpAmplitude;
+		return gulpAmplitude != null ? gulpAmplitude : new Level2D();
 	}
 
 	public boolean csvExportDataToRow(StringBuffer sbf, String sep, int npoints) {
-		// Get the amplitude array (dense format: one value per bin)
-		ArrayList<Integer> amplitudeGulps = getAmplitudeGulpsFromROIsArray(npoints);
-
-		// Export: npoints, val0, val1, ... valN
+		ArrayList<Integer> amplitudeGulps = getAmplitudeGulpsFromAmplitudeSeries(npoints);
 		sbf.append(Integer.toString(npoints) + sep);
 		if (amplitudeGulps != null) {
 			for (int i = 0; i < npoints; i++) {
@@ -310,8 +271,6 @@ public class CapillaryGulps {
 			for (int i = 0; i < ngulps; i++) {
 				offset = csvImportOneGulp(data, offset);
 			}
-			// Convert legacy ROIs into dense series as canonical representation
-			transferGulpsToLevel2D();
 		} else {
 			// New dense format: "npoints", val0, val1, ...
 			int npoints = firstValue;
@@ -339,18 +298,26 @@ public class CapillaryGulps {
 			y[i] = (int) Double.parseDouble(data[offset]);
 			offset++;
 		}
-		Polyline2D gulpLine = new Polyline2D(x, y, npoints);
-		gulps.add(gulpLine);
-
+		int xPixel = npoints > 0 ? x[0] : 0;
+		double yMin = npoints > 0 ? y[0] : 0;
+		double yMax = yMin;
+		for (int i = 0; i < npoints; i++) {
+			yMin = Math.min(yMin, y[i]);
+			yMax = Math.max(yMax, y[i]);
+		}
+		double amplitude = Math.max(1.0, yMax - yMin);
+		int maxX = xPixel;
+		for (int i = 0; i < npoints; i++)
+			maxX = Math.max(maxX, x[i]);
+		ensureSize(maxX + 1);
+		if (xPixel >= 0 && xPixel < gulpAmplitude.npoints)
+			gulpAmplitude.ypoints[xPixel] = amplitude;
 		return offset;
 	}
 
 	// -------------------------------
 
 	public void buildGulpsFromROIs(ArrayList<ROI2D> rois) {
-		// Clear existing gulp data
-		gulps = new ArrayList<Polyline2D>(rois.size());
-
 		int maxX = 0;
 		for (ROI2D roi : rois) {
 			if (roi instanceof ROI2DLine) {
@@ -372,87 +339,65 @@ public class CapillaryGulps {
 			ensureSize(maxX);
 
 		for (ROI2D roi : rois) {
-			if (roi instanceof ROI2DPolyLine) {
-				Polyline2D gulpPolyline = ((ROI2DPolyLine) roi).getPolyline2D();
-				gulps.add(gulpPolyline);
-
-				// Extract x position and amplitude from gulp ROI (vertical or horizontal)
-				if (gulpPolyline.npoints >= 1 && gulpAmplitude != null && gulpAmplitude.npoints > 0) {
-					int x;
-					double amplitude;
-					if (gulpPolyline.npoints == 2) {
-						double x0 = gulpPolyline.xpoints[0], x1 = gulpPolyline.xpoints[1];
-						double y0 = gulpPolyline.ypoints[0], y1 = gulpPolyline.ypoints[1];
-						double height = Math.abs(y1 - y0);
-						double width = Math.abs(x1 - x0);
-						// Vertical segment (along toplevel): use x from first point, amplitude = height
-						if (height >= width) {
-							x = (int) Math.round(x0);
-							amplitude = height;
-						} else {
-							// Horizontal segment (across toplevel): use center x, amplitude = 1
-							x = (int) Math.round((x0 + x1) / 2);
-							amplitude = 1.0;
-						}
-					} else {
-						x = (int) gulpPolyline.xpoints[0];
-						amplitude = 1.0;
-					}
-					if (x >= 0 && x < gulpAmplitude.npoints)
-						gulpAmplitude.ypoints[x] = amplitude;
-				}
-			} else if (roi instanceof ROI2DArea) {
-				// Handle ROI2DArea (legacy compacted gulps format)
-				Rectangle rect = roi.getBounds();
-				if (rect.isEmpty())
-					continue;
-
-				// Iterate over the bounding box and check containment
-				// Group points by X (time) to reconstruct gulp events
-				for (int x = rect.x; x < rect.x + rect.width; x++) {
-					ArrayList<Point2D> pts = new ArrayList<>();
-					for (int y = rect.y; y < rect.y + rect.height; y++) {
-						if (roi.contains(x, y)) {
-							pts.add(new Point2D.Double(x, y));
-						}
-					}
-					if (!pts.isEmpty()) {
-						addNewGulpFromPoints(pts);
-						// Mark this x position as having a gulp in the amplitude series
-						if (x >= 0 && x < gulpAmplitude.npoints) {
-							gulpAmplitude.ypoints[x] = 1.0;
-						}
-					}
-				}
-			} else if (roi instanceof ROI2DLine) {
-				// Same conversion as EditLevels.addGulpFromLine: middle x, y range, amplitude
-				Line2D line = ((ROI2DLine) roi).getLine();
-				double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
-				int xPixel = (int) Math.round((x1 + x2) / 2);
-				double yBottom = Math.min(y1, y2);
-				double yTop = Math.max(y1, y2);
-				double amplitude = Math.abs(yTop - yBottom);
-				if (amplitude > 0 && gulpAmplitude != null && gulpAmplitude.npoints > 0 && xPixel >= 0 && xPixel < gulpAmplitude.npoints) {
-					gulps.add(new Polyline2D(new double[] { xPixel, xPixel }, new double[] { yBottom, yTop }, 2));
-					gulpAmplitude.ypoints[xPixel] = amplitude;
-				}
-			}
+			if (roi instanceof ROI2DLine)
+				addGulpFromROI2DLine((ROI2DLine) roi);
+			else if (roi instanceof ROI2DPolyLine)
+				addGulpFromROI2DPolyLine((ROI2DPolyLine) roi);
 		}
+	}
+
+	private void addGulpFromROI2DPolyLine(ROI2DPolyLine roi) {
+		Polyline2D gulpPolyline = roi.getPolyline2D();
+		if (gulpPolyline.npoints < 1 || gulpAmplitude == null || gulpAmplitude.npoints <= 0)
+			return;
+		int x;
+		double amplitude;
+		if (gulpPolyline.npoints == 2) {
+			double x0 = gulpPolyline.xpoints[0], x1 = gulpPolyline.xpoints[1];
+			double y0 = gulpPolyline.ypoints[0], y1 = gulpPolyline.ypoints[1];
+			double height = Math.abs(y1 - y0);
+			double width = Math.abs(x1 - x0);
+			if (height >= width) {
+				x = (int) Math.round(x0);
+				amplitude = height;
+			} else {
+				x = (int) Math.round((x0 + x1) / 2);
+				amplitude = 1.0;
+			}
+		} else {
+			x = (int) gulpPolyline.xpoints[0];
+			amplitude = 1.0;
+		}
+		if (x >= 0 && x < gulpAmplitude.npoints)
+			gulpAmplitude.ypoints[x] = amplitude;
+	}
+
+	private void addGulpFromROI2DLine(ROI2DLine roi) {
+		Line2D line = roi.getLine();
+		double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
+		int xPixel = (int) Math.round((x1 + x2) / 2);
+		double yBottom = Math.min(y1, y2);
+		double yTop = Math.max(y1, y2);
+		double amplitude = Math.abs(yTop - yBottom);
+		if (amplitude <= 0 || gulpAmplitude == null || gulpAmplitude.npoints <= 0 || xPixel < 0
+				|| xPixel >= gulpAmplitude.npoints)
+			return;
+		gulpAmplitude.ypoints[xPixel] = amplitude;
 	}
 
 	public void transferROIsToMeasures(List<ROI> listRois) {
 		ArrayList<ROI2D> rois = new ArrayList<ROI2D>();
 		for (ROI roi : listRois) {
 			String roiname = roi.getName();
+			if (roiname == null || !roiname.contains("gulp"))
+				continue;
+
 			if (roi instanceof ROI2DPolyLine) {
-				if (roiname != null && roiname.contains("gulp"))
-					rois.add((ROI2DPolyLine) roi);
+				rois.add((ROI2DPolyLine) roi);
 			} else if (roi instanceof ROI2DArea) {
-				if (roiname != null && roiname.contains("gulp"))
-					rois.add((ROI2DArea) roi);
+				rois.add((ROI2DArea) roi);
 			} else if (roi instanceof ROI2DLine) {
-				if (roiname != null && roiname.contains("gulp"))
-					rois.add((ROI2DLine) roi);
+				rois.add((ROI2DLine) roi);
 			}
 		}
 		buildGulpsFromROIs(rois);
@@ -470,27 +415,6 @@ public class CapillaryGulps {
 			sum.set(i, running);
 		}
 		return sum;
-	}
-
-	private ArrayList<Integer> getAmplitudeGulpsFromROIsArray(int npoints) {
-		if (gulps == null || gulps.size() == 0)
-			return null;
-
-		ArrayList<Integer> amplitudeGulpsArray = new ArrayList<Integer>(Collections.nCopies(npoints, 0));
-		for (Polyline2D gulpLine : gulps)
-			addROItoAmplitudeGulpsArray(gulpLine, amplitudeGulpsArray);
-		return amplitudeGulpsArray;
-	}
-
-	private void addROItoAmplitudeGulpsArray(Polyline2D polyline2D, ArrayList<Integer> amplitudeGulpsArray) {
-		double yvalue = polyline2D.ypoints[0];
-		int npoints = polyline2D.npoints;
-		for (int j = 0; j < npoints; j++) {
-			int timeIndex = (int) polyline2D.xpoints[j];
-			int delta = (int) (polyline2D.ypoints[j] - yvalue);
-			amplitudeGulpsArray.set(timeIndex, delta);
-			yvalue = polyline2D.ypoints[j];
-		}
 	}
 
 	private ArrayList<Integer> getAmplitudeGulpsFromAmplitudeSeries(int npoints) {

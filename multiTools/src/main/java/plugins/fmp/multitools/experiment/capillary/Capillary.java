@@ -949,7 +949,6 @@ public class Capillary implements Comparable<Capillary> {
 		for (int x = 0; x < (capGulps.getAmplitudeSeries().npoints - 1); x++) {
 			int value = (int) capGulps.getAmplitudeSeries().ypoints[x];
 			if (value > 0) {
-				// Get bottom and top y-coordinates at this x position
 				int yBottom = 0;
 				int yTop = 0;
 				if (measurements != null && measurements.ptsTop != null && measurements.ptsTop.polylineLevel != null
@@ -962,12 +961,7 @@ public class Capillary implements Comparable<Capillary> {
 					yBottom = yTop - value;
 				}
 
-				// Create vertical line polyline (2 points)
-				List<Point2D> points = new ArrayList<>(2);
-				points.add(new Point2D.Double(x, yBottom));
-				points.add(new Point2D.Double(x, yTop));
-
-				ROI2DPolyLine gulpRoi = new ROI2DPolyLine(points);
+				ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
 				gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
 				gulpRoi.setColor(Color.red);
 				gulpRoi.setT(tIndex);

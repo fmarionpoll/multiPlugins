@@ -83,7 +83,7 @@ public class EditLevels extends JPanel {
 		String option = (String) roiTypeCombo.getSelectedItem();
 		boolean gulpsSelected = option != null && option.contains("gulp");
 		if (gulpsSelected) {
-			cutAndInterpolateButton.setText("Delete");
+			cutAndInterpolateButton.setText("Delete inside polygon");
 			addGulpButton.setVisible(true);
 			validateGulpsButton.setVisible(true);
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -179,7 +179,7 @@ public class EditLevels extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
-					updateGulps(exp);
+					validateGulps(exp);
 			}
 		});
 
@@ -246,17 +246,22 @@ public class EditLevels extends JPanel {
 		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
 	}
 
-	List<ROI> selectGulpsWithinRoi(ROI2D roiReference, Sequence seq, int t) {
+	List<ROI> getGulpsWithinRoi(ROI2D roiReference, Sequence seq, int t) {
 		List<ROI> allRois = seq.getROIs();
 		List<ROI> listGulpsSelected = new ArrayList<ROI>();
 		for (ROI roi : allRois) {
-			roi.setSelected(false);
 			if (roi instanceof ROI2D) {
 				if (((ROI2D) roi).getT() != t)
 					continue;
 				if (roi.getName().contains("gulp")) {
-					listGulpsSelected.add(roi);
-					roi.setSelected(true);
+					try {
+						if (roiReference.contains(roi)) {
+							listGulpsSelected.add(roi);
+						}
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
 				}
 			}
 		}
@@ -267,8 +272,10 @@ public class EditLevels extends JPanel {
 		Sequence seq = seqKymos.getSequence();
 		if (seq == null || listGulpsSelected == null)
 			return;
+		seq.beginUpdate();
 		for (ROI roi : listGulpsSelected)
 			seq.removeROI(roi);
+		seq.endUpdate();
 	}
 
 	void deleteGulpsInRegion(Experiment exp) {
@@ -284,7 +291,7 @@ public class EditLevels extends JPanel {
 		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 		if (cap == null)
 			return;
-		List<ROI> list = selectGulpsWithinRoi(roi, seqKymos.getSequence(), t);
+		List<ROI> list = getGulpsWithinRoi(roi, seqKymos.getSequence(), t);
 		deleteGulps(seqKymos, list);
 		cap.setGulpMeasuresDirty(true);
 		refreshValidateButtonState();
@@ -345,7 +352,7 @@ public class EditLevels extends JPanel {
 		refreshValidateButtonState();
 	}
 
-	void updateGulps(Experiment exp) {
+	void validateGulps(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		if (seqKymos == null || seqKymos.getSequence() == null)
 			return;
@@ -355,7 +362,7 @@ public class EditLevels extends JPanel {
 			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
 			return;
 		}
-		seqKymos.validateGulpROIsAtT(exp, t);
+		seqKymos.validateGulpROIsAtT(cap, t);
 		attachGulpRoiListeners(exp);
 		refreshValidateButtonState();
 	}

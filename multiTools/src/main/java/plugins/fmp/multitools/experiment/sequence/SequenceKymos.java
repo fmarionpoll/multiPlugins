@@ -32,8 +32,8 @@ import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.service.KymographService;
@@ -235,7 +235,8 @@ public class SequenceKymos extends SequenceCamData {
 				roi.setT(t);
 			if (roi.getT() != t)
 				continue;
-			// interpolate or expand to full width so transfer back to capillary keeps length
+			// interpolate or expand to full width so transfer back to capillary keeps
+			// length
 			if (roi.getName().contains("level") || roi.getName().contains("derivative")) {
 				ROI2DPolyLine roiLine = (ROI2DPolyLine) roi;
 				Polyline2D line = roiLine.getPolyline2D();
@@ -248,7 +249,8 @@ public class SequenceKymos extends SequenceCamData {
 				continue;
 			}
 			if (roi.getName().contains("gulp")) {
-				// Gulps are vertical segments (same x); do not interpolate along X or amplitude is lost
+				// Gulps are vertical segments (same x); do not interpolate along X or amplitude
+				// is lost
 				continue;
 			}
 			// if gulp not found - add an index to it
@@ -335,12 +337,10 @@ public class SequenceKymos extends SequenceCamData {
 	 * gulp ROIs on the sequence. Clears the capillary's gulpMeasuresDirty flag.
 	 * Call from EditLevels (Validate) or Options (Save unsaved changes).
 	 */
-	public void validateGulpROIsAtT(Experiment exp, int t) {
-		if (exp == null || getSequence() == null)
-			return;
-		Capillary cap = getCapillaryForFrame(t, exp.getCapillaries());
+	public void validateGulpROIsAtT(Capillary cap, int t) {
 		if (cap == null)
 			return;
+
 		List<ROI2D> allRois = getSequence().getROI2Ds();
 		ArrayList<ROI2D> gulpRois = new ArrayList<>();
 		for (ROI2D r : allRois) {
