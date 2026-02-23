@@ -958,7 +958,7 @@ public class Capillary implements Comparable<Capillary> {
 				if (measurements != null && measurements.ptsBottom != null
 						&& measurements.ptsBottom.polylineLevel != null
 						&& x < measurements.ptsBottom.polylineLevel.npoints) {
-					yBottom = yTop - value;
+					yBottom = yTop + value;
 				}
 
 				ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
