@@ -1294,7 +1294,7 @@ public class Experiment {
 				seqKymos.validateRoisAtT(tOld);
 				Capillary capOld = seqKymos.getCapillaryForFrame(tOld, capillaries);
 				if (capOld != null)
-					seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(tOld, capOld);
+					seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(tOld, capOld);
 			}
 			seq.beginUpdate();
 			try {

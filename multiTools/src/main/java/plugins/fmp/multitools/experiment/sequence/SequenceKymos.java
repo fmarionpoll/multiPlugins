@@ -14,6 +14,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import icy.common.exception.UnsupportedFormatException;
 import icy.file.Loader;
 import icy.file.Saver;
+import icy.gui.dialog.MessageDialog;
 import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI;
@@ -305,19 +306,17 @@ public class SequenceKymos extends SequenceCamData {
 				capillaries.getList().add(new Capillary());
 			}
 
-//			Capillary cap = capillaries.getList().get(kymo);
-//			cap.transferROIsToMeasures(roisAtT);
 			final int i = kymo;
 			Capillary cap = capillaries.getList().stream().filter(c -> c.getKymographIndex() == i).findFirst()
 					.orElse(null);
 			if (cap != null) {
-				cap.transferROIsToMeasures(roisAtT);
+				cap.transferROIsToAllMeasures(roisAtT);
 			}
 		}
 		return true;
 	}
 
-	public boolean transferKymosRoi_atT_ToCapillaries_Measures(int t, Capillary cap) {
+	public boolean transferKymosRoi_at_T_To_Capillaries_Measures(int t, Capillary cap) {
 		List<ROI> allRois = getSequence().getROIs();
 		if (allRois.size() < 1)
 			return false;
@@ -327,7 +326,7 @@ public class SequenceKymos extends SequenceCamData {
 			if (roi instanceof ROI2D && ((ROI2D) roi).getT() == t)
 				roisAtT.add(roi);
 		}
-		cap.transferROIsToMeasures(roisAtT);
+		cap.transferROIsToAllMeasures(roisAtT);
 
 		return true;
 	}
@@ -337,6 +336,16 @@ public class SequenceKymos extends SequenceCamData {
 	 * gulp ROIs on the sequence. Clears the capillary's gulpMeasuresDirty flag.
 	 * Call from EditLevels (Validate) or Options (Save unsaved changes).
 	 */
+
+	public void validateGulpROIsAtT(Experiment exp, int t) {
+		Capillary cap = getCapillaryForFrame(t, exp.getCapillaries());
+		if (cap == null) {
+			MessageDialog.showDialog("Capillary not found for current frame.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		validateGulpROIsAtT(cap, t);
+	}
+
 	public void validateGulpROIsAtT(Capillary cap, int t) {
 		if (cap == null)
 			return;
@@ -347,31 +356,7 @@ public class SequenceKymos extends SequenceCamData {
 			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
 				gulpRois.add(r);
 		}
-		cap.getGulps().buildGulpsFromROIs(gulpRois);
-
-		List<ROI2D> toRemove = new ArrayList<>();
-		for (ROI2D r : allRois) {
-			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
-				toRemove.add(r);
-		}
-		for (ROI2D r : toRemove)
-			getSequence().removeROI(r);
-
-		List<ROI2D> fromCap = cap.transferMeasuresToROIs(getImagesList());
-		if (fromCap != null) {
-			List<ROI2D> newGulps = new ArrayList<>();
-			for (ROI2D r : fromCap) {
-				if (r.getName() != null && r.getName().contains("gulp")) {
-					r.setT(t);
-					newGulps.add(r);
-				}
-			}
-			if (!newGulps.isEmpty()) {
-				getSequence().addROIs(newGulps, false);
-				for (ROI2D r : newGulps)
-					getSequence().roiChanged(r);
-			}
-		}
+		cap.getGulps().transferROIsToMeasures(gulpRois);
 		cap.setGulpMeasuresDirty(false);
 	}
 

@@ -934,7 +934,7 @@ public class Capillary implements Comparable<Capillary> {
 
 	private void getROIsFromCapillaryGulps(CapillaryGulps capGulps, List<ROI2D> listrois,
 			List<String> kymographImagesList) {
-		if (capGulps == null || capGulps.getAmplitudeSeries() == null || capGulps.getAmplitudeSeries().npoints == 0)
+		if (capGulps == null || capGulps.getHeightSeries() == null || capGulps.getHeightSeries().npoints == 0)
 			return;
 
 		// Derive kymograph index once for all gulp ROIs
@@ -946,8 +946,8 @@ public class Capillary implements Comparable<Capillary> {
 		}
 
 		// Create one vertical line ROI per gulp
-		for (int x = 0; x < (capGulps.getAmplitudeSeries().npoints - 1); x++) {
-			int value = (int) capGulps.getAmplitudeSeries().ypoints[x];
+		for (int x = 0; x < (capGulps.getHeightSeries().npoints - 1); x++) {
+			int value = (int) capGulps.getHeightSeries().ypoints[x];
 			if (value > 0) {
 				int yBottom = 0;
 				int yTop = 0;
@@ -971,7 +971,7 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
-	public void transferROIsToMeasures(List<ROI> listRois) {
+	public void transferROIsToAllMeasures(List<ROI> listRois) {
 		measurements.ptsTop.transferROIsToMeasures(listRois);
 		measurements.ptsBottom.transferROIsToMeasures(listRois);
 		measurements.ptsDerivative.transferROIsToMeasures(listRois);

@@ -567,15 +567,15 @@ public class Options extends JPanel implements ViewerListener {
 			v = seqKymos.getSequence().getFirstViewer();
 		}
 		Rectangle savedBounds = null;
-		int icurrent = -1;
+		int t = -1;
 		icy.sequence.Sequence seq = seqKymos.getSequence();
 		seq.beginUpdate();
 		try {
 			if (v != null) {
 				savedBounds = v.getBounds();
-				icurrent = v.getPositionT();
-				if (icurrent != isel && icurrent >= 0) {
-					Capillary capOld = seqKymos.getCapillaryForFrame(icurrent, exp.getCapillaries());
+				t = v.getPositionT();
+				if (t != isel && t >= 0) {
+					Capillary capOld = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 					if (capOld != null && capOld.isGulpMeasuresDirty()) {
 						String[] options = new String[] { "Save", "Discard", "Cancel" };
 						int choice = JOptionPane.showOptionDialog(this,
@@ -583,17 +583,17 @@ public class Options extends JPanel implements ViewerListener {
 								"Gulp changes", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
 								options, options[0]);
 						if (choice == 2 || choice == JOptionPane.CLOSED_OPTION)
-							return icurrent;
+							return t;
 						if (choice == 0)
-							seqKymos.validateGulpROIsAtT(exp, icurrent);
+							seqKymos.validateGulpROIsAtT(exp, t);
 						else
 							capOld.setGulpMeasuresDirty(false);
 					}
-					seqKymos.validateRoisAtT(icurrent);
+					seqKymos.validateRoisAtT(t);
 					if (capOld != null)
-						seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(icurrent, capOld);
+						seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(t, capOld);
 				}
-				if (icurrent != isel)
+				if (t != isel)
 					v.setPositionT(isel);
 			}
 			seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());

@@ -376,7 +376,7 @@ public class EditLevels extends JPanel {
 		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 		if (cap == null)
 			return;
-		seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(t, cap);
+		seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 		if (optionSelected.contains("top"))
 			removeAndUpdate(seqKymos, cap, cap.getTopLevel(), roi);

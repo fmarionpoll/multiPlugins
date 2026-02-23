@@ -210,7 +210,7 @@ public class CapillariesPersistenceLegacy {
 					if (roi_i != null)
 						rois.add(roi_i);
 				}
-				cap.transferROIsToMeasures(rois);
+				cap.transferROIsToAllMeasures(rois);
 			}
 		}
 	}

@@ -49,7 +49,7 @@ public final class CapillariesKymosMapper {
 			seqKymos.validateRoisAtT(t);
 			Capillary cap = capillaries.getCapillaryAtT(t);
 			if (cap != null)
-				seqKymos.transferKymosRoi_atT_ToCapillaries_Measures(t, cap);
+				seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
 		}
 	}
 }
