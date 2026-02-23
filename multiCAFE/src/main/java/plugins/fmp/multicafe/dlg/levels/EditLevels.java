@@ -18,6 +18,9 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
+import icy.canvas.IcyCanvas;
+import icy.canvas.IcyCanvas2D;
+import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.roi.ROIEvent;
@@ -342,8 +345,19 @@ public class EditLevels extends JPanel {
 			return;
 		}
 		Sequence seq = seqKymos.getSequence();
-		int width = seq.getWidth();
-//		int height = seq.getHeight();
+		int cx = seq.getWidth() / 2;
+		int cy = 10; // seq.getHeight() / 2;
+		Viewer v = seq.getFirstViewer();
+		if (v != null) {
+			IcyCanvas canvas = v.getCanvas();
+			if (canvas instanceof IcyCanvas2D) {
+				Rectangle2D rect = ((IcyCanvas2D) canvas).getImageVisibleRect();
+
+				cx = (int) (rect.getX() + rect.getWidth() / 2);
+				cy = (int) (rect.getY() + rect.getHeight() / 2);
+			}
+		}
+
 		String prefix = cap.getKymographPrefix();
 		if (prefix == null)
 			prefix = "";
@@ -353,8 +367,7 @@ public class EditLevels extends JPanel {
 			gulpAddedCounter = 0;
 		}
 		gulpAddedCounter++;
-		int cx = width / 2;
-		int cy = 10; //height / 2;
+
 		int tryCx = cx;
 		int tryCy = cy;
 		for (int attempt = 0; attempt < 10; attempt++) {

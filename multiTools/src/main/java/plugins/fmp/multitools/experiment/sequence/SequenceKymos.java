@@ -358,10 +358,8 @@ public class SequenceKymos extends SequenceCamData {
 		}
 		int npoints = (cap.getTopLevel() != null) ? cap.getTopLevel().getNPoints() : 0;
 		cap.getGulps().transferROIsToMeasures(gulpRois, npoints);
-		
+
 		getSequence().removeROIs(gulpRois, false);
-		
-		List<ROI2D> newRois = cap.getROIsForCapillaryAtT(t);
 		getSequence().addROIs(cap.getROIsForCapillaryAtT(t), false);
 		cap.setGulpMeasuresDirty(false);
 	}

@@ -953,12 +953,12 @@ public class Capillary implements Comparable<Capillary> {
 				int yTop = 0;
 				if (measurements != null && measurements.ptsTop != null && measurements.ptsTop.polylineLevel != null
 						&& x < measurements.ptsTop.polylineLevel.npoints) {
-					yTop = (int) measurements.ptsTop.polylineLevel.ypoints[x];
+					yBottom = (int) measurements.ptsTop.polylineLevel.ypoints[x];
 				}
 				if (measurements != null && measurements.ptsBottom != null
 						&& measurements.ptsBottom.polylineLevel != null
 						&& x < measurements.ptsBottom.polylineLevel.npoints) {
-					yBottom = yTop + value;
+					yTop = yBottom - value;
 				}
 				ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
 				gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
