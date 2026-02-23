@@ -14,7 +14,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -51,9 +50,7 @@ public class Intervals extends JPanel implements ViewerListener {
 	JComboBox<String> viewsCombo = new JComboBox<String>();
 	JButton previousButton = new JButton("<");
 	JButton nextButton = new JButton(">");
-	JCheckBox viewLevelsCheckbox = new JCheckBox("top/bottom level (green)", true);
-	JCheckBox viewDerivativeCheckbox = new JCheckBox("derivative (yellow)", true);
-	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps (red)", true);
+
 
 	private MultiCAFE parent0 = null;
 	private boolean isActionEnabled = true;
@@ -67,10 +64,6 @@ public class Intervals extends JPanel implements ViewerListener {
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
-
-		viewLevelsCheckbox.setSelected(parent0.viewOptions.isViewLevels());
-		viewDerivativeCheckbox.setSelected(parent0.viewOptions.isViewDerivative());
-		viewGulpsCheckbox.setSelected(parent0.viewOptions.isViewGulps());
 
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(0);
@@ -88,11 +81,6 @@ public class Intervals extends JPanel implements ViewerListener {
 		panel1.add(nextButton, BorderLayout.EAST);
 		add(panel1);
 
-		JPanel panel2 = new JPanel(layout);
-		panel2.add(viewLevelsCheckbox);
-		panel2.add(viewDerivativeCheckbox);
-		panel2.add(viewGulpsCheckbox);
-		add(panel2);
 
 		defineActionListeners();
 	}
@@ -103,36 +91,6 @@ public class Intervals extends JPanel implements ViewerListener {
 			public void actionPerformed(final ActionEvent e) {
 				if (isActionEnabled)
 					displayUpdateOnSwingThread();
-			}
-		});
-
-		viewDerivativeCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewDerivativeCheckbox.isSelected();
-				parent0.viewOptions.setViewDerivative(sel);
-				saveViewOptions();
-				displayROIs("deriv", sel);
-			}
-		});
-
-		viewGulpsCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewGulpsCheckbox.isSelected();
-				parent0.viewOptions.setViewGulps(sel);
-				saveViewOptions();
-				displayROIs("gulp", sel);
-			}
-		});
-
-		viewLevelsCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewLevelsCheckbox.isSelected();
-				parent0.viewOptions.setViewLevels(sel);
-				saveViewOptions();
-				displayROIs("level", sel);
 			}
 		});
 
@@ -204,16 +162,6 @@ public class Intervals extends JPanel implements ViewerListener {
 		}
 	}
 
-	private void saveViewOptions() {
-		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
-	}
-
-	public void displayROIsAccordingToUserSelection() {
-		displayROIs("deriv", viewDerivativeCheckbox.isSelected());
-		displayROIs("gulp", viewGulpsCheckbox.isSelected());
-		displayROIs("level", viewLevelsCheckbox.isSelected());
-	}
-
 	/**
 	 * Applies central view options to the kymos viewer. Used on viewer T change and
 	 * when opening kymos / selecting frame.
@@ -244,26 +192,7 @@ public class Intervals extends JPanel implements ViewerListener {
 		}
 	}
 
-	private void displayROIs(String filter, boolean visible) {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null)
-			return;
-		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
-		if (v == null)
-			return;
-		IcyCanvas canvas = v.getCanvas();
-		List<Layer> layers = canvas.getLayers(false);
-		if (layers != null) {
-			for (Layer layer : layers) {
-				ROI roi = layer.getAttachedROI();
-				if (roi != null) {
-					String cs = roi.getName();
-					if (cs.contains(filter))
-						layer.setVisible(visible);
-				}
-			}
-		}
-	}
+
 
 	public void displayON() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();

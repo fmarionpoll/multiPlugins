@@ -16,6 +16,7 @@ import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.ViewOptionsHolder;
 import plugins.fmp.multitools.experiment.Experiment;
 
 public class Options extends JPanel {
@@ -29,6 +30,10 @@ public class Options extends JPanel {
 	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries", true);
 	public JCheckBox viewCellsCheckbox = new JCheckBox("cages", true);
 	JCheckBox viewFlyCheckbox = new JCheckBox("flies", false);
+	
+	JCheckBox viewLevelsCheckbox = new JCheckBox("top/bottom level (green)", true);
+	JCheckBox viewDerivativeCheckbox = new JCheckBox("derivative (yellow)", true);
+	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps (red)", true);
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
@@ -38,26 +43,37 @@ public class Options extends JPanel {
 		viewCapillariesCheckBox.setSelected(parent0.viewOptions.isViewCapillaries());
 		viewCellsCheckbox.setSelected(parent0.viewOptions.isViewCages());
 		viewFlyCheckbox.setSelected(parent0.viewOptions.isViewFliesCenter());
+		viewLevelsCheckbox.setSelected(parent0.viewOptions.isViewLevels());
+		viewDerivativeCheckbox.setSelected(parent0.viewOptions.isViewDerivative());
+		viewGulpsCheckbox.setSelected(parent0.viewOptions.isViewGulps());
 
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(1);
 
-		JPanel panel2 = new JPanel(layout);
-		panel2.add(new JLabel("Load: "));
-		panel2.add(kymographsCheckBox);
-		panel2.add(cagesCheckBox);
-		panel2.add(measuresCheckBox);
-		panel2.add(graphsCheckBox);
-		panel2.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
-		add(panel2);
+		JPanel panel0 = new JPanel(layout);
+		panel0.add(new JLabel("Load: "));
+		panel0.add(kymographsCheckBox);
+		panel0.add(cagesCheckBox);
+		panel0.add(measuresCheckBox);
+		panel0.add(graphsCheckBox);
+		panel0.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
+		add(panel0);
 
 		JPanel panel1 = new JPanel(layout);
-		panel1.add(new JLabel("View : "));
+		panel1.add(new JLabel("View cams: "));
 		panel1.add(viewCapillariesCheckBox);
 		panel1.add(viewCellsCheckbox);
 		panel1.add(viewFlyCheckbox);
 		add(panel1);
 
+		
+		JPanel panel2 = new JPanel(layout);
+		panel2.add(new JLabel("View kymos: "));
+		panel2.add(viewLevelsCheckbox);
+		panel2.add(viewDerivativeCheckbox);
+		panel2.add(viewGulpsCheckbox);
+		add(panel2);
+		
 		defineActionListeners();
 	}
 
@@ -96,6 +112,36 @@ public class Options extends JPanel {
 				displayROIsCategory(sel, "det");
 			}
 		});
+		
+		viewDerivativeCheckbox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean sel = viewDerivativeCheckbox.isSelected();
+				parent0.viewOptions.setViewDerivative(sel);
+				saveViewOptions();
+				displayROIs("deriv", sel);
+			}
+		});
+
+		viewGulpsCheckbox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean sel = viewGulpsCheckbox.isSelected();
+				parent0.viewOptions.setViewGulps(sel);
+				saveViewOptions();
+				displayROIs("gulp", sel);
+			}
+		});
+
+		viewLevelsCheckbox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean sel = viewLevelsCheckbox.isSelected();
+				parent0.viewOptions.setViewLevels(sel);
+				saveViewOptions();
+				displayROIs("level", sel);
+			}
+		});
 
 	}
 
@@ -130,7 +176,7 @@ public class Options extends JPanel {
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v == null)
 			return;
-		plugins.fmp.multicafe.ViewOptionsHolder opts = parent0.viewOptions;
+		ViewOptionsHolder opts = parent0.viewOptions;
 		displayROIsCategory(v, "line", opts.isViewCapillaries());
 		displayROIsCategory(v, "cell", opts.isViewCages());
 		displayROIsCategory(v, "cage", opts.isViewCages());
@@ -153,5 +199,33 @@ public class Options extends JPanel {
 				layer.setVisible(isVisible);
 		}
 	}
+	
+	public void displayROIsAccordingToUserSelection() {
+		displayROIs("deriv", viewDerivativeCheckbox.isSelected());
+		displayROIs("gulp", viewGulpsCheckbox.isSelected());
+		displayROIs("level", viewLevelsCheckbox.isSelected());
+	}
+	
+	private void displayROIs(String filter, boolean visible) {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
+		if (v == null)
+			return;
+		IcyCanvas canvas = v.getCanvas();
+		List<Layer> layers = canvas.getLayers(false);
+		if (layers != null) {
+			for (Layer layer : layers) {
+				ROI roi = layer.getAttachedROI();
+				if (roi != null) {
+					String cs = roi.getName();
+					if (cs.contains(filter))
+						layer.setVisible(visible);
+				}
+			}
+		}
+	}
+
 
 }
