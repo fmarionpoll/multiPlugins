@@ -905,14 +905,6 @@ public class Capillary implements Comparable<Capillary> {
 
 	private void getROIFromCapillaryLevel(CapillaryMeasure capLevel, List<ROI2D> listrois,
 			List<String> kymographImagesList) {
-		if (capLevel.polylineLevel == null || capLevel.polylineLevel.npoints == 0)
-			return;
-
-		ROI2D roi = new ROI2DPolyLine(capLevel.polylineLevel);
-		String name = metadata.kymographPrefix + "_" + capLevel.capName;
-		roi.setName(name);
-
-		// Always derive kymograph index from image list (don't trust stored value)
 		int tIndex = deriveKymographIndexFromImageList(kymographImagesList);
 		if (tIndex >= 0) {
 			kymographIndex = tIndex;
@@ -921,10 +913,18 @@ public class Capillary implements Comparable<Capillary> {
 					"capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName)
 							+ " kymographIndex=" + kymographIndex + " kymographFilename=" + kymographFilename
 							+ " (could not derive from image list)");
-			tIndex = kymographIndex; // Fallback to stored value if search fails
+			tIndex = kymographIndex;
 		}
-		roi.setT(tIndex);
+		getROIFromCapillaryLevelAtT(capLevel, listrois, tIndex);
+	}
 
+	private void getROIFromCapillaryLevelAtT(CapillaryMeasure capLevel, List<ROI2D> listrois, int tIndex) {
+		if (capLevel.polylineLevel == null || capLevel.polylineLevel.npoints == 0)
+			return;
+		ROI2D roi = new ROI2DPolyLine(capLevel.polylineLevel);
+		String name = metadata.kymographPrefix + "_" + capLevel.capName;
+		roi.setName(name);
+		roi.setT(tIndex);
 		if (capLevel.capName.contains(ID_DERIVATIVE)) {
 			roi.setColor(Color.yellow);
 			roi.setStroke(1);
@@ -934,18 +934,18 @@ public class Capillary implements Comparable<Capillary> {
 
 	private void getROIsFromCapillaryGulps(CapillaryGulps capGulps, List<ROI2D> listrois,
 			List<String> kymographImagesList) {
-		if (capGulps == null || capGulps.getHeightSeries() == null || capGulps.getHeightSeries().npoints == 0)
-			return;
-
-		// Derive kymograph index once for all gulp ROIs
 		int tIndex = deriveKymographIndexFromImageList(kymographImagesList);
 		if (tIndex >= 0) {
 			kymographIndex = tIndex;
 		} else {
-			tIndex = kymographIndex; // Fallback to stored value if search fails
+			tIndex = kymographIndex;
 		}
+		getROIsFromCapillaryGulpsAtT(capGulps, listrois, tIndex);
+	}
 
-		// Create one vertical line ROI per gulp
+	private void getROIsFromCapillaryGulpsAtT(CapillaryGulps capGulps, List<ROI2D> listrois, int tIndex) {
+		if (capGulps == null || capGulps.getHeightSeries() == null || capGulps.getHeightSeries().npoints == 0)
+			return;
 		for (int x = 0; x < (capGulps.getHeightSeries().npoints - 1); x++) {
 			int value = (int) capGulps.getHeightSeries().ypoints[x];
 			if (value > 0) {
@@ -960,15 +960,27 @@ public class Capillary implements Comparable<Capillary> {
 						&& x < measurements.ptsBottom.polylineLevel.npoints) {
 					yBottom = yTop + value;
 				}
-
 				ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
 				gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
 				gulpRoi.setColor(Color.red);
 				gulpRoi.setT(tIndex);
-
 				listrois.add(gulpRoi);
 			}
 		}
+	}
+
+	/**
+	 * Exports ROIs for this capillary at time index t (top, bottom, derivative,
+	 * gulps). Same content as transferMeasuresToROIs but at fixed t, without
+	 * needing the kymograph image list.
+	 */
+	public List<ROI2D> getROIsForCapillaryAtT(int t) {
+		List<ROI2D> listrois = new ArrayList<>();
+		getROIFromCapillaryLevelAtT(measurements.ptsTop, listrois, t);
+		getROIFromCapillaryLevelAtT(measurements.ptsBottom, listrois, t);
+		getROIFromCapillaryLevelAtT(measurements.ptsDerivative, listrois, t);
+		getROIsFromCapillaryGulpsAtT(measurements.ptsGulps, listrois, t);
+		return listrois;
 	}
 
 	public void transferROIsToAllMeasures(List<ROI> listRois) {
