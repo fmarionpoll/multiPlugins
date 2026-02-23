@@ -270,8 +270,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			startComputationButton.setText(detectString);
-			parent0.paneKymos.tabDisplay.selectKymographImage(parent0.paneKymos.tabDisplay.indexImagesCombo);
-			parent0.paneKymos.tabDisplay.indexImagesCombo = -1;
+			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
+			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 			
 			if (buildBackground != null && buildBackground.isSaveSuccessful()) {
 				loadBackgroundWithRetry();

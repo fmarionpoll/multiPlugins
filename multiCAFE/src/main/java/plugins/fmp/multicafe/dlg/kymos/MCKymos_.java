@@ -25,8 +25,8 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
 	public CreateKymos tabCreate = new CreateKymos();
-	public Options tabDisplay = new Options();
 	public Intervals tabIntervals = new Intervals();
+	public Binsize tabBinsize = new Binsize();
 	public LoadSave tabLoadSave = new LoadSave();
 
 	private MultiCAFE parent0 = null;
@@ -44,13 +44,13 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 		tabCreate.addPropertyChangeListener(this);
 		tabsPane.addTab("Build kymos", null, tabCreate, "Build kymographs from ROI lines placed over capillaries");
 
-		tabDisplay.init(capLayout, parent0);
-		tabDisplay.addPropertyChangeListener(this);
-		tabsPane.addTab("Options", null, tabDisplay, "Display options of data & kymographs");
-
 		tabIntervals.init(capLayout, parent0);
 		tabIntervals.addPropertyChangeListener(this);
-		tabsPane.addTab("Edit", null, tabIntervals, "Time resolution of kymograph");
+		tabsPane.addTab("Intervals", null, tabIntervals, "Display options of data & kymographs");
+
+		tabBinsize.init(capLayout, parent0);
+		tabBinsize.addPropertyChangeListener(this);
+		tabsPane.addTab("Edit bins", null, tabBinsize, "Time resolution of kymograph");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);
@@ -82,7 +82,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 
 	public void updateDialogs(Experiment exp) {
 		if (exp != null && exp.getSeqKymos() != null)
-			tabIntervals.displayDlgKymoIntervals(exp);
+			tabBinsize.displayDlgKymoIntervals(exp);
 	}
 
 	void tabbedCapillariesAndKymosSelected() {
@@ -97,7 +97,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 //			parent0.paneExperiment.capPopupPanel.expand();
 			parent0.paneExperiment.tabsPane.setSelectedIndex(0);
 		} else if (iselected == 1) {
-			parent0.paneKymos.tabDisplay.displayUpdateOnSwingThread();
+			parent0.paneKymos.tabIntervals.displayUpdateOnSwingThread();
 		}
 	}
 

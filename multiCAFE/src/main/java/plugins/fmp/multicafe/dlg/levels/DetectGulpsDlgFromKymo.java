@@ -235,8 +235,8 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
-			parent0.paneKymos.tabDisplay.selectKymographImage(parent0.paneKymos.tabDisplay.indexImagesCombo);
-			parent0.paneKymos.tabDisplay.indexImagesCombo = -1;
+			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
+			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 
 			start_spinner.setValue(threadDetectGulps.options.searchArea.x);
 			end_spinner.setValue(threadDetectGulps.options.searchArea.width + threadDetectGulps.options.searchArea.x);

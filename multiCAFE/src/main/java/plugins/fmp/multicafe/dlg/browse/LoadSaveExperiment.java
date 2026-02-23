@@ -586,8 +586,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				// Populate combo box AFTER measures are loaded to ensure capillaries are fully populated
 				if (exp.getSeqKymos() != null && exp.getCapillaries() != null
 						&& exp.getCapillaries().getList().size() > 0) {
-					parent0.paneKymos.tabDisplay.transferCapillaryNamesToComboBox(exp);
-					parent0.paneKymos.tabDisplay.displayUpdateOnSwingThread();
+					parent0.paneKymos.tabIntervals.transferCapillaryNamesToComboBox(exp);
+					parent0.paneKymos.tabIntervals.displayUpdateOnSwingThread();
 				}
 			}
 		}

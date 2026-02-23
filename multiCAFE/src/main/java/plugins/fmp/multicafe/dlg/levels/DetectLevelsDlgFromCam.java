@@ -312,8 +312,8 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
 			System.out.println("thread_ended");
-			parent0.paneKymos.tabDisplay.selectKymographImage(currentKymographImage);
-			parent0.paneKymos.tabDisplay.indexImagesCombo = -1;
+			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
+			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 		}
 	}
 
@@ -333,7 +333,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 		Sequence seq = exp.getSeqCamData().getSequence();
 		if (seq.getFirstViewer() == null)
-			parent0.paneKymos.tabDisplay.displayON();
+			parent0.paneKymos.tabIntervals.displayON();
 
 		if (overlayThreshold == null)
 			overlayThreshold = new OverlayThreshold(seq);

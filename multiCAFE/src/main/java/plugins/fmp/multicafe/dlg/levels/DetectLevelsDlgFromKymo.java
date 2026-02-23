@@ -443,8 +443,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
 			System.out.println("thread_ended");
-			parent0.paneKymos.tabDisplay.selectKymographImage(currentKymographImage);
-			parent0.paneKymos.tabDisplay.indexImagesCombo = -1;
+			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
+			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 			fromRectangleCheckBox.setSelected(false);
 		}
 	}
@@ -491,7 +491,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
 			return null;
 		if (exp.getSeqKymos().getSequence().getFirstViewer() == null)
-			parent0.paneKymos.tabDisplay.displayON();
+			parent0.paneKymos.tabIntervals.displayON();
 		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
 		if (v == null)
 			return null;
@@ -504,7 +504,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 		Sequence seq = exp.getSeqKymos().getSequence();
 		if (seq.getFirstViewer() == null)
-			parent0.paneKymos.tabDisplay.displayON();
+			parent0.paneKymos.tabIntervals.displayON();
 
 		if (overlayThreshold == null)
 			overlayThreshold = new OverlayThreshold(seq);
