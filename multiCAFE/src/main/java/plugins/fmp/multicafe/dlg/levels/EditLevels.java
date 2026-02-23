@@ -5,6 +5,7 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Line2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -297,15 +298,37 @@ public class EditLevels extends JPanel {
 		refreshValidateButtonState();
 	}
 
+	private static final double GULP_SAME_PLACE_TOLERANCE = 2.0;
+
 	private boolean hasGulpAddedAt(Sequence seq, int t, double cx, double cy) {
 		List<ROI2D> rois = seq.getROI2Ds();
 		for (ROI2D r : rois) {
 			if (r.getT() != t || r.getName() == null || !r.getName().contains("_gulp_added_"))
 				continue;
-			if (r.contains(cx, cy))
+			if (r instanceof ROI2DLine) {
+				if (pointNearLineSegment((ROI2DLine) r, cx, cy))
+					return true;
+			} else if (r.contains(cx, cy)) {
 				return true;
+			}
 		}
 		return false;
+	}
+
+	private boolean pointNearLineSegment(ROI2DLine lineRoi, double px, double py) {
+		Line2D line = lineRoi.getLine();
+		double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
+		double dx = x2 - x1, dy = y2 - y1;
+		double len2 = dx * dx + dy * dy;
+		double t;
+		if (len2 <= 0)
+			t = 0;
+		else {
+			t = ((px - x1) * dx + (py - y1) * dy) / len2;
+			t = Math.max(0, Math.min(1, t));
+		}
+		double qx = x1 + t * dx, qy = y1 + t * dy;
+		return Math.hypot(px - qx, py - qy) <= GULP_SAME_PLACE_TOLERANCE;
 	}
 
 	void addGulp(Experiment exp) {
@@ -320,7 +343,7 @@ public class EditLevels extends JPanel {
 		}
 		Sequence seq = seqKymos.getSequence();
 		int width = seq.getWidth();
-		int height = seq.getHeight();
+//		int height = seq.getHeight();
 		String prefix = cap.getKymographPrefix();
 		if (prefix == null)
 			prefix = "";
@@ -331,12 +354,12 @@ public class EditLevels extends JPanel {
 		}
 		gulpAddedCounter++;
 		int cx = width / 2;
-		int cy = height / 2;
+		int cy = 10; //height / 2;
 		int tryCx = cx;
 		int tryCy = cy;
 		for (int attempt = 0; attempt < 10; attempt++) {
-			tryCx = cx - 2 * attempt;
-			tryCy = cy + 2 * attempt;
+			tryCx = cx + 5 * attempt;
+			tryCy = cy + 5 * attempt;
 			if (!hasGulpAddedAt(seq, t, tryCx, tryCy))
 				break;
 		}

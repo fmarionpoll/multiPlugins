@@ -975,7 +975,8 @@ public class Capillary implements Comparable<Capillary> {
 		measurements.ptsTop.transferROIsToMeasures(listRois);
 		measurements.ptsBottom.transferROIsToMeasures(listRois);
 		measurements.ptsDerivative.transferROIsToMeasures(listRois);
-		measurements.ptsGulps.transferROIsToMeasures(listRois);
+		int npoints = (measurements.ptsTop != null) ? measurements.ptsTop.getNPoints() : 0;
+		measurements.ptsGulps.transferROIsToMeasures(listRois, npoints);
 	}
 
 	// -----------------------------------------------------------------------------

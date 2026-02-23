@@ -35,7 +35,8 @@ public class CapillaryGulps {
 		this.gulpHeights = capG.gulpHeights != null ? capG.gulpHeights.clone() : new Level2D();
 	}
 
-	public boolean loadGulpsFromXML(Node node) {
+	/** npoints: kymograph width when known (>0); otherwise inferred from ROIs. */
+	public boolean loadGulpsFromXML(Node node, int npoints) {
 		boolean flag = false;
 		ArrayList<ROI2D> rois = new ArrayList<ROI2D>();
 		final Node nodeROIs = XMLUtil.getElement(node, ID_GULPS);
@@ -47,8 +48,7 @@ public class CapillaryGulps {
 				rois.add(roi);
 			}
 		}
-
-		buildGulpsFromROIs(rois);
+		buildGulpsFromROIs(rois, npoints);
 		return flag;
 	}
 
@@ -311,28 +311,36 @@ public class CapillaryGulps {
 
 	// -------------------------------
 
-	void buildGulpsFromROIs(ArrayList<ROI2D> rois) {
+	/**
+	 * Builds gulp heights from ROIs. When npoints > 0 (kymograph width), uses that size
+	 * and skips inferring extent from ROIs; otherwise infers from ROIs for backward compatibility.
+	 */
+	void buildGulpsFromROIs(ArrayList<ROI2D> rois, int npoints) {
 		clear();
-		int maxX = 0;
-		for (ROI2D roi : rois) {
-			if (roi instanceof ROI2DLine) {
-				Line2D line = ((ROI2DLine) roi).getLine();
-				int xPixel = (int) Math.round((line.getX1() + line.getX2()) / 2);
-				if (xPixel + 1 > maxX)
-					maxX = xPixel + 1;
-			} else {
-				Rectangle rect = roi.getBounds();
-				if (!rect.isEmpty()) {
-					int endX = rect.x + rect.width;
-					if (endX > maxX)
-						maxX = endX;
+		// make sure that array is large enough
+		if (npoints > 0) {
+			ensureSize(npoints);
+		} else {
+			int maxX = 0;
+			for (ROI2D roi : rois) {
+				if (roi instanceof ROI2DLine) {
+					Line2D line = ((ROI2DLine) roi).getLine();
+					int xPixel = (int) Math.round((line.getX1() + line.getX2()) / 2);
+					if (xPixel + 1 > maxX)
+						maxX = xPixel + 1;
+				} else {
+					Rectangle rect = roi.getBounds();
+					if (!rect.isEmpty()) {
+						int endX = rect.x + rect.width;
+						if (endX > maxX)
+							maxX = endX;
+					}
 				}
 			}
+			if (maxX > 0)
+				ensureSize(maxX);
 		}
-
-		if (maxX > 0)
-			ensureSize(maxX);
-
+		// transfer roi to measure
 		for (ROI2D roi : rois) {
 			if (roi instanceof ROI2DLine)
 				addGulpFromROI2DLine((ROI2DLine) roi);
@@ -382,9 +390,9 @@ public class CapillaryGulps {
 
 	/**
 	 * Replaces gulp measures with heights derived from the given ROIs (gulp ROIs only).
-	 * Clears existing heights, then fills from the list; same semantics as other CapillaryMeasure.transferROIsToMeasures.
+	 * npoints: kymograph width when known (>0); otherwise inferred from ROIs.
 	 */
-	public void transferROIsToMeasures(List<? extends ROI> listRois) {
+	public void transferROIsToMeasures(List<? extends ROI> listRois, int npoints) {
 		ArrayList<ROI2D> rois = new ArrayList<ROI2D>();
 		for (ROI roi : listRois) {
 			String roiname = roi.getName();
@@ -397,7 +405,7 @@ public class CapillaryGulps {
 				rois.add((ROI2DPolyLine) roi);
 			}
 		}
-		buildGulpsFromROIs(rois);
+		buildGulpsFromROIs(rois, npoints);
 	}
 
 	ArrayList<Integer> getCumSumFromGulps(int npoints) {

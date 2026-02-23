@@ -356,7 +356,8 @@ public class SequenceKymos extends SequenceCamData {
 			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
 				gulpRois.add(r);
 		}
-		cap.getGulps().transferROIsToMeasures(gulpRois);
+		int npoints = (cap.getTopLevel() != null) ? cap.getTopLevel().getNPoints() : 0;
+		cap.getGulps().transferROIsToMeasures(gulpRois, npoints);
 		cap.setGulpMeasuresDirty(false);
 	}
 

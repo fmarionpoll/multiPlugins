@@ -149,7 +149,8 @@ public class CapillaryPersistence {
 		result |= cap.getDerivative().loadCapillaryLimitFromXML(node, ID_DERIVATIVE, header) > 0;
 		result |= cap.getTopCorrected().loadCapillaryLimitFromXML(node, ID_TOPLEVEL_CORRECTED, header) > 0;
 		result |= cap.getThreshold().loadCapillaryLimitFromXML(node, ID_THRESHOLD, header) > 0;
-		result |= cap.getGulps().loadGulpsFromXML(node);
+		int npoints = (cap.getTopLevel() != null) ? cap.getTopLevel().getNPoints() : 0;
+		result |= cap.getGulps().loadGulpsFromXML(node, npoints);
 		return result;
 	}
 
