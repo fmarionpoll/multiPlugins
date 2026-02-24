@@ -87,12 +87,12 @@ public class EditLevels extends JPanel {
 		String option = (String) roiTypeCombo.getSelectedItem();
 		boolean gulpsSelected = option != null && option.contains("gulp");
 		if (gulpsSelected) {
-			cutAndInterpolateButton.setText("Delete inside polygon");
-			addGulpButton.setVisible(true);
-			validateGulpsButton.setVisible(true);
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null)
 				attachGulpRoiListeners(exp);
+			cutAndInterpolateButton.setText("Delete gulps inside polygon");
+			addGulpButton.setVisible(true);
+			validateGulpsButton.setVisible(true);
 			refreshValidateButtonState();
 		} else {
 			removeGulpRoiListeners();
@@ -161,11 +161,8 @@ public class EditLevels extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
-				String option = (String) roiTypeCombo.getSelectedItem();
-				if (option != null && option.contains("gulp"))
-					deleteGulpsInRegion(exp);
-				else
-					cutAndInterpolate(exp);
+
+				cutAndInterpolate(exp);
 			}
 		});
 
@@ -282,24 +279,6 @@ public class EditLevels extends JPanel {
 		seq.endUpdate();
 	}
 
-	void deleteGulpsInRegion(Experiment exp) {
-		SequenceKymos seqKymos = exp.getSeqKymos();
-		if (seqKymos == null || seqKymos.getSequence() == null)
-			return;
-		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		ROI2D roi = seqKymos.getSequence().getSelectedROI2D();
-		if (roi == null) {
-			JOptionPane.showMessageDialog(this, "Select a polygon ROI to define the region.");
-			return;
-		}
-		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
-		if (cap == null)
-			return;
-		List<ROI> list = getGulpsWithinRoi(roi, seqKymos.getSequence(), t);
-		deleteGulps(seqKymos, list);
-		cap.setGulpMeasuresDirty(true);
-		refreshValidateButtonState();
-	}
 
 	private static final double GULP_SAME_PLACE_TOLERANCE = 2.0;
 
@@ -405,21 +384,37 @@ public class EditLevels extends JPanel {
 
 	void cutAndInterpolate(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
-		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		ROI2D roi = seqKymos.getSequence().getSelectedROI2D();
-		if (roi == null)
+		if (seqKymos == null || seqKymos.getSequence() == null)
 			return;
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		ROI2D roiEnclosing = seqKymos.getSequence().getSelectedROI2D();
+		if (roiEnclosing == null) {
+			JOptionPane.showMessageDialog(this, "Select a polygon ROI to define a region to be cleared out");
+			return;
+		}
 		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 		if (cap == null)
 			return;
-		seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
+		
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
-		if (optionSelected.contains("top"))
-			removeAndUpdate(seqKymos, cap, cap.getTopLevel(), roi);
-		if (optionSelected.contains("bottom"))
-			removeAndUpdate(seqKymos, cap, cap.getBottomLevel(), roi);
-		if (optionSelected.contains("deriv"))
-			removeAndUpdate(seqKymos, cap, cap.getDerivative(), roi);
+		if (optionSelected == null)
+		return;
+		
+		if (optionSelected.contains("gulp")) {
+			List<ROI> list = getGulpsWithinRoi(roiEnclosing, seqKymos.getSequence(), t);
+			deleteGulps(seqKymos, list);
+			cap.setGulpMeasuresDirty(true);
+			refreshValidateButtonState();
+		}
+		else {
+			seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
+			if (optionSelected.contains("top"))
+				removeAndUpdate(seqKymos, cap, cap.getTopLevel(), roiEnclosing);
+			if (optionSelected.contains("bottom"))
+				removeAndUpdate(seqKymos, cap, cap.getBottomLevel(), roiEnclosing);
+			if (optionSelected.contains("deriv"))
+				removeAndUpdate(seqKymos, cap, cap.getDerivative(), roiEnclosing);
+		}
 	}
 
 	private void removeAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roi) {
