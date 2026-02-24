@@ -38,17 +38,31 @@ public class LevelDetectorFromCam {
 			return;
 		Collections.sort(capillaries.getList(), new Comparators.Capillary_ROIName());
 
+		int nCamFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		if (nCamFrames <= 0)
+			return;
+
 		long firstMs = exp.getKymoFirst_ms();
 		long lastMs = exp.getKymoLast_ms();
 		long stepMs = exp.getKymoBin_ms();
 		if (stepMs <= 0)
 			stepMs = 1;
+		if (firstMs == 0 && lastMs == 0) {
+			long camFirst = exp.getCamImageFirst_ms();
+			long camLast = exp.getCamImageLast_ms();
+			if (camFirst >= 0 && camLast > camFirst) {
+				firstMs = 0;
+				lastMs = camLast - camFirst;
+				long camBin = exp.getCamImageBin_ms();
+				if (camBin > 0)
+					stepMs = camBin;
+			} else {
+				firstMs = 0;
+				lastMs = (nCamFrames - 1) * stepMs;
+			}
+		}
 		int nTimeBins = (int) ((lastMs - firstMs) / stepMs + 1);
 		if (nTimeBins <= 0)
-			return;
-
-		int nCamFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		if (nCamFrames <= 0)
 			return;
 
 		List<Capillary> built = buildCapillariesToProcess(capillaries, options);

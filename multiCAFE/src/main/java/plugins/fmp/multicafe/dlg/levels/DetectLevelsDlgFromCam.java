@@ -64,7 +64,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 	private MultiCAFE parent0 = null;
 	private DetectLevels threadDetectLevels = null;
-
 	private OverlayThreshold overlayThreshold = null;
 	private int currentKymographImage = 0;
 
