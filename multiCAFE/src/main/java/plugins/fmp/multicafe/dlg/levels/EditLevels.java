@@ -32,7 +32,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
-import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class EditLevels extends JPanel {
@@ -60,25 +59,28 @@ public class EditLevels extends JPanel {
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
-		JPanel panel1 = new JPanel(layoutLeft);
-		panel1.add(new JLabel("Apply to "));
-		panel1.add(roiTypeCombo);
-		add(panel1);
+		JPanel panel0 = new JPanel(layoutLeft);
+		panel0.add(new JLabel("Apply to "));
+		panel0.add(roiTypeCombo);
+		add(panel0);
 
-		JPanel panelCutAdd = new JPanel(layoutLeft);
-		panelCutAdd.add(cutAndInterpolateButton);
-		panelCutAdd.add(addGulpButton);
-		panelCutAdd.add(validateGulpsButton);
-		add(panelCutAdd);
+		JPanel panel1 = new JPanel(layoutLeft);
+		panel1.add(cutAndInterpolateButton);
+		panel1.add(addGulpButton);
+		panel1.add(validateGulpsButton);
+		add(panel1);
 
 		addGulpButton.setVisible(false);
 		validateGulpsButton.setVisible(false);
 		updateGulpButtonsVisibility();
 
 		JPanel panel2 = new JPanel(layoutLeft);
-		panel2.add(cropButton);
-		panel2.add(restoreButton);
 		add(panel2);
+		
+		JPanel panel3 = new JPanel(layoutLeft);
+		panel3.add(cropButton);
+		panel3.add(restoreButton);
+		add(panel3);
 
 		defineListeners();
 	}
@@ -386,19 +388,21 @@ public class EditLevels extends JPanel {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		if (seqKymos == null || seqKymos.getSequence() == null)
 			return;
-		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
+		
 		ROI2D roiEnclosing = seqKymos.getSequence().getSelectedROI2D();
 		if (roiEnclosing == null) {
 			JOptionPane.showMessageDialog(this, "Select a polygon ROI to define a region to be cleared out");
 			return;
 		}
+		
+		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
 		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 		if (cap == null)
 			return;
 		
 		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 		if (optionSelected == null)
-		return;
+			return;
 		
 		if (optionSelected.contains("gulp")) {
 			List<ROI> list = getGulpsWithinRoi(roiEnclosing, seqKymos.getSequence(), t);
@@ -424,21 +428,32 @@ public class EditLevels extends JPanel {
 
 	void removeMeasuresEnclosedInRoi(CapillaryMeasure caplimits, ROI2D roi) {
 		Polyline2D polyline = caplimits.polylineLevel;
-		int npointsOutside = polyline.npoints - getPointsWithinROI(polyline, roi);
-		if (npointsOutside > 0) {
-			double[] xpoints = new double[npointsOutside];
-			double[] ypoints = new double[npointsOutside];
-			int index = 0;
-			for (int i = 0; i < polyline.npoints; i++) {
-				if (!isInside[i]) {
-					xpoints[index] = polyline.xpoints[i];
-					ypoints[index] = polyline.ypoints[i];
-					index++;
-				}
+		if (polyline == null || polyline.npoints == 0)
+			return;
+		Rectangle2D rect = roi.getBounds2D();
+		double xLeft = rect.getX();
+		double xRight = rect.getMaxX();
+		int iLeft = -1;
+		for (int i = 0; i < polyline.npoints; i++) {
+			if (polyline.xpoints[i] >= xLeft) {
+				iLeft = i;
+				break;
 			}
-			caplimits.polylineLevel = new Level2D(xpoints, ypoints, npointsOutside);
-		} else {
-			caplimits.polylineLevel = null;
+		}
+		int iRight = -1;
+		for (int i = polyline.npoints - 1; i >= 0; i--) {
+			if (polyline.xpoints[i] <= xRight) {
+				iRight = i;
+				break;
+			}
+		}
+		if (iLeft < 0 || iRight < 0 || iRight <= iLeft)
+			return;
+		double y1 = polyline.ypoints[iLeft];
+		double y2 = polyline.ypoints[iRight];
+		double denom = iRight - iLeft;
+		for (int i = iLeft; i <= iRight; i++) {
+			polyline.ypoints[i] = y1 + (y2 - y1) * (i - iLeft) / denom;
 		}
 	}
 
