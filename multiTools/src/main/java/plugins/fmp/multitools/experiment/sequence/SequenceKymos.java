@@ -20,6 +20,7 @@ import icy.image.IcyBufferedImage;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.MetaDataUtil;
+import icy.sequence.Sequence;
 import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
 import icy.type.geom.Polyline2D;
@@ -320,8 +321,56 @@ public class SequenceKymos extends SequenceCamData {
 				roisAtT.add(roi);
 		}
 		cap.transferROIsToAllMeasures(roisAtT);
-
 		return true;
+	}
+
+	/**
+	 * Transfers ROIs at the current frame to the capillary's measures. Resolves
+	 * frame index from getCurrentFrame() or viewer; use when cap is already known.
+	 */
+	public boolean transferKymosRoi_at_T_To_Capillaries_Measures(Capillary cap) {
+		int t = resolveCurrentFrame();
+		return t >= 0 && transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
+	}
+
+	private int resolveCurrentFrame() {
+		int t = getCurrentFrame();
+		if (t < 0 && getSequence() != null && getSequence().getFirstViewer() != null)
+			t = getSequence().getFirstViewer().getPositionT();
+		return t;
+	}
+
+	public boolean validateLinearROIsAtT(int t, Capillary cap) {
+		Sequence seq = getSequence();
+		seq.beginUpdate();
+		List<ROI> allRois = seq.getROIs();
+		if (allRois.size() < 1)
+			return false;
+
+		int width = seq.getWidth();
+		for (ROI roi : allRois) {
+			if (!roi.getName().contains("level") && !roi.getName().contains("derivative"))
+				continue;
+			if (!(roi instanceof ROI2D) || ((ROI2D) roi).getT() != t)
+				continue;
+
+			ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, width);
+			cap.transferROIToLinearMeasure(roi);
+			seq.removeROI(roi);
+		}
+
+		seq.addROIs(cap.getLinearROIsForCapillaryAtT(t), false);
+		seq.endUpdate();
+		return true;
+	}
+
+	/**
+	 * Validates linear (level/derivative) ROIs at the current frame. Resolves frame
+	 * index from getCurrentFrame() or viewer; use when cap is already known.
+	 */
+	public boolean validateLinearROIsAtT(Capillary cap) {
+		int t = resolveCurrentFrame();
+		return t >= 0 && validateLinearROIsAtT(t, cap);
 	}
 
 	/**
@@ -336,10 +385,20 @@ public class SequenceKymos extends SequenceCamData {
 			MessageDialog.showDialog("Capillary not found for current frame.", MessageDialog.WARNING_MESSAGE);
 			return;
 		}
-		validateGulpROIsAtT(cap, t);
+		validateGulpROIsAtT(t, cap);
 	}
 
-	public void validateGulpROIsAtT(Capillary cap, int t) {
+	/**
+	 * Rebuilds gulp ROIs at the current frame for the given capillary. Resolves
+	 * frame index from getCurrentFrame() or viewer; use when cap is already known.
+	 */
+	public void validateGulpROIsAtT(Capillary cap) {
+		int t = resolveCurrentFrame();
+		if (t >= 0)
+			validateGulpROIsAtT(t, cap);
+	}
+
+	public void validateGulpROIsAtT(int t, Capillary cap) {
 		if (cap == null)
 			return;
 

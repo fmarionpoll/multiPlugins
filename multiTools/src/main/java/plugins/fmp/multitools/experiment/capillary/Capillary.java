@@ -983,6 +983,14 @@ public class Capillary implements Comparable<Capillary> {
 		return listrois;
 	}
 
+	public List<ROI2D> getLinearROIsForCapillaryAtT(int t) {
+		List<ROI2D> listrois = new ArrayList<>();
+		getROIFromCapillaryLevelAtT(measurements.ptsTop, listrois, t);
+		getROIFromCapillaryLevelAtT(measurements.ptsBottom, listrois, t);
+		getROIFromCapillaryLevelAtT(measurements.ptsDerivative, listrois, t);
+		return listrois;
+	}
+
 	public List<ROI2D> getGulpROIsForCapillaryAtT(int t) {
 		List<ROI2D> listrois = new ArrayList<>();
 		getROIsFromCapillaryGulpsAtT(measurements.ptsGulps, listrois, t);
@@ -995,6 +1003,45 @@ public class Capillary implements Comparable<Capillary> {
 		measurements.ptsDerivative.transferROIsToMeasures(listRois);
 		int npoints = (measurements.ptsTop != null) ? measurements.ptsTop.getNPoints() : 0;
 		measurements.ptsGulps.transferROIsToMeasures(listRois, npoints);
+	}
+
+	public void transferROIToLinearMeasure(ROI roi) {
+		if (roi.getName().contains("top"))
+			measurements.ptsTop.transferROIToMeasure(roi);
+		else if (roi.getName().contains("bottom"))
+			measurements.ptsBottom.transferROIToMeasure(roi);
+		else if (roi.getName().contains("derivative"))
+			measurements.ptsDerivative.transferROIToMeasure(roi);
+	}
+
+	/**
+	 * Transfers the ROI polyline into the measure(s) indicated by target. Caller
+	 * specifies the measure explicitly (e.g. from MeasureEditTarget). Does not
+	 * apply to GULPS (use gulp-specific transfer).
+	 */
+	public void transferROIToMeasure(ROI roi, MeasureEditTarget target) {
+		if (roi == null || target == null || !(roi instanceof ROI2DPolyLine))
+			return;
+		ROI2DPolyLine polyLine = (ROI2DPolyLine) roi;
+		switch (target) {
+		case TOP_LEVEL:
+			getTopLevel().setFromROI(polyLine);
+			break;
+		case BOTTOM_LEVEL:
+			getBottomLevel().setFromROI(polyLine);
+			break;
+		case TOP_AND_BOTTOM:
+			getTopLevel().setFromROI(polyLine);
+			getBottomLevel().setFromROI(polyLine);
+			break;
+		case DERIVATIVE:
+			getDerivative().setFromROI(polyLine);
+			break;
+		case GULPS:
+			break;
+		default:
+			break;
+		}
 	}
 
 	// -----------------------------------------------------------------------------

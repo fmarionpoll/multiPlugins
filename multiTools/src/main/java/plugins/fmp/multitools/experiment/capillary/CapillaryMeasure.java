@@ -149,6 +149,18 @@ public class CapillaryMeasure {
 		return (int) (polylineLevel.ypoints[lastitem] - polylineLevel.ypoints[lastitem - 1]);
 	}
 
+	/**
+	 * Sets this measure's polyline from the given ROI. Caller is responsible for
+	 * having decided that this ROI belongs to this measure (e.g. via MeasureEditTarget).
+	 */
+	public void setFromROI(ROI2DPolyLine roi) {
+		if (roi != null) {
+			Polyline2D line = roi.getPolyline2D();
+			if (line != null && line.npoints > 0)
+				polylineLevel = new Level2D(line);
+		}
+	}
+
 	boolean transferROIsToMeasures(List<ROI> listRois) {
 		for (ROI roi : listRois) {
 			String roiname = roi.getName();
@@ -158,6 +170,15 @@ public class CapillaryMeasure {
 			}
 		}
 		return false;
+	}
+
+	boolean transferROIToMeasure(ROI roi) {
+		boolean flag = false;
+		if (roi instanceof ROI2DPolyLine && roi.getName().contains(capName)) {
+			polylineLevel = new Level2D(((ROI2DPolyLine) roi).getPolyline2D());
+			flag = true;
+		}
+		return flag;
 	}
 
 	List<Integer> getIntegerArrayFromPolyline2D() {
