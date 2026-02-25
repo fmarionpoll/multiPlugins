@@ -32,6 +32,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class EditLevels extends JPanel {
@@ -43,7 +44,9 @@ public class EditLevels extends JPanel {
 	private boolean[] isInside = null;
 	private JComboBox<String> roiTypeCombo = new JComboBox<String>(
 			new String[] { " top level", "bottom level", "top & bottom levels", "derivative", "gulps" });
-	private JButton cutAndInterpolateButton = new JButton("Cut & interpolate");
+	String textForGulps = "Delete gulps inside rectangle/polygon";
+	String textForLevels = "Cut points within rectangle/polygon";
+	private JButton cutButton = new JButton(textForLevels);
 	private JButton addGulpButton = new JButton("Add gulp");
 	private JButton validateGulpsButton = new JButton("Validate gulps");
 	private JButton cropButton = new JButton("Crop from left");
@@ -65,7 +68,7 @@ public class EditLevels extends JPanel {
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
-		panel1.add(cutAndInterpolateButton);
+		panel1.add(cutButton);
 		panel1.add(addGulpButton);
 		panel1.add(validateGulpsButton);
 		add(panel1);
@@ -92,13 +95,13 @@ public class EditLevels extends JPanel {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null)
 				attachGulpRoiListeners(exp);
-			cutAndInterpolateButton.setText("Delete gulps inside polygon");
+			cutButton.setText(textForGulps);
 			addGulpButton.setVisible(true);
 			validateGulpsButton.setVisible(true);
 			refreshValidateButtonState();
 		} else {
 			removeGulpRoiListeners();
-			cutAndInterpolateButton.setText("Cut & interpolate");
+			cutButton.setText(textForLevels);
 			addGulpButton.setVisible(false);
 			validateGulpsButton.setVisible(false);
 		}
@@ -157,14 +160,14 @@ public class EditLevels extends JPanel {
 			}
 		});
 
-		cutAndInterpolateButton.addActionListener(new ActionListener() {
+		cutButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 
-				cutAndInterpolate(exp);
+				cut(exp);
 			}
 		});
 
@@ -388,7 +391,7 @@ public class EditLevels extends JPanel {
 		}
 	}
 
-	void cutAndInterpolate(Experiment exp) {
+	void cut(Experiment exp) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		if (seqKymos == null || seqKymos.getSequence() == null)
 			return;
@@ -416,21 +419,21 @@ public class EditLevels extends JPanel {
 		} else {
 			seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
 			if (optionSelected.contains("top"))
-				removeAndUpdate(seqKymos, cap, cap.getTopLevel(), roiEnclosing);
+				cutAndUpdate(seqKymos, cap, cap.getTopLevel(), roiEnclosing);
 			if (optionSelected.contains("bottom"))
-				removeAndUpdate(seqKymos, cap, cap.getBottomLevel(), roiEnclosing);
+				cutAndUpdate(seqKymos, cap, cap.getBottomLevel(), roiEnclosing);
 			if (optionSelected.contains("deriv"))
-				removeAndUpdate(seqKymos, cap, cap.getDerivative(), roiEnclosing);
+				cutAndUpdate(seqKymos, cap, cap.getDerivative(), roiEnclosing);
 		}
 	}
 
-	private void removeAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roi) {
-		removeMeasuresEnclosedInRoi(caplimits, roi);
+	private void cutAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roi) {
+		removeMeasuresEnclosedInROI(caplimits, roi);
 		seqKymos.updateROIFromCapillaryMeasure(cap, caplimits);
 	}
 
-	void removeMeasuresEnclosedInRoi(CapillaryMeasure caplimits, ROI2D roi) {
-		Polyline2D polyline = caplimits.polylineLevel;
+	void removeMeasuresEnclosedInROI(CapillaryMeasure caplimits, ROI2D roi) {
+		Level2D polyline = caplimits.polylineLevel;
 		if (polyline == null || polyline.npoints == 0)
 			return;
 		Rectangle2D rect = roi.getBounds2D();
@@ -450,15 +453,48 @@ public class EditLevels extends JPanel {
 				break;
 			}
 		}
-		if (iLeft < 0 || iRight < 0 || iRight <= iLeft)
+		if (iLeft < 0 || iRight < 0 || iRight < iLeft)
 			return;
-		double y1 = polyline.ypoints[iLeft];
-		double y2 = polyline.ypoints[iRight];
-		double denom = iRight - iLeft;
-		for (int i = iLeft; i <= iRight; i++) {
-			polyline.ypoints[i] = y1 + (y2 - y1) * (i - iLeft) / denom;
+
+		int nRemove = iRight - iLeft + 1;
+		int newNPoints = polyline.npoints - nRemove;
+
+		if (newNPoints <= 0) {
+			caplimits.polylineLevel = new Level2D(new double[] { polyline.xpoints[iLeft], polyline.xpoints[iRight] },
+					new double[] { polyline.ypoints[iLeft], polyline.ypoints[iRight] }, 2);
+			return;
 		}
+
+		double[] newX = new double[newNPoints];
+		double[] newY = new double[newNPoints];
+		int out = 0;
+		for (int i = 0; i < iLeft; i++) {
+			newX[out] = polyline.xpoints[i];
+			newY[out] = polyline.ypoints[i];
+			out++;
+		}
+		for (int i = iRight + 1; i < polyline.npoints; i++) {
+			newX[out] = polyline.xpoints[i];
+			newY[out] = polyline.ypoints[i];
+			out++;
+		}
+		caplimits.polylineLevel = new Level2D(newX, newY, newNPoints);
 	}
+
+	/*
+	 * 
+	 * void removeMeasuresEnclosedInRoi(CapillaryMeasure caplimits, ROI2D roi) {
+	 * Polyline2D polyline = caplimits.polylineLevel; if (polyline == null ||
+	 * polyline.npoints == 0) return; Rectangle2D rect = roi.getBounds2D(); double
+	 * xLeft = rect.getX(); double xRight = rect.getMaxX(); int iLeft = -1; for (int
+	 * i = 0; i < polyline.npoints; i++) { if (polyline.xpoints[i] >= xLeft) { iLeft
+	 * = i; break; } } int iRight = -1; for (int i = polyline.npoints - 1; i >= 0;
+	 * i--) { if (polyline.xpoints[i] <= xRight) { iRight = i; break; } } if (iLeft
+	 * < 0 || iRight < 0 || iRight <= iLeft) return; double y1 =
+	 * polyline.ypoints[iLeft]; double y2 = polyline.ypoints[iRight]; double denom =
+	 * iRight - iLeft; for (int i = iLeft; i <= iRight; i++) { polyline.ypoints[i] =
+	 * y1 + (y2 - y1) * (i - iLeft) / denom; } }
+	 */
 
 	int getPointsWithinROI(Polyline2D polyline, ROI2D roi) {
 		isInside = new boolean[polyline.npoints];
