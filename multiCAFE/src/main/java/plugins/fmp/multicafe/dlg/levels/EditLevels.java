@@ -427,58 +427,44 @@ public class EditLevels extends JPanel {
 		}
 	}
 
-	private void cutAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roi) {
-		removeMeasuresEnclosedInROI(caplimits, roi);
+	private void cutAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roiRemovedArea) {
+		removeMeasuresEnclosedInROI(caplimits, roiRemovedArea);
 		seqKymos.updateROIFromCapillaryMeasure(cap, caplimits);
 	}
 
-	void removeMeasuresEnclosedInROI(CapillaryMeasure caplimits, ROI2D roi) {
-		Level2D polyline = caplimits.polylineLevel;
-		if (polyline == null || polyline.npoints == 0)
+	void removeMeasuresEnclosedInROI(CapillaryMeasure caplimits, ROI2D roiRemovedArea) {
+		Level2D level2D = caplimits.polylineLevel;
+		if (level2D == null || level2D.npoints == 0)
 			return;
-		Rectangle2D rect = roi.getBounds2D();
-		double xLeft = rect.getX();
-		double xRight = rect.getMaxX();
-		int iLeft = -1;
-		for (int i = 0; i < polyline.npoints; i++) {
-			if (polyline.xpoints[i] >= xLeft) {
-				iLeft = i;
-				break;
+
+		List<Double> keepX = new ArrayList<>(level2D.npoints);
+		List<Double> keepY = new ArrayList<>(level2D.npoints);
+		for (int i = 0; i < level2D.npoints; i++) {
+			double x = level2D.xpoints[i];
+			double y = level2D.ypoints[i];
+			if (!roiRemovedArea.contains(x, y)) {
+				keepX.add(x);
+				keepY.add(y);
 			}
 		}
-		int iRight = -1;
-		for (int i = polyline.npoints - 1; i >= 0; i--) {
-			if (polyline.xpoints[i] <= xRight) {
-				iRight = i;
-				break;
-			}
-		}
-		if (iLeft < 0 || iRight < 0 || iRight < iLeft)
-			return;
 
-		int nRemove = iRight - iLeft + 1;
-		int newNPoints = polyline.npoints - nRemove;
-
-		if (newNPoints <= 0) {
-			caplimits.polylineLevel = new Level2D(new double[] { polyline.xpoints[iLeft], polyline.xpoints[iRight] },
-					new double[] { polyline.ypoints[iLeft], polyline.ypoints[iRight] }, 2);
+		int nKeep = keepX.size();
+		if (nKeep == 0) {
+			caplimits.polylineLevel = new Level2D(
+					new double[] { level2D.xpoints[0], level2D.xpoints[level2D.npoints - 1] },
+					new double[] { level2D.ypoints[0], level2D.ypoints[level2D.npoints - 1] }, 2);
 			return;
 		}
+		if (nKeep == level2D.npoints)
+			return;
 
-		double[] newX = new double[newNPoints];
-		double[] newY = new double[newNPoints];
-		int out = 0;
-		for (int i = 0; i < iLeft; i++) {
-			newX[out] = polyline.xpoints[i];
-			newY[out] = polyline.ypoints[i];
-			out++;
+		double[] newX = new double[nKeep];
+		double[] newY = new double[nKeep];
+		for (int i = 0; i < nKeep; i++) {
+			newX[i] = keepX.get(i);
+			newY[i] = keepY.get(i);
 		}
-		for (int i = iRight + 1; i < polyline.npoints; i++) {
-			newX[out] = polyline.xpoints[i];
-			newY[out] = polyline.ypoints[i];
-			out++;
-		}
-		caplimits.polylineLevel = new Level2D(newX, newY, newNPoints);
+		caplimits.polylineLevel = new Level2D(newX, newY, nKeep);
 	}
 
 	/*
