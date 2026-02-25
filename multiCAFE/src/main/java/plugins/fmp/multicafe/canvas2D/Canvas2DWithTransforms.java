@@ -15,9 +15,9 @@ import icy.image.IcyBufferedImage;
 import icy.resource.icon.IcyIcon;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.resource.ResourceUtilFMP;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class Canvas2DWithTransforms extends Canvas2D {
 	/**
@@ -49,25 +49,26 @@ public class Canvas2DWithTransforms extends Canvas2D {
 	public void customizeToolbar(JToolBar toolBar) {
 		for (int i = 3; i >= 0; i--)
 			toolBar.remove(i);
-		toolBar.addSeparator();
-		toolBar.add(new JLabel("step1"));
-		toolBar.add(transformsCombo1);
-		transformsCombo1.setToolTipText("transform image step 1");
-		transformsCombo1.setEditable(true);
 
 		IcyIcon fitY = ResourceUtilFMP.ICON_FIT_YAXIS;
 		IcyButton fitYAxisButton = new IcyButton(fitY);
 		fitYAxisButton.setSelected(false);
 		fitYAxisButton.setFocusable(false);
-		fitYAxisButton.setToolTipText("Set image scale ratio to 1:1 and fit Y axis to the window height");
+		fitYAxisButton.setToolTipText("Fit image height to window (keep aspect ratio, may clip width)");
 		toolBar.add(fitYAxisButton);
 
 		IcyIcon fitX = ResourceUtilFMP.ICON_FIT_XAXIS;
 		IcyButton fitXAxisButton = new IcyButton(fitX);
 		fitXAxisButton.setSelected(false);
 		fitXAxisButton.setFocusable(false);
-		fitXAxisButton.setToolTipText("Fit X and Y axis to the window size");
+		fitXAxisButton.setToolTipText("Fit image width to window (keep aspect ratio, may clip height)");
 		toolBar.add(fitXAxisButton);
+
+		toolBar.addSeparator();
+		toolBar.add(new JLabel("step1"));
+		toolBar.add(transformsCombo1);
+		transformsCombo1.setToolTipText("transform image step 1");
+		transformsCombo1.setEditable(true);
 
 		super.customizeToolbar(toolBar);
 
@@ -104,11 +105,12 @@ public class Canvas2DWithTransforms extends Canvas2D {
 		Rectangle rectImage = seqKymograph.getBounds2D();
 		Rectangle rectCanvas = getCanvasVisibleRect();
 
-		int offsetX = (int) (rectCanvas.width / getScaleX() / 2);
-		double scaleY = rectCanvas.getHeight() / rectImage.getHeight();
-		double scaleX = scaleY;
-		setMouseImagePos(offsetX, rectImage.height / 2);
-		setScale(scaleX, scaleY, true, true);
+		// Fit full image height into canvas height, keep aspect ratio
+		double scale = rectCanvas.getHeight() / rectImage.getHeight();
+
+		// Center on image
+		// setMouseImagePos(rectImage.width / 2, rectImage.height / 2);
+		setScale(scale, scale, true, true);
 	}
 
 	void shrinkImage_to_fit() {
@@ -116,10 +118,12 @@ public class Canvas2DWithTransforms extends Canvas2D {
 		Rectangle rectImage = seqKymograph.getBounds2D();
 		Rectangle rectCanvas = getCanvasVisibleRect();
 
-		double scaleX = rectCanvas.getWidth() / rectImage.getWidth();
-		double scaleY = rectCanvas.getHeight() / rectImage.getHeight();
-		setMouseImagePos(rectImage.width / 2, rectImage.height / 2);
-		setScale(scaleX, scaleY, true, true);
+		// Fit full image width into canvas width, keep aspect ratio
+		double scale = rectCanvas.getWidth() / rectImage.getWidth();
+
+		// Center on image
+		// setMouseImagePos(rectImage.width / 2, rectImage.height / 2);
+		setScale(scale, scale, true, true);
 	}
 
 	@Override

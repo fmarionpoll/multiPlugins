@@ -983,6 +983,12 @@ public class Capillary implements Comparable<Capillary> {
 		return listrois;
 	}
 
+	public List<ROI2D> getGulpROIsForCapillaryAtT(int t) {
+		List<ROI2D> listrois = new ArrayList<>();
+		getROIsFromCapillaryGulpsAtT(measurements.ptsGulps, listrois, t);
+		return listrois;
+	}
+
 	public void transferROIsToAllMeasures(List<ROI> listRois) {
 		measurements.ptsTop.transferROIsToMeasures(listRois);
 		measurements.ptsBottom.transferROIsToMeasures(listRois);
