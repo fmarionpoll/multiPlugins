@@ -947,25 +947,25 @@ public class Capillary implements Comparable<Capillary> {
 		if (capGulps == null || capGulps.getHeightSeries() == null || capGulps.getHeightSeries().npoints == 0)
 			return;
 		for (int x = 0; x < (capGulps.getHeightSeries().npoints - 1); x++) {
-			int value = (int) capGulps.getHeightSeries().ypoints[x];
-			if (value > 0) {
-				int yBottom = 0;
-				int yTop = 0;
-				if (measurements != null && measurements.ptsTop != null && measurements.ptsTop.polylineLevel != null
-						&& x < measurements.ptsTop.polylineLevel.npoints) {
-					yBottom = (int) measurements.ptsTop.polylineLevel.ypoints[x];
-				}
-				if (measurements != null && measurements.ptsBottom != null
-						&& measurements.ptsBottom.polylineLevel != null
-						&& x < measurements.ptsBottom.polylineLevel.npoints) {
-					yTop = yBottom - value;
-				}
-				ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
-				gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
-				gulpRoi.setColor(Color.red);
-				gulpRoi.setT(tIndex);
-				listrois.add(gulpRoi);
+			double value = capGulps.getHeightSeries().ypoints[x];
+			if (value == 0)
+				continue;
+			int yBottom = 0;
+			if (measurements != null && measurements.ptsTop != null && measurements.ptsTop.polylineLevel != null
+					&& x < measurements.ptsTop.polylineLevel.npoints) {
+				yBottom = (int) measurements.ptsTop.polylineLevel.ypoints[x];
 			}
+			int yTop;
+			if (value > 0) {
+				yTop = yBottom - (int) value;
+			} else {
+				yTop = yBottom + (int) Math.abs(value);
+			}
+			ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
+			gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
+			gulpRoi.setColor(Color.red);
+			gulpRoi.setT(tIndex);
+			listrois.add(gulpRoi);
 		}
 	}
 

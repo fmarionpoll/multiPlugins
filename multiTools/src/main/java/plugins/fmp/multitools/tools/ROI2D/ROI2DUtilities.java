@@ -558,8 +558,8 @@ public class ROI2DUtilities {
 	}
 
 	/**
-	 * Path length in pixels (sum of segment lengths). For ROI2DLine: segment length.
-	 * For ROI2DPolyLine: sum of segment lengths.
+	 * Path length in pixels (sum of segment lengths). For ROI2DLine: segment
+	 * length. For ROI2DPolyLine: sum of segment lengths.
 	 */
 	public static double getPolylinePathLength(ROI2D roi) {
 		if (roi == null)
@@ -584,9 +584,9 @@ public class ROI2DUtilities {
 	}
 
 	/**
-	 * Resamples the ROI to nPoints points by arc length (even spacing along the path).
-	 * Preserves shape; useful to match reference length/npoints after manual correction.
-	 * Returns a new ROI with the same name.
+	 * Resamples the ROI to nPoints points by arc length (even spacing along the
+	 * path). Preserves shape; useful to match reference length/npoints after manual
+	 * correction. Returns a new ROI with the same name.
 	 */
 	public static ROI2D resamplePolylineToNPoints(ROI2D roi, int nPoints) {
 		if (roi == null || nPoints < 2)
@@ -615,14 +615,11 @@ public class ROI2DUtilities {
 			double frac = (segEnd > segStart) ? ((t - segStart) / (segEnd - segStart)) : 0;
 			Point2D p0 = pts.get(i);
 			Point2D p1 = (i + 1 < pts.size()) ? pts.get(i + 1) : p0;
-			out.add(new Point2D.Double(
-					p0.getX() + frac * (p1.getX() - p0.getX()),
+			out.add(new Point2D.Double(p0.getX() + frac * (p1.getX() - p0.getX()),
 					p0.getY() + frac * (p1.getY() - p0.getY())));
 		}
-		Polyline2D poly = new Polyline2D(
-				out.stream().mapToDouble(Point2D::getX).toArray(),
-				out.stream().mapToDouble(Point2D::getY).toArray(),
-				nPoints);
+		Polyline2D poly = new Polyline2D(out.stream().mapToDouble(Point2D::getX).toArray(),
+				out.stream().mapToDouble(Point2D::getY).toArray(), nPoints);
 		ROI2D result = new ROI2DPolyLine(poly);
 		if (roi.getName() != null)
 			result.setName(roi.getName());
