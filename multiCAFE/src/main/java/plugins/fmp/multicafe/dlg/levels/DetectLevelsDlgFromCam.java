@@ -101,6 +101,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		add(panel02);
 		add(panel03);
 
+		transformPass1ComboBox.setSelectedItem(ImageTransformEnums.GBMINUS_2R);
 		defineActionListeners();
 		defineItemListeners();
 

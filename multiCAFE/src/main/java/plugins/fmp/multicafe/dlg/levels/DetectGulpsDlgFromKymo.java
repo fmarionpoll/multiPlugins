@@ -41,7 +41,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 
 	JComboBox<ImageTransformEnums> gulpTransforms_comboBox = new JComboBox<ImageTransformEnums>(gulpTransforms);
 	JSpinner start_spinner = new JSpinner(new SpinnerNumberModel(0, 0, 100000, 1));
-	JSpinner end_spinner = new JSpinner(new SpinnerNumberModel(3, 1, 100000, 1));
+	JSpinner end_spinner = new JSpinner(new SpinnerNumberModel(5, 1, 100000, 1));
 	JCheckBox derivative_checkbox = new JCheckBox("derivative", true);
 	JCheckBox gulps_checkbox = new JCheckBox("gulps", true);
 

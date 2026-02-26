@@ -411,6 +411,42 @@ public class CapillariesPersistenceLegacy {
 	}
 
 	/**
+	 * Loads only nFlies and cageID from CAPILLARIES section into existing capillaries.
+	 * Used when loading measures so that experiments whose description lacked these
+	 * fields (e.g. legacy or wrong path) get them from the measures file.
+	 */
+	static String csvLoad_Capillaries_NFliesAndCageOnly(Capillaries capillaries, BufferedReader csvReader, String sep) {
+		String row;
+		try {
+			row = csvReader.readLine();
+			while ((row = csvReader.readLine()) != null) {
+				String[] data = row.split(sep);
+				if (data.length > 0 && data[0].equals("#"))
+					return data.length > 1 ? data[1] : null;
+
+				if (data.length < 6)
+					continue;
+				Capillary cap = capillaries.getCapillaryFromKymographName(data[2]);
+				if (cap == null)
+					continue;
+				try {
+					cap.getProperties().setCageID(data[4] != null && !data[4].isEmpty() ? Integer.valueOf(data[4]) : 0);
+				} catch (NumberFormatException e) {
+					// keep existing
+				}
+				try {
+					cap.getProperties().setNFlies(data[5] != null && !data[5].isEmpty() ? Integer.valueOf(data[5]) : 0);
+				} catch (NumberFormatException e) {
+					// keep existing
+				}
+			}
+		} catch (IOException e) {
+			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_NFliesAndCageOnly() Failed to read CSV", e);
+		}
+		return null;
+	}
+
+	/**
 	 * Loads description section from CSV.
 	 */
 	static String csvLoad_Description(Capillaries capillaries, BufferedReader csvReader, String sep) {
@@ -823,8 +859,7 @@ public class CapillariesPersistenceLegacy {
 							csvSkipSection(csvReader, sep);
 							break;
 						case "CAPILLARIES":
-							// Skip CAPILLARIES section
-							csvSkipSection(csvReader, sep);
+							csvLoad_Capillaries_NFliesAndCageOnly(capillaries, csvReader, sep);
 							break;
 						case "TOPLEVEL":
 						case "TOPRAW":
@@ -915,8 +950,7 @@ public class CapillariesPersistenceLegacy {
 								csvSkipSection(csvReader, sep);
 								break;
 							case "CAPILLARIES":
-								// Skip CAPILLARIES section
-								csvSkipSection(csvReader, sep);
+								csvLoad_Capillaries_NFliesAndCageOnly(capillaries, csvReader, sep);
 								break;
 							case "TOPLEVEL":
 							case "TOPRAW":
@@ -1015,8 +1049,7 @@ public class CapillariesPersistenceLegacy {
 							csvSkipSection(csvReader, sep);
 							break;
 						case "CAPILLARIES":
-							// Skip CAPILLARIES section
-							csvSkipSection(csvReader, sep);
+							csvLoad_Capillaries_NFliesAndCageOnly(capillaries, csvReader, sep);
 							break;
 						case "TOPLEVEL":
 						case "TOPRAW":
