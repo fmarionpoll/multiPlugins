@@ -381,7 +381,7 @@ public class CapillaryGulps {
 		Line2D line = roi.getLine();
 		double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
 		int x = (int) Math.round((x1 + x2) / 2);
-		double amplitude = y2 - y1;
+		double amplitude = y1 - y2;
 		if (amplitude == 0 || gulpHeights == null || gulpHeights.npoints <= 0 || x < 0 || x >= gulpHeights.npoints)
 			return;
 		gulpHeights.ypoints[x] = amplitude;

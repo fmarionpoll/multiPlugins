@@ -383,7 +383,7 @@ public class EditLevels extends JPanel {
 			if (!hasGulpAddedAt(seq, t, tryCx, tryCy))
 				break;
 		}
-		ROI2DLine lineRoi = new ROI2DLine(tryCx, tryCy - 5, tryCx, tryCy + 5);
+		ROI2DLine lineRoi = new ROI2DLine(tryCx, tryCy + 5, tryCx, tryCy - 5);
 		lineRoi.setName(prefix2 + "_gulp_added_" + gulpAddedCounter);
 		lineRoi.setColor(Color.green);
 		lineRoi.setT(t);
