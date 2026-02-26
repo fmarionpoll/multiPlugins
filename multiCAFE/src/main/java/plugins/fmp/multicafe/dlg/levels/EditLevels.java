@@ -38,8 +38,8 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class EditLevels extends JPanel {
 
-	private static final String[] ROI_TYPE_OPTIONS = new String[] {
-			" top level", "bottom level", "top & bottom levels", "derivative", "gulps" };
+	private static final String[] ROI_TYPE_OPTIONS = new String[] { " top level", "bottom level", "top & bottom levels",
+			"derivative", "gulps" };
 
 	/**
 	 * 
@@ -347,30 +347,25 @@ public class EditLevels extends JPanel {
 	}
 
 	void addGulp(Experiment exp) {
-		SequenceKymos seqKymos = exp.getSeqKymos();
-		if (seqKymos == null || seqKymos.getSequence() == null)
+		EditContext ctx = getEditContext(exp, false);
+		if (ctx == null)
 			return;
-		int t = seqKymos.getSequence().getFirstViewer().getPositionT();
-		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
-		if (cap == null) {
-			JOptionPane.showMessageDialog(this, "Capillary not found for current frame.");
-			return;
-		}
-		Sequence seq = seqKymos.getSequence();
+
+		int t = ctx.getCurrentFrame();
+		Sequence seq = ctx.seqKymos.getSequence();
 		int cx = seq.getWidth() / 2;
-		int cy = 10; // seq.getHeight() / 2;
+		int cy = 10;
 		Viewer v = seq.getFirstViewer();
 		if (v != null) {
 			IcyCanvas canvas = v.getCanvas();
 			if (canvas instanceof IcyCanvas2D) {
 				Rectangle2D rect = ((IcyCanvas2D) canvas).getImageVisibleRect();
-
 				cx = (int) (rect.getX() + rect.getWidth() / 2);
 				cy = (int) (rect.getY() + rect.getHeight() / 2);
 			}
 		}
 
-		String prefix = cap.getKymographPrefix();
+		String prefix = ctx.cap.getKymographPrefix();
 		if (prefix == null)
 			prefix = "";
 		String prefix2 = prefix.length() >= 2 ? prefix.substring(0, 2) : prefix;
@@ -395,7 +390,7 @@ public class EditLevels extends JPanel {
 		seq.addROI(lineRoi);
 		lineRoi.setSelected(true);
 		seq.roiChanged(lineRoi);
-		cap.setGulpMeasuresDirty(true);
+		ctx.cap.setGulpMeasuresDirty(true);
 		attachGulpRoiListeners(exp);
 	}
 
@@ -403,6 +398,7 @@ public class EditLevels extends JPanel {
 		EditContext ctx = getEditContext(exp, false);
 		if (ctx == null)
 			return;
+
 		MeasureEditTarget target = getMeasureEditTarget();
 		if (target == null)
 			return;
@@ -485,21 +481,6 @@ public class EditLevels extends JPanel {
 		}
 		caplimits.polylineLevel = new Level2D(newX, newY, nKeep);
 	}
-
-	/*
-	 * 
-	 * void removeMeasuresEnclosedInRoi(CapillaryMeasure caplimits, ROI2D roi) {
-	 * Polyline2D polyline = caplimits.polylineLevel; if (polyline == null ||
-	 * polyline.npoints == 0) return; Rectangle2D rect = roi.getBounds2D(); double
-	 * xLeft = rect.getX(); double xRight = rect.getMaxX(); int iLeft = -1; for (int
-	 * i = 0; i < polyline.npoints; i++) { if (polyline.xpoints[i] >= xLeft) { iLeft
-	 * = i; break; } } int iRight = -1; for (int i = polyline.npoints - 1; i >= 0;
-	 * i--) { if (polyline.xpoints[i] <= xRight) { iRight = i; break; } } if (iLeft
-	 * < 0 || iRight < 0 || iRight <= iLeft) return; double y1 =
-	 * polyline.ypoints[iLeft]; double y2 = polyline.ypoints[iRight]; double denom =
-	 * iRight - iLeft; for (int i = iLeft; i <= iRight; i++) { polyline.ypoints[i] =
-	 * y1 + (y2 - y1) * (i - iLeft) / denom; } }
-	 */
 
 	int getPointsWithinROI(Polyline2D polyline, ROI2D roi) {
 		isInside = new boolean[polyline.npoints];

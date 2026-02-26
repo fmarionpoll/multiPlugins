@@ -22,8 +22,9 @@ import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 public class CapillaryGulps {
 	private final String ID_GULPS = "gulpsMC";
 	/**
-	 * Dense series of gulp heights (vertical extent yTop−yBottom) per kymograph X bin.
-	 * Index = X position; value = height at that X. 0 = no gulp; &gt;0 = feeding extent; &lt;0 = negative event (excluded from metrics).
+	 * Dense series of gulp heights (vertical extent yTop−yBottom) per kymograph X
+	 * bin. Index = X position; value = height at that X. 0 = no gulp; &gt;0 =
+	 * feeding extent; &lt;0 = negative event (excluded from metrics).
 	 */
 	private Level2D gulpHeights = new Level2D();
 
@@ -312,8 +313,9 @@ public class CapillaryGulps {
 	// -------------------------------
 
 	/**
-	 * Builds gulp heights from ROIs. When npoints > 0 (kymograph width), uses that size
-	 * and skips inferring extent from ROIs; otherwise infers from ROIs for backward compatibility.
+	 * Builds gulp heights from ROIs. When npoints > 0 (kymograph width), uses that
+	 * size and skips inferring extent from ROIs; otherwise infers from ROIs for
+	 * backward compatibility.
 	 */
 	void buildGulpsFromROIs(ArrayList<ROI2D> rois, int npoints) {
 		clear();
@@ -379,16 +381,16 @@ public class CapillaryGulps {
 		Line2D line = roi.getLine();
 		double x1 = line.getX1(), y1 = line.getY1(), x2 = line.getX2(), y2 = line.getY2();
 		int x = (int) Math.round((x1 + x2) / 2);
-		double amplitude = y1 - y2;
-		if (amplitude == 0 || gulpHeights == null || gulpHeights.npoints <= 0 || x < 0
-				|| x >= gulpHeights.npoints)
+		double amplitude = y2 - y1;
+		if (amplitude == 0 || gulpHeights == null || gulpHeights.npoints <= 0 || x < 0 || x >= gulpHeights.npoints)
 			return;
 		gulpHeights.ypoints[x] = amplitude;
 	}
 
 	/**
-	 * Replaces gulp measures with heights derived from the given ROIs (gulp ROIs only).
-	 * npoints: kymograph width when known (>0); otherwise inferred from ROIs.
+	 * Replaces gulp measures with heights derived from the given ROIs (gulp ROIs
+	 * only). npoints: kymograph width when known (>0); otherwise inferred from
+	 * ROIs.
 	 */
 	public void transferROIsToMeasures(List<? extends ROI> listRois, int npoints) {
 		ArrayList<ROI2D> rois = new ArrayList<ROI2D>();
