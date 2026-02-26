@@ -7,9 +7,20 @@ import org.slf4j.LoggerFactory;
 /**
  * Centralized logging utility for MultiCAFE.
  * Provides logging functionality with user notification for critical errors.
+ * When running under Icy, SLF4J may be bound to a no-op or the console may not show
+ * slf4j-simple output; warn/error/info are also echoed to System.err so they appear
+ * when Icy is started from a terminal. Disable with -Dmulticafe.log.toConsole=false.
  */
 public class Logger {
 	private static final org.slf4j.Logger logger = LoggerFactory.getLogger("MultiCAFE");
+
+	private static final boolean TO_CONSOLE = !"false".equalsIgnoreCase(System.getProperty("multicafe.log.toConsole", "true"));
+
+	private static void toConsole(String level, String message, Throwable throwable) {
+		if (!TO_CONSOLE) return;
+		System.err.println("[MultiCAFE] " + level + " - " + message);
+		if (throwable != null) throwable.printStackTrace(System.err);
+	}
 	
 	/**
 	 * Logs an error message with optional exception.
@@ -25,7 +36,7 @@ public class Logger {
 		} else {
 			logger.error(message);
 		}
-		
+		toConsole("ERROR", message, throwable);
 		if (showToUser) {
 			showErrorDialog("Error", message, throwable);
 		}
@@ -57,6 +68,7 @@ public class Logger {
 	 */
 	public static void warn(String message) {
 		logger.warn(message);
+		toConsole("WARN", message, null);
 	}
 	
 	/**
@@ -71,6 +83,7 @@ public class Logger {
 		} else {
 			logger.warn(message);
 		}
+		toConsole("WARN", message, throwable);
 	}
 	
 	/**
@@ -80,6 +93,7 @@ public class Logger {
 	 */
 	public static void info(String message) {
 		logger.info(message);
+		toConsole("INFO", message, null);
 	}
 	
 	/**
