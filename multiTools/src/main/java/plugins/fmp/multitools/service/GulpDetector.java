@@ -15,7 +15,6 @@ import icy.system.thread.Processor;
 import icy.type.collection.array.Array1DUtil;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
@@ -38,6 +37,11 @@ public class GulpDetector {
 		CapillaryMeasure thresholdMeasure = null;
 		if (options.buildGulps) {
 			thresholdMeasure = computeThresholdFromEmptyCages(exp, options);
+			if (thresholdMeasure != null) {
+				Logger.info("GulpDetector:detectGulps() - Using dynamic threshold for experiment: " + exp.getResultsDirectory());
+			} else {
+				Logger.info("GulpDetector:detectGulps() - Using fixed threshold (no empty capillaries) for experiment: " + exp.getResultsDirectory());
+			}
 			detectGulps(exp, options, thresholdMeasure);
 		}
 
@@ -191,9 +195,7 @@ public class GulpDetector {
 		List<Capillary> noFlyCapillaries = new ArrayList<>();
 
 		for (Capillary cap : exp.getCapillaries().getList()) {
-			int cageID = cap.getCageID();
-			Cage cage = exp.getCages().getCageFromID(cageID);
-			if (cage != null && cage.getCageNFlies() == 0) {
+			if (cap.getNFlies() == 0) {
 				if (cap.getDerivative() != null && cap.getDerivative().polylineLevel != null
 						&& cap.getDerivative().polylineLevel.npoints > 0) {
 					noFlyCapillaries.add(cap);
@@ -202,7 +204,8 @@ public class GulpDetector {
 		}
 
 		if (noFlyCapillaries.isEmpty()) {
-			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - No empty cages found, using fixed threshold");
+			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - No empty capillaries found (nFlies=0), using fixed threshold; experiment: "
+					+ exp.getResultsDirectory());
 			return null;
 		}
 
@@ -261,7 +264,8 @@ public class GulpDetector {
 		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
 		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from " + noFlyCapillaries.size()
-				+ " empty cage(s) using smoothed reference and global noise (median of local variabilities)");
+				+ " empty capillary/cage(s) using smoothed reference and global noise (median of local variabilities); experiment: "
+				+ exp.getResultsDirectory());
 
 		return thresholdMeasure;
 	}
