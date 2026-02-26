@@ -956,14 +956,16 @@ public class Capillary implements Comparable<Capillary> {
 				yBottom = (int) measurements.ptsTop.polylineLevel.ypoints[x];
 			}
 			int yTop;
+			Color color = Color.red;
 			if (value > 0) {
 				yTop = yBottom - (int) value;
 			} else {
 				yTop = yBottom + (int) Math.abs(value);
+				color = Color.gray;
 			}
 			ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
 			gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
-			gulpRoi.setColor(Color.red);
+			gulpRoi.setColor(color);
 			gulpRoi.setT(tIndex);
 			listrois.add(gulpRoi);
 		}
