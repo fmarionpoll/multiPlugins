@@ -166,7 +166,7 @@ public class ExperimentPersistence {
 						targetBinDir = binDirFile.getName();
 					}
 				} else {
-					targetBinDir = Experiment.BIN + (binKymoColMs / 1000);
+					targetBinDir = Experiment.binDirectoryNameFromMs(binKymoColMs);
 				}
 
 				BinDescription binDesc = new BinDescription();

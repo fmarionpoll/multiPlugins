@@ -550,13 +550,11 @@ public class SequenceKymos extends SequenceCamData {
 		if (imageDescriptors == null) {
 			throw new IllegalArgumentException("Image descriptors cannot be null");
 		}
+
 		if (adjustmentOptions == null) {
 			throw new IllegalArgumentException("Adjustment options cannot be null");
 		}
 
-//		if (getSequence() == null) {
-//			throw new IllegalStateException("Sequence is not initialized");
-//		}
 		processingLock.lock();
 		try {
 			isLoadingImages = true;
@@ -569,7 +567,7 @@ public class SequenceKymos extends SequenceCamData {
 			// Process image dimensions if size adjustment is needed
 			if (adjustmentOptions.isAdjustSize()) {
 				Rectangle maxDimensions = calculateMaxDimensions(imageDescriptors);
-				ImageProcessingResult adjustResult = adjustImageSizes(imageDescriptors, maxDimensions,
+				ImageProcessingResult adjustResult = adjustImageSize(imageDescriptors, maxDimensions,
 						adjustmentOptions);
 				if (!adjustResult.isSuccess()) {
 					return adjustResult;
@@ -866,7 +864,7 @@ public class SequenceKymos extends SequenceCamData {
 	 * @param options          the adjustment options
 	 * @return processing result
 	 */
-	private ImageProcessingResult adjustImageSizes(List<ImageFileData> imageDescriptors, Rectangle targetDimensions,
+	private ImageProcessingResult adjustImageSize(List<ImageFileData> imageDescriptors, Rectangle targetDimensions,
 			ImageAdjustmentOptions options) {
 		if (!options.isAdjustSize()) {
 			return ImageProcessingResult.success(0, "Size adjustment disabled");

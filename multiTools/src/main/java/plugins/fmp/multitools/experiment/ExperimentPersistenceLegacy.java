@@ -96,7 +96,7 @@ public class ExperimentPersistenceLegacy {
 					}
 				} else {
 					// No bin directory set, default based on duration
-					targetBinDir = Experiment.BIN + (binKymoColMs / 1000);
+					targetBinDir = Experiment.binDirectoryNameFromMs(binKymoColMs);
 				}
 
 				// Create BinDescription and save to bin directory

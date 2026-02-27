@@ -202,6 +202,7 @@ public class KymographBuilder {
 
 					String filename = directory + File.separator + cap.getKymographFileName();
 					File file = new File(filename);
+					Logger.debug("file saved= " + filename);
 					try {
 						Saver.saveImage(capImage, file, true);
 						cap.setCap_Image(null);

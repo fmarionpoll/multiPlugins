@@ -57,6 +57,14 @@ public class Experiment {
 	public final static String RESULTS = "results";
 	public final static String BIN = "bin_";
 
+	/**
+	 * Builds bin directory name from interval in ms, rounding to nearest second
+	 * (e.g. 59900 → "bin_60") so small sampling errors do not create bin_59 vs bin_60 mismatch.
+	 */
+	public static String binDirectoryNameFromMs(long binMs) {
+		return BIN + (int) Math.round(binMs / 1000.0);
+	}
+
 	private String camDataImagesDirectory = null;
 	private String resultsDirectory = null;
 	private String binDirectory = null;
@@ -598,7 +606,7 @@ public class Experiment {
 	}
 
 	public String getBinNameFromKymoFrameStep() {
-		return Experiment.BIN + getKymoBin_ms() / 1000;
+		return binDirectoryNameFromMs(getKymoBin_ms());
 	}
 
 	public long[] build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(long firstImage_ms) {
@@ -2015,7 +2023,7 @@ public class Experiment {
 			}
 		}
 
-		// Load images using the new API
+		// Load images
 		Rectangle rectMax = getSeqKymos().calculateMaxDimensions(newList);
 		ImageAdjustmentOptions options = ImageAdjustmentOptions.withSizeAdjustment(rectMax);
 		ImageProcessingResult result = getSeqKymos().loadKymographs(newList, options);

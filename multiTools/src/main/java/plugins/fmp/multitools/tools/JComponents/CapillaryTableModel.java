@@ -101,6 +101,7 @@ public class CapillaryTableModel extends AbstractTableModel {
 				break;
 			case 2:
 				cap.setNFlies((int) aValue);
+				syncCageNFliesFromCapillaries();
 				break;
 			case 3:
 				cap.setVolume((double) aValue);
@@ -113,6 +114,14 @@ public class CapillaryTableModel extends AbstractTableModel {
 				break;
 			}
 		}
+	}
+
+	private void syncCageNFliesFromCapillaries() {
+		if (expList == null || expList.getSelectedIndex() < 0)
+			return;
+		Experiment exp = (Experiment) expList.getSelectedItem();
+		if (exp != null && exp.getCages() != null && exp.getCapillaries() != null)
+			exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
 	}
 
 	private Capillary getCapillaryAt(int rowIndex) {

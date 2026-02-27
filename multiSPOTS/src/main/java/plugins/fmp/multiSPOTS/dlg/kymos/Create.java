@@ -143,7 +143,7 @@ public class Create extends JPanel implements PropertyChangeListener {
 		options.t_Ms_BinDuration = exp.getSeqCamData().binImage_ms;
 		options.doCreateBinDir = true;
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
-		options.binSubDirectory = Experiment.BIN + options.t_Ms_BinDuration / 1000;
+		options.binSubDirectory = Experiment.binDirectoryNameFromMs(options.t_Ms_BinDuration);
 		options.concurrentDisplay = concurrentDisplayCheckBox.isSelected();
 		return options;
 	}

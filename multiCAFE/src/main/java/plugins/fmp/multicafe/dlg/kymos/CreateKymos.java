@@ -159,7 +159,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		options.concurrentDisplay = false;
 		options.doCreateBinDir = true;
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
-		options.binSubDirectory = Experiment.BIN + options.t_Ms_BinDuration / 1000;
+		options.binSubDirectory = Experiment.binDirectoryNameFromMs(options.t_Ms_BinDuration);
 
 		options.kymoFirst = 0;
 		options.kymoLast = exp.getCapillaries().getList().size() - 1;

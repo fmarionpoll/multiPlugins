@@ -681,6 +681,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			progressFrame.setMessage("Load cage measures...");
 			boolean cagesLoaded = exp.load_cages_description_and_measures();
 
+			if (cagesLoaded && exp.getCapillaries() != null && exp.getCapillaries().getList().size() > 0)
+				exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
+
 			if (!cagesLoaded) {
 				Logger.warn("Failed to load cages for experiment [" + expIndex + "]");
 			}

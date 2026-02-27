@@ -87,7 +87,7 @@ public class ExperimentTimeManager {
 	// -----------------------------------------
 
 	public String getBinNameFromKymoFrameStep() {
-		return Experiment.BIN + kymoBin_ms / 1000;
+		return Experiment.binDirectoryNameFromMs(kymoBin_ms);
 	}
 
 	public FileTime getFirstImage_FileTime() {
