@@ -219,6 +219,8 @@ public class CapillariesPersistence {
 				boolean loaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
 				if (loaded) {
 					saveDescription(capillaries, resultsDirectory);
+					Logger.info("CapillariesPersistence:loadDescription() Migrated legacy capillaries description to "
+							+ ID_V2_CAPILLARIESDESCRIPTION_CSV + " in " + resultsDirectory);
 				}
 				return loaded;
 			}
@@ -236,6 +238,9 @@ public class CapillariesPersistence {
 							resultsDirectory);
 					if (loaded) {
 						saveDescription(capillaries, resultsDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadDescription() Migrated headerless capillaries file to v2 CSV in "
+										+ resultsDirectory);
 					}
 					return loaded;
 				}
@@ -248,6 +253,9 @@ public class CapillariesPersistence {
 							resultsDirectory);
 					if (loaded) {
 						saveDescription(capillaries, resultsDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadDescription() Migrated invalid-header capillaries file to v2 CSV in "
+										+ resultsDirectory);
 					}
 					return loaded;
 				}
@@ -259,6 +267,9 @@ public class CapillariesPersistence {
 							resultsDirectory);
 					if (loaded) {
 						saveDescription(capillaries, resultsDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadDescription() Migrated legacy (version < 2.0) capillaries file to v2 CSV in "
+										+ resultsDirectory);
 					}
 					return loaded;
 				}
@@ -268,6 +279,9 @@ public class CapillariesPersistence {
 						resultsDirectory);
 				if (loaded) {
 					saveDescription(capillaries, resultsDirectory);
+					Logger.info(
+							"CapillariesPersistence:loadDescription() Migrated capillaries description from legacy after IO error in v2 header in "
+									+ resultsDirectory);
 				}
 				return loaded;
 			}
@@ -329,6 +343,9 @@ public class CapillariesPersistence {
 							resultsDirectory);
 					if (legacyLoaded) {
 						saveDescription(capillaries, resultsDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadDescription() Migrated capillaries description from legacy XML after v2 parse failure in "
+										+ resultsDirectory);
 					}
 					return legacyLoaded;
 				}
@@ -339,6 +356,9 @@ public class CapillariesPersistence {
 							resultsDirectory);
 					if (legacyLoaded) {
 						saveDescription(capillaries, resultsDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadDescription() Migrated capillaries description from legacy XML after exception in v2 parser in "
+										+ resultsDirectory);
 					}
 					return legacyLoaded;
 				}
@@ -363,7 +383,14 @@ public class CapillariesPersistence {
 			String pathToCsv = binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+				// No v2 CSV: load from legacy formats and auto-migrate to v2 if successful
+				boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+				if (loaded) {
+					saveMeasures(capillaries, binDirectory);
+					Logger.info("CapillariesPersistence:loadMeasures() Migrated legacy capillaries measures to "
+							+ ID_V2_CAPILLARIESMEASURES_CSV + " in " + binDirectory);
+				}
+				return loaded;
 			}
 
 			// Validate version header before committing to new format parser
@@ -373,16 +400,37 @@ public class CapillariesPersistence {
 				csvReader.close();
 
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+					boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+					if (loaded) {
+						saveMeasures(capillaries, binDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadMeasures() Migrated headerless capillaries measures file to v2 CSV in "
+										+ binDirectory);
+					}
+					return loaded;
 				}
 
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+					boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+					if (loaded) {
+						saveMeasures(capillaries, binDirectory);
+						Logger.info(
+								"CapillariesPersistence:loadMeasures() Migrated invalid-header capillaries measures file to v2 CSV in "
+										+ binDirectory);
+					}
+					return loaded;
 				}
 			} catch (IOException e) {
-				return CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+				boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
+				if (loaded) {
+					saveMeasures(capillaries, binDirectory);
+					Logger.info(
+							"CapillariesPersistence:loadMeasures() Migrated capillaries measures from legacy after IO error in v2 header in "
+									+ binDirectory);
+				}
+				return loaded;
 			}
 
 			// Version validated - proceed with new format parser

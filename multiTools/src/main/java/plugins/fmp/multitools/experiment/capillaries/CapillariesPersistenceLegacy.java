@@ -100,9 +100,14 @@ public class CapillariesPersistenceLegacy {
 				xmlLoadCapillaries_v0(capillaries, doc, csFileName);
 				loaded = true;
 				break;
-			default:
+			case 2: // newer XML storage with per-capillary files
 				xmlLoadCapillaries_Only_v2(capillaries, doc, csFileName);
-				loaded = false;
+				loaded = !capillaries.getList().isEmpty();
+				break;
+			default:
+				// Unknown version: try v2-style loader but do not treat as success unless we get capillaries
+				xmlLoadCapillaries_Only_v2(capillaries, doc, csFileName);
+				loaded = !capillaries.getList().isEmpty();
 				break;
 			}
 			if (loaded) {
