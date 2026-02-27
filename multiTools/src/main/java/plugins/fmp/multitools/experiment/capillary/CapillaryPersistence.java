@@ -591,7 +591,6 @@ public class CapillaryPersistence {
 			String errorMsg = "CapillaryPersistence:csvImportCapillaryData() Error importing " + measureType
 					+ " for capillary " + capId + " (data.length=" + data.length + "): " + e.getMessage();
 			Logger.error(errorMsg, e);
-			System.out.println("ERROR: " + errorMsg);
 			e.printStackTrace();
 		}
 	}

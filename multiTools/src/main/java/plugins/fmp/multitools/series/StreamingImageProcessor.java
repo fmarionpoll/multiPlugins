@@ -38,7 +38,6 @@ public class StreamingImageProcessor {
 
 	public void clearAllImages() {
 		// No buffer to clear - images are loaded on demand and immediately discarded
-//		System.out.println("No image buffer to clear - using on-demand loading");
 	}
 
 	public IcyBufferedImage getImage(int frameIndex) {

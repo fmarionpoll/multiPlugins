@@ -38,9 +38,11 @@ public class GulpDetector {
 		if (options.buildGulps) {
 			thresholdMeasure = computeThresholdFromEmptyCages(exp, options);
 			if (thresholdMeasure != null) {
-				Logger.info("GulpDetector:detectGulps() - Using dynamic threshold for experiment: " + exp.getResultsDirectory());
+				Logger.info("GulpDetector:detectGulps() - Using dynamic threshold for experiment: "
+						+ exp.getResultsDirectory());
 			} else {
-				Logger.info("GulpDetector:detectGulps() - Using fixed threshold (no empty capillaries) for experiment: " + exp.getResultsDirectory());
+				Logger.info("GulpDetector:detectGulps() - Using fixed threshold (no empty capillaries) for experiment: "
+						+ exp.getResultsDirectory());
 			}
 			detectGulps(exp, options, thresholdMeasure);
 		}
@@ -72,12 +74,11 @@ public class GulpDetector {
 			String nameWithoutExt = new File(fullPath).getName().replaceFirst("[.][^.]+$", "");
 			final Capillary capi = exp.getCapillaries().getCapillaryFromKymographName(nameWithoutExt);
 			if (capi == null) {
-				System.out.println("for kymo=" + tKymo + " capi is null");
+				Logger.debug("for kymo=" + tKymo + " capi is null");
 				continue;
 			}
 			if (tKymo != capi.getKymographIndex())
-				System.out.println(
-						"discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
+				Logger.warn("discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
 			capi.setGulpsOptions(options);
 			futures.add(processor.submit(new Runnable() {
 				@Override
@@ -88,7 +89,7 @@ public class GulpDetector {
 						CapillaryMeasure measure = new CapillaryMeasure(capi.getLast2ofCapillaryName() + "_derivative",
 								capi.getKymographIndex(), profile);
 						if (measure.getNPoints() == 0)
-							System.out.println("measure = no points");
+							Logger.warn("measure = no points");
 						capi.setDerivative(measure);
 					}
 				}
@@ -120,8 +121,7 @@ public class GulpDetector {
 			if (capi == null)
 				continue;
 			if (tKymo != capi.getKymographIndex())
-				System.out.println(
-						"discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
+				Logger.warn("discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
 			capi.setGulpsOptions(options);
 			final CapillaryMeasure threshold = thresholdMeasure;
 			futures.add(processor.submit(new Runnable() {
@@ -204,8 +204,9 @@ public class GulpDetector {
 		}
 
 		if (noFlyCapillaries.isEmpty()) {
-			Logger.warn("GulpDetector:computeThresholdFromEmptyCages() - No empty capillaries found (nFlies=0), using fixed threshold; experiment: "
-					+ exp.getResultsDirectory());
+			Logger.warn(
+					"GulpDetector:computeThresholdFromEmptyCages() - No empty capillaries found (nFlies=0), using fixed threshold; experiment: "
+							+ exp.getResultsDirectory());
 			return null;
 		}
 
@@ -498,7 +499,7 @@ public class GulpDetector {
 		if (polylineTopLevel == null)
 			return null;
 		if (zIndex < 0 || zIndex >= seq.getSizeZ()) {
-			System.out.println("GulpDetector:getDerivativeProfile - zIndex " + zIndex + " out of range [0, "
+			Logger.warn("GulpDetector:getDerivativeProfile - zIndex " + zIndex + " out of range [0, "
 					+ (seq.getSizeZ() - 1) + "], sequence may not have been filtered");
 			return null;
 		}

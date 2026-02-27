@@ -7,6 +7,8 @@ import java.util.Date;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import plugins.fmp.multitools.tools.Logger;
+
 public class FileNameTimePattern {
 
 	public DateFormat dateFormat = null;
@@ -39,12 +41,12 @@ public class FileNameTimePattern {
 				timeInMs = date.getTime();
 			} catch (ParseException e) {
 				e.printStackTrace();
-				System.out.println("FileNamePatterns:getTimeFromString() Error parsing filename: " + fileName);
+				Logger.error("FileNamePatterns:getTimeFromString() Error parsing filename: " + fileName);
 				timeInMs = getDummyTime(t);
 			}
 
 		} else {
-			System.out.println("FileNamePatterns:getTimeFromString() Error finding time in filename: " + fileName);
+			Logger.error("FileNamePatterns:getTimeFromString() Error finding time in filename: " + fileName);
 			timeInMs = getDummyTime(t);
 		}
 		return timeInMs;

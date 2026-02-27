@@ -232,7 +232,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				isProcessing = false;
 				progressFrame.close();
 				long endTime = System.nanoTime();
-				System.out.println(
+				Logger.debug(
 						"LoadExperiment: processSelectedFilesMetadataOnly took " + (endTime - startTime) / 1e6 + " ms");
 				SwingUtilities.invokeLater(() -> {
 					updateBrowseInterface();
@@ -402,7 +402,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		if (exp.getSeqCamData() != null && exp.getSeqCamData().getImageLoader() != null) {
 			nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		}
-		System.out.println("LoadExperiment: openSelectedExperiment [" + expIndex + "] load completed, total time: "
+		Logger.debug("LoadExperiment: openSelectedExperiment [" + expIndex + "] load completed, total time: "
 				+ (endTime - startTime) / 1e6 + " ms, cages: " + cageCount + ", with fly positions: "
 				+ cagesWithFlyPositions + ", total fly positions: " + totalFlyPositions + ", frames: " + nFrames);
 	}
@@ -583,7 +583,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			if (binFullDir != null) {
 				exp.load_capillaries_description_and_measures();
 
-				// Populate combo box AFTER measures are loaded to ensure capillaries are fully populated
+				// Populate combo box AFTER measures are loaded to ensure capillaries are fully
+				// populated
 				if (exp.getSeqKymos() != null && exp.getCapillaries() != null
 						&& exp.getCapillaries().getList().size() > 0) {
 					parent0.paneKymos.tabIntervals.transferCapillaryNamesToComboBox(exp);
@@ -632,7 +633,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		final long startTime = System.nanoTime();
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
 
-		Logger.info("LoadSaveExperiment:openSelectedExperiment() START - exp="
+		Logger.debug("LoadSaveExperiment:openSelectedExperiment() START - exp="
 				+ (exp != null ? exp.getResultsDirectory() : "null") + ", isLazy=" + (exp instanceof LazyExperiment)
 				+ ", capillaries.count="
 				+ (exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : "N/A"));
@@ -724,7 +725,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 
 			long endTime = System.nanoTime();
-			System.out.println("LoadExperiment: openSelecteExperiment [" + expIndex + "] failed, took "
+			Logger.warn("LoadExperiment: openSelecteExperiment [" + expIndex + "] failed, took "
 					+ (endTime - startTime) / 1e6 + " ms");
 			return false;
 		}
@@ -896,7 +897,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			if (exp != null)
 				closeViewsForCurrentExperiment(exp);
 			else
-				System.out.println("experiment = null");
+				Logger.warn("experiment = null");
 		}
 	}
 
@@ -943,8 +944,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 					// Save capillaries using new dual-file system (descriptions + measures)
 					int capCountBeforeSave = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
-					Logger.info("LoadSaveExperiment:closeViewsForCurrentExperiment() About to save capillaries - count="
-							+ capCountBeforeSave + ", exp=" + exp.getResultsDirectory());
+					Logger.debug(
+							"LoadSaveExperiment:closeViewsForCurrentExperiment() About to save capillaries - count="
+									+ capCountBeforeSave + ", exp=" + exp.getResultsDirectory());
 					exp.save_capillaries_description_and_measures();
 
 					// Update cages from sequence before saving

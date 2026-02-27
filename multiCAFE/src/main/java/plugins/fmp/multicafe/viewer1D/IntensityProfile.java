@@ -147,9 +147,6 @@ public class IntensityProfile {
 		exportToFileBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-//        		int currentT = mainCanvas.getPositionT();
-//        		int currentZ = mainCanvas.getPositionZ();
-
 				JFileChooser jdir = new JFileChooser();
 
 				jdir.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -164,8 +161,6 @@ public class IntensityProfile {
 
 						File outputFile = new File(path);
 						writer = new BufferedWriter(new FileWriter(outputFile));
-//                		System.out.println("-----------------------------------------");
-//                		System.out.println("---------- Time:"+ currentT +", Z:"+currentZ+" ---------");
 						int maxSize = 0;
 						for (Object s : xyDataset.getSeries()) {
 							if (maxSize < ((XYSeries) s).getItemCount())
@@ -178,16 +173,15 @@ public class IntensityProfile {
 							dataArr[i] = "";
 						}
 
-					for (int c = 0; c < xyDataset.getSeriesCount(); c++) {
-						XYSeries seriesXY = xyDataset.getSeries(c);
-						@SuppressWarnings("unchecked")
-						List<XYDataItem> it = seriesXY.getItems();
-						int size = it.size();
+						for (int c = 0; c < xyDataset.getSeriesCount(); c++) {
+							XYSeries seriesXY = xyDataset.getSeries(c);
+							@SuppressWarnings("unchecked")
+							List<XYDataItem> it = seriesXY.getItems();
+							int size = it.size();
 							dataArr[0] += seriesXY.getKey().toString() + "(X)\t" + seriesXY.getKey().toString()
 									+ "(Y)\t";
 							for (int i = 1; i < maxSize + 1; i++) {
 								if (size > i) {
-									// System.out.println(it.get(i).getXValue() + " , "+ it.get(i).getYValue());
 									dataArr[i] += (it.get(i).getXValue() + "\t" + it.get(i).getYValue() + "\t");
 								} else {
 									dataArr[i] += " \t \t";
@@ -199,15 +193,15 @@ public class IntensityProfile {
 						}
 					} catch (Exception e1) {
 						e1.printStackTrace();
-				} finally {
-					try {
-						// Close the writer regardless of what happens...
-						if (writer != null) {
-							writer.close();
+					} finally {
+						try {
+							// Close the writer regardless of what happens...
+							if (writer != null) {
+								writer.close();
+							}
+						} catch (Exception e1) {
 						}
-					} catch (Exception e1) {
 					}
-				}
 				}
 			}
 		});
@@ -631,7 +625,6 @@ public class IntensityProfile {
 			if (optionComboBox.isItemSelected("channel " + c + "(" + sequence.getChannelName(c) + ")")) {
 				XYSeries seriesXY2 = new XYSeries("channel " + c);
 				for (int i = 0; i < profile.values[c].length; i++) {
-					// System.out.println(i*pixelSize + " , "+ profile.values[c][i]);
 					seriesXY2.add(i * pixelSize, profile.values[c][i]);
 				}
 
@@ -715,29 +708,5 @@ public class IntensityProfile {
 		return data;
 
 	}
-
-//	@Override
-//	public void actionPerformed(ActionEvent e) {
-//		
-//		if ( e.getSource() == exportToExcelButton )
-//		{
-//			System.out.println("Export to excel.");
-//		}
-//		
-//		if ( e.getSource() == associateROIButton )
-//		{
-//			// remove previous listener.
-//					
-//			updateChart();
-//		}
-//
-//	}
-//
-//	@Override
-//	public void roiChanged(ROIEvent event) {		
-//		
-//		updateChart();
-//	
-//	}
 
 }

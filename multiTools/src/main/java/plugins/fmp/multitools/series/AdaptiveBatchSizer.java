@@ -1,5 +1,7 @@
 package plugins.fmp.multitools.series;
 
+import plugins.fmp.multitools.tools.Logger;
+
 /**
  * Adaptive batch sizing based on available memory.
  * 
@@ -37,7 +39,7 @@ public class AdaptiveBatchSizer {
 	public void reduceBatchSize() {
 		// Force batch size reduction for memory pressure
 		currentBatchSize = Math.max(minBatchSize, currentBatchSize - 1);
-		System.out.println("Reduced batch size to: " + currentBatchSize + " due to memory pressure");
+		Logger.warn("Reduced batch size to: " + currentBatchSize + " due to memory pressure");
 	}
 
 	public int getCurrentBatchSize() {

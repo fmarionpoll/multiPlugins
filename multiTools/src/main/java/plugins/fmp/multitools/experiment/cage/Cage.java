@@ -420,10 +420,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	// -------------------------------------
 
 	public boolean xmlLoadCage(Node node, int index) {
-		// Memory monitoring before loading
-//		long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		// System.out.println(" Loading Cage " + index + " - Memory: " + (startMemory /
-		// 1024 / 1024) + " MB");
 
 		try {
 			if (node == null) {
@@ -457,6 +453,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			// Load capillary IDs (new format)
 			if (!xmlLoadCapillaryIDs(xmlVal)) {
 				// Legacy format will be handled by migration tool
+				Logger.warn("xmlLoadCapillaryIDs returned false");
 			}
 
 			// Load spot IDs (new format)
@@ -464,6 +461,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 				// Legacy format: spots are loaded via transparent fallback in Legacy
 				// persistence classes
 				// Users can manually save in new format when desired
+				Logger.warn("xlmLoadSpotIDs returned false");
 			}
 
 			// Load cage measures
@@ -472,17 +470,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			// Load fly positions (legacy format support)
 			boolean flyPositionsLoaded = xmlLoadFlyPositions(xmlVal);
 			if (flyPositionsLoaded) {
-				System.out.println("Cage.xmlLoadCage() Successfully loaded fly positions for cage " + index);
+				Logger.debug("Cage.xmlLoadCage() Successfully loaded fly positions for cage " + index);
 			} else {
-				System.out.println("Cage.xmlLoadCage() No fly positions found in XML for cage " + index);
+				Logger.debug("Cage.xmlLoadCage() No fly positions found in XML for cage " + index);
 			}
-
-			// Memory monitoring after loading
-//			long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-//			long memoryIncrease = endMemory - startMemory;
-			// System.out.println(" Cage " + index + " loaded - Memory increase: " +
-			// (memoryIncrease / 1024 / 1024) + " MB");
-			// System.out.println(" Spots in cage: " + spotsArray.getSpotsCount());
 
 			return true;
 
@@ -494,11 +485,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	public boolean xmlSaveCage(Node node, int index) {
-		// Memory monitoring before saving
-//		long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-		// System.out.println(" Saving Cage " + index + " - Memory: " + (startMemory /
-		// 1024 / 1024) + " MB");
-
 		try {
 			if (node == null) {
 				System.err.println("ERROR: Null node provided for cage " + index);
@@ -538,13 +524,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			// Save cage measures
 			measures.saveToXml(xmlVal);
 
-			// Memory monitoring after saving
-//			long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-//			long memoryIncrease = endMemory - startMemory;
-			// System.out.println(" Cage " + index + " saved - Memory increase: " +
-			// (memoryIncrease / 1024 / 1024) + " MB");
-			// System.out.println(" Spots in cage: " + spotsArray.getSpotsCount());
-
 			return true;
 
 		} catch (Exception e) {
@@ -561,7 +540,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 				cageROI2D = (ROI2D) ROI.createFromXML(xmlVal2);
 				if (cageROI2D != null) {
 					cageROI2D.setSelected(false);
-					// System.out.println(" Loaded cage ROI: " + cageROI2D.getName());
 				} else {
 					System.err.println("WARNING: Failed to create ROI from XML for cage limits");
 				}
@@ -583,7 +561,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			if (cageROI2D != null) {
 				cageROI2D.setSelected(false);
 				cageROI2D.saveToXML(xmlVal2);
-				// System.out.println(" Saved cage ROI: " + cageROI2D.getName());
 			} else {
 				System.err.println("WARNING: No cage ROI to save");
 			}
@@ -978,7 +955,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			cageROI_name = data[i];
 			i++;
 		}
-		
+
 		// Parse ROI type (v2.1 format) - check if next field is a string (not a number)
 		String roiTypeStr = "";
 		if (i < data.length && !isNumeric(data[i])) {
@@ -1001,7 +978,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		if (npoints > 0 && i + (npoints * 2) <= data.length) {
 			// If roiType is specified, use it; otherwise infer from npoints
 			ROIType roiType = ROIType.fromString(roiTypeStr);
-			
+
 			if (roiType == ROIType.RECTANGLE && npoints == 4) {
 				// Rectangle format: x, y, width, height
 				try {
@@ -1009,7 +986,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 					int y = Integer.valueOf(data[i++]);
 					int width = Integer.valueOf(data[i++]);
 					int height = Integer.valueOf(data[i++]);
-					
+
 					cageROI2D = new ROI2DRectangle(x, y, width, height);
 					if (cageROI_name != null && !cageROI_name.isEmpty()) {
 						cageROI2D.setName(cageROI_name);
@@ -1042,7 +1019,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			}
 		}
 	}
-	
+
 	/**
 	 * Checks if a string represents a numeric value.
 	 * 

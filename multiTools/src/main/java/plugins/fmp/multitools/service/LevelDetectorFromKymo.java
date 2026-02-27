@@ -348,10 +348,10 @@ public class LevelDetectorFromKymo {
 						if (cap.getKymographFileName() == null || cap.getKymographFileName().isEmpty()) {
 							cap.setKymographFileName(kymographName + ".tiff");
 						}
-						System.out.println("buildCapillaries - ROI=" + roiName + " index=" + cap.getKymographIndex()
+						Logger.debug("buildCapillaries - ROI=" + roiName + " index=" + cap.getKymographIndex()
 								+ " name=" + cap.getKymographFileName());
 					} else {
-						System.out.println(
+						Logger.warn(
 								"buildCapillaries - ROI=" + roiName + " kymograph not found for name=" + kymographName);
 					}
 				}

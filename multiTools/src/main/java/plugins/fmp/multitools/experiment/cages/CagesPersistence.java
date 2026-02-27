@@ -223,7 +223,8 @@ public class CagesPersistence {
 
 		/**
 		 * Loads cage descriptions (DESCRIPTION and CAGE sections) from v2 format file.
-		 * If v2 format is not found or missing version header, delegates to Legacy class for fallback handling.
+		 * If v2 format is not found or missing version header, delegates to Legacy
+		 * class for fallback handling.
 		 */
 		public static boolean loadDescription(Cages cages, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -233,7 +234,12 @@ public class CagesPersistence {
 			String pathToCsv = resultsDirectory + File.separator + ID_V2_CAGESDESCRIPTION_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+				boolean loaded = CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+				if (loaded) {
+					// Auto-migrate to v2 format once legacy load succeeded
+					saveDescription(cages, resultsDirectory);
+				}
+				return loaded;
 			}
 
 			// Validate version header before committing to new format parser
@@ -241,23 +247,33 @@ public class CagesPersistence {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String firstLine = csvReader.readLine();
 				csvReader.close();
-				
+
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					Logger.info("CagesPersistence: No header found in " + ID_V2_CAGESDESCRIPTION_CSV + ", using legacy parser");
-					return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+					Logger.info("CagesPersistence: No header found in " + ID_V2_CAGESDESCRIPTION_CSV
+							+ ", using legacy parser");
+					boolean loaded = CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+					if (loaded) {
+						saveDescription(cages, resultsDirectory);
+					}
+					return loaded;
 				}
-				
+
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					Logger.info("CagesPersistence: First line is not version header in " + ID_V2_CAGESDESCRIPTION_CSV + ", using legacy parser");
-					return CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+					Logger.info("CagesPersistence: First line is not version header in " + ID_V2_CAGESDESCRIPTION_CSV
+							+ ", using legacy parser");
+					boolean loaded = CagesPersistenceLegacy.loadDescriptionWithFallback(cages, resultsDirectory);
+					if (loaded) {
+						saveDescription(cages, resultsDirectory);
+					}
+					return loaded;
 				}
-				
+
 				String fileVersion = versionData[2];
 				if (!fileVersion.equals(CSV_VERSION)) {
-					Logger.warn("CagesPersistence: File version " + fileVersion + 
-							   " differs from current version " + CSV_VERSION);
+					Logger.warn("CagesPersistence: File version " + fileVersion + " differs from current version "
+							+ CSV_VERSION);
 				}
 			} catch (IOException e) {
 				Logger.error("CagesPersistence: Error reading file header: " + e.getMessage(), e);
@@ -310,7 +326,8 @@ public class CagesPersistence {
 
 		/**
 		 * Loads cage measures (POSITION section) from v2 format file in bin directory.
-		 * If v2 format is not found or missing version header, delegates to Legacy class for fallback handling.
+		 * If v2 format is not found or missing version header, delegates to Legacy
+		 * class for fallback handling.
 		 */
 		public static boolean loadMeasures(Cages cages, String binDirectory) {
 			if (binDirectory == null) {
@@ -320,7 +337,12 @@ public class CagesPersistence {
 			String pathToCsv = binDirectory + File.separator + ID_V2_CAGESMEASURES_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+				boolean loaded = CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+				if (loaded) {
+					// Auto-migrate to v2 format once legacy load succeeded
+					saveMeasures(cages, binDirectory);
+				}
+				return loaded;
 			}
 
 			// Validate version header before committing to new format parser
@@ -328,23 +350,33 @@ public class CagesPersistence {
 				BufferedReader csvReader = new BufferedReader(new FileReader(pathToCsv));
 				String firstLine = csvReader.readLine();
 				csvReader.close();
-				
+
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					Logger.info("CagesPersistence: No header found in " + ID_V2_CAGESMEASURES_CSV + ", using legacy parser");
-					return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+					Logger.info("CagesPersistence: No header found in " + ID_V2_CAGESMEASURES_CSV
+							+ ", using legacy parser");
+					boolean loaded = CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+					if (loaded) {
+						saveMeasures(cages, binDirectory);
+					}
+					return loaded;
 				}
-				
+
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					Logger.info("CagesPersistence: First line is not version header in " + ID_V2_CAGESMEASURES_CSV + ", using legacy parser");
-					return CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+					Logger.info("CagesPersistence: First line is not version header in " + ID_V2_CAGESMEASURES_CSV
+							+ ", using legacy parser");
+					boolean loaded = CagesPersistenceLegacy.loadMeasuresWithFallback(cages, binDirectory);
+					if (loaded) {
+						saveMeasures(cages, binDirectory);
+					}
+					return loaded;
 				}
-				
+
 				String fileVersion = versionData[2];
 				if (!fileVersion.equals(CSV_VERSION)) {
-					Logger.warn("CagesPersistence: File version " + fileVersion + 
-							   " differs from current version " + CSV_VERSION);
+					Logger.warn("CagesPersistence: File version " + fileVersion + " differs from current version "
+							+ CSV_VERSION);
 				}
 			} catch (IOException e) {
 				Logger.error("CagesPersistence: Error reading file header: " + e.getMessage(), e);
@@ -387,8 +419,8 @@ public class CagesPersistence {
 		}
 
 		/**
-		 * Saves cage descriptions (DESCRIPTION and CAGE sections) to CagesDescription.csv in
-		 * results directory. Always saves with version header.
+		 * Saves cage descriptions (DESCRIPTION and CAGE sections) to
+		 * CagesDescription.csv in results directory. Always saves with version header.
 		 */
 		public static boolean saveDescription(Cages cages, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -409,7 +441,7 @@ public class CagesPersistence {
 				CagesPersistenceLegacy.csvSaveCAGESection(cages, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
-				Logger.info("CagesPersistence:saveCages() Saved descriptions to " + ID_V2_CAGESDESCRIPTION_CSV);
+				Logger.debug("CagesPersistence:saveCages() Saved descriptions to " + ID_V2_CAGESDESCRIPTION_CSV);
 				return true;
 			} catch (IOException e) {
 				Logger.error("CagesPersistence:saveCages() Error: " + e.getMessage(), e);
@@ -439,7 +471,7 @@ public class CagesPersistence {
 				CagesPersistenceLegacy.csvSaveMeasuresSection(cages, csvWriter, EnumCageMeasures.POSITION, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
-				Logger.info("CagesPersistence:saveCagesMeasures() Saved measures to " + ID_V2_CAGESMEASURES_CSV);
+				Logger.debug("CagesPersistence:saveCagesMeasures() Saved measures to " + ID_V2_CAGESMEASURES_CSV);
 				return true;
 			} catch (IOException e) {
 				Logger.error("CagesPersistence:saveCagesMeasures() Error: " + e.getMessage(), e);

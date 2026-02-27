@@ -25,6 +25,7 @@ import icy.type.point.Point5D;
 import icy.type.rectangle.Rectangle5D;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 import plugins.kernel.roi.roi3d.ROI3DPoint;
@@ -358,7 +359,7 @@ public class Measures {
 			if (maxPoints > 0)
 				points = components[itemMax].getConnectedContourPoints();
 			else
-				System.out.println("unsuccessful detection of spot limits");
+				Logger.warn("unsuccessful detection of spot limits");
 		} catch (InterruptedException e) {
 //				 TODO Auto-generated catch block
 			e.printStackTrace();

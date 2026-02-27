@@ -13,7 +13,6 @@ import javax.vecmath.Vector2d;
 
 import edu.emory.mathcs.jtransforms.fft.FloatFFT_2D;
 import flanagan.complex.Complex;
-
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageUtil;
 import icy.type.DataType;
@@ -22,8 +21,8 @@ import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Rigid registration utility for image alignment using FFT-based correlation.
- * Uses sub-pixel translation (parabolic fit) and optional sub-pixel apply
- * via AffineTransform. Rotation is estimated in log-polar space.
+ * Uses sub-pixel translation (parabolic fit) and optional sub-pixel apply via
+ * AffineTransform. Rotation is estimated in log-polar space.
  */
 public class GaspardRigidRegistration {
 
@@ -212,7 +211,6 @@ public class GaspardRigidRegistration {
 		if (Math.abs(vector.x - Math.round(vector.x)) < 0.01 && Math.abs(vector.y - Math.round(vector.y)) < 0.01) {
 			int dx = (int) Math.round(vector.x);
 			int dy = (int) Math.round(vector.y);
-			// System.out.println("GasparRigidRegistration:applyTranslation2D() dx=" + dx + " dy=" + dy);
 			if (dx == 0 && dy == 0)
 				return image;
 			Logger.debug("Applying translation: dx=" + dx + " dy=" + dy);
@@ -239,11 +237,11 @@ public class GaspardRigidRegistration {
 			}
 			return newImage;
 		}
-		
+
 		// Sub-pixel shift using AffineTransform
 		AffineTransform transform = AffineTransform.getTranslateInstance(vector.x, vector.y);
-		IcyBufferedImage newImg = new IcyBufferedImage(image.getWidth(), image.getHeight(),
-				image.getSizeC(), image.getDataType_());
+		IcyBufferedImage newImg = new IcyBufferedImage(image.getWidth(), image.getHeight(), image.getSizeC(),
+				image.getDataType_());
 
 		for (int c = 0; c < image.getSizeC(); c++) {
 			// Only transform the requested channel, or all if channel == -1
@@ -262,7 +260,7 @@ public class GaspardRigidRegistration {
 			}
 			BufferedImage awtDst = new BufferedImage(w, h, type);
 			Graphics2D g2 = awtDst.createGraphics();
-			
+
 			// Enable bilinear interpolation
 			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 			g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
@@ -274,7 +272,7 @@ public class GaspardRigidRegistration {
 			IcyBufferedImage tempWrapper = IcyBufferedImage.createFrom(awtDst);
 			newImg.setDataXY(c, tempWrapper.getDataXY(0));
 		}
-		
+
 		return newImg;
 	}
 

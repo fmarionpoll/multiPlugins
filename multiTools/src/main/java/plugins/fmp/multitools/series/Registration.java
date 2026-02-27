@@ -12,10 +12,10 @@ import icy.image.IcyBufferedImageUtil;
 import icy.image.ImageUtil;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 
 public class Registration extends BuildSeries {
 //	private final ImageProcessor imageProcessor;
@@ -152,7 +152,7 @@ public class Registration extends BuildSeries {
 
 			String fileName = exp.getSeqCamData().getFileNameFromImageList(frame);
 			if (fileName == null) {
-				System.out.println("filename null at t=" + frame);
+				Logger.warn("filename null at t=" + frame);
 				continue;
 			}
 
@@ -199,12 +199,12 @@ public class Registration extends BuildSeries {
 				GaspardRigidRegistration.getTranslation2D(workImage, referenceImage, referenceChannel);
 
 			if (change || rotate) {
-				System.out.println("image:" + frame + "  change=" + change + "(" + translation + ") --  rotation="
-						+ rotate + "(" + angle + ")");
+				Logger.debug("image:" + frame + "  change=" + change + "(" + translation + ") --  rotation=" + rotate
+						+ "(" + angle + ")");
 				File outputfile = new File(fileName);
 				RenderedImage image = ImageUtil.toRGBImage(workImage);
 				boolean success = ImageUtil.save(image, "jpg", outputfile);
-				System.out.println("save file " + fileName + " --->" + success);
+				Logger.debug("save file " + fileName + " --->" + success);
 			}
 		}
 

@@ -49,7 +49,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	private JToggleButton display_button = new JToggleButton("Display");
 
 	private JComboBox<GulpThresholdMethod> thresholdMethodCombo = new JComboBox<>(GulpThresholdMethod.values());
-	private JSpinner thresholdMultiplierSpinner = new JSpinner(new SpinnerNumberModel(3.0, 1.0, 10.0, 0.5));
+	private JSpinner thresholdMultiplierSpinner = new JSpinner(new SpinnerNumberModel(5.0, 1.0, 10.0, 0.5));
 	private JComboBox<GulpThresholdSmoothing> thresholdSmoothingCombo = new JComboBox<>(
 			GulpThresholdSmoothing.values());
 	private JSpinner thresholdSmoothingWindowSpinner = new JSpinner(new SpinnerNumberModel(5, 3, 21, 2));

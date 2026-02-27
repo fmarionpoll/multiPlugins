@@ -30,6 +30,7 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.service.KymographService;
+import plugins.fmp.multitools.tools.Logger;
 
 public class LoadSave extends JPanel {
 	/**
@@ -116,8 +117,7 @@ public class LoadSave extends JPanel {
 						} catch (FormatException | IOException e) {
 							e.printStackTrace();
 						}
-						System.out.println(
-								"LoadSaveKymos:saveKymographFiles() File " + cap.getKymographName() + " saved ");
+						Logger.debug("LoadSaveKymos:saveKymographFiles() File " + cap.getKymographName() + " saved ");
 					}
 				});
 			}
@@ -129,7 +129,7 @@ public class LoadSave extends JPanel {
 		boolean flag = false;
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		if (seqKymos == null || exp.getCapillaries() == null) {
-			System.out.println("LoadSaveKymos:loadDefaultKymos() no parent sequence or no capillaries found");
+			Logger.warn("LoadSaveKymos:loadDefaultKymos() no parent sequence or no capillaries found");
 			return flag;
 		}
 
@@ -148,7 +148,8 @@ public class LoadSave extends JPanel {
 			ImageFileDescriptor.getExistingFileNames(myList);
 			flag = new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, true);
 //			flag = seqKymos.loadImagesFromList(myList);
-			// Don't call transferCapillaryNamesToComboBox here - it will be called after measures are loaded
+			// Don't call transferCapillaryNamesToComboBox here - it will be called after
+			// measures are loaded
 			// in loadKymographsAndMeasures() to ensure capillaries are fully populated
 			// parent0.paneKymos.tabDisplay.transferCapillaryNamesToComboBox(exp);
 			// Don't transfer measures here - they will be transferred after loading in

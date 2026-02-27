@@ -20,12 +20,13 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
  * Advanced optimized version of BuildSpotsMeasures with streaming processing,
@@ -592,24 +593,24 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		long usedMemory = totalMemory - freeMemory;
 		long maxMemory = runtime.maxMemory();
 
-		System.out.println("=== " + stage + " ===");
-		System.out.println("Used Memory: " + (usedMemory / 1024 / 1024) + " MB");
-		System.out.println("Free Memory: " + (freeMemory / 1024 / 1024) + " MB");
-		System.out.println("Total Memory: " + (totalMemory / 1024 / 1024) + " MB");
-		System.out.println("Max Memory: " + (maxMemory / 1024 / 1024) + " MB");
-		System.out.println("Memory Usage: " + (usedMemory * 100 / maxMemory) + "%");
+		Logger.debug("=== " + stage + " ===");
+		Logger.debug("Used Memory: " + (usedMemory / 1024 / 1024) + " MB");
+		Logger.debug("Free Memory: " + (freeMemory / 1024 / 1024) + " MB");
+		Logger.debug("Total Memory: " + (totalMemory / 1024 / 1024) + " MB");
+		Logger.debug("Max Memory: " + (maxMemory / 1024 / 1024) + " MB");
+		Logger.debug("Memory Usage: " + (usedMemory * 100 / maxMemory) + "%");
 
 		// Additional tracking for memory leak analysis
-		System.out.println("Compressed Masks: " + compressedMasks.size());
-		System.out.println("Total Transformed Images: " + totalTransformedImagesCreated);
-		System.out.println("Total Cursors: " + totalCursorsCreated);
+		Logger.debug("Compressed Masks: " + compressedMasks.size());
+		Logger.debug("Total Transformed Images: " + totalTransformedImagesCreated);
+		Logger.debug("Total Cursors: " + totalCursorsCreated);
 
 		// Memory pool statistics
 		if (imageMemoryPool != null && memoryPoolEnabled) {
-			System.out.println("Source Image Pool: " + imageMemoryPool.getPoolStatistics());
+			Logger.debug("Source Image Pool: " + imageMemoryPool.getPoolStatistics());
 		}
 		if (transformedImagePool != null && memoryPoolEnabled) {
-			System.out.println("Transformed Image Pool: " + transformedImagePool.getPoolStatistics());
+			Logger.debug("Transformed Image Pool: " + transformedImagePool.getPoolStatistics());
 		}
 	}
 
@@ -657,7 +658,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	private void clearCompressedMaskCache() {
 		// Limit cache size to prevent unbounded growth
 		if (compressedMasks.size() > 1000) {
-			System.out.println("Clearing compressed mask cache (size: " + compressedMasks.size() + ")");
+			Logger.debug("Clearing compressed mask cache (size: " + compressedMasks.size() + ")");
 			compressedMasks.clear();
 		}
 	}
@@ -674,13 +675,13 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 
 		// Only trigger aggressive cleanup if memory usage is very high (>70%)
 		if (usagePercent > 70) {
-			System.out.println("=== HIGH MEMORY PRESSURE DETECTED: " + usagePercent + "% ===");
+			Logger.info("=== HIGH MEMORY PRESSURE DETECTED: " + usagePercent + "% ===");
 			forceAggressiveCleanup();
 
 			// Reduce batch size for next batch
 			if (adaptiveBatchSizer != null) {
 				adaptiveBatchSizer.reduceBatchSize();
-				System.out.println("Reduced batch size due to memory pressure");
+				Logger.debug("Reduced batch size due to memory pressure");
 			}
 		}
 		// For moderate memory usage (50-70%), just do light cleanup
@@ -693,8 +694,6 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 	// === ENHANCED POST-PROCESSING CLEANUP ===
 
 	private void enhancedPostProcessingCleanup() {
-//		System.out.println("=== ENHANCED POST-PROCESSING CLEANUP ===");
-
 		// Force multiple GC passes with longer delays
 		for (int i = 0; i < 5; i++) {
 			System.gc();
@@ -761,7 +760,7 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 				clearCacheMethod.invoke(null);
 			}
 		} catch (Exception e) {
-			System.out.println("WARNING: Could not clear Icy image cache: " + e.getMessage());
+			Logger.warn("WARNING: Could not clear Icy image cache: " + e.getMessage());
 		}
 
 		// Try to clear Icy sequence cache
@@ -771,10 +770,10 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 			if (disposeMethod != null) {
 				disposeMethod.setAccessible(true);
 				disposeMethod.invoke(seqData);
-				System.out.println("Disposed Icy sequence");
+				Logger.debug("Disposed Icy sequence");
 			}
 		} catch (Exception e) {
-			System.out.println("WARNING: Could not dispose Icy sequence: " + e.getMessage());
+			Logger.warn("Could not dispose Icy sequence: " + e.getMessage());
 		}
 	}
 

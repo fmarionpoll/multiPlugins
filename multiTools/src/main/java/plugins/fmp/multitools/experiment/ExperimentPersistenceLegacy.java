@@ -54,7 +54,6 @@ public class ExperimentPersistenceLegacy {
 		try {
 			final Document doc = XMLUtil.loadDocument(csFileName);
 			if (doc == null) {
-				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() Could not load XML document from " + csFileName);
 				return false;
 			}
 
@@ -66,7 +65,6 @@ public class ExperimentPersistenceLegacy {
 
 			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
 			if (!version.equals(ID_VERSIONNUM)) {
-				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() Version mismatch: expected " + ID_VERSIONNUM + ", got " + version);
 				return false;
 			}
 

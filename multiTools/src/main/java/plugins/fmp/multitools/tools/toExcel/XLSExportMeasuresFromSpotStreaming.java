@@ -12,6 +12,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
@@ -83,9 +84,8 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
 
-		OptionToResultsMapping[] mappings = {
-			new OptionToResultsMapping(() -> options.spotAreas, EnumResults.AREA_SUM, EnumResults.AREA_FLYPRESENT, EnumResults.AREA_SUMCLEAN)
-		};
+		OptionToResultsMapping[] mappings = { new OptionToResultsMapping(() -> options.spotAreas, EnumResults.AREA_SUM,
+				EnumResults.AREA_FLYPRESENT, EnumResults.AREA_SUMCLEAN) };
 
 		int colmax = 0;
 		for (OptionToResultsMapping mapping : mappings) {
@@ -366,12 +366,11 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 
 		// Log memory usage if it's high
 		if (memoryUsagePercentage > 0.8) {
-			System.out.println(
-					"Warning: High memory usage detected: " + String.format("%.1f%%", memoryUsagePercentage * 100));
+			Logger.warn("Warning: High memory usage detected: " + String.format("%.1f%%", memoryUsagePercentage * 100));
 
 			// Force garbage collection if memory usage is very high
 			if (memoryUsagePercentage > 0.9) {
-				System.out.println("Forcing garbage collection due to high memory usage");
+				Logger.debug("Forcing garbage collection due to high memory usage");
 				System.gc();
 			}
 		}

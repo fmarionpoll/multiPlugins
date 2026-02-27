@@ -5,29 +5,32 @@ import javax.swing.JOptionPane;
 import org.slf4j.LoggerFactory;
 
 /**
- * Centralized logging utility for MultiCAFE.
- * Provides logging functionality with user notification for critical errors.
- * When running under Icy, SLF4J may be bound to a no-op or the console may not show
- * slf4j-simple output; warn/error/info are also echoed to System.err so they appear
- * when Icy is started from a terminal. Disable with -Dmulticafe.log.toConsole=false.
+ * Centralized logging utility for MultiCAFE. Provides logging functionality
+ * with user notification for critical errors. When running under Icy, SLF4J may
+ * be bound to a no-op or the console may not show slf4j-simple output;
+ * warn/error/info are also echoed to System.err so they appear when Icy is
+ * started from a terminal. Disable with -Dmulticafe.log.toConsole=false.
  */
 public class Logger {
 	private static final org.slf4j.Logger logger = LoggerFactory.getLogger("MultiCAFE");
 
-	private static final boolean TO_CONSOLE = !"false".equalsIgnoreCase(System.getProperty("multicafe.log.toConsole", "true"));
+	private static final boolean TO_CONSOLE = !"false"
+			.equalsIgnoreCase(System.getProperty("multicafe.log.toConsole", "true"));
 
 	private static void toConsole(String level, String message, Throwable throwable) {
-		if (!TO_CONSOLE) return;
+		if (!TO_CONSOLE)
+			return;
 		System.err.println("[MultiCAFE] " + level + " - " + message);
-		if (throwable != null) throwable.printStackTrace(System.err);
+		if (throwable != null)
+			throwable.printStackTrace(System.err);
 	}
-	
+
 	/**
-	 * Logs an error message with optional exception.
-	 * Shows user dialog for critical errors.
+	 * Logs an error message with optional exception. Shows user dialog for critical
+	 * errors.
 	 * 
-	 * @param message the error message
-	 * @param throwable the exception (can be null)
+	 * @param message    the error message
+	 * @param throwable  the exception (can be null)
 	 * @param showToUser if true, shows error dialog to user
 	 */
 	public static void error(String message, Throwable throwable, boolean showToUser) {
@@ -41,17 +44,17 @@ public class Logger {
 			showErrorDialog("Error", message, throwable);
 		}
 	}
-	
+
 	/**
 	 * Logs an error message with exception (no user dialog).
 	 * 
-	 * @param message the error message
+	 * @param message   the error message
 	 * @param throwable the exception
 	 */
 	public static void error(String message, Throwable throwable) {
 		error(message, throwable, false);
 	}
-	
+
 	/**
 	 * Logs an error message (no user dialog).
 	 * 
@@ -60,7 +63,7 @@ public class Logger {
 	public static void error(String message) {
 		error(message, null, false);
 	}
-	
+
 	/**
 	 * Logs a warning message.
 	 * 
@@ -70,11 +73,11 @@ public class Logger {
 		logger.warn(message);
 		toConsole("WARN", message, null);
 	}
-	
+
 	/**
 	 * Logs a warning message with exception.
 	 * 
-	 * @param message the warning message
+	 * @param message   the warning message
 	 * @param throwable the exception
 	 */
 	public static void warn(String message, Throwable throwable) {
@@ -85,7 +88,7 @@ public class Logger {
 		}
 		toConsole("WARN", message, throwable);
 	}
-	
+
 	/**
 	 * Logs an informational message.
 	 * 
@@ -95,7 +98,7 @@ public class Logger {
 		logger.info(message);
 		toConsole("INFO", message, null);
 	}
-	
+
 	/**
 	 * Logs a debug message.
 	 * 
@@ -104,12 +107,12 @@ public class Logger {
 	public static void debug(String message) {
 		logger.debug(message);
 	}
-	
+
 	/**
 	 * Shows an error dialog to the user.
 	 * 
-	 * @param title the dialog title
-	 * @param message the error message
+	 * @param title     the dialog title
+	 * @param message   the error message
 	 * @param throwable the exception (can be null)
 	 */
 	private static void showErrorDialog(String title, String message, Throwable throwable) {
@@ -117,45 +120,29 @@ public class Logger {
 		if (throwable != null && throwable.getMessage() != null) {
 			fullMessage += "\n\nDetails: " + throwable.getMessage();
 		}
-		
-		JOptionPane.showMessageDialog(
-			null,
-			fullMessage,
-			title,
-			JOptionPane.ERROR_MESSAGE
-		);
+
+		JOptionPane.showMessageDialog(null, fullMessage, title, JOptionPane.ERROR_MESSAGE);
 	}
-	
+
 	/**
 	 * Shows a warning dialog to the user.
 	 * 
-	 * @param title the dialog title
+	 * @param title   the dialog title
 	 * @param message the warning message
 	 */
 	public static void showWarning(String title, String message) {
 		logger.warn(message);
-		JOptionPane.showMessageDialog(
-			null,
-			message,
-			title,
-			JOptionPane.WARNING_MESSAGE
-		);
+		JOptionPane.showMessageDialog(null, message, title, JOptionPane.WARNING_MESSAGE);
 	}
-	
+
 	/**
 	 * Shows an info dialog to the user.
 	 * 
-	 * @param title the dialog title
+	 * @param title   the dialog title
 	 * @param message the info message
 	 */
 	public static void showInfo(String title, String message) {
 		logger.info(message);
-		JOptionPane.showMessageDialog(
-			null,
-			message,
-			title,
-			JOptionPane.INFORMATION_MESSAGE
-		);
+		JOptionPane.showMessageDialog(null, message, title, JOptionPane.INFORMATION_MESSAGE);
 	}
 }
-

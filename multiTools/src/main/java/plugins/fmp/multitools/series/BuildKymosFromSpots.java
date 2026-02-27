@@ -7,6 +7,7 @@ import javax.swing.SwingUtilities;
 import icy.gui.frame.progress.ProgressFrame;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 
 public class BuildKymosFromSpots extends BuildSeries {
@@ -78,7 +79,7 @@ public class BuildKymosFromSpots extends BuildSeries {
 
 	private boolean buildKymo(Experiment exp) {
 		if (exp.getCages().getTotalNumberOfSpots(exp.getSpots()) < 1) {
-			System.out.println("BuildKymoSpots:buildKymo Abort (1): nb spots = 0");
+			Logger.warn("BuildKymoSpots:buildKymo Abort (1): nb spots = 0");
 			return false;
 		}
 

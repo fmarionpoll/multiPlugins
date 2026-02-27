@@ -32,6 +32,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectLevels;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
@@ -442,7 +443,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
-			System.out.println("thread_ended");
+			Logger.debug("thread_ended");
 			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 			fromRectangleCheckBox.setSelected(false);

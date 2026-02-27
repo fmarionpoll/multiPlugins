@@ -23,6 +23,7 @@ import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.polyline.Line2DPlus;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
@@ -260,7 +261,7 @@ public class Adjust extends JPanel {
 		seqCamData.getSequence().setPositionT(t);
 		IcyBufferedImage vinputImage = seqCamData.getSequence().getImage(t, 0, chan);
 		if (vinputImage == null) {
-			System.out.println("Adjust:roisCenterLinestoAllCapillaries() An error occurred while reading image: " + t);
+			Logger.warn("Adjust:roisCenterLinestoAllCapillaries() An error occurred while reading image: " + t);
 			return;
 		}
 		int xwidth = vinputImage.getSizeX();

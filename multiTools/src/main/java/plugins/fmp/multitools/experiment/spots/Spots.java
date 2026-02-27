@@ -20,6 +20,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -167,8 +168,8 @@ public class Spots {
 	}
 
 	/**
-	 * Checks if spots description files exist in the results directory.
-	 * Useful to determine if an experiment has spots data.
+	 * Checks if spots description files exist in the results directory. Useful to
+	 * determine if an experiment has spots data.
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if spots description files exist
@@ -343,7 +344,6 @@ public class Spots {
 				return false;
 			}
 
-			// System.out.println(" Loading " + nitems + " spots");
 			spotList.clear();
 
 			int loadedSpots = 0;
@@ -366,9 +366,9 @@ public class Spots {
 						spotList.add(spot);
 						loadedSpots++;
 					} else if (!spotSuccess) {
-						System.err.println("ERROR: Failed to load spot at index " + i);
+						Logger.error("Failed to load spot at index " + i);
 					} else {
-						// System.out.println(" Skipped duplicate spot at index " + i);
+						Logger.warn(" Skipped duplicate spot at index " + i);
 					}
 				} catch (Exception e) {
 					System.err.println("ERROR loading spot at index " + i + ": " + e.getMessage());

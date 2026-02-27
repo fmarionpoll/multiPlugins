@@ -4,7 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -23,10 +22,11 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.roi.ROI2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 
@@ -87,11 +87,13 @@ public class TrackCapillaries extends JPanel {
 		topPanel.add(p2);
 
 		JPanel p3 = new JPanel(flow);
-		p3.add(new JLabel("From current T: sets From then runs forward. Backwards: sets To to viewer, tracks from To down to From."));
+		p3.add(new JLabel(
+				"From current T: sets From then runs forward. Backwards: sets To to viewer, tracks from To down to From."));
 		topPanel.add(p3);
 
 		JPanel p4 = new JPanel(flow);
-		p4.add(new JLabel("Tracking will replace AlongT intervals in the selected range. Intervals outside the range are unchanged."));
+		p4.add(new JLabel(
+				"Tracking will replace AlongT intervals in the selected range. Intervals outside the range are unchanged."));
 		topPanel.add(p4);
 
 		dialogFrame = new IcyFrame("Track capillaries along time", true, true);
@@ -111,7 +113,9 @@ public class TrackCapillaries extends JPanel {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return 0;
-		icy.gui.viewer.Viewer v = exp.getSeqCamData().getSequence() != null ? exp.getSeqCamData().getSequence().getFirstViewer() : null;
+		icy.gui.viewer.Viewer v = exp.getSeqCamData().getSequence() != null
+				? exp.getSeqCamData().getSequence().getFirstViewer()
+				: null;
 		return v != null ? v.getPositionT() : 0;
 	}
 
@@ -136,8 +140,8 @@ public class TrackCapillaries extends JPanel {
 		if (!mismatches.isEmpty()) {
 			String msg = buildLengthMismatchMessage(exp.getCapillaries(), mismatches);
 			String[] options = { "Cancel", "Continue anyway", "Normalize length and run" };
-			int choice = JOptionPane.showOptionDialog(getParent(), msg,
-					"Capillary length changed", JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+			int choice = JOptionPane.showOptionDialog(getParent(), msg, "Capillary length changed",
+					JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
 			if (choice == 0)
 				return;
 			if (choice == 2) {
@@ -184,7 +188,8 @@ public class TrackCapillaries extends JPanel {
 			String name = cap.getKymographName() != null ? cap.getKymographName() : ("cap " + i);
 			sb.append("• ").append(name).append(" (reference npoints: ").append(m[1]).append(")\n");
 		}
-		sb.append("\nCancel to fix manually, Continue to run anyway, or Normalize to resample current ROIs to reference point count.");
+		sb.append(
+				"\nCancel to fix manually, Continue to run anyway, or Normalize to resample current ROIs to reference point count.");
 		return sb.toString();
 	}
 
@@ -231,7 +236,7 @@ public class TrackCapillaries extends JPanel {
 				long t0Ms = System.currentTimeMillis();
 				new TrackCapillariesAlongTime().run(exp, t0, t1, progress, madFactor, minPx);
 				long elapsed = System.currentTimeMillis() - t0Ms;
-				System.out.println("Track capillaries: " + elapsed + " ms");
+				Logger.debug("Track capillaries: " + elapsed + " ms");
 				return null;
 			}
 
@@ -288,7 +293,8 @@ public class TrackCapillaries extends JPanel {
 				try {
 					SwingUtilities.invokeAndWait(() -> {
 						StringBuilder msg = new StringBuilder();
-						msg.append("At frame T=").append(frameT).append(" the following capillary/capillaries show unusual movement compared to the others:\n\n");
+						msg.append("At frame T=").append(frameT).append(
+								" the following capillary/capillaries show unusual movement compared to the others:\n\n");
 						for (int i : outlierIndices) {
 							if (i >= 0 && i < caps.size()) {
 								Capillary cap = caps.get(i);
@@ -299,7 +305,8 @@ public class TrackCapillaries extends JPanel {
 						msg.append("\nThis may indicate a tracking jump. Choose an action.");
 						String[] options = { "Stop tracking", "Continue anyway", "Skip these for this frame only" };
 						int c = JOptionPane.showOptionDialog(getParent(), msg.toString(),
-								"Unusual movement at frame " + frameT, JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+								"Unusual movement at frame " + frameT, JOptionPane.DEFAULT_OPTION,
+								JOptionPane.WARNING_MESSAGE, null, options, options[0]);
 						if (c == 0)
 							choice.set(ProgressReporter.STOP_TRACKING);
 						else if (c == 2)

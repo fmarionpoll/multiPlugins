@@ -22,6 +22,7 @@ import icy.sequence.Sequence;
 import icy.system.thread.Processor;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
@@ -42,7 +43,6 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 	@Override
 	protected Integer doInBackground() throws Exception {
-//		System.out.println("BuildSeries:doInBackground loop over experiments");
 		threadRunning = true;
 		int nbiterations = 0;
 		JComboBoxExperimentLazy expList = options.expList;
@@ -56,11 +56,10 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			long startTimeInNs = System.nanoTime();
 			Experiment exp = expList.getItemAt(index);
 			progress.setMessage("Processing file: " + (index + 1) + "//" + (expList.index1 + 1));
-//			System.out.println("BuildSeries:doInBackground " + (index + 1) + ": " + exp.getResultsDirectory());
 
 			analyzeExperiment(exp);
 			long endTime2InNs = System.nanoTime();
-			System.out.println(
+			Logger.debug(
 					"BuildSeries (" + index + " / " + expList.index1 + "):doInBackground process ended - duration: "
 							+ ((endTime2InNs - startTimeInNs) / 1000000000f) + " s");
 
@@ -123,9 +122,9 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			try {
 				f.get();
 			} catch (ExecutionException e) {
-				System.out.println("BuildSeries:waitFuturesCompletion - frame:" + frame + " Execution exception: " + e);
+				Logger.warn("BuildSeries:waitFuturesCompletion - frame:" + frame + " Execution exception: " + e);
 			} catch (InterruptedException e) {
-				System.out.println("BuildSeries:waitFuturesCompletion - Interrupted exception: " + e);
+				Logger.warn("BuildSeries:waitFuturesCompletion - Interrupted exception: " + e);
 			}
 			futuresArray.remove(f);
 			frame++;
@@ -147,7 +146,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 		boolean flag = true;
 		if (exp.getCages().cagesList.size() < 1) {
-			System.out.println(
+			Logger.debug(
 					"BuildSeries:checkBoundsForCages ! skipped experiment with no cage: " + exp.getResultsDirectory());
 			flag = false;
 		}

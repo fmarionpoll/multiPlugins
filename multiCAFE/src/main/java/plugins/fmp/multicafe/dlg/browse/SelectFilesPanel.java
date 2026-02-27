@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,9 +32,9 @@ import javax.swing.ScrollPaneConstants;
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import icy.preferences.XMLPreferences;
-import java.beans.PropertyChangeListener;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.tools.Logger;
 
 public class SelectFilesPanel extends JPanel {
 	/**
@@ -315,7 +316,7 @@ public class SelectFilesPanel extends JPanel {
 		if (fc.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
 			dummy_selected = fc.getSelectedFile();
 		} else {
-			System.out.println("SelectFiles:chooseDirectory() No directory selected ");
+			Logger.warn("SelectFiles:chooseDirectory() No directory selected ");
 		}
 		return dummy_selected;
 	}

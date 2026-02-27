@@ -21,6 +21,7 @@ import icy.swimmingPool.SwimmingObject;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.ImageKMeans;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.nherve.maskeditor.MaskEditor;
 import plugins.nherve.toolbox.image.feature.region.SupportRegionException;
 import plugins.nherve.toolbox.image.feature.signature.SignatureException;
@@ -146,15 +147,15 @@ public class DetectLevelsDlgKMeans extends JPanel {
 					else
 						callDirect(segmentation);
 				} catch (SupportRegionException e1) {
-					System.out.println(e1.getClass().getName() + " : " + e1.getMessage());
+					Logger.warn(e1.getClass().getName() + " : " + e1.getMessage());
 				} catch (SegmentationException e1) {
-					System.out.println(e1.getClass().getName() + " : " + e1.getMessage());
+					Logger.warn(e1.getClass().getName() + " : " + e1.getMessage());
 				} catch (MaskException e1) {
-					System.out.println(e1.getClass().getName() + " : " + e1.getMessage());
+					Logger.warn(e1.getClass().getName() + " : " + e1.getMessage());
 				} catch (NumberFormatException e) {
-					System.out.println(e.getClass().getName() + " : " + e.getMessage());
+					Logger.warn(e.getClass().getName() + " : " + e.getMessage());
 				} catch (SignatureException e) {
-					System.out.println(e.getClass().getName() + " : " + e.getMessage());
+					Logger.warn(e.getClass().getName() + " : " + e.getMessage());
 				}
 			}
 		};
@@ -175,7 +176,7 @@ public class DetectLevelsDlgKMeans extends JPanel {
 		try {
 			SwingUtilities.invokeAndWait(r);
 		} catch (InvocationTargetException | InterruptedException e) {
-			System.out.println(e.getClass().getName() + " : " + e.getMessage());
+			Logger.warn(e.getClass().getName() + " : " + e.getMessage());
 		}
 	}
 
@@ -192,8 +193,7 @@ public class DetectLevelsDlgKMeans extends JPanel {
 		try {
 			SwingUtilities.invokeAndWait(r);
 		} catch (InvocationTargetException | InterruptedException e) {
-			// TODO Auto-generated catch block
-			System.out.println(e.getClass().getName() + " : " + e.getMessage());
+			Logger.warn(e.getClass().getName() + " : " + e.getMessage());
 		}
 	}
 }

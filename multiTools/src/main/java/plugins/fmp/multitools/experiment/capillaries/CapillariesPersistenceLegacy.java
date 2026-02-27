@@ -298,12 +298,12 @@ public class CapillariesPersistenceLegacy {
 									row.contains("xi"));
 							break;
 						case "TOPLEVELDIRECT":
-							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT, sep,
-									row.contains("xi"));
+							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT,
+									sep, row.contains("xi"));
 							break;
 						case "BOTTOMLEVELDIRECT":
-							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep,
-									row.contains("xi"));
+							csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
 							break;
 						case "TOPDERIVATIVE":
 							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPDERIVATIVE,
@@ -411,9 +411,10 @@ public class CapillariesPersistenceLegacy {
 	}
 
 	/**
-	 * Loads only nFlies and cageID from CAPILLARIES section into existing capillaries.
-	 * Used when loading measures so that experiments whose description lacked these
-	 * fields (e.g. legacy or wrong path) get them from the measures file.
+	 * Loads only nFlies and cageID from CAPILLARIES section into existing
+	 * capillaries. Used when loading measures so that experiments whose description
+	 * lacked these fields (e.g. legacy or wrong path) get them from the measures
+	 * file.
 	 */
 	static String csvLoad_Capillaries_NFliesAndCageOnly(Capillaries capillaries, BufferedReader csvReader, String sep) {
 		String row;
@@ -503,7 +504,6 @@ public class CapillariesPersistenceLegacy {
 					String warnMsg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Capillary not found for prefix: "
 							+ data[0];
 					Logger.warn(warnMsg);
-					System.out.println("WARN: " + warnMsg);
 					rowsSkipped++;
 					continue;
 				}
@@ -514,7 +514,6 @@ public class CapillariesPersistenceLegacy {
 			String msg = "CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() " + measureType + " - processed: "
 					+ rowsProcessed + ", skipped: " + rowsSkipped;
 			Logger.info(msg);
-			System.out.println(msg);
 		} catch (IOException e) {
 			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Measures() Failed to read CSV file", e);
 		} catch (Exception e) {
@@ -879,13 +878,13 @@ public class CapillariesPersistenceLegacy {
 							break;
 						case "TOPLEVELDIRECT":
 							measuresLoaded = true;
-							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT, sep,
-									row.contains("xi"));
+							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT,
+									sep, row.contains("xi"));
 							break;
 						case "BOTTOMLEVELDIRECT":
 							measuresLoaded = true;
-							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep,
-									row.contains("xi"));
+							csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
 							break;
 						case "TOPDERIVATIVE":
 							measuresLoaded = true;
@@ -970,13 +969,13 @@ public class CapillariesPersistenceLegacy {
 								break;
 							case "TOPLEVELDIRECT":
 								measuresLoaded = true;
-								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT,
-										sep, row.contains("xi"));
+								csvLoad_Capillaries_Measures(capillaries, csvReader,
+										EnumCapillaryMeasures.TOPLEVELDIRECT, sep, row.contains("xi"));
 								break;
 							case "BOTTOMLEVELDIRECT":
 								measuresLoaded = true;
-								csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.BOTTOMLEVELDIRECT,
-										sep, row.contains("xi"));
+								csvLoad_Capillaries_Measures(capillaries, csvReader,
+										EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
 								break;
 							case "TOPDERIVATIVE":
 								measuresLoaded = true;
@@ -1069,13 +1068,13 @@ public class CapillariesPersistenceLegacy {
 							break;
 						case "TOPLEVELDIRECT":
 							measuresLoaded = true;
-							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT, sep,
-									row.contains("xi"));
+							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.TOPLEVELDIRECT,
+									sep, row.contains("xi"));
 							break;
 						case "BOTTOMLEVELDIRECT":
 							measuresLoaded = true;
-							csvLoad_Capillaries_Measures(capillaries, csvReader, EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep,
-									row.contains("xi"));
+							csvLoad_Capillaries_Measures(capillaries, csvReader,
+									EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
 							break;
 						case "TOPDERIVATIVE":
 							measuresLoaded = true;

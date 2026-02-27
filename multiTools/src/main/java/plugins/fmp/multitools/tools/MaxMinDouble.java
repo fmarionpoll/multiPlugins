@@ -20,8 +20,6 @@ package plugins.fmp.multitools.tools;
  * range.getMaxMin(5.2);
  * range.getMaxMin(15.8);
  * 
- * System.out.println("Range: [" + range.min + ", " + range.max + "]");
- * // Output: Range: [5.2, 15.8]
  * </pre>
  * 
  * @author MultiSPOTS96

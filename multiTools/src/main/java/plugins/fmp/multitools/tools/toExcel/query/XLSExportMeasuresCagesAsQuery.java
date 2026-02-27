@@ -13,6 +13,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -30,7 +31,7 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 	ArrayList<EnumXLS_QueryColumnHeader> headers = new ArrayList<EnumXLS_QueryColumnHeader>();
 
 	public void exportQToFile(String filename, ResultsOptions resultsOptions) throws ExcelExportException {
-		System.out.println("XLSExportBase:exportQToFile() - " + ExcelExportConstants.EXPORT_START_MESSAGE);
+		Logger.debug("XLSExportBase:exportQToFile() - " + ExcelExportConstants.EXPORT_START_MESSAGE);
 
 		this.options = resultsOptions;
 		this.expList = resultsOptions.expList;
@@ -78,7 +79,7 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 				Experiment exp = expList.getItemAt(index);
 				exp.load_spots_description_and_measures();
 				progress.setMessage("Export experiment " + (index + 1) + " of " + nbexpts);
-				System.out.println("Export experiment " + (index + 1) + " of " + nbexpts);
+				Logger.debug("Export experiment " + (index + 1) + " of " + nbexpts);
 				String seriesIdentifier = CellReference.convertNumToColString(iSeries);
 				column = exportExperimentData(exp, options, column, seriesIdentifier);
 
@@ -275,8 +276,8 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 		}
 	}
 
-	void writeCageMeasuresAtT(SXSSFSheet sheet, Point pt, int t, Results xlsStim1, Results xlsStim2,
-			Results xlsPI, Results xlsSUM, EnumResults resultType) {
+	void writeCageMeasuresAtT(SXSSFSheet sheet, Point pt, int t, Results xlsStim1, Results xlsStim2, Results xlsPI,
+			Results xlsSUM, EnumResults resultType) {
 		pt.y = EnumXLS_QueryColumnHeader.VAL_TIME.getValue();
 		XLSUtils.setValue(sheet, pt, options.transpose, t);
 

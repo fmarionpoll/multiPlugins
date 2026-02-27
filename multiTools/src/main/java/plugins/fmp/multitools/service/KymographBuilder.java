@@ -122,8 +122,6 @@ public class KymographBuilder {
 				i = index;
 				cap.setKymographIndex(i);
 			}
-//			System.out.println(
-//					"buildkymos - ROI=" + roiName + " index=" + cap.getKymographIndex() + " name=" + cap.getKymographFileName());
 
 			index++;
 			cap.setKymographBuild(i >= options.kymoFirst && i <= options.kymoLast);

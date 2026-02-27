@@ -71,30 +71,7 @@ public class ImageMemoryPool {
 		this.imageChannels = templateImage.getSizeC();
 		this.dataType = templateImage.getDataType_();
 		this.initialized = true;
-
-//		System.out.println("DEBUG: Image memory pool initialized with format: " + imageWidth + "x" + imageHeight + "x"
-//				+ imageChannels + " (" + dataType + ")");
 	}
-
-//	/**
-//	 * Initializes the pool with default number of images. Note: This method is not
-//	 * called during construction to avoid Icy framework initialization issues.
-//	 */
-//	private void initializePool() {
-////		System.out.println(
-////				"DEBUG: Initializing image memory pool for " + imageWidth + "x" + imageHeight + "x" + imageChannels);
-////		int successfulImages = 0;
-//		for (int i = 0; i < DEFAULT_POOL_SIZE; i++) {
-//			IcyBufferedImage pooledImage = createNewImage();
-//			if (pooledImage != null) {
-//				imagePool.offer(pooledImage);
-//				totalImagesCreated.incrementAndGet();
-////				successfulImages++;
-//			}
-//		}
-////		System.out.println("DEBUG: Successfully created " + successfulImages + " pooled images out of "
-////				+ DEFAULT_POOL_SIZE + " requested");
-//	}
 
 	/**
 	 * Gets an image from the pool or creates a new one.
@@ -117,7 +94,6 @@ public class ImageMemoryPool {
 			IcyBufferedImage newImage = createNewImage();
 			if (newImage != null) {
 				totalImagesCreated.incrementAndGet();
-//				System.out.println("DEBUG: Created new image on-demand (pool was empty)");
 			}
 			return newImage;
 		}
@@ -168,10 +144,7 @@ public class ImageMemoryPool {
 		}
 
 		try {
-//			System.out.println("DEBUG: Attempting to create image " + imageWidth + "x" + imageHeight + "x"
-//					+ imageChannels + " (" + dataType + ")");
 			IcyBufferedImage image = new IcyBufferedImage(imageWidth, imageHeight, imageChannels, dataType);
-//			System.out.println("DEBUG: Successfully created image");
 			return image;
 		} catch (Exception e) {
 			System.err.println("ERROR creating pooled image: " + e.getMessage());

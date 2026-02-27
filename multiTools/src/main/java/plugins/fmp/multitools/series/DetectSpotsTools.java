@@ -19,6 +19,7 @@ import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DArea;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -94,12 +95,9 @@ public class DetectSpotsTools {
 			try {
 				blobs = findBlobs(binarizedImageRoi, cage.cageMask2D);
 				if (blobs == null) {
-					System.out.println("no blobs found for cage " + cage.getRoi().getName());
+					Logger.info("no blobs found for cage " + cage.getRoi().getName());
 					continue;
 				}
-//				else {				
-//					System.out.println(cage.getRoi().getName() + " n blobs=" + blobs.length);
-//				}
 
 				for (int i = 0; i < blobs.length; i++) {
 					int npoints = blobs[i].getNumberOfPoints();
@@ -154,10 +152,9 @@ public class DetectSpotsTools {
 			try {
 				f.get();
 			} catch (ExecutionException e) {
-				System.out
-						.println("FlyDetectTools:waitDetectCompletion - frame:" + frame + " Execution exception: " + e);
+				Logger.warn("FlyDetectTools:waitDetectCompletion - frame:" + frame + " Execution exception: " + e);
 			} catch (InterruptedException e) {
-				System.out.println("FlyDetectTools:waitDetectCompletion - Interrupted exception: " + e);
+				Logger.warn("FlyDetectTools:waitDetectCompletion - Interrupted exception: " + e);
 			}
 			futuresArray.remove(f);
 			frame++;

@@ -13,6 +13,7 @@ import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotProperties;
+import plugins.fmp.multitools.tools.Logger;
 
 public class Results {
 	private String name = null;
@@ -178,9 +179,9 @@ public class Results {
 	}
 
 	/**
-	 * Gets data from a capillary and converts it to dataValues (with computation support).
-	 * Capillary.getCapillaryMeasuresForXLSPass1() returns ArrayList<Integer>, so we
-	 * convert to ArrayList<Double>.
+	 * Gets data from a capillary and converts it to dataValues (with computation
+	 * support). Capillary.getCapillaryMeasuresForXLSPass1() returns
+	 * ArrayList<Integer>, so we convert to ArrayList<Double>.
 	 * 
 	 * @param exp            The experiment (required if computation is needed)
 	 * @param capillary      The capillary to get data from
@@ -380,8 +381,8 @@ public class Results {
 
 	public void addDataToValOutEvap(Results result) {
 		if (result.valuesOut.length > valuesOut.length) {
-			System.out.println("XLSResults:addDataToValOutEvap() Error: from len=" + result.valuesOut.length
-					+ " to len=" + valuesOut.length);
+			Logger.warn("XLSResults:addDataToValOutEvap() Error: from len=" + result.valuesOut.length + " to len="
+					+ valuesOut.length);
 			return;
 		}
 

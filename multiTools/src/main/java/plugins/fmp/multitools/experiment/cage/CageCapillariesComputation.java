@@ -226,8 +226,6 @@ public class CageCapillariesComputation {
 			} else {
 				piY[i] = 0.0;
 			}
-//			if (Math.abs(piY[i]) > 1.)
-//				System.out.println("unbalanced");
 		}
 
 		// Store SUM and PI in computed measures map

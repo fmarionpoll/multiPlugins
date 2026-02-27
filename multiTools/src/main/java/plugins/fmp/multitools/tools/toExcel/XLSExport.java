@@ -20,6 +20,7 @@ import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.tools.Directories;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
@@ -62,7 +63,7 @@ public abstract class XLSExport {
 	 * @throws ExcelExportException If export fails
 	 */
 	public final void exportToFile(String filename, ResultsOptions resultsOptions) throws ExcelExportException {
-		System.out.println("XLSExportBase:exportToFile() - " + ExcelExportConstants.EXPORT_START_MESSAGE);
+		Logger.info("XLSExportBase:exportToFile() - " + ExcelExportConstants.EXPORT_START_MESSAGE);
 
 		this.options = resultsOptions;
 		this.expList = resultsOptions.expList;
@@ -88,7 +89,7 @@ public abstract class XLSExport {
 			cleanup();
 		}
 
-		System.out.println("XLSExport:exportToFile() - " + ExcelExportConstants.EXPORT_FINISH_MESSAGE);
+		Logger.info("XLSExport:exportToFile() - " + ExcelExportConstants.EXPORT_FINISH_MESSAGE);
 	}
 
 	/**
@@ -235,16 +236,17 @@ public abstract class XLSExport {
 			String charSeries) throws ExcelExportException;
 
 	/**
-	 * Template method for exporting a specific result type to sheets. Handles common
-	 * logic like sheet creation, "onlyalive" sheet handling, and error management.
-	 * Subclasses provide the specific export implementation via
+	 * Template method for exporting a specific result type to sheets. Handles
+	 * common logic like sheet creation, "onlyalive" sheet handling, and error
+	 * management. Subclasses provide the specific export implementation via
 	 * exportResultTypeToSheet.
 	 * 
-	 * @param exp         The experiment to export
-	 * @param col0        The starting column
-	 * @param charSeries  The series identifier
-	 * @param resultType  The result type to export
-	 * @param errorContext The context string for error messages (e.g., "capillary", "gulp", "fly position")
+	 * @param exp          The experiment to export
+	 * @param col0         The starting column
+	 * @param charSeries   The series identifier
+	 * @param resultType   The result type to export
+	 * @param errorContext The context string for error messages (e.g., "capillary",
+	 *                     "gulp", "fly position")
 	 * @return The next available column
 	 * @throws ExcelExportException If export fails
 	 */
@@ -506,8 +508,8 @@ public abstract class XLSExport {
 	/**
 	 * Writes XLS results to the sheet.
 	 * 
-	 * @param sheet     The sheet to write to
-	 * @param pt        The starting point
+	 * @param sheet  The sheet to write to
+	 * @param pt     The starting point
 	 * @param result The results to write
 	 */
 	protected void writeXLSResult(SXSSFSheet sheet, Point pt, Results result) {

@@ -41,8 +41,6 @@ import plugins.fmp.multitools.tools.Logger;
  * ModernCages cages = ModernCages.builder().withConfiguration(CagesConfiguration.highPerformance()).build();
  * 
  * CageOperationResult result = cages.addCage(cage);
- * if (result.isSuccess()) {
- * 	System.out.println("Added cage successfully");
  * }
  * 
  * // Fast O(1) lookups

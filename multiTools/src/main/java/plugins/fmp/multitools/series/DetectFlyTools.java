@@ -16,6 +16,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DArea;
 
 public class DetectFlyTools {
@@ -193,7 +194,7 @@ public class DetectFlyTools {
 				System.out
 						.println("FlyDetectTools:waitDetectCompletion - frame:" + frame + " Execution exception: " + e);
 			} catch (InterruptedException e) {
-				System.out.println("FlyDetectTools:waitDetectCompletion - Interrupted exception: " + e);
+				Logger.warn("FlyDetectTools:waitDetectCompletion - Interrupted exception: " + e);
 			}
 			futuresArray.remove(f);
 			frame++;

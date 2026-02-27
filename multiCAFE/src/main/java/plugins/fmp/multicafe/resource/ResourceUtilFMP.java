@@ -7,6 +7,7 @@ import icy.image.ImageUtil;
 import icy.resource.ResourceUtil;
 import icy.resource.icon.IcyIcon;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multitools.tools.Logger;
 
 // adapted from NherveToolbox
 
@@ -28,7 +29,7 @@ public class ResourceUtilFMP {
 		String name = "plugins/fmp/multicafe/" + ICON_PATH + ALPHA_PATH + fileName;
 		InputStream url = MultiCAFE.class.getClassLoader().getResourceAsStream(name);
 		if (url == null) {
-			System.out.println("ResourceUtilFMP:getImage resource not found: at: " + name);
+			Logger.warn("ResourceUtilFMP:getImage resource not found: at: " + name);
 		}
 		return ImageUtil.load(url);
 	}

@@ -47,9 +47,9 @@ public class SpotsPersistence {
 	}
 
 	/**
-	 * Checks if any spots description files exist in the results directory.
-	 * This is useful to determine if an experiment has spots data (multiSPOTS)
-	 * or not (multiCAFE).
+	 * Checks if any spots description files exist in the results directory. This is
+	 * useful to determine if an experiment has spots data (multiSPOTS) or not
+	 * (multiCAFE).
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if any spots description file exists
@@ -58,12 +58,12 @@ public class SpotsPersistence {
 		if (resultsDirectory == null) {
 			return false;
 		}
-		
+
 		Path v2Path = Paths.get(resultsDirectory, ID_V2_SPOTSARRAY_CSV);
 		if (Files.exists(v2Path)) {
 			return true;
 		}
-		
+
 		Path legacyPath = Paths.get(resultsDirectory, ID_SPOTSARRAY_CSV);
 		return Files.exists(legacyPath);
 	}
@@ -91,12 +91,12 @@ public class SpotsPersistence {
 		if (binDirectory == null) {
 			return false;
 		}
-		
+
 		Path v2Path = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 		if (Files.exists(v2Path)) {
 			return true;
 		}
-		
+
 		Path legacyPath = Paths.get(binDirectory, ID_SPOTSARRAYMEASURES_CSV);
 		return Files.exists(legacyPath);
 	}
@@ -214,7 +214,8 @@ public class SpotsPersistence {
 
 		/**
 		 * Loads spot descriptions (SPOTS_ARRAY and SPOTS sections) from v2 format file.
-		 * If v2 format is not found or missing version header, delegates to Legacy class for fallback handling.
+		 * If v2 format is not found or missing version header, delegates to Legacy
+		 * class for fallback handling.
 		 */
 		public static boolean loadDescription(Spots spotsArray, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -230,21 +231,23 @@ public class SpotsPersistence {
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String firstLine = reader.readLine();
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					Logger.info("SpotsPersistence: No header found in " + ID_V2_SPOTSARRAY_CSV + ", using legacy parser");
+					Logger.info(
+							"SpotsPersistence: No header found in " + ID_V2_SPOTSARRAY_CSV + ", using legacy parser");
 					return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
 				}
-				
+
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAY_CSV + ", using legacy parser");
+					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAY_CSV
+							+ ", using legacy parser");
 					return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
 				}
-				
+
 				String fileVersion = versionData[2];
 				if (!fileVersion.equals(CSV_VERSION)) {
-					Logger.warn("SpotsPersistence: File version " + fileVersion + 
-							   " differs from current version " + CSV_VERSION);
+					Logger.warn("SpotsPersistence: File version " + fileVersion + " differs from current version "
+							+ CSV_VERSION);
 				}
 			} catch (IOException e) {
 				Logger.error("SpotsPersistence: Error reading file header: " + e.getMessage(), e);
@@ -299,7 +302,8 @@ public class SpotsPersistence {
 
 		/**
 		 * Loads spot measures from v2 format file in bin directory. If v2 format is not
-		 * found or missing version header, delegates to Legacy class for fallback handling.
+		 * found or missing version header, delegates to Legacy class for fallback
+		 * handling.
 		 */
 		public static boolean loadMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
@@ -315,21 +319,23 @@ public class SpotsPersistence {
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String firstLine = reader.readLine();
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					Logger.info("SpotsPersistence: No header found in " + ID_V2_SPOTSARRAYMEASURES_CSV + ", using legacy parser");
+					Logger.info("SpotsPersistence: No header found in " + ID_V2_SPOTSARRAYMEASURES_CSV
+							+ ", using legacy parser");
 					return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
 				}
-				
+
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAYMEASURES_CSV + ", using legacy parser");
+					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAYMEASURES_CSV
+							+ ", using legacy parser");
 					return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
 				}
-				
+
 				String fileVersion = versionData[2];
 				if (!fileVersion.equals(CSV_VERSION)) {
-					Logger.warn("SpotsPersistence: File version " + fileVersion + 
-							   " differs from current version " + CSV_VERSION);
+					Logger.warn("SpotsPersistence: File version " + fileVersion + " differs from current version "
+							+ CSV_VERSION);
 				}
 			} catch (IOException e) {
 				Logger.error("SpotsPersistence: Error reading file header: " + e.getMessage(), e);
@@ -366,8 +372,8 @@ public class SpotsPersistence {
 		}
 
 		/**
-		 * Saves spot descriptions (SPOTS_ARRAY and SPOTS sections) to SpotsDescription.csv.
-		 * Always saves with version header.
+		 * Saves spot descriptions (SPOTS_ARRAY and SPOTS sections) to
+		 * SpotsDescription.csv. Always saves with version header.
 		 */
 		public static boolean saveDescription(Spots spotsArray, String resultsDirectory) {
 			if (resultsDirectory == null) {
@@ -387,7 +393,7 @@ public class SpotsPersistence {
 				if (!SpotsPersistenceLegacy.csvSave_DescriptionSection(spotsArray, writer, ";")) {
 					return false;
 				}
-				Logger.info("SpotsArrayPersistence:saveSpotsArray() saved " + spotsArray.getSpotListCount()
+				Logger.debug("SpotsArrayPersistence:saveSpotsArray() saved " + spotsArray.getSpotListCount()
 						+ " spot descriptions to " + ID_V2_SPOTSARRAY_CSV);
 				return true;
 			} catch (IOException e) {
@@ -397,8 +403,8 @@ public class SpotsPersistence {
 		}
 
 		/**
-		 * Saves spot measures (AREA_SUM, AREA_SUMCLEAN sections) to
-		 * SpotsMeasures.csv in bin directory. Always saves with version header.
+		 * Saves spot measures (AREA_SUM, AREA_SUMCLEAN sections) to SpotsMeasures.csv
+		 * in bin directory. Always saves with version header.
 		 */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
@@ -424,7 +430,7 @@ public class SpotsPersistence {
 						";")) {
 					return false;
 				}
-				Logger.info("SpotsArrayPersistence:save_SpotsArrayMeasures() saved measures to "
+				Logger.debug("SpotsArrayPersistence:save_SpotsArrayMeasures() saved measures to "
 						+ ID_V2_SPOTSARRAYMEASURES_CSV);
 				return true;
 			} catch (IOException e) {

@@ -17,6 +17,7 @@ import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.polyline.Level2D;
@@ -551,7 +552,7 @@ public class Capillary implements Comparable<Capillary> {
 
 	public int getCageIndexFromRoiName() {
 		if (metadata.roiCap == null) {
-			System.out.println("roicap is null");
+			Logger.warn("roicap is null");
 			return -1;
 		}
 		String name = metadata.roiCap.getName();
@@ -909,10 +910,9 @@ public class Capillary implements Comparable<Capillary> {
 		if (tIndex >= 0) {
 			kymographIndex = tIndex;
 		} else {
-			System.out.println(
-					"capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName)
-							+ " kymographIndex=" + kymographIndex + " kymographFilename=" + kymographFilename
-							+ " (could not derive from image list)");
+			Logger.debug("capillary:" + (metadata.roiCap != null ? metadata.roiCap.getName() : metadata.kymographName)
+					+ " kymographIndex=" + kymographIndex + " kymographFilename=" + kymographFilename
+					+ " (could not derive from image list)");
 			tIndex = kymographIndex;
 		}
 		getROIFromCapillaryLevelAtT(capLevel, listrois, tIndex);

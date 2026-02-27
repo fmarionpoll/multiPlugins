@@ -5,12 +5,12 @@ import java.awt.geom.Point2D;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import icy.roi.BooleanMask2D;
+import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
-import icy.roi.BooleanMask2D;
-import icy.roi.ROI2D;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
 /**
@@ -35,9 +35,6 @@ import plugins.kernel.roi.roi2d.ROI2DEllipse;
  * ModernCage cage = ModernCage.builder().withData(CageData.createValid(roi, properties)).build();
  * 
  * CageOperationResult result = cage.addSpot(new Point2D.Double(100, 100), 30);
- * if (result.isSuccess()) {
- * 	System.out.println("Added spot successfully");
- * }
  * }</pre>
  * 
  * @author MultiSPOTS96

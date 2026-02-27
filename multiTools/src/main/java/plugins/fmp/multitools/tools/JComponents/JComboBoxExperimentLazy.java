@@ -15,6 +15,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -210,27 +211,27 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 						expLast.getSeqCamData().getTimeManager().setBinLast_ms(
 								expLast.getSeqCamData().getLastImageMs() - expLast.getSeqCamData().getFirstImageMs());
 					}
-					
+
 					lastOffset_Ms = expLast.getSeqCamData().getTimeManager().getBinLast_ms()
 							+ expLast.getSeqCamData().getFirstImageMs();
 
 					long diff = lastOffset_Ms - firstOffset_Ms;
-					
+
 					// Calculate experiment duration more accurately from actual image count
 					// This ensures we account for all images, not just what binLast_ms indicates
 					long binMs = expLast.getSeqCamData().getTimeManager().getBinImage_ms();
 					int nFrames = expLast.getSeqCamData().getImageLoader().getNTotalFrames();
 					long actualDurationMs = 0;
-					
+
 					if (binMs > 0 && nFrames > 0) {
 						// Duration from first to last image: (nFrames - 1) * binMs
 						// This is the actual time span covered by the images
 						actualDurationMs = (nFrames - 1) * binMs;
 					}
-					
+
 					if (diff < 1) {
 						// Debug: print actual values to understand why diff is < 1
-						System.out.println("ExperimentCombo:get_MsTime_of_StartAndEnd_AllExperiments() Expt # " + i
+						Logger.debug("ExperimentCombo:get_MsTime_of_StartAndEnd_AllExperiments() Expt # " + i
 								+ ": FileTime difference between last and first image < 1" + " (firstOffset_Ms="
 								+ firstOffset_Ms + ", lastOffset_Ms=" + lastOffset_Ms + ", binFirst="
 								+ expFirst.getSeqCamData().getTimeManager().getBinFirst_ms() + ", binLast="
@@ -239,7 +240,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 								+ expLast.getSeqCamData().getLastImageMs() + "); using sequence size instead");
 						diff = exp.getSeqCamData().getSequence().getSizeT();
 					}
-					
+
 					// Use the larger of calculated diff or actual duration from image count
 					// This ensures expAll.lastImageMs covers all experiments fully
 					if (actualDurationMs > 0 && actualDurationMs > diff) {
@@ -318,7 +319,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 			try {
 				f.get();
 			} catch (ExecutionException e) {
-				System.out.println("ExperimentCombo:waitFuturesCompletion() - Warning: " + e);
+				Logger.warn("ExperimentCombo:waitFuturesCompletion() - Warning: " + e);
 			} catch (InterruptedException e) {
 				// ignore
 			}
