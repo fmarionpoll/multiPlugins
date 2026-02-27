@@ -215,7 +215,12 @@ public class CapillariesPersistence {
 			String pathToCsv = resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV;
 			File csvFile = new File(pathToCsv);
 			if (!csvFile.isFile()) {
-				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				// No v2 CSV: load from legacy formats (CSV/XML) and auto-migrate to v2 if successful
+				boolean loaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				if (loaded) {
+					saveDescription(capillaries, resultsDirectory);
+				}
+				return loaded;
 			}
 
 			// Parse version and apply strict version rules
@@ -226,21 +231,45 @@ public class CapillariesPersistence {
 				csvReader.close();
 
 				if (firstLine == null || !firstLine.startsWith("#")) {
-					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+					// Missing header: treat as legacy and auto-migrate on successful load
+					boolean loaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries,
+							resultsDirectory);
+					if (loaded) {
+						saveDescription(capillaries, resultsDirectory);
+					}
+					return loaded;
 				}
 
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
-					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+					// Invalid header: treat as legacy and auto-migrate on successful load
+					boolean loaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries,
+							resultsDirectory);
+					if (loaded) {
+						saveDescription(capillaries, resultsDirectory);
+					}
+					return loaded;
 				}
 
 				fileVersion = parseVersion(versionData[2]);
 				if (fileVersion < 2.0) {
-					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+					// Too old for v2 parser: load via legacy and auto-migrate on success
+					boolean loaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries,
+							resultsDirectory);
+					if (loaded) {
+						saveDescription(capillaries, resultsDirectory);
+					}
+					return loaded;
 				}
 			} catch (IOException e) {
-				return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+				// IO problem reading v2 header: fall back to legacy and auto-migrate on success
+				boolean loaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries,
+						resultsDirectory);
+				if (loaded) {
+					saveDescription(capillaries, resultsDirectory);
+				}
+				return loaded;
 			}
 
 			boolean allowXmlFallback = (fileVersion < 2.1);
@@ -295,12 +324,23 @@ public class CapillariesPersistence {
 					return true;
 				}
 				if (allowXmlFallback) {
-					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+					// v2 parsing failed but XML is allowed as fallback; auto-migrate if it works
+					boolean legacyLoaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries,
+							resultsDirectory);
+					if (legacyLoaded) {
+						saveDescription(capillaries, resultsDirectory);
+					}
+					return legacyLoaded;
 				}
 				return false;
 			} catch (Exception e) {
 				if (allowXmlFallback) {
-					return CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries, resultsDirectory);
+					boolean legacyLoaded = CapillariesPersistenceLegacy.loadDescriptionWithFallback(capillaries,
+							resultsDirectory);
+					if (legacyLoaded) {
+						saveDescription(capillaries, resultsDirectory);
+					}
+					return legacyLoaded;
 				}
 				return false;
 			}

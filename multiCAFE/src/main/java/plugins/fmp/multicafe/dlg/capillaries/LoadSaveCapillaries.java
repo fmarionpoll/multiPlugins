@@ -80,7 +80,8 @@ public class LoadSaveCapillaries extends JPanel {
 
 		exp.saveExperimentDescriptors();
 		exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
-		return exp.saveMCCapillaries_Only();
+		// Use new CSV-based persistence: descriptions in results/, measures in binXX/
+		return exp.save_capillaries_description_and_measures();
 	}
 
 }

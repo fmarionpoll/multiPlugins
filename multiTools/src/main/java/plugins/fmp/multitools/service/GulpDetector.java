@@ -38,10 +38,10 @@ public class GulpDetector {
 		if (options.buildGulps) {
 			thresholdMeasure = computeThresholdFromEmptyCages(exp, options);
 			if (thresholdMeasure != null) {
-				Logger.info("GulpDetector:detectGulps() - Using dynamic threshold for experiment: "
+				Logger.debug("GulpDetector:detectGulps() - Using dynamic threshold for experiment: "
 						+ exp.getResultsDirectory());
 			} else {
-				Logger.info("GulpDetector:detectGulps() - Using fixed threshold (no empty capillaries) for experiment: "
+				Logger.warn("GulpDetector:detectGulps() - Using fixed threshold (no empty capillaries) for experiment: "
 						+ exp.getResultsDirectory());
 			}
 			detectGulps(exp, options, thresholdMeasure);
@@ -216,6 +216,8 @@ public class GulpDetector {
 		}
 
 		Capillary firstEmptyCageCap = noFlyCapillaries.get(0);
+		Logger.debug("Empty capillaries n=" + noFlyCapillaries.size());
+
 		int npoints = firstEmptyCageCap.getDerivative().polylineLevel.npoints;
 
 		double[] smoothedReference = computeSmoothedReferenceCurve(noFlyCapillaries, options);
@@ -264,9 +266,9 @@ public class GulpDetector {
 
 		exp.getCapillaries().getReferenceMeasures().setDerivativeThreshold(thresholdMeasure);
 
-		Logger.info("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from " + noFlyCapillaries.size()
-				+ " empty capillary/cage(s) using smoothed reference and global noise (median of local variabilities); experiment: "
-				+ exp.getResultsDirectory());
+		Logger.debug("GulpDetector:computeThresholdFromEmptyCages() - Computed threshold from "
+				+ noFlyCapillaries.size() + " empty capillaries");
+		Logger.debug(" Experiment: " + exp.getResultsDirectory());
 
 		return thresholdMeasure;
 	}
