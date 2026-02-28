@@ -7,11 +7,18 @@ public final class NominalIntervalConfirmer {
 
 	private NominalIntervalConfirmer() {}
 
+	private static boolean medianNominalAskedThisSession = false;
+	private static boolean medianNominalUseMedian = false;
+
 	public static boolean confirmUseMedianAsNominal(Component parent, int suggestedSec) {
+		if (medianNominalAskedThisSession)
+			return medianNominalUseMedian;
 		int choice = JOptionPane.showConfirmDialog(parent,
 				String.format("Use median interval (%d s) as nominal?", suggestedSec),
 				"Confirm nominal interval", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
-		return choice == JOptionPane.YES_OPTION;
+		medianNominalAskedThisSession = true;
+		medianNominalUseMedian = (choice == JOptionPane.YES_OPTION);
+		return medianNominalUseMedian;
 	}
 
 	public static boolean confirmNominalIfFarFromMedian(Component parent, int nominalSec, long medianMs, boolean hadPreviousNominal) {

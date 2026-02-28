@@ -102,7 +102,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 			return;
 		int nominal = exp.getNominalIntervalSec();
 		int value = nominal > 0 ? nominal : parent0.viewOptions.getDefaultNominalIntervalSec();
-		binSize.setValue(Math.max(1, value));
+		binSize.setValue(Double.valueOf(Math.max(1, value)));
 		binUnit.setSelectedIndex(2);
 	}
 
