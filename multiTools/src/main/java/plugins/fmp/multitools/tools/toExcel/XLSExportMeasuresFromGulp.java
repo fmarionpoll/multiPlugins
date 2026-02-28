@@ -2,18 +2,17 @@ package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
-import java.util.Map;
-
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillaries.computations.CorrelationComputation;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -49,7 +48,7 @@ import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
  * @version 2.3.3
  */
 public class XLSExportMeasuresFromGulp extends XLSExport {
-	
+
 	// Track column position per result type (each has its own sheet)
 	private java.util.Map<EnumResults, Integer> columnPositionMap = new java.util.HashMap<>();
 
@@ -74,23 +73,24 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			String charSeries) throws ExcelExportException {
 
 		OptionToResultsMapping[] mappings = {
-			new OptionToResultsMapping(() -> options.sumGulps, EnumResults.SUMGULPS),
-			new OptionToResultsMapping(() -> options.lrPI && options.sumGulps, EnumResults.SUMGULPS_LR),
-			new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
-			new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
-			new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
-			new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),
-			new OptionToResultsMapping(() -> options.markovChain, EnumResults.MARKOV_CHAIN),
-			new OptionToResultsMapping(() -> options.autocorrelation, EnumResults.AUTOCORREL),
-			new OptionToResultsMapping(() -> options.crosscorrelation, EnumResults.CROSSCORREL),
-			new OptionToResultsMapping(() -> options.crosscorrelationLR, EnumResults.CROSSCORREL_LR)
-		};
+				new OptionToResultsMapping(() -> options.derivative, EnumResults.DERIVEDVALUES),
+				new OptionToResultsMapping(() -> options.sumGulps, EnumResults.SUMGULPS),
+				new OptionToResultsMapping(() -> options.lrPI && options.sumGulps, EnumResults.SUMGULPS_LR),
+				new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
+				new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
+				new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
+				new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),
+				new OptionToResultsMapping(() -> options.markovChain, EnumResults.MARKOV_CHAIN),
+				new OptionToResultsMapping(() -> options.autocorrelation, EnumResults.AUTOCORREL),
+				new OptionToResultsMapping(() -> options.crosscorrelation, EnumResults.CROSSCORREL),
+				new OptionToResultsMapping(() -> options.crosscorrelationLR, EnumResults.CROSSCORREL_LR) };
 
 		int colmax = 0;
 		for (OptionToResultsMapping mapping : mappings) {
 			if (mapping.isEnabled()) {
 				for (EnumResults resultType : mapping.getResults()) {
-					// Get the current column for this result type's sheet, or use startColumn if first time
+					// Get the current column for this result type's sheet, or use startColumn if
+					// first time
 					int currentCol = columnPositionMap.getOrDefault(resultType, startColumn);
 					int nextCol = exportResultType(exp, currentCol, charSeries, resultType, "gulp");
 					// Update the column position for this result type's sheet
@@ -280,7 +280,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					}
 				}
 			}
-			
+
 			// If still invalid, try to get from sequence data
 			if (kymoLast_ms <= kymoFirst_ms && exp.getSeqCamData() != null) {
 				long expFirstMs = exp.getSeqCamData().getTimeManager().getBinFirst_ms();
@@ -330,8 +330,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 * @param resultType The export type
 	 * @return The updated point
 	 */
-	protected Point writeExperimentGulpInfos(SXSSFSheet sheet, Point pt, Experiment exp, String charSeries,
-			Cage cage, Capillary capillary, EnumResults resultType) {
+	protected Point writeExperimentGulpInfos(SXSSFSheet sheet, Point pt, Experiment exp, String charSeries, Cage cage,
+			Capillary capillary, EnumResults resultType) {
 		int x = pt.x;
 		int y = pt.y;
 		boolean transpose = options.transpose;
@@ -493,19 +493,19 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 
 		// Calculate the number of output bins based on expAll (combined time range)
 		if (expAll == null || expAll.getSeqCamData() == null) {
-			System.err.println("XLSExportMeasuresFromGulp: expAll or expAll.getSeqCamData() is null for experiment: " + 
-				(exp != null ? exp.getExperimentDirectory() : "null"));
+			System.err.println("XLSExportMeasuresFromGulp: expAll or expAll.getSeqCamData() is null for experiment: "
+					+ (exp != null ? exp.getExperimentDirectory() : "null"));
 			return null;
 		}
-		
+
 		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
 
 		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
-			System.err.println("XLSExportMeasuresFromGulp: Invalid timing for experiment: " + 
-				(exp != null ? exp.getExperimentDirectory() : "null") + 
-				" firstImageMs=" + firstImageMs + " lastImageMs=" + lastImageMs + " buildExcelStepMs=" + buildExcelStepMs);
+			System.err.println("XLSExportMeasuresFromGulp: Invalid timing for experiment: "
+					+ (exp != null ? exp.getExperimentDirectory() : "null") + " firstImageMs=" + firstImageMs
+					+ " lastImageMs=" + lastImageMs + " buildExcelStepMs=" + buildExcelStepMs);
 			return null;
 		}
 
@@ -576,8 +576,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	/**
 	 * Performs linear interpolation to find the value at the given time.
 	 * 
-	 * @param timesMs  Array of time values in milliseconds (must be sorted)
-	 * @param values   Array of corresponding values
+	 * @param timesMs      Array of time values in milliseconds (must be sorted)
+	 * @param values       Array of corresponding values
 	 * @param targetTimeMs Target time in milliseconds
 	 * @return Interpolated value, or NaN if target is outside the data range
 	 */
@@ -620,8 +620,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	}
 
 	/**
-	 * Exports Markov chain transitions for all cages.
-	 * Creates one row per transition type per cage, with transition description in Dum4.
+	 * Exports Markov chain transitions for all cages. Creates one row per
+	 * transition type per cage, with transition description in Dum4.
 	 * 
 	 * @param exp        The experiment to export
 	 * @param sheet      The sheet to write to
@@ -654,7 +654,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				continue;
 			}
 
-			// Get a representative capillary for metadata (use first capillary or L capillary)
+			// Get a representative capillary for metadata (use first capillary or L
+			// capillary)
 			Capillary representativeCap = capillaries.get(0);
 			for (Capillary cap : capillaries) {
 				String side = cap.getCapillarySide();
@@ -665,13 +666,15 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			}
 
 			// Compute all 16 transitions for this cage
-			Map<String, int[]> transitionsMap = CorrelationComputation.computeMarkovChainCageLevel(exp, cage, resultsOptions);
-			
+			Map<String, int[]> transitionsMap = CorrelationComputation.computeMarkovChainCageLevel(exp, cage,
+					resultsOptions);
+
 			if (transitionsMap.isEmpty()) {
 				continue;
 			}
 
-			// Get number of time bins from the first transition array (all should have same size)
+			// Get number of time bins from the first transition array (all should have same
+			// size)
 			int nBins = 0;
 			for (int[] transitionArray : transitionsMap.values()) {
 				if (transitionArray != null && transitionArray.length > 0) {
@@ -679,7 +682,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					break;
 				}
 			}
-			
+
 			// Fallback to getNOutputFrames if transition arrays are empty
 			if (nBins == 0) {
 				nBins = getNOutputFrames(exp, resultsOptions);
@@ -693,8 +696,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				}
 
 				// Create Results object with transition data
-				Results results = new Results(representativeCap.getRoiName(), representativeCap.getProperties().getNFlies(),
-						cage.getCageID(), 0, EnumResults.MARKOV_CHAIN);
+				Results results = new Results(representativeCap.getRoiName(),
+						representativeCap.getProperties().getNFlies(), cage.getCageID(), 0, EnumResults.MARKOV_CHAIN);
 				results.setStimulus(representativeCap.getStimulus());
 				results.setConcentration(representativeCap.getConcentration());
 				results.initValuesOutArray(nBins, 0.0);
@@ -708,7 +711,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 
 				// Write metadata and transition description
 				pt.y = 0;
-				pt = writeExperimentGulpInfosWithTransition(sheet, pt, exp, charSeries, cage, representativeCap, transitionType);
+				pt = writeExperimentGulpInfosWithTransition(sheet, pt, exp, charSeries, cage, representativeCap,
+						transitionType);
 				writeXLSResult(sheet, pt, results);
 				pt.x++;
 			}
@@ -728,8 +732,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 * @param transitionType The transition type description (e.g., "L0R0->L0R1")
 	 * @return The updated point
 	 */
-	protected Point writeExperimentGulpInfosWithTransition(SXSSFSheet sheet, Point pt, Experiment exp, String charSeries,
-			Cage cage, Capillary capillary, String transitionType) {
+	protected Point writeExperimentGulpInfosWithTransition(SXSSFSheet sheet, Point pt, Experiment exp,
+			String charSeries, Cage cage, Capillary capillary, String transitionType) {
 		int x = pt.x;
 		int y = pt.y;
 		boolean transpose = options.transpose;

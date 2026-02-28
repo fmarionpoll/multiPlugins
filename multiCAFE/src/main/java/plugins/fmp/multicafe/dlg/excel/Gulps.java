@@ -47,9 +47,6 @@ public class Gulps extends JPanel {
 
 		JPanel panel1 = new JPanel(flowLayout0);
 		panel1.add(markovChainCheckBox);
-//		panel1.add(autocorrelationCheckBox);
-//		panel1.add(crosscorrelationCheckBox);
-//		panel1.add(nbinsLabel);
 		int bWidth = 50;
 		int bHeight = 21;
 		nbinsJSpinner.setPreferredSize(new Dimension(bWidth, bHeight));
