@@ -23,6 +23,7 @@ public class ExperimentPersistence {
 	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
 	private final static String ID_LASTKYMOCOLMS = "lastKymoColMs";
 	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
+	private final static String ID_NOMINALINTERVALSEC = "nominalIntervalSec";
 	private final static String ID_FRAMEFIRST = "indexFrameFirst";
 	private final static String ID_NFRAMES = "nFrames";
 	private final static String ID_FRAMEDELTA = "indexFrameDelta";
@@ -166,7 +167,9 @@ public class ExperimentPersistence {
 						targetBinDir = binDirFile.getName();
 					}
 				} else {
-					targetBinDir = Experiment.binDirectoryNameFromMs(binKymoColMs);
+					int nominalFromNode = XMLUtil.getElementIntValue(node, ID_NOMINALINTERVALSEC, -1);
+					targetBinDir = nominalFromNode > 0 ? Experiment.binDirectoryNameFromNominal(nominalFromNode)
+							: Experiment.binDirectoryNameFromMs(binKymoColMs);
 				}
 
 				BinDescription binDesc = new BinDescription();
@@ -176,6 +179,9 @@ public class ExperimentPersistence {
 					binDesc.setLastKymoColMs(lastKymoColMs);
 				binDesc.setBinKymoColMs(binKymoColMs);
 				binDesc.setBinDirectory(targetBinDir);
+				int nominalSec = XMLUtil.getElementIntValue(node, ID_NOMINALINTERVALSEC, -1);
+				if (nominalSec >= 0)
+					binDesc.setNominalIntervalSec(nominalSec);
 
 				String resultsDir = exp.getResultsDirectory();
 				if (resultsDir != null) {
@@ -194,6 +200,9 @@ public class ExperimentPersistence {
 					}
 				}
 			}
+			int nominalSec = XMLUtil.getElementIntValue(node, ID_NOMINALINTERVALSEC, -1);
+			if (nominalSec >= 0)
+				exp.setNominalIntervalSec(nominalSec);
 		}
 
 		private static void loadImageLoaderConfiguration(Experiment exp, Node node) {
@@ -304,6 +313,9 @@ public class ExperimentPersistence {
 
 				XMLUtil.setElementLongValue(node, ID_TIMEFIRSTIMAGEMS, firstMs);
 				XMLUtil.setElementLongValue(node, ID_TIMELASTIMAGEMS, lastMs);
+
+				if (exp.getNominalIntervalSec() >= 0)
+					XMLUtil.setElementIntValue(node, ID_NOMINALINTERVALSEC, exp.getNominalIntervalSec());
 
 				// Bin parameters (firstKymoColMs, lastKymoColMs, binKymoColMs) are now stored
 				// in BinDescription.xml files in each bin directory, not in

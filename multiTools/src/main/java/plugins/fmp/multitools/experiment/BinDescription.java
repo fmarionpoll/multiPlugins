@@ -5,6 +5,8 @@ public class BinDescription {
 	private long lastKymoColMs = 0;
 	private long binKymoColMs = 60000; // Default 60 seconds
 	private String binDirectory = null;
+	/** User-confirmed nominal interval in seconds for bin directory naming; -1 if not set (derive from binKymoColMs). */
+	private int nominalIntervalSec = -1;
 
 	public BinDescription() {
 	}
@@ -48,12 +50,25 @@ public class BinDescription {
 		this.binDirectory = binDirectory;
 	}
 
+	/**
+	 * Returns the user-confirmed nominal interval in seconds, or -1 if not set.
+	 * When -1, callers should derive from {@link #getBinKymoColMs()} (e.g. round to nearest second).
+	 */
+	public int getNominalIntervalSec() {
+		return nominalIntervalSec;
+	}
+
+	public void setNominalIntervalSec(int nominalIntervalSec) {
+		this.nominalIntervalSec = nominalIntervalSec;
+	}
+
 	public void copyFrom(BinDescription other) {
 		if (other != null) {
 			this.firstKymoColMs = other.firstKymoColMs;
 			this.lastKymoColMs = other.lastKymoColMs;
 			this.binKymoColMs = other.binKymoColMs;
 			this.binDirectory = other.binDirectory;
+			this.nominalIntervalSec = other.nominalIntervalSec;
 		}
 	}
 

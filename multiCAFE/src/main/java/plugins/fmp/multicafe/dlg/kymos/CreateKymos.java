@@ -22,6 +22,7 @@ import javax.swing.SwingConstants;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
 import plugins.fmp.multitools.series.BuildKymosFromCapillaries;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
@@ -96,6 +97,15 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		defineActionListeners();
 	}
 
+	public void syncFromExperiment(Experiment exp) {
+		if (exp == null)
+			return;
+		int nominal = exp.getNominalIntervalSec();
+		int value = nominal > 0 ? nominal : parent0.viewOptions.getDefaultNominalIntervalSec();
+		binSize.setValue(Math.max(1, value));
+		binUnit.setSelectedIndex(2);
+	}
+
 	private void defineActionListeners() {
 		startComputationButton.addActionListener(new ActionListener() {
 			@Override
@@ -159,7 +169,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		options.concurrentDisplay = false;
 		options.doCreateBinDir = true;
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
-		options.binSubDirectory = Experiment.binDirectoryNameFromMs(options.t_Ms_BinDuration);
+		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 
 		options.kymoFirst = 0;
 		options.kymoLast = exp.getCapillaries().getList().size() - 1;
@@ -179,7 +189,17 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		if (exp == null)
 			return;
 
-		if (exp.getSeqKymos().getSequence() != null)
+		int nominalSec = ((Number) binSize.getValue()).intValue();
+		if (nominalSec < 1)
+			nominalSec = 60;
+		long medianMs = exp.getSeqCamData() != null ? exp.getCamImageBin_ms() : 0;
+		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs, exp.getNominalIntervalSec() >= 0))
+			return;
+
+		exp.setNominalIntervalSec(nominalSec);
+		exp.setKymoBin_ms(nominalSec * 1000L);
+
+		if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null)
 			exp.getSeqKymos().getSequence().close();
 		exp.setSeqKymos(null);
 		parent0.paneCapillaries.tabFile.saveCapillaries_file(exp);

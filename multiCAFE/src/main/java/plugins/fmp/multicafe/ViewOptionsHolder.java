@@ -17,6 +17,7 @@ public class ViewOptionsHolder {
 	private static final String KEY_VIEW_LEVELS = "viewLevels";
 	private static final String KEY_VIEW_DERIVATIVE = "viewDerivative";
 	private static final String KEY_VIEW_GULPS = "viewGulps";
+	private static final String KEY_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
 
 	private boolean viewCapillaries = true;
 	private boolean viewCages = true;
@@ -25,6 +26,15 @@ public class ViewOptionsHolder {
 	private boolean viewLevels = true;
 	private boolean viewDerivative = true;
 	private boolean viewGulps = true;
+	private int defaultNominalIntervalSec = 60;
+
+	public int getDefaultNominalIntervalSec() {
+		return defaultNominalIntervalSec;
+	}
+
+	public void setDefaultNominalIntervalSec(int sec) {
+		this.defaultNominalIntervalSec = sec;
+	}
 
 	public boolean isViewCapillaries() {
 		return viewCapillaries;
@@ -92,6 +102,7 @@ public class ViewOptionsHolder {
 		viewLevels = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_LEVELS, "true"));
 		viewDerivative = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_DERIVATIVE, "true"));
 		viewGulps = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_GULPS, "true"));
+		defaultNominalIntervalSec = Math.max(1, Integer.parseInt(prefs.get(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, "60")));
 	}
 
 	public void save(XMLPreferences prefs) {
@@ -104,6 +115,7 @@ public class ViewOptionsHolder {
 		prefs.put(KEY_VIEW_LEVELS, String.valueOf(viewLevels));
 		prefs.put(KEY_VIEW_DERIVATIVE, String.valueOf(viewDerivative));
 		prefs.put(KEY_VIEW_GULPS, String.valueOf(viewGulps));
+		prefs.put(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(defaultNominalIntervalSec));
 	}
 
 	public ViewOptionsDTO toViewOptionsDTO() {

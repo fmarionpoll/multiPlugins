@@ -81,8 +81,11 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	}
 
 	public void updateDialogs(Experiment exp) {
-		if (exp != null && exp.getSeqKymos() != null)
-			tabBinsize.displayDlgKymoIntervals(exp);
+		if (exp != null) {
+			tabCreate.syncFromExperiment(exp);
+			if (exp.getSeqKymos() != null)
+				tabBinsize.displayDlgKymoIntervals(exp);
+		}
 	}
 
 	void tabbedCapillariesAndKymosSelected() {
@@ -91,6 +94,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 			return;
 		int iselected = tabsPane.getSelectedIndex();
 		if (iselected == 0) {
+			tabCreate.syncFromExperiment(exp);
 			Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 			if (v != null)
 				v.toFront();

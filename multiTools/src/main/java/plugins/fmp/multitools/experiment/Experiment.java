@@ -65,6 +65,24 @@ public class Experiment {
 		return BIN + (int) Math.round(binMs / 1000.0);
 	}
 
+	/**
+	 * Builds bin directory name from nominal interval in seconds (e.g. 60 → "bin_60").
+	 * Used when the user has confirmed the nominal; factor is 1 in Phase 1.
+	 */
+	public static String binDirectoryNameFromNominal(int nominalSec) {
+		return BIN + nominalSec;
+	}
+
+	private static int parseNominalFromBinDirectoryName(String binDirName) {
+		if (binDirName == null || !binDirName.startsWith(BIN))
+			return -1;
+		try {
+			return Integer.parseInt(binDirName.substring(BIN.length()));
+		} catch (NumberFormatException e) {
+			return -1;
+		}
+	}
+
 	private String camDataImagesDirectory = null;
 	private String resultsDirectory = null;
 	private String binDirectory = null;
@@ -606,7 +624,23 @@ public class Experiment {
 	}
 
 	public String getBinNameFromKymoFrameStep() {
+		int nominal = getNominalIntervalSec();
+		if (nominal > 0)
+			return binDirectoryNameFromNominal(nominal);
 		return binDirectoryNameFromMs(getKymoBin_ms());
+	}
+
+	/**
+	 * Returns the user-confirmed nominal interval in seconds, or -1 if not set
+	 * (callers should derive from getKymoBin_ms()).
+	 */
+	public int getNominalIntervalSec() {
+		return activeBinDescription != null ? activeBinDescription.getNominalIntervalSec() : -1;
+	}
+
+	public void setNominalIntervalSec(int nominalSec) {
+		if (activeBinDescription != null)
+			activeBinDescription.setNominalIntervalSec(nominalSec);
 	}
 
 	public long[] build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(long firstImage_ms) {
@@ -672,6 +706,9 @@ public class Experiment {
 				// Update binDirectory if it doesn't match the calculated interval
 				if (binDirectory == null || currentBinDirName == null || !currentBinDirName.equals(expectedBinDir)) {
 					setBinSubDirectory(expectedBinDir);
+					int nominalFromDir = parseNominalFromBinDirectoryName(expectedBinDir);
+					if (nominalFromDir > 0)
+						setNominalIntervalSec(nominalFromDir);
 				}
 				// Now save with correct directory name
 				saveBinDescription();
@@ -848,6 +885,11 @@ public class Experiment {
 		boolean measuresLoaded = false;
 		if (binDir != null && capillaries.getPersistence().hasCapillariesMeasuresFiles(binDir)) {
 			measuresLoaded = capillaries.getPersistence().loadMeasures(capillaries, binDir);
+			if (measuresLoaded) {
+				int nominalFromCsv = plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence.readNominalIntervalSecFromMeasuresFile(binDir);
+				if (nominalFromCsv > 0)
+					setNominalIntervalSec(nominalFromCsv);
+			}
 		}
 
 		transferCapillaryRoisToSequence();
@@ -1615,6 +1657,9 @@ public class Experiment {
 		boolean loaded = binDescriptionPersistence.load(activeBinDescription, binFullDir);
 		if (loaded) {
 			activeBinDescription.setBinDirectory(binSubDirectory);
+			int nominal = activeBinDescription.getNominalIntervalSec();
+			if (nominal > 0)
+				setNominalIntervalSec(nominal);
 			// Sync with TimeManager for backward compatibility
 			timeManager.setKymoFirst_ms(activeBinDescription.getFirstKymoColMs());
 			timeManager.setKymoLast_ms(activeBinDescription.getLastKymoColMs());
@@ -1892,7 +1937,7 @@ public class Experiment {
 		if (seqKymos != null && seqKymos.getSequence() != null) {
 			CapillariesKymosMapper.pullCapillaryMeasuresFromKymos(capillaries, seqKymos);
 		}
-		return capillaries.getPersistence().saveMeasures(capillaries, directory);
+		return capillaries.getPersistence().saveMeasures(capillaries, directory, getNominalIntervalSec());
 	}
 
 	// ---------------------------------------------------------

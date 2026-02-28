@@ -122,13 +122,41 @@ public class CapillariesPersistence {
 	 * Saves capillary measures to the bin directory (e.g., results/bin60). Measures
 	 * include time-series data like toplevel, bottomlevel, derivative, gulps. Uses
 	 * new v2 format.
-	 * 
-	 * @param capillaries  the Capillaries to save
-	 * @param binDirectory the bin directory (e.g., results/bin60)
+	 *
+	 * @param nominalIntervalSec when &gt; 0, writes {@code # nominal_interval_sec=N} in the CSV
 	 * @return true if successful
 	 */
+	public boolean saveMeasures(Capillaries capillaries, String binDirectory, int nominalIntervalSec) {
+		return Persistence.saveMeasures(capillaries, binDirectory, nominalIntervalSec);
+	}
+
 	public boolean saveMeasures(Capillaries capillaries, String binDirectory) {
-		return Persistence.saveMeasures(capillaries, binDirectory);
+		return Persistence.saveMeasures(capillaries, binDirectory, -1);
+	}
+
+	/**
+	 * Reads the nominal interval (s) from the comment line
+	 * {@code # nominal_interval_sec=N} in CapillariesMeasures.csv if present.
+	 *
+	 * @param binDirectory the bin directory (e.g., results/bin_60)
+	 * @return nominal interval in seconds, or -1 if not found
+	 */
+	public static int readNominalIntervalSecFromMeasuresFile(String binDirectory) {
+		if (binDirectory == null)
+			return -1;
+		String pathToCsv = binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV;
+		try (BufferedReader r = new BufferedReader(new FileReader(pathToCsv))) {
+			String line;
+			while ((line = r.readLine()) != null) {
+				if (line.startsWith("# nominal_interval_sec=")) {
+					String val = line.substring("# nominal_interval_sec=".length()).trim();
+					return Math.max(1, Integer.parseInt(val));
+				}
+			}
+		} catch (IOException | NumberFormatException e) {
+			// ignore
+		}
+		return -1;
 	}
 
 	// ========================================================================
@@ -386,7 +414,7 @@ public class CapillariesPersistence {
 				// No v2 CSV: load from legacy formats and auto-migrate to v2 if successful
 				boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 				if (loaded) {
-					saveMeasures(capillaries, binDirectory);
+					saveMeasures(capillaries, binDirectory, -1);
 					Logger.info("CapillariesPersistence:loadMeasures() Migrated legacy capillaries measures to "
 							+ ID_V2_CAPILLARIESMEASURES_CSV + " in " + binDirectory);
 				}
@@ -402,7 +430,7 @@ public class CapillariesPersistence {
 				if (firstLine == null || !firstLine.startsWith("#")) {
 					boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 					if (loaded) {
-						saveMeasures(capillaries, binDirectory);
+						saveMeasures(capillaries, binDirectory, -1);
 						Logger.info(
 								"CapillariesPersistence:loadMeasures() Migrated headerless capillaries measures file to v2 CSV in "
 										+ binDirectory);
@@ -415,7 +443,7 @@ public class CapillariesPersistence {
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
 					boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 					if (loaded) {
-						saveMeasures(capillaries, binDirectory);
+						saveMeasures(capillaries, binDirectory, -1);
 						Logger.info(
 								"CapillariesPersistence:loadMeasures() Migrated invalid-header capillaries measures file to v2 CSV in "
 										+ binDirectory);
@@ -425,7 +453,7 @@ public class CapillariesPersistence {
 			} catch (IOException e) {
 				boolean loaded = CapillariesPersistenceLegacy.loadMeasuresWithFallback(capillaries, binDirectory);
 				if (loaded) {
-					saveMeasures(capillaries, binDirectory);
+					saveMeasures(capillaries, binDirectory, -1);
 					Logger.info(
 							"CapillariesPersistence:loadMeasures() Migrated capillaries measures from legacy after IO error in v2 header in "
 									+ binDirectory);
@@ -575,13 +603,10 @@ public class CapillariesPersistence {
 
 		/**
 		 * Saves capillary measures to CapillariesMeasures.csv in bin directory. Always
-		 * saves with version header.
-		 * 
-		 * @param capillaries  the Capillaries to save
-		 * @param binDirectory the bin directory (e.g., results/bin60)
-		 * @return true if successful
+		 * saves with version header. When nominalIntervalSec &gt; 0, adds line
+		 * {@code # nominal_interval_sec=N} for self-describing time step.
 		 */
-		public static boolean saveMeasures(Capillaries capillaries, String binDirectory) {
+		public static boolean saveMeasures(Capillaries capillaries, String binDirectory, int nominalIntervalSec) {
 			if (binDirectory == null) {
 				return false;
 			}
@@ -595,6 +620,8 @@ public class CapillariesPersistence {
 				capillaries.copyThresholdToFirstEmptyCapillaryForLegacySave();
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
+				if (nominalIntervalSec > 0)
+					csvWriter.write("# nominal_interval_sec=" + nominalIntervalSec + "\n");
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumCapillaryMeasures.TOPRAW, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,

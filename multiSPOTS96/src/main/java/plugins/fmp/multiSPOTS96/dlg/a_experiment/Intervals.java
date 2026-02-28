@@ -24,6 +24,7 @@ import icy.gui.viewer.Viewer;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class Intervals extends JPanel implements ItemListener {
@@ -40,8 +41,12 @@ public class Intervals extends JPanel implements ItemListener {
 	JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
 			new String[] { "up to last frame acquired", "clip number of frames to" });
 	JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
+	private static final String PREF_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
+	private static final int DEFAULT_NOMINAL_INTERVAL_SEC = 15;
+
 	JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
 	JComboBoxMs binUnit = new JComboBoxMs();
+	JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(15, 1, 999, 1));
 	JButton applyButton = new JButton("Apply changes");
 	JButton refreshButton = new JButton("Refresh");
 	private MultiSPOTS96 parent0 = null;
@@ -55,6 +60,7 @@ public class Intervals extends JPanel implements ItemListener {
 		Dimension dimension = new Dimension(bWidth, bHeight);
 		indexFirstImageJSpinner.setPreferredSize(dimension);
 		binSizeJSpinner.setPreferredSize(dimension);
+		nominalIntervalJSpinner.setPreferredSize(dimension);
 		fixedNumberOfImagesJSpinner.setPreferredSize(dimension);
 
 		FlowLayout layout1 = new FlowLayout(FlowLayout.LEFT);
@@ -72,6 +78,8 @@ public class Intervals extends JPanel implements ItemListener {
 		panel1.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
 		panel1.add(binSizeJSpinner);
 		panel1.add(binUnit);
+		panel1.add(new JLabel("Nominal interval (s) ", SwingConstants.RIGHT));
+		panel1.add(nominalIntervalJSpinner);
 		panel1.add(refreshButton);
 		add(panel1);
 
@@ -152,9 +160,20 @@ public class Intervals extends JPanel implements ItemListener {
 
 	private void setExperimentParameters(Experiment exp) {
 		long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
+		int nominalSec = ((Number) nominalIntervalJSpinner.getValue()).intValue();
+		if (nominalSec < 1)
+			nominalSec = DEFAULT_NOMINAL_INTERVAL_SEC;
+
+		long medianMs = exp.getCamImageBin_ms();
+		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs, exp.getNominalIntervalSec() >= 0))
+			return;
+
 		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
 		exp.setCamImageBin_ms(bin_ms);
 		exp.setKymoBin_ms(bin_ms);
+		exp.setNominalIntervalSec(nominalSec);
+		saveDefaultNominalIntervalSec(nominalSec);
+
 		long firstImageIndex = (long) indexFirstImageJSpinner.getValue();
 		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(firstImageIndex);
 		exp.getSeqCamData().getTimeManager()
@@ -173,8 +192,23 @@ public class Intervals extends JPanel implements ItemListener {
 		parent0.dlgBrowse.loadSaveExperiment.openSelectedExperiment(exp);
 	}
 
+	private int getDefaultNominalIntervalSec() {
+		icy.preferences.XMLPreferences prefs = parent0.getPreferences("multiSPOTS96Intervals");
+		return Math.max(1, Integer.parseInt(prefs.get(PREF_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(DEFAULT_NOMINAL_INTERVAL_SEC))));
+	}
+
+	private void saveDefaultNominalIntervalSec(int sec) {
+		icy.preferences.XMLPreferences prefs = parent0.getPreferences("multiSPOTS96Intervals");
+		prefs.put(PREF_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(sec));
+	}
+
 	public void getExptParms(Experiment exp) {
 		refreshBinSize(exp);
+		int nominal = exp.getNominalIntervalSec();
+		if (nominal > 0)
+			nominalIntervalJSpinner.setValue(nominal);
+		else
+			nominalIntervalJSpinner.setValue(getDefaultNominalIntervalSec());
 		long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
 		long dFirst = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
 		indexFirstImageJSpinner.setValue(dFirst);
@@ -193,6 +227,14 @@ public class Intervals extends JPanel implements ItemListener {
 		}
 		binUnit.setSelectedIndex(1);
 		binSizeJSpinner.setValue(bin_ms / (double) binUnit.getMsUnitValue());
+		if (exp.getNominalIntervalSec() < 0 && bin_ms > 0) {
+			int suggestedSec = (int) Math.round(bin_ms / 1000.0);
+			if (NominalIntervalConfirmer.confirmUseMedianAsNominal(this, suggestedSec)) {
+				exp.setNominalIntervalSec(suggestedSec);
+				nominalIntervalJSpinner.setValue(suggestedSec);
+			} else
+				nominalIntervalJSpinner.setValue(getDefaultNominalIntervalSec());
+		}
 	}
 
 	@Override

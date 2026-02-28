@@ -14,6 +14,7 @@ public class BinDescriptionPersistence {
 	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
 	private final static String ID_LASTKYMOCOLMS = "lastKymoColMs";
 	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
+	private final static String ID_NOMINALINTERVALSEC = "nominalIntervalSec";
 	private final static String ID_BINDESCRIPTION = "binDescription";
 
 	public final static String ID_V2_BINDESCRIPTION_XML = "BinDescription.xml";
@@ -34,7 +35,20 @@ public class BinDescriptionPersistence {
 			return false;
 		}
 		String filename = binDirectory + File.separator + ID_V2_BINDESCRIPTION_XML;
-		return xmlLoadBinDescription(binDescription, filename);
+		boolean loaded = xmlLoadBinDescription(binDescription, filename);
+		if (loaded && binDescription.getNominalIntervalSec() < 0) {
+			String dirName = new File(binDirectory).getName();
+			if (dirName.startsWith(Experiment.BIN)) {
+				try {
+					int parsed = Integer.parseInt(dirName.substring(Experiment.BIN.length()));
+					if (parsed > 0)
+						binDescription.setNominalIntervalSec(parsed);
+				} catch (NumberFormatException e) {
+					// ignore
+				}
+			}
+		}
+		return loaded;
 	}
 
 	/**
@@ -48,24 +62,16 @@ public class BinDescriptionPersistence {
 		if (binDirectory == null) {
 			return false;
 		}
-
-		long binKymoColMs = binDescription.getBinKymoColMs();
 		File binDirFile = new File(binDirectory);
 		String binSubDirName = binDirFile.getName();
 		if (binSubDirName.startsWith(Experiment.BIN)) {
-			String expectedBinValue = binSubDirName.substring(Experiment.BIN.length());
+			String suffix = binSubDirName.substring(Experiment.BIN.length());
 			try {
-				long expectedMs = Long.parseLong(expectedBinValue) * 1000;
-				if (expectedMs != binKymoColMs) {
-					// Don't create directory prematurely
-					return false;
-				}
+				Integer.parseInt(suffix);
 			} catch (NumberFormatException e) {
-				// Can't parse directory name - be conservative, don't save default
 				return false;
 			}
 		}
-		// Ensure directory exists
 		File dir = new File(binDirectory);
 		if (!dir.exists()) {
 			dir.mkdirs();
@@ -91,6 +97,7 @@ public class BinDescriptionPersistence {
 		long firstKymoColMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
 		long lastKymoColMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
 		long binKymoColMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
+		int nominalIntervalSec = XMLUtil.getElementIntValue(node, ID_NOMINALINTERVALSEC, -1);
 
 		if (firstKymoColMs >= 0)
 			binDescription.setFirstKymoColMs(firstKymoColMs);
@@ -98,6 +105,8 @@ public class BinDescriptionPersistence {
 			binDescription.setLastKymoColMs(lastKymoColMs);
 		if (binKymoColMs >= 0)
 			binDescription.setBinKymoColMs(binKymoColMs);
+		if (nominalIntervalSec >= 0)
+			binDescription.setNominalIntervalSec(nominalIntervalSec);
 
 		return true;
 	}
@@ -114,6 +123,8 @@ public class BinDescriptionPersistence {
 			XMLUtil.setElementLongValue(node, ID_FIRSTKYMOCOLMS, binDescription.getFirstKymoColMs());
 			XMLUtil.setElementLongValue(node, ID_LASTKYMOCOLMS, binDescription.getLastKymoColMs());
 			XMLUtil.setElementLongValue(node, ID_BINKYMOCOLMS, binDescription.getBinKymoColMs());
+			if (binDescription.getNominalIntervalSec() >= 0)
+				XMLUtil.setElementIntValue(node, ID_NOMINALINTERVALSEC, binDescription.getNominalIntervalSec());
 
 			XMLUtil.saveDocument(doc, csFileName);
 			return true;
