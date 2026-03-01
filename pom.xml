@@ -150,9 +150,9 @@
         </repository>
     </repositories>
     <modules>
+    	<module>multiTools</module>
     	<module>multiCAFE</module>
     	<module>multiSPOTS</module>
     	<module>multiSPOTS96</module>
-    	<module>multiTools</module>
     </modules>
 </project>
