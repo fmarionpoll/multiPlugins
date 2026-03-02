@@ -65,7 +65,14 @@ public class SpotsPersistence {
 		}
 
 		Path legacyPath = Paths.get(resultsDirectory, ID_SPOTSARRAY_CSV);
-		return Files.exists(legacyPath);
+		if (Files.exists(legacyPath)) {
+			return true;
+		}
+
+		// MS96 legacy combined file (results/SpotsMeasures.csv) – use only if no newer
+		// description files exist
+		Path ms96Combined = Paths.get(resultsDirectory, CSV_FILENAME);
+		return Files.exists(ms96Combined);
 	}
 
 	/**
@@ -224,7 +231,17 @@ public class SpotsPersistence {
 
 			Path csvPath = Paths.get(resultsDirectory, ID_V2_SPOTSARRAY_CSV);
 			if (!Files.exists(csvPath)) {
-				return SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
+				boolean loadedLegacy = SpotsPersistenceLegacy.loadDescriptionWithFallback(spotsArray, resultsDirectory);
+				if (loadedLegacy) {
+					return true;
+				}
+
+				// Final fallback: MS96 combined file in results/SpotsMeasures.csv
+				Path ms96Combined = Paths.get(resultsDirectory, CSV_FILENAME);
+				if (Files.exists(ms96Combined)) {
+					return SpotsPersistenceLegacy.loadDescriptionFromCombinedResults(spotsArray, resultsDirectory);
+				}
+				return false;
 			}
 
 			// Validate version header before committing to new format parser
@@ -312,7 +329,24 @@ public class SpotsPersistence {
 
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			if (!Files.exists(csvPath)) {
-				return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
+				boolean loadedLegacy = SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
+				if (loadedLegacy) {
+					return true;
+				}
+
+				// Additional MS96-style fallback:
+				// If binDirectory looks like results/binXX, derive results directory and try
+				// results/SpotsMeasures.csv
+				Path binPath = Paths.get(binDirectory);
+				Path parent = binPath.getParent();
+				if (parent != null) {
+					Path ms96Combined = parent.resolve(CSV_FILENAME);
+					if (Files.exists(ms96Combined)) {
+						return SpotsPersistenceLegacy.loadMeasuresFromCombinedResults(spotsArray,
+								parent.toAbsolutePath().toString());
+					}
+				}
+				return false;
 			}
 
 			// Validate version header before committing to new format parser

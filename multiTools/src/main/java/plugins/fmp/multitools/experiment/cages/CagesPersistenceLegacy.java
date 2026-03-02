@@ -40,6 +40,7 @@ public class CagesPersistenceLegacy {
 	private static final String ID_CAGESMEASURES_CSV = "CagesMeasures.csv";
 	private static final String ID_CAGESARRAY_CSV = "CagesArray.csv";
 	private static final String ID_CAGESARRAYMEASURES_CSV = "CagesArrayMeasures.csv";
+	private static final String ID_MS96_CAGES_XML = "MS96_cages.xml";
 
 	/**
 	 * Loads cages from legacy CSV format (CagesMeasures.csv).
@@ -796,6 +797,19 @@ public class CagesPersistenceLegacy {
 			if (loaded) {
 				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy XML: "
 						+ ID_MCDROSOTRACK_XML);
+			}
+			return loaded;
+		}
+
+		// Priority 4: MS96-specific cages file (results/MS96_cages.xml)
+		String ms96XmlPath = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
+		File ms96XmlFile = new File(ms96XmlPath);
+		if (ms96XmlFile.isFile()) {
+			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying MS96 XML format: " + ms96XmlPath);
+			boolean loaded = xmlReadCagesFromFileNoQuestion(cages, ms96XmlPath);
+			if (loaded) {
+				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from MS96 XML: "
+						+ ID_MS96_CAGES_XML);
 			}
 			return loaded;
 		}

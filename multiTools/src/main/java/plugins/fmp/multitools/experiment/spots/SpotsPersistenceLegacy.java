@@ -22,6 +22,7 @@ public class SpotsPersistenceLegacy {
 	private static final String ID_SPOTSARRAY_CSV = "SpotsArray.csv";
 	private static final String ID_SPOTSARRAYMEASURES_CSV = "SpotsArrayMeasures.csv";
 	private static final String csvSep = ";";
+	private static final String ID_SPOTSMEASURES_COMBINED_CSV = "SpotsMeasures.csv";
 
 	// ========================================================================
 	// Fallback methods that handle all legacy formats (CSV only)
@@ -153,6 +154,106 @@ public class SpotsPersistenceLegacy {
 	// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
 	// multiCAFE data does not have spots persistence files, so we return false
 	return false;
+	}
+
+	/**
+	 * Loads spot descriptions from a combined MS96-style results/SpotsMeasures.csv
+	 * file. Only the SPOTS_ARRAY and SPOTS sections are parsed; measure sections are
+	 * ignored.
+	 */
+	public static boolean loadDescriptionFromCombinedResults(Spots spotsArray, String resultsDirectory) {
+		if (resultsDirectory == null) {
+			return false;
+		}
+
+		Path csvPath = Paths.get(resultsDirectory, ID_SPOTSMEASURES_COMBINED_CSV);
+		if (!Files.exists(csvPath)) {
+			return false;
+		}
+
+		try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
+			String line;
+			String sep = csvSep;
+			boolean descriptionLoaded = false;
+			boolean spotsLoaded = false;
+
+			while ((line = reader.readLine()) != null) {
+				if (line.length() > 0 && line.charAt(0) == '#')
+					sep = String.valueOf(line.charAt(1));
+
+				String[] data = line.split(sep);
+				if (data.length > 0 && data[0].equals("#")) {
+					if (data.length > 1) {
+						switch (data[1]) {
+						case "SPOTS_ARRAY":
+							descriptionLoaded = true;
+							csvLoad_SpotsArray_Metadata(spotsArray, reader, sep);
+							break;
+						case "SPOTS":
+							spotsLoaded = true;
+							csvLoad_Spots_Description(spotsArray, reader, sep);
+							break;
+						default:
+							// Any AREA_* or measure section marks the end of description-only parsing
+							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+							if (measure != null || data[1].startsWith("AREA_")) {
+								return descriptionLoaded || spotsLoaded;
+							}
+							break;
+						}
+					}
+				}
+			}
+
+			return descriptionLoaded || spotsLoaded;
+		} catch (Exception e) {
+			Logger.error("SpotsArrayPersistenceLegacy:loadDescriptionFromCombinedResults() Error loading CSV: "
+					+ e.getMessage(), e, true);
+			return false;
+		}
+	}
+
+	/**
+	 * Loads spot measures from a combined MS96-style results/SpotsMeasures.csv
+	 * file. Only AREA_* / EnumSpotMeasures sections are parsed.
+	 */
+	public static boolean loadMeasuresFromCombinedResults(Spots spotsArray, String resultsDirectory) {
+		if (resultsDirectory == null) {
+			return false;
+		}
+
+		Path csvPath = Paths.get(resultsDirectory, ID_SPOTSMEASURES_COMBINED_CSV);
+		if (!Files.exists(csvPath)) {
+			return false;
+		}
+
+		try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
+			String line;
+			String sep = csvSep;
+			boolean anyLoaded = false;
+
+			while ((line = reader.readLine()) != null) {
+				if (line.length() > 0 && line.charAt(0) == '#')
+					sep = String.valueOf(line.charAt(1));
+
+				String[] data = line.split(sep);
+				if (data.length > 0 && data[0].equals("#")) {
+					if (data.length > 1) {
+						EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+						if (measure != null) {
+							csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
+							anyLoaded = true;
+						}
+					}
+				}
+			}
+
+			return anyLoaded;
+		} catch (Exception e) {
+			Logger.error("SpotsArrayPersistenceLegacy:loadMeasuresFromCombinedResults() Error loading CSV: "
+					+ e.getMessage(), e, true);
+			return false;
+		}
 	}
 
 	// ========================================================================

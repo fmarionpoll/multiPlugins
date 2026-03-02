@@ -285,9 +285,10 @@ public class Intervals extends JPanel implements ItemListener {
 		binSizeJSpinner.setValue(bin_ms / (double) binUnit.getMsUnitValue());
 		if (exp.getNominalIntervalSec() < 0 && bin_ms > 0) {
 			int suggestedSec = (int) Math.round(bin_ms / 1000.0);
-			if (NominalIntervalConfirmer.confirmUseMedianAsNominal(this, suggestedSec)) {
-				exp.setNominalIntervalSec(suggestedSec);
-				nominalIntervalJSpinner.setValue(suggestedSec);
+			Integer chosenSec = NominalIntervalConfirmer.confirmUseMedianAsNominal(this, suggestedSec);
+			if (chosenSec != null) {
+				exp.setNominalIntervalSec(chosenSec);
+				nominalIntervalJSpinner.setValue(chosenSec);
 			} else
 				nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
 		}

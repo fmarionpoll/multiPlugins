@@ -44,7 +44,7 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private JLabel spotsFilterLabel = new JLabel("Spots filter");
-	private String[] directions = new String[] { " threshold >", " threshold <" };
+	private String[] directions = new String[] { " threshold <", " threshold >" };
 	private ImageTransformEnums[] transforms = new ImageTransformEnums[] { ImageTransformEnums.R_RGB,
 			ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, ImageTransformEnums.R2MINUS_GB,
 			ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.RGB,
@@ -165,8 +165,8 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && viewButton2.isSelected()) {
 					int index = fliesTransformsComboBox.getSelectedIndex();
-					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-							.getCanvas();
+					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence()
+							.getFirstViewer().getCanvas();
 					updateTransformFunctions2OfCanvas(canvas);
 					if (!viewButton2.isSelected())
 						viewButton2.setSelected(true);
