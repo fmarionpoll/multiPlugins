@@ -452,16 +452,12 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 			// Load capillary IDs (new format)
 			if (!xmlLoadCapillaryIDs(xmlVal)) {
-				// Legacy format will be handled by migration tool
-				Logger.warn("xmlLoadCapillaryIDs returned false");
+				Logger.debug("xmlLoadCapillaryIDs returned false (legacy format has no CapillaryIDs)");
 			}
 
 			// Load spot IDs (new format)
 			if (!xmlLoadSpotIDs(xmlVal)) {
-				// Legacy format: spots are loaded via transparent fallback in Legacy
-				// persistence classes
-				// Users can manually save in new format when desired
-				Logger.warn("xlmLoadSpotIDs returned false");
+				Logger.debug("xmlLoadSpotIDs returned false (legacy format has no SpotIDs)");
 			}
 
 			// Load cage measures

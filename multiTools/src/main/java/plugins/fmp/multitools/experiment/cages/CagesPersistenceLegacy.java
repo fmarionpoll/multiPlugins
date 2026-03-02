@@ -818,6 +818,27 @@ public class CagesPersistenceLegacy {
 	}
 
 	/**
+	 * Loads cage descriptions and measures from MS96_cages.xml only. Used when
+	 * experiment descriptor version is 1.0.0 (legacy). The XML contains both cage
+	 * ROIs and fly positions.
+	 */
+	public static boolean loadFromMS96CagesXml(Cages cages, String resultsDirectory) {
+		if (resultsDirectory == null) {
+			return false;
+		}
+		String path = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
+		File file = new File(path);
+		if (!file.isFile()) {
+			return false;
+		}
+		boolean loaded = xmlReadCagesFromFileNoQuestion(cages, path);
+		if (loaded) {
+			Logger.info("CagesPersistenceLegacy:loadFromMS96CagesXml() Loaded from " + ID_MS96_CAGES_XML);
+		}
+		return loaded;
+	}
+
+	/**
 	 * Loads cage measures with fallback logic. Replicates original MultiCAFE0
 	 * behavior: checks for legacy CSV files first, then falls back to XML.
 	 * 

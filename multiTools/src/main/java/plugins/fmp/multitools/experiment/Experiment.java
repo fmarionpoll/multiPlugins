@@ -23,6 +23,7 @@ import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.cages.CagesPersistence.Persistence;
+import plugins.fmp.multitools.experiment.cages.CagesPersistenceLegacy;
 import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesDescription;
@@ -41,6 +42,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.experiment.spots.SpotsPersistenceLegacy;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Directories;
@@ -112,6 +114,9 @@ public class Experiment {
 	// Flags to prevent race conditions between loading and saving
 	private volatile boolean isLoading = false;
 	private volatile boolean isSaving = false;
+
+	/** True when experiment was loaded from descriptor version 1.0.0 (MS96 legacy). */
+	private boolean legacyExperimentFormat = false;
 
 	// -----------------------------------------
 
@@ -298,6 +303,14 @@ public class Experiment {
 
 	public void setSaving(boolean saving) {
 		this.isSaving = saving;
+	}
+
+	public boolean isLegacyExperimentFormat() {
+		return legacyExperimentFormat;
+	}
+
+	public void setLegacyExperimentFormat(boolean legacyExperimentFormat) {
+		this.legacyExperimentFormat = legacyExperimentFormat;
 	}
 
 	public String toString() {
@@ -762,18 +775,18 @@ public class Experiment {
 	 */
 	public boolean load_cages_description_and_measures() {
 		String resultsDir = getResultsDirectory();
+		boolean cagesLoaded;
 
-		// Load descriptions from results directory (Legacy classes handle fallback
-		// transparently)
-		boolean cagesLoaded = Persistence.loadDescription(cages, resultsDir);
-
-		// Load measures from bin directory (if available)
-		String binDir = getKymosBinFullDirectory();
-		if (binDir != null) {
-			cages.getPersistence().loadMeasures(cages, binDir);
+		if (isLegacyExperimentFormat()) {
+			cagesLoaded = CagesPersistenceLegacy.loadFromMS96CagesXml(cages, resultsDir);
+		} else {
+			cagesLoaded = Persistence.loadDescription(cages, resultsDir);
+			String binDir = getKymosBinFullDirectory();
+			if (binDir != null) {
+				cages.getPersistence().loadMeasures(cages, binDir);
+			}
 		}
 
-		// Transfer cages to ROIs on sequence if loaded successfully
 		if (cagesLoaded && seqCamData != null && seqCamData.getSequence() != null) {
 			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}
@@ -816,15 +829,19 @@ public class Experiment {
 	public boolean load_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
 
-		// Check if spots files exist before attempting to load
-		// This avoids unnecessary file system checks for multiCAFE experiments
+		if (isLegacyExperimentFormat()) {
+			boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
+			if (descriptionsLoaded) {
+				SpotsPersistenceLegacy.loadMeasuresFromCombinedResults(spots, resultsDir);
+			}
+			return descriptionsLoaded;
+		}
+
 		if (!spots.hasSpotsFiles(resultsDir)) {
 			return false;
 		}
 
 		boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
-
-		// Load measures from bin directory (if available)
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
 			spots.getPersistence().loadMeasures(spots, binDir);

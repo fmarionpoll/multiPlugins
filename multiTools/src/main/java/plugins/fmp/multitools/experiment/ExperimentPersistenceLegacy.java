@@ -18,6 +18,7 @@ public class ExperimentPersistenceLegacy {
 
 	private final static String ID_VERSION = "version";
 	private final static String ID_VERSIONNUM = "2.0.0";
+	private final static String ID_VERSIONNUM_LEGACY = "1.0.0";
 	private final static String ID_TIMEFIRSTIMAGE = "fileTimeImageFirstMinute";
 	private final static String ID_TIMELASTIMAGE = "fileTimeImageLastMinute";
 
@@ -63,8 +64,13 @@ public class ExperimentPersistenceLegacy {
 				return false;
 			}
 
-			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
-			if (!version.equals(ID_VERSIONNUM)) {
+			String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM_LEGACY);
+			if (version.equals(ID_VERSIONNUM_LEGACY)) {
+				exp.setLegacyExperimentFormat(true);
+			} else if (version.equals(ID_VERSIONNUM)) {
+				exp.setLegacyExperimentFormat(false);
+			} else {
+				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() Unsupported version: " + version);
 				return false;
 			}
 
