@@ -514,6 +514,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 						"different experiment selected during cage/spot load");
 			}
 
+			parent0.dlgExperiment.updateViewerForSequenceCam(exp);
+
 			parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 
 			exp.updateROIsAt(0);

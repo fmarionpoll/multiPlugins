@@ -828,8 +828,20 @@ public class CagesPersistenceLegacy {
 		}
 		String path = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
 		File file = new File(path);
+		boolean usedFallback = false;
+		if (!file.isFile()) {
+			File parent = new File(resultsDirectory).getParentFile();
+			if (parent != null) {
+				path = parent.getAbsolutePath() + File.separator + ID_MS96_CAGES_XML;
+				file = new File(path);
+				usedFallback = file.isFile();
+			}
+		}
 		if (!file.isFile()) {
 			return false;
+		}
+		if (usedFallback) {
+			Logger.info("CagesPersistenceLegacy: Found " + ID_MS96_CAGES_XML + " in experiment root");
 		}
 		boolean loaded = xmlReadCagesFromFileNoQuestion(cages, path);
 		if (loaded) {

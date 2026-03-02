@@ -833,6 +833,8 @@ public class Experiment {
 			boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
 			if (descriptionsLoaded) {
 				SpotsPersistenceLegacy.loadMeasuresFromCombinedResults(spots, resultsDir);
+				dispatchSpotsToCages();
+				cages.ensureSpotROIsFromCageGeometry(spots);
 			}
 			return descriptionsLoaded;
 		}
@@ -846,7 +848,9 @@ public class Experiment {
 		if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
 			spots.getPersistence().loadMeasures(spots, binDir);
 		}
-
+		if (descriptionsLoaded) {
+			dispatchSpotsToCages();
+		}
 		return descriptionsLoaded;
 	}
 
@@ -1999,6 +2003,13 @@ public class Experiment {
 		if (cages.getCageList().size() > 0) {
 			cages.checkAndCorrectCagePositions();
 		}
+	}
+
+	public void dispatchSpotsToCages() {
+		if (spots.getSpotList().isEmpty()) {
+			return;
+		}
+		cages.syncCageSpotIDsFromSpots(spots);
 	}
 
 	public plugins.fmp.multitools.experiment.capillary.CapillaryMeasure getGulpThresholdMeasure() {

@@ -19,6 +19,7 @@ import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
+import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.sequence.ROIOperation;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.TIntervalsArray;
@@ -125,6 +126,65 @@ public class Cages {
 
 	public void setCageList(ArrayList<Cage> cagesList) {
 		this.cagesList = cagesList;
+	}
+
+	/**
+	 * Syncs cage spotIDs from the global spots list by cageID. Used after loading
+	 * legacy spots from SpotsMeasures.csv when MS96_cages.xml has no SpotIDs.
+	 */
+	public void syncCageSpotIDsFromSpots(Spots allSpots) {
+		if (allSpots == null) {
+			return;
+		}
+		for (Cage cage : cagesList) {
+			List<SpotID> spotIDs = new ArrayList<>();
+			for (Spot spot : allSpots.getSpotList()) {
+				if (spot.getProperties().getCageID() == cage.getCageID()
+						&& spot.getSpotUniqueID() != null) {
+					spotIDs.add(spot.getSpotUniqueID());
+				}
+			}
+			cage.setSpotIDs(spotIDs);
+		}
+	}
+
+	/**
+	 * Ensures spots have ROIs by computing spotXCoord/spotYCoord from cage
+	 * geometry when spots have cageColumn/cageRow but no valid pixel coordinates.
+	 * Used for legacy CSV format where spots lack explicit x,y.
+	 */
+	public void ensureSpotROIsFromCageGeometry(Spots allSpots) {
+		if (allSpots == null) {
+			return;
+		}
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot.getRoi() != null) {
+				continue;
+			}
+			int cageID = spot.getProperties().getCageID();
+			Cage cage = getCageFromID(cageID);
+			if (cage == null || cage.getRoi() == null) {
+				continue;
+			}
+			Rectangle cageRect = cage.getRoi().getBounds();
+			int col = spot.getProperties().getCageColumn();
+			int row = spot.getProperties().getCageRow();
+			if (col < 0 || row < 0) {
+				continue;
+			}
+			int nCols = 8;
+			int nRows = 4;
+			int deltaX = Math.max(1, cageRect.width / nCols);
+			int deltaY = Math.max(1, cageRect.height / nRows);
+			int x = cageRect.x + col * deltaX + deltaX / 2;
+			int y = cageRect.y + row * deltaY + deltaY / 2;
+			spot.getProperties().setSpotXCoord(x);
+			spot.getProperties().setSpotYCoord(y);
+			if (spot.getProperties().getSpotRadius() <= 0) {
+				spot.getProperties().setSpotRadius(Math.min(deltaX, deltaY) / 2);
+			}
+			spot.regenerateROIFromCoordinates();
+		}
 	}
 
 	public long getDetectFirst_Ms() {

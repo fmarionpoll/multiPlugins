@@ -229,8 +229,24 @@ public class ExperimentPersistenceLegacy {
 	 * @return true if successful
 	 */
 	public static boolean loadMS96Experiment(Experiment exp) {
-		String filename = concatenateExptDirectoryWithSubpathAndName(exp, null, ID_MS96_EXPERIMENT_XML_LEGACY);
-		return xmlLoadExperiment(exp, filename);
+		String resultsDir = exp.getResultsDirectory();
+		if (resultsDir == null) {
+			return false;
+		}
+		File resultsPath = new File(resultsDir);
+		String filename = resultsPath + File.separator + ID_MS96_EXPERIMENT_XML_LEGACY;
+		if (new File(filename).isFile()) {
+			return xmlLoadExperiment(exp, filename);
+		}
+		File parent = resultsPath.getParentFile();
+		if (parent != null) {
+			filename = parent.getAbsolutePath() + File.separator + ID_MS96_EXPERIMENT_XML_LEGACY;
+			if (new File(filename).isFile()) {
+				Logger.info("ExperimentPersistenceLegacy: Found MS96_experiment.xml in experiment root");
+				return xmlLoadExperiment(exp, filename);
+			}
+		}
+		return false;
 	}
 
 	private static String concatenateExptDirectoryWithSubpathAndName(Experiment exp, String subpath, String name) {

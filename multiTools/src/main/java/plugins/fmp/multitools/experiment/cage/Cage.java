@@ -118,13 +118,22 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		if (allSpots == null) {
 			return result;
 		}
-		for (SpotID spotID : spotIDs) {
-			// Find spot by matching unique ID
-			for (Spot spot : allSpots.getSpotList()) {
-				if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
-					result.add(spot);
-					break;
+		if (!spotIDs.isEmpty()) {
+			for (SpotID spotID : spotIDs) {
+				for (Spot spot : allSpots.getSpotList()) {
+					if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
+						result.add(spot);
+						break;
+					}
 				}
+			}
+			return result;
+		}
+		// Fallback for legacy: cage has no spotIDs, filter by cageID
+		int cageID = prop.getCageID();
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot.getProperties().getCageID() == cageID) {
+				result.add(spot);
 			}
 		}
 		return result;
