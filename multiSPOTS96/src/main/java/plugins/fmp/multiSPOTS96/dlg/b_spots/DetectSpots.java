@@ -291,7 +291,12 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				updateOverlay(exp);
 		}
 
-		boolean ifGreater = (spotsDirectionComboBox.getSelectedIndex() == 0);
+		// Align overlay condition with detection (options.btrackWhite logic):
+		// index 0: "threshold >", index 1: "threshold <"
+		// Detection uses ">" when btrackWhite is true (index 1), "<" otherwise.
+		// So overlay must use > when index==1 to highlight exactly what will be
+		// detected.
+		boolean ifGreater = (spotsDirectionComboBox.getSelectedIndex() == 1);
 		int threshold = (int) spotsThresholdSpinner.getValue();
 		ImageTransformEnums transform = (ImageTransformEnums) spotsTransformsComboBox.getSelectedItem();
 		overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
@@ -444,7 +449,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	void convertBlobsToCircles(Experiment exp, int diameter) {
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
 		Spots allSpots = exp.getSpots();
-		int nspots = allSpots.getSpotListCount();
+//		int nspots = allSpots.getSpotListCount();
 
 		for (Cage cage : exp.getCages().cagesList) {
 			if (bOnlySelectedCages && !cage.getRoi().isSelected())

@@ -97,7 +97,6 @@ public class Options extends JPanel {
 			return;
 		boolean vSpots = parent0.viewOptions.isViewSpots();
 		boolean vCages = parent0.viewOptions.isViewCages();
-		displayROIsCategory(vSpots, "line");
 		displayROIsCategory(vSpots, "spot");
 		displayROIsCategory(vCages, "cage");
 	}
