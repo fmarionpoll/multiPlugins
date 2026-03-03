@@ -640,10 +640,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 		ProgressFrame progressFrame = new ProgressFrame("Load Experiment Data");
 
-		if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
-			return false;
-		}
-
 		initializeExperimentLoad(exp, expIndex);
 
 		try {

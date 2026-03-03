@@ -637,24 +637,6 @@ public class Spots {
 		Collections.sort(spotList, new Comparators.Spot_Name());
 	}
 
-	// === DEPRECATED METHODS ===
-
-	/**
-	 * @deprecated Use {@link #transferROIsToSequence(SequenceCamData)} instead.
-	 */
-	@Deprecated
-	public void transferROIsfromSpotsToSequence(SequenceCamData seqCamData) {
-		transferROIsToSequence(seqCamData);
-	}
-
-	/**
-	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
-	 */
-	@Deprecated
-	public void transferROIsfromSequenceToSpots(SequenceCamData seqCamData) {
-		transferROIsFromSequence(seqCamData);
-	}
-
 	private void transferROIsToSpots(List<ROI2D> roiList) {
 		if (spotList.size() < 1)
 			return;

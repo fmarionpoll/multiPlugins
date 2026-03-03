@@ -24,7 +24,6 @@ public final class SpotsSequenceMapper {
 		if (spots == null || seqCamData == null || seqCamData.getSequence() == null) {
 			return;
 		}
-		seqCamData.removeROIsContainingString("spot");
 		spots.transferROIsToSequence(seqCamData);
 	}
 

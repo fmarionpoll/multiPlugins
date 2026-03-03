@@ -344,26 +344,32 @@ public class SequenceKymos extends SequenceCamData {
 
 	public boolean validateLinearROIsAtT(int t, Capillary cap) {
 		Sequence seq = getSequence();
-		seq.beginUpdate();
-		List<ROI> allRois = seq.getROIs();
-		if (allRois.size() < 1)
+		if (seq == null)
 			return false;
 
-		int width = seq.getWidth();
-		for (ROI roi : allRois) {
-			if (!roi.getName().contains("level") && !roi.getName().contains("derivative"))
-				continue;
-			if (!(roi instanceof ROI2D) || ((ROI2D) roi).getT() != t)
-				continue;
+		seq.beginUpdate();
+		try {
+			List<ROI> allRois = seq.getROIs();
+			if (allRois.size() < 1)
+				return false;
 
-			ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, width);
-			cap.transferROIToLinearMeasure(roi);
-			seq.removeROI(roi);
+			int width = seq.getWidth();
+			for (ROI roi : allRois) {
+				if (!roi.getName().contains("level") && !roi.getName().contains("derivative"))
+					continue;
+				if (!(roi instanceof ROI2D) || ((ROI2D) roi).getT() != t)
+					continue;
+
+				ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, width);
+				cap.transferROIToLinearMeasure(roi);
+				seq.removeROI(roi);
+			}
+
+			seq.addROIs(cap.getLinearROIsForCapillaryAtT(t), false);
+			return true;
+		} finally {
+			seq.endUpdate();
 		}
-
-		seq.addROIs(cap.getLinearROIsForCapillaryAtT(t), false);
-		seq.endUpdate();
-		return true;
 	}
 
 	/**

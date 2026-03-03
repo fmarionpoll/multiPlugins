@@ -140,8 +140,7 @@ public class Cages {
 		for (Cage cage : cagesList) {
 			List<SpotID> spotIDs = new ArrayList<>();
 			for (Spot spot : allSpots.getSpotList()) {
-				if (spot.getProperties().getCageID() == cage.getCageID()
-						&& spot.getSpotUniqueID() != null) {
+				if (spot.getProperties().getCageID() == cage.getCageID() && spot.getSpotUniqueID() != null) {
 					spotIDs.add(spot.getSpotUniqueID());
 				}
 			}
@@ -150,9 +149,9 @@ public class Cages {
 	}
 
 	/**
-	 * Ensures spots have ROIs by computing spotXCoord/spotYCoord from cage
-	 * geometry when spots have cageColumn/cageRow but no valid pixel coordinates.
-	 * Used for legacy CSV format where spots lack explicit x,y.
+	 * Ensures spots have ROIs by computing spotXCoord/spotYCoord from cage geometry
+	 * when spots have cageColumn/cageRow but no valid pixel coordinates. Used for
+	 * legacy CSV format where spots lack explicit x,y.
 	 */
 	/**
 	 * Ensures cages without ROIs get ROIs from a grid layout. Used when legacy
@@ -177,8 +176,7 @@ public class Cages {
 			}
 			int col = cage.getProperties().getArrayColumn() >= 0 ? cage.getProperties().getArrayColumn()
 					: i % nCagesAlongX;
-			int row = cage.getProperties().getArrayRow() >= 0 ? cage.getProperties().getArrayRow()
-					: i / nCagesAlongX;
+			int row = cage.getProperties().getArrayRow() >= 0 ? cage.getProperties().getArrayRow() : i / nCagesAlongX;
 			if (col >= nCagesAlongX || row >= nCagesAlongY) {
 				col = i % nCagesAlongX;
 				row = i / nCagesAlongX;
@@ -558,7 +556,7 @@ public class Cages {
 				cageROIList.add(roi);
 		}
 		Sequence sequence = seqCamData.getSequence();
-		if (sequence != null)
+		if (sequence != null && !cageROIList.isEmpty())
 			sequence.addROIs(cageROIList, true);
 	}
 
@@ -575,24 +573,6 @@ public class Cages {
 		addMissingCages(roiList);
 		Collections.sort(cagesList, new Comparators.Cage_Name());
 	}
-
-	// === DEPRECATED METHODS ===
-
-//	/**
-//	 * @deprecated Use {@link #transferROIsToSequence(SequenceCamData)} instead.
-//	 */
-//	@Deprecated
-//	public void transferROIsFromCagesToSequence(SequenceCamData seqCamData) {
-//		transferROIsToSequence(seqCamData);
-//	}
-
-//	/**
-//	 * @deprecated Use {@link #transferROIsFromSequence(SequenceCamData)} instead.
-//	 */
-//	@Deprecated
-//	public void transferROIsFromSequenceToCages(SequenceCamData seqCamData) {
-//		transferROIsFromSequence(seqCamData);
-//	}
 
 	private void transferROIsToCages(List<ROI2D> roiList) {
 		if (cagesList.size() < 1)
@@ -1241,8 +1221,7 @@ public class Cages {
 		 * e.getMessage()); } } }
 		 */
 
-		if (resultsOptions.resultType == EnumResults.TOPRAW
-				|| resultsOptions.resultType == EnumResults.TOPLEVEL
+		if (resultsOptions.resultType == EnumResults.TOPRAW || resultsOptions.resultType == EnumResults.TOPLEVEL
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_LR) {
 			computeEvaporationCorrection(exp);
 		}

@@ -32,8 +32,8 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
-import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.experiment.persistence.MigrationTool;
+import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
@@ -515,11 +515,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
 
 		ProgressFrame progressFrame = new ProgressFrame("Load Experiment Data");
-
-		if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
-			return false;
-		}
-
 		initializeExperimentLoad(exp, expIndex);
 
 		try {
@@ -542,9 +537,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			progressFrame.setMessage("Loading cages and spots...");
 			exp.load_cages_description_and_measures();
-			exp.transferCagesROI_toSequence();
-
 			exp.load_spots_description_and_measures();
+			exp.transferCagesROI_toSequence();
 			exp.transferSpotsROI_toSequence();
 
 			if (!validateExperimentSelection(exp, expIndex, progressFrame)) {
@@ -563,7 +557,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 
-			exp.updateROIsAt(0);
 			progressFrame.setMessage("Load data: update dialogs");
 
 			parent0.dlgExperiment.updateDialogs(exp);
@@ -574,7 +567,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			long endTime = System.nanoTime();
 			logCageLoadCompletion(exp, expIndex, startTime, endTime);
 
-			// If this is a legacy experiment, upgrade it once in the background to the new CSV format
+			// If this is a legacy experiment, upgrade it once in the background to the new
+			// CSV format
 			migrateLegacyExperimentInBackground(exp);
 
 			exp.setLoading(false);

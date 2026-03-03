@@ -54,7 +54,6 @@ public final class CagesSequenceMapper {
 		if (cages == null || seqCamData == null || seqCamData.getSequence() == null) {
 			return;
 		}
-		seqCamData.removeROIsContainingString("cage");
 		cages.transferROIsToSequence(seqCamData);
 	}
 

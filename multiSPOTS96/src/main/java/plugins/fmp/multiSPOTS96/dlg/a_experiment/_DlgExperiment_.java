@@ -128,11 +128,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					v.addListener(tabCorrectDrift);
 					tabCorrectDrift.resetFrameIndex();
 					
-					// End update mode now that viewer is properly configured
 					if (seq.isUpdating()) {
 						seq.endUpdate();
 					}
-					tabOptions.applyViewOptionsToCurrentExperiment();
+					// Defer view options so canvas has created ROI layers (fixes cage outlines not showing after reopen)
+					SwingUtilities.invokeLater(() -> tabOptions.applyViewOptionsToCurrentExperiment());
 				}
 			}
 		});
