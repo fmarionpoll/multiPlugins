@@ -275,11 +275,12 @@ public class SpotsPersistenceLegacy {
 			Spot spot = spots.findSpotByName(data[0]);
 			if (spot == null) {
 				spot = new Spot();
-				int uniqueID = spots.getNextUniqueSpotID();
-				spot.setSpotUniqueID(new SpotID(uniqueID));
 				spots.getSpotList().add(spot);
 			}
 			SpotPersistence.csvImportSpotDescription(spot, data);
+			if (spot.getSpotUniqueID() == null) {
+				spot.setSpotUniqueID(new SpotID(spots.getNextUniqueSpotID()));
+			}
 		}
 		return null;
 	}

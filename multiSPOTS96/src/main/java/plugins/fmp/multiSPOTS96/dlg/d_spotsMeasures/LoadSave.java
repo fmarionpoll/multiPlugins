@@ -73,6 +73,7 @@ public class LoadSave extends JPanel {
 		if (flag) {
 			exp.load_spots_description_and_measures();
 			SpotsSequenceMapper.transferROIsToSequence(exp.getSpots(), exp.getSeqCamData());
+			parent0.dlgExperiment.tabOptions.applyViewOptionsToCurrentExperiment();
 		}
 		return flag;
 	}

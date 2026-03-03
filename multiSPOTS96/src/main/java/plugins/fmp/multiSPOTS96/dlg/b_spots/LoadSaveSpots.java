@@ -52,6 +52,7 @@ public class LoadSaveSpots extends JPanel {
 					exp.load_cages_description_and_measures();
 					exp.load_spots_description_and_measures();
 					exp.transferSpotsROI_toSequence();
+					parent0.dlgExperiment.tabOptions.applyViewOptionsToCurrentExperiment();
 					firePropertyChange("SPOTS_ROIS_OPEN", false, true);
 				}
 			}

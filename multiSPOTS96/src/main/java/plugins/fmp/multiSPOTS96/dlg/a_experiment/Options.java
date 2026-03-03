@@ -38,21 +38,35 @@ public class Options extends JPanel {
 		add(panel1);
 
 		defineActionListeners();
+		syncCheckboxesFromViewOptions();
+	}
+
+	private void syncCheckboxesFromViewOptions() {
+		if (parent0 == null)
+			return;
+		viewSpotsCheckBox.setSelected(parent0.viewOptions.isViewSpots());
+		viewCagesCheckbox.setSelected(parent0.viewOptions.isViewCages());
 	}
 
 	private void defineActionListeners() {
 		viewSpotsCheckBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewSpotsCheckBox.isSelected(), "line");
-				displayROIsCategory(viewSpotsCheckBox.isSelected(), "spot");
+				boolean v = viewSpotsCheckBox.isSelected();
+				parent0.viewOptions.setViewSpots(v);
+				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+				displayROIsCategory(v, "line");
+				displayROIsCategory(v, "spot");
 			}
 		});
 
 		viewCagesCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewCagesCheckbox.isSelected(), "cage");
+				boolean v = viewCagesCheckbox.isSelected();
+				parent0.viewOptions.setViewCages(v);
+				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+				displayROIsCategory(v, "cage");
 			}
 		});
 
@@ -79,9 +93,13 @@ public class Options extends JPanel {
 	}
 
 	public void applyViewOptionsToCurrentExperiment() {
-		displayROIsCategory(viewSpotsCheckBox.isSelected(), "line");
-		displayROIsCategory(viewSpotsCheckBox.isSelected(), "spot");
-		displayROIsCategory(viewCagesCheckbox.isSelected(), "cage");
+		if (parent0 == null)
+			return;
+		boolean vSpots = parent0.viewOptions.isViewSpots();
+		boolean vCages = parent0.viewOptions.isViewCages();
+		displayROIsCategory(vSpots, "line");
+		displayROIsCategory(vSpots, "spot");
+		displayROIsCategory(vCages, "cage");
 	}
 
 }

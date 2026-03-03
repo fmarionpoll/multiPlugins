@@ -903,6 +903,7 @@ public class Experiment {
 		}
 		if (descriptionsLoaded) {
 			dispatchSpotsToCages();
+			cages.ensureSpotROIsFromCageGeometry(spots);
 		}
 		return descriptionsLoaded;
 	}

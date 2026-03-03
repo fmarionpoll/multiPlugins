@@ -7,9 +7,10 @@ import org.w3c.dom.Node;
 
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import java.awt.Color;
+
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -69,7 +70,8 @@ public class SpotPersistence {
 	public static String csvExportSpotSubSectionHeader(String sep) {
 		return "#" + sep + "SPOTS" + sep + "multiSPOTS data\n" + "name" + sep + "index" + sep + "cageID" + sep
 				+ "cagePos" + sep + "cageColumn" + sep + "cageRow" + sep + "volume" + sep + "npixels" + sep + "radius"
-				+ sep + "stim" + sep + "conc" + sep + "roiType" + sep + "roiData\n";
+				+ sep + "stim" + sep + "conc" + sep + "colorR" + sep + "colorG" + sep + "colorB" + sep + "roiType" + sep
+				+ "roiData\n";
 	}
 
 	public static String csvExportSpotDescription(Spot spot, String sep) {
@@ -83,7 +85,13 @@ public class SpotPersistence {
 				props.getStimulus() != null ? props.getStimulus().replace(",", ".") : "",
 				props.getConcentration() != null ? props.getConcentration().replace(",", ".") : "");
 		sbf.append(String.join(sep, row));
-		
+
+		Color c = props.getColor();
+		int r = c != null ? c.getRed() : 0;
+		int g = c != null ? c.getGreen() : 0;
+		int b = c != null ? c.getBlue() : 255;
+		sbf.append(sep).append(r).append(sep).append(g).append(sep).append(b);
+
 		// Add ROI type and data columns (v2.1 format)
 		sbf.append(sep);
 		if (spot.getRoi() != null) {
@@ -92,7 +100,7 @@ public class SpotPersistence {
 		} else {
 			sbf.append(sep); // Empty roiType and roiData
 		}
-		
+
 		sbf.append("\n");
 		return sbf.toString();
 	}
@@ -148,20 +156,15 @@ public class SpotPersistence {
 
 			props.setCagePosition(Integer.parseInt(data[index++]));
 
-			if (data.length >= 12) {
-				int spotUniqueIDValue = Integer.parseInt(data[index++]);
-				if (spotUniqueIDValue >= 0) {
-					props.setSpotUniqueID(new SpotID(spotUniqueIDValue));
-				}
-			}
-
-			if (data.length >= 11) {
+			if (data.length >= 6) {
 				props.setCageColumn(Integer.parseInt(data[index++]));
+			}
+			if (data.length >= 7) {
 				props.setCageRow(Integer.parseInt(data[index++]));
 			}
 
 			if (data.length == 10) {
-				Integer.parseInt(data[index++]); // dummy read for radius
+				Integer.parseInt(data[index++]);
 			}
 
 			props.setSpotVolume(Double.parseDouble(data[index++]));
@@ -169,16 +172,23 @@ public class SpotPersistence {
 			props.setSpotRadius(Integer.parseInt(data[index++]));
 			props.setStimulus(data[index++]);
 			props.setConcentration(data[index++]);
-			
-			// Check for ROI data (v2.1 format with roiType and roiData columns)
-			if (index < data.length && index + 1 < data.length) {
+
+			if (index + 3 <= data.length && isColorFormat(data, index)) {
+				int r = parseIntClamped(data[index++], 0, 255);
+				int g = parseIntClamped(data[index++], 0, 255);
+				int b = parseIntClamped(data[index++], 0, 255);
+				props.setColor(new Color(r, g, b));
+			}
+
+			if (index < data.length) {
 				String roiType = data[index++];
-				String roiData = data[index++];
-				
+				String roiData = index < data.length
+						? String.join(";", java.util.Arrays.copyOfRange(data, index, data.length))
+						: "";
+				index = data.length;
+
 				if (roiType != null && !roiType.trim().isEmpty() && !roiType.equals("unknown")) {
-					// Reconstruct ROI from CSV data
-					ROI2D reconstructedROI = ROIPersistenceUtils.importROIFromCSV(
-						roiType, roiData, props.getName());
+					ROI2D reconstructedROI = ROIPersistenceUtils.importROIFromCSV(roiType, roiData, props.getName());
 					if (reconstructedROI instanceof ROI2DShape) {
 						spot.setRoi((ROI2DShape) reconstructedROI);
 					} else if (reconstructedROI != null) {
@@ -190,13 +200,14 @@ public class SpotPersistence {
 						spot.regenerateROIFromCoordinates();
 					}
 				} else {
-					// No ROI data or unknown type, regenerate from coordinates
 					spot.regenerateROIFromCoordinates();
 				}
 			} else {
-				// Old format (v2.0 or earlier) without ROI columns
-				// Regenerate ROI from stored coordinates (backward compatibility)
 				spot.regenerateROIFromCoordinates();
+			}
+
+			if (props.getColor() != null && spot.getRoi() != null) {
+				spot.getRoi().setColor(props.getColor());
 			}
 
 		} catch (NumberFormatException e) {
@@ -204,6 +215,24 @@ public class SpotPersistence {
 		} catch (ArrayIndexOutOfBoundsException e) {
 			throw new IllegalArgumentException("Insufficient data in CSV array", e);
 		}
+	}
+
+	private static boolean isColorFormat(String[] data, int index) {
+		if (index + 3 > data.length)
+			return false;
+		try {
+			int r = Integer.parseInt(data[index].trim());
+			int g = Integer.parseInt(data[index + 1].trim());
+			int b = Integer.parseInt(data[index + 2].trim());
+			return r >= 0 && r <= 255 && g >= 0 && g <= 255 && b >= 0 && b <= 255;
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	private static int parseIntClamped(String s, int min, int max) {
+		int v = Integer.parseInt(s.trim());
+		return Math.max(min, Math.min(max, v));
 	}
 
 	public static void csvImportSpotData(Spot spot, EnumSpotMeasures measureType, String[] data, boolean x, boolean y) {

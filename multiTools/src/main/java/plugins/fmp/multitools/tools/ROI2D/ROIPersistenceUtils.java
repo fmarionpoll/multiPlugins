@@ -274,14 +274,14 @@ public class ROIPersistenceUtils {
 	 * @return the reconstructed ellipse ROI
 	 */
 	public static ROI2D reconstructEllipse(String[] params, String name) {
-		if (params.length < 4) {
-			throw new IllegalArgumentException("Ellipse requires 4 parameters: centerX, centerY, radiusX, radiusY");
+		if (params.length < 3) {
+			throw new IllegalArgumentException("Ellipse requires at least 3 parameters: centerX, centerY, radius (or 4: centerX, centerY, radiusX, radiusY)");
 		}
 		
 		double centerX = Double.parseDouble(params[0].trim());
 		double centerY = Double.parseDouble(params[1].trim());
 		double radiusX = Double.parseDouble(params[2].trim());
-		double radiusY = Double.parseDouble(params[3].trim());
+		double radiusY = params.length >= 4 ? Double.parseDouble(params[3].trim()) : radiusX;
 		
 		double x = centerX - radiusX;
 		double y = centerY - radiusY;
