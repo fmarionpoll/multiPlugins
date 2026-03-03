@@ -250,6 +250,9 @@ public class Spot implements Comparable<Spot> {
 			}
 
 			this.spotROI2D = roiEllipse;
+			if (properties.getColor() != null) {
+				roiEllipse.setColor(properties.getColor());
+			}
 			return true;
 		} catch (Exception e) {
 			System.err.println("Error regenerating ROI from coordinates: " + e.getMessage());

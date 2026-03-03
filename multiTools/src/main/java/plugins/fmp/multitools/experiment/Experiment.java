@@ -779,6 +779,17 @@ public class Experiment {
 
 		if (isLegacyExperimentFormat()) {
 			cagesLoaded = CagesPersistenceLegacy.loadFromMS96CagesXml(cages, resultsDir);
+			if (cagesLoaded) {
+				CagesPersistenceLegacy.loadCageROIsFromMS96CagesXml(cages, resultsDir);
+				if (seqCamData != null && seqCamData.getSequence() != null) {
+					Sequence seq = seqCamData.getSequence();
+					int w = seq.getSizeX();
+					int h = seq.getSizeY();
+					if (w > 0 && h > 0) {
+						cages.ensureCageROIsFromGrid(w, h);
+					}
+				}
+			}
 		} else {
 			cagesLoaded = Persistence.loadDescription(cages, resultsDir);
 			String binDir = getKymosBinFullDirectory();
@@ -830,13 +841,14 @@ public class Experiment {
 		String resultsDir = getResultsDirectory();
 
 		if (isLegacyExperimentFormat()) {
-			boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
-			if (descriptionsLoaded) {
-				SpotsPersistenceLegacy.loadMeasuresFromCombinedResults(spots, resultsDir);
-				dispatchSpotsToCages();
-				cages.ensureSpotROIsFromCageGeometry(spots);
+			boolean fromXml = CagesPersistenceLegacy.loadSpotsFromMS96CagesXml(spots, resultsDir);
+			if (!fromXml) {
+				spots.getPersistence().loadDescriptions(spots, resultsDir);
 			}
-			return descriptionsLoaded;
+			SpotsPersistenceLegacy.loadMeasuresFromCombinedResults(spots, resultsDir);
+			dispatchSpotsToCages();
+			cages.ensureSpotROIsFromCageGeometry(spots);
+			return !spots.getSpotList().isEmpty();
 		}
 
 		if (!spots.hasSpotsFiles(resultsDir)) {

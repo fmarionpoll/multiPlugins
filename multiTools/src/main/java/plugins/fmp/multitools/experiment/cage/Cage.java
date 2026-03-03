@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI;
@@ -26,6 +27,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
@@ -438,6 +440,9 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 			Element xmlVal = XMLUtil.getElement(node, "Cage" + index);
 			if (xmlVal == null) {
+				xmlVal = XMLUtil.getElement(node, "cage" + index);
+			}
+			if (xmlVal == null) {
 				System.err.println("ERROR: Could not find Cage" + index + " element");
 				return false;
 			}
@@ -540,16 +545,33 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 	public boolean xmlLoadCageLimits(Element xmlVal) {
 		try {
-			Element xmlVal2 = XMLUtil.getElement(xmlVal, ID_CAGELIMITS);
-			if (xmlVal2 != null) {
-				cageROI2D = (ROI2D) ROI.createFromXML(xmlVal2);
-				if (cageROI2D != null) {
-					cageROI2D.setSelected(false);
-				} else {
-					System.err.println("WARNING: Failed to create ROI from XML for cage limits");
+			String[] tags = { ID_CAGELIMITS, "Cage_Limits" };
+			for (String tag : tags) {
+				Element xmlVal2 = XMLUtil.getElement(xmlVal, tag);
+				if (xmlVal2 != null) {
+					cageROI2D = ROI2DUtilities.loadFromXML_ROI(xmlVal2);
+					if (cageROI2D == null) {
+						cageROI2D = (ROI2D) ROI.createFromXML(xmlVal2);
+					}
+					if (cageROI2D == null && xmlVal2.hasChildNodes()) {
+						Node first = xmlVal2.getFirstChild();
+						while (first != null) {
+							if (first.getNodeType() == Node.ELEMENT_NODE) {
+								cageROI2D = (ROI2D) ROI.createFromXML(first);
+								if (cageROI2D != null)
+									break;
+							}
+							first = first.getNextSibling();
+						}
+					}
+					if (cageROI2D == null) {
+						cageROI2D = loadCageLimitsFromPointsFormat(xmlVal2);
+					}
+					if (cageROI2D != null) {
+						cageROI2D.setSelected(false);
+						return true;
+					}
 				}
-			} else {
-				System.err.println("WARNING: No cage limits found in XML");
 			}
 			return true;
 
@@ -558,6 +580,36 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			e.printStackTrace();
 			return false;
 		}
+	}
+
+	/**
+	 * Manual parser for MS96 CageLimits format where points are stored as
+	 * &lt;points&gt;&lt;point&gt;&lt;pos_x&gt;...&lt;/pos_x&gt;&lt;pos_y&gt;...&lt;/pos_y&gt;&lt;/point&gt;...
+	 */
+	private static ROI2D loadCageLimitsFromPointsFormat(Element cageLimitsEl) {
+		Element pointsEl = XMLUtil.getElement(cageLimitsEl, "points");
+		if (pointsEl == null)
+			return null;
+		NodeList pointNodes = pointsEl.getElementsByTagName("point");
+		int n = pointNodes.getLength();
+		if (n < 3)
+			return null;
+		double[] x = new double[n];
+		double[] y = new double[n];
+		for (int i = 0; i < n; i++) {
+			Node pt = pointNodes.item(i);
+			if (pt.getNodeType() == Node.ELEMENT_NODE) {
+				Element ptEl = (Element) pt;
+				x[i] = XMLUtil.getElementDoubleValue(ptEl, "pos_x", 0);
+				y[i] = XMLUtil.getElementDoubleValue(ptEl, "pos_y", 0);
+			}
+		}
+		Polygon2D polygon = new Polygon2D(x, y, n);
+		ROI2DPolygon roi = new ROI2DPolygon(polygon);
+		String name = XMLUtil.getElementValue(cageLimitsEl, "name", null);
+		if (name != null && !name.isEmpty())
+			roi.setName(name);
+		return roi;
 	}
 
 	public boolean xmlSaveCageLimits(Element xmlVal) {

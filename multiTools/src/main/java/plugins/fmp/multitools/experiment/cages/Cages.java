@@ -33,6 +33,7 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.kernel.roi.roi2d.ROI2DArea;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
+import plugins.kernel.roi.roi2d.ROI2DRectangle;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
 public class Cages {
@@ -153,6 +154,44 @@ public class Cages {
 	 * geometry when spots have cageColumn/cageRow but no valid pixel coordinates.
 	 * Used for legacy CSV format where spots lack explicit x,y.
 	 */
+	/**
+	 * Ensures cages without ROIs get ROIs from a grid layout. Used when legacy
+	 * MS96_cages.xml has cage properties but no CageLimits (ROI) data.
+	 * 
+	 * @param imageWidth  width of the camera image
+	 * @param imageHeight height of the camera image
+	 */
+	public void ensureCageROIsFromGrid(int imageWidth, int imageHeight) {
+		if (cagesList.isEmpty() || nCagesAlongX <= 0 || nCagesAlongY <= 0 || imageWidth <= 0 || imageHeight <= 0) {
+			return;
+		}
+		int cellW = imageWidth / nCagesAlongX;
+		int cellH = imageHeight / nCagesAlongY;
+		if (cellW <= 0 || cellH <= 0) {
+			return;
+		}
+		for (int i = 0; i < cagesList.size(); i++) {
+			Cage cage = cagesList.get(i);
+			if (cage.getRoi() != null && !cage.getRoi().getBounds().isEmpty()) {
+				continue;
+			}
+			int col = cage.getProperties().getArrayColumn() >= 0 ? cage.getProperties().getArrayColumn()
+					: i % nCagesAlongX;
+			int row = cage.getProperties().getArrayRow() >= 0 ? cage.getProperties().getArrayRow()
+					: i / nCagesAlongX;
+			if (col >= nCagesAlongX || row >= nCagesAlongY) {
+				col = i % nCagesAlongX;
+				row = i / nCagesAlongX;
+			}
+			int x = col * cellW;
+			int y = row * cellH;
+			ROI2DRectangle roi = new ROI2DRectangle(x, y, cellW, cellH);
+			roi.setName("cage" + String.format("%03d", cage.getCageID()));
+			roi.setColor(cage.getProperties().getColor());
+			cage.setCageRoi(roi);
+		}
+	}
+
 	public void ensureSpotROIsFromCageGeometry(Spots allSpots) {
 		if (allSpots == null) {
 			return;
@@ -183,7 +222,9 @@ public class Cages {
 			if (spot.getProperties().getSpotRadius() <= 0) {
 				spot.getProperties().setSpotRadius(Math.min(deltaX, deltaY) / 2);
 			}
-			spot.regenerateROIFromCoordinates();
+			if (spot.regenerateROIFromCoordinates() && spot.getRoi() != null) {
+				spot.getRoi().setColor(spot.getProperties().getColor());
+			}
 		}
 	}
 

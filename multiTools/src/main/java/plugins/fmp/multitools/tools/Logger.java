@@ -4,23 +4,32 @@ import javax.swing.JOptionPane;
 
 import org.slf4j.LoggerFactory;
 
+import plugins.fmp.multitools.experiment.Experiment;
+
 /**
- * Centralized logging utility for MultiCAFE. Provides logging functionality
+ * Centralized logging utility for multiPlugins. Provides logging functionality
  * with user notification for critical errors. When running under Icy, SLF4J may
  * be bound to a no-op or the console may not show slf4j-simple output;
  * warn/error/info are also echoed to System.err so they appear when Icy is
  * started from a terminal. Disable with -Dmulticafe.log.toConsole=false.
+ * Plugin name in output uses Experiment.getProgramContext() when set (e.g. by
+ * multiCAFE or multiSPOTS96 on startup).
  */
 public class Logger {
-	private static final org.slf4j.Logger logger = LoggerFactory.getLogger("MultiCAFE");
+	private static final org.slf4j.Logger logger = LoggerFactory.getLogger("MultiPlugins");
 
 	private static final boolean TO_CONSOLE = !"false"
 			.equalsIgnoreCase(System.getProperty("multicafe.log.toConsole", "true"));
 
+	private static String pluginPrefix() {
+		String ctx = Experiment.getProgramContext();
+		return ctx != null && !ctx.isEmpty() ? "[" + ctx + "]" : "[MultiPlugins]";
+	}
+
 	private static void toConsole(String level, String message, Throwable throwable) {
 		if (!TO_CONSOLE)
 			return;
-		System.err.println("[MultiCAFE] " + level + " - " + message);
+		System.err.println(pluginPrefix() + " " + level + " - " + message);
 		if (throwable != null)
 			throwable.printStackTrace(System.err);
 	}
