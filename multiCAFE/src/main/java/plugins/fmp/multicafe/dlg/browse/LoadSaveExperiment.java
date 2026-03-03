@@ -964,8 +964,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 						exp.getCages().getPersistence().saveMeasures(exp.getCages(), binDir);
 					}
 
-					// Save spots using new dual-file system
-					exp.save_spots_description_and_measures();
+					// multiCAFE persists only cages + capillaries (no spots)
 
 					// Save MS96_descriptors.xml (synchronous, but quick)
 					if (exp.getSeqCamData() != null) {

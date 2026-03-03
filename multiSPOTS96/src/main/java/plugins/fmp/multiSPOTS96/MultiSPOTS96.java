@@ -23,7 +23,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS96 extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 March 2, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 March 3, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
@@ -40,7 +40,9 @@ public class MultiSPOTS96 extends PluginActionable {
 
 	@Override
 	public void run() {
-		String revision = MultiSPOTS96.class.getPackage() != null ? MultiSPOTS96.class.getPackage().getImplementationVersion() : null;
+		String revision = MultiSPOTS96.class.getPackage() != null
+				? MultiSPOTS96.class.getPackage().getImplementationVersion()
+				: null;
 		Experiment.setProgramContext("multiSPOTS96", revision);
 
 		viewOptions.load(getPreferences("viewOptions"));

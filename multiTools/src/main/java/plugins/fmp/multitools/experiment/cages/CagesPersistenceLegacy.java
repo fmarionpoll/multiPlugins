@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.experiment.cages;
 
+import java.awt.Color;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -822,14 +823,34 @@ public class CagesPersistenceLegacy {
 		try {
 			csvWriter.append("#" + csvSep + "CAGE" + csvSep + "Cage properties\n");
 			csvWriter.append("cageID" + csvSep + "nFlies" + csvSep + "age" + csvSep + "Comment" + csvSep + "strain"
-					+ csvSep + "sect" + csvSep + "ROIname" + csvSep + "roiType" + csvSep + "npoints\n");
+					+ csvSep + "sect" + csvSep + "colorR" + csvSep + "colorG" + csvSep + "colorB" + csvSep + "ROIname"
+					+ csvSep + "roiType" + csvSep + "npoints\n");
 
 			for (Cage cage : cages.cagesList) {
-				csvWriter.append(String.format("%d%s%d%s%d%s%s%s%s%s%s%s", cage.getProperties().getCageID(), csvSep,
-						cage.getProperties().getCageNFlies(), csvSep, cage.getProperties().getFlyAge(), csvSep,
-						cage.getProperties().getComment() != null ? cage.getProperties().getComment() : "", csvSep,
-						cage.getProperties().getFlyStrain() != null ? cage.getProperties().getFlyStrain() : "", csvSep,
-						cage.getProperties().getFlySex() != null ? cage.getProperties().getFlySex() : "", csvSep));
+				Color color = cage.getProperties().getColor();
+				if (color == null && cage.getRoi() != null) {
+					color = cage.getRoi().getColor();
+				}
+				if (color == null) {
+					color = Color.MAGENTA;
+				}
+
+				String comment = cage.getProperties().getComment() != null ? cage.getProperties().getComment() : "";
+				String strain = cage.getProperties().getFlyStrain() != null ? cage.getProperties().getFlyStrain() : "";
+				String sex = cage.getProperties().getFlySex() != null ? cage.getProperties().getFlySex() : "";
+
+				StringBuilder line = new StringBuilder();
+				line.append(cage.getProperties().getCageID()).append(csvSep)
+						.append(cage.getProperties().getCageNFlies()).append(csvSep)
+						.append(cage.getProperties().getFlyAge()).append(csvSep)
+						.append(comment).append(csvSep)
+						.append(strain).append(csvSep)
+						.append(sex).append(csvSep)
+						.append(color.getRed()).append(csvSep)
+						.append(color.getGreen()).append(csvSep)
+						.append(color.getBlue()).append(csvSep);
+
+				csvWriter.append(line.toString());
 
 				String roiName = (cage.getRoi() != null && cage.getRoi().getName() != null) ? cage.getRoi().getName()
 						: "cage" + String.format("%03d", cage.getProperties().getCageID());

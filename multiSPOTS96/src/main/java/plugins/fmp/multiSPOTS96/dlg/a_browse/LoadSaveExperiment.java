@@ -33,6 +33,7 @@ import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.tools.DescriptorsIO;
+import plugins.fmp.multitools.experiment.persistence.MigrationTool;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
@@ -472,6 +473,43 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				+ (endTime - startTime) / 1e6 + " ms, cages: " + cageCount);
 	}
 
+	private void migrateLegacyExperimentInBackground(Experiment exp) {
+		if (!exp.isLegacyExperimentFormat())
+			return;
+		final String resultsDir = exp.getResultsDirectory();
+		if (resultsDir == null)
+			return;
+
+		final ProgressFrame migFrame = new ProgressFrame("Upgrade legacy experiment");
+		migFrame.setMessage("Upgrading experiment to new CSV format...");
+
+		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				try {
+					MigrationTool tool = new MigrationTool();
+					boolean migrated = tool.migrateExperiment(exp, resultsDir);
+					if (migrated) {
+						// Save Experiment.xml in v2 format so future loads use the new path
+						exp.saveExperimentDescriptors();
+						exp.setLegacyExperimentFormat(false);
+					}
+				} catch (Exception e) {
+					// Log but don't interrupt the UI
+					Logger.warn("LoadSaveExperiment: Legacy migration failed: " + e.getMessage());
+				}
+				return null;
+			}
+
+			@Override
+			protected void done() {
+				migFrame.close();
+			}
+		};
+
+		worker.execute();
+	}
+
 	public boolean openSelectedExperiment(Experiment exp) {
 		final long startTime = System.nanoTime();
 		int expIndex = parent0.expListComboLazy.getSelectedIndex();
@@ -516,7 +554,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			parent0.dlgExperiment.updateViewerForSequenceCam(exp);
 
-			parent0.dlgExperiment.tabOptions.applyViewOptionsToCurrentExperiment();
+			SwingUtilities.invokeLater(() -> {
+				Experiment current = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (current == exp) {
+					parent0.dlgExperiment.tabOptions.applyViewOptionsToCurrentExperiment();
+				}
+			});
 
 			parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 
@@ -530,6 +573,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			long endTime = System.nanoTime();
 			logCageLoadCompletion(exp, expIndex, startTime, endTime);
+
+			// If this is a legacy experiment, upgrade it once in the background to the new CSV format
+			migrateLegacyExperimentInBackground(exp);
 
 			exp.setLoading(false);
 			if (currentlyLoadingExperiment == exp) {

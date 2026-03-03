@@ -15,12 +15,8 @@ import plugins.fmp.multitools.tools.Logger;
  * Detects if an experiment uses the old format (spots nested in cage XML) or
  * the new format (spots in separate CSV file, IDs in cage XML).
  * 
- * @deprecated Migration is no longer needed. Legacy persistence classes now provide
- * transparent fallback to read old formats automatically. Users can manually save
- * in new format when desired, or use an auto-save flag on experiment close.
- * This class is kept for reference but is no longer used.
  */
-@Deprecated
+
 public class MigrationDetector {
 
 	private static final String ID_LISTOFSPOTS = "List_of_spots";

@@ -672,6 +672,19 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			i++;
 		}
 
+		// Optional colorR, colorG, colorB (v2 format). Only consume if all 3 look numeric.
+		if (i + 2 < data.length && isNumeric(data[i]) && isNumeric(data[i + 1]) && isNumeric(data[i + 2])) {
+			try {
+				int r = Integer.parseInt(data[i]);
+				int g = Integer.parseInt(data[i + 1]);
+				int b = Integer.parseInt(data[i + 2]);
+				prop.setColor(new Color(r, g, b));
+				i += 3;
+			} catch (NumberFormatException e) {
+				// Ignore malformed color triplet and leave current color unchanged
+			}
+		}
+
 		// Parse ROI name (if present in CAGES section format)
 		String cageROI_name = "";
 		if (i < data.length) {
@@ -714,7 +727,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 					if (cageROI_name != null && !cageROI_name.isEmpty()) {
 						cageROI2D.setName(cageROI_name);
 					}
-					cageROI2D.setColor(Color.MAGENTA);
+					Color color = prop.getColor();
+					if (color != null) {
+						cageROI2D.setColor(color);
+					}
 				} catch (NumberFormatException e) {
 					System.err.println("Cage:csvImport_CAGE_Header() Invalid rectangle parameters");
 				}
@@ -738,7 +754,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 				if (cageROI_name != null && !cageROI_name.isEmpty()) {
 					cageROI2D.setName(cageROI_name);
 				}
-				cageROI2D.setColor(Color.MAGENTA);
+				Color color = prop.getColor();
+				if (color != null) {
+					cageROI2D.setColor(color);
+				}
 			}
 		}
 	}

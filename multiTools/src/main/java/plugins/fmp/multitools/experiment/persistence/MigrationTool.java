@@ -21,13 +21,8 @@ import plugins.fmp.multitools.tools.Logger;
  * Migrates experiments from old format (spots in cage XML) to new format (spots
  * in CSV, IDs in cage XML).
  * 
- * @deprecated Migration is no longer needed. Legacy persistence classes now
- *             provide transparent fallback to read old formats automatically.
- *             Users can manually save in new format when desired, or use an
- *             auto-save flag on experiment close. This class is kept for
- *             reference but is no longer used.
  */
-@Deprecated
+
 public class MigrationTool {
 
 	private MigrationDetector detector = new MigrationDetector();
@@ -69,45 +64,45 @@ public class MigrationTool {
 			// Step 5: Convert cage's capillaries to CapillaryID lists
 			convertCageCapillariesToIDs(exp);
 
-			// Step 6: Save in new format
-			// Save descriptions to results directory, measures to bin directory
+			// Step 6: Save in new format (plugin-specific: only 2 entity types)
+			// multiCAFE: cages + capillaries. multiSPOTS96: cages + spots.
+			String programContext = Experiment.getProgramContext();
+			boolean isMultiCAFE = "multiCAFE".equals(programContext);
 
-			// Save spots descriptions to new format
-			boolean spotsDescriptionsSaved = exp.getSpots().getPersistence().saveDescriptions(exp.getSpots(),
-					directory);
-			if (!spotsDescriptionsSaved) {
-				Logger.warn("MigrationTool:migrateExperiment() Failed to save spot descriptions to CSV");
-			}
-
-			// Save cages descriptions to new format
+			// Save cages descriptions (always)
 			boolean cagesDescriptionsSaved = exp.getCages().getPersistence().saveDescriptions(exp.getCages(),
 					directory);
 			if (!cagesDescriptionsSaved) {
 				Logger.warn("MigrationTool:migrateExperiment() Failed to save cage descriptions");
 			}
 
-			// Save capillary descriptions to new format (if available)
-			boolean capillariesDescriptionsSaved = exp.getCapillaries().getPersistence()
-					.saveDescriptions(exp.getCapillaries(), directory);
-			if (!capillariesDescriptionsSaved) {
-				Logger.warn("MigrationTool:migrateExperiment() Failed to save capillary descriptions");
+			boolean secondDescriptionsSaved;
+			if (isMultiCAFE) {
+				secondDescriptionsSaved = exp.getCapillaries().getPersistence()
+						.saveDescriptions(exp.getCapillaries(), directory);
+				if (!secondDescriptionsSaved) {
+					Logger.warn("MigrationTool:migrateExperiment() Failed to save capillary descriptions");
+				}
+			} else {
+				secondDescriptionsSaved = exp.getSpots().getPersistence().saveDescriptions(exp.getSpots(), directory);
+				if (!secondDescriptionsSaved) {
+					Logger.warn("MigrationTool:migrateExperiment() Failed to save spot descriptions to CSV");
+				}
 			}
 
 			// Save measures to bin directory (if available)
 			String binDir = exp.getKymosBinFullDirectory();
 			if (binDir != null) {
-				// Save spots measures
-				exp.getSpots().getPersistence().saveMeasures(exp.getSpots(), binDir);
-
-				// Save cages measures
 				exp.getCages().getPersistence().saveMeasures(exp.getCages(), binDir);
-
-				// Save capillary measures
-				exp.getCapillaries().getPersistence().saveMeasures(exp.getCapillaries(), binDir);
+				if (isMultiCAFE) {
+					exp.getCapillaries().getPersistence().saveMeasures(exp.getCapillaries(), binDir);
+				} else {
+					exp.getSpots().getPersistence().saveMeasures(exp.getSpots(), binDir);
+				}
 			}
 
 			Logger.info("MigrationTool:migrateExperiment() Migration completed successfully");
-			return spotsDescriptionsSaved && cagesDescriptionsSaved;
+			return cagesDescriptionsSaved && secondDescriptionsSaved;
 
 		} catch (Exception e) {
 			Logger.error("MigrationTool:migrateExperiment() Migration failed: " + e.getMessage(), e, true);
@@ -126,16 +121,32 @@ public class MigrationTool {
 				Files.createDirectories(backupDir);
 			}
 
-			// Backup cage XML if it exists
-			Path cagesXml = dirPath.resolve("MCdrosotrack.xml");
-			if (Files.exists(cagesXml)) {
-				Path backupXml = backupDir.resolve("MCdrosotrack.xml.backup");
-				Files.copy(cagesXml, backupXml, StandardCopyOption.REPLACE_EXISTING);
-				Logger.info("MigrationTool:backupOldFiles() Backed up: " + backupXml);
+			// Legacy experiment / cages XML files to move out of the root results directory
+			String[] legacyXmlFiles = new String[] { "MCdrosotrack.xml", "MCexperiment.xml", "MS96_experiment.xml",
+					"MS96_cages.xml" };
+
+			for (String name : legacyXmlFiles) {
+				Path src = dirPath.resolve(name);
+				if (Files.exists(src)) {
+					Path dst = backupDir.resolve(name);
+					Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING);
+					Logger.info("MigrationTool:backupOldFiles() Moved legacy file to backup: " + dst);
+				}
+			}
+
+			// Legacy combined CSVs (if present) can also be moved to keep results/ clean
+			String[] legacyCsvFiles = new String[] { "CagesMeasures.csv", "SpotsMeasures.csv" };
+			for (String name : legacyCsvFiles) {
+				Path src = dirPath.resolve(name);
+				if (Files.exists(src)) {
+					Path dst = backupDir.resolve(name);
+					Files.move(src, dst, StandardCopyOption.REPLACE_EXISTING);
+					Logger.info("MigrationTool:backupOldFiles() Moved legacy CSV to backup: " + dst);
+				}
 			}
 
 		} catch (Exception e) {
-			Logger.warn("MigrationTool:backupOldFiles() Failed to create backup: " + e.getMessage());
+			Logger.warn("MigrationTool:backupOldFiles() Failed to move legacy files: " + e.getMessage());
 		}
 	}
 
