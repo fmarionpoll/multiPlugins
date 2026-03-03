@@ -110,7 +110,9 @@ public class Experiment {
 	public int col = -1;
 
 	private String generatorProgram = null;
+	private String generatorProgramRevision = null;
 	private static String staticProgramContext = null;
+	private static String staticProgramRevision = null;
 	// Flags to prevent race conditions between loading and saving
 	private volatile boolean isLoading = false;
 	private volatile boolean isSaving = false;
@@ -411,12 +413,30 @@ public class Experiment {
 		this.generatorProgram = generatorProgram;
 	}
 
+	public String getGeneratorProgramRevision() {
+		return generatorProgramRevision;
+	}
+
+	public void setGeneratorProgramRevision(String generatorProgramRevision) {
+		this.generatorProgramRevision = generatorProgramRevision;
+	}
+
 	public static void setProgramContext(String programName) {
 		staticProgramContext = programName;
+		staticProgramRevision = null;
+	}
+
+	public static void setProgramContext(String programName, String revision) {
+		staticProgramContext = programName;
+		staticProgramRevision = revision;
 	}
 
 	public static String getProgramContext() {
 		return staticProgramContext;
+	}
+
+	public static String getProgramRevision() {
+		return staticProgramRevision;
 	}
 
 //	private String getOrDetermineGeneratorProgram() {
@@ -445,6 +465,27 @@ public class Experiment {
 				Class<?> clazz = Class.forName(className);
 				if (isRootProgramClass(clazz)) {
 					return convertClassNameToProgramName(clazz.getSimpleName());
+				}
+			} catch (ClassNotFoundException e) {
+				continue;
+			} catch (NoClassDefFoundError e) {
+				continue;
+			} catch (Exception e) {
+				continue;
+			}
+		}
+		return null;
+	}
+
+	public static String determineProgramRevisionFromStackTraceStatic() {
+		StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+		for (StackTraceElement element : stackTrace) {
+			String className = element.getClassName();
+			try {
+				Class<?> clazz = Class.forName(className);
+				if (isRootProgramClass(clazz)) {
+					Package pkg = clazz.getPackage();
+					return (pkg != null) ? pkg.getImplementationVersion() : null;
 				}
 			} catch (ClassNotFoundException e) {
 				continue;

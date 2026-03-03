@@ -132,6 +132,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					if (seq.isUpdating()) {
 						seq.endUpdate();
 					}
+					tabOptions.applyViewOptionsToCurrentExperiment();
 				}
 			}
 		});

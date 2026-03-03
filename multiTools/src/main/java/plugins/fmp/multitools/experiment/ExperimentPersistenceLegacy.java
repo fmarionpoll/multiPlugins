@@ -31,6 +31,8 @@ public class ExperimentPersistenceLegacy {
 	private final static String ID_FRAMEFIRST = "indexFrameFirst";
 	private final static String ID_NFRAMES = "nFrames";
 	private final static String ID_FRAMEDELTA = "indexFrameDelta";
+	private final static String ID_GENERATOR_PROGRAM = "generatorProgram";
+	private final static String ID_GENERATOR_PROGRAM_REVISION = "generatorProgramRevision";
 
 //	private final static String ID_IMAGESDIRECTORY = "imagesDirectory";
 	private final static String ID_MCEXPERIMENT = "MCexperiment";
@@ -191,6 +193,15 @@ public class ExperimentPersistenceLegacy {
 				exp.getProperties().loadXML_Properties(node);
 			} catch (Exception e) {
 				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() - Failed to load experiment properties: " + e.getMessage());
+			}
+
+			String generatorProgram = XMLUtil.getElementValue(node, ID_GENERATOR_PROGRAM, null);
+			if (generatorProgram != null) {
+				exp.setGeneratorProgram(generatorProgram);
+			}
+			String generatorProgramRevision = XMLUtil.getElementValue(node, ID_GENERATOR_PROGRAM_REVISION, null);
+			if (generatorProgramRevision != null) {
+				exp.setGeneratorProgramRevision(generatorProgramRevision);
 			}
 
 			Logger.info("ExperimentPersistenceLegacy:xmlLoadExperiment() Successfully loaded experiment from " + csFileName);

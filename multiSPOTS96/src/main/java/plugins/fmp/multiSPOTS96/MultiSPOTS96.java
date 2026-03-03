@@ -39,7 +39,8 @@ public class MultiSPOTS96 extends PluginActionable {
 
 	@Override
 	public void run() {
-		Experiment.setProgramContext("multiSPOTS96");
+				String revision = MultiSPOTS96.class.getPackage() != null ? MultiSPOTS96.class.getPackage().getImplementationVersion() : null;
+		Experiment.setProgramContext("multiSPOTS96", revision);
 
 		JPanel mainPanel = GuiUtil.generatePanelWithoutBorder();
 

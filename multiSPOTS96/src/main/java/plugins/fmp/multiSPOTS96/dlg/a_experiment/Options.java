@@ -78,4 +78,10 @@ public class Options extends JPanel {
 		exp.getSeqCamData().displaySpecificROIs(isVisible, pattern);
 	}
 
+	public void applyViewOptionsToCurrentExperiment() {
+		displayROIsCategory(viewSpotsCheckBox.isSelected(), "line");
+		displayROIsCategory(viewSpotsCheckBox.isSelected(), "spot");
+		displayROIsCategory(viewCagesCheckbox.isSelected(), "cage");
+	}
+
 }

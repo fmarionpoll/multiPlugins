@@ -18,6 +18,7 @@ import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS.dlg.kymos._DlgKymos_;
 import plugins.fmp.multiSPOTS.dlg.spots._DlgSpots_;
 import plugins.fmp.multiSPOTS.dlg.spotsMeasures._DlgSpotMeasure_;
+import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
@@ -39,6 +40,9 @@ public class MultiSPOTS extends PluginActionable {
 
 	@Override
 	public void run() {
+		String revision = MultiSPOTS.class.getPackage() != null ? MultiSPOTS.class.getPackage().getImplementationVersion() : null;
+		Experiment.setProgramContext("multiSPOTS", revision);
+
 		JPanel mainPanel = GuiUtil.generatePanelWithoutBorder();
 
 		dlgBrowse.init(mainPanel, "Browse", this);

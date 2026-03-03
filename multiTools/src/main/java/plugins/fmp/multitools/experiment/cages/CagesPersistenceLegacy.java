@@ -5,25 +5,24 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 
-import org.w3c.dom.Node;
-
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
+import plugins.fmp.multitools.experiment.ids.CapillaryID;
 import plugins.fmp.multitools.experiment.ids.SpotID;
-import plugins.fmp.multitools.experiment.spot.Spot;
-import plugins.fmp.multitools.experiment.spot.SpotPersistence;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.fmp.multitools.tools.ROI2D.ROIType;
 
@@ -41,15 +40,22 @@ public class CagesPersistenceLegacy {
 	private static final String ID_NROWSPERCAGE = "N_rows_per_cage";
 	private static final String ID_DROSOTRACK = "drosoTrack";
 	private static final String ID_CAGELIMITS = "Cage_Limits";
+	private static final String ID_CAGELIMITS_ALT = "CageLimits";
 	private static final String ID_FLYDETECTED = "Fly_Detected";
+	private static final String ID_FLYPOSITIONS = "FlyPositions";
 	private static final String ID_NBITEMS = "nb_items";
+	private static final String ID_SPOTIDS = "SpotIDs";
+	private static final String ID_NSPOTIDS = "N_spotIDs";
+	private static final String ID_SPOTID_ = "spotID_";
+	private static final String ID_CAPILLARYIDS = "CapillaryIDs";
+	private static final String ID_NCAPILLARYIDS = "N_capillaryIDs";
+	private static final String ID_CAPILLARYID_ = "capillaryID_";
 
 	private static final String ID_MCDROSOTRACK_XML = "MCdrosotrack.xml";
 	private static final String csvSep = ";";
 	private static final String ID_CAGESMEASURES_CSV = "CagesMeasures.csv";
 	private static final String ID_CAGESARRAY_CSV = "CagesArray.csv";
 	private static final String ID_CAGESARRAYMEASURES_CSV = "CagesArrayMeasures.csv";
-	private static final String ID_MS96_CAGES_XML = "MS96_cages.xml";
 
 	/**
 	 * Loads cages from legacy CSV format (CagesMeasures.csv).
@@ -115,24 +121,20 @@ public class CagesPersistenceLegacy {
 	}
 
 	/**
-	 * Loads cages from legacy XML format (MCdrosotrack.xml).
-	 * 
-	 * @param cages The Cages to populate
-	 * @param node  The XML node containing cages data
-	 * @return true if successful
+	 * Loads cages from MCdrosotrack.xml (MultiCAFE format). Uses capillary IDs, not
+	 * spot IDs.
 	 */
-	public static boolean xmlLoadCages(Cages cages, Node node) {
+	public static boolean xmlLoadCagesFromMCdrosotrack(Cages cages, Node node) {
 		try {
-			// Try new format first (with Cages element)
 			Element xmlVal = XMLUtil.getElement(node, ID_CAGES);
 			if (xmlVal != null) {
 				cages.cagesList.clear();
 				int ncages = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGES, 0);
 				if (ncages < 0) {
-					Logger.error("CagesPersistenceLegacy:xmlLoadCages() ERROR: Invalid number of cages: " + ncages);
+					Logger.error(
+							"CagesPersistenceLegacy:xmlLoadCagesFromMCdrosotrack() ERROR: Invalid ncages: " + ncages);
 					return false;
 				}
-
 				cages.nCagesAlongX = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGESALONGX, cages.nCagesAlongX);
 				cages.nCagesAlongY = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGESALONGY, cages.nCagesAlongY);
 				cages.nColumnsPerCage = XMLUtil.getAttributeIntValue(xmlVal, ID_NCOLUMNSPERCAGE, cages.nColumnsPerCage);
@@ -142,47 +144,82 @@ public class CagesPersistenceLegacy {
 				for (int index = 0; index < ncages; index++) {
 					try {
 						Cage cage = new Cage();
-						boolean cageSuccess = cage.xmlLoadCage(xmlVal, index);
-						if (cageSuccess) {
+						if (xmlLoadCageFromMCdrosotrackElement(cage, xmlVal, index)) {
 							cages.cagesList.add(cage);
 							loadedCages++;
 						} else {
-							Logger.warn("CagesPersistenceLegacy:xmlLoadCages() WARNING: Failed to load cage at index "
-									+ index);
+							Logger.warn("CagesPersistenceLegacy:xmlLoadCagesFromMCdrosotrack() Failed cage " + index);
 						}
 					} catch (Exception e) {
-						Logger.error("CagesPersistenceLegacy:xmlLoadCages() ERROR loading cage at index " + index + ": "
+						Logger.error("CagesPersistenceLegacy:xmlLoadCagesFromMCdrosotrack() Error cage " + index + ": "
 								+ e.getMessage(), e);
 					}
 				}
-
-				Logger.info("CagesPersistenceLegacy:xmlLoadCages() Loaded " + loadedCages + " cages");
+				Logger.info("CagesPersistenceLegacy:xmlLoadCagesFromMCdrosotrack() Loaded " + loadedCages + " cages");
 				return loadedCages > 0;
 			}
 
-			// Try legacy v0 format (with drosoTrack element)
 			Node drosoTrackNode = XMLUtil.getElement(node, ID_DROSOTRACK);
-			if (drosoTrackNode != null) {
-				return xmlLoadCages_v0(cages, drosoTrackNode);
-			}
+			if (drosoTrackNode != null)
+				return xmlLoadCages_v0_MCdrosotrack(cages, drosoTrackNode);
 
-			Logger.warn("CagesPersistenceLegacy:xmlLoadCages() Could not find Cages or drosoTrack element in XML");
+			Logger.warn("CagesPersistenceLegacy:xmlLoadCagesFromMCdrosotrack() No Cages or drosoTrack element");
 			return false;
-
 		} catch (Exception e) {
-			Logger.error("CagesPersistenceLegacy:xmlLoadCages() ERROR during xmlLoadCages: " + e.getMessage(), e);
+			Logger.error("CagesPersistenceLegacy:xmlLoadCagesFromMCdrosotrack() Error: " + e.getMessage(), e);
 			return false;
 		}
 	}
 
 	/**
-	 * Loads cages from legacy v0 XML format (with drosoTrack element).
-	 * 
-	 * @param cages The Cages to populate
-	 * @param node  The drosoTrack XML node
-	 * @return true if successful
+	 * Loads cages from MS96_cages.xml (multiSPOTS96 format). Uses spot IDs, not
+	 * capillary IDs.
 	 */
-	private static boolean xmlLoadCages_v0(Cages cages, Node node) {
+	public static boolean xmlLoadCagesFromMS96Cages(Cages cages, Node node) {
+		try {
+			Element xmlVal = XMLUtil.getElement(node, ID_CAGES);
+			if (xmlVal == null) {
+				Logger.warn("CagesPersistenceLegacy:xmlLoadCagesFromMS96Cages() No Cages element");
+				return false;
+			}
+			cages.cagesList.clear();
+			int ncages = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGES, 0);
+			if (ncages < 0) {
+				Logger.error("CagesPersistenceLegacy:xmlLoadCagesFromMS96Cages() ERROR: Invalid ncages: " + ncages);
+				return false;
+			}
+			cages.nCagesAlongX = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGESALONGX, cages.nCagesAlongX);
+			cages.nCagesAlongY = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGESALONGY, cages.nCagesAlongY);
+			cages.nColumnsPerCage = XMLUtil.getAttributeIntValue(xmlVal, ID_NCOLUMNSPERCAGE, cages.nColumnsPerCage);
+			cages.nRowsPerCage = XMLUtil.getAttributeIntValue(xmlVal, ID_NROWSPERCAGE, cages.nRowsPerCage);
+
+			int loadedCages = 0;
+			for (int index = 0; index < ncages; index++) {
+				try {
+					Cage cage = new Cage();
+					if (xmlLoadCageFromMS96CagesElement(cage, xmlVal, index)) {
+						cages.cagesList.add(cage);
+						loadedCages++;
+					} else {
+						Logger.warn("CagesPersistenceLegacy:xmlLoadCagesFromMS96Cages() Failed cage " + index);
+					}
+				} catch (Exception e) {
+					Logger.error("CagesPersistenceLegacy:xmlLoadCagesFromMS96Cages() Error cage " + index + ": "
+							+ e.getMessage(), e);
+				}
+			}
+			Logger.info("CagesPersistenceLegacy:xmlLoadCagesFromMS96Cages() Loaded " + loadedCages + " cages");
+			return loadedCages > 0;
+		} catch (Exception e) {
+			Logger.error("CagesPersistenceLegacy:xmlLoadCagesFromMS96Cages() Error: " + e.getMessage(), e);
+			return false;
+		}
+	}
+
+	/**
+	 * Loads cages from legacy v0 MCdrosotrack format (with drosoTrack element).
+	 */
+	private static boolean xmlLoadCages_v0_MCdrosotrack(Cages cages, Node node) {
 		try {
 			cages.cagesList.clear();
 			Element xmlVal = XMLUtil.getElement(node, ID_CAGES);
@@ -190,7 +227,7 @@ public class CagesPersistenceLegacy {
 				int nCages = XMLUtil.getAttributeIntValue(xmlVal, ID_NCAGES, 0);
 				for (int index = 0; index < nCages; index++) {
 					Cage cage = new Cage();
-					cage.xmlLoadCage(xmlVal, index);
+					xmlLoadCageFromMCdrosotrackElement(cage, xmlVal, index);
 					cages.cagesList.add(cage);
 				}
 				return true;
@@ -279,36 +316,210 @@ public class CagesPersistenceLegacy {
 	}
 
 	/**
-	 * Loads cages from legacy XML file.
-	 * 
-	 * @param cages    The Cages to populate
-	 * @param tempname The path to the XML file
-	 * @return true if successful
+	 * Loads a single cage from MCdrosotrack.xml format (MultiCAFE). Loads capillary
+	 * IDs, not spot IDs.
 	 */
-	public static boolean xmlReadCagesFromFileNoQuestion(Cages cages, String tempname) {
-		if (tempname == null) {
-			return false;
-		}
-
-		File file = new File(tempname);
-		if (!file.exists()) {
-			return false;
-		}
-
+	public static boolean xmlLoadCageFromMCdrosotrackElement(Cage cage, Element cagesElement, int index) {
 		try {
-			final Document doc = XMLUtil.loadDocument(tempname);
-			if (doc == null) {
-				Logger.warn("CagesPersistenceLegacy:xmlReadCagesFromFileNoQuestion() Could not load XML document: "
-						+ tempname);
+			Element xmlVal = XMLUtil.getElement(cagesElement, "Cage" + index);
+			if (xmlVal == null)
+				xmlVal = XMLUtil.getElement(cagesElement, "cage" + index);
+			if (xmlVal == null) {
+				Logger.debug("CagesPersistenceLegacy: Could not find Cage" + index + " element");
+				return false;
+			}
+			if (!xmlLoadCageLimitsFromElement(cage, xmlVal))
+				Logger.debug("CagesPersistenceLegacy: Failed to load cage limits for cage " + index);
+			if (!cage.getProperties().xmlLoadCageParameters(xmlVal)) {
+				Logger.debug("CagesPersistenceLegacy: Failed to load cage parameters for cage " + index);
+				return false;
+			}
+			if (cage.getRoi() != null)
+				cage.getRoi().setColor(cage.getProperties().getColor());
+			xmlLoadCapillaryIDsFromElement(cage, xmlVal);
+			cage.measures.loadFromXml(xmlVal);
+			Element flyEl = XMLUtil.getElement(xmlVal, ID_FLYPOSITIONS);
+			if (flyEl != null)
+				cage.getFlyPositions().loadXYTseriesFromXML(flyEl);
+			return true;
+		} catch (Exception e) {
+			Logger.error("CagesPersistenceLegacy:xmlLoadCageFromMCdrosotrackElement() Error loading cage " + index
+					+ ": " + e.getMessage(), e);
+			return false;
+		}
+	}
+
+	/**
+	 * Loads a single cage from MS96_cages.xml format (multiSPOTS96). Loads spot
+	 * IDs, not capillary IDs.
+	 */
+	public static boolean xmlLoadCageFromMS96CagesElement(Cage cage, Element cagesElement, int index) {
+		try {
+			Element xmlVal = XMLUtil.getElement(cagesElement, "Cage" + index);
+			if (xmlVal == null)
+				xmlVal = XMLUtil.getElement(cagesElement, "cage" + index);
+			if (xmlVal == null) {
+				Logger.debug("CagesPersistenceLegacy: Could not find Cage" + index + " element");
 				return false;
 			}
 
-			boolean success = xmlLoadCages(cages, XMLUtil.getRootElement(doc));
-			return success;
+			if (!xmlLoadCageLimitsFromElement(cage, xmlVal))
+				Logger.debug("CagesPersistenceLegacy: Failed to load cage limits for cage " + index);
 
+			ensureCageRoiNameForDisplay(cage.getRoi(), index);
+
+			if (!cage.getProperties().xmlLoadCageParameters(xmlVal)) {
+				Logger.debug("CagesPersistenceLegacy: Failed to load cage parameters for cage " + index);
+				return false;
+			}
+
+			if (cage.getRoi() != null)
+				cage.getRoi().setColor(cage.getProperties().getColor());
+
+			xmlLoadSpotIDsFromElement(cage, xmlVal);
+
+			return true;
 		} catch (Exception e) {
-			Logger.error("CagesPersistenceLegacy:xmlReadCagesFromFileNoQuestion() ERROR during cages XML loading: "
+			Logger.error("CagesPersistenceLegacy:xmlLoadCageFromMS96CagesElement() Error loading cage " + index + ": "
 					+ e.getMessage(), e);
+			return false;
+		}
+	}
+
+	/**
+	 * Ensures cage ROI name contains "cage" for displaySpecificROIs matching.
+	 * displaySpecificROIs uses case-sensitive name.contains("cage").
+	 */
+	public static void ensureCageRoiNameForDisplay(icy.roi.ROI2D roi, int cageIndex) {
+		if (roi == null)
+			return;
+		String name = roi.getName();
+		if (name == null || !name.toLowerCase().contains("cage"))
+			roi.setName("cage" + String.format("%03d", cageIndex));
+	}
+
+	/**
+	 * Loads cage ROI from CageLimits element. Used by format-specific cage loaders
+	 * and xmlLoadCagesROIsOnly.
+	 */
+	public static boolean xmlLoadCageLimitsFromElement(Cage cage, Element cageElement) {
+		try {
+			String[] tags = { ID_CAGELIMITS_ALT, ID_CAGELIMITS };
+			for (String tag : tags) {
+				Element xmlVal2 = XMLUtil.getElement(cageElement, tag);
+				if (xmlVal2 != null) {
+					ROI2D roi = ROI2DUtilities.loadFromXML_ROI(xmlVal2);
+					if (roi == null)
+						roi = (ROI2D) ROI.createFromXML(xmlVal2);
+					if (roi == null && xmlVal2.hasChildNodes()) {
+						Node first = xmlVal2.getFirstChild();
+						while (first != null) {
+							if (first.getNodeType() == Node.ELEMENT_NODE) {
+								roi = (ROI2D) ROI.createFromXML(first);
+								if (roi != null)
+									break;
+							}
+							first = first.getNextSibling();
+						}
+					}
+					if (roi == null)
+						roi = CagesPersistenceMS96Legacy.parseCageLimitsFromPointsFormat(xmlVal2);
+					if (roi != null) {
+						roi.setSelected(false);
+						cage.setCageRoi(roi);
+						return true;
+					}
+				}
+			}
+			return true;
+		} catch (Exception e) {
+			Logger.error("CagesPersistenceLegacy:xmlLoadCageLimitsFromElement() Error: " + e.getMessage(), e);
+			return false;
+		}
+	}
+
+	private static void xmlLoadSpotIDsFromElement(Cage cage, Element xmlVal) {
+		try {
+			Element xmlVal2 = XMLUtil.getElement(xmlVal, ID_SPOTIDS);
+			if (xmlVal2 == null)
+				return;
+			int nitems = XMLUtil.getElementIntValue(xmlVal2, ID_NSPOTIDS, 0);
+			List<SpotID> spotIDs = new ArrayList<>();
+			for (int i = 0; i < nitems; i++) {
+				Element spotIDElement = XMLUtil.getElement(xmlVal2, ID_SPOTID_ + i);
+				if (spotIDElement != null) {
+					int id = XMLUtil.getElementIntValue(spotIDElement, "id", -1);
+					if (id >= 0)
+						spotIDs.add(new SpotID(id));
+				}
+			}
+			cage.setSpotIDs(spotIDs);
+		} catch (Exception e) {
+			Logger.debug("CagesPersistenceLegacy:xmlLoadSpotIDsFromElement() " + e.getMessage());
+		}
+	}
+
+	private static void xmlLoadCapillaryIDsFromElement(Cage cage, Element xmlVal) {
+		try {
+			Element xmlVal2 = XMLUtil.getElement(xmlVal, ID_CAPILLARYIDS);
+			if (xmlVal2 == null)
+				return;
+			int nitems = XMLUtil.getElementIntValue(xmlVal2, ID_NCAPILLARYIDS, 0);
+			List<CapillaryID> capillaryIDs = new ArrayList<>();
+			for (int i = 0; i < nitems; i++) {
+				Element capIDElement = XMLUtil.getElement(xmlVal2, ID_CAPILLARYID_ + i);
+				if (capIDElement != null) {
+					int kymographIndex = XMLUtil.getElementIntValue(capIDElement, "kymographIndex", -1);
+					if (kymographIndex >= 0)
+						capillaryIDs.add(new CapillaryID(kymographIndex));
+				}
+			}
+			cage.setCapillaryIDs(capillaryIDs);
+		} catch (Exception e) {
+			Logger.debug("CagesPersistenceLegacy:xmlLoadCapillaryIDsFromElement() " + e.getMessage());
+		}
+	}
+
+	/**
+	 * Loads cages from MCdrosotrack.xml (MultiCAFE legacy format).
+	 */
+	public static boolean xmlReadCagesFromMCdrosotrackXml(Cages cages, String path) {
+		if (path == null)
+			return false;
+		File file = new File(path);
+		if (!file.exists())
+			return false;
+		try {
+			Document doc = XMLUtil.loadDocument(path);
+			if (doc == null) {
+				Logger.warn("CagesPersistenceLegacy:xmlReadCagesFromMCdrosotrackXml() Could not load: " + path);
+				return false;
+			}
+			return xmlLoadCagesFromMCdrosotrack(cages, XMLUtil.getRootElement(doc));
+		} catch (Exception e) {
+			Logger.error("CagesPersistenceLegacy:xmlReadCagesFromMCdrosotrackXml() Error: " + e.getMessage(), e);
+			return false;
+		}
+	}
+
+	/**
+	 * Loads cages from MS96_cages.xml (multiSPOTS96 legacy format).
+	 */
+	public static boolean xmlReadCagesFromMS96CagesXml(Cages cages, String path) {
+		if (path == null)
+			return false;
+		File file = new File(path);
+		if (!file.exists())
+			return false;
+		try {
+			Document doc = XMLUtil.loadDocument(path);
+			if (doc == null) {
+				Logger.warn("CagesPersistenceLegacy:xmlReadCagesFromMS96CagesXml() Could not load: " + path);
+				return false;
+			}
+			return xmlLoadCagesFromMS96Cages(cages, XMLUtil.getRootElement(doc));
+		} catch (Exception e) {
+			Logger.error("CagesPersistenceLegacy:xmlReadCagesFromMS96CagesXml() Error: " + e.getMessage(), e);
 			return false;
 		}
 	}
@@ -362,7 +573,7 @@ public class CagesPersistenceLegacy {
 
 					Element cageElement = XMLUtil.getElement(xmlVal, "Cage" + index);
 					if (cageElement != null) {
-						boolean roiLoaded = cage.xmlLoadCageLimits(cageElement);
+						boolean roiLoaded = xmlLoadCageLimitsFromElement(cage, cageElement);
 						if (roiLoaded) {
 							loadedROIs++;
 						}
@@ -426,7 +637,9 @@ public class CagesPersistenceLegacy {
 
 					Element cageElement = XMLUtil.getElement(xmlVal, "Cage" + index);
 					if (cageElement != null) {
-						boolean flyPositionsLoaded = cage.xmlLoadFlyPositions(cageElement);
+						Element flyEl = XMLUtil.getElement(cageElement, ID_FLYPOSITIONS);
+						boolean flyPositionsLoaded = flyEl != null
+								&& cage.getFlyPositions().loadXYTseriesFromXML(flyEl);
 						if (flyPositionsLoaded) {
 							loadedFlyPositions++;
 						}
@@ -621,7 +834,7 @@ public class CagesPersistenceLegacy {
 				String roiName = (cage.getRoi() != null && cage.getRoi().getName() != null) ? cage.getRoi().getName()
 						: "cage" + String.format("%03d", cage.getProperties().getCageID());
 				csvWriter.append(roiName + csvSep);
-				
+
 				// Add ROI type (v2.1 format)
 				ROIType roiType = ROIPersistenceUtils.detectROIType(cage.getRoi());
 				csvWriter.append(roiType.toCsvString() + csvSep);
@@ -636,9 +849,10 @@ public class CagesPersistenceLegacy {
 						csvWriter.append(csvSep + Integer.toString((int) polygon.ypoints[i]));
 					}
 				} else if (cage.getRoi() != null && cage.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DRectangle) {
-					plugins.kernel.roi.roi2d.ROI2DRectangle rectRoi = (plugins.kernel.roi.roi2d.ROI2DRectangle) cage.getRoi();
+					plugins.kernel.roi.roi2d.ROI2DRectangle rectRoi = (plugins.kernel.roi.roi2d.ROI2DRectangle) cage
+							.getRoi();
 					java.awt.Rectangle rect = rectRoi.getBounds();
-					csvWriter.append("4");  // Rectangle has 4 corner points
+					csvWriter.append("4"); // Rectangle has 4 corner points
 					csvWriter.append(csvSep + Integer.toString(rect.x));
 					csvWriter.append(csvSep + Integer.toString(rect.y));
 					csvWriter.append(csvSep + Integer.toString(rect.width));
@@ -797,29 +1011,26 @@ public class CagesPersistenceLegacy {
 			}
 		}
 
-		// Priority 3: Fall back to XML (legacy format)
+		// Priority 3: MCdrosotrack.xml (MultiCAFE legacy format)
 		String pathToXml = resultsDirectory + File.separator + ID_MCDROSOTRACK_XML;
 		File xmlFile = new File(pathToXml);
 		if (xmlFile.isFile()) {
-			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying legacy XML format: " + pathToXml);
-			boolean loaded = xmlReadCagesFromFileNoQuestion(cages, pathToXml);
-			if (loaded) {
-				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy XML: "
-						+ ID_MCDROSOTRACK_XML);
-			}
+			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying MCdrosotrack.xml: " + pathToXml);
+			boolean loaded = xmlReadCagesFromMCdrosotrackXml(cages, pathToXml);
+			if (loaded)
+				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from " + ID_MCDROSOTRACK_XML);
 			return loaded;
 		}
 
-		// Priority 4: MS96-specific cages file (results/MS96_cages.xml)
-		String ms96XmlPath = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
+		// Priority 4: MS96_cages.xml (multiSPOTS96 legacy format)
+		String ms96XmlPath = resultsDirectory + File.separator + CagesPersistenceMS96Legacy.getMs96CagesXmlFilename();
 		File ms96XmlFile = new File(ms96XmlPath);
 		if (ms96XmlFile.isFile()) {
-			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying MS96 XML format: " + ms96XmlPath);
-			boolean loaded = xmlReadCagesFromFileNoQuestion(cages, ms96XmlPath);
-			if (loaded) {
-				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from MS96 XML: "
-						+ ID_MS96_CAGES_XML);
-			}
+			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying MS96_cages.xml: " + ms96XmlPath);
+			boolean loaded = xmlReadCagesFromMS96CagesXml(cages, ms96XmlPath);
+			if (loaded)
+				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from "
+						+ CagesPersistenceMS96Legacy.getMs96CagesXmlFilename());
 			return loaded;
 		}
 
@@ -827,191 +1038,24 @@ public class CagesPersistenceLegacy {
 	}
 
 	/**
-	 * Loads cage descriptions and measures from MS96_cages.xml only. Used when
-	 * experiment descriptor version is 1.0.0 (legacy). The XML contains both cage
-	 * ROIs and fly positions.
+	 * Loads cage descriptions and measures from MS96_cages.xml only.
 	 */
 	public static boolean loadFromMS96CagesXml(Cages cages, String resultsDirectory) {
-		if (resultsDirectory == null) {
-			return false;
-		}
-		String path = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
-		File file = new File(path);
-		boolean usedFallback = false;
-		if (!file.isFile()) {
-			File parent = new File(resultsDirectory).getParentFile();
-			if (parent != null) {
-				path = parent.getAbsolutePath() + File.separator + ID_MS96_CAGES_XML;
-				file = new File(path);
-				usedFallback = file.isFile();
-			}
-		}
-		if (!file.isFile()) {
-			return false;
-		}
-		if (usedFallback) {
-			Logger.info("CagesPersistenceLegacy: Found " + ID_MS96_CAGES_XML + " in experiment root");
-		}
-		boolean loaded = xmlReadCagesFromFileNoQuestion(cages, path);
-		if (loaded) {
-			Logger.info("CagesPersistenceLegacy:loadFromMS96CagesXml() Loaded from " + ID_MS96_CAGES_XML);
-		}
-		return loaded;
+		return CagesPersistenceMS96Legacy.loadFromMS96CagesXml(cages, resultsDirectory);
 	}
 
-	private static final String ID_LISTOFSPOTS = "List_of_spots";
-	private static final String ID_NSPOTS = "N_spots";
-	private static final String ID_SPOT_ = "spot_";
-
 	/**
-	 * Loads spot ROIs (color, size, shape) from MS96_cages.xml. Each Cage element
-	 * contains a List_of_spots with spot_0, spot_1, etc. having full ROI data.
+	 * Loads spot ROIs from MS96_cages.xml.
 	 */
 	public static boolean loadSpotsFromMS96CagesXml(Spots spots, String resultsDirectory) {
-		if (spots == null || resultsDirectory == null) {
-			return false;
-		}
-		String path = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
-		File file = new File(path);
-		if (!file.isFile()) {
-			File parent = new File(resultsDirectory).getParentFile();
-			if (parent != null) {
-				path = parent.getAbsolutePath() + File.separator + ID_MS96_CAGES_XML;
-				file = new File(path);
-			}
-		}
-		if (!file.isFile()) {
-			return false;
-		}
-		path = file.getAbsolutePath();
-		try {
-			Document doc = XMLUtil.loadDocument(path);
-			if (doc == null) {
-				return false;
-			}
-			Node rootNode = XMLUtil.getRootElement(doc);
-			Element xmlCages = XMLUtil.getElement(rootNode, ID_CAGES);
-			if (xmlCages == null) {
-				return false;
-			}
-			int ncages = XMLUtil.getAttributeIntValue(xmlCages, ID_NCAGES, 0);
-			int totalLoaded = 0;
-			for (int cageIndex = 0; cageIndex < ncages; cageIndex++) {
-				Element cageElement = XMLUtil.getElement(xmlCages, "Cage" + cageIndex);
-				if (cageElement == null) {
-					continue;
-				}
-				Node listNode = XMLUtil.getElement(cageElement, ID_LISTOFSPOTS);
-				if (listNode == null) {
-					continue;
-				}
-				int nspots = XMLUtil.getElementIntValue(listNode, ID_NSPOTS, 0);
-				for (int i = 0; i < nspots; i++) {
-					Node spotNode = XMLUtil.getElement(cageElement, ID_SPOT_ + i);
-					if (spotNode == null) {
-						continue;
-					}
-					Spot spot = new Spot();
-					if (SpotPersistence.xmlLoadSpot(spotNode, spot)) {
-						int uniqueID = spots.getNextUniqueSpotID();
-						spot.setSpotUniqueID(new SpotID(uniqueID));
-						spots.getSpotList().add(spot);
-						totalLoaded++;
-					}
-				}
-			}
-			if (totalLoaded > 0) {
-				Logger.info("CagesPersistenceLegacy:loadSpotsFromMS96CagesXml() Loaded " + totalLoaded + " spots from "
-						+ ID_MS96_CAGES_XML);
-			}
-			return totalLoaded > 0;
-		} catch (Exception e) {
-			Logger.error("CagesPersistenceLegacy:loadSpotsFromMS96CagesXml() Error: " + e.getMessage(), e);
-			return false;
-		}
+		return CagesPersistenceMS96Legacy.loadSpotsFromMS96CagesXml(spots, resultsDirectory);
 	}
 
 	/**
-	 * Loads cage ROIs from MS96_cages.xml and assigns them to cages. Used when
-	 * cages were loaded with properties but ROIs are missing (e.g. from grid
-	 * fallback). Ensures cage boundaries come from the XML, not CSV or grid.
+	 * Loads cage ROIs from MS96_cages.xml and assigns them to cages.
 	 */
 	public static boolean loadCageROIsFromMS96CagesXml(Cages cages, String resultsDirectory) {
-		if (cages == null || resultsDirectory == null || cages.cagesList.isEmpty()) {
-			return false;
-		}
-		String path = resultsDirectory + File.separator + ID_MS96_CAGES_XML;
-		File file = new File(path);
-		if (!file.isFile()) {
-			File parent = new File(resultsDirectory).getParentFile();
-			if (parent != null) {
-				path = parent.getAbsolutePath() + File.separator + ID_MS96_CAGES_XML;
-				file = new File(path);
-			}
-		}
-		if (!file.isFile()) {
-			return false;
-		}
-		try {
-			Document doc = XMLUtil.loadDocument(file.getAbsolutePath());
-			if (doc == null) {
-				return false;
-			}
-			Node rootNode = XMLUtil.getRootElement(doc);
-			Element xmlCages = XMLUtil.getElement(rootNode, ID_CAGES);
-			if (xmlCages == null) {
-				return false;
-			}
-			int ncages = XMLUtil.getAttributeIntValue(xmlCages, ID_NCAGES, 0);
-			int loaded = 0;
-			String[] roiTags = { "CageLimits", "Cage_Limits" };
-			for (int i = 0; i < ncages && i < cages.cagesList.size(); i++) {
-				Element cageEl = XMLUtil.getElement(xmlCages, "Cage" + i);
-				if (cageEl == null) {
-					cageEl = XMLUtil.getElement(xmlCages, "cage" + i);
-				}
-				if (cageEl == null) {
-					continue;
-				}
-				Cage cage = cages.cagesList.get(i);
-				for (String tag : roiTags) {
-					Element roiEl = XMLUtil.getElement(cageEl, tag);
-					if (roiEl != null) {
-						ROI2D roi = ROI2DUtilities.loadFromXML_ROI(roiEl);
-						if (roi == null) {
-							roi = (ROI2D) ROI.createFromXML(roiEl);
-						}
-						if (roi == null && roiEl.hasChildNodes()) {
-							Node child = roiEl.getFirstChild();
-							while (child != null) {
-								if (child.getNodeType() == Node.ELEMENT_NODE) {
-									roi = (ROI2D) ROI.createFromXML(child);
-									if (roi != null)
-										break;
-								}
-								child = child.getNextSibling();
-							}
-						}
-						if (roi != null && !roi.getBounds().isEmpty()) {
-							roi.setSelected(false);
-							if (cage.getProperties().getColor() != null) {
-								roi.setColor(cage.getProperties().getColor());
-							}
-							cage.setCageRoi(roi);
-							loaded++;
-							break;
-						}
-					}
-				}
-			}
-			if (loaded > 0) {
-				Logger.info("CagesPersistenceLegacy:loadCageROIsFromMS96CagesXml() Loaded " + loaded + " cage ROIs");
-			}
-			return loaded > 0;
-		} catch (Exception e) {
-			Logger.error("CagesPersistenceLegacy:loadCageROIsFromMS96CagesXml() Error: " + e.getMessage(), e);
-			return false;
-		}
+		return CagesPersistenceMS96Legacy.loadCageROIsFromMS96CagesXml(cages, resultsDirectory);
 	}
 
 	/**

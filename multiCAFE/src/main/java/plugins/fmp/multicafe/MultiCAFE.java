@@ -44,8 +44,8 @@ public class MultiCAFE extends PluginActionable {
 
 	@Override
 	public void run() {
-		// Set the program context so it can be saved in MCExperiment.xml
-		Experiment.setProgramContext("multiCAFE");
+		String revision = MultiCAFE.class.getPackage() != null ? MultiCAFE.class.getPackage().getImplementationVersion() : null;
+		Experiment.setProgramContext("multiCAFE", revision);
 
 		viewOptions.load(getPreferences("viewOptions"));
 

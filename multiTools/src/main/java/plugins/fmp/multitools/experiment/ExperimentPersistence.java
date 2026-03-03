@@ -37,6 +37,7 @@ public class ExperimentPersistence {
 //	private final static String ID_MS96_EXPERIMENT_XML_LEGACY = "MS96_experiment.xml";
 
 	private final static String ID_GENERATOR_PROGRAM = "generatorProgram";
+	private final static String ID_GENERATOR_PROGRAM_REVISION = "generatorProgramRevision";
 
 	// ========================================================================
 	// Public API methods (delegate to nested classes)
@@ -272,6 +273,10 @@ public class ExperimentPersistence {
 			if (generatorProgram != null) {
 				exp.setGeneratorProgram(generatorProgram);
 			}
+			String generatorProgramRevision = XMLUtil.getElementValue(node, ID_GENERATOR_PROGRAM_REVISION, null);
+			if (generatorProgramRevision != null) {
+				exp.setGeneratorProgramRevision(generatorProgramRevision);
+			}
 		}
 
 		private static boolean xmlSaveExperiment(Experiment exp, String csFileName) {
@@ -366,9 +371,7 @@ public class ExperimentPersistence {
 							+ e.getMessage());
 				}
 
-				// Save generator program (optional field)
-				// Auto-determine if not already set - Experiment class handles detection
-				// automatically
+				// Save generator program and revision (optional fields)
 				String programToSave = exp.getGeneratorProgram();
 				if (programToSave == null) {
 					programToSave = Experiment.determineProgramFromStackTraceStatic();
@@ -378,6 +381,20 @@ public class ExperimentPersistence {
 				}
 				if (programToSave != null) {
 					XMLUtil.setElementValue(node, ID_GENERATOR_PROGRAM, programToSave);
+				}
+
+				String revisionToSave = exp.getGeneratorProgramRevision();
+				if (revisionToSave == null) {
+					revisionToSave = Experiment.getProgramRevision();
+				}
+				if (revisionToSave == null) {
+					revisionToSave = Experiment.determineProgramRevisionFromStackTraceStatic();
+					if (revisionToSave != null) {
+						exp.setGeneratorProgramRevision(revisionToSave);
+					}
+				}
+				if (revisionToSave != null) {
+					XMLUtil.setElementValue(node, ID_GENERATOR_PROGRAM_REVISION, revisionToSave);
 				}
 
 				XMLUtil.saveDocument(doc, csFileName);
