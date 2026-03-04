@@ -41,8 +41,7 @@ public class SelectFilesPanel extends JPanel {
 	 */
 	private static final long serialVersionUID = 4172927636287523049L;
 	IcyFrame dialogFrame = null;
-	private JComboBox<String> filterCombo = new JComboBox<String>(
-			new String[] { "cam", "grabs", "MS96_experiment", "Experiment" });
+	private JComboBox<String> filterCombo = new JComboBox<String>(new String[] { "cam", "grabs", "experiment" });
 	private JButton findButton = new JButton("Select root directory and search...");
 	private JButton clearSelectedButton = new JButton("Clear selected");
 	private JButton clearAllButton = new JButton("Clear all");
