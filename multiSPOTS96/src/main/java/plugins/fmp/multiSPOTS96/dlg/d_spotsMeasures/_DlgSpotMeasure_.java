@@ -24,7 +24,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	private static final long serialVersionUID = 853047648249832145L;
 	public PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
-//	ThresholdSimple tabSimpleThreshold = new ThresholdSimple();
+	ThresholdLight tabSimpleThresholdLight = new ThresholdLight();
 	ThresholdSimple tabSimpleThresholdAdvanced = new ThresholdSimple();
 //	ThresholdColors colorsThreshold = new ThresholdColors();
 	Edit tabEdit = new Edit();
@@ -44,6 +44,13 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 
 		GridLayout gridLayout = new GridLayout(3, 1);
 		int order = 0;
+
+		tabSimpleThresholdLight.init(gridLayout, parent0);
+		tabSimpleThresholdLight.addPropertyChangeListener(this);
+		tabsPane.addTab("Threshold (light)", null, tabSimpleThresholdLight,
+				"Spots measures from camera (light)");
+		id_threshold = order;
+		order++;
 
 //		tabSimpleThreshold.init(gridLayout, parent0);
 //		tabSimpleThreshold.addPropertyChangeListener(this);

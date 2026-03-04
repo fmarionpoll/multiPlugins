@@ -26,21 +26,15 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.series.AdvancedMemoryOptions;
-import plugins.fmp.multitools.series.BuildSpotsMeasuresAdvanced;
+import plugins.fmp.multitools.series.BuildSpotsMeasuresLight;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
-public class ThresholdSimple extends JPanel implements PropertyChangeListener {
-	/**
-	 * 
-	 */
-	private static final long serialVersionUID = 8921207247623517524L;
+public class ThresholdLight extends JPanel implements PropertyChangeListener {
+	private static final long serialVersionUID = 1L;
 
 	private String detectString = "Detect";
 	private JButton detectButton = new JButton(detectString);
-	private JComboBox<String> memUseComboBox = new JComboBox<String>(
-			new String[] { "balanced", "conservative", "aggressive" });
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private JLabel spotsFilterLabel = new JLabel("Spots filter");
@@ -61,11 +55,8 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 	private JComboBox<ImageTransformEnums> fliesTransformsComboBox = new JComboBox<ImageTransformEnums>(transforms);
 	private JComboBox<String> fliesDirectionComboBox = new JComboBox<String>(directions);
 	private JSpinner fliesThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 255, 1));
-	private boolean vocalAboutMemory = false;
 
-	// === MEMORY LEAK PREVENTION ===
-	// Use weak reference to avoid holding strong references to the processor
-	private WeakReference<BuildSpotsMeasuresAdvanced> processorRef = null;
+	private WeakReference<BuildSpotsMeasuresLight> processorRef = null;
 	private MultiSPOTS96 parent0 = null;
 
 	public void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
@@ -76,8 +67,6 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
-		panel0.add(new JLabel("memory use"));
-		panel0.add(memUseComboBox);
 		panel0.add(allSeriesCheckBox);
 		add(panel0);
 
@@ -104,41 +93,14 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 		declareListeners();
 	}
 
-	// === MEMORY MONITORING AND CLEANUP ===
-
-	private void forceDialogReturnCleanup() {
-//		System.out.println("=== FORCING DIALOG RETURN CLEANUP ===");
-
-		// Force multiple GC passes
-		for (int i = 0; i < 3; i++) {
-			System.gc();
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-		}
-
-		// Clear any dialog-specific caches
-		clearDialogCaches();
-	}
-
-	private void clearDialogCaches() {
-		// Clear any caches specific to the dialog
-		// This will depend on what the dialog is caching
-		System.out.println("Cleared dialog caches");
-	}
-
-	// Get processor using weak reference
-	private BuildSpotsMeasuresAdvanced getProcessor() {
+	private BuildSpotsMeasuresLight getProcessor() {
 		if (processorRef != null) {
 			return processorRef.get();
 		}
 		return null;
 	}
 
-	// Set processor using weak reference
-	private void setProcessor(BuildSpotsMeasuresAdvanced processor) {
+	private void setProcessor(BuildSpotsMeasuresLight processor) {
 		this.processorRef = new WeakReference<>(processor);
 	}
 
@@ -148,10 +110,6 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-//					if (!viewButton1.isSelected()) {
-//						viewButton1.setSelected(true);
-//					}
-
 					int index = spotsTransformsComboBox.getSelectedIndex();
 					updateCanvasFunctions(exp, index);
 					updateOverlaysThreshold();
@@ -252,43 +210,15 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 		if (exp != null) {
 			if (exp.getSeqCamData() != null)
 				exp.getSeqCamData().updateOverlayThreshold(threshold, transform, ifGreater);
-//			if (exp.seqKymos != null)
-//				exp.seqKymos.updateOverlayThreshold(threshold, transform, ifGreater);
-		}
-	}
-
-	AdvancedMemoryOptions createMemoryOptionsAccordingToUserSelection() {
-		String selected = (String) memUseComboBox.getSelectedItem();
-		switch (selected) {
-		case "conservative":
-			return AdvancedMemoryOptions.createConservative();
-		case "aggressive":
-			return AdvancedMemoryOptions.createAggressive();
-		case "balanced":
-		default:
-			return AdvancedMemoryOptions.createBalanced();
 		}
 	}
 
 	void startDetection() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-//			AdvancedMemoryOptions memOptions = new AdvancedMemoryOptions();
-			AdvancedMemoryOptions memOptions = createMemoryOptionsAccordingToUserSelection();
-			// Validate configuration
-			AdvancedMemoryOptions.ValidationResult result = memOptions.validate();
-			if (result.isValid()) {
-				System.out.println("Custom configuration is valid");
-				System.out.println(memOptions.getConfigurationSummary());
-			} else {
-				System.err.println("Configuration issues: " + result);
-			}
-
-			BuildSpotsMeasuresAdvanced processor = new BuildSpotsMeasuresAdvanced(memOptions);
+			BuildSpotsMeasuresLight processor = new BuildSpotsMeasuresLight();
 			processor.options = initDetectOptions(exp);
 			processor.addPropertyChangeListener(this);
-
-			// Use weak reference to avoid memory leak
 			setProcessor(processor);
 			processor.execute();
 			detectButton.setText("STOP");
@@ -296,7 +226,7 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 	}
 
 	private void stopDetection() {
-		BuildSpotsMeasuresAdvanced processor = getProcessor();
+		BuildSpotsMeasuresLight processor = getProcessor();
 		if (processor != null && !processor.stopFlag)
 			processor.stopFlag = true;
 	}
@@ -316,14 +246,13 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 		} else {
 			options.seriesFirst = 0;
 		}
-		options.concurrentDisplay = false; // concurrentDisplayCheckBox.isSelected();
+		options.concurrentDisplay = false;
 
-		// other parameters
 		options.transform01 = (ImageTransformEnums) spotsTransformsComboBox.getSelectedItem();
 		options.spotThresholdUp = (spotsDirectionComboBox.getSelectedIndex() == 1);
 		options.spotThreshold = (int) spotsThresholdSpinner.getValue();
 
-		options.analyzePartOnly = false; // fromCheckBox.isSelected();
+		options.analyzePartOnly = false;
 
 		options.overlayTransform = (ImageTransformEnums) spotsTransformsComboBox.getSelectedItem();
 		options.overlayIfGreater = (spotsDirectionComboBox.getSelectedIndex() == 1);
@@ -361,22 +290,16 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 		if (exp.getSeqCamData() != null) {
 			exp.getSeqCamData().updateOverlay();
 		}
-//		if (exp.seqKymos != null)
-//			exp.seqKymos.updateOverlay();
 	}
 
 	private void removeOverlays(Experiment exp) {
 		if (exp.getSeqCamData() != null)
 			exp.getSeqCamData().removeOverlay();
-//		if (exp.seqKymos != null)
-//			exp.seqKymos.removeOverlay();
 	}
 
 	private void updateCanvasFunctions(Experiment exp, int index) {
 		if (exp.getSeqCamData() != null)
 			updateCanvasFunction(exp.getSeqCamData(), index);
-//		if (exp.seqKymos != null)
-//			updateCanvasFunction(exp.seqKymos, index);
 	}
 
 	private void updateCanvasFunction(SequenceCamData seqCamData, int index) {
@@ -418,86 +341,14 @@ public class ThresholdSimple extends JPanel implements PropertyChangeListener {
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
-			checkMemoryBeforeLoading();
 
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-				// Use memory-optimized loading
-				loadExperimentDataOptimized(exp);
+				exp.load_spots_description_and_measures();
 				parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 			}
 			processorRef = null;
-
 		}
 	}
-
-	private void checkMemoryBeforeLoading() {
-		if (!vocalAboutMemory)
-			return;
-
-		Runtime runtime = Runtime.getRuntime();
-		long usedMemory = runtime.totalMemory() - runtime.freeMemory();
-		double usagePercent = (usedMemory * 100.0) / runtime.maxMemory();
-
-		System.out.println("=== BEFORE EXPERIMENT LOADING ===");
-		System.out.println("Memory Usage: " + usagePercent + "%");
-		System.out.println("Used Memory: " + (usedMemory / 1024 / 1024) + " MB");
-
-		if (usagePercent > 50) {
-			System.err.println("WARNING: High memory before loading experiment data!");
-			System.err.println("Forcing cleanup before loading...");
-
-			// Force cleanup before loading
-			forcePreLoadingCleanup();
-
-			// Check again
-			usedMemory = runtime.totalMemory() - runtime.freeMemory();
-			usagePercent = (usedMemory * 100.0) / runtime.maxMemory();
-			System.out.println("After cleanup: " + usagePercent + "%");
-		}
-	}
-
-	private void forcePreLoadingCleanup() {
-		if (vocalAboutMemory)
-			System.out.println("=== FORCING PRE-LOADING CLEANUP ===");
-
-		// Force multiple GC passes
-		for (int i = 0; i < 3; i++) {
-			System.gc();
-			try {
-				Thread.sleep(100);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-		}
-	}
-
-	private void loadExperimentDataOptimized(Experiment exp) {
-
-		try {
-			// Load with memory monitoring
-			long startMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-
-			// Use original loading method for now (will be optimized later)
-			boolean success = exp.load_spots_description_and_measures();
-
-			long endMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
-			long memoryIncrease = endMemory - startMemory;
-
-//			System.out.println("Experiment loading completed: " + (success ? "SUCCESS" : "FAILED"));
-//			System.out.println("Memory increase: " + (memoryIncrease / 1024 / 1024) + " MB");
-
-			if (memoryIncrease > 1024 * 1024 * 1024) { // > 1GB
-				System.err.println(
-						"WARNING: Large memory increase during loading: " + (memoryIncrease / 1024 / 1024) + " MB");
-				System.err.println("Consider implementing streaming loading for large datasets");
-			}
-
-		} catch (Exception e) {
-			System.err.println("Error during optimized experiment loading: " + e.getMessage());
-			// Fallback to original method
-			exp.load_spots_description_and_measures();
-		}
-	}
-
 }
+
