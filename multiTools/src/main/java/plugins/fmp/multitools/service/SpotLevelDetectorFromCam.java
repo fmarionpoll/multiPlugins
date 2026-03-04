@@ -5,6 +5,7 @@ import java.util.List;
 
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
+import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -103,32 +104,49 @@ public class SpotLevelDetectorFromCam {
 		IcyBufferedImageCursor cursorSpot = null;
 		IcyBufferedImageCursor cursorFly = null;
 
+		ProgressFrame progress = new ProgressFrame("Detecting spot levels");
+		progress.setLength(nTimeBins);
+
 		try {
 			for (int t = 0; t < nTimeBins; t++) {
+				progress.setMessage("Interval " + (t + 1) + " / " + nTimeBins);
+
 				long timeMs = firstMs + t * stepMs;
 				final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
-				if (camFrameIndex < 0 || camFrameIndex >= nCamFrames)
+				if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
+					progress.incPosition();
 					continue;
+				}
 
 				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
-				if (path == null)
+				if (path == null) {
+					progress.incPosition();
 					continue;
+				}
 
 				camImage = loader.imageIORead(path);
-				if (camImage == null)
+				if (camImage == null) {
+					progress.incPosition();
 					continue;
+				}
 
 				spotImage = transformSpot.getTransformedImage(camImage, transformOptionsSpot, spotImage);
 				flyImage = transformFly.getTransformedImage(camImage, transformOptionsFly, flyImage);
-				if (spotImage == null || flyImage == null)
+				if (spotImage == null || flyImage == null) {
+					progress.incPosition();
 					continue;
+				}
 
-				cursorSpot = new IcyBufferedImageCursor(spotImage);
-				cursorFly = new IcyBufferedImageCursor(flyImage);
+				if (cursorSpot == null)
+					cursorSpot = new IcyBufferedImageCursor(spotImage);
+				if (cursorFly == null)
+					cursorFly = new IcyBufferedImageCursor(flyImage);
 
 				updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, spotImage, t, options);
+				progress.incPosition();
 			}
 		} finally {
+			progress.close();
 			camImage = null;
 			spotImage = null;
 			flyImage = null;
