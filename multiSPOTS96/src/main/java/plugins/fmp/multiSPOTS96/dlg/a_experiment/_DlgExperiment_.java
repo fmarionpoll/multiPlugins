@@ -131,8 +131,13 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					if (seq.isUpdating()) {
 						seq.endUpdate();
 					}
-					// Defer view options so canvas has created ROI layers (fixes cage outlines not showing after reopen)
-					SwingUtilities.invokeLater(() -> tabOptions.applyViewOptionsToCurrentExperiment());
+					// Add cage and spot ROIs on the EDT so the canvas creates Layer entries (fixes cages not in Layer tab).
+					Experiment current = (Experiment) parent0.expListComboLazy.getSelectedItem();
+					if (current == exp) {
+						exp.transferCagesROI_toSequence();
+						exp.transferSpotsROI_toSequence();
+						SwingUtilities.invokeLater(() -> tabOptions.applyViewOptionsToCurrentExperiment());
+					}
 				}
 			}
 		});
