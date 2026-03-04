@@ -120,28 +120,27 @@ public class LinearCombination extends ImageTransformBase {
     }
     
     @Override
-    protected IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) 
-            throws ImageTransformException {
-        
+    protected IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+            IcyBufferedImage reuseBuffer) throws ImageTransformException {
+
         try {
-            // Create result image using base class utility
-            IcyBufferedImage resultImage = createResultImage(sourceImage, 
-                ImageTransformConstants.ColorSpace.RGB_CHANNELS);
-            
-            // Get optimized RGB arrays using cached operations
+            IcyBufferedImage resultImage = getResultImageOrReuse(sourceImage,
+                    ImageTransformConstants.ColorSpace.RGB_CHANNELS, reuseBuffer);
+
             double[][] rgbArrays = getRGBArraysOptimized(sourceImage);
-            
-            // Perform optimized linear combination using cached operations
             double[] resultArray = arrayCache.linearCombination(rgbArrays, weights);
-            
-            // Copy result to image using base class utility
             copyArrayToImage(resultArray, resultImage, options.copyResultsToThe3planes);
-            
+
             return resultImage;
-            
         } catch (Exception e) {
             throw new AlgorithmException("Linear combination computation", e.getMessage(), e);
         }
+    }
+
+    @Override
+    protected IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options)
+            throws ImageTransformException {
+        return executeTransform(sourceImage, options, null);
     }
     
     /**

@@ -1,9 +1,18 @@
 package plugins.fmp.multitools.tools.imageTransform;
 
 import icy.image.IcyBufferedImage;
+import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
 
 public abstract class ImageTransformFunctionAbstract {
+
+	protected IcyBufferedImage getResultImageOrReuse(int width, int height, int channels, DataType dataType,
+			IcyBufferedImage reuseBuffer) {
+		if (reuseBuffer != null && reuseBuffer.getSizeX() == width && reuseBuffer.getSizeY() == height
+				&& reuseBuffer.getSizeC() == channels && reuseBuffer.getDataType_() == dataType)
+			return reuseBuffer;
+		return new IcyBufferedImage(width, height, channels, dataType);
+	}
 
 	protected void copyExGIntToIcyBufferedImage(int[] ExG, IcyBufferedImage img2, boolean copyResultTo3Planes) {
 		Array1DUtil.intArrayToSafeArray(ExG, img2.getDataXY(0), false, false); // true);

@@ -31,15 +31,17 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
     
     @Override
     public final IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
+        return getTransformedImage(sourceImage, options, null);
+    }
+
+    @Override
+    public final IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+            IcyBufferedImage reuseBuffer) {
         String transformName = getClass().getSimpleName();
-        
+
         try {
-            // Comprehensive input validation
             validateInputs(sourceImage, options, transformName);
-            
-            // Execute the transformation with error handling
-            return executeTransformSafely(sourceImage, options, transformName);
-            
+            return executeTransformSafely(sourceImage, options, reuseBuffer, transformName);
         } catch (ImageTransformException e) {
             Logger.error("Transform failed: " + e.getMessage(), e);
             return handleTransformError(e, sourceImage);
@@ -53,15 +55,20 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
     
     /**
      * Executes the specific transformation algorithm.
-     * This method must be implemented by concrete transform classes.
-     * 
-     * @param sourceImage The source image to transform
-     * @param options The transformation options
-     * @return The transformed image
-     * @throws ImageTransformException If the transformation fails
+     * Override {@link #executeTransform(IcyBufferedImage, CanvasImageTransformOptions, IcyBufferedImage)} to support
+     * optional buffer reuse.
      */
     protected abstract IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) 
             throws ImageTransformException;
+
+    /**
+     * Executes the transformation with optional reuse buffer. Default implementation ignores reuseBuffer.
+     * Override to write into reuseBuffer when non-null and compatible (same dimensions/channels/type).
+     */
+    protected IcyBufferedImage executeTransform(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+            IcyBufferedImage reuseBuffer) throws ImageTransformException {
+        return executeTransform(sourceImage, options);
+    }
     
     /**
      * Validates input parameters comprehensively.
@@ -136,19 +143,16 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      */
     private IcyBufferedImage executeTransformSafely(IcyBufferedImage sourceImage, 
                                                    CanvasImageTransformOptions options, 
+                                                   IcyBufferedImage reuseBuffer,
                                                    String transformName) throws ImageTransformException {
         
         try {
-            // Pre-processing hook
             preprocessImage(sourceImage, options);
             
-            // Execute the actual transformation
-            IcyBufferedImage result = executeTransform(sourceImage, options);
+            IcyBufferedImage result = executeTransform(sourceImage, options, reuseBuffer);
             
-            // Post-processing hook
             result = postprocessImage(result, options);
             
-            // Validate result
             if (result == null) {
                 throw new AlgorithmException("Transform execution", "Null result returned", transformName);
             }
@@ -156,10 +160,8 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
             return result;
             
         } catch (ImageTransformException e) {
-            // Re-throw transform exceptions as-is
             throw e;
         } catch (Exception e) {
-            // Wrap other exceptions
             throw new AlgorithmException("Transform execution", e.getMessage(), e);
         }
     }
@@ -221,6 +223,26 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
      */
     protected IcyBufferedImage createResultImage(IcyBufferedImage sourceImage, int channels, DataType dataType) {
         return new IcyBufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), channels, dataType);
+    }
+
+    /**
+     * Returns reuseBuffer if non-null and compatible with expected dimensions/channels/type, otherwise creates a new image.
+     */
+    protected IcyBufferedImage getResultImageOrReuse(IcyBufferedImage sourceImage, int channels, IcyBufferedImage reuseBuffer) {
+        if (reuseBuffer != null && isReuseBufferCompatible(reuseBuffer, sourceImage.getWidth(), sourceImage.getHeight(), channels, sourceImage.getDataType_()))
+            return reuseBuffer;
+        return createResultImage(sourceImage, channels);
+    }
+
+    protected IcyBufferedImage getResultImageOrReuse(IcyBufferedImage sourceImage, int channels, DataType dataType, IcyBufferedImage reuseBuffer) {
+        if (reuseBuffer != null && isReuseBufferCompatible(reuseBuffer, sourceImage.getWidth(), sourceImage.getHeight(), channels, dataType))
+            return reuseBuffer;
+        return createResultImage(sourceImage, channels, dataType);
+    }
+
+    protected boolean isReuseBufferCompatible(IcyBufferedImage reuseBuffer, int width, int height, int channels, DataType dataType) {
+        return reuseBuffer.getSizeX() == width && reuseBuffer.getSizeY() == height
+                && reuseBuffer.getSizeC() == channels && reuseBuffer.getDataType_() == dataType;
     }
     
     /**

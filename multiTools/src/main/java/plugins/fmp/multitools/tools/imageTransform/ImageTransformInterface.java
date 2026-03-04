@@ -3,5 +3,10 @@ package plugins.fmp.multitools.tools.imageTransform;
 import icy.image.IcyBufferedImage;
 
 public interface ImageTransformInterface {
-	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options);
+	IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options);
+
+	default IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+			IcyBufferedImage reuseBuffer) {
+		return getTransformedImage(sourceImage, options);
+	}
 }

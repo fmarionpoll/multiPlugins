@@ -11,10 +11,16 @@ public class SumDiff extends ImageTransformFunctionAbstract implements ImageTran
 
 	@Override
 	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
+		return getTransformedImage(sourceImage, options, null);
+	}
+
+	@Override
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+			IcyBufferedImage reuseBuffer) {
 		if (sourceImage == null || sourceImage.getSizeC() < 3)
 			return null;
-		IcyBufferedImage img2 = new IcyBufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), 3,
-				sourceImage.getDataType_());
+		IcyBufferedImage img2 = getResultImageOrReuse(sourceImage.getWidth(), sourceImage.getHeight(), 3,
+				sourceImage.getDataType_(), reuseBuffer);
 		int c = 0;
 		int Rlayer = c;
 		int[] Rn = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(Rlayer), sourceImage.isSignedDataType());

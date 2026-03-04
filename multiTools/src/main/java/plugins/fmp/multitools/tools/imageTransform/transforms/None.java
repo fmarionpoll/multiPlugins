@@ -11,4 +11,9 @@ public class None extends ImageTransformFunctionAbstract implements ImageTransfo
 		return sourceImage;
 	}
 
+	@Override
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+			IcyBufferedImage reuseBuffer) {
+		return sourceImage;
+	}
 }

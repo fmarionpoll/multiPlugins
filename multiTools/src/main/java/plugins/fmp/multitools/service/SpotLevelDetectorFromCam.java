@@ -14,6 +14,8 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
  * Memory-light detector that computes per-spot measures directly from camera
@@ -21,14 +23,14 @@ import plugins.fmp.multitools.tools.ROI2D.ValidationException;
  * <p>
  * For each time bin, this detector:
  * <ul>
- *   <li>Finds the nearest camera frame.</li>
- *   <li>Loads a single cam image from disk.</li>
- *   <li>Applies two transforms (spot / fly).</li>
- *   <li>Iterates over precomputed ROI masks for all spots and updates
- *       their time-series arrays.</li>
+ * <li>Finds the nearest camera frame.</li>
+ * <li>Loads a single cam image from disk.</li>
+ * <li>Applies two transforms (spot / fly).</li>
+ * <li>Iterates over precomputed ROI masks for all spots and updates their
+ * time-series arrays.</li>
  * </ul>
- * No global compressed mask cache or image memory pools are used; only
- * per-spot ROI masks and per-frame transformed images are kept in memory.
+ * No global compressed mask cache or image memory pools are used; only per-spot
+ * ROI masks and per-frame transformed images are kept in memory.
  */
 public class SpotLevelDetectorFromCam {
 
@@ -83,45 +85,41 @@ public class SpotLevelDetectorFromCam {
 		SequenceLoaderService loader = new SequenceLoaderService();
 
 		// Configure transforms for spots and flies
-		final plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface transformSpot = options.transform01 != null
-				? options.transform01.getFunction()
+		final ImageTransformInterface transformSpot = options.transform01 != null ? options.transform01.getFunction()
 				: null;
-		final plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface transformFly = options.transform02 != null
-				? options.transform02.getFunction()
+		final ImageTransformInterface transformFly = options.transform02 != null ? options.transform02.getFunction()
 				: null;
 		if (transformSpot == null || transformFly == null) {
 			Logger.warn("SpotLevelDetectorFromCam: missing transform functions");
 			return;
 		}
 
-		final plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils
-				.buildCanvasOptionsForSpot(options);
-		final plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils
-				.buildCanvasOptionsForFly(options);
+		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
+		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
 
-		for (int t = 0; t < nTimeBins; t++) {
-			long timeMs = firstMs + t * stepMs;
-			final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0,
-					Math.max(0, nCamFrames - 1));
-			if (camFrameIndex < 0 || camFrameIndex >= nCamFrames)
-				continue;
+		IcyBufferedImage camImage = null;
+		IcyBufferedImage spotImage = null;
+		IcyBufferedImage flyImage = null;
+		IcyBufferedImageCursor cursorSpot = null;
+		IcyBufferedImageCursor cursorFly = null;
 
-			String path = seqCamData.getFileNameFromImageList(camFrameIndex);
-			if (path == null)
-				continue;
+		try {
+			for (int t = 0; t < nTimeBins; t++) {
+				long timeMs = firstMs + t * stepMs;
+				final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
+				if (camFrameIndex < 0 || camFrameIndex >= nCamFrames)
+					continue;
 
-			IcyBufferedImage camImage = loader.imageIORead(path);
-			if (camImage == null)
-				continue;
+				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
+				if (path == null)
+					continue;
 
-			IcyBufferedImage spotImage = null;
-			IcyBufferedImage flyImage = null;
-			IcyBufferedImageCursor cursorSpot = null;
-			IcyBufferedImageCursor cursorFly = null;
+				camImage = loader.imageIORead(path);
+				if (camImage == null)
+					continue;
 
-			try {
-				spotImage = transformSpot.getTransformedImage(camImage, transformOptionsSpot);
-				flyImage = transformFly.getTransformedImage(camImage, transformOptionsFly);
+				spotImage = transformSpot.getTransformedImage(camImage, transformOptionsSpot, spotImage);
+				flyImage = transformFly.getTransformedImage(camImage, transformOptionsFly, flyImage);
 				if (spotImage == null || flyImage == null)
 					continue;
 
@@ -129,14 +127,13 @@ public class SpotLevelDetectorFromCam {
 				cursorFly = new IcyBufferedImageCursor(flyImage);
 
 				updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, spotImage, t, options);
-			} finally {
-				// Help GC by clearing strong references
-				cursorSpot = null;
-				cursorFly = null;
-				spotImage = null;
-				flyImage = null;
-				camImage = null;
 			}
+		} finally {
+			camImage = null;
+			spotImage = null;
+			flyImage = null;
+			cursorSpot = null;
+			cursorFly = null;
 		}
 
 		// Transfer values to Level2D for downstream consumers (charts, export, etc.)
@@ -291,18 +288,16 @@ public class SpotLevelDetectorFromCam {
 	 */
 	private static class ImageTransformUtils {
 
-		static plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions buildCanvasOptionsForSpot(
-				BuildSeriesOptions options) {
-			plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions transformOptions = new plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions();
+		static CanvasImageTransformOptions buildCanvasOptionsForSpot(BuildSeriesOptions options) {
+			CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 			transformOptions.transformOption = options.transform01;
 			transformOptions.copyResultsToThe3planes = false;
 			transformOptions.setSingleThreshold(options.spotThreshold, options.spotThresholdUp);
 			return transformOptions;
 		}
 
-		static plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions buildCanvasOptionsForFly(
-				BuildSeriesOptions options) {
-			plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions transformOptions = new plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions();
+		static CanvasImageTransformOptions buildCanvasOptionsForFly(BuildSeriesOptions options) {
+			CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 			transformOptions.transformOption = options.transform02;
 			transformOptions.copyResultsToThe3planes = false;
 			transformOptions.setSingleThreshold(options.flyThreshold, options.flyThresholdUp);
@@ -310,4 +305,3 @@ public class SpotLevelDetectorFromCam {
 		}
 	}
 }
-

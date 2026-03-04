@@ -10,11 +10,17 @@ import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 public class ThresholdSingleValue extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	@Override
 	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
+		return getTransformedImage(sourceImage, options, null);
+	}
+
+	@Override
+	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options,
+			IcyBufferedImage reuseBuffer) {
 		if (sourceImage == null)
 			return null;
 
-		IcyBufferedImage binaryMap = new IcyBufferedImage(sourceImage.getSizeX(), sourceImage.getSizeY(), 1,
-				DataType.UBYTE);
+		IcyBufferedImage binaryMap = getResultImageOrReuse(sourceImage.getSizeX(), sourceImage.getSizeY(), 1,
+				DataType.UBYTE, reuseBuffer);
 		byte[] binaryMapDataBuffer = binaryMap.getDataXYAsByte(0);
 		int[] imageSourceDataBuffer = null;
 		DataType datatype = sourceImage.getDataType_();

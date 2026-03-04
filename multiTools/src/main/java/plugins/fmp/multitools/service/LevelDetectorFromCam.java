@@ -105,10 +105,12 @@ public class LevelDetectorFromCam {
 			final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
 			if (camFrameIndex < 0 || camFrameIndex >= nCamFrames)
 				continue;
+
 			String path = exp.getSeqCamData().getFileNameFromImageList(camFrameIndex);
 			final IcyBufferedImage camImage = loader.imageIORead(path);
 			if (camImage == null)
 				continue;
+
 			final int timeIndex = t;
 			final int camW = camImage.getSizeX();
 			final int camH = camImage.getSizeY();
