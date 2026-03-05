@@ -2,6 +2,12 @@ package plugins.fmp.multitools.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
@@ -33,7 +39,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * No global compressed mask cache or image memory pools are used; only per-spot
  * ROI masks and per-frame transformed images are kept in memory.
  */
-public class SpotLevelDetectorFromCam {
+public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 	public void detectSpots(Experiment exp, BuildSeriesOptions options) {
 		if (exp == null || options == null)
@@ -71,19 +77,25 @@ public class SpotLevelDetectorFromCam {
 				lastMs = (nCamFrames - 1) * stepMs;
 			}
 		}
-		int nTimeBins = (int) ((lastMs - firstMs) / stepMs + 1);
+		final long firstMsFinal = firstMs;
+		final long stepMsFinal = stepMs;
+
+		int nTimeBins = (int) ((lastMs - firstMsFinal) / stepMsFinal + 1);
 		if (nTimeBins <= 0)
 			return;
 
+		// Timing: global detector start
+		final long tGlobalStart = System.nanoTime();
+
 		// Prepare list of spots to process and allocate their time-series arrays
+		final long tInitStart = System.nanoTime();
 		List<Spot> toProcess = buildSpotsToProcess(spots);
 		if (toProcess.isEmpty())
 			return;
 
 		initializeSpotArrays(toProcess, nTimeBins);
 		initializeSpotMasks(exp, toProcess);
-
-		SequenceLoaderService loader = new SequenceLoaderService();
+		final long tInitEnd = System.nanoTime();
 
 		// Configure transforms for spots and flies
 		final ImageTransformInterface transformSpot = options.transform01 != null ? options.transform01.getFunction()
@@ -98,63 +110,105 @@ public class SpotLevelDetectorFromCam {
 		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
 		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
 
-		IcyBufferedImage camImage = null;
-		IcyBufferedImage spotImage = null;
-		IcyBufferedImage flyImage = null;
-		IcyBufferedImageCursor cursorSpot = null;
-		IcyBufferedImageCursor cursorFly = null;
-
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels");
 		progress.setLength(nTimeBins);
 
-		try {
-			for (int t = 0; t < nTimeBins; t++) {
-				progress.setMessage("Interval " + (t + 1) + " / " + nTimeBins);
+		final int queueCapacity = options.batchSize > 0 ? options.batchSize : 16;
+		final BlockingQueue<FrameJob> queue = new ArrayBlockingQueue<>(queueCapacity);
+		final AtomicBoolean producerDone = new AtomicBoolean(false);
 
-				long timeMs = firstMs + t * stepMs;
-				final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
-				if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
+		Thread producer = new Thread(() -> {
+			try {
+				for (int t = 0; t < nTimeBins; t++) {
+					long timeMs = firstMsFinal + t * stepMsFinal;
+					int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0,
+							Math.max(0, nCamFrames - 1));
+					if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
+						continue;
+					}
+					queue.put(new FrameJob(t, timeMs, camFrameIndex));
 					progress.incPosition();
-					continue;
 				}
-
-				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
-				if (path == null) {
-					progress.incPosition();
-					continue;
-				}
-
-				camImage = loader.imageIORead(path);
-				if (camImage == null) {
-					progress.incPosition();
-					continue;
-				}
-
-				spotImage = transformSpot.getTransformedImage(camImage, transformOptionsSpot, spotImage);
-				flyImage = transformFly.getTransformedImage(camImage, transformOptionsFly, flyImage);
-				if (spotImage == null || flyImage == null) {
-					progress.incPosition();
-					continue;
-				}
-
-				if (cursorSpot == null)
-					cursorSpot = new IcyBufferedImageCursor(spotImage);
-				if (cursorFly == null)
-					cursorFly = new IcyBufferedImageCursor(flyImage);
-
-				updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, spotImage, t, options);
-				progress.incPosition();
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			} finally {
+				producerDone.set(true);
 			}
+		});
+
+		final int nWorkers = Math.max(1, Runtime.getRuntime().availableProcessors() - 1);
+		ExecutorService workers = Executors.newFixedThreadPool(nWorkers);
+
+		Runnable workerTask = () -> {
+			SequenceLoaderService loaderLocal = new SequenceLoaderService();
+			IcyBufferedImage camImageLocal = null;
+			IcyBufferedImage spotImageLocal = null;
+			IcyBufferedImage flyImageLocal = null;
+			IcyBufferedImageCursor cursorSpotLocal = null;
+			IcyBufferedImageCursor cursorFlyLocal = null;
+
+			try {
+				while (true) {
+					FrameJob job = queue.poll(200, TimeUnit.MILLISECONDS);
+					if (job == null) {
+						if (producerDone.get() && queue.isEmpty()) {
+							break;
+						}
+						continue;
+					}
+
+					String path = seqCamData.getFileNameFromImageList(job.camFrameIndex);
+					if (path == null) {
+						continue;
+					}
+
+					camImageLocal = loaderLocal.imageIORead(path);
+					if (camImageLocal == null) {
+						continue;
+					}
+
+					spotImageLocal = transformSpot.getTransformedImage(camImageLocal, transformOptionsSpot,
+							spotImageLocal);
+					flyImageLocal = transformFly.getTransformedImage(camImageLocal, transformOptionsFly,
+							flyImageLocal);
+					if (spotImageLocal == null || flyImageLocal == null) {
+						continue;
+					}
+
+					if (cursorSpotLocal == null) {
+						cursorSpotLocal = new IcyBufferedImageCursor(spotImageLocal);
+					}
+
+					if (cursorFlyLocal == null) {
+						cursorFlyLocal = new IcyBufferedImageCursor(flyImageLocal);
+					}
+
+					updateSpotsAtTimeIndex(toProcess, cursorSpotLocal, cursorFlyLocal, spotImageLocal, job.timeIndex,
+							options);
+				}
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		};
+
+		final long tLoopStart = System.nanoTime();
+		try {
+			producer.start();
+			for (int i = 0; i < nWorkers; i++) {
+				workers.submit(workerTask);
+			}
+			producer.join();
+			workers.shutdown();
+			workers.awaitTermination(1, TimeUnit.HOURS);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		} finally {
 			progress.close();
-			camImage = null;
-			spotImage = null;
-			flyImage = null;
-			cursorSpot = null;
-			cursorFly = null;
 		}
+		final long tLoopEnd = System.nanoTime();
 
 		// Transfer values to Level2D for downstream consumers (charts, export, etc.)
+		final long tPostStart = System.nanoTime();
 		spots.transferMeasuresToLevel2D();
 		spots.medianFilterFromSumToSumClean();
 
@@ -164,6 +218,18 @@ public class SpotLevelDetectorFromCam {
 			exp.saveExperimentDescriptors();
 			exp.save_spots_description_and_measures();
 		}
+		final long tPostEnd = System.nanoTime();
+
+		// Timing summary
+		long initMs = (tInitEnd - tInitStart) / 1_000_000L;
+		long loopMs = (tLoopEnd - tLoopStart) / 1_000_000L;
+		long postMs = (tPostEnd - tPostStart) / 1_000_000L;
+		long totalMs = (tPostEnd - tGlobalStart) / 1_000_000L;
+
+		Logger.info("SpotLevelDetectorFromCam: " + toProcess.size() + " spots, " + nTimeBins + " time bins, "
+				+ nCamFrames + " cam frames");
+		Logger.info("SpotLevelDetectorFromCam timings [ms] - init=" + initMs + ", mainLoop=" + loopMs + ", post="
+				+ postMs + ", total=" + totalMs);
 	}
 
 	private List<Spot> buildSpotsToProcess(Spots spots) {
@@ -223,66 +289,72 @@ public class SpotLevelDetectorFromCam {
 		final int imageHeight = spotImage.getSizeY();
 
 		for (Spot spot : spotsToProcess) {
-			if (!spot.isReadyForAnalysis())
+			updateSingleSpotAtTimeIndex(spot, cursorSpot, cursorFly, imageWidth, imageHeight, timeIndex, options);
+		}
+	}
+
+	private void updateSingleSpotAtTimeIndex(Spot spot, IcyBufferedImageCursor cursorSpot,
+			IcyBufferedImageCursor cursorFly, int imageWidth, int imageHeight, int timeIndex,
+			BuildSeriesOptions options) {
+
+		if (spot == null || !spot.isReadyForAnalysis())
+			return;
+
+		ROI2DWithMask roiMask = spot.getROIMask();
+		if (roiMask == null || !roiMask.hasMaskData())
+			return;
+
+		int[][] maskArrays = roiMask.getMaskPointsAsArrays();
+		if (maskArrays == null || maskArrays.length != 2)
+			return;
+
+		int[] maskX = maskArrays[0];
+		int[] maskY = maskArrays[1];
+		if (maskX == null || maskY == null || maskX.length == 0 || maskY.length == 0 || maskX.length != maskY.length)
+			return;
+
+		double sumOverThreshold = 0;
+		double sumNoFlyOverThreshold = 0;
+		int nPointsIn = maskX.length;
+		int nPointsNoFly = 0;
+		int nPointsFlyPresent = 0;
+
+		for (int i = 0; i < maskX.length; i++) {
+			int x = maskX[i];
+			int y = maskY[i];
+			if (x < 0 || y < 0 || x >= imageWidth || y >= imageHeight)
 				continue;
 
-			ROI2DWithMask roiMask = spot.getROIMask();
-			if (roiMask == null || !roiMask.hasMaskData())
-				continue;
+			int valueSpot = (int) cursorSpot.get(x, y, 0);
+			int valueFly = (int) cursorFly.get(x, y, 0);
 
-			int[][] maskArrays = roiMask.getMaskPointsAsArrays();
-			if (maskArrays == null || maskArrays.length != 2)
-				continue;
+			boolean flyThere = isFlyPresent(valueFly, options);
+			if (!flyThere) {
+				nPointsNoFly++;
+			} else {
+				nPointsFlyPresent++;
+			}
 
-			int[] maskX = maskArrays[0];
-			int[] maskY = maskArrays[1];
-			if (maskX == null || maskY == null || maskX.length == 0 || maskY.length == 0
-					|| maskX.length != maskY.length)
-				continue;
-
-			double sumOverThreshold = 0;
-			double sumNoFlyOverThreshold = 0;
-			int nPointsIn = maskX.length;
-			int nPointsNoFly = 0;
-			int nPointsFlyPresent = 0;
-
-			for (int i = 0; i < maskX.length; i++) {
-				int x = maskX[i];
-				int y = maskY[i];
-				if (x < 0 || y < 0 || x >= imageWidth || y >= imageHeight)
-					continue;
-
-				int valueSpot = (int) cursorSpot.get(x, y, 0);
-				int valueFly = (int) cursorFly.get(x, y, 0);
-
-				boolean flyThere = isFlyPresent(valueFly, options);
+			if (isOverThreshold(valueSpot, options)) {
+				sumOverThreshold += valueSpot;
 				if (!flyThere) {
-					nPointsNoFly++;
-				} else {
-					nPointsFlyPresent++;
-				}
-
-				if (isOverThreshold(valueSpot, options)) {
-					sumOverThreshold += valueSpot;
-					if (!flyThere) {
-						sumNoFlyOverThreshold += valueSpot;
-					}
+					sumNoFlyOverThreshold += valueSpot;
 				}
 			}
+		}
 
-			if (nPointsIn > 0) {
-				double meanAll = sumOverThreshold / nPointsIn;
-				spot.getSum().setValueAt(timeIndex, meanAll);
+		if (nPointsIn > 0) {
+			double meanAll = sumOverThreshold / nPointsIn;
+			spot.getSum().setValueAt(timeIndex, meanAll);
 
-				if (nPointsNoFly > 0) {
-					double meanNoFly = sumNoFlyOverThreshold / nPointsNoFly;
-					spot.getSumClean().setValueAt(timeIndex, meanNoFly);
-				} else {
-					spot.getSumClean().setValueAt(timeIndex, meanAll);
-				}
-
-				spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			if (nPointsNoFly > 0) {
+				double meanNoFly = sumNoFlyOverThreshold / nPointsNoFly;
+				spot.getSumClean().setValueAt(timeIndex, meanNoFly);
+			} else {
+				spot.getSumClean().setValueAt(timeIndex, meanAll);
 			}
+
+			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
 
@@ -320,6 +392,18 @@ public class SpotLevelDetectorFromCam {
 			transformOptions.copyResultsToThe3planes = false;
 			transformOptions.setSingleThreshold(options.flyThreshold, options.flyThresholdUp);
 			return transformOptions;
+		}
+	}
+
+	private static class FrameJob {
+		final int timeIndex;
+		final long timeMs;
+		final int camFrameIndex;
+
+		FrameJob(int timeIndex, long timeMs, int camFrameIndex) {
+			this.timeIndex = timeIndex;
+			this.timeMs = timeMs;
+			this.camFrameIndex = camFrameIndex;
 		}
 	}
 }

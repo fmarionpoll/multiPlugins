@@ -122,6 +122,15 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean enableGarbageCollection = true; // Force GC between batches
 	public boolean enableMemoryProfiling = false;
 
+	// Spot detection backend options
+	/** When true, per-spot computations may run in parallel on the CPU. */
+	public boolean enableSpotParallelism = false;
+	/**
+	 * Desired parallelism level for spot processing.
+	 * 0 = use runtime default, 1 = force single-threaded, >1 = requested number of threads.
+	 */
+	public int spotParallelism = 0;
+
 	// -----------------------
 
 	void copyTo(BuildSeriesOptions destination) {

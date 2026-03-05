@@ -2,8 +2,10 @@ package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.service.SpotLevelDetectionRunner;
 import plugins.fmp.multitools.service.SpotLevelDetectorFromCam;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Memory-light series that computes spot-based measures directly from camera
@@ -47,8 +49,17 @@ public class BuildSpotsMeasuresLight extends BuildSeries {
 			spots.setReadyToAnalyze(true, options);
 		}
 
-		// Run the light detector
-		new SpotLevelDetectorFromCam().detectSpots(exp, options);
+		// Configure spot-level backend for this run
+		options.enableSpotParallelism = true;
+
+		// Choose detection backend (currently CPU-based from cam images)
+		SpotLevelDetectionRunner runner = new SpotLevelDetectorFromCam();
+
+		// Run the light detector with basic timing
+		long t0 = System.nanoTime();
+		runner.detectSpots(exp, options);
+		long elapsedMs = (System.nanoTime() - t0) / 1_000_000L;
+		Logger.info("BuildSpotsMeasuresLight: analyzeExperiment completed in " + elapsedMs + " ms");
 
 		// Reset analysis flags
 		if (spots != null) {
