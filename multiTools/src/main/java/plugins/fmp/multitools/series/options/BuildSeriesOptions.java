@@ -131,6 +131,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 	/** Backend to use for spot-level detection from camera images. */
 	public SpotDetectionMode spotDetectionMode = SpotDetectionMode.AUTO;
 
+	/** When true, try to use GPU-backed image transforms when available. */
+	public boolean useGpuTransforms = false;
+
 	// Spot detection backend options
 	/** When true, per-spot computations may run in parallel on the CPU. */
 	public boolean enableSpotParallelism = false;

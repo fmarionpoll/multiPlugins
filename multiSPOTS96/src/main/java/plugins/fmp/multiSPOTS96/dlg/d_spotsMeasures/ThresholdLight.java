@@ -4,10 +4,10 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.lang.ref.WeakReference;
 
 import javax.swing.JButton;
@@ -66,6 +66,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 	private WeakReference<BuildSpotsMeasuresLight> processorRef = null;
 	private MultiSPOTS96 parent0 = null;
 	private JCheckBox usePipelinedDetectionCheckBox = new JCheckBox("Use multi-core detection", true);
+	private JCheckBox useGPUCheckBox = new JCheckBox("Use GPU", false);
 
 	public void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
 		setLayout(gridLayout);
@@ -77,6 +78,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		panel0.add(detectButton);
 		panel0.add(allSeriesCheckBox);
 		panel0.add(usePipelinedDetectionCheckBox);
+		panel0.add(useGPUCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
@@ -104,6 +106,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		fliesDirectionComboBox.setSelectedIndex(0);
 		spotsOverlayCheckBox.setEnabled(false);
 		fliesOverlayCheckBox.setEnabled(false);
+		useGPUCheckBox.setEnabled(false);
 		syncDetectionModeFromViewOptions();
 		declareListeners();
 	}
@@ -396,6 +399,8 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		} else {
 			options.spotDetectionMode = SpotDetectionMode.AUTO;
 		}
+		// GPU option
+		options.useGpuTransforms = useGPUCheckBox.isSelected();
 
 		return options;
 	}

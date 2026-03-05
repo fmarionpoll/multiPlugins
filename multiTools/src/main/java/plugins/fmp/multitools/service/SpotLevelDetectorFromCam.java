@@ -22,6 +22,7 @@ import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformFactory;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
@@ -98,10 +99,10 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		final long tInitEnd = System.nanoTime();
 
 		// Configure transforms for spots and flies
-		final ImageTransformInterface transformSpot = options.transform01 != null ? options.transform01.getFunction()
-				: null;
-		final ImageTransformInterface transformFly = options.transform02 != null ? options.transform02.getFunction()
-				: null;
+		final ImageTransformInterface transformSpot = ImageTransformFactory.getFunction(options.transform01,
+				options.useGpuTransforms);
+		final ImageTransformInterface transformFly = ImageTransformFactory.getFunction(options.transform02,
+				options.useGpuTransforms);
 		if (transformSpot == null || transformFly == null) {
 			Logger.warn("SpotLevelDetectorFromCam: missing transform functions");
 			return;
