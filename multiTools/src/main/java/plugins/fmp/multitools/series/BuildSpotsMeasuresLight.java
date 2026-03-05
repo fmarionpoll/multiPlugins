@@ -7,7 +7,7 @@ import plugins.fmp.multitools.service.SpotLevelDetectorFromCam;
 import plugins.fmp.multitools.service.SpotLevelDetectorFromCamBasic;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.series.options.BuildSeriesOptions.SpotDetectionMode;
+import plugins.fmp.multitools.series.options.SpotDetectionMode;
 import plugins.fmp.multitools.tools.Logger;
 
 /**

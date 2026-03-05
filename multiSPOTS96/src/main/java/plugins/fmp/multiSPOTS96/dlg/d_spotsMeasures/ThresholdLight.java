@@ -30,7 +30,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildSpotsMeasuresLight;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.series.options.BuildSeriesOptions.SpotDetectionMode;
+import plugins.fmp.multitools.series.options.SpotDetectionMode;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -65,7 +65,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 	private OverlayThreshold overlayThreshold = null;
 	private WeakReference<BuildSpotsMeasuresLight> processorRef = null;
 	private MultiSPOTS96 parent0 = null;
-	private JCheckBox usePipelinedDetectionCheckBox = new JCheckBox("Use multi-core detection", true);
+	private JCheckBox usePipelinedDetectionCheckBox = new JCheckBox("Use multi-core detection", false);
 	private JCheckBox useGPUCheckBox = new JCheckBox("Use GPU", false);
 
 	public void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
