@@ -30,6 +30,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildSpotsMeasuresLight;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions.SpotDetectionMode;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -64,6 +65,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 	private OverlayThreshold overlayThreshold = null;
 	private WeakReference<BuildSpotsMeasuresLight> processorRef = null;
 	private MultiSPOTS96 parent0 = null;
+	private JCheckBox usePipelinedDetectionCheckBox = new JCheckBox("Use multi-core detection", true);
 
 	public void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
 		setLayout(gridLayout);
@@ -74,6 +76,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
 		panel0.add(allSeriesCheckBox);
+		panel0.add(usePipelinedDetectionCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
@@ -101,7 +104,17 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		fliesDirectionComboBox.setSelectedIndex(0);
 		spotsOverlayCheckBox.setEnabled(false);
 		fliesOverlayCheckBox.setEnabled(false);
+		syncDetectionModeFromViewOptions();
 		declareListeners();
+	}
+
+	private void syncDetectionModeFromViewOptions() {
+		if (parent0 == null)
+			return;
+		String mode = parent0.viewOptions.getSpotDetectionMode();
+		// Treat anything unknown as AUTO -> use checkbox default (true)
+		boolean usePipelined = !"BASIC".equalsIgnoreCase(mode);
+		usePipelinedDetectionCheckBox.setSelected(usePipelined);
 	}
 
 	private BuildSpotsMeasuresLight getProcessor() {
@@ -262,6 +275,17 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 					stopDetection();
 			}
 		});
+
+		usePipelinedDetectionCheckBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (parent0 == null)
+					return;
+				String mode = usePipelinedDetectionCheckBox.isSelected() ? "PIPELINED" : "BASIC";
+				parent0.viewOptions.setSpotDetectionMode(mode);
+				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+			}
+		});
 	}
 
 	void updateOverlaysThreshold() {
@@ -362,6 +386,16 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		options.transform02 = (ImageTransformEnums) fliesTransformsComboBox.getSelectedItem();
 		options.flyThreshold = (int) fliesThresholdSpinner.getValue();
 		options.flyThresholdUp = (fliesDirectionComboBox.getSelectedIndex() == 1);
+
+		// Spot detection backend mode
+		String mode = (parent0 != null) ? parent0.viewOptions.getSpotDetectionMode() : "AUTO";
+		if ("BASIC".equalsIgnoreCase(mode)) {
+			options.spotDetectionMode = SpotDetectionMode.BASIC;
+		} else if ("PIPELINED".equalsIgnoreCase(mode)) {
+			options.spotDetectionMode = SpotDetectionMode.PIPELINED;
+		} else {
+			options.spotDetectionMode = SpotDetectionMode.AUTO;
+		}
 
 		return options;
 	}

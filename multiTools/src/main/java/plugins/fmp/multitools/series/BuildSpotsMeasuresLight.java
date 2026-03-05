@@ -4,7 +4,10 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.service.SpotLevelDetectionRunner;
 import plugins.fmp.multitools.service.SpotLevelDetectorFromCam;
+import plugins.fmp.multitools.service.SpotLevelDetectorFromCamBasic;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions.SpotDetectionMode;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
@@ -49,11 +52,8 @@ public class BuildSpotsMeasuresLight extends BuildSeries {
 			spots.setReadyToAnalyze(true, options);
 		}
 
-		// Configure spot-level backend for this run
-		options.enableSpotParallelism = true;
-
-		// Choose detection backend (currently CPU-based from cam images)
-		SpotLevelDetectionRunner runner = new SpotLevelDetectorFromCam();
+		// Choose detection backend
+		SpotLevelDetectionRunner runner = createSpotDetectionRunner(options);
 
 		// Run the light detector with basic timing
 		long t0 = System.nanoTime();
@@ -68,6 +68,27 @@ public class BuildSpotsMeasuresLight extends BuildSeries {
 
 		// Close sequences opened for this experiment
 		exp.closeSequences();
+	}
+
+	private SpotLevelDetectionRunner createSpotDetectionRunner(BuildSeriesOptions options) {
+		SpotDetectionMode mode = options != null ? options.spotDetectionMode : SpotDetectionMode.AUTO;
+
+		if (mode == SpotDetectionMode.BASIC) {
+			return new SpotLevelDetectorFromCamBasic();
+		}
+		if (mode == SpotDetectionMode.PIPELINED) {
+			return new SpotLevelDetectorFromCam();
+		}
+
+		// AUTO: decide based on machine capabilities
+		int cores = Runtime.getRuntime().availableProcessors();
+		long maxMemGb = Runtime.getRuntime().maxMemory() / (1024L * 1024L * 1024L);
+		boolean strongMachine = cores >= 6 && maxMemGb >= 12;
+
+		if (strongMachine) {
+			return new SpotLevelDetectorFromCam();
+		}
+		return new SpotLevelDetectorFromCamBasic();
 	}
 }
 

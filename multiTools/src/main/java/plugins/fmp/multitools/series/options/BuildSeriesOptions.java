@@ -122,6 +122,15 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean enableGarbageCollection = true; // Force GC between batches
 	public boolean enableMemoryProfiling = false;
 
+	public enum SpotDetectionMode {
+		AUTO,
+		BASIC,
+		PIPELINED
+	}
+
+	/** Backend to use for spot-level detection from camera images. */
+	public SpotDetectionMode spotDetectionMode = SpotDetectionMode.AUTO;
+
 	// Spot detection backend options
 	/** When true, per-spot computations may run in parallel on the CPU. */
 	public boolean enableSpotParallelism = false;
