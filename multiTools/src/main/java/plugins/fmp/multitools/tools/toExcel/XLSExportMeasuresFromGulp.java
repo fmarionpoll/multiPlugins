@@ -20,6 +20,7 @@ import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsCapillaries;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
@@ -114,6 +115,27 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		// getCapillaryMeasuresForXLSPass1
 		// which supports both computed and direct-access measures
 		return xlsExportExperimentGulpDataToSheetUsingBuilder(exp, sheet, resultType, pt, charSeries);
+	}
+
+	/**
+	 * Writes only the COMMON and CAP descriptors for gulp (capillary-based) exports.
+	 */
+	@Override
+	protected int writeTopRowDescriptors(SXSSFSheet sheet) {
+		int nextcol = -1;
+
+		for (EnumXLSColumnHeader header : EnumXLSColumnHeader.values()) {
+			EnumColumnType type = header.toType();
+			if (type != EnumColumnType.COMMON && type != EnumColumnType.CAP) {
+				continue;
+			}
+			XLSUtils.setValue(sheet, 0, header.getValue(), options.transpose, header.getName());
+			if (nextcol < header.getValue()) {
+				nextcol = header.getValue();
+			}
+		}
+
+		return nextcol + 1;
 	}
 
 //	/**

@@ -206,7 +206,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 			optionsStep1.backgroundImage = exp.getSeqCamData().getReferenceImage();
 			index = 1;
 		}
-		canvas.selectItemStep1(imageTransformStep1[index], optionsStep1);
+		canvas.setTransformStep1(imageTransformStep1[index], optionsStep1);
 	}
 
 	private BuildSeriesOptions initTrackParameters(Experiment exp) {

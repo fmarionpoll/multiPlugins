@@ -8,10 +8,36 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 public abstract class XLSExportSpots extends XLSExport {
+
+	/**
+	 * Writes only the COMMON and SPOT descriptors for spot exports.
+	 * 
+	 * This overrides the default implementation in XLSExport, which writes all
+	 * headers (COMMON, CAP, SPOT, etc.) for every sheet. For spot-oriented exports
+	 * this is confusing, so we restrict the top-row labels to the relevant types.
+	 */
+	@Override
+	protected int writeTopRowDescriptors(SXSSFSheet sheet) {
+		int nextcol = -1;
+
+		for (EnumXLSColumnHeader header : EnumXLSColumnHeader.values()) {
+			EnumColumnType type = header.toType();
+			if (type != EnumColumnType.COMMON && type != EnumColumnType.SPOT) {
+				continue;
+			}
+			XLSUtils.setValue(sheet, 0, header.getValue(), options.transpose, header.getName());
+			if (nextcol < header.getValue()) {
+				nextcol = header.getValue();
+			}
+		}
+
+		return nextcol + 1;
+	}
 
 	/**
 	 * Writes experiment spot information to the sheet.

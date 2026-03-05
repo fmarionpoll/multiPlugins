@@ -18,6 +18,7 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
+import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
@@ -125,6 +126,28 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			}
 		}
 		return pt.x;
+	}
+
+	/**
+	 * Writes only the COMMON and CAP descriptors for fly-position exports, which
+	 * are conceptually cage/capillary-level rather than spot-level.
+	 */
+	@Override
+	protected int writeTopRowDescriptors(SXSSFSheet sheet) {
+		int nextcol = -1;
+
+		for (EnumXLSColumnHeader header : EnumXLSColumnHeader.values()) {
+			EnumColumnType type = header.toType();
+			if (type != EnumColumnType.COMMON && type != EnumColumnType.CAP) {
+				continue;
+			}
+			XLSUtils.setValue(sheet, 0, header.getValue(), options.transpose, header.getName());
+			if (nextcol < header.getValue()) {
+				nextcol = header.getValue();
+			}
+		}
+
+		return nextcol + 1;
 	}
 
 	/**
