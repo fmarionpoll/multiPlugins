@@ -30,8 +30,9 @@ public class Options extends JPanel {
 	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries", true);
 	public JCheckBox viewCellsCheckbox = new JCheckBox("cages", true);
 	JCheckBox viewFlyCheckbox = new JCheckBox("flies", false);
-	
-	JCheckBox viewLevelsCheckbox = new JCheckBox("top/bottom level (green)", true);
+
+	JCheckBox viewTopLevelsCheckbox = new JCheckBox("top level (green)", true);
+	JCheckBox viewBottomLevelsCheckbox = new JCheckBox("bottom level (green)", true);
 	JCheckBox viewDerivativeCheckbox = new JCheckBox("derivative (yellow)", true);
 	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps (red)", true);
 	private MultiCAFE parent0 = null;
@@ -43,7 +44,8 @@ public class Options extends JPanel {
 		viewCapillariesCheckBox.setSelected(parent0.viewOptions.isViewCapillaries());
 		viewCellsCheckbox.setSelected(parent0.viewOptions.isViewCages());
 		viewFlyCheckbox.setSelected(parent0.viewOptions.isViewFliesCenter());
-		viewLevelsCheckbox.setSelected(parent0.viewOptions.isViewLevels());
+		viewTopLevelsCheckbox.setSelected(parent0.viewOptions.isViewTopLevels());
+		viewBottomLevelsCheckbox.setSelected(parent0.viewOptions.isViewBottomLevels());
 		viewDerivativeCheckbox.setSelected(parent0.viewOptions.isViewDerivative());
 		viewGulpsCheckbox.setSelected(parent0.viewOptions.isViewGulps());
 
@@ -66,14 +68,14 @@ public class Options extends JPanel {
 		panel1.add(viewFlyCheckbox);
 		add(panel1);
 
-		
 		JPanel panel2 = new JPanel(layout);
 		panel2.add(new JLabel("View kymos: "));
-		panel2.add(viewLevelsCheckbox);
+		panel2.add(viewTopLevelsCheckbox);
+		panel2.add(viewBottomLevelsCheckbox);
 		panel2.add(viewDerivativeCheckbox);
 		panel2.add(viewGulpsCheckbox);
 		add(panel2);
-		
+
 		defineActionListeners();
 	}
 
@@ -112,7 +114,7 @@ public class Options extends JPanel {
 				displayROIsCategory(sel, "det");
 			}
 		});
-		
+
 		viewDerivativeCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -133,13 +135,23 @@ public class Options extends JPanel {
 			}
 		});
 
-		viewLevelsCheckbox.addActionListener(new ActionListener() {
+		viewTopLevelsCheckbox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewLevelsCheckbox.isSelected();
-				parent0.viewOptions.setViewLevels(sel);
+				boolean sel = viewTopLevelsCheckbox.isSelected();
+				parent0.viewOptions.setViewTopLevels(sel);
 				saveViewOptions();
-				displayROIs("level", sel);
+				displayROIs("toplevel", sel);
+			}
+		});
+
+		viewBottomLevelsCheckbox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean sel = viewBottomLevelsCheckbox.isSelected();
+				parent0.viewOptions.setViewBottomLevels(sel);
+				saveViewOptions();
+				displayROIs("bottomlevel", sel);
 			}
 		});
 
@@ -199,13 +211,14 @@ public class Options extends JPanel {
 				layer.setVisible(isVisible);
 		}
 	}
-	
+
 	public void displayROIsAccordingToUserSelection() {
 		displayROIs("deriv", viewDerivativeCheckbox.isSelected());
 		displayROIs("gulp", viewGulpsCheckbox.isSelected());
-		displayROIs("level", viewLevelsCheckbox.isSelected());
+		displayROIs("toplevel", viewTopLevelsCheckbox.isSelected());
+		displayROIs("bottomlevel", viewBottomLevelsCheckbox.isSelected());
 	}
-	
+
 	private void displayROIs(String filter, boolean visible) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
@@ -226,6 +239,5 @@ public class Options extends JPanel {
 			}
 		}
 	}
-
 
 }

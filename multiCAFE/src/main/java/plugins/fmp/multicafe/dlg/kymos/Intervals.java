@@ -51,7 +51,6 @@ public class Intervals extends JPanel implements ViewerListener {
 	JButton previousButton = new JButton("<");
 	JButton nextButton = new JButton(">");
 
-
 	private MultiCAFE parent0 = null;
 	private boolean isActionEnabled = true;
 
@@ -80,7 +79,6 @@ public class Intervals extends JPanel implements ViewerListener {
 		nextButton.setPreferredSize(new Dimension(bWidth, bHeight));
 		panel1.add(nextButton, BorderLayout.EAST);
 		add(panel1);
-
 
 		defineActionListeners();
 	}
@@ -131,7 +129,8 @@ public class Intervals extends JPanel implements ViewerListener {
 
 	/**
 	 * Fills the combo in kymograph sequence order (index = t). Each item is the
-	 * capillary/display name for that frame (from capillary or from kymograph file name, e.g. line0L).
+	 * capillary/display name for that frame (from capillary or from kymograph file
+	 * name, e.g. line0L).
 	 */
 	public void transferCapillaryNamesToComboBox(Experiment exp) {
 		kymographsCombo.removeAllItems();
@@ -172,7 +171,8 @@ public class Intervals extends JPanel implements ViewerListener {
 		plugins.fmp.multicafe.ViewOptionsHolder opts = parent0.viewOptions;
 		displayROIsOnViewer(v, "deriv", opts.isViewDerivative());
 		displayROIsOnViewer(v, "gulp", opts.isViewGulps());
-		displayROIsOnViewer(v, "level", opts.isViewLevels());
+		displayROIsOnViewer(v, "toplevel", opts.isViewTopLevels());
+		displayROIsOnViewer(v, "bottomlevel", opts.isViewBottomLevels());
 	}
 
 	private void displayROIsOnViewer(Viewer v, String filter, boolean visible) {
@@ -192,8 +192,6 @@ public class Intervals extends JPanel implements ViewerListener {
 		}
 	}
 
-
-
 	public void displayON() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 
@@ -212,7 +210,8 @@ public class Intervals extends JPanel implements ViewerListener {
 			Rectangle initialBounds = calculateKymographViewerBounds(exp);
 
 			ArrayList<Viewer> vList = seq.getViewers();
-			// xMultiCAFE0 pattern: create new viewer only when none exist, else reuse (keep its canvas)
+			// xMultiCAFE0 pattern: create new viewer only when none exist, else reuse (keep
+			// its canvas)
 			if (vList == null || vList.size() == 0) {
 				// Create viewer with visible=false to prevent flickering
 				ViewerFMP viewerKymographs = new ViewerFMP(seqKymographs.getSequence(), false, true);
@@ -240,14 +239,17 @@ public class Intervals extends JPanel implements ViewerListener {
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(viewerKymographs);
 
-				// Force sync for frame 0: LoadSaveLevels may have already called syncROIsForCurrentFrame(0)
-				// and set currentFrame=0, so sync would be skipped. Reset so first display always syncs.
+				// Force sync for frame 0: LoadSaveLevels may have already called
+				// syncROIsForCurrentFrame(0)
+				// and set currentFrame=0, so sync would be skipped. Reset so first display
+				// always syncs.
 				seqKymographs.setCurrentFrame(-1);
 				int isel = seqKymographs.getCurrentFrame();
 				isel = selectKymographImage(isel);
 				selectKymographComboItem(isel);
 			} else {
-				// Viewer already exists (e.g. auto-created by ICY when loading) - reposition, keep its canvas
+				// Viewer already exists (e.g. auto-created by ICY when loading) - reposition,
+				// keep its canvas
 				Viewer existingViewer = vList.get(0);
 				if (initialBounds != null) {
 					// Hide viewer, set bounds, then show to avoid flickering
@@ -269,7 +271,8 @@ public class Intervals extends JPanel implements ViewerListener {
 				// Add ComponentListener to track window position changes
 				addKymographViewerBoundsListener(existingViewer);
 
-				// Sync ROIs and combo/title for current frame (e.g. frame 0) so name shows line0L and ROIs are visible
+				// Sync ROIs and combo/title for current frame (e.g. frame 0) so name shows
+				// line0L and ROIs are visible
 				int currentT = existingViewer.getPositionT();
 				if (currentT < 0)
 					currentT = 0;
@@ -508,9 +511,8 @@ public class Intervals extends JPanel implements ViewerListener {
 					if (capOld != null && capOld.isGulpMeasuresDirty()) {
 						String[] options = new String[] { "Save", "Discard", "Cancel" };
 						int choice = JOptionPane.showOptionDialog(this,
-								"Unsaved gulp changes. Save, Discard, or Cancel?",
-								"Gulp changes", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null,
-								options, options[0]);
+								"Unsaved gulp changes. Save, Discard, or Cancel?", "Gulp changes",
+								JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 						if (choice == 2 || choice == JOptionPane.CLOSED_OPTION)
 							return t;
 						if (choice == 0)
@@ -632,8 +634,9 @@ public class Intervals extends JPanel implements ViewerListener {
 	}
 
 	/**
-	 * Finds the experiment that owns the given sequence (e.g. its kymograph sequence).
-	 * Used so we sync ROIs when the viewer position changes even if the experiment combo selection differs.
+	 * Finds the experiment that owns the given sequence (e.g. its kymograph
+	 * sequence). Used so we sync ROIs when the viewer position changes even if the
+	 * experiment combo selection differs.
 	 */
 	private Experiment findExperimentOwningSequence(Sequence sequence) {
 		if (sequence == null)

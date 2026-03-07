@@ -33,20 +33,20 @@ public class LevelDetectorFromKymo {
 		seqKymos.getSequence().removeAllROI();
 		initArrayToBuildCapillaries(exp, options);
 
-		int tFirsKymo = options.kymoFirst;
-		if (tFirsKymo > seqKymos.getSequence().getSizeT() || tFirsKymo < 0)
-			tFirsKymo = 0;
-		int tLastKymo = options.kymoLast;
-		if (tLastKymo >= seqKymos.getSequence().getSizeT())
-			tLastKymo = seqKymos.getSequence().getSizeT() - 1;
+		int firsKymo = options.kymoFirst;
+		if (firsKymo > seqKymos.getSequence().getSizeT() || firsKymo < 0)
+			firsKymo = 0;
+		int lastKymo = options.kymoLast;
+		if (lastKymo >= seqKymos.getSequence().getSizeT())
+			lastKymo = seqKymos.getSequence().getSizeT() - 1;
 		if (options.detectSelectedKymo) {
-			tLastKymo = tFirsKymo;
+			lastKymo = firsKymo;
 		}
 
 		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("detectlevel");
 		processor.setPriority(Processor.NORM_PRIORITY);
-		ArrayList<Future<?>> futures = new ArrayList<Future<?>>(tLastKymo - tFirsKymo + 1);
+		ArrayList<Future<?>> futures = new ArrayList<Future<?>>(lastKymo - firsKymo + 1);
 		futures.clear();
 
 		final int jitter = 10;
@@ -55,8 +55,8 @@ public class LevelDetectorFromKymo {
 		final Rectangle searchRect = options.searchArea;
 		SequenceLoaderService loader = new SequenceLoaderService();
 
-		for (int tKymo = tFirsKymo; tKymo <= tLastKymo; tKymo++) {
-			String fullPath = seqKymos.getFileNameFromImageList(tKymo);
+		for (int iKymo = firsKymo; iKymo <= lastKymo; iKymo++) {
+			String fullPath = seqKymos.getFileNameFromImageList(iKymo);
 			String nameWithoutExt = new File(fullPath).getName().replaceFirst("[.][^.]+$", "");
 			final Capillary capi = exp.getCapillaries().getCapillaryFromKymographName(nameWithoutExt);
 			if (capi == null)
@@ -156,8 +156,9 @@ public class LevelDetectorFromKymo {
 
 		int topSearchFrom = Math.min(searchRect.y + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
 		int columnFirst = (int) searchRect.getX();
-		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
+		int columnLast = (int) (searchRect.getWidth() + columnFirst); // - 1;
 		int n_measures = columnLast - columnFirst + 1;
+		System.out.println("n_measurees =" + n_measures);
 		capi.getTopLevel().limit = new int[n_measures];
 		capi.getBottomLevel().limit = new int[n_measures];
 		if (options.runBackwards)

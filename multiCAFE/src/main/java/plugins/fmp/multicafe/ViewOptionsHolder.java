@@ -5,8 +5,8 @@ import plugins.fmp.multitools.experiment.ViewOptionsDTO;
 
 /**
  * Central holder for view options (cam and kymos). Persisted in the UI via
- * XMLPreferences, not with the experiment. Applied when viewer T changes or when
- * a new experiment is loaded.
+ * XMLPreferences, not with the experiment. Applied when viewer T changes or
+ * when a new experiment is loaded.
  */
 public class ViewOptionsHolder {
 
@@ -14,7 +14,8 @@ public class ViewOptionsHolder {
 	private static final String KEY_VIEW_CAGES = "viewCages";
 	private static final String KEY_VIEW_FLIES_CENTER = "viewFliesCenter";
 	private static final String KEY_VIEW_FLIES_RECT = "viewFliesRect";
-	private static final String KEY_VIEW_LEVELS = "viewLevels";
+	private static final String KEY_VIEW_TOPLEVELS = "viewTopLevels";
+	private static final String KEY_VIEW_BOTTOMLEVELS = "viewBottomLevels";
 	private static final String KEY_VIEW_DERIVATIVE = "viewDerivative";
 	private static final String KEY_VIEW_GULPS = "viewGulps";
 	private static final String KEY_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
@@ -23,7 +24,8 @@ public class ViewOptionsHolder {
 	private boolean viewCages = true;
 	private boolean viewFliesCenter = false;
 	private boolean viewFliesRect = false;
-	private boolean viewLevels = true;
+	private boolean viewTopLevels = true;
+	private boolean viewBottomLevels = true;
 	private boolean viewDerivative = true;
 	private boolean viewGulps = true;
 	private int defaultNominalIntervalSec = 60;
@@ -68,12 +70,20 @@ public class ViewOptionsHolder {
 		this.viewFliesRect = viewFliesRect;
 	}
 
-	public boolean isViewLevels() {
-		return viewLevels;
+	public boolean isViewTopLevels() {
+		return viewTopLevels;
 	}
 
-	public void setViewLevels(boolean viewLevels) {
-		this.viewLevels = viewLevels;
+	public void setViewTopLevels(boolean viewTopLevels) {
+		this.viewTopLevels = viewTopLevels;
+	}
+
+	public boolean isViewBottomLevels() {
+		return viewBottomLevels;
+	}
+
+	public void setViewBottomLevels(boolean viewBottomLevels) {
+		this.viewBottomLevels = viewBottomLevels;
 	}
 
 	public boolean isViewDerivative() {
@@ -99,7 +109,8 @@ public class ViewOptionsHolder {
 		viewCages = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_CAGES, "true"));
 		viewFliesCenter = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_FLIES_CENTER, "false"));
 		viewFliesRect = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_FLIES_RECT, "false"));
-		viewLevels = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_LEVELS, "true"));
+		viewTopLevels = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_TOPLEVELS, "true"));
+		viewBottomLevels = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_BOTTOMLEVELS, "true"));
 		viewDerivative = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_DERIVATIVE, "true"));
 		viewGulps = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_GULPS, "true"));
 		defaultNominalIntervalSec = Math.max(1, Integer.parseInt(prefs.get(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, "60")));
@@ -112,7 +123,8 @@ public class ViewOptionsHolder {
 		prefs.put(KEY_VIEW_CAGES, String.valueOf(viewCages));
 		prefs.put(KEY_VIEW_FLIES_CENTER, String.valueOf(viewFliesCenter));
 		prefs.put(KEY_VIEW_FLIES_RECT, String.valueOf(viewFliesRect));
-		prefs.put(KEY_VIEW_LEVELS, String.valueOf(viewLevels));
+		prefs.put(KEY_VIEW_TOPLEVELS, String.valueOf(viewTopLevels));
+		prefs.put(KEY_VIEW_BOTTOMLEVELS, String.valueOf(viewBottomLevels));
 		prefs.put(KEY_VIEW_DERIVATIVE, String.valueOf(viewDerivative));
 		prefs.put(KEY_VIEW_GULPS, String.valueOf(viewGulps));
 		prefs.put(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(defaultNominalIntervalSec));
@@ -124,7 +136,8 @@ public class ViewOptionsHolder {
 		dto.setViewCages(viewCages);
 		dto.setViewFliesCenter(viewFliesCenter);
 		dto.setViewFliesRect(viewFliesRect);
-		dto.setViewLevels(viewLevels);
+		dto.setViewLevels(viewTopLevels);
+		dto.setViewLevels(viewBottomLevels);
 		dto.setViewDerivative(viewDerivative);
 		dto.setViewGulps(viewGulps);
 		return dto;

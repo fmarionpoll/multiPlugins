@@ -9,9 +9,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
-import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -122,8 +122,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			try {
 				for (int t = 0; t < nTimeBins; t++) {
 					long timeMs = firstMsFinal + t * stepMsFinal;
-					int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0,
-							Math.max(0, nCamFrames - 1));
+					int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
 					if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
 						continue;
 					}
@@ -170,8 +169,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 					spotImageLocal = transformSpot.getTransformedImage(camImageLocal, transformOptionsSpot,
 							spotImageLocal);
-					flyImageLocal = transformFly.getTransformedImage(camImageLocal, transformOptionsFly,
-							flyImageLocal);
+					flyImageLocal = transformFly.getTransformedImage(camImageLocal, transformOptionsFly, flyImageLocal);
 					if (spotImageLocal == null || flyImageLocal == null) {
 						continue;
 					}
