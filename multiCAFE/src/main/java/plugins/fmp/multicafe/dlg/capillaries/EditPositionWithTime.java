@@ -305,7 +305,9 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 			Capillary cap = exp.getCapillaries().getCapillaryFromRoiName(roi.getName());
 			if (cap != null) {
 				ROI2D roilocal = (ROI2D) roi.getCopy();
-				cap.getAlongTAtT(intervalT).setRoi(roilocal);
+				AlongT alongT = cap.getAlongTAtT(intervalT);
+				alongT.setRoi(roilocal);
+				alongT.setStart(intervalT);
 			}
 		}
 		exp.save_capillaries_description_and_measures();
