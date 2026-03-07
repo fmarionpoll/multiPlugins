@@ -188,10 +188,10 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 	int xlsExportExperimentCageDataToSheet(SXSSFSheet sheet, Experiment exp, ResultsOptions resultsOptions,
 			EnumResults resultType, int col0, String charSeries) {
 		Point pt = new Point(col0, 0);
-		String stim1 = exp.getProperties().getField_stim1();
-		String conc1 = exp.getProperties().getField_conc1();
-		String stim2 = exp.getProperties().getField_stim2();
-		String conc2 = exp.getProperties().getField_conc2();
+		String stim1 = exp.getProperties().getField_stim1().trim();
+		String conc1 = exp.getProperties().getField_conc1().trim();
+		String stim2 = exp.getProperties().getField_stim2().trim();
+		String conc2 = exp.getProperties().getField_conc2().trim();
 
 		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {

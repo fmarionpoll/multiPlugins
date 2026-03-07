@@ -560,8 +560,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		Spot spotCombined = null;
 		List<Spot> spots = getSpotList(allSpots);
 		for (Spot spotSource : spots) {
-			if (stim.equals(spotSource.getProperties().getStimulus())
-					&& conc.equals(spotSource.getProperties().getConcentration())) {
+			if (stim.equals(spotSource.getProperties().getStimulus().trim())
+					&& conc.equals(spotSource.getProperties().getConcentration().trim())) {
 				if (spotCombined == null) {
 					spotCombined = new Spot(spotSource, true);
 				} else {
@@ -672,7 +672,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			i++;
 		}
 
-		// Optional colorR, colorG, colorB (v2 format). Only consume if all 3 look numeric.
+		// Optional colorR, colorG, colorB (v2 format). Only consume if all 3 look
+		// numeric.
 		if (i + 2 < data.length && isNumeric(data[i]) && isNumeric(data[i + 1]) && isNumeric(data[i + 2])) {
 			try {
 				int r = Integer.parseInt(data[i]);
