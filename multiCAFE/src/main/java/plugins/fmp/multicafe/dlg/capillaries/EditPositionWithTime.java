@@ -254,8 +254,11 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		long intervalT = v.getPositionT();
 
 		if (exp.getCapillaries().findKymoROI2DIntervalStart(intervalT) < 0) {
-			exp.getCapillaries().addKymoROI2DInterval(intervalT);
-			exp.save_capillaries_description_and_measures();
+			int added = exp.getCapillaries().addKymoROI2DInterval(intervalT);
+			if (added >= 0) {
+				exp.save_capillaries_description_and_measures();
+				capillariesWithTimeTablemodel.fireTableDataChanged();
+			}
 		}
 	}
 
@@ -264,12 +267,18 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 		if (exp == null)
 			return;
 
-		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-		long intervalT = v.getPositionT();
+		long intervalT;
+		if (selectedRow >= 0 && selectedRow < exp.getCapillaries().getKymoIntervalsFromCapillaries().size()) {
+			intervalT = exp.getCapillaries().getKymoROI2DIntervalsStartAt(selectedRow);
+		} else {
+			Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+			intervalT = v.getPositionT();
+		}
 
 		if (exp.getCapillaries().findKymoROI2DIntervalStart(intervalT) >= 0) {
 			exp.getCapillaries().deleteKymoROI2DInterval(intervalT);
 			exp.save_capillaries_description_and_measures();
+			capillariesWithTimeTablemodel.fireTableDataChanged();
 		}
 	}
 
@@ -308,6 +317,7 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 				AlongT alongT = cap.getAlongTAtT(intervalT);
 				alongT.setRoi(roilocal);
 				alongT.setStart(intervalT);
+				cap.setRoiCapFromAlongT(alongT);
 			}
 		}
 		exp.save_capillaries_description_and_measures();

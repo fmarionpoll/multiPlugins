@@ -1142,6 +1142,17 @@ public class Capillary implements Comparable<Capillary> {
 	}
 	// --------------------------------------------
 
+	/**
+	 * List of AlongT (start frame, ROI) for this capillary. Contract:
+	 * <ul>
+	 * <li>Ordered by {@code start} ascending.</li>
+	 * <li>Entry at index i is valid from frame {@code start_i} (inclusive) until the
+	 * next entry's start (exclusive), or sequence end if there is no next
+	 * entry.</li>
+	 * <li>So each entry represents a half-open interval [start_i, start_{i+1});
+	 * the list must remain sorted after any insert/remove.</li>
+	 * </ul>
+	 */
 	public List<AlongT> getROIsForKymo() {
 		if (metadata.roisForKymo.size() < 1)
 			initROI2DForKymoList();
@@ -1159,6 +1170,24 @@ public class Capillary implements Comparable<Capillary> {
 			alongT = item;
 		}
 		return alongT;
+	}
+
+	/**
+	 * Start frame of the interval at index i (same as getROIsForKymo().get(i).getStart()).
+	 */
+	public long getIntervalStart(int i) {
+		return getROIsForKymo().get(i).getStart();
+	}
+
+	/**
+	 * End frame (exclusive) of the interval at index i: the next entry's start, or
+	 * Long.MAX_VALUE if there is no next entry (caller may use sequence length instead).
+	 */
+	public long getIntervalEnd(int i) {
+		List<AlongT> list = getROIsForKymo();
+		if (i + 1 < list.size())
+			return list.get(i + 1).getStart();
+		return Long.MAX_VALUE;
 	}
 
 	public void removeROI2DIntervalStartingAt(long start) {
@@ -1248,6 +1277,16 @@ public class Capillary implements Comparable<Capillary> {
 		at.setRoi(roi);
 		metadata.roiCap = at.getRoi();
 		return true;
+	}
+
+	/**
+	 * Sets the capillary's current ROI reference (roiCap) to the ROI of the given
+	 * AlongT. Use after updating an AlongT in the list so getRoi() stays in sync.
+	 * Does not modify the roisForKymo list.
+	 */
+	public void setRoiCapFromAlongT(AlongT at) {
+		if (at != null && at.getRoi() != null)
+			metadata.roiCap = at.getRoi();
 	}
 
 	/**

@@ -24,6 +24,8 @@ public class Capillaries {
 	private CapillariesDescription desc_old = new CapillariesDescription();
 	private List<Capillary> capillariesList = new ArrayList<Capillary>();
 	private KymoIntervals capillariesListTimeIntervals = null;
+	/** True when every capillary has an AlongT at every global interval start (e.g. after unifyAlongTIntervalsForDialog). */
+	private boolean alongTUnified = false;
 	private CapillariesPersistence persistence = new CapillariesPersistence();
 	private ReferenceMeasures referenceMeasures = new ReferenceMeasures();
 
@@ -99,7 +101,10 @@ public class Capillaries {
 	 * @return true if successful
 	 */
 	public boolean loadDescriptions(String resultsDirectory) {
-		return persistence.loadDescriptions(this, resultsDirectory);
+		boolean ok = persistence.loadDescriptions(this, resultsDirectory);
+		if (ok)
+			setAlongTUnified(false);
+		return ok;
 	}
 
 	/**
@@ -500,6 +505,14 @@ public class Capillaries {
 		capillariesListTimeIntervals = null;
 	}
 
+	public boolean isAlongTUnified() {
+		return alongTUnified;
+	}
+
+	public void setAlongTUnified(boolean unified) {
+		this.alongTUnified = unified;
+	}
+
 	public KymoIntervals getKymoIntervalsFromCapillaries() {
 		if (capillariesListTimeIntervals == null) {
 			capillariesListTimeIntervals = new KymoIntervals();
@@ -515,6 +528,8 @@ public class Capillaries {
 	}
 
 	public int addKymoROI2DInterval(long start) {
+		if (!alongTUnified)
+			return -1;
 		getKymoIntervalsFromCapillaries();
 		Long[] interval = { start, (long) -1 };
 		int item = capillariesListTimeIntervals.addIfNew(interval);
@@ -547,6 +562,7 @@ public class Capillaries {
 			for (Capillary cap : getList())
 				cap.addAlongTAtStartIfMissing(start);
 		}
+		setAlongTUnified(true);
 	}
 
 	/**
@@ -569,6 +585,7 @@ public class Capillaries {
 		for (Capillary cap : getList())
 			cap.compressRedundantAlongT();
 		invalidateKymoIntervalsCache();
+		setAlongTUnified(false);
 	}
 
 	public int findKymoROI2DIntervalStart(long intervalT) {

@@ -2,7 +2,6 @@ package plugins.fmp.multitools.series;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -20,6 +19,7 @@ import plugins.fmp.multitools.service.CapillaryTracker;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.ROI2D.TrackedRoisByFrame;
 
 /**
  * Frame-by-frame capillary tracking. Loads 2 images at a time (t-1 and t), tracks
@@ -77,18 +77,14 @@ public class TrackCapillariesAlongTime {
 			return;
 		}
 
-		@SuppressWarnings("unchecked")
-		Map<Long, ROI2D>[] results = new Map[caps.size()];
-		ROI2D[] currentRoi = new ROI2D[caps.size()];
+		TrackedRoisByFrame table = new TrackedRoisByFrame(t0, t1, caps.size());
 		for (int i : indices) {
 			Capillary cap = caps.get(i);
 			AlongT at0 = cap.getAlongTAtT(t0);
 			if (at0 == null || at0.getRoi() == null)
 				continue;
 			ROI2D roi0 = (ROI2D) at0.getRoi().getCopy();
-			results[i] = new LinkedHashMap<>();
-			results[i].put((long) t0, roi0);
-			currentRoi[i] = roi0;
+			table.setRoiAt(i, t0, roi0);
 		}
 
 		int nThreads = Math.min(indices.size(), Math.max(1, SystemUtil.getNumberOfCPUs()));
@@ -111,46 +107,43 @@ public class TrackCapillariesAlongTime {
 					continue;
 				ROI2D[] prevRoi = new ROI2D[caps.size()];
 				for (int i : indices)
-					prevRoi[i] = currentRoi[i];
+					prevRoi[i] = table.getRoiAtNoCopy(i, t - 1);
 
 				final IcyBufferedImage fp = imgPrev;
 				final IcyBufferedImage fc = imgCurr;
 				final long frameT = t;
 				List<CompletableFuture<Void>> tasks = new ArrayList<>();
 				for (int i : indices) {
-					if (currentRoi[i] == null)
+					ROI2D roiPrev = table.getRoiAtNoCopy(i, t - 1);
+					if (roiPrev == null)
 						continue;
 					final int capIndex = i;
-					ROI2D roiPrev = currentRoi[i];
 					tasks.add(CompletableFuture.runAsync(() -> {
 						ROI2D roiNew = tracker.trackOneFrame(roiPrev, fp, fc);
-						if (roiNew != null) {
-							results[capIndex].put(frameT, roiNew);
-							currentRoi[capIndex] = roiNew;
-						}
+						if (roiNew != null)
+							table.setRoiAt(capIndex, (int) frameT, roiNew);
 					}, exec));
 				}
 				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
 
+				ROI2D[] currentRoi = new ROI2D[caps.size()];
+				for (int i : indices)
+					currentRoi[i] = table.getRoiAtNoCopy(i, frameT);
 				List<Integer> outlierIndices = findOutlierDisplacements(indices, prevRoi, currentRoi, outlierMadFactor, outlierMinPx);
 				if (!outlierIndices.isEmpty()) {
 					int choice = progress.reportOutliers(t, outlierIndices, caps);
 					if (choice == ProgressReporter.STOP_TRACKING) {
+						List<Map<Long, ROI2D>> maps = table.toTrackedMaps(t - 1);
 						for (int i : indices)
-							if (results[i] != null)
-								results[i].remove(frameT);
-						for (int i : indices)
-							if (results[i] != null && !results[i].isEmpty())
-								capillaries.injectTrackedRoisForCapillary(i, t0, t - 1, results[i]);
+							if (!maps.get(i).isEmpty())
+								capillaries.injectTrackedRoisForCapillary(i, t0, t - 1, maps.get(i));
 						progress.failed("Stopped at frame " + t + ": unusual movement in " + outlierIndices.size() + " capillary/capillaries.");
 						exec.shutdown();
 						return;
 					}
 					if (choice == ProgressReporter.SKIP_OUTLIERS_THIS_FRAME) {
-						for (int i : outlierIndices) {
-							results[i].remove(frameT);
-							currentRoi[i] = prevRoi[i];
-						}
+						for (int i : outlierIndices)
+							table.copyIndexFromPreviousFrame(i, (int) frameT);
 					}
 				}
 
@@ -158,9 +151,10 @@ public class TrackCapillariesAlongTime {
 				int frameDone = t - t0;
 				progress.updateProgress("Frame " + t + "/" + t1, frameDone, nFrames);
 			}
+			List<Map<Long, ROI2D>> maps = table.toTrackedMaps();
 			for (int i : indices) {
-				if (results[i] != null && !results[i].isEmpty())
-					capillaries.injectTrackedRoisForCapillary(i, t0, t1, results[i]);
+				if (!maps.get(i).isEmpty())
+					capillaries.injectTrackedRoisForCapillary(i, t0, t1, maps.get(i));
 			}
 		} catch (Exception ex) {
 			progress.failed(ex.getMessage());
@@ -197,18 +191,14 @@ public class TrackCapillariesAlongTime {
 			return;
 		}
 
-		@SuppressWarnings("unchecked")
-		Map<Long, ROI2D>[] results = new Map[caps.size()];
-		ROI2D[] currentRoi = new ROI2D[caps.size()];
+		TrackedRoisByFrame table = new TrackedRoisByFrame(tTarget, tSeed, caps.size());
 		for (int i : indices) {
 			Capillary cap = caps.get(i);
 			AlongT atSeed = cap.getAlongTAtT(tSeed);
 			if (atSeed == null || atSeed.getRoi() == null)
 				continue;
 			ROI2D roiSeed = (ROI2D) atSeed.getRoi().getCopy();
-			results[i] = new LinkedHashMap<>();
-			results[i].put((long) tSeed, roiSeed);
-			currentRoi[i] = roiSeed;
+			table.setRoiAt(i, tSeed, roiSeed);
 		}
 
 		int nThreads = Math.min(indices.size(), Math.max(1, SystemUtil.getNumberOfCPUs()));
@@ -226,25 +216,24 @@ public class TrackCapillariesAlongTime {
 				final long frameT = t;
 				List<CompletableFuture<Void>> tasks = new ArrayList<>();
 				for (int i : indices) {
-					if (currentRoi[i] == null)
+					ROI2D roiNext = table.getRoiAtNoCopy(i, t + 1);
+					if (roiNext == null)
 						continue;
 					final int capIndex = i;
-					ROI2D roiNext = currentRoi[i];
 					tasks.add(CompletableFuture.runAsync(() -> {
 						ROI2D roiAtT = tracker.trackOneFrame(roiNext, fp, fc);
-						if (roiAtT != null) {
-							results[capIndex].put(frameT, roiAtT);
-							currentRoi[capIndex] = roiAtT;
-						}
+						if (roiAtT != null)
+							table.setRoiAt(capIndex, (int) frameT, roiAtT);
 					}, exec));
 				}
 				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
 				int frameDone = tSeed - 1 - t;
 				progress.updateProgress("Backward " + t + ".." + tSeed, frameDone, nFrames);
 			}
+			List<Map<Long, ROI2D>> maps = table.toTrackedMaps();
 			for (int i : indices) {
-				if (results[i] != null && !results[i].isEmpty())
-					capillaries.injectTrackedRoisForCapillary(i, tTarget, tSeed, results[i]);
+				if (!maps.get(i).isEmpty())
+					capillaries.injectTrackedRoisForCapillary(i, tTarget, tSeed, maps.get(i));
 			}
 		} catch (Exception ex) {
 			progress.failed(ex.getMessage());
