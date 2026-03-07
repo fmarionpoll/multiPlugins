@@ -7,10 +7,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
-import icy.gui.viewer.Viewer;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Comparators;
@@ -24,7 +24,10 @@ public class Capillaries {
 	private CapillariesDescription desc_old = new CapillariesDescription();
 	private List<Capillary> capillariesList = new ArrayList<Capillary>();
 	private KymoIntervals capillariesListTimeIntervals = null;
-	/** True when every capillary has an AlongT at every global interval start (e.g. after unifyAlongTIntervalsForDialog). */
+	/**
+	 * True when every capillary has an AlongT at every global interval start (e.g.
+	 * after unifyAlongTIntervalsForDialog).
+	 */
 	private boolean alongTUnified = false;
 	private CapillariesPersistence persistence = new CapillariesPersistence();
 	private ReferenceMeasures referenceMeasures = new ReferenceMeasures();
@@ -94,8 +97,8 @@ public class Capillaries {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Loads capillary descriptions from the results directory.
-	 * Descriptions include capillary properties but not time-series measures.
+	 * Loads capillary descriptions from the results directory. Descriptions include
+	 * capillary properties but not time-series measures.
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
@@ -109,7 +112,8 @@ public class Capillaries {
 
 	/**
 	 * Loads capillary measures from the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
+	 * Measures include time-series data like toplevel, bottomlevel, derivative,
+	 * gulps.
 	 * 
 	 * @param binDirectory the bin directory
 	 * @return true if successful
@@ -122,8 +126,8 @@ public class Capillaries {
 	// New standardized method names (v2.3.3+)
 
 	/**
-	 * Saves capillary descriptions to the results directory.
-	 * Descriptions include capillary properties but not time-series measures.
+	 * Saves capillary descriptions to the results directory. Descriptions include
+	 * capillary properties but not time-series measures.
 	 * 
 	 * @param resultsDirectory the results directory
 	 * @return true if successful
@@ -133,8 +137,8 @@ public class Capillaries {
 	}
 
 	/**
-	 * Saves capillary measures to the bin directory (e.g., results/bin60).
-	 * Measures include time-series data like toplevel, bottomlevel, derivative, gulps.
+	 * Saves capillary measures to the bin directory (e.g., results/bin60). Measures
+	 * include time-series data like toplevel, bottomlevel, derivative, gulps.
 	 * 
 	 * @param binDirectory the bin directory
 	 * @return true if successful
@@ -155,7 +159,8 @@ public class Capillaries {
 	}
 
 	/**
-	 * @deprecated XML persistence is deprecated. Use CSV persistence methods instead.
+	 * @deprecated XML persistence is deprecated. Use CSV persistence methods
+	 *             instead.
 	 */
 	@Deprecated
 	public boolean xmlSaveCapillaries_Descriptors(String csFileName) {
@@ -217,8 +222,9 @@ public class Capillaries {
 	}
 
 	/**
-	 * Clears measures only for capillaries in [first, last] that match the given L/R
-	 * selection, so that partial detection (e.g. only L or only R) does not erase the other side.
+	 * Clears measures only for capillaries in [first, last] that match the given
+	 * L/R selection, so that partial detection (e.g. only L or only R) does not
+	 * erase the other side.
 	 */
 	public void clearAllMeasures(int first, int last, boolean detectL, boolean detectR) {
 		for (Capillary cap : getList()) {
@@ -340,11 +346,13 @@ public class Capillaries {
 	/**
 	 * Transfers ROIs from the camera sequence back to capillaries.
 	 * 
-	 * <p>Updates existing capillaries based on ROIs with names containing "line".
-	 * This is a capillary-driven approach: only existing capillaries are updated;
-	 * no new capillaries are created from ROIs.
+	 * <p>
+	 * Updates existing capillaries based on ROIs with names containing "line". This
+	 * is a capillary-driven approach: only existing capillaries are updated; no new
+	 * capillaries are created from ROIs.
 	 * 
-	 * <p>Capillaries without matching ROIs are removed, allowing users to delete
+	 * <p>
+	 * Capillaries without matching ROIs are removed, allowing users to delete
 	 * capillaries by removing their ROIs from the sequence.
 	 * 
 	 * @param seqCamData the camera sequence
@@ -363,7 +371,7 @@ public class Capillaries {
 				ROI2D roi = iterator.next();
 				String roiName = Capillary.replace_LR_with_12(roi.getName());
 				if (roiName.equals(capName)) {
-					if (cap.getROIsForKymo().size() > 1) {
+					if (cap.getAlongTList().size() > 1) {
 						if (!cap.updateROIAtFrameT(t, roi))
 							cap.setRoi((ROI2DShape) roi);
 					} else {
@@ -426,7 +434,8 @@ public class Capillaries {
 	/**
 	 * Transfers capillary ROIs to the camera sequence.
 	 * 
-	 * <p>Removes existing capillary ROIs (containing "line") and adds all current
+	 * <p>
+	 * Removes existing capillary ROIs (containing "line") and adds all current
 	 * capillary ROIs to the sequence.
 	 * 
 	 * @param seq the sequence
@@ -518,8 +527,8 @@ public class Capillaries {
 			capillariesListTimeIntervals = new KymoIntervals();
 
 			for (Capillary cap : getList()) {
-				for (AlongT roiFK : cap.getROIsForKymo()) {
-					Long[] interval = { roiFK.getStart(), (long) -1 };
+				for (AlongT alongT : cap.getAlongTList()) {
+					Long[] interval = { alongT.getStart(), (long) -1 };
 					capillariesListTimeIntervals.addIfNew(interval);
 				}
 			}
@@ -535,11 +544,11 @@ public class Capillaries {
 		int item = capillariesListTimeIntervals.addIfNew(interval);
 
 		for (Capillary cap : getList()) {
-			List<AlongT> listROI2DForKymo = cap.getROIsForKymo();
+			List<AlongT> alongTList = cap.getAlongTList();
 			ROI2D roi = cap.getRoi();
 			if (item > 0)
-				roi = (ROI2D) listROI2DForKymo.get(item - 1).getRoi().getCopy();
-			listROI2DForKymo.add(item, new AlongT(start, roi));
+				roi = (ROI2D) alongTList.get(item - 1).getRoi().getCopy();
+			alongTList.add(item, new AlongT(start, roi));
 		}
 		return item;
 	}
@@ -552,7 +561,8 @@ public class Capillaries {
 
 	/**
 	 * Fills gaps per capillary so each has an AlongT at every global interval
-	 * boundary. For use when opening EditPositionWithTime with per-capillary AlongT.
+	 * boundary. For use when opening EditPositionWithTime with per-capillary
+	 * AlongT.
 	 */
 	public void unifyAlongTIntervalsForDialog() {
 		invalidateKymoIntervalsCache();

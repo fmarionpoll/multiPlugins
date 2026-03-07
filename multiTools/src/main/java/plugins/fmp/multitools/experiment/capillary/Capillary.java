@@ -48,6 +48,12 @@ public class Capillary implements Comparable<Capillary> {
 
 	private boolean gulpMeasuresDirty = false;
 
+	/**
+	 * Cache for getAlongTAtT hinted lookup; invalidated whenever alongTRois is
+	 * modified.
+	 */
+	private int lastAlongTIndex = -1;
+
 	// === PUBLIC FIELDS (Deprecated/Moved logic) ===
 	// These are now delegated to properties but kept for backward compatibility
 	// (where not private)
@@ -267,9 +273,9 @@ public class Capillary implements Comparable<Capillary> {
 
 	public void setRoi(ROI2D roi) {
 		metadata.roiCap = roi;
-		// Clear cached roisForKymo list to force re-initialization with new ROI
-		if (metadata.roisForKymo != null && metadata.roisForKymo.size() > 0) {
-			metadata.roisForKymo.clear();
+		if (metadata.alongTRois != null && metadata.alongTRois.size() > 0) {
+			metadata.alongTRois.clear();
+			invalidateAlongTLookupCache();
 		}
 		// Update kymographPrefix from ROI name if not already set
 		if (roi != null && roi.getName() != null
@@ -279,22 +285,24 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	public List<AlongT> getAlongTList() {
-		if (metadata.roisForKymo.size() < 1)
+		if (metadata.alongTRois.size() < 1)
 			initROI2DForKymoList();
-		return metadata.roisForKymo;
+		return metadata.alongTRois;
 	}
 
 	public void setAlongTList(List<AlongT> list) {
-		metadata.roisForKymo = list != null ? new ArrayList<>(list) : new ArrayList<>();
+		metadata.alongTRois = list != null ? new ArrayList<>(list) : new ArrayList<>();
+		invalidateAlongTLookupCache();
 	}
 
 	/** Keeps only the first AlongT interval; removes all others. */
 	public void retainFirstAlongT() {
-		if (metadata.roisForKymo.size() <= 1)
+		if (metadata.alongTRois.size() <= 1)
 			return;
-		AlongT first = metadata.roisForKymo.get(0);
-		metadata.roisForKymo.clear();
-		metadata.roisForKymo.add(first);
+		AlongT first = metadata.alongTRois.get(0);
+		metadata.alongTRois.clear();
+		metadata.alongTRois.add(first);
+		invalidateAlongTLookupCache();
 	}
 
 	public String getKymographName() {
@@ -1146,45 +1154,73 @@ public class Capillary implements Comparable<Capillary> {
 	 * List of AlongT (start frame, ROI) for this capillary. Contract:
 	 * <ul>
 	 * <li>Ordered by {@code start} ascending.</li>
-	 * <li>Entry at index i is valid from frame {@code start_i} (inclusive) until the
-	 * next entry's start (exclusive), or sequence end if there is no next
+	 * <li>Entry at index i is valid from frame {@code start_i} (inclusive) until
+	 * the next entry's start (exclusive), or sequence end if there is no next
 	 * entry.</li>
-	 * <li>So each entry represents a half-open interval [start_i, start_{i+1});
-	 * the list must remain sorted after any insert/remove.</li>
+	 * <li>So each entry represents a half-open interval [start_i, start_{i+1}); the
+	 * list must remain sorted after any insert/remove.</li>
 	 * </ul>
 	 */
-	public List<AlongT> getROIsForKymo() {
-		if (metadata.roisForKymo.size() < 1)
-			initROI2DForKymoList();
-		return metadata.roisForKymo;
+
+	private void invalidateAlongTLookupCache() {
+		lastAlongTIndex = -1;
 	}
 
 	public AlongT getAlongTAtT(long t) {
-		if (metadata.roisForKymo.size() < 1)
+		if (metadata.alongTRois.size() < 1)
 			initROI2DForKymoList();
+		List<AlongT> list = metadata.alongTRois;
+		int size = list.size();
+
+		if (lastAlongTIndex >= 0 && lastAlongTIndex < size) {
+			AlongT cur = list.get(lastAlongTIndex);
+			if (t < cur.getStart()) {
+				for (int i = lastAlongTIndex - 1; i >= 0; i--) {
+					if (list.get(i).getStart() <= t) {
+						lastAlongTIndex = i;
+						return list.get(i);
+					}
+				}
+				lastAlongTIndex = -1;
+				return null;
+			}
+			if (lastAlongTIndex == size - 1)
+				return cur;
+			if (t < list.get(lastAlongTIndex + 1).getStart())
+				return cur;
+			while (lastAlongTIndex + 1 < size && t >= list.get(lastAlongTIndex + 1).getStart())
+				lastAlongTIndex++;
+			return list.get(lastAlongTIndex);
+		}
 
 		AlongT alongT = null;
-		for (AlongT item : metadata.roisForKymo) {
+		int foundIndex = -1;
+		for (int i = 0; i < size; i++) {
+			AlongT item = list.get(i);
 			if (t < item.getStart())
 				break;
 			alongT = item;
+			foundIndex = i;
 		}
+		lastAlongTIndex = foundIndex;
 		return alongT;
 	}
 
 	/**
-	 * Start frame of the interval at index i (same as getROIsForKymo().get(i).getStart()).
+	 * Start frame of the interval at index i (same as
+	 * getAlongTList().get(i).getStart()).
 	 */
 	public long getIntervalStart(int i) {
-		return getROIsForKymo().get(i).getStart();
+		return getAlongTList().get(i).getStart();
 	}
 
 	/**
 	 * End frame (exclusive) of the interval at index i: the next entry's start, or
-	 * Long.MAX_VALUE if there is no next entry (caller may use sequence length instead).
+	 * Long.MAX_VALUE if there is no next entry (caller may use sequence length
+	 * instead).
 	 */
 	public long getIntervalEnd(int i) {
-		List<AlongT> list = getROIsForKymo();
+		List<AlongT> list = getAlongTList();
 		if (i + 1 < list.size())
 			return list.get(i + 1).getStart();
 		return Long.MAX_VALUE;
@@ -1192,22 +1228,25 @@ public class Capillary implements Comparable<Capillary> {
 
 	public void removeROI2DIntervalStartingAt(long start) {
 		AlongT itemFound = null;
-		for (AlongT item : metadata.roisForKymo) {
+		for (AlongT item : metadata.alongTRois) {
 			if (start != item.getStart())
 				continue;
 			itemFound = item;
 		}
 		if (itemFound != null)
-			metadata.roisForKymo.remove(itemFound);
+			metadata.alongTRois.remove(itemFound);
+		invalidateAlongTLookupCache();
 	}
 
 	private void initROI2DForKymoList() {
-		metadata.roisForKymo.add(new AlongT(0, metadata.roiCap));
+		metadata.alongTRois.add(new AlongT(0, metadata.roiCap));
+		invalidateAlongTLookupCache();
 	}
 
 	public void addAlongTFromImport(AlongT at) {
-		metadata.roisForKymo.add(at);
-		if (metadata.roisForKymo.size() == 1 && at.getRoi() != null) {
+		metadata.alongTRois.add(at);
+		invalidateAlongTLookupCache();
+		if (metadata.alongTRois.size() == 1 && at.getRoi() != null) {
 			metadata.roiCap = at.getRoi();
 			if (metadata.kymographPrefix == null || metadata.kymographPrefix.isEmpty())
 				metadata.kymographPrefix = extractPrefixFromRoiName(at.getRoi().getName());
@@ -1222,7 +1261,7 @@ public class Capillary implements Comparable<Capillary> {
 	 * @param start interval start frame
 	 */
 	public void addAlongTAtStartIfMissing(long start) {
-		for (AlongT item : metadata.roisForKymo) {
+		for (AlongT item : metadata.alongTRois) {
 			if (item.getStart() == start)
 				return;
 		}
@@ -1232,12 +1271,13 @@ public class Capillary implements Comparable<Capillary> {
 		if (roiCopy == null)
 			return;
 		int idx = 0;
-		for (AlongT item : metadata.roisForKymo) {
+		for (AlongT item : metadata.alongTRois) {
 			if (item.getStart() > start)
 				break;
 			idx++;
 		}
-		metadata.roisForKymo.add(idx, new AlongT(start, roiCopy));
+		metadata.alongTRois.add(idx, new AlongT(start, roiCopy));
+		invalidateAlongTLookupCache();
 	}
 
 	/**
@@ -1245,20 +1285,21 @@ public class Capillary implements Comparable<Capillary> {
 	 * Keeps at least one interval.
 	 */
 	public void compressRedundantAlongT() {
-		if (metadata.roisForKymo.size() <= 1)
+		if (metadata.alongTRois.size() <= 1)
 			return;
 		List<AlongT> toRemove = new ArrayList<>();
 		AlongT prev = null;
-		for (AlongT at : metadata.roisForKymo) {
+		for (AlongT at : metadata.alongTRois) {
 			if (prev != null && at.getRoi() != null && prev.getRoi() != null
 					&& ROI2DUtilities.roiGeometryEquals(at.getRoi(), prev.getRoi()))
 				toRemove.add(at);
 			else
 				prev = at;
 		}
-		metadata.roisForKymo.removeAll(toRemove);
-		if (metadata.roisForKymo.isEmpty() && metadata.roiCap != null)
-			metadata.roisForKymo.add(new AlongT(0, metadata.roiCap));
+		metadata.alongTRois.removeAll(toRemove);
+		if (metadata.alongTRois.isEmpty() && metadata.roiCap != null)
+			metadata.alongTRois.add(new AlongT(0, metadata.roiCap));
+		invalidateAlongTLookupCache();
 	}
 
 	/**
@@ -1297,7 +1338,7 @@ public class Capillary implements Comparable<Capillary> {
 	public void injectTrackedRoisIntoAlongT(long tStart, long tEnd, Map<Long, ROI2D> tracked) {
 		if (tracked == null || tracked.isEmpty())
 			return;
-		metadata.roisForKymo.removeIf(at -> {
+		metadata.alongTRois.removeIf(at -> {
 			long s = at.getStart();
 			return s >= tStart && s <= tEnd;
 		});
@@ -1310,11 +1351,12 @@ public class Capillary implements Comparable<Capillary> {
 				ROI2D copy = (ROI2D) roi.getCopy();
 				if (metadata.roiCap != null && copy.getName() == null)
 					copy.setName(metadata.roiCap.getName());
-				metadata.roisForKymo.add(new AlongT(t, copy));
+				metadata.alongTRois.add(new AlongT(t, copy));
 			}
 		}
-		metadata.roisForKymo.sort((a, b) -> Long.compare(a.getStart(), b.getStart()));
+		metadata.alongTRois.sort((a, b) -> Long.compare(a.getStart(), b.getStart()));
 		compressRedundantAlongT();
+		invalidateAlongTLookupCache();
 	}
 
 	public void setVolumeAndPixels(double volume, int pixels) {
@@ -1598,7 +1640,7 @@ public class Capillary implements Comparable<Capillary> {
 
 	private static class CapillaryMetadata {
 		public ROI2D roiCap = null;
-		public ArrayList<AlongT> roisForKymo = new ArrayList<AlongT>();
+		public ArrayList<AlongT> alongTRois = new ArrayList<AlongT>();
 		public String kymographName = null;
 		public String kymographPrefix = null;
 	}

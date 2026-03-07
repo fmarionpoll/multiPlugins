@@ -232,7 +232,7 @@ public class KymographBuilder {
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			if (!cap.getKymographBuild())
 				continue;
-			for (AlongT capT : cap.getROIsForKymo()) {
+			for (AlongT capT : cap.getAlongTList()) {
 				int imageHeight_i = buildMasks(capT, sizex, sizey, options);
 				if (imageHeight_i > imageHeight)
 					imageHeight = imageHeight_i;

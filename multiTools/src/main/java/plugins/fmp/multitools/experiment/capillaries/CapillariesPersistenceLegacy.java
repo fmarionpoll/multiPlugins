@@ -105,7 +105,8 @@ public class CapillariesPersistenceLegacy {
 				loaded = !capillaries.getList().isEmpty();
 				break;
 			default:
-				// Unknown version: try v2-style loader but do not treat as success unless we get capillaries
+				// Unknown version: try v2-style loader but do not treat as success unless we
+				// get capillaries
 				xmlLoadCapillaries_Only_v2(capillaries, doc, csFileName);
 				loaded = !capillaries.getList().isEmpty();
 				break;
@@ -580,7 +581,7 @@ public class CapillariesPersistenceLegacy {
 	static void csvSave_AlongTSection(Capillaries capillaries, FileWriter csvWriter, String csvSep) throws IOException {
 		csvWriter.append("#" + csvSep + "ALONGT" + csvSep + "roi_name;start;roiType;npoints;x1;y1;...\n");
 		for (Capillary cap : capillaries.getList()) {
-			for (AlongT at : cap.getROIsForKymo()) {
+			for (AlongT at : cap.getAlongTList()) {
 				String row = CapillaryPersistence.csvExportAlongTRow(cap, at, csvSep);
 				if (!row.isEmpty())
 					csvWriter.append(row);
@@ -591,7 +592,7 @@ public class CapillariesPersistenceLegacy {
 
 	static String csvLoad_AlongT(Capillaries capillaries, BufferedReader csvReader, String sep) throws IOException {
 		for (Capillary cap : capillaries.getList())
-			cap.getROIsForKymo().clear();
+			cap.getAlongTList().clear();
 
 		String row;
 		String nextSection = null;
@@ -609,8 +610,8 @@ public class CapillariesPersistenceLegacy {
 				CapillaryPersistence.csvImportAlongTRow(cap, data);
 		}
 		for (Capillary cap : capillaries.getList()) {
-			if (cap.getROIsForKymo().isEmpty() && cap.getRoi() != null)
-				cap.getROIsForKymo().add(new AlongT(0, cap.getRoi()));
+			if (cap.getAlongTList().isEmpty() && cap.getRoi() != null)
+				cap.getAlongTList().add(new AlongT(0, cap.getRoi()));
 		}
 		return nextSection;
 	}
