@@ -136,8 +136,8 @@ public class ViewOptionsHolder {
 		dto.setViewCages(viewCages);
 		dto.setViewFliesCenter(viewFliesCenter);
 		dto.setViewFliesRect(viewFliesRect);
-		dto.setViewLevels(viewTopLevels);
-		dto.setViewLevels(viewBottomLevels);
+		dto.setViewTopLevels(viewTopLevels);
+		dto.setViewBottomLevels(viewBottomLevels);
 		dto.setViewDerivative(viewDerivative);
 		dto.setViewGulps(viewGulps);
 		return dto;

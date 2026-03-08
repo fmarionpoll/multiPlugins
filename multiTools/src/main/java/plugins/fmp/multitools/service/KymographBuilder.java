@@ -80,6 +80,13 @@ public class KymographBuilder {
 
 		ProgressFrame progress = new ProgressFrame("Analyze series");
 
+		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
+		processor.setThreadName("buildKymograph");
+		processor.setPriority(Processor.NORM_PRIORITY);
+		int ntasks = exp.getCapillaries().getList().size();
+		ArrayList<Future<?>> tasks = new ArrayList<Future<?>>(ntasks);
+		tasks.clear();
+
 		for (int iToColumn = 0; iToColumn < expectedWidth; iToColumn++) {
 			long ii_ms = first_ms + iToColumn * step_ms;
 			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
@@ -94,20 +101,21 @@ public class KymographBuilder {
 			final IcyBufferedImage sourceImage = loader
 					.imageIORead(exp.getSeqCamData().getFileNameFromImageList(fromSourceImageIndex));
 
-//			tasks.add(processor.submit(new Runnable() {
-//				@Override
-//				public void run() {
-			for (Capillary capi : exp.getCapillaries().getList()) {
-				if (!capi.getKymographBuild())
-					continue;
-				analyzeImageUnderCapillary(sourceImage, capi, viewT, kymographColumn, refSizex, refSizey, options);
-			}
-//				}
-//			}));
+			tasks.add(processor.submit(new Runnable() {
+				@Override
+				public void run() {
+					for (Capillary capi : exp.getCapillaries().getList()) {
+						if (!capi.getKymographBuild())
+							continue;
+						analyzeImageUnderCapillary(sourceImage, capi, viewT, kymographColumn, refSizex, refSizey,
+								options);
+					}
+				}
+			}));
 		}
 
 		progress.close();
-//		waitFuturesCompletion(processor, tasks);
+		waitFuturesCompletion(processor, tasks);
 
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		int sizeC = seqCamData.getSequence().getSizeC();

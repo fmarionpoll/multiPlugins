@@ -61,15 +61,17 @@ public class Experiment {
 
 	/**
 	 * Builds bin directory name from interval in ms, rounding to nearest second
-	 * (e.g. 59900 → "bin_60") so small sampling errors do not create bin_59 vs bin_60 mismatch.
+	 * (e.g. 59900 → "bin_60") so small sampling errors do not create bin_59 vs
+	 * bin_60 mismatch.
 	 */
 	public static String binDirectoryNameFromMs(long binMs) {
 		return BIN + (int) Math.round(binMs / 1000.0);
 	}
 
 	/**
-	 * Builds bin directory name from nominal interval in seconds (e.g. 60 → "bin_60").
-	 * Used when the user has confirmed the nominal; factor is 1 in Phase 1.
+	 * Builds bin directory name from nominal interval in seconds (e.g. 60 →
+	 * "bin_60"). Used when the user has confirmed the nominal; factor is 1 in Phase
+	 * 1.
 	 */
 	public static String binDirectoryNameFromNominal(int nominalSec) {
 		return BIN + nominalSec;
@@ -117,7 +119,9 @@ public class Experiment {
 	private volatile boolean isLoading = false;
 	private volatile boolean isSaving = false;
 
-	/** True when experiment was loaded from descriptor version 1.0.0 (MS96 legacy). */
+	/**
+	 * True when experiment was loaded from descriptor version 1.0.0 (MS96 legacy).
+	 */
 	private boolean legacyExperimentFormat = false;
 
 	// -----------------------------------------
@@ -961,7 +965,8 @@ public class Experiment {
 		if (binDir != null && capillaries.getPersistence().hasCapillariesMeasuresFiles(binDir)) {
 			measuresLoaded = capillaries.getPersistence().loadMeasures(capillaries, binDir);
 			if (measuresLoaded) {
-				int nominalFromCsv = plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence.readNominalIntervalSecFromMeasuresFile(binDir);
+				int nominalFromCsv = plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence
+						.readNominalIntervalSecFromMeasuresFile(binDir);
 				if (nominalFromCsv > 0)
 					setNominalIntervalSec(nominalFromCsv);
 			}
@@ -1463,8 +1468,10 @@ public class Experiment {
 			String name = roi.getName();
 			if (name == null)
 				continue;
-			if (name.contains("level"))
-				layer.setVisible(opts.isViewLevels());
+			if (name.contains("toplevel"))
+				layer.setVisible(opts.isViewTopLevels());
+			else if (name.contains("bottomlevel"))
+				layer.setVisible(opts.isViewBottomLevels());
 			else if (name.contains("deriv"))
 				layer.setVisible(opts.isViewDerivative());
 			else if (name.contains("gulp"))

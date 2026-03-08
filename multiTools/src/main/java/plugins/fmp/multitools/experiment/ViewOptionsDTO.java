@@ -11,7 +11,8 @@ public class ViewOptionsDTO {
 	private boolean viewCages = true;
 	private boolean viewFliesCenter = false;
 	private boolean viewFliesRect = false;
-	private boolean viewLevels = true;
+	private boolean viewTopLevels = true;
+	private boolean viewBottomLevels = true;
 	private boolean viewDerivative = true;
 	private boolean viewGulps = true;
 
@@ -47,12 +48,20 @@ public class ViewOptionsDTO {
 		this.viewFliesRect = viewFliesRect;
 	}
 
-	public boolean isViewLevels() {
-		return viewLevels;
+	public boolean isViewTopLevels() {
+		return viewTopLevels;
 	}
 
-	public void setViewLevels(boolean viewLevels) {
-		this.viewLevels = viewLevels;
+	public void setViewTopLevels(boolean viewTopLevels) {
+		this.viewTopLevels = viewTopLevels;
+	}
+
+	public boolean isViewBottomLevels() {
+		return viewBottomLevels;
+	}
+
+	public void setViewBottomLevels(boolean viewBottomLevels) {
+		this.viewBottomLevels = viewBottomLevels;
 	}
 
 	public boolean isViewDerivative() {

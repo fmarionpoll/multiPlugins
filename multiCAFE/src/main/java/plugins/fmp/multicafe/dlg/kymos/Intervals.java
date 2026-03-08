@@ -10,6 +10,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +32,7 @@ import icy.roi.ROI;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.ViewOptionsHolder;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
@@ -168,7 +170,7 @@ public class Intervals extends JPanel implements ViewerListener {
 	public void applyCentralViewOptionsToKymosViewer(Viewer v) {
 		if (v == null)
 			return;
-		plugins.fmp.multicafe.ViewOptionsHolder opts = parent0.viewOptions;
+		ViewOptionsHolder opts = parent0.viewOptions;
 		displayROIsOnViewer(v, "deriv", opts.isViewDerivative());
 		displayROIsOnViewer(v, "gulp", opts.isViewGulps());
 		displayROIsOnViewer(v, "toplevel", opts.isViewTopLevels());
@@ -201,7 +203,7 @@ public class Intervals extends JPanel implements ViewerListener {
 				return;
 			}
 
-			icy.sequence.Sequence seq = seqKymographs.getSequence();
+			Sequence seq = seqKymographs.getSequence();
 			if (seq.isUpdating()) {
 				seq.endUpdate();
 			}
@@ -380,7 +382,7 @@ public class Intervals extends JPanel implements ViewerListener {
 		// Try to get the frame using reflection (Viewer likely has an internal frame)
 		try {
 			// Try to get the frame using reflection
-			java.lang.reflect.Method getFrameMethod = viewer.getClass().getMethod("getFrame");
+			Method getFrameMethod = viewer.getClass().getMethod("getFrame");
 			Object frameObj = getFrameMethod.invoke(viewer);
 			if (frameObj instanceof Component) {
 				((Component) frameObj).addComponentListener(kymographViewerBoundsListener);
@@ -393,7 +395,7 @@ public class Intervals extends JPanel implements ViewerListener {
 		// Alternative: try to access frame through parent hierarchy
 		try {
 			// Viewer might extend IcyFrame or have a getParentFrame method
-			java.lang.reflect.Method getParentFrameMethod = viewer.getClass().getMethod("getParentFrame");
+			Method getParentFrameMethod = viewer.getClass().getMethod("getParentFrame");
 			Object frameObj = getParentFrameMethod.invoke(viewer);
 			if (frameObj instanceof Component) {
 				((Component) frameObj).addComponentListener(kymographViewerBoundsListener);
@@ -413,7 +415,7 @@ public class Intervals extends JPanel implements ViewerListener {
 
 		// Try to get the frame using reflection
 		try {
-			java.lang.reflect.Method getFrameMethod = viewer.getClass().getMethod("getFrame");
+			Method getFrameMethod = viewer.getClass().getMethod("getFrame");
 			Object frameObj = getFrameMethod.invoke(viewer);
 			if (frameObj instanceof Component) {
 				((Component) frameObj).removeComponentListener(kymographViewerBoundsListener);
@@ -426,7 +428,7 @@ public class Intervals extends JPanel implements ViewerListener {
 
 		// Alternative: try to access frame through parent hierarchy
 		try {
-			java.lang.reflect.Method getParentFrameMethod = viewer.getClass().getMethod("getParentFrame");
+			Method getParentFrameMethod = viewer.getClass().getMethod("getParentFrame");
 			Object frameObj = getParentFrameMethod.invoke(viewer);
 			if (frameObj instanceof Component) {
 				((Component) frameObj).removeComponentListener(kymographViewerBoundsListener);
@@ -500,7 +502,7 @@ public class Intervals extends JPanel implements ViewerListener {
 		}
 		Rectangle savedBounds = null;
 		int t = -1;
-		icy.sequence.Sequence seq = seqKymos.getSequence();
+		Sequence seq = seqKymos.getSequence();
 		seq.beginUpdate();
 		try {
 			if (v != null) {
