@@ -81,9 +81,12 @@ public class Intervals extends JPanel implements ItemListener {
 		panel1.add(binSizeJSpinner);
 		panel1.add(binUnit);
 		panel1.add(new JLabel("Nominal interval (s) ", SwingConstants.RIGHT));
-		panel1.add(nominalIntervalJSpinner);
-		panel1.add(refreshButton);
 		add(panel1);
+
+		JPanel panel2 = new JPanel(layout1);
+		panel2.add(nominalIntervalJSpinner);
+		panel2.add(refreshButton);
+		add(panel2);
 
 		fixedNumberOfImagesJSpinner.setVisible(false);
 		defineActionListeners();
@@ -125,6 +128,8 @@ public class Intervals extends JPanel implements ItemListener {
 					exp.getSeqCamData().getTimeManager()
 							.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
 					exp.saveExperimentDescriptors();
+					parent0.paneExperiment.updateViewerForSequenceCam(exp);
+					parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
 				}
 			}
 		});
@@ -138,8 +143,7 @@ public class Intervals extends JPanel implements ItemListener {
 					return;
 				}
 				long requested = (long) fixedNumberOfImagesJSpinner.getValue();
-				ImageLoader imgLoader = exp.getSeqCamData()
-						.getImageLoader();
+				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
 						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
 				long available = Math.max(0L, imagesOnDisk.size() - imgLoader.getAbsoluteIndexFirstImage());
@@ -189,8 +193,7 @@ public class Intervals extends JPanel implements ItemListener {
 				if (exp == null || exp.getSeqCamData() == null) {
 					return;
 				}
-				ImageLoader imgLoader = exp.getSeqCamData()
-						.getImageLoader();
+				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
 						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
 				long available = Math.max(0L, imagesOnDisk.size() - imgLoader.getAbsoluteIndexFirstImage());
@@ -217,7 +220,8 @@ public class Intervals extends JPanel implements ItemListener {
 			nominalSec = 60;
 
 		long medianMs = exp.getCamImageBin_ms();
-		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs, exp.getNominalIntervalSec() >= 0))
+		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
+				exp.getNominalIntervalSec() >= 0))
 			return;
 
 		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
@@ -246,6 +250,8 @@ public class Intervals extends JPanel implements ItemListener {
 				.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
 		exp.getSeqCamData().loadImageList(imagesList);
 		parent0.paneExperiment.updateDialogs(exp);
+		parent0.paneExperiment.updateViewerForSequenceCam(exp);
+		parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
 	}
 
 	public void getExptParms(Experiment exp) {

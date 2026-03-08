@@ -24,7 +24,7 @@ import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiCAFE extends PluginActionable {
-	public IcyFrame mainFrame = new IcyFrame("MultiCAFE February 27, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("MultiCAFE March 8, 2026", true, true, true, true);
 
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
@@ -44,7 +44,8 @@ public class MultiCAFE extends PluginActionable {
 
 	@Override
 	public void run() {
-		String revision = MultiCAFE.class.getPackage() != null ? MultiCAFE.class.getPackage().getImplementationVersion() : null;
+		String revision = MultiCAFE.class.getPackage() != null ? MultiCAFE.class.getPackage().getImplementationVersion()
+				: null;
 		Experiment.setProgramContext("multiCAFE", revision);
 
 		viewOptions.load(getPreferences("viewOptions"));
