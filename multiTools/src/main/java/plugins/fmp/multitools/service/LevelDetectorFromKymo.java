@@ -156,9 +156,8 @@ public class LevelDetectorFromKymo {
 
 		int topSearchFrom = Math.min(searchRect.y + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
 		int columnFirst = (int) searchRect.getX();
-		int columnLast = (int) (searchRect.getWidth() + columnFirst); // - 1;
+		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
 		int n_measures = columnLast - columnFirst + 1;
-		System.out.println("n_measurees =" + n_measures);
 		capi.getTopLevel().limit = new int[n_measures];
 		capi.getBottomLevel().limit = new int[n_measures];
 		if (options.runBackwards)

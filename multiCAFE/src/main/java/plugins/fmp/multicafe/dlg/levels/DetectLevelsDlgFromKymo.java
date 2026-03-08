@@ -457,8 +457,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		Sequence seq = exp.getSeqKymos().getSequence();
 		if (searchRectangleROI2D == null) {
 			Rectangle searchRectangle = seq.getBounds2D();
-			searchRectangle.width -= 1;
-			searchRectangle.height -= 1;
 			searchRectangleROI2D = new ROI2DRectangle(searchRectangle);
 			searchRectangleROI2D.setName(SEARCHRECT);
 			searchRectangleROI2D.setColor(Color.ORANGE);
@@ -471,8 +469,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 	private Rectangle getSearchAreaFromSearchRectangle(Experiment exp, boolean fitSmallerRectangle) {
 		Rectangle seqBounds = exp.getSeqKymos().getSequence().getBounds2D();
-		int seqW = Math.max(0, seqBounds.width - 1);
-		int seqH = Math.max(0, seqBounds.height - 1);
+		int seqW = Math.max(0, seqBounds.width);
+		int seqH = Math.max(0, seqBounds.height);
 		if (fitSmallerRectangle && searchRectangleROI2D != null) {
 			Rectangle r = searchRectangleROI2D.getBounds();
 			int x = Math.max(0, r.x);
