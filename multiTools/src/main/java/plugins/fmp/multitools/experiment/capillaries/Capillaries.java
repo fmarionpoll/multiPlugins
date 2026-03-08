@@ -23,7 +23,7 @@ public class Capillaries {
 	private CapillariesDescription capillariesDescription = new CapillariesDescription();
 	private CapillariesDescription desc_old = new CapillariesDescription();
 	private List<Capillary> capillariesList = new ArrayList<Capillary>();
-	private KymoIntervals capillariesListTimeIntervals = null;
+	private OrderedIntervals capillariesListTimeIntervals = null;
 	/**
 	 * True when every capillary has an AlongT at every global interval start (e.g.
 	 * after unifyAlongTIntervalsForDialog).
@@ -522,9 +522,9 @@ public class Capillaries {
 		this.alongTUnified = unified;
 	}
 
-	public KymoIntervals getKymoIntervalsFromCapillaries() {
+	public OrderedIntervals getKymoIntervalsFromCapillaries() {
 		if (capillariesListTimeIntervals == null) {
-			capillariesListTimeIntervals = new KymoIntervals();
+			capillariesListTimeIntervals = new OrderedIntervals();
 
 			for (Capillary cap : getList()) {
 				for (AlongT alongT : cap.getAlongTList()) {
@@ -566,7 +566,7 @@ public class Capillaries {
 	 */
 	public void unifyAlongTIntervalsForDialog() {
 		invalidateKymoIntervalsCache();
-		KymoIntervals global = getKymoIntervalsFromCapillaries();
+		OrderedIntervals global = getKymoIntervalsFromCapillaries();
 		for (int i = 0; i < global.intervals.size(); i++) {
 			long start = global.intervals.get(i)[0];
 			for (Capillary cap : getList())

@@ -3,6 +3,7 @@ package plugins.fmp.multitools.service;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,28 +42,57 @@ public class KymographBuilder {
 		}
 
 		getCapillariesToProcess(exp, options);
-		initArraysToBuildKymographImages(exp, options);
-
-//		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
-//		processor.setThreadName("buildKymograph");
-//		processor.setPriority(Processor.NORM_PRIORITY);
-//		int ntasks = exp.getCapillaries().getList().size();
-//		ArrayList<Future<?>> tasks = new ArrayList<Future<?>>(ntasks);
-//		tasks.clear();
+		clearAllAlongTMasks(exp);
 
 		SequenceLoaderService loader = new SequenceLoaderService();
-		long first_ms = exp.getKymoFirst_ms();
-		long last_ms = exp.getKymoLast_ms();
+		long offset = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
+		FileTime firstViewFileTime = exp.getSeqCamData().getFileTimeFromStructuredName((int) offset);
+		long firstViewImageMs = (firstViewFileTime != null) ? firstViewFileTime.toMillis() : 0;
+		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(firstViewImageMs);
+
+		long first_ms = 0;
+		long last_ms = exp.getSeqCamData().getTimeManager().getBinLast_ms();
+		if (last_ms <= first_ms && exp.getKymoLast_ms() > exp.getKymoFirst_ms()) {
+			first_ms = exp.getKymoFirst_ms();
+			last_ms = exp.getKymoLast_ms();
+		}
+
 		long step_ms = exp.getKymoBin_ms();
-		int sourceLastImageIndex = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		int iToColumn = 0;
+		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		long fixedN = exp.getSeqCamData().getImageLoader().getFixedNumberOfImages();
+		int nViewFrames = (fixedN > 0) ? (int) fixedN : Math.max(0, nTotalFrames - (int) offset);
+		int lowIndex = (int) Math.min(offset, nTotalFrames - 1);
+		int highIndex = (nTotalFrames > 0) ? (int) Math.min(offset + nViewFrames - 1, nTotalFrames - 1) : 0;
+		if (highIndex < lowIndex)
+			highIndex = lowIndex;
+		long[] camImages_ms = exp.getCamImages_ms();
+		if (camImages_ms != null && highIndex < camImages_ms.length)
+			last_ms = Math.min(last_ms, camImages_ms[highIndex]);
+
+		int expectedWidth = (step_ms > 0) ? Math.max(1, 1 + (int) Math.ceil((last_ms - first_ms) / (double) step_ms))
+				: 1;
+		initArraysToBuildKymographImages(exp, options, expectedWidth);
+
+		int sourceLastImageIndex = nTotalFrames;
+		final int refSizex = exp.getSeqCamData().getSequence().getSizeX();
+		final int refSizey = exp.getSeqCamData().getSequence().getSizeY();
+		final long viewOffset = offset;
 
 		ProgressFrame progress = new ProgressFrame("Analyze series");
 
-		for (long ii_ms = first_ms; ii_ms <= last_ms; ii_ms += step_ms, iToColumn++) {
-			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, 0,
-					exp.getSeqCamData().getImageLoader().getNTotalFrames());
+		int framesReadCount = 0;
+		for (int iToColumn = 0; iToColumn < expectedWidth; iToColumn++) {
+			long ii_ms = first_ms + iToColumn * step_ms;
+			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
+			if (framesReadCount < 5)
+				Logger.info("KymographBuilder frame " + framesReadCount + " read from disk absolute index: "
+						+ sourceImageIndex);
+			if (sourceImageIndex < 0)
+				continue;
 			final int fromSourceImageIndex = sourceImageIndex;
+
+			framesReadCount++;
+			final int viewT = (int) (fromSourceImageIndex - viewOffset);
 			final int kymographColumn = iToColumn;
 			progress.setMessage("Processing file: " + (sourceImageIndex + 1) + "//" + sourceLastImageIndex);
 
@@ -75,7 +105,7 @@ public class KymographBuilder {
 			for (Capillary capi : exp.getCapillaries().getList()) {
 				if (!capi.getKymographBuild())
 					continue;
-				analyzeImageUnderCapillary(sourceImage, capi, fromSourceImageIndex, kymographColumn);
+				analyzeImageUnderCapillary(sourceImage, capi, viewT, kymographColumn, refSizex, refSizey, options);
 			}
 //				}
 //			}));
@@ -142,8 +172,32 @@ public class KymographBuilder {
 		}
 	}
 
-	private void analyzeImageUnderCapillary(IcyBufferedImage sourceImage, Capillary cap, int t, int kymographColumn) {
-		AlongT capiROI2DatT = cap.getAlongTAtT(t);
+	private void analyzeImageUnderCapillary(IcyBufferedImage sourceImage, Capillary cap, int t, int kymographColumn,
+			int refSizex, int refSizey, BuildSeriesOptions options) {
+		AlongT alongT = cap.getAlongTAtT(t);
+		if (alongT == null) {
+			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - no AlongT for t=" + t + " cap="
+					+ (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName()) + ", skipping column "
+					+ kymographColumn);
+			return;
+		}
+		int imgW = sourceImage.getWidth();
+		int imgH = sourceImage.getHeight();
+		if (imgW != refSizex || imgH != refSizey)
+			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - source image size " + imgW + "x" + imgH
+					+ " differs from reference " + refSizex + "x" + refSizey + " (t=" + t
+					+ "), mask indices may be wrong");
+
+		if (alongT.getMasksList() == null || alongT.getMasksList().isEmpty())
+			buildMasks(alongT, refSizex, refSizey, options);
+		ArrayList<ArrayList<int[]>> masksList = alongT.getMasksList();
+		if (masksList == null) {
+			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - masksList still null after build for t=" + t
+					+ " cap=" + (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName())
+					+ ", skipping column " + kymographColumn);
+			return;
+		}
+
 		int sizeC = sourceImage.getSizeC();
 		IcyBufferedImage capImage = cap.getCap_Image();
 		int kymoImageWidth = capImage.getWidth();
@@ -156,7 +210,7 @@ public class KymographBuilder {
 
 			int cnt = 0;
 			int sourceImageWidth = sourceImage.getWidth();
-			for (ArrayList<int[]> mask : capiROI2DatT.getMasksList()) {
+			for (ArrayList<int[]> mask : masksList) {
 				int sum = 0;
 				for (int[] m : mask)
 					sum += sourceImageChannel[m[0] + m[1] * sourceImageWidth];
@@ -219,7 +273,16 @@ public class KymographBuilder {
 		waitFuturesCompletion(processor, tasks);
 	}
 
-	private void initArraysToBuildKymographImages(Experiment exp, BuildSeriesOptions options) {
+	private void clearAllAlongTMasks(Experiment exp) {
+		for (Capillary cap : exp.getCapillaries().getList()) {
+			if (!cap.getKymographBuild())
+				continue;
+			for (AlongT capT : cap.getAlongTList())
+				capT.setMasksList(null);
+		}
+	}
+
+	private void initArraysToBuildKymographImages(Experiment exp, BuildSeriesOptions options, int kymoImageWidthHint) {
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData.getSequence() == null)
 			seqCamData.setSequence(exp.getSeqCamData().getImageLoader()
@@ -227,13 +290,24 @@ public class KymographBuilder {
 		int sizex = seqCamData.getSequence().getSizeX();
 		int sizey = seqCamData.getSequence().getSizeY();
 
-		int kymoImageWidth = (int) ((exp.getKymoLast_ms() - exp.getKymoFirst_ms()) / exp.getKymoBin_ms() + 1);
+		long firstMs = seqCamData.getTimeManager().getBinFirst_ms();
+		long lastMs = seqCamData.getTimeManager().getBinLast_ms();
+		if (lastMs <= firstMs)
+			lastMs = exp.getKymoLast_ms();
+		if (lastMs <= firstMs)
+			firstMs = exp.getKymoFirst_ms();
+		long stepMs = exp.getKymoBin_ms();
+		int kymoImageWidth = (kymoImageWidthHint > 0) ? kymoImageWidthHint
+				: ((stepMs > 0) ? (int) ((lastMs - firstMs) / stepMs + 1) : 1);
+		if (kymoImageWidth <= 0)
+			kymoImageWidth = (int) ((exp.getKymoLast_ms() - exp.getKymoFirst_ms()) / stepMs + 1);
+
 		int imageHeight = 0;
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			if (!cap.getKymographBuild())
 				continue;
 			for (AlongT capT : cap.getAlongTList()) {
-				int imageHeight_i = buildMasks(capT, sizex, sizey, options);
+				int imageHeight_i = buildMasksCount(capT, sizex, sizey, options);
 				if (imageHeight_i > imageHeight)
 					imageHeight = imageHeight_i;
 			}
@@ -241,10 +315,17 @@ public class KymographBuilder {
 		}
 	}
 
-	private int buildMasks(AlongT capT, int sizex, int sizey, BuildSeriesOptions options) {
+	private int buildMasksCount(AlongT capT, int sizex, int sizey, BuildSeriesOptions options) {
 		ArrayList<ArrayList<int[]>> masks = new ArrayList<ArrayList<int[]>>();
-		getPointsfromROIPolyLineUsingBresenham(ROI2DUtilities.getCapillaryPoints(capT.getRoi()), masks,
-				options.diskRadius, sizex, sizey);
+		ArrayList<Point2D> capPoints = ROI2DUtilities.getCapillaryPoints(capT.getRoi());
+		getPointsfromROIPolyLineUsingBresenham(capPoints, masks, options.diskRadius, sizex, sizey);
+		return masks.size();
+	}
+
+	private int buildMasks(AlongT capT, int sizex, int sizey, BuildSeriesOptions options) {
+		ArrayList<Point2D> capPoints = ROI2DUtilities.getCapillaryPoints(capT.getRoi());
+		ArrayList<ArrayList<int[]>> masks = new ArrayList<ArrayList<int[]>>();
+		getPointsfromROIPolyLineUsingBresenham(capPoints, masks, options.diskRadius, sizex, sizey);
 		capT.setMasksList(masks);
 		return masks.size();
 	}

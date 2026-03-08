@@ -2,7 +2,7 @@ package plugins.fmp.multitools.experiment.capillaries;
 
 import java.util.ArrayList;
 
-public class KymoIntervals {
+public class OrderedIntervals {
 
 	public ArrayList<Long[]> intervals = new ArrayList<Long[]>();
 

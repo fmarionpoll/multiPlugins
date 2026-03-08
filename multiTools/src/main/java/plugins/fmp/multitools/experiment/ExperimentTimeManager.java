@@ -107,6 +107,9 @@ public class ExperimentTimeManager {
 	public int findNearestIntervalWithBinarySearch(long value, int low, int high) {
 		if (camImages_ms == null)
 			return -1;
+		high = Math.min(high, camImages_ms.length - 1);
+		if (high < low)
+			return -1;
 		int result = -1;
 		if (high - low > 1) {
 			int mid = (low + high) / 2;
