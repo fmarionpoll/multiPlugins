@@ -80,18 +80,13 @@ public class KymographBuilder {
 
 		ProgressFrame progress = new ProgressFrame("Analyze series");
 
-		int framesReadCount = 0;
 		for (int iToColumn = 0; iToColumn < expectedWidth; iToColumn++) {
 			long ii_ms = first_ms + iToColumn * step_ms;
 			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
-			if (framesReadCount < 5)
-				Logger.info("KymographBuilder frame " + framesReadCount + " read from disk absolute index: "
-						+ sourceImageIndex);
 			if (sourceImageIndex < 0)
 				continue;
 			final int fromSourceImageIndex = sourceImageIndex;
 
-			framesReadCount++;
 			final int viewT = (int) (fromSourceImageIndex - viewOffset);
 			final int kymographColumn = iToColumn;
 			progress.setMessage("Processing file: " + (sourceImageIndex + 1) + "//" + sourceLastImageIndex);
