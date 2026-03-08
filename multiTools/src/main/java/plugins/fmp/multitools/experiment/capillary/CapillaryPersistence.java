@@ -167,6 +167,15 @@ public class CapillaryPersistence {
 	}
 
 	public static String csvExportCapillaryDescription(Capillary cap, String sep) {
+		return csvExportCapillaryDescription(cap, sep, -1);
+	}
+
+	/**
+	 * Exports one capillary description row. If listIndex >= 0 and
+	 * cap.getKymographIndex() < 0, uses listIndex so that invalid indices are not
+	 * persisted.
+	 */
+	public static String csvExportCapillaryDescription(Capillary cap, String sep, int listIndex) {
 		StringBuffer sbf = new StringBuffer();
 		// Access properties via getter
 		CapillaryProperties props = cap.getProperties();
@@ -203,8 +212,10 @@ public class CapillaryPersistence {
 			capPrefix = "";
 		}
 
-		// Build base row data
-		List<String> row = new ArrayList<>(Arrays.asList(capPrefix, Integer.toString(cap.getKymographIndex()),
+		// Build base row data; use listIndex when kymographIndex is invalid to avoid persisting -1
+		int kymoIndex = cap.getKymographIndex() >= 0 ? cap.getKymographIndex()
+				: (listIndex >= 0 ? listIndex : cap.getKymographIndex());
+		List<String> row = new ArrayList<>(Arrays.asList(capPrefix, Integer.toString(kymoIndex),
 				cap.getKymographName(), cap.getKymographFileName(), Integer.toString(props.getCageID()),
 				Integer.toString(props.getNFlies()), Double.toString(props.getVolume()),
 				Integer.toString(props.getPixels()), props.getStimulus(), props.getConcentration(), props.getSide()));

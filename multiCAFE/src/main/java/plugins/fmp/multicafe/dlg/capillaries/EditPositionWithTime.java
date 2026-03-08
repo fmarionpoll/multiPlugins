@@ -177,7 +177,6 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 	void close() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			exp.getCapillaries().compressRedundantAlongTPerCapillary();
 			exp.save_capillaries_description_and_measures();
 		}
 		dialogFrame.close();

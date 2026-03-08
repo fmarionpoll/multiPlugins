@@ -7,10 +7,12 @@ public class KymoIntervals {
 	public ArrayList<Long[]> intervals = new ArrayList<Long[]>();
 
 	public int addIfNew(Long[] interval) {
+		long start = interval[0].longValue();
 		for (int i = 0; i < intervals.size(); i++) {
-			if (interval[0] == intervals.get(i)[0])
+			long existing = intervals.get(i)[0].longValue();
+			if (start == existing)
 				return i;
-			if (interval[0] < intervals.get(i)[0]) {
+			if (start < existing) {
 				intervals.add(i, interval);
 				return i;
 			}
@@ -33,7 +35,7 @@ public class KymoIntervals {
 
 	public int findStartItem(long start) {
 		for (int i = 0; i < intervals.size(); i++) {
-			if (start == intervals.get(i)[0])
+			if (start == intervals.get(i)[0].longValue())
 				return i;
 		}
 		return -1;

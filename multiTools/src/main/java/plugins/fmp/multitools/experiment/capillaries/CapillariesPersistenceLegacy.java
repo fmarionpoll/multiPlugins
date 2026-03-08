@@ -409,6 +409,8 @@ public class CapillariesPersistenceLegacy {
 					capillaries.getList().add(cap);
 				}
 				cap.csvImport_CapillaryDescription(data);
+				if (cap.getKymographIndex() < 0)
+					cap.setKymographIndex(capillaries.getList().indexOf(cap));
 			}
 		} catch (IOException e) {
 			Logger.error("CapillariesPersistenceLegacy:csvLoad_Capillaries_Description() Failed to read CSV file", e);
@@ -571,8 +573,11 @@ public class CapillariesPersistenceLegacy {
 
 		if (capillaries.getList().size() > 0) {
 			csvWriter.append(capillaries.getList().get(0).csvExport_CapillarySubSectionHeader(csvSep));
-			for (Capillary cap : capillaries.getList())
-				csvWriter.append(cap.csvExport_CapillaryDescription(csvSep));
+			int index = 0;
+			for (Capillary cap : capillaries.getList()) {
+				csvWriter.append(CapillaryPersistence.csvExportCapillaryDescription(cap, csvSep, index));
+				index++;
+			}
 			csvWriter.append("#" + csvSep + "#\n");
 			csvSave_AlongTSection(capillaries, csvWriter, csvSep);
 		}
@@ -581,7 +586,9 @@ public class CapillariesPersistenceLegacy {
 	static void csvSave_AlongTSection(Capillaries capillaries, FileWriter csvWriter, String csvSep) throws IOException {
 		csvWriter.append("#" + csvSep + "ALONGT" + csvSep + "roi_name;start;roiType;npoints;x1;y1;...\n");
 		for (Capillary cap : capillaries.getList()) {
-			for (AlongT at : cap.getAlongTList()) {
+			List<AlongT> list = cap.getAlongTList();
+			for (int i = 0; i < list.size(); i++) {
+				AlongT at = list.get(i);
 				String row = CapillaryPersistence.csvExportAlongTRow(cap, at, csvSep);
 				if (!row.isEmpty())
 					csvWriter.append(row);
