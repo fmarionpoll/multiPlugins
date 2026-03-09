@@ -40,6 +40,7 @@ import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.DetectSpotsOutline;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
@@ -414,32 +415,38 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				String name = roi.getName();
 				if (!name.contains("spot"))
 					continue;
+				// get cage and spot
 				Cage cage = exp.getCages().getCageFromSpotName(name);
-				ArrayList<Spot> spotsToDuplicate = new ArrayList<Spot>();
+				Spot spotToDuplicate = null;
 				List<Spot> cageSpots = cage.getSpotList(allSpots);
 				for (Spot spot : cageSpots) {
 					if (name.equals(spot.getRoi().getName())) {
-						spotsToDuplicate.add(spot);
+						spotToDuplicate = spot;
 						break;
 					}
 				}
-				if (spotsToDuplicate.size() > 0) {
-					for (Spot spot : spotsToDuplicate) {
-						Point2D.Double pos = (Double) spot.getRoi().getPosition2D();
-						Rectangle rect = spot.getRoi().getBounds();
-						int radius = rect.width / 2;
-						pos.setLocation(pos.getX() + 5, pos.getY() + 5);
-						cage.addEllipseSpot(pos, radius, allSpots);
-						List<SpotID> spotIDs = cage.getSpotIDs();
-						if (!spotIDs.isEmpty()) {
-							SpotID lastID = spotIDs.get(spotIDs.size() - 1);
-							Spot newSpot = allSpots.findSpotwithID(lastID);
-							if (newSpot != null) {
-								exp.getSeqCamData().getSequence().addROI(newSpot.getRoi());
-							}
-						}
+				if (spotToDuplicate == null) {
+					Logger.error("spot to duplicate not found; " + roi.getName());
+					return;
+				}
+
+				// duplicate
+				Point2D.Double pos = (Double) spotToDuplicate.getRoi().getPosition2D();
+				Rectangle rect = spotToDuplicate.getRoi().getBounds();
+				int radius = rect.width / 2;
+				pos.setLocation(pos.getX() + 5, pos.getY() + 5);
+
+				// create new spot
+				xcage.addEllipseSpot(pos, radius, allSpots);
+				List<SpotID> spotIDs = cage.getSpotIDs();
+				if (!spotIDs.isEmpty()) {
+					SpotID lastID = spotIDs.get(spotIDs.size() - 1);
+					Spot newSpot = allSpots.findSpotwithID(lastID);
+					if (newSpot != null) {
+						exp.getSeqCamData().getSequence().addROI(newSpot.getRoi());
 					}
 				}
+
 			}
 			cleanUpSpotNames(exp);
 		}
