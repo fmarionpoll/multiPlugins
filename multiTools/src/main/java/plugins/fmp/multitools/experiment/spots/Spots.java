@@ -82,13 +82,24 @@ public class Spots {
 	}
 
 	/**
-	 * Gets the next unique spot ID for assigning to new spots. Uses the current
-	 * size of the spot list to ensure uniqueness.
+	 * Gets the next unique spot ID for assigning to new spots.
+	 * <p>
+	 * IDs are computed from the current maximum existing ID (not from list size) so
+	 * they remain unique even when spots are deleted and the list shrinks.
 	 * 
 	 * @return the next unique spot ID
 	 */
 	public int getNextUniqueSpotID() {
-		return spotList.size();
+		int maxID = -1;
+		for (int i = 0; i < spotList.size(); i++) {
+			Spot spot = spotList.get(i);
+			SpotID spotID = spot != null ? spot.getSpotUniqueID() : null;
+			int usedID = (spotID != null) ? spotID.getId() : i;
+			if (usedID > maxID) {
+				maxID = usedID;
+			}
+		}
+		return maxID + 1;
 	}
 
 	public boolean removeSpot(Spot spot) {

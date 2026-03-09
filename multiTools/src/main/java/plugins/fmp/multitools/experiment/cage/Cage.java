@@ -508,13 +508,34 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			return;
 		}
 		Rectangle rect = cageROI2D.getBounds();
-		int deltaX = rect.width / 8;
-		int deltaY = rect.height / 4;
+		if (rect == null || rect.width <= 0 || rect.height <= 0) {
+			return;
+		}
+		final int nCols = 8;
+		final int nRows = 4;
+		double deltaX = rect.getWidth() / nCols;
+		double deltaY = rect.getHeight() / nRows;
+		if (deltaX <= 0 || deltaY <= 0) {
+			return;
+		}
 		List<Spot> spots = getSpotList(allSpots);
 		for (Spot spot : spots) {
-			Rectangle rectSpot = spot.getRoi().getBounds();
-			spot.getProperties().setCageColumn((rectSpot.x - rect.x) / deltaX);
-			spot.getProperties().setCageRow((rectSpot.y - rect.y) / deltaY);
+			ROI2D spotRoi = spot.getRoi();
+			if (spotRoi == null) {
+				continue;
+			}
+			Rectangle rectSpot = spotRoi.getBounds();
+			if (rectSpot == null) {
+				continue;
+			}
+			double x = rectSpot.getCenterX() - rect.getX();
+			double y = rectSpot.getCenterY() - rect.getY();
+			int col = (int) Math.floor(x / deltaX);
+			int row = (int) Math.floor(y / deltaY);
+			col = Math.max(0, Math.min(nCols - 1, col));
+			row = Math.max(0, Math.min(nRows - 1, row));
+			spot.getProperties().setCageColumn(col);
+			spot.getProperties().setCageRow(row);
 		}
 	}
 
@@ -525,8 +546,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		List<Spot> spots = getSpotList(allSpots);
 		for (int i = 0; i < spots.size(); i++) {
 			Spot spot = spots.get(i);
-			int originalPosition = spot.getProperties().getCagePosition();
-			spot.setName(prop.getCageID(), originalPosition);
+			spot.setName(prop.getCageID(), i);
 			spot.getProperties().setCageID(prop.getCageID());
 			spot.getProperties().setCagePosition(i);
 		}

@@ -390,15 +390,34 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 			ArrayList<ROI2D> listROIs = exp.getSeqCamData().getSequence().getSelectedROI2Ds();
 			for (ROI2D roi : listROIs) {
 				String name = roi.getName();
-				if (!name.contains("spot"))
+				if (name == null || !name.contains("spot"))
 					continue;
-				Cage cage = exp.getCages().getCageFromSpotName(name);
-				List<Spot> cageSpots = cage.getSpotList(allSpots);
-				for (Spot spot : cageSpots) {
-					if (name.equals(spot.getRoi().getName())) {
-						allSpots.removeSpot(spot);
-						cage.getSpotIDs().remove(spot.getSpotUniqueID());
-						break;
+
+				Spot spotToDelete = allSpots.findSpotByName(name);
+				if (spotToDelete == null) {
+					Logger.error("spot to delete not found; " + name);
+					continue;
+				}
+
+				Cage cage = exp.getCages().getCageFromID(spotToDelete.getProperties().getCageID());
+				if (cage == null) {
+					cage = exp.getCages().getCageFromSpotName(name);
+				}
+
+				SpotID spotID = spotToDelete.getSpotUniqueID();
+				allSpots.removeSpot(spotToDelete);
+				if (spotID != null) {
+					for (Cage c : exp.getCages().cagesList) {
+						c.getSpotIDs().remove(spotID);
+					}
+				} else if (cage != null) {
+					List<Spot> cageSpots = cage.getSpotList(allSpots);
+					for (Spot spot : cageSpots) {
+						ROI2D spotRoi = spot.getRoi();
+						if (spotRoi != null && name.equals(spotRoi.getName())) {
+							allSpots.removeSpot(spot);
+							break;
+						}
 					}
 				}
 			}
@@ -415,38 +434,49 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 				String name = roi.getName();
 				if (!name.contains("spot"))
 					continue;
-				// get cage and spot
-				Cage cage = exp.getCages().getCageFromSpotName(name);
-				Spot spotToDuplicate = null;
-				List<Spot> cageSpots = cage.getSpotList(allSpots);
-				for (Spot spot : cageSpots) {
-					if (name.equals(spot.getRoi().getName())) {
-						spotToDuplicate = spot;
-						break;
-					}
-				}
+
+				Spot spotToDuplicate = allSpots.findSpotByName(name);
 				if (spotToDuplicate == null) {
 					Logger.error("spot to duplicate not found; " + roi.getName());
-					return;
+					continue;
 				}
 
-				// duplicate
-				Point2D.Double pos = (Double) spotToDuplicate.getRoi().getPosition2D();
-				Rectangle rect = spotToDuplicate.getRoi().getBounds();
-				int radius = rect.width / 2;
-				pos.setLocation(pos.getX() + 5, pos.getY() + 5);
+				int cageID = spotToDuplicate.getProperties().getCageID();
+				Cage cage = exp.getCages().getCageFromID(cageID);
+				if (cage == null) {
+					// legacy fallback based on ROI naming convention
+					cage = exp.getCages().getCageFromSpotName(name);
+				}
+				if (cage == null) {
+					Logger.error("cage not found for selected spot; " + roi.getName());
+					continue;
+				}
+
+				ROI2D sourceRoi = spotToDuplicate.getRoi();
+				if (sourceRoi == null) {
+					Logger.error("selected spot has no ROI; " + roi.getName());
+					continue;
+				}
+				Point2D sourcePos = sourceRoi.getPosition2D();
+				Rectangle rect = sourceRoi.getBounds();
+				if (sourcePos == null || rect == null) {
+					Logger.error("selected spot has invalid ROI geometry; " + roi.getName());
+					continue;
+				}
+				int radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+				Point2D.Double pos = new Double(sourcePos.getX() + 5, sourcePos.getY() + 5);
 
 				// create new spot
-				xcage.addEllipseSpot(pos, radius, allSpots);
+				cage.addEllipseSpot(pos, radius, allSpots);
 				List<SpotID> spotIDs = cage.getSpotIDs();
 				if (!spotIDs.isEmpty()) {
 					SpotID lastID = spotIDs.get(spotIDs.size() - 1);
 					Spot newSpot = allSpots.findSpotwithID(lastID);
 					if (newSpot != null) {
+						newSpot.getProperties().setCageID(cage.getCageID());
 						exp.getSeqCamData().getSequence().addROI(newSpot.getRoi());
 					}
 				}
-
 			}
 			cleanUpSpotNames(exp);
 		}
@@ -504,6 +534,18 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 			cage.mapSpotsToCageColumnRow(allSpots);
 			List<Spot> cageSpots = cage.getSpotList(allSpots);
 			Collections.sort(cageSpots, new Comparators.Experiment_Start.Spot_cagePosition());
+			List<SpotID> sortedSpotIDs = new ArrayList<SpotID>(cageSpots.size());
+			for (Spot spot : cageSpots) {
+				if (spot == null) {
+					continue;
+				}
+				if (spot.getSpotUniqueID() == null) {
+					spot.setSpotUniqueID(new SpotID(allSpots.getNextUniqueSpotID()));
+				}
+				spot.getProperties().setCageID(cage.getCageID());
+				sortedSpotIDs.add(spot.getSpotUniqueID());
+			}
+			cage.setSpotIDs(sortedSpotIDs);
 			cage.cleanUpSpotNames(allSpots);
 		}
 		exp.getSeqCamData().removeROIsContainingString("spot");
