@@ -106,6 +106,12 @@ public class Experiment {
 	private BinDescriptionPersistence binDescriptionPersistence = new BinDescriptionPersistence();
 	private transient boolean attemptedBinAutoDetectForLoading = false;
 
+	private double darkFrameThresholdMean = 20.0;
+	private double darkFrameRoiX = 100.0;
+	private double darkFrameRoiY = 100.0;
+	private double darkFrameRoiWidth = 100.0;
+	private double darkFrameRoiHeight = 50.0;
+
 	public Experiment chainToPreviousExperiment = null;
 	public Experiment chainToNextExperiment = null;
 	public long chainImageFirst_ms = 0;
@@ -1650,6 +1656,46 @@ public class Experiment {
 
 	public void setSeqCamData(SequenceCamData seqCamData) {
 		this.seqCamData = seqCamData;
+	}
+
+	public double getDarkFrameThresholdMean() {
+		return darkFrameThresholdMean;
+	}
+
+	public void setDarkFrameThresholdMean(double darkFrameThresholdMean) {
+		this.darkFrameThresholdMean = darkFrameThresholdMean;
+	}
+
+	public double getDarkFrameRoiX() {
+		return darkFrameRoiX;
+	}
+
+	public void setDarkFrameRoiX(double darkFrameRoiX) {
+		this.darkFrameRoiX = darkFrameRoiX;
+	}
+
+	public double getDarkFrameRoiY() {
+		return darkFrameRoiY;
+	}
+
+	public void setDarkFrameRoiY(double darkFrameRoiY) {
+		this.darkFrameRoiY = darkFrameRoiY;
+	}
+
+	public double getDarkFrameRoiWidth() {
+		return darkFrameRoiWidth;
+	}
+
+	public void setDarkFrameRoiWidth(double darkFrameRoiWidth) {
+		this.darkFrameRoiWidth = darkFrameRoiWidth;
+	}
+
+	public double getDarkFrameRoiHeight() {
+		return darkFrameRoiHeight;
+	}
+
+	public void setDarkFrameRoiHeight(double darkFrameRoiHeight) {
+		this.darkFrameRoiHeight = darkFrameRoiHeight;
 	}
 
 	public SequenceKymos getSeqKymos() {

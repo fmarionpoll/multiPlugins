@@ -38,6 +38,11 @@ public class ExperimentPersistence {
 
 	private final static String ID_GENERATOR_PROGRAM = "generatorProgram";
 	private final static String ID_GENERATOR_PROGRAM_REVISION = "generatorProgramRevision";
+	private final static String ID_DARKFRAME_THRESHOLD_MEAN = "darkFrameThresholdMean";
+	private final static String ID_DARKFRAME_ROI_X = "darkFrameRoiX";
+	private final static String ID_DARKFRAME_ROI_Y = "darkFrameRoiY";
+	private final static String ID_DARKFRAME_ROI_WIDTH = "darkFrameRoiWidth";
+	private final static String ID_DARKFRAME_ROI_HEIGHT = "darkFrameRoiHeight";
 
 	// ========================================================================
 	// Public API methods (delegate to nested classes)
@@ -112,6 +117,7 @@ public class ExperimentPersistence {
 			loadTimeManagerConfiguration(exp, node);
 			ensureCamImageIntervalsFromSequence(exp);
 			loadPropertiesAndGeneratorProgram(exp, node);
+			loadDarkFrameParameters(exp, node);
 
 			return true;
 		}
@@ -279,6 +285,19 @@ public class ExperimentPersistence {
 			}
 		}
 
+		private static void loadDarkFrameParameters(Experiment exp, Node node) {
+			double threshold = XMLUtil.getElementDoubleValue(node, ID_DARKFRAME_THRESHOLD_MEAN, -1);
+			if (threshold >= 0)
+				exp.setDarkFrameThresholdMean(threshold);
+			double x = XMLUtil.getElementDoubleValue(node, ID_DARKFRAME_ROI_X, -1);
+			if (x >= 0) {
+				exp.setDarkFrameRoiX(x);
+				exp.setDarkFrameRoiY(XMLUtil.getElementDoubleValue(node, ID_DARKFRAME_ROI_Y, exp.getDarkFrameRoiY()));
+				exp.setDarkFrameRoiWidth(XMLUtil.getElementDoubleValue(node, ID_DARKFRAME_ROI_WIDTH, exp.getDarkFrameRoiWidth()));
+				exp.setDarkFrameRoiHeight(XMLUtil.getElementDoubleValue(node, ID_DARKFRAME_ROI_HEIGHT, exp.getDarkFrameRoiHeight()));
+			}
+		}
+
 		private static boolean xmlSaveExperiment(Experiment exp, String csFileName) {
 			final Document doc = XMLUtil.createDocument(true);
 			if (doc != null) {
@@ -397,10 +416,20 @@ public class ExperimentPersistence {
 					XMLUtil.setElementValue(node, ID_GENERATOR_PROGRAM_REVISION, revisionToSave);
 				}
 
+				saveDarkFrameParameters(exp, node);
+
 				XMLUtil.saveDocument(doc, csFileName);
 				return true;
 			}
 			return false;
+		}
+
+		private static void saveDarkFrameParameters(Experiment exp, Node node) {
+			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_THRESHOLD_MEAN, exp.getDarkFrameThresholdMean());
+			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_X, exp.getDarkFrameRoiX());
+			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_Y, exp.getDarkFrameRoiY());
+			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_WIDTH, exp.getDarkFrameRoiWidth());
+			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_HEIGHT, exp.getDarkFrameRoiHeight());
 		}
 
 		private static String concatenateExptDirectoryWithSubpathAndName(Experiment exp, String subpath, String name) {

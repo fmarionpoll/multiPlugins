@@ -12,6 +12,7 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
@@ -58,6 +59,40 @@ public class Capillaries {
 
 	public boolean addCapillary(Capillary capillary) {
 		return this.capillariesList.add(capillary);
+	}
+
+	/**
+	 * Marks capillary measures as invalid (NaN) at every time index where the
+	 * camera frame was dark (lightStatusPerFrame[t]==0). Uses kymograph column index
+	 * as time; assumes 1:1 with camera frames. Call after dark-frame detection.
+	 */
+	public void clearMeasuresAtDarkFrames(int[] lightStatusPerFrame) {
+		if (lightStatusPerFrame == null || lightStatusPerFrame.length == 0)
+			return;
+		for (Capillary cap : capillariesList) {
+			clearMeasureAtDarkFrames(cap.getTopLevel(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getBottomLevel(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getTopLevelDirect(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getBottomLevelDirect(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getDerivative(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getTopCorrected(), lightStatusPerFrame);
+			if (cap.getGulps() != null) {
+				for (int t = 0; t < lightStatusPerFrame.length; t++) {
+					if (lightStatusPerFrame[t] == 0)
+						cap.getGulps().setInvalidAt(t);
+				}
+			}
+		}
+	}
+
+	private static void clearMeasureAtDarkFrames(CapillaryMeasure measure, int[] lightStatusPerFrame) {
+		if (measure == null || measure.getPolylineLevel() == null)
+			return;
+		int n = measure.getPolylineLevel().npoints;
+		for (int t = 0; t < lightStatusPerFrame.length && t < n; t++) {
+			if (lightStatusPerFrame[t] == 0)
+				measure.setInvalidAt(t);
+		}
 	}
 
 	// === PERSISTENCE ===

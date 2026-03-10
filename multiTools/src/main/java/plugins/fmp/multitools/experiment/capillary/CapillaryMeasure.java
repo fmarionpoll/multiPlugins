@@ -45,6 +45,19 @@ public class CapillaryMeasure {
 		polylineLevel = new Level2D();
 	}
 
+	/**
+	 * Marks the measure at the given time index as invalid (no data), e.g. when
+	 * that frame was dark. Sets ypoints[index] to Double.NaN so export/analysis can
+	 * treat it as missing.
+	 */
+	public void setInvalidAt(int index) {
+		if (polylineLevel == null || polylineLevel.npoints == 0)
+			return;
+		if (index < 0 || index >= polylineLevel.npoints)
+			return;
+		polylineLevel.ypoints[index] = Double.NaN;
+	}
+
 	public void setPolylineLevelFromTempData(String name, int indexImage, int xStart, int xEnd) {
 		this.capName = name;
 		this.capIndexKymo = indexImage;
@@ -71,6 +84,10 @@ public class CapillaryMeasure {
 		if (polylineLevel == null)
 			return 0;
 		return polylineLevel.npoints;
+	}
+
+	public Level2D getPolylineLevel() {
+		return polylineLevel;
 	}
 
 	public double getValueAt(int j) {

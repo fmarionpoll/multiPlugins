@@ -78,6 +78,18 @@ public class CapillaryGulps {
 		gulpHeights.ypoints[index] = value;
 	}
 
+	/**
+	 * Marks the gulp height at the given time index as invalid (no data), e.g. when
+	 * that frame was dark.
+	 */
+	public void setInvalidAt(int index) {
+		if (gulpHeights == null || gulpHeights.npoints == 0)
+			return;
+		if (index < 0 || index >= gulpHeights.npoints)
+			return;
+		gulpHeights.ypoints[index] = Double.NaN;
+	}
+
 	public Level2D getHeightSeries() {
 		return gulpHeights;
 	}

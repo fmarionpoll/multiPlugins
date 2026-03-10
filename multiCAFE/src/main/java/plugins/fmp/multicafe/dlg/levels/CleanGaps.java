@@ -23,6 +23,7 @@ import icy.sequence.Sequence;
 
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.DarkFrameDetector;
 import plugins.fmp.multitools.service.DarkFrameDetector.Options;
@@ -40,6 +41,7 @@ public class CleanGaps extends JPanel {
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(20., 0., 255., 1.));
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JButton runButton = new JButton("Detect black zones from images");
+	private JButton cleanMeasuresButton = new JButton("Clean capillary measures");
 	private JLabel resultSummary = new JLabel(" ");
 
 	private Options options = new Options();
@@ -62,6 +64,7 @@ public class CleanGaps extends JPanel {
 		panel0.add(thresholdSpinner);
 		panel0.add(overlayCheckBox);
 		panel0.add(runButton);
+		panel0.add(cleanMeasuresButton);
 		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
@@ -82,6 +85,21 @@ public class CleanGaps extends JPanel {
 					updateOverlayThreshold(exp);
 			}
 		});
+
+		parent0.expListComboLazy.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				if (e.getStateChange() != ItemEvent.SELECTED)
+					return;
+				Object item = parent0.expListComboLazy.getSelectedItem();
+				if (item instanceof Experiment)
+					updateFromExperiment((Experiment) item);
+			}
+		});
+
+		Experiment selected = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (selected != null)
+			updateFromExperiment(selected);
 	}
 
 	private void defineItemListeners() {
@@ -121,6 +139,16 @@ public class CleanGaps extends JPanel {
 					return;
 
 				runDetectionFromSeqCamData(exp);
+			}
+		});
+
+		cleanMeasuresButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp == null)
+					return;
+				runCleanCapillaryMeasures(exp);
 			}
 		});
 	}
@@ -163,6 +191,53 @@ public class CleanGaps extends JPanel {
 		for (int s : lightStatus)
 			if (s == 0) dark++;
 		resultSummary.setText("Dark: " + dark + ", Light: " + (lightStatus.length - dark));
+
+		Rectangle2D r = options.rectMonitor.getRectangle();
+		exp.setDarkFrameThresholdMean(((Number) thresholdSpinner.getValue()).doubleValue());
+		exp.setDarkFrameRoiX(r.getMinX());
+		exp.setDarkFrameRoiY(r.getMinY());
+		exp.setDarkFrameRoiWidth(r.getWidth());
+		exp.setDarkFrameRoiHeight(r.getHeight());
+	}
+
+	private void runCleanCapillaryMeasures(Experiment exp) {
+		SequenceCamData seqCam = exp.getSeqCamData();
+		int[] lightStatus = seqCam != null ? seqCam.getLightStatusPerFrame() : null;
+		if (lightStatus == null || lightStatus.length == 0) {
+			runDetectionFromSeqCamData(exp);
+			seqCam = exp.getSeqCamData();
+			lightStatus = seqCam != null ? seqCam.getLightStatusPerFrame() : null;
+		}
+		if (lightStatus == null || lightStatus.length == 0) {
+			Logger.warn("CleanGaps: run detection first or no camera sequence");
+			return;
+		}
+
+		if (!exp.load_capillaries_description_and_measures()) {
+			Logger.warn("CleanGaps: could not load capillary measures");
+			return;
+		}
+		if (exp.getCapillaries() == null || exp.getCapillaries().getList().isEmpty()) {
+			Logger.warn("CleanGaps: no capillaries for this experiment");
+			return;
+		}
+
+		exp.getCapillaries().clearMeasuresAtDarkFrames(lightStatus);
+		if (exp.getSeqKymos() != null)
+			CapillariesKymosMapper.pushCapillaryMeasuresToKymos(exp.getCapillaries(), exp.getSeqKymos());
+		Logger.info("CleanGaps: cleared capillary measures at dark frames");
+	}
+
+	private void updateFromExperiment(Experiment exp) {
+		if (exp == null)
+			return;
+		thresholdSpinner.setValue(exp.getDarkFrameThresholdMean());
+		options.rectMonitor.setBounds2D(new Rectangle2D.Double(
+				exp.getDarkFrameRoiX(), exp.getDarkFrameRoiY(),
+				exp.getDarkFrameRoiWidth(), exp.getDarkFrameRoiHeight()));
+		if (overlayThreshold != null && overlaySequence != null && exp.getSeqCamData() != null
+				&& exp.getSeqCamData().getSequence() == overlaySequence)
+			updateOverlayThreshold(exp);
 	}
 
 	private void addOverlayToSequence(Experiment exp) {
