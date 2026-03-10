@@ -4,6 +4,7 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Graphics2D;
+import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
@@ -24,6 +25,7 @@ import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import icy.sequence.SequenceListener;
 import icy.type.collection.array.Array1DUtil;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.List;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
@@ -90,6 +92,9 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
 
     /** When true, draw only the boundary lines (top/bottom threshold crossing) instead of the red mask. */
     private boolean boundaryOnlyMode = false;
+
+    /** When non-null, overlay is drawn only inside this rectangle (for preview in a ROI). */
+    private Rectangle2D clipBounds = null;
 
     /**
      * Creates a new threshold overlay with default settings.
@@ -258,6 +263,17 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
         return boundaryOnlyMode;
     }
 
+    /**
+     * Restricts overlay drawing to the given rectangle (e.g. ROI). Pass null to draw on the full image.
+     */
+    public void setClipBounds(Rectangle2D clipBounds) {
+        this.clipBounds = clipBounds;
+    }
+
+    public Rectangle2D getClipBounds() {
+        return clipBounds;
+    }
+
     public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold) {
         if (colorArray == null || colorArray.isEmpty()) {
             throw new IllegalArgumentException("Color array cannot be null or empty");
@@ -352,7 +368,17 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
             } else {
                 IcyBufferedImage thresholdedImage = getTransformedImage(timePosition);
                 if (thresholdedImage != null) {
-                    renderOverlay(graphics, thresholdedImage);
+                    Shape prevClip = null;
+                    if (clipBounds != null) {
+                        prevClip = graphics.getClip();
+                        graphics.setClip(clipBounds);
+                    }
+                    try {
+                        renderOverlay(graphics, thresholdedImage);
+                    } finally {
+                        if (prevClip != null)
+                            graphics.setClip(prevClip);
+                    }
                 }
             }
         } catch (Exception e) {

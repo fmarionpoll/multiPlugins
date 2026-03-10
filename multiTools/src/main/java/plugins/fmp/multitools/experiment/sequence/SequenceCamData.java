@@ -70,6 +70,11 @@ public class SequenceCamData implements AutoCloseable {
 	private final ROIManager roiManager;
 	private final ViewerManager viewerManager;
 
+	// Per-frame light status: 1 = light, 0 = dark (or unspecified)
+	// Aligned with camera frames managed by ImageLoader / TimeManager.
+	// This is populated by dark-interval detection routines (e.g. CleanGaps dialog).
+	private int[] lightStatusPerFrame = null;
+
 	// === CONSTRUCTORS ===
 
 	/**
@@ -712,6 +717,14 @@ public class SequenceCamData implements AutoCloseable {
 
 	public ViewerManager getViewerManager() {
 		return viewerManager;
+	}
+
+	public int[] getLightStatusPerFrame() {
+		return lightStatusPerFrame;
+	}
+
+	public void setLightStatusPerFrame(int[] lightStatusPerFrame) {
+		this.lightStatusPerFrame = lightStatusPerFrame;
 	}
 
 	public IcyBufferedImage getReferenceImage() {

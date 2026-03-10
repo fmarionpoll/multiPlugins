@@ -4,25 +4,47 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
+import java.awt.geom.Rectangle2D;
 
-import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+
+import icy.canvas.IcyCanvas;
+import icy.gui.viewer.Viewer;
+import icy.sequence.Sequence;
 
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-
-
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.service.DarkFrameDetector;
+import plugins.fmp.multitools.service.DarkFrameDetector.Options;
+import plugins.fmp.multitools.service.ExperimentService;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class CleanGaps extends JPanel {
 	private static final long serialVersionUID = 6031521157029550040L;
 
-	private JRadioButton useKymograph = new JRadioButton("kymographs", true);
-	private JRadioButton useRawImages = new JRadioButton("raw images", false);
-	private JButton runButton = new JButton("Run...");
-	
+//	private JRadioButton useKymograph = new JRadioButton("kymographs", true);
+//	private JRadioButton useRawImages = new JRadioButton("raw images", false);
+	private JButton displayRect = new JButton("Area monitored");
+	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(20., 0., 255., 1.));
+	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
+	private JButton runButton = new JButton("Detect black zones from images");
+	private JLabel resultSummary = new JLabel(" ");
+
+	private Options options = new Options();
+	private OverlayThreshold overlayThreshold = null;
+	private Sequence overlaySequence = null;
 	private MultiCAFE parent0 = null;
 
 	// -----------------------------------------------------
@@ -35,45 +57,176 @@ public class CleanGaps extends JPanel {
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		((FlowLayout) panel0.getLayout()).setVgap(0);
-		panel0.add(new JLabel("Detect black zones from:"));
-		panel0.add(useRawImages);
-		panel0.add(useKymograph);
-		ButtonGroup group = new ButtonGroup ();
-		group.add(useKymograph);
-		group.add(useRawImages);
+		panel0.add(displayRect);
+		panel0.add(new JLabel(" threshold:"));
+		panel0.add(thresholdSpinner);
+		panel0.add(overlayCheckBox);
+		panel0.add(runButton);
 		add(panel0);
 
 		JPanel panel01 = new JPanel(layoutLeft);
-		panel01.add(runButton);
+		panel01.add(resultSummary);
 		add(panel01);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		add(panel1);
 
+		options.rectMonitor.setName("rectMonitor");
 		defineActionListeners();
+		defineItemListeners();
+		thresholdSpinner.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					updateOverlayThreshold(exp);
+			}
+		});
+	}
+
+	private void defineItemListeners() {
+		overlayCheckBox.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp == null)
+					return;
+				if (overlayCheckBox.isSelected())
+					addOverlayToSequence(exp);
+				else
+					removeOverlay(exp);
+			}
+		});
 	}
 
 	private void defineActionListeners() {
+		displayRect.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp == null)
+					return;
+				SequenceCamData seqCam = exp.getSeqCamData();
+				if (seqCam != null && seqCam.getSequence() != null) {
+					seqCam.getSequence().addROI(options.rectMonitor);
+				}
+			}
+		});
+
 		runButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null) 
+				if (exp == null)
 					return;
-				if (useKymograph.isSelected())
-					runFromKymos(exp);
-				else
-					runFromMeasures(exp);
-			}});
 
+				runDetectionFromSeqCamData(exp);
+			}
+		});
 	}
 
+	private void runDetectionFromSeqCamData(Experiment exp) {
+		if (exp == null) {
+			return;
+		}
 
-	private void runFromKymos(Experiment exp) {
+		ExperimentService expService = new ExperimentService();
+		SequenceCamData seqCam = exp.getSeqCamData();
+		if (seqCam == null || seqCam.getSequence() == null) {
+			seqCam = expService.openSequenceCamData(exp);
+		}
+		if (seqCam == null || seqCam.getSequence() == null) {
+			Logger.warn("CleanGaps: no camera sequence available for experiment");
+			return;
+		}
+
+		Rectangle2D rect = options.rectMonitor.getRectangle();
+		options.roiX = (int) rect.getMinX();
+		options.roiY = (int) rect.getMinY();
+		options.roiWidth = (int) rect.getWidth();
+		options.roiHeight = (int) rect.getHeight();
+		options.thresholdMean = (double) thresholdSpinner.getValue();
+
+		// Threshold is left as 0 for now; user will choose later based on sums.
+		options.thresholdSum = 0L;
+
+		DarkFrameDetector detector = new DarkFrameDetector();
+		int[] lightStatus = detector.runDetection(exp, options);
+		if (lightStatus == null) {
+			Logger.warn("CleanGaps: dark frame detection failed");
+			return;
+		}
+
+		Logger.info("CleanGaps: computed light status for " + lightStatus.length + " frames");
+
+		int dark = 0;
+		for (int s : lightStatus)
+			if (s == 0) dark++;
+		resultSummary.setText("Dark: " + dark + ", Light: " + (lightStatus.length - dark));
 	}
 
-	private void runFromMeasures(Experiment exp) {
+	private void addOverlayToSequence(Experiment exp) {
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (overlayThreshold != null && overlaySequence != null && overlaySequence != seq) {
+			removeOverlayFromSequence(overlaySequence);
+			overlaySequence = null;
+		}
+		if (overlayThreshold == null) {
+			overlayThreshold = new OverlayThreshold(seq);
+		} else {
+			seq.removeOverlay(overlayThreshold);
+		}
+		overlayThreshold.setSequence(seq);
+		seq.addOverlay(overlayThreshold);
+		overlaySequence = seq;
+		updateOverlayThreshold(exp);
+		Viewer v = seq.getFirstViewer();
+		if (v != null) {
+			IcyCanvas canvas = v.getCanvas();
+			if (canvas != null) {
+				if (!canvas.hasLayer(overlayThreshold))
+					canvas.addLayer(overlayThreshold);
+				if (!canvas.isLayersVisible())
+					canvas.setLayersVisible(true);
+			}
+		}
+		overlayThreshold.painterChanged();
+		seq.overlayChanged(overlayThreshold);
+		seq.dataChanged();
 	}
 
+	private void removeOverlay(Experiment exp) {
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		removeOverlayFromSequence(exp.getSeqCamData().getSequence());
+		overlaySequence = null;
+	}
+
+	private void removeOverlayFromSequence(Sequence seq) {
+		if (seq == null)
+			return;
+		Viewer v = seq.getFirstViewer();
+		if (v != null) {
+			IcyCanvas canvas = v.getCanvas();
+			if (canvas != null && overlayThreshold != null && canvas.hasLayer(overlayThreshold))
+				canvas.removeLayer(overlayThreshold);
+		}
+		seq.removeOverlay(overlayThreshold);
+	}
+
+	private void updateOverlayThreshold(Experiment exp) {
+		if (overlayThreshold == null || overlaySequence == null)
+			return;
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() != overlaySequence)
+			return;
+		int threshold = (int) Math.round(((Number) thresholdSpinner.getValue()).doubleValue());
+		overlayThreshold.setThresholdSingle(threshold, ImageTransformEnums.RGB, false);
+		overlayThreshold.setClipBounds(options.rectMonitor.getRectangle());
+		overlayThreshold.painterChanged();
+		overlaySequence.overlayChanged(overlayThreshold);
+		overlaySequence.dataChanged();
+	}
 
 }
