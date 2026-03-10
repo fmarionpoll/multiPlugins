@@ -45,9 +45,6 @@ public class SpotsAreas extends JPanel {
 		panel2.add(exportQToXLSButton);
 		add(panel2);
 
-		areaCheckBox.setEnabled(false);
-		nPixelsCheckBox.setEnabled(false);
-
 		defineActionListeners();
 	}
 

@@ -104,6 +104,7 @@ public class Experiment {
 
 	private BinDescription activeBinDescription = new BinDescription();
 	private BinDescriptionPersistence binDescriptionPersistence = new BinDescriptionPersistence();
+	private transient boolean attemptedBinAutoDetectForLoading = false;
 
 	public Experiment chainToPreviousExperiment = null;
 	public Experiment chainToNextExperiment = null;
@@ -837,6 +838,7 @@ public class Experiment {
 			}
 		} else {
 			cagesLoaded = Persistence.loadDescription(cages, resultsDir);
+			ensureBinDirectoryForLoading();
 			String binDir = getKymosBinFullDirectory();
 			if (binDir != null) {
 				cages.getPersistence().loadMeasures(cages, binDir);
@@ -857,6 +859,7 @@ public class Experiment {
 		boolean descriptionsSaved = Persistence.saveDescription(cages, resultsDir);
 
 		// Also save measures to bin directory (if available)
+		ensureBinDirectoryForLoading();
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
 			cages.getPersistence().saveMeasures(cages, binDir);
@@ -901,6 +904,7 @@ public class Experiment {
 		}
 
 		boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
+		ensureBinDirectoryForLoading();
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
 			spots.getPersistence().loadMeasures(spots, binDir);
@@ -923,6 +927,7 @@ public class Experiment {
 		boolean descriptionsSaved = spots.getPersistence().saveDescriptions(spots, resultsDir);
 
 		// Also save measures to bin directory (if available)
+		ensureBinDirectoryForLoading();
 		String binDir = getKymosBinFullDirectory();
 		if (binDir != null) {
 			spots.getPersistence().saveMeasures(spots, binDir);
@@ -1670,6 +1675,82 @@ public class Experiment {
 		return resultsDirectory + File.separator + binDirectory;
 	}
 
+	private void ensureBinDirectoryForLoading() {
+		if (attemptedBinAutoDetectForLoading)
+			return;
+		attemptedBinAutoDetectForLoading = true;
+
+		if (resultsDirectory == null)
+			return;
+
+		// If current binDirectory exists, keep it.
+		if (binDirectory != null) {
+			File current = new File(binDirectory);
+			if (!current.isAbsolute()) {
+				current = new File(resultsDirectory + File.separator + binDirectory);
+			}
+			if (current.exists() && current.isDirectory()) {
+				return;
+			}
+		}
+
+		Path resultsPath = Paths.get(resultsDirectory);
+		if (!Files.exists(resultsPath) || !Files.isDirectory(resultsPath))
+			return;
+
+		int nominal = getNominalIntervalSec();
+		long kymoBinMs = getKymoBin_ms();
+		String preferredByNominal = nominal > 0 ? binDirectoryNameFromNominal(nominal) : null;
+		String preferredByMs = kymoBinMs > 0 ? binDirectoryNameFromMs(kymoBinMs) : null;
+
+		String bestDirName = null;
+		long bestScore = Long.MIN_VALUE;
+		long bestModified = Long.MIN_VALUE;
+
+		try {
+			for (Path p : Files.newDirectoryStream(resultsPath)) {
+				if (!Files.isDirectory(p))
+					continue;
+				String name = p.getFileName().toString();
+				if (!name.startsWith(BIN))
+					continue;
+				int parsed = parseNominalFromBinDirectoryName(name);
+				if (parsed <= 0)
+					continue;
+
+				long score = 0;
+				if (preferredByNominal != null && name.equals(preferredByNominal))
+					score += 1_000_000;
+				if (preferredByMs != null && name.equals(preferredByMs))
+					score += 500_000;
+
+				// Slight preference for directories that contain a BinDescription.xml.
+				Path binDesc = p.resolve(BinDescriptionPersistence.ID_V2_BINDESCRIPTION_XML);
+				if (Files.exists(binDesc))
+					score += 10_000;
+
+				long modified;
+				try {
+					modified = Files.getLastModifiedTime(p).toMillis();
+				} catch (IOException e) {
+					modified = 0;
+				}
+
+				if (score > bestScore || (score == bestScore && modified > bestModified)) {
+					bestScore = score;
+					bestModified = modified;
+					bestDirName = name;
+				}
+			}
+		} catch (IOException e) {
+			// ignore
+		}
+
+		if (bestDirName != null) {
+			setBinSubDirectory(bestDirName);
+		}
+	}
+
 	public String getKymoFullPath(String filename) {
 		if (binDirectory == null) {
 			return resultsDirectory + File.separator + filename + ".tiff";
@@ -1696,6 +1777,7 @@ public class Experiment {
 	}
 
 	public void setBinSubDirectory(String bin) {
+		attemptedBinAutoDetectForLoading = false;
 		String oldBinDirectory = binDirectory;
 		binDirectory = bin;
 		if (bin != null) {
