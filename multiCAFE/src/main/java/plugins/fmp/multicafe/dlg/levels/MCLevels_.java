@@ -25,8 +25,8 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	DetectLevelsDlgFromKymo tabDetectLevels = new DetectLevelsDlgFromKymo();
 	DetectLevelsDlgFromCam tabDetectLevelsDirect = new DetectLevelsDlgFromCam();
 //	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
-
-	// DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
+//  DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
+	CleanGaps tabCleanGaps = new CleanGaps();
 	DetectGulpsDlgFromKymo tabDetectGulps = new DetectGulpsDlgFromKymo();
 	EditLevels tabEdit = new EditLevels();
 	Adjust tabAdjust = new Adjust();
@@ -49,8 +49,11 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 		tabDetectLevelsDirect.init(capLayout, parent0);
 		tabDetectLevelsDirect.addPropertyChangeListener(this);
-		tabsPane.addTab("-- Levels (direct)", null, tabDetectLevelsDirect,
+		tabsPane.addTab("- Levels (direct)", null, tabDetectLevelsDirect,
 				"Find limits of the columns of liquid directly from images");
+		
+		tabCleanGaps.init(capLayout, parent0);
+		tabsPane.addTab("-- clean gaps", null, tabCleanGaps, "erase no light gaps");
 
 		tabDetectGulps.init(capLayout, parent0);
 		tabsPane.addTab("Gulps", null, tabDetectGulps, "Detect gulps from kymographs");

@@ -308,16 +308,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			threadDetectLevels.stopFlag = true;
 	}
 
-	@Override
-	public void propertyChange(PropertyChangeEvent evt) {
-		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
-			detectButton.setText(detectString);
-			Logger.debug("thread_ended");
-			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
-			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
-		}
-	}
-
 	protected Canvas2DWithTransforms getCamDataCanvas(Experiment exp) {
 		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
 			return null;
@@ -392,6 +382,16 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 				canvas.removeLayer(overlayThreshold);
 		}
 		seq.removeOverlay(overlayThreshold);
+	}
+	
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
+			detectButton.setText(detectString);
+			Logger.debug("thread_ended");
+			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
+			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
+		}
 	}
 
 }
