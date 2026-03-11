@@ -16,7 +16,7 @@ import plugins.kernel.roi.roi2d.ROI2DRectangle;
  */
 public class DarkFrameDetector {
 
-	public static class Options {
+	public static class DarkFrameDetectionOptions {
 		public ROI2DRectangle rectMonitor = new ROI2DRectangle(100., 100., 200., 150.);
 		public int roiX = 0;
 		public int roiY = 0;
@@ -31,17 +31,17 @@ public class DarkFrameDetector {
 		 */
 		public double thresholdMean = 20.0;
 
-		public Options() {
+		public DarkFrameDetectionOptions() {
 		}
 	}
 
-	public int[] runDetection(Experiment exp, Options options) {
+	public int[] runDetection(Experiment exp, DarkFrameDetectionOptions options) {
 		if (exp == null || exp.getSeqCamData() == null) {
 			Logger.warn("DarkFrameDetector: experiment or camera sequence is null");
 			return null;
 		}
 		if (options == null) {
-			options = new Options();
+			options = new DarkFrameDetectionOptions();
 		}
 
 		SequenceCamData seqCam = exp.getSeqCamData();

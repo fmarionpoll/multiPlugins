@@ -23,10 +23,8 @@ import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.service.DarkFrameDetector;
-import plugins.fmp.multitools.service.DarkFrameDetector.Options;
-import plugins.fmp.multitools.service.ExperimentService;
-import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.service.DarkFrameDetector.DarkFrameDetectionOptions;
+import plugins.fmp.multitools.series.BuildCleanGapsFromCam;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -42,10 +40,12 @@ public class CleanGapsSpots extends JPanel {
 	private JButton runButton = new JButton("Run...");
 	private JLabel resultSummary = new JLabel(" ");
 
-	private Options options = new Options();
+	private DarkFrameDetectionOptions options = new DarkFrameDetectionOptions();
 	private OverlayThreshold overlayThreshold = null;
 	private Sequence overlaySequence = null;
 	private MultiSPOTS96 parent0 = null;
+	private BuildCleanGapsFromCam threadCleanGaps = null;
+	private final String runString = "Run...";
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
 		setLayout(capLayout);
@@ -67,6 +67,7 @@ public class CleanGapsSpots extends JPanel {
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
+		runButton.setText(runString);
 		panel2.add(runButton);
 		panel2.add(allSeriesCheckBox);
 		add(panel2);
@@ -135,12 +136,15 @@ public class CleanGapsSpots extends JPanel {
 		runButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				runFromSelectedToLastIfNeeded();
+				if (runButton.getText().equals(runString))
+					startComputation();
+				else
+					stopComputation();
 			}
 		});
 	}
 
-	private void runFromSelectedToLastIfNeeded() {
+	private void startComputation() {
 		int index0 = parent0.expListComboLazy.getSelectedIndex();
 		if (index0 < 0)
 			return;
@@ -152,94 +156,149 @@ public class CleanGapsSpots extends JPanel {
 		if (!doDetect && !doClean)
 			return;
 
-		for (int index = index0; index <= index1; index++) {
-			parent0.expListComboLazy.setSelectedIndex(index);
-			Object item = parent0.expListComboLazy.getSelectedItem();
-			if (!(item instanceof Experiment))
-				continue;
-			Experiment exp = (Experiment) item;
-			Logger.info("CleanGapsSpots: run " + (index - index0 + 1) + "/" + (index1 - index0 + 1));
-			if (doDetect)
-				runDetectionFromSeqCamData(exp);
-			if (doClean)
-				runCleanSpotMeasures(exp);
-		}
-	}
+		resultSummary.setText("Running...");
 
-	private void runDetectionFromSeqCamData(Experiment exp) {
-		if (exp == null)
-			return;
+		threadCleanGaps = new BuildCleanGapsFromCam();
+		threadCleanGaps.options.expList = parent0.expListComboLazy;
+		threadCleanGaps.options.expList.index0 = index0;
+		threadCleanGaps.options.expList.index1 = index1;
+		threadCleanGaps.target = BuildCleanGapsFromCam.Target.SPOTS;
+		threadCleanGaps.doDetect = doDetect;
+		threadCleanGaps.doClean = doClean;
 
-		ExperimentService expService = new ExperimentService();
-		SequenceCamData seqCam = exp.getSeqCamData();
-		if (seqCam == null || seqCam.getSequence() == null) {
-			seqCam = expService.openSequenceCamData(exp);
-		}
-		if (seqCam == null || seqCam.getSequence() == null) {
-			Logger.warn("CleanGapsSpots: no camera sequence available for experiment");
-			return;
-		}
-
+		DarkFrameDetectionOptions opts = new DarkFrameDetectionOptions();
 		Rectangle2D rect = options.rectMonitor.getRectangle();
-		options.roiX = (int) rect.getMinX();
-		options.roiY = (int) rect.getMinY();
-		options.roiWidth = (int) rect.getWidth();
-		options.roiHeight = (int) rect.getHeight();
-		options.thresholdMean = (double) thresholdSpinner.getValue();
-		options.thresholdSum = 0L;
+		opts.rectMonitor.setRectangle(rect);
+		opts.roiX = (int) rect.getMinX();
+		opts.roiY = (int) rect.getMinY();
+		opts.roiWidth = (int) rect.getWidth();
+		opts.roiHeight = (int) rect.getHeight();
+		opts.thresholdMean = (double) thresholdSpinner.getValue();
+		opts.thresholdSum = 0L;
+		threadCleanGaps.darkOptions = opts;
 
-		DarkFrameDetector detector = new DarkFrameDetector();
-		int[] lightStatus = detector.runDetection(exp, options);
-		if (lightStatus == null) {
-			Logger.warn("CleanGapsSpots: dark frame detection failed");
-			return;
-		}
+		threadCleanGaps.addPropertyChangeListener(evt -> {
+			String name = evt.getPropertyName();
+			if (BuildCleanGapsFromCam.PROP_RESULT_SUMMARY.equals(name)) {
+				Object v = evt.getNewValue();
+				if (v instanceof String)
+					resultSummary.setText((String) v);
+			} else if (threadCleanGaps != null && (threadCleanGaps.THREAD_ENDED.equals(name)
+					|| threadCleanGaps.THREAD_DONE.equals(name))) {
+				runButton.setText(runString);
+			}
+		});
 
-		Logger.info("CleanGapsSpots: computed light status for " + lightStatus.length + " frames");
-
-		int dark = 0;
-		for (int s : lightStatus)
-			if (s == 0)
-				dark++;
-		resultSummary.setText("Dark: " + dark + ", Light: " + (lightStatus.length - dark));
-
-		Rectangle2D r = options.rectMonitor.getRectangle();
-		exp.setDarkFrameThresholdMean(((Number) thresholdSpinner.getValue()).doubleValue());
-		exp.setDarkFrameRoiX(r.getMinX());
-		exp.setDarkFrameRoiY(r.getMinY());
-		exp.setDarkFrameRoiWidth(r.getWidth());
-		exp.setDarkFrameRoiHeight(r.getHeight());
+		runButton.setText("STOP");
+		threadCleanGaps.execute();
 	}
 
-	private void runCleanSpotMeasures(Experiment exp) {
-		SequenceCamData seqCam = exp.getSeqCamData();
-		int[] lightStatus = seqCam != null ? seqCam.getLightStatusPerFrame() : null;
-		if (lightStatus == null || lightStatus.length == 0) {
-			runDetectionFromSeqCamData(exp);
-			seqCam = exp.getSeqCamData();
-			lightStatus = seqCam != null ? seqCam.getLightStatusPerFrame() : null;
+	private void stopComputation() {
+		if (threadCleanGaps != null && !threadCleanGaps.stopFlag) {
+			threadCleanGaps.stopFlag = true;
 		}
-		if (lightStatus == null || lightStatus.length == 0) {
-			Logger.warn("CleanGapsSpots: run detection first or no camera sequence");
-			return;
-		}
-
-		if (!exp.load_spots_description_and_measures()) {
-			Logger.warn("CleanGapsSpots: could not load spot measures");
-			return;
-		}
-		if (exp.getSpots() == null || exp.getSpots().getSpotList().isEmpty()) {
-			Logger.warn("CleanGapsSpots: no spots for this experiment");
-			return;
-		}
-
-		exp.getSpots().clearMeasuresAtDarkFrames(lightStatus);
-
-		boolean saved = exp.save_spots_description_and_measures();
-		if (!saved)
-			Logger.warn("CleanGapsSpots: could not save spot measures");
-		Logger.info("CleanGapsSpots: cleared spot measures at dark frames (saved=" + saved + ")");
 	}
+
+//	private void runFromSelectedToLastIfNeeded() {
+//		int index0 = parent0.expListComboLazy.getSelectedIndex();
+//		if (index0 < 0)
+//			return;
+//		int index1 = allSeriesCheckBox.isSelected() ? parent0.expListComboLazy.getItemCount() - 1 : index0;
+//		if (index1 < index0)
+//			return;
+//		boolean doDetect = detectBlackCheckbBox.isSelected();
+//		boolean doClean = cleanMeasuresCheckBox.isSelected();
+//		if (!doDetect && !doClean)
+//			return;
+//
+//		for (int index = index0; index <= index1; index++) {
+//			parent0.expListComboLazy.setSelectedIndex(index);
+//			Object item = parent0.expListComboLazy.getSelectedItem();
+//			if (!(item instanceof Experiment))
+//				continue;
+//			Experiment exp = (Experiment) item;
+//			Logger.info("CleanGapsSpots: run " + (index - index0 + 1) + "/" + (index1 - index0 + 1));
+//			if (doDetect)
+//				runDetectionFromSeqCamData(exp);
+//			if (doClean)
+//				runCleanSpotMeasures(exp);
+//		}
+//	}
+
+//	private void runDetectionFromSeqCamData(Experiment exp) {
+//		if (exp == null)
+//			return;
+//
+//		ExperimentService expService = new ExperimentService();
+//		SequenceCamData seqCam = exp.getSeqCamData();
+//		if (seqCam == null || seqCam.getSequence() == null) {
+//			seqCam = expService.openSequenceCamData(exp);
+//		}
+//		if (seqCam == null || seqCam.getSequence() == null) {
+//			Logger.warn("CleanGapsSpots: no camera sequence available for experiment");
+//			return;
+//		}
+//
+//		Rectangle2D rect = options.rectMonitor.getRectangle();
+//		options.roiX = (int) rect.getMinX();
+//		options.roiY = (int) rect.getMinY();
+//		options.roiWidth = (int) rect.getWidth();
+//		options.roiHeight = (int) rect.getHeight();
+//		options.thresholdMean = (double) thresholdSpinner.getValue();
+//		options.thresholdSum = 0L;
+//
+//		DarkFrameDetector detector = new DarkFrameDetector();
+//		int[] lightStatus = detector.runDetection(exp, options);
+//		if (lightStatus == null) {
+//			Logger.warn("CleanGapsSpots: dark frame detection failed");
+//			return;
+//		}
+//
+//		Logger.info("CleanGapsSpots: computed light status for " + lightStatus.length + " frames");
+//
+//		int dark = 0;
+//		for (int s : lightStatus)
+//			if (s == 0)
+//				dark++;
+//		resultSummary.setText("Dark: " + dark + ", Light: " + (lightStatus.length - dark));
+//
+//		Rectangle2D r = options.rectMonitor.getRectangle();
+//		exp.setDarkFrameThresholdMean(((Number) thresholdSpinner.getValue()).doubleValue());
+//		exp.setDarkFrameRoiX(r.getMinX());
+//		exp.setDarkFrameRoiY(r.getMinY());
+//		exp.setDarkFrameRoiWidth(r.getWidth());
+//		exp.setDarkFrameRoiHeight(r.getHeight());
+//	}
+
+//	private void runCleanSpotMeasures(Experiment exp) {
+//		SequenceCamData seqCam = exp.getSeqCamData();
+//		int[] lightStatus = seqCam != null ? seqCam.getLightStatusPerFrame() : null;
+//		if (lightStatus == null || lightStatus.length == 0) {
+//			runDetectionFromSeqCamData(exp);
+//			seqCam = exp.getSeqCamData();
+//			lightStatus = seqCam != null ? seqCam.getLightStatusPerFrame() : null;
+//		}
+//		if (lightStatus == null || lightStatus.length == 0) {
+//			Logger.warn("CleanGapsSpots: run detection first or no camera sequence");
+//			return;
+//		}
+//
+//		if (!exp.load_spots_description_and_measures()) {
+//			Logger.warn("CleanGapsSpots: could not load spot measures");
+//			return;
+//		}
+//		if (exp.getSpots() == null || exp.getSpots().getSpotList().isEmpty()) {
+//			Logger.warn("CleanGapsSpots: no spots for this experiment");
+//			return;
+//		}
+//
+//		exp.getSpots().clearMeasuresAtDarkFrames(lightStatus);
+//
+//		boolean saved = exp.save_spots_description_and_measures();
+//		if (!saved)
+//			Logger.warn("CleanGapsSpots: could not save spot measures");
+//		Logger.info("CleanGapsSpots: cleared spot measures at dark frames (saved=" + saved + ")");
+//	}
 
 	private void updateFromExperiment(Experiment exp) {
 		if (exp == null)

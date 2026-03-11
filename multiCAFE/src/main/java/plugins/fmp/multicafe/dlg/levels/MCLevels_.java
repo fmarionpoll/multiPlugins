@@ -26,7 +26,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	DetectLevelsDlgFromCam tabDetectLevelsDirect = new DetectLevelsDlgFromCam();
 //	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
 //  DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
-	CleanGaps tabCleanGaps = new CleanGaps();
+	CleanGapsCapillaries tabCleanGaps = new CleanGapsCapillaries();
 	DetectGulpsDlgFromKymo tabDetectGulps = new DetectGulpsDlgFromKymo();
 	EditLevels tabEdit = new EditLevels();
 	Adjust tabAdjust = new Adjust();
