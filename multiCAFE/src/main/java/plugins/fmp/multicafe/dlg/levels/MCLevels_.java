@@ -49,11 +49,11 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 		tabDetectLevelsDirect.init(capLayout, parent0);
 		tabDetectLevelsDirect.addPropertyChangeListener(this);
-		tabsPane.addTab("- Levels (direct)", null, tabDetectLevelsDirect,
+		tabsPane.addTab("Levels (direct)", null, tabDetectLevelsDirect,
 				"Find limits of the columns of liquid directly from images");
-		
+
 		tabCleanGaps.init(capLayout, parent0);
-		tabsPane.addTab("-- clean gaps", null, tabCleanGaps, "erase no light gaps");
+		tabsPane.addTab("Clean gaps", null, tabCleanGaps, "remove night gaps from measures");
 
 		tabDetectGulps.init(capLayout, parent0);
 		tabsPane.addTab("Gulps", null, tabDetectGulps, "Detect gulps from kymographs");

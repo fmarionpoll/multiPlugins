@@ -20,7 +20,6 @@ import javax.swing.event.ChangeListener;
 import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
-
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
@@ -29,19 +28,19 @@ import plugins.fmp.multitools.service.DarkFrameDetector;
 import plugins.fmp.multitools.service.DarkFrameDetector.Options;
 import plugins.fmp.multitools.service.ExperimentService;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class CleanGaps extends JPanel {
 	private static final long serialVersionUID = 6031521157029550040L;
 
-//	private JRadioButton useKymograph = new JRadioButton("kymographs", true);
-//	private JRadioButton useRawImages = new JRadioButton("raw images", false);
 	private JButton displayRect = new JButton("Area monitored");
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(20., 0., 255., 1.));
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
-	private JButton runButton = new JButton("Detect black zones from images");
-	private JButton cleanMeasuresButton = new JButton("Clean capillary measures");
+	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
+	private JCheckBox detectBlackCheckbBox = new JCheckBox("Detect black zones from images", false);
+	private JCheckBox cleanMeasuresCheckBox = new JCheckBox("Clean capillary measures", false);
+	private JButton runButton = new JButton("Run...");
 	private JLabel resultSummary = new JLabel(" ");
 
 	private Options options = new Options();
@@ -63,16 +62,21 @@ public class CleanGaps extends JPanel {
 		panel0.add(new JLabel(" threshold:"));
 		panel0.add(thresholdSpinner);
 		panel0.add(overlayCheckBox);
-		panel0.add(runButton);
-		panel0.add(cleanMeasuresButton);
 		add(panel0);
 
-		JPanel panel01 = new JPanel(layoutLeft);
-		panel01.add(resultSummary);
-		add(panel01);
-
 		JPanel panel1 = new JPanel(layoutLeft);
+		panel1.add(detectBlackCheckbBox);
+		panel1.add(cleanMeasuresCheckBox);
 		add(panel1);
+
+		JPanel panel2 = new JPanel(layoutLeft);
+		panel2.add(runButton);
+		panel2.add(allSeriesCheckBox);
+		add(panel2);
+
+		JPanel panel3 = new JPanel(layoutLeft);
+		panel3.add(resultSummary);
+		add(panel3);
 
 		options.rectMonitor.setName("rectMonitor");
 		defineActionListeners();
@@ -134,23 +138,36 @@ public class CleanGaps extends JPanel {
 		runButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+				runFromSelectedToLastIfNeeded();
+			}
+		});
+	}
 
+	private void runFromSelectedToLastIfNeeded() {
+		int index0 = parent0.expListComboLazy.getSelectedIndex();
+		if (index0 < 0)
+			return;
+		int index1 = allSeriesCheckBox.isSelected() ? parent0.expListComboLazy.getItemCount() - 1 : index0;
+		if (index1 < index0)
+			return;
+		boolean doDetect = detectBlackCheckbBox.isSelected();
+		boolean doClean = cleanMeasuresCheckBox.isSelected();
+		if (!doDetect && !doClean)
+			return;
+
+		// Keep selection stable and show progress in log.
+		for (int index = index0; index <= index1; index++) {
+			parent0.expListComboLazy.setSelectedIndex(index);
+			Object item = parent0.expListComboLazy.getSelectedItem();
+			if (!(item instanceof Experiment))
+				continue;
+			Experiment exp = (Experiment) item;
+			Logger.info("CleanGaps: run " + (index - index0 + 1) + "/" + (index1 - index0 + 1));
+			if (doDetect)
 				runDetectionFromSeqCamData(exp);
-			}
-		});
-
-		cleanMeasuresButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+			if (doClean)
 				runCleanCapillaryMeasures(exp);
-			}
-		});
+		}
 	}
 
 	private void runDetectionFromSeqCamData(Experiment exp) {
@@ -189,7 +206,8 @@ public class CleanGaps extends JPanel {
 
 		int dark = 0;
 		for (int s : lightStatus)
-			if (s == 0) dark++;
+			if (s == 0)
+				dark++;
 		resultSummary.setText("Dark: " + dark + ", Light: " + (lightStatus.length - dark));
 
 		Rectangle2D r = options.rectMonitor.getRectangle();
@@ -225,15 +243,18 @@ public class CleanGaps extends JPanel {
 		exp.getCapillaries().clearMeasuresAtDarkFrames(lightStatus);
 		if (exp.getSeqKymos() != null)
 			CapillariesKymosMapper.pushCapillaryMeasuresToKymos(exp.getCapillaries(), exp.getSeqKymos());
-		Logger.info("CleanGaps: cleared capillary measures at dark frames");
+
+		boolean saved = exp.save_capillaries_description_and_measures();
+		if (!saved)
+			Logger.warn("CleanGaps: could not save capillary measures");
+		Logger.info("CleanGaps: cleared capillary measures at dark frames (saved=" + saved + ")");
 	}
 
 	private void updateFromExperiment(Experiment exp) {
 		if (exp == null)
 			return;
 		thresholdSpinner.setValue(exp.getDarkFrameThresholdMean());
-		options.rectMonitor.setBounds2D(new Rectangle2D.Double(
-				exp.getDarkFrameRoiX(), exp.getDarkFrameRoiY(),
+		options.rectMonitor.setBounds2D(new Rectangle2D.Double(exp.getDarkFrameRoiX(), exp.getDarkFrameRoiY(),
 				exp.getDarkFrameRoiWidth(), exp.getDarkFrameRoiHeight()));
 		if (overlayThreshold != null && overlaySequence != null && exp.getSeqCamData() != null
 				&& exp.getSeqCamData().getSequence() == overlaySequence)
