@@ -337,29 +337,29 @@ public class Results {
 			return null;
 
 		double value0 = getMaximum();
+		if (!Double.isFinite(value0) || value0 == 0.)
+			return dataValues;
 		relativeToValue(value0);
 		return dataValues;
 	}
 
 	public double getMaximum() {
-		double maximum = 0.;
 		if (dataValues == null || dataValues.size() < 1)
-			return maximum;
+			return 0.;
 
-		maximum = dataValues.get(0);
+		double maximum = Double.NEGATIVE_INFINITY;
 		for (int index = 0; index < dataValues.size(); index++) {
 			double value = dataValues.get(index);
-			maximum = Math.max(maximum, value);
+			if (Double.isFinite(value) && value > maximum)
+				maximum = value;
 		}
-
-		return maximum;
+		return maximum == Double.NEGATIVE_INFINITY ? Double.NaN : maximum;
 	}
 
 	private void relativeToValue(double value0) {
 		for (int index = 0; index < dataValues.size(); index++) {
 			double value = dataValues.get(index);
-			// dataValues.set(index, ((value0 - value) / value0));
-			dataValues.set(index, value / value0);
+			dataValues.set(index, Double.isFinite(value) ? value / value0 : Double.NaN);
 		}
 	}
 

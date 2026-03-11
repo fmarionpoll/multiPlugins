@@ -86,16 +86,12 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 	 */
 	public Results getResultsDataValuesFromSpotMeasures(Experiment exp, Cage cage, Spot spot,
 			ResultsOptions xlsExportOptions) {
-		/*
-		 * 1) get n input frames for signal between timefirst and time last; locate
-		 * binfirst and bin last in the array of long in seqcamdata 2) given excelBinms,
-		 * calculate n output bins
-		 */
 		int nOutputFrames = getNOutputFrames(exp, xlsExportOptions);
 
 		Results results = new Results(cage.getProperties(), spot.getProperties(), nOutputFrames);
 
-		long binData = exp.getSeqCamData().getTimeManager().getBinDurationMs();
+		long binImageMs = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+		long binData = (binImageMs > 0) ? binImageMs : exp.getSeqCamData().getTimeManager().getBinDurationMs();
 		long binExcel = xlsExportOptions.buildExcelStepMs;
 		results.getDataFromSpot(spot, binData, binExcel, xlsExportOptions);
 		return results;
