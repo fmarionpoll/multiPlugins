@@ -78,10 +78,13 @@ public class Intervals extends JPanel implements ItemListener {
 		panel1.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
 		panel1.add(binSizeJSpinner);
 		panel1.add(binUnit);
-		panel1.add(new JLabel("Nominal interval (s) ", SwingConstants.RIGHT));
-		panel1.add(nominalIntervalJSpinner);
-		panel1.add(refreshButton);
 		add(panel1);
+		
+		JPanel panel2 = new JPanel(layout1);
+		panel2.add(new JLabel("Nominal interval (s) ", SwingConstants.RIGHT));
+		panel2.add(nominalIntervalJSpinner);
+		panel2.add(refreshButton);
+		add(panel2);
 
 		fixedNumberOfImagesJSpinner.setVisible(false);
 		defineActionListeners();
