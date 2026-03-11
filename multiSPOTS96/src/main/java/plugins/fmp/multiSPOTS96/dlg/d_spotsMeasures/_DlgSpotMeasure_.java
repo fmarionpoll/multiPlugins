@@ -27,6 +27,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	ThresholdLight tabSimpleThresholdLight = new ThresholdLight();
 //	ThresholdSimple tabSimpleThresholdAdvanced = new ThresholdSimple();
 //	ThresholdColors colorsThreshold = new ThresholdColors();
+	CleanGapsSpots tabCleanGaps = new CleanGapsSpots();
 	Edit tabEdit = new Edit();
 	public Charts tabCharts = new Charts();
 	public LoadSave tabFile = new LoadSave();
@@ -62,6 +63,10 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 //		colorsThreshold.addPropertyChangeListener(this);
 //		tabsPane.addTab("Colors threshold", null, colorsThreshold, "Measure area using colors defined by user");
 //		order++;
+
+		tabCleanGaps.init(gridLayout, parent0);
+		tabsPane.addTab("Night / clean", null, tabCleanGaps, "Detect dark frames and clean spot measures");
+		order++;
 
 		tabEdit.init(gridLayout, parent0);
 		tabEdit.addPropertyChangeListener(this);

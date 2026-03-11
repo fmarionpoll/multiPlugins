@@ -214,6 +214,49 @@ public class Spots {
 		return persistence.saveMeasures(this, binDirectory);
 	}
 
+	/**
+	 * Marks spot measures as invalid (NaN) at every time index where the camera
+	 * frame was dark (lightStatusPerFrame[t] == 0). Applies to sum, clean and
+	 * fly-present measures.
+	 */
+	public void clearMeasuresAtDarkFrames(int[] lightStatusPerFrame) {
+		if (lightStatusPerFrame == null || lightStatusPerFrame.length == 0)
+			return;
+		for (Spot spot : spotList) {
+			if (spot == null)
+				continue;
+			clearSpotMeasureAtDarkFrames(spot.getSum(), lightStatusPerFrame);
+			clearSpotMeasureAtDarkFrames(spot.getSumClean(), lightStatusPerFrame);
+			clearSpotMeasureAtDarkFrames(spot.getFlyPresent(), lightStatusPerFrame);
+		}
+	}
+
+	private static void clearSpotMeasureAtDarkFrames(SpotMeasure measure, int[] lightStatusPerFrame) {
+		if (measure == null)
+			return;
+		double[] values = measure.getValues();
+		int[] isPresent = measure.getIsPresent();
+		if (values == null || values.length == 0)
+			return;
+		boolean changedValues = false;
+		boolean changedPresence = false;
+		int n = values.length;
+		for (int t = 0; t < lightStatusPerFrame.length && t < n; t++) {
+			if (lightStatusPerFrame[t] == 0) {
+				values[t] = Double.NaN;
+				changedValues = true;
+				if (isPresent != null && t < isPresent.length) {
+					isPresent[t] = 0;
+					changedPresence = true;
+				}
+			}
+		}
+		if (changedValues)
+			measure.setValues(values);
+		if (changedPresence)
+			measure.setIsPresent(isPresent);
+	}
+
 	// === DEPRECATED METHODS ===
 	// Old method names kept for backward compatibility (will be removed in v3.0)
 
