@@ -35,8 +35,8 @@ public class CleanGapsCapillaries extends JPanel {
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(20., 0., 255., 1.));
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
-	private JCheckBox detectBlackCheckbBox = new JCheckBox("Detect black zones from images", false);
-	private JCheckBox cleanMeasuresCheckBox = new JCheckBox("Clean capillary measures", false);
+	private JCheckBox detectBlackCheckbBox = new JCheckBox("Detect black zones from images", true);
+	private JCheckBox cleanMeasuresCheckBox = new JCheckBox("Clean capillary measures", true);
 	private JButton runButton = new JButton("Run...");
 	private JLabel resultSummary = new JLabel(" ");
 
@@ -177,6 +177,7 @@ public class CleanGapsCapillaries extends JPanel {
 		opts.roiHeight = (int) rect.getHeight();
 		opts.thresholdMean = (double) thresholdSpinner.getValue();
 		opts.thresholdSum = 0L;
+	
 		threadCleanGaps.darkOptions = opts;
 
 		threadCleanGaps.addPropertyChangeListener(evt -> {
@@ -188,7 +189,6 @@ public class CleanGapsCapillaries extends JPanel {
 			} else if (threadCleanGaps != null && (threadCleanGaps.THREAD_ENDED.equals(name)
 					|| threadCleanGaps.THREAD_DONE.equals(name))) {
 				runButton.setText(runString);
-			
 			}
 		});
 

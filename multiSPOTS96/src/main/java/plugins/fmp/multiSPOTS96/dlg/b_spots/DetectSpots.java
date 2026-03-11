@@ -253,7 +253,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 			overlayThreshold.setSequence(exp.getSeqCamData().getSequence());
 		}
-		// overlayThreshold.setReferenceImage(exp.getSeqCamData().getReferenceImage());
 		exp.getSeqCamData().getSequence().addOverlay(overlayThreshold);
 	}
 

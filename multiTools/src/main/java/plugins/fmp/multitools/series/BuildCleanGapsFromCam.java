@@ -2,6 +2,7 @@ package plugins.fmp.multitools.series;
 
 import java.awt.geom.Rectangle2D;
 
+
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
@@ -97,31 +98,6 @@ public class BuildCleanGapsFromCam extends BuildSeries {
 				Logger.warn("BuildCleanGapsFromCam: camera sequence has no frames for experiment "
 						+ exp.getResultsDirectory());
 				return null;
-			}
-		}
-
-		// Ensure DarkFrameDetector sees a usable reference image.
-		if (seqCam.getReferenceImage() == null) {
-			// Try to get the first frame from the underlying sequence.
-			if (seqCam.getSequence() != null && seqCam.getSequence().getSizeT() > 0) {
-				try {
-					// This may still be lazily loaded; fall back to explicit getSeqImage if needed.
-					plugins.fmp.multitools.tools.Logger.debug(
-							"BuildCleanGapsFromCam: initializing reference image from first frame for experiment "
-									+ exp.getResultsDirectory());
-					icy.image.IcyBufferedImage first = seqCam.getSequence().getFirstImage();
-					if (first == null) {
-						first = seqCam.getSeqImage(0, 0);
-					}
-					if (first != null) {
-						seqCam.setReferenceImage(first);
-					}
-				} catch (Exception e) {
-					Logger.warn(
-							"BuildCleanGapsFromCam: failed to initialize reference image from first frame for experiment "
-									+ exp.getResultsDirectory(),
-							e);
-				}
 			}
 		}
 

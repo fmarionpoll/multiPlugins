@@ -1,5 +1,8 @@
 package plugins.fmp.multitools.service;
 
+import java.awt.Dimension;
+
+import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -15,6 +18,7 @@ import plugins.kernel.roi.roi2d.ROI2DRectangle;
  * value 1 means \"light\", 0 means \"dark\".
  */
 public class DarkFrameDetector {
+
 
 	public static class DarkFrameDetectionOptions {
 		public ROI2DRectangle rectMonitor = new ROI2DRectangle(100., 100., 200., 150.);
@@ -45,17 +49,14 @@ public class DarkFrameDetector {
 		}
 
 		SequenceCamData seqCam = exp.getSeqCamData();
-		IcyBufferedImage reference = seqCam.getReferenceImage();
-		if (reference == null && seqCam.getSequence() != null && seqCam.getSequence().getSizeT() > 0) {
-			reference = seqCam.getSequence().getFirstImage();
-		}
-		if (reference == null) {
+		if (seqCam.getSequence() == null ) {
 			Logger.warn("DarkFrameDetector: no reference image available");
 			return null;
 		}
-
-		int imageWidth = reference.getSizeX();
-		int imageHeight = reference.getSizeY();
+		
+		Dimension dim = seqCam.getSequence().getDimension2D();
+		int imageWidth = (int) dim.getWidth();
+		int imageHeight = (int) dim.getHeight();
 
 		int roiX = Math.max(0, options.roiX);
 		int roiY = Math.max(0, options.roiY);
@@ -68,6 +69,8 @@ public class DarkFrameDetector {
 		if (roiY + roiHeight > imageHeight) {
 			roiHeight = imageHeight - roiY;
 		}
+
+		long startTimeNs = System.nanoTime();
 
 		int nFrames = seqCam.getSequence() != null ? seqCam.getSequence().getSizeT() : 0;
 		if (nFrames <= 0) {
@@ -88,41 +91,54 @@ public class DarkFrameDetector {
 			return null;
 		}
 
-		for (int t = 0; t < nFrames; t++) {
-			IcyBufferedImage image = seqCam.getSeqImage(t, 0);
-			if (image == null) {
-				lightStatus[t] = 0;
-				sumPerFrame[t] = 0L;
-				continue;
-			}
+		SequenceLoaderService loader = new SequenceLoaderService();
+		ProgressFrame progress = new ProgressFrame("Detect dark frames");
+		try {
+			for (int t = 0; t < nFrames; t++) {
+				if (t % 10 == 0) {
+					progress.setMessage("Frame " + (t + 1) + "/" + nFrames);
+				}
 
-			long sum = computeSumInROI(image, roiX, roiY, roiWidth, roiHeight);
-			sumPerFrame[t] = sum;
-			double mean = (double) sum / roiArea;
-			if (sum < minSum)
-				minSum = sum;
-			if (sum > maxSum)
-				maxSum = sum;
-			if (mean < minMean)
-				minMean = mean;
-			if (mean > maxMean)
-				maxMean = mean;
+			    IcyBufferedImage image = loader
+							.imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
 
-			if (options.thresholdMean > 0.0) {
-				lightStatus[t] = (mean >= options.thresholdMean) ? 1 : 0;
-			} else if (options.thresholdSum > 0L) {
-				lightStatus[t] = (sum >= options.thresholdSum) ? 1 : 0;
-			} else {
-				// If no threshold is provided, keep all as light so that
-				// the caller can inspect sums / means and choose a threshold.
-				lightStatus[t] = 1;
+				if (image == null) {
+					lightStatus[t] = 0;
+					sumPerFrame[t] = 0L;
+					continue;
+				}
+
+				long sum = computeSumInROI(image, roiX, roiY, roiWidth, roiHeight);
+				sumPerFrame[t] = sum;
+				double mean = (double) sum / roiArea;
+				if (sum < minSum)
+					minSum = sum;
+				if (sum > maxSum)
+					maxSum = sum;
+				if (mean < minMean)
+					minMean = mean;
+				if (mean > maxMean)
+					maxMean = mean;
+
+				if (options.thresholdMean > 0.0) {
+					lightStatus[t] = (mean >= options.thresholdMean) ? 1 : 0;
+				} else if (options.thresholdSum > 0L) {
+					lightStatus[t] = (sum >= options.thresholdSum) ? 1 : 0;
+				} else {
+					lightStatus[t] = 1;
+				}
 			}
+		} finally {
+			progress.close();
 		}
 
 		seqCam.setLightStatusPerFrame(lightStatus);
 		if (nFrames > 0) {
+			long endTimeNs = System.nanoTime();
+			double durationSec = (endTimeNs - startTimeNs) / 1_000_000_000.0;
 			Logger.info("DarkFrameDetector: ROI sum per frame, min=" + minSum + ", max=" + maxSum
-					+ " ; mean per pixel, min=" + minMean + ", max=" + maxMean);
+					+ " ; mean per pixel, min=" + minMean + ", max=" + maxMean
+					+ " ; detection time=" + String.format("%.3f", durationSec) + " s for " + nFrames + " frames");
 		}
 		return lightStatus;
 	}
