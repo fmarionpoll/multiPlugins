@@ -43,7 +43,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 		capPopupPanel.collapse();
 		mainPanel.add(capPopupPanel);
 
-		GridLayout gridLayout = new GridLayout(3, 1);
+		GridLayout gridLayout = new GridLayout(4, 1);
 		int order = 0;
 
 		tabSimpleThresholdLight.init(gridLayout, parent0);

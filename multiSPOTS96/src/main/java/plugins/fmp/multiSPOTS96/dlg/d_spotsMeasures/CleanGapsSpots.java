@@ -35,8 +35,8 @@ public class CleanGapsSpots extends JPanel {
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(20., 0., 255., 1.));
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
-	private JCheckBox detectBlackCheckbBox = new JCheckBox("Detect black zones from images", false);
-	private JCheckBox cleanMeasuresCheckBox = new JCheckBox("Clean spot measures", false);
+	private JCheckBox detectBlackCheckbBox = new JCheckBox("Detect black zones from images", true);
+	private JCheckBox cleanMeasuresCheckBox = new JCheckBox("Clean spot measures", true);
 	private JButton runButton = new JButton("Run...");
 	private JLabel resultSummary = new JLabel(" ");
 
