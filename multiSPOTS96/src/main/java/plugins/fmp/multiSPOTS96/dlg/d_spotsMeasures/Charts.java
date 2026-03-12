@@ -24,8 +24,12 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
 import plugins.fmp.multitools.tools.chart.strategies.NoUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -181,10 +185,15 @@ public class Charts extends JPanel implements SequenceListener {
 				.withCageRange(first, last).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected();
 
-		if (iChart == null) {
-			iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), null, new GridLayoutStrategy(),
-					new NoUIControlsFactory());
-		}
+		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
+			@Override
+			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options, ChartCagePair[][] charts) {
+				return new SpotChartInteractionHandler(exp, options, charts);
+			}
+		};
+
+		iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
+				new NoUIControlsFactory());
 		iChart.createMainChartPanel("Spots measures", exp, options);
 		Rectangle initialPos = getInitialUpperLeftPosition(exp);
 		if (iChart.getMainChartFrame() != null) {

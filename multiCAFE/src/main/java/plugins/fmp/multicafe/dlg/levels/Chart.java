@@ -26,6 +26,15 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
+import plugins.fmp.multitools.tools.chart.ChartCagesCombinedFrame;
+import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
+import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
+import plugins.fmp.multitools.tools.chart.interaction.CapillaryChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
+import plugins.fmp.multitools.tools.chart.strategies.NoUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
@@ -36,8 +45,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	 */
 	private static final long serialVersionUID = -7079184380174992501L;
 
-	private ChartCageArrayFrame chartCageArrayFrame = null;
-	private ChartCombinedFrame chartCombinedFrame = null;
+	private ChartCagesFrame chartCagesFrame = null;
+	private ChartCagesCombinedFrame chartCombinedFrame = null;
 	private MultiCAFE parent0 = null;
 
 	// Listener references for dynamic updates
@@ -167,9 +176,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 					if (graphOptions != null) {
 						graphOptions.close();
 					}
-					if (chartCageArrayFrame != null && viewGridButton.isSelected()) {
+					if (chartCagesFrame != null && viewGridButton.isSelected()) {
 						graphOptions = new AxisOptions();
-						graphOptions.initialize(parent0, chartCageArrayFrame);
+						graphOptions.initialize(parent0, chartCagesFrame);
 					}
 				}
 			}
@@ -210,14 +219,14 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			if (viewCombinedButton.isSelected()) {
 				chartCombinedFrame = plotCapillaryMeasuresToCombinedChart(exp, exportType, chartCombinedFrame);
 			} else {
-				chartCageArrayFrame = plotCapillaryMeasuresToChart(exp, exportType, chartCageArrayFrame);
+				chartCagesFrame = plotCapillaryMeasuresToChart(exp, exportType, chartCagesFrame);
 			}
 		}
 		exp.getSeqCamData().getSequence().addListener(this);
 	}
 
-	private ChartCombinedFrame plotCapillaryMeasuresToCombinedChart(Experiment exp, EnumResults resultType,
-			ChartCombinedFrame iChart) {
+	private ChartCagesCombinedFrame plotCapillaryMeasuresToCombinedChart(Experiment exp, EnumResults resultType,
+			ChartCagesCombinedFrame iChart) {
 		// Dispose existing frame if it exists
 		if (iChart != null && iChart.getMainChartFrame() != null) {
 			IcyFrame oldFrame = iChart.getMainChartFrame();
@@ -250,15 +259,14 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.withCageRange(first, last) //
 				.build();
 
-		iChart = new ChartCombinedFrame();
+		iChart = new ChartCagesCombinedFrame();
 		iChart.createMainChartPanel("Capillary level measures", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
 		return iChart;
 	}
 
-	private ChartCageArrayFrame plotCapillaryMeasuresToChart(Experiment exp, EnumResults resultType,
-			ChartCageArrayFrame iChart) {
+	private ChartCagesFrame plotCapillaryMeasuresToChart(Experiment exp, EnumResults resultType, ChartCagesFrame iChart) {
 		// Properly dispose and clean up existing chart frame if it exists
 		if (iChart != null && iChart.getMainChartFrame() != null) {
 			IcyFrame oldFrame = iChart.getMainChartFrame();
@@ -291,9 +299,15 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.withCageRange(first, last) //
 				.build();
 
-		// Always create a new ChartCageArrayFrame instance after disposing the old one
-		iChart = new ChartCageArrayFrame();
-		iChart.setParentComboBox(resultTypeComboBox);
+		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
+			@Override
+			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options, ChartCagePair[][] charts) {
+				return new CapillaryChartInteractionHandler(exp, charts);
+			}
+		};
+
+		iChart = new ChartCagesFrame(new CageCapillarySeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
+				new NoUIControlsFactory());
 		iChart.createMainChartPanel("Capillary level measures", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
@@ -332,11 +346,11 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			removeSelectionListeners(currentExperiment);
 		}
 
-		if (chartCageArrayFrame != null) {
-			if (chartCageArrayFrame.getMainChartFrame() != null) {
-				chartCageArrayFrame.getMainChartFrame().dispose();
+		if (chartCagesFrame != null) {
+			if (chartCagesFrame.getMainChartFrame() != null) {
+				chartCagesFrame.getMainChartFrame().dispose();
 			}
-			chartCageArrayFrame = null;
+			chartCagesFrame = null;
 		}
 
 		if (chartCombinedFrame != null) {

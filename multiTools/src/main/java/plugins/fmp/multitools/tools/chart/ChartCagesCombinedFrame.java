@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.levels;
+package plugins.fmp.multitools.tools.chart;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
@@ -20,21 +20,22 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
-import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
+import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Displays all cages in a single chart using a {@link CombinedRangeXYPlot}.
+ * Displays cages in a single combined chart using a {@link CombinedRangeXYPlot}.
  *
- * Each cage contributes one subplot (stacked vertically) sharing a common Y axis.
- * This is an alternative to the grid view implemented by {@link ChartCageArrayFrame}.
+ * <p>
+ * Intended for MultiCAFE combined view; multiSPOTS96 uses grid view only.
+ * </p>
  */
-public class ChartCombinedFrame {
+public class ChartCagesCombinedFrame {
 	private IcyFrame mainChartFrame = null;
 	private JPanel mainChartPanel = null;
 	private ChartPanel chartPanel = null;
@@ -54,11 +55,10 @@ public class ChartCombinedFrame {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
 		} else {
-			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(), new Dimension(300, 70), true, true,
-					true, true);
+			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(), new Dimension(300, 70), true, true, true,
+					true);
 		}
 		mainChartFrame.setLayout(new BorderLayout());
-
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
 	}
 
@@ -83,13 +83,11 @@ public class ChartCombinedFrame {
 			NumberAxis xAxis = new NumberAxis("cage " + cageId);
 			xAxis.setAutoRangeIncludesZero(false);
 
-			// Build subplot using the same styling logic as grid charts
 			NumberAxis dummyYAxis = new NumberAxis();
 			dummyYAxis.setAutoRangeIncludesZero(false);
 			XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, xAxis, dummyYAxis);
-			subplot.setRangeAxis(null); // range axis handled by CombinedRangeXYPlot
+			subplot.setRangeAxis(null);
 
-			// Keep background behavior aligned with existing charts
 			int nFlies = SeriesStyleCodec.getNFliesOrDefault(dataset, -1);
 			CageChartPlotFactory.setXYPlotBackGroundAccordingToNFlies(subplot, nFlies);
 
@@ -97,7 +95,6 @@ public class ChartCombinedFrame {
 		}
 
 		JFreeChart chart = new JFreeChart(combined);
-
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 

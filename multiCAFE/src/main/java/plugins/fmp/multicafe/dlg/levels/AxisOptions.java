@@ -33,7 +33,7 @@ public class AxisOptions extends JPanel {
 	private static final long serialVersionUID = 1L;
 	IcyFrame dialogFrame = null;
 	private MultiCAFE parent0 = null;
-	private ChartCageArrayFrame chartCageArrayFrame = null;
+	private plugins.fmp.multitools.tools.chart.ChartCagesFrame chartCagesFrame = null;
 	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., -255., 255., 1.));
 	private JSpinner upperXSpinner = new JSpinner(new SpinnerNumberModel(120., -255., 255., 1.));
 
@@ -45,9 +45,9 @@ public class AxisOptions extends JPanel {
 
 	private JButton setXaxis = new JButton("set X axis values");
 
-	public void initialize(MultiCAFE parent0, ChartCageArrayFrame chartSpots) {
+	public void initialize(MultiCAFE parent0, plugins.fmp.multitools.tools.chart.ChartCagesFrame chartSpots) {
 		this.parent0 = parent0;
-		this.chartCageArrayFrame = chartSpots;
+		this.chartCagesFrame = chartSpots;
 
 		// Detect axes first to determine UI layout
 		int maxYAxisCount = detectMaxYAxisCount();
@@ -122,14 +122,14 @@ public class AxisOptions extends JPanel {
 	}
 
 	private void collectValuesFromAllCharts() {
-		ChartCagePair[][] chartPanelArray = chartCageArrayFrame.getChartCagePairArray();
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
 		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0) {
 			return;
 		}
 		int nrows = chartPanelArray.length;
 		int ncolumns = chartPanelArray[0].length;
-		chartCageArrayFrame.setXRange(null);
-		chartCageArrayFrame.setYRange(null);
+		chartCagesFrame.setXRange(null);
+		chartCagesFrame.setYRange(null);
 
 		// Collect X-axis ranges
 		for (int column = 0; column < ncolumns; column++) {
@@ -146,7 +146,7 @@ public class AxisOptions extends JPanel {
 				ValueAxis xAxis = plot.getDomainAxis();
 
 				if (xAxis != null)
-					chartCageArrayFrame.setXRange(Range.combine(chartCageArrayFrame.getXRange(), xAxis.getRange()));
+					chartCagesFrame.setXRange(Range.combine(chartCagesFrame.getXRange(), xAxis.getRange()));
 			}
 		}
 
@@ -181,9 +181,9 @@ public class AxisOptions extends JPanel {
 		}
 
 		// Update spinners
-		if (chartCageArrayFrame.getXRange() != null) {
-			lowerXSpinner.setValue(chartCageArrayFrame.getXRange().getLowerBound());
-			upperXSpinner.setValue(chartCageArrayFrame.getXRange().getUpperBound());
+		if (chartCagesFrame.getXRange() != null) {
+			lowerXSpinner.setValue(chartCagesFrame.getXRange().getLowerBound());
+			upperXSpinner.setValue(chartCagesFrame.getXRange().getUpperBound());
 		}
 
 		for (int axisIndex = 0; axisIndex < maxYAxisCount; axisIndex++) {
@@ -196,7 +196,7 @@ public class AxisOptions extends JPanel {
 	}
 
 	private void updateXAxis() {
-		ChartCagePair[][] chartPanelArray = chartCageArrayFrame.getChartCagePairArray();
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
 		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0) {
 			return;
 		}
@@ -226,7 +226,7 @@ public class AxisOptions extends JPanel {
 			return;
 		}
 
-		ChartCagePair[][] chartPanelArray = chartCageArrayFrame.getChartCagePairArray();
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
 		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0) {
 			return;
 		}
@@ -268,7 +268,7 @@ public class AxisOptions extends JPanel {
 	 */
 	private int detectMaxYAxisCount() {
 		int maxCount = 1; // Default to at least 1 axis
-		ChartCagePair[][] chartPanelArray = chartCageArrayFrame.getChartCagePairArray();
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
 		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0) {
 			return maxCount;
 		}
@@ -331,7 +331,7 @@ public class AxisOptions extends JPanel {
 	 */
 	private String getAxisLabel(int axisIndex) {
 		// Check a sample chart to determine axis purpose
-		ChartCagePair[][] chartPanelArray = chartCageArrayFrame.getChartCagePairArray();
+		ChartCagePair[][] chartPanelArray = chartCagesFrame.getChartCagePairArray();
 		if (chartPanelArray == null || chartPanelArray.length == 0 || chartPanelArray[0].length == 0) {
 			return "Y axis " + (axisIndex + 1);
 		}
