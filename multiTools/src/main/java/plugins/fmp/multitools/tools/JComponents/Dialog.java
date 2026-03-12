@@ -133,8 +133,12 @@ public final class Dialog {
 			if (selectedFile.exists()) {
 				if (ConfirmDialog.confirm(JComponentConstants.FILE_OVERWRITE_CONFIRMATION)) {
 					if (!FileUtil.delete(selectedFile, true)) {
-						throw new FileDialogException("Failed to delete existing file", 
-													 "delete_existing", filePath);
+						// Most common case: file is open in another application (e.g. Excel).
+						// Inform the user so they can close it and retry instead of silently failing.
+						ConfirmDialog.confirm("Failed to overwrite file:\n" + filePath
+								+ "\n\nIt is likely open in another application (for example Excel).\n"
+								+ "Please close the file and run the export again.", "File in use");
+						throw new FileDialogException("Failed to delete existing file", "delete_existing", filePath);
 					}
 				} else {
 					return null; // User cancelled overwrite
