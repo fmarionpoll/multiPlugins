@@ -31,7 +31,7 @@ import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
-import plugins.fmp.multitools.tools.chart.strategies.NoUIControlsFactory;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
@@ -193,7 +193,7 @@ public class Charts extends JPanel implements SequenceListener {
 		};
 
 		iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
-				new NoUIControlsFactory());
+				createChartUIControlsFactory());
 		iChart.createMainChartPanel("Spots measures", exp, options);
 		Rectangle initialPos = getInitialUpperLeftPosition(exp);
 		if (iChart.getMainChartFrame() != null) {
@@ -205,6 +205,12 @@ public class Charts extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().requestFocus();
 		}
 		return iChart;
+	}
+
+	private ComboBoxUIControlsFactory createChartUIControlsFactory() {
+		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
+		ui.setMeasurementTypes(new EnumResults[] { EnumResults.AREA_SUM, EnumResults.AREA_SUMCLEAN, EnumResults.AREA_FLYPRESENT });
+		return ui;
 	}
 
 	private EnumResults convertSpotMeasureToResult(EnumSpotMeasures spotMeasure) {

@@ -34,7 +34,7 @@ import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.CapillaryChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
-import plugins.fmp.multitools.tools.chart.strategies.NoUIControlsFactory;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
@@ -306,8 +306,12 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			}
 		};
 
+		ComboBoxUIControlsFactory uiControlsFactory = new ComboBoxUIControlsFactory();
+		uiControlsFactory.setMeasurementTypes(measures);
+		uiControlsFactory.setParentComboBox(resultTypeComboBox);
+
 		iChart = new ChartCagesFrame(new CageCapillarySeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
-				new NoUIControlsFactory());
+				uiControlsFactory);
 		iChart.createMainChartPanel("Capillary level measures", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
