@@ -7,6 +7,7 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.tools.ColorUtils;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -86,8 +87,11 @@ public abstract class XLSExportSpots extends XLSExport {
 
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_NFLIES, transpose,
 				cage.getProperties().getCageNFlies());
+		
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_COLOR, transpose,
+				ColorUtils.getFriendlyColorName(spot.getProperties().getColor()));
 
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DUM4, transpose, spot.getProperties().getStimulusI());
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DUM5, transpose, spot.getProperties().getStimulusI());
 	}
 }
 
