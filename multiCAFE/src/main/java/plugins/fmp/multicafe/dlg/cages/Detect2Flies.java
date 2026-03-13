@@ -207,7 +207,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		if (overlayThreshold == null)
 			return;
 
-		boolean ifGreater = !whiteObjectCheckBox.isSelected();
+		boolean ifGreater = whiteObjectCheckBox.isSelected();
 		ImageTransformEnums transformOp = ImageTransformEnums.SUBTRACT_REF;
 		int threshold = (int) thresholdSpinner.getValue();
 		overlayThreshold.setThresholdSingle(threshold, transformOp, ifGreater);

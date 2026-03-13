@@ -164,7 +164,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			overlayThreshold1.setSequence(seqCamData.getSequence());
 		}
 		seqCamData.getSequence().addOverlay(overlayThreshold1);
-		boolean ifGreater = true;
+		boolean ifGreater = false;
 		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		overlayThreshold1.setThresholdSingle(exp.getCages().getDetect_threshold(), transformOp, ifGreater);
 		overlayThreshold1.painterChanged();

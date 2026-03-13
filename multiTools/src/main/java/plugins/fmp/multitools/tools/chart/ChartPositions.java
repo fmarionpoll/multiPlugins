@@ -121,6 +121,10 @@ public class ChartPositions extends IcyFrame {
 		int width = 100;
 		boolean displayLabels = false;
 
+		if (xyDataSetList.isEmpty()) {
+			return;
+		}
+
 		for (XYSeriesCollection xyDataset : xyDataSetList) {
 			JFreeChart xyChart = ChartFactory.createXYLineChart(null, null, null, xyDataset, PlotOrientation.VERTICAL,
 					true, true, true);
@@ -129,12 +133,23 @@ public class ChartPositions extends IcyFrame {
 
 			ValueAxis yAxis = xyChart.getXYPlot().getRangeAxis(0);
 			if (yMaxMin.hasValues()) {
-				yAxis.setRange(yMaxMin.getMin(), yMaxMin.getMax());
+				double min = yMaxMin.getMin();
+				double max = yMaxMin.getMax();
+				if (max > min) {
+					yAxis.setRange(min, max);
+				} else {
+					double delta = (min != 0) ? Math.abs(min) * 0.1 : 1.0;
+					yAxis.setRange(min - delta, min + delta);
+				}
 			}
 			yAxis.setTickLabelsVisible(displayLabels);
 
 			ValueAxis xAxis = xyChart.getXYPlot().getDomainAxis(0);
-			xAxis.setRange(0, globalXMax);
+			double xMax = globalXMax;
+			if (xMax <= 0) {
+				xMax = 1.0;
+			}
+			xAxis.setRange(0, xMax);
 
 			ChartPanel xyChartPanel = new ChartPanel(xyChart, width, 200, 50, 100, 100, 200, false, false, true, true,
 					true, true);

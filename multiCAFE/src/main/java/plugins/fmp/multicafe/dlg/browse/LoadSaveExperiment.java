@@ -610,20 +610,16 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	/**
-	 * Prepares the cage measures file by moving it if needed.
-	 * 
-	 * @param exp The experiment to prepare the file for
+	 * Legacy helper for old layouts where CagesMeasures.csv lived directly
+	 * under the results directory. The current v2 format always uses the bin
+	 * directory (results/bin_xx/CagesMeasures.csv), so this method is now a
+	 * no-op to avoid creating or moving an extra file in results.
+	 *
+	 * @param exp The experiment (unused in current implementation)
 	 */
 	private void prepareCageMeasuresFile(Experiment exp) {
-		String pathToMeasures = exp.getResultsDirectory() + java.io.File.separator + "CagesMeasures.csv";
-		java.io.File f = new java.io.File(pathToMeasures);
-		if (!f.exists()) {
-			String pathToOldCsv = exp.getKymosBinFullDirectory() + java.io.File.separator + "CagesMeasures.csv";
-			java.io.File fileToMove = new java.io.File(pathToOldCsv);
-			if (fileToMove.exists()) {
-				fileToMove.renameTo(f);
-			}
-		}
+		// Intentionally left empty: CagesMeasures.csv is now stored only in the
+		// bin directory (results/bin_xx) by Experiment.saveCagesMeasures().
 	}
 
 	boolean openSelectedExperiment(Experiment exp) {
@@ -682,6 +678,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			if (!cagesLoaded) {
 				Logger.warn("Failed to load cages for experiment [" + expIndex + "]");
+			}
+
+			// Initialize absolute times (tMs) for fly positions so charts use real time
+			// instead of frame indices on the X axis.
+			if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+				exp.initTmsForFlyPositions(exp.getCamImageFirst_ms());
 			}
 
 			exp.updateROIsAt(0);

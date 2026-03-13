@@ -569,8 +569,17 @@ public class Cages {
 	public void transferROIsFromSequence(SequenceCamData seqCamData) {
 		List<ROI2D> roiList = seqCamData.findROIsMatchingNamePattern("cage");
 		Collections.sort(roiList, new Comparators.ROI2D_Name());
+
+		List<String> roiNamesInSequence = new ArrayList<String>(roiList.size());
+		for (ROI2D roi : roiList) {
+			if (roi != null && roi.getName() != null) {
+				roiNamesInSequence.add(roi.getName());
+			}
+		}
+
 		transferROIsToCages(roiList);
 		addMissingCages(roiList);
+		removeCagesWithoutMatchingROI(roiNamesInSequence);
 		Collections.sort(cagesList, new Comparators.Cage_Name());
 	}
 
@@ -607,6 +616,26 @@ public class Cages {
 			cage.setCageRoi((ROI2DShape) roi);
 			addCageIfUnique(cage);
 			iterator.remove();
+		}
+	}
+
+	private void removeCagesWithoutMatchingROI(List<String> roiNamesInSequence) {
+		if (roiNamesInSequence == null || roiNamesInSequence.isEmpty()) {
+			return;
+		}
+
+		Iterator<Cage> iterator = cagesList.iterator();
+		while (iterator.hasNext()) {
+			Cage cage = iterator.next();
+			ROI2D roi = cage.getRoi();
+			if (roi == null) {
+				iterator.remove();
+				continue;
+			}
+			String name = roi.getName();
+			if (name == null || !roiNamesInSequence.contains(name)) {
+				iterator.remove();
+			}
 		}
 	}
 

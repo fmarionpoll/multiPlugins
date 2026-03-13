@@ -203,7 +203,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		ov.setReferenceImage(referenceImage);
 		seqCamData.getSequence().addOverlay(ov);
 
-		boolean ifGreater = true;
+		boolean ifGreater = false;
 		ImageTransformEnums transformOp = ImageTransformEnums.NONE;
 		int threshold = (int) backgroundThresholdSpinner.getValue();
 		ov.setThresholdSingle(threshold, transformOp, ifGreater);
