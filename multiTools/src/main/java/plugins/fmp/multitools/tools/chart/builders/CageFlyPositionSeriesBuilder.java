@@ -132,6 +132,13 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			processEllipseAxesData(flyPositions, seriesXY, itmax);
 			break;
 
+		 case XTOPCAGE:
+		        processXTopCageData(cage, flyPositions, seriesXY, itmax);
+		        break;
+		    case YTOPCAGE:
+		        processYTopCageData(cage, flyPositions, seriesXY, itmax);
+		        break;
+		        
 		case XYIMAGE:
 		case XYTOPCAGE:
 			processPositionData(flyPositions, seriesXY, itmax, cage);
@@ -245,5 +252,51 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		// Convert time from milliseconds to minutes (matching Capillary/Gulp pattern)
 		double timeMinutes = pos.tMs / (60.0 * 1000.0);
 		seriesXY.add(timeMinutes, ypos);
+	}
+	
+	/**
+	 * Processes Y position relative to the top of the cage (YTOPCAGE).
+	 * This mirrors the existing behavior used for XYTOPCAGE charts.
+	 */
+	private void processYTopCageData(Cage cage, FlyPositions results, XYSeries seriesXY, int itmax) {
+	    Rectangle rect1 = null;
+	    if (cage.getRoi() != null) {
+	        rect1 = cage.getRoi().getBounds();
+	    } else if (cage.getCageRoi2D() != null) {
+	        rect1 = cage.getCageRoi2D().getBounds();
+	    }
+	    if (rect1 == null) {
+	        Logger.warn("Cannot process YTOPCAGE: cage ROI is null");
+	        return;
+	    }
+	    double yTop = rect1.getY();
+	    for (int it = 0; it < itmax; it++) {
+	        FlyPosition pos = results.flyPositionList.get(it);
+	        Rectangle2D itRect = pos.rectPosition;
+	        double ypos = itRect.getY() - yTop;  // distance from top edge of cage
+	        addxyPos(seriesXY, pos, ypos);
+	    }
+	}
+	/**
+	 * Processes X position relative to the left edge of the cage (XTOPCAGE).
+	 */
+	private void processXTopCageData(Cage cage, FlyPositions results, XYSeries seriesXY, int itmax) {
+	    Rectangle rect1 = null;
+	    if (cage.getRoi() != null) {
+	        rect1 = cage.getRoi().getBounds();
+	    } else if (cage.getCageRoi2D() != null) {
+	        rect1 = cage.getCageRoi2D().getBounds();
+	    }
+	    if (rect1 == null) {
+	        Logger.warn("Cannot process XTOPCAGE: cage ROI is null");
+	        return;
+	    }
+	    double xLeft = rect1.getX();
+	    for (int it = 0; it < itmax; it++) {
+	        FlyPosition pos = results.flyPositionList.get(it);
+	        Rectangle2D itRect = pos.rectPosition;
+	        double xpos = itRect.getX() - xLeft;  // distance from left edge of cage
+	        addxyPos(seriesXY, pos, xpos);
+	    }
 	}
 }

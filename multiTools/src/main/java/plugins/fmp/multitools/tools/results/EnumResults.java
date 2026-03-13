@@ -52,6 +52,8 @@ public enum EnumResults {
 	// === FLY POSITION MEASURES (stored data) ===
 	XYIMAGE("xy-image", "mm", "xy image", StoredDataAccessors.accessStored_XYIMAGE()),
 	XYTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_XYTOPCAGE()),
+	XTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_XTOPCAGE()),
+	YTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_YTOPCAGE()),
 	XYTIPCAPS("xy-tipcaps", "mm", "xy tip capillaries", StoredDataAccessors.accessStored_XYTIPCAPS()),
 	ELLIPSEAXES("ellipse-axes", "mm", "Ellipse of axes", StoredDataAccessors.accessStored_ELLIPSEAXES()),
 	DISTANCE("distance", "mm", "Distance between consecutive points", StoredDataAccessors.accessStored_DISTANCE()),

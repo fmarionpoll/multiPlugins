@@ -1,11 +1,14 @@
 package plugins.fmp.multitools.tools.toExcel;
 
+import java.awt.Color;
 import java.awt.Point;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
+import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
@@ -13,6 +16,8 @@ import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.tools.ROI2D.ROIType;
+import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.fmp.multitools.tools.chart.builders.CageFlyPositionSeriesBuilder;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
@@ -21,7 +26,10 @@ import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
+import plugins.kernel.roi.roi2d.ROI2DPolygon;
+import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 /**
  * Excel export implementation for fly position measurements. Uses the Template
@@ -59,6 +67,9 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
 
+		// Always export static cage limits to a dedicated worksheet for this run
+		exportCageLimitsForExperiment(exp);
+
 		OptionToResultsMapping[] mappings = {
 			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
 			new OptionToResultsMapping(() -> options.xyCage, EnumResults.XYTOPCAGE),
@@ -86,6 +97,12 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	@Override
 	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
+		// Special case: XYIMAGE now exports full rectangle components (x, y, w, h)
+		// instead of a single Y-based series.
+		if (resultType == EnumResults.XYIMAGE) {
+			return exportXYImageRectComponents(exp, sheet, col0, charSeries);
+		}
+
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
@@ -121,6 +138,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			if (results != null) {
 				pt.y = 0;
 				pt = writeExperimentFlyPositionInfos(sheet, pt, exp, charSeries, cage, resultType);
+				XLSUtils.setValueAtColumn(sheet, new Point(pt.x, 0), EnumXLSColumnHeader.DUM4, options.transpose,
+						resultType.toString());
 				writeXLSResult(sheet, pt, results);
 				pt.x++;
 			}
@@ -236,6 +255,229 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 
 		return results;
+	}
+
+	/**
+	 * Exports cage limits (geometry) to a dedicated worksheet, reusing the same
+	 * encoding as CagesDescription.csv (one row per cage, npoints then coordinates).
+	 */
+	private void exportCageLimitsForExperiment(Experiment exp) throws ExcelExportException {
+		if (exp == null || exp.getCages() == null || exp.getCages().getCageList().isEmpty()) {
+			return;
+		}
+
+		try {
+			SXSSFWorkbook workbook = resourceManager.getWorkbook();
+			final String title = "CageLimits";
+			SXSSFSheet sheet = workbook.getSheet(title);
+			boolean transpose = options.transpose;
+
+			int row;
+			if (sheet == null) {
+				sheet = workbook.createSheet(title);
+				// Header row mirroring csvSaveCAGESection structure
+				int col = 0;
+				XLSUtils.setValue(sheet, col++, 0, transpose, "cageID");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "nFlies");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "age");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "Comment");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "strain");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "sex");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "colorR");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "colorG");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "colorB");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "ROIname");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "roiType");
+				XLSUtils.setValue(sheet, col++, 0, transpose, "npoints");
+				row = 1;
+			} else {
+				row = sheet.getLastRowNum() + 1;
+			}
+
+			for (Cage cage : exp.getCages().getCageList()) {
+				if (cage == null) {
+					continue;
+				}
+
+				Color color = cage.getProperties().getColor();
+				if (color == null && cage.getRoi() != null) {
+					color = cage.getRoi().getColor();
+				}
+				if (color == null) {
+					color = Color.MAGENTA;
+				}
+
+				String comment = cage.getProperties().getComment() != null ? cage.getProperties().getComment() : "";
+				String strain = cage.getProperties().getFlyStrain() != null ? cage.getProperties().getFlyStrain() : "";
+				String sex = cage.getProperties().getFlySex() != null ? cage.getProperties().getFlySex() : "";
+
+				int col = 0;
+				int y = row;
+				XLSUtils.setValue(sheet, col++, y, transpose, cage.getProperties().getCageID());
+				XLSUtils.setValue(sheet, col++, y, transpose, cage.getProperties().getCageNFlies());
+				XLSUtils.setValue(sheet, col++, y, transpose, cage.getProperties().getFlyAge());
+				XLSUtils.setValue(sheet, col++, y, transpose, comment);
+				XLSUtils.setValue(sheet, col++, y, transpose, strain);
+				XLSUtils.setValue(sheet, col++, y, transpose, sex);
+				XLSUtils.setValue(sheet, col++, y, transpose, color.getRed());
+				XLSUtils.setValue(sheet, col++, y, transpose, color.getGreen());
+				XLSUtils.setValue(sheet, col++, y, transpose, color.getBlue());
+
+				String roiName = (cage.getRoi() != null && cage.getRoi().getName() != null) ? cage.getRoi().getName()
+						: "cage" + String.format("%03d", cage.getProperties().getCageID());
+				XLSUtils.setValue(sheet, col++, y, transpose, roiName);
+
+				ROIType roiType = ROIPersistenceUtils.detectROIType(cage.getRoi());
+				XLSUtils.setValue(sheet, col++, y, transpose, roiType.toCsvString());
+
+				// Geometry encoding: polygon or rectangle, as in CagesPersistenceLegacy
+				if (cage.getRoi() != null && cage.getRoi() instanceof ROI2DPolygon) {
+					ROI2DPolygon polyRoi = (ROI2DPolygon) cage.getRoi();
+					Polygon2D polygon = polyRoi.getPolygon2D();
+					XLSUtils.setValue(sheet, col++, y, transpose, polygon.npoints);
+					for (int i = 0; i < polygon.npoints; i++) {
+						XLSUtils.setValue(sheet, col++, y, transpose, (int) polygon.xpoints[i]);
+						XLSUtils.setValue(sheet, col++, y, transpose, (int) polygon.ypoints[i]);
+					}
+				} else if (cage.getRoi() != null && cage.getRoi() instanceof ROI2DRectangle) {
+					ROI2DRectangle rectRoi = (ROI2DRectangle) cage.getRoi();
+					java.awt.Rectangle rect = rectRoi.getBounds();
+					XLSUtils.setValue(sheet, col++, y, transpose, 4); // rectangle
+					XLSUtils.setValue(sheet, col++, y, transpose, rect.x);
+					XLSUtils.setValue(sheet, col++, y, transpose, rect.y);
+					XLSUtils.setValue(sheet, col++, y, transpose, rect.width);
+					XLSUtils.setValue(sheet, col++, y, transpose, rect.height);
+				} else {
+					XLSUtils.setValue(sheet, col++, y, transpose, 0);
+				}
+
+				row++;
+			}
+		} catch (ExcelResourceException e) {
+			throw new ExcelExportException("Failed to export cage limits worksheet", "export_cage_limits",
+					exp != null ? exp.getResultsDirectory() : "unknown", e);
+		}
+	}
+
+	/**
+	 * Builds and exports four XYIMAGE series per cage for rectPosition components:
+	 * x, y, w, h. Each component is written on a separate column, with DUM4
+	 * indicating which parameter (\"x\",\"y\",\"w\",\"h\") is exported on that
+	 * column.
+	 */
+	private int exportXYImageRectComponents(Experiment exp, SXSSFSheet sheet, int col0, String charSeries) {
+		Point pt = new Point(col0, 0);
+		pt = writeExperimentSeparator(sheet, pt);
+
+		ResultsOptions resultsOptions = new ResultsOptions();
+		long kymoBin_ms = exp.getKymoBin_ms();
+		if (kymoBin_ms <= 0) {
+			kymoBin_ms = 60000;
+		}
+		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
+		resultsOptions.relativeToMaximum = false;
+		resultsOptions.subtractT0 = false;
+		resultsOptions.correctEvaporation = false;
+		resultsOptions.resultType = EnumResults.XYIMAGE;
+
+		boolean transpose = options.transpose;
+
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+			FlyPositions flyPositions = cage.getFlyPositions();
+			if (flyPositions == null || flyPositions.flyPositionList == null
+					|| flyPositions.flyPositionList.isEmpty()) {
+				continue;
+			}
+
+			Results[] componentResults = buildRectComponentResultsForCage(exp, cage, flyPositions, resultsOptions);
+			String[] labels = { "x", "y", "w", "h" };
+
+			for (int i = 0; i < componentResults.length; i++) {
+				Results res = componentResults[i];
+				if (res == null) {
+					continue;
+				}
+
+				pt.y = 0;
+				pt = writeExperimentFlyPositionInfos(sheet, pt, exp, charSeries, cage, EnumResults.XYIMAGE);
+				// DUM4 row: label which rect component (x, y, w, h) is in this column
+				XLSUtils.setValueAtColumn(sheet, new Point(pt.x, 0), EnumXLSColumnHeader.DUM4, transpose, labels[i]);
+
+				writeXLSResult(sheet, pt, res);
+				pt.x++;
+			}
+		}
+		return pt.x;
+	}
+
+	/**
+	 * Builds Results arrays for x, y, w, h components of rectPosition, binned over
+	 * time using the same binning scheme as other fly exports.
+	 */
+	private Results[] buildRectComponentResultsForCage(Experiment exp, Cage cage, FlyPositions flyPositions,
+			ResultsOptions resultsOptions) {
+		Results[] resultsArray = new Results[4];
+
+		if (flyPositions == null || flyPositions.flyPositionList == null || flyPositions.flyPositionList.isEmpty()) {
+			return resultsArray;
+		}
+
+		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
+		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
+		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
+
+		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
+			return resultsArray;
+		}
+
+		long durationMs = lastImageMs - firstImageMs;
+		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
+
+		for (int i = 0; i < resultsArray.length; i++) {
+			resultsArray[i] = new Results("Cage_" + cage.getProperties().getCageID(),
+					cage.getProperties().getCageNFlies(), cage.getProperties().getCageID(), 0, EnumResults.XYIMAGE);
+			resultsArray[i].initValuesOutArray(nBins, Double.NaN);
+		}
+
+		for (int binIndex = 0; binIndex < nBins; binIndex++) {
+			long binTimeMs = firstImageMs + binIndex * buildExcelStepMs;
+			long binEndTime = binTimeMs + buildExcelStepMs;
+
+			double sumX = 0.0;
+			double sumY = 0.0;
+			double sumW = 0.0;
+			double sumH = 0.0;
+			int count = 0;
+
+			for (FlyPosition pos : flyPositions.flyPositionList) {
+				if (pos.tMs >= binTimeMs && pos.tMs < binEndTime) {
+					double x = pos.getRectangle2D().getX();
+					double y = pos.getRectangle2D().getY();
+					double w = pos.getRectangle2D().getWidth();
+					double h = pos.getRectangle2D().getHeight();
+
+					if (!Double.isNaN(x) && !Double.isNaN(y) && !Double.isNaN(w) && !Double.isNaN(h)) {
+						sumX += x;
+						sumY += y;
+						sumW += w;
+						sumH += h;
+						count++;
+					}
+				}
+			}
+
+			if (count > 0) {
+				resultsArray[0].getValuesOut()[binIndex] = sumX / count;
+				resultsArray[1].getValuesOut()[binIndex] = sumY / count;
+				resultsArray[2].getValuesOut()[binIndex] = sumW / count;
+				resultsArray[3].getValuesOut()[binIndex] = sumH / count;
+			}
+		}
+
+		return resultsArray;
 	}
 
 	/**

@@ -149,6 +149,20 @@ public class StoredDataAccessors {
 					"XYTOPCAGE uses stored data from FlyPositions - access via cage.flyPositions, not computation");
 		};
 	}
+	
+	public static MeasurementComputation accessStored_XTOPCAGE() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"XTOPCAGE uses stored data from FlyPositions - access via cage.flyPositions, not computation");
+		};
+	}
+	
+	public static MeasurementComputation accessStored_YTOPCAGE() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"YTOPCAGE uses stored data from FlyPositions - access via cage.flyPositions, not computation");
+		};
+	}
 
 	/**
 	 * Accesses stored XYTIPCAPS data from FlyPositions.

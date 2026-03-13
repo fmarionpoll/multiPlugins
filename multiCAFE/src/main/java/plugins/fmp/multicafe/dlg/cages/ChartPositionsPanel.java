@@ -30,6 +30,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	 */
 	private static final long serialVersionUID = -7079184380174992501L;
 
+	private ChartPositions xpositionsChart = null;
 	private ChartPositions ypositionsChart = null;
 	private ChartPositions distanceChart = null;
 	private ChartPositions aliveChart = null;
@@ -37,7 +38,8 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 
 	private MultiCAFE parent0 = null;
 
-	public JCheckBox moveCheckbox = new JCheckBox("y position", true);
+	public JCheckBox xCheckbox = new JCheckBox("x position", true);
+	public JCheckBox yCheckbox = new JCheckBox("y position", true);
 	private JCheckBox distanceCheckbox = new JCheckBox("distance t/t+1", false);
 	JCheckBox aliveCheckbox = new JCheckBox("fly alive", true);
 	JCheckBox sleepCheckbox = new JCheckBox("sleep", false);
@@ -51,7 +53,8 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 		flowLayout.setVgap(2);
 		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(moveCheckbox);
+		panel1.add(xCheckbox);
+		panel1.add(yCheckbox);
 		panel1.add(distanceCheckbox);
 		panel1.add(aliveCheckbox);
 		panel1.add(sleepCheckbox);
@@ -88,9 +91,17 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		final int deltay = 230;
 		exp.getSeqCamData().getSequence().addListener(this);
 
-		if (moveCheckbox.isSelected()) {
+		if (xCheckbox.isSelected()) {
+			xpositionsChart = plotYToChart("flies X positions", xpositionsChart, rectv, ptRelative, exp,
+					EnumResults.XTOPCAGE);
+			ptRelative.y += deltay;
+		} else if (xpositionsChart != null) {
+			closeChart(xpositionsChart);
+		}
+		
+		if (yCheckbox.isSelected()) {
 			ypositionsChart = plotYToChart("flies Y positions", ypositionsChart, rectv, ptRelative, exp,
-					EnumResults.XYTOPCAGE);
+					EnumResults.YTOPCAGE);
 			ptRelative.y += deltay;
 		} else if (ypositionsChart != null)
 			closeChart(ypositionsChart);
@@ -148,6 +159,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 
 	public void closeAllCharts() {
 		ypositionsChart = closeChart(ypositionsChart);
+		xpositionsChart = closeChart(xpositionsChart);
 		distanceChart = closeChart(distanceChart);
 		aliveChart = closeChart(aliveChart);
 		sleepChart = closeChart(sleepChart);
