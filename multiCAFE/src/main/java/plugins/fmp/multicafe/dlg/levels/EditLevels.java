@@ -468,6 +468,7 @@ public class EditLevels extends JPanel {
 
 	private void cutAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roiRemovedArea) {
 		removeMeasuresEnclosedInROI(caplimits, roiRemovedArea);
+		interpolateInvalidMeasures(caplimits);
 		seqKymos.updateROIFromCapillaryMeasure(cap, caplimits);
 	}
 
@@ -496,6 +497,55 @@ public class EditLevels extends JPanel {
 			npointsInside += isInside[i] ? 1 : 0;
 		}
 		return npointsInside;
+	}
+
+	private void interpolateInvalidMeasures(CapillaryMeasure caplimits) {
+		Level2D level2D = caplimits.polylineLevel;
+		if (level2D == null || level2D.npoints == 0)
+			return;
+		double[] y = level2D.ypoints;
+		int n = level2D.npoints;
+		// Find first valid point
+		int firstValid = -1;
+		for (int i = 0; i < n; i++) {
+			if (!Double.isNaN(y[i])) {
+				firstValid = i;
+				break;
+			}
+		}
+		// If no valid points at all, nothing to interpolate
+		if (firstValid < 0)
+			return;
+		// If the first values are NaN, copy first valid backwards
+		for (int i = 0; i < firstValid; i++) {
+			y[i] = y[firstValid];
+		}
+		// Interpolate internal NaN runs
+		int prevValid = firstValid;
+		for (int i = firstValid + 1; i < n; i++) {
+			if (!Double.isNaN(y[i])) {
+				// We have a new valid point at i; if there is a NaN run between
+				// prevValid and i, interpolate linearly
+				if (i > prevValid + 1) {
+					int start = prevValid + 1;
+					int end = i - 1;
+					int len = end - start + 1;
+					double y0 = y[prevValid];
+					double y1 = y[i];
+					for (int k = 0; k < len; k++) {
+						double alpha = (double) (k + 1) / (len + 1);
+						y[start + k] = y0 + alpha * (y1 - y0);
+					}
+				}
+				prevValid = i;
+			}
+		}
+		// If last values are NaN, copy last valid forwards
+		if (prevValid < n - 1) {
+			for (int i = prevValid + 1; i < n; i++) {
+				y[i] = y[prevValid];
+			}
+		}
 	}
 
 }
