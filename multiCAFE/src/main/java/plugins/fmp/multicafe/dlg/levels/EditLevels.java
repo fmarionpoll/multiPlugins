@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -51,6 +52,7 @@ public class EditLevels extends JPanel {
 	String textForGulps = "Delete gulps inside rectangle/polygon";
 	String textForLevels = "Cut points within rectangle/polygon";
 	private JButton cutButton = new JButton(textForLevels);
+	private JCheckBox allCaps = new JCheckBox("all capillaries", false);
 	private JButton addGulpButton = new JButton("Add gulp");
 	private JButton validateChangesButton = new JButton("Validate changes");
 	private JButton cropButton = new JButton("Crop from left");
@@ -75,6 +77,7 @@ public class EditLevels extends JPanel {
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(cutButton);
 		panel1.add(addGulpButton);
+		panel1.add(allCaps);
 
 		add(panel1);
 
@@ -146,10 +149,12 @@ public class EditLevels extends JPanel {
 				attachGulpRoiListeners(exp);
 			cutButton.setText(textForGulps);
 			addGulpButton.setVisible(true);
+			allCaps.setVisible(false);
 		} else {
 			removeGulpRoiListeners();
 			cutButton.setText(textForLevels);
 			addGulpButton.setVisible(false);
+			allCaps.setVisible(true);
 		}
 	}
 
@@ -431,13 +436,32 @@ public class EditLevels extends JPanel {
 			ctx.cap.setGulpMeasuresDirty(true);
 			break;
 		default:
+			// First, ensure current capillary measures are in sync with any edited ROIs
 			ctx.seqKymos.transferKymosRoi_at_T_To_Capillaries_Measures(ctx.cap);
-			if (target == MeasureEditTarget.TOP_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
-				cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getTopLevel(), ctx.selectedROI);
-			if (target == MeasureEditTarget.BOTTOM_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
-				cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getBottomLevel(), ctx.selectedROI);
-			if (target == MeasureEditTarget.DERIVATIVE)
-				cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getDerivative(), ctx.selectedROI);
+
+			// Apply the same 2D ROI (x,y) to either the current capillary only
+			// or to all capillaries if requested.
+			if (allCaps.isSelected()) {
+				for (Capillary cap : exp.getCapillaries().getList()) {
+					if (target == MeasureEditTarget.TOP_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
+						cutAndUpdate(ctx.seqKymos, cap, cap.getTopLevel(), ctx.selectedROI);
+					if (target == MeasureEditTarget.BOTTOM_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
+						cutAndUpdate(ctx.seqKymos, cap, cap.getBottomLevel(), ctx.selectedROI);
+					if (target == MeasureEditTarget.DERIVATIVE)
+						cutAndUpdate(ctx.seqKymos, cap, cap.getDerivative(), ctx.selectedROI);
+				}
+			} else {
+				if (target == MeasureEditTarget.TOP_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
+					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getTopLevel(), ctx.selectedROI);
+				if (target == MeasureEditTarget.BOTTOM_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
+					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getBottomLevel(), ctx.selectedROI);
+				if (target == MeasureEditTarget.DERIVATIVE)
+					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getDerivative(), ctx.selectedROI);
+			}
+
+			// Persist updated measures so later computations (charts, exports)
+			// see the already-cut data and do not re-derive from stale curves.
+			exp.save_capillaries_description_and_measures();
 			break;
 		}
 	}
@@ -452,34 +476,16 @@ public class EditLevels extends JPanel {
 		if (level2D == null || level2D.npoints == 0)
 			return;
 
-		List<Double> keepX = new ArrayList<>(level2D.npoints);
-		List<Double> keepY = new ArrayList<>(level2D.npoints);
+		// Do not change X positions or compress the timeline. Instead, mark
+		// points inside the ROI as invalid (NaN) so charts and exports keep
+		// the same X grid but ignore deleted samples.
 		for (int i = 0; i < level2D.npoints; i++) {
 			double x = level2D.xpoints[i];
 			double y = level2D.ypoints[i];
-			if (!roiRemovedArea.contains(x, y)) {
-				keepX.add(x);
-				keepY.add(y);
+			if (roiRemovedArea.contains(x, y)) {
+				level2D.ypoints[i] = Double.NaN;
 			}
 		}
-
-		int nKeep = keepX.size();
-		if (nKeep == 0) {
-			caplimits.polylineLevel = new Level2D(
-					new double[] { level2D.xpoints[0], level2D.xpoints[level2D.npoints - 1] },
-					new double[] { level2D.ypoints[0], level2D.ypoints[level2D.npoints - 1] }, 2);
-			return;
-		}
-		if (nKeep == level2D.npoints)
-			return;
-
-		double[] newX = new double[nKeep];
-		double[] newY = new double[nKeep];
-		for (int i = 0; i < nKeep; i++) {
-			newX[i] = keepX.get(i);
-			newY[i] = keepY.get(i);
-		}
-		caplimits.polylineLevel = new Level2D(newX, newY, nKeep);
 	}
 
 	int getPointsWithinROI(Polyline2D polyline, ROI2D roi) {
