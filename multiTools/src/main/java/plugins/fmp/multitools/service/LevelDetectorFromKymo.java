@@ -154,34 +154,17 @@ public class LevelDetectorFromKymo {
 		int[] transformed1DArray1 = Array1DUtil.arrayToIntArray(transformedArray1,
 				transformedImage1.isSignedDataType());
 
-		int topSearchFrom = Math.min(searchRect.y + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
 		int columnFirst = (int) searchRect.getX();
 		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
 		int n_measures = columnLast - columnFirst + 1;
 		capi.getTopLevel().limit = new int[n_measures];
 		capi.getBottomLevel().limit = new int[n_measures];
-		if (options.runBackwards)
-			for (int ix = columnLast; ix >= columnFirst; ix--)
-				topSearchFrom = detectLimitOnOneColumn(ix, columnFirst, topSearchFrom, jitter, imageWidth, imageHeight,
-						capi, transformed1DArray1, searchRect, options);
-		else
-			for (int ix = columnFirst; ix <= columnLast; ix++)
-				topSearchFrom = detectLimitOnOneColumn(ix, columnFirst, topSearchFrom, jitter, imageWidth, imageHeight,
-						capi, transformed1DArray1, searchRect, options);
-	}
 
-	private int detectLimitOnOneColumn(int ix, int istart, int topSearchFrom, int jitter, int imageWidth,
-			int imageHeight, Capillary capi, int[] transformed1DArray1, Rectangle searchRect,
-			BuildSeriesOptions options) {
-		int iyTop = detectThresholdFromTop(ix, topSearchFrom, jitter, transformed1DArray1, imageWidth, imageHeight,
-				options, searchRect);
-		int iyBottom = detectThresholdFromBottom(ix, jitter, transformed1DArray1, imageWidth, imageHeight, options,
-				searchRect);
-		if (iyBottom <= iyTop)
-			iyTop = topSearchFrom;
-		capi.getTopLevel().limit[ix - istart] = iyTop;
-		capi.getBottomLevel().limit[ix - istart] = iyBottom;
-		return iyTop;
+		boolean directionUp = options.directionUp1;
+		int threshold = options.detectLevel1Threshold;
+
+		computeTopBottomThresholds(transformed1DArray1, imageWidth, imageHeight, searchRect, directionUp, threshold,
+				columnFirst, columnLast, capi.getTopLevel().limit, capi.getBottomLevel().limit);
 	}
 
 	private void detectPass2(IcyBufferedImage rawImage, ImageTransformInterface transformPass2, Capillary capi,
@@ -276,56 +259,74 @@ public class LevelDetectorFromKymo {
 
 	}
 
-	private int checkIndexLimits(int rowIndex, int maximumRowIndex) {
-		if (rowIndex < 0)
-			rowIndex = 0;
-		if (rowIndex > maximumRowIndex)
-			rowIndex = maximumRowIndex;
-		return rowIndex;
-
-	}
-
-	private int detectThresholdFromTop(int ix, int searchFrom, int jitter, int[] tabValues, int imageWidth,
-			int imageHeight, BuildSeriesOptions options, Rectangle searchRect) {
-		int y = imageHeight - 1;
-		searchFrom = checkIndexLimits(searchFrom - jitter, imageHeight - 1);
-		if (searchFrom < searchRect.y)
-			searchFrom = searchRect.y;
-		int minTopStart = Math.min(searchRect.y + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
-		if (searchFrom < minTopStart)
-			searchFrom = minTopStart;
-		for (int iy = searchFrom; iy < imageHeight; iy++) {
-			boolean flag = false;
-			if (options.directionUp1)
-				flag = tabValues[ix + iy * imageWidth] > options.detectLevel1Threshold;
-			else
-				flag = tabValues[ix + iy * imageWidth] < options.detectLevel1Threshold;
-			if (flag) {
-				y = iy;
-				break;
-			}
+	/**
+	 * Computes, for each column in the given range, the first row from top and the
+	 * first row from bottom where the pixel value crosses the provided threshold.
+	 * The top search starts at searchRect.y + TOP_SEARCH_OFFSET_PIXELS (or 0 if no
+	 * searchRect is provided) and proceeds downwards to the bottom of the image.
+	 * The bottom search starts from the bottom of the image (or the bottom of
+	 * searchRect when provided) and proceeds upwards.
+	 *
+	 * @param tabValues    flattened image data (row-major order)
+	 * @param imageWidth   image width in pixels
+	 * @param imageHeight  image height in pixels
+	 * @param searchRect   vertical search region (can be null for full image)
+	 * @param directionUp  true if values greater than threshold are considered
+	 * @param threshold    threshold used for comparison
+	 * @param firstColumn  first column index (inclusive)
+	 * @param lastColumn   last column index (inclusive)
+	 * @param topLimits    output array for top crossings (length >= lastColumn -
+	 *                     firstColumn + 1)
+	 * @param bottomLimits output array for bottom crossings (length >= lastColumn -
+	 *                     firstColumn + 1)
+	 */
+	public void computeTopBottomThresholds(int[] tabValues, int imageWidth, int imageHeight, Rectangle searchRect,
+			boolean directionUp, int threshold, int firstColumn, int lastColumn, int[] topLimits,
+			int[] bottomLimits) {
+		if (tabValues == null || imageWidth <= 0 || imageHeight <= 0 || firstColumn > lastColumn) {
+			return;
 		}
-		return y;
-	}
 
-	private int detectThresholdFromBottom(int ix, int jitter, int[] tabValues, int imageWidth, int imageHeight,
-			BuildSeriesOptions options, Rectangle searchRect) {
-		int y = 0;
-		int searchFrom = imageHeight - 1;
-		if (searchFrom > (searchRect.y + searchRect.height))
-			searchFrom = searchRect.y + searchRect.height - 1;
-		for (int iy = searchFrom; iy >= 0; iy--) {
-			boolean flag = false;
-			if (options.directionUp1)
-				flag = tabValues[ix + iy * imageWidth] > options.detectLevel1Threshold;
-			else
-				flag = tabValues[ix + iy * imageWidth] < options.detectLevel1Threshold;
-			if (flag) {
-				y = iy;
-				break;
-			}
+		int searchTopY = 0;
+		int searchBottomY = imageHeight - 1;
+
+		if (searchRect != null) {
+			searchTopY = searchRect.y;
+			searchBottomY = searchRect.y + searchRect.height - 1;
+			if (searchTopY < 0)
+				searchTopY = 0;
+			if (searchBottomY >= imageHeight)
+				searchBottomY = imageHeight - 1;
 		}
-		return y;
+
+		int minTopStart = Math.min(searchTopY + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
+
+		for (int ix = firstColumn; ix <= lastColumn; ix++) {
+			int index = ix - firstColumn;
+
+			int yTop = imageHeight - 1;
+			for (int iy = minTopStart; iy < imageHeight; iy++) {
+				int val = tabValues[ix + iy * imageWidth];
+				boolean passes = directionUp ? (val > threshold) : (val < threshold);
+				if (passes) {
+					yTop = iy;
+					break;
+				}
+			}
+			topLimits[index] = yTop;
+
+			int yBottom = 0;
+			int startFrom = searchBottomY;
+			for (int iy = startFrom; iy >= 0; iy--) {
+				int val = tabValues[ix + iy * imageWidth];
+				boolean passes = directionUp ? (val > threshold) : (val < threshold);
+				if (passes) {
+					yBottom = iy;
+					break;
+				}
+			}
+			bottomLimits[index] = yBottom;
+		}
 	}
 
 	private void initArrayToBuildCapillaries(Experiment exp, BuildSeriesOptions options) {

@@ -4,6 +4,7 @@ import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Composite;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.Shape;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
@@ -387,43 +388,28 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     }
 
     /**
-     * Draws only the top and bottom boundary lines where the threshold is crossed (no red mask).
-     * Uses the same logic as level detection: from top find first row passing condition, from bottom same.
+     * Draws only the top and bottom boundary lines where the threshold is crossed
+     * (no red mask). Uses the same logic as the pass-1 level detection:
+     * from top find first row passing condition (starting from an offset below the top),
+     * and from bottom find first row passing condition.
      */
     private void drawBoundaryLines(Graphics2D graphics, IcyBufferedImage transformedImage) {
         if (transformedImage == null)
             return;
+
         Object data = transformedImage.getDataXY(0);
         int[] arr = Array1DUtil.arrayToIntArray(data, transformedImage.isSignedDataType());
         int w = transformedImage.getSizeX();
         int h = transformedImage.getSizeY();
+
         int thresh = imageTransformOptions.simplethreshold;
         boolean ifGreater = imageTransformOptions.ifGreater;
 
         int[] yTop = new int[w];
         int[] yBottom = new int[w];
-        for (int ix = 0; ix < w; ix++) {
-            int yT = h - 1;
-            for (int iy = 0; iy < h; iy++) {
-                int val = arr[ix + iy * w] & 0xFF;
-                boolean passes = ifGreater ? (val > thresh) : (val < thresh);
-                if (passes) {
-                    yT = iy;
-                    break;
-                }
-            }
-            yTop[ix] = yT;
-            int yB = 0;
-            for (int iy = h - 1; iy >= 0; iy--) {
-                int val = arr[ix + iy * w] & 0xFF;
-                boolean passes = ifGreater ? (val > thresh) : (val < thresh);
-                if (passes) {
-                    yB = iy;
-                    break;
-                }
-            }
-            yBottom[ix] = yB;
-        }
+
+        Rectangle searchRect = new Rectangle(0, 0, w, h);
+        levelDetector.computeTopBottomThresholds(arr, w, h, searchRect, ifGreater, thresh, 0, w - 1, yTop, yBottom);
 
         graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
         graphics.setColor(Color.RED);
