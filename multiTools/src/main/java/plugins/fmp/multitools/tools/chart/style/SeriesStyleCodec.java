@@ -77,10 +77,31 @@ public final class SeriesStyleCodec {
 	public static int getNFliesOrDefault(XYSeriesCollection dataset, int defaultValue) {
 		if (dataset == null || dataset.getSeriesCount() == 0)
 			return defaultValue;
-		XYSeries series = dataset.getSeries(0);
-		if (series == null)
-			return defaultValue;
-		return tryParseNFlies(series.getDescription()).orElse(defaultValue);
+
+		// Some datasets mix series (capillaries + reference/threshold) and/or legacy
+		// data can contain inconsistent nflies tagging across series. Using only the
+		// first series can therefore misclassify the whole cage plot background.
+		//
+		// Policy: if any series reports nflies > 0 => treat as "has flies" (white).
+		// Else if any series reports nflies == 0 => "no flies" (light gray).
+		// Else fall back to default (often -1 = unknown).
+		boolean sawZero = false;
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			XYSeries s = dataset.getSeries(i);
+			if (s == null)
+				continue;
+			Optional<Integer> v = tryParseNFlies(s.getDescription());
+			if (v.isEmpty())
+				continue;
+			int n = v.get();
+			if (n > 0)
+				return n;
+			if (n == 0)
+				sawZero = true;
+		}
+		if (sawZero)
+			return 0;
+		return defaultValue;
 	}
 
 	public static void applySeriesPaintsFromDescription(XYSeriesCollection dataset, XYLineAndShapeRenderer renderer) {

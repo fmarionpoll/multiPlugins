@@ -26,6 +26,25 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * synthesis).
  */
 public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
+	private static int nFliesFromCapillaries(Cage cage, Capillaries allCapillaries) {
+		if (cage == null || allCapillaries == null)
+			return -1;
+		List<Capillary> caps = cage.getCapillaries(allCapillaries);
+		if (caps == null || caps.isEmpty())
+			return -1;
+		boolean sawZero = false;
+		for (Capillary cap : caps) {
+			if (cap == null)
+				continue;
+			int n = cap.getProperties().getNFlies();
+			if (n > 0)
+				return n;
+			if (n == 0)
+				sawZero = true;
+		}
+		return sawZero ? 0 : -1;
+	}
+
 	@Override
 	public XYSeriesCollection build(Experiment exp, Cage cage, ResultsOptions options) {
 		if (cage == null || exp == null || exp.getCapillaries() == null) {
@@ -134,10 +153,11 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		// Keep legacy side coloring semantics: Sum=Blue, PI=Red
 		CageProperties cageProp = cage.getProperties();
+		int nFlies = SeriesStyleCodec.getNFliesOrDefault(parts, -1);
 		seriesSum.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(),
-				cageProp.getCageNFlies(), Color.BLUE));
+				nFlies, Color.BLUE));
 		seriesPI.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(),
-				cageProp.getCageNFlies(), Color.RED));
+				nFlies, Color.RED));
 
 		for (Double x : allX) {
 			double sumL = 0;
@@ -190,8 +210,10 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		if (cap.getNFlies() < 0)
 			color = Color.DARK_GRAY;
 
-		return SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(),
-				cageProp.getCageNFlies(), color);
+		// For capillary charts, drive nflies from capillary metadata (legacy datasets
+		// can have cages.nFlies unset until a save/migration happens).
+		int nFlies = cap.getProperties().getNFlies();
+		return SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(), nFlies, color);
 	}
 
 	private static XYSeries createXYSeriesFromCapillaryMeasure(Experiment exp, Capillary cap, ResultsOptions options) {
@@ -263,8 +285,9 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		CageProperties cageProp = cage.getProperties();
+		int nFlies = nFliesFromCapillaries(cage, exp.getCapillaries());
 		thresholdSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
-				cageProp.getCagePosition(), cageProp.getCageNFlies(), Color.BLACK));
+				cageProp.getCagePosition(), nFlies, Color.BLACK));
 
 		return thresholdSeries;
 	}
@@ -305,8 +328,9 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		CageProperties cageProp = cage.getProperties();
+		int nFlies = nFliesFromCapillaries(cage, exp.getCapillaries());
 		evaporationSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
-				cageProp.getCagePosition(), cageProp.getCageNFlies(), ChartColor.BLACK)); // Color.BLACK));
+				cageProp.getCagePosition(), nFlies, ChartColor.BLACK)); // Color.BLACK));
 
 		return evaporationSeries;
 	}

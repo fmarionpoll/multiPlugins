@@ -2198,6 +2198,17 @@ public class Experiment {
 				cage.getProperties().setCageID(cageID);
 				cage.getProperties().setCageNFlies(nflies);
 				cages.getCageList().add(cage);
+			} else {
+				// Keep cages in sync with capillaries for legacy datasets where cages may
+				// load with incorrect/unknown nFlies (0 or -1) but capillaries have the
+				// correct value. This avoids requiring a manual "save capillaries" for
+				// chart background coloration.
+				int cageNFlies = cage.getCageNFlies();
+				if (nflies > 0 && cageNFlies <= 0) {
+					cage.setCageNFlies(nflies);
+				} else if (nflies >= 0 && cageNFlies < 0) {
+					cage.setCageNFlies(nflies);
+				}
 			}
 			// Add capillary ID instead of object reference
 			CapillaryID capID = new CapillaryID(kymographIndex);
