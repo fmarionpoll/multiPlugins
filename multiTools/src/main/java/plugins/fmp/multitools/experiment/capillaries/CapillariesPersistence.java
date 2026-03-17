@@ -49,6 +49,20 @@ public class CapillariesPersistence {
 	}
 
 	/**
+	 * Legacy fallback for very old MultiCAFE datasets where capillary descriptions
+	 * were duplicated in per-kymograph XML files stored in the bin directory
+	 * (e.g. {@code bin_60/line01.xml} next to {@code line01.tiff}) and no
+	 * description file exists in {@code results/}.
+	 *
+	 * @param capillaries  the Capillaries to populate
+	 * @param binDirectory the bin directory (e.g., results/bin_60)
+	 * @return true if at least one capillary was loaded
+	 */
+	public boolean loadDescriptionsFromLegacyLineXml(Capillaries capillaries, String binDirectory) {
+		return CapillariesPersistenceLegacy.loadDescriptionFromLineXml(capillaries, binDirectory);
+	}
+
+	/**
 	 * Loads capillary measures from the bin directory (e.g., results/bin60).
 	 * Measures include time-series data like toplevel, bottomlevel, derivative,
 	 * gulps. Tries new v2 format first, then falls back to legacy format.

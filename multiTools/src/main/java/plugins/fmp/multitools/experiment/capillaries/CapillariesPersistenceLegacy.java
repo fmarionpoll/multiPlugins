@@ -236,6 +236,62 @@ public class CapillariesPersistenceLegacy {
 	}
 
 	/**
+	 * Loads capillary descriptions from the legacy per-kymograph XML files stored in
+	 * the bin directory (e.g. line01.xml next to line01.tiff). This is a fallback
+	 * for datasets that have no capillaries description file under results/.
+	 *
+	 * @param capillaries  target container (will be filled if empty; otherwise
+	 *                     additional caps are appended if missing)
+	 * @param binDirectory directory containing {@code line*.xml}
+	 * @return true if at least one capillary description was loaded
+	 */
+	public static boolean loadDescriptionFromLineXml(Capillaries capillaries, String binDirectory) {
+		if (capillaries == null || binDirectory == null)
+			return false;
+		Path dir = Paths.get(binDirectory);
+		if (!Files.exists(dir) || !Files.isDirectory(dir))
+			return false;
+
+		int loaded = 0;
+		try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "line*.xml")) {
+			for (Path p : stream) {
+				if (!Files.isRegularFile(p))
+					continue;
+				try {
+					final Document capdoc = XMLUtil.loadDocument(p.toString());
+					if (capdoc == null)
+						continue;
+					Node node = XMLUtil.getRootElement(capdoc, true);
+					Capillary cap = new Capillary();
+					if (cap.xmlLoad_CapillaryOnly(node)) {
+						// If a capillary with same kymographName already exists, keep the existing one.
+						Capillary existing = capillaries.getCapillaryFromKymographName(cap.getKymographName());
+						if (existing == null) {
+							capillaries.getList().add(cap);
+						}
+						loaded++;
+					}
+				} catch (Exception e) {
+					Logger.debug("CapillariesPersistenceLegacy:loadDescriptionFromLineXml() Failed to parse " + p + ": "
+							+ e.getMessage());
+				}
+			}
+		} catch (IOException e) {
+			Logger.warn("CapillariesPersistenceLegacy:loadDescriptionFromLineXml() Failed to scan " + binDirectory + ": "
+					+ e.getMessage());
+		}
+
+		if (loaded > 0) {
+			// Keep deterministic order (matches other loaders)
+			Collections.sort(capillaries.getList());
+			Logger.info("CapillariesPersistenceLegacy:loadDescriptionFromLineXml() Loaded " + loaded
+					+ " capillary descriptions from " + binDirectory);
+			return true;
+		}
+		return false;
+	}
+
+	/**
 	 * Loads capillaries from legacy v0 XML format (ROI-based).
 	 */
 	private static void xmlLoadCapillaries_v0(Capillaries capillaries, Document doc, String csFileName) {

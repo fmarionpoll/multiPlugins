@@ -964,12 +964,29 @@ public class Experiment {
 	 */
 	public boolean load_capillaries_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-
-		if (!capillaries.getPersistence().hasCapillariesDescriptionFiles(resultsDir)) {
-			return false;
+		boolean descriptionsLoaded = false;
+		if (capillaries.getPersistence().hasCapillariesDescriptionFiles(resultsDir)) {
+			descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
+		} else {
+			ensureBinDirectoryForLoading();
+			String binDir = getKymosBinFullDirectory();
+			if (binDir != null) {
+				// Legacy fallback #1: some datasets stored MCcapillaries.xml inside bin_xx/
+				// instead of results/.
+				if (capillaries.getPersistence().hasCapillariesDescriptionFiles(binDir)) {
+					descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, binDir);
+				} else {
+					// Legacy fallback #2: some early datasets store duplicated capillary descriptions
+					// inside per-kymograph XML files in bin_xx/ (line01.xml, ...).
+					descriptionsLoaded = capillaries.getPersistence().loadDescriptionsFromLegacyLineXml(capillaries,
+							binDir);
+				}
+				if (descriptionsLoaded) {
+					// Auto-migrate to modern description CSV so next loads are fast and consistent.
+					capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
+				}
+			}
 		}
-
-		boolean descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, resultsDir);
 
 		String binDir = getKymosBinFullDirectory();
 		boolean measuresLoaded = false;
