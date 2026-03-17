@@ -45,14 +45,49 @@ public class TimeManager {
 		long timeInMs = 0;
 		String fileName = fileComponent(imageLoader.getFileNameFromImageList(t));
 
+		// Debug flags to understand which timing source is used per frame.
+		boolean usedPattern = false;
+		boolean usedAttributes = false;
+		boolean usedDummy = false;
+
 		if (fileName == null) {
 			timeInMs = timePatternArray[0].getDummyTime(t);
+			usedDummy = true;
 		} else {
-			if (indexTimePattern < 0) {
-				indexTimePattern = findProperFilterIfAny(fileName);
+			// Do not rely solely on the very first filename pattern. Some legacy datasets
+			// mix naming conventions (or have prefixes/suffixes), and when a filename
+			// doesn't match the chosen regex we fall back to a dummy timeline, which
+			// breaks camImages_ms[] and therefore the kymograph frame picking.
+			int patternToUse = indexTimePattern;
+			if (patternToUse < 0 || !timePatternArray[patternToUse].findMatch(fileName)) {
+				patternToUse = findProperFilterIfAny(fileName);
 			}
-			FileNameTimePattern tp = timePatternArray[indexTimePattern];
-			timeInMs = tp.getTimeFromString(fileName, t);
+
+			if (patternToUse >= 1) {
+				FileNameTimePattern tp = timePatternArray[patternToUse];
+				timeInMs = tp.getTimeFromString(fileName, t);
+				usedPattern = true;
+			} else {
+				// Fallback: try file attributes; if not available, use dummy time.
+				FileTime ft = getFileTimeFromFileAttributes(imageLoader, t);
+				if (ft != null) {
+					timeInMs = ft.toMillis();
+					usedAttributes = true;
+				} else {
+					timeInMs = timePatternArray[0].getDummyTime(t);
+					usedDummy = true;
+				}
+			}
+		}
+
+		// Log which timing source was used. This helps diagnose experiments where the
+		// index->time mapping is inconsistent (e.g. some frames not parsed from name).
+		if (usedDummy || usedAttributes) {
+			Logger.warn("TimeManager:getFileTimeFromStructuredName fallback for index " + t + " file=" + fileName
+					+ " usedAttributes=" + usedAttributes + " usedDummy=" + usedDummy);
+		} else if (usedPattern) {
+			Logger.debug("TimeManager:getFileTimeFromStructuredName pattern index used for index " + t + " file="
+					+ fileName);
 		}
 
 		return FileTime.fromMillis(timeInMs);

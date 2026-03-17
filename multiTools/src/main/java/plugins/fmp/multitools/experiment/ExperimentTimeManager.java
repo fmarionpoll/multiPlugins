@@ -110,6 +110,31 @@ public class ExperimentTimeManager {
 		high = Math.min(high, camImages_ms.length - 1);
 		if (high < low)
 			return -1;
+		// Binary search requires camImages_ms to be monotonic in index.
+		// Legacy datasets can contain mixed/incorrect timestamps, which breaks that
+		// assumption and leads to large "time vs frame index" jumps in kymographs.
+		boolean isMonotonicNonDecreasing = true;
+		for (int i = low + 1; i <= high; i++) {
+			if (camImages_ms[i] < camImages_ms[i - 1]) {
+				isMonotonicNonDecreasing = false;
+				break;
+			}
+		}
+
+		if (!isMonotonicNonDecreasing) {
+			// Robust fallback: brute-force nearest by absolute time difference.
+			long bestDiff = Math.abs(value - camImages_ms[low]);
+			int bestIndex = low;
+			for (int i = low + 1; i <= high; i++) {
+				long diff = Math.abs(value - camImages_ms[i]);
+				if (diff < bestDiff) {
+					bestDiff = diff;
+					bestIndex = i;
+				}
+			}
+			return bestIndex;
+		}
+
 		int result = -1;
 		if (high - low > 1) {
 			int mid = (low + high) / 2;

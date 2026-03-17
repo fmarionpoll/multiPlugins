@@ -83,8 +83,19 @@ public class ExperimentDirectories {
 			return null;
 		Path pDir = Paths.get(dir).toAbsolutePath();
 		try (Stream<Path> stream = Files.list(pDir)) {
-			return stream.filter(file -> !Files.isDirectory(file)).filter(s -> s.toString().endsWith(extension))
-					.map(Path::toString).collect(Collectors.toList());
+			List<String> files = stream //
+					.filter(file -> !Files.isDirectory(file)) //
+					.filter(s -> s.toString().endsWith(extension)) //
+					.map(Path::toString) //
+					.collect(Collectors.toList());
+			// Ensure deterministic, lexicographic ordering of image filenames.
+			// Many parts of the code assume that the camera image list is time-ordered;
+			// with names like Frame_YYYY-MM-DD_HH-mm-ss.jpg, lexicographic sort matches
+			// acquisition time. Without this, Files.list(...) may return a filesystem-
+			// dependent order, which is exactly what happens in the "scrambled" cam01
+			// experiment.
+			Collections.sort(files);
+			return files;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

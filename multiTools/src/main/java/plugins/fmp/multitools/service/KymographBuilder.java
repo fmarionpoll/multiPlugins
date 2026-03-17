@@ -46,9 +46,21 @@ public class KymographBuilder {
 
 		SequenceLoaderService loader = new SequenceLoaderService();
 		long offset = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
-		FileTime firstViewFileTime = exp.getSeqCamData().getFileTimeFromStructuredName((int) offset);
-		long firstViewImageMs = (firstViewFileTime != null) ? firstViewFileTime.toMillis() : 0;
-		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(firstViewImageMs);
+		// camImages_ms[] must use the same time reference as exp.getKymoFirst_ms()
+		// because ii_ms is computed from kymoFirst_ms and compared against
+		// camImages_ms[]
+		// when selecting the closest frame.
+		//
+		// Using firstViewImageMs (derived from absoluteIndexFirstImage) can shift the
+		// time zero and produce inconsistent frame picking for datasets where offset !=
+		// 0.
+		long camReferenceMs = exp.getCamImageFirst_ms();
+		if (camReferenceMs < 0) {
+			// Fallback to previous behavior if reference isn't initialized.
+			FileTime firstViewFileTime = exp.getSeqCamData().getFileTimeFromStructuredName((int) offset);
+			camReferenceMs = (firstViewFileTime != null) ? firstViewFileTime.toMillis() : 0;
+		}
+		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(camReferenceMs);
 
 		long first_ms = 0;
 		long last_ms = exp.getSeqCamData().getTimeManager().getBinLast_ms();
@@ -58,6 +70,7 @@ public class KymographBuilder {
 		}
 
 		long step_ms = exp.getKymoBin_ms();
+
 		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		long fixedN = exp.getSeqCamData().getImageLoader().getFixedNumberOfImages();
 		int nViewFrames = (fixedN > 0) ? (int) fixedN : Math.max(0, nTotalFrames - (int) offset);
@@ -92,6 +105,7 @@ public class KymographBuilder {
 			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
 			if (sourceImageIndex < 0)
 				continue;
+
 			final int fromSourceImageIndex = sourceImageIndex;
 
 			final int viewT = (int) (fromSourceImageIndex - viewOffset);
@@ -197,7 +211,8 @@ public class KymographBuilder {
 			return;
 		}
 		if (masksList.isEmpty()) {
-			// A degenerate ROI (e.g. tracking failure at this frame) can produce zero masks.
+			// A degenerate ROI (e.g. tracking failure at this frame) can produce zero
+			// masks.
 			// Leaving the column uninitialized results in a black column; instead, copy
 			// previous column if available so the kymograph remains visually consistent.
 			IcyBufferedImage capImage = cap.getCap_Image();
@@ -214,8 +229,8 @@ public class KymographBuilder {
 				}
 			}
 			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - empty masksList (degenerate ROI?) t=" + t
-					+ " cap=" + (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName())
-					+ " column=" + kymographColumn);
+					+ " cap=" + (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName()) + " column="
+					+ kymographColumn);
 			return;
 		}
 
