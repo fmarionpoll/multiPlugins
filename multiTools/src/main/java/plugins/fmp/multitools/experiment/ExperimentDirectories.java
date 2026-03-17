@@ -280,12 +280,20 @@ public class ExperimentDirectories {
 		File oldFile = new File(oldFilePathString);
 		if (!oldFile.exists() || oldFile.isDirectory())
 			return;
-		Path oldFilePath = Paths.get(oldFilePathString);
 
+		Path oldFilePath = Paths.get(oldFilePathString);
 		String newFilePathString = newDirectory + File.separator + newFileName;
 		Path newFilePath = Paths.get(newFilePathString);
-		if (Files.exists(newFilePath))
+		if (Files.exists(newFilePath)) {
+			// Prefer not to overwrite an existing target; try a fallback using the old
+			// filename.
 			newFilePath = Paths.get(newDirectory + File.separator + oldFileName);
+		}
+		// If the fallback destination also exists, do not move to avoid overwriting
+		// legacy or manually edited files.
+		if (Files.exists(newFilePath)) {
+			return;
+		}
 
 		try {
 			Files.move(oldFilePath, newFilePath);
