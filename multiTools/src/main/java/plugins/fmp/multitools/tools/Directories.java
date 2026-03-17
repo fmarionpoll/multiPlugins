@@ -2,6 +2,7 @@ package plugins.fmp.multitools.tools;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -380,6 +381,9 @@ public class Directories {
 						Path destinationPath = subDirectoryPath.resolve(destinationName);
 						try {
 							Files.move(path, destinationPath);
+						} catch (FileAlreadyExistsException e) {
+							// Legacy imports may be re-run; avoid spamming warnings if file already moved.
+							Logger.debug("Destination already exists, skipping move: " + destinationPath);
 						} catch (IOException e) {
 							Logger.warn("Failed to move file: " + path + " to " + destinationPath);
 							e.printStackTrace();
@@ -414,7 +418,9 @@ public class Directories {
 			try (java.util.stream.Stream<Path> stream = Files.list(directoryPath)) {
 				stream.filter(Files::isRegularFile).forEach(path -> {
 					String name = path.getFileName().toString();
-					if (name.toLowerCase().endsWith(".xml") || name.toLowerCase().startsWith("line")) {
+					String nameLower = name.toLowerCase();
+					// Only move XML files. Older code also matched "line*.tiff" and tried to rename it to ".xml".
+					if (nameLower.endsWith(".xml")) {
 						String destinationName = Capillary.replace_LR_with_12(name);
 						if (clipName && destinationName.length() >= 6) {
 							destinationName = destinationName.substring(0, 6) + ".xml";
@@ -422,6 +428,9 @@ public class Directories {
 						Path destinationPath = subDirectoryPath.resolve(destinationName);
 						try {
 							Files.move(path, destinationPath);
+						} catch (FileAlreadyExistsException e) {
+							// Legacy imports may be re-run; avoid spamming warnings if file already moved.
+							Logger.debug("Destination already exists, skipping move: " + destinationPath);
 						} catch (IOException e) {
 							Logger.warn("Failed to move file: " + path + " to " + destinationPath);
 							e.printStackTrace();

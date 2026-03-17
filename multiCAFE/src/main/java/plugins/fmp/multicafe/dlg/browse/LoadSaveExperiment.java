@@ -14,6 +14,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -76,6 +77,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	// Parent reference
 	private MultiCAFE parent0 = null;
+
+	private static final Preferences BIN_PREFS = Preferences.userNodeForPackage(ExperimentDirectories.class);
+	private static final String PREF_LAST_BIN_SUBDIR = "lastSelectedBinSubDirectory";
 
 	// -----------------------------------------
 	public LoadSaveExperiment() {
@@ -751,6 +755,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		}
 
 		List<String> binDirs = Directories.getSortedListOfSubDirectoriesWithTIFF(resultsDir);
+		if (binDirs != null) {
+			binDirs.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
+		}
 		if (binDirs == null || binDirs.isEmpty()) {
 			return null;
 //			// No bin directories found - ask user what to do
@@ -806,9 +813,19 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		Object[] array = binDirs.toArray();
 		JComboBox<Object> jcb = new JComboBox<Object>(array);
 		jcb.setEditable(false);
+
+		String last = BIN_PREFS.get(PREF_LAST_BIN_SUBDIR, null);
+		if (last != null && binDirs.contains(last)) {
+			jcb.setSelectedItem(last);
+		}
+
 		JOptionPane.showMessageDialog(null, jcb, "Select bin directory", JOptionPane.QUESTION_MESSAGE);
 		Object selected = jcb.getSelectedItem();
-		return (selected != null) ? selected.toString() : null;
+		String selectedStr = (selected != null) ? selected.toString() : null;
+		if (selectedStr != null) {
+			BIN_PREFS.put(PREF_LAST_BIN_SUBDIR, selectedStr);
+		}
+		return selectedStr;
 	}
 
 	private void handleOpenButton() {

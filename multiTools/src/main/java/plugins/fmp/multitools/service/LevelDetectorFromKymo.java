@@ -156,6 +156,12 @@ public class LevelDetectorFromKymo {
 
 		int columnFirst = (int) searchRect.getX();
 		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
+		if (columnFirst < 0)
+			columnFirst = 0;
+		if (columnLast >= imageWidth)
+			columnLast = imageWidth - 1;
+		if (columnLast < columnFirst)
+			return;
 		int n_measures = columnLast - columnFirst + 1;
 		capi.getTopLevel().limit = new int[n_measures];
 		capi.getBottomLevel().limit = new int[n_measures];
@@ -179,6 +185,12 @@ public class LevelDetectorFromKymo {
 				transformedImage2.isSignedDataType());
 		int columnFirst = (int) searchRect.getX();
 		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
+		if (columnFirst < 0)
+			columnFirst = 0;
+		if (columnLast >= imageWidth)
+			columnLast = imageWidth - 1;
+		if (columnLast < columnFirst)
+			return;
 		switch (options.transform02) {
 		case COLORDISTANCE_L1_Y:
 		case COLORDISTANCE_L2_Y:
@@ -205,8 +217,16 @@ public class LevelDetectorFromKymo {
 
 	public void findBestPosition(int[] limits, int firstColumn, int lastColumn, int[] transformed1DArray2,
 			int imageWidth, int imageHeight, int delta, int threshold, boolean directionUp) {
-		for (int ix = firstColumn; ix <= lastColumn; ix++) {
+		if (limits == null || transformed1DArray2 == null || imageWidth <= 0 || imageHeight <= 0)
+			return;
+		int safeFirst = Math.max(0, firstColumn);
+		int safeLast = Math.min(imageWidth - 1, lastColumn);
+		if (safeLast < safeFirst)
+			return;
+		for (int ix = safeFirst; ix <= safeLast; ix++) {
 			int limitIndex = ix - firstColumn;
+			if (limitIndex < 0 || limitIndex >= limits.length)
+				continue;
 			int iy = limits[limitIndex];
 			int maxVal = Integer.MIN_VALUE;
 			int iyVal = iy;
@@ -236,8 +256,16 @@ public class LevelDetectorFromKymo {
 
 	public void detectThresholdUp(int[] limits, int firstColumn, int lastColumn, int[] transformed1DArray2,
 			int imageWidth, int imageHeight, int delta, int threshold, boolean directionUp) {
-		for (int ix = firstColumn; ix <= lastColumn; ix++) {
+		if (limits == null || transformed1DArray2 == null || imageWidth <= 0 || imageHeight <= 0)
+			return;
+		int safeFirst = Math.max(0, firstColumn);
+		int safeLast = Math.min(imageWidth - 1, lastColumn);
+		if (safeLast < safeFirst)
+			return;
+		for (int ix = safeFirst; ix <= safeLast; ix++) {
 			int limitIndex = ix - firstColumn;
+			if (limitIndex < 0 || limitIndex >= limits.length)
+				continue;
 			int iy = limits[limitIndex];
 			int iyVal = iy;
 			for (int irow = iy + delta; irow > iy - delta; irow--) {
@@ -283,7 +311,8 @@ public class LevelDetectorFromKymo {
 	public void computeTopBottomThresholds(int[] tabValues, int imageWidth, int imageHeight, Rectangle searchRect,
 			boolean directionUp, int threshold, int firstColumn, int lastColumn, int[] topLimits,
 			int[] bottomLimits) {
-		if (tabValues == null || imageWidth <= 0 || imageHeight <= 0 || firstColumn > lastColumn) {
+		if (tabValues == null || topLimits == null || bottomLimits == null || imageWidth <= 0 || imageHeight <= 0
+				|| firstColumn > lastColumn) {
 			return;
 		}
 
@@ -301,12 +330,22 @@ public class LevelDetectorFromKymo {
 
 		int minTopStart = Math.min(searchTopY + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
 
-		for (int ix = firstColumn; ix <= lastColumn; ix++) {
+		int safeFirst = Math.max(0, firstColumn);
+		int safeLast = Math.min(imageWidth - 1, lastColumn);
+		if (safeLast < safeFirst)
+			return;
+
+		for (int ix = safeFirst; ix <= safeLast; ix++) {
 			int index = ix - firstColumn;
+			if (index < 0 || index >= topLimits.length || index >= bottomLimits.length)
+				continue;
 
 			int yTop = imageHeight - 1;
 			for (int iy = minTopStart; iy < imageHeight; iy++) {
-				int val = tabValues[ix + iy * imageWidth];
+				int offset = ix + iy * imageWidth;
+				if (offset < 0 || offset >= tabValues.length)
+					continue;
+				int val = tabValues[offset];
 				boolean passes = directionUp ? (val > threshold) : (val < threshold);
 				if (passes) {
 					yTop = iy;
@@ -318,7 +357,10 @@ public class LevelDetectorFromKymo {
 			int yBottom = 0;
 			int startFrom = searchBottomY;
 			for (int iy = startFrom; iy >= 0; iy--) {
-				int val = tabValues[ix + iy * imageWidth];
+				int offset = ix + iy * imageWidth;
+				if (offset < 0 || offset >= tabValues.length)
+					continue;
+				int val = tabValues[offset];
 				boolean passes = directionUp ? (val > threshold) : (val < threshold);
 				if (passes) {
 					yBottom = iy;

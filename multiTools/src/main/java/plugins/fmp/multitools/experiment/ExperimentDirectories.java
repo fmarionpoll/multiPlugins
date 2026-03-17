@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.prefs.Preferences;
 
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
@@ -21,6 +22,9 @@ import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ExperimentDirectories {
+	private static final Preferences PREFS = Preferences.userNodeForPackage(ExperimentDirectories.class);
+	private static final String PREF_LAST_BIN_SUBDIR = "lastSelectedBinSubDirectory";
+
 	private String cameraImagesDirectory = null;
 	public List<String> cameraImagesList = null;
 
@@ -172,6 +176,11 @@ public class ExperimentDirectories {
 
 	private String getBinSubDirectoryFromTIFFLocation(String expListBinSubDirectory, String resultsDirectory) {
 		List<String> expList = Directories.getSortedListOfSubDirectoriesWithTIFF(resultsDirectory);
+		if (expList == null) {
+			expList = new ArrayList<String>();
+		} else {
+			expList.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
+		}
 		move_TIFFandLINEfiles_From_Results_to_BinDirectory(resultsDirectory, expList);
 		String binDirectory = expListBinSubDirectory;
 		if (binDirectory == null) {
@@ -190,16 +199,14 @@ public class ExperimentDirectories {
 	}
 
 	private void move_TIFFandLINEfiles_From_Results_to_BinDirectory(String parentDirectory, List<String> expList) {
-		if (expList == null)
+		if (parentDirectory == null)
 			return;
 
-		for (String subDirectory : expList) {
-			if (subDirectory.contains(Experiment.RESULTS)) {
-				subDirectory = Experiment.BIN + "60";
-				Directories.move_TIFFfiles_To_Subdirectory(parentDirectory, subDirectory);
-				Directories.move_xmlLINEfiles_To_Subdirectory(parentDirectory, subDirectory, true);
-			}
-		}
+		// Legacy layouts may store line*.tiff and line*.xml directly under results/.
+		// Always attempt to move them into bin_60; if none exist, these calls are no-ops.
+		String subDirectory = Experiment.BIN + "60";
+		Directories.move_TIFFfiles_To_Subdirectory(parentDirectory, subDirectory);
+		Directories.move_xmlLINEfiles_To_Subdirectory(parentDirectory, subDirectory, true);
 	}
 
 	static public String getParentIf(String filename, String filter) {
@@ -277,11 +284,33 @@ public class ExperimentDirectories {
 	}
 
 	private String selectSubDirDialog(List<String> expList, String title, String type, boolean editable) {
-		Object[] array = expList.toArray();
+		List<String> filtered = expList;
+		if (filtered != null && Experiment.BIN.equalsIgnoreCase(type)) {
+			filtered = new ArrayList<String>(expList);
+			filtered.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
+		}
+
+		Object[] array = (filtered != null) ? filtered.toArray() : new Object[0];
 		JComboBox<Object> jcb = new JComboBox<Object>(array);
 		jcb.setEditable(editable);
+
+		// Preselect last choice for bin selection (helps when loading many legacy experiments)
+		if (Experiment.BIN.equalsIgnoreCase(type)) {
+			String last = PREFS.get(PREF_LAST_BIN_SUBDIR, null);
+			if (last != null && filtered != null && filtered.contains(last)) {
+				jcb.setSelectedItem(last);
+			}
+		}
+
 		JOptionPane.showMessageDialog(null, jcb, title, JOptionPane.QUESTION_MESSAGE);
-		return (String) jcb.getSelectedItem();
+		Object selected = jcb.getSelectedItem();
+		String selectedStr = (selected != null) ? selected.toString() : null;
+
+		if (selectedStr != null && Experiment.BIN.equalsIgnoreCase(type)) {
+			PREFS.put(PREF_LAST_BIN_SUBDIR, selectedStr);
+		}
+
+		return selectedStr;
 	}
 
 	// -----------------------
@@ -307,6 +336,11 @@ public class ExperimentDirectories {
 	private String getV2BinSubDirectory(String expListBinSubDirectory, String resultsDirectory,
 			String binSubDirectory) {
 		List<String> expList = Directories.getSortedListOfSubDirectoriesWithTIFF(resultsDirectory);
+		if (expList == null) {
+			expList = new ArrayList<String>();
+		} else {
+			expList.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
+		}
 		move_TIFFandLINEfiles_From_Results_to_BinDirectory(resultsDirectory, expList);
 		String binDirectory = binSubDirectory;
 		if (binDirectory == null) {
