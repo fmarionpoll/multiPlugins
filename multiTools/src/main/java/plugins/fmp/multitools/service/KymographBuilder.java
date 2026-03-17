@@ -101,15 +101,11 @@ public class KymographBuilder {
 			final IcyBufferedImage sourceImage = loader
 					.imageIORead(exp.getSeqCamData().getFileNameFromImageList(fromSourceImageIndex));
 
-			tasks.add(processor.submit(new Runnable() {
-				@Override
-				public void run() {
-					for (Capillary capi : exp.getCapillaries().getList()) {
-						if (!capi.getKymographBuild())
-							continue;
-						analyzeImageUnderCapillary(sourceImage, capi, viewT, kymographColumn, refSizex, refSizey,
-								options);
-					}
+			tasks.add(processor.submit(() -> {
+				for (Capillary capi : exp.getCapillaries().getList()) {
+					if (!capi.getKymographBuild())
+						continue;
+					analyzeImageUnderCapillary(sourceImage, capi, viewT, kymographColumn, refSizex, refSizey, options);
 				}
 			}));
 		}
@@ -175,7 +171,7 @@ public class KymographBuilder {
 		}
 	}
 
-	private void analyzeImageUnderCapillary(IcyBufferedImage sourceImage, Capillary cap, int t, int kymographColumn,
+	void analyzeImageUnderCapillary(IcyBufferedImage sourceImage, Capillary cap, int t, int kymographColumn,
 			int refSizex, int refSizey, BuildSeriesOptions options) {
 		AlongT alongT = cap.getAlongTAtT(t);
 		if (alongT == null) {
@@ -198,6 +194,28 @@ public class KymographBuilder {
 			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - masksList still null after build for t=" + t
 					+ " cap=" + (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName())
 					+ ", skipping column " + kymographColumn);
+			return;
+		}
+		if (masksList.isEmpty()) {
+			// A degenerate ROI (e.g. tracking failure at this frame) can produce zero masks.
+			// Leaving the column uninitialized results in a black column; instead, copy
+			// previous column if available so the kymograph remains visually consistent.
+			IcyBufferedImage capImage = cap.getCap_Image();
+			int kymoImageWidth = capImage.getWidth();
+			ArrayList<int[]> capInteger = capIntegerArrays.get(cap);
+			if (capInteger != null && kymographColumn > 0) {
+				for (int chan = 0; chan < sourceImage.getSizeC(); chan++) {
+					int[] capImageChannel = capInteger.get(chan);
+					for (int row = 0; row < capImage.getHeight(); row++) {
+						int dst = row * kymoImageWidth + kymographColumn;
+						int src = row * kymoImageWidth + (kymographColumn - 1);
+						capImageChannel[dst] = capImageChannel[src];
+					}
+				}
+			}
+			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - empty masksList (degenerate ROI?) t=" + t
+					+ " cap=" + (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName())
+					+ " column=" + kymographColumn);
 			return;
 		}
 

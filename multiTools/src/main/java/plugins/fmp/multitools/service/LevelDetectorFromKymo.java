@@ -87,6 +87,12 @@ public class LevelDetectorFromKymo {
 
 					int columnFirst = (int) searchRect.getX();
 					int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
+					if (columnFirst < 0)
+						columnFirst = 0;
+					if (columnLast >= imageWidth)
+						columnLast = imageWidth - 1;
+					if (columnLast < columnFirst)
+						return;
 					if (options.analyzePartOnly) {
 						ensureFullWidthPolylineForPartialUpdate(capi.getTopLevel(), imageWidth, columnLast);
 						ensureFullWidthPolylineForPartialUpdate(capi.getBottomLevel(), imageWidth, columnLast);

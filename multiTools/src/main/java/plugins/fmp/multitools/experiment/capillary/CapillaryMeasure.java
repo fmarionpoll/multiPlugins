@@ -61,6 +61,25 @@ public class CapillaryMeasure {
 	public void setPolylineLevelFromTempData(String name, int indexImage, int xStart, int xEnd) {
 		this.capName = name;
 		this.capIndexKymo = indexImage;
+		if (limit == null || limit.length == 0)
+			return;
+
+		if (xEnd < xStart)
+			return;
+
+		// Clamp xStart/xEnd so that we never read past the end of limit[]
+		int maxIndex = limit.length - 1;
+		if (xStart < 0)
+			xStart = 0;
+		if (xStart > maxIndex)
+			xStart = maxIndex;
+		if (xEnd < 0)
+			xEnd = 0;
+		if (xEnd > maxIndex)
+			xEnd = maxIndex;
+		if (xEnd < xStart)
+			return;
+
 		int npoints = xEnd - xStart + 1;
 		double[] xpoints = new double[npoints];
 		double[] ypoints = new double[npoints];
