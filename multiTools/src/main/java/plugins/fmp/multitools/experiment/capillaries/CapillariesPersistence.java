@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.DirectoryStream;
 
 import plugins.fmp.multitools.tools.Logger;
 
@@ -103,7 +104,35 @@ public class CapillariesPersistence {
 		}
 
 		Path legacyPath = Paths.get(binDirectory, ID_CAPILLARIESARRAYMEASURES_CSV);
-		return Files.exists(legacyPath);
+		if (Files.exists(legacyPath)) {
+			return true;
+		}
+
+		// Legacy MultiCAFE 0.x/early 1.x stored measures as one XML file per capillary
+		// in the bin directory (e.g. line01.xml next to line01.tiff). These were
+		// never announced via a CSV index, so the previous check would incorrectly
+		// report "no measures files" and skip the XML loader.
+		//
+		// To support those 2021-era datasets, treat the presence of at least one
+		// "line*.xml" file in the bin directory as a valid legacy measures source.
+		try {
+			Path binPath = Paths.get(binDirectory);
+			if (Files.exists(binPath) && Files.isDirectory(binPath)) {
+				try (DirectoryStream<Path> stream = Files.newDirectoryStream(binPath, "line*.xml")) {
+					for (Path p : stream) {
+						if (Files.isRegularFile(p)) {
+							return true;
+						}
+					}
+				}
+			}
+		} catch (Exception e) {
+			// Best-effort legacy detection; ignore errors and fall back to "no measures".
+			Logger.warn("CapillariesPersistence:hasCapillariesMeasuresFiles() legacy XML probe failed for "
+					+ binDirectory + ": " + e.getMessage());
+		}
+
+		return false;
 	}
 
 	/**

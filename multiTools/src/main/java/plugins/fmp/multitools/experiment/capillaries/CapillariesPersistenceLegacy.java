@@ -6,11 +6,14 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -142,18 +145,70 @@ public class CapillariesPersistenceLegacy {
 					"CapillariesPersistenceLegacy:xmlLoadCapillaries_Measures() No capillaries to load measures for");
 			return false;
 		}
+
+		// Build an index of legacy per-kymograph XML files found in the bin directory.
+		// 2021-era MultiCAFE stored measures as "lineXX.xml" next to "lineXX.tiff".
+		Map<String, Path> xmlByStem = new HashMap<>();
+		try {
+			Path dir = Paths.get(directory);
+			if (Files.exists(dir) && Files.isDirectory(dir)) {
+				try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "line*.xml")) {
+					for (Path p : stream) {
+						if (!Files.isRegularFile(p))
+							continue;
+						String file = p.getFileName().toString();
+						int dot = file.lastIndexOf('.');
+						String stem = (dot > 0) ? file.substring(0, dot) : file;
+						xmlByStem.put(stem, p);
+					}
+				}
+			}
+		} catch (Exception e) {
+			Logger.warn("CapillariesPersistenceLegacy:xmlLoadCapillaries_Measures() Failed to index line*.xml in "
+					+ directory + ": " + e.getMessage());
+		}
+
 		int loadedCount = 0;
 		for (int i = 0; i < ncapillaries; i++) {
 			Capillary cap = capillaries.getList().get(i);
 			String kymographName = cap.getKymographName();
-			if (kymographName == null || kymographName.isEmpty()) {
-				Logger.warn("CapillariesPersistenceLegacy:xmlLoadCapillaries_Measures() Capillary " + i
-						+ " has no kymograph name");
+			String kymoFile = cap.getKymographFileName();
+			String kymoStem = null;
+			if (kymoFile != null && !kymoFile.isEmpty()) {
+				String fileOnly = new File(kymoFile).getName();
+				int dot = fileOnly.lastIndexOf('.');
+				kymoStem = (dot > 0) ? fileOnly.substring(0, dot) : fileOnly;
+			}
+
+			Path xmlPath = null;
+			if (kymographName != null && !kymographName.isEmpty()) {
+				// Preferred: "line01.xml" where kymographName == "line01"
+				xmlPath = xmlByStem.get(kymographName);
+				if (xmlPath == null) {
+					String csFile = directory + File.separator + kymographName + ".xml";
+					Path p = Paths.get(csFile);
+					if (Files.isRegularFile(p))
+						xmlPath = p;
+				}
+			}
+			if (xmlPath == null && kymoStem != null && !kymoStem.isEmpty()) {
+				// Fallback: "line01.tiff" -> "line01.xml"
+				xmlPath = xmlByStem.get(kymoStem);
+				if (xmlPath == null) {
+					Path p = Paths.get(directory + File.separator + kymoStem + ".xml");
+					if (Files.isRegularFile(p))
+						xmlPath = p;
+				}
+			}
+
+			if (xmlPath == null) {
+				Logger.debug("CapillariesPersistenceLegacy:xmlLoadCapillaries_Measures() No legacy XML found for cap "
+						+ i + " kymoName=" + kymographName + " kymoFile=" + kymoFile);
 				continue;
 			}
-			String csFile = directory + File.separator + kymographName + ".xml";
+
 			try {
-				final Document capdoc = XMLUtil.loadDocument(csFile);
+				final Document capdoc = XMLUtil.loadDocument(xmlPath.toString());
 				if (capdoc != null) {
 					Node node = XMLUtil.getRootElement(capdoc, true);
 					cap.setKymographIndex(i);
@@ -163,11 +218,11 @@ public class CapillariesPersistenceLegacy {
 					}
 				} else {
 					Logger.debug("CapillariesPersistenceLegacy:xmlLoadCapillaries_Measures() Could not load XML from "
-							+ csFile);
+							+ xmlPath);
 				}
 			} catch (Exception e) {
 				Logger.warn("CapillariesPersistenceLegacy:xmlLoadCapillaries_Measures() Error loading measures from "
-						+ csFile + ": " + e.getMessage());
+						+ xmlPath + ": " + e.getMessage());
 			}
 		}
 		if (flag) {
