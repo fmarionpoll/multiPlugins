@@ -257,6 +257,19 @@ public class CapillariesPersistenceLegacy {
 			for (Path p : stream) {
 				if (!Files.isRegularFile(p))
 					continue;
+				// Only use per-capillary XML descriptions when the corresponding
+				// kymograph image is present next to it (lineXX.tiff). This avoids
+				// accidentally loading stale XML files from incomplete exports.
+				String baseName = p.getFileName().toString();
+				int dot = baseName.lastIndexOf('.');
+				String stem = (dot > 0) ? baseName.substring(0, dot) : baseName;
+				Path tiff = dir.resolve(stem + ".tiff");
+				Path tif = dir.resolve(stem + ".tif");
+				if (!Files.exists(tiff) && !Files.exists(tif)) {
+					Logger.debug("CapillariesPersistenceLegacy:loadDescriptionFromLineXml() Skip " + p
+							+ " because matching TIFF is missing");
+					continue;
+				}
 				try {
 					final Document capdoc = XMLUtil.loadDocument(p.toString());
 					if (capdoc == null)

@@ -846,6 +846,23 @@ public class Experiment {
 			cagesLoaded = Persistence.loadDescription(cages, resultsDir);
 			ensureBinDirectoryForLoading();
 			String binDir = getKymosBinFullDirectory();
+			// Extra legacy fallback: some datasets stored MCdrosotrack.xml inside
+			// results/bin_xx/ and never migrated it to results/.
+			if (!cagesLoaded && binDir != null) {
+				String xmlInBin = binDir + File.separator + "MCdrosotrack.xml";
+				File f = new File(xmlInBin);
+				if (f.isFile()) {
+					Logger.info("Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack.xml in bin: "
+							+ xmlInBin);
+					boolean loaded = plugins.fmp.multitools.experiment.cages.CagesPersistenceLegacy
+							.xmlReadCagesFromMCdrosotrackXml(cages, xmlInBin);
+					if (loaded) {
+						cagesLoaded = true;
+						// Auto-migrate descriptions so next loads are fast and consistent.
+						Persistence.saveDescription(cages, resultsDir);
+					}
+				}
+			}
 			if (binDir != null) {
 				cages.getPersistence().loadMeasures(cages, binDir);
 			}

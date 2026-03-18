@@ -1182,6 +1182,25 @@ public class CagesPersistenceLegacy {
 			}
 			return loaded;
 		}
+		
+		// Some legacy datasets stored MCdrosotrack.xml inside the bin directory
+		// (results/bin_xx/MCdrosotrack.xml). If it wasn't migrated to results/, try it
+		// there as a last resort.
+		if (!binDirectory.equals(resultsDir)) {
+			String binXmlPath = binDirectory + File.separator + ID_MCDROSOTRACK_XML;
+			File binXmlFile = new File(binXmlPath);
+			if (binXmlFile.isFile()) {
+				Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Trying legacy XML in bin directory: "
+						+ binXmlPath);
+				boolean loaded = xmlLoadFlyPositionsFromXML(cages, binXmlPath);
+				if (loaded) {
+					Logger.info(
+							"CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded measures from legacy XML in bin: "
+									+ ID_MCDROSOTRACK_XML);
+				}
+				return loaded;
+			}
+		}
 
 		return false;
 	}
