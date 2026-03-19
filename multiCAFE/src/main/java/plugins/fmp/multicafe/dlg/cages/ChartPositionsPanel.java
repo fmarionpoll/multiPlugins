@@ -46,6 +46,10 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	JSpinner aliveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50.0, 0., 100000., .1));
 	public JButton displayResultsButton = new JButton("Display results");
 
+	// If true, move graphs should follow experiment navigation (when global "graphs"
+	// option is enabled). This is set when the user explicitly displayed graphs once.
+	private boolean followExperimentNavigation = false;
+
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
@@ -76,14 +80,28 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		displayResultsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				displayGraphsPanels();
+				Experiment exp = (Experiment) ChartPositionsPanel.this.parent0.expListComboLazy.getSelectedItem();
+				followExperimentNavigation = true;
+				displayGraphsPanels(exp);
 				firePropertyChange("DISPLAY_RESULTS", false, true);
 			}
 		});
 	}
 
-	private void displayGraphsPanels() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+	/**
+	 * Refreshes move graphs for the given experiment if at least one move graph is
+	 * already displayed. This is used when navigating between experiments, so the
+	 * move graph dialogs follow the current experiment (like capillary level
+	 * graphs).
+	 */
+	public void refreshIfDisplayed(Experiment exp) {
+		if (!followExperimentNavigation) {
+			return;
+		}
+		displayGraphsPanels(exp);
+	}
+
+	private void displayGraphsPanels(Experiment exp) {
 		if (exp == null)
 			return;
 		final Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBounds();
@@ -158,6 +176,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	}
 
 	public void closeAllCharts() {
+		followExperimentNavigation = false;
 		ypositionsChart = closeChart(ypositionsChart);
 		xpositionsChart = closeChart(xpositionsChart);
 		distanceChart = closeChart(distanceChart);
@@ -172,6 +191,8 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	@Override
 	public void sequenceClosed(Sequence sequence) {
 		sequence.removeListener(this);
-		closeAllCharts();
+		// When switching experiments, the previous sequence is closed. Do not dispose
+		// the graph windows here: if the user requested graphs, we refresh them when
+		// the next experiment loads (driven by the global "graphs" option).
 	}
 }

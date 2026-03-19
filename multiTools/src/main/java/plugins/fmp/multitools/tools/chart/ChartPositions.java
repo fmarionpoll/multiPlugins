@@ -3,6 +3,8 @@ package plugins.fmp.multitools.tools.chart;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,6 +55,9 @@ public class ChartPositions extends IcyFrame {
 	private Point pt = new Point(0, 0);
 	private double globalXMax = 0;
 	
+	// Remember last screen location for fly-position graphs across experiments.
+	private static Point globalUpperLeftLocation = null;
+	
 	/** Builder for creating fly position datasets */
 	private final CageSeriesBuilder dataBuilder = new CageFlyPositionSeriesBuilder();
 
@@ -63,10 +68,28 @@ public class ChartPositions extends IcyFrame {
 		mainChartPanel = new JPanel();
 		mainChartPanel.setLayout(new BoxLayout(mainChartPanel, BoxLayout.LINE_AXIS));
 		mainChartFrame.add(mainChartPanel);
+		
+		// Track user moves of the chart window so we remember the last location across
+		// experiments. This listener updates the shared location whenever the frame is
+		// moved (e.g. drag by the user).
+		mainChartFrame.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentMoved(ComponentEvent e) {
+				globalUpperLeftLocation = mainChartFrame.getLocation();
+			}
+		});
 	}
 
 	public void setLocationRelativeToRectangle(Rectangle rectv, Point deltapt) {
-		pt = new Point(rectv.x + deltapt.x, rectv.y + deltapt.y);
+		// If a previous ChartPositions window was moved by the user, reuse its location
+		// so graphs appear where the user left them. Otherwise, default relative to
+		// the camera viewer rectangle.
+		if (globalUpperLeftLocation != null) {
+			pt = new Point(globalUpperLeftLocation);
+		} else if (rectv != null && deltapt != null) {
+			pt = new Point(rectv.x + deltapt.x, rectv.y + deltapt.y);
+			globalUpperLeftLocation = new Point(pt);
+		}
 	}
 
 	public void displayData(List<Cage> cageList, EnumResults resultType) {
@@ -159,7 +182,12 @@ public class ChartPositions extends IcyFrame {
 		}
 
 		mainChartFrame.pack();
-		mainChartFrame.setLocation(pt);
+		if (pt != null) {
+			mainChartFrame.setLocation(pt);
+			// Store actual screen location so subsequent charts reuse it even if the user
+			// moved the window.
+			globalUpperLeftLocation = mainChartFrame.getLocation();
+		}
 		mainChartFrame.addToDesktopPane();
 		mainChartFrame.setVisible(true);
 	}

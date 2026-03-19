@@ -610,6 +610,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private void displayGraphsIfEnabled(Experiment exp) {
 		if (parent0.paneExperiment.tabOptions.graphsCheckBox.isSelected()) {
 			parent0.paneLevels.tabGraphs.displayChartPanels(exp);
+			// Also refresh move-data graphs if they were already displayed.
+			parent0.paneCages.tabGraphics.refreshIfDisplayed(exp);
 		}
 	}
 
