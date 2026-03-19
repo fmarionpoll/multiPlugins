@@ -97,8 +97,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			exp.initTmsForFlyPositions(exp.getSeqCamData().getFirstImageMs());
 		}
 
-		// Always export static cage limits to a dedicated worksheet for this run
-		exportCageLimitsForExperiment(exp);
+		// Always export static cage limits; Cage_ID matches XYIMAGE / XYTOPCAGE exports.
+		exportCageLimitsForExperiment(exp, charSeries);
 
 		OptionToResultsMapping[] mappings = {
 			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
@@ -298,9 +298,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 	/**
 	 * Exports cage limits (geometry) to a dedicated worksheet, reusing the same
-	 * encoding as CagesDescription.csv (one row per cage, npoints then coordinates).
+	 * encoding as CagesDescription.csv (one row per cage, npoints then coordinates),
+	 * with a leading Cage_ID column matching other fly-position exports.
 	 */
-	private void exportCageLimitsForExperiment(Experiment exp) throws ExcelExportException {
+	private void exportCageLimitsForExperiment(Experiment exp, String charSeries) throws ExcelExportException {
 		if (exp == null || exp.getCages() == null || exp.getCages().getCageList().isEmpty()) {
 			return;
 		}
@@ -311,8 +312,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			SXSSFSheet sheet = workbook.getSheet(title);
 			boolean transpose = options.transpose;
 
-			final String[] fields = new String[] { "cageID", "nFlies", "age", "Comment", "strain", "sex", "colorR",
-					"colorG", "colorB", "ROIname", "roiType", "npoints" };
+			final String[] fields = new String[] { "Cage_ID", "cageID", "nFlies", "age", "Comment", "strain", "sex",
+					"colorR", "colorG", "colorB", "ROIname", "roiType", "npoints" };
 
 			// Use the same convention as other exporters:
 			// - logical x: entity index (cage instance)
@@ -359,6 +360,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 				int x = nextEntityIndex;
 				int y = 0;
+				String cageIdLabel = (charSeries != null ? charSeries : "") + cage.getProperties().getCageID();
+				XLSUtils.setValue(sheet, x, y++, transpose, cageIdLabel);
 				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getCageID());
 				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getCageNFlies());
 				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getFlyAge());

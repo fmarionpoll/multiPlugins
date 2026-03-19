@@ -140,8 +140,12 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		        break;
 		        
 		case XYIMAGE:
+			// Y position measured from cage bottom (legacy behavior)
+			processPositionDataFromBottom(flyPositions, seriesXY, itmax, cage);
+			break;
 		case XYTOPCAGE:
-			processPositionData(flyPositions, seriesXY, itmax, cage);
+			// Y position measured from cage top (requested semantics)
+			processPositionDataFromTop(flyPositions, seriesXY, itmax, cage);
 			break;
 
 		case XYTIPCAPS:
@@ -149,7 +153,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			break;
 
 		default:
-			processPositionData(flyPositions, seriesXY, itmax, cage);
+			processPositionDataFromBottom(flyPositions, seriesXY, itmax, cage);
 			break;
 		}
 	}
@@ -191,9 +195,10 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
-	 * Processes Y position data for a cage (XYIMAGE, XYTOPCAGE).
+	 * Processes Y position data for a cage, measured from the bottom edge
+	 * (legacy behavior used for XYIMAGE and as default).
 	 */
-	private void processPositionData(FlyPositions results, XYSeries seriesXY, int itmax, Cage cage) {
+	private void processPositionDataFromBottom(FlyPositions results, XYSeries seriesXY, int itmax, Cage cage) {
 		Rectangle rect1 = null;
 		if (cage.getRoi() != null) {
 			rect1 = cage.getRoi().getBounds();
@@ -212,6 +217,33 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			FlyPosition pos = results.flyPositionList.get(it);
 			Rectangle2D itRect = pos.rectPosition;
 			double ypos = yOrigin - itRect.getY();
+			addxyPos(seriesXY, pos, ypos);
+		}
+	}
+
+	/**
+	 * Processes Y position data for a cage, measured from the top edge (distance
+	 * from top of cage). Used for XYTOPCAGE.
+	 */
+	private void processPositionDataFromTop(FlyPositions results, XYSeries seriesXY, int itmax, Cage cage) {
+		Rectangle rect1 = null;
+		if (cage.getRoi() != null) {
+			rect1 = cage.getRoi().getBounds();
+		} else if (cage.getCageRoi2D() != null) {
+			rect1 = cage.getCageRoi2D().getBounds();
+		}
+
+		if (rect1 == null) {
+			Logger.warn("Cannot process position data from top: cage ROI is null");
+			return;
+		}
+
+		double yTop = rect1.getY();
+
+		for (int it = 0; it < itmax; it++) {
+			FlyPosition pos = results.flyPositionList.get(it);
+			Rectangle2D itRect = pos.rectPosition;
+			double ypos = itRect.getY() - yTop;
 			addxyPos(seriesXY, pos, ypos);
 		}
 	}
