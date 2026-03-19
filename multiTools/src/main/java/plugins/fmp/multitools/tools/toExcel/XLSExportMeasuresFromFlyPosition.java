@@ -158,9 +158,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		ensureFlyPositionTimesInitialized(exp);
 
-		// Fly-position exports already have per-cage descriptors; adding extra separator
-		// columns/rows creates large empty blocks between experiments in multi-export.
+		// Align with other exporters: introduce a small separator block (2 cells)
+		// between experiments, but compute the starting index per sheet so we don't
+		// accumulate large empty regions.
 		Point pt = new Point(computeNextSeriesIndex(sheet), 0);
+		pt = writeExperimentSeparator(sheet, pt);
 
 		ResultsOptions resultsOptions = new ResultsOptions();
 		long kymoBin_ms = exp.getKymoBin_ms();
@@ -412,8 +414,9 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	private int exportXYImageRectComponents(Experiment exp, SXSSFSheet sheet, int col0, String charSeries) {
 		ensureFlyPositionTimesInitialized(exp);
 
-		// See note in exportResultTypeToSheet(): avoid empty separator blocks.
+		// Same separator convention as other exporters, using per-sheet start index.
 		Point pt = new Point(computeNextSeriesIndex(sheet), 0);
+		pt = writeExperimentSeparator(sheet, pt);
 
 		ResultsOptions resultsOptions = new ResultsOptions();
 		long kymoBin_ms = exp.getKymoBin_ms();
