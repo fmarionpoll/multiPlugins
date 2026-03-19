@@ -165,7 +165,7 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 		options.alive = tabMove.aliveCheckBox.isSelected();
 		options.onlyalive = tabMove.deadEmptyCheckBox.isSelected();
 		options.sleep = tabMove.sleepCheckBox.isSelected();
-		options.ellipseAxes = tabMove.rectSizeCheckBox.isSelected();
+		options.ellipseAxes = false; // tabMove.rectSizeCheckBox.isSelected();
 		getCommonOptions(options, exp);
 		return options;
 	}

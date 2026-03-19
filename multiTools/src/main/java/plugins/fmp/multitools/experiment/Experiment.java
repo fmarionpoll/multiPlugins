@@ -2105,6 +2105,13 @@ public class Experiment {
 			measuresLoaded = cages.getPersistence().loadMeasures(cages, binDir);
 		}
 
+		// Ensure FlyPosition.tMs is initialized from the camera timeline.
+		// Without this, loaded fly positions keep tMs=0 and Excel exports will only
+		// populate the first time column for experiments beyond the first.
+		if (measuresLoaded && seqCamData != null && seqCamData.getSequence() != null) {
+			initTmsForFlyPositions(seqCamData.getFirstImageMs());
+		}
+
 		if (measuresLoaded && seqCamData.getSequence() != null) {
 			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}

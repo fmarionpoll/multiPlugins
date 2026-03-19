@@ -38,10 +38,10 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 
 	private MultiCAFE parent0 = null;
 
-	public JCheckBox xCheckbox = new JCheckBox("x position", true);
+	public JCheckBox xCheckbox = new JCheckBox("x position", false);
 	public JCheckBox yCheckbox = new JCheckBox("y position", true);
 	private JCheckBox distanceCheckbox = new JCheckBox("distance t/t+1", false);
-	JCheckBox aliveCheckbox = new JCheckBox("fly alive", true);
+	JCheckBox aliveCheckbox = new JCheckBox("fly alive", false);
 	JCheckBox sleepCheckbox = new JCheckBox("sleep", false);
 	JSpinner aliveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50.0, 0., 100000., .1));
 	public JButton displayResultsButton = new JButton("Display results");
@@ -98,7 +98,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		} else if (xpositionsChart != null) {
 			closeChart(xpositionsChart);
 		}
-		
+
 		if (yCheckbox.isSelected()) {
 			ypositionsChart = plotYToChart("flies Y positions", ypositionsChart, rectv, ptRelative, exp,
 					EnumResults.YTOPCAGE);
