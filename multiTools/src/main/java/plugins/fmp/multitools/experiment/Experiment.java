@@ -852,8 +852,9 @@ public class Experiment {
 				String xmlInBin = binDir + File.separator + "MCdrosotrack.xml";
 				File f = new File(xmlInBin);
 				if (f.isFile()) {
-					Logger.info("Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack.xml in bin: "
-							+ xmlInBin);
+					Logger.info(
+							"Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack.xml in bin: "
+									+ xmlInBin);
 					boolean loaded = plugins.fmp.multitools.experiment.cages.CagesPersistenceLegacy
 							.xmlReadCagesFromMCdrosotrackXml(cages, xmlInBin);
 					if (loaded) {
@@ -993,7 +994,8 @@ public class Experiment {
 				if (capillaries.getPersistence().hasCapillariesDescriptionFiles(binDir)) {
 					descriptionsLoaded = capillaries.getPersistence().loadDescriptions(capillaries, binDir);
 				} else {
-					// Legacy fallback #2: some early datasets store duplicated capillary descriptions
+					// Legacy fallback #2: some early datasets store duplicated capillary
+					// descriptions
 					// inside per-kymograph XML files in bin_xx/ (line01.xml, ...).
 					descriptionsLoaded = capillaries.getPersistence().loadDescriptionsFromLegacyLineXml(capillaries,
 							binDir);

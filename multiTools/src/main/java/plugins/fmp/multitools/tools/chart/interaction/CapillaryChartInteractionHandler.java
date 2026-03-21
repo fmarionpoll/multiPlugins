@@ -43,7 +43,8 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 
 	private final Experiment experiment;
 
-	public CapillaryChartInteractionHandler(Experiment experiment, @SuppressWarnings("unused") ChartCagePair[][] chart) {
+	public CapillaryChartInteractionHandler(Experiment experiment,
+			@SuppressWarnings("unused") ChartCagePair[][] chart) {
 		this.experiment = experiment;
 	}
 
@@ -224,6 +225,33 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		return closestCapillary;
 	}
 
+	/**
+	 * {@link Sequence#setSelectedROI} / {@link Sequence#setFocusedROI} only accept
+	 * ROI instances that are attached to the sequence. Capillary/AlongT may hold a
+	 * different reference (copy, reload); match the sequence ROI by identity, then
+	 * by name.
+	 */
+	private static ROI2D resolveRoiOnSequence(Sequence seq, ROI2D fromCapillary) {
+		if (seq == null || fromCapillary == null) {
+			return null;
+		}
+		ArrayList<ROI2D> onSeq = seq.getROI2Ds();
+		for (ROI2D r : onSeq) {
+			if (r == fromCapillary) {
+				return r;
+			}
+		}
+		String name = fromCapillary.getName();
+		if (name != null) {
+			for (ROI2D r : onSeq) {
+				if (name.equals(r.getName())) {
+					return r;
+				}
+			}
+		}
+		return null;
+	}
+
 	private void selectCapillaryAtT(Experiment exp, Capillary capillary, int frameIndex) {
 		if (exp == null || capillary == null) {
 			Logger.warn("Cannot select capillary: experiment or capillary is null");
@@ -245,10 +273,17 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		}
 
 		ROI2D roi = capillary.getRoiAtFrameT(frameIndex);
-		if (roi != null) {
-			seq.setFocusedROI(roi);
-			seq.setSelectedROI(roi);
+		if (roi == null) {
+			return;
 		}
+		ROI2D seqRoi = resolveRoiOnSequence(seq, roi);
+		if (seqRoi == null) {
+			Logger.warn("Capillary ROI is not attached to the camera sequence (no instance/name match): "
+					+ roi.getName());
+			return;
+		}
+		seq.setFocusedROI(seqRoi);
+		seq.setSelectedROI(seqRoi);
 	}
 
 	private void chartSelectKymographForCapillary(Experiment exp, Capillary capillary) {
@@ -341,4 +376,3 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		}
 	}
 }
-
