@@ -45,7 +45,8 @@ public class ImageTransformFactory {
 		return GPU_SUM_DIFF;
 	}
 
-	// ------------- Helpers reused from SumDiff (without code duplication) -------------
+	// ------------- Helpers reused from SumDiff (without code duplication)
+	// -------------
 
 	public static IcyBufferedImage getResultImageOrReuse(int width, int height, int nChannels, DataType dataType,
 			IcyBufferedImage reuseBuffer) {
@@ -58,7 +59,8 @@ public class ImageTransformFactory {
 
 	public static void copyExGIntToIcyBufferedImage(int[] ExG, IcyBufferedImage img2, boolean copyTo3Planes) {
 		Object destArray = Array1DUtil.createArray(img2.getDataType_(), ExG.length);
-		Array1DUtil.intArrayToSafeArray(ExG, destArray, true);
+		// Array1DUtil.intArrayToSafeArray(ExG, destArray, true);
+		Array1DUtil.intArrayToSafeArray(ExG, 0, destArray, 0, -1, true, true);
 		img2.setDataXY(0, destArray);
 
 		if (copyTo3Planes) {
@@ -68,4 +70,3 @@ public class ImageTransformFactory {
 		}
 	}
 }
-

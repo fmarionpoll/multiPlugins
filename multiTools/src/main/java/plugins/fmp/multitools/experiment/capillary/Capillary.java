@@ -1207,6 +1207,25 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	/**
+	 * ROI for the camera at frame {@code frameIndex}: the AlongT interval active at
+	 * that frame when available, otherwise {@link #getRoi()} (metadata capillary
+	 * ROI).
+	 *
+	 * @param frameIndex sequence frame index, or negative to use metadata ROI only
+	 *                   (no AlongT lookup)
+	 */
+	public ROI2D getRoiAtFrameT(long frameIndex) {
+		if (frameIndex < 0) {
+			return getRoi();
+		}
+		AlongT at = getAlongTAtT(frameIndex);
+		if (at != null && at.getRoi() != null) {
+			return at.getRoi();
+		}
+		return getRoi();
+	}
+
+	/**
 	 * Start frame of the interval at index i (same as
 	 * getAlongTList().get(i).getStart()).
 	 */

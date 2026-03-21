@@ -29,7 +29,6 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
-import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
@@ -231,27 +230,22 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			return;
 		}
 
-		ROI2D roi = null;
-		if (frameIndex >= 0) {
-			AlongT at = capillary.getAlongTAtT(frameIndex);
-			if (at != null && at.getRoi() != null) {
-				roi = at.getRoi();
-			}
-		}
-		if (roi == null) {
-			roi = capillary.getRoi();
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return;
 		}
 
-		if (roi != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
-			Sequence seq = exp.getSeqCamData().getSequence();
-			Viewer v = seq.getFirstViewer();
-			if (v == null) {
-				v = new ViewerFMP(seq, true, true);
-			}
-			v.toFront();
-			if (frameIndex >= 0) {
-				v.setPositionT(frameIndex);
-			}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		Viewer v = seq.getFirstViewer();
+		if (v == null) {
+			v = new ViewerFMP(seq, true, true);
+		}
+		v.toFront();
+		if (frameIndex >= 0) {
+			v.setPositionT(frameIndex);
+		}
+
+		ROI2D roi = capillary.getRoiAtFrameT(frameIndex);
+		if (roi != null) {
 			seq.setFocusedROI(roi);
 			seq.setSelectedROI(roi);
 		}
@@ -287,12 +281,6 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 
 		int frameIndex = getFrameIndexFromTimeMinutes(exp, timeMinutes);
 		chartSelectKymographForCapillary(exp, clickedCapillary);
-
-		Cage cage = exp.getCages().getCageFromRowColCoordinates(clickedCapillary.getCageID() / exp.getCages().nCagesAlongX,
-				clickedCapillary.getCageID() % exp.getCages().nCagesAlongX);
-		if (cage != null && cage.getRoi() != null) {
-			exp.getSeqCamData().centerDisplayOnRoi(cage.getRoi());
-		}
 
 		selectCapillaryAtT(exp, clickedCapillary, frameIndex);
 	}
