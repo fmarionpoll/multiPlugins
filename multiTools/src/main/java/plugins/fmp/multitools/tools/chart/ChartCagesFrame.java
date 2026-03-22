@@ -340,6 +340,36 @@ public class ChartCagesFrame extends IcyFrame {
 	}
 
 	/**
+	 * Grid columns × rows for {@code numCages} panels: minimize empty cells, then
+	 * prefer column count near {@code preferredColumns} (experiment layout). Same
+	 * {@code numCages} therefore gets a stable shape even when
+	 * {@code nCagesAlongX} varies slightly (e.g. 5 vs 6).
+	 */
+	private static int[] computeChartGridDimensions(int numCages, int preferredColumns) {
+		if (numCages <= 0) {
+			return new int[] { 1, 1 };
+		}
+		int pref = Math.max(1, Math.min(preferredColumns, numCages));
+		int bestCols = 1;
+		int bestRows = numCages;
+		int bestWaste = Integer.MAX_VALUE;
+		int bestDist = Integer.MAX_VALUE;
+		for (int c = 1; c <= numCages; c++) {
+			int r = (numCages + c - 1) / c;
+			int waste = c * r - numCages;
+			int dist = Math.abs(c - pref);
+			if (waste < bestWaste || (waste == bestWaste && dist < bestDist)
+					|| (waste == bestWaste && dist == bestDist && c < bestCols)) {
+				bestWaste = waste;
+				bestDist = dist;
+				bestCols = c;
+				bestRows = r;
+			}
+		}
+		return new int[] { bestCols, bestRows };
+	}
+
+	/**
 	 * Creates chart panels for all cages in the experiment.
 	 * 
 	 * @param resultsOptions the export options
@@ -371,17 +401,11 @@ public class ChartCagesFrame extends IcyFrame {
 			nPanelsAlongX = 1;
 			nPanelsAlongY = 1;
 		} else {
-			// Calculate optimal grid dimensions based on actual number of cages
-			// This ensures all cages are displayed and uses available space efficiently
 			int numCages = availableCages.size();
-			// Try to maintain aspect ratio close to the configured one, but adapt to actual
-			// number
-			nPanelsAlongX = experiment.getCages().nCagesAlongX;
-			nPanelsAlongY = (numCages + nPanelsAlongX - 1) / nPanelsAlongX; // Ceiling division
-			// Ensure we have enough columns to fit all cages
-			if (nPanelsAlongX * nPanelsAlongY < numCages) {
-				nPanelsAlongY++;
-			}
+			int preferredCols = experiment.getCages().nCagesAlongX;
+			int[] grid = computeChartGridDimensions(numCages, preferredCols);
+			nPanelsAlongX = grid[0];
+			nPanelsAlongY = grid[1];
 		}
 
 		// Set layout using strategy

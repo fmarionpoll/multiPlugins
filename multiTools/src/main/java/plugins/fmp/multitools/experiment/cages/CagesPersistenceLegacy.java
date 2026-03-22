@@ -53,7 +53,47 @@ public class CagesPersistenceLegacy {
 	private static final String ID_CAPILLARYID_ = "capillaryID_";
 
 	private static final String ID_MCDROSOTRACK_XML = "MCdrosotrack.xml";
+	/** Alternate on-disk name seen in older datasets (case-sensitive FS). */
+	private static final String ID_MCDROSOTRACK_XML_LOWER = "mcdrosotrack.xml";
 	private static final String csvSep = ";";
+
+	/**
+	 * Resolves the path to a MCdrosotrack XML file in {@code directory}, trying
+	 * canonical and lowercase filenames.
+	 *
+	 * @return absolute path to an existing file, or {@code null}
+	 */
+	public static String resolveMcDrosotrackXmlPath(String directory) {
+		if (directory == null) {
+			return null;
+		}
+		for (String name : new String[] { ID_MCDROSOTRACK_XML, ID_MCDROSOTRACK_XML_LOWER }) {
+			File f = new File(directory + File.separator + name);
+			if (f.isFile()) {
+				return f.getAbsolutePath();
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Legacy files place {@code <Cages>} either under the document root or under
+	 * {@code <drosoTrack>}.
+	 */
+	private static Element findCagesElementInDrosoTrackDocument(Node rootNode) {
+		if (rootNode == null) {
+			return null;
+		}
+		Element c = XMLUtil.getElement(rootNode, ID_CAGES);
+		if (c != null) {
+			return c;
+		}
+		Node droso = XMLUtil.getElement(rootNode, ID_DROSOTRACK);
+		if (droso != null) {
+			return XMLUtil.getElement(droso, ID_CAGES);
+		}
+		return null;
+	}
 	private static final String ID_CAGESMEASURES_CSV = "CagesMeasures.csv";
 	private static final String ID_CAGESARRAY_CSV = "CagesArray.csv";
 	private static final String ID_CAGESARRAYMEASURES_CSV = "CagesArrayMeasures.csv";
@@ -485,15 +525,13 @@ public class CagesPersistenceLegacy {
 	 * Loads cages from MCdrosotrack.xml (MultiCAFE legacy format).
 	 */
 	public static boolean xmlReadCagesFromMCdrosotrackXml(Cages cages, String path) {
-		if (path == null)
-			return false;
-		File file = new File(path);
-		if (!file.exists())
+		String pathToUse = pickMcDrosotrackPathForLoading(path);
+		if (pathToUse == null)
 			return false;
 		try {
-			Document doc = XMLUtil.loadDocument(path);
+			Document doc = XMLUtil.loadDocument(pathToUse);
 			if (doc == null) {
-				Logger.warn("CagesPersistenceLegacy:xmlReadCagesFromMCdrosotrackXml() Could not load: " + path);
+				Logger.warn("CagesPersistenceLegacy:xmlReadCagesFromMCdrosotrackXml() Could not load: " + pathToUse);
 				return false;
 			}
 			return xmlLoadCagesFromMCdrosotrack(cages, XMLUtil.getRootElement(doc));
@@ -501,6 +539,28 @@ public class CagesPersistenceLegacy {
 			Logger.error("CagesPersistenceLegacy:xmlReadCagesFromMCdrosotrackXml() Error: " + e.getMessage(), e);
 			return false;
 		}
+	}
+
+	/**
+	 * Accepts a concrete file path, a directory, or a missing file path whose parent
+	 * directory contains MCdrosotrack.xml / mcdrosotrack.xml.
+	 */
+	private static String pickMcDrosotrackPathForLoading(String pathOrDirectory) {
+		if (pathOrDirectory == null) {
+			return null;
+		}
+		File f = new File(pathOrDirectory);
+		if (f.isFile()) {
+			return f.getAbsolutePath();
+		}
+		if (f.isDirectory()) {
+			return resolveMcDrosotrackXmlPath(f.getAbsolutePath());
+		}
+		File parent = f.getParentFile();
+		if (parent != null) {
+			return resolveMcDrosotrackXmlPath(parent.getAbsolutePath());
+		}
+		return null;
 	}
 
 	/**
@@ -537,22 +597,23 @@ public class CagesPersistenceLegacy {
 			return false;
 		}
 
-		File file = new File(tempname);
-		if (!file.exists()) {
+		String pathToUse = pickMcDrosotrackPathForLoading(tempname);
+		if (pathToUse == null) {
 			return true; // File doesn't exist yet, that's OK
 		}
 
 		try {
-			final Document doc = XMLUtil.loadDocument(tempname);
+			final Document doc = XMLUtil.loadDocument(pathToUse);
 			if (doc == null) {
-				Logger.warn("CagesPersistenceLegacy:xmlLoadCagesROIsOnly() Could not load XML document: " + tempname);
+				Logger.warn("CagesPersistenceLegacy:xmlLoadCagesROIsOnly() Could not load XML document: " + pathToUse);
 				return false;
 			}
 
 			Node rootNode = XMLUtil.getRootElement(doc);
-			Element xmlVal = XMLUtil.getElement(rootNode, ID_CAGES);
+			Element xmlVal = findCagesElementInDrosoTrackDocument(rootNode);
 			if (xmlVal == null) {
-				Logger.warn("CagesPersistenceLegacy:xmlLoadCagesROIsOnly() Could not find Cages element in XML");
+				Logger.warn(
+						"CagesPersistenceLegacy:xmlLoadCagesROIsOnly() Could not find Cages element in XML (root or drosoTrack)");
 				return false;
 			}
 
@@ -602,27 +663,24 @@ public class CagesPersistenceLegacy {
 	 * @return true if successful
 	 */
 	public static boolean xmlLoadFlyPositionsFromXML(Cages cages, String tempname) {
-		if (tempname == null) {
-			return false;
-		}
-
-		File file = new File(tempname);
-		if (!file.exists()) {
+		String pathToUse = pickMcDrosotrackPathForLoading(tempname);
+		if (pathToUse == null) {
 			return false;
 		}
 
 		try {
-			final Document doc = XMLUtil.loadDocument(tempname);
+			final Document doc = XMLUtil.loadDocument(pathToUse);
 			if (doc == null) {
 				Logger.warn(
-						"CagesPersistenceLegacy:xmlLoadFlyPositionsFromXML() Could not load XML document: " + tempname);
+						"CagesPersistenceLegacy:xmlLoadFlyPositionsFromXML() Could not load XML document: " + pathToUse);
 				return false;
 			}
 
 			Node rootNode = XMLUtil.getRootElement(doc);
-			Element xmlVal = XMLUtil.getElement(rootNode, ID_CAGES);
+			Element xmlVal = findCagesElementInDrosoTrackDocument(rootNode);
 			if (xmlVal == null) {
-				Logger.warn("CagesPersistenceLegacy:xmlLoadFlyPositionsFromXML() Could not find Cages element in XML");
+				Logger.warn(
+						"CagesPersistenceLegacy:xmlLoadFlyPositionsFromXML() Could not find Cages element in XML (root or drosoTrack)");
 				return false;
 			}
 
@@ -1033,13 +1091,12 @@ public class CagesPersistenceLegacy {
 		}
 
 		// Priority 3: MCdrosotrack.xml (MultiCAFE legacy format)
-		String pathToXml = resultsDirectory + File.separator + ID_MCDROSOTRACK_XML;
-		File xmlFile = new File(pathToXml);
-		if (xmlFile.isFile()) {
-			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying MCdrosotrack.xml: " + pathToXml);
+		String pathToXml = resolveMcDrosotrackXmlPath(resultsDirectory);
+		if (pathToXml != null) {
+			Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Trying MCdrosotrack XML: " + pathToXml);
 			boolean loaded = xmlReadCagesFromMCdrosotrackXml(cages, pathToXml);
 			if (loaded)
-				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from " + ID_MCDROSOTRACK_XML);
+				Logger.info("CagesPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy drosoTrack XML");
 			return loaded;
 		}
 
@@ -1170,33 +1227,28 @@ public class CagesPersistenceLegacy {
 		}
 
 		// Priority 3: Fall back to XML (legacy format)
-		String pathToXml = resultsDir + File.separator + ID_MCDROSOTRACK_XML;
-		File xmlFile = new File(pathToXml);
-		if (xmlFile.isFile()) {
+		String pathToXml = resolveMcDrosotrackXmlPath(resultsDir);
+		if (pathToXml != null) {
 			Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Trying legacy XML format: " + pathToXml);
-			// Load fly positions from XML
 			boolean loaded = xmlLoadFlyPositionsFromXML(cages, pathToXml);
 			if (loaded) {
-				Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded measures from legacy XML: "
-						+ ID_MCDROSOTRACK_XML);
+				Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded measures from legacy drosoTrack XML");
 			}
 			return loaded;
 		}
-		
+
 		// Some legacy datasets stored MCdrosotrack.xml inside the bin directory
 		// (results/bin_xx/MCdrosotrack.xml). If it wasn't migrated to results/, try it
 		// there as a last resort.
 		if (!binDirectory.equals(resultsDir)) {
-			String binXmlPath = binDirectory + File.separator + ID_MCDROSOTRACK_XML;
-			File binXmlFile = new File(binXmlPath);
-			if (binXmlFile.isFile()) {
+			String binXmlPath = resolveMcDrosotrackXmlPath(binDirectory);
+			if (binXmlPath != null) {
 				Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Trying legacy XML in bin directory: "
 						+ binXmlPath);
 				boolean loaded = xmlLoadFlyPositionsFromXML(cages, binXmlPath);
 				if (loaded) {
 					Logger.info(
-							"CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded measures from legacy XML in bin: "
-									+ ID_MCDROSOTRACK_XML);
+							"CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded measures from legacy XML in bin");
 				}
 				return loaded;
 			}

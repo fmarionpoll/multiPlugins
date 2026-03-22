@@ -827,8 +827,11 @@ public class Experiment {
 	 */
 	public boolean load_cages_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		boolean cagesLoaded;
+		boolean cagesLoaded = false;
 
+		// Version 1.0.0 in MCexperiment.xml sets legacy format; multiSPOTS96 uses
+		// MS96_cages.xml. Old MultiCAFE experiments also use 1.0.0 but store cages in
+		// MCdrosotrack.xml — if MS96 load finds nothing, fall back to MultiCAFE paths.
 		if (isLegacyExperimentFormat()) {
 			cagesLoaded = CagesPersistenceLegacy.loadFromMS96CagesXml(cages, resultsDir);
 			if (cagesLoaded) {
@@ -842,37 +845,42 @@ public class Experiment {
 					}
 				}
 			}
-		} else {
-			cagesLoaded = Persistence.loadDescription(cages, resultsDir);
-			ensureBinDirectoryForLoading();
-			String binDir = getKymosBinFullDirectory();
-			// Extra legacy fallback: some datasets stored MCdrosotrack.xml inside
-			// results/bin_xx/ and never migrated it to results/.
-			if (!cagesLoaded && binDir != null) {
-				String xmlInBin = binDir + File.separator + "MCdrosotrack.xml";
-				File f = new File(xmlInBin);
-				if (f.isFile()) {
-					Logger.info(
-							"Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack.xml in bin: "
-									+ xmlInBin);
-					boolean loaded = plugins.fmp.multitools.experiment.cages.CagesPersistenceLegacy
-							.xmlReadCagesFromMCdrosotrackXml(cages, xmlInBin);
-					if (loaded) {
-						cagesLoaded = true;
-						// Auto-migrate descriptions so next loads are fast and consistent.
-						Persistence.saveDescription(cages, resultsDir);
-					}
-				}
-			}
-			if (binDir != null) {
-				cages.getPersistence().loadMeasures(cages, binDir);
-			}
+		}
+		if (!cagesLoaded) {
+			cagesLoaded = loadMultiCafeCagesDescriptionAndMeasures(resultsDir);
 		}
 
 		if (cagesLoaded && seqCamData != null && seqCamData.getSequence() != null) {
 			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}
 
+		return cagesLoaded;
+	}
+
+	/**
+	 * MultiCAFE cage description (Cages.csv / legacy CSV / MCdrosotrack.xml) and
+	 * measures from the active bin directory.
+	 */
+	private boolean loadMultiCafeCagesDescriptionAndMeasures(String resultsDir) {
+		boolean cagesLoaded = Persistence.loadDescription(cages, resultsDir);
+		ensureBinDirectoryForLoading();
+		String binDir = getKymosBinFullDirectory();
+		if (!cagesLoaded && binDir != null) {
+			String xmlInBin = CagesPersistenceLegacy.resolveMcDrosotrackXmlPath(binDir);
+			if (xmlInBin != null) {
+				Logger.info(
+						"Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack XML in bin: "
+								+ xmlInBin);
+				boolean loaded = CagesPersistenceLegacy.xmlReadCagesFromMCdrosotrackXml(cages, xmlInBin);
+				if (loaded) {
+					cagesLoaded = true;
+					Persistence.saveDescription(cages, resultsDir);
+				}
+			}
+		}
+		if (binDir != null) {
+			cages.getPersistence().loadMeasures(cages, binDir);
+		}
 		return cagesLoaded;
 	}
 
