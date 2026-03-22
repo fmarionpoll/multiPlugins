@@ -11,8 +11,8 @@ import plugins.fmp.multitools.experiment.sequence.TimeManager;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Legacy persistence for experiment files.
- * Handles loading from legacy XML formats: MCexperiment.xml, MS96_experiment.xml
+ * Legacy persistence for experiment files. Handles loading from legacy XML
+ * formats: MCexperiment.xml, MS96_experiment.xml
  */
 public class ExperimentPersistenceLegacy {
 
@@ -36,7 +36,7 @@ public class ExperimentPersistenceLegacy {
 
 //	private final static String ID_IMAGESDIRECTORY = "imagesDirectory";
 	private final static String ID_MCEXPERIMENT = "MCexperiment";
-	
+
 	// Legacy filenames
 	public final static String ID_MCEXPERIMENT_XML = "MCexperiment.xml";
 	public final static String ID_MS96_EXPERIMENT_XML_LEGACY = "MS96_experiment.xml";
@@ -62,7 +62,8 @@ public class ExperimentPersistenceLegacy {
 
 			Node node = XMLUtil.getElement(XMLUtil.getRootElement(doc), ID_MCEXPERIMENT);
 			if (node == null) {
-				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() Could not find MCexperiment element in XML");
+				Logger.warn(
+						"ExperimentPersistenceLegacy:xmlLoadExperiment() Could not find MCexperiment element in XML");
 				return false;
 			}
 
@@ -85,16 +86,20 @@ public class ExperimentPersistenceLegacy {
 				exp.setCamImageLast_ms(XMLUtil.getElementLongValue(node, ID_TIMELASTIMAGE, 0) * 60000);
 			}
 
-			// Load bin parameters (legacy format - these are now migrated to bin directories)
+			// Load bin parameters (legacy format - these are now migrated to bin
+			// directories)
 			long firstKymoColMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
 			long lastKymoColMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
 			long binKymoColMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
 
 			// Only migrate if binKymoColMs was explicitly found in XML (>= 0)
-			// If binKymoColMs is missing, skip migration entirely - let it be calculated from files later
-			// This prevents creating bin_60 with default value before interval is calculated
+			// If binKymoColMs is missing, skip migration entirely - let it be calculated
+			// from files later
+			// This prevents creating bin_60 with default value before interval is
+			// calculated
 			if (binKymoColMs >= 0) {
-				// Determine target bin directory (use current binDirectory or default to bin_60)
+				// Determine target bin directory (use current binDirectory or default to
+				// bin_60)
 				String targetBinDir = exp.getBinSubDirectory();
 				if (targetBinDir != null) {
 					// Extract just the subdirectory name if binDirectory is a full path
@@ -129,7 +134,8 @@ public class ExperimentPersistenceLegacy {
 			} else {
 				// No bin parameters in XML, try to load from current bin directory
 				// Only load if interval hasn't been calculated yet (need saved values)
-				// If interval was calculated, skip loading to avoid overwriting calculated values
+				// If interval was calculated, skip loading to avoid overwriting calculated
+				// values
 				if (exp.getCamImageBin_ms() < 0) {
 					String currentBinDir = exp.getBinSubDirectory();
 					if (currentBinDir != null) {
@@ -192,7 +198,8 @@ public class ExperimentPersistenceLegacy {
 			try {
 				exp.getProperties().loadXML_Properties(node);
 			} catch (Exception e) {
-				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() - Failed to load experiment properties: " + e.getMessage());
+				Logger.warn("ExperimentPersistenceLegacy:xmlLoadExperiment() - Failed to load experiment properties: "
+						+ e.getMessage());
 			}
 
 			String generatorProgram = XMLUtil.getElementValue(node, ID_GENERATOR_PROGRAM, null);
@@ -204,11 +211,12 @@ public class ExperimentPersistenceLegacy {
 				exp.setGeneratorProgramRevision(generatorProgramRevision);
 			}
 
-			Logger.info("ExperimentPersistenceLegacy:xmlLoadExperiment() Successfully loaded experiment from " + csFileName);
+//			Logger.info("ExperimentPersistenceLegacy:xmlLoadExperiment() Successfully loaded experiment from " + csFileName);
 			return true;
 
 		} catch (Exception e) {
-			Logger.error("ExperimentPersistenceLegacy:xmlLoadExperiment() Error loading from " + csFileName + ": " + e.getMessage(), e);
+			Logger.error("ExperimentPersistenceLegacy:xmlLoadExperiment() Error loading from " + csFileName + ": "
+					+ e.getMessage(), e);
 			return false;
 		}
 	}
@@ -253,7 +261,7 @@ public class ExperimentPersistenceLegacy {
 		if (parent != null) {
 			filename = parent.getAbsolutePath() + File.separator + ID_MS96_EXPERIMENT_XML_LEGACY;
 			if (new File(filename).isFile()) {
-				Logger.info("ExperimentPersistenceLegacy: Found MS96_experiment.xml in experiment root");
+//				Logger.info("ExperimentPersistenceLegacy: Found MS96_experiment.xml in experiment root");
 				return xmlLoadExperiment(exp, filename);
 			}
 		}

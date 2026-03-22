@@ -70,6 +70,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private List<ExperimentMetadata> experimentMetadataList = new ArrayList<>();
 	private volatile boolean isProcessing = false;
 	private final AtomicInteger processingCount = new AtomicInteger(0);
+	private volatile boolean lastMetadataScanFailed = false;
 
 	// Track currently loading experiment to prevent concurrent loads
 	private volatile Experiment currentlyLoadingExperiment = null;
@@ -233,13 +234,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			@Override
 			protected void done() {
-				isProcessing = false;
-				progressFrame.close();
 				long endTime = System.nanoTime();
-				Logger.debug(
-						"LoadExperiment: processSelectedFilesMetadataOnly took " + (endTime - startTime) / 1e6 + " ms");
 				SwingUtilities.invokeLater(() -> {
-					updateBrowseInterface();
+					finishMetadataScanAndUpdateUI(progressFrame, startTime, endTime);
 				});
 			}
 		};
@@ -248,6 +245,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	private void processMetadataOnly(ProgressFrame progressFrame) {
+		lastMetadataScanFailed = false;
 		final String subDir = parent0.expListComboLazy.expListBinSubDirectory;
 		final int totalFiles = selectedNames.size();
 
@@ -290,15 +288,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				}
 			}
 
-			// Add metadata to UI
-			SwingUtilities.invokeLater(() -> {
-				addMetadataToUI();
-			});
-
-			// Clear selected names after processing
-			selectedNames.clear();
-
 		} catch (Exception e) {
+			lastMetadataScanFailed = true;
 			Logger.error("Error processing experiment metadata: " + e.getMessage(), e);
 			SwingUtilities.invokeLater(() -> {
 				progressFrame.setMessage("Error: " + e.getMessage());
@@ -325,46 +316,99 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		}
 	}
 
-	private void addMetadataToUI() {
+	/**
+	 * After directory scan: register experiments in the combo, index descriptors
+	 * (with progress), then build missing descriptor cache files — then close
+	 * progress and refresh the UI.
+	 */
+	private void finishMetadataScanAndUpdateUI(ProgressFrame progressFrame, long startTime, long endTime) {
 		try {
+			if (lastMetadataScanFailed) {
+				progressFrame.close();
+				selectedNames.clear();
+				isProcessing = false;
+				updateBrowseInterface();
+				return;
+			}
+			if (experimentMetadataList.isEmpty()) {
+				progressFrame.close();
+				selectedNames.clear();
+				isProcessing = false;
+				Logger.debug("LoadExperiment: processSelectedFilesMetadataOnly took " + (endTime - startTime) / 1e6
+						+ " ms (no new experiments)");
+				updateBrowseInterface();
+				return;
+			}
+
+			progressFrame.setMessage("Adding experiments to list...");
+			progressFrame.setPosition(0);
+
 			List<LazyExperiment> lazyExperiments = new ArrayList<>();
 			for (ExperimentMetadata metadata : experimentMetadataList) {
-				LazyExperiment lazyExp = new LazyExperiment(metadata);
-				lazyExperiments.add(lazyExp);
+				lazyExperiments.add(new LazyExperiment(metadata));
 			}
 
 			parent0.expListComboLazy.addLazyExperimentsBulk(lazyExperiments);
 			parent0.paneExperiment.tabInfos.initCombos();
 
-			// Kick off background descriptor preloading for fast filters/infos
 			parent0.descriptorIndex.preloadFromCombo(parent0.expListComboLazy, new Runnable() {
 				@Override
 				public void run() {
-					// Once preloaded, refresh Infos and Filter combos if tabs are visited
 					parent0.paneExperiment.tabInfos.initCombos();
 					parent0.paneExperiment.tabFilter.initCombos();
+					runDescriptorsFileWorker(progressFrame, startTime, endTime);
 				}
-			});
-
-			// Also generate descriptors files in background for any experiment missing it
-			new SwingWorker<Void, Void>() {
-				@Override
-				protected Void doInBackground() throws Exception {
-					for (int i = 0; i < parent0.expListComboLazy.getItemCount(); i++) {
-						Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
-						String path = DescriptorsIO.getDescriptorsFullName(exp.getResultsDirectory());
-						java.io.File f = new java.io.File(path);
-						if (!f.exists()) {
-							DescriptorsIO.buildFromExperiment(exp);
-						}
-					}
-					return null;
-				}
-			}.execute();
+			}, progressFrame);
 
 		} catch (Exception e) {
 			Logger.warn("Error adding metadata to UI: " + e.getMessage(), e);
+			progressFrame.close();
+			selectedNames.clear();
+			isProcessing = false;
+			updateBrowseInterface();
 		}
+	}
+
+	private void runDescriptorsFileWorker(ProgressFrame progressFrame, long scanStartTime, long scanEndTime) {
+		final int n = parent0.expListComboLazy.getItemCount();
+		new SwingWorker<Void, Integer>() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				for (int i = 0; i < n; i++) {
+					Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+					if (exp == null) {
+						continue;
+					}
+					String path = DescriptorsIO.getDescriptorsFullName(exp.getResultsDirectory());
+					if (!new java.io.File(path).exists()) {
+						DescriptorsIO.buildFromExperiment(exp);
+					}
+					publish(i);
+				}
+				return null;
+			}
+
+			@Override
+			protected void process(java.util.List<Integer> chunks) {
+				if (progressFrame == null || chunks.isEmpty()) {
+					return;
+				}
+				int i = chunks.get(chunks.size() - 1);
+				progressFrame.setMessage(String.format("Building descriptor cache %d / %d", i + 1, n));
+				progressFrame.setPosition((double) (i + 1) / Math.max(1, n));
+			}
+
+			@Override
+			protected void done() {
+				progressFrame.close();
+				selectedNames.clear();
+				isProcessing = false;
+				long totalEnd = System.nanoTime();
+				Logger.debug("LoadExperiment: processSelectedFilesMetadataOnly total " + (totalEnd - scanStartTime) / 1e6
+						+ " ms (scan phase " + (scanEndTime - scanStartTime) / 1e6 + " ms)");
+				updateBrowseInterface();
+			}
+		}.execute();
 	}
 
 	/**

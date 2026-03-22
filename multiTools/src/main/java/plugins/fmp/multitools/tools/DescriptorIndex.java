@@ -11,6 +11,7 @@ import java.util.TreeSet;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.LazyExperiment;
@@ -62,6 +63,15 @@ public class DescriptorIndex {
 	}
 
 	public void preloadFromCombo(final JComboBoxExperimentLazy combo, final Runnable onDone) {
+		preloadFromCombo(combo, onDone, null);
+	}
+
+	/**
+	 * Like {@link #preloadFromCombo(JComboBoxExperimentLazy, Runnable)} but updates
+	 * optional progress (EDT) while scanning each experiment.
+	 */
+	public void preloadFromCombo(final JComboBoxExperimentLazy combo, final Runnable onDone,
+			final ProgressFrame progressFrame) {
 		clear();
 		final int nitems = combo.getItemCount();
 		new SwingWorker<Void, Void>() {
@@ -75,6 +85,13 @@ public class DescriptorIndex {
 					distinctLocal.put(e.getKey(), new TreeSet<String>());
 
 				for (int i = 0; i < nitems; i++) {
+					if (progressFrame != null) {
+						final int step = i + 1;
+						SwingUtilities.invokeLater(() -> {
+							progressFrame.setMessage(String.format("Indexing experiment descriptors %d / %d", step, nitems));
+							progressFrame.setPosition((double) step / Math.max(1, nitems));
+						});
+					}
 					Experiment exp = combo.getItemAtNoLoad(i);
 					if (exp == null)
 						continue;
