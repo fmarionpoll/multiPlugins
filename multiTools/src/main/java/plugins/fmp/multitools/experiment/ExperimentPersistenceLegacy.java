@@ -34,6 +34,11 @@ public class ExperimentPersistenceLegacy {
 	private final static String ID_GENERATOR_PROGRAM = "generatorProgram";
 	private final static String ID_GENERATOR_PROGRAM_REVISION = "generatorProgramRevision";
 
+	// Optional fly pixel->mm calibration tags (also used in v2 files).
+	// If absent, defaults to 1.0.
+	private final static String ID_FLY_MM_PER_PIXEL_X = "flyMmPerPixelX";
+	private final static String ID_FLY_MM_PER_PIXEL_Y = "flyMmPerPixelY";
+
 //	private final static String ID_IMAGESDIRECTORY = "imagesDirectory";
 	private final static String ID_MCEXPERIMENT = "MCexperiment";
 
@@ -210,6 +215,10 @@ public class ExperimentPersistenceLegacy {
 			if (generatorProgramRevision != null) {
 				exp.setGeneratorProgramRevision(generatorProgramRevision);
 			}
+
+			// Optional calibration parameters: keep defaults if not present.
+			exp.setFlyMmPerPixelX(XMLUtil.getElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_X, 1.0));
+			exp.setFlyMmPerPixelY(XMLUtil.getElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_Y, 1.0));
 
 //			Logger.info("ExperimentPersistenceLegacy:xmlLoadExperiment() Successfully loaded experiment from " + csFileName);
 			return true;

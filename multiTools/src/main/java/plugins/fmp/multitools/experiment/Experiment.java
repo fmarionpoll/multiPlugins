@@ -2149,6 +2149,13 @@ public class Experiment {
 			initTmsForFlyPositions(seqCamData.getFirstImageMs());
 		}
 
+		// Apply fly pixel->mm calibration to loaded (or newly created) FlyPositions.
+		// Loaded FlyPositions have mm defaults; without this, exported mm values
+		// (distanceMm, axis1Mm, ...) would remain scaled as pixels.
+		if (measuresLoaded) {
+			cages.applyFlyScaleToExistingPositions(getFlyMmPerPixelX(), getFlyMmPerPixelY());
+		}
+
 		if (measuresLoaded && seqCamData.getSequence() != null) {
 			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}

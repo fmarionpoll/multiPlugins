@@ -88,6 +88,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
 
+		// `openSequenceCamData()` reloads experiment descriptors from disk, which can
+		// reset fly calibration (mm/pixel). Preserve any non-default in-memory
+		// calibration so XYScale (and mm-based exports) stay consistent with the UI.
+		final double flyMmXBefore = exp != null ? exp.getFlyMmPerPixelX() : 1.0;
+		final double flyMmYBefore = exp != null ? exp.getFlyMmPerPixelY() : 1.0;
+		final boolean restoreFlyScaleAfterOpen = (flyMmXBefore != 1.0 || flyMmYBefore != 1.0);
+
 		// Fly-position exports need a valid camera timeline to map FlyPosition.flyIndexT -> FlyPosition.tMs.
 		// In multi-experiment exports, measures can be loaded from bin directories without opening the
 		// camera sequence, leaving tMs at 0 for all points (which results in data only at t0).
@@ -95,6 +102,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		exp.openSequenceCamData();
 		if (exp.getSeqCamData() != null) {
 			exp.initTmsForFlyPositions(exp.getSeqCamData().getFirstImageMs());
+		}
+
+		if (restoreFlyScaleAfterOpen && exp != null) {
+			exp.setFlyMmPerPixelX(flyMmXBefore);
+			exp.setFlyMmPerPixelY(flyMmYBefore);
 		}
 
 		// Always export static cage limits; Cage_ID matches XYIMAGE / XYTOPCAGE exports.
