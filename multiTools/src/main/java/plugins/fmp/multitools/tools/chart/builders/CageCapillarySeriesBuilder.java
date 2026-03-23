@@ -231,8 +231,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return null;
 
 		int npoints = capMeasure.getNPoints();
-		if (camImages_time_min != null && npoints > camImages_time_min.length)
-			npoints = camImages_time_min.length;
 
 		double scalingFactor = 1.0;
 		if ("volume (ul)".equals(options.resultType.toUnit())) {
@@ -241,7 +239,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = camImages_time_min != null ? camImages_time_min[j] : j;
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j);
 			double y = capMeasure.getValueAt(j) * scalingFactor;
 			seriesXY.add(x, y);
 		}
@@ -264,8 +262,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
 
 		int npoints = thresholdMeasure.getNPoints();
-		if (camImages_time_min != null && npoints > camImages_time_min.length)
-			npoints = camImages_time_min.length;
 
 		double scalingFactor = 1.0;
 		if ("volume (ul)".equals(options.resultType.toUnit())) {
@@ -279,7 +275,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = camImages_time_min != null ? camImages_time_min[j] : j;
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j);
 			double y = thresholdMeasure.getValueAt(j) * scalingFactor;
 			thresholdSeries.add(x, y);
 		}
@@ -308,8 +304,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
 
 		int npoints = evaporationMeasure.getNPoints();
-		if (camImages_time_min != null && npoints > camImages_time_min.length)
-			npoints = camImages_time_min.length;
 
 		double scalingFactor = 1.0;
 		if ("volume (ul)".equals(options.resultType.toUnit())) {
@@ -322,7 +316,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = camImages_time_min != null ? camImages_time_min[j] : j;
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j);
 			double y = evaporationMeasure.getValueAt(j) * scalingFactor;
 			evaporationSeries.add(x, y);
 		}
@@ -333,5 +327,24 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 				cageProp.getCagePosition(), nFlies, ChartColor.BLACK)); // Color.BLACK));
 
 		return evaporationSeries;
+	}
+
+	/**
+	 * Measurement series are sampled on the kymograph/bin timeline. When the series
+	 * length exceeds camera frame timestamps (e.g. sparse acquisition with finer
+	 * binning), use kymograph timing to avoid truncating half the points.
+	 */
+	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints, int j) {
+		if (camImages_time_min != null && measureNPoints <= camImages_time_min.length && j < camImages_time_min.length) {
+			return camImages_time_min[j];
+		}
+		if (exp != null) {
+			long kymoFirstMs = exp.getKymoFirst_ms();
+			long kymoBinMs = exp.getKymoBin_ms();
+			if (kymoBinMs > 0) {
+				return (kymoFirstMs + (long) j * kymoBinMs) / 60000.0;
+			}
+		}
+		return j;
 	}
 }

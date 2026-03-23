@@ -11,8 +11,8 @@ import plugins.fmp.multitools.experiment.Experiment;
  * with user notification for critical errors. When running under Icy, SLF4J may
  * be bound to a no-op or the console may not show slf4j-simple output;
  * warn/error/info are also echoed to System.err so they appear when Icy is
- * started from a terminal. Disable with -Dmulticafe.log.toConsole=false.
- * Plugin name in output uses Experiment.getProgramContext() when set (e.g. by
+ * started from a terminal. Disable with -Dmulticafe.log.toConsole=false. Plugin
+ * name in output uses Experiment.getProgramContext() when set (e.g. by
  * multiCAFE or multiSPOTS96 on startup).
  */
 public class Logger {
@@ -105,7 +105,7 @@ public class Logger {
 	 */
 	public static void info(String message) {
 		logger.info(message);
-		toConsole("INFO", message, null);
+		// toConsole("INFO", message, null);
 	}
 
 	/**
