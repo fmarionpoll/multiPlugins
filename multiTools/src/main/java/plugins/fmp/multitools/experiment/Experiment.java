@@ -111,6 +111,8 @@ public class Experiment {
 	private double darkFrameRoiY = 100.0;
 	private double darkFrameRoiWidth = 100.0;
 	private double darkFrameRoiHeight = 50.0;
+	private double flyMmPerPixelX = 1.0;
+	private double flyMmPerPixelY = 1.0;
 
 	public Experiment chainToPreviousExperiment = null;
 	public Experiment chainToNextExperiment = null;
@@ -147,6 +149,31 @@ public class Experiment {
 
 	public void setCages(Cages cages) {
 		this.cages = cages;
+		if (this.cages != null) {
+			this.cages.applyFlyScaleToExistingPositions(flyMmPerPixelX, flyMmPerPixelY);
+		}
+	}
+
+	public double getFlyMmPerPixelX() {
+		return flyMmPerPixelX;
+	}
+
+	public void setFlyMmPerPixelX(double flyMmPerPixelX) {
+		this.flyMmPerPixelX = flyMmPerPixelX > 0 ? flyMmPerPixelX : 1.0;
+		if (cages != null) {
+			cages.applyFlyScaleToExistingPositions(this.flyMmPerPixelX, this.flyMmPerPixelY);
+		}
+	}
+
+	public double getFlyMmPerPixelY() {
+		return flyMmPerPixelY;
+	}
+
+	public void setFlyMmPerPixelY(double flyMmPerPixelY) {
+		this.flyMmPerPixelY = flyMmPerPixelY > 0 ? flyMmPerPixelY : 1.0;
+		if (cages != null) {
+			cages.applyFlyScaleToExistingPositions(this.flyMmPerPixelX, this.flyMmPerPixelY);
+		}
 	}
 
 	// __________________________________________________

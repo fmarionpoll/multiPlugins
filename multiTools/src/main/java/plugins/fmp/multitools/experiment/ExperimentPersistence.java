@@ -43,6 +43,8 @@ public class ExperimentPersistence {
 	private final static String ID_DARKFRAME_ROI_Y = "darkFrameRoiY";
 	private final static String ID_DARKFRAME_ROI_WIDTH = "darkFrameRoiWidth";
 	private final static String ID_DARKFRAME_ROI_HEIGHT = "darkFrameRoiHeight";
+	private final static String ID_FLY_MM_PER_PIXEL_X = "flyMmPerPixelX";
+	private final static String ID_FLY_MM_PER_PIXEL_Y = "flyMmPerPixelY";
 
 	// ========================================================================
 	// Public API methods (delegate to nested classes)
@@ -118,6 +120,7 @@ public class ExperimentPersistence {
 			ensureCamImageIntervalsFromSequence(exp);
 			loadPropertiesAndGeneratorProgram(exp, node);
 			loadDarkFrameParameters(exp, node);
+			loadFlyScaleParameters(exp, node);
 
 			return true;
 		}
@@ -298,6 +301,13 @@ public class ExperimentPersistence {
 			}
 		}
 
+		private static void loadFlyScaleParameters(Experiment exp, Node node) {
+			double sx = XMLUtil.getElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_X, 1.0);
+			double sy = XMLUtil.getElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_Y, 1.0);
+			exp.setFlyMmPerPixelX(sx);
+			exp.setFlyMmPerPixelY(sy);
+		}
+
 		private static boolean xmlSaveExperiment(Experiment exp, String csFileName) {
 			final Document doc = XMLUtil.createDocument(true);
 			if (doc != null) {
@@ -417,6 +427,7 @@ public class ExperimentPersistence {
 				}
 
 				saveDarkFrameParameters(exp, node);
+				saveFlyScaleParameters(exp, node);
 
 				XMLUtil.saveDocument(doc, csFileName);
 				return true;
@@ -430,6 +441,11 @@ public class ExperimentPersistence {
 			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_Y, exp.getDarkFrameRoiY());
 			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_WIDTH, exp.getDarkFrameRoiWidth());
 			XMLUtil.setElementDoubleValue(node, ID_DARKFRAME_ROI_HEIGHT, exp.getDarkFrameRoiHeight());
+		}
+
+		private static void saveFlyScaleParameters(Experiment exp, Node node) {
+			XMLUtil.setElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_X, exp.getFlyMmPerPixelX());
+			XMLUtil.setElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_Y, exp.getFlyMmPerPixelY());
 		}
 
 		private static String concatenateExptDirectoryWithSubpathAndName(Experiment exp, String subpath, String name) {

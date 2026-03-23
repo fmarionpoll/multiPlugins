@@ -165,7 +165,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	private void processDistanceData(FlyPositions results, XYSeries seriesXY, int itmax, Cage cage) {
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
-			double distance = pos.distance;
+			double distance = pos.distanceMm;
 			addxyPos(seriesXY, pos, distance);
 		}
 	}
@@ -212,11 +212,12 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		}
 		
 		double yOrigin = rect1.getY() + rect1.getHeight();
+		double sy = results.getMmPerPixelY();
 
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
 			Rectangle2D itRect = pos.rectPosition;
-			double ypos = yOrigin - itRect.getY();
+			double ypos = (yOrigin - itRect.getY()) * sy;
 			addxyPos(seriesXY, pos, ypos);
 		}
 	}
@@ -239,11 +240,12 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		double yTop = rect1.getY();
+		double sy = results.getMmPerPixelY();
 
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
 			Rectangle2D itRect = pos.rectPosition;
-			double ypos = itRect.getY() - yTop;
+			double ypos = (itRect.getY() - yTop) * sy;
 			addxyPos(seriesXY, pos, ypos);
 		}
 	}
@@ -252,9 +254,10 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	 * Processes X position data for a cage (XYTIPCAPS).
 	 */
 	private void processXPositionData(FlyPositions results, XYSeries seriesXY, int itmax) {
+		double sx = results.getMmPerPixelX();
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
-			double xpos = pos.getCenterRectangle().getX();
+			double xpos = pos.getCenterRectangle().getX() * sx;
 			addxyPos(seriesXY, pos, xpos);
 		}
 	}
@@ -265,7 +268,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	private void processEllipseAxesData(FlyPositions results, XYSeries seriesXY, int itmax) {
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
-			double axis1 = pos.axis1;
+			double axis1 = pos.axis1Mm;
 			addxyPos(seriesXY, pos, axis1);
 		}
 	}
@@ -302,10 +305,11 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	        return;
 	    }
 	    double yTop = rect1.getY();
+	    double sy = results.getMmPerPixelY();
 	    for (int it = 0; it < itmax; it++) {
 	        FlyPosition pos = results.flyPositionList.get(it);
 	        Rectangle2D itRect = pos.rectPosition;
-	        double ypos = itRect.getY() - yTop;  // distance from top edge of cage
+	        double ypos = (itRect.getY() - yTop) * sy;  // distance from top edge of cage
 	        addxyPos(seriesXY, pos, ypos);
 	    }
 	}
@@ -324,10 +328,11 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	        return;
 	    }
 	    double xLeft = rect1.getX();
+	    double sx = results.getMmPerPixelX();
 	    for (int it = 0; it < itmax; it++) {
 	        FlyPosition pos = results.flyPositionList.get(it);
 	        Rectangle2D itRect = pos.rectPosition;
-	        double xpos = itRect.getX() - xLeft;  // distance from left edge of cage
+	        double xpos = (itRect.getX() - xLeft) * sx;  // distance from left edge of cage
 	        addxyPos(seriesXY, pos, xpos);
 	    }
 	}

@@ -99,6 +99,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		// Always export static cage limits; Cage_ID matches XYIMAGE / XYTOPCAGE exports.
 		exportCageLimitsForExperiment(exp, charSeries);
+		exportFlyScaleForExperiment(exp, charSeries);
 
 		OptionToResultsMapping[] mappings = {
 			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
@@ -408,6 +409,47 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 	}
 
+	private void exportFlyScaleForExperiment(Experiment exp, String charSeries) throws ExcelExportException {
+		if (exp == null) {
+			return;
+		}
+		try {
+			SXSSFWorkbook workbook = resourceManager.getWorkbook();
+			final String title = "XYScale";
+			SXSSFSheet sheet = workbook.getSheet(title);
+			boolean transpose = options.transpose;
+			final String[] fields = new String[] { "Series", "mmPerPixelX", "mmPerPixelY" };
+			int nextEntityIndex;
+			if (sheet == null) {
+				sheet = workbook.createSheet(title);
+				for (int i = 0; i < fields.length; i++) {
+					XLSUtils.setValue(sheet, 0, i, transpose, fields[i]);
+				}
+				nextEntityIndex = 1;
+			} else {
+				if (transpose) {
+					nextEntityIndex = sheet.getLastRowNum() + 1;
+				} else {
+					org.apache.poi.xssf.streaming.SXSSFRow firstRow = sheet.getRow(0);
+					short lastCell = (firstRow != null) ? firstRow.getLastCellNum() : 1;
+					nextEntityIndex = (lastCell >= 0) ? lastCell : 1;
+					if (nextEntityIndex < 1) {
+						nextEntityIndex = 1;
+					}
+				}
+			}
+			int x = nextEntityIndex;
+			int y = 0;
+			String series = (charSeries != null && !charSeries.isEmpty()) ? charSeries : "exp";
+			XLSUtils.setValue(sheet, x, y++, transpose, series);
+			XLSUtils.setValue(sheet, x, y++, transpose, exp.getFlyMmPerPixelX());
+			XLSUtils.setValue(sheet, x, y++, transpose, exp.getFlyMmPerPixelY());
+		} catch (ExcelResourceException e) {
+			throw new ExcelExportException("Failed to export XY scale worksheet", "export_xy_scale",
+					exp != null ? exp.getResultsDirectory() : "unknown", e);
+		}
+	}
+
 	/**
 	 * Builds and exports four XYIMAGE series per cage for rectPosition components:
 	 * x, y, w, h. Each component is written on a separate column, with DUM4
@@ -487,6 +529,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		final int nBins = (int) ((lastAllMs - firstAllMs) / buildExcelStepMs) + 1;
 		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllMs) : 0L;
+		final double sx = flyPositions.getMmPerPixelX();
+		final double sy = flyPositions.getMmPerPixelY();
 
 		for (int i = 0; i < resultsArray.length; i++) {
 			resultsArray[i] = new Results("Cage_" + cage.getProperties().getCageID(),
@@ -516,10 +560,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			}
 
 			timesGlobalMs[kept] = expOffsetToAllMs + (double) pos.tMs;
-			xs[kept] = x;
-			ys[kept] = y;
-			ws[kept] = w;
-			hs[kept] = h;
+			xs[kept] = x * sx;
+			ys[kept] = y * sy;
+			ws[kept] = w * sx;
+			hs[kept] = h * sy;
 			kept++;
 		}
 
@@ -801,13 +845,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		case XYTIPCAPS:
 			return pos.getCenterRectangle().getX();
 		case DISTANCE:
-			return pos.distance;
+			return pos.distanceMm;
 		case ISALIVE:
 			return pos.bAlive ? 1.0 : 0.0;
 		case SLEEP:
 			return pos.bSleep ? 1.0 : 0.0;
 		case ELLIPSEAXES:
-			return pos.axis1;
+			return pos.axis1Mm;
 		default:
 			return pos.getCenterRectangle().getY();
 		}

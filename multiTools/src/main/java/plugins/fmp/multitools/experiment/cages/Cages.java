@@ -706,7 +706,7 @@ public class Cages {
 			Collections.sort(cage.flyPositions.flyPositionList, new Comparators.XYTaValue_Tindex());
 	}
 
-	public void initFlyPositions(int option_cagenumber) {
+	public void initFlyPositions(int option_cagenumber, double mmPerPixelX, double mmPerPixelY) {
 		int nbcages = cagesList.size();
 		for (int i = 0; i < nbcages; i++) {
 			Cage cage = cagesList.get(i);
@@ -715,6 +715,17 @@ public class Cages {
 			if (cage.getProperties().getCageNFlies() > 0) {
 				cage.flyPositions = new FlyPositions();
 				cage.flyPositions.ensureCapacity(detect_nframes);
+				cage.flyPositions.setMmPerPixelX(mmPerPixelX);
+				cage.flyPositions.setMmPerPixelY(mmPerPixelY);
+			}
+		}
+	}
+
+	public void applyFlyScaleToExistingPositions(double mmPerPixelX, double mmPerPixelY) {
+		for (Cage cage : cagesList) {
+			if (cage != null && cage.flyPositions != null) {
+				cage.flyPositions.setMmPerPixelX(mmPerPixelX);
+				cage.flyPositions.setMmPerPixelY(mmPerPixelY);
 			}
 		}
 	}

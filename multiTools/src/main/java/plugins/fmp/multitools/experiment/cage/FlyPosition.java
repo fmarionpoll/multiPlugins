@@ -22,6 +22,10 @@ public class FlyPosition {
 	public double sumDistance = 0;
 	public double axis1 = 0.;
 	public double axis2 = 0.;
+	public double distanceMm = 0.;
+	public double sumDistanceMm = 0.;
+	public double axis1Mm = 0.;
+	public double axis2Mm = 0.;
 
 	public FlyPosition() {
 	}
@@ -61,11 +65,16 @@ public class FlyPosition {
 		bSleep = source.bSleep;
 		bPadded = source.bPadded;
 		distance = source.distance;
+		distanceMm = source.distanceMm;
+		sumDistance = source.sumDistance;
+		sumDistanceMm = source.sumDistanceMm;
 		rectPosition.setRect(source.rectPosition);
 		if (source.flyRoi != null && source.flyRoi.getBounds().height > 0 && source.flyRoi.getBounds().width > 0)
 			flyRoi = new ROI2DArea(source.flyRoi);
 		axis1 = source.axis1;
 		axis2 = source.axis2;
+		axis1Mm = source.axis1Mm;
+		axis2Mm = source.axis2Mm;
 	}
 
 	public Rectangle2D getRectangle2D() {

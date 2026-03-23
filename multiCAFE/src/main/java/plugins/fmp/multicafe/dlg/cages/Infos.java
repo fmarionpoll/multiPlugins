@@ -15,6 +15,8 @@ import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -126,12 +128,23 @@ public class Infos extends JPanel {
 				}
 			}
 		});
+
+		ChangeListener scaleListener = new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				applyFlyScaleToExperiment();
+			}
+		};
+		lengthSpinner.addChangeListener(scaleListener);
+		pixelsSpinner.addChangeListener(scaleListener);
 	}
 
 	void measureFirstCapillary() {
 		int npixels = parent0.paneCapillaries.tabInfos.getLengthFirstCapillaryROI();
-		if (npixels > 0)
+		if (npixels > 0) {
 			pixelsSpinner.setValue(npixels);
+			applyFlyScaleToExperiment();
+		}
 	}
 
 	void measureCellsSpan() {
@@ -140,10 +153,26 @@ public class Infos extends JPanel {
 			exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
 			if (exp.getCapillaries().getList().size() > 0) {
 				int npixels = exp.getCages().getHorizontalSpanOfCages();
-				if (npixels > 0)
+				if (npixels > 0) {
 					pixelsSpinner.setValue(npixels);
+					applyFlyScaleToExperiment();
+				}
 			}
 		}
+	}
+
+	private void applyFlyScaleToExperiment() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		double lengthMm = ((Number) lengthSpinner.getValue()).doubleValue();
+		double lengthPx = ((Number) pixelsSpinner.getValue()).doubleValue();
+		double scale = 1.0;
+		if (lengthMm > 0.0 && lengthPx > 0.0) {
+			scale = lengthMm / lengthPx;
+		}
+		exp.setFlyMmPerPixelX(scale);
+		exp.setFlyMmPerPixelY(scale);
 	}
 
 }

@@ -27,6 +27,8 @@ public class FlyPositions {
 	public int binsize = 1;
 	public Point2D origin = new Point2D.Double(0, 0);
 	public double pixelsize = 1.;
+	private double mmPerPixelX = 1.;
+	private double mmPerPixelY = 1.;
 	public int nflies = 1;
 	private int csvReadVersion = 1;
 
@@ -103,6 +105,8 @@ public class FlyPositions {
 		name = xySeriesFrom.name;
 		resultType = xySeriesFrom.resultType;
 		binsize = xySeriesFrom.binsize;
+		mmPerPixelX = xySeriesFrom.mmPerPixelX;
+		mmPerPixelY = xySeriesFrom.mmPerPixelY;
 	}
 
 	public void pasteXYTaSeries(FlyPositions xySeriesTo) {
@@ -114,6 +118,8 @@ public class FlyPositions {
 		xySeriesTo.name = name;
 		xySeriesTo.resultType = resultType;
 		xySeriesTo.binsize = binsize;
+		xySeriesTo.mmPerPixelX = mmPerPixelX;
+		xySeriesTo.mmPerPixelY = mmPerPixelY;
 	}
 
 	// -----------------------------------------------
@@ -221,9 +227,14 @@ public class FlyPositions {
 		Point2D previousPoint = flyPositionList.get(0).getCenterRectangle();
 		for (FlyPosition pos : flyPositionList) {
 			Point2D currentPoint = pos.getCenterRectangle();
+			double dx = currentPoint.getX() - previousPoint.getX();
+			double dy = currentPoint.getY() - previousPoint.getY();
 			pos.distance = currentPoint.distance(previousPoint);
+			pos.distanceMm = Math.sqrt((dx * mmPerPixelX) * (dx * mmPerPixelX) + (dy * mmPerPixelY) * (dy * mmPerPixelY));
 			if (previousPoint.getX() < 0 || currentPoint.getX() < 0)
 				pos.distance = Double.NaN;
+			if (previousPoint.getX() < 0 || currentPoint.getX() < 0)
+				pos.distanceMm = Double.NaN;
 			previousPoint = currentPoint;
 		}
 	}
@@ -237,6 +248,11 @@ public class FlyPositions {
 		for (FlyPosition pos : flyPositionList) {
 			sum += pos.distance;
 			pos.sumDistance = sum;
+		}
+		double sumMm = 0.;
+		for (FlyPosition pos : flyPositionList) {
+			sumMm += pos.distanceMm;
+			pos.sumDistanceMm = sumMm;
 		}
 	}
 
@@ -469,6 +485,7 @@ public class FlyPositions {
 				if (ellipsoidValues != null && ellipsoidValues.length >= 2) {
 					pos.axis1 = ellipsoidValues[0];
 					pos.axis2 = ellipsoidValues[1];
+					applyApproxMmAxes(pos);
 				}
 			} else if (pos.rectPosition != null) {
 				pos.axis1 = pos.rectPosition.getHeight();
@@ -478,12 +495,21 @@ public class FlyPositions {
 					pos.axis1 = pos.axis2;
 					pos.axis2 = x;
 				}
+				applyApproxMmAxes(pos);
 			}
 		}
 	}
 
+	private void applyApproxMmAxes(FlyPosition pos) {
+		double mmPerPixelIso = Math.sqrt(mmPerPixelX * mmPerPixelY);
+		pos.axis1Mm = pos.axis1 * mmPerPixelIso;
+		pos.axis2Mm = pos.axis2 * mmPerPixelIso;
+	}
+
 	public void setPixelSize(double newpixelSize) {
 		pixelsize = newpixelSize;
+		setMmPerPixelX(newpixelSize);
+		setMmPerPixelY(newpixelSize);
 	}
 
 	public void convertPixelsToPhysicalValues() {
@@ -544,6 +570,24 @@ public class FlyPositions {
 
 	public void setPixelsize(double pixelsize) {
 		this.pixelsize = pixelsize;
+		setMmPerPixelX(pixelsize);
+		setMmPerPixelY(pixelsize);
+	}
+
+	public double getMmPerPixelX() {
+		return mmPerPixelX;
+	}
+
+	public void setMmPerPixelX(double mmPerPixelX) {
+		this.mmPerPixelX = mmPerPixelX > 0 ? mmPerPixelX : 1.;
+	}
+
+	public double getMmPerPixelY() {
+		return mmPerPixelY;
+	}
+
+	public void setMmPerPixelY(double mmPerPixelY) {
+		this.mmPerPixelY = mmPerPixelY > 0 ? mmPerPixelY : 1.;
 	}
 
 	public int getNflies() {

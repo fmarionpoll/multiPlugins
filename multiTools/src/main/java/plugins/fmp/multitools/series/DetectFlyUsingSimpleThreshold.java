@@ -33,7 +33,7 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 	private void runFlyDetect1(Experiment exp) {
 		exp.cleanPreviousDetectedFliesROIs();
 		find_flies.initParametersForDetection(exp, options);
-		exp.getCages().initFlyPositions(options.detectCage);
+		exp.getCages().initFlyPositions(options.detectCage, exp.getFlyMmPerPixelX(), exp.getFlyMmPerPixelY());
 
 		openFlyDetectViewers1(exp);
 		findFliesInAllFrames(exp);

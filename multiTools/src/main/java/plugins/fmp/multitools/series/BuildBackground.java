@@ -198,7 +198,8 @@ public class BuildBackground extends BuildSeries {
 	private void initializeDetectionParameters(Experiment experiment) {
 		experiment.cleanPreviousDetectedFliesROIs();
 		flyDetectionTools.initParametersForDetection(experiment, options);
-		experiment.getCages().initFlyPositions(options.detectCage);
+		experiment.getCages().initFlyPositions(options.detectCage, experiment.getFlyMmPerPixelX(),
+				experiment.getFlyMmPerPixelY());
 		options.threshold = options.thresholdDiff;
 	}
 

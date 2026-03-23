@@ -35,7 +35,7 @@ public class DetectFlyFromCleanBackground extends BuildSeries {
 	private void runFlyDetect2(Experiment exp) {
 		exp.cleanPreviousDetectedFliesROIs();
 		find_flies.initParametersForDetection(exp, options);
-		exp.getCages().initFlyPositions(options.detectCage);
+		exp.getCages().initFlyPositions(options.detectCage, exp.getFlyMmPerPixelX(), exp.getFlyMmPerPixelY());
 		options.threshold = options.thresholdDiff;
 
 		if (exp.loadReferenceImage()) {
