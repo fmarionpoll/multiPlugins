@@ -228,6 +228,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.videoChannel = 0; // colorChannelComboBox.getSelectedIndex();
 		options.transformop = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		options.nFliesPresent = (int) nFliesPresentSpinner.getValue();
+		options.blimitMaxBlobsPerCage = true;
 
 		options.transformop = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		options.threshold = (int) thresholdSpinner.getValue();

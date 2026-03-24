@@ -692,12 +692,9 @@ public class Cages {
 	}
 
 	public List<ROI2D> getPositionsAsListOfROI2DRectanglesAtT(int t) {
-		List<ROI2D> roiRectangleList = new ArrayList<ROI2D>(cagesList.size());
-		for (Cage cage : cagesList) {
-			ROI2D roiRectangle = cage.getRoiRectangleFromPositionAtT(t);
-			if (roiRectangle != null)
-				roiRectangleList.add(roiRectangle);
-		}
+		List<ROI2D> roiRectangleList = new ArrayList<ROI2D>();
+		for (Cage cage : cagesList)
+			roiRectangleList.addAll(cage.collectRoiRectanglesAtFrameIndexT(t));
 		return roiRectangleList;
 	}
 

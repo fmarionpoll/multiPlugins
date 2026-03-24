@@ -4,6 +4,8 @@ import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -27,72 +29,102 @@ public class DetectFlyTools {
 	public BuildSeriesOptions options = null;
 	public Cages cages = null;
 
+	private static final class ScoredMask {
+		final BooleanMask2D mask;
+		final int area;
+
+		ScoredMask(BooleanMask2D mask, int area) {
+			this.mask = mask;
+			this.area = area;
+		}
+	}
+
 	// -----------------------------------------------------
 
-	BooleanMask2D findLargestBlob(ROI2DArea roiAll, BooleanMask2D cageMask, Cage cage, int t)
+	/**
+	 * Valid blobs in the cage ROI, sorted by descending pixel count. Count is capped when
+	 * {@link BuildSeriesOptions#blimitMaxBlobsPerCage} is true.
+	 */
+	List<BooleanMask2D> findBlobMasksForCage(ROI2DArea roiAll, BooleanMask2D cageMask, Cage cage, int t)
 			throws InterruptedException {
 		if (cageMask == null)
-			return null;
+			return Collections.emptyList();
 
 		ROI2DArea roi = new ROI2DArea(roiAll.getBooleanMask(true).getIntersection(cageMask));
 
-		Point2D prevCenter = null;
-		if (options.bjitter && t > 0 && options.jitter >= 0 && cage != null)
-			prevCenter = getPreviousFlyCenter(cage, t - 1);
+		List<Point2D> prevCenters = Collections.emptyList();
+		if (options.bjitter && t > 0 && cage != null)
+			prevCenters = getPreviousFlyCenters(cage, t - 1);
 
-		int max = 0;
-		BooleanMask2D bestMask = null;
+		List<ScoredMask> scored = new ArrayList<>();
 		BooleanMask2D roiBooleanMask = roi.getBooleanMask(true);
 		for (BooleanMask2D mask : roiBooleanMask.getComponents()) {
-			int len = mask.getPoints().length;
-			if (options.blimitLow && len < options.limitLow)
-				len = 0;
-			if (options.blimitUp && len > options.limitUp)
-				len = 0;
-
-			int width = mask.bounds.width;
-			int height = mask.bounds.height;
-			if (width < 1 || height < 1)
-				len = 0;
-			else {
-				int ratio = width / height;
-				if (width < height)
-					ratio = height / width;
-				if (options.blimitRatio && options.limitRatio > 0 && ratio > options.limitRatio)
-					len = 0;
-			}
-
-			if (len > 0 && prevCenter != null) {
-				Rectangle2D ob = mask.getOptimizedBounds();
-				Point2D cur = new Point2D.Double(ob.getCenterX(), ob.getCenterY());
-				if (cur.distance(prevCenter) > options.jitter)
-					len = 0;
-			}
-
-			if (len > max) {
-				bestMask = mask;
-				max = len;
-			}
+			int len = scoreComponent(mask, prevCenters);
+			if (len > 0)
+				scored.add(new ScoredMask(mask, len));
 		}
-		return bestMask;
+
+		scored.sort(Comparator.comparingInt((ScoredMask s) -> s.area).reversed());
+
+		int maxKeep = scored.size();
+		if (options.blimitMaxBlobsPerCage) {
+			int cap = Math.max(1, options.nFliesPresent);
+			maxKeep = Math.min(cap, scored.size());
+		}
+
+		List<BooleanMask2D> out = new ArrayList<>(maxKeep);
+		for (int i = 0; i < maxKeep; i++)
+			out.add(scored.get(i).mask);
+		return out;
 	}
 
-	private static Point2D getPreviousFlyCenter(Cage cage, int tPrev) {
+	private int scoreComponent(BooleanMask2D mask, List<Point2D> prevCenters) throws InterruptedException {
+		int len = mask.getPoints().length;
+		if (options.blimitLow && len < options.limitLow)
+			return 0;
+		if (options.blimitUp && len > options.limitUp)
+			return 0;
+
+		int width = mask.bounds.width;
+		int height = mask.bounds.height;
+		if (width < 1 || height < 1)
+			return 0;
+		int ratio = width / height;
+		if (width < height)
+			ratio = height / width;
+		if (options.blimitRatio && options.limitRatio > 0 && ratio > options.limitRatio)
+			return 0;
+
+		if (len > 0 && options.bjitter && !prevCenters.isEmpty() && options.jitter >= 0) {
+			Rectangle2D ob = mask.getOptimizedBounds();
+			Point2D cur = new Point2D.Double(ob.getCenterX(), ob.getCenterY());
+			double dmin = Double.MAX_VALUE;
+			for (Point2D p : prevCenters)
+				dmin = Math.min(dmin, cur.distance(p));
+			if (dmin > options.jitter)
+				return 0;
+		}
+
+		return len;
+	}
+
+	private static List<Point2D> getPreviousFlyCenters(Cage cage, int tPrev) {
+		List<Point2D> out = new ArrayList<>();
 		if (cage == null || cage.flyPositions == null || tPrev < 0)
-			return null;
+			return out;
 		for (FlyPosition fp : cage.flyPositions.flyPositionList) {
 			if (fp.flyIndexT != tPrev)
 				continue;
 			Rectangle2D r = fp.rectPosition;
 			if (r == null || Double.isNaN(r.getX()) || r.getWidth() <= 0 || r.getHeight() <= 0)
 				continue;
-			return new Point2D.Double(r.getCenterX(), r.getCenterY());
+			out.add(new Point2D.Double(r.getCenterX(), r.getCenterY()));
 		}
-		return null;
+		return out;
 	}
 
 	/**
-	 * Union of per-cage winning blobs after the same filters as {@link #findFlies}; does not write positions.
+	 * Union of per-cage blobs after the same rules as {@link #findFlies}; does not write positions.
 	 */
 	public BooleanMask2D unionFilteredFlyBlobs(IcyBufferedImage negativeImage, int t) throws InterruptedException {
 		if (options == null || cages == null || negativeImage == null)
@@ -109,14 +141,13 @@ public class DetectFlyTools {
 				continue;
 			if (cage.getProperties().getCageNFlies() < 1)
 				continue;
-			BooleanMask2D bestMask = findLargestBlob(binarizedImageRoi, cage.cageMask2D, cage, t);
-			if (bestMask == null)
-				continue;
-			for (java.awt.Point p : bestMask.getPoints()) {
-				int x = p.x - ib.x;
-				int y = p.y - ib.y;
-				if (x >= 0 && x < w && y >= 0 && y < h)
-					acc[x + y * w] = true;
+			for (BooleanMask2D m : findBlobMasksForCage(binarizedImageRoi, cage.cageMask2D, cage, t)) {
+				for (java.awt.Point p : m.getPoints()) {
+					int x = p.x - ib.x;
+					int y = p.y - ib.y;
+					if (x >= 0 && x < w && y >= 0 && y < h)
+						acc[x + y * w] = true;
+				}
 			}
 		}
 		return new BooleanMask2D(ib, acc);
@@ -154,7 +185,7 @@ public class DetectFlyTools {
 		futures.clear();
 
 		final ROI2DArea binarizedImageRoi = binarizeImage(workimage, options.threshold);
-		List<Rectangle2D> listRectangles = new ArrayList<Rectangle2D>(cages.cagesList.size());
+		final List<Rectangle2D> listRectangles = Collections.synchronizedList(new ArrayList<Rectangle2D>());
 
 		for (Cage cage : cages.cagesList) {
 			if (options.detectCage != -1 && cage.getProperties().getCageID() != options.detectCage)
@@ -165,10 +196,11 @@ public class DetectFlyTools {
 			futures.add(processor.submit(new Runnable() {
 				@Override
 				public void run() {
-					BooleanMask2D bestMask = getBestMask(binarizedImageRoi, cage.cageMask2D, cage, t);
-					Rectangle2D rect = saveMask(bestMask, cage, t);
-					if (rect != null)
-						listRectangles.add(rect);
+					try {
+						saveMasksForCage(binarizedImageRoi, cage, t, listRectangles);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
 				}
 			}));
 		}
@@ -178,22 +210,19 @@ public class DetectFlyTools {
 		return listRectangles;
 	}
 
-	BooleanMask2D getBestMask(ROI2DArea binarizedImageRoi, BooleanMask2D cageMask, Cage cage, int t) {
-		BooleanMask2D bestMask = null;
-		try {
-			bestMask = findLargestBlob(binarizedImageRoi, cageMask, cage, t);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
+	private void saveMasksForCage(ROI2DArea binarizedImageRoi, Cage cage, int t, List<Rectangle2D> listRectangles)
+			throws InterruptedException {
+		List<BooleanMask2D> masks = findBlobMasksForCage(binarizedImageRoi, cage.cageMask2D, cage, t);
+		if (masks.isEmpty()) {
+			cage.flyPositions.addPositionWithoutRoiArea(t, null);
+			return;
 		}
-		return bestMask;
-	}
-
-	Rectangle2D saveMask(BooleanMask2D bestMask, Cage cage, int t) {
-		Rectangle2D rect = null;
-		if (bestMask != null)
-			rect = bestMask.getOptimizedBounds();
-		cage.flyPositions.addPositionWithoutRoiArea(t, rect);
-		return rect;
+		for (BooleanMask2D m : masks) {
+			Rectangle2D rect = m.getOptimizedBounds();
+			cage.flyPositions.addPositionWithoutRoiArea(t, rect);
+			if (rect != null)
+				listRectangles.add(rect);
+		}
 	}
 
 	public ROI2DArea binarizeInvertedImage(IcyBufferedImage img, int threshold) {

@@ -376,22 +376,33 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 	}
 
-	public ROI2DRectangle getRoiRectangleFromPositionAtT(int t) {
-		// Return null if cage ROI is not available (prevents NPE in
-		// getCageNumberFromRoiName)
-		if (cageROI2D == null) {
-			return null;
+	/**
+	 * All fly rectangles stored for camera frame index {@code t} ({@link FlyPosition#flyIndexT}).
+	 */
+	public List<ROI2DRectangle> collectRoiRectanglesAtFrameIndexT(int t) {
+		List<ROI2DRectangle> out = new ArrayList<>();
+		if (cageROI2D == null)
+			return out;
+		int idx = 0;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp.flyIndexT != t)
+				continue;
+			if (fp.rectPosition == null || Double.isNaN(fp.rectPosition.getX()))
+				continue;
+			ROI2DRectangle flyRoiR = new ROI2DRectangle(fp.rectPosition);
+			flyRoiR.setName("detR" + getCageNumberFromRoiName() + "_" + t + "_" + idx);
+			flyRoiR.setT(t);
+			flyRoiR.setColor(FLY_POSITION_ROI_COLOR);
+			out.add(flyRoiR);
+			idx++;
 		}
-		int nitems = flyPositions.flyPositionList.size();
-		if (nitems == 0 || t >= nitems)
-			return null;
-		FlyPosition aValue = flyPositions.flyPositionList.get(t);
+		return out;
+	}
 
-		ROI2DRectangle flyRoiR = new ROI2DRectangle(aValue.rectPosition);
-		flyRoiR.setName("detR" + getCageNumberFromRoiName() + "_" + t);
-		flyRoiR.setT(t);
-		flyRoiR.setColor(FLY_POSITION_ROI_COLOR);
-		return flyRoiR;
+	/** First rectangle at frame {@code t}, or null. Prefer {@link #collectRoiRectanglesAtFrameIndexT(int)} if multiple flies per frame. */
+	public ROI2DRectangle getRoiRectangleFromPositionAtT(int t) {
+		List<ROI2DRectangle> list = collectRoiRectanglesAtFrameIndexT(t);
+		return list.isEmpty() ? null : list.get(0);
 	}
 
 	public void transferRoisToPositions(List<ROI2D> detectedROIsList) {

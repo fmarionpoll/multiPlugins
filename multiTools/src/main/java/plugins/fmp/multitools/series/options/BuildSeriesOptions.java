@@ -116,6 +116,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int limitRatio = 4;
 	public int jitter = 10;
 	public int nFliesPresent = 1;
+	/**
+	 * When true, keep at most {@link #nFliesPresent} largest blobs per cage per frame. When false, keep all
+	 * blobs that pass the other filters.
+	 */
+	public boolean blimitMaxBlobsPerCage = true;
 
 	public int videoChannel = 0;
 	public int background_delta = 50;
@@ -179,6 +184,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 		limitUp = det.limitUp;
 		limitRatio = det.limitRatio;
 		jitter = det.jitter;
+		nFliesPresent = det.nFliesPresent;
+		blimitMaxBlobsPerCage = det.blimitMaxBlobsPerCage;
 		forceBuildBackground = det.forceBuildBackground;
 		detectFlies = det.detectFlies;
 		transformop = det.transformop;
@@ -215,6 +222,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 			limitUp = XMLUtil.getElementIntValue(xmlVal, "limitUp", -1);
 			limitRatio = XMLUtil.getElementIntValue(xmlVal, "limitRatio", limitRatio);
 			jitter = XMLUtil.getElementIntValue(xmlVal, "jitter", 10);
+			nFliesPresent = XMLUtil.getElementIntValue(xmlVal, "nFliesPresent", nFliesPresent);
+			blimitMaxBlobsPerCage = XMLUtil.getElementBooleanValue(xmlVal, "blimitMaxBlobsPerCage",
+					blimitMaxBlobsPerCage);
 			String op1 = XMLUtil.getElementValue(xmlVal, "transformOp", null);
 			transformop = ImageTransformEnums.findByText(op1);
 			videoChannel = XMLUtil.getAttributeIntValue(xmlVal, "videoChannel", 0);
@@ -249,6 +259,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementIntValue(xmlVal, "limitUp", limitUp);
 			XMLUtil.setElementIntValue(xmlVal, "limitRatio", limitRatio);
 			XMLUtil.setElementIntValue(xmlVal, "jitter", jitter);
+			XMLUtil.setElementIntValue(xmlVal, "nFliesPresent", nFliesPresent);
+			XMLUtil.setElementBooleanValue(xmlVal, "blimitMaxBlobsPerCage", blimitMaxBlobsPerCage);
 			if (transformop != null) {
 				String transform1 = transformop.toString();
 				XMLUtil.setElementValue(xmlVal, "transformOp", transform1);

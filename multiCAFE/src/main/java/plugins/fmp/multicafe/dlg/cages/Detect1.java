@@ -124,6 +124,9 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel4.add(limitRatioSpinner);
 		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
+		nFliesCheckBox.setSelected(true);
+		nFliesSpinner.setEnabled(nFliesCheckBox.isSelected());
+
 		panel4.add(nFliesCheckBox);
 		panel4.add(nFliesSpinner);
 		add(panel4);
@@ -268,6 +271,14 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			}
 		});
 
+		nFliesCheckBox.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				nFliesSpinner.setEnabled(nFliesCheckBox.isSelected());
+				refreshFlyDetectOverlay();
+			}
+		});
+
 		ChangeListener filterSpinnerListener = new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
@@ -278,6 +289,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		objectUpsizeSpinner.addChangeListener(filterSpinnerListener);
 		limitRatioSpinner.addChangeListener(filterSpinnerListener);
 		jitterTextField.addChangeListener(filterSpinnerListener);
+		nFliesSpinner.addChangeListener(filterSpinnerListener);
 	}
 
 	public void updateOverlay(Experiment exp) {
@@ -328,7 +340,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.flyDetectSourceTransform = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		options.flyDetectBackgroundTransform = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		options.threshold = (int) thresholdSpinner.getValue();
-		options.nFliesPresent = 1;
+		options.blimitMaxBlobsPerCage = nFliesCheckBox.isSelected();
+		options.nFliesPresent = Math.max(1, (int) nFliesSpinner.getValue());
 		options.binSubDirectory = exp.getBinSubDirectory();
 		options.detectCage = cagesComboBox.getSelectedIndex() - 1;
 	}
