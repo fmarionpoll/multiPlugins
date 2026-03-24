@@ -84,6 +84,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean btrackWhite = false;
 	public boolean blimitLow = false;
 	public boolean blimitUp = false;
+	/** When true, reject blobs whose length/width exceeds {@link #limitRatio}. */
+	public boolean blimitRatio = true;
+	/** When true, reject blobs whose centroid moved more than {@link #jitter} px vs. previous frame. */
+	public boolean bjitter = false;
 	public boolean forceBuildBackground = false;
 	public boolean detectFlies = true;
 	public boolean backgroundSubstraction = false;
@@ -169,6 +173,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 		btrackWhite = det.btrackWhite;
 		blimitLow = det.blimitLow;
 		blimitUp = det.blimitUp;
+		blimitRatio = det.blimitRatio;
+		bjitter = det.bjitter;
 		limitLow = det.limitLow;
 		limitUp = det.limitUp;
 		limitRatio = det.limitRatio;
@@ -203,8 +209,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 			btrackWhite = XMLUtil.getElementBooleanValue(xmlVal, "btrackWhite", false);
 			blimitLow = XMLUtil.getElementBooleanValue(xmlVal, "blimitLow", false);
 			blimitUp = XMLUtil.getElementBooleanValue(xmlVal, "blimitUp", false);
+			blimitRatio = XMLUtil.getElementBooleanValue(xmlVal, "blimitRatio", true);
+			bjitter = XMLUtil.getElementBooleanValue(xmlVal, "bjitter", false);
 			limitLow = XMLUtil.getElementIntValue(xmlVal, "limitLow", -1);
 			limitUp = XMLUtil.getElementIntValue(xmlVal, "limitUp", -1);
+			limitRatio = XMLUtil.getElementIntValue(xmlVal, "limitRatio", limitRatio);
 			jitter = XMLUtil.getElementIntValue(xmlVal, "jitter", 10);
 			String op1 = XMLUtil.getElementValue(xmlVal, "transformOp", null);
 			transformop = ImageTransformEnums.findByText(op1);
@@ -234,8 +243,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementBooleanValue(xmlVal, "btrackWhite", btrackWhite);
 			XMLUtil.setElementBooleanValue(xmlVal, "blimitLow", blimitLow);
 			XMLUtil.setElementBooleanValue(xmlVal, "blimitUp", blimitUp);
+			XMLUtil.setElementBooleanValue(xmlVal, "blimitRatio", blimitRatio);
+			XMLUtil.setElementBooleanValue(xmlVal, "bjitter", bjitter);
 			XMLUtil.setElementIntValue(xmlVal, "limitLow", limitLow);
 			XMLUtil.setElementIntValue(xmlVal, "limitUp", limitUp);
+			XMLUtil.setElementIntValue(xmlVal, "limitRatio", limitRatio);
 			XMLUtil.setElementIntValue(xmlVal, "jitter", jitter);
 			if (transformop != null) {
 				String transform1 = transformop.toString();

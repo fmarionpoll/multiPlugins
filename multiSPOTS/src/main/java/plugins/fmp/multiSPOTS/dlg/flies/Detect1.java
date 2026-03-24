@@ -60,6 +60,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private JSpinner objectUpsizeSpinner = new JSpinner(new SpinnerNumberModel(500, 0, 9999, 1));
 	private JCheckBox objectLowsizeCheckBox = new JCheckBox("object > ");
 	private JCheckBox objectUpsizeCheckBox = new JCheckBox("object < ");
+	private JCheckBox limitRatioCheckBox = new JCheckBox("length/width<");
+	private JCheckBox jitterCheckBox = new JCheckBox("jitter<= ");
 	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 
 	private JCheckBox whiteObjectCheckBox = new JCheckBox("white object");
@@ -108,13 +110,25 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel3.add(whiteObjectCheckBox);
 		add(panel3);
 
+		limitRatioCheckBox.setSelected(true);
+		jitterCheckBox.setSelected(false);
+		limitRatioSpinner.setEnabled(limitRatioCheckBox.isSelected());
+		jitterTextField.setEnabled(jitterCheckBox.isSelected());
+
 		JPanel panel4 = new JPanel(flowLayout);
-		panel4.add(new JLabel("length/width<", SwingConstants.RIGHT));
+		panel4.add(limitRatioCheckBox);
 		panel4.add(limitRatioSpinner);
-		panel4.add(new JLabel("         jitter <= ", SwingConstants.RIGHT));
+		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
 		panel4.add(overlayCheckBox);
 		add(panel4);
+
+		limitRatioCheckBox.addItemListener(e -> {
+			limitRatioSpinner.setEnabled(limitRatioCheckBox.isSelected());
+		});
+		jitterCheckBox.addItemListener(e -> {
+			jitterTextField.setEnabled(jitterCheckBox.isSelected());
+		});
 
 		defineActionListeners();
 		thresholdSpinner.addChangeListener(this);
@@ -205,6 +219,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.btrackWhite = whiteObjectCheckBox.isSelected();
 		options.blimitLow = objectLowsizeCheckBox.isSelected();
 		options.blimitUp = objectUpsizeCheckBox.isSelected();
+		options.blimitRatio = limitRatioCheckBox.isSelected();
+		options.bjitter = jitterCheckBox.isSelected();
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
 		options.limitUp = (int) objectUpsizeSpinner.getValue();
 		options.limitRatio = (int) limitRatioSpinner.getValue();
