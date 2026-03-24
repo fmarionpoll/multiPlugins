@@ -75,7 +75,7 @@ public class Infos extends JPanel {
 		c.gridy = 3;
 		addLineOfElements(c, stim2Label, conc1Combo, conc2Label, conc2Combo, zoomButton);
 
-		zoomButton.setEnabled(false);
+		zoomButton.setEnabled(true);
 		boxIDCombo.setEditable(true);
 		exptCombo.setEditable(true);
 		stim1Combo.setEditable(true);
@@ -263,7 +263,13 @@ public class Infos extends JPanel {
 		Viewer v = seq.getFirstViewer();
 		if (v != null) {
 			Canvas2D canvas = (Canvas2D) v.getCanvas();
-			canvas.setScale(2., 2., true);
+			double xScale = 2.; //;
+			double yScale = 2.; //canvas.getScaleY();
+			if (canvas.getScaleX() > 1.) {
+				xScale = 1.;
+				yScale = 1.;
+			}
+			canvas.setScale(xScale, yScale, true);
 			canvas.setOffset(0, 0, true);
 		}
 

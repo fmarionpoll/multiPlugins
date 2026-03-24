@@ -1003,9 +1003,11 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					exp.cleanPreviousDetectedFliesROIs();
 				}
 
-				if (exp.getSeqCamData() != null) {
-					exp.saveExperimentDescriptors();
+				// Always persist experiment-level metadata, even when sequence/camera data is
+				// not currently loaded (e.g. metadata-only workflows).
+				exp.saveExperimentDescriptors();
 
+				if (exp.getSeqCamData() != null) {
 					// Save capillaries using new dual-file system (descriptions + measures)
 					int capCountBeforeSave = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
 					Logger.debug(
