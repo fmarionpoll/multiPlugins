@@ -129,7 +129,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			public void itemStateChanged(ItemEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					if (viewButton.isSelected() && overlayCheckBox.isSelected())
+					if (overlayCheckBox.isSelected())
 						updateOverlay(exp);
 					else
 						removeOverlay(exp);
