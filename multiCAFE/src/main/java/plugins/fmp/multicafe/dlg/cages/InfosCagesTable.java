@@ -32,7 +32,7 @@ public class InfosCagesTable extends JPanel {
 	private CageTableModel cageTableModel = null;
 	private JButton copyButton = new JButton("Copy table");
 	private JButton pasteButton = new JButton("Paste");
-	private JButton duplicateAllButton = new JButton("Duplicate cage to all");
+	private JButton duplicateAllButton = new JButton("Duplicate to all");
 	private JButton noFliesButton = new JButton("Cage 0/9: no flies");
 	private MultiCAFE parent0 = null;
 	private List<Cage> cageArrayCopy = null;

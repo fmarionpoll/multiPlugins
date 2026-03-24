@@ -16,14 +16,17 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
+import icy.gui.viewer.Viewer;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
@@ -40,19 +43,24 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 	private MultiCAFE parent0 = null;
 	private String detectString = "Detect...";
-	private JButton startComputationButton = new JButton(detectString);
+	private JButton detectButton = new JButton(detectString);
+	private JToggleButton viewButton = new JToggleButton("View", false);
+	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 255, 1));
+	private JComboBox<String> directionComboBox = new JComboBox<String>(
+			new String[] { " threshold >", " threshold <" });
 
-	JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(
-			new ImageTransformEnums[] { ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
-					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
-					ImageTransformEnums.NORM_BRMINUSG, ImageTransformEnums.RGB, ImageTransformEnums.H_HSB,
-					ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB });
+	public JCheckBox overlayCheckBox = new JCheckBox("overlay", false);
+	public JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(new ImageTransformEnums[] { //
+			ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
+			ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
+			ImageTransformEnums.NORM_BRMINUSG, ImageTransformEnums.RGB, ImageTransformEnums.H_HSB,
+			ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB });
 
 	private JComboBox<ImageTransformEnums> backgroundComboBox = new JComboBox<>(new ImageTransformEnums[] {
 			ImageTransformEnums.NONE, ImageTransformEnums.SUBTRACT_TM1, ImageTransformEnums.SUBTRACT_T0 });
 
 	private JComboBox<String> cagesComboBox = new JComboBox<String>(new String[] { "all cages" });
-	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 255, 1));
+
 	private JSpinner jitterTextField = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
 	private JSpinner objectLowsizeSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 9999, 1));
 	private JSpinner objectUpsizeSpinner = new JSpinner(new SpinnerNumberModel(500, 0, 9999, 1));
@@ -60,11 +68,9 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private JCheckBox objectUpsizeCheckBox = new JCheckBox("object < ");
 	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 
-	private JCheckBox whiteObjectCheckBox = new JCheckBox("white object");
-	JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
-	private OverlayThreshold overlayThreshold1 = null;
+	private OverlayThreshold overlayThreshold = null;
 	private FlyDetect1 flyDetect1 = null;
 
 	// -----------------------------------------------------
@@ -77,9 +83,11 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		flowLayout.setVgap(0);
 
 		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(startComputationButton);
+		panel1.add(detectButton);
 		panel1.add(cagesComboBox);
 		panel1.add(allCheckBox);
+		panel1.add(viewButton);
+		panel1.add(overlayCheckBox);
 		add(panel1);
 
 		cagesComboBox.addPopupMenuListener(this);
@@ -90,7 +98,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd "));
 		panel2.add(backgroundComboBox);
-		panel2.add(new JLabel("threshold "));
+		panel2.add(directionComboBox);
+		((JLabel) directionComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 		panel2.add(thresholdSpinner);
 		add(panel2);
 
@@ -99,7 +108,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel3.add(objectLowsizeSpinner);
 		panel3.add(objectUpsizeCheckBox);
 		panel3.add(objectUpsizeSpinner);
-		panel3.add(whiteObjectCheckBox);
 		add(panel3);
 
 		JPanel panel4 = new JPanel(flowLayout);
@@ -107,37 +115,82 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel4.add(limitRatioSpinner);
 		panel4.add(new JLabel("jitter <= "));
 		panel4.add(jitterTextField);
-		panel4.add(overlayCheckBox);
+
 		add(panel4);
 
-		defineActionListeners();
-		thresholdSpinner.addChangeListener(this);
+		defineListeners();
+
 		transformComboBox.addItemListener(this);
 	}
 
-	private void defineActionListeners() {
+	private void defineListeners() {
+
 		overlayCheckBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					if (overlayCheckBox.isSelected()) {
-						if (overlayThreshold1 == null)
-							overlayThreshold1 = new OverlayThreshold(exp.getSeqCamData().getSequence());
-						exp.getSeqCamData().getSequence().addOverlay(overlayThreshold1);
+					if (viewButton.isSelected() && overlayCheckBox.isSelected())
 						updateOverlay(exp);
-					} else
+					else
 						removeOverlay(exp);
 				}
 			}
 		});
 
-		startComputationButton.addActionListener(new ActionListener() {
+		thresholdSpinner.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				updateOverlayThreshold();
+			}
+		});
+
+		detectButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
+				if (detectButton.getText().equals(detectString))
 					startComputation();
 				else
 					stopComputation();
+			}
+		});
+
+		viewButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp == null)
+					return;
+
+				if (viewButton.isSelected()) {
+					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					if (canvas != null) {
+						int index = transformComboBox.getSelectedIndex();
+						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						updateOverlayThreshold();
+					}
+				} else {
+					removeOverlay(exp);
+					overlayCheckBox.setSelected(false);
+					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					if (canvas != null)
+						canvas.transformsCombo1.setSelectedIndex(0);
+				}
+				overlayCheckBox.setEnabled(viewButton.isSelected());
+			}
+
+		});
+
+		transformComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null && exp.getSeqCamData() != null) {
+					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					if (canvas != null) {
+						int index = transformComboBox.getSelectedIndex();
+						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						updateOverlayThreshold();
+					}
+				}
 			}
 		});
 
@@ -148,7 +201,14 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 				if (allCheckBox.isSelected())
 					color = Color.RED;
 				allCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
+				detectButton.setForeground(color);
+			}
+		});
+
+		directionComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateOverlayThreshold();
 			}
 		});
 	}
@@ -157,22 +217,22 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null)
 			return;
-		if (overlayThreshold1 == null)
-			overlayThreshold1 = new OverlayThreshold(seqCamData.getSequence());
+		if (overlayThreshold == null)
+			overlayThreshold = new OverlayThreshold(seqCamData.getSequence());
 		else {
-			seqCamData.getSequence().removeOverlay(overlayThreshold1);
-			overlayThreshold1.setSequence(seqCamData.getSequence());
+			seqCamData.getSequence().removeOverlay(overlayThreshold);
+			overlayThreshold.setSequence(seqCamData.getSequence());
 		}
-		seqCamData.getSequence().addOverlay(overlayThreshold1);
+		seqCamData.getSequence().addOverlay(overlayThreshold);
 		boolean ifGreater = false;
 		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
-		overlayThreshold1.setThresholdSingle(exp.getCages().getDetect_threshold(), transformOp, ifGreater);
-		overlayThreshold1.painterChanged();
+		overlayThreshold.setThresholdSingle(exp.getCages().getDetect_threshold(), transformOp, ifGreater);
+		overlayThreshold.painterChanged();
 	}
 
 	public void removeOverlay(Experiment exp) {
 		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
-			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold1);
+			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 	}
 
 	@Override
@@ -195,7 +255,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 
-		options.btrackWhite = whiteObjectCheckBox.isSelected();
+		options.btrackWhite = (directionComboBox.getSelectedIndex() == 1);
 		options.blimitLow = objectLowsizeCheckBox.isSelected();
 		options.blimitUp = objectUpsizeCheckBox.isSelected();
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
@@ -207,8 +267,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.nFliesPresent = 1;
 
 		options.transformop = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
-		options.threshold = (int) thresholdSpinner.getValue();
-
 		options.isFrameFixed = parent0.paneExcel.tabCommonOptions.getIsFixedFrame();
 		options.t_Ms_First = parent0.paneExcel.tabCommonOptions.getStartMs();
 		options.t_Ms_Last = parent0.paneExcel.tabCommonOptions.getEndMs();
@@ -235,7 +293,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		flyDetect1.detectFlies = true;
 		flyDetect1.addPropertyChangeListener(this);
 		flyDetect1.execute();
-		startComputationButton.setText("STOP");
+		detectButton.setText("STOP");
 	}
 
 	private void stopComputation() {
@@ -244,10 +302,41 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		}
 	}
 
+	void updateOverlayThreshold() {
+		if (overlayThreshold == null)
+			return;
+
+		if (viewButton.isSelected() && overlayCheckBox.isSelected()) {
+			boolean ifGreater = (directionComboBox.getSelectedIndex() == 0);
+			int threshold = (int) thresholdSpinner.getValue();
+			ImageTransformEnums transform = (ImageTransformEnums) transformComboBox.getSelectedItem();
+			overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
+
+		} else {
+			return;
+		}
+
+		overlayThreshold.painterChanged();
+		if (overlayThreshold.getSequence() != null) {
+			overlayThreshold.getSequence().overlayChanged(overlayThreshold);
+			overlayThreshold.getSequence().dataChanged();
+		}
+	}
+
+	protected Canvas2DWithTransforms getCamDataCanvas(Experiment exp) {
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return null;
+
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (v == null)
+			return null;
+		return (Canvas2DWithTransforms) v.getCanvas();
+	}
+
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
-			startComputationButton.setText(detectString);
+			detectButton.setText(detectString);
 			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 		}

@@ -41,15 +41,16 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	private JComboBox<String> direction1ComboBox = new JComboBox<String>(
 			new String[] { " threshold >", " threshold <" });
 	private JSpinner threshold1Spinner = new JSpinner(new SpinnerNumberModel(35, 1, 255, 1));
-	private ImageTransformEnums[] transformPass1 = new ImageTransformEnums[] { ImageTransformEnums.R_RGB,
-			ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, ImageTransformEnums.R2MINUS_GB,
-			ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.RGB,
-			ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G, ImageTransformEnums.RGMINUS_2B,
-			ImageTransformEnums.RGB_DIFFS, ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB,
-			ImageTransformEnums.B_HSB };
-	public JComboBox<ImageTransformEnums> transformPass1ComboBox = new JComboBox<ImageTransformEnums>(transformPass1);
-	private JToggleButton transformPass1DisplayButton = new JToggleButton("View");
-	private JCheckBox overlayPass1CheckBox = new JCheckBox("overlay");
+
+	private ImageTransformEnums[] transformPass1 = new ImageTransformEnums[] { //
+			ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
+			ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
+			ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G,
+			ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS, //
+			ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
+	public JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<ImageTransformEnums>(transformPass1);
+	private JToggleButton viewButton = new JToggleButton("View");
+	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 
 	private JCheckBox selectedCapillaryCheckBox = new JCheckBox("selected capillary", false);
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
@@ -57,7 +58,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox profilePerpendicularCheckBox = new JCheckBox("profile perpendicular to capillary", true);
 
-	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
+	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox leftCheckBox = new JCheckBox("L", true);
 	private JCheckBox rightCheckBox = new JCheckBox("R", true);
 
@@ -78,7 +79,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
-		panel0.add(allSeriesCheckBox);
+		panel0.add(allCheckBox);
 		panel0.add(selectedCapillaryCheckBox);
 		panel0.add(leftCheckBox);
 		panel0.add(rightCheckBox);
@@ -87,9 +88,9 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		panel01.add(direction1ComboBox);
 		((JLabel) direction1ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
 		panel01.add(threshold1Spinner);
-		panel01.add(transformPass1ComboBox);
-		panel01.add(transformPass1DisplayButton);
-		panel01.add(overlayPass1CheckBox);
+		panel01.add(transformComboBox);
+		panel01.add(viewButton);
+		panel01.add(overlayCheckBox);
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(profilePerpendicularCheckBox);
@@ -102,20 +103,19 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		add(panel02);
 		add(panel03);
 
-		transformPass1ComboBox.setSelectedItem(ImageTransformEnums.GBMINUS_2R);
-		defineActionListeners();
-		defineItemListeners();
+		transformComboBox.setSelectedItem(ImageTransformEnums.GBMINUS_2R);
+		defineListeners();
 
-		overlayPass1CheckBox.setEnabled(false);
+		overlayCheckBox.setEnabled(false);
 
 	}
 
-	private void defineItemListeners() {
-		overlayPass1CheckBox.addItemListener(new ItemListener() {
+	private void defineListeners() {
+		overlayCheckBox.addItemListener(new ItemListener() {
 			public void itemStateChanged(ItemEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					if (transformPass1DisplayButton.isSelected() && overlayPass1CheckBox.isSelected())
+					if (viewButton.isSelected() && overlayCheckBox.isSelected())
 						addOverlayToSequence(exp);
 					else
 						removeOverlay(exp);
@@ -129,17 +129,14 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			}
 		});
 
-	}
-
-	private void defineActionListeners() {
-		transformPass1ComboBox.addActionListener(new ActionListener() {
+		transformComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
 					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
-						int index = transformPass1ComboBox.getSelectedIndex();
+						int index = transformComboBox.getSelectedIndex();
 						canvas.transformsCombo1.setSelectedIndex(index + 1);
 						updateOverlayThreshold();
 					}
@@ -157,41 +154,39 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			}
 		});
 
-		transformPass1DisplayButton.addActionListener(new ActionListener() {
+		viewButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp == null)
 					return;
 
-				boolean displayCheckOverlay = false;
-				if (transformPass1DisplayButton.isSelected()) {
+				if (viewButton.isSelected()) {
 					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
 						canvas.updateTransformsComboStep1(transformPass1);
-						int index = transformPass1ComboBox.getSelectedIndex();
+						int index = transformComboBox.getSelectedIndex();
 						canvas.selectIndexStep1(index + 1, null);
-						displayCheckOverlay = true;
 					}
 				} else {
 					removeOverlay(exp);
-					overlayPass1CheckBox.setSelected(false);
+					overlayCheckBox.setSelected(false);
 					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
 					if (canvas != null)
 						canvas.transformsCombo1.setSelectedIndex(0);
 				}
-				overlayPass1CheckBox.setEnabled(displayCheckOverlay);
+				overlayCheckBox.setEnabled(viewButton.isSelected());
 			}
 
 		});
 
-		allSeriesCheckBox.addActionListener(new ActionListener() {
+		allCheckBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Color color = Color.BLACK;
-				if (allSeriesCheckBox.isSelected())
+				if (allCheckBox.isSelected())
 					color = Color.RED;
-				allSeriesCheckBox.setForeground(color);
+				allCheckBox.setForeground(color);
 				detectButton.setForeground(color);
 			}
 		});
@@ -227,7 +222,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	void setDialogFromOptions(Capillary cap) {
 		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
 
-		transformPass1ComboBox.setSelectedItem(options.transform01);
+		transformComboBox.setSelectedItem(options.transform01);
 		int index = options.directionUp1 ? 0 : 1;
 		direction1ComboBox.setSelectedIndex(index);
 		threshold1Spinner.setValue(options.detectLevel1Threshold);
@@ -241,7 +236,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
 		options.pass1 = true;
 		options.pass2 = false;
-		options.transform01 = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
+		options.transform01 = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		options.directionUp1 = (direction1ComboBox.getSelectedIndex() == 0);
 		options.detectLevel1Threshold = (int) threshold1Spinner.getValue();
 		options.detectSelectedKymo = selectedCapillaryCheckBox.isSelected();
@@ -256,7 +251,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		// list of stack experiments
 		options.expList = parent0.expListComboLazy;
 		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
-		if (allSeriesCheckBox.isSelected())
+		if (allCheckBox.isSelected())
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
@@ -271,7 +266,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		currentKymographImage = 0;
 
 		// other parameters
-		options.transform01 = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
+		options.transform01 = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		options.directionUp1 = (direction1ComboBox.getSelectedIndex() == 0);
 		options.detectLevel1Threshold = (int) threshold1Spinner.getValue();
 
@@ -354,10 +349,10 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		if (overlayThreshold == null)
 			return;
 
-		if (transformPass1DisplayButton.isSelected() && overlayPass1CheckBox.isSelected()) {
+		if (viewButton.isSelected() && overlayCheckBox.isSelected()) {
 			boolean ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
 			int threshold = (int) threshold1Spinner.getValue();
-			ImageTransformEnums transform = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
+			ImageTransformEnums transform = (ImageTransformEnums) transformComboBox.getSelectedItem();
 			overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
 
 		} else {
@@ -383,7 +378,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		}
 		seq.removeOverlay(overlayThreshold);
 	}
-	
+
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
