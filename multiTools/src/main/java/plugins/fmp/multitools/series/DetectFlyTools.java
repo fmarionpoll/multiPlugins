@@ -50,7 +50,7 @@ public class DetectFlyTools {
 			int ratio = width / height;
 			if (width < height)
 				ratio = height / width;
-			if (ratio > 4)
+			if (options.limitRatio > 0 && ratio > options.limitRatio)
 				len = 0;
 
 			// get largest blob

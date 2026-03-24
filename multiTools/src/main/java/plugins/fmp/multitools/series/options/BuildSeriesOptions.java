@@ -73,6 +73,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public ImageTransformEnums transform02 = ImageTransformEnums.L1DIST_TO_1RSTCOL;
 	public ImageTransformEnums overlayTransform = ImageTransformEnums.NONE;
 	public ImageTransformEnums transformop = ImageTransformEnums.NONE;
+	/** Applied to raw frame first (e.g. SUBTRACT_T0); NONE skips this step. */
+	public ImageTransformEnums flyDetectBackgroundTransform = ImageTransformEnums.NONE;
+	/** Applied after background step (e.g. G_RGB); NONE skips this step. */
+	public ImageTransformEnums flyDetectSourceTransform = ImageTransformEnums.NONE;
 
 	public boolean overlayIfGreater = true;
 	public boolean spotThresholdUp = true;

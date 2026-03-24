@@ -139,6 +139,9 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 		thresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					exp.getCages().setDetect_threshold((int) thresholdSpinner.getValue());
 				updateOverlayThreshold();
 			}
 		});
@@ -224,9 +227,11 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			overlayThreshold.setSequence(seqCamData.getSequence());
 		}
 		seqCamData.getSequence().addOverlay(overlayThreshold);
-		boolean ifGreater = false;
+		boolean ifGreater = (directionComboBox.getSelectedIndex() == 0);
+		int threshold = (int) thresholdSpinner.getValue();
+		exp.getCages().setDetect_threshold(threshold);
 		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
-		overlayThreshold.setThresholdSingle(exp.getCages().getDetect_threshold(), transformOp, ifGreater);
+		overlayThreshold.setThresholdSingle(threshold, transformOp, ifGreater);
 		overlayThreshold.painterChanged();
 	}
 
@@ -255,7 +260,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 
-		options.btrackWhite = (directionComboBox.getSelectedIndex() == 1);
+		options.btrackWhite = (directionComboBox.getSelectedIndex() == 0);
 		options.blimitLow = objectLowsizeCheckBox.isSelected();
 		options.blimitUp = objectUpsizeCheckBox.isSelected();
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
@@ -263,10 +268,11 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.limitRatio = (int) limitRatioSpinner.getValue();
 		options.jitter = (int) jitterTextField.getValue();
 		options.videoChannel = 0; // colorChannelComboBox.getSelectedIndex();
-		options.transformop = (ImageTransformEnums) transformComboBox.getSelectedItem();
+		options.flyDetectSourceTransform = (ImageTransformEnums) transformComboBox.getSelectedItem();
+		options.flyDetectBackgroundTransform = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
+		options.threshold = (int) thresholdSpinner.getValue();
 		options.nFliesPresent = 1;
 
-		options.transformop = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		options.isFrameFixed = parent0.paneExcel.tabCommonOptions.getIsFixedFrame();
 		options.t_Ms_First = parent0.paneExcel.tabCommonOptions.getStartMs();
 		options.t_Ms_Last = parent0.paneExcel.tabCommonOptions.getEndMs();
