@@ -25,16 +25,16 @@ public class Options extends JPanel {
 	JCheckBox kymographsCheckBox = new JCheckBox("kymos", true);
 	JCheckBox cagesCheckBox = new JCheckBox("cages", true);
 	JCheckBox measuresCheckBox = new JCheckBox("measures", true);
-	public JCheckBox graphsCheckBox = new JCheckBox("graphs", true);
+	public JCheckBox graphsCheckBox = new JCheckBox("levels & move", true);
 
 	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries", true);
 	public JCheckBox viewCellsCheckbox = new JCheckBox("cages", true);
 	JCheckBox viewFlyCheckbox = new JCheckBox("flies", false);
 
-	JCheckBox viewTopLevelsCheckbox = new JCheckBox("top level (green)", true);
-	JCheckBox viewBottomLevelsCheckbox = new JCheckBox("bottom level (green)", true);
-	JCheckBox viewDerivativeCheckbox = new JCheckBox("derivative (yellow)", true);
-	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps (red)", true);
+	JCheckBox viewTopLevelsCheckbox = new JCheckBox("top level", true);
+	JCheckBox viewBottomLevelsCheckbox = new JCheckBox("bottom", true);
+	JCheckBox viewDerivativeCheckbox = new JCheckBox("derivative", true);
+	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps", true);
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
@@ -57,24 +57,29 @@ public class Options extends JPanel {
 		panel0.add(kymographsCheckBox);
 		panel0.add(cagesCheckBox);
 		panel0.add(measuresCheckBox);
-		panel0.add(graphsCheckBox);
+
 		panel0.setComponentOrientation(ComponentOrientation.LEFT_TO_RIGHT);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layout);
-		panel1.add(new JLabel("View cams: "));
+		panel1.add(new JLabel("Camera:"));
 		panel1.add(viewCapillariesCheckBox);
 		panel1.add(viewCellsCheckbox);
 		panel1.add(viewFlyCheckbox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layout);
-		panel2.add(new JLabel("View kymos: "));
+		panel2.add(new JLabel("Kymographs: "));
 		panel2.add(viewTopLevelsCheckbox);
 		panel2.add(viewBottomLevelsCheckbox);
 		panel2.add(viewDerivativeCheckbox);
 		panel2.add(viewGulpsCheckbox);
 		add(panel2);
+
+		JPanel panel3 = new JPanel(layout);
+		panel3.add(new JLabel("Graphs:"));
+		panel3.add(graphsCheckBox);
+		add(panel3);
 
 		defineActionListeners();
 	}
