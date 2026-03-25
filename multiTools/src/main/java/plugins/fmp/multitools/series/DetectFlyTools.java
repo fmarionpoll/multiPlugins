@@ -214,12 +214,14 @@ public class DetectFlyTools {
 			throws InterruptedException {
 		List<BooleanMask2D> masks = findBlobMasksForCage(binarizedImageRoi, cage.cageMask2D, cage, t);
 		if (masks.isEmpty()) {
-			cage.flyPositions.addPositionWithoutRoiArea(t, null);
+			cage.flyPositions.addPositionWithoutRoiArea(t, 0, null);
 			return;
 		}
-		for (BooleanMask2D m : masks) {
+		cage.flyPositions.nflies = Math.max(cage.flyPositions.nflies, masks.size());
+		for (int flyId = 0; flyId < masks.size(); flyId++) {
+			BooleanMask2D m = masks.get(flyId);
 			Rectangle2D rect = m.getOptimizedBounds();
-			cage.flyPositions.addPositionWithoutRoiArea(t, rect);
+			cage.flyPositions.addPositionWithoutRoiArea(t, flyId, rect);
 			if (rect != null)
 				listRectangles.add(rect);
 		}

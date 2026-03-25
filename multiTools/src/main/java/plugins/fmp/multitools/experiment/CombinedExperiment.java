@@ -84,6 +84,7 @@ public class CombinedExperiment extends Experiment {
 						continue;
 					FlyPositions flypos_i = cage_i.getFlyPositions();
 					flyPos.getFlyPositionList().addAll(flypos_i.getFlyPositionList());
+					flyPos.recomputeNfliesFromEntries();
 				}
 			}
 		}

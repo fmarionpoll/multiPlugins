@@ -14,6 +14,8 @@ public class FlyPosition {
 	public Rectangle2D rectPosition = new Rectangle2D.Double(Double.NaN, Double.NaN, Double.NaN, Double.NaN);
 	public ROI2DArea flyRoi = null;
 	public int flyIndexT = 0;
+	/** Pseudo-identity within a cage. -1 means unknown / legacy. */
+	public int flyId = -1;
 	public long tMs = 0;
 	public boolean bAlive = false;
 	public boolean bSleep = false;
@@ -40,6 +42,13 @@ public class FlyPosition {
 		flyIndexT = indexT;
 	}
 
+	public FlyPosition(int indexT, int flyId, Rectangle2D rectangle) {
+		if (rectangle != null)
+			this.rectPosition.setRect(rectangle);
+		this.flyIndexT = indexT;
+		this.flyId = flyId;
+	}
+
 	public FlyPosition(int indexT, Rectangle2D rectangle, ROI2DArea roiArea) {
 		if (rectangle != null)
 			this.rectPosition.setRect(rectangle);
@@ -60,6 +69,7 @@ public class FlyPosition {
 
 	public void copy(FlyPosition source) {
 		flyIndexT = source.flyIndexT;
+		flyId = source.flyId;
 		tMs = source.tMs;
 		bAlive = source.bAlive;
 		bSleep = source.bSleep;
@@ -140,6 +150,14 @@ public class FlyPosition {
 
 	public void setFlyIndexT(int flyIndexT) {
 		this.flyIndexT = flyIndexT;
+	}
+
+	public int getFlyId() {
+		return flyId;
+	}
+
+	public void setFlyId(int flyId) {
+		this.flyId = flyId;
 	}
 
 	public long gettMs() {
@@ -241,6 +259,7 @@ public class FlyPosition {
 			}
 
 			flyIndexT = XMLUtil.getAttributeIntValue(node_XYTa, "t", 0);
+			flyId = XMLUtil.getAttributeIntValue(node_XYTa, "id", -1);
 			bAlive = XMLUtil.getAttributeBooleanValue(node_XYTa, "a", false);
 			bSleep = XMLUtil.getAttributeBooleanValue(node_XYTa, "s", false);
 		}
@@ -269,6 +288,9 @@ public class FlyPosition {
 		}
 
 		XMLUtil.setAttributeDoubleValue(node_XYTa, "t", flyIndexT);
+		if (flyId >= 0) {
+			XMLUtil.setAttributeIntValue(node_XYTa, "id", flyId);
+		}
 		XMLUtil.setAttributeBooleanValue(node_XYTa, "a", bAlive);
 		XMLUtil.setAttributeBooleanValue(node_XYTa, "s", bSleep);
 
@@ -282,6 +304,12 @@ public class FlyPosition {
 
 	public boolean cvsExportT(StringBuffer sbf, String sep) {
 		sbf.append(StringUtil.toString(flyIndexT));
+		sbf.append(sep);
+		return true;
+	}
+
+	public boolean cvsExportId(StringBuffer sbf, String sep) {
+		sbf.append(StringUtil.toString(flyId));
 		sbf.append(sep);
 		return true;
 	}
@@ -322,6 +350,8 @@ public class FlyPosition {
 	public boolean cvsExportXYData(StringBuffer sbf, String sep) {
 		sbf.append(StringUtil.toString(flyIndexT));
 		sbf.append(sep);
+		sbf.append(StringUtil.toString(flyId));
+		sbf.append(sep);
 		sbf.append(StringUtil.toString((double) rectPosition.getX()));
 		sbf.append(sep);
 		sbf.append(StringUtil.toString((double) rectPosition.getY()));
@@ -330,59 +360,67 @@ public class FlyPosition {
 	}
 
 	public boolean csvImportRectangle(String[] data, int startAt) {
-		int npoints = 5;
-		if (data.length < npoints + startAt - 1)
+		// Legacy: t,x,y,w,h
+		// New:    t,id,x,y,w,h
+		if (data.length < startAt + 5)
 			return false;
 
 		int offset = startAt;
-		flyIndexT = Integer.valueOf(data[offset]);
-		offset++;
-		double x = Double.valueOf(data[offset]);
-		offset++;
-		double y = Double.valueOf(data[offset]);
-		offset++;
-		double w = Double.valueOf(data[offset]);
-		offset++;
-		double h = Double.valueOf(data[offset]);
-		offset++;
+		flyIndexT = Integer.valueOf(data[offset++]);
+
+		boolean hasId = (data.length >= startAt + 6);
+		if (hasId) {
+			flyId = Integer.valueOf(data[offset++]);
+		} else {
+			flyId = 0;
+		}
+
+		double x = Double.valueOf(data[offset++]);
+		double y = Double.valueOf(data[offset++]);
+		double w = Double.valueOf(data[offset++]);
+		double h = Double.valueOf(data[offset++]);
 		rectPosition.setRect(x, y, w, h);
 
 		return true;
 	}
 
 	public boolean csvImportXYWHData(String[] data, int startAt) {
-		int npoints = 5;
-		if (data.length < npoints + startAt - 1)
+		if (data.length < startAt + 5)
 			return false;
 
 		int offset = startAt;
-		flyIndexT = Integer.valueOf(data[offset]);
-		offset++;
-		double xR = Double.valueOf(data[offset]);
-		offset++;
-		double yR = Double.valueOf(data[offset]);
-		offset++;
-		double wR = Double.valueOf(data[offset]);
-		offset++;
-		double hR = Double.valueOf(data[offset]);
-		offset++;
+		flyIndexT = Integer.valueOf(data[offset++]);
+		boolean hasId = (data.length >= startAt + 6);
+		if (hasId) {
+			flyId = Integer.valueOf(data[offset++]);
+		} else {
+			flyId = 0;
+		}
+
+		double xR = Double.valueOf(data[offset++]);
+		double yR = Double.valueOf(data[offset++]);
+		double wR = Double.valueOf(data[offset++]);
+		double hR = Double.valueOf(data[offset++]);
 		rectPosition.setRect(xR, yR, wR, hR);
 
 		return true;
 	}
 
 	public boolean csvImportXY(String[] data, int startAt) {
-		int npoints = 3;
-		if (data.length < npoints + startAt - 1)
+		if (data.length < startAt + 3)
 			return false;
 
 		int offset = startAt;
-		flyIndexT = Integer.valueOf(data[offset]);
-		offset++;
-		double x = Double.valueOf(data[offset]);
-		offset++;
-		double y = Double.valueOf(data[offset]);
-		offset++;
+		flyIndexT = Integer.valueOf(data[offset++]);
+		boolean hasId = (data.length >= startAt + 4);
+		if (hasId) {
+			flyId = Integer.valueOf(data[offset++]);
+		} else {
+			flyId = 0;
+		}
+
+		double x = Double.valueOf(data[offset++]);
+		double y = Double.valueOf(data[offset++]);
 
 		if (!Double.isNaN(x) && !Double.isNaN(y)) {
 			x -= 2.;
@@ -396,17 +434,20 @@ public class FlyPosition {
 	}
 
 	public boolean csvImportXYData(String[] data, int startAt) {
-		int npoints = 3;
-		if (data.length < npoints + startAt - 1)
+		if (data.length < startAt + 3)
 			return false;
 
 		int offset = startAt;
-		flyIndexT = Integer.valueOf(data[offset]);
-		offset++;
-		double xR = Double.valueOf(data[offset]);
-		offset++;
-		double yR = Double.valueOf(data[offset]);
-		offset++;
+		flyIndexT = Integer.valueOf(data[offset++]);
+		boolean hasId = (data.length >= startAt + 4);
+		if (hasId) {
+			flyId = Integer.valueOf(data[offset++]);
+		} else {
+			flyId = 0;
+		}
+
+		double xR = Double.valueOf(data[offset++]);
+		double yR = Double.valueOf(data[offset++]);
 
 		if (!Double.isNaN(xR) && !Double.isNaN(yR)) {
 			xR -= 2.;

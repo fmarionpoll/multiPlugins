@@ -58,8 +58,22 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			return new XYSeriesCollection();
 		}
 
-		// Ensure required computations are performed based on result type
 		EnumResults resultType = options.resultType;
+		boolean multiFly = flyPositions.getNflies() > 1;
+
+		// For multi-fly pseudo-id, derived measures are not meaningful.
+		if (multiFly) {
+			switch (resultType) {
+			case DISTANCE:
+			case ISALIVE:
+			case SLEEP:
+				return new XYSeriesCollection();
+			default:
+				break;
+			}
+		}
+
+		// Ensure required computations are performed based on result type
 		switch (resultType) {
 		case DISTANCE:
 			flyPositions.computeDistanceBetweenConsecutivePoints();
@@ -77,20 +91,120 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			// No computation needed for position types
 			break;
 		}
-		
-		XYSeriesCollection dataset = new XYSeriesCollection();
-		String name = cage.getRoi() != null ? cage.getRoi().getName() : 
-		             (cage.getCageRoi2D() != null ? cage.getCageRoi2D().getName() : 
-		              "Cage " + cage.getProperties().getCageID());
-		XYSeries seriesXY = new XYSeries(name, false);
-		seriesXY.setDescription(name);
-		
-		addPointsToXYSeries(cage, flyPositions, resultType, seriesXY);
-		
-		if (seriesXY.getItemCount() > 0) {
-			dataset.addSeries(seriesXY);
+
+		String name = cage.getRoi() != null ? cage.getRoi().getName()
+				: (cage.getCageRoi2D() != null ? cage.getCageRoi2D().getName() : "Cage " + cage.getProperties().getCageID());
+
+		if (!multiFly) {
+			XYSeriesCollection dataset = new XYSeriesCollection();
+			XYSeries seriesXY = new XYSeries(name, false);
+			seriesXY.setDescription(name);
+			addPointsToXYSeries(cage, flyPositions, resultType, seriesXY);
+			if (seriesXY.getItemCount() > 0) {
+				dataset.addSeries(seriesXY);
+			}
+			return dataset;
 		}
-		
+
+		// Multi-fly: create one series per pseudo flyId (rank-by-area per frame).
+		int maxFlyId = Math.max(0, flyPositions.getNflies() - 1);
+		for (FlyPosition p : flyPositions.flyPositionList) {
+			if (p != null && p.flyId >= 0) {
+				maxFlyId = Math.max(maxFlyId, p.flyId);
+			}
+		}
+		int nSeries = maxFlyId + 1;
+
+		XYSeriesCollection dataset = new XYSeriesCollection();
+		java.util.Map<Integer, XYSeries> byId = new java.util.HashMap<>();
+		for (int flyId = 0; flyId < nSeries; flyId++) {
+			XYSeries s = new XYSeries(name + \"_fly\" + flyId, false);
+			s.setDescription(name + \"_fly\" + flyId);
+			byId.put(flyId, s);
+		}
+
+		// Precompute ROI bounds and scale factors once per cage.
+		java.awt.geom.Rectangle2D rect1 = null;
+		if (cage.getRoi() != null) {
+			rect1 = cage.getRoi().getBounds();
+		} else if (cage.getCageRoi2D() != null) {
+			rect1 = cage.getCageRoi2D().getBounds();
+		}
+		double sx = flyPositions.getMmPerPixelX();
+		double sy = flyPositions.getMmPerPixelY();
+
+		double yOrigin = 0;
+		double yTop = 0;
+		double xLeft = 0;
+		if (rect1 != null) {
+			yOrigin = rect1.getY() + rect1.getHeight();
+			yTop = rect1.getY();
+			xLeft = rect1.getX();
+		}
+
+		for (FlyPosition pos : flyPositions.flyPositionList) {
+			if (pos == null)
+				continue;
+			if (pos.flyId < 0)
+				continue;
+			if (pos.rectPosition == null)
+				continue;
+			if (Double.isNaN(pos.rectPosition.getX()) || Double.isNaN(pos.rectPosition.getY()))
+				continue;
+
+			XYSeries s = byId.get(pos.flyId);
+			if (s == null)
+				continue;
+
+			double timeMinutes = pos.tMs / (60.0 * 1000.0);
+
+			double yOrX;
+			switch (resultType) {
+			case XYIMAGE:
+				// Legacy semantics: Y from bottom of cage.
+				if (rect1 == null)
+					continue;
+				yOrX = (yOrigin - pos.rectPosition.getY()) * sy;
+				s.add(timeMinutes, yOrX);
+				break;
+			case XYTOPCAGE:
+			case YTOPCAGE:
+				if (rect1 == null)
+					continue;
+				yOrX = (pos.rectPosition.getY() - yTop) * sy;
+				s.add(timeMinutes, yOrX);
+				break;
+			case XTOPCAGE:
+				if (rect1 == null)
+					continue;
+				yOrX = (pos.rectPosition.getX() - xLeft) * sx;
+				s.add(timeMinutes, yOrX);
+				break;
+			case XYTIPCAPS:
+				yOrX = pos.getCenterRectangle().getX() * sx;
+				s.add(timeMinutes, yOrX);
+				break;
+			case ELLIPSEAXES:
+				yOrX = pos.axis1Mm;
+				s.add(timeMinutes, yOrX);
+				break;
+			default:
+				// Fallback to legacy bottom-of-cage Y.
+				if (rect1 == null)
+					continue;
+				yOrX = (yOrigin - pos.rectPosition.getY()) * sy;
+				s.add(timeMinutes, yOrX);
+				break;
+			}
+		}
+
+		for (int flyId = 0; flyId < nSeries; flyId++) {
+			XYSeries s = byId.get(flyId);
+			if (s != null && s.getItemCount() > 0) {
+				dataset.addSeries(s);
+			}
+		}
+
 		return dataset;
 	}
 	

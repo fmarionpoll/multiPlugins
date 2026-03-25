@@ -3,6 +3,7 @@ package plugins.fmp.multitools.tools.chart;
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.geom.Ellipse2D;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -108,6 +110,17 @@ public class ChartPositions extends IcyFrame {
 			.withResultType(resultType)
 			.build();
 		
+		// Determine multi-fly mode (pseudo identity).
+		boolean multiFly = false;
+		for (Cage cage : cageList) {
+			if (cage != null && cage.getFlyPositions() != null && cage.getFlyPositions().getNflies() > 1) {
+				multiFly = true;
+				break;
+			}
+		}
+
+		boolean scatterOnly = multiFly && isPositionResultType(resultType);
+
 		// Use the builder to create datasets for each cage
 		for (Cage cage : cageList) {
 			if (cage == null) {
@@ -154,6 +167,12 @@ public class ChartPositions extends IcyFrame {
 			xyChart.setAntiAlias(true);
 			xyChart.setTextAntiAlias(true);
 
+			if (scatterOnly) {
+				XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(false, true);
+				renderer.setDefaultShape(new Ellipse2D.Double(-2.0, -2.0, 4.0, 4.0));
+				xyChart.getXYPlot().setRenderer(renderer);
+			}
+
 			ValueAxis yAxis = xyChart.getXYPlot().getRangeAxis(0);
 			if (yMaxMin.hasValues()) {
 				double min = yMaxMin.getMin();
@@ -190,6 +209,20 @@ public class ChartPositions extends IcyFrame {
 		}
 		mainChartFrame.addToDesktopPane();
 		mainChartFrame.setVisible(true);
+	}
+
+	private boolean isPositionResultType(EnumResults resultType) {
+		switch (resultType) {
+		case XYIMAGE:
+		case XYTOPCAGE:
+		case XTOPCAGE:
+		case YTOPCAGE:
+		case XYTIPCAPS:
+		case ELLIPSEAXES:
+			return true;
+		default:
+			return false;
+		}
 	}
 	
 	/**

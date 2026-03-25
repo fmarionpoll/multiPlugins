@@ -91,6 +91,11 @@ public class FlyPositions {
 		flyPositionList.add(pos);
 	}
 
+	public void addPositionWithoutRoiArea(int t, int flyId, Rectangle2D rectangle) {
+		FlyPosition pos = new FlyPosition(t, flyId, rectangle);
+		flyPositionList.add(pos);
+	}
+
 	public void addPositionWithRoiArea(int t, Rectangle2D rectangle, ROI2DArea roiArea) {
 		FlyPosition pos = new FlyPosition(t, rectangle, roiArea);
 		flyPositionList.add(pos);
@@ -139,26 +144,117 @@ public class FlyPositions {
 		flyPositionList.clear();
 		int nb_items = XMLUtil.getAttributeIntValue(node_position_list, ID_NBITEMS, 0);
 		flyPositionList.ensureCapacity(nb_items);
-		for (int i = 0; i < nb_items; i++)
-			flyPositionList.add(new FlyPosition(i));
-		boolean bAdded = false;
 
 		for (int i = 0; i < nb_items; i++) {
 			String elementi = "i" + i;
 			Element node_position_i = XMLUtil.getElement(node_position_list, elementi);
+			if (node_position_i == null)
+				continue;
 			FlyPosition pos = new FlyPosition();
 			pos.loadXYTvaluesFromXML(node_position_i);
-			if (pos.flyIndexT < nb_items)
-				flyPositionList.set(pos.flyIndexT, pos);
-			else {
-				flyPositionList.add(pos);
-				bAdded = true;
+			// Multi-fly: multiple entries can share the same flyIndexT. Keep them all.
+			flyPositionList.add(pos);
+		}
+
+		Collections.sort(flyPositionList, new Comparators.XYTaValue_Tindex());
+		recomputeNfliesFromEntries();
+		return true;
+	}
+
+	/**
+	 * Recomputes {@link #nflies} from loaded entries.\n
+	 * - If flyId is present (>=0), use max(flyId)+1\n
+	 * - Otherwise, fallback to max multiplicity per flyIndexT\n
+	 * Ensures nflies>=1.\n
+	 */
+	public void recomputeNfliesFromEntries() {
+		if (flyPositionList == null || flyPositionList.isEmpty()) {
+			nflies = Math.max(1, nflies);
+			return;
+		}
+
+		// 1) Detect whether legacy data has flyId assigned.
+		boolean anyIdPresent = false;
+		for (FlyPosition p : flyPositionList) {
+			if (p != null && p.flyId >= 0) {
+				anyIdPresent = true;
+				break;
 			}
 		}
 
-		if (bAdded)
-			Collections.sort(flyPositionList, new Comparators.XYTaValue_Tindex());
-		return true;
+		// 2) If no flyId is present (legacy), assign pseudo flyId per frame t:
+		//    - group by flyIndexT
+		//    - sort components by descending blob area (w*h)
+		//    - assign flyId = 0..k-1 for that t
+		if (!anyIdPresent) {
+			java.util.HashMap<Integer, java.util.List<FlyPosition>> byT = new java.util.HashMap<>();
+			for (FlyPosition p : flyPositionList) {
+				if (p == null)
+					continue;
+				byT.computeIfAbsent(p.flyIndexT, k -> new java.util.ArrayList<>()).add(p);
+			}
+
+			for (java.util.Map.Entry<Integer, java.util.List<FlyPosition>> e : byT.entrySet()) {
+				java.util.List<FlyPosition> list = e.getValue();
+				if (list == null || list.isEmpty())
+					continue;
+				list.sort((a, b) -> {
+					double aa = (a != null && a.rectPosition != null) ? a.rectPosition.getWidth() * a.rectPosition.getHeight()
+							: 0.0;
+					double bb = (b != null && b.rectPosition != null) ? b.rectPosition.getWidth() * b.rectPosition.getHeight()
+							: 0.0;
+					// Descending area.
+					return Double.compare(bb, aa);
+				});
+				for (int id = 0; id < list.size(); id++) {
+					FlyPosition p = list.get(id);
+					if (p != null)
+						p.flyId = id;
+				}
+			}
+		} else {
+			// Mixed case (some entries have flyId, some are legacy).
+			// For any missing flyId (<0), assign it per frame t using the same area-ranking.
+			java.util.HashMap<Integer, java.util.List<FlyPosition>> byT = new java.util.HashMap<>();
+			for (FlyPosition p : flyPositionList) {
+				if (p == null)
+					continue;
+				byT.computeIfAbsent(p.flyIndexT, k -> new java.util.ArrayList<>()).add(p);
+			}
+			for (java.util.Map.Entry<Integer, java.util.List<FlyPosition>> e : byT.entrySet()) {
+				java.util.List<FlyPosition> list = e.getValue();
+				if (list == null || list.isEmpty())
+					continue;
+				list.sort((a, b) -> {
+					double aa = (a != null && a.rectPosition != null) ? a.rectPosition.getWidth() * a.rectPosition.getHeight()
+							: 0.0;
+					double bb = (b != null && b.rectPosition != null) ? b.rectPosition.getWidth() * b.rectPosition.getHeight()
+							: 0.0;
+					return Double.compare(bb, aa);
+				});
+				for (int id = 0; id < list.size(); id++) {
+					FlyPosition p = list.get(id);
+					if (p != null && p.flyId < 0)
+						p.flyId = id;
+				}
+			}
+		}
+
+		// 3) Compute nflies = max(flyId)+1, with a multiplicity fallback if needed.
+		int maxId = -1;
+		java.util.HashMap<Integer, Integer> countsByT = new java.util.HashMap<>();
+		for (FlyPosition p : flyPositionList) {
+			if (p == null)
+				continue;
+			if (p.flyId >= 0)
+				maxId = Math.max(maxId, p.flyId);
+			countsByT.put(p.flyIndexT, countsByT.getOrDefault(p.flyIndexT, 0) + 1);
+		}
+		int maxCount = 0;
+		for (Integer v : countsByT.values())
+			maxCount = Math.max(maxCount, v != null ? v.intValue() : 0);
+		int computed = (maxId >= 0) ? (maxId + 1) : maxCount;
+		nflies = Math.max(1, computed);
 	}
 
 	public boolean saveXYTseriesToXML(Node node) {
@@ -752,13 +848,18 @@ public class FlyPositions {
 		if (npoints > 0) {
 			flyPositionList = new ArrayList<FlyPosition>(npoints);
 			int offset = startAt + 1;
+			int stride = 5;
+			int remaining = data.length - offset;
+			if (npoints > 0 && remaining / npoints >= 6)
+				stride = 6;
 			for (int i = 0; i < npoints; i++) {
 				FlyPosition flyPosition = new FlyPosition();
 				flyPosition.csvImportXYWHData(data, offset);
 				flyPositionList.add(flyPosition);
-				offset += 5;
+				offset += stride;
 			}
 		}
+		recomputeNfliesFromEntries();
 		return true;
 	}
 
@@ -770,13 +871,18 @@ public class FlyPositions {
 		if (npoints > 0) {
 			flyPositionList = new ArrayList<FlyPosition>(npoints);
 			int offset = startAt + 1;
+			int stride = 3;
+			int remaining = data.length - offset;
+			if (npoints > 0 && remaining / npoints >= 4)
+				stride = 4;
 			for (int i = 0; i < npoints; i++) {
 				FlyPosition flyPosition = new FlyPosition();
 				flyPosition.csvImportXYData(data, offset);
 				flyPositionList.add(flyPosition);
-				offset += 3;
+				offset += stride;
 			}
 		}
+		recomputeNfliesFromEntries();
 		return true;
 	}
 
