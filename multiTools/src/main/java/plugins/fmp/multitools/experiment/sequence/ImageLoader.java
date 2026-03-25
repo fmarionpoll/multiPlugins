@@ -144,10 +144,18 @@ public class ImageLoader {
 			return new ArrayList<>(images);
 		}
 
+		// fixedNumberOfImages semantics:
+		// - <= 0  : no explicit upper bound, use full list from startIndex
+		// - > 0   : absolute end index (exclusive) in the ORIGINAL on-disk list
+		//
+		// This matches ExperimentPersistence where nFrames is stored as "total images"
+		// and combined with indexFrameFirst to compute the view size.
+
 		// More efficient approach using subList
 		int startIndex = (int) Math.min(absoluteIndexFirstImage, images.size());
-		int endIndex = (fixedNumberOfImages > 0) ? (int) Math.min(startIndex + fixedNumberOfImages, images.size())
-				: images.size();
+		int endIndex = (fixedNumberOfImages > 0) ? (int) Math.min(fixedNumberOfImages, images.size()) : images.size();
+		if (endIndex < startIndex)
+			endIndex = startIndex;
 
 		return new ArrayList<>(images.subList(startIndex, endIndex));
 	}
@@ -266,7 +274,7 @@ public class ImageLoader {
 			nTotalFrames = imagesList.size();
 			// Also update fixedNumberOfImages when invalid so clipImagesList uses full list
 			if (fixedNumberOfImages <= 1) {
-				fixedNumberOfImages = imagesList.size() + absoluteIndexFirstImage;
+				fixedNumberOfImages = imagesList.size();
 			}
 		}
 		return nTotalFrames;

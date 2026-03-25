@@ -45,7 +45,11 @@ public class KymographBuilder {
 		clearAllAlongTMasks(exp);
 
 		SequenceLoaderService loader = new SequenceLoaderService();
-		long offset = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
+		// Important: in this codebase the "offset" is applied by clipping the camera
+		// image list/sequence at load time (ImageLoader.clipImagesList).
+		// So for kymograph computation we must operate in VIEW indices (0..sizeT-1),
+		// otherwise we end up selecting only 1-2 frames when offset is large.
+		final long viewOffset = 0;
 		// camImages_ms[] must use the same time reference as exp.getKymoFirst_ms()
 		// because ii_ms is computed from kymoFirst_ms and compared against
 		// camImages_ms[]
@@ -57,7 +61,7 @@ public class KymographBuilder {
 		long camReferenceMs = exp.getCamImageFirst_ms();
 		if (camReferenceMs < 0) {
 			// Fallback to previous behavior if reference isn't initialized.
-			FileTime firstViewFileTime = exp.getSeqCamData().getFileTimeFromStructuredName((int) offset);
+			FileTime firstViewFileTime = exp.getSeqCamData().getFileTimeFromStructuredName(0);
 			camReferenceMs = (firstViewFileTime != null) ? firstViewFileTime.toMillis() : 0;
 		}
 		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(camReferenceMs);
@@ -72,10 +76,8 @@ public class KymographBuilder {
 		long step_ms = exp.getKymoBin_ms();
 
 		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		long fixedN = exp.getSeqCamData().getImageLoader().getFixedNumberOfImages();
-		int nViewFrames = (fixedN > 0) ? (int) fixedN : Math.max(0, nTotalFrames - (int) offset);
-		int lowIndex = (int) Math.min(offset, nTotalFrames - 1);
-		int highIndex = (nTotalFrames > 0) ? (int) Math.min(offset + nViewFrames - 1, nTotalFrames - 1) : 0;
+		int lowIndex = 0;
+		int highIndex = (nTotalFrames > 0) ? (nTotalFrames - 1) : 0;
 		if (highIndex < lowIndex)
 			highIndex = lowIndex;
 		long[] camImages_ms = exp.getCamImages_ms();
@@ -89,7 +91,6 @@ public class KymographBuilder {
 		int sourceLastImageIndex = nTotalFrames;
 		final int refSizex = exp.getSeqCamData().getSequence().getSizeX();
 		final int refSizey = exp.getSeqCamData().getSequence().getSizeY();
-		final long viewOffset = offset;
 
 		ProgressFrame progress = new ProgressFrame("Analyze series");
 

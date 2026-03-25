@@ -142,30 +142,31 @@ public class Intervals extends JPanel implements ItemListener {
 				if (exp == null || exp.getSeqCamData() == null) {
 					return;
 				}
-				long requested = (long) fixedNumberOfImagesJSpinner.getValue();
+				long requestedCount = (long) fixedNumberOfImagesJSpinner.getValue();
 				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
 						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
-				long available = Math.max(0L, imagesOnDisk.size() - imgLoader.getAbsoluteIndexFirstImage());
+				long absFirst = imgLoader.getAbsoluteIndexFirstImage();
+				long available = Math.max(0L, imagesOnDisk.size() - absFirst);
 				if (available <= 0) {
 					fixedNumberOfImagesJSpinner.setValue(0L);
 					imgLoader.setFixedNumberOfImages(0L);
-					imgLoader.setNTotalFrames(0);
 					return;
 				}
-				long clamped = Math.min(Math.max(1L, requested), available);
-				if (clamped != requested) {
-					fixedNumberOfImagesJSpinner.setValue(clamped);
+				long clampedCount = Math.min(Math.max(1L, requestedCount), available);
+				if (clampedCount != requestedCount) {
+					fixedNumberOfImagesJSpinner.setValue(clampedCount);
 				}
-				if (imgLoader.getFixedNumberOfImages() == clamped) {
+				long absEndExclusive = absFirst + clampedCount;
+				if (imgLoader.getFixedNumberOfImages() == absEndExclusive) {
 					return;
 				}
-				imgLoader.setFixedNumberOfImages(clamped);
-				imgLoader.setNTotalFrames((int) clamped);
+				// Persist as absolute end index (exclusive) to match Experiment.xml semantics:
+				// fixedNumberOfImages = total number of images from frame 0 on disk.
+				imgLoader.setFixedNumberOfImages(absEndExclusive);
 				exp.getSeqCamData().loadImageList(imagesOnDisk);
 				long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-				exp.getSeqCamData().getTimeManager()
-						.setBinLast_ms((clamped - imgLoader.getAbsoluteIndexFirstImage()) * bin_ms);
+				exp.getSeqCamData().getTimeManager().setBinLast_ms(Math.max(0L, clampedCount - 1) * bin_ms);
 				exp.saveExperimentDescriptors();
 			}
 		});
@@ -196,15 +197,16 @@ public class Intervals extends JPanel implements ItemListener {
 				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
 						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
-				long available = Math.max(0L, imagesOnDisk.size() - imgLoader.getAbsoluteIndexFirstImage());
+				long absFirst = imgLoader.getAbsoluteIndexFirstImage();
+				long available = Math.max(0L, imagesOnDisk.size() - absFirst);
 				if (available <= 0) {
 					fixedNumberOfImagesJSpinner.setValue(0L);
 					imgLoader.setFixedNumberOfImages(0L);
 					imgLoader.setNTotalFrames(0);
 					return;
 				}
-				imgLoader.setFixedNumberOfImages(available);
-				imgLoader.setNTotalFrames((int) available);
+				// Set end to last image on disk (exclusive).
+				imgLoader.setFixedNumberOfImages(imagesOnDisk.size());
 				fixedNumberOfImagesJSpinner.setValue(available);
 				exp.getSeqCamData().loadImageList(imagesOnDisk);
 				exp.saveExperimentDescriptors();
@@ -252,6 +254,7 @@ public class Intervals extends JPanel implements ItemListener {
 		parent0.paneExperiment.updateDialogs(exp);
 		parent0.paneExperiment.updateViewerForSequenceCam(exp);
 		parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
+		exp.saveExperimentDescriptors();
 	}
 
 	public void getExptParms(Experiment exp) {
