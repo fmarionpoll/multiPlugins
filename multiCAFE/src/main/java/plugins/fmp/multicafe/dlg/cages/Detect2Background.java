@@ -54,6 +54,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 
 	private JButton loadButton = new JButton("Load...");
 	private JButton saveButton = new JButton("Save...");
+	private JButton editButton = new JButton("Edit reference...");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 
@@ -96,6 +97,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		JPanel panel4 = new JPanel(flowLayout);
 		panel4.add(loadButton);
 		panel4.add(saveButton);
+		panel4.add(editButton);
 		add(panel4);
 
 		defineActionListeners();
@@ -120,6 +122,16 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					new SequenceLoaderService().saveReferenceImage(exp);
+			}
+		});
+
+		editButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					ReferenceImageEditor.open(parent0, exp);
+				}
 			}
 		});
 
