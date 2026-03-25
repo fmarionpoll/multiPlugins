@@ -19,6 +19,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.JComboBox;
 
 import icy.gui.dialog.MessageDialog;
 import icy.gui.viewer.Viewer;
@@ -47,6 +48,9 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	private JSpinner backgroundNFramesSpinner = new JSpinner(new SpinnerNumberModel(20, 0, 255, 1));
 	private JSpinner backgroundJitterSpinner = new JSpinner(new SpinnerNumberModel(1, 0, 255, 1));
 	private JSpinner backgroundDeltaSpinner = new JSpinner(new SpinnerNumberModel(20, 0, 255, 1));
+	private JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(new ImageTransformEnums[] { //
+			ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, //
+			ImageTransformEnums.RGB, ImageTransformEnums.NONE });
 
 	private JButton loadButton = new JButton("Load...");
 	private JButton saveButton = new JButton("Save...");
@@ -73,6 +77,9 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(new JLabel("threshold/fly "));
 		panel2.add(backgroundThresholdSpinner);
+		panel2.add(new JLabel(" on "));
+		transformComboBox.setSelectedItem(ImageTransformEnums.R_RGB);
+		panel2.add(transformComboBox);
 		panel2.add(new JLabel("over n frames "));
 		panel2.add(backgroundNFramesSpinner);
 		panel2.add(overlayCheckBox);
@@ -141,6 +148,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 					if (overlayCheckBox.isSelected()) {
 						if (ov == null)
 							ov = new OverlayThreshold(exp.getSeqCamData().getSequence());
+						ov.setMaskColor(new Color(0, 255, 255, 255));
+						ov.setOpacity(0.5f);
 						exp.getSeqCamData().getSequence().addOverlay(ov);
 						updateOverlay(exp);
 					} else
@@ -203,8 +212,12 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		ov.setReferenceImage(referenceImage);
 		seqCamData.getSequence().addOverlay(ov);
 
-		boolean ifGreater = false;
-		ImageTransformEnums transformOp = ImageTransformEnums.NONE;
+		// Background update triggers when sourceValue >= threshold; keep preview consistent.
+		boolean ifGreater = true;
+		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
+		if (transformOp == null) {
+			transformOp = ImageTransformEnums.R_RGB;
+		}
 		int threshold = (int) backgroundThresholdSpinner.getValue();
 		ov.setThresholdSingle(threshold, transformOp, ifGreater);
 		ov.painterChanged();

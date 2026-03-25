@@ -115,6 +115,26 @@ public abstract class OverlayColorMapBase extends IcyColorMap {
         gray.setValue(position, ColorUtil.getGrayMix(colorBackground));
         alpha.setValue(position, ALPHA_OPAQUE);
     }
+
+    /**
+     * Updates the mask color (value at position 0).
+     */
+    public void setMaskColor(Color colorMask) {
+        if (colorMask == null) {
+            return;
+        }
+        beginUpdate();
+        try {
+            final int maskPosition = 0;
+            red.setValue(maskPosition, colorMask.getRed());
+            green.setValue(maskPosition, colorMask.getGreen());
+            blue.setValue(maskPosition, colorMask.getBlue());
+            // Keep alpha opaque for mask; grayscale stays as-is.
+            alpha.setValue(maskPosition, ALPHA_OPAQUE);
+        } finally {
+            endUpdate();
+        }
+    }
     
     /**
      * Validates the map name parameter.

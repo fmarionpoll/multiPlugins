@@ -73,6 +73,8 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		panel1.add(startComputationButton);
 		panel1.add(allCagesComboBox);
 		panel1.add(allCheckBox);
+		panel1.add(viewButton);
+		panel1.add(overlayCheckBox);
 		add(panel1);
 
 		allCagesComboBox.addPopupMenuListener(this);
@@ -80,8 +82,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(new JLabel("threshold"));
 		panel2.add(thresholdSpinner);
-		panel2.add(viewButton);
-		panel2.add(overlayCheckBox);
+
 
 		add(panel2);
 

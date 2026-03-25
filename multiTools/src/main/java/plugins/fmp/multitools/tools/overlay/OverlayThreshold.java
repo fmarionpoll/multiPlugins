@@ -123,6 +123,22 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     }
 
     /**
+     * Sets the overlay mask color (useful for high-contrast previews).
+     */
+    public void setMaskColor(Color color) {
+        if (color == null) {
+            return;
+        }
+        try {
+            // OverlayColorMask is used as the colormap for an ARGB rendering of the thresholded image.
+            // Changing it changes the perceived overlay color without altering threshold logic.
+            colorMap.setMaskColor(color);
+        } catch (Exception e) {
+            Logger.warn("OverlayThreshold: failed to set mask color", e);
+        }
+    }
+
+    /**
      * Sets the sequence for this overlay and registers as a listener.
      * 
      * @param sequence the sequence to attach to
