@@ -79,20 +79,15 @@ public class DetectFlyTools {
 	}
 
 	private int scoreComponent(BooleanMask2D mask, List<Point2D> prevCenters) throws InterruptedException {
-		int len = mask.getPoints().length;
+		java.awt.Point[] pts = mask.getPoints();
+		int len = pts.length;
 		if (options.blimitLow && len < options.limitLow)
 			return 0;
 		if (options.blimitUp && len > options.limitUp)
 			return 0;
 
-		int width = mask.bounds.width;
-		int height = mask.bounds.height;
-		if (width < 1 || height < 1)
-			return 0;
-		int ratio = width / height;
-		if (width < height)
-			ratio = height / width;
-		if (options.blimitRatio && options.limitRatio > 0 && ratio > options.limitRatio)
+		double ratio = computeOrientedBoundingBoxAspectRatio(pts);
+		if (options.blimitRatio && options.limitRatio > 0 && ratio > (double) options.limitRatio)
 			return 0;
 
 		if (len > 0 && options.bjitter && !prevCenters.isEmpty() && options.jitter >= 0) {
@@ -106,6 +101,79 @@ public class DetectFlyTools {
 		}
 
 		return len;
+	}
+
+	/**
+	 * Returns an orientation-invariant aspect ratio estimate for a blob, based on a
+	 * PCA-derived orientation and an oriented bounding box in that frame.
+	 * <p>
+	 * ratio = max(extentU, extentV) / min(extentU, extentV)
+	 * </p>
+	 */
+	private static double computeOrientedBoundingBoxAspectRatio(java.awt.Point[] pts) {
+		if (pts == null || pts.length < 2) {
+			return 1.0;
+		}
+		final int n = pts.length;
+
+		// Compute mean
+		double mx = 0.0;
+		double my = 0.0;
+		for (int i = 0; i < n; i++) {
+			mx += pts[i].x;
+			my += pts[i].y;
+		}
+		mx /= n;
+		my /= n;
+
+		// Compute covariance matrix entries
+		double cxx = 0.0;
+		double cxy = 0.0;
+		double cyy = 0.0;
+		for (int i = 0; i < n; i++) {
+			double dx = pts[i].x - mx;
+			double dy = pts[i].y - my;
+			cxx += dx * dx;
+			cxy += dx * dy;
+			cyy += dy * dy;
+		}
+
+		// Principal axis orientation (angle of the largest eigenvector)
+		// theta = 0.5 * atan2(2*cxy, cxx - cyy)
+		double theta = 0.5 * Math.atan2(2.0 * cxy, cxx - cyy);
+		double cos = Math.cos(theta);
+		double sin = Math.sin(theta);
+
+		// Project points onto rotated axes and compute extents.
+		double minU = Double.POSITIVE_INFINITY;
+		double maxU = Double.NEGATIVE_INFINITY;
+		double minV = Double.POSITIVE_INFINITY;
+		double maxV = Double.NEGATIVE_INFINITY;
+
+		for (int i = 0; i < n; i++) {
+			double dx = pts[i].x - mx;
+			double dy = pts[i].y - my;
+			double u = dx * cos + dy * sin;
+			double v = -dx * sin + dy * cos;
+
+			if (u < minU)
+				minU = u;
+			if (u > maxU)
+				maxU = u;
+			if (v < minV)
+				minV = v;
+			if (v > maxV)
+				maxV = v;
+		}
+
+		double extentU = maxU - minU;
+		double extentV = maxV - minV;
+		double minExtent = Math.min(extentU, extentV);
+		double maxExtent = Math.max(extentU, extentV);
+		if (!(minExtent > 0.0)) {
+			return Double.POSITIVE_INFINITY;
+		}
+		return maxExtent / minExtent;
 	}
 
 	private static List<Point2D> getPreviousFlyCenters(Cage cage, int tPrev) {

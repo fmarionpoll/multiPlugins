@@ -113,7 +113,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int thresholdDiff = 100;
 	public int limitLow = 0;
 	public int limitUp = 1;
-	public int limitRatio = 4;
+	public double limitRatio = 4.;
 	public int jitter = 10;
 	public int nFliesPresent = 1;
 	/**
@@ -220,7 +220,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 			bjitter = XMLUtil.getElementBooleanValue(xmlVal, "bjitter", false);
 			limitLow = XMLUtil.getElementIntValue(xmlVal, "limitLow", -1);
 			limitUp = XMLUtil.getElementIntValue(xmlVal, "limitUp", -1);
-			limitRatio = XMLUtil.getElementIntValue(xmlVal, "limitRatio", limitRatio);
+			limitRatio = XMLUtil.getElementDoubleValue(xmlVal, "limitRatio", limitRatio);
 			jitter = XMLUtil.getElementIntValue(xmlVal, "jitter", 10);
 			nFliesPresent = XMLUtil.getElementIntValue(xmlVal, "nFliesPresent", nFliesPresent);
 			blimitMaxBlobsPerCage = XMLUtil.getElementBooleanValue(xmlVal, "blimitMaxBlobsPerCage",
@@ -257,7 +257,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementBooleanValue(xmlVal, "bjitter", bjitter);
 			XMLUtil.setElementIntValue(xmlVal, "limitLow", limitLow);
 			XMLUtil.setElementIntValue(xmlVal, "limitUp", limitUp);
-			XMLUtil.setElementIntValue(xmlVal, "limitRatio", limitRatio);
+			XMLUtil.setElementDoubleValue(xmlVal, "limitRatio", limitRatio);
 			XMLUtil.setElementIntValue(xmlVal, "jitter", jitter);
 			XMLUtil.setElementIntValue(xmlVal, "nFliesPresent", nFliesPresent);
 			XMLUtil.setElementBooleanValue(xmlVal, "blimitMaxBlobsPerCage", blimitMaxBlobsPerCage);

@@ -26,7 +26,7 @@ public class SeriesImageTransformOptions {
 	private final int thresholdDiff;
 	private final int limitLowValue;
 	private final int limitUpValue;
-	private final int limitRatio;
+	private final double limitRatio;
 	private final int jitter;
 	private final int backgroundDelta;
 	private final int backgroundJitter;
@@ -137,7 +137,7 @@ public class SeriesImageTransformOptions {
 		return limitUpValue;
 	}
 
-	public int getLimitRatio() {
+	public double getLimitRatio() {
 		return limitRatio;
 	}
 
@@ -175,8 +175,8 @@ public class SeriesImageTransformOptions {
 		return limitValue;
 	}
 
-	private int validateLimitRatio(int limitRatio) {
-		if (limitRatio < 1 || limitRatio > 100) {
+	private double validateLimitRatio(double limitRatio) {
+		if (!(limitRatio >= 1.0) || limitRatio > 100.0) {
 			throw new IllegalArgumentException("Limit ratio must be between 1 and 100, got: " + limitRatio);
 		}
 		return limitRatio;
@@ -231,7 +231,7 @@ public class SeriesImageTransformOptions {
 		private int thresholdDiff = 100;
 		private int limitLowValue = 0;
 		private int limitUpValue = 1;
-		private int limitRatio = 4;
+		private double limitRatio = 4.0;
 		private int jitter = 10;
 		private int backgroundDelta = 50;
 		private int backgroundJitter = 1;
@@ -331,7 +331,7 @@ public class SeriesImageTransformOptions {
 			return this;
 		}
 
-		public Builder limitRatio(int limitRatio) {
+		public Builder limitRatio(double limitRatio) {
 			this.limitRatio = limitRatio;
 			return this;
 		}
@@ -370,7 +370,8 @@ public class SeriesImageTransformOptions {
 				.compensateBackground(legacy.compensateBackground).pass1(legacy.pass1).pass2(legacy.pass2)
 				.directionUp2(legacy.directionUp2).overlayThreshold(legacy.overlayThreshold)
 				.thresholdDiff(legacy.thresholdDiff).limitLowValue(legacy.limitLow).limitUpValue(legacy.limitUp)
-				.limitRatio(legacy.limitRatio).jitter(legacy.jitter).backgroundDelta(legacy.background_delta)
+				.limitRatio(legacy.limitRatio) //
+				.jitter(legacy.jitter).backgroundDelta(legacy.background_delta)
 				.backgroundJitter(legacy.background_jitter).build();
 	}
 }

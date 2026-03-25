@@ -66,7 +66,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private JCheckBox objectUpsizeCheckBox = new JCheckBox("object < ");
 	private JSpinner objectUpsizeSpinner = new JSpinner(new SpinnerNumberModel(500, 0, 9999, 1));
 	private JCheckBox limitRatioCheckBox = new JCheckBox("ratio l/w<");
-	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4., 0., 1000., 1.));
+	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 	private JCheckBox jitterCheckBox = new JCheckBox("jitter<= ");
 	private JSpinner jitterTextField = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
 	private JCheckBox nFliesCheckBox = new JCheckBox("nflies<");
@@ -334,7 +334,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.bjitter = jitterCheckBox.isSelected();
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
 		options.limitUp = (int) objectUpsizeSpinner.getValue();
-		options.limitRatio = (int) limitRatioSpinner.getValue();
+		options.limitRatio = ((Number)limitRatioSpinner.getValue()).doubleValue();
 		options.jitter = (int) jitterTextField.getValue();
 		options.videoChannel = 0;
 		options.flyDetectSourceTransform = (ImageTransformEnums) transformComboBox.getSelectedItem();
