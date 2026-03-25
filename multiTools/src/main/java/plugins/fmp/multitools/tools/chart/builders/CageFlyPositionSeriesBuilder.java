@@ -2,6 +2,8 @@ package plugins.fmp.multitools.tools.chart.builders;
 
 import java.awt.Rectangle;
 import java.awt.geom.Rectangle2D;
+import java.util.HashMap;
+import java.util.Map;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
@@ -116,15 +118,15 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		int nSeries = maxFlyId + 1;
 
 		XYSeriesCollection dataset = new XYSeriesCollection();
-		java.util.Map<Integer, XYSeries> byId = new java.util.HashMap<>();
+		Map<Integer, XYSeries> byId = new HashMap<>();
 		for (int flyId = 0; flyId < nSeries; flyId++) {
-			XYSeries s = new XYSeries(name + \"_fly\" + flyId, false);
-			s.setDescription(name + \"_fly\" + flyId);
+			XYSeries s = new XYSeries(name + "_fly" + flyId, false);
+			s.setDescription(name + "_fly" + flyId);
 			byId.put(flyId, s);
 		}
 
 		// Precompute ROI bounds and scale factors once per cage.
-		java.awt.geom.Rectangle2D rect1 = null;
+		Rectangle2D rect1 = null;
 		if (cage.getRoi() != null) {
 			rect1 = cage.getRoi().getBounds();
 		} else if (cage.getCageRoi2D() != null) {
