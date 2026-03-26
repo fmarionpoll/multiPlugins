@@ -225,8 +225,6 @@ public class KymographBuilder {
 			return;
 		}
 
-		// Kymographs are stored as a single-channel grayscale image to keep output
-		// consistent across cameras (some datasets are RGB, others grayscale).
 		IcyBufferedImage capImage = cap.getCap_Image();
 		int kymoImageWidth = capImage.getWidth();
 		ArrayList<int[]> capInteger = capIntegerArrays.get(cap);
@@ -235,32 +233,44 @@ public class KymographBuilder {
 					+ (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName()));
 			return;
 		}
-		int[] capImageChannel = capInteger.get(0);
+		final int kymoSizeC = Math.max(1, capImage.getSizeC());
+		if (capInteger.size() < kymoSizeC) {
+			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - capInteger.size=" + capInteger.size()
+					+ " < kymoSizeC=" + kymoSizeC + " for cap="
+					+ (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName()));
+			return;
+		}
 
 		int sourceImageWidth = sourceImage.getWidth();
-		final int sizeC = Math.max(1, sourceImage.getSizeC());
+		final int srcSizeC = Math.max(1, sourceImage.getSizeC());
 		int[] src0 = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(0), sourceImage.isSignedDataType());
-		int[] src1 = (sizeC > 1) ? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(1), sourceImage.isSignedDataType())
+		int[] src1 = (srcSizeC > 1)
+				? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(1), sourceImage.isSignedDataType())
 				: null;
-		int[] src2 = (sizeC > 2) ? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(2), sourceImage.isSignedDataType())
+		int[] src2 = (srcSizeC > 2)
+				? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(2), sourceImage.isSignedDataType())
 				: null;
 
 		int cnt = 0;
 		for (ArrayList<int[]> mask : masksList) {
-			long sum = 0;
+			long sum0 = 0;
+			long sum1 = 0;
+			long sum2 = 0;
 			for (int[] m : mask) {
 				int idx = m[0] + m[1] * sourceImageWidth;
-				int v;
-				if (src1 != null && src2 != null) {
-					// Simple RGB average (avoid floating point in hot loop).
-					v = (src0[idx] + src1[idx] + src2[idx]) / 3;
-				} else {
-					v = src0[idx];
-				}
-				sum += v;
+				sum0 += src0[idx];
+				if (src1 != null)
+					sum1 += src1[idx];
+				if (src2 != null)
+					sum2 += src2[idx];
 			}
 			if (!mask.isEmpty()) {
-				capImageChannel[cnt * kymoImageWidth + kymographColumn] = (int) (sum / mask.size());
+				int dst = cnt * kymoImageWidth + kymographColumn;
+				capInteger.get(0)[dst] = (int) (sum0 / mask.size());
+				if (kymoSizeC > 1 && src1 != null)
+					capInteger.get(1)[dst] = (int) (sum1 / mask.size());
+				if (kymoSizeC > 2 && src2 != null)
+					capInteger.get(2)[dst] = (int) (sum2 / mask.size());
 			}
 			cnt++;
 		}
@@ -339,6 +349,7 @@ public class KymographBuilder {
 		if (seqCamData.getSequence() == null)
 			seqCamData.setSequence(exp.getSeqCamData().getImageLoader()
 					.initSequenceFromFirstImage(exp.getSeqCamData().getImagesList(true)));
+		final int kymoSizeC = Math.max(1, seqCamData.getSequence().getSizeC());
 		int sizex = seqCamData.getSequence().getSizeX();
 		int sizey = seqCamData.getSequence().getSizeY();
 
@@ -363,7 +374,7 @@ public class KymographBuilder {
 				if (imageHeight_i > imageHeight)
 					imageHeight = imageHeight_i;
 			}
-			buildCapInteger(cap, exp.getSeqCamData().getSequence(), kymoImageWidth, imageHeight);
+			buildCapInteger(cap, exp.getSeqCamData().getSequence(), kymoImageWidth, imageHeight, kymoSizeC);
 		}
 	}
 
@@ -382,13 +393,15 @@ public class KymographBuilder {
 		return masks.size();
 	}
 
-	private void buildCapInteger(Capillary cap, Sequence seq, int imageWidth, int imageHeight) {
-		// Always generate single-channel grayscale kymographs for consistent output.
-		cap.setCap_Image(new IcyBufferedImage(imageWidth, imageHeight, 1, DataType.UBYTE));
+	private void buildCapInteger(Capillary cap, Sequence seq, int imageWidth, int imageHeight, int sizeC) {
+		int kymoSizeC = Math.max(1, sizeC);
+		cap.setCap_Image(new IcyBufferedImage(imageWidth, imageHeight, kymoSizeC, DataType.UBYTE));
 
 		int len = imageWidth * imageHeight;
-		ArrayList<int[]> capInteger = new ArrayList<int[]>(1);
-		capInteger.add(new int[len]);
+		ArrayList<int[]> capInteger = new ArrayList<int[]>(kymoSizeC);
+		for (int chan = 0; chan < kymoSizeC; chan++) {
+			capInteger.add(new int[len]);
+		}
 		capIntegerArrays.put(cap, capInteger);
 	}
 
