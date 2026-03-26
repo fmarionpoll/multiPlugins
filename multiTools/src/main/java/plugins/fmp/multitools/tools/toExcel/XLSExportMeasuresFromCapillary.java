@@ -121,9 +121,6 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 
 				Results results = convertXYSeriesToResults(exp, cap, series, resultsOptions, resultType);
 				if (results != null) {
-					double scalingFactorToPhysicalUnits = exp.getCapillaries().getScalingFactorToPhysicalUnits(resultType);
-					scaleValuesOutInPlace(results, scalingFactorToPhysicalUnits);
-
 					pt.y = 0;
 					pt = writeExperimentCapInfos(sheet, pt, exp, charSeries, cage, cap, resultType);
 					writeXLSResult(sheet, pt, results);
@@ -352,19 +349,6 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		}
 
 		return Double.NaN;
-	}
-
-	private void scaleValuesOutInPlace(Results results, double scalingFactor) {
-		if (results == null || results.getValuesOut() == null)
-			return;
-		if (!Double.isFinite(scalingFactor) || scalingFactor == 1.0)
-			return;
-		double[] out = results.getValuesOut();
-		for (int i = 0; i < out.length; i++) {
-			double v = out[i];
-			if (!Double.isNaN(v))
-				out[i] = v * scalingFactor;
-		}
 	}
 
 	/**
