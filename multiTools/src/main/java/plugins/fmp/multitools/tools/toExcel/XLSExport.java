@@ -219,6 +219,11 @@ public abstract class XLSExport {
 	 * @return true if the experiment should be skipped
 	 */
 	protected boolean shouldSkipChainedExperiment(Experiment exp) {
+		// When exporting a single selected experiment, do not skip it even if it is
+		// chained to a previous one (otherwise the export can end up completely empty
+		// while charts still display data for the selected experiment).
+		if (options != null && options.experimentIndexFirst == options.experimentIndexLast)
+			return false;
 		return exp.chainToPreviousExperiment != null;
 	}
 

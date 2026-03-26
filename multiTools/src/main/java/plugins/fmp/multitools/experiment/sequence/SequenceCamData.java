@@ -558,10 +558,15 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	public long getFirstImageMs() {
-		// Canonical: first valid frame time (t=0 at first valid frame).
-		long ft = getFirstValidFrameEpochMs();
-		if (ft > 0)
-			return ft;
+		// Canonical: first valid frame epoch ms when frames exist.
+		// For synthetic sequences (e.g. expAll used for export grids) there are no
+		// frames/filenames, and TimeManager would fall back to dummy timestamps which
+		// breaks duration computations and can make exports appear empty.
+		if (imageLoader.getNTotalFrames() > 0) {
+			long ft = getFirstValidFrameEpochMs();
+			if (ft > 0)
+				return ft;
+		}
 		return timeManager.getFirstImageMs();
 	}
 
@@ -570,7 +575,8 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	public long getLastImageMs() {
-		// Canonical: last valid frame time.
+		// Canonical: last valid frame epoch ms when frames exist. See getFirstImageMs()
+		// for why we avoid dummy timestamps on empty/synthetic sequences.
 		int n = imageLoader.getNTotalFrames();
 		if (n > 0) {
 			long ft = getValidFrameEpochMs(n - 1);
