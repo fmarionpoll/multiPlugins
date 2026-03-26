@@ -207,9 +207,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 
 				Results results = convertXYSeriesToResults(exp, cap, series, resultsOptions, resultType);
 				if (results != null) {
-					double scalingFactorToPhysicalUnits = exp.getCapillaries()
-							.getScalingFactorToPhysicalUnits(resultType);
-					results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultType);
+					double scalingFactorToPhysicalUnits = exp.getCapillaries().getScalingFactorToPhysicalUnits(resultType);
+					scaleValuesOutInPlace(results, scalingFactorToPhysicalUnits);
 
 					pt.y = 0;
 					pt = writeExperimentGulpInfos(sheet, pt, exp, charSeries, cage, cap, resultType);
@@ -520,6 +519,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			return null;
 		}
 
+		// XYSeries X values are "minutes from experiment start" (t=0 at first valid frame),
+		// so all bin times used for interpolation must be RELATIVE (not epoch ms).
 		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
@@ -542,22 +543,13 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		results.setCapSide(cap.getCageID() + "_" + cap.getCapillarySide());
 		results.initValuesOutArray(nBins, Double.NaN);
 
-		// Get experiment's actual duration for validation
-		// XYSeries time values are in minutes from experiment start (time 0)
-		// Calculate the actual experiment duration from image count and bin duration
-		long binMs = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-		int nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		long expDurationMs = 0;
-		if (binMs > 0 && nFrames > 0) {
-			// Duration = (nFrames - 1) * binMs (time from first to last image)
-			expDurationMs = (nFrames - 1) * binMs;
-		} else {
-			// Fallback: use binLast_ms if available
-			long expLastMs = exp.getSeqCamData().getTimeManager().getBinLast_ms();
-			long expFirstMs = exp.getSeqCamData().getTimeManager().getBinFirst_ms();
-			if (expLastMs > expFirstMs) {
-				expDurationMs = expLastMs - expFirstMs;
-			}
+		try {
+			long e0 = exp.getSeqCamData().getFirstImageMs();
+			long e1 = exp.getSeqCamData().getLastImageMs();
+			if (e1 > e0)
+				expDurationMs = e1 - e0;
+		} catch (Exception ignored) {
 		}
 
 		// Build array of data points with times in milliseconds for interpolation
@@ -575,10 +567,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			dataValues[i] = series.getY(i).doubleValue();
 		}
 
-		// Use linear interpolation to fill all output bins
-		// For each output bin, find the interpolated value from the nearest data points
+		// Use linear interpolation to fill all output bins (relative time origin).
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
-			long binTimeMs = firstImageMs + binIndex * buildExcelStepMs;
+			long binTimeMs = (long) binIndex * buildExcelStepMs;
 
 			// Check if bin time is within experiment's actual duration
 			if (expDurationMs > 0 && binTimeMs > expDurationMs) {
@@ -639,6 +630,19 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		}
 
 		return Double.NaN;
+	}
+
+	private void scaleValuesOutInPlace(Results results, double scalingFactor) {
+		if (results == null || results.getValuesOut() == null)
+			return;
+		if (!Double.isFinite(scalingFactor) || scalingFactor == 1.0)
+			return;
+		double[] out = results.getValuesOut();
+		for (int i = 0; i < out.length; i++) {
+			double v = out[i];
+			if (!Double.isNaN(v))
+				out[i] = v * scalingFactor;
+		}
 	}
 
 	/**

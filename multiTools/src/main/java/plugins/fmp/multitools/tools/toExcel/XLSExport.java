@@ -519,23 +519,12 @@ public abstract class XLSExport {
 			return;
 		}
 
-		for (long coltime = expAll.getSeqCamData().getFirstImageMs(); coltime < expAll.getSeqCamData()
-				.getLastImageMs(); coltime += options.buildExcelStepMs, pt.y++) {
-
-			int i_from = (int) ((coltime - expAll.getSeqCamData().getFirstImageMs()) / options.buildExcelStepMs);
-
-			if (i_from >= result.getValuesOutLength()) {
-				break;
-			}
-
-			double value = result.getValuesOut()[i_from];
-
+		// Write bins sequentially from valuesOut[]. This avoids failures when expAll
+		// timing (first/last) is missing or inconsistent with how results were built.
+		for (int i = 0; i < result.getValuesOutLength(); i++, pt.y++) {
+			double value = result.getValuesOut()[i];
 			if (!Double.isNaN(value)) {
 				XLSUtils.setValue(sheet, pt, transpose, value);
-
-//				if (i_from < xlsResult.padded_out.length && xlsResult.padded_out[i_from]) {
-//					XLSUtils.getCell(sheet, pt, transpose).setCellStyle(redCellStyle);
-//				}
 			}
 		}
 	}
