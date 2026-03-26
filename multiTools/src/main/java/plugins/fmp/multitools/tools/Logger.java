@@ -105,7 +105,7 @@ public class Logger {
 	 */
 	public static void info(String message) {
 		logger.info(message);
-		toConsole("INFO", message, null);
+		//toConsole("INFO", message, null);
 	}
 
 	/**
