@@ -132,6 +132,11 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		}
 
 		String sideOrType = parts[1];
+		// Non-capillary auxiliary series (global per-cage overlays). Ignore them for
+		// click interactions without logging warnings.
+		if ("threshold".equals(sideOrType) || "evaporation".equals(sideOrType)) {
+			return null;
+		}
 
 		if ("Sum".equals(sideOrType) || "PI".equals(sideOrType)) {
 			List<Capillary> capillaries = cage.getCapillaries(experiment.getCapillaries());

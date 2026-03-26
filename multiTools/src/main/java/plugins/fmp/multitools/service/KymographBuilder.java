@@ -97,9 +97,6 @@ public class KymographBuilder {
 			if (sourceImageIndex < 0)
 				continue;
 
-			
-			if (sourceImageIndex < 40)
-				System.out.println("frame="+ sourceImageIndex);
 			final int fromSourceImageIndex = sourceImageIndex;
 
 			final int viewT = fromSourceImageIndex;
@@ -228,26 +225,44 @@ public class KymographBuilder {
 			return;
 		}
 
-		int sizeC = sourceImage.getSizeC();
+		// Kymographs are stored as a single-channel grayscale image to keep output
+		// consistent across cameras (some datasets are RGB, others grayscale).
 		IcyBufferedImage capImage = cap.getCap_Image();
 		int kymoImageWidth = capImage.getWidth();
 		ArrayList<int[]> capInteger = capIntegerArrays.get(cap);
+		if (capInteger == null || capInteger.isEmpty()) {
+			Logger.warn("KymographBuilder:analyzeImageUnderCapillary - capInteger missing for cap="
+					+ (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName()));
+			return;
+		}
+		int[] capImageChannel = capInteger.get(0);
 
-		for (int chan = 0; chan < sizeC; chan++) {
-			int[] sourceImageChannel = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(chan),
-					sourceImage.isSignedDataType());
-			int[] capImageChannel = capInteger.get(chan);
+		int sourceImageWidth = sourceImage.getWidth();
+		final int sizeC = Math.max(1, sourceImage.getSizeC());
+		int[] src0 = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(0), sourceImage.isSignedDataType());
+		int[] src1 = (sizeC > 1) ? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(1), sourceImage.isSignedDataType())
+				: null;
+		int[] src2 = (sizeC > 2) ? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(2), sourceImage.isSignedDataType())
+				: null;
 
-			int cnt = 0;
-			int sourceImageWidth = sourceImage.getWidth();
-			for (ArrayList<int[]> mask : masksList) {
-				int sum = 0;
-				for (int[] m : mask)
-					sum += sourceImageChannel[m[0] + m[1] * sourceImageWidth];
-				if (mask.size() > 0)
-					capImageChannel[cnt * kymoImageWidth + kymographColumn] = (int) (sum / mask.size());
-				cnt++;
+		int cnt = 0;
+		for (ArrayList<int[]> mask : masksList) {
+			long sum = 0;
+			for (int[] m : mask) {
+				int idx = m[0] + m[1] * sourceImageWidth;
+				int v;
+				if (src1 != null && src2 != null) {
+					// Simple RGB average (avoid floating point in hot loop).
+					v = (src0[idx] + src1[idx] + src2[idx]) / 3;
+				} else {
+					v = src0[idx];
+				}
+				sum += v;
 			}
+			if (!mask.isEmpty()) {
+				capImageChannel[cnt * kymoImageWidth + kymographColumn] = (int) (sum / mask.size());
+			}
+			cnt++;
 		}
 	}
 
@@ -274,8 +289,15 @@ public class KymographBuilder {
 					IcyBufferedImage capImage = cap.getCap_Image();
 					ArrayList<int[]> capInteger = capIntegerArrays.get(cap);
 					if (capInteger != null) {
+						int kymoSizeC = capImage.getSizeC();
+						if (capInteger.size() != kymoSizeC) {
+							Logger.warn("KymographBuilder:exportCapillaryKymographs - channel count mismatch for cap="
+									+ (cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName()) + " kymoSizeC="
+									+ kymoSizeC + " capInteger.size=" + capInteger.size() + " (input sizeC=" + sizeC + ")");
+						}
 						boolean isSignedDataType = capImage.isSignedDataType();
-						for (int chan = 0; chan < sizeC; chan++) {
+						int nch = Math.min(kymoSizeC, capInteger.size());
+						for (int chan = 0; chan < nch; chan++) {
 							int[] tabValues = capInteger.get(chan);
 							Object destArray = capImage.getDataXY(chan);
 							Array1DUtil.intArrayToSafeArray(tabValues, 0, destArray, 0, -1, isSignedDataType,
@@ -361,22 +383,12 @@ public class KymographBuilder {
 	}
 
 	private void buildCapInteger(Capillary cap, Sequence seq, int imageWidth, int imageHeight) {
-		int numC = seq.getSizeC();
-		if (numC <= 0)
-			numC = 3;
-
-		DataType dataType = seq.getDataType_();
-		if (dataType == null || dataType.toString().equals("undefined"))
-			dataType = DataType.UBYTE;
-
-		cap.setCap_Image(new IcyBufferedImage(imageWidth, imageHeight, numC, dataType));
+		// Always generate single-channel grayscale kymographs for consistent output.
+		cap.setCap_Image(new IcyBufferedImage(imageWidth, imageHeight, 1, DataType.UBYTE));
 
 		int len = imageWidth * imageHeight;
-		ArrayList<int[]> capInteger = new ArrayList<int[]>(numC);
-		for (int chan = 0; chan < numC; chan++) {
-			int[] tabValues = new int[len];
-			capInteger.add(tabValues);
-		}
+		ArrayList<int[]> capInteger = new ArrayList<int[]>(1);
+		capInteger.add(new int[len]);
 		capIntegerArrays.put(cap, capInteger);
 	}
 

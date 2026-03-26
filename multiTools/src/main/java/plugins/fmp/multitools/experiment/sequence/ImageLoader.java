@@ -21,7 +21,18 @@ public class ImageLoader {
 
 	private ArrayList<String> imagesList = new ArrayList<>();
 	private String imagesDirectory = null;
+	/**
+	 * Absolute index (0-based) of the first valid frame on disk.
+	 * <p>
+	 * All public APIs of {@link ImageLoader} use <b>valid</b> frame indices (starting
+	 * at 0 for the first valid frame). This field is applied internally to map
+	 * valid indices to absolute on-disk indices.
+	 */
 	private long absoluteIndexFirstImage = 0;
+	/**
+	 * Absolute end index (exclusive) in the original on-disk list. If {@code <= 0},
+	 * the effective end is the end of the list.
+	 */
 	private long fixedNumberOfImages = -1;
 	private String fileName = null;
 	private int nTotalFrames = 0;
@@ -59,9 +70,20 @@ public class ImageLoader {
 			return null;
 		}
 
-		if (t >= 0 && t < imagesList.size()) {
-			return imagesList.get(t);
-		}
+		if (t < 0)
+			return null;
+
+		int absIndex = validToAbsoluteIndex(t);
+		if (absIndex < 0)
+			return null;
+
+		int endExclusive = getEffectiveAbsoluteEndExclusive();
+		if (absIndex >= endExclusive)
+			return null;
+
+		if (absIndex >= 0 && absIndex < imagesList.size())
+			return imagesList.get(absIndex);
+
 		return null;
 	}
 
@@ -81,15 +103,11 @@ public class ImageLoader {
 				return true;
 			}
 		}
-		// Fix: Auto-correct nTotalFrames and fixedNumberOfImages if they're invalid
-		// This must happen BEFORE clipImagesList() to prevent incorrect clipping
+		// Ensure derived counts are up-to-date before loading
 		getNTotalFrames();
-
-		long savedFixedNumberOfImages = fixedNumberOfImages;
-		List<String> clippedList = clipImagesList(imagesList);
-		fixedNumberOfImages = savedFixedNumberOfImages;
-		nTotalFrames = clippedList.size();
-		Sequence seq = loadSequenceFromImagesList(clippedList);
+		List<String> validList = getImagesList(true);
+		nTotalFrames = validList.size();
+		Sequence seq = loadSequenceFromImagesList(validList);
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
@@ -103,7 +121,10 @@ public class ImageLoader {
 			return false;
 		}
 		List<String> singleImageList = new ArrayList<>();
-		singleImageList.add(imagesList.get(0));
+		String firstValid = getFileNameFromImageList(0);
+		if (firstValid == null)
+			return false;
+		singleImageList.add(firstValid);
 		Sequence seq = loadSequenceFromImagesList(singleImageList);
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
@@ -116,48 +137,51 @@ public class ImageLoader {
 		if (images.isEmpty()) {
 			return;
 		}
-		// Fix: Set imagesList temporarily so getNTotalFrames() can auto-correct
-		// invalid values (like nFrames=1 from XML) before clipping
+		// Store the full on-disk list; do not clip.
 		setImagesList(images);
-		// Auto-correct nTotalFrames and fixedNumberOfImages if they're invalid
-		// This must happen BEFORE clipImagesList() to prevent incorrect clipping
+		// Derive valid-frame count from offset + fixed end.
 		getNTotalFrames();
 
-		// Preserve fixedNumberOfImages value - don't overwrite user settings
-		// This allows the user to control the number of images via the UI
-		// If fixedNumberOfImages is -1 (not set), it will remain -1 and clipImagesList
-		// will include all images from the starting index
-		long savedFixedNumberOfImages = fixedNumberOfImages;
-		List<String> clippedList = clipImagesList(images);
-		setImagesList(clippedList);
-		fixedNumberOfImages = savedFixedNumberOfImages;
-		nTotalFrames = clippedList.size();
-		Sequence seq = loadSequenceFromImagesList(imagesList);
+		List<String> validList = getImagesList(true);
+		nTotalFrames = validList.size();
+		Sequence seq = loadSequenceFromImagesList(validList);
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
 		}
 	}
 
-	private List<String> clipImagesList(List<String> images) {
-		if (absoluteIndexFirstImage <= 0 && fixedNumberOfImages <= 0) {
-			return new ArrayList<>(images);
+	private int getEffectiveAbsoluteStart() {
+		long start = absoluteIndexFirstImage;
+		if (start < 0)
+			start = 0;
+		if (start > Integer.MAX_VALUE)
+			start = Integer.MAX_VALUE;
+		return (int) Math.min(start, imagesList.size());
+	}
+
+	private int getEffectiveAbsoluteEndExclusive() {
+		int end = imagesList.size();
+		if (fixedNumberOfImages > 0) {
+			long v = fixedNumberOfImages;
+			if (v < 0)
+				v = 0;
+			if (v > Integer.MAX_VALUE)
+				v = Integer.MAX_VALUE;
+			end = (int) Math.min(v, imagesList.size());
 		}
+		int start = getEffectiveAbsoluteStart();
+		if (end < start)
+			end = start;
+		return end;
+	}
 
-		// fixedNumberOfImages semantics:
-		// - <= 0  : no explicit upper bound, use full list from startIndex
-		// - > 0   : absolute end index (exclusive) in the ORIGINAL on-disk list
-		//
-		// This matches ExperimentPersistence where nFrames is stored as "total images"
-		// and combined with indexFrameFirst to compute the view size.
-
-		// More efficient approach using subList
-		int startIndex = (int) Math.min(absoluteIndexFirstImage, images.size());
-		int endIndex = (fixedNumberOfImages > 0) ? (int) Math.min(fixedNumberOfImages, images.size()) : images.size();
-		if (endIndex < startIndex)
-			endIndex = startIndex;
-
-		return new ArrayList<>(images.subList(startIndex, endIndex));
+	private int validToAbsoluteIndex(int tValid) {
+		int start = getEffectiveAbsoluteStart();
+		long abs = (long) start + (long) tValid;
+		if (abs < 0 || abs > Integer.MAX_VALUE)
+			return -1;
+		return (int) abs;
 	}
 
 	public IcyBufferedImage imageIORead(String name) {
@@ -225,27 +249,37 @@ public class ImageLoader {
 	// Getters and setters
 
 	public List<String> getImagesList() {
-		return imagesList;
+		return getImagesList(false);
 	}
 
 	public List<String> getImagesList(boolean sort) {
+		if (imagesList.isEmpty())
+			return imagesList;
+
+		// Work in on-disk order. If requested, sort a copy.
+		List<String> base = imagesList;
 		if (sort) {
-			Collections.sort(imagesList);
+			ArrayList<String> copy = new ArrayList<>(imagesList);
+			Collections.sort(copy);
+			base = copy;
 		}
-		return imagesList;
+
+		int start = getEffectiveAbsoluteStart();
+		int end = getEffectiveAbsoluteEndExclusive();
+		if (start >= end)
+			return new ArrayList<>();
+		return new ArrayList<>(base.subList(start, end));
 	}
 
 	public void setImagesList(List<String> images) {
 		imagesList.clear();
 		imagesList = new ArrayList<>(images);
-		// Auto-update nTotalFrames if not already set
-		if (nTotalFrames == 0 && !imagesList.isEmpty()) {
-			nTotalFrames = imagesList.size();
-		}
+		// Reset derived count; getNTotalFrames() recomputes.
+		nTotalFrames = 0;
 	}
 
 	public int getImagesCount() {
-		return imagesList.size();
+		return getNTotalFrames();
 	}
 
 	public void setAbsoluteIndexFirstImage(long index) {
@@ -269,14 +303,13 @@ public class ImageLoader {
 	}
 
 	public int getNTotalFrames() {
-		// Auto-compute from imagesList if invalid (-1, 0, or 1) or not set
-		if (nTotalFrames <= 1 && nTotalFrames >= -1 && !imagesList.isEmpty() && imagesList.size() > 1) {
-			nTotalFrames = imagesList.size();
-			// Also update fixedNumberOfImages when invalid so clipImagesList uses full list
-			if (fixedNumberOfImages <= 1) {
-				fixedNumberOfImages = imagesList.size();
-			}
-		}
+		if (imagesList.isEmpty())
+			return 0;
+
+		// Derive valid-frame count from [start,endExclusive) over the on-disk list.
+		int start = getEffectiveAbsoluteStart();
+		int end = getEffectiveAbsoluteEndExclusive();
+		nTotalFrames = Math.max(0, end - start);
 		return nTotalFrames;
 	}
 

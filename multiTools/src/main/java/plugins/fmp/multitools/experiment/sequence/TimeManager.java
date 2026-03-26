@@ -44,6 +44,7 @@ public class TimeManager {
 	public FileTime getFileTimeFromStructuredName(ImageLoader imageLoader, int t) {
 		long timeInMs = 0;
 		String fileName = fileComponent(imageLoader.getFileNameFromImageList(t));
+		int nFrames = (imageLoader != null) ? imageLoader.getNTotalFrames() : 0;
 
 		// Debug flags to understand which timing source is used per frame.
 		boolean usedPattern = false;
@@ -82,7 +83,10 @@ public class TimeManager {
 
 		// Log which timing source was used. This helps diagnose experiments where the
 		// index->time mapping is inconsistent (e.g. some frames not parsed from name).
-		if (usedDummy || usedAttributes) {
+		// If no frames are loaded yet (startup, or experiment not opened), suppress
+		// warnings for index 0 which otherwise produces noisy "file=null" logs.
+		boolean suppressBecauseNoFrames = (nFrames <= 0 && fileName == null);
+		if (!suppressBecauseNoFrames && (usedDummy || usedAttributes)) {
 			Logger.warn("TimeManager:getFileTimeFromStructuredName fallback for index " + t + " file=" + fileName
 					+ " usedAttributes=" + usedAttributes + " usedDummy=" + usedDummy);
 		} else if (usedPattern) {
@@ -96,7 +100,9 @@ public class TimeManager {
 	public FileTime getFileTimeFromFileAttributes(ImageLoader imageLoader, int t) {
 		String filename = imageLoader.getFileNameFromImageList(t);
 		if (filename == null) {
-			Logger.warn("Null filename for index " + t);
+			if (imageLoader != null && imageLoader.getNTotalFrames() > 0) {
+				Logger.warn("Null filename for index " + t);
+			}
 			return null;
 		}
 
@@ -119,7 +125,9 @@ public class TimeManager {
 	public FileTime getFileTimeFromJPEGMetaData(ImageLoader imageLoader, int t) {
 		String filename = imageLoader.getFileNameFromImageList(t);
 		if (filename == null) {
-			Logger.warn("Null filename for index " + t);
+			if (imageLoader != null && imageLoader.getNTotalFrames() > 0) {
+				Logger.warn("Null filename for index " + t);
+			}
 			return null;
 		}
 

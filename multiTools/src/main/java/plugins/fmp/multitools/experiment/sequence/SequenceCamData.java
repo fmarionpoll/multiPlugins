@@ -237,25 +237,7 @@ public class SequenceCamData implements AutoCloseable {
 			currentFrame = t;
 			String fileName = imageLoader.getFileName();
 			if (seq != null) {
-				int seqSizeT = seq.getSizeT();
-				int displayedTotalFrames = seqSizeT - 1;
-
-				// Fix: If displayed frame count is invalid (-1, 0, or 1), refresh from actual
-				// image list
-				if (displayedTotalFrames <= 1 && displayedTotalFrames >= -1) {
-					int actualImageCount = imageLoader.getImagesCount();
-					if (actualImageCount > 1) {
-						// Update nTotalFrames in ImageLoader to match actual count
-						long frameFirst = imageLoader.getAbsoluteIndexFirstImage();
-						long nImages = actualImageCount + frameFirst;
-						imageLoader.setFixedNumberOfImages(nImages);
-						imageLoader.setNTotalFrames(actualImageCount);
-						// Use actual count for display (subtract 1 because display uses 0-based
-						// indexing)
-						displayedTotalFrames = actualImageCount - 1;
-					}
-				}
-
+				int displayedTotalFrames = Math.max(0, seq.getSizeT() - 1);
 				return fileName + " [" + t + "/" + displayedTotalFrames + "]";
 			} else {
 				return fileName + "[]";
@@ -576,8 +558,7 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	public long getFirstImageMs() {
-		// Prefer the first valid frame timestamp derived from the actual (clipped)
-		// image list so all routines consistently see time origin at the valid start.
+		// Canonical: first valid frame time (t=0 at first valid frame).
 		long ft = getFirstValidFrameEpochMs();
 		if (ft > 0)
 			return ft;
@@ -589,8 +570,7 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	public long getLastImageMs() {
-		// Prefer the last valid frame timestamp derived from the actual (clipped)
-		// image list for consistency across sessions.
+		// Canonical: last valid frame time.
 		int n = imageLoader.getNTotalFrames();
 		if (n > 0) {
 			long ft = getValidFrameEpochMs(n - 1);
