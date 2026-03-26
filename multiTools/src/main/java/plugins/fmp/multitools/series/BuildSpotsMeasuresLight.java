@@ -43,7 +43,7 @@ public class BuildSpotsMeasuresLight extends BuildSeries {
 		}
 
 		// Build time limits used by SpotLevelDetectorFromCam
-		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getCamImageFirst_ms());
+		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getSeqCamData().getFirstImageMs());
 		getTimeLimitsOfSequence(exp);
 
 		// Mark all spots as ready for analysis

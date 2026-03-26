@@ -3,7 +3,6 @@ package plugins.fmp.multitools.service;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,24 +44,15 @@ public class KymographBuilder {
 		clearAllAlongTMasks(exp);
 
 		SequenceLoaderService loader = new SequenceLoaderService();
-		// Important: in this codebase the "offset" is applied by clipping the camera
-		// image list/sequence at load time (ImageLoader.clipImagesList).
-		// So for kymograph computation we must operate in VIEW indices (0..sizeT-1),
-		// otherwise we end up selecting only 1-2 frames when offset is large.
-		final long viewOffset = 0;
-		// camImages_ms[] must use the same time reference as exp.getKymoFirst_ms()
-		// because ii_ms is computed from kymoFirst_ms and compared against
-		// camImages_ms[]
-		// when selecting the closest frame.
-		//
-		// Using firstViewImageMs (derived from absoluteIndexFirstImage) can shift the
-		// time zero and produce inconsistent frame picking for datasets where offset !=
-		// 0.
-		long camReferenceMs = exp.getCamImageFirst_ms();
+		// Canonical behavior: time origin for analyses is the first valid (visible)
+		// frame, i.e. frame 0 of the clipped image list.
+		long camReferenceMs = exp.getSeqCamData().getFirstValidFrameEpochMs();
 		if (camReferenceMs < 0) {
-			// Fallback to previous behavior if reference isn't initialized.
-			FileTime firstViewFileTime = exp.getSeqCamData().getFileTimeFromStructuredName(0);
-			camReferenceMs = (firstViewFileTime != null) ? firstViewFileTime.toMillis() : 0;
+			// Fallback to persisted experiment-level timing if file timestamps aren't available.
+			camReferenceMs = exp.getCamImageFirst_ms();
+		}
+		if (camReferenceMs < 0) {
+			camReferenceMs = 0;
 		}
 		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(camReferenceMs);
 
@@ -107,9 +97,12 @@ public class KymographBuilder {
 			if (sourceImageIndex < 0)
 				continue;
 
+			
+			if (sourceImageIndex < 40)
+				System.out.println("frame="+ sourceImageIndex);
 			final int fromSourceImageIndex = sourceImageIndex;
 
-			final int viewT = (int) (fromSourceImageIndex - viewOffset);
+			final int viewT = fromSourceImageIndex;
 			final int kymographColumn = iToColumn;
 			progress.setMessage("Processing file: " + (sourceImageIndex + 1) + "//" + sourceLastImageIndex);
 

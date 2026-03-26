@@ -12,7 +12,7 @@ public class DetectLevels extends BuildSeries {
 			exp.getCapillaries().clearDirectMeasuresOnly();
 			exp.getSeqCamData().loadImages();
 			exp.getFileIntervalsFromSeqCamData();
-			exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getCamImageFirst_ms());
+			exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getSeqCamData().getFirstImageMs());
 			getTimeLimitsOfSequence(exp);
 			new LevelDetectorFromCam().detectLevels(exp, options);
 

@@ -100,7 +100,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		if (exp != null) {
 			exp.openSequenceCamData();
 			if (exp.getSeqCamData() != null) {
-				exp.initTmsForFlyPositions(exp.getSeqCamData().getFirstImageMs());
+				long firstValidEpochMs = exp.getSeqCamData().getFirstValidFrameEpochMs();
+				if (firstValidEpochMs > 0) {
+					exp.initTmsForFlyPositions(firstValidEpochMs);
+				}
 			}
 		}
 

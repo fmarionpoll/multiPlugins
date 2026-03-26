@@ -41,7 +41,11 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 		seqData.loadImages();
 		// Initialize time parameters for this experiment BEFORE building time intervals array
 		exp.getFileIntervalsFromSeqCamData();
-		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getCamImageFirst_ms());
+		long firstValidEpochMs = seqData.getFirstValidFrameEpochMs();
+		if (firstValidEpochMs < 0) {
+			firstValidEpochMs = exp.getCamImageFirst_ms();
+		}
+		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(firstValidEpochMs);
 		return flag;
 	}
 

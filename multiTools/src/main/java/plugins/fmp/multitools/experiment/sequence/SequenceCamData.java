@@ -375,6 +375,77 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	/**
+	 * Returns the absolute on-disk frame index that corresponds to the first valid
+	 * (visible) frame of this sequence. When the user offsets the experiment start
+	 * frame, the image list is clipped and valid frame indices start at 0.
+	 */
+	public int getAbsoluteIndexFirstValidFrame() {
+		long v = imageLoader.getAbsoluteIndexFirstImage();
+		if (v < 0)
+			v = 0;
+		if (v > Integer.MAX_VALUE)
+			v = Integer.MAX_VALUE;
+		return (int) v;
+	}
+
+	/**
+	 * Converts a valid (visible) frame index to the absolute on-disk frame index.
+	 */
+	public int validToAbsoluteFrameIndex(int validFrameIndex) {
+		if (validFrameIndex < 0)
+			return getAbsoluteIndexFirstValidFrame();
+		long abs = (long) getAbsoluteIndexFirstValidFrame() + (long) validFrameIndex;
+		if (abs < 0)
+			return 0;
+		if (abs > Integer.MAX_VALUE)
+			return Integer.MAX_VALUE;
+		return (int) abs;
+	}
+
+	/**
+	 * Converts an absolute on-disk frame index to the corresponding valid (visible)
+	 * frame index. Values before the valid start are clamped to 0.
+	 */
+	public int absoluteToValidFrameIndex(int absoluteFrameIndex) {
+		int offset = getAbsoluteIndexFirstValidFrame();
+		int valid = absoluteFrameIndex - offset;
+		return Math.max(0, valid);
+	}
+
+	/**
+	 * Returns the epoch milliseconds timestamp of the first valid (visible) frame,
+	 * or -1 if unavailable.
+	 */
+	public long getFirstValidFrameEpochMs() {
+		FileTime ft = getFileTimeFromStructuredName(0);
+		return (ft != null) ? ft.toMillis() : -1L;
+	}
+
+	/**
+	 * Returns the epoch milliseconds timestamp of a valid (visible) frame index,
+	 * or -1 if unavailable.
+	 */
+	public long getValidFrameEpochMs(int validFrameIndex) {
+		if (validFrameIndex < 0)
+			validFrameIndex = 0;
+		FileTime ft = getFileTimeFromStructuredName(validFrameIndex);
+		return (ft != null) ? ft.toMillis() : -1L;
+	}
+
+	/**
+	 * Returns a relative timestamp in ms for a valid (visible) frame, using the
+	 * first valid frame as time origin. This is the canonical "experiment time"
+	 * used by analyses (kymograph, tracking, exports) within a single experiment.
+	 */
+	public long getValidFrameRelativeMs(int validFrameIndex) {
+		long t0 = getFirstValidFrameEpochMs();
+		long ti = getValidFrameEpochMs(validFrameIndex);
+		if (t0 < 0 || ti < 0)
+			return -1L;
+		return ti - t0;
+	}
+
+	/**
 	 * Gets file time from the specified source.
 	 * 
 	 * @param frame  the frame index
@@ -505,6 +576,11 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	public long getFirstImageMs() {
+		// Prefer the first valid frame timestamp derived from the actual (clipped)
+		// image list so all routines consistently see time origin at the valid start.
+		long ft = getFirstValidFrameEpochMs();
+		if (ft > 0)
+			return ft;
 		return timeManager.getFirstImageMs();
 	}
 
@@ -513,6 +589,14 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	public long getLastImageMs() {
+		// Prefer the last valid frame timestamp derived from the actual (clipped)
+		// image list for consistency across sessions.
+		int n = imageLoader.getNTotalFrames();
+		if (n > 0) {
+			long ft = getValidFrameEpochMs(n - 1);
+			if (ft > 0)
+				return ft;
+		}
 		return timeManager.getLastImageMs();
 	}
 
