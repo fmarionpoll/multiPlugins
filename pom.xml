@@ -18,7 +18,7 @@
     <packaging>pom</packaging>
 
     <name>Multi Plugins Parent</name>
-    <description>Parent project for m_multiCAFE, m_multiSPOTS, m_multiSPOTS96 and m_multiTools shared library</description>
+    <description>Parent project for m_multiCAFE, m_multiSPOTS96 and m_multiTools shared library</description>
 
     <organization>
         <name>IDEEV UMR EGCE (CNRS-IRD-Paris-Saclay)</name>
@@ -152,7 +152,6 @@
     <modules>
     	<module>multiTools</module>
     	<module>multiCAFE</module>
-    	<module>multiSPOTS</module>
     	<module>multiSPOTS96</module>
     </modules>
 </project>
