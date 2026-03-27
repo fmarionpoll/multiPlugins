@@ -33,6 +33,7 @@ public class BuildCagesAsArray extends JPanel {
 	private static final long serialVersionUID = -5257698990389571518L;
 	private JButton drawPolygon2DButton = new JButton("Draw Polygon2D");
 	private JButton createCellsButton = new JButton("Create cages");
+	private JButton editButton = new JButton("Edit...");
 	private JSpinner nColumnsTextField = new JSpinner(new SpinnerNumberModel(10, 0, 10000, 1));
 	private JSpinner width_cageTextField = new JSpinner(new SpinnerNumberModel(20, 0, 10000, 1));
 	private JSpinner width_intervalTextField = new JSpinner(new SpinnerNumberModel(3, 0, 10000, 1));
@@ -54,6 +55,7 @@ public class BuildCagesAsArray extends JPanel {
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(drawPolygon2DButton);
 		panel1.add(createCellsButton);
+		panel1.add(editButton);
 		add(panel1);
 
 		JLabel nColumnsLabel = new JLabel("N columns ");
@@ -101,6 +103,16 @@ public class BuildCagesAsArray extends JPanel {
 					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
 					if (exp.getCapillaries().getList().size() > 0)
 						exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
+				}
+			}
+		});
+
+		editButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					CageSkeletonEditor.open(parent0, exp);
 				}
 			}
 		});
