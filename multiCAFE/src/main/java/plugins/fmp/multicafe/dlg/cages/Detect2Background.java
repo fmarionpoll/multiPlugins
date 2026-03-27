@@ -1,6 +1,7 @@
 package plugins.fmp.multicafe.dlg.cages;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
@@ -10,16 +11,19 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.io.File;
 
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.JComboBox;
 
 import icy.gui.dialog.MessageDialog;
 import icy.gui.viewer.Viewer;
@@ -32,6 +36,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildBackground;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
+import plugins.fmp.multitools.service.SequenceLoaderService.ReferenceImageKind;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
@@ -52,21 +57,18 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, //
 			ImageTransformEnums.RGB, ImageTransformEnums.NONE });
 
+	private JComboBox<ReferenceImageKind> referenceKindCombo = new JComboBox<>(
+			new ReferenceImageKind[] { ReferenceImageKind.LIGHT, ReferenceImageKind.DARK });
+	private JLabel referenceStatusLabel = new JLabel(" ");
 	private JButton loadButton = new JButton("Load...");
 	private JButton saveButton = new JButton("Save...");
-	private JButton editButton = new JButton("Edit reference...");
-	private JButton buildLightButton = new JButton("Build Light BG");
-	private JButton buildDarkButton = new JButton("Build Dark BG");
-	private JButton loadLightButton = new JButton("Load Light...");
-	private JButton saveLightButton = new JButton("Save Light...");
-	private JButton loadDarkButton = new JButton("Load Dark...");
-	private JButton saveDarkButton = new JButton("Save Dark...");
+	private JButton editButton = new JButton("Edit...");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 
 	private BuildBackground buildBackground = null;
 	private OverlayThreshold ov = null;
-	private SequenceLoaderService.ReferenceImageKind buildKind = SequenceLoaderService.ReferenceImageKind.DEFAULT;
+	private ReferenceImageKind buildKind = ReferenceImageKind.DEFAULT;
 
 	// ----------------------------------------------------
 
@@ -78,7 +80,11 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		flowLayout.setVgap(0);
 
 		JPanel panel1 = new JPanel(flowLayout);
+		startComputationButton
+				.setToolTipText("Median background is written to the file for the Light/Dark selection below.");
 		panel1.add(startComputationButton);
+		panel1.add(new JLabel("over n frames "));
+		panel1.add(backgroundNFramesSpinner);
 		panel1.add(allCheckBox);
 		add(panel1);
 
@@ -88,8 +94,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		panel2.add(new JLabel(" on "));
 		transformComboBox.setSelectedItem(ImageTransformEnums.R_RGB);
 		panel2.add(transformComboBox);
-		panel2.add(new JLabel("over n frames "));
-		panel2.add(backgroundNFramesSpinner);
+
 		panel2.add(overlayCheckBox);
 		panel2.validate();
 		add(panel2);
@@ -102,39 +107,37 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		add(panel3);
 
 		JPanel panel4 = new JPanel(flowLayout);
-		panel4.add(buildLightButton);
-		panel4.add(buildDarkButton);
-		panel4.add(loadLightButton);
-		panel4.add(saveLightButton);
-		panel4.add(loadDarkButton);
-		panel4.add(saveDarkButton);
+		panel4.add(new JLabel("Background:"));
+		referenceKindCombo.setSelectedItem(ReferenceImageKind.LIGHT);
+		referenceKindCombo.setRenderer(new DefaultListCellRenderer() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected,
+					boolean cellHasFocus) {
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value == ReferenceImageKind.LIGHT)
+					setText("Light BG");
+				else if (value == ReferenceImageKind.DARK)
+					setText("Dark BG");
+				return this;
+			}
+		});
+		panel4.add(referenceKindCombo);
+		referenceStatusLabel.setForeground(Color.GRAY.darker());
+		panel4.add(referenceStatusLabel);
 		panel4.add(loadButton);
 		panel4.add(saveButton);
 		panel4.add(editButton);
 		add(panel4);
 
 		defineActionListeners();
+		updateReferenceStatusLabel();
 
 		backgroundThresholdSpinner.addChangeListener(this);
 	}
 
 	private void defineActionListeners() {
-		buildLightButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				buildKind = SequenceLoaderService.ReferenceImageKind.LIGHT;
-				startComputation();
-			}
-		});
-
-		buildDarkButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				buildKind = SequenceLoaderService.ReferenceImageKind.DARK;
-				startComputation();
-			}
-		});
-
 		startComputationButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -145,30 +148,22 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			}
 		});
 
+		referenceKindCombo.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				if (e.getStateChange() == ItemEvent.SELECTED)
+					updateReferenceStatusLabel();
+			}
+		});
+
 		saveButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					new SequenceLoaderService().saveReferenceImage(exp);
-			}
-		});
-
-		saveLightButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.LIGHT);
-			}
-		});
-
-		saveDarkButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DARK);
+				if (exp != null) {
+					new SequenceLoaderService().saveReferenceImage(exp, getSelectedReferenceKind());
+					updateReferenceStatusLabel();
+				}
 			}
 		});
 
@@ -177,7 +172,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					ReferenceImageEditor.open(parent0, exp);
+					ReferenceImageEditor.open(parent0, exp, getSelectedReferenceKind());
+					updateReferenceStatusLabel();
 				}
 			}
 		});
@@ -185,21 +181,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		loadButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				loadBackground();
-			}
-		});
-
-		loadLightButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				loadBackground(SequenceLoaderService.ReferenceImageKind.LIGHT);
-			}
-		});
-
-		loadDarkButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				loadBackground(SequenceLoaderService.ReferenceImageKind.DARK);
+				loadBackground(getSelectedReferenceKind());
+				updateReferenceStatusLabel();
 			}
 		});
 
@@ -243,11 +226,26 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		}
 	}
 
-	void loadBackground() {
-		loadBackground(SequenceLoaderService.ReferenceImageKind.DEFAULT);
+	private ReferenceImageKind getSelectedReferenceKind() {
+		Object sel = referenceKindCombo.getSelectedItem();
+		return sel instanceof ReferenceImageKind ? (ReferenceImageKind) sel : ReferenceImageKind.LIGHT;
 	}
 
-	void loadBackground(SequenceLoaderService.ReferenceImageKind kind) {
+	void updateReferenceStatusLabel() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getExperimentDirectory() == null) {
+			referenceStatusLabel.setText("");
+			return;
+		}
+		ReferenceImageKind kind = getSelectedReferenceKind();
+		String fn = SequenceLoaderService.getReferenceImageFilename(kind);
+		File f = new File(exp.getExperimentDirectory(), fn);
+		boolean onDisk = f.isFile();
+		referenceStatusLabel.setText(fn + (onDisk ? " · on disk" : " · not saved yet"));
+		referenceStatusLabel.setToolTipText(f.getAbsolutePath());
+	}
+
+	void loadBackground(ReferenceImageKind kind) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			boolean flag = new SequenceLoaderService().loadReferenceImage(exp, kind);
@@ -265,9 +263,9 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null || seqCamData.getSequence() == null)
 			return;
-		
+
 		IcyBufferedImage referenceImage = seqCamData.getReferenceImage();
-		
+
 		if (referenceImage == null) {
 			int t = seqCamData.getCurrentFrame();
 			IcyBufferedImage currentImage = seqCamData.getSeqImage(t, 0);
@@ -278,18 +276,19 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			referenceImage = IcyBufferedImageUtil.getCopy(currentImage);
 			seqCamData.setReferenceImage(referenceImage);
 		}
-		
+
 		if (ov == null) {
 			ov = new OverlayThreshold(seqCamData.getSequence());
 		} else {
 			seqCamData.getSequence().removeOverlay(ov);
 			ov.setSequence(seqCamData.getSequence());
 		}
-		
+
 		ov.setReferenceImage(referenceImage);
 		seqCamData.getSequence().addOverlay(ov);
 
-		// Background update triggers when sourceValue >= threshold; keep preview consistent.
+		// Background update triggers when sourceValue >= threshold; keep preview
+		// consistent.
 		boolean ifGreater = true;
 		ImageTransformEnums transformOp = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		if (transformOp == null) {
@@ -340,6 +339,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
+		buildKind = getSelectedReferenceKind();
 		parent0.paneBrowse.panelLoadSave.closeViewsForCurrentExperiment(exp);
 
 		buildBackground = new BuildBackground();
@@ -362,49 +362,50 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			startComputationButton.setText(detectString);
 			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
-			
+
 			if (buildBackground != null && buildBackground.isSaveSuccessful()) {
 				loadBackgroundWithRetry();
+				updateReferenceStatusLabel();
 			} else {
 				Logger.warn("Background image was not saved successfully - skipping automatic load");
 			}
 		}
 	}
-	
+
 	private void loadBackgroundWithRetry() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		
-		String filename = SequenceLoaderService.getReferenceImageFilename(SequenceLoaderService.ReferenceImageKind.DEFAULT);
+
+		String filename = SequenceLoaderService.getReferenceImageFilename(ReferenceImageKind.DEFAULT);
 		String path = exp.getExperimentDirectory() + java.io.File.separator + filename;
 		java.io.File file = new java.io.File(path);
-		
+
 		int maxRetries = 5;
 		int retryDelayMs = 200;
 		boolean loaded = false;
-		
+
 		for (int i = 0; i < maxRetries; i++) {
 			if (file.exists()) {
-				loaded = new SequenceLoaderService().loadReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DEFAULT);
+				loaded = new SequenceLoaderService().loadReferenceImage(exp, ReferenceImageKind.DEFAULT);
 				if (loaded) {
 					Viewer v = new Viewer(exp.getSeqReference(), true);
 					Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBoundsInternal();
 					v.setBounds(rectv);
 					Logger.info("Background image loaded successfully after " + (i + 1) + " attempt(s)");
 
-					if (buildKind == SequenceLoaderService.ReferenceImageKind.LIGHT) {
+					if (buildKind == ReferenceImageKind.LIGHT) {
 						exp.getSeqCamData().setReferenceImageLight(exp.getSeqCamData().getReferenceImage());
-						new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.LIGHT);
-					} else if (buildKind == SequenceLoaderService.ReferenceImageKind.DARK) {
+						new SequenceLoaderService().saveReferenceImage(exp, ReferenceImageKind.LIGHT);
+					} else if (buildKind == ReferenceImageKind.DARK) {
 						exp.getSeqCamData().setReferenceImageDark(exp.getSeqCamData().getReferenceImage());
-						new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DARK);
+						new SequenceLoaderService().saveReferenceImage(exp, ReferenceImageKind.DARK);
 					}
 
 					return;
 				}
 			}
-			
+
 			if (i < maxRetries - 1) {
 				try {
 					Thread.sleep(retryDelayMs);
@@ -414,10 +415,11 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 				}
 			}
 		}
-		
+
 		if (!loaded) {
 			Logger.warn("Failed to load background image after " + maxRetries + " attempts: " + path);
-			MessageDialog.showDialog("Reference file not found on disk after background creation.\nPath: " + path, MessageDialog.ERROR_MESSAGE);
+			MessageDialog.showDialog("Reference file not found on disk after background creation.\nPath: " + path,
+					MessageDialog.ERROR_MESSAGE);
 		}
 	}
 

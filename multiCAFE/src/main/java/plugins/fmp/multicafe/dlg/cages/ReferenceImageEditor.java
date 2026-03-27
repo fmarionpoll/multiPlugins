@@ -17,6 +17,7 @@ import javax.swing.SpinnerNumberModel;
 
 import icy.canvas.IcyCanvas;
 import icy.canvas.IcyCanvas2D;
+import icy.gui.dialog.MessageDialog;
 import icy.gui.frame.IcyFrame;
 import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
@@ -28,6 +29,7 @@ import icy.type.point.Point5D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.service.SequenceLoaderService;
+import plugins.fmp.multitools.service.SequenceLoaderService.ReferenceImageKind;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
@@ -44,11 +46,31 @@ public class ReferenceImageEditor {
 	}
 
 	public static void open(MultiCAFE parent0, Experiment exp) {
+		open(parent0, exp, ReferenceImageKind.DEFAULT);
+	}
+
+	public static void open(MultiCAFE parent0, Experiment exp, ReferenceImageKind kind) {
 		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
 			return;
 		}
 
-		ensureReferenceImageExists(exp);
+		if (kind == ReferenceImageKind.LIGHT || kind == ReferenceImageKind.DARK) {
+			boolean ok = new SequenceLoaderService().loadReferenceImage(exp, kind);
+			if (!ok) {
+				MessageDialog.showDialog("Reference file not found: " + SequenceLoaderService.getReferenceImageFilename(kind),
+						MessageDialog.ERROR_MESSAGE);
+				return;
+			}
+			IcyBufferedImage src = kind == ReferenceImageKind.LIGHT ? exp.getSeqCamData().getReferenceImageLight()
+					: exp.getSeqCamData().getReferenceImageDark();
+			if (src == null) {
+				return;
+			}
+			exp.getSeqCamData().setReferenceImage(IcyBufferedImageUtil.getCopy(src));
+		} else {
+			ensureReferenceImageExists(exp);
+		}
+
 		IcyBufferedImage ref = exp.getSeqCamData().getReferenceImage();
 		if (ref == null) {
 			return;
@@ -75,7 +97,7 @@ public class ReferenceImageEditor {
 		IcyFrame frame = new IcyFrame("Edit reference image", true, true, true, true);
 		frame.setLayout(new GridLayout(2, 1));
 
-		EditorState state = new EditorState(exp, viewer, frame);
+		EditorState state = new EditorState(exp, viewer, frame, kind);
 
 		JPanel toolsPanel = buildToolsPanel(state);
 		frame.add(toolsPanel);
@@ -133,13 +155,27 @@ public class ReferenceImageEditor {
 		flow.setVgap(0);
 		JPanel panel = new JPanel(flow);
 
-		JButton saveButton = new JButton("Save referenceImage.jpg");
+		String saveLabel;
+		if (state.editorKind == ReferenceImageKind.LIGHT) {
+			saveLabel = "Save " + SequenceLoaderService.getReferenceImageFilename(ReferenceImageKind.LIGHT);
+		} else if (state.editorKind == ReferenceImageKind.DARK) {
+			saveLabel = "Save " + SequenceLoaderService.getReferenceImageFilename(ReferenceImageKind.DARK);
+		} else {
+			saveLabel = "Save " + SequenceLoaderService.getReferenceImageFilename(ReferenceImageKind.DEFAULT);
+		}
+
+		JButton saveButton = new JButton(saveLabel);
 		JButton closeButton = new JButton("Close");
 
 		saveButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				new SequenceLoaderService().saveReferenceImage(state.exp);
+				if (state.editorKind == ReferenceImageKind.LIGHT) {
+					state.exp.getSeqCamData().setReferenceImageLight(state.exp.getSeqCamData().getReferenceImage());
+				} else if (state.editorKind == ReferenceImageKind.DARK) {
+					state.exp.getSeqCamData().setReferenceImageDark(state.exp.getSeqCamData().getReferenceImage());
+				}
+				new SequenceLoaderService().saveReferenceImage(state.exp, state.editorKind);
 			}
 		});
 
@@ -172,6 +208,7 @@ public class ReferenceImageEditor {
 	private static final class EditorState {
 		final Experiment exp;
 		final IcyFrame frame;
+		final ReferenceImageKind editorKind;
 		volatile Overlay overlay = null;
 		volatile Color pickedColor = new Color(255, 0, 0);
 
@@ -181,9 +218,10 @@ public class ReferenceImageEditor {
 		final JCheckBox squareCheckBox = new JCheckBox("square", false);
 		final JButton colorSwatchButton = new JButton("   ");
 
-		EditorState(Experiment exp, Viewer viewer, IcyFrame frame) {
+		EditorState(Experiment exp, Viewer viewer, IcyFrame frame, ReferenceImageKind editorKind) {
 			this.exp = exp;
 			this.frame = frame;
+			this.editorKind = editorKind != null ? editorKind : ReferenceImageKind.DEFAULT;
 			colorSwatchButton.setEnabled(false);
 		}
 

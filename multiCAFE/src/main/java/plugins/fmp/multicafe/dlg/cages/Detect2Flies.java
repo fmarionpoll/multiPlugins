@@ -26,14 +26,14 @@ import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.series.FlyDetect2;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect2Flies extends JPanel implements ChangeListener, PropertyChangeListener, PopupMenuListener {
@@ -89,6 +89,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		panel2.add(dualBackgroundCheckBox);
 		panel2.add(new JLabel("r>="));
 		panel2.add(rednessThresholdSpinner);
+		rednessThresholdSpinner.setPreferredSize(new Dimension(80, 20));
 
 		add(panel2);
 
