@@ -20,10 +20,33 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Logger;
 
 public class SequenceLoaderService {
+	public enum ReferenceImageKind {
+		DEFAULT, LIGHT, DARK
+	}
+
+	public static String getReferenceImageFilename(ReferenceImageKind kind) {
+		if (kind == null) {
+			kind = ReferenceImageKind.DEFAULT;
+		}
+		switch (kind) {
+		case LIGHT:
+			return "referenceImage_light.jpg";
+		case DARK:
+			return "referenceImage_dark.jpg";
+		case DEFAULT:
+		default:
+			return "referenceImage.jpg";
+		}
+	}
 
 	public boolean loadReferenceImage(Experiment exp) {
+		return loadReferenceImage(exp, ReferenceImageKind.DEFAULT);
+	}
+
+	public boolean loadReferenceImage(Experiment exp, ReferenceImageKind kind) {
 		BufferedImage image = null;
-		String path = exp.getExperimentDirectory() + File.separator + "referenceImage.jpg";
+		String filename = getReferenceImageFilename(kind);
+		String path = exp.getExperimentDirectory() + File.separator + filename;
 		File inputfile = new File(path);
 		boolean exists = inputfile.exists();
 		if (!exists)
@@ -33,25 +56,60 @@ public class SequenceLoaderService {
 			Logger.warn("SequenceLoaderService:loadReferenceImage() image not loaded / not found: " + path);
 			return false;
 		}
-		exp.getSeqCamData().setReferenceImage(IcyBufferedImage.createFrom(image));
-		exp.setSeqReference(new Sequence(exp.getSeqCamData().getReferenceImage()));
-		exp.getSeqReference().setName("referenceImage");
+		IcyBufferedImage icy = IcyBufferedImage.createFrom(image);
+		if (kind == null) {
+			kind = ReferenceImageKind.DEFAULT;
+		}
+		switch (kind) {
+		case LIGHT:
+			exp.getSeqCamData().setReferenceImageLight(icy);
+			break;
+		case DARK:
+			exp.getSeqCamData().setReferenceImageDark(icy);
+			break;
+		case DEFAULT:
+		default:
+			exp.getSeqCamData().setReferenceImage(icy);
+			exp.setSeqReference(new Sequence(exp.getSeqCamData().getReferenceImage()));
+			exp.getSeqReference().setName("referenceImage");
+			break;
+		}
 		return true;
 	}
 
 	public boolean saveReferenceImage(Experiment exp) {
+		return saveReferenceImage(exp, ReferenceImageKind.DEFAULT);
+	}
+
+	public boolean saveReferenceImage(Experiment exp, ReferenceImageKind kind) {
 		if (exp == null || exp.getSeqCamData() == null) {
 			Logger.warn("SequenceLoaderService:saveReferenceImage() experiment or seqCamData is null");
 			return false;
 		}
 		
-		IcyBufferedImage referenceImage = exp.getSeqCamData().getReferenceImage();
+		if (kind == null) {
+			kind = ReferenceImageKind.DEFAULT;
+		}
+		IcyBufferedImage referenceImage = null;
+		switch (kind) {
+		case LIGHT:
+			referenceImage = exp.getSeqCamData().getReferenceImageLight();
+			break;
+		case DARK:
+			referenceImage = exp.getSeqCamData().getReferenceImageDark();
+			break;
+		case DEFAULT:
+		default:
+			referenceImage = exp.getSeqCamData().getReferenceImage();
+			break;
+		}
 		if (referenceImage == null) {
 			Logger.warn("SequenceLoaderService:saveReferenceImage() reference image is null");
 			return false;
 		}
 		
-		String path = exp.getExperimentDirectory() + File.separator + "referenceImage.jpg";
+		String filename = getReferenceImageFilename(kind);
+		String path = exp.getExperimentDirectory() + File.separator + filename;
 		File outputfile = new File(path);
 		File parentDir = outputfile.getParentFile();
 		

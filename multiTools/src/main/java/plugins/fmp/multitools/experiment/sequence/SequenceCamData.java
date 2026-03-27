@@ -58,6 +58,8 @@ public class SequenceCamData implements AutoCloseable {
 	private EnumStatus status = EnumStatus.REGULAR;
 	private int currentFrame = 0;
 	private IcyBufferedImage referenceImage = null;
+	private IcyBufferedImage referenceImageLight = null;
+	private IcyBufferedImage referenceImageDark = null;
 
 	// Fields ported from experiment.SequenceCamData
 	private long seqAnalysisStart = 0;
@@ -803,6 +805,22 @@ public class SequenceCamData implements AutoCloseable {
 
 	public void setReferenceImage(IcyBufferedImage image) {
 		this.referenceImage = image;
+	}
+
+	public IcyBufferedImage getReferenceImageLight() {
+		return referenceImageLight;
+	}
+
+	public void setReferenceImageLight(IcyBufferedImage image) {
+		this.referenceImageLight = image;
+	}
+
+	public IcyBufferedImage getReferenceImageDark() {
+		return referenceImageDark;
+	}
+
+	public void setReferenceImageDark(IcyBufferedImage image) {
+		this.referenceImageDark = image;
 	}
 
 	// === ANALYSIS PARAMETERS (Ported from experiment.SequenceCamData) ===

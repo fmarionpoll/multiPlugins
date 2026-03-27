@@ -55,11 +55,18 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	private JButton loadButton = new JButton("Load...");
 	private JButton saveButton = new JButton("Save...");
 	private JButton editButton = new JButton("Edit reference...");
+	private JButton buildLightButton = new JButton("Build Light BG");
+	private JButton buildDarkButton = new JButton("Build Dark BG");
+	private JButton loadLightButton = new JButton("Load Light...");
+	private JButton saveLightButton = new JButton("Save Light...");
+	private JButton loadDarkButton = new JButton("Load Dark...");
+	private JButton saveDarkButton = new JButton("Save Dark...");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 
 	private BuildBackground buildBackground = null;
 	private OverlayThreshold ov = null;
+	private SequenceLoaderService.ReferenceImageKind buildKind = SequenceLoaderService.ReferenceImageKind.DEFAULT;
 
 	// ----------------------------------------------------
 
@@ -95,6 +102,12 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		add(panel3);
 
 		JPanel panel4 = new JPanel(flowLayout);
+		panel4.add(buildLightButton);
+		panel4.add(buildDarkButton);
+		panel4.add(loadLightButton);
+		panel4.add(saveLightButton);
+		panel4.add(loadDarkButton);
+		panel4.add(saveDarkButton);
 		panel4.add(loadButton);
 		panel4.add(saveButton);
 		panel4.add(editButton);
@@ -106,6 +119,22 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	}
 
 	private void defineActionListeners() {
+		buildLightButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				buildKind = SequenceLoaderService.ReferenceImageKind.LIGHT;
+				startComputation();
+			}
+		});
+
+		buildDarkButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				buildKind = SequenceLoaderService.ReferenceImageKind.DARK;
+				startComputation();
+			}
+		});
+
 		startComputationButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -125,6 +154,24 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			}
 		});
 
+		saveLightButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.LIGHT);
+			}
+		});
+
+		saveDarkButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DARK);
+			}
+		});
+
 		editButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -139,6 +186,20 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				loadBackground();
+			}
+		});
+
+		loadLightButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				loadBackground(SequenceLoaderService.ReferenceImageKind.LIGHT);
+			}
+		});
+
+		loadDarkButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				loadBackground(SequenceLoaderService.ReferenceImageKind.DARK);
 			}
 		});
 
@@ -183,9 +244,13 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	}
 
 	void loadBackground() {
+		loadBackground(SequenceLoaderService.ReferenceImageKind.DEFAULT);
+	}
+
+	void loadBackground(SequenceLoaderService.ReferenceImageKind kind) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			boolean flag = new SequenceLoaderService().loadReferenceImage(exp);
+			boolean flag = new SequenceLoaderService().loadReferenceImage(exp, kind);
 			if (flag) {
 				Viewer v = new Viewer(exp.getSeqReference(), true);
 				Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBoundsInternal();
@@ -311,7 +376,8 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		if (exp == null)
 			return;
 		
-		String path = exp.getExperimentDirectory() + java.io.File.separator + "referenceImage.jpg";
+		String filename = SequenceLoaderService.getReferenceImageFilename(SequenceLoaderService.ReferenceImageKind.DEFAULT);
+		String path = exp.getExperimentDirectory() + java.io.File.separator + filename;
 		java.io.File file = new java.io.File(path);
 		
 		int maxRetries = 5;
@@ -320,12 +386,21 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		
 		for (int i = 0; i < maxRetries; i++) {
 			if (file.exists()) {
-				loaded = new SequenceLoaderService().loadReferenceImage(exp);
+				loaded = new SequenceLoaderService().loadReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DEFAULT);
 				if (loaded) {
 					Viewer v = new Viewer(exp.getSeqReference(), true);
 					Rectangle rectv = exp.getSeqCamData().getSequence().getFirstViewer().getBoundsInternal();
 					v.setBounds(rectv);
 					Logger.info("Background image loaded successfully after " + (i + 1) + " attempt(s)");
+
+					if (buildKind == SequenceLoaderService.ReferenceImageKind.LIGHT) {
+						exp.getSeqCamData().setReferenceImageLight(exp.getSeqCamData().getReferenceImage());
+						new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.LIGHT);
+					} else if (buildKind == SequenceLoaderService.ReferenceImageKind.DARK) {
+						exp.getSeqCamData().setReferenceImageDark(exp.getSeqCamData().getReferenceImage());
+						new SequenceLoaderService().saveReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DARK);
+					}
+
 					return;
 				}
 			}

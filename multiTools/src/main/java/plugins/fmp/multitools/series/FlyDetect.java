@@ -94,7 +94,7 @@ public abstract class FlyDetect extends BuildSeries {
 			progressBar.setMessage(title);
 
 			IcyBufferedImage workImage = loader.imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
-			updateTransformOptions(exp, t, t_previous, transformOptions);
+			updateTransformOptions(exp, t, t_previous, transformOptions, workImage);
 
 			IcyBufferedImage negativeImage = transformFunction.getTransformedImage(workImage, transformOptions);
 			try {
@@ -116,6 +116,11 @@ public abstract class FlyDetect extends BuildSeries {
 
 	protected void updateTransformOptions(Experiment exp, int t, int t_previous, CanvasImageTransformOptions options) {
 		// default does nothing
+	}
+
+	protected void updateTransformOptions(Experiment exp, int t, int t_previous, CanvasImageTransformOptions options,
+			IcyBufferedImage workImage) {
+		updateTransformOptions(exp, t, t_previous, options);
 	}
 
 	protected boolean loadDrosoTrack2(Experiment exp) {

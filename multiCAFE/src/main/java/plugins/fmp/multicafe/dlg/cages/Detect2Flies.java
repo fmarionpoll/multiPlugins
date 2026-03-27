@@ -22,6 +22,8 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
+import icy.image.IcyBufferedImage;
+import icy.image.IcyBufferedImageCursor;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -56,6 +58,8 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	private JToggleButton viewButton = new JToggleButton("View");
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox whiteObjectCheckBox = new JCheckBox("white object");
+	private JCheckBox dualBackgroundCheckBox = new JCheckBox("dual background", true);
+	private JSpinner rednessThresholdSpinner = new JSpinner(new SpinnerNumberModel(0.42, 0.0, 1.0, 0.01));
 
 	private FlyDetect2 flyDetect2 = null;
 	private OverlayThreshold overlayThreshold = null;
@@ -82,7 +86,9 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(new JLabel("threshold"));
 		panel2.add(thresholdSpinner);
-
+		panel2.add(dualBackgroundCheckBox);
+		panel2.add(new JLabel("r>="));
+		panel2.add(rednessThresholdSpinner);
 
 		add(panel2);
 
@@ -200,7 +206,7 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 			exp.getSeqCamData().getSequence().removeOverlay(overlayThreshold);
 			overlayThreshold.setSequence(exp.getSeqCamData().getSequence());
 		}
-		overlayThreshold.setReferenceImage(exp.getSeqCamData().getReferenceImage());
+		overlayThreshold.setReferenceImage(getActiveBackground(exp));
 		exp.getSeqCamData().getSequence().addOverlay(overlayThreshold);
 	}
 
@@ -234,6 +240,8 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		options.jitter = (int) jitterTextField.getValue();
 		options.thresholdDiff = (int) thresholdSpinner.getValue();
 		options.detectFlies = true;
+		options.dualBackground = dualBackgroundCheckBox.isSelected();
+		options.rednessThreshold = ((Number) rednessThresholdSpinner.getValue()).doubleValue();
 
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = exp.getBinSubDirectory();
@@ -317,13 +325,78 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		optionsStep1.backgroundImage = null;
 		int index = 0;
 		if (display) {
-			if (exp.getSeqCamData().getReferenceImage() == null) {
+			IcyBufferedImage bg = getActiveBackground(exp);
+			if (bg == null) {
 				new SequenceLoaderService().loadReferenceImage(exp);
+				bg = exp.getSeqCamData().getReferenceImage();
 			}
-			optionsStep1.backgroundImage = exp.getSeqCamData().getReferenceImage();
+			optionsStep1.backgroundImage = bg;
 			index = 1;
 		}
 		canvas.selectItemStep1(imageTransformStep1[index], optionsStep1);
+	}
+
+	private IcyBufferedImage getActiveBackground(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null) {
+			return null;
+		}
+		if (!dualBackgroundCheckBox.isSelected()) {
+			return exp.getSeqCamData().getReferenceImage();
+		}
+
+		IcyBufferedImage light = exp.getSeqCamData().getReferenceImageLight();
+		IcyBufferedImage dark = exp.getSeqCamData().getReferenceImageDark();
+		if (light == null) {
+			new SequenceLoaderService().loadReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.LIGHT);
+			light = exp.getSeqCamData().getReferenceImageLight();
+		}
+		if (dark == null) {
+			new SequenceLoaderService().loadReferenceImage(exp, SequenceLoaderService.ReferenceImageKind.DARK);
+			dark = exp.getSeqCamData().getReferenceImageDark();
+		}
+
+		if (light == null) {
+			return dark != null ? dark : exp.getSeqCamData().getReferenceImage();
+		}
+		if (dark == null) {
+			return light;
+		}
+
+		int t = exp.getSeqCamData().getCurrentFrame();
+		IcyBufferedImage img = exp.getSeqCamData().getSeqImage(t, 0);
+		double r = computeRednessRatio(img, 16);
+		double thr = ((Number) rednessThresholdSpinner.getValue()).doubleValue();
+		return (r >= thr) ? dark : light;
+	}
+
+	private static double computeRednessRatio(IcyBufferedImage img, int step) {
+		if (img == null) {
+			return 0.0;
+		}
+		int w = img.getSizeX();
+		int h = img.getSizeY();
+		int c = img.getSizeC();
+		if (c < 3) {
+			return 0.0;
+		}
+		if (step < 1) {
+			step = 1;
+		}
+
+		double sum = 0.0;
+		int n = 0;
+		IcyBufferedImageCursor cur = new IcyBufferedImageCursor(img);
+		for (int y = 0; y < h; y += step) {
+			for (int x = 0; x < w; x += step) {
+				double rr = cur.get(x, y, 0);
+				double gg = cur.get(x, y, 1);
+				double bb = cur.get(x, y, 2);
+				double denom = rr + gg + bb + 1e-9;
+				sum += (rr / denom);
+				n++;
+			}
+		}
+		return n > 0 ? (sum / n) : 0.0;
 	}
 
 }

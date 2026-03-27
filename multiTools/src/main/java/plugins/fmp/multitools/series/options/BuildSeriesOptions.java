@@ -127,6 +127,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int background_jitter = 1;
 	public int spotRadius = 5;
 
+	// Detect2 dual-background switching
+	public boolean dualBackground = false;
+	public double rednessThreshold = 0.42;
+
 	// Memory optimization options
 	public int batchSize = 10; // Number of frames to process in each batch
 	public int maxConcurrentTasks = 4; // Maximum number of concurrent processing tasks
