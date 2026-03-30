@@ -398,9 +398,11 @@ public class Directories {
 	}
 
 	/**
-	 * Moves XML files (ending in .xml or starting with "line") to a subdirectory.
-	 * Renames them using Capillary.replace_LR_with_12 logic and optionally clips
-	 * the name.
+	 * Moves legacy {@code line*.xml} files to a subdirectory.
+	 * <p>
+	 * This is used to migrate old layouts where capillary line descriptors were
+	 * stored directly under {@code results/}. It must not move unrelated XML files
+	 * like {@code Experiment.xml} / {@code experiment.xml}.
 	 * 
 	 * @param directoryStr the source directory path
 	 * @param subname      the name of the subdirectory to create/use
@@ -419,8 +421,8 @@ public class Directories {
 				stream.filter(Files::isRegularFile).forEach(path -> {
 					String name = path.getFileName().toString();
 					String nameLower = name.toLowerCase();
-					// Only move XML files. Older code also matched "line*.tiff" and tried to rename it to ".xml".
-					if (nameLower.endsWith(".xml")) {
+					// Only move legacy line*.xml files (do NOT move Experiment.xml or other metadata XMLs).
+					if (nameLower.endsWith(".xml") && nameLower.startsWith("line")) {
 						String destinationName = Capillary.replace_LR_with_12(name);
 						if (clipName && destinationName.length() >= 6) {
 							destinationName = destinationName.substring(0, 6) + ".xml";
