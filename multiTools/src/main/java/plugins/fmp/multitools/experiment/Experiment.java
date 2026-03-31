@@ -1439,8 +1439,14 @@ public class Experiment {
 	public void updateROIsAt(int t) {
 		if (seqCamData == null || seqCamData.getSequence() == null)
 			return;
-		for (ROIsAtTProvider p : getCamRoiProviders()) {
-			MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), p.getFilter(), p.getROIsAtT(t));
+		final Sequence seq = seqCamData.getSequence();
+		seq.beginUpdate();
+		try {
+			for (ROIsAtTProvider p : getCamRoiProviders()) {
+				MeasureRoiSync.updateMeasureROIsAt(t, seq, p.getFilter(), p.getROIsAtT(t));
+			}
+		} finally {
+			seq.endUpdate();
 		}
 	}
 
