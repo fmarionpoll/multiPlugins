@@ -74,6 +74,27 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	}
 
 	/**
+	 * Fly-position export requires loading DrosoTrack (positions) measures. The base
+	 * implementation loads positions conditionally (currently tied to an unrelated
+	 * option), which can leave {@link FlyPositions#flyPositionList} empty during
+	 * export even though the UI can display positions.
+	 */
+	@Override
+	protected void prepareExperiments() throws plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException {
+		try {
+			// Always load fly positions ("DrosoTrack") for this exporter.
+			expList.loadListOfMeasuresFromAllExperiments(true, true);
+			expList.chainExperimentsUsingKymoIndexes(options.collateSeries);
+			expList.setFirstImageForAllExperiments(options.collateSeries);
+			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);
+		} catch (Exception e) {
+			throw new plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException(
+					"Failed to prepare experiments for fly-position export", "prepare_experiments",
+					"experiment_loading", e);
+		}
+	}
+
+	/**
 	 * Exports fly position data for a single experiment.
 	 * 
 	 * @param exp         The experiment to export
