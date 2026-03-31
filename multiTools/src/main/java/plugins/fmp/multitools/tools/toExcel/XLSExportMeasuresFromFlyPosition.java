@@ -559,16 +559,22 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			return resultsArray;
 		}
 
-		final long firstAllMs = expAll.getSeqCamData().getFirstImageMs();
-		final long lastAllMs = expAll.getSeqCamData().getLastImageMs();
+		final long firstAllEpochMs = expAll.getSeqCamData().getFirstImageMs();
+		final long lastAllEpochMs = expAll.getSeqCamData().getLastImageMs();
 		final long buildExcelStepMs = resultsOptions.buildExcelStepMs;
 
-		if (lastAllMs <= firstAllMs || buildExcelStepMs <= 0) {
+		if (lastAllEpochMs <= firstAllEpochMs || buildExcelStepMs <= 0) {
 			return resultsArray;
 		}
 
-		final int nBins = (int) ((lastAllMs - firstAllMs) / buildExcelStepMs) + 1;
-		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllMs) : 0L;
+		// Binning must be in the same time base as the X values we interpolate against.
+		// - When absoluteTime=false (default in MultiCAFE), FlyPosition.tMs is RELATIVE (ms since experiment start).
+		//   Use relative bins [0..duration].
+		// - When absoluteTime=true, build an epoch-based timeline and convert FlyPosition.tMs to epoch using
+		//   exp.chainImageFirst_ms (epoch of experiment start) then interpolate against epoch bins.
+		final long durationAllMs = lastAllEpochMs - firstAllEpochMs;
+		final int nBins = (int) (durationAllMs / buildExcelStepMs) + 1;
+		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllEpochMs) : 0L;
 		final double sx = flyPositions.getMmPerPixelX();
 		final double sy = flyPositions.getMmPerPixelY();
 
@@ -578,7 +584,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			resultsArray[i].initValuesOutArray(nBins, Double.NaN);
 		}
 
-		// Build arrays of observed points (global time) and interpolate to bins.
+		// Build arrays of observed points and interpolate to bins.
 		final int nPts = flyPositions.flyPositionList.size();
 		double[] timesGlobalMs = new double[nPts];
 		double[] xs = new double[nPts];
@@ -588,10 +594,16 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		int kept = 0;
 		for (FlyPosition pos : flyPositions.flyPositionList) {
-			if (pos == null || pos.flyId != flyId) {
+			if (pos == null) {
 				continue;
 			}
-			if (pos == null || pos.getRectangle2D() == null) {
+			// Legacy datasets can have flyId = -1 for all points (unknown single-fly identity).
+			// Treat those as fly 0 so exports produce data when nflies=1.
+			boolean matches = (pos.flyId == flyId) || (pos.flyId < 0 && flyId == 0);
+			if (!matches) {
+				continue;
+			}
+			if (pos.getRectangle2D() == null) {
 				continue;
 			}
 			double x = pos.getRectangle2D().getX();
@@ -602,7 +614,16 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				continue;
 			}
 
-			timesGlobalMs[kept] = expOffsetToAllMs + (double) pos.tMs;
+			// Align time base with export mode (absolute vs relative).
+			if (options.absoluteTime) {
+				// epoch ms:
+				// firstAllEpochMs + (exp.chainImageFirst_ms - firstAllEpochMs) + pos.tMs
+				// == exp.chainImageFirst_ms + pos.tMs
+				timesGlobalMs[kept] = (double) (firstAllEpochMs + expOffsetToAllMs + pos.tMs);
+			} else {
+				// relative ms since experiment start
+				timesGlobalMs[kept] = (double) pos.tMs;
+			}
 			xs[kept] = x * sx;
 			ys[kept] = y * sy;
 			ws[kept] = w * sx;
@@ -624,7 +645,9 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		sortByTime(times, xvals, yvals, wvals, hvals);
 
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
-			long binTimeGlobalMs = firstAllMs + (long) binIndex * buildExcelStepMs;
+			long binTimeGlobalMs = options.absoluteTime
+					? (firstAllEpochMs + (long) binIndex * buildExcelStepMs)
+					: ((long) binIndex * buildExcelStepMs);
 
 			double xi = linearInterpolateNoExtrapolation(times, xvals, binTimeGlobalMs);
 			double yi = linearInterpolateNoExtrapolation(times, yvals, binTimeGlobalMs);
@@ -818,6 +841,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 */
 	public Results getResultsDataValuesFromFlyPositionMeasures(Experiment exp, Cage cage, FlyPositions flyPositions,
 			ResultsOptions resultsOptions, int flyId) {
+		// IMPORTANT:
+		// - FlyPosition.tMs is filled from Experiment.initTmsForFlyPositions(), which sets tMs as
+		//   a RELATIVE time (ms since the first valid camera frame of that experiment).
+		// - SequenceCamData.getFirstImageMs()/getLastImageMs() return epoch ms for real sequences.
+		// Therefore, binning must be done on a RELATIVE timeline (0..duration) to match FlyPosition.tMs.
 		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
@@ -863,13 +891,20 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
-			long binTimeMs = firstImageMs + binIndex * buildExcelStepMs;
+			// Relative time bins (ms since experiment start). This matches FlyPosition.tMs.
+			long binTimeMs = (long) binIndex * buildExcelStepMs;
 			long binEndTime = binTimeMs + buildExcelStepMs;
 
 			java.util.List<Double> binValues = new java.util.ArrayList<>();
 			for (FlyPosition pos : flyPositions.flyPositionList) {
-				if (flyId >= 0 && (pos == null || pos.flyId != flyId)) {
+				if (pos == null) {
 					continue;
+				}
+				if (flyId >= 0) {
+					boolean matches = (pos.flyId == flyId) || (pos.flyId < 0 && flyId == 0);
+					if (!matches) {
+						continue;
+					}
 				}
 				if (pos.tMs >= binTimeMs && pos.tMs < binEndTime) {
 					Double value = extractValueFromFlyPosition(pos, resultType);
@@ -892,12 +927,24 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	}
 
 	private Double extractValueFromFlyPosition(FlyPosition pos, EnumResults resultType) {
+		if (pos == null || pos.getRectangle2D() == null) {
+			return Double.NaN;
+		}
+		// Some legacy datasets store x/y but leave w/h undefined (NaN). In that case,
+		// getCenterRectangle() becomes NaN (x + NaN/2). Fall back to top-left x/y.
+		final java.awt.geom.Rectangle2D r = pos.getRectangle2D();
+		final double rx = r.getX();
+		final double ry = r.getY();
+		final double rw = r.getWidth();
+		final double rh = r.getHeight();
+		final boolean hasCenter = !(Double.isNaN(rx) || Double.isNaN(ry) || Double.isNaN(rw) || Double.isNaN(rh));
+
 		switch (resultType) {
 		case XYIMAGE:
 		case XYTOPCAGE:
-			return pos.getCenterRectangle().getY();
+			return hasCenter ? pos.getCenterRectangle().getY() : ry;
 		case XYTIPCAPS:
-			return pos.getCenterRectangle().getX();
+			return hasCenter ? pos.getCenterRectangle().getX() : rx;
 		case DISTANCE:
 			return pos.distanceMm;
 		case ISALIVE:
@@ -907,7 +954,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		case ELLIPSEAXES:
 			return pos.axis1Mm;
 		default:
-			return pos.getCenterRectangle().getY();
+			return hasCenter ? pos.getCenterRectangle().getY() : ry;
 		}
 	}
 

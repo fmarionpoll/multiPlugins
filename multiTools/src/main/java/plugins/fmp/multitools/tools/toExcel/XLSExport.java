@@ -162,7 +162,8 @@ public abstract class XLSExport {
 				// This is critical for finding the CapillariesMeasures.csv file
 				ensureBinDirectoryIsDefined(exp);
 				exp.load_capillaries_description_and_measures();
-				exp.loadCagesMeasures();
+				// Excel export does not need to push ROIs into the sequence; avoid the cost.
+				exp.loadCagesMeasures(false);
 				if (shouldSkipChainedExperiment(exp)) {
 					continue;
 				}

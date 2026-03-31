@@ -741,7 +741,10 @@ public class Experiment {
 
 	public void initTmsForFlyPositions(long time_start_ms) {
 		timeManager.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(seqCamData, time_start_ms);
-		cages.initCagesTmsForFlyPositions(timeManager.getCamImages_ms());
+		// Map flyIndexT -> tMs. flyIndexT can be either a "valid frame index" (0..N-1)
+		// or an absolute on-disk frame index (legacy datasets). Use seqCamData to
+		// convert absolute indices when needed.
+		cages.initCagesTmsForFlyPositions(timeManager.getCamImages_ms(), seqCamData);
 	}
 
 	public int findNearestIntervalWithBinarySearch(long value, int low, int high) {
@@ -2129,6 +2132,16 @@ public class Experiment {
 	}
 
 	public boolean loadCagesMeasures() {
+		return loadCagesMeasures(true);
+	}
+
+	/**
+	 * Loads cages descriptions + fly-position measures. Optionally pushes loaded ROIs
+	 * to the camera sequence (UI concern).
+	 *
+	 * @param transferRoisToSequence when true, sync ROIs into {@link #seqCamData}
+	 */
+	public boolean loadCagesMeasures(boolean transferRoisToSequence) {
 
 		String resultsDir = getResultsDirectory();
 		// Try new format: descriptions from results, measures from bin
@@ -2156,7 +2169,7 @@ public class Experiment {
 			cages.applyFlyScaleToExistingPositions(getFlyMmPerPixelX(), getFlyMmPerPixelY());
 		}
 
-		if (measuresLoaded && seqCamData.getSequence() != null) {
+		if (transferRoisToSequence && measuresLoaded && seqCamData.getSequence() != null) {
 			CagesSequenceMapper.transferROIsToSequence(cages, seqCamData);
 		}
 

@@ -741,6 +741,36 @@ public class Cages {
 		}
 	}
 
+	/**
+	 * Initializes {@link FlyPosition#tMs} from {@link FlyPosition#flyIndexT}.
+	 * <p>
+	 * In newer data, {@code flyIndexT} is typically the valid-frame index (0..N-1)
+	 * and can directly index {@code camImages_ms}. In legacy datasets, it can be an
+	 * absolute on-disk frame index; when {@code seqCamData} is provided, we convert
+	 * it to a valid-frame index.
+	 */
+	public void initCagesTmsForFlyPositions(long[] camImages_ms, SequenceCamData seqCamData) {
+		if (camImages_ms == null)
+			return;
+		for (Cage cage : cagesList) {
+			if (cage == null || cage.flyPositions == null || cage.flyPositions.flyPositionList == null)
+				continue;
+			for (FlyPosition flyPos : cage.flyPositions.flyPositionList) {
+				if (flyPos == null)
+					continue;
+				int idx = flyPos.flyIndexT;
+				if (idx < 0)
+					continue;
+				if (idx >= camImages_ms.length && seqCamData != null) {
+					idx = seqCamData.absoluteToValidFrameIndex(idx);
+				}
+				if (idx >= 0 && idx < camImages_ms.length) {
+					flyPos.tMs = camImages_ms[idx];
+				}
+			}
+		}
+	}
+
 	// ----------------
 
 	public void computeBooleanMasksForCages() {
