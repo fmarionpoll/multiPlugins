@@ -46,6 +46,12 @@ public class MCCages_ extends JPanel implements PropertyChangeListener {
 
 	MultiCAFE parent0 = null;
 
+	public void refreshInfosFromCurrentExperiment() {
+		if (tabInfos != null) {
+			tabInfos.refreshFromCurrentExperiment();
+		}
+	}
+
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
 		this.parent0 = parent0;
 

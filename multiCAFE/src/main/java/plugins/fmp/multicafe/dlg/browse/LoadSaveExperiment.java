@@ -1060,6 +1060,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		boolean flag2 = (isel == (parent0.expListComboLazy.getItemCount() - 1) ? false : true);
 		previousButton.setEnabled(flag1);
 		nextButton.setEnabled(flag2);
+		if (parent0 != null && parent0.paneCages != null) {
+			parent0.paneCages.refreshInfosFromCurrentExperiment();
+		}
 	}
 
 	/**
