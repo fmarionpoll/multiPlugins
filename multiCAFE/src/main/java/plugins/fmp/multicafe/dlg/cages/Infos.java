@@ -3,9 +3,9 @@ package plugins.fmp.multicafe.dlg.cages;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.geom.Point2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,13 +21,13 @@ import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.roi.ROI2D;
+import icy.type.geom.Polygon2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.tools.polyline.PolygonUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
-import icy.roi.ROI2D;
-import icy.type.geom.Polygon2D;
 
 public class Infos extends JPanel {
 	/**
@@ -57,6 +57,8 @@ public class Infos extends JPanel {
 	private boolean tabCleanupListenerRegistered = false;
 	private JPanel anisotropicPanel = null;
 	private JPanel anisotropicPanel2 = null;
+	private final JLabel flyScaleXValueLabel = new JLabel("-");
+	private final JLabel flyScaleYValueLabel = new JLabel("-");
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -65,15 +67,23 @@ public class Infos extends JPanel {
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 		flowLayout.setVgap(0);
 
+		JPanel panelScale = new JPanel(flowLayout);
+		panelScale.add(editCageButton);
+		panelScale.add(new JLabel("Scale (mm/pixel): X="));
+		panelScale.add(flyScaleXValueLabel);
+		panelScale.add(new JLabel("  Y="));
+		panelScale.add(flyScaleYValueLabel);
+		add(panelScale);
+
 		JPanel panel0a = new JPanel(flowLayout);
 		panel0a.add(new JLabel("Use as reference: "));
 		panel0a.add(useROI);
 		panel0a.add(useCapillaries);
 		panel0a.add(measureButton);
-		add(panel0a);
 		useGroup.add(useROI);
 		useGroup.add(useCapillaries);
 		useROI.setSelected(true);
+		add(panel0a);
 
 		anisotropicPanel = new JPanel(flowLayout);
 		anisotropicPanel.add(new JLabel("x width (mm):", SwingConstants.RIGHT));
@@ -81,18 +91,30 @@ public class Infos extends JPanel {
 		anisotropicPanel.add(new JLabel("y height (mm):", SwingConstants.RIGHT));
 		anisotropicPanel.add(yLeftMmSpinner);
 		add(anisotropicPanel);
-		
+
 		anisotropicPanel2 = new JPanel(flowLayout);
 		anisotropicPanel2.add(generateScaleModelRoiButton);
 		anisotropicPanel2.add(measureROIButton);
 		add(anisotropicPanel2);
-		
-		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(editCageButton);
-		add(panel1);
 
 		defineActionListeners();
 		registerTabCleanupListener();
+		refreshFromCurrentExperiment();
+	}
+
+	public void refreshFromCurrentExperiment() {
+		Experiment exp = parent0 != null ? (Experiment) parent0.expListComboLazy.getSelectedItem() : null;
+		refreshDisplayedScale(exp);
+	}
+
+	private void refreshDisplayedScale(Experiment exp) {
+		if (exp == null) {
+			flyScaleXValueLabel.setText("-");
+			flyScaleYValueLabel.setText("-");
+			return;
+		}
+		flyScaleXValueLabel.setText(String.format("%.6f", exp.getFlyMmPerPixelX()));
+		flyScaleYValueLabel.setText(String.format("%.6f", exp.getFlyMmPerPixelY()));
 	}
 
 	private void defineActionListeners() {
@@ -120,7 +142,6 @@ public class Infos extends JPanel {
 				applyFlyScaleToExperiment();
 			}
 		});
-
 
 		useROI.addActionListener(new ActionListener() {
 			@Override
@@ -268,8 +289,7 @@ public class Infos extends JPanel {
 	private void generateScaleModelRoiPolygon(Experiment exp) {
 		Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 		if (rect == null || rect.width <= 0 || rect.height <= 0) {
-			JOptionPane.showMessageDialog(this,
-					"Could not determine camera bounds to generate the 4-corner ROI.",
+			JOptionPane.showMessageDialog(this, "Could not determine camera bounds to generate the 4-corner ROI.",
 					"ROI generation failed", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
@@ -289,8 +309,8 @@ public class Infos extends JPanel {
 			rectleft = bound0.x;
 			rectright = bound0.x + bound0.width;
 			if (exp.getCapillaries().getList().size() > 1) {
-				Rectangle bound1 = exp.getCapillaries().getList()
-						.get(exp.getCapillaries().getList().size() - 1).getRoi().getBounds();
+				Rectangle bound1 = exp.getCapillaries().getList().get(exp.getCapillaries().getList().size() - 1)
+						.getRoi().getBounds();
 				rectright = bound1.x + bound1.width;
 			}
 			int diff = (int) ((rectright - rectleft) * 2 / 60.0);
@@ -322,8 +342,7 @@ public class Infos extends JPanel {
 
 		ROI2DPolygon model = scaleModelRoi4Corners != null ? scaleModelRoi4Corners : findScaleModelRoiPolygon(exp);
 		if (model == null) {
-			JOptionPane.showMessageDialog(this,
-					"Model 4-corner ROI not found.\nClick \"Generate 4-corner ROI\" first.",
+			JOptionPane.showMessageDialog(this, "Model 4-corner ROI not found.\nClick \"Generate 4-corner ROI\" first.",
 					"Scale not applied", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
@@ -356,7 +375,8 @@ public class Infos extends JPanel {
 			return;
 		}
 
-		Polygon2D orderedPolygon = PolygonUtilities.orderVerticesOf4CornersPolygon(((ROI2DPolygon) selectedRoi).getPolygon());
+		Polygon2D orderedPolygon = PolygonUtilities
+				.orderVerticesOf4CornersPolygon(((ROI2DPolygon) selectedRoi).getPolygon());
 		if (orderedPolygon == null || orderedPolygon.npoints < 4) {
 			JOptionPane.showMessageDialog(this, "Could not read a valid 4-corner polygon ROI.");
 			return;
@@ -379,7 +399,7 @@ public class Infos extends JPanel {
 
 		double xTopMm = ((Number) xTopMmSpinner.getValue()).doubleValue();
 		double yLeftMm = ((Number) yLeftMmSpinner.getValue()).doubleValue();
-		if (xTopMm <= 0  || yLeftMm <= 0 ) {
+		if (xTopMm <= 0 || yLeftMm <= 0) {
 			JOptionPane.showMessageDialog(this, "All ROI dimensions in mm must be > 0.");
 			return;
 		}
@@ -388,6 +408,7 @@ public class Infos extends JPanel {
 		double sy = yLeftMm / ((leftPx + rightPx) / 2.0);
 		exp.setFlyMmPerPixelX(sx);
 		exp.setFlyMmPerPixelY(sy);
+		refreshDisplayedScale(exp);
 		if (!exp.saveExperimentDescriptors()) {
 			JOptionPane.showMessageDialog(this,
 					"Scale values were computed, but saving experiment descriptors failed.\n"
@@ -407,13 +428,14 @@ public class Infos extends JPanel {
 		double lengthPx = ((Number) pixelsSpinner.getValue()).doubleValue();
 		if (!(lengthMm > 0.0 && lengthPx > 0.0)) {
 			JOptionPane.showMessageDialog(this,
-					"Invalid inputs for fly scale.\nlengthMm and lengthPx must both be > 0.",
-					"Fly scale not applied", JOptionPane.WARNING_MESSAGE);
+					"Invalid inputs for fly scale.\nlengthMm and lengthPx must both be > 0.", "Fly scale not applied",
+					JOptionPane.WARNING_MESSAGE);
 			return;
 		}
 		double scale = lengthMm / lengthPx;
 		exp.setFlyMmPerPixelX(scale);
 		exp.setFlyMmPerPixelY(scale);
+		refreshDisplayedScale(exp);
 		if (!exp.saveExperimentDescriptors()) {
 			JOptionPane.showMessageDialog(this,
 					"Scale values were computed, but saving experiment descriptors failed.\n"
