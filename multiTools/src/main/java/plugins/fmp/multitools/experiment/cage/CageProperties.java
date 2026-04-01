@@ -38,7 +38,7 @@ public class CageProperties {
 	private int arrayColumn = -1;
 	private int arrayRow = -1;
 
-	private int cageNFlies = 0;
+	private int cageNFlies = 1;
 	private int flyAge = 5;
 	private boolean checked = true;
 
