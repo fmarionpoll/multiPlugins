@@ -3,6 +3,7 @@ package plugins.fmp.multitools.tools.toExcel;
 import java.awt.Color;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -18,8 +19,11 @@ import org.jfree.data.xy.XYSeries;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
+import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageAxisProjection;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
+import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
@@ -216,6 +220,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		resultsOptions.subtractT0 = false;
 		resultsOptions.correctEvaporation = false;
 		resultsOptions.resultType = resultType;
+		if (options != null) {
+			resultsOptions.flyPositionAxisReference = options.flyPositionAxisReference;
+			resultsOptions.flyPositionClampToCage = options.flyPositionClampToCage;
+		}
 
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
@@ -913,7 +921,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 					}
 				}
 				if (pos.tMs >= binTimeMs && pos.tMs < binEndTime) {
-					Double value = extractValueFromFlyPosition(pos, resultType);
+					Double value = extractValueFromFlyPosition(pos, resultType, cage, flyPositions, resultsOptions);
 					if (value != null && !Double.isNaN(value)) {
 						binValues.add(value);
 					}
@@ -932,12 +940,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		return results;
 	}
 
-	private Double extractValueFromFlyPosition(FlyPosition pos, EnumResults resultType) {
+	private Double extractValueFromFlyPosition(FlyPosition pos, EnumResults resultType, Cage cage,
+			FlyPositions flyPositions, ResultsOptions resultsOptions) {
 		if (pos == null || pos.getRectangle2D() == null) {
 			return Double.NaN;
 		}
-		// Some legacy datasets store x/y but leave w/h undefined (NaN). In that case,
-		// getCenterRectangle() becomes NaN (x + NaN/2). Fall back to top-left x/y.
 		final Rectangle2D r = pos.getRectangle2D();
 		final double rx = r.getX();
 		final double ry = r.getY();
@@ -947,9 +954,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		switch (resultType) {
 		case XYIMAGE:
+			return hasCenter ? pos.getCenterRectangle().getY() : ry;
 		case YVSCAGETOP:
 		case YVSCAGEBOTTOM:
-			return hasCenter ? pos.getCenterRectangle().getY() : ry;
+			return extractCageAxisPositionMm(pos, resultType, cage, flyPositions, resultsOptions, hasCenter, rx, ry);
 		case YVSTIPCAPS:
 			return hasCenter ? pos.getCenterRectangle().getX() : rx;
 		case DISTANCE:
@@ -963,6 +971,36 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		default:
 			return hasCenter ? pos.getCenterRectangle().getY() : ry;
 		}
+	}
+
+	private Double extractCageAxisPositionMm(FlyPosition pos, EnumResults resultType, Cage cage, FlyPositions flyPositions,
+			ResultsOptions resultsOptions, boolean hasCenter, double rx, double ry) {
+		if (flyPositions == null || cage == null || resultsOptions == null) {
+			return Double.NaN;
+		}
+		double sx = flyPositions.getMmPerPixelX();
+		double sy = flyPositions.getMmPerPixelY();
+		boolean clamp = resultsOptions.flyPositionClampToCage;
+		FlyPositionAxisReference ref = resultsOptions.flyPositionAxisReference != null ? resultsOptions.flyPositionAxisReference
+				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
+		ROI2D roi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
+		if (roi == null) {
+			return Double.NaN;
+		}
+		Point2D c;
+		if (ref.isLegacyAabb()) {
+			c = new Point2D.Double(rx, ry);
+		} else {
+			c = hasCenter ? pos.getCenterRectangle() : new Point2D.Double(rx, ry);
+		}
+		if (c == null || Double.isNaN(c.getX()) || Double.isNaN(c.getY())) {
+			return Double.NaN;
+		}
+		CageAxisProjection proj = CageAxisProjection.fromRoi(roi, sx, sy, ref);
+		CageAxisProjection.Anchor anchor = resultType == EnumResults.YVSCAGEBOTTOM ? CageAxisProjection.Anchor.BOTTOM
+				: CageAxisProjection.Anchor.TOP;
+		double v = proj.positionMm(c, sx, sy, anchor, clamp);
+		return Double.isNaN(v) ? Double.NaN : v;
 	}
 
 	/**

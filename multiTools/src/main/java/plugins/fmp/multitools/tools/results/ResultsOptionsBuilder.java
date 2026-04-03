@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.results;
 
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants.DefaultOptions;
 
@@ -65,6 +66,8 @@ public class ResultsOptionsBuilder {
 	private boolean trim_alive = DefaultOptions.TRIM_ALIVE;
 	private boolean compensateEvaporation = DefaultOptions.COMPENSATE_EVAPORATION;
 	private EnumResults resultType = null;
+	private FlyPositionAxisReference flyPositionAxisReference = FlyPositionAxisReference.LEGACY_IMAGE_TOP;
+	private boolean flyPositionClampToCage = DefaultOptions.FLY_POSITION_CLAMP_TO_CAGE;
 
 	/**
 	 * Creates a new builder with default values.
@@ -128,6 +131,8 @@ public class ResultsOptionsBuilder {
 		this.trim_alive = existing.trim_alive;
 		this.compensateEvaporation = existing.compensateEvaporation;
 		this.resultType = existing.resultType;
+		this.flyPositionAxisReference = existing.flyPositionAxisReference;
+		this.flyPositionClampToCage = existing.flyPositionClampToCage;
 	}
 
 	// Fluent interface methods
@@ -222,6 +227,17 @@ public class ResultsOptionsBuilder {
 
 	public ResultsOptionsBuilder withResultType(EnumResults resultType) {
 		this.resultType = resultType;
+		return this;
+	}
+
+	public ResultsOptionsBuilder withFlyPositionAxisReference(FlyPositionAxisReference flyPositionAxisReference) {
+		this.flyPositionAxisReference = flyPositionAxisReference != null ? flyPositionAxisReference
+				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
+		return this;
+	}
+
+	public ResultsOptionsBuilder withFlyPositionClampToCage(boolean flyPositionClampToCage) {
+		this.flyPositionClampToCage = flyPositionClampToCage;
 		return this;
 	}
 
@@ -329,6 +345,8 @@ public class ResultsOptionsBuilder {
 		options.trim_alive = this.trim_alive;
 		options.compensateEvaporation = this.compensateEvaporation;
 		options.resultType = this.resultType;
+		options.flyPositionAxisReference = this.flyPositionAxisReference;
+		options.flyPositionClampToCage = this.flyPositionClampToCage;
 
 		return options;
 	}

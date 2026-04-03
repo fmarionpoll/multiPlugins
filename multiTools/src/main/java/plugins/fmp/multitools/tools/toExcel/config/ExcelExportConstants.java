@@ -90,6 +90,7 @@ public final class ExcelExportConstants {
 		public static final boolean PAD_INTERVALS = true;
 		public static final boolean TRIM_ALIVE = false;
 		public static final boolean COMPENSATE_EVAPORATION = false;
+		public static final boolean FLY_POSITION_CLAMP_TO_CAGE = false;
 
 		// Default numeric values
 		public static final int BUILD_EXCEL_STEP_MS = 1;

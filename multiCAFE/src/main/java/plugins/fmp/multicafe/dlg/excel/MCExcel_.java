@@ -18,6 +18,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
+import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromCapillary;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromFlyPosition;
@@ -161,6 +162,10 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 		options.xyImage = tabMove.xyCenterCheckBox.isSelected();
 		options.yVsCageTop = tabMove.yCageTopCheckBox.isSelected();
 		options.yVsCageBottom = tabMove.yCageBottomCheckBox.isSelected();
+		Object refSel = tabMove.flyAxisReferenceCombo.getSelectedItem();
+		options.flyPositionAxisReference = refSel instanceof FlyPositionAxisReference ? (FlyPositionAxisReference) refSel
+				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
+		options.flyPositionClampToCage = tabMove.flyClampCageCheckBox.isSelected();
 		options.xyCapillaries = tabMove.xyTipCapsCheckBox.isSelected();
 		options.distance = tabMove.distanceCheckBox.isSelected();
 		options.alive = tabMove.aliveCheckBox.isSelected();

@@ -1,11 +1,16 @@
 package plugins.fmp.multitools.tools.results;
 
+import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ResultsOptions {
 	public boolean xyImage = true;
 	public boolean yVsCageTop = true;
 	public boolean yVsCageBottom = true;
+	/** Where distance 0 is on the tube axis (legacy AABB vs vertex-ordered short sides). */
+	public FlyPositionAxisReference flyPositionAxisReference = FlyPositionAxisReference.LEGACY_IMAGE_TOP;
+	/** Clamp fly position to the cage span along that axis before export. */
+	public boolean flyPositionClampToCage = false;
 	public boolean xyCapillaries = true;
 	public boolean ellipseAxes = false;
 
@@ -77,6 +82,9 @@ public class ResultsOptions {
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
 		this.yVsCageTop = resultsOptions.yVsCageTop;
+		this.yVsCageBottom = resultsOptions.yVsCageBottom;
+		this.flyPositionAxisReference = resultsOptions.flyPositionAxisReference;
+		this.flyPositionClampToCage = resultsOptions.flyPositionClampToCage;
 		this.ellipseAxes = resultsOptions.ellipseAxes;
 
 		this.distance = resultsOptions.distance;
