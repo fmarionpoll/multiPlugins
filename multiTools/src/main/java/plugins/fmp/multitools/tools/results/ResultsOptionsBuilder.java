@@ -80,7 +80,7 @@ public class ResultsOptionsBuilder {
 	 */
 	public ResultsOptionsBuilder(ResultsOptions existing) {
 		this.xyImage = existing.xyImage;
-		this.xyCage = existing.xyCage;
+		this.xyCage = existing.yVsCageTop;
 		this.ellipseAxes = existing.ellipseAxes;
 
 		this.distance = existing.distance;
@@ -281,7 +281,7 @@ public class ResultsOptionsBuilder {
 
 		// Copy all configured values
 		options.xyImage = this.xyImage;
-		options.xyCage = this.xyCage;
+		options.yVsCageTop = this.xyCage;
 		options.ellipseAxes = this.ellipseAxes;
 
 		options.distance = this.distance;

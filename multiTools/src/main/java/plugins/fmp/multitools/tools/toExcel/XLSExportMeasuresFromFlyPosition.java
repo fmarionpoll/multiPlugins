@@ -2,9 +2,12 @@ package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Color;
 import java.awt.Point;
+import java.awt.Rectangle;
+import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.poi.xssf.streaming.SXSSFRow;
@@ -28,6 +31,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
@@ -80,7 +84,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 * export even though the UI can display positions.
 	 */
 	@Override
-	protected void prepareExperiments() throws plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException {
+	protected void prepareExperiments() throws ExcelDataException {
 		try {
 			// Always load fly positions ("DrosoTrack") for this exporter.
 			expList.loadListOfMeasuresFromAllExperiments(true, true);
@@ -88,7 +92,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			expList.setFirstImageForAllExperiments(options.collateSeries);
 			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);
 		} catch (Exception e) {
-			throw new plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException(
+			throw new ExcelDataException(
 					"Failed to prepare experiments for fly-position export", "prepare_experiments",
 					"experiment_loading", e);
 		}
@@ -139,8 +143,9 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		OptionToResultsMapping[] mappings = {
 			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
-			new OptionToResultsMapping(() -> options.xyCage, EnumResults.XYTOPCAGE),
-			new OptionToResultsMapping(() -> options.xyCapillaries, EnumResults.XYTIPCAPS),
+			new OptionToResultsMapping(() -> options.yVsCageTop, EnumResults.YVSCAGETOP),
+			new OptionToResultsMapping(() -> options.yVsCageBottom, EnumResults.YVSCAGEBOTTOM),
+			new OptionToResultsMapping(() -> options.xyCapillaries, EnumResults.YVSTIPCAPS),
 			new OptionToResultsMapping(() -> options.ellipseAxes, EnumResults.ELLIPSEAXES),
 			new OptionToResultsMapping(() -> options.distance, EnumResults.DISTANCE),
 			new OptionToResultsMapping(() -> options.alive, EnumResults.ISALIVE),
@@ -369,7 +374,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 					nextEntityIndex = sheet.getLastRowNum() + 1;
 				} else {
 					// When not transposed, entities are written as physical columns.
-					org.apache.poi.xssf.streaming.SXSSFRow firstRow = sheet.getRow(0);
+					SXSSFRow firstRow = sheet.getRow(0);
 					short lastCell = (firstRow != null) ? firstRow.getLastCellNum() : 1;
 					nextEntityIndex = (lastCell >= 0) ? lastCell : 1;
 					if (nextEntityIndex < 1) {
@@ -427,7 +432,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 					}
 				} else if (cage.getRoi() != null && cage.getRoi() instanceof ROI2DRectangle) {
 					ROI2DRectangle rectRoi = (ROI2DRectangle) cage.getRoi();
-					java.awt.Rectangle rect = rectRoi.getBounds();
+					Rectangle rect = rectRoi.getBounds();
 					XLSUtils.setValue(sheet, x, y++, transpose, 4); // rectangle
 					XLSUtils.setValue(sheet, x, y++, transpose, rect.x);
 					XLSUtils.setValue(sheet, x, y++, transpose, rect.y);
@@ -466,7 +471,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				if (transpose) {
 					nextEntityIndex = sheet.getLastRowNum() + 1;
 				} else {
-					org.apache.poi.xssf.streaming.SXSSFRow firstRow = sheet.getRow(0);
+					SXSSFRow firstRow = sheet.getRow(0);
 					short lastCell = (firstRow != null) ? firstRow.getLastCellNum() : 1;
 					nextEntityIndex = (lastCell >= 0) ? lastCell : 1;
 					if (nextEntityIndex < 1) {
@@ -635,11 +640,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			return resultsArray;
 		}
 
-		double[] times = java.util.Arrays.copyOf(timesGlobalMs, kept);
-		double[] xvals = java.util.Arrays.copyOf(xs, kept);
-		double[] yvals = java.util.Arrays.copyOf(ys, kept);
-		double[] wvals = java.util.Arrays.copyOf(ws, kept);
-		double[] hvals = java.util.Arrays.copyOf(hs, kept);
+		double[] times = Arrays.copyOf(timesGlobalMs, kept);
+		double[] xvals = Arrays.copyOf(xs, kept);
+		double[] yvals = Arrays.copyOf(ys, kept);
+		double[] wvals = Arrays.copyOf(ws, kept);
+		double[] hvals = Arrays.copyOf(hs, kept);
 
 		// Ensure interpolation arrays are monotonic in time.
 		sortByTime(times, xvals, yvals, wvals, hvals);
@@ -881,8 +886,9 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			flyPositions.computeEllipseAxes();
 			break;
 		case XYIMAGE:
-		case XYTOPCAGE:
-		case XYTIPCAPS:
+		case YVSCAGETOP:
+		case YVSCAGEBOTTOM:
+		case YVSTIPCAPS:
 			// These types use direct coordinate values, no computation needed
 			break;
 		default:
@@ -895,7 +901,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			long binTimeMs = (long) binIndex * buildExcelStepMs;
 			long binEndTime = binTimeMs + buildExcelStepMs;
 
-			java.util.List<Double> binValues = new java.util.ArrayList<>();
+			List<Double> binValues = new java.util.ArrayList<>();
 			for (FlyPosition pos : flyPositions.flyPositionList) {
 				if (pos == null) {
 					continue;
@@ -932,7 +938,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 		// Some legacy datasets store x/y but leave w/h undefined (NaN). In that case,
 		// getCenterRectangle() becomes NaN (x + NaN/2). Fall back to top-left x/y.
-		final java.awt.geom.Rectangle2D r = pos.getRectangle2D();
+		final Rectangle2D r = pos.getRectangle2D();
 		final double rx = r.getX();
 		final double ry = r.getY();
 		final double rw = r.getWidth();
@@ -941,9 +947,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		switch (resultType) {
 		case XYIMAGE:
-		case XYTOPCAGE:
+		case YVSCAGETOP:
+		case YVSCAGEBOTTOM:
 			return hasCenter ? pos.getCenterRectangle().getY() : ry;
-		case XYTIPCAPS:
+		case YVSTIPCAPS:
 			return hasCenter ? pos.getCenterRectangle().getX() : rx;
 		case DISTANCE:
 			return pos.distanceMm;

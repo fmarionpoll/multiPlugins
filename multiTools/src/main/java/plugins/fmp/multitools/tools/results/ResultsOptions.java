@@ -4,7 +4,8 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ResultsOptions {
 	public boolean xyImage = true;
-	public boolean xyCage = true;
+	public boolean yVsCageTop = true;
+	public boolean yVsCageBottom = true;
 	public boolean xyCapillaries = true;
 	public boolean ellipseAxes = false;
 
@@ -75,7 +76,7 @@ public class ResultsOptions {
 
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
-		this.xyCage = resultsOptions.xyCage;
+		this.yVsCageTop = resultsOptions.yVsCageTop;
 		this.ellipseAxes = resultsOptions.ellipseAxes;
 
 		this.distance = resultsOptions.distance;

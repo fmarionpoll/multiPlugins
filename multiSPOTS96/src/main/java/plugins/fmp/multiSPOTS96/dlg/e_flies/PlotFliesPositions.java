@@ -88,11 +88,18 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		exp.getSeqCamData().getSequence().addListener(this);
 
 		if (moveCheckbox.isSelected()) {
-			ypositionsChart = plotYToChart("flies Y positions", ypositionsChart, rectv, ptRelative, exp, EnumResults.XYTOPCAGE);
+			ypositionsChart = plotYToChart("flies Y - cageTop", ypositionsChart, rectv, ptRelative, exp, EnumResults.YVSCAGETOP);
 			ptRelative.y += deltay;
 		} else if (ypositionsChart != null)
 			ypositionsChart = closeChart(ypositionsChart);
 
+		if (moveCheckbox.isSelected()) {
+			ypositionsChart = plotYToChart("flies Y - cageBottom", ypositionsChart, rectv, ptRelative, exp, EnumResults.YVSCAGEBOTTOM);
+			ptRelative.y += deltay;
+		} else if (ypositionsChart != null)
+			ypositionsChart = closeChart(ypositionsChart);
+
+		
 		if (distanceCheckbox.isSelected()) {
 			distanceChart = plotYToChart("distance between positions at t+1 and t", distanceChart, rectv, ptRelative, exp,
 					EnumResults.DISTANCE);

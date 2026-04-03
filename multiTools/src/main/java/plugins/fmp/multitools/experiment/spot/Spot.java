@@ -418,8 +418,8 @@ public class Spot implements Comparable<Spot> {
 		case ISALIVE:
 			return cagePosition + "(T=B)";
 		case XYIMAGE:
-		case XYTOPCAGE:
-		case XYTIPCAPS:
+		case YVSCAGETOP:
+		case YVSTIPCAPS:
 			return cagePosition == 0 ? "x" : "y";
 		default:
 			return String.valueOf(cagePosition);

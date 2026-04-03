@@ -169,7 +169,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 				yOrX = (yOrigin - pos.rectPosition.getY()) * sy;
 				s.add(timeMinutes, yOrX);
 				break;
-			case XYTOPCAGE:
+			case YVSCAGETOP:
 			case YTOPCAGE:
 				if (rect1 == null)
 					continue;
@@ -182,7 +182,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 				yOrX = (pos.rectPosition.getX() - xLeft) * sx;
 				s.add(timeMinutes, yOrX);
 				break;
-			case XYTIPCAPS:
+			case YVSTIPCAPS:
 				yOrX = pos.getCenterRectangle().getX() * sx;
 				s.add(timeMinutes, yOrX);
 				break;
@@ -251,20 +251,21 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		 case XTOPCAGE:
 		        processXTopCageData(cage, flyPositions, seriesXY, itmax);
 		        break;
-		    case YTOPCAGE:
-		        processYTopCageData(cage, flyPositions, seriesXY, itmax);
-		        break;
+		        
+	    case YTOPCAGE:
+	        processYTopCageData(cage, flyPositions, seriesXY, itmax);
+	        break;
 		        
 		case XYIMAGE:
 			// Y position measured from cage bottom (legacy behavior)
 			processPositionDataFromBottom(flyPositions, seriesXY, itmax, cage);
 			break;
-		case XYTOPCAGE:
+		case YVSCAGETOP:
 			// Y position measured from cage top (requested semantics)
 			processPositionDataFromTop(flyPositions, seriesXY, itmax, cage);
 			break;
 
-		case XYTIPCAPS:
+		case YVSTIPCAPS:
 			processXPositionData(flyPositions, seriesXY, itmax);
 			break;
 

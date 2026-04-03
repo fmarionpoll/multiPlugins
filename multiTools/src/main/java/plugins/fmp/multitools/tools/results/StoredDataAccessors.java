@@ -143,10 +143,17 @@ public class StoredDataAccessors {
 	 * Accesses stored XYTOPCAGE data from FlyPositions.
 	 * Used via: cage.flyPositions with coordinate extraction
 	 */
-	public static MeasurementComputation accessStored_XYTOPCAGE() {
+	public static MeasurementComputation accessStored_YVSCAGETOP() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
-					"XYTOPCAGE uses stored data from FlyPositions - access via cage.flyPositions, not computation");
+					"YVSCAGETOP uses stored data from FlyPositions - access via cage.flyPositions, not computation");
+		};
+	}
+	
+	public static MeasurementComputation accessStored_YVSCAGEBOTTOM() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"YVSCAGEBOTTOM uses stored data from FlyPositions - access via cage.flyPositions, not computation");
 		};
 	}
 	

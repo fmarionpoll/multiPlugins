@@ -242,22 +242,27 @@ public class Results {
 
 		switch (resultType) {
 		case XYIMAGE:
-		case XYTOPCAGE:
-		case XYTIPCAPS:
+		case YVSCAGETOP:
+		case YVSCAGEBOTTOM:
 			// Extract X or Y coordinate based on export type
 			for (FlyPosition pos : flyPositions.flyPositionList) {
-				Point2D center = pos.getCenterRectangle();
-				if (resultType == EnumResults.XYIMAGE || resultType == EnumResults.XYTOPCAGE) {
-					// For XYIMAGE and XYTOPCAGE, we might need to extract X or Y
-					// Defaulting to Y coordinate (vertical position)
-					dataValues.add(center.getY());
-				} else {
+				Point2D center = pos.getCenterRectangle();	
+				// For XYIMAGE and XYTOPCAGE, we might need to extract X or Y
+				// Defaulting to Y coordinate (vertical position)
+				dataValues.add(center.getY());
+			}
+			break;
+			
+		case YVSTIPCAPS:
+				// Extract X or Y coordinate based on export type
+				for (FlyPosition pos : flyPositions.flyPositionList) {
+					Point2D center = pos.getCenterRectangle();
 					// XYTIPCAPS - could be X coordinate
 					dataValues.add(center.getX());
 				}
-			}
-			break;
-
+				break;
+			
+			
 		case DISTANCE:
 			// Compute distance between consecutive points
 			flyPositions.computeDistanceBetweenConsecutivePoints();

@@ -159,7 +159,8 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 	private ResultsOptions getMoveOptions(Experiment exp) {
 		ResultsOptions options = new ResultsOptions();
 		options.xyImage = tabMove.xyCenterCheckBox.isSelected();
-		options.xyCage = tabMove.xyCageCheckBox.isSelected();
+		options.yVsCageTop = tabMove.yCageTopCheckBox.isSelected();
+		options.yVsCageBottom = tabMove.yCageBottomCheckBox.isSelected();
 		options.xyCapillaries = tabMove.xyTipCapsCheckBox.isSelected();
 		options.distance = tabMove.distanceCheckBox.isSelected();
 		options.alive = tabMove.aliveCheckBox.isSelected();

@@ -86,7 +86,7 @@ public class XLSExportOptionsBuilder {
 	 */
 	public XLSExportOptionsBuilder(ResultsOptions existing) {
 		this.xyImage = existing.xyImage;
-		this.xyCage = existing.xyCage;
+		this.xyCage = existing.yVsCageTop;
 		this.ellipseAxes = existing.ellipseAxes;
 
 		this.distance = existing.distance;
@@ -292,7 +292,7 @@ public class XLSExportOptionsBuilder {
 
 		// Copy all configured values
 		resultsOptions.xyImage = this.xyImage;
-		resultsOptions.xyCage = this.xyCage;
+		resultsOptions.yVsCageTop = this.xyCage;
 		resultsOptions.ellipseAxes = this.ellipseAxes;
 
 		resultsOptions.distance = this.distance;
