@@ -47,7 +47,8 @@ public class CageSkeletonEditor {
 			return;
 		}
 
-		final EditorState state = new EditorState(exp, sequence);
+		int initialWidth = estimateInitialCageWidth(cageRois);
+		final EditorState state = new EditorState(exp, sequence, initialWidth);
 		state.originalCageRois = copyRoiList(cageRois);
 		addSkeletonsFromCages(state, cageRois);
 
@@ -149,6 +150,45 @@ public class CageSkeletonEditor {
 		return new Line2D.Double(b.getMinX(), cy, b.getMaxX(), cy);
 	}
 
+	private static Line2D computeShortAxis(ROI2D roi) {
+		if (roi instanceof ROI2DPolygon) {
+			List<Point2D> points = ((ROI2DPolygon) roi).getPoints();
+			Line2D axis = shortAxisFromPolygon(points);
+			if (axis != null) {
+				return axis;
+			}
+		}
+
+		Rectangle2D b = roi.getBounds2D();
+		double cx = b.getCenterX();
+		double cy = b.getCenterY();
+		if (b.getHeight() >= b.getWidth()) {
+			return new Line2D.Double(b.getMinX(), cy, b.getMaxX(), cy);
+		}
+		return new Line2D.Double(cx, b.getMinY(), cx, b.getMaxY());
+	}
+
+	private static int estimateInitialCageWidth(List<ROI2D> cageRois) {
+		double sum = 0;
+		int n = 0;
+		for (ROI2D cageRoi : cageRois) {
+			Line2D shortAxis = computeShortAxis(cageRoi);
+			if (shortAxis == null) {
+				continue;
+			}
+			double len = shortAxis.getP1().distance(shortAxis.getP2());
+			if (len >= 1e-6) {
+				sum += len;
+				n++;
+			}
+		}
+		if (n == 0) {
+			return 8;
+		}
+		int rounded = (int) Math.round(sum / n);
+		return Math.max(1, Math.min(500, rounded));
+	}
+
 	private static Line2D longAxisFromPolygon(List<Point2D> points) {
 		if (points == null || points.size() < 4) {
 			return null;
@@ -162,6 +202,56 @@ public class CageSkeletonEditor {
 			Point2D a1 = points.get((i + 1) % n);
 			double len2 = a0.distanceSq(a1);
 			if (len2 < bestLen2) {
+				bestLen2 = len2;
+				bestEdge = i;
+			}
+		}
+		if (bestEdge < 0) {
+			return null;
+		}
+
+		Point2D a0 = points.get(bestEdge);
+		Point2D a1 = points.get((bestEdge + 1) % n);
+		Point2D midA = midpoint(a0, a1);
+
+		Point2D midB = null;
+		if ((n % 2) == 0) {
+			int opp = (bestEdge + (n / 2)) % n;
+			Point2D b0 = points.get(opp);
+			Point2D b1 = points.get((opp + 1) % n);
+			midB = midpoint(b0, b1);
+		} else {
+			double bestD2 = -1;
+			for (int i = 0; i < n; i++) {
+				Point2D b0 = points.get(i);
+				Point2D b1 = points.get((i + 1) % n);
+				Point2D mid = midpoint(b0, b1);
+				double d2 = mid.distanceSq(midA);
+				if (d2 > bestD2) {
+					bestD2 = d2;
+					midB = mid;
+				}
+			}
+		}
+		if (midB == null) {
+			return null;
+		}
+		return new Line2D.Double(midA, midB);
+	}
+
+	private static Line2D shortAxisFromPolygon(List<Point2D> points) {
+		if (points == null || points.size() < 4) {
+			return null;
+		}
+
+		int n = points.size();
+		double bestLen2 = -1;
+		int bestEdge = -1;
+		for (int i = 0; i < n; i++) {
+			Point2D a0 = points.get(i);
+			Point2D a1 = points.get((i + 1) % n);
+			double len2 = a0.distanceSq(a1);
+			if (len2 > bestLen2) {
 				bestLen2 = len2;
 				bestEdge = i;
 			}
@@ -342,14 +432,15 @@ public class CageSkeletonEditor {
 	private static final class EditorState {
 		final Experiment exp;
 		final Sequence sequence;
-		final JSpinner cageWidthSpinner = new JSpinner(new SpinnerNumberModel(8, 1, 500, 1));
+		final JSpinner cageWidthSpinner;
 		final HashMap<String, String> skeletonToCageName = new HashMap<String, String>();
 		List<ROI2D> originalCageRois = new ArrayList<ROI2D>();
 		IcyFrame frame = null;
 
-		EditorState(Experiment exp, Sequence sequence) {
+		EditorState(Experiment exp, Sequence sequence, int initialCageWidth) {
 			this.exp = exp;
 			this.sequence = sequence;
+			this.cageWidthSpinner = new JSpinner(new SpinnerNumberModel(initialCageWidth, 1, 500, 1));
 		}
 	}
 }
