@@ -71,9 +71,9 @@ public class Infos extends JPanel {
 		c.gridy = 1;
 		addLineOfElements(c, strainLabel, strainCombo, sexLabel, sexCombo, saveButton);
 		c.gridy = 2;
-		addLineOfElements(c, stim1Label, stim1Combo, conc1Label, stim2Combo, duplicateButton);
+		addLineOfElements(c, stim1Label, stim1Combo, conc1Label, conc1Combo, duplicateButton);
 		c.gridy = 3;
-		addLineOfElements(c, stim2Label, conc1Combo, conc2Label, conc2Combo, zoomButton);
+		addLineOfElements(c, stim2Label, stim2Combo, conc2Label, conc2Combo, zoomButton);
 
 		zoomButton.setEnabled(true);
 		boxIDCombo.setEditable(true);
@@ -155,10 +155,10 @@ public class Infos extends JPanel {
 		setInfoCombo(exp_destination, exp_source, boxIDCombo, EnumXLSColumnHeader.EXP_BOXID);
 		setInfoCombo(exp_destination, exp_source, exptCombo, EnumXLSColumnHeader.EXP_EXPT);
 		setInfoCombo(exp_destination, exp_source, stim1Combo, EnumXLSColumnHeader.EXP_STIM1);
-		setInfoCombo(exp_destination, exp_source, stim2Combo, EnumXLSColumnHeader.EXP_CONC1);
+		setInfoCombo(exp_destination, exp_source, conc1Combo, EnumXLSColumnHeader.EXP_CONC1);
 		setInfoCombo(exp_destination, exp_source, strainCombo, EnumXLSColumnHeader.EXP_STRAIN);
 		setInfoCombo(exp_destination, exp_source, sexCombo, EnumXLSColumnHeader.EXP_SEX);
-		setInfoCombo(exp_destination, exp_source, conc1Combo, EnumXLSColumnHeader.EXP_STIM2);
+		setInfoCombo(exp_destination, exp_source, stim2Combo, EnumXLSColumnHeader.EXP_STIM2);
 		setInfoCombo(exp_destination, exp_source, conc2Combo, EnumXLSColumnHeader.EXP_CONC2);
 	}
 
@@ -177,10 +177,10 @@ public class Infos extends JPanel {
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_BOXID, (String) boxIDCombo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_EXPT, (String) exptCombo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM1, (String) stim1Combo.getSelectedItem());
-		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC1, (String) stim2Combo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC1, (String) conc1Combo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STRAIN, (String) strainCombo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_SEX, (String) sexCombo.getSelectedItem());
-		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM2, (String) conc1Combo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM2, (String) stim2Combo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC2, (String) conc2Combo.getSelectedItem());
 	}
 
