@@ -45,6 +45,9 @@ import plugins.fmp.multitools.tools.Logger;
  *   around the brush on the current reference (useful for halos and leftover fly edges)
  * - time median: click or drag to set each pixel in the brush to the temporal median at that
  *   location over the camera stack (useful when the fly moves across frames)
+ * <p>
+ * Brush tools call {@link MouseEvent#consume()} on press/drag/release so the ICY 2D canvas does not
+ * treat left-drag as image panning (see {@code Canvas2D.CanvasView}).
  * </p>
  */
 public class ReferenceImageEditor {
@@ -334,6 +337,7 @@ public class ReferenceImageEditor {
 			lastPaintX = x;
 			lastPaintY = y;
 			refreshReferenceSequence(ref);
+			event.consume();
 		}
 
 		@Override
@@ -363,12 +367,17 @@ public class ReferenceImageEditor {
 			lastPaintX = x;
 			lastPaintY = y;
 			refreshReferenceSequence(ref);
+			event.consume();
 		}
 
 		@Override
 		public void mouseReleased(MouseEvent event, Point5D.Double imagePoint, IcyCanvas canvas) {
+			boolean hadActiveBrushStroke = lastPaintX != NO_LAST;
 			lastPaintX = NO_LAST;
 			lastPaintY = NO_LAST;
+			if (event != null && event.getButton() == MouseEvent.BUTTON1 && isBrushTool(state) && hadActiveBrushStroke) {
+				event.consume();
+			}
 		}
 
 		private void refreshReferenceSequence(IcyBufferedImage ref) {
