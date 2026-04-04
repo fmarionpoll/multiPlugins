@@ -443,6 +443,19 @@ public class Cages {
 		return null;
 	}
 
+	/**
+	 * Cages whose ROI contains {@code (x, y)} in image coordinates (possibly empty, or several if
+	 * polygons overlap).
+	 */
+	public List<Cage> findCagesContainingImagePoint(double x, double y) {
+		List<Cage> hits = new ArrayList<>();
+		for (Cage cage : cagesList) {
+			if (cage.containsImagePoint(x, y))
+				hits.add(cage);
+		}
+		return hits;
+	}
+
 	// -----------------------------------------
 	// Reverse lookup helper methods (ID-based)
 

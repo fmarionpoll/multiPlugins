@@ -1,13 +1,18 @@
 package plugins.fmp.multitools.experiment.cage;
 
 import java.awt.Color;
+import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
@@ -20,6 +25,7 @@ import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.ROIType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -30,6 +36,9 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
 
 public class Cage implements Comparable<Cage>, AutoCloseable {
 	private static final Color FLY_POSITION_ROI_COLOR = Color.YELLOW;
+
+	/** Fly rectangle ROI names: {@code detR<3-digit cage>_<t>_<idx>}. */
+	public static final Pattern DETR_FLY_ROI_NAME_PATTERN = Pattern.compile("^detR(\\d{3})_(\\d+)_(\\d+)$");
 
 	private ROI2D cageROI2D = null;
 	public BooleanMask2D cageMask2D = null;
@@ -405,21 +414,147 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return list.isEmpty() ? null : list.get(0);
 	}
 
+	/**
+	 * Whether {@code fp} is an unused / missed slot (same notion as {@code Edit#findFirst}).
+	 */
+	public static boolean isEmptyFlyPositionSlot(FlyPosition fp) {
+		if (fp == null || fp.rectPosition == null)
+			return true;
+		if (Double.isNaN(fp.rectPosition.getX()) || Double.isNaN(fp.rectPosition.getY()))
+			return true;
+		return fp.rectPosition.getX() == -1 && fp.rectPosition.getY() == -1;
+	}
+
+	/**
+	 * True if {@code (x,y)} lies inside this cage ROI (polygon, rectangle, or bounds fallback).
+	 */
+	public boolean containsImagePoint(double x, double y) {
+		if (cageROI2D == null)
+			return false;
+		if (cageROI2D instanceof ROI2DPolygon) {
+			Polygon2D poly = ((ROI2DPolygon) cageROI2D).getPolygon2D();
+			if (poly == null || poly.npoints < 3)
+				return false;
+			Polygon awt = new Polygon();
+			for (int i = 0; i < poly.npoints; i++)
+				awt.addPoint((int) Math.round(poly.xpoints[i]), (int) Math.round(poly.ypoints[i]));
+			return awt.contains(x, y);
+		}
+		if (cageROI2D instanceof ROI2DRectangle)
+			return ((ROI2DRectangle) cageROI2D).getRectangle().contains(x, y);
+		Rectangle b = cageROI2D.getBounds();
+		return b.contains(x, y);
+	}
+
+	/**
+	 * Adds or fills a fly rectangle at frame {@code t}, centered on {@code (cx, cy)}. Uses 10×5 px if
+	 * no valid fly exists at {@code t} in this cage; otherwise copies width/height from the first valid
+	 * fly at {@code t} (same order as {@link #collectRoiRectanglesAtFrameIndexT(int)}).
+	 */
+	public void addManualFlyAtImageCoordinates(int t, double cx, double cy, long[] camImagesMs) {
+		double w = 10;
+		double h = 5;
+		FlyPosition firstValidAtT = null;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp.flyIndexT != t)
+				continue;
+			if (!isEmptyFlyPositionSlot(fp)) {
+				firstValidAtT = fp;
+				break;
+			}
+		}
+		if (firstValidAtT != null) {
+			w = firstValidAtT.rectPosition.getWidth();
+			h = firstValidAtT.rectPosition.getHeight();
+			if (w <= 0 || h <= 0) {
+				w = 10;
+				h = 5;
+			}
+		}
+		Rectangle2D rect = new Rectangle2D.Double(cx - w / 2, cy - h / 2, w, h);
+		FlyPosition target = null;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp.flyIndexT != t)
+				continue;
+			if (isEmptyFlyPositionSlot(fp)) {
+				target = fp;
+				break;
+			}
+		}
+		if (target == null) {
+			target = new FlyPosition(t);
+			flyPositions.flyPositionList.add(target);
+		}
+		target.rectPosition.setRect(rect);
+		if (camImagesMs != null && t >= 0 && t < camImagesMs.length)
+			target.tMs = camImagesMs[t];
+		flyPositions.recomputeNfliesFromEntries();
+		Collections.sort(flyPositions.flyPositionList, new Comparators.XYTaValue_Tindex());
+	}
+
+	/**
+	 * Removes the {@code collectIdx}-th <em>valid</em> fly at {@code flyIndexT} (same ordering as
+	 * {@link #collectRoiRectanglesAtFrameIndexT(int)}).
+	 *
+	 * @return true if a row was removed
+	 */
+	public boolean removeFlyAtFrameCollectIndex(int flyIndexT, int collectIdx) {
+		int i = 0;
+		for (Iterator<FlyPosition> it = flyPositions.flyPositionList.iterator(); it.hasNext();) {
+			FlyPosition fp = it.next();
+			if (fp.flyIndexT != flyIndexT)
+				continue;
+			if (isEmptyFlyPositionSlot(fp))
+				continue;
+			if (i == collectIdx) {
+				it.remove();
+				flyPositions.recomputeNfliesFromEntries();
+				return true;
+			}
+			i++;
+		}
+		return false;
+	}
+
 	public void transferRoisToPositions(List<ROI2D> detectedROIsList) {
-		// Skip if cage ROI is not available (prevents NPE in getCageNumberFromRoiName)
 		if (cageROI2D == null) {
 			return;
 		}
 		String filter = "detR" + getCageNumberFromRoiName();
 		for (ROI2D roi : detectedROIsList) {
 			String name = roi.getName();
-			if (!name.contains(filter))
+			if (name == null || !name.contains(filter))
+				continue;
+			if (!(roi instanceof ROI2DRectangle))
 				continue;
 			Rectangle2D rect = ((ROI2DRectangle) roi).getRectangle();
-			int t = (int) roi.getT();
-			if (t >= 0 && t < flyPositions.flyPositionList.size()) {
-				flyPositions.flyPositionList.get(t).rectPosition = rect;
+			Matcher m = DETR_FLY_ROI_NAME_PATTERN.matcher(name);
+			if (m.matches()) {
+				if (!m.group(1).equals(getCageNumberFromRoiName()))
+					continue;
+				int flyT = Integer.parseInt(m.group(2));
+				int idx = Integer.parseInt(m.group(3));
+				applyDetRectangleToFlyAtFrameCollectIndex(flyT, idx, rect);
+			} else {
+				int t = (int) roi.getT();
+				if (t >= 0 && t < flyPositions.flyPositionList.size())
+					flyPositions.flyPositionList.get(t).rectPosition.setRect(rect);
 			}
+		}
+	}
+
+	private void applyDetRectangleToFlyAtFrameCollectIndex(int flyIndexT, int collectIdx, Rectangle2D rect) {
+		int i = 0;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp.flyIndexT != flyIndexT)
+				continue;
+			if (isEmptyFlyPositionSlot(fp))
+				continue;
+			if (i == collectIdx) {
+				fp.rectPosition.setRect(rect);
+				return;
+			}
+			i++;
 		}
 	}
 

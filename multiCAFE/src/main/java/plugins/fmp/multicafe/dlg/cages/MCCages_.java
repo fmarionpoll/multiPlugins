@@ -61,7 +61,7 @@ public class MCCages_ extends JPanel implements PropertyChangeListener {
 		capPopupPanel.collapse();
 
 		mainPanel.add(capPopupPanel);
-		GridLayout capLayout = new GridLayout(4, 1);
+		GridLayout capLayout = new GridLayout(5, 1);
 		createTabs(capLayout);
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);

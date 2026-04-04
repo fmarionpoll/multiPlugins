@@ -6,38 +6,47 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.List;
+import java.util.regex.Matcher;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JToggleButton;
+import javax.swing.UIManager;
 
 import icy.gui.dialog.MessageDialog;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
+import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 
-public class Edit extends JPanel {
-	/**
-	 * 
-	 */
+public class Edit extends JPanel implements AddFlyOverlay.Host {
 	private static final long serialVersionUID = -5257698990389571518L;
+	private static final Color ADD_FLY_ARMED_BG = new Color(255, 100, 100);
+
 	private MultiCAFE parent0;
 	private JButton findAllButton = new JButton(new String("Find all missed points"));
 	private JButton findNextButton = new JButton(new String("Find next missed point"));
 	private JButton validateButton = new JButton(new String("Validate selected ROI"));
 	private JButton validateAndNextButton = new JButton(new String("Validate and find next"));
+	private JToggleButton addFlyButton = new JToggleButton("Add fly");
+	private JButton deleteFlyButton = new JButton("Delete fly");
 	private JComboBox<String> foundCombo = new JComboBox<String>();
 	private int foundT = -1;
 	private int foundCell = -1;
 
-	// ----------------------------------------------------
+	private AddFlyOverlay addFlyOverlay;
+	private Sequence addFlyOverlaySequence;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -58,6 +67,13 @@ public class Edit extends JPanel {
 		JPanel panel3 = new JPanel(flowLayout);
 		panel3.add(validateAndNextButton);
 		add(panel3);
+
+		addFlyButton.setToolTipText("Click image to add flies; toggle off when done");
+		deleteFlyButton.setToolTipText("Delete the selected fly rectangle (detR…)");
+		JPanel panel4 = new JPanel(flowLayout);
+		panel4.add(addFlyButton);
+		panel4.add(deleteFlyButton);
+		add(panel4);
 
 		defineActionListeners();
 	}
@@ -126,6 +142,133 @@ public class Edit extends JPanel {
 				}
 			}
 		});
+
+		addFlyButton.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				boolean armed = addFlyButton.isSelected();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (armed) {
+					if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+						addFlyButton.setSelected(false);
+						MessageDialog.showDialog("Load an experiment with a camera sequence first.",
+								MessageDialog.WARNING_MESSAGE);
+						return;
+					}
+					Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+					if (v == null) {
+						addFlyButton.setSelected(false);
+						MessageDialog.showDialog("Open a camera viewer first.", MessageDialog.WARNING_MESSAGE);
+						return;
+					}
+					updateAddFlyButtonAppearance(true);
+					attachAddFlyOverlay(exp.getSeqCamData().getSequence());
+				} else {
+					updateAddFlyButtonAppearance(false);
+					detachAddFlyOverlay();
+				}
+			}
+		});
+
+		deleteFlyButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				deleteSelectedFlyRoi();
+			}
+		});
+	}
+
+	private void updateAddFlyButtonAppearance(boolean armed) {
+		addFlyButton.setOpaque(true);
+		if (armed)
+			addFlyButton.setBackground(ADD_FLY_ARMED_BG);
+		else {
+			Color d = UIManager.getColor("Button.background");
+			addFlyButton.setBackground(d != null ? d : null);
+		}
+	}
+
+	private void attachAddFlyOverlay(Sequence seq) {
+		detachAddFlyOverlay();
+		if (seq == null)
+			return;
+		if (addFlyOverlay == null)
+			addFlyOverlay = new AddFlyOverlay(this);
+		seq.addOverlay(addFlyOverlay);
+		addFlyOverlaySequence = seq;
+	}
+
+	private void detachAddFlyOverlay() {
+		if (addFlyOverlay != null && addFlyOverlaySequence != null)
+			addFlyOverlaySequence.removeOverlay(addFlyOverlay);
+		addFlyOverlaySequence = null;
+	}
+
+	@Override
+	public void onAddFlyImageClick(double imageX, double imageY) {
+		if (!addFlyButton.isSelected())
+			return;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (v == null)
+			return;
+		int t = v.getPositionT();
+		List<Cage> hits = exp.getCages().findCagesContainingImagePoint(imageX, imageY);
+		if (hits.isEmpty()) {
+			MessageDialog.showDialog("Click inside a cage to add a fly.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		if (hits.size() > 1) {
+			MessageDialog.showDialog("Several cages overlap here; click inside a single cage.",
+					MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		Cage cage = hits.get(0);
+		cage.addManualFlyAtImageCoordinates(t, imageX, imageY, exp.getCamImages_ms());
+		exp.updateROIsAt(t);
+	}
+
+	private void deleteSelectedFlyRoi() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			MessageDialog.showDialog("No experiment or camera sequence.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		ROI2D selected = exp.getSeqCamData().getSequence().getSelectedROI2D();
+		if (selected == null || selected.getName() == null) {
+			MessageDialog.showDialog("Select a fly rectangle (detR…) first.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		Matcher m = Cage.DETR_FLY_ROI_NAME_PATTERN.matcher(selected.getName());
+		if (!m.matches()) {
+			MessageDialog.showDialog("Selected ROI is not a fly rectangle (expected name detR…_t_idx).",
+					MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		int cageId = Integer.parseInt(m.group(1));
+		int t = Integer.parseInt(m.group(2));
+		int idx = Integer.parseInt(m.group(3));
+		Cage cage = exp.getCages().getCageFromID(cageId);
+		if (cage == null || cage.getCageRoi2D() == null) {
+			MessageDialog.showDialog("Cage not found for this ROI.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		if (!m.group(1).equals(cage.getCageNumberFromRoiName())) {
+			MessageDialog.showDialog("ROI cage id does not match cage data.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		int ok = JOptionPane.showConfirmDialog(this, "Delete this fly position?", "Confirm delete",
+				JOptionPane.YES_NO_OPTION);
+		if (ok != JOptionPane.YES_OPTION)
+			return;
+		if (!cage.removeFlyAtFrameCollectIndex(t, idx)) {
+			MessageDialog.showDialog("Could not remove fly position (index mismatch?).",
+					MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		exp.updateROIsAt(t);
 	}
 
 	void findFirstMissed(Experiment exp) {
