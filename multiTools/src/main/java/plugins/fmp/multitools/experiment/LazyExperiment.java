@@ -67,11 +67,16 @@ public class LazyExperiment extends Experiment {
 				if (expDirectories.getDirectoriesFromExptPath(metadata.getBinDirectory(),
 						metadata.getCameraDirectory())) {
 
-					// Set up directories using public methods
-					setResultsDirectory(expDirectories.getResultsDirectory());
+					// getDirectoriesFromExptPath() infers results from the camera (grabs) path as
+					// .../results. For "Create..." coexistence experiments the user picks another
+					// folder (e.g. results02); that choice is only stored in metadata — keep it.
+					String resolvedResults = expDirectories.getResultsDirectory();
+					if (metadata.getResultsDirectory() != null) {
+						resolvedResults = metadata.getResultsDirectory();
+					}
+					setResultsDirectory(resolvedResults);
 					setImagesDirectory(expDirectories.getCameraImagesDirectory());
-					setBinDirectory(expDirectories.getResultsDirectory() + File.separator
-							+ expDirectories.getBinSubDirectory());
+					setBinDirectory(resolvedResults + File.separator + expDirectories.getBinSubDirectory());
 
 					// Load XML metadata only (no images, no cages)
 					// xmlLoad_MCExperiment() loads from resultsDirectory + MCexperiment.xml
