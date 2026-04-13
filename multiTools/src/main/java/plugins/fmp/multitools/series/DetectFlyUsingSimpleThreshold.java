@@ -72,13 +72,14 @@ public class DetectFlyUsingSimpleThreshold extends BuildSeries {
 			progressBar.setMessage(title);
 
 			IcyBufferedImage sourceImage = imageIORead(exp.getSeqCamData().getFileNameFromImageList(t_from));
+			int illumPhase = IlluminationPhase.phaseForFlyDetection(options, sourceImage);
 			getReferenceImage(exp, t_previous, transformOptions);
 			IcyBufferedImage workImage = transformFunction.getTransformedImage(sourceImage, transformOptions);
 			try {
 				seqNegative.beginUpdate();
 				seqNegative.setImage(0, 0, workImage);
 				vNegative.setTitle(title);
-				List<Rectangle2D> listRectangles = find_flies.findFlies(workImage, t_from);
+				List<Rectangle2D> listRectangles = find_flies.findFlies(workImage, t_from, illumPhase);
 				displayRectanglesAsROIs1(seqNegative, listRectangles, true);
 				seqNegative.endUpdate();
 			} catch (InterruptedException e) {

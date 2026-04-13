@@ -2,6 +2,7 @@ package plugins.fmp.multitools.series;
 
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 
 /**
  * Helper for dual-background fly detection (light/dark phase).
@@ -23,6 +24,16 @@ public final class IlluminationPhase {
 	 * Returns LIGHT or DARK depending on redness threshold.
 	 * Returns UNKNOWN if the image is null or not RGB.
 	 */
+	/**
+	 * Phase stored with fly positions when dual-background mode is on; otherwise {@link #UNKNOWN}.
+	 */
+	public static int phaseForFlyDetection(BuildSeriesOptions options, IcyBufferedImage workImage) {
+		if (options == null || !options.dualBackground) {
+			return UNKNOWN;
+		}
+		return fromFrameForDualBackground(workImage, options.rednessThreshold);
+	}
+
 	public static int fromFrameForDualBackground(IcyBufferedImage img, double rednessThreshold) {
 		if (img == null) {
 			return UNKNOWN;

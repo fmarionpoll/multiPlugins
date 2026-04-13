@@ -163,11 +163,12 @@ public class FlyDetect1 extends FlyDetect {
 				negativeImage = srcFn.getTransformedImage(afterBg, srcOpts);
 			}
 
+			int illumPhase = IlluminationPhase.phaseForFlyDetection(options, workImage);
 			try {
 				seqNegative.beginUpdate();
 				seqNegative.setImage(0, 0, negativeImage);
 				vNegative.setTitle(title);
-				List<Rectangle2D> listRectangles = find_flies.findFlies(negativeImage, t);
+				List<Rectangle2D> listRectangles = find_flies.findFlies(negativeImage, t, illumPhase);
 				displayRectanglesAsROIs1(seqNegative, listRectangles, true);
 				seqNegative.endUpdate();
 			} catch (Exception e) {

@@ -116,10 +116,7 @@ public abstract class FlyDetect extends BuildSeries {
 	}
 
 	private int computeIllumPhaseForFrame(IcyBufferedImage workImage) {
-		if (options == null || !options.dualBackground) {
-			return IlluminationPhase.UNKNOWN;
-		}
-		return IlluminationPhase.fromFrameForDualBackground(workImage, options.rednessThreshold);
+		return IlluminationPhase.phaseForFlyDetection(options, workImage);
 	}
 
 	protected abstract CanvasImageTransformOptions setupTransformOptions(Experiment exp);
