@@ -23,8 +23,10 @@ public abstract class FlyDetect extends BuildSeries {
 			return;
 		if (!checkBoundsForCages(exp))
 			return;
-		if (!checkCagesForFlyDetection(exp))
-			return;
+		if (options == null || options.detectFlies) {
+			if (!checkCagesForFlyDetection(exp))
+				return;
+		}
 
 		runFlyDetect(exp);
 		exp.getCages().orderFlyPositions();

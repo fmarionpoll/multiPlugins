@@ -90,6 +90,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean bjitter = false;
 	public boolean forceBuildBackground = false;
 	public boolean detectFlies = true;
+	/** When true, compute and persist Detect2 lighting phase (illumPhase). */
+	public boolean detectIllumPhase = true;
 	public boolean backgroundSubstraction = false;
 	public boolean buildDerivative = true;
 	public boolean pass1 = true;

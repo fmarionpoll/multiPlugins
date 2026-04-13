@@ -28,8 +28,8 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.series.IlluminationPhase;
 import plugins.fmp.multitools.series.FlyDetect2;
+import plugins.fmp.multitools.series.IlluminationPhase;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
@@ -44,6 +44,8 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	private JButton startComputationButton = new JButton(detectString);
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
+	private JCheckBox fliesCheckBox = new JCheckBox("flies", true);
+	private JCheckBox lightCheckBox = new JCheckBox("light", true);
 
 	private JCheckBox objectLowsizeCheckBox = new JCheckBox("size >");
 	private JSpinner objectLowsizeSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 9999, 1));
@@ -73,10 +75,15 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 		flowLayout.setVgap(0);
 
+		JPanel panel0 = new JPanel(flowLayout);
+		panel0.add(startComputationButton);
+		panel0.add(fliesCheckBox);
+		panel0.add(lightCheckBox);
+		panel0.add(allCagesComboBox);
+		panel0.add(allCheckBox);
+		add(panel0);
+
 		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(startComputationButton);
-		panel1.add(allCagesComboBox);
-		panel1.add(allCheckBox);
 		panel1.add(viewButton);
 		panel1.add(overlayCheckBox);
 		add(panel1);
@@ -90,7 +97,6 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		panel2.add(new JLabel("r>="));
 		panel2.add(rednessThresholdSpinner);
 		rednessThresholdSpinner.setPreferredSize(new Dimension(80, 20));
-
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);
@@ -240,7 +246,8 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		options.limitRatio = (int) limitRatioSpinner.getValue();
 		options.jitter = (int) jitterTextField.getValue();
 		options.thresholdDiff = (int) thresholdSpinner.getValue();
-		options.detectFlies = true;
+		options.detectFlies = fliesCheckBox.isSelected();
+		options.detectIllumPhase = lightCheckBox.isSelected();
 		options.dualBackground = dualBackgroundCheckBox.isSelected();
 		options.rednessThreshold = ((Number) rednessThresholdSpinner.getValue()).doubleValue();
 
