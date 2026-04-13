@@ -8,7 +8,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
+import javax.swing.DefaultCellEditor;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -20,6 +22,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.experiment.cages.CageTableModel;
 
 public class InfosCagesTable extends JPanel {
@@ -54,6 +57,8 @@ public class InfosCagesTable extends JPanel {
 		TableColumnModel columnModel = tableView.getColumnModel();
 		for (int i = 0; i < 2; i++)
 			setFixedColumnProperties(columnModel.getColumn(i));
+		JComboBox<FoodSide> foodSideCombo = new JComboBox<>(FoodSide.values());
+		columnModel.getColumn(6).setCellEditor(new DefaultCellEditor(foodSideCombo));
 		JScrollPane scrollPane = new JScrollPane(tableView);
 
 		JPanel topPanel = new JPanel(new GridLayout(2, 1));
@@ -117,6 +122,7 @@ public class InfosCagesTable extends JPanel {
 							cageTo.prop.setComment(cageFrom.prop.getComment());
 							cageTo.prop.setFlySex(cageFrom.prop.getFlySex());
 							cageTo.prop.setFlyStrain(cageFrom.prop.getFlyStrain());
+							cageTo.prop.setFoodSide(cageFrom.prop.getFoodSide());
 						}
 					}
 					cageTableModel.fireTableDataChanged();
@@ -228,6 +234,9 @@ public class InfosCagesTable extends JPanel {
 			break;
 		case 5:
 			prop.setComment(prop0.getComment());
+			break;
+		case 6:
+			prop.setFoodSide(prop0.getFoodSide());
 			break;
 		default:
 			break;

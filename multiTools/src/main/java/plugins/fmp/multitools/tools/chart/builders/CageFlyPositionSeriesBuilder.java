@@ -9,10 +9,10 @@ import java.util.Map;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.experiment.cage.CageAxisProjection;
+import plugins.fmp.multitools.experiment.cage.CageFoodDistanceMm;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
-import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
+import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -146,13 +146,8 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			xLeft = rect1.getX();
 		}
 
-		final ROI2D roiAxis = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
-		final FlyPositionAxisReference axisRef = options.flyPositionAxisReference != null
-				? options.flyPositionAxisReference
-				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
-		final CageAxisProjection axisProj = roiAxis != null ? CageAxisProjection.fromRoi(roiAxis, sx, sy, axisRef)
-				: null;
-		final boolean clampAxis = options.flyPositionClampToCage;
+		final ROI2D cageRoi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
+		final FoodSide foodSide = cage.getProperties().getFoodSide();
 
 		for (FlyPosition pos : flyPositions.flyPositionList) {
 			if (pos == null)
@@ -179,47 +174,31 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 				yOrX = (yOrigin - pos.rectPosition.getY()) * sy;
 				s.add(timeMinutes, yOrX);
 				break;
-			case YVSCAGETOP:
 			case YTOPCAGE:
-				if (axisProj == null) {
+				if (rect1 == null || pos.rectPosition == null)
+					continue;
+				yOrX = (pos.rectPosition.getY() - rect1.getY()) * sy;
+				s.add(timeMinutes, yOrX);
+				break;
+			case YVSFOOD: {
+				if (cageRoi == null) {
 					continue;
 				}
-				{
-					Point2D c = flyPointPxForAxis(pos, options);
-					if (c == null) {
-						continue;
-					}
-					yOrX = axisProj.positionMm(c, sx, sy, CageAxisProjection.Anchor.TOP, clampAxis);
-					if (Double.isNaN(yOrX)) {
-						continue;
-					}
+				Point2D c = flyCenterPx(pos);
+				if (c == null) {
+					continue;
+				}
+				yOrX = CageFoodDistanceMm.distanceFromFoodMm(cageRoi, c, sx, sy, foodSide);
+				if (Double.isNaN(yOrX)) {
+					continue;
 				}
 				s.add(timeMinutes, yOrX);
 				break;
-			case YVSCAGEBOTTOM:
-				if (axisProj == null) {
-					continue;
-				}
-				{
-					Point2D c = flyPointPxForAxis(pos, options);
-					if (c == null) {
-						continue;
-					}
-					yOrX = axisProj.positionMm(c, sx, sy, CageAxisProjection.Anchor.BOTTOM, clampAxis);
-					if (Double.isNaN(yOrX)) {
-						continue;
-					}
-				}
-				s.add(timeMinutes, yOrX);
-				break;
+			}
 			case XTOPCAGE:
 				if (rect1 == null)
 					continue;
 				yOrX = (pos.rectPosition.getX() - xLeft) * sx;
-				s.add(timeMinutes, yOrX);
-				break;
-			case YVSTIPCAPS:
-				yOrX = pos.getCenterRectangle().getX() * sx;
 				s.add(timeMinutes, yOrX);
 				break;
 			case ELLIPSEAXES:
@@ -270,21 +249,6 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		return new Point2D.Double(rx, ry);
 	}
 
-	/** Legacy AABB modes use top-left of fly box; vertex long-axis modes use center (with NaN fallback). */
-	private static Point2D flyPointPxForAxis(FlyPosition pos, ResultsOptions options) {
-		if (pos == null) {
-			return null;
-		}
-		FlyPositionAxisReference ref = options != null ? options.flyPositionAxisReference : null;
-		if (ref == null || ref.isLegacyAabb()) {
-			if (pos.rectPosition == null || Double.isNaN(pos.rectPosition.getX()) || Double.isNaN(pos.rectPosition.getY())) {
-				return null;
-			}
-			return new Point2D.Double(pos.rectPosition.getX(), pos.rectPosition.getY());
-		}
-		return flyCenterPx(pos);
-	}
-
 	private void addPointsToXYSeries(Cage cage, FlyPositions flyPositions, EnumResults resultType, XYSeries seriesXY,
 			ResultsOptions options) {
 		if (cage == null || seriesXY == null || flyPositions == null || options == null) {
@@ -325,22 +289,15 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		        break;
 		        
 	    case YTOPCAGE:
-	        processYTopCageData(cage, flyPositions, seriesXY, itmax, options);
+	        processYTopCageData(cage, flyPositions, seriesXY, itmax);
 	        break;
 		        
 		case XYIMAGE:
 			// Y position measured from cage bottom (legacy behavior)
 			processPositionDataFromBottom(flyPositions, seriesXY, itmax, cage);
 			break;
-		case YVSCAGETOP:
-			processAlongCageAxis(cage, flyPositions, seriesXY, itmax, options, CageAxisProjection.Anchor.TOP);
-			break;
-		case YVSCAGEBOTTOM:
-			processAlongCageAxis(cage, flyPositions, seriesXY, itmax, options, CageAxisProjection.Anchor.BOTTOM);
-			break;
-
-		case YVSTIPCAPS:
-			processXPositionData(flyPositions, seriesXY, itmax);
+		case YVSFOOD:
+			processYVsFoodData(cage, flyPositions, seriesXY, itmax);
 			break;
 
 		default:
@@ -423,46 +380,26 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		}
 	}
 
-	/**
-	 * Processes Y position data for a cage, measured from the top edge (distance
-	 * from top of cage). Used for XYTOPCAGE.
-	 */
-	private void processAlongCageAxis(Cage cage, FlyPositions results, XYSeries seriesXY, int itmax,
-			ResultsOptions options, CageAxisProjection.Anchor anchor) {
+	private void processYVsFoodData(Cage cage, FlyPositions results, XYSeries seriesXY, int itmax) {
 		ROI2D roi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
 		if (roi == null) {
-			Logger.warn("Cannot process cage axis: cage ROI is null");
+			Logger.warn("Cannot process distance vs food: cage ROI is null");
 			return;
 		}
 		double sx = results.getMmPerPixelX();
 		double sy = results.getMmPerPixelY();
-		FlyPositionAxisReference ref = options.flyPositionAxisReference != null ? options.flyPositionAxisReference
-				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
-		CageAxisProjection proj = CageAxisProjection.fromRoi(roi, sx, sy, ref);
-		boolean clamp = options.flyPositionClampToCage;
+		FoodSide foodSide = cage.getProperties().getFoodSide();
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
-			Point2D c = flyPointPxForAxis(pos, options);
+			Point2D c = flyCenterPx(pos);
 			if (c == null) {
 				continue;
 			}
-			double v = proj.positionMm(c, sx, sy, anchor, clamp);
+			double v = CageFoodDistanceMm.distanceFromFoodMm(roi, c, sx, sy, foodSide);
 			if (Double.isNaN(v)) {
 				continue;
 			}
 			addxyPos(seriesXY, pos, v);
-		}
-	}
-
-	/**
-	 * Processes X position data for a cage (XYTIPCAPS).
-	 */
-	private void processXPositionData(FlyPositions results, XYSeries seriesXY, int itmax) {
-		double sx = results.getMmPerPixelX();
-		for (int it = 0; it < itmax; it++) {
-			FlyPosition pos = results.flyPositionList.get(it);
-			double xpos = pos.getCenterRectangle().getX() * sx;
-			addxyPos(seriesXY, pos, xpos);
 		}
 	}
 
@@ -500,14 +437,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	 * Processes Y position relative to the top of the cage (YTOPCAGE).
 	 * This mirrors the existing behavior used for XYTOPCAGE charts.
 	 */
-	private void processYTopCageData(Cage cage, FlyPositions results, XYSeries seriesXY, int itmax,
-			ResultsOptions options) {
-		FlyPositionAxisReference ref = options.flyPositionAxisReference != null ? options.flyPositionAxisReference
-				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
-		if (!ref.isLegacyAabb()) {
-			processAlongCageAxis(cage, results, seriesXY, itmax, options, CageAxisProjection.Anchor.TOP);
-			return;
-		}
+	private void processYTopCageData(Cage cage, FlyPositions results, XYSeries seriesXY, int itmax) {
 		Rectangle rect1 = null;
 		if (cage.getRoi() != null) {
 			rect1 = cage.getRoi().getBounds();
@@ -520,15 +450,13 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		}
 		double yTop = rect1.getY();
 		double sy = results.getMmPerPixelY();
-		double lengthMm = rect1.height * sy;
-		boolean clamp = options.flyPositionClampToCage;
 		for (int it = 0; it < itmax; it++) {
 			FlyPosition pos = results.flyPositionList.get(it);
 			Rectangle2D itRect = pos.rectPosition;
-			double ypos = (itRect.getY() - yTop) * sy;
-			if (clamp && lengthMm > 1e-9) {
-				ypos = Math.min(Math.max(ypos, 0), lengthMm);
+			if (itRect == null) {
+				continue;
 			}
+			double ypos = (itRect.getY() - yTop) * sy;
 			addxyPos(seriesXY, pos, ypos);
 		}
 	}

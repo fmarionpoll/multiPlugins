@@ -4,6 +4,7 @@ import javax.swing.table.AbstractTableModel;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class CageTableModel extends AbstractTableModel {
@@ -20,7 +21,7 @@ public class CageTableModel extends AbstractTableModel {
 
 	@Override
 	public int getColumnCount() {
-		return 6;
+		return 7;
 	}
 
 	@Override
@@ -38,6 +39,8 @@ public class CageTableModel extends AbstractTableModel {
 			return Integer.class;
 		case 5:
 			return String.class;
+		case 6:
+			return FoodSide.class;
 		}
 		return String.class;
 	}
@@ -57,6 +60,8 @@ public class CageTableModel extends AbstractTableModel {
 			return "Age";
 		case 5:
 			return "Comment";
+		case 6:
+			return "Food side";
 		}
 		return "";
 	}
@@ -95,6 +100,8 @@ public class CageTableModel extends AbstractTableModel {
 				return cage.prop.getFlyAge();
 			case 5:
 				return cage.prop.getComment();
+			case 6:
+				return cage.prop.getFoodSide();
 			}
 		}
 		return null;
@@ -144,6 +151,13 @@ public class CageTableModel extends AbstractTableModel {
 				break;
 			case 5:
 				cage.prop.setComment(aValue.toString());
+				break;
+			case 6:
+				if (aValue instanceof FoodSide) {
+					cage.prop.setFoodSide((FoodSide) aValue);
+				} else if (aValue != null) {
+					cage.prop.setFoodSide(FoodSide.fromPersistedString(aValue.toString()));
+				}
 				break;
 			}
 		}

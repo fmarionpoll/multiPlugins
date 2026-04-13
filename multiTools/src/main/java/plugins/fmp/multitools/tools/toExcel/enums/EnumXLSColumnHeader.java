@@ -26,6 +26,7 @@ public enum EnumXLSColumnHeader {
 	CAGE_SEX("Cage_sex", 15, EnumColumnType.COMMON), // 15
 	CAGE_AGE("Cage_age", 16, EnumColumnType.COMMON), // 16
 	CAGE_COMMENT("Cage_comment", 17, EnumColumnType.COMMON), // 17
+	CAGE_FOOD_SIDE("Cage_foodSide", 18, EnumColumnType.COMMON), // 18
 	//
 	SPOT_INDEX("spot_index", 18, EnumColumnType.SPOT), // 18
 	SPOT_CAGEROW("spot_cageRow", 19, EnumColumnType.SPOT), // 19

@@ -881,8 +881,8 @@ public class CagesPersistenceLegacy {
 		try {
 			csvWriter.append("#" + csvSep + "CAGE" + csvSep + "Cage properties\n");
 			csvWriter.append("cageID" + csvSep + "nFlies" + csvSep + "age" + csvSep + "Comment" + csvSep + "strain"
-					+ csvSep + "sect" + csvSep + "colorR" + csvSep + "colorG" + csvSep + "colorB" + csvSep + "ROIname"
-					+ csvSep + "roiType" + csvSep + "npoints\n");
+					+ csvSep + "sect" + csvSep + "colorR" + csvSep + "colorG" + csvSep + "colorB" + csvSep + "foodSide"
+					+ csvSep + "ROIname" + csvSep + "roiType" + csvSep + "npoints\n");
 
 			for (Cage cage : cages.cagesList) {
 				Color color = cage.getProperties().getColor();
@@ -906,7 +906,8 @@ public class CagesPersistenceLegacy {
 						.append(sex).append(csvSep)
 						.append(color.getRed()).append(csvSep)
 						.append(color.getGreen()).append(csvSep)
-						.append(color.getBlue()).append(csvSep);
+						.append(color.getBlue()).append(csvSep)
+						.append(cage.getProperties().getFoodSide().name()).append(csvSep);
 
 				csvWriter.append(line.toString());
 

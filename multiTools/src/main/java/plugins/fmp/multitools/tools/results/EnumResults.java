@@ -51,11 +51,10 @@ public enum EnumResults {
 
 	// === FLY POSITION MEASURES (stored data) ===
 	XYIMAGE("xy-image", "mm", "xy image", StoredDataAccessors.accessStored_XYIMAGE()),
-	YVSCAGETOP("y-topcage", "mm", "y vs cage top", StoredDataAccessors.accessStored_YVSCAGETOP()),
-	YVSCAGEBOTTOM("y-bottomcage", "mm", "y vs cage bottom", StoredDataAccessors.accessStored_YVSCAGEBOTTOM()),
+	/** Distance from fly center to food side (per-cage FoodSide on CageProperties). */
+	YVSFOOD("dist-food", "mm", "distance vs food", StoredDataAccessors.accessStored_YVSFOOD()),
 	XTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_XTOPCAGE()),
 	YTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_YTOPCAGE()),
-	YVSTIPCAPS("y-tipcaps", "mm", "xy tip capillaries", StoredDataAccessors.accessStored_XYTIPCAPS()),
 	ELLIPSEAXES("ellipse-axes", "mm", "Ellipse of axes", StoredDataAccessors.accessStored_ELLIPSEAXES()),
 	DISTANCE("distance", "mm", "Distance between consecutive points", StoredDataAccessors.accessStored_DISTANCE()),
 	ISALIVE("_alive", "yes/no", "Fly alive or not", StoredDataAccessors.accessStored_ISALIVE()),

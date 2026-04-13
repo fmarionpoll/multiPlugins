@@ -62,6 +62,9 @@ public class CageProperties {
 	private final String ID_COLOR_R = "color_R";
 	private final String ID_COLOR_G = "color_G";
 	private final String ID_COLOR_B = "color_B";
+	private final String ID_FOOD_SIDE = "foodSide";
+
+	private FoodSide foodSide = FoodSide.TOP;
 
 	public boolean isSelected() {
 		return cageNFlies > 0;
@@ -118,6 +121,7 @@ public class CageProperties {
 		flyStrain = propFrom.flyStrain;
 		countStim1 = propFrom.countStim1;
 		countStim2 = propFrom.countStim2;
+		foodSide = propFrom.foodSide;
 
 		// Fire PropertyChange events for all changed properties
 		propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_INDEX, oldArrayIndex, arrayIndex);
@@ -163,6 +167,7 @@ public class CageProperties {
 		propTo.flyStrain = flyStrain;
 		propTo.countStim1 = countStim1;
 		propTo.countStim2 = countStim2;
+		propTo.foodSide = foodSide;
 
 		// Fire PropertyChange events for all changed properties
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_INDEX, oldArrayIndex, propTo.arrayIndex);
@@ -209,6 +214,7 @@ public class CageProperties {
 		int g = XMLUtil.getElementIntValue(xmlVal, ID_COLOR_G, color.getGreen());
 		int b = XMLUtil.getElementIntValue(xmlVal, ID_COLOR_B, color.getBlue());
 		color = new Color(r, g, b);
+		foodSide = FoodSide.fromPersistedString(XMLUtil.getElementValue(xmlVal, ID_FOOD_SIDE, foodSide.name()));
 
 		// Fire PropertyChange events for all changed properties
 		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_ID, oldCageID, cageID);
@@ -241,7 +247,19 @@ public class CageProperties {
 		XMLUtil.setElementIntValue(xmlVal, ID_COLOR_R, color.getRed());
 		XMLUtil.setElementIntValue(xmlVal, ID_COLOR_G, color.getGreen());
 		XMLUtil.setElementIntValue(xmlVal, ID_COLOR_B, color.getBlue());
+		XMLUtil.setElementValue(xmlVal, ID_FOOD_SIDE, foodSide.name());
 		return true;
+	}
+
+	public FoodSide getFoodSide() {
+		return foodSide;
+	}
+
+	public void setFoodSide(FoodSide foodSide) {
+		if (foodSide == null) {
+			foodSide = FoodSide.TOP;
+		}
+		this.foodSide = foodSide;
 	}
 
 	public int getCagePosition() {

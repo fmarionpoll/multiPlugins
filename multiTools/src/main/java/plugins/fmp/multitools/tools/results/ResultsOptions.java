@@ -1,17 +1,12 @@
 package plugins.fmp.multitools.tools.results;
 
-import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ResultsOptions {
 	public boolean xyImage = true;
-	public boolean yVsCageTop = true;
-	public boolean yVsCageBottom = true;
-	/** Where distance 0 is on the tube axis (legacy AABB vs vertex-ordered short sides). */
-	public FlyPositionAxisReference flyPositionAxisReference = FlyPositionAxisReference.LEGACY_IMAGE_TOP;
-	/** Clamp fly position to the cage span along that axis before export. */
-	public boolean flyPositionClampToCage = false;
-	public boolean xyCapillaries = true;
+	/** Export distance from fly center to food side (uses per-cage FoodSide). */
+	public boolean yVsFood = true;
+
 	public boolean ellipseAxes = false;
 
 	public boolean distance = false;
@@ -82,10 +77,7 @@ public class ResultsOptions {
 
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
-		this.yVsCageTop = resultsOptions.yVsCageTop;
-		this.yVsCageBottom = resultsOptions.yVsCageBottom;
-		this.flyPositionAxisReference = resultsOptions.flyPositionAxisReference;
-		this.flyPositionClampToCage = resultsOptions.flyPositionClampToCage;
+		this.yVsFood = resultsOptions.yVsFood;
 		this.ellipseAxes = resultsOptions.ellipseAxes;
 
 		this.distance = resultsOptions.distance;
@@ -105,10 +97,12 @@ public class ResultsOptions {
 
 		this.sumPerCage = resultsOptions.sumPerCage;
 		this.subtractT0 = resultsOptions.subtractT0;
+		this.divideWithT0 = resultsOptions.divideWithT0;
 		this.relativeToMaximum = resultsOptions.relativeToMaximum;
 		this.relativeToMedianT0 = resultsOptions.relativeToMedianT0;
 		this.medianT0FromNPoints = resultsOptions.medianT0FromNPoints;
 		this.onlyalive = resultsOptions.onlyalive;
+		this.correctEvaporation = resultsOptions.correctEvaporation;
 
 		this.transpose = resultsOptions.transpose;
 		this.duplicateSeries = resultsOptions.duplicateSeries;

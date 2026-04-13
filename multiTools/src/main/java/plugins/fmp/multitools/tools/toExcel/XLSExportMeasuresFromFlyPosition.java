@@ -11,6 +11,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
@@ -21,10 +24,10 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.experiment.cage.CageAxisProjection;
+import plugins.fmp.multitools.experiment.cage.CageFoodDistanceMm;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
-import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
+import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
 import plugins.fmp.multitools.tools.ROI2D.ROIType;
@@ -95,10 +98,40 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			expList.chainExperimentsUsingKymoIndexes(options.collateSeries);
 			expList.setFirstImageForAllExperiments(options.collateSeries);
 			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);
+			maybeWarnAmbiguousFoodQuads();
 		} catch (Exception e) {
 			throw new ExcelDataException(
 					"Failed to prepare experiments for fly-position export", "prepare_experiments",
 					"experiment_loading", e);
+		}
+	}
+
+	private void maybeWarnAmbiguousFoodQuads() {
+		if (options == null || !options.yVsFood) {
+			return;
+		}
+		for (int ei = options.firstExp; ei <= options.lastExp; ei++) {
+			if (expList == null || ei < 0 || ei >= expList.getItemCount()) {
+				continue;
+			}
+			Experiment exp = (Experiment) expList.getItemAt(ei);
+			if (exp == null || exp.getCages() == null) {
+				continue;
+			}
+			for (Cage cage : exp.getCages().getCageList()) {
+				if (cage == null) {
+					continue;
+				}
+				ROI2D roi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
+				if (CageFoodDistanceMm.isAmbiguousQuad(roi)) {
+					final int cageId = cage.getProperties().getCageID();
+					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null,
+							"Cage " + cageId
+									+ ": cage ROI is almost square (short/long sides within 10%).\nFood-side distance may be unreliable; check the ROI shape.",
+							"Food distance — ambiguous cage", JOptionPane.WARNING_MESSAGE));
+					return;
+				}
+			}
 		}
 	}
 
@@ -147,9 +180,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 		OptionToResultsMapping[] mappings = {
 			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
-			new OptionToResultsMapping(() -> options.yVsCageTop, EnumResults.YVSCAGETOP),
-			new OptionToResultsMapping(() -> options.yVsCageBottom, EnumResults.YVSCAGEBOTTOM),
-			new OptionToResultsMapping(() -> options.xyCapillaries, EnumResults.YVSTIPCAPS),
+			new OptionToResultsMapping(() -> options.yVsFood, EnumResults.YVSFOOD),
 			new OptionToResultsMapping(() -> options.ellipseAxes, EnumResults.ELLIPSEAXES),
 			new OptionToResultsMapping(() -> options.distance, EnumResults.DISTANCE),
 			new OptionToResultsMapping(() -> options.alive, EnumResults.ISALIVE),
@@ -221,10 +252,6 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		resultsOptions.subtractT0 = false;
 		resultsOptions.correctEvaporation = false;
 		resultsOptions.resultType = resultType;
-		if (options != null) {
-			resultsOptions.flyPositionAxisReference = options.flyPositionAxisReference;
-			resultsOptions.flyPositionClampToCage = options.flyPositionClampToCage;
-		}
 
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
@@ -364,7 +391,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			boolean transpose = options.transpose;
 
 			final String[] fields = new String[] { "Cage_ID", "cageID", "nFlies", "age", "Comment", "strain", "sex",
-					"colorR", "colorG", "colorB", "ROIname", "roiType", "npoints" };
+					"colorR", "colorG", "colorB", "foodSide", "ROIname", "roiType", "npoints" };
 
 			// Use the same convention as other exporters:
 			// - logical x: entity index (cage instance)
@@ -422,6 +449,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				XLSUtils.setValue(sheet, x, y++, transpose, color.getRed());
 				XLSUtils.setValue(sheet, x, y++, transpose, color.getGreen());
 				XLSUtils.setValue(sheet, x, y++, transpose, color.getBlue());
+				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getFoodSide().name());
 
 				String roiName = (cage.getRoi() != null && cage.getRoi().getName() != null) ? cage.getRoi().getName()
 						: "cage" + String.format("%03d", cage.getProperties().getCageID());
@@ -895,10 +923,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			flyPositions.computeEllipseAxes();
 			break;
 		case XYIMAGE:
-		case YVSCAGETOP:
-		case YVSCAGEBOTTOM:
-		case YVSTIPCAPS:
-			// These types use direct coordinate values, no computation needed
+		case YVSFOOD:
 			break;
 		default:
 			// Other result types not applicable to fly position measurements
@@ -962,11 +987,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		switch (resultType) {
 		case XYIMAGE:
 			return hasCenter ? pos.getCenterRectangle().getY() : ry;
-		case YVSCAGETOP:
-		case YVSCAGEBOTTOM:
-			return extractCageAxisPositionMm(pos, resultType, cage, flyPositions, resultsOptions, hasCenter, rx, ry);
-		case YVSTIPCAPS:
-			return hasCenter ? pos.getCenterRectangle().getX() : rx;
+		case YVSFOOD:
+			return extractFoodDistanceMm(pos, cage, flyPositions, hasCenter, rx, ry);
 		case DISTANCE:
 			return pos.distanceMm;
 		case ISALIVE:
@@ -980,33 +1002,26 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 	}
 
-	private Double extractCageAxisPositionMm(FlyPosition pos, EnumResults resultType, Cage cage, FlyPositions flyPositions,
-			ResultsOptions resultsOptions, boolean hasCenter, double rx, double ry) {
-		if (flyPositions == null || cage == null || resultsOptions == null) {
+	private Double extractFoodDistanceMm(FlyPosition pos, Cage cage, FlyPositions flyPositions, boolean hasCenter,
+			double rx, double ry) {
+		if (flyPositions == null || cage == null) {
 			return Double.NaN;
 		}
 		double sx = flyPositions.getMmPerPixelX();
 		double sy = flyPositions.getMmPerPixelY();
-		boolean clamp = resultsOptions.flyPositionClampToCage;
-		FlyPositionAxisReference ref = resultsOptions.flyPositionAxisReference != null ? resultsOptions.flyPositionAxisReference
-				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
 		ROI2D roi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
 		if (roi == null) {
 			return Double.NaN;
 		}
-		Point2D c;
-		if (ref.isLegacyAabb()) {
-			c = new Point2D.Double(rx, ry);
-		} else {
-			c = hasCenter ? pos.getCenterRectangle() : new Point2D.Double(rx, ry);
-		}
+		Point2D c = hasCenter ? pos.getCenterRectangle() : new Point2D.Double(rx, ry);
 		if (c == null || Double.isNaN(c.getX()) || Double.isNaN(c.getY())) {
 			return Double.NaN;
 		}
-		CageAxisProjection proj = CageAxisProjection.fromRoi(roi, sx, sy, ref);
-		CageAxisProjection.Anchor anchor = resultType == EnumResults.YVSCAGEBOTTOM ? CageAxisProjection.Anchor.BOTTOM
-				: CageAxisProjection.Anchor.TOP;
-		double v = proj.positionMm(c, sx, sy, anchor, clamp);
+		FoodSide side = cage.getProperties().getFoodSide();
+		if (side == null) {
+			side = FoodSide.TOP;
+		}
+		double v = CageFoodDistanceMm.distanceFromFoodMm(roi, c, sx, sy, side);
 		return Double.isNaN(v) ? Double.NaN : v;
 	}
 
@@ -1139,6 +1154,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				cage.getProperties().getCageNFlies());
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_COMMENT.getValue(), transpose,
 				cage.getProperties().getComment());
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_FOOD_SIDE.getValue(), transpose,
+				cage.getProperties().getFoodSide().name());
 	}
 
 	/**

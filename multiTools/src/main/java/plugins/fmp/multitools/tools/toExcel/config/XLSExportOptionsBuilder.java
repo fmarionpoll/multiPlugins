@@ -1,6 +1,5 @@
 package plugins.fmp.multitools.tools.toExcel.config;
 
-import plugins.fmp.multitools.experiment.cage.FlyPositionAxisReference;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -72,8 +71,6 @@ public class XLSExportOptionsBuilder {
 	private boolean trim_alive = DefaultOptions.TRIM_ALIVE;
 	private boolean compensateEvaporation = DefaultOptions.COMPENSATE_EVAPORATION;
 	private EnumResults resultType = null;
-	private FlyPositionAxisReference flyPositionAxisReference = FlyPositionAxisReference.LEGACY_IMAGE_TOP;
-	private boolean flyPositionClampToCage = DefaultOptions.FLY_POSITION_CLAMP_TO_CAGE;
 
 	/**
 	 * Creates a new builder with default values.
@@ -89,7 +86,7 @@ public class XLSExportOptionsBuilder {
 	 */
 	public XLSExportOptionsBuilder(ResultsOptions existing) {
 		this.xyImage = existing.xyImage;
-		this.xyCage = existing.yVsCageTop;
+		this.xyCage = existing.yVsFood;
 		this.ellipseAxes = existing.ellipseAxes;
 
 		this.distance = existing.distance;
@@ -137,8 +134,6 @@ public class XLSExportOptionsBuilder {
 		this.trim_alive = existing.trim_alive;
 		this.compensateEvaporation = existing.compensateEvaporation;
 		this.resultType = existing.resultType;
-		this.flyPositionAxisReference = existing.flyPositionAxisReference;
-		this.flyPositionClampToCage = existing.flyPositionClampToCage;
 	}
 
 	// Fluent interface methods
@@ -236,17 +231,6 @@ public class XLSExportOptionsBuilder {
 		return this;
 	}
 
-	public XLSExportOptionsBuilder withFlyPositionAxisReference(FlyPositionAxisReference flyPositionAxisReference) {
-		this.flyPositionAxisReference = flyPositionAxisReference != null ? flyPositionAxisReference
-				: FlyPositionAxisReference.LEGACY_IMAGE_TOP;
-		return this;
-	}
-
-	public XLSExportOptionsBuilder withFlyPositionClampToCage(boolean flyPositionClampToCage) {
-		this.flyPositionClampToCage = flyPositionClampToCage;
-		return this;
-	}
-
 	public XLSExportOptionsBuilder withOnlyAlive(boolean onlyalive) {
 		this.onlyalive = onlyalive;
 		return this;
@@ -308,7 +292,7 @@ public class XLSExportOptionsBuilder {
 
 		// Copy all configured values
 		resultsOptions.xyImage = this.xyImage;
-		resultsOptions.yVsCageTop = this.xyCage;
+		resultsOptions.yVsFood = this.xyCage;
 		resultsOptions.ellipseAxes = this.ellipseAxes;
 
 		resultsOptions.distance = this.distance;
@@ -357,8 +341,6 @@ public class XLSExportOptionsBuilder {
 		resultsOptions.trim_alive = this.trim_alive;
 		resultsOptions.compensateEvaporation = this.compensateEvaporation;
 		resultsOptions.resultType = this.resultType;
-		resultsOptions.flyPositionAxisReference = this.flyPositionAxisReference;
-		resultsOptions.flyPositionClampToCage = this.flyPositionClampToCage;
 
 		return resultsOptions;
 	}

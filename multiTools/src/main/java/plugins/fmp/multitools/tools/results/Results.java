@@ -2,14 +2,19 @@ package plugins.fmp.multitools.tools.results;
 
 import java.awt.Color;
 import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageFoodDistanceMm;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
+import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotProperties;
@@ -232,6 +237,11 @@ public class Results {
 	 */
 	public void getDataFromFlyPositions(FlyPositions flyPositions, long binData, long binExcel,
 			ResultsOptions resultsOptions) {
+		getDataFromFlyPositions(flyPositions, binData, binExcel, resultsOptions, null);
+	}
+
+	public void getDataFromFlyPositions(FlyPositions flyPositions, long binData, long binExcel,
+			ResultsOptions resultsOptions, Cage cage) {
 		if (flyPositions == null || flyPositions.flyPositionList == null || flyPositions.flyPositionList.isEmpty()) {
 			dataValues = new ArrayList<>();
 			return;
@@ -242,27 +252,47 @@ public class Results {
 
 		switch (resultType) {
 		case XYIMAGE:
-		case YVSCAGETOP:
-		case YVSCAGEBOTTOM:
-			// Extract X or Y coordinate based on export type
 			for (FlyPosition pos : flyPositions.flyPositionList) {
-				Point2D center = pos.getCenterRectangle();	
-				// For XYIMAGE and XYTOPCAGE, we might need to extract X or Y
-				// Defaulting to Y coordinate (vertical position)
+				Point2D center = pos.getCenterRectangle();
 				dataValues.add(center.getY());
 			}
 			break;
-			
-		case YVSTIPCAPS:
-				// Extract X or Y coordinate based on export type
-				for (FlyPosition pos : flyPositions.flyPositionList) {
-					Point2D center = pos.getCenterRectangle();
-					// XYTIPCAPS - could be X coordinate
-					dataValues.add(center.getX());
+
+		case YVSFOOD: {
+			double sx = flyPositions.getMmPerPixelX();
+			double sy = flyPositions.getMmPerPixelY();
+			ROI2D roi = cage != null && cage.getRoi() != null ? cage.getRoi()
+					: cage != null ? cage.getCageRoi2D() : null;
+			FoodSide foodSide = cage != null ? cage.getProperties().getFoodSide() : FoodSide.TOP;
+			for (FlyPosition pos : flyPositions.flyPositionList) {
+				if (cage == null || roi == null) {
+					dataValues.add(Double.NaN);
+					continue;
 				}
-				break;
-			
-			
+				Point2D c = flyCenterPxForFood(pos);
+				if (c == null) {
+					dataValues.add(Double.NaN);
+					continue;
+				}
+				dataValues.add(CageFoodDistanceMm.distanceFromFoodMm(roi, c, sx, sy, foodSide));
+			}
+			break;
+		}
+
+		case XTOPCAGE:
+			for (FlyPosition pos : flyPositions.flyPositionList) {
+				Point2D center = pos.getCenterRectangle();
+				dataValues.add(center.getX());
+			}
+			break;
+
+		case YTOPCAGE:
+			for (FlyPosition pos : flyPositions.flyPositionList) {
+				Point2D center = pos.getCenterRectangle();
+				dataValues.add(center.getY());
+			}
+			break;
+
 		case DISTANCE:
 			// Compute distance between consecutive points
 			flyPositions.computeDistanceBetweenConsecutivePoints();
@@ -309,6 +339,22 @@ public class Results {
 		if (resultsOptions.relativeToMaximum && resultType != EnumResults.ISALIVE && resultType != EnumResults.SLEEP) {
 			relativeToMaximum();
 		}
+	}
+
+	private static Point2D flyCenterPxForFood(FlyPosition pos) {
+		if (pos == null || pos.getRectangle2D() == null) {
+			return null;
+		}
+		Rectangle2D r = pos.getRectangle2D();
+		double rx = r.getX();
+		double ry = r.getY();
+		double rw = r.getWidth();
+		double rh = r.getHeight();
+		boolean hasCenter = !(Double.isNaN(rx) || Double.isNaN(ry) || Double.isNaN(rw) || Double.isNaN(rh));
+		if (hasCenter) {
+			return pos.getCenterRectangle();
+		}
+		return new Point2D.Double(rx, ry);
 	}
 
 	public void transferDataValuesToValuesOut(double scalingFactorToPhysicalUnits, EnumResults resultType) {

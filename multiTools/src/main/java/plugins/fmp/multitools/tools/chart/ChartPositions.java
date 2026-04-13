@@ -214,11 +214,9 @@ public class ChartPositions extends IcyFrame {
 	private boolean isPositionResultType(EnumResults resultType) {
 		switch (resultType) {
 		case XYIMAGE:
-		case YVSCAGETOP:
-		case YVSCAGEBOTTOM:
+		case YVSFOOD:
 		case XTOPCAGE:
 		case YTOPCAGE:
-		case YVSTIPCAPS:
 		case ELLIPSEAXES:
 			return true;
 		default:

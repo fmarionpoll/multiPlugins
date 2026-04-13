@@ -140,20 +140,13 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored XYTOPCAGE data from FlyPositions.
-	 * Used via: cage.flyPositions with coordinate extraction
+	 * Accesses stored distance-to-food data from FlyPositions (per-cage FoodSide).
+	 * Used via: cage.flyPositions with CageFoodDistanceMm.
 	 */
-	public static MeasurementComputation accessStored_YVSCAGETOP() {
+	public static MeasurementComputation accessStored_YVSFOOD() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
-					"YVSCAGETOP uses stored data from FlyPositions - access via cage.flyPositions, not computation");
-		};
-	}
-	
-	public static MeasurementComputation accessStored_YVSCAGEBOTTOM() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"YVSCAGEBOTTOM uses stored data from FlyPositions - access via cage.flyPositions, not computation");
+					"YVSFOOD uses stored data from FlyPositions - access via cage.flyPositions, not computation");
 		};
 	}
 	
@@ -168,17 +161,6 @@ public class StoredDataAccessors {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
 					"YTOPCAGE uses stored data from FlyPositions - access via cage.flyPositions, not computation");
-		};
-	}
-
-	/**
-	 * Accesses stored XYTIPCAPS data from FlyPositions.
-	 * Used via: cage.flyPositions with coordinate extraction
-	 */
-	public static MeasurementComputation accessStored_XYTIPCAPS() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"XYTIPCAPS uses stored data from FlyPositions - access via cage.flyPositions, not computation");
 		};
 	}
 

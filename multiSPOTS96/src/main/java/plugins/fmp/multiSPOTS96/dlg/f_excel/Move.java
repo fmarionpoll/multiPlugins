@@ -17,8 +17,7 @@ public class Move extends JPanel {
 	private static final long serialVersionUID = 1290058998782225526L;
 
 	JCheckBox xyCenterCheckBox = new JCheckBox("XY vs image", false);
-	JCheckBox xyCageCheckBox = new JCheckBox("XY vs cage", true);
-	JCheckBox xyTipCapsCheckBox = new JCheckBox("XY vs capillary", false);
+	JCheckBox yVsFoodCheckBox = new JCheckBox("distance vs food", true);
 	JCheckBox distanceCheckBox = new JCheckBox("distance", true);
 	JCheckBox aliveCheckBox = new JCheckBox("alive", true);
 	JCheckBox sleepCheckBox = new JCheckBox("sleep", true);
@@ -34,8 +33,7 @@ public class Move extends JPanel {
 		flowLayout1.setVgap(0);
 		JPanel panel0 = new JPanel(flowLayout1);
 		panel0.add(xyCenterCheckBox);
-		panel0.add(xyCageCheckBox);
-		panel0.add(xyTipCapsCheckBox);
+		panel0.add(yVsFoodCheckBox);
 		panel0.add(rectSizeCheckBox);
 		add(panel0);
 

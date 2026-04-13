@@ -852,6 +852,15 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			}
 		}
 
+		if (i < data.length && isFoodSideToken(data[i])) {
+			try {
+				prop.setFoodSide(FoodSide.valueOf(data[i].trim().toUpperCase()));
+			} catch (IllegalArgumentException e) {
+				prop.setFoodSide(FoodSide.TOP);
+			}
+			i++;
+		}
+
 		// Parse ROI name (if present in CAGES section format)
 		String cageROI_name = "";
 		if (i < data.length) {
@@ -945,6 +954,19 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		} catch (NumberFormatException e) {
 			return false;
 		}
+	}
+
+	private static boolean isFoodSideToken(String str) {
+		if (str == null || str.trim().isEmpty()) {
+			return false;
+		}
+		String t = str.trim().toUpperCase();
+		for (FoodSide v : FoodSide.values()) {
+			if (v.name().equals(t)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public void csvImport_MEASURE_Data_v0(EnumCageMeasures measureType, String[] data, boolean complete) {
