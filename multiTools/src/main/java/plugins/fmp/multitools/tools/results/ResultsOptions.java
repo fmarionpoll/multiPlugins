@@ -17,6 +17,7 @@ public class ResultsOptions {
 	public boolean distance = false;
 	public boolean alive = true;
 	public boolean sleep = true;
+	public boolean illumPhase = false;
 	public int sleepThreshold = 5;
 
 	public boolean spotAreas = true;

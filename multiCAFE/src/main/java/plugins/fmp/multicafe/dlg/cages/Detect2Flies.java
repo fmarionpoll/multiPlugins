@@ -23,12 +23,12 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
 import icy.image.IcyBufferedImage;
-import icy.image.IcyBufferedImageCursor;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.series.IlluminationPhase;
 import plugins.fmp.multitools.series.FlyDetect2;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
@@ -365,39 +365,9 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 
 		int t = exp.getSeqCamData().getCurrentFrame();
 		IcyBufferedImage img = exp.getSeqCamData().getSeqImage(t, 0);
-		double r = computeRednessRatio(img, 16);
 		double thr = ((Number) rednessThresholdSpinner.getValue()).doubleValue();
-		return (r >= thr) ? dark : light;
-	}
-
-	private static double computeRednessRatio(IcyBufferedImage img, int step) {
-		if (img == null) {
-			return 0.0;
-		}
-		int w = img.getSizeX();
-		int h = img.getSizeY();
-		int c = img.getSizeC();
-		if (c < 3) {
-			return 0.0;
-		}
-		if (step < 1) {
-			step = 1;
-		}
-
-		double sum = 0.0;
-		int n = 0;
-		IcyBufferedImageCursor cur = new IcyBufferedImageCursor(img);
-		for (int y = 0; y < h; y += step) {
-			for (int x = 0; x < w; x += step) {
-				double rr = cur.get(x, y, 0);
-				double gg = cur.get(x, y, 1);
-				double bb = cur.get(x, y, 2);
-				double denom = rr + gg + bb + 1e-9;
-				sum += (rr / denom);
-				n++;
-			}
-		}
-		return n > 0 ? (sum / n) : 0.0;
+		int phase = IlluminationPhase.fromFrameForDualBackground(img, thr);
+		return (phase == IlluminationPhase.DARK) ? dark : light;
 	}
 
 }

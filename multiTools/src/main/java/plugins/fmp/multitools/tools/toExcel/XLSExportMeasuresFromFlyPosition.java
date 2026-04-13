@@ -153,7 +153,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			new OptionToResultsMapping(() -> options.ellipseAxes, EnumResults.ELLIPSEAXES),
 			new OptionToResultsMapping(() -> options.distance, EnumResults.DISTANCE),
 			new OptionToResultsMapping(() -> options.alive, EnumResults.ISALIVE),
-			new OptionToResultsMapping(() -> options.sleep, EnumResults.SLEEP)
+			new OptionToResultsMapping(() -> options.sleep, EnumResults.SLEEP),
+			new OptionToResultsMapping(() -> options.illumPhase, EnumResults.ILLUM_PHASE)
 		};
 
 		// Keep the outer-loop column stable; each worksheet manages its own "next"
@@ -942,7 +943,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 	private Double extractValueFromFlyPosition(FlyPosition pos, EnumResults resultType, Cage cage,
 			FlyPositions flyPositions, ResultsOptions resultsOptions) {
-		if (pos == null || pos.getRectangle2D() == null) {
+		if (pos == null) {
+			return Double.NaN;
+		}
+		if (resultType == EnumResults.ILLUM_PHASE) {
+			return pos.illumPhase >= 0 ? (double) pos.illumPhase : Double.NaN;
+		}
+		if (pos.getRectangle2D() == null) {
 			return Double.NaN;
 		}
 		final Rectangle2D r = pos.getRectangle2D();

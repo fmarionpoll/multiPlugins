@@ -227,6 +227,17 @@ public class StoredDataAccessors {
 	}
 
 	/**
+	 * Accesses stored ILLUM_PHASE data from FlyPositions (Detect2 dual-background).
+	 * Used via: FlyPosition.illumPhase
+	 */
+	public static MeasurementComputation accessStored_ILLUM_PHASE() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"ILLUM_PHASE uses stored data from FlyPositions - access via FlyPosition.illumPhase, not computation");
+		};
+	}
+
+	/**
 	 * Accesses stored AREA_SUM data from Spot measurements.
 	 * Used via: spot.getMeasurements(AREA_SUM)
 	 */

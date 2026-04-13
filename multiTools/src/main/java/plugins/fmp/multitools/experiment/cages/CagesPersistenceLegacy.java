@@ -996,6 +996,7 @@ public class CagesPersistenceLegacy {
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "y(i)", cageID, sep);
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "w(i)", cageID, sep);
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "h(i)", cageID, sep);
+				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "p(i)", cageID, sep);
 			}
 			break;
 		default:

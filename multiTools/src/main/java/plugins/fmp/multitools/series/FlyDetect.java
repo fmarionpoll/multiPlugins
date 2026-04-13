@@ -95,13 +95,14 @@ public abstract class FlyDetect extends BuildSeries {
 
 			IcyBufferedImage workImage = loader.imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
 			updateTransformOptions(exp, t, t_previous, transformOptions, workImage);
+			int illumPhase = computeIllumPhaseForFrame(workImage);
 
 			IcyBufferedImage negativeImage = transformFunction.getTransformedImage(workImage, transformOptions);
 			try {
 				seqNegative.beginUpdate();
 				seqNegative.setImage(0, 0, negativeImage);
 				vNegative.setTitle(title);
-				List<Rectangle2D> listRectangles = find_flies.findFlies(negativeImage, t);
+				List<Rectangle2D> listRectangles = find_flies.findFlies(negativeImage, t, illumPhase);
 				displayRectanglesAsROIs1(seqNegative, listRectangles, true);
 				seqNegative.endUpdate();
 			} catch (Exception e) {
@@ -110,6 +111,13 @@ public abstract class FlyDetect extends BuildSeries {
 			t_previous = t;
 		}
 		progressBar.close();
+	}
+
+	private int computeIllumPhaseForFrame(IcyBufferedImage workImage) {
+		if (options == null || !options.dualBackground) {
+			return IlluminationPhase.UNKNOWN;
+		}
+		return IlluminationPhase.fromFrameForDualBackground(workImage, options.rednessThreshold);
 	}
 
 	protected abstract CanvasImageTransformOptions setupTransformOptions(Experiment exp);

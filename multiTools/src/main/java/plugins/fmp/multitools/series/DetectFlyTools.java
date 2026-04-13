@@ -245,7 +245,7 @@ public class DetectFlyTools {
 		return new ROI2DArea(bmask);
 	}
 
-	public List<Rectangle2D> findFlies(IcyBufferedImage workimage, int t) throws InterruptedException {
+	public List<Rectangle2D> findFlies(IcyBufferedImage workimage, int t, int illumPhase) throws InterruptedException {
 		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("detectFlies");
 		processor.setPriority(Processor.NORM_PRIORITY);
@@ -265,7 +265,7 @@ public class DetectFlyTools {
 				@Override
 				public void run() {
 					try {
-						saveMasksForCage(binarizedImageRoi, cage, t, listRectangles);
+						saveMasksForCage(binarizedImageRoi, cage, t, illumPhase, listRectangles);
 					} catch (InterruptedException e) {
 						e.printStackTrace();
 					}
@@ -278,18 +278,18 @@ public class DetectFlyTools {
 		return listRectangles;
 	}
 
-	private void saveMasksForCage(ROI2DArea binarizedImageRoi, Cage cage, int t, List<Rectangle2D> listRectangles)
-			throws InterruptedException {
+	private void saveMasksForCage(ROI2DArea binarizedImageRoi, Cage cage, int t, int illumPhase,
+			List<Rectangle2D> listRectangles) throws InterruptedException {
 		List<BooleanMask2D> masks = findBlobMasksForCage(binarizedImageRoi, cage.cageMask2D, cage, t);
 		if (masks.isEmpty()) {
-			cage.flyPositions.addPositionWithoutRoiArea(t, 0, null);
+			cage.flyPositions.addPositionWithoutRoiArea(t, 0, null, illumPhase);
 			return;
 		}
 		cage.flyPositions.nflies = Math.max(cage.flyPositions.nflies, masks.size());
 		for (int flyId = 0; flyId < masks.size(); flyId++) {
 			BooleanMask2D m = masks.get(flyId);
 			Rectangle2D rect = m.getOptimizedBounds();
-			cage.flyPositions.addPositionWithoutRoiArea(t, flyId, rect);
+			cage.flyPositions.addPositionWithoutRoiArea(t, flyId, rect, illumPhase);
 			if (rect != null)
 				listRectangles.add(rect);
 		}

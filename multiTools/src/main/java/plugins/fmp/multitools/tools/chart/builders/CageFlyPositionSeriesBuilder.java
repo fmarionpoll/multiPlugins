@@ -140,11 +140,9 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		double sy = flyPositions.getMmPerPixelY();
 
 		double yOrigin = 0;
-		double yTop = 0;
 		double xLeft = 0;
 		if (rect1 != null) {
 			yOrigin = rect1.getY() + rect1.getHeight();
-			yTop = rect1.getY();
 			xLeft = rect1.getX();
 		}
 
@@ -314,6 +312,10 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			processSleepData(flyPositions, seriesXY, itmax);
 			break;
 
+		case ILLUM_PHASE:
+			processIllumPhaseData(flyPositions, seriesXY, itmax);
+			break;
+
 		case ELLIPSEAXES:
 			processEllipseAxesData(flyPositions, seriesXY, itmax);
 			break;
@@ -380,6 +382,16 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			boolean asleep = pos.bSleep;
 			double ypos = asleep ? SLEEP_VALUE : AWAKE_VALUE;
 			addxyPos(seriesXY, pos, ypos);
+		}
+	}
+
+	private void processIllumPhaseData(FlyPositions results, XYSeries seriesXY, int itmax) {
+		for (int it = 0; it < itmax; it++) {
+			FlyPosition pos = results.flyPositionList.get(it);
+			if (pos.illumPhase < 0) {
+				continue;
+			}
+			addxyPos(seriesXY, pos, (double) pos.illumPhase);
 		}
 	}
 
@@ -473,6 +485,9 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	private void addxyPos(XYSeries seriesXY, FlyPosition pos, Double ypos) {
 		if (seriesXY == null || pos == null) {
 			Logger.warn("Cannot add position: series or position is null");
+			return;
+		}
+		if (ypos == null || Double.isNaN(ypos)) {
 			return;
 		}
 

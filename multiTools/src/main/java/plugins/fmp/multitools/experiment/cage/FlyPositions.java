@@ -96,6 +96,12 @@ public class FlyPositions {
 		flyPositionList.add(pos);
 	}
 
+	public void addPositionWithoutRoiArea(int t, int flyId, Rectangle2D rectangle, int illumPhase) {
+		FlyPosition pos = new FlyPosition(t, flyId, rectangle);
+		pos.illumPhase = illumPhase;
+		flyPositionList.add(pos);
+	}
+
 	public void addPositionWithRoiArea(int t, Rectangle2D rectangle, ROI2DArea roiArea) {
 		FlyPosition pos = new FlyPosition(t, rectangle, roiArea);
 		flyPositionList.add(pos);
@@ -793,6 +799,9 @@ public class FlyPositions {
 			else if (measureType == 'h')
 				for (int i = 0; i < npoints; i++)
 					flyPositionList.get(i).cvsExportHeight(sbf, sep);
+			else if (measureType == 'p')
+				for (int i = 0; i < npoints; i++)
+					flyPositionList.get(i).cvsExportIllumPhase(sbf, sep);
 		}
 		sbf.append("\n");
 		return true;
@@ -828,6 +837,9 @@ public class FlyPositions {
 		else if (measureType == 'h')
 			for (int i = 0; i < npoints; i++)
 				flyPositionList.get(i).cvsImportHeight(data[i + offset]);
+		else if (measureType == 'p')
+			for (int i = 0; i < npoints; i++)
+				flyPositionList.get(i).cvsImportIllumPhase(data[i + offset]);
 
 		return true;
 	}

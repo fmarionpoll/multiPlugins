@@ -35,6 +35,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	private ChartPositions distanceChart = null;
 	private ChartPositions aliveChart = null;
 	private ChartPositions sleepChart = null;
+	private ChartPositions illumChart = null;
 
 	private MultiCAFE parent0 = null;
 
@@ -43,6 +44,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	private JCheckBox distanceCheckbox = new JCheckBox("distance t/t+1", false);
 	JCheckBox aliveCheckbox = new JCheckBox("fly alive", false);
 	JCheckBox sleepCheckbox = new JCheckBox("sleep", false);
+	JCheckBox illumCheckbox = new JCheckBox("light/dark", false);
 	JSpinner aliveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50.0, 0., 100000., .1));
 	public JButton displayResultsButton = new JButton("Display results");
 
@@ -62,6 +64,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		panel1.add(distanceCheckbox);
 		panel1.add(aliveCheckbox);
 		panel1.add(sleepCheckbox);
+		panel1.add(illumCheckbox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
@@ -152,6 +155,13 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 			ptRelative.y += deltay;
 		} else if (sleepChart != null)
 			closeChart(sleepChart);
+
+		if (illumCheckbox.isSelected()) {
+			illumChart = plotYToChart("lighting phase (Detect2)", illumChart, rectv, ptRelative, exp,
+					EnumResults.ILLUM_PHASE);
+			ptRelative.y += deltay;
+		} else if (illumChart != null)
+			closeChart(illumChart);
 	}
 
 	private ChartPositions plotYToChart(String title, ChartPositions iChart, Rectangle rectv, Point ptRelative,
@@ -182,6 +192,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		distanceChart = closeChart(distanceChart);
 		aliveChart = closeChart(aliveChart);
 		sleepChart = closeChart(sleepChart);
+		illumChart = closeChart(illumChart);
 	}
 
 	@Override

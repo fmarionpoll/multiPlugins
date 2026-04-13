@@ -17,6 +17,8 @@ public class FlyPosition {
 	/** Pseudo-identity within a cage. -1 means unknown / legacy. */
 	public int flyId = -1;
 	public long tMs = 0;
+	/** Detect2 dual-background phase: -1 unknown, 0 light, 1 dark. */
+	public int illumPhase = -1;
 	public boolean bAlive = false;
 	public boolean bSleep = false;
 	public boolean bPadded = false;
@@ -71,6 +73,7 @@ public class FlyPosition {
 		flyIndexT = source.flyIndexT;
 		flyId = source.flyId;
 		tMs = source.tMs;
+		illumPhase = source.illumPhase;
 		bAlive = source.bAlive;
 		bSleep = source.bSleep;
 		bPadded = source.bPadded;
@@ -260,6 +263,7 @@ public class FlyPosition {
 
 			flyIndexT = XMLUtil.getAttributeIntValue(node_XYTa, "t", 0);
 			flyId = XMLUtil.getAttributeIntValue(node_XYTa, "id", -1);
+			illumPhase = XMLUtil.getAttributeIntValue(node_XYTa, "illum", -1);
 			bAlive = XMLUtil.getAttributeBooleanValue(node_XYTa, "a", false);
 			bSleep = XMLUtil.getAttributeBooleanValue(node_XYTa, "s", false);
 		}
@@ -290,6 +294,9 @@ public class FlyPosition {
 		XMLUtil.setAttributeDoubleValue(node_XYTa, "t", flyIndexT);
 		if (flyId >= 0) {
 			XMLUtil.setAttributeIntValue(node_XYTa, "id", flyId);
+		}
+		if (illumPhase >= 0) {
+			XMLUtil.setAttributeIntValue(node_XYTa, "illum", illumPhase);
 		}
 		XMLUtil.setAttributeBooleanValue(node_XYTa, "a", bAlive);
 		XMLUtil.setAttributeBooleanValue(node_XYTa, "s", bSleep);
@@ -334,6 +341,12 @@ public class FlyPosition {
 
 	public boolean cvsExportHeight(StringBuffer sbf, String sep) {
 		sbf.append(StringUtil.toString(rectPosition.getHeight()));
+		sbf.append(sep);
+		return true;
+	}
+
+	public boolean cvsExportIllumPhase(StringBuffer sbf, String sep) {
+		sbf.append(StringUtil.toString(illumPhase));
 		sbf.append(sep);
 		return true;
 	}
@@ -486,6 +499,11 @@ public class FlyPosition {
 	public boolean cvsImportHeight(String strData) {
 		double h = Double.valueOf(strData);
 		rectPosition.setRect(rectPosition.getX(), rectPosition.getY(), rectPosition.getWidth(), h);
+		return true;
+	}
+
+	public boolean cvsImportIllumPhase(String strData) {
+		illumPhase = Integer.valueOf(strData);
 		return true;
 	}
 

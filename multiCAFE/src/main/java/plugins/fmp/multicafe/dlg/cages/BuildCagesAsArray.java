@@ -189,6 +189,7 @@ public class BuildCagesAsArray extends JPanel {
 		exp.getCages().getCageList().clear();
 		String cageRoot = "cage";
 		int iRoot = 0;
+		boolean warnedInvalidGeometry = false;
 
 		Polygon2D roiPolygon = ROI2DUtilities.inflate(roiPolygonMin, ncolumns, nrows, width_cage, width_interval);
 
@@ -248,6 +249,19 @@ public class BuildCagesAsArray extends JPanel {
 				Point2D point3 = ROI2DUtilities.lineIntersect(x0ij, y0ij + yspacer_left, x3ij, y3ij + yspacer_right,
 						x3ij - xspacer_top, y3ij, x2ij - xspacer_bottom, y2ij);
 				points.add(point3);
+
+				if (point0 == null || point1 == null || point2 == null || point3 == null) {
+					// This can happen when the enclosing quadrilateral is too skewed/pinched
+					// relative to the requested cage/interval sizes, leading to non-intersecting
+					// offset segments.
+					if (!warnedInvalidGeometry) {
+						warnedInvalidGeometry = true;
+						new AnnounceFrame(
+								"Cannot create some cages: polygon geometry too skewed or interval too large.\n"
+										+ "Try enlarging the top border / reducing interval or cage width.");
+					}
+					continue;
+				}
 
 				ROI2DPolygon roiP = new ROI2DPolygon(points);
 				roiP.setName(cageRoot + String.format("%03d", iRoot));
