@@ -253,7 +253,7 @@ public class ReferenceImageEditor {
 		row3.add(saveButton);
 		row3.add(closeButton);
 
-		state.pickRadio.setSelected(true);
+		state.surroundRadio.setSelected(true);
 		state.updateSwatch();
 		updateToolDependentControls(state);
 
