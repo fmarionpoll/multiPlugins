@@ -45,7 +45,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 	private JButton drawPolygon2DButton = new JButton("Draw Polygon2D");
 	private JButton createCagesButton = new JButton("Create cages");
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 10000, 1));
-	public JCheckBox overlayCheckBox = new JCheckBox("Overlay ", false);
+	public JCheckBox overlayCheckBox = new JCheckBox("Overlay", false);
 	private JButton deleteButton = new JButton("Cut points within selected polygon");
 	private JComboBox<ImageTransformEnums> transformForLevelsComboBox = new JComboBox<ImageTransformEnums>(
 			new ImageTransformEnums[] { ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,

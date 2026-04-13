@@ -72,7 +72,9 @@ public class MCCages_ extends JPanel implements PropertyChangeListener {
 			@Override
 			public void stateChanged(ChangeEvent e) {
 				int selectedIndex = tabsPane.getSelectedIndex();
-				tabBuildCells.tabBuildCells2.overlayCheckBox.setSelected(selectedIndex == 0);
+				boolean contoursDetectTab = selectedIndex == 0
+						&& tabBuildCells.tabsPane.getSelectedIndex() == tabBuildCells.iTAB_CAGES2;
+				tabBuildCells.tabBuildCells2.overlayCheckBox.setSelected(contoursDetectTab);
 
 				if (selectedIndex == iTAB_INFOS) {
 					tabInfos.refreshFromCurrentExperiment();

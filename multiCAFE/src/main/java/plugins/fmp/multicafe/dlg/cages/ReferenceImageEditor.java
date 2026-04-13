@@ -1,8 +1,10 @@
 package plugins.fmp.multicafe.dlg.cages;
 
 import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -121,8 +123,24 @@ public class ReferenceImageEditor {
 
 		frame.addToDesktopPane();
 		frame.pack();
-		frame.center();
+		positionOverMainFrame(frame, parent0);
 		frame.setVisible(true);
+	}
+
+	private static void positionOverMainFrame(IcyFrame frame, MultiCAFE parent0) {
+		if (parent0 == null || parent0.mainFrame == null) {
+			frame.center();
+			return;
+		}
+		Rectangle parentBounds = parent0.mainFrame.getBoundsInternal();
+		if (parentBounds == null || parentBounds.width < 1 || parentBounds.height < 1) {
+			frame.center();
+			return;
+		}
+		Dimension size = frame.getSize();
+		int x = parentBounds.x + (parentBounds.width - size.width) / 2;
+		int y = parentBounds.y + (parentBounds.height - size.height) / 2;
+		frame.setLocation(x, y);
 	}
 
 	private static void ensureReferenceImageExists(Experiment exp) {
