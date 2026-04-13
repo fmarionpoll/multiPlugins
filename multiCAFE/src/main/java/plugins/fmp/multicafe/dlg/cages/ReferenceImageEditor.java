@@ -1,15 +1,17 @@
 package plugins.fmp.multicafe.dlg.cages;
 
+import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.util.Arrays;
 
+import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -23,6 +25,8 @@ import icy.canvas.IcyCanvas;
 import icy.canvas.IcyCanvas2D;
 import icy.gui.dialog.MessageDialog;
 import icy.gui.frame.IcyFrame;
+import icy.gui.frame.IcyFrameAdapter;
+import icy.gui.frame.IcyFrameEvent;
 import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
@@ -107,24 +111,49 @@ public class ReferenceImageEditor {
 		}
 
 		IcyFrame frame = new IcyFrame("Edit reference image", true, true, true, true);
-		frame.setLayout(new GridLayout(2, 1));
+		frame.setLayout(new BorderLayout());
 
 		EditorState state = new EditorState(exp, viewer, frame, kind);
 
-		JPanel toolsPanel = buildToolsPanel(state);
-		frame.add(toolsPanel);
-
-		JPanel actionsPanel = buildActionsPanel(state);
-		frame.add(actionsPanel);
+		frame.add(buildEditorPanel(state), BorderLayout.CENTER);
 
 		Overlay overlay = new EditorOverlay(state);
 		state.overlay = overlay;
 		seq.addOverlay(overlay);
 
+		frame.addFrameListener(new IcyFrameAdapter() {
+			@Override
+			public void icyFrameClosed(IcyFrameEvent e) {
+				cleanupEditor(state);
+			}
+		});
+
 		frame.addToDesktopPane();
 		frame.pack();
 		positionOverMainFrame(frame, parent0);
 		frame.setVisible(true);
+	}
+
+	private static void cleanupEditor(EditorState state) {
+		if (state == null || state.cleanedUp) {
+			return;
+		}
+		state.cleanedUp = true;
+		try {
+			Sequence refSeq = state.exp != null ? state.exp.getSeqReference() : null;
+			if (refSeq != null && state.overlay != null) {
+				refSeq.removeOverlay(state.overlay);
+			}
+		} catch (Exception ex) {
+			// ignore
+		}
+		try {
+			if (state.viewer != null) {
+				state.viewer.close();
+			}
+		} catch (Exception ex) {
+			// ignore
+		}
 	}
 
 	private static void positionOverMainFrame(IcyFrame frame, MultiCAFE parent0) {
@@ -154,61 +183,32 @@ public class ReferenceImageEditor {
 		}
 	}
 
-	private static JPanel buildToolsPanel(EditorState state) {
+	private static JPanel flowRowLeft() {
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
-		flow.setVgap(0);
-		JPanel panel = new JPanel(flow);
-
-		panel.add(new JLabel("Tool:"));
-		panel.add(state.pickRadio);
-		panel.add(state.paintRadio);
-		panel.add(state.surroundRadio);
-		panel.add(state.timeMedianRadio);
-		panel.add(new JLabel("radius:"));
-		panel.add(state.radiusSpinner);
-		panel.add(state.ringWidthLabel);
-		panel.add(state.ringWidthSpinner);
-		panel.add(state.squareCheckBox);
-		panel.add(new JLabel("picked:"));
-		panel.add(state.colorSwatchButton);
-
-		state.pickRadio.setSelected(true);
-		state.updateSwatch();
-		updateToolDependentControls(state);
-
-		ButtonGroup group = new ButtonGroup();
-		group.add(state.pickRadio);
-		group.add(state.paintRadio);
-		group.add(state.surroundRadio);
-		group.add(state.timeMedianRadio);
-
-		ActionListener toolListener = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				updateToolDependentControls(state);
-				if (state.frame != null) {
-					state.frame.pack();
-				}
-			}
-		};
-		state.pickRadio.addActionListener(toolListener);
-		state.paintRadio.addActionListener(toolListener);
-		state.surroundRadio.addActionListener(toolListener);
-		state.timeMedianRadio.addActionListener(toolListener);
-
-		return panel;
+		flow.setVgap(2);
+		JPanel row = new JPanel(flow);
+		row.setAlignmentX(Component.LEFT_ALIGNMENT);
+		return row;
 	}
 
-	private static void updateToolDependentControls(EditorState state) {
-		boolean ring = state.surroundRadio.isSelected();
-		state.ringWidthLabel.setVisible(ring);
-		state.ringWidthSpinner.setVisible(ring);
-	}
+	private static JPanel buildEditorPanel(EditorState state) {
+		JPanel root = new JPanel();
+		root.setLayout(new BoxLayout(root, BoxLayout.Y_AXIS));
+		root.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-	private static JPanel buildActionsPanel(EditorState state) {
-		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
-		flow.setVgap(0);
-		JPanel panel = new JPanel(flow);
+		JPanel row1 = flowRowLeft();
+		row1.add(new JLabel("Tool:"));
+		row1.add(state.pickRadio);
+		row1.add(state.paintRadio);
+		row1.add(state.surroundRadio);
+		row1.add(state.timeMedianRadio);
+
+		JPanel row2 = flowRowLeft();
+		row2.add(new JLabel("radius:"));
+		row2.add(state.radiusSpinner);
+		row2.add(state.ringWidthLabel);
+		row2.add(state.ringWidthSpinner);
+		row2.add(state.squareCheckBox);
 
 		String saveLabel;
 		if (state.editorKind == ReferenceImageKind.LIGHT) {
@@ -238,14 +238,6 @@ public class ReferenceImageEditor {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				try {
-					Sequence refSeq = state.exp != null ? state.exp.getSeqReference() : null;
-					if (refSeq != null && state.overlay != null) {
-						refSeq.removeOverlay(state.overlay);
-					}
-				} catch (Exception ex) {
-					// ignore
-				}
-				try {
 					if (state.frame != null) {
 						state.frame.close();
 					}
@@ -255,15 +247,54 @@ public class ReferenceImageEditor {
 			}
 		});
 
-		panel.add(saveButton);
-		panel.add(closeButton);
-		return panel;
+		JPanel row3 = flowRowLeft();
+		row3.add(new JLabel("picked:"));
+		row3.add(state.colorSwatchButton);
+		row3.add(saveButton);
+		row3.add(closeButton);
+
+		state.pickRadio.setSelected(true);
+		state.updateSwatch();
+		updateToolDependentControls(state);
+
+		ButtonGroup group = new ButtonGroup();
+		group.add(state.pickRadio);
+		group.add(state.paintRadio);
+		group.add(state.surroundRadio);
+		group.add(state.timeMedianRadio);
+
+		ActionListener toolListener = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateToolDependentControls(state);
+				if (state.frame != null) {
+					state.frame.pack();
+				}
+			}
+		};
+		state.pickRadio.addActionListener(toolListener);
+		state.paintRadio.addActionListener(toolListener);
+		state.surroundRadio.addActionListener(toolListener);
+		state.timeMedianRadio.addActionListener(toolListener);
+
+		root.add(row1);
+		root.add(row2);
+		root.add(row3);
+		return root;
+	}
+
+	private static void updateToolDependentControls(EditorState state) {
+		boolean ring = state.surroundRadio.isSelected();
+		state.ringWidthLabel.setVisible(ring);
+		state.ringWidthSpinner.setVisible(ring);
 	}
 
 	private static final class EditorState {
 		final Experiment exp;
+		final Viewer viewer;
 		final IcyFrame frame;
 		final ReferenceImageKind editorKind;
+		volatile boolean cleanedUp = false;
 		volatile Overlay overlay = null;
 		volatile Color pickedColor = new Color(255, 0, 0);
 
@@ -279,6 +310,7 @@ public class ReferenceImageEditor {
 
 		EditorState(Experiment exp, Viewer viewer, IcyFrame frame, ReferenceImageKind editorKind) {
 			this.exp = exp;
+			this.viewer = viewer;
 			this.frame = frame;
 			this.editorKind = editorKind != null ? editorKind : ReferenceImageKind.DEFAULT;
 			colorSwatchButton.setEnabled(false);
