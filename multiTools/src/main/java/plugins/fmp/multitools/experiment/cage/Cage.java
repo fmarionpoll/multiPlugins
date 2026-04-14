@@ -516,6 +516,63 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return false;
 	}
 
+	/**
+	 * Moves the {@code collectIdx}-th <em>valid</em> fly at frame {@code flyIndexT} to be centered on
+	 * {@code (cx, cy)} and forces its size to {@code (w, h)}.
+	 *
+	 * @return true if a fly was found and moved
+	 */
+	public boolean moveFlyAtFrameCollectIndexTo(int flyIndexT, int collectIdx, double cx, double cy, double w, double h,
+			long[] camImagesMs) {
+		int i = 0;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp.flyIndexT != flyIndexT)
+				continue;
+			if (isEmptyFlyPositionSlot(fp))
+				continue;
+			if (i == collectIdx) {
+				double ww = (w > 0) ? w : 10;
+				double hh = (h > 0) ? h : 5;
+				Rectangle2D rect = new Rectangle2D.Double(cx - ww / 2, cy - hh / 2, ww, hh);
+				fp.rectPosition.setRect(rect);
+				if (camImagesMs != null && flyIndexT >= 0 && flyIndexT < camImagesMs.length)
+					fp.tMs = camImagesMs[flyIndexT];
+				return true;
+			}
+			i++;
+		}
+		return false;
+	}
+
+	/**
+	 * Adds or fills a fly rectangle at frame {@code t}, centered on {@code (cx, cy)} with the provided
+	 * size {@code (w, h)}. Uses the first empty slot at {@code t} if available; otherwise appends a
+	 * new entry.
+	 */
+	public void addManualFlyAtImageCoordinatesWithSize(int t, double cx, double cy, double w, double h, long[] camImagesMs) {
+		double ww = (w > 0) ? w : 10;
+		double hh = (h > 0) ? h : 5;
+		Rectangle2D rect = new Rectangle2D.Double(cx - ww / 2, cy - hh / 2, ww, hh);
+		FlyPosition target = null;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp.flyIndexT != t)
+				continue;
+			if (isEmptyFlyPositionSlot(fp)) {
+				target = fp;
+				break;
+			}
+		}
+		if (target == null) {
+			target = new FlyPosition(t);
+			flyPositions.flyPositionList.add(target);
+		}
+		target.rectPosition.setRect(rect);
+		if (camImagesMs != null && t >= 0 && t < camImagesMs.length)
+			target.tMs = camImagesMs[t];
+		flyPositions.recomputeNfliesFromEntries();
+		Collections.sort(flyPositions.flyPositionList, new Comparators.XYTaValue_Tindex());
+	}
+
 	public void transferRoisToPositions(List<ROI2D> detectedROIsList) {
 		if (cageROI2D == null) {
 			return;
