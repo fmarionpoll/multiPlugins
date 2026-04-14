@@ -330,16 +330,32 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			return -1;
 		}
 		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		int actualImageCount = exp.getSeqCamData().getImageLoader().getImagesCount();
-		if (nTotalFrames <= 1 || nTotalFrames != actualImageCount) {
+		if (nTotalFrames <= 0 && exp.getSeqCamData().getSequence() != null) {
+			nTotalFrames = exp.getSeqCamData().getSequence().getSizeT();
+		}
+		if (nTotalFrames <= 0) {
 			return -1;
 		}
+
 		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
-		if (timeArray == null || timeArray.length != nTotalFrames) {
-			return -1;
+		if (timeArray != null && timeArray.length == nTotalFrames) {
+			// TimeManager.findNearestIntervalWithBinarySearch expects 'high' to be a valid index.
+			return exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch((long) (timeMinutes * 60000),
+					0, nTotalFrames - 1);
 		}
-		return exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch((long) (timeMinutes * 60000), 0,
-				nTotalFrames);
+
+		long binMs = exp.getSeqCamData().getTimeManager().getBinDurationMs();
+		if (binMs > 0) {
+			long tMs = (long) (timeMinutes * 60000.0);
+			int frame = (int) Math.round((double) tMs / (double) binMs);
+			if (frame < 0)
+				frame = 0;
+			if (frame >= nTotalFrames)
+				frame = nTotalFrames - 1;
+			return frame;
+		}
+
+		return -1;
 	}
 
 	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, XYPlot plot) {

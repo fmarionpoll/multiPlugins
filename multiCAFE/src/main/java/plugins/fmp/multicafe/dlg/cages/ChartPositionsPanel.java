@@ -172,7 +172,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		iChart = new ChartPositions();
 		iChart.createPanel(title);
 		iChart.setLocationRelativeToRectangle(rectv, ptRelative);
-		iChart.displayData(exp.getCages().getCageList(), resultType);
+		iChart.displayData(exp, exp.getCages().getCageList(), resultType);
 		iChart.mainChartFrame.toFront();
 		iChart.mainChartFrame.requestFocus();
 		return iChart;

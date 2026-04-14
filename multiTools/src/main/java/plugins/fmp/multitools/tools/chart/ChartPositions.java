@@ -13,7 +13,6 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
 import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.PlotOrientation;
@@ -28,6 +27,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.tools.MaxMinDouble;
 import plugins.fmp.multitools.tools.chart.builders.CageFlyPositionSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.interaction.FlyPositionChartInteractionHandler;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
@@ -51,11 +51,12 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
  */
 public class ChartPositions extends IcyFrame {
 	public JPanel mainChartPanel = null;
-	private ArrayList<ChartPanel> chartsInMainChartPanel = null;
+	private ArrayList<ChartCagePanel> chartsInMainChartPanel = null;
 	public IcyFrame mainChartFrame = null;
 	private String title;
 	private Point pt = new Point(0, 0);
 	private double globalXMax = 0;
+	private Experiment experiment = null;
 	
 	// Remember last screen location for fly-position graphs across experiments.
 	private static Point globalUpperLeftLocation = null;
@@ -94,6 +95,18 @@ public class ChartPositions extends IcyFrame {
 		}
 	}
 
+	/**
+	 * Display fly-position derived measures for the given cages.\n
+	 * \n
+	 * @param exp        experiment used for click interaction (can be null to disable click picking)\n
+	 * @param cageList   cages to display\n
+	 * @param resultType measure type\n
+	 */
+	public void displayData(Experiment exp, List<Cage> cageList, EnumResults resultType) {
+		this.experiment = exp;
+		displayData(cageList, resultType);
+	}
+
 	public void displayData(List<Cage> cageList, EnumResults resultType) {
 		if (cageList == null || resultType == null) {
 			return;
@@ -102,6 +115,7 @@ public class ChartPositions extends IcyFrame {
 		// Create a dummy experiment for the builder (it may not need it, but builder interface requires it)
 		// In practice, we'll build datasets directly for each cage
 		List<XYSeriesCollection> xyDataSetList = new ArrayList<XYSeriesCollection>();
+		List<Cage> cagesForDatasets = new ArrayList<Cage>();
 		MaxMinDouble yMaxMin = new MaxMinDouble();
 		int count = 0;
 		
@@ -148,6 +162,7 @@ public class ChartPositions extends IcyFrame {
 					updateGlobalXMax(xyDataset);
 					
 					xyDataSetList.add(xyDataset);
+					cagesForDatasets.add(cage);
 					count++;
 				}
 			}
@@ -161,7 +176,14 @@ public class ChartPositions extends IcyFrame {
 			return;
 		}
 
-		for (XYSeriesCollection xyDataset : xyDataSetList) {
+		FlyPositionChartInteractionHandler interactionHandler = null;
+		if (experiment != null) {
+			interactionHandler = new FlyPositionChartInteractionHandler(experiment);
+		}
+
+		for (int i = 0; i < xyDataSetList.size(); i++) {
+			XYSeriesCollection xyDataset = xyDataSetList.get(i);
+			Cage cage = cagesForDatasets.get(i);
 			JFreeChart xyChart = ChartFactory.createXYLineChart(null, null, null, xyDataset, PlotOrientation.VERTICAL,
 					true, true, true);
 			xyChart.setAntiAlias(true);
@@ -193,8 +215,15 @@ public class ChartPositions extends IcyFrame {
 			}
 			xAxis.setRange(0, xMax);
 
-			ChartPanel xyChartPanel = new ChartPanel(xyChart, width, 200, 50, 100, 100, 200, false, false, true, true,
-					true, true);
+			ChartCagePanel xyChartPanel = new ChartCagePanel(xyChart, width, 200, 50, 100, 100, 200, false, false, true,
+					true, true, true);
+			if (cage != null) {
+				xyChartPanel.subscribeToCagePropertiesUpdates(cage);
+			}
+			if (interactionHandler != null) {
+				xyChartPanel.addChartMouseListener(interactionHandler.createMouseListener());
+			}
+
 			mainChartPanel.add(xyChartPanel);
 			width = 100;
 			displayLabels = false;
@@ -266,8 +295,18 @@ public class ChartPositions extends IcyFrame {
 		}
 	}
 
-	private void cleanChartsPanel(ArrayList<ChartPanel> chartsPanel) {
-		if (chartsPanel != null && chartsPanel.size() > 0)
+	private void cleanChartsPanel(ArrayList<ChartCagePanel> chartsPanel) {
+		if (chartsPanel != null && chartsPanel.size() > 0) {
+			for (ChartCagePanel p : chartsPanel) {
+				if (p != null) {
+					try {
+						p.close();
+					} catch (Exception e) {
+						// ignore cleanup errors
+					}
+				}
+			}
 			chartsPanel.clear();
+		}
 	}
 }
