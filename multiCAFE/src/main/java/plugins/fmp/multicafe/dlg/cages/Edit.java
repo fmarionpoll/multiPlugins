@@ -29,6 +29,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
+import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 public class Edit extends JPanel implements AddFlyOverlay.Host {
 	private static final long serialVersionUID = -5257698990389571518L;
@@ -41,6 +42,8 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 	private JButton findNextButton = new JButton(new String("Find next missed point"));
 	private JButton validateButton = new JButton(new String("Validate selected ROI"));
 	private JButton validateAndNextButton = new JButton(new String("Validate and find next"));
+	private JButton findFirstIntervalWithMissingFly = new JButton(
+			new String("Find first interval with cage missing fly"));
 	private JToggleButton addFlyButton = new JToggleButton("Add fly");
 	private JToggleButton moveFlyButton = new JToggleButton("Move fly");
 	private JButton deleteFlyButton = new JButton("Delete fly");
@@ -65,10 +68,11 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(findNextButton);
 		panel2.add(validateButton);
+		panel2.add(validateAndNextButton);
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);
-		panel3.add(validateAndNextButton);
+		panel3.add(findFirstIntervalWithMissingFly);
 		add(panel3);
 
 		addFlyButton.setToolTipText("Click image to add flies; toggle off when done");
@@ -118,6 +122,15 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					findAllMissedPoints(exp);
+			}
+		});
+
+		findFirstIntervalWithMissingFly.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					findFirstIntervalWithMissingFly(exp);
 			}
 		});
 
@@ -254,12 +267,15 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 		int t = v.getPositionT();
 		List<Cage> hits = exp.getCages().findCagesContainingImagePoint(imageX, imageY);
 		if (hits.isEmpty()) {
-			MessageDialog.showDialog("Click inside a cage to add a fly.", MessageDialog.WARNING_MESSAGE);
+			if (addFlyButton.isSelected())
+				MessageDialog.showDialog("Click inside a cage to add a fly.", MessageDialog.WARNING_MESSAGE);
 			return;
 		}
 		if (hits.size() > 1) {
-			MessageDialog.showDialog("Several cages overlap here; click inside a single cage.",
-					MessageDialog.WARNING_MESSAGE);
+			if (addFlyButton.isSelected()) {
+				MessageDialog.showDialog("Several cages overlap here; click inside a single cage.",
+						MessageDialog.WARNING_MESSAGE);
+			}
 			return;
 		}
 		Cage cage = hits.get(0);
@@ -275,43 +291,15 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 	}
 
 	private void moveSelectedFlyTo(Experiment exp, int t, Cage targetCage, double imageX, double imageY) {
-		ROI2D selected = exp.getSeqCamData().getSequence().getSelectedROI2D();
-		if (selected == null || selected.getName() == null) {
-			MessageDialog.showDialog("Select a fly rectangle (detR…) first.", MessageDialog.WARNING_MESSAGE);
-			return;
-		}
-		Matcher m = Cage.DETR_FLY_ROI_NAME_PATTERN.matcher(selected.getName());
-		if (!m.matches()) {
-			MessageDialog.showDialog("Selected ROI is not a fly rectangle (expected name detR…_t_idx).",
-					MessageDialog.WARNING_MESSAGE);
-			return;
-		}
-		int sourceCageId = Integer.parseInt(m.group(1));
-		int roiT = Integer.parseInt(m.group(2));
-		int idx = Integer.parseInt(m.group(3));
-		if (roiT != t) {
-			MessageDialog.showDialog("Selected fly is not at current time T. Go to T=" + roiT + " or re-select at T=" + t + ".",
-					MessageDialog.WARNING_MESSAGE);
-			return;
-		}
-		Cage sourceCage = exp.getCages().getCageFromID(sourceCageId);
-		if (sourceCage == null) {
-			MessageDialog.showDialog("Source cage not found for selected ROI.", MessageDialog.WARNING_MESSAGE);
-			return;
-		}
-		boolean sameCage = (sourceCage.getCageID() == targetCage.getCageID());
-		if (sameCage) {
-			if (!sourceCage.moveFlyAtFrameCollectIndexTo(t, idx, imageX, imageY, DEFAULT_FLY_W, DEFAULT_FLY_H,
+		List<ROI2DRectangle> existing = targetCage.collectRoiRectanglesAtFrameIndexT(t);
+		if (!existing.isEmpty()) {
+			if (!targetCage.moveFlyAtFrameCollectIndexTo(t, 0, imageX, imageY, DEFAULT_FLY_W, DEFAULT_FLY_H,
 					exp.getCamImages_ms())) {
-				MessageDialog.showDialog("Could not move fly position (index mismatch?).", MessageDialog.WARNING_MESSAGE);
-				return;
-			}
-		} else {
-			if (!sourceCage.removeFlyAtFrameCollectIndex(t, idx)) {
-				MessageDialog.showDialog("Could not remove fly position from source cage (index mismatch?).",
+				MessageDialog.showDialog("Could not move fly position (index mismatch?).",
 						MessageDialog.WARNING_MESSAGE);
 				return;
 			}
+		} else {
 			targetCage.addManualFlyAtImageCoordinatesWithSize(t, imageX, imageY, DEFAULT_FLY_W, DEFAULT_FLY_H,
 					exp.getCamImages_ms());
 		}
@@ -409,6 +397,61 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 		}
 		if (foundCombo.getItemCount() == 0)
 			MessageDialog.showDialog("no missed point found", MessageDialog.INFORMATION_MESSAGE);
+	}
+
+	void findFirstIntervalWithMissingFly(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null
+				|| exp.getSeqCamData().getImageLoader() == null) {
+			MessageDialog.showDialog("No experiment or camera sequence.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		Viewer viewer = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (viewer == null) {
+			MessageDialog.showDialog("Open a camera viewer first.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+
+		int currentT = viewer.getPositionT();
+		int dataSize = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		int startT = Math.max(1, currentT);
+		int found = -1;
+		for (int t = startT; t < dataSize; t++) {
+			int prevT = t - 1;
+			for (Cage cage : exp.getCages().getCageList()) {
+				int declared = cage.getCageNFlies();
+				if (declared <= 0)
+					continue;
+				int nPrev = countValidFliesAtT(cage, prevT);
+				int nNow = countValidFliesAtT(cage, t);
+				if (nNow != nPrev && nNow < declared) {
+					found = t;
+					break;
+				}
+			}
+			if (found >= 0)
+				break;
+		}
+
+		if (found < 0) {
+			MessageDialog.showDialog("No interval found where a cage loses flies vs the previous interval.",
+					MessageDialog.INFORMATION_MESSAGE);
+			return;
+		}
+		viewer.setPositionT(found);
+	}
+
+	private int countValidFliesAtT(Cage cage, int t) {
+		if (cage == null || t < 0)
+			return 0;
+		int n = 0;
+		for (plugins.fmp.multitools.experiment.cage.FlyPosition fp : cage.getFlyPositions().getFlyPositionList()) {
+			if (fp == null || fp.flyIndexT != t)
+				continue;
+			if (Cage.isEmptyFlyPositionSlot(fp))
+				continue;
+			n++;
+		}
+		return n;
 	}
 
 	private int getCageNumberFromName(String name) {
