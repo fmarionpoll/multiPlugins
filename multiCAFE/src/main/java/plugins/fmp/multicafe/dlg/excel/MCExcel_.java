@@ -34,7 +34,7 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 	public Options tabCommonOptions = new Options();
 	private Levels tabLevels = new Levels();
 	private Gulps tabGulps = new Gulps();
-	private Move tabMove = new Move();
+	private FlyPositions tabMove = new FlyPositions();
 	private MultiCAFE parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {

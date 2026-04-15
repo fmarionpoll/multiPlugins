@@ -9,7 +9,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
-public class Move extends JPanel {
+public class FlyPositions extends JPanel {
 
 	private static final long serialVersionUID = 1290058998782225526L;
 
