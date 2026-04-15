@@ -161,14 +161,13 @@ public class CreateSpots extends JPanel {
 
 			for (ROI2DPolygonPlus roi : listSelectedAreas) {
 				try {
-					ROI2DPolygonPlus roiP = cageGrid.getAreaAt(roi.getCagePosition());
+					ROI2DPolygonPlus roiP = cageGrid.getAreaAt(roi.getCageID());
 					Rectangle2D rect = roiP.getBounds2D();
 					Point2D.Double center = (Double) roiP.getPosition2D();
 					int radius = (int) (rect.getHeight() / 2);
 					cage.addEllipseSpot(center, radius, allSpots);
 				} catch (ValidationException e) {
-					System.err
-							.println("Error getting area at position " + roi.getCagePosition() + ": " + e.getMessage());
+					System.err.println("Error getting area at position " + roi.getCageID() + ": " + e.getMessage());
 					e.printStackTrace();
 				}
 			}

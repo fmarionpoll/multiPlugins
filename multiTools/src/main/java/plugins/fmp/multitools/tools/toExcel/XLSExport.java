@@ -1,9 +1,6 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
@@ -434,10 +431,14 @@ public abstract class XLSExport {
 	 * Writes basic file information to the sheet.
 	 */
 	protected void writeFileInformation(SXSSFSheet sheet, Point pt, boolean transpose, Experiment exp) {
-		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across all exports.
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.PATH, transpose, exp.getExperimentField(EnumXLSColumnHeader.PATH));
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DATE, transpose, exp.getExperimentField(EnumXLSColumnHeader.DATE));
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAM, transpose, exp.getExperimentField(EnumXLSColumnHeader.CAM));
+		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across
+		// all exports.
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.PATH, transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.PATH));
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DATE, transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.DATE));
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAM, transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.CAM));
 	}
 
 	/**
@@ -449,7 +450,7 @@ public abstract class XLSExport {
 		exp.loadExperimentDescriptors();
 		ExperimentProperties props = exp.getProperties();
 
-		XLSUtils.setFieldValueAtColumn(sheet, pt, transpose, props, EnumXLSColumnHeader.EXP_BOXID, charSeries);
+		XLSUtils.setFieldValueAtColumn(sheet, pt, transpose, props, EnumXLSColumnHeader.EXP_ID, charSeries);
 		XLSUtils.setFieldValueAtColumn(sheet, pt, transpose, props, EnumXLSColumnHeader.EXP_EXPT);
 		XLSUtils.setFieldValueAtColumn(sheet, pt, transpose, props, EnumXLSColumnHeader.EXP_STIM1);
 		XLSUtils.setFieldValueAtColumn(sheet, pt, transpose, props, EnumXLSColumnHeader.EXP_CONC1);
@@ -465,7 +466,7 @@ public abstract class XLSExport {
 	protected void writeCageProperties(SXSSFSheet sheet, Point pt, boolean transpose, Cage cage) {
 		CageProperties props = cage.getProperties();
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGEID, transpose, props.getCageID());
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGEPOS, transpose, props.getCagePosition());
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGEPOS, transpose, props.getCageID());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_NFLIES, transpose, props.getCageNFlies());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_STRAIN, transpose, props.getFlyStrain());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_SEX, transpose, props.getFlySex());

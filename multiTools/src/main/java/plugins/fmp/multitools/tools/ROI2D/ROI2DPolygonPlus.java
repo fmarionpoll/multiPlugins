@@ -17,7 +17,7 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 	// Private fields with proper encapsulation
 	private int cageRow = -1;
 	private int cageColumn = -1;
-	private int cagePosition = -1;
+	private int cageID = -1;
 	private boolean selected = false;
 
 	/**
@@ -121,8 +121,8 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 	 * 
 	 * @return The cage position index, or -1 if not set
 	 */
-	public int getCagePosition() {
-		return cagePosition;
+	public int getCageID() {
+		return cageID;
 	}
 
 	/**
@@ -132,12 +132,11 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 	 *                     unset)
 	 * @throws ValidationException If the position index is invalid
 	 */
-	public void setCagePosition(int cagePosition) throws ValidationException {
-		if (cagePosition < -1) {
-			throw new ValidationException("cagePosition", cagePosition,
-					"Position must be non-negative or -1 for unset");
+	public void setCageID(int cageID) throws ValidationException {
+		if (cageID < -1) {
+			throw new ValidationException("cageID", cageID, "Position must be non-negative or -1 for unset");
 		}
-		this.cagePosition = cagePosition;
+		this.cageID = cageID;
 	}
 
 	/**
@@ -172,8 +171,8 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 	 * 
 	 * @return true if the position is non-negative, false otherwise
 	 */
-	public boolean hasValidPosition() {
-		return cagePosition >= 0;
+	public boolean hasValidID() {
+		return cageID >= 0;
 	}
 
 	/**
@@ -182,7 +181,7 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 	public void resetCageProperties() {
 		this.cageRow = -1;
 		this.cageColumn = -1;
-		this.cagePosition = -1;
+		this.cageID = -1;
 		this.selected = false;
 	}
 
@@ -192,7 +191,7 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 	 * @return A string describing the cage properties
 	 */
 	public String getCagePropertiesString() {
-		return String.format("Cage[row=%d, col=%d, pos=%d, selected=%s]", cageRow, cageColumn, cagePosition, selected);
+		return String.format("Cage[row=%d, col=%d, pos=%d, selected=%s]", cageRow, cageColumn, cageID, selected);
 	}
 
 	/**
@@ -212,7 +211,7 @@ public class ROI2DPolygonPlus extends ROI2DPolygon {
 		try {
 			copy.setCageRow(this.cageRow);
 			copy.setCageColumn(this.cageColumn);
-			copy.setCagePosition(this.cagePosition);
+			copy.setCageID(this.cageID);
 			copy.setSelected(this.selected);
 		} catch (ValidationException e) {
 			// This should not happen as we're copying valid values

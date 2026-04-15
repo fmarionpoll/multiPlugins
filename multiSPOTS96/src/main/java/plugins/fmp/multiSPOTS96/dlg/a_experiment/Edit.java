@@ -28,7 +28,7 @@ public class Edit extends JPanel {
 	private static final long serialVersionUID = 2190848825783418962L;
 
 	private JComboBox<EnumXLSColumnHeader> fieldNamesCombo = new JComboBox<EnumXLSColumnHeader>(
-			new EnumXLSColumnHeader[] { EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_BOXID,
+			new EnumXLSColumnHeader[] { EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_ID,
 					EnumXLSColumnHeader.EXP_STIM1, EnumXLSColumnHeader.EXP_CONC1, EnumXLSColumnHeader.EXP_STRAIN,
 					EnumXLSColumnHeader.EXP_SEX, EnumXLSColumnHeader.EXP_STIM2, EnumXLSColumnHeader.EXP_CONC2,
 					EnumXLSColumnHeader.SPOT_STIM, EnumXLSColumnHeader.SPOT_CONC, EnumXLSColumnHeader.SPOT_VOLUME,
@@ -169,7 +169,7 @@ public class Edit extends JPanel {
 					// Apply change without triggering image loads
 					switch (fieldEnumCode) {
 					case EXP_EXPT:
-					case EXP_BOXID:
+					case EXP_ID:
 					case EXP_STIM1:
 					case EXP_CONC1:
 					case EXP_STRAIN:

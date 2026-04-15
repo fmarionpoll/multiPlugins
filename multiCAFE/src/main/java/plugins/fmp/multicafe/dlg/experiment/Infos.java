@@ -37,7 +37,7 @@ public class Infos extends JPanel {
 	private JComboBox<String> conc2Combo = new JComboBox<String>(new SortedComboBoxModel());
 
 	private JLabel experimentLabel = new JLabel(EnumXLSColumnHeader.EXP_EXPT.toString());
-	private JLabel boxIDLabel = new JLabel(EnumXLSColumnHeader.EXP_BOXID.toString());
+	private JLabel boxIDLabel = new JLabel(EnumXLSColumnHeader.EXP_ID.toString());
 	private JLabel stim1Label = new JLabel(EnumXLSColumnHeader.EXP_STIM1.toString());
 	private JLabel conc1Label = new JLabel(EnumXLSColumnHeader.EXP_CONC1.toString());
 	private JLabel strainLabel = new JLabel(EnumXLSColumnHeader.EXP_STRAIN.toString());
@@ -152,7 +152,7 @@ public class Infos extends JPanel {
 	// set/ get
 
 	public void transferPreviousExperimentInfosToDialog(Experiment exp_source, Experiment exp_destination) {
-		setInfoCombo(exp_destination, exp_source, boxIDCombo, EnumXLSColumnHeader.EXP_BOXID);
+		setInfoCombo(exp_destination, exp_source, boxIDCombo, EnumXLSColumnHeader.EXP_ID);
 		setInfoCombo(exp_destination, exp_source, exptCombo, EnumXLSColumnHeader.EXP_EXPT);
 		setInfoCombo(exp_destination, exp_source, stim1Combo, EnumXLSColumnHeader.EXP_STIM1);
 		setInfoCombo(exp_destination, exp_source, conc1Combo, EnumXLSColumnHeader.EXP_CONC1);
@@ -174,7 +174,7 @@ public class Infos extends JPanel {
 	}
 
 	public void getExperimentInfosFromDialog(Experiment exp) {
-		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_BOXID, (String) boxIDCombo.getSelectedItem());
+		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_ID, (String) boxIDCombo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_EXPT, (String) exptCombo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM1, (String) stim1Combo.getSelectedItem());
 		exp.setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_CONC1, (String) conc1Combo.getSelectedItem());
@@ -198,7 +198,7 @@ public class Infos extends JPanel {
 			refreshComboFromIndex(exptCombo, EnumXLSColumnHeader.EXP_EXPT);
 			refreshComboFromIndex(stim1Combo, EnumXLSColumnHeader.EXP_STIM1);
 			refreshComboFromIndex(conc1Combo, EnumXLSColumnHeader.EXP_CONC1);
-			refreshComboFromIndex(boxIDCombo, EnumXLSColumnHeader.EXP_BOXID);
+			refreshComboFromIndex(boxIDCombo, EnumXLSColumnHeader.EXP_ID);
 			refreshComboFromIndex(strainCombo, EnumXLSColumnHeader.EXP_STRAIN);
 			refreshComboFromIndex(sexCombo, EnumXLSColumnHeader.EXP_SEX);
 			refreshComboFromIndex(stim2Combo, EnumXLSColumnHeader.EXP_STIM2);
@@ -208,7 +208,7 @@ public class Infos extends JPanel {
 			parent0.expListComboLazy.getFieldValuesToComboLightweight(exptCombo, EnumXLSColumnHeader.EXP_EXPT);
 			parent0.expListComboLazy.getFieldValuesToComboLightweight(stim1Combo, EnumXLSColumnHeader.EXP_STIM1);
 			parent0.expListComboLazy.getFieldValuesToComboLightweight(conc1Combo, EnumXLSColumnHeader.EXP_CONC1);
-			parent0.expListComboLazy.getFieldValuesToComboLightweight(boxIDCombo, EnumXLSColumnHeader.EXP_BOXID);
+			parent0.expListComboLazy.getFieldValuesToComboLightweight(boxIDCombo, EnumXLSColumnHeader.EXP_ID);
 			parent0.expListComboLazy.getFieldValuesToComboLightweight(strainCombo, EnumXLSColumnHeader.EXP_STRAIN);
 			parent0.expListComboLazy.getFieldValuesToComboLightweight(sexCombo, EnumXLSColumnHeader.EXP_SEX);
 			parent0.expListComboLazy.getFieldValuesToComboLightweight(stim2Combo, EnumXLSColumnHeader.EXP_STIM2);

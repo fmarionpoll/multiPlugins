@@ -28,7 +28,6 @@ import plugins.kernel.roi.roi2d.ROI2DPolyLine;
  */
 public class ROI2DGrid implements ROIListener {
 
-
 	// Thread safety
 	private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
@@ -203,12 +202,12 @@ public class ROI2DGrid implements ROIListener {
 			ROI2DValidator.validateArrayIndex(position, areaRois.size(), "position");
 
 			ROI2DPolygonPlus roiP = areaRois.get(position);
-			int actualPosition = roiP.getCagePosition();
+			int actualPosition = roiP.getCageID();
 
 			if (actualPosition != position) {
 				// Search for the correct ROI
 				for (ROI2DPolygonPlus roi : areaRois) {
-					if (roi.getCagePosition() == position) {
+					if (roi.getCageID() == position) {
 						return roi;
 					}
 				}
@@ -316,7 +315,7 @@ public class ROI2DGrid implements ROIListener {
 					try {
 						roiP.setCageRow(row);
 						roiP.setCageColumn(column);
-						roiP.setCagePosition(index);
+						roiP.setCageID(index);
 					} catch (ValidationException e) {
 						throw new ProcessingException("gridToRois", "Failed to set cage properties", e);
 					}

@@ -25,7 +25,7 @@ public class EditCapillariesConditional extends JPanel {
 	// Available fields for conditions - all fields from Edit.java
 	private static final EnumXLSColumnHeader[] CONDITION_FIELDS = {
 			// Experiment-level fields
-			EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_BOXID, EnumXLSColumnHeader.EXP_STIM1,
+			EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_ID, EnumXLSColumnHeader.EXP_STIM1,
 			EnumXLSColumnHeader.EXP_CONC1, EnumXLSColumnHeader.EXP_STRAIN, EnumXLSColumnHeader.EXP_SEX,
 			EnumXLSColumnHeader.EXP_STIM2, EnumXLSColumnHeader.EXP_CONC2,
 			// Capillary-level fields

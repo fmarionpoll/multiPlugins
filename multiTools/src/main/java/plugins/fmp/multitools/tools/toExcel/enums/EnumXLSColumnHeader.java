@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 public enum EnumXLSColumnHeader {
 	PATH("Path", 0, EnumColumnType.COMMON), // 0
 	DATE("Date", 1, EnumColumnType.COMMON), // 1
-	EXP_BOXID("Box_ID", 2, EnumColumnType.COMMON), // 2
+	EXP_ID("Exp_ID", 2, EnumColumnType.COMMON), // 2
 	CAM("Cam", 3, EnumColumnType.COMMON), // 3
 	EXP_EXPT("Expmt", 4, EnumColumnType.COMMON), // 4
 	EXP_STIM1("Stim1", 5, EnumColumnType.COMMON), // 5

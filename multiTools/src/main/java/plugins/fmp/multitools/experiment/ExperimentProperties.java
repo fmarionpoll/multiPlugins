@@ -10,7 +10,7 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class ExperimentProperties {
 
-	public String field_boxID = new String("..");
+	public String field_expID = new String("..");
 	public String field_experiment = new String("..");
 	public String field_stim1 = new String("..");
 	public String field_conc1 = new String("..");
@@ -46,7 +46,7 @@ public class ExperimentProperties {
 	private final static String ID_SEX = "sex";
 
 	public void saveXML_Properties(Node node) {
-		XMLUtil.setElementValue(node, ID_BOXID, field_boxID);
+		XMLUtil.setElementValue(node, ID_BOXID, field_expID);
 		XMLUtil.setElementValue(node, ID_EXPERIMENT, field_experiment);
 
 		// Save new human-readable field names
@@ -66,7 +66,7 @@ public class ExperimentProperties {
 	}
 
 	public void loadXML_Properties(Node node) {
-		field_boxID = XMLUtil.getElementValue(node, ID_BOXID, "..");
+		field_expID = XMLUtil.getElementValue(node, ID_BOXID, "..");
 		field_experiment = XMLUtil.getElementValue(node, ID_EXPERIMENT, "..");
 
 		// Load new fields first (if present in new format)
@@ -109,8 +109,8 @@ public class ExperimentProperties {
 		case EXP_EXPT:
 			strField = field_experiment;
 			break;
-		case EXP_BOXID:
-			strField = field_boxID;
+		case EXP_ID:
+			strField = field_expID;
 			break;
 		case EXP_STRAIN:
 			strField = field_strain;
@@ -141,8 +141,8 @@ public class ExperimentProperties {
 		case EXP_EXPT:
 			field_experiment = newValue;
 			break;
-		case EXP_BOXID:
-			field_boxID = newValue;
+		case EXP_ID:
+			field_expID = newValue;
 			break;
 		case EXP_STRAIN:
 			field_strain = newValue;
@@ -163,7 +163,7 @@ public class ExperimentProperties {
 
 	public void copyFieldsFrom(ExperimentProperties expSource) {
 		copyField(expSource, EnumXLSColumnHeader.EXP_EXPT);
-		copyField(expSource, EnumXLSColumnHeader.EXP_BOXID);
+		copyField(expSource, EnumXLSColumnHeader.EXP_ID);
 		copyField(expSource, EnumXLSColumnHeader.EXP_STIM1);
 		copyField(expSource, EnumXLSColumnHeader.EXP_CONC1);
 		copyField(expSource, EnumXLSColumnHeader.EXP_STRAIN);
@@ -180,7 +180,7 @@ public class ExperimentProperties {
 	public boolean areFieldsEqual(ExperimentProperties expi) {
 		boolean flag = true;
 		flag &= isFieldEqual(expi, EnumXLSColumnHeader.EXP_EXPT);
-		flag &= isFieldEqual(expi, EnumXLSColumnHeader.EXP_BOXID);
+		flag &= isFieldEqual(expi, EnumXLSColumnHeader.EXP_ID);
 		flag &= isFieldEqual(expi, EnumXLSColumnHeader.EXP_STIM1);
 		flag &= isFieldEqual(expi, EnumXLSColumnHeader.EXP_CONC1);
 		flag &= isFieldEqual(expi, EnumXLSColumnHeader.EXP_STRAIN);
@@ -206,7 +206,7 @@ public class ExperimentProperties {
 
 	public String csvExportProperties(String csvSep) {
 		StringBuffer sbf = new StringBuffer();
-		List<String> row3 = Arrays.asList(field_boxID, field_experiment, field_stim1, field_conc1, field_string1,
+		List<String> row3 = Arrays.asList(field_expID, field_experiment, field_stim1, field_conc1, field_string1,
 				field_string2, field_strain, field_sex, field_stim2, field_conc2);
 		sbf.append(String.join(csvSep, row3));
 		sbf.append("\n");
@@ -215,7 +215,7 @@ public class ExperimentProperties {
 
 	public void csvImportProperties(String[] data) {
 		int i = 0;
-		field_boxID = data[i];
+		field_expID = data[i];
 		i++;
 		field_experiment = data[i];
 		i++;
@@ -243,8 +243,8 @@ public class ExperimentProperties {
 
 	// ================ getters / setters
 
-	public String getFfield_boxID() {
-		return field_boxID;
+	public String getFfield_expID() {
+		return field_expID;
 	}
 
 	public String getFfield_experiment() {

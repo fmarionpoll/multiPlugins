@@ -1,6 +1,10 @@
 package plugins.fmp.multitools.tools.chart.builders;
 
 import java.awt.Color;
+import java.util.List;
+
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
@@ -13,11 +17,6 @@ import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
-
-import java.util.List;
 
 /**
  * Builds cage datasets from Spot measurements.
@@ -53,7 +52,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 	private static String buildSeriesDescription(Cage cage, Spot spot) {
 		CageProperties cageProp = cage.getProperties();
 		Color color = spot.getProperties().getColor();
-		return SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(), cageProp.getCageNFlies(),
+		return SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), cageProp.getCageNFlies(),
 				color);
 	}
 
@@ -89,5 +88,3 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		return seriesXY;
 	}
 }
-
-

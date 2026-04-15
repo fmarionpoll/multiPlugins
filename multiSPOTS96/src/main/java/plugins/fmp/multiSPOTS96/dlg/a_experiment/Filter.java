@@ -48,7 +48,7 @@ public class Filter extends JPanel {
 	private List<String> selConc2 = new ArrayList<String>();
 
 	private JCheckBox experimentCheck = new JCheckBox(EnumXLSColumnHeader.EXP_EXPT.toString());
-	private JCheckBox boxIDCheck = new JCheckBox(EnumXLSColumnHeader.EXP_BOXID.toString());
+	private JCheckBox boxIDCheck = new JCheckBox(EnumXLSColumnHeader.EXP_ID.toString());
 	private JCheckBox stim1Check = new JCheckBox(EnumXLSColumnHeader.EXP_STIM1.toString());
 	private JCheckBox conc1Check = new JCheckBox(EnumXLSColumnHeader.EXP_CONC1.toString());
 	private JCheckBox strainCheck = new JCheckBox(EnumXLSColumnHeader.EXP_STRAIN.toString());
@@ -156,8 +156,8 @@ public class Filter extends JPanel {
 		boxIDBtn.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_BOXID);
-				List<String> chosen = MultiSelectDialog.showDialog(boxIDBtn, EnumXLSColumnHeader.EXP_BOXID.toString(),
+				List<String> all = getValuesForField(EnumXLSColumnHeader.EXP_ID);
+				List<String> chosen = MultiSelectDialog.showDialog(boxIDBtn, EnumXLSColumnHeader.EXP_ID.toString(),
 						all, selBoxID);
 				if (chosen != null) {
 					selBoxID.clear();
@@ -307,7 +307,7 @@ public class Filter extends JPanel {
 		if (experimentCheck.isSelected())
 			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_EXPT, selExpt);
 		if (boxIDCheck.isSelected())
-			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_BOXID, selBoxID);
+			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_ID, selBoxID);
 		if (stim1Check.isSelected())
 			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_STIM1, selStim1);
 		if (conc1Check.isSelected())

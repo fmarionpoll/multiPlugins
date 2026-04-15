@@ -31,7 +31,7 @@ public class CageProperties {
 	private int version = 1;
 
 	private int cageID = -1;
-	private int cagePosition = 0;
+	// private int cagePosition = 0;
 	private Color color = Color.MAGENTA;
 
 	private int arrayIndex = 0;
@@ -55,7 +55,6 @@ public class CageProperties {
 	private final String ID_SEX = "sex";
 	private final String ID_STRAIN = "strain";
 	private final String ID_CAGEID = "ID";
-	private final String ID_CAGEPOSITION = "Pos";
 	private final String ID_ARRAYINDEX = "aIndex";
 	private final String ID_ARRAYCOLUMN = "aCol";
 	private final String ID_ARRAYROW = "aRow";
@@ -98,7 +97,7 @@ public class CageProperties {
 		int oldArrayColumn = arrayColumn;
 		int oldArrayRow = arrayRow;
 		int oldCageID = cageID;
-		int oldCagePosition = cagePosition;
+		// int oldCagePosition = cagePosition;
 		Color oldColor = color;
 		int oldCageNFlies = cageNFlies;
 		int oldFlyAge = flyAge;
@@ -111,7 +110,7 @@ public class CageProperties {
 		arrayColumn = propFrom.arrayColumn;
 		arrayRow = propFrom.arrayRow;
 		cageID = propFrom.cageID;
-		cagePosition = propFrom.cagePosition;
+		// cagePosition = propFrom.cagePosition;
 		color = propFrom.color;
 		cageNFlies = propFrom.cageNFlies;
 		flyAge = propFrom.flyAge;
@@ -128,7 +127,8 @@ public class CageProperties {
 		propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_COLUMN, oldArrayColumn, arrayColumn);
 		propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_ROW, oldArrayRow, arrayRow);
 		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_ID, oldCageID, cageID);
-		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_POSITION, oldCagePosition, cagePosition);
+		/// propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_POSITION,
+		/// oldCagePosition, cagePosition);
 		propertyChangeSupport.firePropertyChange(PROPERTY_COLOR, oldColor, color);
 		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_NFLIES, oldCageNFlies, cageNFlies);
 		propertyChangeSupport.firePropertyChange(PROPERTY_FLY_AGE, oldFlyAge, flyAge);
@@ -144,7 +144,7 @@ public class CageProperties {
 		int oldArrayColumn = propTo.arrayColumn;
 		int oldArrayRow = propTo.arrayRow;
 		int oldCageID = propTo.cageID;
-		int oldCagePosition = propTo.cagePosition;
+		// int oldCagePosition = propTo.cagePosition;
 		Color oldColor = propTo.color;
 		int oldCageNFlies = propTo.cageNFlies;
 		int oldFlyAge = propTo.flyAge;
@@ -157,7 +157,7 @@ public class CageProperties {
 		propTo.arrayColumn = arrayColumn;
 		propTo.arrayRow = arrayRow;
 		propTo.cageID = cageID;
-		propTo.cagePosition = cagePosition;
+		// propTo.cagePosition = cagePosition;
 		propTo.color = color;
 		propTo.cageNFlies = cageNFlies;
 		propTo.flyAge = flyAge;
@@ -174,7 +174,8 @@ public class CageProperties {
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_COLUMN, oldArrayColumn, propTo.arrayColumn);
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_ROW, oldArrayRow, propTo.arrayRow);
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_ID, oldCageID, propTo.cageID);
-		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_POSITION, oldCagePosition, propTo.cagePosition);
+		// propTo.propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_POSITION,
+		// oldCagePosition, propTo.cagePosition);
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_COLOR, oldColor, propTo.color);
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_NFLIES, oldCageNFlies, propTo.cageNFlies);
 		propTo.propertyChangeSupport.firePropertyChange(PROPERTY_FLY_AGE, oldFlyAge, propTo.flyAge);
@@ -188,7 +189,7 @@ public class CageProperties {
 	public boolean xmlLoadCageParameters(Element xmlVal) {
 		// Store old values for PropertyChange events
 		int oldCageID = cageID;
-		int oldCagePosition = cagePosition;
+		// int oldCagePosition = cagePosition;
 		int oldArrayIndex = arrayIndex;
 		int oldArrayColumn = arrayColumn;
 		int oldArrayRow = arrayRow;
@@ -200,7 +201,6 @@ public class CageProperties {
 		Color oldColor = color;
 
 		cageID = XMLUtil.getElementIntValue(xmlVal, ID_CAGEID, cageID);
-		cagePosition = XMLUtil.getElementIntValue(xmlVal, ID_CAGEPOSITION, cagePosition);
 		arrayIndex = XMLUtil.getElementIntValue(xmlVal, ID_ARRAYINDEX, arrayIndex);
 		arrayColumn = XMLUtil.getElementIntValue(xmlVal, ID_ARRAYCOLUMN, arrayColumn);
 		arrayRow = XMLUtil.getElementIntValue(xmlVal, ID_ARRAYROW, arrayRow);
@@ -218,7 +218,6 @@ public class CageProperties {
 
 		// Fire PropertyChange events for all changed properties
 		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_ID, oldCageID, cageID);
-		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_POSITION, oldCagePosition, cagePosition);
 		propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_INDEX, oldArrayIndex, arrayIndex);
 		propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_COLUMN, oldArrayColumn, arrayColumn);
 		propertyChangeSupport.firePropertyChange(PROPERTY_ARRAY_ROW, oldArrayRow, arrayRow);
@@ -234,7 +233,7 @@ public class CageProperties {
 
 	public boolean xmlSaveCageParameters(Element xmlVal) {
 		XMLUtil.setElementIntValue(xmlVal, ID_CAGEID, cageID);
-		XMLUtil.setElementIntValue(xmlVal, ID_CAGEPOSITION, cagePosition);
+		// XMLUtil.setElementIntValue(xmlVal, ID_CAGEPOSITION, cagePosition);
 		XMLUtil.setElementIntValue(xmlVal, ID_ARRAYINDEX, arrayIndex);
 		XMLUtil.setElementIntValue(xmlVal, ID_ARRAYCOLUMN, arrayColumn);
 		XMLUtil.setElementIntValue(xmlVal, ID_ARRAYROW, arrayRow);
@@ -260,16 +259,6 @@ public class CageProperties {
 			foodSide = FoodSide.TOP;
 		}
 		this.foodSide = foodSide;
-	}
-
-	public int getCagePosition() {
-		return cagePosition;
-	}
-
-	public void setCagePosition(int pos) {
-		int oldValue = this.cagePosition;
-		this.cagePosition = pos;
-		propertyChangeSupport.firePropertyChange(PROPERTY_CAGE_POSITION, oldValue, this.cagePosition);
 	}
 
 	public int getCageID() {

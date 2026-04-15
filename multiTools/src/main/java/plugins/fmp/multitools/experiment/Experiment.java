@@ -380,11 +380,11 @@ public class Experiment {
 	// ------------------------------ Legacy Metadata Accessors
 
 	public String getBoxID() {
-		return prop.field_boxID;
+		return prop.field_expID;
 	}
 
 	public void setBoxID(String boxID) {
-		prop.field_boxID = boxID;
+		prop.field_expID = boxID;
 	}
 
 	public String getExperiment() {
@@ -1197,7 +1197,7 @@ public class Experiment {
 		case EXP_STIM1:
 		case EXP_CONC1:
 		case EXP_EXPT:
-		case EXP_BOXID:
+		case EXP_ID:
 		case EXP_STRAIN:
 		case EXP_SEX:
 		case EXP_STIM2:
@@ -1312,7 +1312,7 @@ public class Experiment {
 		case EXP_EXPT:
 			setExperiment(newValue);
 			break;
-		case EXP_BOXID:
+		case EXP_ID:
 			setBoxID(newValue);
 			break;
 		case EXP_STRAIN:
@@ -1343,8 +1343,8 @@ public class Experiment {
 	}
 
 	public void copyExperimentFields(Experiment expSource) {
-		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_BOXID,
-				expSource.getExperimentField(EnumXLSColumnHeader.EXP_BOXID));
+		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_ID,
+				expSource.getExperimentField(EnumXLSColumnHeader.EXP_ID));
 		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_EXPT,
 				expSource.getExperimentField(EnumXLSColumnHeader.EXP_EXPT));
 		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM1,
@@ -1366,7 +1366,7 @@ public class Experiment {
 		case EXP_STIM1:
 		case EXP_CONC1:
 		case EXP_EXPT:
-		case EXP_BOXID:
+		case EXP_ID:
 		case EXP_STRAIN:
 		case EXP_SEX:
 		case EXP_STIM2:
@@ -2109,10 +2109,10 @@ public class Experiment {
 		boolean flag = csvLoaded;
 
 		// load MCcapillaries description of experiment
-		if (prop.field_boxID.contentEquals("..") && prop.field_experiment.contentEquals("..")
+		if (prop.field_expID.contentEquals("..") && prop.field_experiment.contentEquals("..")
 				&& prop.field_comment1.contentEquals("..") && prop.field_comment2.contentEquals("..")
 				&& prop.field_sex.contentEquals("..") && prop.field_strain.contentEquals("..")) {
-			prop.field_boxID = capillaries.getCapillariesDescription().getOld_boxID();
+			prop.field_expID = capillaries.getCapillariesDescription().getOld_boxID();
 			prop.field_experiment = capillaries.getCapillariesDescription().getOld_experiment();
 			prop.field_comment1 = capillaries.getCapillariesDescription().getOld_comment1();
 			prop.field_comment2 = capillaries.getCapillariesDescription().getOld_comment2();
@@ -2137,7 +2137,7 @@ public class Experiment {
 
 	private void transferExpDescriptorsToCapillariesDescriptors() {
 		CapillariesDescription desc = capillaries.getCapillariesDescription();
-		desc.setOld_boxID(prop.field_boxID);
+		desc.setOld_boxID(prop.field_expID);
 		desc.setOld_experiment(prop.field_experiment);
 		desc.setOld_comment1(prop.field_comment1);
 		desc.setOld_comment2(prop.field_comment2);

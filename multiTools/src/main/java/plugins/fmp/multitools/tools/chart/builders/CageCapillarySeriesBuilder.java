@@ -154,10 +154,10 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		// Keep legacy side coloring semantics: Sum=Blue, PI=Red
 		CageProperties cageProp = cage.getProperties();
 		int nFlies = SeriesStyleCodec.getNFliesOrDefault(parts, -1);
-		seriesSum.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(),
-				nFlies, Color.BLUE));
-		seriesPI.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(),
-				nFlies, Color.RED));
+		seriesSum.setDescription(
+				SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), nFlies, Color.BLUE));
+		seriesPI.setDescription(
+				SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), nFlies, Color.RED));
 
 		for (Double x : allX) {
 			double sumL = 0;
@@ -213,7 +213,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		// For capillary charts, drive nflies from capillary metadata (legacy datasets
 		// can have cages.nFlies unset until a save/migration happens).
 		int nFlies = cap.getProperties().getNFlies();
-		return SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCagePosition(), nFlies, color);
+		return SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), nFlies, color);
 	}
 
 	private static XYSeries createXYSeriesFromCapillaryMeasure(Experiment exp, Capillary cap, ResultsOptions options) {
@@ -282,8 +282,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		CageProperties cageProp = cage.getProperties();
 		int nFlies = nFliesFromCapillaries(cage, exp.getCapillaries());
-		thresholdSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
-				cageProp.getCagePosition(), nFlies, Color.BLACK));
+		thresholdSeries.setDescription(
+				SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), nFlies, Color.BLACK));
 
 		return thresholdSeries;
 	}
@@ -323,8 +323,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		CageProperties cageProp = cage.getProperties();
 		int nFlies = nFliesFromCapillaries(cage, exp.getCapillaries());
-		evaporationSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(),
-				cageProp.getCagePosition(), nFlies, ChartColor.BLACK)); // Color.BLACK));
+		evaporationSeries.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(),
+				nFlies, ChartColor.BLACK)); // Color.BLACK));
 
 		return evaporationSeries;
 	}
@@ -334,8 +334,10 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	 * length exceeds camera frame timestamps (e.g. sparse acquisition with finer
 	 * binning), use kymograph timing to avoid truncating half the points.
 	 */
-	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints, int j) {
-		if (camImages_time_min != null && measureNPoints <= camImages_time_min.length && j < camImages_time_min.length) {
+	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints,
+			int j) {
+		if (camImages_time_min != null && measureNPoints <= camImages_time_min.length
+				&& j < camImages_time_min.length) {
 			return camImages_time_min[j];
 		}
 		if (exp != null) {

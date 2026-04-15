@@ -444,8 +444,8 @@ public class Cages {
 	}
 
 	/**
-	 * Cages whose ROI contains {@code (x, y)} in image coordinates (possibly empty, or several if
-	 * polygons overlap).
+	 * Cages whose ROI contains {@code (x, y)} in image coordinates (possibly empty,
+	 * or several if polygons overlap).
 	 */
 	public List<Cage> findCagesContainingImagePoint(double x, double y) {
 		List<Cage> hits = new ArrayList<>();
@@ -1071,7 +1071,7 @@ public class Cages {
 		}
 		for (Cage cage : cagesList) {
 			for (Cage cageToMerge : arrayToMerge.cagesList) {
-				if (cage.getProperties().getCagePosition() != cageToMerge.getProperties().getCagePosition())
+				if (cage.getProperties().getCageID() != cageToMerge.getProperties().getCageID())
 					continue;
 				List<Spot> spots = cage.getSpotList(allSpots);
 				List<Spot> spotsToMerge = cageToMerge.getSpotList(allSpotsToMerge);

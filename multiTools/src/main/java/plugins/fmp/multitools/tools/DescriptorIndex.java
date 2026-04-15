@@ -35,7 +35,7 @@ public class DescriptorIndex {
 
 	private void initializeDistinctMaps() {
 		distinctByField.put(EnumXLSColumnHeader.EXP_EXPT, new TreeSet<String>());
-		distinctByField.put(EnumXLSColumnHeader.EXP_BOXID, new TreeSet<String>());
+		distinctByField.put(EnumXLSColumnHeader.EXP_ID, new TreeSet<String>());
 		distinctByField.put(EnumXLSColumnHeader.EXP_STIM1, new TreeSet<String>());
 		distinctByField.put(EnumXLSColumnHeader.EXP_CONC1, new TreeSet<String>());
 		distinctByField.put(EnumXLSColumnHeader.EXP_STRAIN, new TreeSet<String>());
@@ -177,8 +177,8 @@ public class DescriptorIndex {
 			ExperimentProperties props) {
 		addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.EXP_EXPT),
 				props.getField(EnumXLSColumnHeader.EXP_EXPT));
-		addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.EXP_BOXID),
-				props.getField(EnumXLSColumnHeader.EXP_BOXID));
+		addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.EXP_ID),
+				props.getField(EnumXLSColumnHeader.EXP_ID));
 		addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.EXP_STIM1),
 				props.getField(EnumXLSColumnHeader.EXP_STIM1));
 		addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.EXP_CONC1),

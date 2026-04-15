@@ -48,7 +48,7 @@ public class Filter extends JPanel {
 	private List<String> selConc2 = new ArrayList<String>();
 
 	private JCheckBox experimentCheck = new JCheckBox(EnumXLSColumnHeader.EXP_EXPT.toString());
-	private JCheckBox boxIDCheck = new JCheckBox(EnumXLSColumnHeader.EXP_BOXID.toString());
+	private JCheckBox boxIDCheck = new JCheckBox(EnumXLSColumnHeader.EXP_ID.toString());
 	private JCheckBox stim1Check = new JCheckBox(EnumXLSColumnHeader.EXP_STIM1.toString());
 	private JCheckBox conc1Check = new JCheckBox(EnumXLSColumnHeader.EXP_CONC1.toString());
 	private JCheckBox strainCheck = new JCheckBox(EnumXLSColumnHeader.EXP_STRAIN.toString());
@@ -137,7 +137,7 @@ public class Filter extends JPanel {
 
 	private void defineActionListeners() {
 		exptBtn.addActionListener(createFilterButtonListener(exptBtn, EnumXLSColumnHeader.EXP_EXPT, selExpt, experimentCheck));
-		boxIDBtn.addActionListener(createFilterButtonListener(boxIDBtn, EnumXLSColumnHeader.EXP_BOXID, selBoxID, boxIDCheck));
+		boxIDBtn.addActionListener(createFilterButtonListener(boxIDBtn, EnumXLSColumnHeader.EXP_ID, selBoxID, boxIDCheck));
 		stim1Btn.addActionListener(createFilterButtonListener(stim1Btn, EnumXLSColumnHeader.EXP_STIM1, selStim1, stim1Check));
 		conc1Btn.addActionListener(createFilterButtonListener(conc1Btn, EnumXLSColumnHeader.EXP_CONC1, selConc1, conc1Check));
 		sexBtn.addActionListener(createFilterButtonListener(sexBtn, EnumXLSColumnHeader.EXP_SEX, selSex, sexCheck));
@@ -208,7 +208,7 @@ public class Filter extends JPanel {
 		if (experimentCheck.isSelected())
 			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_EXPT, selExpt);
 		if (boxIDCheck.isSelected())
-			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_BOXID, selBoxID);
+			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_ID, selBoxID);
 		if (stim1Check.isSelected())
 			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_STIM1, selStim1);
 		if (conc1Check.isSelected())

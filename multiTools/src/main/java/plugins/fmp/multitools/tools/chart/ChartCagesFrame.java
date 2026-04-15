@@ -342,8 +342,8 @@ public class ChartCagesFrame extends IcyFrame {
 	/**
 	 * Grid columns × rows for {@code numCages} panels: minimize empty cells, then
 	 * prefer column count near {@code preferredColumns} (experiment layout). Same
-	 * {@code numCages} therefore gets a stable shape even when
-	 * {@code nCagesAlongX} varies slightly (e.g. 5 vs 6).
+	 * {@code numCages} therefore gets a stable shape even when {@code nCagesAlongX}
+	 * varies slightly (e.g. 5 vs 6).
 	 */
 	private static int[] computeChartGridDimensions(int numCages, int preferredColumns) {
 		if (numCages <= 0) {
@@ -479,7 +479,7 @@ public class ChartCagesFrame extends IcyFrame {
 					new Font("SansSerif", Font.PLAIN, 12));
 			title.setPosition(RectangleEdge.BOTTOM);
 			chart.addSubtitle(title);
-			chart.setID("row:" + row + ":icol:" + col + ":cageID:" + cage.getProperties().getCagePosition());
+			chart.setID("row:" + row + ":icol:" + col + ":cageID:" + cage.getProperties().getCageID());
 
 			ChartCagePanel chartCagePanel = new ChartCagePanel(chart, DEFAULT_CHART_WIDTH, DEFAULT_CHART_HEIGHT,
 					MIN_CHART_WIDTH, MIN_CHART_HEIGHT, MAX_CHART_WIDTH, MAX_CHART_HEIGHT, true, true, true, true, false,
@@ -519,7 +519,7 @@ public class ChartCagesFrame extends IcyFrame {
 		title.setPosition(RectangleEdge.BOTTOM);
 		chart.addSubtitle(title);
 
-		chart.setID("row:" + row + ":icol:" + col + ":cageID:" + cage.getProperties().getCagePosition());
+		chart.setID("row:" + row + ":icol:" + col + ":cageID:" + cage.getProperties().getCageID());
 
 		ChartCagePanel chartCagePanel = new ChartCagePanel(chart, DEFAULT_CHART_WIDTH, DEFAULT_CHART_HEIGHT,
 				MIN_CHART_WIDTH, MIN_CHART_HEIGHT, MAX_CHART_WIDTH, MAX_CHART_HEIGHT, true, true, true, true, false,

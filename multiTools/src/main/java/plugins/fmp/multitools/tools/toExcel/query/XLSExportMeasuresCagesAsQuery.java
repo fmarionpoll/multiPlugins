@@ -117,23 +117,23 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 	}
 
 	private void initHeadersArray() {
-		headers.add(EnumXLSQueryColumnHeader.DATE);
-		headers.add(EnumXLSQueryColumnHeader.EXP_BOXID);
-		headers.add(EnumXLSQueryColumnHeader.EXP_EXPT);
-		headers.add(EnumXLSQueryColumnHeader.EXP_STIM1);
-		headers.add(EnumXLSQueryColumnHeader.EXP_CONC1);
-		headers.add(EnumXLSQueryColumnHeader.EXP_STIM2);
-		headers.add(EnumXLSQueryColumnHeader.EXP_CONC2);
-		headers.add(EnumXLSQueryColumnHeader.EXP_STRAIN);
-		headers.add(EnumXLSQueryColumnHeader.CAGE_NFLIES);
-		headers.add(EnumXLSQueryColumnHeader.CAGE_POS);
-		headers.add(EnumXLSQueryColumnHeader.VAL_TIME);
-		headers.add(EnumXLSQueryColumnHeader.VAL_STIM1);
-		headers.add(EnumXLSQueryColumnHeader.N_STIM1);
-		headers.add(EnumXLSQueryColumnHeader.VAL_STIM2);
-		headers.add(EnumXLSQueryColumnHeader.N_STIM2);
-		headers.add(EnumXLSQueryColumnHeader.VAL_SUM);
-		headers.add(EnumXLSQueryColumnHeader.VAL_PI);
+		headers.add(EnumXLSQueryColumnHeader.QDATE);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_ID);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_EXPT);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_STIM1);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_CONC1);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_STIM2);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_CONC2);
+		headers.add(EnumXLSQueryColumnHeader.QEXP_STRAIN);
+		headers.add(EnumXLSQueryColumnHeader.QCAGE_NFLIES);
+		headers.add(EnumXLSQueryColumnHeader.QCAGE_POS);
+		headers.add(EnumXLSQueryColumnHeader.QVAL_TIME);
+		headers.add(EnumXLSQueryColumnHeader.QVAL_STIM1);
+		headers.add(EnumXLSQueryColumnHeader.QN_STIM1);
+		headers.add(EnumXLSQueryColumnHeader.QVAL_STIM2);
+		headers.add(EnumXLSQueryColumnHeader.QN_STIM2);
+		headers.add(EnumXLSQueryColumnHeader.QVAL_SUM);
+		headers.add(EnumXLSQueryColumnHeader.QVAL_PI);
 		for (int i = 0; i < headers.size(); i++)
 			headers.get(i).setValue(i);
 	}
@@ -278,16 +278,16 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 
 	void writeCageMeasuresAtT(SXSSFSheet sheet, Point pt, int t, Results xlsStim1, Results xlsStim2, Results xlsPI,
 			Results xlsSUM, EnumResults resultType) {
-		pt.y = EnumXLSQueryColumnHeader.VAL_TIME.getValue();
+		pt.y = EnumXLSQueryColumnHeader.QVAL_TIME.getValue();
 		XLSUtils.setValue(sheet, pt, options.transpose, t);
 
-		pt.y = EnumXLSQueryColumnHeader.VAL_STIM1.getValue();
+		pt.y = EnumXLSQueryColumnHeader.QVAL_STIM1.getValue();
 		writeDataToXLS(sheet, pt, t, xlsStim1);
-		pt.y = EnumXLSQueryColumnHeader.VAL_STIM2.getValue();
+		pt.y = EnumXLSQueryColumnHeader.QVAL_STIM2.getValue();
 		writeDataToXLS(sheet, pt, t, xlsStim2);
-		pt.y = EnumXLSQueryColumnHeader.VAL_SUM.getValue();
+		pt.y = EnumXLSQueryColumnHeader.QVAL_SUM.getValue();
 		writeDataToXLS(sheet, pt, t, xlsSUM);
-		pt.y = EnumXLSQueryColumnHeader.VAL_PI.getValue();
+		pt.y = EnumXLSQueryColumnHeader.QVAL_PI.getValue();
 		writeDataToXLS(sheet, pt, t, xlsPI);
 
 		pt.y++;
@@ -306,33 +306,35 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 	String getDescriptorStr(Experiment exp, Cage cage, EnumXLSQueryColumnHeader col) {
 		String dummy = null;
 		switch (col) {
-		case DATE:
+		case QDATE:
 			SimpleDateFormat df = new SimpleDateFormat("MM/dd/yyyy");
 			return df.format(exp.getSeqCamData().getTimeManager().getFirstImageMs());
-		case EXP_BOXID:
-			return exp.getProperties().getFfield_boxID();
-		case CAGEID:
+		case QEXP_ID:
+			return exp.getProperties().getFfield_expID();
+		case QCAGEID:
 			return Integer.toString(cage.getProperties().getCageID());
-		case EXP_EXPT:
+		case QCAGE_POS:
+			return Integer.toString(cage.getProperties().getCageID());
+		case QEXP_EXPT:
 			return exp.getProperties().getFfield_experiment();
-		case EXP_STRAIN:
+		case QEXP_STRAIN:
 			return exp.getProperties().getField_strain();
-		case EXP_SEX:
+		case QEXP_SEX:
 			return exp.getProperties().getField_sex();
-		case EXP_STIM1:
+		case QEXP_STIM1:
 			return exp.getProperties().getField_stim1();
-		case EXP_CONC1:
+		case QEXP_CONC1:
 			return exp.getProperties().getField_conc1();
-		case EXP_STIM2:
+		case QEXP_STIM2:
 			return exp.getProperties().getField_stim2();
-		case EXP_CONC2:
+		case QEXP_CONC2:
 			return exp.getProperties().getField_conc2();
 
-		case CAGE_STRAIN:
+		case QCAGE_STRAIN:
 			return cage.getProperties().getFlyStrain();
-		case CAGE_SEX:
+		case QCAGE_SEX:
 			return cage.getProperties().getFlySex();
-		case CAGE_COMMENT:
+		case QCAGE_COMMENT:
 			return cage.getProperties().getComment();
 
 		default:
@@ -344,15 +346,15 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 	int getDescriptorInt(Experiment exp, Cage cage, EnumXLSQueryColumnHeader col) {
 		int dummy = -1;
 		switch (col) {
-		case CAGE_POS:
+		case QCAGE_POS:
 			return cage.getProperties().getArrayIndex();
-		case CAGE_NFLIES:
+		case QCAGE_NFLIES:
 			return cage.getProperties().getCageNFlies();
-		case CAGE_AGE:
+		case QCAGE_AGE:
 			return cage.getProperties().getFlyAge();
-		case N_STIM1:
+		case QN_STIM1:
 			return cage.getProperties().getCountStim1();
-		case N_STIM2:
+		case QN_STIM2:
 			return cage.getProperties().getCountStim2();
 
 		default:

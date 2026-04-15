@@ -19,10 +19,10 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
 import org.jfree.data.xy.XYSeries;
 
+import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
-import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageFoodDistanceMm;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
@@ -30,8 +30,8 @@ import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
-import plugins.fmp.multitools.tools.ROI2D.ROIType;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
+import plugins.fmp.multitools.tools.ROI2D.ROIType;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -85,10 +85,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	}
 
 	/**
-	 * Fly-position export requires loading DrosoTrack (positions) measures. The base
-	 * implementation loads positions conditionally (currently tied to an unrelated
-	 * option), which can leave {@link FlyPositions#flyPositionList} empty during
-	 * export even though the UI can display positions.
+	 * Fly-position export requires loading DrosoTrack (positions) measures. The
+	 * base implementation loads positions conditionally (currently tied to an
+	 * unrelated option), which can leave {@link FlyPositions#flyPositionList} empty
+	 * during export even though the UI can display positions.
 	 */
 	@Override
 	protected void prepareExperiments() throws ExcelDataException {
@@ -100,8 +100,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);
 			maybeWarnAmbiguousFoodQuads();
 		} catch (Exception e) {
-			throw new ExcelDataException(
-					"Failed to prepare experiments for fly-position export", "prepare_experiments",
+			throw new ExcelDataException("Failed to prepare experiments for fly-position export", "prepare_experiments",
 					"experiment_loading", e);
 		}
 	}
@@ -125,9 +124,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				ROI2D roi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
 				if (CageFoodDistanceMm.isAmbiguousQuad(roi)) {
 					final int cageId = cage.getProperties().getCageID();
-					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null,
-							"Cage " + cageId
-									+ ": cage ROI is almost square (short/long sides within 10%).\nFood-side distance may be unreliable; check the ROI shape.",
+					SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(null, "Cage " + cageId
+							+ ": cage ROI is almost square (short/long sides within 10%).\nFood-side distance may be unreliable; check the ROI shape.",
 							"Food distance — ambiguous cage", JOptionPane.WARNING_MESSAGE));
 					return;
 				}
@@ -155,9 +153,12 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		final double flyMmYBefore = exp != null ? exp.getFlyMmPerPixelY() : 1.0;
 		final boolean restoreFlyScaleAfterOpen = (flyMmXBefore != 1.0 || flyMmYBefore != 1.0);
 
-		// Fly-position exports need a valid camera timeline to map FlyPosition.flyIndexT -> FlyPosition.tMs.
-		// In multi-experiment exports, measures can be loaded from bin directories without opening the
-		// camera sequence, leaving tMs at 0 for all points (which results in data only at t0).
+		// Fly-position exports need a valid camera timeline to map
+		// FlyPosition.flyIndexT -> FlyPosition.tMs.
+		// In multi-experiment exports, measures can be loaded from bin directories
+		// without opening the
+		// camera sequence, leaving tMs at 0 for all points (which results in data only
+		// at t0).
 		// Ensure camera timing is available before building datasets.
 		if (exp != null) {
 			exp.openSequenceCamData();
@@ -174,19 +175,18 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			exp.setFlyMmPerPixelY(flyMmYBefore);
 		}
 
-		// Always export static cage limits; Cage_ID matches XYIMAGE / XYTOPCAGE exports.
+		// Always export static cage limits; Cage_ID matches XYIMAGE / XYTOPCAGE
+		// exports.
 		exportCageLimitsForExperiment(exp, charSeries);
 		exportFlyScaleForExperiment(exp, charSeries);
 
-		OptionToResultsMapping[] mappings = {
-			new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
-			new OptionToResultsMapping(() -> options.yVsFood, EnumResults.YVSFOOD),
-			new OptionToResultsMapping(() -> options.ellipseAxes, EnumResults.ELLIPSEAXES),
-			new OptionToResultsMapping(() -> options.distance, EnumResults.DISTANCE),
-			new OptionToResultsMapping(() -> options.alive, EnumResults.ISALIVE),
-			new OptionToResultsMapping(() -> options.sleep, EnumResults.SLEEP),
-			new OptionToResultsMapping(() -> options.illumPhase, EnumResults.ILLUM_PHASE)
-		};
+		OptionToResultsMapping[] mappings = { new OptionToResultsMapping(() -> options.xyImage, EnumResults.XYIMAGE),
+				new OptionToResultsMapping(() -> options.yVsFood, EnumResults.YVSFOOD),
+				new OptionToResultsMapping(() -> options.ellipseAxes, EnumResults.ELLIPSEAXES),
+				new OptionToResultsMapping(() -> options.distance, EnumResults.DISTANCE),
+				new OptionToResultsMapping(() -> options.alive, EnumResults.ISALIVE),
+				new OptionToResultsMapping(() -> options.sleep, EnumResults.SLEEP),
+				new OptionToResultsMapping(() -> options.illumPhase, EnumResults.ILLUM_PHASE) };
 
 		// Keep the outer-loop column stable; each worksheet manages its own "next"
 		// column via nextColumnBySheet.
@@ -206,8 +206,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 * Exports a result type using a per-worksheet start column to avoid empty
 	 * blocks between experiments when different worksheets have different widths.
 	 */
-	private int exportResultTypePerSheet(Experiment exp, int defaultStartColumn, String charSeries, EnumResults resultType)
-			throws ExcelExportException {
+	private int exportResultTypePerSheet(Experiment exp, int defaultStartColumn, String charSeries,
+			EnumResults resultType) throws ExcelExportException {
 		String title = resultType.toString();
 		int col0 = getNextColumnForSheet(title, defaultStartColumn);
 		int colmax = exportResultType(exp, col0, charSeries, resultType, "fly position");
@@ -259,7 +259,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			}
 
 			FlyPositions flyPositions = cage.getFlyPositions();
-			if (flyPositions == null || flyPositions.flyPositionList == null || flyPositions.flyPositionList.isEmpty()) {
+			if (flyPositions == null || flyPositions.flyPositionList == null
+					|| flyPositions.flyPositionList.isEmpty()) {
 				continue;
 			}
 
@@ -317,8 +318,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 */
 	@Deprecated(forRemoval = false)
 	@SuppressWarnings("unused")
-	private Results convertXYSeriesToResults(Experiment exp, Cage cage, XYSeries series,
-			ResultsOptions resultsOptions, EnumResults resultType) {
+	private Results convertXYSeriesToResults(Experiment exp, Cage cage, XYSeries series, ResultsOptions resultsOptions,
+			EnumResults resultType) {
 		if (exp == null || cage == null || series == null || resultsOptions == null) {
 			return null;
 		}
@@ -340,9 +341,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		results.initValuesOutArray(nBins, Double.NaN);
 
 		// XYSeries X values are in minutes from experiment start (time 0).
-		// For "relative time" exports (absoluteTime=false), the sheet time axis is also relative,
+		// For "relative time" exports (absoluteTime=false), the sheet time axis is also
+		// relative,
 		// so no offset must be applied.
-		// For "absolute time" exports, shift local times onto the expAll absolute timeline.
+		// For "absolute time" exports, shift local times onto the expAll absolute
+		// timeline.
 		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllMs) : 0L;
 
 		int nDataPoints = series.getItemCount();
@@ -358,11 +361,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			dataValues[i] = series.getY(i).doubleValue();
 		}
 
-		// Interpolation assumes time is monotonic. FlyPosition series can be out of order
+		// Interpolation assumes time is monotonic. FlyPosition series can be out of
+		// order
 		// (e.g. when loaded from legacy sources), so we enforce sorting here.
 		sortByTime(dataTimesMs, dataValues);
 
-		// Interpolate onto the global expAll bins. Do not extrapolate outside [first,last] data points.
+		// Interpolate onto the global expAll bins. Do not extrapolate outside
+		// [first,last] data points.
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
 			long binTimeGlobalMs = firstAllMs + (long) binIndex * buildExcelStepMs;
 			double interpolatedValue = linearInterpolateNoExtrapolation(dataTimesMs, dataValues, binTimeGlobalMs);
@@ -376,8 +381,9 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 	/**
 	 * Exports cage limits (geometry) to a dedicated worksheet, reusing the same
-	 * encoding as CagesDescription.csv (one row per cage, npoints then coordinates),
-	 * with a leading Cage_ID column matching other fly-position exports.
+	 * encoding as CagesDescription.csv (one row per cage, npoints then
+	 * coordinates), with a leading Cage_ID column matching other fly-position
+	 * exports.
 	 */
 	private void exportCageLimitsForExperiment(Experiment exp, String charSeries) throws ExcelExportException {
 		if (exp == null || exp.getCages() == null || exp.getCages().getCageList().isEmpty()) {
@@ -496,8 +502,11 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			final String title = "XYScale";
 			SXSSFSheet sheet = workbook.getSheet(title);
 			boolean transpose = options.transpose;
-			// Keep the same leading descriptor name as other fly-position worksheets.
-			final String[] fields = new String[] { "Cage_ID", "mmPerPixelX", "mmPerPixelY" };
+			// XYScale is experiment-level (one row per experiment), not cage-level.
+			// Keep an explicit experiment identifier to avoid overloading the cage-level
+			// "Cage_ID" key
+			// used by CageLimits and all other fly-position worksheets.
+			final String[] fields = new String[] { "Exp_ID", "mmPerPixelX", "mmPerPixelY" };
 			int nextEntityIndex;
 			if (sheet == null) {
 				sheet = workbook.createSheet(title);
@@ -519,8 +528,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			}
 			int x = nextEntityIndex;
 			int y = 0;
-			String cageId = (charSeries != null && !charSeries.isEmpty()) ? charSeries : "exp";
-			XLSUtils.setValue(sheet, x, y++, transpose, cageId);
+			String expId = (charSeries != null && !charSeries.isEmpty()) ? charSeries : "exp";
+			XLSUtils.setValue(sheet, x, y++, transpose, expId);
 			XLSUtils.setValue(sheet, x, y++, transpose, exp.getFlyMmPerPixelX());
 			XLSUtils.setValue(sheet, x, y++, transpose, exp.getFlyMmPerPixelY());
 		} catch (ExcelResourceException e) {
@@ -580,7 +589,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 					pt.y = 0;
 					pt = writeExperimentFlyPositionInfos(sheet, pt, exp, charSeries, cage, EnumResults.XYIMAGE, flyId);
 					// DUM4 row: label which rect component (x, y, w, h) is in this column
-					XLSUtils.setValueAtColumn(sheet, new Point(pt.x, 0), EnumXLSColumnHeader.DUM4, transpose, labels[i]);
+					XLSUtils.setValueAtColumn(sheet, new Point(pt.x, 0), EnumXLSColumnHeader.DUM4, transpose,
+							labels[i]);
 
 					writeXLSResult(sheet, pt, res);
 					pt.x++;
@@ -611,10 +621,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 
 		// Binning must be in the same time base as the X values we interpolate against.
-		// - When absoluteTime=false (default in MultiCAFE), FlyPosition.tMs is RELATIVE (ms since experiment start).
-		//   Use relative bins [0..duration].
-		// - When absoluteTime=true, build an epoch-based timeline and convert FlyPosition.tMs to epoch using
-		//   exp.chainImageFirst_ms (epoch of experiment start) then interpolate against epoch bins.
+		// - When absoluteTime=false (default in MultiCAFE), FlyPosition.tMs is RELATIVE
+		// (ms since experiment start).
+		// Use relative bins [0..duration].
+		// - When absoluteTime=true, build an epoch-based timeline and convert
+		// FlyPosition.tMs to epoch using
+		// exp.chainImageFirst_ms (epoch of experiment start) then interpolate against
+		// epoch bins.
 		final long durationAllMs = lastAllEpochMs - firstAllEpochMs;
 		final int nBins = (int) (durationAllMs / buildExcelStepMs) + 1;
 		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllEpochMs) : 0L;
@@ -640,7 +653,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			if (pos == null) {
 				continue;
 			}
-			// Legacy datasets can have flyId = -1 for all points (unknown single-fly identity).
+			// Legacy datasets can have flyId = -1 for all points (unknown single-fly
+			// identity).
 			// Treat those as fly 0 so exports produce data when nflies=1.
 			boolean matches = (pos.flyId == flyId) || (pos.flyId < 0 && flyId == 0);
 			if (!matches) {
@@ -688,8 +702,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		sortByTime(times, xvals, yvals, wvals, hvals);
 
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
-			long binTimeGlobalMs = options.absoluteTime
-					? (firstAllEpochMs + (long) binIndex * buildExcelStepMs)
+			long binTimeGlobalMs = options.absoluteTime ? (firstAllEpochMs + (long) binIndex * buildExcelStepMs)
 					: ((long) binIndex * buildExcelStepMs);
 
 			double xi = linearInterpolateNoExtrapolation(times, xvals, binTimeGlobalMs);
@@ -816,10 +829,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	/**
 	 * Ensures {@link FlyPosition#tMs} is populated for this experiment.
 	 * <p>
-	 * When cages measures are loaded from disk, fly positions often contain only the
-	 * frame index ({@code flyIndexT}). The corresponding timestamps ({@code tMs})
-	 * must be rebuilt from the camera image list; otherwise all points appear at
-	 * t0 and exports beyond the first time column are blank.
+	 * When cages measures are loaded from disk, fly positions often contain only
+	 * the frame index ({@code flyIndexT}). The corresponding timestamps
+	 * ({@code tMs}) must be rebuilt from the camera image list; otherwise all
+	 * points appear at t0 and exports beyond the first time column are blank.
 	 */
 	private void ensureFlyPositionTimesInitialized(Experiment exp) {
 		if (exp == null || exp.getCages() == null || exp.getCages().getCageList() == null) {
@@ -847,8 +860,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 
 		try {
-			// Build camImages_ms[] as RELATIVE times from the first image of this experiment.
-			// This makes FlyPosition.tMs directly comparable to the sheet's time bins when absoluteTime=false.
+			// Build camImages_ms[] as RELATIVE times from the first image of this
+			// experiment.
+			// This makes FlyPosition.tMs directly comparable to the sheet's time bins when
+			// absoluteTime=false.
 			long firstImageMs = (exp.getFirstImage_FileTime() != null) ? exp.getFirstImage_FileTime().toMillis() : -1L;
 			if (firstImageMs <= 0 && exp.getSeqCamData() != null) {
 				java.nio.file.attribute.FileTime ft = exp.getSeqCamData().getFileTimeFromStructuredName(0);
@@ -866,7 +881,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	}
 
 	/**
-	 * Gets the results for fly positions (legacy method, kept for backward compatibility).
+	 * Gets the results for fly positions (legacy method, kept for backward
+	 * compatibility).
 	 * 
 	 * @param exp            The experiment
 	 * @param cage           The cage
@@ -885,10 +901,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	public Results getResultsDataValuesFromFlyPositionMeasures(Experiment exp, Cage cage, FlyPositions flyPositions,
 			ResultsOptions resultsOptions, int flyId) {
 		// IMPORTANT:
-		// - FlyPosition.tMs is filled from Experiment.initTmsForFlyPositions(), which sets tMs as
-		//   a RELATIVE time (ms since the first valid camera frame of that experiment).
-		// - SequenceCamData.getFirstImageMs()/getLastImageMs() return epoch ms for real sequences.
-		// Therefore, binning must be done on a RELATIVE timeline (0..duration) to match FlyPosition.tMs.
+		// - FlyPosition.tMs is filled from Experiment.initTmsForFlyPositions(), which
+		// sets tMs as
+		// a RELATIVE time (ms since the first valid camera frame of that experiment).
+		// - SequenceCamData.getFirstImageMs()/getLastImageMs() return epoch ms for real
+		// sequences.
+		// Therefore, binning must be done on a RELATIVE timeline (0..duration) to match
+		// FlyPosition.tMs.
 		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
@@ -1099,7 +1118,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 * Writes basic file information to the sheet (for fly positions).
 	 */
 	private void writeFileInformationForFlyPosition(SXSSFSheet sheet, int x, int y, boolean transpose, Experiment exp) {
-		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across all exports.
+		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across
+		// all exports.
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.PATH.getValue(), transpose,
 				exp.getExperimentField(EnumXLSColumnHeader.PATH));
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DATE.getValue(), transpose,
@@ -1115,12 +1135,12 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			Experiment exp, String charSeries) {
 		ExperimentProperties props = exp.getProperties();
 
-		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_BOXID);
+		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_ID);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_EXPT);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_STIM1);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_CONC1);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_STRAIN);
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.EXP_BOXID.getValue(), transpose, charSeries);
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.EXP_ID.getValue(), transpose, charSeries);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_SEX);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_STIM2);
 		XLSUtils.setFieldValue(sheet, x, y, transpose, props, EnumXLSColumnHeader.EXP_CONC2);
@@ -1136,8 +1156,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			cageId = cageId + "_fly" + flyId;
 			XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGEPOS.getValue(), transpose, flyId);
 		}
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGEID.getValue(), transpose,
-				cageId);
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGEID.getValue(), transpose, cageId);
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_STRAIN.getValue(), transpose,
 				cage.getProperties().getFlyStrain());
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_SEX.getValue(), transpose,

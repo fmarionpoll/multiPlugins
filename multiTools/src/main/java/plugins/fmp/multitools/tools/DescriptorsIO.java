@@ -150,7 +150,7 @@ public class DescriptorsIO {
 		ExperimentProperties p = exp.getProperties();
 		if (p != null) {
 			addIfNotEmpty(dicts.get(EnumXLSColumnHeader.EXP_EXPT), p.getField(EnumXLSColumnHeader.EXP_EXPT));
-			addIfNotEmpty(dicts.get(EnumXLSColumnHeader.EXP_BOXID), p.getField(EnumXLSColumnHeader.EXP_BOXID));
+			addIfNotEmpty(dicts.get(EnumXLSColumnHeader.EXP_ID), p.getField(EnumXLSColumnHeader.EXP_ID));
 			addIfNotEmpty(dicts.get(EnumXLSColumnHeader.EXP_STIM1), p.getField(EnumXLSColumnHeader.EXP_STIM1));
 			addIfNotEmpty(dicts.get(EnumXLSColumnHeader.EXP_CONC1), p.getField(EnumXLSColumnHeader.EXP_CONC1));
 			addIfNotEmpty(dicts.get(EnumXLSColumnHeader.EXP_STRAIN), p.getField(EnumXLSColumnHeader.EXP_STRAIN));

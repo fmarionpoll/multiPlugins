@@ -120,7 +120,7 @@ public class ChartCagePair {
 	 * @return the cage position, or -1 if cage is not set
 	 */
 	public int getCagePosition() {
-		return cage != null ? cage.getProperties().getCagePosition() : -1;
+		return cage != null ? cage.getProperties().getCageID() : -1;
 	}
 
 	/**
@@ -133,7 +133,7 @@ public class ChartCagePair {
 		StringBuilder sb = new StringBuilder("CageChartPair[");
 		if (cage != null) {
 			sb.append("cageID=").append(cage.getProperties().getCageID());
-			sb.append(", cagePosition=").append(cage.getProperties().getCagePosition());
+			sb.append(", cagePosition=").append(cage.getProperties().getCageID());
 		} else {
 			sb.append("cage=null");
 		}
