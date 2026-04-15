@@ -1281,14 +1281,24 @@ public class Experiment {
 
 	private String getCam() {
 		String strField = getPath();
-		int pos = strField.indexOf("cam");
-		if (pos > 0) {
-			int pos5 = pos + 5;
-			if (pos5 >= strField.length())
-				pos5 = strField.length() - 1;
-			strField = strField.substring(pos, pos5);
+		if (strField == null || strField.isEmpty()) {
+			return "";
 		}
-		return strField;
+		// Prefer explicit cam## token (robust to odd separators, including tabs).
+		java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\bcam\\d{2}\\b",
+				java.util.regex.Pattern.CASE_INSENSITIVE).matcher(strField);
+		if (m.find()) {
+			return m.group().toLowerCase();
+		}
+		// Legacy fallback: substring from "cam" (expected length 5: cam01).
+		int pos = strField.toLowerCase().indexOf("cam");
+		if (pos >= 0) {
+			int end = Math.min(strField.length(), pos + 5);
+			String token = strField.substring(pos, end);
+			token = token.replace("\t", "").trim();
+			return token;
+		}
+		return "";
 	}
 
 	public void setExperimentFieldNoTest(EnumXLSColumnHeader fieldEnumCode, String newValue) {

@@ -434,35 +434,10 @@ public abstract class XLSExport {
 	 * Writes basic file information to the sheet.
 	 */
 	protected void writeFileInformation(SXSSFSheet sheet, Point pt, boolean transpose, Experiment exp) {
-		String filename = exp.getResultsDirectory();
-		if (filename == null) {
-			filename = exp.getSeqCamData().getImagesDirectory();
-		}
-
-		Path path = Paths.get(filename);
-		SimpleDateFormat df = new SimpleDateFormat(ExcelExportConstants.DEFAULT_DATE_FORMAT);
-		String date = df.format(exp.chainImageFirst_ms);
-		String name0 = path.toString();
-		String cam = extractCameraInfo(name0);
-
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.PATH, transpose, name0);
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DATE, transpose, date);
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAM, transpose, cam);
-	}
-
-	/**
-	 * Extracts camera information from the filename.
-	 */
-	public String extractCameraInfo(String filename) {
-		int pos = filename.indexOf(ExcelExportConstants.CAMERA_IDENTIFIER);
-		if (pos > 0) {
-			int pos5 = pos + ExcelExportConstants.CAMERA_IDENTIFIER_LENGTH;
-			if (pos5 >= filename.length()) {
-				pos5 = filename.length() - 1;
-			}
-			return filename.substring(pos, pos5);
-		}
-		return ExcelExportConstants.CAMERA_DEFAULT_VALUE;
+		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across all exports.
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.PATH, transpose, exp.getExperimentField(EnumXLSColumnHeader.PATH));
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DATE, transpose, exp.getExperimentField(EnumXLSColumnHeader.DATE));
+		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAM, transpose, exp.getExperimentField(EnumXLSColumnHeader.CAM));
 	}
 
 	/**

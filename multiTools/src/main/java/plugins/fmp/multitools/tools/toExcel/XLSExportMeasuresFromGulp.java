@@ -374,20 +374,13 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 * Writes basic file information to the sheet (for gulps).
 	 */
 	private void writeFileInformationForGulp(SXSSFSheet sheet, int x, int y, boolean transpose, Experiment exp) {
-		String filename = exp.getResultsDirectory();
-		if (filename == null) {
-			filename = exp.getSeqCamData().getImagesDirectory();
-		}
-
-		java.nio.file.Path path = java.nio.file.Paths.get(filename);
-		java.text.SimpleDateFormat df = new java.text.SimpleDateFormat(ExcelExportConstants.DEFAULT_DATE_FORMAT);
-		String date = df.format(exp.chainImageFirst_ms);
-		String name0 = path.toString();
-		String cam = extractCameraInfo(name0);
-
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.PATH.getValue(), transpose, name0);
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DATE.getValue(), transpose, date);
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAM.getValue(), transpose, cam);
+		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across all exports.
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.PATH.getValue(), transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.PATH));
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DATE.getValue(), transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.DATE));
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAM.getValue(), transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.CAM));
 	}
 
 	/**

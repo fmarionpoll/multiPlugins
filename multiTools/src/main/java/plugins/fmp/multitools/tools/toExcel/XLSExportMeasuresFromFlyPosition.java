@@ -496,7 +496,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			final String title = "XYScale";
 			SXSSFSheet sheet = workbook.getSheet(title);
 			boolean transpose = options.transpose;
-			final String[] fields = new String[] { "Series", "mmPerPixelX", "mmPerPixelY" };
+			// Keep the same leading descriptor name as other fly-position worksheets.
+			final String[] fields = new String[] { "Cage_ID", "mmPerPixelX", "mmPerPixelY" };
 			int nextEntityIndex;
 			if (sheet == null) {
 				sheet = workbook.createSheet(title);
@@ -518,8 +519,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			}
 			int x = nextEntityIndex;
 			int y = 0;
-			String series = (charSeries != null && !charSeries.isEmpty()) ? charSeries : "exp";
-			XLSUtils.setValue(sheet, x, y++, transpose, series);
+			String cageId = (charSeries != null && !charSeries.isEmpty()) ? charSeries : "exp";
+			XLSUtils.setValue(sheet, x, y++, transpose, cageId);
 			XLSUtils.setValue(sheet, x, y++, transpose, exp.getFlyMmPerPixelX());
 			XLSUtils.setValue(sheet, x, y++, transpose, exp.getFlyMmPerPixelY());
 		} catch (ExcelResourceException e) {
@@ -1098,20 +1099,13 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 * Writes basic file information to the sheet (for fly positions).
 	 */
 	private void writeFileInformationForFlyPosition(SXSSFSheet sheet, int x, int y, boolean transpose, Experiment exp) {
-		String filename = exp.getResultsDirectory();
-		if (filename == null) {
-			filename = exp.getSeqCamData().getImagesDirectory();
-		}
-
-		java.nio.file.Path path = java.nio.file.Paths.get(filename);
-		java.text.SimpleDateFormat df = new java.text.SimpleDateFormat(ExcelExportConstants.DEFAULT_DATE_FORMAT);
-		String date = df.format(exp.chainImageFirst_ms);
-		String name0 = path.toString();
-		String cam = extractCameraInfo(name0);
-
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.PATH.getValue(), transpose, name0);
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DATE.getValue(), transpose, date);
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAM.getValue(), transpose, cam);
+		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across all exports.
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.PATH.getValue(), transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.PATH));
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DATE.getValue(), transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.DATE));
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAM.getValue(), transpose,
+				exp.getExperimentField(EnumXLSColumnHeader.CAM));
 	}
 
 	/**
