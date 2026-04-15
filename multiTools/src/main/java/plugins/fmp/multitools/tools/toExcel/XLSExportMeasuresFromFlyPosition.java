@@ -17,7 +17,6 @@ import javax.swing.SwingUtilities;
 import org.apache.poi.xssf.streaming.SXSSFRow;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 import org.apache.poi.xssf.streaming.SXSSFWorkbook;
-import org.jfree.data.xy.XYSeries;
 
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
@@ -305,81 +304,6 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	}
 
 	/**
-	 * Converts an XYSeries (time in minutes from start, value) to a Results object
-	 * with binned values indexed by time bin.
-	 * 
-	 * @param exp            The experiment
-	 * @param cage           The cage
-	 * @param series         The XYSeries to convert (X values in minutes from
-	 *                       start)
-	 * @param resultsOptions The export options
-	 * @param resultType     The result type
-	 * @return A Results object with valuesOut array populated
-	 */
-	@Deprecated(forRemoval = false)
-	@SuppressWarnings("unused")
-	private Results convertXYSeriesToResults(Experiment exp, Cage cage, XYSeries series, ResultsOptions resultsOptions,
-			EnumResults resultType) {
-		if (exp == null || cage == null || series == null || resultsOptions == null) {
-			return null;
-		}
-
-		// Build results on the global timeline defined by expAll
-		final long firstAllMs = expAll.getSeqCamData().getFirstImageMs();
-		final long lastAllMs = expAll.getSeqCamData().getLastImageMs();
-		final long buildExcelStepMs = resultsOptions.buildExcelStepMs;
-
-		if (lastAllMs <= firstAllMs || buildExcelStepMs <= 0) {
-			return null;
-		}
-
-		final int nBins = (int) ((lastAllMs - firstAllMs) / buildExcelStepMs) + 1;
-
-		// Create Results object
-		Results results = new Results("Cage_" + cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(),
-				cage.getProperties().getCageID(), 0, resultType);
-		results.initValuesOutArray(nBins, Double.NaN);
-
-		// XYSeries X values are in minutes from experiment start (time 0).
-		// For "relative time" exports (absoluteTime=false), the sheet time axis is also
-		// relative,
-		// so no offset must be applied.
-		// For "absolute time" exports, shift local times onto the expAll absolute
-		// timeline.
-		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllMs) : 0L;
-
-		int nDataPoints = series.getItemCount();
-		if (nDataPoints == 0) {
-			return results;
-		}
-
-		double[] dataTimesMs = new double[nDataPoints];
-		double[] dataValues = new double[nDataPoints];
-		for (int i = 0; i < nDataPoints; i++) {
-			double timeMinutes = series.getX(i).doubleValue();
-			dataTimesMs[i] = expOffsetToAllMs + (timeMinutes * 60.0 * 1000.0);
-			dataValues[i] = series.getY(i).doubleValue();
-		}
-
-		// Interpolation assumes time is monotonic. FlyPosition series can be out of
-		// order
-		// (e.g. when loaded from legacy sources), so we enforce sorting here.
-		sortByTime(dataTimesMs, dataValues);
-
-		// Interpolate onto the global expAll bins. Do not extrapolate outside
-		// [first,last] data points.
-		for (int binIndex = 0; binIndex < nBins; binIndex++) {
-			long binTimeGlobalMs = firstAllMs + (long) binIndex * buildExcelStepMs;
-			double interpolatedValue = linearInterpolateNoExtrapolation(dataTimesMs, dataValues, binTimeGlobalMs);
-			if (!Double.isNaN(interpolatedValue)) {
-				results.getValuesOut()[binIndex] = interpolatedValue;
-			}
-		}
-
-		return results;
-	}
-
-	/**
 	 * Exports cage limits (geometry) to a dedicated worksheet, reusing the same
 	 * encoding as CagesDescription.csv (one row per cage, npoints then
 	 * coordinates), with a leading Cage_ID column matching other fly-position
@@ -396,7 +320,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			SXSSFSheet sheet = workbook.getSheet(title);
 			boolean transpose = options.transpose;
 
-			final String[] fields = new String[] { "Cage_ID", "cageID", "nFlies", "age", "Comment", "strain", "sex",
+			final String[] fields = new String[] { "ExpCage_ID", "cageID", "nFlies", "age", "comment", "strain", "sex",
 					"colorR", "colorG", "colorB", "foodSide", "ROIname", "roiType", "npoints" };
 
 			// Use the same convention as other exporters:
@@ -444,8 +368,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 				int x = nextEntityIndex;
 				int y = 0;
-				String cageIdLabel = (charSeries != null ? charSeries : "") + cage.getProperties().getCageID();
-				XLSUtils.setValue(sheet, x, y++, transpose, cageIdLabel);
+				XLSUtils.setValue(sheet, x, y++, transpose, cage.getExpCageID(charSeries));
 				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getCageID());
 				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getCageNFlies());
 				XLSUtils.setValue(sheet, x, y++, transpose, cage.getProperties().getFlyAge());
@@ -1151,7 +1074,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 */
 	private void writeCagePropertiesForFlyPosition(SXSSFSheet sheet, int x, int y, boolean transpose, Cage cage,
 			String charSeries, int flyId) {
-		String cageId = charSeries + cage.getProperties().getCageID();
+		String cageId = cage.getExpCageID(charSeries);
 		if (flyId >= 0) {
 			cageId = cageId + "_fly" + flyId;
 			XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGEPOS.getValue(), transpose, flyId);

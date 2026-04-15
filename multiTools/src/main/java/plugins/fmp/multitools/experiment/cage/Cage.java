@@ -225,6 +225,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return prop.getCageID();
 	}
 
+	public String getExpCageID(String charSeries) {
+		return (charSeries != null ? (charSeries + "_") : "") + prop.getCageID();
+	}
+
 	public void setCageID(int ID) {
 		prop.setCageID(ID);
 	}
@@ -386,7 +390,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	/**
-	 * All fly rectangles stored for camera frame index {@code t} ({@link FlyPosition#flyIndexT}).
+	 * All fly rectangles stored for camera frame index {@code t}
+	 * ({@link FlyPosition#flyIndexT}).
 	 */
 	public List<ROI2DRectangle> collectRoiRectanglesAtFrameIndexT(int t) {
 		List<ROI2DRectangle> out = new ArrayList<>();
@@ -408,14 +413,18 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return out;
 	}
 
-	/** First rectangle at frame {@code t}, or null. Prefer {@link #collectRoiRectanglesAtFrameIndexT(int)} if multiple flies per frame. */
+	/**
+	 * First rectangle at frame {@code t}, or null. Prefer
+	 * {@link #collectRoiRectanglesAtFrameIndexT(int)} if multiple flies per frame.
+	 */
 	public ROI2DRectangle getRoiRectangleFromPositionAtT(int t) {
 		List<ROI2DRectangle> list = collectRoiRectanglesAtFrameIndexT(t);
 		return list.isEmpty() ? null : list.get(0);
 	}
 
 	/**
-	 * Whether {@code fp} is an unused / missed slot (same notion as {@code Edit#findFirst}).
+	 * Whether {@code fp} is an unused / missed slot (same notion as
+	 * {@code Edit#findFirst}).
 	 */
 	public static boolean isEmptyFlyPositionSlot(FlyPosition fp) {
 		if (fp == null || fp.rectPosition == null)
@@ -426,7 +435,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	/**
-	 * True if {@code (x,y)} lies inside this cage ROI (polygon, rectangle, or bounds fallback).
+	 * True if {@code (x,y)} lies inside this cage ROI (polygon, rectangle, or
+	 * bounds fallback).
 	 */
 	public boolean containsImagePoint(double x, double y) {
 		if (cageROI2D == null)
@@ -447,9 +457,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	/**
-	 * Adds or fills a fly rectangle at frame {@code t}, centered on {@code (cx, cy)}. Uses 10×5 px if
-	 * no valid fly exists at {@code t} in this cage; otherwise copies width/height from the first valid
-	 * fly at {@code t} (same order as {@link #collectRoiRectanglesAtFrameIndexT(int)}).
+	 * Adds or fills a fly rectangle at frame {@code t}, centered on
+	 * {@code (cx, cy)}. Uses 10×5 px if no valid fly exists at {@code t} in this
+	 * cage; otherwise copies width/height from the first valid fly at {@code t}
+	 * (same order as {@link #collectRoiRectanglesAtFrameIndexT(int)}).
 	 */
 	public void addManualFlyAtImageCoordinates(int t, double cx, double cy, long[] camImagesMs) {
 		double w = 10;
@@ -493,8 +504,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	/**
-	 * Removes the {@code collectIdx}-th <em>valid</em> fly at {@code flyIndexT} (same ordering as
-	 * {@link #collectRoiRectanglesAtFrameIndexT(int)}).
+	 * Removes the {@code collectIdx}-th <em>valid</em> fly at {@code flyIndexT}
+	 * (same ordering as {@link #collectRoiRectanglesAtFrameIndexT(int)}).
 	 *
 	 * @return true if a row was removed
 	 */
@@ -517,8 +528,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	/**
-	 * Moves the {@code collectIdx}-th <em>valid</em> fly at frame {@code flyIndexT} to be centered on
-	 * {@code (cx, cy)} and forces its size to {@code (w, h)}.
+	 * Moves the {@code collectIdx}-th <em>valid</em> fly at frame {@code flyIndexT}
+	 * to be centered on {@code (cx, cy)} and forces its size to {@code (w, h)}.
 	 *
 	 * @return true if a fly was found and moved
 	 */
@@ -545,11 +556,12 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	/**
-	 * Adds or fills a fly rectangle at frame {@code t}, centered on {@code (cx, cy)} with the provided
-	 * size {@code (w, h)}. Uses the first empty slot at {@code t} if available; otherwise appends a
-	 * new entry.
+	 * Adds or fills a fly rectangle at frame {@code t}, centered on
+	 * {@code (cx, cy)} with the provided size {@code (w, h)}. Uses the first empty
+	 * slot at {@code t} if available; otherwise appends a new entry.
 	 */
-	public void addManualFlyAtImageCoordinatesWithSize(int t, double cx, double cy, double w, double h, long[] camImagesMs) {
+	public void addManualFlyAtImageCoordinatesWithSize(int t, double cx, double cy, double w, double h,
+			long[] camImagesMs) {
 		double ww = (w > 0) ? w : 10;
 		double hh = (h > 0) ? h : 5;
 		Rectangle2D rect = new Rectangle2D.Double(cx - ww / 2, cy - hh / 2, ww, hh);

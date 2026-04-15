@@ -15,7 +15,7 @@ public class CapillariesDescription {
 	private int pixels = 5;
 	private String sourceName = null;
 
-	private String old_boxID = new String("..");
+	private String old_expID = new String("..");
 	private String old_experiment = new String("..");
 	private String old_comment1 = new String("..");
 	private String old_comment2 = new String("..");
@@ -90,12 +90,12 @@ public class CapillariesDescription {
 		this.sourceName = sourceName;
 	}
 
-	public String getOld_boxID() {
-		return old_boxID;
+	public String getOld_ExpID() {
+		return old_expID;
 	}
 
-	public void setOld_boxID(String old_boxID) {
-		this.old_boxID = old_boxID;
+	public void setOld_expID(String old_boxID) {
+		this.old_expID = old_boxID;
 	}
 
 	public String getOld_experiment() {
@@ -231,7 +231,7 @@ public class CapillariesDescription {
 		XMLUtil.setElementIntValue(xmlVal, ID_DESCNPIXELS, pixels);
 
 		xmlVal = XMLUtil.addElement(xmlElement, ID_EXPERIMENT);
-		XMLUtil.setElementValue(xmlVal, ID_BOXID, old_boxID);
+		XMLUtil.setElementValue(xmlVal, ID_BOXID, old_expID);
 		XMLUtil.setElementValue(xmlVal, ID_EXPT, old_experiment);
 		XMLUtil.setElementValue(xmlVal, ID_COMMENT1, old_comment1);
 		XMLUtil.setElementValue(xmlVal, ID_COMMENT2, old_comment2);
@@ -288,7 +288,7 @@ public class CapillariesDescription {
 
 		xmlVal = XMLUtil.getElement(xmlElement, ID_EXPERIMENT);
 		if (xmlVal != null) {
-			old_boxID = XMLUtil.getAttributeValue(xmlVal, ID_BOXID, ID_NOPE);
+			old_expID = XMLUtil.getAttributeValue(xmlVal, ID_BOXID, ID_NOPE);
 			old_experiment = XMLUtil.getAttributeValue(xmlVal, ID_EXPT, ID_NOPE);
 			old_comment1 = XMLUtil.getAttributeValue(xmlVal, ID_COMMENT1, ID_NOPE);
 			old_comment2 = XMLUtil.getAttributeValue(xmlVal, ID_COMMENT2, ID_NOPE);
@@ -323,7 +323,7 @@ public class CapillariesDescription {
 
 		xmlVal = XMLUtil.getElement(xmlElement, ID_EXPERIMENT);
 		if (xmlVal != null) {
-			old_boxID = XMLUtil.getElementValue(xmlVal, ID_BOXID, ID_NOPE);
+			old_expID = XMLUtil.getElementValue(xmlVal, ID_BOXID, ID_NOPE);
 			old_experiment = XMLUtil.getElementValue(xmlVal, ID_EXPT, ID_NOPE);
 			old_comment1 = XMLUtil.getElementValue(xmlVal, ID_COMMENT1, ID_NOPE);
 			old_comment2 = XMLUtil.getElementValue(xmlVal, ID_COMMENT2, ID_NOPE);
@@ -347,7 +347,7 @@ public class CapillariesDescription {
 	public String csvExportExperimentDescriptors(String sep) {
 		StringBuffer sbf = new StringBuffer();
 		List<String> row3 = Arrays.asList(Integer.toString(grouping), Double.toString(volume), Integer.toString(pixels),
-				stimulusR, concentrationR, stimulusL, concentrationL, old_boxID, old_experiment, old_comment1,
+				stimulusR, concentrationR, stimulusL, concentrationL, old_expID, old_experiment, old_comment1,
 				old_comment2, old_strain, old_sex, old_cond1, old_cond2);
 		sbf.append(String.join(sep, row3));
 		sbf.append("\n");
@@ -370,7 +370,7 @@ public class CapillariesDescription {
 		i++;
 		concentrationL = data[i];
 		i++;
-		old_boxID = data[i];
+		old_expID = data[i];
 		i++;
 		old_experiment = data[i];
 		i++;

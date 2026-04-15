@@ -379,11 +379,11 @@ public class Experiment {
 
 	// ------------------------------ Legacy Metadata Accessors
 
-	public String getBoxID() {
+	public String getExpID() {
 		return prop.field_expID;
 	}
 
-	public void setBoxID(String boxID) {
+	public void setExpID(String boxID) {
 		prop.field_expID = boxID;
 	}
 
@@ -1313,7 +1313,7 @@ public class Experiment {
 			setExperiment(newValue);
 			break;
 		case EXP_ID:
-			setBoxID(newValue);
+			setExpID(newValue);
 			break;
 		case EXP_STRAIN:
 			setStrain(newValue);
@@ -2112,7 +2112,7 @@ public class Experiment {
 		if (prop.field_expID.contentEquals("..") && prop.field_experiment.contentEquals("..")
 				&& prop.field_comment1.contentEquals("..") && prop.field_comment2.contentEquals("..")
 				&& prop.field_sex.contentEquals("..") && prop.field_strain.contentEquals("..")) {
-			prop.field_expID = capillaries.getCapillariesDescription().getOld_boxID();
+			prop.field_expID = capillaries.getCapillariesDescription().getOld_ExpID();
 			prop.field_experiment = capillaries.getCapillariesDescription().getOld_experiment();
 			prop.field_comment1 = capillaries.getCapillariesDescription().getOld_comment1();
 			prop.field_comment2 = capillaries.getCapillariesDescription().getOld_comment2();
@@ -2137,7 +2137,7 @@ public class Experiment {
 
 	private void transferExpDescriptorsToCapillariesDescriptors() {
 		CapillariesDescription desc = capillaries.getCapillariesDescription();
-		desc.setOld_boxID(prop.field_expID);
+		desc.setOld_expID(prop.field_expID);
 		desc.setOld_experiment(prop.field_experiment);
 		desc.setOld_comment1(prop.field_comment1);
 		desc.setOld_comment2(prop.field_comment2);

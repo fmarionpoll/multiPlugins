@@ -30,10 +30,10 @@ public class Move extends JPanel {
 		JPanel panel0 = new JPanel(flowLayout1);
 		panel0.add(xyCenterCheckBox);
 		panel0.add(yVsFoodCheckBox);
+		panel0.add(distanceCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout1);
-		panel1.add(distanceCheckBox);
 		panel1.add(sleepCheckBox);
 		panel1.add(aliveCheckBox);
 		panel1.add(deadEmptyCheckBox);

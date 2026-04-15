@@ -19,7 +19,6 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsCapillaries;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
@@ -118,7 +117,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	}
 
 	/**
-	 * Writes only the COMMON and CAP descriptors for gulp (capillary-based) exports.
+	 * Writes only the COMMON and CAP descriptors for gulp (capillary-based)
+	 * exports.
 	 */
 	@Override
 	protected int writeTopRowDescriptors(SXSSFSheet sheet) {
@@ -374,7 +374,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 * Writes basic file information to the sheet (for gulps).
 	 */
 	private void writeFileInformationForGulp(SXSSFSheet sheet, int x, int y, boolean transpose, Experiment exp) {
-		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across all exports.
+		// Use Experiment's descriptor accessors so PATH/DATE/CAM stay consistent across
+		// all exports.
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.PATH.getValue(), transpose,
 				exp.getExperimentField(EnumXLSColumnHeader.PATH));
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DATE.getValue(), transpose,
@@ -509,7 +510,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			return null;
 		}
 
-		// XYSeries X values are "minutes from experiment start" (t=0 at first valid frame),
+		// XYSeries X values are "minutes from experiment start" (t=0 at first valid
+		// frame),
 		// so all bin times used for interpolation must be RELATIVE (not epoch ms).
 		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
