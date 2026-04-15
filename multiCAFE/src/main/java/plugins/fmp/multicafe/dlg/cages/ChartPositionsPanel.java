@@ -33,6 +33,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	private ChartPositions xpositionsChart = null;
 	private ChartPositions ypositionsChart = null;
 	private ChartPositions distanceChart = null;
+	private ChartPositions distanceFromFoodChart = null;
 	private ChartPositions aliveChart = null;
 	private ChartPositions sleepChart = null;
 	private ChartPositions illumChart = null;
@@ -42,14 +43,18 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	public JCheckBox xCheckbox = new JCheckBox("x position", false);
 	public JCheckBox yCheckbox = new JCheckBox("y position", true);
 	private JCheckBox distanceCheckbox = new JCheckBox("distance t/t+1", false);
+	private JCheckBox distanceFromFoodCheckbox = new JCheckBox("distance from food", false);
+
 	JCheckBox aliveCheckbox = new JCheckBox("fly alive", false);
 	JCheckBox sleepCheckbox = new JCheckBox("sleep", false);
 	JCheckBox illumCheckbox = new JCheckBox("light/dark", false);
 	JSpinner aliveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50.0, 0., 100000., .1));
 	public JButton displayResultsButton = new JButton("Display results");
 
-	// If true, move graphs should follow experiment navigation (when global "graphs"
-	// option is enabled). This is set when the user explicitly displayed graphs once.
+	// If true, move graphs should follow experiment navigation (when global
+	// "graphs"
+	// option is enabled). This is set when the user explicitly displayed graphs
+	// once.
 	private boolean followExperimentNavigation = false;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
@@ -62,6 +67,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		panel1.add(xCheckbox);
 		panel1.add(yCheckbox);
 		panel1.add(distanceCheckbox);
+		panel1.add(distanceFromFoodCheckbox);
 		panel1.add(aliveCheckbox);
 		panel1.add(sleepCheckbox);
 		panel1.add(illumCheckbox);
@@ -134,6 +140,13 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		} else if (distanceChart != null)
 			closeChart(distanceChart);
 
+		if (distanceFromFoodCheckbox.isSelected()) {
+			distanceFromFoodChart = plotYToChart("distance vs food", distanceFromFoodChart, rectv, ptRelative, exp,
+					EnumResults.YVSFOOD);
+			ptRelative.y += deltay;
+		} else if (distanceFromFoodChart != null)
+			closeChart(distanceFromFoodChart);
+
 		if (aliveCheckbox.isSelected()) {
 			double threshold = (double) aliveThresholdSpinner.getValue();
 			for (Cage cage : exp.getCages().getCageList()) {
@@ -190,6 +203,7 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		ypositionsChart = closeChart(ypositionsChart);
 		xpositionsChart = closeChart(xpositionsChart);
 		distanceChart = closeChart(distanceChart);
+		distanceFromFoodChart = closeChart(distanceFromFoodChart);
 		aliveChart = closeChart(aliveChart);
 		sleepChart = closeChart(sleepChart);
 		illumChart = closeChart(illumChart);

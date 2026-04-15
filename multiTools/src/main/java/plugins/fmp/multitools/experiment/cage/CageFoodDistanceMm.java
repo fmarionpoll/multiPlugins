@@ -88,38 +88,42 @@ public final class CageFoodDistanceMm {
 			return legacyAabbDistanceMm(roi, flyCenterPx, mmPerPixelX, mmPerPixelY, foodSide);
 		}
 
-		double e0 = edgeLen(vx, vy, 0, 1);
-		double e1 = edgeLen(vx, vy, 1, 2);
-		double e2 = edgeLen(vx, vy, 2, 3);
-		double e3 = edgeLen(vx, vy, 3, 0);
-		double pairA = (e0 + e2) * 0.5;
-		double pairB = (e1 + e3) * 0.5;
-		boolean shortPairIs02 = pairA <= pairB;
-
-		double mx0 = (vx[0] + vx[1]) * 0.5;
-		double my0 = (vy[0] + vy[1]) * 0.5;
-		double mx1 = (vx[1] + vx[2]) * 0.5;
-		double my1 = (vy[1] + vy[2]) * 0.5;
-		double mx2 = (vx[2] + vx[3]) * 0.5;
-		double my2 = (vy[2] + vy[3]) * 0.5;
-		double mx3 = (vx[3] + vx[0]) * 0.5;
-		double my3 = (vy[3] + vy[0]) * 0.5;
-
-		int topEdge;
-		int bottomEdge;
-		int leftEdge;
-		int rightEdge;
-		if (shortPairIs02) {
-			topEdge = my0 <= my2 ? 0 : 2;
-			bottomEdge = topEdge == 0 ? 2 : 0;
-			leftEdge = mx1 <= mx3 ? 1 : 3;
-			rightEdge = leftEdge == 1 ? 3 : 1;
-		} else {
-			topEdge = my1 <= my3 ? 1 : 3;
-			bottomEdge = topEdge == 1 ? 3 : 1;
-			leftEdge = mx0 <= mx2 ? 0 : 2;
-			rightEdge = leftEdge == 0 ? 2 : 0;
+		// Determine which edges are "horizontal-ish" vs "vertical-ish" using the edge direction
+		// in physical units (mm). This is robust for wide vs tall cages and for rotated quads.
+		double[] midX = new double[4];
+		double[] midY = new double[4];
+		double[] horizScore = new double[4];
+		for (int i = 0; i < 4; i++) {
+			int j = (i + 1) % 4;
+			midX[i] = (vx[i] + vx[j]) * 0.5;
+			midY[i] = (vy[i] + vy[j]) * 0.5;
+			double dxMm = (vx[j] - vx[i]) * mmPerPixelX;
+			double dyMm = (vy[j] - vy[i]) * mmPerPixelY;
+			horizScore[i] = Math.abs(dxMm) - Math.abs(dyMm); // >0 means more horizontal than vertical
 		}
+
+		// Pick the 2 most horizontal edges, the remaining 2 are vertical.
+		int h0 = 0, h1 = 1, h2 = 2, h3 = 3;
+		// Sort indices by horizScore descending (manual 4-item sort to avoid allocations).
+		int[] idx = new int[] { h0, h1, h2, h3 };
+		for (int a = 0; a < idx.length - 1; a++) {
+			for (int b = a + 1; b < idx.length; b++) {
+				if (horizScore[idx[b]] > horizScore[idx[a]]) {
+					int tmp = idx[a];
+					idx[a] = idx[b];
+					idx[b] = tmp;
+				}
+			}
+		}
+		int heA = idx[0];
+		int heB = idx[1];
+		int veA = idx[2];
+		int veB = idx[3];
+
+		int topEdge = midY[heA] <= midY[heB] ? heA : heB;
+		int bottomEdge = topEdge == heA ? heB : heA;
+		int leftEdge = midX[veA] <= midX[veB] ? veA : veB;
+		int rightEdge = leftEdge == veA ? veB : veA;
 
 		int foodEdge = foodSide == FoodSide.TOP ? topEdge
 				: foodSide == FoodSide.BOTTOM ? bottomEdge
