@@ -83,6 +83,7 @@ public class ResultsOptions {
 		this.distance = resultsOptions.distance;
 		this.alive = resultsOptions.alive;
 		this.sleep = resultsOptions.sleep;
+		this.illumPhase = resultsOptions.illumPhase;
 		this.sleepThreshold = resultsOptions.sleepThreshold;
 
 		this.spotAreas = resultsOptions.spotAreas;

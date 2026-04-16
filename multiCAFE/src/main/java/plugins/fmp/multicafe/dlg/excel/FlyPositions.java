@@ -18,6 +18,7 @@ public class FlyPositions extends JPanel {
 	JCheckBox distanceCheckBox = new JCheckBox("distance", false);
 	JCheckBox aliveCheckBox = new JCheckBox("alive", false);
 	JCheckBox sleepCheckBox = new JCheckBox("sleep", false);
+	JCheckBox illumPhaseCheckBox = new JCheckBox("light/dark", false);
 
 	JButton exportToXLSButton = new JButton("save XLS");
 	JCheckBox deadEmptyCheckBox = new JCheckBox("dead=empty");
@@ -31,6 +32,7 @@ public class FlyPositions extends JPanel {
 		panel0.add(xyCenterCheckBox);
 		panel0.add(yVsFoodCheckBox);
 		panel0.add(distanceCheckBox);
+		panel0.add(illumPhaseCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout1);
