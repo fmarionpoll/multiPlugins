@@ -8,7 +8,6 @@ import java.awt.geom.Rectangle2D;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.swing.JOptionPane;
@@ -59,6 +58,9 @@ import plugins.kernel.roi.roi2d.ROI2DRectangle;
  * <li>DISTANCE - Distance between consecutive points</li>
  * <li>ISALIVE - Fly alive status (1=alive, 0=dead)</li>
  * <li>SLEEP - Fly sleep status (1=sleeping, 0=awake)</li>
+ * <li>ILLUM_PHASE and other fly series (except XY rectangle components) are
+ * resampled with the same linear interpolation model as XYIMAGE time bins;
+ * binary measures are rounded to 0/1 after interpolation.</li>
  * </ul>
  * </p>
  * 
@@ -81,6 +83,43 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 
 	private void setNextColumnForSheet(String sheetTitle, int nextCol) {
 		nextColumnBySheet.put(sheetTitle, nextCol);
+	}
+
+	/**
+	 * Timeline for fly-position export bins, aligned with {@link FlyPosition#tMs}
+	 * (relative) or epoch bins when {@code options.absoluteTime} is true — same
+	 * rules as {@link #buildRectComponentResultsForCage}.
+	 */
+	private static final class FlyExportTimeline {
+		final int nBins;
+		final long buildExcelStepMs;
+		final long firstAllEpochMs;
+		final long expOffsetToAllMs;
+
+		private FlyExportTimeline(int nBins, long buildExcelStepMs, long firstAllEpochMs, long expOffsetToAllMs) {
+			this.nBins = nBins;
+			this.buildExcelStepMs = buildExcelStepMs;
+			this.firstAllEpochMs = firstAllEpochMs;
+			this.expOffsetToAllMs = expOffsetToAllMs;
+		}
+	}
+
+	private FlyExportTimeline buildFlyExportTimeline(Experiment exp, ResultsOptions resultsOptions) {
+		long firstAllEpochMs = expAll.getSeqCamData().getFirstImageMs();
+		long lastAllEpochMs = expAll.getSeqCamData().getLastImageMs();
+		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
+		if (lastAllEpochMs <= firstAllEpochMs || buildExcelStepMs <= 0) {
+			return null;
+		}
+		long durationAllMs = lastAllEpochMs - firstAllEpochMs;
+		int nBins = (int) (durationAllMs / buildExcelStepMs) + 1;
+		long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllEpochMs) : 0L;
+		return new FlyExportTimeline(nBins, buildExcelStepMs, firstAllEpochMs, expOffsetToAllMs);
+	}
+
+	private static boolean isBinaryFlyMeasure(EnumResults resultType) {
+		return resultType == EnumResults.ILLUM_PHASE || resultType == EnumResults.ISALIVE
+				|| resultType == EnumResults.SLEEP;
 	}
 
 	/**
@@ -535,25 +574,14 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			return resultsArray;
 		}
 
-		final long firstAllEpochMs = expAll.getSeqCamData().getFirstImageMs();
-		final long lastAllEpochMs = expAll.getSeqCamData().getLastImageMs();
-		final long buildExcelStepMs = resultsOptions.buildExcelStepMs;
-
-		if (lastAllEpochMs <= firstAllEpochMs || buildExcelStepMs <= 0) {
+		FlyExportTimeline tl = buildFlyExportTimeline(exp, resultsOptions);
+		if (tl == null) {
 			return resultsArray;
 		}
-
-		// Binning must be in the same time base as the X values we interpolate against.
-		// - When absoluteTime=false (default in MultiCAFE), FlyPosition.tMs is RELATIVE
-		// (ms since experiment start).
-		// Use relative bins [0..duration].
-		// - When absoluteTime=true, build an epoch-based timeline and convert
-		// FlyPosition.tMs to epoch using
-		// exp.chainImageFirst_ms (epoch of experiment start) then interpolate against
-		// epoch bins.
-		final long durationAllMs = lastAllEpochMs - firstAllEpochMs;
-		final int nBins = (int) (durationAllMs / buildExcelStepMs) + 1;
-		final long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllEpochMs) : 0L;
+		final int nBins = tl.nBins;
+		final long buildExcelStepMs = tl.buildExcelStepMs;
+		final long firstAllEpochMs = tl.firstAllEpochMs;
+		final long expOffsetToAllMs = tl.expOffsetToAllMs;
 		final double sx = flyPositions.getMmPerPixelX();
 		final double sy = flyPositions.getMmPerPixelY();
 
@@ -664,6 +692,10 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		}
 
 		double targetTime = (double) targetTimeMs;
+
+		if (timesMs.length == 1) {
+			return Math.abs(targetTime - timesMs[0]) < 0.5 ? values[0] : Double.NaN;
+		}
 
 		// Do not extrapolate outside the data range
 		if (targetTime < timesMs[0] || targetTime > timesMs[timesMs.length - 1]) {
@@ -823,24 +855,17 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 */
 	public Results getResultsDataValuesFromFlyPositionMeasures(Experiment exp, Cage cage, FlyPositions flyPositions,
 			ResultsOptions resultsOptions, int flyId) {
-		// IMPORTANT:
-		// - FlyPosition.tMs is filled from Experiment.initTmsForFlyPositions(), which
-		// sets tMs as
-		// a RELATIVE time (ms since the first valid camera frame of that experiment).
-		// - SequenceCamData.getFirstImageMs()/getLastImageMs() return epoch ms for real
-		// sequences.
-		// Therefore, binning must be done on a RELATIVE timeline (0..duration) to match
-		// FlyPosition.tMs.
-		long firstImageMs = expAll.getSeqCamData().getFirstImageMs();
-		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
-		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
-
-		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
+		// FlyPosition.tMs is relative (ms since first valid camera frame) unless
+		// options.absoluteTime converts samples to epoch — same convention as
+		// buildRectComponentResultsForCage / XYIMAGE export.
+		FlyExportTimeline tl = buildFlyExportTimeline(exp, resultsOptions);
+		if (tl == null) {
 			return null;
 		}
-
-		long durationMs = lastImageMs - firstImageMs;
-		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
+		final int nBins = tl.nBins;
+		final long buildExcelStepMs = tl.buildExcelStepMs;
+		final long firstAllEpochMs = tl.firstAllEpochMs;
+		final long expOffsetToAllMs = tl.expOffsetToAllMs;
 
 		Results results = new Results("Cage_" + cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(),
 				cage.getProperties().getCageID(), 0, resultsOptions.resultType);
@@ -873,36 +898,49 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 			break;
 		}
 
-		for (int binIndex = 0; binIndex < nBins; binIndex++) {
-			// Relative time bins (ms since experiment start). This matches FlyPosition.tMs.
-			long binTimeMs = (long) binIndex * buildExcelStepMs;
-			long binEndTime = binTimeMs + buildExcelStepMs;
-
-			List<Double> binValues = new java.util.ArrayList<>();
-			for (FlyPosition pos : flyPositions.flyPositionList) {
-				if (pos == null) {
+		final int nMax = flyPositions.flyPositionList.size();
+		double[] timesMs = new double[nMax];
+		double[] values = new double[nMax];
+		int nKept = 0;
+		for (FlyPosition pos : flyPositions.flyPositionList) {
+			if (pos == null) {
+				continue;
+			}
+			if (flyId >= 0) {
+				boolean matches = (pos.flyId == flyId) || (pos.flyId < 0 && flyId == 0);
+				if (!matches) {
 					continue;
 				}
-				if (flyId >= 0) {
-					boolean matches = (pos.flyId == flyId) || (pos.flyId < 0 && flyId == 0);
-					if (!matches) {
-						continue;
-					}
-				}
-				if (pos.tMs >= binTimeMs && pos.tMs < binEndTime) {
-					Double value = extractValueFromFlyPosition(pos, resultType, cage, flyPositions, resultsOptions);
-					if (value != null && !Double.isNaN(value)) {
-						binValues.add(value);
-					}
-				}
 			}
+			double tSample;
+			if (options.absoluteTime) {
+				tSample = (double) (firstAllEpochMs + expOffsetToAllMs + pos.tMs);
+			} else {
+				tSample = (double) pos.tMs;
+			}
+			Double value = extractValueFromFlyPosition(pos, resultType, cage, flyPositions, resultsOptions);
+			if (value == null || Double.isNaN(value)) {
+				continue;
+			}
+			timesMs[nKept] = tSample;
+			values[nKept] = value.doubleValue();
+			nKept++;
+		}
 
-			if (!binValues.isEmpty()) {
-				double sum = 0.0;
-				for (Double val : binValues) {
-					sum += val;
-				}
-				results.getValuesOut()[binIndex] = sum / binValues.size();
+		if (nKept <= 0) {
+			return results;
+		}
+
+		timesMs = Arrays.copyOf(timesMs, nKept);
+		values = Arrays.copyOf(values, nKept);
+		sortByTime(timesMs, values);
+
+		for (int binIndex = 0; binIndex < nBins; binIndex++) {
+			long binTimeGlobalMs = options.absoluteTime ? (firstAllEpochMs + (long) binIndex * buildExcelStepMs)
+					: ((long) binIndex * buildExcelStepMs);
+			double vi = linearInterpolateNoExtrapolation(timesMs, values, binTimeGlobalMs);
+			if (!Double.isNaN(vi)) {
+				results.getValuesOut()[binIndex] = isBinaryFlyMeasure(resultType) ? (vi >= 0.5 ? 1.0 : 0.0) : vi;
 			}
 		}
 
