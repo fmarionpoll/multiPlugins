@@ -6,86 +6,88 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.prefs.Preferences;
 
 /**
  * Single source of truth for choosing which {@code results/bin_xxx}
  * subdirectory an experiment should read from or write into.
- * <p>
- * Replaces the historical patchwork of three independent policies in
- * {@code ExperimentDirectories.getBinSubDirectory...},
- * {@code Experiment.ensureBinDirectoryForLoading} and
- * {@code XLSExport.ensureBinDirectoryIsDefined}.
  *
  * <h3>Policy</h3>
+ * <p>
+ * Each candidate {@code bin_xxx} directory is annotated with a compression
+ * <i>equivalence class</i> derived from its {@link BinDescription}
+ * (loaded from {@code BinDescription.xml}, or inferred from the detected
+ * camera interval and on-disk content if absent). The equivalence key is
+ * the triplet {@code (roundedCameraSec, subsampleFactor, generationMode)}.
+ * Near-duplicate directories (e.g. {@code bin_59} and {@code bin_60} both
+ * coming from a 60 s raw full-resolution kymograph run) share the same key
+ * and are treated together.
+ * </p>
  * <ol>
- * <li>If the detected camera interval and any existing {@code bin_xxx}
- * directory round to the same integer of seconds within a small tolerance
- * (&plusmn;1 s) <b>and</b> only one such match exists, auto-select it.</li>
- * <li>If several {@code bin_xxx} directories match the detected interval,
- * prefer the one that actually contains persisted measures
- * ({@code SpotsMeasures.csv} / {@code CagesMeasures.csv} /
- * {@code CapillariesMeasures.csv}) or a {@code BinDescription.xml};
- * tie-break by last-modified time.</li>
- * <li>If several {@code bin_xxx} directories exist but none matches, prompt
- * the user through a shared {@link ChooseAnalysisIntervalDialog} (with the
- * detected value pre-selected when possible).</li>
- * <li>If no {@code bin_xxx} directory exists yet, return the <b>logical</b>
- * name that would be used on save (derived from the detected interval if
- * known, else {@code null}). The directory is <b>not</b> created on disk.</li>
+ * <li>Restrict to the class matching the current recording (camera interval
+ * + declared generation mode, if any).</li>
+ * <li>Within that class: if exactly one directory contains measures, adopt
+ * it and rename the empty peers in place to
+ * {@code deleted_<name>} (see {@link BinDirectoryScanUtils#DELETED_PREFIX}).</li>
+ * <li>If several directories in that class contain measures, prompt via
+ * {@link ChooseAnalysisIntervalDialog}.</li>
+ * <li>If no directory in that class contains measures, pick the newest.</li>
+ * <li>Classes outside the matching one remain on disk and are still
+ * discoverable via the dialog.</li>
  * </ol>
  *
  * <p>
- * This class is stateless; the only persistent state is a user-preference
- * cache of the last chosen bin (used as a weak tie-break and for
- * remember-for-session semantics).
+ * This class keeps only a session remember-me for series-of-experiments UX
+ * and a user-preference "last choice" for tie-breaking. It does not mutate
+ * on-disk state except for the opt-in cleanup rename.
+ * </p>
  */
 public final class BinDirectoryResolver {
 
 	private static final Preferences PREFS = Preferences.userNodeForPackage(BinDirectoryResolver.class);
 	private static final String PREF_LAST_BIN_SUBDIR = "lastSelectedBinSubDirectory";
+	/** Controls the empty-equivalent rename cleanup: {@code rename} (default) or {@code off}. */
+	public static final String PREF_CLEANUP_MODE = "binAutoCleanupMode";
+	/** First-run info dialog gate. */
+	public static final String PREF_CLEANUP_INFO_SHOWN = "binAutoCleanupInfoShown";
 
-	/** Tolerance (seconds) for considering a bin_xxx directory a "match" of the detected interval. */
-	private static final int MATCH_TOLERANCE_SEC = 1;
+	/** Tolerance (seconds) for considering two camera intervals to be the same class. */
+	private static final int CAM_TOLERANCE_SEC = 1;
 
-	/** Session cache for "Remember for this session" on the chooser dialog. */
 	private static String rememberedBinForSession = null;
 
 	private BinDirectoryResolver() {
 	}
 
-	/**
-	 * Call when closing a series of experiments or when the user closes the
-	 * application; clears the "remember for session" cache.
-	 */
 	public static void clearSessionRemembered() {
 		rememberedBinForSession = null;
 	}
 
-	/**
-	 * Context for a resolution. Fill in what's known; missing values are fine.
-	 */
 	public static final class Context {
 		public String resultsDirectory;
 		public long detectedIntervalMs = -1;
 		public int nominalIntervalSec = -1;
-		/** Optional previously selected bin name (e.g. from expListCombo.expListBinSubDirectory). */
+		/** Declared generation mode of the current run (optional). UNKNOWN = ignore when matching classes. */
+		public GenerationMode generationMode = GenerationMode.UNKNOWN;
 		public String previouslySelected;
-		/** Whether prompting the user is allowed (UI available, not running headless export loop). */
 		public boolean allowPrompt = true;
-		/** Optional parent component for dialogs. */
 		public Component parentForDialog;
-		/** When loading a series, skip prompting after the first decision. */
 		public boolean useSessionRemembered = true;
+		/** Whether the resolver is allowed to rename empty equivalents. */
+		public boolean allowCleanup = true;
 	}
 
 	/**
 	 * Resolves the bin subdirectory to use. Returns {@code null} if nothing
-	 * suitable exists and no target can be derived (e.g. empty results, no
-	 * detection).
+	 * suitable exists and no target can be derived.
 	 */
 	public static String resolve(Context ctx) {
 		if (ctx == null || ctx.resultsDirectory == null)
@@ -94,14 +96,12 @@ public final class BinDirectoryResolver {
 		if (!Files.isDirectory(resultsPath))
 			return deriveNameFromInterval(ctx);
 
-		List<BinCandidate> candidates = scanCandidates(resultsPath);
+		List<BinCandidate> candidates = scanCandidates(resultsPath, ctx.detectedIntervalMs);
 
-		// Honor an explicit previously selected bin if it still exists.
 		if (ctx.previouslySelected != null && containsName(candidates, ctx.previouslySelected)) {
 			return ctx.previouslySelected;
 		}
 
-		// Honor session-remembered selection when asked (series of experiments).
 		if (ctx.useSessionRemembered && rememberedBinForSession != null
 				&& containsName(candidates, rememberedBinForSession)) {
 			return rememberedBinForSession;
@@ -111,55 +111,41 @@ public final class BinDirectoryResolver {
 			return deriveNameFromInterval(ctx);
 		}
 
-		int detectedSec = ctx.detectedIntervalMs > 0 ? (int) Math.round(ctx.detectedIntervalMs / 1000.0)
-				: ctx.nominalIntervalSec;
+		EquivKey targetKey = classifyExpected(ctx);
+		Map<EquivKey, List<BinCandidate>> byClass = groupByEquivalenceClass(candidates);
 
-		// Narrow to matches within tolerance of detected interval.
-		List<BinCandidate> matches = new ArrayList<>();
-		if (detectedSec > 0) {
-			for (BinCandidate c : candidates) {
-				if (Math.abs(c.seconds - detectedSec) <= MATCH_TOLERANCE_SEC) {
-					matches.add(c);
-				}
+		List<BinCandidate> matching = pickMatchingClass(byClass, targetKey);
+
+		if (matching != null && !matching.isEmpty()) {
+			List<BinCandidate> withData = new ArrayList<>();
+			for (BinCandidate c : matching) {
+				if (c.hasMeasures)
+					withData.add(c);
 			}
+			if (withData.size() == 1) {
+				BinCandidate adopted = withData.get(0);
+				maybeUpgradeMetadata(ctx, adopted);
+				maybeCleanupEmptyPeers(ctx, matching, adopted);
+				return adopted.name;
+			}
+			if (withData.isEmpty()) {
+				BinCandidate chosen = pickBest(matching);
+				maybeUpgradeMetadata(ctx, chosen);
+				return chosen.name;
+			}
+			return promptFromClass(ctx, withData, matching);
 		}
 
-		if (matches.size() == 1) {
-			return matches.get(0).name;
-		}
-
-		if (matches.size() > 1) {
-			return pickBest(matches).name;
-		}
-
-		// No match within tolerance.
+		// No candidate matches the detected class. Fallback: behave as before.
 		if (candidates.size() == 1) {
 			return candidates.get(0).name;
 		}
-
-		// Multiple non-matching bins: prompt if possible, else fall back to best.
 		if (ctx.allowPrompt) {
-			Integer detectedForDialog = detectedSec > 0 ? Integer.valueOf(detectedSec) : null;
-			ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, candidates,
-					detectedForDialog, lastPreference());
-			if (r != null && r.chosenBinName != null) {
-				PREFS.put(PREF_LAST_BIN_SUBDIR, r.chosenBinName);
-				if (r.rememberForSession) {
-					rememberedBinForSession = r.chosenBinName;
-				}
-				return r.chosenBinName;
-			}
+			return promptAcrossClasses(ctx, candidates);
 		}
-
-		// Headless / cancel: prefer the one with measures, else most recent.
 		return pickBest(candidates).name;
 	}
 
-	/**
-	 * Returns the directory name that would be used when saving, without
-	 * creating anything on disk. Returns {@code null} when no interval is known
-	 * (caller should defer until detection has run).
-	 */
 	public static String deriveNameFromInterval(Context ctx) {
 		if (ctx == null)
 			return null;
@@ -171,18 +157,25 @@ public final class BinDirectoryResolver {
 	}
 
 	/**
-	 * Scans {@code results/} for immediate children whose name matches
-	 * {@code bin_<integer>}. Returns them sorted by numeric suffix (ascending).
+	 * Scans {@code results/} for immediate {@code bin_<integer>} children,
+	 * skipping any directory whose name begins with
+	 * {@link BinDirectoryScanUtils#DELETED_PREFIX}. Each candidate is
+	 * annotated with its compression-class metadata, either loaded from its
+	 * {@code BinDescription.xml} or inferred from content and
+	 * {@code detectedCameraMs}.
 	 */
-	public static List<BinCandidate> scanCandidates(Path resultsPath) {
+	public static List<BinCandidate> scanCandidates(Path resultsPath, long detectedCameraMs) {
 		List<BinCandidate> out = new ArrayList<>();
 		if (resultsPath == null || !Files.isDirectory(resultsPath))
 			return out;
+		BinDescriptionPersistence persistence = new BinDescriptionPersistence();
 		try {
 			for (Path p : Files.newDirectoryStream(resultsPath)) {
 				if (!Files.isDirectory(p))
 					continue;
 				String name = p.getFileName().toString();
+				if (BinDirectoryScanUtils.isIgnoredDirectoryName(name))
+					continue;
 				if (!name.startsWith(Experiment.BIN))
 					continue;
 				int sec;
@@ -193,18 +186,7 @@ public final class BinDirectoryResolver {
 				}
 				if (sec <= 0)
 					continue;
-				BinCandidate c = new BinCandidate();
-				c.name = name;
-				c.seconds = sec;
-				c.path = p;
-				c.hasMeasures = hasAnyMeasuresFile(p);
-				c.hasBinDescription = Files.exists(p.resolve(BinDescriptionPersistence.ID_V2_BINDESCRIPTION_XML));
-				try {
-					c.lastModifiedMs = Files.getLastModifiedTime(p).toMillis();
-				} catch (IOException e) {
-					c.lastModifiedMs = 0;
-				}
-				out.add(c);
+				out.add(buildCandidate(p, name, sec, persistence, detectedCameraMs));
 			}
 		} catch (IOException e) {
 			// ignore
@@ -213,10 +195,271 @@ public final class BinDirectoryResolver {
 		return out;
 	}
 
-	private static boolean hasAnyMeasuresFile(Path p) {
-		return Files.exists(p.resolve("SpotsMeasures.csv")) || Files.exists(p.resolve("SpotsArrayMeasures.csv"))
-				|| Files.exists(p.resolve("CagesMeasures.csv")) || Files.exists(p.resolve("CapillariesMeasures.csv"))
-				|| Files.exists(p.resolve("CapillariesArrayMeasures.csv"));
+	/** Back-compat overload: scan without a known camera interval. */
+	public static List<BinCandidate> scanCandidates(Path resultsPath) {
+		return scanCandidates(resultsPath, -1);
+	}
+
+	private static BinCandidate buildCandidate(Path dir, String name, int sec,
+			BinDescriptionPersistence persistence, long detectedCameraMs) {
+		BinCandidate c = new BinCandidate();
+		c.name = name;
+		c.seconds = sec;
+		c.path = dir;
+		c.hasMeasures = BinDirectoryScanUtils.hasMeasureContent(dir);
+		c.hasBinDescription = Files.exists(dir.resolve(BinDescriptionPersistence.ID_V2_BINDESCRIPTION_XML));
+		try {
+			c.lastModifiedMs = Files.getLastModifiedTime(dir).toMillis();
+		} catch (IOException e) {
+			c.lastModifiedMs = 0;
+		}
+
+		BinDescription desc = new BinDescription();
+		boolean metadataLoaded = c.hasBinDescription && persistence.load(desc, dir.toString());
+		if (metadataLoaded) {
+			c.cameraIntervalMs = desc.getCameraIntervalMs();
+			c.subsampleFactor = desc.getSubsampleFactor();
+			c.generationMode = desc.getGenerationMode();
+			c.binKymoColMs = desc.getBinKymoColMs();
+			c.nominalIntervalSec = desc.getNominalIntervalSec();
+		} else {
+			c.binKymoColMs = ((long) sec) * 1000L;
+			c.nominalIntervalSec = sec;
+		}
+		if (c.cameraIntervalMs <= 0 && detectedCameraMs > 0) {
+			c.cameraIntervalMs = detectedCameraMs;
+			c.metadataInferred = true;
+		}
+		if (!metadataLoaded || c.subsampleFactor <= 0) {
+			if (c.cameraIntervalMs > 0 && c.binKymoColMs > 0) {
+				c.subsampleFactor = (int) Math.max(1L, Math.round(c.binKymoColMs / (double) c.cameraIntervalMs));
+			} else {
+				c.subsampleFactor = 1;
+			}
+			c.metadataInferred = c.metadataInferred || !metadataLoaded;
+		}
+		if (c.generationMode == null || c.generationMode == GenerationMode.UNKNOWN) {
+			if (BinDirectoryScanUtils.hasKymographFiles(dir)) {
+				c.generationMode = GenerationMode.KYMOGRAPH;
+			} else if (c.hasMeasures) {
+				c.generationMode = GenerationMode.DIRECT_FROM_STACK;
+			} else {
+				c.generationMode = GenerationMode.UNKNOWN;
+			}
+			if (!metadataLoaded)
+				c.metadataInferred = true;
+		}
+		return c;
+	}
+
+	// -------------- equivalence classes --------------
+
+	/** Compact key for "same compression class". */
+	public static final class EquivKey {
+		public final int cameraSec;
+		public final int subsampleFactor;
+		public final GenerationMode mode;
+
+		public EquivKey(int cameraSec, int subsampleFactor, GenerationMode mode) {
+			this.cameraSec = cameraSec;
+			this.subsampleFactor = subsampleFactor;
+			this.mode = mode == null ? GenerationMode.UNKNOWN : mode;
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (!(o instanceof EquivKey))
+				return false;
+			EquivKey other = (EquivKey) o;
+			return cameraSec == other.cameraSec && subsampleFactor == other.subsampleFactor && mode == other.mode;
+		}
+
+		@Override
+		public int hashCode() {
+			return ((cameraSec * 31) + subsampleFactor) * 31 + mode.hashCode();
+		}
+
+		@Override
+		public String toString() {
+			return String.format(Locale.ROOT, "cam%ds_x%d_%s", cameraSec, subsampleFactor, mode);
+		}
+	}
+
+	public static EquivKey equivalenceKey(BinCandidate c) {
+		int camSec = c.cameraIntervalMs > 0 ? (int) Math.round(c.cameraIntervalMs / 1000.0) : -1;
+		int factor = Math.max(1, c.subsampleFactor);
+		return new EquivKey(camSec, factor, c.generationMode == null ? GenerationMode.UNKNOWN : c.generationMode);
+	}
+
+	public static EquivKey classifyExpected(Context ctx) {
+		if (ctx == null)
+			return new EquivKey(-1, 1, GenerationMode.UNKNOWN);
+		int camSec = ctx.detectedIntervalMs > 0 ? (int) Math.round(ctx.detectedIntervalMs / 1000.0) : -1;
+		int factor = 1; // by default we look for full-resolution output of the current recording
+		return new EquivKey(camSec, factor, ctx.generationMode == null ? GenerationMode.UNKNOWN : ctx.generationMode);
+	}
+
+	public static Map<EquivKey, List<BinCandidate>> groupByEquivalenceClass(List<BinCandidate> candidates) {
+		Map<EquivKey, List<BinCandidate>> map = new LinkedHashMap<>();
+		for (BinCandidate c : candidates) {
+			EquivKey k = equivalenceKey(c);
+			map.computeIfAbsent(k, kk -> new ArrayList<>()).add(c);
+		}
+		return map;
+	}
+
+	/**
+	 * Returns the list of candidates whose equivalence class matches {@code target},
+	 * or a merged class when {@code target.mode == UNKNOWN} (i.e. the caller did
+	 * not declare a generation mode; match on cameraSec + factor regardless).
+	 */
+	private static List<BinCandidate> pickMatchingClass(Map<EquivKey, List<BinCandidate>> byClass, EquivKey target) {
+		if (target == null || target.cameraSec <= 0)
+			return null;
+		List<BinCandidate> merged = null;
+		for (Map.Entry<EquivKey, List<BinCandidate>> e : byClass.entrySet()) {
+			EquivKey k = e.getKey();
+			if (Math.abs(k.cameraSec - target.cameraSec) > CAM_TOLERANCE_SEC)
+				continue;
+			if (k.subsampleFactor != target.subsampleFactor)
+				continue;
+			if (target.mode != GenerationMode.UNKNOWN && k.mode != GenerationMode.UNKNOWN
+					&& k.mode != target.mode)
+				continue;
+			if (merged == null)
+				merged = new ArrayList<>();
+			merged.addAll(e.getValue());
+		}
+		return merged;
+	}
+
+	// -------------- metadata upgrade --------------
+
+	/**
+	 * When the adopted candidate's metadata was inferred rather than loaded
+	 * (pre-2.1.0 directory, or XML missing altogether), write a best-effort
+	 * upgraded {@code BinDescription.xml} so that subsequent sessions do not
+	 * have to re-infer. Silent best-effort: failures (read-only mount, etc.)
+	 * are ignored.
+	 */
+	private static void maybeUpgradeMetadata(Context ctx, BinCandidate c) {
+		if (ctx == null || !ctx.allowCleanup)
+			return;
+		if (c == null || c.path == null || !c.metadataInferred)
+			return;
+		if (c.cameraIntervalMs <= 0 || c.binKymoColMs <= 0)
+			return;
+		BinDescription desc = new BinDescription();
+		desc.setBinKymoColMs(c.binKymoColMs);
+		desc.setBinDirectory(c.name);
+		if (c.nominalIntervalSec > 0)
+			desc.setNominalIntervalSec(c.nominalIntervalSec);
+		desc.setCameraIntervalMs(c.cameraIntervalMs);
+		desc.setSubsampleFactor(Math.max(1, c.subsampleFactor));
+		desc.setGenerationMode(c.generationMode == null ? GenerationMode.UNKNOWN : c.generationMode);
+		desc.setMeasuresPresent(c.hasMeasures);
+		new BinDescriptionPersistence().save(desc, c.path.toString());
+	}
+
+	// -------------- cleanup --------------
+
+	private static void maybeCleanupEmptyPeers(Context ctx, List<BinCandidate> matching, BinCandidate adopted) {
+		if (ctx == null || !ctx.allowCleanup)
+			return;
+		String mode = PREFS.get(PREF_CLEANUP_MODE, "rename");
+		if (!"rename".equalsIgnoreCase(mode))
+			return;
+		List<BinCandidate> toRename = new ArrayList<>();
+		for (BinCandidate c : matching) {
+			if (c == adopted)
+				continue;
+			if (c.hasMeasures)
+				continue;
+			toRename.add(c);
+		}
+		if (toRename.isEmpty())
+			return;
+		maybeShowFirstRunInfo(ctx, toRename);
+		for (BinCandidate c : toRename) {
+			renameToDeleted(c.path);
+		}
+	}
+
+	private static void maybeShowFirstRunInfo(Context ctx, List<BinCandidate> toRename) {
+		boolean shown = PREFS.getBoolean(PREF_CLEANUP_INFO_SHOWN, false);
+		if (shown || ctx == null || !ctx.allowPrompt || ctx.parentForDialog == null)
+			return;
+		StringBuilder sb = new StringBuilder();
+		sb.append("Some empty sibling directories looked like duplicates of the one just selected ");
+		sb.append("and will be renamed (not deleted):\n\n");
+		for (BinCandidate c : toRename)
+			sb.append("  ").append(c.name).append("  \u2192  ")
+					.append(BinDirectoryScanUtils.DELETED_PREFIX).append(c.name).append('\n');
+		sb.append("\nThey stay next to the data; search for \"")
+				.append(BinDirectoryScanUtils.DELETED_PREFIX)
+				.append("*\" to purge them manually later.\n");
+		sb.append("You can turn this off by setting preference \"" + PREF_CLEANUP_MODE + "\" to \"off\".");
+		javax.swing.JOptionPane.showMessageDialog(ctx.parentForDialog, sb.toString(),
+				"Cleanup of near-duplicate bin directories", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+		PREFS.putBoolean(PREF_CLEANUP_INFO_SHOWN, true);
+	}
+
+	private static void renameToDeleted(Path dir) {
+		if (dir == null)
+			return;
+		String original = dir.getFileName().toString();
+		String target = BinDirectoryScanUtils.DELETED_PREFIX + original;
+		Path parent = dir.getParent();
+		Path targetPath = parent.resolve(target);
+		if (Files.exists(targetPath)) {
+			SimpleDateFormat fmt = new SimpleDateFormat("yyyyMMdd'T'HHmm");
+			target = target + "_" + fmt.format(new Date());
+			targetPath = parent.resolve(target);
+			int n = 1;
+			while (Files.exists(targetPath) && n < 100) {
+				targetPath = parent.resolve(target + "_" + n);
+				n++;
+			}
+		}
+		try {
+			Files.move(dir, targetPath);
+		} catch (IOException ignored) {
+			// best-effort; a locked directory simply stays as-is
+		}
+	}
+
+	// -------------- prompting --------------
+
+	private static String promptFromClass(Context ctx, List<BinCandidate> withData, List<BinCandidate> sameClass) {
+		if (!ctx.allowPrompt)
+			return pickBest(withData).name;
+		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
+				ctx.detectedIntervalMs / 1000.0)) : null;
+		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, withData,
+				detectedForDialog, lastPreference());
+		if (r != null && r.chosenBinName != null) {
+			PREFS.put(PREF_LAST_BIN_SUBDIR, r.chosenBinName);
+			if (r.rememberForSession) {
+				rememberedBinForSession = r.chosenBinName;
+			}
+			return r.chosenBinName;
+		}
+		return pickBest(withData).name;
+	}
+
+	private static String promptAcrossClasses(Context ctx, List<BinCandidate> candidates) {
+		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
+				ctx.detectedIntervalMs / 1000.0)) : null;
+		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, candidates,
+				detectedForDialog, lastPreference());
+		if (r != null && r.chosenBinName != null) {
+			PREFS.put(PREF_LAST_BIN_SUBDIR, r.chosenBinName);
+			if (r.rememberForSession) {
+				rememberedBinForSession = r.chosenBinName;
+			}
+			return r.chosenBinName;
+		}
+		return pickBest(candidates).name;
 	}
 
 	private static BinCandidate pickBest(List<BinCandidate> list) {
@@ -253,7 +496,7 @@ public final class BinDirectoryResolver {
 		return PREFS.get(PREF_LAST_BIN_SUBDIR, null);
 	}
 
-	/** Simple descriptor of a {@code results/bin_xxx} candidate directory. */
+	/** Descriptor of a {@code results/bin_xxx} candidate annotated with class metadata. */
 	public static final class BinCandidate {
 		public String name;
 		public int seconds;
@@ -261,6 +504,13 @@ public final class BinDirectoryResolver {
 		public boolean hasMeasures;
 		public boolean hasBinDescription;
 		public long lastModifiedMs;
+		public long cameraIntervalMs = -1;
+		public int subsampleFactor = 1;
+		public GenerationMode generationMode = GenerationMode.UNKNOWN;
+		public long binKymoColMs = -1;
+		public int nominalIntervalSec = -1;
+		/** True when class metadata was not loaded from XML but inferred from content. */
+		public boolean metadataInferred = false;
 
 		public File toFile() {
 			return path != null ? path.toFile() : null;

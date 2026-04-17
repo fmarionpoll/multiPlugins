@@ -123,7 +123,7 @@ public class KymographBuilder {
 		if (options.doCreateBinDir) {
 			String binDir = exp.getBinNameFromKymoFrameStep();
 			exp.setBinSubDirectory(binDir);
-			// Save bin description with current parameters
+			exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.KYMOGRAPH);
 			exp.saveBinDescription(binDir);
 		}
 

@@ -36,6 +36,7 @@ public class LevelDetectorFromCam {
 		Capillaries capillaries = exp.getCapillaries();
 		if (capillaries == null || capillaries.getList().isEmpty())
 			return;
+		exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.DIRECT_FROM_STACK);
 		Collections.sort(capillaries.getList(), new Comparators.Capillary_ROIName());
 
 		int nCamFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();

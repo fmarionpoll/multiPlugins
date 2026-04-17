@@ -36,6 +36,7 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 		if (spots == null || spots.isSpotListEmpty())
 			return;
 
+		exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.DIRECT_FROM_STACK);
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		if (seqCamData == null || seqCamData.getImageLoader() == null)
 			return;

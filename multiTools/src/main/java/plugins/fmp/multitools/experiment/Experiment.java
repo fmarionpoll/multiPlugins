@@ -735,6 +735,25 @@ public class Experiment {
 			activeBinDescription.setNominalIntervalSec(nominalSec);
 	}
 
+	/**
+	 * Returns the generation mode of the currently active bin directory
+	 * (how its measures were produced). Never returns null.
+	 */
+	public GenerationMode getGenerationMode() {
+		return activeBinDescription != null ? activeBinDescription.getGenerationMode() : GenerationMode.UNKNOWN;
+	}
+
+	/**
+	 * Sets the generation mode to be recorded the next time bin description is
+	 * saved. Plugins should call this before triggering a kymograph build or a
+	 * direct-from-stack measure so that the resulting bin_xxx directory carries
+	 * the correct metadata.
+	 */
+	public void setGenerationMode(GenerationMode mode) {
+		if (activeBinDescription != null)
+			activeBinDescription.setGenerationMode(mode);
+	}
+
 	public long[] build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(long firstImage_ms) {
 		return timeManager.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(seqCamData, firstImage_ms);
 	}
@@ -1838,6 +1857,7 @@ public class Experiment {
 		// would be surprising. A conscious choice is made at load time (see
 		// LoadSaveExperiment.selectBinDirectory).
 		ctx.allowPrompt = false;
+		ctx.allowCleanup = false;
 		ctx.previouslySelected = binDirectory;
 
 		String resolved = BinDirectoryResolver.resolve(ctx);
@@ -1980,8 +2000,16 @@ public class Experiment {
 		activeBinDescription.setLastKymoColMs(getKymoLast_ms());
 		activeBinDescription.setBinKymoColMs(kymoBinMs);
 		activeBinDescription.setBinDirectory(binSubDirectory);
-
+		long camIntervalMs = timeManager.getCamImageBin_ms();
+		if (camIntervalMs > 0) {
+			activeBinDescription.setCameraIntervalMs(camIntervalMs);
+			int factor = (int) Math.max(1L, Math.round(kymoBinMs / (double) camIntervalMs));
+			activeBinDescription.setSubsampleFactor(factor);
+		}
+		// generationMode is set by the pipeline (kymograph builder / direct-from-cam
+		// detector) before calling saveBinDescription; leave as-is otherwise.
 		String binFullDir = resultsDirectory + File.separator + binSubDirectory;
+		activeBinDescription.setMeasuresPresent(BinDirectoryScanUtils.hasMeasureContent(binFullDir));
 		return binDescriptionPersistence.save(activeBinDescription, binFullDir);
 	}
 

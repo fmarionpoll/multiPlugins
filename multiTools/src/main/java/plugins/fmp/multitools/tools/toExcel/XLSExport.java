@@ -196,8 +196,10 @@ public abstract class XLSExport {
 		ctx.resultsDirectory = exp.getResultsDirectory();
 		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
 		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
-		// Excel export is a long-running batch operation; no dialog prompts here.
+		// Excel export is a long-running batch operation; no dialog prompts and no
+		// destructive cleanup on the user's data either.
 		ctx.allowPrompt = false;
+		ctx.allowCleanup = false;
 		String resolved = plugins.fmp.multitools.experiment.BinDirectoryResolver.resolve(ctx);
 		if (resolved != null) {
 			exp.setBinSubDirectory(resolved);

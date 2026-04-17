@@ -8,6 +8,29 @@ public class BinDescription {
 	/** User-confirmed nominal interval in seconds for bin directory naming; -1 if not set (derive from binKymoColMs). */
 	private int nominalIntervalSec = -1;
 
+	/**
+	 * Median raw camera inter-frame interval in ms (i.e. the acquisition rate).
+	 * -1 if unknown / not yet measured. Kept separate from {@link #binKymoColMs}
+	 * so that subsampling can be distinguished from pure raw storage.
+	 */
+	private long cameraIntervalMs = -1;
+
+	/**
+	 * Integer subsample factor: 1 = every frame kept, 3 = every 3rd frame kept, etc.
+	 * Defined as max(1, round(binKymoColMs / cameraIntervalMs)). 1 when the camera
+	 * interval is unknown.
+	 */
+	private int subsampleFactor = 1;
+
+	/** How the measures in the directory were produced. */
+	private GenerationMode generationMode = GenerationMode.UNKNOWN;
+
+	/**
+	 * Cheap sanity flag: whether measure files were present last time the directory
+	 * was scanned or saved. Not authoritative - the resolver rescans when deciding.
+	 */
+	private boolean measuresPresent = false;
+
 	public BinDescription() {
 	}
 
@@ -62,6 +85,48 @@ public class BinDescription {
 		this.nominalIntervalSec = nominalIntervalSec;
 	}
 
+	public long getCameraIntervalMs() {
+		return cameraIntervalMs;
+	}
+
+	public void setCameraIntervalMs(long cameraIntervalMs) {
+		this.cameraIntervalMs = cameraIntervalMs;
+	}
+
+	public int getSubsampleFactor() {
+		return subsampleFactor;
+	}
+
+	public void setSubsampleFactor(int subsampleFactor) {
+		this.subsampleFactor = Math.max(1, subsampleFactor);
+	}
+
+	public GenerationMode getGenerationMode() {
+		return generationMode == null ? GenerationMode.UNKNOWN : generationMode;
+	}
+
+	public void setGenerationMode(GenerationMode generationMode) {
+		this.generationMode = generationMode == null ? GenerationMode.UNKNOWN : generationMode;
+	}
+
+	public boolean isMeasuresPresent() {
+		return measuresPresent;
+	}
+
+	public void setMeasuresPresent(boolean measuresPresent) {
+		this.measuresPresent = measuresPresent;
+	}
+
+	/**
+	 * Effective interval per sample in ms, i.e. {@code cameraIntervalMs * subsampleFactor}
+	 * when both are known, otherwise falls back to {@link #binKymoColMs}.
+	 */
+	public long getEffectiveIntervalMs() {
+		if (cameraIntervalMs > 0 && subsampleFactor > 0)
+			return cameraIntervalMs * subsampleFactor;
+		return binKymoColMs;
+	}
+
 	public void copyFrom(BinDescription other) {
 		if (other != null) {
 			this.firstKymoColMs = other.firstKymoColMs;
@@ -69,6 +134,10 @@ public class BinDescription {
 			this.binKymoColMs = other.binKymoColMs;
 			this.binDirectory = other.binDirectory;
 			this.nominalIntervalSec = other.nominalIntervalSec;
+			this.cameraIntervalMs = other.cameraIntervalMs;
+			this.subsampleFactor = other.subsampleFactor;
+			this.generationMode = other.generationMode;
+			this.measuresPresent = other.measuresPresent;
 		}
 	}
 

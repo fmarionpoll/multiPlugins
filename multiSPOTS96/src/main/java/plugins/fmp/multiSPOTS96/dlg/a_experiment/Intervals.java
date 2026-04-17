@@ -25,6 +25,7 @@ import icy.gui.viewer.Viewer;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.GenerationMode;
 import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
@@ -51,6 +52,7 @@ public class Intervals extends JPanel implements ItemListener {
 	JButton applyButton = new JButton("Apply changes");
 	JButton refreshButton = new JButton("Refresh");
 	private JLabel analysisIntervalLabel = new JLabel("Analysis interval: \u2014");
+	private JLabel classSummaryLabel = new JLabel(" ");
 	private JButton advancedToggleButton = new JButton("Advanced...");
 	private JPanel advancedPanel = new JPanel();
 	private MultiSPOTS96 parent0 = null;
@@ -90,6 +92,7 @@ public class Intervals extends JPanel implements ItemListener {
 		advancedPanel.add(binUnit);
 		advancedPanel.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
 		advancedPanel.add(nominalIntervalJSpinner);
+		advancedPanel.add(classSummaryLabel);
 		advancedPanel.setVisible(false);
 		add(advancedPanel);
 
@@ -271,6 +274,27 @@ public class Intervals extends JPanel implements ItemListener {
 			}
 		}
 		updateAnalysisIntervalLabel(exp, bin_ms);
+		updateClassSummaryLabel(exp, bin_ms);
+	}
+
+	private void updateClassSummaryLabel(Experiment exp, long bin_ms) {
+		if (exp == null) {
+			classSummaryLabel.setText(" ");
+			return;
+		}
+		long camMs = exp.getCamImageBin_ms();
+		if (camMs <= 0)
+			camMs = bin_ms;
+		long effectiveMs = bin_ms > 0 ? bin_ms : camMs;
+		int factor = 1;
+		if (camMs > 0 && effectiveMs > 0)
+			factor = (int) Math.max(1L, Math.round(effectiveMs / (double) camMs));
+		GenerationMode mode = exp.getGenerationMode();
+		if (mode == GenerationMode.UNKNOWN)
+			mode = GenerationMode.DIRECT_FROM_STACK; // multiSPOTS96 always direct
+		String modeText = mode == GenerationMode.KYMOGRAPH ? "kymograph" : "direct";
+		int effSec = (int) Math.round(effectiveMs / 1000.0);
+		classSummaryLabel.setText(String.format("  Class: factor %dx, %s, ~%d s/sample", factor, modeText, effSec));
 	}
 
 	private void updateAnalysisIntervalLabel(Experiment exp, long bin_ms) {

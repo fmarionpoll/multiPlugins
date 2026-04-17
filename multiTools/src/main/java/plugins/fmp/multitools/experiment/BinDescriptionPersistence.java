@@ -10,11 +10,17 @@ import icy.util.XMLUtil;
 public class BinDescriptionPersistence {
 
 	private final static String ID_VERSION = "version";
-	private final static String ID_VERSIONNUM = "2.0.0";
+	private final static String ID_VERSIONNUM = "2.1.0";
+	/** Older schema still readable. */
+	private final static String ID_VERSIONNUM_V2_0 = "2.0.0";
 	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
 	private final static String ID_LASTKYMOCOLMS = "lastKymoColMs";
 	private final static String ID_BINKYMOCOLMS = "binKymoColMs";
 	private final static String ID_NOMINALINTERVALSEC = "nominalIntervalSec";
+	private final static String ID_CAMERAINTERVALMS = "cameraIntervalMs";
+	private final static String ID_SUBSAMPLEFACTOR = "subsampleFactor";
+	private final static String ID_GENERATIONMODE = "generationMode";
+	private final static String ID_MEASURESPRESENT = "measuresPresent";
 	private final static String ID_BINDESCRIPTION = "binDescription";
 
 	public final static String ID_V2_BINDESCRIPTION_XML = "BinDescription.xml";
@@ -91,13 +97,17 @@ public class BinDescriptionPersistence {
 			return false;
 
 		String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
-		if (!version.equals(ID_VERSIONNUM))
+		if (!version.equals(ID_VERSIONNUM) && !version.equals(ID_VERSIONNUM_V2_0))
 			return false;
 
 		long firstKymoColMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
 		long lastKymoColMs = XMLUtil.getElementLongValue(node, ID_LASTKYMOCOLMS, -1);
 		long binKymoColMs = XMLUtil.getElementLongValue(node, ID_BINKYMOCOLMS, -1);
 		int nominalIntervalSec = XMLUtil.getElementIntValue(node, ID_NOMINALINTERVALSEC, -1);
+		long cameraIntervalMs = XMLUtil.getElementLongValue(node, ID_CAMERAINTERVALMS, -1);
+		int subsampleFactor = XMLUtil.getElementIntValue(node, ID_SUBSAMPLEFACTOR, -1);
+		String generationModeStr = XMLUtil.getElementValue(node, ID_GENERATIONMODE, null);
+		boolean measuresPresent = XMLUtil.getElementBooleanValue(node, ID_MEASURESPRESENT, false);
 
 		if (firstKymoColMs >= 0)
 			binDescription.setFirstKymoColMs(firstKymoColMs);
@@ -107,6 +117,13 @@ public class BinDescriptionPersistence {
 			binDescription.setBinKymoColMs(binKymoColMs);
 		if (nominalIntervalSec >= 0)
 			binDescription.setNominalIntervalSec(nominalIntervalSec);
+		if (cameraIntervalMs >= 0)
+			binDescription.setCameraIntervalMs(cameraIntervalMs);
+		if (subsampleFactor >= 1)
+			binDescription.setSubsampleFactor(subsampleFactor);
+		if (generationModeStr != null && !generationModeStr.isEmpty())
+			binDescription.setGenerationMode(GenerationMode.fromString(generationModeStr));
+		binDescription.setMeasuresPresent(measuresPresent);
 
 		return true;
 	}
@@ -125,6 +142,11 @@ public class BinDescriptionPersistence {
 			XMLUtil.setElementLongValue(node, ID_BINKYMOCOLMS, binDescription.getBinKymoColMs());
 			if (binDescription.getNominalIntervalSec() >= 0)
 				XMLUtil.setElementIntValue(node, ID_NOMINALINTERVALSEC, binDescription.getNominalIntervalSec());
+			if (binDescription.getCameraIntervalMs() >= 0)
+				XMLUtil.setElementLongValue(node, ID_CAMERAINTERVALMS, binDescription.getCameraIntervalMs());
+			XMLUtil.setElementIntValue(node, ID_SUBSAMPLEFACTOR, binDescription.getSubsampleFactor());
+			XMLUtil.setElementValue(node, ID_GENERATIONMODE, binDescription.getGenerationMode().name());
+			XMLUtil.setElementBooleanValue(node, ID_MEASURESPRESENT, binDescription.isMeasuresPresent());
 
 			XMLUtil.saveDocument(doc, csFileName);
 			return true;
