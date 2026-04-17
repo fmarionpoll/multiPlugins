@@ -22,16 +22,16 @@ import javax.swing.event.ChangeListener;
 import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
+import icy.canvas.IcyCanvas;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
+import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D3TransformsCompat;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.series.FlyDetect2;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 public class Detect2Flies extends JPanel implements ChangeListener, PropertyChangeListener, PopupMenuListener {
@@ -191,22 +191,18 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	void viewDifference(Experiment exp, boolean display) {
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-				.getCanvas();
+		IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
 		ImageTransformEnums[] imageTransformStep1 = new ImageTransformEnums[] { ImageTransformEnums.NONE,
 				ImageTransformEnums.SUBTRACT_REF };
-		CanvasImageTransformOptions optionsStep1 = canvas.getOptionsStep1();
-
-		optionsStep1.backgroundImage = null;
 		int index = 0;
 		if (display) {
 			if (exp.getSeqCamData().getReferenceImage() == null) {
 				new SequenceLoaderService().loadReferenceImage(exp);
 			}
-			optionsStep1.backgroundImage = exp.getSeqCamData().getReferenceImage();
+			Canvas2D3TransformsCompat.setReferenceImage(canvas, exp.getSeqCamData().getReferenceImage());
 			index = 1;
 		}
-		canvas.setTransformStep1(imageTransformStep1[index], optionsStep1);
+		Canvas2D3TransformsCompat.setTransformStep1(canvas, imageTransformStep1[index], null);
 	}
 
 	private BuildSeriesOptions initTrackParameters(Experiment exp) {

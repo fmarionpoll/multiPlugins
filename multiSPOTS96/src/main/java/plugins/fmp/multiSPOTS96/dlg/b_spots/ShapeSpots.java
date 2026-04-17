@@ -21,13 +21,14 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.canvas.IcyCanvas;
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import plugins.adufour.quickhull.QuickHull2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
+import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D3TransformsCompat;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -123,13 +124,12 @@ public class ShapeSpots extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
-					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence()
-							.getFirstViewer().getCanvas();
 					updateTransformFunctionsOfCanvas(exp);
 					if (!spotsViewButton.isSelected()) {
 						spotsViewButton.setSelected(true);
 					}
-					canvas.setTransformStep1Index(index + 1);
+					IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+					Canvas2D3TransformsCompat.setTransformStep1Index(canvas, index + 1);
 					updateOverlayThreshold();
 				}
 			}
@@ -256,21 +256,18 @@ public class ShapeSpots extends JPanel {
 		} else {
 			removeOverlay(exp);
 			spotsOverlayCheckBox.setSelected(false);
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-					.getCanvas();
-			canvas.setTransformStep1Index(0);
+			IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+			Canvas2D3TransformsCompat.setTransformStep1Index(canvas, 0);
 		}
 		spotsOverlayCheckBox.setEnabled(displayCheckOverlay);
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp) {
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-				.getCanvas();
-		if (canvas.getTransformStep1ItemCount() < (spotsTransformsComboBox.getItemCount() + 1)) {
-			canvas.updateTransformsStep1(transforms);
-		}
+		IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+		if (Canvas2D3TransformsCompat.getTransformStep1ItemCount(canvas) < (spotsTransformsComboBox.getItemCount() + 1))
+			Canvas2D3TransformsCompat.updateTransformsStep1(canvas, transforms);
 		int index = spotsTransformsComboBox.getSelectedIndex();
-		canvas.setTransformStep1(index + 1, null);
+		Canvas2D3TransformsCompat.setTransformStep1(canvas, index + 1, null);
 	}
 
 	private void detectContours(Experiment exp) {

@@ -21,11 +21,12 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D_3Transforms;
+import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D3TransformsCompat;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildSpotsMeasuresLight;
@@ -150,12 +151,11 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && fliesViewButton.isSelected()) {
 					int index = fliesTransformsComboBox.getSelectedIndex();
-					Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence()
-							.getFirstViewer().getCanvas();
+					IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
 					updateTransformFunctions2OfCanvas(canvas);
 					if (!fliesViewButton.isSelected())
 						fliesViewButton.setSelected(true);
-					canvas.setTransformStep1Index(index + 1);
+					Canvas2D3TransformsCompat.setTransformStep1Index(canvas, index + 1);
 					updateOverlaysThreshold();
 				}
 			}
@@ -407,15 +407,13 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 
 	private void displayTransform2(Experiment exp) {
 		if (fliesViewButton.isSelected()) {
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-					.getCanvas();
+			IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
 			updateTransformFunctions2OfCanvas(canvas);
 		} else {
 			removeOurOverlay(exp);
 			removeOverlays(exp);
-			Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
-					.getCanvas();
-			canvas.setTransformStep1Index(0);
+			IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+			Canvas2D3TransformsCompat.setTransformStep1Index(canvas, 0);
 		}
 	}
 
@@ -436,9 +434,9 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		Viewer v = sequence.getFirstViewer();
 		if (v == null)
 			return;
-		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) v.getCanvas();
+		IcyCanvas canvas = v.getCanvas();
 		updateTransformFunctions1OfCanvas(canvas);
-		canvas.setTransformStep1Index(index + 1);
+		Canvas2D3TransformsCompat.setTransformStep1Index(canvas, index + 1);
 	}
 
 	private void displayTransform1(Experiment exp) {
@@ -448,20 +446,18 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		updateCanvasFunctions(exp, index);
 	}
 
-	private void updateTransformFunctions1OfCanvas(Canvas2D_3Transforms canvas) {
-		if (canvas.getTransformStep1ItemCount() < (spotsTransformsComboBox.getItemCount() + 1)) {
-			canvas.updateTransformsStep1(transforms);
-		}
+	private void updateTransformFunctions1OfCanvas(IcyCanvas canvas) {
+		if (Canvas2D3TransformsCompat.getTransformStep1ItemCount(canvas) < (spotsTransformsComboBox.getItemCount() + 1))
+			Canvas2D3TransformsCompat.updateTransformsStep1(canvas, transforms);
 		int index = spotsTransformsComboBox.getSelectedIndex();
-		canvas.setTransformStep1(index + 1, null);
+		Canvas2D3TransformsCompat.setTransformStep1(canvas, index + 1, null);
 	}
 
-	private void updateTransformFunctions2OfCanvas(Canvas2D_3Transforms canvas) {
-		if (canvas.getTransformStep1ItemCount() < (fliesDirectionComboBox.getItemCount() + 1)) {
-			canvas.updateTransformsStep1(transforms);
-		}
+	private void updateTransformFunctions2OfCanvas(IcyCanvas canvas) {
+		if (Canvas2D3TransformsCompat.getTransformStep1ItemCount(canvas) < (fliesDirectionComboBox.getItemCount() + 1))
+			Canvas2D3TransformsCompat.updateTransformsStep1(canvas, transforms);
 		int index = fliesDirectionComboBox.getSelectedIndex();
-		canvas.setTransformStep1(index + 1, null);
+		Canvas2D3TransformsCompat.setTransformStep1(canvas, index + 1, null);
 	}
 
 	@Override
