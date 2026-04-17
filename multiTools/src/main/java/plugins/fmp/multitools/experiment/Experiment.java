@@ -1860,10 +1860,46 @@ public class Experiment {
 				if (preferredByMs != null && name.equals(preferredByMs))
 					score += 500_000;
 
-				// Slight preference for directories that contain a BinDescription.xml.
+				// Strong preference for directories that actually contain persisted measures.
+				// This avoids selecting an "empty" bin directory created during interval probing.
+				boolean hasMeasures = false;
+				if (Files.exists(p.resolve("SpotsMeasures.csv")) || Files.exists(p.resolve("SpotsArrayMeasures.csv"))) {
+					hasMeasures = true;
+				}
+				if (Files.exists(p.resolve("CagesMeasures.csv"))) {
+					hasMeasures = true;
+				}
+				if (Files.exists(p.resolve("CapillariesMeasures.csv")) || Files.exists(p.resolve("CapillariesArrayMeasures.csv"))) {
+					hasMeasures = true;
+				}
+				if (hasMeasures) {
+					score += 2_000_000;
+				}
+
+				// Preference for directories that contain a BinDescription.xml.
 				Path binDesc = p.resolve(BinDescriptionPersistence.ID_V2_BINDESCRIPTION_XML);
-				if (Files.exists(binDesc))
+				if (Files.exists(binDesc)) {
 					score += 10_000;
+					// If nominal interval is unknown at this stage, use BinDescription.xml
+					// to better rank bins (e.g. prefer bin_20 over default bin_60).
+					try {
+						BinDescription tmp = new BinDescription();
+						boolean loaded = binDescriptionPersistence.load(tmp, p.toString());
+						if (loaded) {
+							int nominalFromFile = tmp.getNominalIntervalSec();
+							if (nominal <= 0 && nominalFromFile > 0) {
+								// Prefer bins whose description nominal matches their directory name.
+								if (nominalFromFile == parsed) {
+									score += 200_000;
+								}
+							} else if (nominalFromFile > 0 && nominalFromFile == nominal) {
+								score += 200_000;
+							}
+						}
+					} catch (Exception e) {
+						// ignore: scoring only
+					}
+				}
 
 				long modified;
 				try {
