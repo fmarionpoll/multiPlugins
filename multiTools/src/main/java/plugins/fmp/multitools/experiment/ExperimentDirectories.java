@@ -186,38 +186,51 @@ public class ExperimentDirectories {
 	}
 
 	private String getBinSubDirectoryFromTIFFLocation(String expListBinSubDirectory, String resultsDirectory) {
-		List<String> expList = Directories.getSortedListOfSubDirectoriesWithTIFF(resultsDirectory);
-		if (expList == null) {
-			expList = new ArrayList<String>();
-		} else {
-			expList.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
+		move_TIFFandLINEfiles_From_Results_to_BinDirectory(resultsDirectory);
+
+		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
+		ctx.resultsDirectory = resultsDirectory;
+		ctx.previouslySelected = expListBinSubDirectory;
+		ctx.allowPrompt = true;
+		String binDirectory = BinDirectoryResolver.resolve(ctx);
+
+		if (binDirectory != null) {
+			move_XML_From_Bin_to_Results(binDirectory, resultsDirectory);
 		}
-		move_TIFFandLINEfiles_From_Results_to_BinDirectory(resultsDirectory, expList);
-		String binDirectory = expListBinSubDirectory;
-		if (binDirectory == null) {
-			if (expList.size() > 1) {
-				if (expListBinSubDirectory == null)
-					binDirectory = selectSubDirDialog(expList, "Select item", Experiment.BIN, false);
-			} else if (expList.size() == 1) {
-				binDirectory = expList.get(0).toLowerCase();
-				if (!binDirectory.contains(Experiment.BIN))
-					binDirectory = Experiment.BIN + "60";
-			} else
-				binDirectory = Experiment.BIN + "60";
-		}
-		move_XML_From_Bin_to_Results(binDirectory, resultsDirectory);
 		return binDirectory;
 	}
 
-	private void move_TIFFandLINEfiles_From_Results_to_BinDirectory(String parentDirectory, List<String> expList) {
+	/**
+	 * Legacy datasets may store {@code line*.tiff} / {@code line*.xml} directly
+	 * under {@code results/}. Migrate them into a {@code bin_*} subdirectory
+	 * <b>only</b> when such files actually exist (the helpers are no-ops otherwise
+	 * and no directory is created eagerly).
+	 *
+	 * <p>
+	 * Choice of target: when the caller has already decided the bin directory
+	 * name, use it; otherwise pick the first existing {@code bin_*} subdirectory
+	 * found under {@code results/}; if none exists, defer migration to avoid
+	 * materialising a misleading folder name.
+	 */
+	private void move_TIFFandLINEfiles_From_Results_to_BinDirectory(String parentDirectory) {
 		if (parentDirectory == null)
 			return;
 
-		// Legacy layouts may store line*.tiff and line*.xml directly under results/.
-		// Always attempt to move them into bin_60; if none exist, these calls are no-ops.
-		String subDirectory = Experiment.BIN + "60";
-		Directories.move_TIFFfiles_To_Subdirectory(parentDirectory, subDirectory);
-		Directories.move_xmlLINEfiles_To_Subdirectory(parentDirectory, subDirectory, true);
+		String target = chooseLegacyMigrationTarget(parentDirectory);
+		if (target == null)
+			return;
+
+		Directories.move_TIFFfiles_To_Subdirectory(parentDirectory, target);
+		Directories.move_xmlLINEfiles_To_Subdirectory(parentDirectory, target, true);
+	}
+
+	private String chooseLegacyMigrationTarget(String parentDirectory) {
+		List<BinDirectoryResolver.BinCandidate> candidates = BinDirectoryResolver
+				.scanCandidates(Paths.get(parentDirectory));
+		if (!candidates.isEmpty()) {
+			return candidates.get(0).name;
+		}
+		return null;
 	}
 
 	static public String getParentIf(String filename, String filter) {
@@ -354,30 +367,23 @@ public class ExperimentDirectories {
 
 	private String getV2BinSubDirectory(String expListBinSubDirectory, String resultsDirectory,
 			String binSubDirectory) {
-		List<String> expList = Directories.getSortedListOfSubDirectoriesWithTIFF(resultsDirectory);
-		if (expList == null) {
-			expList = new ArrayList<String>();
-		} else {
-			expList.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
-		}
-		move_TIFFandLINEfiles_From_Results_to_BinDirectory(resultsDirectory, expList);
-		String binDirectory = binSubDirectory;
-		if (binDirectory == null) {
-			if (expList.size() > 1) {
-				if (expListBinSubDirectory == null)
-					binDirectory = selectSubDirDialog(expList, "Select item", Experiment.BIN, false);
-			} else if (expList.size() == 1) {
-				binDirectory = expList.get(0).toLowerCase();
-				if (!binDirectory.contains(Experiment.BIN))
-					binDirectory = Experiment.BIN + "60";
-			} else
-				binDirectory = Experiment.BIN + "60";
-		}
-		if (expListBinSubDirectory != null)
+		move_TIFFandLINEfiles_From_Results_to_BinDirectory(resultsDirectory);
+
+		String binDirectory;
+		if (expListBinSubDirectory != null) {
 			binDirectory = expListBinSubDirectory;
+		} else if (binSubDirectory != null) {
+			binDirectory = binSubDirectory;
+		} else {
+			BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
+			ctx.resultsDirectory = resultsDirectory;
+			ctx.allowPrompt = true;
+			binDirectory = BinDirectoryResolver.resolve(ctx);
+		}
 
-		move_XML_From_Bin_to_Results(binDirectory, resultsDirectory);
-
+		if (binDirectory != null) {
+			move_XML_From_Bin_to_Results(binDirectory, resultsDirectory);
+		}
 		return binDirectory;
 	}
 

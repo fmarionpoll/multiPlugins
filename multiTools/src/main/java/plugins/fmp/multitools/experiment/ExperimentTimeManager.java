@@ -43,13 +43,19 @@ public class ExperimentTimeManager {
 					long span_ms = camImageLast_ms - camImageFirst_ms;
 					int nFrames = seqCamData.getImageLoader().getNTotalFrames();
 					int nGaps = nFrames - 1;
-					camImageBin_ms = span_ms / nGaps;
-
+					long averageMs = span_ms / nGaps;
 					long medianMs = computeMedianConsecutiveIntervalMs(seqCamData, nFrames);
 
-					Logger.debug(String.format("ExperimentTimeManager:  %d : %d : %d : %.2f : %d : %d : %.2f", //
-							span_ms, nGaps, camImageBin_ms, camImageBin_ms / 1000.0, nFrames, medianMs,
-							medianMs / 1000.0));
+					// Prefer the median of consecutive deltas when available: it is robust to
+					// missing frames, acquisition pauses, and other gaps that otherwise inflate
+					// the average. Fall back to the average only when the median could not be
+					// computed (e.g. sequence too long, or unreliable file timestamps).
+					camImageBin_ms = medianMs > 0 ? medianMs : averageMs;
+
+					Logger.debug(String.format("ExperimentTimeManager:  span_ms=%d nGaps=%d avg_ms=%d (%.2fs)"
+							+ " median_ms=%d (%.2fs) nFrames=%d -> chosen=%d (%.2fs)", //
+							span_ms, nGaps, averageMs, averageMs / 1000.0, medianMs, medianMs / 1000.0, nFrames,
+							camImageBin_ms, camImageBin_ms / 1000.0));
 
 				} else
 					camImageBin_ms = 0;

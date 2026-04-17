@@ -70,7 +70,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("area around ROIs", SwingConstants.RIGHT));
 		panel1.add(diskRadiusSpinner);
-		panel1.add(new JLabel("bin size "));
+		panel1.add(new JLabel("analysis interval "));
 		panel1.add(binSize);
 		panel1.add(binUnit);
 		binUnit.setSelectedIndex(1);

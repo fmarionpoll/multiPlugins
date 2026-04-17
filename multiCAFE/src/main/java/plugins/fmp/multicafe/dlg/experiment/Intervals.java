@@ -13,6 +13,7 @@ import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
@@ -48,6 +49,9 @@ public class Intervals extends JPanel implements ItemListener {
 	JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(60, 1, 999, 1));
 	JButton applyButton = new JButton("Apply changes");
 	JButton refreshButton = new JButton("Refresh");
+	private JLabel analysisIntervalLabel = new JLabel("Analysis interval: \u2014");
+	private JButton advancedToggleButton = new JButton("Advanced...");
+	private JPanel advancedPanel = new JPanel();
 	private MultiCAFE parent0 = null;
 	private boolean updatingFromExperiment = false;
 
@@ -77,16 +81,19 @@ public class Intervals extends JPanel implements ItemListener {
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layout1);
-		panel1.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
-		panel1.add(binSizeJSpinner);
-		panel1.add(binUnit);
+		panel1.add(analysisIntervalLabel);
+		panel1.add(refreshButton);
+		panel1.add(advancedToggleButton);
 		add(panel1);
 
-		JPanel panel2 = new JPanel(layout1);
-		panel2.add(new JLabel("Nominal interval (s) ", SwingConstants.RIGHT));
-		panel2.add(nominalIntervalJSpinner);
-		panel2.add(refreshButton);
-		add(panel2);
+		advancedPanel.setLayout(layout1);
+		advancedPanel.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
+		advancedPanel.add(binSizeJSpinner);
+		advancedPanel.add(binUnit);
+		advancedPanel.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
+		advancedPanel.add(nominalIntervalJSpinner);
+		advancedPanel.setVisible(false);
+		add(advancedPanel);
 
 		fixedNumberOfImagesJSpinner.setVisible(false);
 		defineActionListeners();
@@ -109,6 +116,17 @@ public class Intervals extends JPanel implements ItemListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					refreshBinSize(exp);
+			}
+		});
+
+		advancedToggleButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean show = !advancedPanel.isVisible();
+				advancedPanel.setVisible(show);
+				advancedToggleButton.setText(show ? "Hide advanced" : "Advanced...");
+				revalidate();
+				repaint();
 			}
 		});
 
@@ -221,7 +239,11 @@ public class Intervals extends JPanel implements ItemListener {
 		if (nominalSec < 1)
 			nominalSec = 60;
 
-		long medianMs = exp.getCamImageBin_ms();
+		long detectedMs = exp.getCamImageBin_ms();
+		if (!validateBinAgainstDetected(bin_ms, detectedMs))
+			return;
+
+		long medianMs = detectedMs;
 		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
 				exp.getNominalIntervalSec() >= 0))
 			return;
@@ -294,13 +316,62 @@ public class Intervals extends JPanel implements ItemListener {
 		binSizeJSpinner.setValue(bin_ms / (double) binUnit.getMsUnitValue());
 		if (exp.getNominalIntervalSec() < 0 && bin_ms > 0) {
 			int suggestedSec = (int) Math.round(bin_ms / 1000.0);
-			Integer chosenSec = NominalIntervalConfirmer.confirmUseMedianAsNominal(this, suggestedSec);
-			if (chosenSec != null) {
-				exp.setNominalIntervalSec(chosenSec);
-				nominalIntervalJSpinner.setValue(chosenSec);
-			} else
-				nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
+			if (advancedPanel.isVisible()) {
+				// Only bother the user with the nominal-confirmation dialog when they
+				// have explicitly opened the Advanced panel. For the 99% case the
+				// detected median is the right value and the read-only label is enough.
+				Integer chosenSec = NominalIntervalConfirmer.confirmUseMedianAsNominal(this, suggestedSec);
+				if (chosenSec != null) {
+					exp.setNominalIntervalSec(chosenSec);
+					nominalIntervalJSpinner.setValue(chosenSec);
+				} else
+					nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
+			} else {
+				// Pre-populate the spinner so the advanced panel is coherent if opened
+				// later, without recording a nominal choice on behalf of the user.
+				nominalIntervalJSpinner.setValue(suggestedSec);
+			}
 		}
+		updateAnalysisIntervalLabel(exp, bin_ms);
+	}
+
+	private void updateAnalysisIntervalLabel(Experiment exp, long bin_ms) {
+		if (bin_ms <= 0) {
+			analysisIntervalLabel.setText("Analysis interval: \u2014");
+			return;
+		}
+		int displaySec = (int) Math.round(bin_ms / 1000.0);
+		int nominal = exp != null ? exp.getNominalIntervalSec() : -1;
+		if (nominal > 0 && Math.abs(nominal - displaySec) <= 1) {
+			analysisIntervalLabel.setText(String.format("Analysis interval: %d s (from frames)", nominal));
+		} else {
+			analysisIntervalLabel.setText(String.format("Analysis interval: %d s (from frames)", displaySec));
+		}
+	}
+
+	/**
+	 * Rejects bin sizes that are clearly inconsistent with the detected frame
+	 * interval (below half or above ten times). Accepts anything when no detection
+	 * is available (first load).
+	 */
+	private boolean validateBinAgainstDetected(long requestedMs, long detectedMs) {
+		if (requestedMs <= 0) {
+			JOptionPane.showMessageDialog(this, "Analysis interval must be greater than zero.", "Invalid interval",
+					JOptionPane.WARNING_MESSAGE);
+			return false;
+		}
+		if (detectedMs <= 0)
+			return true;
+		double ratio = requestedMs / (double) detectedMs;
+		if (ratio >= 0.5 && ratio <= 10.0)
+			return true;
+		String msg = String.format(
+				"The requested analysis interval (%.1f s) is very different from the detected\n"
+						+ "frame interval (%.1f s). This usually indicates a mistake.\n\nKeep this value anyway?",
+				requestedMs / 1000.0, detectedMs / 1000.0);
+		int choice = JOptionPane.showConfirmDialog(this, msg, "Unusual analysis interval",
+				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		return choice == JOptionPane.YES_OPTION;
 	}
 
 	@Override

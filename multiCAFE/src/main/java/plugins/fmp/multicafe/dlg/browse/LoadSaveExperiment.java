@@ -14,12 +14,9 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -37,7 +34,6 @@ import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.tools.DescriptorsIO;
-import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
@@ -78,9 +74,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	// Parent reference
 	private MultiCAFE parent0 = null;
-
-	private static final Preferences BIN_PREFS = Preferences.userNodeForPackage(ExperimentDirectories.class);
-	private static final String PREF_LAST_BIN_SUBDIR = "lastSelectedBinSubDirectory";
 
 	// -----------------------------------------
 	public LoadSaveExperiment() {
@@ -783,95 +776,34 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	/**
-	 * Detects and selects bin directory (bin_60, bin_xx) according to rules: - If
-	 * loading single experiment and multiple bins exist, ask user - If loading
-	 * series and not first file, keep previously selected bin - If directory not
-	 * found, ask user what to do
+	 * Selects the analysis interval directory for an experiment, delegating the
+	 * decision to {@link plugins.fmp.multitools.experiment.BinDirectoryResolver}.
+	 * When loading a series, the previously chosen directory (cached on the combo)
+	 * is reused so the user is not prompted per file.
 	 */
 	private String selectBinDirectory(Experiment exp) {
 		String resultsDir = exp.getResultsDirectory();
-		if (resultsDir == null) {
+		if (resultsDir == null)
 			return null;
-		}
-
-		// Check if results directory exists on disk
 		File resultsDirFile = new File(resultsDir);
-		if (!resultsDirFile.exists() || !resultsDirFile.isDirectory()) {
+		if (!resultsDirFile.exists() || !resultsDirFile.isDirectory())
 			return null;
-		}
 
-		List<String> binDirs = Directories.getSortedListOfSubDirectoriesWithTIFF(resultsDir);
-		if (binDirs != null) {
-			binDirs.removeIf(s -> s != null && s.equalsIgnoreCase(Experiment.RESULTS));
-		}
-		if (binDirs == null || binDirs.isEmpty()) {
-			return null;
-//			// No bin directories found - ask user what to do
-//			int response = JOptionPane.showConfirmDialog(null,
-//					"No bin directories found in " + resultsDir + "\nDo you want to continue without kymographs?",
-//					"No Bin Directory Found", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-//			if (response == JOptionPane.YES_OPTION) {
-//				return null;
-//			} else {
-//				// User can manually select a directory
-//				return selectBinDirectoryDialog(binDirs);
-//			}
-		}
-
-		// Check if we're loading a single experiment or a series
 		boolean isFirstExperiment = (parent0.expListComboLazy.getSelectedIndex() == 0);
 		boolean isSingleExperiment = (parent0.expListComboLazy.getItemCount() == 1);
-
-		// If we have a previously selected bin directory and it exists, use it (for
-		// series)
 		String previousBinDir = parent0.expListComboLazy.expListBinSubDirectory;
-		if (!isFirstExperiment && previousBinDir != null && binDirs.contains(previousBinDir)) {
-			return previousBinDir;
-		}
 
-		// If single experiment or first in series
-		if (isSingleExperiment || isFirstExperiment) {
-			if (binDirs.size() > 1) {
-				// Multiple bin directories - ask user which one
-				return selectBinDirectoryDialog(binDirs);
-			} else if (binDirs.size() == 1) {
-				// Only one bin directory - use it
-				return binDirs.get(0);
-			}
-		}
+		plugins.fmp.multitools.experiment.BinDirectoryResolver.Context ctx = //
+				new plugins.fmp.multitools.experiment.BinDirectoryResolver.Context();
+		ctx.resultsDirectory = resultsDir;
+		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
+		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
+		ctx.previouslySelected = previousBinDir;
+		ctx.allowPrompt = (isSingleExperiment || isFirstExperiment);
+		ctx.useSessionRemembered = true;
+		ctx.parentForDialog = this;
 
-		// Default: use first available or ask
-		if (binDirs.size() > 0) {
-			return binDirs.get(0);
-		}
-
-		return null;
-	}
-
-	/**
-	 * Shows a dialog to let user select a bin directory from the list
-	 */
-	private String selectBinDirectoryDialog(List<String> binDirs) {
-		if (binDirs == null || binDirs.isEmpty()) {
-			return null;
-		}
-
-		Object[] array = binDirs.toArray();
-		JComboBox<Object> jcb = new JComboBox<Object>(array);
-		jcb.setEditable(false);
-
-		String last = BIN_PREFS.get(PREF_LAST_BIN_SUBDIR, null);
-		if (last != null && binDirs.contains(last)) {
-			jcb.setSelectedItem(last);
-		}
-
-		JOptionPane.showMessageDialog(null, jcb, "Select bin directory", JOptionPane.QUESTION_MESSAGE);
-		Object selected = jcb.getSelectedItem();
-		String selectedStr = (selected != null) ? selected.toString() : null;
-		if (selectedStr != null) {
-			BIN_PREFS.put(PREF_LAST_BIN_SUBDIR, selectedStr);
-		}
-		return selectedStr;
+		return plugins.fmp.multitools.experiment.BinDirectoryResolver.resolve(ctx);
 	}
 
 	private void handleOpenButton() {

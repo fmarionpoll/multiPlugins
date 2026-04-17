@@ -1830,96 +1830,19 @@ public class Experiment {
 			}
 		}
 
-		Path resultsPath = Paths.get(resultsDirectory);
-		if (!Files.exists(resultsPath) || !Files.isDirectory(resultsPath))
-			return;
+		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
+		ctx.resultsDirectory = resultsDirectory;
+		ctx.nominalIntervalSec = getNominalIntervalSec();
+		ctx.detectedIntervalMs = timeManager.getCamImageBin_ms() > 0 ? timeManager.getCamImageBin_ms() : getKymoBin_ms();
+		// Non-interactive: this runs inside a load path, and a dialog at this depth
+		// would be surprising. A conscious choice is made at load time (see
+		// LoadSaveExperiment.selectBinDirectory).
+		ctx.allowPrompt = false;
+		ctx.previouslySelected = binDirectory;
 
-		int nominal = getNominalIntervalSec();
-		long kymoBinMs = getKymoBin_ms();
-		String preferredByNominal = nominal > 0 ? binDirectoryNameFromNominal(nominal) : null;
-		String preferredByMs = kymoBinMs > 0 ? binDirectoryNameFromMs(kymoBinMs) : null;
-
-		String bestDirName = null;
-		long bestScore = Long.MIN_VALUE;
-		long bestModified = Long.MIN_VALUE;
-
-		try {
-			for (Path p : Files.newDirectoryStream(resultsPath)) {
-				if (!Files.isDirectory(p))
-					continue;
-				String name = p.getFileName().toString();
-				if (!name.startsWith(BIN))
-					continue;
-				int parsed = parseNominalFromBinDirectoryName(name);
-				if (parsed <= 0)
-					continue;
-
-				long score = 0;
-				if (preferredByNominal != null && name.equals(preferredByNominal))
-					score += 1_000_000;
-				if (preferredByMs != null && name.equals(preferredByMs))
-					score += 500_000;
-
-				// Strong preference for directories that actually contain persisted measures.
-				// This avoids selecting an "empty" bin directory created during interval probing.
-				boolean hasMeasures = false;
-				if (Files.exists(p.resolve("SpotsMeasures.csv")) || Files.exists(p.resolve("SpotsArrayMeasures.csv"))) {
-					hasMeasures = true;
-				}
-				if (Files.exists(p.resolve("CagesMeasures.csv"))) {
-					hasMeasures = true;
-				}
-				if (Files.exists(p.resolve("CapillariesMeasures.csv")) || Files.exists(p.resolve("CapillariesArrayMeasures.csv"))) {
-					hasMeasures = true;
-				}
-				if (hasMeasures) {
-					score += 2_000_000;
-				}
-
-				// Preference for directories that contain a BinDescription.xml.
-				Path binDesc = p.resolve(BinDescriptionPersistence.ID_V2_BINDESCRIPTION_XML);
-				if (Files.exists(binDesc)) {
-					score += 10_000;
-					// If nominal interval is unknown at this stage, use BinDescription.xml
-					// to better rank bins (e.g. prefer bin_20 over default bin_60).
-					try {
-						BinDescription tmp = new BinDescription();
-						boolean loaded = binDescriptionPersistence.load(tmp, p.toString());
-						if (loaded) {
-							int nominalFromFile = tmp.getNominalIntervalSec();
-							if (nominal <= 0 && nominalFromFile > 0) {
-								// Prefer bins whose description nominal matches their directory name.
-								if (nominalFromFile == parsed) {
-									score += 200_000;
-								}
-							} else if (nominalFromFile > 0 && nominalFromFile == nominal) {
-								score += 200_000;
-							}
-						}
-					} catch (Exception e) {
-						// ignore: scoring only
-					}
-				}
-
-				long modified;
-				try {
-					modified = Files.getLastModifiedTime(p).toMillis();
-				} catch (IOException e) {
-					modified = 0;
-				}
-
-				if (score > bestScore || (score == bestScore && modified > bestModified)) {
-					bestScore = score;
-					bestModified = modified;
-					bestDirName = name;
-				}
-			}
-		} catch (IOException e) {
-			// ignore
-		}
-
-		if (bestDirName != null) {
-			setBinSubDirectory(bestDirName);
+		String resolved = BinDirectoryResolver.resolve(ctx);
+		if (resolved != null) {
+			setBinSubDirectory(resolved);
 		}
 	}
 

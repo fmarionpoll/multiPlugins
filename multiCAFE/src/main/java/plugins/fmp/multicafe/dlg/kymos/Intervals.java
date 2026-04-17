@@ -52,6 +52,8 @@ public class Intervals extends JPanel implements ViewerListener {
 	JComboBox<String> viewsCombo = new JComboBox<String>();
 	JButton previousButton = new JButton("<");
 	JButton nextButton = new JButton(">");
+	private JButton advancedToggleButton = new JButton("Advanced...");
+	private JPanel advancedPanel = new JPanel();
 
 	private MultiCAFE parent0 = null;
 	private boolean isActionEnabled = true;
@@ -70,9 +72,7 @@ public class Intervals extends JPanel implements ViewerListener {
 		layout.setVgap(0);
 
 		JPanel panel1 = new JPanel(layout);
-		panel1.add(new JLabel("bin size"));
-		panel1.add(viewsCombo);
-		panel1.add(new JLabel(" kymograph from"));
+		panel1.add(new JLabel("kymograph from"));
 		int bWidth = 30;
 		int bHeight = 21;
 		panel1.add(previousButton, BorderLayout.WEST);
@@ -80,7 +80,14 @@ public class Intervals extends JPanel implements ViewerListener {
 		panel1.add(kymographsCombo, BorderLayout.CENTER);
 		nextButton.setPreferredSize(new Dimension(bWidth, bHeight));
 		panel1.add(nextButton, BorderLayout.EAST);
+		panel1.add(advancedToggleButton);
 		add(panel1);
+
+		advancedPanel.setLayout(layout);
+		advancedPanel.add(new JLabel("Analysis interval:"));
+		advancedPanel.add(viewsCombo);
+		advancedPanel.setVisible(false);
+		add(advancedPanel);
 
 		defineActionListeners();
 	}
@@ -124,6 +131,17 @@ public class Intervals extends JPanel implements ViewerListener {
 					localString = null;
 				if (isActionEnabled)
 					changeBinSubdirectory(localString);
+			}
+		});
+
+		advancedToggleButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean show = !advancedPanel.isVisible();
+				advancedPanel.setVisible(show);
+				advancedToggleButton.setText(show ? "Hide advanced" : "Advanced...");
+				revalidate();
+				repaint();
 			}
 		});
 

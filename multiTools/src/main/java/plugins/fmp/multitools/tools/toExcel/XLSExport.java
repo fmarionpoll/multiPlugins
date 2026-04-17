@@ -16,7 +16,6 @@ import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
-import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -185,27 +184,23 @@ public abstract class XLSExport {
 	}
 
 	protected void ensureBinDirectoryIsDefined(Experiment exp) {
-		if (exp.getBinSubDirectory() == null) {
-			// First, try to use shared bin directory from experiment list
-			if (expList.expListBinSubDirectory != null) {
-				exp.setBinSubDirectory(expList.expListBinSubDirectory);
-			} else {
-				// Auto-detect bin directory by finding subdirectories with TIFF files
-				List<String> binDirs = Directories.getSortedListOfSubDirectoriesWithTIFF(exp.getResultsDirectory());
-				if (binDirs != null && !binDirs.isEmpty()) {
-					// Find first directory containing "bin" (case-insensitive)
-					for (String dir : binDirs) {
-						if (dir.toLowerCase().contains("bin")) {
-							exp.setBinSubDirectory(dir);
-							break;
-						}
-					}
-					// If no "bin" directory found, use the first one
-					if (exp.getBinSubDirectory() == null) {
-						exp.setBinSubDirectory(binDirs.get(0));
-					}
-				}
-			}
+		if (exp.getBinSubDirectory() != null) {
+			return;
+		}
+		if (expList != null && expList.expListBinSubDirectory != null) {
+			exp.setBinSubDirectory(expList.expListBinSubDirectory);
+			return;
+		}
+		plugins.fmp.multitools.experiment.BinDirectoryResolver.Context ctx = //
+				new plugins.fmp.multitools.experiment.BinDirectoryResolver.Context();
+		ctx.resultsDirectory = exp.getResultsDirectory();
+		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
+		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
+		// Excel export is a long-running batch operation; no dialog prompts here.
+		ctx.allowPrompt = false;
+		String resolved = plugins.fmp.multitools.experiment.BinDirectoryResolver.resolve(ctx);
+		if (resolved != null) {
+			exp.setBinSubDirectory(resolved);
 		}
 	}
 

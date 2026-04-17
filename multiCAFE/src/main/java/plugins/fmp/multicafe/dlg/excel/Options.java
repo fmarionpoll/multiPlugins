@@ -63,7 +63,7 @@ public class Options extends JPanel {
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layout1);
-		panel2.add(new JLabel("bin size "));
+		panel2.add(new JLabel("analysis interval "));
 		panel2.add(binSize);
 		panel2.add(binUnit);
 		binUnit.setSelectedIndex(2);

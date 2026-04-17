@@ -366,6 +366,9 @@ public class Directories {
 	 */
 	public static void move_TIFFfiles_To_Subdirectory(String directoryStr, String subname) {
 		Path directoryPath = Paths.get(directoryStr);
+		if (!hasLegacyLineFiles(directoryPath, ".tiff")) {
+			return;
+		}
 		Path subDirectoryPath = directoryPath.resolve(subname);
 
 		try {
@@ -398,6 +401,26 @@ public class Directories {
 	}
 
 	/**
+	 * Returns true if the directory contains at least one {@code line*.<ext>} file
+	 * (case-insensitive). Used to avoid creating bin_* subdirectories eagerly when
+	 * no legacy migration is actually needed.
+	 */
+	private static boolean hasLegacyLineFiles(Path directoryPath, String extensionDotted) {
+		if (directoryPath == null || !Files.isDirectory(directoryPath)) {
+			return false;
+		}
+		String ext = extensionDotted.toLowerCase();
+		try (java.util.stream.Stream<Path> stream = Files.list(directoryPath)) {
+			return stream.filter(Files::isRegularFile).anyMatch(path -> {
+				String n = path.getFileName().toString().toLowerCase();
+				return n.startsWith("line") && n.endsWith(ext);
+			});
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	/**
 	 * Moves legacy {@code line*.xml} files to a subdirectory.
 	 * <p>
 	 * This is used to migrate old layouts where capillary line descriptors were
@@ -410,6 +433,9 @@ public class Directories {
 	 */
 	public static void move_xmlLINEfiles_To_Subdirectory(String directoryStr, String subname, boolean clipName) {
 		Path directoryPath = Paths.get(directoryStr);
+		if (!hasLegacyLineFiles(directoryPath, ".xml")) {
+			return;
+		}
 		Path subDirectoryPath = directoryPath.resolve(subname);
 
 		try {
