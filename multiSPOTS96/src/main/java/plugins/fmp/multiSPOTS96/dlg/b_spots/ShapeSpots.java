@@ -28,7 +28,7 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import plugins.adufour.quickhull.QuickHull2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D3TransformsCompat;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -129,7 +129,8 @@ public class ShapeSpots extends JPanel {
 						spotsViewButton.setSelected(true);
 					}
 					IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
-					Canvas2D3TransformsCompat.setTransformStep1Index(canvas, index + 1);
+					if (canvas instanceof Canvas2D_3Transforms)
+						((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
 					updateOverlayThreshold();
 				}
 			}
@@ -257,17 +258,21 @@ public class ShapeSpots extends JPanel {
 			removeOverlay(exp);
 			spotsOverlayCheckBox.setSelected(false);
 			IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
-			Canvas2D3TransformsCompat.setTransformStep1Index(canvas, 0);
+			if (canvas instanceof Canvas2D_3Transforms)
+				((Canvas2D_3Transforms) canvas).setTransformStep1Index(0);
 		}
 		spotsOverlayCheckBox.setEnabled(displayCheckOverlay);
 	}
 
 	private void updateTransformFunctionsOfCanvas(Experiment exp) {
 		IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
-		if (Canvas2D3TransformsCompat.getTransformStep1ItemCount(canvas) < (spotsTransformsComboBox.getItemCount() + 1))
-			Canvas2D3TransformsCompat.updateTransformsStep1(canvas, transforms);
+		if (!(canvas instanceof Canvas2D_3Transforms))
+			return;
+		Canvas2D_3Transforms c3 = (Canvas2D_3Transforms) canvas;
+		if (c3.getTransformStep1ItemCount() < (spotsTransformsComboBox.getItemCount() + 1))
+			c3.updateTransformsStep1(transforms);
 		int index = spotsTransformsComboBox.getSelectedIndex();
-		Canvas2D3TransformsCompat.setTransformStep1(canvas, index + 1, null);
+		c3.setTransformStep1(index + 1, null);
 	}
 
 	private void detectContours(Experiment exp) {

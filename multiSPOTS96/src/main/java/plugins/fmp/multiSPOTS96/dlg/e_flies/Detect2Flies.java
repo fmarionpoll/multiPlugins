@@ -25,7 +25,7 @@ import javax.swing.event.PopupMenuListener;
 import icy.canvas.IcyCanvas;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
-import plugins.fmp.multiSPOTS96.canvas2D.Canvas2D3TransformsCompat;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.series.FlyDetect2;
@@ -192,6 +192,9 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 
 	void viewDifference(Experiment exp, boolean display) {
 		IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+		if (!(canvas instanceof Canvas2D_3Transforms))
+			return;
+		Canvas2D_3Transforms c3 = (Canvas2D_3Transforms) canvas;
 		ImageTransformEnums[] imageTransformStep1 = new ImageTransformEnums[] { ImageTransformEnums.NONE,
 				ImageTransformEnums.SUBTRACT_REF };
 		int index = 0;
@@ -199,10 +202,10 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 			if (exp.getSeqCamData().getReferenceImage() == null) {
 				new SequenceLoaderService().loadReferenceImage(exp);
 			}
-			Canvas2D3TransformsCompat.setReferenceImage(canvas, exp.getSeqCamData().getReferenceImage());
+			c3.setReferenceImage(exp.getSeqCamData().getReferenceImage());
 			index = 1;
 		}
-		Canvas2D3TransformsCompat.setTransformStep1(canvas, imageTransformStep1[index], null);
+		c3.setTransformStep1(imageTransformStep1[index], null);
 	}
 
 	private BuildSeriesOptions initTrackParameters(Experiment exp) {

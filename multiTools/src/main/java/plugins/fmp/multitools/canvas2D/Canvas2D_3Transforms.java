@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.canvas2D;
+package plugins.fmp.multitools.canvas2D;
 
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
