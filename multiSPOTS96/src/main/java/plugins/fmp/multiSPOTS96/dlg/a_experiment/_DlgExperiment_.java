@@ -24,7 +24,9 @@ import icy.main.Icy;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
+import plugins.fmp.multiSPOTS96.dlg.hosts.MultiSpots96CorrectDriftHost;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.CorrectDriftPanel;
 import plugins.fmp.multitools.tools.ViewerFMP;
 
 public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeListener {
@@ -39,7 +41,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	public Filter tabFilter = new Filter();
 	Edit tabEdit = new Edit();
 	public Intervals tabIntervals = new Intervals();
-	CorrectDrift tabCorrectDrift = new CorrectDrift();
+	CorrectDriftPanel tabCorrectDrift = new CorrectDriftPanel();
 	public Options tabOptions = new Options();
 	private MultiSPOTS96 parent0 = null;
 
@@ -66,11 +68,8 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		tabOptions.init(tabsLayout, parent0);
 		tabsPane.addTab("Options", null, tabOptions, "Options to display data");
 
-		tabCorrectDrift.init(tabsLayout, parent0);
+		tabCorrectDrift.init(tabsLayout, new MultiSpots96CorrectDriftHost(parent0));
 		tabsPane.addTab("Correct drift", null, tabCorrectDrift, "Correct image drift with time");
-
-//		CorrectDriftRefactored tabCorrectDrift2 = new CorrectDriftRefactored(parent0.expListCombo);
-//		tabsPane.addTab("Correct drift", null, tabCorrectDrift2, "Correct image drift with time");
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 

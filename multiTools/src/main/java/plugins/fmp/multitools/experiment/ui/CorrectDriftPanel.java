@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.a_experiment;
+package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -29,32 +29,37 @@ import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import icy.type.collection.array.Array1DUtil;
 import icy.util.StringUtil;
-import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.host.CorrectDriftHost;
 import plugins.fmp.multitools.series.ProcessingResult;
 import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.RegistrationOptions;
 import plugins.fmp.multitools.series.RegistrationProcessor;
 import plugins.fmp.multitools.series.SafeRegistrationProcessor;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 
-public class CorrectDrift extends JPanel implements ViewerListener, PropertyChangeListener {
-	/**
-	 * 
-	 */
+/**
+ * Shared frame-based drift-correction panel. Previously duplicated as
+ * {@code CorrectDrift.java} in both plugins; consolidated here and
+ * accessed through a {@link CorrectDriftHost} to avoid coupling to the
+ * plugin root class.
+ */
+public class CorrectDriftPanel extends JPanel implements ViewerListener, PropertyChangeListener {
+
 	private static final long serialVersionUID = 1L;
 
-	int val = 0; // set your own value, I used to check if it works
-	int min = 0;
-	int max = 10000;
-	int step = 1;
-	int maxLast = 99999999;
-	private final JSpinner startFrameJSpinner = new JSpinner(new SpinnerNumberModel(val, min, max, step));
-	private final JSpinner referenceFrameJSpinner = new JSpinner(new SpinnerNumberModel(val, min, max, step));
+	private static final int MIN_FRAME = 0;
+	private static final int MAX_FRAME = 10000;
+	private static final int FRAME_STEP = 1;
+
+	private final JSpinner startFrameJSpinner = new JSpinner(
+			new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, FRAME_STEP));
+	private final JSpinner referenceFrameJSpinner = new JSpinner(
+			new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, FRAME_STEP));
 	private final JButton runButton = new JButton("Run registration");
 
 	private final JSpinner xSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
@@ -62,10 +67,11 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	private final JButton testTranslationButton = new JButton("Test");
 	private final JButton applyTranslationButton = new JButton("Apply");
 	private final JButton restoreTranslationButton = new JButton("Back -1");
-	int previousX = 0;
-	int previousY = 0;
-	int previousT = 0;
-	double previousAngle = 0.;
+
+	private int previousX = 0;
+	private int previousY = 0;
+	private int previousT = 0;
+	private double previousAngle = 0.;
 
 	private final JSpinner angleSpinner = new JSpinner(new SpinnerNumberModel(0., -180., 180., 1.));
 	private final JButton testRotationButton = new JButton("Test");
@@ -74,16 +80,13 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 
 	private final JSpinner squareSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 0, 500, 1));
 
-//	private MultiSPOTS96 parent0 = null;
 	private JComboBoxExperimentLazy experimentList = new JComboBoxExperimentLazy();
-//	private Registration registration = null;
 
 	private CompletableFuture<Void> currentTask;
 	private final RegistrationProcessor registrationProcessor = new SafeRegistrationProcessor();
 
-	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		// this.parent0 = parent0;
-		this.experimentList = parent0.expListComboLazy;
+	public void init(GridLayout capLayout, CorrectDriftHost host) {
+		this.experimentList = host.getExperimentsCombo();
 
 		initializeUI(capLayout);
 		defineActionListeners();
@@ -164,6 +167,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 
 	private void startFrameJSpinnerListener() {
 		startFrameJSpinner.addChangeListener(new ChangeListener() {
+			@Override
 			public void stateChanged(ChangeEvent e) {
 				Experiment exp = getCurrentExperiment();
 				if (exp != null && exp.getSeqCamData().getSequence() != null) {
@@ -171,7 +175,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 					if (v != null) {
 						int newValue = (int) startFrameJSpinner.getValue();
 						if (v.getPositionT() != newValue)
-							v.setPositionT((int) newValue);
+							v.setPositionT(newValue);
 					}
 				}
 			}
@@ -263,7 +267,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = getCurrentExperiment();
 				if (exp != null) {
-
+					// reserved for future implementation (mirrors legacy panel)
 				}
 			}
 		});
@@ -274,9 +278,6 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		referenceFrameJSpinner.setValue(0);
 	}
 
-	/**
-	 * Gets the currently selected experiment.
-	 */
 	private Experiment getCurrentExperiment() {
 		return (Experiment) experimentList.getSelectedItem();
 	}
@@ -292,7 +293,6 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		testTranslationButton.setEnabled(!isRunning);
 		testRotationButton.setEnabled(!isRunning);
 
-		// Enable restore button only if there's a previous translation
 		restoreTranslationButton.setEnabled(!isRunning && (previousX != 0 || previousY != 0));
 	}
 
@@ -324,17 +324,14 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 			return;
 		}
 
-		// Create registration options
 		RegistrationOptions options = createRegistrationOptions(experiment);
 
-		// Validate options
 		ProcessingResult<Void> validationResult = options.validate();
 		if (validationResult.isFailure()) {
 			showError("Invalid registration options: " + validationResult.getErrorMessage());
 			return;
 		}
 
-		// Execute registration asynchronously
 		currentTask = CompletableFuture.runAsync(() -> {
 			try {
 				Logger.info("Starting registration for experiment: " + experiment.getResultsDirectory());
@@ -361,9 +358,6 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		runButton.setText("STOP");
 	}
 
-	/**
-	 * Stops the current computation.
-	 */
 	private void stopComputation() {
 		if (currentTask != null && !currentTask.isDone()) {
 			currentTask.cancel(true);
@@ -373,12 +367,9 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		runButton.setText("Run");
 	}
 
-	/**
-	 * Creates registration options from current UI state.
-	 */
 	private RegistrationOptions createRegistrationOptions(Experiment experiment) {
 		int referenceFrame = (int) referenceFrameJSpinner.getValue();
-		int startFrame = 0; // (int) startFrameJSpinner.getValue();
+		int startFrame = 0;
 
 		return new RegistrationOptions() //
 				.fromFrame(startFrame) //
@@ -393,12 +384,10 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 				.progressReporter(new ProgressReporter() {
 					@Override
 					public void updateMessage(String message) {
-						// Update progress message if needed
 					}
 
 					@Override
 					public void updateProgress(int percentage) {
-						// Update progress percentage if needed
 					}
 
 					@Override
@@ -425,22 +414,12 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		return options;
 	}
 
-	/**
-	 * Shows an error message to the user.
-	 */
 	private void showError(String message) {
 		Logger.warn("User error: " + message);
-		// In a real implementation, you'd show this in the UI
-		// For now, we'll just log it
 	}
 
-	/**
-	 * Shows a success message to the user.
-	 */
 	private void showSuccess(String message) {
 		Logger.info("Success: " + message);
-		// In a real implementation, you'd show this in the UI
-		// For now, we'll just log it
 	}
 
 	@Override
@@ -537,5 +516,4 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		Sequence result = new Sequence("composite image", resultImage);
 		return result;
 	}
-
 }
