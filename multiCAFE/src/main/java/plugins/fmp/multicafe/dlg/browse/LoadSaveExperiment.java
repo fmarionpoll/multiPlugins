@@ -33,6 +33,7 @@ import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
@@ -397,8 +398,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				selectedNames.clear();
 				isProcessing = false;
 				long totalEnd = System.nanoTime();
-				Logger.debug("LoadExperiment: processSelectedFilesMetadataOnly total " + (totalEnd - scanStartTime) / 1e6
-						+ " ms (scan phase " + (scanEndTime - scanStartTime) / 1e6 + " ms)");
+				Logger.debug(
+						"LoadExperiment: processSelectedFilesMetadataOnly total " + (totalEnd - scanStartTime) / 1e6
+								+ " ms (scan phase " + (scanEndTime - scanStartTime) / 1e6 + " ms)");
 				updateBrowseInterface();
 			}
 		}.execute();
@@ -540,7 +542,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 		// Fix: Recalculate nTotalFrames from actual image count if there's a mismatch
 		// This handles the case where nFrames=1 was incorrectly saved to Experiment.xml
-		plugins.fmp.multitools.experiment.sequence.ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+		ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 		int actualImageCount = imgLoader.getImagesCount();
 		int loadedNFrames = imgLoader.getNTotalFrames();
 		if (actualImageCount > 0 && loadedNFrames > 0 && actualImageCount != loadedNFrames) {
@@ -653,10 +655,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	/**
-	 * Legacy helper for old layouts where CagesMeasures.csv lived directly
-	 * under the results directory. The current v2 format always uses the bin
-	 * directory (results/bin_xx/CagesMeasures.csv), so this method is now a
-	 * no-op to avoid creating or moving an extra file in results.
+	 * Legacy helper for old layouts where CagesMeasures.csv lived directly under
+	 * the results directory. The current v2 format always uses the bin directory
+	 * (results/bin_xx/CagesMeasures.csv), so this method is now a no-op to avoid
+	 * creating or moving an extra file in results.
 	 *
 	 * @param exp The experiment (unused in current implementation)
 	 */
