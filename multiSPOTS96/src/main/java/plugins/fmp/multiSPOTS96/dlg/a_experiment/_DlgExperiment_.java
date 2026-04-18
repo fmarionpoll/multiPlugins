@@ -25,8 +25,10 @@ import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multiSPOTS96.dlg.hosts.MultiSpots96CorrectDriftHost;
+import plugins.fmp.multiSPOTS96.dlg.hosts.MultiSpots96IntervalsHost;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.CorrectDriftPanel;
+import plugins.fmp.multitools.experiment.ui.IntervalsPanel;
 import plugins.fmp.multitools.tools.ViewerFMP;
 
 public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeListener {
@@ -40,7 +42,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	public Infos tabInfos = new Infos();
 	public Filter tabFilter = new Filter();
 	Edit tabEdit = new Edit();
-	public Intervals tabIntervals = new Intervals();
+	public IntervalsPanel tabIntervals = new IntervalsPanel();
 	CorrectDriftPanel tabCorrectDrift = new CorrectDriftPanel();
 	public Options tabOptions = new Options();
 	private MultiSPOTS96 parent0 = null;
@@ -62,7 +64,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		tabEdit.init(tabsLayout, parent0);
 		tabsPane.addTab("Edit", null, tabEdit, "Edit descriptors");
 
-		tabIntervals.init(tabsLayout, parent0);
+		tabIntervals.init(tabsLayout, new MultiSpots96IntervalsHost(parent0));
 		tabsPane.addTab("Intervals", null, tabIntervals, "View/edit time-lapse intervals");
 
 		tabOptions.init(tabsLayout, parent0);

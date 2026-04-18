@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.a_experiment;
+package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -22,43 +22,49 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import icy.gui.viewer.Viewer;
-import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.GenerationMode;
 import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
+import plugins.fmp.multitools.experiment.sequence.ImageLoader;
+import plugins.fmp.multitools.experiment.ui.host.IntervalsHost;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
-public class Intervals extends JPanel implements ItemListener {
-	/**
-	 * 
-	 */
+/**
+ * Shared Intervals tab UI (multiCAFE / multiSPOTS96). Behaviour differences are
+ * delegated to {@link IntervalsHost}.
+ */
+public class IntervalsPanel extends JPanel implements ItemListener {
+
 	private static final long serialVersionUID = -5739112045358747277L;
-	Long val = 1L; // set your own value, I used to check if it works
+
+	Long val = 1L;
 	Long min = 0L;
 	Long max = 10000L;
 	Long step = 1L;
 	Long maxLast = 99999999L;
-	JSpinner indexFirstImageJSpinner = new JSpinner(new SpinnerNumberModel(val, min, max, step));
-	JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
+	public JSpinner indexFirstImageJSpinner = new JSpinner(new SpinnerNumberModel(val, min, max, step));
+	public JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
 			new String[] { "up to last frame acquired", "clip number of frames to" });
-	JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
-	private static final int DEFAULT_NOMINAL_INTERVAL_SEC = 15;
-
-	JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
-	JComboBoxMs binUnit = new JComboBoxMs();
-	JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(15, 1, 999, 1));
-	JButton applyButton = new JButton("Apply changes");
-	JButton refreshButton = new JButton("Refresh");
+	public JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
+	public JButton updateNFramesButton = new JButton("Update");
+	public JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
+	public JComboBoxMs binUnit = new JComboBoxMs();
+	public JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(60, 1, 999, 1));
+	public JButton applyButton = new JButton("Apply changes");
+	public JButton refreshButton = new JButton("Refresh");
 	private JLabel analysisIntervalLabel = new JLabel("Analysis interval: \u2014");
 	private JLabel classSummaryLabel = new JLabel(" ");
 	private JButton advancedToggleButton = new JButton("Advanced...");
 	private JPanel advancedPanel = new JPanel();
-	private MultiSPOTS96 parent0 = null;
+	private JPanel advancedPanel1 = new JPanel();
 
-	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
+	private IntervalsHost host;
+	private boolean updatingFromExperiment = false;
+
+	public void init(GridLayout capLayout, IntervalsHost host) {
+		this.host = host;
 		setLayout(capLayout);
-		this.parent0 = parent0;
 
 		int bWidth = 50;
 		int bHeight = 21;
@@ -67,6 +73,8 @@ public class Intervals extends JPanel implements ItemListener {
 		binSizeJSpinner.setPreferredSize(dimension);
 		nominalIntervalJSpinner.setPreferredSize(dimension);
 		fixedNumberOfImagesJSpinner.setPreferredSize(dimension);
+		updateNFramesButton.setPreferredSize(new Dimension(70, bHeight));
+		nominalIntervalJSpinner.setValue(host.getDefaultNominalIntervalSec());
 
 		FlowLayout layout1 = new FlowLayout(FlowLayout.LEFT);
 		layout1.setVgap(1);
@@ -76,6 +84,7 @@ public class Intervals extends JPanel implements ItemListener {
 		panel0.add(indexFirstImageJSpinner);
 		panel0.add(clipNumberImagesCombo);
 		panel0.add(fixedNumberOfImagesJSpinner);
+		panel0.add(updateNFramesButton);
 		panel0.add(applyButton);
 		add(panel0);
 
@@ -89,11 +98,14 @@ public class Intervals extends JPanel implements ItemListener {
 		advancedPanel.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
 		advancedPanel.add(binSizeJSpinner);
 		advancedPanel.add(binUnit);
-		advancedPanel.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
-		advancedPanel.add(nominalIntervalJSpinner);
-		advancedPanel.add(classSummaryLabel);
-		advancedPanel.setVisible(false);
 		add(advancedPanel);
+
+		advancedPanel1.setLayout(layout1);
+		advancedPanel1.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
+		advancedPanel1.add(nominalIntervalJSpinner);
+		advancedPanel1.add(classSummaryLabel);
+		advancedPanel1.setVisible(false);
+		add(advancedPanel1);
 
 		fixedNumberOfImagesJSpinner.setVisible(false);
 		defineActionListeners();
@@ -104,7 +116,7 @@ public class Intervals extends JPanel implements ItemListener {
 		applyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
 				if (exp != null)
 					setExperimentParameters(exp);
 			}
@@ -113,7 +125,7 @@ public class Intervals extends JPanel implements ItemListener {
 		refreshButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
 				if (exp != null)
 					refreshBinSize(exp);
 			}
@@ -125,16 +137,21 @@ public class Intervals extends JPanel implements ItemListener {
 				boolean show = !advancedPanel.isVisible();
 				advancedPanel.setVisible(show);
 				advancedToggleButton.setText(show ? "Hide advanced" : "Advanced...");
+				advancedPanel1.setVisible(show);
 				revalidate();
 				repaint();
 			}
 		});
 
 		indexFirstImageJSpinner.addChangeListener(new ChangeListener() {
+			@Override
 			public void stateChanged(ChangeEvent e) {
+				if (updatingFromExperiment)
+					return;
 				long newValue = (long) indexFirstImageJSpinner.getValue();
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() != newValue) {
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+				if (exp != null && exp.getSeqCamData() != null
+						&& exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() != newValue) {
 					exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(newValue);
 					List<String> imagesList = ExperimentDirectories
 							.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
@@ -143,30 +160,52 @@ public class Intervals extends JPanel implements ItemListener {
 					exp.getSeqCamData().getTimeManager()
 							.setBinFirst_ms(exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
 					exp.saveExperimentDescriptors();
+					host.onFirstImageIndexChanged(exp);
 				}
 			}
 		});
 
 		fixedNumberOfImagesJSpinner.addChangeListener(new ChangeListener() {
+			@Override
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				long newValue = (long) fixedNumberOfImagesJSpinner.getValue();
-				if (exp != null && exp.getSeqCamData().getImageLoader().getFixedNumberOfImages() != newValue) {
-					exp.getSeqCamData().getImageLoader().setFixedNumberOfImages(newValue);
-					List<String> imagesList = (ArrayList<String>) ExperimentDirectories
-							.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
-					exp.getSeqCamData().loadImageList(imagesList);
-					long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-					exp.getSeqCamData().getTimeManager().setBinLast_ms((long) (fixedNumberOfImagesJSpinner.getValue())
-							- exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage() * bin_ms);
+				if (updatingFromExperiment)
+					return;
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+				if (exp == null || exp.getSeqCamData() == null) {
+					return;
 				}
+				long requestedCount = (long) fixedNumberOfImagesJSpinner.getValue();
+				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
+						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
+				long absFirst = imgLoader.getAbsoluteIndexFirstImage();
+				long available = Math.max(0L, imagesOnDisk.size() - absFirst);
+				if (available <= 0) {
+					fixedNumberOfImagesJSpinner.setValue(0L);
+					imgLoader.setFixedNumberOfImages(0L);
+					return;
+				}
+				long clampedCount = Math.min(Math.max(1L, requestedCount), available);
+				if (clampedCount != requestedCount) {
+					fixedNumberOfImagesJSpinner.setValue(clampedCount);
+				}
+				long absEndExclusive = absFirst + clampedCount;
+				if (imgLoader.getFixedNumberOfImages() == absEndExclusive) {
+					return;
+				}
+				imgLoader.setFixedNumberOfImages(absEndExclusive);
+				exp.getSeqCamData().loadImageList(imagesOnDisk);
+				long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+				exp.getSeqCamData().getTimeManager().setBinLast_ms(Math.max(0L, clampedCount - 1) * bin_ms);
+				exp.saveExperimentDescriptors();
 			}
 		});
 
 		binSizeJSpinner.addChangeListener(new ChangeListener() {
+			@Override
 			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+				if (exp != null && exp.getSeqCamData() != null) {
 					long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
 					exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
 					exp.setCamImageBin_ms(bin_ms);
@@ -179,28 +218,54 @@ public class Intervals extends JPanel implements ItemListener {
 			}
 		});
 
+		updateNFramesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+				if (exp == null || exp.getSeqCamData() == null) {
+					return;
+				}
+				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
+						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
+				long absFirst = imgLoader.getAbsoluteIndexFirstImage();
+				long available = Math.max(0L, imagesOnDisk.size() - absFirst);
+				if (available <= 0) {
+					fixedNumberOfImagesJSpinner.setValue(0L);
+					imgLoader.setFixedNumberOfImages(0L);
+					imgLoader.setNTotalFrames(0);
+					return;
+				}
+				imgLoader.setFixedNumberOfImages(imagesOnDisk.size());
+				fixedNumberOfImagesJSpinner.setValue(available);
+				exp.getSeqCamData().loadImageList(imagesOnDisk);
+				exp.saveExperimentDescriptors();
+			}
+		});
+
 	}
 
 	private void setExperimentParameters(Experiment exp) {
 		long bin_ms = (long) (((double) binSizeJSpinner.getValue()) * binUnit.getMsUnitValue());
 		int nominalSec = ((Number) nominalIntervalJSpinner.getValue()).intValue();
 		if (nominalSec < 1)
-			nominalSec = DEFAULT_NOMINAL_INTERVAL_SEC;
+			nominalSec = Math.max(1, host.getDefaultNominalIntervalSec());
 
 		long detectedMs = exp.getCamImageBin_ms();
 		if (!validateBinAgainstDetected(bin_ms, detectedMs))
 			return;
 
 		long medianMs = detectedMs;
-		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs, exp.getNominalIntervalSec() >= 0))
+		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
+				exp.getNominalIntervalSec() >= 0))
 			return;
 
 		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
 		exp.setCamImageBin_ms(bin_ms);
 		exp.setKymoBin_ms(bin_ms);
 		exp.setNominalIntervalSec(nominalSec);
-		parent0.viewOptions.setDefaultNominalIntervalSec(nominalSec);
-		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+		host.setDefaultNominalIntervalSec(nominalSec);
+		host.saveViewOptions();
 
 		long firstImageIndex = (long) indexFirstImageJSpinner.getValue();
 		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(firstImageIndex);
@@ -216,24 +281,34 @@ public class Intervals extends JPanel implements ItemListener {
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v != null)
 			v.close();
-		parent0.dlgBrowse.loadSaveExperiment.closeCurrentExperiment();
-		parent0.dlgBrowse.loadSaveExperiment.openSelectedExperiment(exp);
+		host.onAfterIntervalsApply(exp);
+		exp.saveExperimentDescriptors();
 	}
 
 	public void getExptParms(Experiment exp) {
-		refreshBinSize(exp);
-		int nominal = exp.getNominalIntervalSec();
-		if (nominal > 0)
-			nominalIntervalJSpinner.setValue(nominal);
-		else
-			nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
-		long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-		long dFirst = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
-		indexFirstImageJSpinner.setValue(dFirst);
-		if (exp.getSeqCamData().getTimeManager().getBinLast_ms() <= 0)
-			exp.getSeqCamData().getTimeManager()
-					.setBinLast_ms((long) (exp.getSeqCamData().getImageLoader().getNTotalFrames() - 1) * bin_ms);
-		fixedNumberOfImagesJSpinner.setValue(exp.getSeqCamData().getImageLoader().getFixedNumberOfImages());
+		updatingFromExperiment = true;
+		try {
+			refreshBinSize(exp);
+			int nominal = exp.getNominalIntervalSec();
+			if (nominal > 0)
+				nominalIntervalJSpinner.setValue(nominal);
+			else
+				nominalIntervalJSpinner.setValue(host.getDefaultNominalIntervalSec());
+			long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
+			long dFirst = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
+			indexFirstImageJSpinner.setValue(dFirst);
+			if (exp.getSeqCamData().getTimeManager().getBinLast_ms() <= 0)
+				exp.getSeqCamData().getTimeManager()
+						.setBinLast_ms((long) (exp.getSeqCamData().getImageLoader().getNTotalFrames() - 1) * bin_ms);
+			fixedNumberOfImagesJSpinner.setValue(exp.getSeqCamData().getImageLoader().getFixedNumberOfImages());
+		} finally {
+			updatingFromExperiment = false;
+		}
+	}
+
+	public void displayCamDataIntervals(Experiment exp) {
+		getExptParms(exp);
+		exp.getFileIntervalsFromSeqCamData();
 	}
 
 	private void refreshBinSize(Experiment exp) {
@@ -248,18 +323,13 @@ public class Intervals extends JPanel implements ItemListener {
 		if (exp.getNominalIntervalSec() < 0 && bin_ms > 0) {
 			int suggestedSec = (int) Math.round(bin_ms / 1000.0);
 			if (advancedPanel.isVisible()) {
-				// Only bother the user with the nominal-confirmation dialog when they
-				// have explicitly opened the Advanced panel. For the 99% case the
-				// detected median is the right value and the read-only label is enough.
 				Integer chosenSec = NominalIntervalConfirmer.confirmUseMedianAsNominal(this, suggestedSec);
 				if (chosenSec != null) {
 					exp.setNominalIntervalSec(chosenSec);
 					nominalIntervalJSpinner.setValue(chosenSec);
 				} else
-					nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
+					nominalIntervalJSpinner.setValue(host.getDefaultNominalIntervalSec());
 			} else {
-				// Pre-populate the spinner so the advanced panel is coherent if opened
-				// later, without recording a nominal choice on behalf of the user.
 				nominalIntervalJSpinner.setValue(suggestedSec);
 			}
 		}
@@ -279,10 +349,19 @@ public class Intervals extends JPanel implements ItemListener {
 		int factor = 1;
 		if (camMs > 0 && effectiveMs > 0)
 			factor = (int) Math.max(1L, Math.round(effectiveMs / (double) camMs));
-		GenerationMode mode = exp.getGenerationMode();
-		if (mode == GenerationMode.UNKNOWN)
-			mode = GenerationMode.DIRECT_FROM_STACK; // multiSPOTS96 always direct
-		String modeText = mode == GenerationMode.KYMOGRAPH ? "kymograph" : "direct";
+		GenerationMode mode = host.coerceGenerationMode(exp.getGenerationMode());
+		String modeText;
+		switch (mode) {
+		case KYMOGRAPH:
+			modeText = "kymograph";
+			break;
+		case DIRECT_FROM_STACK:
+			modeText = "direct";
+			break;
+		default:
+			modeText = "unknown";
+			break;
+		}
 		int effSec = (int) Math.round(effectiveMs / 1000.0);
 		classSummaryLabel.setText(String.format("  Class: factor %dx, %s, ~%d s/sample", factor, modeText, effSec));
 	}
@@ -301,11 +380,6 @@ public class Intervals extends JPanel implements ItemListener {
 		}
 	}
 
-	/**
-	 * Rejects bin sizes that are clearly inconsistent with the detected frame
-	 * interval (below half or above ten times). Accepts anything when no detection
-	 * is available (first load).
-	 */
 	private boolean validateBinAgainstDetected(long requestedMs, long detectedMs) {
 		if (requestedMs <= 0) {
 			JOptionPane.showMessageDialog(this, "Analysis interval must be greater than zero.", "Invalid interval",
@@ -321,8 +395,8 @@ public class Intervals extends JPanel implements ItemListener {
 				"The requested analysis interval (%.1f s) is very different from the detected\n"
 						+ "frame interval (%.1f s). This usually indicates a mistake.\n\nKeep this value anyway?",
 				requestedMs / 1000.0, detectedMs / 1000.0);
-		int choice = JOptionPane.showConfirmDialog(this, msg, "Unusual analysis interval",
-				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		int choice = JOptionPane.showConfirmDialog(this, msg, "Unusual analysis interval", JOptionPane.YES_NO_OPTION,
+				JOptionPane.WARNING_MESSAGE);
 		return choice == JOptionPane.YES_OPTION;
 	}
 
@@ -331,7 +405,7 @@ public class Intervals extends JPanel implements ItemListener {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			Object source = e.getSource();
 			if (source instanceof JComboBox) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
 				if (exp != null) {
 					boolean clipped = clipNumberImagesCombo.getSelectedIndex() == 1 ? true : false;
 					fixedNumberOfImagesJSpinner.setVisible(clipped);
@@ -345,5 +419,4 @@ public class Intervals extends JPanel implements ItemListener {
 			}
 		}
 	}
-
 }

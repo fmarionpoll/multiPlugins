@@ -23,6 +23,8 @@ import icy.main.Icy;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.dlg.hosts.MultiCafeIntervalsHost;
+import plugins.fmp.multitools.experiment.ui.IntervalsPanel;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.ViewerFMP;
 
@@ -39,7 +41,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 	public Filter tabFilter = new Filter();
 	public Register tabRegister = new Register();
 	public EditCapillariesConditional tabEditCond = new EditCapillariesConditional();
-	public Intervals tabIntervals = new Intervals();
+	public IntervalsPanel tabIntervals = new IntervalsPanel();
 
 	private MultiCAFE parent0 = null;
 
@@ -63,7 +65,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 		tabEditCond.init(tabsLayout, parent0);
 		tabsPane.addTab("Edit", null, tabEditCond, "Edit descriptors with 1 or 2 conditions");
 
-		tabIntervals.init(tabsLayout, parent0);
+		tabIntervals.init(tabsLayout, new MultiCafeIntervalsHost(parent0));
 		tabsPane.addTab("Intervals", null, tabIntervals, "View/edit time-lapse intervals");
 
 		tabRegister.init(tabsLayout, parent0);
