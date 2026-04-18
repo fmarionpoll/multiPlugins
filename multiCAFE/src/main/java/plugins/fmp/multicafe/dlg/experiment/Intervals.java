@@ -54,6 +54,7 @@ public class Intervals extends JPanel implements ItemListener {
 	private JLabel classSummaryLabel = new JLabel(" ");
 	private JButton advancedToggleButton = new JButton("Advanced...");
 	private JPanel advancedPanel = new JPanel();
+	private JPanel advancedPanel1 = new JPanel();
 	private MultiCAFE parent0 = null;
 	private boolean updatingFromExperiment = false;
 
@@ -92,11 +93,14 @@ public class Intervals extends JPanel implements ItemListener {
 		advancedPanel.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
 		advancedPanel.add(binSizeJSpinner);
 		advancedPanel.add(binUnit);
-		advancedPanel.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
-		advancedPanel.add(nominalIntervalJSpinner);
-		advancedPanel.add(classSummaryLabel);
-		advancedPanel.setVisible(false);
 		add(advancedPanel);
+
+		advancedPanel1.setLayout(layout1);
+		advancedPanel1.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
+		advancedPanel1.add(nominalIntervalJSpinner);
+		advancedPanel1.add(classSummaryLabel);
+		advancedPanel1.setVisible(false);
+		add(advancedPanel1);
 
 		fixedNumberOfImagesJSpinner.setVisible(false);
 		defineActionListeners();
@@ -128,6 +132,7 @@ public class Intervals extends JPanel implements ItemListener {
 				boolean show = !advancedPanel.isVisible();
 				advancedPanel.setVisible(show);
 				advancedToggleButton.setText(show ? "Hide advanced" : "Advanced...");
+				advancedPanel1.setVisible(show);
 				revalidate();
 				repaint();
 			}
@@ -402,8 +407,8 @@ public class Intervals extends JPanel implements ItemListener {
 				"The requested analysis interval (%.1f s) is very different from the detected\n"
 						+ "frame interval (%.1f s). This usually indicates a mistake.\n\nKeep this value anyway?",
 				requestedMs / 1000.0, detectedMs / 1000.0);
-		int choice = JOptionPane.showConfirmDialog(this, msg, "Unusual analysis interval",
-				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+		int choice = JOptionPane.showConfirmDialog(this, msg, "Unusual analysis interval", JOptionPane.YES_NO_OPTION,
+				JOptionPane.WARNING_MESSAGE);
 		return choice == JOptionPane.YES_OPTION;
 	}
 
