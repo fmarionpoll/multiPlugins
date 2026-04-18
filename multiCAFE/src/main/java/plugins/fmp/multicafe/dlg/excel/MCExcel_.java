@@ -16,6 +16,7 @@ import icy.gui.component.PopupPanel;
 import icy.system.thread.ThreadUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -31,7 +32,7 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -4296207607692017074L;
 	PopupPanel capPopupPanel = null;
 	private JTabbedPane tabsPane = new JTabbedPane();
-	public Options tabCommonOptions = new Options();
+	public ExcelOptionsPanel tabCommonOptions = new ExcelOptionsPanel(ExcelOptionsPanel.Features.cafeDefaults());
 	private Levels tabLevels = new Levels();
 	private Gulps tabGulps = new Gulps();
 	private FlyPositions tabMove = new FlyPositions();
@@ -212,22 +213,22 @@ public class MCExcel_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private void getCommonOptions(ResultsOptions resultsOptions, Experiment exp) {
-		resultsOptions.transpose = tabCommonOptions.transposeCheckBox.isSelected();
+		resultsOptions.transpose = tabCommonOptions.isTranspose();
 		resultsOptions.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
-		resultsOptions.buildExcelUnitMs = tabCommonOptions.binUnit.getMsUnitValue();
-		resultsOptions.fixedIntervals = tabCommonOptions.isFixedFrameButton.isSelected();
+		resultsOptions.buildExcelUnitMs = tabCommonOptions.getBinUnitMs();
+		resultsOptions.fixedIntervals = tabCommonOptions.getIsFixedFrame();
 		resultsOptions.startAll_Ms = tabCommonOptions.getStartAllMs();
 		resultsOptions.endAll_Ms = tabCommonOptions.getEndAllMs();
 
-		resultsOptions.collateSeries = tabCommonOptions.collateSeriesCheckBox.isSelected();
-		resultsOptions.padIntervals = tabCommonOptions.padIntervalsCheckBox.isSelected();
-		resultsOptions.absoluteTime = false; // tabCommonOptions.absoluteTimeCheckBox.isSelected();
-		resultsOptions.onlyalive = tabCommonOptions.onlyAliveCheckBox.isSelected();
-		resultsOptions.exportAllFiles = tabCommonOptions.exportAllFilesCheckBox.isSelected();
+		resultsOptions.collateSeries = tabCommonOptions.isCollateSeries();
+		resultsOptions.padIntervals = tabCommonOptions.isPadIntervals();
+		resultsOptions.absoluteTime = false;
+		resultsOptions.onlyalive = tabCommonOptions.isOnlyAlive();
+		resultsOptions.exportAllFiles = tabCommonOptions.isExportAllFiles();
 
 		resultsOptions.expList = parent0.expListComboLazy;
 		resultsOptions.expList.expListBinSubDirectory = exp.getBinSubDirectory();
-		if (tabCommonOptions.exportAllFilesCheckBox.isSelected()) {
+		if (tabCommonOptions.isExportAllFiles()) {
 			resultsOptions.firstExp = 0;
 			int itemCount = resultsOptions.expList.getItemCount();
 			resultsOptions.lastExp = (itemCount > 0) ? itemCount - 1 : 0;

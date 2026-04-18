@@ -16,6 +16,7 @@ import icy.gui.component.PopupPanel;
 import icy.system.thread.ThreadUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -30,7 +31,7 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -4296207607692017074L;
 	public PopupPanel capPopupPanel = null;
 	private JTabbedPane tabsPane = new JTabbedPane();
-	public Options tabCommonOptions = new Options();
+	public ExcelOptionsPanel tabCommonOptions = new ExcelOptionsPanel(ExcelOptionsPanel.Features.spots96Defaults());
 	private SpotsAreas spotsAreas = new SpotsAreas();
 	// private CagesAreas cagesAreas = new CagesAreas();
 	// TODO _CAGES private Move tabMove = new Move();
@@ -154,17 +155,17 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private void getCommonOptions(ResultsOptions resultsOptions, Experiment exp) {
-		resultsOptions.transpose = tabCommonOptions.transposeCheckBox.isSelected();
+		resultsOptions.transpose = tabCommonOptions.isTranspose();
 		resultsOptions.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
-		resultsOptions.buildExcelUnitMs = tabCommonOptions.binUnit.getMsUnitValue();
-		resultsOptions.fixedIntervals = tabCommonOptions.isFixedFrameButton.isSelected();
+		resultsOptions.buildExcelUnitMs = tabCommonOptions.getBinUnitMs();
+		resultsOptions.fixedIntervals = tabCommonOptions.getIsFixedFrame();
 		resultsOptions.startAll_Ms = tabCommonOptions.getStartAllMs();
 		resultsOptions.endAll_Ms = tabCommonOptions.getEndAllMs();
-		resultsOptions.exportAllFiles = tabCommonOptions.exportAllFilesCheckBox.isSelected();
+		resultsOptions.exportAllFiles = tabCommonOptions.isExportAllFiles();
 
 		resultsOptions.expList = parent0.expListComboLazy;
 		resultsOptions.expList.expListBinSubDirectory = exp.getBinSubDirectory();
-		if (tabCommonOptions.exportAllFilesCheckBox.isSelected()) {
+		if (tabCommonOptions.isExportAllFiles()) {
 			resultsOptions.firstExp = 0;
 			int itemCount = resultsOptions.expList.getItemCount();
 			resultsOptions.lastExp = (itemCount > 0) ? itemCount - 1 : 0;
