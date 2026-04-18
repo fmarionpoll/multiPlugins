@@ -68,14 +68,14 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 		panel1.add(yCheckbox);
 		panel1.add(distanceCheckbox);
 		panel1.add(distanceFromFoodCheckbox);
-		panel1.add(aliveCheckbox);
-		panel1.add(sleepCheckbox);
 		panel1.add(illumCheckbox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
+		panel2.add(aliveCheckbox);
 		panel2.add(new JLabel("Alive threshold"));
 		panel2.add(aliveThresholdSpinner);
+		panel2.add(sleepCheckbox);
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);

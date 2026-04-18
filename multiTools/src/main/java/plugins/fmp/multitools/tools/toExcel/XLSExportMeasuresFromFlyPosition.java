@@ -1124,7 +1124,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				cage.getProperties().getFlySex());
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_AGE.getValue(), transpose,
 				cage.getProperties().getFlyAge());
-		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.SPOT_NFLIES.getValue(), transpose,
+		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_NFLIES.getValue(), transpose,
 				cage.getProperties().getCageNFlies());
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAGE_COMMENT.getValue(), transpose,
 				cage.getProperties().getComment());
