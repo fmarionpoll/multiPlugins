@@ -43,7 +43,6 @@ public class Intervals extends JPanel implements ItemListener {
 	JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
 			new String[] { "up to last frame acquired", "clip number of frames to" });
 	JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
-	private static final String PREF_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
 	private static final int DEFAULT_NOMINAL_INTERVAL_SEC = 15;
 
 	JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
@@ -200,7 +199,8 @@ public class Intervals extends JPanel implements ItemListener {
 		exp.setCamImageBin_ms(bin_ms);
 		exp.setKymoBin_ms(bin_ms);
 		exp.setNominalIntervalSec(nominalSec);
-		saveDefaultNominalIntervalSec(nominalSec);
+		parent0.viewOptions.setDefaultNominalIntervalSec(nominalSec);
+		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
 
 		long firstImageIndex = (long) indexFirstImageJSpinner.getValue();
 		exp.getSeqCamData().getImageLoader().setAbsoluteIndexFirstImage(firstImageIndex);
@@ -220,23 +220,13 @@ public class Intervals extends JPanel implements ItemListener {
 		parent0.dlgBrowse.loadSaveExperiment.openSelectedExperiment(exp);
 	}
 
-	private int getDefaultNominalIntervalSec() {
-		icy.preferences.XMLPreferences prefs = parent0.getPreferences("multiSPOTS96Intervals");
-		return Math.max(1, Integer.parseInt(prefs.get(PREF_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(DEFAULT_NOMINAL_INTERVAL_SEC))));
-	}
-
-	private void saveDefaultNominalIntervalSec(int sec) {
-		icy.preferences.XMLPreferences prefs = parent0.getPreferences("multiSPOTS96Intervals");
-		prefs.put(PREF_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(sec));
-	}
-
 	public void getExptParms(Experiment exp) {
 		refreshBinSize(exp);
 		int nominal = exp.getNominalIntervalSec();
 		if (nominal > 0)
 			nominalIntervalJSpinner.setValue(nominal);
 		else
-			nominalIntervalJSpinner.setValue(getDefaultNominalIntervalSec());
+			nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
 		long bin_ms = exp.getSeqCamData().getTimeManager().getBinImage_ms();
 		long dFirst = exp.getSeqCamData().getImageLoader().getAbsoluteIndexFirstImage();
 		indexFirstImageJSpinner.setValue(dFirst);
@@ -266,7 +256,7 @@ public class Intervals extends JPanel implements ItemListener {
 					exp.setNominalIntervalSec(chosenSec);
 					nominalIntervalJSpinner.setValue(chosenSec);
 				} else
-					nominalIntervalJSpinner.setValue(getDefaultNominalIntervalSec());
+					nominalIntervalJSpinner.setValue(parent0.viewOptions.getDefaultNominalIntervalSec());
 			} else {
 				// Pre-populate the spinner so the advanced panel is coherent if opened
 				// later, without recording a nominal choice on behalf of the user.

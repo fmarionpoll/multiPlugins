@@ -20,6 +20,7 @@ import icy.image.ImageUtil;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
+import plugins.fmp.multitools.experiment.cafe.CafeViewOptionsDTO;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.cages.CagesPersistence.Persistence;
@@ -1516,7 +1517,7 @@ public class Experiment {
 		onViewerTPositionChanged(v, t, saveDetRoisToPositions, null);
 	}
 
-	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions, ViewOptionsDTO viewOptions) {
+	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions, CafeViewOptionsDTO viewOptions) {
 		if (v == null || v.getSequence() == null)
 			return;
 		int viewerSeqId = v.getSequence().getId();
@@ -1551,7 +1552,7 @@ public class Experiment {
 		}
 	}
 
-	private void applyCamViewOptions(Viewer v, ViewOptionsDTO opts) {
+	private void applyCamViewOptions(Viewer v, CafeViewOptionsDTO opts) {
 		IcyCanvas canvas = v.getCanvas();
 		if (canvas == null)
 			return;
@@ -1574,7 +1575,7 @@ public class Experiment {
 		}
 	}
 
-	private void applyKymosViewOptions(Viewer v, ViewOptionsDTO opts) {
+	private void applyKymosViewOptions(Viewer v, CafeViewOptionsDTO opts) {
 		IcyCanvas canvas = v.getCanvas();
 		if (canvas == null)
 			return;

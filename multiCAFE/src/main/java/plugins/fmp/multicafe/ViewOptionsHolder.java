@@ -1,42 +1,31 @@
 package plugins.fmp.multicafe;
 
 import icy.preferences.XMLPreferences;
-import plugins.fmp.multitools.experiment.ViewOptionsDTO;
+import plugins.fmp.multitools.ViewOptionsHolderBase;
+import plugins.fmp.multitools.experiment.cafe.CafeViewOptionsDTO;
 
 /**
  * Central holder for view options (cam and kymos). Persisted in the UI via
  * XMLPreferences, not with the experiment. Applied when viewer T changes or
  * when a new experiment is loaded.
  */
-public class ViewOptionsHolder {
+public class ViewOptionsHolder extends ViewOptionsHolderBase {
 
 	private static final String KEY_VIEW_CAPILLARIES = "viewCapillaries";
-	private static final String KEY_VIEW_CAGES = "viewCages";
 	private static final String KEY_VIEW_FLIES_CENTER = "viewFliesCenter";
 	private static final String KEY_VIEW_FLIES_RECT = "viewFliesRect";
 	private static final String KEY_VIEW_TOPLEVELS = "viewTopLevels";
 	private static final String KEY_VIEW_BOTTOMLEVELS = "viewBottomLevels";
 	private static final String KEY_VIEW_DERIVATIVE = "viewDerivative";
 	private static final String KEY_VIEW_GULPS = "viewGulps";
-	private static final String KEY_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
 
 	private boolean viewCapillaries = true;
-	private boolean viewCages = true;
 	private boolean viewFliesCenter = false;
 	private boolean viewFliesRect = false;
 	private boolean viewTopLevels = true;
 	private boolean viewBottomLevels = true;
 	private boolean viewDerivative = true;
 	private boolean viewGulps = true;
-	private int defaultNominalIntervalSec = 60;
-
-	public int getDefaultNominalIntervalSec() {
-		return defaultNominalIntervalSec;
-	}
-
-	public void setDefaultNominalIntervalSec(int sec) {
-		this.defaultNominalIntervalSec = sec;
-	}
 
 	public boolean isViewCapillaries() {
 		return viewCapillaries;
@@ -44,14 +33,6 @@ public class ViewOptionsHolder {
 
 	public void setViewCapillaries(boolean viewCapillaries) {
 		this.viewCapillaries = viewCapillaries;
-	}
-
-	public boolean isViewCages() {
-		return viewCages;
-	}
-
-	public void setViewCages(boolean viewCages) {
-		this.viewCages = viewCages;
 	}
 
 	public boolean isViewFliesCenter() {
@@ -102,36 +83,30 @@ public class ViewOptionsHolder {
 		this.viewGulps = viewGulps;
 	}
 
-	public void load(XMLPreferences prefs) {
-		if (prefs == null)
-			return;
-		viewCapillaries = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_CAPILLARIES, "true"));
-		viewCages = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_CAGES, "true"));
-		viewFliesCenter = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_FLIES_CENTER, "false"));
-		viewFliesRect = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_FLIES_RECT, "false"));
-		viewTopLevels = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_TOPLEVELS, "true"));
-		viewBottomLevels = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_BOTTOMLEVELS, "true"));
-		viewDerivative = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_DERIVATIVE, "true"));
-		viewGulps = "true".equalsIgnoreCase(prefs.get(KEY_VIEW_GULPS, "true"));
-		defaultNominalIntervalSec = Math.max(1, Integer.parseInt(prefs.get(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, "60")));
+	@Override
+	protected void loadPluginFields(XMLPreferences prefs) {
+		viewCapillaries = readBool(prefs, KEY_VIEW_CAPILLARIES, true);
+		viewFliesCenter = readBool(prefs, KEY_VIEW_FLIES_CENTER, false);
+		viewFliesRect = readBool(prefs, KEY_VIEW_FLIES_RECT, false);
+		viewTopLevels = readBool(prefs, KEY_VIEW_TOPLEVELS, true);
+		viewBottomLevels = readBool(prefs, KEY_VIEW_BOTTOMLEVELS, true);
+		viewDerivative = readBool(prefs, KEY_VIEW_DERIVATIVE, true);
+		viewGulps = readBool(prefs, KEY_VIEW_GULPS, true);
 	}
 
-	public void save(XMLPreferences prefs) {
-		if (prefs == null)
-			return;
+	@Override
+	protected void savePluginFields(XMLPreferences prefs) {
 		prefs.put(KEY_VIEW_CAPILLARIES, String.valueOf(viewCapillaries));
-		prefs.put(KEY_VIEW_CAGES, String.valueOf(viewCages));
 		prefs.put(KEY_VIEW_FLIES_CENTER, String.valueOf(viewFliesCenter));
 		prefs.put(KEY_VIEW_FLIES_RECT, String.valueOf(viewFliesRect));
 		prefs.put(KEY_VIEW_TOPLEVELS, String.valueOf(viewTopLevels));
 		prefs.put(KEY_VIEW_BOTTOMLEVELS, String.valueOf(viewBottomLevels));
 		prefs.put(KEY_VIEW_DERIVATIVE, String.valueOf(viewDerivative));
 		prefs.put(KEY_VIEW_GULPS, String.valueOf(viewGulps));
-		prefs.put(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, String.valueOf(defaultNominalIntervalSec));
 	}
 
-	public ViewOptionsDTO toViewOptionsDTO() {
-		ViewOptionsDTO dto = new ViewOptionsDTO();
+	public CafeViewOptionsDTO toCafeViewOptionsDTO() {
+		CafeViewOptionsDTO dto = new CafeViewOptionsDTO();
 		dto.setViewCapillaries(viewCapillaries);
 		dto.setViewCages(viewCages);
 		dto.setViewFliesCenter(viewFliesCenter);

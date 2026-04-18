@@ -618,7 +618,7 @@ public class Intervals extends JPanel implements ViewerListener {
 				return;
 			Experiment exp = findExperimentOwningSequence(v.getSequence());
 			if (exp != null)
-				exp.onViewerTPositionChanged(v, tNew, false, parent0.viewOptions.toViewOptionsDTO());
+				exp.onViewerTPositionChanged(v, tNew, false, parent0.viewOptions.toCafeViewOptionsDTO());
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
 				selectKymographComboItem(tNew);
 				String title = kymographsCombo.getItemAt(tNew) + "  :" + viewsCombo.getSelectedItem() + " s";

@@ -45,6 +45,8 @@ public class MultiSPOTS96 extends PluginActionable {
 				: null;
 		Experiment.setProgramContext("multiSPOTS96", revision);
 
+		viewOptions.migrateLegacyPreferencesIfNeeded(getPreferences("viewOptions"),
+				getPreferences("multiSPOTS96Intervals"));
 		viewOptions.load(getPreferences("viewOptions"));
 
 		JPanel mainPanel = GuiUtil.generatePanelWithoutBorder();

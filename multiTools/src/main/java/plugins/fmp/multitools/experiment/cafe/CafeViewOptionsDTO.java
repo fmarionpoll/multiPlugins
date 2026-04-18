@@ -1,11 +1,16 @@
-package plugins.fmp.multitools.experiment;
+package plugins.fmp.multitools.experiment.cafe;
 
 /**
- * DTO for view options (cam and kymos). Passed from UI to
- * Experiment.onViewerTPositionChanged so visibility can be applied after
- * syncing ROIs. Null means do not apply visibility.
+ * DTO for multiCAFE-specific view options (cam and kymos). Passed from UI to
+ * {@code Experiment.onViewerTPositionChanged} so visibility can be applied
+ * after syncing ROIs. Null means do not apply visibility.
+ *
+ * <p>Named explicitly to mark it as multiCAFE-only: multiSPOTS96 passes
+ * {@code null} at all call sites (it has no analogous cluttered-viewer
+ * problem yet). If multiSPOTS96 later needs its own visibility overrides,
+ * introduce a sibling class rather than widening this one.
  */
-public class ViewOptionsDTO {
+public class CafeViewOptionsDTO {
 
 	private boolean viewCapillaries = true;
 	private boolean viewCages = true;

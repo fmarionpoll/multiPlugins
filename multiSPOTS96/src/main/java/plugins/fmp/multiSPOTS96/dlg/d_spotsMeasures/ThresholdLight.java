@@ -115,9 +115,9 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 	private void syncDetectionModeFromViewOptions() {
 		if (parent0 == null)
 			return;
-		String mode = parent0.viewOptions.getSpotDetectionMode();
-		// Treat anything unknown as AUTO -> use checkbox default (true)
-		boolean usePipelined = !"BASIC".equalsIgnoreCase(mode);
+		SpotDetectionMode mode = parent0.viewOptions.getSpotDetectionMode();
+		// Treat anything other than BASIC (incl. AUTO) as "use pipelined"
+		boolean usePipelined = mode != SpotDetectionMode.BASIC;
 		usePipelinedDetectionCheckBox.setSelected(usePipelined);
 	}
 
@@ -284,7 +284,8 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 			public void actionPerformed(ActionEvent e) {
 				if (parent0 == null)
 					return;
-				String mode = usePipelinedDetectionCheckBox.isSelected() ? "PIPELINED" : "BASIC";
+				SpotDetectionMode mode = usePipelinedDetectionCheckBox.isSelected() ? SpotDetectionMode.PIPELINED
+						: SpotDetectionMode.BASIC;
 				parent0.viewOptions.setSpotDetectionMode(mode);
 				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
 			}
@@ -390,15 +391,8 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		options.flyThreshold = (int) fliesThresholdSpinner.getValue();
 		options.flyThresholdUp = (fliesDirectionComboBox.getSelectedIndex() == 1);
 
-		// Spot detection backend mode
-		String mode = (parent0 != null) ? parent0.viewOptions.getSpotDetectionMode() : "AUTO";
-		if ("BASIC".equalsIgnoreCase(mode)) {
-			options.spotDetectionMode = SpotDetectionMode.BASIC;
-		} else if ("PIPELINED".equalsIgnoreCase(mode)) {
-			options.spotDetectionMode = SpotDetectionMode.PIPELINED;
-		} else {
-			options.spotDetectionMode = SpotDetectionMode.AUTO;
-		}
+		options.spotDetectionMode = (parent0 != null) ? parent0.viewOptions.getSpotDetectionMode()
+				: SpotDetectionMode.AUTO;
 		// GPU option
 		options.useGpuTransforms = useGPUCheckBox.isSelected();
 
