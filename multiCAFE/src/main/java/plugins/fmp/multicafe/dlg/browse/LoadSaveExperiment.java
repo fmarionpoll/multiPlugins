@@ -55,6 +55,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private JButton closeButton = new JButton("Close");
 	public JCheckBox filteredCheck = new JCheckBox("List filtered");
 
+	public JCheckBox getFilteredCheck() {
+		return filteredCheck;
+	}
+
 	// Data structures
 	public List<String> selectedNames = new ArrayList<String>();
 	private SelectFilesPanel dialogSelect = null;

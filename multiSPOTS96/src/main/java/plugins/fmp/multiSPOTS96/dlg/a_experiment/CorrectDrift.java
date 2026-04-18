@@ -10,7 +10,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -37,6 +36,7 @@ import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.RegistrationOptions;
 import plugins.fmp.multitools.series.RegistrationProcessor;
 import plugins.fmp.multitools.series.SafeRegistrationProcessor;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
@@ -47,7 +47,6 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	private static final Logger LOGGER = Logger.getLogger(CorrectDrift.class.getName());
 
 	int val = 0; // set your own value, I used to check if it works
 	int min = 0;
@@ -338,7 +337,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 		// Execute registration asynchronously
 		currentTask = CompletableFuture.runAsync(() -> {
 			try {
-				LOGGER.info("Starting registration for experiment: " + experiment.getResultsDirectory());
+				Logger.info("Starting registration for experiment: " + experiment.getResultsDirectory());
 
 				ProcessingResult<RegistrationProcessor.RegistrationResult> result = registrationProcessor
 						.correctDriftAndRotation(experiment, options);
@@ -353,7 +352,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 				}
 
 			} catch (Exception e) {
-				LOGGER.severe("Unexpected error during registration: " + e.getMessage());
+				Logger.error("Unexpected error during registration: " + e.getMessage(), e);
 				showError("Unexpected error during registration: " + e.getMessage());
 			}
 		});
@@ -368,7 +367,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	private void stopComputation() {
 		if (currentTask != null && !currentTask.isDone()) {
 			currentTask.cancel(true);
-			LOGGER.info("Registration stopped by user");
+			Logger.info("Registration stopped by user");
 		}
 		updateButtonStates();
 		runButton.setText("Run");
@@ -430,7 +429,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	 * Shows an error message to the user.
 	 */
 	private void showError(String message) {
-		LOGGER.warning("User error: " + message);
+		Logger.warn("User error: " + message);
 		// In a real implementation, you'd show this in the UI
 		// For now, we'll just log it
 	}
@@ -439,7 +438,7 @@ public class CorrectDrift extends JPanel implements ViewerListener, PropertyChan
 	 * Shows a success message to the user.
 	 */
 	private void showSuccess(String message) {
-		LOGGER.info("Success: " + message);
+		Logger.info("Success: " + message);
 		// In a real implementation, you'd show this in the UI
 		// For now, we'll just log it
 	}

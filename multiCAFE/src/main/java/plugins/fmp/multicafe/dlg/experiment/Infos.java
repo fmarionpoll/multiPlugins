@@ -9,7 +9,6 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
@@ -18,7 +17,8 @@ import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.tools.JComponents.SortedComboBoxModel;
+import plugins.fmp.multitools.tools.DialogTools;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxModelSorted;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class Infos extends JPanel {
@@ -27,14 +27,14 @@ public class Infos extends JPanel {
 	 */
 	private static final long serialVersionUID = 2190848825783418962L;
 
-	private JComboBox<String> stim1Combo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> stim2Combo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> boxIDCombo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> exptCombo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> strainCombo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> sexCombo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> conc1Combo = new JComboBox<String>(new SortedComboBoxModel());
-	private JComboBox<String> conc2Combo = new JComboBox<String>(new SortedComboBoxModel());
+	private JComboBox<String> stim1Combo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> stim2Combo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> boxIDCombo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> exptCombo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> strainCombo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> sexCombo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> conc1Combo = new JComboBox<String>(new JComboBoxModelSorted());
+	private JComboBox<String> conc2Combo = new JComboBox<String>(new JComboBoxModelSorted());
 
 	private JLabel experimentLabel = new JLabel(EnumXLSColumnHeader.EXP_EXPT.toString());
 	private JLabel boxIDLabel = new JLabel(EnumXLSColumnHeader.EXP_ID.toString());
@@ -66,14 +66,25 @@ public class Infos extends JPanel {
 		c.ipady = 0;
 		c.insets = new Insets(1, 2, 1, 2);
 
+		int delta1 = 1;
+		int delta2 = 3;
+
 		c.gridy = 0;
-		addLineOfElements(c, experimentLabel, exptCombo, boxIDLabel, boxIDCombo, openButton);
+		c.gridx = 0;
+		DialogTools.addFiveComponentOnARow(this, experimentLabel, exptCombo, boxIDLabel, boxIDCombo, openButton, c,
+				delta1, delta2);
 		c.gridy = 1;
-		addLineOfElements(c, strainLabel, strainCombo, sexLabel, sexCombo, saveButton);
+		c.gridx = 0;
+		DialogTools.addFiveComponentOnARow(this, strainLabel, strainCombo, sexLabel, sexCombo, saveButton, c, delta1,
+				delta2);
 		c.gridy = 2;
-		addLineOfElements(c, stim1Label, stim1Combo, conc1Label, conc1Combo, duplicateButton);
+		c.gridx = 0;
+		DialogTools.addFiveComponentOnARow(this, stim1Label, stim1Combo, conc1Label, conc1Combo, duplicateButton, c,
+				delta1, delta2);
 		c.gridy = 3;
-		addLineOfElements(c, stim2Label, stim2Combo, conc2Label, conc2Combo, zoomButton);
+		c.gridx = 0;
+		DialogTools.addFiveComponentOnARow(this, stim2Label, stim2Combo, conc2Label, conc2Combo, zoomButton, c, delta1,
+				delta2);
 
 		zoomButton.setEnabled(true);
 		boxIDCombo.setEditable(true);
@@ -86,27 +97,6 @@ public class Infos extends JPanel {
 		conc2Combo.setEditable(true);
 
 		defineActionListeners();
-	}
-
-	void addLineOfElements(GridBagConstraints c, JComponent element1, JComponent element2, JComponent element3,
-			JComponent element4, JComponent element5) {
-		c.gridx = 0;
-		int delta1 = 1;
-		int delta2 = 3;
-		if (element1 != null)
-			add(element1, c);
-		c.gridx += delta1;
-		if (element2 != null)
-			add(element2, c);
-		c.gridx += delta2;
-		if (element3 != null)
-			add(element3, c);
-		c.gridx += delta1;
-		if (element4 != null)
-			add(element4, c);
-		c.gridx += delta2;
-		if (element5 != null)
-			add(element5, c);
 	}
 
 	private void defineActionListeners() {
@@ -187,7 +177,7 @@ public class Infos extends JPanel {
 	private void addItemToComboIfNew(String toAdd, JComboBox<String> combo) {
 		if (toAdd == null)
 			return;
-		SortedComboBoxModel model = (SortedComboBoxModel) combo.getModel();
+		JComboBoxModelSorted model = (JComboBoxModelSorted) combo.getModel();
 		if (model.getIndexOf(toAdd) == -1)
 			model.addElement(toAdd);
 	}

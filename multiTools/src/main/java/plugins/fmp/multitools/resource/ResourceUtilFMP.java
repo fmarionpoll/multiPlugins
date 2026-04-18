@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.resource;
+package plugins.fmp.multitools.resource;
 
 import java.awt.Image;
 import java.io.InputStream;
@@ -6,7 +6,7 @@ import java.io.InputStream;
 import icy.image.ImageUtil;
 import icy.resource.ResourceUtil;
 import icy.resource.icon.IcyIcon;
-import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multitools.MultiTools;
 import plugins.fmp.multitools.tools.Logger;
 
 // adapted from NherveToolbox
@@ -26,8 +26,8 @@ public class ResourceUtilFMP {
 	}
 
 	private static Image getImage(String fileName) {
-		String name = "plugins/fmp/multicafe/" + ICON_PATH + ALPHA_PATH + fileName;
-		InputStream url = MultiCAFE.class.getClassLoader().getResourceAsStream(name);
+		String name = "plugins/fmp/multitools/" + ICON_PATH + ALPHA_PATH + fileName;
+		InputStream url = MultiTools.class.getClassLoader().getResourceAsStream(name);
 		if (url == null) {
 			Logger.warn("ResourceUtilFMP:getImage resource not found: at: " + name);
 		}
