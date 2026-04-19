@@ -8,66 +8,93 @@ import plugins.fmp.multitools.experiment.capillaries.computations.GulpMeasureCom
 /**
  * Enumeration of all available measurement types.
  * 
- * <p>Each measurement type has a computation strategy that indicates how the data is obtained:
+ * <p>
+ * Each measurement type has a computation strategy that indicates how the data
+ * is obtained:
  * <ul>
- * <li><b>STORED_DATA</b> - Data stored directly in capillary/spot measurement fields 
- *     (e.g., measurements.ptsTop, measurements.ptsBottom, measurements.ptsGulps).
- *     Retrieved via getter methods without computation - the data was already computed/stored during processing.</li>
- * <li><b>Computation method reference</b> - Derived measure computed on-the-fly using MeasurementComputation interface</li>
- * <li><b>NOT_IMPLEMENTED</b> - Measure declared but computation algorithm not yet implemented</li>
+ * <li><b>STORED_DATA</b> - Data stored directly in capillary/spot measurement
+ * fields (e.g., measurements.ptsTop, measurements.ptsBottom,
+ * measurements.ptsGulps). Retrieved via getter methods without computation -
+ * the data was already computed/stored during processing.</li>
+ * <li><b>Computation method reference</b> - Derived measure computed on-the-fly
+ * using MeasurementComputation interface</li>
+ * <li><b>NOT_IMPLEMENTED</b> - Measure declared but computation algorithm not
+ * yet implemented</li>
  * </ul>
  * </p>
  */
 public enum EnumResults {
 
-	// === STORED DATA MEASURES (each has specific accessor method showing what field/method is used) ===
+	// === STORED DATA MEASURES (each has specific accessor method showing what
+	// field/method is used) ===
 	TOPRAW("topraw", "volume (ul)", "top liquid level (t-t0)", StoredDataAccessors.accessStored_TOPRAW()),
-	TOPLEVEL("toplevel", "volume (ul)", "top liquid compensated for evaporation (t-t0)", StoredDataAccessors.accessStored_TOPLEVEL()),
-	BOTTOMLEVEL("bottomlevel", "volume (ul)", "bottom liquid level (t-t0)", StoredDataAccessors.accessStored_BOTTOMLEVEL()),
-	TOPLEVELDIRECT("topleveldirect", "volume (ul)", "top liquid from direct cam detection (t-t0)", StoredDataAccessors.accessStored_TOPLEVELDIRECT()),
-	BOTTOMLEVELDIRECT("bottomleveldirect", "volume (ul)", "bottom liquid from direct cam detection (t-t0)", StoredDataAccessors.accessStored_BOTTOMLEVELDIRECT()),
-	DERIVEDVALUES("derivative", "volume (ul)", "derived top liquid level (t-t0)", StoredDataAccessors.accessStored_DERIVEDVALUES()),
+	TOPLEVEL("toplevel", "volume (ul)", "top liquid compensated for evaporation (t-t0)",
+			StoredDataAccessors.accessStored_TOPLEVEL()),
+	BOTTOMLEVEL("bottomlevel", "volume (ul)", "bottom liquid level (t-t0)",
+			StoredDataAccessors.accessStored_BOTTOMLEVEL()),
+	TOPLEVELDIRECT("topleveldirect", "volume (ul)", "top liquid from direct cam detection (t-t0)",
+			StoredDataAccessors.accessStored_TOPLEVELDIRECT()),
+	BOTTOMLEVELDIRECT("bottomleveldirect", "volume (ul)", "bottom liquid from direct cam detection (t-t0)",
+			StoredDataAccessors.accessStored_BOTTOMLEVELDIRECT()),
+	DERIVEDVALUES("derivative", "volume (ul)", "derived top liquid level (t-t0)",
+			StoredDataAccessors.accessStored_DERIVEDVALUES()),
 
-	TOPLEVEL_LR("toplevel_L+R", "volume (ul)", "volume consumed in capillaries / cage (t-t0)", StoredDataAccessors.accessStored_TOPLEVEL_LR()),
-	TOPLEVELDELTA("topdelta", "volume (ul)", "top liquid consumed (t - t-1)", StoredDataAccessors.accessStored_TOPLEVELDELTA()),
-	TOPLEVELDELTA_LR("topdelta_L+R", "volume (ul)", "volume consumed in capillaries /cage (t - t-1)", StoredDataAccessors.accessStored_TOPLEVELDELTA_LR()),
+	TOPLEVEL_LR("toplevel_L+R", "volume (ul)", "volume consumed in capillaries / cage (t-t0)",
+			StoredDataAccessors.accessStored_TOPLEVEL_LR()),
+	TOPLEVELDELTA("topdelta", "volume (ul)", "top liquid consumed (t - t-1)",
+			StoredDataAccessors.accessStored_TOPLEVELDELTA()),
+	TOPLEVELDELTA_LR("topdelta_L+R", "volume (ul)", "volume consumed in capillaries /cage (t - t-1)",
+			StoredDataAccessors.accessStored_TOPLEVELDELTA_LR()),
 
 	// === GULP MEASURES (handled via CapillaryGulps.getMeasuresFromGulps) ===
-	SUMGULPS("sumGulps", "volume (ul)", "cumulated volume of gulps (t-t0)", StoredDataAccessors.accessStored_SUMGULPS()),
-	SUMGULPS_LR("sumGulps_L+R", "volume (ul)", "cumulated volume of gulps / cage (t-t0)", StoredDataAccessors.accessStored_SUMGULPS_LR()),
+	SUMGULPS("sumGulps", "volume (ul)", "cumulated volume of gulps (t-t0)",
+			StoredDataAccessors.accessStored_SUMGULPS()),
+	SUMGULPS_LR("sumGulps_L+R", "volume (ul)", "cumulated volume of gulps / cage (t-t0)",
+			StoredDataAccessors.accessStored_SUMGULPS_LR()),
 
 	// === COMPUTED GULP MEASURES ===
 	NBGULPS("nbGulps", "volume (ul)", "number of gulps (at t)", GulpMeasureComputation.computeNbGulps()),
-	AMPLITUDEGULPS("amplitudeGulps", "volume (ul)", "amplitude of gulps (at t)", GulpMeasureComputation.computeAmplitudeGulps()),
+	AMPLITUDEGULPS("amplitudeGulps", "volume (ul)", "amplitude of gulps (at t)",
+			GulpMeasureComputation.computeAmplitudeGulps()),
 	TTOGULP("tToGulp", "minutes", "time to previous gulp(at t)", GulpMeasureComputation.computeTToGulp()),
-	TTOGULP_LR("tToGulp_LR", "minutes", "time to previous gulp of either capillary (at t)", StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	TTOGULP_LR("tToGulp_LR", "minutes", "time to previous gulp of either capillary (at t)",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	// === COMPUTED CORRELATION MEASURES ===
 	MARKOV_CHAIN("markov_chain", "n observ", "boolean transition (at t)", CorrelationComputation.computeMarkovChain()),
-	AUTOCORREL("autocorrel", "n observ", "auto-correlation (at t, over n intervals)", CorrelationComputation.computeAutocorrelation()),
-	AUTOCORREL_LR("autocorrel_LR", "n observ", "auto-correlation over capillaries/cage (at t, over n intervals)", CorrelationComputation.computeAutocorrelationLR()),
-	CROSSCORREL("crosscorrel", "n observ", "cross-correlation (at t, over n intervals)", CorrelationComputation.computeCrosscorrelation()),
-	CROSSCORREL_LR("crosscorrel_LR", "n observ", "cross-correlation over capillaries/cage (at t, over n intervals)", CorrelationComputation.computeCrosscorrelationLR()),
+	AUTOCORREL("autocorrel", "n observ", "auto-correlation (at t, over n intervals)",
+			CorrelationComputation.computeAutocorrelation()),
+	AUTOCORREL_LR("autocorrel_LR", "n observ", "auto-correlation over capillaries/cage (at t, over n intervals)",
+			CorrelationComputation.computeAutocorrelationLR()),
+	CROSSCORREL("crosscorrel", "n observ", "cross-correlation (at t, over n intervals)",
+			CorrelationComputation.computeCrosscorrelation()),
+	CROSSCORREL_LR("crosscorrel_LR", "n observ", "cross-correlation over capillaries/cage (at t, over n intervals)",
+			CorrelationComputation.computeCrosscorrelationLR()),
 
 	// === FLY POSITION MEASURES (stored data) ===
 	XYIMAGE("xy-image", "mm", "xy image", StoredDataAccessors.accessStored_XYIMAGE()),
-	/** Distance from fly center to food side (per-cage FoodSide on CageProperties). */
+	/**
+	 * Distance from fly center to food side (per-cage FoodSide on CageProperties).
+	 */
 	YVSFOOD("dist-food", "mm", "distance vs food", StoredDataAccessors.accessStored_YVSFOOD()),
 	XTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_XTOPCAGE()),
 	YTOPCAGE("xy-topcage", "mm", "xy top cage", StoredDataAccessors.accessStored_YTOPCAGE()),
 	ELLIPSEAXES("ellipse-axes", "mm", "Ellipse of axes", StoredDataAccessors.accessStored_ELLIPSEAXES()),
 	DISTANCE("distance", "mm", "Distance between consecutive points", StoredDataAccessors.accessStored_DISTANCE()),
-	ISALIVE("_alive", "yes/no", "Fly alive or not", StoredDataAccessors.accessStored_ISALIVE()),
+	ISALIVE("alive", "yes(1)/no(0)", "Fly alive or not", StoredDataAccessors.accessStored_ISALIVE()),
 	SLEEP("sleep", "yes, no", "Fly sleeping", StoredDataAccessors.accessStored_SLEEP()),
-	ILLUM_PHASE("illumPhase", "light/dark", "Detect2 dual-background lighting phase (0=light, 1=dark)", StoredDataAccessors.accessStored_ILLUM_PHASE()),
+	ILLUM_PHASE("illumPhase", "light/dark", "Detect2 dual-background lighting phase (0=light, 1=dark)",
+			StoredDataAccessors.accessStored_ILLUM_PHASE()),
 
 	// === SPOT AREA MEASURES (stored data) ===
-	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUM()),
-	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUMCLEAN()),
+	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)",
+			StoredDataAccessors.accessStored_AREA_SUM()),
+	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly", "Consumption (estimated/threshold)",
+			StoredDataAccessors.accessStored_AREA_SUMCLEAN()),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
-	AREA_FLYPRESENT("AREA_FLYPRESENT", "boolean value", "Fly is present or not over the spot", StoredDataAccessors.accessStored_AREA_FLYPRESENT());
-
+	AREA_FLYPRESENT("AREA_FLYPRESENT", "boolean value", "Fly is present or not over the spot",
+			StoredDataAccessors.accessStored_AREA_FLYPRESENT());
 
 	private String label;
 	private String unit;
@@ -96,19 +123,20 @@ public enum EnumResults {
 	/**
 	 * Gets the computation strategy for this measure type.
 	 * 
-	 * @return The computation strategy:
-	 *         - Actual computation method for computed measures
-	 *         - STORED_DATA marker for measures accessed from stored fields
-	 *         - NOT_IMPLEMENTED marker for measures not yet implemented
+	 * @return The computation strategy: - Actual computation method for computed
+	 *         measures - STORED_DATA marker for measures accessed from stored
+	 *         fields - NOT_IMPLEMENTED marker for measures not yet implemented
 	 */
 	public MeasurementComputation getComputationStrategy() {
 		return computationStrategy;
 	}
 
 	/**
-	 * Checks if this measure type requires computation (has a real computation algorithm).
+	 * Checks if this measure type requires computation (has a real computation
+	 * algorithm).
 	 * 
-	 * @return true if computation is required (not stored data and not not-implemented)
+	 * @return true if computation is required (not stored data and not
+	 *         not-implemented)
 	 */
 	public boolean requiresComputation() {
 		if (computationStrategy == null) {
@@ -117,7 +145,8 @@ public enum EnumResults {
 		try {
 			// Try calling it - if it throws UnsupportedOperationException, it's stored data
 			computationStrategy.compute(null, null, null);
-			// If it returns null without exception, check if it's the not-implemented marker
+			// If it returns null without exception, check if it's the not-implemented
+			// marker
 			return true; // Has actual computation logic
 		} catch (UnsupportedOperationException e) {
 			// This is a stored data accessor
@@ -126,7 +155,8 @@ public enum EnumResults {
 	}
 
 	/**
-	 * Checks if this measure type uses stored data (direct access to measurement fields).
+	 * Checks if this measure type uses stored data (direct access to measurement
+	 * fields).
 	 * 
 	 * @return true if data is stored in measurement fields and accessed directly
 	 */

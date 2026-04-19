@@ -18,7 +18,7 @@ public final class ExcelExportConstants {
 
 	// Sheet and cell formatting
 	public static final String SHEET_SEPARATOR = "--";
-	public static final String ALIVE_SHEET_SUFFIX = "_alive";
+	public static final String ALIVE_SHEET_SUFFIX = "alive";
 	public static final String CHOICE_NOCHOICE_DEFAULT = "";
 
 	// File path processing
