@@ -245,13 +245,19 @@ public final class ChooseAnalysisIntervalDialog {
 				sb.append(", factor ").append(rep.subsampleFactor).append("x");
 			sb.append(", ").append(modeLabel(key.mode));
 			boolean anyMeasures = false;
+			boolean anyImages = false;
 			long newest = 0;
 			for (BinCandidate c : members) {
 				anyMeasures = anyMeasures || c.hasMeasures;
+				anyImages = anyImages || c.hasImages;
 				newest = Math.max(newest, c.lastModifiedMs);
 			}
+			if (anyImages)
+				sb.append("  \u2713 images");
 			if (anyMeasures)
 				sb.append("  \u2713 measures");
+			if (!anyImages && !anyMeasures)
+				sb.append("  (empty)");
 			if (newest > 0)
 				sb.append("  \u00B7 ").append(DF.format(new Date(newest)));
 			sb.append("   [");

@@ -52,6 +52,21 @@ public final class BinDirectoryScanUtils {
 	}
 
 	/**
+	 * Returns true if the given bin directory contains image files (camera frames
+	 * or kymographs). This is used to avoid selecting an empty {@code bin_xxx}
+	 * directory when several legacy siblings coexist.
+	 */
+	public static boolean hasImageContent(Path dir) {
+		if (dir == null || !Files.isDirectory(dir))
+			return false;
+		try (Stream<Path> stream = Files.list(dir)) {
+			return stream.filter(Files::isRegularFile).anyMatch(BinDirectoryScanUtils::isImageFile);
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	/**
 	 * Returns true if the given bin directory contains kymograph TIFFs
 	 * (heuristic used when inferring generation mode for legacy dirs).
 	 */
@@ -63,6 +78,12 @@ public final class BinDirectoryScanUtils {
 		} catch (IOException e) {
 			return false;
 		}
+	}
+
+	private static boolean isImageFile(Path path) {
+		String name = path.getFileName().toString().toLowerCase();
+		return name.endsWith(".tif") || name.endsWith(".tiff") || name.endsWith(".jpg") || name.endsWith(".jpeg")
+				|| name.endsWith(".png");
 	}
 
 	private static boolean isMeasureFile(Path path) {

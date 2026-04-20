@@ -111,6 +111,14 @@ public final class BinDirectoryResolver {
 			return deriveNameFromInterval(ctx);
 		}
 
+		// Safeguard for legacy results with multiple bin_xxx siblings when interval
+		// detection fails: if exactly one directory contains real content (images or
+		// measures), adopt it without prompting.
+		BinCandidate soleWithData = soleCandidateWithData(candidates);
+		if (soleWithData != null) {
+			return soleWithData.name;
+		}
+
 		EquivKey targetKey = classifyExpected(ctx);
 		Map<EquivKey, List<BinCandidate>> byClass = groupByEquivalenceClass(candidates);
 
@@ -119,7 +127,7 @@ public final class BinDirectoryResolver {
 		if (matching != null && !matching.isEmpty()) {
 			List<BinCandidate> withData = new ArrayList<>();
 			for (BinCandidate c : matching) {
-				if (c.hasMeasures)
+				if (c.hasMeasures || c.hasImages)
 					withData.add(c);
 			}
 			if (withData.size() == 1) {
@@ -207,6 +215,7 @@ public final class BinDirectoryResolver {
 		c.seconds = sec;
 		c.path = dir;
 		c.hasMeasures = BinDirectoryScanUtils.hasMeasureContent(dir);
+		c.hasImages = BinDirectoryScanUtils.hasImageContent(dir);
 		c.hasBinDescription = Files.exists(dir.resolve(BinDescriptionPersistence.ID_V2_BINDESCRIPTION_XML));
 		try {
 			c.lastModifiedMs = Files.getLastModifiedTime(dir).toMillis();
@@ -373,7 +382,7 @@ public final class BinDirectoryResolver {
 		for (BinCandidate c : matching) {
 			if (c == adopted)
 				continue;
-			if (c.hasMeasures)
+			if (c.hasMeasures || c.hasImages)
 				continue;
 			toRename.add(c);
 		}
@@ -438,11 +447,20 @@ public final class BinDirectoryResolver {
 		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, withData,
 				detectedForDialog, lastPreference());
 		if (r != null && r.chosenBinName != null) {
-			PREFS.put(PREF_LAST_BIN_SUBDIR, r.chosenBinName);
-			if (r.rememberForSession) {
-				rememberedBinForSession = r.chosenBinName;
+			String chosen = r.chosenBinName;
+			BinCandidate chosenCandidate = findByName(sameClass, chosen);
+			if (chosenCandidate != null && !hasAnyData(chosenCandidate)) {
+				BinCandidate fallback = pickFallbackWithData(sameClass, chosenCandidate);
+				if (fallback != null) {
+					showAutoSwitchMessage(ctx, chosenCandidate, fallback);
+					chosen = fallback.name;
+				}
 			}
-			return r.chosenBinName;
+			PREFS.put(PREF_LAST_BIN_SUBDIR, chosen);
+			if (r.rememberForSession) {
+				rememberedBinForSession = chosen;
+			}
+			return chosen;
 		}
 		return pickBest(withData).name;
 	}
@@ -453,13 +471,76 @@ public final class BinDirectoryResolver {
 		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, candidates,
 				detectedForDialog, lastPreference());
 		if (r != null && r.chosenBinName != null) {
-			PREFS.put(PREF_LAST_BIN_SUBDIR, r.chosenBinName);
-			if (r.rememberForSession) {
-				rememberedBinForSession = r.chosenBinName;
+			String chosen = r.chosenBinName;
+			BinCandidate chosenCandidate = findByName(candidates, chosen);
+			if (chosenCandidate != null && !hasAnyData(chosenCandidate)) {
+				BinCandidate fallback = pickFallbackWithData(candidates, chosenCandidate);
+				if (fallback != null) {
+					showAutoSwitchMessage(ctx, chosenCandidate, fallback);
+					chosen = fallback.name;
+				}
 			}
-			return r.chosenBinName;
+			PREFS.put(PREF_LAST_BIN_SUBDIR, chosen);
+			if (r.rememberForSession) {
+				rememberedBinForSession = chosen;
+			}
+			return chosen;
 		}
 		return pickBest(candidates).name;
+	}
+
+	private static boolean hasAnyData(BinCandidate c) {
+		return c != null && (c.hasMeasures || c.hasImages);
+	}
+
+	private static BinCandidate soleCandidateWithData(List<BinCandidate> candidates) {
+		if (candidates == null || candidates.isEmpty())
+			return null;
+		BinCandidate sole = null;
+		for (BinCandidate c : candidates) {
+			if (!hasAnyData(c))
+				continue;
+			if (sole != null)
+				return null;
+			sole = c;
+		}
+		return sole;
+	}
+
+	private static BinCandidate findByName(List<BinCandidate> candidates, String name) {
+		if (candidates == null || name == null)
+			return null;
+		for (BinCandidate c : candidates) {
+			if (name.equals(c.name))
+				return c;
+		}
+		return null;
+	}
+
+	private static BinCandidate pickFallbackWithData(List<BinCandidate> candidates, BinCandidate chosenEmpty) {
+		if (candidates == null || chosenEmpty == null)
+			return null;
+		BinCandidate best = null;
+		int bestDelta = Integer.MAX_VALUE;
+		for (BinCandidate c : candidates) {
+			if (!hasAnyData(c))
+				continue;
+			int d = Math.abs(c.seconds - chosenEmpty.seconds);
+			if (best == null || d < bestDelta || (d == bestDelta && c.lastModifiedMs > best.lastModifiedMs)) {
+				best = c;
+				bestDelta = d;
+			}
+		}
+		return best;
+	}
+
+	private static void showAutoSwitchMessage(Context ctx, BinCandidate chosenEmpty, BinCandidate fallback) {
+		if (ctx == null || !ctx.allowPrompt || ctx.parentForDialog == null)
+			return;
+		String msg = "The selected directory \"" + chosenEmpty.name + "\" appears to be empty (no images/measures).\n"
+				+ "Using \"" + fallback.name + "\" instead because it contains data.";
+		javax.swing.JOptionPane.showMessageDialog(ctx.parentForDialog, msg, "Empty bin directory",
+				javax.swing.JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private static BinCandidate pickBest(List<BinCandidate> list) {
@@ -502,6 +583,7 @@ public final class BinDirectoryResolver {
 		public int seconds;
 		public Path path;
 		public boolean hasMeasures;
+		public boolean hasImages;
 		public boolean hasBinDescription;
 		public long lastModifiedMs;
 		public long cameraIntervalMs = -1;
