@@ -72,8 +72,8 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	private JButton convertBlobsToSpotButton = new JButton("Convert blobs to spots");
 	private JSpinner spotDiameterSpinner = new JSpinner(new SpinnerNumberModel(22, 1, 1200, 1));
 
-	private JButton deleteSelectedSpotsButton = new JButton("Remove selected spots");
-	private JButton duplicateSelectedSpotButton = new JButton("Duplicate selected spot");
+	private JButton deleteSelectedSpotsButton = new JButton("Delete spots");
+	private JButton duplicateSelectedSpotButton = new JButton("Duplicate spot");
 	private JButton cleanUpNamesButton = new JButton("Clean up spot names");
 
 	private DetectSpotsOutline detectSpots = null;
