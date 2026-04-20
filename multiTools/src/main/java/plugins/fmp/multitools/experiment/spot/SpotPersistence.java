@@ -108,6 +108,7 @@ public class SpotPersistence {
 	public static String csvExportMeasureSectionHeader(EnumSpotMeasures measureType, String sep) {
 		switch (measureType) {
 		case AREA_SUM:
+		case AREA_SUMNOFLY:
 		case AREA_SUMCLEAN:
 		case AREA_FLYPRESENT:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
@@ -124,6 +125,9 @@ public class SpotPersistence {
 		switch (measureType) {
 		case AREA_SUM:
 			spot.getSum().exportYDataToCsv(sbf, sep);
+			break;
+		case AREA_SUMNOFLY:
+			spot.getSumNoFly().exportYDataToCsv(sbf, sep);
 			break;
 		case AREA_SUMCLEAN:
 			spot.getSumClean().exportYDataToCsv(sbf, sep);
@@ -242,6 +246,13 @@ public class SpotPersistence {
 				spot.getSum().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
 				spot.getSum().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case AREA_SUMNOFLY:
+			if (x && y) {
+				spot.getSumNoFly().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getSumNoFly().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		case AREA_SUMCLEAN:

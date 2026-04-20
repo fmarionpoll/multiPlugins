@@ -976,6 +976,8 @@ public class Experiment {
 				spots.getPersistence().loadDescriptions(spots, resultsDir);
 			}
 			SpotsPersistenceLegacy.loadMeasuresFromCombinedResults(spots, resultsDir);
+			spots.ensureSumNoFlyPresent();
+			spots.rebuildSumCleanFromSumNoFly();
 			dispatchSpotsToCages();
 			cages.ensureSpotROIsFromCageGeometry(spots);
 			return !spots.getSpotList().isEmpty();
@@ -991,6 +993,8 @@ public class Experiment {
 		if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
 			spots.getPersistence().loadMeasures(spots, binDir);
 		}
+		spots.ensureSumNoFlyPresent();
+		spots.rebuildSumCleanFromSumNoFly();
 		if (descriptionsLoaded) {
 			dispatchSpotsToCages();
 			cages.ensureSpotROIsFromCageGeometry(spots);

@@ -297,6 +297,7 @@ public class SpotsPersistence {
 								SpotsPersistenceLegacy.csvLoad_Spots_Description(spotsArray, reader, sep);
 								break;
 							case "AREA_SUM":
+							case "AREA_SUMNOFLY":
 							case "AREA_SUMCLEAN":
 							case "AREA_FLYPRESENT":
 								return descriptionLoaded || spotsLoaded;
@@ -437,8 +438,15 @@ public class SpotsPersistence {
 		}
 
 		/**
-		 * Saves spot measures (AREA_SUM, AREA_SUMCLEAN sections) to SpotsMeasures.csv
-		 * in bin directory. Always saves with version header.
+		 * Saves spot measures to SpotsMeasures.csv in bin directory.
+		 * <p>
+		 * Persistence policy:
+		 * <ul>
+		 * <li>Persist {@code AREA_SUM} (raw)</li>
+		 * <li>Persist {@code AREA_SUMNOFLY} (no-fly)</li>
+		 * <li>Persist {@code AREA_FLYPRESENT} (fly mask support)</li>
+		 * <li>Do <b>not</b> persist {@code AREA_SUMCLEAN} (derived in memory)</li>
+		 * </ul>
 		 */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {
 			if (binDirectory == null) {
@@ -460,7 +468,11 @@ public class SpotsPersistence {
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUMCLEAN,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUMNOFLY,
+						";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_FLYPRESENT,
 						";")) {
 					return false;
 				}

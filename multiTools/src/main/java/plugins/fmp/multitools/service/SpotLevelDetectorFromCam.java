@@ -127,7 +127,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 					if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
 						continue;
 					}
-					queue.put(new FrameJob(t, timeMs, camFrameIndex));
+					queue.put(new FrameJob(t, camFrameIndex));
 					progress.incPosition();
 				}
 			} catch (InterruptedException e) {
@@ -247,6 +247,9 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			if (spot.getSum() != null) {
 				spot.getSum().setValues(new double[nTimeBins]);
 			}
+			if (spot.getSumNoFly() != null) {
+				spot.getSumNoFly().setValues(new double[nTimeBins]);
+			}
 			if (spot.getSumClean() != null) {
 				spot.getSumClean().setValues(new double[nTimeBins]);
 			}
@@ -349,9 +352,9 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 			if (nPointsNoFly > 0) {
 				double meanNoFly = sumNoFlyOverThreshold / nPointsNoFly;
-				spot.getSumClean().setValueAt(timeIndex, meanNoFly);
+				spot.getSumNoFly().setValueAt(timeIndex, meanNoFly);
 			} else {
-				spot.getSumClean().setValueAt(timeIndex, meanAll);
+				spot.getSumNoFly().setValueAt(timeIndex, meanAll);
 			}
 
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
@@ -397,12 +400,10 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 	private static class FrameJob {
 		final int timeIndex;
-		final long timeMs;
 		final int camFrameIndex;
 
-		FrameJob(int timeIndex, long timeMs, int camFrameIndex) {
+		FrameJob(int timeIndex, int camFrameIndex) {
 			this.timeIndex = timeIndex;
-			this.timeMs = timeMs;
 			this.camFrameIndex = camFrameIndex;
 		}
 	}

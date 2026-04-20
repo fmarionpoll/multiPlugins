@@ -190,6 +190,9 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 			if (spot.getSum() != null) {
 				spot.getSum().setValues(new double[nTimeBins]);
 			}
+			if (spot.getSumNoFly() != null) {
+				spot.getSumNoFly().setValues(new double[nTimeBins]);
+			}
 			if (spot.getSumClean() != null) {
 				spot.getSumClean().setValues(new double[nTimeBins]);
 			}
@@ -292,9 +295,9 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 			if (nPointsNoFly > 0) {
 				double meanNoFly = sumNoFlyOverThreshold / nPointsNoFly;
-				spot.getSumClean().setValueAt(timeIndex, meanNoFly);
+				spot.getSumNoFly().setValueAt(timeIndex, meanNoFly);
 			} else {
-				spot.getSumClean().setValueAt(timeIndex, meanAll);
+				spot.getSumNoFly().setValueAt(timeIndex, meanAll);
 			}
 
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);

@@ -6,6 +6,7 @@ public enum EnumSpotMeasures {
 	SPOTS_MEASURES("MEASURES", "spot measures"), //
 
 	AREA_SUM("AREA_SUM", "Sum grey values of pixels over threshold"), //
+	AREA_SUMNOFLY("AREA_SUMNOFLY", "grey values over threshold excluding fly shadow"), //
 	AREA_SUMCLEAN("AREA_SUMCLEAN", "Ratio grey values of pixels over threshold"), //
 	AREA_OUT("AREA_OUT", "pixel grey value background"), //
 	AREA_DIFF("AREA_DIFF", "grey value -background"), //

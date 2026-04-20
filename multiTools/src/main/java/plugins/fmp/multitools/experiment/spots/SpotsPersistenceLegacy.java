@@ -68,6 +68,7 @@ public class SpotsPersistenceLegacy {
 								csvLoad_Spots_Description(spotsArray, reader, sep);
 								break;
 							case "AREA_SUM":
+							case "AREA_SUMNOFLY":
 							case "AREA_SUMCLEAN":
 							case "AREA_FLYPRESENT":
 								// Stop reading when we hit measures section

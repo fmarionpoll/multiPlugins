@@ -573,15 +573,150 @@ public class Spots {
 
 	// === UTILITY OPERATIONS ===
 
-	public void medianFilterFromSumToSumClean() {
-		int span = 10;
-		spotList.forEach(spot -> {
-			SpotMeasure sumIn = spot.getSum();
-			SpotMeasure sumClean = spot.getSumClean();
-			if (sumIn != null && sumClean != null) {
-				sumClean.buildRunningMedianFromValuesArray(span, sumIn.getValues());
+	/**
+	 * Ensures {@code sumNoFly} exists for all spots.
+	 * <p>
+	 * Backward compatibility: older datasets may only have {@code sum} and/or
+	 * {@code clean}. In that case we reconstruct {@code sumNoFly} as follows:
+	 * <ul>
+	 * <li>Prefer reconstruction from {@code sum} + {@code flyPresent} by masking
+	 * fly-shadow bins and linearly interpolating across them.</li>
+	 * <li>If {@code flyPresent} is missing, fall back to existing {@code clean}
+	 * values (best-effort historical no-fly signal).</li>
+	 * <li>If neither is available, fall back to {@code sum}.</li>
+	 * </ul>
+	 */
+	public void ensureSumNoFlyPresent() {
+		for (Spot spot : spotList) {
+			if (spot == null)
+				continue;
+
+			SpotMeasure sumNoFly = spot.getSumNoFly();
+			if (sumNoFly == null)
+				continue;
+
+			double[] existing = sumNoFly.getValues();
+			if (existing != null && existing.length > 0)
+				continue;
+
+			double[] sumIn = spot.getSum() != null ? spot.getSum().getValues() : null;
+			if (sumIn == null || sumIn.length == 0)
+				continue;
+
+			int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+			double[] reconstructed;
+			if (fly != null && fly.length == sumIn.length) {
+				reconstructed = reconstructSumNoFly(sumIn, fly);
+			} else {
+				double[] legacyClean = spot.getSumClean() != null ? spot.getSumClean().getValues() : null;
+				if (legacyClean != null && legacyClean.length == sumIn.length) {
+					reconstructed = java.util.Arrays.copyOf(legacyClean, legacyClean.length);
+				} else {
+					reconstructed = java.util.Arrays.copyOf(sumIn, sumIn.length);
+				}
 			}
-		});
+			sumNoFly.setValues(reconstructed);
+		}
+	}
+
+	/**
+	 * Rebuilds {@code sumClean} for all spots as an in-memory derived series from
+	 * {@code sumNoFly}, using a NaN-robust running median.
+	 */
+	public void rebuildSumCleanFromSumNoFly() {
+		final int span = 10;
+		for (Spot spot : spotList) {
+			if (spot == null)
+				continue;
+			SpotMeasure sumNoFly = spot.getSumNoFly();
+			SpotMeasure sumClean = spot.getSumClean();
+			if (sumNoFly == null || sumClean == null)
+				continue;
+
+			double[] in = sumNoFly.getValues();
+			if (in == null || in.length == 0)
+				continue;
+
+			double[] out = runningMedianIgnoringNaN(in, span);
+			sumClean.setValues(out);
+		}
+	}
+
+	private static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent) {
+		double[] out = java.util.Arrays.copyOf(sumIn, sumIn.length);
+		if (flyPresent == null || flyPresent.length != sumIn.length) {
+			return out;
+		}
+
+		final int n = out.length;
+		int i = 0;
+		while (i < n) {
+			boolean fly = flyPresent[i] > 0;
+			if (!fly) {
+				i++;
+				continue;
+			}
+
+			int start = i;
+			int end = i;
+			while (end + 1 < n && flyPresent[end + 1] > 0) {
+				end++;
+			}
+
+			int left = start - 1;
+			int right = end + 1;
+			double yLeft = (left >= 0) ? out[left] : Double.NaN;
+			double yRight = (right < n) ? out[right] : Double.NaN;
+
+			if (left >= 0 && right < n && Double.isFinite(yLeft) && Double.isFinite(yRight)) {
+				for (int k = start; k <= end; k++) {
+					double ratio = (k - left) / (double) (right - left);
+					out[k] = yLeft + (yRight - yLeft) * ratio;
+				}
+			} else {
+				for (int k = start; k <= end; k++) {
+					out[k] = Double.NaN;
+				}
+			}
+
+			i = end + 1;
+		}
+		return out;
+	}
+
+	private static double[] runningMedianIgnoringNaN(double[] values, int span) {
+		int n = values.length;
+		double[] out = new double[n];
+		for (int i = 0; i < n; i++) {
+			int start = Math.max(0, i - span / 2);
+			int end = Math.min(n - 1, i + span / 2);
+			int count = end - start + 1;
+
+			double[] window = new double[count];
+			int m = 0;
+			for (int j = start; j <= end; j++) {
+				double v = values[j];
+				if (Double.isFinite(v)) {
+					window[m++] = v;
+				}
+			}
+
+			if (m == 0) {
+				out[i] = Double.NaN;
+				continue;
+			}
+
+			double[] finite = (m == window.length) ? window : java.util.Arrays.copyOf(window, m);
+			java.util.Arrays.sort(finite);
+			out[i] = finite[m / 2];
+		}
+		return out;
+	}
+
+	public void medianFilterFromSumToSumClean() {
+		// Backward-compatible entry point used across the codebase.
+		// New semantics: sumClean is derived from sumNoFly (no-fly) then filtered.
+		rebuildSumCleanFromSumNoFly();
 	}
 
 	public double getScalingFactorToPhysicalUnits(EnumResults resultType) {
