@@ -3,6 +3,9 @@ package plugins.fmp.multitools.service;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -210,7 +213,7 @@ public class KymographBuilder {
 			int kymoImageWidth = capImage.getWidth();
 			ArrayList<int[]> capInteger = capIntegerArrays.get(cap);
 			if (capInteger != null && kymographColumn > 0) {
-				for (int chan = 0; chan < sourceImage.getSizeC(); chan++) {
+				for (int chan = 0; chan < capInteger.size(); chan++) {
 					int[] capImageChannel = capInteger.get(chan);
 					for (int row = 0; row < capImage.getHeight(); row++) {
 						int dst = row * kymoImageWidth + kymographColumn;
@@ -320,7 +323,7 @@ public class KymographBuilder {
 					File file = new File(filename);
 					Logger.debug("file saved= " + filename);
 					try {
-						Saver.saveImage(capImage, file, true);
+						saveImageSafely(capImage, file);
 						cap.setCap_Image(null);
 						capIntegerArrays.remove(cap);
 					} catch (FormatException e) {
@@ -333,6 +336,49 @@ public class KymographBuilder {
 		}
 
 		waitFuturesCompletion(processor, tasks);
+	}
+
+	/**
+	 * Avoid in-place overwrite of existing TIFFs: write to a temporary file, then
+	 * replace the target. This prevents rare corruption/size blow-ups observed
+	 * when overwriting kymographs.
+	 */
+	private static void saveImageSafely(IcyBufferedImage image, File target) throws FormatException, IOException {
+		if (image == null || target == null) {
+			throw new IOException("saveImageSafely: null image or target");
+		}
+		Path targetPath = target.toPath();
+		Path parent = targetPath.getParent();
+		if (parent == null) {
+			throw new IOException("saveImageSafely: target has no parent directory: " + target);
+		}
+		Files.createDirectories(parent);
+
+		String baseName = targetPath.getFileName().toString();
+		String tmpName = baseName + ".tmp";
+		Path tmpPath = parent.resolve(tmpName);
+		int n = 1;
+		while (Files.exists(tmpPath) && n < 100) {
+			tmpPath = parent.resolve(tmpName + "." + n);
+			n++;
+		}
+
+		File tmpFile = tmpPath.toFile();
+		try {
+			// Always overwrite the tmp file if it already exists.
+			Saver.saveImage(image, tmpFile, true);
+			try {
+				Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+			} catch (IOException atomicNotSupported) {
+				Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+			}
+		} finally {
+			try {
+				Files.deleteIfExists(tmpPath);
+			} catch (IOException ignored) {
+				// best-effort cleanup
+			}
+		}
 	}
 
 	private void clearAllAlongTMasks(Experiment exp) {
@@ -349,6 +395,8 @@ public class KymographBuilder {
 		if (seqCamData.getSequence() == null)
 			seqCamData.setSequence(exp.getSeqCamData().getImageLoader()
 					.initSequenceFromFirstImage(exp.getSeqCamData().getImagesList(true)));
+		// Keep kymographs aligned with camera channel count (typically RGB = 3).
+		// This preserves the historical behaviour (color kymographs) for multiCAFE.
 		final int kymoSizeC = Math.max(1, seqCamData.getSequence().getSizeC());
 		int sizex = seqCamData.getSequence().getSizeX();
 		int sizey = seqCamData.getSequence().getSizeY();
