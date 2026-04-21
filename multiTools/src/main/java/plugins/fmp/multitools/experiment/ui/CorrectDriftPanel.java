@@ -2,23 +2,24 @@ package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.image.RenderedImage;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
-import java.io.File;
-import java.util.concurrent.CompletableFuture;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.event.ChangeEvent;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeListener;
-import javax.vecmath.Vector2d;
 
 import icy.gui.viewer.Viewer;
 import icy.gui.viewer.ViewerEvent;
@@ -28,69 +29,61 @@ import icy.image.ImageUtil;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import icy.type.collection.array.Array1DUtil;
-import icy.util.StringUtil;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.host.CorrectDriftHost;
-import plugins.fmp.multitools.series.ProcessingResult;
-import plugins.fmp.multitools.series.ProgressReporter;
-import plugins.fmp.multitools.series.RegistrationOptions;
-import plugins.fmp.multitools.series.RegistrationProcessor;
-import plugins.fmp.multitools.series.SafeRegistrationProcessor;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 
 /**
- * Shared frame-based drift-correction panel. Previously duplicated as
- * {@code CorrectDrift.java} in both plugins; consolidated here and
- * accessed through a {@link CorrectDriftHost} to avoid coupling to the
- * plugin root class.
+ * Manual drift correction panel (v1).
+ *
+ * <p>
+ * Workflow:
+ * <ul>
+ * <li>Adjust X/Y translation</li>
+ * <li>Toggle View (difference) and browse frames to judge quality</li>
+ * <li>Apply to a frame range (backup originals to {@code original_images/} and overwrite JPEGs)</li>
+ * </ul>
  */
-public class CorrectDriftPanel extends JPanel implements ViewerListener, PropertyChangeListener {
+public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
 	private static final long serialVersionUID = 1L;
 
 	private static final int MIN_FRAME = 0;
-	private static final int MAX_FRAME = 10000;
-	private static final int FRAME_STEP = 1;
+	private static final int MAX_FRAME = 100000;
 
-	private final JSpinner startFrameJSpinner = new JSpinner(
-			new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, FRAME_STEP));
-	private final JSpinner referenceFrameJSpinner = new JSpinner(
-			new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, FRAME_STEP));
-	private final JButton runButton = new JButton("Run registration");
+	private final JButton setReferenceButton = new JButton("Set reference = current frame");
+	private final JLabel referenceLabel = new JLabel("Reference: (not set)");
 
-	private final JSpinner xSpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
-	private final JSpinner ySpinner = new JSpinner(new SpinnerNumberModel(0, -500, 500, 1));
-	private final JButton testTranslationButton = new JButton("Test");
-	private final JButton applyTranslationButton = new JButton("Apply");
-	private final JButton restoreTranslationButton = new JButton("Back -1");
+	private final JSpinner xSpinner = new JSpinner(new SpinnerNumberModel(0, -2000, 2000, 1));
+	private final JSpinner ySpinner = new JSpinner(new SpinnerNumberModel(0, -2000, 2000, 1));
+	private final JButton nudgeLeft = new JButton("←1");
+	private final JButton nudgeRight = new JButton("→1");
+	private final JButton nudgeUp = new JButton("↑1");
+	private final JButton nudgeDown = new JButton("↓1");
 
-	private int previousX = 0;
-	private int previousY = 0;
-	private int previousT = 0;
-	private double previousAngle = 0.;
+	private final JCheckBox viewDifferenceCheck = new JCheckBox("View difference (t - ref)", false);
 
-	private final JSpinner angleSpinner = new JSpinner(new SpinnerNumberModel(0., -180., 180., 1.));
-	private final JButton testRotationButton = new JButton("Test");
-	private final JButton applyRotationButton = new JButton("Apply");
-	private final JButton restoreRotationButton = new JButton("Back-1");
-
-	private final JSpinner squareSizeSpinner = new JSpinner(new SpinnerNumberModel(10, 0, 500, 1));
+	private final JSpinner rangeStartSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
+	private final JSpinner rangeEndSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
+	private final JButton applyButton = new JButton("Apply to range (overwrite JPEGs)");
+	private final JButton restoreButton = new JButton("Restore range from original_images");
 
 	private JComboBoxExperimentLazy experimentList = new JComboBoxExperimentLazy();
 
-	private CompletableFuture<Void> currentTask;
-	private final RegistrationProcessor registrationProcessor = new SafeRegistrationProcessor();
+	private IcyBufferedImage referenceImage = null;
 
 	public void init(GridLayout capLayout, CorrectDriftHost host) {
 		this.experimentList = host.getExperimentsCombo();
-
 		initializeUI(capLayout);
 		defineActionListeners();
-		updateButtonStates();
+	}
+
+	public void resetFrameIndex() {
+		// noop in v1
 	}
 
 	private void initializeUI(GridLayout capLayout) {
@@ -99,217 +92,231 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener, Propert
 		FlowLayout flowlayout = new FlowLayout(FlowLayout.LEFT);
 		flowlayout.setVgap(1);
 
-		JPanel referencePanel = new JPanel(flowlayout);
-		referencePanel.add(new JLabel("Start frame"));
-		referencePanel.add(startFrameJSpinner);
-		startFrameJSpinner.setPreferredSize(new Dimension(50, 20));
-		referencePanel.add(new JLabel("Ref. frame"));
-		referencePanel.add(referenceFrameJSpinner);
-		referenceFrameJSpinner.setPreferredSize(new Dimension(50, 20));
-		referencePanel.add(runButton);
+		JPanel refPanel = new JPanel(flowlayout);
+		refPanel.add(setReferenceButton);
+		refPanel.add(referenceLabel);
+		add(refPanel);
 
-		add(referencePanel);
+		JPanel adjustPanel = new JPanel(flowlayout);
+		adjustPanel.add(new JLabel("Offset X"));
+		adjustPanel.add(xSpinner);
+		xSpinner.setPreferredSize(new Dimension(60, 20));
+		adjustPanel.add(new JLabel("Y"));
+		adjustPanel.add(ySpinner);
+		ySpinner.setPreferredSize(new Dimension(60, 20));
+		adjustPanel.add(nudgeLeft);
+		adjustPanel.add(nudgeRight);
+		adjustPanel.add(nudgeUp);
+		adjustPanel.add(nudgeDown);
+		add(adjustPanel);
 
-		JPanel translationPanel = new JPanel(flowlayout);
-		translationPanel.add(new JLabel("Translate X"));
-		translationPanel.add(xSpinner);
-		xSpinner.setPreferredSize(new Dimension(50, 20));
-		translationPanel.add(new JLabel("Y"));
-		translationPanel.add(ySpinner);
-		ySpinner.setPreferredSize(new Dimension(50, 20));
-		translationPanel.add(testTranslationButton);
-		translationPanel.add(applyTranslationButton);
-		translationPanel.add(restoreTranslationButton);
-		add(translationPanel);
+		JPanel viewPanel = new JPanel(flowlayout);
+		viewPanel.add(viewDifferenceCheck);
+		add(viewPanel);
 
-		JPanel rotationPanel = new JPanel(flowlayout);
-		rotationPanel.add(new JLabel("rotate (degrees)"));
-		rotationPanel.add(angleSpinner);
-		rotationPanel.add(testRotationButton);
-		rotationPanel.add(applyRotationButton);
-		rotationPanel.add(restoreRotationButton);
-		add(rotationPanel);
-
-		JPanel chessPanel = new JPanel(flowlayout);
-		chessPanel.add(new JLabel("Size of test square (pixels)"));
-		chessPanel.add(squareSizeSpinner);
-		add(chessPanel);
-
-		restoreTranslationButton.setEnabled(false);
-		restoreRotationButton.setEnabled(false);
+		JPanel applyPanel = new JPanel(flowlayout);
+		applyPanel.add(new JLabel("Apply range start"));
+		applyPanel.add(rangeStartSpinner);
+		rangeStartSpinner.setPreferredSize(new Dimension(60, 20));
+		applyPanel.add(new JLabel("end"));
+		applyPanel.add(rangeEndSpinner);
+		rangeEndSpinner.setPreferredSize(new Dimension(60, 20));
+		applyPanel.add(applyButton);
+		applyPanel.add(restoreButton);
+		add(applyPanel);
 	}
 
 	private void defineActionListeners() {
-		runButtonListener();
-		startFrameJSpinnerListener();
-		testTranslationButtonListener();
-		applyTranslationButtonListener();
-		restoreTranslationButtonListener();
-		testRotationButtonListener();
-		applyRotationButtonListener();
-		restoreRotationButtonListener();
-	}
+		setReferenceButton.addActionListener(e -> setReferenceFromCurrentFrame());
 
-	private void runButtonListener() {
-		runButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					if (runButton.getText().equals("Run"))
-						executeRegistration(exp);
-					else
-						stopComputation();
-				}
+		viewDifferenceCheck.addActionListener(e -> refreshDifferenceView());
+
+		ChangeListener offsetListener = e -> {
+			if (viewDifferenceCheck.isSelected()) {
+				refreshDifferenceView();
 			}
-		});
+		};
+		xSpinner.addChangeListener(offsetListener);
+		ySpinner.addChangeListener(offsetListener);
+
+		nudgeLeft.addActionListener(e -> xSpinner.setValue(((Integer) xSpinner.getValue()) - 1));
+		nudgeRight.addActionListener(e -> xSpinner.setValue(((Integer) xSpinner.getValue()) + 1));
+		nudgeUp.addActionListener(e -> ySpinner.setValue(((Integer) ySpinner.getValue()) - 1));
+		nudgeDown.addActionListener(e -> ySpinner.setValue(((Integer) ySpinner.getValue()) + 1));
+
+		applyButton.addActionListener(e -> applyToRange());
+		restoreButton.addActionListener(e -> restoreRange());
+
+		rangeStartSpinner.addChangeListener(e -> ensureRangeOrder());
+		rangeEndSpinner.addChangeListener(e -> ensureRangeOrder());
 	}
 
-	private void startFrameJSpinnerListener() {
-		startFrameJSpinner.addChangeListener(new ChangeListener() {
-			@Override
-			public void stateChanged(ChangeEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null && exp.getSeqCamData().getSequence() != null) {
-					Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-					if (v != null) {
-						int newValue = (int) startFrameJSpinner.getValue();
-						if (v.getPositionT() != newValue)
-							v.setPositionT(newValue);
-					}
-				}
-			}
-		});
-	}
-
-	private void applyTranslationButtonListener() {
-		applyTranslationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					int x = (int) xSpinner.getValue();
-					int y = (int) ySpinner.getValue();
-					applyTranslation(exp, x, y);
-
-					restoreTranslationButton.setEnabled(true);
-					previousX = x;
-					previousY = y;
-				}
-			}
-		});
-	}
-
-	private void testTranslationButtonListener() {
-		testTranslationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					int x = (int) xSpinner.getValue();
-					int y = (int) ySpinner.getValue();
-					testTranslation(exp, x, y);
-				}
-			}
-		});
-	}
-
-	private void restoreTranslationButtonListener() {
-		restoreTranslationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					applyTranslation(exp, -previousX, -previousY);
-
-					restoreTranslationButton.setEnabled(false);
-					previousX = 0;
-					previousY = 0;
-				}
-			}
-		});
-	}
-
-	private void applyRotationButtonListener() {
-		applyRotationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					double angle = (double) angleSpinner.getValue();
-					applyRotation(exp, angle);
-
-					restoreRotationButton.setEnabled(true);
-					previousAngle = angle;
-				}
-			}
-		});
-	}
-
-	private void restoreRotationButtonListener() {
-		restoreRotationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					applyRotation(exp, previousAngle);
-
-					restoreRotationButton.setEnabled(false);
-					previousAngle = 0.;
-				}
-			}
-		});
-	}
-
-	private void testRotationButtonListener() {
-		testRotationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = getCurrentExperiment();
-				if (exp != null) {
-					// reserved for future implementation (mirrors legacy panel)
-				}
-			}
-		});
-	}
-
-	public void resetFrameIndex() {
-		startFrameJSpinner.setValue(0);
-		referenceFrameJSpinner.setValue(0);
+	private void ensureRangeOrder() {
+		int s = (int) rangeStartSpinner.getValue();
+		int en = (int) rangeEndSpinner.getValue();
+		if (en < s) {
+			rangeEndSpinner.setValue(s);
+		}
 	}
 
 	private Experiment getCurrentExperiment() {
 		return (Experiment) experimentList.getSelectedItem();
 	}
 
-	private void updateButtonStates() {
-		boolean isRunning = currentTask != null && !currentTask.isDone();
+	private void setReferenceFromCurrentFrame() {
+		Experiment exp = getCurrentExperiment();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		Viewer v = seq.getFirstViewer();
+		int t = v != null ? v.getPositionT() : 0;
+		IcyBufferedImage img = seq.getImage(t, 0);
+		if (img == null) {
+			return;
+		}
 
-		runButton.setEnabled(true);
-		startFrameJSpinner.setEnabled(!isRunning);
-		referenceFrameJSpinner.setEnabled(!isRunning);
-		applyTranslationButton.setEnabled(!isRunning);
-		applyRotationButton.setEnabled(!isRunning);
-		testTranslationButton.setEnabled(!isRunning);
-		testRotationButton.setEnabled(!isRunning);
+		referenceImage = img;
+		referenceLabel.setText("Reference: t=" + t);
 
-		restoreTranslationButton.setEnabled(!isRunning && (previousX != 0 || previousY != 0));
+		int n = seq.getSizeT();
+		if (n > 0) {
+			rangeStartSpinner.setValue(0);
+			rangeEndSpinner.setValue(n - 1);
+		}
+
+		refreshDifferenceView();
+	}
+
+	private void refreshDifferenceView() {
+		Experiment exp = getCurrentExperiment();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return;
+		}
+
+		Sequence seq = exp.getSeqCamData().getSequence();
+		Viewer v = seq.getFirstViewer();
+		if (v == null) {
+			return;
+		}
+
+		if (!(v.getCanvas() instanceof Canvas2D_3Transforms)) {
+			Logger.warn("CorrectDriftPanel: viewer canvas is not Canvas2D_3Transforms; difference view unavailable");
+			return;
+		}
+
+		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) v.getCanvas();
+		CanvasImageTransformOptions options = canvas.getOptionsStep1();
+
+		if (!viewDifferenceCheck.isSelected() || referenceImage == null) {
+			options.backgroundImage = null;
+			canvas.setTransformStep1(ImageTransformEnums.NONE, options);
+			return;
+		}
+
+		int dx = (int) xSpinner.getValue();
+		int dy = (int) ySpinner.getValue();
+
+		IcyBufferedImage shiftedRef = translate(referenceImage, -dx, -dy);
+		options.backgroundImage = shiftedRef;
+		canvas.setTransformStep1(ImageTransformEnums.SUBTRACT_REF, options);
+	}
+
+	private void applyToRange() {
+		Experiment exp = getCurrentExperiment();
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		String imagesDir = exp.getSeqCamData().getImagesDirectory();
+		if (imagesDir == null) {
+			return;
+		}
+
+		int dx = (int) xSpinner.getValue();
+		int dy = (int) ySpinner.getValue();
+		int start = (int) rangeStartSpinner.getValue();
+		int end = (int) rangeEndSpinner.getValue();
+
+		new Thread(() -> {
+			try {
+				Path originalsDir = Path.of(imagesDir, "original_images");
+				Files.createDirectories(originalsDir);
+				Path manifest = originalsDir.resolve("backup_manifest.txt");
+				try (BufferedWriter out = new BufferedWriter(new FileWriter(manifest.toFile(), true))) {
+					for (int t = start; t <= end; t++) {
+						String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
+						if (fileName == null) {
+							continue;
+						}
+						Path src = Path.of(fileName);
+						if (!Files.exists(src)) {
+							continue;
+						}
+						Path backup = originalsDir.resolve(src.getFileName().toString());
+						if (!Files.exists(backup)) {
+							Files.copy(src, backup, StandardCopyOption.COPY_ATTRIBUTES);
+							out.write(backup.getFileName().toString());
+							out.newLine();
+							out.flush();
+						}
+
+						BufferedImage img = ImageUtil.load(src.toFile(), true);
+						if (img == null) {
+							continue;
+						}
+						BufferedImage corrected = translate(img, dx, dy);
+						ImageUtil.save(corrected, "jpg", src.toFile());
+					}
+				}
+			} catch (Exception ex) {
+				Logger.error("CorrectDriftPanel: apply failed: " + ex.getMessage(), ex);
+			} finally {
+				SwingUtilities.invokeLater(this::refreshDifferenceView);
+			}
+		}, "ManualDriftApply").start();
+	}
+
+	private void restoreRange() {
+		Experiment exp = getCurrentExperiment();
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		String imagesDir = exp.getSeqCamData().getImagesDirectory();
+		if (imagesDir == null) {
+			return;
+		}
+		int start = (int) rangeStartSpinner.getValue();
+		int end = (int) rangeEndSpinner.getValue();
+
+		new Thread(() -> {
+			try {
+				Path originalsDir = Path.of(imagesDir, "original_images");
+				if (!Files.exists(originalsDir)) {
+					return;
+				}
+				for (int t = start; t <= end; t++) {
+					String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
+					if (fileName == null) {
+						continue;
+					}
+					Path dst = Path.of(fileName);
+					Path src = originalsDir.resolve(dst.getFileName().toString());
+					if (Files.exists(src)) {
+						Files.copy(src, dst, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
+					}
+				}
+			} catch (Exception ex) {
+				Logger.error("CorrectDriftPanel: restore failed: " + ex.getMessage(), ex);
+			} finally {
+				SwingUtilities.invokeLater(this::refreshDifferenceView);
+			}
+		}, "ManualDriftRestore").start();
 	}
 
 	@Override
 	public void viewerChanged(ViewerEvent event) {
 		if ((event.getType() == ViewerEvent.ViewerEventType.POSITION_CHANGED) && (event.getDim() == DimensionId.T)) {
-			Viewer v = event.getSource();
-			int t = v.getPositionT();
-			if (t >= 0) {
-				if (t != previousT) {
-					previousT = t;
-					previousX = 0;
-					previousY = 0;
-					restoreTranslationButton.setEnabled(false);
-				}
-				startFrameJSpinner.setValue(t);
-			}
+			// no-op; user can browse frames freely
 		}
 	}
 
@@ -318,202 +325,53 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener, Propert
 		viewer.removeListener(this);
 	}
 
-	private void executeRegistration(Experiment experiment) {
-		if (currentTask != null && !currentTask.isDone()) {
-			showError("Registration already in progress");
-			return;
+	private static IcyBufferedImage translate(IcyBufferedImage src, int dx, int dy) {
+		if (src == null) {
+			return null;
 		}
-
-		RegistrationOptions options = createRegistrationOptions(experiment);
-
-		ProcessingResult<Void> validationResult = options.validate();
-		if (validationResult.isFailure()) {
-			showError("Invalid registration options: " + validationResult.getErrorMessage());
-			return;
-		}
-
-		currentTask = CompletableFuture.runAsync(() -> {
-			try {
-				Logger.info("Starting registration for experiment: " + experiment.getResultsDirectory());
-
-				ProcessingResult<RegistrationProcessor.RegistrationResult> result = registrationProcessor
-						.correctDriftAndRotation(experiment, options);
-
-				if (result.isFailure()) {
-					showError("Registration failed: " + result.getErrorMessage());
-				} else {
-					RegistrationProcessor.RegistrationResult registrationResult = result.getDataOrThrow();
-					showSuccess(
-							"Registration completed successfully. Processed: " + registrationResult.getFramesProcessed()
-									+ " frames, Corrected: " + registrationResult.getFramesCorrected() + " frames");
-				}
-
-			} catch (Exception e) {
-				Logger.error("Unexpected error during registration: " + e.getMessage(), e);
-				showError("Unexpected error during registration: " + e.getMessage());
-			}
-		});
-
-		updateButtonStates();
-		runButton.setText("STOP");
-	}
-
-	private void stopComputation() {
-		if (currentTask != null && !currentTask.isDone()) {
-			currentTask.cancel(true);
-			Logger.info("Registration stopped by user");
-		}
-		updateButtonStates();
-		runButton.setText("Run");
-	}
-
-	private RegistrationOptions createRegistrationOptions(Experiment experiment) {
-		int referenceFrame = (int) referenceFrameJSpinner.getValue();
-		int startFrame = 0;
-
-		return new RegistrationOptions() //
-				.fromFrame(startFrame) //
-				.toFrame(referenceFrame - 1) //
-				.referenceFrame(referenceFrame) //
-				.translationThreshold(0.001) //
-				.rotationThreshold(0.001) //
-				.transformOptions(createTransformOptions(ImageTransformEnums.NONE)) //
-				.saveCorrectedImages(true) //
-				.preserveImageSize(true) //
-				.referenceChannel(0) //
-				.progressReporter(new ProgressReporter() {
-					@Override
-					public void updateMessage(String message) {
+		IcyBufferedImage out = new IcyBufferedImage(src.getWidth(), src.getHeight(), src.getSizeC(), src.getDataType_());
+		out.beginUpdate();
+		try {
+			for (int ch = 0; ch < src.getSizeC(); ch++) {
+				double[] srcData = Array1DUtil.arrayToDoubleArray(src.getDataXY(ch), src.isSignedDataType());
+				double[] dstData = Array1DUtil.arrayToDoubleArray(out.getDataXY(ch), out.isSignedDataType());
+				int w = src.getWidth();
+				int h = src.getHeight();
+				for (int y = 0; y < h; y++) {
+					int ys = y - dy;
+					if (ys < 0 || ys >= h) {
+						continue;
 					}
-
-					@Override
-					public void updateProgress(int percentage) {
-					}
-
-					@Override
-					public void completed() {
-						updateButtonStates();
-					}
-
-					@Override
-					public void failed(String errorMessage) {
-						showError(errorMessage);
-						updateButtonStates();
-					}
-
-					@Override
-					public boolean isCancelled() {
-						return false;
-					}
-				});
-	}
-
-	private CanvasImageTransformOptions createTransformOptions(ImageTransformEnums transform) {
-		CanvasImageTransformOptions options = new CanvasImageTransformOptions();
-		options.transformOption = transform;
-		return options;
-	}
-
-	private void showError(String message) {
-		Logger.warn("User error: " + message);
-	}
-
-	private void showSuccess(String message) {
-		Logger.info("Success: " + message);
-	}
-
-	@Override
-	public void propertyChange(PropertyChangeEvent evt) {
-		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
-			runButton.setText("Run registration");
-			runButton.removePropertyChangeListener(this);
-		}
-	}
-
-	private boolean testTranslation(Experiment exp, int x, int y) {
-		int squareSize = (int) squareSizeSpinner.getValue();
-
-		int testFrame = (int) startFrameJSpinner.getValue();
-		int referenceFrame = (int) referenceFrameJSpinner.getValue();
-		Sequence seq = exp.getSeqCamData().getSequence();
-		IcyBufferedImage imageTest = seq.getImage(testFrame, 0);
-		IcyBufferedImage imageReference = seq.getImage(referenceFrame, 0);
-		Sequence chessSeq = createChessboardImage(imageTest, imageReference, squareSize);
-		Viewer v = new Viewer(chessSeq, true);
-		return (v != null);
-	}
-
-	private boolean applyTranslation(Experiment exp, int x, int y) {
-		Vector2d translation = new Vector2d(x, y);
-		int t = (int) referenceFrameJSpinner.getValue();
-		Sequence seq = exp.getSeqCamData().getSequence();
-		IcyBufferedImage workImage = seq.getImage(t, 0);
-		workImage = GaspardRigidRegistration.applyTranslation2D(workImage, -1, translation, true);
-		seq.setImage(t, 0, workImage);
-
-		String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
-		File outputfile = new File(fileName);
-		RenderedImage image = ImageUtil.toRGBImage(workImage);
-		return ImageUtil.save(image, "jpg", outputfile);
-	}
-
-	private boolean applyRotation(Experiment exp, double angleDegrees) {
-		int t = (int) referenceFrameJSpinner.getValue();
-		double angleRadians = Math.toRadians(angleDegrees);
-		Sequence seq = exp.getSeqCamData().getSequence();
-		IcyBufferedImage workImage = seq.getImage(t, 0);
-		workImage = GaspardRigidRegistration.applyRotation2D(workImage, -1, angleRadians, true);
-		seq.setImage(t, 0, workImage);
-
-		String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
-		File outputfile = new File(fileName);
-		RenderedImage image = ImageUtil.toRGBImage(workImage);
-		return ImageUtil.save(image, "jpg", outputfile);
-	}
-
-	private Sequence createChessboardImage(IcyBufferedImage s1Image, IcyBufferedImage s2Image, int squareSize) {
-
-		Dimension resultDim = new Dimension(Math.max(s1Image.getWidth(), s2Image.getWidth()),
-				Math.max(s1Image.getHeight(), s2Image.getHeight()));
-		IcyBufferedImage resultImage = new IcyBufferedImage(resultDim.width, resultDim.height, s1Image.getSizeC(),
-				s1Image.getDataType_());
-		resultImage.beginUpdate();
-
-		for (int ch = 0; ch < resultImage.getSizeC(); ch++) {
-			double[] resultData = Array1DUtil.arrayToDoubleArray(resultImage.getDataXY(ch),
-					resultImage.isSignedDataType());
-			double[] s1Data = Array1DUtil.arrayToDoubleArray(s1Image.getDataXY(ch), resultImage.isSignedDataType());
-			double[] s2Data = Array1DUtil.arrayToDoubleArray(s2Image.getDataXY(ch), resultImage.isSignedDataType());
-
-			for (int j = 0; j < resultImage.getHeight(); j++) {
-
-				int jResultOffset = j * resultImage.getWidth();
-				int js1Offset = j * s1Image.getWidth();
-				int js2Offset = j * s2Image.getWidth();
-
-				for (int i = 0; i < resultImage.getWidth(); i++) {
-					boolean showS1 = (((i / squareSize) % 2) + ((j / squareSize) % 2)) % 2 == 0;
-					if (showS1) {
-						if (i < s1Image.getWidth() && j < s1Image.getHeight()) {
-							resultData[jResultOffset + i] = s1Data[js1Offset + i];
-						} else {
-							resultData[jResultOffset + i] = 0;
+					int rowDst = y * w;
+					int rowSrc = ys * w;
+					for (int x = 0; x < w; x++) {
+						int xs = x - dx;
+						if (xs < 0 || xs >= w) {
+							continue;
 						}
-					} else {
-						if (i < s2Image.getWidth() && j < s2Image.getHeight()) {
-							resultData[jResultOffset + i] = s2Data[js2Offset + i];
-						} else {
-							resultData[jResultOffset + i] = 0;
-						}
+						dstData[rowDst + x] = srcData[rowSrc + xs];
 					}
 				}
+				Array1DUtil.doubleArrayToArray(dstData, out.getDataXY(ch));
 			}
-
-			Array1DUtil.doubleArrayToArray(resultData, resultImage.getDataXY(ch));
+		} finally {
+			out.endUpdate();
 		}
+		return out;
+	}
 
-		resultImage.endUpdate();
-		Sequence result = new Sequence("composite image", resultImage);
-		return result;
+	private static BufferedImage translate(BufferedImage src, int dx, int dy) {
+		if (src == null) {
+			return null;
+		}
+		BufferedImage out = new BufferedImage(src.getWidth(), src.getHeight(), BufferedImage.TYPE_INT_RGB);
+		Graphics2D g = out.createGraphics();
+		try {
+			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g.drawImage(src, dx, dy, null);
+		} finally {
+			g.dispose();
+		}
+		return out;
 	}
 }
