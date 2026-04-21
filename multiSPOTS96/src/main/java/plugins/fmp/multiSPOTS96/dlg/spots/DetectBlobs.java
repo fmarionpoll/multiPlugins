@@ -44,7 +44,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
-public class DetectSpots extends JPanel implements ChangeListener, PropertyChangeListener {
+public class DetectBlobs extends JPanel implements ChangeListener, PropertyChangeListener {
 	private static final long serialVersionUID = -5257698990389571518L;
 	private MultiSPOTS96 parent0 = null;
 
@@ -67,13 +67,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
 
-	private JButton convertBlobsToSpotButton = new JButton("Convert blobs to spots");
-	private JSpinner spotDiameterSpinner = new JSpinner(new SpinnerNumberModel(22, 1, 1200, 1));
-
-	private JButton deleteSelectedSpotsButton = new JButton("Delete spots");
-	private JButton duplicateSelectedSpotButton = new JButton("Duplicate spot");
-	private JButton cleanUpNamesButton = new JButton("Clean up spot names");
-
 	private DetectSpotsOutline detectSpots = null;
 	private OverlayThreshold overlayThreshold = null;
 
@@ -86,12 +79,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
-		JPanel panel0 = new JPanel(layoutLeft);
-		panel0.add(startComputationButton);
-		panel0.add(allCellsComboBox);
-		panel0.add(allCheckBox);
-		add(panel0);
-
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(spotsFilterLabel);
 		panel1.add(spotsTransformsComboBox);
@@ -100,19 +87,12 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		panel1.add(spotsViewButton);
 		panel1.add(spotsOverlayCheckBox);
 		add(panel1);
-		add(panel1);
 
-		JPanel panel2 = new JPanel(layoutLeft);
-		panel2.add(convertBlobsToSpotButton);
-		panel2.add(new JLabel("size (pixels="));
-		panel2.add(spotDiameterSpinner);
-		add(panel2);
-
-		JPanel panel3 = new JPanel(layoutLeft);
-		panel3.add(deleteSelectedSpotsButton);
-		panel3.add(duplicateSelectedSpotButton);
-		panel3.add(cleanUpNamesButton);
-		add(panel3);
+		JPanel panel0 = new JPanel(layoutLeft);
+		panel0.add(startComputationButton);
+		panel0.add(allCellsComboBox);
+		panel0.add(allCheckBox);
+		add(panel0);
 
 		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		spotsDirectionComboBox.setSelectedIndex(1);
@@ -185,53 +165,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				updateOverlayThreshold();
-			}
-		});
-
-		deleteSelectedSpotsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					deleteSelectedSpot(exp);
-			}
-		});
-
-		duplicateSelectedSpotButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					duplicateSelectedSpot(exp);
-			}
-		});
-
-		convertBlobsToSpotButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int diameter = (int) spotDiameterSpinner.getValue();
-					convertBlobsToCircles(exp, diameter);
-				}
-			}
-		});
-
-		spotDiameterSpinner.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					changeSpotsDiameter(exp);
-			}
-		});
-
-		cleanUpNamesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					cleanUpSpotNames(exp);
-				}
 			}
 		});
 	}
@@ -520,11 +453,6 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 		exp.getSeqCamData().removeROIsContainingString("spot");
 		exp.getSpots().transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
 		exp.saveSpots_File();
-	}
-
-	void changeSpotsDiameter(Experiment exp) {
-		int diameter = (int) spotDiameterSpinner.getValue();
-		convertBlobsToCircles(exp, diameter);
 	}
 
 	private void cleanUpSpotNames(Experiment exp) {

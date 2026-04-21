@@ -29,7 +29,8 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 //			ThresholdColors colorsThreshold = new ThresholdColors();
 	CreateCages tabCreateCages = new CreateCages();
 //	CreateSpots tabCreateSpots = new CreateSpots();
-	DetectSpots tabDetectSpots = new DetectSpots();
+	DetectBlobs tabDetectBlobs = new DetectBlobs();
+	BlobsToSpots tabBlobsToSpots = new BlobsToSpots();
 	public Infos tabInfos = new Infos();
 //	ShapeSpots tabShape = new ShapeSpots();
 	EditSpots tabEditSpots = new EditSpots();
@@ -64,9 +65,15 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 //		tabbedPane.addTab("Spots", null, tabCreateSpots, "Create spots defining drops with reference to cages");
 //		order++;
 
-		tabDetectSpots.init(gridLayout, parent0);
-		tabDetectSpots.addPropertyChangeListener(this);
-		tabbedPane.addTab("Detect spots", null, tabDetectSpots, "Detect spots after threshold");
+		tabDetectBlobs.init(gridLayout, parent0);
+		tabDetectBlobs.addPropertyChangeListener(this);
+		tabbedPane.addTab("Detect blobs", null, tabDetectBlobs, "Detect blobs thresholding image");
+//		id_spots = order;
+		order++;
+
+		tabBlobsToSpots.init(gridLayout, parent0);
+		tabBlobsToSpots.addPropertyChangeListener(this);
+		tabbedPane.addTab("Convert to spots", null, tabBlobsToSpots, "Convert blobs to spots and edit them");
 //		id_spots = order;
 		order++;
 
