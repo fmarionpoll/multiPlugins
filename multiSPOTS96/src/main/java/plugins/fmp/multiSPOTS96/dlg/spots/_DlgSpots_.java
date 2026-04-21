@@ -29,7 +29,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 //			ThresholdColors colorsThreshold = new ThresholdColors();
 	CreateCages tabCreateCages = new CreateCages();
 //	CreateSpots tabCreateSpots = new CreateSpots();
-	DetectBlobs tabDetectBlobs = new DetectBlobs();
+	CreateBlobs tabDetectBlobs = new CreateBlobs();
 	BlobsToSpots tabBlobsToSpots = new BlobsToSpots();
 	public Infos tabInfos = new Infos();
 //	ShapeSpots tabShape = new ShapeSpots();

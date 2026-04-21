@@ -1,9 +1,12 @@
 package plugins.fmp.multitools.tools.imageTransform.transforms;
 
+import javax.vecmath.Vector2d;
+
 import icy.image.IcyBufferedImage;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 
 /**
  * One-pass preview: translate the current frame by {@link CanvasImageTransformOptions#translateDx} /
@@ -18,7 +21,8 @@ public class TranslateThenSubtractReference extends ImageTransformFunctionAbstra
 		if (options == null || options.backgroundImage == null) {
 			return null;
 		}
-		IcyBufferedImage shifted = ImagePixelTranslate.translate(sourceImage, options.translateDx, options.translateDy);
+		IcyBufferedImage shifted = GaspardRigidRegistration.applyTranslation2D(sourceImage, -1,
+				new Vector2d(options.translateDx, options.translateDy), true);
 		return SubtractReferenceImage.mappedDifference(shifted, options.backgroundImage);
 	}
 }

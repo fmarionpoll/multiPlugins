@@ -44,7 +44,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
-public class DetectBlobs extends JPanel implements ChangeListener, PropertyChangeListener {
+public class CreateBlobs extends JPanel implements ChangeListener, PropertyChangeListener {
 	private static final long serialVersionUID = -5257698990389571518L;
 	private MultiSPOTS96 parent0 = null;
 
