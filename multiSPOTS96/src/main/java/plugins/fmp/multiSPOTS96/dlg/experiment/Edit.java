@@ -18,6 +18,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.DescriptorsIO;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
