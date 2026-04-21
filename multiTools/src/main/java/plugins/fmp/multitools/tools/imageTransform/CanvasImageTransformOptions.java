@@ -31,6 +31,11 @@ public class CanvasImageTransformOptions {
 	public int colordistanceType = 0;
 	public boolean ifGreater = true;
 
+	/** Pixel shift applied to the source before reference subtraction (drift preview). */
+	public int translateDx = 0;
+	/** Pixel shift applied to the source before reference subtraction (drift preview). */
+	public int translateDy = 0;
+
 	public final byte byteFALSE = 0;
 	public final byte byteTRUE = (byte) 0xFF;
 	public ArrayList<Color> colorarray = null;

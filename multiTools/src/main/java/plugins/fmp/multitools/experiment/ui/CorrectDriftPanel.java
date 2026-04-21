@@ -28,7 +28,6 @@ import icy.image.IcyBufferedImage;
 import icy.image.ImageUtil;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
-import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.host.CorrectDriftHost;
@@ -73,8 +72,6 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	private final JButton restoreButton = new JButton("Restore range from original_images");
 
 	private JComboBoxExperimentLazy experimentList = new JComboBoxExperimentLazy();
-
-	private IcyBufferedImage referenceImage = null;
 
 	public void init(GridLayout capLayout, CorrectDriftHost host) {
 		this.experimentList = host.getExperimentsCombo();
@@ -176,7 +173,13 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			return;
 		}
 
-		referenceImage = img;
+		IcyBufferedImage copy = new IcyBufferedImage(img.getWidth(), img.getHeight(), img.getSizeC(),
+				img.getDataType_());
+		for (int c = 0; c < img.getSizeC(); c++) {
+			copy.copyData(img, c, c);
+			copy.setDataXY(c, copy.getDataXY(c));
+		}
+		exp.getSeqCamData().setReferenceImage(copy);
 		referenceLabel.setText("Reference: t=" + t);
 
 		int n = seq.getSizeT();
@@ -208,18 +211,24 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) v.getCanvas();
 		CanvasImageTransformOptions options = canvas.getOptionsStep1();
 
-		if (!viewDifferenceCheck.isSelected() || referenceImage == null) {
+		IcyBufferedImage storedRef = exp.getSeqCamData().getReferenceImage();
+		if (!viewDifferenceCheck.isSelected() || storedRef == null) {
 			options.backgroundImage = null;
+			options.translateDx = 0;
+			options.translateDy = 0;
 			canvas.setTransformStep1(ImageTransformEnums.NONE, options);
 			return;
 		}
 
+		canvas.addTransformStep1(ImageTransformEnums.SHIFT_SUBTRACT_REF);
+
 		int dx = (int) xSpinner.getValue();
 		int dy = (int) ySpinner.getValue();
 
-		IcyBufferedImage shiftedRef = translate(referenceImage, -dx, -dy);
-		options.backgroundImage = shiftedRef;
-		canvas.setTransformStep1(ImageTransformEnums.SUBTRACT_REF, options);
+		options.backgroundImage = storedRef;
+		options.translateDx = dx;
+		options.translateDy = dy;
+		canvas.setTransformStep1(ImageTransformEnums.SHIFT_SUBTRACT_REF, options);
 	}
 
 	private void applyToRange() {
@@ -323,41 +332,6 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	@Override
 	public void viewerClosed(Viewer viewer) {
 		viewer.removeListener(this);
-	}
-
-	private static IcyBufferedImage translate(IcyBufferedImage src, int dx, int dy) {
-		if (src == null) {
-			return null;
-		}
-		IcyBufferedImage out = new IcyBufferedImage(src.getWidth(), src.getHeight(), src.getSizeC(), src.getDataType_());
-		out.beginUpdate();
-		try {
-			for (int ch = 0; ch < src.getSizeC(); ch++) {
-				double[] srcData = Array1DUtil.arrayToDoubleArray(src.getDataXY(ch), src.isSignedDataType());
-				double[] dstData = Array1DUtil.arrayToDoubleArray(out.getDataXY(ch), out.isSignedDataType());
-				int w = src.getWidth();
-				int h = src.getHeight();
-				for (int y = 0; y < h; y++) {
-					int ys = y - dy;
-					if (ys < 0 || ys >= h) {
-						continue;
-					}
-					int rowDst = y * w;
-					int rowSrc = ys * w;
-					for (int x = 0; x < w; x++) {
-						int xs = x - dx;
-						if (xs < 0 || xs >= w) {
-							continue;
-						}
-						dstData[rowDst + x] = srcData[rowSrc + xs];
-					}
-				}
-				Array1DUtil.doubleArrayToArray(dstData, out.getDataXY(ch));
-			}
-		} finally {
-			out.endUpdate();
-		}
-		return out;
 	}
 
 	private static BufferedImage translate(BufferedImage src, int dx, int dy) {

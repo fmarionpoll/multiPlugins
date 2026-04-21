@@ -14,6 +14,7 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.SortChan0Columns;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SortSumDiffColumns;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractColumn;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractReferenceImage;
+import plugins.fmp.multitools.tools.imageTransform.transforms.TranslateThenSubtractReference;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiff;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdSingleValue;
@@ -50,6 +51,7 @@ public enum ImageTransformEnums {
 	SUBTRACT_T0("t-t0", new SubtractReferenceImage()), //
 	SUBTRACT_TM1("t-(t-1)", new SubtractReferenceImage()), //
 	SUBTRACT_REF("t-ref", new SubtractReferenceImage()), //
+	SHIFT_SUBTRACT_REF("shift+t-ref", new TranslateThenSubtractReference()), //
 	SUBTRACT("neg(t-ref)", new ImageMinusBackground()), //
 	SUBTRACT_1RSTCOL("[t-t0]", new SubtractColumn(0)), //
 	//

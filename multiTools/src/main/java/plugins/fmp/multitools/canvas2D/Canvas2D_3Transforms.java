@@ -325,6 +325,12 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		if (options != null) {
 			copyOptionsFields(options, this.optionsStep1);
 		}
+		ImageTransformEnums selected = (ImageTransformEnums) transformsComboStep1.getSelectedItem();
+		if (selected != null) {
+			this.optionsStep1.transformOption = selected;
+			this.transformStep1 = selected.getFunction();
+		}
+		refresh();
 	}
 
 	/**
@@ -342,6 +348,9 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		if (options != null) {
 			copyOptionsFields(options, this.optionsStep1);
 		}
+		this.optionsStep1.transformOption = transform;
+		this.transformStep1 = transform.getFunction();
+		refresh();
 	}
 
 	/**
@@ -395,6 +404,12 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		if (options != null) {
 			copyOptionsFields(options, this.optionsStep2);
 		}
+		ImageTransformEnums selected = (ImageTransformEnums) transformsComboStep2.getSelectedItem();
+		if (selected != null) {
+			this.optionsStep2.transformOption = selected;
+			this.transformStep2 = selected.getFunction();
+		}
+		refresh();
 	}
 
 	/**
@@ -412,6 +427,9 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		if (options != null) {
 			copyOptionsFields(options, this.optionsStep2);
 		}
+		this.optionsStep2.transformOption = transform;
+		this.transformStep2 = transform.getFunction();
+		refresh();
 	}
 
 	/**
@@ -468,6 +486,9 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		target.w1 = source.w1;
 		target.w2 = source.w2;
 		target.spanDiff = source.spanDiff;
+
+		target.translateDx = source.translateDx;
+		target.translateDy = source.translateDy;
 
 		// Note: npixels_changed is not copied as it's typically an output field
 	}

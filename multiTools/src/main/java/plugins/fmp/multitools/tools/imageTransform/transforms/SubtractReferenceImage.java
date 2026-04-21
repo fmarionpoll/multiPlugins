@@ -12,13 +12,22 @@ public class SubtractReferenceImage extends ImageTransformFunctionAbstract imple
 		if (options.backgroundImage == null)
 			return null;
 
+		return mappedDifference(sourceImage, options.backgroundImage);
+	}
+
+	/**
+	 * Per-channel absolute difference mapped like legacy {@code t-ref} display: {@code 0xFF - |a-b|}.
+	 */
+	public static IcyBufferedImage mappedDifference(IcyBufferedImage sourceImage, IcyBufferedImage refImage) {
+		if (sourceImage == null || refImage == null) {
+			return null;
+		}
 		IcyBufferedImage img2 = new IcyBufferedImage(sourceImage.getSizeX(), sourceImage.getSizeY(),
 				sourceImage.getSizeC(), sourceImage.getDataType_());
 		for (int c = 0; c < sourceImage.getSizeC(); c++) {
-			int[] imgSourceInt = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(0), sourceImage.isSignedDataType());
-			int[] img2Int = Array1DUtil.arrayToIntArray(img2.getDataXY(0), img2.isSignedDataType());
-			int[] imgReferenceInt = Array1DUtil.arrayToIntArray(options.backgroundImage.getDataXY(0),
-					options.backgroundImage.isSignedDataType());
+			int[] imgSourceInt = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(c), sourceImage.isSignedDataType());
+			int[] img2Int = Array1DUtil.arrayToIntArray(img2.getDataXY(c), img2.isSignedDataType());
+			int[] imgReferenceInt = Array1DUtil.arrayToIntArray(refImage.getDataXY(c), refImage.isSignedDataType());
 			for (int i = 0; i < imgSourceInt.length; i++) {
 				int val = imgSourceInt[i] - imgReferenceInt[i];
 				if (val < 0)

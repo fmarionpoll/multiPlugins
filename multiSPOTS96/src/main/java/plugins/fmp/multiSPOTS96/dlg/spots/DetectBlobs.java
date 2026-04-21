@@ -84,9 +84,12 @@ public class DetectBlobs extends JPanel implements ChangeListener, PropertyChang
 		panel1.add(spotsTransformsComboBox);
 		panel1.add(spotsDirectionComboBox);
 		panel1.add(spotsThresholdSpinner);
-		panel1.add(spotsViewButton);
-		panel1.add(spotsOverlayCheckBox);
 		add(panel1);
+
+		JPanel panel2 = new JPanel(layoutLeft);
+		panel2.add(spotsViewButton);
+		panel2.add(spotsOverlayCheckBox);
+		add(panel2);
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(startComputationButton);
