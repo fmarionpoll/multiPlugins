@@ -25,6 +25,35 @@ import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class DetectSpotsTools {
 
+	/**
+	 * Drops all spots whose cage ID is in {@code options.selectedIndexes} and clears
+	 * those cages' spot-ID lists. Uses cage ID on each {@link Spot}'s properties so
+	 * orphans (not listed on {@link Cage#getSpotIDs()}) are removed too — avoids
+	 * accumulating spots when re-running detection on an already analyzed experiment.
+	 */
+	private void clearExistingSpotsForSelectedCages(Experiment exp, BuildSeriesOptions options, Spots allSpots) {
+		if (options.selectedIndexes == null || options.selectedIndexes.isEmpty()) {
+			return;
+		}
+		ArrayList<Spot> toRemove = new ArrayList<>();
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot == null || spot.getProperties() == null) {
+				continue;
+			}
+			if (options.selectedIndexes.contains(spot.getProperties().getCageID())) {
+				toRemove.add(spot);
+			}
+		}
+		for (Spot spot : toRemove) {
+			allSpots.removeSpot(spot);
+		}
+		for (Cage cage : exp.getCages().cagesList) {
+			if (options.selectedIndexes.contains(cage.getCageID())) {
+				cage.getSpotIDs().clear();
+			}
+		}
+	}
+
 	BooleanMask2D[] findBlobs(ROI2DArea binarizedImageRoi, BooleanMask2D cageMask) throws InterruptedException {
 		if (cageMask == null)
 			return null;
@@ -65,29 +94,11 @@ public class DetectSpotsTools {
 		final ROI2DArea binarizedImageRoi = binarizeImage(workimage, options);
 
 		Spots allSpots = exp.getSpots();
-//		int nspots = allSpots.getSpotListCount();
-		// Note: allSpots may already contain spots loaded from previously saved CSV
-		// files
-		// when the experiment was opened (via load_Spots() in LoadSaveExperiment).
-		// These spots are from previous detection runs. The code below only clears
-		// spots for selected cages, leaving spots from other cages intact.
-		// If you want to start completely fresh, uncomment the line below:
-		// allSpots.getSpotList().clear();
+		clearExistingSpotsForSelectedCages(exp, options, allSpots);
 
 		for (Cage cage : exp.getCages().cagesList) {
 			if (!options.selectedIndexes.contains(cage.getProperties().getCageID()))
 				continue;
-
-			// Clear existing spots for this cage
-			// First, remove the corresponding Spot objects from allSpots
-			for (SpotID spotID : cage.getSpotIDs()) {
-				Spot spot = allSpots.findSpotwithID(spotID);
-				if (spot != null) {
-					allSpots.removeSpot(spot);
-				}
-			}
-			// Then clear the cage's spotIDs list
-			cage.getSpotIDs().clear();
 
 			int cageID = cage.getCageID();
 			int cagePosition = 0;
