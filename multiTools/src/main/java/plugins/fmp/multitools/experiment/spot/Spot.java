@@ -451,6 +451,8 @@ public class Spot implements Comparable<Spot> {
 		switch (resultType) {
 		case AREA_SUM:
 			return measurements.getSumIn().getCount();
+		case AREA_SUMNOFLY:
+			return measurements.getSumNoFly().getCount();
 		case AREA_SUMCLEAN:
 			return measurements.getSumClean().getCount();
 		case AREA_FLYPRESENT:
@@ -508,6 +510,8 @@ public class Spot implements Comparable<Spot> {
 		switch (resultType) {
 		case AREA_SUM:
 			return measurements.getSumIn();
+		case AREA_SUMNOFLY:
+			return measurements.getSumNoFly();
 		case AREA_SUMCLEAN:
 			return measurements.getSumClean();
 		case AREA_FLYPRESENT:

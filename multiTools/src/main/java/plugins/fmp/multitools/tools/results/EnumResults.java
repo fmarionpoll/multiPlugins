@@ -89,7 +89,9 @@ public enum EnumResults {
 	// === SPOT AREA MEASURES (stored data) ===
 	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUM()),
-	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly", "Consumption (estimated/threshold)",
+	AREA_SUMNOFLY("AREA_SUMNOFLY", "grey value - no fly, filter", "Consumption (estimated/threshold)",
+			StoredDataAccessors.accessStored_AREA_SUMNOFLY()),
+	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN()),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),

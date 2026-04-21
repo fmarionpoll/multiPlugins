@@ -29,7 +29,8 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Displays cages in a single combined chart using a {@link CombinedRangeXYPlot}.
+ * Displays cages in a single combined chart using a
+ * {@link CombinedRangeXYPlot}.
  *
  * <p>
  * Intended for MultiCAFE combined view; multiSPOTS96 uses grid view only.
@@ -55,8 +56,8 @@ public class ChartCagesCombinedFrame {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
 		} else {
-			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(), new Dimension(300, 70), true, true, true,
-					true);
+			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(), new Dimension(300, 70), true, true,
+					true, true);
 		}
 		mainChartFrame.setLayout(new BorderLayout());
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
@@ -129,6 +130,7 @@ public class ChartCagesCombinedFrame {
 			return false;
 		switch (resultType) {
 		case AREA_SUM:
+		case AREA_SUMNOFLY:
 		case AREA_SUMCLEAN:
 		case AREA_OUT:
 		case AREA_DIFF:
@@ -160,4 +162,3 @@ public class ChartCagesCombinedFrame {
 		return out;
 	}
 }
-

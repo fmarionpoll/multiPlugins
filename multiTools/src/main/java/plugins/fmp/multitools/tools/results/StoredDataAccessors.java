@@ -1,15 +1,15 @@
 package plugins.fmp.multitools.tools.results;
 
 /**
- * Specific accessor methods for stored measurement data.
- * Each method corresponds to a specific EnumResults type and shows exactly
- * which field/method is used to access the stored data.
+ * Specific accessor methods for stored measurement data. Each method
+ * corresponds to a specific EnumResults type and shows exactly which
+ * field/method is used to access the stored data.
  */
 public class StoredDataAccessors {
 
 	/**
-	 * Accesses stored TOPRAW data from measurements.ptsTop.
-	 * Used via: cap.getTopLevel()
+	 * Accesses stored TOPRAW data from measurements.ptsTop. Used via:
+	 * cap.getTopLevel()
 	 */
 	public static MeasurementComputation accessStored_TOPRAW() {
 		return (exp, cap, options) -> {
@@ -19,8 +19,9 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored TOPLEVEL data from measurements.ptsTopCorrected or measurements.ptsTop.
-	 * Used via: cap.getTopCorrected() (if available) or cap.getTopLevel()
+	 * Accesses stored TOPLEVEL data from measurements.ptsTopCorrected or
+	 * measurements.ptsTop. Used via: cap.getTopCorrected() (if available) or
+	 * cap.getTopLevel()
 	 */
 	public static MeasurementComputation accessStored_TOPLEVEL() {
 		return (exp, cap, options) -> {
@@ -30,8 +31,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored BOTTOMLEVEL data from measurements.ptsBottom.
-	 * Used via: cap.getBottomLevel()
+	 * Accesses stored BOTTOMLEVEL data from measurements.ptsBottom. Used via:
+	 * cap.getBottomLevel()
 	 */
 	public static MeasurementComputation accessStored_BOTTOMLEVEL() {
 		return (exp, cap, options) -> {
@@ -41,8 +42,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored TOPLEVELDIRECT data from measurements.ptsTopDirect.
-	 * Used via: cap.getTopLevelDirect()
+	 * Accesses stored TOPLEVELDIRECT data from measurements.ptsTopDirect. Used via:
+	 * cap.getTopLevelDirect()
 	 */
 	public static MeasurementComputation accessStored_TOPLEVELDIRECT() {
 		return (exp, cap, options) -> {
@@ -63,8 +64,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored DERIVEDVALUES data from measurements.ptsDerivative.
-	 * Used via: cap.getDerivative()
+	 * Accesses stored DERIVEDVALUES data from measurements.ptsDerivative. Used via:
+	 * cap.getDerivative()
 	 */
 	public static MeasurementComputation accessStored_DERIVEDVALUES() {
 		return (exp, cap, options) -> {
@@ -75,7 +76,8 @@ public class StoredDataAccessors {
 
 	/**
 	 * Accesses stored TOPLEVEL_LR data from CageCapillariesComputation (SUM/PI).
-	 * Used via: exp.getCages().getCageComputation(cageID).getSumMeasure() or getPIMeasure()
+	 * Used via: exp.getCages().getCageComputation(cageID).getSumMeasure() or
+	 * getPIMeasure()
 	 */
 	public static MeasurementComputation accessStored_TOPLEVEL_LR() {
 		return (exp, cap, options) -> {
@@ -85,8 +87,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored TOPLEVELDELTA data from measurements.ptsTop (delta computation).
-	 * Used via: cap.getTopLevel() with delta calculation
+	 * Accesses stored TOPLEVELDELTA data from measurements.ptsTop (delta
+	 * computation). Used via: cap.getTopLevel() with delta calculation
 	 */
 	public static MeasurementComputation accessStored_TOPLEVELDELTA() {
 		return (exp, cap, options) -> {
@@ -96,8 +98,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored TOPLEVELDELTA_LR data from CageCapillariesComputation.
-	 * Used via: cage computation with delta calculation
+	 * Accesses stored TOPLEVELDELTA_LR data from CageCapillariesComputation. Used
+	 * via: cage computation with delta calculation
 	 */
 	public static MeasurementComputation accessStored_TOPLEVELDELTA_LR() {
 		return (exp, cap, options) -> {
@@ -107,8 +109,9 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored SUMGULPS data from measurements.ptsGulps.getMeasuresFromGulps().
-	 * Used via: cap.getGulps().getMeasuresFromGulps(SUMGULPS, ...)
+	 * Accesses stored SUMGULPS data from
+	 * measurements.ptsGulps.getMeasuresFromGulps(). Used via:
+	 * cap.getGulps().getMeasuresFromGulps(SUMGULPS, ...)
 	 */
 	public static MeasurementComputation accessStored_SUMGULPS() {
 		return (exp, cap, options) -> {
@@ -118,8 +121,9 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored SUMGULPS_LR data from CageCapillariesComputation or measurements.ptsGulps.
-	 * Used via: cage computation or cap.getGulps().getMeasuresFromGulps()
+	 * Accesses stored SUMGULPS_LR data from CageCapillariesComputation or
+	 * measurements.ptsGulps. Used via: cage computation or
+	 * cap.getGulps().getMeasuresFromGulps()
 	 */
 	public static MeasurementComputation accessStored_SUMGULPS_LR() {
 		return (exp, cap, options) -> {
@@ -129,8 +133,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored XYIMAGE data from FlyPositions.
-	 * Used via: cage.flyPositions with coordinate extraction
+	 * Accesses stored XYIMAGE data from FlyPositions. Used via: cage.flyPositions
+	 * with coordinate extraction
 	 */
 	public static MeasurementComputation accessStored_XYIMAGE() {
 		return (exp, cap, options) -> {
@@ -149,14 +153,14 @@ public class StoredDataAccessors {
 					"YVSFOOD uses stored data from FlyPositions - access via cage.flyPositions, not computation");
 		};
 	}
-	
+
 	public static MeasurementComputation accessStored_XTOPCAGE() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
 					"XTOPCAGE uses stored data from FlyPositions - access via cage.flyPositions, not computation");
 		};
 	}
-	
+
 	public static MeasurementComputation accessStored_YTOPCAGE() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
@@ -165,8 +169,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored ELLIPSEAXES data from FlyPositions.
-	 * Used via: cage.flyPositions with ellipse extraction
+	 * Accesses stored ELLIPSEAXES data from FlyPositions. Used via:
+	 * cage.flyPositions with ellipse extraction
 	 */
 	public static MeasurementComputation accessStored_ELLIPSEAXES() {
 		return (exp, cap, options) -> {
@@ -176,8 +180,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored DISTANCE data from FlyPositions (computed from consecutive points).
-	 * Used via: cage.flyPositions with distance calculation
+	 * Accesses stored DISTANCE data from FlyPositions (computed from consecutive
+	 * points). Used via: cage.flyPositions with distance calculation
 	 */
 	public static MeasurementComputation accessStored_DISTANCE() {
 		return (exp, cap, options) -> {
@@ -187,8 +191,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored ISALIVE data from FlyPositions.
-	 * Used via: cage.flyPositions with alive status extraction
+	 * Accesses stored ISALIVE data from FlyPositions. Used via: cage.flyPositions
+	 * with alive status extraction
 	 */
 	public static MeasurementComputation accessStored_ISALIVE() {
 		return (exp, cap, options) -> {
@@ -198,8 +202,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored SLEEP data from FlyPositions.
-	 * Used via: cage.flyPositions with sleep status extraction
+	 * Accesses stored SLEEP data from FlyPositions. Used via: cage.flyPositions
+	 * with sleep status extraction
 	 */
 	public static MeasurementComputation accessStored_SLEEP() {
 		return (exp, cap, options) -> {
@@ -220,8 +224,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_SUM data from Spot measurements.
-	 * Used via: spot.getMeasurements(AREA_SUM)
+	 * Accesses stored AREA_SUM data from Spot measurements. Used via:
+	 * spot.getMeasurements(AREA_SUM)
 	 */
 	public static MeasurementComputation accessStored_AREA_SUM() {
 		return (exp, cap, options) -> {
@@ -231,8 +235,19 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_SUMCLEAN data from Spot measurements.
-	 * Used via: spot.getMeasurements(AREA_SUMCLEAN)
+	 * Accesses stored AREA_SUMCLEAN data from Spot measurements. Used via:
+	 * spot.getMeasurements(AREA_SUMCLEAN)
+	 */
+	public static MeasurementComputation accessStored_AREA_SUMNOFLY() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"AREA_SUMNOFLY uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	/**
+	 * Accesses stored AREA_SUMCLEAN data from Spot measurements. Used via:
+	 * spot.getMeasurements(AREA_SUMCLEAN)
 	 */
 	public static MeasurementComputation accessStored_AREA_SUMCLEAN() {
 		return (exp, cap, options) -> {
@@ -242,8 +257,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_OUT data from Spot measurements.
-	 * Used via: spot.getMeasurements(AREA_OUT)
+	 * Accesses stored AREA_OUT data from Spot measurements. Used via:
+	 * spot.getMeasurements(AREA_OUT)
 	 */
 	public static MeasurementComputation accessStored_AREA_OUT() {
 		return (exp, cap, options) -> {
@@ -253,8 +268,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_DIFF data from Spot measurements.
-	 * Used via: spot.getMeasurements(AREA_DIFF)
+	 * Accesses stored AREA_DIFF data from Spot measurements. Used via:
+	 * spot.getMeasurements(AREA_DIFF)
 	 */
 	public static MeasurementComputation accessStored_AREA_DIFF() {
 		return (exp, cap, options) -> {
@@ -264,8 +279,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_FLYPRESENT data from Spot measurements.
-	 * Used via: spot.getMeasurements(AREA_FLYPRESENT)
+	 * Accesses stored AREA_FLYPRESENT data from Spot measurements. Used via:
+	 * spot.getMeasurements(AREA_FLYPRESENT)
 	 */
 	public static MeasurementComputation accessStored_AREA_FLYPRESENT() {
 		return (exp, cap, options) -> {
@@ -284,4 +299,3 @@ public class StoredDataAccessors {
 		};
 	}
 }
-

@@ -30,8 +30,8 @@ import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
-import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
+import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
@@ -48,7 +48,9 @@ public class Charts extends JPanel implements SequenceListener {
 	private AxisOptions graphOptions = null;
 	private EnumSpotMeasures[] measures = new EnumSpotMeasures[] { //
 			EnumSpotMeasures.AREA_SUM, //
-			EnumSpotMeasures.AREA_SUMCLEAN // ,
+			EnumSpotMeasures.AREA_SUMNOFLY, //
+			EnumSpotMeasures.AREA_SUMCLEAN, //
+			EnumSpotMeasures.AREA_FLYPRESENT// ,
 			// EnumXLSExportType.AREA_DIFF
 	};
 	private JComboBox<EnumSpotMeasures> exportTypeComboBox = new JComboBox<EnumSpotMeasures>(measures);
@@ -187,7 +189,8 @@ public class Charts extends JPanel implements SequenceListener {
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override
-			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options, ChartCagePair[][] charts) {
+			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options,
+					ChartCagePair[][] charts) {
 				return new SpotChartInteractionHandler(exp, options, charts);
 			}
 		};
@@ -209,7 +212,12 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private ComboBoxUIControlsFactory createChartUIControlsFactory() {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
-		ui.setMeasurementTypes(new EnumResults[] { EnumResults.AREA_SUM, EnumResults.AREA_SUMCLEAN, EnumResults.AREA_FLYPRESENT });
+		ui.setMeasurementTypes(new EnumResults[] { //
+				EnumResults.AREA_SUM, //
+				EnumResults.AREA_SUMNOFLY, //
+				EnumResults.AREA_SUMCLEAN, //
+				EnumResults.AREA_FLYPRESENT //
+		});
 		return ui;
 	}
 
@@ -217,6 +225,8 @@ public class Charts extends JPanel implements SequenceListener {
 		switch (spotMeasure) {
 		case AREA_SUM:
 			return EnumResults.AREA_SUM;
+		case AREA_SUMNOFLY:
+			return EnumResults.AREA_SUMNOFLY;
 		case AREA_SUMCLEAN:
 			return EnumResults.AREA_SUMCLEAN;
 		case AREA_FLYPRESENT:
