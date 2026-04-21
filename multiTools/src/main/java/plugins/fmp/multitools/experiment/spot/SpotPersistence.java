@@ -133,7 +133,7 @@ public class SpotPersistence {
 			spot.getSumClean().exportYDataToCsv(sbf, sep);
 			break;
 		case AREA_FLYPRESENT:
-			spot.getFlyPresent().exportYDataToCsv(sbf, sep);
+			spot.getFlyPresent().exportIsPresentToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -264,9 +264,10 @@ public class SpotPersistence {
 			break;
 		case AREA_FLYPRESENT:
 			if (x && y) {
-				spot.getFlyPresent().importXYDataFromCsv(data, DATA_OFFSET);
+				// FlyPresent is stored as presence array; ignore X and import presence.
+				spot.getFlyPresent().importIsPresentFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getFlyPresent().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getFlyPresent().importIsPresentFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		default:

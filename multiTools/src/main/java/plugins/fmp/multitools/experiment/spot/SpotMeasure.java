@@ -169,9 +169,13 @@ public class SpotMeasure {
 	// === DATA ACCESS ===
 
 	public int getCount() {
-		if (values == null)
-			return 0;
-		return values.length;
+		if (values != null) {
+			return values.length;
+		}
+		if (isPresent != null) {
+			return isPresent.length;
+		}
+		return 0;
 	}
 
 	public double[] getValues() {
@@ -189,7 +193,13 @@ public class SpotMeasure {
 	}
 
 	public double getValueAt(int index) {
-		return values[index];
+		if (values != null) {
+			return values[index];
+		}
+		if (isPresent != null) {
+			return isPresent[index];
+		}
+		return Double.NaN;
 	}
 
 	public int[] getIsPresent() {
@@ -362,6 +372,30 @@ public class SpotMeasure {
 	}
 
 	/**
+	 * Exports presence (integer) data to CSV row.
+	 *
+	 * Format matches {@link #exportYDataToCsv}: <code>npts;v0;v1;...</code>
+	 *
+	 * @param sbf       the string buffer
+	 * @param separator the separator
+	 * @return true if successful
+	 */
+	public boolean exportIsPresentToCsv(StringBuilder sbf, String separator) {
+		if (isPresent == null || isPresent.length < 1) {
+			return false;
+		}
+		sbf.append(isPresent.length);
+		sbf.append(separator);
+		for (int i = 0; i < isPresent.length; i++) {
+			if (i > 0) {
+				sbf.append(separator);
+			}
+			sbf.append(isPresent[i]);
+		}
+		return true;
+	}
+
+	/**
 	 * Imports XY data from CSV row.
 	 * 
 	 * @param data    the CSV data
@@ -410,6 +444,31 @@ public class SpotMeasure {
 			}
 			return true;
 
+		} catch (NumberFormatException e) {
+			return false;
+		}
+	}
+
+	/**
+	 * Imports presence (integer) data from CSV row.
+	 *
+	 * @param data    the CSV data
+	 * @param startAt the starting index
+	 * @return true if successful
+	 */
+	public boolean importIsPresentFromCsv(String[] data, int startAt) {
+		if (data == null || data.length < startAt + 1) {
+			return false;
+		}
+		try {
+			int npoints = data.length - startAt;
+			if (isPresent == null || isPresent.length != npoints) {
+				isPresent = new int[npoints];
+			}
+			for (int i = 0; i < npoints; i++) {
+				isPresent[i] = Integer.parseInt(data[startAt + i]);
+			}
+			return true;
 		} catch (NumberFormatException e) {
 			return false;
 		}
