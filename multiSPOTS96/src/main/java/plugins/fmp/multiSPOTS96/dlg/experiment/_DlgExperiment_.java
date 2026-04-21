@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.a_experiment;
+package plugins.fmp.multiSPOTS96.dlg.experiment;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
