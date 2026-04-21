@@ -457,9 +457,7 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 					if (exp instanceof LazyExperiment) {
 						LazyExperiment lazyExp = (LazyExperiment) exp;
 						String fieldValue = lazyExp.getFieldValue(field);
-						if (fieldValue != null && !fieldValue.isEmpty()) {
-							addIfUniqueString(textList, fieldValue);
-						}
+						addIfUniqueString(textList, normalizeDistinctValue(fieldValue));
 					} else {
 						exp.loadExperimentDescriptors();
 						List<String> values = exp.getFieldValues(field);
@@ -475,6 +473,14 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 			}
 		}
 		return textList;
+	}
+
+	private String normalizeDistinctValue(String value) {
+		if (value == null) {
+			return "..";
+		}
+		String v = value.trim();
+		return v.isEmpty() ? ".." : v;
 	}
 
 	public void addIfUniqueString(List<String> uniqueList, String newString) {

@@ -326,7 +326,17 @@ public class Filter extends JPanel {
 	void filterItemMulti(List<Experiment> filteredList, EnumXLSColumnHeader header, List<String> allowedValues) {
 		if (allowedValues == null || allowedValues.isEmpty())
 			return; // nothing selected -> don't restrict
-		java.util.HashSet<String> allowed = new java.util.HashSet<String>(allowedValues);
+		java.util.HashSet<String> allowed = new java.util.HashSet<String>(allowedValues.size());
+		for (String v : allowedValues) {
+			if (v == null)
+				continue;
+			String n0 = v.trim();
+			if (n0.isEmpty())
+				n0 = "..";
+			String n = n0.toLowerCase();
+			if (!n.isEmpty())
+				allowed.add(n);
+		}
 		Iterator<Experiment> iterator = filteredList.iterator();
 		while (iterator.hasNext()) {
 			Experiment exp = iterator.next();
@@ -336,7 +346,11 @@ public class Filter extends JPanel {
 			} else {
 				value = exp.getExperimentField(header);
 			}
-			if (!allowed.contains(value))
+			String v0 = value != null ? value.trim() : "";
+			if (v0.isEmpty())
+				v0 = "..";
+			String norm = v0.toLowerCase();
+			if (!allowed.contains(norm))
 				iterator.remove();
 		}
 	}

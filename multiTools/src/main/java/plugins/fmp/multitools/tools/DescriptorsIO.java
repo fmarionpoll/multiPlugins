@@ -34,6 +34,7 @@ public class DescriptorsIO {
 	private static final String DICT = "DICT";
 	private static final String NAME = "name";
 	private static final String VAL = "VAL";
+	private static final String EMPTY_SENTINEL = "..";
 
 	public static String getDescriptorsFullName(String resultsDirectory) {
 		// Try v2_ format first
@@ -206,7 +207,11 @@ public class DescriptorsIO {
 	private static void addIfNotEmpty(Set<String> set, String value) {
 		if (set == null)
 			return;
-		if (value != null && !value.isEmpty())
-			set.add(value);
+		if (value == null) {
+			set.add(EMPTY_SENTINEL);
+			return;
+		}
+		String v = value.trim();
+		set.add(v.isEmpty() ? EMPTY_SENTINEL : v);
 	}
 }

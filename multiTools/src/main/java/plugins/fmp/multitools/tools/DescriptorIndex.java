@@ -24,6 +24,7 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 public class DescriptorIndex {
 
 	private volatile boolean ready = false;
+	private static final String EMPTY_SENTINEL = "..";
 
 	private Map<String, ExperimentProperties> propertiesByResultsDir = new HashMap<String, ExperimentProperties>();
 	private EnumMap<EnumXLSColumnHeader, TreeSet<String>> distinctByField = new EnumMap<EnumXLSColumnHeader, TreeSet<String>>(
@@ -194,8 +195,21 @@ public class DescriptorIndex {
 	}
 
 	private void addIfNotEmpty(Set<String> set, String value) {
-		if (value != null && !value.isEmpty())
-			set.add(value);
+		if (set == null) {
+			return;
+		}
+		String v = normalizeDistinctValue(value);
+		if (v != null) {
+			set.add(v);
+		}
+	}
+
+	private String normalizeDistinctValue(String value) {
+		if (value == null) {
+			return EMPTY_SENTINEL;
+		}
+		String v = value.trim();
+		return v.isEmpty() ? EMPTY_SENTINEL : v;
 	}
 
 	public List<String> getDistinctValues(EnumXLSColumnHeader field) {
@@ -207,22 +221,20 @@ public class DescriptorIndex {
 
 	// Incremental in-memory updates for the current subset
 	public synchronized void addValue(EnumXLSColumnHeader field, String value) {
-		if (value == null)
+		String v = normalizeDistinctValue(value);
+		if (v == null) {
 			return;
-		String v = value.trim();
-		if (v.isEmpty())
-			return;
+		}
 		TreeSet<String> set = distinctByField.get(field);
 		if (set != null)
 			set.add(v);
 	}
 
 	public synchronized void removeValue(EnumXLSColumnHeader field, String value) {
-		if (value == null)
+		String v = normalizeDistinctValue(value);
+		if (v == null) {
 			return;
-		String v = value.trim();
-		if (v.isEmpty())
-			return;
+		}
 		TreeSet<String> set = distinctByField.get(field);
 		if (set != null)
 			set.remove(v);

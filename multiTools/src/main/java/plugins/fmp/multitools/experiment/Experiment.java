@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import icy.canvas.IcyCanvas;
 import icy.canvas.Layer;
@@ -47,6 +48,7 @@ import plugins.fmp.multitools.experiment.spots.SpotsPersistenceLegacy;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Directories;
+import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -1252,9 +1254,63 @@ public class Experiment {
 
 	public boolean replaceExperimentFieldIfEqualOldValue(EnumXLSColumnHeader fieldEnumCode, String oldValue,
 			String newValue) {
-		boolean flag = prop.getField(fieldEnumCode).equals(oldValue);
+		if (oldValue == null) {
+			return false;
+		}
+		String oldNorm = oldValue.trim();
+		if (oldNorm.isEmpty()) {
+			oldNorm = "..";
+		}
+
+		String current = null;
+		// LazyExperiment may not have resultsDirectory / seqCamData set when iterating via getItemAtNoLoad().
+		// Prefer its lightweight cached property loader in that case.
+		if (this instanceof LazyExperiment) {
+			LazyExperiment lexp = (LazyExperiment) this;
+			String resDir = lexp.getMetadata() != null ? lexp.getMetadata().getResultsDirectory() : null;
+			if (getResultsDirectory() == null && resDir != null) {
+				setResultsDirectory(resDir);
+			}
+
+			// DescriptorIndex prefers the external descriptors file when present; match against it first
+			// so bulk-replace uses the same "current" values as the UI combos.
+			if (resDir != null) {
+				Map<EnumXLSColumnHeader, List<String>> preDicts = DescriptorsIO.readDescriptors(resDir);
+				if (preDicts != null) {
+					List<String> vals = preDicts.get(fieldEnumCode);
+					if (vals != null && !vals.isEmpty()) {
+						current = vals.get(0);
+					}
+				}
+			}
+			if (current == null) {
+				lexp.loadPropertiesIfNeeded();
+				current = lexp.getFieldValue(fieldEnumCode);
+			}
+		} else {
+			// Ensure descriptors are loaded
+			loadExperimentDescriptors();
+			current = prop.getField(fieldEnumCode);
+		}
+
+		if (current == null) {
+			return false;
+		}
+
+		String curNorm = current.trim();
+		if (curNorm.isEmpty()) {
+			curNorm = "..";
+		}
+		boolean flag = curNorm.equalsIgnoreCase(oldNorm);
 		if (flag) {
 			prop.setFieldNoTest(fieldEnumCode, newValue);
+			if (this instanceof LazyExperiment) {
+				LazyExperiment lexp = (LazyExperiment) this;
+				ExperimentProperties cached = lexp.getCachedProperties();
+				if (cached != null) {
+					cached.setFieldNoTest(fieldEnumCode, newValue);
+				}
+			}
 		}
 		return flag;
 	}
