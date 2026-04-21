@@ -14,7 +14,6 @@ import java.awt.geom.Point2D.Double;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import javax.swing.JButton;
@@ -40,7 +39,6 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.DetectSpotsOutline;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
@@ -532,21 +530,7 @@ public class DetectSpots extends JPanel implements ChangeListener, PropertyChang
 	private void cleanUpSpotNames(Experiment exp) {
 		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
-			cage.mapSpotsToCageColumnRow(allSpots);
-			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			Collections.sort(cageSpots, new Comparators.Experiment_Start.Spot_cagePosition());
-			List<SpotID> sortedSpotIDs = new ArrayList<SpotID>(cageSpots.size());
-			for (Spot spot : cageSpots) {
-				if (spot == null) {
-					continue;
-				}
-				if (spot.getSpotUniqueID() == null) {
-					spot.setSpotUniqueID(new SpotID(allSpots.getNextUniqueSpotID()));
-				}
-				spot.getProperties().setCageID(cage.getCageID());
-				sortedSpotIDs.add(spot.getSpotUniqueID());
-			}
-			cage.setSpotIDs(sortedSpotIDs);
+			cage.reorderSpotsReadingOrderAndAssignRowCol(allSpots);
 			cage.cleanUpSpotNames(allSpots);
 		}
 		exp.getSeqCamData().removeROIsContainingString("spot");

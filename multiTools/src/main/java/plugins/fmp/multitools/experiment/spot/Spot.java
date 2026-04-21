@@ -241,11 +241,17 @@ public class Spot implements Comparable<Spot> {
 			if (name != null && !name.isEmpty()) {
 				roiEllipse.setName(name);
 			} else {
-				// Generate name from cageID and position if available
+				// Generate name from cageID + row/col (preferred) or legacy position
 				int cageID = properties.getCageID();
-				int position = properties.getCagePosition();
-				if (cageID >= 0 && position >= 0) {
-					roiEllipse.setName(SpotString.createSpotString(cageID, position));
+				int row = properties.getCageRow();
+				int col = properties.getCageColumn();
+				if (cageID >= 0 && row >= 0 && col >= 0) {
+					roiEllipse.setName(SpotString.createSpotString(cageID, row, col));
+				} else {
+					int position = properties.getCagePosition();
+					if (cageID >= 0 && position >= 0) {
+						roiEllipse.setName(SpotString.createSpotString(cageID, position));
+					}
 				}
 			}
 
@@ -294,6 +300,14 @@ public class Spot implements Comparable<Spot> {
 	 */
 	public void setName(int cageID, int spotID) {
 		String name = String.format("spot_%03d_%03d", cageID, spotID);
+		if (spotROI2D != null) {
+			spotROI2D.setName(name);
+		}
+		properties.setName(name);
+	}
+
+	public void setNameRowCol(int cageID, int cageRow, int cageColumn) {
+		String name = SpotString.createSpotString(cageID, cageRow, cageColumn);
 		if (spotROI2D != null) {
 			spotROI2D.setName(name);
 		}

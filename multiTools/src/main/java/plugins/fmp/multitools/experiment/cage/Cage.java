@@ -705,12 +705,179 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return spot;
 	}
 
+	/**
+	 * Reorders cage {@link #spotIDs} by a geometry-based reading order and assigns
+	 * {@code cageRow}/{@code cageColumn} using Y-clustering into rows. This is designed
+	 * for arbitrary spot layouts (not a fixed 8×4 grid).
+	 *
+	 * <p>
+	 * Sorting uses top-to-bottom, then left-to-right order based on spot centers.
+	 * Row assignment clusters spots into rows by their Y coordinate with an adaptive
+	 * tolerance derived from inter-spot Y spacings. Within a row, spots are sorted
+	 * left-to-right by X.
+	 * </p>
+	 */
+	public void reorderSpotsReadingOrderAndAssignRowCol(Spots allSpots) {
+		if (allSpots == null) {
+			return;
+		}
+
+		List<Spot> cageSpots = getSpotList(allSpots);
+		List<SpotWithCenter> spotsWithCenters = new ArrayList<>(cageSpots.size());
+		for (Spot spot : cageSpots) {
+			if (spot == null) {
+				continue;
+			}
+			spotsWithCenters.add(new SpotWithCenter(spot, getSpotCenterForOrdering(spot)));
+		}
+
+		Collections.sort(spotsWithCenters, (a, b) -> {
+			int cmp = Double.compare(a.center.y, b.center.y);
+			if (cmp != 0) {
+				return cmp;
+			}
+			cmp = Double.compare(a.center.x, b.center.x);
+			if (cmp != 0) {
+				return cmp;
+			}
+			int id1 = a.spot.getSpotUniqueID() != null ? a.spot.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+			int id2 = b.spot.getSpotUniqueID() != null ? b.spot.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+			return Integer.compare(id1, id2);
+		});
+
+		double yTol = estimateRowYTolerance(spotsWithCenters);
+
+		List<List<SpotWithCenter>> rows = new ArrayList<>();
+		for (SpotWithCenter swc : spotsWithCenters) {
+			if (rows.isEmpty()) {
+				List<SpotWithCenter> row0 = new ArrayList<>();
+				row0.add(swc);
+				rows.add(row0);
+				continue;
+			}
+			List<SpotWithCenter> lastRow = rows.get(rows.size() - 1);
+			double lastMeanY = meanY(lastRow);
+			if (Math.abs(swc.center.y - lastMeanY) <= yTol) {
+				lastRow.add(swc);
+			} else {
+				List<SpotWithCenter> newRow = new ArrayList<>();
+				newRow.add(swc);
+				rows.add(newRow);
+			}
+		}
+
+		List<SpotID> sortedSpotIDs = new ArrayList<>(spotsWithCenters.size());
+		int position = 0;
+		for (int row = 0; row < rows.size(); row++) {
+			List<SpotWithCenter> rowSpots = rows.get(row);
+			Collections.sort(rowSpots, (a, b) -> {
+				int cmp = Double.compare(a.center.x, b.center.x);
+				if (cmp != 0) {
+					return cmp;
+				}
+				int id1 = a.spot.getSpotUniqueID() != null ? a.spot.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+				int id2 = b.spot.getSpotUniqueID() != null ? b.spot.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+				return Integer.compare(id1, id2);
+			});
+
+			for (int col = 0; col < rowSpots.size(); col++) {
+				Spot spot = rowSpots.get(col).spot;
+
+				if (spot.getSpotUniqueID() == null) {
+					spot.setSpotUniqueID(new SpotID(allSpots.getNextUniqueSpotID()));
+				}
+				sortedSpotIDs.add(spot.getSpotUniqueID());
+
+				spot.getProperties().setCageID(prop.getCageID());
+				spot.getProperties().setCageRow(row);
+				spot.getProperties().setCageColumn(col);
+				spot.getProperties().setCagePosition(position++);
+			}
+		}
+
+		setSpotIDs(sortedSpotIDs);
+	}
+
+	private static class SpotWithCenter {
+		final Spot spot;
+		final Point2D.Double center;
+
+		SpotWithCenter(Spot spot, Point2D.Double center) {
+			this.spot = spot;
+			this.center = center;
+		}
+	}
+
+	private double meanY(List<SpotWithCenter> row) {
+		if (row == null || row.isEmpty()) {
+			return 0;
+		}
+		double sum = 0;
+		for (SpotWithCenter swc : row) {
+			sum += swc.center.y;
+		}
+		return sum / row.size();
+	}
+
+	private double estimateRowYTolerance(List<SpotWithCenter> sortedByYThenX) {
+		if (sortedByYThenX == null || sortedByYThenX.size() < 2) {
+			return 5.0;
+		}
+
+		List<Double> diffs = new ArrayList<>(sortedByYThenX.size() - 1);
+		double prevY = sortedByYThenX.get(0).center.y;
+		for (int i = 1; i < sortedByYThenX.size(); i++) {
+			double y = sortedByYThenX.get(i).center.y;
+			double dy = y - prevY;
+			if (dy > 0) {
+				diffs.add(dy);
+			}
+			prevY = y;
+		}
+
+		if (diffs.isEmpty()) {
+			return 5.0;
+		}
+
+		Collections.sort(diffs);
+		// Use a high percentile to estimate between-row spacing (median is dominated by within-row jitter).
+		int idx90 = (int) Math.floor(0.90 * (diffs.size() - 1));
+		double p90 = diffs.get(Math.max(0, Math.min(diffs.size() - 1, idx90)));
+		// Tolerance is half the between-row spacing estimate, with a small floor.
+		return Math.max(5.0, 0.5 * p90);
+	}
+
+	private Point2D.Double getSpotCenterForOrdering(Spot spot) {
+		if (spot == null) {
+			return new Point2D.Double(0, 0);
+		}
+		ROI2D spotRoi = spot.getRoi();
+		if (spotRoi != null) {
+			Rectangle rect = spotRoi.getBounds();
+			if (rect != null) {
+				return new Point2D.Double(rect.getCenterX(), rect.getCenterY());
+			}
+		}
+		return new Point2D.Double(spot.getProperties().getSpotXCoord(), spot.getProperties().getSpotYCoord());
+	}
+
 	public Spot getSpotFromRoiName(String name, Spots allSpots) {
 		if (allSpots == null) {
 			return null;
 		}
-		int cagePosition = SpotString.getSpotCagePositionFromSpotName(name);
 		List<Spot> spots = getSpotList(allSpots);
+		int row = SpotString.getSpotCageRowFromSpotName(name);
+		int col = SpotString.getSpotCageColumnFromSpotName(name);
+		if (row >= 0 && col >= 0) {
+			for (Spot spot : spots) {
+				if (spot.getProperties().getCageRow() == row && spot.getProperties().getCageColumn() == col) {
+					return spot;
+				}
+			}
+			return null;
+		}
+
+		int cagePosition = SpotString.getSpotCagePositionFromSpotName(name);
 		for (Spot spot : spots) {
 			if (spot.getProperties().getCagePosition() == cagePosition)
 				return spot;
@@ -761,9 +928,18 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		List<Spot> spots = getSpotList(allSpots);
 		for (int i = 0; i < spots.size(); i++) {
 			Spot spot = spots.get(i);
-			spot.setName(prop.getCageID(), i);
 			spot.getProperties().setCageID(prop.getCageID());
 			spot.getProperties().setCagePosition(i);
+
+			int row = spot.getProperties().getCageRow();
+			int col = spot.getProperties().getCageColumn();
+			if (row < 0 || col < 0) {
+				row = 0;
+				col = i;
+				spot.getProperties().setCageRow(row);
+				spot.getProperties().setCageColumn(col);
+			}
+			spot.setNameRowCol(prop.getCageID(), row, col);
 		}
 	}
 

@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.tools;
 
+import java.awt.Rectangle;
 import java.util.Comparator;
 
 import icy.roi.ROI;
@@ -462,6 +463,60 @@ public class Comparators {
 				int y1 = spot1.getProperties().getCageRow() * CAGE_GRID_WIDTH + spot1.getProperties().getCageColumn();
 				int y2 = spot2.getProperties().getCageRow() * CAGE_GRID_WIDTH + spot2.getProperties().getCageColumn();
 				return Integer.compare(y1, y2);
+			}
+		}
+
+		/**
+		 * Comparator for Spot objects in "reading order": top-to-bottom then left-to-right.
+		 * Uses ROI bounds center when available, otherwise falls back to stored spot coordinates.
+		 */
+		public static class Spot_readingOrder implements Comparator<Spot> {
+			@Override
+			public int compare(Spot spot1, Spot spot2) {
+				if (spot1 == null && spot2 == null) {
+					return 0;
+				}
+				if (spot1 == null) {
+					return 1;
+				}
+				if (spot2 == null) {
+					return -1;
+				}
+
+				double x1 = spot1.getProperties().getSpotXCoord();
+				double y1 = spot1.getProperties().getSpotYCoord();
+				ROI2D roi1 = spot1.getRoi();
+				if (roi1 != null) {
+					Rectangle r1 = roi1.getBounds();
+					if (r1 != null) {
+						x1 = r1.getCenterX();
+						y1 = r1.getCenterY();
+					}
+				}
+
+				double x2 = spot2.getProperties().getSpotXCoord();
+				double y2 = spot2.getProperties().getSpotYCoord();
+				ROI2D roi2 = spot2.getRoi();
+				if (roi2 != null) {
+					Rectangle r2 = roi2.getBounds();
+					if (r2 != null) {
+						x2 = r2.getCenterX();
+						y2 = r2.getCenterY();
+					}
+				}
+
+				int cmp = Double.compare(y1, y2);
+				if (cmp != 0) {
+					return cmp;
+				}
+				cmp = Double.compare(x1, x2);
+				if (cmp != 0) {
+					return cmp;
+				}
+
+				int id1 = spot1.getSpotUniqueID() != null ? spot1.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+				int id2 = spot2.getSpotUniqueID() != null ? spot2.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+				return Integer.compare(id1, id2);
 			}
 		}
 

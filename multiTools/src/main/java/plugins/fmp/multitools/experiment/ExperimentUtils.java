@@ -36,8 +36,22 @@ public class ExperimentUtils {
 				String name = roi.getName();
 				ROI2DPolygon roi_new = new ROI2DPolygon();
 				int cageID = SpotString.getCageIDFromSpotName(name);
+				int cageRow = SpotString.getSpotCageRowFromSpotName(name);
+				int cageColumn = SpotString.getSpotCageColumnFromSpotName(name);
 				int cagePosition = SpotString.getSpotCagePositionFromSpotName(name);
-				if (cageID >= 0 && cagePosition >= 0) {
+
+				if (cageID >= 0 && cageRow >= 0 && cageColumn >= 0) {
+					Cage cage = exp.getCages().getCageFromID(cageID);
+					Spot newSpot = new Spot(roi_new);
+					int uniqueSpotID = allSpots.getNextUniqueSpotID();
+					SpotID spotUniqueID = new SpotID(uniqueSpotID);
+					newSpot.getProperties().setCageID(cageID);
+					newSpot.setSpotUniqueID(spotUniqueID);
+					newSpot.getProperties().setCageRow(cageRow);
+					newSpot.getProperties().setCageColumn(cageColumn);
+					allSpots.addSpot(newSpot);
+					cage.getSpotIDs().add(spotUniqueID);
+				} else if (cageID >= 0 && cagePosition >= 0) {
 					Cage cage = exp.getCages().getCageFromID(cageID);
 					Spot newSpot = new Spot(roi_new);
 					int uniqueSpotID = allSpots.getNextUniqueSpotID();
