@@ -18,7 +18,6 @@ import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.DescriptorsIO;
-import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
@@ -170,11 +169,10 @@ public class Edit extends JPanel {
 					boolean isChanged = false;
 					progress.setMessage("Updating (" + (i + 1) + "/" + nExperiments + ")");
 					if (exp == null) {
-						System.out.println("Edit.applyChange: null experiment at index " + i);
+						Logger.warn("Edit.applyChange: null experiment at index " + i);
 						progress.incPosition();
 						continue;
 					}
-					final String resDir = exp.getResultsDirectory();
 					// Apply change without triggering image loads
 					switch (fieldEnumCode) {
 					case EXP_EXPT:
@@ -186,23 +184,13 @@ public class Edit extends JPanel {
 					case EXP_STIM2:
 					case EXP_CONC2:
 						exp.loadExperimentDescriptors();
-						String before = exp.getExperimentField(fieldEnumCode);
-						System.out.println("Edit.applyChange EXP field: resDir=" + resDir + " field=" + fieldEnumCode
-								+ " before='" + before + "' old='" + oldValue + "' new='" + newValue + "'");
 						isChanged = exp.replaceExperimentFieldIfEqualOldValue(fieldEnumCode, oldValue, newValue);
-						if (isChanged) {
-							String after = exp.getExperimentField(fieldEnumCode);
-							System.out.println("Edit.applyChange EXP field changed: resDir=" + resDir + " field="
-									+ fieldEnumCode + " after='" + after + "'");
-						}
 						if (isChanged)
 							exp.saveExperimentDescriptors();
 						break;
 					case CAGE_SEX:
 					case CAGE_STRAIN:
 					case CAGE_AGE:
-						System.out.println("Edit.applyChange CAGE field: resDir=" + resDir + " field=" + fieldEnumCode
-								+ " old='" + oldValue + "' new='" + newValue + "'");
 						isChanged = exp.replaceCageFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
 						if (isChanged)
 							exp.save_cages_description_and_measures();
@@ -210,8 +198,6 @@ public class Edit extends JPanel {
 					case SPOT_STIM:
 					case SPOT_CONC:
 					case SPOT_VOLUME:
-						System.out.println("Edit.applyChange SPOT field: resDir=" + resDir + " field=" + fieldEnumCode
-								+ " old='" + oldValue + "' new='" + newValue + "'");
 						isChanged = exp.replaceSpotsFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
 						if (isChanged) {
 							exp.save_spots_description_and_measures();
@@ -246,7 +232,8 @@ public class Edit extends JPanel {
 					parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 				}
 				if (anyChanged && parent0.descriptorIndex != null) {
-					// Rebuild index to reflect distinct values across all experiments (avoids stale incremental updates)
+					// Rebuild index to reflect distinct values across all experiments (avoids stale
+					// incremental updates)
 					final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
 					parent0.descriptorIndex.preloadFromCombo(parent0.expListComboLazy, new Runnable() {
 						@Override
