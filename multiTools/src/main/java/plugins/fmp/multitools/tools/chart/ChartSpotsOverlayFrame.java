@@ -8,9 +8,11 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -38,6 +40,53 @@ public class ChartSpotsOverlayFrame {
 		List<Spot> getSelectedSpots();
 	}
 
+	public interface AvailableSpotsProvider {
+		List<Spot> getAvailableSpots();
+	}
+
+	private enum SpotChoiceMode {
+		SEQUENCE_SELECTION, FIXED_SPOT
+	}
+
+	private static final class SpotChoice {
+		final SpotChoiceMode mode;
+		final Spot spot;
+
+		private SpotChoice(SpotChoiceMode mode, Spot spot) {
+			this.mode = Objects.requireNonNull(mode, "mode");
+			this.spot = spot;
+		}
+
+		static SpotChoice sequenceSelection() {
+			return new SpotChoice(SpotChoiceMode.SEQUENCE_SELECTION, null);
+		}
+
+		static SpotChoice fixedSpot(Spot spot) {
+			return new SpotChoice(SpotChoiceMode.FIXED_SPOT, spot);
+		}
+
+		String getLabel() {
+			switch (mode) {
+			case SEQUENCE_SELECTION:
+				return "Selected ROI(s)";
+			case FIXED_SPOT:
+				return spot != null && spot.getName() != null ? spot.getName() : "(spot)";
+			default:
+				return "";
+			}
+		}
+
+		@Override
+		public String toString() {
+			return getLabel();
+		}
+
+		String getKey() {
+			return mode == SpotChoiceMode.SEQUENCE_SELECTION ? "Selected ROI(s)"
+					: (spot != null && spot.getName() != null ? "spot:" + spot.getName() : "spot:(null)");
+		}
+	}
+
 	private IcyFrame mainChartFrame = null;
 	private JPanel mainChartPanel = null;
 	private ChartPanel chartPanel = null;
@@ -47,6 +96,7 @@ public class ChartSpotsOverlayFrame {
 	private JCheckBox cbNoFly = new JCheckBox("sumNoFly");
 	private JCheckBox cbClean = new JCheckBox("clean");
 	private JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
+	private JComboBox<SpotChoice> spotSelectorCombo = null;
 	private JButton updateButton = new JButton("Update");
 
 	private String baseTitle = null;
@@ -54,9 +104,15 @@ public class ChartSpotsOverlayFrame {
 	private ResultsOptions lastOptions = null;
 	private List<Spot> lastSelectedSpots = null;
 	private SelectedSpotsProvider selectedSpotsProvider = null;
+	private AvailableSpotsProvider availableSpotsProvider = null;
+	private boolean isUpdatingSpotComboModel = false;
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
 		this.selectedSpotsProvider = provider;
+	}
+
+	public void setAvailableSpotsProvider(AvailableSpotsProvider provider) {
+		this.availableSpotsProvider = provider;
 	}
 
 	public void createMainChartPanel(String title, ResultsOptions options) {
@@ -129,10 +185,15 @@ public class ChartSpotsOverlayFrame {
 
 		setCheckboxDefaults(options);
 
+		spotSelectorCombo = new JComboBox<>();
+		refreshSpotSelectorModel(false);
+		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
+
 		panel.add(cbSum);
 		panel.add(cbNoFly);
 		panel.add(cbClean);
 		panel.add(cbFlyPresent);
+		panel.add(spotSelectorCombo);
 		panel.add(updateButton);
 
 		updateButton.addActionListener(e -> refreshChart());
@@ -187,22 +248,108 @@ public class ChartSpotsOverlayFrame {
 		return n;
 	}
 
+	private void onSpotSelectorChanged() {
+		if (isUpdatingSpotComboModel)
+			return;
+		SpotChoice choice = getCurrentSpotChoice();
+		if (choice == null)
+			return;
+		if (choice.mode == SpotChoiceMode.FIXED_SPOT) {
+			if (choice.spot != null) {
+				List<Spot> fixed = new ArrayList<>();
+				fixed.add(choice.spot);
+				lastSelectedSpots = fixed;
+			}
+		} else {
+			// Switch back to follow-selection mode.
+			List<Spot> refreshed = getSelectedSpotsFromProvider();
+			if (refreshed != null && !refreshed.isEmpty()) {
+				lastSelectedSpots = refreshed;
+			}
+		}
+		refreshChart();
+	}
+
+	private SpotChoice getCurrentSpotChoice() {
+		return spotSelectorCombo != null ? (SpotChoice) spotSelectorCombo.getSelectedItem() : null;
+	}
+
+	private List<Spot> getSelectedSpotsFromProvider() {
+		if (selectedSpotsProvider == null)
+			return null;
+		try {
+			return selectedSpotsProvider.getSelectedSpots();
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	private List<Spot> getAvailableSpotsFromProvider() {
+		if (availableSpotsProvider == null)
+			return null;
+		try {
+			return availableSpotsProvider.getAvailableSpots();
+		} catch (Exception e) {
+			return null;
+		}
+	}
+
+	private void refreshSpotSelectorModel(boolean keepSelection) {
+		if (spotSelectorCombo == null)
+			return;
+		isUpdatingSpotComboModel = true;
+		try {
+			String previousKey = null;
+			if (keepSelection) {
+				SpotChoice previous = getCurrentSpotChoice();
+				previousKey = previous != null ? previous.getKey() : null;
+			}
+
+			spotSelectorCombo.removeAllItems();
+			spotSelectorCombo.addItem(SpotChoice.sequenceSelection());
+
+			List<Spot> spots = dedupeSpots(getAvailableSpotsFromProvider());
+			for (Spot s : spots) {
+				if (s == null)
+					continue;
+				spotSelectorCombo.addItem(SpotChoice.fixedSpot(s));
+			}
+
+			if (previousKey != null) {
+				for (int i = 0; i < spotSelectorCombo.getItemCount(); i++) {
+					SpotChoice sc = spotSelectorCombo.getItemAt(i);
+					if (sc != null && previousKey.equals(sc.getKey())) {
+						spotSelectorCombo.setSelectedIndex(i);
+						return;
+					}
+				}
+			}
+			spotSelectorCombo.setSelectedIndex(0);
+		} finally {
+			isUpdatingSpotComboModel = false;
+		}
+	}
+
 	private void refreshChart() {
 		if (mainChartPanel == null || mainChartFrame == null || lastExperiment == null || lastOptions == null
 				|| lastSelectedSpots == null || lastSelectedSpots.isEmpty()) {
 			return;
 		}
 
-		// Refresh selected spots on Update (or any refresh), because the user may have changed ROI selection.
-		if (selectedSpotsProvider != null) {
-			try {
-				List<Spot> refreshed = selectedSpotsProvider.getSelectedSpots();
-				if (refreshed != null && !refreshed.isEmpty()) {
-					lastSelectedSpots = refreshed;
-				}
-			} catch (Exception e) {
-				// keep previous list if provider fails
+		refreshSpotSelectorModel(true);
+
+		SpotChoice choice = getCurrentSpotChoice();
+		boolean followSelection = (choice == null || choice.mode == SpotChoiceMode.SEQUENCE_SELECTION);
+
+		if (followSelection) {
+			List<Spot> refreshed = getSelectedSpotsFromProvider();
+			if (refreshed != null && !refreshed.isEmpty()) {
+				lastSelectedSpots = refreshed;
 			}
+		} else if (choice.mode == SpotChoiceMode.FIXED_SPOT && choice.spot != null) {
+			List<Spot> fixed = new ArrayList<>();
+			fixed.add(choice.spot);
+			lastSelectedSpots = fixed;
 		}
 
 		maybeEnforceSingleMeasureSelection();

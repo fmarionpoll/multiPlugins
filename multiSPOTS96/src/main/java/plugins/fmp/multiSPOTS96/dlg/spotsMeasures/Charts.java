@@ -253,9 +253,31 @@ public class Charts extends JPanel implements SequenceListener {
 		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (selected)", options);
 		chartSpotsOverlayFrame.setSelectedSpotsProvider(() -> ChartSpotsOverlayFrame
 				.dedupeSpots(getSelectedSpotsFromSequenceROIs(exp)));
+		chartSpotsOverlayFrame.setAvailableSpotsProvider(
+				() -> ChartSpotsOverlayFrame.dedupeSpots(getAllSpotsFromSequenceROIs(exp)));
 		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		chartSpotsOverlayFrame.displayData(exp, options, ChartSpotsOverlayFrame.dedupeSpots(selectedSpots));
 		return null;
+	}
+
+	private List<Spot> getAllSpotsFromSequenceROIs(Experiment exp) {
+		List<Spot> out = new ArrayList<>();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return out;
+		List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
+		if (roiList == null || roiList.isEmpty())
+			return out;
+		for (ROI2D roi : roiList) {
+			if (roi == null)
+				continue;
+			String name = roi.getName();
+			if (name == null || !name.startsWith("spot"))
+				continue;
+			Spot spot = exp.getCages().getSpotFromROIName(name, exp.getSpots());
+			if (spot != null)
+				out.add(spot);
+		}
+		return out;
 	}
 
 	private List<Spot> getSelectedSpotsFromSequenceROIs(Experiment exp) {
