@@ -234,6 +234,9 @@ public class Charts extends JPanel implements SequenceListener {
 		}
 
 		EnumResults resultType = convertSpotMeasureToResult(exportType);
+		if (resultType == null) {
+			return null;
+		}
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(resultType)
 				.withCageRange(first, last).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected();
@@ -267,6 +270,9 @@ public class Charts extends JPanel implements SequenceListener {
 			return null;
 
 		EnumResults resultType = convertSpotMeasureToResult(exportType);
+		if (resultType == null) {
+			return null;
+		}
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(resultType)
 				.withCageRange(0, 0).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected();
@@ -314,13 +320,33 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private ComboBoxUIControlsFactory createChartUIControlsFactory() {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
-		ui.setMeasurementTypes(new EnumResults[] { //
-				EnumResults.AREA_SUM, //
-				EnumResults.AREA_SUMNOFLY, //
-				EnumResults.AREA_SUMCLEAN, //
-				EnumResults.AREA_FLYPRESENT //
-		});
+		ui.setMeasurementTypes(buildChartEnumResultsChoices());
 		return ui;
+	}
+
+	private static EnumResults[] buildChartEnumResultsChoices() {
+		String[] keys = { "AREA_SUM", "AREA_SUMNOFLY", "AREA_SUMCLEAN", "AREA_FLYPRESENT" };
+		List<EnumResults> list = new ArrayList<>();
+		for (String key : keys) {
+			EnumResults v = EnumResults.findByText(key);
+			if (v != null) {
+				list.add(v);
+			}
+		}
+		if (list.isEmpty()) {
+			for (EnumResults v : EnumResults.values()) {
+				if (v.name().startsWith("AREA_")) {
+					list.add(v);
+				}
+			}
+		}
+		if (list.isEmpty()) {
+			EnumResults d = defaultEnumResultForSpotsChart("AREA_SUM");
+			if (d != null) {
+				list.add(d);
+			}
+		}
+		return list.toArray(new EnumResults[0]);
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
@@ -361,18 +387,28 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	private EnumResults convertSpotMeasureToResult(EnumSpotMeasures spotMeasure) {
-		switch (spotMeasure) {
-		case AREA_SUM:
-			return EnumResults.AREA_SUM;
-		case AREA_SUMNOFLY:
-			return EnumResults.AREA_SUMNOFLY;
-		case AREA_SUMCLEAN:
-			return EnumResults.AREA_SUMCLEAN;
-		case AREA_FLYPRESENT:
-			return EnumResults.AREA_FLYPRESENT;
-		default:
-			return EnumResults.AREA_SUM;
+		if (spotMeasure == null) {
+			return defaultEnumResultForSpotsChart("AREA_SUM");
 		}
+		EnumResults mapped = EnumResults.findByText(spotMeasure.toString());
+		if (mapped != null) {
+			return mapped;
+		}
+		return defaultEnumResultForSpotsChart("AREA_SUM");
+	}
+
+	private static EnumResults defaultEnumResultForSpotsChart(String label) {
+		EnumResults r = EnumResults.findByText(label);
+		if (r != null) {
+			return r;
+		}
+		for (EnumResults v : EnumResults.values()) {
+			if (v.name().startsWith("AREA_")) {
+				return v;
+			}
+		}
+		EnumResults[] all = EnumResults.values();
+		return all.length > 0 ? all[0] : null;
 	}
 
 	public void closeAllCharts() {
@@ -386,6 +422,9 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumSpotMeasures option) {
 		EnumResults resultType = convertSpotMeasureToResult(option);
+		if (resultType == null) {
+			return false;
+		}
 		boolean flag = false;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
