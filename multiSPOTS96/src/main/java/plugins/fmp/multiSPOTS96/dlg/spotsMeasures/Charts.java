@@ -5,7 +5,6 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.ButtonGroup;
@@ -240,7 +239,7 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	private ChartCagesFrame plotSelectedSpotsOverlay(Experiment exp, EnumSpotMeasures exportType) {
-		List<Spot> selectedSpots = getSelectedSpotsFromSequenceROIs(exp);
+		List<Spot> selectedSpots = SpotSequenceRois.selectedSpotsFromSequence(exp);
 		if (selectedSpots.isEmpty())
 			return null;
 
@@ -251,10 +250,10 @@ public class Charts extends JPanel implements SequenceListener {
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
 		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (selected)", options);
-		chartSpotsOverlayFrame.setSelectedSpotsProvider(() -> ChartSpotsOverlayFrame
-				.dedupeSpots(getSelectedSpotsFromSequenceROIs(exp)));
+		chartSpotsOverlayFrame.setSelectedSpotsProvider(
+				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setAvailableSpotsProvider(
-				() -> ChartSpotsOverlayFrame.dedupeSpots(getAllSpotsFromSequenceROIs(exp)));
+				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setSpotExclusiveSelectionController(spot -> selectExclusiveSpotRoi(exp, spot));
 		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		chartSpotsOverlayFrame.displayData(exp, options, ChartSpotsOverlayFrame.dedupeSpots(selectedSpots));
@@ -288,57 +287,6 @@ public class Charts extends JPanel implements SequenceListener {
 			seq.setSelectedROI(target);
 			exp.getSeqCamData().centerDisplayOnRoi(target);
 		}
-	}
-
-	private List<Spot> getAllSpotsFromSequenceROIs(Experiment exp) {
-		List<Spot> out = new ArrayList<>();
-		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
-			return out;
-		List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
-		if (roiList == null || roiList.isEmpty())
-			return out;
-		for (ROI2D roi : roiList) {
-			if (roi == null)
-				continue;
-			String name = roi.getName();
-			if (name == null || !name.startsWith("spot"))
-				continue;
-			Spot spot = exp.getCages().getSpotFromROIName(name, exp.getSpots());
-			if (spot != null)
-				out.add(spot);
-		}
-		return out;
-	}
-
-	private List<Spot> getSelectedSpotsFromSequenceROIs(Experiment exp) {
-		List<Spot> out = new ArrayList<>();
-		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
-			return out;
-		List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
-		if (roiList == null || roiList.isEmpty())
-			return out;
-		ROI2D firstSpotRoi = null;
-		for (ROI2D roi : roiList) {
-			if (roi == null)
-				continue;
-			String name = roi.getName();
-			if (name == null || !name.startsWith("spot"))
-				continue;
-			if (firstSpotRoi == null)
-				firstSpotRoi = roi;
-			if (!roi.isSelected())
-				continue;
-			Spot spot = exp.getCages().getSpotFromROIName(name, exp.getSpots());
-			if (spot != null)
-				out.add(spot);
-		}
-		if (out.isEmpty() && firstSpotRoi != null) {
-			String name = firstSpotRoi.getName();
-			Spot spot = exp.getCages().getSpotFromROIName(name, exp.getSpots());
-			if (spot != null)
-				out.add(spot);
-		}
-		return out;
 	}
 
 	private ComboBoxUIControlsFactory createChartUIControlsFactory() {

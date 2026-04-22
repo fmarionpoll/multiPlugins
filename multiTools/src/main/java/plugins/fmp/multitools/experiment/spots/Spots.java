@@ -543,6 +543,21 @@ public class Spots {
 		spotList.forEach(Spot::transferMeasuresToLevel2D);
 	}
 
+	/**
+	 * Pushes 1D measure values into Level2D for the given spots (e.g. after
+	 * in-memory rebuild of sumNoFly / sumClean).
+	 */
+	public void transferMeasuresToLevel2D(Iterable<Spot> targets) {
+		if (targets == null) {
+			return;
+		}
+		for (Spot spot : targets) {
+			if (spot != null) {
+				spot.transferMeasuresToLevel2D();
+			}
+		}
+	}
+
 	// === SEQUENCE OPERATIONS ===
 
 	public void transferSpotsToSequenceAsROIs(Sequence sequence) {
@@ -590,32 +605,28 @@ public class Spots {
 		for (Spot spot : spotList) {
 			if (spot == null)
 				continue;
+			ensureSumNoFlyForSpot(spot, false);
+		}
+	}
 
-			SpotMeasure sumNoFly = spot.getSumNoFly();
-			if (sumNoFly == null)
-				continue;
-
-			double[] existing = sumNoFly.getValues();
-			if (existing != null && existing.length > 0)
-				continue;
-
-			double[] sumIn = spot.getSum() != null ? spot.getSum().getValues() : null;
-			if (sumIn == null || sumIn.length == 0)
-				continue;
-
-			int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
-			double[] reconstructed;
-			if (fly != null && fly.length == sumIn.length) {
-				reconstructed = reconstructSumNoFly(sumIn, fly);
-			} else {
-				double[] legacyClean = spot.getSumClean() != null ? spot.getSumClean().getValues() : null;
-				if (legacyClean != null && legacyClean.length == sumIn.length) {
-					reconstructed = java.util.Arrays.copyOf(legacyClean, legacyClean.length);
-				} else {
-					reconstructed = java.util.Arrays.copyOf(sumIn, sumIn.length);
-				}
-			}
-			sumNoFly.setValues(reconstructed);
+	/**
+	 * Rebuilds sumNoFly and sumClean for the given spots from persistent sum and
+	 * flyPresent (and legacy fallbacks when needed), matching load/detection
+	 * semantics.
+	 *
+	 * @param force if false, skips spots whose sumNoFly array is already non-empty.
+	 *              If true, always recomputes sumNoFly when sum is present; uses
+	 *              {@link #reconstructSumNoFly} when flyPresent length matches sum.
+	 */
+	public void rebuildNoFlyAndCleanForSpots(List<Spot> targets, boolean force) {
+		if (targets == null) {
+			return;
+		}
+		for (Spot spot : targets) {
+			ensureSumNoFlyForSpot(spot, force);
+		}
+		for (Spot spot : targets) {
+			rebuildSumCleanFromSumNoFlyForSpot(spot);
 		}
 	}
 
@@ -624,25 +635,75 @@ public class Spots {
 	 * {@code sumNoFly}, using a NaN-robust running median.
 	 */
 	public void rebuildSumCleanFromSumNoFly() {
-		final int span = 10;
 		for (Spot spot : spotList) {
 			if (spot == null)
 				continue;
-			SpotMeasure sumNoFly = spot.getSumNoFly();
-			SpotMeasure sumClean = spot.getSumClean();
-			if (sumNoFly == null || sumClean == null)
-				continue;
-
-			double[] in = sumNoFly.getValues();
-			if (in == null || in.length == 0)
-				continue;
-
-			double[] out = runningMedianIgnoringNaN(in, span);
-			sumClean.setValues(out);
+			rebuildSumCleanFromSumNoFlyForSpot(spot);
 		}
 	}
 
-	private static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent) {
+	private void ensureSumNoFlyForSpot(Spot spot, boolean force) {
+		if (spot == null) {
+			return;
+		}
+		SpotMeasure sumNoFly = spot.getSumNoFly();
+		if (sumNoFly == null) {
+			return;
+		}
+		if (!force) {
+			double[] existing = sumNoFly.getValues();
+			if (existing != null && existing.length > 0) {
+				return;
+			}
+		}
+		double[] sumIn = spot.getSum() != null ? spot.getSum().getValues() : null;
+		if (sumIn == null || sumIn.length == 0) {
+			return;
+		}
+
+		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+		double[] reconstructed;
+		if (fly != null && fly.length == sumIn.length) {
+			reconstructed = reconstructSumNoFly(sumIn, fly);
+		} else {
+			if (!force) {
+				double[] legacyClean = spot.getSumClean() != null ? spot.getSumClean().getValues() : null;
+				if (legacyClean != null && legacyClean.length == sumIn.length) {
+					reconstructed = java.util.Arrays.copyOf(legacyClean, legacyClean.length);
+				} else {
+					reconstructed = java.util.Arrays.copyOf(sumIn, sumIn.length);
+				}
+			} else {
+				reconstructed = java.util.Arrays.copyOf(sumIn, sumIn.length);
+			}
+		}
+		sumNoFly.setValues(reconstructed);
+	}
+
+	private void rebuildSumCleanFromSumNoFlyForSpot(Spot spot) {
+		final int span = 10;
+		if (spot == null) {
+			return;
+		}
+		SpotMeasure sumNoFly = spot.getSumNoFly();
+		SpotMeasure sumClean = spot.getSumClean();
+		if (sumNoFly == null || sumClean == null) {
+			return;
+		}
+		double[] in = sumNoFly.getValues();
+		if (in == null || in.length == 0) {
+			return;
+		}
+		double[] out = runningMedianIgnoringNaN(in, span);
+		sumClean.setValues(out);
+	}
+
+	/**
+	 * For each time index where flyPresent[i] &gt; 0, replaces values in that run
+	 * with a linear bridge between the last and next finite neighbors;
+	 * unbridgeable edge segments become NaN.
+	 */
+	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent) {
 		double[] out = java.util.Arrays.copyOf(sumIn, sumIn.length);
 		if (flyPresent == null || flyPresent.length != sumIn.length) {
 			return out;
