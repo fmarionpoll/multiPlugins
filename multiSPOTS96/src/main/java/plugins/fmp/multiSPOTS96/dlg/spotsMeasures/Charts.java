@@ -5,6 +5,8 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -15,6 +17,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 
 import icy.gui.viewer.Viewer;
+import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
@@ -28,6 +31,8 @@ import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
+import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
+import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame.OverlayMode;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
@@ -42,6 +47,7 @@ public class Charts extends JPanel implements SequenceListener {
 	 */
 	private static final long serialVersionUID = -7079184380174992501L;
 	private ChartCagesFrame chartCageArrayFrame = null;
+	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
@@ -57,6 +63,8 @@ public class Charts extends JPanel implements SequenceListener {
 	private JCheckBox relativeToCheckbox = new JCheckBox("relative to max", false);
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
+	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
+	private JComboBox<String> overlayModeCombo = new JComboBox<>(new String[] { "overlay spots", "overlay measures" });
 
 	// ----------------------------------------
 
@@ -73,10 +81,13 @@ public class Charts extends JPanel implements SequenceListener {
 		panel01.add(new JLabel(" display"));
 		panel01.add(displayAllButton);
 		panel01.add(displaySelectedButton);
+		panel01.add(displaySelectedSpotsButton);
 		add(panel01);
 
 		JPanel panel02 = new JPanel(layout);
 		panel02.add(relativeToCheckbox);
+		panel02.add(new JLabel("  view"));
+		panel02.add(overlayModeCombo);
 		add(panel02);
 
 		JPanel panel04 = new JPanel(layout);
@@ -87,9 +98,12 @@ public class Charts extends JPanel implements SequenceListener {
 		ButtonGroup group1 = new ButtonGroup();
 		group1.add(displayAllButton);
 		group1.add(displaySelectedButton);
+		group1.add(displaySelectedSpotsButton);
 		displayAllButton.setSelected(true);
 
 		exportTypeComboBox.setSelectedIndex(1);
+		overlayModeCombo.setSelectedIndex(0);
+		overlayModeCombo.setEnabled(false);
 		defineActionListeners();
 	}
 
@@ -136,6 +150,21 @@ public class Charts extends JPanel implements SequenceListener {
 					displayChartPanels(exp);
 			}
 		});
+
+		ActionListener refreshOnChange = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				overlayModeCombo.setEnabled(displaySelectedSpotsButton.isSelected());
+				axisOptionsButton.setEnabled(!displaySelectedSpotsButton.isSelected());
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					displayChartPanels(exp);
+			}
+		};
+		displayAllButton.addActionListener(refreshOnChange);
+		displaySelectedButton.addActionListener(refreshOnChange);
+		displaySelectedSpotsButton.addActionListener(refreshOnChange);
+		overlayModeCombo.addActionListener(refreshOnChange);
 	}
 
 	private Rectangle getInitialUpperLeftPosition(Experiment exp) {
@@ -165,12 +194,20 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private ChartCagesFrame plotSpotMeasuresToChart(Experiment exp, EnumSpotMeasures exportType,
 			ChartCagesFrame iChart) {
-		if (iChart != null)
+		if (chartSpotsOverlayFrame != null) {
+			chartSpotsOverlayFrame.dispose();
+			chartSpotsOverlayFrame = null;
+		}
+
+		if (iChart != null) {
 			iChart.getMainChartFrame().dispose();
+		}
 
 		int first = 0;
 		int last = exp.getCages().cagesList.size() - 1;
-		if (!displayAllButton.isSelected()) {
+		if (displaySelectedSpotsButton.isSelected()) {
+			return plotSelectedSpotsOverlay(exp, exportType);
+		} else if (!displayAllButton.isSelected()) {
 			Cage cageFound = exp.getCages().findFirstCageWithSelectedSpot(exp.getSpots());
 			if (cageFound == null)
 				cageFound = exp.getCages().findFirstSelectedCage();
@@ -210,6 +247,57 @@ public class Charts extends JPanel implements SequenceListener {
 		return iChart;
 	}
 
+	private ChartCagesFrame plotSelectedSpotsOverlay(Experiment exp, EnumSpotMeasures exportType) {
+		List<Spot> selectedSpots = getSelectedSpotsFromSequenceROIs(exp);
+		if (selectedSpots.isEmpty())
+			return null;
+
+		EnumResults resultType = convertSpotMeasureToResult(exportType);
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(resultType)
+				.withCageRange(0, 0).build();
+		options.relativeToMaximum = relativeToCheckbox.isSelected();
+
+		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
+		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (selected)", options);
+		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
+
+		OverlayMode mode = overlayModeCombo.getSelectedIndex() == 1 ? OverlayMode.MEASURES_SAME_SPOT
+				: OverlayMode.SPOTS_SAME_MEASURE;
+		chartSpotsOverlayFrame.displayData(exp, options, ChartSpotsOverlayFrame.dedupeSpots(selectedSpots), mode);
+		return null;
+	}
+
+	private List<Spot> getSelectedSpotsFromSequenceROIs(Experiment exp) {
+		List<Spot> out = new ArrayList<>();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return out;
+		List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
+		if (roiList == null || roiList.isEmpty())
+			return out;
+		ROI2D firstSpotRoi = null;
+		for (ROI2D roi : roiList) {
+			if (roi == null)
+				continue;
+			String name = roi.getName();
+			if (name == null || !name.startsWith("spot"))
+				continue;
+			if (firstSpotRoi == null)
+				firstSpotRoi = roi;
+			if (!roi.isSelected())
+				continue;
+			Spot spot = exp.getCages().getSpotFromROIName(name, exp.getSpots());
+			if (spot != null)
+				out.add(spot);
+		}
+		if (out.isEmpty() && firstSpotRoi != null) {
+			String name = firstSpotRoi.getName();
+			Spot spot = exp.getCages().getSpotFromROIName(name, exp.getSpots());
+			if (spot != null)
+				out.add(spot);
+		}
+		return out;
+	}
+
 	private ComboBoxUIControlsFactory createChartUIControlsFactory() {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
 		ui.setMeasurementTypes(new EnumResults[] { //
@@ -240,6 +328,9 @@ public class Charts extends JPanel implements SequenceListener {
 		if (chartCageArrayFrame != null)
 			chartCageArrayFrame.getMainChartFrame().dispose();
 		chartCageArrayFrame = null;
+		if (chartSpotsOverlayFrame != null)
+			chartSpotsOverlayFrame.dispose();
+		chartSpotsOverlayFrame = null;
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumSpotMeasures option) {
