@@ -631,8 +631,36 @@ public class Spots {
 	}
 
 	/**
-	 * Rebuilds {@code sumClean} for all spots as an in-memory derived series from
-	 * {@code sumNoFly}, using a NaN-robust running median.
+	 * For each spot: {@code sumNoFly} = {@link #reconstructSumNoFly} on {@code sum}
+	 * and {@code flyPresent} (same as camera detection post-pass), then
+	 * {@code sumClean} = running median of {@code sumNoFly}.
+	 */
+	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpots(List<Spot> targets) {
+		if (targets == null) {
+			return;
+		}
+		for (Spot spot : targets) {
+			fillSumNoFlyFromSumAndFlyPresent(spot, false);
+			rebuildSumCleanFromSumNoFlyForSpot(spot);
+		}
+	}
+
+	/**
+	 * Recomputes {@code sumClean} from the current {@code sumNoFly} with the usual
+	 * running median (does not change {@code sumNoFly}).
+	 */
+	public void rebuildSumCleanOnlyForSpots(List<Spot> targets) {
+		if (targets == null) {
+			return;
+		}
+		for (Spot spot : targets) {
+			rebuildSumCleanFromSumNoFlyForSpot(spot);
+		}
+	}
+
+	/**
+	 * Rebuilds {@code sumClean} for all spots from {@code sumNoFly} using a
+	 * NaN-robust running median (same smoothing as after fly extrapolation).
 	 */
 	public void rebuildSumCleanFromSumNoFly() {
 		for (Spot spot : spotList) {
@@ -656,6 +684,22 @@ public class Spots {
 				return;
 			}
 		}
+		fillSumNoFlyFromSumAndFlyPresent(spot, !force);
+	}
+
+	/**
+	 * Writes {@code sumNoFly} from {@code sum} and {@code flyPresent} using
+	 * {@link #reconstructSumNoFly} when lengths match. If {@code allowLegacyFallbacks}
+	 * is true and fly length does not match, falls back like {@link #ensureSumNoFlyPresent}.
+	 */
+	private void fillSumNoFlyFromSumAndFlyPresent(Spot spot, boolean allowLegacyFallbacks) {
+		if (spot == null) {
+			return;
+		}
+		SpotMeasure sumNoFly = spot.getSumNoFly();
+		if (sumNoFly == null) {
+			return;
+		}
 		double[] sumIn = spot.getSum() != null ? spot.getSum().getValues() : null;
 		if (sumIn == null || sumIn.length == 0) {
 			return;
@@ -666,7 +710,7 @@ public class Spots {
 		if (fly != null && fly.length == sumIn.length) {
 			reconstructed = reconstructSumNoFly(sumIn, fly);
 		} else {
-			if (!force) {
+			if (allowLegacyFallbacks) {
 				double[] legacyClean = spot.getSumClean() != null ? spot.getSumClean().getValues() : null;
 				if (legacyClean != null && legacyClean.length == sumIn.length) {
 					reconstructed = java.util.Arrays.copyOf(legacyClean, legacyClean.length);
@@ -696,6 +740,35 @@ public class Spots {
 		}
 		double[] out = runningMedianIgnoringNaN(in, span);
 		sumClean.setValues(out);
+	}
+
+	private static double[] runningMedianIgnoringNaN(double[] values, int span) {
+		int n = values.length;
+		double[] out = new double[n];
+		for (int i = 0; i < n; i++) {
+			int start = Math.max(0, i - span / 2);
+			int end = Math.min(n - 1, i + span / 2);
+			int count = end - start + 1;
+
+			double[] window = new double[count];
+			int m = 0;
+			for (int j = start; j <= end; j++) {
+				double v = values[j];
+				if (Double.isFinite(v)) {
+					window[m++] = v;
+				}
+			}
+
+			if (m == 0) {
+				out[i] = Double.NaN;
+				continue;
+			}
+
+			double[] finite = (m == window.length) ? window : java.util.Arrays.copyOf(window, m);
+			java.util.Arrays.sort(finite);
+			out[i] = finite[m / 2];
+		}
+		return out;
 	}
 
 	/**
@@ -745,38 +818,8 @@ public class Spots {
 		return out;
 	}
 
-	private static double[] runningMedianIgnoringNaN(double[] values, int span) {
-		int n = values.length;
-		double[] out = new double[n];
-		for (int i = 0; i < n; i++) {
-			int start = Math.max(0, i - span / 2);
-			int end = Math.min(n - 1, i + span / 2);
-			int count = end - start + 1;
-
-			double[] window = new double[count];
-			int m = 0;
-			for (int j = start; j <= end; j++) {
-				double v = values[j];
-				if (Double.isFinite(v)) {
-					window[m++] = v;
-				}
-			}
-
-			if (m == 0) {
-				out[i] = Double.NaN;
-				continue;
-			}
-
-			double[] finite = (m == window.length) ? window : java.util.Arrays.copyOf(window, m);
-			java.util.Arrays.sort(finite);
-			out[i] = finite[m / 2];
-		}
-		return out;
-	}
-
 	public void medianFilterFromSumToSumClean() {
-		// Backward-compatible entry point used across the codebase.
-		// New semantics: sumClean is derived from sumNoFly (no-fly) then filtered.
+		// Backward-compatible name: sumClean from sumNoFly via running median.
 		rebuildSumCleanFromSumNoFly();
 	}
 

@@ -8,7 +8,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,23 +31,23 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 
 	private static final class SpotScopeChoice {
 		final SpotScopeMode mode;
-		final Spot spot;
+		final String roiName;
 
-		private SpotScopeChoice(SpotScopeMode mode, Spot spot) {
+		private SpotScopeChoice(SpotScopeMode mode, String roiName) {
 			this.mode = Objects.requireNonNull(mode, "mode");
-			this.spot = spot;
+			this.roiName = roiName;
 		}
 
 		static SpotScopeChoice all() {
 			return new SpotScopeChoice(SpotScopeMode.ALL, null);
 		}
 
-		static SpotScopeChoice single(Spot spot) {
-			return new SpotScopeChoice(SpotScopeMode.SINGLE, spot);
+		static SpotScopeChoice singleRoi(String roiName) {
+			return new SpotScopeChoice(SpotScopeMode.SINGLE, Objects.requireNonNull(roiName, "roiName"));
 		}
 
 		String selectionKey() {
-			return mode == SpotScopeMode.ALL ? "ALL" : "SPOT:" + (spot != null && spot.getName() != null ? spot.getName() : "");
+			return mode == SpotScopeMode.ALL ? "ALL" : "ROI:" + roiName;
 		}
 
 		boolean matchesKey(String key) {
@@ -60,13 +59,14 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 			if (mode == SpotScopeMode.ALL) {
 				return "All spots";
 			}
-			return spot != null && spot.getName() != null ? spot.getName() : "(spot)";
+			return roiName;
 		}
 	}
 
 	private MultiSPOTS96 parent0 = null;
 	private JComboBox<SpotScopeChoice> spotScopeCombo = new JComboBox<>();
-	private JButton rebuildButton = new JButton("Rebuild no-fly + clean");
+	private JButton rebuildSumCleanButton = new JButton("Rebuild sumClean");
+	private JButton reconstructSumNoFlyButton = new JButton("Reconstruct sumNoFly + sumClean");
 	private JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
@@ -78,7 +78,12 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("Spots:"));
 		panel1.add(spotScopeCombo);
-		panel1.add(rebuildButton);
+		panel1.add(rebuildSumCleanButton);
+		panel1.add(reconstructSumNoFlyButton);
+		rebuildSumCleanButton.setToolTipText(
+				"Only recomputes sumClean as the running median of the current sumNoFly (leaves sumIn and sumNoFly unchanged).");
+		reconstructSumNoFlyButton.setToolTipText(
+				"sumNoFly = extrapolate sumIn across flyPresent>0 bins; sumClean = running median of sumNoFly (same order as after detection).");
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
@@ -92,12 +97,32 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineListeners() {
-		rebuildButton.addActionListener(new ActionListener() {
+		rebuildSumCleanButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				onRebuildClicked();
+				onRebuildSumCleanClicked();
 			}
 		});
+		reconstructSumNoFlyButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				onReconstructSumNoFlyClicked();
+			}
+		});
+	}
+
+	private static List<Spot> resolveSpotsForRoiNames(Experiment exp, List<String> roiNames) {
+		if (exp == null || exp.getSpots() == null || roiNames == null || roiNames.isEmpty()) {
+			return Collections.emptyList();
+		}
+		List<Spot> out = new ArrayList<>();
+		for (String roiName : roiNames) {
+			Spot s = exp.getCages().getSpotFromROIName(roiName, exp.getSpots());
+			if (s != null) {
+				out.add(s);
+			}
+		}
+		return ChartSpotsOverlayFrame.dedupeSpots(out);
 	}
 
 	private void refreshSpotScopeCombo(Experiment exp, boolean keepSelection) {
@@ -113,14 +138,8 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 		spotScopeCombo.addItem(SpotScopeChoice.all());
 
 		if (exp != null) {
-			List<Spot> spots = ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp));
-			List<Spot> sorted = new ArrayList<>(spots);
-			Collections.sort(sorted, Comparator.comparing(
-					s -> s != null && s.getName() != null ? s.getName().toLowerCase() : "", String::compareTo));
-			for (Spot s : sorted) {
-				if (s != null) {
-					spotScopeCombo.addItem(SpotScopeChoice.single(s));
-				}
+			for (String roiName : SpotSequenceRois.spotRoiNamesFromSequence(exp)) {
+				spotScopeCombo.addItem(SpotScopeChoice.singleRoi(roiName));
 			}
 		}
 
@@ -136,7 +155,33 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 		spotScopeCombo.setSelectedIndex(0);
 	}
 
-	private void onRebuildClicked() {
+	private List<Spot> resolveTargetsOrSetStatus(Experiment exp) {
+		refreshSpotScopeCombo(exp, true);
+		List<String> roiNames = SpotSequenceRois.spotRoiNamesFromSequence(exp);
+		if (roiNames.isEmpty()) {
+			statusLabel.setText("No spot ROIs on sequence (names starting with \"spot\", any case).");
+			return Collections.emptyList();
+		}
+		SpotScopeChoice scope = (SpotScopeChoice) spotScopeCombo.getSelectedItem();
+		List<Spot> targets;
+		if (scope == null || scope.mode == SpotScopeMode.ALL) {
+			targets = resolveSpotsForRoiNames(exp, roiNames);
+		} else {
+			Spot s = exp.getCages().getSpotFromROIName(scope.roiName, exp.getSpots());
+			if (s == null) {
+				statusLabel.setText("No experiment spot matches ROI \"" + scope.roiName + "\".");
+				return Collections.emptyList();
+			}
+			targets = Collections.singletonList(s);
+		}
+		if (targets.isEmpty()) {
+			statusLabel.setText("No spots linked to these sequence ROIs (names present but no cage match).");
+			return Collections.emptyList();
+		}
+		return targets;
+	}
+
+	private void onRebuildSumCleanClicked() {
 		if (parent0 == null) {
 			return;
 		}
@@ -145,27 +190,36 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 			statusLabel.setText("No experiment.");
 			return;
 		}
-		refreshSpotScopeCombo(exp, true);
-
-		List<Spot> allSpots = ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp));
-		if (allSpots.isEmpty()) {
-			statusLabel.setText("No spot ROIs on sequence.");
+		List<Spot> targets = resolveTargetsOrSetStatus(exp);
+		if (targets.isEmpty()) {
 			return;
 		}
+		exp.getSpots().rebuildSumCleanOnlyForSpots(targets);
+		exp.getSpots().transferMeasuresToLevel2D(targets);
+		statusLabel.setText("sumClean rebuilt for " + targets.size() + " spot(s).");
+		refreshChartsIfPresent(exp);
+	}
 
-		SpotScopeChoice scope = (SpotScopeChoice) spotScopeCombo.getSelectedItem();
-		List<Spot> targets;
-		if (scope == null || scope.mode == SpotScopeMode.ALL) {
-			targets = allSpots;
-		} else if (scope.spot != null) {
-			targets = Collections.singletonList(scope.spot);
-		} else {
-			targets = allSpots;
+	private void onReconstructSumNoFlyClicked() {
+		if (parent0 == null) {
+			return;
 		}
-
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSpots() == null) {
+			statusLabel.setText("No experiment.");
+			return;
+		}
+		List<Spot> targets = resolveTargetsOrSetStatus(exp);
+		if (targets.isEmpty()) {
+			return;
+		}
 		exp.getSpots().rebuildNoFlyAndCleanForSpots(targets, true);
 		exp.getSpots().transferMeasuresToLevel2D(targets);
-		statusLabel.setText("Updated " + targets.size() + " spot(s).");
+		statusLabel.setText("sumNoFly+sumClean rebuilt for " + targets.size() + " spot(s).");
+		refreshChartsIfPresent(exp);
+	}
+
+	private void refreshChartsIfPresent(Experiment exp) {
 		if (parent0.dlgMeasure != null && parent0.dlgMeasure.tabCharts != null) {
 			parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 		}

@@ -207,10 +207,9 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		}
 		final long tLoopEnd = System.nanoTime();
 
-		// Transfer values to Level2D for downstream consumers (charts, export, etc.)
 		final long tPostStart = System.nanoTime();
+		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess);
 		spots.transferMeasuresToLevel2D();
-		spots.medianFilterFromSumToSumClean();
 
 		// Persist results using the standard experiment helpers
 		String directory = exp.getDirectoryToSaveResults();
@@ -317,9 +316,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			return;
 
 		double sumOverThreshold = 0;
-		double sumNoFlyOverThreshold = 0;
 		int nPointsIn = maskX.length;
-		int nPointsNoFly = 0;
 		int nPointsFlyPresent = 0;
 
 		for (int i = 0; i < maskX.length; i++) {
@@ -332,31 +329,18 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			int valueFly = (int) cursorFly.get(x, y, 0);
 
 			boolean flyThere = isFlyPresent(valueFly, options);
-			if (!flyThere) {
-				nPointsNoFly++;
-			} else {
+			if (flyThere) {
 				nPointsFlyPresent++;
 			}
 
 			if (isOverThreshold(valueSpot, options)) {
 				sumOverThreshold += valueSpot;
-				if (!flyThere) {
-					sumNoFlyOverThreshold += valueSpot;
-				}
 			}
 		}
 
 		if (nPointsIn > 0) {
 			double meanAll = sumOverThreshold / nPointsIn;
 			spot.getSum().setValueAt(timeIndex, meanAll);
-
-			if (nPointsNoFly > 0) {
-				double meanNoFly = sumNoFlyOverThreshold / nPointsNoFly;
-				spot.getSumNoFly().setValueAt(timeIndex, meanNoFly);
-			} else {
-				spot.getSumNoFly().setValueAt(timeIndex, meanAll);
-			}
-
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
