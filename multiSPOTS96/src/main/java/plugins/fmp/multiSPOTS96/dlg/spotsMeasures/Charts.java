@@ -5,6 +5,7 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.ButtonGroup;
@@ -50,14 +51,7 @@ public class Charts extends JPanel implements SequenceListener {
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
 	private AxisOptions graphOptions = null;
-	private EnumSpotMeasures[] measures = new EnumSpotMeasures[] { //
-			EnumSpotMeasures.AREA_SUM, //
-			EnumSpotMeasures.AREA_SUMNOFLY, //
-			EnumSpotMeasures.AREA_SUMCLEAN, //
-			EnumSpotMeasures.AREA_FLYPRESENT// ,
-			// EnumXLSExportType.AREA_DIFF
-	};
-	private JComboBox<EnumSpotMeasures> exportTypeComboBox = new JComboBox<EnumSpotMeasures>(measures);
+	private JComboBox<EnumSpotMeasures> exportTypeComboBox = null;
 	private JCheckBox relativeToCheckbox = new JCheckBox("relative to max", false);
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
@@ -71,6 +65,8 @@ public class Charts extends JPanel implements SequenceListener {
 		setLayout(capLayout);
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(0);
+
+		exportTypeComboBox = new JComboBox<>(buildChartMeasureChoices());
 
 		JPanel panel01 = new JPanel(layout);
 		panel01.add(new JLabel("Measure"));
@@ -96,8 +92,32 @@ public class Charts extends JPanel implements SequenceListener {
 		group1.add(displaySelectedSpotsButton);
 		displayAllButton.setSelected(true);
 
-		exportTypeComboBox.setSelectedIndex(1);
+		if (exportTypeComboBox.getItemCount() > 1) {
+			exportTypeComboBox.setSelectedIndex(1);
+		} else if (exportTypeComboBox.getItemCount() == 1) {
+			exportTypeComboBox.setSelectedIndex(0);
+		}
 		defineActionListeners();
+	}
+
+	private static EnumSpotMeasures[] buildChartMeasureChoices() {
+		String[] keys = { "AREA_SUM", "AREA_SUMNOFLY", "AREA_SUMCLEAN", "AREA_FLYPRESENT" };
+		List<EnumSpotMeasures> list = new ArrayList<>();
+		for (String key : keys) {
+			EnumSpotMeasures v = EnumSpotMeasures.findByText(key);
+			if (v != null) {
+				list.add(v);
+			}
+		}
+		if (list.isEmpty()) {
+			for (EnumSpotMeasures v : EnumSpotMeasures.values()) {
+				String n = v.name();
+				if (n.startsWith("AREA_")) {
+					list.add(v);
+				}
+			}
+		}
+		return list.toArray(new EnumSpotMeasures[0]);
 	}
 
 	private void defineActionListeners() {
