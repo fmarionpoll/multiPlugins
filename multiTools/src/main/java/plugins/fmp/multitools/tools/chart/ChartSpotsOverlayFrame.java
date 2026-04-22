@@ -7,6 +7,7 @@ import java.awt.FlowLayout;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -42,6 +43,10 @@ public class ChartSpotsOverlayFrame {
 
 	public interface AvailableSpotsProvider {
 		List<Spot> getAvailableSpots();
+	}
+
+	public interface SpotExclusiveSelectionController {
+		void selectExclusiveSpot(Spot spot);
 	}
 
 	private enum SpotChoiceMode {
@@ -105,6 +110,7 @@ public class ChartSpotsOverlayFrame {
 	private List<Spot> lastSelectedSpots = null;
 	private SelectedSpotsProvider selectedSpotsProvider = null;
 	private AvailableSpotsProvider availableSpotsProvider = null;
+	private SpotExclusiveSelectionController spotExclusiveSelectionController = null;
 	private boolean isUpdatingSpotComboModel = false;
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
@@ -113,6 +119,10 @@ public class ChartSpotsOverlayFrame {
 
 	public void setAvailableSpotsProvider(AvailableSpotsProvider provider) {
 		this.availableSpotsProvider = provider;
+	}
+
+	public void setSpotExclusiveSelectionController(SpotExclusiveSelectionController controller) {
+		this.spotExclusiveSelectionController = controller;
 	}
 
 	public void createMainChartPanel(String title, ResultsOptions options) {
@@ -256,6 +266,13 @@ public class ChartSpotsOverlayFrame {
 			return;
 		if (choice.mode == SpotChoiceMode.FIXED_SPOT) {
 			if (choice.spot != null) {
+				if (spotExclusiveSelectionController != null) {
+					try {
+						spotExclusiveSelectionController.selectExclusiveSpot(choice.spot);
+					} catch (Exception e) {
+						// ignore controller errors; chart can still refresh from internal selection
+					}
+				}
 				List<Spot> fixed = new ArrayList<>();
 				fixed.add(choice.spot);
 				lastSelectedSpots = fixed;
@@ -309,7 +326,9 @@ public class ChartSpotsOverlayFrame {
 			spotSelectorCombo.addItem(SpotChoice.sequenceSelection());
 
 			List<Spot> spots = dedupeSpots(getAvailableSpotsFromProvider());
-			for (Spot s : spots) {
+			List<Spot> sorted = new ArrayList<>(spots);
+			Collections.sort(sorted, Comparator.comparing(s -> s != null ? safeLower(s.getName()) : "", String::compareTo));
+			for (Spot s : sorted) {
 				if (s == null)
 					continue;
 				spotSelectorCombo.addItem(SpotChoice.fixedSpot(s));
@@ -346,7 +365,7 @@ public class ChartSpotsOverlayFrame {
 			if (refreshed != null && !refreshed.isEmpty()) {
 				lastSelectedSpots = refreshed;
 			}
-		} else if (choice.mode == SpotChoiceMode.FIXED_SPOT && choice.spot != null) {
+		} else if (choice != null && choice.mode == SpotChoiceMode.FIXED_SPOT && choice.spot != null) {
 			List<Spot> fixed = new ArrayList<>();
 			fixed.add(choice.spot);
 			lastSelectedSpots = fixed;
@@ -357,7 +376,7 @@ public class ChartSpotsOverlayFrame {
 		mainChartPanel.removeAll();
 
 		List<EnumResults> enabledMeasures = getEnabledMeasures(lastOptions);
-		if (enabledMeasures.isEmpty()) {
+		if (enabledMeasures.isEmpty() && mainChartPanel != null) {
 			mainChartPanel.revalidate();
 			mainChartPanel.repaint();
 			return;
@@ -419,7 +438,8 @@ public class ChartSpotsOverlayFrame {
 		}
 
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
-		chartPanel.addChartMouseListener(new SpotOverlayChartInteractionHandler(lastExperiment, lastOptions).createMouseListener());
+		chartPanel.addChartMouseListener(
+				new SpotOverlayChartInteractionHandler(lastExperiment, lastOptions).createMouseListener());
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 
 		mainChartPanel.revalidate();
@@ -582,5 +602,8 @@ public class ChartSpotsOverlayFrame {
 		}
 		return out;
 	}
-}
 
+	private static String safeLower(String s) {
+		return s != null ? s.toLowerCase() : "";
+	}
+}

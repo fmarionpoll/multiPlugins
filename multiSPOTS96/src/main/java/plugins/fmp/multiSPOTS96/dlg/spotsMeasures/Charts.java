@@ -255,9 +255,39 @@ public class Charts extends JPanel implements SequenceListener {
 				.dedupeSpots(getSelectedSpotsFromSequenceROIs(exp)));
 		chartSpotsOverlayFrame.setAvailableSpotsProvider(
 				() -> ChartSpotsOverlayFrame.dedupeSpots(getAllSpotsFromSequenceROIs(exp)));
+		chartSpotsOverlayFrame.setSpotExclusiveSelectionController(spot -> selectExclusiveSpotRoi(exp, spot));
 		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		chartSpotsOverlayFrame.displayData(exp, options, ChartSpotsOverlayFrame.dedupeSpots(selectedSpots));
 		return null;
+	}
+
+	private void selectExclusiveSpotRoi(Experiment exp, Spot spot) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null || spot == null
+				|| spot.getName() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		List<ROI2D> roiList = seq.getROI2Ds();
+		if (roiList == null || roiList.isEmpty())
+			return;
+
+		ROI2D target = null;
+		for (ROI2D roi : roiList) {
+			if (roi == null)
+				continue;
+			String name = roi.getName();
+			if (name == null || !name.startsWith("spot"))
+				continue;
+			roi.setSelected(false);
+			if (name.equals(spot.getName())) {
+				target = roi;
+			}
+		}
+		if (target != null) {
+			target.setSelected(true);
+			seq.setSelectedROI(target);
+			exp.getSeqCamData().centerDisplayOnRoi(target);
+		}
 	}
 
 	private List<Spot> getAllSpotsFromSequenceROIs(Experiment exp) {
