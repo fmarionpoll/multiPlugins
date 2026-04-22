@@ -5,7 +5,7 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.ButtonGroup;
@@ -45,6 +45,14 @@ public class Charts extends JPanel implements SequenceListener {
 	 * 
 	 */
 	private static final long serialVersionUID = -7079184380174992501L;
+
+	/** Spot measures shown in the chart measure combo (order preserved). */
+	private static final EnumSpotMeasures[] SPOT_CHART_MEASURES = { EnumSpotMeasures.AREA_SUM,
+			EnumSpotMeasures.AREA_SUMNOFLY, EnumSpotMeasures.AREA_SUMCLEAN, EnumSpotMeasures.AREA_FLYPRESENT };
+
+	/** Matching {@link EnumResults} entries for the in-chart result-type combo. */
+	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,
+			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_FLYPRESENT };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -101,23 +109,7 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	private static EnumSpotMeasures[] buildChartMeasureChoices() {
-		String[] keys = { "AREA_SUM", "AREA_SUMNOFLY", "AREA_SUMCLEAN", "AREA_FLYPRESENT" };
-		List<EnumSpotMeasures> list = new ArrayList<>();
-		for (String key : keys) {
-			EnumSpotMeasures v = EnumSpotMeasures.findByText(key);
-			if (v != null) {
-				list.add(v);
-			}
-		}
-		if (list.isEmpty()) {
-			for (EnumSpotMeasures v : EnumSpotMeasures.values()) {
-				String n = v.name();
-				if (n.startsWith("AREA_")) {
-					list.add(v);
-				}
-			}
-		}
-		return list.toArray(new EnumSpotMeasures[0]);
+		return Arrays.copyOf(SPOT_CHART_MEASURES, SPOT_CHART_MEASURES.length);
 	}
 
 	private void defineActionListeners() {
@@ -325,28 +317,7 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	private static EnumResults[] buildChartEnumResultsChoices() {
-		String[] keys = { "AREA_SUM", "AREA_SUMNOFLY", "AREA_SUMCLEAN", "AREA_FLYPRESENT" };
-		List<EnumResults> list = new ArrayList<>();
-		for (String key : keys) {
-			EnumResults v = EnumResults.findByText(key);
-			if (v != null) {
-				list.add(v);
-			}
-		}
-		if (list.isEmpty()) {
-			for (EnumResults v : EnumResults.values()) {
-				if (v.name().startsWith("AREA_")) {
-					list.add(v);
-				}
-			}
-		}
-		if (list.isEmpty()) {
-			EnumResults d = defaultEnumResultForSpotsChart("AREA_SUM");
-			if (d != null) {
-				list.add(d);
-			}
-		}
-		return list.toArray(new EnumResults[0]);
+		return Arrays.copyOf(SPOT_CHART_RESULTS, SPOT_CHART_RESULTS.length);
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
@@ -386,29 +357,22 @@ public class Charts extends JPanel implements SequenceListener {
 		}
 	}
 
-	private EnumResults convertSpotMeasureToResult(EnumSpotMeasures spotMeasure) {
+	private static EnumResults convertSpotMeasureToResult(EnumSpotMeasures spotMeasure) {
 		if (spotMeasure == null) {
-			return defaultEnumResultForSpotsChart("AREA_SUM");
+			return EnumResults.AREA_SUM;
 		}
-		EnumResults mapped = EnumResults.findByText(spotMeasure.toString());
-		if (mapped != null) {
-			return mapped;
+		switch (spotMeasure) {
+		case AREA_SUM:
+			return EnumResults.AREA_SUM;
+		case AREA_SUMNOFLY:
+			return EnumResults.AREA_SUMNOFLY;
+		case AREA_SUMCLEAN:
+			return EnumResults.AREA_SUMCLEAN;
+		case AREA_FLYPRESENT:
+			return EnumResults.AREA_FLYPRESENT;
+		default:
+			return EnumResults.AREA_SUM;
 		}
-		return defaultEnumResultForSpotsChart("AREA_SUM");
-	}
-
-	private static EnumResults defaultEnumResultForSpotsChart(String label) {
-		EnumResults r = EnumResults.findByText(label);
-		if (r != null) {
-			return r;
-		}
-		for (EnumResults v : EnumResults.values()) {
-			if (v.name().startsWith("AREA_")) {
-				return v;
-			}
-		}
-		EnumResults[] all = EnumResults.values();
-		return all.length > 0 ? all[0] : null;
 	}
 
 	public void closeAllCharts() {

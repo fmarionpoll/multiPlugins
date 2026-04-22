@@ -218,13 +218,25 @@ public class ChartSpotsOverlayFrame {
 
 	private void setCheckboxDefaults(ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : null;
-		cbSum.setSelected(rt == EnumResults.AREA_SUM);
-		cbNoFly.setSelected(rt == EnumResults.AREA_SUMNOFLY);
-		cbClean.setSelected(rt == EnumResults.AREA_SUMCLEAN);
-		cbFlyPresent.setSelected(rt == EnumResults.AREA_FLYPRESENT);
+		cbSum.setSelected(resultLabelEquals(rt, "AREA_SUM"));
+		cbNoFly.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY"));
+		cbClean.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN"));
+		cbFlyPresent.setSelected(resultLabelEquals(rt, "AREA_FLYPRESENT"));
 		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbFlyPresent.isSelected()) {
 			cbClean.setSelected(true);
 		}
+	}
+
+	private static boolean resultLabelEquals(EnumResults r, String label) {
+		return r != null && label.equals(r.toString());
+	}
+
+	private static boolean isAreaFlyPresent(EnumResults r) {
+		return r != null && "AREA_FLYPRESENT".equals(r.toString());
+	}
+
+	private static EnumResults findResultByLabel(String label) {
+		return EnumResults.findByText(label);
 	}
 
 	private void maybeEnforceSingleMeasureSelection() {
@@ -387,8 +399,8 @@ public class ChartSpotsOverlayFrame {
 
 		// Build datasets. When FLYPRESENT is shown together with continuous measures,
 		// put it on its own Y axis.
-		boolean flyEnabled = enabledMeasures.contains(EnumResults.AREA_FLYPRESENT);
-		boolean hasContinuous = enabledMeasures.stream().anyMatch(t -> t != EnumResults.AREA_FLYPRESENT);
+		boolean flyEnabled = enabledMeasures.stream().anyMatch(ChartSpotsOverlayFrame::isAreaFlyPresent);
+		boolean hasContinuous = enabledMeasures.stream().anyMatch(t -> !isAreaFlyPresent(t));
 		boolean splitFlyAxis = flyEnabled && hasContinuous;
 
 		NumberAxis xAxis = new NumberAxis("time (min)");
@@ -409,7 +421,8 @@ public class ChartSpotsOverlayFrame {
 			XYSeriesCollection ds1 = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
 					enabledMeasures, true, overlaySpots, overlayMeasures);
 			XYLineAndShapeRenderer r1 = createRenderer(ds1);
-			NumberAxis yAxis1 = new NumberAxis(EnumResults.AREA_FLYPRESENT.toUnit());
+			EnumResults flyPresentType = findResultByLabel("AREA_FLYPRESENT");
+			NumberAxis yAxis1 = new NumberAxis(flyPresentType != null ? flyPresentType.toUnit() : "");
 			yAxis1.setAutoRange(false);
 			yAxis1.setRange(-0.2, 1.2);
 			plot.setRangeAxis(1, yAxis1);
@@ -424,7 +437,8 @@ public class ChartSpotsOverlayFrame {
 			plot.setDataset(0, ds);
 			plot.setRenderer(0, createRenderer(ds));
 
-			EnumResults labelType = flyEnabled && !hasContinuous ? EnumResults.AREA_FLYPRESENT : lastOptions.resultType;
+			EnumResults labelType = flyEnabled && !hasContinuous ? findResultByLabel("AREA_FLYPRESENT")
+					: lastOptions.resultType;
 			yAxis0.setLabel(labelType != null ? labelType.toUnit() : "");
 			if (flyEnabled && !hasContinuous) {
 				yAxis0.setAutoRange(false);
@@ -449,14 +463,21 @@ public class ChartSpotsOverlayFrame {
 	private List<EnumResults> getEnabledMeasures(ResultsOptions options) {
 		List<EnumResults> out = new ArrayList<>();
 		if (cbSum.isSelected())
-			out.add(EnumResults.AREA_SUM);
+			addResultIfDefined(out, "AREA_SUM");
 		if (cbNoFly.isSelected())
-			out.add(EnumResults.AREA_SUMNOFLY);
+			addResultIfDefined(out, "AREA_SUMNOFLY");
 		if (cbClean.isSelected())
-			out.add(EnumResults.AREA_SUMCLEAN);
+			addResultIfDefined(out, "AREA_SUMCLEAN");
 		if (cbFlyPresent.isSelected())
-			out.add(EnumResults.AREA_FLYPRESENT);
+			addResultIfDefined(out, "AREA_FLYPRESENT");
 		return out;
+	}
+
+	private static void addResultIfDefined(List<EnumResults> out, String label) {
+		EnumResults v = findResultByLabel(label);
+		if (v != null) {
+			out.add(v);
+		}
 	}
 
 	private XYSeriesCollection buildDatasetForMeasures(Experiment exp, ResultsOptions options, List<Spot> selectedSpots,
@@ -466,9 +487,9 @@ public class ChartSpotsOverlayFrame {
 			EnumResults chosen = enabledMeasures.isEmpty() ? options.resultType : enabledMeasures.get(0);
 			if (chosen == null)
 				return dataset;
-			if (flyOnly && chosen != EnumResults.AREA_FLYPRESENT)
+			if (flyOnly && !isAreaFlyPresent(chosen))
 				return dataset;
-			if (!flyOnly && chosen == EnumResults.AREA_FLYPRESENT)
+			if (!flyOnly && isAreaFlyPresent(chosen))
 				return dataset;
 			for (int i = 0; i < selectedSpots.size(); i++) {
 				Spot spot = selectedSpots.get(i);
@@ -491,9 +512,9 @@ public class ChartSpotsOverlayFrame {
 		for (EnumResults resultType : enabledMeasures) {
 			if (resultType == null)
 				continue;
-			if (flyOnly && resultType != EnumResults.AREA_FLYPRESENT)
+			if (flyOnly && !isAreaFlyPresent(resultType))
 				continue;
-			if (!flyOnly && resultType == EnumResults.AREA_FLYPRESENT)
+			if (!flyOnly && isAreaFlyPresent(resultType))
 				continue;
 
 			Color color = pickMeasureColor(resultType);
@@ -519,14 +540,14 @@ public class ChartSpotsOverlayFrame {
 	private Color pickMeasureColor(EnumResults resultType) {
 		if (resultType == null)
 			return Color.BLACK;
-		switch (resultType) {
-		case AREA_SUM:
+		switch (resultType.name()) {
+		case "AREA_SUM":
 			return new Color(0, 0, 0);
-		case AREA_SUMNOFLY:
+		case "AREA_SUMNOFLY":
 			return new Color(0, 102, 204);
-		case AREA_SUMCLEAN:
+		case "AREA_SUMCLEAN":
 			return new Color(0, 153, 0);
-		case AREA_FLYPRESENT:
+		case "AREA_FLYPRESENT":
 			return new Color(153, 0, 153);
 		default:
 			return Color.BLACK;
@@ -565,7 +586,7 @@ public class ChartSpotsOverlayFrame {
 			return null;
 
 		double divider = 1.0;
-		if (baseOptions.relativeToMaximum && resultType != EnumResults.AREA_FLYPRESENT) {
+		if (baseOptions.relativeToMaximum && !isAreaFlyPresent(resultType)) {
 			divider = spotMeasure.getMaximumValue();
 			if (divider == 0)
 				divider = 1.0;
