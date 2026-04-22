@@ -3,11 +3,14 @@ package plugins.fmp.multitools.tools.chart;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.FlowLayout;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -15,6 +18,7 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -25,25 +29,43 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
-import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class ChartSpotsOverlayFrame {
-	public enum OverlayMode {
-		SPOTS_SAME_MEASURE, MEASURES_SAME_SPOT
+	public interface SelectedSpotsProvider {
+		List<Spot> getSelectedSpots();
 	}
 
 	private IcyFrame mainChartFrame = null;
 	private JPanel mainChartPanel = null;
 	private ChartPanel chartPanel = null;
 
+	private JPanel topControlsPanel = null;
+	private JCheckBox cbSum = new JCheckBox("sum");
+	private JCheckBox cbNoFly = new JCheckBox("sumNoFly");
+	private JCheckBox cbClean = new JCheckBox("clean");
+	private JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
+	private JButton updateButton = new JButton("Update");
+
+	private String baseTitle = null;
+	private Experiment lastExperiment = null;
+	private ResultsOptions lastOptions = null;
+	private List<Spot> lastSelectedSpots = null;
+	private SelectedSpotsProvider selectedSpotsProvider = null;
+
+	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
+		this.selectedSpotsProvider = provider;
+	}
+
 	public void createMainChartPanel(String title, ResultsOptions options) {
 		if (title == null || title.trim().isEmpty())
 			throw new IllegalArgumentException("Title cannot be null or empty");
 		if (options == null)
 			throw new IllegalArgumentException("ResultsOptions cannot be null");
+
+		this.baseTitle = title;
 
 		mainChartPanel = new JPanel(new BorderLayout());
 		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.toString() : "");
@@ -55,33 +77,22 @@ public class ChartSpotsOverlayFrame {
 					true, true);
 		}
 		mainChartFrame.setLayout(new BorderLayout());
+		topControlsPanel = createTopControlsPanel(options);
+		mainChartFrame.add(topControlsPanel, BorderLayout.NORTH);
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
 	}
 
-	public void displayData(Experiment exp, ResultsOptions options, List<Spot> selectedSpots, OverlayMode mode) {
+	public void displayData(Experiment exp, ResultsOptions options, List<Spot> selectedSpots) {
 		if (mainChartPanel == null || mainChartFrame == null)
 			throw new IllegalStateException("createMainChartPanel must be called first");
-		if (exp == null || options == null || selectedSpots == null || selectedSpots.isEmpty() || mode == null)
+		if (exp == null || options == null || selectedSpots == null || selectedSpots.isEmpty())
 			return;
 
-		mainChartPanel.removeAll();
+		this.lastExperiment = exp;
+		this.lastOptions = options;
+		this.lastSelectedSpots = selectedSpots;
 
-		XYSeriesCollection dataset = buildDataset(exp, options, selectedSpots, mode);
-
-		NumberAxis xAxis = new NumberAxis("time (min)");
-		xAxis.setAutoRangeIncludesZero(false);
-
-		String yLabel = options.resultType != null ? options.resultType.toUnit() : "";
-		NumberAxis yAxis = new NumberAxis(yLabel);
-		yAxis.setAutoRangeIncludesZero(false);
-
-		XYPlot plot = CageChartPlotFactory.buildXYPlot(dataset, xAxis, yAxis);
-		JFreeChart chart = new JFreeChart(plot);
-
-		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
-		chartPanel.addChartMouseListener(new SpotOverlayChartInteractionHandler(exp, options).createMouseListener());
-
-		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
+		refreshChart();
 
 		mainChartFrame.pack();
 		if (mainChartFrame.getParent() == null) {
@@ -113,51 +124,252 @@ public class ChartSpotsOverlayFrame {
 		chartPanel = null;
 	}
 
-	private static XYSeriesCollection buildDataset(Experiment exp, ResultsOptions options, List<Spot> selectedSpots,
-			OverlayMode mode) {
-		switch (mode) {
-		case SPOTS_SAME_MEASURE:
-			return buildDatasetOverlaySpots(exp, options, selectedSpots);
-		case MEASURES_SAME_SPOT:
-			return buildDatasetOverlayMeasures(exp, options, selectedSpots.get(0));
-		default:
-			return new XYSeriesCollection();
+	private JPanel createTopControlsPanel(ResultsOptions options) {
+		JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+		setCheckboxDefaults(options);
+
+		panel.add(cbSum);
+		panel.add(cbNoFly);
+		panel.add(cbClean);
+		panel.add(cbFlyPresent);
+		panel.add(updateButton);
+
+		updateButton.addActionListener(e -> refreshChart());
+
+		cbSum.addActionListener(e -> maybeEnforceSingleMeasureSelection());
+		cbNoFly.addActionListener(e -> maybeEnforceSingleMeasureSelection());
+		cbClean.addActionListener(e -> maybeEnforceSingleMeasureSelection());
+		cbFlyPresent.addActionListener(e -> maybeEnforceSingleMeasureSelection());
+
+		return panel;
+	}
+
+	private void setCheckboxDefaults(ResultsOptions options) {
+		EnumResults rt = options != null ? options.resultType : null;
+		cbSum.setSelected(rt == EnumResults.AREA_SUM);
+		cbNoFly.setSelected(rt == EnumResults.AREA_SUMNOFLY);
+		cbClean.setSelected(rt == EnumResults.AREA_SUMCLEAN);
+		cbFlyPresent.setSelected(rt == EnumResults.AREA_FLYPRESENT);
+		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbFlyPresent.isSelected()) {
+			cbClean.setSelected(true);
 		}
 	}
 
-	private static XYSeriesCollection buildDatasetOverlaySpots(Experiment exp, ResultsOptions options,
-			List<Spot> selectedSpots) {
-		XYSeriesCollection dataset = new XYSeriesCollection();
-		for (Spot spot : selectedSpots) {
-			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, options.resultType, spot.getName());
-			if (series == null)
-				continue;
-			applySpotStyle(exp, spot, series, spot.getProperties() != null ? spot.getProperties().getColor() : null);
-			dataset.addSeries(series);
+	private void maybeEnforceSingleMeasureSelection() {
+		if (lastSelectedSpots == null || lastSelectedSpots.size() <= 1) {
+			return;
 		}
-		return dataset;
+		// Several spots selected => only one measure can be selected (overlay spots).
+		int n = countSelectedMeasures();
+		if (n <= 1)
+			return;
+
+		// Keep the first checked in a stable priority order.
+		JCheckBox keep = cbClean.isSelected() ? cbClean
+				: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
+		cbSum.setSelected(keep == cbSum);
+		cbNoFly.setSelected(keep == cbNoFly);
+		cbClean.setSelected(keep == cbClean);
+		cbFlyPresent.setSelected(keep == cbFlyPresent);
 	}
 
-	private static XYSeriesCollection buildDatasetOverlayMeasures(Experiment exp, ResultsOptions baseOptions, Spot spot) {
+	private int countSelectedMeasures() {
+		int n = 0;
+		if (cbSum.isSelected())
+			n++;
+		if (cbNoFly.isSelected())
+			n++;
+		if (cbClean.isSelected())
+			n++;
+		if (cbFlyPresent.isSelected())
+			n++;
+		return n;
+	}
+
+	private void refreshChart() {
+		if (mainChartPanel == null || mainChartFrame == null || lastExperiment == null || lastOptions == null
+				|| lastSelectedSpots == null || lastSelectedSpots.isEmpty()) {
+			return;
+		}
+
+		// Refresh selected spots on Update (or any refresh), because the user may have changed ROI selection.
+		if (selectedSpotsProvider != null) {
+			try {
+				List<Spot> refreshed = selectedSpotsProvider.getSelectedSpots();
+				if (refreshed != null && !refreshed.isEmpty()) {
+					lastSelectedSpots = refreshed;
+				}
+			} catch (Exception e) {
+				// keep previous list if provider fails
+			}
+		}
+
+		maybeEnforceSingleMeasureSelection();
+
+		mainChartPanel.removeAll();
+
+		List<EnumResults> enabledMeasures = getEnabledMeasures(lastOptions);
+		if (enabledMeasures.isEmpty()) {
+			mainChartPanel.revalidate();
+			mainChartPanel.repaint();
+			return;
+		}
+
+		boolean overlaySpots = lastSelectedSpots.size() > 1;
+		boolean overlayMeasures = !overlaySpots && enabledMeasures.size() > 1;
+
+		// Build datasets. When FLYPRESENT is shown together with continuous measures,
+		// put it on its own Y axis.
+		boolean flyEnabled = enabledMeasures.contains(EnumResults.AREA_FLYPRESENT);
+		boolean hasContinuous = enabledMeasures.stream().anyMatch(t -> t != EnumResults.AREA_FLYPRESENT);
+		boolean splitFlyAxis = flyEnabled && hasContinuous;
+
+		NumberAxis xAxis = new NumberAxis("time (min)");
+		xAxis.setAutoRangeIncludesZero(false);
+
+		NumberAxis yAxis0 = new NumberAxis("");
+		yAxis0.setAutoRangeIncludesZero(false);
+
+		XYPlot plot = new XYPlot(null, xAxis, yAxis0, null);
+
+		if (splitFlyAxis) {
+			XYSeriesCollection ds0 = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
+					enabledMeasures, false, overlaySpots, overlayMeasures);
+			XYLineAndShapeRenderer r0 = createRenderer(ds0);
+			plot.setDataset(0, ds0);
+			plot.setRenderer(0, r0);
+
+			XYSeriesCollection ds1 = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
+					enabledMeasures, true, overlaySpots, overlayMeasures);
+			XYLineAndShapeRenderer r1 = createRenderer(ds1);
+			NumberAxis yAxis1 = new NumberAxis(EnumResults.AREA_FLYPRESENT.toUnit());
+			yAxis1.setAutoRange(false);
+			yAxis1.setRange(-0.2, 1.2);
+			plot.setRangeAxis(1, yAxis1);
+			plot.setDataset(1, ds1);
+			plot.setRenderer(1, r1);
+			plot.mapDatasetToRangeAxis(1, 1);
+
+			yAxis0.setLabel("area" + lastOptions.resultType.toUnit());
+		} else {
+			XYSeriesCollection ds = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
+					enabledMeasures, flyEnabled && !hasContinuous, overlaySpots, overlayMeasures);
+			plot.setDataset(0, ds);
+			plot.setRenderer(0, createRenderer(ds));
+
+			EnumResults labelType = flyEnabled && !hasContinuous ? EnumResults.AREA_FLYPRESENT : lastOptions.resultType;
+			yAxis0.setLabel(labelType != null ? labelType.toUnit() : "");
+			if (flyEnabled && !hasContinuous) {
+				yAxis0.setAutoRange(false);
+				yAxis0.setRange(-0.2, 1.2);
+			}
+		}
+
+		JFreeChart chart = new JFreeChart(plot);
+		if (baseTitle != null) {
+			mainChartFrame.setTitle(baseTitle);
+		}
+
+		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
+		chartPanel.addChartMouseListener(new SpotOverlayChartInteractionHandler(lastExperiment, lastOptions).createMouseListener());
+		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
+
+		mainChartPanel.revalidate();
+		mainChartPanel.repaint();
+	}
+
+	private List<EnumResults> getEnabledMeasures(ResultsOptions options) {
+		List<EnumResults> out = new ArrayList<>();
+		if (cbSum.isSelected())
+			out.add(EnumResults.AREA_SUM);
+		if (cbNoFly.isSelected())
+			out.add(EnumResults.AREA_SUMNOFLY);
+		if (cbClean.isSelected())
+			out.add(EnumResults.AREA_SUMCLEAN);
+		if (cbFlyPresent.isSelected())
+			out.add(EnumResults.AREA_FLYPRESENT);
+		return out;
+	}
+
+	private XYSeriesCollection buildDatasetForMeasures(Experiment exp, ResultsOptions options, List<Spot> selectedSpots,
+			List<EnumResults> enabledMeasures, boolean flyOnly, boolean overlaySpots, boolean overlayMeasures) {
 		XYSeriesCollection dataset = new XYSeriesCollection();
+		if (overlaySpots) {
+			EnumResults chosen = enabledMeasures.isEmpty() ? options.resultType : enabledMeasures.get(0);
+			if (chosen == null)
+				return dataset;
+			if (flyOnly && chosen != EnumResults.AREA_FLYPRESENT)
+				return dataset;
+			if (!flyOnly && chosen == EnumResults.AREA_FLYPRESENT)
+				return dataset;
+			for (int i = 0; i < selectedSpots.size(); i++) {
+				Spot spot = selectedSpots.get(i);
+				XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, chosen, spot.getName());
+				if (series == null)
+					continue;
+				applySpotStyle(exp, spot, series, pickSpotColor(i));
+				dataset.addSeries(series);
+			}
+			return dataset;
+		}
+
+		// Single spot
+		Spot spot = selectedSpots.get(0);
 		if (spot == null)
 			return dataset;
 
-		EnumResults[] measures = new EnumResults[] { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,
-				EnumResults.AREA_SUMCLEAN, EnumResults.AREA_FLYPRESENT };
-		Color[] colors = new Color[] { new Color(0, 0, 0), new Color(0, 102, 204), new Color(0, 153, 0),
-				new Color(153, 0, 153) };
+		// If only one measure is enabled, show a single curve for that measure.
+		// If several measures are enabled, overlay measures (different colors).
+		for (EnumResults resultType : enabledMeasures) {
+			if (resultType == null)
+				continue;
+			if (flyOnly && resultType != EnumResults.AREA_FLYPRESENT)
+				continue;
+			if (!flyOnly && resultType == EnumResults.AREA_FLYPRESENT)
+				continue;
 
-		for (int i = 0; i < measures.length; i++) {
-			EnumResults resultType = measures[i];
-			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, baseOptions, resultType,
+			Color color = pickMeasureColor(resultType);
+			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, resultType,
 					spot.getName() + "::" + resultType.name());
 			if (series == null)
 				continue;
-			applySpotStyle(exp, spot, series, colors[i % colors.length]);
+			applySpotStyle(exp, spot, series, color);
 			dataset.addSeries(series);
 		}
 		return dataset;
+	}
+
+	private Color pickSpotColor(int index) {
+		Color[] palette = new Color[] { new Color(0, 0, 0), new Color(0, 102, 204), new Color(0, 153, 0),
+				new Color(204, 102, 0), new Color(153, 0, 153), new Color(0, 153, 153), new Color(153, 102, 0),
+				new Color(102, 102, 102) };
+		if (index < 0)
+			index = 0;
+		return palette[index % palette.length];
+	}
+
+	private Color pickMeasureColor(EnumResults resultType) {
+		if (resultType == null)
+			return Color.BLACK;
+		switch (resultType) {
+		case AREA_SUM:
+			return new Color(0, 0, 0);
+		case AREA_SUMNOFLY:
+			return new Color(0, 102, 204);
+		case AREA_SUMCLEAN:
+			return new Color(0, 153, 0);
+		case AREA_FLYPRESENT:
+			return new Color(153, 0, 153);
+		default:
+			return Color.BLACK;
+		}
+	}
+
+	private XYLineAndShapeRenderer createRenderer(XYSeriesCollection dataset) {
+		XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
+		SeriesStyleCodec.applySeriesPaintsFromDescription(dataset, renderer);
+		return renderer;
 	}
 
 	private static void applySpotStyle(Experiment exp, Spot spot, XYSeries series, Color color) {
