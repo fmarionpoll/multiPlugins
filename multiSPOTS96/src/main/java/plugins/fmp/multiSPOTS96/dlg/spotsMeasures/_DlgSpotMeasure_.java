@@ -28,7 +28,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 //	ThresholdSimple tabSimpleThresholdAdvanced = new ThresholdSimple();
 //	ThresholdColors colorsThreshold = new ThresholdColors();
 	CleanGapsSpots tabCleanGaps = new CleanGapsSpots();
-	Edit tabEdit = new Edit();
+	EditSpotMeasures tabEdit = new EditSpotMeasures();
 	public Charts tabCharts = new Charts();
 	public LoadSave tabFile = new LoadSave();
 
@@ -70,7 +70,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 
 		tabEdit.init(gridLayout, parent0);
 		tabEdit.addPropertyChangeListener(this);
-		tabsPane.addTab("Edit", null, tabEdit, "Edit measures (move/cut/extrapolate)");
+		tabsPane.addTab("Edit", null, tabEdit, "Edit measures");
 		order++;
 
 		tabCharts.init(gridLayout, parent0);

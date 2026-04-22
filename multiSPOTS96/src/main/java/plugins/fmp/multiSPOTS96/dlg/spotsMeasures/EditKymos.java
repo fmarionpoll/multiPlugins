@@ -17,7 +17,7 @@ import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 
-public class Edit extends JPanel implements PropertyChangeListener {
+public class EditKymos extends JPanel implements PropertyChangeListener {
 	/**
 	 * 
 	 */
