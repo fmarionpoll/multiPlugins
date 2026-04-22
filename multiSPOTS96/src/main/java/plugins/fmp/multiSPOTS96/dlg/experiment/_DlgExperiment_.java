@@ -67,11 +67,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		tabIntervals.init(tabsLayout, new MultiSpots96IntervalsHost(parent0));
 		tabsPane.addTab("Intervals", null, tabIntervals, "View/edit time-lapse intervals");
 
-		tabOptions.init(tabsLayout, parent0);
-		tabsPane.addTab("Options", null, tabOptions, "Options to display data");
-
 		tabCorrectDrift.init(tabsLayout, new MultiSpots96CorrectDriftHost(parent0));
 		tabsPane.addTab("Correct drift", null, tabCorrectDrift, "Correct image drift with time");
+
+		tabOptions.init(tabsLayout, parent0);
+		tabsPane.addTab("Options", null, tabOptions, "Options to display data");
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
@@ -128,11 +128,12 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					v.addListener(parent);
 					v.addListener(tabCorrectDrift);
 					tabCorrectDrift.resetFrameIndex();
-					
+
 					if (seq.isUpdating()) {
 						seq.endUpdate();
 					}
-					// Add cage and spot ROIs on the EDT so the canvas creates Layer entries (fixes cages not in Layer tab).
+					// Add cage and spot ROIs on the EDT so the canvas creates Layer entries (fixes
+					// cages not in Layer tab).
 					Experiment current = (Experiment) parent0.expListComboLazy.getSelectedItem();
 					if (current == exp) {
 						exp.transferCagesROI_toSequence();

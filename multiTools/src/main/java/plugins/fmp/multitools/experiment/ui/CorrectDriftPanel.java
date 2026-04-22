@@ -38,7 +38,8 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 
 /**
- * Manual drift correction: per-frame align with reference, optional batch range.
+ * Manual drift correction: per-frame align with reference, optional batch
+ * range.
  */
 public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
@@ -47,25 +48,21 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	private static final int MIN_FRAME = 0;
 	private static final int MAX_FRAME = 100000;
 
-	private final JButton setReferenceButton = new JButton("Set reference = current frame");
-	private final JLabel referenceLabel = new JLabel("Reference: (not set)");
+	private final JLabel frameIndexLabel = new JLabel("T");
+	private final JSpinner frameIndexSpinner = new JSpinner(new SpinnerNumberModel(0, 0, MAX_FRAME, 1));
+	private final JButton setReferenceButton = new JButton("Ref. = T");
+	private final JLabel referenceLabel = new JLabel("Ref: (not set)");
 
-	private final JLabel imageIndexLabel = new JLabel("Image index");
-	private final JSpinner imageIndexSpinner = new JSpinner(new SpinnerNumberModel(0, 0, MAX_FRAME, 1));
-	private final JToggleButton viewTransformToggle = new JToggleButton("View transform");
-	private final JButton applyTransformButton = new JButton("Apply transform");
+	private final JToggleButton viewTransformToggle = new JToggleButton("View T-Ref");
+	private final JButton applyTransformButton = new JButton("Apply to T");
 
 	private final JSpinner xSpinner = new JSpinner(new SpinnerNumberModel(0.0, -2000.0, 2000.0, 0.5));
 	private final JSpinner ySpinner = new JSpinner(new SpinnerNumberModel(0.0, -2000.0, 2000.0, 0.5));
-	private final JButton nudgeLeft = new JButton("←0.5");
-	private final JButton nudgeRight = new JButton("→0.5");
-	private final JButton nudgeUp = new JButton("↑0.5");
-	private final JButton nudgeDown = new JButton("↓0.5");
 
 	private final JSpinner rangeStartSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
 	private final JSpinner rangeEndSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
-	private final JButton applyRangeButton = new JButton("Apply to range (overwrite JPEGs)");
-	private final JButton restoreButton = new JButton("Restore range from original_images");
+	private final JButton applyRangeButton = new JButton("Apply to range");
+	private final JButton restoreButton = new JButton("Restore range");
 
 	private JComboBoxExperimentLazy experimentList = new JComboBoxExperimentLazy();
 
@@ -91,7 +88,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		syncingFromViewer = true;
 		try {
 			clampSpinnerToSequence(seq);
-			imageIndexSpinner.setValue(clampT(t, seq.getSizeT()));
+			frameIndexSpinner.setValue(clampT(t, seq.getSizeT()));
 		} finally {
 			syncingFromViewer = false;
 		}
@@ -104,42 +101,38 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		flowlayout.setVgap(1);
 
 		JPanel refPanel = new JPanel(flowlayout);
-		refPanel.add(setReferenceButton);
+		refPanel.add(frameIndexLabel);
+		refPanel.add(frameIndexSpinner);
+		frameIndexSpinner.setPreferredSize(new Dimension(70, 22));
 		refPanel.add(referenceLabel);
+		refPanel.add(setReferenceButton);
 		add(refPanel);
 
 		JPanel framePanel = new JPanel(flowlayout);
-		framePanel.add(imageIndexLabel);
-		framePanel.add(imageIndexSpinner);
-		imageIndexSpinner.setPreferredSize(new Dimension(70, 22));
+		framePanel.add(new JLabel("Offset X"));
+		framePanel.add(xSpinner);
+		xSpinner.setPreferredSize(new Dimension(60, 20));
+		framePanel.add(new JLabel("Y"));
+		framePanel.add(ySpinner);
+		ySpinner.setPreferredSize(new Dimension(60, 20));
 		framePanel.add(viewTransformToggle);
 		framePanel.add(applyTransformButton);
 		add(framePanel);
 
-		JPanel adjustPanel = new JPanel(flowlayout);
-		adjustPanel.add(new JLabel("Offset X"));
-		adjustPanel.add(xSpinner);
-		xSpinner.setPreferredSize(new Dimension(60, 20));
-		adjustPanel.add(new JLabel("Y"));
-		adjustPanel.add(ySpinner);
-		ySpinner.setPreferredSize(new Dimension(60, 20));
-		adjustPanel.add(nudgeLeft);
-		adjustPanel.add(nudgeRight);
-		adjustPanel.add(nudgeUp);
-		adjustPanel.add(nudgeDown);
-		add(adjustPanel);
-
 		JPanel batchPanel = new JPanel(flowlayout);
-		batchPanel.add(new JLabel("Batch range"));
+		batchPanel.add(new JLabel("Frame range"));
 		batchPanel.add(new JLabel("start"));
 		batchPanel.add(rangeStartSpinner);
 		rangeStartSpinner.setPreferredSize(new Dimension(60, 20));
 		batchPanel.add(new JLabel("end"));
 		batchPanel.add(rangeEndSpinner);
 		rangeEndSpinner.setPreferredSize(new Dimension(60, 20));
-		batchPanel.add(applyRangeButton);
-		batchPanel.add(restoreButton);
 		add(batchPanel);
+
+		JPanel adjustPanel = new JPanel(flowlayout);
+		adjustPanel.add(applyRangeButton);
+		adjustPanel.add(restoreButton);
+		add(adjustPanel);
 	}
 
 	private void defineActionListeners() {
@@ -147,7 +140,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
 		viewTransformToggle.addActionListener(e -> refreshDifferenceView());
 
-		imageIndexSpinner.addChangeListener(e -> onImageIndexSpinnerChanged());
+		frameIndexSpinner.addChangeListener(e -> onImageIndexSpinnerChanged());
 
 		ChangeListener offsetListener = e -> {
 			if (viewTransformToggle.isSelected()) {
@@ -156,11 +149,6 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		};
 		xSpinner.addChangeListener(offsetListener);
 		ySpinner.addChangeListener(offsetListener);
-
-		nudgeLeft.addActionListener(e -> xSpinner.setValue(((Number) xSpinner.getValue()).doubleValue() - 0.5));
-		nudgeRight.addActionListener(e -> xSpinner.setValue(((Number) xSpinner.getValue()).doubleValue() + 0.5));
-		nudgeUp.addActionListener(e -> ySpinner.setValue(((Number) ySpinner.getValue()).doubleValue() - 0.5));
-		nudgeDown.addActionListener(e -> ySpinner.setValue(((Number) ySpinner.getValue()).doubleValue() + 0.5));
 
 		applyTransformButton.addActionListener(e -> applyTransformCurrentFrame());
 		applyRangeButton.addActionListener(e -> applyToRange());
@@ -184,11 +172,11 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			return;
 		}
 		int sizeT = seq.getSizeT();
-		int t = clampT((int) imageIndexSpinner.getValue(), sizeT);
-		if (t != (int) imageIndexSpinner.getValue()) {
+		int t = clampT((int) frameIndexSpinner.getValue(), sizeT);
+		if (t != (int) frameIndexSpinner.getValue()) {
 			syncingFromSpinner = true;
 			try {
-				imageIndexSpinner.setValue(t);
+				frameIndexSpinner.setValue(t);
 			} finally {
 				syncingFromSpinner = false;
 			}
@@ -228,7 +216,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
 	private void clampSpinnerToSequence(Sequence seq) {
 		int max = Math.max(0, seq.getSizeT() - 1);
-		SpinnerNumberModel m = (SpinnerNumberModel) imageIndexSpinner.getModel();
+		SpinnerNumberModel m = (SpinnerNumberModel) frameIndexSpinner.getModel();
 		m.setMaximum(max);
 		int min = ((Number) m.getMinimum()).intValue();
 		if (min > max) {
@@ -269,7 +257,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		clampSpinnerToSequence(seq);
 		syncingFromViewer = true;
 		try {
-			imageIndexSpinner.setValue(clampT(t, seq.getSizeT()));
+			frameIndexSpinner.setValue(clampT(t, seq.getSizeT()));
 		} finally {
 			syncingFromViewer = false;
 		}
@@ -327,7 +315,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			return;
 		}
 		Sequence seq = exp.getSeqCamData().getSequence();
-		final int tApply = clampT((int) imageIndexSpinner.getValue(), seq.getSizeT());
+		final int tApply = clampT((int) frameIndexSpinner.getValue(), seq.getSizeT());
 		final double dx = ((Number) xSpinner.getValue()).doubleValue();
 		final double dy = ((Number) ySpinner.getValue()).doubleValue();
 
@@ -354,7 +342,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 					clampSpinnerToSequence(seq);
 					syncingFromViewer = true;
 					try {
-						imageIndexSpinner.setValue(nextT);
+						frameIndexSpinner.setValue(nextT);
 					} finally {
 						syncingFromViewer = false;
 					}
@@ -521,7 +509,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			syncingFromViewer = true;
 			try {
 				clampSpinnerToSequence(seq);
-				imageIndexSpinner.setValue(t);
+				frameIndexSpinner.setValue(t);
 			} finally {
 				syncingFromViewer = false;
 			}
