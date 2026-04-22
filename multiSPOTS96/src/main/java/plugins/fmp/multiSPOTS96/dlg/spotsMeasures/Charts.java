@@ -199,11 +199,14 @@ public class Charts extends JPanel implements SequenceListener {
 		if (displaySelectedSpotsButton.isSelected()) {
 			return plotSelectedSpotsOverlay(exp, exportType);
 		} else if (!displayAllButton.isSelected()) {
-			Cage cageFound = exp.getCages().findFirstCageWithSelectedSpot(exp.getSpots());
+			Cage cageFound = exp.getCages().findFirstSelectedCage();
 			if (cageFound == null)
-				cageFound = exp.getCages().findFirstSelectedCage();
+				cageFound = exp.getCages().findFirstCageWithSelectedSpot(exp.getSpots());
+			if (cageFound == null)
+				cageFound = findCageFromSelectedSpotRoisOnSequence(exp);
 			if (cageFound == null)
 				return null;
+			applyExclusiveCageRoiSelection(exp, cageFound);
 			exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
 			String cageNumber = CageString.getCageNumberFromCageRoiName(cageFound.getRoi().getName());
 			first = Integer.parseInt(cageNumber);
@@ -298,6 +301,43 @@ public class Charts extends JPanel implements SequenceListener {
 				EnumResults.AREA_FLYPRESENT //
 		});
 		return ui;
+	}
+
+	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null
+				|| exp.getSpots() == null) {
+			return null;
+		}
+		List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
+		if (roiList == null || roiList.isEmpty()) {
+			return null;
+		}
+		for (ROI2D roi : roiList) {
+			if (roi == null || !roi.isSelected()) {
+				continue;
+			}
+			String name = roi.getName();
+			if (!SpotSequenceRois.nameLooksLikeSpotRoi(name)) {
+				continue;
+			}
+			Cage cage = exp.getCages().getCageFromSpotROIName(name, exp.getSpots());
+			if (cage != null) {
+				return cage;
+			}
+		}
+		return null;
+	}
+
+	private static void applyExclusiveCageRoiSelection(Experiment exp, Cage cageToSelect) {
+		if (exp == null || exp.getCages() == null || cageToSelect == null) {
+			return;
+		}
+		for (Cage cage : exp.getCages().cagesList) {
+			if (cage == null || cage.getRoi() == null) {
+				continue;
+			}
+			cage.getRoi().setSelected(cage == cageToSelect);
+		}
 	}
 
 	private EnumResults convertSpotMeasureToResult(EnumSpotMeasures spotMeasure) {
