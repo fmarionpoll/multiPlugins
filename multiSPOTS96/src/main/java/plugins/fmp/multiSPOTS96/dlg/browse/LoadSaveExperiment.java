@@ -4,10 +4,16 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.HierarchyEvent;
+import java.awt.event.HierarchyListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -15,11 +21,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.AbstractAction;
+import javax.swing.ActionMap;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
+import javax.swing.InputMap;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.text.JTextComponent;
 
 import icy.gui.frame.progress.ProgressFrame;
 import icy.gui.viewer.Viewer;
@@ -66,6 +78,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	// Parent reference
 	private MultiSPOTS96 parent0 = null;
 
+	private transient KeyEventDispatcher globalBrowseKeyDispatcher = null;
+
 	// Metadata storage - lightweight experiment information
 	private List<ExperimentMetadata> experimentMetadataList = new ArrayList<>();
 	private volatile boolean isProcessing = false;
@@ -85,6 +99,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 		JPanel group2Panel = initUI();
 		defineActionListeners();
+		SwingUtilities.invokeLater(() -> installKeyBindings(group2Panel));
 		parent0.expListComboLazy.addItemListener(this);
 
 		return group2Panel;
@@ -177,6 +192,101 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 		});
 
+	}
+
+	private void installKeyBindings(JComponent target) {
+		InputMap im = target.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
+		ActionMap am = target.getActionMap();
+
+		im.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, InputEvent.CTRL_DOWN_MASK), "browseNext");
+		im.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, InputEvent.CTRL_DOWN_MASK), "browsePrevious");
+		installGlobalKeyDispatcher(target);
+
+		am.put("browseNext", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (nextButton.isEnabled()) {
+					nextButton.doClick();
+				}
+			}
+		});
+
+		am.put("browsePrevious", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (previousButton.isEnabled()) {
+					previousButton.doClick();
+				}
+			}
+		});
+	}
+
+	private void installGlobalKeyDispatcher(JComponent target) {
+		if (globalBrowseKeyDispatcher != null) {
+			return;
+		}
+
+		globalBrowseKeyDispatcher = new KeyEventDispatcher() {
+			@Override
+			public boolean dispatchKeyEvent(KeyEvent e) {
+				if (e.getID() != KeyEvent.KEY_PRESSED) {
+					return false;
+				}
+				if (!e.isControlDown()) {
+					return false;
+				}
+				if (!target.isDisplayable()) {
+					return false;
+				}
+				if (parent0 == null || parent0.mainFrame == null || !parent0.mainFrame.isVisible()) {
+					return false;
+				}
+
+				java.awt.Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+				if (focusOwner instanceof JTextComponent) {
+					return false;
+				}
+
+				int code = e.getKeyCode();
+				if (code == KeyEvent.VK_UP) {
+					SwingUtilities.invokeLater(() -> {
+						if (previousButton.isEnabled()) {
+							previousButton.doClick();
+						}
+					});
+					return true;
+				}
+				if (code == KeyEvent.VK_DOWN) {
+					SwingUtilities.invokeLater(() -> {
+						if (nextButton.isEnabled()) {
+							nextButton.doClick();
+						}
+					});
+					return true;
+				}
+				return false;
+			}
+		};
+
+		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(globalBrowseKeyDispatcher);
+
+		target.addHierarchyListener(new HierarchyListener() {
+			@Override
+			public void hierarchyChanged(HierarchyEvent e) {
+				if ((e.getChangeFlags() & HierarchyEvent.DISPLAYABILITY_CHANGED) == 0) {
+					return;
+				}
+				if (!target.isDisplayable() && globalBrowseKeyDispatcher != null) {
+					KeyboardFocusManager.getCurrentKeyboardFocusManager()
+							.removeKeyEventDispatcher(globalBrowseKeyDispatcher);
+					globalBrowseKeyDispatcher = null;
+				}
+			}
+		});
 	}
 
 	@Override

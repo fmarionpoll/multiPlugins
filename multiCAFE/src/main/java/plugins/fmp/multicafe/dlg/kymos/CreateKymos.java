@@ -199,8 +199,12 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		exp.setNominalIntervalSec(nominalSec);
 		exp.setKymoBin_ms(nominalSec * 1000L);
 
-		if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null)
-			exp.getSeqKymos().getSequence().close();
+		// Ensure any previously opened kymograph sequence (and its viewers) is fully closed
+		// before rebuilding TIFFs. Closing the raw Sequence alone can leave viewers alive
+		// on Windows, keeping the old lineXX.tiff files locked.
+		if (exp.getSeqKymos() != null) {
+			exp.getSeqKymos().closeSequence();
+		}
 		exp.setSeqKymos(null);
 		parent0.paneCapillaries.tabFile.saveCapillaries_file(exp);
 

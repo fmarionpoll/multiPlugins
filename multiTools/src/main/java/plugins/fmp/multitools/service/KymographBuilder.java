@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -124,7 +125,7 @@ public class KymographBuilder {
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		int sizeC = seqCamData.getSequence().getSizeC();
 		if (options.doCreateBinDir) {
-			String binDir = exp.getBinNameFromKymoFrameStep();
+			String binDir = chooseWritableBinSubDirectory(exp, exp.getBinNameFromKymoFrameStep());
 			exp.setBinSubDirectory(binDir);
 			exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.KYMOGRAPH);
 			exp.saveBinDescription(binDir);
@@ -132,6 +133,136 @@ public class KymographBuilder {
 
 		exportCapillaryKymographs(exp, sizeC);
 		return true;
+	}
+
+	private static String chooseWritableBinSubDirectory(Experiment exp, String preferredBinDir) {
+		if (exp == null || preferredBinDir == null) {
+			return preferredBinDir;
+		}
+		String resultsDir = exp.getResultsDirectory();
+		if (resultsDir == null) {
+			return preferredBinDir;
+		}
+
+		Path preferredFull = Paths.get(resultsDir, preferredBinDir);
+		if (!Files.isDirectory(preferredFull)) {
+			return preferredBinDir;
+		}
+
+		// If the existing bin directory already contains line*.tiff, do not overwrite in place.
+		// Use a flip-flop strategy between two revision directories (r1/r2) to limit clutter:
+		// each rebuild writes into the "inactive" slot and then makes it active.
+		if (hasAnyLineTiff(preferredFull) || !canTemporarilyRenameOneTiff(preferredFull)) {
+			String current = exp.getBinSubDirectory();
+			String slot1 = preferredBinDir + "_r1";
+			String slot2 = preferredBinDir + "_r2";
+			String firstChoice = (current != null && current.endsWith("_r1")) ? slot2 : slot1;
+			String secondChoice = firstChoice.equals(slot1) ? slot2 : slot1;
+
+			String chosen = tryPrepareFlipFlopSlot(resultsDir, firstChoice);
+			if (chosen != null) {
+				return chosen;
+			}
+			chosen = tryPrepareFlipFlopSlot(resultsDir, secondChoice);
+			if (chosen != null) {
+				return chosen;
+			}
+
+			// Last resort: create a one-off revision directory.
+			for (int i = 3; i <= 50; i++) {
+				String candidate = preferredBinDir + "_r" + i;
+				String ok = tryPrepareFlipFlopSlot(resultsDir, candidate);
+				if (ok != null) {
+					return ok;
+				}
+			}
+		}
+
+		return preferredBinDir;
+	}
+
+	private static String tryPrepareFlipFlopSlot(String resultsDir, String binSubDir) {
+		if (resultsDir == null || binSubDir == null) {
+			return null;
+		}
+		Path dir = Paths.get(resultsDir, binSubDir);
+		try {
+			Files.createDirectories(dir);
+		} catch (IOException e) {
+			return null;
+		}
+
+		// Clear previous kymographs in this slot so we don't overwrite individual TIFFs.
+		// If any delete fails (locked), reject this slot.
+		if (!clearLineTiffs(dir)) {
+			return null;
+		}
+		if (!canTemporarilyRenameOneTiff(dir)) {
+			return null;
+		}
+		Logger.warn("KymographBuilder: writing rebuilt kymographs to " + dir);
+		return binSubDir;
+	}
+
+	private static boolean clearLineTiffs(Path binDir) {
+		if (binDir == null || !Files.isDirectory(binDir)) {
+			return true;
+		}
+		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
+			List<Path> toDelete = stream.filter(Files::isRegularFile).filter(p -> {
+				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
+				return n.startsWith("line") && n.endsWith(".tiff");
+			}).collect(java.util.stream.Collectors.toList());
+
+			for (Path p : toDelete) {
+				try {
+					Files.deleteIfExists(p);
+				} catch (IOException e) {
+					return false;
+				}
+			}
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	private static boolean hasAnyLineTiff(Path binDir) {
+		if (binDir == null || !Files.isDirectory(binDir)) {
+			return false;
+		}
+		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
+			return stream.filter(Files::isRegularFile).anyMatch(p -> {
+				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
+				return n.startsWith("line") && n.endsWith(".tiff");
+			});
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	private static boolean canTemporarilyRenameOneTiff(Path binDir) {
+		if (binDir == null || !Files.isDirectory(binDir)) {
+			return true;
+		}
+		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
+			Path anyTiff = stream.filter(Files::isRegularFile).filter(p -> {
+				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
+				return n.startsWith("line") && n.endsWith(".tiff");
+			}).findFirst().orElse(null);
+
+			if (anyTiff == null) {
+				return true;
+			}
+
+			Path probe = anyTiff.resolveSibling(anyTiff.getFileName().toString() + ".probe_rename");
+			// Try rename away and back. If file is locked, Windows will throw FileSystemException.
+			Files.move(anyTiff, probe, StandardCopyOption.REPLACE_EXISTING);
+			Files.move(probe, anyTiff, StandardCopyOption.REPLACE_EXISTING);
+			return true;
+		} catch (IOException e) {
+			return false;
+		}
 	}
 
 	public void saveComputation(Experiment exp, BuildSeriesOptions options) {
@@ -367,11 +498,7 @@ public class KymographBuilder {
 		try {
 			// Always overwrite the tmp file if it already exists.
 			Saver.saveImage(image, tmpFile, true);
-			try {
-				Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-			} catch (IOException atomicNotSupported) {
-				Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-			}
+			moveWithRetries(tmpPath, targetPath);
 		} finally {
 			try {
 				Files.deleteIfExists(tmpPath);
@@ -379,6 +506,38 @@ public class KymographBuilder {
 				// best-effort cleanup
 			}
 		}
+	}
+
+	private static void moveWithRetries(Path tmpPath, Path targetPath) throws IOException {
+		IOException last = null;
+		final boolean isWindows = SystemUtil.isWindows();
+		final int maxAttempts = isWindows ? 25 : 3;
+
+		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				try {
+					Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+				} catch (IOException atomicNotSupported) {
+					Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+				}
+				return;
+			} catch (IOException e) {
+				last = e;
+				if (!isWindows) {
+					break;
+				}
+				// On Windows, the target TIFF can remain locked briefly after viewers/sequences are closed.
+				// Retry a few times with backoff rather than failing the entire rebuild.
+				try {
+					long sleepMs = Math.min(1000L, 40L * attempt);
+					Thread.sleep(sleepMs);
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		}
+		throw last != null ? last : new IOException("Failed to move " + tmpPath + " -> " + targetPath);
 	}
 
 	private void clearAllAlongTMasks(Experiment exp) {

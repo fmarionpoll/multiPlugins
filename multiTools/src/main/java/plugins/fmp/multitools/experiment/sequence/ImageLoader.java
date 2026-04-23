@@ -3,6 +3,8 @@ package plugins.fmp.multitools.experiment.sequence;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -105,7 +107,7 @@ public class ImageLoader {
 		}
 		// Ensure derived counts are up-to-date before loading
 		getNTotalFrames();
-		List<String> validList = getImagesList(true);
+		List<String> validList = filterLikelyReadableJpegs(getImagesList(true));
 		nTotalFrames = validList.size();
 		Sequence seq = loadSequenceFromImagesList(validList);
 		if (seq != null) {
@@ -142,12 +144,67 @@ public class ImageLoader {
 		// Derive valid-frame count from offset + fixed end.
 		getNTotalFrames();
 
-		List<String> validList = getImagesList(true);
+		List<String> validList = filterLikelyReadableJpegs(getImagesList(true));
 		nTotalFrames = validList.size();
 		Sequence seq = loadSequenceFromImagesList(validList);
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
+		}
+	}
+
+	private static List<String> filterLikelyReadableJpegs(List<String> images) {
+		if (images == null || images.isEmpty()) {
+			return images;
+		}
+
+		int bad = 0;
+		ArrayList<String> out = new ArrayList<>(images.size());
+		for (String s : images) {
+			if (s == null) {
+				bad++;
+				continue;
+			}
+			String lower = s.toLowerCase();
+			if (!lower.endsWith(".jpg") && !lower.endsWith(".jpeg")) {
+				out.add(s);
+				continue;
+			}
+			if (isLikelyJpeg(Paths.get(s))) {
+				out.add(s);
+			} else {
+				bad++;
+			}
+		}
+		if (bad > 0) {
+			Logger.warn("ImageLoader: skipped " + bad + " unreadable/corrupt JPEG(s) from list of " + images.size());
+		}
+		return out;
+	}
+
+	private static boolean isLikelyJpeg(Path p) {
+		try {
+			if (p == null) {
+				return false;
+			}
+			if (!Files.isRegularFile(p)) {
+				return false;
+			}
+			long size = Files.size(p);
+			if (size < 4) {
+				return false;
+			}
+			byte[] header = new byte[2];
+			try (InputStream in = Files.newInputStream(p)) {
+				int n = in.read(header);
+				if (n != 2) {
+					return false;
+				}
+			}
+			// JPEG SOI marker: FF D8
+			return (header[0] & 0xFF) == 0xFF && (header[1] & 0xFF) == 0xD8;
+		} catch (IOException e) {
+			return false;
 		}
 	}
 

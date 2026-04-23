@@ -247,7 +247,8 @@ public class SelectFilesPanel extends JPanel {
 		List<Path> result = null;
 		try (Stream<Path> walk = Files.walk(lastPath)) {
 			result = walk.filter(Files::isDirectory) // is a directory
-					.filter(p -> p.getFileName().toString().contains(pattern)).collect(Collectors.toList());
+					.filter(p -> p.getFileName().toString().toLowerCase().contains(pattern.toLowerCase()))
+					.collect(Collectors.toList());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -286,8 +287,106 @@ public class SelectFilesPanel extends JPanel {
 		if (isFileName)
 			getListofFilesMatchingFileNamePattern(pattern, dir);
 		else {
-			if (!getListofFilesMatchingDirectoryNamePattern(pattern, dir) && (pattern == "cam"))
-				getListofFilesMatchingDirectoryNamePattern("grab", dir);
+			if (pattern != null && pattern.equalsIgnoreCase("cam")) {
+				scanCamDirectoriesAndBootstrapExperiments(dir.toPath());
+				return;
+			}
+			getListofFilesMatchingDirectoryNamePattern(pattern, dir);
+		}
+	}
+
+	private void scanCamDirectoriesAndBootstrapExperiments(Path root) {
+		if (root == null || !Files.isDirectory(root)) {
+			return;
+		}
+
+		try (Stream<Path> walk = Files.walk(root)) {
+			walk.filter(Files::isDirectory).forEach(camDir -> {
+				Path dirName = camDir.getFileName();
+				if (dirName == null) {
+					return;
+				}
+				String name = dirName.toString();
+				if (!name.toLowerCase().startsWith("cam")) {
+					return;
+				}
+
+				Path imagesDir = autoDetectImagesDirectory(camDir);
+				if (imagesDir == null) {
+					return;
+				}
+
+				bootstrapEmptyExperimentIfMissing(imagesDir);
+				addNameToListIfNew(imagesDir.toString());
+			});
+		} catch (IOException e) {
+			Logger.warn("SelectFilesPanel: failed to scan cam directories: " + e.getMessage());
+		}
+	}
+
+	private Path autoDetectImagesDirectory(Path camDir) {
+		if (camDir == null || !Files.isDirectory(camDir)) {
+			return null;
+		}
+
+		Path grabs = camDir.resolve("grabs");
+		if (directoryContainsJpg(grabs)) {
+			return grabs;
+		}
+		if (directoryContainsJpg(camDir)) {
+			return camDir;
+		}
+		return null;
+	}
+
+	private boolean directoryContainsJpg(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return false;
+		}
+		try (Stream<Path> stream = Files.list(dir)) {
+			return stream.filter(Files::isRegularFile).anyMatch(p -> {
+				Path fn = p.getFileName();
+				if (fn == null) {
+					return false;
+				}
+				return fn.toString().toLowerCase().endsWith(".jpg");
+			});
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	private void bootstrapEmptyExperimentIfMissing(Path imagesDir) {
+		if (imagesDir == null || !Files.isDirectory(imagesDir)) {
+			return;
+		}
+
+		Path resultsDir = imagesDir.resolve(Experiment.RESULTS);
+		Path v2 = resultsDir.resolve("Experiment.xml");
+		Path legacy = resultsDir.resolve("MCexperiment.xml");
+
+		if (Files.isRegularFile(v2) || Files.isRegularFile(legacy)) {
+			return;
+		}
+
+		try {
+			Files.createDirectories(resultsDir);
+		} catch (IOException e) {
+			Logger.warn("SelectFilesPanel: cannot create results directory: " + resultsDir + " (" + e.getMessage()
+					+ ")");
+			return;
+		}
+
+		try {
+			ExperimentDirectories eADF = new ExperimentDirectories();
+			eADF.getDirectoriesFromGrabPath(imagesDir.toString());
+			if (eADF.cameraImagesList == null || eADF.cameraImagesList.isEmpty()) {
+				return;
+			}
+			Experiment exp = new Experiment(eADF);
+			exp.saveExperimentDescriptors();
+		} catch (Exception e) {
+			Logger.warn("SelectFilesPanel: failed to bootstrap Experiment.xml for " + imagesDir + ": " + e.getMessage());
 		}
 	}
 
@@ -323,7 +422,17 @@ public class SelectFilesPanel extends JPanel {
 
 	private void addNamesToSelectedList(List<String> stringList) {
 		for (String name : stringList) {
-			String directoryName = Paths.get(name).getParent().toString();
+			Path p = Paths.get(name);
+			String directoryName = null;
+			File f = p.toFile();
+			if (f.isDirectory()) {
+				directoryName = p.toString();
+			} else if (p.getParent() != null) {
+				directoryName = p.getParent().toString();
+			}
+			if (directoryName == null) {
+				continue;
+			}
 			if (isDirectoryWithJpg(directoryName))
 				selectedNames.add(directoryName);
 		}
@@ -334,9 +443,8 @@ public class SelectFilesPanel extends JPanel {
 		String imageDirectory = ExperimentDirectories.getImagesDirectoryAsParentFromFileName(directoryName);
 //		HashSet <String> hSet = Directories.getDirectoriesWithFilesType (imageDirectory, ".jpg");
 		File dir = new File(imageDirectory);
-		File[] files = dir.listFiles((d, name) -> name.endsWith(".jpg"));
-		boolean flag = (files.length > 0);
-		return flag;
+		File[] files = dir.listFiles((d, name) -> name != null && name.toLowerCase().endsWith(".jpg"));
+		return files != null && files.length > 0;
 	}
 
 }
