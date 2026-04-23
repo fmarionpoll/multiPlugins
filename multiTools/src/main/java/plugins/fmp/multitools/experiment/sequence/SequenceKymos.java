@@ -536,6 +536,30 @@ public class SequenceKymos extends SequenceCamData {
 			v.getCanvas().refresh();
 	}
 
+	/**
+	 * Removes capillary measure ROIs on frame {@code t} and re-adds them from the model (same as
+	 * {@link #syncROIsForCurrentFrame} but without skipping when {@code t} is already the current
+	 * frame, and without changing the current T). Use after capillary / prefix rename so sequence
+	 * ROI names match edited measure geometry in the model.
+	 */
+	public void replaceCapillaryMeasureRoisAtT(int t, Capillaries capillaries) {
+		if (getSequence() == null || capillaries == null || t < 0)
+			return;
+		Capillary cap = getCapillaryForFrame(t, capillaries);
+		List<ROI2D> roisForT = null;
+		if (cap != null) {
+			roisForT = cap.transferMeasuresToROIs(getImagesList());
+			if (roisForT != null) {
+				for (ROI2D roi : roisForT)
+					roi.setT(t);
+			}
+		}
+		MeasureRoiSync.updateMeasureROIsAt(t, getSequence(), MeasureRoiFilter.CAPILLARY_MEASURES, roisForT);
+		icy.gui.viewer.Viewer v = getSequence().getFirstViewer();
+		if (v != null && v.getCanvas() != null)
+			v.getCanvas().refresh();
+	}
+
 	public void saveKymosCurvesToCapillariesMeasures(Experiment exp) {
 		if (exp == null) {
 			return;

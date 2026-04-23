@@ -413,7 +413,46 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	public void setRoiName(String name) {
+		if (metadata.roiCap == null || name == null)
+			return;
 		metadata.roiCap.setName(name);
+		syncDerivedNamesAfterRoiRename();
+		syncKymographStemFromRoiName();
+		setSide(getCapillarySide());
+	}
+
+	/**
+	 * Renames each AlongT interval ROI to match the main capillary ROI name (AlongT stores ROI
+	 * copies).
+	 */
+	public void syncAlongTROI2DNamesWithCapillaryRoi() {
+		String n = getRoiName();
+		if (n == null)
+			return;
+		for (AlongT at : metadata.alongTRois) {
+			if (at.getRoi() != null)
+				at.getRoi().setName(n);
+		}
+	}
+
+	/** After {@link #setRoiName(String)}, keep AlongT names and kymograph prefix aligned with the ROI. */
+	public void syncDerivedNamesAfterRoiRename() {
+		syncAlongTROI2DNamesWithCapillaryRoi();
+		if (metadata.roiCap != null && metadata.roiCap.getName() != null) {
+			String p = extractPrefixFromRoiName(metadata.roiCap.getName());
+			if (p != null && !p.isEmpty())
+				setKymographPrefix(p);
+		}
+	}
+
+	/** Sets {@link #getKymographName()} / file from current ROI name ({@link #replace_LR_with_12}). */
+	public void syncKymographStemFromRoiName() {
+		String roi = getRoiName();
+		if (roi == null)
+			return;
+		String stem = replace_LR_with_12(roi);
+		setKymographName(stem);
+		setKymographFileName(stem + ".tiff");
 	}
 
 	public String getRoiName() {

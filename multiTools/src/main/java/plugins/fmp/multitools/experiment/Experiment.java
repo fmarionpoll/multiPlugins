@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -1876,6 +1877,35 @@ public class Experiment {
 
 	public void setSeqKymos(SequenceKymos seqKymos) {
 		this.seqKymos = seqKymos;
+	}
+
+	/**
+	 * After a capillary primary ROI rename (or swap): notifies the camera sequence for the capillary
+	 * ROI, and rebuilds kymograph measure ROIs (top/bottom/derivative/gulps) at each affected
+	 * {@link Capillary#getKymographIndex()} so names on the sequence match the model — required
+	 * when users edit measures on the kymograph, which are matched by ROI name.
+	 */
+	public void refreshAfterCapillaryRoiIdentityChange(Capillary... affected) {
+		if (affected == null || affected.length == 0)
+			return;
+		if (seqCamData != null && seqCamData.getSequence() != null) {
+			Sequence camSeq = seqCamData.getSequence();
+			for (Capillary cap : affected) {
+				if (cap != null && cap.getRoi() != null)
+					camSeq.roiChanged(cap.getRoi());
+			}
+		}
+		if (seqKymos == null || seqKymos.getSequence() == null || capillaries == null)
+			return;
+		HashSet<Integer> doneT = new HashSet<>();
+		for (Capillary cap : affected) {
+			if (cap == null)
+				continue;
+			int t = cap.getKymographIndex();
+			if (t < 0 || !doneT.add(t))
+				continue;
+			seqKymos.replaceCapillaryMeasureRoisAtT(t, capillaries);
+		}
 	}
 
 	public String getKymosBinFullDirectory() {

@@ -22,12 +22,11 @@ import icy.gui.frame.IcyFrame;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryCagePositionSwap;
+import plugins.fmp.multitools.tools.JComponents.CapillaryTableColumn;
 import plugins.fmp.multitools.tools.JComponents.CapillaryTableModel;
 
 public class InfosCapillaryTable extends JPanel {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -8611587540329642259L;
 	IcyFrame dialogFrame = null;
 	private JTable tableView = new JTable();
@@ -60,7 +59,7 @@ public class InfosCapillaryTable extends JPanel {
 		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 		for (int i = 0; i < capillaryTableModel.getColumnCount(); i++) {
 			TableColumn col = columnModel.getColumn(i);
-			if (i < 4)
+			if (i <= CapillaryTableColumn.VOLUME.ordinal())
 				setFixedColumnProperties(col);
 			col.setCellRenderer(centerRenderer);
 		}
@@ -134,8 +133,10 @@ public class InfosCapillaryTable extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
+				if (exp != null) {
 					duplicateLR(exp);
+					capillaryTableModel.fireTableDataChanged();
+				}
 			}
 		});
 
@@ -143,8 +144,10 @@ public class InfosCapillaryTable extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
+				if (exp != null) {
 					duplicateCage(exp);
+					capillaryTableModel.fireTableDataChanged();
+				}
 			}
 		});
 
@@ -155,6 +158,7 @@ public class InfosCapillaryTable extends JPanel {
 				if (exp == null || exp.getCapillaries().getCapillariesDescription().getGrouping() != 2)
 					return;
 				exchangeLR(exp);
+				capillaryTableModel.fireTableDataChanged();
 			}
 		});
 
@@ -164,6 +168,7 @@ public class InfosCapillaryTable extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					duplicateAll(exp);
+					capillaryTableModel.fireTableDataChanged();
 				}
 			}
 		});
@@ -205,7 +210,9 @@ public class InfosCapillaryTable extends JPanel {
 	private void exchangeLR(Experiment exp) {
 		int columnIndex = tableView.getSelectedColumn();
 		if (columnIndex < 0)
-			columnIndex = 5;
+			columnIndex = CapillaryTableColumn.CONCENTRATION.ordinal();
+		if (columnIndex < 0 || columnIndex >= capillaryTableModel.getColumnCount())
+			return;
 		String side0 = exp.getCapillaries().getList().get(0).getCapillarySide();
 		Capillary cap0 = new Capillary();
 		storeCapillaryValues(exp.getCapillaries().getList().get(0), cap0);
@@ -218,6 +225,10 @@ public class InfosCapillaryTable extends JPanel {
 			else
 				switchCapillaryValue(cap0, cap, columnIndex);
 		}
+		if (CapillaryTableColumn.fromIndex(columnIndex) == CapillaryTableColumn.POSITION) {
+			exp.refreshAfterCapillaryRoiIdentityChange(
+					exp.getCapillaries().getList().toArray(new Capillary[0]));
+		}
 	}
 
 	private void storeCapillaryValues(Capillary sourceCapillary, Capillary destinationCapillary) {
@@ -229,23 +240,28 @@ public class InfosCapillaryTable extends JPanel {
 	}
 
 	private void switchCapillaryValue(Capillary sourceCapillary, Capillary destinationCapillary, int columnIndex) {
-		switch (columnIndex) {
-		case 2:
+		switch (CapillaryTableColumn.fromIndex(columnIndex)) {
+		case N_FLIES:
 			destinationCapillary.setNFlies(sourceCapillary.getNFlies());
 			break;
-		case 3:
+		case VOLUME:
 			destinationCapillary.setVolume(sourceCapillary.getVolume());
 			break;
-		case 4:
+		case STIMULUS:
 			destinationCapillary.setStimulus(sourceCapillary.getStimulus());
 			break;
-		case 5:
+		case CONCENTRATION:
 			destinationCapillary.setConcentration(sourceCapillary.getConcentration());
+			break;
+		case POSITION:
+			if (sourceCapillary.getRoi() != null)
+				CapillaryCagePositionSwap.copyPositionOnto(destinationCapillary, sourceCapillary);
+			else
+				destinationCapillary.setSide(sourceCapillary.getSide());
 			break;
 		default:
 			break;
 		}
-
 	}
 
 	private void copyInfos(Experiment exp) {
@@ -267,6 +283,8 @@ public class InfosCapillaryTable extends JPanel {
 				capTo.setVolume(capFrom.getVolume());
 				capTo.setStimulus(capFrom.getStimulus());
 				capTo.setConcentration(capFrom.getConcentration());
+				CapillaryCagePositionSwap.copyPositionOnto(capTo, capFrom);
+				exp.refreshAfterCapillaryRoiIdentityChange(capTo);
 			}
 		}
 	}
@@ -288,6 +306,8 @@ public class InfosCapillaryTable extends JPanel {
 		int columnIndex = tableView.getSelectedColumn();
 		if (rowIndex < 0)
 			return;
+		if (columnIndex < 0 || columnIndex >= capillaryTableModel.getColumnCount())
+			return;
 
 		Capillary cap0 = exp.getCapillaries().getList().get(rowIndex);
 		String side = cap0.getCapillarySide();
@@ -298,6 +318,10 @@ public class InfosCapillaryTable extends JPanel {
 			modulo2 = 1;
 		else
 			modulo2 = Integer.valueOf(cap0.getCapillarySide()) % 2;
+
+		CapillaryTableColumn col = CapillaryTableColumn.fromIndex(columnIndex);
+		if (col == CapillaryTableColumn.POSITION)
+			return;
 
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			if (cap.getKymographName().equals(cap0.getKymographName()))
@@ -315,17 +339,17 @@ public class InfosCapillaryTable extends JPanel {
 						continue;
 				}
 			}
-			switch (columnIndex) {
-			case 2:
+			switch (col) {
+			case N_FLIES:
 				cap.setNFlies(cap0.getNFlies());
 				break;
-			case 3:
+			case VOLUME:
 				cap.setVolume(cap0.getVolume());
 				break;
-			case 4:
+			case STIMULUS:
 				cap.setStimulus(cap0.getStimulus());
 				break;
-			case 5:
+			case CONCENTRATION:
 				cap.setConcentration(cap0.getConcentration());
 				break;
 			default:
@@ -339,22 +363,27 @@ public class InfosCapillaryTable extends JPanel {
 		int columnIndex = tableView.getSelectedColumn();
 		if (rowIndex < 0)
 			return;
+		if (columnIndex < 0 || columnIndex >= capillaryTableModel.getColumnCount())
+			return;
 
 		Capillary cap0 = exp.getCapillaries().getList().get(rowIndex);
+		CapillaryTableColumn col = CapillaryTableColumn.fromIndex(columnIndex);
+		if (col == CapillaryTableColumn.POSITION)
+			return;
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			if (cap.getKymographName().equals(cap0.getKymographName()))
 				continue;
-			switch (columnIndex) {
-			case 2:
+			switch (col) {
+			case N_FLIES:
 				cap.setNFlies(cap0.getNFlies());
 				break;
-			case 3:
+			case VOLUME:
 				cap.setVolume(cap0.getVolume());
 				break;
-			case 4:
+			case STIMULUS:
 				cap.setStimulus(cap0.getStimulus());
 				break;
-			case 5:
+			case CONCENTRATION:
 				cap.setConcentration(cap0.getConcentration());
 				break;
 			default:
@@ -368,6 +397,8 @@ public class InfosCapillaryTable extends JPanel {
 		int columnIndex = tableView.getSelectedColumn();
 		if (rowIndex < 0)
 			return;
+		if (columnIndex < 0 || columnIndex >= capillaryTableModel.getColumnCount())
+			return;
 
 		Capillary capFrom = exp.getCapillaries().getList().get(rowIndex);
 		int cageFrom = capFrom.getCageID();
@@ -376,6 +407,10 @@ public class InfosCapillaryTable extends JPanel {
 		int nCapillariesPerCage = getCageNCapillaries(exp, cageFrom);
 		int indexFirstCapillaryOfCageFrom = getIndexFirstCapillaryOfCage(exp, cageFrom);
 		int indexFirstCapillaryOfCageTo = -1;
+
+		CapillaryTableColumn col = CapillaryTableColumn.fromIndex(columnIndex);
+		if (col == CapillaryTableColumn.POSITION)
+			return;
 
 		for (int i = 0; i < exp.getCapillaries().getList().size(); i++) {
 			Capillary cap = exp.getCapillaries().getList().get(i);
@@ -393,24 +428,23 @@ public class InfosCapillaryTable extends JPanel {
 			int indexFrom = i - indexFirstCapillaryOfCageTo + indexFirstCapillaryOfCageFrom;
 			Capillary cap0 = exp.getCapillaries().getList().get(indexFrom);
 
-			switch (columnIndex) {
-			case 2:
+			switch (col) {
+			case N_FLIES:
 				cap.setNFlies(cap0.getNFlies());
 				break;
-			case 3:
+			case VOLUME:
 				cap.setVolume(cap0.getVolume());
 				break;
-			case 4:
+			case STIMULUS:
 				cap.setStimulus(cap0.getStimulus());
 				break;
-			case 5:
+			case CONCENTRATION:
 				cap.setConcentration(cap0.getConcentration());
 				break;
 			default:
 				break;
 			}
 		}
-
 	}
 
 	private int getCageNCapillaries(Experiment exp, int cageID) {

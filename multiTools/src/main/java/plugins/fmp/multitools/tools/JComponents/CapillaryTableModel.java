@@ -1,17 +1,12 @@
 package plugins.fmp.multitools.tools.JComponents;
 
-import javax.swing.table.AbstractTableModel;
-
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryCagePositionSwap;
 
-public class CapillaryTableModel extends AbstractTableModel {
-	/**
-	 * 
-	 */
+public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 	private static final long serialVersionUID = 6325792669154093747L;
 	private JComboBoxExperimentLazy expList = null;
-	String columnNames[] = { "Name", "Cage", "N flies", "Volume", "Stimulus", "Concentration" };
 
 	public CapillaryTableModel(JComboBoxExperimentLazy expList) {
 		super();
@@ -20,31 +15,30 @@ public class CapillaryTableModel extends AbstractTableModel {
 
 	@Override
 	public int getColumnCount() {
-		return columnNames.length;
+		return CapillaryTableColumn.countColumns();
 	}
 
 	@Override
 	public Class<?> getColumnClass(int columnIndex) {
-		switch (columnIndex) {
-		case 0:
+		switch (CapillaryTableColumn.fromIndex(columnIndex)) {
+		case NAME:
+		case POSITION:
+		case STIMULUS:
+		case CONCENTRATION:
 			return String.class;
-		case 1:
+		case CAGE_ID:
+		case N_FLIES:
 			return Integer.class;
-		case 2:
-			return Integer.class;
-		case 3:
+		case VOLUME:
 			return Double.class;
-		case 4:
-			return String.class;
-		case 5:
+		default:
 			return String.class;
 		}
-		return String.class;
 	}
 
 	@Override
 	public String getColumnName(int column) {
-		return columnNames[column];
+		return CapillaryTableColumn.fromIndex(column).getHeader();
 	}
 
 	@Override
@@ -59,60 +53,65 @@ public class CapillaryTableModel extends AbstractTableModel {
 	@Override
 	public Object getValueAt(int rowIndex, int columnIndex) {
 		Capillary cap = getCapillaryAt(rowIndex);
-		if (cap != null) {
-			switch (columnIndex) {
-			case 0:
-				return cap.getRoiName();
-			case 1:
-				return cap.getCageID();
-			case 2:
-				return cap.getNFlies();
-			case 3:
-				return cap.getVolume();
-			case 4:
-				return cap.getStimulus();
-			case 5:
-				return cap.getConcentration();
-			}
+		if (cap == null)
+			return null;
+		switch (CapillaryTableColumn.fromIndex(columnIndex)) {
+		case NAME:
+			return cap.getRoiName();
+		case CAGE_ID:
+			return cap.getCageID();
+		case POSITION:
+			return CapillaryCagePositionSwap.positionLabel(cap);
+		case N_FLIES:
+			return cap.getNFlies();
+		case VOLUME:
+			return cap.getVolume();
+		case STIMULUS:
+			return cap.getStimulus();
+		case CONCENTRATION:
+			return cap.getConcentration();
+		default:
+			return null;
 		}
-		return null;
 	}
 
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
-		switch (columnIndex) {
-		case 0:
-			return false;
-		default:
-			return true;
-		}
+		return CapillaryTableColumn.fromIndex(columnIndex).isEditable();
 	}
 
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 		Capillary cap = getCapillaryAt(rowIndex);
-		if (cap != null) {
-			switch (columnIndex) {
-			case 0:
-				cap.setRoiName(aValue.toString());
-				break;
-			case 1:
-				cap.setCageID((int) aValue);
-				break;
-			case 2:
-				cap.setNFlies((int) aValue);
-				syncCageNFliesFromCapillaries();
-				break;
-			case 3:
-				cap.setVolume((double) aValue);
-				break;
-			case 4:
-				cap.setStimulus(aValue.toString());
-				break;
-			case 5:
-				cap.setConcentration(aValue.toString());
-				break;
+		if (cap == null)
+			return;
+		switch (CapillaryTableColumn.fromIndex(columnIndex)) {
+		case NAME:
+			cap.setRoiName(aValue.toString());
+			if (expList != null && expList.getSelectedIndex() >= 0) {
+				Experiment exp = (Experiment) expList.getSelectedItem();
+				if (exp != null)
+					exp.refreshAfterCapillaryRoiIdentityChange(cap);
 			}
+			break;
+		case CAGE_ID:
+			cap.setCageID((int) aValue);
+			break;
+		case N_FLIES:
+			cap.setNFlies((int) aValue);
+			syncCageNFliesFromCapillaries();
+			break;
+		case VOLUME:
+			cap.setVolume((double) aValue);
+			break;
+		case STIMULUS:
+			cap.setStimulus(aValue.toString());
+			break;
+		case CONCENTRATION:
+			cap.setConcentration(aValue.toString());
+			break;
+		default:
+			break;
 		}
 	}
 
@@ -125,12 +124,9 @@ public class CapillaryTableModel extends AbstractTableModel {
 	}
 
 	private Capillary getCapillaryAt(int rowIndex) {
-		Capillary cap = null;
-		if (expList != null && expList.getSelectedIndex() >= 0) {
-			Experiment exp = (Experiment) expList.getSelectedItem();
-			cap = exp.getCapillaries().getList().get(rowIndex);
-		}
-		return cap;
+		if (expList == null || expList.getSelectedIndex() < 0)
+			return null;
+		Experiment exp = (Experiment) expList.getSelectedItem();
+		return exp.getCapillaries().getList().get(rowIndex);
 	}
-
 }
