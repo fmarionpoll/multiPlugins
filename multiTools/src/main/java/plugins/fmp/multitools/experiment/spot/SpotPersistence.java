@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.experiment.spot;
 
+import java.awt.Color;
 import java.util.Arrays;
 import java.util.List;
 
@@ -7,11 +8,9 @@ import org.w3c.dom.Node;
 
 import icy.roi.ROI2D;
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
-import java.awt.Color;
-
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
+import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
 /**
@@ -105,7 +104,7 @@ public class SpotPersistence {
 		return sbf.toString();
 	}
 
-	public static String csvExportMeasureSectionHeader(EnumSpotMeasures measureType, String sep) {
+	public static String csvExportMeasureSectionHeader(EnumResults measureType, String sep) {
 		switch (measureType) {
 		case AREA_SUM:
 		case AREA_SUMNOFLY:
@@ -118,7 +117,7 @@ public class SpotPersistence {
 		}
 	}
 
-	public static String csvExportMeasuresOneType(Spot spot, EnumSpotMeasures measureType, String sep) {
+	public static String csvExportMeasuresOneType(Spot spot, EnumResults measureType, String sep) {
 		StringBuilder sbf = new StringBuilder();
 		String name = spot.getProperties().getName() != null ? spot.getProperties().getName() : "";
 		sbf.append(name).append(sep).append(spot.getProperties().getSpotArrayIndex()).append(sep);
@@ -239,7 +238,7 @@ public class SpotPersistence {
 		return Math.max(min, Math.min(max, v));
 	}
 
-	public static void csvImportSpotData(Spot spot, EnumSpotMeasures measureType, String[] data, boolean x, boolean y) {
+	public static void csvImportSpotData(Spot spot, EnumResults measureType, String[] data, boolean x, boolean y) {
 		switch (measureType) {
 		case AREA_SUM:
 			if (x && y) {

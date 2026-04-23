@@ -12,6 +12,7 @@ import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotPersistence;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 /**
  * Legacy persistence for spots files. Handles loading from legacy CSV formats:
@@ -78,7 +79,7 @@ public class SpotsPersistenceLegacy {
 								return descriptionLoaded || spotsLoaded;
 							default:
 								// Check if it's a measure type
-								EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+								EnumResults measure = EnumResults.findByText(data[1]);
 								if (measure != null) {
 									// Stop reading when we hit measures section
 									Logger.info(
@@ -102,9 +103,9 @@ public class SpotsPersistenceLegacy {
 			}
 		}
 
-	// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
-	// multiCAFE data does not have spots persistence files, so we return false
-	return false;
+		// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
+		// multiCAFE data does not have spots persistence files, so we return false
+		return false;
 	}
 
 	/**
@@ -135,7 +136,7 @@ public class SpotsPersistenceLegacy {
 					String[] data = line.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
-							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+							EnumResults measure = EnumResults.findByText(data[1]);
 							if (measure != null) {
 								csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
@@ -152,15 +153,15 @@ public class SpotsPersistenceLegacy {
 			}
 		}
 
-	// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
-	// multiCAFE data does not have spots persistence files, so we return false
-	return false;
+		// Note: SpotsMeasures.csv is not checked here to avoid infinite recursion
+		// multiCAFE data does not have spots persistence files, so we return false
+		return false;
 	}
 
 	/**
 	 * Loads spot descriptions from a combined MS96-style results/SpotsMeasures.csv
-	 * file. Only the SPOTS_ARRAY and SPOTS sections are parsed; measure sections are
-	 * ignored.
+	 * file. Only the SPOTS_ARRAY and SPOTS sections are parsed; measure sections
+	 * are ignored.
 	 */
 	public static boolean loadDescriptionFromCombinedResults(Spots spotsArray, String resultsDirectory) {
 		if (resultsDirectory == null) {
@@ -196,7 +197,7 @@ public class SpotsPersistenceLegacy {
 							break;
 						default:
 							// Any AREA_* or measure section marks the end of description-only parsing
-							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+							EnumResults measure = EnumResults.findByText(data[1]);
 							if (measure != null || data[1].startsWith("AREA_")) {
 								return descriptionLoaded || spotsLoaded;
 							}
@@ -240,7 +241,7 @@ public class SpotsPersistenceLegacy {
 				String[] data = line.split(sep);
 				if (data.length > 0 && data[0].equals("#")) {
 					if (data.length > 1) {
-						EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+						EnumResults measure = EnumResults.findByText(data[1]);
 						if (measure != null) {
 							csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							anyLoaded = true;
@@ -313,7 +314,7 @@ public class SpotsPersistenceLegacy {
 	 * Loads spot measures from CSV reader. Previously csvLoadSpotsMeasures() in
 	 * Spots.java.
 	 */
-	static String csvLoad_Spots_Measures(Spots spots, BufferedReader reader, EnumSpotMeasures measureType,
+	static String csvLoad_Spots_Measures(Spots spots, BufferedReader reader, EnumResults measureType,
 			String csvSeparator) throws IOException {
 		String line = reader.readLine();
 		boolean y = true;
@@ -365,8 +366,8 @@ public class SpotsPersistenceLegacy {
 	 * Saves spot measures section to CSV writer. Previously
 	 * csvSaveMeasuresSection() in Spots.java.
 	 */
-	static boolean csvSave_MeasuresSection(Spots spots, FileWriter writer, EnumSpotMeasures measureType,
-			String csvSeparator) throws IOException {
+	static boolean csvSave_MeasuresSection(Spots spots, FileWriter writer, EnumResults measureType, String csvSeparator)
+			throws IOException {
 		writer.write(SpotPersistence.csvExportMeasureSectionHeader(measureType, csvSeparator));
 
 		for (Spot spot : spots.getSpotList()) {

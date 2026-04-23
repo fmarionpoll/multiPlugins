@@ -14,7 +14,6 @@ import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.ids.SpotID;
-import plugins.fmp.multitools.experiment.spots.EnumSpotMeasures;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -205,16 +204,17 @@ public class Spot implements Comparable<Spot> {
 
 	/**
 	 * Regenerates the ROI from stored coordinates (spotXCoord, spotYCoord,
-	 * spotRadius). 
+	 * spotRadius).
 	 * 
-	 * <p><b>Backward Compatibility:</b> This method is primarily used for loading
-	 * old CSV files (v2.0 and earlier) that don't contain full ROI data. Starting
-	 * from v2.1, ROI coordinates are saved in the CSV file and loaded directly,
+	 * <p>
+	 * <b>Backward Compatibility:</b> This method is primarily used for loading old
+	 * CSV files (v2.0 and earlier) that don't contain full ROI data. Starting from
+	 * v2.1, ROI coordinates are saved in the CSV file and loaded directly,
 	 * preserving user modifications. This method is kept for:
 	 * <ul>
-	 *   <li>Loading legacy files without ROI columns</li>
-	 *   <li>Fallback when ROI reconstruction fails</li>
-	 *   <li>Programmatic spot creation without GUI</li>
+	 * <li>Loading legacy files without ROI columns</li>
+	 * <li>Fallback when ROI reconstruction fails</li>
+	 * <li>Programmatic spot creation without GUI</li>
 	 * </ul>
 	 * 
 	 * @return true if ROI was successfully regenerated, false if coordinates are
@@ -752,7 +752,7 @@ public class Spot implements Comparable<Spot> {
 	 * @param csvSeparator the CSV separator
 	 * @return the CSV header string
 	 */
-	public String exportMeasuresSectionHeader(EnumSpotMeasures measureType, String csvSeparator) {
+	public String exportMeasuresSectionHeader(EnumResults measureType, String csvSeparator) {
 		return SpotPersistence.csvExportMeasureSectionHeader(measureType, csvSeparator);
 	}
 
@@ -763,7 +763,7 @@ public class Spot implements Comparable<Spot> {
 	 * @param csvSeparator the CSV separator
 	 * @return the CSV data string
 	 */
-	public String exportMeasuresOneType(EnumSpotMeasures measureType, String csvSeparator) {
+	public String exportMeasuresOneType(EnumResults measureType, String csvSeparator) {
 		return SpotPersistence.csvExportMeasuresOneType(this, measureType, csvSeparator);
 	}
 
@@ -775,7 +775,7 @@ public class Spot implements Comparable<Spot> {
 	 * @param includeX    whether to include X coordinates
 	 * @param includeY    whether to include Y coordinates
 	 */
-	public void importMeasuresOneType(EnumSpotMeasures measureType, String[] data, boolean includeX, boolean includeY) {
+	public void importMeasuresOneType(EnumResults measureType, String[] data, boolean includeX, boolean includeY) {
 		SpotPersistence.csvImportSpotData(this, measureType, data, includeX, includeY);
 	}
 

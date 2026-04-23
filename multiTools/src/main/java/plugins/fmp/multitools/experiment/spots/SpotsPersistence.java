@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 /**
  * Handles CSV-only persistence for SpotsArray. ROIs are not persisted - they
@@ -302,7 +303,7 @@ public class SpotsPersistence {
 							case "AREA_FLYPRESENT":
 								return descriptionLoaded || spotsLoaded;
 							default:
-								EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+								EnumResults measure = EnumResults.findByText(data[1]);
 								if (measure != null) {
 									return descriptionLoaded || spotsLoaded;
 								}
@@ -392,7 +393,7 @@ public class SpotsPersistence {
 							if (data[1].equals("version")) {
 								continue;
 							}
-							EnumSpotMeasures measure = EnumSpotMeasures.findByText(data[1]);
+							EnumResults measure = EnumResults.findByText(data[1]);
 							if (measure != null) {
 								SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
@@ -464,15 +465,14 @@ public class SpotsPersistence {
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
 				writer.write("#;version;" + CSV_VERSION + "\n");
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUM,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_SUM, ";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_SUMNOFLY,
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_SUMNOFLY,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumSpotMeasures.AREA_FLYPRESENT,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_FLYPRESENT,
 						";")) {
 					return false;
 				}
