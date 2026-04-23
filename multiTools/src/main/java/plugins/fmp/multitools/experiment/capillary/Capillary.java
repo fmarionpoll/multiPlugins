@@ -15,7 +15,6 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
@@ -1393,11 +1392,11 @@ public class Capillary implements Comparable<Capillary> {
 		return CapillaryPersistence.csvExportCapillaryDescription(this, sep);
 	}
 
-	public String csvExport_MeasureSectionHeader(EnumCapillaryMeasures measureType, String sep) {
+	public String csvExport_MeasureSectionHeader(EnumResults measureType, String sep) {
 		return CapillaryPersistence.csvExportMeasureSectionHeader(measureType, sep);
 	}
 
-	public String csvExport_MeasuresOneType(EnumCapillaryMeasures measureType, String sep) {
+	public String csvExport_MeasuresOneType(EnumResults measureType, String sep) {
 		return CapillaryPersistence.csvExportMeasuresOneType(this, measureType, sep);
 	}
 
@@ -1405,7 +1404,7 @@ public class Capillary implements Comparable<Capillary> {
 		CapillaryPersistence.csvImportCapillaryDescription(this, data);
 	}
 
-	public void csvImport_CapillaryData(EnumCapillaryMeasures measureType, String[] data, boolean x, boolean y) {
+	public void csvImport_CapillaryData(EnumResults measureType, String[] data, boolean x, boolean y) {
 		CapillaryPersistence.csvImportCapillaryData(this, measureType, data, x, y);
 	}
 

@@ -79,8 +79,8 @@ public class SpotsPersistenceLegacy {
 								return descriptionLoaded || spotsLoaded;
 							default:
 								// Check if it's a measure type
-								EnumResults measure = EnumResults.findByText(data[1]);
-								if (measure != null) {
+								EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
+								if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 									// Stop reading when we hit measures section
 									Logger.info(
 											"SpotsArrayPersistenceLegacy:loadDescriptionWithFallback() Loaded from legacy CSV: "
@@ -136,8 +136,8 @@ public class SpotsPersistenceLegacy {
 					String[] data = line.split(sep);
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
-							EnumResults measure = EnumResults.findByText(data[1]);
-							if (measure != null) {
+							EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
+							if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 								csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
 						}
@@ -197,8 +197,9 @@ public class SpotsPersistenceLegacy {
 							break;
 						default:
 							// Any AREA_* or measure section marks the end of description-only parsing
-							EnumResults measure = EnumResults.findByText(data[1]);
-							if (measure != null || data[1].startsWith("AREA_")) {
+							EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
+							if ((measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT))
+									|| data[1].startsWith("AREA_")) {
 								return descriptionLoaded || spotsLoaded;
 							}
 							break;
@@ -241,8 +242,8 @@ public class SpotsPersistenceLegacy {
 				String[] data = line.split(sep);
 				if (data.length > 0 && data[0].equals("#")) {
 					if (data.length > 1) {
-						EnumResults measure = EnumResults.findByText(data[1]);
-						if (measure != null) {
+						EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
+						if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 							csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							anyLoaded = true;
 						}

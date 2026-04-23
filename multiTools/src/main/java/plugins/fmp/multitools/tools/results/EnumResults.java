@@ -1,6 +1,8 @@
 package plugins.fmp.multitools.tools.results;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Objects;
 
 import plugins.fmp.multitools.experiment.capillaries.computations.CorrelationComputation;
 import plugins.fmp.multitools.experiment.capillaries.computations.GulpMeasureComputation;
@@ -9,6 +11,10 @@ import plugins.fmp.multitools.experiment.capillaries.computations.GulpMeasureCom
  * Enumeration of all available measurement types.
  * 
  * <p>
+ * Each enum value is defined by: a UI {@code label} (used by {@link #toString()}), a {@code unit}, a {@code title},
+ * a {@code computationStrategy} (stored accessor or computed), plus an optional {@code persistenceKey} (canonical
+ * on-disk token) and a set of {@code persistenceDomains} used to whitelist which file formats may contain it.
+ *
  * Each measurement type has a computation strategy that indicates how the data
  * is obtained:
  * <ul>
@@ -27,17 +33,20 @@ public enum EnumResults {
 
 	// === STORED DATA MEASURES (each has specific accessor method showing what
 	// field/method is used) ===
-	TOPRAW("topraw", "volume (ul)", "top liquid level (t-t0)", StoredDataAccessors.accessStored_TOPRAW()),
+	TOPRAW("topraw", "volume (ul)", "top liquid level (t-t0)", StoredDataAccessors.accessStored_TOPRAW(), "TOPRAW",
+			PersistenceDomain.CAPILLARY),
 	TOPLEVEL("toplevel", "volume (ul)", "top liquid compensated for evaporation (t-t0)",
-			StoredDataAccessors.accessStored_TOPLEVEL()),
+			StoredDataAccessors.accessStored_TOPLEVEL(), "TOPLEVEL_CORRECTED", PersistenceDomain.CAPILLARY),
 	BOTTOMLEVEL("bottomlevel", "volume (ul)", "bottom liquid level (t-t0)",
-			StoredDataAccessors.accessStored_BOTTOMLEVEL()),
+			StoredDataAccessors.accessStored_BOTTOMLEVEL(), "BOTTOMLEVEL", PersistenceDomain.CAPILLARY),
 	TOPLEVELDIRECT("topleveldirect", "volume (ul)", "top liquid from direct cam detection (t-t0)",
-			StoredDataAccessors.accessStored_TOPLEVELDIRECT()),
+			StoredDataAccessors.accessStored_TOPLEVELDIRECT(), "TOPLEVELDIRECT", PersistenceDomain.CAPILLARY),
 	BOTTOMLEVELDIRECT("bottomleveldirect", "volume (ul)", "bottom liquid from direct cam detection (t-t0)",
-			StoredDataAccessors.accessStored_BOTTOMLEVELDIRECT()),
+			StoredDataAccessors.accessStored_BOTTOMLEVELDIRECT(), "BOTTOMLEVELDIRECT", PersistenceDomain.CAPILLARY),
 	DERIVEDVALUES("derivative", "volume (ul)", "derived top liquid level (t-t0)",
-			StoredDataAccessors.accessStored_DERIVEDVALUES()),
+			StoredDataAccessors.accessStored_DERIVEDVALUES(), "TOPDERIVATIVE", PersistenceDomain.CAPILLARY),
+	THRESHOLD("threshold", "value", "dynamic threshold computed from empty cages",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "THRESHOLD", PersistenceDomain.CAPILLARY),
 
 	TOPLEVEL_LR("toplevel_L+R", "volume (ul)", "volume consumed in capillaries / cage (t-t0)",
 			StoredDataAccessors.accessStored_TOPLEVEL_LR()),
@@ -51,6 +60,13 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_SUMGULPS()),
 	SUMGULPS_LR("sumGulps_L+R", "volume (ul)", "cumulated volume of gulps / cage (t-t0)",
 			StoredDataAccessors.accessStored_SUMGULPS_LR()),
+
+	/**
+	 * Capillary persistence stores raw gulp events as a flat CSV section.
+	 * This is not used for charting directly, but needs a stable persistence token.
+	 */
+	GULPS_FLAT("gulpsFlat", "events", "gulp events (flat)", StoredDataAccessors.notImplemented_TTOGULP_LR(),
+			"GULPS_FLAT", PersistenceDomain.CAPILLARY),
 
 	// === COMPUTED GULP MEASURES ===
 	NBGULPS("nbGulps", "volume (ul)", "number of gulps (at t)", GulpMeasureComputation.computeNbGulps()),
@@ -87,27 +103,46 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_ILLUM_PHASE()),
 
 	// === SPOT AREA MEASURES (stored data) ===
-	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)",
-			StoredDataAccessors.accessStored_AREA_SUM()),
+	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUM(),
+			"AREA_SUM", PersistenceDomain.SPOT),
 	AREA_SUMNOFLY("AREA_SUMNOFLY", "grey value - no fly, filter", "Consumption (estimated/threshold)",
-			StoredDataAccessors.accessStored_AREA_SUMNOFLY()),
+			StoredDataAccessors.accessStored_AREA_SUMNOFLY(), "AREA_SUMNOFLY", PersistenceDomain.SPOT),
 	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
-			StoredDataAccessors.accessStored_AREA_SUMCLEAN()),
+			StoredDataAccessors.accessStored_AREA_SUMCLEAN(), "AREA_SUMCLEAN", PersistenceDomain.SPOT),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
 	AREA_FLYPRESENT("AREA_FLYPRESENT", "boolean value", "Fly is present or not over the spot",
-			StoredDataAccessors.accessStored_AREA_FLYPRESENT());
+			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT);
+
+	public enum PersistenceDomain {
+		SPOT, CAPILLARY, FLYPOSITION
+	}
 
 	private String label;
 	private String unit;
 	private String title;
 	private MeasurementComputation computationStrategy;
+	private String persistenceKey;
+	private EnumSet<PersistenceDomain> persistenceDomains;
 
 	EnumResults(String label, String unit, String title, MeasurementComputation computationStrategy) {
 		this.label = label;
 		this.unit = unit;
 		this.title = title;
 		this.computationStrategy = computationStrategy;
+		this.persistenceKey = null;
+		this.persistenceDomains = EnumSet.noneOf(PersistenceDomain.class);
+	}
+
+	EnumResults(String label, String unit, String title, MeasurementComputation computationStrategy, String persistenceKey,
+			PersistenceDomain... domains) {
+		this.label = label;
+		this.unit = unit;
+		this.title = title;
+		this.computationStrategy = computationStrategy;
+		this.persistenceKey = Objects.requireNonNull(persistenceKey, "persistenceKey");
+		this.persistenceDomains = (domains == null || domains.length == 0) ? EnumSet.noneOf(PersistenceDomain.class)
+				: EnumSet.copyOf(java.util.Arrays.asList(domains));
 	}
 
 	public String toString() {
@@ -131,6 +166,34 @@ public enum EnumResults {
 	 */
 	public MeasurementComputation getComputationStrategy() {
 		return computationStrategy;
+	}
+
+	/**
+	 * Canonical token used on-disk (CSV section headers, etc.).
+	 * <p>
+	 * This is intentionally distinct from {@link #toString()} which is a UI label.
+	 */
+	public String toPersistenceKey() {
+		return persistenceKey != null ? persistenceKey : name();
+	}
+
+	public boolean isPersistedIn(PersistenceDomain domain) {
+		if (domain == null) {
+			return false;
+		}
+		return persistenceDomains != null && persistenceDomains.contains(domain);
+	}
+
+	public static EnumResults findByPersistenceKey(String key) {
+		if (key == null) {
+			return null;
+		}
+		for (EnumResults v : values()) {
+			if (key.equals(v.toPersistenceKey())) {
+				return v;
+			}
+		}
+		return null;
 	}
 
 	/**

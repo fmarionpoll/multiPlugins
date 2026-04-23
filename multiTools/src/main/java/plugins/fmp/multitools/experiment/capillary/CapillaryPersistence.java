@@ -11,12 +11,12 @@ import org.w3c.dom.Node;
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
 import icy.util.XMLUtil;
-import plugins.fmp.multitools.experiment.capillaries.EnumCapillaryMeasures;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.fmp.multitools.tools.ROI2D.ROIType;
+import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
@@ -263,7 +263,7 @@ public class CapillaryPersistence {
 		return sbf.toString();
 	}
 
-	public static String csvExportMeasureSectionHeader(EnumCapillaryMeasures measureType, String sep) {
+	public static String csvExportMeasureSectionHeader(EnumResults measureType, String sep) {
 		StringBuffer sbf = new StringBuffer();
 		String explanation1 = "columns=" + sep + "name" + sep + "index" + sep + "npts" + sep + "yi\n";
 		String explanation2 = "columns=" + sep + "name" + sep + "index" + sep + " n_gulps(i)" + sep + " ..." + sep
@@ -284,13 +284,13 @@ public class CapillaryPersistence {
 		case BOTTOMLEVELDIRECT:
 			sbf.append("#" + sep + "BOTTOMLEVELDIRECT" + sep + explanation1);
 			break;
-		case TOPDERIVATIVE:
+		case DERIVEDVALUES:
 			sbf.append("#" + sep + "TOPDERIVATIVE" + sep + explanation1);
 			break;
 		case THRESHOLD:
 			sbf.append("#" + sep + "THRESHOLD" + sep + explanation1);
 			break;
-		case GULPS:
+		case GULPS_FLAT:
 			sbf.append("#" + sep + "GULPS_FLAT" + sep + explanation2);
 			break;
 		default:
@@ -300,8 +300,8 @@ public class CapillaryPersistence {
 		return sbf.toString();
 	}
 
-	public static String csvExportMeasuresOneType(Capillary cap, EnumCapillaryMeasures measureType, String sep) {
-		if (measureType == EnumCapillaryMeasures.THRESHOLD) {
+	public static String csvExportMeasuresOneType(Capillary cap, EnumResults measureType, String sep) {
+		if (measureType == EnumResults.THRESHOLD) {
 			if (cap.getThreshold() == null || !cap.getThreshold().isThereAnyMeasuresDone())
 				return "";
 		}
@@ -325,13 +325,13 @@ public class CapillaryPersistence {
 		case BOTTOMLEVELDIRECT:
 			cap.getBottomLevelDirect().cvsExportYDataToRow(sbf, sep);
 			break;
-		case TOPDERIVATIVE:
+		case DERIVEDVALUES:
 			cap.getDerivative().cvsExportYDataToRow(sbf, sep);
 			break;
 		case THRESHOLD:
 			cap.getThreshold().cvsExportYDataToRow(sbf, sep);
 			break;
-		case GULPS:
+		case GULPS_FLAT:
 			cap.getGulps().csvExportDataFlatToRow(sbf, sep);
 			break;
 		default:
@@ -545,7 +545,7 @@ public class CapillaryPersistence {
 		}
 	}
 
-	public static void csvImportCapillaryData(Capillary cap, EnumCapillaryMeasures measureType, String[] data,
+	public static void csvImportCapillaryData(Capillary cap, EnumResults measureType, String[] data,
 			boolean x, boolean y) {
 		try {
 			switch (measureType) {
@@ -579,7 +579,7 @@ public class CapillaryPersistence {
 				else if (!x && y)
 					cap.getBottomLevelDirect().csvImportYDataFromRow(data, 2);
 				break;
-			case TOPDERIVATIVE:
+			case DERIVEDVALUES:
 				if (x && y)
 					cap.getDerivative().csvImportXYDataFromRow(data, 2);
 				else if (!x && y)
@@ -591,7 +591,7 @@ public class CapillaryPersistence {
 				else if (!x && y)
 					cap.getThreshold().csvImportYDataFromRow(data, 2);
 				break;
-			case GULPS:
+			case GULPS_FLAT:
 				cap.getGulps().csvImportDataFromRow(data, 2);
 				break;
 			default:

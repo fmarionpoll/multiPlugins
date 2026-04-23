@@ -97,6 +97,7 @@ public class CagesPersistenceLegacy {
 	private static final String ID_CAGESMEASURES_CSV = "CagesMeasures.csv";
 	private static final String ID_CAGESARRAY_CSV = "CagesArray.csv";
 	private static final String ID_CAGESARRAYMEASURES_CSV = "CagesArrayMeasures.csv";
+	private static final String SECTION_POSITION = "POSITION";
 
 	/**
 	 * Loads cages from legacy CSV format (CagesMeasures.csv).
@@ -144,7 +145,7 @@ public class CagesPersistenceLegacy {
 							break;
 						case "POSITION":
 							positionCount++;
-							csvLoad_Measures(cages, csvReader, EnumCageMeasures.POSITION, sep);
+							csvLoad_Measures(cages, csvReader, SECTION_POSITION, sep);
 							break;
 						default:
 							break;
@@ -823,7 +824,7 @@ public class CagesPersistenceLegacy {
 		return cage;
 	}
 
-	static void csvLoad_Measures(Cages cages, BufferedReader csvReader, EnumCageMeasures measureType, String sep) {
+	static void csvLoad_Measures(Cages cages, BufferedReader csvReader, String measureType, String sep) {
 		String row;
 		try {
 			row = csvReader.readLine();
@@ -949,7 +950,7 @@ public class CagesPersistenceLegacy {
 		return true;
 	}
 
-	static boolean csvSaveMeasuresSection(Cages cages, FileWriter csvWriter, EnumCageMeasures measuresType,
+	static boolean csvSaveMeasuresSection(Cages cages, FileWriter csvWriter, String measuresType,
 			String csvSep) {
 		try {
 			if (cages.cagesList.size() <= 0) {
@@ -970,27 +971,23 @@ public class CagesPersistenceLegacy {
 		return true;
 	}
 
-	private static String csvExport_MEASURE_Header(EnumCageMeasures measureType, String sep, boolean complete) {
+	private static String csvExport_MEASURE_Header(String measureType, String sep, boolean complete) {
 		StringBuffer sbf = new StringBuffer();
 		String explanation = "cageID" + sep + "parm" + sep + "npts";
-		switch (measureType) {
-		case POSITION:
+		if (SECTION_POSITION.equals(measureType)) {
 			sbf.append("#" + sep + "POSITION\n" + explanation + "\n");
-			break;
-		default:
+		} else {
 			sbf.append("#" + sep + "UNDEFINED------------\n");
-			break;
 		}
 		return sbf.toString();
 	}
 
-	private static String csvExport_MEASURE_Data(Cage cage, EnumCageMeasures measureType, String sep,
+	private static String csvExport_MEASURE_Data(Cage cage, String measureType, String sep,
 			boolean complete) {
 		StringBuffer sbf = new StringBuffer();
 		String cageID = Integer.toString(cage.getProperties().getCageID());
 
-		switch (measureType) {
-		case POSITION:
+		if (SECTION_POSITION.equals(measureType)) {
 			if (cage.flyPositions != null) {
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "t(i)", cageID, sep);
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "x(i)", cageID, sep);
@@ -999,9 +996,6 @@ public class CagesPersistenceLegacy {
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "h(i)", cageID, sep);
 				cage.flyPositions.cvsExport_Parameter_ToRow(sbf, "p(i)", cageID, sep);
 			}
-			break;
-		default:
-			break;
 		}
 		return sbf.toString();
 	}
@@ -1169,7 +1163,7 @@ public class CagesPersistenceLegacy {
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
 							if (data[1].equals("POSITION")) {
-								csvLoad_Measures(cages, csvReader, EnumCageMeasures.POSITION, sep);
+								csvLoad_Measures(cages, csvReader, SECTION_POSITION, sep);
 								csvReader.close();
 								Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 										+ ID_CAGESARRAYMEASURES_CSV);
@@ -1212,7 +1206,7 @@ public class CagesPersistenceLegacy {
 					if (data.length > 0 && data[0].equals("#")) {
 						if (data.length > 1) {
 							if (data[1].equals("POSITION")) {
-								csvLoad_Measures(cages, csvReader, EnumCageMeasures.POSITION, sep);
+								csvLoad_Measures(cages, csvReader, SECTION_POSITION, sep);
 								csvReader.close();
 								Logger.info("CagesPersistenceLegacy:loadMeasuresWithFallback() Loaded from legacy CSV: "
 										+ ID_CAGESMEASURES_CSV);

@@ -401,8 +401,7 @@ public class CagesPersistence {
 								continue;
 							}
 							if (data[1].equals("POSITION")) {
-								CagesPersistenceLegacy.csvLoad_Measures(cages, csvReader, EnumCageMeasures.POSITION,
-										sep);
+								CagesPersistenceLegacy.csvLoad_Measures(cages, csvReader, "POSITION", sep);
 								csvReader.close();
 								return true;
 							}
@@ -468,7 +467,7 @@ public class CagesPersistence {
 			try {
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAGESMEASURES_CSV);
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
-				CagesPersistenceLegacy.csvSaveMeasuresSection(cages, csvWriter, EnumCageMeasures.POSITION, csvSep);
+				CagesPersistenceLegacy.csvSaveMeasuresSection(cages, csvWriter, "POSITION", csvSep);
 				csvWriter.flush();
 				csvWriter.close();
 				Logger.debug("CagesPersistence:saveCagesMeasures() Saved measures to " + ID_V2_CAGESMEASURES_CSV);

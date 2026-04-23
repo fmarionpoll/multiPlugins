@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.nio.file.DirectoryStream;
 
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 public class CapillariesPersistence {
 
@@ -531,39 +532,39 @@ public class CapillariesPersistence {
 						case "TOPRAW":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.TOPRAW, sep, row.contains("xi"));
+									EnumResults.TOPRAW, sep, row.contains("xi"));
 							break;
 						case "TOPLEVEL_CORRECTED":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.TOPLEVEL, sep, row.contains("xi"));
+									EnumResults.TOPLEVEL, sep, row.contains("xi"));
 							break;
 						case "BOTTOMLEVEL":
 						case "BOTTOM":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.BOTTOMLEVEL, sep, row.contains("xi"));
+									EnumResults.BOTTOMLEVEL, sep, row.contains("xi"));
 							break;
 						case "TOPLEVELDIRECT":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.TOPLEVELDIRECT, sep, row.contains("xi"));
+									EnumResults.TOPLEVELDIRECT, sep, row.contains("xi"));
 							break;
 						case "BOTTOMLEVELDIRECT":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
+									EnumResults.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
 							break;
 						case "TOPDERIVATIVE":
 						case "TOPDER":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.TOPDERIVATIVE, sep, row.contains("xi"));
+									EnumResults.DERIVEDVALUES, sep, row.contains("xi"));
 							break;
 						case "THRESHOLD":
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.THRESHOLD, sep, row.contains("xi"));
+									EnumResults.THRESHOLD, sep, row.contains("xi"));
 							break;
 						case "GULPS":
 						case "GULPS_CORRECTED":
@@ -573,14 +574,14 @@ public class CapillariesPersistence {
 							}
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.GULPS, sep, true);
+									EnumResults.GULPS_FLAT, sep, true);
 							break;
 						case "GULPS_FLAT":
 						case "GULPS_F":
 							seenGulpsFlat = true;
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumCapillaryMeasures.GULPS, sep, true);
+									EnumResults.GULPS_FLAT, sep, true);
 							break;
 						case "REFERENCE":
 							measuresLoaded = true;
@@ -666,21 +667,21 @@ public class CapillariesPersistence {
 				if (nominalIntervalSec > 0)
 					csvWriter.write("# nominal_interval_sec=" + nominalIntervalSec + "\n");
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.TOPRAW, csvSep);
+						EnumResults.TOPRAW, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.TOPLEVEL, csvSep);
+						EnumResults.TOPLEVEL, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.BOTTOMLEVEL, csvSep);
+						EnumResults.BOTTOMLEVEL, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.TOPLEVELDIRECT, csvSep);
+						EnumResults.TOPLEVELDIRECT, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.BOTTOMLEVELDIRECT, csvSep);
+						EnumResults.BOTTOMLEVELDIRECT, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.TOPDERIVATIVE, csvSep);
+						EnumResults.DERIVEDVALUES, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.THRESHOLD, csvSep);
+						EnumResults.THRESHOLD, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumCapillaryMeasures.GULPS, csvSep);
+						EnumResults.GULPS_FLAT, csvSep);
 				CapillariesPersistenceLegacy.csvSave_ReferenceSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();

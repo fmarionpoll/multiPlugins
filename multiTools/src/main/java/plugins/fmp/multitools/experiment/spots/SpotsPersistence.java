@@ -303,8 +303,8 @@ public class SpotsPersistence {
 							case "AREA_FLYPRESENT":
 								return descriptionLoaded || spotsLoaded;
 							default:
-								EnumResults measure = EnumResults.findByText(data[1]);
-								if (measure != null) {
+								EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
+								if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 									return descriptionLoaded || spotsLoaded;
 								}
 								break;
@@ -393,8 +393,8 @@ public class SpotsPersistence {
 							if (data[1].equals("version")) {
 								continue;
 							}
-							EnumResults measure = EnumResults.findByText(data[1]);
-							if (measure != null) {
+							EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
+							if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 								SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
 							}
 						}

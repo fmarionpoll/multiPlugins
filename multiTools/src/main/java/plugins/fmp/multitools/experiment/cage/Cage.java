@@ -17,7 +17,6 @@ import java.util.regex.Pattern;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
-import plugins.fmp.multitools.experiment.cages.EnumCageMeasures;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
@@ -1214,17 +1213,14 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return false;
 	}
 
-	public void csvImport_MEASURE_Data_v0(EnumCageMeasures measureType, String[] data, boolean complete) {
-		switch (measureType) {
-		case POSITION:
-			if (complete) {
-				flyPositions.csvImport_Rectangle_FromRow(data, 1);
-			} else {
-				flyPositions.csvImport_XY_FromRow(data, 1);
-			}
-			break;
-		default:
-			break;
+	public void csvImport_MEASURE_Data_v0(String measureType, String[] data, boolean complete) {
+		if (!"POSITION".equals(measureType)) {
+			return;
+		}
+		if (complete) {
+			flyPositions.csvImport_Rectangle_FromRow(data, 1);
+		} else {
+			flyPositions.csvImport_XY_FromRow(data, 1);
 		}
 	}
 
