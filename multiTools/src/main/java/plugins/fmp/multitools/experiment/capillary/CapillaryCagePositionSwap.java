@@ -115,7 +115,7 @@ public final class CapillaryCagePositionSwap {
 		return null;
 	}
 
-	/** Exchanges complete ROI names (and kymograph file stems) between two capillaries. */
+	/** Exchanges complete ROI names and kymograph stems on disk between two capillaries (stimulus/concentration unchanged). */
 	private static void swapCapillaryPair(Experiment exp, Capillary a, Capillary b) {
 		String roiA = a.getRoiName();
 		String roiB = b.getRoiName();
@@ -123,12 +123,17 @@ public final class CapillaryCagePositionSwap {
 		String stemB = kymographStem(b);
 
 		String bin = exp.getKymosBinFullDirectory();
-		if (bin != null && stemA != null && stemB != null && !stemA.equals(stemB)) {
+		boolean needsDisk = bin != null && stemA != null && stemB != null && !stemA.equals(stemB);
+		if (needsDisk) {
+			exp.tryReleaseKymographPixelsForIndices(a.getKymographIndex(), b.getKymographIndex());
 			try {
 				swapStemsOnDisk(bin, stemA, stemB);
 			} catch (IOException e) {
-				Logger.error("CapillaryCagePositionSwap: failed to swap TIFF/XML stems " + stemA + " <-> " + stemB,
+				Logger.error(
+						"CapillaryCagePositionSwap: TIFF/XML swap failed (close kymograph viewers, then retry). "
+								+ stemA + " <-> " + stemB,
 						e);
+				return;
 			}
 		}
 
@@ -156,10 +161,12 @@ public final class CapillaryCagePositionSwap {
 		String bin = exp.getKymosBinFullDirectory();
 		if (bin == null)
 			return;
+		exp.tryReleaseKymographPixelsForIndices(cap.getKymographIndex(), cap.getKymographIndex());
 		try {
 			moveStem(bin, oldStem, newStem);
 		} catch (IOException e) {
-			Logger.error("CapillaryCagePositionSwap: failed to rename stem " + oldStem + " -> " + newStem, e);
+			Logger.error("CapillaryCagePositionSwap: failed to rename stem " + oldStem + " -> " + newStem
+					+ " (close kymograph viewers, then retry).", e);
 		}
 	}
 

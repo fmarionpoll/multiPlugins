@@ -77,7 +77,20 @@ public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 
 	@Override
 	public boolean isCellEditable(int rowIndex, int columnIndex) {
-		return CapillaryTableColumn.fromIndex(columnIndex).isEditable();
+		CapillaryTableColumn col = CapillaryTableColumn.fromIndex(columnIndex);
+		if (!col.isEditable())
+			return false;
+		if (col == CapillaryTableColumn.POSITION) {
+			Capillary cap = getCapillaryAt(rowIndex);
+			if (cap == null || cap.getRoi() == null)
+				return false;
+			if (expList == null || expList.getSelectedIndex() < 0)
+				return false;
+			Experiment exp = (Experiment) expList.getSelectedItem();
+			return CapillaryCagePositionSwap.countCapillariesInCage(exp.getCapillaries().getList(),
+					cap.getCageID()) >= 2;
+		}
+		return true;
 	}
 
 	@Override
@@ -97,6 +110,22 @@ public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 		case CAGE_ID:
 			cap.setCageID((int) aValue);
 			break;
+		case POSITION: {
+			if (expList == null || expList.getSelectedIndex() < 0 || aValue == null)
+				break;
+			Experiment exp = (Experiment) expList.getSelectedItem();
+			int[] rows = CapillaryCagePositionSwap.applyPositionSelection(exp, rowIndex, aValue.toString());
+			if (rows.length > 0) {
+				int lo = rows[0];
+				int hi = rows[0];
+				for (int r : rows) {
+					lo = Math.min(lo, r);
+					hi = Math.max(hi, r);
+				}
+				fireTableRowsUpdated(lo, hi);
+			}
+			return;
+		}
 		case N_FLIES:
 			cap.setNFlies((int) aValue);
 			syncCageNFliesFromCapillaries();

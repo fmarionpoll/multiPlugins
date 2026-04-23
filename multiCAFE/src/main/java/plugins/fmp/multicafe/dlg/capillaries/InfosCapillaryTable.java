@@ -1,6 +1,7 @@
 package plugins.fmp.multicafe.dlg.capillaries;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -8,7 +9,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.List;
 
+import javax.swing.DefaultCellEditor;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -63,6 +67,7 @@ public class InfosCapillaryTable extends JPanel {
 				setFixedColumnProperties(col);
 			col.setCellRenderer(centerRenderer);
 		}
+		installSideComboEditor(columnModel);
 		JScrollPane scrollPane = new JScrollPane(tableView);
 
 		JPanel topPanel = new JPanel(new GridLayout(2, 1));
@@ -96,6 +101,34 @@ public class InfosCapillaryTable extends JPanel {
 		dialogFrame.setVisible(true);
 		defineActionListeners();
 		pasteButton.setEnabled(capillariesArrayCopy.size() > 0);
+	}
+
+	private void installSideComboEditor(TableColumnModel columnModel) {
+		TableColumn sideCol = columnModel.getColumn(CapillaryTableColumn.POSITION.ordinal());
+		JComboBox<String> combo = new JComboBox<>();
+		combo.setEditable(false);
+		sideCol.setCellEditor(new DefaultCellEditor(combo) {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row,
+					int column) {
+				@SuppressWarnings("unchecked")
+				JComboBox<String> cb = (JComboBox<String>) getComponent();
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp == null || row < 0 || row >= exp.getCapillaries().getList().size()) {
+					cb.setModel(new DefaultComboBoxModel<>());
+					cb.setEditable(false);
+					return super.getTableCellEditorComponent(table, value, isSelected, row, column);
+				}
+				Capillary cap = exp.getCapillaries().getList().get(row);
+				String[] opts = CapillaryCagePositionSwap.comboOptionsForCage(exp.getCapillaries().getList(),
+						cap.getCageID());
+				cb.setModel(new DefaultComboBoxModel<>(opts));
+				cb.setEditable(false);
+				return super.getTableCellEditorComponent(table, value, isSelected, row, column);
+			}
+		});
 	}
 
 	private void defineActionListeners() {

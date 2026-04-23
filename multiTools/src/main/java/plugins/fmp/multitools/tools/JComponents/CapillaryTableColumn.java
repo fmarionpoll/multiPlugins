@@ -6,7 +6,7 @@ package plugins.fmp.multitools.tools.JComponents;
 public enum CapillaryTableColumn {
 	NAME("Name", false),
 	CAGE_ID("Cage", true),
-	POSITION("Side", false),
+	POSITION("Side", true),
 	N_FLIES("N flies", true),
 	VOLUME("Volume", true),
 	STIMULUS("Stimulus", true),

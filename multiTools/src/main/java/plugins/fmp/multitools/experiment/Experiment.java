@@ -19,6 +19,7 @@ import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.image.ImageUtil;
+import icy.type.DataType;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
@@ -1885,6 +1886,37 @@ public class Experiment {
 	 * {@link Capillary#getKymographIndex()} so names on the sequence match the model — required
 	 * when users edit measures on the kymograph, which are matched by ROI name.
 	 */
+	/**
+	 * Drops loaded kymograph pixels at the given frame indices (tiny placeholder image) so TIFF
+	 * files on disk can be renamed while a kymograph viewer is open (typical Windows file lock).
+	 */
+	public void tryReleaseKymographPixelsForIndices(int tFirst, int tSecond) {
+		if (seqKymos == null)
+			return;
+		Sequence seq = seqKymos.getSequence();
+		if (seq == null)
+			return;
+		int sizeT = seq.getSizeT();
+		seq.beginUpdate();
+		try {
+			for (int t : new int[] { tFirst, tSecond }) {
+				if (t < 0 || t >= sizeT)
+					continue;
+				int nz = seq.getSizeZ(t);
+				for (int z = 0; z < nz; z++) {
+					try {
+						seq.setImage(t, z, new IcyBufferedImage(2, 2, 1, DataType.UBYTE));
+					} catch (Exception e) {
+						Logger.warn("tryReleaseKymographPixelsForIndices: t=" + t + " z=" + z, e);
+					}
+				}
+			}
+			seq.dataChanged();
+		} finally {
+			seq.endUpdate();
+		}
+	}
+
 	public void refreshAfterCapillaryRoiIdentityChange(Capillary... affected) {
 		if (affected == null || affected.length == 0)
 			return;
