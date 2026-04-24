@@ -72,6 +72,6 @@ public class ExperimentService {
 				exp.getCapillaries());
 
 		ImageFileDescriptor.getExistingFileNames(myList);
-		return new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, true);
+		return new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, false);
 	}
 }

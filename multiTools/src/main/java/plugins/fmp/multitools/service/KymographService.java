@@ -122,9 +122,8 @@ public class KymographService {
 
 	public boolean loadImagesFromList(SequenceKymos seqKymos, List<ImageFileData> kymoImagesDesc,
 			boolean adjustImagesSize) {
-		boolean flag = (kymoImagesDesc.size() > 0);
-		if (!flag)
-			return flag;
+		if (kymoImagesDesc == null || kymoImagesDesc.isEmpty())
+			return false;
 
 		if (adjustImagesSize)
 			adjustImagesToMaxSize(seqKymos, kymoImagesDesc, getMaxSizeofTiffFiles(seqKymos, kymoImagesDesc));
@@ -135,17 +134,19 @@ public class KymographService {
 				myList.add(prop.fileName);
 		}
 
-		if (myList.size() > 0) {
-			String[] strExt = { "tiff" };
-			myList = ExperimentDirectories.keepOnlyAcceptedNames_List(myList, strExt);
-			seqKymos.setImagesList(convertLinexLRFileNames(myList));
+		if (myList.isEmpty())
+			return false;
 
-			// threaded by default here
-			seqKymos.loadImages();
-			setParentDirectoryAsCSCamFileName(seqKymos, seqKymos.getImagesList().get(0));
-			seqKymos.setStatus(EnumStatus.KYMOGRAPH);
-		}
-		return flag;
+		String[] strExt = { "tiff", "tif" };
+		myList = ExperimentDirectories.keepOnlyAcceptedNames_List(myList, strExt);
+		if (myList.isEmpty())
+			return false;
+
+		seqKymos.setImagesList(convertLinexLRFileNames(myList));
+		seqKymos.loadImages();
+		setParentDirectoryAsCSCamFileName(seqKymos, seqKymos.getImagesList().get(0));
+		seqKymos.setStatus(EnumStatus.KYMOGRAPH);
+		return true;
 	}
 
 	private void setParentDirectoryAsCSCamFileName(SequenceKymos seqKymos, String filename) {

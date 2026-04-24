@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.series;
 
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Paths;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -17,26 +18,31 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 	private Viewer vData = null;
 
 	void analyzeExperiment(Experiment exp) {
-		KymographBuilder.PreArchiveResult pre = KymographBuilder.preArchiveExistingKymographsInCurrentBin(exp);
+		exp.releaseKymographSequence();
+
+		String kymoDir = exp.getKymosBinFullDirectory();
 		if (options != null) {
-			options.kymoPreflightDetectedLockedFiles = pre.failed > 0;
+			options.kymoPreflightDetectedLockedFiles = false;
 		}
-		if (pre.failed > 0) {
-			try {
-				SwingUtilities.invokeAndWait(new Runnable() {
-					@Override
-					public void run() {
-						JOptionPane.showMessageDialog(null,
-								"Cannot rename existing kymograph TIFF(s) in:\n" + pre.directory + "\n\n"
-										+ "Some files appear to be locked by Windows or another process.\n"
-										+ "Close any viewer/file browser preview using these kymographs and retry.",
-								"Kymograph files locked", JOptionPane.WARNING_MESSAGE);
-					}
-				});
-			} catch (InvocationTargetException | InterruptedException e) {
-				Logger.error("BuildKymosFromCapillaries: failed to show lock warning dialog", e);
+		if (kymoDir != null && options != null) {
+			KymographBuilder.LockProbeReport lockProbe = KymographBuilder.probeKymographFileLocks(Paths.get(kymoDir));
+			options.kymoPreflightDetectedLockedFiles = lockProbe.locked > 0;
+			if (lockProbe.locked > 0) {
+				try {
+					SwingUtilities.invokeAndWait(new Runnable() {
+						@Override
+						public void run() {
+							JOptionPane.showMessageDialog(null,
+									"Kymograph TIFF(s) appear locked in:\n" + lockProbe.directory + "\n\n"
+											+ "Close any viewer or preview using these files.\n"
+											+ "The build will try a flip-flop folder if needed.",
+									"Kymograph files locked", JOptionPane.WARNING_MESSAGE);
+						}
+					});
+				} catch (InvocationTargetException | InterruptedException e) {
+					Logger.error("BuildKymosFromCapillaries: failed to show lock warning dialog", e);
+				}
 			}
-			// Do not abort: continue so the builder can fall back to flip-flop bins.
 		}
 
 		loadExperimentDataToBuildKymos(exp);

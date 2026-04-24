@@ -129,10 +129,10 @@ public class KymographBuilder {
 	}
 
 	/**
-	 * Systematically rename away existing {@code line*.tif/.tiff} outputs in the
-	 * current experiment bin directory before computing new kymographs. This is a
-	 * pre-flight lock test: if renaming fails, the caller should warn the user and
-	 * skip rebuilding that experiment.
+	 * Pre-flight for the active kymograph bin: delete every file whose name starts with
+	 * {@code old_}, then rename {@code line*.tif/.tiff} to {@code old_line*...}. If either
+	 * step fails, {@link PreArchiveResult#failed} is non-zero so the caller can warn and
+	 * the builder can fall back to flip-flop bins.
 	 */
 	public static PreArchiveResult preArchiveExistingKymographsInCurrentBin(Experiment exp) {
 		if (exp == null) {
@@ -142,13 +142,49 @@ public class KymographBuilder {
 		if (binDir == null) {
 			return new PreArchiveResult(0, 0, null);
 		}
-		Path dir = Paths.get(binDir);
-		// Rename current line*.tif/.tiff to old_line*.tif(f) (no timestamp); rollback if any rename fails.
-		// Do NOT delete old_* upfront: if a lock is detected we want to keep the previous
-		// backup generation rather than ending up with nothing.
-		// Fast lock probe: do not spend seconds retrying renames here. If files are locked,
-		// report quickly and let flip-flop handle the rebuild.
-		return archiveLineKymographsInDirectory(dir, -1L, true, false, true, false);
+		return prepareKymographBinDeleteOldThenRenameLine(Paths.get(binDir));
+	}
+
+	/**
+	 * (1) Deletes all regular files in {@code dir} whose name starts with {@code old_}
+	 * (case-insensitive). (2) Renames each {@code line*.tif/.tiff} to {@code old_line*...}
+	 * with rollback if any rename fails. Returns {@code failed > 0} if any delete failed or
+	 * any line file could not be renamed.
+	 */
+	public static PreArchiveResult prepareKymographBinDeleteOldThenRenameLine(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return new PreArchiveResult(0, 0, dir);
+		}
+		int delFail = deleteAllOldPrefixedFiles(dir);
+		if (delFail > 0) {
+			return new PreArchiveResult(0, delFail, dir);
+		}
+		return archiveLineKymographsInDirectory(dir, -1L, true, false, true, true);
+	}
+
+	private static int deleteAllOldPrefixedFiles(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return 0;
+		}
+		List<Path> toDelete;
+		try (Stream<Path> stream = Files.list(dir)) {
+			toDelete = stream.filter(Files::isRegularFile).filter(p -> {
+				String n = p.getFileName() != null ? p.getFileName().toString() : "";
+				return n.regionMatches(true, 0, "old_", 0, 4);
+			}).collect(Collectors.toList());
+		} catch (IOException e) {
+			Logger.warn("KymographBuilder: deleteAllOldPrefixedFiles list failed " + dir + " : " + e.getMessage());
+			return 1;
+		}
+		int failures = 0;
+		for (Path p : toDelete) {
+			deletePathWithRetries(p);
+			if (Files.exists(p)) {
+				failures++;
+				Logger.warn("KymographBuilder: could not delete " + p);
+			}
+		}
+		return failures;
 	}
 
 	public boolean buildKymograph(Experiment exp, BuildSeriesOptions options) {
@@ -291,16 +327,16 @@ public class KymographBuilder {
 			return preferredBinDir;
 		}
 
-		// If the existing bin directory already contains line*.tiff, do not overwrite in place.
-		// Use a flip-flop strategy between two revision directories (r1/r2) to limit clutter:
-		// each rebuild writes into the "inactive" slot and then makes it active.
-		if (hasAnyLineTiff(preferredFull) || !canTemporarilyRenameOneTiff(preferredFull)) {
-			// Avoid repeating the pre-flight archiving pass (and its warning spam) when the caller already
-			// detected locked files. In that case, go straight to flip-flop selection.
-			if (options == null || !options.kymoPreflightDetectedLockedFiles) {
-				archiveAllLineKymographTiffsInDirectory(preferredFull);
+		// Canonical bin: delete old_* backups, then rename line*.tif -> old_line*. If that fails
+		// (locks) or line TIFFs remain, write to flip-flop slots instead.
+		if (!optionsPreflightSaysSkipCanonicalPrep(options)) {
+			PreArchiveResult prep = prepareKymographBinDeleteOldThenRenameLine(preferredFull);
+			if (prep.failed == 0 && !hasAnyLineTiff(preferredFull) && canTemporarilyRenameOneTiff(preferredFull)) {
+				return preferredBinDir;
 			}
+		}
 
+		if (hasAnyLineTiff(preferredFull) || !canTemporarilyRenameOneTiff(preferredFull)) {
 			String current = exp.getBinSubDirectory();
 			String firstChoice = (current != null && current.endsWith("_r1")) ? slot2 : slot1;
 			String secondChoice = firstChoice.equals(slot1) ? slot2 : slot1;
@@ -318,6 +354,10 @@ public class KymographBuilder {
 		return preferredBinDir;
 	}
 
+	private static boolean optionsPreflightSaysSkipCanonicalPrep(BuildSeriesOptions options) {
+		return options != null && options.kymoPreflightDetectedLockedFiles;
+	}
+
 	private static String tryPrepareFlipFlopSlot(String resultsDir, String binSubDir) {
 		if (resultsDir == null || binSubDir == null) {
 			return null;
@@ -329,17 +369,8 @@ public class KymographBuilder {
 			return null;
 		}
 
-		// Rename away existing line*.tiff before clearLineTiffs deletes them (otherwise
-		// archive-after-setBin runs on an already empty folder and old_* never appears).
-		archiveAllLineKymographTiffsInDirectory(dir);
-
-		// Important: do not delete line*.tiff here. If rename -> old_* failed, that is
-		// exactly the lock symptom we want to surface. Reject this slot instead of
-		// erasing files.
-		if (hasAnyLineTiff(dir)) {
-			return null;
-		}
-		if (!canTemporarilyRenameOneTiff(dir)) {
+		PreArchiveResult prep = prepareKymographBinDeleteOldThenRenameLine(dir);
+		if (prep.failed > 0 || hasAnyLineTiff(dir) || !canTemporarilyRenameOneTiff(dir)) {
 			return null;
 		}
 		Logger.warn("KymographBuilder: writing rebuilt kymographs to " + dir);
@@ -411,7 +442,7 @@ public class KymographBuilder {
 			}
 
 			index++;
-			cap.setKymographBuild(i >= options.kymoFirst && i <= options.kymoLast);
+			cap.setKymographBuild(true);
 		}
 	}
 

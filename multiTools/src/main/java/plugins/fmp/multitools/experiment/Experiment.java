@@ -1,6 +1,5 @@
 package plugins.fmp.multitools.experiment;
 
-import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
@@ -23,6 +22,7 @@ import icy.type.DataType;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
+import icy.sequence.SequencePrefetcher;
 import plugins.fmp.multitools.experiment.cafe.CafeViewOptionsDTO;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
@@ -1910,6 +1910,20 @@ public class Experiment {
 	}
 
 	/**
+	 * Closes the kymograph sequence (and its viewers), cancels pending Icy prefetch for it, and
+	 * clears the reference. Call before rebuilding kymograph TIFFs on disk to reduce file locks.
+	 */
+	public void releaseKymographSequence() {
+		if (seqKymos == null)
+			return;
+		Sequence s = seqKymos.getSequence();
+		if (s != null)
+			SequencePrefetcher.cancel(s);
+		seqKymos.closeSequence();
+		seqKymos = null;
+	}
+
+	/**
 	 * After a capillary primary ROI rename (or swap): notifies the camera sequence for the capillary
 	 * ROI, and rebuilds kymograph measure ROIs (top/bottom/derivative/gulps) at each affected
 	 * {@link Capillary#getKymographIndex()} so names on the sequence match the model — required
@@ -2531,8 +2545,23 @@ public class Experiment {
 
 	// ---------------------------------------------------------
 
+	/**
+	 * Loads kymograph TIFFs for the current bin into {@code seqKymos} without resizing them to a
+	 * common canvas. Use {@link #loadKymographs(boolean)} with {@code true} only when you need the
+	 * legacy normalization pass (e.g. heterogeneous TIFF sizes on disk).
+	 */
 	public boolean loadKymographs() {
-		if (getSeqKymos() == null)
+		return loadKymographs(false);
+	}
+
+	/**
+	 * @param normalizeSizes when true, resize mismatched kymograph TIFFs to a common canvas (legacy
+	 *                       behavior); when false, load files as-is (expected after
+	 *                       {@link plugins.fmp.multitools.service.KymographBuilder} which uses a
+	 *                       uniform size for all capillaries).
+	 */
+	public boolean loadKymographs(boolean normalizeSizes) {
+		if (seqKymos == null)
 			setSeqKymos(new SequenceKymos());
 
 		List<ImageFileData> myList = new KymographService()
@@ -2554,9 +2583,9 @@ public class Experiment {
 			}
 		}
 
-		// Load images
-		Rectangle rectMax = getSeqKymos().calculateMaxDimensions(newList);
-		ImageAdjustmentOptions options = ImageAdjustmentOptions.withSizeAdjustment(rectMax);
+		ImageAdjustmentOptions options = normalizeSizes
+				? ImageAdjustmentOptions.withSizeAdjustment(getSeqKymos().calculateMaxDimensions(newList))
+				: ImageAdjustmentOptions.noAdjustment();
 		ImageProcessingResult result = getSeqKymos().loadKymographs(newList, options);
 		return result.isSuccess();
 	}

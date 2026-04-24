@@ -8,8 +8,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -20,7 +18,6 @@ import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
-import javax.swing.JOptionPane;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -28,8 +25,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
 import plugins.fmp.multitools.series.BuildKymosFromCapillaries;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.service.KymographBuilder;
-import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class CreateKymos extends JPanel implements PropertyChangeListener {
@@ -40,10 +35,8 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 	private String detectString = "Start";
 
 	JButton startComputationButton = new JButton("Start");
-	JButton testLocksButton = new JButton("Test locks");
 	JSpinner diskRadiusSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
-	JCheckBox selectedCapCheckBox = new JCheckBox("selected capillary", false);
 	JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
 	JComboBoxMs binUnit = new JComboBoxMs();
 
@@ -69,9 +62,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		JPanel panel0 = new JPanel(layoutLeft);
 		((FlowLayout) panel0.getLayout()).setVgap(1);
 		panel0.add(startComputationButton);
-		panel0.add(testLocksButton);
 		panel0.add(allSeriesCheckBox);
-		panel0.add(selectedCapCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
@@ -149,31 +140,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 			}
 		});
 
-		testLocksButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null) {
-					return;
-				}
-				String dir = exp.getKymosBinFullDirectory();
-				if (dir == null) {
-					Logger.warn("CreateKymos: Test locks: experiment has no kymos bin directory");
-					return;
-				}
-				Path p = Paths.get(dir);
-				KymographBuilder.LockProbeReport r = KymographBuilder.probeKymographFileLocks(p);
-				Logger.warn("Kymograph lock probe in " + r.directory + " : total=" + r.total + " ok=" + r.ok
-						+ " locked=" + r.locked);
-				for (String s : r.lockedFiles) {
-					Logger.warn("Kymograph lock probe locked: " + s);
-				}
-				JOptionPane.showMessageDialog(null,
-						"Lock probe on:\n" + r.directory + "\n\n" + "Total: " + r.total + "\nOK: " + r.ok + "\nLocked: "
-								+ r.locked + "\n\n" + (r.locked > 0 ? "See console for locked files." : "No locks detected."),
-						"Kymograph lock probe", r.locked > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
-			}
-		});
 	}
 
 	private void enableIntervalButtons(boolean isSelected) {
@@ -204,15 +170,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 
-		options.kymoFirst = 0;
-		options.kymoLast = exp.getCapillaries().getList().size() - 1;
-		if (selectedCapCheckBox.isSelected()) {
-			int t = exp.getCapillaries().getSelectedCapillary();
-			if (t >= 0) {
-				options.kymoFirst = t;
-				options.kymoLast = t;
-			}
-		}
 		return options;
 	}
 
@@ -226,19 +183,14 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		if (nominalSec < 1)
 			nominalSec = 60;
 		long medianMs = exp.getSeqCamData() != null ? exp.getCamImageBin_ms() : 0;
-		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs, exp.getNominalIntervalSec() >= 0))
+		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
+				exp.getNominalIntervalSec() >= 0))
 			return;
 
 		exp.setNominalIntervalSec(nominalSec);
 		exp.setKymoBin_ms(nominalSec * 1000L);
 
-		// Ensure any previously opened kymograph sequence (and its viewers) is fully closed
-		// before rebuilding TIFFs. Closing the raw Sequence alone can leave viewers alive
-		// on Windows, keeping the old lineXX.tiff files locked.
-		if (exp.getSeqKymos() != null) {
-			exp.getSeqKymos().closeSequence();
-		}
-		exp.setSeqKymos(null);
+		exp.releaseKymographSequence();
 		parent0.paneCapillaries.tabFile.saveCapillaries_file(exp);
 
 		threadBuildKymo = new BuildKymosFromCapillaries();
