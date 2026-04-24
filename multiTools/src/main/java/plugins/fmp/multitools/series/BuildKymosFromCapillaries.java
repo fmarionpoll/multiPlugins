@@ -18,6 +18,9 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 
 	void analyzeExperiment(Experiment exp) {
 		KymographBuilder.PreArchiveResult pre = KymographBuilder.preArchiveExistingKymographsInCurrentBin(exp);
+		if (options != null) {
+			options.kymoPreflightDetectedLockedFiles = pre.failed > 0;
+		}
 		if (pre.failed > 0) {
 			try {
 				SwingUtilities.invokeAndWait(new Runnable() {
@@ -33,7 +36,7 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 			} catch (InvocationTargetException | InterruptedException e) {
 				Logger.error("BuildKymosFromCapillaries: failed to show lock warning dialog", e);
 			}
-			return;
+			// Do not abort: continue so the builder can fall back to flip-flop bins.
 		}
 
 		loadExperimentDataToBuildKymos(exp);

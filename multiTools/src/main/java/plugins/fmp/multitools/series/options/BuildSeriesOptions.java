@@ -32,6 +32,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int toFrame = -1;
 	public boolean doCreateBinDir = false;
 
+	/**
+	 * Set by kymograph builders: true when pre-flight rename detected at least one
+	 * locked kymograph file in the current bin directory.
+	 */
+	public boolean kymoPreflightDetectedLockedFiles = false;
+
 	public boolean loopRunning = false;
 
 	public boolean detectTop = true;
