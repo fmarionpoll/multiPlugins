@@ -3,7 +3,6 @@ package plugins.fmp.multitools.series;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
 
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import icy.gui.viewer.Viewer;
@@ -28,19 +27,10 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 			KymographBuilder.LockProbeReport lockProbe = KymographBuilder.probeKymographFileLocks(Paths.get(kymoDir));
 			options.kymoPreflightDetectedLockedFiles = lockProbe.locked > 0;
 			if (lockProbe.locked > 0) {
-				try {
-					SwingUtilities.invokeAndWait(new Runnable() {
-						@Override
-						public void run() {
-							JOptionPane.showMessageDialog(null,
-									"Kymograph TIFF(s) appear locked in:\n" + lockProbe.directory + "\n\n"
-											+ "Close any viewer or preview using these files.\n"
-											+ "The build will try a flip-flop folder if needed.",
-									"Kymograph files locked", JOptionPane.WARNING_MESSAGE);
-						}
-					});
-				} catch (InvocationTargetException | InterruptedException e) {
-					Logger.error("BuildKymosFromCapillaries: failed to show lock warning dialog", e);
+				Logger.warn("BuildKymosFromCapillaries: kymograph TIFF(s) appear locked in " + lockProbe.directory
+						+ " (locked=" + lockProbe.locked + "/" + lockProbe.total + "). Build will try flip-flop if needed.");
+				for (String s : lockProbe.lockedFiles) {
+					Logger.warn("BuildKymosFromCapillaries: locked: " + s);
 				}
 			}
 		}
