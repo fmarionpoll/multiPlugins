@@ -900,16 +900,23 @@ public class KymographBuilder {
 		if (kymoImageWidth <= 0)
 			kymoImageWidth = (int) ((exp.getKymoLast_ms() - exp.getKymoFirst_ms()) / stepMs + 1);
 
-		int imageHeight = 0;
+		// Global max height over every capillary and AlongT segment. Allocating inside a single
+		// combined loop was wrong: earlier capillaries used max height only over caps processed
+		// so far, so later (taller) caps produced taller TIFFs → Sequence load fails on 1px+ mismatch.
+		int globalImageHeight = 0;
 		for (Capillary cap : exp.getCapillaries().getList()) {
 			if (!cap.getKymographBuild())
 				continue;
 			for (AlongT capT : cap.getAlongTList()) {
 				int imageHeight_i = buildMasksCount(capT, sizex, sizey, options);
-				if (imageHeight_i > imageHeight)
-					imageHeight = imageHeight_i;
+				if (imageHeight_i > globalImageHeight)
+					globalImageHeight = imageHeight_i;
 			}
-			buildCapInteger(cap, exp.getSeqCamData().getSequence(), kymoImageWidth, imageHeight, kymoSizeC);
+		}
+		for (Capillary cap : exp.getCapillaries().getList()) {
+			if (!cap.getKymographBuild())
+				continue;
+			buildCapInteger(cap, exp.getSeqCamData().getSequence(), kymoImageWidth, globalImageHeight, kymoSizeC);
 		}
 	}
 
