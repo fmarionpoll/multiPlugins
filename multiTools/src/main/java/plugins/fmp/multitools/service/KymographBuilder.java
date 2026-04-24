@@ -12,6 +12,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -37,6 +39,63 @@ import plugins.fmp.multitools.tools.polyline.Bresenham;
 public class KymographBuilder {
 
 	private Map<Capillary, ArrayList<int[]>> capIntegerArrays = new HashMap<>();
+
+	public static final class PreArchiveResult {
+		public final int renamed;
+		public final int failed;
+		public final Path directory;
+
+		PreArchiveResult(int renamed, int failed, Path directory) {
+			this.renamed = renamed;
+			this.failed = failed;
+			this.directory = directory;
+		}
+
+		public boolean ok() {
+			return failed == 0;
+		}
+	}
+
+	/**
+	 * Systematically rename away existing {@code line*.tif/.tiff} outputs in the
+	 * current experiment bin directory before computing new kymographs. This is a
+	 * pre-flight lock test: if renaming fails, the caller should warn the user and
+	 * skip rebuilding that experiment.
+	 */
+	public static PreArchiveResult preArchiveExistingKymographsInCurrentBin(Experiment exp) {
+		if (exp == null) {
+			return new PreArchiveResult(0, 0, null);
+		}
+		String binDir = exp.getKymosBinFullDirectory();
+		if (binDir == null) {
+			return new PreArchiveResult(0, 0, null);
+		}
+		Path dir = Paths.get(binDir);
+		// Avoid unbounded growth across repeated runs: delete previous backups first.
+		deleteOldLineBackupsInDirectory(dir);
+		// Rename current line*.tif/.tiff to old_line*.tif(f) (no timestamp); rollback if any rename fails.
+		return archiveLineKymographsInDirectory(dir, -1L, true, false, true);
+	}
+
+	private static void deleteOldLineBackupsInDirectory(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return;
+		}
+		List<Path> oldLine;
+		try (Stream<Path> stream = Files.list(dir)) {
+			oldLine = stream.filter(Files::isRegularFile).filter(p -> {
+				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
+				if (!n.startsWith("old_line"))
+					return false;
+				return n.endsWith(".tif") || n.endsWith(".tiff");
+			}).collect(Collectors.toList());
+		} catch (IOException e) {
+			return;
+		}
+		for (Path p : oldLine) {
+			deletePathWithRetries(p);
+		}
+	}
 
 	public boolean buildKymograph(Experiment exp, BuildSeriesOptions options) {
 		if (exp.getCapillaries().getList().size() < 1) {
@@ -125,12 +184,17 @@ public class KymographBuilder {
 		SequenceCamData seqCamData = exp.getSeqCamData();
 		int sizeC = seqCamData.getSequence().getSizeC();
 		if (options.doCreateBinDir) {
+			String previousBinDir = exp.getBinSubDirectory();
 			String binDir = chooseWritableBinSubDirectory(exp, exp.getBinNameFromKymoFrameStep());
 			exp.setBinSubDirectory(binDir);
 			exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.KYMOGRAPH);
 			exp.saveBinDescription(binDir);
+			if (previousBinDir != null && !previousBinDir.equals(binDir)) {
+				copyMeasuresBetweenBins(exp, previousBinDir, binDir);
+			}
 		}
 
+		archiveExistingKymographTiffsBeforeExport(exp);
 		exportCapillaryKymographs(exp, sizeC);
 		return true;
 	}
@@ -153,6 +217,10 @@ public class KymographBuilder {
 		// Use a flip-flop strategy between two revision directories (r1/r2) to limit clutter:
 		// each rebuild writes into the "inactive" slot and then makes it active.
 		if (hasAnyLineTiff(preferredFull) || !canTemporarilyRenameOneTiff(preferredFull)) {
+			// Rename away old line*.tiff in the current bin first: this is the core test for
+			// Windows locks and it gives the OS time to release handles before we start saving.
+			archiveAllLineKymographTiffsInDirectory(preferredFull);
+
 			String current = exp.getBinSubDirectory();
 			String slot1 = preferredBinDir + "_r1";
 			String slot2 = preferredBinDir + "_r2";
@@ -166,15 +234,6 @@ public class KymographBuilder {
 			chosen = tryPrepareFlipFlopSlot(resultsDir, secondChoice);
 			if (chosen != null) {
 				return chosen;
-			}
-
-			// Last resort: create a one-off revision directory.
-			for (int i = 3; i <= 50; i++) {
-				String candidate = preferredBinDir + "_r" + i;
-				String ok = tryPrepareFlipFlopSlot(resultsDir, candidate);
-				if (ok != null) {
-					return ok;
-				}
 			}
 		}
 
@@ -192,9 +251,14 @@ public class KymographBuilder {
 			return null;
 		}
 
-		// Clear previous kymographs in this slot so we don't overwrite individual TIFFs.
-		// If any delete fails (locked), reject this slot.
-		if (!clearLineTiffs(dir)) {
+		// Rename away existing line*.tiff before clearLineTiffs deletes them (otherwise
+		// archive-after-setBin runs on an already empty folder and old_* never appears).
+		archiveAllLineKymographTiffsInDirectory(dir);
+
+		// Important: do not delete line*.tiff here. If rename -> old_* failed, that is
+		// exactly the lock symptom we want to surface. Reject this slot instead of
+		// erasing files.
+		if (hasAnyLineTiff(dir)) {
 			return null;
 		}
 		if (!canTemporarilyRenameOneTiff(dir)) {
@@ -204,29 +268,6 @@ public class KymographBuilder {
 		return binSubDir;
 	}
 
-	private static boolean clearLineTiffs(Path binDir) {
-		if (binDir == null || !Files.isDirectory(binDir)) {
-			return true;
-		}
-		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
-			List<Path> toDelete = stream.filter(Files::isRegularFile).filter(p -> {
-				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
-				return n.startsWith("line") && n.endsWith(".tiff");
-			}).collect(java.util.stream.Collectors.toList());
-
-			for (Path p : toDelete) {
-				try {
-					Files.deleteIfExists(p);
-				} catch (IOException e) {
-					return false;
-				}
-			}
-			return true;
-		} catch (IOException e) {
-			return false;
-		}
-	}
-
 	private static boolean hasAnyLineTiff(Path binDir) {
 		if (binDir == null || !Files.isDirectory(binDir)) {
 			return false;
@@ -234,7 +275,7 @@ public class KymographBuilder {
 		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
 			return stream.filter(Files::isRegularFile).anyMatch(p -> {
 				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
-				return n.startsWith("line") && n.endsWith(".tiff");
+				return n.startsWith("line") && (n.endsWith(".tif") || n.endsWith(".tiff"));
 			});
 		} catch (IOException e) {
 			return false;
@@ -248,7 +289,7 @@ public class KymographBuilder {
 		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
 			Path anyTiff = stream.filter(Files::isRegularFile).filter(p -> {
 				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
-				return n.startsWith("line") && n.endsWith(".tiff");
+				return n.startsWith("line") && (n.endsWith(".tif") || n.endsWith(".tiff"));
 			}).findFirst().orElse(null);
 
 			if (anyTiff == null) {
@@ -407,6 +448,175 @@ public class KymographBuilder {
 					capInteger.get(2)[dst] = (int) (sum2 / mask.size());
 			}
 			cnt++;
+		}
+	}
+
+	/**
+	 * Renames every {@code line*.tiff} in {@code dir} to {@code old_line*.tiff} on the
+	 * caller thread (before parallel export or before flip-flop delete). Archived files
+	 * are registered for deletion on normal JVM exit.
+	 */
+	private static void archiveAllLineKymographTiffsInDirectory(Path dir) {
+		archiveLineKymographsInDirectory(dir, -1L, true, true, false);
+	}
+
+	private static PreArchiveResult archiveLineKymographsInDirectory(Path dir, long timestampMs,
+			boolean bestEffortDeleteOldName, boolean registerDeleteOnExit, boolean rollbackOnAnyFailure) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return new PreArchiveResult(0, 0, dir);
+		}
+		List<Path> lineTiffs;
+		try (Stream<Path> stream = Files.list(dir)) {
+			lineTiffs = stream.filter(Files::isRegularFile).filter(p -> {
+				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
+				if (!n.startsWith("line"))
+					return false;
+				return n.endsWith(".tif") || n.endsWith(".tiff");
+			}).collect(Collectors.toList());
+		} catch (IOException e) {
+			Logger.warn("KymographBuilder: archiveLineKymographsInDirectory list failed " + dir + " : "
+					+ e.getMessage());
+			return new PreArchiveResult(0, 0, dir);
+		}
+
+		int renamed = 0;
+		int failed = 0;
+		// For rollback if any move fails: keep a list of successful (from -> to) renames.
+		ArrayList<Path[]> moved = rollbackOnAnyFailure ? new ArrayList<>() : null;
+		for (Path target : lineTiffs) {
+			String fn = target.getFileName().toString();
+			Path archived = buildArchivedName(dir, fn, timestampMs);
+			if (bestEffortDeleteOldName) {
+				deletePathWithRetries(archived);
+			}
+			try {
+				moveWithRetries(target, archived);
+				if (registerDeleteOnExit) {
+					archived.toFile().deleteOnExit();
+				}
+				if (moved != null) {
+					moved.add(new Path[] { target, archived });
+				}
+				renamed++;
+			} catch (IOException e) {
+				failed++;
+				Logger.warn("KymographBuilder: could not archive " + target + " -> " + archived + " : " + e.getMessage());
+			}
+		}
+		if (rollbackOnAnyFailure && failed > 0 && moved != null && !moved.isEmpty()) {
+			// Roll back best-effort: restore original names to avoid leaving a partially
+			// renamed directory when we will abort computation anyway.
+			for (int i = moved.size() - 1; i >= 0; i--) {
+				Path[] pair = moved.get(i);
+				Path original = pair[0];
+				Path archived = pair[1];
+				try {
+					moveWithRetries(archived, original);
+				} catch (IOException e) {
+					Logger.warn("KymographBuilder: rollback failed " + archived + " -> " + original + " : " + e.getMessage());
+				}
+			}
+			renamed = 0;
+		}
+		return new PreArchiveResult(renamed, failed, dir);
+	}
+
+	private static Path buildArchivedName(Path dir, String originalFileName, long timestampMs) {
+		String fn = originalFileName != null ? originalFileName : "";
+		int dot = fn.lastIndexOf('.');
+		String base = (dot > 0) ? fn.substring(0, dot) : fn;
+		String ext = (dot > 0) ? fn.substring(dot) : "";
+		String suffix = (timestampMs > 0) ? ("_" + timestampMs) : "";
+		return dir.resolve("old_" + base + suffix + ext);
+	}
+
+	private void archiveExistingKymographTiffsBeforeExport(Experiment exp) {
+		String directory = exp.getDirectoryToSaveResults();
+		if (directory == null) {
+			return;
+		}
+		Path dir = Paths.get(directory);
+		archiveAllLineKymographTiffsInDirectory(dir);
+	}
+
+	private static void deletePathWithRetries(Path path) {
+		if (path == null || !Files.exists(path)) {
+			return;
+		}
+		IOException last = null;
+		final boolean isWindows = SystemUtil.isWindows();
+		final int maxAttempts = isWindows ? 15 : 3;
+		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				Files.deleteIfExists(path);
+				return;
+			} catch (IOException e) {
+				last = e;
+				if (!isWindows) {
+					break;
+				}
+				try {
+					Thread.sleep(Math.min(500L, 30L * attempt));
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		}
+		if (last != null) {
+			Logger.warn("KymographBuilder: could not delete stale archive " + path + " : " + last.getMessage());
+		}
+	}
+
+	/**
+	 * When flip-flop creates {@code bin_XX_r1/r2}, measures (CSV/XML) may already be
+	 * present in the previously-selected bin folder. Copy them forward so creating
+	 * a new revision doesn't "lose" measures from the user's perspective.
+	 */
+	private static void copyMeasuresBetweenBins(Experiment exp, String fromBinDir, String toBinDir) {
+		if (exp == null || fromBinDir == null || toBinDir == null || fromBinDir.equals(toBinDir)) {
+			return;
+		}
+		String resultsDir = exp.getResultsDirectory();
+		if (resultsDir == null) {
+			return;
+		}
+		Path from = Paths.get(resultsDir, fromBinDir);
+		Path to = Paths.get(resultsDir, toBinDir);
+		if (!Files.isDirectory(from) || !Files.isDirectory(to)) {
+			return;
+		}
+		try (Stream<Path> stream = Files.list(from)) {
+			for (Path p : stream.collect(Collectors.toList())) {
+				if (!Files.isRegularFile(p)) {
+					continue;
+				}
+				String name = p.getFileName().toString();
+				String lower = name.toLowerCase();
+				// Keep measures and descriptors, but never propagate image files.
+				if (lower.endsWith(".tif") || lower.endsWith(".tiff")) {
+					continue;
+				}
+				if (!(lower.endsWith(".csv") || lower.endsWith(".xml"))) {
+					continue;
+				}
+				// Avoid carrying over "deleted_*" helpers.
+				if (lower.startsWith("deleted_")) {
+					continue;
+				}
+
+				Path dest = to.resolve(name);
+				if (Files.exists(dest)) {
+					continue;
+				}
+				try {
+					Files.copy(p, dest);
+				} catch (IOException e) {
+					Logger.warn("KymographBuilder: could not copy measure " + p + " -> " + dest + " : " + e.getMessage());
+				}
+			}
+		} catch (IOException e) {
+			Logger.warn("KymographBuilder: copyMeasuresBetweenBins list failed " + from + " : " + e.getMessage());
 		}
 	}
 

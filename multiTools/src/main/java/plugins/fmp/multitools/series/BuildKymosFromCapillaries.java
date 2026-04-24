@@ -2,6 +2,7 @@ package plugins.fmp.multitools.series;
 
 import java.lang.reflect.InvocationTargetException;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 import icy.gui.viewer.Viewer;
@@ -16,19 +17,47 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 	private Viewer vData = null;
 
 	void analyzeExperiment(Experiment exp) {
+		KymographBuilder.PreArchiveResult pre = KymographBuilder.preArchiveExistingKymographsInCurrentBin(exp);
+		if (pre.failed > 0) {
+			try {
+				SwingUtilities.invokeAndWait(new Runnable() {
+					@Override
+					public void run() {
+						JOptionPane.showMessageDialog(null,
+								"Cannot rename existing kymograph TIFF(s) in:\n" + pre.directory + "\n\n"
+										+ "Some files appear to be locked by Windows or another process.\n"
+										+ "Close any viewer/file browser preview using these kymographs and retry.",
+								"Kymograph files locked", JOptionPane.WARNING_MESSAGE);
+					}
+				});
+			} catch (InvocationTargetException | InterruptedException e) {
+				Logger.error("BuildKymosFromCapillaries: failed to show lock warning dialog", e);
+			}
+			return;
+		}
+
 		loadExperimentDataToBuildKymos(exp);
 		openDataViewer(exp);
 		getTimeLimitsOfSequence(exp);
 
 		KymographBuilder builder = new KymographBuilder();
 		if (builder.buildKymograph(exp, options)) {
-//			builder.saveComputation(exp, options);
 			exp.saveExperimentDescriptors();
 		}
 
-		// Don't close seqKymos sequence - it will be needed when loading the experiment later
-		// The sequence will be properly managed by the experiment lifecycle
-		
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				@Override
+				public void run() {
+					if (!exp.loadKymographs()) {
+						Logger.warn("BuildKymosFromCapillaries: loadKymographs() after rebuild returned false");
+					}
+				}
+			});
+		} catch (InvocationTargetException | InterruptedException e) {
+			Logger.error("BuildKymosFromCapillaries: loadKymographs on EDT failed", e);
+		}
+
 		closeDataViewerAndSequence();
 	}
 

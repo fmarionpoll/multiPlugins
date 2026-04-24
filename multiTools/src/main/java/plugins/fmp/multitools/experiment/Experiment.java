@@ -822,8 +822,9 @@ public class Experiment {
 						currentBinDirName = binDirFile.getName();
 					}
 				}
-				// Update binDirectory if it doesn't match the calculated interval
-				if (binDirectory == null || currentBinDirName == null || !currentBinDirName.equals(expectedBinDir)) {
+				// Keep flip-flop slots (…_r1, …_r2) from KymographBuilder — they still match this interval.
+				if (binDirectory == null || currentBinDirName == null
+						|| !binDirectoryMatchesKymoIntervalName(currentBinDirName, expectedBinDir)) {
 					setBinSubDirectory(expectedBinDir);
 					int nominalFromDir = parseNominalFromBinDirectoryName(expectedBinDir);
 					if (nominalFromDir > 0)
@@ -834,6 +835,34 @@ public class Experiment {
 			}
 		}
 		return saved;
+	}
+
+	/**
+	 * True if {@code current} is the canonical bin folder for {@code expectedBase} or a
+	 * kymograph flip-flop revision folder ({@code expectedBase + "_r" + digits}) used when
+	 * rebuilding TIFFs on Windows.
+	 */
+	static boolean binDirectoryMatchesKymoIntervalName(String current, String expectedBase) {
+		if (current == null || expectedBase == null) {
+			return false;
+		}
+		if (current.equals(expectedBase)) {
+			return true;
+		}
+		String prefix = expectedBase + "_r";
+		if (!current.startsWith(prefix)) {
+			return false;
+		}
+		String tail = current.substring(prefix.length());
+		if (tail.isEmpty()) {
+			return false;
+		}
+		for (int i = 0; i < tail.length(); i++) {
+			if (!Character.isDigit(tail.charAt(i))) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	public boolean loadExperimentDescriptors() {
@@ -1961,13 +1990,18 @@ public class Experiment {
 		if (resultsDirectory == null)
 			return;
 
-		// If current binDirectory exists, keep it.
 		if (binDirectory != null) {
 			File current = new File(binDirectory);
 			if (!current.isAbsolute()) {
 				current = new File(resultsDirectory + File.separator + binDirectory);
 			}
 			if (current.exists() && current.isDirectory()) {
+				String binName = new File(binDirectory).isAbsolute() ? new File(binDirectory).getName() : binDirectory;
+				String upgraded = BinDirectoryResolver.pickNewestKymographBinInFamily(Paths.get(resultsDirectory),
+						binName);
+				if (upgraded != null && !upgraded.equals(binName)) {
+					setBinSubDirectory(upgraded);
+				}
 				return;
 			}
 		}

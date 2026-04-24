@@ -3,6 +3,7 @@ package plugins.fmp.multitools.experiment;
 import java.awt.Component;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -15,6 +16,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.prefs.Preferences;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Single source of truth for choosing which {@code results/bin_xxx}
@@ -64,6 +67,9 @@ public final class BinDirectoryResolver {
 
 	private static String rememberedBinForSession = null;
 
+	/** Kymograph flip-flop folders: {@code bin_60_r1}, {@code bin_60_r2}, … */
+	private static final Pattern BIN_WITH_FLIP_REVISION = Pattern.compile("^bin_(\\d+)_r(\\d+)$");
+
 	private BinDirectoryResolver() {
 	}
 
@@ -98,13 +104,24 @@ public final class BinDirectoryResolver {
 
 		List<BinCandidate> candidates = scanCandidates(resultsPath, ctx.detectedIntervalMs);
 
-		if (ctx.previouslySelected != null && containsName(candidates, ctx.previouslySelected)) {
-			return ctx.previouslySelected;
+		if (ctx.previouslySelected != null) {
+			Path prevPath = resultsPath.resolve(ctx.previouslySelected);
+			if (Files.isDirectory(prevPath)) {
+				return pickNewestKymographBinInFamily(resultsPath, ctx.previouslySelected);
+			}
+			if (containsName(candidates, ctx.previouslySelected)) {
+				return pickNewestKymographBinInFamily(resultsPath, ctx.previouslySelected);
+			}
 		}
 
-		if (ctx.useSessionRemembered && rememberedBinForSession != null
-				&& containsName(candidates, rememberedBinForSession)) {
-			return rememberedBinForSession;
+		if (ctx.useSessionRemembered && rememberedBinForSession != null) {
+			Path memPath = resultsPath.resolve(rememberedBinForSession);
+			if (Files.isDirectory(memPath)) {
+				return pickNewestKymographBinInFamily(resultsPath, rememberedBinForSession);
+			}
+			if (containsName(candidates, rememberedBinForSession)) {
+				return pickNewestKymographBinInFamily(resultsPath, rememberedBinForSession);
+			}
 		}
 
 		if (candidates.isEmpty()) {
@@ -165,8 +182,9 @@ public final class BinDirectoryResolver {
 	}
 
 	/**
-	 * Scans {@code results/} for immediate {@code bin_<integer>} children,
-	 * skipping any directory whose name begins with
+	 * Scans {@code results/} for immediate {@code bin_<integer>} and flip-flop
+	 * {@code bin_<integer>_r<integer>} children, skipping any directory whose name
+	 * begins with
 	 * {@link BinDirectoryScanUtils#DELETED_PREFIX}. Each candidate is
 	 * annotated with its compression-class metadata, either loaded from its
 	 * {@code BinDescription.xml} or inferred from content and
@@ -190,7 +208,10 @@ public final class BinDirectoryResolver {
 				try {
 					sec = Integer.parseInt(name.substring(Experiment.BIN.length()));
 				} catch (NumberFormatException e) {
-					continue;
+					Matcher flip = BIN_WITH_FLIP_REVISION.matcher(name);
+					if (!flip.matches())
+						continue;
+					sec = Integer.parseInt(flip.group(1));
 				}
 				if (sec <= 0)
 					continue;
@@ -258,7 +279,71 @@ public final class BinDirectoryResolver {
 			if (!metadataLoaded)
 				c.metadataInferred = true;
 		}
+		c.latestLineKymographTiffMs = BinDirectoryScanUtils.newestLineKymographTiffTimestampMs(dir);
 		return c;
+	}
+
+	/**
+	 * Canonical folder plus flip revisions share one "stem" (e.g. {@code bin_60} for
+	 * {@code bin_60_r1}). Among those siblings under {@code resultsPath}, returns the
+	 * directory name whose {@code line*.tiff} files are newest by last-modified time.
+	 */
+	public static String pickNewestKymographBinInFamily(Path resultsPath, String binDirName) {
+		if (resultsPath == null || binDirName == null || !Files.isDirectory(resultsPath)) {
+			return binDirName;
+		}
+		String stem = stemBinFolderForFlipFamily(binDirName);
+		String bestName = binDirName;
+		long bestTs = -1L;
+		boolean anyLineKymoTimestamp = false;
+		Pattern siblingPat = Pattern.compile("^" + Pattern.quote(stem) + "_r\\d+$");
+		try (DirectoryStream<Path> ds = Files.newDirectoryStream(resultsPath)) {
+			for (Path p : ds) {
+				if (!Files.isDirectory(p)) {
+					continue;
+				}
+				String n = p.getFileName().toString();
+				if (BinDirectoryScanUtils.isIgnoredDirectoryName(n)) {
+					continue;
+				}
+				if (!n.equals(stem) && !siblingPat.matcher(n).matches()) {
+					continue;
+				}
+				long ts = BinDirectoryScanUtils.newestLineKymographTiffTimestampMs(p);
+				if (ts > 0L) {
+					anyLineKymoTimestamp = true;
+				}
+				if (ts > bestTs) {
+					bestTs = ts;
+					bestName = n;
+				} else if (ts == bestTs && ts > 0L) {
+					if (flipRevisionSuffix(n) > flipRevisionSuffix(bestName)) {
+						bestName = n;
+					}
+				}
+			}
+		} catch (IOException e) {
+			return binDirName;
+		}
+		if (!anyLineKymoTimestamp) {
+			return binDirName;
+		}
+		return bestName;
+	}
+
+	private static String stemBinFolderForFlipFamily(String dirName) {
+		if (dirName == null) {
+			return null;
+		}
+		return dirName.replaceFirst("_r\\d+$", "");
+	}
+
+	private static int flipRevisionSuffix(String dirName) {
+		if (dirName == null) {
+			return 0;
+		}
+		Matcher m = Pattern.compile("_r(\\d+)$").matcher(dirName);
+		return m.find() ? Integer.parseInt(m.group(1)) : 0;
 	}
 
 	// -------------- equivalence classes --------------
@@ -555,8 +640,20 @@ public final class BinDirectoryResolver {
 			} else if (c.hasMeasures == best.hasMeasures) {
 				if (c.hasBinDescription && !best.hasBinDescription) {
 					best = c;
-				} else if (c.hasBinDescription == best.hasBinDescription && c.lastModifiedMs > best.lastModifiedMs) {
-					best = c;
+				} else if (c.hasBinDescription == best.hasBinDescription) {
+					if (c.latestLineKymographTiffMs > best.latestLineKymographTiffMs) {
+						best = c;
+					} else if (c.latestLineKymographTiffMs == best.latestLineKymographTiffMs
+							&& c.lastModifiedMs > best.lastModifiedMs) {
+						best = c;
+					}
+				} else if (!c.hasBinDescription && !best.hasBinDescription) {
+					if (c.latestLineKymographTiffMs > best.latestLineKymographTiffMs) {
+						best = c;
+					} else if (c.latestLineKymographTiffMs == best.latestLineKymographTiffMs
+							&& c.lastModifiedMs > best.lastModifiedMs) {
+						best = c;
+					}
 				}
 			}
 		}
@@ -593,6 +690,8 @@ public final class BinDirectoryResolver {
 		public int nominalIntervalSec = -1;
 		/** True when class metadata was not loaded from XML but inferred from content. */
 		public boolean metadataInferred = false;
+		/** Max last-modified of {@code line*.tiff} in this bin (0 if none). */
+		public long latestLineKymographTiffMs;
 
 		public File toFile() {
 			return path != null ? path.toFile() : null;

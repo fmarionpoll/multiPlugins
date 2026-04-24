@@ -2,8 +2,11 @@ package plugins.fmp.multitools.experiment;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Locale;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -78,6 +81,39 @@ public final class BinDirectoryScanUtils {
 		} catch (IOException e) {
 			return false;
 		}
+	}
+
+	/**
+	 * Latest last-modified time among {@code line*.tiff} / {@code line*.tif} in the
+	 * directory, or 0 if none / unreadable.
+	 */
+	public static long newestLineKymographTiffTimestampMs(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return 0L;
+		}
+		long max = 0L;
+		try (Stream<Path> stream = Files.list(dir)) {
+			for (Path p : stream.collect(Collectors.toList())) {
+				if (!Files.isRegularFile(p)) {
+					continue;
+				}
+				String n = p.getFileName().toString().toLowerCase(Locale.ROOT);
+				if (!n.startsWith("line") || !(n.endsWith(".tif") || n.endsWith(".tiff"))) {
+					continue;
+				}
+				try {
+					FileTime ft = Files.getLastModifiedTime(p);
+					long ms = ft.toMillis();
+					if (ms > max) {
+						max = ms;
+					}
+				} catch (IOException ignored) {
+				}
+			}
+		} catch (IOException e) {
+			return 0L;
+		}
+		return max;
 	}
 
 	private static boolean isImageFile(Path path) {

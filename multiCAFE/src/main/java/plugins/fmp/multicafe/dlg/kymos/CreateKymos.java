@@ -237,6 +237,10 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			startComputationButton.setText(detectString);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				parent0.expListComboLazy.expListBinSubDirectory = exp.getBinSubDirectory();
+			}
 		}
 	}
 
