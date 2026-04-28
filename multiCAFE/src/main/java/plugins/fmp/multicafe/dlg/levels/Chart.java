@@ -57,8 +57,6 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			EnumResults.TOPRAW, //
 			EnumResults.TOPLEVEL, //
 			EnumResults.BOTTOMLEVEL, //
-			EnumResults.TOPLEVELDIRECT, //
-			EnumResults.BOTTOMLEVELDIRECT, //
 			EnumResults.TOPLEVEL_LR, //
 			EnumResults.DERIVEDVALUES, //
 			EnumResults.SUMGULPS, //

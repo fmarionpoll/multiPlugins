@@ -546,14 +546,9 @@ public class CapillariesPersistence {
 									EnumResults.BOTTOMLEVEL, sep, row.contains("xi"));
 							break;
 						case "TOPLEVELDIRECT":
-							measuresLoaded = true;
-							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumResults.TOPLEVELDIRECT, sep, row.contains("xi"));
-							break;
 						case "BOTTOMLEVELDIRECT":
-							measuresLoaded = true;
-							CapillariesPersistenceLegacy.csvLoad_Capillaries_Measures(capillaries, csvReader,
-									EnumResults.BOTTOMLEVELDIRECT, sep, row.contains("xi"));
+							// Deprecated: direct-from-cam levels are now stored as standard TOPLEVEL/BOTTOMLEVEL.
+							CapillariesPersistenceLegacy.csvSkipSection(csvReader, sep);
 							break;
 						case "TOPDERIVATIVE":
 						case "TOPDER":
@@ -672,10 +667,6 @@ public class CapillariesPersistence {
 						EnumResults.TOPLEVEL, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumResults.BOTTOMLEVEL, csvSep);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumResults.TOPLEVELDIRECT, csvSep);
-				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
-						EnumResults.BOTTOMLEVELDIRECT, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumResults.DERIVEDVALUES, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,

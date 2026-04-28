@@ -270,8 +270,6 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 				EnumResults.TOPRAW, //
 				EnumResults.TOPLEVEL, //
 				EnumResults.BOTTOMLEVEL, //
-				EnumResults.TOPLEVELDIRECT, //
-				EnumResults.BOTTOMLEVELDIRECT, //
 				EnumResults.TOPLEVEL_LR, //
 				EnumResults.DERIVEDVALUES, //
 				EnumResults.SUMGULPS, //

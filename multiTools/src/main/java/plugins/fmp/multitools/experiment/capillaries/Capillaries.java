@@ -278,22 +278,8 @@ public class Capillaries {
 	}
 
 	/**
-	 * Clears only TOPLEVELDIRECT and BOTTOMLEVELDIRECT for all capillaries. Used
-	 * before direct-from-cam detection so that other measures (TOPRAW, BOTTOMLEVEL,
-	 * TOPDERIVATIVE, etc.) loaded from CSV remain untouched.
-	 */
-	public void clearDirectMeasuresOnly() {
-		for (Capillary cap : getList()) {
-			cap.getTopLevelDirect().clear();
-			cap.getBottomLevelDirect().clear();
-		}
-	}
-
-	/**
 	 * Clears only kymograph-based measures (top, bottom, derivative, gulps, etc.)
-	 * for capillaries in [first, last] matching detectL/detectR. Leaves
-	 * TOPLEVELDIRECT and BOTTOMLEVELDIRECT untouched so that kymo detection does
-	 * not erase direct-from-cam measures.
+	 * for capillaries in [first, last] matching detectL/detectR.
 	 */
 	public void clearKymoMeasuresOnly(int first, int last, boolean detectL, boolean detectR) {
 		for (Capillary cap : getList()) {

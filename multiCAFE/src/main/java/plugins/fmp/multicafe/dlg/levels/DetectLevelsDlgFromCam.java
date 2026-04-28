@@ -62,8 +62,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	private JCheckBox leftCheckBox = new JCheckBox("L", true);
 	private JCheckBox rightCheckBox = new JCheckBox("R", true);
 
-	private JButton transferButton = new JButton("transfer measures to kymos");
-
 	private MultiCAFE parent0 = null;
 	private DetectLevels threadDetectLevels = null;
 	private OverlayThreshold overlayThreshold = null;
@@ -95,13 +93,9 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(profilePerpendicularCheckBox);
 
-		JPanel panel03 = new JPanel(layoutLeft);
-		panel03.add(transferButton);
-
 		add(panel0);
 		add(panel01);
 		add(panel02);
-		add(panel03);
 
 		transformComboBox.setSelectedItem(ImageTransformEnums.GBMINUS_2R);
 		defineListeners();
@@ -198,25 +192,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			}
 		});
 
-		transferButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					transferDirectMeasuresToKymos(exp);
-			}
-		});
-	}
-
-	void transferDirectMeasuresToKymos(Experiment exp) {
-		if (exp.getCapillaries() == null || exp.getCapillaries().getList() == null)
-			return;
-		for (Capillary cap : exp.getCapillaries().getList()) {
-			if (cap.getTopLevelDirect().isThereAnyMeasuresDone())
-				cap.getTopLevel().copy(cap.getTopLevelDirect());
-			if (cap.getBottomLevelDirect().isThereAnyMeasuresDone())
-				cap.getBottomLevel().copy(cap.getBottomLevelDirect());
-		}
 	}
 
 	void setDialogFromOptions(Capillary cap) {
