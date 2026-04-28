@@ -24,6 +24,7 @@ import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.data.xy.XYDataItem;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
@@ -424,7 +425,7 @@ public class ChartSpotsOverlayFrame {
 			EnumResults flyPresentType = findResultByLabel("AREA_FLYPRESENT");
 			NumberAxis yAxis1 = new NumberAxis(flyPresentType != null ? flyPresentType.toUnit() : "");
 			yAxis1.setAutoRange(false);
-			yAxis1.setRange(-0.2, 1.2);
+			yAxis1.setRange(computePaddedRange(ds1, -0.2, 1.2, 0.05, 0.05));
 			plot.setRangeAxis(1, yAxis1);
 			plot.setDataset(1, ds1);
 			plot.setRenderer(1, r1);
@@ -442,7 +443,7 @@ public class ChartSpotsOverlayFrame {
 			yAxis0.setLabel(labelType != null ? labelType.toUnit() : "");
 			if (flyEnabled && !hasContinuous) {
 				yAxis0.setAutoRange(false);
-				yAxis0.setRange(-0.2, 1.2);
+				yAxis0.setRange(computePaddedRange(ds, -0.2, 1.2, 0.05, 0.05));
 			}
 		}
 
@@ -626,5 +627,53 @@ public class ChartSpotsOverlayFrame {
 
 	private static String safeLower(String s) {
 		return s != null ? s.toLowerCase() : "";
+	}
+
+	private static org.jfree.data.Range computePaddedRange(XYSeriesCollection dataset, double defaultLower,
+			double defaultUpper, double padFraction, double padMinAbs) {
+		if (dataset == null || dataset.getSeriesCount() == 0) {
+			return new org.jfree.data.Range(defaultLower, defaultUpper);
+		}
+		double min = Double.POSITIVE_INFINITY;
+		double max = Double.NEGATIVE_INFINITY;
+		boolean hasValue = false;
+
+		for (int s = 0; s < dataset.getSeriesCount(); s++) {
+			XYSeries series = dataset.getSeries(s);
+			if (series == null) {
+				continue;
+			}
+			for (int i = 0; i < series.getItemCount(); i++) {
+				XYDataItem item = series.getDataItem(i);
+				if (item == null || item.getY() == null) {
+					continue;
+				}
+				double y = item.getY().doubleValue();
+				if (!Double.isFinite(y)) {
+					continue;
+				}
+				hasValue = true;
+				if (y < min)
+					min = y;
+				if (y > max)
+					max = y;
+			}
+		}
+
+		if (!hasValue) {
+			return new org.jfree.data.Range(defaultLower, defaultUpper);
+		}
+
+		if (min == max) {
+			double pad = Math.max(padMinAbs, Math.abs(min) * padFraction);
+			if (pad == 0) {
+				pad = padMinAbs > 0 ? padMinAbs : 0.1;
+			}
+			return new org.jfree.data.Range(min - pad, max + pad);
+		}
+
+		double span = max - min;
+		double pad = Math.max(padMinAbs, span * padFraction);
+		return new org.jfree.data.Range(min - pad, max + pad);
 	}
 }
