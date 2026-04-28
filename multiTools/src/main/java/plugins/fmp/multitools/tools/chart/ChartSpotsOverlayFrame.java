@@ -113,6 +113,7 @@ public class ChartSpotsOverlayFrame {
 	private AvailableSpotsProvider availableSpotsProvider = null;
 	private SpotExclusiveSelectionController spotExclusiveSelectionController = null;
 	private boolean isUpdatingSpotComboModel = false;
+	private boolean isUpdatingMeasureCheckboxes = false;
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
 		this.selectedSpotsProvider = provider;
@@ -209,12 +210,25 @@ public class ChartSpotsOverlayFrame {
 
 		updateButton.addActionListener(e -> refreshChart());
 
-		cbSum.addActionListener(e -> maybeEnforceSingleMeasureSelection());
-		cbNoFly.addActionListener(e -> maybeEnforceSingleMeasureSelection());
-		cbClean.addActionListener(e -> maybeEnforceSingleMeasureSelection());
-		cbFlyPresent.addActionListener(e -> maybeEnforceSingleMeasureSelection());
+		cbSum.addActionListener(e -> onMeasureCheckboxChanged());
+		cbNoFly.addActionListener(e -> onMeasureCheckboxChanged());
+		cbClean.addActionListener(e -> onMeasureCheckboxChanged());
+		cbFlyPresent.addActionListener(e -> onMeasureCheckboxChanged());
 
 		return panel;
+	}
+
+	private void onMeasureCheckboxChanged() {
+		if (isUpdatingMeasureCheckboxes) {
+			return;
+		}
+		isUpdatingMeasureCheckboxes = true;
+		try {
+			maybeEnforceSingleMeasureSelection();
+		} finally {
+			isUpdatingMeasureCheckboxes = false;
+		}
+		refreshChart();
 	}
 
 	private void setCheckboxDefaults(ResultsOptions options) {
@@ -419,13 +433,17 @@ public class ChartSpotsOverlayFrame {
 			plot.setDataset(0, ds0);
 			plot.setRenderer(0, r0);
 
+			yAxis0.setAutoRange(false);
+			yAxis0.setRange(computePaddedRangeFromZero(ds0, 1.0, 0.05, 0.05));
+
 			XYSeriesCollection ds1 = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
 					enabledMeasures, true, overlaySpots, overlayMeasures);
 			XYLineAndShapeRenderer r1 = createRenderer(ds1);
 			EnumResults flyPresentType = findResultByLabel("AREA_FLYPRESENT");
 			NumberAxis yAxis1 = new NumberAxis(flyPresentType != null ? flyPresentType.toUnit() : "");
+			yAxis1.setInverted(true);
 			yAxis1.setAutoRange(false);
-			yAxis1.setRange(computePaddedRange(ds1, -0.2, 1.2, 0.05, 0.05));
+			yAxis1.setRange(computePaddedRange(ds1, 0.0, 1.2, 0.05, 0.05));
 			plot.setRangeAxis(1, yAxis1);
 			plot.setDataset(1, ds1);
 			plot.setRenderer(1, r1);
@@ -443,7 +461,10 @@ public class ChartSpotsOverlayFrame {
 			yAxis0.setLabel(labelType != null ? labelType.toUnit() : "");
 			if (flyEnabled && !hasContinuous) {
 				yAxis0.setAutoRange(false);
-				yAxis0.setRange(computePaddedRange(ds, -0.2, 1.2, 0.05, 0.05));
+				yAxis0.setRange(computePaddedRange(ds, 0.0, 1.2, 0.05, 0.05));
+			} else {
+				yAxis0.setAutoRange(false);
+				yAxis0.setRange(computePaddedRangeFromZero(ds, 1.0, 0.05, 0.05));
 			}
 		}
 
@@ -675,5 +696,45 @@ public class ChartSpotsOverlayFrame {
 		double span = max - min;
 		double pad = Math.max(padMinAbs, span * padFraction);
 		return new org.jfree.data.Range(min - pad, max + pad);
+	}
+
+	private static org.jfree.data.Range computePaddedRangeFromZero(XYSeriesCollection dataset, double defaultUpper,
+			double padFraction, double padMinAbs) {
+		if (dataset == null || dataset.getSeriesCount() == 0) {
+			return new org.jfree.data.Range(0.0, defaultUpper);
+		}
+		double max = Double.NEGATIVE_INFINITY;
+		boolean hasValue = false;
+
+		for (int s = 0; s < dataset.getSeriesCount(); s++) {
+			XYSeries series = dataset.getSeries(s);
+			if (series == null) {
+				continue;
+			}
+			for (int i = 0; i < series.getItemCount(); i++) {
+				XYDataItem item = series.getDataItem(i);
+				if (item == null || item.getY() == null) {
+					continue;
+				}
+				double y = item.getY().doubleValue();
+				if (!Double.isFinite(y)) {
+					continue;
+				}
+				hasValue = true;
+				if (y > max)
+					max = y;
+			}
+		}
+
+		if (!hasValue) {
+			return new org.jfree.data.Range(0.0, defaultUpper);
+		}
+
+		if (max <= 0) {
+			return new org.jfree.data.Range(0.0, Math.max(defaultUpper, 1.0));
+		}
+
+		double pad = Math.max(padMinAbs, Math.abs(max) * padFraction);
+		return new org.jfree.data.Range(0.0, max + pad);
 	}
 }
