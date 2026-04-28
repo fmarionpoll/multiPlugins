@@ -63,8 +63,9 @@ public class Capillaries {
 
 	/**
 	 * Marks capillary measures as invalid (NaN) at every time index where the
-	 * camera frame was dark (lightStatusPerFrame[t]==0). Uses kymograph column index
-	 * as time; assumes 1:1 with camera frames. Call after dark-frame detection.
+	 * camera frame was dark (lightStatusPerFrame[t]==0). Uses kymograph column
+	 * index as time; assumes 1:1 with camera frames. Call after dark-frame
+	 * detection.
 	 */
 	public void clearMeasuresAtDarkFrames(int[] lightStatusPerFrame) {
 		if (lightStatusPerFrame == null || lightStatusPerFrame.length == 0)
@@ -72,8 +73,6 @@ public class Capillaries {
 		for (Capillary cap : capillariesList) {
 			clearMeasureAtDarkFrames(cap.getTopLevel(), lightStatusPerFrame);
 			clearMeasureAtDarkFrames(cap.getBottomLevel(), lightStatusPerFrame);
-			clearMeasureAtDarkFrames(cap.getTopLevelDirect(), lightStatusPerFrame);
-			clearMeasureAtDarkFrames(cap.getBottomLevelDirect(), lightStatusPerFrame);
 			clearMeasureAtDarkFrames(cap.getDerivative(), lightStatusPerFrame);
 			clearMeasureAtDarkFrames(cap.getTopCorrected(), lightStatusPerFrame);
 			if (cap.getGulps() != null) {
