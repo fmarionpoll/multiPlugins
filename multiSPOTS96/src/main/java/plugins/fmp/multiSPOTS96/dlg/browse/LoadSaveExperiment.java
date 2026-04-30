@@ -45,6 +45,7 @@ import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.experiment.persistence.MigrationTool;
+import plugins.fmp.multitools.experiment.ui.SelectFilesPanel;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
@@ -722,7 +723,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	private void handleSearchButton() {
 		selectedNames = new ArrayList<String>();
-		dialogSelect = new SelectFilesPanel();
+		dialogSelect = new SelectFilesPanel(SelectFilesPanel.Features.spots96Defaults());
 		dialogSelect.initialize(parent0.getPreferences("gui"), this, selectedNames);
 	}
 
