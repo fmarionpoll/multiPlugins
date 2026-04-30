@@ -6,6 +6,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import icy.roi.ROI2D;
 import icy.type.geom.Polygon2D;
@@ -111,7 +112,7 @@ public class ROIPersistenceUtils {
 		double radiusX = bounds.getWidth() / 2.0;
 		double radiusY = bounds.getHeight() / 2.0;
 		
-		return String.format("%.1f%s%.1f%s%.1f%s%.1f", 
+		return String.format(Locale.ROOT, "%.1f%s%.1f%s%.1f%s%.1f", 
 			centerX, separator, centerY, separator, radiusX, separator, radiusY);
 	}
 	
@@ -130,7 +131,7 @@ public class ROIPersistenceUtils {
 		ROI2DLine lineROI = (ROI2DLine) roi;
 		Line2D line = lineROI.getLine();
 		
-		return String.format("%.1f%s%.1f%s%.1f%s%.1f",
+		return String.format(Locale.ROOT, "%.1f%s%.1f%s%.1f%s%.1f",
 			line.getX1(), separator, line.getY1(), separator,
 			line.getX2(), separator, line.getY2());
 	}
@@ -154,8 +155,8 @@ public class ROIPersistenceUtils {
 		sb.append(polyline.npoints);
 		
 		for (int i = 0; i < polyline.npoints; i++) {
-			sb.append(separator).append(String.format("%.1f", polyline.xpoints[i]));
-			sb.append(separator).append(String.format("%.1f", polyline.ypoints[i]));
+			sb.append(separator).append(formatDouble(polyline.xpoints[i]));
+			sb.append(separator).append(formatDouble(polyline.ypoints[i]));
 		}
 		
 		return sb.toString();
@@ -180,8 +181,8 @@ public class ROIPersistenceUtils {
 		sb.append(polygon.npoints);
 		
 		for (int i = 0; i < polygon.npoints; i++) {
-			sb.append(separator).append(String.format("%.1f", polygon.xpoints[i]));
-			sb.append(separator).append(String.format("%.1f", polygon.ypoints[i]));
+			sb.append(separator).append(formatDouble(polygon.xpoints[i]));
+			sb.append(separator).append(formatDouble(polygon.ypoints[i]));
 		}
 		
 		return sb.toString();
@@ -201,7 +202,7 @@ public class ROIPersistenceUtils {
 		
 		Rectangle bounds = roi.getBounds();
 		
-		return String.format("%.1f%s%.1f%s%.1f%s%.1f",
+		return String.format(Locale.ROOT, "%.1f%s%.1f%s%.1f%s%.1f",
 			(double) bounds.x, separator, (double) bounds.y, separator,
 			(double) bounds.width, separator, (double) bounds.height);
 	}
@@ -229,8 +230,7 @@ public class ROIPersistenceUtils {
 		
 		ROIType type = ROIType.fromString(roiTypeStr);
 		
-		// Split data by common separators (handle both ; and ,)
-		String[] params = roiDataStr.split("[;,]");
+		String[] params = splitROIData(roiDataStr);
 		
 		ROI2D roi = reconstructROI(type, params, roiName);
 		return roi;
@@ -278,10 +278,10 @@ public class ROIPersistenceUtils {
 			throw new IllegalArgumentException("Ellipse requires at least 3 parameters: centerX, centerY, radius (or 4: centerX, centerY, radiusX, radiusY)");
 		}
 		
-		double centerX = Double.parseDouble(params[0].trim());
-		double centerY = Double.parseDouble(params[1].trim());
-		double radiusX = Double.parseDouble(params[2].trim());
-		double radiusY = params.length >= 4 ? Double.parseDouble(params[3].trim()) : radiusX;
+		double centerX = parseDouble(params[0]);
+		double centerY = parseDouble(params[1]);
+		double radiusX = parseDouble(params[2]);
+		double radiusY = params.length >= 4 ? parseDouble(params[3]) : radiusX;
 		
 		double x = centerX - radiusX;
 		double y = centerY - radiusY;
@@ -310,10 +310,10 @@ public class ROIPersistenceUtils {
 			throw new IllegalArgumentException("Line requires 4 parameters: x1, y1, x2, y2");
 		}
 		
-		double x1 = Double.parseDouble(params[0].trim());
-		double y1 = Double.parseDouble(params[1].trim());
-		double x2 = Double.parseDouble(params[2].trim());
-		double y2 = Double.parseDouble(params[3].trim());
+		double x1 = parseDouble(params[0]);
+		double y1 = parseDouble(params[1]);
+		double x2 = parseDouble(params[2]);
+		double y2 = parseDouble(params[3]);
 		
 		Line2D line = new Line2D.Double(x1, y1, x2, y2);
 		ROI2DLine roi = new ROI2DLine(line);
@@ -348,8 +348,8 @@ public class ROIPersistenceUtils {
 		double[] ypoints = new double[npoints];
 		
 		for (int i = 0; i < npoints; i++) {
-			xpoints[i] = Double.parseDouble(params[1 + i * 2].trim());
-			ypoints[i] = Double.parseDouble(params[1 + i * 2 + 1].trim());
+			xpoints[i] = parseDouble(params[1 + i * 2]);
+			ypoints[i] = parseDouble(params[1 + i * 2 + 1]);
 		}
 		
 		Polyline2D polyline = new Polyline2D(xpoints, ypoints, npoints);
@@ -384,8 +384,8 @@ public class ROIPersistenceUtils {
 		List<Point2D> points = new ArrayList<>();
 		
 		for (int i = 0; i < npoints; i++) {
-			double x = Double.parseDouble(params[1 + i * 2].trim());
-			double y = Double.parseDouble(params[1 + i * 2 + 1].trim());
+			double x = parseDouble(params[1 + i * 2]);
+			double y = parseDouble(params[1 + i * 2 + 1]);
 			points.add(new Point2D.Double(x, y));
 		}
 		
@@ -411,10 +411,10 @@ public class ROIPersistenceUtils {
 			throw new IllegalArgumentException("Rectangle requires 4 parameters: x, y, width, height");
 		}
 		
-		double x = Double.parseDouble(params[0].trim());
-		double y = Double.parseDouble(params[1].trim());
-		double width = Double.parseDouble(params[2].trim());
-		double height = Double.parseDouble(params[3].trim());
+		double x = parseDouble(params[0]);
+		double y = parseDouble(params[1]);
+		double width = parseDouble(params[2]);
+		double height = parseDouble(params[3]);
 		
 		ROI2DRectangle roi = new ROI2DRectangle(x, y, width, height);
 		
@@ -437,6 +437,22 @@ public class ROIPersistenceUtils {
 	 */
 	public static ROIType detectROIType(ROI2D roi) {
 		return ROIType.fromROI2D(roi);
+	}
+
+	private static String formatDouble(double value) {
+		return String.format(Locale.ROOT, "%.1f", value);
+	}
+
+	private static double parseDouble(String value) {
+		return Double.parseDouble(value.trim().replace(',', '.'));
+	}
+
+	private static String[] splitROIData(String roiDataStr) {
+		String data = roiDataStr.trim();
+		if (data.contains(";")) {
+			return data.split(";");
+		}
+		return data.split(",");
 	}
 	
 	/**

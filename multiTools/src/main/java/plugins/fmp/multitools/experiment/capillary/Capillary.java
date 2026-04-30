@@ -26,6 +26,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 
 public class Capillary implements Comparable<Capillary> {
 
@@ -365,7 +366,7 @@ public class Capillary implements Comparable<Capillary> {
 			break;
 		case CAP_VOLUME:
 			try {
-				double volume = Double.parseDouble(value);
+				double volume = CsvNumberParsing.parseDouble(value);
 				properties.setVolume(volume);
 			} catch (NumberFormatException e) {
 				throw new IllegalArgumentException("Invalid volume value: " + value, e);

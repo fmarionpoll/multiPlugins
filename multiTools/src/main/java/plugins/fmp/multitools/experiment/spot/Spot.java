@@ -20,6 +20,7 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DShape;
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 
 /**
  * Represents a spot with comprehensive measurement capabilities.
@@ -404,7 +405,7 @@ public class Spot implements Comparable<Spot> {
 			break;
 		case SPOT_VOLUME:
 			try {
-				double volume = Double.parseDouble(value);
+				double volume = CsvNumberParsing.parseDouble(value);
 				properties.setSpotVolume(volume);
 			} catch (NumberFormatException e) {
 				throw new IllegalArgumentException("Invalid volume value: " + value, e);

@@ -3,7 +3,6 @@ package plugins.fmp.multitools.series;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -26,48 +25,6 @@ import plugins.kernel.roi.roi2d.ROI2DArea;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class DetectSpotsTools {
-
-	private static volatile boolean codeSourceLogged = false;
-	private static volatile boolean detectParamsLogged = false;
-	private static volatile boolean firstBlobLogged = false;
-
-	private static void logCodeSourceOnce() {
-		if (codeSourceLogged)
-			return;
-		codeSourceLogged = true;
-		try {
-			String where = String.valueOf(DetectSpotsTools.class.getProtectionDomain().getCodeSource().getLocation());
-			String user = System.getProperty("user.name");
-			String java = System.getProperty("java.version");
-			final String msg = "DetectSpotsTools loaded from: " + where + " | user=" + user + " | java=" + java;
-
-			// Logger output depends on ICY / launch config (sometimes not visible).
-			// Print to stdout as a fallback so users can always see it.
-			System.out.println(msg);
-			Logger.info(msg);
-		} catch (Throwable t) {
-			// never fail detection because of logging
-		}
-	}
-
-	private static void logDetectParamsOnce(BuildSeriesOptions options, IcyBufferedImage workimage) {
-		if (detectParamsLogged)
-			return;
-		detectParamsLogged = true;
-		try {
-			Rectangle b = (workimage != null) ? workimage.getBounds() : null;
-			String bounds = (b != null) ? (b.x + "," + b.y + " " + b.width + "x" + b.height) : "null";
-			String msg = "DetectSpotsTools params:"
-					+ " threshold=" + (options != null ? options.threshold : "null")
-					+ " btrackWhite=" + (options != null ? options.btrackWhite : "null")
-					+ " videoChannel=" + (options != null ? options.videoChannel : "null")
-					+ " transformop=" + (options != null ? String.valueOf(options.transformop) : "null")
-					+ " workImageBounds=" + bounds;
-			System.out.println(msg);
-		} catch (Throwable t) {
-			// ignore
-		}
-	}
 
 	private static List<Point2D> toImageCoordinates(BooleanMask2D mask, List<Point> contourPoints) {
 		if (mask == null || contourPoints == null || contourPoints.isEmpty()) {
@@ -101,26 +58,6 @@ public class DetectSpotsTools {
 		final boolean looksRelative = (minX >= 0 && minY >= 0 && maxX <= (b.width - 1) && maxY <= (b.height - 1));
 		final int ox = looksRelative ? b.x : 0;
 		final int oy = looksRelative ? b.y : 0;
-
-		if (!firstBlobLogged) {
-			firstBlobLogged = true;
-			try {
-				Rectangle2D ob = mask.getOptimizedBounds();
-				String mb = (b.x + "," + b.y + " " + b.width + "x" + b.height);
-				String obb = (ob != null)
-						? (String.format("%.1f,%.1f %.1fx%.1f", ob.getX(), ob.getY(), ob.getWidth(), ob.getHeight()))
-						: "null";
-				String msg = "DetectSpotsTools firstBlob:"
-						+ " maskBounds=" + mb
-						+ " optBounds=" + obb
-						+ " contourMinMax=(" + minX + "," + minY + ")-(" + maxX + "," + maxY + ")"
-						+ " looksRelative=" + looksRelative
-						+ " offset=(" + ox + "," + oy + ")";
-				System.out.println(msg);
-			} catch (Throwable t) {
-				// ignore
-			}
-		}
 
 		return contourPoints.stream()
 				.filter(p -> p != null)
@@ -193,8 +130,6 @@ public class DetectSpotsTools {
 	public void findSpots(Experiment exp, Sequence seqNegative, BuildSeriesOptions options, IcyBufferedImage workimage)
 			throws InterruptedException {
 
-		logCodeSourceOnce();
-		logDetectParamsOnce(options, workimage);
 		exp.getCages().computeBooleanMasksForCages();
 		final ROI2DArea binarizedImageRoi = binarizeImage(workimage, options);
 

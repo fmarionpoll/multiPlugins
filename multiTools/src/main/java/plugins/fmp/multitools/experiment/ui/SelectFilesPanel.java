@@ -20,6 +20,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -379,7 +380,8 @@ public class SelectFilesPanel extends JPanel {
 					}
 				} finally {
 					double elapsedSec = (scanEndNs - scanStartNs) / 1e9;
-					System.out.println(String.format("SelectFilesPanel: scan finished pattern='%s' fileNameMode=%s found=%d cancelled=%s time=%.3fs",
+					System.out.println(String.format(Locale.ROOT,
+							"SelectFilesPanel: scan finished pattern='%s' fileNameMode=%s found=%d cancelled=%s time=%.3fs",
 							pattern, Boolean.toString(isFileName), Integer.valueOf(found.size()),
 							Boolean.toString(progress.isCancelled()), Double.valueOf(elapsedSec)));
 					progress.close();

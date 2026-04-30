@@ -12,6 +12,7 @@ import org.w3c.dom.Node;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 import icy.util.StringUtil;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.tools.polyline.Level2D;
@@ -269,7 +270,7 @@ public class CapillaryGulps {
 			return;
 
 		clear();
-		int firstValue = (int) Double.parseDouble(data[startAt]);
+		int firstValue = (int) CsvNumberParsing.parseDouble(data[startAt]);
 		int offset = startAt + 1;
 
 		// Check for legacy sparse format: "ngulps", "g0", ...
@@ -285,7 +286,7 @@ public class CapillaryGulps {
 			for (int i = 0; i < npoints; i++) {
 				if (offset >= data.length)
 					break;
-				double val = Double.parseDouble(data[offset]);
+				double val = CsvNumberParsing.parseDouble(data[offset]);
 				offset++;
 				gulpHeights.ypoints[i] = val;
 			}
@@ -294,15 +295,15 @@ public class CapillaryGulps {
 
 	private int csvImportOneGulp(String[] data, int offset) {
 		offset++;
-		int npoints = (int) Double.parseDouble(data[offset]);
+		int npoints = (int) CsvNumberParsing.parseDouble(data[offset]);
 		offset++;
 
 		int[] x = new int[npoints];
 		int[] y = new int[npoints];
 		for (int i = 0; i < npoints; i++) {
-			x[i] = (int) Double.parseDouble(data[offset]);
+			x[i] = (int) CsvNumberParsing.parseDouble(data[offset]);
 			offset++;
-			y[i] = (int) Double.parseDouble(data[offset]);
+			y[i] = (int) CsvNumberParsing.parseDouble(data[offset]);
 			offset++;
 		}
 		int xPixel = npoints > 0 ? x[0] : 0;

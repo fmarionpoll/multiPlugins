@@ -5,6 +5,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
+
 public class SpotMeasure {
 
 	// === CONSTANTS ===
@@ -413,7 +415,7 @@ public class SpotMeasure {
 				values = new double[npoints];
 
 			for (int i = 0; i < npoints; i++) {
-				values[i] = Double.parseDouble(data[startAt + i * 2 + 1]);
+				values[i] = CsvNumberParsing.parseDouble(data[startAt + i * 2 + 1]);
 			}
 
 			return true;
@@ -440,7 +442,7 @@ public class SpotMeasure {
 				values = new double[npoints];
 
 			for (int i = 0; i < npoints; i++) {
-				values[i] = Double.parseDouble(data[startAt + i]);
+				values[i] = CsvNumberParsing.parseDouble(data[startAt + i]);
 			}
 			return true;
 

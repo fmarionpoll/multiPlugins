@@ -12,6 +12,7 @@ import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DShape;
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 
 /**
  * Handles persistence (XML loading/saving, CSV export/import) for Spot.
@@ -170,7 +171,7 @@ public class SpotPersistence {
 				Integer.parseInt(data[index++]);
 			}
 
-			props.setSpotVolume(Double.parseDouble(data[index++]));
+			props.setSpotVolume(CsvNumberParsing.parseDouble(data[index++]));
 			props.setSpotNPixels(Integer.parseInt(data[index++]));
 			props.setSpotRadius(Integer.parseInt(data[index++]));
 			props.setStimulus(data[index++]);

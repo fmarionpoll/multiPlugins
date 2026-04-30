@@ -11,6 +11,7 @@ import java.nio.file.Paths;
 import java.nio.file.DirectoryStream;
 
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
 public class CapillariesPersistence {
@@ -260,11 +261,7 @@ public class CapillariesPersistence {
 				return 0;
 			}
 			try {
-				String[] parts = v.trim().split("\\.");
-				if (parts.length >= 2) {
-					return Double.parseDouble(parts[0] + "." + parts[1]);
-				}
-				return Double.parseDouble(v);
+				return CsvNumberParsing.parseDouble(v.trim());
 			} catch (NumberFormatException e) {
 				return 0;
 			}
