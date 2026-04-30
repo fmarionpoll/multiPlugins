@@ -35,6 +35,38 @@ import plugins.kernel.roi.roi3d.ROI3DPoint;
 
 public class Measures {
 
+	private static List<Point2D> toImageCoordinates(BooleanMask2D mask, List<Point> contourPoints) {
+		if (mask == null || contourPoints == null || contourPoints.isEmpty()) {
+			return null;
+		}
+		final Rectangle b = mask.bounds;
+		if (b == null) {
+			return contourPoints.stream()
+					.map(p -> new Point2D.Double(p.getX(), p.getY()))
+					.collect(Collectors.toList());
+		}
+
+		int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+		int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+		for (Point p : contourPoints) {
+			if (p == null)
+				continue;
+			minX = Math.min(minX, p.x);
+			minY = Math.min(minY, p.y);
+			maxX = Math.max(maxX, p.x);
+			maxY = Math.max(maxY, p.y);
+		}
+
+		final boolean looksRelative = (minX >= 0 && minY >= 0 && maxX <= (b.width - 1) && maxY <= (b.height - 1));
+		final int ox = looksRelative ? b.x : 0;
+		final int oy = looksRelative ? b.y : 0;
+
+		return contourPoints.stream()
+				.filter(p -> p != null)
+				.map(p -> new Point2D.Double(p.x + ox, p.y + oy))
+				.collect(Collectors.toList());
+	}
+
 	/*
 	 * @param roi the {@link ROI} we want to compute orientation information
 	 * 
@@ -307,8 +339,10 @@ public class Measures {
 		BooleanMask2D mask2d = getMaskOfThresholdedImage(workImage, spot, options);
 		List<Point> points = getLargestContourFromThresholdedImage(mask2d);
 		if (points != null) {
-			List<Point2D> points2s = points.stream().map(point -> new Point2D.Double(point.getX(), point.getY()))
-					.collect(Collectors.toList());
+			List<Point2D> points2s = toImageCoordinates(mask2d, points);
+			if (points2s == null || points2s.size() < 3) {
+				return null;
+			}
 			ROI2DPolygon roi = new ROI2DPolygon(points2s);
 			return roi;
 		}
