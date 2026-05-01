@@ -162,20 +162,59 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 		return null;
 	}
 
+	/**
+	 * Excel export only processes {@link ResultsOptions#experimentIndexFirst} ..
+	 * {@link ResultsOptions#experimentIndexLast}. Timeline aggregation for headers
+	 * must use that same subset; scanning the entire combo wrongly stretches grids
+	 * to the longest unrelated experiment in the list.
+	 */
+	public int[] getExportExperimentIndexBounds(ResultsOptions resultsOptions) {
+		return resolveExportExperimentIndexBounds(resultsOptions);
+	}
+
+	private int[] resolveExportExperimentIndexBounds(ResultsOptions resultsOptions) {
+		int n = getItemCount();
+		if (n <= 0) {
+			return new int[] { 0, -1 };
+		}
+		int last = n - 1;
+		int rf = resultsOptions.experimentIndexFirst;
+		int rl = resultsOptions.experimentIndexLast;
+		if (rf >= 0 && rl >= 0) {
+			int start = Math.min(Math.max(rf, 0), last);
+			int end = Math.min(Math.max(rl, 0), last);
+			if (start <= end) {
+				return new int[] { start, end };
+			}
+		}
+		return new int[] { 0, last };
+	}
+
 	public Experiment get_MsTime_of_StartAndEnd_AllExperiments(ResultsOptions resultsOptions) {
 		Experiment expAll = new Experiment();
-		Experiment exp0 = getItemAt(0);
+		int n = getItemCount();
+		if (n <= 0) {
+			return expAll;
+		}
+		int[] bounds = resolveExportExperimentIndexBounds(resultsOptions);
+		int startIdx = bounds[0];
+		int endIdx = bounds[1];
+		if (endIdx < startIdx) {
+			return expAll;
+		}
+		Experiment expAnchor = getItemAt(startIdx);
+
 		if (resultsOptions.fixedIntervals) {
 			expAll.getSeqCamData().getTimeManager().setFirstImageMs(resultsOptions.startAll_Ms);
 			expAll.getSeqCamData().setLastImageMs(resultsOptions.endAll_Ms);
 
 		} else {
 			if (resultsOptions.absoluteTime) {
-				Experiment expFirst = exp0.getFirstChainedExperiment(resultsOptions.collateSeries);
+				Experiment expFirst = expAnchor.getFirstChainedExperiment(resultsOptions.collateSeries);
 				expAll.setFirstImage_FileTime(expFirst.getFirstImage_FileTime());
-				Experiment expLast = exp0.getLastChainedExperiment(resultsOptions.collateSeries);
+				Experiment expLast = expAnchor.getLastChainedExperiment(resultsOptions.collateSeries);
 				expAll.setLastImage_FileTime(expLast.getLastImage_FileTime());
-				for (int i = 0; i < getItemCount(); i++) {
+				for (int i = startIdx; i <= endIdx; i++) {
 					Experiment exp = getItemAt(i);
 					expFirst = exp.getFirstChainedExperiment(resultsOptions.collateSeries);
 					if (expAll.getFirstImage_FileTime().compareTo(expFirst.getFirstImage_FileTime()) > 0)
@@ -188,13 +227,15 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 				expAll.getSeqCamData().setLastImageMs(expAll.getLastImage_FileTime().toMillis());
 
 			} else {
+				Experiment expFirstAnchor = expAnchor.getFirstChainedExperiment(resultsOptions.collateSeries);
+				Experiment expLastAnchor = expAnchor.getLastChainedExperiment(resultsOptions.collateSeries);
 				expAll.getSeqCamData().setFirstImageMs(0);
-				expAll.getSeqCamData().setLastImageMs(exp0.getSeqCamData().getTimeManager().getBinLast_ms()
-						- exp0.getSeqCamData().getTimeManager().getBinFirst_ms());
+				expAll.getSeqCamData().setLastImageMs(expLastAnchor.getSeqCamData().getTimeManager().getBinLast_ms()
+						- expFirstAnchor.getSeqCamData().getTimeManager().getBinFirst_ms());
 				long firstOffset_Ms = 0;
 				long lastOffset_Ms = 0;
 
-				for (int i = 0; i < getItemCount(); i++) {
+				for (int i = startIdx; i <= endIdx; i++) {
 					Experiment exp = getItemAt(i);
 					// Ensure experiment is loaded before accessing time information
 					if (exp instanceof LazyExperiment) {

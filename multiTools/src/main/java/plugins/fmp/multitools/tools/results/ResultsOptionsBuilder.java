@@ -22,6 +22,8 @@ public class ResultsOptionsBuilder {
 	private boolean sum = DefaultOptions.SUM;
 	private boolean sum2 = DefaultOptions.SUM2;
 	private boolean nPixels = DefaultOptions.N_PIXELS;
+	private boolean spotSumNoFly = false;
+	private boolean spotSumClean = false;
 
 	// Correlation options
 	private boolean autocorrelation = DefaultOptions.AUTOCORRELATION;
@@ -92,6 +94,8 @@ public class ResultsOptionsBuilder {
 		this.sum = existing.sum;
 		this.sum2 = existing.sum2;
 		this.nPixels = existing.nPixels;
+		this.spotSumNoFly = existing.spotSumNoFly;
+		this.spotSumClean = existing.spotSumClean;
 
 		this.autocorrelation = existing.autocorrelation;
 		this.crosscorrelation = existing.crosscorrelation;
@@ -293,6 +297,8 @@ public class ResultsOptionsBuilder {
 		options.sum = this.sum;
 		options.sum2 = this.sum2;
 		options.nPixels = this.nPixels;
+		options.spotSumNoFly = this.spotSumNoFly;
+		options.spotSumClean = this.spotSumClean;
 
 		options.autocorrelation = this.autocorrelation;
 		options.crosscorrelation = this.crosscorrelation;

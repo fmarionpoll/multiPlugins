@@ -6,14 +6,13 @@ import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.experiment.sequence.ImageLoader;
-import plugins.fmp.multitools.experiment.sequence.TimeManager;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 
 /**
  * Excel export implementation for spot measurements. Uses the Template Method
@@ -34,18 +33,15 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn,
 			String charSeries) throws ExcelExportException {
 
-		OptionToResultsMapping[] mappings = {
-			new OptionToResultsMapping(() -> options.spotAreas, EnumResults.AREA_SUM, EnumResults.AREA_FLYPRESENT, EnumResults.AREA_SUMCLEAN)
-		};
+		if (!hasSpotMeasuresSelectedForExport(resultsOptions)) {
+			return startColumn;
+		}
 
 		int colmax = 0;
-		for (OptionToResultsMapping mapping : mappings) {
-			if (mapping.isEnabled()) {
-				for (EnumResults resultType : mapping.getResults()) {
-					int col = exportResultType(exp, startColumn, charSeries, resultType, "spot");
-					if (col > colmax)
-						colmax = col;
-				}
+		for (EnumResults resultType : enabledSpotMeasureTypesForExport(resultsOptions)) {
+			int col = exportResultType(exp, startColumn, charSeries, resultType, "spot");
+			if (col > colmax) {
+				colmax = col;
 			}
 		}
 
@@ -104,29 +100,7 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 	 * @return The number of output frames
 	 */
 	protected int getNOutputFrames(Experiment exp, ResultsOptions resultsOptions) {
-		TimeManager timeManager = exp.getSeqCamData().getTimeManager();
-		ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
-		long durationMs = timeManager.getBinLast_ms() - timeManager.getBinFirst_ms();
-		int nOutputFrames = (int) (durationMs / resultsOptions.buildExcelStepMs + 1);
-
-		if (nOutputFrames <= 1) {
-			long binLastMs = timeManager.getBinFirst_ms()
-					+ imgLoader.getNTotalFrames() * timeManager.getBinDurationMs();
-			timeManager.setBinLast_ms(binLastMs);
-
-			if (binLastMs <= 0) {
-				handleExportError(exp, -1);
-			}
-
-			nOutputFrames = (int) ((binLastMs - timeManager.getBinFirst_ms()) / resultsOptions.buildExcelStepMs + 1);
-
-			if (nOutputFrames <= 1) {
-				nOutputFrames = imgLoader.getNTotalFrames();
-				handleExportError(exp, nOutputFrames);
-			}
-		}
-
-		return nOutputFrames;
+		return SpotExcelTimeline.computeSpotExcelBinCount(exp, resultsOptions);
 	}
 
 }

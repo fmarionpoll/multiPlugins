@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.apache.poi.ss.SpreadsheetVersion;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.streaming.SXSSFSheet;
@@ -79,6 +80,8 @@ public abstract class XLSExport {
 
 		} catch (ExcelResourceException e) {
 			throw new ExcelExportException("Resource management failed during export", "export_to_file", filename, e);
+		} catch (ExcelExportException e) {
+			throw e;
 		} catch (Exception e) {
 			throw new ExcelExportException("Unexpected error during export", "export_to_file", filename, e);
 		} finally {
@@ -128,6 +131,42 @@ public abstract class XLSExport {
 			throw new ExcelDataException("First experiment index cannot be greater than last", "validate_parameters",
 					"index_validation");
 		}
+
+		validateTransposedExportWithinColumnLimit();
+	}
+
+	/**
+	 * In transposed layout, each time bin uses one spreadsheet column starting after
+	 * descriptor rows ({@link #getDescriptorRowCount()}). Excel max column is XFD
+	 * ({@link SpreadsheetVersion#EXCEL2007}).
+	 */
+	private void validateTransposedExportWithinColumnLimit() throws ExcelDataException {
+		if (!options.transpose || expAll == null || expAll.getSeqCamData() == null) {
+			return;
+		}
+		int step = options.buildExcelStepMs;
+		if (step <= 0) {
+			throw new ExcelDataException("Excel time-step (buildExcelStepMs) must be positive.",
+					"validate_parameters", "excel_step_ms");
+		}
+		long duration = expAll.getSeqCamData().getLastImageMs() - expAll.getSeqCamData().getFirstImageMs();
+		if (duration <= 0) {
+			return;
+		}
+		long nBins = (duration + step - 1L) / step;
+		int descriptorRows = getDescriptorRowCount();
+		int maxCol = SpreadsheetVersion.EXCEL2007.getLastColumnIndex();
+		long lastTimeColumnIndex = (long) descriptorRows + nBins - 1;
+		if (lastTimeColumnIndex <= maxCol) {
+			return;
+		}
+		long maxBins = (long) maxCol - descriptorRows + 1;
+		throw new ExcelDataException(String.format(
+				"Transposed export needs %d time columns (last column index %d) but Excel allows 0..%d only. "
+						+ "Increase the Excel bin interval (time-step), disable transpose so time runs along rows, "
+						+ "or export a shorter interval. With current settings at most about %d time bins fit.",
+				nBins, lastTimeColumnIndex, maxCol, Math.max(0, maxBins)),
+				"validate_parameters", "excel_column_limit");
 	}
 
 	/**

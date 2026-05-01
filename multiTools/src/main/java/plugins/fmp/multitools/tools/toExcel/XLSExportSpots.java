@@ -1,6 +1,8 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
@@ -9,11 +11,69 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.ColorUtils;
 import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 public abstract class XLSExportSpots extends XLSExport {
+
+	private static boolean usesSpotSubsamplingTimeline(EnumResults resultType) {
+		switch (resultType) {
+			case AREA_SUM:
+			case AREA_SUMNOFLY:
+			case AREA_SUMCLEAN:
+			case AREA_FLYPRESENT:
+				return true;
+			default:
+				return false;
+		}
+	}
+
+	@Override
+	protected void writeTopRowTimeIntervals(SXSSFSheet sheet, int row, EnumResults resultType) {
+		if (!usesSpotSubsamplingTimeline(resultType)) {
+			super.writeTopRowTimeIntervals(sheet, row, resultType);
+			return;
+		}
+		boolean transpose = options.transpose;
+		Point pt = new Point(0, row);
+		int nBins = expList != null ? SpotExcelTimeline.maxSpotExcelBinCountAcrossExportRange(expList, options)
+				: SpotExcelTimeline.computeSpotExcelBinCount(expAll, options);
+		for (int k = 0; k < nBins; k++) {
+			long elapsedMs = (long) k * options.buildExcelStepMs;
+			String label = SpotExcelTimeline.formatElapsedColumnHeader(elapsedMs, options.buildExcelUnitMs);
+			XLSUtils.setValue(sheet, pt, transpose, label);
+			pt.y++;
+		}
+	}
+
+	protected boolean hasSpotMeasuresSelectedForExport(ResultsOptions o) {
+		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean);
+	}
+
+	protected EnumResults[] enabledSpotMeasureTypesForExport(ResultsOptions o) {
+		List<EnumResults> list = new ArrayList<>(5);
+		if (o.sum) {
+			list.add(EnumResults.AREA_SUM);
+		}
+		if (o.spotSumNoFly) {
+			list.add(EnumResults.AREA_SUMNOFLY);
+		}
+		if (o.spotSumClean) {
+			list.add(EnumResults.AREA_SUMCLEAN);
+		}
+		if (o.sum || o.spotSumNoFly || o.spotSumClean) {
+			list.add(EnumResults.AREA_FLYPRESENT);
+		}
+		return list.toArray(new EnumResults[0]);
+	}
+
+	@Override
+	protected int getDescriptorRowCount() {
+		return EnumXLSColumnHeader.DUM5.getValue() + 1;
+	}
 
 	/**
 	 * Writes only the COMMON and SPOT descriptors for spot exports.
@@ -61,7 +121,7 @@ public abstract class XLSExportSpots extends XLSExport {
 		writeCageProperties(sheet, pt, transpose, cage);
 		writeSpotProperties(sheet, pt, transpose, spot, cage, charSeries, resultType);
 
-		pt.y = pt.y + EnumXLSColumnHeader.DUM4.getValue() + 1;
+		pt.y = pt.y + getDescriptorRowCount();
 		return pt;
 	}
 

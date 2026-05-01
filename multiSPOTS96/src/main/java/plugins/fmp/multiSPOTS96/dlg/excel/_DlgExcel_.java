@@ -145,7 +145,8 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 
 		resultsOptions.spotAreas = true;
 		resultsOptions.sum = spotsAreas.areaCheckBox.isSelected();
-		resultsOptions.nPixels = spotsAreas.nPixelsCheckBox.isSelected();
+		resultsOptions.spotSumNoFly = spotsAreas.sumNoFlyCheckBox.isSelected();
+		resultsOptions.spotSumClean = spotsAreas.sumCleanCheckBox.isSelected();
 		resultsOptions.relativeToMaximum = spotsAreas.t0CheckBox.isSelected();
 		resultsOptions.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
 

@@ -27,6 +27,8 @@ public class XLSExportOptionsBuilder {
 	private boolean sum = DefaultOptions.SUM;
 	private boolean sum2 = DefaultOptions.SUM2;
 	private boolean nPixels = DefaultOptions.N_PIXELS;
+	private boolean spotSumNoFly = false;
+	private boolean spotSumClean = false;
 
 	// Correlation options
 	private boolean autocorrelation = DefaultOptions.AUTOCORRELATION;
@@ -98,6 +100,8 @@ public class XLSExportOptionsBuilder {
 		this.sum = existing.sum;
 		this.sum2 = existing.sum2;
 		this.nPixels = existing.nPixels;
+		this.spotSumNoFly = existing.spotSumNoFly;
+		this.spotSumClean = existing.spotSumClean;
 
 		this.autocorrelation = existing.autocorrelation;
 		this.crosscorrelation = existing.crosscorrelation;
@@ -304,6 +308,8 @@ public class XLSExportOptionsBuilder {
 		resultsOptions.sum = this.sum;
 		resultsOptions.sum2 = this.sum2;
 		resultsOptions.nPixels = this.nPixels;
+		resultsOptions.spotSumNoFly = this.spotSumNoFly;
+		resultsOptions.spotSumClean = this.spotSumClean;
 
 		resultsOptions.autocorrelation = this.autocorrelation;
 		resultsOptions.crosscorrelation = this.crosscorrelation;

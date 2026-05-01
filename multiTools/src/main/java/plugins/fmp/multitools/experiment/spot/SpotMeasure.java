@@ -276,23 +276,67 @@ public class SpotMeasure {
 
 	// === UTILITY METHODS ===
 
+	/**
+	 * Resamples the stored series onto grid {@code 0, outputBinMs, 2*outputBinMs, ...}
+	 * covering the span of native samples (spacing {@code seriesBinMs}). Uses linear
+	 * interpolation between the two bracketing native samples when the output time falls
+	 * between them (handles cameras whose interval differs slightly from the Excel step).
+	 */
 	public List<Double> getValuesAsSubsampledList(long seriesBinMs, long outputBinMs) {
-		if (values == null || values.length == 0) {
+		int n = seriesSampleCountForSubsampling();
+		if (n < 1 || seriesBinMs <= 0 || outputBinMs <= 0) {
 			return new ArrayList<>();
 		}
-		long maxMs = (values.length - 1) * seriesBinMs;
+		long maxMs = (long) (n - 1) * seriesBinMs;
 		long npoints = (maxMs / outputBinMs) + 1;
-		List<Double> result = new ArrayList<>();
+		List<Double> result = new ArrayList<>((int) Math.min(npoints, Integer.MAX_VALUE));
 		for (long i = 0; i < npoints; i++) {
 			long timeMs = i * outputBinMs;
-			int index = (int) (timeMs / seriesBinMs);
-			if (index < values.length) {
-				result.add(values[index]);
-			} else {
-				result.add(0.0);
-			}
+			result.add(interpolateLinearAtMs(timeMs, seriesBinMs, n));
 		}
 		return result;
+	}
+
+	private int seriesSampleCountForSubsampling() {
+		if (values != null && values.length > 0) {
+			return values.length;
+		}
+		if (isPresent != null && isPresent.length > 0) {
+			return isPresent.length;
+		}
+		return 0;
+	}
+
+	private double seriesSampleDoubleAt(int index) {
+		if (values != null && index >= 0 && index < values.length) {
+			return values[index];
+		}
+		if (isPresent != null && index >= 0 && index < isPresent.length) {
+			return isPresent[index];
+		}
+		return Double.NaN;
+	}
+
+	private double interpolateLinearAtMs(long timeMs, long seriesBinMs, int n) {
+		double pos = timeMs / (double) seriesBinMs;
+		if (n == 1) {
+			return seriesSampleDoubleAt(0);
+		}
+		if (pos <= 0) {
+			return seriesSampleDoubleAt(0);
+		}
+		if (pos >= n - 1) {
+			return seriesSampleDoubleAt(n - 1);
+		}
+		int i0 = (int) Math.floor(pos);
+		int i1 = i0 + 1;
+		double v0 = seriesSampleDoubleAt(i0);
+		double v1 = seriesSampleDoubleAt(i1);
+		double alpha = pos - i0;
+		if (!Double.isFinite(v0) || !Double.isFinite(v1)) {
+			return Double.NaN;
+		}
+		return v0 + alpha * (v1 - v0);
 	}
 
 	@Override

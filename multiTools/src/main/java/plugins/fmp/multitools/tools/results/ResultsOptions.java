@@ -19,6 +19,10 @@ public class ResultsOptions {
 	public boolean sum = true;
 	public boolean sum2 = true;
 	public boolean nPixels = true;
+	/** Spot Excel export: AREA_SUMNOFLY. */
+	public boolean spotSumNoFly = false;
+	/** Spot Excel export: AREA_SUMCLEAN. */
+	public boolean spotSumClean = false;
 
 	public boolean topLevel = true;
 	public boolean topLevelDelta = false;
@@ -90,6 +94,8 @@ public class ResultsOptions {
 		this.sum = resultsOptions.sum;
 		this.sum2 = resultsOptions.sum2;
 		this.nPixels = resultsOptions.nPixels;
+		this.spotSumNoFly = resultsOptions.spotSumNoFly;
+		this.spotSumClean = resultsOptions.spotSumClean;
 
 		this.autocorrelation = resultsOptions.autocorrelation;
 		this.crosscorrelation = resultsOptions.crosscorrelation;
