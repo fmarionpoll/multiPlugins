@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
+import java.util.ArrayList;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
@@ -82,25 +83,18 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 	 */
 	public Results getResultsDataValuesFromSpotMeasures(Experiment exp, Cage cage, Spot spot,
 			ResultsOptions xlsExportOptions) {
-		int nOutputFrames = getNOutputFrames(exp, xlsExportOptions);
+		long binData = SpotExcelTimeline.resolveNativeSeriesBinMs(exp);
+		if (binData <= 0) {
+			binData = 1;
+		}
+		long binExcel = xlsExportOptions.buildExcelStepMs > 0 ? xlsExportOptions.buildExcelStepMs : 1;
 
-		Results results = new Results(cage.getProperties(), spot.getProperties(), nOutputFrames);
-
-		long binImageMs = exp.getSeqCamData().getTimeManager().getBinImage_ms();
-		long binData = (binImageMs > 0) ? binImageMs : exp.getSeqCamData().getTimeManager().getBinDurationMs();
-		long binExcel = xlsExportOptions.buildExcelStepMs;
+		Results results = new Results(cage.getProperties(), spot.getProperties(), 1);
 		results.getDataFromSpot(spot, binData, binExcel, xlsExportOptions);
+		ArrayList<Double> dv = results.getDataValues();
+		int nOut = dv != null && !dv.isEmpty() ? dv.size() : 1;
+		results.initValuesOutArray(nOut, Double.NaN);
 		return results;
-	}
-
-	/**
-	 * Gets the number of output frames for the experiment.
-	 * 
-	 * @param exp The experiment
-	 * @return The number of output frames
-	 */
-	protected int getNOutputFrames(Experiment exp, ResultsOptions resultsOptions) {
-		return SpotExcelTimeline.computeSpotExcelBinCount(exp, resultsOptions);
 	}
 
 }

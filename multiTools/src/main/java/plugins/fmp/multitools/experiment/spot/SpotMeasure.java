@@ -277,6 +277,20 @@ public class SpotMeasure {
 	// === UTILITY METHODS ===
 
 	/**
+	 * Number of samples on the Excel grid {@code 0, outputBinMs, 2·outputBinMs, …}
+	 * covering {@code nSamples} native points spaced by {@code seriesBinMs}.
+	 * Matches {@link #getValuesAsSubsampledList(long, long)}.
+	 */
+	public static int countSubsampledOutputPoints(long seriesBinMs, long outputBinMs, int nSamples) {
+		if (nSamples < 1 || seriesBinMs <= 0 || outputBinMs <= 0) {
+			return 1;
+		}
+		long maxMs = (long) (nSamples - 1) * seriesBinMs;
+		long npoints = (maxMs / outputBinMs) + 1;
+		return (int) Math.min(npoints, Integer.MAX_VALUE);
+	}
+
+	/**
 	 * Resamples the stored series onto grid {@code 0, outputBinMs, 2*outputBinMs, ...}
 	 * covering the span of native samples (spacing {@code seriesBinMs}). Uses linear
 	 * interpolation between the two bracketing native samples when the output time falls

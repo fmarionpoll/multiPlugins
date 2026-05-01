@@ -99,7 +99,7 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 				pt.y = 0;
 				pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, spot, resultType);
 
-				writeSpotDataDirectly(sheet, pt, spot, scalingFactorToPhysicalUnits, resultType);
+				writeSpotDataDirectly(sheet, pt, exp, spot, scalingFactorToPhysicalUnits, resultType);
 
 				pt.x++;
 				processedSpots++;
@@ -121,11 +121,14 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 	 * @param scalingFactorToPhysicalUnits The scaling factor
 	 * @param resultType                The export type
 	 */
-	protected void writeSpotDataDirectly(SXSSFSheet sheet, Point pt, Spot spot, double scalingFactorToPhysicalUnits,
-			EnumResults resultType) {
+	protected void writeSpotDataDirectly(SXSSFSheet sheet, Point pt, Experiment exp, Spot spot,
+			double scalingFactorToPhysicalUnits, EnumResults resultType) {
 
-		// Get data directly from spot using streaming approach
-		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, getBinData(spot), getBinExcel());
+		long nativeBinMs = SpotExcelTimeline.resolveNativeSeriesBinMs(exp);
+		if (nativeBinMs <= 0) {
+			nativeBinMs = 1;
+		}
+		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, nativeBinMs, getBinExcel());
 
 		if (dataList == null || dataList.isEmpty()) {
 			return;
@@ -153,24 +156,12 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 	}
 
 	/**
-	 * Gets the bin data duration for the current experiment.
-	 * 
-	 * @param spot The spot (used to get experiment context)
-	 * @return The bin duration in milliseconds
-	 */
-	private long getBinData(Spot spot) {
-		// This would need to be implemented based on the experiment context
-		// For now, using a default value - this should be extracted from the experiment
-		return 1000; // Default 1 second bin
-	}
-
-	/**
 	 * Gets the Excel bin duration.
 	 * 
 	 * @return The Excel bin duration in milliseconds
 	 */
 	private long getBinExcel() {
-		return options.buildExcelStepMs;
+		return options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
 	}
 
 	/**

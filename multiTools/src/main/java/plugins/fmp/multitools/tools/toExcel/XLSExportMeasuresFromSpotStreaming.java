@@ -146,7 +146,7 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 			pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, spot, resultType);
 
 			// Process spot data using streaming
-			writeSpotDataStreaming(sheet, pt, spot, scalingFactorToPhysicalUnits, resultType);
+			writeSpotDataStreaming(sheet, pt, exp, spot, scalingFactorToPhysicalUnits, resultType);
 
 			pt.x++;
 			processedSpots.incrementAndGet();
@@ -170,11 +170,10 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	 * @param scalingFactorToPhysicalUnits The scaling factor
 	 * @param resultType                   The export type
 	 */
-	protected void writeSpotDataStreaming(SXSSFSheet sheet, Point pt, Spot spot, double scalingFactorToPhysicalUnits,
-			EnumResults resultType) {
+	protected void writeSpotDataStreaming(SXSSFSheet sheet, Point pt, Experiment exp, Spot spot,
+			double scalingFactorToPhysicalUnits, EnumResults resultType) {
 
-		// Get data using streaming iterator
-		Iterator<Double> dataIterator = getSpotDataIterator(spot, resultType);
+		Iterator<Double> dataIterator = getSpotDataIterator(exp, spot, resultType);
 
 		if (!dataIterator.hasNext()) {
 			return;
@@ -196,8 +195,13 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	 * @param resultType The export type
 	 * @return The data iterator
 	 */
-	protected Iterator<Double> getSpotDataIterator(Spot spot, EnumResults resultType) {
-		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, getBinData(spot), getBinExcel());
+	protected Iterator<Double> getSpotDataIterator(Experiment exp, Spot spot, EnumResults resultType) {
+		long nativeBinMs = SpotExcelTimeline.resolveNativeSeriesBinMs(exp);
+		if (nativeBinMs <= 0) {
+			nativeBinMs = 1;
+		}
+		long excelBinMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
+		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, nativeBinMs, excelBinMs);
 		return dataList != null ? dataList.iterator() : new java.util.ArrayList<Double>().iterator();
 	}
 
@@ -265,23 +269,12 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	}
 
 	/**
-	 * Gets the bin data duration for the current experiment.
-	 * 
-	 * @param spot The spot (used to get experiment context)
-	 * @return The bin duration in milliseconds
-	 */
-	private long getBinData(Spot spot) {
-		// This would need to be implemented based on the experiment context
-		return 1000; // Default 1 second bin
-	}
-
-	/**
 	 * Gets the Excel bin duration.
 	 * 
 	 * @return The Excel bin duration in milliseconds
 	 */
 	private long getBinExcel() {
-		return options.buildExcelStepMs;
+		return options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
 	}
 
 	/**
