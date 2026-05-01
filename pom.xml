@@ -54,6 +54,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!-- icy-kernel Maven version ≠ Icy application version (e.g. 2.5.4.0). Nexus may lag; see icy-kernel listings on Pasteur Nexus. -->
+        <icy-kernel.version>2.5.1</icy-kernel.version>
     </properties>
 
     <dependencyManagement>
@@ -61,7 +63,7 @@
             <dependency>
                 <groupId>org.bioimageanalysis.icy</groupId>
                 <artifactId>icy-kernel</artifactId>
-                <version>2.5.1</version>
+                <version>${icy-kernel.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bioimageanalysis.icy</groupId>
@@ -140,7 +142,7 @@
         <repository>
             <id>freehep</id>
             <name>FreeHEP Repository</name>
-            <url>http://java.freehep.org/maven2</url>
+            <url>https://java.freehep.org/maven2</url>
             <releases>
                 <enabled>true</enabled>
             </releases>
