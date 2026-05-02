@@ -139,8 +139,8 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	@Override
 	protected void prepareExperiments() throws ExcelDataException {
 		try {
-			// Always load fly positions ("DrosoTrack") for this exporter.
-			expList.loadListOfMeasuresFromAllExperiments(true, true);
+			int[] ix = expList.getExportExperimentIndexBounds(options);
+			expList.loadExperimentMeasuresForExportRange(true, true, ix[0], ix[1]);
 			expList.chainExperimentsUsingKymoIndexes(options.collateSeries);
 			expList.setFirstImageForAllExperiments(options.collateSeries);
 			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);

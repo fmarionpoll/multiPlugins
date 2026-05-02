@@ -19,6 +19,17 @@ import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 public abstract class XLSExportSpots extends XLSExport {
 
+	@Override
+	protected long transposeValidationTimeBinCount() {
+		if (options != null && expList != null) {
+			int nBins = SpotExcelTimeline.maxSpotExcelBinCountAcrossExportRange(expList, options);
+			if (nBins >= 1) {
+				return nBins;
+			}
+		}
+		return super.transposeValidationTimeBinCount();
+	}
+
 	private static boolean usesSpotSubsamplingTimeline(EnumResults resultType) {
 		switch (resultType) {
 			case AREA_SUM:

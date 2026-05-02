@@ -98,7 +98,8 @@ public abstract class XLSExport {
 	 */
 	protected void prepareExperiments() throws ExcelDataException {
 		try {
-			expList.loadListOfMeasuresFromAllExperiments(true, options.onlyalive);
+			int[] ix = expList.getExportExperimentIndexBounds(options);
+			expList.loadExperimentMeasuresForExportRange(true, options.onlyalive, ix[0], ix[1]);
 			expList.chainExperimentsUsingKymoIndexes(options.collateSeries);
 			expList.setFirstImageForAllExperiments(options.collateSeries);
 			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);
@@ -136,10 +137,25 @@ public abstract class XLSExport {
 	}
 
 	/**
-	 * In transposed layout, each time bin uses one spreadsheet column starting after
-	 * descriptor rows ({@link #getDescriptorRowCount()}). Excel max column is XFD
-	 * ({@link SpreadsheetVersion#EXCEL2007}).
+	 * Number of Excel time bins for transpose column-limit validation. In {@link XLSExportSpots}, overridden to match
+	 * spot header/grid logic ({@link SpotExcelTimeline}). The base implementation uses synthesized {@link #expAll}
+	 * duration, which can be huge when undeveloped list entries retain dummy camera timing (~60&nbsp;s/frame).
 	 */
+	protected long transposeValidationTimeBinCount() {
+		if (options == null || expAll == null || expAll.getSeqCamData() == null) {
+			return 0L;
+		}
+		long duration = expAll.getSeqCamData().getLastImageMs() - expAll.getSeqCamData().getFirstImageMs();
+		if (duration <= 0L) {
+			return 0L;
+		}
+		long step = options.buildExcelStepMs;
+		if (step <= 0L) {
+			return 0L;
+		}
+		return (duration + step - 1L) / step;
+	}
+
 	private void validateTransposedExportWithinColumnLimit() throws ExcelDataException {
 		if (!options.transpose || expAll == null || expAll.getSeqCamData() == null) {
 			return;
@@ -149,11 +165,7 @@ public abstract class XLSExport {
 			throw new ExcelDataException("Excel time-step (buildExcelStepMs) must be positive.",
 					"validate_parameters", "excel_step_ms");
 		}
-		long duration = expAll.getSeqCamData().getLastImageMs() - expAll.getSeqCamData().getFirstImageMs();
-		if (duration <= 0) {
-			return;
-		}
-		long nBins = (duration + step - 1L) / step;
+		long nBins = transposeValidationTimeBinCount();
 		int descriptorRows = getDescriptorRowCount();
 		int maxCol = SpreadsheetVersion.EXCEL2007.getLastColumnIndex();
 		long lastTimeColumnIndex = (long) descriptorRows + nBins - 1;
@@ -176,10 +188,12 @@ public abstract class XLSExport {
 	 */
 	protected void executeExport() throws ExcelExportException {
 		int nbexpts = expList.getItemCount();
+		int[] bx = expList.getExportExperimentIndexBounds(options);
+		int progressLen = (bx[1] >= bx[0]) ? (bx[1] - bx[0] + 1) : nbexpts;
 		ProgressFrame progress = new ProgressFrame(ExcelExportConstants.DEFAULT_PROGRESS_TITLE);
 
 		try {
-			progress.setLength(nbexpts);
+			progress.setLength(Math.max(1, progressLen));
 			int column = 1;
 			int iSeries = 0;
 

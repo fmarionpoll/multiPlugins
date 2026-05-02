@@ -295,28 +295,61 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 		return expAll;
 	}
 
+	/**
+	 * Pass both boundaries as {@code -1} to load every experiment in the combo (legacy behaviour).
+	 */
+	public static final int LOAD_MEASURES_FULL_COMBO = -1;
+
 	public boolean loadListOfMeasuresFromAllExperiments(boolean loadSpots, boolean loadDrosoTrack) {
+		return loadExperimentMeasuresForExportRange(loadSpots, loadDrosoTrack, LOAD_MEASURES_FULL_COMBO,
+				LOAD_MEASURES_FULL_COMBO);
+	}
+
+	/**
+	 * Loads descriptors/measures only for combo indices {@code rangeFirstInclusive…rangeLastInclusive}
+	 * when both bounds are ≥ 0. Otherwise behaves like {@link #loadListOfMeasuresFromAllExperiments}.
+	 */
+	public boolean loadExperimentMeasuresForExportRange(boolean loadSpots, boolean loadDrosoTrack,
+			int rangeFirstInclusive, int rangeLastInclusive) {
 		ProgressFrame progress = new ProgressFrame("Load experiment(s) parameters");
 		int nexpts = getItemCount();
 
 		maxSizeOfSpotsArrays = 0;
-		progress.setLength(nexpts);
 		boolean flag = true;
+
+		if (nexpts <= 0) {
+			progress.setLength(0);
+			progress.close();
+			return flag;
+		}
+
+		int iStart = 0;
+		int iEnd = nexpts - 1;
+		boolean ranged = rangeFirstInclusive >= 0 && rangeLastInclusive >= rangeFirstInclusive;
+		if (ranged) {
+			iStart = Math.min(Math.max(0, rangeFirstInclusive), nexpts - 1);
+			iEnd = Math.min(Math.max(iStart, rangeLastInclusive), nexpts - 1);
+		}
+
+		int span = iEnd - iStart + 1;
+		final int denominator = nexpts;
+
+		progress.setLength(span);
 
 		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("loadAllExperiments");
 		processor.setPriority(Processor.NORM_PRIORITY);
-		ArrayList<Future<?>> futuresArray = new ArrayList<Future<?>>(nexpts);
+		ArrayList<Future<?>> futuresArray = new ArrayList<Future<?>>(span);
 		futuresArray.clear();
 
-		for (int i = 0; i < nexpts; i++) {
+		for (int i = iStart; i <= iEnd; i++) {
 			final int it = i;
 			final Experiment exp = getItemAt(it);
 
 			futuresArray.add(processor.submit(new Runnable() {
 				@Override
 				public void run() {
-					progress.setMessage("Load experiment " + it + " of " + nexpts);
+					progress.setMessage("Load experiment " + (it + 1) + " of " + denominator);
 
 					// Ensure the experiment is loaded if it's a LazyExperiment
 					if (exp instanceof LazyExperiment) {
@@ -325,19 +358,22 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 
 					exp.loadExperimentDescriptors();
 					exp.load_cages_description_and_measures();
-					if (loadSpots)
+					if (loadSpots) {
 						exp.load_spots_description_and_measures();
+					}
 
-					if (loadDrosoTrack)
+					if (loadDrosoTrack) {
 						exp.zopenPositionsMeasures();
+					}
 
 					int nCages = exp.getCages().cagesList.size();
 					int nSpotsPerCage = exp.getCages().nColumnsPerCage * exp.getCages().nRowsPerCage;
 					int nMaxSpots = nCages * nSpotsPerCage;
 					if (maxSizeOfSpotsArrays < nMaxSpots) {
 						maxSizeOfSpotsArrays = nMaxSpots;
-						if (maxSizeOfSpotsArrays % 2 != 0)
+						if (maxSizeOfSpotsArrays % 2 != 0) {
 							maxSizeOfSpotsArrays += 1;
+						}
 					}
 					progress.incPosition();
 				}

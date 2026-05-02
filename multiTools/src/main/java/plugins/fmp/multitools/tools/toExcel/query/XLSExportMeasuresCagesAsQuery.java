@@ -107,7 +107,8 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 	 */
 	protected void prepareQExperiments() throws ExcelDataException {
 		try {
-			expList.loadListOfMeasuresFromAllExperiments(true, options.onlyalive);
+			int[] ix = expList.getExportExperimentIndexBounds(options);
+			expList.loadExperimentMeasuresForExportRange(true, options.onlyalive, ix[0], ix[1]);
 //			expList.chainExperimentsUsingKymoIndexes(options.collateSeries);
 //			expList.setFirstImageForAllExperiments(options.collateSeries);
 //			expAll = expList.get_MsTime_of_StartAndEnd_AllExperiments(options);
