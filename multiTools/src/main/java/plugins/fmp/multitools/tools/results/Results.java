@@ -17,6 +17,7 @@ import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.experiment.spot.SpotProperties;
 import plugins.fmp.multitools.tools.Logger;
 
@@ -176,8 +177,9 @@ public class Results {
 		nflies = 0;
 	}
 
-	public void getDataFromSpot(Spot spot, long binData, long binExcel, ResultsOptions resultsOptions) {
-		dataValues = (ArrayList<Double>) spot.getMeasuresForExcelPass1(resultsOptions.resultType, binData, binExcel);
+	public void getDataFromSpot(Spot spot, SpotExcelTimeline.SpotExcelGrid grid, ResultsOptions resultsOptions) {
+		dataValues = new ArrayList<>(
+				spot.getMeasuresForExcelPass1(resultsOptions.resultType, grid));
 		if (resultsOptions.relativeToMaximum && resultsOptions.resultType != EnumResults.AREA_FLYPRESENT) {
 			relativeToMaximum();
 		}

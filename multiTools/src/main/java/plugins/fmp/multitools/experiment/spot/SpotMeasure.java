@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 
 public class SpotMeasure {
 
@@ -311,6 +312,31 @@ public class SpotMeasure {
 		return result;
 	}
 
+	/**
+	 * Resamples onto {@code clipStartMs + k·excelDelta} using {@code frameElapsedMs}
+	 * per sample and linear interpolation on physical time between consecutive frames.
+	 */
+	public List<Double> getValuesResampledToExcelGrid(SpotExcelTimeline.SpotExcelGrid grid) {
+		if (grid == null) {
+			return new ArrayList<>();
+		}
+		long[] tAll = grid.getFrameElapsedMsRelative();
+		int nm = seriesSampleCountForSubsampling();
+		if (nm < 1 || tAll.length < 1) {
+			return new ArrayList<>();
+		}
+
+		int nPair = Math.min(nm, tAll.length);
+		int nBins = grid.getNBins();
+
+		ArrayList<Double> result = new ArrayList<>(Math.max(1, nBins));
+		for (int k = 0; k < nBins; k++) {
+			long queryMs = grid.getClipStartMs() + (long) k * grid.getExcelDeltaMs();
+			result.add(interpolateAlongFrameTimes(queryMs, tAll, nPair));
+		}
+		return result;
+	}
+
 	private int seriesSampleCountForSubsampling() {
 		if (values != null && values.length > 0) {
 			return values.length;
@@ -351,6 +377,50 @@ public class SpotMeasure {
 			return Double.NaN;
 		}
 		return v0 + alpha * (v1 - v0);
+	}
+
+	private double interpolateAlongFrameTimes(long queryMs, long[] t, int nPair) {
+		if (nPair < 1) {
+			return Double.NaN;
+		}
+		if (nPair == 1) {
+			double v = seriesSampleDoubleAt(0);
+			return Double.isFinite(v) ? v : Double.NaN;
+		}
+
+		long tLast = t[nPair - 1];
+
+		if (queryMs <= t[0]) {
+			double v = seriesSampleDoubleAt(0);
+			return Double.isFinite(v) ? v : Double.NaN;
+		}
+		if (queryMs >= tLast) {
+			double v = seriesSampleDoubleAt(nPair - 1);
+			return Double.isFinite(v) ? v : Double.NaN;
+		}
+
+		for (int i = 1; i < nPair; i++) {
+			long tHi = t[i];
+			long tLo = t[i - 1];
+			if (queryMs > tHi) {
+				continue;
+			}
+			long dt = tHi - tLo;
+			if (dt <= 0L) {
+				double vHi = seriesSampleDoubleAt(i);
+				return Double.isFinite(vHi) ? vHi : Double.NaN;
+			}
+			double alpha = (queryMs - tLo) / (double) dt;
+			double v0 = seriesSampleDoubleAt(i - 1);
+			double v1 = seriesSampleDoubleAt(i);
+			if (!Double.isFinite(v0) || !Double.isFinite(v1)) {
+				return Double.NaN;
+			}
+			return v0 + alpha * (v1 - v0);
+		}
+
+		double v = seriesSampleDoubleAt(nPair - 1);
+		return Double.isFinite(v) ? v : Double.NaN;
 	}
 
 	@Override

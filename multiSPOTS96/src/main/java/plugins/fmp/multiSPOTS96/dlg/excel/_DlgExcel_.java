@@ -22,7 +22,6 @@ import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
-import plugins.fmp.multitools.tools.toExcel.query.XLSExportMeasuresCagesAsQuery;
 
 public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	/**
@@ -94,25 +93,6 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 					try {
 						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 						xlsExport.exportToFile(file, getSpotsOptions(exp));
-					} catch (ExcelExportException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			});
-
-		} else if (evt.getPropertyName().equals("EXPORT_SPOTSMEASURES_AS_Q")) {
-			String file = defineXlsFileName(exp, "_asQ.xlsx");
-			if (file == null)
-				return;
-			updateParametersCurrentExperiment(exp);
-			ThreadUtil.bgRun(new Runnable() {
-				@Override
-				public void run() {
-					XLSExportMeasuresCagesAsQuery xlsExport = new XLSExportMeasuresCagesAsQuery();
-					try {
-						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-						xlsExport.exportQToFile(file, getSpotsOptions(exp));
 					} catch (ExcelExportException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();

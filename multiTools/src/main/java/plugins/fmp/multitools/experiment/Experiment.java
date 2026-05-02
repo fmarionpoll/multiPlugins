@@ -741,6 +741,16 @@ public class Experiment {
 	}
 
 	/**
+	 * Median raw camera inter-frame spacing in ms persisted in the bin description, or negative if unknown.
+	 * Intended for exporters that must not depend on transient {@link #getCamImageBin_ms()} alone.
+	 */
+	public long getPersistedBinCameraIntervalMs() {
+		return (activeBinDescription != null && activeBinDescription.getCameraIntervalMs() > 0L)
+				? activeBinDescription.getCameraIntervalMs()
+				: -1L;
+	}
+
+	/**
 	 * Returns the generation mode of the currently active bin directory
 	 * (how its measures were produced). Never returns null.
 	 */

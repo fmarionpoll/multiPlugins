@@ -16,6 +16,7 @@ import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
@@ -661,19 +662,14 @@ public class Spot implements Comparable<Spot> {
 	// === MEASUREMENTS PROCESSING ===
 
 	/**
-	 * Gets spot measures for Excel export pass 1.
-	 * 
-	 * @param option      the export option
-	 * @param seriesBinMs the series bin in milliseconds
-	 * @param outputBinMs the output bin in milliseconds
-	 * @return the measures list
+	 * Gets spot measures for Excel export pass 1 using per-frame timestamps and Excel grid.
 	 */
-	public List<Double> getMeasuresForExcelPass1(EnumResults resultType, long seriesBinMs, long outputBinMs) {
+	public List<Double> getMeasuresForExcelPass1(EnumResults resultType, SpotExcelTimeline.SpotExcelGrid grid) {
 		SpotMeasure measure = getMeasurements(resultType);
 		if (measure == null) {
 			return new ArrayList<>();
 		}
-		return measure.getValuesAsSubsampledList(seriesBinMs, outputBinMs);
+		return measure.getValuesResampledToExcelGrid(grid);
 	}
 
 	/**

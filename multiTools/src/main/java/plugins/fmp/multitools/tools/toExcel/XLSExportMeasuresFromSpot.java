@@ -55,6 +55,8 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
+		SpotExcelTimeline.SpotExcelGrid spotGrid = SpotExcelTimeline.buildForSpotExport(exp, options);
+
 		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
 			double scalingFactorToPhysicalUnits = allSpots.getScalingFactorToPhysicalUnits(resultType);
@@ -63,7 +65,7 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 			for (Spot spot : cage.getSpotList(allSpots)) {
 				pt.y = 0;
 				pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, spot, resultType);
-				Results results = getResultsDataValuesFromSpotMeasures(exp, cage, spot, options);
+				Results results = getResultsDataValuesFromSpotMeasures(cage, spot, spotGrid, options);
 				results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultType);
 				writeXLSResult(sheet, pt, results);
 				pt.x++;
@@ -81,16 +83,10 @@ public class XLSExportMeasuresFromSpot extends XLSExportSpots {
 	 * @param xlsExportType The export type
 	 * @return The XLS results
 	 */
-	public Results getResultsDataValuesFromSpotMeasures(Experiment exp, Cage cage, Spot spot,
-			ResultsOptions xlsExportOptions) {
-		long binData = SpotExcelTimeline.resolveNativeSeriesBinMs(exp);
-		if (binData <= 0) {
-			binData = 1;
-		}
-		long binExcel = xlsExportOptions.buildExcelStepMs > 0 ? xlsExportOptions.buildExcelStepMs : 1;
-
+	public Results getResultsDataValuesFromSpotMeasures(Cage cage, Spot spot,
+			SpotExcelTimeline.SpotExcelGrid grid, ResultsOptions xlsExportOptions) {
 		Results results = new Results(cage.getProperties(), spot.getProperties(), 1);
-		results.getDataFromSpot(spot, binData, binExcel, xlsExportOptions);
+		results.getDataFromSpot(spot, grid, xlsExportOptions);
 		ArrayList<Double> dv = results.getDataValues();
 		int nOut = dv != null && !dv.isEmpty() ? dv.size() : 1;
 		results.initValuesOutArray(nOut, Double.NaN);

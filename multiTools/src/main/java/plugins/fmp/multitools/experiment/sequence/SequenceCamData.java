@@ -13,6 +13,7 @@ import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.EnumStatus;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 /**
  * Manages camera sequence data including images, ROIs, timing, and viewer
@@ -64,7 +65,7 @@ public class SequenceCamData implements AutoCloseable {
 	// Fields ported from experiment.SequenceCamData
 	private long seqAnalysisStart = 0;
 	private int seqAnalysisStep = 1;
-	private plugins.kernel.roi.roi2d.ROI2DPolygon referenceROI2DPolygon = null;
+	private ROI2DPolygon referenceROI2DPolygon = null;
 
 	// Specialized managers
 	private final ImageLoader imageLoader;
@@ -74,7 +75,8 @@ public class SequenceCamData implements AutoCloseable {
 
 	// Per-frame light status: 1 = light, 0 = dark (or unspecified)
 	// Aligned with camera frames managed by ImageLoader / TimeManager.
-	// This is populated by dark-interval detection routines (e.g. CleanGaps dialog).
+	// This is populated by dark-interval detection routines (e.g. CleanGaps
+	// dialog).
 	private int[] lightStatusPerFrame = null;
 
 	// === CONSTRUCTORS ===
@@ -406,8 +408,8 @@ public class SequenceCamData implements AutoCloseable {
 	}
 
 	/**
-	 * Returns the epoch milliseconds timestamp of a valid (visible) frame index,
-	 * or -1 if unavailable.
+	 * Returns the epoch milliseconds timestamp of a valid (visible) frame index, or
+	 * -1 if unavailable.
 	 */
 	public long getValidFrameEpochMs(int validFrameIndex) {
 		if (validFrameIndex < 0)

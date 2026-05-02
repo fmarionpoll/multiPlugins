@@ -90,6 +90,8 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
+		SpotExcelTimeline.SpotExcelGrid spotGrid = SpotExcelTimeline.buildForSpotExport(exp, options);
+
 		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
 			double scalingFactorToPhysicalUnits = allSpots.getScalingFactorToPhysicalUnits(resultType);
@@ -99,7 +101,7 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 				pt.y = 0;
 				pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, spot, resultType);
 
-				writeSpotDataDirectly(sheet, pt, exp, spot, scalingFactorToPhysicalUnits, resultType);
+				writeSpotDataDirectly(sheet, pt, exp, spot, spotGrid, scalingFactorToPhysicalUnits, resultType);
 
 				pt.x++;
 				processedSpots++;
@@ -122,13 +124,9 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 	 * @param resultType                The export type
 	 */
 	protected void writeSpotDataDirectly(SXSSFSheet sheet, Point pt, Experiment exp, Spot spot,
-			double scalingFactorToPhysicalUnits, EnumResults resultType) {
+			SpotExcelTimeline.SpotExcelGrid spotGrid, double scalingFactorToPhysicalUnits, EnumResults resultType) {
 
-		long nativeBinMs = SpotExcelTimeline.resolveNativeSeriesBinMs(exp);
-		if (nativeBinMs <= 0) {
-			nativeBinMs = 1;
-		}
-		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, nativeBinMs, getBinExcel());
+		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, spotGrid);
 
 		if (dataList == null || dataList.isEmpty()) {
 			return;
@@ -153,15 +151,6 @@ public class XLSExportMeasuresFromSpotOptimized extends XLSExportSpots {
 
 		// Flush buffer to Excel
 		excelRowBuffer.flushToSheet(sheet);
-	}
-
-	/**
-	 * Gets the Excel bin duration.
-	 * 
-	 * @return The Excel bin duration in milliseconds
-	 */
-	private long getBinExcel() {
-		return options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
 	}
 
 	/**

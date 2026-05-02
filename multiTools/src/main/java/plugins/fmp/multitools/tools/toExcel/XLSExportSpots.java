@@ -39,13 +39,14 @@ public abstract class XLSExportSpots extends XLSExport {
 		}
 		boolean transpose = options.transpose;
 		Point pt = new Point(0, row);
-		long excelStepMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
+		SpotExcelTimeline.SpotExcelGrid headerGrid = SpotExcelTimeline.buildForSpotExport(expAll, options);
 		int nBins = expList != null ? SpotExcelTimeline.maxSpotExcelBinCountAcrossExportRange(expList, options)
-				: SpotExcelTimeline.computeSpotExcelBinCount(expAll, options);
+				: headerGrid.getNBins();
 		for (int k = 0; k < nBins; k++) {
-			long binStartMs = (long) k * excelStepMs;
+			long elapsedMs = expList != null ? (long) k * (options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1)
+					: headerGrid.getHeaderElapsedMs(k);
 			XLSUtils.setValue(sheet, pt, transpose,
-					SpotExcelTimeline.formatElapsedColumnHeader(binStartMs, options.buildExcelUnitMs));
+					SpotExcelTimeline.formatElapsedColumnHeader(elapsedMs, options.buildExcelUnitMs));
 			pt.y++;
 		}
 	}

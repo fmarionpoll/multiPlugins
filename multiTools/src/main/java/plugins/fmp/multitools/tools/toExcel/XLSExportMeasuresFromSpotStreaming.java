@@ -108,6 +108,8 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
+		SpotExcelTimeline.SpotExcelGrid spotGrid = SpotExcelTimeline.buildForSpotExport(exp, options);
+
 		Spots allSpots = exp.getSpots();
 		for (Cage cage : exp.getCages().cagesList) {
 			double scalingFactorToPhysicalUnits = allSpots.getScalingFactorToPhysicalUnits(resultType);
@@ -118,7 +120,8 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 				int endIndex = Math.min(i + CHUNK_SIZE, spots.size());
 				List<Spot> spotChunk = spots.subList(i, endIndex);
 
-				processSpotChunk(sheet, pt, exp, charSeries, cage, spotChunk, scalingFactorToPhysicalUnits, resultType);
+				processSpotChunk(sheet, pt, exp, spotGrid, charSeries, cage, spotChunk,
+						scalingFactorToPhysicalUnits, resultType);
 
 				System.gc();
 			}
@@ -138,15 +141,16 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	 * @param scalingFactorToPhysicalUnits The scaling factor
 	 * @param resultType                   The export type
 	 */
-	protected void processSpotChunk(SXSSFSheet sheet, Point pt, Experiment exp, String charSeries, Cage cage,
-			List<Spot> spotChunk, double scalingFactorToPhysicalUnits, EnumResults resultType) {
+	protected void processSpotChunk(SXSSFSheet sheet, Point pt, Experiment exp, SpotExcelTimeline.SpotExcelGrid spotGrid,
+			String charSeries, Cage cage, List<Spot> spotChunk, double scalingFactorToPhysicalUnits,
+			EnumResults resultType) {
 
 		for (Spot spot : spotChunk) {
 			pt.y = 0;
 			pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, spot, resultType);
 
 			// Process spot data using streaming
-			writeSpotDataStreaming(sheet, pt, exp, spot, scalingFactorToPhysicalUnits, resultType);
+			writeSpotDataStreaming(sheet, pt, spotGrid, spot, scalingFactorToPhysicalUnits, resultType);
 
 			pt.x++;
 			processedSpots.incrementAndGet();
@@ -170,10 +174,10 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	 * @param scalingFactorToPhysicalUnits The scaling factor
 	 * @param resultType                   The export type
 	 */
-	protected void writeSpotDataStreaming(SXSSFSheet sheet, Point pt, Experiment exp, Spot spot,
-			double scalingFactorToPhysicalUnits, EnumResults resultType) {
+	protected void writeSpotDataStreaming(SXSSFSheet sheet, Point pt, SpotExcelTimeline.SpotExcelGrid spotGrid,
+			Spot spot, double scalingFactorToPhysicalUnits, EnumResults resultType) {
 
-		Iterator<Double> dataIterator = getSpotDataIterator(exp, spot, resultType);
+		Iterator<Double> dataIterator = getSpotDataIterator(spotGrid, spot, resultType);
 
 		if (!dataIterator.hasNext()) {
 			return;
@@ -195,13 +199,9 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 	 * @param resultType The export type
 	 * @return The data iterator
 	 */
-	protected Iterator<Double> getSpotDataIterator(Experiment exp, Spot spot, EnumResults resultType) {
-		long nativeBinMs = SpotExcelTimeline.resolveNativeSeriesBinMs(exp);
-		if (nativeBinMs <= 0) {
-			nativeBinMs = 1;
-		}
-		long excelBinMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
-		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, nativeBinMs, excelBinMs);
+	protected Iterator<Double> getSpotDataIterator(SpotExcelTimeline.SpotExcelGrid spotGrid, Spot spot,
+			EnumResults resultType) {
+		List<Double> dataList = spot.getMeasuresForExcelPass1(resultType, spotGrid);
 		return dataList != null ? dataList.iterator() : new java.util.ArrayList<Double>().iterator();
 	}
 
@@ -266,15 +266,6 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 
 		// Flush chunk processor
 		chunkProcessor.flush(sheet);
-	}
-
-	/**
-	 * Gets the Excel bin duration.
-	 * 
-	 * @return The Excel bin duration in milliseconds
-	 */
-	private long getBinExcel() {
-		return options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1;
 	}
 
 	/**

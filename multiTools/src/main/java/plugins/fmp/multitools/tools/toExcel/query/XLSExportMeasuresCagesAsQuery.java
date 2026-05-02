@@ -25,6 +25,7 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.ExcelResourceManager;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
@@ -252,7 +253,8 @@ public class XLSExportMeasuresCagesAsQuery extends XLSExportMeasuresFromSpot {
 			EnumResults resultType) {
 		Results xlsResults = null;
 		if (spot != null) {
-			xlsResults = getResultsDataValuesFromSpotMeasures(exp, cage, spot, resultsOptions);
+			SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, resultsOptions);
+			xlsResults = getResultsDataValuesFromSpotMeasures(cage, spot, grid, resultsOptions);
 			xlsResults.transferDataValuesToValuesOut(scaling, resultType);
 		}
 		return xlsResults;
