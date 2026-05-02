@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.cages;
 
 import java.awt.Rectangle;
+import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -127,6 +128,37 @@ public class Cages {
 
 	public void setCageList(ArrayList<Cage> cagesList) {
 		this.cagesList = cagesList;
+	}
+
+	/**
+	 * Area-weighted centroid of cage ROI bounds (proxy for plate center in image
+	 * pixels). Falls back to image center when no valid ROIs exist.
+	 */
+	public Point2D.Double computePlatePivotFromCageBounds(int imageWidth, int imageHeight) {
+		double sumW = 0;
+		double sumX = 0;
+		double sumY = 0;
+		for (Cage cage : cagesList) {
+			if (cage.getRoi() == null) {
+				continue;
+			}
+			Rectangle b = cage.getRoi().getBounds();
+			if (b.width <= 0 || b.height <= 0) {
+				continue;
+			}
+			double area = (double) b.width * (double) b.height;
+			double cx = b.getCenterX();
+			double cy = b.getCenterY();
+			sumW += area;
+			sumX += area * cx;
+			sumY += area * cy;
+		}
+		if (sumW <= 0) {
+			double w = Math.max(1, imageWidth);
+			double h = Math.max(1, imageHeight);
+			return new Point2D.Double(w / 2.0, h / 2.0);
+		}
+		return new Point2D.Double(sumX / sumW, sumY / sumW);
 	}
 
 	/**

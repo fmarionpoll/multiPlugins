@@ -36,6 +36,15 @@ public class CanvasImageTransformOptions {
 	/** Pixel shift applied to the source before reference subtraction (drift preview; sub-pixel OK). */
 	public double translateDy = 0;
 
+	/**
+	 * Rotate source about ({@link #rotatePivotX}, {@link #rotatePivotY}) by this
+	 * angle (radians, CCW in image coords) before translation and reference
+	 * subtraction.
+	 */
+	public double rotationRadians = 0;
+	public double rotatePivotX = 0;
+	public double rotatePivotY = 0;
+
 	public final byte byteFALSE = 0;
 	public final byte byteTRUE = (byte) 0xFF;
 	public ArrayList<Color> colorarray = null;

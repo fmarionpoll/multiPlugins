@@ -30,6 +30,8 @@ public class GaspardRigidRegistration {
 	private static final int DEFAULT_SIZE_RHO = 360;
 	private static final double MIN_TRANSLATION_THRESHOLD = 0.001;
 	private static final double MIN_ROTATION_THRESHOLD = 0.001;
+	/** Below this (radians), skip rotation work (allows fine manual steps well below {@link #MIN_ROTATION_THRESHOLD}). */
+	private static final double MIN_ANGLE_RAD_EPS = 1e-10;
 
 	public static Vector2d findTranslation2D(IcyBufferedImage source, int sourceC, IcyBufferedImage target,
 			int targetC) {
@@ -491,6 +493,69 @@ public class GaspardRigidRegistration {
 		}
 
 		return IcyBufferedImage.createFrom(Arrays.asList(newImages));
+	}
+
+	/**
+	 * Rotate {@code image} by {@code angleRad} (counter-clockwise, Java2D
+	 * convention) about ({@code pivotX}, {@code pivotY}), same width/height as
+	 * input. Then translate by {@code translation} in pixel axes.
+	 */
+	public static IcyBufferedImage applyRotateAboutPivotThenTranslate2D(IcyBufferedImage image, int channel,
+			double angleRad, double pivotX, double pivotY, Vector2d translation, boolean preserveImageSize) {
+		if (image == null)
+			throw new IllegalArgumentException("Image cannot be null");
+		IcyBufferedImage out = image;
+		if (Math.abs(angleRad) >= MIN_ANGLE_RAD_EPS) {
+			out = applyRotation2DAboutPivot(out, channel, angleRad, pivotX, pivotY, preserveImageSize);
+		}
+		return applyTranslation2D(out, channel, translation, preserveImageSize);
+	}
+
+	/**
+	 * Rotate about an arbitrary pivot; output size matches input when
+	 * {@code preserveImageSize} is true (extra content clipped). Per-channel
+	 * behavior matches {@link #applyTranslation2D} sub-pixel path.
+	 */
+	public static IcyBufferedImage applyRotation2DAboutPivot(IcyBufferedImage image, int channel, double angleRad,
+			double pivotX, double pivotY, boolean preserveImageSize) {
+		if (image == null)
+			throw new IllegalArgumentException("Image cannot be null");
+		if (Math.abs(angleRad) < MIN_ANGLE_RAD_EPS) {
+			return image;
+		}
+		if (!preserveImageSize)
+			throw new UnsupportedOperationException("preserveImageSize=false not supported for pivot rotation");
+
+		AffineTransform transform = AffineTransform.getRotateInstance(angleRad, pivotX, pivotY);
+		IcyBufferedImage newImg = new IcyBufferedImage(image.getWidth(), image.getHeight(), image.getSizeC(),
+				image.getDataType_());
+
+		for (int c = 0; c < image.getSizeC(); c++) {
+			if (channel != -1 && c != channel) {
+				newImg.copyData(image, null, new Point(0, 0), c, c);
+				continue;
+			}
+
+			BufferedImage awtSrc = image.getImage(c);
+			int w = awtSrc.getWidth();
+			int h = awtSrc.getHeight();
+			int type = awtSrc.getType();
+			if (type == 0 || type == BufferedImage.TYPE_CUSTOM) {
+				type = BufferedImage.TYPE_INT_RGB;
+			}
+			BufferedImage awtDst = new BufferedImage(w, h, type);
+			Graphics2D g2 = awtDst.createGraphics();
+			g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g2.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+			g2.setTransform(transform);
+			g2.drawImage(awtSrc, 0, 0, null);
+			g2.dispose();
+
+			IcyBufferedImage tempWrapper = IcyBufferedImage.createFrom(awtDst);
+			newImg.setDataXY(c, tempWrapper.getDataXY(0));
+		}
+
+		return newImg;
 	}
 
 }
