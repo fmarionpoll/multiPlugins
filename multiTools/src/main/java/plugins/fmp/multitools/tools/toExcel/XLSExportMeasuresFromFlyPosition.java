@@ -39,6 +39,7 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelDataException;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
@@ -108,10 +109,17 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		long firstAllEpochMs = expAll.getSeqCamData().getFirstImageMs();
 		long lastAllEpochMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
-		if (lastAllEpochMs <= firstAllEpochMs || buildExcelStepMs <= 0) {
+		if (buildExcelStepMs <= 0) {
 			return null;
 		}
-		long durationAllMs = lastAllEpochMs - firstAllEpochMs;
+
+		long authoritySpan = SpotExcelTimeline.relativeCameraAcquisitionSpanMs(expAll);
+		long epochSpan = (lastAllEpochMs > firstAllEpochMs) ? (lastAllEpochMs - firstAllEpochMs) : 0L;
+		long durationAllMs = authoritySpan > 0L ? authoritySpan : epochSpan;
+
+		if (durationAllMs <= 0L) {
+			return null;
+		}
 		int nBins = (int) (durationAllMs / buildExcelStepMs) + 1;
 		long expOffsetToAllMs = options.absoluteTime ? (exp.chainImageFirst_ms - firstAllEpochMs) : 0L;
 		return new FlyExportTimeline(nBins, buildExcelStepMs, firstAllEpochMs, expOffsetToAllMs);
@@ -1014,9 +1022,17 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 	 * @return The number of output frames
 	 */
 	protected int getNOutputFrames(Experiment exp, ResultsOptions resultsOptions) {
-		// For fly positions, use camera sequence timing
 		TimeManager timeManager = exp.getSeqCamData().getTimeManager();
 		ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+
+		long authority = SpotExcelTimeline.relativeCameraAcquisitionSpanMs(exp);
+		if (authority > 0L && resultsOptions.buildExcelStepMs > 0) {
+			int nAuth = (int) (authority / resultsOptions.buildExcelStepMs + 1);
+			if (nAuth > 1) {
+				return nAuth;
+			}
+		}
+
 		long durationMs = timeManager.getBinLast_ms() - timeManager.getBinFirst_ms();
 		int nOutputFrames = (int) (durationMs / resultsOptions.buildExcelStepMs + 1);
 

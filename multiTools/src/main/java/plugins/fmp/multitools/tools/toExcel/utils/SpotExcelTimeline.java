@@ -54,6 +54,26 @@ public final class SpotExcelTimeline {
 		}
 	}
 
+	/**
+	 * Relative elapsed ms from the first camera frame to the last, same authoritative spacing as
+	 * {@link #buildForSpotExport}. Zero if there is no usable stack ({@code seqCamData}, or fewer than two frames).
+	 */
+	public static long relativeCameraAcquisitionSpanMs(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null) {
+			return 0L;
+		}
+		ImageLoader il = exp.getSeqCamData().getImageLoader();
+		if (il == null) {
+			return 0L;
+		}
+		int nf = il.getNTotalFrames();
+		if (nf <= 1) {
+			return 0L;
+		}
+		long[] t = resolveFrameElapsedMsArray(exp);
+		return t.length > 0 ? t[t.length - 1] : 0L;
+	}
+
 	public static SpotExcelGrid buildForSpotExport(Experiment exp, ResultsOptions opt) {
 		ImageLoader il = exp.getSeqCamData().getImageLoader();
 		int nf = il.getNTotalFrames();

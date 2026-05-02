@@ -22,6 +22,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 /**
@@ -295,6 +296,16 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					if (kymoBin_ms > 0) {
 						kymoLast_ms = kymoFirst_ms + imgLoader.getNTotalFrames() * kymoBin_ms;
 						exp.setKymoLast_ms(kymoLast_ms);
+					}
+				}
+			}
+
+			if (kymoLast_ms <= kymoFirst_ms && exp.getSeqCamData() != null) {
+				long authority = SpotExcelTimeline.relativeCameraAcquisitionSpanMs(exp);
+				if (authority > 0L && resultsOptions.buildExcelStepMs > 0) {
+					int nAuth = (int) (authority / resultsOptions.buildExcelStepMs + 1);
+					if (nAuth > 1) {
+						return nAuth;
 					}
 				}
 			}

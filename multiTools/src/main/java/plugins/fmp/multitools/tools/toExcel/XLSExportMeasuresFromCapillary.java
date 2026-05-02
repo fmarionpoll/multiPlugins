@@ -18,6 +18,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
 /**
@@ -244,11 +245,20 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		long lastImageMs = expAll.getSeqCamData().getLastImageMs();
 		long buildExcelStepMs = resultsOptions.buildExcelStepMs;
 
-		if (lastImageMs <= firstImageMs || buildExcelStepMs <= 0) {
+		if (buildExcelStepMs <= 0) {
 			return null;
 		}
 
-		long durationMs = lastImageMs - firstImageMs;
+		long durationMs = (lastImageMs > firstImageMs) ? (lastImageMs - firstImageMs) : 0L;
+		if (durationMs <= 0L && exp != null) {
+			long authority = SpotExcelTimeline.relativeCameraAcquisitionSpanMs(exp);
+			if (authority > 0L) {
+				durationMs = authority;
+			}
+		}
+		if (durationMs <= 0L) {
+			return null;
+		}
 		int nBins = (int) (durationMs / buildExcelStepMs) + 1;
 
 		// Create Results object
@@ -265,9 +275,15 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		try {
 			long e0 = exp.getSeqCamData().getFirstImageMs();
 			long e1 = exp.getSeqCamData().getLastImageMs();
-			if (e1 > e0)
+			if (e1 > e0) {
 				expDurationMs = e1 - e0;
+			}
 		} catch (Exception ignored) {
+		}
+		long authorityExp = SpotExcelTimeline.relativeCameraAcquisitionSpanMs(exp);
+		if (authorityExp > 0L
+				&& (expDurationMs <= 0L || expDurationMs > authorityExp + authorityExp / 4L + buildExcelStepMs)) {
+			expDurationMs = authorityExp;
 		}
 
 		// Build array of data points with times in milliseconds for interpolation
