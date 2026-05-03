@@ -85,11 +85,7 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		pt = writeExperimentSeparator(sheet, pt);
 
 		ResultsOptions resultsOptions = new ResultsOptions();
-		long kymoBin_ms = exp.getKymoBin_ms();
-		if (kymoBin_ms <= 0) {
-			kymoBin_ms = 60000;
-		}
-		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
+		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 		resultsOptions.relativeToMaximum = false;
 		resultsOptions.subtractT0 = false;
 		resultsOptions.correctEvaporation = (resultType == EnumResults.TOPLEVEL) ? true : false;

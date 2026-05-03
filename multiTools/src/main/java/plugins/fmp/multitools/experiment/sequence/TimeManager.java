@@ -23,6 +23,10 @@ public class TimeManager {
 	private long firstImage_ms = -1;
 	private long lastImage_ms = -1;
 	private long duration_ms = 0;
+	/**
+	 * Nominal milliseconds between consecutive camera frame indices for this stack
+	 * ({@link plugins.fmp.multitools.experiment.timebase.MeasureTimebase#CAMERA_FRAME_STEP}).
+	 */
 	private long binImage_ms = 0;
 	private long[] camImages_time_ms = null;
 	private double[] camImages_time_min = null;
@@ -213,6 +217,9 @@ public class TimeManager {
 	// -----------------------------------------
 
 	// Getters and setters
+	/**
+	 * See {@link #binImage_ms}; camera frame step for the stack timeline.
+	 */
 	public long getBinImage_ms() {
 		return binImage_ms;
 	}

@@ -16,6 +16,10 @@ import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -341,6 +345,11 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return camImages_time_min[j];
 		}
 		if (exp != null) {
+			TimestepResolutionResult tr = TimestepResolver.resolve(exp, 0,
+					TimestepResolutionContext.FOR_CHART_NATIVE_MEASURE);
+			if (tr.getSource() == MeasureTimebase.CAMERA_FRAME_STEP && tr.getStepMs() > 0) {
+				return (j * tr.getStepMs()) / 60000.0;
+			}
 			long kymoFirstMs = exp.getKymoFirst_ms();
 			long kymoBinMs = exp.getKymoBin_ms();
 			if (kymoBinMs > 0) {

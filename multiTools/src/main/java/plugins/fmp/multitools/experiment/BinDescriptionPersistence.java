@@ -7,10 +7,13 @@ import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
 
+import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
+
 public class BinDescriptionPersistence {
 
 	private final static String ID_VERSION = "version";
-	private final static String ID_VERSIONNUM = "2.1.0";
+	private final static String ID_VERSIONNUM = "2.2.0";
+	private final static String ID_VERSIONNUM_V2_1 = "2.1.0";
 	/** Older schema still readable. */
 	private final static String ID_VERSIONNUM_V2_0 = "2.0.0";
 	private final static String ID_FIRSTKYMOCOLMS = "firstKymoColMs";
@@ -20,6 +23,7 @@ public class BinDescriptionPersistence {
 	private final static String ID_CAMERAINTERVALMS = "cameraIntervalMs";
 	private final static String ID_SUBSAMPLEFACTOR = "subsampleFactor";
 	private final static String ID_GENERATIONMODE = "generationMode";
+	private final static String ID_PRIMARYTIMEBASE = "primaryTimebase";
 	private final static String ID_MEASURESPRESENT = "measuresPresent";
 	private final static String ID_BINDESCRIPTION = "binDescription";
 
@@ -97,7 +101,7 @@ public class BinDescriptionPersistence {
 			return false;
 
 		String version = XMLUtil.getElementValue(node, ID_VERSION, ID_VERSIONNUM);
-		if (!version.equals(ID_VERSIONNUM) && !version.equals(ID_VERSIONNUM_V2_0))
+		if (!version.equals(ID_VERSIONNUM) && !version.equals(ID_VERSIONNUM_V2_1) && !version.equals(ID_VERSIONNUM_V2_0))
 			return false;
 
 		long firstKymoColMs = XMLUtil.getElementLongValue(node, ID_FIRSTKYMOCOLMS, -1);
@@ -107,6 +111,7 @@ public class BinDescriptionPersistence {
 		long cameraIntervalMs = XMLUtil.getElementLongValue(node, ID_CAMERAINTERVALMS, -1);
 		int subsampleFactor = XMLUtil.getElementIntValue(node, ID_SUBSAMPLEFACTOR, -1);
 		String generationModeStr = XMLUtil.getElementValue(node, ID_GENERATIONMODE, null);
+		String primaryTimebaseStr = XMLUtil.getElementValue(node, ID_PRIMARYTIMEBASE, null);
 		boolean measuresPresent = XMLUtil.getElementBooleanValue(node, ID_MEASURESPRESENT, false);
 
 		if (firstKymoColMs >= 0)
@@ -123,6 +128,13 @@ public class BinDescriptionPersistence {
 			binDescription.setSubsampleFactor(subsampleFactor);
 		if (generationModeStr != null && !generationModeStr.isEmpty())
 			binDescription.setGenerationMode(GenerationMode.fromString(generationModeStr));
+		if (primaryTimebaseStr != null && !primaryTimebaseStr.isEmpty()) {
+			try {
+				binDescription.setPrimaryTimebase(MeasureTimebase.valueOf(primaryTimebaseStr.trim()));
+			} catch (IllegalArgumentException e) {
+				binDescription.setPrimaryTimebase(MeasureTimebase.UNKNOWN);
+			}
+		}
 		binDescription.setMeasuresPresent(measuresPresent);
 
 		return true;
@@ -146,6 +158,7 @@ public class BinDescriptionPersistence {
 				XMLUtil.setElementLongValue(node, ID_CAMERAINTERVALMS, binDescription.getCameraIntervalMs());
 			XMLUtil.setElementIntValue(node, ID_SUBSAMPLEFACTOR, binDescription.getSubsampleFactor());
 			XMLUtil.setElementValue(node, ID_GENERATIONMODE, binDescription.getGenerationMode().name());
+			XMLUtil.setElementValue(node, ID_PRIMARYTIMEBASE, binDescription.getPrimaryTimebase().name());
 			XMLUtil.setElementBooleanValue(node, ID_MEASURESPRESENT, binDescription.isMeasuresPresent());
 
 			XMLUtil.saveDocument(doc, csFileName);

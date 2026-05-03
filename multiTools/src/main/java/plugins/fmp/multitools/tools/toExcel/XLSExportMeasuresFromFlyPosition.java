@@ -289,11 +289,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		pt = writeExperimentSeparator(sheet, pt);
 
 		ResultsOptions resultsOptions = new ResultsOptions();
-		long kymoBin_ms = exp.getKymoBin_ms();
-		if (kymoBin_ms <= 0) {
-			kymoBin_ms = 60000;
-		}
-		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
+		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 		resultsOptions.relativeToMaximum = false;
 		resultsOptions.subtractT0 = false;
 		resultsOptions.correctEvaporation = false;
@@ -522,15 +518,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 		pt = writeExperimentSeparator(sheet, pt);
 
 		ResultsOptions resultsOptions = new ResultsOptions();
-		long kymoBin_ms = exp.getKymoBin_ms();
-		if (kymoBin_ms <= 0) {
-			kymoBin_ms = 60000;
-		}
-		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
-		resultsOptions.relativeToMaximum = false;
-		resultsOptions.subtractT0 = false;
-		resultsOptions.correctEvaporation = false;
-		resultsOptions.resultType = EnumResults.XYIMAGE;
+		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 
 		boolean transpose = options.transpose;
 

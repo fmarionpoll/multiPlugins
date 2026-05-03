@@ -179,22 +179,22 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		if (exp == null)
 			return;
 
-		int nominalSec = ((Number) binSize.getValue()).intValue();
-		if (nominalSec < 1)
-			nominalSec = 60;
+		BuildSeriesOptions options = initBuildParameters(exp);
+		long binMs = options.t_Ms_BinDuration;
+		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
 		long medianMs = exp.getSeqCamData() != null ? exp.getCamImageBin_ms() : 0;
 		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
 				exp.getNominalIntervalSec() >= 0))
 			return;
 
 		exp.setNominalIntervalSec(nominalSec);
-		exp.setKymoBin_ms(nominalSec * 1000L);
+		exp.setKymoBin_ms(binMs);
 
 		exp.releaseKymographSequence();
 		parent0.paneCapillaries.tabFile.saveCapillaries_file(exp);
 
 		threadBuildKymo = new BuildKymosFromCapillaries();
-		threadBuildKymo.options = initBuildParameters(exp);
+		threadBuildKymo.options = options;
 		threadBuildKymo.addPropertyChangeListener(this);
 		threadBuildKymo.execute();
 		startComputationButton.setText("STOP");

@@ -1,5 +1,7 @@
 package plugins.fmp.multitools.experiment;
 
+import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
+
 public class BinDescription {
 	private long firstKymoColMs = 0;
 	private long lastKymoColMs = 0;
@@ -24,6 +26,8 @@ public class BinDescription {
 
 	/** How the measures in the directory were produced. */
 	private GenerationMode generationMode = GenerationMode.UNKNOWN;
+
+	private MeasureTimebase primaryTimebase = MeasureTimebase.UNKNOWN;
 
 	/**
 	 * Cheap sanity flag: whether measure files were present last time the directory
@@ -109,6 +113,14 @@ public class BinDescription {
 		this.generationMode = generationMode == null ? GenerationMode.UNKNOWN : generationMode;
 	}
 
+	public MeasureTimebase getPrimaryTimebase() {
+		return primaryTimebase == null ? MeasureTimebase.UNKNOWN : primaryTimebase;
+	}
+
+	public void setPrimaryTimebase(MeasureTimebase primaryTimebase) {
+		this.primaryTimebase = primaryTimebase == null ? MeasureTimebase.UNKNOWN : primaryTimebase;
+	}
+
 	public boolean isMeasuresPresent() {
 		return measuresPresent;
 	}
@@ -138,6 +150,7 @@ public class BinDescription {
 			this.subsampleFactor = other.subsampleFactor;
 			this.generationMode = other.generationMode;
 			this.measuresPresent = other.measuresPresent;
+			this.primaryTimebase = other.primaryTimebase;
 		}
 	}
 

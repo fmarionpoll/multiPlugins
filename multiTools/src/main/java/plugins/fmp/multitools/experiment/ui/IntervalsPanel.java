@@ -9,6 +9,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -38,6 +39,11 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 
 	private static final long serialVersionUID = -5739112045358747277L;
 
+	private static final String ANALYSIS_STEP_TOOLTIP = "<html>Duration added per frame in the analysis timeline.<br>"
+			+ "<b>Refresh</b> sets this from image timestamps (filename or file date).<br>"
+			+ "<b>Apply</b> saves it to the experiment; it drives camera/kymograph bins and time axes.<br>"
+			+ "Override only if you subsample frames or need a deliberate time correction.</html>";
+
 	Long val = 1L;
 	Long min = 0L;
 	Long max = 10000L;
@@ -53,7 +59,7 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 	public JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(60, 1, 999, 1));
 	public JButton applyButton = new JButton("Apply changes");
 	public JButton refreshButton = new JButton("Refresh");
-	private JLabel analysisIntervalLabel = new JLabel("Analysis interval: \u2014");
+	private JLabel analysisIntervalLabel = new JLabel("Acquisition (from image times): \u2014");
 	private JLabel classSummaryLabel = new JLabel(" ");
 	private JButton advancedToggleButton = new JButton("Advanced...");
 	private JPanel advancedPanel = new JPanel();
@@ -95,7 +101,11 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		add(panel1);
 
 		advancedPanel.setLayout(layout1);
-		advancedPanel.add(new JLabel("Time between frames ", SwingConstants.RIGHT));
+		JLabel analysisStepLabel = new JLabel("Analysis time step ", SwingConstants.RIGHT);
+		analysisStepLabel.setToolTipText(ANALYSIS_STEP_TOOLTIP);
+		binSizeJSpinner.setToolTipText(ANALYSIS_STEP_TOOLTIP);
+		binUnit.setToolTipText(ANALYSIS_STEP_TOOLTIP);
+		advancedPanel.add(analysisStepLabel);
 		advancedPanel.add(binSizeJSpinner);
 		advancedPanel.add(binUnit);
 		add(advancedPanel);
@@ -333,7 +343,7 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 				nominalIntervalJSpinner.setValue(suggestedSec);
 			}
 		}
-		updateAnalysisIntervalLabel(exp, bin_ms);
+		updateAnalysisIntervalLabel(exp);
 		updateClassSummaryLabel(exp, bin_ms);
 	}
 
@@ -366,18 +376,48 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		classSummaryLabel.setText(String.format("  Class: factor %dx, %s, ~%d s/sample", factor, modeText, effSec));
 	}
 
-	private void updateAnalysisIntervalLabel(Experiment exp, long bin_ms) {
-		if (bin_ms <= 0) {
-			analysisIntervalLabel.setText("Analysis interval: \u2014");
+	private void updateAnalysisIntervalLabel(Experiment exp) {
+		if (exp == null) {
+			analysisIntervalLabel.setText("Acquisition (from image times): \u2014");
 			return;
 		}
-		int displaySec = (int) Math.round(bin_ms / 1000.0);
-		int nominal = exp != null ? exp.getNominalIntervalSec() : -1;
-		if (nominal > 0 && Math.abs(nominal - displaySec) <= 1) {
-			analysisIntervalLabel.setText(String.format("Analysis interval: %d s (from frames)", nominal));
-		} else {
-			analysisIntervalLabel.setText(String.format("Analysis interval: %d s (from frames)", displaySec));
+		long med = exp.getLastAcquisitionMedianMs();
+		long mean = exp.getLastAcquisitionSpanMeanMs();
+		long chosen = exp.getCamImageBin_ms();
+		if (chosen <= 0 && med <= 0 && mean <= 0) {
+			analysisIntervalLabel.setText("Acquisition (from image times): \u2014");
+			return;
 		}
+		String medS = med > 0 ? formatIntervalForLabel(med) : null;
+		String meanS = mean > 0 ? formatIntervalForLabel(mean) : null;
+		StringBuilder sb = new StringBuilder("Acquisition (from image times): ");
+		if (medS != null) {
+			sb.append("median ").append(medS);
+			if (meanS != null && acquisitionMedianMeanDiffer(med, mean)) {
+				sb.append(", span mean ").append(meanS);
+			}
+		} else if (meanS != null) {
+			sb.append("span mean ").append(meanS);
+		} else if (chosen > 0) {
+			sb.append(formatIntervalForLabel(chosen));
+		}
+		analysisIntervalLabel.setText(sb.toString());
+	}
+
+	private static String formatIntervalForLabel(long ms) {
+		double s = ms / 1000.0;
+		if (s >= 10)
+			return String.format(Locale.US, "%.0f s", s);
+		return String.format(Locale.US, "%.2f s", s);
+	}
+
+	private static boolean acquisitionMedianMeanDiffer(long medianMs, long meanMs) {
+		if (medianMs <= 0 || meanMs <= 0)
+			return false;
+		long d = Math.abs(medianMs - meanMs);
+		if (d <= 500)
+			return false;
+		return d / (double) Math.max(medianMs, meanMs) > 0.05;
 	}
 
 	private boolean validateBinAgainstDetected(long requestedMs, long detectedMs) {

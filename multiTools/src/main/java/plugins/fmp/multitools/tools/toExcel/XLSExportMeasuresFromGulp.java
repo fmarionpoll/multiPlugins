@@ -170,14 +170,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		}
 
 		ResultsOptions resultsOptions = new ResultsOptions();
-		long kymoBin_ms = exp.getKymoBin_ms();
-		if (kymoBin_ms <= 0) {
-			kymoBin_ms = 60000;
-		}
-		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
-		resultsOptions.relativeToMaximum = false;
-		resultsOptions.subtractT0 = false;
-		resultsOptions.correctEvaporation = false; // Gulps don't use evaporation correction
+		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 		resultsOptions.resultType = resultType;
 
 		exp.dispatchCapillariesToCages();
@@ -647,15 +640,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	 */
 	private int xlsExportMarkovChainTransitions(Experiment exp, SXSSFSheet sheet, Point pt, String charSeries) {
 		ResultsOptions resultsOptions = new ResultsOptions();
-		long kymoBin_ms = exp.getKymoBin_ms();
-		if (kymoBin_ms <= 0) {
-			kymoBin_ms = 60000;
-		}
-		resultsOptions.buildExcelStepMs = (int) kymoBin_ms;
-		resultsOptions.relativeToMaximum = false;
-		resultsOptions.subtractT0 = false;
-		resultsOptions.correctEvaporation = false;
-		resultsOptions.resultType = EnumResults.MARKOV_CHAIN;
+		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 
 		exp.dispatchCapillariesToCages();
 		exp.getCages().prepareComputations(exp, resultsOptions);

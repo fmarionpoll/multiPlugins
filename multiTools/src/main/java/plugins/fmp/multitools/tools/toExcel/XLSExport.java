@@ -15,6 +15,8 @@ import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.LazyExperiment;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.tools.Logger;
@@ -43,6 +45,21 @@ public abstract class XLSExport {
 	protected ResultsOptions options = null;
 	protected Experiment expAll = null;
 	protected JComboBoxExperimentLazy expList = null;
+
+	/**
+	 * Effective Excel export column step (ms): honors dialog {@code buildExcelStepMs}
+	 * when positive; otherwise {@link TimestepResolver} fallbacks per experiment.
+	 */
+	protected int resolveBuildExcelStepMsForExport(Experiment exp) {
+		if (options == null)
+			return 1;
+		if (exp == null)
+			return Math.max(1, options.buildExcelStepMs);
+		long ms = TimestepResolver
+				.resolve(exp, options.buildExcelStepMs, TimestepResolutionContext.FOR_EXCEL_EXPORT).getStepMs();
+		int step = (int) Math.min(ms, Integer.MAX_VALUE);
+		return Math.max(1, step);
+	}
 
 	// Resource management
 	protected ExcelResourceManager resourceManager = null;
@@ -149,7 +166,7 @@ public abstract class XLSExport {
 		if (duration <= 0L) {
 			return 0L;
 		}
-		long step = options.buildExcelStepMs;
+		long step = resolveBuildExcelStepMsForExport(expAll);
 		if (step <= 0L) {
 			return 0L;
 		}
@@ -160,7 +177,7 @@ public abstract class XLSExport {
 		if (!options.transpose || expAll == null || expAll.getSeqCamData() == null) {
 			return;
 		}
-		int step = options.buildExcelStepMs;
+		int step = resolveBuildExcelStepMsForExport(expAll);
 		if (step <= 0) {
 			throw new ExcelDataException("Excel time-step (buildExcelStepMs) must be positive.",
 					"validate_parameters", "excel_step_ms");

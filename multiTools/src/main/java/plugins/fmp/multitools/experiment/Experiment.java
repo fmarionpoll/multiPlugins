@@ -48,6 +48,10 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.spots.SpotsPersistenceLegacy;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
+import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
+import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.DescriptorsIO;
@@ -219,6 +223,14 @@ public class Experiment {
 		return timeManager.getCamImageBin_ms();
 	}
 
+	public long getLastAcquisitionMedianMs() {
+		return timeManager.getLastAcquisitionMedianMs();
+	}
+
+	public long getLastAcquisitionSpanMeanMs() {
+		return timeManager.getLastAcquisitionSpanMeanMs();
+	}
+
 	public void setCamImageBin_ms(long ms) {
 		timeManager.setCamImageBin_ms(ms);
 	}
@@ -259,6 +271,10 @@ public class Experiment {
 		timeManager.setKymoLast_ms(ms);
 	}
 
+	/**
+	 * Kymograph column / analysis bin duration in ms
+	 * ({@link plugins.fmp.multitools.experiment.timebase.MeasureTimebase#KYMO_COLUMN_STEP}).
+	 */
 	public long getKymoBin_ms() {
 		long timeManagerValue = timeManager.getKymoBin_ms();
 		long activeBinValue = (activeBinDescription != null && activeBinDescription.getBinKymoColMs() > 0)
@@ -2189,6 +2205,14 @@ public class Experiment {
 		// detector) before calling saveBinDescription; leave as-is otherwise.
 		String binFullDir = resultsDirectory + File.separator + binSubDirectory;
 		activeBinDescription.setMeasuresPresent(BinDirectoryScanUtils.hasMeasureContent(binFullDir));
+		GenerationMode gm = activeBinDescription.getGenerationMode();
+		if (gm == GenerationMode.KYMOGRAPH) {
+			activeBinDescription.setPrimaryTimebase(MeasureTimebase.KYMO_COLUMN_STEP);
+		} else if (gm == GenerationMode.DIRECT_FROM_STACK) {
+			activeBinDescription.setPrimaryTimebase(MeasureTimebase.CAMERA_FRAME_STEP);
+		} else {
+			activeBinDescription.setPrimaryTimebase(MeasureTimebase.UNKNOWN);
+		}
 		return binDescriptionPersistence.save(activeBinDescription, binFullDir);
 	}
 
@@ -2209,14 +2233,18 @@ public class Experiment {
 	 * @return The number of output frames
 	 */
 	public int getNOutputFrames(ResultsOptions options) {
-		// For capillaries, use kymograph timing
+		int excelStep = options != null ? options.buildExcelStepMs : 0;
+		TimestepResolutionResult tr = TimestepResolver.resolve(this, excelStep,
+				TimestepResolutionContext.FOR_EXCEL_EXPORT);
+		long resolvedStep = tr.getStepMs();
+		if (resolvedStep <= 0)
+			resolvedStep = TimestepResolver.FALLBACK_MS;
+
 		long kymoFirst_ms = getKymoFirst_ms();
 		long kymoLast_ms = getKymoLast_ms();
 		long kymoBin_ms = getKymoBin_ms();
 
-		// If buildExcelStepMs equals kymoBin_ms, we want 1:1 mapping - use actual frame
-		// count
-		if (kymoBin_ms > 0 && options.buildExcelStepMs == kymoBin_ms && getSeqKymos() != null) {
+		if (tr.isPreferPhysicalKymoFrameCount() && getSeqKymos() != null) {
 			ImageLoader imgLoader = getSeqKymos().getImageLoader();
 			if (imgLoader != null) {
 				int nFrames = imgLoader.getNTotalFrames();
@@ -2227,7 +2255,6 @@ public class Experiment {
 		}
 
 		if (kymoLast_ms <= kymoFirst_ms) {
-			// Try to get from kymograph sequence
 			if (getSeqKymos() != null) {
 				ImageLoader imgLoader = getSeqKymos().getImageLoader();
 				if (imgLoader != null) {
@@ -2240,11 +2267,10 @@ public class Experiment {
 		}
 
 		long durationMs = kymoLast_ms - kymoFirst_ms;
-		int nOutputFrames = (int) (durationMs / options.buildExcelStepMs + 1);
+		int nOutputFrames = (int) (durationMs / resolvedStep + 1);
 
 		if (nOutputFrames <= 1) {
 			handleError(-1);
-			// Fallback to a reasonable default
 			nOutputFrames = 1000;
 		}
 

@@ -12,6 +12,8 @@ public class ExperimentTimeManager {
 	private long camImageFirst_ms = -1;
 	private long camImageLast_ms = -1;
 	private long camImageBin_ms = -1;
+	private long lastAcquisitionMedianMs = -1;
+	private long lastAcquisitionSpanMeanMs = -1;
 	private long[] camImages_ms = null;
 
 	private long kymoFirst_ms = 0;
@@ -24,6 +26,8 @@ public class ExperimentTimeManager {
 	}
 
 	public void loadFileIntervalsFromSeqCamData(SequenceCamData seqCamData, String imagesDirectory) {
+		lastAcquisitionMedianMs = -1;
+		lastAcquisitionSpanMeanMs = -1;
 		if (seqCamData != null) {
 			seqCamData.setImagesDirectory(imagesDirectory);
 			int nTotalFrames = seqCamData.getImageLoader().getNTotalFrames();
@@ -45,6 +49,8 @@ public class ExperimentTimeManager {
 					int nGaps = nFrames - 1;
 					long averageMs = span_ms / nGaps;
 					long medianMs = computeMedianConsecutiveIntervalMs(seqCamData, nFrames);
+					lastAcquisitionSpanMeanMs = averageMs;
+					lastAcquisitionMedianMs = medianMs;
 
 					// Prefer the median of consecutive deltas when available: it is robust to
 					// missing frames, acquisition pauses, and other gaps that otherwise inflate
@@ -57,8 +63,10 @@ public class ExperimentTimeManager {
 							span_ms, nGaps, averageMs, averageMs / 1000.0, medianMs, medianMs / 1000.0, nFrames,
 							camImageBin_ms, camImageBin_ms / 1000.0));
 
-				} else
+				} else {
 					camImageBin_ms = 0;
+					lastAcquisitionSpanMeanMs = 0;
+				}
 
 				if (camImageBin_ms > 0) {
 					seqCamData.getTimeManager().setBinImage_ms(camImageBin_ms);
@@ -195,6 +203,22 @@ public class ExperimentTimeManager {
 
 	public long getCamImageBin_ms() {
 		return camImageBin_ms;
+	}
+
+	/**
+	 * After {@link #loadFileIntervalsFromSeqCamData}, median of consecutive
+	 * inter-frame intervals from timestamps, or -1 if not computed.
+	 */
+	public long getLastAcquisitionMedianMs() {
+		return lastAcquisitionMedianMs;
+	}
+
+	/**
+	 * After {@link #loadFileIntervalsFromSeqCamData}, (last − first) / (n − 1)
+	 * from timestamps, or -1 before a load.
+	 */
+	public long getLastAcquisitionSpanMeanMs() {
+		return lastAcquisitionSpanMeanMs;
 	}
 
 	public void setCamImageBin_ms(long camImageBin_ms) {

@@ -54,6 +54,10 @@ public class ResultsOptions {
 
 	public boolean transpose = false;
 	public boolean duplicateSeries = true;
+	/**
+	 * Excel export output grid step in ms
+	 * ({@link plugins.fmp.multitools.experiment.timebase.MeasureTimebase#EXPORT_RESAMPLE_STEP}).
+	 */
 	public int buildExcelStepMs = 1;
 	public int buildExcelUnitMs = 1;
 	public boolean fixedIntervals = false;
