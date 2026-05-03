@@ -180,6 +180,22 @@ public enum EnumResults {
 		return persistenceDomains != null && persistenceDomains.contains(domain);
 	}
 
+	/**
+	 * Spot curve drawn vs black (grey level) or fly-presence boolean; physically non-negative.
+	 * Used to keep the absolute-scale Y axis anchored at zero so the chart does not imply a baseline below zero.
+	 */
+	public boolean isSpotIntensityVersusBlackMeasure() {
+		switch (this) {
+		case AREA_SUM:
+		case AREA_SUMNOFLY:
+		case AREA_SUMCLEAN:
+		case AREA_FLYPRESENT:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	public static EnumResults findByPersistenceKey(String key) {
 		if (key == null) {
 			return null;

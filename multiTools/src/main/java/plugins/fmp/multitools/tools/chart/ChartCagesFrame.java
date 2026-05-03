@@ -274,10 +274,18 @@ public class ChartCagesFrame extends IcyFrame {
 			yAxis.setRange(RELATIVE_Y_MIN, RELATIVE_Y_MAX);
 		} else {
 			yAxis.setAutoRange(true);
-			yAxis.setAutoRangeIncludesZero(false);
+			yAxis.setAutoRangeIncludesZero(clampAbsoluteSpotGreyYAxisFloor(resultsOptions));
 		}
 
 		return yAxis;
+	}
+
+	private static boolean clampAbsoluteSpotGreyYAxisFloor(ResultsOptions options) {
+		if (options == null || options.resultType == null)
+			return false;
+		if (options.relativeToMaximum || options.relativeToMedianT0)
+			return false;
+		return options.resultType.isSpotIntensityVersusBlackMeasure();
 	}
 
 	/**
@@ -503,10 +511,16 @@ public class ChartCagesFrame extends IcyFrame {
 			if (ChartCageBuild.isGlobalMaxMinSet()) {
 				double min = ChartCageBuild.getGlobalYMin();
 				double max = ChartCageBuild.getGlobalYMax();
-				double range = max - min;
-				if (range == 0)
-					range = 1.0;
-				yAxis.setRange(min - range * 0.05, max + range * 0.05);
+				if (Double.isFinite(min) && Double.isFinite(max)) {
+					double range = max - min;
+					if (range == 0)
+						range = 1.0;
+					double low = min - range * 0.05;
+					double high = max + range * 0.05;
+					if (min >= 0 || clampAbsoluteSpotGreyYAxisFloor(resultsOptions))
+						low = Math.max(0.0, low);
+					yAxis.setRange(low, high);
+				}
 			}
 		}
 

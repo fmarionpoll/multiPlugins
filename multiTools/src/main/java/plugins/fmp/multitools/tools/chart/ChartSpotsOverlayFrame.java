@@ -443,7 +443,7 @@ public class ChartSpotsOverlayFrame {
 			NumberAxis yAxis1 = new NumberAxis(flyPresentType != null ? flyPresentType.toUnit() : "");
 			yAxis1.setInverted(true);
 			yAxis1.setAutoRange(false);
-			yAxis1.setRange(computePaddedRange(ds1, 0.0, 1.2, 0.05, 0.05));
+			yAxis1.setRange(computePaddedRange(ds1, 0.0, 1.2, 0.05, 0.05, true));
 			plot.setRangeAxis(1, yAxis1);
 			plot.setDataset(1, ds1);
 			plot.setRenderer(1, r1);
@@ -461,7 +461,7 @@ public class ChartSpotsOverlayFrame {
 			yAxis0.setLabel(labelType != null ? labelType.toUnit() : "");
 			if (flyEnabled && !hasContinuous) {
 				yAxis0.setAutoRange(false);
-				yAxis0.setRange(computePaddedRange(ds, 0.0, 1.2, 0.05, 0.05));
+				yAxis0.setRange(computePaddedRange(ds, 0.0, 1.2, 0.05, 0.05, true));
 			} else {
 				yAxis0.setAutoRange(false);
 				yAxis0.setRange(computePaddedRangeFromZero(ds, 1.0, 0.05, 0.05));
@@ -651,7 +651,7 @@ public class ChartSpotsOverlayFrame {
 	}
 
 	private static org.jfree.data.Range computePaddedRange(XYSeriesCollection dataset, double defaultLower,
-			double defaultUpper, double padFraction, double padMinAbs) {
+			double defaultUpper, double padFraction, double padMinAbs, boolean clampLowerBoundAtZero) {
 		if (dataset == null || dataset.getSeriesCount() == 0) {
 			return new org.jfree.data.Range(defaultLower, defaultUpper);
 		}
@@ -690,12 +690,20 @@ public class ChartSpotsOverlayFrame {
 			if (pad == 0) {
 				pad = padMinAbs > 0 ? padMinAbs : 0.1;
 			}
-			return new org.jfree.data.Range(min - pad, max + pad);
+			double low = min - pad;
+			double high = max + pad;
+			if (clampLowerBoundAtZero || min >= 0)
+				low = Math.max(0.0, low);
+			return new org.jfree.data.Range(low, high);
 		}
 
 		double span = max - min;
 		double pad = Math.max(padMinAbs, span * padFraction);
-		return new org.jfree.data.Range(min - pad, max + pad);
+		double low = min - pad;
+		double high = max + pad;
+		if (clampLowerBoundAtZero || min >= 0)
+			low = Math.max(0.0, low);
+		return new org.jfree.data.Range(low, high);
 	}
 
 	private static org.jfree.data.Range computePaddedRangeFromZero(XYSeriesCollection dataset, double defaultUpper,

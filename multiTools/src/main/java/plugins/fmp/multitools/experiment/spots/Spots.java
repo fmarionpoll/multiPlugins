@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.experiment.spots;
 
+import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -21,6 +22,7 @@ import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -38,6 +40,9 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
  * @version 2.3.3
  */
 public class Spots {
+
+	/** Fly pixel counts below this fraction of ROI mask size do not open sumNoFly bridging runs (noise / partial hits). */
+	private static final double FLY_PRESENT_PIXEL_FRACTION_FOR_SUMNOFLY_RECONSTRUCTION = 0.10;
 
 	// === CONSTANTS ===
 	private static final String ID_SPOTTRACK = "spotTrack";
@@ -708,7 +713,8 @@ public class Spots {
 		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
 		double[] reconstructed;
 		if (fly != null && fly.length == sumIn.length) {
-			reconstructed = reconstructSumNoFly(sumIn, fly);
+			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot);
+			reconstructed = reconstructSumNoFly(sumIn, fly, minFlyPx);
 		} else {
 			if (allowLegacyFallbacks) {
 				double[] legacyClean = spot.getSumClean() != null ? spot.getSumClean().getValues() : null;
@@ -771,21 +777,43 @@ public class Spots {
 		return out;
 	}
 
+	private static int computeMinFlyPixelsToTreatOccupiedForReconstruction(Spot spot) {
+		if (spot == null)
+			return 1;
+		ROI2DWithMask mask = spot.getROIMask();
+		if (mask == null)
+			return 1;
+		Point[] pts = mask.getMaskPoints();
+		if (pts == null || pts.length == 0)
+			return 1;
+		int t = (int) Math.ceil(FLY_PRESENT_PIXEL_FRACTION_FOR_SUMNOFLY_RECONSTRUCTION * pts.length);
+		return Math.max(1, t);
+	}
+
 	/**
-	 * For each time index where flyPresent[i] &gt; 0, replaces values in that run
-	 * with a linear bridge between the last and next finite neighbors;
-	 * unbridgeable edge segments become NaN.
+	 * Same as {@link #reconstructSumNoFly(double[], int[], int)} with gate {@code minFlyPx = 1} (legacy: any counted fly pixel).
 	 */
 	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent) {
+		return reconstructSumNoFly(sumIn, flyPresent, 1);
+	}
+
+	/**
+	 * For each time index where {@code flyPresent[i] >= minFlyPx}, merges contiguous runs and replaces values in each run
+	 * with a linear bridge when finite neighbors exist on both sides, or a plateau from one side otherwise.
+	 * {@code flyPresent} stores detected fly-pixel counts per frame; {@code minFlyPx} defaults from ~10% of ROI mask via
+	 * {@link #fillSumNoFlyFromSumAndFlyPresent}; use {@link #reconstructSumNoFly(double[], int[])} for {@code minFlyPx = 1}.
+	 */
+	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent, int minFlyPx) {
 		double[] out = java.util.Arrays.copyOf(sumIn, sumIn.length);
 		if (flyPresent == null || flyPresent.length != sumIn.length) {
 			return out;
 		}
+		int gate = minFlyPx < 1 ? 1 : minFlyPx;
 
 		final int n = out.length;
 		int i = 0;
 		while (i < n) {
-			boolean fly = flyPresent[i] > 0;
+			boolean fly = flyPresent[i] >= gate;
 			if (!fly) {
 				i++;
 				continue;
@@ -793,7 +821,7 @@ public class Spots {
 
 			int start = i;
 			int end = i;
-			while (end + 1 < n && flyPresent[end + 1] > 0) {
+			while (end + 1 < n && flyPresent[end + 1] >= gate) {
 				end++;
 			}
 
@@ -801,11 +829,21 @@ public class Spots {
 			int right = end + 1;
 			double yLeft = (left >= 0) ? out[left] : Double.NaN;
 			double yRight = (right < n) ? out[right] : Double.NaN;
+			boolean finL = Double.isFinite(yLeft);
+			boolean finR = Double.isFinite(yRight);
 
-			if (left >= 0 && right < n && Double.isFinite(yLeft) && Double.isFinite(yRight)) {
+			if (finL && finR) {
 				for (int k = start; k <= end; k++) {
 					double ratio = (k - left) / (double) (right - left);
 					out[k] = yLeft + (yRight - yLeft) * ratio;
+				}
+			} else if (finL) {
+				for (int k = start; k <= end; k++) {
+					out[k] = yLeft;
+				}
+			} else if (finR) {
+				for (int k = start; k <= end; k++) {
+					out[k] = yRight;
 				}
 			} else {
 				for (int k = start; k <= end; k++) {
