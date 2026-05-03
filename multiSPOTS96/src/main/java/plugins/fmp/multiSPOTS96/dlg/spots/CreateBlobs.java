@@ -67,6 +67,9 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
 
+	private JButton convertBlobsToSpotButton = new JButton("Convert blobs to spots");
+	private JSpinner spotDiameterSpinner = new JSpinner(new SpinnerNumberModel(22, 1, 1200, 1));
+
 	private DetectSpotsOutline detectSpots = null;
 	private OverlayThreshold overlayThreshold = null;
 
@@ -79,23 +82,29 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
+		JPanel panel0 = new JPanel(layoutLeft);
+		panel0.add(spotsFilterLabel);
+		panel0.add(spotsTransformsComboBox);
+		panel0.add(spotsDirectionComboBox);
+		panel0.add(spotsThresholdSpinner);
+		add(panel0);
+
 		JPanel panel1 = new JPanel(layoutLeft);
-		panel1.add(spotsFilterLabel);
-		panel1.add(spotsTransformsComboBox);
-		panel1.add(spotsDirectionComboBox);
-		panel1.add(spotsThresholdSpinner);
+		panel1.add(spotsViewButton);
+		panel1.add(spotsOverlayCheckBox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
-		panel2.add(spotsViewButton);
-		panel2.add(spotsOverlayCheckBox);
+		panel2.add(startComputationButton);
+		panel2.add(allCellsComboBox);
+		panel2.add(allCheckBox);
 		add(panel2);
 
-		JPanel panel0 = new JPanel(layoutLeft);
-		panel0.add(startComputationButton);
-		panel0.add(allCellsComboBox);
-		panel0.add(allCheckBox);
-		add(panel0);
+		JPanel panel3 = new JPanel(layoutLeft);
+		panel3.add(convertBlobsToSpotButton);
+		panel3.add(new JLabel("size (pixels="));
+		panel3.add(spotDiameterSpinner);
+		add(panel3);
 
 		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		spotsDirectionComboBox.setSelectedIndex(1);
@@ -168,6 +177,25 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				updateOverlayThreshold();
+			}
+		});
+
+		convertBlobsToSpotButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					int diameter = (int) spotDiameterSpinner.getValue();
+					convertBlobsToCircles(exp, diameter);
+				}
+			}
+		});
+
+		spotDiameterSpinner.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					changeSpotsDiameter(exp);
 			}
 		});
 	}
@@ -467,6 +495,11 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 		exp.getSeqCamData().removeROIsContainingString("spot");
 		exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData(), allSpots);
 		exp.saveSpots_File();
+	}
+
+	void changeSpotsDiameter(Experiment exp) {
+		int diameter = (int) spotDiameterSpinner.getValue();
+		convertBlobsToCircles(exp, diameter);
 	}
 
 }

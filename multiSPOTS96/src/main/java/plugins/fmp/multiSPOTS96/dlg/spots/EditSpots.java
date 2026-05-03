@@ -8,6 +8,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -23,6 +24,11 @@ import icy.type.geom.Polygon2D;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
@@ -32,6 +38,10 @@ public class EditSpots extends JPanel {
 	 * 
 	 */
 	private static final long serialVersionUID = -7582410775062671523L;
+
+	private JButton deleteSelectedSpotsButton = new JButton("Delete spots");
+	private JButton duplicateSelectedSpotButton = new JButton("Duplicate spot");
+	private JButton cleanUpNamesButton = new JButton("Clean up spot names");
 
 	private JComboBox<String> typeCombo = new JComboBox<String>(new String[] { "spot", "cage" });
 
@@ -54,27 +64,61 @@ public class EditSpots extends JPanel {
 		flowLayout.setVgap(0);
 
 		JPanel panel0 = new JPanel(flowLayout);
-		panel0.add(new JLabel("select type of rois"));
-		panel0.add(typeCombo);
+		panel0.add(deleteSelectedSpotsButton);
+		panel0.add(duplicateSelectedSpotButton);
+		panel0.add(cleanUpNamesButton);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(selectRoisCheckBox);
-		panel1.add(displaySnakeCheckBox);
-		panel1.add(centerRoisToSnakeButton);
+		panel1.add(new JLabel("select type of rois"));
+		panel1.add(typeCombo);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
-		panel2.add(dilateButton);
-		panel2.add(erodeButton);
-//		panel2.add(editSpotsWithTimeButton);
+		panel2.add(selectRoisCheckBox);
+		panel2.add(displaySnakeCheckBox);
+		panel2.add(centerRoisToSnakeButton);
 		add(panel2);
+
+		JPanel panel3 = new JPanel(flowLayout);
+		panel3.add(dilateButton);
+		panel3.add(erodeButton);
+//		panel2.add(editSpotsWithTimeButton);
+		add(panel3);
 
 		defineActionListeners();
 		updateButtonsStateAccordingToSelectRois(false, false);
 	}
 
 	private void defineActionListeners() {
+		deleteSelectedSpotsButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					deleteSelectedSpot(exp);
+			}
+		});
+
+		duplicateSelectedSpotButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					duplicateSelectedSpot(exp);
+			}
+		});
+
+		cleanUpNamesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					cleanUpSpotNames(exp);
+				}
+			}
+		});
+
 		selectRoisCheckBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -257,6 +301,116 @@ public class EditSpots extends JPanel {
 			displaySnakeCheckBox.setSelected(false);
 			selectRoisCheckBox.setSelected(false);
 		}
+	}
+
+	void deleteSelectedSpot(Experiment exp) {
+		if (exp.getSeqCamData().getSequence() != null) {
+			Spots allSpots = exp.getSpots();
+			ArrayList<ROI2D> listROIs = exp.getSeqCamData().getSequence().getSelectedROI2Ds();
+			for (ROI2D roi : listROIs) {
+				String name = roi.getName();
+				if (name == null || !name.contains("spot"))
+					continue;
+
+				Spot spotToDelete = allSpots.findSpotByName(name);
+				if (spotToDelete == null) {
+					Logger.error("spot to delete not found; " + name);
+					continue;
+				}
+
+				Cage cage = exp.getCages().getCageFromID(spotToDelete.getProperties().getCageID());
+				if (cage == null) {
+					cage = exp.getCages().getCageFromSpotName(name);
+				}
+
+				SpotID spotID = spotToDelete.getSpotUniqueID();
+				allSpots.removeSpot(spotToDelete);
+				if (spotID != null) {
+					for (Cage c : exp.getCages().cagesList) {
+						c.getSpotIDs().remove(spotID);
+					}
+				} else if (cage != null) {
+					List<Spot> cageSpots = cage.getSpotList(allSpots);
+					for (Spot spot : cageSpots) {
+						ROI2D spotRoi = spot.getRoi();
+						if (spotRoi != null && name.equals(spotRoi.getName())) {
+							allSpots.removeSpot(spot);
+							break;
+						}
+					}
+				}
+			}
+			cleanUpSpotNames(exp);
+		}
+		exp.saveSpots_File();
+	}
+
+	void duplicateSelectedSpot(Experiment exp) {
+		if (exp.getSeqCamData().getSequence() != null) {
+			Spots allSpots = exp.getSpots();
+			ArrayList<ROI2D> listROIs = exp.getSeqCamData().getSequence().getSelectedROI2Ds();
+			for (ROI2D roi : listROIs) {
+				String name = roi.getName();
+				if (!name.contains("spot"))
+					continue;
+
+				Spot spotToDuplicate = allSpots.findSpotByName(name);
+				if (spotToDuplicate == null) {
+					Logger.error("spot to duplicate not found; " + roi.getName());
+					continue;
+				}
+
+				int cageID = spotToDuplicate.getProperties().getCageID();
+				Cage cage = exp.getCages().getCageFromID(cageID);
+				if (cage == null) {
+					// legacy fallback based on ROI naming convention
+					cage = exp.getCages().getCageFromSpotName(name);
+				}
+				if (cage == null) {
+					Logger.error("cage not found for selected spot; " + roi.getName());
+					continue;
+				}
+
+				ROI2D sourceRoi = spotToDuplicate.getRoi();
+				if (sourceRoi == null) {
+					Logger.error("selected spot has no ROI; " + roi.getName());
+					continue;
+				}
+				Point2D sourcePos = sourceRoi.getPosition2D();
+				Rectangle rect = sourceRoi.getBounds();
+				if (sourcePos == null || rect == null) {
+					Logger.error("selected spot has invalid ROI geometry; " + roi.getName());
+					continue;
+				}
+				int radius = Math.max(1, Math.min(rect.width, rect.height) / 2);
+				Point2D.Double pos = new Point2D.Double(sourcePos.getX() + 5, sourcePos.getY() + 5);
+
+				// create new spot
+				cage.addEllipseSpot(pos, radius, allSpots);
+				List<SpotID> spotIDs = cage.getSpotIDs();
+				if (!spotIDs.isEmpty()) {
+					SpotID lastID = spotIDs.get(spotIDs.size() - 1);
+					Spot newSpot = allSpots.findSpotwithID(lastID);
+					if (newSpot != null) {
+						newSpot.getProperties().setCageID(cage.getCageID());
+						exp.getSeqCamData().getSequence().addROI(newSpot.getRoi());
+					}
+				}
+			}
+			cleanUpSpotNames(exp);
+		}
+		exp.saveSpots_File();
+	}
+
+	private void cleanUpSpotNames(Experiment exp) {
+		Spots allSpots = exp.getSpots();
+		for (Cage cage : exp.getCages().cagesList) {
+			cage.reorderSpotsReadingOrderAndAssignRowCol(allSpots);
+			cage.cleanUpSpotNames(allSpots);
+		}
+		exp.getSeqCamData().removeROIsContainingString("spot");
+		exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData(), allSpots);
+		exp.saveSpots_File();
 	}
 
 }

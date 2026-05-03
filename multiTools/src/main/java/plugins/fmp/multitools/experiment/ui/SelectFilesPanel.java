@@ -1,42 +1,45 @@
 package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.FontMetrics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
-import java.nio.file.SimpleFileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.JLabel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
@@ -123,17 +126,34 @@ public class SelectFilesPanel extends JPanel {
 	private volatile boolean scanInProgress = false;
 
 	private static final class SearchProgress {
+		private static final int MESSAGE_LINES = 5;
+		private static final int FALLBACK_FRAME_WIDTH = 520;
+
 		private final IcyFrame frame;
 		private final JLabel label;
 		private volatile boolean cancelled = false;
 
-		SearchProgress(String title) {
+		SearchProgress(String title, IcyFrame dialogFrame) {
 			label = new JLabel(" ");
+			label.setVerticalAlignment(JLabel.TOP);
+
 			JButton cancel = new JButton("Cancel");
 			cancel.addActionListener(e -> cancelled = true);
 
-			JPanel p = new JPanel(new BorderLayout());
-			p.add(label, BorderLayout.CENTER);
+			int parentW = preferredWidth(dialogFrame);
+			int frameWidth = Math.max(360, parentW > 0 ? (parentW * 2) / 3 : FALLBACK_FRAME_WIDTH);
+
+			FontMetrics fm = label.getFontMetrics(label.getFont());
+			int lineHeight = fm.getHeight();
+			int labelAreaHeight = lineHeight * MESSAGE_LINES + 8;
+
+			JPanel labelArea = new JPanel(new BorderLayout());
+			labelArea.add(label, BorderLayout.NORTH);
+			labelArea.setPreferredSize(new Dimension(frameWidth, labelAreaHeight));
+
+			JPanel p = new JPanel(new BorderLayout(0, 8));
+			p.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+			p.add(labelArea, BorderLayout.CENTER);
 			p.add(cancel, BorderLayout.SOUTH);
 
 			frame = new IcyFrame(title, true, true);
@@ -143,6 +163,16 @@ public class SelectFilesPanel extends JPanel {
 			frame.addToDesktopPane();
 			frame.center();
 			frame.setVisible(true);
+		}
+
+		private static int preferredWidth(IcyFrame dialogFrame) {
+			if (dialogFrame == null)
+				return 0;
+			int w = dialogFrame.getWidth();
+			if (w > 0)
+				return w;
+			Dimension d = dialogFrame.getPreferredSize();
+			return (d != null && d.width > 0) ? d.width : 0;
 		}
 
 		boolean isCancelled() {
@@ -201,7 +231,8 @@ public class SelectFilesPanel extends JPanel {
 		mainPanel.add(GuiUtil.besidesPanel(addSelectedButton, addAllButton));
 
 		filterCombo.setEditable(true);
-		filterCombo.setSelectedIndex(Math.max(0, Math.min(features.defaultSelectedPresetIndex, filterCombo.getItemCount() - 1)));
+		filterCombo.setSelectedIndex(
+				Math.max(0, Math.min(features.defaultSelectedPresetIndex, filterCombo.getItemCount() - 1)));
 
 		addActionListeners();
 
@@ -297,7 +328,8 @@ public class SelectFilesPanel extends JPanel {
 		if (path == null || path.getFileName() == null)
 			return false;
 		String fileName = path.getFileName().toString().toLowerCase();
-		return features.legacyExperimentFileNamesLower != null && features.legacyExperimentFileNamesLower.contains(fileName);
+		return features.legacyExperimentFileNamesLower != null
+				&& features.legacyExperimentFileNamesLower.contains(fileName);
 	}
 
 	private boolean isNewFormatExperimentFile(Path path) {
@@ -317,8 +349,10 @@ public class SelectFilesPanel extends JPanel {
 		List<Path> deduplicated = new ArrayList<>();
 		for (Map.Entry<Path, List<Path>> entry : filesByDirectory.entrySet()) {
 			List<Path> dirFiles = entry.getValue();
-			List<Path> newFormatFiles = dirFiles.stream().filter(this::isNewFormatExperimentFile).collect(Collectors.toList());
-			List<Path> legacyFiles = dirFiles.stream().filter(this::isLegacyExperimentFile).collect(Collectors.toList());
+			List<Path> newFormatFiles = dirFiles.stream().filter(this::isNewFormatExperimentFile)
+					.collect(Collectors.toList());
+			List<Path> legacyFiles = dirFiles.stream().filter(this::isLegacyExperimentFile)
+					.collect(Collectors.toList());
 
 			if (!newFormatFiles.isEmpty() && !legacyFiles.isEmpty()) {
 				deduplicated.addAll(newFormatFiles);
@@ -344,7 +378,7 @@ public class SelectFilesPanel extends JPanel {
 
 		scanInProgress = true;
 		final long scanStartNs = System.nanoTime();
-		final SearchProgress progress = new SearchProgress("Searching...");
+		final SearchProgress progress = new SearchProgress("Searching...", dialogFrame);
 		progress.setMessage("Starting scan in\n" + lastUsedPathString);
 
 		final List<String> found = new ArrayList<>();
@@ -409,7 +443,8 @@ public class SelectFilesPanel extends JPanel {
 				return Files.isRegularFile(p);
 			}).filter(p -> p.getFileName().toString().toLowerCase().contains(pattern)).collect(Collectors.toList());
 		} catch (IOException e) {
-			Logger.warn("SelectFilesPanel: failed to scan files under " + lastUsedPathString + ": " + e.getMessage(), e);
+			Logger.warn("SelectFilesPanel: failed to scan files under " + lastUsedPathString + ": " + e.getMessage(),
+					e);
 		}
 		if (progress != null && progress.isCancelled())
 			return false;
@@ -456,7 +491,9 @@ public class SelectFilesPanel extends JPanel {
 					&& p.getFileName().toString().toLowerCase().contains(pattern.toLowerCase()))
 					.collect(Collectors.toList());
 		} catch (IOException e) {
-			Logger.warn("SelectFilesPanel: failed to scan directories under " + lastUsedPathString + ": " + e.getMessage(), e);
+			Logger.warn(
+					"SelectFilesPanel: failed to scan directories under " + lastUsedPathString + ": " + e.getMessage(),
+					e);
 		}
 
 		if (progress != null && progress.isCancelled())
@@ -485,9 +522,9 @@ public class SelectFilesPanel extends JPanel {
 	}
 
 	/**
-	 * Specialized scan for "grabs": only considers directories named exactly "grabs"
-	 * that actually contain JPG images. This avoids huge match sets when the
-	 * substring appears in unrelated paths.
+	 * Specialized scan for "grabs": only considers directories named exactly
+	 * "grabs" that actually contain JPG images. This avoids huge match sets when
+	 * the substring appears in unrelated paths.
 	 */
 	private void scanGrabsDirectories(Path root, SearchProgress progress, List<String> found) {
 		if (root == null || !Files.isDirectory(root)) {
@@ -572,7 +609,8 @@ public class SelectFilesPanel extends JPanel {
 
 					String name = dirName.toString();
 					if (name.toLowerCase().startsWith("cam")) {
-						// Key optimisation: once we are inside cam*/ we don't need to descend (it contains grabs/images).
+						// Key optimisation: once we are inside cam*/ we don't need to descend (it
+						// contains grabs/images).
 						Path imagesDir = autoDetectImagesDirectory(dir);
 						if (imagesDir != null) {
 							bootstrapEmptyExperimentIfMissing(imagesDir);
@@ -621,8 +659,10 @@ public class SelectFilesPanel extends JPanel {
 			return;
 		}
 
-		// Some acquisitions contain one or more result*/ directories (results, results1, results_...)
-		// under grabs. If any already contains an experiment descriptor, don't bootstrap.
+		// Some acquisitions contain one or more result*/ directories (results,
+		// results1, results_...)
+		// under grabs. If any already contains an experiment descriptor, don't
+		// bootstrap.
 		if (hasAnyExperimentDescriptor(imagesDir)) {
 			return;
 		}
@@ -631,7 +671,9 @@ public class SelectFilesPanel extends JPanel {
 		try {
 			Files.createDirectories(resultsDir);
 		} catch (IOException e) {
-			Logger.warn("SelectFilesPanel: cannot create results directory: " + resultsDir + " (" + e.getMessage() + ")", e);
+			Logger.warn(
+					"SelectFilesPanel: cannot create results directory: " + resultsDir + " (" + e.getMessage() + ")",
+					e);
 			return;
 		}
 
@@ -644,7 +686,8 @@ public class SelectFilesPanel extends JPanel {
 			Experiment exp = new Experiment(eADF);
 			exp.saveExperimentDescriptors();
 		} catch (Exception e) {
-			Logger.warn("SelectFilesPanel: failed to bootstrap Experiment.xml for " + imagesDir + ": " + e.getMessage(), e);
+			Logger.warn("SelectFilesPanel: failed to bootstrap Experiment.xml for " + imagesDir + ": " + e.getMessage(),
+					e);
 		}
 	}
 
@@ -727,4 +770,3 @@ public class SelectFilesPanel extends JPanel {
 		return files != null && files.length > 0;
 	}
 }
-
