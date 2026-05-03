@@ -49,7 +49,7 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 	private JButton deleteButton = new JButton("Cut points within selected polygon");
 	private JComboBox<ImageTransformEnums> transformForLevelsComboBox = new JComboBox<ImageTransformEnums>(
 			new ImageTransformEnums[] { ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
-					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.G2MINUS_2R, ImageTransformEnums.B2MINUS_RG,
+					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
 					ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G,
 					ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB,
 					ImageTransformEnums.B_HSB });
