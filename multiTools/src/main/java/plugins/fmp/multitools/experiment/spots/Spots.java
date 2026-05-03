@@ -41,8 +41,8 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
  */
 public class Spots {
 
-	/** Fly pixel counts below this fraction of ROI mask size do not open sumNoFly bridging runs (noise / partial hits). */
-	private static final double FLY_PRESENT_PIXEL_FRACTION_FOR_SUMNOFLY_RECONSTRUCTION = 0.10;
+	/** Default fraction of ROI mask (8%) when no {@link BuildSeriesOptions} is available (load/reconstruct). */
+	public static final double DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY = 0.08;
 
 	// === CONSTANTS ===
 	private static final String ID_SPOTTRACK = "spotTrack";
@@ -607,10 +607,18 @@ public class Spots {
 	 * </ul>
 	 */
 	public void ensureSumNoFlyPresent() {
+		ensureSumNoFlyPresent(DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY);
+	}
+
+	/**
+	 * Ensures sumNoFly exists for all spots, using {@code flyOccupancyFractionOfRoi} (0–1) for fly-mask gating.
+	 */
+	public void ensureSumNoFlyPresent(double flyOccupancyFractionOfRoi) {
+		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
 		for (Spot spot : spotList) {
 			if (spot == null)
 				continue;
-			ensureSumNoFlyForSpot(spot, false);
+			ensureSumNoFlyForSpot(spot, false, f);
 		}
 	}
 
@@ -624,11 +632,16 @@ public class Spots {
 	 *              {@link #reconstructSumNoFly} when flyPresent length matches sum.
 	 */
 	public void rebuildNoFlyAndCleanForSpots(List<Spot> targets, boolean force) {
+		rebuildNoFlyAndCleanForSpots(targets, force, DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY);
+	}
+
+	public void rebuildNoFlyAndCleanForSpots(List<Spot> targets, boolean force, double flyOccupancyFractionOfRoi) {
 		if (targets == null) {
 			return;
 		}
+		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
 		for (Spot spot : targets) {
-			ensureSumNoFlyForSpot(spot, force);
+			ensureSumNoFlyForSpot(spot, force, f);
 		}
 		for (Spot spot : targets) {
 			rebuildSumCleanFromSumNoFlyForSpot(spot);
@@ -641,11 +654,18 @@ public class Spots {
 	 * {@code sumClean} = running median of {@code sumNoFly}.
 	 */
 	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpots(List<Spot> targets) {
+		applyFlyInterpolationSumNoFlyAndSumCleanForSpots(targets,
+				DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY);
+	}
+
+	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpots(List<Spot> targets,
+			double flyOccupancyFractionOfRoi) {
 		if (targets == null) {
 			return;
 		}
+		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
 		for (Spot spot : targets) {
-			fillSumNoFlyFromSumAndFlyPresent(spot, false);
+			fillSumNoFlyFromSumAndFlyPresent(spot, false, f);
 			rebuildSumCleanFromSumNoFlyForSpot(spot);
 		}
 	}
@@ -675,7 +695,7 @@ public class Spots {
 		}
 	}
 
-	private void ensureSumNoFlyForSpot(Spot spot, boolean force) {
+	private void ensureSumNoFlyForSpot(Spot spot, boolean force, double flyOccupancyFractionOfRoi) {
 		if (spot == null) {
 			return;
 		}
@@ -689,7 +709,7 @@ public class Spots {
 				return;
 			}
 		}
-		fillSumNoFlyFromSumAndFlyPresent(spot, !force);
+		fillSumNoFlyFromSumAndFlyPresent(spot, !force, clampFlyOccupancyFraction(flyOccupancyFractionOfRoi));
 	}
 
 	/**
@@ -697,7 +717,8 @@ public class Spots {
 	 * {@link #reconstructSumNoFly} when lengths match. If {@code allowLegacyFallbacks}
 	 * is true and fly length does not match, falls back like {@link #ensureSumNoFlyPresent}.
 	 */
-	private void fillSumNoFlyFromSumAndFlyPresent(Spot spot, boolean allowLegacyFallbacks) {
+	private void fillSumNoFlyFromSumAndFlyPresent(Spot spot, boolean allowLegacyFallbacks,
+			double flyOccupancyFractionOfRoi) {
 		if (spot == null) {
 			return;
 		}
@@ -713,7 +734,8 @@ public class Spots {
 		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
 		double[] reconstructed;
 		if (fly != null && fly.length == sumIn.length) {
-			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot);
+			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot,
+					clampFlyOccupancyFraction(flyOccupancyFractionOfRoi));
 			reconstructed = reconstructSumNoFly(sumIn, fly, minFlyPx);
 		} else {
 			if (allowLegacyFallbacks) {
@@ -777,7 +799,14 @@ public class Spots {
 		return out;
 	}
 
-	private static int computeMinFlyPixelsToTreatOccupiedForReconstruction(Spot spot) {
+	private static double clampFlyOccupancyFraction(double f) {
+		if (!Double.isFinite(f) || f <= 0)
+			return DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY;
+		return Math.min(f, 1.0);
+	}
+
+	private static int computeMinFlyPixelsToTreatOccupiedForReconstruction(Spot spot,
+			double flyOccupancyFractionOfRoi) {
 		if (spot == null)
 			return 1;
 		ROI2DWithMask mask = spot.getROIMask();
@@ -786,7 +815,8 @@ public class Spots {
 		Point[] pts = mask.getMaskPoints();
 		if (pts == null || pts.length == 0)
 			return 1;
-		int t = (int) Math.ceil(FLY_PRESENT_PIXEL_FRACTION_FOR_SUMNOFLY_RECONSTRUCTION * pts.length);
+		double frac = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
+		int t = (int) Math.ceil(frac * pts.length);
 		return Math.max(1, t);
 	}
 
@@ -800,8 +830,9 @@ public class Spots {
 	/**
 	 * For each time index where {@code flyPresent[i] >= minFlyPx}, merges contiguous runs and replaces values in each run
 	 * with a linear bridge when finite neighbors exist on both sides, or a plateau from one side otherwise.
-	 * {@code flyPresent} stores detected fly-pixel counts per frame; {@code minFlyPx} defaults from ~10% of ROI mask via
-	 * {@link #fillSumNoFlyFromSumAndFlyPresent}; use {@link #reconstructSumNoFly(double[], int[])} for {@code minFlyPx = 1}.
+	 * {@code flyPresent} stores detected fly-pixel counts per frame; callers choose {@code minFlyPx} via
+	 * occupancy fraction ({@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()} or
+	 * {@link #DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY}). Two-arg {@link #reconstructSumNoFly(double[], int[])} uses {@code minFlyPx = 1}.
 	 */
 	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent, int minFlyPx) {
 		double[] out = java.util.Arrays.copyOf(sumIn, sumIn.length);

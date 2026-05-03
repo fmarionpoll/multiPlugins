@@ -152,7 +152,8 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		// sumNoFly from sum + fly (same as Edit / load), then sumClean = sumNoFly; then Level2D
 		final long tPostStart = System.nanoTime();
-		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess);
+		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess,
+				options.getFlyOccupancyFractionForSpotSumNoFly());
 		spots.transferMeasuresToLevel2D();
 
 		// Persist results using the standard experiment helpers

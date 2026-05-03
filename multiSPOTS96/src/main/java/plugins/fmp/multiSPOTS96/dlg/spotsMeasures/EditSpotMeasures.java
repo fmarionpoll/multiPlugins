@@ -213,7 +213,9 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 		if (targets.isEmpty()) {
 			return;
 		}
-		exp.getSpots().rebuildNoFlyAndCleanForSpots(targets, true);
+		double pct = parent0 != null && parent0.dlgMeasure != null ? parent0.dlgMeasure.tabSimpleThresholdLight.getFlyOccupancyPercentForSpotSumNoFly()
+				: 8.0;
+		exp.getSpots().rebuildNoFlyAndCleanForSpots(targets, true, pct / 100.0);
 		exp.getSpots().transferMeasuresToLevel2D(targets);
 		statusLabel.setText("sumNoFly+sumClean rebuilt for " + targets.size() + " spot(s).");
 		refreshChartsIfPresent(exp);

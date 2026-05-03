@@ -71,6 +71,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	public int threshold = -1;
 	public int flyThreshold = 60;
+	/** Percent of spot ROI mask pixels (flyPresent counts) required to treat a bin as fly-occluded when reconstructing sumNoFly. */
+	public double flyOccupancyPercentForSpotSumNoFly = 8.0;
 	public int backgroundThreshold = 40;
 	public int overlayThreshold = 0;
 	public boolean compensateBackground = false;
@@ -162,7 +164,18 @@ public class BuildSeriesOptions implements XMLPersistent {
 	 */
 	public int spotParallelism = 0;
 
-	// -----------------------
+	/**
+	 * Fraction in (0, 1] for sumNoFly reconstruction: a bin is fly-masked when flyPresent count
+	 * {@code >= ceil(fraction * ROI mask pixel count)}.
+	 */
+	public double getFlyOccupancyFractionForSpotSumNoFly() {
+		double p = flyOccupancyPercentForSpotSumNoFly;
+		if (!Double.isFinite(p) || p <= 0)
+			p = 8.0;
+		if (p > 100)
+			p = 100;
+		return p / 100.0;
+	}
 
 	void copyTo(BuildSeriesOptions destination) {
 		destination.detectTop = detectTop;
@@ -220,6 +233,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 					.findByText(XMLUtil.getElementValue(nodeMeta, "Transform", transform01.toString()));
 
 			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
+			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
+					"flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 		}
 
 		Element xmlVal = XMLUtil.getElement(node, "DetectFliesParameters");
@@ -257,6 +272,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementValue(nodeMeta, "Transform", transform01.toString());
 
 			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
+			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 		}
 
 		Element xmlVal = XMLUtil.addElement(node, "DetectFliesParameters");

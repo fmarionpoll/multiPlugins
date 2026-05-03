@@ -46,7 +46,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 	JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(
 			new ImageTransformEnums[] { ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
-					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
+					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.G2MINUS_2R, ImageTransformEnums.B2MINUS_RG,
 					ImageTransformEnums.NORM_BRMINUSG, ImageTransformEnums.RGB, ImageTransformEnums.H_HSB,
 					ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB });
 

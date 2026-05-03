@@ -64,6 +64,9 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 	private JSpinner fliesThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 255, 1));
 	private JCheckBox fliesOverlayCheckBox = new JCheckBox("overlay");
 
+	private JLabel flyMaskPercentLabel = new JLabel("  Fly mask ≥ % ROI (sumNoFly)");
+	private JSpinner flyOccupancyPercentSpinner = new JSpinner(new SpinnerNumberModel(8.0, 0.5, 100.0, 0.5));
+
 	private OverlayThreshold overlayThreshold = null;
 	private WeakReference<BuildSpotsMeasuresLight> processorRef = null;
 	private MultiSPOTS96 parent0 = null;
@@ -101,6 +104,11 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		panel2.add(fliesOverlayCheckBox);
 		add(panel2);
 
+		JPanel panel3 = new JPanel(layoutLeft);
+		panel3.add(flyMaskPercentLabel);
+		panel3.add(flyOccupancyPercentSpinner);
+		add(panel3);
+
 		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		spotsDirectionComboBox.setSelectedIndex(1);
 
@@ -111,6 +119,10 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		useGPUCheckBox.setEnabled(false);
 		syncDetectionModeFromViewOptions();
 		declareListeners();
+	}
+
+	public double getFlyOccupancyPercentForSpotSumNoFly() {
+		return ((Number) flyOccupancyPercentSpinner.getValue()).doubleValue();
 	}
 
 	private void syncDetectionModeFromViewOptions() {
@@ -392,6 +404,8 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 		options.transform02 = (ImageTransformEnums) fliesTransformsComboBox.getSelectedItem();
 		options.flyThreshold = (int) fliesThresholdSpinner.getValue();
 		options.flyThresholdUp = (fliesDirectionComboBox.getSelectedIndex() == 1);
+
+		options.flyOccupancyPercentForSpotSumNoFly = ((Number) flyOccupancyPercentSpinner.getValue()).doubleValue();
 
 		options.spotDetectionMode = (parent0 != null) ? parent0.viewOptions.getSpotDetectionMode()
 				: SpotDetectionMode.AUTO;

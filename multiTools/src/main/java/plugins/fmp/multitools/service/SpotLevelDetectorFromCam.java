@@ -208,7 +208,8 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		final long tLoopEnd = System.nanoTime();
 
 		final long tPostStart = System.nanoTime();
-		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess);
+		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess,
+				options.getFlyOccupancyFractionForSpotSumNoFly());
 		spots.transferMeasuresToLevel2D();
 
 		// Persist results using the standard experiment helpers
