@@ -1,5 +1,7 @@
 package plugins.fmp.multitools.tools.imageTransform;
 
+import plugins.fmp.multitools.tools.imageTransform.transforms.BlueMinusMeanRgbCentered;
+import plugins.fmp.multitools.tools.imageTransform.transforms.BlueMinusMinRG;
 import plugins.fmp.multitools.tools.imageTransform.transforms.Deriche;
 import plugins.fmp.multitools.tools.imageTransform.transforms.H1H2H3;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ImageMinusBackground;
@@ -28,6 +30,8 @@ public enum ImageTransformEnums {
 	R_RGB("R(RGB)", new LinearCombination(1, 0, 0)), //
 	G_RGB("G(RGB)", new LinearCombination(0, 1, 0)), //
 	B_RGB("B(RGB)", new LinearCombination(0, 0, 1)), //
+	B_MINUS_MINRG("B-min(R,G)", new BlueMinusMinRG()), //
+	B_MINUS_MEANGREY_CTR("B-meanRGB+127.5", new BlueMinusMeanRgbCentered()), //
 	R2MINUS_GB("2R-(G+B)", new LinearCombination(2, -1, -1)), //
 	G2MINUS_RB("2G-(R+B)", new LinearCombination(-1, 2, -1)), //
 	B2MINUS_RG("2B-(R+G)", new LinearCombination(-1, -1, 2)), //
