@@ -292,6 +292,18 @@ public class Spot implements Comparable<Spot> {
 		this.spotMask = roiMasked;
 	}
 
+	/**
+	 * Pixel count in the spot ROI used to turn fly-present counts into a percentage
+	 * (matches detection: mask size / persisted npixels).
+	 */
+	public int getFlyPresentDenomPixelCount() {
+		int n = properties.getSpotNPixels();
+		if (n <= 0 && spotMask != null) {
+			n = spotMask.getMaskPointCount();
+		}
+		return Math.max(1, n);
+	}
+
 	// === NAMING AND IDENTIFICATION ===
 
 	/**

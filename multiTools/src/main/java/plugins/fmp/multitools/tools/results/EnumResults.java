@@ -11,9 +11,12 @@ import plugins.fmp.multitools.experiment.capillaries.computations.GulpMeasureCom
  * Enumeration of all available measurement types.
  * 
  * <p>
- * Each enum value is defined by: a UI {@code label} (used by {@link #toString()}), a {@code unit}, a {@code title},
- * a {@code computationStrategy} (stored accessor or computed), plus an optional {@code persistenceKey} (canonical
- * on-disk token) and a set of {@code persistenceDomains} used to whitelist which file formats may contain it.
+ * Each enum value is defined by: a UI {@code label} (used by
+ * {@link #toString()}), a {@code unit}, a {@code title}, a
+ * {@code computationStrategy} (stored accessor or computed), plus an optional
+ * {@code persistenceKey} (canonical on-disk token) and a set of
+ * {@code persistenceDomains} used to whitelist which file formats may contain
+ * it.
  *
  * Each measurement type has a computation strategy that indicates how the data
  * is obtained:
@@ -58,8 +61,8 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_SUMGULPS_LR()),
 
 	/**
-	 * Capillary persistence stores raw gulp events as a flat CSV section.
-	 * This is not used for charting directly, but needs a stable persistence token.
+	 * Capillary persistence stores raw gulp events as a flat CSV section. This is
+	 * not used for charting directly, but needs a stable persistence token.
 	 */
 	GULPS_FLAT("gulpsFlat", "events", "gulp events (flat)", StoredDataAccessors.notImplemented_TTOGULP_LR(),
 			"GULPS_FLAT", PersistenceDomain.CAPILLARY),
@@ -107,7 +110,7 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN(), "AREA_SUMCLEAN", PersistenceDomain.SPOT),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
-	AREA_FLYPRESENT("AREA_FLYPRESENT", "boolean value", "Fly is present or not over the spot",
+	AREA_FLYPRESENT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
 			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT);
 
 	public enum PersistenceDomain {
@@ -130,8 +133,8 @@ public enum EnumResults {
 		this.persistenceDomains = EnumSet.noneOf(PersistenceDomain.class);
 	}
 
-	EnumResults(String label, String unit, String title, MeasurementComputation computationStrategy, String persistenceKey,
-			PersistenceDomain... domains) {
+	EnumResults(String label, String unit, String title, MeasurementComputation computationStrategy,
+			String persistenceKey, PersistenceDomain... domains) {
 		this.label = label;
 		this.unit = unit;
 		this.title = title;
@@ -181,8 +184,9 @@ public enum EnumResults {
 	}
 
 	/**
-	 * Spot curve drawn vs black (grey level) or fly-presence boolean; physically non-negative.
-	 * Used to keep the absolute-scale Y axis anchored at zero so the chart does not imply a baseline below zero.
+	 * Spot curve drawn vs black (grey level) or fly-presence boolean; physically
+	 * non-negative. Used to keep the absolute-scale Y axis anchored at zero so the
+	 * chart does not imply a baseline below zero.
 	 */
 	public boolean isSpotIntensityVersusBlackMeasure() {
 		switch (this) {

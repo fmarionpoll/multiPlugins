@@ -34,8 +34,8 @@ public class AxisOptions extends JPanel {
 	private ChartCagesFrame chartCagesFrame = null;
 	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 255., 1.));
 	private JSpinner upperXSpinner = new JSpinner(new SpinnerNumberModel(120., 0., 255., 1.));
-	private JSpinner lowerYSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 255., 1.));
-	private JSpinner upperYSpinner = new JSpinner(new SpinnerNumberModel(80., 0., 255., 1.));
+	private JSpinner lowerYSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 1000., 1.));
+	private JSpinner upperYSpinner = new JSpinner(new SpinnerNumberModel(80., 0., 1000., 1.));
 	private JButton setYaxis = new JButton("set Y axis values");
 	private JButton setXaxis = new JButton("set X axis values");
 

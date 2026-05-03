@@ -37,6 +37,7 @@ import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 import plugins.fmp.multitools.tools.chart.strategies.ChartLayoutStrategy;
 import plugins.fmp.multitools.tools.chart.strategies.ChartUIControlsFactory;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
+import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
@@ -269,7 +270,11 @@ public class ChartCagesFrame extends IcyFrame {
 		String yLegend = label + resultsOptions.resultType.toUnit();
 		yAxis.setLabel(yLegend);
 
-		if (resultsOptions.relativeToMaximum || resultsOptions.relativeToMedianT0) {
+		if (resultsOptions.resultType == EnumResults.AREA_FLYPRESENT) {
+			yAxis.setAutoRange(false);
+			yAxis.setRange(0.0, 100.0);
+			yAxis.setAutoRangeIncludesZero(true);
+		} else if (resultsOptions.relativeToMaximum || resultsOptions.relativeToMedianT0) {
 			yAxis.setAutoRange(false);
 			yAxis.setRange(RELATIVE_Y_MIN, RELATIVE_Y_MAX);
 		} else {

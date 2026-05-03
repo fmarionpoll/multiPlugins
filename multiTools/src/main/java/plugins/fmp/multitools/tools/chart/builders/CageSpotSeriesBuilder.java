@@ -76,13 +76,20 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 				divider = 1.0;
 		}
 
+		double flyPresentToPercent = 1.0;
+		if (resultOptions.resultType == EnumResults.AREA_FLYPRESENT) {
+			flyPresentToPercent = 100.0 / (double) spot.getFlyPresentDenomPixelCount();
+		}
+
 		int npoints = spotMeasure.getCount();
 		if (camImages_time_min != null && npoints > camImages_time_min.length)
 			npoints = camImages_time_min.length;
 
 		for (int j = 0; j < npoints; j++) {
 			double x = camImages_time_min != null ? camImages_time_min[j] : j;
-			double y = spotMeasure.getValueAt(j) / divider;
+			double raw = spotMeasure.getValueAt(j);
+			double y = resultOptions.resultType == EnumResults.AREA_FLYPRESENT ? raw * flyPresentToPercent
+					: raw / divider;
 			seriesXY.add(x, y);
 		}
 		return seriesXY;
