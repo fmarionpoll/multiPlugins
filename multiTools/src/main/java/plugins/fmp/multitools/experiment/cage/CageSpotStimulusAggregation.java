@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
@@ -71,6 +72,32 @@ public final class CageSpotStimulusAggregation {
 	private CageSpotStimulusAggregation() {
 	}
 
+	public static boolean supportsAggregateResultType(EnumResults resultType) {
+		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN;
+	}
+
+	/**
+	 * Union of (stimulus, concentration) keys in first-seen order across all cages and spots.
+	 */
+	public static List<StimulusConcKey> globalStimulusConcKeysFirstSeenOrder(Experiment exp, Spots allSpots) {
+		if (exp == null || exp.getCages() == null || allSpots == null) {
+			return new ArrayList<>();
+		}
+		Set<StimulusConcKey> keys = new LinkedHashSet<>();
+		for (Cage cage : exp.getCages().cagesList) {
+			if (cage == null) {
+				continue;
+			}
+			for (Spot s : cage.getSpotList(allSpots)) {
+				if (s == null || s.getProperties() == null) {
+					continue;
+				}
+				keys.add(new StimulusConcKey(s.getProperties().getStimulus(), s.getProperties().getConcentration()));
+			}
+		}
+		return new ArrayList<>(keys);
+	}
+
 	public static List<AggregateSeries> buildAggregates(Cage cage, Spots allSpots, ResultsOptions options,
 			SpotExcelTimeline.SpotExcelGrid grid) {
 		Objects.requireNonNull(cage, "cage");
@@ -78,8 +105,8 @@ public final class CageSpotStimulusAggregation {
 			return List.of();
 		}
 
-		if (options.resultType != EnumResults.AREA_SUMCLEAN) {
-			Logger.warn("CageSpotStimulusAggregation: only AREA_SUMCLEAN is supported (got " + options.resultType + ")");
+		if (!supportsAggregateResultType(options.resultType)) {
+			Logger.warn("CageSpotStimulusAggregation: unsupported resultType " + options.resultType);
 			return List.of();
 		}
 

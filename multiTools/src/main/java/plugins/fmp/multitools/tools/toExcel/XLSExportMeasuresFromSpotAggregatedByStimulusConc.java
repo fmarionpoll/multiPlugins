@@ -33,7 +33,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		if (resultsOptions == null || exp == null) {
 			return startColumn;
 		}
-		if (!resultsOptions.spotAreas || !resultsOptions.spotSumClean || !resultsOptions.spotAggregateByStimulusConc) {
+		boolean aggregateExport = resultsOptions.spotAggregateByStimulusConc
+				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN;
+		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
 		}
 		int colmax = exportResultType(exp, startColumn, charSeries, EnumResults.AREA_SUMCLEAN, "spot_aggregate");
@@ -43,7 +45,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 	@Override
 	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
-		if (resultType != EnumResults.AREA_SUMCLEAN) {
+		if (resultType != EnumResults.AREA_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN) {
 			return col0;
 		}
 		Point pt = new Point(col0, 0);
@@ -51,6 +53,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 
 		SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, options);
 		Spots allSpots = exp.getSpots();
+		EnumResults savedRt = options.resultType;
+		EnumResults buildRt = EnumResults.AGG_SUMCLEAN.equals(savedRt) ? EnumResults.AGG_SUMCLEAN
+				: EnumResults.AREA_SUMCLEAN;
 		for (Cage cage : exp.getCages().cagesList) {
 			if (options.onlyalive && cage.getProperties().getCageNFlies() < 1) {
 				continue;
@@ -59,7 +64,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				continue;
 			}
 
-			options.resultType = EnumResults.AREA_SUMCLEAN;
+			options.resultType = buildRt;
 			List<AggregateSeries> series = CageSpotStimulusAggregation.buildAggregates(cage, allSpots, options, grid);
 			for (AggregateSeries s : series) {
 				if (s == null || s.values == null || s.values.isEmpty()) {
@@ -80,6 +85,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				pt.x++;
 			}
 		}
+		options.resultType = savedRt;
 
 		Logger.info("XLSExportMeasuresFromSpotAggregatedByStimulusConc: exported columns up to " + pt.x);
 		return pt.x;

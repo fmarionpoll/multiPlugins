@@ -1,8 +1,10 @@
 package plugins.fmp.multitools.tools.chart.builders;
 
 import java.awt.Color;
+import java.awt.Paint;
 import java.util.List;
 
+import org.jfree.chart.ChartColor;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -11,6 +13,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.AggregateSeries;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
@@ -39,6 +42,13 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 			return new XYSeriesCollection();
 		}
 
+		if (options != null && options.resultType == EnumResults.AGG_SUMCLEAN) {
+			XYSeriesCollection dataset = new XYSeriesCollection();
+			addAggregateSeries(exp, cage, allSpots, options, dataset);
+			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+			return dataset;
+		}
+
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		for (int si = 0; si < spots.size(); si++) {
 			Spot spot = spots.get(si);
@@ -48,10 +58,6 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 				continue;
 			series.setDescription(buildSeriesDescription(cage, spot));
 			dataset.addSeries(series);
-		}
-
-		if (options != null && options.spotAggregateByStimulusConc && options.resultType == EnumResults.AREA_SUMCLEAN) {
-			addAggregateSeries(exp, cage, allSpots, options, dataset);
 		}
 
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
@@ -120,6 +126,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 			return;
 		}
 
+		List<StimulusConcKey> globalOrder = options.spotAggregateGlobalKeyOrder;
 		int ai = 0;
 		for (AggregateSeries agg : aggregates) {
 			if (agg == null || agg.values == null || agg.values.isEmpty() || agg.key == null) {
@@ -139,27 +146,27 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 				seriesXY.add(x, y);
 			}
 
-			Color color = firstSpotColorForKey(cage, allSpots, agg.key.stimulus, agg.key.concentration);
+			int paletteIndex = ai - 1;
+			if (globalOrder != null && !globalOrder.isEmpty()) {
+				int idx = globalOrder.indexOf(new StimulusConcKey(agg.key.stimulus, agg.key.concentration));
+				if (idx >= 0) {
+					paletteIndex = idx;
+				}
+			}
+			Color color = aggregatePaletteColor(paletteIndex);
 			seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
 					cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
 			dataset.addSeries(seriesXY);
 		}
 	}
 
-	private static Color firstSpotColorForKey(Cage cage, Spots allSpots, String stimulus, String concentration) {
-		if (cage == null || allSpots == null) {
+	private static Color aggregatePaletteColor(int index) {
+		Paint[] paints = ChartColor.createDefaultPaintArray();
+		if (paints == null || paints.length == 0) {
 			return Color.BLACK;
 		}
-		for (Spot s : cage.getSpotList(allSpots)) {
-			if (s == null || s.getProperties() == null) {
-				continue;
-			}
-			if (stimulus.equals(s.getProperties().getStimulus().trim())
-					&& concentration.equals(s.getProperties().getConcentration().trim())) {
-				return s.getProperties().getColor();
-			}
-		}
-		return Color.BLACK;
+		Paint p = paints[Math.max(0, index) % paints.length];
+		return p instanceof Color ? (Color) p : Color.BLACK;
 	}
 
 	private static double minutesAtElapsedMs(Experiment exp, long elapsedMsFromFirstFrame) {

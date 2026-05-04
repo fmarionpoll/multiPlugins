@@ -36,6 +36,7 @@ public abstract class XLSExportSpots extends XLSExport {
 			case AREA_SUMNOFLY:
 			case AREA_SUMCLEAN:
 			case AREA_FLYPRESENT:
+			case AGG_SUMCLEAN:
 				return true;
 			default:
 				return false;
@@ -44,7 +45,7 @@ public abstract class XLSExportSpots extends XLSExport {
 
 	@Override
 	protected void writeTopRowTimeIntervals(SXSSFSheet sheet, int row, EnumResults resultType) {
-		if (!usesSpotSubsamplingTimeline(resultType)) {
+		if (resultType == null || !usesSpotSubsamplingTimeline(resultType)) {
 			super.writeTopRowTimeIntervals(sheet, row, resultType);
 			return;
 		}
@@ -63,7 +64,7 @@ public abstract class XLSExportSpots extends XLSExport {
 	}
 
 	protected boolean hasSpotMeasuresSelectedForExport(ResultsOptions o) {
-		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean);
+		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.spotAggregateByStimulusConc);
 	}
 
 	protected EnumResults[] enabledSpotMeasureTypesForExport(ResultsOptions o) {

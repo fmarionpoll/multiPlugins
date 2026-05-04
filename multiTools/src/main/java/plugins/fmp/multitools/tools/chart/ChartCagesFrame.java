@@ -31,6 +31,7 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
@@ -201,7 +202,8 @@ public class ChartCagesFrame extends IcyFrame {
 		// Set layout using strategy
 		layoutStrategy.setLayoutOnPanel(mainChartPanel, nPanelsAlongX, nPanelsAlongY);
 
-		String finalTitle = title + ": " + options.resultType.toString();
+		String rt = options.resultType != null ? options.resultType.toString() : "";
+		String finalTitle = title + ": " + rt;
 
 		// Reuse existing frame if it's still valid
 		if (mainChartFrame != null && (mainChartFrame.getParent() != null || mainChartFrame.isVisible())) {
@@ -349,6 +351,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 		createChartsPanel(resultsOptions);
 		arrangePanelsInDisplay(resultsOptions);
+		refreshBottomLegendFromFirstDataset(resultsOptions);
 		displayChartFrame();
 	}
 
@@ -433,6 +436,13 @@ public class ChartCagesFrame extends IcyFrame {
 		}
 
 		ChartCageBuild.initMaxMin();
+		if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN && experiment != null && experiment.getSpots() != null) {
+			resultsOptions.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
+					.globalStimulusConcKeysFirstSeenOrder(experiment, experiment.getSpots());
+		} else {
+			resultsOptions.spotAggregateGlobalKeyOrder = null;
+		}
+
 		Map<Cage, XYSeriesCollection> datasets = new HashMap<Cage, XYSeriesCollection>();
 
 		// Build datasets for all available cages (only iterate over existing cages)
@@ -633,9 +643,49 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected void updateFrameTitle() {
 		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
-			String finalTitle = baseTitle + ": " + currentOptions.resultType.toString();
+			String rt = currentOptions.resultType != null ? currentOptions.resultType.toString() : "";
+			String finalTitle = baseTitle + ": " + rt;
 			mainChartFrame.setTitle(finalTitle);
 		}
+	}
+
+	private void refreshBottomLegendFromFirstDataset(ResultsOptions resultsOptions) {
+		if (resultsOptions == null) {
+			return;
+		}
+		XYSeriesCollection ds = findFirstNonEmptyDatasetFromChartPairs();
+		uiControlsFactory.refreshLegendFromDataset(experiment, resultsOptions, ds);
+	}
+
+	private XYSeriesCollection findFirstNonEmptyDatasetFromChartPairs() {
+		if (chartPanelArray == null) {
+			return null;
+		}
+		for (ChartCagePair[] row : chartPanelArray) {
+			if (row == null) {
+				continue;
+			}
+			for (ChartCagePair pair : row) {
+				if (pair == null || pair.getChartPanel() == null) {
+					continue;
+				}
+				JFreeChart chart = pair.getChartPanel().getChart();
+				if (chart == null) {
+					continue;
+				}
+				XYPlot plot = chart.getXYPlot();
+				if (plot == null) {
+					continue;
+				}
+				if (plot.getDataset() instanceof XYSeriesCollection) {
+					XYSeriesCollection ds = (XYSeriesCollection) plot.getDataset();
+					if (ds.getSeriesCount() > 0) {
+						return ds;
+					}
+				}
+			}
+		}
+		return null;
 	}
 
 	// Accessors for testing and external use

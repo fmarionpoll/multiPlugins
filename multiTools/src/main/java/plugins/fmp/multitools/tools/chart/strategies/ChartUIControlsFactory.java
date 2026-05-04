@@ -4,6 +4,8 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JPanel;
 
+import org.jfree.data.xy.XYSeriesCollection;
+
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -39,5 +41,11 @@ public interface ChartUIControlsFactory {
 	 * @param currentOptions the current options (will be updated)
 	 */
 	void updateControls(EnumResults newResultType, ResultsOptions currentOptions);
+
+	/**
+	 * Optional: refresh bottom legend after chart datasets exist (e.g. spot traces).
+	 */
+	default void refreshLegendFromDataset(Experiment experiment, ResultsOptions options, XYSeriesCollection dataset) {
+	}
 }
 

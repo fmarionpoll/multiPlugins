@@ -1,5 +1,8 @@
 package plugins.fmp.multitools.tools.results;
 
+import java.util.List;
+
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ResultsOptions {
@@ -98,6 +101,12 @@ public class ResultsOptions {
 	public boolean compensateEvaporation = false;
 	public EnumResults resultType = null;
 
+	/**
+	 * When charting {@link EnumResults#AGG_SUMCLEAN}, filled by {@link plugins.fmp.multitools.tools.chart.ChartCagesFrame}
+	 * so each cage subplot uses the same (stimulus,conc) color index.
+	 */
+	public List<StimulusConcKey> spotAggregateGlobalKeyOrder = null;
+
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
 		this.yVsFood = resultsOptions.yVsFood;
@@ -157,5 +166,6 @@ public class ResultsOptions {
 		this.trim_alive = resultsOptions.trim_alive;
 		this.compensateEvaporation = resultsOptions.compensateEvaporation;
 		this.resultType = resultsOptions.resultType;
+		this.spotAggregateGlobalKeyOrder = resultsOptions.spotAggregateGlobalKeyOrder;
 	}
 }

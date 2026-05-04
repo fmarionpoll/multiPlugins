@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
+import java.awt.Paint;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
@@ -17,11 +18,19 @@ import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JPanel;
 
+import org.jfree.chart.ChartColor;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
+
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
+import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
+import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -131,7 +140,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	public JPanel createBottomPanel(ResultsOptions currentOptions, Experiment experiment) {
 		this.currentExperiment = experiment;
 		bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
-		updateBottomPanel(currentOptions, experiment);
+		fillBottomPanel(currentOptions, experiment, null);
 		return bottomPanel;
 	}
 
@@ -140,10 +149,16 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		if (resultTypeComboBox != null && newResultType != null) {
 			resultTypeComboBox.setSelectedItem(newResultType);
 		}
-		updateBottomPanel(currentOptions, currentExperiment);
+		fillBottomPanel(currentOptions, currentExperiment, null);
 	}
 
-	private void updateBottomPanel(ResultsOptions currentOptions, Experiment experiment) {
+	@Override
+	public void refreshLegendFromDataset(Experiment experiment, ResultsOptions options, XYSeriesCollection dataset) {
+		this.currentExperiment = experiment;
+		fillBottomPanel(options, experiment, dataset);
+	}
+
+	private void fillBottomPanel(ResultsOptions currentOptions, Experiment experiment, XYSeriesCollection dataset) {
 		if (bottomPanel == null || currentOptions == null) {
 			return;
 		}
@@ -151,16 +166,107 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		bottomPanel.removeAll();
 
 		if (ChartCageBuild.isLRType(currentOptions.resultType)) {
-			// For LR types, show Sum and PI
 			bottomPanel.add(new LegendItem("Sum", Color.BLUE));
 			bottomPanel.add(new LegendItem("PI", Color.RED));
+		} else if (isSpotChartLegendResultType(currentOptions.resultType)) {
+			fillSpotLegendPanel(currentOptions, experiment, dataset);
 		} else {
-			// For non-LR types, show dynamic legend based on capillaries
 			createDynamicCapillaryLegend(experiment);
 		}
 
 		bottomPanel.revalidate();
 		bottomPanel.repaint();
+	}
+
+	private static boolean isSpotChartLegendResultType(EnumResults r) {
+		if (r == null) {
+			return false;
+		}
+		switch (r) {
+		case AREA_SUM:
+		case AREA_SUMNOFLY:
+		case AREA_SUMCLEAN:
+		case AREA_OUT:
+		case AREA_DIFF:
+		case AREA_FLYPRESENT:
+		case AGG_SUMCLEAN:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	private void fillSpotLegendPanel(ResultsOptions opts, Experiment exp, XYSeriesCollection dataset) {
+		EnumResults rt = opts.resultType;
+		if (rt == EnumResults.AGG_SUMCLEAN) {
+			if (dataset != null && dataset.getSeriesCount() > 0) {
+				for (int i = 0; i < dataset.getSeriesCount(); i++) {
+					XYSeries s = dataset.getSeries(i);
+					String key = s.getKey().toString();
+					String label = clipLegendText(labelFromAggregateSeriesKey(key), 28);
+					Color c = SeriesStyleCodec.tryParseColor(s.getDescription()).orElse(aggregatePaletteColor(i));
+					bottomPanel.add(new LegendItem(label, c));
+				}
+				return;
+			}
+			if (exp != null && exp.getSpots() != null) {
+				List<StimulusConcKey> keys = CageSpotStimulusAggregation.globalStimulusConcKeysFirstSeenOrder(exp,
+						exp.getSpots());
+				int i = 0;
+				for (StimulusConcKey k : keys) {
+					String label = clipLegendText(k.stimulus + "_" + k.concentration, 28);
+					bottomPanel.add(new LegendItem(label, aggregatePaletteColor(i++)));
+				}
+			}
+			return;
+		}
+		if (dataset != null && dataset.getSeriesCount() > 0) {
+			for (int i = 0; i < dataset.getSeriesCount(); i++) {
+				XYSeries s = dataset.getSeries(i);
+				String key = s.getKey().toString();
+				String label = clipLegendText(spotLegendLabelFromSeriesKey(key), 24);
+				Color c = SeriesStyleCodec.tryParseColor(s.getDescription()).orElse(Color.DARK_GRAY);
+				bottomPanel.add(new LegendItem(label, c));
+			}
+			return;
+		}
+		bottomPanel.add(new LegendItem("Spots", Color.DARK_GRAY));
+	}
+
+	private static String clipLegendText(String s, int max) {
+		if (s == null || s.isEmpty()) {
+			return "?";
+		}
+		return s.length() > max ? s.substring(0, max) : s;
+	}
+
+	private static String spotLegendLabelFromSeriesKey(String key) {
+		if (key == null) {
+			return "";
+		}
+		int sep = key.lastIndexOf(SpotChartSeriesKeys.SEP);
+		return sep > 0 ? key.substring(0, sep) : key;
+	}
+
+	private static String labelFromAggregateSeriesKey(String seriesKey) {
+		if (seriesKey == null || !SpotChartSeriesKeys.isAggregateSeriesKey(seriesKey)) {
+			return seriesKey;
+		}
+		int l = seriesKey.indexOf('(');
+		int r = seriesKey.indexOf(')', l + 1);
+		if (l < 0 || r <= l) {
+			return seriesKey;
+		}
+		return seriesKey.substring(l + 1, r).replace(',', '_');
+	}
+
+	private static Color aggregatePaletteColor(int index) {
+		Paint[] paints = ChartColor.createDefaultPaintArray();
+		if (paints == null || paints.length == 0) {
+			return Color.BLACK;
+		}
+		Paint p = paints[Math.max(0, index) % paints.length];
+		return p instanceof Color ? (Color) p : Color.BLACK;
 	}
 
 	/**

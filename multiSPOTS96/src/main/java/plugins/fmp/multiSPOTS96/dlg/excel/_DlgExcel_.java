@@ -19,6 +19,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
+import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpotAggregatedByStimulusConc;
@@ -33,6 +34,7 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 	private JTabbedPane tabsPane = new JTabbedPane();
 	public ExcelOptionsPanel tabCommonOptions = new ExcelOptionsPanel(ExcelOptionsPanel.Features.spots96Defaults());
 	private SpotsAreas spotsAreas = new SpotsAreas();
+	private AggregatedSpotsAreas aggregatedSpotsAreas = new AggregatedSpotsAreas();
 	// private CagesAreas cagesAreas = new CagesAreas();
 	// TODO _CAGES private Move tabMove = new Move();
 	private MultiSPOTS96 parent0 = null;
@@ -54,6 +56,11 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 		spotsAreas.init(capLayout);
 		tabsPane.addTab("Spots", null, spotsAreas, "Export measures made on spots to file");
 		spotsAreas.addPropertyChangeListener(this);
+
+		aggregatedSpotsAreas.init(capLayout);
+		tabsPane.addTab("Aggregated spots", null, aggregatedSpotsAreas,
+				"Export AGG_SUMCLEAN (cage \u00d7 stimulus/concentration groups)");
+		aggregatedSpotsAreas.addPropertyChangeListener(this);
 
 //		cagesAreas.init(capLayout);
 //		tabsPane.addTab("Cages", null, cagesAreas, "Export measures made on cages to file");
@@ -93,13 +100,26 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 					try {
 						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 						ResultsOptions o = getSpotsOptions(exp);
-						if (o.spotAggregateByStimulusConc) {
-							new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
-						} else {
-							new XLSExportMeasuresFromSpot().exportToFile(file, o);
-						}
+						new XLSExportMeasuresFromSpot().exportToFile(file, o);
 					} catch (ExcelExportException e) {
 						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			});
+		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_SPOTSMEASURES")) {
+			String file = defineXlsFileName(exp, "_spots_aggregate.xlsx");
+			if (file == null)
+				return;
+			updateParametersCurrentExperiment(exp);
+			ThreadUtil.bgRun(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+						ResultsOptions o = getAggregatedSpotsOptions(exp);
+						new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
+					} catch (ExcelExportException e) {
 						e.printStackTrace();
 					}
 				}
@@ -134,13 +154,33 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.spotSumClean = spotsAreas.sumCleanCheckBox.isSelected();
 		resultsOptions.relativeToMaximum = spotsAreas.t0CheckBox.isSelected();
 		resultsOptions.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
-		resultsOptions.spotAggregateByStimulusConc = spotsAreas.aggregateByStimConcCheckBox.isSelected();
-		resultsOptions.spotBaselineWindowMinutes = ((Number) spotsAreas.baselineMinutesSpinner.getValue()).intValue();
-		resultsOptions.spotBaselineStopWhenStable = spotsAreas.stopWhenStableCheckBox.isSelected();
-		resultsOptions.spotBaselineStableBins = ((Number) spotsAreas.stableBinsSpinner.getValue()).intValue();
+		resultsOptions.spotAggregateByStimulusConc = false;
+		resultsOptions.resultType = null;
+		resultsOptions.spotBaselineWindowMinutes = 2;
+		resultsOptions.spotBaselineStopWhenStable = false;
+		resultsOptions.spotBaselineStableBins = 3;
 
 		getCommonOptions(resultsOptions, exp);
 
+		return resultsOptions;
+	}
+
+	private ResultsOptions getAggregatedSpotsOptions(Experiment exp) {
+		ResultsOptions resultsOptions = new ResultsOptions();
+		resultsOptions.spotAreas = true;
+		resultsOptions.sum = false;
+		resultsOptions.spotSumNoFly = false;
+		resultsOptions.spotSumClean = true;
+		resultsOptions.relativeToMaximum = false;
+		resultsOptions.onlyalive = aggregatedSpotsAreas.discardNoFlyCageCheckBox.isSelected();
+		resultsOptions.spotAggregateByStimulusConc = true;
+		resultsOptions.resultType = EnumResults.AGG_SUMCLEAN;
+		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreas.baselineMinutesSpinner.getValue())
+				.intValue();
+		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreas.stopWhenStableCheckBox.isSelected();
+		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreas.stableBinsSpinner.getValue())
+				.intValue();
+		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}
 

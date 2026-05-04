@@ -135,6 +135,7 @@ public class ChartCagesCombinedFrame {
 		case AREA_OUT:
 		case AREA_DIFF:
 		case AREA_FLYPRESENT:
+		case AGG_SUMCLEAN:
 			return true;
 		default:
 			return false;

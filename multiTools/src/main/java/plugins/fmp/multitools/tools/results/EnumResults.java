@@ -111,7 +111,14 @@ public enum EnumResults {
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
 	AREA_FLYPRESENT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
-			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT);
+			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT),
+
+	/**
+	 * Computed cage-level aggregate: sum over spots grouped by (stimulus, concentration)
+	 * of normalized AREA_SUMCLEAN consumption (not persisted as its own spot field).
+	 */
+	AGG_SUMCLEAN("AGG_SUMCLEAN", "normalized sum", "CLEAN aggregate by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR());
 
 	public enum PersistenceDomain {
 		SPOT, CAPILLARY, FLYPOSITION
@@ -194,6 +201,7 @@ public enum EnumResults {
 		case AREA_SUMNOFLY:
 		case AREA_SUMCLEAN:
 		case AREA_FLYPRESENT:
+		case AGG_SUMCLEAN:
 			return true;
 		default:
 			return false;

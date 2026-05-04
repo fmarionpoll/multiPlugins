@@ -3,7 +3,6 @@ package plugins.fmp.multiSPOTS96.dlg.browse;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;

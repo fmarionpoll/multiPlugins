@@ -42,13 +42,10 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
 public class Charts extends JPanel implements SequenceListener {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -7079184380174992501L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,
-			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_FLYPRESENT };
+			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -57,7 +54,6 @@ public class Charts extends JPanel implements SequenceListener {
 	private AxisOptions graphOptions = null;
 	private JComboBox<EnumResults> exportTypeComboBox = null;
 	private JCheckBox relativeToCheckbox = new JCheckBox("relative to max", false);
-	private JCheckBox showAggregateByStimConcCheckBox = new JCheckBox("show (stim,conc) aggregate (CLEAN)", false);
 	private JSpinner chartBaselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
 	private JCheckBox chartStopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
 	private JSpinner chartStableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
@@ -65,12 +61,9 @@ public class Charts extends JPanel implements SequenceListener {
 	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
 	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
 
-	// ----------------------------------------
-
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
-		setLayout(capLayout);
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(0);
 
@@ -90,8 +83,7 @@ public class Charts extends JPanel implements SequenceListener {
 		add(panel02);
 
 		JPanel panel02b = new JPanel(layout);
-		panel02b.add(showAggregateByStimConcCheckBox);
-		panel02b.add(new JLabel("baseline (min)"));
+		panel02b.add(new JLabel("AGG baseline (min)"));
 		panel02b.add(chartBaselineMinutesSpinner);
 		panel02b.add(chartStopWhenStableCheckBox);
 		panel02b.add(new JLabel("stable bins"));
@@ -122,7 +114,7 @@ public class Charts extends JPanel implements SequenceListener {
 		exportTypeComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				updateAggregateControlsEnabledState();
+				updateMeasureDependentControls();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayChartPanels(exp);
@@ -162,7 +154,7 @@ public class Charts extends JPanel implements SequenceListener {
 			}
 		});
 
-		ActionListener aggregateRefresh = new ActionListener() {
+		ActionListener baselineRefresh = new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -171,14 +163,13 @@ public class Charts extends JPanel implements SequenceListener {
 				}
 			}
 		};
-		showAggregateByStimConcCheckBox.addActionListener(aggregateRefresh);
 		chartBaselineMinutesSpinner.addChangeListener(e -> {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				displayChartPanels(exp);
 			}
 		});
-		chartStopWhenStableCheckBox.addActionListener(aggregateRefresh);
+		chartStopWhenStableCheckBox.addActionListener(baselineRefresh);
 		chartStableBinsSpinner.addChangeListener(e -> {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
@@ -199,7 +190,7 @@ public class Charts extends JPanel implements SequenceListener {
 		displaySelectedButton.addActionListener(refreshOnChange);
 		displaySelectedSpotsButton.addActionListener(refreshOnChange);
 
-		updateAggregateControlsEnabledState();
+		updateMeasureDependentControls();
 	}
 
 	private Rectangle getInitialUpperLeftPosition(Experiment exp) {
@@ -237,6 +228,10 @@ public class Charts extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
+		if (exportType == EnumResults.AGG_SUMCLEAN && displaySelectedSpotsButton.isSelected()) {
+			displayAllButton.setSelected(true);
+		}
+
 		int first = 0;
 		int last = exp.getCages().cagesList.size() - 1;
 		if (displaySelectedSpotsButton.isSelected()) {
@@ -258,9 +253,9 @@ public class Charts extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(first, last).build();
-		options.relativeToMaximum = relativeToCheckbox.isSelected();
-		options.spotAggregateByStimulusConc = showAggregateByStimConcCheckBox.isEnabled()
-				&& showAggregateByStimConcCheckBox.isSelected();
+		boolean agg = exportType == EnumResults.AGG_SUMCLEAN;
+		options.relativeToMaximum = !agg && relativeToCheckbox.isSelected();
+		options.spotAggregateByStimulusConc = false;
 		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
 		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
 		options.spotBaselineStableBins = ((Number) chartStableBinsSpinner.getValue()).intValue();
@@ -292,7 +287,7 @@ public class Charts extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
-		options.relativeToMaximum = relativeToCheckbox.isSelected();
+		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
@@ -346,18 +341,19 @@ public class Charts extends JPanel implements SequenceListener {
 		return Arrays.copyOf(SPOT_CHART_RESULTS, SPOT_CHART_RESULTS.length);
 	}
 
-	private void updateAggregateControlsEnabledState() {
-		boolean cleanSelected = exportTypeComboBox != null
-				&& exportTypeComboBox.getSelectedItem() == EnumResults.AREA_SUMCLEAN;
-		boolean overlaySelected = displaySelectedSpotsButton != null && displaySelectedSpotsButton.isSelected();
-		boolean enabled = cleanSelected && !overlaySelected;
-		showAggregateByStimConcCheckBox.setEnabled(enabled);
-		chartBaselineMinutesSpinner.setEnabled(enabled);
-		chartStopWhenStableCheckBox.setEnabled(enabled);
-		chartStableBinsSpinner.setEnabled(enabled);
-		if (!enabled) {
-			showAggregateByStimConcCheckBox.setSelected(false);
+	private void updateMeasureDependentControls() {
+		boolean agg = exportTypeComboBox != null && exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN;
+		relativeToCheckbox.setEnabled(!agg);
+		if (agg) {
+			relativeToCheckbox.setSelected(false);
 		}
+		displaySelectedSpotsButton.setEnabled(!agg);
+		if (agg && displaySelectedSpotsButton.isSelected()) {
+			displayAllButton.setSelected(true);
+		}
+		chartBaselineMinutesSpinner.setEnabled(agg);
+		chartStopWhenStableCheckBox.setEnabled(agg);
+		chartStableBinsSpinner.setEnabled(agg);
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
@@ -407,18 +403,15 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		boolean flag = false;
+		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
-				if (spot.isThereAnyMeasuresDone(option) > 0) {
-					flag = true;
-					break;
+				if (spot.isThereAnyMeasuresDone(probe) > 0) {
+					return true;
 				}
 			}
-			if (flag)
-				break;
 		}
-		return flag;
+		return false;
 	}
 
 	@Override
