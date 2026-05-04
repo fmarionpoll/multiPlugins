@@ -65,8 +65,8 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 
 	private MultiSPOTS96 parent0 = null;
 	private JComboBox<SpotScopeChoice> spotScopeCombo = new JComboBox<>();
-	private JButton rebuildSumCleanButton = new JButton("Rebuild sumClean");
-	private JButton reconstructSumNoFlyButton = new JButton("Reconstruct sumNoFly + sumClean");
+	private JButton rebuildSumCleanButton = new JButton("2 Rebuild sumClean");
+	private JButton reconstructSumNoFlyButton = new JButton("1 Reconstruct sumNoFly + sumClean");
 	private JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
@@ -78,8 +78,8 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("Spots:"));
 		panel1.add(spotScopeCombo);
-		panel1.add(rebuildSumCleanButton);
 		panel1.add(reconstructSumNoFlyButton);
+		panel1.add(rebuildSumCleanButton);
 		rebuildSumCleanButton.setToolTipText(
 				"Only recomputes sumClean as the running median of the current sumNoFly (leaves sumIn and sumNoFly unchanged).");
 		reconstructSumNoFlyButton.setToolTipText(
@@ -213,7 +213,8 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 		if (targets.isEmpty()) {
 			return;
 		}
-		double pct = parent0 != null && parent0.dlgMeasure != null ? parent0.dlgMeasure.tabSimpleThresholdLight.getFlyOccupancyPercentForSpotSumNoFly()
+		double pct = parent0 != null && parent0.dlgMeasure != null
+				? parent0.dlgMeasure.tabSimpleThresholdLight.getFlyOccupancyPercentForSpotSumNoFly()
 				: 8.0;
 		exp.getSpots().rebuildNoFlyAndCleanForSpots(targets, true, pct / 100.0);
 		exp.getSpots().transferMeasuresToLevel2D(targets);

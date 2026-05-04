@@ -8,8 +8,10 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -920,16 +922,15 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 	}
 
-	public void cleanUpSpotNames(Spots allSpots) {
+	public int cleanUpSpotNames(Spots allSpots) {
 		if (allSpots == null) {
-			return;
+			return 0;
 		}
 		List<Spot> spots = getSpotList(allSpots);
 		for (int i = 0; i < spots.size(); i++) {
 			Spot spot = spots.get(i);
 			spot.getProperties().setCageID(prop.getCageID());
 			spot.getProperties().setCagePosition(i);
-
 			int row = spot.getProperties().getCageRow();
 			int col = spot.getProperties().getCageColumn();
 			if (row < 0 || col < 0) {
@@ -938,8 +939,42 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 				spot.getProperties().setCageRow(row);
 				spot.getProperties().setCageColumn(col);
 			}
-			spot.setNameRowCol(prop.getCageID(), row, col);
 		}
+
+		List<String> geometricLabels = new ArrayList<>(spots.size());
+		for (Spot spot : spots) {
+			geometricLabels.add(SpotString.createSpotString(prop.getCageID(), spot.getProperties().getCageRow(),
+					spot.getProperties().getCageColumn()));
+		}
+
+		Set<String> usedNames = new HashSet<>(Math.max(16, spots.size() * 2));
+		int duplicateResolvedCount = 0;
+		for (int i = 0; i < spots.size(); i++) {
+			Spot spot = spots.get(i);
+			int row = spot.getProperties().getCageRow();
+			int col = spot.getProperties().getCageColumn();
+			String geometricLabel = geometricLabels.get(i);
+
+			if (!usedNames.contains(geometricLabel)) {
+				usedNames.add(geometricLabel);
+				spot.setNameRowCol(prop.getCageID(), row, col);
+				continue;
+			}
+
+			duplicateResolvedCount++;
+			while (usedNames.contains(SpotString.createSpotString(prop.getCageID(), row, col))) {
+				col++;
+			}
+			spot.getProperties().setCageColumn(col);
+			String finalLabel = SpotString.createSpotString(prop.getCageID(), row, col);
+			usedNames.add(finalLabel);
+			spot.setNameRowCol(prop.getCageID(), row, col);
+			spot.getProperties().setColor(Color.RED);
+			if (spot.getRoi() != null) {
+				spot.getRoi().setColor(Color.RED);
+			}
+		}
+		return duplicateResolvedCount;
 	}
 
 	public void updateSpotsStimulus_i(Spots allSpots) {

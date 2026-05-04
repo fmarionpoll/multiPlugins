@@ -20,6 +20,7 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
@@ -81,7 +82,7 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 				return null;
 			}
 
-			Spot spot = experiment.getCages().getSpotFromROIName(seriesKey, experiment.getSpots());
+			Spot spot = SpotChartSeriesKeys.resolveSpot(experiment, cage, seriesKey);
 			if (spot == null) {
 				Logger.warn("Spot not found from seriesKey=" + seriesKey);
 				return null;

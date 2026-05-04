@@ -14,6 +14,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class SpotOverlayChartInteractionHandler {
@@ -55,12 +56,7 @@ public class SpotOverlayChartInteractionHandler {
 		if (seriesKey == null)
 			return null;
 
-		String spotKey = seriesKey;
-		int sep = seriesKey.indexOf("::");
-		if (sep >= 0)
-			spotKey = seriesKey.substring(0, sep);
-
-		Spot spot = experiment.getCages().getSpotFromROIName(spotKey, experiment.getSpots());
+		Spot spot = SpotChartSeriesKeys.resolveSpot(experiment, null, seriesKey);
 		if (spot == null) {
 			Logger.warn("Spot not found from seriesKey=" + seriesKey);
 			return null;

@@ -1276,13 +1276,15 @@ public class Cages {
 		}
 	}
 
-	public void cleanUpSpotNames(Spots allSpots) {
+	public int cleanUpSpotNames(Spots allSpots) {
 		if (allSpots == null) {
-			return;
+			return 0;
 		}
+		int duplicateResolvedCount = 0;
 		for (Cage cage : cagesList) {
-			cage.cleanUpSpotNames(allSpots);
+			duplicateResolvedCount += cage.cleanUpSpotNames(allSpots);
 		}
+		return duplicateResolvedCount;
 	}
 
 	// --------------------------------------------------------

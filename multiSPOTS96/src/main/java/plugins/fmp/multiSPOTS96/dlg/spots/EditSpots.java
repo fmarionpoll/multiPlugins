@@ -14,6 +14,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
 import icy.canvas.Canvas2D;
@@ -342,7 +343,7 @@ public class EditSpots extends JPanel {
 			}
 			cleanUpSpotNames(exp);
 		}
-		exp.saveSpots_File();
+		// exp.saveSpots_File();
 	}
 
 	void duplicateSelectedSpot(Experiment exp) {
@@ -397,20 +398,28 @@ public class EditSpots extends JPanel {
 					}
 				}
 			}
-			cleanUpSpotNames(exp);
+			// cleanUpSpotNames(exp);
 		}
-		exp.saveSpots_File();
+		// exp.saveSpots_File();
 	}
 
 	private void cleanUpSpotNames(Experiment exp) {
 		Spots allSpots = exp.getSpots();
+		int duplicateResolvedCount = 0;
 		for (Cage cage : exp.getCages().cagesList) {
 			cage.reorderSpotsReadingOrderAndAssignRowCol(allSpots);
-			cage.cleanUpSpotNames(allSpots);
+			duplicateResolvedCount += cage.cleanUpSpotNames(allSpots);
 		}
 		exp.getSeqCamData().removeROIsContainingString("spot");
 		exp.getCages().transferCageSpotsToSequenceAsROIs(exp.getSeqCamData(), allSpots);
 		exp.saveSpots_File();
+		if (duplicateResolvedCount > 0) {
+			JOptionPane.showMessageDialog(this,
+					"Several spots shared the same cage row/column label.\n"
+							+ "Names were made unique by adjusting column indices.\n"
+							+ "Those spots are highlighted in red (" + duplicateResolvedCount + " spot(s)).",
+					"Duplicate spot positions", JOptionPane.WARNING_MESSAGE);
+		}
 	}
 
 }

@@ -37,8 +37,10 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		XYSeriesCollection dataset = new XYSeriesCollection();
-		for (Spot spot : spots) {
-			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options);
+		for (int si = 0; si < spots.size(); si++) {
+			Spot spot = spots.get(si);
+			String seriesKey = SpotChartSeriesKeys.key(spot, si);
+			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, seriesKey);
 			if (series == null)
 				continue;
 			series.setDescription(buildSeriesDescription(cage, spot));
@@ -56,10 +58,11 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 				color);
 	}
 
-	private static XYSeries createXYSeriesFromSpotMeasure(Experiment exp, Spot spot, ResultsOptions resultOptions) {
-		if (exp == null || spot == null || resultOptions == null)
+	private static XYSeries createXYSeriesFromSpotMeasure(Experiment exp, Spot spot, ResultsOptions resultOptions,
+			String seriesKey) {
+		if (exp == null || spot == null || resultOptions == null || seriesKey == null)
 			return null;
-		XYSeries seriesXY = new XYSeries(spot.getName(), false);
+		XYSeries seriesXY = new XYSeries(seriesKey, false);
 
 		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
 			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();

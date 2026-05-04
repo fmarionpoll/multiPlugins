@@ -33,6 +33,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -515,7 +516,8 @@ public class ChartSpotsOverlayFrame {
 				return dataset;
 			for (int i = 0; i < selectedSpots.size(); i++) {
 				Spot spot = selectedSpots.get(i);
-				XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, chosen, spot.getName());
+				XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, chosen,
+						SpotChartSeriesKeys.key(spot, i));
 				if (series == null)
 					continue;
 				applySpotStyle(exp, spot, series, pickSpotColor(i));
@@ -541,7 +543,7 @@ public class ChartSpotsOverlayFrame {
 
 			Color color = pickMeasureColor(resultType);
 			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, resultType,
-					spot.getName() + "::" + resultType.name());
+					spot.getName() + SpotChartSeriesKeys.SEP + resultType.name());
 			if (series == null)
 				continue;
 			applySpotStyle(exp, spot, series, color);
