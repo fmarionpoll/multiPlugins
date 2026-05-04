@@ -15,6 +15,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 public final class SpotChartSeriesKeys {
 
 	public static final String SEP = "::";
+	public static final String AGG_PREFIX = "AGG";
 
 	private SpotChartSeriesKeys() {
 	}
@@ -28,6 +29,19 @@ public final class SpotChartSeriesKeys {
 			return base + SEP + spot.getSpotUniqueID().getId();
 		}
 		return base + SEP + "s" + indexInCage;
+	}
+
+	/**
+	 * Stable key for synthetic aggregate series (not backed by a single {@link Spot}).
+	 */
+	public static String keyAggregate(int cageId, String stimulus, String concentration, int aggregateIndex) {
+		String stim = stimulus != null ? stimulus.trim() : "";
+		String conc = concentration != null ? concentration.trim() : "";
+		return AGG_PREFIX + "(" + stim + "," + conc + ")" + SEP + "cage" + cageId + SEP + "a" + aggregateIndex;
+	}
+
+	public static boolean isAggregateSeriesKey(String seriesKey) {
+		return seriesKey != null && seriesKey.startsWith(AGG_PREFIX + "(");
 	}
 
 	/**

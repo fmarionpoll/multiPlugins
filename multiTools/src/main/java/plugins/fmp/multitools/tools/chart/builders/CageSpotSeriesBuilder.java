@@ -9,6 +9,8 @@ import org.jfree.data.xy.XYSeriesCollection;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.AggregateSeries;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
@@ -17,6 +19,7 @@ import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 
 /**
  * Builds cage datasets from Spot measurements.
@@ -45,6 +48,10 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 				continue;
 			series.setDescription(buildSeriesDescription(cage, spot));
 			dataset.addSeries(series);
+		}
+
+		if (options != null && options.spotAggregateByStimulusConc && options.resultType == EnumResults.AREA_SUMCLEAN) {
+			addAggregateSeries(exp, cage, allSpots, options, dataset);
 		}
 
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
@@ -96,5 +103,106 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 			seriesXY.add(x, y);
 		}
 		return seriesXY;
+	}
+
+	private static void addAggregateSeries(Experiment exp, Cage cage, Spots allSpots, ResultsOptions options,
+			XYSeriesCollection dataset) {
+		if (exp == null || cage == null || allSpots == null || options == null || dataset == null) {
+			return;
+		}
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getTimeManager() == null) {
+			return;
+		}
+
+		SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, options);
+		List<AggregateSeries> aggregates = CageSpotStimulusAggregation.buildAggregates(cage, allSpots, options, grid);
+		if (aggregates == null || aggregates.isEmpty()) {
+			return;
+		}
+
+		int ai = 0;
+		for (AggregateSeries agg : aggregates) {
+			if (agg == null || agg.values == null || agg.values.isEmpty() || agg.key == null) {
+				continue;
+			}
+			String seriesKey = SpotChartSeriesKeys.keyAggregate(cage.getProperties().getCageID(), agg.key.stimulus,
+					agg.key.concentration, ai++);
+			XYSeries seriesXY = new XYSeries(seriesKey, false);
+
+			for (int k = 0; k < agg.values.size(); k++) {
+				long queryMs = grid.getClipStartMs() + (long) k * grid.getExcelDeltaMs();
+				double x = minutesAtElapsedMs(exp, queryMs);
+				double y = agg.values.get(k) != null ? agg.values.get(k) : Double.NaN;
+				if (!Double.isFinite(y)) {
+					continue;
+				}
+				seriesXY.add(x, y);
+			}
+
+			Color color = firstSpotColorForKey(cage, allSpots, agg.key.stimulus, agg.key.concentration);
+			seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
+					cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
+			dataset.addSeries(seriesXY);
+		}
+	}
+
+	private static Color firstSpotColorForKey(Cage cage, Spots allSpots, String stimulus, String concentration) {
+		if (cage == null || allSpots == null) {
+			return Color.BLACK;
+		}
+		for (Spot s : cage.getSpotList(allSpots)) {
+			if (s == null || s.getProperties() == null) {
+				continue;
+			}
+			if (stimulus.equals(s.getProperties().getStimulus().trim())
+					&& concentration.equals(s.getProperties().getConcentration().trim())) {
+				return s.getProperties().getColor();
+			}
+		}
+		return Color.BLACK;
+	}
+
+	private static double minutesAtElapsedMs(Experiment exp, long elapsedMsFromFirstFrame) {
+		if (exp == null || exp.getSeqCamData() == null) {
+			return elapsedMsFromFirstFrame / 60000.0;
+		}
+		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null) {
+			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
+		}
+		long[] cam = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
+		if (cam == null || cam.length < 1) {
+			return elapsedMsFromFirstFrame / 60000.0;
+		}
+		long origin = cam[0];
+		long queryAbs = origin + elapsedMsFromFirstFrame;
+
+		if (cam.length == 1) {
+			return (queryAbs - origin) / 60000.0;
+		}
+
+		if (queryAbs <= cam[0]) {
+			return 0.0;
+		}
+		if (queryAbs >= cam[cam.length - 1]) {
+			return (cam[cam.length - 1] - origin) / 60000.0;
+		}
+
+		for (int i = 1; i < cam.length; i++) {
+			long hi = cam[i];
+			if (queryAbs > hi) {
+				continue;
+			}
+			long lo = cam[i - 1];
+			long dt = hi - lo;
+			if (dt <= 0L) {
+				return (hi - origin) / 60000.0;
+			}
+			double alpha = (queryAbs - lo) / (double) dt;
+			double m0 = (lo - origin) / 60000.0;
+			double m1 = (hi - origin) / 60000.0;
+			return m0 + alpha * (m1 - m0);
+		}
+
+		return (cam[cam.length - 1] - origin) / 60000.0;
 	}
 }

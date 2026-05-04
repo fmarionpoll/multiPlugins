@@ -21,6 +21,7 @@ import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
+import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpotAggregatedByStimulusConc;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
 public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
@@ -89,10 +90,14 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 			ThreadUtil.bgRun(new Runnable() {
 				@Override
 				public void run() {
-					XLSExportMeasuresFromSpot xlsExport = new XLSExportMeasuresFromSpot();
 					try {
 						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-						xlsExport.exportToFile(file, getSpotsOptions(exp));
+						ResultsOptions o = getSpotsOptions(exp);
+						if (o.spotAggregateByStimulusConc) {
+							new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
+						} else {
+							new XLSExportMeasuresFromSpot().exportToFile(file, o);
+						}
 					} catch (ExcelExportException e) {
 						// TODO Auto-generated catch block
 						e.printStackTrace();
@@ -129,6 +134,10 @@ public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.spotSumClean = spotsAreas.sumCleanCheckBox.isSelected();
 		resultsOptions.relativeToMaximum = spotsAreas.t0CheckBox.isSelected();
 		resultsOptions.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
+		resultsOptions.spotAggregateByStimulusConc = spotsAreas.aggregateByStimConcCheckBox.isSelected();
+		resultsOptions.spotBaselineWindowMinutes = ((Number) spotsAreas.baselineMinutesSpinner.getValue()).intValue();
+		resultsOptions.spotBaselineStopWhenStable = spotsAreas.stopWhenStableCheckBox.isSelected();
+		resultsOptions.spotBaselineStableBins = ((Number) spotsAreas.stableBinsSpinner.getValue()).intValue();
 
 		getCommonOptions(resultsOptions, exp);
 

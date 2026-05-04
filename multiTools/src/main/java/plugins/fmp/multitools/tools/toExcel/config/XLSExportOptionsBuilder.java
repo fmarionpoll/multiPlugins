@@ -29,6 +29,10 @@ public class XLSExportOptionsBuilder {
 	private boolean nPixels = DefaultOptions.N_PIXELS;
 	private boolean spotSumNoFly = false;
 	private boolean spotSumClean = false;
+	private boolean spotAggregateByStimulusConc = false;
+	private int spotBaselineWindowMinutes = 2;
+	private boolean spotBaselineStopWhenStable = false;
+	private int spotBaselineStableBins = 3;
 
 	// Correlation options
 	private boolean autocorrelation = DefaultOptions.AUTOCORRELATION;
@@ -102,6 +106,10 @@ public class XLSExportOptionsBuilder {
 		this.nPixels = existing.nPixels;
 		this.spotSumNoFly = existing.spotSumNoFly;
 		this.spotSumClean = existing.spotSumClean;
+		this.spotAggregateByStimulusConc = existing.spotAggregateByStimulusConc;
+		this.spotBaselineWindowMinutes = existing.spotBaselineWindowMinutes;
+		this.spotBaselineStopWhenStable = existing.spotBaselineStopWhenStable;
+		this.spotBaselineStableBins = existing.spotBaselineStableBins;
 
 		this.autocorrelation = existing.autocorrelation;
 		this.crosscorrelation = existing.crosscorrelation;
@@ -194,6 +202,26 @@ public class XLSExportOptionsBuilder {
 
 	public XLSExportOptionsBuilder withSpotAreas(boolean spotAreas) {
 		this.spotAreas = spotAreas;
+		return this;
+	}
+
+	public XLSExportOptionsBuilder withSpotAggregateByStimulusConc(boolean enabled) {
+		this.spotAggregateByStimulusConc = enabled;
+		return this;
+	}
+
+	public XLSExportOptionsBuilder withSpotBaselineWindowMinutes(int minutes) {
+		this.spotBaselineWindowMinutes = minutes;
+		return this;
+	}
+
+	public XLSExportOptionsBuilder withSpotBaselineStopWhenStable(boolean enabled) {
+		this.spotBaselineStopWhenStable = enabled;
+		return this;
+	}
+
+	public XLSExportOptionsBuilder withSpotBaselineStableBins(int bins) {
+		this.spotBaselineStableBins = bins;
 		return this;
 	}
 
@@ -310,6 +338,10 @@ public class XLSExportOptionsBuilder {
 		resultsOptions.nPixels = this.nPixels;
 		resultsOptions.spotSumNoFly = this.spotSumNoFly;
 		resultsOptions.spotSumClean = this.spotSumClean;
+		resultsOptions.spotAggregateByStimulusConc = this.spotAggregateByStimulusConc;
+		resultsOptions.spotBaselineWindowMinutes = this.spotBaselineWindowMinutes;
+		resultsOptions.spotBaselineStopWhenStable = this.spotBaselineStopWhenStable;
+		resultsOptions.spotBaselineStableBins = this.spotBaselineStableBins;
 
 		resultsOptions.autocorrelation = this.autocorrelation;
 		resultsOptions.crosscorrelation = this.crosscorrelation;

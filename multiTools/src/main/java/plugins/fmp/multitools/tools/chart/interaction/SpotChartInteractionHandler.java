@@ -81,6 +81,9 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 			if (seriesKey == null) {
 				return null;
 			}
+			if (SpotChartSeriesKeys.isAggregateSeriesKey(seriesKey)) {
+				return null;
+			}
 
 			Spot spot = SpotChartSeriesKeys.resolveSpot(experiment, cage, seriesKey);
 			if (spot == null) {

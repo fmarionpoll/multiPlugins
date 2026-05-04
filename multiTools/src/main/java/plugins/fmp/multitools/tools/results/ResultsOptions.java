@@ -23,6 +23,21 @@ public class ResultsOptions {
 	public boolean spotSumNoFly = false;
 	/** Spot Excel export: AREA_SUMCLEAN. */
 	public boolean spotSumClean = false;
+	/**
+	 * Spot Excel export: aggregate spots by (stimulus, concentration) at cage level.
+	 * When enabled, the export iterates cages × distinct (stim,conc) instead of cages × spots.
+	 */
+	public boolean spotAggregateByStimulusConc = false;
+
+	/** Baseline window length (minutes) used to compute per-spot max reference. Default: 2. */
+	public int spotBaselineWindowMinutes = 2;
+	/**
+	 * Optional baseline mode: scan bins from 0 upward and stop early when the running
+	 * maximum has not changed for {@link #spotBaselineStableBins} consecutive bins.
+	 */
+	public boolean spotBaselineStopWhenStable = false;
+	/** Number of consecutive bins without change to consider baseline max stable. */
+	public int spotBaselineStableBins = 3;
 
 	public boolean topLevel = true;
 	public boolean topLevelDelta = false;
@@ -100,6 +115,10 @@ public class ResultsOptions {
 		this.nPixels = resultsOptions.nPixels;
 		this.spotSumNoFly = resultsOptions.spotSumNoFly;
 		this.spotSumClean = resultsOptions.spotSumClean;
+		this.spotAggregateByStimulusConc = resultsOptions.spotAggregateByStimulusConc;
+		this.spotBaselineWindowMinutes = resultsOptions.spotBaselineWindowMinutes;
+		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
+		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;
 
 		this.autocorrelation = resultsOptions.autocorrelation;
 		this.crosscorrelation = resultsOptions.crosscorrelation;

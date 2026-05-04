@@ -7,7 +7,10 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 
 public class SpotsAreas extends JPanel {
 	/**
@@ -22,6 +25,10 @@ public class SpotsAreas extends JPanel {
 	JCheckBox sumCleanCheckBox = new JCheckBox("clean (AREA_SUMCLEAN)", false);
 	JCheckBox t0CheckBox = new JCheckBox("(max-t)/max", true);
 	JCheckBox discardNoFlyCageCheckBox = new JCheckBox("discard cages with no fly", true);
+	JCheckBox aggregateByStimConcCheckBox = new JCheckBox("aggregate by (stimulus, conc)", false);
+	JSpinner baselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
+	JCheckBox stopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
+	JSpinner stableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
 
 	void init(GridLayout capLayout) {
 		setLayout(capLayout);
@@ -39,6 +46,15 @@ public class SpotsAreas extends JPanel {
 		panel1.add(t0CheckBox);
 		panel1.add(discardNoFlyCageCheckBox);
 		add(panel1);
+
+		JPanel panel1b = new JPanel(flowLayout0);
+		panel1b.add(aggregateByStimConcCheckBox);
+		panel1b.add(new JLabel("baseline (min)"));
+		panel1b.add(baselineMinutesSpinner);
+		panel1b.add(stopWhenStableCheckBox);
+		panel1b.add(new JLabel("stable bins"));
+		panel1b.add(stableBinsSpinner);
+		add(panel1b);
 
 		FlowLayout flowLayout2 = new FlowLayout(FlowLayout.RIGHT);
 		flowLayout2.setVgap(0);

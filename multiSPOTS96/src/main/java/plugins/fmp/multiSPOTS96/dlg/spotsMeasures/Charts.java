@@ -15,6 +15,8 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
@@ -55,6 +57,10 @@ public class Charts extends JPanel implements SequenceListener {
 	private AxisOptions graphOptions = null;
 	private JComboBox<EnumResults> exportTypeComboBox = null;
 	private JCheckBox relativeToCheckbox = new JCheckBox("relative to max", false);
+	private JCheckBox showAggregateByStimConcCheckBox = new JCheckBox("show (stim,conc) aggregate (CLEAN)", false);
+	private JSpinner chartBaselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
+	private JCheckBox chartStopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
+	private JSpinner chartStableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
 	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
@@ -83,6 +89,15 @@ public class Charts extends JPanel implements SequenceListener {
 		panel02.add(relativeToCheckbox);
 		add(panel02);
 
+		JPanel panel02b = new JPanel(layout);
+		panel02b.add(showAggregateByStimConcCheckBox);
+		panel02b.add(new JLabel("baseline (min)"));
+		panel02b.add(chartBaselineMinutesSpinner);
+		panel02b.add(chartStopWhenStableCheckBox);
+		panel02b.add(new JLabel("stable bins"));
+		panel02b.add(chartStableBinsSpinner);
+		add(panel02b);
+
 		JPanel panel04 = new JPanel(layout);
 		panel04.add(displayResultsButton);
 		panel04.add(axisOptionsButton);
@@ -107,6 +122,7 @@ public class Charts extends JPanel implements SequenceListener {
 		exportTypeComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				updateAggregateControlsEnabledState();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayChartPanels(exp);
@@ -146,6 +162,30 @@ public class Charts extends JPanel implements SequenceListener {
 			}
 		});
 
+		ActionListener aggregateRefresh = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					displayChartPanels(exp);
+				}
+			}
+		};
+		showAggregateByStimConcCheckBox.addActionListener(aggregateRefresh);
+		chartBaselineMinutesSpinner.addChangeListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp);
+			}
+		});
+		chartStopWhenStableCheckBox.addActionListener(aggregateRefresh);
+		chartStableBinsSpinner.addChangeListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp);
+			}
+		});
+
 		ActionListener refreshOnChange = new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
@@ -158,6 +198,8 @@ public class Charts extends JPanel implements SequenceListener {
 		displayAllButton.addActionListener(refreshOnChange);
 		displaySelectedButton.addActionListener(refreshOnChange);
 		displaySelectedSpotsButton.addActionListener(refreshOnChange);
+
+		updateAggregateControlsEnabledState();
 	}
 
 	private Rectangle getInitialUpperLeftPosition(Experiment exp) {
@@ -217,6 +259,11 @@ public class Charts extends JPanel implements SequenceListener {
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(first, last).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected();
+		options.spotAggregateByStimulusConc = showAggregateByStimConcCheckBox.isEnabled()
+				&& showAggregateByStimConcCheckBox.isSelected();
+		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
+		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
+		options.spotBaselineStableBins = ((Number) chartStableBinsSpinner.getValue()).intValue();
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override
@@ -246,6 +293,7 @@ public class Charts extends JPanel implements SequenceListener {
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected();
+		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
 		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (selected)", options);
@@ -296,6 +344,20 @@ public class Charts extends JPanel implements SequenceListener {
 
 	private static EnumResults[] buildChartEnumResultsChoices() {
 		return Arrays.copyOf(SPOT_CHART_RESULTS, SPOT_CHART_RESULTS.length);
+	}
+
+	private void updateAggregateControlsEnabledState() {
+		boolean cleanSelected = exportTypeComboBox != null
+				&& exportTypeComboBox.getSelectedItem() == EnumResults.AREA_SUMCLEAN;
+		boolean overlaySelected = displaySelectedSpotsButton != null && displaySelectedSpotsButton.isSelected();
+		boolean enabled = cleanSelected && !overlaySelected;
+		showAggregateByStimConcCheckBox.setEnabled(enabled);
+		chartBaselineMinutesSpinner.setEnabled(enabled);
+		chartStopWhenStableCheckBox.setEnabled(enabled);
+		chartStableBinsSpinner.setEnabled(enabled);
+		if (!enabled) {
+			showAggregateByStimConcCheckBox.setSelected(false);
+		}
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
