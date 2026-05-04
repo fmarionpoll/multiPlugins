@@ -47,6 +47,9 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	public Options tabOptions = new Options();
 	private MultiSPOTS96 parent0 = null;
 
+	/** Camera sequence viewer bounds, shared across experiments in this session (same idea as MultiCAFE). */
+	private static Rectangle globalCamDataViewerBounds = null;
+
 	public void init(JPanel mainPanel, String string, MultiSPOTS96 parent0) {
 		this.parent0 = parent0;
 
@@ -107,33 +110,62 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 				if (seq == null)
 					return;
 
+				Experiment currentlySelected = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (currentlySelected != exp) {
+					return;
+				}
+
+				Rectangle initialBounds = calculateCamDataViewerBounds(parent0.mainFrame);
+
 				ViewerFMP v = (ViewerFMP) seq.getFirstViewer();
 				if (v == null) {
-					v = new ViewerFMP(seq, false, true);
-					List<String> list = IcyCanvas.getCanvasPluginNames();
-					String pluginName = list.stream().filter(s -> s.contains("Canvas2D_3Transforms")).findFirst()
-							.orElse(null);
-					v.setCanvas(pluginName);
-					placeViewerNextToDialogBox(v, parent0.mainFrame);
-					v.setVisible(true);
+					try {
+						v = new ViewerFMP(seq, false, true);
+						List<String> list = IcyCanvas.getCanvasPluginNames();
+						String pluginName = list.stream().filter(s -> s.contains("Canvas2D_3Transforms")).findFirst()
+								.orElse(null);
+						if (pluginName != null) {
+							v.setCanvas(pluginName);
+						}
+						if (initialBounds != null) {
+							v.setBounds(initialBounds);
+						}
+						final ViewerFMP vRef = v;
+						SwingUtilities.invokeLater(() -> {
+							if (vRef != null && seq.getFirstViewer() == vRef) {
+								vRef.setVisible(true);
+							}
+						});
+					} catch (Exception e) {
+						e.printStackTrace();
+						return;
+					}
+				} else if (initialBounds != null) {
+					boolean wasVisible = v.isVisible();
+					if (wasVisible) {
+						v.setVisible(false);
+					}
+					v.setBounds(initialBounds);
+					if (wasVisible) {
+						v.setVisible(true);
+					}
 				}
 
 				if (v != null) {
-					placeViewerNextToDialogBox(v, parent0.mainFrame);
+					v.removeListener(parent);
+					v.removeListener(tabCorrectDrift);
+					v.addListener(parent);
+					v.addListener(tabCorrectDrift);
 					v.toFront();
 					v.requestFocus();
 					v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 					v.setRepeat(false);
 
-					v.addListener(parent);
-					v.addListener(tabCorrectDrift);
 					tabCorrectDrift.resetFrameIndex();
 
 					if (seq.isUpdating()) {
 						seq.endUpdate();
 					}
-					// Add cage and spot ROIs on the EDT so the canvas creates Layer entries (fixes
-					// cages not in Layer tab).
 					Experiment current = (Experiment) parent0.expListComboLazy.getSelectedItem();
 					if (current == exp) {
 						exp.transferCagesROI_toSequence();
@@ -145,13 +177,22 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		});
 	}
 
-	private void placeViewerNextToDialogBox(Viewer v, IcyFrame mainFrame) {
-		Rectangle rectv = v.getBoundsInternal();
+	private Rectangle calculateCamDataViewerBounds(IcyFrame mainFrame) {
+		if (globalCamDataViewerBounds != null) {
+			return globalCamDataViewerBounds;
+		}
+		if (mainFrame == null) {
+			return null;
+		}
 		Rectangle rect0 = mainFrame.getBoundsInternal();
+		Rectangle rectv = new Rectangle();
+		rectv.setSize(800, 600);
 		if (rect0.x + rect0.width < Icy.getMainInterface().getMainFrame().getDesktopWidth()) {
 			rectv.setLocation(rect0.x + rect0.width, rect0.y);
-			v.setBounds(rectv);
+		} else {
+			rectv.setLocation(rect0.x, rect0.y);
 		}
+		return rectv;
 	}
 
 	@Override
@@ -171,7 +212,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 	@Override
 	public void viewerClosed(Viewer viewer) {
-		viewer.removeListener(this);
+		if (viewer != null) {
+			globalCamDataViewerBounds = viewer.getBounds();
+			viewer.removeListener(this);
+			viewer.removeListener(tabCorrectDrift);
+		}
 	}
 
 	@Override

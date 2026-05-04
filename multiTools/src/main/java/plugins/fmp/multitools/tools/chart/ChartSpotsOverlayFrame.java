@@ -4,12 +4,16 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -39,6 +43,9 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class ChartSpotsOverlayFrame {
+
+	private static final int DEFAULT_FRAME_WIDTH = 500;
+	private static final int DEFAULT_FRAME_HEIGHT = 200;
 	public interface SelectedSpotsProvider {
 		List<Spot> getSelectedSpots();
 	}
@@ -96,6 +103,8 @@ public class ChartSpotsOverlayFrame {
 
 	private IcyFrame mainChartFrame = null;
 	private JPanel mainChartPanel = null;
+
+	private Point graphLocation = new Point(0, 0);
 	private ChartPanel chartPanel = null;
 
 	private JPanel topControlsPanel = null;
@@ -142,13 +151,25 @@ public class ChartSpotsOverlayFrame {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
 		} else {
-			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(), new Dimension(500, 200), true, true,
-					true, true);
+			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(),
+					new Dimension(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT), true, true, true, true);
 		}
 		mainChartFrame.setLayout(new BorderLayout());
 		topControlsPanel = createTopControlsPanel(options);
 		mainChartFrame.add(topControlsPanel, BorderLayout.NORTH);
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
+
+		mainChartFrame.addComponentListener(new ComponentAdapter() {
+			@Override
+			public void componentResized(ComponentEvent e) {
+				saveOverlayWindowPreferences();
+			}
+
+			@Override
+			public void componentMoved(ComponentEvent e) {
+				saveOverlayWindowPreferences();
+			}
+		});
 	}
 
 	public void displayData(Experiment exp, ResultsOptions options, List<Spot> selectedSpots) {
@@ -164,6 +185,7 @@ public class ChartSpotsOverlayFrame {
 		refreshChart();
 
 		mainChartFrame.pack();
+		loadOverlayWindowPreferences();
 		if (mainChartFrame.getParent() == null) {
 			mainChartFrame.addToDesktopPane();
 		}
@@ -173,11 +195,37 @@ public class ChartSpotsOverlayFrame {
 	}
 
 	public void setChartUpperLeftLocation(Rectangle rect) {
-		if (rect == null)
+		if (rect == null) {
 			return;
-		if (mainChartFrame != null) {
-			mainChartFrame.setLocation(rect.getLocation());
 		}
+		graphLocation = new Point(rect.x, rect.y);
+		if (mainChartFrame != null) {
+			mainChartFrame.setLocation(graphLocation);
+		}
+	}
+
+	private void loadOverlayWindowPreferences() {
+		if (mainChartFrame == null) {
+			return;
+		}
+		Preferences prefs = Preferences.userNodeForPackage(ChartSpotsOverlayFrame.class);
+		int x = prefs.getInt("window_x", graphLocation.x);
+		int y = prefs.getInt("window_y", graphLocation.y);
+		int w = prefs.getInt("window_w", DEFAULT_FRAME_WIDTH);
+		int h = prefs.getInt("window_h", DEFAULT_FRAME_HEIGHT);
+		mainChartFrame.setBounds(new Rectangle(x, y, w, h));
+	}
+
+	private void saveOverlayWindowPreferences() {
+		if (mainChartFrame == null) {
+			return;
+		}
+		Preferences prefs = Preferences.userNodeForPackage(ChartSpotsOverlayFrame.class);
+		Rectangle r = mainChartFrame.getBounds();
+		prefs.putInt("window_x", r.x);
+		prefs.putInt("window_y", r.y);
+		prefs.putInt("window_w", r.width);
+		prefs.putInt("window_h", r.height);
 	}
 
 	public IcyFrame getMainChartFrame() {

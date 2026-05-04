@@ -68,7 +68,7 @@ public class SpotTableModel extends AbstractTableModel {
 		if (spot != null) { // && spot.prop != null
 			switch (columnIndex) {
 			case 0:
-				return spot.getRoi().getName(); // string
+				return spot.getName();
 			case 1:
 				return spot.getProperties().getSpotNPixels();
 			case 2:
@@ -99,7 +99,11 @@ public class SpotTableModel extends AbstractTableModel {
 			switch (columnIndex) {
 
 			case 0:
-				spot.getRoi().setName(aValue.toString());
+				String nm = aValue.toString();
+				spot.getProperties().setName(nm);
+				if (spot.getRoi() != null) {
+					spot.getRoi().setName(nm);
+				}
 				break;
 			case 1:
 				spot.getProperties().setSpotNPixels((int) aValue);

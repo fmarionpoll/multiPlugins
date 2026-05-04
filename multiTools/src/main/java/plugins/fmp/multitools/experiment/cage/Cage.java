@@ -9,7 +9,9 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -119,7 +121,11 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			return result;
 		}
 		if (!spotIDs.isEmpty()) {
+			Set<SpotID> seenIds = new LinkedHashSet<>();
 			for (SpotID spotID : spotIDs) {
+				if (spotID == null || !seenIds.add(spotID)) {
+					continue;
+				}
 				for (Spot spot : allSpots.getSpotList()) {
 					if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
 						result.add(spot);
@@ -127,16 +133,51 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 					}
 				}
 			}
-			return result;
+			return dedupeSpotListForCage(result);
 		}
-		// Fallback for legacy: cage has no spotIDs, filter by cageID
 		int cageID = prop.getCageID();
 		for (Spot spot : allSpots.getSpotList()) {
 			if (spot.getProperties().getCageID() == cageID) {
 				result.add(spot);
 			}
 		}
-		return result;
+		return dedupeSpotListForCage(result);
+	}
+
+	/**
+	 * Keeps cage UI/measures iteration aligned with ROIs on {@code seqCamData}: duplicate
+	 * {@link SpotID} entries yield the same spot twice, and adding ROIs may merge duplicates — redundant slots are dropped here.
+	 */
+	private List<Spot> dedupeSpotListForCage(List<Spot> spots) {
+		if (spots.isEmpty()) {
+			return spots;
+		}
+		Set<Spot> seenSpotRef = Collections.newSetFromMap(new IdentityHashMap<>());
+		Set<ROI2D> seenRoiRef = Collections.newSetFromMap(new IdentityHashMap<>());
+		List<Spot> out = new ArrayList<>(spots.size());
+		int skippedSameSpot = 0;
+		int skippedSameRoi = 0;
+		for (Spot s : spots) {
+			if (s == null) {
+				continue;
+			}
+			if (!seenSpotRef.add(s)) {
+				skippedSameSpot++;
+				continue;
+			}
+			ROI2D roi = s.getRoi();
+			if (roi != null && !seenRoiRef.add(roi)) {
+				skippedSameRoi++;
+				continue;
+			}
+			out.add(s);
+		}
+		int skipped = skippedSameSpot + skippedSameRoi;
+		if (skipped > 0) {
+			Logger.warn("Cage " + prop.getCageID() + ": skipped " + skipped
+					+ " redundant spot cage slot(s) (duplicate SpotID list entry and/or same ROI instance). Infos table now matches ROIs on the sequence.");
+		}
+		return out;
 	}
 
 	/**

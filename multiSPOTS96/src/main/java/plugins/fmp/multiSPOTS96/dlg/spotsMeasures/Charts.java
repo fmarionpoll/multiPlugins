@@ -229,10 +229,7 @@ public class Charts extends JPanel implements SequenceListener {
 		iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
 				createChartUIControlsFactory());
 		iChart.createMainChartPanel("Spots measures", exp, options);
-		Rectangle initialPos = getInitialUpperLeftPosition(exp);
-		if (iChart.getMainChartFrame() != null) {
-			iChart.getMainChartFrame().setLocation(initialPos.x, initialPos.y);
-		}
+		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
 		if (iChart.getMainChartFrame() != null) {
 			iChart.getMainChartFrame().toFront();
