@@ -3,6 +3,7 @@ package plugins.fmp.multiSPOTS96.dlg.spots;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -214,30 +215,93 @@ public class EditSpots extends JPanel {
 
 		if (show) {
 			exp.getSeqCamData().getSequence().removeROI(roiPerimeter);
-			if (enclosedRois.size() > 0) {
-				ArrayList<Point2D> listPoint = new ArrayList<Point2D>();
-				for (ROI2D roi : enclosedRois) {
-					Rectangle rect = roi.getBounds();
-					Point2D.Double point = null;
-					if (selectedRoiType.contains("cage"))
-						point = new Point2D.Double(rect.getX(), rect.getY());
-					else
-						point = new Point2D.Double(rect.getCenterX(), rect.getCenterY());
-					listPoint.add(point);
+			ArrayList<ROI2D> snakeRois = buildOrderedRoisInsideCurrentPerimeter(exp, selectedRoiType);
+			if (snakeRois.isEmpty()) {
+				displaySnakeCheckBox.setSelected(false);
+				updateButtonsStateAccordingToSelectRois(true, false);
+				if (roiPerimeter != null) {
+					exp.getSeqCamData().getSequence().addROI(roiPerimeter);
 				}
-				roiSnake = new ROI2DPolyLine(listPoint);
-				roiSnake.setName("snake");
-				exp.getSeqCamData().getSequence().addROI(roiSnake);
-				exp.getSeqCamData().getSequence().setSelectedROI(roiSnake);
-
-				exp.getSeqCamData().displaySpecificROIs(false, selectedRoiType);
-				makeSureRectangleIsVisible(exp, roiSnake.getBounds());
+				JOptionPane.showMessageDialog(this,
+						"No " + selectedRoiType + " ROIs lie inside the yellow perimeter.\n"
+								+ "Resize the perimeter so it covers the spots or cages you want in the snake.",
+						"Snake", JOptionPane.INFORMATION_MESSAGE);
+				return;
 			}
+			enclosedRois = snakeRois;
+			ArrayList<Point2D> listPoint = new ArrayList<Point2D>();
+			for (ROI2D roi : enclosedRois) {
+				listPoint.add(anchorPointForSnake(roi, selectedRoiType));
+			}
+			roiSnake = new ROI2DPolyLine(listPoint);
+			roiSnake.setName("snake");
+			exp.getSeqCamData().getSequence().addROI(roiSnake);
+			exp.getSeqCamData().getSequence().setSelectedROI(roiSnake);
+
+			exp.getSeqCamData().displaySpecificROIs(false, selectedRoiType);
+			makeSureRectangleIsVisible(exp, roiSnake.getBounds());
 		} else {
 			roiSnake = null;
-			exp.getSeqCamData().getSequence().addROI(roiPerimeter);
+			if (roiPerimeter != null) {
+				ArrayList<ROI2D> stillInside = buildOrderedRoisInsideCurrentPerimeter(exp, selectedRoiType);
+				if (!stillInside.isEmpty()) {
+					enclosedRois = stillInside;
+				}
+				exp.getSeqCamData().getSequence().addROI(roiPerimeter);
+			}
 			exp.getSeqCamData().displaySpecificROIs(true, selectedRoiType);
 		}
+	}
+
+	private static Point2D.Double anchorPointForSnake(ROI2D roi, String selectedRoiType) {
+		Rectangle rect = roi.getBounds();
+		if (selectedRoiType.contains("cage")) {
+			return new Point2D.Double(rect.getX(), rect.getY());
+		}
+		return new Point2D.Double(rect.getCenterX(), rect.getCenterY());
+	}
+
+	private static boolean pointInsidePolygon(Polygon2D poly, double x, double y) {
+		if (poly == null || poly.npoints < 3) {
+			return false;
+		}
+		Polygon awt = new Polygon();
+		for (int i = 0; i < poly.npoints; i++) {
+			awt.addPoint((int) Math.round(poly.xpoints[i]), (int) Math.round(poly.ypoints[i]));
+		}
+		return awt.contains(x, y);
+	}
+
+	private ArrayList<ROI2D> buildOrderedRoisInsideCurrentPerimeter(Experiment exp, String selectedRoiType) {
+		ArrayList<ROI2D> inside = new ArrayList<>();
+		if (roiPerimeter == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return inside;
+		}
+		Polygon2D poly = roiPerimeter.getPolygon2D();
+		ArrayList<ROI2D> listRoisPresent = exp.getSeqCamData().getROIsContainingString(selectedRoiType);
+		for (ROI2D roi : listRoisPresent) {
+			if (roi == null || roi == roiPerimeter || roi == roiSnake) {
+				continue;
+			}
+			String name = roi.getName();
+			if (name != null && (name.equals("perimeter") || name.equals("snake"))) {
+				continue;
+			}
+			Point2D.Double anchor = anchorPointForSnake(roi, selectedRoiType);
+			if (pointInsidePolygon(poly, anchor.x, anchor.y)) {
+				inside.add(roi);
+			}
+		}
+		inside.sort((a, b) -> {
+			Point2D pa = anchorPointForSnake(a, selectedRoiType);
+			Point2D pb = anchorPointForSnake(b, selectedRoiType);
+			int cy = Double.compare(pa.getY(), pb.getY());
+			if (cy != 0) {
+				return cy;
+			}
+			return Double.compare(pa.getX(), pb.getX());
+		});
+		return inside;
 	}
 
 	private void createPerimeterEnclosingRois(Experiment exp) {
@@ -281,7 +345,7 @@ public class EditSpots extends JPanel {
 	}
 
 	private void resizeRois(Experiment exp, int delta) {
-		if (enclosedRois.size() > 0) {
+		if (enclosedRois != null && enclosedRois.size() > 0) {
 			for (ROI2D roi : enclosedRois) {
 				exp.getSeqCamData().getSequence().removeROI(roi);
 				roi = ROI2DUtilities.resizeROI(roi, delta);

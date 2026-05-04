@@ -13,7 +13,9 @@ import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -982,6 +984,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			}
 		}
 
+		reassignColumnsWithinEachRowByIncreasingX(spots);
+
 		List<String> geometricLabels = new ArrayList<>(spots.size());
 		for (Spot spot : spots) {
 			geometricLabels.add(SpotString.createSpotString(prop.getCageID(), spot.getProperties().getCageRow(),
@@ -1016,6 +1020,38 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			}
 		}
 		return duplicateResolvedCount;
+	}
+
+	/**
+	 * For each {@code cageRow}, sets {@code cageColumn} to 0..n-1 in left-to-right order (by spot
+	 * center X). Removes spurious duplicate (row,col) pairs so name disambiguation does not assign
+	 * large column indices to spots that simply sit one step left of another on the same row.
+	 */
+	private void reassignColumnsWithinEachRowByIncreasingX(List<Spot> spots) {
+		if (spots == null || spots.isEmpty()) {
+			return;
+		}
+		Map<Integer, List<Spot>> byRow = new TreeMap<>();
+		for (Spot spot : spots) {
+			int row = spot.getProperties().getCageRow();
+			byRow.computeIfAbsent(row, k -> new ArrayList<>()).add(spot);
+		}
+		for (List<Spot> rowSpots : byRow.values()) {
+			rowSpots.sort((a, b) -> {
+				double xa = getSpotCenterForOrdering(a).x;
+				double xb = getSpotCenterForOrdering(b).x;
+				int cmp = Double.compare(xa, xb);
+				if (cmp != 0) {
+					return cmp;
+				}
+				int ida = a.getSpotUniqueID() != null ? a.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+				int idb = b.getSpotUniqueID() != null ? b.getSpotUniqueID().getId() : Integer.MAX_VALUE;
+				return Integer.compare(ida, idb);
+			});
+			for (int c = 0; c < rowSpots.size(); c++) {
+				rowSpots.get(c).getProperties().setCageColumn(c);
+			}
+		}
 	}
 
 	public void updateSpotsStimulus_i(Spots allSpots) {
