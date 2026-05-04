@@ -16,10 +16,10 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.SortChan0Columns;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SortSumDiffColumns;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractColumn;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractReferenceImage;
-import plugins.fmp.multitools.tools.imageTransform.transforms.TranslateThenSubtractReference;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiff;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdSingleValue;
+import plugins.fmp.multitools.tools.imageTransform.transforms.TranslateThenSubtractReference;
 import plugins.fmp.multitools.tools.imageTransform.transforms.XDiffn;
 import plugins.fmp.multitools.tools.imageTransform.transforms.XYDiffn;
 import plugins.fmp.multitools.tools.imageTransform.transforms.YDifferenceL;
@@ -31,7 +31,7 @@ public enum ImageTransformEnums {
 	G_RGB("G(RGB)", new LinearCombination(0, 1, 0)), //
 	B_RGB("B(RGB)", new LinearCombination(0, 0, 1)), //
 	B_MINUS_MINRG("B-min(R,G)", new BlueMinusMinRG()), //
-	B_MINUS_MEANGREY_CTR("B-meanRGB+127.5", new BlueMinusMeanRgbCentered()), //
+	B_MINUS_MEANGREY_CTR("B-meanRGB", new BlueMinusMeanRgbCentered()), //
 	R2MINUS_GB("2R-(G+B)", new LinearCombination(2, -1, -1)), //
 	G2MINUS_RB("2G-(R+B)", new LinearCombination(-1, 2, -1)), //
 	B2MINUS_RG("2B-(R+G)", new LinearCombination(-1, -1, 2)), //
