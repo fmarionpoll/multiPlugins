@@ -1755,6 +1755,7 @@ public class Experiment {
 	public boolean replaceSpotsFieldValueWithNewValueIfOld(EnumXLSColumnHeader fieldEnumCode, String oldValue,
 			String newValue) {
 		load_cages_description_and_measures();
+		load_spots_description_and_measures();
 		boolean flag = false;
 		for (Cage cage : cages.cagesList) {
 			List<Spot> spotList = cage.getSpotList(spots);
@@ -1785,6 +1786,7 @@ public class Experiment {
 
 	private List<String> getSpotsFieldValues(EnumXLSColumnHeader fieldEnumCode) {
 		load_cages_description_and_measures();
+		load_spots_description_and_measures();
 		List<String> textList = new ArrayList<String>();
 		for (Cage cage : cages.cagesList) {
 			List<Spot> spotList = cage.getSpotList(spots);
