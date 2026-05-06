@@ -20,7 +20,7 @@ public class TransferResultsPanel extends JPanel {
 	private final JComboBoxExperimentLazy experimentsCombo;
 	private final TransferResultsHost host;
 
-	private final JButton openButton = new JButton("Open transfer dialog...");
+	private final JButton openButton = new JButton("Transfer results...");
 
 	public TransferResultsPanel(JComboBoxExperimentLazy experimentsCombo, TransferResultsHost host) {
 		this.experimentsCombo = experimentsCombo;
