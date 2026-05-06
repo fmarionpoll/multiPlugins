@@ -28,6 +28,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
+import icy.gui.frame.IcyFrame;
 import icy.system.thread.ThreadUtil;
 import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
@@ -54,6 +55,7 @@ public class TransferResultsDialogPanel extends JPanel {
 
 	private final JComboBoxExperimentLazy experimentsCombo;
 	private final TransferResultsHost host;
+	private final IcyFrame ownerFrame;
 
 	private final JButton prepareButton = new JButton("Prepare transfer");
 	private final JLabel scanSummaryLabel = new JLabel("No scan prepared.");
@@ -84,9 +86,10 @@ public class TransferResultsDialogPanel extends JPanel {
 	private volatile TransferPlan plan = null;
 	private volatile List<String> preparedExperimentXmls = new ArrayList<>();
 
-	public TransferResultsDialogPanel(JComboBoxExperimentLazy experimentsCombo, TransferResultsHost host) {
+	public TransferResultsDialogPanel(JComboBoxExperimentLazy experimentsCombo, TransferResultsHost host, IcyFrame ownerFrame) {
 		this.experimentsCombo = experimentsCombo;
 		this.host = host;
+		this.ownerFrame = ownerFrame;
 		buildUi();
 		wireUi();
 	}
@@ -398,9 +401,16 @@ public class TransferResultsDialogPanel extends JPanel {
 				progressDialog.dispose();
 				showReport(report);
 				startButton.setEnabled(false);
+				closeOwningWindow();
 			});
 		});
 		progressDialog.setVisible(true);
+	}
+
+	private void closeOwningWindow() {
+		if (ownerFrame == null)
+			return;
+		ownerFrame.close();
 	}
 
 	private static void sleepQuietly(long ms) {

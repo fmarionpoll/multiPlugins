@@ -54,7 +54,7 @@ public class TransferResultsPanel extends JPanel {
 
 	private void openDialogFrame() {
 		IcyFrame frame = new IcyFrame("Transfer results", true, true);
-		frame.add(new TransferResultsDialogPanel(experimentsCombo, host), BorderLayout.CENTER);
+		frame.add(new TransferResultsDialogPanel(experimentsCombo, host, frame), BorderLayout.CENTER);
 		frame.pack();
 		Point pt = getPreferredDialogLocation(frame);
 		if (pt != null)
