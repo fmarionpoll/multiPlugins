@@ -301,12 +301,33 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			lazy.add(new LazyExperiment(metadata));
 		}
 		suppressExperimentOpenDuringTransferReload = true;
+		parent0.expListComboLazy.setSuppressLazyLoad(true);
 		try {
 			parent0.expListComboLazy.addLazyExperimentsBulk(lazy);
 			// Do not auto-select an experiment: selecting triggers open + bin prompts.
 			parent0.expListComboLazy.setSelectedIndex(-1);
 		} finally {
+			parent0.expListComboLazy.setSuppressLazyLoad(false);
 			suppressExperimentOpenDuringTransferReload = false;
+		}
+	}
+
+	/**
+	 * Transfer helper: open experiment at index after a transfer reload.
+	 * This is called after the transfer is completed, so it's OK if it triggers bin prompts.
+	 */
+	public void openExperimentAtIndex(int index) {
+		if (parent0 == null || parent0.expListComboLazy == null)
+			return;
+		int n = parent0.expListComboLazy.getItemCount();
+		if (n <= 0)
+			return;
+		int i = Math.min(Math.max(index, 0), n - 1);
+		suppressExperimentOpenDuringTransferReload = false;
+		parent0.expListComboLazy.setSelectedIndex(i);
+		Experiment exp = parent0.expListComboLazy.getItemAt(i);
+		if (exp != null) {
+			openPipeline.openSelectedExperiment(exp);
 		}
 	}
 

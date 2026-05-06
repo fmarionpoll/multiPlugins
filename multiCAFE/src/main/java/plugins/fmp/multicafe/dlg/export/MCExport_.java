@@ -77,6 +77,11 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 			public void reloadExperimentsFromExperimentXml(java.util.List<String> experimentXmlPaths) {
 				parent0.paneBrowse.panelLoadSave.reloadExperimentsFromExperimentXml(experimentXmlPaths);
 			}
+
+			@Override
+			public void openExperimentAtIndex(int index) {
+				parent0.paneBrowse.panelLoadSave.openExperimentAtIndex(index);
+			}
 		});
 		tabsPane.addTab("Transfer results", null, tabTransfer, "Export/Import results to/from another location");
 

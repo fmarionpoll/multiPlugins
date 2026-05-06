@@ -390,6 +390,8 @@ public class TransferResultsDialogPanel extends JPanel {
 			if (direction == TransferDirection.IMPORT && closeReloadBeforeImportCheck.isSelected() && host != null) {
 				sleepQuietly(150);
 				runOnEdtAndWait(() -> host.reloadExperimentsFromExperimentXml(xmls));
+				sleepQuietly(150);
+				runOnEdtAndWait(() -> host.openExperimentAtIndex(0));
 			}
 
 			SwingUtilities.invokeLater(() -> {

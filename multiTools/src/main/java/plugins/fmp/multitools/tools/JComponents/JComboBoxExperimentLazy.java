@@ -53,6 +53,16 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 
 	// Metadata storage for lazy loading
 	private List<ExperimentMetadata> experimentMetadataList = new ArrayList<>();
+	private volatile boolean suppressLazyLoad = false;
+
+	/**
+	 * When true, {@link #getItemAt(int)} / {@link #getSelectedItem()} will not trigger
+	 * {@link LazyExperiment#loadIfNeeded()}. Useful during bulk UI repaints or
+	 * transfer reload where loading would prompt for bin selection.
+	 */
+	public void setSuppressLazyLoad(boolean suppress) {
+		this.suppressLazyLoad = suppress;
+	}
 
 	public JComboBoxExperimentLazy() {
 	}
@@ -130,7 +140,8 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 		if (item instanceof Experiment) {
 			Experiment exp = (Experiment) item;
 			if (exp instanceof LazyExperiment) {
-				((LazyExperiment) exp).loadIfNeeded();
+				if (!suppressLazyLoad)
+					((LazyExperiment) exp).loadIfNeeded();
 			}
 			return exp;
 		}
@@ -155,7 +166,8 @@ public class JComboBoxExperimentLazy extends JComboBox<Experiment> {
 		if (selected instanceof Experiment) {
 			Experiment exp = (Experiment) selected;
 			if (exp instanceof LazyExperiment) {
-				((LazyExperiment) exp).loadIfNeeded();
+				if (!suppressLazyLoad)
+					((LazyExperiment) exp).loadIfNeeded();
 			}
 			return exp;
 		}
