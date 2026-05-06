@@ -21,11 +21,30 @@ public final class TransferScanner {
 	}
 
 	public static TransferPlan scanAllExperimentsResults(JComboBoxExperimentLazy combo) throws IOException {
+		return scanResults(combo, true);
+	}
+
+	public static TransferPlan scanSelectedExperimentResults(JComboBoxExperimentLazy combo) throws IOException {
+		return scanResults(combo, false);
+	}
+
+	private static TransferPlan scanResults(JComboBoxExperimentLazy combo, boolean scanAllExperiments) throws IOException {
 		Objects.requireNonNull(combo, "combo");
 
 		List<Path> resultsRoots = new ArrayList<>();
 		int n = combo.getItemCount();
-		for (int i = 0; i < n; i++) {
+		int i0 = 0;
+		int i1 = n - 1;
+		if (!scanAllExperiments) {
+			int idx = combo.getSelectedIndex();
+			if (idx < 0 || idx >= n) {
+				return new TransferPlan(null, Collections.emptyList(), Collections.emptyList());
+			}
+			i0 = idx;
+			i1 = idx;
+		}
+
+		for (int i = i0; i <= i1; i++) {
 			Experiment exp = combo.getItemAtNoLoad(i);
 			if (exp == null)
 				continue;

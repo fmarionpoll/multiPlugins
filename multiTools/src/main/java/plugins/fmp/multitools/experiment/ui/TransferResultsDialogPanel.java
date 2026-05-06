@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.prefs.Preferences;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -20,6 +21,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
+import javax.swing.JRadioButton;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
@@ -40,6 +42,13 @@ public class TransferResultsDialogPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private static boolean suppressIfNewerWarningThisSession = false;
+	private static final Preferences PREFS = Preferences.userNodeForPackage(TransferResultsDialogPanel.class);
+	private static final String PREF_OTHER_ROOT = "transferResults.otherRoot";
+	private static final String PREF_DIRECTION = "transferResults.direction";
+	private static final String PREF_MODE = "transferResults.mode";
+	private static final String PREF_SCOPE_ALL = "transferResults.scopeAll";
+	private static final String PREF_OVERRIDE_ENABLED = "transferResults.overrideEnabled";
+	private static final String PREF_OVERRIDE_ROOT = "transferResults.overrideRoot";
 
 	private final JComboBoxExperimentLazy experimentsCombo;
 
@@ -52,6 +61,9 @@ public class TransferResultsDialogPanel extends JPanel {
 	private final JCheckBox overrideRootCheck = new JCheckBox("Override common root");
 	private final JTextField overrideRootField = new JTextField();
 	private final JButton overrideBrowseButton = new JButton("Browse...");
+
+	private final JRadioButton rbAllExperiments = new JRadioButton("all experiments", true);
+	private final JRadioButton rbCurrentExperiment = new JRadioButton("current experiment", false);
 
 	private final JComboBox<TransferDirection> directionCombo = new JComboBox<>(TransferDirection.values());
 	private final JComboBox<TransferMode> modeCombo = new JComboBox<>(TransferMode.values());
@@ -76,7 +88,7 @@ public class TransferResultsDialogPanel extends JPanel {
 
 	private void buildUi() {
 		setLayout(new BorderLayout());
-		JPanel content = new JPanel(new GridLayout(7, 1));
+		JPanel content = new JPanel(new GridLayout(8, 1));
 		content.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
 
 		computedRootField.setEditable(false);
@@ -89,6 +101,12 @@ public class TransferResultsDialogPanel extends JPanel {
 		row0.add(prepareButton);
 		row0.add(scanSummaryLabel);
 		content.add(row0);
+
+		JPanel rowScope = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		rowScope.add(new JLabel("Scan scope:"));
+		rowScope.add(rbAllExperiments);
+		rowScope.add(rbCurrentExperiment);
+		content.add(rowScope);
 
 		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		row1.add(new JLabel("Computed common root:"));
@@ -131,12 +149,21 @@ public class TransferResultsDialogPanel extends JPanel {
 	private void wireUi() {
 		overrideBrowseButton.setEnabled(false);
 
+		javax.swing.ButtonGroup scopeGroup = new javax.swing.ButtonGroup();
+		scopeGroup.add(rbAllExperiments);
+		scopeGroup.add(rbCurrentExperiment);
+
+		loadPrefs();
+
 		prepareButton.addActionListener(e -> runPrepare());
+		rbAllExperiments.addActionListener(e -> invalidatePreparedScan());
+		rbCurrentExperiment.addActionListener(e -> invalidatePreparedScan());
 
 		overrideRootCheck.addActionListener(e -> {
 			boolean enabled = overrideRootCheck.isSelected();
 			overrideBrowseButton.setEnabled(enabled);
 			overrideRootField.setEditable(false);
+			savePrefs();
 			validateReadyToStart();
 		});
 
@@ -152,15 +179,20 @@ public class TransferResultsDialogPanel extends JPanel {
 			} catch (FileDialogException ex) {
 				ex.printStackTrace();
 			}
+			savePrefs();
 			validateReadyToStart();
 		});
 
 		directionCombo.addActionListener(e -> {
 			updateOtherRootLabel();
+			savePrefs();
 			validateReadyToStart();
 		});
 
-		modeCombo.addActionListener(e -> validateReadyToStart());
+		modeCombo.addActionListener(e -> {
+			savePrefs();
+			validateReadyToStart();
+		});
 
 		otherBrowseButton.addActionListener(e -> {
 			try {
@@ -174,10 +206,15 @@ public class TransferResultsDialogPanel extends JPanel {
 			} catch (FileDialogException ex) {
 				ex.printStackTrace();
 			}
+			savePrefs();
 			validateReadyToStart();
 		});
 
 		startButton.addActionListener(e -> runTransfer());
+		otherRootField.addActionListener(e -> {
+			savePrefs();
+			validateReadyToStart();
+		});
 	}
 
 	private void updateOtherRootLabel() {
@@ -201,7 +238,9 @@ public class TransferResultsDialogPanel extends JPanel {
 
 		ThreadUtil.bgRun(() -> {
 			try {
-				TransferPlan p = TransferScanner.scanAllExperimentsResults(experimentsCombo);
+				boolean scanAll = rbAllExperiments.isSelected();
+				TransferPlan p = scanAll ? TransferScanner.scanAllExperimentsResults(experimentsCombo)
+						: TransferScanner.scanSelectedExperimentResults(experimentsCombo);
 				SwingUtilities.invokeLater(() -> onPrepared(p));
 			} catch (Exception ex) {
 				ex.printStackTrace();
@@ -314,6 +353,7 @@ public class TransferResultsDialogPanel extends JPanel {
 		Path effectiveCommonRoot = getEffectiveCommonRoot();
 		TransferPlan effectivePlan = new TransferPlan(effectiveCommonRoot, plan.resultsRoots, plan.items);
 
+		savePrefs();
 		startButton.setEnabled(false);
 
 		TransferProgressDialog progressDialog = new TransferProgressDialog(getParentWindow());
@@ -326,6 +366,58 @@ public class TransferResultsDialogPanel extends JPanel {
 			});
 		});
 		progressDialog.setVisible(true);
+	}
+
+	private void invalidatePreparedScan() {
+		plan = null;
+		scanSummaryLabel.setText("No scan prepared.");
+		computedRootField.setText("");
+		startButton.setEnabled(false);
+		savePrefs();
+	}
+
+	private void loadPrefs() {
+		String other = PREFS.get(PREF_OTHER_ROOT, "");
+		if (!other.isBlank())
+			otherRootField.setText(other);
+
+		String dir = PREFS.get(PREF_DIRECTION, TransferDirection.EXPORT.name());
+		try {
+			directionCombo.setSelectedItem(TransferDirection.valueOf(dir));
+		} catch (Exception ignored) {
+		}
+
+		String mode = PREFS.get(PREF_MODE, TransferMode.OVERWRITE.name());
+		try {
+			modeCombo.setSelectedItem(TransferMode.valueOf(mode));
+		} catch (Exception ignored) {
+		}
+
+		boolean scopeAll = PREFS.getBoolean(PREF_SCOPE_ALL, true);
+		rbAllExperiments.setSelected(scopeAll);
+		rbCurrentExperiment.setSelected(!scopeAll);
+
+		boolean overrideEnabled = PREFS.getBoolean(PREF_OVERRIDE_ENABLED, false);
+		overrideRootCheck.setSelected(overrideEnabled);
+		overrideBrowseButton.setEnabled(overrideEnabled);
+		String override = PREFS.get(PREF_OVERRIDE_ROOT, "");
+		if (!override.isBlank())
+			overrideRootField.setText(override);
+
+		updateOtherRootLabel();
+	}
+
+	private void savePrefs() {
+		PREFS.put(PREF_OTHER_ROOT, otherRootField.getText() != null ? otherRootField.getText().trim() : "");
+		Object dir = directionCombo.getSelectedItem();
+		if (dir instanceof TransferDirection)
+			PREFS.put(PREF_DIRECTION, ((TransferDirection) dir).name());
+		Object mode = modeCombo.getSelectedItem();
+		if (mode instanceof TransferMode)
+			PREFS.put(PREF_MODE, ((TransferMode) mode).name());
+		PREFS.putBoolean(PREF_SCOPE_ALL, rbAllExperiments.isSelected());
+		PREFS.putBoolean(PREF_OVERRIDE_ENABLED, overrideRootCheck.isSelected());
+		PREFS.put(PREF_OVERRIDE_ROOT, overrideRootField.getText() != null ? overrideRootField.getText().trim() : "");
 	}
 
 	private void showReport(TransferReport report) {
