@@ -54,9 +54,33 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <!--
+          Target runtime compatibility:
+          ICY 2.5.x is commonly deployed with Java 8, so we compile plugins/libraries
+          to Java 8 bytecode to keep them runnable on older installations.
+        -->
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
         <!-- icy-kernel Maven version ≠ Icy application version (e.g. 2.5.4.0). Nexus may lag; see icy-kernel listings on Pasteur Nexus. -->
         <icy-kernel.version>2.5.1</icy-kernel.version>
     </properties>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <source>${maven.compiler.source}</source>
+                        <target>${maven.compiler.target}</target>
+                        <encoding>${project.build.sourceEncoding}</encoding>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
 
     <dependencyManagement>
         <dependencies>

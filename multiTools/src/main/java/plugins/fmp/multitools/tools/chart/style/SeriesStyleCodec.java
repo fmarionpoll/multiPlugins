@@ -50,7 +50,7 @@ public final class SeriesStyleCodec {
 			Optional<Integer> r = tryParseIntValue(description, KEY_R);
 			Optional<Integer> g = tryParseIntValue(description, KEY_G);
 			Optional<Integer> b = tryParseIntValue(description, KEY_B);
-			if (r.isEmpty() || g.isEmpty() || b.isEmpty())
+			if (!r.isPresent() || !g.isPresent() || !b.isPresent())
 				return Optional.empty();
 			return Optional.of(new Color(r.get(), g.get(), b.get()));
 		} catch (Exception e) {
@@ -91,7 +91,7 @@ public final class SeriesStyleCodec {
 			if (s == null)
 				continue;
 			Optional<Integer> v = tryParseNFlies(s.getDescription());
-			if (v.isEmpty())
+			if (!v.isPresent())
 				continue;
 			int n = v.get();
 			if (n > 0)
