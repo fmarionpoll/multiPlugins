@@ -72,14 +72,14 @@ public class Charts extends JPanel implements SequenceListener {
 		JPanel panel01 = new JPanel(layout);
 		panel01.add(new JLabel("Measure"));
 		panel01.add(exportTypeComboBox);
-		panel01.add(new JLabel(" display"));
-		panel01.add(displayAllButton);
-		panel01.add(displaySelectedButton);
-		panel01.add(displaySelectedSpotsButton);
+		panel01.add(relativeToCheckbox);
 		add(panel01);
 
 		JPanel panel02 = new JPanel(layout);
-		panel02.add(relativeToCheckbox);
+		panel02.add(new JLabel(" display"));
+		panel02.add(displayAllButton);
+		panel02.add(displaySelectedButton);
+		panel02.add(displaySelectedSpotsButton);
 		add(panel02);
 
 		JPanel panel02b = new JPanel(layout);

@@ -17,6 +17,7 @@ import icy.system.thread.ThreadUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
+import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -35,6 +36,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	public ExcelOptionsPanel tabCommonOptions = new ExcelOptionsPanel(ExcelOptionsPanel.Features.spots96Defaults());
 	private SpotsAreas spotsAreas = new SpotsAreas();
 	private AggregatedSpotsAreas aggregatedSpotsAreas = new AggregatedSpotsAreas();
+	private TransferResultsPanel tabTransfer = null;
 	// private CagesAreas cagesAreas = new CagesAreas();
 	// TODO _CAGES private Move tabMove = new Move();
 	private MultiSPOTS96 parent0 = null;
@@ -61,6 +63,9 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		tabsPane.addTab("Aggregated spots", null, aggregatedSpotsAreas,
 				"Export AGG_SUMCLEAN (cage \u00d7 stimulus/concentration groups)");
 		aggregatedSpotsAreas.addPropertyChangeListener(this);
+
+		tabTransfer = new TransferResultsPanel(parent0.expListComboLazy, null);
+		tabsPane.addTab("Transfer results", null, tabTransfer, "Export/Import results to/from another location");
 
 //		cagesAreas.init(capLayout);
 //		tabsPane.addTab("Cages", null, cagesAreas, "Export measures made on cages to file");

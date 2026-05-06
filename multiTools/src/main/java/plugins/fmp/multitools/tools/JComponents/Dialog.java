@@ -78,6 +78,37 @@ public final class Dialog {
 			throw new FileDialogException("Failed to open file selection dialog", "select_files", extension, e);
 		}
 	}
+
+	/**
+	 * Opens a directory selection dialog.
+	 *
+	 * @param directory The initial directory to open
+	 * @return The selected directory path, or null if cancelled
+	 * @throws FileDialogException If dialog operation fails
+	 */
+	public static String selectDirectory(String directory) throws FileDialogException {
+		try {
+			final JFileChooser fileChooser = new JFileChooser();
+			if (directory != null && !directory.trim().isEmpty()) {
+				File dir = new File(directory);
+				if (dir.exists() && dir.isDirectory()) {
+					fileChooser.setCurrentDirectory(dir);
+				}
+			}
+			fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			fileChooser.setMultiSelectionEnabled(false);
+
+			final int returnValue = fileChooser.showDialog(null, "Select");
+			if (returnValue == JFileChooser.APPROVE_OPTION) {
+				File selected = fileChooser.getSelectedFile();
+				return (selected != null) ? selected.getAbsolutePath() : null;
+			}
+			return null;
+		} catch (Exception e) {
+			Logger.error("Error in selectDirectory: " + e.getMessage(), e);
+			throw new FileDialogException("Failed to open directory selection dialog", "select_directory", directory, e);
+		}
+	}
 	
 	/**
 	 * Creates and configures a JFileChooser with the specified parameters.

@@ -17,6 +17,7 @@ import icy.system.thread.ThreadUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
+import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -36,6 +37,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 	private Levels tabLevels = new Levels();
 	private Gulps tabGulps = new Gulps();
 	private FlyPositions tabMove = new FlyPositions();
+	private TransferResultsPanel tabTransfer = null;
 	private MultiCAFE parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
@@ -63,6 +65,9 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		tabMove.init(capLayout);
 		tabsPane.addTab("Fly positions", null, tabMove, "Export fly positions to file");
 		tabMove.addPropertyChangeListener(this);
+
+		tabTransfer = new TransferResultsPanel(parent0.expListComboLazy, null);
+		tabsPane.addTab("Transfer results", null, tabTransfer, "Export/Import results to/from another location");
 
 		capPanel.add(tabsPane);
 		tabsPane.setSelectedIndex(0);

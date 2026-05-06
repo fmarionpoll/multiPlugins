@@ -1,0 +1,478 @@
+package plugins.fmp.multitools.experiment.ui;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.FlowLayout;
+import java.awt.GridLayout;
+import java.awt.Window;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.time.Duration;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JProgressBar;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+
+import icy.system.thread.ThreadUtil;
+import plugins.fmp.multitools.series.ProgressReporter;
+import plugins.fmp.multitools.tools.JComponents.Dialog;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
+import plugins.fmp.multitools.transfer.TransferDirection;
+import plugins.fmp.multitools.transfer.TransferMode;
+import plugins.fmp.multitools.transfer.TransferPlan;
+import plugins.fmp.multitools.transfer.TransferReport;
+import plugins.fmp.multitools.transfer.TransferRunner;
+import plugins.fmp.multitools.transfer.TransferScanner;
+
+public class TransferResultsDialogPanel extends JPanel {
+	private static final long serialVersionUID = 1L;
+
+	private static boolean suppressIfNewerWarningThisSession = false;
+
+	private final JComboBoxExperimentLazy experimentsCombo;
+
+	private final JButton prepareButton = new JButton("Prepare transfer");
+	private final JLabel scanSummaryLabel = new JLabel("No scan prepared.");
+	private final JLabel warningLabel = new JLabel(" ");
+
+	private final JTextField computedRootField = new JTextField();
+
+	private final JCheckBox overrideRootCheck = new JCheckBox("Override common root");
+	private final JTextField overrideRootField = new JTextField();
+	private final JButton overrideBrowseButton = new JButton("Browse...");
+
+	private final JComboBox<TransferDirection> directionCombo = new JComboBox<>(TransferDirection.values());
+	private final JComboBox<TransferMode> modeCombo = new JComboBox<>(TransferMode.values());
+
+	private final JLabel otherRootLabel = new JLabel("Destination root");
+	private final JTextField otherRootField = new JTextField();
+	private final JButton otherBrowseButton = new JButton("Browse...");
+
+	private final JButton startButton = new JButton("Start");
+
+	private volatile TransferPlan plan = null;
+
+	public TransferResultsDialogPanel(JComboBoxExperimentLazy experimentsCombo) {
+		this.experimentsCombo = experimentsCombo;
+		buildUi();
+		wireUi();
+	}
+
+	private Window getParentWindow() {
+		return SwingUtilities.getWindowAncestor(this);
+	}
+
+	private void buildUi() {
+		setLayout(new BorderLayout());
+		JPanel content = new JPanel(new GridLayout(7, 1));
+		content.setBorder(BorderFactory.createEmptyBorder(4, 4, 4, 4));
+
+		computedRootField.setEditable(false);
+		overrideRootField.setEditable(false);
+
+		startButton.setEnabled(false);
+		warningLabel.setForeground(new Color(140, 90, 0));
+
+		JPanel row0 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row0.add(prepareButton);
+		row0.add(scanSummaryLabel);
+		content.add(row0);
+
+		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row1.add(new JLabel("Computed common root:"));
+		computedRootField.setColumns(45);
+		row1.add(computedRootField);
+		content.add(row1);
+
+		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row2.add(overrideRootCheck);
+		overrideRootField.setColumns(40);
+		row2.add(overrideRootField);
+		row2.add(overrideBrowseButton);
+		content.add(row2);
+
+		JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row3.add(new JLabel("Direction:"));
+		row3.add(directionCombo);
+		row3.add(new JLabel("Mode:"));
+		row3.add(modeCombo);
+		content.add(row3);
+
+		JPanel row4 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row4.add(otherRootLabel);
+		otherRootField.setColumns(45);
+		row4.add(otherRootField);
+		row4.add(otherBrowseButton);
+		content.add(row4);
+
+		JPanel row5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row5.add(startButton);
+		content.add(row5);
+
+		JPanel row6 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		row6.add(warningLabel);
+		content.add(row6);
+
+		add(content, BorderLayout.NORTH);
+	}
+
+	private void wireUi() {
+		overrideBrowseButton.setEnabled(false);
+
+		prepareButton.addActionListener(e -> runPrepare());
+
+		overrideRootCheck.addActionListener(e -> {
+			boolean enabled = overrideRootCheck.isSelected();
+			overrideBrowseButton.setEnabled(enabled);
+			overrideRootField.setEditable(false);
+			validateReadyToStart();
+		});
+
+		overrideBrowseButton.addActionListener(e -> {
+			try {
+				String base = (overrideRootField.getText() != null && !overrideRootField.getText().isBlank())
+						? overrideRootField.getText()
+						: computedRootField.getText();
+				String selected = Dialog.selectDirectory(base);
+				if (selected != null) {
+					overrideRootField.setText(selected);
+				}
+			} catch (FileDialogException ex) {
+				ex.printStackTrace();
+			}
+			validateReadyToStart();
+		});
+
+		directionCombo.addActionListener(e -> {
+			updateOtherRootLabel();
+			validateReadyToStart();
+		});
+
+		modeCombo.addActionListener(e -> validateReadyToStart());
+
+		otherBrowseButton.addActionListener(e -> {
+			try {
+				String base = (otherRootField.getText() != null && !otherRootField.getText().isBlank())
+						? otherRootField.getText()
+						: computedRootField.getText();
+				String selected = Dialog.selectDirectory(base);
+				if (selected != null) {
+					otherRootField.setText(selected);
+				}
+			} catch (FileDialogException ex) {
+				ex.printStackTrace();
+			}
+			validateReadyToStart();
+		});
+
+		startButton.addActionListener(e -> runTransfer());
+	}
+
+	private void updateOtherRootLabel() {
+		TransferDirection dir = (TransferDirection) directionCombo.getSelectedItem();
+		if (dir == TransferDirection.IMPORT) {
+			otherRootLabel.setText("Source root");
+		} else {
+			otherRootLabel.setText("Destination root");
+		}
+	}
+
+	private void runPrepare() {
+		startButton.setEnabled(false);
+		warningLabel.setText("Scanning local results...");
+		scanSummaryLabel.setText("Scanning...");
+		computedRootField.setText("");
+		overrideRootField.setText("");
+		overrideRootCheck.setSelected(false);
+		overrideBrowseButton.setEnabled(false);
+		plan = null;
+
+		ThreadUtil.bgRun(() -> {
+			try {
+				TransferPlan p = TransferScanner.scanAllExperimentsResults(experimentsCombo);
+				SwingUtilities.invokeLater(() -> onPrepared(p));
+			} catch (Exception ex) {
+				ex.printStackTrace();
+				SwingUtilities.invokeLater(() -> {
+					warningLabel.setForeground(Color.RED);
+					warningLabel.setText("Scan failed: " + ex.getMessage());
+					scanSummaryLabel.setText("Scan failed.");
+				});
+			}
+		});
+	}
+
+	private void onPrepared(TransferPlan p) {
+		this.plan = p;
+		warningLabel.setForeground(new Color(140, 90, 0));
+
+		int nFiles = (p != null && p.items != null) ? p.items.size() : 0;
+		int nRoots = (p != null && p.resultsRoots != null) ? p.resultsRoots.size() : 0;
+
+		if (p == null || p.localCommonRoot == null || nFiles == 0) {
+			scanSummaryLabel.setText(String.format("Prepared: %d file(s) from %d results dir(s).", nFiles, nRoots));
+			computedRootField.setText((p != null && p.localCommonRoot != null) ? p.localCommonRoot.toString() : "");
+			warningLabel.setText("Nothing to transfer.");
+			startButton.setEnabled(false);
+			return;
+		}
+
+		scanSummaryLabel.setText(String.format("Prepared: %d file(s) from %d results dir(s).", nFiles, nRoots));
+		computedRootField.setText(p.localCommonRoot.toString());
+
+		int nameCount = p.localCommonRoot.getNameCount();
+		if (nameCount < 2) {
+			warningLabel.setText("Warning: common root seems very high (mixed projects?).");
+		} else {
+			warningLabel.setText(" ");
+		}
+		validateReadyToStart();
+	}
+
+	private void validateReadyToStart() {
+		boolean ok = true;
+		String msg = " ";
+		Color msgColor = new Color(140, 90, 0);
+
+		if (plan == null || plan.localCommonRoot == null || plan.items == null || plan.items.isEmpty()) {
+			ok = false;
+			msg = "Prepare transfer first (no files).";
+		}
+
+		String other = otherRootField.getText();
+		if (ok && (other == null || other.isBlank())) {
+			ok = false;
+			msg = "Select a source/destination root.";
+		}
+
+		if (ok && overrideRootCheck.isSelected()) {
+			String override = overrideRootField.getText();
+			if (override == null || override.isBlank()) {
+				ok = false;
+				msg = "Select an override root (or disable override).";
+			} else {
+				Path overridePath = Paths.get(override).toAbsolutePath().normalize();
+				List<Path> roots = plan.resultsRoots;
+				for (Path r : roots) {
+					if (!TransferScanner.isAncestorOrEqual(overridePath, r)) {
+						ok = false;
+						msgColor = Color.RED;
+						msg = "Override root must be a parent of all results directories.";
+						break;
+					}
+				}
+			}
+		}
+
+		startButton.setEnabled(ok);
+		if (!" ".equals(msg)) {
+			warningLabel.setForeground(msgColor);
+			warningLabel.setText(msg);
+		}
+	}
+
+	private Path getEffectiveCommonRoot() {
+		if (plan == null)
+			return null;
+		if (overrideRootCheck.isSelected()) {
+			String override = overrideRootField.getText();
+			if (override != null && !override.isBlank()) {
+				return Paths.get(override).toAbsolutePath().normalize();
+			}
+		}
+		return plan.localCommonRoot;
+	}
+
+	private void runTransfer() {
+		if (!startButton.isEnabled())
+			return;
+
+		TransferMode mode = (TransferMode) modeCombo.getSelectedItem();
+		if (mode == TransferMode.IF_NEWER && !suppressIfNewerWarningThisSession) {
+			IfNewerWarningDialog warning = new IfNewerWarningDialog(getParentWindow());
+			warning.setVisible(true);
+			if (warning.suppressForSession) {
+				suppressIfNewerWarningThisSession = true;
+			}
+		}
+
+		Path otherRoot = Paths.get(otherRootField.getText()).toAbsolutePath().normalize();
+		TransferDirection direction = (TransferDirection) directionCombo.getSelectedItem();
+
+		Path effectiveCommonRoot = getEffectiveCommonRoot();
+		TransferPlan effectivePlan = new TransferPlan(effectiveCommonRoot, plan.resultsRoots, plan.items);
+
+		startButton.setEnabled(false);
+
+		TransferProgressDialog progressDialog = new TransferProgressDialog(getParentWindow());
+		ThreadUtil.bgRun(() -> {
+			TransferReport report = TransferRunner.run(effectivePlan, otherRoot, direction, mode, progressDialog);
+			SwingUtilities.invokeLater(() -> {
+				progressDialog.dispose();
+				showReport(report);
+				startButton.setEnabled(false);
+			});
+		});
+		progressDialog.setVisible(true);
+	}
+
+	private void showReport(TransferReport report) {
+		String text = formatReport(report);
+		JDialog dlg = new JDialog(getParentWindow(), "Transfer report");
+		dlg.setLayout(new BorderLayout());
+		JTextArea area = new JTextArea(text);
+		area.setEditable(false);
+		area.setCaretPosition(0);
+		dlg.add(new JScrollPane(area), BorderLayout.CENTER);
+		JButton close = new JButton("Close");
+		close.addActionListener(e -> dlg.dispose());
+		JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		south.add(close);
+		dlg.add(south, BorderLayout.SOUTH);
+		dlg.setSize(900, 500);
+		dlg.setLocationRelativeTo(getParentWindow());
+		dlg.setModal(true);
+		dlg.setVisible(true);
+	}
+
+	private String formatReport(TransferReport r) {
+		StringBuilder sb = new StringBuilder();
+		sb.append("Direction: ").append(r.direction).append("\n");
+		sb.append("Mode: ").append(r.mode).append("\n");
+		sb.append("Local common root: ").append(r.localCommonRoot).append("\n");
+		sb.append("Other root: ").append(r.otherRoot).append("\n\n");
+		sb.append("Total: ").append(r.totalItems).append("\n");
+		sb.append("Copied: ").append(r.copied).append("\n");
+		sb.append("Skipped existing: ").append(r.skippedExisting).append("\n");
+		sb.append("Skipped not newer: ").append(r.skippedNotNewer).append("\n");
+		if (r.direction == TransferDirection.IMPORT) {
+			sb.append("Missing source: ").append(r.missingSource).append("\n");
+		}
+		sb.append("Failed: ").append(r.failed).append("\n");
+		sb.append("Elapsed: ").append(formatDuration(r.elapsed)).append("\n");
+
+		if (r.failed > 0) {
+			sb.append("\nFailures:\n");
+			for (TransferReport.Failure f : r.getFailures()) {
+				sb.append("- ").append(f.src).append(" -> ").append(f.dst).append("\n");
+				sb.append("  ").append(f.message).append("\n");
+			}
+		}
+		return sb.toString();
+	}
+
+	private static String formatDuration(Duration d) {
+		if (d == null)
+			return "0s";
+		long s = d.getSeconds();
+		long m = s / 60;
+		long h = m / 60;
+		s = s % 60;
+		m = m % 60;
+		if (h > 0)
+			return String.format("%dh %dm %ds", h, m, s);
+		if (m > 0)
+			return String.format("%dm %ds", m, s);
+		return String.format("%ds", s);
+	}
+
+	private static final class TransferProgressDialog extends JDialog implements ProgressReporter {
+		private static final long serialVersionUID = 1L;
+
+		private final AtomicBoolean cancelled = new AtomicBoolean(false);
+		private final JLabel message = new JLabel("Starting...");
+		private final JProgressBar bar = new JProgressBar(0, 100);
+
+		TransferProgressDialog(Window parent) {
+			super(parent, "Transfer in progress", ModalityType.APPLICATION_MODAL);
+			setLayout(new BorderLayout());
+			JPanel center = new JPanel(new GridLayout(2, 1));
+			center.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+			center.add(message);
+			center.add(bar);
+			add(center, BorderLayout.CENTER);
+
+			JButton cancel = new JButton("Cancel");
+			cancel.addActionListener(e -> cancelled.set(true));
+			JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+			south.add(cancel);
+			add(south, BorderLayout.SOUTH);
+
+			setSize(600, 140);
+			setLocationRelativeTo(parent);
+		}
+
+		@Override
+		public void updateMessage(String msg) {
+			SwingUtilities.invokeLater(() -> message.setText(msg));
+		}
+
+		@Override
+		public void updateProgress(int percentage) {
+			SwingUtilities.invokeLater(() -> bar.setValue(Math.min(100, Math.max(0, percentage))));
+		}
+
+		@Override
+		public void completed() {
+		}
+
+		@Override
+		public void failed(String errorMessage) {
+		}
+
+		@Override
+		public boolean isCancelled() {
+			return cancelled.get();
+		}
+	}
+
+	private static final class IfNewerWarningDialog extends JDialog {
+		private static final long serialVersionUID = 1L;
+		boolean suppressForSession = false;
+
+		IfNewerWarningDialog(Window parent) {
+			super(parent, "Warning: If newer", ModalityType.APPLICATION_MODAL);
+			setLayout(new BorderLayout());
+
+			String msg = "The \"If newer\" option relies on file timestamps.\n"
+					+ "Across network shares / filesystems, timestamps may be unreliable.\n\n"
+					+ "If unsure, prefer \"Overwrite\".\n";
+			JTextArea area = new JTextArea(msg);
+			area.setEditable(false);
+			area.setBackground(getBackground());
+			area.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+			add(area, BorderLayout.CENTER);
+
+			JCheckBox dontShow = new JCheckBox("Don't show again in this session");
+			JButton ok = new JButton("OK");
+			ok.addActionListener(e -> {
+				suppressForSession = dontShow.isSelected();
+				dispose();
+			});
+
+			JPanel south = new JPanel(new BorderLayout());
+			south.setBorder(BorderFactory.createEmptyBorder(0, 8, 8, 8));
+			south.add(dontShow, BorderLayout.WEST);
+			JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+			right.add(ok);
+			south.add(right, BorderLayout.EAST);
+			add(south, BorderLayout.SOUTH);
+
+			setSize(520, 220);
+			setLocationRelativeTo(parent);
+		}
+	}
+}
+
