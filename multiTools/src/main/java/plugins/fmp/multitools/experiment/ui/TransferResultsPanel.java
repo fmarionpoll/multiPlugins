@@ -18,11 +18,13 @@ public class TransferResultsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private final JComboBoxExperimentLazy experimentsCombo;
+	private final TransferResultsHost host;
 
 	private final JButton openButton = new JButton("Open transfer dialog...");
 
-	public TransferResultsPanel(JComboBoxExperimentLazy experimentsCombo, Object unusedParent) {
+	public TransferResultsPanel(JComboBoxExperimentLazy experimentsCombo, TransferResultsHost host) {
 		this.experimentsCombo = experimentsCombo;
+		this.host = host;
 		buildUi();
 		wireUi();
 	}
@@ -52,7 +54,7 @@ public class TransferResultsPanel extends JPanel {
 
 	private void openDialogFrame() {
 		IcyFrame frame = new IcyFrame("Transfer results", true, true);
-		frame.add(new TransferResultsDialogPanel(experimentsCombo), BorderLayout.CENTER);
+		frame.add(new TransferResultsDialogPanel(experimentsCombo, host), BorderLayout.CENTER);
 		frame.pack();
 		Point pt = getPreferredDialogLocation(frame);
 		if (pt != null)

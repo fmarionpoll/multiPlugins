@@ -29,6 +29,8 @@ public final class TransferReport {
 	public int skippedExisting = 0;
 	public int skippedNotNewer = 0;
 	public int missingSource = 0; // import only
+	public int missingSourceRoots = 0; // import+scan-source mode only
+	public int lockedDestination = 0;
 	public int failed = 0;
 
 	public Duration elapsed = Duration.ZERO;

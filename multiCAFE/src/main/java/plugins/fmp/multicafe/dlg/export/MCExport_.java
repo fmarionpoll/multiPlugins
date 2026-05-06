@@ -18,6 +18,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
 import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
+import plugins.fmp.multitools.experiment.ui.TransferResultsHost;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -66,7 +67,17 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		tabsPane.addTab("Fly positions", null, tabMove, "Export fly positions to file");
 		tabMove.addPropertyChangeListener(this);
 
-		tabTransfer = new TransferResultsPanel(parent0.expListComboLazy, null);
+		tabTransfer = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
+			@Override
+			public void closeAllExperimentsForTransfer() {
+				parent0.paneBrowse.panelLoadSave.closeAllExperimentsForTransfer();
+			}
+
+			@Override
+			public void reloadExperimentsFromExperimentXml(java.util.List<String> experimentXmlPaths) {
+				parent0.paneBrowse.panelLoadSave.reloadExperimentsFromExperimentXml(experimentXmlPaths);
+			}
+		});
 		tabsPane.addTab("Transfer results", null, tabTransfer, "Export/Import results to/from another location");
 
 		capPanel.add(tabsPane);

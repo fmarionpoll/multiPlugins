@@ -54,6 +54,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	List<ExperimentMetadata> experimentMetadataList = new ArrayList<>();
 	volatile boolean isProcessing = false;
 	final AtomicInteger processingCount = new AtomicInteger(0);
+	private volatile boolean suppressExperimentOpenDuringTransferReload = false;
 
 	final ExperimentLoadLifecycle loadLifecycle = new ExperimentLoadLifecycle();
 
@@ -64,6 +65,55 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private Spots96ExperimentClosePipeline closePipeline;
 
 	public LoadSaveExperiment() {
+	}
+
+	/**
+	 * Transfer helper: close all experiments and clear UI state so file handles are
+	 * released (important on Windows).
+	 */
+	public void closeAllExperimentsForTransfer() {
+		closeCurrentExperiment();
+		parent0.expListComboLazy.removeAllItems();
+		filteredCheck.setSelected(false);
+		experimentMetadataList.clear();
+		if (parent0.descriptorIndex != null)
+			parent0.descriptorIndex.clear();
+	}
+
+	/**
+	 * Transfer helper: rebuild the combo from a list of {@code results/Experiment.xml}
+	 * paths (v2 format). This is intentionally minimal and avoids opening sequences.
+	 */
+	public void reloadExperimentsFromExperimentXml(List<String> experimentXmlPaths) {
+		closeAllExperimentsForTransfer();
+		if (experimentXmlPaths == null || experimentXmlPaths.isEmpty())
+			return;
+
+		ArrayList<LazyExperiment> lazy = new ArrayList<>();
+		String subDir = parent0.expListComboLazy.expListBinSubDirectory;
+		for (String xml : experimentXmlPaths) {
+			if (xml == null || xml.isBlank())
+				continue;
+			java.nio.file.Path xmlPath = java.nio.file.Paths.get(xml).toAbsolutePath().normalize();
+			java.nio.file.Path resultsDir = xmlPath.getParent();
+			if (resultsDir == null)
+				continue;
+			// For v2 datasets, Experiment.xml lives directly under results/
+			String resultsDirectory = resultsDir.toString();
+			// Infer camera/grabs directory from results directory path
+			String camDataImagesDirectory = ExperimentDirectories.getImagesDirectoryAsParentFromFileName(resultsDirectory);
+
+			ExperimentMetadata metadata = new ExperimentMetadata(camDataImagesDirectory, resultsDirectory, subDir);
+			experimentMetadataList.add(metadata);
+			lazy.add(new LazyExperiment(metadata));
+		}
+		suppressExperimentOpenDuringTransferReload = true;
+		try {
+			parent0.expListComboLazy.addLazyExperimentsBulk(lazy);
+			parent0.expListComboLazy.setSelectedIndex(-1);
+		} finally {
+			suppressExperimentOpenDuringTransferReload = false;
+		}
 	}
 
 	public JPanel initPanel(MultiSPOTS96 parent0) {
@@ -209,6 +259,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	@Override
 	public void itemStateChanged(ItemEvent e) {
+		if (suppressExperimentOpenDuringTransferReload)
+			return;
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {

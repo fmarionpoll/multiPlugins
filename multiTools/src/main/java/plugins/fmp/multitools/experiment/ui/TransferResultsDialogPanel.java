@@ -9,8 +9,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.prefs.Preferences;
+import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -51,6 +53,7 @@ public class TransferResultsDialogPanel extends JPanel {
 	private static final String PREF_OVERRIDE_ROOT = "transferResults.overrideRoot";
 
 	private final JComboBoxExperimentLazy experimentsCombo;
+	private final TransferResultsHost host;
 
 	private final JButton prepareButton = new JButton("Prepare transfer");
 	private final JLabel scanSummaryLabel = new JLabel("No scan prepared.");
@@ -73,11 +76,17 @@ public class TransferResultsDialogPanel extends JPanel {
 	private final JButton otherBrowseButton = new JButton("Browse...");
 
 	private final JButton startButton = new JButton("Start");
+	private final JCheckBox closeReloadBeforeImportCheck = new JCheckBox("Close and reload project before Import",
+			true);
+	private final JCheckBox importScanSourceTreesCheck = new JCheckBox("Import all files from source (scan source results)",
+			false);
 
 	private volatile TransferPlan plan = null;
+	private volatile List<String> preparedExperimentXmls = new ArrayList<>();
 
-	public TransferResultsDialogPanel(JComboBoxExperimentLazy experimentsCombo) {
+	public TransferResultsDialogPanel(JComboBoxExperimentLazy experimentsCombo, TransferResultsHost host) {
 		this.experimentsCombo = experimentsCombo;
+		this.host = host;
 		buildUi();
 		wireUi();
 	}
@@ -137,6 +146,8 @@ public class TransferResultsDialogPanel extends JPanel {
 
 		JPanel row5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		row5.add(startButton);
+		row5.add(closeReloadBeforeImportCheck);
+		row5.add(importScanSourceTreesCheck);
 		content.add(row5);
 
 		JPanel row6 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
@@ -221,8 +232,12 @@ public class TransferResultsDialogPanel extends JPanel {
 		TransferDirection dir = (TransferDirection) directionCombo.getSelectedItem();
 		if (dir == TransferDirection.IMPORT) {
 			otherRootLabel.setText("Source root");
+			closeReloadBeforeImportCheck.setEnabled(host != null);
+			importScanSourceTreesCheck.setEnabled(true);
 		} else {
 			otherRootLabel.setText("Destination root");
+			closeReloadBeforeImportCheck.setEnabled(false);
+			importScanSourceTreesCheck.setEnabled(false);
 		}
 	}
 
@@ -235,13 +250,15 @@ public class TransferResultsDialogPanel extends JPanel {
 		overrideRootCheck.setSelected(false);
 		overrideBrowseButton.setEnabled(false);
 		plan = null;
+		preparedExperimentXmls = new ArrayList<>();
 
 		ThreadUtil.bgRun(() -> {
 			try {
 				boolean scanAll = rbAllExperiments.isSelected();
 				TransferPlan p = scanAll ? TransferScanner.scanAllExperimentsResults(experimentsCombo)
 						: TransferScanner.scanSelectedExperimentResults(experimentsCombo);
-				SwingUtilities.invokeLater(() -> onPrepared(p));
+				List<String> xmls = collectExperimentXmls(p);
+				SwingUtilities.invokeLater(() -> onPrepared(p, xmls));
 			} catch (Exception ex) {
 				ex.printStackTrace();
 				SwingUtilities.invokeLater(() -> {
@@ -253,8 +270,9 @@ public class TransferResultsDialogPanel extends JPanel {
 		});
 	}
 
-	private void onPrepared(TransferPlan p) {
+	private void onPrepared(TransferPlan p, List<String> experimentXmls) {
 		this.plan = p;
+		this.preparedExperimentXmls = (experimentXmls != null) ? experimentXmls : new ArrayList<>();
 		warningLabel.setForeground(new Color(140, 90, 0));
 
 		int nFiles = (p != null && p.items != null) ? p.items.size() : 0;
@@ -358,7 +376,22 @@ public class TransferResultsDialogPanel extends JPanel {
 
 		TransferProgressDialog progressDialog = new TransferProgressDialog(getParentWindow());
 		ThreadUtil.bgRun(() -> {
-			TransferReport report = TransferRunner.run(effectivePlan, otherRoot, direction, mode, progressDialog);
+			List<String> xmls = preparedExperimentXmls != null ? preparedExperimentXmls : new ArrayList<>();
+
+			if (direction == TransferDirection.IMPORT && closeReloadBeforeImportCheck.isSelected() && host != null) {
+				runOnEdtAndWait(() -> host.closeAllExperimentsForTransfer());
+				sleepQuietly(250);
+			}
+
+			boolean scanSourceTrees = direction == TransferDirection.IMPORT && importScanSourceTreesCheck.isSelected();
+			TransferReport report = TransferRunner.run(effectivePlan, otherRoot, direction, mode, scanSourceTrees,
+					progressDialog);
+
+			if (direction == TransferDirection.IMPORT && closeReloadBeforeImportCheck.isSelected() && host != null) {
+				sleepQuietly(150);
+				runOnEdtAndWait(() -> host.reloadExperimentsFromExperimentXml(xmls));
+			}
+
 			SwingUtilities.invokeLater(() -> {
 				progressDialog.dispose();
 				showReport(report);
@@ -366,6 +399,42 @@ public class TransferResultsDialogPanel extends JPanel {
 			});
 		});
 		progressDialog.setVisible(true);
+	}
+
+	private static void sleepQuietly(long ms) {
+		try {
+			Thread.sleep(ms);
+		} catch (InterruptedException ignored) {
+		}
+	}
+
+	private static void runOnEdtAndWait(Runnable r) {
+		if (r == null)
+			return;
+		if (SwingUtilities.isEventDispatchThread()) {
+			r.run();
+			return;
+		}
+		try {
+			SwingUtilities.invokeAndWait(r);
+		} catch (InvocationTargetException | InterruptedException e) {
+			// Best-effort: continue even if the UI callback fails.
+		}
+	}
+
+	private List<String> collectExperimentXmls(TransferPlan p) {
+		ArrayList<String> xmls = new ArrayList<>();
+		if (p == null || p.resultsRoots == null)
+			return xmls;
+		for (Path r : p.resultsRoots) {
+			if (r == null)
+				continue;
+			Path xml = r.resolve("Experiment.xml");
+			if (java.nio.file.Files.exists(xml)) {
+				xmls.add(xml.toAbsolutePath().normalize().toString());
+			}
+		}
+		return xmls;
 	}
 
 	private void invalidatePreparedScan() {
@@ -451,7 +520,11 @@ public class TransferResultsDialogPanel extends JPanel {
 		sb.append("Skipped not newer: ").append(r.skippedNotNewer).append("\n");
 		if (r.direction == TransferDirection.IMPORT) {
 			sb.append("Missing source: ").append(r.missingSource).append("\n");
+			if (r.missingSourceRoots > 0) {
+				sb.append("Missing source roots: ").append(r.missingSourceRoots).append("\n");
+			}
 		}
+		sb.append("Locked destination (skipped): ").append(r.lockedDestination).append("\n");
 		sb.append("Failed: ").append(r.failed).append("\n");
 		sb.append("Elapsed: ").append(formatDuration(r.elapsed)).append("\n");
 
