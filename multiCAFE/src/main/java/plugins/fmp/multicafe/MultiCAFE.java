@@ -15,8 +15,8 @@ import icy.preferences.GeneralPreferences;
 import plugins.fmp.multicafe.dlg.browse.MCBrowse_;
 import plugins.fmp.multicafe.dlg.cages.MCCages_;
 import plugins.fmp.multicafe.dlg.capillaries.MCCapillaries_;
-import plugins.fmp.multicafe.dlg.excel.MCExcel_;
 import plugins.fmp.multicafe.dlg.experiment.MCExperiment_;
+import plugins.fmp.multicafe.dlg.export.MCExport_;
 import plugins.fmp.multicafe.dlg.kymos.MCKymos_;
 import plugins.fmp.multicafe.dlg.levels.MCLevels_;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -24,7 +24,7 @@ import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiCAFE extends PluginActionable {
-	public IcyFrame mainFrame = new IcyFrame("MultiCAFE May 3, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("MultiCAFE May 6, 2026", true, true, true, true);
 
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
@@ -36,7 +36,7 @@ public class MultiCAFE extends PluginActionable {
 	public MCKymos_ paneKymos = new MCKymos_();
 	public MCLevels_ paneLevels = new MCLevels_();
 	public MCCages_ paneCages = new MCCages_();
-	public MCExcel_ paneExcel = new MCExcel_();
+	public MCExport_ paneExcel = new MCExport_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();
 

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.excel;
+package plugins.fmp.multiSPOTS96.dlg.export;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -25,7 +25,7 @@ import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpotAggregatedByStimulusConc;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
-public class _DlgExcel_ extends JPanel implements PropertyChangeListener {
+public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	/**
 	 * 
 	 */

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.excel;
+package plugins.fmp.multiSPOTS96.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;

@@ -13,8 +13,8 @@ import icy.plugin.PluginLoader;
 import icy.plugin.abstract_.PluginActionable;
 import icy.preferences.GeneralPreferences;
 import plugins.fmp.multiSPOTS96.dlg.browse._DlgBrowse_;
-import plugins.fmp.multiSPOTS96.dlg.excel._DlgExcel_;
 import plugins.fmp.multiSPOTS96.dlg.experiment._DlgExperiment_;
+import plugins.fmp.multiSPOTS96.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS96.dlg.spots._DlgSpots_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures._DlgSpotMeasure_;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -23,7 +23,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS96 extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 May 5, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 May 6, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
@@ -32,7 +32,7 @@ public class MultiSPOTS96 extends PluginActionable {
 	public _DlgExperiment_ dlgExperiment = new _DlgExperiment_();
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();
 	public _DlgSpotMeasure_ dlgMeasure = new _DlgSpotMeasure_();
-	public _DlgExcel_ dlgExcel = new _DlgExcel_();
+	public _DlgExport_ dlgExcel = new _DlgExport_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();
 

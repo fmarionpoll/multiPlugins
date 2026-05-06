@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.excel;
+package plugins.fmp.multicafe.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;

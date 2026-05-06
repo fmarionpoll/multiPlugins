@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.excel;
+package plugins.fmp.multicafe.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -9,19 +9,16 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
-public class Move extends JPanel {
+public class FlyPositions extends JPanel {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1290058998782225526L;
 
-	JCheckBox xyCenterCheckBox = new JCheckBox("XY vs image", false);
+	JCheckBox xyCenterCheckBox = new JCheckBox("XY vs image", true);
 	JCheckBox yVsFoodCheckBox = new JCheckBox("distance vs food", true);
-	JCheckBox distanceCheckBox = new JCheckBox("distance", true);
-	JCheckBox aliveCheckBox = new JCheckBox("alive", true);
-	JCheckBox sleepCheckBox = new JCheckBox("sleep", true);
-	JCheckBox rectSizeCheckBox = new JCheckBox("ellipse axes", false);
+	JCheckBox distanceCheckBox = new JCheckBox("distance", false);
+	JCheckBox aliveCheckBox = new JCheckBox("alive", false);
+	JCheckBox sleepCheckBox = new JCheckBox("sleep", false);
+	JCheckBox illumPhaseCheckBox = new JCheckBox("light/dark", false);
 
 	JButton exportToXLSButton = new JButton("save XLS");
 	JCheckBox deadEmptyCheckBox = new JCheckBox("dead=empty");
@@ -34,11 +31,11 @@ public class Move extends JPanel {
 		JPanel panel0 = new JPanel(flowLayout1);
 		panel0.add(xyCenterCheckBox);
 		panel0.add(yVsFoodCheckBox);
-		panel0.add(rectSizeCheckBox);
+		panel0.add(distanceCheckBox);
+		panel0.add(illumPhaseCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout1);
-		panel1.add(distanceCheckBox);
 		panel1.add(sleepCheckBox);
 		panel1.add(aliveCheckBox);
 		panel1.add(deadEmptyCheckBox);

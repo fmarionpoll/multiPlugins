@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.excel;
+package plugins.fmp.multicafe.dlg.export;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -25,7 +25,7 @@ import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromFlyPosition;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromGulp;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
-public class MCExcel_ extends JPanel implements PropertyChangeListener {
+public class MCExport_ extends JPanel implements PropertyChangeListener {
 	/**
 	 * 
 	 */
