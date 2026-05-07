@@ -789,13 +789,7 @@ public class Spots {
 			}
 			if (occluded[i]) {
 				if (Double.isFinite(lastGood)) {
-					// Only overwrite when the occluded bin looks corrupted (drop/spike) or missing.
-					// Keep values that are already consistent to preserve the overall shape.
-					double tol = Math.max(1e-9, Math.abs(lastGood) * 0.005); // 0.5% tolerance
-					boolean shouldOverwrite = (!Double.isFinite(v)) || (v < lastGood - tol);
-					if (shouldOverwrite) {
-						values[i] = lastGood;
-					}
+					values[i] = lastGood;
 				} else {
 					values[i] = Double.NaN;
 				}
