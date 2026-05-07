@@ -700,6 +700,110 @@ public class Spots {
 		}
 	}
 
+	public void rebuildSumCleanOnlyForSpotsV2(List<Spot> targets) {
+		if (targets == null) {
+			return;
+		}
+		for (Spot spot : targets) {
+			rebuildSumCleanFromSumNoFlyV2ForSpot(spot);
+		}
+	}
+
+	/**
+	 * Applies a plateau correction on {@code sumNoFly}: for bins where fly occupancy
+	 * is above the gate, replace values by the last finite non-fly value. This is a
+	 * conservative alternative to linear interpolation that avoids long ramps.
+	 */
+	public void applyFlyPlateauOnSumNoFlyForSpots(List<Spot> targets, double flyOccupancyFractionOfRoi) {
+		if (targets == null) {
+			return;
+		}
+		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
+		for (Spot spot : targets) {
+			applyFlyPlateauOnSpotMeasure(spot, false, f);
+		}
+	}
+
+	public void applyFlyPlateauOnSumNoFlyV2ForSpots(List<Spot> targets, double flyOccupancyFractionOfRoi) {
+		if (targets == null) {
+			return;
+		}
+		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
+		for (Spot spot : targets) {
+			applyFlyPlateauOnSpotMeasure(spot, true, f);
+		}
+	}
+
+	private void applyFlyPlateauOnSpotMeasure(Spot spot, boolean v2, double flyOccupancyFractionOfRoi) {
+		if (spot == null) {
+			return;
+		}
+		SpotMeasure m = v2 ? spot.getSumNoFlyV2() : spot.getSumNoFly();
+		if (m == null) {
+			return;
+		}
+		double[] values = m.getValues();
+		if (values == null || values.length == 0) {
+			return;
+		}
+		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+		if (fly == null || fly.length != values.length) {
+			return;
+		}
+
+		int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot,
+				clampFlyOccupancyFraction(flyOccupancyFractionOfRoi));
+		if (minFlyPx < 1) {
+			minFlyPx = 1;
+		}
+
+		// Build occlusion mask and dilate by ±1 bin to cover edge effects
+		// where the fly detector lags/leads by ~1 frame.
+		final int dilationBins = 1;
+		boolean[] occluded = new boolean[values.length];
+		for (int i = 0; i < values.length; i++) {
+			occluded[i] = fly[i] >= minFlyPx;
+		}
+		if (dilationBins > 0) {
+			boolean[] dil = new boolean[values.length];
+			for (int i = 0; i < occluded.length; i++) {
+				if (!occluded[i]) {
+					continue;
+				}
+				dil[i] = true;
+				int lo = Math.max(0, i - dilationBins);
+				int hi = Math.min(occluded.length - 1, i + dilationBins);
+				for (int k = lo; k <= hi; k++) {
+					dil[k] = true;
+				}
+			}
+			occluded = dil;
+		}
+
+		double lastGood = Double.NaN;
+		for (int i = 0; i < values.length; i++) {
+			double v = values[i];
+			if (!occluded[i] && Double.isFinite(v)) {
+				lastGood = v;
+				continue;
+			}
+			if (occluded[i]) {
+				if (Double.isFinite(lastGood)) {
+					// Only overwrite when the occluded bin looks corrupted (drop/spike) or missing.
+					// Keep values that are already consistent to preserve the overall shape.
+					double tol = Math.max(1e-9, Math.abs(lastGood) * 0.005); // 0.5% tolerance
+					boolean shouldOverwrite = (!Double.isFinite(v)) || (v < lastGood - tol);
+					if (shouldOverwrite) {
+						values[i] = lastGood;
+					}
+				} else {
+					values[i] = Double.NaN;
+				}
+			}
+		}
+		m.setValues(values);
+	}
+
 	/**
 	 * Rebuilds {@code sumClean} for all spots from {@code sumNoFly} using a
 	 * NaN-robust running median (same smoothing as after fly extrapolation).
@@ -791,6 +895,13 @@ public class Spots {
 		} else {
 			reconstructed = java.util.Arrays.copyOf(sumV2, sumV2.length);
 		}
+		// V2 is a background-corrected consumption-like signal; clamp to non-negative.
+		for (int i = 0; i < reconstructed.length; i++) {
+			double v = reconstructed[i];
+			if (Double.isFinite(v) && v < 0.0) {
+				reconstructed[i] = 0.0;
+			}
+		}
 		sumNoFlyV2.setValues(reconstructed);
 	}
 
@@ -827,6 +938,12 @@ public class Spots {
 			return;
 		}
 		double[] out = runningMedianIgnoringNaN(in, span);
+		for (int i = 0; i < out.length; i++) {
+			double v = out[i];
+			if (Double.isFinite(v) && v < 0.0) {
+				out[i] = 0.0;
+			}
+		}
 		sumClean.setValues(out);
 	}
 

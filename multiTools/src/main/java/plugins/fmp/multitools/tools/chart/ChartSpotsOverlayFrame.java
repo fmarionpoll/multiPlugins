@@ -111,7 +111,11 @@ public class ChartSpotsOverlayFrame {
 	private JCheckBox cbSum = new JCheckBox("sum");
 	private JCheckBox cbNoFly = new JCheckBox("sumNoFly");
 	private JCheckBox cbClean = new JCheckBox("clean");
+	private JCheckBox cbSumV2 = new JCheckBox("sumV2");
+	private JCheckBox cbNoFlyV2 = new JCheckBox("sumNoFlyV2");
+	private JCheckBox cbCleanV2 = new JCheckBox("cleanV2");
 	private JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
+	private JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
 	private JComboBox<SpotChoice> spotSelectorCombo = null;
 	private JButton updateButton = new JButton("Update");
 
@@ -242,7 +246,9 @@ public class ChartSpotsOverlayFrame {
 	}
 
 	private JPanel createTopControlsPanel(ResultsOptions options) {
-		JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel panel = new JPanel(new BorderLayout());
+		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
 		setCheckboxDefaults(options);
 
@@ -250,19 +256,31 @@ public class ChartSpotsOverlayFrame {
 		refreshSpotSelectorModel(false);
 		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
 
-		panel.add(cbSum);
-		panel.add(cbNoFly);
-		panel.add(cbClean);
-		panel.add(cbFlyPresent);
-		panel.add(spotSelectorCombo);
-		panel.add(updateButton);
+		row1.add(cbSum);
+		row1.add(cbNoFly);
+		row1.add(cbClean);
+		row1.add(cbFlyPresent);
+		row1.add(cbDepletion);
+		row1.add(spotSelectorCombo);
+		row1.add(updateButton);
+
+		row2.add(cbSumV2);
+		row2.add(cbNoFlyV2);
+		row2.add(cbCleanV2);
+
+		panel.add(row1, BorderLayout.NORTH);
+		panel.add(row2, BorderLayout.SOUTH);
 
 		updateButton.addActionListener(e -> refreshChart());
 
 		cbSum.addActionListener(e -> onMeasureCheckboxChanged());
 		cbNoFly.addActionListener(e -> onMeasureCheckboxChanged());
 		cbClean.addActionListener(e -> onMeasureCheckboxChanged());
+		cbSumV2.addActionListener(e -> onMeasureCheckboxChanged());
+		cbNoFlyV2.addActionListener(e -> onMeasureCheckboxChanged());
+		cbCleanV2.addActionListener(e -> onMeasureCheckboxChanged());
 		cbFlyPresent.addActionListener(e -> onMeasureCheckboxChanged());
+		cbDepletion.addActionListener(e -> refreshChart());
 
 		return panel;
 	}
@@ -285,8 +303,12 @@ public class ChartSpotsOverlayFrame {
 		cbSum.setSelected(resultLabelEquals(rt, "AREA_SUM"));
 		cbNoFly.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY"));
 		cbClean.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN"));
+		cbSumV2.setSelected(resultLabelEquals(rt, "AREA_SUM_V2"));
+		cbNoFlyV2.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY_V2"));
+		cbCleanV2.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN_V2"));
 		cbFlyPresent.setSelected(resultLabelEquals(rt, "AREA_FLYPRESENT"));
-		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbFlyPresent.isSelected()) {
+		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbSumV2.isSelected()
+				&& !cbNoFlyV2.isSelected() && !cbCleanV2.isSelected() && !cbFlyPresent.isSelected()) {
 			cbClean.setSelected(true);
 		}
 	}
@@ -313,11 +335,17 @@ public class ChartSpotsOverlayFrame {
 			return;
 
 		// Keep the first checked in a stable priority order.
-		JCheckBox keep = cbClean.isSelected() ? cbClean
-				: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
+		JCheckBox keep = cbCleanV2.isSelected() ? cbCleanV2
+				: cbNoFlyV2.isSelected() ? cbNoFlyV2
+						: cbSumV2.isSelected() ? cbSumV2
+								: cbClean.isSelected() ? cbClean
+										: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
 		cbSum.setSelected(keep == cbSum);
 		cbNoFly.setSelected(keep == cbNoFly);
 		cbClean.setSelected(keep == cbClean);
+		cbSumV2.setSelected(keep == cbSumV2);
+		cbNoFlyV2.setSelected(keep == cbNoFlyV2);
+		cbCleanV2.setSelected(keep == cbCleanV2);
 		cbFlyPresent.setSelected(keep == cbFlyPresent);
 	}
 
@@ -328,6 +356,12 @@ public class ChartSpotsOverlayFrame {
 		if (cbNoFly.isSelected())
 			n++;
 		if (cbClean.isSelected())
+			n++;
+		if (cbSumV2.isSelected())
+			n++;
+		if (cbNoFlyV2.isSelected())
+			n++;
+		if (cbCleanV2.isSelected())
 			n++;
 		if (cbFlyPresent.isSelected())
 			n++;
@@ -441,6 +475,9 @@ public class ChartSpotsOverlayFrame {
 			if (refreshed != null && !refreshed.isEmpty()) {
 				lastSelectedSpots = refreshed;
 			}
+			// UX: when the sequence selection yields a single spot, select that spot explicitly in the combo
+			// so users can immediately see which spot's curve they're looking at.
+			maybeSelectSingleSpotInCombo(lastSelectedSpots);
 		} else if (choice != null && choice.mode == SpotChoiceMode.FIXED_SPOT && choice.spot != null) {
 			List<Spot> fixed = new ArrayList<>();
 			fixed.add(choice.spot);
@@ -518,9 +555,7 @@ public class ChartSpotsOverlayFrame {
 		}
 
 		JFreeChart chart = new JFreeChart(plot);
-		if (baseTitle != null) {
-			mainChartFrame.setTitle(baseTitle);
-		}
+		updateFrameTitleWithSelection(enabledMeasures, lastSelectedSpots);
 
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
 		chartPanel.addChartMouseListener(
@@ -531,6 +566,76 @@ public class ChartSpotsOverlayFrame {
 		mainChartPanel.repaint();
 	}
 
+	private void updateFrameTitleWithSelection(List<EnumResults> enabledMeasures, List<Spot> selectedSpots) {
+		if (mainChartFrame == null) {
+			return;
+		}
+		String title = baseTitle != null ? baseTitle : "Spots measures";
+		String spotLabel = "";
+		if (selectedSpots != null) {
+			if (selectedSpots.size() == 1 && selectedSpots.get(0) != null) {
+				spotLabel = selectedSpots.get(0).getName();
+			} else if (selectedSpots.size() > 1) {
+				spotLabel = selectedSpots.size() + " spots";
+			}
+		}
+		String measuresLabel = "";
+		if (enabledMeasures != null && !enabledMeasures.isEmpty()) {
+			StringBuilder sb = new StringBuilder();
+			for (int i = 0; i < enabledMeasures.size(); i++) {
+				EnumResults r = enabledMeasures.get(i);
+				if (r == null)
+					continue;
+				if (sb.length() > 0)
+					sb.append(", ");
+				sb.append(r.toString());
+			}
+			measuresLabel = sb.toString();
+		}
+		if (!spotLabel.isEmpty() || !measuresLabel.isEmpty()) {
+			title = title + " [" + (spotLabel.isEmpty() ? "spot" : spotLabel) + " | "
+					+ (measuresLabel.isEmpty() ? "measure" : measuresLabel) + "]";
+		}
+		mainChartFrame.setTitle(title);
+	}
+
+	private void maybeSelectSingleSpotInCombo(List<Spot> selectedSpots) {
+		if (spotSelectorCombo == null || isUpdatingSpotComboModel) {
+			return;
+		}
+		if (selectedSpots == null || selectedSpots.size() != 1) {
+			return;
+		}
+		Spot only = selectedSpots.get(0);
+		if (only == null) {
+			return;
+		}
+		isUpdatingSpotComboModel = true;
+		try {
+			for (int i = 0; i < spotSelectorCombo.getItemCount(); i++) {
+				SpotChoice sc = spotSelectorCombo.getItemAt(i);
+				if (sc != null && sc.mode == SpotChoiceMode.FIXED_SPOT && sc.spot == only) {
+					spotSelectorCombo.setSelectedIndex(i);
+					return;
+				}
+			}
+			// Fallback to name match (when Spots instances differ)
+			String name = only.getName();
+			if (name != null) {
+				for (int i = 0; i < spotSelectorCombo.getItemCount(); i++) {
+					SpotChoice sc = spotSelectorCombo.getItemAt(i);
+					if (sc != null && sc.mode == SpotChoiceMode.FIXED_SPOT && sc.spot != null
+							&& name.equals(sc.spot.getName())) {
+						spotSelectorCombo.setSelectedIndex(i);
+						return;
+					}
+				}
+			}
+		} finally {
+			isUpdatingSpotComboModel = false;
+		}
+	}
+
 	private List<EnumResults> getEnabledMeasures(ResultsOptions options) {
 		List<EnumResults> out = new ArrayList<>();
 		if (cbSum.isSelected())
@@ -539,6 +644,12 @@ public class ChartSpotsOverlayFrame {
 			addResultIfDefined(out, "AREA_SUMNOFLY");
 		if (cbClean.isSelected())
 			addResultIfDefined(out, "AREA_SUMCLEAN");
+		if (cbSumV2.isSelected())
+			addResultIfDefined(out, "AREA_SUM_V2");
+		if (cbNoFlyV2.isSelected())
+			addResultIfDefined(out, "AREA_SUMNOFLY_V2");
+		if (cbCleanV2.isSelected())
+			addResultIfDefined(out, "AREA_SUMCLEAN_V2");
 		if (cbFlyPresent.isSelected())
 			addResultIfDefined(out, "AREA_FLYPRESENT");
 		return out;
@@ -564,7 +675,7 @@ public class ChartSpotsOverlayFrame {
 				return dataset;
 			for (int i = 0; i < selectedSpots.size(); i++) {
 				Spot spot = selectedSpots.get(i);
-				XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, chosen,
+				XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, chosen, cbDepletion.isSelected(),
 						SpotChartSeriesKeys.key(spot, i));
 				if (series == null)
 					continue;
@@ -590,7 +701,7 @@ public class ChartSpotsOverlayFrame {
 				continue;
 
 			Color color = pickMeasureColor(resultType);
-			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, resultType,
+			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, resultType, cbDepletion.isSelected(),
 					spot.getName() + SpotChartSeriesKeys.SEP + resultType.name());
 			if (series == null)
 				continue;
@@ -619,6 +730,12 @@ public class ChartSpotsOverlayFrame {
 			return new Color(0, 102, 204);
 		case "AREA_SUMCLEAN":
 			return new Color(0, 153, 0);
+		case "AREA_SUM_V2":
+			return new Color(80, 80, 80);
+		case "AREA_SUMNOFLY_V2":
+			return new Color(60, 140, 230);
+		case "AREA_SUMCLEAN_V2":
+			return new Color(60, 180, 90);
 		case "AREA_FLYPRESENT":
 			return new Color(153, 0, 153);
 		default:
@@ -629,7 +746,23 @@ public class ChartSpotsOverlayFrame {
 	private XYLineAndShapeRenderer createRenderer(XYSeriesCollection dataset) {
 		XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
 		SeriesStyleCodec.applySeriesPaintsFromDescription(dataset, renderer);
+		applyV2StrokeHints(dataset, renderer);
 		return renderer;
+	}
+
+	private static void applyV2StrokeHints(XYSeriesCollection dataset, XYLineAndShapeRenderer renderer) {
+		if (dataset == null || renderer == null) {
+			return;
+		}
+		java.awt.Stroke solid = new java.awt.BasicStroke(1.6f);
+		java.awt.Stroke dashed = new java.awt.BasicStroke(1.6f, java.awt.BasicStroke.CAP_BUTT,
+				java.awt.BasicStroke.JOIN_BEVEL, 0f, new float[] { 6f, 5f }, 0f);
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			String key = String.valueOf(dataset.getSeriesKey(i));
+			boolean v2 = key.contains("AREA_SUM_V2") || key.contains("AREA_SUMNOFLY_V2") || key.contains("AREA_SUMCLEAN_V2")
+					|| key.contains("_V2");
+			renderer.setSeriesStroke(i, v2 ? dashed : solid);
+		}
 	}
 
 	private static void applySpotStyle(Experiment exp, Spot spot, XYSeries series, Color color) {
@@ -643,7 +776,7 @@ public class ChartSpotsOverlayFrame {
 	}
 
 	private static XYSeries createXYSeriesFromSpotMeasure(Experiment exp, Spot spot, ResultsOptions baseOptions,
-			EnumResults resultType, String seriesKey) {
+			EnumResults resultType, boolean depletionMode, String seriesKey) {
 		if (exp == null || spot == null || baseOptions == null || resultType == null || seriesKey == null)
 			return null;
 
@@ -659,7 +792,7 @@ public class ChartSpotsOverlayFrame {
 
 		double divider = 1.0;
 		if (baseOptions.relativeToMaximum && !isAreaFlyPresent(resultType)) {
-			divider = spotMeasure.getMaximumValue();
+			divider = computeBaselineMaxValue(exp, spotMeasure, camImages_time_min, baseOptions);
 			if (divider == 0)
 				divider = 1.0;
 		}
@@ -676,10 +809,72 @@ public class ChartSpotsOverlayFrame {
 		for (int j = 0; j < npoints; j++) {
 			double x = camImages_time_min != null ? camImages_time_min[j] : j;
 			double raw = spotMeasure.getValueAt(j);
-			double y = isAreaFlyPresent(resultType) ? raw * flyPresentToPercent : raw / divider;
+			double y;
+			if (isAreaFlyPresent(resultType)) {
+				y = raw * flyPresentToPercent;
+			} else if (baseOptions.relativeToMaximum && depletionMode) {
+				// Depletion semantics: 0 at baseline max (full), 1 at empty.
+				y = (divider - raw) / divider;
+			} else if (baseOptions.relativeToMaximum) {
+				y = raw / divider;
+			} else {
+				y = raw;
+			}
 			seriesXY.add(x, y);
 		}
 		return seriesXY;
+	}
+
+	private static double computeBaselineMaxValue(Experiment exp, SpotMeasure m, double[] camTimeMin,
+			ResultsOptions o) {
+		if (m == null) {
+			return 1.0;
+		}
+		double[] values = m.getValues();
+		if (values == null || values.length == 0) {
+			return 1.0;
+		}
+
+		int n = values.length;
+		if (camTimeMin != null) {
+			n = Math.min(n, camTimeMin.length);
+		}
+		if (n <= 0) {
+			return 1.0;
+		}
+
+		double baselineMin = Math.max(0.0, o != null ? o.spotBaselineWindowMinutes : 2) * 1.0;
+		double baselineEndMin = baselineMin;
+		if (!(baselineEndMin > 0.0)) {
+			baselineEndMin = camTimeMin != null && camTimeMin.length > 0 ? camTimeMin[Math.min(camTimeMin.length - 1, 0)]
+					: 2.0;
+		}
+
+		double max = Double.NEGATIVE_INFINITY;
+		int stableBins = Math.max(1, o != null ? o.spotBaselineStableBins : 3);
+		boolean stopWhenStable = o != null && o.spotBaselineStopWhenStable;
+		int stableCount = 0;
+
+		for (int i = 0; i < n; i++) {
+			double t = camTimeMin != null ? camTimeMin[i] : i;
+			if (baselineEndMin > 0.0 && t > baselineEndMin) {
+				break;
+			}
+			double v = values[i];
+			if (Double.isFinite(v) && v > max) {
+				max = v;
+				stableCount = 0;
+			} else {
+				stableCount++;
+			}
+			if (stopWhenStable && stableCount >= stableBins) {
+				break;
+			}
+		}
+		if (!Double.isFinite(max) || max <= 0.0) {
+			max = m.getMaximumValue();
+		}
+		return (max > 0.0 && Double.isFinite(max)) ? max : 1.0;
 	}
 
 	public static List<Spot> dedupeSpots(List<Spot> spots) {

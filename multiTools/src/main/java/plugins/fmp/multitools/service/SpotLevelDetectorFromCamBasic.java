@@ -2,10 +2,12 @@ package plugins.fmp.multitools.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.awt.geom.Rectangle2D;
 
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import icy.gui.frame.progress.ProgressFrame;
+import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -26,6 +28,11 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * usage.
  */
 public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
+
+	// V2 background estimation: use an annulus inside the (ellipse) ROI bounds.
+	// Fractions are in normalized ellipse radius units (0=center, 1=ellipse boundary).
+	private static final double V2_BG_ANNULUS_INNER_FRAC = 0.72;
+	private static final double V2_BG_ANNULUS_OUTER_FRAC = 0.98;
 
 	@Override
 	public void detectSpots(Experiment exp, BuildSeriesOptions options) {
@@ -152,10 +159,12 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		// sumNoFly from sum + fly (same as Edit / load), then sumClean = sumNoFly; then Level2D
 		final long tPostStart = System.nanoTime();
-		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess,
-				options.getFlyOccupancyFractionForSpotSumNoFly());
-		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpotsV2(toProcess,
-				options.getFlyOccupancyFractionForSpotSumNoFly());
+		// Pixel-level no-fly: apply conservative plateau correction on bins with high fly occupancy,
+		// then rebuild CLEAN from the corrected sumNoFly.
+		spots.applyFlyPlateauOnSumNoFlyForSpots(toProcess, options.getFlyOccupancyFractionForSpotSumNoFly());
+		spots.applyFlyPlateauOnSumNoFlyV2ForSpots(toProcess, options.getFlyOccupancyFractionForSpotSumNoFly());
+		spots.rebuildSumCleanOnlyForSpots(toProcess);
+		spots.rebuildSumCleanOnlyForSpotsV2(toProcess);
 		spots.transferMeasuresToLevel2D();
 
 		// Persist results using the standard experiment helpers
@@ -272,10 +281,37 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 			return;
 
 		double sumOverThreshold = 0;
+		int nOver = 0;
 		double sumUnderThreshold = 0;
 		int nUnder = 0;
+		double sumBgAnnulus = 0;
+		int nBgAnnulus = 0;
+
+		// No-fly (pixel-masked) measures:
+		int nNoFly = 0;
+		double sumOverThresholdNoFly = 0;
+		int nOverNoFly = 0;
+		double sumUnderThresholdNoFly = 0;
+		int nUnderNoFly = 0;
+		double sumBgAnnulusNoFly = 0;
+		int nBgAnnulusNoFly = 0;
 		int nPointsIn = maskX.length;
 		int nPointsFlyPresent = 0;
+
+		// Ellipse parameters from ROI bounds (works best when ROI is an ellipse, but remains stable for near-ellipses).
+		double cx = 0.0, cy = 0.0, rx = 0.0, ry = 0.0;
+		ROI2D roi = spot.getRoi();
+		if (roi != null) {
+			Rectangle2D b = roi.getBounds2D();
+			if (b != null) {
+				cx = b.getCenterX();
+				cy = b.getCenterY();
+				rx = Math.max(1.0, b.getWidth() / 2.0);
+				ry = Math.max(1.0, b.getHeight() / 2.0);
+			}
+		}
+		final double inner2 = V2_BG_ANNULUS_INNER_FRAC * V2_BG_ANNULUS_INNER_FRAC;
+		final double outer2 = V2_BG_ANNULUS_OUTER_FRAC * V2_BG_ANNULUS_OUTER_FRAC;
 
 		for (int i = 0; i < maskX.length; i++) {
 			int x = maskX[i];
@@ -290,22 +326,83 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 			if (flyThere) {
 				nPointsFlyPresent++;
 			}
+			if (!flyThere) {
+				nNoFly++;
+			}
 
 			if (isOverThreshold(valueSpot, options)) {
 				sumOverThreshold += valueSpot;
+				nOver++;
+				if (!flyThere) {
+					sumOverThresholdNoFly += valueSpot;
+					nOverNoFly++;
+				}
 			} else {
 				sumUnderThreshold += valueSpot;
 				nUnder++;
+				if (!flyThere) {
+					sumUnderThresholdNoFly += valueSpot;
+					nUnderNoFly++;
+				}
+			}
+
+			// Annulus background: accumulate below-threshold pixels close to ellipse boundary.
+			if (rx > 0.0 && ry > 0.0) {
+				double dx = (x + 0.5 - cx) / rx;
+				double dy = (y + 0.5 - cy) / ry;
+				double r2 = dx * dx + dy * dy;
+				boolean inAnnulus = (r2 >= inner2 && r2 <= outer2);
+				if (inAnnulus && !isOverThreshold(valueSpot, options)) {
+					sumBgAnnulus += valueSpot;
+					nBgAnnulus++;
+					if (!flyThere) {
+						sumBgAnnulusNoFly += valueSpot;
+						nBgAnnulusNoFly++;
+					}
+				}
 			}
 		}
 
 		if (nPointsIn > 0) {
 			double meanAll = sumOverThreshold / nPointsIn;
 			spot.getSum().setValueAt(timeIndex, meanAll);
-			// V2: subtract local background estimate from within-ROI below-threshold pixels.
-			// This stays strictly parallel to V1 (no behavioral change to V1) and is cheap.
-			double bg = (nUnder > 0) ? (sumUnderThreshold / nUnder) : 0.0;
-			spot.getSumV2().setValueAt(timeIndex, meanAll - bg);
+
+			// Compute sumNoFly directly by excluding fly pixels (avoids long interpolation ramps).
+			if (nNoFly > 0) {
+				double meanNoFly = sumOverThresholdNoFly / nNoFly;
+				spot.getSumNoFly().setValueAt(timeIndex, meanNoFly);
+			} else {
+				spot.getSumNoFly().setValueAt(timeIndex, Double.NaN);
+			}
+
+			// V2: estimate foreground on over-threshold pixels (avoid dilution by ROI background)
+			// then subtract local background estimated from below-threshold pixels.
+			if (nOver <= 0) {
+				// When stain is not detected, keep the curve continuous by holding last finite value.
+				// This avoids a drop to 0 (looks like "eaten") and avoids long NaN gaps.
+				double prev = (timeIndex > 0 && spot.getSumV2() != null) ? spot.getSumV2().getValueAt(timeIndex - 1)
+						: Double.NaN;
+				spot.getSumV2().setValueAt(timeIndex, Double.isFinite(prev) ? prev : Double.NaN);
+			} else {
+				double fg = sumOverThreshold / nOver;
+				double bg = (nBgAnnulus > 0) ? (sumBgAnnulus / nBgAnnulus)
+						: (nUnder > 0) ? (sumUnderThreshold / nUnder) : 0.0;
+				spot.getSumV2().setValueAt(timeIndex, Math.max(0.0, fg - bg));
+			}
+
+			// V2 no-fly: same as V2 but exclude fly pixels.
+			if (nOverNoFly <= 0) {
+				double prev = (timeIndex > 0 && spot.getSumNoFlyV2() != null)
+						? spot.getSumNoFlyV2().getValueAt(timeIndex - 1)
+						: Double.NaN;
+				spot.getSumNoFlyV2().setValueAt(timeIndex, Double.isFinite(prev) ? prev : Double.NaN);
+			} else {
+				double fg = sumOverThresholdNoFly / nOverNoFly;
+				double bg = (nBgAnnulusNoFly > 0) ? (sumBgAnnulusNoFly / nBgAnnulusNoFly)
+						: (nUnderNoFly > 0) ? (sumUnderThresholdNoFly / nUnderNoFly) : 0.0;
+				spot.getSumNoFlyV2().setValueAt(timeIndex, Math.max(0.0, fg - bg));
+			}
+
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
