@@ -20,6 +20,9 @@ public class SpotsAreas extends JPanel {
 	JCheckBox areaCheckBox = new JCheckBox("AREA_SUM", true);
 	JCheckBox sumNoFlyCheckBox = new JCheckBox("AREA_SUMNOFLY", false);
 	JCheckBox sumCleanCheckBox = new JCheckBox("AREA_SUMCLEAN", false);
+	JCheckBox areaV2CheckBox = new JCheckBox("AREA_SUM_V2", false);
+	JCheckBox sumNoFlyV2CheckBox = new JCheckBox("AREA_SUMNOFLY_V2", false);
+	JCheckBox sumCleanV2CheckBox = new JCheckBox("AREA_SUMCLEAN_V2", false);
 	JCheckBox t0CheckBox = new JCheckBox("(max-t)/max", true);
 	JCheckBox discardNoFlyCageCheckBox = new JCheckBox("discard cages with no fly", true);
 
@@ -32,6 +35,9 @@ public class SpotsAreas extends JPanel {
 		panel0.add(areaCheckBox);
 		panel0.add(sumNoFlyCheckBox);
 		panel0.add(sumCleanCheckBox);
+		panel0.add(areaV2CheckBox);
+		panel0.add(sumNoFlyV2CheckBox);
+		panel0.add(sumCleanV2CheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);

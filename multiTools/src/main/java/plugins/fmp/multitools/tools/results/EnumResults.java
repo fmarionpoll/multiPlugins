@@ -108,6 +108,17 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_AREA_SUMNOFLY(), "AREA_SUMNOFLY", PersistenceDomain.SPOT),
 	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN(), "AREA_SUMCLEAN", PersistenceDomain.SPOT),
+	/**
+	 * V2 spot consumption signal (separate channel): background-corrected and/or
+	 * robust statistics version of AREA_SUM. Used for side-by-side comparison with
+	 * legacy AREA_SUM without changing legacy outputs.
+	 */
+	AREA_SUM_V2("AREA_SUM_V2", "grey value", "Consumption V2 (comparison channel)",
+			StoredDataAccessors.accessStored_AREA_SUM_V2(), "AREA_SUM_V2", PersistenceDomain.SPOT),
+	AREA_SUMNOFLY_V2("AREA_SUMNOFLY_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
+			StoredDataAccessors.accessStored_AREA_SUMNOFLY_V2(), "AREA_SUMNOFLY_V2", PersistenceDomain.SPOT),
+	AREA_SUMCLEAN_V2("AREA_SUMCLEAN_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
+			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V2(), "AREA_SUMCLEAN_V2", PersistenceDomain.SPOT),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
 	AREA_FLYPRESENT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",

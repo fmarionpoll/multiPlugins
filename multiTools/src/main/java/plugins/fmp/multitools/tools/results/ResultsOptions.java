@@ -26,6 +26,12 @@ public class ResultsOptions {
 	public boolean spotSumNoFly = false;
 	/** Spot Excel export: AREA_SUMCLEAN. */
 	public boolean spotSumClean = false;
+	/** Spot Excel export (V2 channel): AREA_SUM_V2. */
+	public boolean sumV2 = false;
+	/** Spot Excel export (V2 channel): AREA_SUMNOFLY_V2. */
+	public boolean spotSumNoFlyV2 = false;
+	/** Spot Excel export (V2 channel): AREA_SUMCLEAN_V2. */
+	public boolean spotSumCleanV2 = false;
 	/**
 	 * Spot Excel export: aggregate spots by (stimulus, concentration) at cage level.
 	 * When enabled, the export iterates cages × distinct (stim,conc) instead of cages × spots.
@@ -124,6 +130,9 @@ public class ResultsOptions {
 		this.nPixels = resultsOptions.nPixels;
 		this.spotSumNoFly = resultsOptions.spotSumNoFly;
 		this.spotSumClean = resultsOptions.spotSumClean;
+		this.sumV2 = resultsOptions.sumV2;
+		this.spotSumNoFlyV2 = resultsOptions.spotSumNoFlyV2;
+		this.spotSumCleanV2 = resultsOptions.spotSumCleanV2;
 		this.spotAggregateByStimulusConc = resultsOptions.spotAggregateByStimulusConc;
 		this.spotBaselineWindowMinutes = resultsOptions.spotBaselineWindowMinutes;
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;

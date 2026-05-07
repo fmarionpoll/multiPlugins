@@ -210,6 +210,8 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		final long tPostStart = System.nanoTime();
 		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpots(toProcess,
 				options.getFlyOccupancyFractionForSpotSumNoFly());
+		spots.applyFlyInterpolationSumNoFlyAndSumCleanForSpotsV2(toProcess,
+				options.getFlyOccupancyFractionForSpotSumNoFly());
 		spots.transferMeasuresToLevel2D();
 
 		// Persist results using the standard experiment helpers
@@ -247,11 +249,20 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			if (spot.getSum() != null) {
 				spot.getSum().setValues(new double[nTimeBins]);
 			}
+			if (spot.getSumV2() != null) {
+				spot.getSumV2().setValues(new double[nTimeBins]);
+			}
 			if (spot.getSumNoFly() != null) {
 				spot.getSumNoFly().setValues(new double[nTimeBins]);
 			}
+			if (spot.getSumNoFlyV2() != null) {
+				spot.getSumNoFlyV2().setValues(new double[nTimeBins]);
+			}
 			if (spot.getSumClean() != null) {
 				spot.getSumClean().setValues(new double[nTimeBins]);
+			}
+			if (spot.getSumCleanV2() != null) {
+				spot.getSumCleanV2().setValues(new double[nTimeBins]);
 			}
 			if (spot.getFlyPresent() != null) {
 				spot.getFlyPresent().setIsPresent(new int[nTimeBins]);
@@ -317,6 +328,8 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			return;
 
 		double sumOverThreshold = 0;
+		double sumUnderThreshold = 0;
+		int nUnder = 0;
 		int nPointsIn = maskX.length;
 		int nPointsFlyPresent = 0;
 
@@ -336,12 +349,17 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 			if (isOverThreshold(valueSpot, options)) {
 				sumOverThreshold += valueSpot;
+			} else {
+				sumUnderThreshold += valueSpot;
+				nUnder++;
 			}
 		}
 
 		if (nPointsIn > 0) {
 			double meanAll = sumOverThreshold / nPointsIn;
 			spot.getSum().setValueAt(timeIndex, meanAll);
+			double bg = (nUnder > 0) ? (sumUnderThreshold / nUnder) : 0.0;
+			spot.getSumV2().setValueAt(timeIndex, meanAll - bg);
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}

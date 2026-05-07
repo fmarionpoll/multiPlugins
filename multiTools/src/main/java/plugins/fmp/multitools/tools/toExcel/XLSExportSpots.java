@@ -35,6 +35,9 @@ public abstract class XLSExportSpots extends XLSExport {
 			case AREA_SUM:
 			case AREA_SUMNOFLY:
 			case AREA_SUMCLEAN:
+			case AREA_SUM_V2:
+			case AREA_SUMNOFLY_V2:
+			case AREA_SUMCLEAN_V2:
 			case AREA_FLYPRESENT:
 			case AGG_SUMCLEAN:
 				return true;
@@ -64,11 +67,12 @@ public abstract class XLSExportSpots extends XLSExport {
 	}
 
 	protected boolean hasSpotMeasuresSelectedForExport(ResultsOptions o) {
-		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.spotAggregateByStimulusConc);
+		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2
+				|| o.spotSumCleanV2 || o.spotAggregateByStimulusConc);
 	}
 
 	protected EnumResults[] enabledSpotMeasureTypesForExport(ResultsOptions o) {
-		List<EnumResults> list = new ArrayList<>(5);
+		List<EnumResults> list = new ArrayList<>(9);
 		if (o.sum) {
 			list.add(EnumResults.AREA_SUM);
 		}
@@ -78,7 +82,16 @@ public abstract class XLSExportSpots extends XLSExport {
 		if (o.spotSumClean) {
 			list.add(EnumResults.AREA_SUMCLEAN);
 		}
-		if (o.sum || o.spotSumNoFly || o.spotSumClean) {
+		if (o.sumV2) {
+			list.add(EnumResults.AREA_SUM_V2);
+		}
+		if (o.spotSumNoFlyV2) {
+			list.add(EnumResults.AREA_SUMNOFLY_V2);
+		}
+		if (o.spotSumCleanV2) {
+			list.add(EnumResults.AREA_SUMCLEAN_V2);
+		}
+		if (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2 || o.spotSumCleanV2) {
 			list.add(EnumResults.AREA_FLYPRESENT);
 		}
 		return list.toArray(new EnumResults[0]);

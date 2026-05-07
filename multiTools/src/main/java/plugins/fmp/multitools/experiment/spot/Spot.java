@@ -470,6 +470,12 @@ public class Spot implements Comparable<Spot> {
 		case AREA_SUMCLEAN:
 		case AGG_SUMCLEAN:
 			return measurements.getSumClean().getCount();
+		case AREA_SUM_V2:
+			return measurements.getSumInV2().getCount();
+		case AREA_SUMNOFLY_V2:
+			return measurements.getSumNoFlyV2().getCount();
+		case AREA_SUMCLEAN_V2:
+			return measurements.getSumCleanV2().getCount();
 		case AREA_FLYPRESENT:
 			return measurements.getFlyPresent().getCount();
 		default:
@@ -486,6 +492,10 @@ public class Spot implements Comparable<Spot> {
 		return measurements.getSumIn();
 	}
 
+	public SpotMeasure getSumV2() {
+		return measurements.getSumInV2();
+	}
+
 	/**
 	 * Gets the clean measurements.
 	 * 
@@ -495,6 +505,10 @@ public class Spot implements Comparable<Spot> {
 		return measurements.getSumClean();
 	}
 
+	public SpotMeasure getSumCleanV2() {
+		return measurements.getSumCleanV2();
+	}
+
 	/**
 	 * Gets the no-fly measurements (fly shadow excluded).
 	 * 
@@ -502,6 +516,10 @@ public class Spot implements Comparable<Spot> {
 	 */
 	public SpotMeasure getSumNoFly() {
 		return measurements.getSumNoFly();
+	}
+
+	public SpotMeasure getSumNoFlyV2() {
+		return measurements.getSumNoFlyV2();
 	}
 
 	/**
@@ -529,6 +547,12 @@ public class Spot implements Comparable<Spot> {
 			return measurements.getSumNoFly();
 		case AREA_SUMCLEAN:
 			return measurements.getSumClean();
+		case AREA_SUM_V2:
+			return measurements.getSumInV2();
+		case AREA_SUMNOFLY_V2:
+			return measurements.getSumNoFlyV2();
+		case AREA_SUMCLEAN_V2:
+			return measurements.getSumCleanV2();
 		case AGG_SUMCLEAN:
 			return measurements.getSumClean();
 		case AREA_FLYPRESENT:
@@ -842,12 +866,18 @@ public class Spot implements Comparable<Spot> {
 		private final SpotMeasure sumIn;
 		private final SpotMeasure sumNoFly;
 		private final SpotMeasure sumClean;
+		private final SpotMeasure sumInV2;
+		private final SpotMeasure sumNoFlyV2;
+		private final SpotMeasure sumCleanV2;
 		private final SpotMeasure flyPresent;
 
 		SpotMeasurements() {
 			this.sumIn = new SpotMeasure("sum");
 			this.sumNoFly = new SpotMeasure("sumNoFly");
 			this.sumClean = new SpotMeasure("clean");
+			this.sumInV2 = new SpotMeasure("sumV2");
+			this.sumNoFlyV2 = new SpotMeasure("sumNoFlyV2");
+			this.sumCleanV2 = new SpotMeasure("cleanV2");
 			this.flyPresent = new SpotMeasure("flyPresent");
 		}
 
@@ -855,6 +885,9 @@ public class Spot implements Comparable<Spot> {
 			this.sumIn = new SpotMeasure("sum");
 			this.sumNoFly = new SpotMeasure("sumNoFly");
 			this.sumClean = new SpotMeasure("clean");
+			this.sumInV2 = new SpotMeasure("sumV2");
+			this.sumNoFlyV2 = new SpotMeasure("sumNoFlyV2");
+			this.sumCleanV2 = new SpotMeasure("cleanV2");
 			this.flyPresent = new SpotMeasure("flyPresent");
 
 			if (includeData) {
@@ -866,6 +899,9 @@ public class Spot implements Comparable<Spot> {
 			sumIn.copyMeasures(source.sumIn);
 			sumNoFly.copyMeasures(source.sumNoFly);
 			sumClean.copyMeasures(source.sumClean);
+			sumInV2.copyMeasures(source.sumInV2);
+			sumNoFlyV2.copyMeasures(source.sumNoFlyV2);
+			sumCleanV2.copyMeasures(source.sumCleanV2);
 			flyPresent.copyMeasures(source.flyPresent);
 		}
 
@@ -873,6 +909,9 @@ public class Spot implements Comparable<Spot> {
 			sumIn.addMeasures(source.sumIn);
 			sumNoFly.addMeasures(source.sumNoFly);
 			sumClean.addMeasures(source.sumClean);
+			sumInV2.addMeasures(source.sumInV2);
+			sumNoFlyV2.addMeasures(source.sumNoFlyV2);
+			sumCleanV2.addMeasures(source.sumCleanV2);
 			flyPresent.addMeasures(source.flyPresent);
 		}
 
@@ -880,12 +919,18 @@ public class Spot implements Comparable<Spot> {
 			sumIn.computePI(measure1.sumIn, measure2.sumIn);
 			sumNoFly.computePI(measure1.sumNoFly, measure2.sumNoFly);
 			sumClean.computePI(measure1.sumClean, measure2.sumClean);
+			sumInV2.computePI(measure1.sumInV2, measure2.sumInV2);
+			sumNoFlyV2.computePI(measure1.sumNoFlyV2, measure2.sumNoFlyV2);
+			sumCleanV2.computePI(measure1.sumCleanV2, measure2.sumCleanV2);
 		}
 
 		void computeSUM(SpotMeasurements measure1, int n1, SpotMeasurements measure2, int n2) {
 			sumIn.computeSUM(measure1.sumIn, n1, measure2.sumIn, n2);
 			sumNoFly.computeSUM(measure1.sumNoFly, n1, measure2.sumNoFly, n2);
 			sumClean.computeSUM(measure1.sumClean, n1, measure2.sumClean, n2);
+			sumInV2.computeSUM(measure1.sumInV2, n1, measure2.sumInV2, n2);
+			sumNoFlyV2.computeSUM(measure1.sumNoFlyV2, n1, measure2.sumNoFlyV2, n2);
+			sumCleanV2.computeSUM(measure1.sumCleanV2, n1, measure2.sumCleanV2, n2);
 			flyPresent.combineIsPresent(measure1.flyPresent, n1, measure2.flyPresent, n2);
 		}
 
@@ -893,6 +938,9 @@ public class Spot implements Comparable<Spot> {
 			sumIn.normalizeValues();
 			sumNoFly.normalizeValues();
 			sumClean.normalizeValues();
+			sumInV2.normalizeValues();
+			sumNoFlyV2.normalizeValues();
+			sumCleanV2.normalizeValues();
 		}
 
 		SpotMeasure getSumIn() {
@@ -907,6 +955,18 @@ public class Spot implements Comparable<Spot> {
 			return sumClean;
 		}
 
+		SpotMeasure getSumInV2() {
+			return sumInV2;
+		}
+
+		SpotMeasure getSumNoFlyV2() {
+			return sumNoFlyV2;
+		}
+
+		SpotMeasure getSumCleanV2() {
+			return sumCleanV2;
+		}
+
 		SpotMeasure getFlyPresent() {
 			return flyPresent;
 		}
@@ -915,6 +975,9 @@ public class Spot implements Comparable<Spot> {
 			restoreClippedMeasure(sumIn);
 			restoreClippedMeasure(sumNoFly);
 			restoreClippedMeasure(sumClean);
+			restoreClippedMeasure(sumInV2);
+			restoreClippedMeasure(sumNoFlyV2);
+			restoreClippedMeasure(sumCleanV2);
 			restoreClippedMeasure(flyPresent);
 		}
 
@@ -931,6 +994,12 @@ public class Spot implements Comparable<Spot> {
 				sumNoFly.transferValuesToLevel2D();
 			if (sumClean != null)
 				sumClean.transferValuesToLevel2D();
+			if (sumInV2 != null)
+				sumInV2.transferValuesToLevel2D();
+			if (sumNoFlyV2 != null)
+				sumNoFlyV2.transferValuesToLevel2D();
+			if (sumCleanV2 != null)
+				sumCleanV2.transferValuesToLevel2D();
 			if (flyPresent != null)
 				flyPresent.transferIsPresentToLevel2D();
 		}
@@ -942,6 +1011,12 @@ public class Spot implements Comparable<Spot> {
 				sumNoFly.getSpotLevel2D().transferROItoLevel2D();
 			if (sumClean != null)
 				sumClean.getSpotLevel2D().transferROItoLevel2D();
+			if (sumInV2 != null)
+				sumInV2.getSpotLevel2D().transferROItoLevel2D();
+			if (sumNoFlyV2 != null)
+				sumNoFlyV2.getSpotLevel2D().transferROItoLevel2D();
+			if (sumCleanV2 != null)
+				sumCleanV2.getSpotLevel2D().transferROItoLevel2D();
 			if (flyPresent != null)
 				flyPresent.getSpotLevel2D().transferROItoLevel2D();
 		}
@@ -953,6 +1028,12 @@ public class Spot implements Comparable<Spot> {
 				sumNoFly.getSpotLevel2D().adjustLevel2DToImageWidth(imageWidth);
 			if (sumClean != null)
 				sumClean.getSpotLevel2D().adjustLevel2DToImageWidth(imageWidth);
+			if (sumInV2 != null)
+				sumInV2.getSpotLevel2D().adjustLevel2DToImageWidth(imageWidth);
+			if (sumNoFlyV2 != null)
+				sumNoFlyV2.getSpotLevel2D().adjustLevel2DToImageWidth(imageWidth);
+			if (sumCleanV2 != null)
+				sumCleanV2.getSpotLevel2D().adjustLevel2DToImageWidth(imageWidth);
 			if (flyPresent != null)
 				flyPresent.getSpotLevel2D().adjustLevel2DToImageWidth(imageWidth);
 		}
@@ -964,6 +1045,12 @@ public class Spot implements Comparable<Spot> {
 				sumNoFly.getSpotLevel2D().cropLevel2DToNPoints(imageWidth);
 			if (sumClean != null)
 				sumClean.getSpotLevel2D().cropLevel2DToNPoints(imageWidth);
+			if (sumInV2 != null)
+				sumInV2.getSpotLevel2D().cropLevel2DToNPoints(imageWidth);
+			if (sumNoFlyV2 != null)
+				sumNoFlyV2.getSpotLevel2D().cropLevel2DToNPoints(imageWidth);
+			if (sumCleanV2 != null)
+				sumCleanV2.getSpotLevel2D().cropLevel2DToNPoints(imageWidth);
 			if (flyPresent != null)
 				flyPresent.getSpotLevel2D().cropLevel2DToNPoints(imageWidth);
 		}
@@ -975,6 +1062,12 @@ public class Spot implements Comparable<Spot> {
 				sumNoFly.getSpotLevel2D().clearLevel2D();
 			if (sumClean != null)
 				sumClean.getSpotLevel2D().clearLevel2D();
+			if (sumInV2 != null)
+				sumInV2.getSpotLevel2D().clearLevel2D();
+			if (sumNoFlyV2 != null)
+				sumNoFlyV2.getSpotLevel2D().clearLevel2D();
+			if (sumCleanV2 != null)
+				sumCleanV2.getSpotLevel2D().clearLevel2D();
 			if (flyPresent != null)
 				flyPresent.getSpotLevel2D().clearLevel2D();
 		}
@@ -996,6 +1089,12 @@ public class Spot implements Comparable<Spot> {
 				transferRoiToMeasureValue(roi, imageHeight, sumNoFly);
 			if (sumClean != null)
 				transferRoiToMeasureValue(roi, imageHeight, sumClean);
+			if (sumInV2 != null)
+				transferRoiToMeasureValue(roi, imageHeight, sumInV2);
+			if (sumNoFlyV2 != null)
+				transferRoiToMeasureValue(roi, imageHeight, sumNoFlyV2);
+			if (sumCleanV2 != null)
+				transferRoiToMeasureValue(roi, imageHeight, sumCleanV2);
 			if (flyPresent != null)
 				transferRoiToMeasureBoolean(roi, flyPresent);
 		}

@@ -671,6 +671,23 @@ public class Spots {
 	}
 
 	/**
+	 * V2 channel: for each spot, rebuild {@code sumNoFlyV2} from {@code sumV2} and
+	 * {@code flyPresent} via {@link #reconstructSumNoFly(double[], int[], int)}, then
+	 * {@code sumCleanV2} = running median of {@code sumNoFlyV2}.
+	 */
+	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpotsV2(List<Spot> targets,
+			double flyOccupancyFractionOfRoi) {
+		if (targets == null) {
+			return;
+		}
+		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
+		for (Spot spot : targets) {
+			fillSumNoFlyFromSumV2AndFlyPresent(spot, f);
+			rebuildSumCleanFromSumNoFlyV2ForSpot(spot);
+		}
+	}
+
+	/**
 	 * Recomputes {@code sumClean} from the current {@code sumNoFly} with the usual
 	 * running median (does not change {@code sumNoFly}).
 	 */
@@ -752,6 +769,31 @@ public class Spots {
 		sumNoFly.setValues(reconstructed);
 	}
 
+	private void fillSumNoFlyFromSumV2AndFlyPresent(Spot spot, double flyOccupancyFractionOfRoi) {
+		if (spot == null) {
+			return;
+		}
+		SpotMeasure sumNoFlyV2 = spot.getSumNoFlyV2();
+		if (sumNoFlyV2 == null) {
+			return;
+		}
+		double[] sumV2 = spot.getSumV2() != null ? spot.getSumV2().getValues() : null;
+		if (sumV2 == null || sumV2.length == 0) {
+			return;
+		}
+
+		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+		double[] reconstructed;
+		if (fly != null && fly.length == sumV2.length) {
+			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot,
+					clampFlyOccupancyFraction(flyOccupancyFractionOfRoi));
+			reconstructed = reconstructSumNoFly(sumV2, fly, minFlyPx);
+		} else {
+			reconstructed = java.util.Arrays.copyOf(sumV2, sumV2.length);
+		}
+		sumNoFlyV2.setValues(reconstructed);
+	}
+
 	private void rebuildSumCleanFromSumNoFlyForSpot(Spot spot) {
 		final int span = 10;
 		if (spot == null) {
@@ -759,6 +801,24 @@ public class Spots {
 		}
 		SpotMeasure sumNoFly = spot.getSumNoFly();
 		SpotMeasure sumClean = spot.getSumClean();
+		if (sumNoFly == null || sumClean == null) {
+			return;
+		}
+		double[] in = sumNoFly.getValues();
+		if (in == null || in.length == 0) {
+			return;
+		}
+		double[] out = runningMedianIgnoringNaN(in, span);
+		sumClean.setValues(out);
+	}
+
+	private void rebuildSumCleanFromSumNoFlyV2ForSpot(Spot spot) {
+		final int span = 10;
+		if (spot == null) {
+			return;
+		}
+		SpotMeasure sumNoFly = spot.getSumNoFlyV2();
+		SpotMeasure sumClean = spot.getSumCleanV2();
 		if (sumNoFly == null || sumClean == null) {
 			return;
 		}
