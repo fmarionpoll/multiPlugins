@@ -297,7 +297,23 @@ public class EditSpots extends JPanel {
 		}
 		Spots allSpots = exp.getSpots();
 		return RoiSerpentineOrdering.orderSerpentine(inside, roi -> anchorPointForSnake(roi, selectedRoiType),
-				roi -> rowColForSnakeOrdering(roi, selectedRoiType, allSpots));
+				roi -> rowColForSnakeOrdering(roi, selectedRoiType, allSpots),
+				roi -> cageIdForSnakeOrdering(roi, selectedRoiType, allSpots));
+	}
+
+	private static Integer cageIdForSnakeOrdering(ROI2D roi, String selectedRoiType, Spots allSpots) {
+		if (!selectedRoiType.contains("spot") || allSpots == null) {
+			return -1;
+		}
+		String name = roi.getName();
+		if (name == null) {
+			return -1;
+		}
+		Spot spot = allSpots.findSpotByName(name);
+		if (spot != null) {
+			return spot.getProperties().getCageID();
+		}
+		return SpotString.getCageIDFromSpotName(name);
 	}
 
 	private static int[] rowColForSnakeOrdering(ROI2D roi, String selectedRoiType, Spots allSpots) {
