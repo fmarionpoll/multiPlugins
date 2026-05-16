@@ -263,7 +263,8 @@ final class CafeExperimentOpenPipeline {
 		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
 		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
 		ctx.previouslySelected = previousBinDir;
-		ctx.allowPrompt = (isSingleExperiment || isFirstExperiment);
+		ctx.allowPrompt = false;
+		ctx.allowCleanup = true;
 		ctx.useSessionRemembered = true;
 		ctx.parentForDialog = owner;
 

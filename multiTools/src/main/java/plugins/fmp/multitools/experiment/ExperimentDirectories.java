@@ -191,7 +191,8 @@ public class ExperimentDirectories {
 		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
 		ctx.resultsDirectory = resultsDirectory;
 		ctx.previouslySelected = expListBinSubDirectory;
-		ctx.allowPrompt = true;
+		ctx.allowPrompt = false;
+		ctx.allowCleanup = true;
 		String binDirectory = BinDirectoryResolver.resolveBinSubdirectory(ctx);
 
 		if (binDirectory != null) {
@@ -377,7 +378,8 @@ public class ExperimentDirectories {
 		} else {
 			BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
 			ctx.resultsDirectory = resultsDirectory;
-			ctx.allowPrompt = true;
+			ctx.allowPrompt = false;
+			ctx.allowCleanup = true;
 			binDirectory = BinDirectoryResolver.resolveBinSubdirectory(ctx);
 		}
 

@@ -158,17 +158,14 @@ public final class BinDirectoryResolver {
 				maybeUpgradeMetadata(ctx, chosen);
 				return chosen.name;
 			}
-			return promptFromClass(ctx, withData, matching);
+			return adoptFromClass(ctx, withData, matching);
 		}
 
 		// No candidate matches the detected class. Fallback: behave as before.
 		if (candidates.size() == 1) {
 			return candidates.get(0).name;
 		}
-		if (ctx.allowPrompt) {
-			return promptAcrossClasses(ctx, candidates);
-		}
-		return pickBest(candidates).name;
+		return adoptFromAllCandidates(ctx, candidates);
 	}
 
 	public static String deriveNameFromInterval(Context ctx) {
@@ -522,11 +519,57 @@ public final class BinDirectoryResolver {
 		}
 	}
 
-	// -------------- prompting --------------
+	// -------------- adoption (silent by default; dialog kept for explicit use) --------------
+
+	private static String adoptFromClass(Context ctx, List<BinCandidate> withData, List<BinCandidate> sameClass) {
+		BinCandidate chosen = pickBest(withData);
+		maybeUpgradeMetadata(ctx, chosen);
+		maybeCleanupEmptyPeers(ctx, sameClass, chosen);
+		maybeArchiveRejectedPeers(ctx, sameClass, chosen);
+		rememberBinChoice(ctx, chosen.name);
+		return chosen.name;
+	}
+
+	private static String adoptFromAllCandidates(Context ctx, List<BinCandidate> candidates) {
+		BinCandidate chosen = pickBest(candidates);
+		rememberBinChoice(ctx, chosen.name);
+		return chosen.name;
+	}
+
+	private static void rememberBinChoice(Context ctx, String chosenName) {
+		if (chosenName == null) {
+			return;
+		}
+		PREFS.put(PREF_LAST_BIN_SUBDIR, chosenName);
+		if (ctx != null && ctx.useSessionRemembered) {
+			rememberedBinForSession = chosenName;
+		}
+	}
+
+	/**
+	 * Renames non-adopted siblings in the same equivalence class so they no longer
+	 * appear in scans (prefix {@link BinDirectoryScanUtils#DELETED_PREFIX}).
+	 */
+	private static void maybeArchiveRejectedPeers(Context ctx, List<BinCandidate> matching, BinCandidate adopted) {
+		if (ctx == null || !ctx.allowCleanup || adopted == null || matching == null) {
+			return;
+		}
+		String mode = PREFS.get(PREF_CLEANUP_MODE, "rename");
+		if (!"rename".equalsIgnoreCase(mode)) {
+			return;
+		}
+		for (BinCandidate c : matching) {
+			if (c == adopted) {
+				continue;
+			}
+			renameToDeleted(c.path);
+		}
+	}
 
 	private static String promptFromClass(Context ctx, List<BinCandidate> withData, List<BinCandidate> sameClass) {
-		if (!ctx.allowPrompt)
-			return pickBest(withData).name;
+		if (!ctx.allowPrompt) {
+			return adoptFromClass(ctx, withData, sameClass);
+		}
 		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
 				ctx.detectedIntervalMs / 1000.0)) : null;
 		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, withData,
@@ -551,6 +594,9 @@ public final class BinDirectoryResolver {
 	}
 
 	private static String promptAcrossClasses(Context ctx, List<BinCandidate> candidates) {
+		if (!ctx.allowPrompt) {
+			return adoptFromAllCandidates(ctx, candidates);
+		}
 		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
 				ctx.detectedIntervalMs / 1000.0)) : null;
 		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, candidates,
