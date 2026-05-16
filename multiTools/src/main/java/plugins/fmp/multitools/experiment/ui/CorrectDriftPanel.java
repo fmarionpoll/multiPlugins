@@ -60,12 +60,13 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	private final JSpinner xSpinner = new JSpinner(new SpinnerNumberModel(0.0, -2000.0, 2000.0, 0.5));
 	private final JSpinner ySpinner = new JSpinner(new SpinnerNumberModel(0.0, -2000.0, 2000.0, 0.5));
 	private final JSpinner angleSpinner = new JSpinner(new SpinnerNumberModel(0.0, -10.0, 10.0, 0.05));
+	private final JButton resetOffsetsButton = new JButton("Reset");
 	private final JLabel pivotLabel = new JLabel("Pivot: —");
 
 	private final JSpinner rangeStartSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
 	private final JSpinner rangeEndSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
-	private final JButton applyRangeButton = new JButton("Apply to range");
-	private final JButton restoreButton = new JButton("Restore range");
+	private final JButton applyRangeButton = new JButton("Apply");
+	private final JButton restoreButton = new JButton("Restore");
 
 	private JComboBoxExperimentLazy experimentList = new JComboBoxExperimentLazy();
 
@@ -122,24 +123,31 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		framePanel.add(new JLabel("\u03b8\u00b0"));
 		framePanel.add(angleSpinner);
 		angleSpinner.setPreferredSize(new Dimension(56, 20));
-		framePanel.add(viewTransformToggle);
-		framePanel.add(applyTransformButton);
+		framePanel.add(resetOffsetsButton);
+//		framePanel.add(viewTransformToggle);
+//		framePanel.add(applyTransformButton);
 		add(framePanel);
 
+		JPanel frame2Panel = new JPanel(flowlayout);
+		frame2Panel.add(viewTransformToggle);
+		frame2Panel.add(applyTransformButton);
+		add(frame2Panel);
+
 		JPanel batchPanel = new JPanel(flowlayout);
-		batchPanel.add(new JLabel("Frame range"));
-		batchPanel.add(new JLabel("start"));
+		batchPanel.add(new JLabel("Start"));
 		batchPanel.add(rangeStartSpinner);
 		rangeStartSpinner.setPreferredSize(new Dimension(60, 20));
 		batchPanel.add(new JLabel("end"));
 		batchPanel.add(rangeEndSpinner);
 		rangeEndSpinner.setPreferredSize(new Dimension(60, 20));
+		batchPanel.add(applyRangeButton);
+		batchPanel.add(restoreButton);
 		add(batchPanel);
 
-		JPanel adjustPanel = new JPanel(flowlayout);
-		adjustPanel.add(applyRangeButton);
-		adjustPanel.add(restoreButton);
-		add(adjustPanel);
+//		JPanel adjustPanel = new JPanel(flowlayout);
+//		adjustPanel.add(applyRangeButton);
+//		adjustPanel.add(restoreButton);
+//		add(adjustPanel);
 	}
 
 	private void defineActionListeners() {
@@ -157,6 +165,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		xSpinner.addChangeListener(offsetListener);
 		ySpinner.addChangeListener(offsetListener);
 		angleSpinner.addChangeListener(offsetListener);
+
+		resetOffsetsButton.addActionListener(e -> resetOffsetSpinners());
 
 		applyTransformButton.addActionListener(e -> applyTransformCurrentFrame());
 		applyRangeButton.addActionListener(e -> applyToRange());
@@ -281,6 +291,12 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		}
 		Point2D.Double p = exp.getCages().computePlatePivotFromCageBounds(imageWidth, imageHeight);
 		pivotLabel.setText(String.format("Pivot: (%.1f, %.1f)", p.x, p.y));
+	}
+
+	private void resetOffsetSpinners() {
+		xSpinner.setValue(0.0);
+		ySpinner.setValue(0.0);
+		angleSpinner.setValue(0.0);
 	}
 
 	private void refreshDifferenceView() {

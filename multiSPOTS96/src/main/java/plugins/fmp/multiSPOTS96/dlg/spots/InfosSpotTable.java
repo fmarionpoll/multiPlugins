@@ -1,22 +1,37 @@
 package plugins.fmp.multiSPOTS96.dlg.spots;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.Insets;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.AbstractButton;
 import javax.swing.JButton;
+import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.UIManager;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
+import javax.swing.event.TableModelListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 
 import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
@@ -34,10 +49,15 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	 * 
 	 */
 	private static final long serialVersionUID = -8611587540329642259L;
+	private static final String TITLE_PREFIX = "Spots properties (n=";
+
 	IcyFrame dialogFrame = null;
+	private ItemListener experimentItemListener = null;
+	private TableModelListener spotCountTableListener = null;
 	private SpotTable spotTable = null;
 	private JButton copyButton = new JButton("Copy table");
 	private JButton pasteButton = new JButton("Paste");
+	private JButton updateButton = createRefreshButton();
 	private JButton getNPixelsButton = new JButton("Get n pixels");
 	private JButton selectedSpotButton = new JButton("Locate selected spot");
 
@@ -58,6 +78,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(copyButton);
 		panel1.add(pasteButton);
+		panel1.add(updateButton);
 		panel1.add(getNPixelsButton);
 		panel1.add(selectedSpotButton);
 		topPanel.add(panel1);
@@ -75,8 +96,16 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		spotTable = new SpotTable(expListComboLazy);
 		tablePanel.add(new JScrollPane(spotTable));
 		spotTable.getSelectionModel().addListSelectionListener(this);
+		spotCountTableListener = e -> updateFrameTitle();
+		spotTable.spotTableModel.addTableModelListener(spotCountTableListener);
+		experimentItemListener = e -> {
+			if (e.getStateChange() == ItemEvent.SELECTED) {
+				refreshTable();
+			}
+		};
+		expListComboLazy.addItemListener(experimentItemListener);
 
-		dialogFrame = new IcyFrame("Spots properties", true, true);
+		dialogFrame = new IcyFrame(formatFrameTitle(getDisplayedSpotCount()), true, true);
 		dialogFrame.add(topPanel, BorderLayout.NORTH);
 		dialogFrame.add(tablePanel, BorderLayout.CENTER);
 
@@ -102,6 +131,8 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 				}
 			}
 		});
+
+		updateButton.addActionListener(e -> refreshTable());
 
 		pasteButton.addActionListener(new ActionListener() {
 			@Override
@@ -179,10 +210,114 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			}
 		});
 
-		spotTable.spotTableModel.fireTableDataChanged();
+		refreshTable();
+	}
+
+	private void refreshTable() {
+		if (spotTable != null && spotTable.spotTableModel != null) {
+			spotTable.spotTableModel.fireTableDataChanged();
+		}
+		updateFrameTitle();
+	}
+
+	private static JButton createRefreshButton() {
+		JButton button = new JButton(createRefreshIcon(16));
+		button.setToolTipText("Update table from current experiment");
+		button.setMargin(new Insets(1, 1, 1, 1));
+		button.setFocusable(false);
+		button.setPreferredSize(new Dimension(26, 26));
+		return button;
+	}
+
+	/** Circular refresh glyph: two curved arrows chasing each other. */
+	private static Icon createRefreshIcon(int size) {
+		return new Icon() {
+			@Override
+			public void paintIcon(Component c, Graphics g, int x, int y) {
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.translate(x, y);
+				Color color = resolveIconColor(c);
+				g2.setColor(color);
+				g2.setStroke(new BasicStroke(1.5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				int pad = 2;
+				int w = size - 2 * pad;
+				int h = size - 2 * pad;
+				int arcExtent = 210;
+				g2.drawArc(pad, pad, w, h, 35, arcExtent);
+				drawArrowHead(g2, pad, pad, w, h, 35 + arcExtent);
+				g2.drawArc(pad, pad, w, h, 215, arcExtent);
+				drawArrowHead(g2, pad, pad, w, h, 215 + arcExtent);
+				g2.dispose();
+			}
+
+			@Override
+			public int getIconWidth() {
+				return size;
+			}
+
+			@Override
+			public int getIconHeight() {
+				return size;
+			}
+		};
+	}
+
+	private static Color resolveIconColor(Component c) {
+		if (!c.isEnabled()) {
+			Color disabled = UIManager.getColor("Label.disabledForeground");
+			return disabled != null ? disabled : Color.GRAY;
+		}
+		if (c instanceof AbstractButton) {
+			AbstractButton b = (AbstractButton) c;
+			if (b.getModel().isPressed()) {
+				return c.getForeground().darker();
+			}
+		}
+		return c.getForeground();
+	}
+
+	private static void drawArrowHead(Graphics2D g2, int pad, int padY, int w, int h, double angleDeg) {
+		double a = Math.toRadians(angleDeg);
+		double cx = pad + w / 2.0;
+		double cy = padY + h / 2.0;
+		double px = cx + (w / 2.0) * Math.cos(a);
+		double py = cy + (h / 2.0) * Math.sin(a);
+		int len = 4;
+		Path2D arrow = new Path2D.Double();
+		arrow.moveTo(px, py);
+		arrow.lineTo(px - len * Math.cos(a - 0.55), py - len * Math.sin(a - 0.55));
+		arrow.moveTo(px, py);
+		arrow.lineTo(px - len * Math.cos(a + 0.55), py - len * Math.sin(a + 0.55));
+		g2.draw(arrow);
+	}
+
+	private static String formatFrameTitle(int spotCount) {
+		return TITLE_PREFIX + spotCount + ")";
+	}
+
+	private int getDisplayedSpotCount() {
+		if (spotTable == null || spotTable.spotTableModel == null) {
+			return 0;
+		}
+		return spotTable.spotTableModel.getRowCount();
+	}
+
+	private void updateFrameTitle() {
+		if (dialogFrame != null) {
+			dialogFrame.setTitle(formatFrameTitle(getDisplayedSpotCount()));
+		}
 	}
 
 	void close() {
+		if (expListComboLazy != null && experimentItemListener != null) {
+			expListComboLazy.removeItemListener(experimentItemListener);
+			experimentItemListener = null;
+		}
+		if (spotTable != null && spotTable.spotTableModel != null && spotCountTableListener != null) {
+			spotTable.spotTableModel.removeTableModelListener(spotCountTableListener);
+			spotCountTableListener = null;
+		}
 		dialogFrame.close();
 	}
 

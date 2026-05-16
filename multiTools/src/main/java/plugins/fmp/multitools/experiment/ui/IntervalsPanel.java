@@ -53,11 +53,11 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 	public JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
 			new String[] { "up to last frame acquired", "clip number of frames to" });
 	public JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
-	public JButton updateNFramesButton = new JButton("Update");
+//	public JButton updateNFramesButton = new JButton("Update");
 	public JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
 	public JComboBoxMs binUnit = new JComboBoxMs();
 	public JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(60, 1, 999, 1));
-	public JButton applyButton = new JButton("Apply changes");
+	public JButton applyButton = new JButton("Apply");
 	public JButton refreshButton = new JButton("Refresh");
 	private JLabel analysisIntervalLabel = new JLabel("Acquisition (from image times): \u2014");
 	private JLabel classSummaryLabel = new JLabel(" ");
@@ -79,7 +79,7 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		binSizeJSpinner.setPreferredSize(dimension);
 		nominalIntervalJSpinner.setPreferredSize(dimension);
 		fixedNumberOfImagesJSpinner.setPreferredSize(dimension);
-		updateNFramesButton.setPreferredSize(new Dimension(70, bHeight));
+//		updateNFramesButton.setPreferredSize(new Dimension(70, bHeight));
 		nominalIntervalJSpinner.setValue(host.getDefaultNominalIntervalSec());
 
 		FlowLayout layout1 = new FlowLayout(FlowLayout.LEFT);
@@ -90,7 +90,7 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		panel0.add(indexFirstImageJSpinner);
 		panel0.add(clipNumberImagesCombo);
 		panel0.add(fixedNumberOfImagesJSpinner);
-		panel0.add(updateNFramesButton);
+//		panel0.add(updateNFramesButton);
 		panel0.add(applyButton);
 		add(panel0);
 
@@ -228,30 +228,30 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 			}
 		});
 
-		updateNFramesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
-				if (exp == null || exp.getSeqCamData() == null) {
-					return;
-				}
-				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
-				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
-						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
-				long absFirst = imgLoader.getAbsoluteIndexFirstImage();
-				long available = Math.max(0L, imagesOnDisk.size() - absFirst);
-				if (available <= 0) {
-					fixedNumberOfImagesJSpinner.setValue(0L);
-					imgLoader.setFixedNumberOfImages(0L);
-					imgLoader.setNTotalFrames(0);
-					return;
-				}
-				imgLoader.setFixedNumberOfImages(imagesOnDisk.size());
-				fixedNumberOfImagesJSpinner.setValue(available);
-				exp.getSeqCamData().loadImageList(imagesOnDisk);
-				exp.saveExperimentDescriptors();
-			}
-		});
+//		updateNFramesButton.addActionListener(new ActionListener() {
+//			@Override
+//			public void actionPerformed(final ActionEvent e) {
+//				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+//				if (exp == null || exp.getSeqCamData() == null) {
+//					return;
+//				}
+//				ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+//				List<String> imagesOnDisk = (ArrayList<String>) ExperimentDirectories
+//						.getImagesListFromPathV2(imgLoader.getImagesDirectory(), "jpg");
+//				long absFirst = imgLoader.getAbsoluteIndexFirstImage();
+//				long available = Math.max(0L, imagesOnDisk.size() - absFirst);
+//				if (available <= 0) {
+//					fixedNumberOfImagesJSpinner.setValue(0L);
+//					imgLoader.setFixedNumberOfImages(0L);
+//					imgLoader.setNTotalFrames(0);
+//					return;
+//				}
+//				imgLoader.setFixedNumberOfImages(imagesOnDisk.size());
+//				fixedNumberOfImagesJSpinner.setValue(available);
+//				exp.getSeqCamData().loadImageList(imagesOnDisk);
+//				exp.saveExperimentDescriptors();
+//			}
+//		});
 
 	}
 
