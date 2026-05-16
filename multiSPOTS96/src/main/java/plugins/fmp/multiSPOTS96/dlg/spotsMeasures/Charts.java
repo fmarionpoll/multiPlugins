@@ -212,11 +212,19 @@ public class Charts extends JPanel implements SequenceListener {
 	}
 
 	public void displayChartPanels(Experiment exp) {
-		exp.getSeqCamData().getSequence().removeListener(this);
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == null) {
+			return;
+		}
+		seq.removeListener(this);
 		EnumResults exportType = (EnumResults) exportTypeComboBox.getSelectedItem();
-		if (isThereAnyDataToDisplay(exp, exportType))
+		if (isThereAnyDataToDisplay(exp, exportType)) {
 			chartCageArrayFrame = plotSpotMeasuresToChart(exp, exportType, chartCageArrayFrame);
-		exp.getSeqCamData().getSequence().addListener(this);
+		}
+		seq.addListener(this);
 	}
 
 	private ChartCagesFrame plotSpotMeasuresToChart(Experiment exp, EnumResults exportType, ChartCagesFrame iChart) {

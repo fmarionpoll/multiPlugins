@@ -1042,19 +1042,25 @@ public class Cages {
 	}
 
 	public Spot getSpotAtGlobalIndex(int indexT, Spots allSpots) {
-		if (allSpots == null) {
+		if (allSpots == null || indexT < 0) {
 			return null;
 		}
 		int i = 0;
 		for (Cage cage : cagesList) {
 			List<Spot> spots = cage.getSpotList(allSpots);
 			int count = spots.size();
+			if (count <= 0) {
+				continue;
+			}
 			if (i + count - 1 < indexT) {
 				i += count;
 				continue;
 			}
-			Spot spot = spots.get(indexT - i);
-			return spot;
+			int local = indexT - i;
+			if (local < 0 || local >= count) {
+				return null;
+			}
+			return spots.get(local);
 		}
 		return null;
 	}

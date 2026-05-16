@@ -9,6 +9,7 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.table.TableColumnModel;
 
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.TableCellColorEditor;
 import plugins.fmp.multitools.tools.JComponents.TableCellColorRenderer;
@@ -19,7 +20,7 @@ public class SpotTable extends JTable {
 	 */
 	private static final long serialVersionUID = 1L;
 	public SpotTableModel spotTableModel = null;
-	int lastSelectedRow = 0;
+	int lastSelectedRow = -1;
 
 	Color cellsOrigBackColor;
 	Color cellsOrigForeColor;
@@ -60,20 +61,30 @@ public class SpotTable extends JTable {
 	}
 
 	protected void handleSelectionEvent(ListSelectionEvent e) {
-		if (e.getValueIsAdjusting())
+		if (e.getValueIsAdjusting()) {
 			return;
-
-		// e.getSource() returns an object like this
-		// javax.swing.DefaultListSelectionModel 1052752867 ={11}
-		// where 11 is the index of selected element when mouse button is released
-
-		String strSource = e.getSource().toString();
-		int start = strSource.indexOf("{") + 1, stop = strSource.length() - 1;
-		int iSelectedIndex = Integer.parseInt(strSource.substring(start, stop));
-
-		spotTableModel.getSpotAt(lastSelectedRow).getRoi().setSelected(false);
-		spotTableModel.getSpotAt(iSelectedIndex).getRoi().setSelected(true);
-		lastSelectedRow = iSelectedIndex;
+		}
+		ListSelectionModel lsm = (ListSelectionModel) e.getSource();
+		if (lastSelectedRow >= 0) {
+			Spot prev = spotTableModel.getSpotAt(lastSelectedRow);
+			if (prev != null && prev.getRoi() != null) {
+				prev.getRoi().setSelected(false);
+			}
+		}
+		if (lsm.isSelectionEmpty()) {
+			lastSelectedRow = -1;
+			return;
+		}
+		int newIndex = lsm.getMinSelectionIndex();
+		if (newIndex < 0) {
+			lastSelectedRow = -1;
+			return;
+		}
+		Spot spot = spotTableModel.getSpotAt(newIndex);
+		if (spot != null && spot.getRoi() != null) {
+			spot.getRoi().setSelected(true);
+		}
+		lastSelectedRow = newIndex;
 	}
 
 }

@@ -215,6 +215,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 
 	private void refreshTable() {
 		if (spotTable != null && spotTable.spotTableModel != null) {
+			spotTable.clearSelection();
 			spotTable.spotTableModel.fireTableDataChanged();
 		}
 		updateFrameTitle();
@@ -524,12 +525,21 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 
 	@Override
 	public void valueChanged(ListSelectionEvent e) {
-		if (e.getValueIsAdjusting())
+		if (e.getValueIsAdjusting()) {
 			return;
-
+		}
 		ListSelectionModel lsm = (ListSelectionModel) e.getSource();
+		if (lsm.isSelectionEmpty()) {
+			return;
+		}
 		int minIndex = lsm.getMinSelectionIndex();
-		selectSpot(spotTable.spotTableModel.getSpotAt(minIndex));
+		if (minIndex < 0) {
+			return;
+		}
+		Spot spot = spotTable.spotTableModel.getSpotAt(minIndex);
+		if (spot != null) {
+			selectSpot(spot);
+		}
 	}
 
 }
