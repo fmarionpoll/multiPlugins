@@ -4,11 +4,12 @@ import java.io.File;
 
 import icy.gui.frame.progress.ProgressFrame;
 import icy.sequence.Sequence;
+import plugins.fmp.multitools.experiment.BinDirectoryResolver;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
-import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
-import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.sequence.ImageLoader;
+import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
 import plugins.fmp.multitools.tools.Logger;
 
 final class CafeExperimentOpenPipeline {
@@ -256,8 +257,8 @@ final class CafeExperimentOpenPipeline {
 		boolean isSingleExperiment = (owner.parent0.expListComboLazy.getItemCount() == 1);
 		String previousBinDir = owner.parent0.expListComboLazy.expListBinSubDirectory;
 
-		plugins.fmp.multitools.experiment.BinDirectoryResolver.Context ctx = //
-				new plugins.fmp.multitools.experiment.BinDirectoryResolver.Context();
+		BinDirectoryResolver.Context ctx = //
+				new BinDirectoryResolver.Context();
 		ctx.resultsDirectory = resultsDir;
 		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
 		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
@@ -266,6 +267,6 @@ final class CafeExperimentOpenPipeline {
 		ctx.useSessionRemembered = true;
 		ctx.parentForDialog = owner;
 
-		return plugins.fmp.multitools.experiment.BinDirectoryResolver.resolve(ctx);
+		return BinDirectoryResolver.resolveBinSubdirectory(ctx);
 	}
 }

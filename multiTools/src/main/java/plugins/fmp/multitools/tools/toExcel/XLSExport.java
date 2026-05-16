@@ -270,7 +270,7 @@ public abstract class XLSExport {
 		// destructive cleanup on the user's data either.
 		ctx.allowPrompt = false;
 		ctx.allowCleanup = false;
-		String resolved = plugins.fmp.multitools.experiment.BinDirectoryResolver.resolve(ctx);
+		String resolved = plugins.fmp.multitools.experiment.BinDirectoryResolver.resolveBinSubdirectory(ctx);
 		if (resolved != null) {
 			exp.setBinSubDirectory(resolved);
 		}

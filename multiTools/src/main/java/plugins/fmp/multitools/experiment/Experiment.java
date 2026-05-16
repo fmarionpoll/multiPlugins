@@ -2057,7 +2057,7 @@ public class Experiment {
 		ctx.allowCleanup = false;
 		ctx.previouslySelected = binDirectory;
 
-		String resolved = BinDirectoryResolver.resolve(ctx);
+		String resolved = BinDirectoryResolver.resolveBinSubdirectory(ctx);
 		if (resolved != null) {
 			setBinSubDirectory(resolved);
 		}

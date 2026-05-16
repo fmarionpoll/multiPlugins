@@ -95,7 +95,7 @@ public final class BinDirectoryResolver {
 	 * Resolves the bin subdirectory to use. Returns {@code null} if nothing
 	 * suitable exists and no target can be derived.
 	 */
-	public static String resolve(Context ctx) {
+	public static String resolveBinSubdirectory(Context ctx) {
 		if (ctx == null || ctx.resultsDirectory == null)
 			return null;
 		Path resultsPath = Paths.get(ctx.resultsDirectory);

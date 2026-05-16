@@ -192,7 +192,7 @@ public class ExperimentDirectories {
 		ctx.resultsDirectory = resultsDirectory;
 		ctx.previouslySelected = expListBinSubDirectory;
 		ctx.allowPrompt = true;
-		String binDirectory = BinDirectoryResolver.resolve(ctx);
+		String binDirectory = BinDirectoryResolver.resolveBinSubdirectory(ctx);
 
 		if (binDirectory != null) {
 			move_XML_From_Bin_to_Results(binDirectory, resultsDirectory);
@@ -378,7 +378,7 @@ public class ExperimentDirectories {
 			BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
 			ctx.resultsDirectory = resultsDirectory;
 			ctx.allowPrompt = true;
-			binDirectory = BinDirectoryResolver.resolve(ctx);
+			binDirectory = BinDirectoryResolver.resolveBinSubdirectory(ctx);
 		}
 
 		if (binDirectory != null) {
