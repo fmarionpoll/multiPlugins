@@ -29,9 +29,12 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DPolygonPlus;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.ROI2D.RoiSerpentineOrdering;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -292,16 +295,39 @@ public class EditSpots extends JPanel {
 				inside.add(roi);
 			}
 		}
-		inside.sort((a, b) -> {
-			Point2D pa = anchorPointForSnake(a, selectedRoiType);
-			Point2D pb = anchorPointForSnake(b, selectedRoiType);
-			int cy = Double.compare(pa.getY(), pb.getY());
-			if (cy != 0) {
-				return cy;
+		Spots allSpots = exp.getSpots();
+		return RoiSerpentineOrdering.orderSerpentine(inside, roi -> anchorPointForSnake(roi, selectedRoiType),
+				roi -> rowColForSnakeOrdering(roi, selectedRoiType, allSpots));
+	}
+
+	private static int[] rowColForSnakeOrdering(ROI2D roi, String selectedRoiType, Spots allSpots) {
+		if (roi instanceof ROI2DPolygonPlus) {
+			ROI2DPolygonPlus cageRoi = (ROI2DPolygonPlus) roi;
+			if (cageRoi.hasValidCoordinates()) {
+				return new int[] { cageRoi.getCageRow(), cageRoi.getCageColumn() };
 			}
-			return Double.compare(pa.getX(), pb.getX());
-		});
-		return inside;
+		}
+		if (!selectedRoiType.contains("spot") || allSpots == null) {
+			return null;
+		}
+		String name = roi.getName();
+		if (name == null) {
+			return null;
+		}
+		Spot spot = allSpots.findSpotByName(name);
+		if (spot != null) {
+			int row = spot.getProperties().getCageRow();
+			int col = spot.getProperties().getCageColumn();
+			if (row >= 0 && col >= 0) {
+				return new int[] { row, col };
+			}
+		}
+		int row = SpotString.getSpotCageRowFromSpotName(name);
+		int col = SpotString.getSpotCageColumnFromSpotName(name);
+		if (row >= 0 && col >= 0) {
+			return new int[] { row, col };
+		}
+		return null;
 	}
 
 	private void createPerimeterEnclosingRois(Experiment exp) {
