@@ -21,18 +21,16 @@ public class SpotOverlayChartInteractionHandler {
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
-	private final ResultsOptions resultsOptions;
 
 	public SpotOverlayChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions) {
 		this.experiment = experiment;
-		this.resultsOptions = resultsOptions;
 	}
 
 	public ChartMouseListener createMouseListener() {
 		return new MouseListener();
 	}
 
-	private Spot getSpotFromClickedChart(ChartMouseEvent e) {
+	private Spot getSpotFromClickedChart(ChartMouseEvent e, int frameIndex) {
 		if (e == null)
 			return null;
 		if (experiment == null || experiment.getCages() == null || experiment.getSpots() == null)
@@ -62,7 +60,9 @@ public class SpotOverlayChartInteractionHandler {
 			return null;
 		}
 
-		spot.setSpotCamDataT(item.getItem());
+		if (frameIndex >= 0) {
+			spot.setSpotCamDataT(frameIndex);
+		}
 		return spot;
 	}
 
@@ -79,13 +79,9 @@ public class SpotOverlayChartInteractionHandler {
 			experiment.getSeqCamData().centerDisplayOnRoi(roi);
 		}
 
-		if (resultsOptions != null) {
-			Viewer v = experiment.getSeqCamData().getSequence().getFirstViewer();
-			if (v != null && spot.getSpotCamDataT() > 0) {
-				int frameIndex = (int) (spot.getSpotCamDataT() * resultsOptions.buildExcelStepMs
-						/ experiment.getSeqCamData().getTimeManager().getBinDurationMs());
-				v.setPositionT(frameIndex);
-			}
+		Viewer v = experiment.getSeqCamData().getSequence().getFirstViewer();
+		if (v != null && spot.getSpotCamDataT() >= 0) {
+			v.setPositionT(spot.getSpotCamDataT());
 		}
 
 		if (roi != null) {
@@ -99,7 +95,13 @@ public class SpotOverlayChartInteractionHandler {
 	private class MouseListener implements ChartMouseListener {
 		@Override
 		public void chartMouseClicked(ChartMouseEvent e) {
-			Spot spot = getSpotFromClickedChart(e);
+			int frameIndex = -1;
+			if (e.getEntity() instanceof XYItemEntity) {
+				double timeMinutes = ChartCamFrameNavigation.getTimeMinutesFromXYItem((XYItemEntity) e.getEntity());
+				frameIndex = ChartCamFrameNavigation.getFrameIndexFromTimeMinutes(experiment, timeMinutes);
+			}
+
+			Spot spot = getSpotFromClickedChart(e, frameIndex);
 			if (spot == null)
 				return;
 			selectSpotAndMoveT(spot);
@@ -110,4 +112,3 @@ public class SpotOverlayChartInteractionHandler {
 		}
 	}
 }
-

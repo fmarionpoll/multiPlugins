@@ -4,11 +4,8 @@ import java.awt.event.MouseEvent;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
-import org.jfree.chart.ChartPanel;
-import org.jfree.chart.JFreeChart;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.XYItemEntity;
-import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYDataset;
 
 import icy.gui.viewer.Viewer;
@@ -36,12 +33,10 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
-	private final ResultsOptions resultsOptions;
 
 	public SpotChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
 			@SuppressWarnings("unused") ChartCagePair[][] chartArray) {
 		this.experiment = experiment;
-		this.resultsOptions = resultsOptions;
 	}
 
 	@Override
@@ -49,7 +44,7 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 		return new SpotChartMouseListener();
 	}
 
-	private Spot getSpotFromClickedChart(ChartMouseEvent e) {
+	private Spot getSpotFromClickedChart(ChartMouseEvent e, int frameIndex) {
 		if (e == null) {
 			return null;
 		}
@@ -91,7 +86,9 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 				return null;
 			}
 
-			spot.setSpotCamDataT(item.getItem());
+			if (frameIndex >= 0) {
+				spot.setSpotCamDataT(frameIndex);
+			}
 			return spot;
 		}
 
@@ -118,15 +115,9 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 			experiment.getSeqCamData().centerDisplayOnRoi(roi);
 		}
 
-		if (resultsOptions == null) {
-			return;
-		}
-
 		Viewer v = experiment.getSeqCamData().getSequence().getFirstViewer();
-		if (v != null && spot.getSpotCamDataT() > 0) {
-			int frameIndex = (int) (spot.getSpotCamDataT() * resultsOptions.buildExcelStepMs
-					/ experiment.getSeqCamData().getTimeManager().getBinDurationMs());
-			v.setPositionT(frameIndex);
+		if (v != null && spot.getSpotCamDataT() >= 0) {
+			v.setPositionT(spot.getSpotCamDataT());
 		}
 
 		if (roi != null) {
@@ -140,18 +131,15 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 	private class SpotChartMouseListener implements ChartMouseListener {
 		@Override
 		public void chartMouseClicked(ChartMouseEvent e) {
-			Spot spot = getSpotFromClickedChart(e);
-			if (spot == null) {
-				return;
+			int frameIndex = -1;
+			if (e.getEntity() instanceof XYItemEntity) {
+				double timeMinutes = ChartCamFrameNavigation.getTimeMinutesFromXYItem((XYItemEntity) e.getEntity());
+				frameIndex = ChartCamFrameNavigation.getFrameIndexFromTimeMinutes(experiment, timeMinutes);
 			}
 
-			JFreeChart chart = e.getChart();
-			Object source = e.getTrigger().getSource();
-			if (chart != null && source instanceof ChartPanel) {
-				XYPlot plot = (XYPlot) chart.getPlot();
-				if (plot != null) {
-					// no-op: placeholder if we later need axis conversions
-				}
+			Spot spot = getSpotFromClickedChart(e, frameIndex);
+			if (spot == null) {
+				return;
 			}
 
 			selectSpotAndMoveT(spot);
@@ -162,4 +150,3 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 		}
 	}
 }
-
