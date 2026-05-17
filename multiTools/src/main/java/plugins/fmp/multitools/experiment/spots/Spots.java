@@ -716,6 +716,11 @@ public class Spots {
 		SpotPreConsumedSupport.applyPreConsumedReferenceAtT0(exp);
 	}
 
+	/** Re-applies 3× ROI stroke for all pre-consumed spots (e.g. after reload). */
+	public void applyPreConsumedRoiStyles() {
+		SpotPreConsumedSupport.applyPreConsumedRoiStylesForAll(this);
+	}
+
 	/**
 	 * Applies a plateau correction on {@code sumNoFly}: for bins where fly occupancy
 	 * is above the gate, replace values by the last finite non-fly value. This is a

@@ -5,16 +5,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Baseline and t0 reference helpers for spots consumed before recording started.
+ * Baseline and t0 reference helpers for spots consumed before recording
+ * started.
  */
 public final class SpotPreConsumedSupport {
 
-	public static final Color PRE_CONSUMED_ROI_COLOR = new Color(255, 0, 255);
+	/** Stroke multiplier for spot ROIs marked as pre-consumed (stimulus color unchanged). */
+	public static final double PRE_CONSUMED_STROKE_MULTIPLIER = 3.0;
+
+	private static final double DEFAULT_ROI_STROKE = 1.0;
 
 	private SpotPreConsumedSupport() {
 	}
@@ -26,6 +31,7 @@ public final class SpotPreConsumedSupport {
 		for (Spot spot : exp.getSpots().getSpotList()) {
 			if (spot != null && spot.isConsumedBeforeRecording()) {
 				applyPreConsumedReferenceForSpot(exp, spot);
+				applyPreConsumedRoiStyle(spot);
 			}
 		}
 	}
@@ -50,10 +56,7 @@ public final class SpotPreConsumedSupport {
 				continue;
 			}
 			spot.setConsumedBeforeRecording(true);
-			if (spot.getRoi() != null) {
-				spot.getRoi().setColor(PRE_CONSUMED_ROI_COLOR);
-			}
-			spot.getProperties().setColor(PRE_CONSUMED_ROI_COLOR);
+			applyPreConsumedRoiStyle(spot);
 			applyPreConsumedReferenceForSpot(exp, spot);
 		}
 	}
@@ -68,11 +71,94 @@ public final class SpotPreConsumedSupport {
 			}
 			spot.setConsumedBeforeRecording(false);
 			spot.setConsumedReferenceT0(Double.NaN);
-			Color restore = Color.GREEN;
-			spot.getProperties().setColor(restore);
-			if (spot.getRoi() != null) {
-				spot.getRoi().setColor(restore);
+			clearPreConsumedRoiStyle(spot);
+		}
+	}
+
+	/** Re-applies 3× stroke on every flagged spot (e.g. after experiment reload). */
+	public static void applyPreConsumedRoiStylesForAll(Spots spots) {
+		if (spots == null) {
+			return;
+		}
+		for (Spot spot : spots.getSpotList()) {
+			if (spot != null && spot.isConsumedBeforeRecording()) {
+				applyPreConsumedRoiStyle(spot);
 			}
+		}
+	}
+
+	/**
+	 * Persists the base stroke in ROI XML (not the 3× display stroke).
+	 */
+	public static void syncRoiStrokeForXmlSave(Spot spot) {
+		if (spot == null || !spot.isConsumedBeforeRecording() || spot.getRoi() == null) {
+			return;
+		}
+		spot.getRoi().setStroke(resolveBaseStroke(spot.getProperties(), spot.getRoi(), true));
+	}
+
+	/**
+	 * Thicker ROI stroke while keeping {@link SpotProperties#getColor()}.
+	 */
+	public static void applyPreConsumedRoiStyle(Spot spot) {
+		if (spot == null || spot.getRoi() == null) {
+			return;
+		}
+		ROI2D roi = spot.getRoi();
+		SpotProperties props = spot.getProperties();
+		double baseStroke = resolveBaseStroke(props, roi, true);
+		if (!props.hasRoiStrokeBeforePreConsumed()) {
+			props.setRoiStrokeBeforePreConsumed((float) baseStroke);
+		}
+		syncRoiColorFromProperties(spot);
+		roi.setStroke(baseStroke * PRE_CONSUMED_STROKE_MULTIPLIER);
+	}
+
+	public static void clearPreConsumedRoiStyle(Spot spot) {
+		if (spot == null) {
+			return;
+		}
+		SpotProperties props = spot.getProperties();
+		double restore = DEFAULT_ROI_STROKE;
+		if (spot.getRoi() != null) {
+			restore = resolveBaseStroke(props, spot.getRoi(), false);
+		} else if (props.hasRoiStrokeBeforePreConsumed()) {
+			restore = props.getRoiStrokeBeforePreConsumed();
+		}
+		props.setRoiStrokeBeforePreConsumed(Float.NaN);
+		if (spot.getRoi() != null) {
+			syncRoiColorFromProperties(spot);
+			spot.getRoi().setStroke(restore);
+		}
+	}
+
+	private static void syncRoiColorFromProperties(Spot spot) {
+		Color c = spot.getProperties().getColor();
+		if (c != null && spot.getRoi() != null) {
+			spot.getRoi().setColor(c);
+		}
+	}
+
+	private static double resolveBaseStroke(SpotProperties props, ROI2D roi, boolean preConsumed) {
+		if (props != null && props.hasRoiStrokeBeforePreConsumed()) {
+			return props.getRoiStrokeBeforePreConsumed();
+		}
+		double current = readRoiStroke(roi);
+		if (preConsumed && current >= DEFAULT_ROI_STROKE * PRE_CONSUMED_STROKE_MULTIPLIER * 0.85) {
+			return current / PRE_CONSUMED_STROKE_MULTIPLIER;
+		}
+		return current;
+	}
+
+	private static double readRoiStroke(ROI2D roi) {
+		if (roi == null) {
+			return DEFAULT_ROI_STROKE;
+		}
+		try {
+			double stroke = roi.getStroke();
+			return stroke > 0.0 ? stroke : DEFAULT_ROI_STROKE;
+		} catch (Exception e) {
+			return DEFAULT_ROI_STROKE;
 		}
 	}
 
@@ -194,7 +280,8 @@ public final class SpotPreConsumedSupport {
 	}
 
 	/**
-	 * Baseline max for depletion charts / aggregates. Pre-consumed spots use the synthetic t0 reference.
+	 * Baseline max for depletion charts / aggregates. Pre-consumed spots use the
+	 * synthetic t0 reference.
 	 */
 	public static double computeBaselineMaxValue(Experiment exp, Spot spot, SpotMeasure m, double[] camTimeMin,
 			ResultsOptions o) {
@@ -227,7 +314,8 @@ public final class SpotPreConsumedSupport {
 		double baselineMin = Math.max(0.0, o != null ? o.spotBaselineWindowMinutes : 2) * 1.0;
 		double baselineEndMin = baselineMin;
 		if (!(baselineEndMin > 0.0)) {
-			baselineEndMin = camTimeMin != null && camTimeMin.length > 0 ? camTimeMin[Math.min(camTimeMin.length - 1, 0)]
+			baselineEndMin = camTimeMin != null && camTimeMin.length > 0
+					? camTimeMin[Math.min(camTimeMin.length - 1, 0)]
 					: 2.0;
 		}
 

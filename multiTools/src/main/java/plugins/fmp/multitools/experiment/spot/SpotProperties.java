@@ -48,6 +48,8 @@ public class SpotProperties {
 	private boolean consumedBeforeRecording;
 	/** Cached "full" CLEAN level at t0 for baseline; NaN = compute from siblings on demand. */
 	private double consumedReferenceT0 = Double.NaN;
+	/** ROI stroke width before pre-consumed visual; NaN = not saved. */
+	private float roiStrokeBeforePreConsumed = Float.NaN;
 
 	// === XML CONSTANTS ===
 	static final String IDS_SPOTPROPS = "spotProperties";
@@ -71,6 +73,7 @@ public class SpotProperties {
 	private static final String ID_COLOR_B = "spotColor_B";
 	private static final String ID_CONSUMED_BEFORE_RECORDING = "consumedBeforeRecording";
 	private static final String ID_CONSUMED_REFERENCE_T0 = "consumedReferenceT0";
+	private static final String ID_ROI_STROKE_BEFORE_PRECONSUMED = "roiStrokeBeforePreConsumed";
 
 	private static final String DEFAULT_STIMULUS = "..";
 	private static final String DEFAULT_CONCENTRATION = "..";
@@ -153,6 +156,7 @@ public class SpotProperties {
 		this.versionInfos = source.versionInfos;
 		this.consumedBeforeRecording = source.consumedBeforeRecording;
 		this.consumedReferenceT0 = source.consumedReferenceT0;
+		this.roiStrokeBeforePreConsumed = source.roiStrokeBeforePreConsumed;
 	}
 
 	/**
@@ -178,7 +182,8 @@ public class SpotProperties {
 				|| this.countAggregatedSpots != other.countAggregatedSpots || this.spotYCoord != other.spotYCoord
 				|| this.descriptionOK != other.descriptionOK || this.versionInfos != other.versionInfos
 				|| this.consumedBeforeRecording != other.consumedBeforeRecording
-				|| Double.compare(this.consumedReferenceT0, other.consumedReferenceT0) != 0;
+				|| Double.compare(this.consumedReferenceT0, other.consumedReferenceT0) != 0
+				|| Float.compare(this.roiStrokeBeforePreConsumed, other.roiStrokeBeforePreConsumed) != 0;
 	}
 
 	// === IDENTIFICATION ===
@@ -528,6 +533,18 @@ public class SpotProperties {
 		this.consumedReferenceT0 = consumedReferenceT0;
 	}
 
+	public float getRoiStrokeBeforePreConsumed() {
+		return roiStrokeBeforePreConsumed;
+	}
+
+	public void setRoiStrokeBeforePreConsumed(float roiStrokeBeforePreConsumed) {
+		this.roiStrokeBeforePreConsumed = roiStrokeBeforePreConsumed;
+	}
+
+	public boolean hasRoiStrokeBeforePreConsumed() {
+		return Float.isFinite(roiStrokeBeforePreConsumed);
+	}
+
 	/**
 	 * Gets the version.
 	 * 
@@ -705,6 +722,9 @@ public class SpotProperties {
 					false);
 			this.consumedReferenceT0 = XMLUtil.getElementDoubleValue(spotPropertiesNode, ID_CONSUMED_REFERENCE_T0,
 					Double.NaN);
+			double loadedStroke = XMLUtil.getElementDoubleValue(spotPropertiesNode, ID_ROI_STROKE_BEFORE_PRECONSUMED,
+					Double.NaN);
+			this.roiStrokeBeforePreConsumed = Double.isFinite(loadedStroke) ? (float) loadedStroke : Float.NaN;
 			this.spotVolume = XMLUtil.getElementDoubleValue(spotPropertiesNode, ID_SPOTVOLUME, Double.NaN);
 			this.spotNPixels = XMLUtil.getElementIntValue(spotPropertiesNode, ID_PIXELS, DEFAULT_SPOT_N_PIXELS);
 			this.spotRadius = XMLUtil.getElementIntValue(spotPropertiesNode, ID_RADIUS, DEFAULT_SPOT_RADIUS);
@@ -750,6 +770,10 @@ public class SpotProperties {
 			XMLUtil.setElementBooleanValue(spotPropertiesNode, ID_CONSUMED_BEFORE_RECORDING, consumedBeforeRecording);
 			if (Double.isFinite(consumedReferenceT0)) {
 				XMLUtil.setElementDoubleValue(spotPropertiesNode, ID_CONSUMED_REFERENCE_T0, consumedReferenceT0);
+			}
+			if (Float.isFinite(roiStrokeBeforePreConsumed)) {
+				XMLUtil.setElementDoubleValue(spotPropertiesNode, ID_ROI_STROKE_BEFORE_PRECONSUMED,
+						roiStrokeBeforePreConsumed);
 			}
 			XMLUtil.setElementDoubleValue(spotPropertiesNode, ID_SPOTVOLUME, spotVolume);
 			XMLUtil.setElementIntValue(spotPropertiesNode, ID_PIXELS, spotNPixels);

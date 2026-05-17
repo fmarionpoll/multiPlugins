@@ -8,6 +8,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
@@ -25,6 +26,7 @@ import plugins.fmp.multitools.experiment.sequence.ROIOperation;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.TIntervalsArray;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
@@ -43,7 +45,7 @@ public class Cages {
 
 	// Transient map to store CageCapillariesComputation instances for each cage
 	// This allows efficient access to computed L+R measures
-	private transient java.util.Map<Integer, CageCapillariesComputation> cageComputations = new java.util.HashMap<>();
+	private transient Map<Integer, CageCapillariesComputation> cageComputations = new java.util.HashMap<>();
 
 	private CagesPersistence persistence = new CagesPersistence();
 
@@ -927,8 +929,12 @@ public class Cages {
 			List<ROI2D> spotROIList = new ArrayList<ROI2D>();
 			for (Cage cage : cagesList) {
 				List<Spot> spots = cage.getSpotList(allSpots);
-				for (Spot spot : spots)
+				for (Spot spot : spots) {
+					if (spot.isConsumedBeforeRecording()) {
+						SpotPreConsumedSupport.applyPreConsumedRoiStyle(spot);
+					}
 					spotROIList.add(spot.getRoi());
+				}
 			}
 			Collections.sort(spotROIList, new Comparators.ROI2D_Name());
 			seqCamData.getSequence().addROIs(spotROIList, true);

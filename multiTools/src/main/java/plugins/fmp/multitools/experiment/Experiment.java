@@ -714,6 +714,7 @@ public class Experiment {
 		load_cages_description_and_measures();
 		if (seqCamData != null && seqCamData.getSequence() != null) {
 			seqCamData.removeROIsContainingString("spot");
+			spots.applyPreConsumedRoiStyles();
 			cages.transferCageSpotsToSequenceAsROIs(seqCamData, spots);
 		}
 		return (seqCamData != null && seqCamData.getSequence() != null);
@@ -1041,6 +1042,7 @@ public class Experiment {
 			spots.rebuildSumCleanFromSumNoFly();
 			dispatchSpotsToCages();
 			cages.ensureSpotROIsFromCageGeometry(spots);
+			spots.applyPreConsumedRoiStyles();
 			return !spots.getSpotList().isEmpty();
 		}
 
@@ -1065,6 +1067,7 @@ public class Experiment {
 		if (descriptionsLoaded) {
 			dispatchSpotsToCages();
 			cages.ensureSpotROIsFromCageGeometry(spots);
+			spots.applyPreConsumedRoiStyles();
 		}
 		return descriptionsLoaded;
 	}

@@ -40,6 +40,9 @@ public class SpotPersistence {
 				spot.getProperties().setName(roi.getName());
 			}
 		}
+		if (spot.isConsumedBeforeRecording()) {
+			SpotPreConsumedSupport.applyPreConsumedRoiStyle(spot);
+		}
 		return true;
 	}
 
@@ -60,7 +63,14 @@ public class SpotPersistence {
 		}
 		final Node nodeMeta = XMLUtil.setElement(node, ID_META);
 		if (nodeMeta != null && spot.getRoi() != null) {
+			boolean preConsumed = spot.isConsumedBeforeRecording();
+			if (preConsumed) {
+				SpotPreConsumedSupport.syncRoiStrokeForXmlSave(spot);
+			}
 			ROI2DUtilities.saveToXML_ROI(nodeMeta, spot.getRoi());
+			if (preConsumed) {
+				SpotPreConsumedSupport.applyPreConsumedRoiStyle(spot);
+			}
 		}
 		return true;
 	}
@@ -70,8 +80,8 @@ public class SpotPersistence {
 	public static String csvExportSpotSubSectionHeader(String sep) {
 		return "#" + sep + "SPOTS" + sep + "multiSPOTS data\n" + "name" + sep + "index" + sep + "cageID" + sep
 				+ "cagePos" + sep + "cageColumn" + sep + "cageRow" + sep + "volume" + sep + "npixels" + sep + "radius"
-				+ sep + "stim" + sep + "conc" + sep + "colorR" + sep + "colorG" + sep + "colorB" + sep + "roiType" + sep
-				+ "roiData\n";
+				+ sep 				+ "stim" + sep + "conc" + sep + "colorR" + sep + "colorG" + sep + "colorB" + sep + "preConsumed" + sep
+				+ "preConsumedBaseStroke" + sep + "roiType" + sep + "roiData\n";
 	}
 
 	public static String csvExportSpotDescription(Spot spot, String sep) {
@@ -91,6 +101,12 @@ public class SpotPersistence {
 		int g = c != null ? c.getGreen() : 0;
 		int b = c != null ? c.getBlue() : 255;
 		sbf.append(sep).append(r).append(sep).append(g).append(sep).append(b);
+		sbf.append(sep).append(props.isConsumedBeforeRecording() ? 1 : 0);
+		if (props.hasRoiStrokeBeforePreConsumed()) {
+			sbf.append(sep).append(props.getRoiStrokeBeforePreConsumed());
+		} else {
+			sbf.append(sep);
+		}
 
 		// Add ROI type and data columns (v2.1 format)
 		sbf.append(sep);
@@ -184,6 +200,24 @@ public class SpotPersistence {
 				props.setColor(new Color(r, g, b));
 			}
 
+			if (index < data.length && isPreConsumedFlagField(data[index])) {
+				props.setConsumedBeforeRecording("1".equals(data[index++].trim()));
+				if (index < data.length) {
+					String strokeField = data[index].trim();
+					if (props.isConsumedBeforeRecording() && !strokeField.isEmpty()) {
+						try {
+							double baseStroke = Double.parseDouble(strokeField);
+							if (Double.isFinite(baseStroke) && baseStroke > 0.0) {
+								props.setRoiStrokeBeforePreConsumed((float) baseStroke);
+							}
+						} catch (NumberFormatException ignored) {
+							// optional column
+						}
+					}
+					index++;
+				}
+			}
+
 			if (index < data.length) {
 				String roiType = data[index++];
 				String roiData = index < data.length
@@ -213,12 +247,23 @@ public class SpotPersistence {
 			if (props.getColor() != null && spot.getRoi() != null) {
 				spot.getRoi().setColor(props.getColor());
 			}
+			if (spot.isConsumedBeforeRecording()) {
+				SpotPreConsumedSupport.applyPreConsumedRoiStyle(spot);
+			}
 
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Invalid numeric value in CSV data", e);
 		} catch (ArrayIndexOutOfBoundsException e) {
 			throw new IllegalArgumentException("Insufficient data in CSV array", e);
 		}
+	}
+
+	private static boolean isPreConsumedFlagField(String field) {
+		if (field == null) {
+			return false;
+		}
+		String t = field.trim();
+		return "0".equals(t) || "1".equals(t);
 	}
 
 	private static boolean isColorFormat(String[] data, int index) {

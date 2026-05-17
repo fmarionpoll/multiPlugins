@@ -85,9 +85,6 @@ public class EditSpots extends JPanel {
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
-
-//		panel2.add(displaySnakeCheckBox);
-//		panel2.add(centerRoisToSnakeButton);
 		panel2.add(markSelectedRoisAsEatenButton);
 		panel2.add(clearPreConsumedMarkButton);
 		add(panel2);
