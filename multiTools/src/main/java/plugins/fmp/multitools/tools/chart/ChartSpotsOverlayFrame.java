@@ -36,6 +36,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
@@ -792,7 +793,8 @@ public class ChartSpotsOverlayFrame {
 
 		double divider = 1.0;
 		if (baseOptions.relativeToMaximum && !isAreaFlyPresent(resultType)) {
-			divider = computeBaselineMaxValue(exp, spotMeasure, camImages_time_min, baseOptions);
+			divider = SpotPreConsumedSupport.computeBaselineMaxValue(exp, spot, spotMeasure, camImages_time_min,
+					baseOptions);
 			if (divider == 0)
 				divider = 1.0;
 		}
@@ -813,8 +815,7 @@ public class ChartSpotsOverlayFrame {
 			if (isAreaFlyPresent(resultType)) {
 				y = raw * flyPresentToPercent;
 			} else if (baseOptions.relativeToMaximum && depletionMode) {
-				// Depletion semantics: 0 at baseline max (full), 1 at empty.
-				y = (divider - raw) / divider;
+				y = SpotPreConsumedSupport.computeDepletionValue(spot, exp, j, raw, divider);
 			} else if (baseOptions.relativeToMaximum) {
 				y = raw / divider;
 			} else {
@@ -823,58 +824,6 @@ public class ChartSpotsOverlayFrame {
 			seriesXY.add(x, y);
 		}
 		return seriesXY;
-	}
-
-	private static double computeBaselineMaxValue(Experiment exp, SpotMeasure m, double[] camTimeMin,
-			ResultsOptions o) {
-		if (m == null) {
-			return 1.0;
-		}
-		double[] values = m.getValues();
-		if (values == null || values.length == 0) {
-			return 1.0;
-		}
-
-		int n = values.length;
-		if (camTimeMin != null) {
-			n = Math.min(n, camTimeMin.length);
-		}
-		if (n <= 0) {
-			return 1.0;
-		}
-
-		double baselineMin = Math.max(0.0, o != null ? o.spotBaselineWindowMinutes : 2) * 1.0;
-		double baselineEndMin = baselineMin;
-		if (!(baselineEndMin > 0.0)) {
-			baselineEndMin = camTimeMin != null && camTimeMin.length > 0 ? camTimeMin[Math.min(camTimeMin.length - 1, 0)]
-					: 2.0;
-		}
-
-		double max = Double.NEGATIVE_INFINITY;
-		int stableBins = Math.max(1, o != null ? o.spotBaselineStableBins : 3);
-		boolean stopWhenStable = o != null && o.spotBaselineStopWhenStable;
-		int stableCount = 0;
-
-		for (int i = 0; i < n; i++) {
-			double t = camTimeMin != null ? camTimeMin[i] : i;
-			if (baselineEndMin > 0.0 && t > baselineEndMin) {
-				break;
-			}
-			double v = values[i];
-			if (Double.isFinite(v) && v > max) {
-				max = v;
-				stableCount = 0;
-			} else {
-				stableCount++;
-			}
-			if (stopWhenStable && stableCount >= stableBins) {
-				break;
-			}
-		}
-		if (!Double.isFinite(max) || max <= 0.0) {
-			max = m.getMaximumValue();
-		}
-		return (max > 0.0 && Double.isFinite(max)) ? max : 1.0;
 	}
 
 	public static List<Spot> dedupeSpots(List<Spot> spots) {

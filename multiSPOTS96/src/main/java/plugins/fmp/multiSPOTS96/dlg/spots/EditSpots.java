@@ -14,7 +14,6 @@ import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
-import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 
@@ -29,6 +28,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
@@ -51,13 +51,16 @@ public class EditSpots extends JPanel {
 	private JComboBox<String> typeCombo = new JComboBox<String>(new String[] { "spot", "cage" });
 
 	private JCheckBox selectRoisCheckBox = new JCheckBox("Select");
-	private JCheckBox displaySnakeCheckBox = new JCheckBox("Display snake");
-	private JButton centerRoisToSnakeButton = new JButton("Center rois to snake");
+	private JCheckBox displaySnakeCheckBox = new JCheckBox("Snake");
+	private JButton centerRoisToSnakeButton = new JButton("Center rois");
 	private MultiSPOTS96 parent0 = null;
 
 	public ROI2DPolygon roiPerimeter = null;
 	public ROI2DPolyLine roiSnake = null;
 	private ArrayList<ROI2D> enclosedRois = null;
+
+	private JButton markSelectedRoisAsEatenButton = new JButton("Mark selected ROIs as consumed at t0");
+	private JButton clearPreConsumedMarkButton = new JButton("Clear pre-consumed mark");
 
 	private JButton erodeButton = new JButton("Contract rois");
 	private JButton dilateButton = new JButton("Dilate rois");
@@ -75,20 +78,23 @@ public class EditSpots extends JPanel {
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(new JLabel("select type of rois"));
+		panel1.add(selectRoisCheckBox);
 		panel1.add(typeCombo);
+		panel1.add(displaySnakeCheckBox);
+		panel1.add(centerRoisToSnakeButton);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
-		panel2.add(selectRoisCheckBox);
-		panel2.add(displaySnakeCheckBox);
-		panel2.add(centerRoisToSnakeButton);
+
+//		panel2.add(displaySnakeCheckBox);
+//		panel2.add(centerRoisToSnakeButton);
+		panel2.add(markSelectedRoisAsEatenButton);
+		panel2.add(clearPreConsumedMarkButton);
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);
 		panel3.add(dilateButton);
 		panel3.add(erodeButton);
-//		panel2.add(editSpotsWithTimeButton);
 		add(panel3);
 
 		defineActionListeners();
@@ -178,6 +184,71 @@ public class EditSpots extends JPanel {
 				resizeRois(exp, -1);
 			}
 		});
+
+		markSelectedRoisAsEatenButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					markSelectedSpotsPreConsumed(exp);
+				}
+			}
+		});
+
+		clearPreConsumedMarkButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					clearSelectedSpotsPreConsumed(exp);
+				}
+			}
+		});
+	}
+
+	private void markSelectedSpotsPreConsumed(Experiment exp) {
+		List<Spot> selected = collectSelectedSpots(exp);
+		if (selected.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Select one or more spot ROIs first.", "Pre-consumed spots",
+					JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		SpotPreConsumedSupport.markPreConsumed(exp, selected);
+		exp.saveSpots_File();
+	}
+
+	private void clearSelectedSpotsPreConsumed(Experiment exp) {
+		List<Spot> selected = collectSelectedSpots(exp);
+		if (selected.isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Select one or more spot ROIs first.", "Pre-consumed spots",
+					JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		SpotPreConsumedSupport.clearPreConsumed(selected);
+		exp.saveSpots_File();
+	}
+
+	private List<Spot> collectSelectedSpots(Experiment exp) {
+		List<Spot> out = new ArrayList<>();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return out;
+		}
+		Spots allSpots = exp.getSpots();
+		ArrayList<ROI2D> listROIs = exp.getSeqCamData().getSequence().getSelectedROI2Ds();
+		for (ROI2D roi : listROIs) {
+			if (roi == null) {
+				continue;
+			}
+			String name = roi.getName();
+			if (name == null || !name.contains("spot")) {
+				continue;
+			}
+			Spot spot = allSpots.findSpotByName(name);
+			if (spot != null) {
+				out.add(spot);
+			}
+		}
+		return out;
 	}
 
 	// --------------------------------------

@@ -9,6 +9,7 @@ import java.util.Set;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -98,8 +99,8 @@ public final class CageSpotStimulusAggregation {
 		return new ArrayList<>(keys);
 	}
 
-	public static List<AggregateSeries> buildAggregates(Cage cage, Spots allSpots, ResultsOptions options,
-			SpotExcelTimeline.SpotExcelGrid grid) {
+	public static List<AggregateSeries> buildAggregates(Experiment exp, Cage cage, Spots allSpots,
+			ResultsOptions options, SpotExcelTimeline.SpotExcelGrid grid) {
 		Objects.requireNonNull(cage, "cage");
 		if (allSpots == null || options == null || grid == null) {
 			return List.of();
@@ -137,7 +138,7 @@ public final class CageSpotStimulusAggregation {
 				if (!k.equals(keySpot)) {
 					continue;
 				}
-				ArrayList<Double> norm = computeNormalizedConsumptionOverGrid(s, options, grid);
+				ArrayList<Double> norm = computeNormalizedConsumptionOverGrid(exp, s, options, grid);
 				if (norm == null) {
 					continue; // discard unusable spot
 				}
@@ -153,8 +154,8 @@ public final class CageSpotStimulusAggregation {
 	 * Returns normalized consumption series over the Excel grid, or null if the spot is unusable
 	 * (no data / invalid baseline max).
 	 */
-	private static ArrayList<Double> computeNormalizedConsumptionOverGrid(Spot spot, ResultsOptions options,
-			SpotExcelTimeline.SpotExcelGrid grid) {
+	private static ArrayList<Double> computeNormalizedConsumptionOverGrid(Experiment exp, Spot spot,
+			ResultsOptions options, SpotExcelTimeline.SpotExcelGrid grid) {
 		if (spot == null) {
 			return null;
 		}
@@ -169,49 +170,19 @@ public final class CageSpotStimulusAggregation {
 			return null;
 		}
 
-		double maxBaseline = computeBaselineMax(v, grid.getExcelDeltaMs(), options);
+		double maxBaseline = SpotPreConsumedSupport.computeBaselineMaxForResampled(exp, spot, v,
+				grid.getExcelDeltaMs(), options);
 		if (!(maxBaseline > 0.0) || !Double.isFinite(maxBaseline)) {
 			return null;
 		}
 
 		ArrayList<Double> out = new ArrayList<>(v.size());
-		for (Double dv : v) {
-			if (dv == null || !Double.isFinite(dv)) {
-				out.add(0.0); // missing bins do not contribute
-				continue;
-			}
-			out.add((maxBaseline - dv) / maxBaseline);
+		for (int i = 0; i < v.size(); i++) {
+			Double dv = v.get(i);
+			double raw = (dv != null && Double.isFinite(dv)) ? dv : 0.0;
+			out.add(SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, raw, maxBaseline));
 		}
 		return out;
-	}
-
-	private static double computeBaselineMax(List<Double> values, long excelDeltaMs, ResultsOptions o) {
-		int n = values.size();
-		if (n < 1) {
-			return Double.NaN;
-		}
-		long baselineMs = Math.max(0L, (long) o.spotBaselineWindowMinutes * 60_000L);
-		int maxBins = baselineMs > 0 && excelDeltaMs > 0 ? (int) Math.min(n, (baselineMs / excelDeltaMs) + 1) : n;
-		maxBins = Math.max(1, maxBins);
-
-		int stableBins = Math.max(1, o.spotBaselineStableBins);
-		boolean stopWhenStable = o.spotBaselineStopWhenStable;
-
-		double max = Double.NEGATIVE_INFINITY;
-		int stableCount = 0;
-		for (int i = 0; i < maxBins; i++) {
-			Double dv = values.get(i);
-			if (dv != null && Double.isFinite(dv) && dv > max) {
-				max = dv;
-				stableCount = 0;
-			} else {
-				stableCount++;
-			}
-			if (stopWhenStable && stableCount >= stableBins) {
-				break;
-			}
-		}
-		return max;
 	}
 
 	private static ArrayList<Double> initZeroSeries(int n) {

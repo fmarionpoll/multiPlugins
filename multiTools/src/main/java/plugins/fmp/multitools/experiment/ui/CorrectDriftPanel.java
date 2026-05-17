@@ -123,14 +123,12 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		framePanel.add(new JLabel("\u03b8\u00b0"));
 		framePanel.add(angleSpinner);
 		angleSpinner.setPreferredSize(new Dimension(56, 20));
-		framePanel.add(resetOffsetsButton);
-//		framePanel.add(viewTransformToggle);
-//		framePanel.add(applyTransformButton);
+		framePanel.add(viewTransformToggle);
+		framePanel.add(applyTransformButton);
 		add(framePanel);
 
 		JPanel frame2Panel = new JPanel(flowlayout);
-		frame2Panel.add(viewTransformToggle);
-		frame2Panel.add(applyTransformButton);
+		frame2Panel.add(resetOffsetsButton);
 		add(frame2Panel);
 
 		JPanel batchPanel = new JPanel(flowlayout);
@@ -143,11 +141,6 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		batchPanel.add(applyRangeButton);
 		batchPanel.add(restoreButton);
 		add(batchPanel);
-
-//		JPanel adjustPanel = new JPanel(flowlayout);
-//		adjustPanel.add(applyRangeButton);
-//		adjustPanel.add(restoreButton);
-//		add(adjustPanel);
 	}
 
 	private void defineActionListeners() {

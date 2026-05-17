@@ -65,7 +65,8 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			}
 
 			options.resultType = buildRt;
-			List<AggregateSeries> series = CageSpotStimulusAggregation.buildAggregates(cage, allSpots, options, grid);
+			List<AggregateSeries> series = CageSpotStimulusAggregation.buildAggregates(exp, cage, allSpots, options,
+					grid);
 			for (AggregateSeries s : series) {
 				if (s == null || s.values == null || s.values.isEmpty()) {
 					continue;

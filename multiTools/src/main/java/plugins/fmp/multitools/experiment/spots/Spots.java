@@ -17,8 +17,10 @@ import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.sequence.ROIOperation;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
@@ -707,6 +709,11 @@ public class Spots {
 		for (Spot spot : targets) {
 			rebuildSumCleanFromSumNoFlyV2ForSpot(spot);
 		}
+	}
+
+	/** Inflates t0 measures for spots marked consumed before recording (see {@link SpotPreConsumedSupport}). */
+	public void applyPreConsumedReferenceAtT0(Experiment exp) {
+		SpotPreConsumedSupport.applyPreConsumedReferenceAtT0(exp);
 	}
 
 	/**

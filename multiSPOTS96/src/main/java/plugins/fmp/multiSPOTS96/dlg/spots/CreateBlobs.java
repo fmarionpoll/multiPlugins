@@ -57,10 +57,10 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 	private JLabel spotsFilterLabel = new JLabel("Filter");
 	ImageTransformEnums[] transforms = new ImageTransformEnums[] { ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB,
 			ImageTransformEnums.B_RGB, ImageTransformEnums.B_MINUS_MINRG, ImageTransformEnums.B_MINUS_MEANGREY_CTR,
-			ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB,
-			ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R,
-			ImageTransformEnums.RBMINUS_2G, ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS,
-			ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
+			ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
+			ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G,
+			ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS, ImageTransformEnums.H_HSB,
+			ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
 	private JComboBox<ImageTransformEnums> spotsTransformsComboBox = new JComboBox<ImageTransformEnums>(transforms);
 
 	private String[] directions = new String[] { "threshold >", "threshold <" };
@@ -69,7 +69,7 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
 
-	private JButton convertBlobsToSpotButton = new JButton("Convert blobs to spots");
+	private JButton convertBlobsToSpotButton = new JButton("Convert to spots");
 	private JSpinner spotDiameterSpinner = new JSpinner(new SpinnerNumberModel(22, 1, 1200, 1));
 
 	private DetectSpotsOutline detectSpots = null;
@@ -104,7 +104,7 @@ public class CreateBlobs extends JPanel implements ChangeListener, PropertyChang
 
 		JPanel panel3 = new JPanel(layoutLeft);
 		panel3.add(convertBlobsToSpotButton);
-		panel3.add(new JLabel("size (pixels="));
+		panel3.add(new JLabel("pixels"));
 		panel3.add(spotDiameterSpinner);
 		add(panel3);
 

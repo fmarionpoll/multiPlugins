@@ -44,6 +44,10 @@ public class SpotProperties {
 	private int spotYCoord;
 	private boolean descriptionOK;
 	private int versionInfos;
+	/** Spot was already consumed before camera recording started. */
+	private boolean consumedBeforeRecording;
+	/** Cached "full" CLEAN level at t0 for baseline; NaN = compute from siblings on demand. */
+	private double consumedReferenceT0 = Double.NaN;
 
 	// === XML CONSTANTS ===
 	static final String IDS_SPOTPROPS = "spotProperties";
@@ -65,6 +69,8 @@ public class SpotProperties {
 	private static final String ID_COLOR_R = "spotColor_R";
 	private static final String ID_COLOR_G = "spotColor_G";
 	private static final String ID_COLOR_B = "spotColor_B";
+	private static final String ID_CONSUMED_BEFORE_RECORDING = "consumedBeforeRecording";
+	private static final String ID_CONSUMED_REFERENCE_T0 = "consumedReferenceT0";
 
 	private static final String DEFAULT_STIMULUS = "..";
 	private static final String DEFAULT_CONCENTRATION = "..";
@@ -145,6 +151,8 @@ public class SpotProperties {
 		this.countAggregatedSpots = source.countAggregatedSpots;
 		this.descriptionOK = source.descriptionOK;
 		this.versionInfos = source.versionInfos;
+		this.consumedBeforeRecording = source.consumedBeforeRecording;
+		this.consumedReferenceT0 = source.consumedReferenceT0;
 	}
 
 	/**
@@ -168,7 +176,9 @@ public class SpotProperties {
 				|| Double.compare(this.spotVolume, other.spotVolume) != 0 || this.spotNPixels != other.spotNPixels
 				|| this.spotRadius != other.spotRadius || this.spotXCoord != other.spotXCoord
 				|| this.countAggregatedSpots != other.countAggregatedSpots || this.spotYCoord != other.spotYCoord
-				|| this.descriptionOK != other.descriptionOK || this.versionInfos != other.versionInfos;
+				|| this.descriptionOK != other.descriptionOK || this.versionInfos != other.versionInfos
+				|| this.consumedBeforeRecording != other.consumedBeforeRecording
+				|| Double.compare(this.consumedReferenceT0, other.consumedReferenceT0) != 0;
 	}
 
 	// === IDENTIFICATION ===
@@ -502,6 +512,22 @@ public class SpotProperties {
 		this.descriptionOK = descriptionOK;
 	}
 
+	public boolean isConsumedBeforeRecording() {
+		return consumedBeforeRecording;
+	}
+
+	public void setConsumedBeforeRecording(boolean consumedBeforeRecording) {
+		this.consumedBeforeRecording = consumedBeforeRecording;
+	}
+
+	public double getConsumedReferenceT0() {
+		return consumedReferenceT0;
+	}
+
+	public void setConsumedReferenceT0(double consumedReferenceT0) {
+		this.consumedReferenceT0 = consumedReferenceT0;
+	}
+
 	/**
 	 * Gets the version.
 	 * 
@@ -675,6 +701,10 @@ public class SpotProperties {
 			this.cageColumn = XMLUtil.getElementIntValue(spotPropertiesNode, ID_CAGECOLUMN, cageColumn);
 			this.cageRow = XMLUtil.getElementIntValue(spotPropertiesNode, ID_CAGEROW, cageRow);
 			this.descriptionOK = XMLUtil.getElementBooleanValue(spotPropertiesNode, ID_DESCOK, false);
+			this.consumedBeforeRecording = XMLUtil.getElementBooleanValue(spotPropertiesNode, ID_CONSUMED_BEFORE_RECORDING,
+					false);
+			this.consumedReferenceT0 = XMLUtil.getElementDoubleValue(spotPropertiesNode, ID_CONSUMED_REFERENCE_T0,
+					Double.NaN);
 			this.spotVolume = XMLUtil.getElementDoubleValue(spotPropertiesNode, ID_SPOTVOLUME, Double.NaN);
 			this.spotNPixels = XMLUtil.getElementIntValue(spotPropertiesNode, ID_PIXELS, DEFAULT_SPOT_N_PIXELS);
 			this.spotRadius = XMLUtil.getElementIntValue(spotPropertiesNode, ID_RADIUS, DEFAULT_SPOT_RADIUS);
@@ -717,6 +747,10 @@ public class SpotProperties {
 			XMLUtil.setElementIntValue(spotPropertiesNode, ID_CAGEROW, cageRow);
 			XMLUtil.setElementIntValue(spotPropertiesNode, ID_VERSIONINFOS, versionInfos);
 			XMLUtil.setElementBooleanValue(spotPropertiesNode, ID_DESCOK, descriptionOK);
+			XMLUtil.setElementBooleanValue(spotPropertiesNode, ID_CONSUMED_BEFORE_RECORDING, consumedBeforeRecording);
+			if (Double.isFinite(consumedReferenceT0)) {
+				XMLUtil.setElementDoubleValue(spotPropertiesNode, ID_CONSUMED_REFERENCE_T0, consumedReferenceT0);
+			}
 			XMLUtil.setElementDoubleValue(spotPropertiesNode, ID_SPOTVOLUME, spotVolume);
 			XMLUtil.setElementIntValue(spotPropertiesNode, ID_PIXELS, spotNPixels);
 			XMLUtil.setElementIntValue(spotPropertiesNode, ID_RADIUS, spotRadius);

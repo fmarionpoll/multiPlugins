@@ -121,7 +121,8 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, options);
-		List<AggregateSeries> aggregates = CageSpotStimulusAggregation.buildAggregates(cage, allSpots, options, grid);
+		List<AggregateSeries> aggregates = CageSpotStimulusAggregation.buildAggregates(exp, cage, allSpots, options,
+				grid);
 		if (aggregates == null || aggregates.isEmpty()) {
 			return;
 		}

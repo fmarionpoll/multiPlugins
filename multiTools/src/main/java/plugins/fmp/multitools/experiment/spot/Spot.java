@@ -356,6 +356,22 @@ public class Spot implements Comparable<Spot> {
 		return properties;
 	}
 
+	public boolean isConsumedBeforeRecording() {
+		return properties.isConsumedBeforeRecording();
+	}
+
+	public void setConsumedBeforeRecording(boolean consumedBeforeRecording) {
+		properties.setConsumedBeforeRecording(consumedBeforeRecording);
+	}
+
+	public double getConsumedReferenceT0() {
+		return properties.getConsumedReferenceT0();
+	}
+
+	public void setConsumedReferenceT0(double consumedReferenceT0) {
+		properties.setConsumedReferenceT0(consumedReferenceT0);
+	}
+
 	/**
 	 * Gets the SpotID for this spot.
 	 * 
