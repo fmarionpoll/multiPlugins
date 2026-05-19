@@ -11,9 +11,11 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 
 /**
- * Per-frame elapsed times for spot Excel. Prefer user nominal interval, then persisted bin CameraIntervalMs from
- * the bin descriptor; timestamps must agree (median consecutive Δ within ±25%) else spacing is uniform on that axis.
- * If neither is known, falls back to file-detected cam step, cameras, synthesize.
+ * Per-frame elapsed times for spot Excel export and resampling.
+ * <p>
+ * When camera timestamps are available and weakly increasing, they define the acquisition span (one sample per
+ * frame). Otherwise a uniform grid is synthesized using persisted camera interval, detected cam step, then
+ * nominal interval. Nominal interval is not used to override conflicting camera timing.
  */
 public final class SpotExcelTimeline {
 
@@ -106,7 +108,11 @@ public final class SpotExcelTimeline {
 		return v;
 	}
 
-	private static int countBinsInWindow(long clipStartMs, long clipEndMs, long excelDeltaMs) {
+	/**
+	 * Bins covering {@code [clipStartMs, clipEndMs]} at {@code excelDeltaMs} spacing (inclusive endpoints).
+	 * E.g. 365 frames at 20 s → span 7_280_000 ms; export step 60 s → 122 bins, not 365.
+	 */
+	static int countBinsInWindow(long clipStartMs, long clipEndMs, long excelDeltaMs) {
 		if (excelDeltaMs <= 0L) {
 			return 1;
 		}
@@ -163,28 +169,24 @@ public final class SpotExcelTimeline {
 			return new long[0];
 		}
 
-		long nominalMs = nominalStepMsFromExperiment(exp);
-		long persistedCamMs = exp.getPersistedBinCameraIntervalMs();
-		long authoritativeStepMs = nominalMs > 0L ? nominalMs : (persistedCamMs > 0L ? persistedCamMs : 0L);
 		long[] fromCam = tryBuildCamRelativeTimes(exp, nf);
+		if (fromCam != null) {
+			return fromCam;
+		}
 
-		if (authoritativeStepMs > 0L) {
-			if (fromCam != null && medianMatchesReference(fromCam, nf, authoritativeStepMs)) {
-				return fromCam;
-			}
-			return uniformElapsedGrid(nf, authoritativeStepMs);
+		long persistedCamMs = exp.getPersistedBinCameraIntervalMs();
+		if (persistedCamMs > 0L) {
+			return uniformElapsedGrid(nf, persistedCamMs);
 		}
 
 		long detectedStep = exp.getCamImageBin_ms();
 		if (detectedStep > 0L) {
-			if (fromCam != null && medianMatchesReference(fromCam, nf, detectedStep)) {
-				return fromCam;
-			}
 			return uniformElapsedGrid(nf, detectedStep);
 		}
 
-		if (fromCam != null) {
-			return fromCam;
+		long nominalMs = nominalStepMsFromExperiment(exp);
+		if (nominalMs > 0L) {
+			return uniformElapsedGrid(nf, nominalMs);
 		}
 
 		return synthesizeUniformFrameTimes(exp, nf);
@@ -213,31 +215,6 @@ public final class SpotExcelTimeline {
 		return t;
 	}
 
-	private static boolean medianMatchesReference(long[] tRelative, int nf, long referenceStepMs) {
-		if (nf < 2 || referenceStepMs <= 0L) {
-			return true;
-		}
-		long med = medianConsecutiveDeltaMs(tRelative, nf);
-		if (med <= 0L) {
-			return false;
-		}
-		double ratio = med / (double) referenceStepMs;
-		return ratio >= 0.75 && ratio <= 1.25;
-	}
-
-	private static long medianConsecutiveDeltaMs(long[] tRelative, int nf) {
-		if (nf < 2) {
-			return 0L;
-		}
-		long[] deltas = new long[nf - 1];
-		for (int i = 0; i < nf - 1; i++) {
-			deltas[i] = tRelative[i + 1] - tRelative[i];
-		}
-		Arrays.sort(deltas);
-		int mid = deltas.length / 2;
-		return (deltas.length % 2 == 1) ? deltas[mid] : (deltas[mid - 1] + deltas[mid]) / 2;
-	}
-
 	private static long[] uniformElapsedGrid(int nf, long stepMs) {
 		long[] t = new long[nf];
 		for (int i = 0; i < nf; i++) {
@@ -256,13 +233,13 @@ public final class SpotExcelTimeline {
 	}
 
 	private static long[] synthesizeUniformFrameTimes(Experiment exp, int nf) {
-		long nominalMs = nominalStepMsFromExperiment(exp);
-		if (nominalMs > 0L) {
-			return uniformElapsedGrid(nf, nominalMs);
-		}
 		long persistedCamMs = exp.getPersistedBinCameraIntervalMs();
 		if (persistedCamMs > 0L) {
 			return uniformElapsedGrid(nf, persistedCamMs);
+		}
+		long nominalMs = nominalStepMsFromExperiment(exp);
+		if (nominalMs > 0L) {
+			return uniformElapsedGrid(nf, nominalMs);
 		}
 
 		TimeManager tm = exp.getSeqCamData().getTimeManager();

@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.tools.toExcel;
 
+import java.awt.Color;
 import java.awt.Point;
 import java.util.ArrayList;
 import java.util.List;
@@ -58,8 +59,7 @@ public abstract class XLSExportSpots extends XLSExport {
 		int nBins = expList != null ? SpotExcelTimeline.maxSpotExcelBinCountAcrossExportRange(expList, options)
 				: headerGrid.getNBins();
 		for (int k = 0; k < nBins; k++) {
-			long elapsedMs = expList != null ? (long) k * (options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 1)
-					: headerGrid.getHeaderElapsedMs(k);
+			long elapsedMs = headerGrid.getHeaderElapsedMs(k);
 			XLSUtils.setValue(sheet, pt, transpose,
 					SpotExcelTimeline.formatElapsedColumnHeader(elapsedMs, options.buildExcelUnitMs));
 			pt.y++;
@@ -157,7 +157,7 @@ public abstract class XLSExportSpots extends XLSExport {
 	 */
 	protected void writeSpotProperties(SXSSFSheet sheet, Point pt, boolean transpose, Spot spot, Cage cage,
 			String charSeries, EnumResults resultType) {
-		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_VOLUME, transpose,
+		writeFiniteDoubleAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_VOLUME, transpose,
 				spot.getProperties().getSpotVolume());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_PIXELS, transpose,
 				spot.getProperties().getSpotNPixels());
@@ -176,9 +176,23 @@ public abstract class XLSExportSpots extends XLSExport {
 				cage.getProperties().getCageNFlies());
 		
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_COLOR, transpose,
-				ColorUtils.getFriendlyColorName(spot.getProperties().getColor()));
+				ColorUtils.getFriendlyColorName(resolveSpotColor(spot)));
 
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DUM5, transpose, spot.getProperties().getStimulusI());
+	}
+
+	protected void writeFiniteDoubleAtColumn(SXSSFSheet sheet, Point pt, EnumXLSColumnHeader column,
+			boolean transpose, double value) {
+		if (Double.isFinite(value)) {
+			XLSUtils.setValueAtColumn(sheet, pt, column, transpose, value);
+		}
+	}
+
+	private Color resolveSpotColor(Spot spot) {
+		if (spot != null && spot.getRoi() != null && spot.getRoi().getColor() != null) {
+			return spot.getRoi().getColor();
+		}
+		return spot != null && spot.getProperties() != null ? spot.getProperties().getColor() : null;
 	}
 }
 

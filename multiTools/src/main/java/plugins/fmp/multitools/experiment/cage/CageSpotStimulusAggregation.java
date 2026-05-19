@@ -11,10 +11,8 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spots.Spots;
-import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 
 /**
  * Builds cage-level spot aggregates grouped by (stimulus, concentration).
@@ -97,57 +95,6 @@ public final class CageSpotStimulusAggregation {
 			}
 		}
 		return new ArrayList<>(keys);
-	}
-
-	public static List<AggregateSeries> buildAggregates(Experiment exp, Cage cage, Spots allSpots,
-			ResultsOptions options, SpotExcelTimeline.SpotExcelGrid grid) {
-		Objects.requireNonNull(cage, "cage");
-		if (allSpots == null || options == null || grid == null) {
-			return List.of();
-		}
-
-		if (!supportsAggregateResultType(options.resultType)) {
-			Logger.warn("CageSpotStimulusAggregation: unsupported resultType " + options.resultType);
-			return List.of();
-		}
-
-		List<Spot> spots = cage.getSpotList(allSpots);
-		if (spots.isEmpty()) {
-			return List.of();
-		}
-
-		// Preserve deterministic order: first appearance order in cage spot list.
-		Set<StimulusConcKey> keys = new LinkedHashSet<>();
-		for (Spot s : spots) {
-			if (s == null || s.getProperties() == null) {
-				continue;
-			}
-			keys.add(new StimulusConcKey(s.getProperties().getStimulus(), s.getProperties().getConcentration()));
-		}
-
-		List<AggregateSeries> out = new ArrayList<>(keys.size());
-		for (StimulusConcKey k : keys) {
-			ArrayList<Double> sum = initNanSeries(grid.getNBins());
-			int nExposed = 0;
-			for (Spot s : spots) {
-				if (s == null || s.getProperties() == null) {
-					continue;
-				}
-				StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
-						s.getProperties().getConcentration());
-				if (!k.equals(keySpot)) {
-					continue;
-				}
-				ArrayList<Double> norm = computeNormalizedConsumptionOverGrid(exp, s, options, grid);
-				if (norm == null) {
-					continue; // discard unusable spot
-				}
-				addFiniteInPlace(sum, norm);
-				nExposed++;
-			}
-			out.add(new AggregateSeries(k, sum, nExposed));
-		}
-		return out;
 	}
 
 	/**
@@ -258,100 +205,6 @@ public final class CageSpotStimulusAggregation {
 			}
 		}
 		return out;
-	}
-
-	/**
-	 * Returns normalized consumption series over the Excel grid, or null if the spot is unusable
-	 * (no data / invalid baseline max).
-	 */
-	private static ArrayList<Double> computeNormalizedConsumptionOverGrid(Experiment exp, Spot spot,
-			ResultsOptions options, SpotExcelTimeline.SpotExcelGrid grid) {
-		if (spot == null) {
-			return null;
-		}
-
-		SpotMeasure clean = spot.getSumClean();
-		if (clean == null || clean.getValues() == null || clean.getValues().length < 1) {
-			return null;
-		}
-
-		List<Double> v = clean.getValuesResampledToExcelGrid(grid);
-		if (v == null || v.isEmpty()) {
-			return null;
-		}
-		v = buildFlyMaskedCleanSeries(spot, grid, v);
-		if (v == null || v.isEmpty()) {
-			return null;
-		}
-
-		double maxBaseline = SpotPreConsumedSupport.computeBaselineMaxForResampled(exp, spot, v,
-				grid.getExcelDeltaMs(), options);
-		if (!(maxBaseline > 0.0) || !Double.isFinite(maxBaseline)) {
-			return null;
-		}
-
-		ArrayList<Double> out = new ArrayList<>(v.size());
-		for (int i = 0; i < v.size(); i++) {
-			Double dv = v.get(i);
-			if (dv == null || !Double.isFinite(dv)) {
-				out.add(Double.NaN);
-			} else {
-				out.add(SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, dv.doubleValue(), maxBaseline));
-			}
-		}
-		return out;
-	}
-
-	private static List<Double> buildFlyMaskedCleanSeries(Spot spot, SpotExcelTimeline.SpotExcelGrid grid,
-			List<Double> cleanValues) {
-		if (spot == null || cleanValues == null || cleanValues.isEmpty()) {
-			return cleanValues;
-		}
-
-		List<Double> flyPresentValues = null;
-		SpotMeasure flyPresent = spot.getFlyPresent();
-		if (flyPresent != null && flyPresent.getCount() > 0) {
-			flyPresentValues = flyPresent.getValuesResampledToExcelGrid(grid);
-		}
-
-		ArrayList<Double> masked = new ArrayList<>(cleanValues.size());
-		for (int i = 0; i < cleanValues.size(); i++) {
-			Double clean = cleanValues.get(i);
-			boolean flyOverSpot = flyPresentValues != null && i < flyPresentValues.size()
-					&& flyPresentValues.get(i) != null && flyPresentValues.get(i).doubleValue() > 0.0;
-			if (flyOverSpot || clean == null || !Double.isFinite(clean.doubleValue())) {
-				masked.add(Double.NaN);
-			} else {
-				masked.add(clean);
-			}
-		}
-		return fillInvalidCleanSamples(masked);
-	}
-
-	private static List<Double> fillInvalidCleanSamples(List<Double> values) {
-		if (values == null || values.isEmpty()) {
-			return values;
-		}
-		Double firstValid = null;
-		for (Double v : values) {
-			if (v != null && Double.isFinite(v.doubleValue())) {
-				firstValid = v;
-				break;
-			}
-		}
-		if (firstValid == null) {
-			return List.of();
-		}
-
-		ArrayList<Double> filled = new ArrayList<>(values.size());
-		double lastValid = firstValid.doubleValue();
-		for (Double v : values) {
-			if (v != null && Double.isFinite(v.doubleValue())) {
-				lastValid = v.doubleValue();
-			}
-			filled.add(lastValid);
-		}
-		return filled;
 	}
 
 	private static ArrayList<Double> initNanSeries(int n) {

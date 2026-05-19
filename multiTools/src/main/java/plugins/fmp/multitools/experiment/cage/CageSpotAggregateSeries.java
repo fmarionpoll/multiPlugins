@@ -1,7 +1,5 @@
 package plugins.fmp.multitools.experiment.cage;
 
-import java.util.ArrayList;
-
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
@@ -33,18 +31,6 @@ public final class CageSpotAggregateSeries {
 
 	public int getNSpotsExposed() {
 		return nSpotsExposed;
-	}
-
-	public ArrayList<Double> getDataValuesAsList() {
-		double[] v = measure != null ? measure.getValues() : null;
-		if (v == null || v.length == 0) {
-			return new ArrayList<>();
-		}
-		ArrayList<Double> out = new ArrayList<>(v.length);
-		for (double d : v) {
-			out.add(d);
-		}
-		return out;
 	}
 
 	public static CageSpotAggregateSeries fromNativeAggregate(CageSpotStimulusAggregation.AggregateSeries agg) {
