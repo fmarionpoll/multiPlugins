@@ -101,11 +101,17 @@ public class CageTableModelForSpots extends AbstractTableModel {
 
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
-		Cage cage = null;
-		if (expList != null && expList.getSelectedIndex() >= 0) {
-			Experiment exp = (Experiment) expList.getSelectedItem();
-			cage = exp.getCages().cagesList.get(rowIndex);
-		}
+//		Cage cage = null; 
+//		if (expList != null && expList.getSelectedIndex() >= 0) {
+//			Experiment exp = (Experiment) expList.getSelectedItem();
+//			cage = exp.getCages().cagesList.get(rowIndex);
+//		}
+		Cage cage = getCageAt(rowIndex);
+		setValueAt(aValue, cage, columnIndex);
+	}
+
+	public void setValueAt(Object aValue, Cage cage, int columnIndex) {
+
 		if (cage != null) {
 			switch (columnIndex) {
 			case 0:
@@ -143,6 +149,17 @@ public class CageTableModelForSpots extends AbstractTableModel {
 				break;
 			}
 		}
+	}
+
+	public Cage getCageAt(int rowIndex) {
+		Cage cage = null;
+		if (expList != null && expList.getSelectedIndex() >= 0) {
+			Experiment exp = (Experiment) expList.getSelectedItem();
+			if (rowIndex >= 0 && rowIndex < exp.getSpots().getSpotListCount()) {
+				cage = exp.getCages().getCageList().get(rowIndex);
+			}
+		}
+		return cage;
 	}
 
 }

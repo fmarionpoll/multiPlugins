@@ -41,6 +41,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	private JButton selectedCageButton = new JButton("Locate selected cage");
 
 	private JButton duplicateAllButton = new JButton("Cage to all");
+	private JButton duplicateCellToAllButton = new JButton("Cell to all");
 	private JComboBoxExperimentLazy expListComboLazy = null;
 	private Cages cagesArrayCopy = null;
 
@@ -67,6 +68,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(new JLabel("Duplicate:"));
+		panel2.add(duplicateCellToAllButton);
 		panel2.add(duplicateAllButton);
 		topPanel.add(panel2);
 
@@ -123,15 +125,17 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					int rowIndex = cageTable.getSelectedRow();
-					int columnIndex = cageTable.getSelectedColumn();
-					if (rowIndex >= 0) {
-						Object value = cageTable.cageTableModel.getValueAt(rowIndex, columnIndex);
-						for (Cage cage : exp.getCages().cagesList) {
-							int iID = cage.getProperties().getCageID();
-							cageTable.cageTableModel.setValueAt(value, iID, columnIndex);
-						}
-					}
+					duplicateCageToAll(exp);
+				}
+			}
+		});
+
+		duplicateCellToAllButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					duplicateCellToAll(exp);
 				}
 			}
 		});
@@ -221,6 +225,32 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		ListSelectionModel lsm = (ListSelectionModel) e.getSource();
 		int minIndex = lsm.getMinSelectionIndex();
 		selectCage(minIndex);
+	}
+
+	private void duplicateCageToAll(Experiment exp) {
+		int rowIndex = cageTable.getSelectedRow();
+		int columnIndex = cageTable.getSelectedColumn();
+		if (rowIndex >= 0) {
+			Object value = cageTable.cageTableModel.getValueAt(rowIndex, columnIndex);
+			for (Cage cage : exp.getCages().cagesList) {
+				int iID = cage.getProperties().getCageID();
+				cageTable.cageTableModel.setValueAt(value, iID, columnIndex);
+			}
+		}
+	}
+
+	private void duplicateCellToAll(Experiment exp) {
+		Cages allCages = exp.getCages();
+		int columnIndex = cageTable.getSelectedColumn();
+		int rowIndex = cageTable.getSelectedRow();
+		if (rowIndex < 0 || columnIndex < 0)
+			return;
+
+		Object value = cageTable.cageTableModel.getValueAt(rowIndex, columnIndex);
+		for (Cage cage : allCages.getCageList()) {
+			cageTable.cageTableModel.setValueAt(value, cage, columnIndex);
+		}
+		cageTable.cageTableModel.fireTableDataChanged();
 	}
 
 }
