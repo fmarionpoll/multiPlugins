@@ -15,23 +15,23 @@ import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.geom.Path2D;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.AbstractButton;
-import javax.swing.JButton;
 import javax.swing.Icon;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.UIManager;
 import javax.swing.JScrollPane;
 import javax.swing.ListSelectionModel;
+import javax.swing.UIManager;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.event.TableModelListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 
 import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
@@ -64,8 +64,8 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	private JButton duplicateRowAtCagePositionButton = new JButton("Row at cage pos");
 	private JButton duplicatePreviousButton = new JButton("Row above");
 	private JButton duplicateNextButton = new JButton("Row below");
-	private JButton duplicateCageButton = new JButton("Cage to all");
-	private JButton duplicateAllButton = new JButton("Cell to all");
+	private JButton duplicateCagetoAllButton = new JButton("Cage to all");
+	private JButton duplicateCellToAllButton = new JButton("Cell to all");
 
 	private JComboBoxExperimentLazy expListComboLazy = null;
 	private Spots allSpotsCopy = null;
@@ -86,8 +86,8 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(new JLabel("Duplicate:"));
 		panel2.add(duplicateRowAtCagePositionButton);
-		panel2.add(duplicateAllButton);
-		panel2.add(duplicateCageButton);
+		panel2.add(duplicateCellToAllButton);
+		panel2.add(duplicateCagetoAllButton);
 		panel2.add(duplicatePreviousButton);
 		panel2.add(duplicateNextButton);
 		topPanel.add(panel2);
@@ -164,7 +164,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			}
 		});
 
-		duplicateCageButton.addActionListener(new ActionListener() {
+		duplicateCagetoAllButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
@@ -191,12 +191,12 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			}
 		});
 
-		duplicateAllButton.addActionListener(new ActionListener() {
+		duplicateCellToAllButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					duplicateAll(exp);
+					duplicateCellToAll(exp);
 				}
 			}
 		});
@@ -350,35 +350,29 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	private void measureNPixelsForAllSpots(Experiment exp) {
 		Spots allSpots = exp.getSpots();
 		int columnIndex = 1;
-		for (Cage cage : exp.getCages().cagesList) {
-			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			for (Spot spot : cageSpots) {
-				try {
-					int value = (int) spot.getRoi().getNumberOfPoints();
-					int iID = exp.getCages().getSpotGlobalPosition(spot, allSpots);
-					spotTable.spotTableModel.setValueAt(value, iID, columnIndex);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+		for (Spot spot : allSpots.getSpotList()) {
+			try {
+				int value = (int) spot.getRoi().getNumberOfPoints();
+				spotTable.spotTableModel.setValueAt(value, spot, columnIndex);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		}
+		spotTable.spotTableModel.fireTableDataChanged();
 	}
 
-	private void transferFromSpot(Experiment exp, Spot spotTo, Spot spotFrom) {
-		Spots allSpots = exp.getSpots();
-		int iID = exp.getCages().getSpotGlobalPosition(spotTo, allSpots);
+	private void transferFromSpot(Spot spotTo, Spot spotFrom) {
 		int columnIndex = 2;
 		SpotProperties prop = spotFrom.getProperties();
-		spotTable.spotTableModel.setValueAt(prop.getSpotVolume(), iID, columnIndex);
+		spotTable.spotTableModel.setValueAt(prop.getSpotVolume(), spotTo, columnIndex);
 		columnIndex = 5;
-		spotTable.spotTableModel.setValueAt(prop.getCageRow(), iID, columnIndex);
+		spotTable.spotTableModel.setValueAt(prop.getCageRow(), spotTo, columnIndex);
 		columnIndex = 7;
-		spotTable.spotTableModel.setValueAt(prop.getStimulus(), iID, columnIndex);
+		spotTable.spotTableModel.setValueAt(prop.getStimulus(), spotTo, columnIndex);
 		columnIndex = 8;
-		spotTable.spotTableModel.setValueAt(prop.getConcentration(), iID, columnIndex);
+		spotTable.spotTableModel.setValueAt(prop.getConcentration(), spotTo, columnIndex);
 		columnIndex = 9;
-		spotTable.spotTableModel.setValueAt(prop.getColor(), iID, columnIndex);
+		spotTable.spotTableModel.setValueAt(prop.getColor(), spotTo, columnIndex);
 	}
 
 	private void duplicatePos(Experiment exp) {
@@ -387,10 +381,9 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		if (rowIndex < 0)
 			return;
 
-		String spotName = (String) spotTable.getValueAt(rowIndex, 0);
-		Spot spotFrom = exp.getCages().getSpotFromROIName(spotName, allSpots);
+		Spot spotFrom = spotTable.spotTableModel.getSpotAt(rowIndex);
 		if (spotFrom == null) {
-			System.out.println("spot not found: " + spotName);
+			System.out.println("spot not found at row: " + rowIndex);
 			return;
 		}
 
@@ -399,16 +392,15 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		int cagePosition = prop.getCagePosition();
 		int cageID = prop.getCageID();
 
-		for (Cage cage : exp.getCages().cagesList) {
-			if (cage.getProperties().getCageID() == cageID)
+		for (Spot spot : allSpots.getSpotList()) {
+			SpotProperties spotProp = spot.getProperties();
+			if (spotProp.getCageID() == cageID)
 				continue;
-			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			for (Spot spot : cageSpots) {
-				if (spot.getProperties().getCagePosition() != cagePosition)
-					continue;
-				transferFromSpot(exp, spot, spotFrom);
-			}
+			if (spotProp.getCagePosition() != cagePosition)
+				continue;
+			transferFromSpot(spot, spotFrom);
 		}
+		spotTable.spotTableModel.fireTableDataChanged();
 	}
 
 	private void duplicateRelativeRow(Experiment exp, int delta) {
@@ -434,24 +426,22 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			System.out.println("spot not found or invalid: " + spotName);
 			return;
 		}
-		transferFromSpot(exp, spotTo, spotFrom);
+		transferFromSpot(spotTo, spotFrom);
+		spotTable.spotTableModel.fireTableDataChanged();
 	}
 
-	private void duplicateAll(Experiment exp) {
+	private void duplicateCellToAll(Experiment exp) {
 		Spots allSpots = exp.getSpots();
 		int columnIndex = spotTable.getSelectedColumn();
 		int rowIndex = spotTable.getSelectedRow();
-		if (rowIndex < 0)
+		if (rowIndex < 0 || columnIndex < 0)
 			return;
 
 		Object value = spotTable.spotTableModel.getValueAt(rowIndex, columnIndex);
-		for (Cage cage : exp.getCages().cagesList) {
-			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			for (Spot spot : cageSpots) {
-				int iID = exp.getCages().getSpotGlobalPosition(spot, allSpots);
-				spotTable.spotTableModel.setValueAt(value, iID, columnIndex);
-			}
+		for (Spot spot : allSpots.getSpotList()) {
+			spotTable.spotTableModel.setValueAt(value, spot, columnIndex);
 		}
+		spotTable.spotTableModel.fireTableDataChanged();
 	}
 
 	private void duplicateCage(Experiment exp) {
@@ -460,24 +450,42 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		if (rowIndex < 0)
 			return;
 
-		Spot spotFromSelectedRow = exp.getCages().getSpotAtGlobalIndex(rowIndex, allSpots);
-		int cageIDFrom = spotFromSelectedRow.getProperties().getCageID();
-		Cage cageFrom = exp.getCages().getCageFromSpotName(spotFromSelectedRow.getRoi().getName());
+		Spot spotFromSelectedRow = spotTable.spotTableModel.getSpotAt(rowIndex);
+		if (spotFromSelectedRow == null)
+			return;
 
-		List<Spot> cageFromSpots = cageFrom.getSpotList(allSpots);
-		for (Cage cage : exp.getCages().cagesList) {
-			if (cage.getProperties().getCageID() == cageIDFrom)
+		int cageIDFrom = spotFromSelectedRow.getProperties().getCageID();
+		List<Spot> cageFromSpots = getSpotsForCage(allSpots, cageIDFrom);
+
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot.getProperties().getCageID() == cageIDFrom)
 				continue;
 
-			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			for (int i = 0; i < cageSpots.size(); i++) {
-				Spot spot = cageSpots.get(i);
-				if (i >= cageFromSpots.size())
-					continue;
-				Spot spotFrom = cageFromSpots.get(i);
-				transferFromSpot(exp, spot, spotFrom);
+			Spot spotFrom = getSpotAtCagePosition(cageFromSpots, spot.getProperties().getCagePosition());
+			if (spotFrom == null)
+				continue;
+			transferFromSpot(spot, spotFrom);
+		}
+		spotTable.spotTableModel.fireTableDataChanged();
+	}
+
+	private List<Spot> getSpotsForCage(Spots allSpots, int cageID) {
+		List<Spot> spots = new ArrayList<Spot>();
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot.getProperties().getCageID() == cageID) {
+				spots.add(spot);
 			}
 		}
+		return spots;
+	}
+
+	private Spot getSpotAtCagePosition(List<Spot> spots, int cagePosition) {
+		for (Spot spot : spots) {
+			if (spot.getProperties().getCagePosition() == cagePosition) {
+				return spot;
+			}
+		}
+		return null;
 	}
 
 	public void selectRowFromSpot(Spot spot) {

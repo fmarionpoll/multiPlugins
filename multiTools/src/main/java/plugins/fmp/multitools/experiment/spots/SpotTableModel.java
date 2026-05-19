@@ -31,7 +31,7 @@ public class SpotTableModel extends AbstractTableModel {
 	public int getRowCount() {
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			return exp.getCages().getTotalNumberOfSpots(exp.getSpots());
+			return exp.getSpots().getSpotListCount();
 		}
 		return 0;
 	}
@@ -95,6 +95,10 @@ public class SpotTableModel extends AbstractTableModel {
 	@Override
 	public void setValueAt(Object aValue, int rowIndex, int columnIndex) {
 		Spot spot = getSpotAt(rowIndex);
+		setValueAt(aValue, spot, columnIndex);
+	}
+
+	public void setValueAt(Object aValue, Spot spot, int columnIndex) {
 		if (spot != null && spot.getProperties() != null) {
 			switch (columnIndex) {
 
@@ -141,7 +145,9 @@ public class SpotTableModel extends AbstractTableModel {
 		Spot spot = null;
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			spot = exp.getCages().getSpotAtGlobalIndex(rowIndex, exp.getSpots());
+			if (rowIndex >= 0 && rowIndex < exp.getSpots().getSpotListCount()) {
+				spot = exp.getSpots().getSpotList().get(rowIndex);
+			}
 		}
 		return spot;
 	}
