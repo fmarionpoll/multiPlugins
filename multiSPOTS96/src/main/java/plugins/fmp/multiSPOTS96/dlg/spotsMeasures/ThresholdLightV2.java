@@ -36,7 +36,10 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 /**
- * V2 threshold panel for spot measures.\n+ *\n+ * This panel intentionally mirrors {@link ThresholdLight} but is kept separate\n+ * so we can iterate on V2-only parameters/UI while leaving V1 untouched.\n+ */
+ * V2 threshold panel for spot measures.\n+ *\n+ * This panel intentionally
+ * mirrors {@link ThresholdLight} but is kept separate\n+ * so we can iterate on
+ * V2-only parameters/UI while leaving V1 untouched.\n+
+ */
 public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 
@@ -48,11 +51,10 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 	private String[] directions = new String[] { " threshold <", " threshold >" };
 	private ImageTransformEnums[] transforms = new ImageTransformEnums[] { ImageTransformEnums.R_RGB,
 			ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, ImageTransformEnums.B_MINUS_MINRG,
-			ImageTransformEnums.B_MINUS_MEANGREY_CTR, ImageTransformEnums.R2MINUS_GB,
-			ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.RGB,
-			ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G, ImageTransformEnums.RGMINUS_2B,
-			ImageTransformEnums.RGB_DIFFS, ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB,
-			ImageTransformEnums.B_HSB };
+			ImageTransformEnums.B_MINUS_MEANGREY_CTR, ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB,
+			ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R,
+			ImageTransformEnums.RBMINUS_2G, ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS,
+			ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
 	private JComboBox<ImageTransformEnums> spotsTransformsComboBox = new JComboBox<ImageTransformEnums>(transforms);
 	private JComboBox<String> spotsDirectionComboBox = new JComboBox<String>(directions);
 	private JSpinner spotsThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 255, 1));
@@ -125,7 +127,8 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 	}
 
 	private void syncDetectionModeFromViewOptions() {
-		SpotDetectionMode mode = (parent0 != null) ? parent0.viewOptions.getSpotDetectionMode() : SpotDetectionMode.AUTO;
+		SpotDetectionMode mode = (parent0 != null) ? parent0.viewOptions.getSpotDetectionMode()
+				: SpotDetectionMode.AUTO;
 		usePipelinedDetectionCheckBox.setSelected(mode == SpotDetectionMode.PIPELINED);
 	}
 
@@ -327,10 +330,10 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 		updateCanvasFunctions(exp, index);
 	}
 
-	private void removeOverlays(Experiment exp) {
-		if (exp.getSeqCamData() != null)
-			exp.getSeqCamData().removeOverlay();
-	}
+//	private void removeOverlays(Experiment exp) {
+//		if (exp.getSeqCamData() != null)
+//			exp.getSeqCamData().removeOverlay();
+//	}
 
 	private void updateCanvasFunctions(Experiment exp, int index) {
 		if (exp.getSeqCamData() != null)
@@ -360,15 +363,15 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 		c3.setTransformStep1(index + 1, null);
 	}
 
-	private void updateTransformFunctions2OfCanvas(IcyCanvas canvas) {
-		if (!(canvas instanceof Canvas2D_3Transforms))
-			return;
-		Canvas2D_3Transforms c3 = (Canvas2D_3Transforms) canvas;
-		if (c3.getTransformStep1ItemCount() < (fliesDirectionComboBox.getItemCount() + 1))
-			c3.updateTransformsStep1(transforms);
-		int index = fliesDirectionComboBox.getSelectedIndex();
-		c3.setTransformStep1(index + 1, null);
-	}
+//	private void updateTransformFunctions2OfCanvas(IcyCanvas canvas) {
+//		if (!(canvas instanceof Canvas2D_3Transforms))
+//			return;
+//		Canvas2D_3Transforms c3 = (Canvas2D_3Transforms) canvas;
+//		if (c3.getTransformStep1ItemCount() < (fliesDirectionComboBox.getItemCount() + 1))
+//			c3.updateTransformsStep1(transforms);
+//		int index = fliesDirectionComboBox.getSelectedIndex();
+//		c3.setTransformStep1(index + 1, null);
+//	}
 
 	private BuildSpotsMeasuresLight getProcessor() {
 		return processorRef != null ? processorRef.get() : null;
@@ -392,4 +395,3 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 		}
 	}
 }
-

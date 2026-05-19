@@ -128,7 +128,7 @@ public enum EnumResults {
 	 * Computed cage-level aggregate: sum over spots grouped by (stimulus, concentration)
 	 * of normalized AREA_SUMCLEAN consumption (not persisted as its own spot field).
 	 */
-	AGG_SUMCLEAN("AGG_SUMCLEAN", "normalized sum", "CLEAN aggregate by (stimulus, conc) per cage",
+	AGG_SUMCLEAN("AGG_SUMCLEAN", "spots consumed (0..N)", "CLEAN aggregate: sum of per-spot normalized consumption by (stimulus, conc) per cage",
 			StoredDataAccessors.notImplemented_TTOGULP_LR());
 
 	public enum PersistenceDomain {

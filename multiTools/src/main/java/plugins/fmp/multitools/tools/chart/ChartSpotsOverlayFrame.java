@@ -26,9 +26,9 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.xy.XYDataItem;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
-import org.jfree.data.xy.XYDataItem;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
@@ -37,8 +37,8 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
-import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
+import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -47,6 +47,7 @@ public class ChartSpotsOverlayFrame {
 
 	private static final int DEFAULT_FRAME_WIDTH = 500;
 	private static final int DEFAULT_FRAME_HEIGHT = 200;
+
 	public interface SelectedSpotsProvider {
 		List<Spot> getSelectedSpots();
 	}
@@ -112,9 +113,9 @@ public class ChartSpotsOverlayFrame {
 	private JCheckBox cbSum = new JCheckBox("sum");
 	private JCheckBox cbNoFly = new JCheckBox("sumNoFly");
 	private JCheckBox cbClean = new JCheckBox("clean");
-	private JCheckBox cbSumV2 = new JCheckBox("sumV2");
-	private JCheckBox cbNoFlyV2 = new JCheckBox("sumNoFlyV2");
-	private JCheckBox cbCleanV2 = new JCheckBox("cleanV2");
+//	private JCheckBox cbSumV2 = new JCheckBox("sumV2");
+//	private JCheckBox cbNoFlyV2 = new JCheckBox("sumNoFlyV2");
+//	private JCheckBox cbCleanV2 = new JCheckBox("cleanV2");
 	private JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
 	private JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
 	private JComboBox<SpotChoice> spotSelectorCombo = null;
@@ -265,9 +266,9 @@ public class ChartSpotsOverlayFrame {
 		row1.add(spotSelectorCombo);
 		row1.add(updateButton);
 
-		row2.add(cbSumV2);
-		row2.add(cbNoFlyV2);
-		row2.add(cbCleanV2);
+//		row2.add(cbSumV2);
+//		row2.add(cbNoFlyV2);
+//		row2.add(cbCleanV2);
 
 		panel.add(row1, BorderLayout.NORTH);
 		panel.add(row2, BorderLayout.SOUTH);
@@ -277,9 +278,9 @@ public class ChartSpotsOverlayFrame {
 		cbSum.addActionListener(e -> onMeasureCheckboxChanged());
 		cbNoFly.addActionListener(e -> onMeasureCheckboxChanged());
 		cbClean.addActionListener(e -> onMeasureCheckboxChanged());
-		cbSumV2.addActionListener(e -> onMeasureCheckboxChanged());
-		cbNoFlyV2.addActionListener(e -> onMeasureCheckboxChanged());
-		cbCleanV2.addActionListener(e -> onMeasureCheckboxChanged());
+//		cbSumV2.addActionListener(e -> onMeasureCheckboxChanged());
+//		cbNoFlyV2.addActionListener(e -> onMeasureCheckboxChanged());
+//		cbCleanV2.addActionListener(e -> onMeasureCheckboxChanged());
 		cbFlyPresent.addActionListener(e -> onMeasureCheckboxChanged());
 		cbDepletion.addActionListener(e -> refreshChart());
 
@@ -304,12 +305,13 @@ public class ChartSpotsOverlayFrame {
 		cbSum.setSelected(resultLabelEquals(rt, "AREA_SUM"));
 		cbNoFly.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY"));
 		cbClean.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN"));
-		cbSumV2.setSelected(resultLabelEquals(rt, "AREA_SUM_V2"));
-		cbNoFlyV2.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY_V2"));
-		cbCleanV2.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN_V2"));
+//		cbSumV2.setSelected(resultLabelEquals(rt, "AREA_SUM_V2"));
+//		cbNoFlyV2.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY_V2"));
+//		cbCleanV2.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN_V2"));
 		cbFlyPresent.setSelected(resultLabelEquals(rt, "AREA_FLYPRESENT"));
-		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbSumV2.isSelected()
-				&& !cbNoFlyV2.isSelected() && !cbCleanV2.isSelected() && !cbFlyPresent.isSelected()) {
+		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() //
+//				&& !cbSumV2.isSelected()&& !cbNoFlyV2.isSelected() && !cbCleanV2.isSelected() //
+				&& !cbFlyPresent.isSelected()) {
 			cbClean.setSelected(true);
 		}
 	}
@@ -336,17 +338,18 @@ public class ChartSpotsOverlayFrame {
 			return;
 
 		// Keep the first checked in a stable priority order.
-		JCheckBox keep = cbCleanV2.isSelected() ? cbCleanV2
-				: cbNoFlyV2.isSelected() ? cbNoFlyV2
-						: cbSumV2.isSelected() ? cbSumV2
-								: cbClean.isSelected() ? cbClean
-										: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
+		JCheckBox keep = // cbCleanV2.isSelected() ? cbCleanV2
+				// : cbNoFlyV2.isSelected() ? cbNoFlyV2
+				// : cbSumV2.isSelected() ? cbSumV2
+				// : //
+				cbClean.isSelected() ? cbClean
+						: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
 		cbSum.setSelected(keep == cbSum);
 		cbNoFly.setSelected(keep == cbNoFly);
 		cbClean.setSelected(keep == cbClean);
-		cbSumV2.setSelected(keep == cbSumV2);
-		cbNoFlyV2.setSelected(keep == cbNoFlyV2);
-		cbCleanV2.setSelected(keep == cbCleanV2);
+//		cbSumV2.setSelected(keep == cbSumV2);
+//		cbNoFlyV2.setSelected(keep == cbNoFlyV2);
+//		cbCleanV2.setSelected(keep == cbCleanV2);
 		cbFlyPresent.setSelected(keep == cbFlyPresent);
 	}
 
@@ -358,12 +361,12 @@ public class ChartSpotsOverlayFrame {
 			n++;
 		if (cbClean.isSelected())
 			n++;
-		if (cbSumV2.isSelected())
-			n++;
-		if (cbNoFlyV2.isSelected())
-			n++;
-		if (cbCleanV2.isSelected())
-			n++;
+//		if (cbSumV2.isSelected())
+//			n++;
+//		if (cbNoFlyV2.isSelected())
+//			n++;
+//		if (cbCleanV2.isSelected())
+//			n++;
 		if (cbFlyPresent.isSelected())
 			n++;
 		return n;
@@ -438,7 +441,8 @@ public class ChartSpotsOverlayFrame {
 
 			List<Spot> spots = dedupeSpots(getAvailableSpotsFromProvider());
 			List<Spot> sorted = new ArrayList<>(spots);
-			Collections.sort(sorted, Comparator.comparing(s -> s != null ? safeLower(s.getName()) : "", String::compareTo));
+			Collections.sort(sorted,
+					Comparator.comparing(s -> s != null ? safeLower(s.getName()) : "", String::compareTo));
 			for (Spot s : sorted) {
 				if (s == null)
 					continue;
@@ -476,7 +480,8 @@ public class ChartSpotsOverlayFrame {
 			if (refreshed != null && !refreshed.isEmpty()) {
 				lastSelectedSpots = refreshed;
 			}
-			// UX: when the sequence selection yields a single spot, select that spot explicitly in the combo
+			// UX: when the sequence selection yields a single spot, select that spot
+			// explicitly in the combo
 			// so users can immediately see which spot's curve they're looking at.
 			maybeSelectSingleSpotInCombo(lastSelectedSpots);
 		} else if (choice != null && choice.mode == SpotChoiceMode.FIXED_SPOT && choice.spot != null) {
@@ -645,12 +650,12 @@ public class ChartSpotsOverlayFrame {
 			addResultIfDefined(out, "AREA_SUMNOFLY");
 		if (cbClean.isSelected())
 			addResultIfDefined(out, "AREA_SUMCLEAN");
-		if (cbSumV2.isSelected())
-			addResultIfDefined(out, "AREA_SUM_V2");
-		if (cbNoFlyV2.isSelected())
-			addResultIfDefined(out, "AREA_SUMNOFLY_V2");
-		if (cbCleanV2.isSelected())
-			addResultIfDefined(out, "AREA_SUMCLEAN_V2");
+//		if (cbSumV2.isSelected())
+//			addResultIfDefined(out, "AREA_SUM_V2");
+//		if (cbNoFlyV2.isSelected())
+//			addResultIfDefined(out, "AREA_SUMNOFLY_V2");
+//		if (cbCleanV2.isSelected())
+//			addResultIfDefined(out, "AREA_SUMCLEAN_V2");
 		if (cbFlyPresent.isSelected())
 			addResultIfDefined(out, "AREA_FLYPRESENT");
 		return out;
@@ -760,8 +765,8 @@ public class ChartSpotsOverlayFrame {
 				java.awt.BasicStroke.JOIN_BEVEL, 0f, new float[] { 6f, 5f }, 0f);
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = String.valueOf(dataset.getSeriesKey(i));
-			boolean v2 = key.contains("AREA_SUM_V2") || key.contains("AREA_SUMNOFLY_V2") || key.contains("AREA_SUMCLEAN_V2")
-					|| key.contains("_V2");
+			boolean v2 = key.contains("AREA_SUM_V2") || key.contains("AREA_SUMNOFLY_V2")
+					|| key.contains("AREA_SUMCLEAN_V2") || key.contains("_V2");
 			renderer.setSeriesStroke(i, v2 ? dashed : solid);
 		}
 	}

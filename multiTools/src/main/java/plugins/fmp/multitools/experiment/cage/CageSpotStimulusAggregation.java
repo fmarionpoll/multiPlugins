@@ -127,7 +127,7 @@ public final class CageSpotStimulusAggregation {
 
 		List<AggregateSeries> out = new ArrayList<>(keys.size());
 		for (StimulusConcKey k : keys) {
-			ArrayList<Double> sum = initZeroSeries(grid.getNBins());
+			ArrayList<Double> sum = initNanSeries(grid.getNBins());
 			int nExposed = 0;
 			for (Spot s : spots) {
 				if (s == null || s.getProperties() == null) {
@@ -142,10 +142,120 @@ public final class CageSpotStimulusAggregation {
 				if (norm == null) {
 					continue; // discard unusable spot
 				}
-				addInPlace(sum, norm);
+				addFiniteInPlace(sum, norm);
 				nExposed++;
 			}
 			out.add(new AggregateSeries(k, sum, nExposed));
+		}
+		return out;
+	}
+
+	/**
+	 * Builds aggregates directly on the stored spot sample index. This is the path used by
+	 * charts so AGG_SUMCLEAN has the same time base as the displayed AREA_SUMCLEAN spot curves.
+	 */
+	public static List<AggregateSeries> buildAggregatesOnNativeSamples(Experiment exp, Cage cage, Spots allSpots,
+			ResultsOptions options) {
+		Objects.requireNonNull(cage, "cage");
+		if (allSpots == null || options == null) {
+			return List.of();
+		}
+		List<Spot> spots = cage.getSpotList(allSpots);
+		if (spots.isEmpty()) {
+			return List.of();
+		}
+
+		double[] camTimeMin = null;
+		if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getTimeManager() != null) {
+			if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null) {
+				exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
+			}
+			camTimeMin = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		}
+
+		Set<StimulusConcKey> keys = new LinkedHashSet<>();
+		for (Spot s : spots) {
+			if (s != null && s.getProperties() != null) {
+				keys.add(new StimulusConcKey(s.getProperties().getStimulus(), s.getProperties().getConcentration()));
+			}
+		}
+
+		List<AggregateSeries> out = new ArrayList<>(keys.size());
+		for (StimulusConcKey k : keys) {
+			int n = nativeAggregateLength(spots, k, camTimeMin);
+			if (n <= 0) {
+				continue;
+			}
+			ArrayList<Double> sum = initNanSeries(n);
+			int nExposed = 0;
+			for (Spot s : spots) {
+				if (s == null || s.getProperties() == null) {
+					continue;
+				}
+				StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
+						s.getProperties().getConcentration());
+				if (!k.equals(keySpot)) {
+					continue;
+				}
+				ArrayList<Double> norm = computeNormalizedConsumptionNative(exp, s, options, camTimeMin, n);
+				if (norm == null) {
+					continue;
+				}
+				addFiniteInPlace(sum, norm);
+				nExposed++;
+			}
+			out.add(new AggregateSeries(k, sum, nExposed));
+		}
+		return out;
+	}
+
+	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin) {
+		int n = Integer.MAX_VALUE;
+		boolean found = false;
+		for (Spot s : spots) {
+			if (s == null || s.getProperties() == null || s.getSumClean() == null) {
+				continue;
+			}
+			StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
+					s.getProperties().getConcentration());
+			if (!key.equals(keySpot)) {
+				continue;
+			}
+			int count = s.getSumClean().getCount();
+			if (count <= 0) {
+				continue;
+			}
+			if (camTimeMin != null) {
+				count = Math.min(count, camTimeMin.length);
+			}
+			if (count > 0) {
+				n = Math.min(n, count);
+				found = true;
+			}
+		}
+		return found ? n : 0;
+	}
+
+	private static ArrayList<Double> computeNormalizedConsumptionNative(Experiment exp, Spot spot, ResultsOptions options,
+			double[] camTimeMin, int n) {
+		if (spot == null || spot.getSumClean() == null || spot.getSumClean().getValues() == null || n <= 0) {
+			return null;
+		}
+		SpotMeasure clean = spot.getSumClean();
+		int count = Math.min(n, clean.getCount());
+		double maxBaseline = SpotPreConsumedSupport.computeBaselineMaxValue(exp, spot, clean, camTimeMin, options);
+		if (!(maxBaseline > 0.0) || !Double.isFinite(maxBaseline)) {
+			return null;
+		}
+
+		ArrayList<Double> out = new ArrayList<>(count);
+		for (int i = 0; i < count; i++) {
+			double raw = clean.getValueAt(i);
+			if (!Double.isFinite(raw)) {
+				out.add(Double.NaN);
+			} else {
+				out.add(SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, raw, maxBaseline));
+			}
 		}
 		return out;
 	}
@@ -169,6 +279,10 @@ public final class CageSpotStimulusAggregation {
 		if (v == null || v.isEmpty()) {
 			return null;
 		}
+		v = buildFlyMaskedCleanSeries(spot, grid, v);
+		if (v == null || v.isEmpty()) {
+			return null;
+		}
 
 		double maxBaseline = SpotPreConsumedSupport.computeBaselineMaxForResampled(exp, spot, v,
 				grid.getExcelDeltaMs(), options);
@@ -179,29 +293,96 @@ public final class CageSpotStimulusAggregation {
 		ArrayList<Double> out = new ArrayList<>(v.size());
 		for (int i = 0; i < v.size(); i++) {
 			Double dv = v.get(i);
-			double raw = (dv != null && Double.isFinite(dv)) ? dv : 0.0;
-			out.add(SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, raw, maxBaseline));
+			if (dv == null || !Double.isFinite(dv)) {
+				out.add(Double.NaN);
+			} else {
+				out.add(SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, dv.doubleValue(), maxBaseline));
+			}
 		}
 		return out;
 	}
 
-	private static ArrayList<Double> initZeroSeries(int n) {
+	private static List<Double> buildFlyMaskedCleanSeries(Spot spot, SpotExcelTimeline.SpotExcelGrid grid,
+			List<Double> cleanValues) {
+		if (spot == null || cleanValues == null || cleanValues.isEmpty()) {
+			return cleanValues;
+		}
+
+		List<Double> flyPresentValues = null;
+		SpotMeasure flyPresent = spot.getFlyPresent();
+		if (flyPresent != null && flyPresent.getCount() > 0) {
+			flyPresentValues = flyPresent.getValuesResampledToExcelGrid(grid);
+		}
+
+		ArrayList<Double> masked = new ArrayList<>(cleanValues.size());
+		for (int i = 0; i < cleanValues.size(); i++) {
+			Double clean = cleanValues.get(i);
+			boolean flyOverSpot = flyPresentValues != null && i < flyPresentValues.size()
+					&& flyPresentValues.get(i) != null && flyPresentValues.get(i).doubleValue() > 0.0;
+			if (flyOverSpot || clean == null || !Double.isFinite(clean.doubleValue())) {
+				masked.add(Double.NaN);
+			} else {
+				masked.add(clean);
+			}
+		}
+		return fillInvalidCleanSamples(masked);
+	}
+
+	private static List<Double> fillInvalidCleanSamples(List<Double> values) {
+		if (values == null || values.isEmpty()) {
+			return values;
+		}
+		Double firstValid = null;
+		for (Double v : values) {
+			if (v != null && Double.isFinite(v.doubleValue())) {
+				firstValid = v;
+				break;
+			}
+		}
+		if (firstValid == null) {
+			return List.of();
+		}
+
+		ArrayList<Double> filled = new ArrayList<>(values.size());
+		double lastValid = firstValid.doubleValue();
+		for (Double v : values) {
+			if (v != null && Double.isFinite(v.doubleValue())) {
+				lastValid = v.doubleValue();
+			}
+			filled.add(lastValid);
+		}
+		return filled;
+	}
+
+	private static ArrayList<Double> initNanSeries(int n) {
 		ArrayList<Double> out = new ArrayList<>(Math.max(1, n));
 		for (int i = 0; i < n; i++) {
-			out.add(0.0);
+			out.add(Double.NaN);
 		}
 		return out;
 	}
 
-	private static void addInPlace(ArrayList<Double> acc, ArrayList<Double> add) {
+	/**
+	 * Sums finite addend values per bin. Bins where no addend contributed a finite value stay NaN.
+	 */
+	private static void addFiniteInPlace(ArrayList<Double> acc, ArrayList<Double> add) {
 		if (acc == null || add == null) {
 			return;
 		}
 		int n = Math.min(acc.size(), add.size());
 		for (int i = 0; i < n; i++) {
-			double a = acc.get(i) != null ? acc.get(i) : 0.0;
-			double b = add.get(i) != null ? add.get(i) : 0.0;
-			acc.set(i, a + b);
+			Double bv = add.get(i);
+			double b = (bv != null) ? bv.doubleValue() : Double.NaN;
+			if (!Double.isFinite(b)) {
+				continue;
+			}
+			Double av = acc.get(i);
+			double a = (av != null) ? av.doubleValue() : Double.NaN;
+			if (!Double.isFinite(a)) {
+				acc.set(i, b);
+			} else {
+				acc.set(i, a + b);
+			}
 		}
 	}
 }

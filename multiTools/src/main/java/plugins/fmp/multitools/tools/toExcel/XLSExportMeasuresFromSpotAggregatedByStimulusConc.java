@@ -1,14 +1,14 @@
 package plugins.fmp.multitools.tools.toExcel;
 
 import java.awt.Point;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.poi.xssf.streaming.SXSSFSheet;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
-import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.AggregateSeries;
+import plugins.fmp.multitools.experiment.cage.CageSpotAggregateSeries;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotProperties;
 import plugins.fmp.multitools.experiment.spots.Spots;
@@ -16,12 +16,12 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 
 /**
  * Excel export for spot measures aggregated at cage level by (stimulus, concentration).
  *
- * For AREA_SUMCLEAN, exports the sum of per-spot normalized consumption series:
+ * For AREA_SUMCLEAN, exports the sum of per-spot normalized consumption series on the native
+ * spot/camera sample index (same series as cage charts), not the Excel export time grid:
  *   (maxBaseline - v(t)) / maxBaseline
  * where maxBaseline is computed from the beginning of the series (see {@link ResultsOptions} parameters).
  */
@@ -51,11 +51,10 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		Point pt = new Point(col0, 0);
 		pt = writeExperimentSeparator(sheet, pt);
 
-		SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, options);
+		exp.getCages().prepareSpotAggregates(exp, options);
+
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = options.resultType;
-		EnumResults buildRt = EnumResults.AGG_SUMCLEAN.equals(savedRt) ? EnumResults.AGG_SUMCLEAN
-				: EnumResults.AREA_SUMCLEAN;
 		for (Cage cage : exp.getCages().cagesList) {
 			if (options.onlyalive && cage.getProperties().getCageNFlies() < 1) {
 				continue;
@@ -64,11 +63,16 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				continue;
 			}
 
-			options.resultType = buildRt;
-			List<AggregateSeries> series = CageSpotStimulusAggregation.buildAggregates(exp, cage, allSpots, options,
-					grid);
-			for (AggregateSeries s : series) {
-				if (s == null || s.values == null || s.values.isEmpty()) {
+			List<CageSpotAggregateSeries> series = cage.getSpotAggregates().getEntries();
+			if (series == null || series.isEmpty()) {
+				continue;
+			}
+			for (CageSpotAggregateSeries s : series) {
+				if (s == null) {
+					continue;
+				}
+				ArrayList<Double> values = s.getDataValuesAsList();
+				if (values.isEmpty()) {
 					continue;
 				}
 				pt.y = 0;
@@ -76,9 +80,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				Spot synthetic = buildSyntheticSpotForAggregate(cage, s);
 				pt = writeExperimentSpotInfos(sheet, pt, exp, charSeries, cage, synthetic, resultType);
 
-				Results r = new Results(cage.getProperties(), synthetic.getProperties(), s.values.size());
-				r.setDataValues(s.values);
-				r.initValuesOutArray(s.values.size(), Double.NaN);
+				Results r = new Results(cage.getProperties(), synthetic.getProperties(), values.size());
+				r.setDataValues(values);
+				r.initValuesOutArray(values.size(), Double.NaN);
 				// Keep scaling consistent with existing spot exports.
 				double scaling = allSpots.getScalingFactorToPhysicalUnits(resultType);
 				r.transferDataValuesToValuesOut(scaling, resultType);
@@ -92,20 +96,20 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		return pt.x;
 	}
 
-	private Spot buildSyntheticSpotForAggregate(Cage cage, AggregateSeries s) {
+	private Spot buildSyntheticSpotForAggregate(Cage cage, CageSpotAggregateSeries s) {
 		Spot spot = new Spot();
 		SpotProperties p = spot.getProperties();
 		p.setCageID(cage.getProperties().getCageID());
 		p.setCagePosition(-1);
 		p.setCageRow(-1);
 		p.setCageColumn(-1);
-		p.setStimulus(s.key.stimulus);
-		p.setConcentration(s.key.concentration);
+		p.setStimulus(s.getKey().stimulus);
+		p.setConcentration(s.getKey().concentration);
 		p.setSpotVolume(Double.NaN);
 		// Reuse the pixels column to store how many spots contributed.
-		p.setSpotNPixels(Math.max(0, s.nSpotsExposed));
+		p.setSpotNPixels(Math.max(0, s.getNSpotsExposed()));
 		p.setName("AGG");
-		p.setStimulusI("N=" + s.nSpotsExposed);
+		p.setStimulusI("N=" + s.getNSpotsExposed());
 		return spot;
 	}
 }

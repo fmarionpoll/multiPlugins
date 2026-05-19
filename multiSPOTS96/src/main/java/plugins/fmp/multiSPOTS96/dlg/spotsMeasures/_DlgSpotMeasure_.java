@@ -25,7 +25,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	public PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
 	ThresholdLight tabSimpleThresholdLight = new ThresholdLight();
-	ThresholdLightV2 tabThresholdLightV2 = new ThresholdLightV2();
+//	ThresholdLightV2 tabThresholdLightV2 = new ThresholdLightV2();
 //	ThresholdSimple tabSimpleThresholdAdvanced = new ThresholdSimple();
 //	ThresholdColors colorsThreshold = new ThresholdColors();
 	CleanGapsSpots tabCleanGaps = new CleanGapsSpots();
@@ -53,10 +53,10 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 		id_threshold = order;
 		order++;
 
-		tabThresholdLightV2.init(gridLayout, parent0);
-		tabThresholdLightV2.addPropertyChangeListener(this);
-		tabsPane.addTab("Threshold B2", null, tabThresholdLightV2, "Spots measures V2 (comparison channel)");
-		order++;
+//		tabThresholdLightV2.init(gridLayout, parent0);
+//		tabThresholdLightV2.addPropertyChangeListener(this);
+//		tabsPane.addTab("Threshold B2", null, tabThresholdLightV2, "Spots measures V2 (comparison channel)");
+//		order++;
 
 //		tabSimpleThresholdAdvanced.init(gridLayout, parent0);
 //		tabSimpleThresholdAdvanced.addPropertyChangeListener(this);

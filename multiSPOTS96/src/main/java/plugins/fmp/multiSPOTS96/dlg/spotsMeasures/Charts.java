@@ -45,8 +45,10 @@ public class Charts extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,
-			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_SUM_V2, EnumResults.AREA_SUMNOFLY_V2,
-			EnumResults.AREA_SUMCLEAN_V2, EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN };
+			EnumResults.AREA_SUMCLEAN, //
+			// EnumResults.AREA_SUM_V2, EnumResults.AREA_SUMNOFLY_V2,
+			// EnumResults.AREA_SUMCLEAN_V2, //
+			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -59,7 +61,7 @@ public class Charts extends JPanel implements SequenceListener {
 	private JCheckBox chartStopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
 	private JSpinner chartStableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
-	private JRadioButton displaySelectedButton = new JRadioButton("cage selected");
+	private JRadioButton displaySelectedCageButton = new JRadioButton("cage selected");
 	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
@@ -79,7 +81,7 @@ public class Charts extends JPanel implements SequenceListener {
 		JPanel panel02 = new JPanel(layout);
 		panel02.add(new JLabel(" display"));
 		panel02.add(displayAllButton);
-		panel02.add(displaySelectedButton);
+		panel02.add(displaySelectedCageButton);
 		panel02.add(displaySelectedSpotsButton);
 		add(panel02);
 
@@ -98,7 +100,7 @@ public class Charts extends JPanel implements SequenceListener {
 
 		ButtonGroup group1 = new ButtonGroup();
 		group1.add(displayAllButton);
-		group1.add(displaySelectedButton);
+		group1.add(displaySelectedCageButton);
 		group1.add(displaySelectedSpotsButton);
 		displayAllButton.setSelected(true);
 
@@ -188,7 +190,7 @@ public class Charts extends JPanel implements SequenceListener {
 			}
 		};
 		displayAllButton.addActionListener(refreshOnChange);
-		displaySelectedButton.addActionListener(refreshOnChange);
+		displaySelectedCageButton.addActionListener(refreshOnChange);
 		displaySelectedSpotsButton.addActionListener(refreshOnChange);
 
 		updateMeasureDependentControls();
@@ -260,9 +262,10 @@ public class Charts extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
-				.withCageRange(first, last).build();
 		boolean agg = exportType == EnumResults.AGG_SUMCLEAN;
+		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
+				.withCageRange(first, last).build();
 		options.relativeToMaximum = !agg && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
@@ -287,6 +290,21 @@ public class Charts extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().requestFocus();
 		}
 		return iChart;
+	}
+
+	private int resolveSpotChartStepMs(Experiment exp) {
+		if (exp == null) {
+			return 60000;
+		}
+		long kymoBinMs = exp.getKymoBin_ms();
+		if (kymoBinMs > 0 && kymoBinMs <= Integer.MAX_VALUE) {
+			return (int) kymoBinMs;
+		}
+		long camBinMs = exp.getCamImageBin_ms();
+		if (camBinMs > 0 && camBinMs <= Integer.MAX_VALUE) {
+			return (int) camBinMs;
+		}
+		return 60000;
 	}
 
 	private ChartCagesFrame plotSelectedSpotsOverlay(Experiment exp, EnumResults exportType) {

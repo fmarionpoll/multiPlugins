@@ -17,8 +17,8 @@ import icy.system.thread.ThreadUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
-import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.experiment.ui.TransferResultsHost;
+import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -173,9 +173,9 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.sum = spotsAreas.areaCheckBox.isSelected();
 		resultsOptions.spotSumNoFly = spotsAreas.sumNoFlyCheckBox.isSelected();
 		resultsOptions.spotSumClean = spotsAreas.sumCleanCheckBox.isSelected();
-		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
-		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
-		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();
+//		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
+//		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
+//		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();
 		resultsOptions.relativeToMaximum = spotsAreas.t0CheckBox.isSelected();
 		resultsOptions.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
 		resultsOptions.spotAggregateByStimulusConc = false;
@@ -202,8 +202,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreas.baselineMinutesSpinner.getValue())
 				.intValue();
 		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreas.stopWhenStableCheckBox.isSelected();
-		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreas.stableBinsSpinner.getValue())
-				.intValue();
+		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreas.stableBinsSpinner.getValue()).intValue();
 		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}

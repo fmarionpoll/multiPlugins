@@ -16,6 +16,9 @@ import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageCapillariesComputation;
+import plugins.fmp.multitools.experiment.cage.CageSpotAggregateSeries;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.AggregateSeries;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
@@ -1354,6 +1357,64 @@ public class Cages {
 
 		if (resultsOptions.resultType == EnumResults.TOPLEVEL_LR) {
 			computeLRMeasures(exp, resultsOptions.lrPIThreshold);
+		}
+
+		prepareSpotAggregates(exp, resultsOptions);
+	}
+
+	/**
+	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when charting/exporting
+	 * spot aggregates (AGG_SUMCLEAN or stimulus/conc aggregate export). Series are built on the
+	 * native spot/camera sample index (same basis as spot charts). Clears caches otherwise.
+	 */
+	public void prepareSpotAggregates(Experiment exp, ResultsOptions opt) {
+		if (opt == null) {
+			return;
+		}
+		if (exp == null || exp.getSpots() == null) {
+			for (Cage c : cagesList) {
+				if (c != null) {
+					c.getSpotAggregates().clear();
+				}
+			}
+			return;
+		}
+		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.spotAggregateByStimulusConc;
+		if (!need) {
+			for (Cage cage : cagesList) {
+				if (cage != null) {
+					cage.getSpotAggregates().clear();
+				}
+			}
+			return;
+		}
+		Spots allSpots = exp.getSpots();
+		EnumResults savedRt = opt.resultType;
+		EnumResults buildRt = savedRt == EnumResults.AGG_SUMCLEAN ? EnumResults.AGG_SUMCLEAN
+				: EnumResults.AREA_SUMCLEAN;
+		opt.resultType = buildRt;
+		try {
+			for (Cage cage : cagesList) {
+				if (cage == null) {
+					continue;
+				}
+				cage.getSpotAggregates().clear();
+				if (cage.getSpotList(allSpots).isEmpty()) {
+					continue;
+				}
+				List<AggregateSeries> nativeList = CageSpotStimulusAggregation.buildAggregatesOnNativeSamples(exp,
+						cage, allSpots, opt);
+				List<CageSpotAggregateSeries> entries = new ArrayList<>(nativeList.size());
+				for (AggregateSeries a : nativeList) {
+					CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(a);
+					if (row != null) {
+						entries.add(row);
+					}
+				}
+				cage.getSpotAggregates().setEntries(entries);
+			}
+		} finally {
+			opt.resultType = savedRt;
 		}
 	}
 

@@ -926,6 +926,7 @@ public class Spots {
 			return;
 		}
 		double[] out = runningMedianIgnoringNaN(in, span);
+		fillNaNPlateausFromFirstLastFinite(out);
 		sumClean.setValues(out);
 	}
 
@@ -950,7 +951,39 @@ public class Spots {
 				out[i] = 0.0;
 			}
 		}
+		fillNaNPlateausFromFirstLastFinite(out);
 		sumClean.setValues(out);
+	}
+
+	private static void fillNaNPlateausFromFirstLastFinite(double[] a) {
+		if (a == null || a.length == 0) {
+			return;
+		}
+		int first = -1;
+		for (int i = 0; i < a.length; i++) {
+			if (Double.isFinite(a[i])) {
+				first = i;
+				break;
+			}
+		}
+		if (first < 0) {
+			return;
+		}
+		for (int i = 0; i < first; i++) {
+			a[i] = a[first];
+		}
+		int last = -1;
+		for (int i = a.length - 1; i >= 0; i--) {
+			if (Double.isFinite(a[i])) {
+				last = i;
+				break;
+			}
+		}
+		if (last >= 0) {
+			for (int i = last + 1; i < a.length; i++) {
+				a[i] = a[last];
+			}
+		}
 	}
 
 	private static double[] runningMedianIgnoringNaN(double[] values, int span) {

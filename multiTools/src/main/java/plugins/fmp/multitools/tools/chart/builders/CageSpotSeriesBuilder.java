@@ -11,6 +11,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cage.CageSpotAggregateSeries;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.AggregateSeries;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
@@ -22,7 +23,6 @@ import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 
 /**
  * Builds cage datasets from Spot measurements.
@@ -120,15 +120,54 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 			return;
 		}
 
-		SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, options);
-		List<AggregateSeries> aggregates = CageSpotStimulusAggregation.buildAggregates(exp, cage, allSpots, options,
-				grid);
+		double[] camImagesTimeMin = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		List<CageSpotAggregateSeries> cached = cage.getSpotAggregates().getEntries();
+		List<CageSpotAggregateSeries> cachedRows = (cached != null && !cached.isEmpty()) ? cached : null;
+		List<AggregateSeries> aggregates = cachedRows != null ? null
+				: CageSpotStimulusAggregation.buildAggregatesOnNativeSamples(exp, cage, allSpots, options);
+
+		List<StimulusConcKey> globalOrder = options.spotAggregateGlobalKeyOrder;
+		int ai = 0;
+		if (cachedRows != null) {
+			for (CageSpotAggregateSeries row : cachedRows) {
+				if (row == null || row.getKey() == null || row.getMeasure() == null) {
+					continue;
+				}
+				StimulusConcKey key = row.getKey();
+				String seriesKey = SpotChartSeriesKeys.keyAggregate(cage.getProperties().getCageID(), key.stimulus,
+						key.concentration, ai++);
+				XYSeries seriesXY = new XYSeries(seriesKey, false);
+				int npoints = row.getMeasure().getCount();
+				if (camImagesTimeMin != null && npoints > camImagesTimeMin.length) {
+					npoints = camImagesTimeMin.length;
+				}
+				for (int k = 0; k < npoints; k++) {
+					double x = camImagesTimeMin != null ? camImagesTimeMin[k] : k;
+					double y = row.getMeasure().getValueAt(k);
+					if (!Double.isFinite(y)) {
+						continue;
+					}
+					seriesXY.add(x, y);
+				}
+				int paletteIndex = ai - 1;
+				if (globalOrder != null && !globalOrder.isEmpty()) {
+					int idx = globalOrder.indexOf(new StimulusConcKey(key.stimulus, key.concentration));
+					if (idx >= 0) {
+						paletteIndex = idx;
+					}
+				}
+				Color color = aggregatePaletteColor(paletteIndex);
+				seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
+						cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
+				dataset.addSeries(seriesXY);
+			}
+			return;
+		}
+
 		if (aggregates == null || aggregates.isEmpty()) {
 			return;
 		}
 
-		List<StimulusConcKey> globalOrder = options.spotAggregateGlobalKeyOrder;
-		int ai = 0;
 		for (AggregateSeries agg : aggregates) {
 			if (agg == null || agg.values == null || agg.values.isEmpty() || agg.key == null) {
 				continue;
@@ -138,8 +177,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 			XYSeries seriesXY = new XYSeries(seriesKey, false);
 
 			for (int k = 0; k < agg.values.size(); k++) {
-				long queryMs = grid.getClipStartMs() + (long) k * grid.getExcelDeltaMs();
-				double x = minutesAtElapsedMs(exp, queryMs);
+				double x = camImagesTimeMin != null && k < camImagesTimeMin.length ? camImagesTimeMin[k] : k;
 				double y = agg.values.get(k) != null ? agg.values.get(k) : Double.NaN;
 				if (!Double.isFinite(y)) {
 					continue;
@@ -168,49 +206,5 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		}
 		Paint p = paints[Math.max(0, index) % paints.length];
 		return p instanceof Color ? (Color) p : Color.BLACK;
-	}
-
-	private static double minutesAtElapsedMs(Experiment exp, long elapsedMsFromFirstFrame) {
-		if (exp == null || exp.getSeqCamData() == null) {
-			return elapsedMsFromFirstFrame / 60000.0;
-		}
-		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null) {
-			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
-		}
-		long[] cam = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
-		if (cam == null || cam.length < 1) {
-			return elapsedMsFromFirstFrame / 60000.0;
-		}
-		long origin = cam[0];
-		long queryAbs = origin + elapsedMsFromFirstFrame;
-
-		if (cam.length == 1) {
-			return (queryAbs - origin) / 60000.0;
-		}
-
-		if (queryAbs <= cam[0]) {
-			return 0.0;
-		}
-		if (queryAbs >= cam[cam.length - 1]) {
-			return (cam[cam.length - 1] - origin) / 60000.0;
-		}
-
-		for (int i = 1; i < cam.length; i++) {
-			long hi = cam[i];
-			if (queryAbs > hi) {
-				continue;
-			}
-			long lo = cam[i - 1];
-			long dt = hi - lo;
-			if (dt <= 0L) {
-				return (hi - origin) / 60000.0;
-			}
-			double alpha = (queryAbs - lo) / (double) dt;
-			double m0 = (lo - origin) / 60000.0;
-			double m1 = (hi - origin) / 60000.0;
-			return m0 + alpha * (m1 - m0);
-		}
-
-		return (cam[cam.length - 1] - origin) / 60000.0;
 	}
 }

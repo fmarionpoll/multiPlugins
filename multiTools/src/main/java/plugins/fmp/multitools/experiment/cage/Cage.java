@@ -52,6 +52,8 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 	public FlyPositions flyPositions = new FlyPositions();
 
+	private final CageSpotAggregates spotAggregates = new CageSpotAggregates();
+
 	// ID-based references (new approach)
 	private List<SpotID> spotIDs = new ArrayList<>();
 	private List<CapillaryID> capillaryIDs = new ArrayList<>();
@@ -299,9 +301,14 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return flyPositions;
 	}
 
+	public CageSpotAggregates getSpotAggregates() {
+		return spotAggregates;
+	}
+
 	public void clearMeasures() {
 		flyPositions.clear();
 		measures.clear();
+		spotAggregates.clear();
 	}
 
 	public Point2D getCenterTopCage() {
@@ -1348,6 +1355,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			Logger.debug("Closing cage: "); // + data.getName());
 			// Cleanup resources if needed
 			flyPositions.clear();
+			spotAggregates.clear();
 		}
 	}
 }
