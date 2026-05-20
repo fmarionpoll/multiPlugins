@@ -119,6 +119,10 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		pasteButton.setEnabled(false);
 	}
 
+	SpotTable getSpotTable() {
+		return spotTable;
+	}
+
 	private void defineActionListeners() {
 		copyButton.addActionListener(new ActionListener() {
 			@Override

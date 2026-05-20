@@ -89,6 +89,12 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		pasteButton.setEnabled(cagesArrayCopy != null);
 	}
 
+	void refreshSpotDerivedColumns() {
+		if (cageTable != null && cageTable.cageTableModel != null) {
+			cageTable.cageTableModel.fireTableDataChanged();
+		}
+	}
+
 	private void defineActionListeners() {
 		copyButton.addActionListener(new ActionListener() {
 			@Override

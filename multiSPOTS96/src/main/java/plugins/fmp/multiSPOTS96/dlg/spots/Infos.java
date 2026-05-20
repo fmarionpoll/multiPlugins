@@ -7,8 +7,10 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JPanel;
+import javax.swing.event.TableModelListener;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spots.SpotTable;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
@@ -24,6 +26,7 @@ public class Infos extends JPanel {
 	private InfosCageTable infosCageTable = null;
 	private InfosSpotTable infosSpotTable = null;
 	private JComboBoxExperimentLazy expListComboLazy = null;
+	private TableModelListener spotChangesRefreshCagesListener = null;
 
 	void init(GridLayout gridLayout, JComboBoxExperimentLazy expListComboLazy) {
 		setLayout(gridLayout);
@@ -70,15 +73,48 @@ public class Infos extends JPanel {
 		infosCageTable = new InfosCageTable();
 		infosCageTable.initialize(expListComboLazy);
 		infosCageTable.requestFocus();
+		attachSpotListenerForCagesRefresh();
 	}
 
 	void editSpotsInfos(Experiment exp) {
+		detachSpotListenerForCagesRefresh();
 		if (infosSpotTable != null) {
 			infosSpotTable.close();
 		}
 		infosSpotTable = new InfosSpotTable();
 		infosSpotTable.initialize(expListComboLazy);
 		infosSpotTable.requestFocus();
+		attachSpotListenerForCagesRefresh();
+	}
+
+	private void detachSpotListenerForCagesRefresh() {
+		if (spotChangesRefreshCagesListener == null) {
+			return;
+		}
+		if (infosSpotTable != null) {
+			SpotTable st = infosSpotTable.getSpotTable();
+			if (st != null && st.spotTableModel != null) {
+				st.spotTableModel.removeTableModelListener(spotChangesRefreshCagesListener);
+			}
+		}
+		spotChangesRefreshCagesListener = null;
+	}
+
+	private void attachSpotListenerForCagesRefresh() {
+		if (infosSpotTable == null) {
+			return;
+		}
+		SpotTable st = infosSpotTable.getSpotTable();
+		if (st == null || st.spotTableModel == null) {
+			return;
+		}
+		detachSpotListenerForCagesRefresh();
+		spotChangesRefreshCagesListener = e -> {
+			if (infosCageTable != null) {
+				infosCageTable.refreshSpotDerivedColumns();
+			}
+		};
+		st.spotTableModel.addTableModelListener(spotChangesRefreshCagesListener);
 	}
 
 	public void selectCage(Cage cage) {
