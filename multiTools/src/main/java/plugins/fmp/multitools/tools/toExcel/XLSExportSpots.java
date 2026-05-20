@@ -39,6 +39,7 @@ public abstract class XLSExportSpots extends XLSExport {
 			case AREA_SUM_V2:
 			case AREA_SUMNOFLY_V2:
 			case AREA_SUMCLEAN_V2:
+			case AREA_SUMCLEAN_V3:
 			case AREA_FLYPRESENT:
 			case AGG_SUMCLEAN:
 				return true;

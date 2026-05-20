@@ -45,7 +45,7 @@ public class Charts extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,
-			EnumResults.AREA_SUMCLEAN, //
+			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_SUMCLEAN_V3, //
 			// EnumResults.AREA_SUM_V2, EnumResults.AREA_SUMNOFLY_V2,
 			// EnumResults.AREA_SUMCLEAN_V2, //
 			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN };

@@ -126,6 +126,7 @@ public class SpotPersistence {
 		case AREA_SUM:
 		case AREA_SUMNOFLY:
 		case AREA_SUMCLEAN:
+		case AREA_SUMCLEAN_V3:
 		case AREA_FLYPRESENT:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
 					+ "npts" + sep + "yi\n";
@@ -147,6 +148,9 @@ public class SpotPersistence {
 			break;
 		case AREA_SUMCLEAN:
 			spot.getSumClean().exportYDataToCsv(sbf, sep);
+			break;
+		case AREA_SUMCLEAN_V3:
+			spot.getSumCleanV3().exportYDataToCsv(sbf, sep);
 			break;
 		case AREA_FLYPRESENT:
 			spot.getFlyPresent().exportIsPresentToCsv(sbf, sep);
@@ -305,6 +309,13 @@ public class SpotPersistence {
 				spot.getSumClean().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
 				spot.getSumClean().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case AREA_SUMCLEAN_V3:
+			if (x && y) {
+				spot.getSumCleanV3().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getSumCleanV3().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		case AREA_FLYPRESENT:

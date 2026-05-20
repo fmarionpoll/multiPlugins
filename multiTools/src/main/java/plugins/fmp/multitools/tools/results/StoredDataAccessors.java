@@ -255,6 +255,13 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_AREA_SUMCLEAN_V3() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"AREA_SUMCLEAN_V3 uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
 	/**
 	 * Accesses stored AREA_OUT data from Spot measurements. Used via:
 	 * spot.getMeasurements(AREA_OUT)

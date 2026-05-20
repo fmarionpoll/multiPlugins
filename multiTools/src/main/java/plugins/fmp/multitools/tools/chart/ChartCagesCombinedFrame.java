@@ -132,6 +132,7 @@ public class ChartCagesCombinedFrame {
 		case AREA_SUM:
 		case AREA_SUMNOFLY:
 		case AREA_SUMCLEAN:
+		case AREA_SUMCLEAN_V3:
 		case AREA_OUT:
 		case AREA_DIFF:
 		case AREA_FLYPRESENT:

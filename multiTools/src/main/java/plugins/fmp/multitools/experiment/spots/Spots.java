@@ -711,6 +711,82 @@ public class Spots {
 		}
 	}
 
+	/**
+	 * Tier A V3: {@code sumCleanV3} = per-spot {@code sumClean} minus experiment-wide median of {@code sumClean}
+	 * (across spots ready for analysis), then optional running-median smoothing of that reference with window
+	 * {@code wSmoothBins} (odd, at least 1).
+	 */
+	public void rebuildV3ResidualFromSumCleanExperimentMedian(int wSmoothBins) {
+		List<Spot> pool = new ArrayList<>();
+		for (Spot s : spotList) {
+			if (s == null || !s.isReadyForAnalysis()) {
+				continue;
+			}
+			SpotMeasure sc = s.getSumClean();
+			if (sc == null) {
+				continue;
+			}
+			double[] v = sc.getValues();
+			if (v == null || v.length == 0) {
+				continue;
+			}
+			pool.add(s);
+		}
+		if (pool.isEmpty()) {
+			return;
+		}
+		int n = Integer.MAX_VALUE;
+		for (Spot s : pool) {
+			n = Math.min(n, s.getSumClean().getCount());
+		}
+		if (n <= 0) {
+			return;
+		}
+
+		double[] rRaw = new double[n];
+		double[] scratch = new double[pool.size()];
+		for (int t = 0; t < n; t++) {
+			int m = 0;
+			for (Spot s : pool) {
+				double val = s.getSumClean().getValueAt(t);
+				if (Double.isFinite(val)) {
+					scratch[m++] = val;
+				}
+			}
+			rRaw[t] = medianOfFirstM(scratch, m);
+		}
+		int span = Math.max(1, wSmoothBins);
+		if ((span & 1) == 0) {
+			span++;
+		}
+		double[] rSmooth = runningMedianIgnoringNaN(rRaw, span);
+
+		for (Spot s : pool) {
+			double[] clean = s.getSumClean().getValues();
+			double[] out = new double[n];
+			for (int t = 0; t < n; t++) {
+				double c = t < clean.length ? clean[t] : Double.NaN;
+				double r = rSmooth[t];
+				if (Double.isFinite(c) && Double.isFinite(r)) {
+					out[t] = c - r;
+				} else {
+					out[t] = Double.NaN;
+				}
+			}
+			if (s.getSumCleanV3() != null) {
+				s.getSumCleanV3().setValues(out);
+			}
+		}
+	}
+
+	private static double medianOfFirstM(double[] scratch, int m) {
+		if (m <= 0) {
+			return Double.NaN;
+		}
+		java.util.Arrays.sort(scratch, 0, m);
+		return scratch[m / 2];
+	}
+
 	/** Inflates t0 measures for spots marked consumed before recording (see {@link SpotPreConsumedSupport}). */
 	public void applyPreConsumedReferenceAtT0(Experiment exp) {
 		SpotPreConsumedSupport.applyPreConsumedReferenceAtT0(exp);
