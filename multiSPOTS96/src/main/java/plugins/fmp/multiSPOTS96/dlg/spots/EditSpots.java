@@ -580,6 +580,7 @@ public class EditSpots extends JPanel {
 	private void cleanUpSpotNames(Experiment exp) {
 		Spots allSpots = exp.getSpots();
 		int duplicateResolvedCount = 0;
+		rebuildCageSpotMembershipFromSpotGeometry(exp, allSpots);
 		for (Cage cage : exp.getCages().cagesList) {
 			cage.reorderSpotsReadingOrderAndAssignRowCol(allSpots);
 			duplicateResolvedCount += cage.cleanUpSpotNames(allSpots);
@@ -594,6 +595,63 @@ public class EditSpots extends JPanel {
 							+ "Those spots are highlighted in red (" + duplicateResolvedCount + " spot(s)).",
 					"Duplicate spot positions", JOptionPane.WARNING_MESSAGE);
 		}
+	}
+
+	private void rebuildCageSpotMembershipFromSpotGeometry(Experiment exp, Spots allSpots) {
+		if (exp == null || exp.getCages() == null || allSpots == null) {
+			return;
+		}
+		for (Cage cage : exp.getCages().cagesList) {
+			cage.setSpotIDs(new ArrayList<>());
+		}
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot == null) {
+				continue;
+			}
+			Cage cage = findCageContainingSpot(exp, spot);
+			if (cage == null) {
+				cage = exp.getCages().getCageFromID(spot.getProperties().getCageID());
+			}
+			if (cage == null) {
+				Logger.warn("No cage found for spot during cleanup: " + spot.getName());
+				continue;
+			}
+			if (spot.getSpotUniqueID() == null) {
+				spot.setSpotUniqueID(new SpotID(allSpots.getNextUniqueSpotID()));
+			}
+			spot.getProperties().setCageID(cage.getCageID());
+			cage.getSpotIDs().add(spot.getSpotUniqueID());
+		}
+	}
+
+	private Cage findCageContainingSpot(Experiment exp, Spot spot) {
+		Point2D.Double center = getSpotCenter(spot);
+		if (center == null) {
+			return null;
+		}
+		List<Cage> cages = exp.getCages().findCagesContainingImagePoint(center.x, center.y);
+		if (cages == null || cages.isEmpty()) {
+			return null;
+		}
+		int currentCageID = spot.getProperties().getCageID();
+		for (Cage cage : cages) {
+			if (cage.getCageID() == currentCageID) {
+				return cage;
+			}
+		}
+		return cages.get(0);
+	}
+
+	private Point2D.Double getSpotCenter(Spot spot) {
+		if (spot == null) {
+			return null;
+		}
+		ROI2D roi = spot.getRoi();
+		if (roi != null && roi.getBounds() != null) {
+			Rectangle rect = roi.getBounds();
+			return new Point2D.Double(rect.getCenterX(), rect.getCenterY());
+		}
+		return new Point2D.Double(spot.getProperties().getSpotXCoord(), spot.getProperties().getSpotYCoord());
 	}
 
 }

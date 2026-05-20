@@ -34,6 +34,20 @@ public class DescriptorIndex {
 		initializeDistinctMaps();
 	}
 
+	private static boolean aggregatesFromLiveCageOrSpotFiles(EnumXLSColumnHeader field) {
+		switch (field) {
+		case CAGE_SEX:
+		case CAGE_STRAIN:
+		case CAGE_AGE:
+		case SPOT_STIM:
+		case SPOT_CONC:
+		case SPOT_VOLUME:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	private void initializeDistinctMaps() {
 		distinctByField.put(EnumXLSColumnHeader.EXP_EXPT, new TreeSet<String>());
 		distinctByField.put(EnumXLSColumnHeader.EXP_ID, new TreeSet<String>());
@@ -97,33 +111,34 @@ public class DescriptorIndex {
 					if (exp == null)
 						continue;
 					String resDir = exp.getResultsDirectory();
-					// Prefer new descriptors file if available
 					Map<EnumXLSColumnHeader, List<String>> preDicts = DescriptorsIO.readDescriptors(resDir);
 					if (preDicts != null && !preDicts.isEmpty()) {
 						for (Map.Entry<EnumXLSColumnHeader, List<String>> e : preDicts.entrySet()) {
+							if (aggregatesFromLiveCageOrSpotFiles(e.getKey()))
+								continue;
 							TreeSet<String> set = distinctLocal.get(e.getKey());
 							if (set != null)
 								set.addAll(e.getValue());
 						}
-						continue;
-					}
-					ExperimentProperties props = null;
-					if (exp instanceof LazyExperiment) {
-						LazyExperiment lexp = (LazyExperiment) exp;
-						lexp.loadPropertiesIfNeeded();
-						props = lexp.getCachedProperties();
 					} else {
-						exp.loadExperimentDescriptors();
-						props = exp.getProperties();
+						ExperimentProperties props = null;
+						if (exp instanceof LazyExperiment) {
+							LazyExperiment lexp = (LazyExperiment) exp;
+							lexp.loadPropertiesIfNeeded();
+							props = lexp.getCachedProperties();
+						} else {
+							exp.loadExperimentDescriptors();
+							props = exp.getProperties();
+						}
+						if (props == null || resDir == null)
+							continue;
+						propsLocal.put(resDir, props);
+						updateDistinctLocal(distinctLocal, props);
 					}
-					if (props == null || resDir == null)
-						continue;
-					propsLocal.put(resDir, props);
-					updateDistinctLocal(distinctLocal, props);
 
-					// Load cage and spot descriptors (no image I/O) and aggregate distincts
 					try {
 						exp.load_cages_description_and_measures();
+						exp.load_spots_description_and_measures();
 						if (exp.getCages() != null && exp.getCages().cagesList != null) {
 							Spots allSpots = exp.getSpots();
 							for (Cage cage : exp.getCages().cagesList) {

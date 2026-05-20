@@ -82,15 +82,45 @@ public class Edit extends JPanel {
 		defineActionListeners();
 	}
 
+	private void syncEditExpListFromProject() {
+		parent0.dlgExperiment.tabFilter.initCombos();
+		JComboBoxExperimentLazy src;
+		if (parent0.dlgBrowse.loadSaveExperiment.filteredCheck.isSelected())
+			src = parent0.expListComboLazy;
+		else {
+			src = parent0.dlgExperiment.tabFilter.filterExpList;
+			if (src.getItemCount() < 1)
+				src = parent0.expListComboLazy;
+		}
+		editExpList.setExperimentsFromList(src.getExperimentsAsListNoLoad());
+	}
+
+	private static boolean fieldUsesLiveCageOrSpotScan(EnumXLSColumnHeader field) {
+		switch (field) {
+		case CAGE_SEX:
+		case CAGE_STRAIN:
+		case CAGE_AGE:
+		case SPOT_STIM:
+		case SPOT_CONC:
+		case SPOT_VOLUME:
+			return true;
+		default:
+			return false;
+		}
+	}
+
 	public void initEditCombos() {
-		editExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
+		syncEditExpListFromProject();
 		EnumXLSColumnHeader field = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
 		fieldOldValuesCombo.removeAllItems();
+		if (fieldUsesLiveCageOrSpotScan(field)) {
+			editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
+			return;
+		}
 		java.util.List<String> values;
 		if (parent0.descriptorIndex != null && parent0.descriptorIndex.isReady()) {
 			values = parent0.descriptorIndex.getDistinctValues(field);
 		} else {
-			// fallback: use existing lightweight scan
 			editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
 			return;
 		}
@@ -105,15 +135,19 @@ public class Edit extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				applyChange();
 				newValueTextField.setText("");
-				initEditCombos();
 			}
 		});
 
 		fieldNamesCombo.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				syncEditExpListFromProject();
 				EnumXLSColumnHeader field = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
 				fieldOldValuesCombo.removeAllItems();
+				if (fieldUsesLiveCageOrSpotScan(field)) {
+					editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
+					return;
+				}
 				java.util.List<String> values;
 				if (parent0.descriptorIndex != null && parent0.descriptorIndex.isReady()) {
 					values = parent0.descriptorIndex.getDistinctValues(field);
@@ -130,7 +164,11 @@ public class Edit extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-				parent0.descriptorIndex.preloadFromCombo(parent0.expListComboLazy, new Runnable() {
+				parent0.dlgExperiment.tabFilter.initCombos();
+				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.tabFilter.filterExpList;
+				if (indexSource.getItemCount() < 1)
+					indexSource = parent0.expListComboLazy;
+				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
 					@Override
 					public void run() {
 						pf.close();
@@ -143,8 +181,7 @@ public class Edit extends JPanel {
 	}
 
 	void applyChange() {
-		// Ensure we operate on the full project experiment list
-		editExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
+		syncEditExpListFromProject();
 		final int nExperiments = editExpList.getItemCount();
 		final EnumXLSColumnHeader fieldEnumCode = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
 		final String oldValue = (String) fieldOldValuesCombo.getSelectedItem();
@@ -233,10 +270,12 @@ public class Edit extends JPanel {
 					parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
 				}
 				if (anyChanged && parent0.descriptorIndex != null) {
-					// Rebuild index to reflect distinct values across all experiments (avoids stale
-					// incremental updates)
 					final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-					parent0.descriptorIndex.preloadFromCombo(parent0.expListComboLazy, new Runnable() {
+					parent0.dlgExperiment.tabFilter.initCombos();
+					JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.tabFilter.filterExpList;
+					if (indexSource.getItemCount() < 1)
+						indexSource = parent0.expListComboLazy;
+					parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
 						@Override
 						public void run() {
 							pf.close();
