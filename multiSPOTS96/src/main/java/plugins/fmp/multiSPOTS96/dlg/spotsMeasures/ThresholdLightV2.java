@@ -78,7 +78,6 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 	private JCheckBox useGPUCheckBox = new JCheckBox("Use GPU", false);
 
 	public void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
-		setLayout(gridLayout);
 		this.parent0 = parent0;
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
@@ -88,7 +87,6 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 		panel0.add(allSeriesCheckBox);
 		panel0.add(usePipelinedDetectionCheckBox);
 		panel0.add(useGPUCheckBox);
-		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(spotsFilterLabel);
@@ -97,7 +95,6 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 		panel1.add(spotsThresholdSpinner);
 		panel1.add(spotsViewButton);
 		panel1.add(spotsOverlayCheckBox);
-		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(fliesFilterLabel);
@@ -106,12 +103,11 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 		panel2.add(fliesThresholdSpinner);
 		panel2.add(fliesViewButton);
 		panel2.add(fliesOverlayCheckBox);
-		add(panel2);
 
 		JPanel panel3 = new JPanel(layoutLeft);
 		panel3.add(flyMaskPercentLabel);
 		panel3.add(flyOccupancyPercentSpinner);
-		add(panel3);
+		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2, panel3);
 
 		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		spotsDirectionComboBox.setSelectedIndex(1);

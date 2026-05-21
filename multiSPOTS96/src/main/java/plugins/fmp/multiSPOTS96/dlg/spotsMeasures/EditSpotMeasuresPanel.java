@@ -70,7 +70,6 @@ public class EditSpotMeasuresPanel extends JPanel implements PropertyChangeListe
 	private JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
@@ -84,11 +83,9 @@ public class EditSpotMeasuresPanel extends JPanel implements PropertyChangeListe
 				"Only recomputes sumClean as the running median of the current sumNoFly (leaves sumIn and sumNoFly unchanged).");
 		reconstructSumNoFlyButton.setToolTipText(
 				"sumNoFly = extrapolate sumIn across flyPresent>0 bins; sumClean = running median of sumNoFly (same order as after detection).");
-		add(panel1);
-
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(statusLabel);
-		add(panel2);
+		SpotsMeasuresUi.layoutStackedRows(this, panel1, panel2);
 
 		Experiment exp = parent0 != null ? (Experiment) parent0.expListComboLazy.getSelectedItem() : null;
 		refreshSpotScopeCombo(exp, false);

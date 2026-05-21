@@ -198,14 +198,20 @@ public class CreateCagesPanel extends JPanel {
 			return;
 		try {
 			nCagesPerPlateAlongXJSpinner.commitEdit();
+		} catch (ParseException e) {
+			// keep last committed spinner model value
+		}
+		try {
 			nCagesPerPlateAlongYJSpinner.commitEdit();
+		} catch (ParseException e) {
+		}
+		try {
 			width_intervalTextField.commitEdit();
 		} catch (ParseException e) {
-			return;
 		}
-		parent0.viewOptions.setCreateCagesGridCols((int) nCagesPerPlateAlongXJSpinner.getValue());
-		parent0.viewOptions.setCreateCagesGridRows((int) nCagesPerPlateAlongYJSpinner.getValue());
-		parent0.viewOptions.setCreateCagesPixelSpacing((int) width_intervalTextField.getValue());
+		parent0.viewOptions.setCreateCagesGridCols(((Number) nCagesPerPlateAlongXJSpinner.getValue()).intValue());
+		parent0.viewOptions.setCreateCagesGridRows(((Number) nCagesPerPlateAlongYJSpinner.getValue()).intValue());
+		parent0.viewOptions.setCreateCagesPixelSpacing(((Number) width_intervalTextField.getValue()).intValue());
 		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
 	}
 

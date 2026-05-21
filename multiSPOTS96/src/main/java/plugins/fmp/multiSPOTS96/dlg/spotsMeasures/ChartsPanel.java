@@ -65,7 +65,6 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(0);
@@ -76,14 +75,12 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		panel01.add(new JLabel("Measure"));
 		panel01.add(exportTypeComboBox);
 		panel01.add(relativeToCheckbox);
-		add(panel01);
 
 		JPanel panel02 = new JPanel(layout);
 		panel02.add(new JLabel(" display"));
 		panel02.add(displayAllButton);
 		panel02.add(displaySelectedCageButton);
 		panel02.add(displaySelectedSpotsButton);
-		add(panel02);
 
 		JPanel panel02b = new JPanel(layout);
 		panel02b.add(new JLabel("AGG baseline (min)"));
@@ -91,12 +88,11 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		panel02b.add(chartStopWhenStableCheckBox);
 		panel02b.add(new JLabel("stable bins"));
 		panel02b.add(chartStableBinsSpinner);
-		add(panel02b);
 
 		JPanel panel04 = new JPanel(layout);
 		panel04.add(displayResultsButton);
 		panel04.add(axisOptionsButton);
-		add(panel04);
+		SpotsMeasuresUi.layoutStackedRows(this, panel01, panel02, panel02b, panel04);
 
 		ButtonGroup group1 = new ButtonGroup();
 		group1.add(displayAllButton);

@@ -27,8 +27,6 @@ public class LoadSavePanel extends JPanel {
 	private MultiSPOTS96 parent0 = null;
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		setLayout(capLayout);
-
 		JLabel loadsaveText = new JLabel("-> Spots, polylines (xml) ", SwingConstants.RIGHT);
 		loadsaveText.setFont(FontUtil.setStyle(loadsaveText.getFont(), Font.ITALIC));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.RIGHT);
@@ -38,7 +36,7 @@ public class LoadSavePanel extends JPanel {
 		panel1.add(loadButton);
 		panel1.add(saveButton);
 		panel1.validate();
-		add(panel1);
+		SpotsMeasuresUi.layoutStackedRows(this, panel1);
 
 		this.parent0 = parent0;
 		defineActionListeners();

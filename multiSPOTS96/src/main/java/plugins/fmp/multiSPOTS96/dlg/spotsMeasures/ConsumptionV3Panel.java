@@ -20,8 +20,8 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 
 /**
- * Tier A V3: experiment-median residual on {@code sumClean}. Layout matches {@code _DlgSpots_} tabs:
- * {@link GridLayout}(4,1) on the tab root and one {@link FlowLayout} row panel per line with {@code vgap 0}.
+ * Tier A V3: experiment-median residual on {@code sumClean}. Tab layout uses
+ * {@link SpotsMeasuresUi} so rows stay compact (no fixed-height {@link GridLayout} stretch).
  */
 public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
@@ -34,7 +34,6 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 	private JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
 
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
@@ -49,20 +48,15 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 		panel0.add(new JLabel("step bins (reserved):"));
 		panel0.add(v3StepBinsSpinner);
 		panel0.add(rebuildV3Button);
-		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("<html><body style='width:520px'>Per-spot median over the first "
 				+ Spots.SUMCLEAN_V3_BASELINE_PREFIX_BINS
 				+ " bins of <code>sumClean</code> removes most heterogeneous background before the experiment-wide median; residual can still go negative when a spot drops faster than the cohort.</body></html>"));
-		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(statusLabel);
-		add(panel2);
-
-		JPanel panel3 = new JPanel(layoutLeft);
-		add(panel3);
+		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
 
 		rebuildV3Button.setToolTipText(
 				"Recomputes cleanV3: shift each spot by early-bin median of sumClean, take experiment-wide median per bin, smooth with running median (odd W), subtract from shifted sumClean.");

@@ -48,7 +48,6 @@ public class CleanGapsSpotsPanel extends JPanel {
 	private final String runString = "Run...";
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
 
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
@@ -59,22 +58,19 @@ public class CleanGapsSpotsPanel extends JPanel {
 		panel0.add(new JLabel(" threshold:"));
 		panel0.add(thresholdSpinner);
 		panel0.add(overlayCheckBox);
-		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(detectBlackCheckbBox);
 		panel1.add(cleanMeasuresCheckBox);
-		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		runButton.setText(runString);
 		panel2.add(runButton);
 		panel2.add(allSeriesCheckBox);
-		add(panel2);
 
 		JPanel panel3 = new JPanel(layoutLeft);
 		panel3.add(resultSummary);
-		add(panel3);
+		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2, panel3);
 
 		options.rectMonitor.setName("rectMonitor");
 		defineActionListeners();

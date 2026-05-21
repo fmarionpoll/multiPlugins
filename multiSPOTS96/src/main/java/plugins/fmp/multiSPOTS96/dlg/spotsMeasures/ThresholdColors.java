@@ -49,8 +49,6 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 	public void init(GridLayout capLayout, MultiSPOTS96 parent0) {
 
 		this.multiSpots = parent0;
-		setLayout(capLayout);
-
 		colorPickCombo.setRenderer(colorPickComboRenderer);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
@@ -58,7 +56,6 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 		panel0.add(pickColorButton);
 		panel0.add(colorPickCombo);
 		panel0.add(deleteColorButton);
-		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		ButtonGroup bgd = new ButtonGroup();
@@ -68,7 +65,6 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 		panel1.add(rbL1);
 		panel1.add(rbL2);
 		panel1.add(distanceSpinner);
-		add(panel1);
 
 		ButtonGroup bgcs = new ButtonGroup();
 		bgcs.add(rbRGB);
@@ -79,7 +75,7 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 		panel2.add(rbRGB);
 		panel2.add(rbHSV);
 		panel2.add(rbH1H2H3);
-		add(panel2);
+		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
 
 		rbL1.setSelected(true);
 		rbRGB.setSelected(true);

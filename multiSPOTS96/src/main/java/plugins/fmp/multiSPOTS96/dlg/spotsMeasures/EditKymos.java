@@ -33,7 +33,6 @@ public class EditKymos extends JPanel implements PropertyChangeListener {
 	private MultiSPOTS96 parent0 = null;
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
-		setLayout(capLayout);
 		this.parent0 = parent0;
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
@@ -42,12 +41,11 @@ public class EditKymos extends JPanel implements PropertyChangeListener {
 		panel1.add(cutAndInterpolateButton);
 		panel1.add(new JLabel("Apply to ", SwingConstants.LEFT));
 		panel1.add(roiTypeCombo);
-		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(compensateButton);
 		panel2.add(directionCombo);
-		add(panel2);
+		SpotsMeasuresUi.layoutStackedRows(this, panel1, panel2);
 
 		roiTypeCombo.setSelectedIndex(1);
 		defineListeners();
