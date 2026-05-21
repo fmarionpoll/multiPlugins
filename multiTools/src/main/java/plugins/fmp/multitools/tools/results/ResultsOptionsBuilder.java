@@ -68,6 +68,12 @@ public class ResultsOptionsBuilder {
 	private boolean compensateEvaporation = DefaultOptions.COMPENSATE_EVAPORATION;
 	private EnumResults resultType = null;
 
+	private AggSumCleanPolicy aggSumCleanPolicy = AggSumCleanPolicy.LEGACY;
+	private int aggBaselineSkipMinutes = 0;
+	private double aggFlyGuardMaxFraction = 0.2;
+	private String aggRefStimulus = "";
+	private String aggRefConcentration = "";
+
 	/**
 	 * Creates a new builder with default values.
 	 */
@@ -132,6 +138,12 @@ public class ResultsOptionsBuilder {
 		this.trim_alive = existing.trim_alive;
 		this.compensateEvaporation = existing.compensateEvaporation;
 		this.resultType = existing.resultType;
+
+		this.aggSumCleanPolicy = existing.aggSumCleanPolicy;
+		this.aggBaselineSkipMinutes = existing.aggBaselineSkipMinutes;
+		this.aggFlyGuardMaxFraction = existing.aggFlyGuardMaxFraction;
+		this.aggRefStimulus = existing.aggRefStimulus;
+		this.aggRefConcentration = existing.aggRefConcentration;
 	}
 
 	// Fluent interface methods
@@ -335,6 +347,12 @@ public class ResultsOptionsBuilder {
 		options.trim_alive = this.trim_alive;
 		options.compensateEvaporation = this.compensateEvaporation;
 		options.resultType = this.resultType;
+
+		options.aggSumCleanPolicy = this.aggSumCleanPolicy;
+		options.aggBaselineSkipMinutes = this.aggBaselineSkipMinutes;
+		options.aggFlyGuardMaxFraction = this.aggFlyGuardMaxFraction;
+		options.aggRefStimulus = this.aggRefStimulus;
+		options.aggRefConcentration = this.aggRefConcentration;
 
 		return options;
 	}

@@ -16,6 +16,7 @@ import javax.swing.event.ChangeListener;
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, ChangeListener {
 	/**
@@ -31,6 +32,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	CleanGapsSpotsPanel cleanGapsSpotsPanel = new CleanGapsSpotsPanel();
 	EditSpotMeasuresPanel editSpotsPanel = new EditSpotMeasuresPanel();
 	ConsumptionV3Panel consumptionV3Panel = new ConsumptionV3Panel();
+	ConsumptionAggV4Panel consumptionAggV4Panel = new ConsumptionAggV4Panel();
 	public ChartsPanel chartsPanel = new ChartsPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 
@@ -85,6 +87,11 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 		tabsPane.addTab("V3", null, consumptionV3Panel, "Consumption V3 (experiment-median residual)");
 		order++;
 
+		consumptionAggV4Panel.init(gridLayout, parent0);
+		consumptionAggV4Panel.addPropertyChangeListener(this);
+		tabsPane.addTab("V4 (AGG)", null, consumptionAggV4Panel, "AGG_SUMCLEAN evaluation policies");
+		order++;
+
 		chartsPanel.init(gridLayout, parent0);
 		chartsPanel.addPropertyChangeListener(this);
 		tabsPane.addTab("Charts", null, chartsPanel, "Display results as charts");
@@ -107,6 +114,11 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 				parent0.mainFrame.repaint();
 			}
 		});
+	}
+
+	/** Copies AGG V4 policy from the V4 tab into chart/export {@link ResultsOptions}. */
+	public void applyAggV4PolicyInto(ResultsOptions o) {
+		consumptionAggV4Panel.applyPolicyInto(o);
 	}
 
 	@Override

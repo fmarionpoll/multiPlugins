@@ -113,6 +113,20 @@ public class ResultsOptions {
 	 */
 	public List<StimulusConcKey> spotAggregateGlobalKeyOrder = null;
 
+	/** V4 / evaluation: how per-spot depletion is formed before summing into {@code AGG_SUMCLEAN}. */
+	public AggSumCleanPolicy aggSumCleanPolicy = AggSumCleanPolicy.LEGACY;
+	/**
+	 * Minutes from t=0 excluded when scanning for baseline max (only used with
+	 * {@link AggSumCleanPolicy#V4_BASELINE_PLUS}). If camera time is unavailable, interpreted as bins to skip.
+	 */
+	public int aggBaselineSkipMinutes = 0;
+	/** Fly occupancy fraction above which depletion is forced to 0 for that bin ({@link AggSumCleanPolicy#V4_FLY_GUARD}). */
+	public double aggFlyGuardMaxFraction = 0.2;
+	/** Reference stimulus label for {@link AggSumCleanPolicy#V4_REF_STIM} (trimmed; empty disables correction). */
+	public String aggRefStimulus = "";
+	/** Reference concentration label for {@link AggSumCleanPolicy#V4_REF_STIM}. */
+	public String aggRefConcentration = "";
+
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
 		this.yVsFood = resultsOptions.yVsFood;
@@ -176,5 +190,11 @@ public class ResultsOptions {
 		this.compensateEvaporation = resultsOptions.compensateEvaporation;
 		this.resultType = resultsOptions.resultType;
 		this.spotAggregateGlobalKeyOrder = resultsOptions.spotAggregateGlobalKeyOrder;
+
+		this.aggSumCleanPolicy = resultsOptions.aggSumCleanPolicy;
+		this.aggBaselineSkipMinutes = resultsOptions.aggBaselineSkipMinutes;
+		this.aggFlyGuardMaxFraction = resultsOptions.aggFlyGuardMaxFraction;
+		this.aggRefStimulus = resultsOptions.aggRefStimulus;
+		this.aggRefConcentration = resultsOptions.aggRefConcentration;
 	}
 }

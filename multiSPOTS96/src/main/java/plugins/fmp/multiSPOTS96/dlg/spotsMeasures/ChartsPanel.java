@@ -267,6 +267,9 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
 		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
 		options.spotBaselineStableBins = ((Number) chartStableBinsSpinner.getValue()).intValue();
+		if (agg && parent0 != null && parent0.dlgMeasure != null) {
+			parent0.dlgMeasure.applyAggV4PolicyInto(options);
+		}
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override

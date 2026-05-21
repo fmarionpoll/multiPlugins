@@ -8,6 +8,7 @@ import java.util.List;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.results.AggSumCleanPolicy;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
@@ -311,6 +312,11 @@ public final class SpotPreConsumedSupport {
 			return 1.0;
 		}
 
+		double skip = 0.0;
+		if (o != null && o.aggSumCleanPolicy == AggSumCleanPolicy.V4_BASELINE_PLUS && o.aggBaselineSkipMinutes > 0) {
+			skip = o.aggBaselineSkipMinutes;
+		}
+
 		double baselineMin = Math.max(0.0, o != null ? o.spotBaselineWindowMinutes : 2) * 1.0;
 		double baselineEndMin = baselineMin;
 		if (!(baselineEndMin > 0.0)) {
@@ -325,7 +331,16 @@ public final class SpotPreConsumedSupport {
 		int stableCount = 0;
 
 		for (int i = 0; i < n; i++) {
-			double t = camTimeMin != null ? camTimeMin[i] : i;
+			double t = camTimeMin != null ? camTimeMin[i] : (double) i;
+			if (skip > 0.0) {
+				if (camTimeMin != null) {
+					if (t < skip) {
+						continue;
+					}
+				} else if (i < (int) skip) {
+					continue;
+				}
+			}
 			if (baselineEndMin > 0.0 && t > baselineEndMin) {
 				break;
 			}

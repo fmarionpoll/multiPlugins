@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.cage;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
@@ -11,6 +12,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.tools.results.AggSumCleanPolicy;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -127,6 +129,21 @@ public final class CageSpotStimulusAggregation {
 			}
 		}
 
+		AggSumCleanPolicy pol = options.aggSumCleanPolicy != null ? options.aggSumCleanPolicy : AggSumCleanPolicy.LEGACY;
+		int nCageAll = minBinCountAllSpots(spots, camTimeMin);
+		double[] cageMedianDriftFromT0 = null;
+		double[] refMedianDriftFromT0 = null;
+		if (pol == AggSumCleanPolicy.V4_COMMON_MODE && nCageAll > 0) {
+			double[] med = medianSumCleanPerBin(spots, nCageAll, null);
+			cageMedianDriftFromT0 = driftCorrectionFromT0(med);
+		} else if (pol == AggSumCleanPolicy.V4_REF_STIM && nCageAll > 0) {
+			StimulusConcKey refKey = new StimulusConcKey(options.aggRefStimulus, options.aggRefConcentration);
+			if (hasAnySpotMatching(spots, refKey)) {
+				double[] med = medianSumCleanPerBin(spots, nCageAll, refKey);
+				refMedianDriftFromT0 = driftCorrectionFromT0(med);
+			}
+		}
+
 		List<AggregateSeries> out = new ArrayList<>(keys.size());
 		for (StimulusConcKey k : keys) {
 			int n = nativeAggregateLength(spots, k, camTimeMin);
@@ -144,7 +161,8 @@ public final class CageSpotStimulusAggregation {
 				if (!k.equals(keySpot)) {
 					continue;
 				}
-				ArrayList<Double> norm = computeNormalizedConsumptionNative(exp, s, options, camTimeMin, n);
+				ArrayList<Double> norm = computeNormalizedConsumptionNative(exp, s, options, camTimeMin, n,
+						cageMedianDriftFromT0, refMedianDriftFromT0);
 				if (norm == null) {
 					continue;
 				}
@@ -184,7 +202,7 @@ public final class CageSpotStimulusAggregation {
 	}
 
 	private static ArrayList<Double> computeNormalizedConsumptionNative(Experiment exp, Spot spot, ResultsOptions options,
-			double[] camTimeMin, int n) {
+			double[] camTimeMin, int n, double[] cageMedianDriftFromT0, double[] refMedianDriftFromT0) {
 		if (spot == null || spot.getSumClean() == null || spot.getSumClean().getValues() == null || n <= 0) {
 			return null;
 		}
@@ -195,16 +213,167 @@ public final class CageSpotStimulusAggregation {
 			return null;
 		}
 
+		AggSumCleanPolicy pol = options.aggSumCleanPolicy != null ? options.aggSumCleanPolicy : AggSumCleanPolicy.LEGACY;
+		double flyTh = options.aggFlyGuardMaxFraction;
+		if (!Double.isFinite(flyTh)) {
+			flyTh = 0.2;
+		}
+		flyTh = Math.max(0.0, Math.min(1.0, flyTh));
+
 		ArrayList<Double> out = new ArrayList<>(count);
 		for (int i = 0; i < count; i++) {
 			double raw = clean.getValueAt(i);
 			if (!Double.isFinite(raw)) {
 				out.add(Double.NaN);
-			} else {
-				out.add(SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, raw, maxBaseline));
+				continue;
 			}
+			if (pol == AggSumCleanPolicy.V4_COMMON_MODE && cageMedianDriftFromT0 != null
+					&& cageMedianDriftFromT0.length > 0) {
+				int ii = Math.min(i, cageMedianDriftFromT0.length - 1);
+				double d = cageMedianDriftFromT0[ii];
+				if (Double.isFinite(d)) {
+					raw = raw - d;
+				}
+			} else if (pol == AggSumCleanPolicy.V4_REF_STIM && refMedianDriftFromT0 != null
+					&& refMedianDriftFromT0.length > 0) {
+				int ii = Math.min(i, refMedianDriftFromT0.length - 1);
+				double d = refMedianDriftFromT0[ii];
+				if (Double.isFinite(d)) {
+					raw = raw - d;
+				}
+			}
+
+			double y = SpotPreConsumedSupport.computeDepletionValue(spot, exp, i, raw, maxBaseline);
+			if (pol == AggSumCleanPolicy.V4_FLY_GUARD && flyOccupancyFraction(spot, i) > flyTh) {
+				y = 0.0;
+			}
+			out.add(y);
 		}
 		return out;
+	}
+
+	private static int minBinCountAllSpots(List<Spot> spots, double[] camTimeMin) {
+		int n = Integer.MAX_VALUE;
+		boolean found = false;
+		for (Spot s : spots) {
+			if (s == null || s.getSumClean() == null) {
+				continue;
+			}
+			int c = s.getSumClean().getCount();
+			if (c <= 0) {
+				continue;
+			}
+			if (camTimeMin != null) {
+				c = Math.min(c, camTimeMin.length);
+			}
+			n = Math.min(n, c);
+			found = true;
+		}
+		return found ? n : 0;
+	}
+
+	private static boolean hasAnySpotMatching(List<Spot> spots, StimulusConcKey refKey) {
+		if (refKey == null || spots == null) {
+			return false;
+		}
+		for (Spot s : spots) {
+			if (s == null || s.getProperties() == null) {
+				continue;
+			}
+			StimulusConcKey k = new StimulusConcKey(s.getProperties().getStimulus(), s.getProperties().getConcentration());
+			if (refKey.equals(k)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static double[] medianSumCleanPerBin(List<Spot> spots, int n, StimulusConcKey filterKey) {
+		double[] out = new double[n];
+		double[] scratch = new double[spots.size()];
+		for (int i = 0; i < n; i++) {
+			int m = 0;
+			for (Spot s : spots) {
+				if (s == null || s.getSumClean() == null) {
+					continue;
+				}
+				if (filterKey != null) {
+					if (s.getProperties() == null) {
+						continue;
+					}
+					StimulusConcKey ks = new StimulusConcKey(s.getProperties().getStimulus(),
+							s.getProperties().getConcentration());
+					if (!filterKey.equals(ks)) {
+						continue;
+					}
+				}
+				if (i >= s.getSumClean().getCount()) {
+					continue;
+				}
+				double v = s.getSumClean().getValueAt(i);
+				if (Double.isFinite(v)) {
+					scratch[m++] = v;
+				}
+			}
+			out[i] = m > 0 ? medianOfFirst(scratch, m) : Double.NaN;
+		}
+		return out;
+	}
+
+	private static double medianOfFirst(double[] values, int m) {
+		if (m <= 0 || values == null) {
+			return Double.NaN;
+		}
+		double[] copy = Arrays.copyOf(values, m);
+		Arrays.sort(copy);
+		if ((m & 1) == 1) {
+			return copy[m / 2];
+		}
+		return (copy[m / 2 - 1] + copy[m / 2]) / 2.0;
+	}
+
+	private static double[] driftCorrectionFromT0(double[] series) {
+		if (series == null || series.length == 0) {
+			return null;
+		}
+		double t0 = Double.NaN;
+		for (int i = 0; i < series.length; i++) {
+			if (Double.isFinite(series[i])) {
+				t0 = series[i];
+				break;
+			}
+		}
+		if (!Double.isFinite(t0)) {
+			return new double[series.length];
+		}
+		double[] drift = new double[series.length];
+		for (int i = 0; i < series.length; i++) {
+			if (Double.isFinite(series[i])) {
+				drift[i] = series[i] - t0;
+			} else {
+				drift[i] = 0.0;
+			}
+		}
+		return drift;
+	}
+
+	private static double flyOccupancyFraction(Spot spot, int binIndex) {
+		if (spot == null || spot.getFlyPresent() == null) {
+			return 0.0;
+		}
+		SpotMeasure fp = spot.getFlyPresent();
+		if (binIndex < 0 || binIndex >= fp.getCount()) {
+			return 0.0;
+		}
+		int denom = spot.getFlyPresentDenomPixelCount();
+		if (denom <= 0) {
+			return 0.0;
+		}
+		double v = fp.getValueAt(binIndex);
+		if (!Double.isFinite(v) || v < 0.0) {
+			return 0.0;
+		}
+		return v / denom;
 	}
 
 	private static ArrayList<Double> initNanSeries(int n) {
