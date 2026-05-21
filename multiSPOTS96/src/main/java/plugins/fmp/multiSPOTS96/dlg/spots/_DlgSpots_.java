@@ -35,7 +35,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 	public LoadSaveSpotsPanel loadSaveSpotsPanel = new LoadSaveSpotsPanel();
 
 //	private int id_shape = 1;
-	private int id_infos = 1;
+	private int id_infos = 3;
 	private int id_createCages = 0;
 //	private int id_spots = 1;
 	private int id_editSpots = 2;

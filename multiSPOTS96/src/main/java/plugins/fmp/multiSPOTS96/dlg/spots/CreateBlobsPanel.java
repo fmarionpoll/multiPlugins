@@ -84,6 +84,12 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
+		JPanel panel2 = new JPanel(layoutLeft);
+		panel2.add(startComputationButton);
+		panel2.add(allCellsComboBox);
+		panel2.add(allCheckBox);
+		add(panel2);
+
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(spotsFilterLabel);
 		panel0.add(spotsTransformsComboBox);
@@ -95,12 +101,6 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 		panel1.add(spotsViewButton);
 		panel1.add(spotsOverlayCheckBox);
 		add(panel1);
-
-		JPanel panel2 = new JPanel(layoutLeft);
-		panel2.add(startComputationButton);
-		panel2.add(allCellsComboBox);
-		panel2.add(allCheckBox);
-		add(panel2);
 
 		JPanel panel3 = new JPanel(layoutLeft);
 		panel3.add(convertBlobsToSpotButton);
