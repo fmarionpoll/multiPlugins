@@ -128,7 +128,6 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 	public void updateDialogs(Experiment exp) {
 		if (exp != null) {
 			ExperimentUtils.transferSpotsToCamDataSequence(exp);
-			createCagesPanel.updateNColumnsFieldFromSequence();
 		}
 	}
 

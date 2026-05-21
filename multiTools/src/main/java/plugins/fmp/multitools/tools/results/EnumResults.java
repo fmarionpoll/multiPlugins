@@ -120,9 +120,10 @@ public enum EnumResults {
 	AREA_SUMCLEAN_V2("AREA_SUMCLEAN_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V2(), "AREA_SUMCLEAN_V2", PersistenceDomain.SPOT),
 	/**
-	 * V3 Tier A: residual of {@link #AREA_SUMCLEAN} minus experiment-wide median of sumClean (optionally smoothed).
+	 * V3 Tier A: per-spot {@code sumClean} shifted by an early-bin median, minus the per-bin median of those shifted
+	 * values over a pool (whole experiment or per cage), optionally smoothed.
 	 */
-	AREA_SUMCLEAN_V3("AREA_SUMCLEAN_V3", "grey value - exp median", "Consumption V3 (residual vs plate median)",
+	AREA_SUMCLEAN_V3("AREA_SUMCLEAN_V3", "grey value - median (V3)", "Consumption V3 (residual vs pooled median)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V3(), "AREA_SUMCLEAN_V3", PersistenceDomain.SPOT),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),

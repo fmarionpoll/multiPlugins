@@ -446,7 +446,7 @@ public class SpotsPersistence {
 		 * <li>Persist {@code AREA_SUM} (raw)</li>
 		 * <li>Persist {@code AREA_SUMNOFLY} (no-fly)</li>
 		 * <li>Persist {@code AREA_FLYPRESENT} (fly mask support)</li>
-		 * <li>Persist {@code AREA_SUMCLEAN_V3} (experiment-median residual Tier A)</li>
+		 * <li>Persist {@code AREA_SUMCLEAN_V3} (Tier A residual vs pooled median; pool chosen at recompute)</li>
 		 * </ul>
 		 */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {

@@ -9,6 +9,7 @@ import java.beans.PropertyChangeListener;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -31,6 +32,7 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 	private JSpinner v3SmoothBinsSpinner = new JSpinner(new SpinnerNumberModel(10, 1, 501, 2));
 	private JSpinner v3LambdaSpinner = new JSpinner(new SpinnerNumberModel(3.0, 0.1, 99.0, 0.1));
 	private JSpinner v3StepBinsSpinner = new JSpinner(new SpinnerNumberModel(2, 1, 60, 1));
+	private JCheckBox perCageMedianCheckBox = new JCheckBox("Per-cage median (36 spots per cage)", true);
 	private JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
@@ -48,18 +50,21 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 		panel0.add(new JLabel("step bins (reserved):"));
 		panel0.add(v3StepBinsSpinner);
 		panel0.add(rebuildV3Button);
+		panel0.add(perCageMedianCheckBox);
 
 		JPanel panel1 = new JPanel(layoutLeft);
-		panel1.add(new JLabel("<html><body style='width:520px'>Per-spot median over the first "
+		panel1.add(new JLabel("<html><body style='width:520px'>Each spot is shifted by the median of its first "
 				+ Spots.SUMCLEAN_V3_BASELINE_PREFIX_BINS
-				+ " bins of <code>sumClean</code> removes most heterogeneous background before the experiment-wide median; residual can still go negative when a spot drops faster than the cohort.</body></html>"));
+				+ " <code>sumClean</code> bins (handles darker t0). The reference curve is the median of shifted spots per time bin &mdash; within each cage if the box above is checked (recommended when cages differ in brightness), otherwise across the whole experiment.</body></html>"));
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(statusLabel);
 		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
 
+		perCageMedianCheckBox.setToolTipText(
+				"When on, the reference median at each time bin uses only spots in the same cage (same lighting region). When off, all ready spots on the experiment are pooled (can bias dark cages negative if other cages are brighter).");
 		rebuildV3Button.setToolTipText(
-				"Recomputes cleanV3: shift each spot by early-bin median of sumClean, take experiment-wide median per bin, smooth with running median (odd W), subtract from shifted sumClean.");
+				"Recomputes cleanV3: shift each spot by early-bin median of sumClean, take median of shifted sumClean per bin (per cage or whole experiment), smooth with running median (odd W), subtract from shifted sumClean.");
 		v3LambdaSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
 		v3StepBinsSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
 
@@ -81,9 +86,10 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 			return;
 		}
 		int w = ((Number) v3SmoothBinsSpinner.getValue()).intValue();
-		exp.getSpots().rebuildV3ResidualFromSumCleanExperimentMedian(w);
+		Spots.SumCleanV3MedianRebuildSummary sum = exp.getSpots().rebuildV3ResidualFromSumCleanMedian(exp, w,
+				perCageMedianCheckBox.isSelected());
 		exp.getSpots().transferMeasuresToLevel2D();
-		statusLabel.setText("cleanV3 rebuilt (W=" + w + ").");
+		statusLabel.setText("cleanV3 rebuilt (W=" + w + ")" + sum.statusSuffix());
 		refreshChartsIfPresent(exp);
 	}
 

@@ -77,15 +77,23 @@ public class EditSpotMeasuresPanel extends JPanel implements PropertyChangeListe
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("Spots:"));
 		panel1.add(spotScopeCombo);
-		panel1.add(reconstructSumNoFlyButton);
-		panel1.add(rebuildSumCleanButton);
+
+		JPanel panel01 = new JPanel(layoutLeft);
+		panel01.add(reconstructSumNoFlyButton);
+		JPanel panel001 = new JPanel(layoutLeft);
+		panel001.add(rebuildSumCleanButton);
 		rebuildSumCleanButton.setToolTipText(
 				"Only recomputes sumClean as the running median of the current sumNoFly (leaves sumIn and sumNoFly unchanged).");
 		reconstructSumNoFlyButton.setToolTipText(
 				"sumNoFly = extrapolate sumIn across flyPresent>0 bins; sumClean = running median of sumNoFly (same order as after detection).");
+
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(statusLabel);
-		SpotsMeasuresUi.layoutStackedRows(this, panel1, panel2);
+
+		add(panel1);
+		add(panel01);
+		add(panel001);
+		add(panel2);
 
 		Experiment exp = parent0 != null ? (Experiment) parent0.expListComboLazy.getSelectedItem() : null;
 		refreshSpotScopeCombo(exp, false);

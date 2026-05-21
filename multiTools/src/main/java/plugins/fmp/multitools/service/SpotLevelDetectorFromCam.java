@@ -217,7 +217,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		spots.applyFlyPlateauOnSumNoFlyV2ForSpots(toProcess, options.getFlyOccupancyFractionForSpotSumNoFly());
 		spots.rebuildSumCleanOnlyForSpots(toProcess);
 		spots.rebuildSumCleanOnlyForSpotsV2(toProcess);
-		spots.rebuildV3ResidualFromSumCleanExperimentMedian(10);
+		spots.rebuildV3ResidualFromSumCleanMedian(exp, 10, true);
 		spots.applyPreConsumedReferenceAtT0(exp);
 		spots.transferMeasuresToLevel2D();
 

@@ -4,9 +4,11 @@ import java.awt.Point;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.w3c.dom.Document;
@@ -19,6 +21,7 @@ import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.sequence.ROIOperation;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
@@ -716,35 +719,149 @@ public class Spots {
 	 * Prefix length (bins) used to estimate per-spot {@code sumClean} level before pooling medians for V3.
 	 * <p>
 	 * Heterogeneous illumination shifts absolute grey levels per ROI; subtracting each spot's median over
-	 * these early bins approximates a local background/consumption baseline before the experiment-wide median
-	 * step.
+	 * these early bins approximates a local background/consumption baseline before the pooled median step.
 	 */
 	public static final int SUMCLEAN_V3_BASELINE_PREFIX_BINS = 10;
 
 	/**
-	 * Tier A V3: per-spot {@code sumClean} is shifted by that spot's median over the first
-	 * {@link #SUMCLEAN_V3_BASELINE_PREFIX_BINS} bins (local level / early-plateau proxy). The experiment-wide median of
-	 * those shifted values is taken per time bin, optionally smoothed with a running median of width
-	 * {@code wSmoothBins} (odd, at least 1). Finally {@code sumCleanV3} = shifted {@code sumClean} minus that
-	 * smoothed reference.
+	 * Outcome of {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} for UI / diagnostics.
 	 */
-	public void rebuildV3ResidualFromSumCleanExperimentMedian(int wSmoothBins) {
+	public static final class SumCleanV3MedianRebuildSummary {
+		public final boolean requestedPerCagePool;
+		public final int readySpotCount;
+		/** Spots rebuilt using a cage-local median pool (each spot counted once). */
+		public final int spotsInCageMedianPools;
+		/** Spots rebuilt using the final pooled median among spots that matched no cage list. */
+		public final int spotsInOrphanPool;
+
+		public SumCleanV3MedianRebuildSummary(boolean requestedPerCagePool, int readySpotCount,
+				int spotsInCageMedianPools, int spotsInOrphanPool) {
+			this.requestedPerCagePool = requestedPerCagePool;
+			this.readySpotCount = readySpotCount;
+			this.spotsInCageMedianPools = spotsInCageMedianPools;
+			this.spotsInOrphanPool = spotsInOrphanPool;
+		}
+
+		/**
+		 * When per-cage pooling was requested but every ready spot was rebuilt in a single experiment-wide orphan pool
+		 * (same numeric result as leaving per-cage off).
+		 */
+		public boolean fellBackToExperimentWidePoolOnly() {
+			return requestedPerCagePool && readySpotCount > 0 && spotsInCageMedianPools == 0
+					&& spotsInOrphanPool == readySpotCount;
+		}
+
+		public String statusSuffix() {
+			if (readySpotCount == 0) {
+				return " — no ready spots for V3";
+			}
+			if (!requestedPerCagePool) {
+				return " — median pool: whole experiment (" + readySpotCount + " spots)";
+			}
+			if (fellBackToExperimentWidePoolOnly()) {
+				return " — median pool: whole experiment (per-cage requested but cages unavailable or no spot matched any cage list; same as off)";
+			}
+			if (spotsInOrphanPool == 0) {
+				return " — median pool: per-cage only (" + spotsInCageMedianPools + " spots)";
+			}
+			return " — median pool: per-cage (" + spotsInCageMedianPools + " spots) + unmatched (" + spotsInOrphanPool
+					+ " spots)";
+		}
+	}
+
+	/**
+	 * Tier A V3 (experiment-wide pool): same as
+	 * {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} with {@code perCageReference=false}.
+	 */
+	public SumCleanV3MedianRebuildSummary rebuildV3ResidualFromSumCleanExperimentMedian(int wSmoothBins) {
+		return rebuildV3ResidualFromSumCleanMedian(null, wSmoothBins, false);
+	}
+
+	/**
+	 * Tier A V3: per-spot {@code sumClean} shifted by early-bin median (see {@link #SUMCLEAN_V3_BASELINE_PREFIX_BINS}),
+	 * then per time bin a median of shifted values across a <em>pool</em>, smoothed with a running median of width
+	 * {@code wSmoothBins} (odd, enforced). Finally {@code sumCleanV3} = shifted {@code sumClean} minus that smoothed
+	 * reference.
+	 * <p>
+	 * When {@code perCageReference} is true, the pool is the spots in each {@link Cage} separately (handles different
+	 * lighting per cage on the same plate). Spots not assigned to any cage list still participate in a final
+	 * experiment-wide pool among themselves.
+	 *
+	 * @param exp               may be null when {@code perCageReference} is false
+	 * @param wSmoothBins       smoothing window on the pooled median series
+	 * @param perCageReference  if true, uses {@code exp.getCages()} when non-null; otherwise same as false
+	 * @return summary of which median pools were used (see {@link SumCleanV3MedianRebuildSummary})
+	 */
+	public SumCleanV3MedianRebuildSummary rebuildV3ResidualFromSumCleanMedian(Experiment exp, int wSmoothBins,
+			boolean perCageReference) {
+		List<Spot> globalReady = collectSpotsReadyForSumCleanV3();
+		int nReady = globalReady.size();
+		boolean perCage = perCageReference && exp != null && exp.getCages() != null;
+		if (!perCage) {
+			rebuildV3ResidualForSpotPool(globalReady, wSmoothBins);
+			return new SumCleanV3MedianRebuildSummary(perCageReference, nReady, 0, nReady);
+		}
+		Set<Spot> done = Collections.newSetFromMap(new IdentityHashMap<Spot, Boolean>());
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+			List<Spot> pool = filterSpotsReadyForSumCleanV3(cage.getSpotList(this));
+			if (pool.isEmpty()) {
+				continue;
+			}
+			rebuildV3ResidualForSpotPool(pool, wSmoothBins);
+			done.addAll(pool);
+		}
+		List<Spot> orphans = new ArrayList<>();
+		for (Spot s : globalReady) {
+			if (!done.contains(s)) {
+				orphans.add(s);
+			}
+		}
+		if (!orphans.isEmpty()) {
+			rebuildV3ResidualForSpotPool(orphans, wSmoothBins);
+		}
+		return new SumCleanV3MedianRebuildSummary(true, nReady, done.size(), orphans.size());
+	}
+
+	private List<Spot> collectSpotsReadyForSumCleanV3() {
 		List<Spot> pool = new ArrayList<>();
 		for (Spot s : spotList) {
-			if (s == null || !s.isReadyForAnalysis()) {
-				continue;
+			if (isSpotReadyForSumCleanV3(s)) {
+				pool.add(s);
 			}
-			SpotMeasure sc = s.getSumClean();
-			if (sc == null) {
-				continue;
-			}
-			double[] v = sc.getValues();
-			if (v == null || v.length == 0) {
-				continue;
-			}
-			pool.add(s);
 		}
-		if (pool.isEmpty()) {
+		return pool;
+	}
+
+	private static boolean isSpotReadyForSumCleanV3(Spot s) {
+		if (s == null || !s.isReadyForAnalysis()) {
+			return false;
+		}
+		SpotMeasure sc = s.getSumClean();
+		if (sc == null) {
+			return false;
+		}
+		double[] v = sc.getValues();
+		return v != null && v.length > 0;
+	}
+
+	private static List<Spot> filterSpotsReadyForSumCleanV3(List<Spot> in) {
+		List<Spot> pool = new ArrayList<>();
+		if (in == null) {
+			return pool;
+		}
+		for (Spot s : in) {
+			if (isSpotReadyForSumCleanV3(s)) {
+				pool.add(s);
+			}
+		}
+		return pool;
+	}
+
+	private void rebuildV3ResidualForSpotPool(List<Spot> pool, int wSmoothBins) {
+		if (pool == null || pool.isEmpty()) {
 			return;
 		}
 		int n = Integer.MAX_VALUE;
@@ -754,13 +871,11 @@ public class Spots {
 		if (n <= 0) {
 			return;
 		}
-
 		int nPool = pool.size();
 		double[] spotBaseline = new double[nPool];
 		for (int i = 0; i < nPool; i++) {
 			spotBaseline[i] = sumCleanPerSpotBaselineMedian(pool.get(i), n);
 		}
-
 		double[] rRaw = new double[n];
 		double[] scratch = new double[nPool];
 		for (int t = 0; t < n; t++) {
@@ -779,7 +894,6 @@ public class Spots {
 			span++;
 		}
 		double[] rSmooth = runningMedianIgnoringNaN(rRaw, span);
-
 		for (int i = 0; i < nPool; i++) {
 			Spot s = pool.get(i);
 			double bi = spotBaseline[i];
