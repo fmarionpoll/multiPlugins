@@ -30,6 +30,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 //	ThresholdColors colorsThreshold = new ThresholdColors();
 	CleanGapsSpotsPanel cleanGapsSpotsPanel = new CleanGapsSpotsPanel();
 	EditSpotMeasuresPanel editSpotsPanel = new EditSpotMeasuresPanel();
+	ConsumptionV3Panel consumptionV3Panel = new ConsumptionV3Panel();
 	public ChartsPanel chartsPanel = new ChartsPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 
@@ -77,6 +78,11 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 		editSpotsPanel.init(gridLayout, parent0);
 		editSpotsPanel.addPropertyChangeListener(this);
 		tabsPane.addTab("Edit", null, editSpotsPanel, "Edit measures");
+		order++;
+
+		consumptionV3Panel.init(gridLayout, parent0);
+		consumptionV3Panel.addPropertyChangeListener(this);
+		tabsPane.addTab("V3", null, consumptionV3Panel, "Consumption V3 (experiment-median residual)");
 		order++;
 
 		chartsPanel.init(gridLayout, parent0);

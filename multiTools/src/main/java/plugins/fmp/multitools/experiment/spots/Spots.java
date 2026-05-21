@@ -2,6 +2,7 @@ package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Point;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -712,9 +713,20 @@ public class Spots {
 	}
 
 	/**
-	 * Tier A V3: {@code sumCleanV3} = per-spot {@code sumClean} minus experiment-wide median of {@code sumClean}
-	 * (across spots ready for analysis), then optional running-median smoothing of that reference with window
-	 * {@code wSmoothBins} (odd, at least 1).
+	 * Prefix length (bins) used to estimate per-spot {@code sumClean} level before pooling medians for V3.
+	 * <p>
+	 * Heterogeneous illumination shifts absolute grey levels per ROI; subtracting each spot's median over
+	 * these early bins approximates a local background/consumption baseline before the experiment-wide median
+	 * step.
+	 */
+	public static final int SUMCLEAN_V3_BASELINE_PREFIX_BINS = 10;
+
+	/**
+	 * Tier A V3: per-spot {@code sumClean} is shifted by that spot's median over the first
+	 * {@link #SUMCLEAN_V3_BASELINE_PREFIX_BINS} bins (local level / early-plateau proxy). The experiment-wide median of
+	 * those shifted values is taken per time bin, optionally smoothed with a running median of width
+	 * {@code wSmoothBins} (odd, at least 1). Finally {@code sumCleanV3} = shifted {@code sumClean} minus that
+	 * smoothed reference.
 	 */
 	public void rebuildV3ResidualFromSumCleanExperimentMedian(int wSmoothBins) {
 		List<Spot> pool = new ArrayList<>();
@@ -743,14 +755,21 @@ public class Spots {
 			return;
 		}
 
+		int nPool = pool.size();
+		double[] spotBaseline = new double[nPool];
+		for (int i = 0; i < nPool; i++) {
+			spotBaseline[i] = sumCleanPerSpotBaselineMedian(pool.get(i), n);
+		}
+
 		double[] rRaw = new double[n];
-		double[] scratch = new double[pool.size()];
+		double[] scratch = new double[nPool];
 		for (int t = 0; t < n; t++) {
 			int m = 0;
-			for (Spot s : pool) {
+			for (int i = 0; i < nPool; i++) {
+				Spot s = pool.get(i);
 				double val = s.getSumClean().getValueAt(t);
 				if (Double.isFinite(val)) {
-					scratch[m++] = val;
+					scratch[m++] = val - spotBaseline[i];
 				}
 			}
 			rRaw[t] = medianOfFirstM(scratch, m);
@@ -761,14 +780,16 @@ public class Spots {
 		}
 		double[] rSmooth = runningMedianIgnoringNaN(rRaw, span);
 
-		for (Spot s : pool) {
+		for (int i = 0; i < nPool; i++) {
+			Spot s = pool.get(i);
+			double bi = spotBaseline[i];
 			double[] clean = s.getSumClean().getValues();
 			double[] out = new double[n];
 			for (int t = 0; t < n; t++) {
 				double c = t < clean.length ? clean[t] : Double.NaN;
 				double r = rSmooth[t];
-				if (Double.isFinite(c) && Double.isFinite(r)) {
-					out[t] = c - r;
+				if (Double.isFinite(c) && Double.isFinite(bi) && Double.isFinite(r)) {
+					out[t] = (c - bi) - r;
 				} else {
 					out[t] = Double.NaN;
 				}
@@ -777,6 +798,31 @@ public class Spots {
 				s.getSumCleanV3().setValues(out);
 			}
 		}
+	}
+
+	private static double sumCleanPerSpotBaselineMedian(Spot s, int nBins) {
+		SpotMeasure sc = s.getSumClean();
+		if (sc == null) {
+			return 0.0;
+		}
+		int len = Math.min(sc.getCount(), nBins);
+		if (len <= 0) {
+			return 0.0;
+		}
+		int take = Math.min(SUMCLEAN_V3_BASELINE_PREFIX_BINS, len);
+		double[] scratch = new double[take];
+		int m = 0;
+		for (int t = 0; t < take; t++) {
+			double v = sc.getValueAt(t);
+			if (Double.isFinite(v)) {
+				scratch[m++] = v;
+			}
+		}
+		if (m == 0) {
+			return 0.0;
+		}
+		Arrays.sort(scratch, 0, m);
+		return scratch[m / 2];
 	}
 
 	private static double medianOfFirstM(double[] scratch, int m) {
