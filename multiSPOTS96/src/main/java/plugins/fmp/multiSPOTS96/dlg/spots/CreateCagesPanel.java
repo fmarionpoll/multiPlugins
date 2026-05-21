@@ -7,12 +7,16 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -56,6 +60,7 @@ public class CreateCagesPanel extends JPanel {
 	ROI2DPolygon roiCagesPerimeter = null;
 	private ROI2DGrid roiGrid = null;
 	private MultiSPOTS96 parent0;
+	private boolean suppressCreateCagesPrefsPersist;
 
 	// -------------------------------------------------
 
@@ -99,6 +104,9 @@ public class CreateCagesPanel extends JPanel {
 		defineActionListeners();
 		applyCreateCagesPreferencesFromStore();
 		wireCreateCagesPreferencesPersistence();
+		wireCreateCagesSpinnerEditorFocusPersist(nCagesPerPlateAlongXJSpinner);
+		wireCreateCagesSpinnerEditorFocusPersist(nCagesPerPlateAlongYJSpinner);
+		wireCreateCagesSpinnerEditorFocusPersist(width_intervalTextField);
 	}
 
 	private void defineActionListeners() {
@@ -141,9 +149,32 @@ public class CreateCagesPanel extends JPanel {
 	private void applyCreateCagesPreferencesFromStore() {
 		if (parent0 == null)
 			return;
-		nCagesPerPlateAlongXJSpinner.setValue(parent0.viewOptions.getCreateCagesGridCols());
-		nCagesPerPlateAlongYJSpinner.setValue(parent0.viewOptions.getCreateCagesGridRows());
-		width_intervalTextField.setValue(parent0.viewOptions.getCreateCagesPixelSpacing());
+		suppressCreateCagesPrefsPersist = true;
+		try {
+			nCagesPerPlateAlongXJSpinner.setValue(parent0.viewOptions.getCreateCagesGridCols());
+			nCagesPerPlateAlongYJSpinner.setValue(parent0.viewOptions.getCreateCagesGridRows());
+			width_intervalTextField.setValue(parent0.viewOptions.getCreateCagesPixelSpacing());
+		} finally {
+			suppressCreateCagesPrefsPersist = false;
+		}
+	}
+
+	private void wireCreateCagesSpinnerEditorFocusPersist(final JSpinner spinner) {
+		JComponent editor = spinner.getEditor();
+		if (!(editor instanceof javax.swing.JSpinner.DefaultEditor))
+			return;
+		((javax.swing.JSpinner.DefaultEditor) editor).getTextField().addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent e) {
+				if (suppressCreateCagesPrefsPersist)
+					return;
+				try {
+					spinner.commitEdit();
+				} catch (ParseException ex) {
+					// keep partial edit until user corrects or reverts
+				}
+			}
+		});
 	}
 
 	private void wireCreateCagesPreferencesPersistence() {
@@ -152,15 +183,30 @@ public class CreateCagesPanel extends JPanel {
 		ChangeListener persist = new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
-				parent0.viewOptions.setCreateCagesGridCols((int) nCagesPerPlateAlongXJSpinner.getValue());
-				parent0.viewOptions.setCreateCagesGridRows((int) nCagesPerPlateAlongYJSpinner.getValue());
-				parent0.viewOptions.setCreateCagesPixelSpacing((int) width_intervalTextField.getValue());
-				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+				if (suppressCreateCagesPrefsPersist)
+					return;
+				persistCreateCagesPreferencesToStore();
 			}
 		};
 		nCagesPerPlateAlongXJSpinner.addChangeListener(persist);
 		nCagesPerPlateAlongYJSpinner.addChangeListener(persist);
 		width_intervalTextField.addChangeListener(persist);
+	}
+
+	private void persistCreateCagesPreferencesToStore() {
+		if (parent0 == null)
+			return;
+		try {
+			nCagesPerPlateAlongXJSpinner.commitEdit();
+			nCagesPerPlateAlongYJSpinner.commitEdit();
+			width_intervalTextField.commitEdit();
+		} catch (ParseException e) {
+			return;
+		}
+		parent0.viewOptions.setCreateCagesGridCols((int) nCagesPerPlateAlongXJSpinner.getValue());
+		parent0.viewOptions.setCreateCagesGridRows((int) nCagesPerPlateAlongYJSpinner.getValue());
+		parent0.viewOptions.setCreateCagesPixelSpacing((int) width_intervalTextField.getValue());
+		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
 	}
 
 	private void removeGrid(Experiment exp) {
@@ -193,8 +239,13 @@ public class CreateCagesPanel extends JPanel {
 		if (exp != null) {
 			int nrois = exp.getCages().cagesList.size();
 			if (nrois > 0) {
-				nCagesPerPlateAlongXJSpinner.setValue(exp.getCages().nCagesAlongX);
-				nCagesPerPlateAlongYJSpinner.setValue(exp.getCages().nCagesAlongY);
+				suppressCreateCagesPrefsPersist = true;
+				try {
+					nCagesPerPlateAlongXJSpinner.setValue(exp.getCages().nCagesAlongX);
+					nCagesPerPlateAlongYJSpinner.setValue(exp.getCages().nCagesAlongY);
+				} finally {
+					suppressCreateCagesPrefsPersist = false;
+				}
 			}
 		}
 	}

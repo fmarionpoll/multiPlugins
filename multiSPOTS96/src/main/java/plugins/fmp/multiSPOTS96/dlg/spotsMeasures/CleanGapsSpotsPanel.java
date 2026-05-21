@@ -52,9 +52,9 @@ public class CleanGapsSpotsPanel extends JPanel {
 		this.parent0 = parent0;
 
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
+		layoutLeft.setVgap(0);
 
 		JPanel panel0 = new JPanel(layoutLeft);
-		((FlowLayout) panel0.getLayout()).setVgap(0);
 		panel0.add(displayRect);
 		panel0.add(new JLabel(" threshold:"));
 		panel0.add(thresholdSpinner);

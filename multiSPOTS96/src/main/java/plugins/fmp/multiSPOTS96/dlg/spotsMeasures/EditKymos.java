@@ -49,9 +49,6 @@ public class EditKymos extends JPanel implements PropertyChangeListener {
 		panel2.add(directionCombo);
 		add(panel2);
 
-		JPanel panel3 = new JPanel(layoutLeft);
-		add(panel3);
-
 		roiTypeCombo.setSelectedIndex(1);
 		defineListeners();
 	}

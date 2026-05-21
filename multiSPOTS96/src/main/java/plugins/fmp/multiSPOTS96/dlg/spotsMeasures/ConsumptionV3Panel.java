@@ -1,6 +1,5 @@
 package plugins.fmp.multiSPOTS96.dlg.spotsMeasures;
 
-import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -21,8 +20,8 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 
 /**
- * Tier A V3: experiment-median residual on {@code sumClean}, with UI for smoothing width (future Tier B
- * parameters reserved).
+ * Tier A V3: experiment-median residual on {@code sumClean}. Layout matches {@code _DlgSpots_} tabs:
+ * {@link GridLayout}(4,1) on the tab root and one {@link FlowLayout} row panel per line with {@code vgap 0}.
  */
 public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
@@ -38,38 +37,37 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 		setLayout(capLayout);
 		this.parent0 = parent0;
 
-		JPanel titled = new JPanel(new BorderLayout(0, 4));
-		titled.setBorder(BorderFactory.createTitledBorder("Consumption V3 (Tier A)"));
+		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
+		layoutLeft.setVgap(0);
 
-		JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		controls.add(new JLabel("Smooth W (bins):"));
-		controls.add(v3SmoothBinsSpinner);
-		controls.add(new JLabel("\u03bb (reserved):"));
-		controls.add(v3LambdaSpinner);
-		controls.add(new JLabel("step bins (reserved):"));
-		controls.add(v3StepBinsSpinner);
-		controls.add(rebuildV3Button);
+		JPanel panel0 = new JPanel(layoutLeft);
+		panel0.setBorder(BorderFactory.createTitledBorder("Consumption V3 (Tier A)"));
+		panel0.add(new JLabel("Smooth W (bins):"));
+		panel0.add(v3SmoothBinsSpinner);
+		panel0.add(new JLabel("\u03bb (reserved):"));
+		panel0.add(v3LambdaSpinner);
+		panel0.add(new JLabel("step bins (reserved):"));
+		panel0.add(v3StepBinsSpinner);
+		panel0.add(rebuildV3Button);
+		add(panel0);
 
-		JPanel note = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		note.add(new JLabel("<html><body style='width:520px'>Per-spot median over the first "
+		JPanel panel1 = new JPanel(layoutLeft);
+		panel1.add(new JLabel("<html><body style='width:520px'>Per-spot median over the first "
 				+ Spots.SUMCLEAN_V3_BASELINE_PREFIX_BINS
 				+ " bins of <code>sumClean</code> removes most heterogeneous background before the experiment-wide median; residual can still go negative when a spot drops faster than the cohort.</body></html>"));
+		add(panel1);
+
+		JPanel panel2 = new JPanel(layoutLeft);
+		panel2.add(statusLabel);
+		add(panel2);
+
+		JPanel panel3 = new JPanel(layoutLeft);
+		add(panel3);
 
 		rebuildV3Button.setToolTipText(
 				"Recomputes cleanV3: shift each spot by early-bin median of sumClean, take experiment-wide median per bin, smooth with running median (odd W), subtract from shifted sumClean.");
 		v3LambdaSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
 		v3StepBinsSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
-
-		titled.add(controls, BorderLayout.NORTH);
-		titled.add(note, BorderLayout.CENTER);
-
-		JPanel statusRow = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		statusRow.add(statusLabel);
-
-		JPanel stack = new JPanel(new GridLayout(2, 1));
-		stack.add(titled);
-		stack.add(statusRow);
-		add(stack);
 
 		rebuildV3Button.addActionListener(new ActionListener() {
 			@Override

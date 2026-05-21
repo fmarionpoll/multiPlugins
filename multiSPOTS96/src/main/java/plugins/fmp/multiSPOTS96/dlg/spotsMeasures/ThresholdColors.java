@@ -13,7 +13,6 @@ import java.beans.PropertyChangeListener;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -50,16 +49,16 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 	public void init(GridLayout capLayout, MultiSPOTS96 parent0) {
 
 		this.multiSpots = parent0;
-		JComponent panel = new JPanel(false);
-		panel.setLayout(capLayout);
+		setLayout(capLayout);
 
 		colorPickCombo.setRenderer(colorPickComboRenderer);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
+		layoutLeft.setVgap(0);
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(pickColorButton);
 		panel0.add(colorPickCombo);
 		panel0.add(deleteColorButton);
-		panel.add(panel0);
+		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		ButtonGroup bgd = new ButtonGroup();
@@ -69,7 +68,7 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 		panel1.add(rbL1);
 		panel1.add(rbL2);
 		panel1.add(distanceSpinner);
-		panel.add(panel1);
+		add(panel1);
 
 		ButtonGroup bgcs = new ButtonGroup();
 		bgcs.add(rbRGB);
@@ -80,7 +79,7 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 		panel2.add(rbRGB);
 		panel2.add(rbHSV);
 		panel2.add(rbH1H2H3);
-		panel.add(panel2);
+		add(panel2);
 
 		rbL1.setSelected(true);
 		rbRGB.setSelected(true);
