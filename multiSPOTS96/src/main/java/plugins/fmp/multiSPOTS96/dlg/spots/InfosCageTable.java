@@ -28,6 +28,7 @@ import plugins.fmp.multitools.experiment.cages.CageTable;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.JComponents.RefreshGlyphButtonFactory;
 
 public class InfosCageTable extends JPanel implements ListSelectionListener {
 	/**
@@ -38,6 +39,8 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	private CageTable cageTable = null;
 	private JButton copyButton = new JButton("Copy table");
 	private JButton pasteButton = new JButton("Paste");
+	private JButton updateButton = RefreshGlyphButtonFactory
+			.createTableRefreshButton("Refresh cage table from current experiment");
 	private JButton selectedCageButton = new JButton("Locate selected cage");
 
 	private JButton duplicateAllButton = new JButton("Cage to all");
@@ -63,6 +66,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(copyButton);
 		panel1.add(pasteButton);
+		panel1.add(updateButton);
 		panel1.add(selectedCageButton);
 		topPanel.add(panel1);
 
@@ -90,12 +94,18 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	}
 
 	void refreshSpotDerivedColumns() {
+		refreshCageTable();
+	}
+
+	private void refreshCageTable() {
 		if (cageTable != null && cageTable.cageTableModel != null) {
 			cageTable.cageTableModel.fireTableDataChanged();
 		}
 	}
 
 	private void defineActionListeners() {
+		updateButton.addActionListener(e -> refreshCageTable());
+
 		copyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -175,7 +185,7 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 			}
 		});
 
-		cageTable.cageTableModel.fireTableDataChanged();
+		refreshCageTable();
 	}
 
 	public void close() {
