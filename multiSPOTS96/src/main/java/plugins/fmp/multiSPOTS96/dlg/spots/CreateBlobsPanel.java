@@ -113,6 +113,24 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 
 		defineActionListeners();
 		defineItemListeners();
+		applyDetectBlobsPreferencesFromStore();
+		spotsThresholdSpinner.addChangeListener(e -> persistDetectBlobsPreferencesToStore());
+		spotDiameterSpinner.addChangeListener(e -> persistDetectBlobsPreferencesToStore());
+	}
+
+	private void applyDetectBlobsPreferencesFromStore() {
+		if (parent0 == null)
+			return;
+		spotsThresholdSpinner.setValue(parent0.viewOptions.getDetectBlobsThreshold());
+		spotDiameterSpinner.setValue(parent0.viewOptions.getDetectBlobsSpotDiameterPx());
+	}
+
+	private void persistDetectBlobsPreferencesToStore() {
+		if (parent0 == null)
+			return;
+		parent0.viewOptions.setDetectBlobsThreshold((int) spotsThresholdSpinner.getValue());
+		parent0.viewOptions.setDetectBlobsSpotDiameterPx((int) spotDiameterSpinner.getValue());
+		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
 	}
 
 	private void defineItemListeners() {

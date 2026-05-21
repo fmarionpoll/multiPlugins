@@ -18,6 +18,8 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import icy.gui.frame.progress.AnnounceFrame;
 import icy.roi.ROI2D;
@@ -95,6 +97,8 @@ public class CreateCagesPanel extends JPanel {
 		add(panel3);
 
 		defineActionListeners();
+		applyCreateCagesPreferencesFromStore();
+		wireCreateCagesPreferencesPersistence();
 	}
 
 	private void defineActionListeners() {
@@ -132,6 +136,31 @@ public class CreateCagesPanel extends JPanel {
 			}
 		});
 
+	}
+
+	private void applyCreateCagesPreferencesFromStore() {
+		if (parent0 == null)
+			return;
+		nCagesPerPlateAlongXJSpinner.setValue(parent0.viewOptions.getCreateCagesGridCols());
+		nCagesPerPlateAlongYJSpinner.setValue(parent0.viewOptions.getCreateCagesGridRows());
+		width_intervalTextField.setValue(parent0.viewOptions.getCreateCagesPixelSpacing());
+	}
+
+	private void wireCreateCagesPreferencesPersistence() {
+		if (parent0 == null)
+			return;
+		ChangeListener persist = new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				parent0.viewOptions.setCreateCagesGridCols((int) nCagesPerPlateAlongXJSpinner.getValue());
+				parent0.viewOptions.setCreateCagesGridRows((int) nCagesPerPlateAlongYJSpinner.getValue());
+				parent0.viewOptions.setCreateCagesPixelSpacing((int) width_intervalTextField.getValue());
+				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+			}
+		};
+		nCagesPerPlateAlongXJSpinner.addChangeListener(persist);
+		nCagesPerPlateAlongYJSpinner.addChangeListener(persist);
+		width_intervalTextField.addChangeListener(persist);
 	}
 
 	private void removeGrid(Experiment exp) {
