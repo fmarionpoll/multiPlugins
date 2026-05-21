@@ -9,7 +9,7 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
-public class SpotsAreas extends JPanel {
+public class SpotsAreasPanel extends JPanel {
 	/**
 	 * 
 	 */

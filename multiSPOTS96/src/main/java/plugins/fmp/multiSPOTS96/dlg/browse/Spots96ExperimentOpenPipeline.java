@@ -61,14 +61,14 @@ final class Spots96ExperimentOpenPipeline {
 
 			owner.parent0.dlgExperiment.updateViewerForSequenceCam(exp);
 
-			owner.parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
+			owner.parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 
 			progressFrame.setMessage("Load data: update dialogs");
 
 			owner.parent0.dlgExperiment.updateDialogs(exp);
 			owner.parent0.dlgSpots.updateDialogs(exp);
 
-			owner.parent0.dlgExperiment.tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
+			owner.parent0.dlgExperiment.infosPanel.transferPreviousExperimentInfosToDialog(exp, exp);
 
 			long endTime = System.nanoTime();
 			logCageLoadCompletion(exp, expIndex, startTime, endTime);

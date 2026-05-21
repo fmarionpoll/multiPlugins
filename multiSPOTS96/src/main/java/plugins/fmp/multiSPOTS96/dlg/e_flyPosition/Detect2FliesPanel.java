@@ -34,7 +34,7 @@ import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class Detect2Flies extends JPanel implements ChangeListener, PropertyChangeListener, PopupMenuListener {
+public class Detect2FliesPanel extends JPanel implements ChangeListener, PropertyChangeListener, PopupMenuListener {
 	private static final long serialVersionUID = -5257698990389571518L;
 	private MultiSPOTS96 parent0 = null;
 
@@ -232,10 +232,10 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 			options.binSubDirectory = exp.getBinSubDirectory();
 		}
 
-		options.isFrameFixed = parent0.dlgExcel.tabCommonOptions.getIsFixedFrame();
-		options.t_Ms_First = parent0.dlgExcel.tabCommonOptions.getStartMs();
-		options.t_Ms_Last = parent0.dlgExcel.tabCommonOptions.getEndMs();
-		options.t_Ms_BinDuration = parent0.dlgExcel.tabCommonOptions.getBinMs();
+		options.isFrameFixed = parent0.dlgExcel.excelOptionsPanel.getIsFixedFrame();
+		options.t_Ms_First = parent0.dlgExcel.excelOptionsPanel.getStartMs();
+		options.t_Ms_Last = parent0.dlgExcel.excelOptionsPanel.getEndMs();
+		options.t_Ms_BinDuration = parent0.dlgExcel.excelOptionsPanel.getBinMs();
 
 		return options;
 	}

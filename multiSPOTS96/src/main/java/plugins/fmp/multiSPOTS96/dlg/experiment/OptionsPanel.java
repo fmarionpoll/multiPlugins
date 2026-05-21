@@ -12,7 +12,7 @@ import javax.swing.JPanel;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 
-public class Options extends JPanel {
+public class OptionsPanel extends JPanel {
 	private static final long serialVersionUID = 6565346204580890307L;
 
 	public JCheckBox viewSpotsCheckBox = new JCheckBox("spots", true);

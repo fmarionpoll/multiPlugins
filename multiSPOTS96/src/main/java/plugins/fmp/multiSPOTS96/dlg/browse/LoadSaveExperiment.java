@@ -207,7 +207,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		filteredCheck.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				parent0.dlgExperiment.tabFilter.filterExperimentList(filteredCheck.isSelected());
+				parent0.dlgExperiment.filterPanel.filterExperimentList(filteredCheck.isSelected());
 			}
 		});
 
@@ -231,7 +231,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			LazyExperiment lazyExp = new LazyExperiment(metadata);
 			int selectedIndex = parent0.expListComboLazy.addLazyExperiment(lazyExp);
-			parent0.dlgExperiment.tabInfos.initCombos();
+			parent0.dlgExperiment.infosPanel.initCombos();
 			parent0.expListComboLazy.setSelectedIndex(selectedIndex);
 		}
 	}
@@ -325,9 +325,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	public void closeAllExperiments() {
 		closeCurrentExperiment();
 		parent0.expListComboLazy.removeAllItems();
-		parent0.dlgExperiment.tabFilter.clearAllCheckBoxes();
-		parent0.dlgExperiment.tabFilter.filterExpList.removeAllItems();
-		parent0.dlgExperiment.tabInfos.clearCombos();
+		parent0.dlgExperiment.filterPanel.clearAllCheckBoxes();
+		parent0.dlgExperiment.filterPanel.filterExpList.removeAllItems();
+		parent0.dlgExperiment.infosPanel.clearCombos();
 		filteredCheck.setSelected(false);
 		experimentMetadataList.clear();
 		if (parent0.descriptorIndex != null)

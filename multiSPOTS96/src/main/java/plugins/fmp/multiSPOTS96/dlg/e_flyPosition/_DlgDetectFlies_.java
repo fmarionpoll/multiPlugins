@@ -19,10 +19,10 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 	 */
 	private static final long serialVersionUID = 3457738144388946607L;
 
-	Detect1 tabDetect1 = new Detect1();
-	Detect2Background tabDetect2Background = new Detect2Background();
-	Detect2Flies tabDetect2Flies = new Detect2Flies();
-	Edit tabEdit = new Edit();
+	Detect1Panel detect1Panel = new Detect1Panel();
+	Detect2BackgroundPanel detect2BackgroundPanel = new Detect2BackgroundPanel();
+	Detect2FliesPanel detect2FliesPanel = new Detect2FliesPanel();
+	EditPanel editPanel = new EditPanel();
 	public LoadSavePositions tabFile = new LoadSavePositions();
 	public PlotFliesPositions tabGraphics = new PlotFliesPositions();
 	public PopupPanel capPopupPanel = null;
@@ -68,28 +68,28 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 
 		iTab++;
 		iTAB_DETECT1 = iTab;
-		tabDetect1.init(capLayout, parent0);
-		tabDetect1.addPropertyChangeListener(this);
-		tabsPane.addTab("Detect (option 1)", null, tabDetect1,
+		detect1Panel.init(capLayout, parent0);
+		detect1Panel.addPropertyChangeListener(this);
+		tabsPane.addTab("Detect (option 1)", null, detect1Panel,
 				"Detect flies position using thresholding on image overlay");
 
 		iTab++;
 		iTAB_DETECT2BCKGND = iTab;
-		tabDetect2Background.init(capLayout, parent0);
-		tabDetect2Background.addPropertyChangeListener(this);
-		tabsPane.addTab("Background", null, tabDetect2Background, "Build background image");
+		detect2BackgroundPanel.init(capLayout, parent0);
+		detect2BackgroundPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Background", null, detect2BackgroundPanel, "Build background image");
 
 		iTab++;
 		iTAB_DETECT2FLIES = iTab;
-		tabDetect2Flies.init(capLayout, parent0);
-		tabDetect2Flies.addPropertyChangeListener(this);
-		tabsPane.addTab("Detect (option 2)", null, tabDetect2Flies, "Detect flies position from subtracted background");
+		detect2FliesPanel.init(capLayout, parent0);
+		detect2FliesPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Detect (option 2)", null, detect2FliesPanel, "Detect flies position from subtracted background");
 
 		iTab++;
 		iTAB_EDIT = iTab;
-		tabEdit.init(capLayout, parent0);
-		tabEdit.addPropertyChangeListener(this);
-		tabsPane.addTab("Edit", null, tabEdit, "Edit flies detection");
+		editPanel.init(capLayout, parent0);
+		editPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Edit", null, editPanel, "Edit flies detection");
 
 		iTab++;
 		tabGraphics.init(capLayout, parent0);

@@ -34,10 +34,10 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -4296207607692017074L;
 	public PopupPanel capPopupPanel = null;
 	private JTabbedPane tabsPane = new JTabbedPane();
-	public ExcelOptionsPanel tabCommonOptions = new ExcelOptionsPanel(ExcelOptionsPanel.Features.spots96Defaults());
-	private SpotsAreas spotsAreas = new SpotsAreas();
-	private AggregatedSpotsAreas aggregatedSpotsAreas = new AggregatedSpotsAreas();
-	private TransferResultsPanel tabTransfer = null;
+	public ExcelOptionsPanel excelOptionsPanel = new ExcelOptionsPanel(ExcelOptionsPanel.Features.spots96Defaults());
+	private SpotsAreasPanel spotsAreasPanel = new SpotsAreasPanel();
+	private AggregatedSpotsAreasPanel aggregatedSpotsAreasPanel = new AggregatedSpotsAreasPanel();
+	private TransferResultsPanel transferResultsPanel = null;
 	// private CagesAreas cagesAreas = new CagesAreas();
 	// TODO _CAGES private Move tabMove = new Move();
 	private MultiSPOTS96 parent0 = null;
@@ -52,20 +52,20 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		mainPanel.add(capPopupPanel);
 		GridLayout capLayout = new GridLayout(3, 2);
 
-		tabCommonOptions.init(capLayout);
-		tabsPane.addTab("Common options", null, tabCommonOptions, "Define common options");
-		tabCommonOptions.addPropertyChangeListener(this);
+		excelOptionsPanel.init(capLayout);
+		tabsPane.addTab("Common options", null, excelOptionsPanel, "Define common options");
+		excelOptionsPanel.addPropertyChangeListener(this);
 
-		spotsAreas.init(capLayout);
-		tabsPane.addTab("Spots", null, spotsAreas, "Export measures made on spots to file");
-		spotsAreas.addPropertyChangeListener(this);
+		spotsAreasPanel.init(capLayout);
+		tabsPane.addTab("Spots", null, spotsAreasPanel, "Export measures made on spots to file");
+		spotsAreasPanel.addPropertyChangeListener(this);
 
-		aggregatedSpotsAreas.init(capLayout);
-		tabsPane.addTab("Aggregated spots", null, aggregatedSpotsAreas,
+		aggregatedSpotsAreasPanel.init(capLayout);
+		tabsPane.addTab("Aggregated spots", null, aggregatedSpotsAreasPanel,
 				"Export AGG_SUMCLEAN (cage \u00d7 stimulus/concentration groups)");
-		aggregatedSpotsAreas.addPropertyChangeListener(this);
+		aggregatedSpotsAreasPanel.addPropertyChangeListener(this);
 
-		tabTransfer = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
+		transferResultsPanel = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
 			@Override
 			public void closeAllExperimentsForTransfer() {
 				parent0.dlgBrowse.loadSaveExperiment.closeAllExperimentsForTransfer();
@@ -81,7 +81,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 				parent0.dlgBrowse.loadSaveExperiment.openExperimentAtIndex(index);
 			}
 		});
-		tabsPane.addTab("Transfer results", null, tabTransfer, "Export/Import results to/from another location");
+		tabsPane.addTab("Transfer results", null, transferResultsPanel, "Export/Import results to/from another location");
 
 //		cagesAreas.init(capLayout);
 //		tabsPane.addTab("Cages", null, cagesAreas, "Export measures made on cages to file");
@@ -163,21 +163,21 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private void updateParametersCurrentExperiment(Experiment exp) {
-		parent0.dlgExperiment.tabInfos.getExperimentInfosFromDialog(exp);
+		parent0.dlgExperiment.infosPanel.getExperimentInfosFromDialog(exp);
 	}
 
 	private ResultsOptions getSpotsOptions(Experiment exp) {
 		ResultsOptions resultsOptions = new ResultsOptions();
 
 		resultsOptions.spotAreas = true;
-		resultsOptions.sum = spotsAreas.areaCheckBox.isSelected();
-		resultsOptions.spotSumNoFly = spotsAreas.sumNoFlyCheckBox.isSelected();
-		resultsOptions.spotSumClean = spotsAreas.sumCleanCheckBox.isSelected();
+		resultsOptions.sum = spotsAreasPanel.areaCheckBox.isSelected();
+		resultsOptions.spotSumNoFly = spotsAreasPanel.sumNoFlyCheckBox.isSelected();
+		resultsOptions.spotSumClean = spotsAreasPanel.sumCleanCheckBox.isSelected();
 //		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
 //		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
 //		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();
-		resultsOptions.relativeToMaximum = spotsAreas.t0CheckBox.isSelected();
-		resultsOptions.onlyalive = spotsAreas.discardNoFlyCageCheckBox.isSelected();
+		resultsOptions.relativeToMaximum = spotsAreasPanel.t0CheckBox.isSelected();
+		resultsOptions.onlyalive = spotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		resultsOptions.spotAggregateByStimulusConc = false;
 		resultsOptions.resultType = null;
 		resultsOptions.spotBaselineWindowMinutes = 2;
@@ -196,29 +196,29 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.spotSumNoFly = false;
 		resultsOptions.spotSumClean = true;
 		resultsOptions.relativeToMaximum = false;
-		resultsOptions.onlyalive = aggregatedSpotsAreas.discardNoFlyCageCheckBox.isSelected();
+		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		resultsOptions.spotAggregateByStimulusConc = true;
 		resultsOptions.resultType = EnumResults.AGG_SUMCLEAN;
-		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreas.baselineMinutesSpinner.getValue())
+		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner.getValue())
 				.intValue();
-		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreas.stopWhenStableCheckBox.isSelected();
-		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreas.stableBinsSpinner.getValue()).intValue();
+		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreasPanel.stopWhenStableCheckBox.isSelected();
+		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreasPanel.stableBinsSpinner.getValue()).intValue();
 		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}
 
 	private void getCommonOptions(ResultsOptions resultsOptions, Experiment exp) {
-		resultsOptions.transpose = tabCommonOptions.isTranspose();
-		resultsOptions.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
-		resultsOptions.buildExcelUnitMs = tabCommonOptions.getBinUnitMs();
-		resultsOptions.fixedIntervals = tabCommonOptions.getIsFixedFrame();
-		resultsOptions.startAll_Ms = tabCommonOptions.getStartAllMs();
-		resultsOptions.endAll_Ms = tabCommonOptions.getEndAllMs();
-		resultsOptions.exportAllFiles = tabCommonOptions.isExportAllFiles();
+		resultsOptions.transpose = excelOptionsPanel.isTranspose();
+		resultsOptions.buildExcelStepMs = excelOptionsPanel.getExcelBuildStep();
+		resultsOptions.buildExcelUnitMs = excelOptionsPanel.getBinUnitMs();
+		resultsOptions.fixedIntervals = excelOptionsPanel.getIsFixedFrame();
+		resultsOptions.startAll_Ms = excelOptionsPanel.getStartAllMs();
+		resultsOptions.endAll_Ms = excelOptionsPanel.getEndAllMs();
+		resultsOptions.exportAllFiles = excelOptionsPanel.isExportAllFiles();
 
 		resultsOptions.expList = parent0.expListComboLazy;
 		resultsOptions.expList.expListBinSubDirectory = exp.getBinSubDirectory();
-		if (tabCommonOptions.isExportAllFiles()) {
+		if (excelOptionsPanel.isExportAllFiles()) {
 			resultsOptions.firstExp = 0;
 			int itemCount = resultsOptions.expList.getItemCount();
 			resultsOptions.lastExp = (itemCount > 0) ? itemCount - 1 : 0;

@@ -32,7 +32,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class Detect2Background extends JPanel implements ChangeListener, PropertyChangeListener {
+public class Detect2BackgroundPanel extends JPanel implements ChangeListener, PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 
 	private MultiSPOTS96 parent0 = null;
@@ -222,10 +222,10 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		options.detectFlies = false;
 
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
-		options.isFrameFixed = parent0.dlgExcel.tabCommonOptions.getIsFixedFrame();
-		options.t_Ms_First = parent0.dlgExcel.tabCommonOptions.getStartMs();
-		options.t_Ms_Last = parent0.dlgExcel.tabCommonOptions.getEndMs();
-		options.t_Ms_BinDuration = parent0.dlgExcel.tabCommonOptions.getBinMs();
+		options.isFrameFixed = parent0.dlgExcel.excelOptionsPanel.getIsFixedFrame();
+		options.t_Ms_First = parent0.dlgExcel.excelOptionsPanel.getStartMs();
+		options.t_Ms_Last = parent0.dlgExcel.excelOptionsPanel.getEndMs();
+		options.t_Ms_BinDuration = parent0.dlgExcel.excelOptionsPanel.getBinMs();
 
 		options.background_jitter = (int) backgroundJitterSpinner.getValue();
 		options.background_delta = (int) backgroundDeltaSpinner.getValue();

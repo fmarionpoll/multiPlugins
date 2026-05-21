@@ -22,7 +22,7 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
-public class Edit extends JPanel {
+public class EditPanel extends JPanel {
 	/**
 	 * 
 	 */
@@ -83,12 +83,12 @@ public class Edit extends JPanel {
 	}
 
 	private void syncEditExpListFromProject() {
-		parent0.dlgExperiment.tabFilter.initCombos();
+		parent0.dlgExperiment.filterPanel.initCombos();
 		JComboBoxExperimentLazy src;
 		if (parent0.dlgBrowse.loadSaveExperiment.filteredCheck.isSelected())
 			src = parent0.expListComboLazy;
 		else {
-			src = parent0.dlgExperiment.tabFilter.filterExpList;
+			src = parent0.dlgExperiment.filterPanel.filterExpList;
 			if (src.getItemCount() < 1)
 				src = parent0.expListComboLazy;
 		}
@@ -164,8 +164,8 @@ public class Edit extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-				parent0.dlgExperiment.tabFilter.initCombos();
-				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.tabFilter.filterExpList;
+				parent0.dlgExperiment.filterPanel.initCombos();
+				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
 				if (indexSource.getItemCount() < 1)
 					indexSource = parent0.expListComboLazy;
 				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
@@ -267,26 +267,26 @@ public class Edit extends JPanel {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					exp.load_spots_description_and_measures();
-					parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
+					parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 				}
 				if (anyChanged && parent0.descriptorIndex != null) {
 					final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-					parent0.dlgExperiment.tabFilter.initCombos();
-					JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.tabFilter.filterExpList;
+					parent0.dlgExperiment.filterPanel.initCombos();
+					JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
 					if (indexSource.getItemCount() < 1)
 						indexSource = parent0.expListComboLazy;
 					parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
 						@Override
 						public void run() {
 							pf.close();
-							parent0.dlgExperiment.tabInfos.initCombos();
-							parent0.dlgExperiment.tabFilter.initCombos();
+							parent0.dlgExperiment.infosPanel.initCombos();
+							parent0.dlgExperiment.filterPanel.initCombos();
 							initEditCombos();
 						}
 					});
 				} else {
-					parent0.dlgExperiment.tabInfos.initCombos();
-					parent0.dlgExperiment.tabFilter.initCombos();
+					parent0.dlgExperiment.infosPanel.initCombos();
+					parent0.dlgExperiment.filterPanel.initCombos();
 					initEditCombos();
 				}
 			}

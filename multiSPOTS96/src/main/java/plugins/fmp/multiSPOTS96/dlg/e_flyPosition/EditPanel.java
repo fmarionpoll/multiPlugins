@@ -23,7 +23,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.kernel.roi.roi2d.ROI2DPoint;
 
-public class Edit extends JPanel {
+public class EditPanel extends JPanel {
 	/**
 	 * 
 	 */

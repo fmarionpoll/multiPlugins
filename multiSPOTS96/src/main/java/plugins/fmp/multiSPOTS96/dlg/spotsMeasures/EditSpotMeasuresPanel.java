@@ -24,7 +24,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
 
-public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
+public class EditSpotMeasuresPanel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 2580935598417087197L;
 
 	private enum SpotScopeMode {
@@ -256,7 +256,7 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 			return;
 		}
 		double pct = parent0 != null && parent0.dlgMeasure != null
-				? parent0.dlgMeasure.tabSimpleThresholdLight.getFlyOccupancyPercentForSpotSumNoFly()
+				? parent0.dlgMeasure.thresholdLightPanel.getFlyOccupancyPercentForSpotSumNoFly()
 				: 8.0;
 		exp.getSpots().rebuildNoFlyAndCleanForSpots(targets, true, pct / 100.0);
 		exp.getSpots().transferMeasuresToLevel2D(targets);
@@ -265,8 +265,8 @@ public class EditSpotMeasures extends JPanel implements PropertyChangeListener {
 	}
 
 	private void refreshChartsIfPresent(Experiment exp) {
-		if (parent0.dlgMeasure != null && parent0.dlgMeasure.tabCharts != null) {
-			parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
+		if (parent0.dlgMeasure != null && parent0.dlgMeasure.chartsPanel != null) {
+			parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 		}
 	}
 

@@ -28,7 +28,7 @@ import plugins.fmp.multitools.series.BuildCleanGapsFromCam;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class CleanGapsSpots extends JPanel {
+public class CleanGapsSpotsPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private JButton displayRect = new JButton("Area monitored");

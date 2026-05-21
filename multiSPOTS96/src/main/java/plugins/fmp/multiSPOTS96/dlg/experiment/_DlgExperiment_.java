@@ -39,12 +39,12 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 	PopupPanel capPopupPanel = null;
 	public JTabbedPane tabsPane = new JTabbedPane();
-	public Infos tabInfos = new Infos();
-	public Filter tabFilter = new Filter();
-	Edit tabEdit = new Edit();
-	public IntervalsPanel tabIntervals = new IntervalsPanel();
-	CorrectDriftPanel tabCorrectDrift = new CorrectDriftPanel();
-	public Options tabOptions = new Options();
+	public InfosPanel infosPanel = new InfosPanel();
+	public FilterPanel filterPanel = new FilterPanel();
+	EditPanel editPanel = new EditPanel();
+	public IntervalsPanel intervalsPanel = new IntervalsPanel();
+	CorrectDriftPanel correctDriftPanel = new CorrectDriftPanel();
+	public OptionsPanel optionsPanel = new OptionsPanel();
 	private MultiSPOTS96 parent0 = null;
 
 	/** Camera sequence viewer bounds, shared across experiments in this session (same idea as MultiCAFE). */
@@ -58,23 +58,23 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		mainPanel.add(capPopupPanel);
 		GridLayout tabsLayout = new GridLayout(4, 1);
 
-		tabInfos.init(tabsLayout, parent0);
-		tabsPane.addTab("Infos", null, tabInfos, "Define descriptors for experiment");
+		infosPanel.init(tabsLayout, parent0);
+		tabsPane.addTab("Infos", null, infosPanel, "Define descriptors for experiment");
 
-		tabFilter.init(tabsLayout, parent0);
-		tabsPane.addTab("Filter", null, tabFilter, "Filter experiments based on descriptors");
+		filterPanel.init(tabsLayout, parent0);
+		tabsPane.addTab("Filter", null, filterPanel, "Filter experiments based on descriptors");
 
-		tabEdit.init(tabsLayout, parent0);
-		tabsPane.addTab("Edit", null, tabEdit, "Edit descriptors");
+		editPanel.init(tabsLayout, parent0);
+		tabsPane.addTab("Edit", null, editPanel, "Edit descriptors");
 
-		tabIntervals.init(tabsLayout, new MultiSpots96IntervalsHost(parent0));
-		tabsPane.addTab("Intervals", null, tabIntervals, "View/edit time-lapse intervals");
+		intervalsPanel.init(tabsLayout, new MultiSpots96IntervalsHost(parent0));
+		tabsPane.addTab("Intervals", null, intervalsPanel, "View/edit time-lapse intervals");
 
-		tabCorrectDrift.init(tabsLayout, new MultiSpots96CorrectDriftHost(parent0));
-		tabsPane.addTab("Correct drift", null, tabCorrectDrift, "Correct image drift with time");
+		correctDriftPanel.init(tabsLayout, new MultiSpots96CorrectDriftHost(parent0));
+		tabsPane.addTab("Correct drift", null, correctDriftPanel, "Correct image drift with time");
 
-		tabOptions.init(tabsLayout, parent0);
-		tabsPane.addTab("Options", null, tabOptions, "Options to display data");
+		optionsPanel.init(tabsLayout, parent0);
+		tabsPane.addTab("Options", null, optionsPanel, "Options to display data");
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 
@@ -94,12 +94,12 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	}
 
 	public void updateDialogs(Experiment exp) {
-		tabIntervals.getExptParms(exp);
-		tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
+		intervalsPanel.getExptParms(exp);
+		infosPanel.transferPreviousExperimentInfosToDialog(exp, exp);
 	}
 
 	public void getExperimentInfosFromDialog(Experiment exp) {
-		tabInfos.getExperimentInfosFromDialog(exp);
+		infosPanel.getExperimentInfosFromDialog(exp);
 	}
 
 	public void updateViewerForSequenceCam(Experiment exp) {
@@ -153,15 +153,15 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 				if (v != null) {
 					v.removeListener(parent);
-					v.removeListener(tabCorrectDrift);
+					v.removeListener(correctDriftPanel);
 					v.addListener(parent);
-					v.addListener(tabCorrectDrift);
+					v.addListener(correctDriftPanel);
 					v.toFront();
 					v.requestFocus();
 					v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 					v.setRepeat(false);
 
-					tabCorrectDrift.resetFrameIndex();
+					correctDriftPanel.resetFrameIndex();
 
 					if (seq.isUpdating()) {
 						seq.endUpdate();
@@ -170,7 +170,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 					if (current == exp) {
 						exp.transferCagesROI_toSequence();
 						exp.transferSpotsROI_toSequence();
-						SwingUtilities.invokeLater(() -> tabOptions.applyViewOptionsToCurrentExperiment());
+						SwingUtilities.invokeLater(() -> optionsPanel.applyViewOptionsToCurrentExperiment());
 					}
 				}
 			}
@@ -215,7 +215,7 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		if (viewer != null) {
 			globalCamDataViewerBounds = viewer.getBounds();
 			viewer.removeListener(this);
-			viewer.removeListener(tabCorrectDrift);
+			viewer.removeListener(correctDriftPanel);
 		}
 	}
 
@@ -223,11 +223,11 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	public void stateChanged(ChangeEvent e) {
 		JTabbedPane tabbedPane = (JTabbedPane) e.getSource();
 		if (tabbedPane.getSelectedIndex() == 0)
-			tabInfos.initCombos();
+			infosPanel.initCombos();
 		else if (tabbedPane.getSelectedIndex() == 1)
-			tabFilter.initCombos();
+			filterPanel.initCombos();
 		else if (tabbedPane.getSelectedIndex() == 2)
-			tabEdit.initEditCombos();
+			editPanel.initEditCombos();
 	}
 
 }

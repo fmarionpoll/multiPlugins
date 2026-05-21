@@ -24,14 +24,14 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 	private static final long serialVersionUID = 853047648249832145L;
 	public PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
-	ThresholdLight tabSimpleThresholdLight = new ThresholdLight();
+	ThresholdLightPanel thresholdLightPanel = new ThresholdLightPanel();
 //	ThresholdLightV2 tabThresholdLightV2 = new ThresholdLightV2();
 //	ThresholdSimple tabSimpleThresholdAdvanced = new ThresholdSimple();
 //	ThresholdColors colorsThreshold = new ThresholdColors();
-	CleanGapsSpots tabCleanGaps = new CleanGapsSpots();
-	EditSpotMeasures tabEdit = new EditSpotMeasures();
-	public Charts tabCharts = new Charts();
-	public LoadSave tabFile = new LoadSave();
+	CleanGapsSpotsPanel cleanGapsSpotsPanel = new CleanGapsSpotsPanel();
+	EditSpotMeasuresPanel editSpotsPanel = new EditSpotMeasuresPanel();
+	public ChartsPanel chartsPanel = new ChartsPanel();
+	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 
 	private int id_threshold = 1;
 	private MultiSPOTS96 parent0 = null;
@@ -47,9 +47,9 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 		GridLayout gridLayout = new GridLayout(4, 1);
 		int order = 0;
 
-		tabSimpleThresholdLight.init(gridLayout, parent0);
-		tabSimpleThresholdLight.addPropertyChangeListener(this);
-		tabsPane.addTab("Threshold", null, tabSimpleThresholdLight, "Spots measures from camera");
+		thresholdLightPanel.init(gridLayout, parent0);
+		thresholdLightPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Threshold", null, thresholdLightPanel, "Spots measures from camera");
 		id_threshold = order;
 		order++;
 
@@ -70,23 +70,23 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 //		tabsPane.addTab("Colors threshold", null, colorsThreshold, "Measure area using colors defined by user");
 //		order++;
 
-		tabCleanGaps.init(gridLayout, parent0);
-		tabsPane.addTab("Night / clean", null, tabCleanGaps, "Detect dark frames and clean spot measures");
+		cleanGapsSpotsPanel.init(gridLayout, parent0);
+		tabsPane.addTab("Night / clean", null, cleanGapsSpotsPanel, "Detect dark frames and clean spot measures");
 		order++;
 
-		tabEdit.init(gridLayout, parent0);
-		tabEdit.addPropertyChangeListener(this);
-		tabsPane.addTab("Edit", null, tabEdit, "Edit measures");
+		editSpotsPanel.init(gridLayout, parent0);
+		editSpotsPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Edit", null, editSpotsPanel, "Edit measures");
 		order++;
 
-		tabCharts.init(gridLayout, parent0);
-		tabCharts.addPropertyChangeListener(this);
-		tabsPane.addTab("Charts", null, tabCharts, "Display results as charts");
+		chartsPanel.init(gridLayout, parent0);
+		chartsPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Charts", null, chartsPanel, "Display results as charts");
 		order++;
 
-		tabFile.init(gridLayout, parent0);
-		tabFile.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, tabFile, "Load/Save xml file with spots descriptors");
+		loadSavePanel.init(gridLayout, parent0);
+		loadSavePanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Load/Save", null, loadSavePanel, "Load/Save xml file with spots descriptors");
 		order++;
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -110,7 +110,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 			if (exp != null) {
 				displaySpotsInformation(exp);
 				tabsPane.setSelectedIndex(id_threshold);
-				parent0.dlgExperiment.tabIntervals.getExptParms(exp);
+				parent0.dlgExperiment.intervalsPanel.getExptParms(exp);
 			}
 		} else if (event.getPropertyName().equals("SPOTS_ROIS_SAVE")) {
 			tabsPane.setSelectedIndex(id_threshold);
@@ -121,7 +121,7 @@ public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, 
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				// ExperimentUtils.transferSpotsToCamDataSequence(exp); //TODO ??
-				parent0.dlgExperiment.tabOptions.viewSpotsCheckBox.setSelected(true);
+				parent0.dlgExperiment.optionsPanel.viewSpotsCheckBox.setSelected(true);
 			}
 		});
 	}

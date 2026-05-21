@@ -38,7 +38,7 @@ import plugins.fmp.multitools.tools.ROI2D.RoiSerpentineOrdering;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
-public class EditSpots extends JPanel {
+public class EditSpotsPanel extends JPanel {
 	/**
 	 * 
 	 */

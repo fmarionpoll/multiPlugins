@@ -16,7 +16,7 @@ import javax.swing.SpinnerNumberModel;
  * Excel export for cage-level spot series aggregated by (stimulus,
  * concentration) — AGG_SUMCLEAN.
  */
-public class AggregatedSpotsAreas extends JPanel {
+public class AggregatedSpotsAreasPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	JButton exportAggregatedButton = new JButton("save XLS");

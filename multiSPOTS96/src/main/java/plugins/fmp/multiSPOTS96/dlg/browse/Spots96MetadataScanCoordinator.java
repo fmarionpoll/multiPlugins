@@ -113,13 +113,13 @@ final class Spots96MetadataScanCoordinator {
 			}
 
 			host.parent0.expListComboLazy.addLazyExperimentsBulk(lazyExperiments);
-			host.parent0.dlgExperiment.tabInfos.initCombos();
+			host.parent0.dlgExperiment.infosPanel.initCombos();
 
 			host.parent0.descriptorIndex.preloadFromCombo(host.parent0.expListComboLazy, new Runnable() {
 				@Override
 				public void run() {
-					host.parent0.dlgExperiment.tabInfos.initCombos();
-					host.parent0.dlgExperiment.tabFilter.initCombos();
+					host.parent0.dlgExperiment.infosPanel.initCombos();
+					host.parent0.dlgExperiment.filterPanel.initCombos();
 				}
 			});
 

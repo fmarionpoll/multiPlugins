@@ -34,7 +34,7 @@ import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.fmp.multitools.tools.polyline.PolygonUtilities;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
-public class CreateCages extends JPanel {
+public class CreateCagesPanel extends JPanel {
 	/**
 	 * 
 	 */

@@ -35,7 +35,7 @@ import plugins.fmp.multitools.series.options.SpotDetectionMode;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class ThresholdLight extends JPanel implements PropertyChangeListener {
+public class ThresholdLightPanel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 
 	private String detectString = "Detect";
@@ -486,7 +486,7 @@ public class ThresholdLight extends JPanel implements PropertyChangeListener {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_spots_description_and_measures();
-				parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
+				parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 			}
 			processorRef = null;
 		}

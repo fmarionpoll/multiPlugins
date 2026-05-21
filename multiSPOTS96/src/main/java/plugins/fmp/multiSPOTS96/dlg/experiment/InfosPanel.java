@@ -21,7 +21,7 @@ import plugins.fmp.multitools.tools.DialogTools;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxModelSorted;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
-public class Infos extends JPanel {
+public class InfosPanel extends JPanel {
 	/**
 	 * 
 	 */

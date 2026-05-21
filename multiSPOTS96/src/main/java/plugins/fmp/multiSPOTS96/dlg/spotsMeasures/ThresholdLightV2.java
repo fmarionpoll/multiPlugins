@@ -37,7 +37,7 @@ import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
 /**
  * V2 threshold panel for spot measures.\n+ *\n+ * This panel intentionally
- * mirrors {@link ThresholdLight} but is kept separate\n+ * so we can iterate on
+ * mirrors {@link ThresholdLightPanel} but is kept separate\n+ * so we can iterate on
  * V2-only parameters/UI while leaving V1 untouched.\n+
  */
 public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
@@ -389,7 +389,7 @@ public class ThresholdLightV2 extends JPanel implements PropertyChangeListener {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_spots_description_and_measures();
-				parent0.dlgMeasure.tabCharts.displayChartPanels(exp);
+				parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 			}
 			processorRef = null;
 		}

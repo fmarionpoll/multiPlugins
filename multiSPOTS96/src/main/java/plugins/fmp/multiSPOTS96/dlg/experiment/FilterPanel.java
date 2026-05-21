@@ -23,7 +23,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.MultiSelectDialog;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
-public class Filter extends JPanel {
+public class FilterPanel extends JPanel {
 	/**
 	 * 
 	 */
@@ -192,7 +192,7 @@ public class Filter extends JPanel {
 				parent0.descriptorIndex.preloadFromCombo(filterExpList, new Runnable() {
 					@Override
 					public void run() {
-						parent0.dlgExperiment.tabInfos.initCombos();
+						parent0.dlgExperiment.infosPanel.initCombos();
 						updateIndexStatus();
 					}
 				});

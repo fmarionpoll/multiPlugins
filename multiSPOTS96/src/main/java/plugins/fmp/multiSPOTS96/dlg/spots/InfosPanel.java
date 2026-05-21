@@ -15,7 +15,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
-public class Infos extends JPanel {
+public class InfosPanel extends JPanel {
 	/**
 	 * 
 	 */

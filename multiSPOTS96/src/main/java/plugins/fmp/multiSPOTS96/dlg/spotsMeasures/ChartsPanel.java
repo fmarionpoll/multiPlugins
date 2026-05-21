@@ -41,7 +41,7 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
-public class Charts extends JPanel implements SequenceListener {
+public class ChartsPanel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,

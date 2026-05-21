@@ -33,7 +33,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class Detect1 extends JPanel implements ChangeListener, ItemListener, PropertyChangeListener, PopupMenuListener {
+public class Detect1Panel extends JPanel implements ChangeListener, ItemListener, PropertyChangeListener, PopupMenuListener {
 	/**
 	 * 
 	 */
@@ -232,10 +232,10 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		options.transformop = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		options.threshold = (int) thresholdSpinner.getValue();
 
-		options.isFrameFixed = parent0.dlgExcel.tabCommonOptions.getIsFixedFrame();
-		options.t_Ms_First = parent0.dlgExcel.tabCommonOptions.getStartMs();
-		options.t_Ms_Last = parent0.dlgExcel.tabCommonOptions.getEndMs();
-		options.t_Ms_BinDuration = parent0.dlgExcel.tabCommonOptions.getBinMs();
+		options.isFrameFixed = parent0.dlgExcel.excelOptionsPanel.getIsFixedFrame();
+		options.t_Ms_First = parent0.dlgExcel.excelOptionsPanel.getStartMs();
+		options.t_Ms_Last = parent0.dlgExcel.excelOptionsPanel.getEndMs();
+		options.t_Ms_BinDuration = parent0.dlgExcel.excelOptionsPanel.getBinMs();
 
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		if (exp != null) {

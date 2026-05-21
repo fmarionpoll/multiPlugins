@@ -27,14 +27,14 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 	JTabbedPane tabbedPane = new JTabbedPane();
 
 //			ThresholdColors colorsThreshold = new ThresholdColors();
-	CreateCages tabCreateCages = new CreateCages();
-	CreateBlobs tabDetectBlobs = new CreateBlobs();
-	EditSpots tabEditSpots = new EditSpots();
-	public Infos tabInfos = new Infos();
+	CreateCagesPanel createCagesPanel = new CreateCagesPanel();
+	CreateBlobsPanel createBlobsPanel = new CreateBlobsPanel();
+	EditSpotsPanel editSpotsPanel = new EditSpotsPanel();
+	public InfosPanel infosPanel = new InfosPanel();
 
-	public LoadSaveSpots tabFile = new LoadSaveSpots();
+	public LoadSaveSpotsPanel loadSaveSpotsPanel = new LoadSaveSpotsPanel();
 
-	private int id_shape = 1;
+//	private int id_shape = 1;
 	private int id_infos = 1;
 	private int id_createCages = 0;
 //	private int id_spots = 1;
@@ -52,21 +52,21 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 		GridLayout gridLayout = new GridLayout(4, 1);
 		int order = 0;
 
-		tabCreateCages.init(gridLayout, parent0);
-		tabCreateCages.addPropertyChangeListener(this);
-		tabbedPane.addTab("Cages", null, tabCreateCages, "Create cages");
+		createCagesPanel.init(gridLayout, parent0);
+		createCagesPanel.addPropertyChangeListener(this);
+		tabbedPane.addTab("Cages", null, createCagesPanel, "Create cages");
 		id_createCages = order;
 		order++;
 
-		tabDetectBlobs.init(gridLayout, parent0);
-		tabDetectBlobs.addPropertyChangeListener(this);
-		tabbedPane.addTab("Detect blobs", null, tabDetectBlobs, "Detect blobs thresholding image");
+		createBlobsPanel.init(gridLayout, parent0);
+		createBlobsPanel.addPropertyChangeListener(this);
+		tabbedPane.addTab("Detect blobs", null, createBlobsPanel, "Detect blobs thresholding image");
 //		id_spots = order;
 		order++;
 
-		tabEditSpots.init(gridLayout, parent0);
-		tabEditSpots.addPropertyChangeListener(this);
-		tabbedPane.addTab("Edit", null, tabEditSpots, "Edit spots position");
+		editSpotsPanel.init(gridLayout, parent0);
+		editSpotsPanel.addPropertyChangeListener(this);
+		tabbedPane.addTab("Edit", null, editSpotsPanel, "Edit spots position");
 		id_editSpots = order;
 		order++;
 //
@@ -76,15 +76,15 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 //		id_shape = order;
 //		order++;
 
-		tabInfos.init(gridLayout, parent0.expListComboLazy);
-		tabInfos.addPropertyChangeListener(this);
-		tabbedPane.addTab("Infos", null, tabInfos, "Edit infos");
+		infosPanel.init(gridLayout, parent0.expListComboLazy);
+		infosPanel.addPropertyChangeListener(this);
+		tabbedPane.addTab("Infos", null, infosPanel, "Edit infos");
 		id_infos = order;
 		order++;
 
-		tabFile.init(gridLayout, parent0);
-		tabFile.addPropertyChangeListener(this);
-		tabbedPane.addTab("Load/Save", null, tabFile, "Load/Save cage & spots descriptors (xml file)");
+		loadSaveSpotsPanel.init(gridLayout, parent0);
+		loadSaveSpotsPanel.addPropertyChangeListener(this);
+		tabbedPane.addTab("Load/Save", null, loadSaveSpotsPanel, "Load/Save cage & spots descriptors (xml file)");
 		order++;
 
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -108,11 +108,11 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 			if (exp != null) {
 				displaySpotsInformation(exp);
 				tabbedPane.setSelectedIndex(id_infos);
-				parent0.dlgExperiment.tabIntervals.getExptParms(exp);
-				tabCreateCages.updateNColumnsFieldFromSequence();
+				parent0.dlgExperiment.intervalsPanel.getExptParms(exp);
+				createCagesPanel.updateNColumnsFieldFromSequence();
 			}
 		} else if (event.getPropertyName().equals("CAP_ROIS_SAVE")) {
-			tabbedPane.setSelectedIndex(id_shape);
+			tabbedPane.setSelectedIndex(id_editSpots);
 		}
 	}
 
@@ -120,7 +120,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 		SwingUtilities.invokeLater(new Runnable() {
 			public void run() {
 				updateDialogs(exp);
-				parent0.dlgExperiment.tabOptions.viewSpotsCheckBox.setSelected(true);
+				parent0.dlgExperiment.optionsPanel.viewSpotsCheckBox.setSelected(true);
 			}
 		});
 	}
@@ -128,7 +128,7 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 	public void updateDialogs(Experiment exp) {
 		if (exp != null) {
 			ExperimentUtils.transferSpotsToCamDataSequence(exp);
-			tabCreateCages.updateNColumnsFieldFromSequence();
+			createCagesPanel.updateNColumnsFieldFromSequence();
 		}
 	}
 
@@ -137,9 +137,9 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 		JTabbedPane tabbedPane = (JTabbedPane) e.getSource();
 		int selectedIndex = tabbedPane.getSelectedIndex();
 		if (selectedIndex != id_editSpots)
-			tabEditSpots.clearTemporaryROIs();
+			editSpotsPanel.clearTemporaryROIs();
 		if (selectedIndex != id_createCages)
-			tabCreateCages.clearTemporaryROIs();
+			createCagesPanel.clearTemporaryROIs();
 //		exp.getSeqCamData().displaySpecificROIs(true, "spots");
 	}
 

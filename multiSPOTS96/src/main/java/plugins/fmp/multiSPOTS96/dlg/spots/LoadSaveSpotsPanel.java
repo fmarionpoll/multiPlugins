@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.spotsMeasures;
+package plugins.fmp.multiSPOTS96.dlg.spots;
 
 import java.awt.FlowLayout;
 import java.awt.Font;
@@ -14,9 +14,8 @@ import javax.swing.SwingConstants;
 import icy.gui.util.FontUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
 
-public class LoadSave extends JPanel {
+public class LoadSaveSpotsPanel extends JPanel {
 	/**
 	 * 
 	 */
@@ -50,8 +49,12 @@ public class LoadSave extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					dlg_spotsmeasures_loadSpotsArray_File(exp);
-					firePropertyChange("CAP_ROIS_OPEN", false, true);
+					exp.load_cages_description_and_measures();
+					exp.load_spots_description_and_measures();
+					exp.transferCagesROI_toSequence();
+					exp.transferSpotsROI_toSequence();
+					parent0.dlgExperiment.optionsPanel.applyViewOptionsToCurrentExperiment();
+					firePropertyChange("SPOTS_ROIS_OPEN", false, true);
 				}
 			}
 		});
@@ -61,30 +64,13 @@ public class LoadSave extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					saveSpotsArray_file(exp);
-					firePropertyChange("CAP_ROIS_SAVE", false, true);
+					exp.saveExperimentDescriptors();
+					exp.saveCages_File();
+					exp.saveSpots_File();
+					firePropertyChange("SPOTS_ROIS_SAVE", false, true);
 				}
 			}
 		});
-	}
-
-	public boolean dlg_spotsmeasures_loadSpotsArray_File(Experiment exp) {
-		boolean flag = exp.load_cages_description_and_measures();
-		if (flag) {
-			exp.load_spots_description_and_measures();
-			SpotsSequenceMapper.transferROIsToSequence(exp.getSpots(), exp.getSeqCamData());
-			parent0.dlgExperiment.tabOptions.applyViewOptionsToCurrentExperiment();
-		}
-		return flag;
-	}
-
-	public boolean saveSpotsArray_file(Experiment exp) {
-		parent0.dlgExperiment.getExperimentInfosFromDialog(exp);
-		boolean flag = exp.saveExperimentDescriptors();
-		SpotsSequenceMapper.transferROIsFromSequence(exp.getSpots(), exp.getSeqCamData());
-		flag &= exp.save_cages_description_and_measures();
-		flag &= exp.save_spots_description_and_measures();
-		return flag;
 	}
 
 }
