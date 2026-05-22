@@ -447,6 +447,7 @@ public class SpotsPersistence {
 		 * <li>Persist {@code AREA_SUMNOFLY} (no-fly)</li>
 		 * <li>Persist {@code AREA_FLYPRESENT} (fly mask support)</li>
 		 * <li>Persist {@code AREA_SUMCLEAN_V3} (Tier A residual vs pooled median; pool chosen at recompute)</li>
+		 * <li>Persist {@code AREA_COUNT_V5} / {@code GREY_SUM_V5} (parallel V5 stack)</li>
 		 * </ul>
 		 */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {
@@ -477,6 +478,14 @@ public class SpotsPersistence {
 					return false;
 				}
 				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_SUMCLEAN_V3,
+						";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_COUNT_V5,
+						";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_V5,
 						";")) {
 					return false;
 				}

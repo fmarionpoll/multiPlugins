@@ -130,6 +130,13 @@ public enum EnumResults {
 	AREA_FLYPRESENT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
 			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT),
 
+	/** V5: count of ROI pixels above spot threshold (NaN when any fly pixel in ROI for that bin). */
+	AREA_COUNT_V5("AREA_COUNT_V5", "pixels", "Over-threshold spot pixels (V5)",
+			StoredDataAccessors.accessStored_AREA_COUNT_V5(), "AREA_COUNT_V5", PersistenceDomain.SPOT),
+	/** V5: sum of spot-channel grey on over-threshold pixels (NaN with fly in ROI for that bin). */
+	GREY_SUM_V5("GREY_SUM_V5", "grey sum", "Grey sum on over-threshold pixels (V5)",
+			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
+
 	/**
 	 * Computed cage-level aggregate: sum over spots grouped by (stimulus, concentration)
 	 * of normalized AREA_SUMCLEAN consumption (not persisted as its own spot field).
@@ -225,6 +232,8 @@ public enum EnumResults {
 		case AREA_SUMNOFLY:
 		case AREA_SUMCLEAN:
 		case AREA_FLYPRESENT:
+		case AREA_COUNT_V5:
+		case GREY_SUM_V5:
 		case AGG_SUMCLEAN:
 		case AGG_MEDIANREF:
 			return true;

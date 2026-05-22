@@ -17,6 +17,7 @@ import plugins.fmp.multiSPOTS96.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS96.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS96.dlg.spots._DlgSpots_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures._DlgSpotMeasure_;
+import plugins.fmp.multiSPOTS96.dlg.spotsMeasures2._DlgSpotMeasure2_;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
@@ -32,6 +33,7 @@ public class MultiSPOTS96 extends PluginActionable {
 	public _DlgExperiment_ dlgExperiment = new _DlgExperiment_();
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();
 	public _DlgSpotMeasure_ dlgMeasure = new _DlgSpotMeasure_();
+	public _DlgSpotMeasure2_ dlgMeasureV5 = new _DlgSpotMeasure2_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();
@@ -55,6 +57,7 @@ public class MultiSPOTS96 extends PluginActionable {
 		dlgExperiment.init(mainPanel, "Experiment", this);
 		dlgSpots.init(mainPanel, "Spots", this);
 		dlgMeasure.init(mainPanel, "Measure spots", this);
+		dlgMeasureV5.init(mainPanel, "Measure spots V5", this);
 		dlgExcel.init(mainPanel, "Export", this);
 
 		mainFrame.setLayout(new BorderLayout());

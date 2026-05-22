@@ -132,6 +132,11 @@ public class ResultsOptions {
 	 */
 	public int aggMedianRefSmoothWindowBins = 5;
 
+	/** Spot Excel export: {@code AREA_COUNT_V5}. */
+	public boolean spotAreaCountV5 = false;
+	/** Spot Excel export: {@code GREY_SUM_V5}. */
+	public boolean spotGreySumV5 = false;
+
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
 		this.yVsFood = resultsOptions.yVsFood;
@@ -153,6 +158,8 @@ public class ResultsOptions {
 		this.spotSumNoFlyV2 = resultsOptions.spotSumNoFlyV2;
 		this.spotSumCleanV2 = resultsOptions.spotSumCleanV2;
 		this.spotAggregateByStimulusConc = resultsOptions.spotAggregateByStimulusConc;
+		this.spotAreaCountV5 = resultsOptions.spotAreaCountV5;
+		this.spotGreySumV5 = resultsOptions.spotGreySumV5;
 		this.spotBaselineWindowMinutes = resultsOptions.spotBaselineWindowMinutes;
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
 		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;

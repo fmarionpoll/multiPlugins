@@ -128,6 +128,8 @@ public class SpotPersistence {
 		case AREA_SUMCLEAN:
 		case AREA_SUMCLEAN_V3:
 		case AREA_FLYPRESENT:
+		case AREA_COUNT_V5:
+		case GREY_SUM_V5:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
 					+ "npts" + sep + "yi\n";
 		default:
@@ -154,6 +156,12 @@ public class SpotPersistence {
 			break;
 		case AREA_FLYPRESENT:
 			spot.getFlyPresent().exportIsPresentToCsv(sbf, sep);
+			break;
+		case AREA_COUNT_V5:
+			spot.getAreaCountV5().exportYDataToCsv(sbf, sep);
+			break;
+		case GREY_SUM_V5:
+			spot.getGreySumV5().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -324,6 +332,20 @@ public class SpotPersistence {
 				spot.getFlyPresent().importIsPresentFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
 				spot.getFlyPresent().importIsPresentFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case AREA_COUNT_V5:
+			if (x && y) {
+				spot.getAreaCountV5().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getAreaCountV5().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case GREY_SUM_V5:
+			if (x && y) {
+				spot.getGreySumV5().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getGreySumV5().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		default:

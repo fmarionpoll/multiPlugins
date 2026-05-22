@@ -75,7 +75,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	private final JSpinner angleSpinner = new JSpinner(new SpinnerNumberModel(0.0, -10.0, 10.0, 0.05));
 	private final JButton resetOffsetsButton = new JButton("Reset");
 	private final JCheckBox showPivotMarkerCheck = new JCheckBox("Show pivot");
-	private final JButton resetPivotToCagesButton = new JButton("Pivot from cages");
+	private final JButton resetPivotToCagesButton = new JButton("Reset pivot from cages");
 	private final JLabel pivotLabel = new JLabel("Pivot: —");
 
 	private final JSpinner rangeStartSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
@@ -170,6 +170,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		refPanel.add(referenceLabel);
 		refPanel.add(setReferenceButton);
 		refPanel.add(pivotLabel);
+		showPivotMarkerCheck.setToolTipText("Show rotation pivot on the camera viewer (drag circle to adjust)");
+		refPanel.add(showPivotMarkerCheck);
 		add(refPanel);
 
 		JPanel framePanel = new JPanel(flowlayout);
@@ -184,16 +186,14 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		angleSpinner.setPreferredSize(new Dimension(56, 20));
 		framePanel.add(viewTransformToggle);
 		autoContrastCheck.setToolTipText("Stretch T−Ref difference per frame (1–99% per channel, preview only)");
-		framePanel.add(autoContrastCheck);
 		framePanel.add(applyTransformButton);
 		add(framePanel);
 
 		JPanel frame2Panel = new JPanel(flowlayout);
 		frame2Panel.add(resetOffsetsButton);
-		showPivotMarkerCheck.setToolTipText("Show rotation pivot on the camera viewer (drag circle to adjust)");
-		frame2Panel.add(showPivotMarkerCheck);
 		resetPivotToCagesButton.setToolTipText("Clear manual pivot; use cage-bounds centroid again");
 		frame2Panel.add(resetPivotToCagesButton);
+		frame2Panel.add(autoContrastCheck);
 		add(frame2Panel);
 
 		JPanel batchPanel = new JPanel(flowlayout);

@@ -295,6 +295,20 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_AREA_COUNT_V5() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"AREA_COUNT_V5 uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_GREY_SUM_V5() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"GREY_SUM_V5 uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
 	/**
 	 * Placeholder for measures not yet implemented.
 	 */

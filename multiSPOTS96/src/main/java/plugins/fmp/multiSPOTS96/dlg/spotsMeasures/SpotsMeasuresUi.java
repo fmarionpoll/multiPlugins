@@ -11,12 +11,12 @@ import javax.swing.JPanel;
  * four equal-height rows and stretches short tabs. Use stacked rows with a
  * vertical filler so each row stays at its preferred height.
  */
-final class SpotsMeasuresUi {
+public final class SpotsMeasuresUi {
 
 	private SpotsMeasuresUi() {
 	}
 
-	static void layoutStackedRows(JPanel root, JPanel... rows) {
+	public static void layoutStackedRows(JPanel root, JPanel... rows) {
 		root.setLayout(new GridBagLayout());
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridx = 0;
