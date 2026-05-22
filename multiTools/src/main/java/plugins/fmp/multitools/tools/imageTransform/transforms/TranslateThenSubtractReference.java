@@ -24,6 +24,10 @@ public class TranslateThenSubtractReference extends ImageTransformFunctionAbstra
 		IcyBufferedImage warped = GaspardRigidRegistration.applyRotateAboutPivotThenTranslate2D(sourceImage, -1,
 				options.rotationRadians, options.rotatePivotX, options.rotatePivotY,
 				new Vector2d(options.translateDx, options.translateDy), true);
-		return SubtractReferenceImage.mappedDifference(warped, options.backgroundImage);
+		IcyBufferedImage diff = SubtractReferenceImage.mappedDifference(warped, options.backgroundImage);
+		if (diff != null && options.differencePreviewAutoContrast) {
+			SubtractReferenceImage.percentileStretchPerChannelInPlace(diff, 1, 99);
+		}
+		return diff;
 	}
 }

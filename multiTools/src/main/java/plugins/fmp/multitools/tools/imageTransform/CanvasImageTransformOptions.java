@@ -45,6 +45,12 @@ public class CanvasImageTransformOptions {
 	public double rotatePivotX = 0;
 	public double rotatePivotY = 0;
 
+	/**
+	 * When true, the shift+t-ref preview applies per-channel 1st–99th percentile
+	 * contrast stretch after the legacy {@code 255-|a-b|} difference (preview only).
+	 */
+	public boolean differencePreviewAutoContrast = false;
+
 	public final byte byteFALSE = 0;
 	public final byte byteTRUE = (byte) 0xFF;
 	public ArrayList<Color> colorarray = null;

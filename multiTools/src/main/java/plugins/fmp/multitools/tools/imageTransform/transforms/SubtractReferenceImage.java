@@ -2,9 +2,9 @@ package plugins.fmp.multitools.tools.imageTransform.transforms;
 
 import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstract;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 
 public class SubtractReferenceImage extends ImageTransformFunctionAbstract implements ImageTransformInterface {
 	@Override
@@ -38,6 +38,61 @@ public class SubtractReferenceImage extends ImageTransformFunctionAbstract imple
 			img2.setDataXY(c, img2.getDataXY(c));
 		}
 		return img2;
+	}
+
+	/**
+	 * In-place per-channel stretch: map values between the {@code pLow}-th and
+	 * {@code pHigh}-th percentile (inclusive counting) to 0–255. No-op if the range
+	 * is degenerate.
+	 */
+	public static void percentileStretchPerChannelInPlace(IcyBufferedImage img, int pLow, int pHigh) {
+		if (img == null || pLow < 0 || pHigh > 100 || pLow >= pHigh) {
+			return;
+		}
+		int nPix = img.getSizeX() * img.getSizeY();
+		if (nPix <= 0) {
+			return;
+		}
+		for (int c = 0; c < img.getSizeC(); c++) {
+			int[] arr = Array1DUtil.arrayToIntArray(img.getDataXY(c), img.isSignedDataType());
+			int[] hist = new int[256];
+			for (int v : arr) {
+				int b = Math.max(0, Math.min(255, v));
+				hist[b]++;
+			}
+			int low = percentileBinFromCumulative(hist, nPix, pLow);
+			int high = percentileBinFromCumulative(hist, nPix, pHigh);
+			if (high <= low) {
+				high = Math.min(255, low + 1);
+			}
+			for (int i = 0; i < arr.length; i++) {
+				int v = Math.max(0, Math.min(255, arr[i]));
+				int out = (int) Math.round(255.0 * (v - low) / (high - low));
+				if (out < 0) {
+					out = 0;
+				} else if (out > 255) {
+					out = 255;
+				}
+				arr[i] = out;
+			}
+			Array1DUtil.intArrayToSafeArray(arr, img.getDataXY(c), true, img.isSignedDataType());
+			img.setDataXY(c, img.getDataXY(c));
+		}
+	}
+
+	private static int percentileBinFromCumulative(int[] hist, int n, int pPercent) {
+		long thresh = (long) Math.ceil(n * (pPercent / 100.0));
+		if (thresh < 1) {
+			thresh = 1;
+		}
+		long cum = 0;
+		for (int i = 0; i < 256; i++) {
+			cum += hist[i];
+			if (cum >= thresh) {
+				return i;
+			}
+		}
+		return 255;
 	}
 
 }

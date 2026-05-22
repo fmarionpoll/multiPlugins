@@ -489,6 +489,10 @@ public class Canvas2D_3Transforms extends Canvas2D {
 
 		target.translateDx = source.translateDx;
 		target.translateDy = source.translateDy;
+		target.rotationRadians = source.rotationRadians;
+		target.rotatePivotX = source.rotatePivotX;
+		target.rotatePivotY = source.rotatePivotY;
+		target.differencePreviewAutoContrast = source.differencePreviewAutoContrast;
 
 		// Note: npixels_changed is not copied as it's typically an output field
 	}

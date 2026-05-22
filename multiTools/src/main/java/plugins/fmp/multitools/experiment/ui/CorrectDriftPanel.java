@@ -1,8 +1,10 @@
 package plugins.fmp.multitools.experiment.ui;
 
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.geom.Ellipse2D;
 import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
@@ -11,8 +13,10 @@ import java.io.FileWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -27,6 +31,10 @@ import icy.gui.viewer.ViewerEvent;
 import icy.gui.viewer.ViewerListener;
 import icy.image.IcyBufferedImage;
 import icy.image.ImageUtil;
+import icy.roi.ROI2D;
+import icy.roi.ROIEvent;
+import icy.roi.ROIEvent.ROIEventType;
+import icy.roi.ROIListener;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
@@ -37,6 +45,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
+import plugins.kernel.roi.roi2d.ROI2DEllipse;
 
 /**
  * Manual drift correction: per-frame align with reference, optional batch
@@ -45,6 +54,9 @@ import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
 	private static final long serialVersionUID = 1L;
+
+	private static final String PIVOT_MARKER_TAG = "pivotMarker_correctDrift";
+	private static final double PIVOT_MARKER_RADIUS = 12.0;
 
 	private static final int MIN_FRAME = 0;
 	private static final int MAX_FRAME = 100000;
@@ -55,12 +67,15 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	private final JLabel referenceLabel = new JLabel("Ref: (not set)");
 
 	private final JToggleButton viewTransformToggle = new JToggleButton("View T-Ref");
+	private final JCheckBox autoContrastCheck = new JCheckBox("Auto contrast");
 	private final JButton applyTransformButton = new JButton("Apply to T");
 
 	private final JSpinner xSpinner = new JSpinner(new SpinnerNumberModel(0.0, -2000.0, 2000.0, 0.5));
 	private final JSpinner ySpinner = new JSpinner(new SpinnerNumberModel(0.0, -2000.0, 2000.0, 0.5));
 	private final JSpinner angleSpinner = new JSpinner(new SpinnerNumberModel(0.0, -10.0, 10.0, 0.05));
 	private final JButton resetOffsetsButton = new JButton("Reset");
+	private final JCheckBox showPivotMarkerCheck = new JCheckBox("Show pivot");
+	private final JButton resetPivotToCagesButton = new JButton("Pivot from cages");
 	private final JLabel pivotLabel = new JLabel("Pivot: —");
 
 	private final JSpinner rangeStartSpinner = new JSpinner(new SpinnerNumberModel(0, MIN_FRAME, MAX_FRAME, 1));
@@ -72,8 +87,52 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
 	private Integer referenceFrameIndex = null;
 
+	private Point2D.Double manualPivotOverride = null;
+
 	private boolean syncingFromViewer = false;
 	private boolean syncingFromSpinner = false;
+
+	private final ROIListener pivotRoiListener = new ROIListener() {
+		@Override
+		public void roiChanged(ROIEvent event) {
+			if (event.getType() != ROIEventType.ROI_CHANGED) {
+				return;
+			}
+			if (!(event.getSource() instanceof ROI2DEllipse)) {
+				return;
+			}
+			ROI2DEllipse ell = (ROI2DEllipse) event.getSource();
+			String name = ell.getName();
+			if (name == null || !name.contains(PIVOT_MARKER_TAG)) {
+				return;
+			}
+			Experiment exp = getCurrentExperiment();
+			if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+				return;
+			}
+			Sequence seq = exp.getSeqCamData().getSequence();
+			double cx = ell.getBounds().getCenterX();
+			double cy = ell.getBounds().getCenterY();
+			double maxX = Math.max(0, seq.getSizeX() - 1);
+			double maxY = Math.max(0, seq.getSizeY() - 1);
+			cx = Math.max(0, Math.min(maxX, cx));
+			cy = Math.max(0, Math.min(maxY, cy));
+			Point2D.Double cagePivot = exp.getCages().computePlatePivotFromCageBounds(seq.getSizeX(), seq.getSizeY());
+			if (manualPivotOverride == null) {
+				if (Math.hypot(cx - cagePivot.x, cy - cagePivot.y) < 1.0) {
+					return;
+				}
+			}
+			manualPivotOverride = new Point2D.Double(cx, cy);
+			final Experiment expF = exp;
+			final int iw = seq.getSizeX();
+			final int ih = seq.getSizeY();
+			SwingUtilities.invokeLater(() -> {
+				updatePivotLabel(expF, iw, ih);
+				refreshDifferenceView();
+			});
+		}
+	};
 
 	public void init(GridLayout capLayout, CorrectDriftHost host) {
 		this.experimentList = host.getExperimentsCombo();
@@ -124,11 +183,17 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		framePanel.add(angleSpinner);
 		angleSpinner.setPreferredSize(new Dimension(56, 20));
 		framePanel.add(viewTransformToggle);
+		autoContrastCheck.setToolTipText("Stretch T−Ref difference per frame (1–99% per channel, preview only)");
+		framePanel.add(autoContrastCheck);
 		framePanel.add(applyTransformButton);
 		add(framePanel);
 
 		JPanel frame2Panel = new JPanel(flowlayout);
 		frame2Panel.add(resetOffsetsButton);
+		showPivotMarkerCheck.setToolTipText("Show rotation pivot on the camera viewer (drag circle to adjust)");
+		frame2Panel.add(showPivotMarkerCheck);
+		resetPivotToCagesButton.setToolTipText("Clear manual pivot; use cage-bounds centroid again");
+		frame2Panel.add(resetPivotToCagesButton);
 		add(frame2Panel);
 
 		JPanel batchPanel = new JPanel(flowlayout);
@@ -148,6 +213,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 
 		viewTransformToggle.addActionListener(e -> refreshDifferenceView());
 
+		autoContrastCheck.addActionListener(e -> refreshDifferenceView());
+
 		frameIndexSpinner.addChangeListener(e -> onImageIndexSpinnerChanged());
 
 		ChangeListener offsetListener = e -> {
@@ -160,6 +227,27 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		angleSpinner.addChangeListener(offsetListener);
 
 		resetOffsetsButton.addActionListener(e -> resetOffsetSpinners());
+
+		showPivotMarkerCheck.addActionListener(e -> {
+			if (showPivotMarkerCheck.isSelected()) {
+				syncPivotMarkerRoi();
+			} else {
+				removePivotMarkerRois();
+			}
+		});
+
+		resetPivotToCagesButton.addActionListener(e -> {
+			manualPivotOverride = null;
+			Experiment exp = getCurrentExperiment();
+			if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+				Sequence seq = exp.getSeqCamData().getSequence();
+				updatePivotLabel(exp, seq.getSizeX(), seq.getSizeY());
+			} else {
+				pivotLabel.setText("Pivot: —");
+			}
+			syncPivotMarkerRoi();
+			refreshDifferenceView();
+		});
 
 		applyTransformButton.addActionListener(e -> applyTransformCurrentFrame());
 		applyRangeButton.addActionListener(e -> applyToRange());
@@ -212,6 +300,18 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		return (Experiment) experimentList.getSelectedItem();
 	}
 
+	private Point2D.Double getEffectivePivot(Experiment exp, int imageWidth, int imageHeight) {
+		if (manualPivotOverride != null) {
+			return manualPivotOverride;
+		}
+		if (exp == null) {
+			double w = Math.max(1, imageWidth);
+			double h = Math.max(1, imageHeight);
+			return new Point2D.Double(w / 2.0, h / 2.0);
+		}
+		return exp.getCages().computePlatePivotFromCageBounds(imageWidth, imageHeight);
+	}
+
 	private static int clampT(int t, int sizeT) {
 		if (sizeT <= 0) {
 			return 0;
@@ -248,6 +348,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			return;
 		}
 
+		manualPivotOverride = null;
 		referenceFrameIndex = t;
 
 		IcyBufferedImage copy = new IcyBufferedImage(img.getWidth(), img.getHeight(), img.getSizeC(),
@@ -275,6 +376,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		}
 
 		refreshDifferenceView();
+		syncPivotMarkerRoi();
 	}
 
 	private void updatePivotLabel(Experiment exp, int imageWidth, int imageHeight) {
@@ -282,14 +384,65 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			pivotLabel.setText("Pivot: —");
 			return;
 		}
-		Point2D.Double p = exp.getCages().computePlatePivotFromCageBounds(imageWidth, imageHeight);
-		pivotLabel.setText(String.format("Pivot: (%.1f, %.1f)", p.x, p.y));
+		Point2D.Double p = getEffectivePivot(exp, imageWidth, imageHeight);
+		if (manualPivotOverride != null) {
+			pivotLabel.setText(String.format("Pivot: (%.1f, %.1f) manual", p.x, p.y));
+		} else {
+			pivotLabel.setText(String.format("Pivot: (%.1f, %.1f)", p.x, p.y));
+		}
 	}
 
 	private void resetOffsetSpinners() {
 		xSpinner.setValue(0.0);
 		ySpinner.setValue(0.0);
 		angleSpinner.setValue(0.0);
+	}
+
+	private void removePivotMarkerRois() {
+		Experiment exp = getCurrentExperiment();
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == null) {
+			return;
+		}
+		ArrayList<ROI2D> remove = new ArrayList<>();
+		for (ROI2D roi : seq.getROI2Ds(false)) {
+			if (roi.getName() != null && roi.getName().contains(PIVOT_MARKER_TAG)) {
+				roi.removeListener(pivotRoiListener);
+				remove.add(roi);
+			}
+		}
+		if (!remove.isEmpty()) {
+			seq.removeROIs(remove, false);
+		}
+	}
+
+	private void syncPivotMarkerRoi() {
+		Experiment exp = getCurrentExperiment();
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == null) {
+			return;
+		}
+		removePivotMarkerRois();
+		if (!showPivotMarkerCheck.isSelected()) {
+			return;
+		}
+		int iw = seq.getSizeX();
+		int ih = seq.getSizeY();
+		Point2D.Double pv = getEffectivePivot(exp, iw, ih);
+		double r = PIVOT_MARKER_RADIUS;
+		Ellipse2D.Double ellipse = new Ellipse2D.Double(pv.x - r, pv.y - r, 2 * r, 2 * r);
+		ROI2DEllipse roi = new ROI2DEllipse(ellipse);
+		roi.setName(PIVOT_MARKER_TAG);
+		roi.setColor(Color.RED);
+		roi.setReadOnly(false);
+		roi.addListener(pivotRoiListener);
+		seq.addROI(roi);
 	}
 
 	private void refreshDifferenceView() {
@@ -323,6 +476,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			options.rotationRadians = 0;
 			options.rotatePivotX = 0;
 			options.rotatePivotY = 0;
+			options.differencePreviewAutoContrast = false;
 			canvas.setTransformStep1(ImageTransformEnums.NONE, options);
 			return;
 		}
@@ -332,7 +486,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		double dx = ((Number) xSpinner.getValue()).doubleValue();
 		double dy = ((Number) ySpinner.getValue()).doubleValue();
 		double angleDeg = ((Number) angleSpinner.getValue()).doubleValue();
-		Point2D.Double pivot = exp.getCages().computePlatePivotFromCageBounds(iw, ih);
+		Point2D.Double pivot = getEffectivePivot(exp, iw, ih);
 
 		options.backgroundImage = storedRef;
 		options.translateDx = dx;
@@ -340,6 +494,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		options.rotationRadians = Math.toRadians(angleDeg);
 		options.rotatePivotX = pivot.x;
 		options.rotatePivotY = pivot.y;
+		options.differencePreviewAutoContrast = autoContrastCheck.isSelected();
 		canvas.setTransformStep1(ImageTransformEnums.SHIFT_SUBTRACT_REF, options);
 	}
 
@@ -357,6 +512,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		final double dx = ((Number) xSpinner.getValue()).doubleValue();
 		final double dy = ((Number) ySpinner.getValue()).doubleValue();
 		final double angleDeg = ((Number) angleSpinner.getValue()).doubleValue();
+		final Point2D.Double pivotApply = getEffectivePivot(exp, seq.getSizeX(), seq.getSizeY());
 
 		new Thread(() -> {
 			try {
@@ -364,7 +520,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 				Files.createDirectories(originalsDir);
 				Path manifest = originalsDir.resolve("backup_manifest.txt");
 				try (BufferedWriter out = new BufferedWriter(new FileWriter(manifest.toFile(), true))) {
-					applyOneFrameToDisk(exp, tApply, dx, dy, angleDeg, originalsDir, out);
+					applyOneFrameToDisk(exp, tApply, dx, dy, angleDeg, pivotApply.x, pivotApply.y, originalsDir, out);
 				}
 				final IcyBufferedImage reloaded = reloadFrameFromDisk(exp, tApply);
 				SwingUtilities.invokeLater(() -> {
@@ -419,7 +575,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	}
 
 	private static void applyOneFrameToDisk(Experiment exp, int t, double dx, double dy, double angleDegrees,
-			Path originalsDir, BufferedWriter manifestOut) throws Exception {
+			double pivotX, double pivotY, Path originalsDir, BufferedWriter manifestOut) throws Exception {
 		String fileName = exp.getSeqCamData().getFileNameFromImageList(t);
 		if (fileName == null) {
 			return;
@@ -440,9 +596,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			return;
 		}
 		IcyBufferedImage icy = IcyBufferedImage.createFrom(img);
-		Point2D.Double pivot = exp.getCages().computePlatePivotFromCageBounds(icy.getWidth(), icy.getHeight());
 		double angleRad = Math.toRadians(angleDegrees);
-		icy = GaspardRigidRegistration.applyRotateAboutPivotThenTranslate2D(icy, -1, angleRad, pivot.x, pivot.y,
+		icy = GaspardRigidRegistration.applyRotateAboutPivotThenTranslate2D(icy, -1, angleRad, pivotX, pivotY,
 				new Vector2d(dx, dy), true);
 		ImageUtil.save(ImageUtil.toRGBImage(icy), "jpg", src.toFile());
 	}
@@ -474,6 +629,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		double angleDeg = ((Number) angleSpinner.getValue()).doubleValue();
 		int start = (int) rangeStartSpinner.getValue();
 		int end = (int) rangeEndSpinner.getValue();
+		Sequence seq = exp.getSeqCamData().getSequence();
+		final Point2D.Double pivotApply = getEffectivePivot(exp, seq.getSizeX(), seq.getSizeY());
 
 		new Thread(() -> {
 			try {
@@ -482,7 +639,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 				Path manifest = originalsDir.resolve("backup_manifest.txt");
 				try (BufferedWriter out = new BufferedWriter(new FileWriter(manifest.toFile(), true))) {
 					for (int t = start; t <= end; t++) {
-						applyOneFrameToDisk(exp, t, dx, dy, angleDeg, originalsDir, out);
+						applyOneFrameToDisk(exp, t, dx, dy, angleDeg, pivotApply.x, pivotApply.y, originalsDir, out);
 					}
 				}
 			} catch (Exception ex) {
@@ -565,5 +722,19 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	@Override
 	public void viewerClosed(Viewer viewer) {
 		viewer.removeListener(this);
+		Sequence seq = viewer.getSequence();
+		if (seq == null) {
+			return;
+		}
+		ArrayList<ROI2D> remove = new ArrayList<>();
+		for (ROI2D roi : seq.getROI2Ds(false)) {
+			if (roi.getName() != null && roi.getName().contains(PIVOT_MARKER_TAG)) {
+				roi.removeListener(pivotRoiListener);
+				remove.add(roi);
+			}
+		}
+		if (!remove.isEmpty()) {
+			seq.removeROIs(remove, false);
+		}
 	}
 }
