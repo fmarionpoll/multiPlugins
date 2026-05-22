@@ -17,6 +17,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageCapillariesComputation;
 import plugins.fmp.multitools.experiment.cage.CageSpotAggregateSeries;
+import plugins.fmp.multitools.experiment.cage.CageSpotMedianRefAggregation;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.AggregateSeries;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
@@ -1364,7 +1365,7 @@ public class Cages {
 
 	/**
 	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when charting/exporting
-	 * spot aggregates (AGG_SUMCLEAN or stimulus/conc aggregate export). Series are built on the
+	 * spot aggregates (AGG_SUMCLEAN, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
 	 * native spot/camera sample index (same basis as spot charts). Clears caches otherwise.
 	 */
 	public void prepareSpotAggregates(Experiment exp, ResultsOptions opt) {
@@ -1379,7 +1380,8 @@ public class Cages {
 			}
 			return;
 		}
-		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.spotAggregateByStimulusConc;
+		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_MEDIANREF
+				|| opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
 				if (cage != null) {
@@ -1390,7 +1392,8 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
-		EnumResults buildRt = savedRt == EnumResults.AGG_SUMCLEAN ? EnumResults.AGG_SUMCLEAN
+		EnumResults buildRt = (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF)
+				? EnumResults.AGG_SUMCLEAN
 				: EnumResults.AREA_SUMCLEAN;
 		opt.resultType = buildRt;
 		try {
@@ -1412,6 +1415,14 @@ public class Cages {
 					}
 				}
 				cage.getSpotAggregates().setEntries(entries);
+				if (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF) {
+					ArrayList<Double> medVals = CageSpotMedianRefAggregation.buildMedianRefFromAreaSum(exp, cage,
+							allSpots, opt);
+					int nSpots = cage.getSpotList(allSpots).size();
+					cage.getSpotAggregates().setMedianRefSeries(CageSpotAggregateSeries.fromMedianRef(medVals, nSpots));
+				} else {
+					cage.getSpotAggregates().setMedianRefSeries(null);
+				}
 			}
 		} finally {
 			opt.resultType = savedRt;

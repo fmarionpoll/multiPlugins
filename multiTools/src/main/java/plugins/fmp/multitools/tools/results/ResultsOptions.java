@@ -126,6 +126,11 @@ public class ResultsOptions {
 	public String aggRefStimulus = "";
 	/** Reference concentration label for {@link AggSumCleanPolicy#V4_REF_STIM}. */
 	public String aggRefConcentration = "";
+	/**
+	 * Native-bin window for temporal smoothing of {@link EnumResults#AGG_MEDIANREF} (centered mean
+	 * over finite samples in the window). Use {@code 1} for no smoothing.
+	 */
+	public int aggMedianRefSmoothWindowBins = 5;
 
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
@@ -196,5 +201,6 @@ public class ResultsOptions {
 		this.aggFlyGuardMaxFraction = resultsOptions.aggFlyGuardMaxFraction;
 		this.aggRefStimulus = resultsOptions.aggRefStimulus;
 		this.aggRefConcentration = resultsOptions.aggRefConcentration;
+		this.aggMedianRefSmoothWindowBins = resultsOptions.aggMedianRefSmoothWindowBins;
 	}
 }

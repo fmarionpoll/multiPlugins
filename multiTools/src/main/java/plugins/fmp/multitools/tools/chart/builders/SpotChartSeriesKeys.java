@@ -16,6 +16,8 @@ public final class SpotChartSeriesKeys {
 
 	public static final String SEP = "::";
 	public static final String AGG_PREFIX = "AGG";
+	/** Suffix on JFreeChart series keys for cage median reference (dual range axis). */
+	public static final String MEDIAN_REF_SERIES_SUFFIX = "_MEDIANREF";
 
 	private SpotChartSeriesKeys() {
 	}
@@ -42,6 +44,15 @@ public final class SpotChartSeriesKeys {
 
 	public static boolean isAggregateSeriesKey(String seriesKey) {
 		return seriesKey != null && seriesKey.startsWith(AGG_PREFIX + "(");
+	}
+
+	public static boolean isMedianRefSeriesKey(String seriesKey) {
+		return seriesKey != null && seriesKey.endsWith(MEDIAN_REF_SERIES_SUFFIX);
+	}
+
+	/** Synthetic series: median of {@code AREA_SUM} across cage spots (see {@code AGG_MEDIANREF}). */
+	public static String keyMedianRef(int cageId) {
+		return "median ref (AREA_SUM)" + SEP + "cage" + cageId + MEDIAN_REF_SERIES_SUFFIX;
 	}
 
 	/**

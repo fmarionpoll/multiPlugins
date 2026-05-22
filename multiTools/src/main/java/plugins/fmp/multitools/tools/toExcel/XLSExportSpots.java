@@ -42,6 +42,7 @@ public abstract class XLSExportSpots extends XLSExport {
 			case AREA_SUMCLEAN_V3:
 			case AREA_FLYPRESENT:
 			case AGG_SUMCLEAN:
+			case AGG_MEDIANREF:
 				return true;
 			default:
 				return false;

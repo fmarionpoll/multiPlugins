@@ -10,7 +10,9 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 /**
  * Central place to build and style cage XY plots from an
@@ -51,6 +53,10 @@ public final class CageChartPlotFactory {
 			return buildXYPlotLR(dataset, xAxis, yAxis);
 		}
 
+		if (isAggMedianRefDualAxis(dataset)) {
+			return buildXYPlotAggMedianRef(dataset, xAxis, yAxis);
+		}
+
 		XYLineAndShapeRenderer renderer = createRenderer(dataset);
 		XYPlot xyPlot = new XYPlot(dataset, xAxis, yAxis, renderer);
 		updatePlotBackgroundAccordingToNFlies(dataset, xyPlot);
@@ -64,6 +70,51 @@ public final class CageChartPlotFactory {
 				return true;
 		}
 		return false;
+	}
+
+	private static boolean isAggMedianRefDualAxis(XYSeriesCollection dataset) {
+		if (dataset == null) {
+			return false;
+		}
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			String key = (String) dataset.getSeriesKey(i);
+			if (SpotChartSeriesKeys.isMedianRefSeriesKey(key)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static XYPlot buildXYPlotAggMedianRef(XYSeriesCollection dataset, NumberAxis xAxis, NumberAxis yAxis) {
+		XYSeriesCollection primary = new XYSeriesCollection();
+		XYSeriesCollection median = new XYSeriesCollection();
+
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			XYSeries series = dataset.getSeries(i);
+			String key = (String) series.getKey();
+			if (SpotChartSeriesKeys.isMedianRefSeriesKey(key)) {
+				median.addSeries(series);
+			} else {
+				primary.addSeries(series);
+			}
+		}
+
+		XYLineAndShapeRenderer primaryRenderer = createRenderer(primary);
+		XYPlot xyPlot = new XYPlot(primary, xAxis, yAxis, primaryRenderer);
+
+		XYLineAndShapeRenderer medianRenderer = createRenderer(median);
+		NumberAxis yMedian = new NumberAxis(EnumResults.AGG_MEDIANREF.toUnit());
+		yMedian.setInverted(true);
+		yMedian.setAutoRange(true);
+		yMedian.setAutoRangeIncludesZero(true);
+
+		xyPlot.setDataset(1, median);
+		xyPlot.setRenderer(1, medianRenderer);
+		xyPlot.setRangeAxis(1, yMedian);
+		xyPlot.mapDatasetToRangeAxis(1, 1);
+
+		updatePlotBackgroundAccordingToNFlies(primary, xyPlot);
+		return xyPlot;
 	}
 
 	private static XYPlot buildXYPlotLR(XYSeriesCollection dataset, NumberAxis xAxis, NumberAxis yAxis) {
@@ -129,7 +180,8 @@ public final class CageChartPlotFactory {
 
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = (String) dataset.getSeriesKey(i);
-			if (key != null && (key.contains(SECONDARY_DATA_TOKEN) || key.endsWith(REFERENCE_SERIES_SUFFIX))) {
+			if (key != null && (key.contains(SECONDARY_DATA_TOKEN) || key.endsWith(REFERENCE_SERIES_SUFFIX)
+					|| SpotChartSeriesKeys.isMedianRefSeriesKey(key))) {
 				renderer.setSeriesStroke(i, dashedStroke);
 			}
 		}

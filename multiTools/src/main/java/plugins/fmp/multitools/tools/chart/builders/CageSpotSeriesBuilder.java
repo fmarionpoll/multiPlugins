@@ -42,10 +42,11 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 			return new XYSeriesCollection();
 		}
 
-		if (options != null && options.resultType == EnumResults.AGG_SUMCLEAN) {
+		if (options != null && (options.resultType == EnumResults.AGG_SUMCLEAN
+				|| options.resultType == EnumResults.AGG_MEDIANREF)) {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			addAggregateSeries(exp, cage, allSpots, options, dataset);
-			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+			updateGlobalExtremaExcludingMedianRef(dataset);
 			return dataset;
 		}
 
@@ -62,6 +63,25 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
+	}
+
+	private static void updateGlobalExtremaExcludingMedianRef(XYSeriesCollection full) {
+		if (full == null || full.getSeriesCount() == 0) {
+			return;
+		}
+		XYSeriesCollection primary = new XYSeriesCollection();
+		for (int i = 0; i < full.getSeriesCount(); i++) {
+			String key = (String) full.getSeriesKey(i);
+			if (SpotChartSeriesKeys.isMedianRefSeriesKey(key)) {
+				continue;
+			}
+			primary.addSeries(full.getSeries(i));
+		}
+		if (primary.getSeriesCount() > 0) {
+			ChartCageBuild.updateGlobalExtremaFromDataset(primary);
+		} else {
+			ChartCageBuild.updateGlobalExtremaFromDataset(full);
+		}
 	}
 
 	private static String buildSeriesDescription(Cage cage, Spot spot) {
@@ -161,10 +181,12 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 						cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
 				dataset.addSeries(seriesXY);
 			}
+			appendMedianRefSeries(exp, cage, dataset);
 			return;
 		}
 
 		if (aggregates == null || aggregates.isEmpty()) {
+			appendMedianRefSeries(exp, cage, dataset);
 			return;
 		}
 
@@ -197,6 +219,39 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 					cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
 			dataset.addSeries(seriesXY);
 		}
+		appendMedianRefSeries(exp, cage, dataset);
+	}
+
+	private static void appendMedianRefSeries(Experiment exp, Cage cage, XYSeriesCollection dataset) {
+		if (exp == null || cage == null || dataset == null) {
+			return;
+		}
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getTimeManager() == null) {
+			return;
+		}
+		CageSpotAggregateSeries median = cage.getSpotAggregates().getMedianRefSeries();
+		if (median == null || median.getMeasure() == null) {
+			return;
+		}
+		double[] camImagesTimeMin = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		String seriesKey = SpotChartSeriesKeys.keyMedianRef(cage.getProperties().getCageID());
+		XYSeries seriesXY = new XYSeries(seriesKey, false);
+		SpotMeasure m = median.getMeasure();
+		int npoints = m.getCount();
+		if (camImagesTimeMin != null && npoints > camImagesTimeMin.length) {
+			npoints = camImagesTimeMin.length;
+		}
+		for (int k = 0; k < npoints; k++) {
+			double x = camImagesTimeMin != null ? camImagesTimeMin[k] : k;
+			double y = m.getValueAt(k);
+			if (!Double.isFinite(y)) {
+				continue;
+			}
+			seriesXY.add(x, y);
+		}
+		seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
+				cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), Color.DARK_GRAY));
+		dataset.addSeries(seriesXY);
 	}
 
 	private static Color aggregatePaletteColor(int index) {

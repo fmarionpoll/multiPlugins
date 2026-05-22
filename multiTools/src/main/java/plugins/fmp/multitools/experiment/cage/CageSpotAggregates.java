@@ -12,9 +12,11 @@ import java.util.List;
 public final class CageSpotAggregates {
 
 	private List<CageSpotAggregateSeries> entries = Collections.emptyList();
+	private CageSpotAggregateSeries medianRefSeries = null;
 
 	public void clear() {
 		entries = Collections.emptyList();
+		medianRefSeries = null;
 	}
 
 	public void setEntries(List<CageSpotAggregateSeries> list) {
@@ -23,6 +25,14 @@ public final class CageSpotAggregates {
 			return;
 		}
 		this.entries = new ArrayList<>(list);
+	}
+
+	public void setMedianRefSeries(CageSpotAggregateSeries medianRefSeries) {
+		this.medianRefSeries = medianRefSeries;
+	}
+
+	public CageSpotAggregateSeries getMedianRefSeries() {
+		return medianRefSeries;
 	}
 
 	public List<CageSpotAggregateSeries> getEntries() {

@@ -48,7 +48,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_SUMCLEAN_V3, //
 			// EnumResults.AREA_SUM_V2, EnumResults.AREA_SUMNOFLY_V2,
 			// EnumResults.AREA_SUMCLEAN_V2, //
-			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN };
+			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN, EnumResults.AGG_MEDIANREF };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -60,6 +60,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	private JSpinner chartBaselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
 	private JCheckBox chartStopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
 	private JSpinner chartStableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
+	private JSpinner medianRefSmoothBinsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 99, 1));
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedCageButton = new JRadioButton("cage selected");
 	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
@@ -88,6 +89,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		panel02b.add(chartStopWhenStableCheckBox);
 		panel02b.add(new JLabel("stable bins"));
 		panel02b.add(chartStableBinsSpinner);
+		panel02b.add(new JLabel("median ref smooth (bins)"));
+		panel02b.add(medianRefSmoothBinsSpinner);
 
 		JPanel panel04 = new JPanel(layout);
 		panel04.add(displayResultsButton);
@@ -175,6 +178,12 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 				displayChartPanels(exp);
 			}
 		});
+		medianRefSmoothBinsSpinner.addChangeListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp);
+			}
+		});
 
 		ActionListener refreshOnChange = new ActionListener() {
 			@Override
@@ -235,7 +244,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if (exportType == EnumResults.AGG_SUMCLEAN && displaySelectedSpotsButton.isSelected()) {
+		if ((exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_MEDIANREF)
+				&& displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
 
@@ -258,7 +268,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		boolean agg = exportType == EnumResults.AGG_SUMCLEAN;
+		boolean agg = exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_MEDIANREF;
 		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
 				.withCageRange(first, last).build();
@@ -267,6 +277,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
 		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
 		options.spotBaselineStableBins = ((Number) chartStableBinsSpinner.getValue()).intValue();
+		options.aggMedianRefSmoothWindowBins = ((Number) medianRefSmoothBinsSpinner.getValue()).intValue();
 		if (agg && parent0 != null && parent0.dlgMeasure != null) {
 			parent0.dlgMeasure.applyAggV4PolicyInto(options);
 		}
@@ -313,7 +324,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN && relativeToCheckbox.isSelected();
+		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN && exportType != EnumResults.AGG_MEDIANREF
+				&& relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
@@ -368,7 +380,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private void updateMeasureDependentControls() {
-		boolean agg = exportTypeComboBox != null && exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN;
+		boolean agg = exportTypeComboBox != null && (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
+				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
 		relativeToCheckbox.setEnabled(!agg);
 		if (agg) {
 			relativeToCheckbox.setSelected(false);
@@ -380,6 +393,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		chartBaselineMinutesSpinner.setEnabled(agg);
 		chartStopWhenStableCheckBox.setEnabled(agg);
 		chartStableBinsSpinner.setEnabled(agg);
+		medianRefSmoothBinsSpinner.setEnabled(agg);
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
@@ -429,7 +443,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN : option;
+		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN
+				: option == EnumResults.AGG_MEDIANREF ? EnumResults.AREA_SUM : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

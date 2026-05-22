@@ -269,7 +269,11 @@ public class ChartCagesFrame extends IcyFrame {
 			row = row * experiment.getCages().nRowsPerCage;
 			col = col * experiment.getCages().nColumnsPerCage;
 		}
-		String yLegend = label + resultsOptions.resultType.toUnit();
+		String unit = resultsOptions.resultType != null ? resultsOptions.resultType.toUnit() : "";
+		if (resultsOptions.resultType == EnumResults.AGG_MEDIANREF) {
+			unit = EnumResults.AGG_SUMCLEAN.toUnit();
+		}
+		String yLegend = label + unit;
 		yAxis.setLabel(yLegend);
 
 		if (resultsOptions.resultType == EnumResults.AREA_FLYPRESENT) {
@@ -436,7 +440,9 @@ public class ChartCagesFrame extends IcyFrame {
 		}
 
 		ChartCageBuild.initMaxMin();
-		if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN && experiment != null && experiment.getSpots() != null) {
+		if ((resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
+				|| resultsOptions.resultType == EnumResults.AGG_MEDIANREF) && experiment != null
+				&& experiment.getSpots() != null) {
 			resultsOptions.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
 					.globalStimulusConcKeysFirstSeenOrder(experiment, experiment.getSpots());
 		} else {

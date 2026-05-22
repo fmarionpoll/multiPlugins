@@ -191,6 +191,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case AREA_DIFF:
 		case AREA_FLYPRESENT:
 		case AGG_SUMCLEAN:
+		case AGG_MEDIANREF:
 			return true;
 		default:
 			return false;
@@ -199,12 +200,14 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
 	private void fillSpotLegendPanel(ResultsOptions opts, Experiment exp, XYSeriesCollection dataset) {
 		EnumResults rt = opts.resultType;
-		if (rt == EnumResults.AGG_SUMCLEAN) {
+		if (rt == EnumResults.AGG_SUMCLEAN || rt == EnumResults.AGG_MEDIANREF) {
 			if (dataset != null && dataset.getSeriesCount() > 0) {
 				for (int i = 0; i < dataset.getSeriesCount(); i++) {
 					XYSeries s = dataset.getSeries(i);
 					String key = s.getKey().toString();
-					String label = clipLegendText(labelFromAggregateSeriesKey(key), 28);
+					String rawLabel = SpotChartSeriesKeys.isMedianRefSeriesKey(key) ? "median ref (AREA_SUM)"
+							: labelFromAggregateSeriesKey(key);
+					String label = clipLegendText(rawLabel, 28);
 					Color c = SeriesStyleCodec.tryParseColor(s.getDescription()).orElse(aggregatePaletteColor(i));
 					bottomPanel.add(new LegendItem(label, c));
 				}

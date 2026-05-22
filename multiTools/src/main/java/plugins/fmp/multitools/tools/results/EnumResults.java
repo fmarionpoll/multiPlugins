@@ -135,6 +135,13 @@ public enum EnumResults {
 	 * of normalized AREA_SUMCLEAN consumption (not persisted as its own spot field).
 	 */
 	AGG_SUMCLEAN("AGG_SUMCLEAN", "spots consumed (0..N)", "CLEAN aggregate: sum of per-spot normalized consumption by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+
+	/**
+	 * Computed cage-level curve: per-bin median of {@code AREA_SUM} across spots, excluding bins
+	 * with fly on spot ({@code AREA_FLYPRESENT}); shown with consumption aggregate (inverted axis).
+	 */
+	AGG_MEDIANREF("AGG_MEDIANREF", "grey value", "Median spot AREA_SUM per cage (fly-occluded bins excluded)",
 			StoredDataAccessors.notImplemented_TTOGULP_LR());
 
 	public enum PersistenceDomain {
@@ -219,6 +226,7 @@ public enum EnumResults {
 		case AREA_SUMCLEAN:
 		case AREA_FLYPRESENT:
 		case AGG_SUMCLEAN:
+		case AGG_MEDIANREF:
 			return true;
 		default:
 			return false;

@@ -1,5 +1,7 @@
 package plugins.fmp.multitools.experiment.cage;
 
+import java.util.ArrayList;
+
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
@@ -46,5 +48,24 @@ public final class CageSpotAggregateSeries {
 		}
 		m.setValues(vals);
 		return new CageSpotAggregateSeries(agg.key, m, agg.nSpotsExposed);
+	}
+
+	/**
+	 * Cage-wide median reference of {@code AREA_SUM} (fly-masked), one series per cage.
+	 */
+	public static CageSpotAggregateSeries fromMedianRef(ArrayList<Double> values, int nSpotsInCage) {
+		if (values == null || values.isEmpty()) {
+			return null;
+		}
+		CageSpotStimulusAggregation.StimulusConcKey key = new CageSpotStimulusAggregation.StimulusConcKey(
+				CageSpotMedianRefAggregation.class.getSimpleName(), "");
+		SpotMeasure m = new SpotMeasure(EnumResults.AGG_MEDIANREF.name());
+		double[] vals = new double[values.size()];
+		for (int i = 0; i < values.size(); i++) {
+			Double dv = values.get(i);
+			vals[i] = (dv != null && Double.isFinite(dv.doubleValue())) ? dv.doubleValue() : Double.NaN;
+		}
+		m.setValues(vals);
+		return new CageSpotAggregateSeries(key, m, nSpotsInCage);
 	}
 }

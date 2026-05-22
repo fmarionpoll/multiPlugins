@@ -74,7 +74,8 @@ public final class CageSpotStimulusAggregation {
 	}
 
 	public static boolean supportsAggregateResultType(EnumResults resultType) {
-		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN;
+		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN
+				|| resultType == EnumResults.AGG_MEDIANREF;
 	}
 
 	/**
