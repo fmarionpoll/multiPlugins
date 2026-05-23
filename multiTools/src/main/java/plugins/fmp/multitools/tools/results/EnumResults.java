@@ -130,14 +130,14 @@ public enum EnumResults {
 	AREA_FLYPRESENT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
 			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT),
 
-	/** V5: count of ROI pixels above spot threshold (NaN when any fly pixel in ROI for that bin). */
+	/** V5: count of ROI pixels above spot threshold (NaN when fly-pixel count ≥ legacy occupancy gate, see {@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate}). */
 	AREA_COUNT_V5("AREA_COUNT_V5", "pixels", "Over-threshold spot pixels (V5)",
 			StoredDataAccessors.accessStored_AREA_COUNT_V5(), "AREA_COUNT_V5", PersistenceDomain.SPOT),
-	/** V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel count (same scale as legacy {@code AREA_SUM}). */
+	/** V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel count (same scale as legacy {@code AREA_SUM}; NaN under same fly gate as {@link #AREA_COUNT_V5}). */
 	GREY_SUM_V5("GREY_SUM_V5", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (V5, legacy AREA_SUM scale)",
 			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
 	/** V5: running-median smooth of {@link #GREY_SUM_V5} (span 10, NaN-robust; same spirit as legacy {@code AREA_SUMCLEAN} from {@code sumNoFly}). */
-	GREY_SUM_CLEAN_V5("GREY_SUM_CLEAN_V5", "grey / ROI px", "Smoothed V5 grey (running median of GREY_SUM_V5)",
+	GREY_SUM_CLEAN_V5("GREY_SUM_CLEAN_V5", "grey / ROI px", "V5 grey: NaN gaps bridged (linear), then running median of GREY_SUM_V5",
 			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V5(), "GREY_SUM_CLEAN_V5", PersistenceDomain.SPOT),
 
 	/**

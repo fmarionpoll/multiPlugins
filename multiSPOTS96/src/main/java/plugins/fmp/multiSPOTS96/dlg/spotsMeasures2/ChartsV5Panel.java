@@ -33,7 +33,7 @@ import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
-import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
+import plugins.fmp.multitools.tools.chart.ChartV5SpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
@@ -48,7 +48,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_V5, EnumResults.GREY_SUM_V5,
 			EnumResults.GREY_SUM_CLEAN_V5, EnumResults.AGG_SUMCLEAN_V5, EnumResults.AREA_FLYPRESENT };
 	private ChartCagesFrame chartCageArrayFrame = null;
-	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
+	private ChartV5SpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
@@ -277,15 +277,15 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 				&& relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
-		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
+		chartSpotsOverlayFrame = new ChartV5SpotsOverlayFrame();
 		chartSpotsOverlayFrame.createMainChartPanel("Spots measures V5 (selected)", options);
 		chartSpotsOverlayFrame.setSelectedSpotsProvider(
-				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
+				() -> ChartV5SpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setAvailableSpotsProvider(
-				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
+				() -> ChartV5SpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setSpotExclusiveSelectionController(spot -> selectExclusiveSpotRoi(exp, spot));
 		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
-		chartSpotsOverlayFrame.displayData(exp, options, ChartSpotsOverlayFrame.dedupeSpots(selectedSpots));
+		chartSpotsOverlayFrame.displayData(exp, options, ChartV5SpotsOverlayFrame.dedupeSpots(selectedSpots));
 		return null;
 	}
 
@@ -335,7 +335,8 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 		if (agg) {
 			relativeToCheckbox.setSelected(false);
 		}
-		displaySelectedSpotsButton.setEnabled(!agg);
+		// Per-spot overlay is only meaningful for native spot series, not cage aggregates.
+		displaySelectedSpotsButton.setEnabled(true);
 		if (agg && displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}

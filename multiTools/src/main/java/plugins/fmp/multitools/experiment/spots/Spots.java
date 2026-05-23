@@ -1273,6 +1273,14 @@ public class Spots {
 	}
 
 	/**
+	 * Same rule as legacy {@code sumNoFly} fly-occlusion gating: {@code ceil(fraction × ROI mask pixels)},
+	 * lower bound 1. Pass {@link plugins.fmp.multitools.series.options.BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}.
+	 */
+	public static int getMinFlyPixelsForOccupancyGate(Spot spot, double flyOccupancyFractionOfRoi) {
+		return computeMinFlyPixelsToTreatOccupiedForReconstruction(spot, flyOccupancyFractionOfRoi);
+	}
+
+	/**
 	 * Same as {@link #reconstructSumNoFly(double[], int[], int)} with gate {@code minFlyPx = 1} (legacy: any counted fly pixel).
 	 */
 	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent) {

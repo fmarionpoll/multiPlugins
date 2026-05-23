@@ -60,11 +60,11 @@ public class ChartSpotsOverlayFrame {
 		void selectExclusiveSpot(Spot spot);
 	}
 
-	private enum SpotChoiceMode {
+	protected enum SpotChoiceMode {
 		SEQUENCE_SELECTION, FIXED_SPOT
 	}
 
-	private static final class SpotChoice {
+	protected static final class SpotChoice {
 		final SpotChoiceMode mode;
 		final Spot spot;
 
@@ -110,27 +110,27 @@ public class ChartSpotsOverlayFrame {
 	private ChartPanel chartPanel = null;
 
 	private JPanel topControlsPanel = null;
-	private JCheckBox cbSum = new JCheckBox("sum");
-	private JCheckBox cbNoFly = new JCheckBox("sumNoFly");
-	private JCheckBox cbClean = new JCheckBox("clean");
-	private JCheckBox cbCleanV3 = new JCheckBox("cleanV3");
+	protected JCheckBox cbSum = new JCheckBox("sum");
+	protected JCheckBox cbNoFly = new JCheckBox("sumNoFly");
+	protected JCheckBox cbClean = new JCheckBox("clean");
+	protected JCheckBox cbCleanV3 = new JCheckBox("cleanV3");
 //	private JCheckBox cbSumV2 = new JCheckBox("sumV2");
 //	private JCheckBox cbNoFlyV2 = new JCheckBox("sumNoFlyV2");
 //	private JCheckBox cbCleanV2 = new JCheckBox("cleanV2");
-	private JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
-	private JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
-	private JComboBox<SpotChoice> spotSelectorCombo = null;
-	private JButton updateButton = new JButton("Update");
+	protected JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
+	protected JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
+	protected JComboBox<SpotChoice> spotSelectorCombo = null;
+	protected JButton updateButton = new JButton("Update");
 
 	private String baseTitle = null;
-	private Experiment lastExperiment = null;
-	private ResultsOptions lastOptions = null;
-	private List<Spot> lastSelectedSpots = null;
-	private SelectedSpotsProvider selectedSpotsProvider = null;
-	private AvailableSpotsProvider availableSpotsProvider = null;
-	private SpotExclusiveSelectionController spotExclusiveSelectionController = null;
-	private boolean isUpdatingSpotComboModel = false;
-	private boolean isUpdatingMeasureCheckboxes = false;
+	protected Experiment lastExperiment = null;
+	protected ResultsOptions lastOptions = null;
+	protected List<Spot> lastSelectedSpots = null;
+	protected SelectedSpotsProvider selectedSpotsProvider = null;
+	protected AvailableSpotsProvider availableSpotsProvider = null;
+	protected SpotExclusiveSelectionController spotExclusiveSelectionController = null;
+	protected boolean isUpdatingSpotComboModel = false;
+	protected boolean isUpdatingMeasureCheckboxes = false;
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
 		this.selectedSpotsProvider = provider;
@@ -215,7 +215,7 @@ public class ChartSpotsOverlayFrame {
 		if (mainChartFrame == null) {
 			return;
 		}
-		Preferences prefs = Preferences.userNodeForPackage(ChartSpotsOverlayFrame.class);
+		Preferences prefs = Preferences.userNodeForPackage(getClass());
 		int x = prefs.getInt("window_x", graphLocation.x);
 		int y = prefs.getInt("window_y", graphLocation.y);
 		int w = prefs.getInt("window_w", DEFAULT_FRAME_WIDTH);
@@ -227,7 +227,7 @@ public class ChartSpotsOverlayFrame {
 		if (mainChartFrame == null) {
 			return;
 		}
-		Preferences prefs = Preferences.userNodeForPackage(ChartSpotsOverlayFrame.class);
+		Preferences prefs = Preferences.userNodeForPackage(getClass());
 		Rectangle r = mainChartFrame.getBounds();
 		prefs.putInt("window_x", r.x);
 		prefs.putInt("window_y", r.y);
@@ -248,7 +248,7 @@ public class ChartSpotsOverlayFrame {
 		chartPanel = null;
 	}
 
-	private JPanel createTopControlsPanel(ResultsOptions options) {
+	protected JPanel createTopControlsPanel(ResultsOptions options) {
 		JPanel panel = new JPanel(new BorderLayout());
 		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -268,10 +268,6 @@ public class ChartSpotsOverlayFrame {
 		row1.add(spotSelectorCombo);
 		row1.add(updateButton);
 
-//		row2.add(cbSumV2);
-//		row2.add(cbNoFlyV2);
-//		row2.add(cbCleanV2);
-
 		panel.add(row1, BorderLayout.NORTH);
 		panel.add(row2, BorderLayout.SOUTH);
 
@@ -281,16 +277,13 @@ public class ChartSpotsOverlayFrame {
 		cbNoFly.addActionListener(e -> onMeasureCheckboxChanged());
 		cbClean.addActionListener(e -> onMeasureCheckboxChanged());
 		cbCleanV3.addActionListener(e -> onMeasureCheckboxChanged());
-//		cbSumV2.addActionListener(e -> onMeasureCheckboxChanged());
-//		cbNoFlyV2.addActionListener(e -> onMeasureCheckboxChanged());
-//		cbCleanV2.addActionListener(e -> onMeasureCheckboxChanged());
 		cbFlyPresent.addActionListener(e -> onMeasureCheckboxChanged());
 		cbDepletion.addActionListener(e -> refreshChart());
 
 		return panel;
 	}
 
-	private void onMeasureCheckboxChanged() {
+	protected void onMeasureCheckboxChanged() {
 		if (isUpdatingMeasureCheckboxes) {
 			return;
 		}
@@ -303,8 +296,16 @@ public class ChartSpotsOverlayFrame {
 		refreshChart();
 	}
 
-	private void setCheckboxDefaults(ResultsOptions options) {
+	protected void setCheckboxDefaults(ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : null;
+		if (isV5NativeSpotChartMeasure(rt)) {
+			cbSum.setSelected(false);
+			cbNoFly.setSelected(false);
+			cbClean.setSelected(false);
+			cbCleanV3.setSelected(false);
+			cbFlyPresent.setSelected(false);
+			return;
+		}
 		cbSum.setSelected(resultLabelEquals(rt, "AREA_SUM"));
 		cbNoFly.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY"));
 		cbClean.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN"));
@@ -320,7 +321,12 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	private static boolean resultLabelEquals(EnumResults r, String label) {
+	/** V5 per-spot scalars: no legacy measure checkbox maps to these; chart uses {@link ResultsOptions#resultType}. */
+	protected static boolean isV5NativeSpotChartMeasure(EnumResults rt) {
+		return rt == EnumResults.AREA_COUNT_V5 || rt == EnumResults.GREY_SUM_V5 || rt == EnumResults.GREY_SUM_CLEAN_V5;
+	}
+
+	protected static boolean resultLabelEquals(EnumResults r, String label) {
 		return r != null && label.equals(r.toString());
 	}
 
@@ -332,7 +338,7 @@ public class ChartSpotsOverlayFrame {
 		return EnumResults.findByText(label);
 	}
 
-	private void maybeEnforceSingleMeasureSelection() {
+	protected void maybeEnforceSingleMeasureSelection() {
 		if (lastSelectedSpots == null || lastSelectedSpots.size() <= 1) {
 			return;
 		}
@@ -359,7 +365,7 @@ public class ChartSpotsOverlayFrame {
 		cbFlyPresent.setSelected(keep == cbFlyPresent);
 	}
 
-	private int countSelectedMeasures() {
+	protected int countSelectedMeasures() {
 		int n = 0;
 		if (cbSum.isSelected())
 			n++;
@@ -380,7 +386,7 @@ public class ChartSpotsOverlayFrame {
 		return n;
 	}
 
-	private void onSpotSelectorChanged() {
+	protected void onSpotSelectorChanged() {
 		if (isUpdatingSpotComboModel)
 			return;
 		SpotChoice choice = getCurrentSpotChoice();
@@ -409,7 +415,7 @@ public class ChartSpotsOverlayFrame {
 		refreshChart();
 	}
 
-	private SpotChoice getCurrentSpotChoice() {
+	protected SpotChoice getCurrentSpotChoice() {
 		return spotSelectorCombo != null ? (SpotChoice) spotSelectorCombo.getSelectedItem() : null;
 	}
 
@@ -433,7 +439,7 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	private void refreshSpotSelectorModel(boolean keepSelection) {
+	protected void refreshSpotSelectorModel(boolean keepSelection) {
 		if (spotSelectorCombo == null)
 			return;
 		isUpdatingSpotComboModel = true;
@@ -472,7 +478,7 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	private void refreshChart() {
+	protected void refreshChart() {
 		if (mainChartPanel == null || mainChartFrame == null || lastExperiment == null || lastOptions == null
 				|| lastSelectedSpots == null || lastSelectedSpots.isEmpty()) {
 			return;
@@ -549,7 +555,11 @@ public class ChartSpotsOverlayFrame {
 			plot.setRenderer(1, r1);
 			plot.mapDatasetToRangeAxis(1, 1);
 
-			yAxis0.setLabel("area" + lastOptions.resultType.toUnit());
+			EnumResults y0 = firstContinuousMeasure(enabledMeasures);
+			if (y0 == null && lastOptions.resultType != null) {
+				y0 = lastOptions.resultType;
+			}
+			yAxis0.setLabel(y0 != null ? y0.toUnit() : "");
 		} else {
 			XYSeriesCollection ds = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
 					enabledMeasures, flyEnabled && !hasContinuous, overlaySpots, overlayMeasures);
@@ -557,7 +567,10 @@ public class ChartSpotsOverlayFrame {
 			plot.setRenderer(0, createRenderer(ds));
 
 			EnumResults labelType = flyEnabled && !hasContinuous ? findResultByLabel("AREA_FLYPRESENT")
-					: lastOptions.resultType;
+					: firstContinuousMeasure(enabledMeasures);
+			if (labelType == null) {
+				labelType = lastOptions.resultType;
+			}
 			yAxis0.setLabel(labelType != null ? labelType.toUnit() : "");
 			if (flyEnabled && !hasContinuous) {
 				yAxis0.setAutoRange(false);
@@ -650,7 +663,7 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	private List<EnumResults> getEnabledMeasures(ResultsOptions options) {
+	protected List<EnumResults> getEnabledMeasures(ResultsOptions options) {
 		List<EnumResults> out = new ArrayList<>();
 		if (cbSum.isSelected())
 			addResultIfDefined(out, "AREA_SUM");
@@ -668,10 +681,13 @@ public class ChartSpotsOverlayFrame {
 //			addResultIfDefined(out, "AREA_SUMCLEAN_V2");
 		if (cbFlyPresent.isSelected())
 			addResultIfDefined(out, "AREA_FLYPRESENT");
+		if (out.isEmpty() && options != null && isV5NativeSpotChartMeasure(options.resultType)) {
+			out.add(options.resultType);
+		}
 		return out;
 	}
 
-	private static void addResultIfDefined(List<EnumResults> out, String label) {
+	protected static void addResultIfDefined(List<EnumResults> out, String label) {
 		EnumResults v = findResultByLabel(label);
 		if (v != null) {
 			out.add(v);
@@ -736,7 +752,7 @@ public class ChartSpotsOverlayFrame {
 		return palette[index % palette.length];
 	}
 
-	private Color pickMeasureColor(EnumResults resultType) {
+	protected Color pickMeasureColor(EnumResults resultType) {
 		if (resultType == null)
 			return Color.BLACK;
 		switch (resultType.name()) {
@@ -866,6 +882,18 @@ public class ChartSpotsOverlayFrame {
 
 	private static String safeLower(String s) {
 		return s != null ? s.toLowerCase() : "";
+	}
+
+	private static EnumResults firstContinuousMeasure(List<EnumResults> enabledMeasures) {
+		if (enabledMeasures == null) {
+			return null;
+		}
+		for (EnumResults m : enabledMeasures) {
+			if (m != null && !isAreaFlyPresent(m)) {
+				return m;
+			}
+		}
+		return null;
 	}
 
 	private static org.jfree.data.Range computePaddedRangeFromZero(XYSeriesCollection dataset, double defaultUpper,

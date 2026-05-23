@@ -26,7 +26,10 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRg
 /**
  * Light-path detector for V5 spot measures: {@code AREA_COUNT_V5}, {@code GREY_SUM_V5}, and
  * {@code GREY_SUM_CLEAN_V5} (median-smoothed grey, same rule as legacy {@code sumClean} from {@code sumNoFly}).
- * If any ROI pixel is fly-classified for a bin, both raw V5 intensity series are set to {@code NaN} for that bin.
+ * When fly-pixel count in the ROI for a bin reaches the same occupancy gate as legacy {@code sumNoFly}
+ * reconstruction ({@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate},
+ * from {@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}), both raw V5 intensity series
+ * are set to {@code NaN} for that bin.
  * {@code GREY_SUM_V5} matches legacy {@code AREA_SUM} scaling: sum of over-threshold spot-channel values divided
  * by the total number of ROI mask pixels ({@code sumOverThreshold / nPointsIn}).
  * After all bins are filled, {@code GREY_SUM_CLEAN_V5} is rebuilt from {@code GREY_SUM_V5}.
@@ -342,7 +345,8 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 		}
 
 		if (nPointsIn > 0) {
-			if (nPointsFlyPresent > 0) {
+			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
+			if (nPointsFlyPresent >= minFlyPx) {
 				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
 				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
 			} else {
@@ -420,7 +424,8 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 		}
 
 		if (nPointsIn > 0) {
-			if (nPointsFlyPresent > 0) {
+			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
+			if (nPointsFlyPresent >= minFlyPx) {
 				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
 				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
 			} else {

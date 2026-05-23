@@ -11,8 +11,9 @@ import icy.roi.ROI2D;
  * Kept separate from legacy {@link Spot} inner measurements so legacy CSV and behavior stay isolated.
  * {@code GREY_SUM_V5} is stored on the same scale as legacy {@code AREA_SUM}: sum on over-threshold pixels
  * divided by total ROI mask pixel count.
- * {@code GREY_SUM_CLEAN_V5} is a running-median smooth of {@code GREY_SUM_V5} (same span and NaN rules as
- * legacy {@code sumClean} from {@code sumNoFly} in {@link plugins.fmp.multitools.experiment.spots.Spots}).
+ * {@code GREY_SUM_CLEAN_V5} is built from {@code GREY_SUM_V5} by (1) linear interpolation across NaN runs
+ * (including leading/trailing plateaus from the first/last finite sample), then (2) the same span-10 NaN-robust
+ * running median as legacy {@code sumClean} from {@code sumNoFly} in {@link plugins.fmp.multitools.experiment.spots.Spots}.
  */
 public final class SpotMeasurementsV5 {
 
@@ -81,14 +82,17 @@ public final class SpotMeasurementsV5 {
 	}
 
 	/**
-	 * Recomputes {@link #getGreySumClean()} from {@link #getGreySum()} (legacy-style running median).
+	 * Recomputes {@link #getGreySumClean()} from {@link #getGreySum()}: bridge NaN gaps with linear segments
+	 * (and edge plateaus), then apply the legacy-style running median.
 	 */
 	public void rebuildGreySumCleanFromGreySum() {
 		double[] in = greySum.getValues();
 		if (in == null || in.length == 0) {
 			return;
 		}
-		double[] out = runningMedianIgnoringNaN(in, GREY_SUM_CLEAN_MEDIAN_SPAN);
+		double[] work = java.util.Arrays.copyOf(in, in.length);
+		interpolateFiniteNaNGapsLinear(work);
+		double[] out = runningMedianIgnoringNaN(work, GREY_SUM_CLEAN_MEDIAN_SPAN);
 		fillNaNPlateausFromFirstLastFinite(out);
 		greySumClean.setValues(out);
 	}
@@ -197,6 +201,39 @@ public final class SpotMeasurementsV5 {
 		}
 		if (roi != null && greySumClean != null) {
 			greySumClean.getSpotLevel2D().transferROItoLevel2D();
+		}
+	}
+
+	private static void interpolateFiniteNaNGapsLinear(double[] a) {
+		if (a == null || a.length == 0) {
+			return;
+		}
+		fillNaNPlateausFromFirstLastFinite(a);
+		int n = a.length;
+		int i = 0;
+		while (i < n) {
+			while (i < n && !Double.isFinite(a[i])) {
+				i++;
+			}
+			if (i >= n) {
+				return;
+			}
+			int j = i + 1;
+			while (j < n && !Double.isFinite(a[j])) {
+				j++;
+			}
+			if (j >= n) {
+				return;
+			}
+			if (j > i + 1) {
+				double v0 = a[i];
+				double v1 = a[j];
+				for (int k = i + 1; k < j; k++) {
+					double t = (k - i) / (double) (j - i);
+					a[k] = v0 + (v1 - v0) * t;
+				}
+			}
+			i = j;
 		}
 	}
 
