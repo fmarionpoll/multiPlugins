@@ -56,6 +56,8 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 	private JSpinner spotsThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 255, 1));
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
+	/** V5 test: ROI-restricted local mean for {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN} (CPU). */
+	private JCheckBox v5RoiLocalMeanCheckBox = new JCheckBox("loc\u03bc in spot disk (detect)");
 	private JToggleButton fliesViewButton = new JToggleButton("View");
 
 	private JLabel fliesFilterLabel = new JLabel("  Flies filter");
@@ -84,6 +86,7 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 		panel1.add(spotsThresholdSpinner);
 		panel1.add(spotsViewButton);
 		panel1.add(spotsOverlayCheckBox);
+		panel1.add(v5RoiLocalMeanCheckBox);
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(fliesFilterLabel);
@@ -97,6 +100,7 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 
 		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		spotsDirectionComboBox.setSelectedIndex(1);
+		updateV5RoiCheckboxEnabled();
 
 		fliesTransformsComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
 		fliesDirectionComboBox.setSelectedIndex(0);
@@ -123,6 +127,7 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int index = spotsTransformsComboBox.getSelectedIndex();
+					updateV5RoiCheckboxEnabled();
 					updateCanvasFunctions(exp, index);
 					updateOverlaysThreshold();
 				}
@@ -369,7 +374,17 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 
 		options.useGpuTransforms = false;
 
+		options.v5SpotLocalMeanRestrictedToRoi = v5RoiLocalMeanCheckBox.isSelected();
+
 		return options;
+	}
+
+	private void updateV5RoiCheckboxEnabled() {
+		boolean loc = spotsTransformsComboBox.getSelectedItem() == ImageTransformEnums.RGB_DIFFS_LOCAL_MEAN;
+		v5RoiLocalMeanCheckBox.setEnabled(loc);
+		if (!loc) {
+			v5RoiLocalMeanCheckBox.setSelected(false);
+		}
 	}
 
 	private void displayTransform2(Experiment exp) {

@@ -19,7 +19,8 @@ public class SumDiffLocalMeanRgb extends ImageTransformFunctionAbstract implemen
 	public SumDiffLocalMeanRgb() {
 	}
 
-	private static int boxHalfWidth(int w, int h) {
+	/** Box half-width in pixels: {@code clamp(min(w,h)/20, 6, 96)} (shared with ROI-masked path). */
+	public static int defaultBoxHalfWidth(int w, int h) {
 		int m = Math.min(w, h);
 		return Math.min(96, Math.max(6, m / 20));
 	}
@@ -44,7 +45,7 @@ public class SumDiffLocalMeanRgb extends ImageTransformFunctionAbstract implemen
 		int[] Gn = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(1), sourceImage.isSignedDataType());
 		int[] Bn = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(2), sourceImage.isSignedDataType());
 
-		final int r = boxHalfWidth(w, h);
+		final int r = defaultBoxHalfWidth(w, h);
 
 		int[] meanR = new int[n];
 		int[] meanG = new int[n];

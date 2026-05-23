@@ -6,7 +6,7 @@ import java.util.List;
 import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
-import icy.roi.ROI2D;
+import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -17,13 +17,20 @@ import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.ROI2D.ValidationException;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformFactory;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
+import plugins.fmp.multitools.tools.imageTransform.transforms.RoiMaskedLocalSumDiffRgb;
+import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRgb;
 
 /**
  * Light-path detector for V5 spot measures only: {@code AREA_COUNT_V5} and {@code GREY_SUM_V5}.
  * If any ROI pixel is fly-classified for a bin, both V5 series are set to {@code NaN} for that bin.
  * Legacy sum/sumClean pipelines are not written or post-processed here.
+ * <p>
+ * Optional CPU test path: when {@link BuildSeriesOptions#v5SpotLocalMeanRestrictedToRoi} is true and the spot
+ * transform is {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN}, spot scalars use {@link RoiMaskedLocalSumDiffRgb}
+ * (local mean restricted to the spot disk) instead of a full-frame transform.
  */
 public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
@@ -89,6 +96,9 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
 		SequenceLoaderService loader = new SequenceLoaderService();
 
+		final boolean roiRestrictedLocalMean = options.v5SpotLocalMeanRestrictedToRoi
+				&& options.transform01 == ImageTransformEnums.RGB_DIFFS_LOCAL_MEAN;
+
 		final ImageTransformInterface transformSpot = ImageTransformFactory.getFunction(options.transform01,
 				options.useGpuTransforms);
 		final ImageTransformInterface transformFly = ImageTransformFactory.getFunction(options.transform02,
@@ -100,6 +110,10 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
 		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
 		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
+
+		if (roiRestrictedLocalMean) {
+			Logger.info("SpotLevelDetectorFromCamV5: ROI-restricted loc\u03bc spot path (CPU), fly transform unchanged");
+		}
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels (V5)");
 		progress.setLength(nTimeBins);
@@ -133,17 +147,40 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 					continue;
 				}
 
-				spotImage = transformSpot.getTransformedImage(camImage, transformOptionsSpot, spotImage);
+				if (roiRestrictedLocalMean) {
+					spotImage = null;
+				} else {
+					spotImage = transformSpot.getTransformedImage(camImage, transformOptionsSpot, spotImage);
+				}
 				flyImage = transformFly.getTransformedImage(camImage, transformOptionsFly, flyImage);
-				if (spotImage == null || flyImage == null) {
+				if (flyImage == null) {
+					progress.incPosition();
+					continue;
+				}
+				if (!roiRestrictedLocalMean && spotImage == null) {
 					progress.incPosition();
 					continue;
 				}
 
-				IcyBufferedImageCursor cursorSpot = new IcyBufferedImageCursor(spotImage);
 				IcyBufferedImageCursor cursorFly = new IcyBufferedImageCursor(flyImage);
 
-				updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, spotImage, t, options);
+				if (roiRestrictedLocalMean) {
+					if (camImage.getSizeC() < 3) {
+						progress.incPosition();
+						continue;
+					}
+					final int iw = camImage.getWidth();
+					final int ih = camImage.getHeight();
+					int[] fullRn = Array1DUtil.arrayToIntArray(camImage.getDataXY(0), camImage.isSignedDataType());
+					int[] fullGn = Array1DUtil.arrayToIntArray(camImage.getDataXY(1), camImage.isSignedDataType());
+					int[] fullBn = Array1DUtil.arrayToIntArray(camImage.getDataXY(2), camImage.isSignedDataType());
+					final int spotR = SumDiffLocalMeanRgb.defaultBoxHalfWidth(iw, ih);
+					updateSpotsAtTimeIndexRoiLocal(toProcess, cursorFly, iw, ih, fullRn, fullGn, fullBn, spotR, t,
+							options);
+				} else {
+					IcyBufferedImageCursor cursorSpot = new IcyBufferedImageCursor(spotImage);
+					updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, spotImage, t, options);
+				}
 				progress.incPosition();
 			}
 		} finally {
@@ -219,6 +256,90 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 				Logger.warn("SpotLevelDetectorFromCamV5: failed to build mask for spot " + spot.getName() + " - "
 						+ e.getMessage());
 			}
+		}
+	}
+
+	private void updateSpotsAtTimeIndexRoiLocal(List<Spot> spotsToProcess, IcyBufferedImageCursor cursorFly,
+			int imageWidth, int imageHeight, int[] fullRn, int[] fullGn, int[] fullBn, int spotR, int timeIndex,
+			BuildSeriesOptions options) {
+
+		if (cursorFly == null || fullRn == null || fullGn == null || fullBn == null) {
+			return;
+		}
+
+		for (Spot spot : spotsToProcess) {
+			updateSingleSpotAtTimeIndexRoiLocal(spot, cursorFly, imageWidth, imageHeight, fullRn, fullGn, fullBn,
+					spotR, timeIndex, options);
+		}
+	}
+
+	private void updateSingleSpotAtTimeIndexRoiLocal(Spot spot, IcyBufferedImageCursor cursorFly, int imageWidth,
+			int imageHeight, int[] fullRn, int[] fullGn, int[] fullBn, int spotR, int timeIndex,
+			BuildSeriesOptions options) {
+
+		if (spot == null || !spot.isReadyForAnalysis()) {
+			return;
+		}
+
+		ROI2DWithMask roiMask = spot.getROIMask();
+		if (roiMask == null || !roiMask.hasMaskData()) {
+			return;
+		}
+
+		int[][] maskArrays = roiMask.getMaskPointsAsArrays();
+		if (maskArrays == null || maskArrays.length != 2) {
+			return;
+		}
+
+		int[] maskX = maskArrays[0];
+		int[] maskY = maskArrays[1];
+		if (maskX == null || maskY == null || maskX.length == 0 || maskY.length == 0 || maskX.length != maskY.length) {
+			return;
+		}
+
+		int[] spotScalars = RoiMaskedLocalSumDiffRgb.computeScalarsForMask(imageWidth, imageHeight, fullRn, fullGn,
+				fullBn, maskX, maskY, spotR);
+		if (spotScalars == null || spotScalars.length != maskX.length) {
+			Logger.warn("SpotLevelDetectorFromCamV5: ROI loc\u03bc scalars failed for spot " + spot.getName());
+			return;
+		}
+
+		double sumOverThreshold = 0;
+		int nOver = 0;
+
+		int nPointsIn = maskX.length;
+		int nPointsFlyPresent = 0;
+
+		for (int i = 0; i < maskX.length; i++) {
+			int x = maskX[i];
+			int y = maskY[i];
+			if (x < 0 || y < 0 || x >= imageWidth || y >= imageHeight) {
+				continue;
+			}
+
+			int valueSpot = spotScalars[i];
+			int valueFly = (int) cursorFly.get(x, y, 0);
+
+			boolean flyThere = isFlyPresent(valueFly, options);
+			if (flyThere) {
+				nPointsFlyPresent++;
+			}
+
+			if (isOverThreshold(valueSpot, options)) {
+				sumOverThreshold += valueSpot;
+				nOver++;
+			}
+		}
+
+		if (nPointsIn > 0) {
+			if (nPointsFlyPresent > 0) {
+				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
+				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
+			} else {
+				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
+				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold);
+			}
+			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
 

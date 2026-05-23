@@ -155,6 +155,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 	/** When true, try to use GPU-backed image transforms when available. */
 	public boolean useGpuTransforms = false;
 
+	/**
+	 * V5 only: when true and {@link #transform01} is {@code RGB_DIFFS_LOCAL_MEAN}, spot metrics use a
+	 * CPU path where each channel's local mean is restricted to the spot disk (no full-frame box filter).
+	 */
+	public boolean v5SpotLocalMeanRestrictedToRoi = false;
+
 	// Spot detection backend options
 	/** When true, per-spot computations may run in parallel on the CPU. */
 	public boolean enableSpotParallelism = false;
@@ -184,6 +190,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 		destination.spotThresholdUp = spotThresholdUp;
 		destination.spotThreshold = spotThreshold;
 		destination.detectAllSeries = detectAllSeries;
+		destination.v5SpotLocalMeanRestrictedToRoi = v5SpotLocalMeanRestrictedToRoi;
 
 	}
 
@@ -194,6 +201,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 		spotThresholdUp = destination.spotThresholdUp;
 		spotThreshold = destination.spotThreshold;
 		detectAllSeries = destination.detectAllSeries;
+		v5SpotLocalMeanRestrictedToRoi = destination.v5SpotLocalMeanRestrictedToRoi;
 	}
 
 	public void copyParameters(BuildSeriesOptions det) {
@@ -231,6 +239,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 			spotThreshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
 			transform01 = ImageTransformEnums
 					.findByText(XMLUtil.getElementValue(nodeMeta, "Transform", transform01.toString()));
+			v5SpotLocalMeanRestrictedToRoi = XMLUtil.getElementBooleanValue(nodeMeta,
+					"v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
 
 			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
@@ -270,6 +280,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementIntValue(nodeMeta, "firstImage", seriesFirst);
 			XMLUtil.setElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
 			XMLUtil.setElementValue(nodeMeta, "Transform", transform01.toString());
+			XMLUtil.setElementBooleanValue(nodeMeta, "v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
 
 			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
