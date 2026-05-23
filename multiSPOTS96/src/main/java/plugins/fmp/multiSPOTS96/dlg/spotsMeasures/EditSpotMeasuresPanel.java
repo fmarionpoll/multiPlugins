@@ -200,8 +200,9 @@ public class EditSpotMeasuresPanel extends JPanel implements PropertyChangeListe
 			return;
 		}
 		exp.getSpots().rebuildSumCleanOnlyForSpots(targets);
+		exp.getSpots().rebuildGreySumCleanV5OnlyForSpots(targets);
 		exp.getSpots().transferMeasuresToLevel2D(targets);
-		statusLabel.setText("sumClean rebuilt for " + targets.size() + " spot(s).");
+		statusLabel.setText("sumClean + GREY_SUM_CLEAN_V5 rebuilt for " + targets.size() + " spot(s).");
 		refreshChartsIfPresent(exp);
 	}
 

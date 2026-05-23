@@ -46,7 +46,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = 1L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_V5, EnumResults.GREY_SUM_V5,
-			EnumResults.AGG_SUMCLEAN_V5, EnumResults.AREA_FLYPRESENT };
+			EnumResults.GREY_SUM_CLEAN_V5, EnumResults.AGG_SUMCLEAN_V5, EnumResults.AREA_FLYPRESENT };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -388,7 +388,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_V5 : option;
+		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_CLEAN_V5 : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

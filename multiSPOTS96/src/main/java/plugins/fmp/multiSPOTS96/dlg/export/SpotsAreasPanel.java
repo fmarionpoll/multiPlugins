@@ -22,6 +22,7 @@ public class SpotsAreasPanel extends JPanel {
 	JCheckBox sumCleanCheckBox = new JCheckBox("AREA_SUMCLEAN", false);
 	JCheckBox areaCountV5CheckBox = new JCheckBox("AREA_COUNT_V5", false);
 	JCheckBox greySumV5CheckBox = new JCheckBox("GREY_SUM_V5", false);
+	JCheckBox greySumCleanV5CheckBox = new JCheckBox("GREY_SUM_CLEAN_V5", false);
 //	JCheckBox areaV2CheckBox = new JCheckBox("AREA_SUM_V2", false);
 //	JCheckBox sumNoFlyV2CheckBox = new JCheckBox("AREA_SUMNOFLY_V2", false);
 //	JCheckBox sumCleanV2CheckBox = new JCheckBox("AREA_SUMCLEAN_V2", false);
@@ -39,6 +40,7 @@ public class SpotsAreasPanel extends JPanel {
 		panel0.add(sumCleanCheckBox);
 		panel0.add(areaCountV5CheckBox);
 		panel0.add(greySumV5CheckBox);
+		panel0.add(greySumCleanV5CheckBox);
 //		panel0.add(areaV2CheckBox);
 //		panel0.add(sumNoFlyV2CheckBox);
 //		panel0.add(sumCleanV2CheckBox);

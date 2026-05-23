@@ -192,6 +192,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case AREA_FLYPRESENT:
 		case AREA_COUNT_V5:
 		case GREY_SUM_V5:
+		case GREY_SUM_CLEAN_V5:
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:
 		case AGG_MEDIANREF:

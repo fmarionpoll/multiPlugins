@@ -136,6 +136,9 @@ public enum EnumResults {
 	/** V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel count (same scale as legacy {@code AREA_SUM}). */
 	GREY_SUM_V5("GREY_SUM_V5", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (V5, legacy AREA_SUM scale)",
 			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
+	/** V5: running-median smooth of {@link #GREY_SUM_V5} (span 10, NaN-robust; same spirit as legacy {@code AREA_SUMCLEAN} from {@code sumNoFly}). */
+	GREY_SUM_CLEAN_V5("GREY_SUM_CLEAN_V5", "grey / ROI px", "Smoothed V5 grey (running median of GREY_SUM_V5)",
+			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V5(), "GREY_SUM_CLEAN_V5", PersistenceDomain.SPOT),
 
 	/**
 	 * Computed cage-level aggregate: sum over spots grouped by (stimulus, concentration)
@@ -146,10 +149,10 @@ public enum EnumResults {
 
 	/**
 	 * Same grouping and normalization as {@link #AGG_SUMCLEAN}, but each spot's intensity trace is
-	 * {@link #GREY_SUM_V5} (V5 over-threshold grey / ROI) instead of legacy {@code AREA_SUMCLEAN}.
+	 * {@link #GREY_SUM_CLEAN_V5} (median-smoothed V5 grey) instead of legacy {@code AREA_SUMCLEAN}.
 	 */
 	AGG_SUMCLEAN_V5("AGG_SUMCLEAN_V5", "spots consumed (0..N)",
-			"V5 CLEAN aggregate: sum of per-spot normalized consumption from GREY_SUM_V5 by (stimulus, conc) per cage",
+			"V5 CLEAN aggregate: sum of per-spot normalized consumption from GREY_SUM_CLEAN_V5 by (stimulus, conc) per cage",
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	/**
@@ -242,6 +245,7 @@ public enum EnumResults {
 		case AREA_FLYPRESENT:
 		case AREA_COUNT_V5:
 		case GREY_SUM_V5:
+		case GREY_SUM_CLEAN_V5:
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:
 		case AGG_MEDIANREF:

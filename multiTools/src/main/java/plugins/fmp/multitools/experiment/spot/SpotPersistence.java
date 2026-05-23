@@ -130,6 +130,7 @@ public class SpotPersistence {
 		case AREA_FLYPRESENT:
 		case AREA_COUNT_V5:
 		case GREY_SUM_V5:
+		case GREY_SUM_CLEAN_V5:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
 					+ "npts" + sep + "yi\n";
 		default:
@@ -162,6 +163,9 @@ public class SpotPersistence {
 			break;
 		case GREY_SUM_V5:
 			spot.getGreySumV5().exportYDataToCsv(sbf, sep);
+			break;
+		case GREY_SUM_CLEAN_V5:
+			spot.getGreySumCleanV5().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -346,6 +350,14 @@ public class SpotPersistence {
 				spot.getGreySumV5().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
 				spot.getGreySumV5().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
+			break;
+		case GREY_SUM_CLEAN_V5:
+			if (x && y) {
+				spot.getGreySumCleanV5().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getGreySumCleanV5().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		default:

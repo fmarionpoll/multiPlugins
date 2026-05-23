@@ -175,6 +175,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.spotSumClean = spotsAreasPanel.sumCleanCheckBox.isSelected();
 		resultsOptions.spotAreaCountV5 = spotsAreasPanel.areaCountV5CheckBox.isSelected();
 		resultsOptions.spotGreySumV5 = spotsAreasPanel.greySumV5CheckBox.isSelected();
+		resultsOptions.spotGreySumCleanV5 = spotsAreasPanel.greySumCleanV5CheckBox.isSelected();
 //		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
 //		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
 //		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();

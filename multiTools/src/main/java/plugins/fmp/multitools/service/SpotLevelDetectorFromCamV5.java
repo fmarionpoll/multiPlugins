@@ -24,11 +24,13 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.RoiMaskedLocalSumD
 import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRgb;
 
 /**
- * Light-path detector for V5 spot measures only: {@code AREA_COUNT_V5} and {@code GREY_SUM_V5}.
- * If any ROI pixel is fly-classified for a bin, both V5 series are set to {@code NaN} for that bin.
+ * Light-path detector for V5 spot measures: {@code AREA_COUNT_V5}, {@code GREY_SUM_V5}, and
+ * {@code GREY_SUM_CLEAN_V5} (median-smoothed grey, same rule as legacy {@code sumClean} from {@code sumNoFly}).
+ * If any ROI pixel is fly-classified for a bin, both raw V5 intensity series are set to {@code NaN} for that bin.
  * {@code GREY_SUM_V5} matches legacy {@code AREA_SUM} scaling: sum of over-threshold spot-channel values divided
  * by the total number of ROI mask pixels ({@code sumOverThreshold / nPointsIn}).
- * Legacy sum/sumClean pipelines are not written or post-processed here.
+ * After all bins are filled, {@code GREY_SUM_CLEAN_V5} is rebuilt from {@code GREY_SUM_V5}.
+ * Legacy sum/sumClean pipelines are not written here.
  * <p>
  * Optional CPU test path: when {@link BuildSeriesOptions#v5SpotLocalMeanRestrictedToRoi} is true and the spot
  * transform is {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN}, spot scalars use {@link RoiMaskedLocalSumDiffRgb}
@@ -192,6 +194,12 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 			flyImage = null;
 		}
 		final long tLoopEnd = System.nanoTime();
+
+		for (Spot spot : toProcess) {
+			if (spot != null) {
+				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
+			}
+		}
 
 		final long tPostStart = System.nanoTime();
 		spots.transferMeasuresToLevel2D();

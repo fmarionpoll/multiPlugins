@@ -451,7 +451,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
 		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN
-				: option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_V5
+				: option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_CLEAN_V5
 				: option == EnumResults.AGG_MEDIANREF ? EnumResults.AREA_SUM : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {

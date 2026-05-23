@@ -495,8 +495,10 @@ public class Spot implements Comparable<Spot> {
 		case AREA_SUMCLEAN:
 		case AGG_SUMCLEAN:
 			return measurements.getSumClean().getCount();
+		case GREY_SUM_CLEAN_V5:
+			return measurementsV5.getGreySumClean().getCount();
 		case AGG_SUMCLEAN_V5:
-			return measurementsV5.getGreySum().getCount();
+			return measurementsV5.getGreySumClean().getCount();
 		case AGG_MEDIANREF:
 			return measurements.getSumIn().getCount();
 		case AREA_SUM_V2:
@@ -578,6 +580,10 @@ public class Spot implements Comparable<Spot> {
 		return measurementsV5.getGreySum();
 	}
 
+	public SpotMeasure getGreySumCleanV5() {
+		return measurementsV5.getGreySumClean();
+	}
+
 	/**
 	 * V5 parallel pipeline measures (over-threshold count and grey sum with fly-gap rule).
 	 */
@@ -610,8 +616,10 @@ public class Spot implements Comparable<Spot> {
 			return measurements.getSumCleanV3();
 		case AGG_SUMCLEAN:
 			return measurements.getSumClean();
+		case GREY_SUM_CLEAN_V5:
+			return measurementsV5.getGreySumClean();
 		case AGG_SUMCLEAN_V5:
-			return measurementsV5.getGreySum();
+			return measurementsV5.getGreySumClean();
 		case AGG_MEDIANREF:
 			return measurements.getSumIn();
 		case AREA_FLYPRESENT:

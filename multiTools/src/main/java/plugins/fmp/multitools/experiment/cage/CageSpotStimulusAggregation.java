@@ -180,7 +180,7 @@ public final class CageSpotStimulusAggregation {
 			return null;
 		}
 		if (buildResultType == EnumResults.AGG_SUMCLEAN_V5) {
-			return s.getGreySumV5();
+			return s.getGreySumCleanV5();
 		}
 		return s.getSumClean();
 	}

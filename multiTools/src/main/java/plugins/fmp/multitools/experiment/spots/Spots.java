@@ -1342,6 +1342,25 @@ public class Spots {
 	public void medianFilterFromSumToSumClean() {
 		// Backward-compatible name: sumClean from sumNoFly via running median.
 		rebuildSumCleanFromSumNoFly();
+		for (Spot spot : spotList) {
+			if (spot != null) {
+				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
+			}
+		}
+	}
+
+	/**
+	 * Recomputes {@code GREY_SUM_CLEAN_V5} from {@code GREY_SUM_V5} for the given spots (same smoothing as legacy sumClean).
+	 */
+	public void rebuildGreySumCleanV5OnlyForSpots(List<Spot> targets) {
+		if (targets == null) {
+			return;
+		}
+		for (Spot spot : targets) {
+			if (spot != null) {
+				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
+			}
+		}
 	}
 
 	public double getScalingFactorToPhysicalUnits(EnumResults resultType) {
