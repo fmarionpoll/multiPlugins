@@ -29,13 +29,23 @@ public class AxisOptions extends JPanel {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+
+	/**
+	 * Wide bounds so measures like {@code GREY_SUM_V5} (large sums) stay within the
+	 * {@link SpinnerNumberModel}; otherwise the editor becomes invalid and appears disabled.
+	 */
+	private static final double AXIS_SPINNER_MIN = -1e15;
+	private static final double AXIS_SPINNER_MAX = 1e15;
+
 	IcyFrame dialogFrame = null;
 	private MultiSPOTS96 parent0 = null;
 	private ChartCagesFrame chartCagesFrame = null;
-	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 255., 1.));
-	private JSpinner upperXSpinner = new JSpinner(new SpinnerNumberModel(120., 0., 255., 1.));
-	private JSpinner lowerYSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 1000., 1.));
-	private JSpinner upperYSpinner = new JSpinner(new SpinnerNumberModel(80., 0., 1000., 1.));
+	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 0.1));
+	private JSpinner upperXSpinner = new JSpinner(
+			new SpinnerNumberModel(120., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 0.1));
+	private JSpinner lowerYSpinner = new JSpinner(new SpinnerNumberModel(0., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 1.));
+	private JSpinner upperYSpinner = new JSpinner(
+			new SpinnerNumberModel(1000., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 1.));
 	private JButton setYaxis = new JButton("set Y axis values");
 	private JButton setXaxis = new JButton("set X axis values");
 
@@ -147,6 +157,9 @@ public class AxisOptions extends JPanel {
 			lowerYSpinner.setValue(chartCagesFrame.getYRange().getLowerBound());
 			upperYSpinner.setValue(chartCagesFrame.getYRange().getUpperBound());
 		}
+		lowerYSpinner.setEnabled(true);
+		upperYSpinner.setEnabled(true);
+		setYaxis.setEnabled(true);
 	}
 
 	private void updateXAxis() {
