@@ -128,4 +128,15 @@ public class InfosPanel extends JPanel {
 			return;
 		infosSpotTable.selectRowFromSpot(spot);
 	}
+
+	/**
+	 * Highlights {@code spot} in the spots infos table when that dialog has been opened at least once
+	 * ({@code infosSpotTable} exists). Does not run table-driven sequence navigation.
+	 */
+	public void highlightSpotInInfosTableIfOpen(Spot spot) {
+		if (infosSpotTable == null) {
+			return;
+		}
+		infosSpotTable.selectRowFromSpotWithoutNavigation(spot);
+	}
 }

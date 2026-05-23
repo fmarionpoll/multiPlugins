@@ -411,12 +411,21 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	}
 
 	public void selectRowFromSpot(Spot spot) {
-		String spotName = spot.getRoi().getName();
+		if (spotTable == null || spot == null) {
+			return;
+		}
+		String spotName = spot.getName();
+		if ((spotName == null || spotName.isEmpty()) && spot.getRoi() != null) {
+			spotName = spot.getRoi().getName();
+		}
+		if (spotName == null) {
+			return;
+		}
 		int nrows = spotTable.getRowCount();
 		int selectedRow = -1;
 		for (int i = 0; i < nrows; i++) {
 			String name = (String) spotTable.getValueAt(i, 0);
-			if (name.equals(spotName)) {
+			if (name != null && name.equals(spotName)) {
 				selectedRow = i;
 				break;
 			}
@@ -429,12 +438,55 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		}
 	}
 
+	/**
+	 * Selects the table row for {@code spot} without firing {@link ListSelectionListener}s, so sequence
+	 * navigation from {@link plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler} is not
+	 * overwritten by {@link #selectSpot(Spot)} (which re-centers on the cage ROI).
+	 */
+	public void selectRowFromSpotWithoutNavigation(Spot spot) {
+		if (spotTable == null || spot == null) {
+			return;
+		}
+		String spotName = spot.getName();
+		if ((spotName == null || spotName.isEmpty()) && spot.getRoi() != null) {
+			spotName = spot.getRoi().getName();
+		}
+		if (spotName == null) {
+			return;
+		}
+		int nrows = spotTable.getRowCount();
+		int selectedRow = -1;
+		for (int i = 0; i < nrows; i++) {
+			String name = (String) spotTable.getValueAt(i, 0);
+			if (name != null && name.equals(spotName)) {
+				selectedRow = i;
+				break;
+			}
+		}
+		if (selectedRow < 0) {
+			return;
+		}
+		ListSelectionModel sm = spotTable.getSelectionModel();
+		sm.removeListSelectionListener(this);
+		try {
+			sm.setSelectionInterval(selectedRow, selectedRow);
+			Rectangle rect = new Rectangle(spotTable.getCellRect(selectedRow, 0, true));
+			rect.height = rect.height * 2;
+			spotTable.scrollRectToVisible(rect);
+		} finally {
+			sm.addListSelectionListener(this);
+		}
+	}
+
 	void selectSpot(Spot spot) {
 		Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			Spots allSpots = exp.getSpots();
 			String name = spot.getName();
 			ROI2D roiSpot = spot.getRoi();
+			if (roiSpot == null) {
+				return;
+			}
 			if (name == null)
 				name = roiSpot.getName();
 			Cage cage = exp.getCages().getCageFromSpotROIName(name, allSpots);

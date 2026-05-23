@@ -229,7 +229,8 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 			@Override
 			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options,
 					ChartCagePair[][] charts) {
-				return new SpotChartInteractionHandler(exp, options, charts);
+				return new SpotChartInteractionHandler(exp, options, charts,
+						spot -> parent0.dlgSpots.onMeasureChartSpotClicked(spot));
 			}
 		};
 

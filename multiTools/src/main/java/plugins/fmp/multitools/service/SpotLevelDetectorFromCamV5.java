@@ -26,6 +26,8 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRg
 /**
  * Light-path detector for V5 spot measures only: {@code AREA_COUNT_V5} and {@code GREY_SUM_V5}.
  * If any ROI pixel is fly-classified for a bin, both V5 series are set to {@code NaN} for that bin.
+ * {@code GREY_SUM_V5} matches legacy {@code AREA_SUM} scaling: sum of over-threshold spot-channel values divided
+ * by the total number of ROI mask pixels ({@code sumOverThreshold / nPointsIn}).
  * Legacy sum/sumClean pipelines are not written or post-processed here.
  * <p>
  * Optional CPU test path: when {@link BuildSeriesOptions#v5SpotLocalMeanRestrictedToRoi} is true and the spot
@@ -337,7 +339,7 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
 			} else {
 				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
-				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold);
+				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold / (double) nPointsIn);
 			}
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
@@ -415,7 +417,7 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
 			} else {
 				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
-				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold);
+				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold / (double) nPointsIn);
 			}
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}

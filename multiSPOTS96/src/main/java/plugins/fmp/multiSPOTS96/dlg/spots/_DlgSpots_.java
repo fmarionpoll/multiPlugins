@@ -17,6 +17,7 @@ import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.spot.Spot;
 
 public class _DlgSpots_ extends JPanel implements PropertyChangeListener, ChangeListener {
 	/**
@@ -129,6 +130,17 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 		if (exp != null) {
 			ExperimentUtils.transferSpotsToCamDataSequence(exp);
 		}
+	}
+
+	/**
+	 * Called when the user picks a trace on a spot-measures chart: sync the Spots →
+	 * Infos table row if that table has been opened in this session.
+	 */
+	public void onMeasureChartSpotClicked(Spot spot) {
+		if (spot == null) {
+			return;
+		}
+		infosPanel.highlightSpotInInfosTableIfOpen(spot);
 	}
 
 	@Override

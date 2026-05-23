@@ -133,8 +133,8 @@ public enum EnumResults {
 	/** V5: count of ROI pixels above spot threshold (NaN when any fly pixel in ROI for that bin). */
 	AREA_COUNT_V5("AREA_COUNT_V5", "pixels", "Over-threshold spot pixels (V5)",
 			StoredDataAccessors.accessStored_AREA_COUNT_V5(), "AREA_COUNT_V5", PersistenceDomain.SPOT),
-	/** V5: sum of spot-channel grey on over-threshold pixels (NaN with fly in ROI for that bin). */
-	GREY_SUM_V5("GREY_SUM_V5", "grey sum", "Grey sum on over-threshold pixels (V5)",
+	/** V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel count (same scale as legacy {@code AREA_SUM}). */
+	GREY_SUM_V5("GREY_SUM_V5", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (V5, legacy AREA_SUM scale)",
 			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
 
 	/**

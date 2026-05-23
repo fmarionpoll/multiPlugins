@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.chart.interaction;
 
 import java.awt.event.MouseEvent;
+import java.util.function.Consumer;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
@@ -8,8 +9,6 @@ import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.XYItemEntity;
 import org.jfree.data.xy.XYDataset;
 
-import icy.gui.viewer.Viewer;
-import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -33,10 +32,17 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
+	private final Consumer<Spot> onSpotSelectedFromChart;
 
 	public SpotChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
 			@SuppressWarnings("unused") ChartCagePair[][] chartArray) {
+		this(experiment, resultsOptions, chartArray, null);
+	}
+
+	public SpotChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
+			@SuppressWarnings("unused") ChartCagePair[][] chartArray, Consumer<Spot> onSpotSelectedFromChart) {
 		this.experiment = experiment;
+		this.onSpotSelectedFromChart = onSpotSelectedFromChart;
 	}
 
 	@Override
@@ -64,68 +70,42 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 		}
 
 		ChartEntity chartEntity = e.getEntity();
-		if (chartEntity instanceof XYItemEntity) {
-			XYItemEntity item = (XYItemEntity) chartEntity;
-			XYDataset dataset = item.getDataset();
-			if (dataset == null) {
-				return null;
-			}
-
-			int seriesIndex = item.getSeriesIndex();
-			String seriesKey = (String) dataset.getSeriesKey(seriesIndex);
-			if (seriesKey == null) {
-				return null;
-			}
-			if (SpotChartSeriesKeys.isAggregateSeriesKey(seriesKey)) {
-				return null;
-			}
-
-			Spot spot = SpotChartSeriesKeys.resolveSpot(experiment, cage, seriesKey);
-			if (spot == null) {
-				Logger.warn("Spot not found from seriesKey=" + seriesKey);
-				return null;
-			}
-
-			if (frameIndex >= 0) {
-				spot.setSpotCamDataT(frameIndex);
-			}
-			return spot;
+		if (!(chartEntity instanceof XYItemEntity)) {
+			return null;
 		}
 
-		if (cage != null) {
-			java.util.List<Spot> spots = cage.getSpotList(experiment.getSpots());
-			if (spots != null && !spots.isEmpty()) {
-				return spots.get(0);
-			}
+		XYItemEntity item = (XYItemEntity) chartEntity;
+		XYDataset dataset = item.getDataset();
+		if (dataset == null) {
+			return null;
 		}
 
-		return null;
+		int seriesIndex = item.getSeriesIndex();
+		String seriesKey = (String) dataset.getSeriesKey(seriesIndex);
+		if (seriesKey == null) {
+			return null;
+		}
+		if (SpotChartSeriesKeys.isAggregateSeriesKey(seriesKey)) {
+			return null;
+		}
+
+		Spot spot = SpotChartSeriesKeys.resolveSpot(experiment, cage, seriesKey);
+		if (spot == null) {
+			Logger.warn("Spot not found from seriesKey=" + seriesKey);
+			return null;
+		}
+
+		if (frameIndex >= 0) {
+			spot.setSpotCamDataT(frameIndex);
+		}
+		return spot;
 	}
 
 	private void selectSpotAndMoveT(Spot spot) {
-		if (spot == null || experiment == null || experiment.getSeqCamData() == null
-				|| experiment.getSeqCamData().getSequence() == null) {
+		if (spot == null || experiment == null || experiment.getSeqCamData() == null) {
 			return;
 		}
-
-		ROI2D roi = spot.getRoi();
-		if (roi != null) {
-			experiment.getSeqCamData().getSequence().setFocusedROI(roi);
-			experiment.getSeqCamData().getSequence().setSelectedROI(roi);
-			experiment.getSeqCamData().centerDisplayOnRoi(roi);
-		}
-
-		Viewer v = experiment.getSeqCamData().getSequence().getFirstViewer();
-		if (v != null && spot.getSpotCamDataT() >= 0) {
-			v.setPositionT(spot.getSpotCamDataT());
-		}
-
-		if (roi != null) {
-			Cage cage = experiment.getCages().getCageFromSpotROIName(roi.getName(), experiment.getSpots());
-			if (cage != null && cage.getRoi() != null) {
-				experiment.getSeqCamData().centerDisplayOnRoi(cage.getRoi());
-			}
-		}
+		SpotChartRoiFocus.moveViewerToSpotTAndSelectRoi(experiment.getSeqCamData(), spot);
 	}
 
 	private class SpotChartMouseListener implements ChartMouseListener {
@@ -143,6 +123,9 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 			}
 
 			selectSpotAndMoveT(spot);
+			if (onSpotSelectedFromChart != null) {
+				onSpotSelectedFromChart.accept(spot);
+			}
 		}
 
 		@Override

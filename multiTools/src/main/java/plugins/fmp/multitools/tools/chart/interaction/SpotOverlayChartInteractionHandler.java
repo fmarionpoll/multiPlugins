@@ -8,10 +8,7 @@ import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.XYItemEntity;
 import org.jfree.data.xy.XYDataset;
 
-import icy.gui.viewer.Viewer;
-import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
@@ -67,29 +64,10 @@ public class SpotOverlayChartInteractionHandler {
 	}
 
 	private void selectSpotAndMoveT(Spot spot) {
-		if (spot == null || experiment == null || experiment.getSeqCamData() == null
-				|| experiment.getSeqCamData().getSequence() == null) {
+		if (spot == null || experiment == null || experiment.getSeqCamData() == null) {
 			return;
 		}
-
-		ROI2D roi = spot.getRoi();
-		if (roi != null) {
-			experiment.getSeqCamData().getSequence().setFocusedROI(roi);
-			experiment.getSeqCamData().getSequence().setSelectedROI(roi);
-			experiment.getSeqCamData().centerDisplayOnRoi(roi);
-		}
-
-		Viewer v = experiment.getSeqCamData().getSequence().getFirstViewer();
-		if (v != null && spot.getSpotCamDataT() >= 0) {
-			v.setPositionT(spot.getSpotCamDataT());
-		}
-
-		if (roi != null) {
-			Cage cage = experiment.getCages().getCageFromSpotROIName(roi.getName(), experiment.getSpots());
-			if (cage != null && cage.getRoi() != null) {
-				experiment.getSeqCamData().centerDisplayOnRoi(cage.getRoi());
-			}
-		}
+		SpotChartRoiFocus.moveViewerToSpotTAndSelectRoi(experiment.getSeqCamData(), spot);
 	}
 
 	private class MouseListener implements ChartMouseListener {

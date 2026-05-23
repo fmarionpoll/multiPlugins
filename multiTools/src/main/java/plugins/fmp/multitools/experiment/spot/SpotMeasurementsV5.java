@@ -8,6 +8,8 @@ import icy.roi.ROI2D;
 /**
  * Spot measures for the parallel V5 pipeline ({@code AREA_COUNT_V5}, {@code GREY_SUM_V5}).
  * Kept separate from legacy {@link Spot} inner measurements so legacy CSV and behavior stay isolated.
+ * {@code GREY_SUM_V5} is stored on the same scale as legacy {@code AREA_SUM}: sum on over-threshold pixels
+ * divided by total ROI mask pixel count.
  */
 public final class SpotMeasurementsV5 {
 
