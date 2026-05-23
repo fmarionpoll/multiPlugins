@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.tools.results;
 
 /**
- * Policy for cage-level {@code AGG_SUMCLEAN} depletion aggregation (evaluation / V4).
+ * Policy for cage-level {@code AGG_SUMCLEAN} and {@code AGG_SUMCLEAN_V5} depletion aggregation (evaluation / V4).
  */
 public enum AggSumCleanPolicy {
 	/** Current behaviour: fixed early-window max baseline, no drift correction. */

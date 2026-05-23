@@ -1365,7 +1365,7 @@ public class Cages {
 
 	/**
 	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when charting/exporting
-	 * spot aggregates (AGG_SUMCLEAN, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
+	 * spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
 	 * native spot/camera sample index (same basis as spot charts). Clears caches otherwise.
 	 */
 	public void prepareSpotAggregates(Experiment exp, ResultsOptions opt) {
@@ -1380,8 +1380,8 @@ public class Cages {
 			}
 			return;
 		}
-		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_MEDIANREF
-				|| opt.spotAggregateByStimulusConc;
+		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_SUMCLEAN_V5
+				|| opt.resultType == EnumResults.AGG_MEDIANREF || opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
 				if (cage != null) {
@@ -1392,9 +1392,14 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
-		EnumResults buildRt = (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF)
-				? EnumResults.AGG_SUMCLEAN
-				: EnumResults.AREA_SUMCLEAN;
+		EnumResults buildRt;
+		if (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF) {
+			buildRt = EnumResults.AGG_SUMCLEAN;
+		} else if (savedRt == EnumResults.AGG_SUMCLEAN_V5) {
+			buildRt = EnumResults.AGG_SUMCLEAN_V5;
+		} else {
+			buildRt = EnumResults.AREA_SUMCLEAN;
+		}
 		opt.resultType = buildRt;
 		try {
 			for (Cage cage : cagesList) {
@@ -1408,8 +1413,10 @@ public class Cages {
 				List<AggregateSeries> nativeList = CageSpotStimulusAggregation.buildAggregatesOnNativeSamples(exp,
 						cage, allSpots, opt);
 				List<CageSpotAggregateSeries> entries = new ArrayList<>(nativeList.size());
+				EnumResults aggTag = savedRt == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.AGG_SUMCLEAN_V5
+						: EnumResults.AGG_SUMCLEAN;
 				for (AggregateSeries a : nativeList) {
-					CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(a);
+					CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(a, aggTag);
 					if (row != null) {
 						entries.add(row);
 					}

@@ -441,6 +441,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 		ChartCageBuild.initMaxMin();
 		if ((resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
+				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5
 				|| resultsOptions.resultType == EnumResults.AGG_MEDIANREF) && experiment != null
 				&& experiment.getSpots() != null) {
 			resultsOptions.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation

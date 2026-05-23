@@ -44,6 +44,7 @@ public abstract class XLSExportSpots extends XLSExport {
 			case AREA_COUNT_V5:
 			case GREY_SUM_V5:
 			case AGG_SUMCLEAN:
+			case AGG_SUMCLEAN_V5:
 			case AGG_MEDIANREF:
 				return true;
 			default:

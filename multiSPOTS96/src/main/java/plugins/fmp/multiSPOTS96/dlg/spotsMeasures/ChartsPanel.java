@@ -48,7 +48,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_SUMCLEAN_V3, //
 			// EnumResults.AREA_SUM_V2, EnumResults.AREA_SUMNOFLY_V2,
 			// EnumResults.AREA_SUMCLEAN_V2, //
-			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN, EnumResults.AGG_MEDIANREF };
+			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN, EnumResults.AGG_SUMCLEAN_V5,
+			EnumResults.AGG_MEDIANREF };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -244,8 +245,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if ((exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_MEDIANREF)
-				&& displaySelectedSpotsButton.isSelected()) {
+		if ((exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_SUMCLEAN_V5
+				|| exportType == EnumResults.AGG_MEDIANREF) && displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
 
@@ -268,7 +269,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		boolean agg = exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_MEDIANREF;
+		boolean agg = exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_SUMCLEAN_V5
+				|| exportType == EnumResults.AGG_MEDIANREF;
 		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
 				.withCageRange(first, last).build();
@@ -325,7 +327,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN && exportType != EnumResults.AGG_MEDIANREF
+		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN
+				&& exportType != EnumResults.AGG_SUMCLEAN_V5 && exportType != EnumResults.AGG_MEDIANREF
 				&& relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
@@ -381,20 +384,23 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private void updateMeasureDependentControls() {
-		boolean agg = exportTypeComboBox != null && (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
+		boolean aggStep = exportTypeComboBox != null && (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
+				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN_V5
 				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
-		relativeToCheckbox.setEnabled(!agg);
-		if (agg) {
+		boolean aggMedianUi = exportTypeComboBox != null && (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
+				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
+		relativeToCheckbox.setEnabled(!aggStep);
+		if (aggStep) {
 			relativeToCheckbox.setSelected(false);
 		}
-		displaySelectedSpotsButton.setEnabled(!agg);
-		if (agg && displaySelectedSpotsButton.isSelected()) {
+		displaySelectedSpotsButton.setEnabled(!aggStep);
+		if (aggStep && displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
-		chartBaselineMinutesSpinner.setEnabled(agg);
-		chartStopWhenStableCheckBox.setEnabled(agg);
-		chartStableBinsSpinner.setEnabled(agg);
-		medianRefSmoothBinsSpinner.setEnabled(agg);
+		chartBaselineMinutesSpinner.setEnabled(aggStep);
+		chartStopWhenStableCheckBox.setEnabled(aggStep);
+		chartStableBinsSpinner.setEnabled(aggStep);
+		medianRefSmoothBinsSpinner.setEnabled(aggMedianUi);
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
@@ -445,6 +451,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
 		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN
+				: option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_V5
 				: option == EnumResults.AGG_MEDIANREF ? EnumResults.AREA_SUM : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {

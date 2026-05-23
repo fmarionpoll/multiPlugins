@@ -23,7 +23,7 @@ import plugins.fmp.multitools.tools.results.AggSumCleanPolicy;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * V4: evaluation policies for {@code AGG_SUMCLEAN} (baseline skip, common-mode drift, fly guard,
+ * V4: evaluation policies for {@code AGG_SUMCLEAN} and {@code AGG_SUMCLEAN_V5} (baseline skip, common-mode drift, fly guard,
  * reference-stimulus drift). Charts read policy via {@link #applyPolicyInto(ResultsOptions)}.
  */
 public class ConsumptionAggV4Panel extends JPanel implements PropertyChangeListener {
@@ -106,7 +106,7 @@ public class ConsumptionAggV4Panel extends JPanel implements PropertyChangeListe
 			return;
 		}
 		if (parent0.dlgMeasure == null || parent0.dlgMeasure.chartsPanel == null) {
-			statusLabel.setText("Open Charts tab and select AGG_SUMCLEAN, then Display results.");
+			statusLabel.setText("Open Charts tab and select AGG_SUMCLEAN or AGG_SUMCLEAN_V5, then Display results.");
 			return;
 		}
 		parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);

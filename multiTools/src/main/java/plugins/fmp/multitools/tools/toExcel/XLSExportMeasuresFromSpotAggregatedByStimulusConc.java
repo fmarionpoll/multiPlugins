@@ -46,18 +46,22 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			return startColumn;
 		}
 		boolean aggregateExport = resultsOptions.spotAggregateByStimulusConc
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN;
+				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
+				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5;
 		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
 		}
-		int colmax = exportResultType(exp, startColumn, charSeries, EnumResults.AREA_SUMCLEAN, "spot_aggregate");
+		EnumResults gridProbe = resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_V5
+				: EnumResults.AREA_SUMCLEAN;
+		int colmax = exportResultType(exp, startColumn, charSeries, gridProbe, "spot_aggregate");
 		return colmax;
 	}
 
 	@Override
 	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
-		if (resultType != EnumResults.AREA_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN) {
+		if (resultType != EnumResults.AREA_SUMCLEAN && resultType != EnumResults.GREY_SUM_V5
+				&& resultType != EnumResults.AGG_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN_V5) {
 			return col0;
 		}
 		Point pt = new Point(col0, 0);

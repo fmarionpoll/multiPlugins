@@ -75,7 +75,7 @@ public final class CageSpotStimulusAggregation {
 
 	public static boolean supportsAggregateResultType(EnumResults resultType) {
 		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN
-				|| resultType == EnumResults.AGG_MEDIANREF;
+				|| resultType == EnumResults.AGG_SUMCLEAN_V5 || resultType == EnumResults.AGG_MEDIANREF;
 	}
 
 	/**
@@ -102,7 +102,7 @@ public final class CageSpotStimulusAggregation {
 
 	/**
 	 * Builds aggregates directly on the stored spot sample index. This is the path used by
-	 * charts so AGG_SUMCLEAN has the same time base as the displayed AREA_SUMCLEAN spot curves.
+	 * charts so AGG_SUMCLEAN / AGG_SUMCLEAN_V5 share the same time base as the underlying per-spot series.
 	 */
 	public static List<AggregateSeries> buildAggregatesOnNativeSamples(Experiment exp, Cage cage, Spots allSpots,
 			ResultsOptions options) {
@@ -131,23 +131,23 @@ public final class CageSpotStimulusAggregation {
 		}
 
 		AggSumCleanPolicy pol = options.aggSumCleanPolicy != null ? options.aggSumCleanPolicy : AggSumCleanPolicy.LEGACY;
-		int nCageAll = minBinCountAllSpots(spots, camTimeMin);
+		int nCageAll = minBinCountAllSpots(spots, camTimeMin, options);
 		double[] cageMedianDriftFromT0 = null;
 		double[] refMedianDriftFromT0 = null;
 		if (pol == AggSumCleanPolicy.V4_COMMON_MODE && nCageAll > 0) {
-			double[] med = medianSumCleanPerBin(spots, nCageAll, null);
+			double[] med = medianDepletionIntensityPerBin(spots, nCageAll, null, options);
 			cageMedianDriftFromT0 = driftCorrectionFromT0(med);
 		} else if (pol == AggSumCleanPolicy.V4_REF_STIM && nCageAll > 0) {
 			StimulusConcKey refKey = new StimulusConcKey(options.aggRefStimulus, options.aggRefConcentration);
 			if (hasAnySpotMatching(spots, refKey)) {
-				double[] med = medianSumCleanPerBin(spots, nCageAll, refKey);
+				double[] med = medianDepletionIntensityPerBin(spots, nCageAll, refKey, options);
 				refMedianDriftFromT0 = driftCorrectionFromT0(med);
 			}
 		}
 
 		List<AggregateSeries> out = new ArrayList<>(keys.size());
 		for (StimulusConcKey k : keys) {
-			int n = nativeAggregateLength(spots, k, camTimeMin);
+			int n = nativeAggregateLength(spots, k, camTimeMin, options);
 			if (n <= 0) {
 				continue;
 			}
@@ -175,11 +175,31 @@ public final class CageSpotStimulusAggregation {
 		return out;
 	}
 
-	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin) {
+	private static SpotMeasure depletionIntensitySeries(Spot s, EnumResults buildResultType) {
+		if (s == null) {
+			return null;
+		}
+		if (buildResultType == EnumResults.AGG_SUMCLEAN_V5) {
+			return s.getGreySumV5();
+		}
+		return s.getSumClean();
+	}
+
+	private static boolean isV5DepletionAggregate(EnumResults buildResultType) {
+		return buildResultType == EnumResults.AGG_SUMCLEAN_V5;
+	}
+
+	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin,
+			ResultsOptions options) {
+		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
 		int n = Integer.MAX_VALUE;
 		boolean found = false;
 		for (Spot s : spots) {
-			if (s == null || s.getProperties() == null || s.getSumClean() == null) {
+			if (s == null || s.getProperties() == null) {
+				continue;
+			}
+			SpotMeasure intensity = depletionIntensitySeries(s, rt);
+			if (intensity == null) {
 				continue;
 			}
 			StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
@@ -187,7 +207,7 @@ public final class CageSpotStimulusAggregation {
 			if (!key.equals(keySpot)) {
 				continue;
 			}
-			int count = s.getSumClean().getCount();
+			int count = intensity.getCount();
 			if (count <= 0) {
 				continue;
 			}
@@ -204,12 +224,17 @@ public final class CageSpotStimulusAggregation {
 
 	private static ArrayList<Double> computeNormalizedConsumptionNative(Experiment exp, Spot spot, ResultsOptions options,
 			double[] camTimeMin, int n, double[] cageMedianDriftFromT0, double[] refMedianDriftFromT0) {
-		if (spot == null || spot.getSumClean() == null || spot.getSumClean().getValues() == null || n <= 0) {
+		SpotMeasure intensity = depletionIntensitySeries(spot, options.resultType);
+		if (spot == null || intensity == null || intensity.getValues() == null || n <= 0) {
 			return null;
 		}
-		SpotMeasure clean = spot.getSumClean();
-		int count = Math.min(n, clean.getCount());
-		double maxBaseline = SpotPreConsumedSupport.computeBaselineMaxValue(exp, spot, clean, camTimeMin, options);
+		int count = Math.min(n, intensity.getCount());
+		double maxBaseline;
+		if (isV5DepletionAggregate(options.resultType)) {
+			maxBaseline = SpotPreConsumedSupport.computeBaselineMaxFromMeasure(intensity, camTimeMin, options);
+		} else {
+			maxBaseline = SpotPreConsumedSupport.computeBaselineMaxValue(exp, spot, intensity, camTimeMin, options);
+		}
 		if (!(maxBaseline > 0.0) || !Double.isFinite(maxBaseline)) {
 			return null;
 		}
@@ -223,7 +248,7 @@ public final class CageSpotStimulusAggregation {
 
 		ArrayList<Double> out = new ArrayList<>(count);
 		for (int i = 0; i < count; i++) {
-			double raw = clean.getValueAt(i);
+			double raw = intensity.getValueAt(i);
 			if (!Double.isFinite(raw)) {
 				out.add(Double.NaN);
 				continue;
@@ -253,14 +278,19 @@ public final class CageSpotStimulusAggregation {
 		return out;
 	}
 
-	private static int minBinCountAllSpots(List<Spot> spots, double[] camTimeMin) {
+	private static int minBinCountAllSpots(List<Spot> spots, double[] camTimeMin, ResultsOptions options) {
+		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
 		int n = Integer.MAX_VALUE;
 		boolean found = false;
 		for (Spot s : spots) {
-			if (s == null || s.getSumClean() == null) {
+			if (s == null) {
 				continue;
 			}
-			int c = s.getSumClean().getCount();
+			SpotMeasure intensity = depletionIntensitySeries(s, rt);
+			if (intensity == null) {
+				continue;
+			}
+			int c = intensity.getCount();
 			if (c <= 0) {
 				continue;
 			}
@@ -289,13 +319,16 @@ public final class CageSpotStimulusAggregation {
 		return false;
 	}
 
-	private static double[] medianSumCleanPerBin(List<Spot> spots, int n, StimulusConcKey filterKey) {
+	private static double[] medianDepletionIntensityPerBin(List<Spot> spots, int n, StimulusConcKey filterKey,
+			ResultsOptions options) {
+		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
 		double[] out = new double[n];
 		double[] scratch = new double[spots.size()];
 		for (int i = 0; i < n; i++) {
 			int m = 0;
 			for (Spot s : spots) {
-				if (s == null || s.getSumClean() == null) {
+				SpotMeasure intensity = depletionIntensitySeries(s, rt);
+				if (s == null || intensity == null) {
 					continue;
 				}
 				if (filterKey != null) {
@@ -308,10 +341,10 @@ public final class CageSpotStimulusAggregation {
 						continue;
 					}
 				}
-				if (i >= s.getSumClean().getCount()) {
+				if (i >= intensity.getCount()) {
 					continue;
 				}
-				double v = s.getSumClean().getValueAt(i);
+				double v = intensity.getValueAt(i);
 				if (Double.isFinite(v)) {
 					scratch[m++] = v;
 				}

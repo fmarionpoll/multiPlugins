@@ -43,6 +43,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		if (options != null && (options.resultType == EnumResults.AGG_SUMCLEAN
+				|| options.resultType == EnumResults.AGG_SUMCLEAN_V5
 				|| options.resultType == EnumResults.AGG_MEDIANREF)) {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			addAggregateSeries(exp, cage, allSpots, options, dataset);

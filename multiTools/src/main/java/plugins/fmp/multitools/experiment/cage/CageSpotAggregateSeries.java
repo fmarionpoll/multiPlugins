@@ -36,10 +36,16 @@ public final class CageSpotAggregateSeries {
 	}
 
 	public static CageSpotAggregateSeries fromNativeAggregate(CageSpotStimulusAggregation.AggregateSeries agg) {
+		return fromNativeAggregate(agg, EnumResults.AGG_SUMCLEAN);
+	}
+
+	public static CageSpotAggregateSeries fromNativeAggregate(CageSpotStimulusAggregation.AggregateSeries agg,
+			EnumResults measureTag) {
 		if (agg == null || agg.key == null || agg.values == null || agg.values.isEmpty()) {
 			return null;
 		}
-		SpotMeasure m = new SpotMeasure(EnumResults.AGG_SUMCLEAN.name());
+		EnumResults tag = measureTag != null ? measureTag : EnumResults.AGG_SUMCLEAN;
+		SpotMeasure m = new SpotMeasure(tag.name());
 		int n = agg.values.size();
 		double[] vals = new double[n];
 		for (int i = 0; i < n; i++) {

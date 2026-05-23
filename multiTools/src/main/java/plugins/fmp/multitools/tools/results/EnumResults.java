@@ -145,6 +145,14 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	/**
+	 * Same grouping and normalization as {@link #AGG_SUMCLEAN}, but each spot's intensity trace is
+	 * {@link #GREY_SUM_V5} (V5 over-threshold grey / ROI) instead of legacy {@code AREA_SUMCLEAN}.
+	 */
+	AGG_SUMCLEAN_V5("AGG_SUMCLEAN_V5", "spots consumed (0..N)",
+			"V5 CLEAN aggregate: sum of per-spot normalized consumption from GREY_SUM_V5 by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+
+	/**
 	 * Computed cage-level curve: per-bin median of {@code AREA_SUM} across spots, excluding bins
 	 * with fly on spot ({@code AREA_FLYPRESENT}); shown with consumption aggregate (inverted axis).
 	 */
@@ -235,6 +243,7 @@ public enum EnumResults {
 		case AREA_COUNT_V5:
 		case GREY_SUM_V5:
 		case AGG_SUMCLEAN:
+		case AGG_SUMCLEAN_V5:
 		case AGG_MEDIANREF:
 			return true;
 		default:
