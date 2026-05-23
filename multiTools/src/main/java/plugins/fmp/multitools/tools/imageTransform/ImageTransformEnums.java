@@ -17,6 +17,7 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.SortSumDiffColumns
 import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractColumn;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractReferenceImage;
 import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiff;
+import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRgb;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors;
 import plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdSingleValue;
 import plugins.fmp.multitools.tools.imageTransform.transforms.TranslateThenSubtractReference;
@@ -39,6 +40,7 @@ public enum ImageTransformEnums {
 	RBMINUS_2G("(R+B)-2G", new LinearCombination(1, -2, 1)), //
 	RGMINUS_2B("(R+G)-2B", new LinearCombination(1, 1, -2)), //
 	RGB_DIFFS("S(diffRGB)", new SumDiff()), //
+	RGB_DIFFS_LOCAL_MEAN("S(diffRGB)-loc\u03bc", new SumDiffLocalMeanRgb()), //
 	RGB("(R+G+B)/3", new LinearCombination(.3333, .3333, .3333)), //
 	H_HSB("H(HSB)", new RGBtoHSB(0)), //
 	S_HSB("S(HSB)", new RGBtoHSB(1)), //

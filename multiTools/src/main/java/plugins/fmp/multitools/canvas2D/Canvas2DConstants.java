@@ -45,7 +45,8 @@ public final class Canvas2DConstants {
 				ImageTransformEnums.B_MINUS_MINRG, ImageTransformEnums.B_MINUS_MEANGREY_CTR,
 				ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
 				ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G,
-				ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS, ImageTransformEnums.H_HSB,
+				ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS,
+				ImageTransformEnums.RGB_DIFFS_LOCAL_MEAN, ImageTransformEnums.H_HSB,
 				ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB, ImageTransformEnums.DERICHE,
 				ImageTransformEnums.DERICHE_COLOR };
 
