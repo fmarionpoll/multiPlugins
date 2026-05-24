@@ -169,6 +169,21 @@ public enum EnumResults {
 			"V5: summed over-threshold pixel counts by (stimulus, conc) per cage",
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
+	/** V6: color-distance spot detection — same roles as V5 counterparts. */
+	AREA_COUNT_V6("AREA_COUNT_V6", "pixels", "Over-threshold spot pixels (V6 color-distance)",
+			StoredDataAccessors.accessStored_AREA_COUNT_V6(), "AREA_COUNT_V6", PersistenceDomain.SPOT),
+	GREY_SUM_V6("GREY_SUM_V6", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (V6)",
+			StoredDataAccessors.accessStored_GREY_SUM_V6(), "GREY_SUM_V6", PersistenceDomain.SPOT),
+	GREY_SUM_V6_PREFLY("GREY_SUM_V6_PREFLY", "grey / ROI px", "V6 grey before fly-occupancy NaN gate",
+			StoredDataAccessors.accessStored_GREY_SUM_V6_PREFLY(), "GREY_SUM_V6_PREFLY", PersistenceDomain.SPOT),
+	GREY_SUM_CLEAN_V6("GREY_SUM_CLEAN_V6", "grey / ROI px", "V6 grey: cleaned from GREY_SUM_V6 (same pipeline as V5)",
+			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V6(), "GREY_SUM_CLEAN_V6", PersistenceDomain.SPOT),
+	AGG_SUMCLEAN_V6("AGG_SUMCLEAN_V6", "spots consumed (0..N)",
+			"V6 CLEAN aggregate from GREY_SUM_CLEAN_V6 by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	AGG_AREA_COUNT_V6("AGG_AREA_COUNT_V6", "pixels", "V6: summed over-threshold pixel counts by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+
 	/**
 	 * Computed cage-level curve: per-bin median of {@code AREA_SUM} across spots, excluding bins
 	 * with fly on spot ({@code AREA_FLYPRESENT}); shown with consumption aggregate (inverted axis).
@@ -264,6 +279,12 @@ public enum EnumResults {
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:
 		case AGG_AREA_COUNT_V5:
+		case AREA_COUNT_V6:
+		case GREY_SUM_V6:
+		case GREY_SUM_V6_PREFLY:
+		case GREY_SUM_CLEAN_V6:
+		case AGG_SUMCLEAN_V6:
+		case AGG_AREA_COUNT_V6:
 		case AGG_MEDIANREF:
 			return true;
 		default:

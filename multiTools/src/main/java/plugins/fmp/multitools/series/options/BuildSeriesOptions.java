@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.series.options;
 
+import java.awt.Color;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 
@@ -11,6 +12,7 @@ import icy.roi.ROI2D;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.imageTransform.SpotThresholdColorSpace;
 
 public class BuildSeriesOptions implements XMLPersistent {
 	public boolean isFrameFixed = false;
@@ -156,10 +158,25 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean useGpuTransforms = false;
 
 	/**
-	 * V5 only: when true and {@link #transform01} is {@code RGB_DIFFS_LOCAL_MEAN}, spot metrics use a
-	 * CPU path where each channel's local mean is restricted to the spot disk (no full-frame box filter).
+	 * V6 color-distance spot detection: reference colors (RGB); distance computed in {@link #spotColorSpace}.
+	 */
+	public ArrayList<Color> spotColorReferenceList = new ArrayList<>();
+
+	/** V6: 1 = L1, 2 = L2 (matches {@link plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions#colordistanceType}). */
+	public int spotColorDistanceType = 1;
+
+	/** V6: max color distance to treat a pixel as matching a reference (passed to threshold-colors transform). */
+	public int spotColorDistanceMax = 10;
+
+	/** V6: color space for distance to {@link #spotColorReferenceList}. */
+	public SpotThresholdColorSpace spotColorSpace = SpotThresholdColorSpace.RGB;
+
+	/**
+	 * V5 only: when using {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN}, restrict the local-mean neighborhood to
+	 * the spot disk ROI (CPU path).
 	 */
 	public boolean v5SpotLocalMeanRestrictedToRoi = false;
+
 
 	/**
 	 * V5 only: max distance (bins) from a fly-gated NaN for which a finite sample may be tested as a border spike;
@@ -230,6 +247,14 @@ public class BuildSeriesOptions implements XMLPersistent {
 		destination.spotThreshold = spotThreshold;
 		destination.detectAllSeries = detectAllSeries;
 		destination.v5SpotLocalMeanRestrictedToRoi = v5SpotLocalMeanRestrictedToRoi;
+		if (spotColorReferenceList != null) {
+			destination.spotColorReferenceList = new ArrayList<>(spotColorReferenceList);
+		} else {
+			destination.spotColorReferenceList = new ArrayList<>();
+		}
+		destination.spotColorDistanceType = spotColorDistanceType;
+		destination.spotColorDistanceMax = spotColorDistanceMax;
+		destination.spotColorSpace = spotColorSpace;
 
 	}
 
@@ -241,6 +266,14 @@ public class BuildSeriesOptions implements XMLPersistent {
 		spotThreshold = destination.spotThreshold;
 		detectAllSeries = destination.detectAllSeries;
 		v5SpotLocalMeanRestrictedToRoi = destination.v5SpotLocalMeanRestrictedToRoi;
+		if (destination.spotColorReferenceList != null) {
+			spotColorReferenceList = new ArrayList<>(destination.spotColorReferenceList);
+		} else {
+			spotColorReferenceList = new ArrayList<>();
+		}
+		spotColorDistanceType = destination.spotColorDistanceType;
+		spotColorDistanceMax = destination.spotColorDistanceMax;
+		spotColorSpace = destination.spotColorSpace;
 	}
 
 	public void copyParameters(BuildSeriesOptions det) {
@@ -267,6 +300,13 @@ public class BuildSeriesOptions implements XMLPersistent {
 		v5GreySumCleanSpikeMedianHalfWidth = det.v5GreySumCleanSpikeMedianHalfWidth;
 		v5GreySumCleanSpikeRatio = det.v5GreySumCleanSpikeRatio;
 		v5GreySumCleanSpikePasses = det.v5GreySumCleanSpikePasses;
+		v5SpotLocalMeanRestrictedToRoi = det.v5SpotLocalMeanRestrictedToRoi;
+		if (det.spotColorReferenceList != null) {
+			spotColorReferenceList = new ArrayList<>(det.spotColorReferenceList);
+		}
+		spotColorDistanceType = det.spotColorDistanceType;
+		spotColorDistanceMax = det.spotColorDistanceMax;
+		spotColorSpace = det.spotColorSpace;
 	}
 
 	@Override
@@ -294,6 +334,13 @@ public class BuildSeriesOptions implements XMLPersistent {
 					v5GreySumCleanSpikeRatio);
 			v5GreySumCleanSpikePasses = XMLUtil.getElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses",
 					v5GreySumCleanSpikePasses);
+
+			String colorRefs = XMLUtil.getElementValue(nodeMeta, "spotColorReferences", null);
+			spotColorReferenceList = decodeSpotColorList(colorRefs);
+			spotColorDistanceMax = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
+			spotColorDistanceType = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
+			spotColorSpace = SpotThresholdColorSpace
+					.fromXmlToken(XMLUtil.getElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken()));
 
 			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
@@ -341,6 +388,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio", v5GreySumCleanSpikeRatio);
 			XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses", v5GreySumCleanSpikePasses);
 
+			XMLUtil.setElementValue(nodeMeta, "spotColorReferences", encodeSpotColorList(spotColorReferenceList));
+			XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
+			XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
+			XMLUtil.setElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken());
+
 			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 		}
@@ -366,6 +418,46 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setAttributeIntValue(xmlVal, "videoChannel", videoChannel);
 		}
 		return true;
+	}
+
+	private static String encodeSpotColorList(ArrayList<Color> list) {
+		if (list == null || list.isEmpty()) {
+			return "";
+		}
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < list.size(); i++) {
+			if (i > 0) {
+				sb.append('|');
+			}
+			Color c = list.get(i);
+			sb.append(c.getRed()).append(',').append(c.getGreen()).append(',').append(c.getBlue());
+		}
+		return sb.toString();
+	}
+
+	private static ArrayList<Color> decodeSpotColorList(String s) {
+		ArrayList<Color> out = new ArrayList<>();
+		if (s == null) {
+			return out;
+		}
+		String t = s.trim();
+		if (t.isEmpty()) {
+			return out;
+		}
+		for (String part : t.split("\\|")) {
+			String[] rgb = part.trim().split(",");
+			if (rgb.length >= 3) {
+				try {
+					int r = Math.max(0, Math.min(255, Integer.parseInt(rgb[0].trim())));
+					int g = Math.max(0, Math.min(255, Integer.parseInt(rgb[1].trim())));
+					int b = Math.max(0, Math.min(255, Integer.parseInt(rgb[2].trim())));
+					out.add(new Color(r, g, b));
+				} catch (@SuppressWarnings("unused") NumberFormatException e) {
+					// skip malformed token
+				}
+			}
+		}
+		return out;
 	}
 
 }

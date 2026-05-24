@@ -20,9 +20,10 @@ import icy.sequence.SequenceEvent.SequenceEventSourceType;
 import icy.sequence.SequenceEvent.SequenceEventType;
 import plugins.fmp.multitools.service.LevelDetectorFromKymo;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
-import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
+import plugins.fmp.multitools.tools.imageTransform.SpotThresholdColorSpace;
 import icy.sequence.SequenceListener;
 import icy.type.collection.array.Array1DUtil;
 import java.awt.geom.Point2D;
@@ -292,11 +293,16 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     }
 
     public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold) {
+        setThresholdColor(colorArray, distanceType, threshold, SpotThresholdColorSpace.RGB);
+    }
+
+    public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold,
+            SpotThresholdColorSpace colorSpace) {
         if (colorArray == null || colorArray.isEmpty()) {
             throw new IllegalArgumentException("Color array cannot be null or empty");
         }
-        
-        imageTransformOptions.setColorArrayThreshold(distanceType, threshold, colorArray);
+
+        imageTransformOptions.setColorArrayThreshold(distanceType, threshold, colorArray, colorSpace);
         imageTransformFunction = ImageTransformEnums.NONE.getFunction();
         imageThresholdFunction = ImageTransformEnums.THRESHOLD_COLORS.getFunction();
     }

@@ -76,6 +76,7 @@ public final class CageSpotStimulusAggregation {
 	public static boolean supportsAggregateResultType(EnumResults resultType) {
 		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN
 				|| resultType == EnumResults.AGG_SUMCLEAN_V5 || resultType == EnumResults.AGG_AREA_COUNT_V5
+				|| resultType == EnumResults.AGG_SUMCLEAN_V6 || resultType == EnumResults.AGG_AREA_COUNT_V6
 				|| resultType == EnumResults.AGG_MEDIANREF;
 	}
 
@@ -120,6 +121,9 @@ public final class CageSpotStimulusAggregation {
 
 		if (options.resultType == EnumResults.AGG_AREA_COUNT_V5) {
 			return buildAreaCountV5AggregatesOnNativeSamples(spots, camTimeMin);
+		}
+		if (options.resultType == EnumResults.AGG_AREA_COUNT_V6) {
+			return buildAreaCountV6AggregatesOnNativeSamples(spots, camTimeMin);
 		}
 
 		Set<StimulusConcKey> keys = new LinkedHashSet<>();
@@ -181,11 +185,14 @@ public final class CageSpotStimulusAggregation {
 		if (buildResultType == EnumResults.AGG_SUMCLEAN_V5) {
 			return s.getGreySumCleanV5();
 		}
+		if (buildResultType == EnumResults.AGG_SUMCLEAN_V6) {
+			return s.getGreySumCleanV6();
+		}
 		return s.getSumClean();
 	}
 
 	private static boolean isV5DepletionAggregate(EnumResults buildResultType) {
-		return buildResultType == EnumResults.AGG_SUMCLEAN_V5;
+		return buildResultType == EnumResults.AGG_SUMCLEAN_V5 || buildResultType == EnumResults.AGG_SUMCLEAN_V6;
 	}
 
 	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin,
@@ -524,6 +531,99 @@ public final class CageSpotStimulusAggregation {
 			return null;
 		}
 		SpotMeasure intensity = s.getAreaCountV5();
+		if (intensity == null || intensity.getValues() == null) {
+			return null;
+		}
+		int avail = intensity.getCount();
+		if (avail <= 0) {
+			return null;
+		}
+		if (camTimeMin != null) {
+			avail = Math.min(avail, camTimeMin.length);
+		}
+		if (avail < n) {
+			return null;
+		}
+		ArrayList<Double> out = new ArrayList<>(n);
+		for (int i = 0; i < n; i++) {
+			out.add(intensity.getValueAt(i));
+		}
+		return out;
+	}
+
+	private static List<AggregateSeries> buildAreaCountV6AggregatesOnNativeSamples(List<Spot> spots,
+			double[] camTimeMin) {
+		Set<StimulusConcKey> keys = new LinkedHashSet<>();
+		for (Spot s : spots) {
+			if (s != null && s.getProperties() != null) {
+				keys.add(new StimulusConcKey(s.getProperties().getStimulus(), s.getProperties().getConcentration()));
+			}
+		}
+		List<AggregateSeries> out = new ArrayList<>(keys.size());
+		for (StimulusConcKey k : keys) {
+			int n = nativeAggregateLengthForAreaCountV6(spots, k, camTimeMin);
+			if (n <= 0) {
+				continue;
+			}
+			ArrayList<Double> sum = initNanSeries(n);
+			int nExposed = 0;
+			for (Spot s : spots) {
+				if (s == null || s.getProperties() == null) {
+					continue;
+				}
+				StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
+						s.getProperties().getConcentration());
+				if (!k.equals(keySpot)) {
+					continue;
+				}
+				ArrayList<Double> row = areaCountV6ValuesForBins(s, n, camTimeMin);
+				if (row == null) {
+					continue;
+				}
+				addFiniteInPlace(sum, row);
+				nExposed++;
+			}
+			out.add(new AggregateSeries(k, sum, nExposed));
+		}
+		return out;
+	}
+
+	private static int nativeAggregateLengthForAreaCountV6(List<Spot> spots, StimulusConcKey key, double[] camTimeMin) {
+		int n = Integer.MAX_VALUE;
+		boolean found = false;
+		for (Spot s : spots) {
+			if (s == null || s.getProperties() == null) {
+				continue;
+			}
+			SpotMeasure intensity = s.getAreaCountV6();
+			if (intensity == null) {
+				continue;
+			}
+			StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
+					s.getProperties().getConcentration());
+			if (!key.equals(keySpot)) {
+				continue;
+			}
+			int c = intensity.getCount();
+			if (c <= 0) {
+				continue;
+			}
+			if (camTimeMin != null) {
+				c = Math.min(c, camTimeMin.length);
+			}
+			if (c > 0) {
+				n = Math.min(n, c);
+				found = true;
+			}
+		}
+		return found ? n : 0;
+	}
+
+	private static ArrayList<Double> areaCountV6ValuesForBins(Spot s, int n, double[] camTimeMin) {
+		if (s == null || n <= 0) {
+			return null;
+		}
+		SpotMeasure intensity = s.getAreaCountV6();
 		if (intensity == null || intensity.getValues() == null) {
 			return null;
 		}

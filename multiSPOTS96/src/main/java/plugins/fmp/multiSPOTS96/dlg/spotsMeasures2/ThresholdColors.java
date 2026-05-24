@@ -2,13 +2,11 @@ package plugins.fmp.multiSPOTS96.dlg.spotsMeasures2;
 
 import java.awt.Color;
 import java.awt.FlowLayout;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
-import java.beans.PropertyChangeEvent;
-import java.beans.PropertyChangeListener;
+import java.util.ArrayList;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -18,36 +16,50 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
+import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
+import plugins.fmp.multiSPOTS96.dlg.spotsMeasures.SpotsMeasuresUi;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.tools.imageTransform.SpotThresholdColorSpace;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxColorRenderer;
+import plugins.fmp.multitools.tools.overlay.OverlayTrapMouse;
 
-public class ThresholdColors extends JPanel implements PropertyChangeListener {
+public class ThresholdColors extends JPanel {
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -4359876050505295400L;
-	JComboBox<Color> colorPickCombo = new JComboBox<Color>();
-	private JComboBoxColorRenderer colorPickComboRenderer = new JComboBoxColorRenderer(colorPickCombo);
 
-	private String textPickAPixel = "Pick a pixel";
-	private JButton pickColorButton = new JButton(textPickAPixel);
-	private JButton deleteColorButton = new JButton("Delete color");
-	JRadioButton rbL1 = new JRadioButton("L1");
-	JRadioButton rbL2 = new JRadioButton("L2");
-	JSpinner distanceSpinner = new JSpinner(new SpinnerNumberModel(10, 0, 800, 1));
-	JRadioButton rbRGB = new JRadioButton("RGB");
-	JRadioButton rbHSV = new JRadioButton("HSV");
-	JRadioButton rbH1H2H3 = new JRadioButton("H1H2H3");
-	private JLabel distanceLabel = new JLabel("Distance  ");
-	private JLabel colorspaceLabel = new JLabel("Color space ");
+	private final JComboBox<Color> colorPickCombo = new JComboBox<>();
+	private final JComboBoxColorRenderer colorPickComboRenderer = new JComboBoxColorRenderer(colorPickCombo);
 
-	boolean isUpdatingDataFromComboAllowed = true;
-	MultiSPOTS96 multiSpots = null;
+	private final String textPickAPixel = "Pick a pixel";
+	private final JButton pickColorButton = new JButton(textPickAPixel);
+	private final JButton deleteColorButton = new JButton("Delete color");
+	private final JRadioButton rbL1 = new JRadioButton("L1");
+	private final JRadioButton rbL2 = new JRadioButton("L2");
+	private final JSpinner distanceSpinner = new JSpinner(new SpinnerNumberModel(10, 0, 800, 1));
+	private final JRadioButton rbRGB = new JRadioButton("RGB");
+	private final JRadioButton rbHSV = new JRadioButton("HSV");
+	private final JRadioButton rbH1H2H3 = new JRadioButton("H1H2H3");
+	private final JLabel distanceLabel = new JLabel("Distance  ");
+	private final JLabel colorspaceLabel = new JLabel("Color space ");
 
-	public void init(GridLayout capLayout, MultiSPOTS96 parent0) {
+	private boolean isUpdatingDataFromComboAllowed = true;
+	private MultiSPOTS96 multiSpots = null;
+	private Runnable onSettingsChanged;
 
+	private OverlayTrapMouse pickOverlay;
+	private boolean pickOverlayActive;
+	private int lastComboCount;
+
+	public void setOnSettingsChanged(Runnable onSettingsChanged) {
+		this.onSettingsChanged = onSettingsChanged;
+	}
+
+	public void init(MultiSPOTS96 parent0) {
 		this.multiSpots = parent0;
 		colorPickCombo.setRenderer(colorPickComboRenderer);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
@@ -79,159 +91,153 @@ public class ThresholdColors extends JPanel implements PropertyChangeListener {
 
 		rbL1.setSelected(true);
 		rbRGB.setSelected(true);
+		lastComboCount = colorPickCombo.getItemCount();
 
 		declareActionListeners();
 	}
 
+	private void fireSettingsChanged() {
+		if (onSettingsChanged != null) {
+			onSettingsChanged.run();
+		}
+	}
+
+	private void updateThresholdOverlayParameters() {
+		fireSettingsChanged();
+	}
+
+	public ArrayList<Color> getReferenceColors() {
+		ArrayList<Color> list = new ArrayList<>();
+		for (int i = 0; i < colorPickCombo.getItemCount(); i++) {
+			list.add(colorPickCombo.getItemAt(i));
+		}
+		return list;
+	}
+
+	/** Same convention as {@link plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors}: {@code 1} = L1, else L2. */
+	public int getColorDistanceTypeInt() {
+		return rbL1.isSelected() ? 1 : 2;
+	}
+
+	public int getColorDistanceMax() {
+		return (int) distanceSpinner.getValue();
+	}
+
+	public SpotThresholdColorSpace getSpotThresholdColorSpace() {
+		if (rbHSV.isSelected()) {
+			return SpotThresholdColorSpace.HSV;
+		}
+		if (rbH1H2H3.isSelected()) {
+			return SpotThresholdColorSpace.H1H2H3;
+		}
+		return SpotThresholdColorSpace.RGB;
+	}
+
+	public void applyToBuildSeriesOptions(BuildSeriesOptions options) {
+		if (options == null) {
+			return;
+		}
+		options.spotColorReferenceList.clear();
+		options.spotColorReferenceList.addAll(getReferenceColors());
+		options.spotColorDistanceType = getColorDistanceTypeInt();
+		options.spotColorDistanceMax = getColorDistanceMax();
+		options.spotColorSpace = getSpotThresholdColorSpace();
+	}
+
 	private void declareActionListeners() {
-		rbRGB.addActionListener(new ActionListener() {
+		ActionListener fire = new ActionListener() {
 			@Override
-			public void actionPerformed(final ActionEvent e) {
-//				multiSpots.detectionParameters.colortransformop = EnumImageOp.NONE;
+			public void actionPerformed(ActionEvent e) {
 				updateThresholdOverlayParameters();
 			}
-		});
+		};
+		rbRGB.addActionListener(fire);
+		rbHSV.addActionListener(fire);
+		rbH1H2H3.addActionListener(fire);
+		rbL1.addActionListener(fire);
+		rbL2.addActionListener(fire);
 
-		rbHSV.addActionListener(new ActionListener() {
+		distanceSpinner.addChangeListener(new ChangeListener() {
 			@Override
-			public void actionPerformed(final ActionEvent e) {
-//				multiSpots.detectionParameters.colortransformop = EnumImageOp.RGB_TO_HSV;
-				updateThresholdOverlayParameters();
-			}
-		});
-
-		rbH1H2H3.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-//				multiSpots.detectionParameters.colortransformop = EnumImageOp.RGB_TO_H1H2H3;
-				updateThresholdOverlayParameters();
-			}
-		});
-
-		rbL1.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-//				multiSpots.detectionParameters.colordistanceType = EnumColorDistanceType.L1;
-				updateThresholdOverlayParameters();
-			}
-		});
-
-		rbL2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
+			public void stateChanged(ChangeEvent e) {
 				updateThresholdOverlayParameters();
 			}
 		});
 
 		deleteColorButton.addActionListener(new ActionListener() {
 			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (colorPickCombo.getItemCount() > 0 && colorPickCombo.getSelectedIndex() >= 0)
+			public void actionPerformed(ActionEvent e) {
+				if (colorPickCombo.getItemCount() > 0 && colorPickCombo.getSelectedIndex() >= 0) {
 					colorPickCombo.removeItemAt(colorPickCombo.getSelectedIndex());
+				}
+				lastComboCount = colorPickCombo.getItemCount();
 				updateThresholdOverlayParameters();
 			}
 		});
 
 		pickColorButton.addActionListener(new ActionListener() {
 			@Override
-			public void actionPerformed(final ActionEvent e) {
+			public void actionPerformed(ActionEvent e) {
 				pickColor();
 			}
 		});
 
-		class ItemChangeListener implements ItemListener {
+		colorPickCombo.addItemListener(new ItemListener() {
 			@Override
 			public void itemStateChanged(ItemEvent event) {
-				if (event.getStateChange() == ItemEvent.SELECTED && isUpdatingDataFromComboAllowed) {
-					updateThresholdOverlayParameters();
+				if (event.getStateChange() != ItemEvent.SELECTED || !isUpdatingDataFromComboAllowed) {
+					return;
 				}
+				int n = colorPickCombo.getItemCount();
+				if (pickOverlayActive && n > lastComboCount) {
+					finishPickOverlay();
+				}
+				lastComboCount = n;
+				updateThresholdOverlayParameters();
 			}
-		}
-		colorPickCombo.addItemListener(new ItemChangeListener());
+		});
 	}
 
-	void updateThresholdOverlayParameters() {
-
-//		areatrack.detectionParameters.areaDetectionMode = EnumAreaDetection.COLORARRAY;
-//		transferDialogToParameters(multiSpots.detectionParameters);
-//		multiSpots.setOverlay(multiSpots.detectionParameters.displayOverlay);
+	private void finishPickOverlay() {
+		pickOverlayActive = false;
+		if (multiSpots == null) {
+			return;
+		}
+		Experiment exp = (Experiment) multiSpots.expListComboLazy.getSelectedItem();
+		if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null && pickOverlay != null) {
+			exp.getSeqCamData().getSequence().removeOverlay(pickOverlay);
+		}
+		pickColorButton.setText(textPickAPixel);
+		pickColorButton.setBackground(Color.LIGHT_GRAY);
 	}
 
 	private void pickColor() {
-
-//		boolean bActiveTrapOverlay = false;
-
-		if (pickColorButton.getText().contains("*") || pickColorButton.getText().contains(":")) {
-			pickColorButton.setBackground(Color.LIGHT_GRAY);
+		if (multiSpots == null) {
+			return;
+		}
+		Experiment exp = (Experiment) multiSpots.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == null) {
+			return;
+		}
+		if (pickOverlayActive) {
+			if (pickOverlay != null) {
+				seq.removeOverlay(pickOverlay);
+			}
+			pickOverlayActive = false;
 			pickColorButton.setText(textPickAPixel);
-//			bActiveTrapOverlay = false;
+			pickColorButton.setBackground(Color.LIGHT_GRAY);
 		} else {
+			if (pickOverlay == null) {
+				pickOverlay = new OverlayTrapMouse(pickColorButton, colorPickCombo);
+			}
+			seq.addOverlay(pickOverlay);
+			pickOverlayActive = true;
 			pickColorButton.setText("*" + textPickAPixel + "*");
 			pickColorButton.setBackground(Color.DARK_GRAY);
-//			bActiveTrapOverlay = true;
 		}
-//		multiSpots.vSequence.setMouseTrapOverlay(bActiveTrapOverlay, pickColorButton, colorPickCombo);
 	}
-
-	@Override
-	public void propertyChange(PropertyChangeEvent evt) {
-		// TODO Auto-generated method stub
-
-	}
-
-//	public void transferParametersToDialog(DetectionParameters detectionParameters) {
-//		
-//		isUpdatingDataFromComboAllowed = false;
-//		colorPickCombo.removeAllItems();
-//		int nitems = detectionParameters.colorarray.size();
-//		for (int i = 0; i < nitems; i++) {
-//			Color colorItem = detectionParameters.colorarray.get(i);
-//			colorPickCombo.addItem(colorItem);
-//		}
-//		isUpdatingDataFromComboAllowed = true;
-//		
-//		if (detectionParameters.colordistanceType == EnumColorDistanceType.L1)
-//			rbL1.setSelected(true);
-//		else
-//			rbL2.setSelected(true);
-//		
-//		switch (detectionParameters.colortransformop) {
-//			case RGB_TO_HSV:
-//				rbHSV.setSelected(true);
-//				break;
-//			case RGB_TO_H1H2H3:
-//				rbH1H2H3.setSelected(true);
-//				break;
-//			case NONE:
-//			default:
-//				rbRGB.setSelected(true);
-//				break;
-//		}
-//		
-//		distanceSpinner.setValue(detectionParameters.colorthreshold);
-//	}
-//	
-//	public void transferDialogToParameters(DetectionParameters detectionParameters) {
-//		
-//		detectionParameters.colorthreshold = (int) distanceSpinner.getValue();
-//		
-//		if (rbHSV.isSelected()) 
-//			detectionParameters.colortransformop = EnumImageOp.RGB_TO_HSV;
-//		else if (rbH1H2H3.isSelected())
-//			detectionParameters.colortransformop = EnumImageOp.RGB_TO_H1H2H3;
-//		else 
-//			detectionParameters.colortransformop = EnumImageOp.COLORARRAY1;
-//		
-//		detectionParameters.colorarray.clear();
-//		for (int i = 0; i < colorPickCombo.getItemCount(); i++) {
-//			Color colorItem = colorPickCombo.getItemAt(i);
-//			detectionParameters.colorarray.add(colorItem);
-//		}
-//		
-//		if (rbL1.isSelected())
-//			detectionParameters.colordistanceType = EnumColorDistanceType.L1;
-//		else
-//			detectionParameters.colordistanceType = EnumColorDistanceType.L2;
-//	}
-
 }

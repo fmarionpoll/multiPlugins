@@ -48,7 +48,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		boolean aggregateExport = resultsOptions.spotAggregateByStimulusConc
 				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
 				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5
-				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5;
+				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5
+				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V6
+				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V6;
 		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
 		}
@@ -57,6 +59,10 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			gridProbe = EnumResults.GREY_SUM_CLEAN_V5;
 		} else if (resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5) {
 			gridProbe = EnumResults.AREA_COUNT_V5;
+		} else if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V6) {
+			gridProbe = EnumResults.GREY_SUM_CLEAN_V6;
+		} else if (resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V6) {
+			gridProbe = EnumResults.AREA_COUNT_V6;
 		} else {
 			gridProbe = EnumResults.AREA_SUMCLEAN;
 		}
@@ -70,8 +76,11 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		if (resultType != EnumResults.AREA_SUMCLEAN && resultType != EnumResults.GREY_SUM_V5
 				&& resultType != EnumResults.GREY_SUM_V5_PREFLY && resultType != EnumResults.GREY_SUM_CLEAN_V5
 				&& resultType != EnumResults.AREA_COUNT_V5
+				&& resultType != EnumResults.GREY_SUM_V6 && resultType != EnumResults.GREY_SUM_V6_PREFLY
+				&& resultType != EnumResults.GREY_SUM_CLEAN_V6 && resultType != EnumResults.AREA_COUNT_V6
 				&& resultType != EnumResults.AGG_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN_V5
-				&& resultType != EnumResults.AGG_AREA_COUNT_V5) {
+				&& resultType != EnumResults.AGG_AREA_COUNT_V5 && resultType != EnumResults.AGG_SUMCLEAN_V6
+				&& resultType != EnumResults.AGG_AREA_COUNT_V6) {
 			return col0;
 		}
 		Point pt = new Point(col0, 0);

@@ -132,6 +132,10 @@ public class SpotPersistence {
 		case GREY_SUM_V5:
 		case GREY_SUM_V5_PREFLY:
 		case GREY_SUM_CLEAN_V5:
+		case AREA_COUNT_V6:
+		case GREY_SUM_V6:
+		case GREY_SUM_V6_PREFLY:
+		case GREY_SUM_CLEAN_V6:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
 					+ "npts" + sep + "yi\n";
 		default:
@@ -170,6 +174,18 @@ public class SpotPersistence {
 			break;
 		case GREY_SUM_CLEAN_V5:
 			spot.getGreySumCleanV5().exportYDataToCsv(sbf, sep);
+			break;
+		case AREA_COUNT_V6:
+			spot.getAreaCountV6().exportYDataToCsv(sbf, sep);
+			break;
+		case GREY_SUM_V6:
+			spot.getGreySumV6().exportYDataToCsv(sbf, sep);
+			break;
+		case GREY_SUM_V6_PREFLY:
+			spot.getGreySumV6PreFly().exportYDataToCsv(sbf, sep);
+			break;
+		case GREY_SUM_CLEAN_V6:
+			spot.getGreySumCleanV6().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -369,6 +385,35 @@ public class SpotPersistence {
 				spot.getGreySumCleanV5().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
 				spot.getGreySumCleanV5().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case AREA_COUNT_V6:
+			if (x && y) {
+				spot.getAreaCountV6().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getAreaCountV6().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case GREY_SUM_V6:
+			if (x && y) {
+				spot.getGreySumV6().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getGreySumV6().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			spot.getMeasurementsV6().rebuildGreySumCleanFromGreySum();
+			break;
+		case GREY_SUM_V6_PREFLY:
+			if (x && y) {
+				spot.getGreySumV6PreFly().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getGreySumV6PreFly().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case GREY_SUM_CLEAN_V6:
+			if (x && y) {
+				spot.getGreySumCleanV6().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getGreySumCleanV6().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		default:

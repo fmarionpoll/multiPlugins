@@ -323,6 +323,34 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_AREA_COUNT_V6() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"AREA_COUNT_V6 uses stored data from Spot V6 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_GREY_SUM_V6() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"GREY_SUM_V6 uses stored data from Spot V6 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_GREY_SUM_V6_PREFLY() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"GREY_SUM_V6_PREFLY uses stored data from Spot V6 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_GREY_SUM_CLEAN_V6() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"GREY_SUM_CLEAN_V6 uses stored data from Spot V6 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
 	/**
 	 * Placeholder for measures not yet implemented.
 	 */

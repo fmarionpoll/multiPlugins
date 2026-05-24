@@ -45,6 +45,7 @@ public class Spot implements Comparable<Spot> {
 	private final SpotProperties properties;
 	private final SpotMeasurements measurements;
 	private final SpotMeasurementsV5 measurementsV5;
+	private final SpotMeasurementsV6 measurementsV6;
 	private final SpotMetadata metadata;
 
 	// === CONSTRUCTORS ===
@@ -60,6 +61,7 @@ public class Spot implements Comparable<Spot> {
 		this.properties = new SpotProperties();
 		this.measurements = new SpotMeasurements();
 		this.measurementsV5 = new SpotMeasurementsV5();
+		this.measurementsV6 = new SpotMeasurementsV6();
 		this.metadata = new SpotMetadata();
 	}
 
@@ -70,6 +72,7 @@ public class Spot implements Comparable<Spot> {
 		this.properties = new SpotProperties();
 		this.measurements = new SpotMeasurements();
 		this.measurementsV5 = new SpotMeasurementsV5();
+		this.measurementsV6 = new SpotMeasurementsV6();
 		this.metadata = new SpotMetadata();
 	}
 
@@ -85,6 +88,7 @@ public class Spot implements Comparable<Spot> {
 		this.properties = new SpotProperties(sourceSpot.properties);
 		this.measurements = new SpotMeasurements(sourceSpot.measurements, includeMeasurements);
 		this.measurementsV5 = new SpotMeasurementsV5(sourceSpot.measurementsV5, includeMeasurements);
+		this.measurementsV6 = new SpotMeasurementsV6(sourceSpot.measurementsV6, includeMeasurements);
 		this.metadata = new SpotMetadata(sourceSpot.metadata);
 
 		if (sourceSpot.spotROI2D != null) {
@@ -139,6 +143,7 @@ public class Spot implements Comparable<Spot> {
 		if (includeMeasurements) {
 			this.measurements.copyFrom(sourceSpot.measurements);
 			this.measurementsV5.copyFrom(sourceSpot.measurementsV5);
+			this.measurementsV6.copyFrom(sourceSpot.measurementsV6);
 		}
 	}
 
@@ -151,6 +156,7 @@ public class Spot implements Comparable<Spot> {
 		Objects.requireNonNull(sourceSpot, "Source spot cannot be null");
 		this.measurements.addFrom(sourceSpot.measurements);
 		this.measurementsV5.addFrom(sourceSpot.measurementsV5);
+		this.measurementsV6.addFrom(sourceSpot.measurementsV6);
 		this.getProperties().setCountAggregatedSpots(this.getProperties().getCountAggregatedSpots() + 1);
 	}
 
@@ -167,6 +173,7 @@ public class Spot implements Comparable<Spot> {
 		int n2 = spot2.getProperties().getCountAggregatedSpots();
 		this.measurements.computePI(spot1.measurements, n1, spot2.measurements, n2);
 		this.measurementsV5.computePI(spot1.measurementsV5, n1, spot2.measurementsV5, n2);
+		this.measurementsV6.computePI(spot1.measurementsV6, n1, spot2.measurementsV6, n2);
 	}
 
 	/**
@@ -182,11 +189,13 @@ public class Spot implements Comparable<Spot> {
 		int n2 = spot2.getProperties().getCountAggregatedSpots();
 		this.measurements.computeSUM(spot1.measurements, n1, spot2.measurements, n2);
 		this.measurementsV5.computeSUM(spot1.measurementsV5, n1, spot2.measurementsV5, n2);
+		this.measurementsV6.computeSUM(spot1.measurementsV6, n1, spot2.measurementsV6, n2);
 	}
 
 	public void normalizeMeasures() {
 		this.measurements.normalizeMeasures();
 		this.measurementsV5.normalizeMeasures();
+		this.measurementsV6.normalizeMeasures();
 	}
 
 	// === ROI MANAGEMENT ===
@@ -503,6 +512,14 @@ public class Spot implements Comparable<Spot> {
 			return measurementsV5.getGreySumClean().getCount();
 		case AGG_AREA_COUNT_V5:
 			return measurementsV5.getAreaCount().getCount();
+		case GREY_SUM_CLEAN_V6:
+			return measurementsV6.getGreySumClean().getCount();
+		case GREY_SUM_V6_PREFLY:
+			return measurementsV6.getGreySumPreFly().getCount();
+		case AGG_SUMCLEAN_V6:
+			return measurementsV6.getGreySumClean().getCount();
+		case AGG_AREA_COUNT_V6:
+			return measurementsV6.getAreaCount().getCount();
 		case AGG_MEDIANREF:
 			return measurements.getSumIn().getCount();
 		case AREA_SUM_V2:
@@ -519,6 +536,10 @@ public class Spot implements Comparable<Spot> {
 			return measurementsV5.getAreaCount().getCount();
 		case GREY_SUM_V5:
 			return measurementsV5.getGreySum().getCount();
+		case AREA_COUNT_V6:
+			return measurementsV6.getAreaCount().getCount();
+		case GREY_SUM_V6:
+			return measurementsV6.getGreySum().getCount();
 		default:
 			return 0;
 		}
@@ -598,6 +619,26 @@ public class Spot implements Comparable<Spot> {
 	public SpotMeasurementsV5 getMeasurementsV5() {
 		return measurementsV5;
 	}
+
+	public SpotMeasure getAreaCountV6() {
+		return measurementsV6.getAreaCount();
+	}
+
+	public SpotMeasure getGreySumV6() {
+		return measurementsV6.getGreySum();
+	}
+
+	public SpotMeasure getGreySumV6PreFly() {
+		return measurementsV6.getGreySumPreFly();
+	}
+
+	public SpotMeasure getGreySumCleanV6() {
+		return measurementsV6.getGreySumClean();
+	}
+
+	public SpotMeasurementsV6 getMeasurementsV6() {
+		return measurementsV6;
+	}
 	/**
 	 * Gets measurements for a specific export option.
 	 * 
@@ -640,6 +681,18 @@ public class Spot implements Comparable<Spot> {
 			return measurementsV5.getGreySum();
 		case GREY_SUM_V5_PREFLY:
 			return measurementsV5.getGreySumPreFly();
+		case AREA_COUNT_V6:
+			return measurementsV6.getAreaCount();
+		case GREY_SUM_V6:
+			return measurementsV6.getGreySum();
+		case GREY_SUM_V6_PREFLY:
+			return measurementsV6.getGreySumPreFly();
+		case GREY_SUM_CLEAN_V6:
+			return measurementsV6.getGreySumClean();
+		case AGG_SUMCLEAN_V6:
+			return measurementsV6.getGreySumClean();
+		case AGG_AREA_COUNT_V6:
+			return measurementsV6.getAreaCount();
 		default:
 			return null;
 		}
@@ -800,6 +853,7 @@ public class Spot implements Comparable<Spot> {
 	public void restoreClippedMeasures() {
 		measurements.restoreClippedMeasures();
 		measurementsV5.restoreClippedMeasures();
+		measurementsV6.restoreClippedMeasures();
 	}
 
 	/**
@@ -808,6 +862,7 @@ public class Spot implements Comparable<Spot> {
 	public void transferRoiMeasuresToLevel2D() {
 		measurements.transferRoiMeasuresToLevel2D();
 		measurementsV5.transferRoiMeasuresToLevel2D();
+		measurementsV6.transferRoiMeasuresToLevel2D();
 	}
 
 	// === IMAGE PROCESSING ===
@@ -820,6 +875,7 @@ public class Spot implements Comparable<Spot> {
 	public void adjustLevel2DMeasuresToImageWidth(int imageWidth) {
 		measurements.adjustLevel2DMeasuresToImageWidth(imageWidth);
 		measurementsV5.adjustLevel2DMeasuresToImageWidth(imageWidth);
+		measurementsV6.adjustLevel2DMeasuresToImageWidth(imageWidth);
 	}
 
 	/**
@@ -830,6 +886,7 @@ public class Spot implements Comparable<Spot> {
 	public void cropLevel2DMeasuresToImageWidth(int imageWidth) {
 		measurements.cropLevel2DMeasuresToImageWidth(imageWidth);
 		measurementsV5.cropLevel2DMeasuresToImageWidth(imageWidth);
+		measurementsV6.cropLevel2DMeasuresToImageWidth(imageWidth);
 	}
 
 	/**
@@ -838,6 +895,7 @@ public class Spot implements Comparable<Spot> {
 	public void initializeLevel2DMeasures() {
 		measurements.initializeLevel2DMeasures();
 		measurementsV5.initializeLevel2DMeasures();
+		measurementsV6.initializeLevel2DMeasures();
 	}
 
 	/**
@@ -846,6 +904,7 @@ public class Spot implements Comparable<Spot> {
 	public void transferMeasuresToLevel2D() {
 		measurements.transferMeasuresToLevel2D();
 		measurementsV5.transferMeasuresToLevel2D();
+		measurementsV6.transferMeasuresToLevel2D();
 	}
 
 	/**
@@ -867,6 +926,7 @@ public class Spot implements Comparable<Spot> {
 	public void transferRoiToMeasures(ROI2D roi, int imageHeight) {
 		measurements.transferRoiToMeasures(roi, imageHeight);
 		measurementsV5.transferRoiToMeasures(roi, imageHeight);
+		measurementsV6.transferRoiToMeasures(roi, imageHeight);
 	}
 
 	// === CSV EXPORT/IMPORT ===

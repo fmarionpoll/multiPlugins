@@ -471,6 +471,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		target.colordistanceType = source.colordistanceType;
 		target.ifGreater = source.ifGreater;
 		target.colorarray = source.colorarray;
+		target.thresholdColorSpace = source.thresholdColorSpace;
 
 		// Copy region fields
 		target.xfirst = source.xfirst;

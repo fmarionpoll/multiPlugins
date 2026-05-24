@@ -55,15 +55,24 @@ public class CanvasImageTransformOptions {
 	public final byte byteTRUE = (byte) 0xFF;
 	public ArrayList<Color> colorarray = null;
 
+	/** Used when {@link #transformOption} is {@link ImageTransformEnums#THRESHOLD_COLORS}. */
+	public SpotThresholdColorSpace thresholdColorSpace = SpotThresholdColorSpace.RGB;
+
 	public void setSingleThreshold(int simplethreshold, boolean ifGreater) {
 		this.simplethreshold = simplethreshold;
 		this.ifGreater = ifGreater;
 	}
 
 	public void setColorArrayThreshold(int colordistanceType, int colorthreshold, ArrayList<Color> colorarray) {
+		setColorArrayThreshold(colordistanceType, colorthreshold, colorarray, SpotThresholdColorSpace.RGB);
+	}
+
+	public void setColorArrayThreshold(int colordistanceType, int colorthreshold, ArrayList<Color> colorarray,
+			SpotThresholdColorSpace colorSpace) {
 		transformOption = ImageTransformEnums.THRESHOLD_COLORS;
 		this.colordistanceType = colordistanceType;
 		this.colorthreshold = colorthreshold;
 		this.colorarray = colorarray;
+		this.thresholdColorSpace = colorSpace != null ? colorSpace : SpotThresholdColorSpace.RGB;
 	}
 }

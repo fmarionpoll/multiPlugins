@@ -321,10 +321,12 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	/** V5 per-spot scalars: no legacy measure checkbox maps to these; chart uses {@link ResultsOptions#resultType}. */
+	/** V5/V6 per-spot scalars: chart uses {@link ResultsOptions#resultType}. */
 	protected static boolean isV5NativeSpotChartMeasure(EnumResults rt) {
 		return rt == EnumResults.AREA_COUNT_V5 || rt == EnumResults.GREY_SUM_V5 || rt == EnumResults.GREY_SUM_V5_PREFLY
-				|| rt == EnumResults.GREY_SUM_CLEAN_V5;
+				|| rt == EnumResults.GREY_SUM_CLEAN_V5 || rt == EnumResults.AREA_COUNT_V6
+				|| rt == EnumResults.GREY_SUM_V6 || rt == EnumResults.GREY_SUM_V6_PREFLY
+				|| rt == EnumResults.GREY_SUM_CLEAN_V6;
 	}
 
 	protected static boolean resultLabelEquals(EnumResults r, String label) {
