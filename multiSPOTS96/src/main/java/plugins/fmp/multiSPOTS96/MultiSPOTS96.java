@@ -24,7 +24,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS96 extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 May 21, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 May 24, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
@@ -57,7 +57,7 @@ public class MultiSPOTS96 extends PluginActionable {
 		dlgExperiment.init(mainPanel, "Experiment", this);
 		dlgSpots.init(mainPanel, "Spots", this);
 		dlgMeasure.init(mainPanel, "Measure spots", this);
-		dlgMeasureV5.init(mainPanel, "Measure spots V5", this);
+		dlgMeasureV5.init(mainPanel, "Measure spots - experimental", this);
 		dlgExcel.init(mainPanel, "Export", this);
 
 		mainFrame.setLayout(new BorderLayout());

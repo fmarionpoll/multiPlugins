@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.canvas2D;
 
 import java.awt.Rectangle;
+import java.util.ArrayList;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
@@ -472,6 +473,8 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		target.ifGreater = source.ifGreater;
 		target.colorarray = source.colorarray;
 		target.thresholdColorSpace = source.thresholdColorSpace;
+		target.colorExcludeArray = source.colorExcludeArray == null ? null : new ArrayList<>(source.colorExcludeArray);
+		target.colorExcludeThreshold = source.colorExcludeThreshold;
 
 		// Copy region fields
 		target.xfirst = source.xfirst;

@@ -26,6 +26,12 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 /**
  * V6 spot measures from camera using {@link ImageTransformEnums#THRESHOLD_COLORS} (multi-reference color distance)
  * for the spot mask and the same fly gating / grey-clean pipeline shape as {@link SpotLevelDetectorFromCamV5}.
+ *
+ * <p>
+ * {@link plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors} encodes <strong>near reference</strong>
+ * pixels as {@code 0} and far pixels as {@code 255}, which matches {@link plugins.fmp.multitools.tools.overlay.OverlayColorMask}
+ * (mask drawn at intensity {@code 0}). Counting therefore applies {@code spotThreshold} / {@code spotThresholdUp} to
+ * {@code 255 - binaryValue} so the UI direction stays consistent with the overlay preview.
  */
 public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 
@@ -154,7 +160,7 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 
 				IcyBufferedImageCursor cursorFly = new IcyBufferedImageCursor(flyImage);
 				IcyBufferedImageCursor cursorSpot = new IcyBufferedImageCursor(spotImage);
-				updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, spotImage, t, options);
+				updateSpotsAtTimeIndex(toProcess, cursorSpot, cursorFly, camImage, spotImage, t, options);
 				progress.incPosition();
 			}
 		} finally {
@@ -351,9 +357,10 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 	}
 
 	private void updateSpotsAtTimeIndex(List<Spot> spotsToProcess, IcyBufferedImageCursor cursorSpot,
-			IcyBufferedImageCursor cursorFly, IcyBufferedImage spotImage, int timeIndex, BuildSeriesOptions options) {
+			IcyBufferedImageCursor cursorFly, IcyBufferedImage camImageRgb, IcyBufferedImage spotImage, int timeIndex,
+			BuildSeriesOptions options) {
 
-		if (cursorSpot == null || cursorFly == null || spotImage == null) {
+		if (cursorSpot == null || cursorFly == null || spotImage == null || camImageRgb == null) {
 			return;
 		}
 
@@ -361,13 +368,14 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		final int imageHeight = spotImage.getSizeY();
 
 		for (Spot spot : spotsToProcess) {
-			updateSingleSpotAtTimeIndex(spot, cursorSpot, cursorFly, imageWidth, imageHeight, timeIndex, options);
+			updateSingleSpotAtTimeIndex(spot, cursorSpot, cursorFly, camImageRgb, imageWidth, imageHeight, timeIndex,
+					options);
 		}
 	}
 
 	private void updateSingleSpotAtTimeIndex(Spot spot, IcyBufferedImageCursor cursorSpot,
-			IcyBufferedImageCursor cursorFly, int imageWidth, int imageHeight, int timeIndex,
-			BuildSeriesOptions options) {
+			IcyBufferedImageCursor cursorFly, IcyBufferedImage camImageRgb, int imageWidth, int imageHeight,
+			int timeIndex, BuildSeriesOptions options) {
 
 		if (spot == null || !spot.isReadyForAnalysis()) {
 			return;
@@ -410,8 +418,10 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 				nPointsFlyPresent++;
 			}
 
-			if (isOverThreshold(valueSpot, options)) {
-				sumOverThreshold += valueSpot;
+			// Binary mask: 0 = near reference (same convention as overlay colormap at index 0).
+			int invertedForThreshold = 255 - (valueSpot & 0xFF);
+			if (isOverThreshold(invertedForThreshold, options)) {
+				sumOverThreshold += meanRgbGrey(camImageRgb, x, y);
 				nOver++;
 			}
 		}
@@ -447,6 +457,17 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		return flag;
 	}
 
+	private static int meanRgbGrey(IcyBufferedImage rgb, int x, int y) {
+		if (rgb == null || x < 0 || y < 0 || x >= rgb.getSizeX() || y >= rgb.getSizeY()) {
+			return 0;
+		}
+		int argb = rgb.getRGB(x, y);
+		int r = (argb >> 16) & 0xFF;
+		int g = (argb >> 8) & 0xFF;
+		int b = argb & 0xFF;
+		return (r + g + b) / 3;
+	}
+
 	private static class ImageTransformUtils {
 
 		static CanvasImageTransformOptions buildCanvasOptionsForSpot(BuildSeriesOptions options) {
@@ -456,6 +477,13 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 			ArrayList<Color> refs = options.spotColorReferenceList;
 			transformOptions.setColorArrayThreshold(options.spotColorDistanceType, options.spotColorDistanceMax,
 					refs != null ? new ArrayList<>(refs) : new ArrayList<>(), options.spotColorSpace);
+			if (options.spotColorExcludeList != null && !options.spotColorExcludeList.isEmpty()
+					&& options.spotColorExcludeDistanceMax > 0) {
+				transformOptions.setColorExcludeThreshold(new ArrayList<>(options.spotColorExcludeList),
+						options.spotColorExcludeDistanceMax);
+			} else {
+				transformOptions.setColorExcludeThreshold(null, 0);
+			}
 			transformOptions.setSingleThreshold(options.spotThreshold, options.spotThresholdUp);
 			return transformOptions;
 		}

@@ -58,6 +58,13 @@ public class CanvasImageTransformOptions {
 	/** Used when {@link #transformOption} is {@link ImageTransformEnums#THRESHOLD_COLORS}. */
 	public SpotThresholdColorSpace thresholdColorSpace = SpotThresholdColorSpace.RGB;
 
+	/**
+	 * Optional second reference set: pixels matching {@link #colorarray} but also within
+	 * {@link #colorExcludeThreshold} of any exclude color are treated as non-match (background guard).
+	 */
+	public ArrayList<Color> colorExcludeArray = null;
+	public int colorExcludeThreshold = 0;
+
 	public void setSingleThreshold(int simplethreshold, boolean ifGreater) {
 		this.simplethreshold = simplethreshold;
 		this.ifGreater = ifGreater;
@@ -74,5 +81,15 @@ public class CanvasImageTransformOptions {
 		this.colorthreshold = colorthreshold;
 		this.colorarray = colorarray;
 		this.thresholdColorSpace = colorSpace != null ? colorSpace : SpotThresholdColorSpace.RGB;
+	}
+
+	public void setColorExcludeThreshold(ArrayList<Color> excludeColors, int excludeThreshold) {
+		if (excludeColors == null || excludeColors.isEmpty() || excludeThreshold <= 0) {
+			this.colorExcludeArray = null;
+			this.colorExcludeThreshold = 0;
+		} else {
+			this.colorExcludeArray = new ArrayList<>(excludeColors);
+			this.colorExcludeThreshold = excludeThreshold;
+		}
 	}
 }

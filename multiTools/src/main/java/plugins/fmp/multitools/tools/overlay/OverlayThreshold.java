@@ -293,16 +293,22 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     }
 
     public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold) {
-        setThresholdColor(colorArray, distanceType, threshold, SpotThresholdColorSpace.RGB);
+        setThresholdColor(colorArray, distanceType, threshold, SpotThresholdColorSpace.RGB, null, 0);
     }
 
     public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold,
             SpotThresholdColorSpace colorSpace) {
+        setThresholdColor(colorArray, distanceType, threshold, colorSpace, null, 0);
+    }
+
+    public void setThresholdColor(ArrayList<Color> colorArray, int distanceType, int threshold,
+            SpotThresholdColorSpace colorSpace, ArrayList<Color> excludeColors, int excludeDistanceMax) {
         if (colorArray == null || colorArray.isEmpty()) {
             throw new IllegalArgumentException("Color array cannot be null or empty");
         }
 
         imageTransformOptions.setColorArrayThreshold(distanceType, threshold, colorArray, colorSpace);
+        imageTransformOptions.setColorExcludeThreshold(excludeColors, excludeDistanceMax);
         imageTransformFunction = ImageTransformEnums.NONE.getFunction();
         imageThresholdFunction = ImageTransformEnums.THRESHOLD_COLORS.getFunction();
     }

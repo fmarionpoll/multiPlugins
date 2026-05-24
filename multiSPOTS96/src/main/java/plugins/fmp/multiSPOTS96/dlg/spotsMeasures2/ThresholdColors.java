@@ -19,11 +19,14 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.service.SpotColorBackgroundSampler;
 import plugins.fmp.multitools.tools.imageTransform.SpotThresholdColorSpace;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxColorRenderer;
 import plugins.fmp.multitools.tools.overlay.OverlayTrapMouse;
@@ -35,7 +38,7 @@ public class ThresholdColors extends JPanel {
 	private final JComboBox<Color> colorPickCombo = new JComboBox<>();
 	private final JComboBoxColorRenderer colorPickComboRenderer = new JComboBoxColorRenderer(colorPickCombo);
 
-	private final String textPickAPixel = "Pick a pixel";
+	private final String textPickAPixel = "Pick (spot)";
 	private final JButton pickColorButton = new JButton(textPickAPixel);
 	private final JButton deleteColorButton = new JButton("Delete color");
 	private final JRadioButton rbL1 = new JRadioButton("L1");
@@ -47,6 +50,15 @@ public class ThresholdColors extends JPanel {
 	private final JLabel distanceLabel = new JLabel("Distance  ");
 	private final JLabel colorspaceLabel = new JLabel("Color space ");
 
+	private final JComboBox<Color> excludeColorCombo = new JComboBox<>();
+	private final JComboBoxColorRenderer excludeColorComboRenderer = new JComboBoxColorRenderer(excludeColorCombo);
+	private final String textPickExclude = "Pick (exclude)";
+	private final JButton pickExcludeButton = new JButton(textPickExclude);
+	private final JButton deleteExcludeButton = new JButton("Del excl.");
+	private final JLabel excludeDistLabel = new JLabel("Excl. dist ");
+	private final JSpinner excludeDistanceSpinner = new JSpinner(new SpinnerNumberModel(12, 0, 800, 1));
+	private final JButton sampleBackgroundButton = new JButton("Sample bg (outside ROIs)");
+
 	private boolean isUpdatingDataFromComboAllowed = true;
 	private MultiSPOTS96 multiSpots = null;
 	private Runnable onSettingsChanged;
@@ -55,6 +67,10 @@ public class ThresholdColors extends JPanel {
 	private boolean pickOverlayActive;
 	private int lastComboCount;
 
+	private OverlayTrapMouse pickExcludeOverlay;
+	private boolean pickExcludeOverlayActive;
+	private int lastExcludeComboCount;
+
 	public void setOnSettingsChanged(Runnable onSettingsChanged) {
 		this.onSettingsChanged = onSettingsChanged;
 	}
@@ -62,6 +78,7 @@ public class ThresholdColors extends JPanel {
 	public void init(MultiSPOTS96 parent0) {
 		this.multiSpots = parent0;
 		colorPickCombo.setRenderer(colorPickComboRenderer);
+		excludeColorCombo.setRenderer(excludeColorComboRenderer);
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 		JPanel panel0 = new JPanel(layoutLeft);
@@ -87,11 +104,24 @@ public class ThresholdColors extends JPanel {
 		panel2.add(rbRGB);
 		panel2.add(rbHSV);
 		panel2.add(rbH1H2H3);
-		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
+
+		JPanel panelEx = new JPanel(layoutLeft);
+		panelEx.add(new JLabel("Exclude "));
+		panelEx.add(pickExcludeButton);
+		panelEx.add(excludeColorCombo);
+		panelEx.add(deleteExcludeButton);
+		panelEx.add(excludeDistLabel);
+		panelEx.add(excludeDistanceSpinner);
+
+		JPanel panelSample = new JPanel(layoutLeft);
+		panelSample.add(sampleBackgroundButton);
+
+		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2, panelEx, panelSample);
 
 		rbL1.setSelected(true);
 		rbRGB.setSelected(true);
 		lastComboCount = colorPickCombo.getItemCount();
+		lastExcludeComboCount = excludeColorCombo.getItemCount();
 
 		declareActionListeners();
 	}
@@ -114,7 +144,18 @@ public class ThresholdColors extends JPanel {
 		return list;
 	}
 
-	/** Same convention as {@link plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors}: {@code 1} = L1, else L2. */
+	public ArrayList<Color> getExcludeReferenceColors() {
+		ArrayList<Color> list = new ArrayList<>();
+		for (int i = 0; i < excludeColorCombo.getItemCount(); i++) {
+			list.add(excludeColorCombo.getItemAt(i));
+		}
+		return list;
+	}
+
+	public int getExcludeDistanceMax() {
+		return (int) excludeDistanceSpinner.getValue();
+	}
+
 	public int getColorDistanceTypeInt() {
 		return rbL1.isSelected() ? 1 : 2;
 	}
@@ -142,6 +183,11 @@ public class ThresholdColors extends JPanel {
 		options.spotColorDistanceType = getColorDistanceTypeInt();
 		options.spotColorDistanceMax = getColorDistanceMax();
 		options.spotColorSpace = getSpotThresholdColorSpace();
+
+		options.spotColorExcludeList.clear();
+		options.spotColorExcludeList.addAll(getExcludeReferenceColors());
+		int exd = getExcludeDistanceMax();
+		options.spotColorExcludeDistanceMax = options.spotColorExcludeList.isEmpty() ? 0 : exd;
 	}
 
 	private void declareActionListeners() {
@@ -163,6 +209,12 @@ public class ThresholdColors extends JPanel {
 				updateThresholdOverlayParameters();
 			}
 		});
+		excludeDistanceSpinner.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				updateThresholdOverlayParameters();
+			}
+		});
 
 		deleteColorButton.addActionListener(new ActionListener() {
 			@Override
@@ -174,11 +226,34 @@ public class ThresholdColors extends JPanel {
 				updateThresholdOverlayParameters();
 			}
 		});
+		deleteExcludeButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (excludeColorCombo.getItemCount() > 0 && excludeColorCombo.getSelectedIndex() >= 0) {
+					excludeColorCombo.removeItemAt(excludeColorCombo.getSelectedIndex());
+				}
+				lastExcludeComboCount = excludeColorCombo.getItemCount();
+				updateThresholdOverlayParameters();
+			}
+		});
 
 		pickColorButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				pickColor();
+			}
+		});
+		pickExcludeButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				pickExcludeColor();
+			}
+		});
+
+		sampleBackgroundButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				sampleBackgroundFromRois();
 			}
 		});
 
@@ -196,6 +271,20 @@ public class ThresholdColors extends JPanel {
 				updateThresholdOverlayParameters();
 			}
 		});
+		excludeColorCombo.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent event) {
+				if (event.getStateChange() != ItemEvent.SELECTED || !isUpdatingDataFromComboAllowed) {
+					return;
+				}
+				int n = excludeColorCombo.getItemCount();
+				if (pickExcludeOverlayActive && n > lastExcludeComboCount) {
+					finishPickExcludeOverlay();
+				}
+				lastExcludeComboCount = n;
+				updateThresholdOverlayParameters();
+			}
+		});
 	}
 
 	private void finishPickOverlay() {
@@ -209,6 +298,20 @@ public class ThresholdColors extends JPanel {
 		}
 		pickColorButton.setText(textPickAPixel);
 		pickColorButton.setBackground(Color.LIGHT_GRAY);
+	}
+
+	private void finishPickExcludeOverlay() {
+		pickExcludeOverlayActive = false;
+		if (multiSpots == null) {
+			return;
+		}
+		Experiment exp = (Experiment) multiSpots.expListComboLazy.getSelectedItem();
+		if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null
+				&& pickExcludeOverlay != null) {
+			exp.getSeqCamData().getSequence().removeOverlay(pickExcludeOverlay);
+		}
+		pickExcludeButton.setText(textPickExclude);
+		pickExcludeButton.setBackground(Color.LIGHT_GRAY);
 	}
 
 	private void pickColor() {
@@ -239,5 +342,66 @@ public class ThresholdColors extends JPanel {
 			pickColorButton.setText("*" + textPickAPixel + "*");
 			pickColorButton.setBackground(Color.DARK_GRAY);
 		}
+	}
+
+	private void pickExcludeColor() {
+		if (multiSpots == null) {
+			return;
+		}
+		Experiment exp = (Experiment) multiSpots.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == null) {
+			return;
+		}
+		if (pickExcludeOverlayActive) {
+			if (pickExcludeOverlay != null) {
+				seq.removeOverlay(pickExcludeOverlay);
+			}
+			pickExcludeOverlayActive = false;
+			pickExcludeButton.setText(textPickExclude);
+			pickExcludeButton.setBackground(Color.LIGHT_GRAY);
+		} else {
+			if (pickExcludeOverlay == null) {
+				pickExcludeOverlay = new OverlayTrapMouse(pickExcludeButton, excludeColorCombo);
+			}
+			seq.addOverlay(pickExcludeOverlay);
+			pickExcludeOverlayActive = true;
+			pickExcludeButton.setText("*" + textPickExclude + "*");
+			pickExcludeButton.setBackground(Color.DARK_GRAY);
+		}
+	}
+
+	private void sampleBackgroundFromRois() {
+		if (multiSpots == null) {
+			return;
+		}
+		Experiment exp = (Experiment) multiSpots.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		IcyBufferedImage img = seq.getImage(0, 0);
+		if (img == null) {
+			return;
+		}
+		Spots spots = exp.getSpots();
+		if (spots == null) {
+			return;
+		}
+		ArrayList<Color> proto = SpotColorBackgroundSampler.sampleOutsideSpotRois(img, spots, 48, 12000);
+		isUpdatingDataFromComboAllowed = false;
+		excludeColorCombo.removeAllItems();
+		for (Color c : proto) {
+			excludeColorCombo.addItem(c);
+		}
+		isUpdatingDataFromComboAllowed = true;
+		lastExcludeComboCount = excludeColorCombo.getItemCount();
+		if (excludeColorCombo.getItemCount() > 0 && (int) excludeDistanceSpinner.getValue() <= 0) {
+			excludeDistanceSpinner.setValue(12);
+		}
+		updateThresholdOverlayParameters();
 	}
 }

@@ -172,6 +172,15 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public SpotThresholdColorSpace spotColorSpace = SpotThresholdColorSpace.RGB;
 
 	/**
+	 * Optional V6 colors treated as background: a pixel matching {@link #spotColorReferenceList} is rejected if it is
+	 * also within {@link #spotColorExcludeDistanceMax} of any color here (same metric as spot references).
+	 */
+	public ArrayList<Color> spotColorExcludeList = new ArrayList<>();
+
+	/** V6: distance threshold for {@link #spotColorExcludeList}; {@code <= 0} disables exclusion. */
+	public int spotColorExcludeDistanceMax = 0;
+
+	/**
 	 * V5 only: when using {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN}, restrict the local-mean neighborhood to
 	 * the spot disk ROI (CPU path).
 	 */
@@ -255,6 +264,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 		destination.spotColorDistanceType = spotColorDistanceType;
 		destination.spotColorDistanceMax = spotColorDistanceMax;
 		destination.spotColorSpace = spotColorSpace;
+		if (spotColorExcludeList != null) {
+			destination.spotColorExcludeList = new ArrayList<>(spotColorExcludeList);
+		} else {
+			destination.spotColorExcludeList = new ArrayList<>();
+		}
+		destination.spotColorExcludeDistanceMax = spotColorExcludeDistanceMax;
 
 	}
 
@@ -274,6 +289,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 		spotColorDistanceType = destination.spotColorDistanceType;
 		spotColorDistanceMax = destination.spotColorDistanceMax;
 		spotColorSpace = destination.spotColorSpace;
+		if (destination.spotColorExcludeList != null) {
+			spotColorExcludeList = new ArrayList<>(destination.spotColorExcludeList);
+		} else {
+			spotColorExcludeList = new ArrayList<>();
+		}
+		spotColorExcludeDistanceMax = destination.spotColorExcludeDistanceMax;
 	}
 
 	public void copyParameters(BuildSeriesOptions det) {
@@ -307,6 +328,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 		spotColorDistanceType = det.spotColorDistanceType;
 		spotColorDistanceMax = det.spotColorDistanceMax;
 		spotColorSpace = det.spotColorSpace;
+		if (det.spotColorExcludeList != null) {
+			spotColorExcludeList = new ArrayList<>(det.spotColorExcludeList);
+		}
+		spotColorExcludeDistanceMax = det.spotColorExcludeDistanceMax;
 	}
 
 	@Override
@@ -341,6 +366,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 			spotColorDistanceType = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
 			spotColorSpace = SpotThresholdColorSpace
 					.fromXmlToken(XMLUtil.getElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken()));
+			String exRefs = XMLUtil.getElementValue(nodeMeta, "spotColorExcludeReferences", null);
+			spotColorExcludeList = decodeSpotColorList(exRefs);
+			spotColorExcludeDistanceMax = XMLUtil.getElementIntValue(nodeMeta, "spotColorExcludeDistanceMax",
+					spotColorExcludeDistanceMax);
 
 			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
@@ -392,6 +421,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
 			XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
 			XMLUtil.setElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken());
+			XMLUtil.setElementValue(nodeMeta, "spotColorExcludeReferences", encodeSpotColorList(spotColorExcludeList));
+			XMLUtil.setElementIntValue(nodeMeta, "spotColorExcludeDistanceMax", spotColorExcludeDistanceMax);
 
 			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);

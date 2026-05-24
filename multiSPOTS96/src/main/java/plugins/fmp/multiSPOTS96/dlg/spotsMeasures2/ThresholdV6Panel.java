@@ -43,8 +43,12 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private final ThresholdColors thresholdColors = new ThresholdColors();
-	private String[] directions = new String[] { " threshold <", " threshold >" };
-	private JComboBox<String> spotsDirectionComboBox = new JComboBox<String>(directions);
+	/**
+	 * Maps to {@link BuildSeriesOptions#spotThresholdUp}: index 0 = count pixels far from reference colors; index 1 =
+	 * count pixels matching references (same side as the red overlay, which is drawn at binary value 0).
+	 */
+	private final String[] spotRoiCountModes = new String[] { "ROI count: far from refs", "ROI count: matching refs" };
+	private JComboBox<String> spotsDirectionComboBox = new JComboBox<>(spotRoiCountModes);
 	private JSpinner spotsThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 255, 1));
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
@@ -59,7 +63,8 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 			ImageTransformEnums.RGB_DIFFS_LOCAL_MEAN, ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB,
 			ImageTransformEnums.B_HSB };
 	private JComboBox<ImageTransformEnums> fliesTransformsComboBox = new JComboBox<ImageTransformEnums>(transforms);
-	private JComboBox<String> fliesDirectionComboBox = new JComboBox<String>(directions);
+	private final String[] flyDirections = new String[] { " threshold <", " threshold >" };
+	private JComboBox<String> fliesDirectionComboBox = new JComboBox<>(flyDirections);
 	private JSpinner fliesThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 255, 1));
 	private JCheckBox fliesOverlayCheckBox = new JCheckBox("overlay");
 
@@ -85,8 +90,15 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 		});
 
 		JPanel panelSpotsMask = new JPanel(layoutLeft);
-		panelSpotsMask.add(new JLabel("Binary mask "));
+		panelSpotsMask.add(new JLabel("After color mask "));
+		spotsDirectionComboBox.setToolTipText(
+				"<html>Detection only. The color <b>Distance</b> (above) builds the mask.<br>"
+						+ "This control chooses whether spot ROI statistics count pixels that <b>match</b> your reference colors or pixels <b>outside</b> that match.<br>"
+						+ "Default &quot;matching refs&quot; matches the red overlay (mask drawn on matched pixels).</html>");
+		spotsThresholdSpinner.setToolTipText("<html>Used only after the color step produces a 0/255 mask. For typical thresholds (0&ndash;254) it does <b>not</b> change which pixels match;<br>"
+				+ "tune the mask with <b>Distance</b> above. Very high values (e.g. &ge; 255) can exclude all pixels.</html>");
 		panelSpotsMask.add(spotsDirectionComboBox);
+		panelSpotsMask.add(new JLabel("post step "));
 		panelSpotsMask.add(spotsThresholdSpinner);
 		panelSpotsMask.add(spotsViewButton);
 		panelSpotsMask.add(spotsOverlayCheckBox);
@@ -290,8 +302,11 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 				return;
 			}
 			ensureOverlayAdded(exp);
+			ArrayList<java.awt.Color> exColors = thresholdColors.getExcludeReferenceColors();
+			int exMax = thresholdColors.getExcludeDistanceMax();
 			overlayThreshold.setThresholdColor(colors, thresholdColors.getColorDistanceTypeInt(),
-					thresholdColors.getColorDistanceMax(), thresholdColors.getSpotThresholdColorSpace());
+					thresholdColors.getColorDistanceMax(), thresholdColors.getSpotThresholdColorSpace(),
+					exColors.isEmpty() || exMax <= 0 ? null : exColors, exMax);
 			overlayThreshold.painterChanged();
 			return;
 		}
