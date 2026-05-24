@@ -573,7 +573,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 			return out;
 		}
 		for (String part : t.split("\\|")) {
-			String[] rgb = part.trim().split(",");
+			String p = part.trim();
+			if (p.isEmpty()) {
+				continue;
+			}
+			String norm = p.replace(':', ',').replace(';', ',');
+			String[] rgb = norm.indexOf(',') >= 0 ? norm.split(",") : p.split("\\s+");
 			if (rgb.length >= 3) {
 				try {
 					int r = Math.max(0, Math.min(255, Integer.parseInt(rgb[0].trim())));

@@ -21,6 +21,7 @@ import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.SwingUtilities;
 
 import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
@@ -426,6 +427,9 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		if (o.transform02 != null) {
 			fliesTransformsComboBox.setSelectedItem(o.transform02);
 		}
+		if (fliesTransformsComboBox.getSelectedIndex() < 0) {
+			fliesTransformsComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
+		}
 		fliesThresholdSpinner.setValue(Math.max(0, Math.min(255, o.flyThreshold)));
 		fliesDirectionComboBox.setSelectedIndex(o.flyThresholdUp ? 1 : 0);
 		if (parent0 != null) {
@@ -434,6 +438,12 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 				updateOverlaysThreshold();
 			}
 		}
+		SwingUtilities.invokeLater(new Runnable() {
+			@Override
+			public void run() {
+				thresholdColors.refreshComboPresentationAfterBulkLoad();
+			}
+		});
 	}
 
 	private void clearSpotCanvasTransform(Experiment exp) {
