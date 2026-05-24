@@ -46,7 +46,8 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = 1L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_V5, EnumResults.GREY_SUM_V5,
-			EnumResults.GREY_SUM_CLEAN_V5, EnumResults.AGG_SUMCLEAN_V5, EnumResults.AREA_FLYPRESENT };
+			EnumResults.GREY_SUM_CLEAN_V5, EnumResults.AGG_SUMCLEAN_V5, EnumResults.AGG_AREA_COUNT_V5,
+			EnumResults.AREA_FLYPRESENT };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartV5SpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
@@ -200,7 +201,8 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if (exportType == EnumResults.AGG_SUMCLEAN_V5 && displaySelectedSpotsButton.isSelected()) {
+		if ((exportType == EnumResults.AGG_SUMCLEAN_V5 || exportType == EnumResults.AGG_AREA_COUNT_V5)
+				&& displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
 
@@ -227,7 +229,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
 				.withCageRange(first, last).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected() && exportType != EnumResults.AREA_FLYPRESENT
-				&& exportType != EnumResults.AGG_SUMCLEAN_V5;
+				&& exportType != EnumResults.AGG_SUMCLEAN_V5 && exportType != EnumResults.AGG_AREA_COUNT_V5;
 		options.spotAggregateByStimulusConc = false;
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
@@ -274,7 +276,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(resolveSpotChartStepMs(exp))
 				.withResultType(exportType).withCageRange(0, 0).build();
 		options.relativeToMaximum = exportType != EnumResults.AREA_FLYPRESENT && exportType != EnumResults.AGG_SUMCLEAN_V5
-				&& relativeToCheckbox.isSelected();
+				&& exportType != EnumResults.AGG_AREA_COUNT_V5 && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartV5SpotsOverlayFrame();
@@ -330,7 +332,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 
 	private void updateMeasureDependentControls() {
 		EnumResults sel = exportTypeComboBox != null ? (EnumResults) exportTypeComboBox.getSelectedItem() : null;
-		boolean agg = sel == EnumResults.AGG_SUMCLEAN_V5;
+		boolean agg = sel == EnumResults.AGG_SUMCLEAN_V5 || sel == EnumResults.AGG_AREA_COUNT_V5;
 		relativeToCheckbox.setEnabled(!agg);
 		if (agg) {
 			relativeToCheckbox.setSelected(false);
@@ -389,7 +391,8 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_CLEAN_V5 : option;
+		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_CLEAN_V5
+				: option == EnumResults.AGG_AREA_COUNT_V5 ? EnumResults.AREA_COUNT_V5 : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

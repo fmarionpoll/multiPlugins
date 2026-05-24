@@ -161,6 +161,26 @@ public class BuildSeriesOptions implements XMLPersistent {
 	 */
 	public boolean v5SpotLocalMeanRestrictedToRoi = false;
 
+	/**
+	 * V5 only: max distance (bins) from a fly-gated NaN for which a finite sample may be tested as a border spike;
+	 * {@code 0} disables adaptive trim. Not a uniform dilation: only outliers vs. a local median are cleared.
+	 */
+	public int v5FlyNaNDilationBins = 1;
+
+	/**
+	 * V5 only: half-width (bins) of the window used to compute the local median grey (excluding the center bin
+	 * and NaNs) when testing border spikes. Ignored when {@link #v5FlyNaNDilationBins} is {@code 0}.
+	 */
+	public int v5FlyNaNBorderMedianHalfWidth = 2;
+
+	/**
+	 * V5 only: when a finite bin lies within {@link #v5FlyNaNDilationBins} of a fly NaN, it is cleared only if
+	 * {@code GREY_SUM_V5} is an <strong>upward</strong> outlier: strictly greater than the previous finite grey
+	 * (if any) and greater than a local median × this ratio. Genuine downward steps (fly eating) are never cleared.
+	 * Invalid values ({@code <= 1}) fall back to {@code 1.35}.
+	 */
+	public double v5FlyNaNBorderSpikeRatio = 1.35;
+
 	// Spot detection backend options
 	/** When true, per-spot computations may run in parallel on the CPU. */
 	public boolean enableSpotParallelism = false;
@@ -241,6 +261,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 					.findByText(XMLUtil.getElementValue(nodeMeta, "Transform", transform01.toString()));
 			v5SpotLocalMeanRestrictedToRoi = XMLUtil.getElementBooleanValue(nodeMeta,
 					"v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
+			v5FlyNaNDilationBins = XMLUtil.getElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
+			v5FlyNaNBorderMedianHalfWidth = XMLUtil.getElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth",
+					v5FlyNaNBorderMedianHalfWidth);
+			v5FlyNaNBorderSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio",
+					v5FlyNaNBorderSpikeRatio);
 
 			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
@@ -281,6 +306,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
 			XMLUtil.setElementValue(nodeMeta, "Transform", transform01.toString());
 			XMLUtil.setElementBooleanValue(nodeMeta, "v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
+			XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
+			XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth", v5FlyNaNBorderMedianHalfWidth);
+			XMLUtil.setElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio", v5FlyNaNBorderSpikeRatio);
 
 			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);

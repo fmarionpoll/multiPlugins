@@ -56,8 +56,11 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 	private JSpinner spotsThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 255, 1));
 	private JToggleButton spotsViewButton = new JToggleButton("View");
 	private JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
-	/** V5 test: ROI-restricted local mean for {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN} (CPU). */
-	private JCheckBox v5RoiLocalMeanCheckBox = new JCheckBox("loc\u03bc in spot disk (detect)");
+	/**
+	 * V5 test: ROI-restricted local mean for
+	 * {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN} (CPU).
+	 */
+	private JCheckBox v5RoiLocalMeanCheckBox = new JCheckBox("loc\u03bc in spot disk (detect)", true);
 	private JToggleButton fliesViewButton = new JToggleButton("View");
 
 	private JLabel fliesFilterLabel = new JLabel("  Flies filter");
@@ -98,7 +101,7 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 
 		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
 
-		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS_LOCAL_MEAN);
 		spotsDirectionComboBox.setSelectedIndex(1);
 		updateV5RoiCheckboxEnabled();
 

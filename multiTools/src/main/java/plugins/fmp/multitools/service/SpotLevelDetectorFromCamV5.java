@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import icy.gui.frame.progress.ProgressFrame;
@@ -10,6 +11,7 @@ import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
@@ -29,7 +31,10 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRg
  * When fly-pixel count in the ROI for a bin reaches the same occupancy gate as legacy {@code sumNoFly}
  * reconstruction ({@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate},
  * from {@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}), both raw V5 intensity series
- * are set to {@code NaN} for that bin.
+ * are set to {@code NaN} for that bin. Optional adaptive border trim: finite bins within
+ * {@link BuildSeriesOptions#v5FlyNaNDilationBins} of a fly NaN are cleared only when {@code GREY_SUM_V5} is an
+ * <strong>upward</strong> outlier (strictly above the previous finite grey and above a local median ×
+ * {@link BuildSeriesOptions#v5FlyNaNBorderSpikeRatio}); genuine downward steps from feeding are never cleared.
  * {@code GREY_SUM_V5} matches legacy {@code AREA_SUM} scaling: sum of over-threshold spot-channel values divided
  * by the total number of ROI mask pixels ({@code sumOverThreshold / nPointsIn}).
  * After all bins are filled, {@code GREY_SUM_CLEAN_V5} is rebuilt from {@code GREY_SUM_V5}.
@@ -198,6 +203,9 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 		}
 		final long tLoopEnd = System.nanoTime();
 
+		applyV5FlyNanBorderAdaptiveTrim(toProcess, options.v5FlyNaNDilationBins,
+				options.v5FlyNaNBorderMedianHalfWidth, options.v5FlyNaNBorderSpikeRatio);
+
 		for (Spot spot : toProcess) {
 			if (spot != null) {
 				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
@@ -233,6 +241,111 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 			}
 		}
 		return list;
+	}
+
+	/**
+	 * Clears {@code GREY_SUM_V5} / {@code AREA_COUNT_V5} only for finite bins near a fly-gated NaN where grey is an
+	 * <strong>upward</strong> outlier vs. a local median and vs. the previous finite grey (genuine consumption drops
+	 * are never trimmed).
+	 */
+	private static void applyV5FlyNanBorderAdaptiveTrim(List<Spot> spotsToProcess, int probeBins, int medianHalfWidth,
+			double spikeRatio) {
+		if (probeBins < 1 || spotsToProcess == null) {
+			return;
+		}
+		double ratio = (!Double.isFinite(spikeRatio) || spikeRatio <= 1.0) ? 1.35 : spikeRatio;
+		int mw = Math.max(0, medianHalfWidth);
+		int bufCap = Math.max(8, 2 * mw + 4);
+
+		for (Spot spot : spotsToProcess) {
+			if (spot == null) {
+				continue;
+			}
+			SpotMeasure grey = spot.getGreySumV5();
+			SpotMeasure area = spot.getAreaCountV5();
+			if (grey == null || area == null) {
+				continue;
+			}
+			double[] g0 = grey.getValues();
+			double[] a0 = area.getValues();
+			if (g0 == null || a0 == null || g0.length != a0.length || g0.length == 0) {
+				continue;
+			}
+			int n = g0.length;
+			double[] g = Arrays.copyOf(g0, n);
+			double[] a = Arrays.copyOf(a0, n);
+			boolean[] nan = new boolean[n];
+			for (int i = 0; i < n; i++) {
+				nan[i] = !Double.isFinite(g0[i]) || !Double.isFinite(a0[i]);
+			}
+			double[] buf = new double[bufCap];
+			for (int i = 0; i < n; i++) {
+				if (nan[i]) {
+					continue;
+				}
+				int loP = Math.max(0, i - probeBins);
+				int hiP = Math.min(n - 1, i + probeBins);
+				boolean nearNan = false;
+				for (int k = loP; k <= hiP; k++) {
+					if (nan[k]) {
+						nearNan = true;
+						break;
+					}
+				}
+				if (!nearNan) {
+					continue;
+				}
+				double prevGrey = previousFiniteGrey(g0, i);
+				if (Double.isFinite(prevGrey) && g0[i] <= prevGrey) {
+					continue;
+				}
+				int loW = Math.max(0, i - mw);
+				int hiW = Math.min(n - 1, i + mw);
+				int count = 0;
+				for (int j = loW; j <= hiW; j++) {
+					if (j == i) {
+						continue;
+					}
+					if (!Double.isFinite(g0[j])) {
+						continue;
+					}
+					if (count >= buf.length) {
+						break;
+					}
+					buf[count++] = g0[j];
+				}
+				if (count < 2) {
+					continue;
+				}
+				double med = medianOfSortedBuffer(buf, count);
+				if (!Double.isFinite(med)) {
+					continue;
+				}
+				if (g0[i] > med * ratio) {
+					g[i] = Double.NaN;
+					a[i] = Double.NaN;
+				}
+			}
+			grey.setValues(g);
+			area.setValues(a);
+		}
+	}
+
+	private static double previousFiniteGrey(double[] g, int fromIndex) {
+		for (int j = fromIndex - 1; j >= 0; j--) {
+			if (Double.isFinite(g[j])) {
+				return g[j];
+			}
+		}
+		return Double.NaN;
+	}
+
+	private static double medianOfSortedBuffer(double[] buf, int count) {
+		Arrays.sort(buf, 0, count);
+		if (count % 2 == 1) {
+			return buf[count / 2];
+		}
+		return 0.5 * (buf[count / 2 - 1] + buf[count / 2]);
 	}
 
 	private void initializeSpotArrays(List<Spot> spotsToProcess, int nTimeBins) {

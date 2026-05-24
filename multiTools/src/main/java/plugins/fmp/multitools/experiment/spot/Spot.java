@@ -499,6 +499,8 @@ public class Spot implements Comparable<Spot> {
 			return measurementsV5.getGreySumClean().getCount();
 		case AGG_SUMCLEAN_V5:
 			return measurementsV5.getGreySumClean().getCount();
+		case AGG_AREA_COUNT_V5:
+			return measurementsV5.getAreaCount().getCount();
 		case AGG_MEDIANREF:
 			return measurements.getSumIn().getCount();
 		case AREA_SUM_V2:
@@ -620,6 +622,8 @@ public class Spot implements Comparable<Spot> {
 			return measurementsV5.getGreySumClean();
 		case AGG_SUMCLEAN_V5:
 			return measurementsV5.getGreySumClean();
+		case AGG_AREA_COUNT_V5:
+			return measurementsV5.getAreaCount();
 		case AGG_MEDIANREF:
 			return measurements.getSumIn();
 		case AREA_FLYPRESENT:

@@ -156,6 +156,14 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	/**
+	 * Cage-level aggregate: sum over spots grouped by (stimulus, concentration) of per-bin
+	 * {@link #AREA_COUNT_V5} (over-threshold pixel counts). Not persisted on spots.
+	 */
+	AGG_AREA_COUNT_V5("AGG_AREA_COUNT_V5", "pixels",
+			"V5: summed over-threshold pixel counts by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+
+	/**
 	 * Computed cage-level curve: per-bin median of {@code AREA_SUM} across spots, excluding bins
 	 * with fly on spot ({@code AREA_FLYPRESENT}); shown with consumption aggregate (inverted axis).
 	 */
@@ -248,6 +256,7 @@ public enum EnumResults {
 		case GREY_SUM_CLEAN_V5:
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:
+		case AGG_AREA_COUNT_V5:
 		case AGG_MEDIANREF:
 			return true;
 		default:

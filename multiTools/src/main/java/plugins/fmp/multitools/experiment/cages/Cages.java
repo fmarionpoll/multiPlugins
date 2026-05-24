@@ -1365,7 +1365,7 @@ public class Cages {
 
 	/**
 	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when charting/exporting
-	 * spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
+	 * spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5, AGG_AREA_COUNT_V5, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
 	 * native spot/camera sample index (same basis as spot charts). Clears caches otherwise.
 	 */
 	public void prepareSpotAggregates(Experiment exp, ResultsOptions opt) {
@@ -1381,7 +1381,8 @@ public class Cages {
 			return;
 		}
 		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_SUMCLEAN_V5
-				|| opt.resultType == EnumResults.AGG_MEDIANREF || opt.spotAggregateByStimulusConc;
+				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_MEDIANREF
+				|| opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
 				if (cage != null) {
@@ -1397,6 +1398,12 @@ public class Cages {
 			buildRt = EnumResults.AGG_SUMCLEAN;
 		} else if (savedRt == EnumResults.AGG_SUMCLEAN_V5) {
 			buildRt = EnumResults.AGG_SUMCLEAN_V5;
+		} else if (savedRt == EnumResults.AGG_AREA_COUNT_V5) {
+			buildRt = EnumResults.AGG_AREA_COUNT_V5;
+		} else if (savedRt == EnumResults.GREY_SUM_CLEAN_V5 && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_SUMCLEAN_V5;
+		} else if (savedRt == EnumResults.AREA_COUNT_V5 && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_AREA_COUNT_V5;
 		} else {
 			buildRt = EnumResults.AREA_SUMCLEAN;
 		}
@@ -1413,8 +1420,16 @@ public class Cages {
 				List<AggregateSeries> nativeList = CageSpotStimulusAggregation.buildAggregatesOnNativeSamples(exp,
 						cage, allSpots, opt);
 				List<CageSpotAggregateSeries> entries = new ArrayList<>(nativeList.size());
-				EnumResults aggTag = savedRt == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.AGG_SUMCLEAN_V5
-						: EnumResults.AGG_SUMCLEAN;
+				EnumResults aggTag;
+				if (savedRt == EnumResults.AGG_SUMCLEAN_V5
+						|| (savedRt == EnumResults.GREY_SUM_CLEAN_V5 && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_SUMCLEAN_V5;
+				} else if (savedRt == EnumResults.AGG_AREA_COUNT_V5
+						|| (savedRt == EnumResults.AREA_COUNT_V5 && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_AREA_COUNT_V5;
+				} else {
+					aggTag = EnumResults.AGG_SUMCLEAN;
+				}
 				for (AggregateSeries a : nativeList) {
 					CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(a, aggTag);
 					if (row != null) {
