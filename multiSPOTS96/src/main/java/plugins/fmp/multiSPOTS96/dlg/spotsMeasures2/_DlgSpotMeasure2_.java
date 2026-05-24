@@ -15,6 +15,7 @@ import javax.swing.event.ChangeListener;
 
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
+import plugins.fmp.multiSPOTS96.dlg.spotsMeasures.LoadSavePanel;
 import plugins.fmp.multitools.experiment.Experiment;
 
 /**
@@ -30,6 +31,8 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 	public ChartsV5Panel chartsV5Panel = new ChartsV5Panel();
 	public ThresholdColorsPanel thresholdColorsPanel = new ThresholdColorsPanel();
 	public ChartsColorPanel chartsColorPanel = new ChartsColorPanel();
+	public LoadSavePanel loadSavePanel = new LoadSavePanel();
+	public SpotMeasureColorParamsPanel spotMeasureColorParamsPanel;
 
 	private int idThresholdTabV5 = 0;
 	private int idThresholdTabColor = 2;
@@ -68,6 +71,14 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		tabsPane.addTab("Color charts", null, chartsColorPanel, "Display color-distance spot results");
 		order++;
 
+		loadSavePanel.init(gridLayout, parent0);
+		loadSavePanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Load/Save", null, loadSavePanel, "Load/Save xml file with spots descriptors");
+
+		spotMeasureColorParamsPanel = new SpotMeasureColorParamsPanel(parent0, thresholdColorsPanel);
+		tabsPane.addTab("Color parameters", null, spotMeasureColorParamsPanel,
+				"Load or save color-distance detection preset (XML)");
+
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		capPanel.add(tabsPane);
 		tabsPane.addChangeListener(this);
@@ -84,14 +95,15 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 
 	@Override
 	public void propertyChange(PropertyChangeEvent event) {
-		if (event.getPropertyName().equals("SPOTS_ROIS_OPEN")) {
+		String n = event.getPropertyName();
+		if ("SPOTS_ROIS_OPEN".equals(n) || "CAP_ROIS_OPEN".equals(n)) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				displaySpotsInformation(exp);
 				tabsPane.setSelectedIndex(idThresholdTabV5);
 				parent0.dlgExperiment.intervalsPanel.getExptParms(exp);
 			}
-		} else if (event.getPropertyName().equals("SPOTS_ROIS_SAVE")) {
+		} else if ("SPOTS_ROIS_SAVE".equals(n) || "CAP_ROIS_SAVE".equals(n)) {
 			tabsPane.setSelectedIndex(idThresholdTabV5);
 		}
 	}

@@ -19,7 +19,6 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
-import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -42,7 +41,6 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 	private String detectString = "Detect";
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
-	private JButton colorParamsButton = new JButton("Load/Save params…");
 
 	private final ThresholdColors thresholdColors = new ThresholdColors();
 	/**
@@ -82,7 +80,6 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
 		panel0.add(allSeriesCheckBox);
-		panel0.add(colorParamsButton);
 
 		thresholdColors.init(parent0);
 		thresholdColors.setOnSettingsChanged(() -> {
@@ -279,14 +276,6 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 				} else {
 					stopDetection();
 				}
-			}
-		});
-
-		colorParamsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				java.awt.Window w = SwingUtilities.getWindowAncestor(ThresholdColorsPanel.this);
-				SpotMeasureColorLimitsDialog.show(w, parent0, ThresholdColorsPanel.this);
 			}
 		});
 	}

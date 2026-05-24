@@ -26,7 +26,7 @@ public class LoadSavePanel extends JPanel {
 	private JButton saveButton = new JButton("Save...");
 	private MultiSPOTS96 parent0 = null;
 
-	void init(GridLayout capLayout, MultiSPOTS96 parent0) {
+	public void init(GridLayout capLayout, MultiSPOTS96 parent0) {
 		JLabel loadsaveText = new JLabel("-> Spots, polylines (xml) ", SwingConstants.RIGHT);
 		loadsaveText.setFont(FontUtil.setStyle(loadsaveText.getFont(), Font.ITALIC));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.RIGHT);
