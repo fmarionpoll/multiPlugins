@@ -309,6 +309,13 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_GREY_SUM_V5_PREFLY() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"GREY_SUM_V5_PREFLY uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
 	public static MeasurementComputation accessStored_GREY_SUM_CLEAN_V5() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(

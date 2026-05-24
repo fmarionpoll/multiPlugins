@@ -181,6 +181,25 @@ public class BuildSeriesOptions implements XMLPersistent {
 	 */
 	public double v5FlyNaNBorderSpikeRatio = 1.35;
 
+	/**
+	 * V5 only: controls lookback for upward spike suppression before {@code GREY_SUM_CLEAN_V5}: the median baseline
+	 * uses up to {@code 2 × halfWidth + 1} <strong>prior</strong> finite bins only (current bin excluded), so wide
+	 * spikes are not mistaken for a raised local level. {@code 0} disables this pre-pass (running median only).
+	 */
+	public int v5GreySumCleanSpikeMedianHalfWidth = 5;
+
+	/**
+	 * V5 only: a finite bin strictly above the previous finite grey and strictly above {@code localMedian × this}
+	 * is pulled down to that median before running median. Values {@code <= 1} disable the ratio test (and the
+	 * pre-pass has no effect when combined with half-width {@code 0}).
+	 */
+	public double v5GreySumCleanSpikeRatio = 1.12;
+
+	/**
+	 * V5 only: number of upward spike passes (1–5). Multiple passes erode wider spike plateaus.
+	 */
+	public int v5GreySumCleanSpikePasses = 2;
+
 	// Spot detection backend options
 	/** When true, per-spot computations may run in parallel on the CPU. */
 	public boolean enableSpotParallelism = false;
@@ -245,6 +264,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 		videoChannel = det.videoChannel;
 		backgroundSubstraction = det.backgroundSubstraction;
 		isFrameFixed = det.isFrameFixed;
+		v5GreySumCleanSpikeMedianHalfWidth = det.v5GreySumCleanSpikeMedianHalfWidth;
+		v5GreySumCleanSpikeRatio = det.v5GreySumCleanSpikeRatio;
+		v5GreySumCleanSpikePasses = det.v5GreySumCleanSpikePasses;
 	}
 
 	@Override
@@ -266,6 +288,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 					v5FlyNaNBorderMedianHalfWidth);
 			v5FlyNaNBorderSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio",
 					v5FlyNaNBorderSpikeRatio);
+			v5GreySumCleanSpikeMedianHalfWidth = XMLUtil.getElementIntValue(nodeMeta,
+					"v5GreySumCleanSpikeMedianHalfWidth", v5GreySumCleanSpikeMedianHalfWidth);
+			v5GreySumCleanSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio",
+					v5GreySumCleanSpikeRatio);
+			v5GreySumCleanSpikePasses = XMLUtil.getElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses",
+					v5GreySumCleanSpikePasses);
 
 			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
@@ -309,6 +337,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
 			XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth", v5FlyNaNBorderMedianHalfWidth);
 			XMLUtil.setElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio", v5FlyNaNBorderSpikeRatio);
+			XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikeMedianHalfWidth", v5GreySumCleanSpikeMedianHalfWidth);
+			XMLUtil.setElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio", v5GreySumCleanSpikeRatio);
+			XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses", v5GreySumCleanSpikePasses);
 
 			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);

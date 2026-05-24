@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.spotsMeasures;
+package plugins.fmp.multiSPOTS96.dlg.spotsMeasures2;
 
 import java.awt.Color;
 import java.awt.FlowLayout;

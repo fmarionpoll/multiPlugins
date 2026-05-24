@@ -323,7 +323,8 @@ public class ChartSpotsOverlayFrame {
 
 	/** V5 per-spot scalars: no legacy measure checkbox maps to these; chart uses {@link ResultsOptions#resultType}. */
 	protected static boolean isV5NativeSpotChartMeasure(EnumResults rt) {
-		return rt == EnumResults.AREA_COUNT_V5 || rt == EnumResults.GREY_SUM_V5 || rt == EnumResults.GREY_SUM_CLEAN_V5;
+		return rt == EnumResults.AREA_COUNT_V5 || rt == EnumResults.GREY_SUM_V5 || rt == EnumResults.GREY_SUM_V5_PREFLY
+				|| rt == EnumResults.GREY_SUM_CLEAN_V5;
 	}
 
 	protected static boolean resultLabelEquals(EnumResults r, String label) {
@@ -535,7 +536,7 @@ public class ChartSpotsOverlayFrame {
 		if (splitFlyAxis) {
 			XYSeriesCollection ds0 = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
 					enabledMeasures, false, overlaySpots, overlayMeasures);
-			XYLineAndShapeRenderer r0 = createRenderer(ds0);
+			XYLineAndShapeRenderer r0 = buildPlotRenderer(ds0, overlaySpots, enabledMeasures, false);
 			plot.setDataset(0, ds0);
 			plot.setRenderer(0, r0);
 
@@ -544,7 +545,7 @@ public class ChartSpotsOverlayFrame {
 
 			XYSeriesCollection ds1 = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
 					enabledMeasures, true, overlaySpots, overlayMeasures);
-			XYLineAndShapeRenderer r1 = createRenderer(ds1);
+			XYLineAndShapeRenderer r1 = buildPlotRenderer(ds1, overlaySpots, enabledMeasures, true);
 			EnumResults flyPresentType = findResultByLabel("AREA_FLYPRESENT");
 			NumberAxis yAxis1 = new NumberAxis(flyPresentType != null ? flyPresentType.toUnit() : "");
 			yAxis1.setInverted(true);
@@ -564,7 +565,7 @@ public class ChartSpotsOverlayFrame {
 			XYSeriesCollection ds = buildDatasetForMeasures(lastExperiment, lastOptions, lastSelectedSpots,
 					enabledMeasures, flyEnabled && !hasContinuous, overlaySpots, overlayMeasures);
 			plot.setDataset(0, ds);
-			plot.setRenderer(0, createRenderer(ds));
+			plot.setRenderer(0, buildPlotRenderer(ds, overlaySpots, enabledMeasures, flyEnabled && !hasContinuous));
 
 			EnumResults labelType = flyEnabled && !hasContinuous ? findResultByLabel("AREA_FLYPRESENT")
 					: firstContinuousMeasure(enabledMeasures);
@@ -777,11 +778,21 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	private XYLineAndShapeRenderer createRenderer(XYSeriesCollection dataset) {
+	protected XYLineAndShapeRenderer buildPlotRenderer(XYSeriesCollection dataset, boolean overlaySpots,
+			List<EnumResults> enabledMeasures, boolean flyDatasetSlice) {
 		XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
 		SeriesStyleCodec.applySeriesPaintsFromDescription(dataset, renderer);
 		applyV2StrokeHints(dataset, renderer);
+		customizeSpotOverlayRendererStrokes(dataset, renderer, overlaySpots, enabledMeasures, flyDatasetSlice);
 		return renderer;
+	}
+
+	/**
+	 * Optional per-subclass styling after {@link #applyV2StrokeHints}. {@code flyDatasetSlice} is true for the
+	 * fly-only range axis dataset when split axes are used.
+	 */
+	protected void customizeSpotOverlayRendererStrokes(XYSeriesCollection dataset, XYLineAndShapeRenderer renderer,
+			boolean overlaySpots, List<EnumResults> enabledMeasures, boolean flyDatasetSlice) {
 	}
 
 	private static void applyV2StrokeHints(XYSeriesCollection dataset, XYLineAndShapeRenderer renderer) {

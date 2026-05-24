@@ -68,7 +68,8 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
 		if (resultType != EnumResults.AREA_SUMCLEAN && resultType != EnumResults.GREY_SUM_V5
-				&& resultType != EnumResults.GREY_SUM_CLEAN_V5 && resultType != EnumResults.AREA_COUNT_V5
+				&& resultType != EnumResults.GREY_SUM_V5_PREFLY && resultType != EnumResults.GREY_SUM_CLEAN_V5
+				&& resultType != EnumResults.AREA_COUNT_V5
 				&& resultType != EnumResults.AGG_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN_V5
 				&& resultType != EnumResults.AGG_AREA_COUNT_V5) {
 			return col0;

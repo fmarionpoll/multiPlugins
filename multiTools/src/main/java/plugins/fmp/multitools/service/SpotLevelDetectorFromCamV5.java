@@ -26,12 +26,15 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.RoiMaskedLocalSumD
 import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRgb;
 
 /**
- * Light-path detector for V5 spot measures: {@code AREA_COUNT_V5}, {@code GREY_SUM_V5}, and
- * {@code GREY_SUM_CLEAN_V5} (median-smoothed grey, same rule as legacy {@code sumClean} from {@code sumNoFly}).
+ * Light-path detector for V5 spot measures: {@code AREA_COUNT_V5}, {@code GREY_SUM_V5},
+ * {@code GREY_SUM_V5_PREFLY} (same grey scalar before the fly-occupancy NaN gate), and
+ * {@code GREY_SUM_CLEAN_V5} (causal upward spike trim vs past-only median when enabled, then running-median smooth;
+ * same running-median span as legacy {@code sumClean} from {@code sumNoFly}).
  * When fly-pixel count in the ROI for a bin reaches the same occupancy gate as legacy {@code sumNoFly}
  * reconstruction ({@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate},
- * from {@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}), both raw V5 intensity series
- * are set to {@code NaN} for that bin. Optional adaptive border trim: finite bins within
+ * from {@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}), {@code AREA_COUNT_V5} and
+ * {@code GREY_SUM_V5} are set to {@code NaN} for that bin (prefly grey retains the finite value for diagnostics).
+ * Optional adaptive border trim: finite bins within
  * {@link BuildSeriesOptions#v5FlyNaNDilationBins} of a fly NaN are cleared only when {@code GREY_SUM_V5} is an
  * <strong>upward</strong> outlier (strictly above the previous finite grey and above a local median ×
  * {@link BuildSeriesOptions#v5FlyNaNBorderSpikeRatio}); genuine downward steps from feeding are never cleared.
@@ -208,7 +211,7 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
 		for (Spot spot : toProcess) {
 			if (spot != null) {
-				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
+				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum(options);
 			}
 		}
 
@@ -353,6 +356,9 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 			if (spot.getAreaCountV5() != null) {
 				spot.getAreaCountV5().setValues(new double[nTimeBins]);
 			}
+			if (spot.getGreySumV5PreFly() != null) {
+				spot.getGreySumV5PreFly().setValues(new double[nTimeBins]);
+			}
 			if (spot.getGreySumV5() != null) {
 				spot.getGreySumV5().setValues(new double[nTimeBins]);
 			}
@@ -459,12 +465,14 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
 		if (nPointsIn > 0) {
 			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
+			double greyVal = sumOverThreshold / (double) nPointsIn;
+			spot.getGreySumV5PreFly().setValueAt(timeIndex, greyVal);
 			if (nPointsFlyPresent >= minFlyPx) {
 				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
 				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
 			} else {
 				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
-				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold / (double) nPointsIn);
+				spot.getGreySumV5().setValueAt(timeIndex, greyVal);
 			}
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
@@ -538,12 +546,14 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
 		if (nPointsIn > 0) {
 			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
+			double greyVal = sumOverThreshold / (double) nPointsIn;
+			spot.getGreySumV5PreFly().setValueAt(timeIndex, greyVal);
 			if (nPointsFlyPresent >= minFlyPx) {
 				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
 				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
 			} else {
 				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
-				spot.getGreySumV5().setValueAt(timeIndex, sumOverThreshold / (double) nPointsIn);
+				spot.getGreySumV5().setValueAt(timeIndex, greyVal);
 			}
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}

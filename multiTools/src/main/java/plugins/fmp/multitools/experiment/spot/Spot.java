@@ -497,6 +497,8 @@ public class Spot implements Comparable<Spot> {
 			return measurements.getSumClean().getCount();
 		case GREY_SUM_CLEAN_V5:
 			return measurementsV5.getGreySumClean().getCount();
+		case GREY_SUM_V5_PREFLY:
+			return measurementsV5.getGreySumPreFly().getCount();
 		case AGG_SUMCLEAN_V5:
 			return measurementsV5.getGreySumClean().getCount();
 		case AGG_AREA_COUNT_V5:
@@ -582,6 +584,10 @@ public class Spot implements Comparable<Spot> {
 		return measurementsV5.getGreySum();
 	}
 
+	public SpotMeasure getGreySumV5PreFly() {
+		return measurementsV5.getGreySumPreFly();
+	}
+
 	public SpotMeasure getGreySumCleanV5() {
 		return measurementsV5.getGreySumClean();
 	}
@@ -632,6 +638,8 @@ public class Spot implements Comparable<Spot> {
 			return measurementsV5.getAreaCount();
 		case GREY_SUM_V5:
 			return measurementsV5.getGreySum();
+		case GREY_SUM_V5_PREFLY:
+			return measurementsV5.getGreySumPreFly();
 		default:
 			return null;
 		}

@@ -136,8 +136,14 @@ public enum EnumResults {
 	/** V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel count (same scale as legacy {@code AREA_SUM}; NaN under same fly gate as {@link #AREA_COUNT_V5}). */
 	GREY_SUM_V5("GREY_SUM_V5", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (V5, legacy AREA_SUM scale)",
 			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
+	/**
+	 * V5 diagnostic: same grey as {@link #GREY_SUM_V5} but written before the fly-occupancy gate sets bins to NaN
+	 * (still NaN where the fly mask prevents computing scalars). Filled during camera V5 detection.
+	 */
+	GREY_SUM_V5_PREFLY("GREY_SUM_V5_PREFLY", "grey / ROI px", "V5 grey on over-threshold pixels / ROI before fly-occupancy NaN gate",
+			StoredDataAccessors.accessStored_GREY_SUM_V5_PREFLY(), "GREY_SUM_V5_PREFLY", PersistenceDomain.SPOT),
 	/** V5: running-median smooth of {@link #GREY_SUM_V5} (span 10, NaN-robust; same spirit as legacy {@code AREA_SUMCLEAN} from {@code sumNoFly}). */
-	GREY_SUM_CLEAN_V5("GREY_SUM_CLEAN_V5", "grey / ROI px", "V5 grey: NaN gaps bridged (linear), then running median of GREY_SUM_V5",
+	GREY_SUM_CLEAN_V5("GREY_SUM_CLEAN_V5", "grey / ROI px", "V5 grey: NaN gaps bridged, optional upward spike trim vs local median, then running median of GREY_SUM_V5",
 			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V5(), "GREY_SUM_CLEAN_V5", PersistenceDomain.SPOT),
 
 	/**
@@ -253,6 +259,7 @@ public enum EnumResults {
 		case AREA_FLYPRESENT:
 		case AREA_COUNT_V5:
 		case GREY_SUM_V5:
+		case GREY_SUM_V5_PREFLY:
 		case GREY_SUM_CLEAN_V5:
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:

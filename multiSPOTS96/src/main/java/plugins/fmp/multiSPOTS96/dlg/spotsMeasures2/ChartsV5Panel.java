@@ -46,7 +46,7 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = 1L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_V5, EnumResults.GREY_SUM_V5,
-			EnumResults.GREY_SUM_CLEAN_V5, EnumResults.AGG_SUMCLEAN_V5, EnumResults.AGG_AREA_COUNT_V5,
+			EnumResults.GREY_SUM_V5_PREFLY, EnumResults.GREY_SUM_CLEAN_V5, EnumResults.AGG_SUMCLEAN_V5, EnumResults.AGG_AREA_COUNT_V5,
 			EnumResults.AREA_FLYPRESENT };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartV5SpotsOverlayFrame chartSpotsOverlayFrame = null;
