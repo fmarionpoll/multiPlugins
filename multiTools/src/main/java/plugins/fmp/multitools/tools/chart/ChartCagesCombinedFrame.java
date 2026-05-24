@@ -143,12 +143,12 @@ public class ChartCagesCombinedFrame {
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:
 		case AGG_AREA_COUNT_V5:
-		case AREA_COUNT_V6:
-		case GREY_SUM_V6:
-		case GREY_SUM_V6_PREFLY:
-		case GREY_SUM_CLEAN_V6:
-		case AGG_SUMCLEAN_V6:
-		case AGG_AREA_COUNT_V6:
+		case AREA_COUNT_COLOR:
+		case GREY_SUM_COLOR:
+		case GREY_SUM_COLOR_PREFLY:
+		case GREY_SUM_CLEAN_COLOR:
+		case AGG_SUMCLEAN_COLOR:
+		case AGG_AREA_COUNT_COLOR:
 		case AGG_MEDIANREF:
 			return true;
 		default:

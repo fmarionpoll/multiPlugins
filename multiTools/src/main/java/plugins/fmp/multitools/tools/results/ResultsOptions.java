@@ -138,12 +138,12 @@ public class ResultsOptions {
 	public boolean spotGreySumV5 = false;
 	/** Spot Excel export: {@code GREY_SUM_CLEAN_V5}. */
 	public boolean spotGreySumCleanV5 = false;
-	/** Spot Excel export: {@code AREA_COUNT_V6}. */
-	public boolean spotAreaCountV6 = false;
-	/** Spot Excel export: {@code GREY_SUM_V6}. */
-	public boolean spotGreySumV6 = false;
-	/** Spot Excel export: {@code GREY_SUM_CLEAN_V6}. */
-	public boolean spotGreySumCleanV6 = false;
+	/** Spot Excel export: on-disk {@code AREA_COUNT_V6}. */
+	public boolean spotAreaCountColor = false;
+	/** Spot Excel export: on-disk {@code GREY_SUM_V6}. */
+	public boolean spotGreySumColor = false;
+	/** Spot Excel export: on-disk {@code GREY_SUM_CLEAN_V6}. */
+	public boolean spotGreySumCleanColor = false;
 
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
@@ -169,9 +169,9 @@ public class ResultsOptions {
 		this.spotAreaCountV5 = resultsOptions.spotAreaCountV5;
 		this.spotGreySumV5 = resultsOptions.spotGreySumV5;
 		this.spotGreySumCleanV5 = resultsOptions.spotGreySumCleanV5;
-		this.spotAreaCountV6 = resultsOptions.spotAreaCountV6;
-		this.spotGreySumV6 = resultsOptions.spotGreySumV6;
-		this.spotGreySumCleanV6 = resultsOptions.spotGreySumCleanV6;
+		this.spotAreaCountColor = resultsOptions.spotAreaCountColor;
+		this.spotGreySumColor = resultsOptions.spotGreySumColor;
+		this.spotGreySumCleanColor = resultsOptions.spotGreySumCleanColor;
 		this.spotBaselineWindowMinutes = resultsOptions.spotBaselineWindowMinutes;
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
 		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;

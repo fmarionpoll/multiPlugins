@@ -24,7 +24,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformFactory;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
- * V6 spot measures from camera using {@link ImageTransformEnums#THRESHOLD_COLORS} (multi-reference color distance)
+ * Color-distance spot measures from camera using {@link ImageTransformEnums#THRESHOLD_COLORS} (multi-reference color distance)
  * for the spot mask and the same fly gating / grey-clean pipeline shape as {@link SpotLevelDetectorFromCamV5}.
  *
  * <p>
@@ -33,7 +33,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * (mask drawn at intensity {@code 0}). Counting therefore applies {@code spotThreshold} / {@code spotThresholdUp} to
  * {@code 255 - binaryValue} so the UI direction stays consistent with the overlay preview.
  */
-public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
+public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 
 	@Override
 	public void detectSpots(Experiment exp, BuildSeriesOptions options) {
@@ -96,7 +96,7 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		final long tInitEnd = System.nanoTime();
 
 		if (options.spotColorReferenceList == null || options.spotColorReferenceList.isEmpty()) {
-			Logger.warn("SpotLevelDetectorFromCamV6: spotColorReferenceList is empty; aborting");
+			Logger.warn("SpotLevelDetectorFromCamColor: spotColorReferenceList is empty; aborting");
 			return;
 		}
 
@@ -107,14 +107,14 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		final ImageTransformInterface transformFly = ImageTransformFactory.getFunction(options.transform02,
 				options.useGpuTransforms);
 		if (transformSpot == null || transformFly == null) {
-			Logger.warn("SpotLevelDetectorFromCamV6: missing transform functions");
+			Logger.warn("SpotLevelDetectorFromCamColor: missing transform functions");
 			return;
 		}
 
 		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
 		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
 
-		ProgressFrame progress = new ProgressFrame("Detecting spot levels (V6 color-distance)");
+		ProgressFrame progress = new ProgressFrame("Detecting spot levels (color-distance)");
 		progress.setLength(nTimeBins);
 
 		IcyBufferedImage camImage = null;
@@ -171,12 +171,12 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		}
 		final long tLoopEnd = System.nanoTime();
 
-		applyV6FlyNanBorderAdaptiveTrim(toProcess, options.v5FlyNaNDilationBins,
+		applyColorFlyNanBorderAdaptiveTrim(toProcess, options.v5FlyNaNDilationBins,
 				options.v5FlyNaNBorderMedianHalfWidth, options.v5FlyNaNBorderSpikeRatio);
 
 		for (Spot spot : toProcess) {
 			if (spot != null) {
-				spot.getMeasurementsV6().rebuildGreySumCleanFromGreySum(options);
+				spot.getMeasurementsColor().rebuildGreySumCleanFromGreySum(options);
 			}
 		}
 
@@ -195,9 +195,9 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		long postMs = (tPostEnd - tPostStart) / 1_000_000L;
 		long totalMs = (tPostEnd - tGlobalStart) / 1_000_000L;
 
-		Logger.info("SpotLevelDetectorFromCamV6: " + toProcess.size() + " spots, " + nTimeBins + " time bins, "
+		Logger.info("SpotLevelDetectorFromCamColor: " + toProcess.size() + " spots, " + nTimeBins + " time bins, "
 				+ nCamFrames + " cam frames");
-		Logger.info("SpotLevelDetectorFromCamV6 timings [ms] - init=" + initMs + ", mainLoop=" + loopMs + ", post="
+		Logger.info("SpotLevelDetectorFromCamColor timings [ms] - init=" + initMs + ", mainLoop=" + loopMs + ", post="
 				+ postMs + ", total=" + totalMs);
 	}
 
@@ -216,7 +216,7 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 	 * <strong>upward</strong> outlier vs. a local median and vs. the previous finite grey (genuine consumption drops
 	 * are never trimmed).
 	 */
-	private static void applyV6FlyNanBorderAdaptiveTrim(List<Spot> spotsToProcess, int probeBins, int medianHalfWidth,
+	private static void applyColorFlyNanBorderAdaptiveTrim(List<Spot> spotsToProcess, int probeBins, int medianHalfWidth,
 			double spikeRatio) {
 		if (probeBins < 1 || spotsToProcess == null) {
 			return;
@@ -229,8 +229,8 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 			if (spot == null) {
 				continue;
 			}
-			SpotMeasure grey = spot.getGreySumV6();
-			SpotMeasure area = spot.getAreaCountV6();
+			SpotMeasure grey = spot.getGreySumColor();
+			SpotMeasure area = spot.getAreaCountColor();
 			if (grey == null || area == null) {
 				continue;
 			}
@@ -318,14 +318,14 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 
 	private void initializeSpotArrays(List<Spot> spotsToProcess, int nTimeBins) {
 		for (Spot spot : spotsToProcess) {
-			if (spot.getAreaCountV6() != null) {
-				spot.getAreaCountV6().setValues(new double[nTimeBins]);
+			if (spot.getAreaCountColor() != null) {
+				spot.getAreaCountColor().setValues(new double[nTimeBins]);
 			}
-			if (spot.getGreySumV6PreFly() != null) {
-				spot.getGreySumV6PreFly().setValues(new double[nTimeBins]);
+			if (spot.getGreySumColorPreFly() != null) {
+				spot.getGreySumColorPreFly().setValues(new double[nTimeBins]);
 			}
-			if (spot.getGreySumV6() != null) {
-				spot.getGreySumV6().setValues(new double[nTimeBins]);
+			if (spot.getGreySumColor() != null) {
+				spot.getGreySumColor().setValues(new double[nTimeBins]);
 			}
 			if (spot.getFlyPresent() != null) {
 				spot.getFlyPresent().setIsPresent(new int[nTimeBins]);
@@ -350,7 +350,7 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 				roiMask.buildMask2DFromInputRoi();
 				spot.setROIMask(roiMask);
 			} catch (ValidationException | ProcessingException e) {
-				Logger.warn("SpotLevelDetectorFromCamV6: failed to build mask for spot " + spot.getName() + " - "
+				Logger.warn("SpotLevelDetectorFromCamColor: failed to build mask for spot " + spot.getName() + " - "
 						+ e.getMessage());
 			}
 		}
@@ -429,13 +429,13 @@ public class SpotLevelDetectorFromCamV6 implements SpotLevelDetectionRunner {
 		if (nPointsIn > 0) {
 			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
 			double greyVal = sumOverThreshold / (double) nPointsIn;
-			spot.getGreySumV6PreFly().setValueAt(timeIndex, greyVal);
+			spot.getGreySumColorPreFly().setValueAt(timeIndex, greyVal);
 			if (nPointsFlyPresent >= minFlyPx) {
-				spot.getAreaCountV6().setValueAt(timeIndex, Double.NaN);
-				spot.getGreySumV6().setValueAt(timeIndex, Double.NaN);
+				spot.getAreaCountColor().setValueAt(timeIndex, Double.NaN);
+				spot.getGreySumColor().setValueAt(timeIndex, Double.NaN);
 			} else {
-				spot.getAreaCountV6().setValueAt(timeIndex, nOver);
-				spot.getGreySumV6().setValueAt(timeIndex, greyVal);
+				spot.getAreaCountColor().setValueAt(timeIndex, nOver);
+				spot.getGreySumColor().setValueAt(timeIndex, greyVal);
 			}
 			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}

@@ -44,7 +44,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 
 		if (options != null && (options.resultType == EnumResults.AGG_SUMCLEAN
 				|| options.resultType == EnumResults.AGG_SUMCLEAN_V5 || options.resultType == EnumResults.AGG_AREA_COUNT_V5
-				|| options.resultType == EnumResults.AGG_SUMCLEAN_V6 || options.resultType == EnumResults.AGG_AREA_COUNT_V6
+				|| options.resultType == EnumResults.AGG_SUMCLEAN_COLOR || options.resultType == EnumResults.AGG_AREA_COUNT_COLOR
 				|| options.resultType == EnumResults.AGG_MEDIANREF)) {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			addAggregateSeries(exp, cage, allSpots, options, dataset);

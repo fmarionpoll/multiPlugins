@@ -76,7 +76,7 @@ public final class CageSpotStimulusAggregation {
 	public static boolean supportsAggregateResultType(EnumResults resultType) {
 		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN
 				|| resultType == EnumResults.AGG_SUMCLEAN_V5 || resultType == EnumResults.AGG_AREA_COUNT_V5
-				|| resultType == EnumResults.AGG_SUMCLEAN_V6 || resultType == EnumResults.AGG_AREA_COUNT_V6
+				|| resultType == EnumResults.AGG_SUMCLEAN_COLOR || resultType == EnumResults.AGG_AREA_COUNT_COLOR
 				|| resultType == EnumResults.AGG_MEDIANREF;
 	}
 
@@ -122,7 +122,7 @@ public final class CageSpotStimulusAggregation {
 		if (options.resultType == EnumResults.AGG_AREA_COUNT_V5) {
 			return buildAreaCountV5AggregatesOnNativeSamples(spots, camTimeMin);
 		}
-		if (options.resultType == EnumResults.AGG_AREA_COUNT_V6) {
+		if (options.resultType == EnumResults.AGG_AREA_COUNT_COLOR) {
 			return buildAreaCountV6AggregatesOnNativeSamples(spots, camTimeMin);
 		}
 
@@ -185,14 +185,14 @@ public final class CageSpotStimulusAggregation {
 		if (buildResultType == EnumResults.AGG_SUMCLEAN_V5) {
 			return s.getGreySumCleanV5();
 		}
-		if (buildResultType == EnumResults.AGG_SUMCLEAN_V6) {
-			return s.getGreySumCleanV6();
+		if (buildResultType == EnumResults.AGG_SUMCLEAN_COLOR) {
+			return s.getGreySumCleanColor();
 		}
 		return s.getSumClean();
 	}
 
 	private static boolean isV5DepletionAggregate(EnumResults buildResultType) {
-		return buildResultType == EnumResults.AGG_SUMCLEAN_V5 || buildResultType == EnumResults.AGG_SUMCLEAN_V6;
+		return buildResultType == EnumResults.AGG_SUMCLEAN_V5 || buildResultType == EnumResults.AGG_SUMCLEAN_COLOR;
 	}
 
 	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin,
@@ -595,7 +595,7 @@ public final class CageSpotStimulusAggregation {
 			if (s == null || s.getProperties() == null) {
 				continue;
 			}
-			SpotMeasure intensity = s.getAreaCountV6();
+			SpotMeasure intensity = s.getAreaCountColor();
 			if (intensity == null) {
 				continue;
 			}
@@ -623,7 +623,7 @@ public final class CageSpotStimulusAggregation {
 		if (s == null || n <= 0) {
 			return null;
 		}
-		SpotMeasure intensity = s.getAreaCountV6();
+		SpotMeasure intensity = s.getAreaCountColor();
 		if (intensity == null || intensity.getValues() == null) {
 			return null;
 		}

@@ -498,19 +498,19 @@ public class SpotsPersistence {
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_COUNT_V6,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_COUNT_COLOR,
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_V6,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_COLOR,
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_V6_PREFLY,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_COLOR_PREFLY,
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_CLEAN_V6,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_CLEAN_COLOR,
 						";")) {
 					return false;
 				}

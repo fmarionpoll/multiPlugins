@@ -443,8 +443,8 @@ public class ChartCagesFrame extends IcyFrame {
 		if ((resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
 				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5
 				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V6
-				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V6
+				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_COLOR
+				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR
 				|| resultsOptions.resultType == EnumResults.AGG_MEDIANREF) && experiment != null
 				&& experiment.getSpots() != null) {
 			resultsOptions.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation

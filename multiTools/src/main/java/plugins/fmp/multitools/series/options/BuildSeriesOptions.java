@@ -270,6 +270,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 			destination.spotColorExcludeList = new ArrayList<>();
 		}
 		destination.spotColorExcludeDistanceMax = spotColorExcludeDistanceMax;
+		destination.transform02 = transform02;
+		destination.flyThreshold = flyThreshold;
+		destination.flyThresholdUp = flyThresholdUp;
 
 	}
 
@@ -295,6 +298,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 			spotColorExcludeList = new ArrayList<>();
 		}
 		spotColorExcludeDistanceMax = destination.spotColorExcludeDistanceMax;
+		transform02 = destination.transform02;
+		flyThreshold = destination.flyThreshold;
+		flyThresholdUp = destination.flyThresholdUp;
 	}
 
 	public void copyParameters(BuildSeriesOptions det) {
@@ -332,48 +338,162 @@ public class BuildSeriesOptions implements XMLPersistent {
 			spotColorExcludeList = new ArrayList<>(det.spotColorExcludeList);
 		}
 		spotColorExcludeDistanceMax = det.spotColorExcludeDistanceMax;
+		transform02 = det.transform02;
+		flyThreshold = det.flyThreshold;
+		flyThresholdUp = det.flyThresholdUp;
+	}
+
+	/**
+	 * Loads only the {@code LimitsOptions} subtree from {@code parent} (child element or {@code parent} itself if it is
+	 * already {@code LimitsOptions}). Used for standalone color-threshold preset files and by {@link #loadFromXML}.
+	 *
+	 * @return true if a limits node was found and read
+	 */
+	public boolean loadLimitsOptionsFromParentNode(Node parent) {
+		if (parent == null) {
+			return false;
+		}
+		Node nodeMeta = XMLUtil.getElement(parent, "LimitsOptions");
+		if (nodeMeta == null && isElementNamed(parent, "LimitsOptions")) {
+			nodeMeta = parent;
+		}
+		if (nodeMeta == null) {
+			return false;
+		}
+		loadFromLimitsOptionsNode(nodeMeta);
+		return true;
+	}
+
+	/**
+	 * Writes the {@code LimitsOptions} subtree under {@code parent} without adding {@code DetectFliesParameters}.
+	 */
+	public boolean saveLimitsOptionsToParentNode(Node parent) {
+		if (parent == null) {
+			return false;
+		}
+		final Node nodeMeta = XMLUtil.setElement(parent, "LimitsOptions");
+		if (nodeMeta == null) {
+			return false;
+		}
+		saveToLimitsOptionsNode(nodeMeta);
+		return true;
+	}
+
+	private static boolean isElementNamed(Node n, String localName) {
+		if (n == null || localName == null) {
+			return false;
+		}
+		String ln = n.getLocalName();
+		if (ln != null) {
+			return localName.equals(ln);
+		}
+		return localName.equals(n.getNodeName());
+	}
+
+	private void loadFromLimitsOptionsNode(Node nodeMeta) {
+		detectTop = XMLUtil.getElementBooleanValue(nodeMeta, "detectTop", detectTop);
+		detectBottom = XMLUtil.getElementBooleanValue(nodeMeta, "detectBottom", detectBottom);
+		detectAllSeries = XMLUtil.getElementBooleanValue(nodeMeta, "detectAllImages", detectAllSeries);
+		spotThresholdUp = XMLUtil.getElementBooleanValue(nodeMeta, "directionUp", spotThresholdUp);
+		seriesFirst = XMLUtil.getElementIntValue(nodeMeta, "firstImage", seriesFirst);
+		spotThreshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
+		transform01 = ImageTransformEnums
+				.findByText(XMLUtil.getElementValue(nodeMeta, "Transform", transform01.toString()));
+		v5SpotLocalMeanRestrictedToRoi = XMLUtil.getElementBooleanValue(nodeMeta, "v5SpotLocalMeanRestrictedToRoi",
+				v5SpotLocalMeanRestrictedToRoi);
+		v5FlyNaNDilationBins = XMLUtil.getElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
+		v5FlyNaNBorderMedianHalfWidth = XMLUtil.getElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth",
+				v5FlyNaNBorderMedianHalfWidth);
+		v5FlyNaNBorderSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio",
+				v5FlyNaNBorderSpikeRatio);
+		v5GreySumCleanSpikeMedianHalfWidth = XMLUtil.getElementIntValue(nodeMeta, "v5GreySumCleanSpikeMedianHalfWidth",
+				v5GreySumCleanSpikeMedianHalfWidth);
+		v5GreySumCleanSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio",
+				v5GreySumCleanSpikeRatio);
+		v5GreySumCleanSpikePasses = XMLUtil.getElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses",
+				v5GreySumCleanSpikePasses);
+
+		String colorRefs = XMLUtil.getElementValue(nodeMeta, "spotColorReferences", null);
+		spotColorReferenceList = decodeSpotColorList(colorRefs);
+		spotColorDistanceMax = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
+		spotColorDistanceType = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
+		spotColorSpace = SpotThresholdColorSpace
+				.fromXmlToken(XMLUtil.getElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken()));
+		String exRefs = XMLUtil.getElementValue(nodeMeta, "spotColorExcludeReferences", null);
+		spotColorExcludeList = decodeSpotColorList(exRefs);
+		spotColorExcludeDistanceMax = XMLUtil.getElementIntValue(nodeMeta, "spotColorExcludeDistanceMax",
+				spotColorExcludeDistanceMax);
+
+		String tf2 = firstNonBlank(XMLUtil.getElementValue(nodeMeta, "colorFlyTransform2", null),
+				XMLUtil.getElementValue(nodeMeta, "v6FlyTransform2", null));
+		if (tf2 != null) {
+			ImageTransformEnums t = ImageTransformEnums.findByText(tf2);
+			if (t != null) {
+				transform02 = t;
+			}
+		}
+		if (XMLUtil.getElement(nodeMeta, "colorFlyThreshold") != null) {
+			flyThreshold = XMLUtil.getElementIntValue(nodeMeta, "colorFlyThreshold", flyThreshold);
+		} else if (XMLUtil.getElement(nodeMeta, "v6FlyThreshold") != null) {
+			flyThreshold = XMLUtil.getElementIntValue(nodeMeta, "v6FlyThreshold", flyThreshold);
+		}
+		if (XMLUtil.getElement(nodeMeta, "colorFlyThresholdUp") != null) {
+			flyThresholdUp = XMLUtil.getElementBooleanValue(nodeMeta, "colorFlyThresholdUp", flyThresholdUp);
+		} else if (XMLUtil.getElement(nodeMeta, "v6FlyThresholdUp") != null) {
+			flyThresholdUp = XMLUtil.getElementBooleanValue(nodeMeta, "v6FlyThresholdUp", flyThresholdUp);
+		}
+
+		buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
+		flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
+				"flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
+	}
+
+	private static String firstNonBlank(String a, String b) {
+		if (a != null && !a.trim().isEmpty()) {
+			return a.trim();
+		}
+		if (b != null && !b.trim().isEmpty()) {
+			return b.trim();
+		}
+		return null;
+	}
+
+	private void saveToLimitsOptionsNode(Node nodeMeta) {
+		XMLUtil.setElementBooleanValue(nodeMeta, "detectTop", detectTop);
+		XMLUtil.setElementBooleanValue(nodeMeta, "detectBottom", detectBottom);
+		XMLUtil.setElementBooleanValue(nodeMeta, "detectAllImages", detectAllSeries);
+		XMLUtil.setElementBooleanValue(nodeMeta, "directionUp", spotThresholdUp);
+		XMLUtil.setElementIntValue(nodeMeta, "firstImage", seriesFirst);
+		XMLUtil.setElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
+		XMLUtil.setElementValue(nodeMeta, "Transform", transform01.toString());
+		XMLUtil.setElementBooleanValue(nodeMeta, "v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
+		XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
+		XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth", v5FlyNaNBorderMedianHalfWidth);
+		XMLUtil.setElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio", v5FlyNaNBorderSpikeRatio);
+		XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikeMedianHalfWidth", v5GreySumCleanSpikeMedianHalfWidth);
+		XMLUtil.setElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio", v5GreySumCleanSpikeRatio);
+		XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses", v5GreySumCleanSpikePasses);
+
+		XMLUtil.setElementValue(nodeMeta, "spotColorReferences", encodeSpotColorList(spotColorReferenceList));
+		XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
+		XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
+		XMLUtil.setElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken());
+		XMLUtil.setElementValue(nodeMeta, "spotColorExcludeReferences", encodeSpotColorList(spotColorExcludeList));
+		XMLUtil.setElementIntValue(nodeMeta, "spotColorExcludeDistanceMax", spotColorExcludeDistanceMax);
+
+		XMLUtil.setElementValue(nodeMeta, "colorFlyTransform2", transform02 != null ? transform02.toString() : "");
+		XMLUtil.setElementIntValue(nodeMeta, "colorFlyThreshold", flyThreshold);
+		XMLUtil.setElementBooleanValue(nodeMeta, "colorFlyThresholdUp", flyThresholdUp);
+
+		XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
+		XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 	}
 
 	@Override
 	public boolean loadFromXML(Node node) {
 		final Node nodeMeta = XMLUtil.getElement(node, "LimitsOptions");
 		if (nodeMeta != null) {
-			detectTop = XMLUtil.getElementBooleanValue(nodeMeta, "detectTop", detectTop);
-			detectBottom = XMLUtil.getElementBooleanValue(nodeMeta, "detectBottom", detectBottom);
-			detectAllSeries = XMLUtil.getElementBooleanValue(nodeMeta, "detectAllImages", detectAllSeries);
-			spotThresholdUp = XMLUtil.getElementBooleanValue(nodeMeta, "directionUp", spotThresholdUp);
-			seriesFirst = XMLUtil.getElementIntValue(nodeMeta, "firstImage", seriesFirst);
-			spotThreshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
-			transform01 = ImageTransformEnums
-					.findByText(XMLUtil.getElementValue(nodeMeta, "Transform", transform01.toString()));
-			v5SpotLocalMeanRestrictedToRoi = XMLUtil.getElementBooleanValue(nodeMeta,
-					"v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
-			v5FlyNaNDilationBins = XMLUtil.getElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
-			v5FlyNaNBorderMedianHalfWidth = XMLUtil.getElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth",
-					v5FlyNaNBorderMedianHalfWidth);
-			v5FlyNaNBorderSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio",
-					v5FlyNaNBorderSpikeRatio);
-			v5GreySumCleanSpikeMedianHalfWidth = XMLUtil.getElementIntValue(nodeMeta,
-					"v5GreySumCleanSpikeMedianHalfWidth", v5GreySumCleanSpikeMedianHalfWidth);
-			v5GreySumCleanSpikeRatio = XMLUtil.getElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio",
-					v5GreySumCleanSpikeRatio);
-			v5GreySumCleanSpikePasses = XMLUtil.getElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses",
-					v5GreySumCleanSpikePasses);
-
-			String colorRefs = XMLUtil.getElementValue(nodeMeta, "spotColorReferences", null);
-			spotColorReferenceList = decodeSpotColorList(colorRefs);
-			spotColorDistanceMax = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
-			spotColorDistanceType = XMLUtil.getElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
-			spotColorSpace = SpotThresholdColorSpace
-					.fromXmlToken(XMLUtil.getElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken()));
-			String exRefs = XMLUtil.getElementValue(nodeMeta, "spotColorExcludeReferences", null);
-			spotColorExcludeList = decodeSpotColorList(exRefs);
-			spotColorExcludeDistanceMax = XMLUtil.getElementIntValue(nodeMeta, "spotColorExcludeDistanceMax",
-					spotColorExcludeDistanceMax);
-
-			buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
-			flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
-					"flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
+			loadFromLimitsOptionsNode(nodeMeta);
 		}
 
 		Element xmlVal = XMLUtil.getElement(node, "DetectFliesParameters");
@@ -402,30 +522,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean saveToXML(Node node) {
 		final Node nodeMeta = XMLUtil.setElement(node, "LimitsOptions");
 		if (nodeMeta != null) {
-			XMLUtil.setElementBooleanValue(nodeMeta, "detectTop", detectTop);
-			XMLUtil.setElementBooleanValue(nodeMeta, "detectBottom", detectBottom);
-			XMLUtil.setElementBooleanValue(nodeMeta, "detectAllImages", detectAllSeries);
-			XMLUtil.setElementBooleanValue(nodeMeta, "directionUp", spotThresholdUp);
-			XMLUtil.setElementIntValue(nodeMeta, "firstImage", seriesFirst);
-			XMLUtil.setElementIntValue(nodeMeta, "detectLevelThreshold", spotThreshold);
-			XMLUtil.setElementValue(nodeMeta, "Transform", transform01.toString());
-			XMLUtil.setElementBooleanValue(nodeMeta, "v5SpotLocalMeanRestrictedToRoi", v5SpotLocalMeanRestrictedToRoi);
-			XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNDilationBins", v5FlyNaNDilationBins);
-			XMLUtil.setElementIntValue(nodeMeta, "v5FlyNaNBorderMedianHalfWidth", v5FlyNaNBorderMedianHalfWidth);
-			XMLUtil.setElementDoubleValue(nodeMeta, "v5FlyNaNBorderSpikeRatio", v5FlyNaNBorderSpikeRatio);
-			XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikeMedianHalfWidth", v5GreySumCleanSpikeMedianHalfWidth);
-			XMLUtil.setElementDoubleValue(nodeMeta, "v5GreySumCleanSpikeRatio", v5GreySumCleanSpikeRatio);
-			XMLUtil.setElementIntValue(nodeMeta, "v5GreySumCleanSpikePasses", v5GreySumCleanSpikePasses);
-
-			XMLUtil.setElementValue(nodeMeta, "spotColorReferences", encodeSpotColorList(spotColorReferenceList));
-			XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceMax", spotColorDistanceMax);
-			XMLUtil.setElementIntValue(nodeMeta, "spotColorDistanceType", spotColorDistanceType);
-			XMLUtil.setElementValue(nodeMeta, "spotColorSpace", spotColorSpace.toXmlToken());
-			XMLUtil.setElementValue(nodeMeta, "spotColorExcludeReferences", encodeSpotColorList(spotColorExcludeList));
-			XMLUtil.setElementIntValue(nodeMeta, "spotColorExcludeDistanceMax", spotColorExcludeDistanceMax);
-
-			XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
-			XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
+			saveToLimitsOptionsNode(nodeMeta);
 		}
 
 		Element xmlVal = XMLUtil.addElement(node, "DetectFliesParameters");

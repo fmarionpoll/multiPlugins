@@ -33,7 +33,7 @@ import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
-import plugins.fmp.multitools.tools.chart.ChartV6SpotsOverlayFrame;
+import plugins.fmp.multitools.tools.chart.ChartColorSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
@@ -42,14 +42,14 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
-public class ChartsV6Panel extends JPanel implements SequenceListener {
+public class ChartsColorPanel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_V6, EnumResults.GREY_SUM_V6,
-			EnumResults.GREY_SUM_V6_PREFLY, EnumResults.GREY_SUM_CLEAN_V6, EnumResults.AGG_SUMCLEAN_V6,
-			EnumResults.AGG_AREA_COUNT_V6, EnumResults.AREA_FLYPRESENT };
+	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_COLOR, EnumResults.GREY_SUM_COLOR,
+			EnumResults.GREY_SUM_COLOR_PREFLY, EnumResults.GREY_SUM_CLEAN_COLOR, EnumResults.AGG_SUMCLEAN_COLOR,
+			EnumResults.AGG_AREA_COUNT_COLOR, EnumResults.AREA_FLYPRESENT };
 	private ChartCagesFrame chartCageArrayFrame = null;
-	private ChartV6SpotsOverlayFrame chartSpotsOverlayFrame = null;
+	private ChartColorSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS96 parent0 = null;
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
@@ -201,7 +201,7 @@ public class ChartsV6Panel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if ((exportType == EnumResults.AGG_SUMCLEAN_V6 || exportType == EnumResults.AGG_AREA_COUNT_V6)
+		if ((exportType == EnumResults.AGG_SUMCLEAN_COLOR || exportType == EnumResults.AGG_AREA_COUNT_COLOR)
 				&& displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
@@ -229,7 +229,7 @@ public class ChartsV6Panel extends JPanel implements SequenceListener {
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
 				.withCageRange(first, last).build();
 		options.relativeToMaximum = relativeToCheckbox.isSelected() && exportType != EnumResults.AREA_FLYPRESENT
-				&& exportType != EnumResults.AGG_SUMCLEAN_V6 && exportType != EnumResults.AGG_AREA_COUNT_V6;
+				&& exportType != EnumResults.AGG_SUMCLEAN_COLOR && exportType != EnumResults.AGG_AREA_COUNT_COLOR;
 		options.spotAggregateByStimulusConc = false;
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
@@ -243,7 +243,7 @@ public class ChartsV6Panel extends JPanel implements SequenceListener {
 
 		iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
 				createChartUIControlsFactory());
-		iChart.createMainChartPanel("Spots measures V6", exp, options);
+		iChart.createMainChartPanel("Spots measures (color-distance)", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
 		if (iChart.getMainChartFrame() != null) {
@@ -275,19 +275,19 @@ public class ChartsV6Panel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(resolveSpotChartStepMs(exp))
 				.withResultType(exportType).withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AREA_FLYPRESENT && exportType != EnumResults.AGG_SUMCLEAN_V6
-				&& exportType != EnumResults.AGG_AREA_COUNT_V6 && relativeToCheckbox.isSelected();
+		options.relativeToMaximum = exportType != EnumResults.AREA_FLYPRESENT && exportType != EnumResults.AGG_SUMCLEAN_COLOR
+				&& exportType != EnumResults.AGG_AREA_COUNT_COLOR && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
-		chartSpotsOverlayFrame = new ChartV6SpotsOverlayFrame();
-		chartSpotsOverlayFrame.createMainChartPanel("Spots measures V6 (selected)", options);
+		chartSpotsOverlayFrame = new ChartColorSpotsOverlayFrame();
+		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (color-distance, selected)", options);
 		chartSpotsOverlayFrame.setSelectedSpotsProvider(
-				() -> ChartV6SpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
+				() -> ChartColorSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setAvailableSpotsProvider(
-				() -> ChartV6SpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
+				() -> ChartColorSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setSpotExclusiveSelectionController(spot -> selectExclusiveSpotRoi(exp, spot));
 		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
-		chartSpotsOverlayFrame.displayData(exp, options, ChartV6SpotsOverlayFrame.dedupeSpots(selectedSpots));
+		chartSpotsOverlayFrame.displayData(exp, options, ChartColorSpotsOverlayFrame.dedupeSpots(selectedSpots));
 		return null;
 	}
 
@@ -332,7 +332,7 @@ public class ChartsV6Panel extends JPanel implements SequenceListener {
 
 	private void updateMeasureDependentControls() {
 		EnumResults sel = exportTypeComboBox != null ? (EnumResults) exportTypeComboBox.getSelectedItem() : null;
-		boolean agg = sel == EnumResults.AGG_SUMCLEAN_V6 || sel == EnumResults.AGG_AREA_COUNT_V6;
+		boolean agg = sel == EnumResults.AGG_SUMCLEAN_COLOR || sel == EnumResults.AGG_AREA_COUNT_COLOR;
 		relativeToCheckbox.setEnabled(!agg);
 		if (agg) {
 			relativeToCheckbox.setSelected(false);
@@ -391,8 +391,8 @@ public class ChartsV6Panel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_V6 ? EnumResults.GREY_SUM_CLEAN_V6
-				: option == EnumResults.AGG_AREA_COUNT_V6 ? EnumResults.AREA_COUNT_V6 : option;
+		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_COLOR ? EnumResults.GREY_SUM_CLEAN_COLOR
+				: option == EnumResults.AGG_AREA_COUNT_COLOR ? EnumResults.AREA_COUNT_COLOR : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

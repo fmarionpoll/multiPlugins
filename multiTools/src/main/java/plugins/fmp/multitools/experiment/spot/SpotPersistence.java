@@ -132,10 +132,10 @@ public class SpotPersistence {
 		case GREY_SUM_V5:
 		case GREY_SUM_V5_PREFLY:
 		case GREY_SUM_CLEAN_V5:
-		case AREA_COUNT_V6:
-		case GREY_SUM_V6:
-		case GREY_SUM_V6_PREFLY:
-		case GREY_SUM_CLEAN_V6:
+		case AREA_COUNT_COLOR:
+		case GREY_SUM_COLOR:
+		case GREY_SUM_COLOR_PREFLY:
+		case GREY_SUM_CLEAN_COLOR:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
 					+ "npts" + sep + "yi\n";
 		default:
@@ -175,17 +175,17 @@ public class SpotPersistence {
 		case GREY_SUM_CLEAN_V5:
 			spot.getGreySumCleanV5().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_COUNT_V6:
-			spot.getAreaCountV6().exportYDataToCsv(sbf, sep);
+		case AREA_COUNT_COLOR:
+			spot.getAreaCountColor().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_V6:
-			spot.getGreySumV6().exportYDataToCsv(sbf, sep);
+		case GREY_SUM_COLOR:
+			spot.getGreySumColor().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_V6_PREFLY:
-			spot.getGreySumV6PreFly().exportYDataToCsv(sbf, sep);
+		case GREY_SUM_COLOR_PREFLY:
+			spot.getGreySumColorPreFly().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_CLEAN_V6:
-			spot.getGreySumCleanV6().exportYDataToCsv(sbf, sep);
+		case GREY_SUM_CLEAN_COLOR:
+			spot.getGreySumCleanColor().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -387,33 +387,33 @@ public class SpotPersistence {
 				spot.getGreySumCleanV5().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_COUNT_V6:
+		case AREA_COUNT_COLOR:
 			if (x && y) {
-				spot.getAreaCountV6().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getAreaCountColor().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getAreaCountV6().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getAreaCountColor().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case GREY_SUM_V6:
+		case GREY_SUM_COLOR:
 			if (x && y) {
-				spot.getGreySumV6().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getGreySumColor().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumV6().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getGreySumColor().importYDataFromCsv(data, DATA_OFFSET);
 			}
-			spot.getMeasurementsV6().rebuildGreySumCleanFromGreySum();
+			spot.getMeasurementsColor().rebuildGreySumCleanFromGreySum();
 			break;
-		case GREY_SUM_V6_PREFLY:
+		case GREY_SUM_COLOR_PREFLY:
 			if (x && y) {
-				spot.getGreySumV6PreFly().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getGreySumColorPreFly().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumV6PreFly().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getGreySumColorPreFly().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case GREY_SUM_CLEAN_V6:
+		case GREY_SUM_CLEAN_COLOR:
 			if (x && y) {
-				spot.getGreySumCleanV6().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getGreySumCleanColor().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumCleanV6().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getGreySumCleanColor().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		default:

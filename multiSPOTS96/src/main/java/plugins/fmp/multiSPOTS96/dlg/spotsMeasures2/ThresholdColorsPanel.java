@@ -19,6 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -30,17 +31,18 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures.SpotsMeasuresUi;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.series.BuildSpotsMeasuresV6;
+import plugins.fmp.multitools.series.BuildSpotsMeasuresColor;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
+public class ThresholdColorsPanel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 
 	private String detectString = "Detect";
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
+	private JButton colorParamsButton = new JButton("Load/Save params…");
 
 	private final ThresholdColors thresholdColors = new ThresholdColors();
 	/**
@@ -69,7 +71,7 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 	private JCheckBox fliesOverlayCheckBox = new JCheckBox("overlay");
 
 	private OverlayThreshold overlayThreshold = null;
-	private WeakReference<BuildSpotsMeasuresV6> processorRef = null;
+	private WeakReference<BuildSpotsMeasuresColor> processorRef = null;
 	private MultiSPOTS96 parent0 = null;
 
 	public void init(GridLayout gridLayout, MultiSPOTS96 parent0) {
@@ -80,6 +82,7 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
 		panel0.add(allSeriesCheckBox);
+		panel0.add(colorParamsButton);
 
 		thresholdColors.init(parent0);
 		thresholdColors.setOnSettingsChanged(() -> {
@@ -121,14 +124,14 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 		declareListeners();
 	}
 
-	private BuildSpotsMeasuresV6 getProcessor() {
+	private BuildSpotsMeasuresColor getProcessor() {
 		if (processorRef != null) {
 			return processorRef.get();
 		}
 		return null;
 	}
 
-	private void setProcessor(BuildSpotsMeasuresV6 processor) {
+	private void setProcessor(BuildSpotsMeasuresColor processor) {
 		this.processorRef = new WeakReference<>(processor);
 	}
 
@@ -278,6 +281,14 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 				}
 			}
 		});
+
+		colorParamsButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				java.awt.Window w = SwingUtilities.getWindowAncestor(ThresholdColorsPanel.this);
+				SpotMeasureColorLimitsDialog.show(w, parent0, ThresholdColorsPanel.this);
+			}
+		});
 	}
 
 	void updateOverlaysThreshold() {
@@ -343,7 +354,7 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 	void startDetection() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			BuildSpotsMeasuresV6 processor = new BuildSpotsMeasuresV6();
+			BuildSpotsMeasuresColor processor = new BuildSpotsMeasuresColor();
 			processor.options = initDetectOptions(exp);
 			processor.addPropertyChangeListener(this);
 			setProcessor(processor);
@@ -353,7 +364,7 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 	}
 
 	private void stopDetection() {
-		BuildSpotsMeasuresV6 processor = getProcessor();
+		BuildSpotsMeasuresColor processor = getProcessor();
 		if (processor != null && !processor.stopFlag) {
 			processor.stopFlag = true;
 		}
@@ -397,6 +408,43 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 		options.useGpuTransforms = false;
 
 		return options;
+	}
+
+	/** Copies color UI + spot mask + fly filter fields into {@code o} (for XML export). */
+	public void copyColorPipelineToPreset(BuildSeriesOptions o) {
+		if (o == null) {
+			return;
+		}
+		thresholdColors.applyToBuildSeriesOptions(o);
+		o.spotThresholdUp = spotsDirectionComboBox.getSelectedIndex() == 1;
+		o.spotThreshold = (int) spotsThresholdSpinner.getValue();
+		Object tf = fliesTransformsComboBox.getSelectedItem();
+		if (tf instanceof ImageTransformEnums) {
+			o.transform02 = (ImageTransformEnums) tf;
+		}
+		o.flyThreshold = (int) fliesThresholdSpinner.getValue();
+		o.flyThresholdUp = fliesDirectionComboBox.getSelectedIndex() == 1;
+	}
+
+	/** Applies a preset built from {@link BuildSeriesOptions#loadLimitsOptionsFromParentNode}. */
+	public void applyColorPipelineFromPreset(BuildSeriesOptions o) {
+		if (o == null) {
+			return;
+		}
+		thresholdColors.applyFromBuildSeriesOptions(o, false);
+		spotsDirectionComboBox.setSelectedIndex(o.spotThresholdUp ? 1 : 0);
+		spotsThresholdSpinner.setValue(Math.max(0, Math.min(255, o.spotThreshold)));
+		if (o.transform02 != null) {
+			fliesTransformsComboBox.setSelectedItem(o.transform02);
+		}
+		fliesThresholdSpinner.setValue(Math.max(0, Math.min(255, o.flyThreshold)));
+		fliesDirectionComboBox.setSelectedIndex(o.flyThresholdUp ? 1 : 0);
+		if (parent0 != null) {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				updateOverlaysThreshold();
+			}
+		}
 	}
 
 	private void clearSpotCanvasTransform(Experiment exp) {
@@ -459,7 +507,7 @@ public class ThresholdV6Panel extends JPanel implements PropertyChangeListener {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_spots_description_and_measures();
-				parent0.dlgMeasureV5.chartsV6Panel.displayChartPanels(exp);
+				parent0.dlgMeasureV5.chartsColorPanel.displayChartPanels(exp);
 			}
 			processorRef = null;
 		}

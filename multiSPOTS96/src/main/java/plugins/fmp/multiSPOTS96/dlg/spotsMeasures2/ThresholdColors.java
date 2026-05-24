@@ -190,6 +190,58 @@ public class ThresholdColors extends JPanel {
 		options.spotColorExcludeDistanceMax = options.spotColorExcludeList.isEmpty() ? 0 : exd;
 	}
 
+	/**
+	 * Fills this widget from {@code options} (inverse of {@link #applyToBuildSeriesOptions}). When
+	 * {@code notifyAfter} is true, runs the same notification path as a user edit (overlay refresh if wired).
+	 */
+	public void applyFromBuildSeriesOptions(BuildSeriesOptions options, boolean notifyAfter) {
+		if (options == null) {
+			return;
+		}
+		boolean prev = isUpdatingDataFromComboAllowed;
+		isUpdatingDataFromComboAllowed = false;
+		try {
+			colorPickCombo.removeAllItems();
+			if (options.spotColorReferenceList != null) {
+				for (Color c : options.spotColorReferenceList) {
+					colorPickCombo.addItem(c);
+				}
+			}
+			excludeColorCombo.removeAllItems();
+			if (options.spotColorExcludeList != null) {
+				for (Color c : options.spotColorExcludeList) {
+					excludeColorCombo.addItem(c);
+				}
+			}
+			int dt = options.spotColorDistanceType;
+			rbL1.setSelected(dt != 2);
+			rbL2.setSelected(dt == 2);
+			distanceSpinner.setValue(Math.max(0, Math.min(800, options.spotColorDistanceMax)));
+			SpotThresholdColorSpace sp = options.spotColorSpace != null ? options.spotColorSpace
+					: SpotThresholdColorSpace.RGB;
+			rbRGB.setSelected(sp == SpotThresholdColorSpace.RGB);
+			rbHSV.setSelected(sp == SpotThresholdColorSpace.HSV);
+			rbH1H2H3.setSelected(sp == SpotThresholdColorSpace.H1H2H3);
+			int exd = options.spotColorExcludeDistanceMax;
+			if (options.spotColorExcludeList == null || options.spotColorExcludeList.isEmpty()) {
+				excludeDistanceSpinner.setValue(0);
+			} else {
+				excludeDistanceSpinner.setValue(Math.max(0, Math.min(800, exd)));
+			}
+			lastComboCount = colorPickCombo.getItemCount();
+			lastExcludeComboCount = excludeColorCombo.getItemCount();
+		} finally {
+			isUpdatingDataFromComboAllowed = prev;
+		}
+		if (notifyAfter) {
+			updateThresholdOverlayParameters();
+		}
+	}
+
+	public void applyFromBuildSeriesOptions(BuildSeriesOptions options) {
+		applyFromBuildSeriesOptions(options, true);
+	}
+
 	private void declareActionListeners() {
 		ActionListener fire = new ActionListener() {
 			@Override

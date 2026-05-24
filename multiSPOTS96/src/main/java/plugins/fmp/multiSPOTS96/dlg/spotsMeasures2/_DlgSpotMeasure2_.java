@@ -18,7 +18,7 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 
 /**
- * Parallel UI for V5 and V6 spot measures (detection + charts only).
+ * Parallel UI for V5 and color-distance spot measures (detection + charts only).
  */
 public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener, ChangeListener {
 
@@ -28,11 +28,11 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 	JTabbedPane tabsPane = new JTabbedPane();
 	public ThresholdV5Panel thresholdV5Panel = new ThresholdV5Panel();
 	public ChartsV5Panel chartsV5Panel = new ChartsV5Panel();
-	public ThresholdV6Panel thresholdV6Panel = new ThresholdV6Panel();
-	public ChartsV6Panel chartsV6Panel = new ChartsV6Panel();
+	public ThresholdColorsPanel thresholdColorsPanel = new ThresholdColorsPanel();
+	public ChartsColorPanel chartsColorPanel = new ChartsColorPanel();
 
 	private int idThresholdTabV5 = 0;
-	private int idThresholdTabV6 = 2;
+	private int idThresholdTabColor = 2;
 	private MultiSPOTS96 parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiSPOTS96 parent0) {
@@ -57,15 +57,15 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		tabsPane.addTab("V5 charts", null, chartsV5Panel, "Display V5 spot results");
 		order++;
 
-		thresholdV6Panel.init(gridLayout, parent0);
-		thresholdV6Panel.addPropertyChangeListener(this);
-		tabsPane.addTab("V6 threshold", null, thresholdV6Panel, "V6 color-distance spot measures from camera");
-		idThresholdTabV6 = order;
+		thresholdColorsPanel.init(gridLayout, parent0);
+		thresholdColorsPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Color threshold", null, thresholdColorsPanel, "Color-distance spot measures from camera");
+		idThresholdTabColor = order;
 		order++;
 
-		chartsV6Panel.init(gridLayout, parent0);
-		chartsV6Panel.addPropertyChangeListener(this);
-		tabsPane.addTab("V6 charts", null, chartsV6Panel, "Display V6 spot results");
+		chartsColorPanel.init(gridLayout, parent0);
+		chartsColorPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Color charts", null, chartsColorPanel, "Display color-distance spot results");
 		order++;
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -111,7 +111,7 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		int selectedIndex = tabbedPane.getSelectedIndex();
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			boolean loadCam = (selectedIndex == idThresholdTabV5 || selectedIndex == idThresholdTabV6);
+			boolean loadCam = (selectedIndex == idThresholdTabV5 || selectedIndex == idThresholdTabColor);
 			if (loadCam) {
 				exp.loadCamDataSpots();
 			}

@@ -21,18 +21,18 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Selected-spot overlay for V6 spot measures. Uses explicit checkboxes for
- * {@code AREA_COUNT_V6}, {@code GREY_SUM_V6}, {@code GREY_SUM_V6_PREFLY} (grey before fly-occupancy NaN),
+ * Selected-spot overlay for color-distance spot measures. Uses explicit checkboxes for
+ * on-disk keys {@code AREA_COUNT_V6}, {@code GREY_SUM_V6}, {@code GREY_SUM_V6_PREFLY},
  * {@code GREY_SUM_CLEAN_V6}, and fly presence,
  * plus a second row for legacy area series {@code AREA_SUM}, {@code AREA_SUMNOFLY},
  * {@code AREA_SUMCLEAN} (same as {@link ChartSpotsOverlayFrame}).
  */
-public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
+public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
-	private final JCheckBox cbAreaCountV6 = new JCheckBox("AREA_COUNT_V6");
-	private final JCheckBox cbGreySumV6 = new JCheckBox("GREY_SUM_V6");
-	private final JCheckBox cbGreySumV6PreFly = new JCheckBox("GREY_SUM_V6_PREFLY");
-	private final JCheckBox cbGreySumCleanV6 = new JCheckBox("GREY_SUM_CLEAN_V6");
+	private final JCheckBox cbAreaCountColor = new JCheckBox("AREA_COUNT_V6");
+	private final JCheckBox cbGreySumColor = new JCheckBox("GREY_SUM_V6");
+	private final JCheckBox cbGreySumColorPreFly = new JCheckBox("GREY_SUM_V6_PREFLY");
+	private final JCheckBox cbGreySumCleanColor = new JCheckBox("GREY_SUM_CLEAN_V6");
 
 	/** When several spots are overlaid, prefer the measure the user just toggled on. */
 	private JCheckBox lastOverlayMeasureActionSource = null;
@@ -49,10 +49,10 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		refreshSpotSelectorModel(false);
 		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
 
-		row1.add(cbAreaCountV6);
-		row1.add(cbGreySumV6);
-		row1.add(cbGreySumV6PreFly);
-		row1.add(cbGreySumCleanV6);
+		row1.add(cbAreaCountColor);
+		row1.add(cbGreySumColor);
+		row1.add(cbGreySumColorPreFly);
+		row1.add(cbGreySumCleanColor);
 		row1.add(cbFlyPresent);
 		row1.add(cbDepletion);
 		row1.add(spotSelectorCombo);
@@ -67,10 +67,10 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
 		updateButton.addActionListener(e -> refreshChart());
 
-		cbAreaCountV6.addActionListener(this::onOverlayMeasureCheckboxAction);
-		cbGreySumV6.addActionListener(this::onOverlayMeasureCheckboxAction);
-		cbGreySumV6PreFly.addActionListener(this::onOverlayMeasureCheckboxAction);
-		cbGreySumCleanV6.addActionListener(this::onOverlayMeasureCheckboxAction);
+		cbAreaCountColor.addActionListener(this::onOverlayMeasureCheckboxAction);
+		cbGreySumColor.addActionListener(this::onOverlayMeasureCheckboxAction);
+		cbGreySumColorPreFly.addActionListener(this::onOverlayMeasureCheckboxAction);
+		cbGreySumCleanColor.addActionListener(this::onOverlayMeasureCheckboxAction);
 		cbFlyPresent.addActionListener(this::onOverlayMeasureCheckboxAction);
 		cbSum.addActionListener(this::onOverlayMeasureCheckboxAction);
 		cbNoFly.addActionListener(this::onOverlayMeasureCheckboxAction);
@@ -91,7 +91,7 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	}
 
 	private boolean isTrackedOverlayMeasureCheckbox(JCheckBox cb) {
-		return cb == cbAreaCountV6 || cb == cbGreySumV6 || cb == cbGreySumV6PreFly || cb == cbGreySumCleanV6
+		return cb == cbAreaCountColor || cb == cbGreySumColor || cb == cbGreySumColorPreFly || cb == cbGreySumCleanColor
 				|| cb == cbFlyPresent
 				|| cb == cbSum || cb == cbNoFly || cb == cbClean;
 	}
@@ -100,23 +100,23 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	protected void setCheckboxDefaults(ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : null;
 		cbCleanV3.setSelected(false);
-		cbAreaCountV6.setSelected(false);
-		cbGreySumV6.setSelected(false);
-		cbGreySumV6PreFly.setSelected(false);
-		cbGreySumCleanV6.setSelected(false);
+		cbAreaCountColor.setSelected(false);
+		cbGreySumColor.setSelected(false);
+		cbGreySumColorPreFly.setSelected(false);
+		cbGreySumCleanColor.setSelected(false);
 		cbFlyPresent.setSelected(false);
 		cbSum.setSelected(false);
 		cbNoFly.setSelected(false);
 		cbClean.setSelected(false);
 
-		if (rt == EnumResults.AREA_COUNT_V6) {
-			cbAreaCountV6.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_V6) {
-			cbGreySumV6.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_V6_PREFLY) {
-			cbGreySumV6PreFly.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_CLEAN_V6) {
-			cbGreySumCleanV6.setSelected(true);
+		if (rt == EnumResults.AREA_COUNT_COLOR) {
+			cbAreaCountColor.setSelected(true);
+		} else if (rt == EnumResults.GREY_SUM_COLOR) {
+			cbGreySumColor.setSelected(true);
+		} else if (rt == EnumResults.GREY_SUM_COLOR_PREFLY) {
+			cbGreySumColorPreFly.setSelected(true);
+		} else if (rt == EnumResults.GREY_SUM_CLEAN_COLOR) {
+			cbGreySumCleanColor.setSelected(true);
 		} else if (resultLabelEquals(rt, "AREA_FLYPRESENT")) {
 			cbFlyPresent.setSelected(true);
 		} else if (resultLabelEquals(rt, "AREA_SUM")) {
@@ -126,7 +126,7 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		} else if (resultLabelEquals(rt, "AREA_SUMCLEAN") || resultLabelEquals(rt, "AREA_SUMCLEAN_V3")) {
 			cbClean.setSelected(true);
 		} else {
-			cbGreySumCleanV6.setSelected(true);
+			cbGreySumCleanColor.setSelected(true);
 		}
 	}
 
@@ -145,18 +145,18 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 			keep = lastOverlayMeasureActionSource;
 		}
 		if (keep == null) {
-			keep = cbGreySumCleanV6.isSelected() ? cbGreySumCleanV6
-					: cbGreySumV6PreFly.isSelected() ? cbGreySumV6PreFly
-							: cbGreySumV6.isSelected() ? cbGreySumV6
-									: cbAreaCountV6.isSelected() ? cbAreaCountV6
+			keep = cbGreySumCleanColor.isSelected() ? cbGreySumCleanColor
+					: cbGreySumColorPreFly.isSelected() ? cbGreySumColorPreFly
+							: cbGreySumColor.isSelected() ? cbGreySumColor
+									: cbAreaCountColor.isSelected() ? cbAreaCountColor
 											: cbClean.isSelected() ? cbClean
 													: cbNoFly.isSelected() ? cbNoFly
 															: cbSum.isSelected() ? cbSum : cbFlyPresent;
 		}
-		cbAreaCountV6.setSelected(keep == cbAreaCountV6);
-		cbGreySumV6.setSelected(keep == cbGreySumV6);
-		cbGreySumV6PreFly.setSelected(keep == cbGreySumV6PreFly);
-		cbGreySumCleanV6.setSelected(keep == cbGreySumCleanV6);
+		cbAreaCountColor.setSelected(keep == cbAreaCountColor);
+		cbGreySumColor.setSelected(keep == cbGreySumColor);
+		cbGreySumColorPreFly.setSelected(keep == cbGreySumColorPreFly);
+		cbGreySumCleanColor.setSelected(keep == cbGreySumCleanColor);
 		cbFlyPresent.setSelected(keep == cbFlyPresent);
 		cbSum.setSelected(keep == cbSum);
 		cbNoFly.setSelected(keep == cbNoFly);
@@ -165,16 +165,16 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
 	private int countSelectedOverlayMeasures() {
 		int n = 0;
-		if (cbAreaCountV6.isSelected()) {
+		if (cbAreaCountColor.isSelected()) {
 			n++;
 		}
-		if (cbGreySumV6.isSelected()) {
+		if (cbGreySumColor.isSelected()) {
 			n++;
 		}
-		if (cbGreySumV6PreFly.isSelected()) {
+		if (cbGreySumColorPreFly.isSelected()) {
 			n++;
 		}
-		if (cbGreySumCleanV6.isSelected()) {
+		if (cbGreySumCleanColor.isSelected()) {
 			n++;
 		}
 		if (cbFlyPresent.isSelected()) {
@@ -195,17 +195,17 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	@Override
 	protected List<EnumResults> getEnabledMeasures(ResultsOptions options) {
 		List<EnumResults> out = new ArrayList<>();
-		if (cbAreaCountV6.isSelected()) {
-			out.add(EnumResults.AREA_COUNT_V6);
+		if (cbAreaCountColor.isSelected()) {
+			out.add(EnumResults.AREA_COUNT_COLOR);
 		}
-		if (cbGreySumV6.isSelected()) {
-			out.add(EnumResults.GREY_SUM_V6);
+		if (cbGreySumColor.isSelected()) {
+			out.add(EnumResults.GREY_SUM_COLOR);
 		}
-		if (cbGreySumV6PreFly.isSelected()) {
-			out.add(EnumResults.GREY_SUM_V6_PREFLY);
+		if (cbGreySumColorPreFly.isSelected()) {
+			out.add(EnumResults.GREY_SUM_COLOR_PREFLY);
 		}
-		if (cbGreySumCleanV6.isSelected()) {
-			out.add(EnumResults.GREY_SUM_CLEAN_V6);
+		if (cbGreySumCleanColor.isSelected()) {
+			out.add(EnumResults.GREY_SUM_CLEAN_COLOR);
 		}
 		if (cbFlyPresent.isSelected()) {
 			addResultIfDefined(out, "AREA_FLYPRESENT");
@@ -280,13 +280,13 @@ public class ChartV6SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 			return Color.BLACK;
 		}
 		switch (resultType.name()) {
-		case "AREA_COUNT_V6":
+		case "AREA_COUNT_COLOR":
 			return new Color(0, 102, 153);
-		case "GREY_SUM_V6":
+		case "GREY_SUM_COLOR":
 			return new Color(0, 120, 70);
-		case "GREY_SUM_V6_PREFLY":
+		case "GREY_SUM_COLOR_PREFLY":
 			return new Color(180, 95, 20);
-		case "GREY_SUM_CLEAN_V6":
+		case "GREY_SUM_CLEAN_COLOR":
 			return new Color(0, 170, 95);
 		default:
 			return super.pickMeasureColor(resultType);

@@ -1381,8 +1381,8 @@ public class Cages {
 			return;
 		}
 		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_SUMCLEAN_V5
-				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_SUMCLEAN_V6
-				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V6 || opt.resultType == EnumResults.AGG_MEDIANREF
+				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_SUMCLEAN_COLOR
+				|| opt.resultType == EnumResults.AGG_AREA_COUNT_COLOR || opt.resultType == EnumResults.AGG_MEDIANREF
 				|| opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
@@ -1401,18 +1401,18 @@ public class Cages {
 			buildRt = EnumResults.AGG_SUMCLEAN_V5;
 		} else if (savedRt == EnumResults.AGG_AREA_COUNT_V5) {
 			buildRt = EnumResults.AGG_AREA_COUNT_V5;
-		} else if (savedRt == EnumResults.AGG_SUMCLEAN_V6) {
-			buildRt = EnumResults.AGG_SUMCLEAN_V6;
-		} else if (savedRt == EnumResults.AGG_AREA_COUNT_V6) {
-			buildRt = EnumResults.AGG_AREA_COUNT_V6;
+		} else if (savedRt == EnumResults.AGG_SUMCLEAN_COLOR) {
+			buildRt = EnumResults.AGG_SUMCLEAN_COLOR;
+		} else if (savedRt == EnumResults.AGG_AREA_COUNT_COLOR) {
+			buildRt = EnumResults.AGG_AREA_COUNT_COLOR;
 		} else if (savedRt == EnumResults.GREY_SUM_CLEAN_V5 && opt.spotAggregateByStimulusConc) {
 			buildRt = EnumResults.AGG_SUMCLEAN_V5;
-		} else if (savedRt == EnumResults.GREY_SUM_CLEAN_V6 && opt.spotAggregateByStimulusConc) {
-			buildRt = EnumResults.AGG_SUMCLEAN_V6;
+		} else if (savedRt == EnumResults.GREY_SUM_CLEAN_COLOR && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_SUMCLEAN_COLOR;
 		} else if (savedRt == EnumResults.AREA_COUNT_V5 && opt.spotAggregateByStimulusConc) {
 			buildRt = EnumResults.AGG_AREA_COUNT_V5;
-		} else if (savedRt == EnumResults.AREA_COUNT_V6 && opt.spotAggregateByStimulusConc) {
-			buildRt = EnumResults.AGG_AREA_COUNT_V6;
+		} else if (savedRt == EnumResults.AREA_COUNT_COLOR && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_AREA_COUNT_COLOR;
 		} else {
 			buildRt = EnumResults.AREA_SUMCLEAN;
 		}
@@ -1433,15 +1433,15 @@ public class Cages {
 				if (savedRt == EnumResults.AGG_SUMCLEAN_V5
 						|| (savedRt == EnumResults.GREY_SUM_CLEAN_V5 && opt.spotAggregateByStimulusConc)) {
 					aggTag = EnumResults.AGG_SUMCLEAN_V5;
-				} else if (savedRt == EnumResults.AGG_SUMCLEAN_V6
-						|| (savedRt == EnumResults.GREY_SUM_CLEAN_V6 && opt.spotAggregateByStimulusConc)) {
-					aggTag = EnumResults.AGG_SUMCLEAN_V6;
+				} else if (savedRt == EnumResults.AGG_SUMCLEAN_COLOR
+						|| (savedRt == EnumResults.GREY_SUM_CLEAN_COLOR && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_SUMCLEAN_COLOR;
 				} else if (savedRt == EnumResults.AGG_AREA_COUNT_V5
 						|| (savedRt == EnumResults.AREA_COUNT_V5 && opt.spotAggregateByStimulusConc)) {
 					aggTag = EnumResults.AGG_AREA_COUNT_V5;
-				} else if (savedRt == EnumResults.AGG_AREA_COUNT_V6
-						|| (savedRt == EnumResults.AREA_COUNT_V6 && opt.spotAggregateByStimulusConc)) {
-					aggTag = EnumResults.AGG_AREA_COUNT_V6;
+				} else if (savedRt == EnumResults.AGG_AREA_COUNT_COLOR
+						|| (savedRt == EnumResults.AREA_COUNT_COLOR && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_AREA_COUNT_COLOR;
 				} else {
 					aggTag = EnumResults.AGG_SUMCLEAN;
 				}

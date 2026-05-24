@@ -197,12 +197,12 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case AGG_SUMCLEAN:
 		case AGG_SUMCLEAN_V5:
 		case AGG_AREA_COUNT_V5:
-		case AREA_COUNT_V6:
-		case GREY_SUM_V6:
-		case GREY_SUM_V6_PREFLY:
-		case GREY_SUM_CLEAN_V6:
-		case AGG_SUMCLEAN_V6:
-		case AGG_AREA_COUNT_V6:
+		case AREA_COUNT_COLOR:
+		case GREY_SUM_COLOR:
+		case GREY_SUM_COLOR_PREFLY:
+		case GREY_SUM_CLEAN_COLOR:
+		case AGG_SUMCLEAN_COLOR:
+		case AGG_AREA_COUNT_COLOR:
 		case AGG_MEDIANREF:
 			return true;
 		default:
@@ -213,7 +213,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	private void fillSpotLegendPanel(ResultsOptions opts, Experiment exp, XYSeriesCollection dataset) {
 		EnumResults rt = opts.resultType;
 		if (rt == EnumResults.AGG_SUMCLEAN || rt == EnumResults.AGG_SUMCLEAN_V5 || rt == EnumResults.AGG_AREA_COUNT_V5
-				|| rt == EnumResults.AGG_SUMCLEAN_V6 || rt == EnumResults.AGG_AREA_COUNT_V6
+				|| rt == EnumResults.AGG_SUMCLEAN_COLOR || rt == EnumResults.AGG_AREA_COUNT_COLOR
 				|| rt == EnumResults.AGG_MEDIANREF) {
 			if (dataset != null && dataset.getSeriesCount() > 0) {
 				for (int i = 0; i < dataset.getSeriesCount(); i++) {

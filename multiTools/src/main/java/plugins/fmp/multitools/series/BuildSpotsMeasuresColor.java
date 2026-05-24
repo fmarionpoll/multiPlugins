@@ -5,13 +5,13 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SpotLevelDetectionRunner;
-import plugins.fmp.multitools.service.SpotLevelDetectorFromCamV6;
+import plugins.fmp.multitools.service.SpotLevelDetectorFromCamColor;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Memory-light series that computes V6 color-distance spot measures via {@link SpotLevelDetectorFromCamV6}.
+ * Memory-light series that computes color-distance spot measures via {@link SpotLevelDetectorFromCamColor}.
  */
-public class BuildSpotsMeasuresV6 extends BuildSeries {
+public class BuildSpotsMeasuresColor extends BuildSeries {
 
 	@Override
 	void analyzeExperiment(Experiment exp) {
@@ -40,12 +40,12 @@ public class BuildSpotsMeasuresV6 extends BuildSeries {
 			spots.setReadyToAnalyze(true, options);
 		}
 
-		SpotLevelDetectionRunner runner = new SpotLevelDetectorFromCamV6();
+		SpotLevelDetectionRunner runner = new SpotLevelDetectorFromCamColor();
 
 		long t0 = System.nanoTime();
 		runner.detectSpots(exp, options);
 		long elapsedMs = (System.nanoTime() - t0) / 1_000_000L;
-		Logger.info("BuildSpotsMeasuresV6: analyzeExperiment completed in " + elapsedMs + " ms");
+		Logger.info("BuildSpotsMeasuresColor: analyzeExperiment completed in " + elapsedMs + " ms");
 
 		if (spots != null) {
 			spots.setReadyToAnalyze(false, options);
