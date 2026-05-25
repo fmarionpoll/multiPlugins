@@ -187,6 +187,21 @@ public class KymographBuilder {
 		return failures;
 	}
 
+	/** Exposes safe TIFF write for cage-spot kymograph export (same temp-then-move as capillary kymos). */
+	public static void saveKymographTiffSafely(IcyBufferedImage image, File target) throws FormatException, IOException {
+		saveImageSafely(image, target);
+	}
+
+	/** Bin flip-flop / lock handling shared with capillary kymograph rebuilds. */
+	public static String chooseWritableBinSubDirectoryForKymograph(Experiment exp, String preferredBinDir,
+			BuildSeriesOptions options) {
+		return chooseWritableBinSubDirectory(exp, preferredBinDir, options);
+	}
+
+	public static void copyMeasuresBetweenBinsForExperiment(Experiment exp, String fromBinDir, String toBinDir) {
+		copyMeasuresBetweenBins(exp, fromBinDir, toBinDir);
+	}
+
 	public boolean buildKymograph(Experiment exp, BuildSeriesOptions options) {
 		if (exp.getCapillaries().getList().size() < 1) {
 			Logger.warn("KymographBuilder:buildKymo Abort (1): nbcapillaries = 0");

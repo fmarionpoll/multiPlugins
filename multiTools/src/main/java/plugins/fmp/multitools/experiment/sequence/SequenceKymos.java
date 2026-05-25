@@ -706,6 +706,58 @@ public class SequenceKymos extends SequenceCamData {
 		}
 	}
 
+	/**
+	 * One descriptor per cage for stacked cage kymographs written by
+	 * {@link plugins.fmp.multitools.service.CageSpotKymographBuilder} ({@code kymocage_<id>.tiff}).
+	 */
+	public List<ImageFileData> createCageSpotKymographFileList(String baseDirectory, Cages cages) {
+		if (baseDirectory == null || baseDirectory.trim().isEmpty()) {
+			throw new IllegalArgumentException("Base directory cannot be null or empty");
+		}
+		if (cages == null) {
+			throw new IllegalArgumentException("Cages array cannot be null");
+		}
+
+		processingLock.lock();
+		try {
+			String fullDirectory = baseDirectory + File.separator;
+
+			if (cages.cagesList.isEmpty()) {
+				Logger.warn("No cages found for cage kymograph file list");
+				return new ArrayList<>();
+			}
+
+			List<ImageFileData> fileList = new ArrayList<>(cages.cagesList.size());
+			int idx = 0;
+			for (Cage cage : cages.cagesList) {
+				int cid = cage.prop.getCageID();
+				String base = "kymocage_" + (cid >= 0 ? String.valueOf(cid) : "i" + idx);
+				String pathTiff = fullDirectory + base + ".tiff";
+				String pathTif = fullDirectory + base + ".tif";
+				File fTiff = new File(pathTiff);
+				File fTif = new File(pathTif);
+
+				ImageFileData descriptor = new ImageFileData();
+				if (fTiff.exists()) {
+					descriptor.fileName = pathTiff;
+					descriptor.exists = true;
+				} else if (fTif.exists()) {
+					descriptor.fileName = pathTif;
+					descriptor.exists = true;
+				} else {
+					descriptor.fileName = pathTiff;
+					descriptor.exists = false;
+				}
+				fileList.add(descriptor);
+				idx++;
+			}
+			return fileList;
+
+		} finally {
+			processingLock.unlock();
+		}
+	}
+
 	// === CONFIGURATION ===
 
 	/**

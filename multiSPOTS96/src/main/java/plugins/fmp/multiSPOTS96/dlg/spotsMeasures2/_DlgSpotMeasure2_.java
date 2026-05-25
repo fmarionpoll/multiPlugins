@@ -33,9 +33,11 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 	public ChartsColorPanel chartsColorPanel = new ChartsColorPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 	public SpotMeasureColorParamsPanel spotMeasureColorParamsPanel;
+	public CageKymographsPanel cageKymographsPanel = new CageKymographsPanel();
 
 	private int idThresholdTabV5 = 0;
 	private int idThresholdTabColor = 2;
+	private int idKymographsTab = 4;
 	private MultiSPOTS96 parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiSPOTS96 parent0) {
@@ -69,6 +71,12 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		chartsColorPanel.init(gridLayout, parent0);
 		chartsColorPanel.addPropertyChangeListener(this);
 		tabsPane.addTab("Color charts", null, chartsColorPanel, "Display color-distance spot results");
+		order++;
+
+		cageKymographsPanel.init(gridLayout, parent0);
+		tabsPane.addTab("Kymographs", null, cageKymographsPanel,
+				"Build stacked vertical-line kymographs per cage (experimental)");
+		idKymographsTab = order;
 		order++;
 
 		loadSavePanel.init(gridLayout, parent0);
@@ -123,7 +131,8 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		int selectedIndex = tabbedPane.getSelectedIndex();
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
-			boolean loadCam = (selectedIndex == idThresholdTabV5 || selectedIndex == idThresholdTabColor);
+			boolean loadCam = (selectedIndex == idThresholdTabV5 || selectedIndex == idThresholdTabColor
+					|| selectedIndex == idKymographsTab);
 			if (loadCam) {
 				exp.loadCamDataSpots();
 			}

@@ -810,6 +810,9 @@ public class Experiment {
 	}
 
 	public String getDirectoryToSaveResults() {
+		if (resultsDirectory == null) {
+			return null;
+		}
 		Path dir = Paths.get(resultsDirectory);
 		if (binDirectory != null)
 			dir = dir.resolve(binDirectory);
@@ -817,6 +820,21 @@ public class Experiment {
 		if (!createDirectoryIfDoesNotExist(directory))
 			directory = null;
 		return directory;
+	}
+
+	/**
+	 * Sets {@link #resultsDirectory} from the camera stack folder + {@code results/} when it is
+	 * still null (same bootstrap as {@link #loadExperimentDescriptors()}). Needed for workflows
+	 * that save to disk without reloading XML (e.g. cage kymograph build).
+	 */
+	public void ensureResultsDirectoryFromImagesFolder() {
+		if (resultsDirectory == null && seqCamData != null) {
+			String img = seqCamData.getImagesDirectory();
+			if (img != null && !img.isEmpty()) {
+				camDataImagesDirectory = img;
+				resultsDirectory = camDataImagesDirectory + File.separator + RESULTS;
+			}
+		}
 	}
 
 	// -------------------------------

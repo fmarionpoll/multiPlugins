@@ -94,14 +94,13 @@ public class ThresholdColors extends JPanel {
 		bgcs.add(rbRGB);
 		bgcs.add(rbHSV);
 		bgcs.add(rbH1H2H3);
-//		JPanel panel2 = new JPanel(layoutLeft);
+
 		panel1.add(colorspaceLabel);
 		panel1.add(rbRGB);
 		panel1.add(rbHSV);
 		panel1.add(rbH1H2H3);
 
 		JPanel panelInclude = new JPanel(layoutLeft);
-//		panelInclude.add(new JLabel("Include"));
 		panelInclude.add(pickIncludeButton);
 		panelInclude.add(colorIncludeCombo);
 		panelInclude.add(deleteIncludeButton);
@@ -109,7 +108,6 @@ public class ThresholdColors extends JPanel {
 		panelInclude.add(includeDistanceSpinner);
 
 		JPanel panelExclude = new JPanel(layoutLeft);
-//		panelExclude.add(new JLabel("Exclude "));
 		panelExclude.add(pickExcludeButton);
 		panelExclude.add(colorExcludeCombo);
 		panelExclude.add(deleteExcludeButton);

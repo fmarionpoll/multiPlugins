@@ -43,41 +43,72 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 	@Override
 	protected Integer doInBackground() throws Exception {
-		threadRunning = true;
 		int nbiterations = 0;
-		JComboBoxExperimentLazy expList = options.expList;
+		final JComboBoxExperimentLazy expList = options.expList;
 		ProgressFrame progress = new ProgressFrame("Analyze series");
-		selectedExperimentIndex = expList.getSelectedIndex();
-		selectList(expList, -1);
-
-		for (int index = expList.index0; index <= expList.index1; index++, nbiterations++) {
-			if (stopFlag)
-				break;
-			long startTimeInNs = System.nanoTime();
-			Experiment exp = expList.getItemAt(index);
-			progress.setMessage("Processing file: " + (index + 1) + "//" + (expList.index1 + 1));
-
-			analyzeExperiment(exp);
-			long endTime2InNs = System.nanoTime();
-			Logger.debug(
-					"BuildSeries (" + index + " / " + expList.index1 + "):doInBackground process ended - duration: "
-							+ ((endTime2InNs - startTimeInNs) / 1000000000f) + " s");
-
-			// Force multiple GC passes with delays to help free memory for next experiment
-			for (int i = 0; i < 3; i++) {
-				System.gc();
-				try {
-					Thread.sleep(200); // Give GC time to work
-				} catch (InterruptedException e) {
-					Thread.currentThread().interrupt();
+		final ArrayList<Experiment> experimentsBatch = new ArrayList<>();
+		try {
+			SwingUtilities.invokeAndWait(new Runnable() {
+				@Override
+				public void run() {
+					selectedExperimentIndex = expList.getSelectedIndex();
+					int i0 = expList.index0;
+					int i1 = expList.index1;
+					if (i0 < 0 || i1 < i0) {
+						Logger.warn("BuildSeries: invalid experiment index range " + i0 + ".." + i1);
+						return;
+					}
+					for (int i = i0; i <= i1; i++) {
+						Experiment e = expList.getItemAt(i);
+						if (e != null) {
+							experimentsBatch.add(e);
+						} else {
+							Logger.warn("BuildSeries: null experiment at combo index " + i);
+						}
+					}
 				}
+			});
+		} catch (InvocationTargetException | InterruptedException e) {
+			Logger.error("BuildSeries: failed to read experiment list on EDT", e);
+			if (e instanceof InterruptedException) {
+				Thread.currentThread().interrupt();
 			}
+			return 0;
 		}
-		progress.close();
-		threadRunning = false;
 
-		selectList(expList, selectedExperimentIndex);
-		return nbiterations;
+		try {
+			threadRunning = true;
+			selectList(expList, -1);
+
+			for (int i = 0; i < experimentsBatch.size(); i++) {
+				if (stopFlag)
+					break;
+				long startTimeInNs = System.nanoTime();
+				Experiment exp = experimentsBatch.get(i);
+				progress.setMessage("Processing file: " + (i + 1) + "//" + experimentsBatch.size());
+
+				analyzeExperiment(exp);
+				long endTime2InNs = System.nanoTime();
+				Logger.debug("BuildSeries (" + (i + 1) + " / " + experimentsBatch.size()
+						+ "):doInBackground process ended - duration: "
+						+ ((endTime2InNs - startTimeInNs) / 1000000000f) + " s");
+
+				for (int g = 0; g < 3; g++) {
+					System.gc();
+					try {
+						Thread.sleep(200);
+					} catch (InterruptedException e) {
+						Thread.currentThread().interrupt();
+					}
+				}
+				nbiterations++;
+			}
+			return nbiterations;
+		} finally {
+			threadRunning = false;
+			progress.close();
+			selectList(expList, selectedExperimentIndex);
+		}
 	}
 
 	private void selectList(JComboBoxExperimentLazy expList, int index) {
