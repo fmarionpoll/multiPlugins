@@ -15,6 +15,7 @@ import icy.preferences.GeneralPreferences;
 import plugins.fmp.multiSPOTS96.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS96.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS96.dlg.export._DlgExport_;
+import plugins.fmp.multiSPOTS96.dlg.kymograph._DlgKymos_;
 import plugins.fmp.multiSPOTS96.dlg.spots._DlgSpots_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures._DlgSpotMeasure_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures2._DlgSpotMeasure2_;
@@ -34,6 +35,7 @@ public class MultiSPOTS96 extends PluginActionable {
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();
 	public _DlgSpotMeasure_ dlgMeasure = new _DlgSpotMeasure_();
 	public _DlgSpotMeasure2_ dlgMeasureV5 = new _DlgSpotMeasure2_();
+	public _DlgKymos_ dlgKymos = new _DlgKymos_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();
@@ -58,6 +60,7 @@ public class MultiSPOTS96 extends PluginActionable {
 		dlgSpots.init(mainPanel, "Spots", this);
 		dlgMeasure.init(mainPanel, "Measure spots", this);
 		dlgMeasureV5.init(mainPanel, "Measure spots - experimental", this);
+		dlgKymos.init(mainPanel, "Kymographs", this);
 		dlgExcel.init(mainPanel, "Export", this);
 
 		mainFrame.setLayout(new BorderLayout());

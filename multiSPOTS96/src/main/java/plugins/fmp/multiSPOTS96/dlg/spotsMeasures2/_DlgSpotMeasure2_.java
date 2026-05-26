@@ -19,7 +19,8 @@ import plugins.fmp.multiSPOTS96.dlg.spotsMeasures.LoadSavePanel;
 import plugins.fmp.multitools.experiment.Experiment;
 
 /**
- * Parallel UI for V5 and color-distance spot measures (detection + charts only).
+ * Parallel UI for V5 and color-distance spot measures (detection + charts
+ * only).
  */
 public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener, ChangeListener {
 
@@ -33,7 +34,7 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 	public ChartsColorPanel chartsColorPanel = new ChartsColorPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 	public SpotMeasureColorParamsPanel spotMeasureColorParamsPanel;
-	public CageKymographsPanel cageKymographsPanel = new CageKymographsPanel();
+//	public CageKymographsPanel cageKymographsPanel = new CageKymographsPanel();
 
 	private int idThresholdTabV5 = 0;
 	private int idThresholdTabColor = 2;
@@ -73,11 +74,11 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		tabsPane.addTab("Color charts", null, chartsColorPanel, "Display color-distance spot results");
 		order++;
 
-		cageKymographsPanel.init(gridLayout, parent0);
-		tabsPane.addTab("Kymographs", null, cageKymographsPanel,
-				"Build stacked vertical-line kymographs per cage (experimental)");
-		idKymographsTab = order;
-		order++;
+//		cageKymographsPanel.init(gridLayout, parent0);
+//		tabsPane.addTab("Kymographs", null, cageKymographsPanel,
+//				"Build stacked vertical-line kymographs per cage (experimental)");
+//		idKymographsTab = order;
+//		order++;
 
 		loadSavePanel.init(gridLayout, parent0);
 		loadSavePanel.addPropertyChangeListener(this);

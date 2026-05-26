@@ -54,7 +54,7 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 	public JComboBox<String> clipNumberImagesCombo = new JComboBox<String>(
 			new String[] { "up to last frame", "clip N frames to" });
 	public JSpinner fixedNumberOfImagesJSpinner = new JSpinner(new SpinnerNumberModel(maxLast, step, maxLast, step));
-	public JButton updateToCurrentFrameButton = new JButton("Update to current frame");
+	public JButton updateToCurrentFrameButton = new JButton("Current frame");
 	public JSpinner binSizeJSpinner = new JSpinner(new SpinnerNumberModel(1., 0., 1000., 1.));
 	public JComboBoxMs binUnit = new JComboBoxMs();
 	public JSpinner nominalIntervalJSpinner = new JSpinner(new SpinnerNumberModel(60, 1, 999, 1));

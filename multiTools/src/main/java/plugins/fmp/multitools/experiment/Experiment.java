@@ -2664,6 +2664,58 @@ public class Experiment {
 		return result.isSuccess();
 	}
 
+	/**
+	 * Loads per-cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the current kymographs
+	 * bin into {@link #seqKymos}. Does not use capillary {@code line*} naming.
+	 *
+	 * @see SequenceKymos#createCageSpotKymographFileList
+	 */
+	public boolean loadCageSpotKymographs() {
+		return loadCageSpotKymographs(false);
+	}
+
+	/**
+	 * @param normalizeSizes when true, pad/resize mismatched cage kymograph sizes to a common canvas
+	 *                       (heterogeneous spot counts); when false, load as-is (faster when all
+	 *                       cages share the same stacked height).
+	 */
+	public boolean loadCageSpotKymographs(boolean normalizeSizes) {
+		if (cages == null || cages.cagesList == null || cages.cagesList.isEmpty()) {
+			Logger.warn("Experiment.loadCageSpotKymographs: no cages loaded");
+			return false;
+		}
+		if (seqKymos == null) {
+			setSeqKymos(new SequenceKymos());
+		}
+		String kymoBinDir = getKymosBinFullDirectory();
+		if (kymoBinDir == null) {
+			Logger.warn("Experiment.loadCageSpotKymographs: kymographs bin directory is null");
+			return false;
+		}
+		List<ImageFileData> myList = getSeqKymos().createCageSpotKymographFileList(kymoBinDir, cages);
+		ImageFileData.getExistingFileNames(myList);
+		ArrayList<ImageFileData> newList = new ArrayList<>();
+		for (ImageFileData oldDesc : myList) {
+			if (oldDesc.fileName != null && oldDesc.exists) {
+				ImageFileData newDesc = new ImageFileData();
+				newDesc.fileName = oldDesc.fileName;
+				newDesc.exists = oldDesc.exists;
+				newDesc.imageHeight = oldDesc.imageHeight;
+				newDesc.imageWidth = oldDesc.imageWidth;
+				newList.add(newDesc);
+			}
+		}
+		if (newList.isEmpty()) {
+			Logger.warn("Experiment.loadCageSpotKymographs: no kymocage_*.tif* files under " + kymoBinDir);
+			return false;
+		}
+		ImageAdjustmentOptions options = normalizeSizes
+				? ImageAdjustmentOptions.withSizeAdjustment(getSeqKymos().calculateMaxDimensions(newList))
+				: ImageAdjustmentOptions.noAdjustment();
+		ImageProcessingResult result = getSeqKymos().loadKymographs(newList, options);
+		return result.isSuccess();
+	}
+
 	public boolean loadCamDataCapillaries() {
 		if (resultsDirectory == null) {
 			return false;

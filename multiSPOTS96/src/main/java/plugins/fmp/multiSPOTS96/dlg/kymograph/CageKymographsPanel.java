@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS96.dlg.spotsMeasures2;
+package plugins.fmp.multiSPOTS96.dlg.kymograph;
 
 import java.awt.Desktop;
 import java.awt.Dimension;
@@ -21,6 +21,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 
+import icy.gui.dialog.MessageDialog;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -40,7 +41,7 @@ public class CageKymographsPanel extends JPanel implements PropertyChangeListene
 	private JButton startComputationButton = new JButton("Start");
 	private JSpinner diskRadiusSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
-	private JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
+	private JSpinner binSize = new JSpinner(new SpinnerNumberModel(60., 1., 1000., 1.));
 	private JComboBoxMs binUnit = new JComboBoxMs();
 
 	private JRadioButton isFloatingFrameButton = new JRadioButton("all", true);
@@ -187,8 +188,8 @@ public class CageKymographsPanel extends JPanel implements PropertyChangeListene
 		int comboSel = parent0.expListComboLazy.getSelectedIndex();
 		int nExp = parent0.expListComboLazy.getItemCount();
 		if (comboSel < 0 || nExp <= 0) {
-			icy.gui.dialog.MessageDialog.showDialog("Select an experiment in the list before building kymographs.",
-					icy.gui.dialog.MessageDialog.WARNING_MESSAGE);
+			MessageDialog.showDialog("Select an experiment in the list before building kymographs.",
+					MessageDialog.WARNING_MESSAGE);
 			return;
 		}
 

@@ -702,6 +702,23 @@ public class KymographBuilder {
 	}
 
 	/**
+	 * Resolves a results child bin that may be stored as a short name (e.g.
+	 * {@code bin_60}) or as a full path (e.g. file-picker / legacy state in
+	 * {@link Experiment#getBinSubDirectory()}).
+	 * <p>
+	 * On Windows, {@code Paths.get(resultsDir, absoluteBinPath)} joins strings and
+	 * produces an invalid path ({@code ...results\D:\...}), so callers must not use
+	 * multi-arg {@code Paths.get} for this pairing.
+	 */
+	private static Path resolveResultsBinDirectory(String resultsDir, String binSubDir) {
+		Path bin = Paths.get(binSubDir);
+		if (bin.isAbsolute()) {
+			return bin.normalize();
+		}
+		return Paths.get(resultsDir).resolve(bin).normalize();
+	}
+
+	/**
 	 * When flip-flop creates {@code bin_XX_r1/r2}, measures (CSV/XML) may already be
 	 * present in the previously-selected bin folder. Copy them forward so creating
 	 * a new revision doesn't "lose" measures from the user's perspective.
@@ -714,8 +731,8 @@ public class KymographBuilder {
 		if (resultsDir == null) {
 			return;
 		}
-		Path from = Paths.get(resultsDir, fromBinDir);
-		Path to = Paths.get(resultsDir, toBinDir);
+		Path from = resolveResultsBinDirectory(resultsDir, fromBinDir);
+		Path to = resolveResultsBinDirectory(resultsDir, toBinDir);
 		if (!Files.isDirectory(from) || !Files.isDirectory(to)) {
 			return;
 		}
