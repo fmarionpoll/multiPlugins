@@ -33,6 +33,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 import plugins.fmp.multitools.tools.chart.strategies.ChartLayoutStrategy;
@@ -272,6 +273,10 @@ public class ChartCagesFrame extends IcyFrame {
 		String unit = resultsOptions.resultType != null ? resultsOptions.resultType.toUnit() : "";
 		if (resultsOptions.resultType == EnumResults.AGG_MEDIANREF) {
 			unit = EnumResults.AGG_SUMCLEAN.toUnit();
+		}
+		String kymoUnit = CageKymoSeriesBuilder.kymoChartRangeAxisLabel(resultsOptions);
+		if (kymoUnit != null) {
+			unit = kymoUnit;
 		}
 		String yLegend = label + unit;
 		yAxis.setLabel(yLegend);

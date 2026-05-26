@@ -5,6 +5,8 @@ import java.awt.GridLayout;
 import java.beans.PropertyChangeSupport;
 import java.util.concurrent.ExecutionException;
 
+import java.util.List;
+
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
@@ -27,8 +29,10 @@ import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
+import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.KymoGapFillColumnOverlay;
 import plugins.fmp.multitools.tools.overlay.KymoMetricThresholdOverlay;
 
 /**
@@ -53,7 +57,7 @@ public class AnalysisPanel extends JPanel {
 	private final JCheckBox restrictSignalBandCheckBox = new JCheckBox("Restrict rows to signal (per column)");
 	private final JSpinner effectiveBandMinRunSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 500, 1));
 	private final JSpinner signalMinMaxRgbSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 255, 1));
-	private final JCheckBox fillLocfCheckBox = new JCheckBox("Fill occlusions (LOCF)");
+	private final JCheckBox fillLocfCheckBox = new JCheckBox("Fill gaps (interpolate)");
 	private final JSpinner locfMaxGapSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 10000, 1));
 	private final JToggleButton viewKymoButton = new JToggleButton("View");
 	private final JCheckBox kymoOverlayCheckBox = new JCheckBox("overlay");
@@ -63,6 +67,7 @@ public class AnalysisPanel extends JPanel {
 	private KymoAnalysisResult lastResult;
 	private SwingWorker<KymoAnalysisResult, Void> analyzeWorker;
 	private KymoMetricThresholdOverlay kymoMetricOverlay;
+	private KymoGapFillColumnOverlay kymoGapFillOverlay;
 
 	public AnalysisPanel(MultiSPOTS96 parent0) {
 		super(new GridLayout(5, 1));
@@ -72,6 +77,8 @@ public class AnalysisPanel extends JPanel {
 
 		JPanel p0 = new JPanel(left);
 		p0.add(analyzeButton);
+		JButton diagnosticsButton = new JButton("Diagnostics…");
+		p0.add(diagnosticsButton);
 		p0.add(new JLabel("Metric"));
 		p0.add(metricTransformCombo);
 		p0.add(new JLabel(" > "));
@@ -92,11 +99,9 @@ public class AnalysisPanel extends JPanel {
 		p1post.add(restrictSignalBandCheckBox);
 		p1post.add(new JLabel("min run"));
 		p1post.add(effectiveBandMinRunSpinner);
-
 		add(p1post);
 
 		JPanel p1bpost = new JPanel(left);
-
 		p1bpost.add(new JLabel("min max(R,G,B)"));
 		p1bpost.add(signalMinMaxRgbSpinner);
 		p1bpost.add(fillLocfCheckBox);
@@ -115,8 +120,10 @@ public class AnalysisPanel extends JPanel {
 				"Per time column, use the longest contiguous vertical run of bright pixels inside the spot band.");
 		effectiveBandMinRunSpinner.setToolTipText("Minimum run length (rows) to adopt that run; else use full band.");
 		signalMinMaxRgbSpinner.setToolTipText("Extra row filter: max(R,G,B) must reach this; 0 = off.");
-		fillLocfCheckBox.setToolTipText("After analysis, replace NaN columns with the last finite value to the left.");
-		locfMaxGapSpinner.setToolTipText("Max consecutive NaN columns to fill after a finite value; 0 = unlimited.");
+		fillLocfCheckBox.setToolTipText(
+				"NaN columns between two valid time bins are filled by linear interpolation (same value if neighbors match).");
+		locfMaxGapSpinner.setToolTipText(
+				"Max length of a NaN run to fill when it is bounded by valid bins on both sides; 0 = unlimited.");
 		syncPostprocessControlsEnabled();
 
 		restrictSignalBandCheckBox.addActionListener(e -> {
@@ -160,6 +167,12 @@ public class AnalysisPanel extends JPanel {
 		});
 
 		analyzeButton.addActionListener(e -> onAnalyze());
+		diagnosticsButton.addActionListener(e -> KymoDiagnosticsDialog.show(this,
+				parent0.kymoDiagnosticsOptions, () -> {
+					if (viewKymoButton.isSelected()) {
+						refreshKymoPreview();
+					}
+				}));
 	}
 
 	public void addKymoResultListener(java.beans.PropertyChangeListener l) {
@@ -179,7 +192,8 @@ public class AnalysisPanel extends JPanel {
 				false, restrictSignalBandCheckBox.isSelected(),
 				((Number) effectiveBandMinRunSpinner.getValue()).intValue(),
 				((Number) signalMinMaxRgbSpinner.getValue()).intValue(), fillLocfCheckBox.isSelected(),
-				((Number) locfMaxGapSpinner.getValue()).intValue());
+				((Number) locfMaxGapSpinner.getValue()).intValue(),
+				parent0.kymoDiagnosticsOptions.isIncludeDiagnosticsOnAnalyze());
 	}
 
 	private void syncPostprocessControlsEnabled() {
@@ -194,6 +208,7 @@ public class AnalysisPanel extends JPanel {
 		if (!viewKymoButton.isSelected()) {
 			kymoOverlayCheckBox.setEnabled(false);
 			removeKymoMetricOverlay(exp);
+			removeKymoGapFillOverlay(exp);
 			clearKymographCanvasTransform(exp);
 			return;
 		}
@@ -214,6 +229,7 @@ public class AnalysisPanel extends JPanel {
 		}
 		updateKymographCanvasTransform(exp);
 		syncKymoMetricOverlay(exp);
+		syncKymoGapFillOverlay(exp);
 	}
 
 	private void updateKymographCanvasTransform(Experiment exp) {
@@ -256,20 +272,24 @@ public class AnalysisPanel extends JPanel {
 	private void syncKymoMetricOverlay(Experiment exp) {
 		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
 			removeKymoMetricOverlay(exp);
+			removeKymoGapFillOverlay(exp);
 			return;
 		}
 		icy.sequence.Sequence seq = exp.getSeqKymos().getSequence();
 		if (!kymoOverlayCheckBox.isSelected()) {
 			removeKymoMetricOverlay(exp);
+			removeKymoGapFillOverlay(exp);
 			return;
 		}
 		if (kymoMetricOverlay == null) {
-			kymoMetricOverlay = new KymoMetricThresholdOverlay(seq, this::readParams);
+			kymoMetricOverlay = new KymoMetricThresholdOverlay(seq, this::readParams,
+					() -> (Experiment) parent0.expListComboLazy.getSelectedItem());
 			seq.addOverlay(kymoMetricOverlay);
 		} else {
 			kymoMetricOverlay.setSequence(seq);
 		}
 		kymoMetricOverlay.painterChanged();
+		syncKymoGapFillOverlay(exp);
 	}
 
 	private void removeKymoMetricOverlay(Experiment exp) {
@@ -280,6 +300,54 @@ public class AnalysisPanel extends JPanel {
 			exp.getSeqKymos().getSequence().removeOverlay(kymoMetricOverlay);
 		}
 		kymoMetricOverlay = null;
+	}
+
+	private void syncKymoGapFillOverlay(Experiment exp) {
+		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
+			removeKymoGapFillOverlay(exp);
+			return;
+		}
+		icy.sequence.Sequence seq = exp.getSeqKymos().getSequence();
+		if (!parent0.kymoDiagnosticsOptions.isShowGapFillColumnsOnKymograph() || lastResult == null
+				|| !resultHasGapFillDiagnostics(lastResult)) {
+			removeKymoGapFillOverlay(exp);
+			return;
+		}
+		if (kymoGapFillOverlay == null) {
+			kymoGapFillOverlay = new KymoGapFillColumnOverlay(seq, () -> (Experiment) parent0.expListComboLazy.getSelectedItem(),
+					() -> lastResult, () -> parent0.kymoDiagnosticsOptions.isShowGapFillColumnsOnKymograph());
+			seq.addOverlay(kymoGapFillOverlay);
+		} else {
+			kymoGapFillOverlay.setSequence(seq);
+		}
+		kymoGapFillOverlay.painterChanged();
+	}
+
+	private void removeKymoGapFillOverlay(Experiment exp) {
+		if (kymoGapFillOverlay == null) {
+			return;
+		}
+		if (exp != null && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+			exp.getSeqKymos().getSequence().removeOverlay(kymoGapFillOverlay);
+		}
+		kymoGapFillOverlay = null;
+	}
+
+	private static boolean resultHasGapFillDiagnostics(KymoAnalysisResult r) {
+		if (r == null) {
+			return false;
+		}
+		for (List<SpotKymoSeries> list : r.byCageId.values()) {
+			if (list == null) {
+				continue;
+			}
+			for (SpotKymoSeries row : list) {
+				if (row != null && row.fractionBeforeGapFill != null) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	private void onAnalyze() {
@@ -326,6 +394,9 @@ public class AnalysisPanel extends JPanel {
 					statusLabel.setText("Error: " + (c != null ? c.getMessage() : ex.getMessage()));
 				}
 				pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
+				if (viewKymoButton.isSelected()) {
+					refreshKymoPreview();
+				}
 			}
 		};
 		analyzeWorker.execute();

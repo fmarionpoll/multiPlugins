@@ -4,6 +4,7 @@ import java.awt.AlphaComposite;
 import java.awt.Composite;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
+import java.util.List;
 import java.util.function.Supplier;
 
 import icy.canvas.IcyCanvas;
@@ -16,13 +17,18 @@ import icy.sequence.SequenceEvent.SequenceEventSourceType;
 import icy.sequence.SequenceEvent.SequenceEventType;
 import icy.sequence.SequenceListener;
 import icy.type.collection.array.Array1DUtil;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
+import plugins.fmp.multitools.service.CageKymographSpotBands;
 import plugins.fmp.multitools.service.KymoImageTransforms;
+import plugins.fmp.multitools.service.KymocageCageResolver;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Semi-transparent mask on the kymograph sequence: pixels counted in the metric fraction
- * (valid sum RGB and metric &gt; threshold), using the same transform as {@link CageKymoAnalyzer}.
+ * (valid sum RGB and metric &gt; threshold), using the same transform and column signal band as
+ * {@link CageKymoAnalyzer} when an {@link Experiment} supplier is provided.
  */
 public final class KymoMetricThresholdOverlay extends Overlay implements SequenceListener {
 
@@ -31,12 +37,15 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 	private static final int MASK_ARGB = 0xB4FF0000;
 
 	private final Supplier<CageKymoAnalyzer.Params> paramsSupplier;
+	private final Supplier<Experiment> experimentSupplier;
 	private Sequence localSequence;
 	private float opacity = DEFAULT_OPACITY;
 
-	public KymoMetricThresholdOverlay(Sequence sequence, Supplier<CageKymoAnalyzer.Params> paramsSupplier) {
+	public KymoMetricThresholdOverlay(Sequence sequence, Supplier<CageKymoAnalyzer.Params> paramsSupplier,
+			Supplier<Experiment> experimentSupplier) {
 		super(OVERLAY_NAME);
 		this.paramsSupplier = paramsSupplier;
+		this.experimentSupplier = experimentSupplier;
 		if (sequence != null) {
 			setSequence(sequence);
 		}
@@ -88,22 +97,56 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 			int[] r = nC > 0 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(0), rgb.isSignedDataType()) : null;
 			int[] g = nC > 1 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(1), rgb.isSignedDataType()) : null;
 			int[] b = nC > 2 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(2), rgb.isSignedDataType()) : null;
-			int len = w * h;
 			double thr = p.metricThreshold;
 			int minSum = p.minSumRgbForValidPixel;
 			BufferedImage argb = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
-			for (int i = 0; i < len && i < metric.length; i++) {
-				int rv = sampleChan(r, i);
-				int gv = nC > 1 ? sampleChan(g, i) : rv;
-				int bv = nC > 2 ? sampleChan(b, i) : rv;
-				int sum = rv + gv + bv;
-				if (sum < minSum) {
-					continue;
+
+			Experiment exp = experimentSupplier != null ? experimentSupplier.get() : null;
+			if (exp != null && exp.getCages() != null && exp.getSpots() != null && exp.getSeqKymos() != null) {
+				String fn = exp.getSeqKymos().getFileNameFromImageList(t);
+				Cage cage = KymocageCageResolver.resolveCageFromKymographPath(fn, exp.getCages());
+				int refW = w;
+				int refH = h;
+				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+					refW = exp.getSeqCamData().getSequence().getSizeX();
+					refH = exp.getSeqCamData().getSequence().getSizeY();
 				}
-				double m = metric[i];
-				if (Double.isFinite(m) && m > thr) {
-					argb.setRGB(i % w, i / w, MASK_ARGB);
+				if (cage != null) {
+					List<CageKymographSpotBands> bands = CageKymographSpotBands.layout(cage, exp.getSpots(), refW,
+							refH);
+					if (!bands.isEmpty()) {
+						for (CageKymographSpotBands band : bands) {
+							int y0 = Math.max(0, band.y0);
+							int y1 = Math.min(h, band.y1Exclusive);
+							for (int x = 0; x < w; x++) {
+								int[] yRange = CageKymoAnalyzer.columnSignalYRange(y0, y1, x, w, r, g, b, nC, p);
+								for (int y = yRange[0]; y < yRange[1]; y++) {
+									int idx = y * w + x;
+									if (idx < 0 || idx >= metric.length) {
+										continue;
+									}
+									int rv = sampleChan(r, idx);
+									int gv = nC > 1 ? sampleChan(g, idx) : rv;
+									int bv = nC > 2 ? sampleChan(b, idx) : rv;
+									int sum = rv + gv + bv;
+									if (sum < minSum) {
+										continue;
+									}
+									double m = metric[idx];
+									if (Double.isFinite(m) && m > thr) {
+										argb.setRGB(x, y, MASK_ARGB);
+									}
+								}
+							}
+						}
+					} else {
+						paintFullImageLegacy(w, h, nC, r, g, b, metric, thr, minSum, argb);
+					}
+				} else {
+					paintFullImageLegacy(w, h, nC, r, g, b, metric, thr, minSum, argb);
 				}
+			} else {
+				paintFullImageLegacy(w, h, nC, r, g, b, metric, thr, minSum, argb);
 			}
 			Composite prev = graphics.getComposite();
 			graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
@@ -111,6 +154,24 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 			graphics.setComposite(prev);
 		} catch (Exception e) {
 			Logger.warn("KymoMetricThresholdOverlay: paint failed", e);
+		}
+	}
+
+	private static void paintFullImageLegacy(int w, int h, int nC, int[] r, int[] g, int[] b, double[] metric,
+			double thr, int minSum, BufferedImage argb) {
+		int len = w * h;
+		for (int i = 0; i < len && i < metric.length; i++) {
+			int rv = sampleChan(r, i);
+			int gv = nC > 1 ? sampleChan(g, i) : rv;
+			int bv = nC > 2 ? sampleChan(b, i) : rv;
+			int sum = rv + gv + bv;
+			if (sum < minSum) {
+				continue;
+			}
+			double m = metric[i];
+			if (Double.isFinite(m) && m > thr) {
+				argb.setRGB(i % w, i / w, MASK_ARGB);
+			}
 		}
 	}
 

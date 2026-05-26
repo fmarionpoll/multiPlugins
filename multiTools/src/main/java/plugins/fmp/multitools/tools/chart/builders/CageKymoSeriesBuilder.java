@@ -15,6 +15,7 @@ import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.results.KymoFractionTraceMode;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
@@ -42,6 +43,78 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		return rt == EnumResults.KYMO_CAGE_MEAN_FRACT || rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA;
 	}
 
+	/**
+	 * Y-axis unit label for kymograph charts when fraction trace mode overrides the default series semantics.
+	 */
+	public static String kymoChartRangeAxisLabel(ResultsOptions opts) {
+		if (opts == null || opts.resultType == null) {
+			return null;
+		}
+		if (!isKymoMetricMeasure(opts.resultType)) {
+			return null;
+		}
+		if (useAbsDelta(opts.resultType)) {
+			return opts.resultType.toUnit();
+		}
+		KymoFractionTraceMode mode = opts.kymoFractionTraceMode != null ? opts.kymoFractionTraceMode
+				: KymoFractionTraceMode.FINAL;
+		if (mode == KymoFractionTraceMode.BEFORE_GAP_FILL) {
+			return "fraction (before gap-fill)";
+		}
+		if (mode == KymoFractionTraceMode.DELTA_GAP_FILL) {
+			return "Δ fraction (gap-fill)";
+		}
+		return opts.resultType.toUnit();
+	}
+
+	private static int traceColumnCount(SpotKymoSeries row, EnumResults rt, ResultsOptions options) {
+		if (row == null) {
+			return 0;
+		}
+		if (useAbsDelta(rt)) {
+			return row.absDeltaFraction.length;
+		}
+		KymoFractionTraceMode mode = options != null && options.kymoFractionTraceMode != null ? options.kymoFractionTraceMode
+				: KymoFractionTraceMode.FINAL;
+		if ((mode == KymoFractionTraceMode.BEFORE_GAP_FILL || mode == KymoFractionTraceMode.DELTA_GAP_FILL)
+				&& row.fractionBeforeGapFill != null) {
+			return Math.min(row.fraction.length, row.fractionBeforeGapFill.length);
+		}
+		return row.fraction.length;
+	}
+
+	/**
+	 * Y value for one bin from a row, honoring {@link ResultsOptions#kymoFractionTraceMode} for fraction-type
+	 * measures; |Δf| measures ignore the trace mode.
+	 */
+	static double traceY(SpotKymoSeries row, EnumResults rt, ResultsOptions opts, int j) {
+		if (row == null || rt == null) {
+			return Double.NaN;
+		}
+		if (useAbsDelta(rt)) {
+			return j < row.absDeltaFraction.length ? row.absDeltaFraction[j] : Double.NaN;
+		}
+		KymoFractionTraceMode mode = opts != null && opts.kymoFractionTraceMode != null ? opts.kymoFractionTraceMode
+				: KymoFractionTraceMode.FINAL;
+		if (mode == KymoFractionTraceMode.BEFORE_GAP_FILL && row.fractionBeforeGapFill != null
+				&& j < row.fractionBeforeGapFill.length) {
+			return row.fractionBeforeGapFill[j];
+		}
+		if (mode == KymoFractionTraceMode.DELTA_GAP_FILL) {
+			if (row.fractionBeforeGapFill == null || j >= row.fractionBeforeGapFill.length
+					|| j >= row.fraction.length) {
+				return Double.NaN;
+			}
+			double a = row.fractionBeforeGapFill[j];
+			double b = row.fraction[j];
+			if (!Double.isFinite(a) || !Double.isFinite(b)) {
+				return Double.NaN;
+			}
+			return b - a;
+		}
+		return j < row.fraction.length ? row.fraction[j] : Double.NaN;
+	}
+
 	@Override
 	public XYSeriesCollection build(Experiment exp, Cage cage, ResultsOptions options) {
 		XYSeriesCollection dataset = new XYSeriesCollection();
@@ -58,9 +131,8 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (rows.isEmpty()) {
 			return dataset;
 		}
-		boolean plotDelta = useAbsDelta(rt);
 		if (useCageMean(rt)) {
-			addCageMeanSeries(dataset, cage, x, rows, plotDelta);
+			addCageMeanSeries(dataset, cage, x, rows, rt, options);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;
 		}
@@ -70,7 +142,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 				continue;
 			}
 			String key = SpotChartSeriesKeys.key(spot, row.indexInCage);
-			XYSeries series = buildSeriesForRow(x, row, plotDelta, key);
+			XYSeries series = buildSeriesForRow(x, row, key, rt, options);
 			if (series.getItemCount() == 0) {
 				continue;
 			}
@@ -85,7 +157,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	private static void addCageMeanSeries(XYSeriesCollection dataset, Cage cage, double[] x, List<SpotKymoSeries> rows,
-			boolean plotDelta) {
+			EnumResults rt, ResultsOptions options) {
 		int n = x.length;
 		double[] mean = new double[n];
 		for (int j = 0; j < n; j++) {
@@ -95,11 +167,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 			double sum = 0;
 			int cnt = 0;
 			for (SpotKymoSeries row : rows) {
-				double[] yv = plotDelta ? row.absDeltaFraction : row.fraction;
-				if (j >= yv.length) {
-					continue;
-				}
-				double v = yv[j];
+				double v = traceY(row, rt, options, j);
 				if (Double.isFinite(v)) {
 					sum += v;
 					cnt++;
@@ -126,12 +194,13 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		dataset.addSeries(series);
 	}
 
-	private static XYSeries buildSeriesForRow(double[] x, SpotKymoSeries row, boolean plotDelta, String key) {
+	private static XYSeries buildSeriesForRow(double[] x, SpotKymoSeries row, String key, EnumResults rt,
+			ResultsOptions options) {
 		XYSeries series = new XYSeries(key, false);
-		double[] yv = plotDelta ? row.absDeltaFraction : row.fraction;
-		int n = Math.min(x.length, yv.length);
+		int rowLen = traceColumnCount(row, rt, options);
+		int n = Math.min(x.length, rowLen);
 		for (int j = 0; j < n; j++) {
-			double y = yv[j];
+			double y = traceY(row, rt, options, j);
 			if (!Double.isFinite(y)) {
 				continue;
 			}
@@ -155,7 +224,6 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 			return dataset;
 		}
 		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_FRACT;
-		boolean plotDelta = useAbsDelta(rt);
 		if (useCageMean(rt)) {
 			java.util.HashMap<Integer, java.util.ArrayList<Spot>> byCage = new java.util.HashMap<>();
 			for (Spot spot : spots) {
@@ -182,7 +250,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 					continue;
 				}
 				String key = "mean (selected)" + SpotChartSeriesKeys.SEP + "cage" + cageId;
-				XYSeries meanSeries = meanSeriesForRows(x, subset, plotDelta, key);
+				XYSeries meanSeries = meanSeriesForRows(x, subset, rt, options, key);
 				if (meanSeries.getItemCount() == 0) {
 					continue;
 				}
@@ -204,7 +272,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 				continue;
 			}
 			String key = SpotChartSeriesKeys.key(spot, row.indexInCage);
-			XYSeries series = buildSeriesForRow(x, row, plotDelta, key);
+			XYSeries series = buildSeriesForRow(x, row, key, rt, options);
 			if (series.getItemCount() == 0) {
 				continue;
 			}
@@ -232,7 +300,8 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		return null;
 	}
 
-	private static XYSeries meanSeriesForRows(double[] x, List<SpotKymoSeries> rows, boolean plotDelta, String key) {
+	private static XYSeries meanSeriesForRows(double[] x, List<SpotKymoSeries> rows, EnumResults rt,
+			ResultsOptions options, String key) {
 		int n = x.length;
 		double[] mean = new double[n];
 		for (int j = 0; j < n; j++) {
@@ -242,11 +311,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 			double sum = 0;
 			int cnt = 0;
 			for (SpotKymoSeries row : rows) {
-				double[] yv = plotDelta ? row.absDeltaFraction : row.fraction;
-				if (j >= yv.length) {
-					continue;
-				}
-				double v = yv[j];
+				double v = traceY(row, rt, options, j);
 				if (Double.isFinite(v)) {
 					sum += v;
 					cnt++;

@@ -27,6 +27,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -132,7 +133,11 @@ public class KymoOverlayFrame {
 		NumberAxis xAxis = new NumberAxis("time (min)");
 		xAxis.setAutoRangeIncludesZero(false);
 		EnumResults rt = lastOptions.resultType;
-		NumberAxis yAxis = new NumberAxis(rt != null ? rt.toUnit() : "");
+		String yUnit = CageKymoSeriesBuilder.kymoChartRangeAxisLabel(lastOptions);
+		if (yUnit == null) {
+			yUnit = rt != null ? rt.toUnit() : "";
+		}
+		NumberAxis yAxis = new NumberAxis(yUnit);
 		yAxis.setAutoRangeIncludesZero(true);
 		XYPlot plot = new XYPlot(ds, xAxis, yAxis, new XYLineAndShapeRenderer());
 		JFreeChart chart = new JFreeChart(plot);

@@ -108,6 +108,12 @@ public class ResultsOptions {
 	public EnumResults resultType = null;
 
 	/**
+	 * Kymograph chart: which fraction trace to plot when {@link plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries}
+	 * includes diagnostic arrays. Ignored for non-fraction kymograph measures (e.g. {@link EnumResults#KYMO_ABS_DELTA}).
+	 */
+	public KymoFractionTraceMode kymoFractionTraceMode = KymoFractionTraceMode.FINAL;
+
+	/**
 	 * When charting {@link EnumResults#AGG_SUMCLEAN}, filled by {@link plugins.fmp.multitools.tools.chart.ChartCagesFrame}
 	 * so each cage subplot uses the same (stimulus,conc) color index.
 	 */
@@ -213,6 +219,7 @@ public class ResultsOptions {
 		this.trim_alive = resultsOptions.trim_alive;
 		this.compensateEvaporation = resultsOptions.compensateEvaporation;
 		this.resultType = resultsOptions.resultType;
+		this.kymoFractionTraceMode = resultsOptions.kymoFractionTraceMode;
 		this.spotAggregateGlobalKeyOrder = resultsOptions.spotAggregateGlobalKeyOrder;
 
 		this.aggSumCleanPolicy = resultsOptions.aggSumCleanPolicy;

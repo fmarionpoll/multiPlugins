@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -42,18 +43,36 @@ public final class CageKymoAnalyzer {
 		 */
 		public int signalMinMaxRgb;
 
-		/** Replace NaN fraction columns with the last finite value to the left (LOCF). */
+		/**
+		 * When true, fill NaN fraction columns that lie strictly between two finite neighbors (occlusions in
+		 * time): linear interpolation from the left to the right finite value. Leading and trailing NaN runs
+		 * are unchanged.
+		 */
 		public boolean fillOcclusionsLocf;
 		/**
-		 * Max consecutive NaN columns to fill per gap after a finite value; 0 = unlimited.
-		 * Does not fill leading NaNs before the first finite value.
+		 * Max length of a NaN run to fill when it is bounded by finite values on both sides; 0 = unlimited.
 		 */
 		public int locfMaxGapColumns;
+
+		/**
+		 * When true, each {@link SpotKymoSeries} retains {@link SpotKymoSeries#fractionBeforeGapFill} for charts
+		 * and overlays (extra memory per strip).
+		 */
+		public boolean includeDiagnostics;
 
 		public Params(ImageTransformEnums metricTransform, int metricThreshold, int minSumRgbForValidPixel,
 				int minValidRowsPerColumn, boolean useGpuTransforms, boolean restrictSignalBandPerColumn,
 				int effectiveBandMinRunLength, int signalMinMaxRgb, boolean fillOcclusionsLocf,
 				int locfMaxGapColumns) {
+			this(metricTransform, metricThreshold, minSumRgbForValidPixel, minValidRowsPerColumn, useGpuTransforms,
+					restrictSignalBandPerColumn, effectiveBandMinRunLength, signalMinMaxRgb, fillOcclusionsLocf,
+					locfMaxGapColumns, false);
+		}
+
+		public Params(ImageTransformEnums metricTransform, int metricThreshold, int minSumRgbForValidPixel,
+				int minValidRowsPerColumn, boolean useGpuTransforms, boolean restrictSignalBandPerColumn,
+				int effectiveBandMinRunLength, int signalMinMaxRgb, boolean fillOcclusionsLocf,
+				int locfMaxGapColumns, boolean includeDiagnostics) {
 			this.metricTransform = metricTransform != null ? metricTransform : ImageTransformEnums.RGB_DIFFS;
 			this.metricThreshold = metricThreshold;
 			this.minSumRgbForValidPixel = minSumRgbForValidPixel;
@@ -64,6 +83,7 @@ public final class CageKymoAnalyzer {
 			this.signalMinMaxRgb = Math.max(0, signalMinMaxRgb);
 			this.fillOcclusionsLocf = fillOcclusionsLocf;
 			this.locfMaxGapColumns = Math.max(0, locfMaxGapColumns);
+			this.includeDiagnostics = includeDiagnostics;
 		}
 	}
 
@@ -198,15 +218,22 @@ public final class CageKymoAnalyzer {
 					f[x] = (double) aboveThresholdRows / (double) valid;
 				}
 			}
-			applyLocfForwardFill(f, params);
+			double[] fractionBeforeGapFill = null;
+			if (params.includeDiagnostics) {
+				fractionBeforeGapFill = Arrays.copyOf(f, f.length);
+			}
+			applyOcclusionBridgeFill(f, params);
 			recomputeDfFromF(f, df);
-			list.add(new SpotKymoSeries(spot, si, f, df));
+			list.add(new SpotKymoSeries(spot, si, f, df, fractionBeforeGapFill));
 			si++;
 		}
 		return list;
 	}
 
-	private static int[] columnSignalYRange(int y0, int y1, int x, int imgW, int[] r, int[] g, int[] b, int nC,
+	/**
+	 * Effective vertical integration range for one time column, matching analysis and metric overlay preview.
+	 */
+	public static int[] columnSignalYRange(int y0, int y1, int x, int imgW, int[] r, int[] g, int[] b, int nC,
 			Params params) {
 		if (!params.restrictSignalBandPerColumn || y1 <= y0) {
 			return new int[] { y0, y1 };
@@ -263,24 +290,46 @@ public final class CageKymoAnalyzer {
 		return new int[] { y0, y1 };
 	}
 
-	private static void applyLocfForwardFill(double[] f, Params params) {
+	/**
+	 * Fills NaN segments that have a finite value immediately to the left and right (time runs along x).
+	 * Values inside the gap are set by linear interpolation between those two finites.
+	 */
+	private static void applyOcclusionBridgeFill(double[] f, Params params) {
 		if (!params.fillOcclusionsLocf) {
 			return;
 		}
-		int lastGoodX = -1;
-		for (int x = 0; x < f.length; x++) {
-			if (Double.isFinite(f[x])) {
-				lastGoodX = x;
+		int n = f.length;
+		int x = 0;
+		while (x < n) {
+			while (x < n && Double.isFinite(f[x])) {
+				x++;
+			}
+			if (x >= n) {
+				break;
+			}
+			int gapStart = x;
+			while (x < n && !Double.isFinite(f[x])) {
+				x++;
+			}
+			int gapEnd = x;
+			int gapLen = gapEnd - gapStart;
+			int left = gapStart - 1;
+			int right = gapEnd;
+			if (left < 0 || right >= n) {
 				continue;
 			}
-			if (lastGoodX < 0) {
+			if (!Double.isFinite(f[left]) || !Double.isFinite(f[right])) {
 				continue;
 			}
-			int gapLen = x - lastGoodX;
 			if (params.locfMaxGapColumns > 0 && gapLen > params.locfMaxGapColumns) {
 				continue;
 			}
-			f[x] = f[lastGoodX];
+			double vLeft = f[left];
+			double vRight = f[right];
+			for (int i = 0; i < gapLen; i++) {
+				double t = (double) (i + 1) / (double) (gapLen + 1);
+				f[gapStart + i] = vLeft + t * (vRight - vLeft);
+			}
 		}
 	}
 

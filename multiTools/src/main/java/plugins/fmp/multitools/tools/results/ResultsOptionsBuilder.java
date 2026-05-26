@@ -67,6 +67,7 @@ public class ResultsOptionsBuilder {
 	private boolean trim_alive = DefaultOptions.TRIM_ALIVE;
 	private boolean compensateEvaporation = DefaultOptions.COMPENSATE_EVAPORATION;
 	private EnumResults resultType = null;
+	private KymoFractionTraceMode kymoFractionTraceMode = KymoFractionTraceMode.FINAL;
 
 	private AggSumCleanPolicy aggSumCleanPolicy = AggSumCleanPolicy.LEGACY;
 	private int aggBaselineSkipMinutes = 0;
@@ -138,6 +139,7 @@ public class ResultsOptionsBuilder {
 		this.trim_alive = existing.trim_alive;
 		this.compensateEvaporation = existing.compensateEvaporation;
 		this.resultType = existing.resultType;
+		this.kymoFractionTraceMode = existing.kymoFractionTraceMode;
 
 		this.aggSumCleanPolicy = existing.aggSumCleanPolicy;
 		this.aggBaselineSkipMinutes = existing.aggBaselineSkipMinutes;
@@ -238,6 +240,11 @@ public class ResultsOptionsBuilder {
 
 	public ResultsOptionsBuilder withResultType(EnumResults resultType) {
 		this.resultType = resultType;
+		return this;
+	}
+
+	public ResultsOptionsBuilder withKymoFractionTraceMode(KymoFractionTraceMode mode) {
+		this.kymoFractionTraceMode = mode != null ? mode : KymoFractionTraceMode.FINAL;
 		return this;
 	}
 
@@ -347,6 +354,7 @@ public class ResultsOptionsBuilder {
 		options.trim_alive = this.trim_alive;
 		options.compensateEvaporation = this.compensateEvaporation;
 		options.resultType = this.resultType;
+		options.kymoFractionTraceMode = this.kymoFractionTraceMode;
 
 		options.aggSumCleanPolicy = this.aggSumCleanPolicy;
 		options.aggBaselineSkipMinutes = this.aggBaselineSkipMinutes;
