@@ -237,15 +237,20 @@ public class SelectFilesPanel extends JPanel {
 		addActionListeners();
 
 		dialogFrame.pack();
+		if (!FrameGeometryPreferences.restore(dialogFrame, guiPrefs, "selectFiles.", 320, 200)) {
+			dialogFrame.center();
+		}
+		FrameGeometryPreferences.installAutoSave(dialogFrame, guiPrefs, "selectFiles.");
 		dialogFrame.addToDesktopPane();
 		dialogFrame.requestFocus();
-		dialogFrame.center();
 		dialogFrame.setVisible(true);
 	}
 
 	private void close() {
-		if (dialogFrame != null)
+		if (dialogFrame != null) {
+			FrameGeometryPreferences.save(dialogFrame, guiPrefs, "selectFiles.");
 			dialogFrame.close();
+		}
 	}
 
 	private void addActionListeners() {

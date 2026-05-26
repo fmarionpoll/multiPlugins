@@ -1,14 +1,18 @@
 package plugins.fmp.multiSPOTS96.dlg.browse;
 
+import java.io.File;
 import java.util.List;
 
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import icy.gui.frame.progress.ProgressFrame;
+import plugins.fmp.multitools.experiment.BinDirectoryResolver;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.persistence.MigrationTool;
 import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
+import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.tools.Logger;
 
 final class Spots96ExperimentOpenPipeline {
@@ -43,14 +47,39 @@ final class Spots96ExperimentOpenPipeline {
 				return false;
 			}
 
+			// Must run before load_cages(): ensureBinDirectoryForLoading() (inside cage load) uses
+			// camImageBin_ms from file timestamps — same ordering issue as multiCAFE's pipeline
+			// before bin resolution.
+			progressFrame.setMessage("Reading camera timestamps...");
+			exp.getFileIntervalsFromSeqCamData();
+
 			if (!lifecycle.validateStillSelected(exp, expIndex, progressFrame,
 					() -> (Experiment) owner.parent0.expListComboLazy.getSelectedItem())) {
 				return lifecycle.abortLoad(exp, expIndex, progressFrame,
 						"different experiment selected before cage load");
 			}
 
-			progressFrame.setMessage("Loading cages and spots...");
+			progressFrame.setMessage("Loading cages...");
 			exp.load_cages_description_and_measures();
+
+			progressFrame.setMessage("Selecting analysis bin...");
+			String selectedBinDir = selectBinDirectory(exp);
+			if (selectedBinDir != null) {
+				exp.setBinSubDirectory(selectedBinDir);
+				owner.parent0.expListComboLazy.expListBinSubDirectory = selectedBinDir;
+			} else if (owner.parent0.expListComboLazy.expListBinSubDirectory != null) {
+				exp.setBinSubDirectory(owner.parent0.expListComboLazy.expListBinSubDirectory);
+			}
+
+			progressFrame.setMessage("Resolving cage kymograph bin on disk...");
+			if (exp.adoptBinSubdirectoryContainingCageKymographTiffs()) {
+				String adopted = exp.getBinSubDirectory();
+				if (adopted != null) {
+					owner.parent0.expListComboLazy.expListBinSubDirectory = adopted;
+				}
+			}
+
+			progressFrame.setMessage("Loading spots...");
 			exp.load_spots_description_and_measures();
 
 			if (!lifecycle.validateStillSelected(exp, expIndex, progressFrame,
@@ -63,10 +92,29 @@ final class Spots96ExperimentOpenPipeline {
 
 			owner.parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 
+			progressFrame.setMessage("Load cage kymographs...");
+			String kymoBin = exp.getKymosBinFullDirectory();
+			if (kymoBin != null) {
+				// Drop any stale seqKymos from a previously selected experiment (closeSequences()
+				// closes pixels but does not clear the field).
+				exp.releaseKymographSequence();
+				if (!exp.loadCageSpotKymographs()) {
+					Logger.warn("Spots96ExperimentOpenPipeline: loadCageSpotKymographs returned false for bin "
+							+ kymoBin + " (no kymocage_*.tif* or load error — see Experiment logs)");
+				}
+				if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+					exp.getSeqKymos().getSequence().addListener(owner);
+					SwingUtilities.invokeLater(() -> CageKymographViewerUtil.openIfPresent(exp));
+				}
+			} else {
+				Logger.warn("Spots96ExperimentOpenPipeline: skip cage kymographs (kymographs bin path is null)");
+			}
+
 			progressFrame.setMessage("Load data: update dialogs");
 
 			owner.parent0.dlgExperiment.updateDialogs(exp);
 			owner.parent0.dlgSpots.updateDialogs(exp);
+			owner.parent0.dlgKymos.updateDialogs(exp);
 
 			owner.parent0.dlgExperiment.infosPanel.transferPreviousExperimentInfosToDialog(exp, exp);
 
@@ -168,5 +216,30 @@ final class Spots96ExperimentOpenPipeline {
 		};
 
 		worker.execute();
+	}
+
+	private String selectBinDirectory(Experiment exp) {
+		String resultsDir = exp.getResultsDirectory();
+		if (resultsDir == null) {
+			return null;
+		}
+		File resultsDirFile = new File(resultsDir);
+		if (!resultsDirFile.exists() || !resultsDirFile.isDirectory()) {
+			return null;
+		}
+
+		String previousBinDir = owner.parent0.expListComboLazy.expListBinSubDirectory;
+
+		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
+		ctx.resultsDirectory = resultsDir;
+		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
+		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
+		ctx.previouslySelected = previousBinDir;
+		ctx.allowPrompt = false;
+		ctx.allowCleanup = true;
+		ctx.useSessionRemembered = true;
+		ctx.parentForDialog = owner;
+
+		return BinDirectoryResolver.resolveBinSubdirectory(ctx);
 	}
 }

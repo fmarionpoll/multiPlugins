@@ -3,9 +3,12 @@ package plugins.fmp.multitools.series;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.JToolBar;
+
 import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.tools.Logger;
@@ -45,6 +48,10 @@ public final class CageKymographViewerUtil {
 				v.setCanvas(pluginName);
 			}
 			v.setRepeat(false);
+			if (v.getCanvas() instanceof Canvas2D_3Transforms) {
+				JToolBar toolBar = v.getToolBar();
+				((Canvas2D_3Transforms) v.getCanvas()).customizeToolbarStep2(toolBar);
+			}
 			v.setTitle("Cage kymographs");
 			v.setVisible(true);
 		} else {

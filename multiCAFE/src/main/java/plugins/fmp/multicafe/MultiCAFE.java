@@ -12,6 +12,8 @@ import icy.plugin.PluginLauncher;
 import icy.plugin.PluginLoader;
 import icy.plugin.abstract_.PluginActionable;
 import icy.preferences.GeneralPreferences;
+import icy.preferences.XMLPreferences;
+import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multicafe.dlg.browse.MCBrowse_;
 import plugins.fmp.multicafe.dlg.cages.MCCages_;
 import plugins.fmp.multicafe.dlg.capillaries.MCCapillaries_;
@@ -62,7 +64,11 @@ public class MultiCAFE extends PluginActionable {
 		mainFrame.setLayout(new BorderLayout());
 		mainFrame.add(mainPanel, BorderLayout.WEST);
 		mainFrame.pack();
-		mainFrame.center();
+		XMLPreferences guiFramePrefs = getPreferences("gui");
+		if (!FrameGeometryPreferences.restore(mainFrame, guiFramePrefs, "pluginWindow.", 420, 280)) {
+			mainFrame.center();
+		}
+		FrameGeometryPreferences.installAutoSave(mainFrame, guiFramePrefs, "pluginWindow.");
 		mainFrame.setVisible(true);
 		mainFrame.addToDesktopPane();
 	}

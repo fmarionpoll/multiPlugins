@@ -8,6 +8,8 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -81,8 +83,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	/**
-	 * Transfer helper: rebuild the combo from a list of {@code results/Experiment.xml}
-	 * paths (v2 format). This is intentionally minimal and avoids opening sequences.
+	 * Transfer helper: rebuild the combo from a list of
+	 * {@code results/Experiment.xml} paths (v2 format). This is intentionally
+	 * minimal and avoids opening sequences.
 	 */
 	public void reloadExperimentsFromExperimentXml(List<String> experimentXmlPaths) {
 		closeAllExperimentsForTransfer();
@@ -94,14 +97,15 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		for (String xml : experimentXmlPaths) {
 			if (xml == null || xml.isBlank())
 				continue;
-			java.nio.file.Path xmlPath = java.nio.file.Paths.get(xml).toAbsolutePath().normalize();
-			java.nio.file.Path resultsDir = xmlPath.getParent();
+			Path xmlPath = Paths.get(xml).toAbsolutePath().normalize();
+			Path resultsDir = xmlPath.getParent();
 			if (resultsDir == null)
 				continue;
 			// For v2 datasets, Experiment.xml lives directly under results/
 			String resultsDirectory = resultsDir.toString();
 			// Infer camera/grabs directory from results directory path
-			String camDataImagesDirectory = ExperimentDirectories.getImagesDirectoryAsParentFromFileName(resultsDirectory);
+			String camDataImagesDirectory = ExperimentDirectories
+					.getImagesDirectoryAsParentFromFileName(resultsDirectory);
 
 			ExperimentMetadata metadata = new ExperimentMetadata(camDataImagesDirectory, resultsDirectory, subDir);
 			experimentMetadataList.add(metadata);
@@ -119,8 +123,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	/**
-	 * Transfer helper: open experiment at index after a transfer reload.
-	 * This is called after the transfer is completed, so it's OK if it triggers bin prompts.
+	 * Transfer helper: open experiment at index after a transfer reload. This is
+	 * called after the transfer is completed, so it's OK if it triggers bin
+	 * prompts.
 	 */
 	public void openExperimentAtIndex(int index) {
 		if (parent0 == null || parent0.expListComboLazy == null)
@@ -262,10 +267,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	public void sequenceChanged(SequenceEvent sequenceEvent) {
 		if (sequenceEvent.getSourceType() == SequenceEventSourceType.SEQUENCE_DATA) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				if (exp.getSeqCamData().getSequence() != null
-						&& sequenceEvent.getSequence() == exp.getSeqCamData().getSequence()) {
-					Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+			if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null
+					&& sequenceEvent.getSequence() == exp.getSeqCamData().getSequence()) {
+				Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+				if (v != null) {
 					int t = v.getPositionT();
 					v.setTitle(exp.getSeqCamData().getDecoratedImageName(t));
 				}
@@ -275,7 +280,18 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	@Override
 	public void sequenceClosed(Sequence sequence) {
+		if (sequence == null) {
+			return;
+		}
 		sequence.removeListener(this);
+		ArrayList<Viewer> listViewers = sequence.getViewers();
+		if (listViewers != null) {
+			for (Viewer v : listViewers) {
+				if (v != null) {
+					v.close();
+				}
+			}
+		}
 	}
 
 	@Override
@@ -287,8 +303,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			if (exp != null) {
 				if (loadLifecycle.currentlyLoadingExperiment != null
 						&& loadLifecycle.currentlyLoadingExperiment != exp) {
-					Logger.info(
-							"Cancelling load for experiment [" + loadLifecycle.currentlyLoadingIndex + "] - new experiment selected");
+					Logger.info("Cancelling load for experiment [" + loadLifecycle.currentlyLoadingIndex
+							+ "] - new experiment selected");
 					if (loadLifecycle.currentlyLoadingExperiment != null) {
 						loadLifecycle.currentlyLoadingExperiment.setLoading(false);
 					}

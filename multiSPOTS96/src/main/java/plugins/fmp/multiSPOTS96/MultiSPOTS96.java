@@ -12,6 +12,8 @@ import icy.plugin.PluginLauncher;
 import icy.plugin.PluginLoader;
 import icy.plugin.abstract_.PluginActionable;
 import icy.preferences.GeneralPreferences;
+import icy.preferences.XMLPreferences;
+import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multiSPOTS96.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS96.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS96.dlg.export._DlgExport_;
@@ -67,7 +69,11 @@ public class MultiSPOTS96 extends PluginActionable {
 		mainFrame.add(mainPanel, BorderLayout.WEST);
 
 		mainFrame.pack();
-		mainFrame.center();
+		XMLPreferences guiFramePrefs = getPreferences("gui");
+		if (!FrameGeometryPreferences.restore(mainFrame, guiFramePrefs, "pluginWindow.", 420, 280)) {
+			mainFrame.center();
+		}
+		FrameGeometryPreferences.installAutoSave(mainFrame, guiFramePrefs, "pluginWindow.");
 		mainFrame.setVisible(true);
 		mainFrame.addToDesktopPane();
 	}

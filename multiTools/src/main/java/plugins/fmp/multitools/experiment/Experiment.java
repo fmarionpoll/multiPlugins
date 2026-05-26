@@ -9,9 +9,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import icy.canvas.IcyCanvas;
 import icy.canvas.Layer;
@@ -2050,6 +2053,50 @@ public class Experiment {
 		}
 		// Otherwise, concatenate it to resultsDirectory
 		return resultsDirectory + File.separator + binDirectory;
+	}
+
+	/**
+	 * If the current kymographs folder does not contain {@code kymocage_*.tif*}, scans immediate
+	 * children of {@code resultsDirectory} whose names start with {@code bin_} and sets the first
+	 * (alphabetically) that contains cage kymograph TIFFs. Does not use camera interval heuristics.
+	 *
+	 * @return true if the active bin already had cage kymograph TIFFs or a matching {@code bin_*}
+	 *         directory was found and set
+	 */
+	public boolean adoptBinSubdirectoryContainingCageKymographTiffs() {
+		if (resultsDirectory == null) {
+			return false;
+		}
+		Path results = Paths.get(resultsDirectory);
+		if (!Files.isDirectory(results)) {
+			return false;
+		}
+		String currentFull = getKymosBinFullDirectory();
+		if (currentFull != null) {
+			Path cur = Paths.get(currentFull);
+			if (Files.isDirectory(cur) && BinDirectoryScanUtils.hasCageSpotKymographTiffs(cur)) {
+				return true;
+			}
+		}
+		try (Stream<Path> stream = Files.list(results)) {
+			ArrayList<Path> binDirs = stream.filter(Files::isDirectory).filter(p -> {
+				String name = p.getFileName().toString();
+				if (BinDirectoryScanUtils.isIgnoredDirectoryName(name)) {
+					return false;
+				}
+				return name.startsWith(BIN);
+			}).collect(Collectors.toCollection(ArrayList::new));
+			binDirs.sort(Comparator.comparing(p -> p.getFileName().toString()));
+			for (Path p : binDirs) {
+				if (BinDirectoryScanUtils.hasCageSpotKymographTiffs(p)) {
+					setBinSubDirectory(p.getFileName().toString());
+					return true;
+				}
+			}
+		} catch (IOException e) {
+			Logger.warn("Experiment.adoptBinSubdirectoryContainingCageKymographTiffs: scan failed: " + e.getMessage());
+		}
+		return false;
 	}
 
 	private void ensureBinDirectoryForLoading() {

@@ -84,6 +84,24 @@ public final class BinDirectoryScanUtils {
 	}
 
 	/**
+	 * True if the directory contains stacked cage kymograph exports ({@code kymocage_*.tif*}).
+	 * Used to pick a {@code bin_*} folder from disk without relying on camera interval heuristics.
+	 */
+	public static boolean hasCageSpotKymographTiffs(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return false;
+		}
+		try (Stream<Path> stream = Files.list(dir)) {
+			return stream.filter(Files::isRegularFile).anyMatch(p -> {
+				String n = p.getFileName().toString().toLowerCase(Locale.ROOT);
+				return n.startsWith("kymocage_") && (n.endsWith(".tif") || n.endsWith(".tiff"));
+			});
+		} catch (IOException e) {
+			return false;
+		}
+	}
+
+	/**
 	 * Latest last-modified time among {@code line*.tiff} / {@code line*.tif} in the
 	 * directory, or 0 if none / unreadable.
 	 */
@@ -135,11 +153,14 @@ public final class BinDirectoryScanUtils {
 		return false;
 	}
 
-	private static boolean isKymographFile(String lowerName) {
-		if (lowerName == null)
+	private static boolean isKymographFile(String name) {
+		if (name == null) {
 			return false;
-		if (!(lowerName.endsWith(".tif") || lowerName.endsWith(".tiff")))
+		}
+		String lowerName = name.toLowerCase(Locale.ROOT);
+		if (!(lowerName.endsWith(".tif") || lowerName.endsWith(".tiff"))) {
 			return false;
+		}
 		return lowerName.startsWith("kymo") || lowerName.startsWith("line");
 	}
 }
