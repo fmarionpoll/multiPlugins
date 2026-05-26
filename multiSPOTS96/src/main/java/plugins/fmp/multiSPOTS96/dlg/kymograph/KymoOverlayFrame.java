@@ -34,7 +34,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * Single-chart overlay for kymograph metric curves (selected spot ROIs), similar in spirit to
  * {@link plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame} for spot measures.
  */
-public class KymoSpotsOverlayFrame {
+public class KymoOverlayFrame {
 
 	private static final int DEFAULT_FRAME_WIDTH = 520;
 	private static final int DEFAULT_FRAME_HEIGHT = 220;
@@ -181,7 +181,7 @@ public class KymoSpotsOverlayFrame {
 		if (mainChartFrame == null) {
 			return;
 		}
-		Preferences prefs = Preferences.userNodeForPackage(KymoSpotsOverlayFrame.class);
+		Preferences prefs = Preferences.userNodeForPackage(KymoOverlayFrame.class);
 		int x = prefs.getInt("window_x", graphLocation.x);
 		int y = prefs.getInt("window_y", graphLocation.y);
 		int w = prefs.getInt("window_w", DEFAULT_FRAME_WIDTH);
@@ -193,7 +193,7 @@ public class KymoSpotsOverlayFrame {
 		if (mainChartFrame == null) {
 			return;
 		}
-		Preferences prefs = Preferences.userNodeForPackage(KymoSpotsOverlayFrame.class);
+		Preferences prefs = Preferences.userNodeForPackage(KymoOverlayFrame.class);
 		Rectangle r = mainChartFrame.getBounds();
 		prefs.putInt("window_x", r.x);
 		prefs.putInt("window_y", r.y);

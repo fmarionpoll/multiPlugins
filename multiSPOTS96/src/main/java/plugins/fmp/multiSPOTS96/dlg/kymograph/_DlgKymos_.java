@@ -24,10 +24,10 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 	private static final long serialVersionUID = 1122367183829360097L;
 	PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
-	public CageKymographsPanel tabCreate = new CageKymographsPanel();
-	public CageKymographLoadSavePanel tabLoadSave = new CageKymographLoadSavePanel();
-	public KymoAnalysisPanel tabKymoAnalysis = null;
-	public KymoGraphPanel tabKymoGraph = null;
+	public BuildPanel tabCreate = new BuildPanel();
+	public LoadSavePanel tabLoadSave = new LoadSavePanel();
+	public AnalysisPanel tabKymoAnalysis = null;
+	public GraphPanel tabKymoGraph = null;
 
 	private MultiSPOTS96 parent0 = null;
 
@@ -42,13 +42,13 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 
 		tabCreate.init(capLayout, parent0);
 		tabCreate.addPropertyChangeListener(this);
-		tabsPane.addTab("Build kymos", null, tabCreate, "Build stacked cage kymographs from spot ROIs");
+		tabsPane.addTab("Build", null, tabCreate, "Build stacked cage kymographs from spot ROIs");
 
-		tabKymoAnalysis = new KymoAnalysisPanel(parent0);
-		tabKymoGraph = new KymoGraphPanel(parent0, tabKymoAnalysis);
-		tabsPane.addTab("Kymo analysis", null, tabKymoAnalysis,
+		tabKymoAnalysis = new AnalysisPanel(parent0);
+		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis);
+		tabsPane.addTab("Analysis", null, tabKymoAnalysis,
 				"Parameters, postprocess, and run metric fraction analysis on cage kymographs");
-		tabsPane.addTab("Kymo charts", null, tabKymoGraph,
+		tabsPane.addTab("Charts", null, tabKymoGraph,
 				"Display kymograph metric charts (run Analyze on Kymo analysis first)");
 
 		tabLoadSave.init(capLayout, parent0);

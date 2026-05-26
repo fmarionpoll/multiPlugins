@@ -35,7 +35,7 @@ import plugins.fmp.multitools.tools.Logger;
  * Load / save cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the current results bin,
  * analogous to multiCAFE {@code dlg.kymos.LoadSave} for capillary line kymographs.
  */
-public class CageKymographLoadSavePanel extends JPanel {
+public class LoadSavePanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 

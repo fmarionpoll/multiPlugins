@@ -33,7 +33,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 /**
  * Experimental cage kymographs (vertical midline per spot, stacked per cage).
  */
-public class CageKymographsPanel extends JPanel implements PropertyChangeListener {
+public class BuildPanel extends JPanel implements PropertyChangeListener {
 
 	private static final long serialVersionUID = 1L;
 

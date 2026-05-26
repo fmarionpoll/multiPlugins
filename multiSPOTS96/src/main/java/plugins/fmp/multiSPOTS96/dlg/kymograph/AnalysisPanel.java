@@ -32,9 +32,10 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.KymoMetricThresholdOverlay;
 
 /**
- * Kymograph metric: detection parameters, postprocess, preview on kymograph sequence, and analysis worker.
+ * Kymograph metric: detection parameters, postprocess, preview on kymograph
+ * sequence, and analysis worker.
  */
-public class KymoAnalysisPanel extends JPanel {
+public class AnalysisPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
@@ -63,8 +64,8 @@ public class KymoAnalysisPanel extends JPanel {
 	private SwingWorker<KymoAnalysisResult, Void> analyzeWorker;
 	private KymoMetricThresholdOverlay kymoMetricOverlay;
 
-	public KymoAnalysisPanel(MultiSPOTS96 parent0) {
-		super(new GridLayout(4, 1));
+	public AnalysisPanel(MultiSPOTS96 parent0) {
+		super(new GridLayout(5, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
@@ -91,12 +92,17 @@ public class KymoAnalysisPanel extends JPanel {
 		p1post.add(restrictSignalBandCheckBox);
 		p1post.add(new JLabel("min run"));
 		p1post.add(effectiveBandMinRunSpinner);
-		p1post.add(new JLabel("min max(R,G,B)"));
-		p1post.add(signalMinMaxRgbSpinner);
-		p1post.add(fillLocfCheckBox);
-		p1post.add(new JLabel("max gap cols"));
-		p1post.add(locfMaxGapSpinner);
+
 		add(p1post);
+
+		JPanel p1bpost = new JPanel(left);
+
+		p1bpost.add(new JLabel("min max(R,G,B)"));
+		p1bpost.add(signalMinMaxRgbSpinner);
+		p1bpost.add(fillLocfCheckBox);
+		p1bpost.add(new JLabel("max gap cols"));
+		p1bpost.add(locfMaxGapSpinner);
+		add(p1bpost);
 
 		JPanel p3 = new JPanel(left);
 		p3.add(new JLabel("Status: "));
@@ -228,8 +234,7 @@ public class KymoAnalysisPanel extends JPanel {
 			c3.updateTransformsStep1(choices);
 		}
 		Object sel = metricTransformCombo.getSelectedItem();
-		int index = sel instanceof ImageTransformEnums
-				? KymoImageTransforms.indexOfMetric((ImageTransformEnums) sel)
+		int index = sel instanceof ImageTransformEnums ? KymoImageTransforms.indexOfMetric((ImageTransformEnums) sel)
 				: 0;
 		c3.setTransformStep1Index(index + 1);
 	}

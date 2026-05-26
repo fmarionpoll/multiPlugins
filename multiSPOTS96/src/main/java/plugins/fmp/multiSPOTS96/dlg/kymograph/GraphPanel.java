@@ -34,7 +34,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 /**
  * Kymograph metric charts: measure, display mode, and chart windows (cages or spot overlay).
  */
-public class KymoGraphPanel extends JPanel {
+public class GraphPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
@@ -42,7 +42,7 @@ public class KymoGraphPanel extends JPanel {
 			EnumResults.KYMO_CAGE_MEAN_FRACT, EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
 	private final MultiSPOTS96 parent0;
-	private final KymoAnalysisPanel analysisPanel;
+	private final AnalysisPanel analysisPanel;
 
 	private final JComboBox<EnumResults> measureComboBox = new JComboBox<>(KYMO_MEASURES);
 	private final JRadioButton displayAllButton = new JRadioButton("all cages", true);
@@ -52,9 +52,9 @@ public class KymoGraphPanel extends JPanel {
 	private final JLabel graphStatusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private ChartCagesFrame chartCagesFrame;
-	private KymoSpotsOverlayFrame overlayFrame;
+	private KymoOverlayFrame overlayFrame;
 
-	public KymoGraphPanel(MultiSPOTS96 parent0, KymoAnalysisPanel analysisPanel) {
+	public GraphPanel(MultiSPOTS96 parent0, AnalysisPanel analysisPanel) {
 		super(new GridLayout(3, 1));
 		this.parent0 = parent0;
 		this.analysisPanel = analysisPanel;
@@ -191,7 +191,7 @@ public class KymoGraphPanel extends JPanel {
 			graphStatusLabel.setText("Select one or more spot ROIs on the camera sequence.");
 			return;
 		}
-		overlayFrame = new KymoSpotsOverlayFrame();
+		overlayFrame = new KymoOverlayFrame();
 		overlayFrame.setSelectedSpotsProvider(
 				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		overlayFrame.createMainChartPanel("Kymograph (selected)", options);
