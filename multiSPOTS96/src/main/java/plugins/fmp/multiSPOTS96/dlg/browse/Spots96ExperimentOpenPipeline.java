@@ -10,6 +10,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multitools.experiment.BinDirectoryResolver;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
+import plugins.fmp.multitools.experiment.KymographKind;
 import plugins.fmp.multitools.experiment.persistence.MigrationTool;
 import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
@@ -95,6 +96,7 @@ final class Spots96ExperimentOpenPipeline {
 			progressFrame.setMessage("Load cage kymographs...");
 			String kymoBin = exp.getKymosBinFullDirectory();
 			if (kymoBin != null) {
+				exp.setKymographKind(KymographKind.CAGE_STACKED_TIFF);
 				// Drop any stale seqKymos from a previously selected experiment (closeSequences()
 				// closes pixels but does not clear the field).
 				exp.releaseKymographSequence();

@@ -1,48 +1,34 @@
 package plugins.fmp.multitools.experiment.sequence;
 
-import java.awt.Color;
 import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
 import icy.common.exception.UnsupportedFormatException;
 import icy.file.Loader;
 import icy.file.Saver;
-import icy.gui.dialog.MessageDialog;
 import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
-import icy.roi.ROI;
-import icy.roi.ROI2D;
 import icy.sequence.MetaDataUtil;
-import icy.sequence.Sequence;
 import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
-import icy.type.geom.Polyline2D;
 import loci.formats.FormatException;
 import ome.xml.meta.OMEXMLMetadata;
 import plugins.fmp.multitools.experiment.EnumStatus;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
-import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
-import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
-import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
-import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.service.KymographService;
-import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
-import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 /**
  * Extended SequenceCamData for handling kymograph-specific operations.
@@ -81,6 +67,7 @@ public class SequenceKymos extends SequenceCamData {
 
 	// === CORE FIELDS ===
 	private final ReentrantLock processingLock = new ReentrantLock();
+	private final CapillaryKymographMeasureBridge capillaryMeasureBridge = new CapillaryKymographMeasureBridge(this);
 	private volatile boolean isLoadingImages = false;
 	private volatile int maxImageWidth = 0;
 	private volatile int maxImageHeight = 0;
@@ -175,155 +162,30 @@ public class SequenceKymos extends SequenceCamData {
 
 		processingLock.lock();
 		try {
-			long startTime = System.currentTimeMillis();
-			int processed = 0;
-			int failed = 0;
-
-			List<ROI2D> roiList = getSequence().getROI2Ds();
-			int sequenceWidth = getSequence().getWidth();
-
-			for (ROI2D roi : roiList) {
-				if (!(roi instanceof ROI2DPolyLine)) {
-					continue;
-				}
-
-				try {
-					if (roi.getName() != null && roi.getName().contains("level")) {
-						ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, sequenceWidth);
-						processed++;
-						continue;
-					}
-					if (roi.getName() != null && roi.getName().contains("derivative")) {
-						continue;
-					}
-					if (roi.getName() != null && roi.getName().contains("gulp")) {
-						// Gulps are vertical segments; do not interpolate along X
-						continue;
-					}
-					// if gulp not found - add an index to it
-					ROI2DPolyLine roiLine = (ROI2DPolyLine) roi;
-					Polyline2D line = roiLine.getPolyline2D();
-					roi.setName("gulp" + String.format("%07d", (int) line.xpoints[0]));
-					roi.setColor(Color.red);
-
-				} catch (Exception e) {
-					Logger.warn("Failed to process ROI: " + roi.getName(), e);
-					failed++;
-				}
-			}
-
-			// Sort ROIs by name
-			Collections.sort(roiList, new Comparators.ROI2D_Name());
-
-			long processingTime = System.currentTimeMillis() - startTime;
-
-			return ImageProcessingResult.builder().success(failed == 0).processedCount(processed).failedCount(failed)
-					.processingTimeMs(processingTime)
-					.message(String.format("Processed %d ROIs, %d failed", processed, failed)).build();
-
+			return capillaryMeasureBridge.validateROIs();
 		} finally {
 			processingLock.unlock();
 		}
 	}
 
 	public void validateRoisAtT(int t) {
-		List<ROI2D> listRois = getSequence().getROI2Ds();
-		int width = getSequence().getWidth();
-		for (ROI2D roi : listRois) {
-			if (!(roi instanceof ROI2DPolyLine))
-				continue;
-			if (roi.getT() == -1)
-				roi.setT(t);
-			if (roi.getT() != t)
-				continue;
-			// interpolate or expand to full width so transfer back to capillary keeps
-			// length
-			if (roi.getName().contains("level") || roi.getName().contains("derivative")) {
-				ROI2DPolyLine roiLine = (ROI2DPolyLine) roi;
-				ROI2DUtilities.interpolateMissingPointsAlongXAxis(roiLine, width);
-				continue;
-			}
-			if (roi.getName().contains("gulp")) {
-				// Gulps are vertical segments (same x); do not interpolate along X or amplitude
-				// is lost
-				continue;
-			}
-			// if gulp not found - add an index to it
-			ROI2DPolyLine roiLine = (ROI2DPolyLine) roi;
-			Polyline2D line = roiLine.getPolyline2D();
-			roi.setName("gulp" + String.format("%07d", (int) line.xpoints[0]));
-			roi.setColor(Color.red);
-		}
-		Collections.sort(listRois, new Comparators.ROI2D_Name());
+		capillaryMeasureBridge.validateRoisAtT(t);
 	}
 
 	public void removeROIsPolylineAtT(int t) {
-		List<ROI2D> listRois = getSequence().getROI2Ds();
-		for (ROI2D roi : listRois) {
-			if (!(roi instanceof ROI2DPolyLine))
-				continue;
-			if (roi.getT() == t)
-				getSequence().removeROI(roi);
-		}
+		capillaryMeasureBridge.removeROIsPolylineAtT(t);
 	}
 
 	public void updateROIFromCapillaryMeasure(Capillary cap, CapillaryMeasure caplimits) {
-		int t = cap.getKymographIndex();
-		List<ROI2D> listRois = getSequence().getROI2Ds();
-		for (ROI2D roi : listRois) {
-			if (!(roi instanceof ROI2DPolyLine))
-				continue;
-			if (roi.getT() != t)
-				continue;
-			if (!roi.getName().contains(caplimits.capName))
-				continue;
-
-			((ROI2DPolyLine) roi).setPolyline2D(caplimits.polylineLevel);
-			roi.setName(caplimits.capName);
-			getSequence().roiChanged(roi);
-			break;
-		}
+		capillaryMeasureBridge.updateROIFromCapillaryMeasure(cap, caplimits);
 	}
 
 	public boolean transferKymosRoisToCapillaries_Measures(Capillaries capillaries) {
-		List<ROI> allRois = getSequence().getROIs();
-		if (allRois.size() < 1)
-			return false;
-
-		for (int kymo = 0; kymo < getSequence().getSizeT(); kymo++) {
-			List<ROI> roisAtT = new ArrayList<ROI>();
-			for (ROI roi : allRois) {
-				if (roi instanceof ROI2D && ((ROI2D) roi).getT() == kymo)
-					roisAtT.add(roi);
-			}
-			if (capillaries.getList().size() <= kymo) {
-				capillaries.getList().add(new Capillary());
-			}
-
-			final int i = kymo;
-			Capillary cap = capillaries.getList().stream() //
-					.filter(c -> c.getKymographIndex() == i) //
-					.findFirst() //
-					.orElse(null);
-			if (cap != null) {
-				cap.transferROIsToAllMeasures(roisAtT);
-			}
-		}
-		return true;
+		return capillaryMeasureBridge.transferKymosRoisToCapillaries_Measures(capillaries);
 	}
 
 	public boolean transferKymosRoi_at_T_To_Capillaries_Measures(int t, Capillary cap) {
-		List<ROI> allRois = getSequence().getROIs();
-		if (allRois.size() < 1)
-			return false;
-
-		List<ROI> roisAtT = new ArrayList<ROI>();
-		for (ROI roi : allRois) {
-			if (roi instanceof ROI2D && ((ROI2D) roi).getT() == t)
-				roisAtT.add(roi);
-		}
-		cap.transferROIsToAllMeasures(roisAtT);
-		return true;
+		return capillaryMeasureBridge.transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
 	}
 
 	/**
@@ -331,45 +193,11 @@ public class SequenceKymos extends SequenceCamData {
 	 * frame index from getCurrentFrame() or viewer; use when cap is already known.
 	 */
 	public boolean transferKymosRoi_at_T_To_Capillaries_Measures(Capillary cap) {
-		int t = resolveCurrentFrame();
-		return t >= 0 && transferKymosRoi_at_T_To_Capillaries_Measures(t, cap);
-	}
-
-	private int resolveCurrentFrame() {
-		int t = getCurrentFrame();
-		if (t < 0 && getSequence() != null && getSequence().getFirstViewer() != null)
-			t = getSequence().getFirstViewer().getPositionT();
-		return t;
+		return capillaryMeasureBridge.transferKymosRoi_at_T_To_Capillaries_Measures(cap);
 	}
 
 	public boolean validateLinearROIsAtT(int t, Capillary cap) {
-		Sequence seq = getSequence();
-		if (seq == null)
-			return false;
-
-		seq.beginUpdate();
-		try {
-			List<ROI> allRois = seq.getROIs();
-			if (allRois.size() < 1)
-				return false;
-
-			int width = seq.getWidth();
-			for (ROI roi : allRois) {
-				if (!roi.getName().contains("level") && !roi.getName().contains("derivative"))
-					continue;
-				if (!(roi instanceof ROI2D) || ((ROI2D) roi).getT() != t)
-					continue;
-
-				ROI2DUtilities.interpolateMissingPointsAlongXAxis((ROI2DPolyLine) roi, width);
-				cap.transferROIToLinearMeasure(roi);
-				seq.removeROI(roi);
-			}
-
-			seq.addROIs(cap.getLinearROIsForCapillaryAtT(t), false);
-			return true;
-		} finally {
-			seq.endUpdate();
-		}
+		return capillaryMeasureBridge.validateLinearROIsAtT(t, cap);
 	}
 
 	/**
@@ -377,8 +205,7 @@ public class SequenceKymos extends SequenceCamData {
 	 * index from getCurrentFrame() or viewer; use when cap is already known.
 	 */
 	public boolean validateLinearROIsAtT(Capillary cap) {
-		int t = resolveCurrentFrame();
-		return t >= 0 && validateLinearROIsAtT(t, cap);
+		return capillaryMeasureBridge.validateLinearROIsAtT(cap);
 	}
 
 	/**
@@ -388,12 +215,7 @@ public class SequenceKymos extends SequenceCamData {
 	 */
 
 	public void validateGulpROIsAtT(Experiment exp, int t) {
-		Capillary cap = getCapillaryForFrame(t, exp.getCapillaries());
-		if (cap == null) {
-			MessageDialog.showDialog("Capillary not found for current frame.", MessageDialog.WARNING_MESSAGE);
-			return;
-		}
-		validateGulpROIsAtT(t, cap);
+		capillaryMeasureBridge.validateGulpROIsAtT(exp, t);
 	}
 
 	/**
@@ -401,61 +223,15 @@ public class SequenceKymos extends SequenceCamData {
 	 * frame index from getCurrentFrame() or viewer; use when cap is already known.
 	 */
 	public void validateGulpROIsAtT(Capillary cap) {
-		int t = resolveCurrentFrame();
-		if (t >= 0)
-			validateGulpROIsAtT(t, cap);
+		capillaryMeasureBridge.validateGulpROIsAtT(cap);
 	}
 
 	public void validateGulpROIsAtT(int t, Capillary cap) {
-		if (cap == null)
-			return;
-
-		List<ROI2D> allRois = getSequence().getROI2Ds();
-		ArrayList<ROI2D> gulpRois = new ArrayList<>();
-		for (ROI2D r : allRois) {
-			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
-				gulpRois.add(r);
-		}
-		int npoints = (cap.getTopLevel() != null) ? cap.getTopLevel().getNPoints() : 0;
-		cap.getGulps().transferROIsToMeasures(gulpRois, npoints);
-
-		getSequence().removeROIs(gulpRois, false);
-		getSequence().addROIs(cap.getGulpROIsForCapillaryAtT(t), false);
-		cap.setGulpMeasuresDirty(false);
+		capillaryMeasureBridge.validateGulpROIsAtT(t, cap);
 	}
 
 	public void transferCapillariesMeasuresToKymos(Capillaries capillaries) {
-		// Remove existing measure ROIs to prevent duplication
-		// Measure ROIs have names like "prefix_toplevel", "prefix_bottomlevel",
-		// "prefix_derivative", "prefix_gulps"
-		List<ROI2D> allROIs = getSequence().getROI2Ds();
-		List<ROI2D> roisToRemove = new ArrayList<ROI2D>();
-		for (ROI2D roi : allROIs) {
-			if (roi instanceof ROI2DPolyLine && roi.getName() != null) {
-				String name = roi.getName();
-				// Check if this ROI matches the pattern of measure ROIs
-				if (name.contains("_") && (name.contains("toplevel") || name.contains("bottomlevel")
-						|| name.contains("derivative") || name.contains("gulps"))) {
-					roisToRemove.add(roi);
-				}
-			}
-		}
-		if (!roisToRemove.isEmpty()) {
-			getSequence().removeROIs(roisToRemove, false);
-		}
-
-		List<ROI2D> newRoisList = new ArrayList<ROI2D>();
-		int ncapillaries = capillaries.getList().size();
-		List<String> imagesList = getImagesList();
-
-		for (int i = 0; i < ncapillaries; i++) {
-			List<ROI2D> listOfRois = capillaries.getList().get(i).transferMeasuresToROIs(imagesList);
-			if (listOfRois != null) {
-				newRoisList.addAll(listOfRois);
-			}
-		}
-
-		getSequence().addROIs(newRoisList, false);
+		capillaryMeasureBridge.transferCapillariesMeasuresToKymos(capillaries);
 	}
 
 	/**
@@ -464,50 +240,7 @@ public class SequenceKymos extends SequenceCamData {
 	 * truth), then by list index, then by kymographIndex.
 	 */
 	public Capillary getCapillaryForFrame(int t, Capillaries capillaries) {
-		if (capillaries == null || t < 0)
-			return null;
-		String path = getFileNameFromImageList(t);
-		if (path != null) {
-			String baseName = new File(path).getName();
-			int lastDot = baseName.lastIndexOf('.');
-			if (lastDot > 0)
-				baseName = baseName.substring(0, lastDot);
-			Capillary cap = capillaries.getCapillaryFromKymographName(baseName);
-			if (cap != null)
-				return cap;
-			String displayName = baseName.replaceAll("1$", "L").replaceAll("2$", "R");
-			cap = capillaries.getCapillaryFromKymographName(displayName);
-			if (cap != null)
-				return cap;
-			String numericName = Capillary.replace_LR_with_12(baseName);
-			if (!numericName.equals(baseName)) {
-				cap = capillaries.getCapillaryFromKymographName(numericName);
-				if (cap != null)
-					return cap;
-			}
-			String prefix = prefixFromKymographBaseName(baseName);
-			if (prefix != null) {
-				cap = capillaries.getCapillaryFromRoiNamePrefix(prefix);
-				if (cap != null)
-					return cap;
-			}
-		}
-		List<Capillary> list = capillaries.getList();
-		if (t < list.size())
-			return list.get(t);
-		return capillaries.getCapillaryAtT(t);
-	}
-
-	private static String prefixFromKymographBaseName(String baseName) {
-		if (baseName == null || baseName.length() < 6 || !baseName.startsWith("line"))
-			return null;
-		String number = baseName.substring(4, baseName.length() - 1);
-		String last = baseName.substring(baseName.length() - 1);
-		if ("1".equals(last))
-			return number + "L";
-		if ("2".equals(last))
-			return number + "R";
-		return baseName.substring(baseName.length() - 2);
+		return capillaryMeasureBridge.getCapillaryForFrame(t, capillaries);
 	}
 
 	/**
@@ -517,23 +250,7 @@ public class SequenceKymos extends SequenceCamData {
 	 * viewer/combo events.
 	 */
 	public void syncROIsForCurrentFrame(int t, Capillaries capillaries) {
-		if (getSequence() == null || capillaries == null)
-			return;
-		if (t == getCurrentFrame())
-			return;
-		Capillary cap = getCapillaryForFrame(t, capillaries);
-		List<ROI2D> roisForT = null;
-		if (cap != null) {
-			roisForT = cap.transferMeasuresToROIs(getImagesList());
-			if (roisForT != null)
-				for (ROI2D roi : roisForT)
-					roi.setT(t);
-		}
-		MeasureRoiSync.updateMeasureROIsAt(t, getSequence(), MeasureRoiFilter.CAPILLARY_MEASURES, roisForT);
-		setCurrentFrame(t);
-		icy.gui.viewer.Viewer v = getSequence().getFirstViewer();
-		if (v != null && v.getCanvas() != null)
-			v.getCanvas().refresh();
+		capillaryMeasureBridge.syncROIsForCurrentFrame(t, capillaries);
 	}
 
 	/**
@@ -543,29 +260,11 @@ public class SequenceKymos extends SequenceCamData {
 	 * ROI names match edited measure geometry in the model.
 	 */
 	public void replaceCapillaryMeasureRoisAtT(int t, Capillaries capillaries) {
-		if (getSequence() == null || capillaries == null || t < 0)
-			return;
-		Capillary cap = getCapillaryForFrame(t, capillaries);
-		List<ROI2D> roisForT = null;
-		if (cap != null) {
-			roisForT = cap.transferMeasuresToROIs(getImagesList());
-			if (roisForT != null) {
-				for (ROI2D roi : roisForT)
-					roi.setT(t);
-			}
-		}
-		MeasureRoiSync.updateMeasureROIsAt(t, getSequence(), MeasureRoiFilter.CAPILLARY_MEASURES, roisForT);
-		icy.gui.viewer.Viewer v = getSequence().getFirstViewer();
-		if (v != null && v.getCanvas() != null)
-			v.getCanvas().refresh();
+		capillaryMeasureBridge.replaceCapillaryMeasureRoisAtT(t, capillaries);
 	}
 
 	public void saveKymosCurvesToCapillariesMeasures(Experiment exp) {
-		if (exp == null) {
-			return;
-		}
-		CapillariesKymosMapper.pullCapillaryMeasuresFromKymos(exp.getCapillaries(), exp.getSeqKymos());
-		exp.save_capillaries_description_and_measures();
+		capillaryMeasureBridge.saveKymosCurvesToCapillariesMeasures(exp);
 	}
 
 	/**
@@ -668,39 +367,7 @@ public class SequenceKymos extends SequenceCamData {
 
 		processingLock.lock();
 		try {
-			String fullDirectory = baseDirectory + File.separator;
-
-			if (cages.cagesList.isEmpty()) {
-				Logger.warn("No cages found in cages array");
-				return new ArrayList<>();
-			}
-
-			Cage firstCage = cages.cagesList.get(0);
-			List<Spot> firstCageSpots = firstCage.getSpotList(allSpots);
-			if (firstCageSpots.isEmpty()) {
-				Logger.warn("No spots found in first cage");
-				return new ArrayList<>();
-			}
-
-			// Calculate total expected files
-			int totalExpectedFiles = cages.cagesList.size() * firstCageSpots.size();
-			List<ImageFileData> fileList = new ArrayList<>(totalExpectedFiles);
-
-			// Generate file descriptors for each spot in each cage
-			for (Cage cage : cages.cagesList) {
-				List<Spot> spots = cage.getSpotList(allSpots);
-				if (spots.isEmpty())
-					continue;
-
-				for (Spot spot : spots) {
-					ImageFileData descriptor = new ImageFileData();
-					descriptor.fileName = fullDirectory + spot.getRoi().getName() + ".tiff";
-					descriptor.exists = new File(descriptor.fileName).exists();
-					fileList.add(descriptor);
-				}
-			}
-			return fileList;
-
+			return PerSpotRoiTiffDiskLayout.INSTANCE.listImageDescriptors(baseDirectory, cages, allSpots);
 		} finally {
 			processingLock.unlock();
 		}
@@ -720,39 +387,7 @@ public class SequenceKymos extends SequenceCamData {
 
 		processingLock.lock();
 		try {
-			String fullDirectory = baseDirectory + File.separator;
-
-			if (cages.cagesList.isEmpty()) {
-				Logger.warn("No cages found for cage kymograph file list");
-				return new ArrayList<>();
-			}
-
-			List<ImageFileData> fileList = new ArrayList<>(cages.cagesList.size());
-			int idx = 0;
-			for (Cage cage : cages.cagesList) {
-				int cid = cage.prop.getCageID();
-				String base = "kymocage_" + (cid >= 0 ? String.valueOf(cid) : "i" + idx);
-				String pathTiff = fullDirectory + base + ".tiff";
-				String pathTif = fullDirectory + base + ".tif";
-				File fTiff = new File(pathTiff);
-				File fTif = new File(pathTif);
-
-				ImageFileData descriptor = new ImageFileData();
-				if (fTiff.exists()) {
-					descriptor.fileName = pathTiff;
-					descriptor.exists = true;
-				} else if (fTif.exists()) {
-					descriptor.fileName = pathTif;
-					descriptor.exists = true;
-				} else {
-					descriptor.fileName = pathTiff;
-					descriptor.exists = false;
-				}
-				fileList.add(descriptor);
-				idx++;
-			}
-			return fileList;
-
+			return CageStackTiffDiskLayout.INSTANCE.listImageDescriptors(baseDirectory, cages, null);
 		} finally {
 			processingLock.unlock();
 		}

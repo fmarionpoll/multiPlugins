@@ -28,6 +28,10 @@ public final class KymoAnalysisResult {
 
 	public static final class SpotKymoSeries {
 		public final Spot spot;
+		/**
+		 * Index of this series in the cage's name-sorted spot list (including spots that use a
+		 * geometry placeholder band).
+		 */
 		public final int indexInCage;
 		public final double[] fraction;
 		public final double[] absDeltaFraction;

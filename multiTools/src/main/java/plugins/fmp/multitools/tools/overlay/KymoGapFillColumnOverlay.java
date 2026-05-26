@@ -117,6 +117,9 @@ public final class KymoGapFillColumnOverlay extends Overlay implements SequenceL
 				if (band == null) {
 					continue;
 				}
+				if (band.geometryMissing) {
+					continue;
+				}
 				int y0 = Math.max(0, band.y0);
 				int y1 = Math.min(h, band.y1Exclusive);
 				int n = Math.min(w, Math.min(before.length, after.length));

@@ -3,16 +3,18 @@ package plugins.fmp.multiSPOTS96.dlg.kymograph;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.beans.PropertyChangeSupport;
-import java.util.concurrent.ExecutionException;
-
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
@@ -51,7 +53,7 @@ public class AnalysisPanel extends JPanel {
 
 	private final JComboBox<ImageTransformEnums> metricTransformCombo = new JComboBox<>(
 			KymoImageTransforms.METRIC_CHOICES);
-	private final JSpinner metricThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 20000, 1));
+	private final JSpinner metricThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 512, 1));
 	private final JSpinner minSumRgbSpinner = new JSpinner(new SpinnerNumberModel(30, 0, 765, 1));
 	private final JSpinner minValidRowsSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 500, 1));
 	private final JCheckBox restrictSignalBandCheckBox = new JCheckBox("Restrict rows to signal (per column)");
@@ -74,6 +76,12 @@ public class AnalysisPanel extends JPanel {
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
+		JComponent ed = metricThresholdSpinner.getEditor();
+		if (ed instanceof JSpinner.DefaultEditor) {
+			JFormattedTextField tf = ((JSpinner.DefaultEditor) ed).getTextField();
+			tf.setColumns(4); // “em” width ≈ 4 characters (not pixel-perfect)
+			tf.setHorizontalAlignment(JTextField.TRAILING);
+		}
 
 		JPanel p0 = new JPanel(left);
 		p0.add(analyzeButton);
@@ -167,8 +175,8 @@ public class AnalysisPanel extends JPanel {
 		});
 
 		analyzeButton.addActionListener(e -> onAnalyze());
-		diagnosticsButton.addActionListener(e -> KymoDiagnosticsDialog.show(this,
-				parent0.kymoDiagnosticsOptions, () -> {
+		diagnosticsButton
+				.addActionListener(e -> KymoDiagnosticsDialog.show(this, parent0.kymoDiagnosticsOptions, () -> {
 					if (viewKymoButton.isSelected()) {
 						refreshKymoPreview();
 					}
@@ -314,8 +322,9 @@ public class AnalysisPanel extends JPanel {
 			return;
 		}
 		if (kymoGapFillOverlay == null) {
-			kymoGapFillOverlay = new KymoGapFillColumnOverlay(seq, () -> (Experiment) parent0.expListComboLazy.getSelectedItem(),
-					() -> lastResult, () -> parent0.kymoDiagnosticsOptions.isShowGapFillColumnsOnKymograph());
+			kymoGapFillOverlay = new KymoGapFillColumnOverlay(seq,
+					() -> (Experiment) parent0.expListComboLazy.getSelectedItem(), () -> lastResult,
+					() -> parent0.kymoDiagnosticsOptions.isShowGapFillColumnsOnKymograph());
 			seq.addOverlay(kymoGapFillOverlay);
 		} else {
 			kymoGapFillOverlay.setSequence(seq);

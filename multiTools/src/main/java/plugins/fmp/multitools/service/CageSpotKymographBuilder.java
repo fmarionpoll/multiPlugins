@@ -32,7 +32,8 @@ import plugins.fmp.multitools.tools.Logger;
 /**
  * Builds one stacked vertical-line kymograph per cage from camera frames (multiSPOTS96
  * experimental). Spatial averaging matches {@link KymographBuilder} capillary strips
- * (horizontal neighborhood at each sample point).
+ * (horizontal neighborhood at each sample point). Stacking uses one horizontal strip per
+ * cage spot in name order, including a one-pixel placeholder row when a spot ROI has no valid bounds.
  */
 public class CageSpotKymographBuilder {
 
@@ -206,9 +207,10 @@ public class CageSpotKymographBuilder {
 			for (Spot s : sorted) {
 				Rectangle b = getSpotBounds(s, refSizex, refSizey);
 				if (b == null || b.height <= 0 || b.width <= 0) {
-					continue;
+					stackHeight += 1;
+				} else {
+					stackHeight += b.height;
 				}
-				stackHeight += b.height;
 			}
 			if (stackHeight <= 0) {
 				Logger.warn("CageSpotKymographBuilder: cage " + cage.prop.getCageID() + " has no valid spot bounds");
@@ -282,7 +284,12 @@ public class CageSpotKymographBuilder {
 		int row = 0;
 		for (Spot spot : plan.spots) {
 			Rectangle b = getSpotBounds(spot, refSizex, refSizey);
-			if (b == null || b.height <= 0) {
+			if (b == null || b.height <= 0 || b.width <= 0) {
+				int dst = row * W + kymographColumn;
+				for (int ch = 0; ch < plan.channelBuffers.size(); ch++) {
+					plan.channelBuffers.get(ch)[dst] = 0;
+				}
+				row++;
 				continue;
 			}
 			int cx = (int) Math.round(b.getCenterX());

@@ -116,6 +116,9 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 							refH);
 					if (!bands.isEmpty()) {
 						for (CageKymographSpotBands band : bands) {
+							if (band.geometryMissing) {
+								continue;
+							}
 							int y0 = Math.max(0, band.y0);
 							int y1 = Math.min(h, band.y1Exclusive);
 							for (int x = 0; x < w; x++) {

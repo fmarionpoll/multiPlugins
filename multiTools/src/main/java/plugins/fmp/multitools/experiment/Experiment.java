@@ -107,6 +107,12 @@ public class Experiment {
 	private SequenceKymos seqKymos = null;
 	private Sequence seqReference = null;
 
+	/**
+	 * Default: capillary-named TIFFs (multiCAFE). SPOTS96 sets {@link KymographKind#CAGE_STACKED_TIFF}
+	 * when opening an experiment.
+	 */
+	private KymographKind kymographKind = KymographKind.CAPILLARY_MODEL_TIFF;
+
 	private Cages cages = new Cages();
 	private Capillaries capillaries = new Capillaries();
 	private Spots spots = new Spots();
@@ -1968,6 +1974,54 @@ public class Experiment {
 		this.seqKymos = seqKymos;
 	}
 
+	public KymographKind getKymographKind() {
+		return kymographKind;
+	}
+
+	public void setKymographKind(KymographKind kymographKind) {
+		this.kymographKind = kymographKind != null ? kymographKind : KymographKind.CAPILLARY_MODEL_TIFF;
+	}
+
+	/**
+	 * Lists potential kymograph frame files for the current kymographs bin using {@link #kymographKind}.
+	 */
+	public List<ImageFileData> listPotentialKymographFrames() {
+		return listPotentialKymographFrames(kymographKind);
+	}
+
+	/**
+	 * Lists potential kymograph frame files for the current bin for the given layout (does not change
+	 * {@link #kymographKind}).
+	 */
+	public List<ImageFileData> listPotentialKymographFrames(KymographKind kind) {
+		String binDir = getKymosBinFullDirectory();
+		if (binDir == null) {
+			Logger.warn("Experiment.listPotentialKymographFrames: kymographs bin directory is null");
+			return new ArrayList<>();
+		}
+		if (seqKymos == null) {
+			setSeqKymos(new SequenceKymos());
+		}
+		KymographKind k = kind != null ? kind : KymographKind.CAPILLARY_MODEL_TIFF;
+		switch (k) {
+		case CAGE_STACKED_TIFF:
+			if (cages == null || cages.cagesList == null) {
+				Logger.warn("Experiment.listPotentialKymographFrames: no cages for CAGE_STACKED_TIFF");
+				return new ArrayList<>();
+			}
+			return getSeqKymos().createCageSpotKymographFileList(binDir, cages);
+		case SPOT_ROI_NAME_TIFF:
+			if (cages == null || cages.cagesList == null) {
+				Logger.warn("Experiment.listPotentialKymographFrames: no cages for SPOT_ROI_NAME_TIFF");
+				return new ArrayList<>();
+			}
+			return getSeqKymos().createKymographFileList(binDir, cages, spots);
+		case CAPILLARY_MODEL_TIFF:
+		default:
+			return new KymographService().loadListOfPotentialKymographsFromCapillaries(binDir, capillaries);
+		}
+	}
+
 	/**
 	 * Closes the kymograph sequence (and its viewers), cancels pending Icy prefetch for it, and
 	 * clears the reference. Call before rebuilding kymograph TIFFs on disk to reduce file locks.
@@ -2668,8 +2722,9 @@ public class Experiment {
 
 	/**
 	 * Loads kymograph TIFFs for the current bin into {@code seqKymos} without resizing them to a
-	 * common canvas. Use {@link #loadKymographs(boolean)} with {@code true} only when you need the
-	 * legacy normalization pass (e.g. heterogeneous TIFF sizes on disk).
+	 * common canvas. Uses {@link #getKymographKind()} with {@link #listPotentialKymographFrames()}.
+	 * Use {@link #loadKymographs(boolean)} with {@code true} only when you need the legacy
+	 * normalization pass (e.g. heterogeneous TIFF sizes on disk).
 	 */
 	public boolean loadKymographs() {
 		return loadKymographs(false);
@@ -2682,17 +2737,16 @@ public class Experiment {
 	 *                       uniform size for all capillaries).
 	 */
 	public boolean loadKymographs(boolean normalizeSizes) {
-		if (seqKymos == null)
+		return loadSeqKymographsFromListing(listPotentialKymographFrames(), normalizeSizes, false, null);
+	}
+
+	private boolean loadSeqKymographsFromListing(List<ImageFileData> myList, boolean normalizeSizes,
+			boolean requireNonEmpty, String emptyWarnDetail) {
+		if (seqKymos == null) {
 			setSeqKymos(new SequenceKymos());
-
-		List<ImageFileData> myList = new KymographService()
-				.loadListOfPotentialKymographsFromCapillaries(getKymosBinFullDirectory(), capillaries);
-
-		// Filter to get existing file names
+		}
 		ImageFileData.getExistingFileNames(myList);
-
-		// Convert to experiment1 ImageFileDescriptor format
-		ArrayList<ImageFileData> newList = new ArrayList<ImageFileData>();
+		ArrayList<ImageFileData> newList = new ArrayList<>();
 		for (ImageFileData oldDesc : myList) {
 			if (oldDesc.fileName != null && oldDesc.exists) {
 				ImageFileData newDesc = new ImageFileData();
@@ -2703,7 +2757,11 @@ public class Experiment {
 				newList.add(newDesc);
 			}
 		}
-
+		if (requireNonEmpty && newList.isEmpty()) {
+			Logger.warn(emptyWarnDetail != null ? emptyWarnDetail
+					: "Experiment.loadSeqKymographsFromListing: no existing kymograph files to load");
+			return false;
+		}
 		ImageAdjustmentOptions options = normalizeSizes
 				? ImageAdjustmentOptions.withSizeAdjustment(getSeqKymos().calculateMaxDimensions(newList))
 				: ImageAdjustmentOptions.noAdjustment();
@@ -2713,7 +2771,9 @@ public class Experiment {
 
 	/**
 	 * Loads per-cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the current kymographs
-	 * bin into {@link #seqKymos}. Does not use capillary {@code line*} naming.
+	 * bin. Uses {@link KymographKind#CAGE_STACKED_TIFF} via {@link #listPotentialKymographFrames(KymographKind)}.
+	 * multiSPOTS96 sets {@link #setKymographKind(KymographKind)} to {@link KymographKind#CAGE_STACKED_TIFF} when
+	 * opening an experiment so {@link #listPotentialKymographFrames()} matches for other callers.
 	 *
 	 * @see SequenceKymos#createCageSpotKymographFileList
 	 */
@@ -2731,36 +2791,14 @@ public class Experiment {
 			Logger.warn("Experiment.loadCageSpotKymographs: no cages loaded");
 			return false;
 		}
-		if (seqKymos == null) {
-			setSeqKymos(new SequenceKymos());
-		}
 		String kymoBinDir = getKymosBinFullDirectory();
 		if (kymoBinDir == null) {
 			Logger.warn("Experiment.loadCageSpotKymographs: kymographs bin directory is null");
 			return false;
 		}
-		List<ImageFileData> myList = getSeqKymos().createCageSpotKymographFileList(kymoBinDir, cages);
-		ImageFileData.getExistingFileNames(myList);
-		ArrayList<ImageFileData> newList = new ArrayList<>();
-		for (ImageFileData oldDesc : myList) {
-			if (oldDesc.fileName != null && oldDesc.exists) {
-				ImageFileData newDesc = new ImageFileData();
-				newDesc.fileName = oldDesc.fileName;
-				newDesc.exists = oldDesc.exists;
-				newDesc.imageHeight = oldDesc.imageHeight;
-				newDesc.imageWidth = oldDesc.imageWidth;
-				newList.add(newDesc);
-			}
-		}
-		if (newList.isEmpty()) {
-			Logger.warn("Experiment.loadCageSpotKymographs: no kymocage_*.tif* files under " + kymoBinDir);
-			return false;
-		}
-		ImageAdjustmentOptions options = normalizeSizes
-				? ImageAdjustmentOptions.withSizeAdjustment(getSeqKymos().calculateMaxDimensions(newList))
-				: ImageAdjustmentOptions.noAdjustment();
-		ImageProcessingResult result = getSeqKymos().loadKymographs(newList, options);
-		return result.isSuccess();
+		List<ImageFileData> myList = listPotentialKymographFrames(KymographKind.CAGE_STACKED_TIFF);
+		return loadSeqKymographsFromListing(myList, normalizeSizes, true,
+				"Experiment.loadCageSpotKymographs: no kymocage_*.tif* files under " + kymoBinDir);
 	}
 
 	public boolean loadCamDataCapillaries() {

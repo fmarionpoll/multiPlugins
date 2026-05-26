@@ -25,6 +25,7 @@ import icy.system.thread.ThreadUtil;
 import loci.formats.FormatException;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.KymographKind;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
@@ -173,7 +174,7 @@ public class LoadSavePanel extends JPanel {
 			return false;
 		}
 
-		List<ImageFileData> myList = seqKymos.createCageSpotKymographFileList(binDir, exp.getCages());
+		List<ImageFileData> myList = exp.listPotentialKymographFrames(KymographKind.CAGE_STACKED_TIFF);
 		int nItems = ImageFileData.getExistingFileNames(myList);
 		if (nItems > 0) {
 			boolean flag = new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, false);

@@ -67,9 +67,7 @@ public class ExperimentService {
 	public boolean loadKymographs(Experiment exp) {
 		if (exp.getSeqKymos() == null)
 			exp.setSeqKymos(new SequenceKymos());
-		String fullDir = exp.getKymosBinFullDirectory();
-		List<ImageFileData> myList = new KymographService().loadListOfPotentialKymographsFromCapillaries(fullDir,
-				exp.getCapillaries());
+		List<ImageFileData> myList = exp.listPotentialKymographFrames();
 
 		ImageFileDescriptor.getExistingFileNames(myList);
 		return new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, false);

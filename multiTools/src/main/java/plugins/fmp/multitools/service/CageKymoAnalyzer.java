@@ -183,6 +183,20 @@ public final class CageKymoAnalyzer {
 		int si = 0;
 		for (CageKymographSpotBands band : bands) {
 			Spot spot = band.spot;
+			if (band.geometryMissing) {
+				double[] f = new double[imgW];
+				double[] df = new double[imgW];
+				Arrays.fill(f, Double.NaN);
+				double[] fractionBeforeGapFill = null;
+				if (params.includeDiagnostics) {
+					fractionBeforeGapFill = Arrays.copyOf(f, f.length);
+				}
+				applyOcclusionBridgeFill(f, params);
+				recomputeDfFromF(f, df);
+				list.add(new SpotKymoSeries(spot, si, f, df, fractionBeforeGapFill));
+				si++;
+				continue;
+			}
 			int y0 = Math.max(0, band.y0);
 			int y1 = Math.min(imgH, band.y1Exclusive);
 			double[] f = new double[imgW];
