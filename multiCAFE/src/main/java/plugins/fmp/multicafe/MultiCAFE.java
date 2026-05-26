@@ -13,7 +13,6 @@ import icy.plugin.PluginLoader;
 import icy.plugin.abstract_.PluginActionable;
 import icy.preferences.GeneralPreferences;
 import icy.preferences.XMLPreferences;
-import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multicafe.dlg.browse.MCBrowse_;
 import plugins.fmp.multicafe.dlg.cages.MCCages_;
 import plugins.fmp.multicafe.dlg.capillaries.MCCapillaries_;
@@ -22,11 +21,12 @@ import plugins.fmp.multicafe.dlg.export.MCExport_;
 import plugins.fmp.multicafe.dlg.kymos.MCKymos_;
 import plugins.fmp.multicafe.dlg.levels.MCLevels_;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiCAFE extends PluginActionable {
-	public IcyFrame mainFrame = new IcyFrame("MultiCAFE May 7, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("MultiCAFE May 27, 2026", true, true, true, true);
 
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();

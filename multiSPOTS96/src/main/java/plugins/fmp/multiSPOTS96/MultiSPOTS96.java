@@ -13,7 +13,6 @@ import icy.plugin.PluginLoader;
 import icy.plugin.abstract_.PluginActionable;
 import icy.preferences.GeneralPreferences;
 import icy.preferences.XMLPreferences;
-import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multiSPOTS96.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS96.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS96.dlg.export._DlgExport_;
@@ -23,12 +22,13 @@ import plugins.fmp.multiSPOTS96.dlg.spots._DlgSpots_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures._DlgSpotMeasure_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures2._DlgSpotMeasure2_;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS96 extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 May 26, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS96 May 27, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
