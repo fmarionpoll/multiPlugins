@@ -13,6 +13,7 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import icy.gui.component.PopupPanel;
+import icy.gui.viewer.Viewer;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.experiment.Experiment;
 
@@ -24,9 +25,7 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 	PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
 	public CageKymographsPanel tabCreate = new CageKymographsPanel();
-//	public Intervals tabIntervals = new Intervals();
-//	public Binsize tabBinsize = new Binsize();
-//	public LoadSave tabLoadSave = new LoadSave();
+	public CageKymographLoadSavePanel tabLoadSave = new CageKymographLoadSavePanel();
 
 	private MultiSPOTS96 parent0 = null;
 
@@ -41,19 +40,11 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 
 		tabCreate.init(capLayout, parent0);
 		tabCreate.addPropertyChangeListener(this);
-		tabsPane.addTab("Build kymos", null, tabCreate, "Build kymographs from ROI lines placed over capillaries");
+		tabsPane.addTab("Build kymos", null, tabCreate, "Build stacked cage kymographs from spot ROIs");
 
-//		tabIntervals.init(capLayout, parent0);
-//		tabIntervals.addPropertyChangeListener(this);
-//		tabsPane.addTab("Intervals", null, tabIntervals, "Display options of data & kymographs");
-//
-//		tabBinsize.init(capLayout, parent0);
-//		tabBinsize.addPropertyChangeListener(this);
-//		tabsPane.addTab("Edit bins", null, tabBinsize, "Time resolution of kymograph");
-//
-//		tabLoadSave.init(capLayout, parent0);
-//		tabLoadSave.addPropertyChangeListener(this);
-//		tabsPane.addTab("Load/Save", null, tabLoadSave, "Load/Save xml file with capillaries descriptors");
+		tabLoadSave.init(capLayout, parent0);
+		tabLoadSave.addPropertyChangeListener(this);
+		tabsPane.addTab("Load/Save", null, tabLoadSave, "Load or export cage kymograph TIFF files");
 
 		tabsPane.addChangeListener(this);
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -75,12 +66,11 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 		if (event.getPropertyName().equals("KYMOS_OPEN")) {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-//				tabIntervals.transferCapillaryNamesToComboBox(exp);
-//				tabIntervals.displayON();
+				parent0.dlgExperiment.updateViewerForSequenceCam(exp);
 			}
-			tabsPane.setSelectedIndex(1);
+			tabsPane.setSelectedIndex(0);
 		} else if (event.getPropertyName().equals("KYMOS_SAVE")) {
-			tabsPane.setSelectedIndex(1);
+			tabsPane.setSelectedIndex(0);
 		}
 	}
 
@@ -94,18 +84,15 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 
 	void tabbedCapillariesAndKymosSelected() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null || exp.getSeqCamData() == null)
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
 			return;
+		}
 		int iselected = tabsPane.getSelectedIndex();
 		if (iselected == 0) {
-//			tabCreate.syncFromExperiment(exp);
-//			Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-//			if (v != null)
-//				v.toFront();
-////			parent0.paneExperiment.capPopupPanel.expand();
-//			parent0.paneExperiment.tabsPane.setSelectedIndex(0);
-		} else if (iselected == 1) {
-//			parent0.paneKymos.tabIntervals.displayUpdateOnSwingThread();
+			Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+			if (v != null) {
+				v.toFront();
+			}
 		}
 	}
 

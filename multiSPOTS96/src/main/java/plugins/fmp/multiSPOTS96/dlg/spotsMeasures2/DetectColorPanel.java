@@ -1,7 +1,11 @@
 package plugins.fmp.multiSPOTS96.dlg.spotsMeasures2;
 
+import java.awt.Dialog;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.GridLayout;
+import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -14,14 +18,16 @@ import java.util.ArrayList;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.swing.SwingUtilities;
 
 import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
@@ -36,7 +42,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
-public class ThresholdColorsPanel extends JPanel implements PropertyChangeListener {
+public class DetectColorPanel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 
 	private String detectString = "Detect";
@@ -44,11 +50,8 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private final ThresholdColors thresholdColors = new ThresholdColors();
-	/**
-	 * Maps to {@link BuildSeriesOptions#spotThresholdUp}: index 0 = count pixels far from reference colors; index 1 =
-	 * count pixels matching references (same side as the red overlay, which is drawn at binary value 0).
-	 */
-	private final String[] spotRoiCountModes = new String[] { "ROI count: far from refs", "ROI count: matching refs" };
+
+	private final String[] spotRoiCountModes = new String[] { "far from refs", "matching refs" };
 	private JComboBox<String> spotsDirectionComboBox = new JComboBox<>(spotRoiCountModes);
 	private JSpinner spotsThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 255, 1));
 	private JToggleButton spotsViewButton = new JToggleButton("View");
@@ -68,6 +71,13 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 	private JComboBox<String> fliesDirectionComboBox = new JComboBox<>(flyDirections);
 	private JSpinner fliesThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 255, 1));
 	private JCheckBox fliesOverlayCheckBox = new JCheckBox("overlay");
+
+	private final JPanel maskAndFliesPanel = new JPanel();
+	private JButton editColorsButton = new JButton("Edit colors…");
+	private JButton editMaskFliesButton = new JButton("Edit mask & flies…");
+	private JButton loadSavePresetButton = new JButton("Load/save detection…");
+
+	private SpotMeasureColorParamsPanel spotMeasureColorParamsPanel;
 
 	private OverlayThreshold overlayThreshold = null;
 	private WeakReference<BuildSpotsMeasuresColor> processorRef = null;
@@ -91,13 +101,14 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		});
 
 		JPanel panelSpotsMask = new JPanel(layoutLeft);
-		panelSpotsMask.add(new JLabel("After color mask "));
-		spotsDirectionComboBox.setToolTipText(
-				"<html>Detection only. The color <b>Distance</b> (above) builds the mask.<br>"
+		panelSpotsMask.add(new JLabel("ROI count"));
+		spotsDirectionComboBox
+				.setToolTipText("<html>Detection only. The color <b>Distance</b> (above) builds the mask.<br>"
 						+ "This control chooses whether spot ROI statistics count pixels that <b>match</b> your reference colors or pixels <b>outside</b> that match.<br>"
 						+ "Default &quot;matching refs&quot; matches the red overlay (mask drawn on matched pixels).</html>");
-		spotsThresholdSpinner.setToolTipText("<html>Used only after the color step produces a 0/255 mask. For typical thresholds (0&ndash;254) it does <b>not</b> change which pixels match;<br>"
-				+ "tune the mask with <b>Distance</b> above. Very high values (e.g. &ge; 255) can exclude all pixels.</html>");
+		spotsThresholdSpinner.setToolTipText(
+				"<html>Used only after the color step produces a 0/255 mask. For typical thresholds (0&ndash;254) it does <b>not</b> change which pixels match;<br>"
+						+ "tune the mask with <b>Distance</b> in Edit colors. Very high values (e.g. &ge; 255) can exclude all pixels.</html>");
 		panelSpotsMask.add(spotsDirectionComboBox);
 		panelSpotsMask.add(new JLabel("post step "));
 		panelSpotsMask.add(spotsThresholdSpinner);
@@ -112,7 +123,18 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		panelFlies.add(fliesViewButton);
 		panelFlies.add(fliesOverlayCheckBox);
 
-		SpotsMeasuresUi.layoutStackedRows(this, panel0, thresholdColors, panelSpotsMask, panelFlies);
+		SpotsMeasuresUi.layoutStackedRows(maskAndFliesPanel, panelSpotsMask, panelFlies);
+
+		JPanel panelEditors = new JPanel(layoutLeft);
+		panelEditors.add(editColorsButton);
+		panelEditors.add(editMaskFliesButton);
+
+		JPanel panelPreset = new JPanel(layoutLeft);
+		panelPreset.add(loadSavePresetButton);
+
+		SpotsMeasuresUi.layoutStackedRows(this, panel0, panelEditors, panelPreset);
+
+		spotMeasureColorParamsPanel = new SpotMeasureColorParamsPanel(parent0, this);
 
 		spotsDirectionComboBox.setSelectedIndex(1);
 		fliesTransformsComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
@@ -120,6 +142,23 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		spotsOverlayCheckBox.setEnabled(false);
 		fliesOverlayCheckBox.setEnabled(false);
 		declareListeners();
+	}
+
+	private Window dialogOwner() {
+		return SwingUtilities.getWindowAncestor(this);
+	}
+
+	private void showModalEditor(String title, JPanel body, int approxWidth, int approxHeight) {
+		Window owner = dialogOwner();
+		JScrollPane scroll = new JScrollPane(body);
+		scroll.setPreferredSize(new Dimension(approxWidth, approxHeight));
+		JDialog d = owner != null ? new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL)
+				: new JDialog((Frame) null, title, true);
+		d.setContentPane(scroll);
+		d.pack();
+		d.setLocationRelativeTo(owner);
+		d.setVisible(true);
+		d.dispose();
 	}
 
 	private BuildSpotsMeasuresColor getProcessor() {
@@ -134,6 +173,25 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 	}
 
 	private void declareListeners() {
+		editColorsButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				showModalEditor("Edit detection colors", thresholdColors, 760, 480);
+			}
+		});
+		editMaskFliesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				showModalEditor("Edit mask and fly filter", maskAndFliesPanel, 900, 220);
+			}
+		});
+		loadSavePresetButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				showModalEditor("Load / save color detection preset", spotMeasureColorParamsPanel, 520, 280);
+			}
+		});
+
 		fliesTransformsComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -400,7 +458,6 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		return options;
 	}
 
-	/** Copies color UI + spot mask + fly filter fields into {@code o} (for XML export). */
 	public void copyColorPipelineToPreset(BuildSeriesOptions o) {
 		if (o == null) {
 			return;
@@ -416,7 +473,6 @@ public class ThresholdColorsPanel extends JPanel implements PropertyChangeListen
 		o.flyThresholdUp = fliesDirectionComboBox.getSelectedIndex() == 1;
 	}
 
-	/** Applies a preset built from {@link BuildSeriesOptions#loadLimitsOptionsFromParentNode}. */
 	public void applyColorPipelineFromPreset(BuildSeriesOptions o) {
 		if (o == null) {
 			return;

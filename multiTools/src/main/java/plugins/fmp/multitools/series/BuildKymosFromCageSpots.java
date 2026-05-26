@@ -2,22 +2,14 @@ package plugins.fmp.multitools.series;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.swing.SwingUtilities;
 
-import icy.canvas.IcyCanvas;
-import icy.gui.viewer.Viewer;
-import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.service.CageSpotKymographBuilder;
 import plugins.fmp.multitools.service.KymographBuilder;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.ViewerFMP;
 
 /**
  * Background worker for multiSPOTS96 cage vertical-line kymographs (experimental).
@@ -67,7 +59,7 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 	/**
 	 * Loads freshly written {@code kymocage_*} TIFFs into {@code seqKymos} and opens (or revives) an
 	 * Icy viewer on the EDT — same idea as {@link BuildKymosFromCapillaries} calling
-	 * {@link Experiment#loadKymographs()} after export, plus visible {@link ViewerFMP}.
+	 * {@link Experiment#loadKymographs()} after export, plus a visible kymograph viewer.
 	 */
 	private void displayCageKymographsOnEdt(Experiment exp) {
 		try {
@@ -78,35 +70,7 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 						Logger.warn("BuildKymosFromCageSpots: loadCageSpotKymographs() after build returned false");
 						return;
 					}
-					SequenceKymos sk = exp.getSeqKymos();
-					if (sk == null || sk.getSequence() == null) {
-						return;
-					}
-					Sequence seq = sk.getSequence();
-					if (seq.isUpdating()) {
-						seq.endUpdate();
-					}
-					if (seq.getSizeT() < 1) {
-						Logger.warn("BuildKymosFromCageSpots: kymograph sequence has no frames to display");
-						return;
-					}
-					ArrayList<Viewer> vList = seq.getViewers();
-					if (vList == null || vList.isEmpty()) {
-						ViewerFMP v = new ViewerFMP(seq, false, true);
-						List<String> list = IcyCanvas.getCanvasPluginNames();
-						String pluginName = list.stream().filter(s -> s.contains("Canvas2D_3Transforms")).findFirst()
-								.orElse(null);
-						if (pluginName != null) {
-							v.setCanvas(pluginName);
-						}
-						v.setRepeat(false);
-						v.setTitle("Cage kymographs");
-						v.setVisible(true);
-					} else {
-						Viewer existing = vList.get(0);
-						existing.setVisible(true);
-						existing.toFront();
-					}
+					CageKymographViewerUtil.openIfPresent(exp);
 				}
 			});
 		} catch (InvocationTargetException | InterruptedException e) {

@@ -24,8 +24,8 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Tab content for manually loading/saving color-distance detection parameters (XML
- * {@code SpotMeasureColorLimits} / {@code LimitsOptions}).
+ * Load/save UI for color-distance detection presets (XML {@code SpotMeasureColorLimits} /
+ * {@code LimitsOptions}). Shown inside a modal dialog from {@link DetectColorPanel}.
  */
 public class SpotMeasureColorParamsPanel extends JPanel {
 
@@ -35,16 +35,16 @@ public class SpotMeasureColorParamsPanel extends JPanel {
 	public static final String DEFAULT_FILENAME = "SpotMeasureColorLimits.xml";
 
 	private final MultiSPOTS96 plugin;
-	private final ThresholdColorsPanel thresholdColorsPanel;
+	private final DetectColorPanel detectColorPanel;
 
-	public SpotMeasureColorParamsPanel(MultiSPOTS96 plugin, ThresholdColorsPanel thresholdColorsPanel) {
+	public SpotMeasureColorParamsPanel(MultiSPOTS96 plugin, DetectColorPanel detectColorPanel) {
 		this.plugin = plugin;
-		this.thresholdColorsPanel = thresholdColorsPanel;
+		this.detectColorPanel = detectColorPanel;
 		setLayout(new BorderLayout(12, 12));
 		setBorder(new EmptyBorder(12, 12, 12, 12));
 
 		String html = "<html><body style='width:420px'>"
-				+ "<p>Load or save an XML preset for the <b>Color threshold</b> tab: reference and exclude color lists, "
+				+ "<p>Load or save an XML preset for <b>Color detect</b>: reference and exclude color lists, "
 				+ "distance metric (L1/L2), color space, spot mask direction and threshold, and fly-filter transform/threshold/direction.</p>"
 				+ "<p>Default file name when saving: <code>" + DEFAULT_FILENAME + "</code> (under the current experiment folder when available).</p>"
 				+ "</body></html>";
@@ -101,7 +101,7 @@ public class SpotMeasureColorParamsPanel extends JPanel {
 			return;
 		}
 		File f = fc.getSelectedFile();
-		if (f == null || thresholdColorsPanel == null) {
+		if (f == null || detectColorPanel == null) {
 			return;
 		}
 		try {
@@ -120,7 +120,7 @@ public class SpotMeasureColorParamsPanel extends JPanel {
 				Logger.warn("SpotMeasureColorParamsPanel: no LimitsOptions in " + f.getAbsolutePath());
 				return;
 			}
-			thresholdColorsPanel.applyColorPipelineFromPreset(o);
+			detectColorPanel.applyColorPipelineFromPreset(o);
 		} catch (Exception ex) {
 			Logger.error("SpotMeasureColorParamsPanel load failed: " + ex.getMessage(), ex);
 		}
@@ -141,7 +141,7 @@ public class SpotMeasureColorParamsPanel extends JPanel {
 			return;
 		}
 		File f = fc.getSelectedFile();
-		if (f == null || thresholdColorsPanel == null) {
+		if (f == null || detectColorPanel == null) {
 			return;
 		}
 		if (!f.getName().toLowerCase(java.util.Locale.ROOT).endsWith(".xml")) {
@@ -156,7 +156,7 @@ public class SpotMeasureColorParamsPanel extends JPanel {
 			Node xmlRoot = XMLUtil.getRootElement(doc, true);
 			Node spotRoot = XMLUtil.setElement(xmlRoot, ROOT_ELEMENT);
 			BuildSeriesOptions o = new BuildSeriesOptions();
-			thresholdColorsPanel.copyColorPipelineToPreset(o);
+			detectColorPanel.copyColorPipelineToPreset(o);
 			o.saveLimitsOptionsToParentNode(spotRoot);
 			XMLUtil.saveDocument(doc, f.getAbsolutePath());
 		} catch (Exception ex) {

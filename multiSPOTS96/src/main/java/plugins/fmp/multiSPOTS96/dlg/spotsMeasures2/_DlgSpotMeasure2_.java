@@ -30,15 +30,15 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 	JTabbedPane tabsPane = new JTabbedPane();
 	public ThresholdV5Panel thresholdV5Panel = new ThresholdV5Panel();
 	public ChartsV5Panel chartsV5Panel = new ChartsV5Panel();
-	public ThresholdColorsPanel thresholdColorsPanel = new ThresholdColorsPanel();
+	public DetectColorPanel detectColorPanel = new DetectColorPanel();
 	public ChartsColorPanel chartsColorPanel = new ChartsColorPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
-	public SpotMeasureColorParamsPanel spotMeasureColorParamsPanel;
 //	public CageKymographsPanel cageKymographsPanel = new CageKymographsPanel();
 
 	private int idThresholdTabV5 = 0;
 	private int idThresholdTabColor = 2;
-	private int idKymographsTab = 4;
+	/** Kymographs tab index when enabled; {@code -1} disables load-cam on that branch. */
+	private int idKymographsTab = -1;
 	private MultiSPOTS96 parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiSPOTS96 parent0) {
@@ -63,9 +63,9 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		tabsPane.addTab("V5 charts", null, chartsV5Panel, "Display V5 spot results");
 		order++;
 
-		thresholdColorsPanel.init(gridLayout, parent0);
-		thresholdColorsPanel.addPropertyChangeListener(this);
-		tabsPane.addTab("Color threshold", null, thresholdColorsPanel, "Color-distance spot measures from camera");
+		detectColorPanel.init(gridLayout, parent0);
+		detectColorPanel.addPropertyChangeListener(this);
+		tabsPane.addTab("Color detect", null, detectColorPanel, "Color-distance spot detection from camera");
 		idThresholdTabColor = order;
 		order++;
 
@@ -83,10 +83,6 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		loadSavePanel.init(gridLayout, parent0);
 		loadSavePanel.addPropertyChangeListener(this);
 		tabsPane.addTab("Load/Save", null, loadSavePanel, "Load/Save xml file with spots descriptors");
-
-		spotMeasureColorParamsPanel = new SpotMeasureColorParamsPanel(parent0, thresholdColorsPanel);
-		tabsPane.addTab("Color parameters", null, spotMeasureColorParamsPanel,
-				"Load or save color-distance detection preset (XML)");
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		capPanel.add(tabsPane);
@@ -133,7 +129,7 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null) {
 			boolean loadCam = (selectedIndex == idThresholdTabV5 || selectedIndex == idThresholdTabColor
-					|| selectedIndex == idKymographsTab);
+					|| (idKymographsTab >= 0 && selectedIndex == idKymographsTab));
 			if (loadCam) {
 				exp.loadCamDataSpots();
 			}

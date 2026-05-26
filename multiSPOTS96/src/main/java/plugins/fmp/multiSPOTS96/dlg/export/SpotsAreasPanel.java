@@ -39,14 +39,15 @@ public class SpotsAreasPanel extends JPanel {
 		panel0.add(sumNoFlyCheckBox);
 		panel0.add(sumCleanCheckBox);
 		panel0.add(areaCountV5CheckBox);
-		panel0.add(greySumV5CheckBox);
-		panel0.add(greySumCleanV5CheckBox);
+
 //		panel0.add(areaV2CheckBox);
 //		panel0.add(sumNoFlyV2CheckBox);
 //		panel0.add(sumCleanV2CheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
+		panel1.add(greySumV5CheckBox);
+		panel1.add(greySumCleanV5CheckBox);
 		panel1.add(t0CheckBox);
 		panel1.add(discardNoFlyCageCheckBox);
 		add(panel1);

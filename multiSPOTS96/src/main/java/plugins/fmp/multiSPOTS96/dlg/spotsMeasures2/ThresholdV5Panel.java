@@ -81,6 +81,7 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
 		panel0.add(allSeriesCheckBox);
+		panel0.add(v5RoiLocalMeanCheckBox);
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(spotsFilterLabel);
@@ -89,7 +90,6 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 		panel1.add(spotsThresholdSpinner);
 		panel1.add(spotsViewButton);
 		panel1.add(spotsOverlayCheckBox);
-		panel1.add(v5RoiLocalMeanCheckBox);
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(fliesFilterLabel);
