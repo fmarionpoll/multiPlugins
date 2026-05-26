@@ -204,7 +204,10 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case AGG_SUMCLEAN_COLOR:
 		case AGG_AREA_COUNT_COLOR:
 		case AGG_MEDIANREF:
-		case KYMO_CHROMA_FRACT:
+		case KYMO_FRACT:
+		case KYMO_ABS_DELTA:
+		case KYMO_CAGE_MEAN_FRACT:
+		case KYMO_CAGE_MEAN_ABS_DELTA:
 			return true;
 		default:
 			return false;
