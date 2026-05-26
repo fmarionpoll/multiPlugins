@@ -26,6 +26,7 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 	JTabbedPane tabsPane = new JTabbedPane();
 	public CageKymographsPanel tabCreate = new CageKymographsPanel();
 	public CageKymographLoadSavePanel tabLoadSave = new CageKymographLoadSavePanel();
+	public KymographChromaAnalysisPanel tabChromaAnalysis = null;
 
 	private MultiSPOTS96 parent0 = null;
 
@@ -41,6 +42,10 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 		tabCreate.init(capLayout, parent0);
 		tabCreate.addPropertyChangeListener(this);
 		tabsPane.addTab("Build kymos", null, tabCreate, "Build stacked cage kymographs from spot ROIs");
+
+		tabChromaAnalysis = new KymographChromaAnalysisPanel(parent0);
+		tabsPane.addTab("Chroma fraction", null, tabChromaAnalysis,
+				"Fraction of kymograph rows with S(diffRGB) above a threshold (per spot)");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);

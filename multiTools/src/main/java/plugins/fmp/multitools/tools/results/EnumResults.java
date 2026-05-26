@@ -191,6 +191,13 @@ public enum EnumResults {
 	 * with fly on spot ({@code AREA_FLYPRESENT}); shown with consumption aggregate (inverted axis).
 	 */
 	AGG_MEDIANREF("AGG_MEDIANREF", "grey value", "Median spot AREA_SUM per cage (fly-occluded bins excluded)",
+			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+
+	/**
+	 * Kymograph-only: fraction of vertical strip rows with chroma above threshold (not persisted on spots).
+	 */
+	KYMO_CHROMA_FRACT("KYMO_CHROMA_FRACT", "fraction (0-1)",
+			"Kymograph: fraction of rows with S(diffRGB) above threshold",
 			StoredDataAccessors.notImplemented_TTOGULP_LR());
 
 	public enum PersistenceDomain {
@@ -288,6 +295,7 @@ public enum EnumResults {
 		case AGG_SUMCLEAN_COLOR:
 		case AGG_AREA_COUNT_COLOR:
 		case AGG_MEDIANREF:
+		case KYMO_CHROMA_FRACT:
 			return true;
 		default:
 			return false;
