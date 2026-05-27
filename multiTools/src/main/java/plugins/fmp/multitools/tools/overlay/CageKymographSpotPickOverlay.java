@@ -4,6 +4,7 @@ import java.awt.event.MouseEvent;
 
 import icy.canvas.IcyCanvas;
 import icy.canvas.IcyCanvas2D;
+import icy.image.IcyBufferedImage;
 import icy.painter.Overlay;
 import icy.sequence.Sequence;
 import icy.type.point.Point5D;
@@ -12,11 +13,14 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.CageKymographPickSupport;
+import plugins.fmp.multitools.service.CageKymographPickSupport.KymoPickWindow;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartRoiFocus;
 
 /**
  * Left-click on a stacked cage kymograph ({@code kymocage_*.tif*}) selects the spot band under the
- * cursor and jumps the camera viewer to the nearest frame for that kymograph column.
+ * cursor and jumps the camera viewer to the nearest frame for that kymograph column. Band layout
+ * prefers {@code CageKymographStripLayout.csv} in the kymograph bin (strip heights and column time
+ * grid from export); otherwise spot ROI geometry and the experiment kymograph interval.
  */
 public final class CageKymographSpotPickOverlay extends Overlay {
 
@@ -58,15 +62,37 @@ public final class CageKymographSpotPickOverlay extends Overlay {
 			return;
 		}
 
-		int w = seqKymo.getSizeX();
-		int h = seqKymo.getSizeY();
-		if (w <= 0 || h <= 0) {
+		IcyBufferedImage kimg = seqKymo.getImage(tKymo, 0);
+		int kymoW = kimg != null ? kimg.getWidth() : 0;
+		KymoPickWindow win = CageKymographPickSupport.resolveKymoPickWindowForCageKymograph(experiment, kymoW);
+		if (win == null || win.columnCount <= 0) {
 			return;
 		}
 
-		int col = CageKymographPickSupport.clampColumn((int) Math.floor(imagePoint.getX()), w);
-		Integer camT = CageKymographPickSupport.cameraFrameForKymographColumn(experiment, col);
-		Spot spot = CageKymographPickSupport.spotAtImageY(cage, experiment.getSpots(), w, h, imagePoint.getY());
+		int[] refCam = CageKymographPickSupport.cameraReferenceSize(experiment);
+		int refW = refCam[0];
+		int refH = refCam[1];
+		if (refW <= 0 || refH <= 0) {
+			return;
+		}
+
+		int stackBottom = CageKymographPickSupport.stackedContentHeightPixels(experiment, cage, experiment.getSpots(),
+				refW, refH, win.columnCount);
+		if (stackBottom <= 0) {
+			return;
+		}
+
+		int ix = (int) Math.floor(imagePoint.getX());
+		int iy = (int) Math.floor(imagePoint.getY());
+		// Logical kymograph content is top-left in the sequence frame; right/bottom padding (max
+		// canvas size across cages) must not map to a spot/column.
+		if (ix < 0 || iy < 0 || ix >= win.columnCount || iy >= stackBottom) {
+			return;
+		}
+
+		Integer camT = CageKymographPickSupport.cameraFrameForKymographColumn(experiment, ix, win);
+		Spot spot = CageKymographPickSupport.spotAtStackedY(experiment, cage, experiment.getSpots(), refW, refH,
+				win.columnCount, iy);
 		if (spot == null || camT == null) {
 			return;
 		}

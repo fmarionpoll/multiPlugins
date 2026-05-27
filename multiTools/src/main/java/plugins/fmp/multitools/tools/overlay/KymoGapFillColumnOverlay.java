@@ -19,6 +19,7 @@ import icy.sequence.SequenceEvent.SequenceEventType;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.service.CageKymographPickSupport;
 import plugins.fmp.multitools.service.CageKymographSpotBands;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
@@ -105,7 +106,8 @@ public final class KymoGapFillColumnOverlay extends Overlay implements SequenceL
 				refW = exp.getSeqCamData().getSequence().getSizeX();
 				refH = exp.getSeqCamData().getSequence().getSizeY();
 			}
-			List<CageKymographSpotBands> bands = CageKymographSpotBands.layout(cage, exp.getSpots(), refW, refH);
+			List<CageKymographSpotBands> bands = CageKymographPickSupport.stackedSpotBands(exp, cage, exp.getSpots(),
+					refW, refH, w);
 			BufferedImage argb = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 			for (SpotKymoSeries row : rows) {
 				double[] before = row.fractionBeforeGapFill;

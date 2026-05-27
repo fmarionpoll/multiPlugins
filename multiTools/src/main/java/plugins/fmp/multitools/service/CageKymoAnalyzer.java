@@ -117,6 +117,7 @@ public final class CageKymoAnalyzer {
 		Map<Integer, List<SpotKymoSeries>> out = new LinkedHashMap<>();
 		int widthBins = 0;
 		double[] xAxis = new double[0];
+		CageKymographStripLayoutCsv.PersistedKymoGrid persistedKymoGrid = null;
 
 		for (int t = 0; t < nT; t++) {
 			String fn = sk.getFileNameFromImageList(t);
@@ -134,13 +135,16 @@ public final class CageKymoAnalyzer {
 				refW = imgW;
 				refH = imgH;
 			}
-			List<CageKymographSpotBands> bands = CageKymographSpotBands.layout(cage, spots, refW, refH);
+			List<CageKymographSpotBands> bands = CageKymographPickSupport.stackedSpotBands(exp, cage, spots, refW,
+					refH, imgW);
 			if (bands.isEmpty()) {
 				continue;
 			}
 			if (widthBins == 0) {
 				widthBins = imgW;
-				xAxis = buildXAxisMinutes(exp, widthBins);
+				persistedKymoGrid = CageKymographStripLayoutCsv.readPersistedKymoGridOrNull(
+						exp.getKymosBinFullDirectory(), widthBins);
+				xAxis = buildXAxisMinutes(exp, widthBins, persistedKymoGrid);
 			} else if (imgW != widthBins) {
 				Logger.warn("CageKymoAnalyzer: image width " + imgW + " differs from first (" + widthBins
 						+ "); series will clip to shorter width");
@@ -155,10 +159,18 @@ public final class CageKymoAnalyzer {
 		return new KymoAnalysisResult(out, xAxis, widthBins);
 	}
 
-	private static double[] buildXAxisMinutes(Experiment exp, int widthBins) {
+	private static double[] buildXAxisMinutes(Experiment exp, int widthBins,
+			CageKymographStripLayoutCsv.PersistedKymoGrid persistedGrid) {
 		double[] x = new double[widthBins];
-		long step = Math.max(1L, exp.getKymoBin_ms());
-		long first = exp.getKymoFirst_ms();
+		long step;
+		long first;
+		if (persistedGrid != null && persistedGrid.columnCount == widthBins) {
+			step = Math.max(1L, persistedGrid.stepMs);
+			first = persistedGrid.firstMs;
+		} else {
+			step = Math.max(1L, exp.getKymoBin_ms());
+			first = exp.getKymoFirst_ms();
+		}
 		for (int col = 0; col < widthBins; col++) {
 			x[col] = (first + (long) col * step) / 60000.0;
 		}

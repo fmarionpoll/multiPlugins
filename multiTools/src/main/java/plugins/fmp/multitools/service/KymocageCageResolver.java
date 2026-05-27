@@ -19,14 +19,32 @@ public final class KymocageCageResolver {
 	private KymocageCageResolver() {
 	}
 
-	public static Cage resolveCageFromKymographPath(String filePath, Cages cages) {
-		if (filePath == null || cages == null) {
+	/**
+	 * File name stem (no extension), e.g. {@code kymocage_0} or {@code kymocage_i3}, or null if the path
+	 * does not look like a cage kymograph TIFF.
+	 */
+	public static String fileBaseFromKymographPath(String filePath) {
+		if (filePath == null) {
 			return null;
 		}
 		String base = new File(filePath).getName();
 		int dot = base.lastIndexOf('.');
 		if (dot > 0) {
 			base = base.substring(0, dot);
+		}
+		if (PAT_INDEX.matcher(base).find() || PAT_ID.matcher(base).find()) {
+			return base;
+		}
+		return null;
+	}
+
+	public static Cage resolveCageFromKymographPath(String filePath, Cages cages) {
+		if (filePath == null || cages == null) {
+			return null;
+		}
+		String base = fileBaseFromKymographPath(filePath);
+		if (base == null) {
+			return null;
 		}
 		Matcher mi = PAT_INDEX.matcher(base);
 		if (mi.find()) {
@@ -46,5 +64,18 @@ public final class KymocageCageResolver {
 			}
 		}
 		return null;
+	}
+
+	/** Same stem as {@link CageSpotKymographBuilder} output files for this cage. */
+	public static String kymocageFileBaseForCage(Cage cage, Cages cages) {
+		if (cage == null || cages == null || cages.cagesList == null) {
+			return null;
+		}
+		int idx = cages.cagesList.indexOf(cage);
+		if (idx < 0) {
+			return null;
+		}
+		int cageId = cage.getProperties() != null ? cage.getProperties().getCageID() : -1;
+		return "kymocage_" + (cageId >= 0 ? String.valueOf(cageId) : "i" + idx);
 	}
 }

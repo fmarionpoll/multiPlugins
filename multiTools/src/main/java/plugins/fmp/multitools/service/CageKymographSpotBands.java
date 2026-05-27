@@ -13,7 +13,8 @@ import plugins.fmp.multitools.tools.Comparators;
 
 /**
  * Vertical band layout (y0 inclusive, y1 exclusive) for one cage's stacked kymograph image.
- * Matches row stacking in {@link CageSpotKymographBuilder}.
+ * Matches row stacking in {@link CageSpotKymographBuilder}. When present in the kymograph bin,
+ * {@link CageKymographStripLayoutCsv} overrides ROI-derived heights for picking and analysis.
  * <p>
  * {@link #layout} emits <strong>one band per spot</strong> in the cage (name-sorted), so stack index aligns
  * with that ordering. When ROI geometry is missing, a one-pixel placeholder band ({@link #geometryMissing})

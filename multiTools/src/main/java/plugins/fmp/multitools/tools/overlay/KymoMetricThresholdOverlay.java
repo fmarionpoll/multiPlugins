@@ -20,6 +20,7 @@ import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
+import plugins.fmp.multitools.service.CageKymographPickSupport;
 import plugins.fmp.multitools.service.CageKymographSpotBands;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.service.KymocageCageResolver;
@@ -112,8 +113,8 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 					refH = exp.getSeqCamData().getSequence().getSizeY();
 				}
 				if (cage != null) {
-					List<CageKymographSpotBands> bands = CageKymographSpotBands.layout(cage, exp.getSpots(), refW,
-							refH);
+					List<CageKymographSpotBands> bands = CageKymographPickSupport.stackedSpotBands(exp, cage,
+							exp.getSpots(), refW, refH, w);
 					if (!bands.isEmpty()) {
 						for (CageKymographSpotBands band : bands) {
 							if (band.geometryMissing) {

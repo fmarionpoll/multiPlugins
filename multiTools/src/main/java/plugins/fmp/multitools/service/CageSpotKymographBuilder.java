@@ -187,6 +187,8 @@ public class CageSpotKymographBuilder {
 		}
 
 		exportPlans(plans, globalHeight, kymoSizeC, directory);
+		CageKymographStripLayoutCsv.write(directory, cages, spots, refSizex, refSizey, expectedWidth, first_ms,
+				last_ms, step_ms);
 		return true;
 	}
 
