@@ -218,6 +218,14 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	/**
+	 * Kymograph: per-bin sum of per-spot green height ratios (h/h₀), grouped by (stimulus, concentration) per cage —
+	 * parallel to {@link #AGG_SUMCLEAN} (each spot normalized to its own starting bar height).
+	 */
+	AGG_GREENHEIGHT_RATIO("AGG_GREENHEIGHT_RATIO", "Σ h/h₀",
+			"Kymograph: sum of per-spot green height ratios by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_GREENHEIGHT_RATIO"),
+
+	/**
 	 * Kymograph-only: fraction of vertical strip rows with metric above threshold (not persisted on spots).
 	 * {@link #toPersistenceKey()} remains {@code KYMO_CHROMA_FRACT} for saved data compatibility.
 	 */
@@ -344,6 +352,7 @@ public enum EnumResults {
 		case AGG_SUMCLEAN_COLOR:
 		case AGG_AREA_COUNT_COLOR:
 		case AGG_MEDIANREF:
+		case AGG_GREENHEIGHT_RATIO:
 		case KYMO_FRACT:
 		case KYMO_ABS_DELTA:
 		case KYMO_CAGE_MEAN_FRACT:

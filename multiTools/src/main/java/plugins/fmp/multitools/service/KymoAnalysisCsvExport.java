@@ -35,7 +35,8 @@ public final class KymoAnalysisCsvExport {
 				Files.createDirectories(parent);
 			}
 			try (BufferedWriter w = Files.newBufferedWriter(outputFile, StandardCharsets.UTF_8)) {
-				w.write("cage_id,spot_index,spot_name,time_min,green_height_rows,green_height_ratio,fraction");
+				w.write(
+						"cage_id,spot_index,spot_name,stimulus,concentration,time_min,green_height_rows,green_height_ratio,fraction");
 				w.newLine();
 				for (Map.Entry<Integer, List<KymoAnalysisResult.SpotKymoSeries>> e : result.byCageId.entrySet()) {
 					int cageId = e.getKey();
@@ -57,6 +58,14 @@ public final class KymoAnalysisCsvExport {
 			return;
 		}
 		String spotName = row.spot != null && row.spot.getName() != null ? row.spot.getName() : "";
+		String stimulus = "";
+		String concentration = "";
+		if (row.spot != null && row.spot.getProperties() != null) {
+			stimulus = row.spot.getProperties().getStimulus() != null ? row.spot.getProperties().getStimulus() : "";
+			concentration = row.spot.getProperties().getConcentration() != null
+					? row.spot.getProperties().getConcentration()
+					: "";
+		}
 		int n = xMin != null ? xMin.length : 0;
 		n = Math.min(n, row.greenHeight.length);
 		n = Math.min(n, row.greenHeightRatio.length);
@@ -67,6 +76,10 @@ public final class KymoAnalysisCsvExport {
 			w.write(Integer.toString(row.indexInCage));
 			w.write(',');
 			w.write(csvEscape(spotName));
+			w.write(',');
+			w.write(csvEscape(stimulus));
+			w.write(',');
+			w.write(csvEscape(concentration));
 			w.write(',');
 			w.write(formatDouble(xMin[j]));
 			w.write(',');

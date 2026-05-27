@@ -19,6 +19,7 @@ import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures.SpotSequenceRois;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
@@ -40,9 +41,9 @@ public class GraphPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_GREEN_HEIGHT_RATIO,
-			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT, EnumResults.KYMO_ABS_DELTA,
-			EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,
-			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
+			EnumResults.AGG_GREENHEIGHT_RATIO, EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT,
+			EnumResults.KYMO_ABS_DELTA, EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO,
+			EnumResults.KYMO_CAGE_MEAN_FRACT, EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
 	private final MultiSPOTS96 parent0;
 	private final AnalysisPanel analysisPanel;
@@ -116,6 +117,18 @@ public class GraphPanel extends JPanel {
 		return o instanceof EnumResults ? (EnumResults) o : EnumResults.KYMO_FRACT;
 	}
 
+	private static void applyKymoAggregateChartOptions(Experiment exp, ResultsOptions options) {
+		if (options == null || exp == null || exp.getSpots() == null) {
+			return;
+		}
+		if (options.resultType == EnumResults.AGG_GREENHEIGHT_RATIO) {
+			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
+					.globalStimulusConcKeysFirstSeenOrder(exp, exp.getSpots());
+		} else {
+			options.spotAggregateGlobalKeyOrder = null;
+		}
+	}
+
 	private void onDisplayCharts() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		KymoAnalysisResult lastResult = analysisPanel.getLastResult();
@@ -137,6 +150,7 @@ public class GraphPanel extends JPanel {
 			options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
 					.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 			options.relativeToMaximum = false;
+			applyKymoAggregateChartOptions(exp, options);
 			plotSpotsOverlay(exp, options, lastResult);
 			graphStatusLabel.setText(" ");
 			return;
@@ -174,6 +188,7 @@ public class GraphPanel extends JPanel {
 					.withCageRange(first, last).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 		}
 		options.relativeToMaximum = false;
+		applyKymoAggregateChartOptions(exp, options);
 
 		CageKymoSeriesBuilder dataBuilder = new CageKymoSeriesBuilder(lastResult);
 		chartCagesFrame = new ChartCagesFrame(dataBuilder, null, new GridLayoutStrategy(),

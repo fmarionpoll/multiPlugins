@@ -70,6 +70,7 @@ public class AnalysisPanel extends JPanel {
 	private final JSpinner insectMetricThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 512, 1));
 	private final JCheckBox insectOverlayCheckBox = new JCheckBox("insect (magenta)", false);
 	private final JButton analyzeButton = new JButton("Analyze");
+	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
 	private final JButton exportGreenCsvButton = new JButton("Export green CSV");
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
@@ -96,6 +97,14 @@ public class AnalysisPanel extends JPanel {
 			tf.setColumns(4);
 			tf.setHorizontalAlignment(JTextField.TRAILING);
 		}
+
+		JPanel p3 = new JPanel(left);
+		p3.add(analyzeButton);
+		p3.add(allSeriesCheckBox);
+		p3.add(exportGreenCsvButton);
+		p3.add(new JLabel("Status: "));
+		p3.add(statusLabel);
+		add(p3);
 
 		JPanel p0 = new JPanel(left);
 		p0.add(new JLabel("Metric"));
@@ -131,13 +140,6 @@ public class AnalysisPanel extends JPanel {
 		pLift.add(previewLiftedBandsCheckBox);
 		add(pLift);
 
-		JPanel p3 = new JPanel(left);
-		p3.add(analyzeButton);
-		p3.add(exportGreenCsvButton);
-		p3.add(new JLabel("Status: "));
-		p3.add(statusLabel);
-		add(p3);
-
 		exportGreenCsvButton.setEnabled(false);
 		exportGreenCsvButton.setToolTipText(
 				"Writes kymo_analysis_green.csv (green height, h/h₀, fraction) to the kymographs bin after Analyze.");
@@ -154,10 +156,12 @@ public class AnalysisPanel extends JPanel {
 				"Green = cleaned post-lift spot mask (insect gate on: jump across and before insect-only columns when spot resumes; then temporal gap fill ≤ max row gap, vertical bridge, left-anchored trace, 1-px speck removal). Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
 		insectMetricGateCheckBox.setToolTipText(
 				"When on: pixels that pass the insect transform + direction + threshold are excluded from spot-on (parallel to Flies filter in Spots measures / ThresholdLightPanel).");
-		insectMetricTransformCombo.setToolTipText("Second transform on the same kymograph RGB (e.g. B_RGB for fly body).");
+		insectMetricTransformCombo
+				.setToolTipText("Second transform on the same kymograph RGB (e.g. B_RGB for fly body).");
 		insectDirectionComboBox.setToolTipText(
 				"metric ≤ : insect-like when transformed value ≤ threshold (flies-style). metric > : insect-like when value > threshold.");
-		insectMetricThresholdSpinner.setToolTipText("Threshold for the insect transform channel (same units as spot metric threshold).");
+		insectMetricThresholdSpinner
+				.setToolTipText("Threshold for the insect transform channel (same units as spot metric threshold).");
 		insectOverlayCheckBox.setToolTipText(
 				"Magenta overlay on pixels classified as insect-like by the insect transform + direction + threshold (same rule as exclusion). Uses current insect controls even when 'Insect filter' is off.");
 		previewLiftedBandsCheckBox.setToolTipText(

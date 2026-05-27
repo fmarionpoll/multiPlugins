@@ -1,7 +1,10 @@
 package plugins.fmp.multitools.tools.chart.builders;
 
 import java.awt.Color;
+import java.awt.Paint;
 import java.util.List;
+
+import org.jfree.chart.ChartColor;
 
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
@@ -9,7 +12,10 @@ import org.jfree.data.xy.XYSeriesCollection;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation;
+import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation.SumSeries;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
@@ -32,7 +38,12 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 	public static boolean isKymoMetricMeasure(EnumResults rt) {
 		return rt == EnumResults.KYMO_FRACT || rt == EnumResults.KYMO_ABS_DELTA || rt == EnumResults.KYMO_CAGE_MEAN_FRACT
 				|| rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA || rt == EnumResults.KYMO_GREEN_HEIGHT
-				|| rt == EnumResults.KYMO_GREEN_HEIGHT_RATIO || rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO;
+				|| rt == EnumResults.KYMO_GREEN_HEIGHT_RATIO || rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO
+				|| rt == EnumResults.AGG_GREENHEIGHT_RATIO;
+	}
+
+	private static boolean useKymoAggGreenHeightSum(EnumResults rt) {
+		return rt == EnumResults.AGG_GREENHEIGHT_RATIO;
 	}
 
 	private static boolean useAbsDelta(EnumResults rt) {
@@ -116,6 +127,11 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (rows.isEmpty()) {
 			return dataset;
 		}
+		if (useKymoAggGreenHeightSum(rt)) {
+			addGreenHeightRatioSumAggregates(dataset, cage, x, rows, options);
+			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+			return dataset;
+		}
 		if (useCageMean(rt)) {
 			addCageMeanSeries(dataset, cage, x, rows, rt, options);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
@@ -139,6 +155,53 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		}
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
+	}
+
+	private static void addGreenHeightRatioSumAggregates(XYSeriesCollection dataset, Cage cage, double[] x,
+			List<SpotKymoSeries> rows, ResultsOptions options) {
+		int n = x.length;
+		List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumRatioByStimulusConc(rows, n);
+		List<StimulusConcKey> globalOrder = options != null ? options.spotAggregateGlobalKeyOrder : null;
+		int ai = 0;
+		CageProperties cageProp = cage.getProperties();
+		for (SumSeries agg : sums) {
+			if (agg == null || agg.key == null || agg.values == null) {
+				continue;
+			}
+			String seriesKey = SpotChartSeriesKeys.keyAggregate(cageProp.getCageID(), agg.key.stimulus,
+					agg.key.concentration, ai++);
+			XYSeries series = new XYSeries(seriesKey, false);
+			int len = Math.min(n, agg.values.length);
+			for (int j = 0; j < len; j++) {
+				double y = agg.values[j];
+				if (Double.isFinite(y)) {
+					series.add(x[j], y);
+				}
+			}
+			if (series.getItemCount() == 0) {
+				continue;
+			}
+			int paletteIndex = ai - 1;
+			if (globalOrder != null && !globalOrder.isEmpty()) {
+				int idx = globalOrder.indexOf(new StimulusConcKey(agg.key.stimulus, agg.key.concentration));
+				if (idx >= 0) {
+					paletteIndex = idx;
+				}
+			}
+			Color color = aggregatePaletteColor(paletteIndex);
+			series.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(),
+					cageProp.getCageNFlies(), color));
+			dataset.addSeries(series);
+		}
+	}
+
+	private static Color aggregatePaletteColor(int index) {
+		Paint[] paints = ChartColor.createDefaultPaintArray();
+		if (paints == null || paints.length == 0) {
+			return Color.BLACK;
+		}
+		Paint p = paints[Math.max(0, index) % paints.length];
+		return p instanceof Color ? (Color) p : Color.BLACK;
 	}
 
 	private static void addCageMeanSeries(XYSeriesCollection dataset, Cage cage, double[] x, List<SpotKymoSeries> rows,
@@ -209,6 +272,36 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 			return dataset;
 		}
 		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_FRACT;
+		if (useKymoAggGreenHeightSum(rt)) {
+			java.util.HashMap<Integer, java.util.ArrayList<Spot>> byCage = new java.util.HashMap<>();
+			for (Spot spot : spots) {
+				if (spot == null || spot.getProperties() == null) {
+					continue;
+				}
+				int cid = spot.getProperties().getCageID();
+				byCage.computeIfAbsent(cid, k -> new java.util.ArrayList<>()).add(spot);
+			}
+			for (java.util.Map.Entry<Integer, java.util.ArrayList<Spot>> e : byCage.entrySet()) {
+				int cageId = e.getKey();
+				java.util.ArrayList<SpotKymoSeries> subset = new java.util.ArrayList<>();
+				for (Spot s : e.getValue()) {
+					SpotKymoSeries row = findRowForSpot(result, cageId, s);
+					if (row != null) {
+						subset.add(row);
+					}
+				}
+				if (subset.isEmpty()) {
+					continue;
+				}
+				Cage cage = findCage(exp, cageId);
+				if (cage == null) {
+					continue;
+				}
+				addGreenHeightRatioSumAggregates(dataset, cage, x, subset, options);
+			}
+			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+			return dataset;
+		}
 		if (useCageMean(rt)) {
 			java.util.HashMap<Integer, java.util.ArrayList<Spot>> byCage = new java.util.HashMap<>();
 			for (Spot spot : spots) {
