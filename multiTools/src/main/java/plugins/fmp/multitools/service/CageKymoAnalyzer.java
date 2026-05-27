@@ -95,6 +95,14 @@ public final class CageKymoAnalyzer {
 			refW = exp.getSeqCamData().getSequence().getSizeX();
 			refH = exp.getSeqCamData().getSequence().getSizeY();
 		}
+		if (refW <= 0 || refH <= 0) {
+			int[] csvRef = CageKymographStripLayoutCsv
+					.readRefCameraDimensionsOrNull(exp.getKymosBinFullDirectory());
+			if (csvRef != null) {
+				refW = csvRef[0];
+				refH = csvRef[1];
+			}
+		}
 		int nT = sk.getImageLoader().getNTotalFrames();
 		if (nT <= 0) {
 			return new KymoAnalysisResult(Map.of(), new double[0], 0);
@@ -117,12 +125,17 @@ public final class CageKymoAnalyzer {
 			}
 			int imgW = img.getWidth();
 			int imgH = img.getHeight();
-			if (refW <= 0 || refH <= 0) {
-				refW = imgW;
-				refH = imgH;
+			int bandRefW = refW;
+			int bandRefH = refH;
+			if (bandRefW <= 0 || bandRefH <= 0) {
+				Logger.warn(
+						"CageKymoAnalyzer: no camera reference size — open the experiment or rebuild kymographs so "
+								+ CageKymographStripLayoutCsv.FILENAME + " is available");
+				bandRefW = imgW;
+				bandRefH = imgH;
 			}
-			List<CageKymographSpotBands> bands = CageKymographPickSupport.stackedSpotBands(exp, cage, spots, refW,
-					refH, imgW);
+			List<CageKymographSpotBands> bands = CageKymographPickSupport.stackedSpotBands(exp, cage, spots, bandRefW,
+					bandRefH, imgW);
 			if (bands.isEmpty()) {
 				continue;
 			}

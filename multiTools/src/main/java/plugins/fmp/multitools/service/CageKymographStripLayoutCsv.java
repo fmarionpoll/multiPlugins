@@ -214,6 +214,28 @@ public final class CageKymographStripLayoutCsv {
 	 * Kymograph column time parameters stored next to cage kymograph TIFFs, or null if the file is
 	 * missing, is legacy without time fields, or {@code kymographImageWidth} does not match.
 	 */
+	/**
+	 * Camera width/height stored when kymographs were built ({@code ref_cam_width/height} in
+	 * {@link #FILENAME}), or {@code null} if the layout file is missing.
+	 */
+	public static int[] readRefCameraDimensionsOrNull(String binDirectory) {
+		if (binDirectory == null || binDirectory.isEmpty()) {
+			return null;
+		}
+		Path path = Paths.get(binDirectory, FILENAME);
+		if (!Files.isRegularFile(path)) {
+			return null;
+		}
+		Parsed parsed = parseFile(path);
+		if (parsed == null || parsed.meta == null) {
+			return null;
+		}
+		if (parsed.meta.refCamWidth <= 0 || parsed.meta.refCamHeight <= 0) {
+			return null;
+		}
+		return new int[] { parsed.meta.refCamWidth, parsed.meta.refCamHeight };
+	}
+
 	public static PersistedKymoGrid readPersistedKymoGridOrNull(String binDirectory, int kymographImageWidth) {
 		if (binDirectory == null || binDirectory.isEmpty() || kymographImageWidth <= 0) {
 			return null;

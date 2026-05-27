@@ -18,6 +18,7 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -30,6 +31,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.AnalyzeCageKymographs;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.service.KymoImageTransforms;
@@ -451,7 +453,6 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		analyzeThread.options = initAnalyzeOptions();
 		analyzeThread.lastResult = null;
 		analyzeThread.addPropertyChangeListener(this);
-		parent0.setSuppressExperimentOpenOnComboProgrammaticChange(true);
 		analyzeThread.execute();
 		analyzeButton.setText(STOP_LABEL);
 		statusLabel.setText("Analyzing…");
@@ -489,18 +490,36 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		if (!StringUtil.equals("thread_ended", name) && !StringUtil.equals("thread_done", name)) {
 			return;
 		}
-		parent0.setSuppressExperimentOpenOnComboProgrammaticChange(false);
 		analyzeButton.setText(ANALYZE_LABEL);
-		AnalyzeCageKymographs finished = analyzeThread;
+		final AnalyzeCageKymographs finished = analyzeThread;
 		analyzeThread = null;
 		if (finished != null) {
 			lastResult = finished.lastResult;
 		}
+		final int recallIndex = finished != null ? finished.getSelectedExperimentIndex() : -1;
+		final Params recallParams = finished != null ? finished.analyzerParams : null;
+		// BuildSeries restores the combo in doInBackground finally before this runs; each experiment
+		// was closeSequences()'d in the batch — explicitly reopen the first experiment in the series
+		// (same pattern as LoadSaveExperiment.openExperimentAtIndex after transfer reload).
+		SwingUtilities.invokeLater(() -> onAnalyzeBatchFinished(recallIndex, recallParams));
+	}
+
+	private void onAnalyzeBatchFinished(int recallIndex, Params params) {
+		if (recallIndex >= 0) {
+			parent0.dlgBrowse.loadSaveExperiment.openExperimentAtIndex(recallIndex);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && params != null && exp.loadCageSpotKymographs()) {
+				KymoAnalysisResult refreshed = CageKymoAnalyzer.analyze(exp, params);
+				if (refreshed != null && !refreshed.byCageId.isEmpty()) {
+					lastResult = refreshed;
+				}
+			}
+		}
 		if (lastResult == null || lastResult.byCageId.isEmpty()) {
 			statusLabel.setText("No data: build/load kymographs and check ROI bounds.");
 		} else {
-			statusLabel
-					.setText("Done: " + lastResult.byCageId.size() + " cage(s), " + lastResult.widthBins + " bin(s).");
+			statusLabel.setText(
+					"Done: " + lastResult.byCageId.size() + " cage(s), " + lastResult.widthBins + " bin(s).");
 		}
 		pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
 		if (viewKymoButton.isSelected()) {
