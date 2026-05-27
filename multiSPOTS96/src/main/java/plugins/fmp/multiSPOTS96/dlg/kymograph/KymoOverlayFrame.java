@@ -25,8 +25,8 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
-import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -50,8 +50,6 @@ public class KymoOverlayFrame {
 	private String baseTitle;
 	private Experiment lastExperiment;
 	private ResultsOptions lastOptions;
-	private KymoAnalysisResult lastResult;
-
 	public interface SelectedSpotsProvider {
 		List<Spot> getSelectedSpots();
 	}
@@ -99,13 +97,12 @@ public class KymoOverlayFrame {
 		});
 	}
 
-	public void displayData(Experiment exp, ResultsOptions options, KymoAnalysisResult result) {
+	public void displayData(Experiment exp, ResultsOptions options) {
 		if (mainChartPanel == null || mainChartFrame == null) {
 			throw new IllegalStateException("createMainChartPanel first");
 		}
 		this.lastExperiment = exp;
 		this.lastOptions = options;
-		this.lastResult = result;
 		refreshChart();
 		mainChartFrame.pack();
 		loadPrefs();
@@ -118,7 +115,7 @@ public class KymoOverlayFrame {
 	}
 
 	public void refreshChart() {
-		if (mainChartPanel == null || lastExperiment == null || lastOptions == null || lastResult == null) {
+		if (mainChartPanel == null || lastExperiment == null || lastOptions == null) {
 			return;
 		}
 		List<Spot> spots = selectedSpotsProvider != null ? selectedSpotsProvider.getSelectedSpots() : null;
@@ -129,8 +126,7 @@ public class KymoOverlayFrame {
 			updateTitle(0);
 			return;
 		}
-		XYSeriesCollection ds = CageKymoSeriesBuilder.buildOverlayForSpots(lastExperiment, lastResult, lastOptions,
-				spots);
+		XYSeriesCollection ds = KymoSpotChartSupport.buildOverlayForSpots(lastExperiment, lastOptions, spots);
 		NumberAxis xAxis = new NumberAxis("time (min)");
 		xAxis.setAutoRangeIncludesZero(false);
 		EnumResults rt = lastOptions.resultType;

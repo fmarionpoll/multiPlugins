@@ -35,9 +35,49 @@ public final class CageKymoGreenHeightAggregation {
 		if (rows == null || rows.isEmpty() || nBins <= 0) {
 			return List.of();
 		}
-		Set<StimulusConcKey> keys = new LinkedHashSet<>();
+		List<RatioSource> sources = new ArrayList<>(rows.size());
 		for (SpotKymoSeries row : rows) {
-			StimulusConcKey k = keyForRow(row);
+			if (row == null) {
+				continue;
+			}
+			sources.add(new RatioSource(row.spot, row.greenHeightRatio));
+		}
+		return buildSumRatioByStimulusConcFromSources(sources, nBins);
+	}
+
+	/** Builds stimulus/conc sums from persisted per-spot {@link Spot} kymograph h/h₀ series. */
+	public static List<SumSeries> buildSumRatioByStimulusConcFromSpots(List<Spot> spots, int nBins) {
+		if (spots == null || spots.isEmpty() || nBins <= 0) {
+			return List.of();
+		}
+		List<RatioSource> sources = new ArrayList<>(spots.size());
+		for (Spot spot : spots) {
+			if (spot == null) {
+				continue;
+			}
+			double[] ratio = spot.getKymoGreenHeightRatio().getValues();
+			sources.add(new RatioSource(spot, ratio));
+		}
+		return buildSumRatioByStimulusConcFromSources(sources, nBins);
+	}
+
+	private static final class RatioSource {
+		final Spot spot;
+		final double[] ratio;
+
+		RatioSource(Spot spot, double[] ratio) {
+			this.spot = spot;
+			this.ratio = ratio;
+		}
+	}
+
+	private static List<SumSeries> buildSumRatioByStimulusConcFromSources(List<RatioSource> sources, int nBins) {
+		if (sources == null || sources.isEmpty() || nBins <= 0) {
+			return List.of();
+		}
+		Set<StimulusConcKey> keys = new LinkedHashSet<>();
+		for (RatioSource src : sources) {
+			StimulusConcKey k = keyForSpot(src.spot);
 			if (k != null) {
 				keys.add(k);
 			}
@@ -49,12 +89,12 @@ public final class CageKymoGreenHeightAggregation {
 				sum[j] = Double.NaN;
 			}
 			int nExposed = 0;
-			for (SpotKymoSeries row : rows) {
-				if (row == null || !k.equals(keyForRow(row))) {
+			for (RatioSource src : sources) {
+				if (src == null || !k.equals(keyForSpot(src.spot))) {
 					continue;
 				}
 				nExposed++;
-				double[] ratio = row.greenHeightRatio;
+				double[] ratio = src.ratio;
 				int len = ratio != null ? Math.min(nBins, ratio.length) : 0;
 				for (int j = 0; j < len; j++) {
 					double v = ratio[j];
@@ -75,10 +115,10 @@ public final class CageKymoGreenHeightAggregation {
 	}
 
 	private static StimulusConcKey keyForRow(SpotKymoSeries row) {
-		if (row == null) {
-			return null;
-		}
-		Spot spot = row.spot;
+		return row == null ? null : keyForSpot(row.spot);
+	}
+
+	private static StimulusConcKey keyForSpot(Spot spot) {
 		if (spot == null || spot.getProperties() == null) {
 			return new StimulusConcKey("", "");
 		}

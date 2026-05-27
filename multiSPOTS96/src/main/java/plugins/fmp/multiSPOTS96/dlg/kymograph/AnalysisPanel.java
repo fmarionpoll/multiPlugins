@@ -2,10 +2,9 @@ package plugins.fmp.multiSPOTS96.dlg.kymograph;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -19,19 +18,19 @@ import javax.swing.JTextField;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
-import javax.swing.SwingWorker;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
 import icy.canvas.IcyCanvas;
 import icy.gui.viewer.Viewer;
+import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS96.MultiSPOTS96;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.series.AnalyzeCageKymographs;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
-import plugins.fmp.multitools.service.CageKymoAnalyzer;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
-import plugins.fmp.multitools.service.KymoAnalysisCsvExport;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
@@ -42,9 +41,12 @@ import plugins.fmp.multitools.tools.overlay.KymoMetricThresholdOverlay;
 /**
  * Kymograph metric: row-wise occlusion lift, preview overlays, and analysis.
  */
-public class AnalysisPanel extends JPanel {
+public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 
 	private static final long serialVersionUID = 1L;
+
+	private static final String ANALYZE_LABEL = "Analyze";
+	private static final String STOP_LABEL = "STOP";
 
 	public static final String PROPERTY_KYMO_RESULT_UPDATED = "kymoAnalysisResultUpdated";
 
@@ -71,11 +73,11 @@ public class AnalysisPanel extends JPanel {
 	private final JCheckBox insectOverlayCheckBox = new JCheckBox("insect (magenta)", false);
 	private final JButton analyzeButton = new JButton("Analyze");
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
-	private final JButton exportGreenCsvButton = new JButton("Export green CSV");
+
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private KymoAnalysisResult lastResult;
-	private SwingWorker<KymoAnalysisResult, Void> analyzeWorker;
+	private AnalyzeCageKymographs analyzeThread;
 	private KymoMergedRegionsOverlay kymoMergedOverlay;
 	private KymoMetricThresholdOverlay kymoMetricOverlay;
 	private KymoInsectMetricOverlay kymoInsectOverlay;
@@ -101,7 +103,7 @@ public class AnalysisPanel extends JPanel {
 		JPanel p3 = new JPanel(left);
 		p3.add(analyzeButton);
 		p3.add(allSeriesCheckBox);
-		p3.add(exportGreenCsvButton);
+
 		p3.add(new JLabel("Status: "));
 		p3.add(statusLabel);
 		add(p3);
@@ -139,10 +141,6 @@ public class AnalysisPanel extends JPanel {
 		pLift.add(maxRowOcclusionGapColsSpinner);
 		pLift.add(previewLiftedBandsCheckBox);
 		add(pLift);
-
-		exportGreenCsvButton.setEnabled(false);
-		exportGreenCsvButton.setToolTipText(
-				"Writes kymo_analysis_green.csv (green height, h/h₀, fraction) to the kymographs bin after Analyze.");
 
 		metricTransformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		insectMetricTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
@@ -242,8 +240,21 @@ public class AnalysisPanel extends JPanel {
 			}
 		});
 
-		analyzeButton.addActionListener(e -> onAnalyze());
-		exportGreenCsvButton.addActionListener(e -> onExportGreenCsv());
+		analyzeButton.addActionListener(e -> {
+			if (ANALYZE_LABEL.equals(analyzeButton.getText())) {
+				startAnalyze();
+			} else {
+				stopAnalyze();
+			}
+		});
+		allSeriesCheckBox.addActionListener(e -> {
+			java.awt.Color color = java.awt.Color.BLACK;
+			if (allSeriesCheckBox.isSelected()) {
+				color = java.awt.Color.RED;
+			}
+			allSeriesCheckBox.setForeground(color);
+			analyzeButton.setForeground(color);
+		});
 
 		syncPreviewLiftedEnabled();
 		syncInsectControlsEnabled();
@@ -425,83 +436,75 @@ public class AnalysisPanel extends JPanel {
 		kymoInsectOverlay = null;
 	}
 
-	private void onExportGreenCsv() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null) {
-			statusLabel.setText("No experiment selected.");
-			return;
-		}
-		if (lastResult == null || lastResult.byCageId.isEmpty()) {
-			statusLabel.setText("Run Analyze first.");
-			return;
-		}
-		String bin = exp.getKymosBinFullDirectory();
-		if (bin == null || bin.isEmpty()) {
-			statusLabel.setText("Kymographs bin directory is not set.");
-			return;
-		}
-		Path out = Paths.get(bin, KymoAnalysisCsvExport.DEFAULT_FILENAME);
-		Path written = KymoAnalysisCsvExport.write(out, lastResult);
-		if (written != null) {
-			statusLabel.setText("Exported: " + written);
-		} else {
-			statusLabel.setText("Export failed.");
-		}
-	}
-
-	private void onAnalyze() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null) {
-			statusLabel.setText("No experiment selected.");
-			return;
-		}
-		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
-			statusLabel.setText("Load cage kymographs first (Load/Save or experiment open).");
-			return;
-		}
-		if (analyzeWorker != null && !analyzeWorker.isDone()) {
+	private void startAnalyze() {
+		if (analyzeThread != null && analyzeThread.threadRunning) {
 			statusLabel.setText("Analysis already running.");
 			return;
 		}
-		analyzeButton.setEnabled(false);
+		int index0 = parent0.expListComboLazy.getSelectedIndex();
+		if (index0 < 0) {
+			statusLabel.setText("No experiment selected.");
+			return;
+		}
+		analyzeThread = new AnalyzeCageKymographs();
+		analyzeThread.analyzerParams = readParams();
+		analyzeThread.options = initAnalyzeOptions();
+		analyzeThread.lastResult = null;
+		analyzeThread.addPropertyChangeListener(this);
+		parent0.setSuppressExperimentOpenOnComboProgrammaticChange(true);
+		analyzeThread.execute();
+		analyzeButton.setText(STOP_LABEL);
 		statusLabel.setText("Analyzing…");
-		final Params params = readParams();
-		analyzeWorker = new SwingWorker<KymoAnalysisResult, Void>() {
-			@Override
-			protected KymoAnalysisResult doInBackground() {
-				return CageKymoAnalyzer.analyze(exp, params);
-			}
+	}
 
-			@Override
-			protected void done() {
-				analyzeButton.setEnabled(true);
-				try {
-					lastResult = get();
-					int n = lastResult.byCageId.size();
-					if (n == 0) {
-						exportGreenCsvButton.setEnabled(false);
-						statusLabel.setText("No data: check kymograph files and camera sequence for ROI bounds.");
-					} else {
-						exportGreenCsvButton.setEnabled(true);
-						statusLabel.setText("Done: " + n + " cage(s), " + lastResult.widthBins + " bin(s).");
-					}
-				} catch (InterruptedException ex) {
-					Thread.currentThread().interrupt();
-					lastResult = null;
-					exportGreenCsvButton.setEnabled(false);
-					statusLabel.setText("Interrupted.");
-				} catch (ExecutionException ex) {
-					lastResult = null;
-					exportGreenCsvButton.setEnabled(false);
-					Throwable c = ex.getCause();
-					statusLabel.setText("Error: " + (c != null ? c.getMessage() : ex.getMessage()));
-				}
-				pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
-				if (viewKymoButton.isSelected()) {
-					refreshKymoPreview();
-				}
-			}
-		};
-		analyzeWorker.execute();
+	private void stopAnalyze() {
+		if (analyzeThread != null && !analyzeThread.stopFlag) {
+			analyzeThread.stopFlag = true;
+			statusLabel.setText("Stopping…");
+		}
+	}
+
+	private BuildSeriesOptions initAnalyzeOptions() {
+		BuildSeriesOptions options = new BuildSeriesOptions();
+		options.expList = parent0.expListComboLazy;
+		int last = Math.max(0, parent0.expListComboLazy.getItemCount() - 1);
+		int sel = Math.max(0, parent0.expListComboLazy.getSelectedIndex());
+		options.expList.index0 = sel;
+		if (allSeriesCheckBox.isSelected()) {
+			options.expList.index1 = last;
+		} else {
+			options.expList.index1 = sel;
+		}
+		if (options.expList.index0 > options.expList.index1) {
+			options.expList.index1 = options.expList.index0;
+		}
+		options.detectAllSeries = allSeriesCheckBox.isSelected();
+		options.concurrentDisplay = false;
+		return options;
+	}
+
+	@Override
+	public void propertyChange(PropertyChangeEvent evt) {
+		String name = evt.getPropertyName();
+		if (!StringUtil.equals("thread_ended", name) && !StringUtil.equals("thread_done", name)) {
+			return;
+		}
+		parent0.setSuppressExperimentOpenOnComboProgrammaticChange(false);
+		analyzeButton.setText(ANALYZE_LABEL);
+		AnalyzeCageKymographs finished = analyzeThread;
+		analyzeThread = null;
+		if (finished != null) {
+			lastResult = finished.lastResult;
+		}
+		if (lastResult == null || lastResult.byCageId.isEmpty()) {
+			statusLabel.setText("No data: build/load kymographs and check ROI bounds.");
+		} else {
+			statusLabel
+					.setText("Done: " + lastResult.byCageId.size() + " cage(s), " + lastResult.widthBins + " bin(s).");
+		}
+		pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
+		if (viewKymoButton.isSelected()) {
+			refreshKymoPreview();
+		}
 	}
 }

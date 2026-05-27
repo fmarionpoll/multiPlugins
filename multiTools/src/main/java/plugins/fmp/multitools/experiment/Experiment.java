@@ -1112,7 +1112,16 @@ public class Experiment {
 			cages.ensureSpotROIsFromCageGeometry(spots);
 			spots.applyPreConsumedRoiStyles();
 		}
+		mergeKymoSpotMeasuresFromBin();
 		return descriptionsLoaded;
+	}
+
+	private void mergeKymoSpotMeasuresFromBin() {
+		ensureBinDirectoryForLoading();
+		String kymoBin = getKymosBinFullDirectory();
+		if (kymoBin != null && spots.getPersistence().hasSpotsMeasuresFiles(kymoBin)) {
+			spots.getPersistence().loadMeasuresMergeKymo(spots, kymoBin);
+		}
 	}
 
 	/**
@@ -1127,8 +1136,23 @@ public class Experiment {
 		if (resultsDir != null) {
 			spots.getPersistence().saveMeasures(spots, resultsDir);
 		}
+		save_kymo_spot_measures();
 
 		return descriptionsSaved;
+	}
+
+	/**
+	 * Saves kymograph strip measures to {@code SpotsMeasures.csv} in the kymographs bin directory.
+	 */
+	public boolean save_kymo_spot_measures() {
+		if (spots == null) {
+			return false;
+		}
+		String kymoBin = getKymosBinFullDirectory();
+		if (kymoBin == null) {
+			return false;
+		}
+		return spots.getPersistence().saveKymoMeasures(spots, kymoBin);
 	}
 
 	// -------------------------------

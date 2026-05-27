@@ -6,7 +6,9 @@ import java.util.Locale;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 
@@ -77,6 +79,12 @@ public final class SpotExcelTimeline {
 	}
 
 	public static SpotExcelGrid buildForSpotExport(Experiment exp, ResultsOptions opt) {
+		if (opt != null && opt.resultType != null && opt.resultType.isPersistedKymographSpotMeasure()) {
+			return buildForKymoSpotExport(exp, opt);
+		}
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getImageLoader() == null) {
+			return new SpotExcelGrid(new long[] { 0L }, 1L, 0L, 1);
+		}
 		ImageLoader il = exp.getSeqCamData().getImageLoader();
 		int nf = il.getNTotalFrames();
 
@@ -132,6 +140,43 @@ public final class SpotExcelTimeline {
 		}
 		String s = String.format(Locale.US, "%.12f", units).replaceAll("0*$", "").replaceAll("\\.$", "");
 		return ExcelExportConstants.TIME_COLUMN_PREFIX + s;
+	}
+
+	private static SpotExcelGrid buildForKymoSpotExport(Experiment exp, ResultsOptions opt) {
+		long delta = opt != null && opt.buildExcelStepMs > 0 ? opt.buildExcelStepMs
+				: (exp != null ? exp.getKymoBin_ms() : 0L);
+		if (delta <= 0L) {
+			delta = 60_000L;
+		}
+		int nativeBins = 0;
+		if (exp != null && exp.getSpots() != null) {
+			EnumResults rt = opt != null ? opt.resultType : EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+			for (Spot spot : exp.getSpots().getSpotList()) {
+				if (spot == null) {
+					continue;
+				}
+				EnumResults measureType = rt != null ? rt : EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+				if (spot.getMeasurements(measureType) != null) {
+					nativeBins = Math.max(nativeBins, spot.getMeasurements(measureType).getCount());
+				}
+			}
+		}
+		if (nativeBins < 1) {
+			nativeBins = 1;
+		}
+		long[] t = new long[nativeBins];
+		for (int j = 0; j < nativeBins; j++) {
+			t[j] = (long) j * delta;
+		}
+		long tLast = t[nativeBins - 1];
+		long lo = 0L;
+		long hi = tLast;
+		if (opt != null && opt.fixedIntervals) {
+			lo = clampMs(opt.startAll_Ms, 0L, tLast);
+			hi = clampMs(opt.endAll_Ms, lo, Math.max(lo, tLast));
+		}
+		int nBins = countBinsInWindow(lo, hi, delta);
+		return new SpotExcelGrid(t, delta, lo, nBins);
 	}
 
 	public static int computeSpotExcelBinCount(Experiment exp, ResultsOptions opt) {

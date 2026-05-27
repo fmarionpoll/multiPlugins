@@ -83,7 +83,8 @@ public abstract class XLSExportSpots extends XLSExport {
 	protected boolean hasSpotMeasuresSelectedForExport(ResultsOptions o) {
 		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2
 				|| o.spotSumCleanV2 || o.spotAggregateByStimulusConc || o.spotAreaCountV5 || o.spotGreySumV5
-				|| o.spotGreySumCleanV5 || o.spotAreaCountColor || o.spotGreySumColor || o.spotGreySumCleanColor);
+				|| o.spotGreySumCleanV5 || o.spotAreaCountColor || o.spotGreySumColor || o.spotGreySumCleanColor
+				|| o.spotKymoFract || o.spotKymoAbsDelta || o.spotKymoGreenHeight || o.spotKymoGreenHeightRatio);
 	}
 
 	protected EnumResults[] enabledSpotMeasureTypesForExport(ResultsOptions o) {
@@ -124,9 +125,22 @@ public abstract class XLSExportSpots extends XLSExport {
 		if (o.spotGreySumCleanColor) {
 			list.add(EnumResults.GREY_SUM_CLEAN_COLOR);
 		}
+		if (o.spotKymoFract) {
+			list.add(EnumResults.KYMO_FRACT);
+		}
+		if (o.spotKymoAbsDelta) {
+			list.add(EnumResults.KYMO_ABS_DELTA);
+		}
+		if (o.spotKymoGreenHeight) {
+			list.add(EnumResults.KYMO_GREEN_HEIGHT);
+		}
+		if (o.spotKymoGreenHeightRatio) {
+			list.add(EnumResults.KYMO_GREEN_HEIGHT_RATIO);
+		}
 		if (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2 || o.spotSumCleanV2
 				|| o.spotAreaCountV5 || o.spotGreySumV5 || o.spotGreySumCleanV5 || o.spotAreaCountColor
-				|| o.spotGreySumColor || o.spotGreySumCleanColor) {
+				|| o.spotGreySumColor || o.spotGreySumCleanColor || o.spotKymoFract || o.spotKymoAbsDelta
+				|| o.spotKymoGreenHeight || o.spotKymoGreenHeightRatio) {
 			list.add(EnumResults.AREA_FLYPRESENT);
 		}
 		return list.toArray(new EnumResults[0]);

@@ -138,6 +138,12 @@ public class SpotPersistence {
 		case GREY_SUM_CLEAN_COLOR:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
 					+ "npts" + sep + "yi\n";
+		case KYMO_FRACT:
+		case KYMO_ABS_DELTA:
+		case KYMO_GREEN_HEIGHT:
+		case KYMO_GREEN_HEIGHT_RATIO:
+			return "#" + sep + "#\n" + "#" + sep + measureType.toPersistenceKey() + sep + "v0\n" + "name" + sep
+					+ "index" + sep + "npts" + sep + "yi\n";
 		default:
 			return "#" + sep + "UNDEFINED\n";
 		}
@@ -186,6 +192,18 @@ public class SpotPersistence {
 			break;
 		case GREY_SUM_CLEAN_COLOR:
 			spot.getGreySumCleanColor().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_FRACT:
+			spot.getKymoFract().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_ABS_DELTA:
+			spot.getKymoAbsDelta().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_GREEN_HEIGHT:
+			spot.getKymoGreenHeight().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_GREEN_HEIGHT_RATIO:
+			spot.getKymoGreenHeightRatio().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -320,6 +338,17 @@ public class SpotPersistence {
 		return Math.max(min, Math.min(max, v));
 	}
 
+	private static void importKymoY(SpotMeasure measure, String[] data, boolean x, boolean y) {
+		if (measure == null) {
+			return;
+		}
+		if (x && y) {
+			measure.importXYDataFromCsv(data, DATA_OFFSET);
+		} else if (!x && y) {
+			measure.importYDataFromCsv(data, DATA_OFFSET);
+		}
+	}
+
 	public static void csvImportSpotData(Spot spot, EnumResults measureType, String[] data, boolean x, boolean y) {
 		switch (measureType) {
 		case AREA_SUM:
@@ -415,6 +444,18 @@ public class SpotPersistence {
 			} else if (!x && y) {
 				spot.getGreySumCleanColor().importYDataFromCsv(data, DATA_OFFSET);
 			}
+			break;
+		case KYMO_FRACT:
+			importKymoY(spot.getKymoFract(), data, x, y);
+			break;
+		case KYMO_ABS_DELTA:
+			importKymoY(spot.getKymoAbsDelta(), data, x, y);
+			break;
+		case KYMO_GREEN_HEIGHT:
+			importKymoY(spot.getKymoGreenHeight(), data, x, y);
+			break;
+		case KYMO_GREEN_HEIGHT_RATIO:
+			importKymoY(spot.getKymoGreenHeightRatio(), data, x, y);
 			break;
 		default:
 			break;

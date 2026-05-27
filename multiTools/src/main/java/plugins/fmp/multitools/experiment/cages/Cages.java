@@ -36,6 +36,8 @@ import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation;
+import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation.SumSeries;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.kernel.roi.roi2d.ROI2DArea;
@@ -1363,6 +1365,15 @@ public class Cages {
 		prepareSpotAggregates(exp, resultsOptions);
 	}
 
+	/** Clears transient per-cage spot aggregate caches (e.g. after kymograph measures are updated). */
+	public void clearSpotAggregatesCache() {
+		for (Cage cage : cagesList) {
+			if (cage != null) {
+				cage.getSpotAggregates().clear();
+			}
+		}
+	}
+
 	/**
 	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when charting/exporting
 	 * spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5, AGG_AREA_COUNT_V5, AGG_SUMCLEAN_V6, AGG_AREA_COUNT_V6, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
@@ -1383,7 +1394,7 @@ public class Cages {
 		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_SUMCLEAN_V5
 				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_SUMCLEAN_COLOR
 				|| opt.resultType == EnumResults.AGG_AREA_COUNT_COLOR || opt.resultType == EnumResults.AGG_MEDIANREF
-				|| opt.spotAggregateByStimulusConc;
+				|| opt.resultType == EnumResults.AGG_GREENHEIGHT_RATIO || opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
 				if (cage != null) {
@@ -1394,6 +1405,10 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
+		if (savedRt == EnumResults.AGG_GREENHEIGHT_RATIO) {
+			prepareKymoGreenHeightAggregates(exp, allSpots);
+			return;
+		}
 		EnumResults buildRt;
 		if (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF) {
 			buildRt = EnumResults.AGG_SUMCLEAN;
@@ -1463,6 +1478,50 @@ public class Cages {
 			}
 		} finally {
 			opt.resultType = savedRt;
+		}
+	}
+
+	private void prepareKymoGreenHeightAggregates(Experiment exp, Spots allSpots) {
+		for (Cage cage : cagesList) {
+			if (cage == null) {
+				continue;
+			}
+			cage.getSpotAggregates().clear();
+			if (allSpots == null) {
+				continue;
+			}
+			List<Spot> spots = cage.getSpotList(allSpots);
+			if (spots.isEmpty()) {
+				continue;
+			}
+			int nBins = 0;
+			for (Spot spot : spots) {
+				if (spot != null) {
+					nBins = Math.max(nBins, spot.getKymoGreenHeightRatio().getCount());
+				}
+			}
+			if (nBins <= 0) {
+				continue;
+			}
+			List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumRatioByStimulusConcFromSpots(spots, nBins);
+			List<CageSpotAggregateSeries> entries = new ArrayList<>(sums.size());
+			for (SumSeries agg : sums) {
+				if (agg == null || agg.key == null || agg.values == null) {
+					continue;
+				}
+				CageSpotStimulusAggregation.AggregateSeries nativeAgg = new CageSpotStimulusAggregation.AggregateSeries(
+						agg.key, new ArrayList<>(), agg.nSpotsExposed);
+				for (int j = 0; j < agg.values.length; j++) {
+					nativeAgg.values.add(agg.values[j]);
+				}
+				CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(nativeAgg,
+						EnumResults.AGG_GREENHEIGHT_RATIO);
+				if (row != null) {
+					entries.add(row);
+				}
+			}
+			cage.getSpotAggregates().setEntries(entries);
+			cage.getSpotAggregates().setMedianRefSeries(null);
 		}
 	}
 

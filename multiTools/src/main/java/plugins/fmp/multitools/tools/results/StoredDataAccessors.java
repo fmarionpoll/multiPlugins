@@ -351,6 +351,34 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_KYMO_FRACT() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"KYMO_FRACT uses stored data from Spot kymograph measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_KYMO_ABS_DELTA() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"KYMO_ABS_DELTA uses stored data from Spot kymograph measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_KYMO_GREEN_HEIGHT() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"KYMO_GREEN_HEIGHT uses stored data from Spot kymograph measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_KYMO_GREEN_HEIGHT_RATIO() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"KYMO_GREEN_HEIGHT_RATIO uses stored data from Spot kymograph measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
 	/**
 	 * Placeholder for measures not yet implemented.
 	 */

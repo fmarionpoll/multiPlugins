@@ -20,6 +20,7 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	JButton exportAggregatedButton = new JButton("save XLS");
+	JButton exportKymoAggButton = new JButton("save kymo AGG XLS");
 	JSpinner baselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
 	JCheckBox stopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
 	JSpinner stableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
@@ -50,12 +51,19 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 		actionsLayout.setVgap(0);
 		JPanel panel2 = new JPanel(actionsLayout);
 		panel2.add(exportAggregatedButton);
+		panel2.add(exportKymoAggButton);
 		add(panel2);
 
 		exportAggregatedButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				firePropertyChange("EXPORT_AGGREGATED_SPOTSMEASURES", false, true);
+			}
+		});
+		exportKymoAggButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				firePropertyChange("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES", false, true);
 			}
 		});
 	}

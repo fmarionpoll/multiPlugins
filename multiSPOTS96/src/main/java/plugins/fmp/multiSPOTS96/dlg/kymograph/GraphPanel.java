@@ -25,7 +25,8 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
-import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
 import plugins.fmp.multitools.tools.chart.strategies.NoOpChartUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -99,8 +100,7 @@ public class GraphPanel extends JPanel {
 	}
 
 	void maybeRefreshVisibleCharts() {
-		KymoAnalysisResult lastResult = analysisPanel.getLastResult();
-		if (lastResult == null || lastResult.byCageId.isEmpty()) {
+		if (!hasChartableKymoData()) {
 			return;
 		}
 		boolean cagesVisible = chartCagesFrame != null && chartCagesFrame.getMainChartFrame() != null
@@ -129,16 +129,27 @@ public class GraphPanel extends JPanel {
 		}
 	}
 
+	private boolean hasChartableKymoData() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp != null && KymoSpotChartSupport.experimentHasKymoSpotMeasures(exp)) {
+			return true;
+		}
+		KymoAnalysisResult lastResult = analysisPanel.getLastResult();
+		return lastResult != null && !lastResult.byCageId.isEmpty();
+	}
+
 	private void onDisplayCharts() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		KymoAnalysisResult lastResult = analysisPanel.getLastResult();
-		if (exp == null || lastResult == null) {
-			graphStatusLabel.setText("Run Analyze on the Kymo analysis tab first.");
+		if (exp == null) {
+			graphStatusLabel.setText("No experiment selected.");
 			return;
 		}
-		if (lastResult.byCageId.isEmpty()) {
-			graphStatusLabel.setText("Nothing to display.");
-			return;
+		if (!KymoSpotChartSupport.experimentHasKymoSpotMeasures(exp)) {
+			KymoAnalysisResult lastResult = analysisPanel.getLastResult();
+			if (lastResult == null || lastResult.byCageId.isEmpty()) {
+				graphStatusLabel.setText("Run Analyze or load saved kymo measures first.");
+				return;
+			}
 		}
 		closeCharts();
 
@@ -151,7 +162,7 @@ public class GraphPanel extends JPanel {
 					.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 			options.relativeToMaximum = false;
 			applyKymoAggregateChartOptions(exp, options);
-			plotSpotsOverlay(exp, options, lastResult);
+			plotSpotsOverlay(exp, options);
 			graphStatusLabel.setText(" ");
 			return;
 		}
@@ -190,8 +201,7 @@ public class GraphPanel extends JPanel {
 		options.relativeToMaximum = false;
 		applyKymoAggregateChartOptions(exp, options);
 
-		CageKymoSeriesBuilder dataBuilder = new CageKymoSeriesBuilder(lastResult);
-		chartCagesFrame = new ChartCagesFrame(dataBuilder, null, new GridLayoutStrategy(),
+		chartCagesFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(), null, new GridLayoutStrategy(),
 				new NoOpChartUIControlsFactory());
 		chartCagesFrame.createMainChartPanel("Kymograph", exp, options);
 		chartCagesFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
@@ -203,7 +213,7 @@ public class GraphPanel extends JPanel {
 		graphStatusLabel.setText(" ");
 	}
 
-	private void plotSpotsOverlay(Experiment exp, ResultsOptions options, KymoAnalysisResult lastResult) {
+	private void plotSpotsOverlay(Experiment exp, ResultsOptions options) {
 		List<Spot> selectedSpots = SpotSequenceRois.selectedSpotsFromSequence(exp);
 		if (selectedSpots.isEmpty()) {
 			graphStatusLabel.setText("Select one or more spot ROIs on the camera sequence.");
@@ -214,7 +224,7 @@ public class GraphPanel extends JPanel {
 				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		overlayFrame.createMainChartPanel("Kymograph (selected)", options);
 		overlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
-		overlayFrame.displayData(exp, options, lastResult);
+		overlayFrame.displayData(exp, options);
 		graphStatusLabel.setText(" ");
 	}
 

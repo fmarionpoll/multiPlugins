@@ -36,8 +36,17 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	int nframestotal = 0;
 
 	int selectedExperimentIndex = -1;
-	/** Number of experiments in the current batch; 0 if the batch list was not built. */
+	/**
+	 * Number of experiments in the current batch; 0 if the batch list was not
+	 * built.
+	 */
 	protected int batchTotalSize = 0;
+
+	/** Combo index captured at batch start (first experiment in the series). */
+	public int getSelectedExperimentIndex() {
+		return selectedExperimentIndex;
+	}
+
 	Sequence seqNegative = null;
 	ViewerFMP vNegative = null;
 	public final String THREAD_ENDED = "thread_ended";
@@ -93,8 +102,8 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 				analyzeExperiment(exp);
 				long endTime2InNs = System.nanoTime();
 				Logger.debug("BuildSeries (" + (i + 1) + " / " + experimentsBatch.size()
-						+ "):doInBackground process ended - duration: "
-						+ ((endTime2InNs - startTimeInNs) / 1000000000f) + " s");
+						+ "):doInBackground process ended - duration: " + ((endTime2InNs - startTimeInNs) / 1000000000f)
+						+ " s");
 
 				for (int g = 0; g < 3; g++) {
 					System.gc();

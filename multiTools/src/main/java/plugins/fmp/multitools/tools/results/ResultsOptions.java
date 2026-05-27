@@ -150,6 +150,14 @@ public class ResultsOptions {
 	public boolean spotGreySumColor = false;
 	/** Spot Excel export: on-disk {@code GREY_SUM_CLEAN_V6}. */
 	public boolean spotGreySumCleanColor = false;
+	/** Spot Excel export: {@code KYMO_CHROMA_FRACT}. */
+	public boolean spotKymoFract = false;
+	/** Spot Excel export: {@code KYMO_CHROMA_ABS_DELTA}. */
+	public boolean spotKymoAbsDelta = false;
+	/** Spot Excel export: {@code KYMO_GREEN_HEIGHT}. */
+	public boolean spotKymoGreenHeight = false;
+	/** Spot Excel export: {@code KYMO_GREEN_HEIGHT_RATIO}. */
+	public boolean spotKymoGreenHeightRatio = false;
 
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
@@ -178,6 +186,10 @@ public class ResultsOptions {
 		this.spotAreaCountColor = resultsOptions.spotAreaCountColor;
 		this.spotGreySumColor = resultsOptions.spotGreySumColor;
 		this.spotGreySumCleanColor = resultsOptions.spotGreySumCleanColor;
+		this.spotKymoFract = resultsOptions.spotKymoFract;
+		this.spotKymoAbsDelta = resultsOptions.spotKymoAbsDelta;
+		this.spotKymoGreenHeight = resultsOptions.spotKymoGreenHeight;
+		this.spotKymoGreenHeightRatio = resultsOptions.spotKymoGreenHeightRatio;
 		this.spotBaselineWindowMinutes = resultsOptions.spotBaselineWindowMinutes;
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
 		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;

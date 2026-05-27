@@ -128,6 +128,23 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 					}
 				}
 			});
+		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES")) {
+			String file = defineXlsFileName(exp, "_spots_kymo_aggregate.xlsx");
+			if (file == null)
+				return;
+			updateParametersCurrentExperiment(exp);
+			ThreadUtil.bgRun(new Runnable() {
+				@Override
+				public void run() {
+					try {
+						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+						ResultsOptions o = getAggregatedKymoSpotsOptions(exp);
+						new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
+					} catch (ExcelExportException e) {
+						e.printStackTrace();
+					}
+				}
+			});
 		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_SPOTSMEASURES")) {
 			String file = defineXlsFileName(exp, "_spots_aggregate.xlsx");
 			if (file == null)
@@ -176,6 +193,10 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.spotAreaCountV5 = spotsAreasPanel.areaCountV5CheckBox.isSelected();
 		resultsOptions.spotGreySumV5 = spotsAreasPanel.greySumV5CheckBox.isSelected();
 		resultsOptions.spotGreySumCleanV5 = spotsAreasPanel.greySumCleanV5CheckBox.isSelected();
+		resultsOptions.spotKymoFract = spotsAreasPanel.kymoFractCheckBox.isSelected();
+		resultsOptions.spotKymoAbsDelta = spotsAreasPanel.kymoAbsDeltaCheckBox.isSelected();
+		resultsOptions.spotKymoGreenHeight = spotsAreasPanel.kymoGreenHeightCheckBox.isSelected();
+		resultsOptions.spotKymoGreenHeightRatio = spotsAreasPanel.kymoGreenHeightRatioCheckBox.isSelected();
 //		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
 //		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
 //		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();
@@ -189,6 +210,17 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 
 		getCommonOptions(resultsOptions, exp);
 
+		return resultsOptions;
+	}
+
+	private ResultsOptions getAggregatedKymoSpotsOptions(Experiment exp) {
+		ResultsOptions resultsOptions = new ResultsOptions();
+		resultsOptions.spotAreas = true;
+		resultsOptions.spotAggregateByStimulusConc = true;
+		resultsOptions.resultType = EnumResults.AGG_GREENHEIGHT_RATIO;
+		resultsOptions.relativeToMaximum = false;
+		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
+		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}
 

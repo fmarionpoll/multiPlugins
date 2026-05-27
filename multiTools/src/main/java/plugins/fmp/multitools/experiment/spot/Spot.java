@@ -46,6 +46,7 @@ public class Spot implements Comparable<Spot> {
 	private final SpotMeasurements measurements;
 	private final SpotMeasurementsV5 measurementsV5;
 	private final SpotMeasurementsColor measurementsColor;
+	private final SpotMeasurementsKymo measurementsKymo;
 	private final SpotMetadata metadata;
 
 	// === CONSTRUCTORS ===
@@ -62,6 +63,7 @@ public class Spot implements Comparable<Spot> {
 		this.measurements = new SpotMeasurements();
 		this.measurementsV5 = new SpotMeasurementsV5();
 		this.measurementsColor = new SpotMeasurementsColor();
+		this.measurementsKymo = new SpotMeasurementsKymo();
 		this.metadata = new SpotMetadata();
 	}
 
@@ -73,6 +75,7 @@ public class Spot implements Comparable<Spot> {
 		this.measurements = new SpotMeasurements();
 		this.measurementsV5 = new SpotMeasurementsV5();
 		this.measurementsColor = new SpotMeasurementsColor();
+		this.measurementsKymo = new SpotMeasurementsKymo();
 		this.metadata = new SpotMetadata();
 	}
 
@@ -89,6 +92,7 @@ public class Spot implements Comparable<Spot> {
 		this.measurements = new SpotMeasurements(sourceSpot.measurements, includeMeasurements);
 		this.measurementsV5 = new SpotMeasurementsV5(sourceSpot.measurementsV5, includeMeasurements);
 		this.measurementsColor = new SpotMeasurementsColor(sourceSpot.measurementsColor, includeMeasurements);
+		this.measurementsKymo = new SpotMeasurementsKymo(sourceSpot.measurementsKymo, includeMeasurements);
 		this.metadata = new SpotMetadata(sourceSpot.metadata);
 
 		if (sourceSpot.spotROI2D != null) {
@@ -639,6 +643,27 @@ public class Spot implements Comparable<Spot> {
 	public SpotMeasurementsColor getMeasurementsColor() {
 		return measurementsColor;
 	}
+
+	public SpotMeasure getKymoFract() {
+		return measurementsKymo.getKymoFract();
+	}
+
+	public SpotMeasure getKymoAbsDelta() {
+		return measurementsKymo.getKymoAbsDelta();
+	}
+
+	public SpotMeasure getKymoGreenHeight() {
+		return measurementsKymo.getKymoGreenHeight();
+	}
+
+	public SpotMeasure getKymoGreenHeightRatio() {
+		return measurementsKymo.getKymoGreenHeightRatio();
+	}
+
+	public SpotMeasurementsKymo getMeasurementsKymo() {
+		return measurementsKymo;
+	}
+
 	/**
 	 * Gets measurements for a specific export option.
 	 * 
@@ -693,6 +718,14 @@ public class Spot implements Comparable<Spot> {
 			return measurementsColor.getGreySumClean();
 		case AGG_AREA_COUNT_COLOR:
 			return measurementsColor.getAreaCount();
+		case KYMO_FRACT:
+			return measurementsKymo.getKymoFract();
+		case KYMO_ABS_DELTA:
+			return measurementsKymo.getKymoAbsDelta();
+		case KYMO_GREEN_HEIGHT:
+			return measurementsKymo.getKymoGreenHeight();
+		case KYMO_GREEN_HEIGHT_RATIO:
+			return measurementsKymo.getKymoGreenHeightRatio();
 		default:
 			return null;
 		}
@@ -854,6 +887,7 @@ public class Spot implements Comparable<Spot> {
 		measurements.restoreClippedMeasures();
 		measurementsV5.restoreClippedMeasures();
 		measurementsColor.restoreClippedMeasures();
+		measurementsKymo.restoreClippedMeasures();
 	}
 
 	/**
@@ -863,6 +897,7 @@ public class Spot implements Comparable<Spot> {
 		measurements.transferRoiMeasuresToLevel2D();
 		measurementsV5.transferRoiMeasuresToLevel2D();
 		measurementsColor.transferRoiMeasuresToLevel2D();
+		measurementsKymo.transferRoiMeasuresToLevel2D();
 	}
 
 	// === IMAGE PROCESSING ===
@@ -876,6 +911,7 @@ public class Spot implements Comparable<Spot> {
 		measurements.adjustLevel2DMeasuresToImageWidth(imageWidth);
 		measurementsV5.adjustLevel2DMeasuresToImageWidth(imageWidth);
 		measurementsColor.adjustLevel2DMeasuresToImageWidth(imageWidth);
+		measurementsKymo.adjustLevel2DMeasuresToImageWidth(imageWidth);
 	}
 
 	/**

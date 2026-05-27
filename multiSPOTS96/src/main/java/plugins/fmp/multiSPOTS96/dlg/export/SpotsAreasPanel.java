@@ -23,6 +23,10 @@ public class SpotsAreasPanel extends JPanel {
 	JCheckBox areaCountV5CheckBox = new JCheckBox("AREA_COUNT_V5", false);
 	JCheckBox greySumV5CheckBox = new JCheckBox("GREY_SUM_V5", false);
 	JCheckBox greySumCleanV5CheckBox = new JCheckBox("GREY_SUM_CLEAN_V5", false);
+	JCheckBox kymoFractCheckBox = new JCheckBox("KYMO_FRACT", false);
+	JCheckBox kymoAbsDeltaCheckBox = new JCheckBox("KYMO_ABS_DELTA", false);
+	JCheckBox kymoGreenHeightCheckBox = new JCheckBox("KYMO_GREEN_HEIGHT", false);
+	JCheckBox kymoGreenHeightRatioCheckBox = new JCheckBox("KYMO_GREEN_HEIGHT_RATIO", false);
 //	JCheckBox areaV2CheckBox = new JCheckBox("AREA_SUM_V2", false);
 //	JCheckBox sumNoFlyV2CheckBox = new JCheckBox("AREA_SUMNOFLY_V2", false);
 //	JCheckBox sumCleanV2CheckBox = new JCheckBox("AREA_SUMCLEAN_V2", false);
@@ -48,6 +52,10 @@ public class SpotsAreasPanel extends JPanel {
 		JPanel panel1 = new JPanel(flowLayout0);
 		panel1.add(greySumV5CheckBox);
 		panel1.add(greySumCleanV5CheckBox);
+		panel1.add(kymoFractCheckBox);
+		panel1.add(kymoAbsDeltaCheckBox);
+		panel1.add(kymoGreenHeightCheckBox);
+		panel1.add(kymoGreenHeightRatioCheckBox);
 		panel1.add(t0CheckBox);
 		panel1.add(discardNoFlyCageCheckBox);
 		add(panel1);

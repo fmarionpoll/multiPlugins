@@ -231,11 +231,11 @@ public enum EnumResults {
 	 */
 	KYMO_FRACT("KYMO_FRACT", "fraction (0-1)",
 			"Kymograph: fraction of rows with selected metric above threshold",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_FRACT"),
+			StoredDataAccessors.accessStored_KYMO_FRACT(), "KYMO_CHROMA_FRACT", PersistenceDomain.SPOT),
 	/** Kymograph: absolute bin-to-bin change in metric fraction. */
 	KYMO_ABS_DELTA("KYMO_ABS_DELTA", "|Δf|",
 			"Kymograph: |Δf| of metric fraction between consecutive time bins",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_ABS_DELTA"),
+			StoredDataAccessors.accessStored_KYMO_ABS_DELTA(), "KYMO_CHROMA_ABS_DELTA", PersistenceDomain.SPOT),
 	/** Kymograph: per-bin mean of per-spot metric fractions within a cage. */
 	KYMO_CAGE_MEAN_FRACT("KYMO_CAGE_MEAN", "fraction (0-1)", "Kymograph: cage mean of spot metric fractions",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_CAGE_MEAN_FRACT"),
@@ -245,13 +245,14 @@ public enum EnumResults {
 	/** Kymograph: count of ON rows in the cleaned green mask per time bin (bar height in pixels). */
 	KYMO_GREEN_HEIGHT("KYMO_GREEN_HEIGHT", "rows",
 			"Kymograph: vertical extent (rows) of cleaned green mask per time bin",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_GREEN_HEIGHT"),
+			StoredDataAccessors.accessStored_KYMO_GREEN_HEIGHT(), "KYMO_GREEN_HEIGHT", PersistenceDomain.SPOT),
 	/**
 	 * Kymograph: green height divided by height at the first time bin with height &gt; 0 (occupancy vs start of trace).
 	 */
 	KYMO_GREEN_HEIGHT_RATIO("KYMO_GREEN_HEIGHT_RATIO", "h / h₀",
 			"Kymograph: green mask height relative to first detected height",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_GREEN_HEIGHT_RATIO"),
+			StoredDataAccessors.accessStored_KYMO_GREEN_HEIGHT_RATIO(), "KYMO_GREEN_HEIGHT_RATIO",
+			PersistenceDomain.SPOT),
 	/** Kymograph: per-bin mean of per-spot green height ratios within a cage. */
 	KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO("KYMO_CAGE_MEAN_H", "h / h₀",
 			"Kymograph: cage mean of green height ratio across spots",
@@ -376,6 +377,31 @@ public enum EnumResults {
 			}
 		}
 		return null;
+	}
+
+	/** Per-spot kymograph strip series persisted in {@code SpotsMeasures.csv}. */
+	public boolean isPersistedKymographSpotMeasure() {
+		return this == KYMO_FRACT || this == KYMO_ABS_DELTA || this == KYMO_GREEN_HEIGHT
+				|| this == KYMO_GREEN_HEIGHT_RATIO;
+	}
+
+	public static boolean isKymographMeasure(EnumResults resultType) {
+		if (resultType == null) {
+			return false;
+		}
+		switch (resultType) {
+		case KYMO_FRACT:
+		case KYMO_ABS_DELTA:
+		case KYMO_CAGE_MEAN_FRACT:
+		case KYMO_CAGE_MEAN_ABS_DELTA:
+		case KYMO_GREEN_HEIGHT:
+		case KYMO_GREEN_HEIGHT_RATIO:
+		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+		case AGG_GREENHEIGHT_RATIO:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	/**

@@ -134,6 +134,22 @@ public class SpotsPersistence {
 		return Persistence.saveMeasures(spots, binDirectory);
 	}
 
+	/**
+	 * Loads only kymograph spot measure sections from {@code SpotsMeasures.csv} in the given directory,
+	 * merging into existing per-spot camera measures without clearing them.
+	 */
+	public boolean loadMeasuresMergeKymo(Spots spots, String binDirectory) {
+		return Persistence.loadMeasures(spots, binDirectory, true);
+	}
+
+	/**
+	 * Saves kymograph strip measures ({@link EnumResults#KYMO_FRACT}, etc.) to {@code SpotsMeasures.csv}
+	 * in the kymographs bin directory.
+	 */
+	public boolean saveKymoMeasures(Spots spots, String kymoBinDirectory) {
+		return Persistence.saveKymoMeasures(spots, kymoBinDirectory);
+	}
+
 	// ========================================================================
 	// Deprecated methods - kept for backward compatibility (will be removed in
 	// v3.0)
@@ -325,20 +341,28 @@ public class SpotsPersistence {
 		 * handling.
 		 */
 		public static boolean loadMeasures(Spots spotsArray, String binDirectory) {
+			return loadMeasures(spotsArray, binDirectory, false);
+		}
+
+		/**
+		 * @param kymoSectionsOnly when true, only sections for {@link EnumResults#isPersistedKymographSpotMeasure()}
+		 *                         are imported (merge into existing spot data).
+		 */
+		public static boolean loadMeasures(Spots spotsArray, String binDirectory, boolean kymoSectionsOnly) {
 			if (binDirectory == null) {
 				return false;
 			}
 
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			if (!Files.exists(csvPath)) {
+				if (kymoSectionsOnly) {
+					return false;
+				}
 				boolean loadedLegacy = SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
 				if (loadedLegacy) {
 					return true;
 				}
 
-				// Additional MS96-style fallback:
-				// If binDirectory looks like results/binXX, derive results directory and try
-				// results/SpotsMeasures.csv
 				Path binPath = Paths.get(binDirectory);
 				Path parent = binPath.getParent();
 				if (parent != null) {
@@ -351,10 +375,12 @@ public class SpotsPersistence {
 				return false;
 			}
 
-			// Validate version header before committing to new format parser
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String firstLine = reader.readLine();
 				if (firstLine == null || !firstLine.startsWith("#")) {
+					if (kymoSectionsOnly) {
+						return false;
+					}
 					Logger.info("SpotsPersistence: No header found in " + ID_V2_SPOTSARRAYMEASURES_CSV
 							+ ", using legacy parser");
 					return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
@@ -363,6 +389,9 @@ public class SpotsPersistence {
 				String sep = String.valueOf(firstLine.charAt(1));
 				String[] versionData = firstLine.split(sep);
 				if (versionData.length < 3 || !versionData[1].equals("version")) {
+					if (kymoSectionsOnly) {
+						return false;
+					}
 					Logger.info("SpotsPersistence: First line is not version header in " + ID_V2_SPOTSARRAYMEASURES_CSV
 							+ ", using legacy parser");
 					return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
@@ -374,11 +403,14 @@ public class SpotsPersistence {
 							+ CSV_VERSION);
 				}
 			} catch (IOException e) {
+				if (kymoSectionsOnly) {
+					return false;
+				}
 				Logger.error("SpotsPersistence: Error reading file header: " + e.getMessage(), e);
 				return SpotsPersistenceLegacy.loadMeasuresWithFallback(spotsArray, binDirectory);
 			}
 
-			// Version validated - proceed with new format parser
+			boolean any = false;
 			try (BufferedReader reader = new BufferedReader(new FileReader(csvPath.toFile()))) {
 				String line;
 				String sep = ";";
@@ -394,13 +426,18 @@ public class SpotsPersistence {
 								continue;
 							}
 							EnumResults measure = EnumResults.findByPersistenceKey(data[1]);
-							if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
-								SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
+							if (measure == null || !measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
+								continue;
 							}
+							if (kymoSectionsOnly && !measure.isPersistedKymographSpotMeasure()) {
+								continue;
+							}
+							SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
+							any = true;
 						}
 					}
 				}
-				return true;
+				return kymoSectionsOnly ? any : true;
 			} catch (Exception e) {
 				Logger.error("SpotsArrayPersistence:loadMeasures() Failed: " + e.getMessage(), e, true);
 				return false;
@@ -519,6 +556,46 @@ public class SpotsPersistence {
 				return true;
 			} catch (IOException e) {
 				Logger.error("SpotsArrayPersistence:save_SpotsArrayMeasures() Failed: " + e.getMessage(), e, true);
+				return false;
+			}
+		}
+
+		public static boolean saveKymoMeasures(Spots spotsArray, String kymoBinDirectory) {
+			if (kymoBinDirectory == null) {
+				Logger.warn("SpotsArrayPersistence:saveKymoMeasures() directory is null");
+				return false;
+			}
+			Path path = Paths.get(kymoBinDirectory);
+			if (!Files.exists(path)) {
+				Logger.warn("SpotsArrayPersistence:saveKymoMeasures() directory does not exist: " + kymoBinDirectory);
+				return false;
+			}
+			if (spotsArray == null || !spotsArray.getSpotList().stream()
+					.anyMatch(s -> s != null && s.getMeasurementsKymo().hasAnyData())) {
+				return false;
+			}
+			Path csvPath = Paths.get(kymoBinDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
+			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
+				writer.write("#;version;" + CSV_VERSION + "\n");
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_FRACT, ";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_ABS_DELTA,
+						";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_GREEN_HEIGHT,
+						";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer,
+						EnumResults.KYMO_GREEN_HEIGHT_RATIO, ";")) {
+					return false;
+				}
+				Logger.debug("SpotsArrayPersistence:saveKymoMeasures() saved to " + ID_V2_SPOTSARRAYMEASURES_CSV);
+				return true;
+			} catch (IOException e) {
+				Logger.error("SpotsArrayPersistence:saveKymoMeasures() Failed: " + e.getMessage(), e, true);
 				return false;
 			}
 		}
