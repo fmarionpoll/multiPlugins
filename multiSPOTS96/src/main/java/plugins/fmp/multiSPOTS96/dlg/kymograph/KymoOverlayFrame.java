@@ -27,13 +27,14 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
-import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Single-chart overlay for kymograph metric curves (selected spot ROIs), similar in spirit to
- * {@link plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame} for spot measures.
+ * Single-chart overlay for kymograph metric curves (selected spot ROIs),
+ * similar in spirit to
+ * {@link plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame} for spot
+ * measures.
  */
 public class KymoOverlayFrame {
 

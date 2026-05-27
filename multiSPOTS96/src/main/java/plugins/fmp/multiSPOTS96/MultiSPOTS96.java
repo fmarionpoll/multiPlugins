@@ -34,6 +34,16 @@ public class MultiSPOTS96 extends PluginActionable {
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
 	public final KymoDiagnosticsOptions kymoDiagnosticsOptions = new KymoDiagnosticsOptions();
 
+	private volatile boolean suppressExperimentOpenOnComboProgrammaticChange = false;
+
+	public boolean isSuppressExperimentOpenOnComboProgrammaticChange() {
+		return suppressExperimentOpenOnComboProgrammaticChange;
+	}
+
+	public void setSuppressExperimentOpenOnComboProgrammaticChange(boolean suppress) {
+		this.suppressExperimentOpenOnComboProgrammaticChange = suppress;
+	}
+
 	public _DlgBrowse_ dlgBrowse = new _DlgBrowse_();
 	public _DlgExperiment_ dlgExperiment = new _DlgExperiment_();
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();

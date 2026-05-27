@@ -100,11 +100,12 @@ final class Spots96ExperimentOpenPipeline {
 				// Drop any stale seqKymos from a previously selected experiment (closeSequences()
 				// closes pixels but does not clear the field).
 				exp.releaseKymographSequence();
-				if (!exp.loadCageSpotKymographs()) {
+				if (exp.isCageKymographDiskRewriteInProgress()) {
+					Logger.debug("Spots96ExperimentOpenPipeline: skip cage kymograph load (disk rewrite in progress)");
+				} else if (!exp.loadCageSpotKymographs()) {
 					Logger.warn("Spots96ExperimentOpenPipeline: loadCageSpotKymographs returned false for bin "
 							+ kymoBin + " (no kymocage_*.tif* or load error — see Experiment logs)");
-				}
-				if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+				} else if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
 					exp.getSeqKymos().getSequence().addListener(owner);
 					SwingUtilities.invokeLater(() -> CageKymographViewerUtil.openIfPresent(exp));
 				}

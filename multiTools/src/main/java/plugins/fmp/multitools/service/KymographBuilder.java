@@ -61,6 +61,10 @@ public class KymographBuilder {
 	 * Non-destructive probe: for each file matching {@code fileNameFilter} in {@code dir},
 	 * tries to rename it to a temporary name and back. If the move fails, the file is
 	 * considered locked by another process (typical Windows handle lock).
+	 * <p>
+	 * Avoid calling this immediately before replacing the same files on Windows: each probe uses
+	 * two renames and can interact badly with antivirus and with the exclusive access required for
+	 * atomic TIFF replacement.
 	 */
 	public static LockProbeReport probeFileLocks(Path dir, Predicate<String> fileNameFilter) {
 		if (dir == null || !Files.isDirectory(dir)) {
@@ -858,7 +862,20 @@ public class KymographBuilder {
 		try {
 			// Always overwrite the tmp file if it already exists.
 			Saver.saveImage(image, tmpFile, true);
-			moveWithRetries(tmpPath, targetPath);
+			try {
+				moveWithRetries(tmpPath, targetPath);
+			} catch (IOException moveEx) {
+				if (SystemUtil.isWindows()) {
+					Logger.warn("KymographBuilder.saveImageSafely: replace-by-move failed for " + targetPath
+							+ "; attempting delete-then-move (" + moveEx.getMessage() + ")");
+					// Never use Saver.saveImage(..., target, true) on an existing OME-TIFF: Bio-Formats can
+					// throw (e.g. strip/IFD size mismatch) and leave a truncated or unreadable file.
+					deleteFileWithRetriesForReplace(targetPath);
+					moveWithRetries(tmpPath, targetPath);
+				} else {
+					throw moveEx;
+				}
+			}
 		} finally {
 			try {
 				Files.deleteIfExists(tmpPath);
@@ -871,7 +888,7 @@ public class KymographBuilder {
 	private static void moveWithRetries(Path tmpPath, Path targetPath) throws IOException {
 		IOException last = null;
 		final boolean isWindows = SystemUtil.isWindows();
-		final int maxAttempts = isWindows ? 25 : 3;
+		final int maxAttempts = isWindows ? 40 : 3;
 
 		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
 			try {
@@ -889,7 +906,7 @@ public class KymographBuilder {
 				// On Windows, the target TIFF can remain locked briefly after viewers/sequences are closed.
 				// Retry a few times with backoff rather than failing the entire rebuild.
 				try {
-					long sleepMs = Math.min(1000L, 40L * attempt);
+					long sleepMs = Math.min(1500L, 50L * attempt);
 					Thread.sleep(sleepMs);
 				} catch (InterruptedException ie) {
 					Thread.currentThread().interrupt();
@@ -898,6 +915,37 @@ public class KymographBuilder {
 			}
 		}
 		throw last != null ? last : new IOException("Failed to move " + tmpPath + " -> " + targetPath);
+	}
+
+	/**
+	 * Deletes an existing file so a temp file can be moved into place. Used on Windows when
+	 * {@link Files#move(Path, Path, java.nio.file.CopyOption...)} cannot replace a locked TIFF.
+	 */
+	private static void deleteFileWithRetriesForReplace(Path targetPath) throws IOException {
+		if (targetPath == null || !Files.isRegularFile(targetPath)) {
+			return;
+		}
+		IOException last = null;
+		final boolean isWindows = SystemUtil.isWindows();
+		final int maxAttempts = isWindows ? 35 : 5;
+		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				Files.delete(targetPath);
+				return;
+			} catch (IOException e) {
+				last = e;
+				if (!isWindows) {
+					break;
+				}
+				try {
+					Thread.sleep(Math.min(1500L, 50L * attempt));
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		}
+		throw new IOException("Could not delete locked target before replace: " + targetPath, last);
 	}
 
 	private void clearAllAlongTMasks(Experiment exp) {

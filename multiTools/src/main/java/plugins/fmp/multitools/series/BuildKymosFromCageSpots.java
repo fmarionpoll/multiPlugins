@@ -2,8 +2,10 @@ package plugins.fmp.multitools.series;
 
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
+
 import javax.swing.SwingUtilities;
 
+import icy.system.SystemUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
@@ -19,41 +21,77 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 	@Override
 	void analyzeExperiment(Experiment exp) {
 		exp.releaseKymographSequence();
-		Logger.info("BuildKymosFromCageSpots: start cage kymographs for " + exp.getResultsDirectory());
-		String kymoDir = exp.getKymosBinFullDirectory();
-		if (options != null) {
-			options.kymoPreflightDetectedLockedFiles = false;
-		}
-		if (kymoDir != null && options != null) {
-			KymographBuilder.LockProbeReport lockProbe = KymographBuilder.probeFileLocks(Paths.get(kymoDir), (name) -> {
-				if (name == null) {
-					return false;
-				}
-				String n = name.toLowerCase();
-				return n.startsWith("kymocage_") && (n.endsWith(".tif") || n.endsWith(".tiff"));
-			});
-			options.kymoPreflightDetectedLockedFiles = lockProbe.locked > 0;
-			if (lockProbe.locked > 0) {
-				Logger.warn("BuildKymosFromCageSpots: kymocage TIFF(s) appear locked in " + lockProbe.directory
-						+ " (locked=" + lockProbe.locked + "/" + lockProbe.total + "). Build will try flip-flop if needed.");
-				for (String s : lockProbe.lockedFiles) {
-					Logger.warn("BuildKymosFromCageSpots: locked: " + s);
+		yieldWindowsFileHandlesAfterKymoRelease();
+		exp.setCageKymographDiskRewriteInProgress(true);
+		boolean builtOk = false;
+		try {
+			Logger.info("BuildKymosFromCageSpots: start cage kymographs for " + exp.getResultsDirectory());
+			String kymoDir = exp.getKymosBinFullDirectory();
+			if (options != null) {
+				options.kymoPreflightDetectedLockedFiles = false;
+			}
+			// Rename-based probe competes with the same exclusive access needed for save on Windows and
+			// can report false locks; EDT release above is the real fix for stale viewer handles.
+			if (kymoDir != null && options != null && !SystemUtil.isWindows()) {
+				KymographBuilder.LockProbeReport lockProbe = KymographBuilder.probeFileLocks(Paths.get(kymoDir), (name) -> {
+					if (name == null) {
+						return false;
+					}
+					String n = name.toLowerCase();
+					return n.startsWith("kymocage_") && (n.endsWith(".tif") || n.endsWith(".tiff"));
+				});
+				options.kymoPreflightDetectedLockedFiles = lockProbe.locked > 0;
+				if (lockProbe.locked > 0) {
+					Logger.warn("BuildKymosFromCageSpots: kymocage TIFF(s) appear locked in " + lockProbe.directory
+							+ " (locked=" + lockProbe.locked + "/" + lockProbe.total + "). Build will try flip-flop if needed.");
+					for (String s : lockProbe.lockedFiles) {
+						Logger.warn("BuildKymosFromCageSpots: locked: " + s);
+					}
 				}
 			}
+
+			if (!loadExperimentDataToBuildCageKymos(exp)) {
+				Logger.warn("BuildKymosFromCageSpots: could not load camera / cages / spots");
+				return;
+			}
+
+			getTimeLimitsOfSequence(exp);
+
+			CageSpotKymographBuilder builder = new CageSpotKymographBuilder();
+			builtOk = builder.buildCageSpotKymographs(exp, options);
+			if (builtOk) {
+				exp.saveExperimentDescriptors();
+			}
+		} finally {
+			exp.setCageKymographDiskRewriteInProgress(false);
 		}
 
-		if (!loadExperimentDataToBuildCageKymos(exp)) {
-			Logger.warn("BuildKymosFromCageSpots: could not load camera / cages / spots");
-			return;
-		}
-
-		getTimeLimitsOfSequence(exp);
-
-		CageSpotKymographBuilder builder = new CageSpotKymographBuilder();
-		if (builder.buildCageSpotKymographs(exp, options)) {
-			exp.saveExperimentDescriptors();
+		if (builtOk && batchTotalSize <= 1) {
 			displayCageKymographsOnEdt(exp);
 		}
+	}
+
+	@Override
+	protected void done() {
+		super.done();
+		if (batchTotalSize <= 1 || stopFlag || options == null || options.expList == null) {
+			return;
+		}
+		final int idx = selectedExperimentIndex;
+		SwingUtilities.invokeLater(() -> {
+			if (idx < 0 || idx >= options.expList.getItemCount()) {
+				return;
+			}
+			Experiment exp = options.expList.getItemAt(idx);
+			if (exp == null) {
+				return;
+			}
+			if (!exp.loadCageSpotKymographs()) {
+				Logger.warn("BuildKymosFromCageSpots: post-batch loadCageSpotKymographs failed for list index " + idx);
+				return;
+			}
+			CageKymographViewerUtil.openIfPresent(exp);
+		});
 	}
 
 	/**
@@ -126,6 +164,17 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 		} else {
 			exp.setKymoFirst_ms(0);
 			exp.setKymoLast_ms(exp.getCamImageLast_ms() - exp.getCamImageFirst_ms());
+		}
+	}
+
+	private static void yieldWindowsFileHandlesAfterKymoRelease() {
+		if (!SystemUtil.isWindows()) {
+			return;
+		}
+		try {
+			Thread.sleep(200L);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
 		}
 	}
 }

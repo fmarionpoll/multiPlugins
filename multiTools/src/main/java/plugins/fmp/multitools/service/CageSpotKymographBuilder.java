@@ -186,6 +186,15 @@ public class CageSpotKymographBuilder {
 			return false;
 		}
 
+		exp.releaseKymographSequence();
+		if (SystemUtil.isWindows()) {
+			try {
+				Thread.sleep(200L);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
+
 		exportPlans(plans, globalHeight, kymoSizeC, directory);
 		CageKymographStripLayoutCsv.write(directory, cages, spots, refSizex, refSizey, expectedWidth, first_ms,
 				last_ms, step_ms);
@@ -349,6 +358,25 @@ public class CageSpotKymographBuilder {
 	}
 
 	private void exportPlans(List<CageKymoPlan> plans, int globalHeight, int kymoSizeC, String directory) {
+		if (SystemUtil.isWindows()) {
+			for (CageKymoPlan p : plans) {
+				IcyBufferedImage img = new IcyBufferedImage(p.imageWidth, globalHeight, kymoSizeC, DataType.UBYTE);
+				boolean signed = img.isSignedDataType();
+				for (int ch = 0; ch < Math.min(kymoSizeC, p.channelBuffers.size()); ch++) {
+					Object dest = img.getDataXY(ch);
+					Array1DUtil.intArrayToSafeArray(p.channelBuffers.get(ch), 0, dest, 0, -1, signed, signed);
+					img.setDataXY(ch, dest);
+				}
+				File outFile = new File(directory + File.separator + p.fileBaseName + ".tiff");
+				try {
+					KymographBuilder.saveKymographTiffSafely(img, outFile);
+				} catch (FormatException | IOException e) {
+					Logger.error("CageSpotKymographBuilder: export failed " + outFile, e);
+				}
+			}
+			return;
+		}
+
 		Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("exportCageKymograph");
 		processor.setPriority(Processor.NORM_PRIORITY);

@@ -298,6 +298,8 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	public void itemStateChanged(ItemEvent e) {
 		if (suppressExperimentOpenDuringTransferReload)
 			return;
+		if (parent0 != null && parent0.isSuppressExperimentOpenOnComboProgrammaticChange())
+			return;
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {

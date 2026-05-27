@@ -31,6 +31,9 @@ public final class CageKymographViewerUtil {
 		if (exp == null) {
 			return;
 		}
+		if (exp.isCageKymographDiskRewriteInProgress()) {
+			return;
+		}
 		SequenceKymos sk = exp.getSeqKymos();
 		if (sk == null || sk.getSequence() == null) {
 			return;

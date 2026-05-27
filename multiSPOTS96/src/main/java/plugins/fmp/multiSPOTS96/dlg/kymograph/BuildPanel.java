@@ -208,6 +208,7 @@ public class BuildPanel extends JPanel implements PropertyChangeListener {
 		threadBuildKymo = new BuildKymosFromCageSpots();
 		threadBuildKymo.options = options;
 		threadBuildKymo.addPropertyChangeListener(this);
+		parent0.setSuppressExperimentOpenOnComboProgrammaticChange(true);
 		threadBuildKymo.execute();
 		startComputationButton.setText("STOP");
 	}
@@ -253,6 +254,7 @@ public class BuildPanel extends JPanel implements PropertyChangeListener {
 	public void propertyChange(PropertyChangeEvent evt) {
 		String n = evt.getPropertyName();
 		if (StringUtil.equals("thread_ended", n) || StringUtil.equals("thread_done", n)) {
+			parent0.setSuppressExperimentOpenOnComboProgrammaticChange(false);
 			startComputationButton.setText(detectString);
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {

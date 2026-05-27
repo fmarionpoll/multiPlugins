@@ -16,6 +16,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import java.lang.reflect.InvocationTargetException;
+
+import javax.swing.SwingUtilities;
+
 import icy.canvas.IcyCanvas;
 import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
@@ -145,6 +149,8 @@ public class Experiment {
 	// Flags to prevent race conditions between loading and saving
 	private volatile boolean isLoading = false;
 	private volatile boolean isSaving = false;
+	/** When true, cage kymograph TIFFs on disk are being replaced; avoid loading them (same process). */
+	private volatile boolean cageKymographDiskRewriteInProgress = false;
 
 	/**
 	 * True when experiment was loaded from descriptor version 1.0.0 (MS96 legacy).
@@ -373,6 +379,14 @@ public class Experiment {
 
 	public void setSaving(boolean saving) {
 		this.isSaving = saving;
+	}
+
+	public boolean isCageKymographDiskRewriteInProgress() {
+		return cageKymographDiskRewriteInProgress;
+	}
+
+	public void setCageKymographDiskRewriteInProgress(boolean cageKymographDiskRewriteInProgress) {
+		this.cageKymographDiskRewriteInProgress = cageKymographDiskRewriteInProgress;
 	}
 
 	public boolean isLegacyExperimentFormat() {
@@ -2025,23 +2039,74 @@ public class Experiment {
 	/**
 	 * Closes the kymograph sequence (and its viewers), cancels pending Icy prefetch for it, and
 	 * clears the reference. Call before rebuilding kymograph TIFFs on disk to reduce file locks.
+	 * <p>
+	 * When not called from the Swing EDT (e.g. from a {@code SwingWorker} background thread),
+	 * viewer/sequence disposal is marshalled onto the EDT so Icy can release Windows file handles
+	 * before TIFFs are replaced on disk.
 	 */
 	public void releaseKymographSequence() {
-		if (seqKymos == null)
-			return;
-		Sequence s = seqKymos.getSequence();
-		if (s != null)
-			SequencePrefetcher.cancel(s);
-		seqKymos.closeSequence();
-		seqKymos = null;
+		final Runnable release = () -> {
+			if (seqKymos == null)
+				return;
+			Sequence s = seqKymos.getSequence();
+			if (s != null) {
+				SequencePrefetcher.cancel(s);
+				replaceAllSequenceImagesWithCompatibleInMemoryBlanks(s);
+			}
+			seqKymos.closeSequence();
+			seqKymos = null;
+		};
+		if (SwingUtilities.isEventDispatchThread()) {
+			release.run();
+		} else {
+			try {
+				SwingUtilities.invokeAndWait(release);
+			} catch (InvocationTargetException e) {
+				Throwable c = e.getCause();
+				Logger.error("Experiment.releaseKymographSequence: EDT close failed", c);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
+		}
 	}
 
 	/**
-	 * After a capillary primary ROI rename (or swap): notifies the camera sequence for the capillary
-	 * ROI, and rebuilds kymograph measure ROIs (top/bottom/derivative/gulps) at each affected
-	 * {@link Capillary#getKymographIndex()} so names on the sequence match the model — required
-	 * when users edit measures on the kymograph, which are matched by ROI name.
+	 * Replaces every plane with an in-memory blank of the same size, channel count, and data type
+	 * so disk-backed readers can release TIFF handles before {@link SequenceKymos#closeSequence()}
+	 * (Windows file locking).
 	 */
+	private static void replaceAllSequenceImagesWithCompatibleInMemoryBlanks(Sequence seq) {
+		if (seq == null) {
+			return;
+		}
+		int sizeT = seq.getSizeT();
+		seq.beginUpdate();
+		try {
+			for (int t = 0; t < sizeT; t++) {
+				int nz = seq.getSizeZ(t);
+				for (int z = 0; z < nz; z++) {
+					try {
+						replaceSequencePlaneWithCompatibleBlank(seq, t, z);
+					} catch (Exception e) {
+						Logger.warn("replaceAllSequenceImagesWithCompatibleInMemoryBlanks: t=" + t + " z=" + z, e);
+					}
+				}
+			}
+			seq.dataChanged();
+		} finally {
+			seq.endUpdate();
+		}
+	}
+
+	private static void replaceSequencePlaneWithCompatibleBlank(Sequence seq, int t, int z) {
+		IcyBufferedImage cur = seq.getImage(t, z);
+		if (cur == null) {
+			return;
+		}
+		IcyBufferedImage blank = new IcyBufferedImage(cur.getSizeX(), cur.getSizeY(), cur.getSizeC(), cur.getDataType());
+		seq.setImage(t, z, blank);
+	}
+
 	/**
 	 * Drops loaded kymograph pixels at the given frame indices (tiny placeholder image) so TIFF
 	 * files on disk can be renamed while a kymograph viewer is open (typical Windows file lock).
@@ -2061,7 +2126,7 @@ public class Experiment {
 				int nz = seq.getSizeZ(t);
 				for (int z = 0; z < nz; z++) {
 					try {
-						seq.setImage(t, z, new IcyBufferedImage(2, 2, 1, DataType.UBYTE));
+						replaceSequencePlaneWithCompatibleBlank(seq, t, z);
 					} catch (Exception e) {
 						Logger.warn("tryReleaseKymographPixelsForIndices: t=" + t + " z=" + z, e);
 					}
@@ -2787,6 +2852,10 @@ public class Experiment {
 	 *                       cages share the same stacked height).
 	 */
 	public boolean loadCageSpotKymographs(boolean normalizeSizes) {
+		if (cageKymographDiskRewriteInProgress) {
+			Logger.debug("Experiment.loadCageSpotKymographs: skipped (cage kymograph disk rewrite in progress)");
+			return false;
+		}
 		if (cages == null || cages.cagesList == null || cages.cagesList.isEmpty()) {
 			Logger.warn("Experiment.loadCageSpotKymographs: no cages loaded");
 			return false;

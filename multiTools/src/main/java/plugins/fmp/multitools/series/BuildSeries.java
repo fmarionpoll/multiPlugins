@@ -36,6 +36,8 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	int nframestotal = 0;
 
 	int selectedExperimentIndex = -1;
+	/** Number of experiments in the current batch; 0 if the batch list was not built. */
+	protected int batchTotalSize = 0;
 	Sequence seqNegative = null;
 	ViewerFMP vNegative = null;
 	public final String THREAD_ENDED = "thread_ended";
@@ -80,6 +82,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			threadRunning = true;
 			selectList(expList, -1);
 
+			batchTotalSize = experimentsBatch.size();
 			for (int i = 0; i < experimentsBatch.size(); i++) {
 				if (stopFlag)
 					break;
