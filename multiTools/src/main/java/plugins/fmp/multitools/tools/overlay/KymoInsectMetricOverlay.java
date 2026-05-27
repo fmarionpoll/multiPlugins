@@ -29,22 +29,21 @@ import plugins.fmp.multitools.service.KymocageCageResolver;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Semi-transparent red mask: pixels inside each spot band where R+G+B passes the valid-pixel gate, the spot metric
- * exceeds its threshold, and (when enabled) the insect metric does not classify the pixel as insect-like. When
- * row-wise occlusion lift is enabled, the mask follows the lifted RGB (same as Analyze).
+ * Semi-transparent mask where the insect metric passes its directed threshold (same rule as exclusion from the spot
+ * mask). Uses the same RGB as the metric overlay (lifted when row lift is on).
  */
-public final class KymoMetricThresholdOverlay extends Overlay implements SequenceListener {
+public final class KymoInsectMetricOverlay extends Overlay implements SequenceListener {
 
-	private static final String OVERLAY_NAME = "KymoMetricThreshold";
-	private static final float DEFAULT_OPACITY = 0.35f;
-	private static final int MASK_ARGB = 0xB4FF0000;
+	private static final String OVERLAY_NAME = "KymoInsectMetric";
+	private static final float DEFAULT_OPACITY = 0.38f;
+	private static final int MASK_ARGB = 0xB4FF00FF;
 
 	private final Supplier<CageKymoAnalyzer.Params> paramsSupplier;
 	private final Supplier<Experiment> experimentSupplier;
 	private Sequence localSequence;
 	private float opacity = DEFAULT_OPACITY;
 
-	public KymoMetricThresholdOverlay(Sequence sequence, Supplier<CageKymoAnalyzer.Params> paramsSupplier,
+	public KymoInsectMetricOverlay(Sequence sequence, Supplier<CageKymoAnalyzer.Params> paramsSupplier,
 			Supplier<Experiment> experimentSupplier) {
 		super(OVERLAY_NAME);
 		this.paramsSupplier = paramsSupplier;
@@ -107,26 +106,16 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 					}
 				}
 			}
-			IcyBufferedImage metricImg = KymoImageTransforms.applyMetricTransform(rgb, p.metricTransform,
+			IcyBufferedImage insImg = KymoImageTransforms.applyMetricTransform(rgb, p.insectMetricTransform,
 					p.useGpuTransforms);
-			if (metricImg == null) {
+			double[] insectMetric = insImg != null ? KymoImageTransforms.channel0AsDouble(insImg) : null;
+			if (insectMetric == null || insectMetric.length == 0) {
 				return;
-			}
-			double[] metric = KymoImageTransforms.channel0AsDouble(metricImg);
-			if (metric == null || metric.length == 0) {
-				return;
-			}
-			double[] insectMetric = null;
-			if (p.insectMetricGateEnabled) {
-				IcyBufferedImage ins = KymoImageTransforms.applyMetricTransform(rgb, p.insectMetricTransform,
-						p.useGpuTransforms);
-				insectMetric = ins != null ? KymoImageTransforms.channel0AsDouble(ins) : null;
 			}
 			int nC = Math.max(1, rgb.getSizeC());
 			int[] r = nC > 0 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(0), rgb.isSignedDataType()) : null;
 			int[] g = nC > 1 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(1), rgb.isSignedDataType()) : null;
 			int[] b = nC > 2 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(2), rgb.isSignedDataType()) : null;
-			double thr = p.metricThreshold;
 			int minSum = p.minSumRgbForValidPixel;
 			BufferedImage argb = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 
@@ -140,7 +129,7 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 					for (int x = 0; x < w; x++) {
 						for (int y = y0; y < y1; y++) {
 							int idx = y * w + x;
-							if (idx < 0 || idx >= metric.length) {
+							if (idx < 0 || idx >= insectMetric.length) {
 								continue;
 							}
 							int rv = sampleChan(r, idx);
@@ -149,53 +138,40 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 							if (rv + gv + bv < minSum) {
 								continue;
 							}
-							double m = metric[idx];
-							if (spotPassesRed(m, thr, insectMetric, idx, p)) {
+							if (KymoMetricGate.directedFinite(insectMetric[idx], p.insectMetricThreshold,
+									p.insectMetricThresholdUp)) {
 								argb.setRGB(x, y, MASK_ARGB);
 							}
 						}
 					}
 				}
 			} else {
-				paintFullImageLegacy(w, h, nC, r, g, b, metric, p, insectMetric, argb);
+				paintFullImageLegacy(w, h, nC, r, g, b, insectMetric, p, argb);
 			}
 			Composite prev = graphics.getComposite();
 			graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
 			graphics.drawImage(argb, 0, 0, null);
 			graphics.setComposite(prev);
 		} catch (Exception e) {
-			Logger.warn("KymoMetricThresholdOverlay: paint failed", e);
+			Logger.warn("KymoInsectMetricOverlay: paint failed", e);
 		}
 	}
 
-	private static void paintFullImageLegacy(int w, int h, int nC, int[] r, int[] g, int[] b, double[] metric,
-			CageKymoAnalyzer.Params p, double[] insectMetric, BufferedImage argb) {
+	private static void paintFullImageLegacy(int w, int h, int nC, int[] r, int[] g, int[] b, double[] insectMetric,
+			CageKymoAnalyzer.Params p, BufferedImage argb) {
 		int len = w * h;
-		double thr = p.metricThreshold;
 		int minSum = p.minSumRgbForValidPixel;
-		for (int i = 0; i < len && i < metric.length; i++) {
+		for (int i = 0; i < len && i < insectMetric.length; i++) {
 			int rv = sampleChan(r, i);
 			int gv = nC > 1 ? sampleChan(g, i) : rv;
 			int bv = nC > 2 ? sampleChan(b, i) : rv;
 			if (rv + gv + bv < minSum) {
 				continue;
 			}
-			double m = metric[i];
-			if (spotPassesRed(m, thr, insectMetric, i, p)) {
+			if (KymoMetricGate.directedFinite(insectMetric[i], p.insectMetricThreshold, p.insectMetricThresholdUp)) {
 				argb.setRGB(i % w, i / w, MASK_ARGB);
 			}
 		}
-	}
-
-	private static boolean spotPassesRed(double m, double thr, double[] insectMetric, int idx,
-			CageKymoAnalyzer.Params p) {
-		if (!Double.isFinite(m) || m <= thr) {
-			return false;
-		}
-		if (!p.insectMetricGateEnabled || insectMetric == null || idx < 0 || idx >= insectMetric.length) {
-			return true;
-		}
-		return !KymoMetricGate.directedFinite(insectMetric[idx], p.insectMetricThreshold, p.insectMetricThresholdUp);
 	}
 
 	private static int sampleChan(int[] ch, int idx) {

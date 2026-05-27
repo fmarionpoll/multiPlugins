@@ -9,11 +9,13 @@ import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Per spot band, each horizontal row (fixed {@code y}) is scanned along time ({@code x}). A pixel is
- * <em>good</em> when it passes the same gates as the metric overlay (valid sum RGB and metric above threshold).
- * A maximal run of <em>bad</em> pixels strictly between a good pixel on the left and a good pixel on the right
- * is filled with a constant per channel: the average of the bracketing good pixels. Only gaps whose length
- * (columns) is ≤ {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns} are modified. Leading/trailing bad runs
- * are left unchanged. Bands do not interact; rows outside bands are unchanged.
+ * <em>good</em> when it passes the same gates as the spot metric overlay (valid sum RGB and spot metric above
+ * threshold), and when {@link CageKymoAnalyzer.Params#insectMetricGateEnabled} is on, it must not be classified as
+ * insect-like by the insect metric (so fly pixels are not used as bracket anchors). A maximal run of <em>bad</em>
+ * pixels strictly between a good pixel on the left and a good pixel on the right is filled with a constant per
+ * channel: the average of the bracketing good pixels. Only gaps whose length (columns) is ≤
+ * {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns} are modified. Leading/trailing bad runs are left
+ * unchanged. Bands do not interact; rows outside bands are unchanged.
  */
 public final class KymoStripRowwiseOcclusionFill {
 
@@ -52,6 +54,12 @@ public final class KymoStripRowwiseOcclusionFill {
 		double thr = params.metricThreshold;
 		int minSum = params.minSumRgbForValidPixel;
 		int maxGap = params.maxRowOcclusionGapColumns;
+		double[] insectMetric = null;
+		if (params.insectMetricGateEnabled) {
+			IcyBufferedImage ins = KymoImageTransforms.applyMetricTransform(rgb, params.insectMetricTransform,
+					params.useGpuTransforms);
+			insectMetric = ins != null ? KymoImageTransforms.channel0AsDouble(ins) : null;
+		}
 
 		int[] ro = nC > 0 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(0), rgb.isSignedDataType()) : null;
 		int[] go = nC > 1 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(1), rgb.isSignedDataType()) : null;
@@ -71,7 +79,7 @@ public final class KymoStripRowwiseOcclusionFill {
 			for (int y = y0; y < y1; y++) {
 				for (int x = 0; x < w; x++) {
 					int idx = y * w + x;
-					good[x] = isGood(ro, go, bo, nC, metric, metricLen, idx, minSum, thr);
+					good[x] = isGood(ro, go, bo, nC, metric, metricLen, idx, minSum, thr, insectMetric, params);
 				}
 				fillRowGaps(w, y, good, maxGap, ro, go, bo, nC, rw, gw, bw);
 			}
@@ -142,7 +150,7 @@ public final class KymoStripRowwiseOcclusionFill {
 	}
 
 	private static boolean isGood(int[] r, int[] g, int[] b, int nC, double[] metric, int metricLen, int idx,
-			int minSum, double thr) {
+			int minSum, double thr, double[] insectMetric, CageKymoAnalyzer.Params params) {
 		int rv = sample(r, idx);
 		int gv = nC > 1 ? sample(g, idx) : rv;
 		int bv = nC > 2 ? sample(b, idx) : rv;
@@ -153,7 +161,17 @@ public final class KymoStripRowwiseOcclusionFill {
 			return false;
 		}
 		double m = metric[idx];
-		return Double.isFinite(m) && m > thr;
+		if (!Double.isFinite(m) || m <= thr) {
+			return false;
+		}
+		if (params != null && params.insectMetricGateEnabled && insectMetric != null && idx >= 0
+				&& idx < insectMetric.length) {
+			if (KymoMetricGate.directedFinite(insectMetric[idx], params.insectMetricThreshold,
+					params.insectMetricThresholdUp)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static int sample(int[] ch, int idx) {

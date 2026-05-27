@@ -43,10 +43,20 @@ public final class CageKymoAnalyzer {
 		 * picture is visible; ignored by {@link CageKymoAnalyzer#analyze}.
 		 */
 		public boolean previewLiftedBands;
+		/**
+		 * When true, pixels where the insect metric passes the insect threshold are excluded from spot-on detection
+		 * (parallel to a separate flies filter on camera frames).
+		 */
+		public boolean insectMetricGateEnabled;
+		public ImageTransformEnums insectMetricTransform;
+		public int insectMetricThreshold;
+		/** When true, insect is "on" when metric {@code >} threshold; when false, when metric {@code <=} threshold. */
+		public boolean insectMetricThresholdUp;
 
 		public Params(ImageTransformEnums metricTransform, int metricThreshold, int minSumRgbForValidPixel,
 				int minValidRowsPerColumn, boolean useGpuTransforms, int maxRowOcclusionGapColumns,
-				boolean rowwiseOcclusionFill, boolean previewLiftedBands) {
+				boolean rowwiseOcclusionFill, boolean previewLiftedBands, boolean insectMetricGateEnabled,
+				ImageTransformEnums insectMetricTransform, int insectMetricThreshold, boolean insectMetricThresholdUp) {
 			this.metricTransform = metricTransform != null ? metricTransform : ImageTransformEnums.RGB_DIFFS;
 			this.metricThreshold = metricThreshold;
 			this.minSumRgbForValidPixel = minSumRgbForValidPixel;
@@ -55,6 +65,11 @@ public final class CageKymoAnalyzer {
 			this.maxRowOcclusionGapColumns = Math.max(0, maxRowOcclusionGapColumns);
 			this.rowwiseOcclusionFill = rowwiseOcclusionFill;
 			this.previewLiftedBands = previewLiftedBands;
+			this.insectMetricGateEnabled = insectMetricGateEnabled;
+			this.insectMetricTransform = insectMetricTransform != null ? insectMetricTransform
+					: ImageTransformEnums.B_RGB;
+			this.insectMetricThreshold = insectMetricThreshold;
+			this.insectMetricThresholdUp = insectMetricThresholdUp;
 		}
 	}
 
@@ -150,8 +165,10 @@ public final class CageKymoAnalyzer {
 
 	/**
 	 * Per-column fraction inside the spot band: rows counted as ON use the post-lift cleaned mask when row lift is on
-	 * (temporal gap fill, vertical bridge, left-anchored trace); otherwise raw metric &gt; threshold. Rows are included
-	 * in the denominator if sum RGB passes the valid gate, or if the cleaned mask marks the pixel ON (bridged trace).
+	 * (temporal gap fill, vertical bridge, left-anchored trace); otherwise raw spot metric &gt; threshold. When
+	 * {@link Params#insectMetricGateEnabled} is true, pixels classified as insect-like by the second transform are
+	 * never counted as ON. Rows are included in the denominator if sum RGB passes the valid gate, or if the cleaned
+	 * mask marks the pixel ON (bridged trace).
 	 */
 	public static double[] computeColumnMetricFractions(IcyBufferedImage img, CageKymographSpotBands band,
 			Params params, int imgW) {
@@ -171,6 +188,12 @@ public final class CageKymoAnalyzer {
 		double[] metric = KymoImageTransforms.channel0AsDouble(metricImg);
 		int metricLen = metric != null ? metric.length : 0;
 		double thr = params.metricThreshold;
+		double[] insectMetric = null;
+		if (params.insectMetricGateEnabled) {
+			IcyBufferedImage ins = KymoImageTransforms.applyMetricTransform(img, params.insectMetricTransform,
+					params.useGpuTransforms);
+			insectMetric = ins != null ? KymoImageTransforms.channel0AsDouble(ins) : null;
+		}
 
 		int y0 = Math.max(0, band.y0);
 		int y1 = Math.min(imgH, band.y1Exclusive);
@@ -197,7 +220,9 @@ public final class CageKymoAnalyzer {
 					pass = cleanedMask[idx];
 				} else if (metric != null && idx >= 0 && idx < metricLen) {
 					double m = metric[idx];
-					pass = Double.isFinite(m) && m > thr;
+					boolean spotP = Double.isFinite(m) && m > thr;
+					boolean insectP = insectPixelOn(insectMetric, idx, params);
+					pass = spotP && !insectP;
 				} else {
 					pass = false;
 				}
@@ -252,5 +277,13 @@ public final class CageKymoAnalyzer {
 			return 0;
 		}
 		return ch[idx];
+	}
+
+	private static boolean insectPixelOn(double[] insectMetric, int idx, Params params) {
+		if (!params.insectMetricGateEnabled || insectMetric == null || idx < 0 || idx >= insectMetric.length) {
+			return false;
+		}
+		return KymoMetricGate.directedFinite(insectMetric[idx], params.insectMetricThreshold,
+				params.insectMetricThresholdUp);
 	}
 }

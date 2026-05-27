@@ -32,6 +32,7 @@ import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.fmp.multitools.tools.overlay.KymoInsectMetricOverlay;
 import plugins.fmp.multitools.tools.overlay.KymoMergedRegionsOverlay;
 import plugins.fmp.multitools.tools.overlay.KymoMetricThresholdOverlay;
 
@@ -58,6 +59,13 @@ public class AnalysisPanel extends JPanel {
 	private final JCheckBox metricOverlayCheckBox = new JCheckBox("metric (red)");
 	private final JCheckBox mergedOverlayCheckBox = new JCheckBox("row lift overlay");
 	private final JCheckBox previewLiftedBandsCheckBox = new JCheckBox("Preview lifted bands", false);
+	private final JCheckBox insectMetricGateCheckBox = new JCheckBox("Insect filter (exclude)", true);
+	private final JComboBox<ImageTransformEnums> insectMetricTransformCombo = new JComboBox<>(
+			KymoImageTransforms.METRIC_CHOICES);
+	private final String[] insectDirections = new String[] { "metric ≤", "metric >" };
+	private final JComboBox<String> insectDirectionComboBox = new JComboBox<>(insectDirections);
+	private final JSpinner insectMetricThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 512, 1));
+	private final JCheckBox insectOverlayCheckBox = new JCheckBox("insect (magenta)", false);
 	private final JButton analyzeButton = new JButton("Analyze");
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
@@ -65,15 +73,22 @@ public class AnalysisPanel extends JPanel {
 	private SwingWorker<KymoAnalysisResult, Void> analyzeWorker;
 	private KymoMergedRegionsOverlay kymoMergedOverlay;
 	private KymoMetricThresholdOverlay kymoMetricOverlay;
+	private KymoInsectMetricOverlay kymoInsectOverlay;
 
 	public AnalysisPanel(MultiSPOTS96 parent0) {
-		super(new GridLayout(4, 1));
+		super(new GridLayout(5, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
 		JComponent ed = metricThresholdSpinner.getEditor();
 		if (ed instanceof JSpinner.DefaultEditor) {
 			JFormattedTextField tf = ((JSpinner.DefaultEditor) ed).getTextField();
+			tf.setColumns(4);
+			tf.setHorizontalAlignment(JTextField.TRAILING);
+		}
+		JComponent edIns = insectMetricThresholdSpinner.getEditor();
+		if (edIns instanceof JSpinner.DefaultEditor) {
+			JFormattedTextField tf = ((JSpinner.DefaultEditor) edIns).getTextField();
 			tf.setColumns(4);
 			tf.setHorizontalAlignment(JTextField.TRAILING);
 		}
@@ -96,6 +111,15 @@ public class AnalysisPanel extends JPanel {
 
 		add(p1);
 
+		JPanel pInsect = new JPanel(left);
+		pInsect.add(insectMetricGateCheckBox);
+		pInsect.add(new JLabel("  insect "));
+		pInsect.add(insectMetricTransformCombo);
+		pInsect.add(insectDirectionComboBox);
+		pInsect.add(insectMetricThresholdSpinner);
+		pInsect.add(insectOverlayCheckBox);
+		add(pInsect);
+
 		JPanel pLift = new JPanel(left);
 		pLift.add(rowOcclusionLiftCheckBox);
 		pLift.add(new JLabel("  max row gap (cols) "));
@@ -110,16 +134,27 @@ public class AnalysisPanel extends JPanel {
 		add(p3);
 
 		metricTransformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+		insectMetricTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
+		insectDirectionComboBox.setSelectedIndex(0);
 		metricOverlayCheckBox.setEnabled(false);
 		mergedOverlayCheckBox.setEnabled(false);
+		insectOverlayCheckBox.setEnabled(false);
 		metricOverlayCheckBox.setToolTipText(
-				"Per strip: pixels where R+G+B passes the valid gate and the metric exceeds the threshold.");
+				"Per strip: spot metric passes min R+G+B and threshold; optional insect filter removes insect-like pixels (same idea as spots vs flies filters).");
 		mergedOverlayCheckBox.setToolTipText(
-				"Green = cleaned post-lift metric mask per strip: short OFF gaps along time are filled (≤ max row gap), single-row vertical holes bridged, then only pixels connected to the main trace from the left are kept (removes stray spots/lines). Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
+				"Green = cleaned post-lift spot mask (after insect exclusion when enabled): temporal gap fill (≤ max row gap), one-pass vertical hole fill, left-anchored trace, 1-px-wide speck removal. Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
+		insectMetricGateCheckBox.setToolTipText(
+				"When on: pixels that pass the insect transform + direction + threshold are excluded from spot-on (parallel to Flies filter in Spots measures / ThresholdLightPanel).");
+		insectMetricTransformCombo.setToolTipText("Second transform on the same kymograph RGB (e.g. B_RGB for fly body).");
+		insectDirectionComboBox.setToolTipText(
+				"metric ≤ : insect-like when transformed value ≤ threshold (flies-style). metric > : insect-like when value > threshold.");
+		insectMetricThresholdSpinner.setToolTipText("Threshold for the insect transform channel (same units as spot metric threshold).");
+		insectOverlayCheckBox.setToolTipText(
+				"Magenta overlay on pixels classified as insect-like by the insect transform + direction + threshold (same rule as exclusion). Uses current insect controls even when 'Insect filter' is off.");
 		previewLiftedBandsCheckBox.setToolTipText(
 				"When row lift is on: blend the row-lifted image over each band so you see corrected intensities (does not change saved TIFFs).");
 		rowOcclusionLiftCheckBox.setToolTipText(
-				"Per strip and each row y, bad runs along time between good pixels are filled with mean RGB of bracketing good pixels (length ≤ max row gap).");
+				"Per strip and each row y, bad runs along time between good pixels are filled with mean RGB of bracketing good pixels (length ≤ max row gap). When insect filter is on, insect-like pixels are not treated as good bracket anchors.");
 		maxRowOcclusionGapColsSpinner.setToolTipText(
 				"Maximum width (columns) of a bad run along one row that may be filled when good pixels lie on both sides. 0 disables row fill.");
 
@@ -138,8 +173,25 @@ public class AnalysisPanel extends JPanel {
 		minSumRgbSpinner.addChangeListener(previewParamsListener);
 		minValidRowsSpinner.addChangeListener(previewParamsListener);
 		maxRowOcclusionGapColsSpinner.addChangeListener(previewParamsListener);
+		insectMetricThresholdSpinner.addChangeListener(previewParamsListener);
+
+		insectOverlayCheckBox.addActionListener(e -> {
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
 
 		metricTransformCombo.addActionListener(e -> {
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
+		insectMetricTransformCombo.addActionListener(e -> {
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
+		insectDirectionComboBox.addActionListener(e -> {
 			if (viewKymoButton.isSelected()) {
 				refreshKymoPreview();
 			}
@@ -170,9 +222,17 @@ public class AnalysisPanel extends JPanel {
 			}
 		});
 
+		insectMetricGateCheckBox.addActionListener(e -> {
+			syncInsectControlsEnabled();
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
+
 		analyzeButton.addActionListener(e -> onAnalyze());
 
 		syncPreviewLiftedEnabled();
+		syncInsectControlsEnabled();
 	}
 
 	private void syncPreviewLiftedEnabled() {
@@ -181,6 +241,13 @@ public class AnalysisPanel extends JPanel {
 		if (!row) {
 			previewLiftedBandsCheckBox.setSelected(false);
 		}
+	}
+
+	private void syncInsectControlsEnabled() {
+		boolean on = insectMetricGateCheckBox.isSelected();
+		insectMetricTransformCombo.setEnabled(on);
+		insectDirectionComboBox.setEnabled(on);
+		insectMetricThresholdSpinner.setEnabled(on);
 	}
 
 	public void addKymoResultListener(java.beans.PropertyChangeListener l) {
@@ -195,10 +262,16 @@ public class AnalysisPanel extends JPanel {
 		Object tf = metricTransformCombo.getSelectedItem();
 		ImageTransformEnums transform = tf instanceof ImageTransformEnums ? (ImageTransformEnums) tf
 				: ImageTransformEnums.RGB_DIFFS;
+		Object itf = insectMetricTransformCombo.getSelectedItem();
+		ImageTransformEnums insectTf = itf instanceof ImageTransformEnums ? (ImageTransformEnums) itf
+				: ImageTransformEnums.B_RGB;
+		boolean insectThrUp = insectDirectionComboBox.getSelectedIndex() == 1;
 		return new Params(transform, ((Number) metricThresholdSpinner.getValue()).intValue(),
 				((Number) minSumRgbSpinner.getValue()).intValue(), ((Number) minValidRowsSpinner.getValue()).intValue(),
 				false, ((Number) maxRowOcclusionGapColsSpinner.getValue()).intValue(),
-				rowOcclusionLiftCheckBox.isSelected(), previewLiftedBandsCheckBox.isSelected());
+				rowOcclusionLiftCheckBox.isSelected(), previewLiftedBandsCheckBox.isSelected(),
+				insectMetricGateCheckBox.isSelected(), insectTf,
+				((Number) insectMetricThresholdSpinner.getValue()).intValue(), insectThrUp);
 	}
 
 	private void onViewKymoToggled() {
@@ -207,8 +280,13 @@ public class AnalysisPanel extends JPanel {
 			metricOverlayCheckBox.setEnabled(false);
 			mergedOverlayCheckBox.setEnabled(false);
 			previewLiftedBandsCheckBox.setEnabled(false);
+			insectMetricTransformCombo.setEnabled(false);
+			insectDirectionComboBox.setEnabled(false);
+			insectMetricThresholdSpinner.setEnabled(false);
+			insectOverlayCheckBox.setEnabled(false);
 			removeKymoMergedOverlay(exp);
 			removeKymoMetricOverlay(exp);
+			removeKymoInsectOverlay(exp);
 			clearKymographCanvasTransform(exp);
 			return;
 		}
@@ -220,7 +298,9 @@ public class AnalysisPanel extends JPanel {
 		CageKymographViewerUtil.openIfPresent(exp);
 		metricOverlayCheckBox.setEnabled(true);
 		mergedOverlayCheckBox.setEnabled(true);
+		insectOverlayCheckBox.setEnabled(true);
 		syncPreviewLiftedEnabled();
+		syncInsectControlsEnabled();
 		refreshKymoPreview();
 	}
 
@@ -274,11 +354,13 @@ public class AnalysisPanel extends JPanel {
 		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
 			removeKymoMergedOverlay(exp);
 			removeKymoMetricOverlay(exp);
+			removeKymoInsectOverlay(exp);
 			return;
 		}
 		icy.sequence.Sequence seq = exp.getSeqKymos().getSequence();
 		removeKymoMergedOverlay(exp);
 		removeKymoMetricOverlay(exp);
+		removeKymoInsectOverlay(exp);
 		if (mergedOverlayCheckBox.isSelected()) {
 			kymoMergedOverlay = new KymoMergedRegionsOverlay(seq, this::readParams,
 					() -> (Experiment) parent0.expListComboLazy.getSelectedItem());
@@ -290,6 +372,12 @@ public class AnalysisPanel extends JPanel {
 					() -> (Experiment) parent0.expListComboLazy.getSelectedItem());
 			seq.addOverlay(kymoMetricOverlay);
 			kymoMetricOverlay.painterChanged();
+		}
+		if (insectOverlayCheckBox.isSelected()) {
+			kymoInsectOverlay = new KymoInsectMetricOverlay(seq, this::readParams,
+					() -> (Experiment) parent0.expListComboLazy.getSelectedItem());
+			seq.addOverlay(kymoInsectOverlay);
+			kymoInsectOverlay.painterChanged();
 		}
 	}
 
@@ -311,6 +399,16 @@ public class AnalysisPanel extends JPanel {
 			exp.getSeqKymos().getSequence().removeOverlay(kymoMetricOverlay);
 		}
 		kymoMetricOverlay = null;
+	}
+
+	private void removeKymoInsectOverlay(Experiment exp) {
+		if (kymoInsectOverlay == null) {
+			return;
+		}
+		if (exp != null && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+			exp.getSeqKymos().getSequence().removeOverlay(kymoInsectOverlay);
+		}
+		kymoInsectOverlay = null;
 	}
 
 	private void onAnalyze() {

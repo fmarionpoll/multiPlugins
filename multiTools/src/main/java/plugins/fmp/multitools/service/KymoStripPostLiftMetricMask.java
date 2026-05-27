@@ -7,12 +7,19 @@ import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 
 /**
- * Post-lift binary mask (metric &gt; threshold, valid sum RGB) per spot band: row-wise temporal gap closing (short OFF
- * between ON along time), vertical bridging of one-row holes, then keep only pixels 4-connected within the band to
- * the longest vertical run at the leftmost time column where the mask is ON (suppresses disconnected noise to the
- * right or on isolated rows).
+ * Post-lift binary mask (spot metric &gt; threshold, valid sum RGB) per spot band, optionally after excluding pixels
+ * that match a second insect-style metric on the same RGB. When the insect gate is on, each time column where insect
+ * is detected anywhere in the band is marked; along each row, an OFF gap strictly between ON pixels is filled if every
+ * column in that gap is insect-marked (so green can jump across insect blocks), up to
+ * {@link #MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS}. Then: generic row-wise temporal gap closing, a single-pass vertical
+ * bridge (only immediate 1-row holes), left-anchored 4-connected keep, and removal of sub-pixel-wide horizontal ON
+ * runs. No leading fill to x=0. See {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns}.
  */
 public final class KymoStripPostLiftMetricMask {
+
+	private static final int MIN_HORIZONTAL_ON_RUN = 2;
+	/** Max width (columns) of an insect-only OFF gap that may be bridged along a row between spot ON pixels. */
+	private static final int MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS = 262144;
 
 	private KymoStripPostLiftMetricMask() {
 	}
@@ -49,6 +56,12 @@ public final class KymoStripPostLiftMetricMask {
 		if (metric == null || metric.length == 0) {
 			return m;
 		}
+		double[] insectMetric = null;
+		if (params.insectMetricGateEnabled) {
+			IcyBufferedImage ins = KymoImageTransforms.applyMetricTransform(img, params.insectMetricTransform,
+					params.useGpuTransforms);
+			insectMetric = ins != null ? KymoImageTransforms.channel0AsDouble(ins) : null;
+		}
 		int metricLen = metric.length;
 		double thr = params.metricThreshold;
 		int minSum = params.minSumRgbForValidPixel;
@@ -67,23 +80,120 @@ public final class KymoStripPostLiftMetricMask {
 					continue;
 				}
 				double mv = metric[idx];
-				if (Double.isFinite(mv) && mv > thr) {
+				boolean spotPass = Double.isFinite(mv) && mv > thr;
+				boolean insectP = insectPixelOn(insectMetric, idx, params);
+				if (spotPass && !insectP) {
 					m[idx] = true;
 				}
 			}
 		}
 
+		if (params.insectMetricGateEnabled && insectMetric != null) {
+			boolean[] colInsect = new boolean[imgW];
+			fillColumnInsectInBand(colInsect, imgW, y0, y1, insectMetric, r, g, b, nC, minSum, params);
+			insectColumnMediatedRowBridges(m, imgW, y0, y1, colInsect, MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS);
+		}
+
 		for (int y = y0; y < y1; y++) {
 			closeRowGapsInSlice(m, imgW, y, maxGap);
 		}
-		for (int pass = 0; pass < 3; pass++) {
-			if (!verticalBridgeOnce(m, imgW, y0, y1)) {
+		verticalBridgeOnce(m, imgW, y0, y1);
+
+		applyLeftAnchoredKeep(m, imgW, imgH, y0, y1);
+		stripShortHorizontalRuns(m, imgW, y0, y1, MIN_HORIZONTAL_ON_RUN);
+		return m;
+	}
+
+	/**
+	 * For each time column x, true if some row in the band has valid RGB sum and insect metric on at (y,x).
+	 */
+	private static void fillColumnInsectInBand(boolean[] colInsect, int w, int y0, int y1, double[] insectMetric,
+			int[] r, int[] g, int[] b, int nC, int minSum, CageKymoAnalyzer.Params params) {
+		Arrays.fill(colInsect, false);
+		int ml = insectMetric.length;
+		for (int y = y0; y < y1; y++) {
+			int row = y * w;
+			for (int x = 0; x < w; x++) {
+				int idx = row + x;
+				if (idx < 0 || idx >= ml) {
+					continue;
+				}
+				int rv = sample(r, idx);
+				int gv = nC > 1 ? sample(g, idx) : rv;
+				int bv = nC > 2 ? sample(b, idx) : rv;
+				if (rv + gv + bv < minSum) {
+					continue;
+				}
+				if (insectPixelOn(insectMetric, idx, params)) {
+					colInsect[x] = true;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Along each row, fills OFF runs strictly bracketed by ON when every column in the run is insect-present in the
+	 * band (see {@link #fillColumnInsectInBand}).
+	 */
+	private static void insectColumnMediatedRowBridges(boolean[] m, int w, int y0, int y1, boolean[] colInsect,
+			int maxBridge) {
+		if (maxBridge <= 0) {
+			return;
+		}
+		boolean any = false;
+		for (int x = 0; x < w; x++) {
+			if (colInsect[x]) {
+				any = true;
 				break;
 			}
 		}
-
-		applyLeftAnchoredKeep(m, imgW, imgH, y0, y1);
-		return m;
+		if (!any) {
+			return;
+		}
+		for (int y = y0; y < y1; y++) {
+			int row = y * w;
+			int x = 0;
+			while (x < w && !m[row + x]) {
+				x++;
+			}
+			while (x < w) {
+				while (x < w && m[row + x]) {
+					x++;
+				}
+				if (x >= w) {
+					break;
+				}
+				int L = x - 1;
+				int gapStart = x;
+				while (x < w && !m[row + x]) {
+					x++;
+				}
+				int gapEnd = x;
+				if (gapEnd >= w) {
+					break;
+				}
+				if (L < 0 || !m[row + L] || !m[row + gapEnd]) {
+					continue;
+				}
+				int len = gapEnd - gapStart;
+				if (len > maxBridge) {
+					continue;
+				}
+				boolean allInsectCol = true;
+				for (int xi = gapStart; xi < gapEnd; xi++) {
+					if (!colInsect[xi]) {
+						allInsectCol = false;
+						break;
+					}
+				}
+				if (!allInsectCol) {
+					continue;
+				}
+				for (int xi = gapStart; xi < gapEnd; xi++) {
+					m[row + xi] = true;
+				}
+			}
+		}
 	}
 
 	private static void closeRowGapsInSlice(boolean[] m, int w, int y, int maxGap) {
@@ -235,6 +345,43 @@ public final class KymoStripPostLiftMetricMask {
 		}
 	}
 
+	/**
+	 * Removes ON pixels that are not part of a horizontal run of at least {@code minRun} columns (same row). Kills
+	 * 1-pixel-wide vertical artifacts.
+	 */
+	private static void stripShortHorizontalRuns(boolean[] m, int w, int y0, int y1, int minRun) {
+		if (minRun <= 1) {
+			return;
+		}
+		boolean[] tmp = new boolean[m.length];
+		for (int y = y0; y < y1; y++) {
+			int row = y * w;
+			int x = 0;
+			while (x < w) {
+				while (x < w && !m[row + x]) {
+					x++;
+				}
+				int runStart = x;
+				while (x < w && m[row + x]) {
+					x++;
+				}
+				int runEnd = x;
+				int len = runEnd - runStart;
+				if (len >= minRun) {
+					for (int xi = runStart; xi < runEnd; xi++) {
+						tmp[row + xi] = true;
+					}
+				}
+			}
+		}
+		for (int y = y0; y < y1; y++) {
+			int row = y * w;
+			for (int x = 0; x < w; x++) {
+				m[row + x] = tmp[row + x];
+			}
+		}
+	}
+
 	private static void tryPush(boolean[] m, boolean[] keep, ArrayDeque<Integer> q, int nidx, int y0, int y1, int w) {
 		int ny = nidx / w;
 		if (ny < y0 || ny >= y1 || !m[nidx] || keep[nidx]) {
@@ -249,5 +396,13 @@ public final class KymoStripPostLiftMetricMask {
 			return 0;
 		}
 		return ch[idx];
+	}
+
+	private static boolean insectPixelOn(double[] insectMetric, int idx, CageKymoAnalyzer.Params params) {
+		if (!params.insectMetricGateEnabled || insectMetric == null || idx < 0 || idx >= insectMetric.length) {
+			return false;
+		}
+		return KymoMetricGate.directedFinite(insectMetric[idx], params.insectMetricThreshold,
+				params.insectMetricThresholdUp);
 	}
 }
