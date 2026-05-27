@@ -3,7 +3,6 @@ package plugins.fmp.multiSPOTS96.dlg.kymograph;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.beans.PropertyChangeSupport;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
@@ -31,21 +30,18 @@ import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
-import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
-import plugins.fmp.multitools.tools.overlay.KymoGapFillColumnOverlay;
+import plugins.fmp.multitools.tools.overlay.KymoMergedRegionsOverlay;
 import plugins.fmp.multitools.tools.overlay.KymoMetricThresholdOverlay;
 
 /**
- * Kymograph metric: detection parameters, postprocess, preview on kymograph
- * sequence, and analysis worker.
+ * Kymograph metric: row-wise occlusion lift, preview overlays, and analysis.
  */
 public class AnalysisPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	/** Fired when an Analyze run finishes (success, empty, error, or interrupt). */
 	public static final String PROPERTY_KYMO_RESULT_UPDATED = "kymoAnalysisResultUpdated";
 
 	private final MultiSPOTS96 parent0;
@@ -56,41 +52,40 @@ public class AnalysisPanel extends JPanel {
 	private final JSpinner metricThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 512, 1));
 	private final JSpinner minSumRgbSpinner = new JSpinner(new SpinnerNumberModel(30, 0, 765, 1));
 	private final JSpinner minValidRowsSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 500, 1));
-	private final JCheckBox restrictSignalBandCheckBox = new JCheckBox("Restrict rows to signal (per column)");
-	private final JSpinner effectiveBandMinRunSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 500, 1));
-	private final JSpinner signalMinMaxRgbSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 255, 1));
-	private final JCheckBox fillLocfCheckBox = new JCheckBox("Fill gaps (interpolate)");
-	private final JSpinner locfMaxGapSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 10000, 1));
+	private final JSpinner maxRowOcclusionGapColsSpinner = new JSpinner(new SpinnerNumberModel(15, 0, 10000, 1));
+	private final JCheckBox rowOcclusionLiftCheckBox = new JCheckBox("Lift occlusions (row-wise)", true);
 	private final JToggleButton viewKymoButton = new JToggleButton("View");
-	private final JCheckBox kymoOverlayCheckBox = new JCheckBox("overlay");
+	private final JCheckBox metricOverlayCheckBox = new JCheckBox("metric (red)");
+	private final JCheckBox mergedOverlayCheckBox = new JCheckBox("row lift overlay");
+	private final JCheckBox previewLiftedBandsCheckBox = new JCheckBox("Preview lifted bands", false);
 	private final JButton analyzeButton = new JButton("Analyze");
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private KymoAnalysisResult lastResult;
 	private SwingWorker<KymoAnalysisResult, Void> analyzeWorker;
+	private KymoMergedRegionsOverlay kymoMergedOverlay;
 	private KymoMetricThresholdOverlay kymoMetricOverlay;
-	private KymoGapFillColumnOverlay kymoGapFillOverlay;
 
 	public AnalysisPanel(MultiSPOTS96 parent0) {
-		super(new GridLayout(5, 1));
+		super(new GridLayout(4, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
 		JComponent ed = metricThresholdSpinner.getEditor();
 		if (ed instanceof JSpinner.DefaultEditor) {
 			JFormattedTextField tf = ((JSpinner.DefaultEditor) ed).getTextField();
-			tf.setColumns(4); // “em” width ≈ 4 characters (not pixel-perfect)
+			tf.setColumns(4);
 			tf.setHorizontalAlignment(JTextField.TRAILING);
 		}
 
 		JPanel p0 = new JPanel(left);
-		p0.add(analyzeButton);
-		JButton diagnosticsButton = new JButton("Diagnostics…");
-		p0.add(diagnosticsButton);
 		p0.add(new JLabel("Metric"));
 		p0.add(metricTransformCombo);
 		p0.add(new JLabel(" > "));
 		p0.add(metricThresholdSpinner);
+		p0.add(viewKymoButton);
+		p0.add(metricOverlayCheckBox);
+		p0.add(mergedOverlayCheckBox);
 		add(p0);
 
 		JPanel p1 = new JPanel(left);
@@ -98,54 +93,39 @@ public class AnalysisPanel extends JPanel {
 		p1.add(minSumRgbSpinner);
 		p1.add(new JLabel("  min valid rows/col "));
 		p1.add(minValidRowsSpinner);
-		p1.add(viewKymoButton);
-		p1.add(kymoOverlayCheckBox);
+
 		add(p1);
 
-		JPanel p1post = new JPanel(left);
-		p1post.add(new JLabel("Postprocess"));
-		p1post.add(restrictSignalBandCheckBox);
-		p1post.add(new JLabel("min run"));
-		p1post.add(effectiveBandMinRunSpinner);
-		add(p1post);
-
-		JPanel p1bpost = new JPanel(left);
-		p1bpost.add(new JLabel("min max(R,G,B)"));
-		p1bpost.add(signalMinMaxRgbSpinner);
-		p1bpost.add(fillLocfCheckBox);
-		p1bpost.add(new JLabel("max gap cols"));
-		p1bpost.add(locfMaxGapSpinner);
-		add(p1bpost);
+		JPanel pLift = new JPanel(left);
+		pLift.add(rowOcclusionLiftCheckBox);
+		pLift.add(new JLabel("  max row gap (cols) "));
+		pLift.add(maxRowOcclusionGapColsSpinner);
+		pLift.add(previewLiftedBandsCheckBox);
+		add(pLift);
 
 		JPanel p3 = new JPanel(left);
+		p3.add(analyzeButton);
 		p3.add(new JLabel("Status: "));
 		p3.add(statusLabel);
 		add(p3);
 
 		metricTransformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
-		kymoOverlayCheckBox.setEnabled(false);
-		restrictSignalBandCheckBox.setToolTipText(
-				"Per time column, use the longest contiguous vertical run of bright pixels inside the spot band.");
-		effectiveBandMinRunSpinner.setToolTipText("Minimum run length (rows) to adopt that run; else use full band.");
-		signalMinMaxRgbSpinner.setToolTipText("Extra row filter: max(R,G,B) must reach this; 0 = off.");
-		fillLocfCheckBox.setToolTipText(
-				"NaN columns between two valid time bins are filled by linear interpolation (same value if neighbors match).");
-		locfMaxGapSpinner.setToolTipText(
-				"Max length of a NaN run to fill when it is bounded by valid bins on both sides; 0 = unlimited.");
-		syncPostprocessControlsEnabled();
+		metricOverlayCheckBox.setEnabled(false);
+		mergedOverlayCheckBox.setEnabled(false);
+		metricOverlayCheckBox.setToolTipText(
+				"Per strip: pixels where R+G+B passes the valid gate and the metric exceeds the threshold.");
+		mergedOverlayCheckBox.setToolTipText(
+				"Green = cleaned post-lift metric mask per strip: short OFF gaps along time are filled (≤ max row gap), single-row vertical holes bridged, then only pixels connected to the main trace from the left are kept (removes stray spots/lines). Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
+		previewLiftedBandsCheckBox.setToolTipText(
+				"When row lift is on: blend the row-lifted image over each band so you see corrected intensities (does not change saved TIFFs).");
+		rowOcclusionLiftCheckBox.setToolTipText(
+				"Per strip and each row y, bad runs along time between good pixels are filled with mean RGB of bracketing good pixels (length ≤ max row gap).");
+		maxRowOcclusionGapColsSpinner.setToolTipText(
+				"Maximum width (columns) of a bad run along one row that may be filled when good pixels lie on both sides. 0 disables row fill.");
 
-		restrictSignalBandCheckBox.addActionListener(e -> {
-			syncPostprocessControlsEnabled();
-			if (viewKymoButton.isSelected()) {
-				refreshKymoPreview();
-			}
-		});
-		fillLocfCheckBox.addActionListener(e -> {
-			syncPostprocessControlsEnabled();
-			if (viewKymoButton.isSelected()) {
-				refreshKymoPreview();
-			}
-		});
+		metricOverlayCheckBox.setSelected(true);
+		mergedOverlayCheckBox.setSelected(true);
+
 		ChangeListener previewParamsListener = new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
@@ -157,9 +137,7 @@ public class AnalysisPanel extends JPanel {
 		metricThresholdSpinner.addChangeListener(previewParamsListener);
 		minSumRgbSpinner.addChangeListener(previewParamsListener);
 		minValidRowsSpinner.addChangeListener(previewParamsListener);
-		effectiveBandMinRunSpinner.addChangeListener(previewParamsListener);
-		signalMinMaxRgbSpinner.addChangeListener(previewParamsListener);
-		locfMaxGapSpinner.addChangeListener(previewParamsListener);
+		maxRowOcclusionGapColsSpinner.addChangeListener(previewParamsListener);
 
 		metricTransformCombo.addActionListener(e -> {
 			if (viewKymoButton.isSelected()) {
@@ -168,19 +146,41 @@ public class AnalysisPanel extends JPanel {
 		});
 
 		viewKymoButton.addActionListener(e -> onViewKymoToggled());
-		kymoOverlayCheckBox.addActionListener(e -> {
+		metricOverlayCheckBox.addActionListener(e -> {
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
+		mergedOverlayCheckBox.addActionListener(e -> {
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
+
+		previewLiftedBandsCheckBox.addActionListener(e -> {
+			if (viewKymoButton.isSelected()) {
+				refreshKymoPreview();
+			}
+		});
+
+		rowOcclusionLiftCheckBox.addActionListener(e -> {
+			syncPreviewLiftedEnabled();
 			if (viewKymoButton.isSelected()) {
 				refreshKymoPreview();
 			}
 		});
 
 		analyzeButton.addActionListener(e -> onAnalyze());
-		diagnosticsButton
-				.addActionListener(e -> KymoDiagnosticsDialog.show(this, parent0.kymoDiagnosticsOptions, () -> {
-					if (viewKymoButton.isSelected()) {
-						refreshKymoPreview();
-					}
-				}));
+
+		syncPreviewLiftedEnabled();
+	}
+
+	private void syncPreviewLiftedEnabled() {
+		boolean row = rowOcclusionLiftCheckBox.isSelected();
+		previewLiftedBandsCheckBox.setEnabled(row && viewKymoButton.isSelected());
+		if (!row) {
+			previewLiftedBandsCheckBox.setSelected(false);
+		}
 	}
 
 	public void addKymoResultListener(java.beans.PropertyChangeListener l) {
@@ -197,26 +197,18 @@ public class AnalysisPanel extends JPanel {
 				: ImageTransformEnums.RGB_DIFFS;
 		return new Params(transform, ((Number) metricThresholdSpinner.getValue()).intValue(),
 				((Number) minSumRgbSpinner.getValue()).intValue(), ((Number) minValidRowsSpinner.getValue()).intValue(),
-				false, restrictSignalBandCheckBox.isSelected(),
-				((Number) effectiveBandMinRunSpinner.getValue()).intValue(),
-				((Number) signalMinMaxRgbSpinner.getValue()).intValue(), fillLocfCheckBox.isSelected(),
-				((Number) locfMaxGapSpinner.getValue()).intValue(),
-				parent0.kymoDiagnosticsOptions.isIncludeDiagnosticsOnAnalyze());
-	}
-
-	private void syncPostprocessControlsEnabled() {
-		boolean r = restrictSignalBandCheckBox.isSelected();
-		effectiveBandMinRunSpinner.setEnabled(r);
-		signalMinMaxRgbSpinner.setEnabled(r);
-		locfMaxGapSpinner.setEnabled(fillLocfCheckBox.isSelected());
+				false, ((Number) maxRowOcclusionGapColsSpinner.getValue()).intValue(),
+				rowOcclusionLiftCheckBox.isSelected(), previewLiftedBandsCheckBox.isSelected());
 	}
 
 	private void onViewKymoToggled() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (!viewKymoButton.isSelected()) {
-			kymoOverlayCheckBox.setEnabled(false);
+			metricOverlayCheckBox.setEnabled(false);
+			mergedOverlayCheckBox.setEnabled(false);
+			previewLiftedBandsCheckBox.setEnabled(false);
+			removeKymoMergedOverlay(exp);
 			removeKymoMetricOverlay(exp);
-			removeKymoGapFillOverlay(exp);
 			clearKymographCanvasTransform(exp);
 			return;
 		}
@@ -226,7 +218,9 @@ public class AnalysisPanel extends JPanel {
 			return;
 		}
 		CageKymographViewerUtil.openIfPresent(exp);
-		kymoOverlayCheckBox.setEnabled(true);
+		metricOverlayCheckBox.setEnabled(true);
+		mergedOverlayCheckBox.setEnabled(true);
+		syncPreviewLiftedEnabled();
 		refreshKymoPreview();
 	}
 
@@ -236,8 +230,7 @@ public class AnalysisPanel extends JPanel {
 			return;
 		}
 		updateKymographCanvasTransform(exp);
-		syncKymoMetricOverlay(exp);
-		syncKymoGapFillOverlay(exp);
+		syncKymoOverlays(exp);
 	}
 
 	private void updateKymographCanvasTransform(Experiment exp) {
@@ -277,27 +270,37 @@ public class AnalysisPanel extends JPanel {
 		}
 	}
 
-	private void syncKymoMetricOverlay(Experiment exp) {
+	private void syncKymoOverlays(Experiment exp) {
 		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
+			removeKymoMergedOverlay(exp);
 			removeKymoMetricOverlay(exp);
-			removeKymoGapFillOverlay(exp);
 			return;
 		}
 		icy.sequence.Sequence seq = exp.getSeqKymos().getSequence();
-		if (!kymoOverlayCheckBox.isSelected()) {
-			removeKymoMetricOverlay(exp);
-			removeKymoGapFillOverlay(exp);
-			return;
+		removeKymoMergedOverlay(exp);
+		removeKymoMetricOverlay(exp);
+		if (mergedOverlayCheckBox.isSelected()) {
+			kymoMergedOverlay = new KymoMergedRegionsOverlay(seq, this::readParams,
+					() -> (Experiment) parent0.expListComboLazy.getSelectedItem());
+			seq.addOverlay(kymoMergedOverlay);
+			kymoMergedOverlay.painterChanged();
 		}
-		if (kymoMetricOverlay == null) {
+		if (metricOverlayCheckBox.isSelected()) {
 			kymoMetricOverlay = new KymoMetricThresholdOverlay(seq, this::readParams,
 					() -> (Experiment) parent0.expListComboLazy.getSelectedItem());
 			seq.addOverlay(kymoMetricOverlay);
-		} else {
-			kymoMetricOverlay.setSequence(seq);
+			kymoMetricOverlay.painterChanged();
 		}
-		kymoMetricOverlay.painterChanged();
-		syncKymoGapFillOverlay(exp);
+	}
+
+	private void removeKymoMergedOverlay(Experiment exp) {
+		if (kymoMergedOverlay == null) {
+			return;
+		}
+		if (exp != null && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+			exp.getSeqKymos().getSequence().removeOverlay(kymoMergedOverlay);
+		}
+		kymoMergedOverlay = null;
 	}
 
 	private void removeKymoMetricOverlay(Experiment exp) {
@@ -308,55 +311,6 @@ public class AnalysisPanel extends JPanel {
 			exp.getSeqKymos().getSequence().removeOverlay(kymoMetricOverlay);
 		}
 		kymoMetricOverlay = null;
-	}
-
-	private void syncKymoGapFillOverlay(Experiment exp) {
-		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
-			removeKymoGapFillOverlay(exp);
-			return;
-		}
-		icy.sequence.Sequence seq = exp.getSeqKymos().getSequence();
-		if (!parent0.kymoDiagnosticsOptions.isShowGapFillColumnsOnKymograph() || lastResult == null
-				|| !resultHasGapFillDiagnostics(lastResult)) {
-			removeKymoGapFillOverlay(exp);
-			return;
-		}
-		if (kymoGapFillOverlay == null) {
-			kymoGapFillOverlay = new KymoGapFillColumnOverlay(seq,
-					() -> (Experiment) parent0.expListComboLazy.getSelectedItem(), () -> lastResult,
-					() -> parent0.kymoDiagnosticsOptions.isShowGapFillColumnsOnKymograph());
-			seq.addOverlay(kymoGapFillOverlay);
-		} else {
-			kymoGapFillOverlay.setSequence(seq);
-		}
-		kymoGapFillOverlay.painterChanged();
-	}
-
-	private void removeKymoGapFillOverlay(Experiment exp) {
-		if (kymoGapFillOverlay == null) {
-			return;
-		}
-		if (exp != null && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
-			exp.getSeqKymos().getSequence().removeOverlay(kymoGapFillOverlay);
-		}
-		kymoGapFillOverlay = null;
-	}
-
-	private static boolean resultHasGapFillDiagnostics(KymoAnalysisResult r) {
-		if (r == null) {
-			return false;
-		}
-		for (List<SpotKymoSeries> list : r.byCageId.values()) {
-			if (list == null) {
-				continue;
-			}
-			for (SpotKymoSeries row : list) {
-				if (row != null && row.fractionBeforeGapFill != null) {
-					return true;
-				}
-			}
-		}
-		return false;
 	}
 
 	private void onAnalyze() {

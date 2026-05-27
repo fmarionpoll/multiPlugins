@@ -4,6 +4,7 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -16,8 +17,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import java.lang.reflect.InvocationTargetException;
-
 import javax.swing.SwingUtilities;
 
 import icy.canvas.IcyCanvas;
@@ -25,7 +24,6 @@ import icy.canvas.Layer;
 import icy.gui.viewer.Viewer;
 import icy.image.IcyBufferedImage;
 import icy.image.ImageUtil;
-import icy.type.DataType;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
@@ -60,8 +58,8 @@ import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.service.KymographService;
-import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.DescriptorsIO;
+import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -112,8 +110,8 @@ public class Experiment {
 	private Sequence seqReference = null;
 
 	/**
-	 * Default: capillary-named TIFFs (multiCAFE). SPOTS96 sets {@link KymographKind#CAGE_STACKED_TIFF}
-	 * when opening an experiment.
+	 * Default: capillary-named TIFFs (multiCAFE). SPOTS96 sets
+	 * {@link KymographKind#CAGE_STACKED_TIFF} when opening an experiment.
 	 */
 	private KymographKind kymographKind = KymographKind.CAPILLARY_MODEL_TIFF;
 
@@ -149,7 +147,10 @@ public class Experiment {
 	// Flags to prevent race conditions between loading and saving
 	private volatile boolean isLoading = false;
 	private volatile boolean isSaving = false;
-	/** When true, cage kymograph TIFFs on disk are being replaced; avoid loading them (same process). */
+	/**
+	 * When true, cage kymograph TIFFs on disk are being replaced; avoid loading
+	 * them (same process).
+	 */
 	private volatile boolean cageKymographDiskRewriteInProgress = false;
 
 	/**
@@ -781,8 +782,9 @@ public class Experiment {
 	}
 
 	/**
-	 * Median raw camera inter-frame spacing in ms persisted in the bin description, or negative if unknown.
-	 * Intended for exporters that must not depend on transient {@link #getCamImageBin_ms()} alone.
+	 * Median raw camera inter-frame spacing in ms persisted in the bin description,
+	 * or negative if unknown. Intended for exporters that must not depend on
+	 * transient {@link #getCamImageBin_ms()} alone.
 	 */
 	public long getPersistedBinCameraIntervalMs() {
 		return (activeBinDescription != null && activeBinDescription.getCameraIntervalMs() > 0L)
@@ -791,8 +793,8 @@ public class Experiment {
 	}
 
 	/**
-	 * Returns the generation mode of the currently active bin directory
-	 * (how its measures were produced). Never returns null.
+	 * Returns the generation mode of the currently active bin directory (how its
+	 * measures were produced). Never returns null.
 	 */
 	public GenerationMode getGenerationMode() {
 		return activeBinDescription != null ? activeBinDescription.getGenerationMode() : GenerationMode.UNKNOWN;
@@ -801,8 +803,8 @@ public class Experiment {
 	/**
 	 * Sets the generation mode to be recorded the next time bin description is
 	 * saved. Plugins should call this before triggering a kymograph build or a
-	 * direct-from-stack measure so that the resulting bin_xxx directory carries
-	 * the correct metadata.
+	 * direct-from-stack measure so that the resulting bin_xxx directory carries the
+	 * correct metadata.
 	 */
 	public void setGenerationMode(GenerationMode mode) {
 		if (activeBinDescription != null)
@@ -846,9 +848,10 @@ public class Experiment {
 	}
 
 	/**
-	 * Sets {@link #resultsDirectory} from the camera stack folder + {@code results/} when it is
-	 * still null (same bootstrap as {@link #loadExperimentDescriptors()}). Needed for workflows
-	 * that save to disk without reloading XML (e.g. cage kymograph build).
+	 * Sets {@link #resultsDirectory} from the camera stack folder +
+	 * {@code results/} when it is still null (same bootstrap as
+	 * {@link #loadExperimentDescriptors()}). Needed for workflows that save to disk
+	 * without reloading XML (e.g. cage kymograph build).
 	 */
 	public void ensureResultsDirectoryFromImagesFolder() {
 		if (resultsDirectory == null && seqCamData != null) {
@@ -890,7 +893,7 @@ public class Experiment {
 						currentBinDirName = binDirFile.getName();
 					}
 				}
-				// Keep flip-flop slots (…_r1, …_r2) from KymographBuilder — they still match this interval.
+				// Keep legacy revision folders (…_r1, …_r2) — they still match this interval.
 				if (binDirectory == null || currentBinDirName == null
 						|| !binDirectoryMatchesKymoIntervalName(currentBinDirName, expectedBinDir)) {
 					setBinSubDirectory(expectedBinDir);
@@ -906,9 +909,9 @@ public class Experiment {
 	}
 
 	/**
-	 * True if {@code current} is the canonical bin folder for {@code expectedBase} or a
-	 * kymograph flip-flop revision folder ({@code expectedBase + "_r" + digits}) used when
-	 * rebuilding TIFFs on Windows.
+	 * True if {@code current} is the canonical bin folder for {@code expectedBase}
+	 * or a legacy kymograph revision folder ({@code expectedBase + "_r" + digits})
+	 * from older builds.
 	 */
 	static boolean binDirectoryMatchesKymoIntervalName(String current, String expectedBase) {
 		if (current == null || expectedBase == null) {
@@ -1020,9 +1023,8 @@ public class Experiment {
 		if (!cagesLoaded && binDir != null) {
 			String xmlInBin = CagesPersistenceLegacy.resolveMcDrosotrackXmlPath(binDir);
 			if (xmlInBin != null) {
-				Logger.info(
-						"Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack XML in bin: "
-								+ xmlInBin);
+				Logger.info("Experiment:load_cages_description_and_measures() Trying legacy MCdrosotrack XML in bin: "
+						+ xmlInBin);
 				boolean loaded = CagesPersistenceLegacy.xmlReadCagesFromMCdrosotrackXml(cages, xmlInBin);
 				if (loaded) {
 					cagesLoaded = true;
@@ -1371,7 +1373,8 @@ public class Experiment {
 		}
 
 		String current = null;
-		// LazyExperiment may not have resultsDirectory / seqCamData set when iterating via getItemAtNoLoad().
+		// LazyExperiment may not have resultsDirectory / seqCamData set when iterating
+		// via getItemAtNoLoad().
 		// Prefer its lightweight cached property loader in that case.
 		if (this instanceof LazyExperiment) {
 			LazyExperiment lexp = (LazyExperiment) this;
@@ -1380,7 +1383,8 @@ public class Experiment {
 				setResultsDirectory(resDir);
 			}
 
-			// DescriptorIndex prefers the external descriptors file when present; match against it first
+			// DescriptorIndex prefers the external descriptors file when present; match
+			// against it first
 			// so bulk-replace uses the same "current" values as the UI combos.
 			if (resDir != null) {
 				Map<EnumXLSColumnHeader, List<String>> preDicts = DescriptorsIO.readDescriptors(resDir);
@@ -1473,8 +1477,8 @@ public class Experiment {
 			return "";
 		}
 		// Prefer explicit cam## token (robust to odd separators, including tabs).
-		java.util.regex.Matcher m = java.util.regex.Pattern.compile("\\bcam\\d{2}\\b",
-				java.util.regex.Pattern.CASE_INSENSITIVE).matcher(strField);
+		java.util.regex.Matcher m = java.util.regex.Pattern
+				.compile("\\bcam\\d{2}\\b", java.util.regex.Pattern.CASE_INSENSITIVE).matcher(strField);
 		if (m.find()) {
 			return m.group().toLowerCase();
 		}
@@ -1531,8 +1535,7 @@ public class Experiment {
 	}
 
 	public void copyExperimentFields(Experiment expSource) {
-		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_ID,
-				expSource.getExperimentField(EnumXLSColumnHeader.EXP_ID));
+		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_ID, expSource.getExperimentField(EnumXLSColumnHeader.EXP_ID));
 		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_EXPT,
 				expSource.getExperimentField(EnumXLSColumnHeader.EXP_EXPT));
 		setExperimentFieldNoTest(EnumXLSColumnHeader.EXP_STIM1,
@@ -1685,7 +1688,8 @@ public class Experiment {
 		onViewerTPositionChanged(v, t, saveDetRoisToPositions, null);
 	}
 
-	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions, CafeViewOptionsDTO viewOptions) {
+	public void onViewerTPositionChanged(Viewer v, int t, boolean saveDetRoisToPositions,
+			CafeViewOptionsDTO viewOptions) {
 		if (v == null || v.getSequence() == null)
 			return;
 		int viewerSeqId = v.getSequence().getId();
@@ -1997,15 +2001,16 @@ public class Experiment {
 	}
 
 	/**
-	 * Lists potential kymograph frame files for the current kymographs bin using {@link #kymographKind}.
+	 * Lists potential kymograph frame files for the current kymographs bin using
+	 * {@link #kymographKind}.
 	 */
 	public List<ImageFileData> listPotentialKymographFrames() {
 		return listPotentialKymographFrames(kymographKind);
 	}
 
 	/**
-	 * Lists potential kymograph frame files for the current bin for the given layout (does not change
-	 * {@link #kymographKind}).
+	 * Lists potential kymograph frame files for the current bin for the given
+	 * layout (does not change {@link #kymographKind}).
 	 */
 	public List<ImageFileData> listPotentialKymographFrames(KymographKind kind) {
 		String binDir = getKymosBinFullDirectory();
@@ -2037,12 +2042,13 @@ public class Experiment {
 	}
 
 	/**
-	 * Closes the kymograph sequence (and its viewers), cancels pending Icy prefetch for it, and
-	 * clears the reference. Call before rebuilding kymograph TIFFs on disk to reduce file locks.
+	 * Closes the kymograph sequence (and its viewers), cancels pending Icy prefetch
+	 * for it, and clears the reference. Call before rebuilding kymograph TIFFs on
+	 * disk to reduce file locks.
 	 * <p>
-	 * When not called from the Swing EDT (e.g. from a {@code SwingWorker} background thread),
-	 * viewer/sequence disposal is marshalled onto the EDT so Icy can release Windows file handles
-	 * before TIFFs are replaced on disk.
+	 * When not called from the Swing EDT (e.g. from a {@code SwingWorker}
+	 * background thread), viewer/sequence disposal is marshalled onto the EDT so
+	 * Icy can release Windows file handles before TIFFs are replaced on disk.
 	 */
 	public void releaseKymographSequence() {
 		final Runnable release = () -> {
@@ -2071,9 +2077,9 @@ public class Experiment {
 	}
 
 	/**
-	 * Replaces every plane with an in-memory blank of the same size, channel count, and data type
-	 * so disk-backed readers can release TIFF handles before {@link SequenceKymos#closeSequence()}
-	 * (Windows file locking).
+	 * Replaces every plane with an in-memory blank of the same size, channel count,
+	 * and data type so disk-backed readers can release TIFF handles before
+	 * {@link SequenceKymos#closeSequence()} (Windows file locking).
 	 */
 	private static void replaceAllSequenceImagesWithCompatibleInMemoryBlanks(Sequence seq) {
 		if (seq == null) {
@@ -2103,13 +2109,15 @@ public class Experiment {
 		if (cur == null) {
 			return;
 		}
-		IcyBufferedImage blank = new IcyBufferedImage(cur.getSizeX(), cur.getSizeY(), cur.getSizeC(), cur.getDataType());
+		IcyBufferedImage blank = new IcyBufferedImage(cur.getSizeX(), cur.getSizeY(), cur.getSizeC(),
+				cur.getDataType_());
 		seq.setImage(t, z, blank);
 	}
 
 	/**
-	 * Drops loaded kymograph pixels at the given frame indices (tiny placeholder image) so TIFF
-	 * files on disk can be renamed while a kymograph viewer is open (typical Windows file lock).
+	 * Drops loaded kymograph pixels at the given frame indices (tiny placeholder
+	 * image) so TIFF files on disk can be renamed while a kymograph viewer is open
+	 * (typical Windows file lock).
 	 */
 	public void tryReleaseKymographPixelsForIndices(int tFirst, int tSecond) {
 		if (seqKymos == null)
@@ -2175,12 +2183,13 @@ public class Experiment {
 	}
 
 	/**
-	 * If the current kymographs folder does not contain {@code kymocage_*.tif*}, scans immediate
-	 * children of {@code resultsDirectory} whose names start with {@code bin_} and sets the first
-	 * (alphabetically) that contains cage kymograph TIFFs. Does not use camera interval heuristics.
+	 * If the current kymographs folder does not contain {@code kymocage_*.tif*},
+	 * scans immediate children of {@code resultsDirectory} whose names start with
+	 * {@code bin_} and sets the first (alphabetically) that contains cage kymograph
+	 * TIFFs. Does not use camera interval heuristics.
 	 *
-	 * @return true if the active bin already had cage kymograph TIFFs or a matching {@code bin_*}
-	 *         directory was found and set
+	 * @return true if the active bin already had cage kymograph TIFFs or a matching
+	 *         {@code bin_*} directory was found and set
 	 */
 	public boolean adoptBinSubdirectoryContainingCageKymographTiffs() {
 		if (resultsDirectory == null) {
@@ -2245,7 +2254,8 @@ public class Experiment {
 		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
 		ctx.resultsDirectory = resultsDirectory;
 		ctx.nominalIntervalSec = getNominalIntervalSec();
-		ctx.detectedIntervalMs = timeManager.getCamImageBin_ms() > 0 ? timeManager.getCamImageBin_ms() : getKymoBin_ms();
+		ctx.detectedIntervalMs = timeManager.getCamImageBin_ms() > 0 ? timeManager.getCamImageBin_ms()
+				: getKymoBin_ms();
 		// Non-interactive: this runs inside a load path, and a dialog at this depth
 		// would be surprising. A conscious choice is made at load time (see
 		// LoadSaveExperiment.selectBinDirectory).
@@ -2542,8 +2552,8 @@ public class Experiment {
 	}
 
 	/**
-	 * Loads cages descriptions + fly-position measures. Optionally pushes loaded ROIs
-	 * to the camera sequence (UI concern).
+	 * Loads cages descriptions + fly-position measures. Optionally pushes loaded
+	 * ROIs to the camera sequence (UI concern).
 	 *
 	 * @param transferRoisToSequence when true, sync ROIs into {@link #seqCamData}
 	 */
@@ -2786,20 +2796,22 @@ public class Experiment {
 	// ---------------------------------------------------------
 
 	/**
-	 * Loads kymograph TIFFs for the current bin into {@code seqKymos} without resizing them to a
-	 * common canvas. Uses {@link #getKymographKind()} with {@link #listPotentialKymographFrames()}.
-	 * Use {@link #loadKymographs(boolean)} with {@code true} only when you need the legacy
-	 * normalization pass (e.g. heterogeneous TIFF sizes on disk).
+	 * Loads kymograph TIFFs for the current bin into {@code seqKymos} without
+	 * resizing them to a common canvas. Uses {@link #getKymographKind()} with
+	 * {@link #listPotentialKymographFrames()}. Use {@link #loadKymographs(boolean)}
+	 * with {@code true} only when you need the legacy normalization pass (e.g.
+	 * heterogeneous TIFF sizes on disk).
 	 */
 	public boolean loadKymographs() {
 		return loadKymographs(false);
 	}
 
 	/**
-	 * @param normalizeSizes when true, resize mismatched kymograph TIFFs to a common canvas (legacy
-	 *                       behavior); when false, load files as-is (expected after
-	 *                       {@link plugins.fmp.multitools.service.KymographBuilder} which uses a
-	 *                       uniform size for all capillaries).
+	 * @param normalizeSizes when true, resize mismatched kymograph TIFFs to a
+	 *                       common canvas (legacy behavior); when false, load files
+	 *                       as-is (expected after
+	 *                       {@link plugins.fmp.multitools.service.KymographBuilder}
+	 *                       which uses a uniform size for all capillaries).
 	 */
 	public boolean loadKymographs(boolean normalizeSizes) {
 		return loadSeqKymographsFromListing(listPotentialKymographFrames(), normalizeSizes, false, null);
@@ -2835,10 +2847,12 @@ public class Experiment {
 	}
 
 	/**
-	 * Loads per-cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the current kymographs
-	 * bin. Uses {@link KymographKind#CAGE_STACKED_TIFF} via {@link #listPotentialKymographFrames(KymographKind)}.
-	 * multiSPOTS96 sets {@link #setKymographKind(KymographKind)} to {@link KymographKind#CAGE_STACKED_TIFF} when
-	 * opening an experiment so {@link #listPotentialKymographFrames()} matches for other callers.
+	 * Loads per-cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the
+	 * current kymographs bin. Uses {@link KymographKind#CAGE_STACKED_TIFF} via
+	 * {@link #listPotentialKymographFrames(KymographKind)}. multiSPOTS96 sets
+	 * {@link #setKymographKind(KymographKind)} to
+	 * {@link KymographKind#CAGE_STACKED_TIFF} when opening an experiment so
+	 * {@link #listPotentialKymographFrames()} matches for other callers.
 	 *
 	 * @see SequenceKymos#createCageSpotKymographFileList
 	 */
@@ -2847,9 +2861,10 @@ public class Experiment {
 	}
 
 	/**
-	 * @param normalizeSizes when true, pad/resize mismatched cage kymograph sizes to a common canvas
-	 *                       (heterogeneous spot counts); when false, load as-is (faster when all
-	 *                       cages share the same stacked height).
+	 * @param normalizeSizes when true, pad/resize mismatched cage kymograph sizes
+	 *                       to a common canvas (heterogeneous spot counts); when
+	 *                       false, load as-is (faster when all cages share the same
+	 *                       stacked height).
 	 */
 	public boolean loadCageSpotKymographs(boolean normalizeSizes) {
 		if (cageKymographDiskRewriteInProgress) {

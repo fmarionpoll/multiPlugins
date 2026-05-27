@@ -47,7 +47,7 @@ public class _DlgKymos_ extends JPanel implements PropertyChangeListener, Change
 		tabKymoAnalysis = new AnalysisPanel(parent0);
 		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis);
 		tabsPane.addTab("Analysis", null, tabKymoAnalysis,
-				"Parameters, postprocess, and run metric fraction analysis on cage kymographs");
+				"Metric parameters, along-time segmentation, preview overlay, and Analyze");
 		tabsPane.addTab("Charts", null, tabKymoGraph,
 				"Display kymograph metric charts (run Analyze on Kymo analysis first)");
 

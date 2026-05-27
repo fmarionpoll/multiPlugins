@@ -26,20 +26,20 @@ import java.util.regex.Pattern;
  * <h3>Policy</h3>
  * <p>
  * Each candidate {@code bin_xxx} directory is annotated with a compression
- * <i>equivalence class</i> derived from its {@link BinDescription}
- * (loaded from {@code BinDescription.xml}, or inferred from the detected
- * camera interval and on-disk content if absent). The equivalence key is
- * the triplet {@code (roundedCameraSec, subsampleFactor, generationMode)}.
- * Near-duplicate directories (e.g. {@code bin_59} and {@code bin_60} both
- * coming from a 60 s raw full-resolution kymograph run) share the same key
- * and are treated together.
+ * <i>equivalence class</i> derived from its {@link BinDescription} (loaded from
+ * {@code BinDescription.xml}, or inferred from the detected camera interval and
+ * on-disk content if absent). The equivalence key is the triplet
+ * {@code (roundedCameraSec, subsampleFactor, generationMode)}. Near-duplicate
+ * directories (e.g. {@code bin_59} and {@code bin_60} both coming from a 60 s
+ * raw full-resolution kymograph run) share the same key and are treated
+ * together.
  * </p>
  * <ol>
- * <li>Restrict to the class matching the current recording (camera interval
- * + declared generation mode, if any).</li>
- * <li>Within that class: if exactly one directory contains measures, adopt
- * it and rename the empty peers in place to
- * {@code deleted_<name>} (see {@link BinDirectoryScanUtils#DELETED_PREFIX}).</li>
+ * <li>Restrict to the class matching the current recording (camera interval +
+ * declared generation mode, if any).</li>
+ * <li>Within that class: if exactly one directory contains measures, adopt it
+ * and rename the empty peers in place to {@code deleted_<name>} (see
+ * {@link BinDirectoryScanUtils#DELETED_PREFIX}).</li>
  * <li>If several directories in that class contain measures, prompt via
  * {@link ChooseAnalysisIntervalDialog}.</li>
  * <li>If no directory in that class contains measures, pick the newest.</li>
@@ -48,26 +48,34 @@ import java.util.regex.Pattern;
  * </ol>
  *
  * <p>
- * This class keeps only a session remember-me for series-of-experiments UX
- * and a user-preference "last choice" for tie-breaking. It does not mutate
- * on-disk state except for the opt-in cleanup rename.
+ * This class keeps only a session remember-me for series-of-experiments UX and
+ * a user-preference "last choice" for tie-breaking. It does not mutate on-disk
+ * state except for the opt-in cleanup rename.
  * </p>
  */
 public final class BinDirectoryResolver {
 
 	private static final Preferences PREFS = Preferences.userNodeForPackage(BinDirectoryResolver.class);
 	private static final String PREF_LAST_BIN_SUBDIR = "lastSelectedBinSubDirectory";
-	/** Controls the empty-equivalent rename cleanup: {@code rename} (default) or {@code off}. */
+	/**
+	 * Controls the empty-equivalent rename cleanup: {@code rename} (default) or
+	 * {@code off}.
+	 */
 	public static final String PREF_CLEANUP_MODE = "binAutoCleanupMode";
 	/** First-run info dialog gate. */
 	public static final String PREF_CLEANUP_INFO_SHOWN = "binAutoCleanupInfoShown";
 
-	/** Tolerance (seconds) for considering two camera intervals to be the same class. */
+	/**
+	 * Tolerance (seconds) for considering two camera intervals to be the same
+	 * class.
+	 */
 	private static final int CAM_TOLERANCE_SEC = 1;
 
 	private static String rememberedBinForSession = null;
 
-	/** Kymograph flip-flop folders: {@code bin_60_r1}, {@code bin_60_r2}, … */
+	/**
+	 * Legacy kymograph revision folders: {@code bin_60_r1}, {@code bin_60_r2}, …
+	 */
 	private static final Pattern BIN_WITH_FLIP_REVISION = Pattern.compile("^bin_(\\d+)_r(\\d+)$");
 
 	private BinDirectoryResolver() {
@@ -81,7 +89,10 @@ public final class BinDirectoryResolver {
 		public String resultsDirectory;
 		public long detectedIntervalMs = -1;
 		public int nominalIntervalSec = -1;
-		/** Declared generation mode of the current run (optional). UNKNOWN = ignore when matching classes. */
+		/**
+		 * Declared generation mode of the current run (optional). UNKNOWN = ignore when
+		 * matching classes.
+		 */
 		public GenerationMode generationMode = GenerationMode.UNKNOWN;
 		public String previouslySelected;
 		public boolean allowPrompt = true;
@@ -179,12 +190,11 @@ public final class BinDirectoryResolver {
 	}
 
 	/**
-	 * Scans {@code results/} for immediate {@code bin_<integer>} and flip-flop
-	 * {@code bin_<integer>_r<integer>} children, skipping any directory whose name
-	 * begins with
-	 * {@link BinDirectoryScanUtils#DELETED_PREFIX}. Each candidate is
-	 * annotated with its compression-class metadata, either loaded from its
-	 * {@code BinDescription.xml} or inferred from content and
+	 * Scans {@code results/} for immediate {@code bin_<integer>} and legacy
+	 * revision {@code bin_<integer>_r<integer>} children, skipping any directory
+	 * whose name begins with {@link BinDirectoryScanUtils#DELETED_PREFIX}. Each
+	 * candidate is annotated with its compression-class metadata, either loaded
+	 * from its {@code BinDescription.xml} or inferred from content and
 	 * {@code detectedCameraMs}.
 	 */
 	public static List<BinCandidate> scanCandidates(Path resultsPath, long detectedCameraMs) {
@@ -226,8 +236,8 @@ public final class BinDirectoryResolver {
 		return scanCandidates(resultsPath, -1);
 	}
 
-	private static BinCandidate buildCandidate(Path dir, String name, int sec,
-			BinDescriptionPersistence persistence, long detectedCameraMs) {
+	private static BinCandidate buildCandidate(Path dir, String name, int sec, BinDescriptionPersistence persistence,
+			long detectedCameraMs) {
 		BinCandidate c = new BinCandidate();
 		c.name = name;
 		c.seconds = sec;
@@ -281,9 +291,10 @@ public final class BinDirectoryResolver {
 	}
 
 	/**
-	 * Canonical folder plus flip revisions share one "stem" (e.g. {@code bin_60} for
-	 * {@code bin_60_r1}). Among those siblings under {@code resultsPath}, returns the
-	 * directory name whose {@code line*.tiff} files are newest by last-modified time.
+	 * Canonical folder plus {@code _r*} revision siblings share one stem (e.g.
+	 * {@code bin_60} for {@code bin_60_r1}). Among those siblings under
+	 * {@code resultsPath}, returns the directory name whose {@code line*.tiff}
+	 * files are newest by last-modified time.
 	 */
 	public static String pickNewestKymographBinInFamily(Path resultsPath, String binDirName) {
 		if (resultsPath == null || binDirName == null || !Files.isDirectory(resultsPath)) {
@@ -400,9 +411,10 @@ public final class BinDirectoryResolver {
 	}
 
 	/**
-	 * Returns the list of candidates whose equivalence class matches {@code target},
-	 * or a merged class when {@code target.mode == UNKNOWN} (i.e. the caller did
-	 * not declare a generation mode; match on cameraSec + factor regardless).
+	 * Returns the list of candidates whose equivalence class matches
+	 * {@code target}, or a merged class when {@code target.mode == UNKNOWN} (i.e.
+	 * the caller did not declare a generation mode; match on cameraSec + factor
+	 * regardless).
 	 */
 	private static List<BinCandidate> pickMatchingClass(Map<EquivKey, List<BinCandidate>> byClass, EquivKey target) {
 		if (target == null || target.cameraSec <= 0)
@@ -414,8 +426,7 @@ public final class BinDirectoryResolver {
 				continue;
 			if (k.subsampleFactor != target.subsampleFactor)
 				continue;
-			if (target.mode != GenerationMode.UNKNOWN && k.mode != GenerationMode.UNKNOWN
-					&& k.mode != target.mode)
+			if (target.mode != GenerationMode.UNKNOWN && k.mode != GenerationMode.UNKNOWN && k.mode != target.mode)
 				continue;
 			if (merged == null)
 				merged = new ArrayList<>();
@@ -429,9 +440,9 @@ public final class BinDirectoryResolver {
 	/**
 	 * When the adopted candidate's metadata was inferred rather than loaded
 	 * (pre-2.1.0 directory, or XML missing altogether), write a best-effort
-	 * upgraded {@code BinDescription.xml} so that subsequent sessions do not
-	 * have to re-infer. Silent best-effort: failures (read-only mount, etc.)
-	 * are ignored.
+	 * upgraded {@code BinDescription.xml} so that subsequent sessions do not have
+	 * to re-infer. Silent best-effort: failures (read-only mount, etc.) are
+	 * ignored.
 	 */
 	private static void maybeUpgradeMetadata(Context ctx, BinCandidate c) {
 		if (ctx == null || !ctx.allowCleanup)
@@ -484,10 +495,9 @@ public final class BinDirectoryResolver {
 		sb.append("Some empty sibling directories looked like duplicates of the one just selected ");
 		sb.append("and will be renamed (not deleted):\n\n");
 		for (BinCandidate c : toRename)
-			sb.append("  ").append(c.name).append("  \u2192  ")
-					.append(BinDirectoryScanUtils.DELETED_PREFIX).append(c.name).append('\n');
-		sb.append("\nThey stay next to the data; search for \"")
-				.append(BinDirectoryScanUtils.DELETED_PREFIX)
+			sb.append("  ").append(c.name).append("  \u2192  ").append(BinDirectoryScanUtils.DELETED_PREFIX)
+					.append(c.name).append('\n');
+		sb.append("\nThey stay next to the data; search for \"").append(BinDirectoryScanUtils.DELETED_PREFIX)
 				.append("*\" to purge them manually later.\n");
 		sb.append("You can turn this off by setting preference \"" + PREF_CLEANUP_MODE + "\" to \"off\".");
 		javax.swing.JOptionPane.showMessageDialog(ctx.parentForDialog, sb.toString(),
@@ -519,7 +529,8 @@ public final class BinDirectoryResolver {
 		}
 	}
 
-	// -------------- adoption (silent by default; dialog kept for explicit use) --------------
+	// -------------- adoption (silent by default; dialog kept for explicit use)
+	// --------------
 
 	private static String adoptFromClass(Context ctx, List<BinCandidate> withData, List<BinCandidate> sameClass) {
 		BinCandidate chosen = pickBest(withData);
@@ -566,59 +577,59 @@ public final class BinDirectoryResolver {
 		}
 	}
 
-	private static String promptFromClass(Context ctx, List<BinCandidate> withData, List<BinCandidate> sameClass) {
-		if (!ctx.allowPrompt) {
-			return adoptFromClass(ctx, withData, sameClass);
-		}
-		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
-				ctx.detectedIntervalMs / 1000.0)) : null;
-		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, withData,
-				detectedForDialog, lastPreference());
-		if (r != null && r.chosenBinName != null) {
-			String chosen = r.chosenBinName;
-			BinCandidate chosenCandidate = findByName(sameClass, chosen);
-			if (chosenCandidate != null && !hasAnyData(chosenCandidate)) {
-				BinCandidate fallback = pickFallbackWithData(sameClass, chosenCandidate);
-				if (fallback != null) {
-					showAutoSwitchMessage(ctx, chosenCandidate, fallback);
-					chosen = fallback.name;
-				}
-			}
-			PREFS.put(PREF_LAST_BIN_SUBDIR, chosen);
-			if (r.rememberForSession) {
-				rememberedBinForSession = chosen;
-			}
-			return chosen;
-		}
-		return pickBest(withData).name;
-	}
+//	private static String promptFromClass(Context ctx, List<BinCandidate> withData, List<BinCandidate> sameClass) {
+//		if (!ctx.allowPrompt) {
+//			return adoptFromClass(ctx, withData, sameClass);
+//		}
+//		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
+//				ctx.detectedIntervalMs / 1000.0)) : null;
+//		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, withData,
+//				detectedForDialog, lastPreference());
+//		if (r != null && r.chosenBinName != null) {
+//			String chosen = r.chosenBinName;
+//			BinCandidate chosenCandidate = findByName(sameClass, chosen);
+//			if (chosenCandidate != null && !hasAnyData(chosenCandidate)) {
+//				BinCandidate fallback = pickFallbackWithData(sameClass, chosenCandidate);
+//				if (fallback != null) {
+//					showAutoSwitchMessage(ctx, chosenCandidate, fallback);
+//					chosen = fallback.name;
+//				}
+//			}
+//			PREFS.put(PREF_LAST_BIN_SUBDIR, chosen);
+//			if (r.rememberForSession) {
+//				rememberedBinForSession = chosen;
+//			}
+//			return chosen;
+//		}
+//		return pickBest(withData).name;
+//	}
 
-	private static String promptAcrossClasses(Context ctx, List<BinCandidate> candidates) {
-		if (!ctx.allowPrompt) {
-			return adoptFromAllCandidates(ctx, candidates);
-		}
-		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
-				ctx.detectedIntervalMs / 1000.0)) : null;
-		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, candidates,
-				detectedForDialog, lastPreference());
-		if (r != null && r.chosenBinName != null) {
-			String chosen = r.chosenBinName;
-			BinCandidate chosenCandidate = findByName(candidates, chosen);
-			if (chosenCandidate != null && !hasAnyData(chosenCandidate)) {
-				BinCandidate fallback = pickFallbackWithData(candidates, chosenCandidate);
-				if (fallback != null) {
-					showAutoSwitchMessage(ctx, chosenCandidate, fallback);
-					chosen = fallback.name;
-				}
-			}
-			PREFS.put(PREF_LAST_BIN_SUBDIR, chosen);
-			if (r.rememberForSession) {
-				rememberedBinForSession = chosen;
-			}
-			return chosen;
-		}
-		return pickBest(candidates).name;
-	}
+//	private static String promptAcrossClasses(Context ctx, List<BinCandidate> candidates) {
+//		if (!ctx.allowPrompt) {
+//			return adoptFromAllCandidates(ctx, candidates);
+//		}
+//		Integer detectedForDialog = ctx.detectedIntervalMs > 0 ? Integer.valueOf((int) Math.round(
+//				ctx.detectedIntervalMs / 1000.0)) : null;
+//		ChooseAnalysisIntervalDialog.Result r = ChooseAnalysisIntervalDialog.ask(ctx.parentForDialog, candidates,
+//				detectedForDialog, lastPreference());
+//		if (r != null && r.chosenBinName != null) {
+//			String chosen = r.chosenBinName;
+//			BinCandidate chosenCandidate = findByName(candidates, chosen);
+//			if (chosenCandidate != null && !hasAnyData(chosenCandidate)) {
+//				BinCandidate fallback = pickFallbackWithData(candidates, chosenCandidate);
+//				if (fallback != null) {
+//					showAutoSwitchMessage(ctx, chosenCandidate, fallback);
+//					chosen = fallback.name;
+//				}
+//			}
+//			PREFS.put(PREF_LAST_BIN_SUBDIR, chosen);
+//			if (r.rememberForSession) {
+//				rememberedBinForSession = chosen;
+//			}
+//			return chosen;
+//		}
+//		return pickBest(candidates).name;
+//	}
 
 	private static boolean hasAnyData(BinCandidate c) {
 		return c != null && (c.hasMeasures || c.hasImages);
@@ -638,41 +649,41 @@ public final class BinDirectoryResolver {
 		return sole;
 	}
 
-	private static BinCandidate findByName(List<BinCandidate> candidates, String name) {
-		if (candidates == null || name == null)
-			return null;
-		for (BinCandidate c : candidates) {
-			if (name.equals(c.name))
-				return c;
-		}
-		return null;
-	}
+//	private static BinCandidate findByName(List<BinCandidate> candidates, String name) {
+//		if (candidates == null || name == null)
+//			return null;
+//		for (BinCandidate c : candidates) {
+//			if (name.equals(c.name))
+//				return c;
+//		}
+//		return null;
+//	}
 
-	private static BinCandidate pickFallbackWithData(List<BinCandidate> candidates, BinCandidate chosenEmpty) {
-		if (candidates == null || chosenEmpty == null)
-			return null;
-		BinCandidate best = null;
-		int bestDelta = Integer.MAX_VALUE;
-		for (BinCandidate c : candidates) {
-			if (!hasAnyData(c))
-				continue;
-			int d = Math.abs(c.seconds - chosenEmpty.seconds);
-			if (best == null || d < bestDelta || (d == bestDelta && c.lastModifiedMs > best.lastModifiedMs)) {
-				best = c;
-				bestDelta = d;
-			}
-		}
-		return best;
-	}
+//	private static BinCandidate pickFallbackWithData(List<BinCandidate> candidates, BinCandidate chosenEmpty) {
+//		if (candidates == null || chosenEmpty == null)
+//			return null;
+//		BinCandidate best = null;
+//		int bestDelta = Integer.MAX_VALUE;
+//		for (BinCandidate c : candidates) {
+//			if (!hasAnyData(c))
+//				continue;
+//			int d = Math.abs(c.seconds - chosenEmpty.seconds);
+//			if (best == null || d < bestDelta || (d == bestDelta && c.lastModifiedMs > best.lastModifiedMs)) {
+//				best = c;
+//				bestDelta = d;
+//			}
+//		}
+//		return best;
+//	}
 
-	private static void showAutoSwitchMessage(Context ctx, BinCandidate chosenEmpty, BinCandidate fallback) {
-		if (ctx == null || !ctx.allowPrompt || ctx.parentForDialog == null)
-			return;
-		String msg = "The selected directory \"" + chosenEmpty.name + "\" appears to be empty (no images/measures).\n"
-				+ "Using \"" + fallback.name + "\" instead because it contains data.";
-		javax.swing.JOptionPane.showMessageDialog(ctx.parentForDialog, msg, "Empty bin directory",
-				javax.swing.JOptionPane.INFORMATION_MESSAGE);
-	}
+//	private static void showAutoSwitchMessage(Context ctx, BinCandidate chosenEmpty, BinCandidate fallback) {
+//		if (ctx == null || !ctx.allowPrompt || ctx.parentForDialog == null)
+//			return;
+//		String msg = "The selected directory \"" + chosenEmpty.name + "\" appears to be empty (no images/measures).\n"
+//				+ "Using \"" + fallback.name + "\" instead because it contains data.";
+//		javax.swing.JOptionPane.showMessageDialog(ctx.parentForDialog, msg, "Empty bin directory",
+//				javax.swing.JOptionPane.INFORMATION_MESSAGE);
+//	}
 
 	private static BinCandidate pickBest(List<BinCandidate> list) {
 		BinCandidate best = null;
@@ -716,11 +727,14 @@ public final class BinDirectoryResolver {
 		return false;
 	}
 
-	private static String lastPreference() {
-		return PREFS.get(PREF_LAST_BIN_SUBDIR, null);
-	}
+//	private static String lastPreference() {
+//		return PREFS.get(PREF_LAST_BIN_SUBDIR, null);
+//	}
 
-	/** Descriptor of a {@code results/bin_xxx} candidate annotated with class metadata. */
+	/**
+	 * Descriptor of a {@code results/bin_xxx} candidate annotated with class
+	 * metadata.
+	 */
 	public static final class BinCandidate {
 		public String name;
 		public int seconds;
@@ -734,7 +748,9 @@ public final class BinDirectoryResolver {
 		public GenerationMode generationMode = GenerationMode.UNKNOWN;
 		public long binKymoColMs = -1;
 		public int nominalIntervalSec = -1;
-		/** True when class metadata was not loaded from XML but inferred from content. */
+		/**
+		 * True when class metadata was not loaded from XML but inferred from content.
+		 */
 		public boolean metadataInferred = false;
 		/** Max last-modified of {@code line*.tiff} in this bin (0 if none). */
 		public long latestLineKymographTiffMs;

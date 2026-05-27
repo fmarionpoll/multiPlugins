@@ -15,7 +15,6 @@ import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
-import plugins.fmp.multitools.tools.results.KymoFractionTraceMode;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
@@ -44,7 +43,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
-	 * Y-axis unit label for kymograph charts when fraction trace mode overrides the default series semantics.
+	 * Y-axis unit label for kymograph fraction charts.
 	 */
 	public static String kymoChartRangeAxisLabel(ResultsOptions opts) {
 		if (opts == null || opts.resultType == null) {
@@ -52,17 +51,6 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		}
 		if (!isKymoMetricMeasure(opts.resultType)) {
 			return null;
-		}
-		if (useAbsDelta(opts.resultType)) {
-			return opts.resultType.toUnit();
-		}
-		KymoFractionTraceMode mode = opts.kymoFractionTraceMode != null ? opts.kymoFractionTraceMode
-				: KymoFractionTraceMode.FINAL;
-		if (mode == KymoFractionTraceMode.BEFORE_GAP_FILL) {
-			return "fraction (before gap-fill)";
-		}
-		if (mode == KymoFractionTraceMode.DELTA_GAP_FILL) {
-			return "Δ fraction (gap-fill)";
 		}
 		return opts.resultType.toUnit();
 	}
@@ -74,18 +62,11 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (useAbsDelta(rt)) {
 			return row.absDeltaFraction.length;
 		}
-		KymoFractionTraceMode mode = options != null && options.kymoFractionTraceMode != null ? options.kymoFractionTraceMode
-				: KymoFractionTraceMode.FINAL;
-		if ((mode == KymoFractionTraceMode.BEFORE_GAP_FILL || mode == KymoFractionTraceMode.DELTA_GAP_FILL)
-				&& row.fractionBeforeGapFill != null) {
-			return Math.min(row.fraction.length, row.fractionBeforeGapFill.length);
-		}
 		return row.fraction.length;
 	}
 
 	/**
-	 * Y value for one bin from a row, honoring {@link ResultsOptions#kymoFractionTraceMode} for fraction-type
-	 * measures; |Δf| measures ignore the trace mode.
+	 * Y value for one bin from a row; |Δf| measures use {@link SpotKymoSeries#absDeltaFraction}.
 	 */
 	static double traceY(SpotKymoSeries row, EnumResults rt, ResultsOptions opts, int j) {
 		if (row == null || rt == null) {
@@ -93,24 +74,6 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		}
 		if (useAbsDelta(rt)) {
 			return j < row.absDeltaFraction.length ? row.absDeltaFraction[j] : Double.NaN;
-		}
-		KymoFractionTraceMode mode = opts != null && opts.kymoFractionTraceMode != null ? opts.kymoFractionTraceMode
-				: KymoFractionTraceMode.FINAL;
-		if (mode == KymoFractionTraceMode.BEFORE_GAP_FILL && row.fractionBeforeGapFill != null
-				&& j < row.fractionBeforeGapFill.length) {
-			return row.fractionBeforeGapFill[j];
-		}
-		if (mode == KymoFractionTraceMode.DELTA_GAP_FILL) {
-			if (row.fractionBeforeGapFill == null || j >= row.fractionBeforeGapFill.length
-					|| j >= row.fraction.length) {
-				return Double.NaN;
-			}
-			double a = row.fractionBeforeGapFill[j];
-			double b = row.fraction[j];
-			if (!Double.isFinite(a) || !Double.isFinite(b)) {
-				return Double.NaN;
-			}
-			return b - a;
 		}
 		return j < row.fraction.length ? row.fraction[j] : Double.NaN;
 	}

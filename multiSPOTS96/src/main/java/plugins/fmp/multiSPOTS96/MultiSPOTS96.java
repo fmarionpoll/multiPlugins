@@ -16,7 +16,6 @@ import icy.preferences.XMLPreferences;
 import plugins.fmp.multiSPOTS96.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS96.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS96.dlg.export._DlgExport_;
-import plugins.fmp.multiSPOTS96.dlg.kymograph.KymoDiagnosticsOptions;
 import plugins.fmp.multiSPOTS96.dlg.kymograph._DlgKymos_;
 import plugins.fmp.multiSPOTS96.dlg.spots._DlgSpots_;
 import plugins.fmp.multiSPOTS96.dlg.spotsMeasures._DlgSpotMeasure_;
@@ -32,7 +31,6 @@ public class MultiSPOTS96 extends PluginActionable {
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
-	public final KymoDiagnosticsOptions kymoDiagnosticsOptions = new KymoDiagnosticsOptions();
 
 	private volatile boolean suppressExperimentOpenOnComboProgrammaticChange = false;
 

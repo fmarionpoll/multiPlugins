@@ -22,7 +22,6 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
-import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
@@ -50,32 +49,24 @@ public class GraphPanel extends JPanel {
 	private final JRadioButton displayAllButton = new JRadioButton("all cages", true);
 	private final JRadioButton displaySelectedCageButton = new JRadioButton("cage selected", false);
 	private final JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected", false);
-	private final JButton diagnosticsButton = new JButton("Diagnostics…");
 	private final JButton displayChartsButton = new JButton("Display charts");
-	private final JComboBox<KymoFractionTraceMode> fractionTraceCombo = new JComboBox<>(KymoFractionTraceMode.values());
 	private final JLabel graphStatusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private ChartCagesFrame chartCagesFrame;
 	private KymoOverlayFrame overlayFrame;
 
 	public GraphPanel(MultiSPOTS96 parent0, AnalysisPanel analysisPanel) {
-		super(new GridLayout(4, 1));
+		super(new GridLayout(3, 1));
 		this.parent0 = parent0;
 		this.analysisPanel = analysisPanel;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
 
 		JPanel p0 = new JPanel(left);
-		p0.add(diagnosticsButton);
 		p0.add(displayChartsButton);
 		p0.add(new JLabel("Measure"));
 		p0.add(measureComboBox);
 		add(p0);
-
-		JPanel pFrac = new JPanel(left);
-		pFrac.add(new JLabel("Fraction trace"));
-		pFrac.add(fractionTraceCombo);
-		add(pFrac);
 
 		JPanel p1 = new JPanel(left);
 		p1.add(new JLabel("Display"));
@@ -94,19 +85,11 @@ public class GraphPanel extends JPanel {
 		add(p2);
 
 		measureComboBox.setSelectedItem(EnumResults.KYMO_FRACT);
-		fractionTraceCombo.setSelectedItem(KymoFractionTraceMode.FINAL);
-		syncFractionTraceComboEnabled();
 
 		analysisPanel.addKymoResultListener(e -> maybeRefreshVisibleCharts());
 
-		diagnosticsButton.addActionListener(e -> KymoDiagnosticsDialog.show(this,
-				parent0.kymoDiagnosticsOptions, this::maybeRefreshVisibleCharts));
 		displayChartsButton.addActionListener(e -> onDisplayCharts());
-		measureComboBox.addActionListener(e -> {
-			syncFractionTraceComboEnabled();
-			maybeRefreshVisibleCharts();
-		});
-		fractionTraceCombo.addActionListener(e -> maybeRefreshVisibleCharts());
+		measureComboBox.addActionListener(e -> maybeRefreshVisibleCharts());
 		displayAllButton.addActionListener(e -> maybeRefreshVisibleCharts());
 		displaySelectedCageButton.addActionListener(e -> maybeRefreshVisibleCharts());
 		displaySelectedSpotsButton.addActionListener(e -> maybeRefreshVisibleCharts());
@@ -131,53 +114,6 @@ public class GraphPanel extends JPanel {
 		return o instanceof EnumResults ? (EnumResults) o : EnumResults.KYMO_FRACT;
 	}
 
-	private KymoFractionTraceMode selectedKymoFractionTraceMode() {
-		Object o = fractionTraceCombo.getSelectedItem();
-		return o instanceof KymoFractionTraceMode ? (KymoFractionTraceMode) o : KymoFractionTraceMode.FINAL;
-	}
-
-	private void syncFractionTraceComboEnabled() {
-		EnumResults m = selectedMeasure();
-		boolean fract = m == EnumResults.KYMO_FRACT || m == EnumResults.KYMO_CAGE_MEAN_FRACT;
-		fractionTraceCombo.setEnabled(fract);
-		if (!fract) {
-			fractionTraceCombo.setSelectedItem(KymoFractionTraceMode.FINAL);
-		}
-	}
-
-	private static boolean hasGapFillDiagnostics(KymoAnalysisResult r) {
-		if (r == null) {
-			return false;
-		}
-		for (List<SpotKymoSeries> list : r.byCageId.values()) {
-			if (list == null) {
-				continue;
-			}
-			for (SpotKymoSeries row : list) {
-				if (row != null && row.fractionBeforeGapFill != null) {
-					return true;
-				}
-			}
-		}
-		return false;
-	}
-
-	private static boolean fractionTraceNeedsStoredSeries(KymoFractionTraceMode mode) {
-		return mode == KymoFractionTraceMode.BEFORE_GAP_FILL || mode == KymoFractionTraceMode.DELTA_GAP_FILL;
-	}
-
-	private void updateGraphStatusAfterDisplay(KymoAnalysisResult lastResult) {
-		EnumResults meas = selectedMeasure();
-		if ((meas == EnumResults.KYMO_FRACT || meas == EnumResults.KYMO_CAGE_MEAN_FRACT)
-				&& fractionTraceNeedsStoredSeries(selectedKymoFractionTraceMode())
-				&& !hasGapFillDiagnostics(lastResult)) {
-			graphStatusLabel.setText(
-					"Before/delta traces: open Diagnostics, enable storage of pre-gap-fill fractions, then Analyze.");
-			return;
-		}
-		graphStatusLabel.setText(" ");
-	}
-
 	private void onDisplayCharts() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		KymoAnalysisResult lastResult = analysisPanel.getLastResult();
@@ -197,15 +133,16 @@ public class GraphPanel extends JPanel {
 
 		if (displaySelectedSpotsButton.isSelected()) {
 			options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
-					.withCageRange(-1, -1).withKymoFractionTraceMode(selectedKymoFractionTraceMode()).build();
+					.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 			options.relativeToMaximum = false;
 			plotSpotsOverlay(exp, options, lastResult);
+			graphStatusLabel.setText(" ");
 			return;
 		}
 
 		if (displayAllButton.isSelected()) {
 			options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
-					.withCageRange(-1, -1).withKymoFractionTraceMode(selectedKymoFractionTraceMode()).build();
+					.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 		} else {
 			Cage cageFound = exp.getCages().findFirstSelectedCage();
 			if (cageFound == null) {
@@ -232,7 +169,7 @@ public class GraphPanel extends JPanel {
 			int first = cageNumber;
 			int last = cageNumber;
 			options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
-					.withCageRange(first, last).withKymoFractionTraceMode(selectedKymoFractionTraceMode()).build();
+					.withCageRange(first, last).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 		}
 		options.relativeToMaximum = false;
 
@@ -246,7 +183,7 @@ public class GraphPanel extends JPanel {
 			chartCagesFrame.getMainChartFrame().toFront();
 			chartCagesFrame.getMainChartFrame().requestFocus();
 		}
-		updateGraphStatusAfterDisplay(lastResult);
+		graphStatusLabel.setText(" ");
 	}
 
 	private void plotSpotsOverlay(Experiment exp, ResultsOptions options, KymoAnalysisResult lastResult) {
@@ -261,7 +198,7 @@ public class GraphPanel extends JPanel {
 		overlayFrame.createMainChartPanel("Kymograph (selected)", options);
 		overlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		overlayFrame.displayData(exp, options, lastResult);
-		updateGraphStatusAfterDisplay(lastResult);
+		graphStatusLabel.setText(" ");
 	}
 
 	private void closeCharts() {

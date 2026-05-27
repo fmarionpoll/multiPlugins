@@ -135,8 +135,7 @@ public class KymographBuilder {
 	/**
 	 * Pre-flight for the active kymograph bin: delete every file whose name starts with
 	 * {@code old_}, then rename {@code line*.tif/.tiff} to {@code old_line*...}. If either
-	 * step fails, {@link PreArchiveResult#failed} is non-zero so the caller can warn and
-	 * the builder can fall back to flip-flop bins.
+	 * step fails, {@link PreArchiveResult#failed} is non-zero so the caller can warn.
 	 */
 	public static PreArchiveResult preArchiveExistingKymographsInCurrentBin(Experiment exp) {
 		if (exp == null) {
@@ -196,7 +195,11 @@ public class KymographBuilder {
 		saveImageSafely(image, target);
 	}
 
-	/** Bin flip-flop / lock handling shared with capillary kymograph rebuilds. */
+	/**
+	 * Resolves the kymograph results subfolder: canonical {@code bin_XX} when it exists,
+	 * with best-effort {@code old_*} cleanup and {@code line*} → {@code old_line*} archive.
+	 * Per-file writes use {@link #saveImageSafely}; no alternate revision folders.
+	 */
 	public static String chooseWritableBinSubDirectoryForKymograph(Experiment exp, String preferredBinDir,
 			BuildSeriesOptions options) {
 		return chooseWritableBinSubDirectory(exp, preferredBinDir, options);
@@ -322,116 +325,18 @@ public class KymographBuilder {
 			return preferredBinDir;
 		}
 
-		// Once flip-flop bins exist, keep all subsequent rebuilds confined to the two slots.
-		// This avoids re-touching bin_XX (which may remain locked) and prevents the "3 dirs
-		// with TIFFs" pattern from growing further across sessions.
-		String slot1 = preferredBinDir + "_r1";
-		String slot2 = preferredBinDir + "_r2";
-		Path slot1Full = Paths.get(resultsDir, slot1);
-		Path slot2Full = Paths.get(resultsDir, slot2);
-		boolean flipAlreadyExists = Files.isDirectory(slot1Full) || Files.isDirectory(slot2Full);
-		if (flipAlreadyExists) {
-			String current = exp.getBinSubDirectory();
-			String firstChoice = (current != null && current.endsWith("_r1")) ? slot2 : slot1;
-			String secondChoice = firstChoice.equals(slot1) ? slot2 : slot1;
-			String chosen = tryPrepareFlipFlopSlot(resultsDir, firstChoice);
-			if (chosen != null) {
-				return chosen;
-			}
-			chosen = tryPrepareFlipFlopSlot(resultsDir, secondChoice);
-			if (chosen != null) {
-				return chosen;
-			}
-			// If neither slot is usable (e.g. both locked), fall back to preferredBinDir.
-			return preferredBinDir;
-		}
-
-		// Canonical bin: delete old_* backups, then rename line*.tif -> old_line*. If that fails
-		// (locks) or line TIFFs remain, write to flip-flop slots instead.
 		if (!optionsPreflightSaysSkipCanonicalPrep(options)) {
 			PreArchiveResult prep = prepareKymographBinDeleteOldThenRenameLine(preferredFull);
-			if (prep.failed == 0 && !hasAnyLineTiff(preferredFull) && canTemporarilyRenameOneTiff(preferredFull)) {
-				return preferredBinDir;
+			if (prep.failed > 0) {
+				Logger.warn("KymographBuilder: incomplete bin prep (failed=" + prep.failed + ") in " + preferredFull
+						+ " ; continuing in canonical bin (per-file temp + replace)");
 			}
 		}
-
-		if (hasAnyLineTiff(preferredFull) || !canTemporarilyRenameOneTiff(preferredFull)) {
-			String current = exp.getBinSubDirectory();
-			String firstChoice = (current != null && current.endsWith("_r1")) ? slot2 : slot1;
-			String secondChoice = firstChoice.equals(slot1) ? slot2 : slot1;
-
-			String chosen = tryPrepareFlipFlopSlot(resultsDir, firstChoice);
-			if (chosen != null) {
-				return chosen;
-			}
-			chosen = tryPrepareFlipFlopSlot(resultsDir, secondChoice);
-			if (chosen != null) {
-				return chosen;
-			}
-		}
-
 		return preferredBinDir;
 	}
 
 	private static boolean optionsPreflightSaysSkipCanonicalPrep(BuildSeriesOptions options) {
 		return options != null && options.kymoPreflightDetectedLockedFiles;
-	}
-
-	private static String tryPrepareFlipFlopSlot(String resultsDir, String binSubDir) {
-		if (resultsDir == null || binSubDir == null) {
-			return null;
-		}
-		Path dir = Paths.get(resultsDir, binSubDir);
-		try {
-			Files.createDirectories(dir);
-		} catch (IOException e) {
-			return null;
-		}
-
-		PreArchiveResult prep = prepareKymographBinDeleteOldThenRenameLine(dir);
-		if (prep.failed > 0 || hasAnyLineTiff(dir) || !canTemporarilyRenameOneTiff(dir)) {
-			return null;
-		}
-		Logger.warn("KymographBuilder: writing rebuilt kymographs to " + dir);
-		return binSubDir;
-	}
-
-	private static boolean hasAnyLineTiff(Path binDir) {
-		if (binDir == null || !Files.isDirectory(binDir)) {
-			return false;
-		}
-		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
-			return stream.filter(Files::isRegularFile).anyMatch(p -> {
-				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
-				return n.startsWith("line") && (n.endsWith(".tif") || n.endsWith(".tiff"));
-			});
-		} catch (IOException e) {
-			return false;
-		}
-	}
-
-	private static boolean canTemporarilyRenameOneTiff(Path binDir) {
-		if (binDir == null || !Files.isDirectory(binDir)) {
-			return true;
-		}
-		try (java.util.stream.Stream<Path> stream = Files.list(binDir)) {
-			Path anyTiff = stream.filter(Files::isRegularFile).filter(p -> {
-				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
-				return n.startsWith("line") && (n.endsWith(".tif") || n.endsWith(".tiff"));
-			}).findFirst().orElse(null);
-
-			if (anyTiff == null) {
-				return true;
-			}
-
-			Path probe = anyTiff.resolveSibling(anyTiff.getFileName().toString() + ".probe_rename");
-			// Try rename away and back. If file is locked, Windows will throw FileSystemException.
-			Files.move(anyTiff, probe, StandardCopyOption.REPLACE_EXISTING);
-			Files.move(probe, anyTiff, StandardCopyOption.REPLACE_EXISTING);
-			return true;
-		} catch (IOException e) {
-			return false;
-		}
 	}
 
 	public void saveComputation(Experiment exp, BuildSeriesOptions options) {
@@ -581,8 +486,8 @@ public class KymographBuilder {
 
 	/**
 	 * Renames every {@code line*.tiff} in {@code dir} to {@code old_line*.tiff} on the
-	 * caller thread (before parallel export or before flip-flop delete). Archived files
-	 * are registered for deletion on normal JVM exit.
+	 * caller thread (before parallel export). Archived files are registered for deletion on
+	 * normal JVM exit.
 	 */
 	private static void archiveAllLineKymographTiffsInDirectory(Path dir) {
 		archiveLineKymographsInDirectory(dir, -1L, true, true, false, true);
@@ -723,9 +628,8 @@ public class KymographBuilder {
 	}
 
 	/**
-	 * When flip-flop creates {@code bin_XX_r1/r2}, measures (CSV/XML) may already be
-	 * present in the previously-selected bin folder. Copy them forward so creating
-	 * a new revision doesn't "lose" measures from the user's perspective.
+	 * When the active bin subfolder changes, measures (CSV/XML) may already be present in
+	 * the previous folder. Copy them forward so the user does not lose measure files.
 	 */
 	private static void copyMeasuresBetweenBins(Experiment exp, String fromBinDir, String toBinDir) {
 		if (exp == null || fromBinDir == null || toBinDir == null || fromBinDir.equals(toBinDir)) {

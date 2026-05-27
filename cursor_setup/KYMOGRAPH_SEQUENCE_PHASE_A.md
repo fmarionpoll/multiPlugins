@@ -87,9 +87,8 @@ These operations appear across **multiTools**, **multiCAFE**, and **multiSPOTS96
 | [`ResultsArrayFromCapillaries.java`](../multiTools/src/main/java/plugins/fmp/multitools/tools/results/ResultsArrayFromCapillaries.java) | `getImageLoader` |
 | [`XLSExportMeasuresFromGulp.java`](../multiTools/src/main/java/plugins/fmp/multitools/tools/toExcel/XLSExportMeasuresFromGulp.java) | `getImageLoader` |
 | [`CapillaryChartInteractionHandler.java`](../multiTools/src/main/java/plugins/fmp/multitools/tools/chart/interaction/CapillaryChartInteractionHandler.java) | `getSequence`, `getImagesList` |
+| [`KymoMergedRegionsOverlay.java`](../multiTools/src/main/java/plugins/fmp/multitools/tools/overlay/KymoMergedRegionsOverlay.java) | `getFileNameFromImageList` |
 | [`KymoMetricThresholdOverlay.java`](../multiTools/src/main/java/plugins/fmp/multitools/tools/overlay/KymoMetricThresholdOverlay.java) | `getFileNameFromImageList` |
-| [`KymoGapFillColumnOverlay.java`](../multiTools/src/main/java/plugins/fmp/multitools/tools/overlay/KymoGapFillColumnOverlay.java) | `getFileNameFromImageList` |
-| `ClipCageMeasuresToSmallest`, `CurvesRestoreLength`, `CropMeasuresToDimensions`, `AdjustMeasuresToDimensions`, `DetectGulps` | `closeSequence` |
 | [`DetectLevels.java`](../multiTools/src/main/java/plugins/fmp/multitools/series/DetectLevels.java) | `displayViewerAtRectangle` |
 
 ### multiCAFE

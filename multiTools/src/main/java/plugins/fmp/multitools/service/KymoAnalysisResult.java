@@ -35,20 +35,12 @@ public final class KymoAnalysisResult {
 		public final int indexInCage;
 		public final double[] fraction;
 		public final double[] absDeltaFraction;
-		/** Present only when analysis ran with diagnostics: fraction before bounded gap fill. */
-		public final double[] fractionBeforeGapFill;
 
 		public SpotKymoSeries(Spot spot, int indexInCage, double[] fraction, double[] absDeltaFraction) {
-			this(spot, indexInCage, fraction, absDeltaFraction, null);
-		}
-
-		public SpotKymoSeries(Spot spot, int indexInCage, double[] fraction, double[] absDeltaFraction,
-				double[] fractionBeforeGapFill) {
 			this.spot = spot;
 			this.indexInCage = indexInCage;
 			this.fraction = fraction;
 			this.absDeltaFraction = absDeltaFraction;
-			this.fractionBeforeGapFill = fractionBeforeGapFill;
 		}
 	}
 }

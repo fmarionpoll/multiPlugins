@@ -28,7 +28,7 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 			options.kymoPreflightDetectedLockedFiles = lockProbe.locked > 0;
 			if (lockProbe.locked > 0) {
 				Logger.warn("BuildKymosFromCapillaries: kymograph TIFF(s) appear locked in " + lockProbe.directory
-						+ " (locked=" + lockProbe.locked + "/" + lockProbe.total + "). Build will try flip-flop if needed.");
+						+ " (locked=" + lockProbe.locked + "/" + lockProbe.total + "). Rename-based bin prep will be skipped.");
 				for (String s : lockProbe.lockedFiles) {
 					Logger.warn("BuildKymosFromCapillaries: locked: " + s);
 				}

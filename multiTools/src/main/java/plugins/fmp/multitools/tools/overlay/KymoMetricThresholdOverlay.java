@@ -23,13 +23,14 @@ import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymographPickSupport;
 import plugins.fmp.multitools.service.CageKymographSpotBands;
 import plugins.fmp.multitools.service.KymoImageTransforms;
+import plugins.fmp.multitools.service.KymoStripRowwiseOcclusionFill;
 import plugins.fmp.multitools.service.KymocageCageResolver;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Semi-transparent mask on the kymograph sequence: pixels counted in the metric fraction
- * (valid sum RGB and metric &gt; threshold), using the same transform and column signal band as
- * {@link CageKymoAnalyzer} when an {@link Experiment} supplier is provided.
+ * Semi-transparent red mask: pixels inside each spot band where R+G+B passes the valid-pixel gate and the chosen
+ * metric exceeds the threshold. When row-wise occlusion lift is enabled, the mask follows the lifted RGB (same as
+ * Analyze). Independent per strip.
  */
 public final class KymoMetricThresholdOverlay extends Overlay implements SequenceListener {
 
@@ -79,9 +80,31 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 		}
 		try {
 			int t = canvas.getPositionT();
-			IcyBufferedImage rgb = sequence.getImage(t, 0);
-			if (rgb == null) {
+			IcyBufferedImage rgb0 = sequence.getImage(t, 0);
+			if (rgb0 == null) {
 				return;
+			}
+			int w = rgb0.getWidth();
+			int h = rgb0.getHeight();
+			Experiment exp = experimentSupplier != null ? experimentSupplier.get() : null;
+			IcyBufferedImage rgb = rgb0;
+			Cage cage = null;
+			List<CageKymographSpotBands> bands = null;
+			if (exp != null && exp.getCages() != null && exp.getSpots() != null && exp.getSeqKymos() != null) {
+				String fn = exp.getSeqKymos().getFileNameFromImageList(t);
+				cage = KymocageCageResolver.resolveCageFromKymographPath(fn, exp.getCages());
+				int refW = w;
+				int refH = h;
+				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+					refW = exp.getSeqCamData().getSequence().getSizeX();
+					refH = exp.getSeqCamData().getSequence().getSizeY();
+				}
+				if (cage != null) {
+					bands = CageKymographPickSupport.stackedSpotBands(exp, cage, exp.getSpots(), refW, refH, w);
+					if (p.rowwiseOcclusionFill) {
+						rgb = KymoStripRowwiseOcclusionFill.apply(rgb0, bands, p);
+					}
+				}
 			}
 			IcyBufferedImage metricImg = KymoImageTransforms.applyMetricTransform(rgb, p.metricTransform,
 					p.useGpuTransforms);
@@ -92,8 +115,6 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 			if (metric == null || metric.length == 0) {
 				return;
 			}
-			int w = rgb.getSizeX();
-			int h = rgb.getSizeY();
 			int nC = Math.max(1, rgb.getSizeC());
 			int[] r = nC > 0 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(0), rgb.isSignedDataType()) : null;
 			int[] g = nC > 1 ? Array1DUtil.arrayToIntArray(rgb.getDataXY(1), rgb.isSignedDataType()) : null;
@@ -102,52 +123,31 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 			int minSum = p.minSumRgbForValidPixel;
 			BufferedImage argb = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 
-			Experiment exp = experimentSupplier != null ? experimentSupplier.get() : null;
-			if (exp != null && exp.getCages() != null && exp.getSpots() != null && exp.getSeqKymos() != null) {
-				String fn = exp.getSeqKymos().getFileNameFromImageList(t);
-				Cage cage = KymocageCageResolver.resolveCageFromKymographPath(fn, exp.getCages());
-				int refW = w;
-				int refH = h;
-				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
-					refW = exp.getSeqCamData().getSequence().getSizeX();
-					refH = exp.getSeqCamData().getSequence().getSizeY();
-				}
-				if (cage != null) {
-					List<CageKymographSpotBands> bands = CageKymographPickSupport.stackedSpotBands(exp, cage,
-							exp.getSpots(), refW, refH, w);
-					if (!bands.isEmpty()) {
-						for (CageKymographSpotBands band : bands) {
-							if (band.geometryMissing) {
+			if (cage != null && bands != null && !bands.isEmpty()) {
+				for (CageKymographSpotBands band : bands) {
+					if (band.geometryMissing) {
+						continue;
+					}
+					int y0 = Math.max(0, band.y0);
+					int y1 = Math.min(h, band.y1Exclusive);
+					for (int x = 0; x < w; x++) {
+						for (int y = y0; y < y1; y++) {
+							int idx = y * w + x;
+							if (idx < 0 || idx >= metric.length) {
 								continue;
 							}
-							int y0 = Math.max(0, band.y0);
-							int y1 = Math.min(h, band.y1Exclusive);
-							for (int x = 0; x < w; x++) {
-								int[] yRange = CageKymoAnalyzer.columnSignalYRange(y0, y1, x, w, r, g, b, nC, p);
-								for (int y = yRange[0]; y < yRange[1]; y++) {
-									int idx = y * w + x;
-									if (idx < 0 || idx >= metric.length) {
-										continue;
-									}
-									int rv = sampleChan(r, idx);
-									int gv = nC > 1 ? sampleChan(g, idx) : rv;
-									int bv = nC > 2 ? sampleChan(b, idx) : rv;
-									int sum = rv + gv + bv;
-									if (sum < minSum) {
-										continue;
-									}
-									double m = metric[idx];
-									if (Double.isFinite(m) && m > thr) {
-										argb.setRGB(x, y, MASK_ARGB);
-									}
-								}
+							int rv = sampleChan(r, idx);
+							int gv = nC > 1 ? sampleChan(g, idx) : rv;
+							int bv = nC > 2 ? sampleChan(b, idx) : rv;
+							if (rv + gv + bv < minSum) {
+								continue;
+							}
+							double m = metric[idx];
+							if (Double.isFinite(m) && m > thr) {
+								argb.setRGB(x, y, MASK_ARGB);
 							}
 						}
-					} else {
-						paintFullImageLegacy(w, h, nC, r, g, b, metric, thr, minSum, argb);
 					}
-				} else {
-					paintFullImageLegacy(w, h, nC, r, g, b, metric, thr, minSum, argb);
 				}
 			} else {
 				paintFullImageLegacy(w, h, nC, r, g, b, metric, thr, minSum, argb);
@@ -168,8 +168,7 @@ public final class KymoMetricThresholdOverlay extends Overlay implements Sequenc
 			int rv = sampleChan(r, i);
 			int gv = nC > 1 ? sampleChan(g, i) : rv;
 			int bv = nC > 2 ? sampleChan(b, i) : rv;
-			int sum = rv + gv + bv;
-			if (sum < minSum) {
+			if (rv + gv + bv < minSum) {
 				continue;
 			}
 			double m = metric[i];
