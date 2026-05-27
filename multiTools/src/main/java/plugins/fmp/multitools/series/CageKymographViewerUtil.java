@@ -13,12 +13,16 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
+import plugins.fmp.multitools.tools.overlay.CageKymographSpotPickOverlay;
 
 /**
  * Opens (or revives) an Icy viewer for a cage kymograph {@link SequenceKymos} stack. Must run on
  * the Swing EDT.
  */
 public final class CageKymographViewerUtil {
+
+	private static CageKymographSpotPickOverlay spotPickOverlay;
+	private static Sequence spotPickHostSequence;
 
 	private CageKymographViewerUtil() {
 	}
@@ -59,5 +63,17 @@ public final class CageKymographViewerUtil {
 			existing.setVisible(true);
 			existing.toFront();
 		}
+		attachSpotPickOverlay(exp, seq);
+	}
+
+	private static synchronized void attachSpotPickOverlay(Experiment exp, Sequence seq) {
+		if (spotPickOverlay != null && spotPickHostSequence != null) {
+			spotPickHostSequence.removeOverlay(spotPickOverlay);
+			spotPickOverlay = null;
+			spotPickHostSequence = null;
+		}
+		spotPickOverlay = new CageKymographSpotPickOverlay(exp);
+		seq.addOverlay(spotPickOverlay);
+		spotPickHostSequence = seq;
 	}
 }
