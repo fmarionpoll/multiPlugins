@@ -163,19 +163,86 @@ public final class CageKymoAnalyzer {
 		return x;
 	}
 
-	/**
-	 * Per-column fraction inside the spot band: rows counted as ON use the post-lift cleaned mask when row lift is on
-	 * (temporal gap fill, vertical bridge, left-anchored trace); otherwise raw spot metric &gt; threshold. When
-	 * {@link Params#insectMetricGateEnabled} is true, pixels classified as insect-like by the second transform are
-	 * never counted as ON. Rows are included in the denominator if sum RGB passes the valid gate, or if the cleaned
-	 * mask marks the pixel ON (bridged trace).
-	 */
+	/** Per-column green mask height (row count ON in band) and ratio to the first column with height &gt; 0. */
+	public static double[] greenHeightRatioFromHeights(int[] greenHeight) {
+		int n = greenHeight != null ? greenHeight.length : 0;
+		double[] ratio = new double[n];
+		Arrays.fill(ratio, Double.NaN);
+		if (n == 0) {
+			return ratio;
+		}
+		int baseline = -1;
+		for (int x = 0; x < n; x++) {
+			if (greenHeight[x] > 0) {
+				baseline = x;
+				break;
+			}
+		}
+		if (baseline < 0) {
+			return ratio;
+		}
+		double h0 = greenHeight[baseline];
+		if (h0 <= 0) {
+			return ratio;
+		}
+		for (int x = 0; x < n; x++) {
+			int h = greenHeight[x];
+			ratio[x] = h > 0 ? h / h0 : 0.0;
+		}
+		return ratio;
+	}
+
+	public static int[] computeColumnGreenHeights(boolean[] spotOnMask, CageKymographSpotBands band, int imgW) {
+		int[] h = new int[imgW];
+		if (spotOnMask == null || band == null || band.geometryMissing) {
+			return h;
+		}
+		int y0 = Math.max(0, band.y0);
+		int y1 = Math.max(y0, band.y1Exclusive);
+		for (int x = 0; x < imgW; x++) {
+			int cnt = 0;
+			for (int y = y0; y < y1; y++) {
+				int idx = y * imgW + x;
+				if (idx >= 0 && idx < spotOnMask.length && spotOnMask[idx]) {
+					cnt++;
+				}
+			}
+			h[x] = cnt;
+		}
+		return h;
+	}
+
 	public static double[] computeColumnMetricFractions(IcyBufferedImage img, CageKymographSpotBands band,
 			Params params, int imgW) {
+		return computeColumnMetrics(img, band, params, imgW).fraction;
+	}
+
+	public static final class ColumnMetrics {
+		public final double[] fraction;
+		public final int[] greenHeight;
+		public final double[] greenHeightRatio;
+
+		ColumnMetrics(double[] fraction, int[] greenHeight, double[] greenHeightRatio) {
+			this.fraction = fraction;
+			this.greenHeight = greenHeight;
+			this.greenHeightRatio = greenHeightRatio;
+		}
+	}
+
+	/**
+	 * Fraction, green height (rows), and h/h₀ for one spot band on one kymograph frame. Rows counted as ON use the
+	 * post-lift cleaned mask when row lift is on; otherwise raw spot metric &gt; threshold (with optional insect
+	 * exclusion).
+	 */
+	public static ColumnMetrics computeColumnMetrics(IcyBufferedImage img, CageKymographSpotBands band, Params params,
+			int imgW) {
 		double[] f = new double[imgW];
+		int[] gh = new int[imgW];
+		double[] ghr = new double[imgW];
 		Arrays.fill(f, Double.NaN);
+		Arrays.fill(ghr, Double.NaN);
 		if (band.geometryMissing) {
-			return f;
+			return new ColumnMetrics(f, gh, ghr);
 		}
 		int imgH = img.getHeight();
 		int nC = Math.max(1, img.getSizeC());
@@ -197,9 +264,11 @@ public final class CageKymoAnalyzer {
 
 		int y0 = Math.max(0, band.y0);
 		int y1 = Math.min(imgH, band.y1Exclusive);
-		boolean[] cleanedMask = params.rowwiseOcclusionFill
+		boolean[] spotOnMask = params.rowwiseOcclusionFill
 				? KymoStripPostLiftMetricMask.buildWithMetric(img, band, params, imgW, imgH, metric, r, g, b, nC)
-				: null;
+				: buildRawSpotOnMask(imgW, imgH, y0, y1, metric, metricLen, thr, insectMetric, params, r, g, b, nC);
+		gh = computeColumnGreenHeights(spotOnMask, band, imgW);
+		ghr = greenHeightRatioFromHeights(gh);
 		for (int x = 0; x < imgW; x++) {
 			int aboveThresholdRows = 0;
 			int valid = 0;
@@ -210,23 +279,12 @@ public final class CageKymoAnalyzer {
 				int bv = nC > 2 ? sampleChan(b, idx) : rv;
 				int sum = rv + gv + bv;
 				if (sum < params.minSumRgbForValidPixel) {
-					if (cleanedMask == null || !cleanedMask[idx]) {
+					if (!spotOnMask[idx]) {
 						continue;
 					}
 				}
 				valid++;
-				boolean pass;
-				if (cleanedMask != null) {
-					pass = cleanedMask[idx];
-				} else if (metric != null && idx >= 0 && idx < metricLen) {
-					double m = metric[idx];
-					boolean spotP = Double.isFinite(m) && m > thr;
-					boolean insectP = insectPixelOn(insectMetric, idx, params);
-					pass = spotP && !insectP;
-				} else {
-					pass = false;
-				}
-				if (pass) {
+				if (spotOnMask[idx]) {
 					aboveThresholdRows++;
 				}
 			}
@@ -236,7 +294,30 @@ public final class CageKymoAnalyzer {
 				f[x] = (double) aboveThresholdRows / (double) valid;
 			}
 		}
-		return f;
+		return new ColumnMetrics(f, gh, ghr);
+	}
+
+	private static boolean[] buildRawSpotOnMask(int imgW, int imgH, int y0, int y1, double[] metric, int metricLen,
+			double thr, double[] insectMetric, Params params, int[] r, int[] g, int[] b, int nC) {
+		boolean[] m = new boolean[imgW * imgH];
+		for (int y = y0; y < y1; y++) {
+			for (int x = 0; x < imgW; x++) {
+				int idx = y * imgW + x;
+				int rv = sampleChan(r, idx);
+				int gv = nC > 1 ? sampleChan(g, idx) : rv;
+				int bv = nC > 2 ? sampleChan(b, idx) : rv;
+				if (rv + gv + bv < params.minSumRgbForValidPixel) {
+					continue;
+				}
+				if (metric != null && idx >= 0 && idx < metricLen) {
+					double mv = metric[idx];
+					boolean spotP = Double.isFinite(mv) && mv > thr;
+					boolean insectP = insectPixelOn(insectMetric, idx, params);
+					m[idx] = spotP && !insectP;
+				}
+			}
+		}
+		return m;
 	}
 
 	private static List<KymoAnalysisResult.SpotKymoSeries> computeForImage(IcyBufferedImage img,
@@ -247,10 +328,11 @@ public final class CageKymoAnalyzer {
 		int si = 0;
 		for (CageKymographSpotBands band : bands) {
 			Spot spot = band.spot;
-			double[] f = computeColumnMetricFractions(data, band, params, imgW);
+			ColumnMetrics cols = computeColumnMetrics(data, band, params, imgW);
 			double[] df = new double[imgW];
-			recomputeDfFromF(f, df);
-			list.add(new KymoAnalysisResult.SpotKymoSeries(spot, si, f, df));
+			recomputeDfFromF(cols.fraction, df);
+			list.add(new KymoAnalysisResult.SpotKymoSeries(spot, si, cols.fraction, df, cols.greenHeight,
+					cols.greenHeightRatio));
 			si++;
 		}
 		return list;

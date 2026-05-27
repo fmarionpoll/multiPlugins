@@ -31,7 +31,8 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 
 	public static boolean isKymoMetricMeasure(EnumResults rt) {
 		return rt == EnumResults.KYMO_FRACT || rt == EnumResults.KYMO_ABS_DELTA || rt == EnumResults.KYMO_CAGE_MEAN_FRACT
-				|| rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA;
+				|| rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA || rt == EnumResults.KYMO_GREEN_HEIGHT
+				|| rt == EnumResults.KYMO_GREEN_HEIGHT_RATIO || rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO;
 	}
 
 	private static boolean useAbsDelta(EnumResults rt) {
@@ -39,7 +40,16 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	private static boolean useCageMean(EnumResults rt) {
-		return rt == EnumResults.KYMO_CAGE_MEAN_FRACT || rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA;
+		return rt == EnumResults.KYMO_CAGE_MEAN_FRACT || rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA
+				|| rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO;
+	}
+
+	private static boolean useGreenHeight(EnumResults rt) {
+		return rt == EnumResults.KYMO_GREEN_HEIGHT;
+	}
+
+	private static boolean useGreenHeightRatio(EnumResults rt) {
+		return rt == EnumResults.KYMO_GREEN_HEIGHT_RATIO || rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO;
 	}
 
 	/**
@@ -62,11 +72,17 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (useAbsDelta(rt)) {
 			return row.absDeltaFraction.length;
 		}
+		if (useGreenHeight(rt)) {
+			return row.greenHeight.length;
+		}
+		if (useGreenHeightRatio(rt)) {
+			return row.greenHeightRatio.length;
+		}
 		return row.fraction.length;
 	}
 
 	/**
-	 * Y value for one bin from a row; |Δf| measures use {@link SpotKymoSeries#absDeltaFraction}.
+	 * Y value for one bin from a row; measure-specific arrays on {@link SpotKymoSeries}.
 	 */
 	static double traceY(SpotKymoSeries row, EnumResults rt, ResultsOptions opts, int j) {
 		if (row == null || rt == null) {
@@ -74,6 +90,12 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		}
 		if (useAbsDelta(rt)) {
 			return j < row.absDeltaFraction.length ? row.absDeltaFraction[j] : Double.NaN;
+		}
+		if (useGreenHeight(rt)) {
+			return j < row.greenHeight.length ? row.greenHeight[j] : Double.NaN;
+		}
+		if (useGreenHeightRatio(rt)) {
+			return j < row.greenHeightRatio.length ? row.greenHeightRatio[j] : Double.NaN;
 		}
 		return j < row.fraction.length ? row.fraction[j] : Double.NaN;
 	}

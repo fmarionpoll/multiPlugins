@@ -9,8 +9,9 @@ import icy.type.collection.array.Array1DUtil;
 /**
  * Post-lift binary mask (spot metric &gt; threshold, valid sum RGB) per spot band, optionally after excluding pixels
  * that match a second insect-style metric on the same RGB. When the insect gate is on, each time column where insect
- * is detected anywhere in the band is marked; along each row, an OFF gap strictly between ON pixels is filled if every
- * column in that gap is insect-marked (so green can jump across insect blocks), up to
+ * is detected anywhere in the band is marked; along each row, OFF gaps are filled when every column in the gap is
+ * insect-marked: strictly between ON pixels (internal jump), or as a leading prefix before the first ON when the
+ * bracketing ON run is at least {@link #MIN_HORIZONTAL_ON_RUN} columns (start-of-strip occlusion), up to
  * {@link #MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS}. Then: generic row-wise temporal gap closing, a single-pass vertical
  * bridge (only immediate 1-row holes), left-anchored 4-connected keep, and removal of sub-pixel-wide horizontal ON
  * runs. No leading fill to x=0. See {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns}.
@@ -92,6 +93,8 @@ public final class KymoStripPostLiftMetricMask {
 			boolean[] colInsect = new boolean[imgW];
 			fillColumnInsectInBand(colInsect, imgW, y0, y1, insectMetric, r, g, b, nC, minSum, params);
 			insectColumnMediatedRowBridges(m, imgW, y0, y1, colInsect, MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS);
+			insectColumnMediatedLeadingGaps(m, imgW, y0, y1, colInsect, MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS,
+					MIN_HORIZONTAL_ON_RUN);
 		}
 
 		for (int y = y0; y < y1; y++) {
@@ -192,6 +195,57 @@ public final class KymoStripPostLiftMetricMask {
 				for (int xi = gapStart; xi < gapEnd; xi++) {
 					m[row + xi] = true;
 				}
+			}
+		}
+	}
+
+	/**
+	 * Fills a leading OFF prefix [0, firstOn) when every column in the prefix is insect-marked and the first ON run to
+	 * the right is at least {@code minBracketRun} columns (avoids extending to t=0 from a 1-pixel speck).
+	 */
+	private static void insectColumnMediatedLeadingGaps(boolean[] m, int w, int y0, int y1, boolean[] colInsect,
+			int maxBridge, int minBracketRun) {
+		if (maxBridge <= 0 || minBracketRun <= 0) {
+			return;
+		}
+		boolean any = false;
+		for (int x = 0; x < w; x++) {
+			if (colInsect[x]) {
+				any = true;
+				break;
+			}
+		}
+		if (!any) {
+			return;
+		}
+		for (int y = y0; y < y1; y++) {
+			int row = y * w;
+			int xFirst = 0;
+			while (xFirst < w && !m[row + xFirst]) {
+				xFirst++;
+			}
+			if (xFirst <= 0 || xFirst > maxBridge) {
+				continue;
+			}
+			boolean allInsectCol = true;
+			for (int xi = 0; xi < xFirst; xi++) {
+				if (!colInsect[xi]) {
+					allInsectCol = false;
+					break;
+				}
+			}
+			if (!allInsectCol) {
+				continue;
+			}
+			int runLen = 0;
+			for (int x = xFirst; x < w && m[row + x]; x++) {
+				runLen++;
+			}
+			if (runLen < minBracketRun) {
+				continue;
+			}
+			for (int xi = 0; xi < xFirst; xi++) {
+				m[row + xi] = true;
 			}
 		}
 	}

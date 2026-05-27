@@ -3,6 +3,8 @@ package plugins.fmp.multiSPOTS96.dlg.kymograph;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.beans.PropertyChangeSupport;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.JButton;
@@ -29,6 +31,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
+import plugins.fmp.multitools.service.KymoAnalysisCsvExport;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
@@ -67,6 +70,7 @@ public class AnalysisPanel extends JPanel {
 	private final JSpinner insectMetricThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 512, 1));
 	private final JCheckBox insectOverlayCheckBox = new JCheckBox("insect (magenta)", false);
 	private final JButton analyzeButton = new JButton("Analyze");
+	private final JButton exportGreenCsvButton = new JButton("Export green CSV");
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private KymoAnalysisResult lastResult;
@@ -129,9 +133,14 @@ public class AnalysisPanel extends JPanel {
 
 		JPanel p3 = new JPanel(left);
 		p3.add(analyzeButton);
+		p3.add(exportGreenCsvButton);
 		p3.add(new JLabel("Status: "));
 		p3.add(statusLabel);
 		add(p3);
+
+		exportGreenCsvButton.setEnabled(false);
+		exportGreenCsvButton.setToolTipText(
+				"Writes kymo_analysis_green.csv (green height, h/h₀, fraction) to the kymographs bin after Analyze.");
 
 		metricTransformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		insectMetricTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
@@ -142,7 +151,7 @@ public class AnalysisPanel extends JPanel {
 		metricOverlayCheckBox.setToolTipText(
 				"Per strip: spot metric passes min R+G+B and threshold; optional insect filter removes insect-like pixels (same idea as spots vs flies filters).");
 		mergedOverlayCheckBox.setToolTipText(
-				"Green = cleaned post-lift spot mask (after insect exclusion when enabled): temporal gap fill (≤ max row gap), one-pass vertical hole fill, left-anchored trace, 1-px-wide speck removal. Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
+				"Green = cleaned post-lift spot mask (insect gate on: jump across and before insect-only columns when spot resumes; then temporal gap fill ≤ max row gap, vertical bridge, left-anchored trace, 1-px speck removal). Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
 		insectMetricGateCheckBox.setToolTipText(
 				"When on: pixels that pass the insect transform + direction + threshold are excluded from spot-on (parallel to Flies filter in Spots measures / ThresholdLightPanel).");
 		insectMetricTransformCombo.setToolTipText("Second transform on the same kymograph RGB (e.g. B_RGB for fly body).");
@@ -230,6 +239,7 @@ public class AnalysisPanel extends JPanel {
 		});
 
 		analyzeButton.addActionListener(e -> onAnalyze());
+		exportGreenCsvButton.addActionListener(e -> onExportGreenCsv());
 
 		syncPreviewLiftedEnabled();
 		syncInsectControlsEnabled();
@@ -411,6 +421,30 @@ public class AnalysisPanel extends JPanel {
 		kymoInsectOverlay = null;
 	}
 
+	private void onExportGreenCsv() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null) {
+			statusLabel.setText("No experiment selected.");
+			return;
+		}
+		if (lastResult == null || lastResult.byCageId.isEmpty()) {
+			statusLabel.setText("Run Analyze first.");
+			return;
+		}
+		String bin = exp.getKymosBinFullDirectory();
+		if (bin == null || bin.isEmpty()) {
+			statusLabel.setText("Kymographs bin directory is not set.");
+			return;
+		}
+		Path out = Paths.get(bin, KymoAnalysisCsvExport.DEFAULT_FILENAME);
+		Path written = KymoAnalysisCsvExport.write(out, lastResult);
+		if (written != null) {
+			statusLabel.setText("Exported: " + written);
+		} else {
+			statusLabel.setText("Export failed.");
+		}
+	}
+
 	private void onAnalyze() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null) {
@@ -441,16 +475,20 @@ public class AnalysisPanel extends JPanel {
 					lastResult = get();
 					int n = lastResult.byCageId.size();
 					if (n == 0) {
+						exportGreenCsvButton.setEnabled(false);
 						statusLabel.setText("No data: check kymograph files and camera sequence for ROI bounds.");
 					} else {
+						exportGreenCsvButton.setEnabled(true);
 						statusLabel.setText("Done: " + n + " cage(s), " + lastResult.widthBins + " bin(s).");
 					}
 				} catch (InterruptedException ex) {
 					Thread.currentThread().interrupt();
 					lastResult = null;
+					exportGreenCsvButton.setEnabled(false);
 					statusLabel.setText("Interrupted.");
 				} catch (ExecutionException ex) {
 					lastResult = null;
+					exportGreenCsvButton.setEnabled(false);
 					Throwable c = ex.getCause();
 					statusLabel.setText("Error: " + (c != null ? c.getMessage() : ex.getMessage()));
 				}

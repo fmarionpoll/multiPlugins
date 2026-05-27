@@ -233,7 +233,21 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_CAGE_MEAN_FRACT"),
 	/** Kymograph: per-bin mean of per-spot |Δf| within a cage. */
 	KYMO_CAGE_MEAN_ABS_DELTA("KYMO_CAGE_MEAN_DF", "|Δf|", "Kymograph: cage mean of |Δf| across spots",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_CAGE_MEAN_ABS_DELTA");
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_CAGE_MEAN_ABS_DELTA"),
+	/** Kymograph: count of ON rows in the cleaned green mask per time bin (bar height in pixels). */
+	KYMO_GREEN_HEIGHT("KYMO_GREEN_HEIGHT", "rows",
+			"Kymograph: vertical extent (rows) of cleaned green mask per time bin",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_GREEN_HEIGHT"),
+	/**
+	 * Kymograph: green height divided by height at the first time bin with height &gt; 0 (occupancy vs start of trace).
+	 */
+	KYMO_GREEN_HEIGHT_RATIO("KYMO_GREEN_HEIGHT_RATIO", "h / h₀",
+			"Kymograph: green mask height relative to first detected height",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_GREEN_HEIGHT_RATIO"),
+	/** Kymograph: per-bin mean of per-spot green height ratios within a cage. */
+	KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO("KYMO_CAGE_MEAN_H", "h / h₀",
+			"Kymograph: cage mean of green height ratio across spots",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO");
 
 	public enum PersistenceDomain {
 		SPOT, CAPILLARY, FLYPOSITION
@@ -334,6 +348,9 @@ public enum EnumResults {
 		case KYMO_ABS_DELTA:
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
+		case KYMO_GREEN_HEIGHT:
+		case KYMO_GREEN_HEIGHT_RATIO:
+		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
 			return true;
 		default:
 			return false;

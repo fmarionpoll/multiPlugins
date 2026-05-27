@@ -39,8 +39,10 @@ public class GraphPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_FRACT, EnumResults.KYMO_ABS_DELTA,
-			EnumResults.KYMO_CAGE_MEAN_FRACT, EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
+	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_GREEN_HEIGHT_RATIO,
+			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT, EnumResults.KYMO_ABS_DELTA,
+			EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,
+			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
 	private final MultiSPOTS96 parent0;
 	private final AnalysisPanel analysisPanel;
@@ -84,7 +86,7 @@ public class GraphPanel extends JPanel {
 		p2.add(graphStatusLabel);
 		add(p2);
 
-		measureComboBox.setSelectedItem(EnumResults.KYMO_FRACT);
+		measureComboBox.setSelectedItem(EnumResults.KYMO_GREEN_HEIGHT_RATIO);
 
 		analysisPanel.addKymoResultListener(e -> maybeRefreshVisibleCharts());
 

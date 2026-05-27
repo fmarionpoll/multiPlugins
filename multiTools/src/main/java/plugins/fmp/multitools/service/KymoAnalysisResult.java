@@ -33,14 +33,28 @@ public final class KymoAnalysisResult {
 		 * geometry placeholder band).
 		 */
 		public final int indexInCage;
+		/** Fraction of valid rows in the spot band with spot ON (cleaned mask when row lift is on). */
 		public final double[] fraction;
 		public final double[] absDeltaFraction;
+		/**
+		 * Per time column: count of rows in the spot band where the cleaned (or raw) green mask is ON — vertical
+		 * extent of the green bar in pixels.
+		 */
+		public final int[] greenHeight;
+		/**
+		 * {@code greenHeight[x] / greenHeight[baseline]}, where baseline is the first column from t=0 with height
+		 * &gt; 0.
+		 */
+		public final double[] greenHeightRatio;
 
-		public SpotKymoSeries(Spot spot, int indexInCage, double[] fraction, double[] absDeltaFraction) {
+		public SpotKymoSeries(Spot spot, int indexInCage, double[] fraction, double[] absDeltaFraction,
+				int[] greenHeight, double[] greenHeightRatio) {
 			this.spot = spot;
 			this.indexInCage = indexInCage;
 			this.fraction = fraction;
 			this.absDeltaFraction = absDeltaFraction;
+			this.greenHeight = greenHeight != null ? greenHeight : new int[0];
+			this.greenHeightRatio = greenHeightRatio != null ? greenHeightRatio : new double[0];
 		}
 	}
 }
