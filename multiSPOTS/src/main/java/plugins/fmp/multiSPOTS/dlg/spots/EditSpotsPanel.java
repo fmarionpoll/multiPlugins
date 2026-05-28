@@ -60,7 +60,7 @@ public class EditSpotsPanel extends JPanel {
 	private ArrayList<ROI2D> enclosedRois = null;
 
 	private JButton markSelectedRoisAsEatenButton = new JButton("Mark selected ROIs as consumed at t0");
-	private JButton clearPreConsumedMarkButton = new JButton("Clear pre-consumed mark");
+	private JButton clearPreConsumedMarkButton = new JButton("Clear mark");
 
 	private JButton erodeButton = new JButton("Contract rois");
 	private JButton dilateButton = new JButton("Dilate rois");

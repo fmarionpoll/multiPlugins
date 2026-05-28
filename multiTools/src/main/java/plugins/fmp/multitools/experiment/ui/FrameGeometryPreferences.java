@@ -46,6 +46,11 @@ public final class FrameGeometryPreferences {
 		return true;
 	}
 
+	/** Keeps a rectangle on-screen with minimum width/height. */
+	public static Rectangle clampToUsableScreen(Rectangle r) {
+		return clampToUsableScreen(r, 120, 80);
+	}
+
 	public static void save(IcyFrame frame, XMLPreferences prefs, String keyPrefix) {
 		if (frame == null || prefs == null) {
 			return;
@@ -83,10 +88,10 @@ public final class FrameGeometryPreferences {
 		});
 	}
 
-	private static Rectangle clampToUsableScreen(Rectangle r) {
+	private static Rectangle clampToUsableScreen(Rectangle r, int minWidth, int minHeight) {
 		Rectangle usable = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
-		int w = Math.min(Math.max(r.width, 120), usable.width);
-		int h = Math.min(Math.max(r.height, 80), usable.height);
+		int w = Math.min(Math.max(r.width, minWidth), usable.width);
+		int h = Math.min(Math.max(r.height, minHeight), usable.height);
 		int x = r.x;
 		int y = r.y;
 		if (x + w < usable.x + 40) {

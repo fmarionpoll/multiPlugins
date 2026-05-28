@@ -28,7 +28,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.KymographKind;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
-import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Logger;
 
@@ -179,7 +178,7 @@ public class LoadSavePanel extends JPanel {
 		if (nItems > 0) {
 			boolean flag = new KymographService().loadImagesFromList(exp.getSeqKymos(), myList, false);
 			if (flag) {
-				CageKymographViewerUtil.openIfPresent(exp);
+				parent0.openCageKymographViewer(exp);
 			}
 			return flag;
 		}

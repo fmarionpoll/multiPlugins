@@ -18,13 +18,15 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
+import plugins.fmp.multiSPOTS.dlg.spotsMeasures.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.results.AggSumCleanPolicy;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * V4: evaluation policies for {@code AGG_SUMCLEAN} and {@code AGG_SUMCLEAN_V5} (baseline skip, common-mode drift, fly guard,
- * reference-stimulus drift). Charts read policy via {@link #applyPolicyInto(ResultsOptions)}.
+ * V4: evaluation policies for {@code AGG_SUMCLEAN} and {@code AGG_SUMCLEAN_V5}
+ * (baseline skip, common-mode drift, fly guard, reference-stimulus drift).
+ * Charts read policy via {@link #applyPolicyInto(ResultsOptions)}.
  */
 public class ConsumptionAggV4Panel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
@@ -61,10 +63,11 @@ public class ConsumptionAggV4Panel extends JPanel implements PropertyChangeListe
 		panel1.add(refConcField);
 
 		JPanel panel2 = new JPanel(layoutLeft);
-		panel2.add(new JLabel("<html><body style='width:560px'><b>Baseline+</b>: skips the first N minutes (or N bins if no camera time axis) when taking the per-spot baseline max.<br/>"
-				+ "<b>Common mode</b>: subtracts cage-wide median <code>sumClean</code> drift from each spot before depletion (baseline max still from uncorrected <code>sumClean</code>).<br/>"
-				+ "<b>Fly guard</b>: sets per-spot depletion to 0 in bins where fly occupancy exceeds the % threshold (needs fly mask).<br/>"
-				+ "<b>Ref stimulus</b>: subtracts median drift of spots matching reference (stimulus, conc) in the same cage; if none match, behaves like Legacy for drift.</body></html>"));
+		panel2.add(new JLabel(
+				"<html><body style='width:560px'><b>Baseline+</b>: skips the first N minutes (or N bins if no camera time axis) when taking the per-spot baseline max.<br/>"
+						+ "<b>Common mode</b>: subtracts cage-wide median <code>sumClean</code> drift from each spot before depletion (baseline max still from uncorrected <code>sumClean</code>).<br/>"
+						+ "<b>Fly guard</b>: sets per-spot depletion to 0 in bins where fly occupancy exceeds the % threshold (needs fly mask).<br/>"
+						+ "<b>Ref stimulus</b>: subtracts median drift of spots matching reference (stimulus, conc) in the same cage; if none match, behaves like Legacy for drift.</body></html>"));
 
 		JPanel panel3 = new JPanel(layoutLeft);
 		panel3.add(statusLabel);
@@ -79,7 +82,8 @@ public class ConsumptionAggV4Panel extends JPanel implements PropertyChangeListe
 	}
 
 	/**
-	 * Copies current V4 UI into {@code o} (typically the chart {@link ResultsOptions}).
+	 * Copies current V4 UI into {@code o} (typically the chart
+	 * {@link ResultsOptions}).
 	 */
 	public void applyPolicyInto(ResultsOptions o) {
 		if (o == null) {

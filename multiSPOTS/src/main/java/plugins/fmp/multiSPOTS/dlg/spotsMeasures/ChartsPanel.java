@@ -272,18 +272,17 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		boolean agg = exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_SUMCLEAN_V5
 				|| exportType == EnumResults.AGG_MEDIANREF;
 		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
-		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
-				.withCageRange(first, last).build();
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs)
+				.withResultType(exportType).withCageRange(first, last).build();
 		options.relativeToMaximum = !agg && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
 		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
 		options.spotBaselineStableBins = ((Number) chartStableBinsSpinner.getValue()).intValue();
 		options.aggMedianRefSmoothWindowBins = ((Number) medianRefSmoothBinsSpinner.getValue()).intValue();
-		if (agg && parent0 != null && parent0.dlgMeasure != null) {
-			parent0.dlgMeasure.applyAggV4PolicyInto(options);
-		}
-
+//		if (agg && parent0 != null && parent0.dlgMeasure != null) {
+//			parent0.dlgMeasure.applyAggV4PolicyInto(options);
+//		}
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override
 			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options,
@@ -327,9 +326,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN
-				&& exportType != EnumResults.AGG_SUMCLEAN_V5 && exportType != EnumResults.AGG_MEDIANREF
-				&& relativeToCheckbox.isSelected();
+		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN && exportType != EnumResults.AGG_SUMCLEAN_V5
+				&& exportType != EnumResults.AGG_MEDIANREF && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
@@ -384,11 +382,13 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private void updateMeasureDependentControls() {
-		boolean aggStep = exportTypeComboBox != null && (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
-				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN_V5
-				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
-		boolean aggMedianUi = exportTypeComboBox != null && (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
-				|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
+		boolean aggStep = exportTypeComboBox != null
+				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
+						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN_V5
+						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
+		boolean aggMedianUi = exportTypeComboBox != null
+				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
+						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
 		relativeToCheckbox.setEnabled(!aggStep);
 		if (aggStep) {
 			relativeToCheckbox.setSelected(false);
@@ -452,7 +452,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
 		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN
 				: option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_CLEAN_V5
-				: option == EnumResults.AGG_MEDIANREF ? EnumResults.AREA_SUM : option;
+						: option == EnumResults.AGG_MEDIANREF ? EnumResults.AREA_SUM : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

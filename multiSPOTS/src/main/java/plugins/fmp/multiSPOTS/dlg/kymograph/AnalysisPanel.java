@@ -29,7 +29,6 @@ import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.AnalyzeCageKymographs;
-import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
@@ -322,7 +321,7 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 			viewKymoButton.setSelected(false);
 			return;
 		}
-		CageKymographViewerUtil.openIfPresent(exp);
+		parent0.openCageKymographViewer(exp);
 		metricOverlayCheckBox.setEnabled(true);
 		mergedOverlayCheckBox.setEnabled(true);
 		insectOverlayCheckBox.setEnabled(true);

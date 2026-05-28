@@ -13,7 +13,6 @@ import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.KymographKind;
 import plugins.fmp.multitools.experiment.persistence.MigrationTool;
 import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
-import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.tools.Logger;
 
 final class ExperimentOpenPipeline {
@@ -109,7 +108,7 @@ final class ExperimentOpenPipeline {
 								+ kymoBin + " (no kymocage_*.tif* or load error — see Experiment logs)");
 					} else if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
 						exp.getSeqKymos().getSequence().addListener(owner);
-						SwingUtilities.invokeLater(() -> CageKymographViewerUtil.openIfPresent(exp));
+						SwingUtilities.invokeLater(() -> owner.parent0.openCageKymographViewer(exp));
 					}
 				} else {
 					Logger.warn("ExperimentOpenPipeline: skip cage kymographs (kymographs bin path is null)");

@@ -22,6 +22,7 @@ import plugins.fmp.multiSPOTS.dlg.spotsMeasures._DlgSpotMeasure_;
 import plugins.fmp.multiSPOTS.dlg.spotsMeasures2._DlgSpotMeasure2_;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
+import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
@@ -51,6 +52,11 @@ public class MultiSPOTS extends PluginActionable {
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();
+
+	/** Opens the cage kymograph viewer with persisted position/size (gui preferences). */
+	public void openCageKymographViewer(Experiment exp) {
+		CageKymographViewerUtil.openIfPresent(exp, getPreferences("gui"), mainFrame);
+	}
 
 	// -------------------------------------------------------------------
 

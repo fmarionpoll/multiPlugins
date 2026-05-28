@@ -1,12 +1,16 @@
 package plugins.fmp.multitools.series;
 
+import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JToolBar;
 
+import icy.canvas.Canvas2D;
 import icy.canvas.IcyCanvas;
+import icy.gui.frame.IcyFrame;
 import icy.gui.viewer.Viewer;
+import icy.preferences.XMLPreferences;
 import icy.gui.viewer.ViewerEvent;
 import icy.gui.viewer.ViewerListener;
 import icy.sequence.DimensionId;
@@ -15,6 +19,7 @@ import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.experiment.ui.ViewerGeometryPreferences;
 import plugins.fmp.multitools.service.CageKymographPickSupport;
 import plugins.fmp.multitools.service.KymocageCageResolver;
 import plugins.fmp.multitools.tools.Logger;
@@ -30,6 +35,12 @@ import plugins.fmp.multitools.tools.overlay.CageKymographSpotPickOverlay;
  */
 public final class CageKymographViewerUtil {
 
+	/** {@link XMLPreferences} keys: {@code kymographViewer.x}, {@code .y}, {@code .w}, {@code .h}. */
+	public static final String GEOMETRY_KEY_PREFIX = "kymographViewer.";
+
+	private static final int MIN_VIEWER_WIDTH = 200;
+	private static final int MIN_VIEWER_HEIGHT = 120;
+
 	private static CageKymographSpotPickOverlay spotPickOverlay;
 	private static Sequence spotPickHostSequence;
 	private static final KymographViewerTitleListener titleListener = new KymographViewerTitleListener();
@@ -39,6 +50,15 @@ public final class CageKymographViewerUtil {
 	}
 
 	public static void openIfPresent(Experiment exp) {
+		openIfPresent(exp, null, null);
+	}
+
+	/**
+	 * @param geometryPrefs when non-null, restores/saves viewer bounds under
+	 *                      {@link #GEOMETRY_KEY_PREFIX}
+	 * @param pluginMainFrame used for default placement when no saved bounds and no cam viewer
+	 */
+	public static void openIfPresent(Experiment exp, XMLPreferences geometryPrefs, IcyFrame pluginMainFrame) {
 		if (exp == null) {
 			return;
 		}
@@ -71,14 +91,48 @@ public final class CageKymographViewerUtil {
 				JToolBar toolBar = v.getToolBar();
 				((Canvas2D_3Transforms) v.getCanvas()).customizeToolbarStep2(toolBar);
 			}
+			applyViewerBounds(v, exp, geometryPrefs, pluginMainFrame);
 			v.setVisible(true);
 		} else {
 			v = vList.get(0);
+			boolean wasVisible = v.isVisible();
+			if (wasVisible) {
+				v.setVisible(false);
+			}
+			applyViewerBounds(v, exp, geometryPrefs, pluginMainFrame);
 			v.setVisible(true);
 			v.toFront();
 		}
 		attachSpotPickOverlay(exp, seq);
-		attachViewerTitleListener(exp, v);
+		attachViewerTitleListener(exp, v, geometryPrefs);
+	}
+
+	private static void applyViewerBounds(Viewer v, Experiment exp, XMLPreferences geometryPrefs,
+			IcyFrame pluginMainFrame) {
+		if (v == null) {
+			return;
+		}
+		if (geometryPrefs != null
+				&& ViewerGeometryPreferences.restore(v, geometryPrefs, GEOMETRY_KEY_PREFIX, MIN_VIEWER_WIDTH,
+						MIN_VIEWER_HEIGHT)) {
+			disableFitToCanvas(v);
+			ViewerGeometryPreferences.installAutoSave(v, geometryPrefs, GEOMETRY_KEY_PREFIX);
+			return;
+		}
+		Rectangle def = KymographViewerPlacement.computeDefaultBounds(exp, pluginMainFrame);
+		if (def != null) {
+			v.setBounds(def);
+			disableFitToCanvas(v);
+		}
+		if (geometryPrefs != null) {
+			ViewerGeometryPreferences.installAutoSave(v, geometryPrefs, GEOMETRY_KEY_PREFIX);
+		}
+	}
+
+	private static void disableFitToCanvas(Viewer v) {
+		if (v != null && v.getCanvas() instanceof Canvas2D) {
+			((Canvas2D) v.getCanvas()).setFitToCanvas(false);
+		}
 	}
 
 	/**
@@ -149,11 +203,12 @@ public final class CageKymographViewerUtil {
 		v.setTitle(buildKymographViewerTitle(exp, t));
 	}
 
-	private static void attachViewerTitleListener(Experiment exp, Viewer v) {
+	private static void attachViewerTitleListener(Experiment exp, Viewer v, XMLPreferences geometryPrefs) {
 		if (exp == null || v == null) {
 			return;
 		}
 		titleListenerExperiment = exp;
+		titleListener.setGeometryPrefs(geometryPrefs);
 		titleListener.setExperiment(exp);
 		v.removeListener(titleListener);
 		v.addListener(titleListener);
@@ -178,9 +233,14 @@ public final class CageKymographViewerUtil {
 	private static final class KymographViewerTitleListener implements ViewerListener {
 
 		private Experiment experiment;
+		private XMLPreferences geometryPrefs;
 
 		void setExperiment(Experiment exp) {
 			this.experiment = exp;
+		}
+
+		void setGeometryPrefs(XMLPreferences geometryPrefs) {
+			this.geometryPrefs = geometryPrefs;
 		}
 
 		@Override
@@ -211,6 +271,9 @@ public final class CageKymographViewerUtil {
 		@Override
 		public void viewerClosed(Viewer viewer) {
 			if (viewer != null) {
+				if (geometryPrefs != null) {
+					ViewerGeometryPreferences.save(viewer, geometryPrefs, GEOMETRY_KEY_PREFIX);
+				}
 				viewer.removeListener(this);
 			}
 		}
