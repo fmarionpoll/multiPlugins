@@ -16,12 +16,12 @@ import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.tools.Logger;
 
-final class Spots96ExperimentOpenPipeline {
+final class ExperimentOpenPipeline {
 
 	private final LoadSaveExperiment owner;
 	private final ExperimentLoadLifecycle lifecycle;
 
-	Spots96ExperimentOpenPipeline(LoadSaveExperiment owner) {
+	ExperimentOpenPipeline(LoadSaveExperiment owner) {
 		this.owner = owner;
 		this.lifecycle = owner.loadLifecycle;
 	}
@@ -91,26 +91,29 @@ final class Spots96ExperimentOpenPipeline {
 
 			owner.parent0.dlgExperiment.updateViewerForSequenceCam(exp);
 
-			owner.parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
+			displayGraphsIfEnabled(exp);
 
-			progressFrame.setMessage("Load cage kymographs...");
-			String kymoBin = exp.getKymosBinFullDirectory();
-			if (kymoBin != null) {
-				exp.setKymographKind(KymographKind.CAGE_STACKED_TIFF);
-				// Drop any stale seqKymos from a previously selected experiment (closeSequences()
-				// closes pixels but does not clear the field).
-				exp.releaseKymographSequence();
-				if (exp.isCageKymographDiskRewriteInProgress()) {
-					Logger.debug("Spots96ExperimentOpenPipeline: skip cage kymograph load (disk rewrite in progress)");
-				} else if (!exp.loadCageSpotKymographs()) {
-					Logger.warn("Spots96ExperimentOpenPipeline: loadCageSpotKymographs returned false for bin "
-							+ kymoBin + " (no kymocage_*.tif* or load error — see Experiment logs)");
-				} else if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
-					exp.getSeqKymos().getSequence().addListener(owner);
-					SwingUtilities.invokeLater(() -> CageKymographViewerUtil.openIfPresent(exp));
+			if (owner.parent0.viewOptions.isAutoLoadKymographs()) {
+				progressFrame.setMessage("Load cage kymographs...");
+				String kymoBin = exp.getKymosBinFullDirectory();
+				if (kymoBin != null) {
+					exp.setKymographKind(KymographKind.CAGE_STACKED_TIFF);
+					// Drop any stale seqKymos from a previously selected experiment (closeSequences()
+					// closes pixels but does not clear the field).
+					exp.releaseKymographSequence();
+					if (exp.isCageKymographDiskRewriteInProgress()) {
+						Logger.debug(
+								"ExperimentOpenPipeline: skip cage kymograph load (disk rewrite in progress)");
+					} else if (!exp.loadCageSpotKymographs()) {
+						Logger.warn("ExperimentOpenPipeline: loadCageSpotKymographs returned false for bin "
+								+ kymoBin + " (no kymocage_*.tif* or load error — see Experiment logs)");
+					} else if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
+						exp.getSeqKymos().getSequence().addListener(owner);
+						SwingUtilities.invokeLater(() -> CageKymographViewerUtil.openIfPresent(exp));
+					}
+				} else {
+					Logger.warn("ExperimentOpenPipeline: skip cage kymographs (kymographs bin path is null)");
 				}
-			} else {
-				Logger.warn("Spots96ExperimentOpenPipeline: skip cage kymographs (kymographs bin path is null)");
 			}
 
 			progressFrame.setMessage("Load data: update dialogs");
@@ -144,6 +147,17 @@ final class Spots96ExperimentOpenPipeline {
 			System.out.println("LoadExperiment: openSelectedExperiment [" + expIndex + "] failed, took "
 					+ (endTime - startTime) / 1e6 + " ms");
 			return false;
+		}
+	}
+
+	private void displayGraphsIfEnabled(Experiment exp) {
+		if (owner.parent0.viewOptions.isAutoGraphSpotMeasures()
+				&& owner.parent0.dlgMeasure != null && owner.parent0.dlgMeasure.chartsPanel != null) {
+			owner.parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
+		}
+		if (owner.parent0.viewOptions.isAutoGraphKymoMeasures()
+				&& owner.parent0.dlgKymos != null && owner.parent0.dlgKymos.tabKymoGraph != null) {
+			owner.parent0.dlgKymos.tabKymoGraph.displayChartsOnExperimentOpen();
 		}
 	}
 

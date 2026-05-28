@@ -12,9 +12,9 @@ import javax.swing.JPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
-final class Spots96BrowseUi {
+final class BrowseUi {
 
-	private Spots96BrowseUi() {
+	private BrowseUi() {
 	}
 
 	static JPanel createMainGrid(JPanel navPanel, JPanel buttonPanel) {

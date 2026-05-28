@@ -17,6 +17,7 @@ import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multiSPOTS.dlg.spotsMeasures.LoadSavePanel;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
  * Parallel UI for V5 and color-distance spot measures (detection + charts
@@ -28,6 +29,9 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 
 	public PopupPanel capPopupPanel = null;
 	JTabbedPane tabsPane = new JTabbedPane();
+	ConsumptionV3Panel consumptionV3Panel = new ConsumptionV3Panel();
+	ConsumptionAggV4Panel consumptionAggV4Panel = new ConsumptionAggV4Panel();
+
 	public ThresholdV5Panel thresholdV5Panel = new ThresholdV5Panel();
 	public ChartsV5Panel chartsV5Panel = new ChartsV5Panel();
 	public DetectColorPanel detectColorPanel = new DetectColorPanel();
@@ -37,7 +41,10 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 
 	private int idThresholdTabV5 = 0;
 	private int idThresholdTabColor = 2;
-	/** Kymographs tab index when enabled; {@code -1} disables load-cam on that branch. */
+	/**
+	 * Kymographs tab index when enabled; {@code -1} disables load-cam on that
+	 * branch.
+	 */
 	private int idKymographsTab = -1;
 	private MultiSPOTS parent0 = null;
 
@@ -51,6 +58,16 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 
 		GridLayout gridLayout = new GridLayout(4, 1);
 		int order = 0;
+
+		consumptionV3Panel.init(gridLayout, parent0);
+		consumptionV3Panel.addPropertyChangeListener(this);
+		tabsPane.addTab("V3", null, consumptionV3Panel, "Consumption V3 (experiment-median residual)");
+		order++;
+
+		consumptionAggV4Panel.init(gridLayout, parent0);
+		consumptionAggV4Panel.addPropertyChangeListener(this);
+		tabsPane.addTab("V4 (AGG)", null, consumptionAggV4Panel, "AGG_SUMCLEAN evaluation policies");
+		order++;
 
 		thresholdV5Panel.init(gridLayout, parent0);
 		thresholdV5Panel.addPropertyChangeListener(this);
@@ -96,6 +113,14 @@ public class _DlgSpotMeasure2_ extends JPanel implements PropertyChangeListener,
 				parent0.mainFrame.repaint();
 			}
 		});
+	}
+
+	/**
+	 * Copies AGG V4 policy from the V4 tab into chart/export
+	 * {@link ResultsOptions}.
+	 */
+	public void applyAggV4PolicyInto(ResultsOptions o) {
+		consumptionAggV4Panel.applyPolicyInto(o);
 	}
 
 	@Override

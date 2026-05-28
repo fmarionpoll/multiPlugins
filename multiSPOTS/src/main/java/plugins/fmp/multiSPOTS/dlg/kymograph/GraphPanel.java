@@ -138,6 +138,11 @@ public class GraphPanel extends JPanel {
 		return lastResult != null && !lastResult.byCageId.isEmpty();
 	}
 
+	/** Called when an experiment is opened and auto-graph kymo measures is enabled. */
+	public void displayChartsOnExperimentOpen() {
+		onDisplayCharts();
+	}
+
 	private void onDisplayCharts() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null) {

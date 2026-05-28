@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures;
+package plugins.fmp.multiSPOTS.dlg.spotsMeasures2;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -17,6 +17,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
+import plugins.fmp.multiSPOTS.dlg.spotsMeasures.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 

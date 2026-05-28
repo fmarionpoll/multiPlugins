@@ -8,6 +8,9 @@ import plugins.fmp.multitools.tools.Logger;
 public class ViewOptionsHolder extends ViewOptionsHolderBase {
 
 	private static final String KEY_VIEW_SPOTS = "viewSpots";
+	private static final String KEY_AUTO_LOAD_KYMOGRAPHS = "autoLoadKymographs";
+	private static final String KEY_AUTO_GRAPH_SPOT_MEASURES = "autoGraphSpotMeasures";
+	private static final String KEY_AUTO_GRAPH_KYMO_MEASURES = "autoGraphKymoMeasures";
 	private static final String KEY_SPOT_DETECTION_MODE = "spotDetectionMode";
 
 	private static final String KEY_CREATE_CAGES_GRID_COLS = "createCagesGridCols";
@@ -20,6 +23,9 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	private static final String LEGACY_KEY_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
 
 	private boolean viewSpots = true;
+	private boolean autoLoadKymographs = true;
+	private boolean autoGraphSpotMeasures = true;
+	private boolean autoGraphKymoMeasures = false;
 	private SpotDetectionMode spotDetectionMode = SpotDetectionMode.AUTO;
 
 	private int createCagesGridCols = 6;
@@ -34,6 +40,30 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 
 	public void setViewSpots(boolean viewSpots) {
 		this.viewSpots = viewSpots;
+	}
+
+	public boolean isAutoLoadKymographs() {
+		return autoLoadKymographs;
+	}
+
+	public void setAutoLoadKymographs(boolean autoLoadKymographs) {
+		this.autoLoadKymographs = autoLoadKymographs;
+	}
+
+	public boolean isAutoGraphSpotMeasures() {
+		return autoGraphSpotMeasures;
+	}
+
+	public void setAutoGraphSpotMeasures(boolean autoGraphSpotMeasures) {
+		this.autoGraphSpotMeasures = autoGraphSpotMeasures;
+	}
+
+	public boolean isAutoGraphKymoMeasures() {
+		return autoGraphKymoMeasures;
+	}
+
+	public void setAutoGraphKymoMeasures(boolean autoGraphKymoMeasures) {
+		this.autoGraphKymoMeasures = autoGraphKymoMeasures;
 	}
 
 	public SpotDetectionMode getSpotDetectionMode() {
@@ -124,6 +154,9 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	@Override
 	protected void loadPluginFields(XMLPreferences prefs) {
 		viewSpots = readBool(prefs, KEY_VIEW_SPOTS, true);
+		autoLoadKymographs = readBool(prefs, KEY_AUTO_LOAD_KYMOGRAPHS, true);
+		autoGraphSpotMeasures = readBool(prefs, KEY_AUTO_GRAPH_SPOT_MEASURES, true);
+		autoGraphKymoMeasures = readBool(prefs, KEY_AUTO_GRAPH_KYMO_MEASURES, false);
 		spotDetectionMode = parseSpotDetectionMode(prefs.get(KEY_SPOT_DETECTION_MODE, SpotDetectionMode.AUTO.name()));
 		createCagesGridCols = clamp(readInt(prefs, KEY_CREATE_CAGES_GRID_COLS, 6), 0, 10000);
 		createCagesGridRows = clamp(readInt(prefs, KEY_CREATE_CAGES_GRID_ROWS, 8), 0, 10000);
@@ -135,6 +168,9 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	@Override
 	protected void savePluginFields(XMLPreferences prefs) {
 		prefs.put(KEY_VIEW_SPOTS, String.valueOf(viewSpots));
+		prefs.put(KEY_AUTO_LOAD_KYMOGRAPHS, String.valueOf(autoLoadKymographs));
+		prefs.put(KEY_AUTO_GRAPH_SPOT_MEASURES, String.valueOf(autoGraphSpotMeasures));
+		prefs.put(KEY_AUTO_GRAPH_KYMO_MEASURES, String.valueOf(autoGraphKymoMeasures));
 		prefs.put(KEY_SPOT_DETECTION_MODE, spotDetectionMode.name());
 		prefs.put(KEY_CREATE_CAGES_GRID_COLS, String.valueOf(createCagesGridCols));
 		prefs.put(KEY_CREATE_CAGES_GRID_ROWS, String.valueOf(createCagesGridRows));

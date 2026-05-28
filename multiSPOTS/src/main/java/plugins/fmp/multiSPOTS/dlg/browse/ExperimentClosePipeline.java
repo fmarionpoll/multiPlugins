@@ -4,9 +4,9 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Logger;
 
-final class Spots96ExperimentClosePipeline {
+final class ExperimentClosePipeline {
 
-	Spots96ExperimentClosePipeline() {
+	ExperimentClosePipeline() {
 	}
 
 	void closeViewsForCurrentExperiment(Experiment exp) {

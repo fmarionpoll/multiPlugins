@@ -62,9 +62,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	MultiSPOTS parent0 = null;
 
-	private Spots96MetadataScanCoordinator metadataScan;
-	private Spots96ExperimentOpenPipeline openPipeline;
-	private Spots96ExperimentClosePipeline closePipeline;
+	private MetadataScanCoordinator metadataScan;
+	private ExperimentOpenPipeline openPipeline;
+	private ExperimentClosePipeline closePipeline;
 
 	public LoadSaveExperiment() {
 	}
@@ -144,9 +144,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	public JPanel initPanel(MultiSPOTS parent0) {
 		this.parent0 = parent0;
-		this.metadataScan = new Spots96MetadataScanCoordinator(this);
-		this.openPipeline = new Spots96ExperimentOpenPipeline(this);
-		this.closePipeline = new Spots96ExperimentClosePipeline();
+		this.metadataScan = new MetadataScanCoordinator(this);
+		this.openPipeline = new ExperimentOpenPipeline(this);
+		this.closePipeline = new ExperimentClosePipeline();
 
 		setLayout(new BorderLayout());
 		setPreferredSize(new Dimension(400, 200));
@@ -161,9 +161,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	private JPanel initUI() {
-		JPanel navPanel = Spots96BrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
-		JPanel buttonPanel = Spots96BrowseUi.createButtonPanel(openButton, searchButton, closeButton, filteredCheck);
-		return Spots96BrowseUi.createMainGrid(navPanel, buttonPanel);
+		JPanel navPanel = BrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
+		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, filteredCheck);
+		return BrowseUi.createMainGrid(navPanel, buttonPanel);
 	}
 
 	private void defineActionListeners() {

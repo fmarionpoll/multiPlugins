@@ -16,11 +16,11 @@ import plugins.fmp.multitools.experiment.ui.ExperimentMetadataScanSupport;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Logger;
 
-final class Spots96MetadataScanCoordinator {
+final class MetadataScanCoordinator {
 
 	private final LoadSaveExperiment host;
 
-	Spots96MetadataScanCoordinator(LoadSaveExperiment host) {
+	MetadataScanCoordinator(LoadSaveExperiment host) {
 		this.host = host;
 	}
 
