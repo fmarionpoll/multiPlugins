@@ -18,6 +18,8 @@ import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation;
 import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation.SumSeries;
+import plugins.fmp.multitools.service.CageKymographStripLayoutCsv;
+import plugins.fmp.multitools.service.CageKymographStripLayoutCsv.PersistedKymoGrid;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -43,23 +45,35 @@ public final class KymoSpotChartSupport {
 		return false;
 	}
 
+	/**
+	 * X-axis in minutes for kymograph strip columns. Prefers {@link CageKymographStripLayoutCsv} when
+	 * present; otherwise {@link Experiment#getKymoFirst_ms()} and {@link Experiment#getKymoBin_ms()}.
+	 */
 	public static double[] buildKymoXAxisMinutes(Experiment exp, int nBins) {
 		if (nBins <= 0) {
 			return new double[0];
 		}
-		long binMs = exp != null ? exp.getKymoBin_ms() : 0;
-		if (binMs <= 0) {
-			binMs = 60_000L;
+		long stepMs;
+		long firstMs;
+		String binDir = exp != null ? exp.getKymosBinFullDirectory() : null;
+		PersistedKymoGrid grid = binDir != null ? CageKymographStripLayoutCsv.readPersistedKymoGridOrNull(binDir, nBins)
+				: null;
+		if (grid != null && grid.columnCount == nBins) {
+			stepMs = Math.max(1L, grid.stepMs);
+			firstMs = Math.max(0L, grid.firstMs);
+		} else {
+			stepMs = exp != null ? exp.getKymoBin_ms() : 0;
+			if (stepMs <= 0) {
+				stepMs = 60_000L;
+			}
+			firstMs = exp != null ? exp.getKymoFirst_ms() : 0;
+			if (firstMs < 0) {
+				firstMs = 0;
+			}
 		}
-		double binMin = binMs / 60000.0;
-		long t0Ms = exp != null ? exp.getKymoFirst_ms() : 0;
-		if (t0Ms < 0) {
-			t0Ms = 0;
-		}
-		double t0Min = t0Ms / 60000.0;
 		double[] x = new double[nBins];
 		for (int j = 0; j < nBins; j++) {
-			x[j] = t0Min + j * binMin;
+			x[j] = (firstMs + (long) j * stepMs) / 60000.0;
 		}
 		return x;
 	}

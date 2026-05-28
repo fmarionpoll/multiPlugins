@@ -5,12 +5,15 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.List;
 import java.util.prefs.Preferences;
 
+import javax.swing.ActionListener;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -24,6 +27,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
@@ -46,6 +50,9 @@ public class KymoOverlayFrame {
 	private ChartPanel chartPanel;
 	private Point graphLocation = new Point(0, 0);
 	private final JButton updateButton = new JButton("Update");
+	private JComboBox<EnumResults> measureComboBox;
+	private JComboBox<EnumResults> parentMeasureComboBox;
+	private EnumResults[] measurementTypes;
 
 	private String baseTitle;
 	private Experiment lastExperiment;
@@ -58,6 +65,14 @@ public class KymoOverlayFrame {
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
 		this.selectedSpotsProvider = provider;
+	}
+
+	public void setMeasurementTypes(EnumResults[] types) {
+		this.measurementTypes = types;
+	}
+
+	public void setParentComboBox(JComboBox<EnumResults> parent) {
+		this.parentMeasureComboBox = parent;
 	}
 
 	public void createMainChartPanel(String title, ResultsOptions options) {
@@ -78,8 +93,7 @@ public class KymoOverlayFrame {
 					new Dimension(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT), true, true, true, true);
 		}
 		mainChartFrame.setLayout(new BorderLayout());
-		JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		top.add(updateButton);
+		JPanel top = buildTopControlsPanel(options);
 		mainChartFrame.add(top, BorderLayout.NORTH);
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
 		updateButton.addActionListener(e -> refreshChart());
@@ -114,9 +128,58 @@ public class KymoOverlayFrame {
 		mainChartFrame.requestFocus();
 	}
 
+	private JPanel buildTopControlsPanel(ResultsOptions options) {
+		JPanel top = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		EnumResults[] types = measurementTypes != null && measurementTypes.length > 0 ? measurementTypes
+				: new EnumResults[] { options != null && options.resultType != null ? options.resultType
+						: EnumResults.KYMO_GREEN_HEIGHT_RATIO };
+		measureComboBox = new JComboBox<>(types);
+		if (options != null && options.resultType != null) {
+			measureComboBox.setSelectedItem(options.resultType);
+		}
+		measureComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				EnumResults selected = (EnumResults) measureComboBox.getSelectedItem();
+				if (selected != null && lastOptions != null) {
+					lastOptions.resultType = selected;
+					syncParentMeasureCombo(selected);
+					refreshChart();
+				}
+			}
+		});
+		top.add(measureComboBox);
+		top.add(updateButton);
+		return top;
+	}
+
+	private void syncParentMeasureCombo(EnumResults selected) {
+		if (parentMeasureComboBox == null || selected == null) {
+			return;
+		}
+		if (parentMeasureComboBox.getSelectedItem() == selected) {
+			return;
+		}
+		ActionListener[] listeners = parentMeasureComboBox.getActionListeners();
+		for (ActionListener listener : listeners) {
+			parentMeasureComboBox.removeActionListener(listener);
+		}
+		parentMeasureComboBox.setSelectedItem(selected);
+		for (ActionListener listener : listeners) {
+			parentMeasureComboBox.addActionListener(listener);
+		}
+	}
+
 	public void refreshChart() {
 		if (mainChartPanel == null || lastExperiment == null || lastOptions == null) {
 			return;
+		}
+		if (measureComboBox != null) {
+			Object sel = measureComboBox.getSelectedItem();
+			if (sel instanceof EnumResults) {
+				lastOptions.resultType = (EnumResults) sel;
+				applyKymoAggregateChartOptions(lastExperiment, lastOptions);
+			}
 		}
 		List<Spot> spots = selectedSpotsProvider != null ? selectedSpotsProvider.getSelectedSpots() : null;
 		mainChartPanel.removeAll();
@@ -143,6 +206,18 @@ public class KymoOverlayFrame {
 		mainChartPanel.revalidate();
 		mainChartPanel.repaint();
 		updateTitle(spots.size());
+	}
+
+	private static void applyKymoAggregateChartOptions(Experiment exp, ResultsOptions options) {
+		if (options == null || exp == null || exp.getSpots() == null) {
+			return;
+		}
+		if (options.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
+			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
+					.globalStimulusConcKeysFirstSeenOrder(exp, exp.getSpots());
+		} else {
+			options.spotAggregateGlobalKeyOrder = null;
+		}
 	}
 
 	private void updateTitle(int nSpots) {

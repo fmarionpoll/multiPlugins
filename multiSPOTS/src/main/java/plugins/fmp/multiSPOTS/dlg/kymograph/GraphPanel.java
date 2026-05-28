@@ -27,8 +27,8 @@ import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
-import plugins.fmp.multitools.tools.chart.strategies.NoOpChartUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.KymoFractionTraceMode;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -207,7 +207,7 @@ public class GraphPanel extends JPanel {
 		applyKymoAggregateChartOptions(exp, options);
 
 		chartCagesFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(), null, new GridLayoutStrategy(),
-				new NoOpChartUIControlsFactory());
+				createKymoChartUIControlsFactory());
 		chartCagesFrame.createMainChartPanel("Kymograph", exp, options);
 		chartCagesFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		chartCagesFrame.displayData(exp, options);
@@ -225,6 +225,8 @@ public class GraphPanel extends JPanel {
 			return;
 		}
 		overlayFrame = new KymoOverlayFrame();
+		overlayFrame.setMeasurementTypes(KYMO_MEASURES);
+		overlayFrame.setParentComboBox(measureComboBox);
 		overlayFrame.setSelectedSpotsProvider(
 				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		overlayFrame.createMainChartPanel("Kymograph (selected)", options);
@@ -279,6 +281,13 @@ public class GraphPanel extends JPanel {
 			}
 			cage.getRoi().setSelected(cage == cageToSelect);
 		}
+	}
+
+	private ComboBoxUIControlsFactory createKymoChartUIControlsFactory() {
+		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
+		ui.setMeasurementTypes(KYMO_MEASURES);
+		ui.setParentComboBox(measureComboBox);
+		return ui;
 	}
 
 	private Rectangle getInitialUpperLeftPosition(Experiment exp) {

@@ -313,7 +313,12 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected NumberAxis setXaxis(String label, ResultsOptions resultsOptions) {
 		NumberAxis xAxis = new NumberAxis();
-		xAxis.setLabel(label);
+		String xLabel = label;
+		if ((xLabel == null || xLabel.isEmpty()) && resultsOptions != null
+				&& EnumResults.isKymographMeasure(resultsOptions.resultType)) {
+			xLabel = "time (min)";
+		}
+		xAxis.setLabel(xLabel);
 		xAxis.setAutoRange(true);
 		xAxis.setAutoRangeIncludesZero(false);
 		return xAxis;
