@@ -12,7 +12,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Writes per-spot kymograph analysis series (green height and h/h₀) to a CSV file in the kymographs bin.
+ * Writes per-spot kymograph analysis series (green height and h/h_max) to a CSV file in the kymographs bin.
  */
 public final class KymoAnalysisCsvExport {
 

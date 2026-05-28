@@ -218,12 +218,12 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	/**
-	 * Kymograph: per-bin sum of per-spot green height ratios (h/h₀), grouped by (stimulus, concentration) per cage —
-	 * parallel to {@link #AGG_SUMCLEAN} (each spot normalized to its own starting bar height).
+	 * Kymograph: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_GREEN_HEIGHT_RATIO)}, grouped by (stimulus,
+	 * concentration) per cage.
 	 */
-	AGG_GREENHEIGHT_RATIO("AGG_GREENHEIGHT_RATIO", "Σ h/h₀",
-			"Kymograph: sum of per-spot green height ratios by (stimulus, conc) per cage",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_GREENHEIGHT_RATIO"),
+	AGG_GREENHEIGHT_CONSO("AGG_GREENHEIGHT_CONSO", "Σ (1−h/h_max)",
+			"Kymograph: sum of per-spot (1 − peak-normalized height) by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_GREENHEIGHT_CONSO"),
 
 	/**
 	 * Kymograph-only: fraction of vertical strip rows with metric above threshold (not persisted on spots).
@@ -247,15 +247,15 @@ public enum EnumResults {
 			"Kymograph: vertical extent (rows) of cleaned green mask per time bin",
 			StoredDataAccessors.accessStored_KYMO_GREEN_HEIGHT(), "KYMO_GREEN_HEIGHT", PersistenceDomain.SPOT),
 	/**
-	 * Kymograph: green height divided by height at the first time bin with height &gt; 0 (occupancy vs start of trace).
+	 * Kymograph: green height divided by the maximum green height across the strip (peak-normalized occupancy).
 	 */
-	KYMO_GREEN_HEIGHT_RATIO("KYMO_GREEN_HEIGHT_RATIO", "h / h₀",
-			"Kymograph: green mask height relative to first detected height",
+	KYMO_GREEN_HEIGHT_RATIO("KYMO_GREEN_HEIGHT_RATIO", "h / h_max",
+			"Kymograph: green mask height relative to strip maximum",
 			StoredDataAccessors.accessStored_KYMO_GREEN_HEIGHT_RATIO(), "KYMO_GREEN_HEIGHT_RATIO",
 			PersistenceDomain.SPOT),
 	/** Kymograph: per-bin mean of per-spot green height ratios within a cage. */
-	KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO("KYMO_CAGE_MEAN_H", "h / h₀",
-			"Kymograph: cage mean of green height ratio across spots",
+	KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO("KYMO_CAGE_MEAN_H", "h / h_max",
+			"Kymograph: cage mean of peak-normalized green height ratio across spots",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO");
 
 	public enum PersistenceDomain {
@@ -353,7 +353,7 @@ public enum EnumResults {
 		case AGG_SUMCLEAN_COLOR:
 		case AGG_AREA_COUNT_COLOR:
 		case AGG_MEDIANREF:
-		case AGG_GREENHEIGHT_RATIO:
+		case AGG_GREENHEIGHT_CONSO:
 		case KYMO_FRACT:
 		case KYMO_ABS_DELTA:
 		case KYMO_CAGE_MEAN_FRACT:
@@ -370,6 +370,9 @@ public enum EnumResults {
 	public static EnumResults findByPersistenceKey(String key) {
 		if (key == null) {
 			return null;
+		}
+		if ("AGG_GREENHEIGHT_RATIO".equals(key)) {
+			return AGG_GREENHEIGHT_CONSO;
 		}
 		for (EnumResults v : values()) {
 			if (key.equals(v.toPersistenceKey())) {
@@ -397,7 +400,7 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case AGG_GREENHEIGHT_RATIO:
+		case AGG_GREENHEIGHT_CONSO:
 			return true;
 		default:
 			return false;

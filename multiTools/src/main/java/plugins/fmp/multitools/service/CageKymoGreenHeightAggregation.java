@@ -10,8 +10,8 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 
 /**
- * Cage-level kymograph aggregates of per-spot {@link KymoAnalysisResult.SpotKymoSeries#greenHeightRatio}, grouped by
- * (stimulus, concentration). Each bin sums finite per-spot h/h₀ values (same role as {@code AGG_SUMCLEAN} on camera
+ * Cage-level kymograph aggregates of per-spot {@code 1 − KYMO_GREEN_HEIGHT_RATIO}, grouped by (stimulus,
+ * concentration). Each bin sums finite per-spot consumption values (same role as {@code AGG_SUMCLEAN} on camera
  * traces).
  */
 public final class CageKymoGreenHeightAggregation {
@@ -31,7 +31,7 @@ public final class CageKymoGreenHeightAggregation {
 	private CageKymoGreenHeightAggregation() {
 	}
 
-	public static List<SumSeries> buildSumRatioByStimulusConc(List<SpotKymoSeries> rows, int nBins) {
+	public static List<SumSeries> buildSumConsoByStimulusConc(List<SpotKymoSeries> rows, int nBins) {
 		if (rows == null || rows.isEmpty() || nBins <= 0) {
 			return List.of();
 		}
@@ -42,11 +42,11 @@ public final class CageKymoGreenHeightAggregation {
 			}
 			sources.add(new RatioSource(row.spot, row.greenHeightRatio));
 		}
-		return buildSumRatioByStimulusConcFromSources(sources, nBins);
+		return buildSumConsoByStimulusConcFromSources(sources, nBins);
 	}
 
-	/** Builds stimulus/conc sums from persisted per-spot {@link Spot} kymograph h/h₀ series. */
-	public static List<SumSeries> buildSumRatioByStimulusConcFromSpots(List<Spot> spots, int nBins) {
+	/** Builds stimulus/conc sums from persisted per-spot {@link Spot} kymograph h/h_max series. */
+	public static List<SumSeries> buildSumConsoByStimulusConcFromSpots(List<Spot> spots, int nBins) {
 		if (spots == null || spots.isEmpty() || nBins <= 0) {
 			return List.of();
 		}
@@ -58,7 +58,7 @@ public final class CageKymoGreenHeightAggregation {
 			double[] ratio = spot.getKymoGreenHeightRatio().getValues();
 			sources.add(new RatioSource(spot, ratio));
 		}
-		return buildSumRatioByStimulusConcFromSources(sources, nBins);
+		return buildSumConsoByStimulusConcFromSources(sources, nBins);
 	}
 
 	private static final class RatioSource {
@@ -71,7 +71,7 @@ public final class CageKymoGreenHeightAggregation {
 		}
 	}
 
-	private static List<SumSeries> buildSumRatioByStimulusConcFromSources(List<RatioSource> sources, int nBins) {
+	private static List<SumSeries> buildSumConsoByStimulusConcFromSources(List<RatioSource> sources, int nBins) {
 		if (sources == null || sources.isEmpty() || nBins <= 0) {
 			return List.of();
 		}
@@ -101,10 +101,11 @@ public final class CageKymoGreenHeightAggregation {
 					if (!Double.isFinite(v)) {
 						continue;
 					}
+					double conso = 1.0 - v;
 					if (!Double.isFinite(sum[j])) {
 						sum[j] = 0.0;
 					}
-					sum[j] += v;
+					sum[j] += conso;
 				}
 			}
 			if (nExposed > 0) {
@@ -112,10 +113,6 @@ public final class CageKymoGreenHeightAggregation {
 			}
 		}
 		return out;
-	}
-
-	private static StimulusConcKey keyForRow(SpotKymoSeries row) {
-		return row == null ? null : keyForSpot(row.spot);
 	}
 
 	private static StimulusConcKey keyForSpot(Spot spot) {

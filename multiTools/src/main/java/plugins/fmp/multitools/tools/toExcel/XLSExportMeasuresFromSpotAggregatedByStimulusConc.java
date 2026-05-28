@@ -51,7 +51,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5
 				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_COLOR
 				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR
-				|| resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_RATIO;
+				|| resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO;
 		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
 		}
@@ -64,7 +64,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			gridProbe = EnumResults.GREY_SUM_CLEAN_COLOR;
 		} else if (resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR) {
 			gridProbe = EnumResults.AREA_COUNT_COLOR;
-		} else if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_RATIO) {
+		} else if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
 			gridProbe = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
 		} else {
 			gridProbe = EnumResults.AREA_SUMCLEAN;
@@ -84,7 +84,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				&& resultType != EnumResults.GREY_SUM_CLEAN_COLOR && resultType != EnumResults.AREA_COUNT_COLOR
 				&& resultType != EnumResults.AGG_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN_V5
 				&& resultType != EnumResults.AGG_AREA_COUNT_V5 && resultType != EnumResults.AGG_SUMCLEAN_COLOR
-				&& resultType != EnumResults.AGG_AREA_COUNT_COLOR && resultType != EnumResults.AGG_GREENHEIGHT_RATIO
+				&& resultType != EnumResults.AGG_AREA_COUNT_COLOR && resultType != EnumResults.AGG_GREENHEIGHT_CONSO
 				&& resultType != EnumResults.KYMO_GREEN_HEIGHT_RATIO) {
 			return col0;
 		}

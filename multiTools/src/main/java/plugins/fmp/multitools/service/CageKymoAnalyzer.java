@@ -176,7 +176,7 @@ public final class CageKymoAnalyzer {
 		return x;
 	}
 
-	/** Per-column green mask height (row count ON in band) and ratio to the first column with height &gt; 0. */
+	/** Per-column green mask height (row count ON in band) and ratio to max height across the strip. */
 	public static double[] greenHeightRatioFromHeights(int[] greenHeight) {
 		int n = greenHeight != null ? greenHeight.length : 0;
 		double[] ratio = new double[n];
@@ -184,23 +184,19 @@ public final class CageKymoAnalyzer {
 		if (n == 0) {
 			return ratio;
 		}
-		int baseline = -1;
+		int hMax = 0;
 		for (int x = 0; x < n; x++) {
-			if (greenHeight[x] > 0) {
-				baseline = x;
-				break;
+			if (greenHeight[x] > hMax) {
+				hMax = greenHeight[x];
 			}
 		}
-		if (baseline < 0) {
+		if (hMax <= 0) {
 			return ratio;
 		}
-		double h0 = greenHeight[baseline];
-		if (h0 <= 0) {
-			return ratio;
-		}
+		double hMaxD = hMax;
 		for (int x = 0; x < n; x++) {
 			int h = greenHeight[x];
-			ratio[x] = h > 0 ? h / h0 : 0.0;
+			ratio[x] = h > 0 ? h / hMaxD : 0.0;
 		}
 		return ratio;
 	}
@@ -243,7 +239,7 @@ public final class CageKymoAnalyzer {
 	}
 
 	/**
-	 * Fraction, green height (rows), and h/h₀ for one spot band on one kymograph frame. Rows counted as ON use the
+	 * Fraction, green height (rows), and h/h_max for one spot band on one kymograph frame. Rows counted as ON use the
 	 * post-lift cleaned mask when row lift is on; otherwise raw spot metric &gt; threshold (with optional insect
 	 * exclusion).
 	 */

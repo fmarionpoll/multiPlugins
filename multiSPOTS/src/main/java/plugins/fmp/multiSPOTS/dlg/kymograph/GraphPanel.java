@@ -42,7 +42,7 @@ public class GraphPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_GREEN_HEIGHT_RATIO,
-			EnumResults.AGG_GREENHEIGHT_RATIO, EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT,
+			EnumResults.AGG_GREENHEIGHT_CONSO, EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT,
 			EnumResults.KYMO_ABS_DELTA, EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO,
 			EnumResults.KYMO_CAGE_MEAN_FRACT, EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
@@ -121,7 +121,7 @@ public class GraphPanel extends JPanel {
 		if (options == null || exp == null || exp.getSpots() == null) {
 			return;
 		}
-		if (options.resultType == EnumResults.AGG_GREENHEIGHT_RATIO) {
+		if (options.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
 			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
 					.globalStimulusConcKeysFirstSeenOrder(exp, exp.getSpots());
 		} else {

@@ -217,7 +217,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		ResultsOptions resultsOptions = new ResultsOptions();
 		resultsOptions.spotAreas = true;
 		resultsOptions.spotAggregateByStimulusConc = true;
-		resultsOptions.resultType = EnumResults.AGG_GREENHEIGHT_RATIO;
+		resultsOptions.resultType = EnumResults.AGG_GREENHEIGHT_CONSO;
 		resultsOptions.relativeToMaximum = false;
 		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		getCommonOptions(resultsOptions, exp);

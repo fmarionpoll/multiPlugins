@@ -1394,7 +1394,7 @@ public class Cages {
 		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_SUMCLEAN_V5
 				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_SUMCLEAN_COLOR
 				|| opt.resultType == EnumResults.AGG_AREA_COUNT_COLOR || opt.resultType == EnumResults.AGG_MEDIANREF
-				|| opt.resultType == EnumResults.AGG_GREENHEIGHT_RATIO || opt.spotAggregateByStimulusConc;
+				|| opt.resultType == EnumResults.AGG_GREENHEIGHT_CONSO || opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
 				if (cage != null) {
@@ -1405,8 +1405,8 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
-		if (savedRt == EnumResults.AGG_GREENHEIGHT_RATIO) {
-			prepareKymoGreenHeightAggregates(exp, allSpots);
+		if (savedRt == EnumResults.AGG_GREENHEIGHT_CONSO) {
+			prepareKymoGreenHeightConsoAggregates(exp, allSpots);
 			return;
 		}
 		EnumResults buildRt;
@@ -1481,7 +1481,7 @@ public class Cages {
 		}
 	}
 
-	private void prepareKymoGreenHeightAggregates(Experiment exp, Spots allSpots) {
+	private void prepareKymoGreenHeightConsoAggregates(Experiment exp, Spots allSpots) {
 		for (Cage cage : cagesList) {
 			if (cage == null) {
 				continue;
@@ -1503,7 +1503,7 @@ public class Cages {
 			if (nBins <= 0) {
 				continue;
 			}
-			List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumRatioByStimulusConcFromSpots(spots, nBins);
+			List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromSpots(spots, nBins);
 			List<CageSpotAggregateSeries> entries = new ArrayList<>(sums.size());
 			for (SumSeries agg : sums) {
 				if (agg == null || agg.key == null || agg.values == null) {
@@ -1515,7 +1515,7 @@ public class Cages {
 					nativeAgg.values.add(agg.values[j]);
 				}
 				CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(nativeAgg,
-						EnumResults.AGG_GREENHEIGHT_RATIO);
+						EnumResults.AGG_GREENHEIGHT_CONSO);
 				if (row != null) {
 					entries.add(row);
 				}

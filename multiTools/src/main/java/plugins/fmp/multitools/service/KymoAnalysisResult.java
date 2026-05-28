@@ -42,8 +42,7 @@ public final class KymoAnalysisResult {
 		 */
 		public final int[] greenHeight;
 		/**
-		 * {@code greenHeight[x] / greenHeight[baseline]}, where baseline is the first column from t=0 with height
-		 * &gt; 0.
+		 * {@code greenHeight[x] / max(greenHeight)} over the strip (peak-normalized occupancy).
 		 */
 		public final double[] greenHeightRatio;
 

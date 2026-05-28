@@ -39,11 +39,11 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		return rt == EnumResults.KYMO_FRACT || rt == EnumResults.KYMO_ABS_DELTA || rt == EnumResults.KYMO_CAGE_MEAN_FRACT
 				|| rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA || rt == EnumResults.KYMO_GREEN_HEIGHT
 				|| rt == EnumResults.KYMO_GREEN_HEIGHT_RATIO || rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO
-				|| rt == EnumResults.AGG_GREENHEIGHT_RATIO;
+				|| rt == EnumResults.AGG_GREENHEIGHT_CONSO;
 	}
 
-	private static boolean useKymoAggGreenHeightSum(EnumResults rt) {
-		return rt == EnumResults.AGG_GREENHEIGHT_RATIO;
+	private static boolean useKymoAggGreenHeightConso(EnumResults rt) {
+		return rt == EnumResults.AGG_GREENHEIGHT_CONSO;
 	}
 
 	private static boolean useAbsDelta(EnumResults rt) {
@@ -127,8 +127,8 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (rows.isEmpty()) {
 			return dataset;
 		}
-		if (useKymoAggGreenHeightSum(rt)) {
-			addGreenHeightRatioSumAggregates(dataset, cage, x, rows, options);
+		if (useKymoAggGreenHeightConso(rt)) {
+			addGreenHeightConsoSumAggregates(dataset, cage, x, rows, options);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;
 		}
@@ -157,10 +157,10 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		return dataset;
 	}
 
-	private static void addGreenHeightRatioSumAggregates(XYSeriesCollection dataset, Cage cage, double[] x,
+	private static void addGreenHeightConsoSumAggregates(XYSeriesCollection dataset, Cage cage, double[] x,
 			List<SpotKymoSeries> rows, ResultsOptions options) {
 		int n = x.length;
-		List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumRatioByStimulusConc(rows, n);
+		List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumConsoByStimulusConc(rows, n);
 		List<StimulusConcKey> globalOrder = options != null ? options.spotAggregateGlobalKeyOrder : null;
 		int ai = 0;
 		CageProperties cageProp = cage.getProperties();
@@ -272,7 +272,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 			return dataset;
 		}
 		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_FRACT;
-		if (useKymoAggGreenHeightSum(rt)) {
+		if (useKymoAggGreenHeightConso(rt)) {
 			java.util.HashMap<Integer, java.util.ArrayList<Spot>> byCage = new java.util.HashMap<>();
 			for (Spot spot : spots) {
 				if (spot == null || spot.getProperties() == null) {
@@ -297,7 +297,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 				if (cage == null) {
 					continue;
 				}
-				addGreenHeightRatioSumAggregates(dataset, cage, x, subset, options);
+				addGreenHeightConsoSumAggregates(dataset, cage, x, subset, options);
 			}
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;

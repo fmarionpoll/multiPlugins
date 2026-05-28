@@ -92,8 +92,8 @@ public final class KymoSpotChartSupport {
 			return dataset;
 		}
 		EnumResults rt = options.resultType;
-		if (rt == EnumResults.AGG_GREENHEIGHT_RATIO) {
-			addGreenHeightAggregates(exp, cage, spots, options, dataset);
+		if (rt == EnumResults.AGG_GREENHEIGHT_CONSO) {
+			addGreenHeightConsoAggregates(exp, cage, spots, options, dataset);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;
 		}
@@ -141,8 +141,8 @@ public final class KymoSpotChartSupport {
 				continue;
 			}
 			List<Spot> cageSpots = e.getValue();
-			if (rt == EnumResults.AGG_GREENHEIGHT_RATIO) {
-				addGreenHeightAggregates(exp, cage, cageSpots, options, dataset);
+			if (rt == EnumResults.AGG_GREENHEIGHT_CONSO) {
+				addGreenHeightConsoAggregates(exp, cage, cageSpots, options, dataset);
 				continue;
 			}
 			if (isCageMean(rt)) {
@@ -170,8 +170,8 @@ public final class KymoSpotChartSupport {
 		return dataset;
 	}
 
-	private static void addGreenHeightAggregates(Experiment exp, Cage cage, List<Spot> spots, ResultsOptions options,
-			XYSeriesCollection dataset) {
+	private static void addGreenHeightConsoAggregates(Experiment exp, Cage cage, List<Spot> spots,
+			ResultsOptions options, XYSeriesCollection dataset) {
 		int nBins = maxKymoBinsForSpots(spots, EnumResults.KYMO_GREEN_HEIGHT_RATIO);
 		if (nBins <= 0) {
 			return;
@@ -182,7 +182,7 @@ public final class KymoSpotChartSupport {
 			addCachedAggregates(cage, x, cached, options, dataset);
 			return;
 		}
-		List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumRatioByStimulusConcFromSpots(spots, nBins);
+		List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromSpots(spots, nBins);
 		List<StimulusConcKey> globalOrder = options != null ? options.spotAggregateGlobalKeyOrder : null;
 		int ai = 0;
 		CageProperties cageProp = cage.getProperties();

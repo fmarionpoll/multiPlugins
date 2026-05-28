@@ -211,7 +211,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case AGG_GREENHEIGHT_RATIO:
+		case AGG_GREENHEIGHT_CONSO:
 			return true;
 		default:
 			return false;
