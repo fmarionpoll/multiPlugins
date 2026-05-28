@@ -13,11 +13,11 @@
     </parent>
 
     <!-- Project Information -->
-    <artifactId>multiSPOTS96</artifactId>
+    <artifactId>multiSPOTS</artifactId>
     
     <packaging>jar</packaging>
 
-    <name>MultiSPOTS96</name>
+    <name>multiSPOTS</name>
     <description>We deposit small drops of sugary liquid mixed with a blue dye on a flat transparent substrate and let them dry. Flies can detect these spots and feed on them. We measure the consumption of these spots by monitoring the grey levels in ellipsoid areas placed by the user over these spots. These values are exported to Excel files. Cages and the position of individual flies can also be detected and exported to Excel. No provision is made to detect more than one fly per cage. Each experiment is described by a series of parameters exported along with the measures.</description>
     <url></url>
     <inceptionYear>2024</inceptionYear>
