@@ -16,7 +16,7 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	private static final String KEY_DETECT_BLOBS_THRESHOLD = "detectBlobsThreshold";
 	private static final String KEY_DETECT_BLOBS_SPOT_DIAMETER_PX = "detectBlobsSpotDiameterPx";
 
-	private static final String LEGACY_INTERVALS_NODE = "multiSPOTS96Intervals";
+	private static final String LEGACY_INTERVALS_NODE = "multiSPOTSIntervals";
 	private static final String LEGACY_KEY_DEFAULT_NOMINAL_INTERVAL_SEC = "defaultNominalIntervalSec";
 
 	private boolean viewSpots = true;
@@ -101,11 +101,11 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	}
 
 	/**
-	 * One-time migration from the legacy {@code multiSPOTS96Intervals} node to
-	 * the shared {@code viewOptions} node. Must be called before
+	 * One-time migration from the legacy {@code multiSPOTSIntervals} node to the
+	 * shared {@code viewOptions} node. Must be called before
 	 * {@link #load(XMLPreferences)} on plugin startup. No-op if either node is
-	 * null, if the target already has the key, or if the legacy node has no
-	 * value to migrate.
+	 * null, if the target already has the key, or if the legacy node has no value
+	 * to migrate.
 	 */
 	public void migrateLegacyPreferencesIfNeeded(XMLPreferences target, XMLPreferences legacy) {
 		if (target == null || legacy == null)
@@ -117,8 +117,8 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 			return;
 		target.put(KEY_DEFAULT_NOMINAL_INTERVAL_SEC, legacyValue);
 		legacy.remove(LEGACY_KEY_DEFAULT_NOMINAL_INTERVAL_SEC);
-		Logger.info("Migrated defaultNominalIntervalSec from " + LEGACY_INTERVALS_NODE
-				+ " to viewOptions node (" + legacyValue + ")");
+		Logger.info("Migrated defaultNominalIntervalSec from " + LEGACY_INTERVALS_NODE + " to viewOptions node ("
+				+ legacyValue + ")");
 	}
 
 	@Override

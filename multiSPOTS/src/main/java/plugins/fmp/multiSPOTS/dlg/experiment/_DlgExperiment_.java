@@ -24,8 +24,8 @@ import icy.main.Icy;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.dlg.hosts.MultiSpots96CorrectDriftHost;
-import plugins.fmp.multiSPOTS.dlg.hosts.MultiSpots96IntervalsHost;
+import plugins.fmp.multiSPOTS.dlg.hosts.MultiSpotsCorrectDriftHost;
+import plugins.fmp.multiSPOTS.dlg.hosts.MultiSpotsIntervalsHost;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.CorrectDriftPanel;
 import plugins.fmp.multitools.experiment.ui.IntervalsPanel;
@@ -67,10 +67,10 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		editPanel.init(tabsLayout, parent0);
 		tabsPane.addTab("Edit", null, editPanel, "Edit descriptors");
 
-		intervalsPanel.init(tabsLayout, new MultiSpots96IntervalsHost(parent0));
+		intervalsPanel.init(tabsLayout, new MultiSpotsIntervalsHost(parent0));
 		tabsPane.addTab("Intervals", null, intervalsPanel, "View/edit time-lapse intervals");
 
-		correctDriftPanel.init(tabsLayout, new MultiSpots96CorrectDriftHost(parent0));
+		correctDriftPanel.init(tabsLayout, new MultiSpotsCorrectDriftHost(parent0));
 		tabsPane.addTab("Correct drift", null, correctDriftPanel, "Correct image drift with time");
 
 		optionsPanel.init(tabsLayout, parent0);

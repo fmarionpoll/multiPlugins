@@ -11,11 +11,11 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
  * used by panels living in multiTools. A single instance is created per
  * plugin session and shared by all dialog hosts.
  */
-public class MultiSpots96DialogHost implements DialogHost {
+public class MultiSpotsDialogHost implements DialogHost {
 
 	private final MultiSPOTS plugin;
 
-	public MultiSpots96DialogHost(MultiSPOTS plugin) {
+	public MultiSpotsDialogHost(MultiSPOTS plugin) {
 		this.plugin = plugin;
 	}
 

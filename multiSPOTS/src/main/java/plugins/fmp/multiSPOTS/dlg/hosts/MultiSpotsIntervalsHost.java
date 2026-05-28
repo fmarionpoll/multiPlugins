@@ -5,9 +5,9 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.GenerationMode;
 import plugins.fmp.multitools.experiment.ui.host.IntervalsHost;
 
-public class MultiSpots96IntervalsHost extends MultiSpots96DialogHost implements IntervalsHost {
+public class MultiSpotsIntervalsHost extends MultiSpotsDialogHost implements IntervalsHost {
 
-	public MultiSpots96IntervalsHost(MultiSPOTS plugin) {
+	public MultiSpotsIntervalsHost(MultiSPOTS plugin) {
 		super(plugin);
 	}
 
