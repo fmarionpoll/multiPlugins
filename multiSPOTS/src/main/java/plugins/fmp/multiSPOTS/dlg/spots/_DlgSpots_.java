@@ -112,7 +112,8 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 				parent0.dlgExperiment.intervalsPanel.getExptParms(exp);
 				createCagesPanel.updateNColumnsFieldFromSequence();
 			}
-		} else if (event.getPropertyName().equals("CAP_ROIS_SAVE")) {
+		} else if (event.getPropertyName().equals("CAP_ROIS_SAVE")
+				|| event.getPropertyName().equals("SPOTS_BLOBS_CONVERTED")) {
 			tabbedPane.setSelectedIndex(id_editSpots);
 		}
 	}

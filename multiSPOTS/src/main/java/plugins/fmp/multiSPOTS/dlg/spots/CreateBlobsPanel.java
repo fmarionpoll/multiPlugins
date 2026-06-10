@@ -207,6 +207,7 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 				if (exp != null) {
 					int diameter = (int) spotDiameterSpinner.getValue();
 					convertBlobsToCircles(exp, diameter);
+					firePropertyChange("SPOTS_BLOBS_CONVERTED", false, true);
 				}
 			}
 		});

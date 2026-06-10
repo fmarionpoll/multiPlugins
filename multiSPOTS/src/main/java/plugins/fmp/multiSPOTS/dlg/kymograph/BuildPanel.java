@@ -41,7 +41,7 @@ public class BuildPanel extends JPanel implements PropertyChangeListener {
 	private JButton startComputationButton = new JButton("Start");
 	private JSpinner diskRadiusSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
-	private JSpinner binSize = new JSpinner(new SpinnerNumberModel(60., 1., 1000., 1.));
+	private JSpinner binSize = new JSpinner(new SpinnerNumberModel(20., 1., 1000., 1.));
 	private JComboBoxMs binUnit = new JComboBoxMs();
 
 	private JRadioButton isFloatingFrameButton = new JRadioButton("all", true);
