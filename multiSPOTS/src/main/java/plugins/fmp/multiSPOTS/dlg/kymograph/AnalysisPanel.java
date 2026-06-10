@@ -57,7 +57,7 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 	private final JComboBox<ImageTransformEnums> metricTransformCombo = new JComboBox<>(
 			KymoImageTransforms.METRIC_CHOICES);
 	private final JSpinner metricThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 512, 1));
-	private final JSpinner minSumRgbSpinner = new JSpinner(new SpinnerNumberModel(30, 0, 765, 1));
+	private final JSpinner minSumRgbSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 765, 1));
 	private final JSpinner minValidRowsSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 500, 1));
 	private final JSpinner maxRowOcclusionGapColsSpinner = new JSpinner(new SpinnerNumberModel(15, 0, 10000, 1));
 	private final JCheckBox rowOcclusionLiftCheckBox = new JCheckBox("Lift occlusions (row-wise)", true);
@@ -497,9 +497,12 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		}
 		final int recallIndex = finished != null ? finished.getSelectedExperimentIndex() : -1;
 		final Params recallParams = finished != null ? finished.analyzerParams : null;
-		// BuildSeries restores the combo in doInBackground finally before this runs; each experiment
-		// was closeSequences()'d in the batch — explicitly reopen the first experiment in the series
-		// (same pattern as LoadSaveExperiment.openExperimentAtIndex after transfer reload).
+		// BuildSeries restores the combo in doInBackground finally before this runs;
+		// each experiment
+		// was closeSequences()'d in the batch — explicitly reopen the first experiment
+		// in the series
+		// (same pattern as LoadSaveExperiment.openExperimentAtIndex after transfer
+		// reload).
 		SwingUtilities.invokeLater(() -> onAnalyzeBatchFinished(recallIndex, recallParams));
 	}
 
@@ -517,8 +520,8 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		if (lastResult == null || lastResult.byCageId.isEmpty()) {
 			statusLabel.setText("No data: build/load kymographs and check ROI bounds.");
 		} else {
-			statusLabel.setText(
-					"Done: " + lastResult.byCageId.size() + " cage(s), " + lastResult.widthBins + " bin(s).");
+			statusLabel
+					.setText("Done: " + lastResult.byCageId.size() + " cage(s), " + lastResult.widthBins + " bin(s).");
 		}
 		pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
 		if (viewKymoButton.isSelected()) {

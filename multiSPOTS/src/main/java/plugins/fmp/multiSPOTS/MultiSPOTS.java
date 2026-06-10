@@ -28,7 +28,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS May 28, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS June 10, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
@@ -53,7 +53,10 @@ public class MultiSPOTS extends PluginActionable {
 
 	public JTabbedPane tabsPane = new JTabbedPane();
 
-	/** Opens the cage kymograph viewer with persisted position/size (gui preferences). */
+	/**
+	 * Opens the cage kymograph viewer with persisted position/size (gui
+	 * preferences).
+	 */
 	public void openCageKymographViewer(Experiment exp) {
 		CageKymographViewerUtil.openIfPresent(exp, getPreferences("gui"), mainFrame);
 	}
