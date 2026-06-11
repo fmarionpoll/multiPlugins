@@ -17,6 +17,7 @@ import icy.file.Loader;
 import icy.file.SequenceFileImporter;
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
+import icy.sequence.SequenceUtil;
 import plugins.fmp.multitools.tools.Logger;
 
 public class ImageLoader {
@@ -109,7 +110,12 @@ public class ImageLoader {
 		getNTotalFrames();
 		List<String> validList = filterLikelyReadableJpegs(getImagesList(true));
 		nTotalFrames = validList.size();
-		Sequence seq = loadSequenceFromImagesList(validList);
+		Sequence seq;
+		if (needsIndependentFrameLoadForMixedTiffExtensions(validList)) {
+			seq = loadSequenceFromIndependentFilesConcatT(validList);
+		} else {
+			seq = loadSequenceFromImagesList(validList);
+		}
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
@@ -146,11 +152,60 @@ public class ImageLoader {
 
 		List<String> validList = filterLikelyReadableJpegs(getImagesList(true));
 		nTotalFrames = validList.size();
-		Sequence seq = loadSequenceFromImagesList(validList);
+		Sequence seq;
+		if (needsIndependentFrameLoadForMixedTiffExtensions(validList)) {
+			seq = loadSequenceFromIndependentFilesConcatT(validList);
+		} else {
+			seq = loadSequenceFromImagesList(validList);
+		}
 		if (seq != null) {
 			// Sequence is already in beginUpdate() mode from loadSequenceFromImagesList()
 			seqCamData.attachSequence(seq);
 		}
+	}
+
+	/**
+	 * Bio-Formats / Icy batch import picks a reader from the first path; mixing {@code .tiff} and
+	 * plain {@code .tif} OME-TIFFs in one list then yields a wrong T count. When both extensions appear,
+	 * load each file with its own importer and concatenate on T (cage kymograph stacks).
+	 */
+	private static boolean needsIndependentFrameLoadForMixedTiffExtensions(List<String> paths) {
+		if (paths == null || paths.size() < 2) {
+			return false;
+		}
+		boolean anyDotTiff = false;
+		boolean anyPlainDotTif = false;
+		for (String p : paths) {
+			if (p == null) {
+				continue;
+			}
+			String l = p.toLowerCase();
+			if (l.endsWith(".tiff")) {
+				anyDotTiff = true;
+			} else if (l.endsWith(".tif")) {
+				anyPlainDotTif = true;
+			}
+		}
+		return anyDotTiff && anyPlainDotTif;
+	}
+
+	private Sequence loadSequenceFromIndependentFilesConcatT(List<String> validList) {
+		ArrayList<Sequence> parts = new ArrayList<>(validList.size());
+		for (String p : validList) {
+			Sequence one = loadSequenceFromImagesList(Collections.singletonList(p));
+			if (one == null) {
+				Logger.error("ImageLoader: failed to load kymograph frame file: " + p);
+				return null;
+			}
+			parts.add(one);
+		}
+		if (parts.isEmpty()) {
+			return null;
+		}
+		if (parts.size() == 1) {
+			return parts.get(0);
+		}
+		return SequenceUtil.concatT(parts.toArray(new Sequence[0]));
 	}
 
 	private static List<String> filterLikelyReadableJpegs(List<String> images) {

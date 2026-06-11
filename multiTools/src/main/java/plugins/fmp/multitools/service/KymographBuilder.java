@@ -33,6 +33,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.TiffTifSiblingPaths;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.polyline.Bresenham;
@@ -198,7 +199,9 @@ public class KymographBuilder {
 	/**
 	 * Resolves the kymograph results subfolder: canonical {@code bin_XX} when it exists,
 	 * with best-effort {@code old_*} cleanup and {@code line*} → {@code old_line*} archive.
-	 * Per-file writes use {@link #saveImageSafely}; no alternate revision folders.
+	 * Per-file writes use {@link #saveImageSafely} (temp file, then replace; on Windows may fall
+	 * back to a {@code .tif} / {@code .tiff} sibling when the primary path stays locked). No alternate
+	 * revision folders for bins.
 	 */
 	public static String chooseWritableBinSubDirectoryForKymograph(Experiment exp, String preferredBinDir,
 			BuildSeriesOptions options) {
@@ -770,12 +773,7 @@ public class KymographBuilder {
 				moveWithRetries(tmpPath, targetPath);
 			} catch (IOException moveEx) {
 				if (SystemUtil.isWindows()) {
-					Logger.warn("KymographBuilder.saveImageSafely: replace-by-move failed for " + targetPath
-							+ "; attempting delete-then-move (" + moveEx.getMessage() + ")");
-					// Never use Saver.saveImage(..., target, true) on an existing OME-TIFF: Bio-Formats can
-					// throw (e.g. strip/IFD size mismatch) and leave a truncated or unreadable file.
-					deleteFileWithRetriesForReplace(targetPath);
-					moveWithRetries(tmpPath, targetPath);
+					tryWindowsKymographSaveRecovery(tmpPath, targetPath, moveEx);
 				} else {
 					throw moveEx;
 				}
@@ -789,17 +787,75 @@ public class KymographBuilder {
 		}
 	}
 
-	private static void moveWithRetries(Path tmpPath, Path targetPath) throws IOException {
+	/**
+	 * Windows: primary replace failed. Prefer the {@code .tif}/{@code .tiff} sibling (often not open in
+	 * the viewer) before any work on the locked primary path — avoids long retry storms on immovable
+	 * files.
+	 */
+	private static void tryWindowsKymographSaveRecovery(Path tmpPath, Path targetPath, IOException moveEx)
+			throws IOException {
+		Logger.debug("KymographBuilder.saveImageSafely: replace-by-move failed for " + targetPath + " — "
+				+ moveEx.getMessage());
+		Path alt = TiffTifSiblingPaths.alternateTiffExtensionPath(targetPath);
+		IOException aggregate = moveEx;
+		if (alt != null) {
+			try {
+				moveTmpOntoSiblingClearingAlt(tmpPath, alt);
+				Logger.info("KymographBuilder.saveImageSafely: saved as " + alt.getFileName()
+						+ " (primary .tiff was busy; loaders use newer of .tiff/.tif).");
+				return;
+			} catch (IOException e) {
+				aggregate.addSuppressed(e);
+				Logger.debug("KymographBuilder.saveImageSafely: sibling-path install failed (" + e.getMessage() + ")");
+			}
+		}
+		try {
+			replaceWinKymographViaRenameAsideThenMove(tmpPath, targetPath);
+			return;
+		} catch (IOException e) {
+			aggregate.addSuppressed(e);
+			Logger.debug("KymographBuilder.saveImageSafely: rename-aside failed (" + e.getMessage() + ")");
+		}
+		try {
+			deleteFileForReplaceWithOptions(targetPath, 6, 120);
+			moveWithRetries(tmpPath, targetPath, 6, 120);
+			return;
+		} catch (IOException e) {
+			aggregate.addSuppressed(e);
+		}
+		if (alt != null) {
+			try {
+				moveTmpOntoSiblingClearingAlt(tmpPath, alt);
+				Logger.info("KymographBuilder.saveImageSafely: saved as " + alt.getFileName()
+						+ " after primary delete/move failed (loaders use newer of .tiff/.tif).");
+				return;
+			} catch (IOException e) {
+				aggregate.addSuppressed(e);
+			}
+		}
+		throw new IOException("Windows kymograph save recovery failed for " + targetPath, aggregate);
+	}
+
+	private static void moveTmpOntoSiblingClearingAlt(Path tmpPath, Path altPath) throws IOException {
+		deleteFileForReplaceWithOptions(altPath, 5, 80);
+		moveWithRetries(tmpPath, altPath, 8, 150);
+	}
+
+	private static void moveWithRetries(Path from, Path to) throws IOException {
+		moveWithRetries(from, to, 12, 500);
+	}
+
+	private static void moveWithRetries(Path from, Path to, int maxAttempts, long maxSleepMs) throws IOException {
 		IOException last = null;
 		final boolean isWindows = SystemUtil.isWindows();
-		final int maxAttempts = isWindows ? 40 : 3;
+		int attempts = isWindows ? maxAttempts : Math.min(maxAttempts, 3);
 
-		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+		for (int attempt = 1; attempt <= attempts; attempt++) {
 			try {
 				try {
-					Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+					Files.move(from, to, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 				} catch (IOException atomicNotSupported) {
-					Files.move(tmpPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+					Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
 				}
 				return;
 			} catch (IOException e) {
@@ -807,10 +863,8 @@ public class KymographBuilder {
 				if (!isWindows) {
 					break;
 				}
-				// On Windows, the target TIFF can remain locked briefly after viewers/sequences are closed.
-				// Retry a few times with backoff rather than failing the entire rebuild.
 				try {
-					long sleepMs = Math.min(1500L, 50L * attempt);
+					long sleepMs = Math.min(maxSleepMs, Math.max(5L, 20L * attempt));
 					Thread.sleep(sleepMs);
 				} catch (InterruptedException ie) {
 					Thread.currentThread().interrupt();
@@ -818,21 +872,21 @@ public class KymographBuilder {
 				}
 			}
 		}
-		throw last != null ? last : new IOException("Failed to move " + tmpPath + " -> " + targetPath);
+		throw last != null ? last : new IOException("Failed to move " + from + " -> " + to);
 	}
 
 	/**
-	 * Deletes an existing file so a temp file can be moved into place. Used on Windows when
-	 * {@link Files#move(Path, Path, java.nio.file.CopyOption...)} cannot replace a locked TIFF.
+	 * Deletes an existing file so a temp file can be moved into place.
 	 */
-	private static void deleteFileWithRetriesForReplace(Path targetPath) throws IOException {
+	private static void deleteFileForReplaceWithOptions(Path targetPath, int maxAttempts, long maxSleepMs)
+			throws IOException {
 		if (targetPath == null || !Files.isRegularFile(targetPath)) {
 			return;
 		}
 		IOException last = null;
 		final boolean isWindows = SystemUtil.isWindows();
-		final int maxAttempts = isWindows ? 35 : 5;
-		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+		int attempts = isWindows ? maxAttempts : Math.min(maxAttempts, 5);
+		for (int attempt = 1; attempt <= attempts; attempt++) {
 			try {
 				Files.delete(targetPath);
 				return;
@@ -842,7 +896,8 @@ public class KymographBuilder {
 					break;
 				}
 				try {
-					Thread.sleep(Math.min(1500L, 50L * attempt));
+					long sleepMs = Math.min(maxSleepMs, Math.max(5L, 25L * attempt));
+					Thread.sleep(sleepMs);
 				} catch (InterruptedException ie) {
 					Thread.currentThread().interrupt();
 					break;
@@ -850,6 +905,48 @@ public class KymographBuilder {
 			}
 		}
 		throw new IOException("Could not delete locked target before replace: " + targetPath, last);
+	}
+
+	/**
+	 * Moves an existing regular file aside, then moves {@code tmpPath} into {@code targetPath}.
+	 * On some Windows setups the open file can be renamed when delete/replace is denied.
+	 */
+	private static void replaceWinKymographViaRenameAsideThenMove(Path tmpPath, Path targetPath) throws IOException {
+		if (targetPath == null || tmpPath == null) {
+			throw new IOException("replaceWinKymographViaRenameAsideThenMove: null path");
+		}
+		if (!Files.isRegularFile(targetPath)) {
+			moveWithRetries(tmpPath, targetPath, 8, 150);
+			return;
+		}
+		Path parent = targetPath.getParent();
+		if (parent == null) {
+			throw new IOException("replaceWinKymographViaRenameAsideThenMove: target has no parent: " + targetPath);
+		}
+		String fn = targetPath.getFileName().toString();
+		Path aside = parent.resolve(fn + ".replacing." + Long.toUnsignedString(System.nanoTime()));
+		for (int n = 0; Files.exists(aside) && n < 20; n++) {
+			aside = parent.resolve(fn + ".replacing." + Long.toUnsignedString(System.nanoTime()) + "." + n);
+		}
+		if (Files.exists(aside)) {
+			throw new IOException("Could not allocate aside name for " + targetPath);
+		}
+		try {
+			moveWithRetries(targetPath, aside, 4, 50);
+		} catch (IOException e) {
+			throw e;
+		}
+		try {
+			moveWithRetries(tmpPath, targetPath, 8, 150);
+		} catch (IOException e) {
+			try {
+				moveWithRetries(aside, targetPath, 4, 50);
+			} catch (IOException rollback) {
+				e.addSuppressed(rollback);
+			}
+			throw e;
+		}
+		deletePathWithRetries(aside);
 	}
 
 	private void clearAllAlongTMasks(Experiment exp) {

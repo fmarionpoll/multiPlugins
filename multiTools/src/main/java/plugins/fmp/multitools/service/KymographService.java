@@ -27,6 +27,7 @@ import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymosUtils;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.TiffTifSiblingPaths;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
@@ -76,31 +77,16 @@ public class KymographService {
 				continue;
 			}
 
-			// Try .tiff first, then .tif
-			String fileNameTiff = directoryFull + kymographName + ".tiff";
-			String fileNameTif = directoryFull + kymographName + ".tif";
-			File fileTiff = new File(fileNameTiff);
-			File fileTif = new File(fileNameTif);
-
+			File picked = TiffTifSiblingPaths.pickForKymographDescriptor(directoryFull, kymographName);
 			ImageFileData temp = new ImageFileData();
-			if (fileTiff.exists()) {
-				temp.fileName = fileNameTiff;
-				temp.exists = true;
-				myListOfFiles.add(temp);
-			} else if (fileTif.exists()) {
-				temp.fileName = fileNameTif;
-				temp.exists = true;
-				myListOfFiles.add(temp);
-			} else {
-				// File doesn't exist, but still add it to the list (will be marked as
-				// non-existent)
-				temp.fileName = fileNameTiff;
-				temp.exists = false;
-				myListOfFiles.add(temp);
+			temp.fileName = picked.getPath();
+			temp.exists = picked.isFile();
+			if (!temp.exists) {
 				Logger.info(
 						"KymographService:loadListOfPotentialKymographsFromCapillaries - Kymograph file not found for capillary: "
 								+ kymographName);
 			}
+			myListOfFiles.add(temp);
 		}
 		return myListOfFiles;
 	}
