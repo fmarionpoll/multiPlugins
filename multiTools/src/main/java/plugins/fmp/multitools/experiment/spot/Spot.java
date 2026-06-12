@@ -218,6 +218,13 @@ public class Spot implements Comparable<Spot> {
 	}
 
 	/**
+	 * Returns the ROI reference without {@link #regenerateROIFromCoordinates()} side effects.
+	 */
+	public ROI2DShape getRoiDirect() {
+		return spotROI2D;
+	}
+
+	/**
 	 * Sets the ROI for this spot.
 	 * 
 	 * @param roi the ROI to set

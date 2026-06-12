@@ -1,15 +1,15 @@
 package plugins.fmp.multitools.series;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spots.Spots;
-import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SpotLevelDetectionRunner;
 import plugins.fmp.multitools.service.SpotLevelDetectorFromCamV5;
-import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Memory-light series that computes V5 spot measures via {@link SpotLevelDetectorFromCamV5}.
+ * Memory-light series that computes V5 spot measures via
+ * {@link SpotLevelDetectorFromCamV5}.
  */
 public class BuildSpotsMeasuresV5 extends BuildSeries {
 

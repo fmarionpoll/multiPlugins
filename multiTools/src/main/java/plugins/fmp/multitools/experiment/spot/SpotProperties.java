@@ -596,6 +596,11 @@ public class SpotProperties {
 				&& spotRadius > 0;
 	}
 
+	/** True when CSV (or XML) already provided usable image coordinates — do not overwrite from cage grid. */
+	public boolean hasPersistedPixelCoordinates() {
+		return spotRadius > 0 && spotXCoord >= 0 && spotYCoord >= 0;
+	}
+
 	/**
 	 * Gets validation errors for these properties.
 	 * 

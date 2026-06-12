@@ -314,7 +314,7 @@ public class SequenceKymos extends SequenceCamData {
 			// Load images
 			setStatus(EnumStatus.KYMOGRAPH);
 			List<String> acceptedFiles = ExperimentDirectories.keepOnlyAcceptedNames_List(validImageFiles,
-					configuration.getAcceptedFileExtensions().toArray(new String[0]));
+					configuration.getAcceptedFileExtensions().toArray(new String[0]), false);
 
 			loadImageList(acceptedFiles);
 			setSequenceNameFromFirstImage(acceptedFiles);

@@ -962,15 +962,20 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	public void mapSpotsToCageColumnRow(Spots allSpots) {
+		mapSpotsToCageColumnRow(allSpots, 8, 4);
+	}
+
+	public void mapSpotsToCageColumnRow(Spots allSpots, int nCols, int nRows) {
 		if (allSpots == null || cageROI2D == null) {
+			return;
+		}
+		if (nCols <= 0 || nRows <= 0) {
 			return;
 		}
 		Rectangle rect = cageROI2D.getBounds();
 		if (rect == null || rect.width <= 0 || rect.height <= 0) {
 			return;
 		}
-		final int nCols = 8;
-		final int nRows = 4;
 		double deltaX = rect.getWidth() / nCols;
 		double deltaY = rect.getHeight() / nRows;
 		if (deltaX <= 0 || deltaY <= 0) {

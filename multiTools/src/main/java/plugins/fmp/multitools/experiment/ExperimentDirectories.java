@@ -45,6 +45,16 @@ public class ExperimentDirectories {
 	}
 
 	public static List<String> keepOnlyAcceptedNames_List(List<String> namesList, String[] strExtension) {
+		return keepOnlyAcceptedNames_List(namesList, strExtension, true);
+	}
+
+	/**
+	 * @param sortLexicographically when false, keeps the relative order of {@code namesList} (only
+	 *        filters by extension). Use false for cage kymograph stacks where T order must follow
+	 *        numeric cage id, not lexicographic file paths.
+	 */
+	public static List<String> keepOnlyAcceptedNames_List(List<String> namesList, String[] strExtension,
+			boolean sortLexicographically) {
 		int count = namesList.size();
 		List<String> outList = new ArrayList<String>(count);
 
@@ -58,7 +68,9 @@ public class ExperimentDirectories {
 				}
 			}
 		}
-		Collections.sort(outList);
+		if (sortLexicographically) {
+			Collections.sort(outList);
+		}
 		return outList;
 	}
 

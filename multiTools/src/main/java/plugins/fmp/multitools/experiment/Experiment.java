@@ -1057,6 +1057,10 @@ public class Experiment {
 
 	// -------------------------------
 
+	private void afterSpotsDispatchedBeforeSpotGeometry() {
+		SpotCageHeuristicLayout.applyAfterSpotsDispatched(this);
+	}
+
 	/**
 	 * Loads spot description and measures for the current experiment.
 	 * <p>
@@ -1074,6 +1078,9 @@ public class Experiment {
 	 */
 	public boolean load_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
+		// Idempotent reload: DescriptorIndex, combo export, and UI may call this more than once
+		// on the same LazyExperiment; MS96 XML loading appends and must not accumulate duplicates.
+		spots.clearSpotList();
 
 		if (isLegacyExperimentFormat()) {
 			boolean fromXml = CagesPersistenceLegacy.loadSpotsFromMS96CagesXml(spots, resultsDir);
@@ -1084,6 +1091,7 @@ public class Experiment {
 			spots.ensureSumNoFlyPresent();
 			spots.rebuildSumCleanFromSumNoFly();
 			dispatchSpotsToCages();
+			afterSpotsDispatchedBeforeSpotGeometry();
 			cages.ensureSpotROIsFromCageGeometry(spots);
 			spots.applyPreConsumedRoiStyles();
 			return !spots.getSpotList().isEmpty();
@@ -1109,6 +1117,7 @@ public class Experiment {
 		spots.rebuildSumCleanFromSumNoFly();
 		if (descriptionsLoaded) {
 			dispatchSpotsToCages();
+			afterSpotsDispatchedBeforeSpotGeometry();
 			cages.ensureSpotROIsFromCageGeometry(spots);
 			spots.applyPreConsumedRoiStyles();
 		}

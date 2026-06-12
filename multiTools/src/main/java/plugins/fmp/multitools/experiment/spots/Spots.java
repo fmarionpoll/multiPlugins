@@ -17,11 +17,11 @@ import org.w3c.dom.Node;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.sequence.ROIOperation;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
-import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
@@ -47,7 +47,10 @@ import plugins.kernel.roi.roi2d.ROI2DShape;
  */
 public class Spots {
 
-	/** Default fraction of ROI mask (8%) when no {@link BuildSeriesOptions} is available (load/reconstruct). */
+	/**
+	 * Default fraction of ROI mask (8%) when no {@link BuildSeriesOptions} is
+	 * available (load/reconstruct).
+	 */
 	public static final double DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY = 0.08;
 
 	// === CONSTANTS ===
@@ -617,7 +620,8 @@ public class Spots {
 	}
 
 	/**
-	 * Ensures sumNoFly exists for all spots, using {@code flyOccupancyFractionOfRoi} (0–1) for fly-mask gating.
+	 * Ensures sumNoFly exists for all spots, using
+	 * {@code flyOccupancyFractionOfRoi} (0–1) for fly-mask gating.
 	 */
 	public void ensureSumNoFlyPresent(double flyOccupancyFractionOfRoi) {
 		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
@@ -660,12 +664,10 @@ public class Spots {
 	 * {@code sumClean} = running median of {@code sumNoFly}.
 	 */
 	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpots(List<Spot> targets) {
-		applyFlyInterpolationSumNoFlyAndSumCleanForSpots(targets,
-				DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY);
+		applyFlyInterpolationSumNoFlyAndSumCleanForSpots(targets, DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY);
 	}
 
-	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpots(List<Spot> targets,
-			double flyOccupancyFractionOfRoi) {
+	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpots(List<Spot> targets, double flyOccupancyFractionOfRoi) {
 		if (targets == null) {
 			return;
 		}
@@ -678,8 +680,8 @@ public class Spots {
 
 	/**
 	 * V2 channel: for each spot, rebuild {@code sumNoFlyV2} from {@code sumV2} and
-	 * {@code flyPresent} via {@link #reconstructSumNoFly(double[], int[], int)}, then
-	 * {@code sumCleanV2} = running median of {@code sumNoFlyV2}.
+	 * {@code flyPresent} via {@link #reconstructSumNoFly(double[], int[], int)},
+	 * then {@code sumCleanV2} = running median of {@code sumNoFlyV2}.
 	 */
 	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpotsV2(List<Spot> targets,
 			double flyOccupancyFractionOfRoi) {
@@ -716,22 +718,29 @@ public class Spots {
 	}
 
 	/**
-	 * Prefix length (bins) used to estimate per-spot {@code sumClean} level before pooling medians for V3.
+	 * Prefix length (bins) used to estimate per-spot {@code sumClean} level before
+	 * pooling medians for V3.
 	 * <p>
-	 * Heterogeneous illumination shifts absolute grey levels per ROI; subtracting each spot's median over
-	 * these early bins approximates a local background/consumption baseline before the pooled median step.
+	 * Heterogeneous illumination shifts absolute grey levels per ROI; subtracting
+	 * each spot's median over these early bins approximates a local
+	 * background/consumption baseline before the pooled median step.
 	 */
 	public static final int SUMCLEAN_V3_BASELINE_PREFIX_BINS = 10;
 
 	/**
-	 * Outcome of {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} for UI / diagnostics.
+	 * Outcome of
+	 * {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} for UI
+	 * / diagnostics.
 	 */
 	public static final class SumCleanV3MedianRebuildSummary {
 		public final boolean requestedPerCagePool;
 		public final int readySpotCount;
 		/** Spots rebuilt using a cage-local median pool (each spot counted once). */
 		public final int spotsInCageMedianPools;
-		/** Spots rebuilt using the final pooled median among spots that matched no cage list. */
+		/**
+		 * Spots rebuilt using the final pooled median among spots that matched no cage
+		 * list.
+		 */
 		public final int spotsInOrphanPool;
 
 		public SumCleanV3MedianRebuildSummary(boolean requestedPerCagePool, int readySpotCount,
@@ -743,8 +752,9 @@ public class Spots {
 		}
 
 		/**
-		 * When per-cage pooling was requested but every ready spot was rebuilt in a single experiment-wide orphan pool
-		 * (same numeric result as leaving per-cage off).
+		 * When per-cage pooling was requested but every ready spot was rebuilt in a
+		 * single experiment-wide orphan pool (same numeric result as leaving per-cage
+		 * off).
 		 */
 		public boolean fellBackToExperimentWidePoolOnly() {
 			return requestedPerCagePool && readySpotCount > 0 && spotsInCageMedianPools == 0
@@ -771,29 +781,37 @@ public class Spots {
 
 	/**
 	 * Tier A V3 (experiment-wide pool): same as
-	 * {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} with {@code perCageReference=false}.
+	 * {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} with
+	 * {@code perCageReference=false}.
 	 */
 	public SumCleanV3MedianRebuildSummary rebuildV3ResidualFromSumCleanExperimentMedian(int wSmoothBins) {
 		return rebuildV3ResidualFromSumCleanMedian(null, wSmoothBins, false);
 	}
 
 	/**
-	 * Tier A V3: per-spot {@code sumClean} shifted by early-bin median (see {@link #SUMCLEAN_V3_BASELINE_PREFIX_BINS}),
-	 * then per time bin a median of shifted values across a <em>pool</em>, smoothed with a running median of width
-	 * {@code wSmoothBins} (odd, enforced). Finally {@code sumCleanV3} = shifted {@code sumClean} minus that smoothed
-	 * reference.
+	 * Tier A V3: per-spot {@code sumClean} shifted by early-bin median (see
+	 * {@link #SUMCLEAN_V3_BASELINE_PREFIX_BINS}), then per time bin a median of
+	 * shifted values across a <em>pool</em>, smoothed with a running median of
+	 * width {@code wSmoothBins} (odd, enforced). Finally {@code sumCleanV3} =
+	 * shifted {@code sumClean} minus that smoothed reference.
 	 * <p>
-	 * When {@code perCageReference} is true, the pool is the spots in each {@link Cage} separately (handles different
-	 * lighting per cage on the same plate). Spots not assigned to any cage list still participate in a final
+	 * When {@code perCageReference} is true, the pool is the spots in each
+	 * {@link Cage} separately (handles different lighting per cage on the same
+	 * plate). Spots not assigned to any cage list still participate in a final
 	 * experiment-wide pool among themselves.
 	 *
-	 * @param exp               may be null when {@code perCageReference} is false
-	 * @param wSmoothBins       smoothing window on the pooled median series
-	 * @param perCageReference  if true, uses {@code exp.getCages()} when non-null; otherwise same as false
-	 * @return summary of which median pools were used (see {@link SumCleanV3MedianRebuildSummary})
+	 * @param exp              may be null when {@code perCageReference} is false
+	 * @param wSmoothBins      smoothing window on the pooled median series
+	 * @param perCageReference if true, uses {@code exp.getCages()} when non-null;
+	 *                         otherwise same as false
+	 * @return summary of which median pools were used (see
+	 *         {@link SumCleanV3MedianRebuildSummary})
 	 */
 	public SumCleanV3MedianRebuildSummary rebuildV3ResidualFromSumCleanMedian(Experiment exp, int wSmoothBins,
 			boolean perCageReference) {
+		if (exp == null)
+			return null;
+
 		List<Spot> globalReady = collectSpotsReadyForSumCleanV3();
 		int nReady = globalReady.size();
 		boolean perCage = perCageReference && exp != null && exp.getCages() != null;
@@ -802,6 +820,7 @@ public class Spots {
 			return new SumCleanV3MedianRebuildSummary(perCageReference, nReady, 0, nReady);
 		}
 		Set<Spot> done = Collections.newSetFromMap(new IdentityHashMap<Spot, Boolean>());
+
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
@@ -947,7 +966,10 @@ public class Spots {
 		return scratch[m / 2];
 	}
 
-	/** Inflates t0 measures for spots marked consumed before recording (see {@link SpotPreConsumedSupport}). */
+	/**
+	 * Inflates t0 measures for spots marked consumed before recording (see
+	 * {@link SpotPreConsumedSupport}).
+	 */
 	public void applyPreConsumedReferenceAtT0(Experiment exp) {
 		SpotPreConsumedSupport.applyPreConsumedReferenceAtT0(exp);
 	}
@@ -958,9 +980,10 @@ public class Spots {
 	}
 
 	/**
-	 * Applies a plateau correction on {@code sumNoFly}: for bins where fly occupancy
-	 * is above the gate, replace values by the last finite non-fly value. This is a
-	 * conservative alternative to linear interpolation that avoids long ramps.
+	 * Applies a plateau correction on {@code sumNoFly}: for bins where fly
+	 * occupancy is above the gate, replace values by the last finite non-fly value.
+	 * This is a conservative alternative to linear interpolation that avoids long
+	 * ramps.
 	 */
 	public void applyFlyPlateauOnSumNoFlyForSpots(List<Spot> targets, double flyOccupancyFractionOfRoi) {
 		if (targets == null) {
@@ -1077,8 +1100,9 @@ public class Spots {
 
 	/**
 	 * Writes {@code sumNoFly} from {@code sum} and {@code flyPresent} using
-	 * {@link #reconstructSumNoFly} when lengths match. If {@code allowLegacyFallbacks}
-	 * is true and fly length does not match, falls back like {@link #ensureSumNoFlyPresent}.
+	 * {@link #reconstructSumNoFly} when lengths match. If
+	 * {@code allowLegacyFallbacks} is true and fly length does not match, falls
+	 * back like {@link #ensureSumNoFlyPresent}.
 	 */
 	private void fillSumNoFlyFromSumAndFlyPresent(Spot spot, boolean allowLegacyFallbacks,
 			double flyOccupancyFractionOfRoi) {
@@ -1273,26 +1297,31 @@ public class Spots {
 	}
 
 	/**
-	 * Same rule as legacy {@code sumNoFly} fly-occlusion gating: {@code ceil(fraction × ROI mask pixels)},
-	 * lower bound 1. Pass {@link plugins.fmp.multitools.series.options.BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}.
+	 * Same rule as legacy {@code sumNoFly} fly-occlusion gating:
+	 * {@code ceil(fraction × ROI mask pixels)}, lower bound 1. Pass
+	 * {@link plugins.fmp.multitools.series.options.BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}.
 	 */
 	public static int getMinFlyPixelsForOccupancyGate(Spot spot, double flyOccupancyFractionOfRoi) {
 		return computeMinFlyPixelsToTreatOccupiedForReconstruction(spot, flyOccupancyFractionOfRoi);
 	}
 
 	/**
-	 * Same as {@link #reconstructSumNoFly(double[], int[], int)} with gate {@code minFlyPx = 1} (legacy: any counted fly pixel).
+	 * Same as {@link #reconstructSumNoFly(double[], int[], int)} with gate
+	 * {@code minFlyPx = 1} (legacy: any counted fly pixel).
 	 */
 	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent) {
 		return reconstructSumNoFly(sumIn, flyPresent, 1);
 	}
 
 	/**
-	 * For each time index where {@code flyPresent[i] >= minFlyPx}, merges contiguous runs and replaces values in each run
-	 * with a linear bridge when finite neighbors exist on both sides, or a plateau from one side otherwise.
-	 * {@code flyPresent} stores detected fly-pixel counts per frame; callers choose {@code minFlyPx} via
-	 * occupancy fraction ({@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()} or
-	 * {@link #DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY}). Two-arg {@link #reconstructSumNoFly(double[], int[])} uses {@code minFlyPx = 1}.
+	 * For each time index where {@code flyPresent[i] >= minFlyPx}, merges
+	 * contiguous runs and replaces values in each run with a linear bridge when
+	 * finite neighbors exist on both sides, or a plateau from one side otherwise.
+	 * {@code flyPresent} stores detected fly-pixel counts per frame; callers choose
+	 * {@code minFlyPx} via occupancy fraction
+	 * ({@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()} or
+	 * {@link #DEFAULT_FLY_OCCUPANCY_FRACTION_OF_ROI_FOR_SUMNOFLY}). Two-arg
+	 * {@link #reconstructSumNoFly(double[], int[])} uses {@code minFlyPx = 1}.
 	 */
 	public static double[] reconstructSumNoFly(double[] sumIn, int[] flyPresent, int minFlyPx) {
 		double[] out = java.util.Arrays.copyOf(sumIn, sumIn.length);
@@ -1358,7 +1387,8 @@ public class Spots {
 	}
 
 	/**
-	 * Recomputes {@code GREY_SUM_CLEAN_V5} from {@code GREY_SUM_V5} for the given spots (same smoothing as legacy sumClean).
+	 * Recomputes {@code GREY_SUM_CLEAN_V5} from {@code GREY_SUM_V5} for the given
+	 * spots (same smoothing as legacy sumClean).
 	 */
 	public void rebuildGreySumCleanV5OnlyForSpots(List<Spot> targets) {
 		if (targets == null) {

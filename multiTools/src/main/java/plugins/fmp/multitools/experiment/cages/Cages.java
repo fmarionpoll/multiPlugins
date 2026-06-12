@@ -116,6 +116,25 @@ public class Cages {
 	public int nColumnsPerCage = 2;
 	public int nRowsPerCage = 1;
 
+	/** Spots laid out in a cage ROI for {@link #ensureSpotROIsFromCageGeometry} and {@link Cage#mapSpotsToCageColumnRow}. */
+	private int spotRoiGridCols = 8;
+	private int spotRoiGridRows = 4;
+
+	public int getSpotRoiGridCols() {
+		return spotRoiGridCols;
+	}
+
+	public int getSpotRoiGridRows() {
+		return spotRoiGridRows;
+	}
+
+	public void setSpotRoiGridCells(int cols, int rows) {
+		if (cols > 0 && rows > 0) {
+			spotRoiGridCols = cols;
+			spotRoiGridRows = rows;
+		}
+	}
+
 	// ---------- not saved to xml:
 	public long detectFirst_Ms = 0;
 	public long detectLast_Ms = 0;
@@ -319,8 +338,13 @@ public class Cages {
 		if (allSpots == null) {
 			return;
 		}
+		int nCols = Math.max(1, spotRoiGridCols);
+		int nRows = Math.max(1, spotRoiGridRows);
 		for (Spot spot : allSpots.getSpotList()) {
-			if (spot.getRoi() != null) {
+			if (spot.getRoiDirect() != null) {
+				continue;
+			}
+			if (spot.getProperties().hasPersistedPixelCoordinates()) {
 				continue;
 			}
 			int cageID = spot.getProperties().getCageID();
@@ -334,8 +358,6 @@ public class Cages {
 			if (col < 0 || row < 0) {
 				continue;
 			}
-			int nCols = 8;
-			int nRows = 4;
 			int deltaX = Math.max(1, cageRect.width / nCols);
 			int deltaY = Math.max(1, cageRect.height / nRows);
 			int x = cageRect.x + col * deltaX + deltaX / 2;
@@ -1405,8 +1427,10 @@ public class Cages {
 		if (allSpots == null) {
 			return;
 		}
+		int nCols = Math.max(1, spotRoiGridCols);
+		int nRows = Math.max(1, spotRoiGridRows);
 		for (Cage cage : cagesList) {
-			cage.mapSpotsToCageColumnRow(allSpots);
+			cage.mapSpotsToCageColumnRow(allSpots, nCols, nRows);
 		}
 	}
 

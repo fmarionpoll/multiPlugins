@@ -3,13 +3,13 @@ package plugins.fmp.multitools.series;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spots.Spots;
-import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SpotLevelDetectionRunner;
 import plugins.fmp.multitools.service.SpotLevelDetectorFromCamColor;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Memory-light series that computes color-distance spot measures via {@link SpotLevelDetectorFromCamColor}.
+ * Memory-light series that computes color-distance spot measures via
+ * {@link SpotLevelDetectorFromCamColor}.
  */
 public class BuildSpotsMeasuresColor extends BuildSeries {
 
