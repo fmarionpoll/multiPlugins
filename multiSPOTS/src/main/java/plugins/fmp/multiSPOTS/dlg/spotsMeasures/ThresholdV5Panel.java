@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures2;
+package plugins.fmp.multiSPOTS.dlg.spotsMeasures;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -26,7 +26,6 @@ import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures.SpotsMeasuresUi;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
@@ -461,7 +460,7 @@ public class ThresholdV5Panel extends JPanel implements PropertyChangeListener {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_spots_description_and_measures();
-				parent0.dlgMeasureV5.chartsV5Panel.displayChartPanels(exp);
+				parent0.dlgMeasure.chartsV5Panel.displayChartPanels(exp);
 			}
 			processorRef = null;
 		}
