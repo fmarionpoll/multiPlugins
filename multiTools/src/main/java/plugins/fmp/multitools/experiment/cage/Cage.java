@@ -10,12 +10,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -60,6 +61,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 
 	private final AtomicBoolean closed = new AtomicBoolean(false);
 
+	/** Throttle identical redundant-slot warnings per cage (UI refresh can call getSpotList very often). */
+	private static final ConcurrentHashMap<Integer, Long> REDUNDANT_SPOT_WARN_LAST_MS = new ConcurrentHashMap<>();
+	private static final long REDUNDANT_SPOT_WARN_MIN_INTERVAL_MS = 5000L;
+
 	public boolean valid = false;
 	public boolean bDetect = true;
 	public boolean initialflyRemoved = false;
@@ -102,7 +107,21 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	}
 
 	public void setSpotIDs(List<SpotID> spotIDs) {
-		this.spotIDs = spotIDs != null ? new ArrayList<>(spotIDs) : new ArrayList<>();
+		if (spotIDs == null) {
+			this.spotIDs = new ArrayList<>();
+			return;
+		}
+		LinkedHashSet<SpotID> seen = new LinkedHashSet<>();
+		ArrayList<SpotID> out = new ArrayList<>(spotIDs.size());
+		for (SpotID id : spotIDs) {
+			if (id == null) {
+				continue;
+			}
+			if (seen.add(id)) {
+				out.add(id);
+			}
+		}
+		this.spotIDs = out;
 	}
 
 	public List<CapillaryID> getCapillaryIDs() {
@@ -178,8 +197,14 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 		int skipped = skippedSameSpot + skippedSameRoi;
 		if (skipped > 0) {
-			Logger.warn("Cage " + prop.getCageID() + ": skipped " + skipped
-					+ " redundant spot cage slot(s) (duplicate SpotID list entry and/or same ROI instance). Infos table now matches ROIs on the sequence.");
+			int cageId = prop.getCageID();
+			long now = System.currentTimeMillis();
+			Long last = REDUNDANT_SPOT_WARN_LAST_MS.get(cageId);
+			if (last == null || now - last >= REDUNDANT_SPOT_WARN_MIN_INTERVAL_MS) {
+				REDUNDANT_SPOT_WARN_LAST_MS.put(cageId, now);
+				Logger.warn("Cage " + cageId + ": skipped " + skipped
+						+ " redundant spot cage slot(s) (duplicate SpotID list entry and/or same ROI instance). Infos table now matches ROIs on the sequence.");
+			}
 		}
 		return out;
 	}

@@ -47,6 +47,7 @@ public class EditSpotsPanel extends JPanel {
 	private JButton deleteSelectedSpotsButton = new JButton("Delete spots");
 	private JButton duplicateSelectedSpotButton = new JButton("Duplicate spot");
 	private JButton cleanUpNamesButton = new JButton("Clean up spot names");
+	private JButton cleanUpNamesKeepCagesButton = new JButton("Clean up names (keep cage assignment)");
 
 	private JComboBox<String> typeCombo = new JComboBox<String>(new String[] { "spot", "cage" });
 
@@ -75,6 +76,7 @@ public class EditSpotsPanel extends JPanel {
 		panel0.add(deleteSelectedSpotsButton);
 		panel0.add(duplicateSelectedSpotButton);
 		panel0.add(cleanUpNamesButton);
+		panel0.add(cleanUpNamesKeepCagesButton);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout);
@@ -122,7 +124,17 @@ public class EditSpotsPanel extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					cleanUpSpotNames(exp);
+					cleanUpSpotNames(exp, true);
+				}
+			}
+		});
+
+		cleanUpNamesKeepCagesButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					cleanUpSpotNames(exp, false);
 				}
 			}
 		});
@@ -515,7 +527,7 @@ public class EditSpotsPanel extends JPanel {
 					}
 				}
 			}
-			cleanUpSpotNames(exp);
+			cleanUpSpotNames(exp, true);
 		}
 		// exp.saveSpots_File();
 	}
@@ -577,10 +589,19 @@ public class EditSpotsPanel extends JPanel {
 		// exp.saveSpots_File();
 	}
 
-	private void cleanUpSpotNames(Experiment exp) {
+	/**
+	 * @param reassignMembershipFromGeometry when true, recomputes which cage each spot belongs to
+	 *        from ROI containment (aggressive); when false, only normalizes spot ID lists, then
+	 *        reorders/renames within existing cage membership.
+	 */
+	private void cleanUpSpotNames(Experiment exp, boolean reassignMembershipFromGeometry) {
 		Spots allSpots = exp.getSpots();
 		int duplicateResolvedCount = 0;
-		rebuildCageSpotMembershipFromSpotGeometry(exp, allSpots);
+		if (reassignMembershipFromGeometry) {
+			rebuildCageSpotMembershipFromSpotGeometry(exp, allSpots);
+		} else {
+			exp.getCages().normalizeAllCageSpotIdLists(allSpots);
+		}
 		for (Cage cage : exp.getCages().cagesList) {
 			cage.reorderSpotsReadingOrderAndAssignRowCol(allSpots);
 			duplicateResolvedCount += cage.cleanUpSpotNames(allSpots);

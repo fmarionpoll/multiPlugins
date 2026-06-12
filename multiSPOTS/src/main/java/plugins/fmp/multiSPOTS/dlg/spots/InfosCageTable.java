@@ -203,18 +203,27 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		column.setMinWidth(30);
 	}
 
-	void selectCage(int cageID) {
+	private void focusCageRoiOnSequence(Cage cage) {
 		Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-		if (exp != null) {
-			Cage cage = exp.getCages().getCageFromID(cageID);
-			ROI2D roi = cage.getRoi();
-			exp.getSeqCamData().getSequence().setFocusedROI(roi);
-			exp.getSeqCamData().centerDisplayOnRoi(roi);
-			roi.setSelected(true);
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			return;
 		}
+		if (cage == null) {
+			return;
+		}
+		ROI2D roi = cage.getRoi();
+		if (roi == null) {
+			return;
+		}
+		exp.getSeqCamData().getSequence().setFocusedROI(roi);
+		exp.getSeqCamData().centerDisplayOnRoi(roi);
+		roi.setSelected(true);
 	}
 
 	public void selectRowFromCage(Cage cage) {
+		if (cage == null || cage.getRoi() == null) {
+			return;
+		}
 		String cageName = cage.getRoi().getName();
 		int nrows = cageTable.getRowCount();
 		int selectedRow = -1;
@@ -235,23 +244,31 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 
 	@Override
 	public void valueChanged(ListSelectionEvent e) {
-		if (e.getValueIsAdjusting())
+		if (e.getValueIsAdjusting()) {
 			return;
-
+		}
 		ListSelectionModel lsm = (ListSelectionModel) e.getSource();
-		int minIndex = lsm.getMinSelectionIndex();
-		selectCage(minIndex);
+		if (lsm.isSelectionEmpty()) {
+			return;
+		}
+		int rowIndex = lsm.getMinSelectionIndex();
+		if (rowIndex < 0) {
+			return;
+		}
+		Cage cage = cageTable.cageTableModel.getCageAt(rowIndex);
+		focusCageRoiOnSequence(cage);
 	}
 
 	private void duplicateCageToAll(Experiment exp) {
 		int rowIndex = cageTable.getSelectedRow();
 		int columnIndex = cageTable.getSelectedColumn();
-		if (rowIndex >= 0) {
-			Object value = cageTable.cageTableModel.getValueAt(rowIndex, columnIndex);
-			for (Cage cage : exp.getCages().cagesList) {
-				int iID = cage.getProperties().getCageID();
-				cageTable.cageTableModel.setValueAt(value, iID, columnIndex);
-			}
+		if (rowIndex < 0 || columnIndex < 0) {
+			return;
+		}
+		Object value = cageTable.cageTableModel.getValueAt(rowIndex, columnIndex);
+		int n = exp.getCages().getCageList().size();
+		for (int r = 0; r < n; r++) {
+			cageTable.cageTableModel.setValueAt(value, r, columnIndex);
 		}
 	}
 

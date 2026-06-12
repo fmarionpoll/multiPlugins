@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.spots;
 
 import java.awt.Color;
+import java.util.ArrayList;
 
 import javax.swing.table.AbstractTableModel;
 
@@ -14,6 +15,10 @@ public class SpotTableModel extends AbstractTableModel {
 	 */
 	private static final long serialVersionUID = 6325792669154093747L;
 	private JComboBoxExperimentLazy expList = null;
+	/**
+	 * Table rows follow {@link plugins.fmp.multitools.experiment.cages.Cages#getSpotsInCageOrder}:
+	 * same cage order and deduping as sequence ROI transfer, not raw {@link Spots#getSpotList()}.
+	 */
 	String columnNames[] = { "Spot name", "pixels", "uL", "IDCage", "Pos", "Row", "Col", "Stimulus", "Concentration",
 			"Color" };
 
@@ -31,7 +36,7 @@ public class SpotTableModel extends AbstractTableModel {
 	public int getRowCount() {
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			return exp.getSpots().getSpotListCount();
+			return exp.getCages().getSpotsInCageOrder(exp.getSpots()).size();
 		}
 		return 0;
 	}
@@ -142,13 +147,13 @@ public class SpotTableModel extends AbstractTableModel {
 	}
 
 	public Spot getSpotAt(int rowIndex) {
-		Spot spot = null;
 		if (expList != null && expList.getSelectedIndex() >= 0) {
 			Experiment exp = (Experiment) expList.getSelectedItem();
-			if (rowIndex >= 0 && rowIndex < exp.getSpots().getSpotListCount()) {
-				spot = exp.getSpots().getSpotList().get(rowIndex);
+			ArrayList<Spot> ordered = exp.getCages().getSpotsInCageOrder(exp.getSpots());
+			if (rowIndex >= 0 && rowIndex < ordered.size()) {
+				return ordered.get(rowIndex);
 			}
 		}
-		return spot;
+		return null;
 	}
 }

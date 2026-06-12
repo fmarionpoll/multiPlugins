@@ -6,7 +6,9 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -186,6 +188,89 @@ public class Cages {
 			}
 			cage.setSpotIDs(spotIDs);
 		}
+		normalizeAllCageSpotIdLists(allSpots);
+	}
+
+	/**
+	 * Removes cage {@link SpotID} entries that do not resolve to any spot in {@code allSpots},
+	 * and collapses duplicate IDs. Safe to call after load or when repairing inconsistent lists.
+	 */
+	public void normalizeAllCageSpotIdLists(Spots allSpots) {
+		if (allSpots == null) {
+			return;
+		}
+		HashSet<SpotID> validIds = new HashSet<>();
+		for (Spot s : allSpots.getSpotList()) {
+			if (s != null && s.getSpotUniqueID() != null) {
+				validIds.add(s.getSpotUniqueID());
+			}
+		}
+		for (Cage cage : cagesList) {
+			ArrayList<SpotID> kept = new ArrayList<>();
+			LinkedHashSet<SpotID> seen = new LinkedHashSet<>();
+			for (SpotID id : cage.getSpotIDs()) {
+				if (id == null || !validIds.contains(id)) {
+					continue;
+				}
+				if (seen.add(id)) {
+					kept.add(id);
+				}
+			}
+			cage.setSpotIDs(kept);
+		}
+	}
+
+	/**
+	 * Spots in cage list order; per-cage order matches {@link Cage#getSpotList} (deduped). Same
+	 * ordering as {@link #transferCageSpotsToSequenceAsROIs} for ROI transfer to the sequence.
+	 */
+	public ArrayList<Spot> getSpotsInCageOrder(Spots allSpots) {
+		ArrayList<Spot> out = new ArrayList<>();
+		if (allSpots == null) {
+			return out;
+		}
+		for (Cage cage : cagesList) {
+			for (Spot spot : cage.getSpotList(allSpots)) {
+				out.add(spot);
+			}
+		}
+		return out;
+	}
+
+	/**
+	 * Spots in the global {@link Spots} list that are not referenced by any cage {@code spotIDs}
+	 * list (same notion as “not transferred” by {@link #getSpotsInCageOrder} / sequence ROI sync).
+	 * <ul>
+	 * <li>Spots with {@code null} {@link Spot#getSpotUniqueID()} are orphans.</li>
+	 * <li>Spots whose ID never appears in any cage's {@link Cage#getSpotIDs()} are orphans.</li>
+	 * </ul>
+	 *
+	 * @param allSpots global spot collection (may contain null entries; those are skipped)
+	 * @return mutable list of orphan spots, stable iteration order as in {@code allSpots.getSpotList()}
+	 */
+	public ArrayList<Spot> getOrphanSpots(Spots allSpots) {
+		ArrayList<Spot> out = new ArrayList<>();
+		if (allSpots == null) {
+			return out;
+		}
+		HashSet<SpotID> referenced = new HashSet<>();
+		for (Cage cage : cagesList) {
+			for (SpotID id : cage.getSpotIDs()) {
+				if (id != null) {
+					referenced.add(id);
+				}
+			}
+		}
+		for (Spot spot : allSpots.getSpotList()) {
+			if (spot == null) {
+				continue;
+			}
+			SpotID id = spot.getSpotUniqueID();
+			if (id == null || !referenced.contains(id)) {
+				out.add(spot);
+			}
+		}
+		return out;
 	}
 
 	/**
@@ -552,14 +637,31 @@ public class Cages {
 	}
 
 	public Cage getCageFromSpotROIName(String name, Spots allSpots) {
-		if (allSpots == null) {
+		if (allSpots == null || name == null) {
 			return null;
 		}
 		for (Cage cage : cagesList) {
 			List<Spot> spots = cage.getSpotList(allSpots);
 			for (Spot spot : spots) {
-				if (spot.getRoi().getName().contains(name))
+				if (spot.getRoi() == null) {
+					continue;
+				}
+				String roiName = spot.getRoi().getName();
+				if (name.equals(roiName)) {
 					return cage;
+				}
+			}
+		}
+		for (Cage cage : cagesList) {
+			List<Spot> spots = cage.getSpotList(allSpots);
+			for (Spot spot : spots) {
+				if (spot.getRoi() == null) {
+					continue;
+				}
+				String roiName = spot.getRoi().getName();
+				if (roiName != null && roiName.contains(name)) {
+					return cage;
+				}
 			}
 		}
 		return null;
@@ -986,14 +1088,31 @@ public class Cages {
 	}
 
 	public Spot getSpotFromROIName(String name, Spots allSpots) {
-		if (allSpots == null) {
+		if (allSpots == null || name == null) {
 			return null;
 		}
 		for (Cage cage : cagesList) {
 			List<Spot> spots = cage.getSpotList(allSpots);
 			for (Spot spot : spots) {
-				if (spot.getRoi().getName().contains(name))
+				if (spot.getRoi() == null) {
+					continue;
+				}
+				String roiName = spot.getRoi().getName();
+				if (name.equals(roiName)) {
 					return spot;
+				}
+			}
+		}
+		for (Cage cage : cagesList) {
+			List<Spot> spots = cage.getSpotList(allSpots);
+			for (Spot spot : spots) {
+				if (spot.getRoi() == null) {
+					continue;
+				}
+				String roiName = spot.getRoi().getName();
+				if (roiName != null && roiName.contains(name)) {
+					return spot;
+				}
 			}
 		}
 		return null;
@@ -1044,11 +1163,8 @@ public class Cages {
 			return new Spots();
 		}
 		Spots result = new Spots();
-		for (Cage cage : cagesList) {
-			List<Spot> spots = cage.getSpotList(allSpots);
-			for (Spot spot : spots) {
-				result.getSpotList().add(spot);
-			}
+		for (Spot spot : getSpotsInCageOrder(allSpots)) {
+			result.getSpotList().add(spot);
 		}
 		return result;
 	}

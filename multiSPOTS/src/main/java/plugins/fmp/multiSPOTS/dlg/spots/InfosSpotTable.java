@@ -50,6 +50,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			.createTableRefreshButton("Update table from current experiment");
 	private JButton getNPixelsButton = new JButton("Get n pixels");
 	private JButton selectedSpotButton = new JButton("Locate selected spot");
+	private JButton orphanSpotsButton = new JButton("Orphan spots…");
 
 	private JButton duplicateRowAtCagePositionButton = new JButton("Row at cage pos");
 	private JButton duplicatePreviousButton = new JButton("Row above");
@@ -59,6 +60,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 
 	private JComboBoxExperimentLazy expListComboLazy = null;
 	private Spots allSpotsCopy = null;
+	private InfosOrphanSpotsDialog orphanSpotsDialog = null;
 
 	public void initialize(JComboBoxExperimentLazy expListComboLazy) {
 		this.expListComboLazy = expListComboLazy;
@@ -71,6 +73,7 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		panel1.add(getNPixelsButton);
 		panel1.add(updateButton);
 		panel1.add(selectedSpotButton);
+		panel1.add(orphanSpotsButton);
 		topPanel.add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
@@ -204,6 +207,16 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			}
 		});
 
+		orphanSpotsButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				if (orphanSpotsDialog == null) {
+					orphanSpotsDialog = new InfosOrphanSpotsDialog(expListComboLazy);
+				}
+				orphanSpotsDialog.showOrBringToFront();
+			}
+		});
+
 		refreshTable();
 	}
 
@@ -233,6 +246,10 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	}
 
 	void close() {
+		if (orphanSpotsDialog != null) {
+			orphanSpotsDialog.dispose();
+			orphanSpotsDialog = null;
+		}
 		if (expListComboLazy != null && experimentItemListener != null) {
 			expListComboLazy.removeItemListener(experimentItemListener);
 			experimentItemListener = null;
