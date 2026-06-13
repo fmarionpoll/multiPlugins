@@ -374,6 +374,15 @@ public class Cages {
 			spot.getProperties().setSpotXCoord(x);
 			spot.getProperties().setSpotYCoord(y);
 			if (spot.getProperties().getSpotRadius() <= 0) {
+				int npx = spot.getProperties().getSpotNPixels();
+				if (npx > 0) {
+					int rEst = (int) Math.round(Math.sqrt(npx / Math.PI));
+					if (rEst > 0) {
+						spot.getProperties().setSpotRadius(Math.max(1, rEst));
+					}
+				}
+			}
+			if (spot.getProperties().getSpotRadius() <= 0) {
 				spot.getProperties().setSpotRadius(Math.min(deltaX, deltaY) / 2);
 			}
 			if (spot.regenerateROIFromCoordinates() && spot.getRoi() != null) {

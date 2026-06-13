@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 
@@ -30,6 +31,13 @@ public final class SpotCageHeuristicLayout {
 	public static void applyAfterSpotsDispatched(Experiment exp) {
 		if (exp == null || exp.getCages() == null || exp.getSpots() == null) {
 			return;
+		}
+		// Align synthetic ROI tiling with MS96_cages.xml (or v2 cage description) before any
+		// per-cage inference; otherwise ensureSpotROIsFromCageGeometry keeps the 8×4 default
+		// and overwrites CSV/XML spots that lack a deserialized ROI (~30px vs real ~22px).
+		Cages cages0 = exp.getCages();
+		if (cages0.nColumnsPerCage > 0 && cages0.nRowsPerCage > 0) {
+			cages0.setSpotRoiGridCells(cages0.nColumnsPerCage, cages0.nRowsPerCage);
 		}
 		int maxRow = 0;
 		int maxCol = 0;

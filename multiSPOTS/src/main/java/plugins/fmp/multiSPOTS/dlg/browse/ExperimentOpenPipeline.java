@@ -47,8 +47,10 @@ final class ExperimentOpenPipeline {
 				return false;
 			}
 
-			// Must run before load_cages(): ensureBinDirectoryForLoading() (inside cage load) uses
-			// camImageBin_ms from file timestamps — same ordering issue as multiCAFE's pipeline
+			// Must run before load_cages(): ensureBinDirectoryForLoading() (inside cage
+			// load) uses
+			// camImageBin_ms from file timestamps — same ordering issue as multiCAFE's
+			// pipeline
 			// before bin resolution.
 			progressFrame.setMessage("Reading camera timestamps...");
 			exp.getFileIntervalsFromSeqCamData();
@@ -97,15 +99,15 @@ final class ExperimentOpenPipeline {
 				String kymoBin = exp.getKymosBinFullDirectory();
 				if (kymoBin != null) {
 					exp.setKymographKind(KymographKind.CAGE_STACKED_TIFF);
-					// Drop any stale seqKymos from a previously selected experiment (closeSequences()
+					// Drop any stale seqKymos from a previously selected experiment
+					// (closeSequences()
 					// closes pixels but does not clear the field).
 					exp.releaseKymographSequence();
 					if (exp.isCageKymographDiskRewriteInProgress()) {
-						Logger.debug(
-								"ExperimentOpenPipeline: skip cage kymograph load (disk rewrite in progress)");
+						Logger.debug("ExperimentOpenPipeline: skip cage kymograph load (disk rewrite in progress)");
 					} else if (!exp.loadCageSpotKymographs()) {
-						Logger.warn("ExperimentOpenPipeline: loadCageSpotKymographs returned false for bin "
-								+ kymoBin + " (no kymocage_*.tif* or load error — see Experiment logs)");
+						Logger.info("ExperimentOpenPipeline: loadCageSpotKymographs returned false for bin " + kymoBin
+								+ " (no kymocage_*.tif* or load error — see Experiment logs)");
 					} else if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
 						exp.getSeqKymos().getSequence().addListener(owner);
 						SwingUtilities.invokeLater(() -> owner.parent0.openCageKymographViewer(exp));
@@ -150,12 +152,12 @@ final class ExperimentOpenPipeline {
 	}
 
 	private void displayGraphsIfEnabled(Experiment exp) {
-		if (owner.parent0.viewOptions.isAutoGraphSpotMeasures()
-				&& owner.parent0.dlgMeasure != null && owner.parent0.dlgMeasure.chartsPanel != null) {
+		if (owner.parent0.viewOptions.isAutoGraphSpotMeasures() && owner.parent0.dlgMeasure != null
+				&& owner.parent0.dlgMeasure.chartsPanel != null) {
 			owner.parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 		}
-		if (owner.parent0.viewOptions.isAutoGraphKymoMeasures()
-				&& owner.parent0.dlgKymos != null && owner.parent0.dlgKymos.tabKymoGraph != null) {
+		if (owner.parent0.viewOptions.isAutoGraphKymoMeasures() && owner.parent0.dlgKymos != null
+				&& owner.parent0.dlgKymos.tabKymoGraph != null) {
 			owner.parent0.dlgKymos.tabKymoGraph.displayChartsOnExperimentOpen();
 		}
 	}
@@ -168,8 +170,8 @@ final class ExperimentOpenPipeline {
 
 	private boolean loadExperimentImages(Experiment exp, int expIndex, ProgressFrame progressFrame) {
 		progressFrame.setMessage("Load image");
-		List<String> imagesList = ExperimentDirectories.getImagesListFromPathV2(exp.getSeqCamData().getImagesDirectory(),
-				"jpg");
+		List<String> imagesList = ExperimentDirectories
+				.getImagesListFromPathV2(exp.getSeqCamData().getImagesDirectory(), "jpg");
 		exp.getSeqCamData().loadImageList(imagesList);
 
 		if (owner.parent0.expListComboLazy.getSelectedItem() != exp) {

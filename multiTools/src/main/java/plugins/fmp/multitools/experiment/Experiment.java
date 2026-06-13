@@ -1078,8 +1078,10 @@ public class Experiment {
 	 */
 	public boolean load_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
-		// Idempotent reload: DescriptorIndex, combo export, and UI may call this more than once
-		// on the same LazyExperiment; MS96 XML loading appends and must not accumulate duplicates.
+		// Idempotent reload: DescriptorIndex, combo export, and UI may call this more
+		// than once
+		// on the same LazyExperiment; MS96 XML loading appends and must not accumulate
+		// duplicates.
 		spots.clearSpotList();
 
 		if (isLegacyExperimentFormat()) {
@@ -1151,7 +1153,8 @@ public class Experiment {
 	}
 
 	/**
-	 * Saves kymograph strip measures to {@code SpotsMeasures.csv} in the kymographs bin directory.
+	 * Saves kymograph strip measures to {@code SpotsMeasures.csv} in the kymographs
+	 * bin directory.
 	 */
 	public boolean save_kymo_spot_measures() {
 		if (spots == null) {
@@ -2868,7 +2871,7 @@ public class Experiment {
 			}
 		}
 		if (requireNonEmpty && newList.isEmpty()) {
-			Logger.warn(emptyWarnDetail != null ? emptyWarnDetail
+			Logger.info(emptyWarnDetail != null ? emptyWarnDetail
 					: "Experiment.loadSeqKymographsFromListing: no existing kymograph files to load");
 			return false;
 		}

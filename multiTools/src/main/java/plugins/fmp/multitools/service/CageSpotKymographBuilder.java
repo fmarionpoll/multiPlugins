@@ -137,11 +137,12 @@ public class CageSpotKymographBuilder {
 			return false;
 		}
 
-		Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
-		processor.setThreadName("buildCageKymograph");
-		processor.setPriority(Processor.NORM_PRIORITY);
-		ArrayList<Future<?>> tasks = new ArrayList<>();
-
+		/*
+		 * Columns must be processed sequentially: queuing one async task per column
+		 * retains every loaded frame (and each fillColumn allocates full int[] rasters)
+		 * until all futures complete — long time windows exhaust heap. One frame at a
+		 * time keeps peak memory ~O(1) in column count.
+		 */
 		ProgressFrame progress = new ProgressFrame("Cage kymographs");
 		int sourceLastImageIndex = nTotalFrames;
 		for (int col = 0; col < expectedWidth; col++) {
@@ -151,21 +152,20 @@ public class CageSpotKymographBuilder {
 				continue;
 			}
 
-			final int kymographColumn = col;
 			progress.setMessage("Column " + (col + 1) + " / " + expectedWidth + " (frame " + (sourceImageIndex + 1)
 					+ " / " + sourceLastImageIndex + ")");
 
-			final IcyBufferedImage sourceImage = loader
-					.imageIORead(seqCamData.getFileNameFromImageList(sourceImageIndex));
-
-			tasks.add(processor.submit(() -> {
+			IcyBufferedImage sourceImage = null;
+			try {
+				sourceImage = loader.imageIORead(seqCamData.getFileNameFromImageList(sourceImageIndex));
 				for (CageKymoPlan plan : plans) {
-					fillColumn(plan, sourceImage, kymographColumn, globalHeight, refSizex, refSizey, kymoSizeC, options);
+					fillColumn(plan, sourceImage, col, globalHeight, refSizex, refSizey, kymoSizeC, options);
 				}
-			}));
+			} finally {
+				sourceImage = null;
+			}
 		}
 		progress.close();
-		waitFutures(processor, tasks);
 
 		if (options.doCreateBinDir) {
 			String previousBinDir = exp.getBinSubDirectory();
