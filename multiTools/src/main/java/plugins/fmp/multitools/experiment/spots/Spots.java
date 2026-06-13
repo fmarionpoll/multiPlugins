@@ -82,17 +82,45 @@ public class Spots {
 		return spotList;
 	}
 
+	/**
+	 * Thread-safe copy of the current spot list for iteration from the EDT while
+	 * another thread may be loading spots (e.g. descriptor indexing).
+	 */
+	public List<Spot> copySpotListForRead() {
+		synchronized (this) {
+			return new ArrayList<>(spotList);
+		}
+	}
+
 	public int getSpotListCount() {
-		return spotList.size();
+		synchronized (this) {
+			return spotList.size();
+		}
 	}
 
 	public boolean isSpotListEmpty() {
-		return spotList.isEmpty();
+		synchronized (this) {
+			return spotList.isEmpty();
+		}
 	}
 
 	public void addSpot(Spot spot) {
 		Objects.requireNonNull(spot, "Spot cannot be null");
-		spotList.add(spot);
+		synchronized (this) {
+			spotList.add(spot);
+		}
+	}
+
+	/**
+	 * Keeps spots at indices {@code [0, keepCount)} and removes the tail (legacy CSV
+	 * "n spots" metadata).
+	 */
+	public void trimSpotListTailFromIndex(int keepCount) {
+		synchronized (this) {
+			if (keepCount >= 0 && keepCount < spotList.size()) {
+				spotList.subList(keepCount, spotList.size()).clear();
+			}
+		}
 	}
 
 	/**
@@ -104,28 +132,36 @@ public class Spots {
 	 * @return the next unique spot ID
 	 */
 	public int getNextUniqueSpotID() {
-		int maxID = -1;
-		for (int i = 0; i < spotList.size(); i++) {
-			Spot spot = spotList.get(i);
-			SpotID spotID = spot != null ? spot.getSpotUniqueID() : null;
-			int usedID = (spotID != null) ? spotID.getId() : i;
-			if (usedID > maxID) {
-				maxID = usedID;
+		synchronized (this) {
+			int maxID = -1;
+			for (int i = 0; i < spotList.size(); i++) {
+				Spot spot = spotList.get(i);
+				SpotID spotID = spot != null ? spot.getSpotUniqueID() : null;
+				int usedID = (spotID != null) ? spotID.getId() : i;
+				if (usedID > maxID) {
+					maxID = usedID;
+				}
 			}
+			return maxID + 1;
 		}
-		return maxID + 1;
 	}
 
 	public boolean removeSpot(Spot spot) {
-		return spotList.remove(spot);
+		synchronized (this) {
+			return spotList.remove(spot);
+		}
 	}
 
 	public void clearSpotList() {
-		spotList.clear();
+		synchronized (this) {
+			spotList.clear();
+		}
 	}
 
 	public void sortSpotList() {
-		Collections.sort(spotList);
+		synchronized (this) {
+			Collections.sort(spotList);
+		}
 	}
 
 	// === SPOT SEARCH ===
@@ -134,26 +170,39 @@ public class Spots {
 		if (name == null || name.trim().isEmpty()) {
 			return null;
 		}
-
-		return spotList.stream().filter(spot -> name.equals(spot.getName())).findFirst().orElse(null);
+		synchronized (this) {
+			for (Spot spot : spotList) {
+				if (spot != null && name.equals(spot.getName())) {
+					return spot;
+				}
+			}
+		}
+		return null;
 	}
 
 	public List<Spot> findSpotsContainingPattern(String pattern) {
 		if (pattern == null || pattern.trim().isEmpty()) {
 			return new ArrayList<>();
 		}
-
-		return spotList.stream().filter(spot -> spot.getName() != null && spot.getName().contains(pattern))
-				.collect(Collectors.toList());
+		synchronized (this) {
+			return spotList.stream().filter(spot -> spot != null && spot.getName() != null && spot.getName().contains(pattern))
+					.collect(Collectors.toList());
+		}
 	}
 
 	public boolean isSpotPresent(Spot newSpot) {
 		if (newSpot == null)
 			return false;
 		String newSpotName = newSpot.getName();
-		for (Spot spot : spotList) {
-			if (spot.getName().equals(newSpotName))
-				return true;
+		if (newSpotName == null) {
+			return false;
+		}
+		synchronized (this) {
+			for (Spot spot : spotList) {
+				if (spot != null && newSpotName.equals(spot.getName())) {
+					return true;
+				}
+			}
 		}
 		return false;
 	}
@@ -162,9 +211,14 @@ public class Spots {
 		if (spotID == null) {
 			return null;
 		}
-
-		return spotList.stream().filter(spot -> spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID))
-				.findFirst().orElse(null);
+		synchronized (this) {
+			for (Spot spot : spotList) {
+				if (spot != null && spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
+					return spot;
+				}
+			}
+		}
+		return null;
 	}
 
 	// === DATA LOADING ===
@@ -236,7 +290,7 @@ public class Spots {
 	public void clearMeasuresAtDarkFrames(int[] lightStatusPerFrame) {
 		if (lightStatusPerFrame == null || lightStatusPerFrame.length == 0)
 			return;
-		for (Spot spot : spotList) {
+		for (Spot spot : copySpotListForRead()) {
 			if (spot == null)
 				continue;
 			clearSpotMeasureAtDarkFrames(spot.getSum(), lightStatusPerFrame);
@@ -335,6 +389,7 @@ public class Spots {
 			return false;
 		}
 		try {
+			synchronized (this) {
 			Node nodeSpotsArray = XMLUtil.setElement(node, ID_LISTOFSPOTS);
 			if (nodeSpotsArray == null) {
 				System.err.println("ERROR: Could not create List_of_spots element");
@@ -376,6 +431,7 @@ public class Spots {
 				}
 			}
 			return savedSpots > 0; // Return true if at least one spot was saved
+			}
 
 		} catch (Exception e) {
 			System.err.println("ERROR during SpotsArray save: " + e.getMessage());
@@ -412,34 +468,36 @@ public class Spots {
 				return false;
 			}
 
-			spotList.clear();
-
 			int loadedSpots = 0;
-			for (int i = 0; i < nitems; i++) {
-				try {
-					Node nodeSpot = XMLUtil.getElement(node, ID_SPOT_ + i);
-					if (nodeSpot == null) {
-						System.err.println("WARNING: Could not find spot element for index " + i);
-						continue;
-					}
+			synchronized (this) {
+				spotList.clear();
 
-					Spot spot = new Spot();
-					boolean spotSuccess = spot.loadFromXml(nodeSpot);
-					if (spotSuccess && !isSpotPresent(spot)) {
-						// Assign unique ID if not loaded from XML (legacy files)
-						if (spot.getSpotUniqueID() == null) {
-							int uniqueID = getNextUniqueSpotID();
-							spot.setSpotUniqueID(new SpotID(uniqueID));
+				for (int i = 0; i < nitems; i++) {
+					try {
+						Node nodeSpot = XMLUtil.getElement(node, ID_SPOT_ + i);
+						if (nodeSpot == null) {
+							System.err.println("WARNING: Could not find spot element for index " + i);
+							continue;
 						}
-						spotList.add(spot);
-						loadedSpots++;
-					} else if (!spotSuccess) {
-						Logger.error("Failed to load spot at index " + i);
-					} else {
-						Logger.warn(" Skipped duplicate spot at index " + i);
+
+						Spot spot = new Spot();
+						boolean spotSuccess = spot.loadFromXml(nodeSpot);
+						if (spotSuccess && !isSpotPresent(spot)) {
+							// Assign unique ID if not loaded from XML (legacy files)
+							if (spot.getSpotUniqueID() == null) {
+								int uniqueID = getNextUniqueSpotID();
+								spot.setSpotUniqueID(new SpotID(uniqueID));
+							}
+							spotList.add(spot);
+							loadedSpots++;
+						} else if (!spotSuccess) {
+							Logger.error("Failed to load spot at index " + i);
+						} else {
+							Logger.warn(" Skipped duplicate spot at index " + i);
+						}
+					} catch (Exception e) {
+						System.err.println("ERROR loading spot at index " + i + ": " + e.getMessage());
 					}
-				} catch (Exception e) {
-					System.err.println("ERROR loading spot at index " + i + ": " + e.getMessage());
 				}
 			}
 			return loadedSpots > 0; // Return true if at least one spot was loaded
@@ -501,10 +559,16 @@ public class Spots {
 			return;
 		}
 
-		spotList.clear();
-		for (Spot sourceSpot : sourceArray.getSpotList()) {
-			Spot spot = new Spot(sourceSpot, includeMeasurements);
-			spotList.add(spot);
+		List<Spot> sourceSnapshot = sourceArray.copySpotListForRead();
+		synchronized (this) {
+			spotList.clear();
+			for (Spot sourceSpot : sourceSnapshot) {
+				if (sourceSpot == null) {
+					continue;
+				}
+				Spot spot = new Spot(sourceSpot, includeMeasurements);
+				spotList.add(spot);
+			}
 		}
 	}
 
@@ -517,9 +581,13 @@ public class Spots {
 			return;
 		}
 
-		for (Spot targetSpot : targetArray.getSpotList()) {
-			for (Spot sourceSpot : spotList) {
-				if (sourceSpot.compareTo(targetSpot) == 0) {
+		List<Spot> sourceSnapshot = copySpotListForRead();
+		for (Spot targetSpot : targetArray.copySpotListForRead()) {
+			if (targetSpot == null) {
+				continue;
+			}
+			for (Spot sourceSpot : sourceSnapshot) {
+				if (sourceSpot != null && sourceSpot.compareTo(targetSpot) == 0) {
 					targetSpot.copyFrom(sourceSpot, includeMeasurements);
 					break;
 				}
@@ -532,9 +600,15 @@ public class Spots {
 			return;
 		}
 
-		for (Spot sourceSpot : sourceArray.getSpotList()) {
-			if (!isSpotPresent(sourceSpot)) {
-				spotList.add(sourceSpot);
+		List<Spot> sourceSnapshot = sourceArray.copySpotListForRead();
+		synchronized (this) {
+			for (Spot sourceSpot : sourceSnapshot) {
+				if (sourceSpot == null) {
+					continue;
+				}
+				if (!isSpotPresent(sourceSpot)) {
+					spotList.add(sourceSpot);
+				}
 			}
 		}
 	}
@@ -542,19 +616,35 @@ public class Spots {
 	// === LEVEL2D OPERATIONS ===
 
 	public void adjustSpotsLevel2DMeasuresToImageWidth(int imageWidth) {
-		spotList.forEach(spot -> spot.adjustLevel2DMeasuresToImageWidth(imageWidth));
+		for (Spot spot : copySpotListForRead()) {
+			if (spot != null) {
+				spot.adjustLevel2DMeasuresToImageWidth(imageWidth);
+			}
+		}
 	}
 
 	public void cropSpotsLevel2DMeasuresToImageWidth(int imageWidth) {
-		spotList.forEach(spot -> spot.cropLevel2DMeasuresToImageWidth(imageWidth));
+		for (Spot spot : copySpotListForRead()) {
+			if (spot != null) {
+				spot.cropLevel2DMeasuresToImageWidth(imageWidth);
+			}
+		}
 	}
 
 	public void initializeLevel2DMeasures() {
-		spotList.forEach(Spot::initializeLevel2DMeasures);
+		for (Spot spot : copySpotListForRead()) {
+			if (spot != null) {
+				spot.initializeLevel2DMeasures();
+			}
+		}
 	}
 
 	public void transferMeasuresToLevel2D() {
-		spotList.forEach(Spot::transferMeasuresToLevel2D);
+		for (Spot spot : copySpotListForRead()) {
+			if (spot != null) {
+				spot.transferMeasuresToLevel2D();
+			}
+		}
 	}
 
 	/**
@@ -575,12 +665,16 @@ public class Spots {
 	// === SEQUENCE OPERATIONS ===
 
 	public void transferSpotsToSequenceAsROIs(Sequence sequence) {
-		if (sequence == null || spotList.isEmpty()) {
+		List<Spot> snap = copySpotListForRead();
+		if (sequence == null || snap.isEmpty()) {
 			return;
 		}
 
-		List<ROI2D> spotROIList = new ArrayList<ROI2D>(spotList.size());
-		for (Spot spot : spotList) {
+		List<ROI2D> spotROIList = new ArrayList<ROI2D>(snap.size());
+		for (Spot spot : snap) {
+			if (spot == null) {
+				continue;
+			}
 			ROI2D roi = spot.getRoi();
 			if (roi != null) {
 				spotROIList.add(roi);
@@ -625,7 +719,7 @@ public class Spots {
 	 */
 	public void ensureSumNoFlyPresent(double flyOccupancyFractionOfRoi) {
 		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
-		for (Spot spot : spotList) {
+		for (Spot spot : copySpotListForRead()) {
 			if (spot == null)
 				continue;
 			ensureSumNoFlyForSpot(spot, false, f);
@@ -846,7 +940,7 @@ public class Spots {
 
 	private List<Spot> collectSpotsReadyForSumCleanV3() {
 		List<Spot> pool = new ArrayList<>();
-		for (Spot s : spotList) {
+		for (Spot s : copySpotListForRead()) {
 			if (isSpotReadyForSumCleanV3(s)) {
 				pool.add(s);
 			}
@@ -1074,7 +1168,7 @@ public class Spots {
 	 * NaN-robust running median (same smoothing as after fly extrapolation).
 	 */
 	public void rebuildSumCleanFromSumNoFly() {
-		for (Spot spot : spotList) {
+		for (Spot spot : copySpotListForRead()) {
 			if (spot == null)
 				continue;
 			rebuildSumCleanFromSumNoFlyForSpot(spot);
@@ -1379,7 +1473,7 @@ public class Spots {
 	public void medianFilterFromSumToSumClean() {
 		// Backward-compatible name: sumClean from sumNoFly via running median.
 		rebuildSumCleanFromSumNoFly();
-		for (Spot spot : spotList) {
+		for (Spot spot : copySpotListForRead()) {
 			if (spot != null) {
 				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
 			}
@@ -1407,7 +1501,11 @@ public class Spots {
 	}
 
 	public void setReadyToAnalyze(boolean setFilter, BuildSeriesOptions options) {
-		spotList.forEach(spot -> spot.setReadyForAnalysis(setFilter));
+		for (Spot spot : copySpotListForRead()) {
+			if (spot != null) {
+				spot.setReadyForAnalysis(setFilter);
+			}
+		}
 	}
 
 	// === PRIVATE HELPER METHODS ===
@@ -1418,14 +1516,19 @@ public class Spots {
 			return false;
 		}
 
-		XMLUtil.setElementIntValue(spotsNode, "version", DEFAULT_VERSION);
-		Node nodeSpotsArray = XMLUtil.setElement(spotsNode, ID_LISTOFSPOTS);
-		XMLUtil.setElementIntValue(nodeSpotsArray, ID_NSPOTS, spotList.size());
+		synchronized (this) {
+			XMLUtil.setElementIntValue(spotsNode, "version", DEFAULT_VERSION);
+			Node nodeSpotsArray = XMLUtil.setElement(spotsNode, ID_LISTOFSPOTS);
+			XMLUtil.setElementIntValue(nodeSpotsArray, ID_NSPOTS, spotList.size());
 
-		sortSpotList();
-		for (int i = 0; i < spotList.size(); i++) {
-			Node nodeSpot = XMLUtil.setElement(spotsNode, ID_SPOT_ + i);
-			spotList.get(i).saveToXml(nodeSpot);
+			sortSpotList();
+			for (int i = 0; i < spotList.size(); i++) {
+				Node nodeSpot = XMLUtil.setElement(spotsNode, ID_SPOT_ + i);
+				Spot spot = spotList.get(i);
+				if (spot != null) {
+					spot.saveToXml(nodeSpot);
+				}
+			}
 		}
 
 		return true;
@@ -1443,19 +1546,21 @@ public class Spots {
 		}
 
 		int nitems = XMLUtil.getElementIntValue(nodeSpotsArray, ID_NSPOTS, 0);
-		spotList.clear();
+		synchronized (this) {
+			spotList.clear();
 
-		for (int i = 0; i < nitems; i++) {
-			Node nodeSpot = XMLUtil.getElement(node, ID_SPOT_ + i);
-			if (nodeSpot != null) {
-				Spot spot = new Spot();
-				if (spot.loadFromXml(nodeSpot) && !isSpotPresent(spot)) {
-					// Assign unique ID if not loaded from XML (legacy files)
-					if (spot.getSpotUniqueID() == null) {
-						int uniqueID = getNextUniqueSpotID();
-						spot.setSpotUniqueID(new SpotID(uniqueID));
+			for (int i = 0; i < nitems; i++) {
+				Node nodeSpot = XMLUtil.getElement(node, ID_SPOT_ + i);
+				if (nodeSpot != null) {
+					Spot spot = new Spot();
+					if (spot.loadFromXml(nodeSpot) && !isSpotPresent(spot)) {
+						// Assign unique ID if not loaded from XML (legacy files)
+						if (spot.getSpotUniqueID() == null) {
+							int uniqueID = getNextUniqueSpotID();
+							spot.setSpotUniqueID(new SpotID(uniqueID));
+						}
+						spotList.add(spot);
 					}
-					spotList.add(spot);
 				}
 			}
 		}
@@ -1467,7 +1572,7 @@ public class Spots {
 
 	@Override
 	public String toString() {
-		return String.format("SpotsArray{spotsCount=%d}", spotList.size());
+		return String.format("SpotsArray{spotsCount=%d}", getSpotListCount());
 	}
 
 	// === SEQUENCE COMMUNICATION ===
@@ -1483,8 +1588,11 @@ public class Spots {
 		// Use modern ROI operation for removing existing spot ROIs
 		seqCamData.processROIs(ROIOperation.removeROIs("spot"));
 
-		List<ROI2D> spotROIList = new ArrayList<ROI2D>(spotList.size());
-		for (Spot spot : spotList) {
+		List<ROI2D> spotROIList = new ArrayList<ROI2D>();
+		for (Spot spot : copySpotListForRead()) {
+			if (spot == null) {
+				continue;
+			}
 			ROI2D roi = spot.getRoi();
 			if (roi != null)
 				spotROIList.add(roi);
@@ -1505,26 +1613,33 @@ public class Spots {
 		Collections.sort(roiList, new Comparators.ROI2D_Name());
 		transferROIsToSpots(roiList);
 		// addMissingSpots(roiList);
-		Collections.sort(spotList, new Comparators.Spot_Name());
+		synchronized (this) {
+			Collections.sort(spotList, new Comparators.Spot_Name());
+		}
 	}
 
 	private void transferROIsToSpots(List<ROI2D> roiList) {
-		if (spotList.size() < 1)
-			return;
-
-		for (Spot spot : spotList) {
-			if (roiList.isEmpty())
+		synchronized (this) {
+			if (spotList.size() < 1)
 				return;
 
-			String spotName = spot.getName();
-			Iterator<ROI2D> iterator = roiList.iterator();
-			while (iterator.hasNext()) {
-				ROI2D roi = iterator.next();
-				String roiName = roi.getName();
-				if (roiName != null && roiName.contains(spotName)) {
-					spot.setRoi((ROI2DShape) roi);
-					iterator.remove();
-					break;
+			for (Spot spot : spotList) {
+				if (spot == null) {
+					continue;
+				}
+				if (roiList.isEmpty())
+					return;
+
+				String spotName = spot.getName();
+				Iterator<ROI2D> iterator = roiList.iterator();
+				while (iterator.hasNext()) {
+					ROI2D roi = iterator.next();
+					String roiName = roi.getName();
+					if (roiName != null && spotName != null && roiName.contains(spotName)) {
+						spot.setRoi((ROI2DShape) roi);
+						iterator.remove();
+						break;
+					}
 				}
 			}
 		}

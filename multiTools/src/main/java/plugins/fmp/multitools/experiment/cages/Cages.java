@@ -200,7 +200,10 @@ public class Cages {
 		}
 		for (Cage cage : cagesList) {
 			List<SpotID> spotIDs = new ArrayList<>();
-			for (Spot spot : allSpots.getSpotList()) {
+			for (Spot spot : allSpots.copySpotListForRead()) {
+				if (spot == null || spot.getProperties() == null) {
+					continue;
+				}
 				if (spot.getProperties().getCageID() == cage.getCageID() && spot.getSpotUniqueID() != null) {
 					spotIDs.add(spot.getSpotUniqueID());
 				}
@@ -219,7 +222,7 @@ public class Cages {
 			return;
 		}
 		HashSet<SpotID> validIds = new HashSet<>();
-		for (Spot s : allSpots.getSpotList()) {
+		for (Spot s : allSpots.copySpotListForRead()) {
 			if (s != null && s.getSpotUniqueID() != null) {
 				validIds.add(s.getSpotUniqueID());
 			}
@@ -280,7 +283,7 @@ public class Cages {
 				}
 			}
 		}
-		for (Spot spot : allSpots.getSpotList()) {
+		for (Spot spot : allSpots.copySpotListForRead()) {
 			if (spot == null) {
 				continue;
 			}
@@ -340,8 +343,14 @@ public class Cages {
 		}
 		int nCols = Math.max(1, spotRoiGridCols);
 		int nRows = Math.max(1, spotRoiGridRows);
-		for (Spot spot : allSpots.getSpotList()) {
+		for (Spot spot : allSpots.copySpotListForRead()) {
+			if (spot == null) {
+				continue;
+			}
 			if (spot.getRoiDirect() != null) {
+				continue;
+			}
+			if (spot.getProperties() == null) {
 				continue;
 			}
 			if (spot.getProperties().hasPersistedPixelCoordinates()) {

@@ -34,11 +34,14 @@ public class SpotTableModel extends AbstractTableModel {
 
 	@Override
 	public int getRowCount() {
-		if (expList != null && expList.getSelectedIndex() >= 0) {
-			Experiment exp = (Experiment) expList.getSelectedItem();
-			return exp.getCages().getSpotsInCageOrder(exp.getSpots()).size();
+		if (expList == null || expList.getSelectedIndex() < 0) {
+			return 0;
 		}
-		return 0;
+		Experiment exp = (Experiment) expList.getSelectedItem();
+		if (exp == null || exp.getCages() == null || exp.getSpots() == null) {
+			return 0;
+		}
+		return exp.getCages().getSpotsInCageOrder(exp.getSpots()).size();
 	}
 
 	@Override
@@ -70,7 +73,7 @@ public class SpotTableModel extends AbstractTableModel {
 	@Override
 	public Object getValueAt(int rowIndex, int columnIndex) {
 		Spot spot = getSpotAt(rowIndex);
-		if (spot != null) { // && spot.prop != null
+		if (spot != null && spot.getProperties() != null) {
 			switch (columnIndex) {
 			case 0:
 				return spot.getName();
@@ -147,12 +150,16 @@ public class SpotTableModel extends AbstractTableModel {
 	}
 
 	public Spot getSpotAt(int rowIndex) {
-		if (expList != null && expList.getSelectedIndex() >= 0) {
-			Experiment exp = (Experiment) expList.getSelectedItem();
-			ArrayList<Spot> ordered = exp.getCages().getSpotsInCageOrder(exp.getSpots());
-			if (rowIndex >= 0 && rowIndex < ordered.size()) {
-				return ordered.get(rowIndex);
-			}
+		if (expList == null || expList.getSelectedIndex() < 0) {
+			return null;
+		}
+		Experiment exp = (Experiment) expList.getSelectedItem();
+		if (exp == null || exp.getCages() == null || exp.getSpots() == null) {
+			return null;
+		}
+		ArrayList<Spot> ordered = exp.getCages().getSpotsInCageOrder(exp.getSpots());
+		if (rowIndex >= 0 && rowIndex < ordered.size()) {
+			return ordered.get(rowIndex);
 		}
 		return null;
 	}

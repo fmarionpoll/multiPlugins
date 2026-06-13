@@ -143,13 +143,17 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		if (allSpots == null) {
 			return result;
 		}
+		List<Spot> globalSpots = allSpots.copySpotListForRead();
 		if (!spotIDs.isEmpty()) {
 			Set<SpotID> seenIds = new LinkedHashSet<>();
 			for (SpotID spotID : spotIDs) {
 				if (spotID == null || !seenIds.add(spotID)) {
 					continue;
 				}
-				for (Spot spot : allSpots.getSpotList()) {
+				for (Spot spot : globalSpots) {
+					if (spot == null) {
+						continue;
+					}
 					if (spot.getSpotUniqueID() != null && spot.getSpotUniqueID().equals(spotID)) {
 						result.add(spot);
 						break;
@@ -159,8 +163,11 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			return dedupeSpotListForCage(result);
 		}
 		int cageID = prop.getCageID();
-		for (Spot spot : allSpots.getSpotList()) {
-			if (spot.getProperties().getCageID() == cageID) {
+		for (Spot spot : globalSpots) {
+			if (spot == null) {
+				continue;
+			}
+			if (spot.getProperties() != null && spot.getProperties().getCageID() == cageID) {
 				result.add(spot);
 			}
 		}

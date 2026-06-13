@@ -278,7 +278,7 @@ public class SpotsPersistenceLegacy {
 			Spot spot = spots.findSpotByName(data[0]);
 			if (spot == null) {
 				spot = new Spot();
-				spots.getSpotList().add(spot);
+				spots.addSpot(spot);
 			}
 			SpotPersistence.csvImportSpotDescription(spot, data);
 			if (spot.getSpotUniqueID() == null) {
@@ -299,8 +299,9 @@ public class SpotsPersistenceLegacy {
 		String motif = data[0].substring(0, Math.min(data[0].length(), 6));
 		if (motif.equals("n spot")) {
 			int nspots = Integer.valueOf(data[1]);
-			if (nspots < spots.getSpotList().size())
-				spots.getSpotList().subList(nspots, spots.getSpotList().size()).clear();
+			if (nspots < spots.getSpotListCount()) {
+				spots.trimSpotListTailFromIndex(nspots);
+			}
 			line = reader.readLine();
 			if (line != null)
 				data = line.split(csvSeparator);
@@ -332,7 +333,7 @@ public class SpotsPersistenceLegacy {
 					int uniqueID = spots.getNextUniqueSpotID();
 					spot.setSpotUniqueID(new SpotID(uniqueID));
 				}
-				spots.getSpotList().add(spot);
+				spots.addSpot(spot);
 			}
 			SpotPersistence.csvImportSpotData(spot, measureType, data, x, y);
 		}
@@ -346,11 +347,11 @@ public class SpotsPersistenceLegacy {
 	static boolean csvSave_DescriptionSection(Spots spots, FileWriter writer, String csvSeparator) throws IOException {
 		writer.write("#" + csvSeparator + "#\n");
 		writer.write("#" + csvSeparator + "SPOTS_ARRAY" + csvSeparator + "multiSPOTS data\n");
-		writer.write("n spots=" + csvSeparator + spots.getSpotList().size() + "\n");
+		writer.write("n spots=" + csvSeparator + spots.getSpotListCount() + "\n");
 		writer.write("#" + csvSeparator + "#\n");
 		writer.write(SpotPersistence.csvExportSpotSubSectionHeader(csvSeparator));
 
-		for (Spot spot : spots.getSpotList()) {
+		for (Spot spot : spots.copySpotListForRead()) {
 			if (spot != null && spot.getProperties() != null) {
 				String name = spot.getProperties().getName();
 				int cageID = spot.getProperties().getCageID();

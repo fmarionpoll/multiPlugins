@@ -136,7 +136,7 @@ public class CagesPersistenceMS96Legacy {
 					if (SpotPersistence.xmlLoadSpot(spotNode, spot)) {
 						int uniqueID = spots.getNextUniqueSpotID();
 						spot.setSpotUniqueID(new SpotID(uniqueID));
-						spots.getSpotList().add(spot);
+						spots.addSpot(spot);
 						totalLoaded++;
 					}
 				}
