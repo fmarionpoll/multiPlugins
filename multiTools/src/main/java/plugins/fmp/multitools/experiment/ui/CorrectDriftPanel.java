@@ -10,6 +10,7 @@ import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -580,16 +581,31 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		if (fileName == null) {
 			return;
 		}
-		Path src = Path.of(fileName);
+		Path src = Path.of(fileName).toAbsolutePath().normalize();
 		if (!Files.exists(src)) {
 			return;
 		}
-		Path backup = originalsDir.resolve(src.getFileName().toString());
-		if (!Files.exists(backup)) {
-			Files.copy(src, backup, StandardCopyOption.COPY_ATTRIBUTES);
-			manifestOut.write(backup.getFileName().toString());
-			manifestOut.newLine();
-			manifestOut.flush();
+		Path originalsAbs = originalsDir.toAbsolutePath().normalize();
+		Files.createDirectories(originalsAbs);
+		Path backup = originalsAbs.resolve(src.getFileName().toString());
+		/*
+		 * Backup path must differ from the live frame: when the sequence already points at
+		 * .../grabs/original_images/Frame.jpg, getImagesDirectory() is .../original_images and
+		 * originalsDir is .../original_images/original_images — but if paths ever normalize to
+		 * the same file, Files.copy would throw FileAlreadyExistsException. Also handle TOCTOU /
+		 * concurrent apply without failing the transform.
+		 */
+		if (!src.equals(backup)) {
+			if (!Files.exists(backup)) {
+				try {
+					Files.copy(src, backup, StandardCopyOption.COPY_ATTRIBUTES);
+					manifestOut.write(backup.getFileName().toString());
+					manifestOut.newLine();
+					manifestOut.flush();
+				} catch (FileAlreadyExistsException e) {
+					// Backup appeared between exists check and copy (e.g. parallel apply) — continue.
+				}
+			}
 		}
 		BufferedImage img = ImageUtil.load(src.toFile(), true);
 		if (img == null) {

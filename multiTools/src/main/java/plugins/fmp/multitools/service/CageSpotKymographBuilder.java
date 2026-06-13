@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -138,19 +139,28 @@ public class CageSpotKymographBuilder {
 		}
 
 		/*
-		 * Columns must be processed sequentially: queuing one async task per column
-		 * retains every loaded frame (and each fillColumn allocates full int[] rasters)
-		 * until all futures complete — long time windows exhaust heap. One frame at a
-		 * time keeps peak memory ~O(1) in column count.
+		 * One column at a time (copyPreviousColumn reads col-1) but cages share the same
+		 * source frame: extract int[] rasters once per column, then fill plans in parallel
+		 * with bounded concurrency. Avoids the old "one future per column" pattern that
+		 * pinned every loaded frame until all workers drained.
 		 */
 		ProgressFrame progress = new ProgressFrame("Cage kymographs");
 		int sourceLastImageIndex = nTotalFrames;
+		final int nPlans = plans.size();
+		final int planParallelism = Math.max(1, Math.min(SystemUtil.getNumberOfCPUs(), nPlans));
+		Processor planProcessor = null;
+		if (planParallelism > 1) {
+			planProcessor = new Processor(planParallelism);
+			planProcessor.setThreadName("cageSpotKymoPlan");
+			planProcessor.setPriority(Processor.NORM_PRIORITY);
+		}
 		for (int col = 0; col < expectedWidth; col++) {
 			long ii_ms = first_ms + col * step_ms;
 			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
 			if (sourceImageIndex < 0) {
 				continue;
 			}
+			final int kymoCol = col;
 
 			progress.setMessage("Column " + (col + 1) + " / " + expectedWidth + " (frame " + (sourceImageIndex + 1)
 					+ " / " + sourceLastImageIndex + ")");
@@ -158,8 +168,36 @@ public class CageSpotKymographBuilder {
 			IcyBufferedImage sourceImage = null;
 			try {
 				sourceImage = loader.imageIORead(seqCamData.getFileNameFromImageList(sourceImageIndex));
-				for (CageKymoPlan plan : plans) {
-					fillColumn(plan, sourceImage, col, globalHeight, refSizex, refSizey, kymoSizeC, options);
+				int imgW = sourceImage.getWidth();
+				int imgH = sourceImage.getHeight();
+				if (imgW != refSizex || imgH != refSizey) {
+					Logger.warn("CageSpotKymographBuilder: image size " + imgW + "x" + imgH + " differs from sequence "
+							+ refSizex + "x" + refSizey);
+				}
+				final int srcSizeC = Math.max(1, sourceImage.getSizeC());
+				int[] src0 = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(0), sourceImage.isSignedDataType());
+				int[] src1 = srcSizeC > 1
+						? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(1), sourceImage.isSignedDataType())
+						: null;
+				int[] src2 = srcSizeC > 2
+						? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(2), sourceImage.isSignedDataType())
+						: null;
+
+				if (planParallelism <= 1) {
+					for (CageKymoPlan plan : plans) {
+						fillColumnRaster(plan, src0, src1, src2, imgW, kymoCol, globalHeight, refSizex, refSizey,
+								kymoSizeC, options);
+					}
+				} else {
+					final Processor proc = Objects.requireNonNull(planProcessor,
+							"planProcessor must be set when planParallelism > 1");
+					ArrayList<Future<?>> tasks = new ArrayList<>(nPlans);
+					for (CageKymoPlan plan : plans) {
+						final CageKymoPlan p = plan;
+						tasks.add(proc.submit(() -> fillColumnRaster(p, src0, src1, src2, imgW, kymoCol,
+								globalHeight, refSizex, refSizey, kymoSizeC, options)));
+					}
+					waitFutures(proc, tasks);
 				}
 			} finally {
 				sourceImage = null;
@@ -273,24 +311,15 @@ public class CageSpotKymographBuilder {
 		return new Rectangle(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
 	}
 
-	private void fillColumn(CageKymoPlan plan, IcyBufferedImage sourceImage, int kymographColumn, int globalHeight,
-			int refSizex, int refSizey, int kymoSizeC, BuildSeriesOptions options) {
+	/**
+	 * Fills one kymograph column for one cage plan from pre-extracted per-channel rasters (shared,
+	 * read-only across parallel plan workers for the same column).
+	 */
+	private static void fillColumnRaster(CageKymoPlan plan, int[] src0, int[] src1, int[] src2, int imgW,
+			int kymographColumn, int globalHeight, int refSizex, int refSizey, int kymoSizeC,
+			BuildSeriesOptions options) {
 		int diskR = Math.max(0, options.diskRadius);
-		int imgW = sourceImage.getWidth();
-		int imgH = sourceImage.getHeight();
-		if (imgW != refSizex || imgH != refSizey) {
-			Logger.warn("CageSpotKymographBuilder: image size " + imgW + "x" + imgH + " differs from sequence "
-					+ refSizex + "x" + refSizey);
-		}
 		int W = plan.imageWidth;
-		final int srcSizeC = Math.max(1, sourceImage.getSizeC());
-		int[] src0 = Array1DUtil.arrayToIntArray(sourceImage.getDataXY(0), sourceImage.isSignedDataType());
-		int[] src1 = srcSizeC > 1
-				? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(1), sourceImage.isSignedDataType())
-				: null;
-		int[] src2 = srcSizeC > 2
-				? Array1DUtil.arrayToIntArray(sourceImage.getDataXY(2), sourceImage.isSignedDataType())
-				: null;
 
 		int row = 0;
 		for (Spot spot : plan.spots) {
