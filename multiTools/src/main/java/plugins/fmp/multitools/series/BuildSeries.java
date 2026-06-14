@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.imageio.ImageIO;
 import javax.swing.SwingUtilities;
@@ -52,6 +53,16 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	public final String THREAD_ENDED = "thread_ended";
 	public final String THREAD_DONE = "thread_done";
 
+	private static final AtomicInteger backgroundRunDepth = new AtomicInteger(0);
+
+	/**
+	 * True while any {@link BuildSeries} worker is inside {@link #doInBackground()} (series batch).
+	 * Used to avoid dangerous sequence→model sync (e.g. {@code saveSpots_File}) during batch runs.
+	 */
+	public static boolean isBackgroundRunActive() {
+		return backgroundRunDepth.get() > 0;
+	}
+
 	@Override
 	protected Integer doInBackground() throws Exception {
 		int nbiterations = 0;
@@ -89,6 +100,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 		try {
 			threadRunning = true;
+			backgroundRunDepth.incrementAndGet();
 			selectList(expList, -1);
 
 			batchTotalSize = experimentsBatch.size();
@@ -117,6 +129,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			}
 			return nbiterations;
 		} finally {
+			backgroundRunDepth.decrementAndGet();
 			threadRunning = false;
 			progress.close();
 			selectList(expList, selectedExperimentIndex);

@@ -7,6 +7,7 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 
@@ -18,6 +19,8 @@ import javax.swing.JPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.DialogTools;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.MultiSelectDialog;
@@ -37,6 +40,8 @@ public class FilterPanel extends JPanel {
 	private JButton sexBtn = new JButton("Select...");
 	private JButton stim2Btn = new JButton("Select...");
 	private JButton conc2Btn = new JButton("Select...");
+	private JButton spotStimBtn = new JButton("Select...");
+	private JButton spotConcBtn = new JButton("Select...");
 
 	private List<String> selStim1 = new ArrayList<String>();
 	private List<String> selConc1 = new ArrayList<String>();
@@ -46,6 +51,8 @@ public class FilterPanel extends JPanel {
 	private List<String> selSex = new ArrayList<String>();
 	private List<String> selStim2 = new ArrayList<String>();
 	private List<String> selConc2 = new ArrayList<String>();
+	private List<String> selSpotStim = new ArrayList<String>();
+	private List<String> selSpotConc = new ArrayList<String>();
 
 	private JCheckBox experimentCheck = new JCheckBox(EnumXLSColumnHeader.EXP_EXPT.toString());
 	private JCheckBox boxIDCheck = new JCheckBox(EnumXLSColumnHeader.EXP_ID.toString());
@@ -55,6 +62,8 @@ public class FilterPanel extends JPanel {
 	private JCheckBox sexCheck = new JCheckBox(EnumXLSColumnHeader.EXP_SEX.toString());
 	private JCheckBox stim2Check = new JCheckBox(EnumXLSColumnHeader.EXP_STIM2.toString());
 	private JCheckBox conc2Check = new JCheckBox(EnumXLSColumnHeader.EXP_CONC2.toString());
+	private JCheckBox spotStimCheck = new JCheckBox(EnumXLSColumnHeader.SPOT_STIM.toString());
+	private JCheckBox spotConcCheck = new JCheckBox(EnumXLSColumnHeader.SPOT_CONC.toString());
 
 	private JButton applyButton = new JButton("Apply");
 	private JButton clearButton = new JButton("Clear");
@@ -96,8 +105,11 @@ public class FilterPanel extends JPanel {
 		c.gridy = 3;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, stim2Check, stim2Btn, conc2Check, conc2Btn, null, c, delta1, delta2);
-		// line 4 - index status
 		c.gridy = 4;
+		c.gridx = 0;
+		DialogTools.addFiveComponentOnARow(this, spotStimCheck, spotStimBtn, spotConcCheck, spotConcBtn, null, c, delta1,
+				delta2);
+		c.gridy = 5;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, indexStatusLabel, null, null, null, null, c, delta1, delta2);
 
@@ -166,6 +178,10 @@ public class FilterPanel extends JPanel {
 				createFilterButtonListener(stim2Btn, EnumXLSColumnHeader.EXP_STIM2, selStim2, stim2Check));
 		conc2Btn.addActionListener(
 				createFilterButtonListener(conc2Btn, EnumXLSColumnHeader.EXP_CONC2, selConc2, conc2Check));
+		spotStimBtn.addActionListener(
+				createFilterButtonListener(spotStimBtn, EnumXLSColumnHeader.SPOT_STIM, selSpotStim, spotStimCheck));
+		spotConcBtn.addActionListener(
+				createFilterButtonListener(spotConcBtn, EnumXLSColumnHeader.SPOT_CONC, selSpotConc, spotConcCheck));
 		applyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -215,6 +231,8 @@ public class FilterPanel extends JPanel {
 		sexCheck.setSelected(select);
 		stim2Check.setSelected(select);
 		conc2Check.setSelected(select);
+		spotStimCheck.setSelected(select);
+		spotConcCheck.setSelected(select);
 		selExpt.clear();
 		selBoxID.clear();
 		selStim1.clear();
@@ -223,6 +241,8 @@ public class FilterPanel extends JPanel {
 		selSex.clear();
 		selStim2.clear();
 		selConc2.clear();
+		selSpotStim.clear();
+		selSpotConc.clear();
 		updateButtonLabel(exptBtn, selExpt);
 		updateButtonLabel(boxIDBtn, selBoxID);
 		updateButtonLabel(stim1Btn, selStim1);
@@ -231,6 +251,8 @@ public class FilterPanel extends JPanel {
 		updateButtonLabel(sexBtn, selSex);
 		updateButtonLabel(stim2Btn, selStim2);
 		updateButtonLabel(conc2Btn, selConc2);
+		updateButtonLabel(spotStimBtn, selSpotStim);
+		updateButtonLabel(spotConcBtn, selSpotConc);
 	}
 
 	private List<Experiment> filterAllItems() {
@@ -251,6 +273,17 @@ public class FilterPanel extends JPanel {
 			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_STIM2, selStim2);
 		if (conc2Check.isSelected())
 			filterItemMulti(filteredList, EnumXLSColumnHeader.EXP_CONC2, selConc2);
+
+		boolean spotStimOn = spotStimCheck.isSelected() && !selSpotStim.isEmpty();
+		boolean spotConcOn = spotConcCheck.isSelected() && !selSpotConc.isEmpty();
+		if (spotStimOn && spotConcOn)
+			filterSameSpotStimulusAndConcentration(filteredList, selSpotStim, selSpotConc);
+		else {
+			if (spotStimOn)
+				filterSpotFieldMulti(filteredList, EnumXLSColumnHeader.SPOT_STIM, selSpotStim);
+			if (spotConcOn)
+				filterSpotFieldMulti(filteredList, EnumXLSColumnHeader.SPOT_CONC, selSpotConc);
+		}
 		return filteredList;
 	}
 
@@ -284,6 +317,104 @@ public class FilterPanel extends JPanel {
 			if (!allowed.contains(norm))
 				iterator.remove();
 		}
+	}
+
+	private static HashSet<String> normalizedAllowedSet(List<String> allowedValues) {
+		HashSet<String> allowed = new HashSet<String>(allowedValues.size());
+		for (String v : allowedValues) {
+			if (v == null)
+				continue;
+			String n0 = v.trim();
+			if (n0.isEmpty())
+				n0 = "..";
+			String n = n0.toLowerCase();
+			if (!n.isEmpty())
+				allowed.add(n);
+		}
+		return allowed;
+	}
+
+	private static String normalizeFilterToken(String value) {
+		String v0 = value != null ? value.trim() : "";
+		if (v0.isEmpty())
+			v0 = "..";
+		return v0.toLowerCase();
+	}
+
+	private void ensureLoadedForSpotFields(Experiment exp) {
+		if (exp instanceof LazyExperiment)
+			((LazyExperiment) exp).loadIfNeeded();
+		exp.loadExperimentDescriptors();
+		exp.load_cages_description_and_measures();
+		exp.load_spots_description_and_measures();
+	}
+
+	private void filterSpotFieldMulti(List<Experiment> filteredList, EnumXLSColumnHeader header,
+			List<String> allowedValues) {
+		if (allowedValues == null || allowedValues.isEmpty())
+			return;
+		HashSet<String> allowed = normalizedAllowedSet(allowedValues);
+		Iterator<Experiment> iterator = filteredList.iterator();
+		while (iterator.hasNext()) {
+			Experiment exp = iterator.next();
+			try {
+				ensureLoadedForSpotFields(exp);
+				List<String> values = exp.getFieldValues(header);
+				if (!experimentSpotValuesIntersectAllowed(values, allowed))
+					iterator.remove();
+			} catch (Exception e) {
+				iterator.remove();
+			}
+		}
+	}
+
+	private static boolean experimentSpotValuesIntersectAllowed(List<String> values, HashSet<String> allowedNorm) {
+		if (values == null || values.isEmpty())
+			return false;
+		for (String raw : values) {
+			if (allowedNorm.contains(normalizeFilterToken(raw)))
+				return true;
+		}
+		return false;
+	}
+
+	private void filterSameSpotStimulusAndConcentration(List<Experiment> filteredList, List<String> stimAllowed,
+			List<String> concAllowed) {
+		if (stimAllowed == null || stimAllowed.isEmpty() || concAllowed == null || concAllowed.isEmpty())
+			return;
+		HashSet<String> stimSet = normalizedAllowedSet(stimAllowed);
+		HashSet<String> concSet = normalizedAllowedSet(concAllowed);
+		Iterator<Experiment> iterator = filteredList.iterator();
+		while (iterator.hasNext()) {
+			Experiment exp = iterator.next();
+			try {
+				ensureLoadedForSpotFields(exp);
+				if (!experimentHasSpotMatchingStimAndConc(exp, stimSet, concSet))
+					iterator.remove();
+			} catch (Exception e) {
+				iterator.remove();
+			}
+		}
+	}
+
+	private static boolean experimentHasSpotMatchingStimAndConc(Experiment exp, HashSet<String> stimSet,
+			HashSet<String> concSet) {
+		if (exp.getCages() == null || exp.getCages().cagesList == null)
+			return false;
+		if (exp.getSpots() == null)
+			return false;
+		for (Cage cage : exp.getCages().cagesList) {
+			List<Spot> spotList = cage.getSpotList(exp.getSpots());
+			if (spotList == null)
+				continue;
+			for (Spot spot : spotList) {
+				String stim = normalizeFilterToken(spot.getField(EnumXLSColumnHeader.SPOT_STIM));
+				String conc = normalizeFilterToken(spot.getField(EnumXLSColumnHeader.SPOT_CONC));
+				if (stimSet.contains(stim) && concSet.contains(conc))
+					return true;
+			}
+		}
+		return false;
 	}
 
 }

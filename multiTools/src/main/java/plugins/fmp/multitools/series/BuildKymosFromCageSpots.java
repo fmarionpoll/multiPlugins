@@ -138,9 +138,17 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 			return false;
 		}
 		CagesSequenceMapper.transferROIsToSequence(exp.getCages(), seqData);
+		if (options != null && options.expList != null && options.expList.expListBinSubDirectory != null) {
+			exp.setBinSubDirectory(options.expList.expListBinSubDirectory);
+		}
+		if (!exp.load_spots_description_and_measures()) {
+			Logger.warn("BuildKymosFromCageSpots: load_spots_description_and_measures returned false for "
+					+ exp.getResultsDirectory());
+			return false;
+		}
 		seqData.removeROIsContainingString("spot");
 		exp.getSpots().applyPreConsumedRoiStyles();
-		exp.getCages().transferCageSpotsToSequenceAsROIs(seqData, exp.getSpots());
+		exp.getCages().transferCageSpotsToSequenceAsROIs(seqData, exp.getSpots(), true);
 
 		exp.getFileIntervalsFromSeqCamData();
 		long firstValidEpochMs = seqData.getFirstValidFrameEpochMs();

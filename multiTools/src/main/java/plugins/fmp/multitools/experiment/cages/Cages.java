@@ -1073,6 +1073,15 @@ public class Cages {
 	// --------------------------------------------------------
 
 	public void transferCageSpotsToSequenceAsROIs(SequenceCamData seqCamData, Spots allSpots) {
+		transferCageSpotsToSequenceAsROIs(seqCamData, allSpots, false);
+	}
+
+	/**
+	 * @param cloneSpotRoisForSequence when true, adds {@link ROI2D#getCopy()} of each spot ROI to the
+	 *          camera sequence so ICY/viewer cannot mutate the canonical ROI stored on {@link Spot}.
+	 */
+	public void transferCageSpotsToSequenceAsROIs(SequenceCamData seqCamData, Spots allSpots,
+			boolean cloneSpotRoisForSequence) {
 		if (cagesList.size() > 0 && allSpots != null) {
 			List<ROI2D> spotROIList = new ArrayList<ROI2D>();
 			for (Cage cage : cagesList) {
@@ -1081,7 +1090,17 @@ public class Cages {
 					if (spot.isConsumedBeforeRecording()) {
 						SpotPreConsumedSupport.applyPreConsumedRoiStyle(spot);
 					}
-					spotROIList.add(spot.getRoi());
+					ROI2D roi = spot.getRoi();
+					if (roi == null) {
+						continue;
+					}
+					if (cloneSpotRoisForSequence) {
+						ROI2D copy = (ROI2D) roi.getCopy();
+						if (copy != null) {
+							roi = copy;
+						}
+					}
+					spotROIList.add(roi);
 				}
 			}
 			Collections.sort(spotROIList, new Comparators.ROI2D_Name());

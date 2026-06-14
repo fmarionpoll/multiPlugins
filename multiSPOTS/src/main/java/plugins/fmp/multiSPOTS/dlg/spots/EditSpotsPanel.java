@@ -47,7 +47,7 @@ public class EditSpotsPanel extends JPanel {
 	private JButton deleteSelectedSpotsButton = new JButton("Delete spots");
 	private JButton duplicateSelectedSpotButton = new JButton("Duplicate spot");
 	private JButton cleanUpNamesButton = new JButton("Clean up spot names");
-	private JButton cleanUpNamesKeepCagesButton = new JButton("Clean up names (keep cage assignment)");
+	private JButton cleanUpNamesKeepCagesButton = new JButton("Clean up names (keep cage)");
 
 	private JComboBox<String> typeCombo = new JComboBox<String>(new String[] { "spot", "cage" });
 
@@ -590,9 +590,12 @@ public class EditSpotsPanel extends JPanel {
 	}
 
 	/**
-	 * @param reassignMembershipFromGeometry when true, recomputes which cage each spot belongs to
-	 *        from ROI containment (aggressive); when false, only normalizes spot ID lists, then
-	 *        reorders/renames within existing cage membership.
+	 * @param reassignMembershipFromGeometry when true, recomputes which cage each
+	 *                                       spot belongs to from ROI containment
+	 *                                       (aggressive); when false, only
+	 *                                       normalizes spot ID lists, then
+	 *                                       reorders/renames within existing cage
+	 *                                       membership.
 	 */
 	private void cleanUpSpotNames(Experiment exp, boolean reassignMembershipFromGeometry) {
 		Spots allSpots = exp.getSpots();

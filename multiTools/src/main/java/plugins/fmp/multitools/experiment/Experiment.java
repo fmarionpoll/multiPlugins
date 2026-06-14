@@ -57,6 +57,7 @@ import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
+import plugins.fmp.multitools.series.BuildSeries;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Directories;
@@ -1936,6 +1937,10 @@ public class Experiment {
 	}
 
 	public boolean saveSpots_File() {
+		if (BuildSeries.isBackgroundRunActive()) {
+			Logger.warn("Experiment.saveSpots_File: skipped during series batch (avoid sequence→spot ROI sync)");
+			return false;
+		}
 		SpotsSequenceMapper.transferROIsFromSequence(spots, seqCamData);
 		return save_spots_description_and_measures();
 	}
