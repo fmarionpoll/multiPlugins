@@ -341,6 +341,15 @@ public class FilterPanel extends JPanel {
 		return v0.toLowerCase();
 	}
 
+	/**
+	 * Loads full experiment spot state from disk for filter predicates. This runs the same
+	 * {@code load_spots_description_and_measures()} path as a normal open (including
+	 * {@link plugins.fmp.multitools.experiment.SpotCageHeuristicLayout} and cage geometry heuristics)
+	 * but <strong>without</strong> loading the camera sequence first (unlike
+	 * {@code ExperimentOpenPipeline}). Bulk filtering on large series can therefore perturb ROI
+	 * geometry in memory; avoid saving spots until spots are re-opened from disk or use a
+	 * lightweight read path if added in future.
+	 */
 	private void ensureLoadedForSpotFields(Experiment exp) {
 		if (exp instanceof LazyExperiment)
 			((LazyExperiment) exp).loadIfNeeded();

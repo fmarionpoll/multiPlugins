@@ -1137,6 +1137,52 @@ public class Experiment {
 	}
 
 	/**
+	 * Development-only rebuild: clears in-memory spots, repopulates from {@code MS96_cages.xml},
+	 * re-dispatches to cages, applies the same geometry heuristics as a legacy spot load, then saves
+	 * {@code SpotsDescription.csv} and cage descriptions (so cage spot-ID lists match new IDs).
+	 * <p>
+	 * Does not reload or rewrite {@code SpotsMeasures.csv}; existing measure files may no longer
+	 * align with new {@link plugins.fmp.multitools.experiment.ids.SpotID}s until measures are recomputed
+	 * or restored from backup.
+	 *
+	 * @return true if MS96 was present, spots were loaded, and description saves succeeded
+	 */
+	public boolean rebuildSpotsFromMs96Dev() {
+		String resultsDir = getResultsDirectory();
+		if (resultsDir == null) {
+			Logger.warn("Experiment.rebuildSpotsFromMs96Dev: resultsDirectory is null");
+			return false;
+		}
+		if (!CagesPersistenceLegacy.isMs96CagesXmlPresent(resultsDir)) {
+			Logger.warn("Experiment.rebuildSpotsFromMs96Dev: MS96_cages.xml not found for " + resultsDir);
+			return false;
+		}
+		if (!load_cages_description_and_measures()) {
+			Logger.warn("Experiment.rebuildSpotsFromMs96Dev: load_cages_description_and_measures failed");
+			return false;
+		}
+		spots.clearSpotList();
+		if (!CagesPersistenceLegacy.loadSpotsFromMS96CagesXml(spots, resultsDir)) {
+			Logger.warn("Experiment.rebuildSpotsFromMs96Dev: loadSpotsFromMS96CagesXml returned false");
+			return false;
+		}
+		dispatchSpotsToCages();
+		afterSpotsDispatchedBeforeSpotGeometry();
+		cages.ensureSpotROIsFromCageGeometry(spots);
+		spots.applyPreConsumedRoiStyles();
+
+		boolean descOk = spots.getPersistence().saveDescriptions(spots, resultsDir);
+		boolean cagesOk = save_cages_description_and_measures();
+		if (!descOk) {
+			Logger.warn("Experiment.rebuildSpotsFromMs96Dev: saveDescriptions failed for " + resultsDir);
+		}
+		if (!cagesOk) {
+			Logger.warn("Experiment.rebuildSpotsFromMs96Dev: save_cages_description_and_measures failed");
+		}
+		return descOk && cagesOk;
+	}
+
+	/**
 	 * Saves spot description and measures for the current experiment.
 	 * <p>
 	 * Description and measures are written to the results directory.

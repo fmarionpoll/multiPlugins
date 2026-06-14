@@ -93,6 +93,24 @@ public class CagesPersistenceMS96Legacy {
 	}
 
 	/**
+	 * Whether {@code MS96_cages.xml} exists under {@code resultsDirectory} or in its parent
+	 * directory (same resolution as {@link #loadSpotsFromMS96CagesXml}).
+	 */
+	public static boolean isMs96CagesXmlPresent(String resultsDirectory) {
+		if (resultsDirectory == null) {
+			return false;
+		}
+		File file = new File(resultsDirectory + File.separator + ID_MS96_CAGES_XML);
+		if (!file.isFile()) {
+			File parent = new File(resultsDirectory).getParentFile();
+			if (parent != null) {
+				file = new File(parent.getAbsolutePath() + File.separator + ID_MS96_CAGES_XML);
+			}
+		}
+		return file.isFile();
+	}
+
+	/**
 	 * Loads spot ROIs (color, size, shape) from MS96_cages.xml.
 	 */
 	public static boolean loadSpotsFromMS96CagesXml(Spots spots, String resultsDirectory) {

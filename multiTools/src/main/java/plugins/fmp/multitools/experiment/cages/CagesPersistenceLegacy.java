@@ -1125,6 +1125,11 @@ public class CagesPersistenceLegacy {
 		return CagesPersistenceMS96Legacy.loadSpotsFromMS96CagesXml(spots, resultsDirectory);
 	}
 
+	/** @see CagesPersistenceMS96Legacy#isMs96CagesXmlPresent(String) */
+	public static boolean isMs96CagesXmlPresent(String resultsDirectory) {
+		return CagesPersistenceMS96Legacy.isMs96CagesXmlPresent(resultsDirectory);
+	}
+
 	/**
 	 * Loads cage ROIs from MS96_cages.xml and assigns them to cages.
 	 */
