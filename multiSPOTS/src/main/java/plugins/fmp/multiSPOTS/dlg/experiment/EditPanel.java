@@ -222,10 +222,14 @@ public class EditPanel extends JPanel {
 	/**
 	 * Closes the main progress frame, runs EDT callbacks, optionally runs descriptor index
 	 * refresh (second progress), then sets final status and re-enables the panel.
+	 *
+	 * @param narrowDescriptorIndexRefresh when true and the descriptor index is already ready,
+	 *        reload only experiment-level descriptors (no cage/spot file scan).
 	 */
 	private void finishLongJobSequence(ProgressFrame mainProgress, boolean runDescriptorIndexRefresh,
-			Runnable applyEdtCommitments, Runnable loadChartsForSelection, Runnable rebuildInfosFiltersCombos,
-			String statusWhileRefreshingDescriptors, String finalStatusWhenFullyDone) {
+			boolean narrowDescriptorIndexRefresh, Runnable applyEdtCommitments, Runnable loadChartsForSelection,
+			Runnable rebuildInfosFiltersCombos, String statusWhileRefreshingDescriptors,
+			String finalStatusWhenFullyDone) {
 		if (mainProgress != null) {
 			mainProgress.close();
 		}
@@ -244,6 +248,8 @@ public class EditPanel extends JPanel {
 				if (indexSource.getItemCount() < 1) {
 					indexSource = parent0.expListComboLazy;
 				}
+				final boolean scanLiveCageSpot = !(narrowDescriptorIndexRefresh
+						&& parent0.descriptorIndex.isReady());
 				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
 					@Override
 					public void run() {
@@ -257,7 +263,7 @@ public class EditPanel extends JPanel {
 							finishLongOperation();
 						}
 					}
-				});
+				}, pf, scanLiveCageSpot);
 			} catch (Exception ex) {
 				Logger.warn("EditPanel.finishLongJobSequence preload: " + ex.getMessage());
 				pf.close();
@@ -450,7 +456,8 @@ public class EditPanel extends JPanel {
 			protected void done() {
 				try {
 					final boolean refreshIdx = anyChanged && parent0.descriptorIndex != null;
-					finishLongJobSequence(progress, refreshIdx, new Runnable() {
+					final boolean narrowIdx = refreshIdx && !fieldUsesLiveCageOrSpotScan(fieldEnumCode);
+					finishLongJobSequence(progress, refreshIdx, narrowIdx, new Runnable() {
 						@Override
 						public void run() {
 							if (anyChanged && snapshotHolder[0] != null && !snapshotHolder[0].isEmpty()) {
@@ -565,7 +572,8 @@ public class EditPanel extends JPanel {
 					final String summary = "Restore finished (" + fieldEnumCode + "). Updated: " + (anyChanged ? "yes" : "no")
 							+ ", skipped (no backup or no match): " + nSkipped + ".";
 					final boolean refreshIdx = anyChanged && parent0.descriptorIndex != null;
-					finishLongJobSequence(progress, refreshIdx, new Runnable() {
+					final boolean narrowIdx = refreshIdx && !fieldUsesLiveCageOrSpotScan(fieldEnumCode);
+					finishLongJobSequence(progress, refreshIdx, narrowIdx, new Runnable() {
 						@Override
 						public void run() {
 							if (anyChanged) {
@@ -654,7 +662,8 @@ public class EditPanel extends JPanel {
 				final String successMsg = "Undo completed for " + fieldEnumCode + ".";
 				try {
 					final boolean refreshIdx = ok && parent0.descriptorIndex != null;
-					finishLongJobSequence(progress, refreshIdx, new Runnable() {
+					final boolean narrowIdx = refreshIdx && !fieldUsesLiveCageOrSpotScan(fieldEnumCode);
+					finishLongJobSequence(progress, refreshIdx, narrowIdx, new Runnable() {
 						@Override
 						public void run() {
 							if (ok) {

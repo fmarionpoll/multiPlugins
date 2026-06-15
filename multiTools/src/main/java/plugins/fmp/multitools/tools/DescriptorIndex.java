@@ -78,7 +78,7 @@ public class DescriptorIndex {
 	}
 
 	public void preloadFromCombo(final JComboBoxExperimentLazy combo, final Runnable onDone) {
-		preloadFromCombo(combo, onDone, null);
+		preloadFromCombo(combo, onDone, null, true);
 	}
 
 	/**
@@ -87,7 +87,30 @@ public class DescriptorIndex {
 	 */
 	public void preloadFromCombo(final JComboBoxExperimentLazy combo, final Runnable onDone,
 			final ProgressFrame progressFrame) {
-		clear();
+		preloadFromCombo(combo, onDone, progressFrame, true);
+	}
+
+	/**
+	 * Rebuilds the descriptor index from the experiments in {@code combo}.
+	 *
+	 * @param scanLiveCageSpotDescriptors when {@code false}, cage/spot distinct values are kept
+	 *        from the current index (snapshot before this run) and only experiment-level descriptors
+	 *        are rescanned — use after edits that cannot change cage/spot files while the index was
+	 *        already {@link #isReady()}.
+	 */
+	public void preloadFromCombo(final JComboBoxExperimentLazy combo, final Runnable onDone,
+			final ProgressFrame progressFrame, final boolean scanLiveCageSpotDescriptors) {
+		final EnumMap<EnumXLSColumnHeader, TreeSet<String>> cageSpotFrozen;
+		if (scanLiveCageSpotDescriptors) {
+			clear();
+			cageSpotFrozen = null;
+		} else {
+			cageSpotFrozen = copyLiveCageSpotSnapshot();
+			synchronized (this) {
+				ready = false;
+				propertiesByResultsDir.clear();
+			}
+		}
 		final int nitems = combo.getItemCount();
 		new SwingWorker<Void, Void>() {
 			@Override
@@ -136,47 +159,57 @@ public class DescriptorIndex {
 						updateDistinctLocal(distinctLocal, props);
 					}
 
-					try {
-						exp.load_cages_description_and_measures();
-						exp.load_spots_description_and_measures();
-						if (exp.getCages() != null && exp.getCages().cagesList != null) {
-							Spots allSpots = exp.getSpots();
-							for (Cage cage : exp.getCages().cagesList) {
-								addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.CAGE_SEX),
-										cage.getField(EnumXLSColumnHeader.CAGE_SEX));
-								addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.CAGE_STRAIN),
-										cage.getField(EnumXLSColumnHeader.CAGE_STRAIN));
-								addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.CAGE_AGE),
-										cage.getField(EnumXLSColumnHeader.CAGE_AGE));
-								if (allSpots != null) {
-									List<Spot> spots = cage.getSpotList(allSpots);
-									if (spots != null && !spots.isEmpty()) {
-										for (Spot spot : spots) {
-											addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.SPOT_STIM),
-													spot.getField(EnumXLSColumnHeader.SPOT_STIM));
-											addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.SPOT_CONC),
-													spot.getField(EnumXLSColumnHeader.SPOT_CONC));
-											addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.SPOT_VOLUME),
-													spot.getField(EnumXLSColumnHeader.SPOT_VOLUME));
+					if (scanLiveCageSpotDescriptors) {
+						try {
+							exp.load_cages_description_and_measures();
+							exp.load_spots_description_and_measures();
+							if (exp.getCages() != null && exp.getCages().cagesList != null) {
+								Spots allSpots = exp.getSpots();
+								for (Cage cage : exp.getCages().cagesList) {
+									addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.CAGE_SEX),
+											cage.getField(EnumXLSColumnHeader.CAGE_SEX));
+									addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.CAGE_STRAIN),
+											cage.getField(EnumXLSColumnHeader.CAGE_STRAIN));
+									addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.CAGE_AGE),
+											cage.getField(EnumXLSColumnHeader.CAGE_AGE));
+									if (allSpots != null) {
+										List<Spot> spots = cage.getSpotList(allSpots);
+										if (spots != null && !spots.isEmpty()) {
+											for (Spot spot : spots) {
+												addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.SPOT_STIM),
+														spot.getField(EnumXLSColumnHeader.SPOT_STIM));
+												addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.SPOT_CONC),
+														spot.getField(EnumXLSColumnHeader.SPOT_CONC));
+												addIfNotEmpty(distinctLocal.get(EnumXLSColumnHeader.SPOT_VOLUME),
+														spot.getField(EnumXLSColumnHeader.SPOT_VOLUME));
+											}
 										}
 									}
 								}
 							}
+						} catch (Exception ex) {
+							// Ignore malformed per-experiment cage files
 						}
-					} catch (Exception ex) {
-						// Ignore malformed per-experiment cage files
+					}
+				}
+
+				if (cageSpotFrozen != null) {
+					for (Map.Entry<EnumXLSColumnHeader, TreeSet<String>> e : cageSpotFrozen.entrySet()) {
+						distinctLocal.put(e.getKey(), new TreeSet<String>(e.getValue()));
 					}
 				}
 
 				// Publish
-				propertiesByResultsDir.clear();
-				propertiesByResultsDir.putAll(propsLocal);
-				for (EnumXLSColumnHeader field : distinctByField.keySet()) {
-					TreeSet<String> set = distinctByField.get(field);
-					set.clear();
-					set.addAll(distinctLocal.get(field));
+				synchronized (DescriptorIndex.this) {
+					propertiesByResultsDir.clear();
+					propertiesByResultsDir.putAll(propsLocal);
+					for (EnumXLSColumnHeader field : distinctByField.keySet()) {
+						TreeSet<String> set = distinctByField.get(field);
+						set.clear();
+						set.addAll(distinctLocal.get(field));
+					}
+					ready = true;
 				}
-				ready = true;
 				return null;
 			}
 
@@ -187,6 +220,19 @@ public class DescriptorIndex {
 				}
 			}
 		}.execute();
+	}
+
+	private EnumMap<EnumXLSColumnHeader, TreeSet<String>> copyLiveCageSpotSnapshot() {
+		EnumMap<EnumXLSColumnHeader, TreeSet<String>> out = new EnumMap<EnumXLSColumnHeader, TreeSet<String>>(
+				EnumXLSColumnHeader.class);
+		synchronized (this) {
+			for (Map.Entry<EnumXLSColumnHeader, TreeSet<String>> e : distinctByField.entrySet()) {
+				if (aggregatesFromLiveCageOrSpotFiles(e.getKey())) {
+					out.put(e.getKey(), new TreeSet<String>(e.getValue()));
+				}
+			}
+		}
+		return out;
 	}
 
 	private void updateDistinctLocal(EnumMap<EnumXLSColumnHeader, TreeSet<String>> distinctLocal,
