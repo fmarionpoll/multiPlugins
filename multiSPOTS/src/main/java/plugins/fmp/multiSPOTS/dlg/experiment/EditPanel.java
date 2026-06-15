@@ -15,6 +15,8 @@ import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingWorker;
 
+import java.util.List;
+
 import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -50,6 +52,8 @@ public class EditPanel extends JPanel {
 	JComboBoxExperimentLazy editExpList = new JComboBoxExperimentLazy();
 	private EditApplyUndoSnapshot lastApplyUndoSnapshot = null;
 
+	private volatile boolean editPanelLongJobRunning = false;
+
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
 		this.parent0 = parent0;
 		setLayout(capLayout);
@@ -66,7 +70,7 @@ public class EditPanel extends JPanel {
 		fieldNamesCombo.setPreferredSize(new Dimension(bWidth, bHeight));
 		panel0.add(refreshButton);
 		restoreFromBackupButton.setToolTipText(
-				"Reload the selected field from MS96_experiment.xml / MS96_cages.xml in backup_before_migration (migrated experiments only).");
+				"Reload the selected field from MS96_experiment.xml / MS96_cages.xml: first in backup_before_migration, else in the results folder (legacy imports).");
 		panel0.add(restoreFromBackupButton);
 		add(panel0);
 
@@ -182,6 +186,96 @@ public class EditPanel extends JPanel {
 		restoreFromBackupButton.setEnabled(any);
 	}
 
+	private boolean tryBeginLongOperation() {
+		if (editPanelLongJobRunning) {
+			JOptionPane.showMessageDialog(this, "Please wait for the current operation to finish.", "Edit panel",
+					JOptionPane.INFORMATION_MESSAGE);
+			return false;
+		}
+		editPanelLongJobRunning = true;
+		applyButton.setEnabled(false);
+		refreshButton.setEnabled(false);
+		restoreFromBackupButton.setEnabled(false);
+		undoLastApplyButton.setEnabled(false);
+		fieldNamesCombo.setEnabled(false);
+		fieldOldValuesCombo.setEnabled(false);
+		newValueTextField.setEnabled(false);
+		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		return true;
+	}
+
+	private void finishLongOperation() {
+		if (!editPanelLongJobRunning) {
+			return;
+		}
+		editPanelLongJobRunning = false;
+		setCursor(Cursor.getDefaultCursor());
+		fieldNamesCombo.setEnabled(true);
+		fieldOldValuesCombo.setEnabled(true);
+		newValueTextField.setEnabled(true);
+		refreshButton.setEnabled(true);
+		applyButton.setEnabled(true);
+		updateRestoreFromBackupButtonState();
+		updateUndoLastApplyButtonState();
+	}
+
+	/**
+	 * Closes the main progress frame, runs EDT callbacks, optionally runs descriptor index
+	 * refresh (second progress), then sets final status and re-enables the panel.
+	 */
+	private void finishLongJobSequence(ProgressFrame mainProgress, boolean runDescriptorIndexRefresh,
+			Runnable applyEdtCommitments, Runnable loadChartsForSelection, Runnable rebuildInfosFiltersCombos,
+			String statusWhileRefreshingDescriptors, String finalStatusWhenFullyDone) {
+		if (mainProgress != null) {
+			mainProgress.close();
+		}
+		if (applyEdtCommitments != null) {
+			applyEdtCommitments.run();
+		}
+		if (loadChartsForSelection != null) {
+			loadChartsForSelection.run();
+		}
+		if (runDescriptorIndexRefresh && parent0.descriptorIndex != null) {
+			statusLabel.setText(statusWhileRefreshingDescriptors);
+			final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
+			try {
+				parent0.dlgExperiment.filterPanel.initCombos();
+				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
+				if (indexSource.getItemCount() < 1) {
+					indexSource = parent0.expListComboLazy;
+				}
+				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
+					@Override
+					public void run() {
+						try {
+							pf.close();
+							if (rebuildInfosFiltersCombos != null) {
+								rebuildInfosFiltersCombos.run();
+							}
+							statusLabel.setText(finalStatusWhenFullyDone);
+						} finally {
+							finishLongOperation();
+						}
+					}
+				});
+			} catch (Exception ex) {
+				Logger.warn("EditPanel.finishLongJobSequence preload: " + ex.getMessage());
+				pf.close();
+				if (rebuildInfosFiltersCombos != null) {
+					rebuildInfosFiltersCombos.run();
+				}
+				statusLabel.setText(finalStatusWhenFullyDone);
+				finishLongOperation();
+			}
+		} else {
+			if (rebuildInfosFiltersCombos != null) {
+				rebuildInfosFiltersCombos.run();
+			}
+			statusLabel.setText(finalStatusWhenFullyDone);
+			finishLongOperation();
+		}
+	}
+
 	private void defineActionListeners() {
 		applyButton.addActionListener(new ActionListener() {
 			@Override
@@ -221,16 +315,33 @@ public class EditPanel extends JPanel {
 		refreshButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				if (!tryBeginLongOperation()) {
+					return;
+				}
+				statusLabel.setText("Refreshing descriptor index…");
 				final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
 				parent0.dlgExperiment.filterPanel.initCombos();
 				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
-				if (indexSource.getItemCount() < 1)
+				if (indexSource.getItemCount() < 1) {
 					indexSource = parent0.expListComboLazy;
+				}
+				if (parent0.descriptorIndex == null) {
+					pf.close();
+					initEditCombos();
+					statusLabel.setText("Descriptors refreshed.");
+					finishLongOperation();
+					return;
+				}
 				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
 					@Override
 					public void run() {
-						pf.close();
-						initEditCombos();
+						try {
+							pf.close();
+							initEditCombos();
+							statusLabel.setText("Descriptors refreshed.");
+						} finally {
+							finishLongOperation();
+						}
 					}
 				});
 			}
@@ -253,6 +364,9 @@ public class EditPanel extends JPanel {
 	}
 
 	void applyChange() {
+		if (!tryBeginLongOperation()) {
+			return;
+		}
 		syncEditExpListFromProject();
 		final int nExperiments = editExpList.getItemCount();
 		final EnumXLSColumnHeader fieldEnumCode = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
@@ -260,25 +374,19 @@ public class EditPanel extends JPanel {
 		final String newValue = newValueTextField.getText();
 
 		final ProgressFrame progress = new ProgressFrame("Apply changes to " + fieldEnumCode);
-		progress.setLength(nExperiments);
-		statusLabel.setText("Applying changes to " + fieldEnumCode + "...");
-		applyButton.setEnabled(false);
-		refreshButton.setEnabled(false);
-		restoreFromBackupButton.setEnabled(false);
-		undoLastApplyButton.setEnabled(false);
-		fieldNamesCombo.setEnabled(false);
-		fieldOldValuesCombo.setEnabled(false);
-		newValueTextField.setEnabled(false);
-		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		progress.setLength(Math.max(1, nExperiments));
+		statusLabel.setText("Applying " + fieldEnumCode + "…");
 
-		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
 			private boolean anyChanged = false;
 			private final EditApplyUndoSnapshot[] snapshotHolder = new EditApplyUndoSnapshot[1];
 
 			@Override
 			protected Void doInBackground() throws Exception {
+				publish("Preparing undo snapshot…");
 				snapshotHolder[0] = EditApplyUndoSnapshot.capture(editExpList, nExperiments, fieldEnumCode, oldValue);
 				for (int i = 0; i < nExperiments; i++) {
+					publish("Applying " + fieldEnumCode + "… " + (i + 1) + " / " + nExperiments);
 					Experiment exp = editExpList.getItemAtNoLoad(i);
 					boolean isChanged = false;
 					progress.setMessage("Updating (" + (i + 1) + "/" + nExperiments + ")");
@@ -287,7 +395,6 @@ public class EditPanel extends JPanel {
 						progress.incPosition();
 						continue;
 					}
-					// Apply change without triggering image loads
 					switch (fieldEnumCode) {
 					case EXP_EXPT:
 					case EXP_ID:
@@ -299,15 +406,17 @@ public class EditPanel extends JPanel {
 					case EXP_CONC2:
 						exp.loadExperimentDescriptors();
 						isChanged = exp.replaceExperimentFieldIfEqualOldValue(fieldEnumCode, oldValue, newValue);
-						if (isChanged)
+						if (isChanged) {
 							exp.saveExperimentDescriptors();
+						}
 						break;
 					case CAGE_SEX:
 					case CAGE_STRAIN:
 					case CAGE_AGE:
 						isChanged = exp.replaceCageFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
-						if (isChanged)
+						if (isChanged) {
 							exp.save_cages_description_and_measures();
+						}
 						break;
 					case SPOT_STIM:
 					case SPOT_CONC:
@@ -320,9 +429,9 @@ public class EditPanel extends JPanel {
 					default:
 						break;
 					}
-					// keep descriptors file in sync for this experiment
-					if (isChanged)
+					if (isChanged) {
 						DescriptorsIO.buildFromExperiment(exp);
+					}
 					anyChanged |= isChanged;
 
 					progress.incPosition();
@@ -331,44 +440,48 @@ public class EditPanel extends JPanel {
 			}
 
 			@Override
+			protected void process(List<String> chunks) {
+				if (!chunks.isEmpty()) {
+					statusLabel.setText(chunks.get(chunks.size() - 1));
+				}
+			}
+
+			@Override
 			protected void done() {
-				progress.close();
-				statusLabel.setText("Done applying changes to " + fieldEnumCode + ".");
-				if (anyChanged && snapshotHolder[0] != null && !snapshotHolder[0].isEmpty()) {
-					lastApplyUndoSnapshot = snapshotHolder[0];
-				}
-				applyButton.setEnabled(true);
-				refreshButton.setEnabled(true);
-				updateRestoreFromBackupButtonState();
-				updateUndoLastApplyButtonState();
-				fieldNamesCombo.setEnabled(true);
-				fieldOldValuesCombo.setEnabled(true);
-				newValueTextField.setEnabled(true);
-				setCursor(Cursor.getDefaultCursor());
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.load_spots_description_and_measures();
-					parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
-				}
-				if (anyChanged && parent0.descriptorIndex != null) {
-					final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-					parent0.dlgExperiment.filterPanel.initCombos();
-					JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
-					if (indexSource.getItemCount() < 1)
-						indexSource = parent0.expListComboLazy;
-					parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
+				try {
+					final boolean refreshIdx = anyChanged && parent0.descriptorIndex != null;
+					finishLongJobSequence(progress, refreshIdx, new Runnable() {
 						@Override
 						public void run() {
-							pf.close();
+							if (anyChanged && snapshotHolder[0] != null && !snapshotHolder[0].isEmpty()) {
+								lastApplyUndoSnapshot = snapshotHolder[0];
+							}
+						}
+					}, new Runnable() {
+						@Override
+						public void run() {
+							Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+							if (exp != null) {
+								exp.load_spots_description_and_measures();
+								parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
+							}
+						}
+					}, new Runnable() {
+						@Override
+						public void run() {
 							parent0.dlgExperiment.infosPanel.initCombos();
 							parent0.dlgExperiment.filterPanel.initCombos();
 							initEditCombos();
 						}
-					});
-				} else {
-					parent0.dlgExperiment.infosPanel.initCombos();
-					parent0.dlgExperiment.filterPanel.initCombos();
-					initEditCombos();
+					}, "Refreshing descriptor index…", "Done applying changes to " + fieldEnumCode + ".");
+				} catch (Exception ex) {
+					Logger.warn("EditPanel.applyChange: " + ex.getMessage(), ex);
+					try {
+						progress.close();
+					} catch (Exception ignored) {
+					}
+					statusLabel.setText("Apply failed (see log).");
+					finishLongOperation();
 				}
 			}
 		};
@@ -385,34 +498,31 @@ public class EditPanel extends JPanel {
 		}
 		int r = JOptionPane.showConfirmDialog(this,
 				"Replace the selected field \"" + fieldEnumCode
-						+ "\" for every experiment in the list\nwith values read from backup_before_migration/MS96_*.xml,\n"
-						+ "when that backup exists for the experiment's results folder.\n"
+						+ "\" for every experiment in the list\nwith values read from MS96_experiment.xml / MS96_cages.xml\n"
+						+ "(in backup_before_migration when present, otherwise in the experiment results folder),\n"
+						+ "when both files exist in that location.\n"
 						+ "Spots are matched by spot ID when present in the backup, otherwise by cage ID and cage position.\n\n"
 						+ "Continue?",
 				"Restore from migration backup", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 		if (r != JOptionPane.YES_OPTION) {
 			return;
 		}
+		if (!tryBeginLongOperation()) {
+			return;
+		}
 
 		final ProgressFrame progress = new ProgressFrame("Restore from migration backup: " + fieldEnumCode);
-		progress.setLength(nExperiments);
-		statusLabel.setText("Restoring " + fieldEnumCode + " from backup...");
-		applyButton.setEnabled(false);
-		refreshButton.setEnabled(false);
-		restoreFromBackupButton.setEnabled(false);
-		undoLastApplyButton.setEnabled(false);
-		fieldNamesCombo.setEnabled(false);
-		fieldOldValuesCombo.setEnabled(false);
-		newValueTextField.setEnabled(false);
-		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		progress.setLength(Math.max(1, nExperiments));
+		statusLabel.setText("Restoring " + fieldEnumCode + "…");
 
-		SwingWorker<Void, Void> worker = new SwingWorker<Void, Void>() {
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
 			private boolean anyChanged = false;
 			private int nSkipped = 0;
 
 			@Override
 			protected Void doInBackground() throws Exception {
 				for (int i = 0; i < nExperiments; i++) {
+					publish("Restoring " + fieldEnumCode + "… " + (i + 1) + " / " + nExperiments);
 					Experiment exp = editExpList.getItemAtNoLoad(i);
 					progress.setMessage("Restore (" + (i + 1) + "/" + nExperiments + ")");
 					if (exp == null) {
@@ -443,45 +553,50 @@ public class EditPanel extends JPanel {
 			}
 
 			@Override
+			protected void process(List<String> chunks) {
+				if (!chunks.isEmpty()) {
+					statusLabel.setText(chunks.get(chunks.size() - 1));
+				}
+			}
+
+			@Override
 			protected void done() {
-				progress.close();
-				statusLabel.setText("Restore finished (" + fieldEnumCode + "). Updated: " + (anyChanged ? "yes" : "no")
-						+ ", skipped (no backup or no match): " + nSkipped + ".");
-				if (anyChanged) {
-					clearApplyUndoSnapshot();
-				}
-				applyButton.setEnabled(true);
-				refreshButton.setEnabled(true);
-				updateRestoreFromBackupButtonState();
-				updateUndoLastApplyButtonState();
-				fieldNamesCombo.setEnabled(true);
-				fieldOldValuesCombo.setEnabled(true);
-				newValueTextField.setEnabled(true);
-				setCursor(Cursor.getDefaultCursor());
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.load_spots_description_and_measures();
-					parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
-				}
-				if (anyChanged && parent0.descriptorIndex != null) {
-					final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-					parent0.dlgExperiment.filterPanel.initCombos();
-					JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
-					if (indexSource.getItemCount() < 1)
-						indexSource = parent0.expListComboLazy;
-					parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
+				try {
+					final String summary = "Restore finished (" + fieldEnumCode + "). Updated: " + (anyChanged ? "yes" : "no")
+							+ ", skipped (no backup or no match): " + nSkipped + ".";
+					final boolean refreshIdx = anyChanged && parent0.descriptorIndex != null;
+					finishLongJobSequence(progress, refreshIdx, new Runnable() {
 						@Override
 						public void run() {
-							pf.close();
+							if (anyChanged) {
+								clearApplyUndoSnapshot();
+							}
+						}
+					}, new Runnable() {
+						@Override
+						public void run() {
+							Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+							if (exp != null) {
+								exp.load_spots_description_and_measures();
+								parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
+							}
+						}
+					}, new Runnable() {
+						@Override
+						public void run() {
 							parent0.dlgExperiment.infosPanel.initCombos();
 							parent0.dlgExperiment.filterPanel.initCombos();
 							initEditCombos();
 						}
-					});
-				} else {
-					parent0.dlgExperiment.infosPanel.initCombos();
-					parent0.dlgExperiment.filterPanel.initCombos();
-					initEditCombos();
+					}, "Refreshing descriptor index…", summary);
+				} catch (Exception ex) {
+					Logger.warn("EditPanel.restoreFieldFromMigrationBackup: " + ex.getMessage(), ex);
+					try {
+						progress.close();
+					} catch (Exception ignored) {
+					}
+					statusLabel.setText("Restore failed (see log).");
+					finishLongOperation();
 				}
 			}
 		};
@@ -501,75 +616,76 @@ public class EditPanel extends JPanel {
 					+ "\" (select that field name first).");
 			return;
 		}
+		if (!tryBeginLongOperation()) {
+			return;
+		}
 
 		final ProgressFrame progress = new ProgressFrame("Undo last apply: " + fieldEnumCode);
-		progress.setLength(nExperiments);
-		statusLabel.setText("Undoing last apply for " + fieldEnumCode + "...");
-		applyButton.setEnabled(false);
-		refreshButton.setEnabled(false);
-		restoreFromBackupButton.setEnabled(false);
-		undoLastApplyButton.setEnabled(false);
-		fieldNamesCombo.setEnabled(false);
-		fieldOldValuesCombo.setEnabled(false);
-		newValueTextField.setEnabled(false);
-		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
+		progress.setLength(Math.max(1, nExperiments));
+		statusLabel.setText("Undoing last apply for " + fieldEnumCode + "…");
 
 		final EditApplyUndoSnapshot snap = lastApplyUndoSnapshot;
-		SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+		final boolean[] okBox = new boolean[1];
+		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
 			@Override
-			protected Boolean doInBackground() throws Exception {
-				return Boolean.valueOf(snap.undo(editExpList, nExperiments, fieldEnumCode));
+			protected Void doInBackground() throws Exception {
+				publish("Undoing last apply…");
+				try {
+					okBox[0] = snap.undo(editExpList, nExperiments, fieldEnumCode);
+				} catch (Exception ex) {
+					Logger.warn("Edit.undoLastApply: " + ex.getMessage());
+					okBox[0] = false;
+				}
+				progress.incPosition();
+				return null;
+			}
+
+			@Override
+			protected void process(List<String> chunks) {
+				if (!chunks.isEmpty()) {
+					statusLabel.setText(chunks.get(chunks.size() - 1));
+				}
 			}
 
 			@Override
 			protected void done() {
-				progress.close();
-				boolean ok = false;
+				boolean ok = okBox[0];
+				final String failMsg = "Undo failed or nothing matched (list may have changed).";
+				final String successMsg = "Undo completed for " + fieldEnumCode + ".";
 				try {
-					ok = Boolean.TRUE.equals(get());
-				} catch (Exception ex) {
-					Logger.warn("Edit.undoLastApply: " + ex.getMessage());
-				}
-				if (ok) {
-					lastApplyUndoSnapshot = null;
-					statusLabel.setText("Undo completed for " + fieldEnumCode + ".");
-				} else {
-					statusLabel.setText("Undo failed or nothing matched (list may have changed).");
-				}
-				applyButton.setEnabled(true);
-				refreshButton.setEnabled(true);
-				updateRestoreFromBackupButtonState();
-				updateUndoLastApplyButtonState();
-				fieldNamesCombo.setEnabled(true);
-				fieldOldValuesCombo.setEnabled(true);
-				newValueTextField.setEnabled(true);
-				setCursor(Cursor.getDefaultCursor());
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.load_spots_description_and_measures();
-					parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
-				}
-				if (ok && parent0.descriptorIndex != null) {
-					final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-					parent0.dlgExperiment.filterPanel.initCombos();
-					JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
-					if (indexSource.getItemCount() < 1)
-						indexSource = parent0.expListComboLazy;
-					parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
+					final boolean refreshIdx = ok && parent0.descriptorIndex != null;
+					finishLongJobSequence(progress, refreshIdx, new Runnable() {
 						@Override
 						public void run() {
-							pf.close();
+							if (ok) {
+								lastApplyUndoSnapshot = null;
+							}
+						}
+					}, new Runnable() {
+						@Override
+						public void run() {
+							Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+							if (exp != null) {
+								exp.load_spots_description_and_measures();
+								parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
+							}
+						}
+					}, ok ? new Runnable() {
+						@Override
+						public void run() {
 							parent0.dlgExperiment.infosPanel.initCombos();
 							parent0.dlgExperiment.filterPanel.initCombos();
 							initEditCombos();
 						}
-					});
-				} else if (ok) {
-					parent0.dlgExperiment.infosPanel.initCombos();
-					parent0.dlgExperiment.filterPanel.initCombos();
-					initEditCombos();
-				} else {
-					updateUndoLastApplyButtonState();
+					} : null, "Refreshing descriptor index…", ok ? successMsg : failMsg);
+				} catch (Exception ex) {
+					Logger.warn("EditPanel.undoLastApply: " + ex.getMessage(), ex);
+					try {
+						progress.close();
+					} catch (Exception ignored) {
+					}
+					statusLabel.setText("Undo failed (see log).");
+					finishLongOperation();
 				}
 			}
 		};

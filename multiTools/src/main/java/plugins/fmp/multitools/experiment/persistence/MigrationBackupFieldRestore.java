@@ -28,8 +28,10 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 /**
- * Restores editable descriptor fields from legacy XML kept under
- * {@link MigrationTool#DIR_BACKUP_BEFORE_MIGRATION}.
+ * Restores editable descriptor fields from legacy MS96 XML. Tries
+ * {@link MigrationTool#DIR_BACKUP_BEFORE_MIGRATION} under the results directory first;
+ * if either file is missing there, uses {@code MS96_experiment.xml} and
+ * {@code MS96_cages.xml} in the results directory when both are present.
  */
 public final class MigrationBackupFieldRestore {
 
@@ -45,11 +47,29 @@ public final class MigrationBackupFieldRestore {
 	}
 
 	public static boolean isMigrationBackupPresent(String resultsDirectory) {
+		return resolveMs96XmlParentDirectory(resultsDirectory) != null;
+	}
+
+	/**
+	 * Directory containing both {@code MS96_experiment.xml} and {@code MS96_cages.xml}:
+	 * {@code results/backup_before_migration} if both exist there, otherwise {@code results}
+	 * if both exist at the root of the results folder.
+	 */
+	private static Path resolveMs96XmlParentDirectory(String resultsDirectory) {
 		if (resultsDirectory == null) {
-			return false;
+			return null;
 		}
-		Path backup = Paths.get(resultsDirectory, MigrationTool.DIR_BACKUP_BEFORE_MIGRATION);
-		return Files.isRegularFile(backup.resolve(MS96_EXPERIMENT)) && Files.isRegularFile(backup.resolve(MS96_CAGES));
+		Path results = Paths.get(resultsDirectory);
+		Path inBackup = results.resolve(MigrationTool.DIR_BACKUP_BEFORE_MIGRATION);
+		if (Files.isRegularFile(inBackup.resolve(MS96_EXPERIMENT))
+				&& Files.isRegularFile(inBackup.resolve(MS96_CAGES))) {
+			return inBackup;
+		}
+		if (Files.isRegularFile(results.resolve(MS96_EXPERIMENT))
+				&& Files.isRegularFile(results.resolve(MS96_CAGES))) {
+			return results;
+		}
+		return null;
 	}
 
 	private static String resolveResultsDirectory(Experiment live) {
@@ -64,12 +84,12 @@ public final class MigrationBackupFieldRestore {
 	}
 
 	/**
-	 * Overwrites the given field on {@code live} from values read in
-	 * {@code resultsDir/backup_before_migration/} (MS96 XML). Matching uses cage
-	 * ID for cages; for spots, {@link SpotID} when present in backup XML, otherwise
-	 * cageID and cage position.
+	 * Overwrites the given field on {@code live} from MS96 XML: both files under
+	 * {@code results/backup_before_migration} if present, otherwise both under the
+	 * results directory. Matching uses cage ID for cages; for spots, {@link SpotID}
+	 * when present in the XML, otherwise cageID and cage position.
 	 *
-	 * @return true if backup files were read and at least one value was applied
+	 * @return true if legacy files were read and at least one value was applied
 	 */
 	public static boolean restoreFieldFromMigrationBackup(Experiment live, EnumXLSColumnHeader field) {
 		String resultsDir = resolveResultsDirectory(live);
@@ -77,12 +97,12 @@ public final class MigrationBackupFieldRestore {
 			Logger.warn("MigrationBackupFieldRestore: no results directory");
 			return false;
 		}
-		Path backupDir = Paths.get(resultsDir, MigrationTool.DIR_BACKUP_BEFORE_MIGRATION);
-		Path expXml = backupDir.resolve(MS96_EXPERIMENT);
-		Path cagesXml = backupDir.resolve(MS96_CAGES);
-		if (!Files.isRegularFile(expXml) || !Files.isRegularFile(cagesXml)) {
+		Path xmlDir = resolveMs96XmlParentDirectory(resultsDir);
+		if (xmlDir == null) {
 			return false;
 		}
+		Path expXml = xmlDir.resolve(MS96_EXPERIMENT);
+		Path cagesXml = xmlDir.resolve(MS96_CAGES);
 
 		switch (field) {
 		case EXP_EXPT:
