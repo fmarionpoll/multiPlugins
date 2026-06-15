@@ -25,6 +25,9 @@ import plugins.fmp.multitools.tools.Logger;
 
 public class MigrationTool {
 
+	/** Subdirectory under an experiment results folder containing legacy XML moved before format migration. */
+	public static final String DIR_BACKUP_BEFORE_MIGRATION = "backup_before_migration";
+
 	private MigrationDetector detector = new MigrationDetector();
 
 	/**
@@ -116,7 +119,7 @@ public class MigrationTool {
 	private void backupOldFiles(String directory) {
 		try {
 			Path dirPath = Paths.get(directory);
-			Path backupDir = dirPath.resolve("backup_before_migration");
+			Path backupDir = dirPath.resolve(DIR_BACKUP_BEFORE_MIGRATION);
 			if (!Files.exists(backupDir)) {
 				Files.createDirectories(backupDir);
 			}

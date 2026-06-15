@@ -1445,30 +1445,20 @@ public class Experiment {
 		return textList;
 	}
 
-	public boolean replaceExperimentFieldIfEqualOldValue(EnumXLSColumnHeader fieldEnumCode, String oldValue,
-			String newValue) {
-		if (oldValue == null) {
-			return false;
-		}
-		String oldNorm = oldValue.trim();
-		if (oldNorm.isEmpty()) {
-			oldNorm = "..";
-		}
-
+	/**
+	 * Reads the experiment-level descriptor value used for bulk replace matching
+	 * (external descriptors file first for {@link LazyExperiment} when applicable).
+	 *
+	 * @return the raw stored value, or null if unavailable
+	 */
+	public String getCurrentValueForExperimentFieldReplace(EnumXLSColumnHeader fieldEnumCode) {
 		String current = null;
-		// LazyExperiment may not have resultsDirectory / seqCamData set when iterating
-		// via getItemAtNoLoad().
-		// Prefer its lightweight cached property loader in that case.
 		if (this instanceof LazyExperiment) {
 			LazyExperiment lexp = (LazyExperiment) this;
 			String resDir = lexp.getMetadata() != null ? lexp.getMetadata().getResultsDirectory() : null;
 			if (getResultsDirectory() == null && resDir != null) {
 				setResultsDirectory(resDir);
 			}
-
-			// DescriptorIndex prefers the external descriptors file when present; match
-			// against it first
-			// so bulk-replace uses the same "current" values as the UI combos.
 			if (resDir != null) {
 				Map<EnumXLSColumnHeader, List<String>> preDicts = DescriptorsIO.readDescriptors(resDir);
 				if (preDicts != null) {
@@ -1483,10 +1473,23 @@ public class Experiment {
 				current = lexp.getFieldValue(fieldEnumCode);
 			}
 		} else {
-			// Ensure descriptors are loaded
 			loadExperimentDescriptors();
 			current = prop.getField(fieldEnumCode);
 		}
+		return current;
+	}
+
+	public boolean replaceExperimentFieldIfEqualOldValue(EnumXLSColumnHeader fieldEnumCode, String oldValue,
+			String newValue) {
+		if (oldValue == null) {
+			return false;
+		}
+		String oldNorm = oldValue.trim();
+		if (oldNorm.isEmpty()) {
+			oldNorm = "..";
+		}
+
+		String current = getCurrentValueForExperimentFieldReplace(fieldEnumCode);
 
 		if (current == null) {
 			return false;
