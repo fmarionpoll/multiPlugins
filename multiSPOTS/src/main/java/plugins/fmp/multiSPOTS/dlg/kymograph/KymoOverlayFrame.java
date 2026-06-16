@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
@@ -31,6 +32,7 @@ import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
+import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -63,6 +65,7 @@ public class KymoOverlayFrame {
 	}
 
 	private SelectedSpotsProvider selectedSpotsProvider;
+	private Consumer<Spot> onSpotChartClicked;
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
 		this.selectedSpotsProvider = provider;
@@ -74,6 +77,10 @@ public class KymoOverlayFrame {
 
 	public void setParentComboBox(JComboBox<EnumResults> parent) {
 		this.parentMeasureComboBox = parent;
+	}
+
+	public void setOnSpotChartClicked(Consumer<Spot> onSpotChartClicked) {
+		this.onSpotChartClicked = onSpotChartClicked;
 	}
 
 	public void createMainChartPanel(String title, ResultsOptions options) {
@@ -203,6 +210,10 @@ public class KymoOverlayFrame {
 		XYPlot plot = new XYPlot(ds, xAxis, yAxis, new XYLineAndShapeRenderer());
 		JFreeChart chart = new JFreeChart(plot);
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
+		if (lastExperiment != null && lastOptions != null) {
+			chartPanel.addChartMouseListener(new SpotOverlayChartInteractionHandler(lastExperiment, lastOptions,
+					onSpotChartClicked).createMouseListener());
+		}
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 		mainChartPanel.revalidate();
 		mainChartPanel.repaint();

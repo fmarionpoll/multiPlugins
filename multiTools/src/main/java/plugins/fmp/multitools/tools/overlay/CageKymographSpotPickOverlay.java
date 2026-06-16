@@ -25,10 +25,16 @@ import plugins.fmp.multitools.tools.chart.interaction.SpotChartRoiFocus;
 public final class CageKymographSpotPickOverlay extends Overlay {
 
 	private final Experiment experiment;
+	private final java.util.function.Consumer<Spot> onSpotPicked;
 
 	public CageKymographSpotPickOverlay(Experiment experiment) {
+		this(experiment, null);
+	}
+
+	public CageKymographSpotPickOverlay(Experiment experiment, java.util.function.Consumer<Spot> onSpotPicked) {
 		super("CageKymographSpotPick");
 		this.experiment = experiment;
+		this.onSpotPicked = onSpotPicked;
 	}
 
 	@Override
@@ -99,6 +105,9 @@ public final class CageKymographSpotPickOverlay extends Overlay {
 
 		spot.setSpotCamDataT(camT);
 		SpotChartRoiFocus.moveViewerToSpotTAndSelectRoi(experiment.getSeqCamData(), spot);
+		if (onSpotPicked != null) {
+			onSpotPicked.accept(spot);
+		}
 		event.consume();
 	}
 }

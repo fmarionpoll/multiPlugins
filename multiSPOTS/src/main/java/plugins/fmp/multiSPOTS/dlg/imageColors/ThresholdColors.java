@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures2;
+package plugins.fmp.multiSPOTS.dlg.imageColors;
 
 import java.awt.Color;
 import java.awt.FlowLayout;
@@ -22,7 +22,7 @@ import javax.swing.event.ChangeListener;
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures.SpotsMeasuresUi;
+import plugins.fmp.multiSPOTS.dlg.imageFilters.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;

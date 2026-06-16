@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures2;
+package plugins.fmp.multiSPOTS.dlg.imageColors;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
@@ -11,7 +11,7 @@ import javax.swing.SwingUtilities;
 
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures.LoadSavePanel;
+import plugins.fmp.multiSPOTS.dlg.imageFilters.LoadSavePanel;
 import plugins.fmp.multitools.experiment.Experiment;
 
 /**

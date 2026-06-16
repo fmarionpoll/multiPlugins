@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures2;
+package plugins.fmp.multiSPOTS.dlg.imageColors;
 
 import java.awt.Dialog;
 import java.awt.Dimension;
@@ -34,7 +34,7 @@ import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures.SpotsMeasuresUi;
+import plugins.fmp.multiSPOTS.dlg.imageFilters.SpotsMeasuresUi;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.BuildSpotsMeasuresColor;

@@ -17,6 +17,7 @@ import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 
 public class _DlgSpots_ extends JPanel implements PropertyChangeListener, ChangeListener {
@@ -142,6 +143,24 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 			return;
 		}
 		infosPanel.highlightSpotInInfosTableIfOpen(spot);
+		if (parent0 == null) {
+			return;
+		}
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getCages() == null || exp.getSpots() == null) {
+			return;
+		}
+		String name = spot.getName();
+		if ((name == null || name.isEmpty()) && spot.getRoi() != null) {
+			name = spot.getRoi().getName();
+		}
+		if (name == null) {
+			return;
+		}
+		Cage cage = exp.getCages().getCageFromSpotROIName(name, exp.getSpots());
+		if (cage != null) {
+			infosPanel.selectCage(cage);
+		}
 	}
 
 	@Override

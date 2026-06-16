@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures;
+package plugins.fmp.multiSPOTS.dlg.imageFilters;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;

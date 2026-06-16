@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures2;
+package plugins.fmp.multiSPOTS.dlg.imageColors;
 
 import java.awt.BorderLayout;
 import java.awt.Component;

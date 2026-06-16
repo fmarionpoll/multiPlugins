@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.chart.interaction;
 
 import java.awt.event.MouseEvent;
+import java.util.function.Consumer;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
@@ -18,9 +19,16 @@ public class SpotOverlayChartInteractionHandler {
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
+	private final Consumer<Spot> onSpotSelectedFromChart;
 
 	public SpotOverlayChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions) {
+		this(experiment, resultsOptions, null);
+	}
+
+	public SpotOverlayChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
+			Consumer<Spot> onSpotSelectedFromChart) {
 		this.experiment = experiment;
+		this.onSpotSelectedFromChart = onSpotSelectedFromChart;
 	}
 
 	public ChartMouseListener createMouseListener() {
@@ -83,6 +91,9 @@ public class SpotOverlayChartInteractionHandler {
 			if (spot == null)
 				return;
 			selectSpotAndMoveT(spot);
+			if (onSpotSelectedFromChart != null) {
+				onSpotSelectedFromChart.accept(spot);
+			}
 		}
 
 		@Override

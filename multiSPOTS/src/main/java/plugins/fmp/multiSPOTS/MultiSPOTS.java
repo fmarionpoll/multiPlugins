@@ -16,10 +16,10 @@ import icy.preferences.XMLPreferences;
 import plugins.fmp.multiSPOTS.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
+import plugins.fmp.multiSPOTS.dlg.imageColors._DlgSpotMeasure2_;
+import plugins.fmp.multiSPOTS.dlg.imageFilters._DlgSpotMeasure_;
 import plugins.fmp.multiSPOTS.dlg.kymograph._DlgKymos_;
 import plugins.fmp.multiSPOTS.dlg.spots._DlgSpots_;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures._DlgSpotMeasure_;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures2._DlgSpotMeasure2_;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
@@ -58,7 +58,7 @@ public class MultiSPOTS extends PluginActionable {
 	 * preferences).
 	 */
 	public void openCageKymographViewer(Experiment exp) {
-		CageKymographViewerUtil.openIfPresent(exp, getPreferences("gui"), mainFrame);
+		CageKymographViewerUtil.openIfPresent(exp, getPreferences("gui"), mainFrame, dlgSpots::onMeasureChartSpotClicked);
 	}
 
 	// -------------------------------------------------------------------

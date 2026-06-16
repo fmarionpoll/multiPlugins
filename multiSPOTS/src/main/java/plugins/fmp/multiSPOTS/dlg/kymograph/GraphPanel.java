@@ -16,16 +16,20 @@ import javax.swing.SwingConstants;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
-import plugins.fmp.multiSPOTS.dlg.spotsMeasures.SpotSequenceRois;
+import plugins.fmp.multiSPOTS.dlg.imageFilters.SpotSequenceRois;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
+import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
@@ -206,7 +210,15 @@ public class GraphPanel extends JPanel {
 		options.relativeToMaximum = false;
 		applyKymoAggregateChartOptions(exp, options);
 
-		chartCagesFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(), null, new GridLayoutStrategy(),
+		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
+			@Override
+			public ChartInteractionHandler createHandler(Experiment exp2, ResultsOptions options2,
+					ChartCagePair[][] charts) {
+				return new SpotChartInteractionHandler(exp2, options2, charts,
+						spot -> parent0.dlgSpots.onMeasureChartSpotClicked(spot));
+			}
+		};
+		chartCagesFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
 				createKymoChartUIControlsFactory());
 		chartCagesFrame.createMainChartPanel("Kymograph", exp, options);
 		chartCagesFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
@@ -229,6 +241,7 @@ public class GraphPanel extends JPanel {
 		overlayFrame.setParentComboBox(measureComboBox);
 		overlayFrame.setSelectedSpotsProvider(
 				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
+		overlayFrame.setOnSpotChartClicked(parent0.dlgSpots::onMeasureChartSpotClicked);
 		overlayFrame.createMainChartPanel("Kymograph (selected)", options);
 		overlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		overlayFrame.displayData(exp, options);

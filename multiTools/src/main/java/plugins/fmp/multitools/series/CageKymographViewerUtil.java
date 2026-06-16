@@ -3,6 +3,7 @@ package plugins.fmp.multitools.series;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 import javax.swing.JToolBar;
 
@@ -19,6 +20,7 @@ import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.ui.ViewerGeometryPreferences;
 import plugins.fmp.multitools.service.CageKymographPickSupport;
 import plugins.fmp.multitools.service.KymocageCageResolver;
@@ -43,6 +45,7 @@ public final class CageKymographViewerUtil {
 
 	private static CageKymographSpotPickOverlay spotPickOverlay;
 	private static Sequence spotPickHostSequence;
+	private static Consumer<Spot> spotPickUiCallback;
 	private static final KymographViewerTitleListener titleListener = new KymographViewerTitleListener();
 	private static Experiment titleListenerExperiment;
 
@@ -59,9 +62,19 @@ public final class CageKymographViewerUtil {
 	 * @param pluginMainFrame used for default placement when no saved bounds and no cam viewer
 	 */
 	public static void openIfPresent(Experiment exp, XMLPreferences geometryPrefs, IcyFrame pluginMainFrame) {
+		openIfPresent(exp, geometryPrefs, pluginMainFrame, null);
+	}
+
+	/**
+	 * @param onSpotPickedFromKymograph when non-null, invoked after a stacked kymograph click moves the
+	 *                                  camera viewer (e.g. plugin infos-table sync).
+	 */
+	public static void openIfPresent(Experiment exp, XMLPreferences geometryPrefs, IcyFrame pluginMainFrame,
+			Consumer<Spot> onSpotPickedFromKymograph) {
 		if (exp == null) {
 			return;
 		}
+		spotPickUiCallback = onSpotPickedFromKymograph;
 		if (exp.isCageKymographDiskRewriteInProgress()) {
 			return;
 		}
@@ -225,7 +238,7 @@ public final class CageKymographViewerUtil {
 			spotPickOverlay = null;
 			spotPickHostSequence = null;
 		}
-		spotPickOverlay = new CageKymographSpotPickOverlay(exp);
+		spotPickOverlay = new CageKymographSpotPickOverlay(exp, spotPickUiCallback);
 		seq.addOverlay(spotPickOverlay);
 		spotPickHostSequence = seq;
 	}

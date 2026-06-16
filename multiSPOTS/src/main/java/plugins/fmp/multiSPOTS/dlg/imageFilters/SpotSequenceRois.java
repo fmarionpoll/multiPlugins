@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures;
+package plugins.fmp.multiSPOTS.dlg.imageFilters;
 
 import java.util.ArrayList;
 import java.util.Collections;

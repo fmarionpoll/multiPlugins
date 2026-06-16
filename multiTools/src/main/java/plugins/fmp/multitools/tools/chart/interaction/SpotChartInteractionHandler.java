@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.chart.interaction;
 
 import java.awt.event.MouseEvent;
+import java.util.List;
 import java.util.function.Consumer;
 
 import org.jfree.chart.ChartMouseEvent;
@@ -108,6 +109,53 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 		SpotChartRoiFocus.moveViewerToSpotTAndSelectRoi(experiment.getSeqCamData(), spot);
 	}
 
+	private static void applyExclusiveCageRoiSelection(Experiment exp, Cage cageToSelect) {
+		if (exp == null || exp.getCages() == null || cageToSelect == null) {
+			return;
+		}
+		for (Cage cage : exp.getCages().cagesList) {
+			if (cage == null || cage.getRoi() == null) {
+				continue;
+			}
+			cage.getRoi().setSelected(cage == cageToSelect);
+		}
+	}
+
+	/**
+	 * Plot background (not on a series point): first spot of the chart's cage at camera T=0.
+	 */
+	private Spot resolveSpotFromCageBackgroundClick(ChartMouseEvent e) {
+		if (e == null || experiment == null || experiment.getCages() == null || experiment.getSpots() == null) {
+			return null;
+		}
+		MouseEvent trigger = e.getTrigger();
+		if (trigger == null || trigger.getButton() != LEFT_MOUSE_BUTTON) {
+			return null;
+		}
+		if (e.getEntity() instanceof XYItemEntity) {
+			return null;
+		}
+		Object source = trigger.getSource();
+		if (!(source instanceof ChartCagePanel)) {
+			return null;
+		}
+		Cage cage = ((ChartCagePanel) source).getCage();
+		if (cage == null) {
+			return null;
+		}
+		List<Spot> spots = cage.getSpotList(experiment.getSpots());
+		if (spots == null) {
+			return null;
+		}
+		for (Spot s : spots) {
+			if (s != null) {
+				s.setSpotCamDataT(0);
+				return s;
+			}
+		}
+		return null;
+	}
+
 	private class SpotChartMouseListener implements ChartMouseListener {
 		@Override
 		public void chartMouseClicked(ChartMouseEvent e) {
@@ -118,10 +166,23 @@ public class SpotChartInteractionHandler implements ChartInteractionHandler {
 			}
 
 			Spot spot = getSpotFromClickedChart(e, frameIndex);
+			Cage backgroundCage = null;
+			if (spot == null) {
+				spot = resolveSpotFromCageBackgroundClick(e);
+				if (spot != null) {
+					MouseEvent trigger = e.getTrigger();
+					if (trigger != null && trigger.getSource() instanceof ChartCagePanel) {
+						backgroundCage = ((ChartCagePanel) trigger.getSource()).getCage();
+					}
+				}
+			}
 			if (spot == null) {
 				return;
 			}
 
+			if (backgroundCage != null) {
+				applyExclusiveCageRoiSelection(experiment, backgroundCage);
+			}
 			selectSpotAndMoveT(spot);
 			if (onSpotSelectedFromChart != null) {
 				onSpotSelectedFromChart.accept(spot);

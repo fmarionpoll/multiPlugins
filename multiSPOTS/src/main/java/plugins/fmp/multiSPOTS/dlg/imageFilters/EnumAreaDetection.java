@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.spotsMeasures;
+package plugins.fmp.multiSPOTS.dlg.imageFilters;
 
 public enum EnumAreaDetection {
 	SINGLE("simple threshold"), COLORARRAY("Color array"), NONE("undefined");
