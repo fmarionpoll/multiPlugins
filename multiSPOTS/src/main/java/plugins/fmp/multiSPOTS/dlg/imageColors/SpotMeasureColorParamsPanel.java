@@ -25,7 +25,7 @@ import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Load/save UI for color-distance detection presets (XML {@code SpotMeasureColorLimits} /
- * {@code LimitsOptions}). Shown inside a modal dialog from {@link DetectColorPanel}.
+ * {@code LimitsOptions}). Shown inside a non-modal floating dialog from {@link DetectColorPanel}.
  */
 public class SpotMeasureColorParamsPanel extends JPanel {
 

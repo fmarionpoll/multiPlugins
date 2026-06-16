@@ -43,10 +43,6 @@ public class SpotsAreasPanel extends JPanel {
 		panel0.add(sumNoFlyCheckBox);
 		panel0.add(sumCleanCheckBox);
 		panel0.add(areaCountV5CheckBox);
-
-//		panel0.add(areaV2CheckBox);
-//		panel0.add(sumNoFlyV2CheckBox);
-//		panel0.add(sumCleanV2CheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
@@ -54,11 +50,14 @@ public class SpotsAreasPanel extends JPanel {
 		panel1.add(greySumCleanV5CheckBox);
 		panel1.add(kymoFractCheckBox);
 		panel1.add(kymoAbsDeltaCheckBox);
-		panel1.add(kymoGreenHeightCheckBox);
-		panel1.add(kymoGreenHeightRatioCheckBox);
-		panel1.add(t0CheckBox);
-		panel1.add(discardNoFlyCageCheckBox);
 		add(panel1);
+
+		JPanel panel11 = new JPanel(flowLayout0);
+		panel11.add(kymoGreenHeightCheckBox);
+		panel11.add(kymoGreenHeightRatioCheckBox);
+		panel11.add(t0CheckBox);
+		panel11.add(discardNoFlyCageCheckBox);
+		add(panel11);
 
 		FlowLayout flowLayout2 = new FlowLayout(FlowLayout.RIGHT);
 		flowLayout2.setVgap(0);

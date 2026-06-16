@@ -10,11 +10,13 @@ import java.util.ArrayList;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JSpinner;
+import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -58,6 +60,12 @@ public class ThresholdColors extends JPanel {
 	private final JLabel excludeDistLabel = new JLabel("Excl. dist ");
 	private final JSpinner excludeDistanceSpinner = new JSpinner(new SpinnerNumberModel(12, 0, 800, 1));
 	private final JButton sampleBackgroundButton = new JButton("Sample bg (outside ROIs)");
+
+	private final String[] spotRoiCountModes = new String[] { "far from refs", "matching refs" };
+	private final JComboBox<String> spotsDirectionComboBox = new JComboBox<>(spotRoiCountModes);
+	private final JSpinner spotsThresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 0, 255, 1));
+	private final JToggleButton spotsViewButton = new JToggleButton("View");
+	private final JCheckBox spotsOverlayCheckBox = new JCheckBox("overlay");
 
 	private boolean isUpdatingDataFromComboAllowed = true;
 	private MultiSPOTS multiSpots = null;
@@ -117,14 +125,46 @@ public class ThresholdColors extends JPanel {
 		JPanel panelSample = new JPanel(layoutLeft);
 		panelSample.add(sampleBackgroundButton);
 
-		SpotsMeasuresUi.layoutStackedRows(this, panel1, panelInclude, panelExclude, panelSample);
+		JPanel panelSpotRoi = new JPanel(layoutLeft);
+		panelSpotRoi.add(new JLabel("ROI count"));
+		spotsDirectionComboBox.setToolTipText("<html>Detection only. The color <b>Distance</b> control builds the mask.<br>"
+				+ "This control chooses whether spot ROI statistics count pixels that <b>match</b> your reference colors or pixels <b>outside</b> that match.<br>"
+				+ "Default &quot;matching refs&quot; matches the red overlay (mask drawn on matched pixels).</html>");
+		spotsThresholdSpinner.setToolTipText(
+				"<html>Used only after the color step produces a 0/255 mask. For typical thresholds (0&ndash;254) it does <b>not</b> change which pixels match;<br>"
+						+ "tune the mask with the <b>Distance</b> control. Very high values (e.g. &ge; 255) can exclude all pixels.</html>");
+		panelSpotRoi.add(spotsDirectionComboBox);
+		panelSpotRoi.add(new JLabel("post step "));
+		panelSpotRoi.add(spotsThresholdSpinner);
+		panelSpotRoi.add(spotsViewButton);
+		panelSpotRoi.add(spotsOverlayCheckBox);
+
+		SpotsMeasuresUi.layoutStackedRows(this, panel1, panelInclude, panelExclude, panelSample, panelSpotRoi);
 
 		rbL1.setSelected(true);
 		rbRGB.setSelected(true);
+		spotsDirectionComboBox.setSelectedIndex(1);
+		spotsOverlayCheckBox.setEnabled(false);
 		lastComboCount = colorIncludeCombo.getItemCount();
 		lastExcludeComboCount = colorExcludeCombo.getItemCount();
 
 		declareActionListeners();
+	}
+
+	public JToggleButton getSpotsViewButton() {
+		return spotsViewButton;
+	}
+
+	public JCheckBox getSpotsOverlayCheckBox() {
+		return spotsOverlayCheckBox;
+	}
+
+	/**
+	 * When fly preview is turned on, spot color preview must be turned off (mutual exclusion).
+	 */
+	public void clearSpotsPreviewForFlyExclusive() {
+		spotsViewButton.setSelected(false);
+		spotsOverlayCheckBox.setEnabled(false);
 	}
 
 	private void fireSettingsChanged() {
@@ -189,6 +229,9 @@ public class ThresholdColors extends JPanel {
 		options.spotColorExcludeList.addAll(getExcludeReferenceColors());
 		int exd = getExcludeDistanceMax();
 		options.spotColorExcludeDistanceMax = options.spotColorExcludeList.isEmpty() ? 0 : exd;
+
+		options.spotThresholdUp = spotsDirectionComboBox.getSelectedIndex() == 1;
+		options.spotThreshold = (int) spotsThresholdSpinner.getValue();
 	}
 
 	/**
@@ -232,6 +275,8 @@ public class ThresholdColors extends JPanel {
 			}
 			lastComboCount = colorIncludeCombo.getItemCount();
 			lastExcludeComboCount = colorExcludeCombo.getItemCount();
+			spotsDirectionComboBox.setSelectedIndex(options.spotThresholdUp ? 1 : 0);
+			spotsThresholdSpinner.setValue(Math.max(0, Math.min(255, options.spotThreshold)));
 		} finally {
 			isUpdatingDataFromComboAllowed = prev;
 		}
@@ -329,6 +374,19 @@ public class ThresholdColors extends JPanel {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				sampleBackgroundFromRois();
+			}
+		});
+
+		spotsDirectionComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateThresholdOverlayParameters();
+			}
+		});
+		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				updateThresholdOverlayParameters();
 			}
 		});
 

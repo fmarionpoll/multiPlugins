@@ -50,7 +50,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		capPanel.setLayout(new BorderLayout());
 		capPopupPanel.collapse();
 		mainPanel.add(capPopupPanel);
-		GridLayout capLayout = new GridLayout(3, 2);
+		GridLayout capLayout = new GridLayout(4, 2);
 
 		excelOptionsPanel.init(capLayout);
 		tabsPane.addTab("Common options", null, excelOptionsPanel, "Define common options");
@@ -81,7 +81,8 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 				parent0.dlgBrowse.loadSaveExperiment.openExperimentAtIndex(index);
 			}
 		});
-		tabsPane.addTab("Transfer results", null, transferResultsPanel, "Export/Import results to/from another location");
+		tabsPane.addTab("Transfer results", null, transferResultsPanel,
+				"Export/Import results to/from another location");
 
 //		cagesAreas.init(capLayout);
 //		tabsPane.addTab("Cages", null, cagesAreas, "Export measures made on cages to file");
@@ -234,10 +235,11 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		resultsOptions.spotAggregateByStimulusConc = true;
 		resultsOptions.resultType = EnumResults.AGG_SUMCLEAN;
-		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner.getValue())
-				.intValue();
+		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner
+				.getValue()).intValue();
 		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreasPanel.stopWhenStableCheckBox.isSelected();
-		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreasPanel.stableBinsSpinner.getValue()).intValue();
+		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreasPanel.stableBinsSpinner.getValue())
+				.intValue();
 		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}
