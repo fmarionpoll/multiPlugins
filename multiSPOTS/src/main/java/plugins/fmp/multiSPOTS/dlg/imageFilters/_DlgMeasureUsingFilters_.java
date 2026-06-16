@@ -18,7 +18,7 @@ import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
-public class _DlgSpotMeasure_ extends JPanel implements PropertyChangeListener, ChangeListener {
+public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeListener, ChangeListener {
 	/**
 	 * 
 	 */

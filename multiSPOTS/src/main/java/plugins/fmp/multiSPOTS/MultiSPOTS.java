@@ -16,9 +16,9 @@ import icy.preferences.XMLPreferences;
 import plugins.fmp.multiSPOTS.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
-import plugins.fmp.multiSPOTS.dlg.imageColors._DlgSpotMeasure2_;
-import plugins.fmp.multiSPOTS.dlg.imageFilters._DlgSpotMeasure_;
-import plugins.fmp.multiSPOTS.dlg.kymograph._DlgKymos_;
+import plugins.fmp.multiSPOTS.dlg.imageColors._DlgMeasureUsingColors_;
+import plugins.fmp.multiSPOTS.dlg.imageFilters._DlgMeasureUsingFilters_;
+import plugins.fmp.multiSPOTS.dlg.kymograph._DlgMeasureUsingKymos_;
 import plugins.fmp.multiSPOTS.dlg.spots._DlgSpots_;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
@@ -46,9 +46,9 @@ public class MultiSPOTS extends PluginActionable {
 	public _DlgBrowse_ dlgBrowse = new _DlgBrowse_();
 	public _DlgExperiment_ dlgExperiment = new _DlgExperiment_();
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();
-	public _DlgSpotMeasure_ dlgMeasure = new _DlgSpotMeasure_();
-	public _DlgSpotMeasure2_ dlgMeasureV5 = new _DlgSpotMeasure2_();
-	public _DlgKymos_ dlgKymos = new _DlgKymos_();
+	public _DlgMeasureUsingFilters_ dlgMeasure = new _DlgMeasureUsingFilters_();
+	public _DlgMeasureUsingColors_ dlgMeasureV5 = new _DlgMeasureUsingColors_();
+	public _DlgMeasureUsingKymos_ dlgKymos = new _DlgMeasureUsingKymos_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();

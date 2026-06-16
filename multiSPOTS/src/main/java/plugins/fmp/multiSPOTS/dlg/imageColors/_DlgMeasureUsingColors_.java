@@ -18,7 +18,7 @@ import plugins.fmp.multitools.experiment.Experiment;
  * Parallel UI for V5 and color-distance spot measures (detection + charts
  * only).
  */
-public class _DlgSpotMeasure2_ extends JPanel {
+public class _DlgMeasureUsingColors_ extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
