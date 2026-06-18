@@ -63,6 +63,7 @@ public class Spots {
 	// === CORE FIELDS ===
 	private final List<Spot> spotList;
 	private SpotsPersistence persistence = new SpotsPersistence();
+	private int cachedMaxSpotId = -1;
 
 	// === CONSTRUCTORS ===
 
@@ -108,6 +109,10 @@ public class Spots {
 		Objects.requireNonNull(spot, "Spot cannot be null");
 		synchronized (this) {
 			spotList.add(spot);
+			SpotID spotID = spot.getSpotUniqueID();
+			if (spotID != null) {
+				cachedMaxSpotId = Math.max(cachedMaxSpotId, spotID.getId());
+			}
 		}
 	}
 
@@ -133,16 +138,19 @@ public class Spots {
 	 */
 	public int getNextUniqueSpotID() {
 		synchronized (this) {
-			int maxID = -1;
-			for (int i = 0; i < spotList.size(); i++) {
-				Spot spot = spotList.get(i);
-				SpotID spotID = spot != null ? spot.getSpotUniqueID() : null;
-				int usedID = (spotID != null) ? spotID.getId() : i;
-				if (usedID > maxID) {
-					maxID = usedID;
+			if (cachedMaxSpotId < 0) {
+				int maxID = -1;
+				for (int i = 0; i < spotList.size(); i++) {
+					Spot spot = spotList.get(i);
+					SpotID spotID = spot != null ? spot.getSpotUniqueID() : null;
+					int usedID = (spotID != null) ? spotID.getId() : i;
+					if (usedID > maxID) {
+						maxID = usedID;
+					}
 				}
+				cachedMaxSpotId = maxID;
 			}
-			return maxID + 1;
+			return ++cachedMaxSpotId;
 		}
 	}
 
@@ -155,6 +163,7 @@ public class Spots {
 	public void clearSpotList() {
 		synchronized (this) {
 			spotList.clear();
+			cachedMaxSpotId = -1;
 		}
 	}
 

@@ -31,6 +31,7 @@ import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.experiment.ui.ExperimentBrowseKeyboard;
 import plugins.fmp.multitools.experiment.ui.ExperimentLoadLifecycle;
 import plugins.fmp.multitools.experiment.ui.SelectFilesPanel;
+import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.tools.Logger;
 
 public class LoadSaveExperiment extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
@@ -40,19 +41,32 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private JButton openButton = new JButton("Open...");
 	private JButton searchButton = new JButton("Search...");
 	private JButton closeButton = new JButton("Close");
-	JToggleButton showFilterButton = new JToggleButton("Filter...");
-	JToggleButton listFilteredToggle = new JToggleButton("List filtered");
+	JToggleButton showFilterButton = new JToggleButton("Filter (off)");
+	private boolean listFiltered = false;
+
+	private static final String FILTER_BUTTON_OFF = "Filter (off)";
+	private static final String FILTER_BUTTON_ON = "Filter (on)";
 
 	public boolean isListFiltered() {
-		return listFilteredToggle.isSelected();
+		return listFiltered;
 	}
 
 	public void setListFiltered(boolean selected) {
-		listFilteredToggle.setSelected(selected);
+		if (listFiltered == selected)
+			return;
+		listFiltered = selected;
+		updateFilterButtonLabel();
 	}
 
-	public JToggleButton getListFilteredToggle() {
-		return listFilteredToggle;
+	public JToggleButton getShowFilterButton() {
+		return showFilterButton;
+	}
+
+	void updateFilterButtonLabel() {
+		showFilterButton.setText(listFiltered ? FILTER_BUTTON_ON : FILTER_BUTTON_OFF);
+		showFilterButton.setToolTipText(listFiltered
+				? "Experiment list is filtered — click to show or hide filter panel"
+				: "Show or hide experiment filter panel");
 	}
 
 	public List<String> selectedNames = new ArrayList<String>();
@@ -82,12 +96,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	 * released (important on Windows).
 	 */
 	public void closeAllExperimentsForTransfer() {
-		closeCurrentExperiment();
-		parent0.expListComboLazy.removeAllItems();
-		setListFiltered(false);
-		experimentMetadataList.clear();
-		if (parent0.descriptorIndex != null)
-			parent0.descriptorIndex.clear();
+		closeAllExperiments();
 	}
 
 	/**
@@ -165,6 +174,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		browseRoot.add(filterPanel, BorderLayout.CENTER);
 
 		defineActionListeners(filterPanel);
+		updateFilterButtonLabel();
 		SwingUtilities.invokeLater(() -> ExperimentBrowseKeyboard.install(group2Panel, previousButton, nextButton,
 				() -> parent0 != null && parent0.mainFrame != null && parent0.mainFrame.isVisible()));
 		parent0.expListComboLazy.addItemListener(this);
@@ -174,8 +184,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	private JPanel initUI() {
 		JPanel navPanel = BrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
-		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, showFilterButton,
-				listFilteredToggle);
+		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, showFilterButton);
 		return BrowseUi.createMainGrid(navPanel, buttonPanel);
 	}
 
@@ -234,13 +243,6 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					parent0.mainFrame.pack();
 					parent0.mainFrame.repaint();
 				}
-			}
-		});
-
-		listFilteredToggle.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				filterPanel.filterExperimentList(listFilteredToggle.isSelected());
 			}
 		});
 
@@ -370,7 +372,14 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	}
 
 	public void closeAllExperiments() {
-		closeCurrentExperiment();
+		if (parent0 != null)
+			parent0.closeAllGraphWindows();
+		int n = parent0.expListComboLazy.getItemCount();
+		for (int i = 0; i < n; i++) {
+			Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+			if (exp != null)
+				closeViewsForCurrentExperiment(exp);
+		}
 		parent0.expListComboLazy.removeAllItems();
 		parent0.dlgBrowse.filterPanel.clearAllCheckBoxes();
 		parent0.dlgBrowse.filterPanel.filterExpList.removeAllItems();
@@ -379,6 +388,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		experimentMetadataList.clear();
 		if (parent0.descriptorIndex != null)
 			parent0.descriptorIndex.clear();
+		CageKymographViewerUtil.detachSpotPickOverlay();
 	}
 
 	void updateBrowseInterface() {

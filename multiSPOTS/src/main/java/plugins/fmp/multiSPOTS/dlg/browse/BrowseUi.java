@@ -40,7 +40,7 @@ final class BrowseUi {
 	}
 
 	static JPanel createButtonPanel(JButton openButton, JButton searchButton, JButton closeButton,
-			JToggleButton showFilterButton, JToggleButton listFilteredToggle) {
+			JToggleButton showFilterButton) {
 		JPanel buttonPanel = new JPanel(new BorderLayout());
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(1);
@@ -49,7 +49,6 @@ final class BrowseUi {
 		subPanel.add(searchButton);
 		subPanel.add(closeButton);
 		subPanel.add(showFilterButton);
-		subPanel.add(listFilteredToggle);
 		buttonPanel.add(subPanel, BorderLayout.LINE_START);
 		return buttonPanel;
 	}

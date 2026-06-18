@@ -323,12 +323,17 @@ public class SpotsPersistenceLegacy {
 		boolean x = line.contains("xi");
 		while ((line = reader.readLine()) != null) {
 			String[] data = line.split(csvSeparator);
-			if (data[0].equals("#"))
-				return data[1];
+			if (data.length == 0 || data[0].equals("#"))
+				return data.length > 0 ? data[1] : null;
 
-			Spot spot = spots.findSpotByName(data[0]);
+			String spotName = data[0];
+			if (spotName == null || spotName.trim().isEmpty())
+				continue;
+
+			Spot spot = spots.findSpotByName(spotName);
 			if (spot == null) {
 				spot = new Spot();
+				spot.getProperties().setName(spotName);
 				if (spot.getSpotUniqueID() == null) {
 					int uniqueID = spots.getNextUniqueSpotID();
 					spot.setSpotUniqueID(new SpotID(uniqueID));

@@ -248,7 +248,7 @@ public class GraphPanel extends JPanel {
 		graphStatusLabel.setText(" ");
 	}
 
-	private void closeCharts() {
+	public void closeAllCharts() {
 		if (chartCagesFrame != null && chartCagesFrame.getMainChartFrame() != null) {
 			chartCagesFrame.getMainChartFrame().dispose();
 		}
@@ -257,6 +257,10 @@ public class GraphPanel extends JPanel {
 			overlayFrame.dispose();
 		}
 		overlayFrame = null;
+	}
+
+	private void closeCharts() {
+		closeAllCharts();
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {

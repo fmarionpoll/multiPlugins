@@ -441,7 +441,16 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	public void closeAllCharts() {
-		if (chartCageArrayFrame != null)
+		if (graphOptions != null) {
+			graphOptions.close();
+			graphOptions = null;
+		}
+		if (parent0 != null) {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
+				exp.getSeqCamData().getSequence().removeListener(this);
+		}
+		if (chartCageArrayFrame != null && chartCageArrayFrame.getMainChartFrame() != null)
 			chartCageArrayFrame.getMainChartFrame().dispose();
 		chartCageArrayFrame = null;
 		if (chartSpotsOverlayFrame != null)

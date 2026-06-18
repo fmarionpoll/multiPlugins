@@ -62,6 +62,18 @@ public class MultiSPOTS extends PluginActionable {
 				dlgSpots::onMeasureChartSpotClicked);
 	}
 
+	/** Closes spot measure, color measure, and kymograph chart windows (not the camera/kymo image viewers). */
+	public void closeAllGraphWindows() {
+		if (dlgMeasure != null && dlgMeasure.chartsPanel != null)
+			dlgMeasure.chartsPanel.closeAllCharts();
+		if (dlgMeasure != null && dlgMeasure.chartsV5Panel != null)
+			dlgMeasure.chartsV5Panel.closeAllCharts();
+		if (dlgMeasureV5 != null && dlgMeasureV5.chartsColorPanel != null)
+			dlgMeasureV5.chartsColorPanel.closeAllCharts();
+		if (dlgKymos != null && dlgKymos.tabKymoGraph != null)
+			dlgKymos.tabKymoGraph.closeAllCharts();
+	}
+
 	// -------------------------------------------------------------------
 
 	@Override

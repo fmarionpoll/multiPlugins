@@ -243,6 +243,15 @@ public final class CageKymographViewerUtil {
 		spotPickHostSequence = seq;
 	}
 
+	/** Removes the stacked kymograph spot-pick overlay when experiments are closed. */
+	public static synchronized void detachSpotPickOverlay() {
+		if (spotPickOverlay != null && spotPickHostSequence != null) {
+			spotPickHostSequence.removeOverlay(spotPickOverlay);
+		}
+		spotPickOverlay = null;
+		spotPickHostSequence = null;
+	}
+
 	private static final class KymographViewerTitleListener implements ViewerListener {
 
 		private Experiment experiment;
