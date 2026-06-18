@@ -6,8 +6,8 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JPanel;
+import javax.swing.JToggleButton;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
@@ -40,7 +40,7 @@ final class BrowseUi {
 	}
 
 	static JPanel createButtonPanel(JButton openButton, JButton searchButton, JButton closeButton,
-			JCheckBox filteredCheck) {
+			JToggleButton showFilterButton, JToggleButton listFilteredToggle) {
 		JPanel buttonPanel = new JPanel(new BorderLayout());
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(1);
@@ -48,7 +48,8 @@ final class BrowseUi {
 		subPanel.add(openButton);
 		subPanel.add(searchButton);
 		subPanel.add(closeButton);
-		subPanel.add(filteredCheck);
+		subPanel.add(showFilterButton);
+		subPanel.add(listFilteredToggle);
 		buttonPanel.add(subPanel, BorderLayout.LINE_START);
 		return buttonPanel;
 	}

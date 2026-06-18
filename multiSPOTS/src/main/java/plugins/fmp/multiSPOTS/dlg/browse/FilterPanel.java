@@ -1,8 +1,7 @@
-package plugins.fmp.multiSPOTS.dlg.experiment;
+package plugins.fmp.multiSPOTS.dlg.browse;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -72,7 +71,7 @@ public class FilterPanel extends JPanel {
 	private MultiSPOTS parent0 = null;
 	public JComboBoxExperimentLazy filterExpList = new JComboBoxExperimentLazy();
 
-	void init(GridLayout capLayout, MultiSPOTS parent0) {
+	void init(MultiSPOTS parent0) {
 		this.parent0 = parent0;
 		GridBagLayout layoutThis = new GridBagLayout();
 		setLayout(layoutThis);
@@ -117,14 +116,30 @@ public class FilterPanel extends JPanel {
 	}
 
 	public void initCombos() {
-		if (!parent0.dlgBrowse.loadSaveExperiment.filteredCheck.isSelected())
-			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
-		// nothing else to populate up-front; values are loaded on demand via dialogs
+		syncFilterExpList();
 		updateIndexStatus();
 	}
 
+	private void syncFilterExpList() {
+		if (!parent0.dlgBrowse.loadSaveExperiment.isListFiltered()) {
+			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
+		} else if (filterExpList.getItemCount() == 0) {
+			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
+		}
+	}
+
+	private JComboBoxExperimentLazy getFieldValueSource() {
+		syncFilterExpList();
+		return filterExpList.getItemCount() > 0 ? filterExpList : parent0.expListComboLazy;
+	}
+
 	private List<String> getValuesForField(EnumXLSColumnHeader field) {
-		List<String> list = filterExpList.getFieldValuesFromAllExperimentsLightweight(field);
+		if (parent0.descriptorIndex != null && parent0.descriptorIndex.isReady()) {
+			List<String> values = new ArrayList<String>(parent0.descriptorIndex.getDistinctValues(field));
+			java.util.Collections.sort(values);
+			return values;
+		}
+		List<String> list = getFieldValueSource().getFieldValuesFromAllExperimentsLightweight(field);
 		java.util.Collections.sort(list);
 		return list;
 	}
@@ -186,7 +201,6 @@ public class FilterPanel extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				filterExperimentList(true);
-				parent0.dlgExperiment.tabsPane.setSelectedIndex(0);
 			}
 		});
 
@@ -217,8 +231,8 @@ public class FilterPanel extends JPanel {
 
 		if (parent0.expListComboLazy.getItemCount() > 0)
 			parent0.expListComboLazy.setSelectedIndex(0);
-		if (setFilter != parent0.dlgBrowse.loadSaveExperiment.filteredCheck.isSelected())
-			parent0.dlgBrowse.loadSaveExperiment.filteredCheck.setSelected(setFilter);
+		if (setFilter != parent0.dlgBrowse.loadSaveExperiment.isListFiltered())
+			parent0.dlgBrowse.loadSaveExperiment.setListFiltered(setFilter);
 	}
 
 	public void clearAllCheckBoxes() {

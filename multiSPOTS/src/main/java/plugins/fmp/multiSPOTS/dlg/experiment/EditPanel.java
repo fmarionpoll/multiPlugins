@@ -100,12 +100,12 @@ public class EditPanel extends JPanel {
 	}
 
 	private void syncEditExpListFromProject() {
-		parent0.dlgExperiment.filterPanel.initCombos();
+		parent0.dlgBrowse.filterPanel.initCombos();
 		JComboBoxExperimentLazy src;
-		if (parent0.dlgBrowse.loadSaveExperiment.filteredCheck.isSelected())
+		if (parent0.dlgBrowse.loadSaveExperiment.isListFiltered())
 			src = parent0.expListComboLazy;
 		else {
-			src = parent0.dlgExperiment.filterPanel.filterExpList;
+			src = parent0.dlgBrowse.filterPanel.filterExpList;
 			if (src.getItemCount() < 1)
 				src = parent0.expListComboLazy;
 		}
@@ -243,8 +243,8 @@ public class EditPanel extends JPanel {
 			statusLabel.setText(statusWhileRefreshingDescriptors);
 			final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
 			try {
-				parent0.dlgExperiment.filterPanel.initCombos();
-				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
+				parent0.dlgBrowse.filterPanel.initCombos();
+				JComboBoxExperimentLazy indexSource = parent0.dlgBrowse.filterPanel.filterExpList;
 				if (indexSource.getItemCount() < 1) {
 					indexSource = parent0.expListComboLazy;
 				}
@@ -326,8 +326,8 @@ public class EditPanel extends JPanel {
 				}
 				statusLabel.setText("Refreshing descriptor index…");
 				final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-				parent0.dlgExperiment.filterPanel.initCombos();
-				JComboBoxExperimentLazy indexSource = parent0.dlgExperiment.filterPanel.filterExpList;
+				parent0.dlgBrowse.filterPanel.initCombos();
+				JComboBoxExperimentLazy indexSource = parent0.dlgBrowse.filterPanel.filterExpList;
 				if (indexSource.getItemCount() < 1) {
 					indexSource = parent0.expListComboLazy;
 				}
@@ -477,7 +477,7 @@ public class EditPanel extends JPanel {
 						@Override
 						public void run() {
 							parent0.dlgExperiment.infosPanel.initCombos();
-							parent0.dlgExperiment.filterPanel.initCombos();
+							parent0.dlgBrowse.filterPanel.initCombos();
 							initEditCombos();
 						}
 					}, "Refreshing descriptor index…", "Done applying changes to " + fieldEnumCode + ".");
@@ -593,7 +593,7 @@ public class EditPanel extends JPanel {
 						@Override
 						public void run() {
 							parent0.dlgExperiment.infosPanel.initCombos();
-							parent0.dlgExperiment.filterPanel.initCombos();
+							parent0.dlgBrowse.filterPanel.initCombos();
 							initEditCombos();
 						}
 					}, "Refreshing descriptor index…", summary);
@@ -683,7 +683,7 @@ public class EditPanel extends JPanel {
 						@Override
 						public void run() {
 							parent0.dlgExperiment.infosPanel.initCombos();
-							parent0.dlgExperiment.filterPanel.initCombos();
+							parent0.dlgBrowse.filterPanel.initCombos();
 							initEditCombos();
 						}
 					} : null, "Refreshing descriptor index…", ok ? successMsg : failMsg);

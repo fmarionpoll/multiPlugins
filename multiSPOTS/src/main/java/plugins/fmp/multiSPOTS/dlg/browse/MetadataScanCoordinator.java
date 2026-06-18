@@ -119,7 +119,7 @@ final class MetadataScanCoordinator {
 				@Override
 				public void run() {
 					host.parent0.dlgExperiment.infosPanel.initCombos();
-					host.parent0.dlgExperiment.filterPanel.initCombos();
+					host.parent0.dlgBrowse.filterPanel.initCombos();
 				}
 			});
 

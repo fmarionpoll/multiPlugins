@@ -40,7 +40,6 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	PopupPanel capPopupPanel = null;
 	public JTabbedPane tabsPane = new JTabbedPane();
 	public InfosPanel infosPanel = new InfosPanel();
-	public FilterPanel filterPanel = new FilterPanel();
 	EditPanel editPanel = new EditPanel();
 	public IntervalsPanel intervalsPanel = new IntervalsPanel();
 	CorrectDriftPanel correctDriftPanel = new CorrectDriftPanel();
@@ -60,9 +59,6 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 		infosPanel.init(tabsLayout, parent0);
 		tabsPane.addTab("Infos", null, infosPanel, "Define descriptors for experiment");
-
-		filterPanel.init(tabsLayout, parent0);
-		tabsPane.addTab("Filter", null, filterPanel, "Filter experiments based on descriptors");
 
 		editPanel.init(tabsLayout, parent0);
 		tabsPane.addTab("Edit", null, editPanel, "Edit descriptors");
@@ -225,8 +221,6 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		if (tabbedPane.getSelectedIndex() == 0)
 			infosPanel.initCombos();
 		else if (tabbedPane.getSelectedIndex() == 1)
-			filterPanel.initCombos();
-		else if (tabbedPane.getSelectedIndex() == 2)
 			editPanel.initEditCombos();
 	}
 
