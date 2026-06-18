@@ -52,6 +52,40 @@ public final class CageKymographViewerUtil {
 	private CageKymographViewerUtil() {
 	}
 
+	/**
+	 * Closes every Icy viewer on the experiment's cage kymograph sequence so TIFF handles are released
+	 * before disk rewrite (Windows). Safe from any thread; viewer {@code close()} runs on the EDT.
+	 */
+	public static void closeAllViewersForExperiment(Experiment exp) {
+		if (exp == null || exp.getSeqKymos() == null) {
+			return;
+		}
+		Sequence seq = exp.getSeqKymos().getSequence();
+		if (seq == null) {
+			return;
+		}
+		Runnable close = () -> {
+			detachSpotPickOverlay();
+			List<Viewer> viewers = seq.getViewers();
+			if (viewers != null) {
+				for (Viewer viewer : new ArrayList<>(viewers)) {
+					if (viewer != null) {
+						viewer.close();
+					}
+				}
+			}
+		};
+		if (javax.swing.SwingUtilities.isEventDispatchThread()) {
+			close.run();
+		} else {
+			try {
+				javax.swing.SwingUtilities.invokeAndWait(close);
+			} catch (Exception e) {
+				Logger.warn("CageKymographViewerUtil: closeAllViewersForExperiment failed", e);
+			}
+		}
+	}
+
 	public static void openIfPresent(Experiment exp) {
 		openIfPresent(exp, null, null);
 	}

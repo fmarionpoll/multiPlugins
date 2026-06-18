@@ -8,6 +8,7 @@ import java.util.List;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.service.KymocageCageResolver;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.TiffTifSiblingPaths;
 
@@ -42,16 +43,16 @@ public final class CageStackTiffDiskLayout implements KymographDiskLayout {
 		ordered.sort(Comparator.comparingInt(c -> c.getCageID()));
 
 		List<ImageFileData> fileList = new ArrayList<>(ordered.size());
-		int idx = 0;
 		for (Cage cage : ordered) {
-			int cid = cage.prop.getCageID();
-			String base = "kymocage_" + (cid >= 0 ? String.valueOf(cid) : "i" + idx);
+			String base = KymocageCageResolver.kymocageFileBaseForCage(cage, cages);
+			if (base == null) {
+				continue;
+			}
 			File picked = TiffTifSiblingPaths.pickForKymographDescriptor(fullDirectory, base);
 			ImageFileData descriptor = new ImageFileData();
 			descriptor.fileName = picked.getPath();
 			descriptor.exists = picked.isFile();
 			fileList.add(descriptor);
-			idx++;
 		}
 		return fileList;
 	}

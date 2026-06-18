@@ -9,6 +9,7 @@ import icy.system.SystemUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.service.CageSpotKymographBuilder;
 import plugins.fmp.multitools.service.KymographBuilder;
 import plugins.fmp.multitools.tools.Logger;
@@ -20,11 +21,12 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 
 	@Override
 	void analyzeExperiment(Experiment exp) {
-		exp.releaseKymographSequence();
-		yieldWindowsFileHandlesAfterKymoRelease();
 		exp.setCageKymographDiskRewriteInProgress(true);
 		boolean builtOk = false;
 		try {
+			CageKymographViewerUtil.closeAllViewersForExperiment(exp);
+			exp.releaseKymographSequence();
+			KymographBuilder.yieldAfterKymographSequenceRelease();
 			Logger.info("BuildKymosFromCageSpots: start cage kymographs for " + exp.getResultsDirectory());
 			String kymoDir = exp.getKymosBinFullDirectory();
 			if (options != null) {
@@ -176,13 +178,6 @@ public class BuildKymosFromCageSpots extends BuildSeries {
 	}
 
 	private static void yieldWindowsFileHandlesAfterKymoRelease() {
-		if (!SystemUtil.isWindows()) {
-			return;
-		}
-		try {
-			Thread.sleep(200L);
-		} catch (InterruptedException e) {
-			Thread.currentThread().interrupt();
-		}
+		KymographBuilder.yieldAfterKymographSequenceRelease();
 	}
 }

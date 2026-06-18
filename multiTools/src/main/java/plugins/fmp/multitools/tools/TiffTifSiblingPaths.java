@@ -1,6 +1,8 @@
 package plugins.fmp.multitools.tools;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Locale;
 
@@ -37,13 +39,21 @@ public final class TiffTifSiblingPaths {
 
 	/**
 	 * Picks the on-disk file for {@code baseName} under {@code directoryWithSeparator} (trailing
-	 * separator). When neither exists, returns the default {@code .tiff} path (may not exist yet).
+	 * separator). When both {@code .tiff} and {@code .tif} exist, keeps the newer file and deletes
+	 * the older sibling so a previous build cannot be loaded by mistake.
 	 */
 	public static File pickForKymographDescriptor(String directoryWithSeparator, String baseName) {
 		File tiff = new File(directoryWithSeparator + baseName + ".tiff");
 		File tif = new File(directoryWithSeparator + baseName + ".tif");
 		File picked = pickExistingPreferNewerMtime(tiff, tif);
-		return picked != null ? picked : tiff;
+		if (picked == null) {
+			return tiff;
+		}
+		if (tiff.isFile() && tif.isFile() && tiff.lastModified() != tif.lastModified()) {
+			File stale = picked == tiff ? tif : tiff;
+			deleteIfPresentWithRetries(stale.toPath(), 8, 80);
+		}
+		return picked;
 	}
 
 	/**
@@ -67,5 +77,41 @@ public final class TiffTifSiblingPaths {
 			return parent.resolve(fn.substring(0, fn.length() - 4) + ".tiff");
 		}
 		return null;
+	}
+
+	/**
+	 * After a successful kymograph save to {@code savedPath}, remove the {@code .tif}/{@code .tiff}
+	 * sibling so loaders cannot pick a stale copy from a previous build (Windows lock recovery).
+	 */
+	public static void deleteAlternateTiffSiblingIfPresent(Path savedPath) {
+		Path alt = alternateTiffExtensionPath(savedPath);
+		if (alt == null) {
+			return;
+		}
+		deleteIfPresentWithRetries(alt, 12, 120);
+	}
+
+	private static void deleteIfPresentWithRetries(Path path, int maxAttempts, long maxSleepMs) {
+		if (path == null || !Files.exists(path)) {
+			return;
+		}
+		IOException last = null;
+		for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+			try {
+				Files.deleteIfExists(path);
+				return;
+			} catch (IOException e) {
+				last = e;
+				try {
+					Thread.sleep(Math.min(maxSleepMs, Math.max(5L, 15L * attempt)));
+				} catch (InterruptedException ie) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+			}
+		}
+		if (last != null) {
+			Logger.warn("TiffTifSiblingPaths: could not delete stale sibling " + path + " : " + last.getMessage());
+		}
 	}
 }

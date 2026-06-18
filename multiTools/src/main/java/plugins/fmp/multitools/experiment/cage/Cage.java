@@ -795,9 +795,10 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	 *
 	 * <p>
 	 * Sorting uses top-to-bottom, then left-to-right order based on spot centers.
-	 * Row assignment clusters spots into rows by their Y coordinate with an adaptive
-	 * tolerance derived from inter-spot Y spacings. Within a row, spots are sorted
-	 * left-to-right by X.
+	 * Row assignment groups a spot with the current row when at least one of its Y
+	 * coordinates (ROI vertices, or bounding-box min/max) falls within the combined Y
+	 * span of spots already on that row; otherwise a new row is started. Within a row,
+	 * spots are sorted left-to-right by X.
 	 * </p>
 	 */
 	public void reorderSpotsReadingOrderAndAssignRowCol(Spots allSpots) {
@@ -828,8 +829,6 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 			return Integer.compare(id1, id2);
 		});
 
-		double yTol = estimateRowYTolerance(spotsWithCenters);
-
 		List<List<SpotWithCenter>> rows = new ArrayList<>();
 		for (SpotWithCenter swc : spotsWithCenters) {
 			if (rows.isEmpty()) {
@@ -839,8 +838,7 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 				continue;
 			}
 			List<SpotWithCenter> lastRow = rows.get(rows.size() - 1);
-			double lastMeanY = meanY(lastRow);
-			if (Math.abs(swc.center.y - lastMeanY) <= yTol) {
+			if (spotSharesRowByYOverlap(swc.spot, lastRow)) {
 				lastRow.add(swc);
 			} else {
 				List<SpotWithCenter> newRow = new ArrayList<>();
@@ -891,43 +889,53 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		}
 	}
 
-	private double meanY(List<SpotWithCenter> row) {
-		if (row == null || row.isEmpty()) {
-			return 0;
+	private static boolean spotSharesRowByYOverlap(Spot spot, List<SpotWithCenter> row) {
+		if (spot == null || row == null || row.isEmpty()) {
+			return false;
 		}
-		double sum = 0;
+		double rowMinY = Double.POSITIVE_INFINITY;
+		double rowMaxY = Double.NEGATIVE_INFINITY;
 		for (SpotWithCenter swc : row) {
-			sum += swc.center.y;
+			for (double y : collectSpotYPoints(swc.spot)) {
+				rowMinY = Math.min(rowMinY, y);
+				rowMaxY = Math.max(rowMaxY, y);
+			}
 		}
-		return sum / row.size();
+		if (!Double.isFinite(rowMinY) || !Double.isFinite(rowMaxY)) {
+			return false;
+		}
+		for (double y : collectSpotYPoints(spot)) {
+			if (y >= rowMinY && y <= rowMaxY) {
+				return true;
+			}
+		}
+		return false;
 	}
 
-	private double estimateRowYTolerance(List<SpotWithCenter> sortedByYThenX) {
-		if (sortedByYThenX == null || sortedByYThenX.size() < 2) {
-			return 5.0;
+	private static List<Double> collectSpotYPoints(Spot spot) {
+		List<Double> ys = new ArrayList<>(8);
+		if (spot == null) {
+			return ys;
 		}
-
-		List<Double> diffs = new ArrayList<>(sortedByYThenX.size() - 1);
-		double prevY = sortedByYThenX.get(0).center.y;
-		for (int i = 1; i < sortedByYThenX.size(); i++) {
-			double y = sortedByYThenX.get(i).center.y;
-			double dy = y - prevY;
-			if (dy > 0) {
-				diffs.add(dy);
+		ROI2D roi = spot.getRoi();
+		if (roi instanceof ROI2DPolygon) {
+			Polygon2D poly = ((ROI2DPolygon) roi).getPolygon2D();
+			if (poly != null) {
+				for (int i = 0; i < poly.npoints; i++) {
+					ys.add(poly.ypoints[i]);
+				}
 			}
-			prevY = y;
+		} else if (roi != null) {
+			Rectangle rect = roi.getBounds();
+			if (rect != null) {
+				ys.add(rect.getMinY());
+				ys.add(rect.getMaxY());
+			}
 		}
-
-		if (diffs.isEmpty()) {
-			return 5.0;
+		if (ys.isEmpty()) {
+			ys.add((double) spot.getProperties().getSpotYCoord());
 		}
-
-		Collections.sort(diffs);
-		// Use a high percentile to estimate between-row spacing (median is dominated by within-row jitter).
-		int idx90 = (int) Math.floor(0.90 * (diffs.size() - 1));
-		double p90 = diffs.get(Math.max(0, Math.min(diffs.size() - 1, idx90)));
-		// Tolerance is half the between-row spacing estimate, with a small floor.
-		return Math.max(5.0, 0.5 * p90);
+		return ys;
 	}
 
 	private Point2D.Double getSpotCenterForOrdering(Spot spot) {

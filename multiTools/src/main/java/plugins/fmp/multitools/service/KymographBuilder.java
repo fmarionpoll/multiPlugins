@@ -196,6 +196,18 @@ public class KymographBuilder {
 		saveImageSafely(image, target);
 	}
 
+	/** Windows: allow ICY / Bio-Formats to release kymograph TIFF handles after {@link Experiment#releaseKymographSequence()}. */
+	public static void yieldAfterKymographSequenceRelease() {
+		if (!SystemUtil.isWindows()) {
+			return;
+		}
+		try {
+			Thread.sleep(800L);
+		} catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+		}
+	}
+
 	/**
 	 * Resolves the kymograph results subfolder: canonical {@code bin_XX} when it exists,
 	 * with best-effort {@code old_*} cleanup and {@code line*} → {@code old_line*} archive.
@@ -493,34 +505,50 @@ public class KymographBuilder {
 	 * normal JVM exit.
 	 */
 	private static void archiveAllLineKymographTiffsInDirectory(Path dir) {
-		archiveLineKymographsInDirectory(dir, -1L, true, true, false, true);
+		archivePrefixedKymographTiffsInDirectory(dir, "line", -1L, true, true, false, true);
+	}
+
+	/**
+	 * Renames {@code kymocage_*.tif/.tiff} to {@code old_kymocage_*} before stacked cage export so
+	 * rebuilds cannot leave mismatched {@code .tif}/{@code .tiff} siblings on disk.
+	 */
+	public static PreArchiveResult archiveCageKymographTiffsBeforeExport(Path dir) {
+		return archivePrefixedKymographTiffsInDirectory(dir, "kymocage", -1L, true, true, false, true);
 	}
 
 	private static PreArchiveResult archiveLineKymographsInDirectory(Path dir, long timestampMs,
 			boolean bestEffortDeleteOldName, boolean registerDeleteOnExit, boolean rollbackOnAnyFailure,
 			boolean useMoveRetries) {
+		return archivePrefixedKymographTiffsInDirectory(dir, "line", timestampMs, bestEffortDeleteOldName,
+				registerDeleteOnExit, rollbackOnAnyFailure, useMoveRetries);
+	}
+
+	private static PreArchiveResult archivePrefixedKymographTiffsInDirectory(Path dir, String namePrefix,
+			long timestampMs, boolean bestEffortDeleteOldName, boolean registerDeleteOnExit,
+			boolean rollbackOnAnyFailure, boolean useMoveRetries) {
 		if (dir == null || !Files.isDirectory(dir)) {
 			return new PreArchiveResult(0, 0, dir);
 		}
-		List<Path> lineTiffs;
+		String prefixLower = namePrefix != null ? namePrefix.toLowerCase() : "";
+		List<Path> tiffs;
 		try (Stream<Path> stream = Files.list(dir)) {
-			lineTiffs = stream.filter(Files::isRegularFile).filter(p -> {
+			tiffs = stream.filter(Files::isRegularFile).filter(p -> {
 				String n = p.getFileName() != null ? p.getFileName().toString().toLowerCase() : "";
-				if (!n.startsWith("line"))
+				if (!n.startsWith(prefixLower)) {
 					return false;
+				}
 				return n.endsWith(".tif") || n.endsWith(".tiff");
 			}).collect(Collectors.toList());
 		} catch (IOException e) {
-			Logger.warn("KymographBuilder: archiveLineKymographsInDirectory list failed " + dir + " : "
+			Logger.warn("KymographBuilder: archivePrefixedKymographTiffsInDirectory list failed " + dir + " : "
 					+ e.getMessage());
 			return new PreArchiveResult(0, 0, dir);
 		}
 
 		int renamed = 0;
 		int failed = 0;
-		// For rollback if any move fails: keep a list of successful (from -> to) renames.
 		ArrayList<Path[]> moved = rollbackOnAnyFailure ? new ArrayList<>() : null;
-		for (Path target : lineTiffs) {
+		for (Path target : tiffs) {
 			String fn = target.getFileName().toString();
 			Path archived = buildArchivedName(dir, fn, timestampMs);
 			if (bestEffortDeleteOldName) {
@@ -545,8 +573,6 @@ public class KymographBuilder {
 			}
 		}
 		if (rollbackOnAnyFailure && failed > 0 && moved != null && !moved.isEmpty()) {
-			// Roll back best-effort: restore original names to avoid leaving a partially
-			// renamed directory when we will abort computation anyway.
 			for (int i = moved.size() - 1; i >= 0; i--) {
 				Path[] pair = moved.get(i);
 				Path original = pair[0];
@@ -558,7 +584,8 @@ public class KymographBuilder {
 						Files.move(archived, original, StandardCopyOption.REPLACE_EXISTING);
 					}
 				} catch (IOException e) {
-					Logger.warn("KymographBuilder: rollback failed " + archived + " -> " + original + " : " + e.getMessage());
+					Logger.warn("KymographBuilder: rollback failed " + archived + " -> " + original + " : "
+							+ e.getMessage());
 				}
 			}
 			renamed = 0;

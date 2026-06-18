@@ -3,6 +3,7 @@ package plugins.fmp.multitools.service;
 import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,9 +27,11 @@ import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
+import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.TiffTifSiblingPaths;
 
 /**
  * Builds one stacked vertical-line kymograph per cage from camera frames (multiSPOTS96
@@ -224,16 +227,13 @@ public class CageSpotKymographBuilder {
 			return false;
 		}
 
+		CageKymographViewerUtil.closeAllViewersForExperiment(exp);
 		exp.releaseKymographSequence();
-		if (SystemUtil.isWindows()) {
-			try {
-				Thread.sleep(200L);
-			} catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
-			}
-		}
+		KymographBuilder.yieldAfterKymographSequenceRelease();
 
-		exportPlans(plans, globalHeight, kymoSizeC, directory);
+		if (!exportPlans(plans, globalHeight, kymoSizeC, directory)) {
+			return false;
+		}
 		CageKymographStripLayoutCsv.write(directory, cages, spots, refSizex, refSizey, expectedWidth, first_ms,
 				last_ms, step_ms);
 		return true;
@@ -242,11 +242,9 @@ public class CageSpotKymographBuilder {
 	private PlansBundle buildPlans(Cages cages, Spots allSpots, int imageWidth, int kymoSizeC, int refSizex,
 			int refSizey) {
 		List<CageKymoPlan> out = new ArrayList<>();
-		int idx = 0;
 		for (Cage cage : cages.cagesList) {
 			List<Spot> raw = cage.getSpotList(allSpots);
 			if (raw.isEmpty()) {
-				idx++;
 				continue;
 			}
 			ArrayList<Spot> sorted = new ArrayList<>(raw);
@@ -263,14 +261,14 @@ public class CageSpotKymographBuilder {
 			}
 			if (stackHeight <= 0) {
 				Logger.warn("CageSpotKymographBuilder: cage " + cage.prop.getCageID() + " has no valid spot bounds");
-				idx++;
 				continue;
 			}
-			int cid = cage.prop.getCageID();
-			String fileBase = "kymocage_" + (cid >= 0 ? String.valueOf(cid) : "i" + idx);
+			String fileBase = KymocageCageResolver.kymocageFileBaseForCage(cage, cages);
+			if (fileBase == null) {
+				continue;
+			}
 			ArrayList<int[]> buffers = new ArrayList<>(kymoSizeC);
 			out.add(new CageKymoPlan(sorted, stackHeight, fileBase, buffers, imageWidth));
-			idx++;
 		}
 
 		int globalHeight = 0;
@@ -386,24 +384,21 @@ public class CageSpotKymographBuilder {
 		}
 	}
 
-	private void exportPlans(List<CageKymoPlan> plans, int globalHeight, int kymoSizeC, String directory) {
+	private boolean exportPlans(List<CageKymoPlan> plans, int globalHeight, int kymoSizeC, String directory) {
+		KymographBuilder.PreArchiveResult archive = KymographBuilder
+				.archiveCageKymographTiffsBeforeExport(Paths.get(directory));
+		if (archive.failed > 0) {
+			Logger.error("CageSpotKymographBuilder: export aborted — " + archive.failed
+					+ " kymocage TIFF(s) are locked (close the kymograph viewer, wait a few seconds, or restart ICY). "
+					+ "Delete kymocage_* and old_kymocage_* in " + directory + " then rebuild.");
+			return false;
+		}
+
 		if (SystemUtil.isWindows()) {
 			for (CageKymoPlan p : plans) {
-				IcyBufferedImage img = new IcyBufferedImage(p.imageWidth, globalHeight, kymoSizeC, DataType.UBYTE);
-				boolean signed = img.isSignedDataType();
-				for (int ch = 0; ch < Math.min(kymoSizeC, p.channelBuffers.size()); ch++) {
-					Object dest = img.getDataXY(ch);
-					Array1DUtil.intArrayToSafeArray(p.channelBuffers.get(ch), 0, dest, 0, -1, signed, signed);
-					img.setDataXY(ch, dest);
-				}
-				File outFile = new File(directory + File.separator + p.fileBaseName + ".tiff");
-				try {
-					KymographBuilder.saveKymographTiffSafely(img, outFile);
-				} catch (FormatException | IOException e) {
-					Logger.error("CageSpotKymographBuilder: export failed " + outFile, e);
-				}
+				exportOnePlan(p, globalHeight, kymoSizeC, directory);
 			}
-			return;
+			return true;
 		}
 
 		Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
@@ -413,23 +408,30 @@ public class CageSpotKymographBuilder {
 
 		for (CageKymoPlan plan : plans) {
 			final CageKymoPlan p = plan;
-			tasks.add(processor.submit(() -> {
-				IcyBufferedImage img = new IcyBufferedImage(p.imageWidth, globalHeight, kymoSizeC, DataType.UBYTE);
-				boolean signed = img.isSignedDataType();
-				for (int ch = 0; ch < Math.min(kymoSizeC, p.channelBuffers.size()); ch++) {
-					Object dest = img.getDataXY(ch);
-					Array1DUtil.intArrayToSafeArray(p.channelBuffers.get(ch), 0, dest, 0, -1, signed, signed);
-					img.setDataXY(ch, dest);
-				}
-				File outFile = new File(directory + File.separator + p.fileBaseName + ".tiff");
-				try {
-					KymographBuilder.saveKymographTiffSafely(img, outFile);
-				} catch (FormatException | IOException e) {
-					Logger.error("CageSpotKymographBuilder: export failed " + outFile, e);
-				}
-			}));
+			tasks.add(processor.submit(() -> exportOnePlan(p, globalHeight, kymoSizeC, directory)));
 		}
 		waitFutures(processor, tasks);
+		return true;
+	}
+
+	private static void exportOnePlan(CageKymoPlan p, int globalHeight, int kymoSizeC, String directory) {
+		IcyBufferedImage img = new IcyBufferedImage(p.imageWidth, globalHeight, kymoSizeC, DataType.UBYTE);
+		boolean signed = img.isSignedDataType();
+		for (int ch = 0; ch < Math.min(kymoSizeC, p.channelBuffers.size()); ch++) {
+			Object dest = img.getDataXY(ch);
+			Array1DUtil.intArrayToSafeArray(p.channelBuffers.get(ch), 0, dest, 0, -1, signed, signed);
+			img.setDataXY(ch, dest);
+		}
+		File outFile = new File(directory + File.separator + p.fileBaseName + ".tiff");
+		try {
+			KymographBuilder.saveKymographTiffSafely(img, outFile);
+			File saved = TiffTifSiblingPaths.pickForKymographDescriptor(directory + File.separator, p.fileBaseName);
+			if (saved != null) {
+				TiffTifSiblingPaths.deleteAlternateTiffSiblingIfPresent(saved.toPath());
+			}
+		} catch (FormatException | IOException e) {
+			Logger.error("CageSpotKymographBuilder: export failed " + outFile, e);
+		}
 	}
 
 	private static void waitFutures(Processor processor, ArrayList<Future<?>> tasks) {
