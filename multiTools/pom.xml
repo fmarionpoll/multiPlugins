@@ -37,11 +37,11 @@
             <groupId>org.bioimageanalysis.icy</groupId>
             <artifactId>jfree-common</artifactId>
         </dependency>
-        <!-- Explicit JFreeChart dependency for Eclipse classpath resolution -->
-        <!-- Note: jfree-common should include this, but Eclipse has issues resolving it for library modules -->
+        <!-- Compile-time only: Icy provides jfree-common at runtime; Eclipse needs explicit jfreechart for library modules -->
         <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.bioimageanalysis.icy</groupId>

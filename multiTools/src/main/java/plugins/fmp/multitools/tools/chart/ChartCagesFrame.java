@@ -23,7 +23,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.title.TextTitle;
-import org.jfree.chart.ui.RectangleEdge;
+import org.jfree.ui.RectangleEdge;
 import org.jfree.data.Range;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -517,7 +517,6 @@ public class ChartCagesFrame extends IcyFrame {
 					new Font("SansSerif", Font.PLAIN, 12));
 			title.setPosition(RectangleEdge.BOTTOM);
 			chart.addSubtitle(title);
-			chart.setID("row:" + row + ":icol:" + col + ":cageID:" + cage.getProperties().getCageID());
 
 			ChartCagePanel chartCagePanel = new ChartCagePanel(chart, DEFAULT_CHART_WIDTH, DEFAULT_CHART_HEIGHT,
 					MIN_CHART_WIDTH, MIN_CHART_HEIGHT, MAX_CHART_WIDTH, MAX_CHART_HEIGHT, true, true, true, true, false,
@@ -562,8 +561,6 @@ public class ChartCagesFrame extends IcyFrame {
 				new Font("SansSerif", Font.PLAIN, 12));
 		title.setPosition(RectangleEdge.BOTTOM);
 		chart.addSubtitle(title);
-
-		chart.setID("row:" + row + ":icol:" + col + ":cageID:" + cage.getProperties().getCageID());
 
 		ChartCagePanel chartCagePanel = new ChartCagePanel(chart, DEFAULT_CHART_WIDTH, DEFAULT_CHART_HEIGHT,
 				MIN_CHART_WIDTH, MIN_CHART_HEIGHT, MAX_CHART_WIDTH, MAX_CHART_HEIGHT, true, true, true, true, false,
