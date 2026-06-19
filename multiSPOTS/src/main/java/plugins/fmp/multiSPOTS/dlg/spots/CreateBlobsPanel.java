@@ -71,6 +71,7 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 
 	private JButton convertBlobsToSpotButton = new JButton("Convert to spots");
 	private JSpinner spotDiameterSpinner = new JSpinner(new SpinnerNumberModel(22, 1, 1200, 1));
+	private JSpinner maxNSpotsPerCageSpinner = new JSpinner(new SpinnerNumberModel(8, 1, 1200, 1));
 
 	private DetectSpotsOutline detectSpots = null;
 	private OverlayThreshold overlayThreshold = null;
@@ -106,6 +107,8 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 		panel3.add(convertBlobsToSpotButton);
 		panel3.add(new JLabel("pixels"));
 		panel3.add(spotDiameterSpinner);
+		panel3.add(new JLabel("max n spots / cage"));
+		panel3.add(maxNSpotsPerCageSpinner);
 		add(panel3);
 
 		spotsTransformsComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
@@ -206,7 +209,8 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
 					int diameter = (int) spotDiameterSpinner.getValue();
-					convertBlobsToCircles(exp, diameter);
+					int nMaxSpotsPerCage = (int) maxNSpotsPerCageSpinner.getValue();
+					convertBlobsToCircles(exp, diameter, nMaxSpotsPerCage);
 					firePropertyChange("SPOTS_BLOBS_CONVERTED", false, true);
 				}
 			}
@@ -467,29 +471,41 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 		exp.saveSpots_File();
 	}
 
-	void convertBlobsToCircles(Experiment exp, int diameter) {
+	void convertBlobsToCircles(Experiment exp, int diameter, int nMaxSpotsPerCage) {
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
 		Spots allSpots = exp.getSpots();
-//		int nspots = allSpots.getSpotListCount();
+		boolean limitSpotsPerCage = nMaxSpotsPerCage > 0;
 
 		for (Cage cage : exp.getCages().cagesList) {
 			if (bOnlySelectedCages && !cage.getRoi().isSelected())
 				continue;
-			List<SpotID> spotIDList = cage.getSpotIDs();
-			for (SpotID spotID : spotIDList) {
-				Spot spot = allSpots.findSpotwithID(spotID);
-				if (spot == null) {
-					continue;
-				}
 
+			List<Spot> cageSpots = cage.getSpotList(allSpots);
+			if (limitSpotsPerCage && cageSpots.size() > nMaxSpotsPerCage) {
+				cageSpots.sort((a, b) -> {
+					Rectangle ra = a.getRoi() != null ? a.getRoi().getBounds() : null;
+					Rectangle rb = b.getRoi() != null ? b.getRoi().getBounds() : null;
+					int areaA = ra != null ? ra.width * ra.height : 0;
+					int areaB = rb != null ? rb.width * rb.height : 0;
+					return Integer.compare(areaB, areaA);
+				});
+				for (int i = nMaxSpotsPerCage; i < cageSpots.size(); i++) {
+					Spot spot = cageSpots.get(i);
+					SpotID spotID = spot.getSpotUniqueID();
+					allSpots.removeSpot(spot);
+					if (spotID != null)
+						cage.getSpotIDs().remove(spotID);
+				}
+				cageSpots = new ArrayList<>(cageSpots.subList(0, nMaxSpotsPerCage));
+			}
+
+			for (Spot spot : cageSpots) {
 				ROI2D roiP = spot.getRoi();
-				if (roiP == null) {
+				if (roiP == null)
 					continue;
-				}
 				Rectangle rect = roiP.getBounds();
-				if (rect == null) {
+				if (rect == null)
 					continue;
-				}
 
 				double centerX = rect.getCenterX();
 				double centerY = rect.getCenterY();
@@ -528,7 +544,7 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 
 	void changeSpotsDiameter(Experiment exp) {
 		int diameter = (int) spotDiameterSpinner.getValue();
-		convertBlobsToCircles(exp, diameter);
+		convertBlobsToCircles(exp, diameter, 0);
 	}
 
 }

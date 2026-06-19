@@ -28,7 +28,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS June 18, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS June 19, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
@@ -62,7 +62,10 @@ public class MultiSPOTS extends PluginActionable {
 				dlgSpots::onMeasureChartSpotClicked);
 	}
 
-	/** Closes spot measure, color measure, and kymograph chart windows (not the camera/kymo image viewers). */
+	/**
+	 * Closes spot measure, color measure, and kymograph chart windows (not the
+	 * camera/kymo image viewers).
+	 */
 	public void closeAllGraphWindows() {
 		if (dlgMeasure != null && dlgMeasure.chartsPanel != null)
 			dlgMeasure.chartsPanel.closeAllCharts();
