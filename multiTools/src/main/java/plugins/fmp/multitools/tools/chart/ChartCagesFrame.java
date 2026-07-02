@@ -23,7 +23,6 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.title.TextTitle;
-import org.jfree.ui.RectangleEdge;
 import org.jfree.data.Range;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -515,7 +514,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 			TextTitle title = new TextTitle("Cage " + cage.getProperties().getCageID() + " (no data)",
 					new Font("SansSerif", Font.PLAIN, 12));
-			title.setPosition(RectangleEdge.BOTTOM);
+			setTitlePosition(title, "BOTTOM");
 			chart.addSubtitle(title);
 
 			ChartCagePanel chartCagePanel = new ChartCagePanel(chart, DEFAULT_CHART_WIDTH, DEFAULT_CHART_HEIGHT,
@@ -559,7 +558,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 		TextTitle title = new TextTitle("Cage " + cage.getProperties().getCageID(),
 				new Font("SansSerif", Font.PLAIN, 12));
-		title.setPosition(RectangleEdge.BOTTOM);
+		setTitlePosition(title, "BOTTOM");
 		chart.addSubtitle(title);
 
 		ChartCagePanel chartCagePanel = new ChartCagePanel(chart, DEFAULT_CHART_WIDTH, DEFAULT_CHART_HEIGHT,
@@ -584,6 +583,30 @@ public class ChartCagesFrame extends IcyFrame {
 		// Default implementation: always return true
 		// Subclasses can override to check for specific data (e.g., capillaries, spots)
 		return true;
+	}
+
+	private static void setTitlePosition(TextTitle title, String edgeName) {
+		if (title == null || edgeName == null) {
+			return;
+		}
+		try {
+			setTitlePosition(title, edgeName, "org.jfree.chart.ui.RectangleEdge");
+			return;
+		} catch (Throwable ignored) {
+			// Fall back to older JFreeChart/JCommon package name
+		}
+		try {
+			setTitlePosition(title, edgeName, "org.jfree.ui.RectangleEdge");
+		} catch (Throwable ignored) {
+			// If neither is present, silently ignore (subtitle will use default position)
+		}
+	}
+
+	private static void setTitlePosition(TextTitle title, String edgeName, String rectangleEdgeClassName)
+			throws Exception {
+		Class<?> edgeClass = Class.forName(rectangleEdgeClassName);
+		Object edge = edgeClass.getField(edgeName).get(null);
+		title.getClass().getMethod("setPosition", edgeClass).invoke(title, edge);
 	}
 
 	/**
