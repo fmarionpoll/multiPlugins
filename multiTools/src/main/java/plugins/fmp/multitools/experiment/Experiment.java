@@ -383,6 +383,15 @@ public class Experiment {
 		this.isSaving = saving;
 	}
 
+	/**
+	 * Whether closing this experiment should write descriptors and measures to disk.
+	 * Lazy experiments that were never loaded into memory must not be saved: their
+	 * in-memory state is empty and would overwrite valid on-disk interval metadata.
+	 */
+	public boolean shouldPersistOnClose() {
+		return true;
+	}
+
 	public boolean isCageKymographDiskRewriteInProgress() {
 		return cageKymographDiskRewriteInProgress;
 	}

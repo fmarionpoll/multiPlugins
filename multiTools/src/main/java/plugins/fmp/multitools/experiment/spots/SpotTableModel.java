@@ -143,7 +143,9 @@ public class SpotTableModel extends AbstractTableModel {
 				break;
 			case 9:
 				spot.getProperties().setColor((Color) aValue);
-				spot.getRoi().setColor(spot.getProperties().getColor());
+				if (spot.getRoi() != null) {
+					spot.getRoi().setColor(spot.getProperties().getColor());
+				}
 				break;
 			}
 		}

@@ -316,6 +316,8 @@ public class ExperimentPersistence {
 				if (node == null)
 					return false;
 
+				Node existingNode = loadExistingMcExperimentNode(csFileName);
+
 				XMLUtil.setElementValue(node, ID_VERSION, ID_VERSIONNUM);
 
 				// Check if values are uninitialized (-1) and attempt to compute from
@@ -335,6 +337,11 @@ public class ExperimentPersistence {
 						}
 					}
 
+					if (firstMs < 0 || lastMs < 0) {
+						firstMs = preservedLong(existingNode, ID_TIMEFIRSTIMAGEMS, firstMs, 0);
+						lastMs = preservedLong(existingNode, ID_TIMELASTIMAGEMS, lastMs, 0);
+					}
+
 					// If still uninitialized after attempting computation, log a warning
 					if (firstMs < 0 || lastMs < 0) {
 						Logger.warn(
@@ -348,8 +355,12 @@ public class ExperimentPersistence {
 				XMLUtil.setElementLongValue(node, ID_TIMEFIRSTIMAGEMS, firstMs);
 				XMLUtil.setElementLongValue(node, ID_TIMELASTIMAGEMS, lastMs);
 
-				if (exp.getNominalIntervalSec() >= 0)
-					XMLUtil.setElementIntValue(node, ID_NOMINALINTERVALSEC, exp.getNominalIntervalSec());
+				int nominalSec = exp.getNominalIntervalSec();
+				if (nominalSec < 0 && existingNode != null) {
+					nominalSec = XMLUtil.getElementIntValue(existingNode, ID_NOMINALINTERVALSEC, -1);
+				}
+				if (nominalSec >= 0)
+					XMLUtil.setElementIntValue(node, ID_NOMINALINTERVALSEC, nominalSec);
 
 				// Bin parameters (firstKymoColMs, lastKymoColMs, binKymoColMs) are now stored
 				// in BinDescription.xml files in each bin directory, not in
@@ -360,6 +371,7 @@ public class ExperimentPersistence {
 					ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
 					long frameFirst = imgLoader.getAbsoluteIndexFirstImage();
 					long nImages = imgLoader.getFixedNumberOfImages();
+					long frameDelta = exp.getSeqCamData().getTimeManager().getDeltaImage();
 					// Use actual frame count when fixedNumberOfImages is invalid (<=0 or 1)
 					if (nImages <= 0 || nImages == 1) {
 						int actual = imgLoader.getNTotalFrames();
@@ -373,10 +385,31 @@ public class ExperimentPersistence {
 							imgLoader.setFixedNumberOfImages(nImages);
 						}
 					}
+					if (!areCameraFramesAvailable(exp) && existingNode != null) {
+						long existingFrameFirst = XMLUtil.getElementLongValue(existingNode, ID_FRAMEFIRST, -1);
+						if (existingFrameFirst >= 0)
+							frameFirst = existingFrameFirst;
+						long existingNFrames = XMLUtil.getElementLongValue(existingNode, ID_NFRAMES, -1);
+						if (existingNFrames > 1)
+							nImages = existingNFrames;
+						long existingFrameDelta = XMLUtil.getElementLongValue(existingNode, ID_FRAMEDELTA, -1);
+						if (existingFrameDelta > 0)
+							frameDelta = existingFrameDelta;
+					}
 					XMLUtil.setElementLongValue(node, ID_FRAMEFIRST, frameFirst);
 
 					if (nImages > 1) {
 						XMLUtil.setElementLongValue(node, ID_NFRAMES, nImages);
+					} else if (existingNode != null) {
+						long existingNFrames = XMLUtil.getElementLongValue(existingNode, ID_NFRAMES, -1);
+						if (existingNFrames > 1) {
+							XMLUtil.setElementLongValue(node, ID_NFRAMES, existingNFrames);
+						} else {
+							Node nFramesNode = XMLUtil.getElement(node, ID_NFRAMES);
+							if (nFramesNode != null) {
+								node.removeChild(nFramesNode);
+							}
+						}
 					} else {
 						Node nFramesNode = XMLUtil.getElement(node, ID_NFRAMES);
 						if (nFramesNode != null) {
@@ -384,9 +417,7 @@ public class ExperimentPersistence {
 						}
 					}
 
-					// Save TimeManager configuration
-					TimeManager timeManager = exp.getSeqCamData().getTimeManager();
-					XMLUtil.setElementLongValue(node, ID_FRAMEDELTA, timeManager.getDeltaImage());
+					XMLUtil.setElementLongValue(node, ID_FRAMEDELTA, frameDelta);
 				}
 
 				if (exp.getImagesDirectory() != null)
@@ -446,6 +477,33 @@ public class ExperimentPersistence {
 		private static void saveFlyScaleParameters(Experiment exp, Node node) {
 			XMLUtil.setElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_X, exp.getFlyMmPerPixelX());
 			XMLUtil.setElementDoubleValue(node, ID_FLY_MM_PER_PIXEL_Y, exp.getFlyMmPerPixelY());
+		}
+
+		private static Node loadExistingMcExperimentNode(String csFileName) {
+			Document doc = XMLUtil.loadDocument(csFileName);
+			if (doc == null)
+				return null;
+			return XMLUtil.getElement(XMLUtil.getRootElement(doc), ID_MCEXPERIMENT);
+		}
+
+		private static long preservedLong(Node existingNode, String id, long current, long validMinimum) {
+			if (current >= validMinimum)
+				return current;
+			if (existingNode == null)
+				return current;
+			long existing = XMLUtil.getElementLongValue(existingNode, id, validMinimum - 1);
+			return existing >= validMinimum ? existing : current;
+		}
+
+		private static boolean areCameraFramesAvailable(Experiment exp) {
+			if (exp.getSeqCamData() == null)
+				return false;
+			ImageLoader imgLoader = exp.getSeqCamData().getImageLoader();
+			if (imgLoader.getNTotalFrames() > 0)
+				return true;
+			if (exp.getSeqCamData().getSequence() != null && exp.getSeqCamData().getSequence().getSizeT() > 1)
+				return true;
+			return false;
 		}
 
 		private static String concatenateExptDirectoryWithSubpathAndName(Experiment exp, String subpath, String name) {

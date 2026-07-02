@@ -26,13 +26,16 @@ final class CafeExperimentClosePipeline {
 			exp.setSaving(true);
 
 			try {
-				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+				boolean persist = exp.shouldPersistOnClose();
+				if (persist && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
 					exp.cleanPreviousDetectedFliesROIs();
 				}
 
-				exp.saveExperimentDescriptors();
+				if (persist) {
+					exp.saveExperimentDescriptors();
+				}
 
-				if (exp.getSeqCamData() != null) {
+				if (persist && exp.getSeqCamData() != null) {
 					int capCountBeforeSave = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
 					Logger.debug(
 							"LoadSaveExperiment:closeViewsForCurrentExperiment() About to save capillaries - count="

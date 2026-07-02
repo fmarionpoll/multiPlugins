@@ -26,11 +26,12 @@ final class ExperimentClosePipeline {
 			exp.setSaving(true);
 
 			try {
-				if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+				boolean persist = exp.shouldPersistOnClose();
+				if (persist && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
 					exp.cleanPreviousDetectedFliesROIs();
 				}
 
-				if (exp.getSeqCamData() != null) {
+				if (persist && exp.getSeqCamData() != null) {
 					exp.saveExperimentDescriptors();
 
 					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());

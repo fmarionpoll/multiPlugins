@@ -198,6 +198,11 @@ public class LazyExperiment extends Experiment {
 		return experimentPropertiesLoaded;
 	}
 
+	@Override
+	public boolean shouldPersistOnClose() {
+		return isLoaded;
+	}
+
 	public void invalidatePropertiesCache() {
 		experimentPropertiesLoaded = false;
 		cachedExperimentProperties = null;
