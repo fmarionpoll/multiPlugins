@@ -13,6 +13,7 @@ import org.jfree.data.xy.XYDataset;
 
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.tools.chart.JFreeChartPlotCompat;
 
 /**
  * Maps chart domain values (minutes) to {@code seqCamData} frame indices.
@@ -41,7 +42,7 @@ public final class ChartCamFrameNavigation {
 		Point2D java2DPoint = panel.translateScreenToJava2D(screenPoint);
 		Rectangle2D dataArea = panel.getScreenDataArea();
 		ValueAxis domainAxis = plot.getDomainAxis();
-		return domainAxis.java2DToValue(java2DPoint.getX(), dataArea, plot.getDomainAxisEdge());
+		return JFreeChartPlotCompat.domainJava2DToValue(domainAxis, java2DPoint.getX(), dataArea, plot);
 	}
 
 	public static int getFrameIndexFromTimeMinutes(Experiment exp, double timeMinutes) {

@@ -191,7 +191,7 @@ public class ChartPositions extends IcyFrame {
 
 			if (scatterOnly) {
 				XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(false, true);
-				renderer.setBaseShape(new Ellipse2D.Double(-2.0, -2.0, 4.0, 4.0));
+				renderer.setDefaultShape(new Ellipse2D.Double(-2.0, -2.0, 4.0, 4.0));
 				xyChart.getXYPlot().setRenderer(renderer);
 			}
 

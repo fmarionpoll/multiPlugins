@@ -63,6 +63,9 @@
         <maven.compiler.target>1.8</maven.compiler.target>
         <!-- icy-kernel Maven version ≠ Icy application version (e.g. 2.5.4.0). Nexus may lag; see icy-kernel listings on Pasteur Nexus. -->
         <icy-kernel.version>2.5.1</icy-kernel.version>
+        <!-- Match ICY "JFree Common library for Icy" and "JFree Chart library for Icy" plugins at runtime -->
+        <jfree-common.version>1.0.24</jfree-common.version>
+        <jfreechart.version>1.5.3</jfreechart.version>
     </properties>
 
     <build>
@@ -102,12 +105,12 @@
             <dependency>
                 <groupId>org.bioimageanalysis.icy</groupId>
                 <artifactId>jfree-common</artifactId>
-                <version>1.0.24</version>
+                <version>${jfree-common.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.jfree</groupId>
                 <artifactId>jfreechart</artifactId>
-                <version>1.0.19</version>
+                <version>${jfreechart.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.bioimageanalysis.icy</groupId>

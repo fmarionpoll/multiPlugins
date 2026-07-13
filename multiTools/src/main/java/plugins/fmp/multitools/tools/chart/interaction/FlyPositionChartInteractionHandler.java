@@ -1,16 +1,12 @@
 package plugins.fmp.multitools.tools.chart.interaction;
 
-import java.awt.Point;
 import java.awt.event.MouseEvent;
-import java.awt.geom.Point2D;
-import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
 
 import icy.gui.viewer.Viewer;
@@ -22,6 +18,7 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.interaction.ChartCamFrameNavigation;
 
 /**
  * Fly-position chart interactions (click-to-select cage ROI, jump to nearest T).
@@ -78,14 +75,7 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 	}
 
 	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, XYPlot plot) {
-		if (e == null || panel == null || plot == null) {
-			return -1;
-		}
-		Point screenPoint = e.getTrigger().getPoint();
-		Point2D java2DPoint = panel.translateScreenToJava2D(screenPoint);
-		Rectangle2D dataArea = panel.getScreenDataArea();
-		ValueAxis domainAxis = plot.getDomainAxis();
-		return domainAxis.java2DToValue(java2DPoint.getX(), dataArea, plot.getDomainAxisEdge());
+		return ChartCamFrameNavigation.getTimeMinutesFromEvent(e, panel, plot);
 	}
 
 	private int getFrameIndexFromTimeMinutes(Experiment exp, double timeMinutes) {

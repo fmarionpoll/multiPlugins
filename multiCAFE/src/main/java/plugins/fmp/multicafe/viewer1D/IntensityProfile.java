@@ -58,6 +58,7 @@ import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import icy.system.thread.ThreadUtil;
 import icy.type.collection.array.Array1DUtil;
+import plugins.fmp.multitools.tools.chart.JFreeChartPlotCompat;
 
 public class IntensityProfile {
 
@@ -270,7 +271,7 @@ public class IntensityProfile {
 				Point2D p = chartPanel.translateScreenToJava2D(chartMouseEvent.getTrigger().getPoint());
 				Rectangle2D plotArea = chartPanel.getScreenDataArea();
 				XYPlot plot = (XYPlot) chart.getPlot(); // your plot
-				double chartX = plot.getDomainAxis().java2DToValue(p.getX(), plotArea, plot.getDomainAxisEdge());
+				double chartX = JFreeChartPlotCompat.domainJava2DToValue(plot.getDomainAxis(), p.getX(), plotArea, plot);
 				// double chartY = plot.getRangeAxis().java2DToValue(p.getY(), plotArea,
 				// plot.getRangeAxisEdge());
 				if (rowMode) {

@@ -37,7 +37,7 @@
             <groupId>org.bioimageanalysis.icy</groupId>
             <artifactId>jfree-common</artifactId>
         </dependency>
-        <!-- Compile-time only: Icy provides jfree-common at runtime; Eclipse needs explicit jfreechart for library modules -->
+        <!-- Provided at runtime by ICY "JFree Chart library for Icy" (1.5.3); needed at compile time for Eclipse -->
         <dependency>
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>

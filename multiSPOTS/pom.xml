@@ -86,6 +86,12 @@
         	<groupId>org.bioimageanalysis.icy</groupId>
         	<artifactId>jfree-common</artifactId>
         </dependency>
+        <!-- Provided at runtime by ICY "JFree Chart library for Icy" (1.5.3) -->
+        <dependency>
+            <groupId>org.jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
         	<groupId>org.bioimageanalysis.icy</groupId>
         	<artifactId>parallel-colt</artifactId>

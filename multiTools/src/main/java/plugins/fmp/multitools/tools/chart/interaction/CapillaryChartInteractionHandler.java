@@ -32,6 +32,8 @@ import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.JFreeChartPlotCompat;
+import plugins.fmp.multitools.tools.chart.interaction.ChartCamFrameNavigation;
 
 /**
  * Capillary-related chart interactions (click-to-select ROI, jump to nearest T,
@@ -183,8 +185,8 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		ValueAxis domainAxis = xyPlot.getDomainAxis();
 		ValueAxis rangeAxis = xyPlot.getRangeAxis();
 
-		double clickedX = domainAxis.java2DToValue(java2DPoint.getX(), dataArea, xyPlot.getDomainAxisEdge());
-		double clickedY = rangeAxis.java2DToValue(java2DPoint.getY(), dataArea, xyPlot.getRangeAxisEdge());
+		double clickedX = JFreeChartPlotCompat.domainJava2DToValue(domainAxis, java2DPoint.getX(), dataArea, xyPlot);
+		double clickedY = JFreeChartPlotCompat.rangeJava2DToValue(rangeAxis, java2DPoint.getY(), dataArea, xyPlot);
 
 		XYDataset dataset = xyPlot.getDataset();
 		if (!(dataset instanceof XYSeriesCollection)) {
@@ -359,14 +361,7 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 	}
 
 	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, XYPlot plot) {
-		if (e == null || panel == null || plot == null) {
-			return -1;
-		}
-		Point screenPoint = e.getTrigger().getPoint();
-		Point2D java2DPoint = panel.translateScreenToJava2D(screenPoint);
-		Rectangle2D dataArea = panel.getScreenDataArea();
-		ValueAxis domainAxis = plot.getDomainAxis();
-		return domainAxis.java2DToValue(java2DPoint.getX(), dataArea, plot.getDomainAxisEdge());
+		return ChartCamFrameNavigation.getTimeMinutesFromEvent(e, panel, plot);
 	}
 
 	private class CapillaryChartMouseListener implements ChartMouseListener {
