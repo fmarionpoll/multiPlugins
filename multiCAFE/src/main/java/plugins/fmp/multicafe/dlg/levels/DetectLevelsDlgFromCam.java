@@ -26,7 +26,7 @@ import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectLevels;
@@ -129,10 +129,10 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
-					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
 						int index = transformComboBox.getSelectedIndex();
-						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						canvas.setTransformStep1Index(index + 1);
 						updateOverlayThreshold();
 					}
 				}
@@ -157,18 +157,18 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 					return;
 
 				if (viewButton.isSelected()) {
-					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
-						canvas.updateTransformsComboStep1(transformPass1);
+						canvas.updateTransformsStep1(transformPass1);
 						int index = transformComboBox.getSelectedIndex();
-						canvas.selectIndexStep1(index + 1, null);
+						canvas.setTransformStep1(index + 1, null);
 					}
 				} else {
 					removeOverlay(exp);
 					overlayCheckBox.setSelected(false);
-					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null)
-						canvas.transformsCombo1.setSelectedIndex(0);
+						canvas.setTransformStep1Index(0);
 				}
 				overlayCheckBox.setEnabled(viewButton.isSelected());
 			}
@@ -279,14 +279,16 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			threadDetectLevels.stopFlag = true;
 	}
 
-	protected Canvas2DWithTransforms getCamDataCanvas(Experiment exp) {
+	protected Canvas2D_3Transforms getCamDataCanvas(Experiment exp) {
 		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
 			return null;
 
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v == null)
 			return null;
-		return (Canvas2DWithTransforms) v.getCanvas();
+		if (v.getCanvas() instanceof Canvas2D_3Transforms)
+			return (Canvas2D_3Transforms) v.getCanvas();
+		return null;
 	}
 
 	void addOverlayToSequence(Experiment exp) {

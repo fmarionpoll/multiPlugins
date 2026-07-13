@@ -20,7 +20,7 @@ import javax.swing.SpinnerNumberModel;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectGulps;
@@ -118,8 +118,11 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
-					int index = gulpTransforms_comboBox.getSelectedIndex();
-					getKymosCanvas(exp).transformsCombo1.setSelectedIndex(index + 1);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+					if (canvas != null) {
+						int index = gulpTransforms_comboBox.getSelectedIndex();
+						canvas.setTransformStep1Index(index + 1);
+					}
 				}
 			}
 		});
@@ -140,12 +143,17 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
 					if (display_button.isSelected()) {
-						Canvas2DWithTransforms canvas = getKymosCanvas(exp);
-						canvas.updateTransformsComboStep1(gulpTransforms);
-						int index = gulpTransforms_comboBox.getSelectedIndex();
-						canvas.selectIndexStep1(index + 1, null);
-					} else
-						getKymosCanvas(exp).transformsCombo1.setSelectedIndex(0);
+						Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+						if (canvas != null) {
+							canvas.updateTransformsStep1(gulpTransforms);
+							int index = gulpTransforms_comboBox.getSelectedIndex();
+							canvas.setTransformStep1(index + 1, null);
+						}
+					} else {
+						Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+						if (canvas != null)
+							canvas.setTransformStep1Index(0);
+					}
 				}
 			}
 		});
@@ -244,10 +252,14 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		}
 	}
 
-	protected Canvas2DWithTransforms getKymosCanvas(Experiment exp) {
-		Canvas2DWithTransforms canvas = (Canvas2DWithTransforms) exp.getSeqKymos().getSequence().getFirstViewer()
-				.getCanvas();
-		return canvas;
+	protected Canvas2D_3Transforms getKymosCanvas(Experiment exp) {
+		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return null;
+		if (exp.getSeqKymos().getSequence().getFirstViewer() == null)
+			return null;
+		if (exp.getSeqKymos().getSequence().getFirstViewer().getCanvas() instanceof Canvas2D_3Transforms)
+			return (Canvas2D_3Transforms) exp.getSeqKymos().getSequence().getFirstViewer().getCanvas();
+		return null;
 	}
 
 }

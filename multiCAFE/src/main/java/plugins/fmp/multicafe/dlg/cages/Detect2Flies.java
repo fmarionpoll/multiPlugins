@@ -25,14 +25,13 @@ import javax.swing.event.PopupMenuListener;
 import icy.image.IcyBufferedImage;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.series.FlyDetect2;
 import plugins.fmp.multitools.series.IlluminationPhase;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.SequenceLoaderService;
-import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayThreshold;
 
@@ -324,13 +323,14 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	void viewDifference(Experiment exp, boolean display) {
-		Canvas2DWithTransforms canvas = (Canvas2DWithTransforms) exp.getSeqCamData().getSequence().getFirstViewer()
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		if (!(exp.getSeqCamData().getSequence().getFirstViewer().getCanvas() instanceof Canvas2D_3Transforms))
+			return;
+		Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) exp.getSeqCamData().getSequence().getFirstViewer()
 				.getCanvas();
 		ImageTransformEnums[] imageTransformStep1 = new ImageTransformEnums[] { ImageTransformEnums.NONE,
 				ImageTransformEnums.SUBTRACT_REF };
-		CanvasImageTransformOptions optionsStep1 = canvas.getOptionsStep1();
-
-		optionsStep1.backgroundImage = null;
 		int index = 0;
 		if (display) {
 			IcyBufferedImage bg = getActiveBackground(exp);
@@ -338,10 +338,12 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 				new SequenceLoaderService().loadReferenceImage(exp);
 				bg = exp.getSeqCamData().getReferenceImage();
 			}
-			optionsStep1.backgroundImage = bg;
+			canvas.setReferenceImage(bg);
 			index = 1;
+		} else {
+			canvas.setReferenceImage(null);
 		}
-		canvas.selectItemStep1(imageTransformStep1[index], optionsStep1);
+		canvas.setTransformStep1(imageTransformStep1[index], null);
 	}
 
 	private IcyBufferedImage getActiveBackground(Experiment exp) {

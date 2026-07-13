@@ -27,7 +27,7 @@ import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectLevels;
@@ -189,10 +189,10 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null) {
-					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
 						int index = transformPass1ComboBox.getSelectedIndex();
-						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						canvas.setTransformStep1Index(index + 1);
 						updateOverlayThreshold();
 					}
 				}
@@ -205,10 +205,10 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				allowItemsAccordingToSelection();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null) {
-					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
 						int index = transformPass2ComboBox.getSelectedIndex();
-						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						canvas.setTransformStep1Index(index + 1);
 						updateOverlayThreshold();
 					}
 				}
@@ -235,19 +235,19 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				boolean displayCheckOverlay = false;
 				if (transformPass1DisplayButton.isSelected()) {
 					transformPass2DisplayButton.setSelected(false);
-					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
-						canvas.updateTransformsComboStep1(transformPass1);
+						canvas.updateTransformsStep1(transformPass1);
 						int index = transformPass1ComboBox.getSelectedIndex();
-						canvas.selectIndexStep1(index + 1, null);
+						canvas.setTransformStep1(index + 1, null);
 						displayCheckOverlay = true;
 					}
 				} else {
 					removeOverlay(exp);
 					overlayPass1CheckBox.setSelected(false);
-					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null)
-						canvas.transformsCombo1.setSelectedIndex(0);
+						canvas.setTransformStep1Index(0);
 				}
 				overlayPass1CheckBox.setEnabled(displayCheckOverlay);
 				overlayPass2CheckBox.setEnabled(false);
@@ -265,19 +265,19 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				boolean displayCheckOverlay = false;
 				if (transformPass2DisplayButton.isSelected()) {
 					transformPass1DisplayButton.setSelected(false);
-					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
-						canvas.updateTransformsComboStep1(transformPass2);
+						canvas.updateTransformsStep1(transformPass2);
 						int index = transformPass2ComboBox.getSelectedIndex();
-						canvas.selectIndexStep1(index + 1, null);
+						canvas.setTransformStep1(index + 1, null);
 						displayCheckOverlay = true;
 					}
 				} else {
 					removeOverlay(exp);
 					overlayPass2CheckBox.setSelected(false);
-					Canvas2DWithTransforms canvas = getKymosCanvas(exp);
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null)
-						canvas.transformsCombo1.setSelectedIndex(0);
+						canvas.setTransformStep1Index(0);
 				}
 				overlayPass2CheckBox.setEnabled(displayCheckOverlay);
 				overlayPass1CheckBox.setEnabled(false);
@@ -487,7 +487,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		return new Rectangle(0, 0, seqW, seqH);
 	}
 
-	protected Canvas2DWithTransforms getKymosCanvas(Experiment exp) {
+	protected Canvas2D_3Transforms getKymosCanvas(Experiment exp) {
 		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
 			return null;
 		if (exp.getSeqKymos().getSequence().getFirstViewer() == null)
@@ -495,7 +495,9 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
 		if (v == null)
 			return null;
-		return (Canvas2DWithTransforms) v.getCanvas();
+		if (v.getCanvas() instanceof Canvas2D_3Transforms)
+			return (Canvas2D_3Transforms) v.getCanvas();
+		return null;
 	}
 
 	void addOverlayToSequence(Experiment exp) {

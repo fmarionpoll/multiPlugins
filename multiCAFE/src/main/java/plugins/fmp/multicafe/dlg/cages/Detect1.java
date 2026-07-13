@@ -26,7 +26,7 @@ import javax.swing.event.PopupMenuListener;
 import icy.gui.viewer.Viewer;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
@@ -178,18 +178,18 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 					return;
 
 				if (viewButton.isSelected()) {
-					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
 						int index = transformComboBox.getSelectedIndex();
-						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						canvas.setTransformStep1Index(index + 1);
 						refreshFlyDetectOverlay();
 					}
 				} else {
 					removeOverlay(exp);
 					overlayCheckBox.setSelected(false);
-					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null)
-						canvas.transformsCombo1.setSelectedIndex(0);
+						canvas.setTransformStep1Index(0);
 				}
 				overlayCheckBox.setEnabled(viewButton.isSelected());
 			}
@@ -201,10 +201,10 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
-					Canvas2DWithTransforms canvas = getCamDataCanvas(exp);
+					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
 						int index = transformComboBox.getSelectedIndex();
-						canvas.transformsCombo1.setSelectedIndex(index + 1);
+						canvas.setTransformStep1Index(index + 1);
 						refreshFlyDetectOverlay();
 					}
 				}
@@ -413,14 +413,16 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		exp.getSeqCamData().getSequence().dataChanged();
 	}
 
-	protected Canvas2DWithTransforms getCamDataCanvas(Experiment exp) {
+	protected Canvas2D_3Transforms getCamDataCanvas(Experiment exp) {
 		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
 			return null;
 
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
 		if (v == null)
 			return null;
-		return (Canvas2DWithTransforms) v.getCanvas();
+		if (v.getCanvas() instanceof Canvas2D_3Transforms)
+			return (Canvas2D_3Transforms) v.getCanvas();
+		return null;
 	}
 
 	@Override

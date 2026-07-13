@@ -22,8 +22,8 @@ public final class Canvas2DConstants {
 		// Tooltip texts
 		public static final String STEP1_TOOLTIP = "transform image step 1";
 		public static final String STEP2_TOOLTIP = "transform image step 2";
-		public static final String FIT_Y_AXIS_TOOLTIP = "Set image scale ratio to 1:1 and fit Y axis to the window height";
-		public static final String FIT_XY_AXIS_TOOLTIP = "Fit X and Y axis to the window size";
+		public static final String FIT_Y_AXIS_TOOLTIP = "Fit image height to window (keep aspect ratio, may clip width)";
+		public static final String FIT_XY_AXIS_TOOLTIP = "Fit image width to window (keep aspect ratio, may clip height)";
 		public static final String PREVIOUS_TOOLTIP = "Previous";
 		public static final String NEXT_TOOLTIP = "Next";
 
@@ -47,8 +47,8 @@ public final class Canvas2DConstants {
 				ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G,
 				ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS,
 				ImageTransformEnums.RGB_DIFFS_LOCAL_MEAN, ImageTransformEnums.H_HSB,
-				ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB, ImageTransformEnums.DERICHE,
-				ImageTransformEnums.DERICHE_COLOR };
+				ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB, ImageTransformEnums.SUBTRACT_REF,
+				ImageTransformEnums.DERICHE, ImageTransformEnums.DERICHE_COLOR };
 
 		// Step 2 transforms - Column sorting operations
 		public static final ImageTransformEnums[] STEP2_TRANSFORMS = { ImageTransformEnums.NONE,

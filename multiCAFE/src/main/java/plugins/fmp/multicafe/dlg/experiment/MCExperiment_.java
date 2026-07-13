@@ -23,7 +23,9 @@ import icy.main.Icy;
 import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multicafe.dlg.hosts.MultiCafeCorrectDriftHost;
 import plugins.fmp.multicafe.dlg.hosts.MultiCafeIntervalsHost;
+import plugins.fmp.multitools.experiment.ui.CorrectDriftPanel;
 import plugins.fmp.multitools.experiment.ui.IntervalsPanel;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.ViewerFMP;
@@ -39,9 +41,9 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 	public Options tabOptions = new Options();
 	public Infos tabInfos = new Infos();
 	public Filter tabFilter = new Filter();
-	public Register tabRegister = new Register();
 	public EditCapillariesConditional tabEditCond = new EditCapillariesConditional();
 	public IntervalsPanel tabIntervals = new IntervalsPanel();
+	CorrectDriftPanel correctDriftPanel = new CorrectDriftPanel();
 
 	private MultiCAFE parent0 = null;
 
@@ -68,8 +70,8 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 		tabIntervals.init(tabsLayout, new MultiCafeIntervalsHost(parent0));
 		tabsPane.addTab("Intervals", null, tabIntervals, "View/edit time-lapse intervals");
 
-		tabRegister.init(tabsLayout, parent0);
-		tabsPane.addTab("Registration", null, tabRegister, "Register source images");
+		correctDriftPanel.init(tabsLayout, new MultiCafeCorrectDriftHost(parent0));
+		tabsPane.addTab("Correct drift", null, correctDriftPanel, "Correct image drift with time");
 
 		tabOptions.init(tabsLayout, parent0);
 		tabsPane.addTab("Options", null, tabOptions, "Options to display data");
@@ -133,7 +135,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 				// Create viewer hidden to avoid brief "loading canvas" display
 				v = new ViewerFMP(seq, false, true);
 				List<String> list = IcyCanvas.getCanvasPluginNames();
-				String pluginName = list.stream().filter(s -> s.contains("Canvas2DWithTransforms")).findFirst()
+				String pluginName = list.stream().filter(s -> s.contains("Canvas2D_3Transforms")).findFirst()
 						.orElse(null);
 				if (pluginName != null) {
 					v.setCanvas(pluginName);
@@ -172,13 +174,18 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 			}
 		}
 
+		v.removeListener(parent);
+		v.removeListener(correctDriftPanel);
+		v.addListener(parent);
+		v.addListener(correctDriftPanel);
 		v.toFront();
 		v.requestFocus();
-		v.addListener(parent);
 		if (exp.getSeqCamData() != null) {
 			v.setTitle(exp.getSeqCamData().getDecoratedImageName(0));
 		}
 		v.setRepeat(false);
+
+		correctDriftPanel.resetFrameIndex();
 
 		// End update mode now that viewer is properly configured
 		// This allows the sequence to update and display correctly
@@ -228,6 +235,7 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 		if (viewer != null) {
 			globalCamDataViewerBounds = viewer.getBounds();
 			viewer.removeListener(this);
+			viewer.removeListener(correctDriftPanel);
 		}
 	}
 

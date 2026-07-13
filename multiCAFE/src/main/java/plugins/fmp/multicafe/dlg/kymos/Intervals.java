@@ -33,7 +33,7 @@ import icy.sequence.DimensionId;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multicafe.ViewOptionsHolder;
-import plugins.fmp.multicafe.canvas2D.Canvas2DWithTransforms;
+import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
@@ -237,14 +237,14 @@ public class Intervals extends JPanel implements ViewerListener {
 				ViewerFMP viewerKymographs = new ViewerFMP(seqKymographs.getSequence(), false, true);
 
 				List<String> list = IcyCanvas.getCanvasPluginNames();
-				String pluginName = list.stream().filter(s -> s.contains("Canvas2DWithTransforms")).findFirst()
+				String pluginName = list.stream().filter(s -> s.contains("Canvas2D_3Transforms")).findFirst()
 						.orElse(null);
 				viewerKymographs.setCanvas(pluginName);
 				viewerKymographs.setRepeat(false);
 				viewerKymographs.addListener(this);
 
 				JToolBar toolBar = viewerKymographs.getToolBar();
-				Canvas2DWithTransforms canvas = (Canvas2DWithTransforms) viewerKymographs.getCanvas();
+				Canvas2D_3Transforms canvas = (Canvas2D_3Transforms) viewerKymographs.getCanvas();
 				canvas.customizeToolbarStep2(toolBar);
 
 				// Set position before making viewer visible

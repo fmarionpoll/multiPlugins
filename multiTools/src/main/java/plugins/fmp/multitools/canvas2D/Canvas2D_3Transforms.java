@@ -120,6 +120,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		toolBar.add(new JLabel(Canvas2DConstants.Toolbar.STEP1_LABEL));
 		toolBar.add(transformsComboStep1);
 		transformsComboStep1.setToolTipText(Canvas2DConstants.Toolbar.STEP1_TOOLTIP);
+		transformsComboStep1.setEditable(true);
 
 		// Add scaling buttons
 		addScalingButtons(toolBar);
@@ -648,7 +649,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 	private class ScalingHandler {
 
 		/**
-		 * Fits the image to Y axis with 1:1 scale ratio.
+		 * Fits image height to the canvas, preserving aspect ratio.
 		 */
 		public void fitYAxis() {
 			try {
@@ -658,13 +659,8 @@ public class Canvas2D_3Transforms extends Canvas2D {
 
 				Rectangle imageRect = sequence.getBounds2D();
 				Rectangle canvasRect = getCanvasVisibleRect();
-
-				double scaleY = canvasRect.getHeight() / imageRect.getHeight();
-				double scaleX = scaleY;
-
-				int offsetX = (int) (canvasRect.width / getScaleX() / Canvas2DConstants.Scaling.CENTER_RATIO);
-				setMouseImagePos(offsetX, imageRect.height / 2);
-				setScale(scaleX, scaleY, true, true);
+				double scale = canvasRect.getHeight() / imageRect.getHeight();
+				setScale(scale, scale, true, true);
 
 			} catch (Exception e) {
 				Logger.warn("Failed to fit Y axis: " + e.getMessage(), e);
@@ -672,7 +668,7 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		}
 
 		/**
-		 * Fits the image to both X and Y axes.
+		 * Fits image width to the canvas, preserving aspect ratio.
 		 */
 		public void fitXYAxis() {
 			try {
@@ -682,15 +678,11 @@ public class Canvas2D_3Transforms extends Canvas2D {
 
 				Rectangle imageRect = sequence.getBounds2D();
 				Rectangle canvasRect = getCanvasVisibleRect();
-
-				double scaleX = canvasRect.getWidth() / imageRect.getWidth();
-				double scaleY = canvasRect.getHeight() / imageRect.getHeight();
-
-				setMouseImagePos(imageRect.width / 2, imageRect.height / 2);
-				setScale(scaleX, scaleY, true, true);
+				double scale = canvasRect.getWidth() / imageRect.getWidth();
+				setScale(scale, scale, true, true);
 
 			} catch (Exception e) {
-				Logger.warn("Failed to fit XY axis: " + e.getMessage(), e);
+				Logger.warn("Failed to fit X axis: " + e.getMessage(), e);
 			}
 		}
 	}
