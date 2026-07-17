@@ -2282,6 +2282,49 @@ public class Experiment {
 	}
 
 	/**
+	 * Resolves the active {@code bin_*} directory for loading measures and kymographs.
+	 * Mirrors the browse open sequence: camera interval → {@link BinDirectoryResolver}
+	 * → adopt a sibling bin that actually contains cage kymograph TIFFs when the
+	 * interval-based choice is empty (e.g. {@code bin_60} vs {@code bin_20}).
+	 *
+	 * @param preferredBinName     session or metadata hint ({@code bin_20}, etc.), or null
+	 * @param useSessionRemembered whether {@link BinDirectoryResolver} may reuse the last
+	 *                             session-wide bin choice
+	 * @param allowCleanup         whether empty duplicate {@code bin_*} siblings may be renamed
+	 */
+	public void resolveActiveBinForMeasuresLoad(String preferredBinName, boolean useSessionRemembered,
+			boolean allowCleanup) {
+		if (resultsDirectory == null) {
+			return;
+		}
+		if (timeManager.getCamImageBin_ms() <= 0 && seqCamData != null) {
+			List<String> imagesList = seqCamData.getImagesList(true);
+			if (imagesList != null && imagesList.size() > 1) {
+				getFileIntervalsFromSeqCamData();
+			}
+		}
+		String hint = preferredBinName;
+		if (hint == null && binDirectory != null) {
+			File binFile = new File(binDirectory);
+			hint = binFile.isAbsolute() ? binFile.getName() : binDirectory;
+		}
+		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
+		ctx.resultsDirectory = resultsDirectory;
+		ctx.detectedIntervalMs = timeManager.getCamImageBin_ms() > 0 ? timeManager.getCamImageBin_ms()
+				: getKymoBin_ms();
+		ctx.nominalIntervalSec = getNominalIntervalSec();
+		ctx.previouslySelected = hint;
+		ctx.allowPrompt = false;
+		ctx.allowCleanup = allowCleanup;
+		ctx.useSessionRemembered = useSessionRemembered;
+		String resolved = BinDirectoryResolver.resolveBinSubdirectory(ctx);
+		if (resolved != null) {
+			setBinSubDirectory(resolved);
+		}
+		adoptBinSubdirectoryContainingCageKymographTiffs();
+	}
+
+	/**
 	 * If the current kymographs folder does not contain {@code kymocage_*.tif*},
 	 * scans immediate children of {@code resultsDirectory} whose names start with
 	 * {@code bin_} and sets the first (alphabetically) that contains cage kymograph

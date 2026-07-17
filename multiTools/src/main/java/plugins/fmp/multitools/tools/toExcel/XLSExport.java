@@ -222,11 +222,11 @@ public abstract class XLSExport {
 
 				// Ensure properties are loaded (reload to ensure they're up to date)
 				exp.loadExperimentDescriptors();
-				exp.load_spots_description_and_measures();
 
-				// Ensure bin directory is set before loading capillaries
-				// This is critical for finding the CapillariesMeasures.csv file
+				// Resolve bin before spot/cage measures: kymograph data may live in a different
+				// bin_* than the camera interval suggests (see ExperimentOpenPipeline).
 				ensureBinDirectoryIsDefined(exp);
+				exp.load_spots_description_and_measures();
 				exp.load_capillaries_description_and_measures();
 				// Excel export does not need to push ROIs into the sequence; avoid the cost.
 				exp.loadCagesMeasures(false);
@@ -254,26 +254,12 @@ public abstract class XLSExport {
 	}
 
 	protected void ensureBinDirectoryIsDefined(Experiment exp) {
-		if (exp.getBinSubDirectory() != null) {
+		if (exp == null) {
 			return;
 		}
-		if (expList != null && expList.expListBinSubDirectory != null) {
-			exp.setBinSubDirectory(expList.expListBinSubDirectory);
-			return;
-		}
-		plugins.fmp.multitools.experiment.BinDirectoryResolver.Context ctx = //
-				new plugins.fmp.multitools.experiment.BinDirectoryResolver.Context();
-		ctx.resultsDirectory = exp.getResultsDirectory();
-		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
-		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
-		// Excel export is a long-running batch operation; no dialog prompts and no
-		// destructive cleanup on the user's data either.
-		ctx.allowPrompt = false;
-		ctx.allowCleanup = false;
-		String resolved = plugins.fmp.multitools.experiment.BinDirectoryResolver.resolveBinSubdirectory(ctx);
-		if (resolved != null) {
-			exp.setBinSubDirectory(resolved);
-		}
+		String preferred = expList != null ? expList.expListBinSubDirectory : null;
+		// Batch export: resolve per experiment; do not reuse session bin from another dataset.
+		exp.resolveActiveBinForMeasuresLoad(preferred, false, false);
 	}
 
 	/**

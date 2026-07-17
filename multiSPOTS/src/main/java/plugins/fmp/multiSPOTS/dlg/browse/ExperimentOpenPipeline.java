@@ -7,7 +7,6 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 import icy.gui.frame.progress.ProgressFrame;
-import plugins.fmp.multitools.experiment.BinDirectoryResolver;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.KymographKind;
@@ -65,20 +64,10 @@ final class ExperimentOpenPipeline {
 			exp.load_cages_description_and_measures();
 
 			progressFrame.setMessage("Selecting analysis bin...");
-			String selectedBinDir = selectBinDirectory(exp);
+			exp.resolveActiveBinForMeasuresLoad(owner.parent0.expListComboLazy.expListBinSubDirectory, true, true);
+			String selectedBinDir = exp.getBinSubDirectory();
 			if (selectedBinDir != null) {
-				exp.setBinSubDirectory(selectedBinDir);
-				owner.parent0.expListComboLazy.expListBinSubDirectory = selectedBinDir;
-			} else if (owner.parent0.expListComboLazy.expListBinSubDirectory != null) {
-				exp.setBinSubDirectory(owner.parent0.expListComboLazy.expListBinSubDirectory);
-			}
-
-			progressFrame.setMessage("Resolving cage kymograph bin on disk...");
-			if (exp.adoptBinSubdirectoryContainingCageKymographTiffs()) {
-				String adopted = exp.getBinSubDirectory();
-				if (adopted != null) {
-					owner.parent0.expListComboLazy.expListBinSubDirectory = adopted;
-				}
+				owner.parent0.expListComboLazy.expListBinSubDirectory = new File(selectedBinDir).getName();
 			}
 
 			progressFrame.setMessage("Loading spots...");
@@ -236,28 +225,4 @@ final class ExperimentOpenPipeline {
 		worker.execute();
 	}
 
-	private String selectBinDirectory(Experiment exp) {
-		String resultsDir = exp.getResultsDirectory();
-		if (resultsDir == null) {
-			return null;
-		}
-		File resultsDirFile = new File(resultsDir);
-		if (!resultsDirFile.exists() || !resultsDirFile.isDirectory()) {
-			return null;
-		}
-
-		String previousBinDir = owner.parent0.expListComboLazy.expListBinSubDirectory;
-
-		BinDirectoryResolver.Context ctx = new BinDirectoryResolver.Context();
-		ctx.resultsDirectory = resultsDir;
-		ctx.detectedIntervalMs = exp.getCamImageBin_ms() > 0 ? exp.getCamImageBin_ms() : exp.getKymoBin_ms();
-		ctx.nominalIntervalSec = exp.getNominalIntervalSec();
-		ctx.previouslySelected = previousBinDir;
-		ctx.allowPrompt = false;
-		ctx.allowCleanup = true;
-		ctx.useSessionRemembered = true;
-		ctx.parentForDialog = owner;
-
-		return BinDirectoryResolver.resolveBinSubdirectory(ctx);
-	}
 }
