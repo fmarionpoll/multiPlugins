@@ -147,6 +147,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		double[] camImagesTimeMin = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		List<Spot> spots = cage.getSpotList(allSpots);
 		List<CageSpotAggregateSeries> cached = cage.getSpotAggregates().getEntries();
 		List<CageSpotAggregateSeries> cachedRows = (cached != null && !cached.isEmpty()) ? cached : null;
 		List<AggregateSeries> aggregates = cachedRows != null ? null
@@ -175,14 +176,8 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 					}
 					seriesXY.add(x, y);
 				}
-				int paletteIndex = ai - 1;
-				if (globalOrder != null && !globalOrder.isEmpty()) {
-					int idx = globalOrder.indexOf(new StimulusConcKey(key.stimulus, key.concentration));
-					if (idx >= 0) {
-						paletteIndex = idx;
-					}
-				}
-				Color color = aggregatePaletteColor(paletteIndex);
+				Color color = colorOfFirstSpotMatching(spots, key,
+						fallbackAggregatePaletteColor(ai - 1, globalOrder, key));
 				seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
 						cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
 				dataset.addSeries(seriesXY);
@@ -213,14 +208,8 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 				seriesXY.add(x, y);
 			}
 
-			int paletteIndex = ai - 1;
-			if (globalOrder != null && !globalOrder.isEmpty()) {
-				int idx = globalOrder.indexOf(new StimulusConcKey(agg.key.stimulus, agg.key.concentration));
-				if (idx >= 0) {
-					paletteIndex = idx;
-				}
-			}
-			Color color = aggregatePaletteColor(paletteIndex);
+			Color color = colorOfFirstSpotMatching(spots, agg.key,
+					fallbackAggregatePaletteColor(ai - 1, globalOrder, agg.key));
 			seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
 					cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), color));
 			dataset.addSeries(seriesXY);
@@ -258,6 +247,41 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		seriesXY.setDescription(SeriesStyleCodec.buildDescription(cage.getProperties().getCageID(),
 				cage.getProperties().getCageID(), cage.getProperties().getCageNFlies(), Color.DARK_GRAY));
 		dataset.addSeries(seriesXY);
+	}
+
+	/**
+	 * Color for an aggregated stimulus/concentration curve: first spot in the cage list
+	 * that matches the key (users normally assign one color per category).
+	 */
+	private static Color colorOfFirstSpotMatching(List<Spot> spots, StimulusConcKey key, Color fallback) {
+		if (spots == null || key == null) {
+			return fallback;
+		}
+		for (Spot spot : spots) {
+			if (spot == null || spot.getProperties() == null) {
+				continue;
+			}
+			StimulusConcKey spotKey = new StimulusConcKey(spot.getProperties().getStimulus(),
+					spot.getProperties().getConcentration());
+			if (!key.equals(spotKey)) {
+				continue;
+			}
+			Color c = spot.getProperties().getColor();
+			return c != null ? c : fallback;
+		}
+		return fallback;
+	}
+
+	private static Color fallbackAggregatePaletteColor(int seriesIndex, List<StimulusConcKey> globalOrder,
+			StimulusConcKey key) {
+		int paletteIndex = seriesIndex;
+		if (globalOrder != null && !globalOrder.isEmpty() && key != null) {
+			int idx = globalOrder.indexOf(key);
+			if (idx >= 0) {
+				paletteIndex = idx;
+			}
+		}
+		return aggregatePaletteColor(paletteIndex);
 	}
 
 	private static Color aggregatePaletteColor(int index) {

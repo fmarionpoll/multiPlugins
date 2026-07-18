@@ -193,7 +193,7 @@ public final class KymoSpotChartSupport {
 		double[] x = buildKymoXAxisMinutes(exp, nBins);
 		List<CageSpotAggregateSeries> cached = cage.getSpotAggregates().getEntries();
 		if (cached != null && !cached.isEmpty()) {
-			addCachedAggregates(cage, x, cached, options, dataset);
+			addCachedAggregates(cage, spots, x, cached, options, dataset);
 			return;
 		}
 		List<SumSeries> sums = CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromSpots(spots, nBins);
@@ -217,22 +217,16 @@ public final class KymoSpotChartSupport {
 			if (series.getItemCount() == 0) {
 				continue;
 			}
-			int paletteIndex = ai - 1;
-			if (globalOrder != null && !globalOrder.isEmpty()) {
-				int idx = globalOrder.indexOf(new StimulusConcKey(agg.key.stimulus, agg.key.concentration));
-				if (idx >= 0) {
-					paletteIndex = idx;
-				}
-			}
-			Color color = aggregatePaletteColor(paletteIndex);
+			Color color = colorOfFirstSpotMatching(spots, agg.key, fallbackAggregatePaletteColor(ai - 1, globalOrder,
+					agg.key));
 			series.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(),
 					cageProp.getCageNFlies(), color));
 			dataset.addSeries(series);
 		}
 	}
 
-	private static void addCachedAggregates(Cage cage, double[] x, List<CageSpotAggregateSeries> cached,
-			ResultsOptions options, XYSeriesCollection dataset) {
+	private static void addCachedAggregates(Cage cage, List<Spot> spots, double[] x,
+			List<CageSpotAggregateSeries> cached, ResultsOptions options, XYSeriesCollection dataset) {
 		List<StimulusConcKey> globalOrder = options != null ? options.spotAggregateGlobalKeyOrder : null;
 		int ai = 0;
 		CageProperties cageProp = cage.getProperties();
@@ -254,18 +248,46 @@ public final class KymoSpotChartSupport {
 			if (series.getItemCount() == 0) {
 				continue;
 			}
-			int paletteIndex = ai - 1;
-			if (globalOrder != null && !globalOrder.isEmpty()) {
-				int idx = globalOrder.indexOf(new StimulusConcKey(key.stimulus, key.concentration));
-				if (idx >= 0) {
-					paletteIndex = idx;
-				}
-			}
-			Color color = aggregatePaletteColor(paletteIndex);
+			Color color = colorOfFirstSpotMatching(spots, key, fallbackAggregatePaletteColor(ai - 1, globalOrder, key));
 			series.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(),
 					cageProp.getCageNFlies(), color));
 			dataset.addSeries(series);
 		}
+	}
+
+	/**
+	 * Color for an aggregated stimulus/concentration curve: first spot in the cage list
+	 * that matches the key (users normally assign one color per category).
+	 */
+	private static Color colorOfFirstSpotMatching(List<Spot> spots, StimulusConcKey key, Color fallback) {
+		if (spots == null || key == null) {
+			return fallback;
+		}
+		for (Spot spot : spots) {
+			if (spot == null || spot.getProperties() == null) {
+				continue;
+			}
+			StimulusConcKey spotKey = new StimulusConcKey(spot.getProperties().getStimulus(),
+					spot.getProperties().getConcentration());
+			if (!key.equals(spotKey)) {
+				continue;
+			}
+			Color c = spot.getProperties().getColor();
+			return c != null ? c : fallback;
+		}
+		return fallback;
+	}
+
+	private static Color fallbackAggregatePaletteColor(int seriesIndex, List<StimulusConcKey> globalOrder,
+			StimulusConcKey key) {
+		int paletteIndex = seriesIndex;
+		if (globalOrder != null && !globalOrder.isEmpty() && key != null) {
+			int idx = globalOrder.indexOf(key);
+			if (idx >= 0) {
+				paletteIndex = idx;
+			}
+		}
+		return aggregatePaletteColor(paletteIndex);
 	}
 
 	private static void addCageMeanSeries(Cage cage, double[] x, List<Spot> spots, EnumResults rt,

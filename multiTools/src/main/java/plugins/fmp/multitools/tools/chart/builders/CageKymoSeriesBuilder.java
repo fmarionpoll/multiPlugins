@@ -181,18 +181,44 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 			if (series.getItemCount() == 0) {
 				continue;
 			}
-			int paletteIndex = ai - 1;
-			if (globalOrder != null && !globalOrder.isEmpty()) {
-				int idx = globalOrder.indexOf(new StimulusConcKey(agg.key.stimulus, agg.key.concentration));
-				if (idx >= 0) {
-					paletteIndex = idx;
-				}
-			}
-			Color color = aggregatePaletteColor(paletteIndex);
+			Color color = colorOfFirstSpotMatching(rows, agg.key,
+					fallbackAggregatePaletteColor(ai - 1, globalOrder, agg.key));
 			series.setDescription(SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(),
 					cageProp.getCageNFlies(), color));
 			dataset.addSeries(series);
 		}
+	}
+
+	/** First spot in {@code rows} matching the stimulus/concentration key. */
+	private static Color colorOfFirstSpotMatching(List<SpotKymoSeries> rows, StimulusConcKey key, Color fallback) {
+		if (rows == null || key == null) {
+			return fallback;
+		}
+		for (SpotKymoSeries row : rows) {
+			if (row == null || row.spot == null || row.spot.getProperties() == null) {
+				continue;
+			}
+			StimulusConcKey spotKey = new StimulusConcKey(row.spot.getProperties().getStimulus(),
+					row.spot.getProperties().getConcentration());
+			if (!key.equals(spotKey)) {
+				continue;
+			}
+			Color c = row.spot.getProperties().getColor();
+			return c != null ? c : fallback;
+		}
+		return fallback;
+	}
+
+	private static Color fallbackAggregatePaletteColor(int seriesIndex, List<StimulusConcKey> globalOrder,
+			StimulusConcKey key) {
+		int paletteIndex = seriesIndex;
+		if (globalOrder != null && !globalOrder.isEmpty() && key != null) {
+			int idx = globalOrder.indexOf(key);
+			if (idx >= 0) {
+				paletteIndex = idx;
+			}
+		}
+		return aggregatePaletteColor(paletteIndex);
 	}
 
 	private static Color aggregatePaletteColor(int index) {
