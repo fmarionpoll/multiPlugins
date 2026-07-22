@@ -271,7 +271,9 @@ public class CreateCagesPanel extends JPanel {
 	private Polygon2D getPolygonEnclosingAllCages(Experiment exp) {
 		if (exp.getCages().cagesList.size() > 0) {
 			polygon2D = exp.getCages().getPolygon2DEnclosingAllCages();
-		} else {
+		}
+
+		if (polygon2D == null) {
 			// Rectangle rect = exp.getSeqCamData().getSequence().getBounds2D();
 			Rectangle rect = new Rectangle(318, 125, 1260, 836);
 			List<Point2D> points = new ArrayList<Point2D>();
