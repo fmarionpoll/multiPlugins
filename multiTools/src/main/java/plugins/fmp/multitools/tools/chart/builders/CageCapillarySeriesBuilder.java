@@ -139,9 +139,9 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		for (int i = 0; i < parts.getSeriesCount(); i++) {
 			XYSeries series = parts.getSeries(i);
 			String key = (String) series.getKey();
-			if (key != null && (key.endsWith("L") || key.endsWith("1")))
+			if (CapillaryChartSeriesKeys.isLeftSideKey(key))
 				listL.add(series);
-			else if (key != null && (key.endsWith("R") || key.endsWith("2")))
+			else if (CapillaryChartSeriesKeys.isRightSideKey(key))
 				listR.add(series);
 		}
 
@@ -224,7 +224,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		if (exp == null || cap == null || options == null)
 			return null;
 
-		XYSeries seriesXY = new XYSeries(cap.getCageID() + "_" + cap.getCapillarySide(), false);
+		XYSeries seriesXY = new XYSeries(CapillaryChartSeriesKeys.key(cap), false);
 
 		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
 			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();

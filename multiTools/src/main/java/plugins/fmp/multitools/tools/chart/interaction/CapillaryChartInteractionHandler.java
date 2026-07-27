@@ -33,6 +33,7 @@ import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.JFreeChartPlotCompat;
+import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
 import plugins.fmp.multitools.tools.chart.interaction.ChartCamFrameNavigation;
 
 /**
@@ -127,50 +128,22 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			return null;
 		}
 
-		String[] parts = seriesKey.split("_");
-		if (parts.length < 2) {
+		String sideOrType = CapillaryChartSeriesKeys.sideOrTypeFromKey(seriesKey);
+		if (sideOrType == null) {
 			Logger.warn("Invalid series key format: " + seriesKey);
 			return null;
 		}
-
-		String sideOrType = parts[1];
 		// Non-capillary auxiliary series (global per-cage overlays). Ignore them for
 		// click interactions without logging warnings.
 		if ("threshold".equals(sideOrType) || "evaporation".equals(sideOrType)) {
 			return null;
 		}
 
-		if ("Sum".equals(sideOrType) || "PI".equals(sideOrType)) {
-			List<Capillary> capillaries = cage.getCapillaries(experiment.getCapillaries());
-			if (capillaries == null || capillaries.isEmpty()) {
-				return null;
-			}
-
-			for (Capillary cap : capillaries) {
-				String capSide = cap.getCapillarySide();
-				if ("Sum".equals(sideOrType) && ("L".equals(capSide) || "1".equals(capSide))) {
-					return cap;
-				} else if ("PI".equals(sideOrType) && ("R".equals(capSide) || "2".equals(capSide))) {
-					return cap;
-				}
-			}
-			return capillaries.get(0);
+		Capillary cap = CapillaryChartSeriesKeys.resolve(experiment, cage, seriesKey);
+		if (cap == null && !"Sum".equals(sideOrType) && !"PI".equals(sideOrType)) {
+			Logger.warn("Could not find capillary for series key: " + seriesKey);
 		}
-
-		List<Capillary> capillaries = cage.getCapillaries(experiment.getCapillaries());
-		if (capillaries == null) {
-			return null;
-		}
-		for (Capillary cap : capillaries) {
-			String capSide = cap.getCapillarySide();
-			if (sideOrType.equals(capSide) || (sideOrType.equals("1") && ("L".equals(capSide) || "1".equals(capSide)))
-					|| (sideOrType.equals("2") && ("R".equals(capSide) || "2".equals(capSide)))) {
-				return cap;
-			}
-		}
-
-		Logger.warn("Could not find capillary for series key: " + seriesKey);
-		return null;
+		return cap;
 	}
 
 	private Capillary findClosestCapillaryFromPoint(ChartMouseEvent e, Cage cage, XYPlot xyPlot, ChartPanel panel) {

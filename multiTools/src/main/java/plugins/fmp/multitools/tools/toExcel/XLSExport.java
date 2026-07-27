@@ -209,12 +209,14 @@ public abstract class XLSExport {
 		int progressLen = (bx[1] >= bx[0]) ? (bx[1] - bx[0] + 1) : nbexpts;
 		ProgressFrame progress = new ProgressFrame(ExcelExportConstants.DEFAULT_PROGRESS_TITLE);
 
+		int currentIndex = -1;
 		try {
 			progress.setLength(Math.max(1, progressLen));
 			int column = 1;
 			int iSeries = 0;
 
 			for (int index = options.experimentIndexFirst; index <= options.experimentIndexLast; index++) {
+				currentIndex = index;
 				Experiment exp = expList.getItemAt(index);
 				if (exp instanceof LazyExperiment) {
 					((LazyExperiment) exp).loadIfNeeded();
@@ -244,6 +246,15 @@ public abstract class XLSExport {
 			progress.setMessage(ExcelExportConstants.SAVE_PROGRESS_MESSAGE);
 
 		} catch (Exception e) {
+			String expInfo = "";
+			if (currentIndex >= 0 && expList != null && currentIndex < expList.getItemCount()) {
+				Experiment failed = expList.getItemAt(currentIndex);
+				if (failed != null) {
+					expInfo = " path=" + failed.getExperimentDirectory();
+				}
+			}
+			System.out.println("XLSExport.executeExport failed at experiment index=" + currentIndex
+					+ " (1-based=" + (currentIndex + 1) + "/" + nbexpts + ")" + expInfo);
 			throw new ExcelExportException("Export execution failed", "execute_export", "export_loop", e);
 		} finally {
 			// Ensure progress frame is properly closed

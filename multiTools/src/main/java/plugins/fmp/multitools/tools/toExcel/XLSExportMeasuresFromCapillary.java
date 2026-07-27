@@ -11,6 +11,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsCapillaries;
@@ -187,9 +188,8 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 				return findSeriesByKey(dataset, cage.getCageID() + "_PI");
 			}
 		} else {
-			// For regular types: find series matching capillary side
-			String expectedKey = cage.getCageID() + "_" + capSide;
-			return findSeriesByKey(dataset, expectedKey);
+			// For regular types: find series matching this capillary's unique key
+			return findSeriesByKey(dataset, CapillaryChartSeriesKeys.key(cap));
 		}
 
 		return null;
