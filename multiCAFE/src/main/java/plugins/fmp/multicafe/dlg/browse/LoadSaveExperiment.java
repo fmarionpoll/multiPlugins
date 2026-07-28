@@ -1,7 +1,6 @@
 package plugins.fmp.multicafe.dlg.browse;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -13,8 +12,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JPanel;
+import javax.swing.JToggleButton;
 import javax.swing.SwingUtilities;
 
 import icy.gui.viewer.Viewer;
@@ -40,10 +39,32 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private JButton createButton = new JButton("Create...");
 	private JButton searchButton = new JButton("Search...");
 	private JButton closeButton = new JButton("Close");
-	public JCheckBox filteredCheck = new JCheckBox("List filtered");
+	JToggleButton showFilterButton = new JToggleButton("Filter (off)");
+	private boolean listFiltered = false;
 
-	public JCheckBox getFilteredCheck() {
-		return filteredCheck;
+	private static final String FILTER_BUTTON_OFF = "Filter (off)";
+	private static final String FILTER_BUTTON_ON = "Filter (on)";
+
+	public boolean isListFiltered() {
+		return listFiltered;
+	}
+
+	public void setListFiltered(boolean selected) {
+		if (listFiltered == selected)
+			return;
+		listFiltered = selected;
+		updateFilterButtonLabel();
+	}
+
+	public JToggleButton getShowFilterButton() {
+		return showFilterButton;
+	}
+
+	void updateFilterButtonLabel() {
+		showFilterButton.setText(listFiltered ? FILTER_BUTTON_ON : FILTER_BUTTON_OFF);
+		showFilterButton.setToolTipText(listFiltered
+				? "Experiment list is filtered — click to show or hide filter panel"
+				: "Show or hide experiment filter panel");
 	}
 
 	public List<String> selectedNames = new ArrayList<String>();
@@ -69,32 +90,37 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	public LoadSaveExperiment() {
 	}
 
-	public JPanel initPanel(MultiCAFE parent0) {
+	public JPanel initPanel(MultiCAFE parent0, FilterPanel filterPanel) {
 		this.parent0 = parent0;
 		this.metadataScan = new CafeMetadataScanCoordinator(this);
 		this.openPipeline = new CafeExperimentOpenPipeline(this);
 		this.closePipeline = new CafeExperimentClosePipeline();
 
-		setLayout(new BorderLayout());
-		setPreferredSize(new Dimension(400, 200));
+		filterPanel.init(parent0);
+		filterPanel.setVisible(false);
 
+		JPanel browseRoot = new JPanel(new BorderLayout());
 		JPanel group2Panel = initUI();
-		defineActionListeners();
+		browseRoot.add(group2Panel, BorderLayout.NORTH);
+		browseRoot.add(filterPanel, BorderLayout.CENTER);
+
+		defineActionListeners(filterPanel);
+		updateFilterButtonLabel();
 		SwingUtilities.invokeLater(() -> ExperimentBrowseKeyboard.install(group2Panel, previousButton, nextButton,
 				() -> parent0 != null && parent0.mainFrame != null && parent0.mainFrame.isVisible()));
 		parent0.expListComboLazy.addItemListener(this);
 
-		return group2Panel;
+		return browseRoot;
 	}
 
 	private JPanel initUI() {
 		JPanel navPanel = CafeBrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
 		JPanel buttonPanel = CafeBrowseUi.createButtonPanel(openButton, createButton, searchButton, closeButton,
-				filteredCheck);
+				showFilterButton);
 		return CafeBrowseUi.createMainGrid(navPanel, buttonPanel);
 	}
 
-	private void defineActionListeners() {
+	private void defineActionListeners(FilterPanel filterPanel) {
 		openButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -137,10 +163,18 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			}
 		});
 
-		filteredCheck.addActionListener(new ActionListener() {
+		showFilterButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				parent0.paneExperiment.tabFilter.filterExperimentList(filteredCheck.isSelected());
+				boolean show = showFilterButton.isSelected();
+				filterPanel.setVisible(show);
+				if (show)
+					filterPanel.initCombos();
+				if (parent0 != null && parent0.mainFrame != null) {
+					parent0.mainFrame.revalidate();
+					parent0.mainFrame.pack();
+					parent0.mainFrame.repaint();
+				}
 			}
 		});
 
@@ -152,6 +186,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 					int item = addExperimentFrom3NamesAnd2Lists(eDAF);
 					parent0.expListComboLazy.setSelectedIndex(item);
 					parent0.paneExperiment.tabInfos.initCombos();
+					parent0.paneBrowse.filterPanel.initCombos();
 				}
 			}
 		});
@@ -176,8 +211,9 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 			LazyExperiment lazyExp = new LazyExperiment(metadata);
 			int selectedIndex = parent0.expListComboLazy.addLazyExperiment(lazyExp);
-			parent0.expListComboLazy.setSelectedIndex(selectedIndex);
 			parent0.paneExperiment.tabInfos.initCombos();
+			parent0.paneBrowse.filterPanel.initCombos();
+			parent0.expListComboLazy.setSelectedIndex(selectedIndex);
 		}
 	}
 
@@ -258,10 +294,10 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	void closeAllExperiments() {
 		closeCurrentExperiment();
 		parent0.expListComboLazy.removeAllItems();
-		parent0.paneExperiment.tabFilter.clearAllCheckBoxes();
-		parent0.paneExperiment.tabFilter.filterExpList.removeAllItems();
+		parent0.paneBrowse.filterPanel.clearAllCheckBoxes();
+		parent0.paneBrowse.filterPanel.filterExpList.removeAllItems();
 		parent0.paneExperiment.tabInfos.clearCombos();
-		filteredCheck.setSelected(false);
+		setListFiltered(false);
 		experimentMetadataList.clear();
 		if (parent0.descriptorIndex != null)
 			parent0.descriptorIndex.clear();

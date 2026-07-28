@@ -138,7 +138,7 @@ final class CafeMetadataScanCoordinator {
 				@Override
 				public void run() {
 					host.parent0.paneExperiment.tabInfos.initCombos();
-					host.parent0.paneExperiment.tabFilter.initCombos();
+					host.parent0.paneBrowse.filterPanel.initCombos();
 					runDescriptorsFileWorker(progressFrame, startTime, endTime);
 				}
 			}, progressFrame);

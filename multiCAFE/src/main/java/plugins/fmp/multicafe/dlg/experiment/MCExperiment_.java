@@ -40,7 +40,6 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 	public JTabbedPane tabsPane = new JTabbedPane();
 	public Options tabOptions = new Options();
 	public Infos tabInfos = new Infos();
-	public Filter tabFilter = new Filter();
 	public EditCapillariesConditional tabEditCond = new EditCapillariesConditional();
 	public IntervalsPanel tabIntervals = new IntervalsPanel();
 	CorrectDriftPanel correctDriftPanel = new CorrectDriftPanel();
@@ -60,9 +59,6 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 
 		tabInfos.init(tabsLayout, parent0);
 		tabsPane.addTab("Infos", null, tabInfos, "Define infos for this experiment/box");
-
-		tabFilter.init(tabsLayout, parent0);
-		tabsPane.addTab("Filter", null, tabFilter, "Filter experiments based on descriptors");
 
 		tabEditCond.init(tabsLayout, parent0);
 		tabsPane.addTab("Edit", null, tabEditCond, "Edit descriptors with 1 or 2 conditions");
@@ -246,9 +242,6 @@ public class MCExperiment_ extends JPanel implements ViewerListener, ChangeListe
 			if (tabInfos != null)
 				tabInfos.initCombos();
 		} else if (tabbedPane.getSelectedIndex() == 1) {
-			if (tabFilter != null)
-				tabFilter.initCombos();
-		} else if (tabbedPane.getSelectedIndex() == 2) {
 			if (tabEditCond != null)
 				tabEditCond.initEditCombos();
 		}

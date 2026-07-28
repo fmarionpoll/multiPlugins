@@ -1,8 +1,7 @@
-package plugins.fmp.multicafe.dlg.experiment;
+package plugins.fmp.multicafe.dlg.browse;
 
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -13,6 +12,7 @@ import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import plugins.fmp.multicafe.MultiCAFE;
@@ -23,10 +23,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.MultiSelectDialog;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
-public class Filter extends JPanel {
-	/**
-	 * 
-	 */
+public class FilterPanel extends JPanel {
 	private static final long serialVersionUID = 2190848825783418962L;
 
 	private JButton stim1Btn = new JButton("Select...");
@@ -58,15 +55,14 @@ public class Filter extends JPanel {
 
 	private JButton applyButton = new JButton("Apply");
 	private JButton clearButton = new JButton("Clear");
+	private JLabel indexStatusLabel = new JLabel("index: loading...");
 
 	private MultiCAFE parent0 = null;
-	boolean disableChangeFile = false;
 	public JComboBoxExperimentLazy filterExpList = new JComboBoxExperimentLazy();
 
-	void init(GridLayout capLayout, MultiCAFE parent0) {
+	void init(MultiCAFE parent0) {
 		this.parent0 = parent0;
-		GridBagLayout layoutThis = new GridBagLayout();
-		setLayout(layoutThis);
+		setLayout(new GridBagLayout());
 
 		GridBagConstraints c = new GridBagConstraints();
 		c.gridwidth = 1;
@@ -78,33 +74,52 @@ public class Filter extends JPanel {
 		int delta1 = 1;
 		int delta2 = 3;
 
-		c.gridy = 0;
 		c.gridx = 0;
-		DialogTools.addFiveComponentOnARow(this, experimentCheck, exptBtn, boxIDCheck, boxIDBtn, applyButton, c,
-				delta1, delta2);
+		c.gridy = 0;
+		DialogTools.addFiveComponentOnARow(this, experimentCheck, exptBtn, boxIDCheck, boxIDBtn, applyButton, c, delta1,
+				delta2);
 		c.gridy = 1;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, strainCheck, strainBtn, sexCheck, sexBtn, clearButton, c, delta1,
 				delta2);
 		c.gridy = 2;
 		c.gridx = 0;
-		DialogTools.addFiveComponentOnARow(this, stim1Check, stim1Btn, conc1Check, conc1Btn, null, c, delta1,
-				delta2);
+		DialogTools.addFiveComponentOnARow(this, stim1Check, stim1Btn, conc1Check, conc1Btn, null, c, delta1, delta2);
 		c.gridy = 3;
 		c.gridx = 0;
-		DialogTools.addFiveComponentOnARow(this, stim2Check, stim2Btn, conc2Check, conc2Btn, null, c, delta1,
-				delta2);
+		DialogTools.addFiveComponentOnARow(this, stim2Check, stim2Btn, conc2Check, conc2Btn, null, c, delta1, delta2);
+		c.gridy = 4;
+		c.gridx = 0;
+		DialogTools.addFiveComponentOnARow(this, indexStatusLabel, null, null, null, null, c, delta1, delta2);
 
 		defineActionListeners();
 	}
 
 	public void initCombos() {
-		if (!parent0.paneBrowse.panelLoadSave.filteredCheck.isSelected())
-			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsList());
+		syncFilterExpList();
+		updateIndexStatus();
+	}
+
+	private void syncFilterExpList() {
+		if (!parent0.paneBrowse.panelLoadSave.isListFiltered()) {
+			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
+		} else if (filterExpList.getItemCount() == 0) {
+			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
+		}
+	}
+
+	private JComboBoxExperimentLazy getFieldValueSource() {
+		syncFilterExpList();
+		return filterExpList.getItemCount() > 0 ? filterExpList : parent0.expListComboLazy;
 	}
 
 	private List<String> getValuesForField(EnumXLSColumnHeader field) {
-		List<String> list = filterExpList.getFieldValuesFromAllExperimentsLightweight(field);
+		if (parent0.descriptorIndex != null && parent0.descriptorIndex.isReady()) {
+			List<String> values = new ArrayList<String>(parent0.descriptorIndex.getDistinctValues(field));
+			java.util.Collections.sort(values);
+			return values;
+		}
+		List<String> list = getFieldValueSource().getFieldValuesFromAllExperimentsLightweight(field);
 		java.util.Collections.sort(list);
 		return list;
 	}
@@ -135,24 +150,35 @@ public class Filter extends JPanel {
 		};
 	}
 
-	private void defineActionListeners() {
-		exptBtn.addActionListener(createFilterButtonListener(exptBtn, EnumXLSColumnHeader.EXP_EXPT, selExpt, experimentCheck));
-		boxIDBtn.addActionListener(createFilterButtonListener(boxIDBtn, EnumXLSColumnHeader.EXP_ID, selBoxID, boxIDCheck));
-		stim1Btn.addActionListener(createFilterButtonListener(stim1Btn, EnumXLSColumnHeader.EXP_STIM1, selStim1, stim1Check));
-		conc1Btn.addActionListener(createFilterButtonListener(conc1Btn, EnumXLSColumnHeader.EXP_CONC1, selConc1, conc1Check));
-		sexBtn.addActionListener(createFilterButtonListener(sexBtn, EnumXLSColumnHeader.EXP_SEX, selSex, sexCheck));
-		strainBtn.addActionListener(createFilterButtonListener(strainBtn, EnumXLSColumnHeader.EXP_STRAIN, selStrain, strainCheck));
-		stim2Btn.addActionListener(createFilterButtonListener(stim2Btn, EnumXLSColumnHeader.EXP_STIM2, selStim2, stim2Check));
-		conc2Btn.addActionListener(createFilterButtonListener(conc2Btn, EnumXLSColumnHeader.EXP_CONC2, selConc2, conc2Check));
+	private void updateIndexStatus() {
+		if (parent0 != null && parent0.descriptorIndex != null && parent0.descriptorIndex.isReady())
+			indexStatusLabel.setText("index: ready");
+		else
+			indexStatusLabel.setText("index: loading...");
+	}
 
+	private void defineActionListeners() {
+		updateIndexStatus();
+		exptBtn.addActionListener(
+				createFilterButtonListener(exptBtn, EnumXLSColumnHeader.EXP_EXPT, selExpt, experimentCheck));
+		boxIDBtn.addActionListener(createFilterButtonListener(boxIDBtn, EnumXLSColumnHeader.EXP_ID, selBoxID, boxIDCheck));
+		stim1Btn.addActionListener(
+				createFilterButtonListener(stim1Btn, EnumXLSColumnHeader.EXP_STIM1, selStim1, stim1Check));
+		conc1Btn.addActionListener(
+				createFilterButtonListener(conc1Btn, EnumXLSColumnHeader.EXP_CONC1, selConc1, conc1Check));
+		sexBtn.addActionListener(createFilterButtonListener(sexBtn, EnumXLSColumnHeader.EXP_SEX, selSex, sexCheck));
+		strainBtn.addActionListener(
+				createFilterButtonListener(strainBtn, EnumXLSColumnHeader.EXP_STRAIN, selStrain, strainCheck));
+		stim2Btn.addActionListener(
+				createFilterButtonListener(stim2Btn, EnumXLSColumnHeader.EXP_STIM2, selStim2, stim2Check));
+		conc2Btn.addActionListener(
+				createFilterButtonListener(conc2Btn, EnumXLSColumnHeader.EXP_CONC2, selConc2, conc2Check));
 		applyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				filterExperimentList(true);
-				parent0.paneExperiment.tabsPane.setSelectedIndex(0);
 			}
 		});
-
 		clearButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -167,12 +193,20 @@ public class Filter extends JPanel {
 		} else {
 			clearAllCheckBoxes();
 			parent0.expListComboLazy.setExperimentsFromList(filterExpList.getExperimentsAsListNoLoad());
+			if (parent0.descriptorIndex != null && filterExpList.getItemCount() > 0) {
+				parent0.descriptorIndex.preloadFromCombo(filterExpList, new Runnable() {
+					@Override
+					public void run() {
+						parent0.paneExperiment.tabInfos.initCombos();
+						updateIndexStatus();
+					}
+				});
+			}
 		}
-
 		if (parent0.expListComboLazy.getItemCount() > 0)
 			parent0.expListComboLazy.setSelectedIndex(0);
-		if (setFilter != parent0.paneBrowse.panelLoadSave.filteredCheck.isSelected())
-			parent0.paneBrowse.panelLoadSave.filteredCheck.setSelected(setFilter);
+		if (setFilter != parent0.paneBrowse.panelLoadSave.isListFiltered())
+			parent0.paneBrowse.panelLoadSave.setListFiltered(setFilter);
 	}
 
 	public void clearAllCheckBoxes() {
@@ -227,7 +261,17 @@ public class Filter extends JPanel {
 	void filterItemMulti(List<Experiment> filteredList, EnumXLSColumnHeader header, List<String> allowedValues) {
 		if (allowedValues == null || allowedValues.isEmpty())
 			return;
-		HashSet<String> allowed = new HashSet<String>(allowedValues);
+		HashSet<String> allowed = new HashSet<String>(allowedValues.size());
+		for (String v : allowedValues) {
+			if (v == null)
+				continue;
+			String n0 = v.trim();
+			if (n0.isEmpty())
+				n0 = "..";
+			String n = n0.toLowerCase();
+			if (!n.isEmpty())
+				allowed.add(n);
+		}
 		Iterator<Experiment> iterator = filteredList.iterator();
 		while (iterator.hasNext()) {
 			Experiment exp = iterator.next();
@@ -237,9 +281,12 @@ public class Filter extends JPanel {
 			} else {
 				value = exp.getExperimentField(header);
 			}
-			if (!allowed.contains(value))
+			String v0 = value != null ? value.trim() : "";
+			if (v0.isEmpty())
+				v0 = "..";
+			String norm = v0.toLowerCase();
+			if (!allowed.contains(norm))
 				iterator.remove();
 		}
 	}
-
 }

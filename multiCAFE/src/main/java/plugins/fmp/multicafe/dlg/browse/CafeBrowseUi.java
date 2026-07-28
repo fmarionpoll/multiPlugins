@@ -6,8 +6,8 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JPanel;
+import javax.swing.JToggleButton;
 
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
@@ -40,7 +40,7 @@ final class CafeBrowseUi {
 	}
 
 	static JPanel createButtonPanel(JButton openButton, JButton createButton, JButton searchButton, JButton closeButton,
-			JCheckBox filteredCheck) {
+			JToggleButton showFilterButton) {
 		JPanel buttonPanel = new JPanel(new BorderLayout());
 		FlowLayout layout = new FlowLayout(FlowLayout.LEFT);
 		layout.setVgap(1);
@@ -49,7 +49,7 @@ final class CafeBrowseUi {
 		subPanel.add(createButton);
 		subPanel.add(searchButton);
 		subPanel.add(closeButton);
-		subPanel.add(filteredCheck);
+		subPanel.add(showFilterButton);
 		buttonPanel.add(subPanel, BorderLayout.LINE_START);
 		return buttonPanel;
 	}
