@@ -20,6 +20,57 @@ public class Comparators {
 	private static final int CAGE_GRID_WIDTH = 8;
 
 	/**
+	 * Compares two strings using natural ordering where numbers are compared numerically.
+	 * For example: {@code line1L < line2L < line10L} (not {@code line1L < line10L < line2L}).
+	 */
+	public static int compareNaturalOrder(String s1, String s2) {
+		if (s1 == null && s2 == null) {
+			return 0;
+		}
+		if (s1 == null) {
+			return 1;
+		}
+		if (s2 == null) {
+			return -1;
+		}
+		int len1 = s1.length();
+		int len2 = s2.length();
+		int i1 = 0;
+		int i2 = 0;
+
+		while (i1 < len1 && i2 < len2) {
+			char c1 = s1.charAt(i1);
+			char c2 = s2.charAt(i2);
+
+			if (Character.isDigit(c1) && Character.isDigit(c2)) {
+				int num1 = 0;
+				while (i1 < len1 && Character.isDigit(s1.charAt(i1))) {
+					num1 = num1 * 10 + (s1.charAt(i1) - '0');
+					i1++;
+				}
+
+				int num2 = 0;
+				while (i2 < len2 && Character.isDigit(s2.charAt(i2))) {
+					num2 = num2 * 10 + (s2.charAt(i2) - '0');
+					i2++;
+				}
+
+				if (num1 != num2) {
+					return Integer.compare(num1, num2);
+				}
+			} else {
+				if (c1 != c2) {
+					return Character.compare(c1, c2);
+				}
+				i1++;
+				i2++;
+			}
+		}
+
+		return Integer.compare(len1, len2);
+	}
+
+	/**
 	 * Comparator for ROI objects based on their names. Handles null values by
 	 * treating them as greater than non-null values.
 	 */
@@ -227,24 +278,11 @@ public class Comparators {
 				return -1;
 			}
 
-			ROI2D roi1 = o1.getRoi();
-			ROI2D roi2 = o2.getRoi();
-
-			if (roi1 == null && roi2 == null) {
-				return 0;
-			}
-			if (roi1 == null) {
-				return 1;
-			}
-			if (roi2 == null) {
-				return -1;
-			}
-
-			String name1 = roi1.getName();
-			String name2 = roi2.getName();
+			String name1 = cageSortName(o1);
+			String name2 = cageSortName(o2);
 
 			if (name1 == null && name2 == null) {
-				return 0;
+				return Integer.compare(o1.getCageID(), o2.getCageID());
 			}
 			if (name1 == null) {
 				return 1;
@@ -253,7 +291,19 @@ public class Comparators {
 				return -1;
 			}
 
-			return name1.compareTo(name2);
+			int byName = Comparators.compareNaturalOrder(name1, name2);
+			if (byName != 0) {
+				return byName;
+			}
+			return Integer.compare(o1.getCageID(), o2.getCageID());
+		}
+
+		private static String cageSortName(Cage cage) {
+			ROI2D roi = cage.getRoi();
+			if (roi != null && roi.getName() != null && !roi.getName().isEmpty()) {
+				return roi.getName();
+			}
+			return null;
 		}
 	}
 
@@ -317,24 +367,11 @@ public class Comparators {
 				return -1;
 			}
 
-			ROI2D roi1 = o1.getRoi();
-			ROI2D roi2 = o2.getRoi();
-
-			if (roi1 == null && roi2 == null) {
-				return 0;
-			}
-			if (roi1 == null) {
-				return 1;
-			}
-			if (roi2 == null) {
-				return -1;
-			}
-
-			String name1 = roi1.getName();
-			String name2 = roi2.getName();
+			String name1 = capillarySortName(o1);
+			String name2 = capillarySortName(o2);
 
 			if (name1 == null && name2 == null) {
-				return 0;
+				return Integer.compare(o1.getKymographIndex(), o2.getKymographIndex());
 			}
 			if (name1 == null) {
 				return 1;
@@ -343,56 +380,23 @@ public class Comparators {
 				return -1;
 			}
 
-			// Use natural ordering (numeric) instead of lexicographic (alphabetic)
-			// This ensures "line1L" comes before "line10L" instead of after
-			return compareNaturalOrder(name1, name2);
-		}
-		
-		/**
-		 * Compares two strings using natural ordering where numbers are compared numerically.
-		 * For example: "line1L" < "line2L" < "line10L" (not "line1L" < "line10L" < "line2L")
-		 */
-		private int compareNaturalOrder(String s1, String s2) {
-			int len1 = s1.length();
-			int len2 = s2.length();
-			int i1 = 0;
-			int i2 = 0;
-			
-			while (i1 < len1 && i2 < len2) {
-				char c1 = s1.charAt(i1);
-				char c2 = s2.charAt(i2);
-				
-				// Check if both characters are digits
-				if (Character.isDigit(c1) && Character.isDigit(c2)) {
-					// Extract the full numeric part
-					int num1 = 0;
-					while (i1 < len1 && Character.isDigit(s1.charAt(i1))) {
-						num1 = num1 * 10 + (s1.charAt(i1) - '0');
-						i1++;
-					}
-					
-					int num2 = 0;
-					while (i2 < len2 && Character.isDigit(s2.charAt(i2))) {
-						num2 = num2 * 10 + (s2.charAt(i2) - '0');
-						i2++;
-					}
-					
-					// Compare numbers numerically
-					if (num1 != num2) {
-						return Integer.compare(num1, num2);
-					}
-				} else {
-					// Compare characters lexicographically
-					if (c1 != c2) {
-						return Character.compare(c1, c2);
-					}
-					i1++;
-					i2++;
-				}
+			int byName = Comparators.compareNaturalOrder(name1, name2);
+			if (byName != 0) {
+				return byName;
 			}
-			
-			// If all compared parts are equal, shorter string comes first
-			return Integer.compare(len1, len2);
+			return Integer.compare(o1.getKymographIndex(), o2.getKymographIndex());
+		}
+
+		private static String capillarySortName(Capillary cap) {
+			ROI2D roi = cap.getRoi();
+			if (roi != null && roi.getName() != null && !roi.getName().isEmpty()) {
+				return roi.getName();
+			}
+			String roiName = cap.getRoiName();
+			if (roiName != null && !roiName.isEmpty()) {
+				return roiName;
+			}
+			return cap.getKymographName();
 		}
 	}
 

@@ -2,6 +2,7 @@ package plugins.fmp.multitools.tools.chart.builders;
 
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -20,6 +21,7 @@ import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
+import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -58,10 +60,11 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return new XYSeriesCollection();
 
 		Capillaries allCapillaries = exp.getCapillaries();
-		List<Capillary> capillaries = cage.getCapillaries(allCapillaries);
-		if (capillaries == null || capillaries.isEmpty()) {
+		List<Capillary> capillaries = new ArrayList<>(cage.getCapillaries(allCapillaries));
+		if (capillaries.isEmpty()) {
 			return new XYSeriesCollection();
 		}
+		Collections.sort(capillaries, new Comparators.Capillary_ROIName());
 
 		if (ChartCageBuild.isLRType(options.resultType)) {
 			return buildLR(exp, cage, options);

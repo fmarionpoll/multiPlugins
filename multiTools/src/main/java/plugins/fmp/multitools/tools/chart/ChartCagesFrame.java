@@ -10,6 +10,7 @@ import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
+import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
@@ -419,6 +421,7 @@ public class ChartCagesFrame extends IcyFrame {
 				availableCages.add(cage);
 			}
 		}
+		Collections.sort(availableCages, new Comparators.Cage_Name());
 
 		if (flag || availableCages.isEmpty()) {
 			// Single cage mode or no cages

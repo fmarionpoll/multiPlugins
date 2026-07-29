@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import javax.swing.JPanel;
@@ -20,6 +21,7 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
@@ -170,18 +172,20 @@ public class ChartCagesCombinedFrame {
 			return List.of();
 
 		boolean singleCageMode = options.cageIndexFirst == options.cageIndexLast && options.cageIndexFirst >= 0;
-		if (!singleCageMode)
-			return cages;
-
 		List<Cage> out = new ArrayList<>();
-		for (Cage cage : cages) {
-			if (cage == null || cage.getProperties() == null)
-				continue;
-			if (cage.getProperties().getCageID() == options.cageIndexFirst) {
-				out.add(cage);
-				break;
+		if (!singleCageMode) {
+			out.addAll(cages);
+		} else {
+			for (Cage cage : cages) {
+				if (cage == null || cage.getProperties() == null)
+					continue;
+				if (cage.getProperties().getCageID() == options.cageIndexFirst) {
+					out.add(cage);
+					break;
+				}
 			}
 		}
+		Collections.sort(out, new Comparators.Cage_Name());
 		return out;
 	}
 }
