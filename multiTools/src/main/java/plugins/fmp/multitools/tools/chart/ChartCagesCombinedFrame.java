@@ -21,7 +21,6 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
@@ -185,7 +184,7 @@ public class ChartCagesCombinedFrame {
 				}
 			}
 		}
-		Collections.sort(out, new Comparators.Cage_Name());
+		Collections.sort(out, java.util.Comparator.comparingInt(Cage::getCageID));
 		return out;
 	}
 }

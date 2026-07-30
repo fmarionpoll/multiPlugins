@@ -112,13 +112,12 @@ public class Create extends JPanel {
 					}
 					capillariesRoiPolygon = new ROI2DPolygon(extPolygon);
 					exp.getCapillaries().deleteAllCapillaries();
-					exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
+					exp.releaseKymographSequence();
 					exp.getSeqCamData().getSequence().removeAllROI();
 					final String dummyname = "perimeter_enclosing_capillaries";
 					capillariesRoiPolygon.setName(dummyname);
 					exp.getSeqCamData().getSequence().addROI(capillariesRoiPolygon);
 					exp.getSeqCamData().getSequence().setSelectedROI(capillariesRoiPolygon);
-					// TODO delete kymos
 				} else
 					create_capillariesRoiPolygon(exp);
 			}
@@ -127,23 +126,31 @@ public class Create extends JPanel {
 		generateCapillariesButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				roisGenerateFromPolygon();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					SequenceKymosUtils.transferCamDataROIStoKymo(exp);
-					int nbFliesPerCage = (int) nbFliesPerCellJSpinner.getValue();
-					switch (cagesJCombo.getSelectedIndex()) {
-					case 0:
-						exp.getCapillaries().initCapillariesWith10Cages(nbFliesPerCage, true);
-						break;
-					case 1:
-						exp.getCapillaries().initCapillariesWith6Cages(nbFliesPerCage);
-						break;
-					default:
-						break;
-					}
-					firePropertyChange("CAPILLARIES_NEW", false, true);
+				if (exp == null)
+					return;
+
+				prepareForCapillaryRegeneration(exp);
+				roisGenerateFromPolygon();
+				SequenceKymosUtils.replaceCapillariesFromCamLineRois(exp);
+
+				int nbFliesPerCage = (int) nbFliesPerCellJSpinner.getValue();
+				switch (cagesJCombo.getSelectedIndex()) {
+				case 0:
+					exp.getCapillaries().initCapillariesWith10Cages(nbFliesPerCage, true);
+					break;
+				case 1:
+					exp.getCapillaries().initCapillariesWith6Cages(nbFliesPerCage);
+					break;
+				default:
+					break;
 				}
+
+				if (exp.getCages() != null)
+					exp.getCages().removeCages();
+				exp.dispatchCapillariesToCages();
+				exp.releaseKymographSequence();
+				firePropertyChange("CAPILLARIES_NEW", false, true);
 			}
 		});
 
@@ -167,6 +174,17 @@ public class Create extends JPanel {
 			}
 		});
 
+	}
+
+	/**
+	 * Clears stale capillaries and line ROIs before generating a new set from the
+	 * perimeter polygon.
+	 */
+	private void prepareForCapillaryRegeneration(Experiment exp) {
+		if (exp.getCapillaries() != null)
+			exp.getCapillaries().deleteAllCapillaries();
+		SequenceKymosUtils.removeCamLineRois(exp);
+		exp.releaseKymographSequence();
 	}
 
 	private void EnableBinWidthItems(boolean status) {

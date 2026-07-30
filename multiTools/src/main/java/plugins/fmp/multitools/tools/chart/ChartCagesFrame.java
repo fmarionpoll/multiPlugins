@@ -32,7 +32,6 @@ import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
-import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
@@ -421,7 +420,8 @@ public class ChartCagesFrame extends IcyFrame {
 				availableCages.add(cage);
 			}
 		}
-		Collections.sort(availableCages, new Comparators.Cage_Name());
+		// Match chart titles ("Cage N"): numeric cage ID order, not ROI-name order
+		Collections.sort(availableCages, java.util.Comparator.comparingInt(Cage::getCageID));
 
 		if (flag || availableCages.isEmpty()) {
 			// Single cage mode or no cages

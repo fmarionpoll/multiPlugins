@@ -5,6 +5,8 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.Collections;
+import java.util.Comparator;
 
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
@@ -26,6 +28,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesCombinedFrame;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
@@ -209,7 +212,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 	public void displayChartPanels(Experiment exp) {
 		exp.getSeqCamData().getSequence().removeListener(this);
+		sortCapillariesForCharts(exp);
 		exp.dispatchCapillariesToCages();
+		sortCagesForCharts(exp);
 		EnumResults exportType = (EnumResults) resultTypeComboBox.getSelectedItem();
 
 		boolean hasData = isThereAnyDataToDisplay(exp, exportType);
@@ -221,6 +226,21 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			}
 		}
 		exp.getSeqCamData().getSequence().addListener(this);
+	}
+
+	/** Capillary list order is used when assigning capillaries to cages. */
+	private void sortCapillariesForCharts(Experiment exp) {
+		Capillaries capillaries = exp.getCapillaries();
+		if (capillaries == null || capillaries.getList() == null || capillaries.getList().isEmpty())
+			return;
+		Collections.sort(capillaries.getList(), new Comparators.Capillary_ROIName());
+	}
+
+	/** Cage list order drives chart panel order (titles show cage ID). */
+	private void sortCagesForCharts(Experiment exp) {
+		if (exp.getCages() == null || exp.getCages().getCageList() == null || exp.getCages().getCageList().isEmpty())
+			return;
+		Collections.sort(exp.getCages().getCageList(), Comparator.comparingInt(Cage::getCageID));
 	}
 
 	private ChartCagesCombinedFrame plotCapillaryMeasuresToCombinedChart(Experiment exp, EnumResults resultType,

@@ -388,15 +388,19 @@ public class Comparators {
 		}
 
 		private static String capillarySortName(Capillary cap) {
-			ROI2D roi = cap.getRoi();
-			if (roi != null && roi.getName() != null && !roi.getName().isEmpty()) {
-				return roi.getName();
-			}
 			String roiName = cap.getRoiName();
 			if (roiName != null && !roiName.isEmpty()) {
 				return roiName;
 			}
-			return cap.getKymographName();
+			String kymoName = cap.getKymographName();
+			if (kymoName != null && !kymoName.isEmpty()) {
+				return kymoName;
+			}
+			ROI2D roi = cap.getRoi();
+			if (roi != null && roi.getName() != null && !roi.getName().isEmpty()) {
+				return roi.getName();
+			}
+			return null;
 		}
 	}
 

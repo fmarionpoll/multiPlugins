@@ -102,6 +102,9 @@ public class MCCapillaries_ extends JPanel implements PropertyChangeListener, Ch
 			tabsPane.setSelectedIndex(ID_INFOS);
 		} else if (event.getPropertyName().equals("CAPILLARIES_NEW")) {
 			tabsPane.setSelectedIndex(ID_INFOS);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayCapillariesInformation(exp);
 		}
 
 	}
