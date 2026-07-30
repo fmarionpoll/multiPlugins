@@ -14,10 +14,10 @@ import plugins.fmp.multitools.tools.Logger;
 
 final class CafeExperimentOpenPipeline {
 
-	private final LoadSaveExperiment owner;
+	private final BrowsePanel owner;
 	private final ExperimentLoadLifecycle lifecycle;
 
-	CafeExperimentOpenPipeline(LoadSaveExperiment owner) {
+	CafeExperimentOpenPipeline(BrowsePanel owner) {
 		this.owner = owner;
 		this.lifecycle = owner.loadLifecycle;
 	}
@@ -29,7 +29,7 @@ final class CafeExperimentOpenPipeline {
 		final long startTime = System.nanoTime();
 		int expIndex = owner.parent0.expListComboLazy.getSelectedIndex();
 
-		Logger.debug("LoadSaveExperiment:openSelectedExperiment() START - exp="
+		Logger.debug("BrowsePanel:openSelectedExperiment() START - exp="
 				+ (exp != null ? exp.getResultsDirectory() : "null") + ", isLazy=" + (exp instanceof LazyExperiment)
 				+ ", capillaries.count="
 				+ (exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : "N/A"));
@@ -173,7 +173,7 @@ final class CafeExperimentOpenPipeline {
 
 		Sequence seq = exp.getSeqCamData().getSequence();
 		if (seq == null) {
-			Logger.warn("LoadSaveExperiment: Sequence is null after loadImages()");
+			Logger.warn("BrowsePanel: Sequence is null after loadImages()");
 			return lifecycle.abortLoad(exp, expIndex, progressFrame, "sequence is null after loading images");
 		}
 
@@ -186,7 +186,7 @@ final class CafeExperimentOpenPipeline {
 		}
 
 		if (exp.getSeqCamData() == null) {
-			Logger.error("LoadSaveExperiments:openSelectedExperiment() [" + expIndex
+			Logger.error("BrowsePanel:openSelectedExperiment() [" + expIndex
 					+ "] Error: no jpg files found for this experiment\n");
 			progressFrame.close();
 			exp.setLoading(false);

@@ -103,7 +103,7 @@ public class FilterPanel extends JPanel {
 	}
 
 	private void syncFilterExpList() {
-		if (!parent0.paneBrowse.panelLoadSave.isListFiltered()) {
+		if (!parent0.paneBrowse.browsePanel.isListFiltered()) {
 			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
 		} else if (filterExpList.getItemCount() == 0) {
 			filterExpList.setExperimentsFromList(parent0.expListComboLazy.getExperimentsAsListNoLoad());
@@ -280,8 +280,8 @@ public class FilterPanel extends JPanel {
 		}
 		if (parent0.expListComboLazy.getItemCount() > 0)
 			parent0.expListComboLazy.setSelectedIndex(0);
-		if (setFilter != parent0.paneBrowse.panelLoadSave.isListFiltered())
-			parent0.paneBrowse.panelLoadSave.setListFiltered(setFilter);
+		if (setFilter != parent0.paneBrowse.browsePanel.isListFiltered())
+			parent0.paneBrowse.browsePanel.setListFiltered(setFilter);
 	}
 
 	public void clearAllCheckBoxes() {

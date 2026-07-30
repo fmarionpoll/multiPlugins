@@ -70,17 +70,17 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		tabTransfer = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
 			@Override
 			public void closeAllExperimentsForTransfer() {
-				parent0.paneBrowse.panelLoadSave.closeAllExperimentsForTransfer();
+				parent0.paneBrowse.browsePanel.closeAllExperimentsForTransfer();
 			}
 
 			@Override
 			public void reloadExperimentsFromExperimentXml(java.util.List<String> experimentXmlPaths) {
-				parent0.paneBrowse.panelLoadSave.reloadExperimentsFromExperimentXml(experimentXmlPaths);
+				parent0.paneBrowse.browsePanel.reloadExperimentsFromExperimentXml(experimentXmlPaths);
 			}
 
 			@Override
 			public void openExperimentAtIndex(int index) {
-				parent0.paneBrowse.panelLoadSave.openExperimentAtIndex(index);
+				parent0.paneBrowse.browsePanel.openExperimentAtIndex(index);
 			}
 		});
 		tabsPane.addTab("Transfer results", null, tabTransfer, "Export/Import results to/from another location");

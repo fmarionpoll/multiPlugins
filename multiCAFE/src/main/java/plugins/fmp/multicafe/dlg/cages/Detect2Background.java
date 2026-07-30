@@ -379,7 +379,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 		if (exp == null)
 			return;
 		buildKind = getSelectedReferenceKind();
-		parent0.paneBrowse.panelLoadSave.closeViewsForCurrentExperiment(exp);
+		parent0.paneBrowse.browsePanel.closeViewsForCurrentExperiment(exp);
 
 		buildBackground = new BuildBackground();
 		buildBackground.options = initTrackParameters(exp);

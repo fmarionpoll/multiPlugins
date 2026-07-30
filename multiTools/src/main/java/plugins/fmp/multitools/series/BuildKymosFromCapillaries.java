@@ -65,7 +65,7 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 		// exp.getCapillaries().transferCapillaryRoiToSequence(exp.getSeqCamData().getSequence());
 		SequenceCamData seqData = exp.getSeqCamData();
 
-		// Use loadImages() like LoadSaveExperiment does to properly initialize the sequence
+		// Use loadImages() like BrowsePanel does to properly initialize the sequence
 		seqData.loadImages();
 		// Initialize time parameters for this experiment BEFORE building time intervals array
 		exp.getFileIntervalsFromSeqCamData();

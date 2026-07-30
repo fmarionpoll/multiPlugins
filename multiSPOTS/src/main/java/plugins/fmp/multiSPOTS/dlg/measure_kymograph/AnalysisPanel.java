@@ -501,14 +501,14 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		// each experiment
 		// was closeSequences()'d in the batch — explicitly reopen the first experiment
 		// in the series
-		// (same pattern as LoadSaveExperiment.openExperimentAtIndex after transfer
+		// (same pattern as BrowsePanel.openExperimentAtIndex after transfer
 		// reload).
 		SwingUtilities.invokeLater(() -> onAnalyzeBatchFinished(recallIndex, recallParams));
 	}
 
 	private void onAnalyzeBatchFinished(int recallIndex, Params params) {
 		if (recallIndex >= 0) {
-			parent0.dlgBrowse.loadSaveExperiment.openExperimentAtIndex(recallIndex);
+			parent0.dlgBrowse.browsePanel.openExperimentAtIndex(recallIndex);
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null && params != null && exp.loadCageSpotKymographs()) {
 				KymoAnalysisResult refreshed = CageKymoAnalyzer.analyze(exp, params);

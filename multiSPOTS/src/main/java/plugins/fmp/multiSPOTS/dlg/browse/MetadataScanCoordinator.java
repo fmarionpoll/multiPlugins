@@ -18,9 +18,9 @@ import plugins.fmp.multitools.tools.Logger;
 
 final class MetadataScanCoordinator {
 
-	private final LoadSaveExperiment host;
+	private final BrowsePanel host;
 
-	MetadataScanCoordinator(LoadSaveExperiment host) {
+	MetadataScanCoordinator(BrowsePanel host) {
 		this.host = host;
 	}
 

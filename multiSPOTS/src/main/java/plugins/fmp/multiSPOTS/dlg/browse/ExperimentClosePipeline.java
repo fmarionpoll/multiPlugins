@@ -12,13 +12,13 @@ final class ExperimentClosePipeline {
 	void closeViewsForCurrentExperiment(Experiment exp) {
 		if (exp != null) {
 			if (exp.isLoading()) {
-				Logger.warn("LoadSaveExperiment: Skipping save for experiment - loading still in progress: "
+				Logger.warn("BrowsePanel: Skipping save for experiment - loading still in progress: "
 						+ exp.toString());
 				return;
 			}
 
 			if (exp.isSaving()) {
-				Logger.warn("LoadSaveExperiment: Skipping save for experiment - save operation already in progress: "
+				Logger.warn("BrowsePanel: Skipping save for experiment - save operation already in progress: "
 						+ exp.toString());
 				return;
 			}

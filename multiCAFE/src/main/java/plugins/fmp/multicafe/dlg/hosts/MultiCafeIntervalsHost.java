@@ -32,7 +32,7 @@ public class MultiCafeIntervalsHost extends MultiCafeDialogHost implements Inter
 	@Override
 	public void onAfterIntervalsApply(Experiment exp) {
 		MultiCAFE p = getPlugin();
-		p.paneBrowse.panelLoadSave.closeCurrentExperiment();
+		p.paneBrowse.browsePanel.closeCurrentExperiment();
 		List<String> imagesList = ExperimentDirectories
 				.getImagesListFromPathV2(exp.getSeqCamData().getImageLoader().getImagesDirectory(), "jpg");
 		exp.getSeqCamData().loadImageList(imagesList);

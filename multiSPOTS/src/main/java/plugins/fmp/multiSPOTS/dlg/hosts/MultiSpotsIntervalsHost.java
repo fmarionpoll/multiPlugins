@@ -29,8 +29,8 @@ public class MultiSpotsIntervalsHost extends MultiSpotsDialogHost implements Int
 	@Override
 	public void onAfterIntervalsApply(Experiment exp) {
 		MultiSPOTS p = getPlugin();
-		p.dlgBrowse.loadSaveExperiment.closeCurrentExperiment();
-		p.dlgBrowse.loadSaveExperiment.openSelectedExperiment(exp);
+		p.dlgBrowse.browsePanel.closeCurrentExperiment();
+		p.dlgBrowse.browsePanel.openSelectedExperiment(exp);
 	}
 
 	@Override

@@ -36,7 +36,7 @@ import plugins.fmp.multitools.experiment.ui.SelectFilesPanel;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
 import plugins.fmp.multitools.tools.Logger;
 
-public class LoadSaveExperiment extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
+public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemListener, SequenceListener {
 
 	private static final long serialVersionUID = -690874563607080412L;
 
@@ -91,7 +91,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private ExperimentOpenPipeline openPipeline;
 	private ExperimentClosePipeline closePipeline;
 
-	public LoadSaveExperiment() {
+	public BrowsePanel() {
 	}
 
 	/**
@@ -248,9 +248,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				boolean show = showFilterButton.isSelected();
-				filterPanel.setVisible(show);
-				if (show)
+				if (show) {
+					showEditButton.setSelected(false);
+					editPanel.setVisible(false);
 					filterPanel.initCombos();
+				}
+				filterPanel.setVisible(show);
 				repackMainFrame();
 			}
 		});
@@ -259,9 +262,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				boolean show = showEditButton.isSelected();
-				editPanel.setVisible(show);
-				if (show)
+				if (show) {
+					showFilterButton.setSelected(false);
+					filterPanel.setVisible(false);
 					editPanel.initEditCombos();
+				}
+				editPanel.setVisible(show);
 				repackMainFrame();
 			}
 		});

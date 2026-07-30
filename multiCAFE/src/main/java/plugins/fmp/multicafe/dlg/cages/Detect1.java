@@ -377,7 +377,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		parent0.paneBrowse.panelLoadSave.closeViewsForCurrentExperiment(exp);
+		parent0.paneBrowse.browsePanel.closeViewsForCurrentExperiment(exp);
 
 		flyDetect1 = new FlyDetect1();
 		flyDetect1.options = initTrackParameters(exp);

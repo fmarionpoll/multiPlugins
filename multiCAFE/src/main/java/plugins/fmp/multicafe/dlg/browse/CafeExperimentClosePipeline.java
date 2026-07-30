@@ -12,13 +12,13 @@ final class CafeExperimentClosePipeline {
 	void closeViewsForCurrentExperiment(Experiment exp) {
 		if (exp != null) {
 			if (exp.isLoading()) {
-				Logger.warn("LoadSaveExperiment: Skipping save for experiment - loading still in progress: "
+				Logger.warn("BrowsePanel: Skipping save for experiment - loading still in progress: "
 						+ exp.toString());
 				return;
 			}
 
 			if (exp.isSaving()) {
-				Logger.warn("LoadSaveExperiment: Skipping save for experiment - save operation already in progress: "
+				Logger.warn("BrowsePanel: Skipping save for experiment - save operation already in progress: "
 						+ exp.toString());
 				return;
 			}
@@ -38,7 +38,7 @@ final class CafeExperimentClosePipeline {
 				if (persist && exp.getSeqCamData() != null) {
 					int capCountBeforeSave = exp.getCapillaries() != null ? exp.getCapillaries().getList().size() : 0;
 					Logger.debug(
-							"LoadSaveExperiment:closeViewsForCurrentExperiment() About to save capillaries - count="
+							"BrowsePanel:closeViewsForCurrentExperiment() About to save capillaries - count="
 									+ capCountBeforeSave + ", exp=" + exp.getResultsDirectory());
 					exp.save_capillaries_description_and_measures();
 

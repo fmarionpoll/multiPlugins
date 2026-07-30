@@ -106,7 +106,7 @@ public class EditPanel extends JPanel {
 	private void syncEditExpListFromProject() {
 		parent0.dlgBrowse.filterPanel.initCombos();
 		JComboBoxExperimentLazy src;
-		if (parent0.dlgBrowse.loadSaveExperiment.isListFiltered())
+		if (parent0.dlgBrowse.browsePanel.isListFiltered())
 			src = parent0.expListComboLazy;
 		else {
 			src = parent0.dlgBrowse.filterPanel.filterExpList;

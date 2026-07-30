@@ -237,7 +237,7 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		parent0.dlgBrowse.loadSaveExperiment.closeViewsForCurrentExperiment(exp);
+		parent0.dlgBrowse.browsePanel.closeViewsForCurrentExperiment(exp);
 
 		buildBackground = new BuildBackground();
 		buildBackground.options = initTrackParameters();

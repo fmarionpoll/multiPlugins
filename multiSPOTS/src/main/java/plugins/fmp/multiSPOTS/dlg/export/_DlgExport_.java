@@ -68,17 +68,17 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		transferResultsPanel = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
 			@Override
 			public void closeAllExperimentsForTransfer() {
-				parent0.dlgBrowse.loadSaveExperiment.closeAllExperimentsForTransfer();
+				parent0.dlgBrowse.browsePanel.closeAllExperimentsForTransfer();
 			}
 
 			@Override
 			public void reloadExperimentsFromExperimentXml(java.util.List<String> experimentXmlPaths) {
-				parent0.dlgBrowse.loadSaveExperiment.reloadExperimentsFromExperimentXml(experimentXmlPaths);
+				parent0.dlgBrowse.browsePanel.reloadExperimentsFromExperimentXml(experimentXmlPaths);
 			}
 
 			@Override
 			public void openExperimentAtIndex(int index) {
-				parent0.dlgBrowse.loadSaveExperiment.openExperimentAtIndex(index);
+				parent0.dlgBrowse.browsePanel.openExperimentAtIndex(index);
 			}
 		});
 		tabsPane.addTab("Transfer results", null, transferResultsPanel,

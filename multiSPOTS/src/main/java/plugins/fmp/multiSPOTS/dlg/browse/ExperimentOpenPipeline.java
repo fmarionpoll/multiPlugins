@@ -16,10 +16,10 @@ import plugins.fmp.multitools.tools.Logger;
 
 final class ExperimentOpenPipeline {
 
-	private final LoadSaveExperiment owner;
+	private final BrowsePanel owner;
 	private final ExperimentLoadLifecycle lifecycle;
 
-	ExperimentOpenPipeline(LoadSaveExperiment owner) {
+	ExperimentOpenPipeline(BrowsePanel owner) {
 		this.owner = owner;
 		this.lifecycle = owner.loadLifecycle;
 	}
@@ -175,7 +175,7 @@ final class ExperimentOpenPipeline {
 		}
 
 		if (exp.getSeqCamData() == null) {
-			Logger.error("LoadSaveExperiments:openSelectedExperiment() [" + expIndex
+			Logger.error("BrowsePanel:openSelectedExperiment() [" + expIndex
 					+ "] Error: no jpg files found for this experiment\n");
 			progressFrame.close();
 			exp.setLoading(false);
@@ -211,7 +211,7 @@ final class ExperimentOpenPipeline {
 						exp.setLegacyExperimentFormat(false);
 					}
 				} catch (Exception e) {
-					Logger.warn("LoadSaveExperiment: Legacy migration failed: " + e.getMessage());
+					Logger.warn("BrowsePanel: Legacy migration failed: " + e.getMessage());
 				}
 				return null;
 			}

@@ -2400,7 +2400,7 @@ public class Experiment {
 				: getKymoBin_ms();
 		// Non-interactive: this runs inside a load path, and a dialog at this depth
 		// would be surprising. A conscious choice is made at load time (see
-		// LoadSaveExperiment.selectBinDirectory).
+		// BrowsePanel.selectBinDirectory).
 		ctx.allowPrompt = false;
 		ctx.allowCleanup = false;
 		ctx.previouslySelected = binDirectory;

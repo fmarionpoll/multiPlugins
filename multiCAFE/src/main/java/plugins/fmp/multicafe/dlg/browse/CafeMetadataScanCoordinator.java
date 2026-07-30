@@ -21,9 +21,9 @@ import plugins.fmp.multitools.tools.Logger;
  */
 final class CafeMetadataScanCoordinator {
 
-	private final LoadSaveExperiment host;
+	private final BrowsePanel host;
 
-	CafeMetadataScanCoordinator(LoadSaveExperiment host) {
+	CafeMetadataScanCoordinator(BrowsePanel host) {
 		this.host = host;
 	}
 

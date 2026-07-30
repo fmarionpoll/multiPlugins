@@ -123,7 +123,7 @@ public class EditCapillariesConditional extends JPanel {
 	private void syncEditExpListFromBrowse() {
 		parent0.paneBrowse.filterPanel.initCombos();
 		JComboBoxExperimentLazy src;
-		if (parent0.paneBrowse.panelLoadSave.isListFiltered()) {
+		if (parent0.paneBrowse.browsePanel.isListFiltered()) {
 			src = parent0.expListComboLazy;
 		} else {
 			src = parent0.paneBrowse.filterPanel.filterExpList;
@@ -423,7 +423,7 @@ public class EditCapillariesConditional extends JPanel {
 	/**
 	 * Waits for any ongoing async save operation to complete for the given
 	 * experiment. This prevents conflicts between Edit's synchronous saves and
-	 * LoadSaveExperiment's async saves.
+	 * BrowsePanel's async saves.
 	 * 
 	 * @param exp      The experiment to wait for
 	 * @param expIndex The index of the experiment (for logging)

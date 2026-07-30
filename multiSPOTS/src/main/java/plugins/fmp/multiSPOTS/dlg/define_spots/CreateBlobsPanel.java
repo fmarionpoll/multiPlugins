@@ -332,7 +332,7 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		parent0.dlgBrowse.loadSaveExperiment.closeViewsForCurrentExperiment(exp);
+		parent0.dlgBrowse.browsePanel.closeViewsForCurrentExperiment(exp);
 		detectSpots = new DetectSpotsOutline();
 		detectSpots.options = initTrackParameters(exp);
 		detectSpots.stopFlag = false;
