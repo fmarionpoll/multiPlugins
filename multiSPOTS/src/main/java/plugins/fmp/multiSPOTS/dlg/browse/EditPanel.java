@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.experiment;
+package plugins.fmp.multiSPOTS.dlg.browse;
 
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -99,6 +99,10 @@ public class EditPanel extends JPanel {
 		updateUndoLastApplyButtonState();
 	}
 
+	/**
+	 * When Filter is active, the Browse combo holds only matching experiments — Apply
+	 * uses that list. When not filtered, use Filter's master copy of the full series.
+	 */
 	private void syncEditExpListFromProject() {
 		parent0.dlgBrowse.filterPanel.initCombos();
 		JComboBoxExperimentLazy src;

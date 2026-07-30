@@ -40,7 +40,6 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 	PopupPanel capPopupPanel = null;
 	public JTabbedPane tabsPane = new JTabbedPane();
 	public InfosPanel infosPanel = new InfosPanel();
-	EditPanel editPanel = new EditPanel();
 	public IntervalsPanel intervalsPanel = new IntervalsPanel();
 	CorrectDriftPanel correctDriftPanel = new CorrectDriftPanel();
 	public OptionsPanel optionsPanel = new OptionsPanel();
@@ -59,9 +58,6 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 
 		infosPanel.init(tabsLayout, parent0);
 		tabsPane.addTab("Infos", null, infosPanel, "Define descriptors for experiment");
-
-		editPanel.init(tabsLayout, parent0);
-		tabsPane.addTab("Edit", null, editPanel, "Edit descriptors");
 
 		intervalsPanel.init(tabsLayout, new MultiSpotsIntervalsHost(parent0));
 		tabsPane.addTab("Intervals", null, intervalsPanel, "View/edit time-lapse intervals");
@@ -220,8 +216,6 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 		JTabbedPane tabbedPane = (JTabbedPane) e.getSource();
 		if (tabbedPane.getSelectedIndex() == 0)
 			infosPanel.initCombos();
-		else if (tabbedPane.getSelectedIndex() == 1)
-			editPanel.initEditCombos();
 	}
 
 }

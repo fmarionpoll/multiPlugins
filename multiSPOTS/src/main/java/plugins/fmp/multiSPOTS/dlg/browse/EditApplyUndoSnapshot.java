@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.experiment;
+package plugins.fmp.multiSPOTS.dlg.browse;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

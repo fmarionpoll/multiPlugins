@@ -1,6 +1,7 @@
 package plugins.fmp.multiSPOTS.dlg.browse;
 
 import java.awt.BorderLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JPanel;
 import javax.swing.JToggleButton;
@@ -42,6 +44,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 	private JButton searchButton = new JButton("Search...");
 	private JButton closeButton = new JButton("Close");
 	JToggleButton showFilterButton = new JToggleButton("Filter (off)");
+	JToggleButton showEditButton = new JToggleButton("Edit");
 	private boolean listFiltered = false;
 
 	private static final String FILTER_BUTTON_OFF = "Filter (off)";
@@ -159,7 +162,7 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 		}
 	}
 
-	public JPanel initPanel(MultiSPOTS parent0, FilterPanel filterPanel) {
+	public JPanel initPanel(MultiSPOTS parent0, FilterPanel filterPanel, EditPanel editPanel) {
 		this.parent0 = parent0;
 		this.metadataScan = new MetadataScanCoordinator(this);
 		this.openPipeline = new ExperimentOpenPipeline(this);
@@ -167,13 +170,22 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 		filterPanel.init(parent0);
 		filterPanel.setVisible(false);
+		editPanel.init(new GridLayout(4, 1), parent0);
+		editPanel.setVisible(false);
+
+		JPanel seriesTools = new JPanel();
+		seriesTools.setLayout(new BoxLayout(seriesTools, BoxLayout.Y_AXIS));
+		filterPanel.setAlignmentX(0f);
+		editPanel.setAlignmentX(0f);
+		seriesTools.add(filterPanel);
+		seriesTools.add(editPanel);
 
 		JPanel browseRoot = new JPanel(new BorderLayout());
 		JPanel group2Panel = initUI();
 		browseRoot.add(group2Panel, BorderLayout.NORTH);
-		browseRoot.add(filterPanel, BorderLayout.CENTER);
+		browseRoot.add(seriesTools, BorderLayout.CENTER);
 
-		defineActionListeners(filterPanel);
+		defineActionListeners(filterPanel, editPanel);
 		updateFilterButtonLabel();
 		SwingUtilities.invokeLater(() -> ExperimentBrowseKeyboard.install(group2Panel, previousButton, nextButton,
 				() -> parent0 != null && parent0.mainFrame != null && parent0.mainFrame.isVisible()));
@@ -184,11 +196,12 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 
 	private JPanel initUI() {
 		JPanel navPanel = BrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
-		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, showFilterButton);
+		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, showFilterButton,
+				showEditButton);
 		return BrowseUi.createMainGrid(navPanel, buttonPanel);
 	}
 
-	private void defineActionListeners(FilterPanel filterPanel) {
+	private void defineActionListeners(FilterPanel filterPanel, EditPanel editPanel) {
 		openButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -238,14 +251,29 @@ public class LoadSaveExperiment extends JPanel implements PropertyChangeListener
 				filterPanel.setVisible(show);
 				if (show)
 					filterPanel.initCombos();
-				if (parent0 != null && parent0.mainFrame != null) {
-					parent0.mainFrame.revalidate();
-					parent0.mainFrame.pack();
-					parent0.mainFrame.repaint();
-				}
+				repackMainFrame();
 			}
 		});
 
+		showEditButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				boolean show = showEditButton.isSelected();
+				editPanel.setVisible(show);
+				if (show)
+					editPanel.initEditCombos();
+				repackMainFrame();
+			}
+		});
+
+	}
+
+	private void repackMainFrame() {
+		if (parent0 != null && parent0.mainFrame != null) {
+			parent0.mainFrame.revalidate();
+			parent0.mainFrame.pack();
+			parent0.mainFrame.repaint();
+		}
 	}
 
 	@Override

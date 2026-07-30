@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.experiment;
+package plugins.fmp.multicafe.dlg.browse;
 
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -17,6 +17,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class EditCapillariesConditional extends JPanel {
@@ -46,6 +47,7 @@ public class EditCapillariesConditional extends JPanel {
 	private JButton applyButton = new JButton("Apply");
 
 	private MultiCAFE parent0 = null;
+	private JComboBoxExperimentLazy editExpList = new JComboBoxExperimentLazy();
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		this.parent0 = parent0;
@@ -109,14 +111,33 @@ public class EditCapillariesConditional extends JPanel {
 	}
 
 	public void initEditCombos() {
+		syncEditExpListFromBrowse();
 		updateConditionValueCombo(conditionField1Combo, conditionValue1Combo);
 		updateConditionValueCombo(conditionField2Combo, conditionValue2Combo);
+	}
+
+	/**
+	 * When Filter is active, the Browse combo holds only matching experiments — Apply
+	 * uses that list. When not filtered, use Filter's master copy of the full series.
+	 */
+	private void syncEditExpListFromBrowse() {
+		parent0.paneBrowse.filterPanel.initCombos();
+		JComboBoxExperimentLazy src;
+		if (parent0.paneBrowse.panelLoadSave.isListFiltered()) {
+			src = parent0.expListComboLazy;
+		} else {
+			src = parent0.paneBrowse.filterPanel.filterExpList;
+			if (src.getItemCount() < 1)
+				src = parent0.expListComboLazy;
+		}
+		editExpList.setExperimentsFromList(src.getExperimentsAsListNoLoad());
 	}
 
 	private void updateConditionValueCombo(JComboBox<EnumXLSColumnHeader> fieldCombo, JComboBox<String> valueCombo) {
 		EnumXLSColumnHeader selectedField = (EnumXLSColumnHeader) fieldCombo.getSelectedItem();
 		if (selectedField != null) {
-			parent0.expListComboLazy.getFieldValuesToComboLightweight(valueCombo, selectedField);
+			syncEditExpListFromBrowse();
+			editExpList.getFieldValuesToComboLightweight(valueCombo, selectedField);
 		}
 	}
 
@@ -221,11 +242,14 @@ public class EditCapillariesConditional extends JPanel {
 		boolean condition2IsCapillary = useCondition2 && isCapillaryField(conditionField2);
 		boolean targetIsCapillary = isCapillaryField(targetField);
 
-		int nExperiments = parent0.expListComboLazy.getItemCount();
+		syncEditExpListFromBrowse();
+		int nExperiments = editExpList.getItemCount();
 		int totalUpdated = 0;
 
 		for (int i = 0; i < nExperiments; i++) {
-			Experiment exp = parent0.expListComboLazy.getItemAt(i);
+			Experiment exp = editExpList.getItemAtNoLoad(i);
+			if (exp == null)
+				continue;
 
 			// Wait for any ongoing async save operations to complete
 			waitForSaveToComplete(exp, i);
@@ -256,8 +280,8 @@ public class EditCapillariesConditional extends JPanel {
 		}
 
 		String updateType = targetIsCapillary ? "capillaries" : "experiments";
-		Logger.info(
-				"EditCapillariesConditional: Updated " + totalUpdated + " " + updateType + " across all experiments");
+		Logger.info("EditCapillariesConditional: Updated " + totalUpdated + " " + updateType + " across "
+				+ nExperiments + " experiment(s) in the current Browse list");
 	}
 
 	/**

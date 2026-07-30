@@ -15,6 +15,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
+import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
@@ -66,6 +67,7 @@ public class FilterPanel extends JPanel {
 
 	private JButton applyButton = new JButton("Apply");
 	private JButton clearButton = new JButton("Clear");
+	private JButton updateButton = new JButton("Update");
 	private JLabel indexStatusLabel = new JLabel("index: loading...");
 
 	private MultiSPOTS parent0 = null;
@@ -110,7 +112,7 @@ public class FilterPanel extends JPanel {
 				delta2);
 		c.gridy = 5;
 		c.gridx = 0;
-		DialogTools.addFiveComponentOnARow(this, indexStatusLabel, null, null, null, null, c, delta1, delta2);
+		DialogTools.addFiveComponentOnARow(this, indexStatusLabel, updateButton, null, null, null, c, delta1, delta2);
 
 		defineActionListeners();
 	}
@@ -210,6 +212,83 @@ public class FilterPanel extends JPanel {
 				filterExperimentList(false);
 			}
 		});
+		updateButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				refreshFilterValueLists();
+			}
+		});
+		updateButton.setToolTipText(
+				"Re-scan all experiments and refresh Filter value lists (use after Edit changes descriptors)");
+	}
+
+	/**
+	 * Rebuilds {@link plugins.fmp.multitools.tools.DescriptorIndex} from the full
+	 * series so Select… dialogs show current descriptor values after Edit.
+	 */
+	public void refreshFilterValueLists() {
+		syncFilterExpList();
+		JComboBoxExperimentLazy src = filterExpList.getItemCount() > 0 ? filterExpList : parent0.expListComboLazy;
+		if (parent0.descriptorIndex == null || src.getItemCount() < 1) {
+			updateIndexStatus();
+			return;
+		}
+		indexStatusLabel.setText("index: loading...");
+		updateButton.setEnabled(false);
+		final ProgressFrame progress = new ProgressFrame("Refreshing filter values");
+		parent0.descriptorIndex.preloadFromCombo(src, new Runnable() {
+			@Override
+			public void run() {
+				try {
+					pruneObsoleteSelections();
+					refreshAllSelectButtonLabels();
+					if (parent0.dlgExperiment != null && parent0.dlgExperiment.infosPanel != null)
+						parent0.dlgExperiment.infosPanel.initCombos();
+					if (parent0.dlgBrowse != null && parent0.dlgBrowse.editPanel != null)
+						parent0.dlgBrowse.editPanel.initEditCombos();
+					updateIndexStatus();
+				} finally {
+					progress.close();
+					updateButton.setEnabled(true);
+				}
+			}
+		}, progress, true);
+	}
+
+	private void pruneObsoleteSelections() {
+		pruneSelection(selExpt, EnumXLSColumnHeader.EXP_EXPT, experimentCheck, exptBtn);
+		pruneSelection(selBoxID, EnumXLSColumnHeader.EXP_ID, boxIDCheck, boxIDBtn);
+		pruneSelection(selStim1, EnumXLSColumnHeader.EXP_STIM1, stim1Check, stim1Btn);
+		pruneSelection(selConc1, EnumXLSColumnHeader.EXP_CONC1, conc1Check, conc1Btn);
+		pruneSelection(selStrain, EnumXLSColumnHeader.EXP_STRAIN, strainCheck, strainBtn);
+		pruneSelection(selSex, EnumXLSColumnHeader.EXP_SEX, sexCheck, sexBtn);
+		pruneSelection(selStim2, EnumXLSColumnHeader.EXP_STIM2, stim2Check, stim2Btn);
+		pruneSelection(selConc2, EnumXLSColumnHeader.EXP_CONC2, conc2Check, conc2Btn);
+		pruneSelection(selSpotStim, EnumXLSColumnHeader.SPOT_STIM, spotStimCheck, spotStimBtn);
+		pruneSelection(selSpotConc, EnumXLSColumnHeader.SPOT_CONC, spotConcCheck, spotConcBtn);
+	}
+
+	private void pruneSelection(List<String> selected, EnumXLSColumnHeader field, JCheckBox check, JButton btn) {
+		if (selected == null || selected.isEmpty())
+			return;
+		List<String> allowed = getValuesForField(field);
+		HashSet<String> allowedSet = new HashSet<String>(allowed);
+		selected.removeIf(v -> v == null || !allowedSet.contains(v));
+		check.setSelected(!selected.isEmpty());
+		updateButtonLabel(btn, selected);
+	}
+
+	private void refreshAllSelectButtonLabels() {
+		updateButtonLabel(exptBtn, selExpt);
+		updateButtonLabel(boxIDBtn, selBoxID);
+		updateButtonLabel(stim1Btn, selStim1);
+		updateButtonLabel(conc1Btn, selConc1);
+		updateButtonLabel(strainBtn, selStrain);
+		updateButtonLabel(sexBtn, selSex);
+		updateButtonLabel(stim2Btn, selStim2);
+		updateButtonLabel(conc2Btn, selConc2);
+		updateButtonLabel(spotStimBtn, selSpotStim);
+		updateButtonLabel(spotConcBtn, selSpotConc);
 	}
 
 	public void filterExperimentList(boolean setFilter) {

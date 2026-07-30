@@ -15,9 +15,10 @@ public class MCBrowse_ extends JPanel {
 	private static final long serialVersionUID = -6826269677524125173L;
 	public LoadSaveExperiment panelLoadSave = new LoadSaveExperiment();
 	public FilterPanel filterPanel = new FilterPanel();
+	public EditCapillariesConditional editPanel = new EditCapillariesConditional();
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
-		JPanel filesPanel = panelLoadSave.initPanel(parent0, filterPanel);
+		JPanel filesPanel = panelLoadSave.initPanel(parent0, filterPanel, editPanel);
 		mainPanel.add(filesPanel, BorderLayout.CENTER);
 		mainPanel.addComponentListener(new ComponentAdapter() {
 			@Override
