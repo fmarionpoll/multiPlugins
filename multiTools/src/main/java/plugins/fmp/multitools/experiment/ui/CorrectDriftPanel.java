@@ -534,6 +534,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 						}
 					}
 					int sizeT = seq.getSizeT();
+					boolean clippedAtBoundary = wouldClipNextFrame(tApply, referenceFrameIndex, sizeT);
 					int nextT = computeNextFrameIndex(tApply, referenceFrameIndex, sizeT);
 					clampSpinnerToSequence(seq);
 					syncingFromViewer = true;
@@ -550,6 +551,9 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 						} finally {
 							syncingFromSpinner = false;
 						}
+					}
+					if (clippedAtBoundary) {
+						resetOffsetSpinners();
 					}
 					refreshDifferenceView();
 				});
@@ -573,6 +577,26 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 			return t;
 		}
 		return clampT(t + 1, sizeT);
+	}
+
+	/** True when the post-apply step would go before 0 or past the last frame. */
+	private static boolean wouldClipNextFrame(int t, Integer tRef, int sizeT) {
+		if (sizeT <= 0) {
+			return true;
+		}
+		int intended;
+		if (tRef != null) {
+			if (tRef > t) {
+				intended = t - 1;
+			} else if (tRef < t) {
+				intended = t + 1;
+			} else {
+				return false;
+			}
+		} else {
+			intended = t + 1;
+		}
+		return intended < 0 || intended >= sizeT;
 	}
 
 	private static void applyOneFrameToDisk(Experiment exp, int t, double dx, double dy, double angleDegrees,
