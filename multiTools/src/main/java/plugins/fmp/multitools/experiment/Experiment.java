@@ -2831,9 +2831,9 @@ public class Experiment {
 			// Skip capillaries with invalid kymographIndex (not properly loaded from
 			// persistence)
 			if (kymographIndex < 0) {
-				Logger.warn(
+				Logger.debug(
 						"Experiment.dispatchCapillariesToCages() - Skipping capillary with invalid kymographIndex (-1): "
-								+ cap.getKymographName() + ". This may indicate incomplete persistence data.");
+								+ cap.getKymographName());
 				continue;
 			}
 

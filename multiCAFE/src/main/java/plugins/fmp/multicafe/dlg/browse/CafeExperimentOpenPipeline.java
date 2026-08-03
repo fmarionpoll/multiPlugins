@@ -77,10 +77,6 @@ final class CafeExperimentOpenPipeline {
 			if (cagesLoaded && exp.getCapillaries() != null && exp.getCapillaries().getList().size() > 0)
 				exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
 
-			if (!cagesLoaded) {
-				Logger.warn("Failed to load cages for experiment [" + expIndex + "]");
-			}
-
 			if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
 				exp.initTmsForFlyPositions(exp.getCamImageFirst_ms());
 			}
