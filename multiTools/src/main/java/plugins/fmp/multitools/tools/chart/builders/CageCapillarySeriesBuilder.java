@@ -17,10 +17,6 @@ import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
-import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
-import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
-import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
-import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
@@ -246,7 +242,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j);
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j, options);
 			double y = capMeasure.getValueAt(j) * scalingFactor;
 			seriesXY.add(x, y);
 		}
@@ -282,7 +278,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j);
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j, options);
 			double y = thresholdMeasure.getValueAt(j) * scalingFactor;
 			thresholdSeries.add(x, y);
 		}
@@ -323,7 +319,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j);
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j, options);
 			double y = evaporationMeasure.getValueAt(j) * scalingFactor;
 			evaporationSeries.add(x, y);
 		}
@@ -337,28 +333,28 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
-	 * Measurement series are sampled on the kymograph/bin timeline. When the series
-	 * length exceeds camera frame timestamps (e.g. sparse acquisition with finer
-	 * binning), use kymograph timing to avoid truncating half the points.
+	 * Measurement series are sampled on the analysis/export bin timeline. Prefer
+	 * camera frame timestamps only when series length matches camera frames;
+	 * otherwise use the step that produced the series (export/analysis bin), never
+	 * the raw camera interval as a column step.
 	 */
-	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints,
-			int j) {
+	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints, int j,
+			ResultsOptions options) {
 		if (camImages_time_min != null && measureNPoints <= camImages_time_min.length
 				&& j < camImages_time_min.length) {
 			return camImages_time_min[j];
 		}
-		if (exp != null) {
-			TimestepResolutionResult tr = TimestepResolver.resolve(exp, 0,
-					TimestepResolutionContext.FOR_CHART_NATIVE_MEASURE);
-			if (tr.getSource() == MeasureTimebase.CAMERA_FRAME_STEP && tr.getStepMs() > 0) {
-				return (j * tr.getStepMs()) / 60000.0;
-			}
-			long kymoFirstMs = exp.getKymoFirst_ms();
-			long kymoBinMs = exp.getKymoBin_ms();
-			if (kymoBinMs > 0) {
-				return (kymoFirstMs + (long) j * kymoBinMs) / 60000.0;
-			}
+		long seriesStepMs = 0;
+		if (options != null && options.buildExcelStepMs > 0) {
+			seriesStepMs = options.buildExcelStepMs;
 		}
-		return j;
+		if (seriesStepMs <= 0 && exp != null) {
+			seriesStepMs = exp.getKymoBin_ms();
+		}
+		if (seriesStepMs <= 0) {
+			seriesStepMs = 60000L;
+		}
+		long originMs = exp != null ? exp.getKymoFirst_ms() : 0L;
+		return (originMs + (long) j * seriesStepMs) / 60000.0;
 	}
 }

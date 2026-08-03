@@ -503,6 +503,24 @@ public abstract class XLSExport {
 				exp.getExperimentField(EnumXLSColumnHeader.DATE));
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAM, transpose,
 				exp.getExperimentField(EnumXLSColumnHeader.CAM));
+		writeTimebaseColumns(sheet, pt, transpose, exp);
+	}
+
+	/**
+	 * Writes median camera sampling interval (s) and analysis bin (s).
+	 */
+	protected void writeTimebaseColumns(SXSSFSheet sheet, Point pt, boolean transpose, Experiment exp) {
+		if (exp == null) {
+			return;
+		}
+		double camSec = exp.getCameraSampleIntervalSec();
+		double analysisSec = exp.getAnalysisBinSec();
+		if (camSec > 0) {
+			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAM_SAMPLE_S, transpose, camSec);
+		}
+		if (analysisSec > 0) {
+			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.ANALYSIS_BIN_S, transpose, analysisSec);
+		}
 	}
 
 	/**

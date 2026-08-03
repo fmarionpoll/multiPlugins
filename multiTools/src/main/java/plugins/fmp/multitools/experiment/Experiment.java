@@ -291,35 +291,26 @@ public class Experiment {
 	/**
 	 * Kymograph column / analysis bin duration in ms
 	 * ({@link plugins.fmp.multitools.experiment.timebase.MeasureTimebase#KYMO_COLUMN_STEP}).
+	 * Never returns the camera acquisition interval; that lives in
+	 * {@link #getCamImageBin_ms()} / {@link #getPersistedBinCameraIntervalMs()}.
 	 */
 	public long getKymoBin_ms() {
-		long timeManagerValue = timeManager.getKymoBin_ms();
+		repairAnalysisBinIfConflatedWithCamera();
 		long activeBinValue = (activeBinDescription != null && activeBinDescription.getBinKymoColMs() > 0)
 				? activeBinDescription.getBinKymoColMs()
 				: 0;
+		long timeManagerValue = timeManager.getKymoBin_ms();
 
-		// Generic checks to determine if timeManager has been explicitly set
-		// 1. Check if camImageBin_ms has been calculated (indicates refresh from files)
-		boolean intervalCalculated = timeManager.getCamImageBin_ms() >= 0;
-		// 2. Check if values differ (timeManager assumed more recent)
-		boolean valuesDiffer = timeManagerValue != activeBinValue && activeBinValue > 0;
-
-		// Prioritize timeManager if interval was calculated or if values differ
-		if (intervalCalculated || (valuesDiffer && timeManagerValue > 0)) {
-			// Sync activeBinDescription for consistency
-			if (activeBinDescription != null) {
-				activeBinDescription.setBinKymoColMs(timeManagerValue);
-			}
-			return timeManagerValue;
-		}
-
-		// Fall back to activeBinDescription if it has a value
 		if (activeBinValue > 0) {
+			if (timeManagerValue != activeBinValue) {
+				timeManager.setKymoBin_ms(activeBinValue);
+			}
 			return activeBinValue;
 		}
-
-		// Default to timeManager value
-		return timeManagerValue;
+		if (timeManagerValue > 0) {
+			return timeManagerValue;
+		}
+		return 60000L;
 	}
 
 	public void setKymoBin_ms(long ms) {
@@ -327,6 +318,44 @@ public class Experiment {
 			activeBinDescription.setBinKymoColMs(ms);
 		}
 		timeManager.setKymoBin_ms(ms);
+	}
+
+	/**
+	 * Repairs legacy BinDescription where analysis bin was stored as camera dt.
+	 */
+	public boolean repairAnalysisBinIfConflatedWithCamera() {
+		if (activeBinDescription == null) {
+			return false;
+		}
+		if (activeBinDescription.getCameraIntervalMs() <= 0 && timeManager.getCamImageBin_ms() > 0) {
+			activeBinDescription.setCameraIntervalMs(timeManager.getCamImageBin_ms());
+		}
+		boolean repaired = activeBinDescription.repairBinKymoIfConflatedWithCamera();
+		if (repaired) {
+			timeManager.setKymoBin_ms(activeBinDescription.getBinKymoColMs());
+			Logger.info("Experiment: repaired analysis binKymoColMs to " + activeBinDescription.getBinKymoColMs()
+					+ " ms (was conflated with camera interval)");
+		}
+		return repaired;
+	}
+
+	/** Median camera sampling interval in seconds, or -1 if unknown. */
+	public double getCameraSampleIntervalSec() {
+		long ms = getCamImageBin_ms();
+		if (ms <= 0) {
+			ms = getPersistedBinCameraIntervalMs();
+		}
+		return ms > 0 ? ms / 1000.0 : -1.0;
+	}
+
+	/** Analysis / kymo bin in seconds. */
+	public double getAnalysisBinSec() {
+		int nominal = getNominalIntervalSec();
+		if (nominal > 0) {
+			return nominal;
+		}
+		long ms = getKymoBin_ms();
+		return ms > 0 ? ms / 1000.0 : -1.0;
 	}
 
 	// ----------------------------------
@@ -2484,33 +2513,28 @@ public class Experiment {
 			int nominal = activeBinDescription.getNominalIntervalSec();
 			if (nominal > 0)
 				setNominalIntervalSec(nominal);
-			// Sync with TimeManager for backward compatibility
+			if (activeBinDescription.getCameraIntervalMs() <= 0 && timeManager.getCamImageBin_ms() > 0) {
+				activeBinDescription.setCameraIntervalMs(timeManager.getCamImageBin_ms());
+			}
+			repairAnalysisBinIfConflatedWithCamera();
+			// Sync analysis bin into TimeManager; never overwrite analysis with camera dt
 			timeManager.setKymoFirst_ms(activeBinDescription.getFirstKymoColMs());
 			timeManager.setKymoLast_ms(activeBinDescription.getLastKymoColMs());
-			// Only sync kymoBin_ms if interval hasn't been calculated from files
-			// (camImageBin_ms < 0 means it wasn't calculated from file timestamps)
-			if (timeManager.getCamImageBin_ms() < 0) {
+			if (activeBinDescription.getBinKymoColMs() > 0) {
 				timeManager.setKymoBin_ms(activeBinDescription.getBinKymoColMs());
-			} else {
-				// Interval was calculated from files, sync activeBinDescription with
-				// timeManager instead
-				activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
 			}
 		} else {
 			// If loading failed, initialize from TimeManager (for backward compatibility)
 			activeBinDescription.setFirstKymoColMs(timeManager.getKymoFirst_ms());
 			activeBinDescription.setLastKymoColMs(timeManager.getKymoLast_ms());
-			// Only set from TimeManager if interval has been calculated from files
-			// Don't use default 60000 if interval hasn't been calculated yet
-			// (camImageBin_ms < 0 means interval wasn't calculated from file timestamps)
-			if (timeManager.getCamImageBin_ms() >= 0) {
-				// Interval was calculated, safe to use kymoBin_ms
+			if (timeManager.getKymoBin_ms() > 0) {
 				activeBinDescription.setBinKymoColMs(timeManager.getKymoBin_ms());
 			}
-			// Otherwise, leave activeBinDescription.binKymoColMs at its default (60000)
-			// but this won't be saved unless interval is calculated (guard in
-			// saveBinDescription)
+			if (timeManager.getCamImageBin_ms() > 0) {
+				activeBinDescription.setCameraIntervalMs(timeManager.getCamImageBin_ms());
+			}
 			activeBinDescription.setBinDirectory(binSubDirectory);
+			repairAnalysisBinIfConflatedWithCamera();
 		}
 		return loaded;
 	}

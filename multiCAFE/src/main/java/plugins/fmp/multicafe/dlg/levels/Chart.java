@@ -270,8 +270,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			last = first;
 		}
 
+		int analysisBinMs = (int) Math.max(1L, exp.getKymoBin_ms());
 		ResultsOptions options = ResultsOptionsBuilder.forChart() //
-				.withBuildExcelStepMs(60000) //
+				.withBuildExcelStepMs(analysisBinMs) //
 				.withSubtractT0(true) //
 				.withResultType(resultType) //
 				.withCageRange(first, last) //
@@ -310,8 +311,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			last = first;
 		}
 
+		int analysisBinMs = (int) Math.max(1L, exp.getKymoBin_ms());
 		ResultsOptions options = ResultsOptionsBuilder.forChart() //
-				.withBuildExcelStepMs(60000) //
+				.withBuildExcelStepMs(analysisBinMs) //
 				.withSubtractT0(true) //
 				.withResultType(resultType) //
 				.withCageRange(first, last) //

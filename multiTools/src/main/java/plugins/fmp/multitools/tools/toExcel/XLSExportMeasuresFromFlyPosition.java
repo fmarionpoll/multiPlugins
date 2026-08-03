@@ -1091,6 +1091,7 @@ public class XLSExportMeasuresFromFlyPosition extends XLSExport {
 				exp.getExperimentField(EnumXLSColumnHeader.DATE));
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAM.getValue(), transpose,
 				exp.getExperimentField(EnumXLSColumnHeader.CAM));
+		writeTimebaseColumns(sheet, new Point(x, y), transpose, exp);
 	}
 
 	/**

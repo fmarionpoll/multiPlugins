@@ -157,4 +157,65 @@ public class BinDescription {
 	public boolean isValid() {
 		return binKymoColMs > 0 && lastKymoColMs > firstKymoColMs;
 	}
+
+	/**
+	 * If {@code binKymoColMs} was incorrectly stored as the camera interval while
+	 * {@code nominalIntervalSec} or a {@code bin_N} directory name indicates a
+	 * different analysis bin, repair {@code binKymoColMs} to the analysis bin.
+	 *
+	 * @return true if a repair was applied
+	 */
+	public boolean repairBinKymoIfConflatedWithCamera() {
+		long expectedAnalysisMs = resolveExpectedAnalysisBinMs();
+		if (expectedAnalysisMs <= 0 || binKymoColMs <= 0) {
+			return false;
+		}
+		long cam = cameraIntervalMs;
+		boolean binEqualsCamera = cam > 0 && Math.abs(binKymoColMs - cam) <= Math.max(1000L, cam / 100L);
+		boolean binDiffersFromExpected = Math.abs(binKymoColMs - expectedAnalysisMs) > Math.max(1000L,
+				expectedAnalysisMs / 100L);
+		if (binEqualsCamera && binDiffersFromExpected) {
+			binKymoColMs = expectedAnalysisMs;
+			if (cam > 0) {
+				subsampleFactor = (int) Math.max(1L, Math.round(binKymoColMs / (double) cam));
+			}
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * Analysis bin in ms from nominal seconds or {@code bin_N} directory name.
+	 */
+	public long resolveExpectedAnalysisBinMs() {
+		if (nominalIntervalSec > 0) {
+			return nominalIntervalSec * 1000L;
+		}
+		int fromDir = parseBinDirectorySeconds(binDirectory);
+		if (fromDir > 0) {
+			return fromDir * 1000L;
+		}
+		return -1L;
+	}
+
+	static int parseBinDirectorySeconds(String binDirectory) {
+		if (binDirectory == null || binDirectory.isEmpty()) {
+			return -1;
+		}
+		String name = binDirectory;
+		int slash = Math.max(name.lastIndexOf('/'), name.lastIndexOf('\\'));
+		if (slash >= 0 && slash + 1 < name.length()) {
+			name = name.substring(slash + 1);
+		}
+		if (!name.startsWith("bin_")) {
+			return -1;
+		}
+		String num = name.substring(4).trim();
+		try {
+			int sec = Integer.parseInt(num);
+			return sec > 0 ? sec : -1;
+		} catch (NumberFormatException e) {
+			return -1;
+		}
+	}
 }

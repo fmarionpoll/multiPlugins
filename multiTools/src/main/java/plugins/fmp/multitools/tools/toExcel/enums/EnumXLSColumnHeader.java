@@ -27,27 +27,29 @@ public enum EnumXLSColumnHeader {
 	CAGE_AGE("Cage_age", 16, EnumColumnType.COMMON), // 16
 	CAGE_COMMENT("Cage_comment", 17, EnumColumnType.COMMON), // 17
 	CAGE_FOOD_SIDE("Cage_foodSide", 18, EnumColumnType.COMMON), // 18
+	CAM_SAMPLE_S("Cam_sample_s", 19, EnumColumnType.COMMON), // 19
+	ANALYSIS_BIN_S("Analysis_bin_s", 20, EnumColumnType.COMMON), // 20
 	//
-	SPOT_INDEX("spot_index", 18, EnumColumnType.SPOT), // 18
-	SPOT_CAGEROW("spot_cageRow", 19, EnumColumnType.SPOT), // 19
-	SPOT_CAGECOL("spot_cageCol", 20, EnumColumnType.SPOT), // 20
-	SPOT_VOLUME("Spot_ul", 21, EnumColumnType.SPOT), // 21
-	SPOT_PIXELS("Spot_npixels", 22, EnumColumnType.SPOT), // 22
-	SPOT_STIM("Spot_stimulus", 23, EnumColumnType.SPOT), // 23
-	SPOT_CONC("Spot_concentration", 24, EnumColumnType.SPOT), // 24
-	SPOT_NFLIES("Spot_nflies", 25, EnumColumnType.SPOT), // 25
-	SPOT_COLOR("Spot_color", 26, EnumColumnType.SPOT), // 26
-	DUM5("Spot_measure", 27, EnumColumnType.SPOT),
+	SPOT_INDEX("spot_index", 21, EnumColumnType.SPOT), // 21
+	SPOT_CAGEROW("spot_cageRow", 22, EnumColumnType.SPOT), // 22
+	SPOT_CAGECOL("spot_cageCol", 23, EnumColumnType.SPOT), // 23
+	SPOT_VOLUME("Spot_ul", 24, EnumColumnType.SPOT), // 24
+	SPOT_PIXELS("Spot_npixels", 25, EnumColumnType.SPOT), // 25
+	SPOT_STIM("Spot_stimulus", 26, EnumColumnType.SPOT), // 26
+	SPOT_CONC("Spot_concentration", 27, EnumColumnType.SPOT), // 27
+	SPOT_NFLIES("Spot_nflies", 28, EnumColumnType.SPOT), // 28
+	SPOT_COLOR("Spot_color", 29, EnumColumnType.SPOT), // 29
+	DUM5("Spot_measure", 30, EnumColumnType.SPOT),
 	//
-	CAP("Cap", 18, EnumColumnType.CAP), //
-	CAP_INDEX("Cap_ID", 19, EnumColumnType.CAP), //
-	CAP_VOLUME("Cap_ul", 20, EnumColumnType.CAP), //
-	CAP_PIXELS("Cap_npixels", 21, EnumColumnType.CAP), //
-	CAP_STIM("Cap_stimulus", 22, EnumColumnType.CAP), //
-	CAP_CONC("Cap_concentration", 23, EnumColumnType.CAP), //
-	CAP_NFLIES("Cap_nflies", 24, EnumColumnType.CAP), //
-	CAP_COMMENT("Cap_comment", 25, EnumColumnType.CAP), //
-	DUM4("Cap_measure", 26, EnumColumnType.CAP);
+	CAP("Cap", 21, EnumColumnType.CAP), //
+	CAP_INDEX("Cap_ID", 22, EnumColumnType.CAP), //
+	CAP_VOLUME("Cap_ul", 23, EnumColumnType.CAP), //
+	CAP_PIXELS("Cap_npixels", 24, EnumColumnType.CAP), //
+	CAP_STIM("Cap_stimulus", 25, EnumColumnType.CAP), //
+	CAP_CONC("Cap_concentration", 26, EnumColumnType.CAP), //
+	CAP_NFLIES("Cap_nflies", 27, EnumColumnType.CAP), //
+	CAP_COMMENT("Cap_comment", 28, EnumColumnType.CAP), //
+	DUM4("Cap_measure", 29, EnumColumnType.CAP);
 
 	private final String name;
 	private int value;

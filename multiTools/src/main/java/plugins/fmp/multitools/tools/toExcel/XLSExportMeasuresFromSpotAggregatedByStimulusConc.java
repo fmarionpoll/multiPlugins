@@ -36,8 +36,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			EnumXLSColumnHeader.EXP_STIM2, EnumXLSColumnHeader.EXP_CONC2, EnumXLSColumnHeader.EXP_STRAIN,
 			EnumXLSColumnHeader.EXP_SEX, EnumXLSColumnHeader.CAGEID, EnumXLSColumnHeader.CAGEPOS,
 			EnumXLSColumnHeader.CAGE_NFLIES, EnumXLSColumnHeader.CAGE_STRAIN, EnumXLSColumnHeader.CAGE_SEX,
-			EnumXLSColumnHeader.CAGE_AGE, EnumXLSColumnHeader.CAGE_COMMENT, EnumXLSColumnHeader.SPOT_VOLUME,
-			EnumXLSColumnHeader.SPOT_STIM, EnumXLSColumnHeader.SPOT_CONC, EnumXLSColumnHeader.DUM5 };
+			EnumXLSColumnHeader.CAGE_AGE, EnumXLSColumnHeader.CAGE_COMMENT, EnumXLSColumnHeader.CAM_SAMPLE_S,
+			EnumXLSColumnHeader.ANALYSIS_BIN_S, EnumXLSColumnHeader.SPOT_VOLUME, EnumXLSColumnHeader.SPOT_STIM,
+			EnumXLSColumnHeader.SPOT_CONC, EnumXLSColumnHeader.DUM5 };
 
 	@Override
 	protected int exportExperimentData(Experiment exp, ResultsOptions resultsOptions, int startColumn, String charSeries)

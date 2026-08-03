@@ -387,6 +387,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				exp.getExperimentField(EnumXLSColumnHeader.DATE));
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAM.getValue(), transpose,
 				exp.getExperimentField(EnumXLSColumnHeader.CAM));
+		writeTimebaseColumns(sheet, new Point(x, y), transpose, exp);
 	}
 
 	/**
@@ -563,7 +564,10 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			dataValues[i] = series.getY(i).doubleValue();
 		}
 
-		// Use linear interpolation to fill all output bins (relative time origin).
+		// Event-like gulp measures: nearest-sample hold. Continuous SUMGULPS: linear.
+		boolean holdEvents = resultType == EnumResults.NBGULPS || resultType == EnumResults.AMPLITUDEGULPS
+				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR
+				|| resultType == EnumResults.MARKOV_CHAIN;
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
 			long binTimeMs = (long) binIndex * buildExcelStepMs;
 
@@ -572,14 +576,35 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				continue; // Skip bins beyond experiment duration
 			}
 
-			// Find interpolated value at binTimeMs
-			double interpolatedValue = linearInterpolate(dataTimesMs, dataValues, binTimeMs);
-			if (!Double.isNaN(interpolatedValue)) {
-				results.getValuesOut()[binIndex] = interpolatedValue;
+			double sampledValue = holdEvents ? nearestSampleHold(dataTimesMs, dataValues, binTimeMs)
+					: linearInterpolate(dataTimesMs, dataValues, binTimeMs);
+			if (!Double.isNaN(sampledValue)) {
+				results.getValuesOut()[binIndex] = sampledValue;
 			}
 		}
 
 		return results;
+	}
+
+	/**
+	 * Zero-order / nearest-neighbor sample for discrete gulp events (no linear
+	 * ramp between sparse spikes).
+	 */
+	private double nearestSampleHold(double[] timesMs, double[] values, long targetTimeMs) {
+		if (timesMs == null || values == null || timesMs.length == 0 || timesMs.length != values.length) {
+			return Double.NaN;
+		}
+		double targetTime = (double) targetTimeMs;
+		int best = 0;
+		double bestDist = Math.abs(timesMs[0] - targetTime);
+		for (int i = 1; i < timesMs.length; i++) {
+			double dist = Math.abs(timesMs[i] - targetTime);
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = i;
+			}
+		}
+		return values[best];
 	}
 
 	/**
