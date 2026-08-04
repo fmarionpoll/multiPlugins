@@ -10,25 +10,27 @@ public enum EnumXLSColumnHeader {
 	DATE("Date", 1, EnumColumnType.COMMON), // 1
 	EXP_ID("Exp_ID", 2, EnumColumnType.COMMON), // 2
 	CAM("Cam", 3, EnumColumnType.COMMON), // 3
-	EXP_EXPT("Expmt", 4, EnumColumnType.COMMON), // 4
-	EXP_STIM1("Stim1", 5, EnumColumnType.COMMON), // 5
-	EXP_CONC1("Conc1", 6, EnumColumnType.COMMON), // 6
-	EXP_STIM2("Stim2", 7, EnumColumnType.COMMON), // 7
-	EXP_CONC2("Conc2", 8, EnumColumnType.COMMON), // 8
-	EXP_STRAIN("Strain", 9, EnumColumnType.COMMON), // 9
-	EXP_SEX("Sex", 10, EnumColumnType.COMMON), // 10
+	CAM_SAMPLE_S("Cam_sample_s", 4, EnumColumnType.COMMON), // 4
+	ANALYSIS_BIN_S("Analysis_bin_s", 5, EnumColumnType.COMMON), // 5
+	//
+	EXP_EXPT("Expmt", 6, EnumColumnType.COMMON), // 6
+	EXP_STIM1("Stim1", 7, EnumColumnType.COMMON), // 7
+	EXP_CONC1("Conc1", 8, EnumColumnType.COMMON), // 8
+	EXP_STIM2("Stim2", 9, EnumColumnType.COMMON), // 9
+	EXP_CONC2("Conc2", 10, EnumColumnType.COMMON), // 10
+	EXP_STRAIN("Strain", 11, EnumColumnType.COMMON), // 11
+	EXP_SEX("Sex", 12, EnumColumnType.COMMON), // 12
 
 	//
-	CAGEID("Cage_ID", 11, EnumColumnType.COMMON), // 11
-	CAGEPOS("Cage_position", 12, EnumColumnType.COMMON), // 12
-	CAGE_NFLIES("Cage_nflies", 13, EnumColumnType.COMMON), // 13
-	CAGE_STRAIN("Cage_strain", 14, EnumColumnType.COMMON), // 14
-	CAGE_SEX("Cage_sex", 15, EnumColumnType.COMMON), // 15
-	CAGE_AGE("Cage_age", 16, EnumColumnType.COMMON), // 16
-	CAGE_COMMENT("Cage_comment", 17, EnumColumnType.COMMON), // 17
-	CAGE_FOOD_SIDE("Cage_foodSide", 18, EnumColumnType.COMMON), // 18
-	CAM_SAMPLE_S("Cam_sample_s", 19, EnumColumnType.COMMON), // 19
-	ANALYSIS_BIN_S("Analysis_bin_s", 20, EnumColumnType.COMMON), // 20
+	CAGEID("Cage_ID", 13, EnumColumnType.COMMON), // 13
+	CAGEPOS("Cage_position", 14, EnumColumnType.COMMON), // 14
+	CAGE_NFLIES("Cage_nflies", 15, EnumColumnType.COMMON), // 15
+	CAGE_STRAIN("Cage_strain", 16, EnumColumnType.COMMON), // 16
+	CAGE_SEX("Cage_sex", 17, EnumColumnType.COMMON), // 17
+	CAGE_AGE("Cage_age", 18, EnumColumnType.COMMON), // 18
+	CAGE_COMMENT("Cage_comment", 19, EnumColumnType.COMMON), // 19
+	CAGE_FOOD_SIDE("Cage_foodSide", 20, EnumColumnType.COMMON), // 20
+
 	//
 	SPOT_INDEX("spot_index", 21, EnumColumnType.SPOT), // 21
 	SPOT_CAGEROW("spot_cageRow", 22, EnumColumnType.SPOT), // 22
