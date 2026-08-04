@@ -8,10 +8,24 @@ import plugins.fmp.multitools.service.KymographService;
 public class DetectGulps extends BuildSeries {
 
 	void analyzeExperiment(Experiment exp) {
-		if (loadExperimentDataToDetectGulps(exp)) {
-			buildFilteredImage(exp);
-			new GulpDetector().detectGulps(exp, options);
+		if (!loadExperimentDataToDetectGulps(exp)) {
+			exp.getSeqKymos().closeSequence();
+			return;
 		}
+		exp.ensureFrameTimeScale();
+		if (!exp.isNativeFrameIndexedKymo()) {
+			int nFrames = exp.getAnalysisFrameCount();
+			int kymoWidth = exp.getKymoColumnCount();
+			String msg = "Gulp/derivative blocked: kymo is not native frame-indexed "
+					+ "(kymo width=" + kymoWidth + ", analysis frames=" + nFrames
+					+ "). Use a 1-column-per-frame kymo, or wait for the future curve-based detector.";
+			plugins.fmp.multitools.tools.Logger.warn("DetectGulps: " + msg);
+			icy.gui.dialog.MessageDialog.showDialog(msg, icy.gui.dialog.MessageDialog.ERROR_MESSAGE);
+			exp.getSeqKymos().closeSequence();
+			return;
+		}
+		buildFilteredImage(exp);
+		new GulpDetector().detectGulps(exp, options);
 		exp.getSeqKymos().closeSequence();
 	}
 

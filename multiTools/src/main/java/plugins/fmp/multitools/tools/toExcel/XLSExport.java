@@ -174,6 +174,9 @@ public abstract class XLSExport {
 	}
 
 	private void validateTransposedExportWithinColumnLimit() throws ExcelDataException {
+		if (options.exportLayoutMode == plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.NORMALIZED) {
+			return;
+		}
 		if (!options.transpose || expAll == null || expAll.getSeqCamData() == null) {
 			return;
 		}

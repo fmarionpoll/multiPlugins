@@ -53,6 +53,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.spots.SpotsPersistenceLegacy;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
+import plugins.fmp.multitools.experiment.timebase.FrameTimeScale;
 import plugins.fmp.multitools.experiment.timebase.MeasureTimebase;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
@@ -121,6 +122,8 @@ public class Experiment {
 	private Spots spots = new Spots();
 
 	private ExperimentTimeManager timeManager = new ExperimentTimeManager();
+	/** Analysis-interval frame timestamps + filenames; persisted as FrameTimeScale.csv. */
+	private FrameTimeScale frameTimeScale = null;
 	private ExperimentProperties prop = new ExperimentProperties();
 
 	private BinDescription activeBinDescription = new BinDescription();
@@ -253,11 +256,149 @@ public class Experiment {
 	}
 
 	public long[] getCamImages_ms() {
-		return timeManager.getCamImages_ms();
+		long[] ms = timeManager.getCamImages_ms();
+		if ((ms == null || ms.length == 0) && frameTimeScale != null && !frameTimeScale.isEmpty()) {
+			return frameTimeScale.getRelativeMs();
+		}
+		return ms;
 	}
 
 	public void setCamImages_ms(long[] ms) {
 		timeManager.setCamImages_ms(ms);
+	}
+
+	public FrameTimeScale getFrameTimeScale() {
+		return frameTimeScale;
+	}
+
+	public void setFrameTimeScale(FrameTimeScale scale) {
+		this.frameTimeScale = scale;
+		if (scale != null && !scale.isEmpty()) {
+			timeManager.setCamImages_ms(scale.getRelativeMsCopy());
+			if (scale.getT0EpochMs() >= 0) {
+				timeManager.setCamImageFirst_ms(scale.getT0EpochMs());
+			}
+			long median = scale.medianDeltaMs();
+			if (median > 0) {
+				timeManager.setCamImageBin_ms(median);
+			}
+		}
+	}
+
+	/**
+	 * Relative frame times in minutes for charts/export. Prefers persisted
+	 * {@link FrameTimeScale}; rebuilds from open cam stack if needed.
+	 */
+	public double[] getMeasureTimeMinutes() {
+		ensureFrameTimeScale();
+		if (frameTimeScale != null && !frameTimeScale.isEmpty()) {
+			return frameTimeScale.toMinutes();
+		}
+		long[] ms = getCamImages_ms();
+		if (ms == null || ms.length == 0) {
+			return null;
+		}
+		double[] minutes = new double[ms.length];
+		for (int i = 0; i < ms.length; i++) {
+			minutes[i] = ms[i] / 60000.0;
+		}
+		return minutes;
+	}
+
+	/** Analysis-interval frame count (FrameTimeScale or open ImageLoader). */
+	public int getAnalysisFrameCount() {
+		if (frameTimeScale != null && !frameTimeScale.isEmpty()) {
+			return frameTimeScale.size();
+		}
+		if (seqCamData != null && seqCamData.getImageLoader() != null) {
+			return seqCamData.getImageLoader().getNTotalFrames();
+		}
+		long[] ms = timeManager.getCamImages_ms();
+		return ms != null ? ms.length : 0;
+	}
+
+	/**
+	 * Load or rebuild FrameTimeScale. When cam is open and files differ from the
+	 * stored list, rebuild and persist.
+	 */
+	public FrameTimeScale ensureFrameTimeScale() {
+		if (frameTimeScale != null && !frameTimeScale.isEmpty()) {
+			if (seqCamData != null && seqCamData.getImageLoader() != null
+					&& seqCamData.getImageLoader().getNTotalFrames() > 0
+					&& !frameTimeScale.matchesSeqCamData(seqCamData)) {
+				rebuildFrameTimeScaleFromCam();
+			}
+			return frameTimeScale;
+		}
+		if (resultsDirectory != null) {
+			FrameTimeScale loaded = FrameTimeScale.load(resultsDirectory);
+			if (loaded != null && !loaded.isEmpty()) {
+				setFrameTimeScale(loaded);
+				if (seqCamData != null && seqCamData.getImageLoader() != null
+						&& seqCamData.getImageLoader().getNTotalFrames() > 0
+						&& !frameTimeScale.matchesSeqCamData(seqCamData)) {
+					rebuildFrameTimeScaleFromCam();
+				}
+				return frameTimeScale;
+			}
+		}
+		if (seqCamData != null && seqCamData.getImageLoader() != null
+				&& seqCamData.getImageLoader().getNTotalFrames() > 0) {
+			rebuildFrameTimeScaleFromCam();
+		}
+		return frameTimeScale;
+	}
+
+	public void rebuildFrameTimeScaleFromCam() {
+		if (seqCamData == null) {
+			return;
+		}
+		long t0 = getCamImageFirst_ms();
+		if (t0 < 0) {
+			getFileIntervalsFromSeqCamData();
+			t0 = getCamImageFirst_ms();
+		}
+		if (t0 < 0) {
+			t0 = 0;
+		}
+		FrameTimeScale built = FrameTimeScale.fromSeqCamData(seqCamData, t0);
+		if (built == null || built.isEmpty()) {
+			return;
+		}
+		setFrameTimeScale(built);
+		ensureResultsDirectoryFromImagesFolder();
+		if (resultsDirectory != null) {
+			built.save(resultsDirectory);
+		}
+	}
+
+	/**
+	 * Native measure kymo: column count must equal analysis-interval frame count.
+	 */
+	public boolean isNativeFrameIndexedKymo() {
+		int nFrames = getAnalysisFrameCount();
+		if (nFrames <= 0) {
+			return false;
+		}
+		int kymoWidth = getKymoColumnCount();
+		return kymoWidth > 0 && kymoWidth == nFrames;
+	}
+
+	public int getKymoColumnCount() {
+		if (seqKymos != null && seqKymos.getSequence() != null) {
+			int w = seqKymos.getSequence().getSizeX();
+			if (w > 0) {
+				return w;
+			}
+		}
+		if (capillaries != null) {
+			for (Capillary cap : capillaries.getList()) {
+				if (cap != null && cap.getTopLevel() != null && cap.getTopLevel().getNPoints() > 0) {
+					return cap.getTopLevel().getNPoints();
+				}
+			}
+		}
+		return -1;
 	}
 
 	public long getKymoFirst_ms() {
@@ -341,6 +482,12 @@ public class Experiment {
 
 	/** Median camera sampling interval in seconds, or -1 if unknown. */
 	public double getCameraSampleIntervalSec() {
+		if (frameTimeScale != null && !frameTimeScale.isEmpty()) {
+			long median = frameTimeScale.medianDeltaMs();
+			if (median > 0) {
+				return median / 1000.0;
+			}
+		}
 		long ms = getCamImageBin_ms();
 		if (ms <= 0) {
 			ms = getPersistedBinCameraIntervalMs();
@@ -851,7 +998,18 @@ public class Experiment {
 	}
 
 	public long[] build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(long firstImage_ms) {
-		return timeManager.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(seqCamData, firstImage_ms);
+		long[] ms = timeManager.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(seqCamData, firstImage_ms);
+		if (seqCamData != null && ms != null && ms.length > 0) {
+			FrameTimeScale built = FrameTimeScale.fromSeqCamData(seqCamData, firstImage_ms);
+			if (built != null && !built.isEmpty()) {
+				setFrameTimeScale(built);
+				ensureResultsDirectoryFromImagesFolder();
+				if (resultsDirectory != null) {
+					built.save(resultsDirectory);
+				}
+			}
+		}
+		return ms;
 	}
 
 	public void initTmsForFlyPositions(long time_start_ms) {
@@ -944,6 +1102,12 @@ public class Experiment {
 				saveBinDescription();
 			}
 		}
+		if (saved) {
+			ensureFrameTimeScale();
+			if (frameTimeScale != null && !frameTimeScale.isEmpty() && resultsDirectory != null) {
+				frameTimeScale.save(resultsDirectory);
+			}
+		}
 		return saved;
 	}
 
@@ -985,6 +1149,13 @@ public class Experiment {
 		boolean loaded = persistence.loadExperimentDescriptors(this);
 		if (loaded) {
 			checkOffsetValues();
+			FrameTimeScale loadedScale = FrameTimeScale.load(resultsDirectory);
+			if (loadedScale != null && !loadedScale.isEmpty()) {
+				setFrameTimeScale(loadedScale);
+			} else if (seqCamData != null && seqCamData.getImageLoader() != null
+					&& seqCamData.getImageLoader().getNTotalFrames() > 0) {
+				rebuildFrameTimeScaleFromCam();
+			}
 		}
 		return loaded;
 	}

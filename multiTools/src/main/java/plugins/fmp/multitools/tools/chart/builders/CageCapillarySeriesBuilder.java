@@ -225,9 +225,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		XYSeries seriesXY = new XYSeries(CapillaryChartSeriesKeys.key(cap), false);
 
-		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
-			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
-		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		double[] camImages_time_min = exp.getMeasureTimeMinutes();
 
 		CapillaryMeasure capMeasure = cap.getMeasurements(options.resultType, exp, options);
 		if (capMeasure == null)
@@ -260,9 +258,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		XYSeries thresholdSeries = new XYSeries(cage.getCageID() + "_threshold", false);
 
-		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
-			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
-		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		double[] camImages_time_min = exp.getMeasureTimeMinutes();
 
 		int npoints = thresholdMeasure.getNPoints();
 
@@ -302,9 +298,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		XYSeries evaporationSeries = new XYSeries(cage.getCageID() + "_evaporation", false);
 
-		if (exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms() == null)
-			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
-		double[] camImages_time_min = exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
+		double[] camImages_time_min = exp.getMeasureTimeMinutes();
 
 		int npoints = evaporationMeasure.getNPoints();
 

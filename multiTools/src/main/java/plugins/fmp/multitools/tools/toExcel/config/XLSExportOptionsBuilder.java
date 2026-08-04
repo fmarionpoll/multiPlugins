@@ -52,6 +52,7 @@ public class XLSExportOptionsBuilder {
 	// Output format options
 	private boolean transpose = DefaultOptions.TRANSPOSE;
 	private boolean duplicateSeries = DefaultOptions.DUPLICATE_SERIES;
+	private plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode exportLayoutMode = plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.NORMALIZED;
 	private int buildExcelStepMs = DefaultOptions.BUILD_EXCEL_STEP_MS;
 	private int buildExcelUnitMs = DefaultOptions.BUILD_EXCEL_UNIT_MS;
 	private boolean fixedIntervals = DefaultOptions.FIXED_INTERVALS;
@@ -125,6 +126,7 @@ public class XLSExportOptionsBuilder {
 
 		this.transpose = existing.transpose;
 		this.duplicateSeries = existing.duplicateSeries;
+		this.exportLayoutMode = existing.exportLayoutMode;
 		this.buildExcelStepMs = existing.buildExcelStepMs;
 		this.buildExcelUnitMs = existing.buildExcelUnitMs;
 		this.fixedIntervals = existing.fixedIntervals;
@@ -227,6 +229,12 @@ public class XLSExportOptionsBuilder {
 
 	public XLSExportOptionsBuilder withTranspose(boolean transpose) {
 		this.transpose = transpose;
+		return this;
+	}
+
+	public XLSExportOptionsBuilder withExportLayoutMode(
+			plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode exportLayoutMode) {
+		this.exportLayoutMode = exportLayoutMode;
 		return this;
 	}
 
@@ -358,6 +366,7 @@ public class XLSExportOptionsBuilder {
 
 		resultsOptions.transpose = this.transpose;
 		resultsOptions.duplicateSeries = this.duplicateSeries;
+		resultsOptions.exportLayoutMode = this.exportLayoutMode;
 		resultsOptions.buildExcelStepMs = this.buildExcelStepMs;
 		resultsOptions.buildExcelUnitMs = this.buildExcelUnitMs;
 		resultsOptions.fixedIntervals = this.fixedIntervals;

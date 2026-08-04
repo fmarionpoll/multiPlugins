@@ -79,6 +79,12 @@ public class ResultsOptions {
 	public boolean transpose = false;
 	public boolean duplicateSeries = true;
 	/**
+	 * Wide matrix ({@link plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode#WIDE})
+	 * or normalized SERIES+DATA
+	 * ({@link plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode#NORMALIZED}).
+	 */
+	public plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode exportLayoutMode = plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.NORMALIZED;
+	/**
 	 * Excel export output grid step in ms
 	 * ({@link plugins.fmp.multitools.experiment.timebase.MeasureTimebase#EXPORT_RESAMPLE_STEP}).
 	 */
@@ -210,6 +216,7 @@ public class ResultsOptions {
 
 		this.transpose = resultsOptions.transpose;
 		this.duplicateSeries = resultsOptions.duplicateSeries;
+		this.exportLayoutMode = resultsOptions.exportLayoutMode;
 		this.buildExcelStepMs = resultsOptions.buildExcelStepMs;
 		this.buildExcelUnitMs = resultsOptions.buildExcelUnitMs;
 		this.fixedIntervals = resultsOptions.fixedIntervals;

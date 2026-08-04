@@ -18,7 +18,9 @@ import plugins.fmp.multitools.tools.results.ResultsCapillaries;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumColumnType;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
+import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelResourceException;
 import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 
@@ -77,6 +79,107 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		}
 
 		return colmax;
+	}
+
+	@Override
+	protected int exportResultType(Experiment exp, int col0, String charSeries, EnumResults resultType,
+			String errorContext) throws ExcelExportException {
+		if (options.exportLayoutMode == ExportLayoutMode.NORMALIZED) {
+			try {
+				options.resultType = resultType;
+				return exportNormalizedResultType(exp, charSeries, resultType);
+			} catch (ExcelResourceException e) {
+				throw new ExcelExportException("Failed to export " + errorContext + " data (normalized)",
+						"export_result_type", resultType.toString(), e);
+			}
+		}
+		return super.exportResultType(exp, col0, charSeries, resultType, errorContext);
+	}
+
+	private int exportNormalizedResultType(Experiment exp, String charSeries, EnumResults resultType)
+			throws ExcelResourceException {
+		exp.ensureFrameTimeScale();
+		SXSSFSheet seriesSheet = NormalizedExportSupport.getOrCreateSeriesSheet(resourceManager.getWorkbook());
+		SXSSFSheet dataSheet = NormalizedExportSupport.getOrCreateDataSheet(resourceManager.getWorkbook(), resultType);
+
+		ResultsOptions resultsOptions = new ResultsOptions();
+		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
+		resultsOptions.relativeToMaximum = false;
+		resultsOptions.subtractT0 = false;
+		resultsOptions.correctEvaporation = (resultType == EnumResults.TOPLEVEL);
+		resultsOptions.resultType = resultType;
+		resultsOptions.exportLayoutMode = ExportLayoutMode.NORMALIZED;
+
+		exp.dispatchCapillariesToCages();
+		exp.getCages().prepareComputations(exp, resultsOptions);
+
+		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
+		boolean sparse = isSparseGulpLike(resultType);
+		long nativeMedian = nativeMedianMs(exp);
+		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(resultsOptions.buildExcelStepMs, nativeMedian);
+
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
+			if (capillaries == null || capillaries.isEmpty()) {
+				continue;
+			}
+			XYSeriesCollection dataset = builder.build(exp, cage, resultsOptions);
+			if (dataset == null || dataset.getSeriesCount() == 0) {
+				continue;
+			}
+			for (Capillary cap : capillaries) {
+				XYSeries series = findSeriesForCapillary(dataset, exp, cage, cap, resultType);
+				if (series == null || series.getItemCount() == 0) {
+					continue;
+				}
+				int seriesId = NormalizedExportSupport.writeSeriesDescriptors(seriesSheet, exp, charSeries, cage, cap,
+						resultType);
+				long[] timesMs = new long[series.getItemCount()];
+				double[] values = new double[series.getItemCount()];
+				for (int i = 0; i < series.getItemCount(); i++) {
+					timesMs[i] = Math.round(series.getX(i).doubleValue() * 60000.0);
+					values[i] = series.getY(i).doubleValue();
+				}
+				if (relation == ExportTimePolicy.Relation.COARSER) {
+					long step = resultsOptions.buildExcelStepMs;
+					double[] regrouped;
+					if (resultType == EnumResults.NBGULPS) {
+						regrouped = ExportTimePolicy.regroupPresence(timesMs, values, step);
+					} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS
+							|| resultType == EnumResults.SUMGULPS_LR) {
+						regrouped = ExportTimePolicy.regroupSum(timesMs, values, step);
+					} else {
+						regrouped = ExportTimePolicy.regroupHoldLast(timesMs, values, step);
+					}
+					long t0 = timesMs[0];
+					long[] centers = ExportTimePolicy.binCentersMs(t0, regrouped.length, step);
+					NormalizedExportSupport.writeDataPoints(dataSheet, seriesId, centers, regrouped, sparse);
+				} else {
+					// NATIVE or FINER: emit native samples only (no upsample)
+					NormalizedExportSupport.writeDataPoints(dataSheet, seriesId, timesMs, values, sparse);
+				}
+			}
+		}
+		return 0;
+	}
+
+	private static boolean isSparseGulpLike(EnumResults resultType) {
+		return resultType == EnumResults.NBGULPS || resultType == EnumResults.AMPLITUDEGULPS
+				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR;
+	}
+
+	private static long nativeMedianMs(Experiment exp) {
+		if (exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
+			long m = exp.getFrameTimeScale().medianDeltaMs();
+			if (m > 0) {
+				return m;
+			}
+		}
+		long cam = exp.getCamImageBin_ms();
+		return cam > 0 ? cam : exp.getKymoBin_ms();
 	}
 
 	@Override

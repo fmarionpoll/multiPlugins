@@ -28,6 +28,17 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 public class GulpDetector {
 
 	public void detectGulps(Experiment exp, BuildSeriesOptions options) {
+		if (!exp.isNativeFrameIndexedKymo()) {
+			int nFrames = exp.getAnalysisFrameCount();
+			int kymoWidth = exp.getKymoColumnCount();
+			String msg = "Gulp/derivative detection requires a native frame-indexed kymo "
+					+ "(one column per analysis-interval frame). " + "Got kymo width=" + kymoWidth
+					+ ", analysis frames=" + nFrames
+					+ ". QC downsampled kymos are browse-only; alternate curve-based detection is not yet implemented.";
+			Logger.warn("GulpDetector:detectGulps() - " + msg);
+			throw new IllegalStateException(msg);
+		}
+
 		exp.getSeqKymos().getSequence().beginUpdate();
 
 		if (options.buildDerivative) {

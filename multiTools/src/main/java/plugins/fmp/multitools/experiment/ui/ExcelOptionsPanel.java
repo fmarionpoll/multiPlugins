@@ -55,6 +55,8 @@ public class ExcelOptionsPanel extends JPanel {
 	private final JCheckBox collateSeriesCheckBox = new JCheckBox("collate series", false);
 	private final JCheckBox padIntervalsCheckBox = new JCheckBox("pad intervals", false);
 	private final JCheckBox onlyAliveCheckBox = new JCheckBox("dead=empty", false);
+	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (SERIES+DATA)", true);
+	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix", false);
 
 	private final JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
 	private final JComboBoxMs binUnit = new JComboBoxMs();
@@ -87,6 +89,15 @@ public class ExcelOptionsPanel extends JPanel {
 		if (features.onlyAlive)
 			panel0.add(onlyAliveCheckBox);
 		add(panel0);
+
+		JPanel panelLayout = new JPanel(layout1);
+		panelLayout.add(new JLabel("layout "));
+		panelLayout.add(layoutNormalizedButton);
+		panelLayout.add(layoutWideButton);
+		ButtonGroup layoutGroup = new ButtonGroup();
+		layoutGroup.add(layoutNormalizedButton);
+		layoutGroup.add(layoutWideButton);
+		add(panelLayout);
 
 		JPanel panel1 = new JPanel(layout1);
 		panel1.add(new JLabel("Analyze "));
@@ -151,6 +162,10 @@ public class ExcelOptionsPanel extends JPanel {
 
 	public boolean isTranspose() {
 		return transposeCheckBox.isSelected();
+	}
+
+	public boolean isExportLayoutNormalized() {
+		return layoutNormalizedButton.isSelected();
 	}
 
 	public boolean isCollateSeries() {

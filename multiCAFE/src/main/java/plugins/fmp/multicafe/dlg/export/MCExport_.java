@@ -235,6 +235,9 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 
 	private void getCommonOptions(ResultsOptions resultsOptions, Experiment exp) {
 		resultsOptions.transpose = tabCommonOptions.isTranspose();
+		resultsOptions.exportLayoutMode = tabCommonOptions.isExportLayoutNormalized()
+				? plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.NORMALIZED
+				: plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.WIDE;
 		resultsOptions.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
 		resultsOptions.buildExcelUnitMs = tabCommonOptions.getBinUnitMs();
 		resultsOptions.fixedIntervals = tabCommonOptions.getIsFixedFrame();
