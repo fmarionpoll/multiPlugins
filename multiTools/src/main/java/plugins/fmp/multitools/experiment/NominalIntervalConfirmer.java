@@ -67,4 +67,39 @@ public final class NominalIntervalConfirmer {
 				"Confirm nominal interval", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
 		return choice == JOptionPane.YES_OPTION;
 	}
+
+	/**
+	 * Native measure kymos cannot invent samples finer than the camera. If
+	 * {@code requestedBinMs} is more than 1 s finer than {@code medianCameraMs},
+	 * clamps to the camera median and logs a warning to the console (never shows a
+	 * dialog — safe for batch).
+	 *
+	 * @return bin ms to use (unchanged, or camera median when clamped)
+	 */
+	public static long clampBinMsToCameraSampling(long requestedBinMs, long medianCameraMs) {
+		if (requestedBinMs <= 0 || medianCameraMs <= 0) {
+			return requestedBinMs;
+		}
+		if (requestedBinMs + 1000L >= medianCameraMs) {
+			return requestedBinMs;
+		}
+		String msg = String.format(
+				"Analysis interval (%.1f s) is finer than camera sampling (%.1f s). "
+						+ "Building native kymograph at camera resolution (%d s); one column per frame.",
+				requestedBinMs / 1000.0, medianCameraMs / 1000.0, Math.round(medianCameraMs / 1000.0));
+		plugins.fmp.multitools.tools.Logger.warn("NominalIntervalConfirmer: " + msg);
+		return medianCameraMs;
+	}
+
+	/** @deprecated use {@link #clampBinMsToCameraSampling(long, long)} */
+	public static long clampBinMsToCameraSampling(Component parent, long requestedBinMs, long medianCameraMs,
+			boolean showDialog) {
+		return clampBinMsToCameraSampling(requestedBinMs, medianCameraMs);
+	}
+
+	/** @deprecated use {@link #clampBinMsToCameraSampling(long, long)} */
+	public static boolean acceptRequestedBinVsCamera(Component parent, long requestedBinMs, long medianCameraMs) {
+		clampBinMsToCameraSampling(requestedBinMs, medianCameraMs);
+		return true;
+	}
 }

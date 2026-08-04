@@ -274,9 +274,15 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 			return;
 
 		long medianMs = detectedMs;
-		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
-				exp.getNominalIntervalSec() >= 0))
-			return;
+		bin_ms = NominalIntervalConfirmer.clampBinMsToCameraSampling(bin_ms, medianMs);
+		if (medianMs > 0 && bin_ms == medianMs) {
+			double unitMs = binUnit.getMsUnitValue();
+			if (unitMs > 0) {
+				binSizeJSpinner.setValue(bin_ms / unitMs);
+			}
+		}
+		nominalSec = (int) Math.max(1, Math.round(bin_ms / 1000.0));
+		nominalIntervalJSpinner.setValue(nominalSec);
 
 		exp.getSeqCamData().getTimeManager().setBinImage_ms(bin_ms);
 		exp.setCamImageBin_ms(bin_ms);
@@ -437,11 +443,11 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		if (detectedMs <= 0)
 			return true;
 		double ratio = requestedMs / (double) detectedMs;
-		if (ratio >= 0.5 && ratio <= 10.0)
+		if (ratio <= 10.0)
 			return true;
 		String msg = String.format(
-				"The requested analysis interval (%.1f s) is very different from the detected\n"
-						+ "frame interval (%.1f s). This usually indicates a mistake.\n\nKeep this value anyway?",
+				"The requested analysis interval (%.1f s) is much coarser than the detected\n"
+						+ "frame interval (%.1f s). Keep this value anyway?",
 				requestedMs / 1000.0, detectedMs / 1000.0);
 		int choice = JOptionPane.showConfirmDialog(this, msg, "Unusual analysis interval", JOptionPane.YES_NO_OPTION,
 				JOptionPane.WARNING_MESSAGE);

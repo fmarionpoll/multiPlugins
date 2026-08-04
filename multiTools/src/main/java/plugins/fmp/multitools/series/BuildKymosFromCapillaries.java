@@ -8,6 +8,7 @@ import javax.swing.SwingUtilities;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.KymographBuilder;
 import plugins.fmp.multitools.tools.Logger;
@@ -42,6 +43,12 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 		KymographBuilder builder = new KymographBuilder();
 		if (builder.buildKymograph(exp, options)) {
 			exp.saveExperimentDescriptors();
+			// Session bin hint must follow the directory we just wrote (e.g. bin_300),
+			// not a legacy bin_60 left from before the rebuild.
+			if (options.expList != null && exp.getBinSubDirectory() != null) {
+				options.expList.expListBinSubDirectory = exp.getBinSubDirectory();
+				plugins.fmp.multitools.experiment.BinDirectoryResolver.clearSessionRemembered();
+			}
 		}
 
 		try {
@@ -79,7 +86,20 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 
 	protected void getTimeLimitsOfSequence(Experiment exp) {
 		exp.getFileIntervalsFromSeqCamData();
-		exp.setKymoBin_ms(options.t_Ms_BinDuration);
+		long requested = options.t_Ms_BinDuration;
+		long medianMs = exp.getCamImageBin_ms();
+		if (medianMs <= 0 && exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
+			medianMs = exp.getFrameTimeScale().medianDeltaMs();
+		}
+		// Batch-safe: console warn only; never abort. Native width is still 1 col/frame.
+		long binMs = NominalIntervalConfirmer.clampBinMsToCameraSampling(requested, medianMs);
+		options.t_Ms_BinDuration = binMs;
+		exp.setKymoBin_ms(binMs);
+		// Keep nominal in sync — getBinNameFromKymoFrameStep() prefers nominal and would
+		// otherwise keep writing into legacy bin_60 while kymoBin is already 300 s.
+		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
+		exp.setNominalIntervalSec(nominalSec);
+		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 		if (options.isFrameFixed) {
 			exp.setKymoFirst_ms(options.t_Ms_First);
 			exp.setKymoLast_ms(options.t_Ms_Last);

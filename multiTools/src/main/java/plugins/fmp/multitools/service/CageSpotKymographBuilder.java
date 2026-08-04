@@ -115,18 +115,28 @@ public class CageSpotKymographBuilder {
 		long step_ms = exp.getKymoBin_ms();
 
 		int nTotalFrames = seqCamData.getImageLoader().getNTotalFrames();
-		int lowIndex = 0;
-		int highIndex = (nTotalFrames > 0) ? (nTotalFrames - 1) : 0;
-		if (highIndex < lowIndex) {
-			highIndex = lowIndex;
-		}
 		long[] camImages_ms = exp.getCamImages_ms();
-		if (camImages_ms != null && highIndex < camImages_ms.length) {
-			last_ms = Math.min(last_ms, camImages_ms[highIndex]);
+		if (camImages_ms != null && nTotalFrames > 0 && nTotalFrames <= camImages_ms.length) {
+			last_ms = Math.min(last_ms, camImages_ms[nTotalFrames - 1]);
 		}
 
-		int expectedWidth = (step_ms > 0) ? Math.max(1, 1 + (int) Math.ceil((last_ms - first_ms) / (double) step_ms))
-				: 1;
+		// Native: one column per analysis-interval camera frame
+		java.util.ArrayList<Integer> frameIndices = new java.util.ArrayList<>();
+		for (int i = 0; i < nTotalFrames; i++) {
+			long t = (camImages_ms != null && i < camImages_ms.length) ? camImages_ms[i] : i;
+			if (t < first_ms || t > last_ms) {
+				continue;
+			}
+			frameIndices.add(i);
+		}
+		if (frameIndices.isEmpty()) {
+			for (int i = 0; i < nTotalFrames; i++) {
+				frameIndices.add(i);
+			}
+		}
+		int expectedWidth = Math.max(1, frameIndices.size());
+		Logger.info("CageSpotKymographBuilder: native kymo width=" + expectedWidth + " (analysis frames="
+				+ nTotalFrames + ")");
 
 		Sequence seq = seqCamData.getSequence();
 		final int refSizex = seq.getSizeX();
@@ -158,8 +168,7 @@ public class CageSpotKymographBuilder {
 			planProcessor.setPriority(Processor.NORM_PRIORITY);
 		}
 		for (int col = 0; col < expectedWidth; col++) {
-			long ii_ms = first_ms + col * step_ms;
-			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
+			int sourceImageIndex = frameIndices.get(col);
 			if (sourceImageIndex < 0) {
 				continue;
 			}

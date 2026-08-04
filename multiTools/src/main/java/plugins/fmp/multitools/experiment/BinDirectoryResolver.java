@@ -115,7 +115,8 @@ public final class BinDirectoryResolver {
 
 		List<BinCandidate> candidates = scanCandidates(resultsPath, ctx.detectedIntervalMs);
 
-		if (ctx.previouslySelected != null) {
+		if (ctx.previouslySelected != null
+				&& isBinNameCompatibleWithDetectedInterval(ctx.previouslySelected, ctx)) {
 			Path prevPath = resultsPath.resolve(ctx.previouslySelected);
 			if (Files.isDirectory(prevPath)) {
 				return pickNewestKymographBinInFamily(resultsPath, ctx.previouslySelected);
@@ -125,7 +126,8 @@ public final class BinDirectoryResolver {
 			}
 		}
 
-		if (ctx.useSessionRemembered && rememberedBinForSession != null) {
+		if (ctx.useSessionRemembered && rememberedBinForSession != null
+				&& isBinNameCompatibleWithDetectedInterval(rememberedBinForSession, ctx)) {
 			Path memPath = resultsPath.resolve(rememberedBinForSession);
 			if (Files.isDirectory(memPath)) {
 				return pickNewestKymographBinInFamily(resultsPath, rememberedBinForSession);
@@ -187,6 +189,57 @@ public final class BinDirectoryResolver {
 		if (ctx.detectedIntervalMs > 0)
 			return Experiment.binDirectoryNameFromMs(ctx.detectedIntervalMs);
 		return null;
+	}
+
+	/**
+	 * Session/previous bin hints must not force a legacy {@code bin_60} when the
+	 * camera (or nominal) interval is ~300 s. Compatible if the bin name seconds
+	 * are within {@link #CAM_TOLERANCE_SEC} of detected camera or nominal.
+	 */
+	static boolean isBinNameCompatibleWithDetectedInterval(String binName, Context ctx) {
+		if (binName == null || ctx == null) {
+			return true;
+		}
+		int binSec = parseBinDirectorySeconds(binName);
+		if (binSec <= 0) {
+			return true;
+		}
+		if (ctx.detectedIntervalMs > 0) {
+			int camSec = (int) Math.round(ctx.detectedIntervalMs / 1000.0);
+			if (Math.abs(binSec - camSec) <= CAM_TOLERANCE_SEC) {
+				return true;
+			}
+		}
+		if (ctx.nominalIntervalSec > 0) {
+			if (Math.abs(binSec - ctx.nominalIntervalSec) <= CAM_TOLERANCE_SEC) {
+				return true;
+			}
+		}
+		// No interval known → keep legacy short-circuit behavior
+		if (ctx.detectedIntervalMs <= 0 && ctx.nominalIntervalSec <= 0) {
+			return true;
+		}
+		return false;
+	}
+
+	static int parseBinDirectorySeconds(String binName) {
+		if (binName == null || !binName.startsWith(Experiment.BIN)) {
+			return -1;
+		}
+		String tail = binName.substring(Experiment.BIN.length());
+		Matcher flip = BIN_WITH_FLIP_REVISION.matcher(binName);
+		if (flip.matches()) {
+			try {
+				return Integer.parseInt(flip.group(1));
+			} catch (NumberFormatException e) {
+				return -1;
+			}
+		}
+		try {
+			return Integer.parseInt(tail);
+		} catch (NumberFormatException e) {
+			return -1;
+		}
 	}
 
 	/**

@@ -181,14 +181,20 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 		BuildSeriesOptions options = initBuildParameters(exp);
 		long binMs = options.t_Ms_BinDuration;
+
+		exp.getFileIntervalsFromSeqCamData();
+		long medianMs = exp.getCamImageBin_ms();
+		if (medianMs <= 0 && exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
+			medianMs = exp.getFrameTimeScale().medianDeltaMs();
+		}
+		// Console warn only — never block with a dialog (batch-safe).
+		binMs = NominalIntervalConfirmer.clampBinMsToCameraSampling(binMs, medianMs);
+		options.t_Ms_BinDuration = binMs;
 		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
-		long medianMs = exp.getSeqCamData() != null ? exp.getCamImageBin_ms() : 0;
-		if (medianMs > 0 && !NominalIntervalConfirmer.confirmNominalIfFarFromMedian(this, nominalSec, medianMs,
-				exp.getNominalIntervalSec() >= 0))
-			return;
 
 		exp.setNominalIntervalSec(nominalSec);
 		exp.setKymoBin_ms(binMs);
+		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 
 		exp.releaseKymographSequence();
 		parent0.paneCapillaries.tabFile.saveCapillaries_file(exp);

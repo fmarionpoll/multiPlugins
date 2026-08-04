@@ -253,19 +253,40 @@ public class KymographBuilder {
 			last_ms = exp.getKymoLast_ms();
 		}
 
-		long step_ms = exp.getKymoBin_ms();
-
 		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		int lowIndex = 0;
-		int highIndex = (nTotalFrames > 0) ? (nTotalFrames - 1) : 0;
-		if (highIndex < lowIndex)
-			highIndex = lowIndex;
 		long[] camImages_ms = exp.getCamImages_ms();
-		if (camImages_ms != null && highIndex < camImages_ms.length)
-			last_ms = Math.min(last_ms, camImages_ms[highIndex]);
+		if (camImages_ms != null && nTotalFrames > 0 && nTotalFrames <= camImages_ms.length) {
+			last_ms = Math.min(last_ms, camImages_ms[nTotalFrames - 1]);
+		}
 
-		int expectedWidth = (step_ms > 0) ? Math.max(1, 1 + (int) Math.ceil((last_ms - first_ms) / (double) step_ms))
-				: 1;
+		// Native measure kymo: one column per analysis-interval camera frame (no
+		// hold-fill onto a finer analysis grid). Always include every loaded frame
+		// unless a fixed time window is requested.
+		java.util.ArrayList<Integer> frameIndices = new java.util.ArrayList<>();
+		boolean fixedWindow = options != null && options.isFrameFixed;
+		for (int i = 0; i < nTotalFrames; i++) {
+			if (fixedWindow) {
+				long t = (camImages_ms != null && i < camImages_ms.length) ? camImages_ms[i] : -1;
+				if (t < 0 || t < first_ms || t > last_ms) {
+					continue;
+				}
+			}
+			frameIndices.add(i);
+		}
+		if (frameIndices.isEmpty() && nTotalFrames > 0) {
+			Logger.warn("KymographBuilder: fixed window excluded all frames; using all " + nTotalFrames
+					+ " analysis frames");
+			for (int i = 0; i < nTotalFrames; i++) {
+				frameIndices.add(i);
+			}
+		}
+		int expectedWidth = Math.max(1, frameIndices.size());
+		Logger.info("KymographBuilder: native kymo width=" + expectedWidth + " (analysis frames=" + nTotalFrames
+				+ ", fixedWindow=" + fixedWindow + ")");
+		if (expectedWidth <= 0 || nTotalFrames <= 0) {
+			Logger.error("KymographBuilder: no frames to process (nTotalFrames=" + nTotalFrames + ")");
+			return false;
+		}
 		initArraysToBuildKymographImages(exp, options, expectedWidth);
 
 		int sourceLastImageIndex = nTotalFrames;
@@ -282,8 +303,7 @@ public class KymographBuilder {
 		tasks.clear();
 
 		for (int iToColumn = 0; iToColumn < expectedWidth; iToColumn++) {
-			long ii_ms = first_ms + iToColumn * step_ms;
-			int sourceImageIndex = exp.findNearestIntervalWithBinarySearch(ii_ms, lowIndex, highIndex);
+			int sourceImageIndex = frameIndices.get(iToColumn);
 			if (sourceImageIndex < 0)
 				continue;
 

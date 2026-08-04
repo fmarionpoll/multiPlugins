@@ -52,7 +52,6 @@ public class LevelDetectorFromKymo {
 		final int jitter = 10;
 		final ImageTransformInterface transformPass1 = options.transform01.getFunction();
 		final ImageTransformInterface transformPass2 = options.transform02.getFunction();
-		final Rectangle searchRect = options.searchArea;
 		SequenceLoaderService loader = new SequenceLoaderService();
 
 		for (int iKymo = firsKymo; iKymo <= lastKymo; iKymo++) {
@@ -76,6 +75,11 @@ public class LevelDetectorFromKymo {
 				public void run() {
 					int imageWidth = rawImage.getSizeX();
 					int imageHeight = rawImage.getSizeY();
+					// Full-frame search must use THIS image size (batch reuses options from
+					// the first experiment whose searchArea height may be shorter).
+					final Rectangle searchRect = options.analyzePartOnly && options.searchArea != null
+							? options.searchArea
+							: new Rectangle(0, 0, imageWidth, imageHeight);
 
 					if (options.pass1)
 						detectPass1(rawImage, transformPass1, capi, imageWidth, imageHeight, searchRect, jitter,
