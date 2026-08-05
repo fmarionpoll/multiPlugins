@@ -7,8 +7,10 @@ import java.awt.FontMetrics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeListener;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,6 +37,7 @@ import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
@@ -42,6 +45,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.filechooser.FileNameExtensionFilter;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
@@ -113,6 +117,7 @@ public class SelectFilesPanel extends JPanel {
 	private IcyFrame dialogFrame = null;
 	private final JComboBox<String> filterCombo;
 	private final JButton findButton = new JButton("Select root directory and search...");
+	private final JButton loadListButton = new JButton("Load list...");
 	private final JButton clearSelectedButton = new JButton("Clear selected");
 	private final JButton clearAllButton = new JButton("Clear all");
 	private final JButton addSelectedButton = new JButton("Add selected");
@@ -214,6 +219,7 @@ public class SelectFilesPanel extends JPanel {
 		bg.add(rbFile);
 		bg.add(rbDirectory);
 		topPanel.add(findButton);
+		topPanel.add(loadListButton);
 		topPanel.add(filterCombo);
 		topPanel.add(rbFile);
 		topPanel.add(rbDirectory);
@@ -269,6 +275,13 @@ public class SelectFilesPanel extends JPanel {
 			}
 		});
 
+		loadListButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				loadPathsFromTextFile();
+			}
+		});
+
 		clearSelectedButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -309,6 +322,106 @@ public class SelectFilesPanel extends JPanel {
 				close();
 			}
 		});
+	}
+
+	/**
+	 * Load paths from a text file (one path per line). Blank lines and {@code #}
+	 * comments are skipped. Relative paths resolve against the last used search
+	 * root when available. Existing files/directories are added to the result list;
+	 * use Add selected/all as after a normal search.
+	 */
+	private void loadPathsFromTextFile() {
+		File listFile = chooseListFile(getPreferencesPath());
+		if (listFile == null) {
+			return;
+		}
+		Path baseDir = null;
+		String lastRoot = getPreferencesPath();
+		if (lastRoot != null && !lastRoot.isEmpty()) {
+			Path p = Paths.get(lastRoot);
+			if (Files.isDirectory(p)) {
+				baseDir = p;
+			}
+		}
+		if (baseDir == null && listFile.getParentFile() != null) {
+			baseDir = listFile.getParentFile().toPath();
+		}
+
+		int added = 0;
+		int skippedMissing = 0;
+		int skippedDup = 0;
+		int lines = 0;
+		try (BufferedReader reader = Files.newBufferedReader(listFile.toPath(), StandardCharsets.UTF_8)) {
+			String line;
+			while ((line = reader.readLine()) != null) {
+				lines++;
+				String trimmed = line.trim();
+				if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+					continue;
+				}
+				// Allow optional CSV first column: path,other...
+				if (trimmed.indexOf(',') >= 0) {
+					trimmed = trimmed.substring(0, trimmed.indexOf(',')).trim();
+				}
+				if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+						|| (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+					trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+				}
+				if (trimmed.isEmpty()) {
+					continue;
+				}
+				Path path = Paths.get(trimmed);
+				if (!path.isAbsolute() && baseDir != null) {
+					path = baseDir.resolve(path).normalize();
+				}
+				if (!Files.exists(path)) {
+					skippedMissing++;
+					Logger.warn("SelectFilesPanel: load list path not found: " + path);
+					continue;
+				}
+				String resolved = resolveImagesDirectory(path.toString());
+				String toAdd = resolved != null ? resolved : path.toAbsolutePath().normalize().toString();
+				int before = ((DefaultListModel<String>) directoriesJList.getModel()).getSize();
+				addNameToListIfNew(toAdd);
+				int after = ((DefaultListModel<String>) directoriesJList.getModel()).getSize();
+				if (after > before) {
+					added++;
+				} else {
+					skippedDup++;
+				}
+			}
+		} catch (IOException e) {
+			Logger.warn("SelectFilesPanel: failed to read list file " + listFile + ": " + e.getMessage(), e);
+			JOptionPane.showMessageDialog(this, "Failed to read list file:\n" + e.getMessage(), "Load list",
+					JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		JOptionPane.showMessageDialog(this,
+				"Loaded " + added + " path(s) from " + lines + " line(s).\n" + "Missing: " + skippedMissing
+						+ ", already listed: " + skippedDup + ".\n"
+						+ "Use Add selected / Add all to load experiments.",
+				"Load list", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	private File chooseListFile(String startDirectory) {
+		JFileChooser fc = new JFileChooser();
+		if (startDirectory != null && !startDirectory.isEmpty()) {
+			File start = new File(startDirectory);
+			if (start.isDirectory()) {
+				fc.setCurrentDirectory(start);
+			}
+		}
+		fc.setDialogTitle("Load path list (.txt)");
+		fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		fc.setMultiSelectionEnabled(false);
+		fc.setAcceptAllFileFilterUsed(true);
+		FileNameExtensionFilter filter = new FileNameExtensionFilter("Text / CSV list (*.txt, *.csv)", "txt", "csv");
+		fc.setFileFilter(filter);
+		if (fc.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+			return fc.getSelectedFile();
+		}
+		return null;
 	}
 
 	private void removeListofNamesFromList(List<String> selectedItems) {
@@ -750,28 +863,81 @@ public class SelectFilesPanel extends JPanel {
 	private void addNamesToSelectedList(List<String> stringList) {
 		if (selectedNames == null)
 			return;
+		int skippedNoImages = 0;
 		for (String name : stringList) {
-			Path p = Paths.get(name);
-			String directoryName = null;
-			File f = p.toFile();
-			if (f.isDirectory()) {
-				directoryName = p.toString();
-			} else if (p.getParent() != null) {
-				directoryName = p.getParent().toString();
-			}
-			if (directoryName == null) {
+			String imagesDir = resolveImagesDirectory(name);
+			if (imagesDir == null) {
+				skippedNoImages++;
+				Logger.warn("SelectFilesPanel: no JPG images under path (need cam*/grabs or image folder): " + name);
 				continue;
 			}
-			if (isDirectoryWithJpg(directoryName))
-				selectedNames.add(directoryName);
+			if (!selectedNames.contains(imagesDir)) {
+				selectedNames.add(imagesDir);
+			}
 		}
 		Collections.sort(selectedNames);
+		if (selectedNames.isEmpty() && skippedNoImages > 0) {
+			JOptionPane.showMessageDialog(this,
+					"None of the " + skippedNoImages
+							+ " selected path(s) contain JPG images.\n"
+							+ "For multiCAFE, list cam*/grabs (or cam* — grabs is auto-detected).",
+					"Add experiments", JOptionPane.WARNING_MESSAGE);
+		}
+	}
+
+	/**
+	 * Map a listed path to the camera images directory (folder that contains
+	 * {@code .jpg} files). Accepts a grabs dir, a cam* parent (uses {@code grabs/}
+	 * when present), a file under images, or a results/bin path (strips to parent).
+	 *
+	 * @return absolute images directory, or {@code null} if no JPGs found
+	 */
+	private String resolveImagesDirectory(String pathString) {
+		if (pathString == null || pathString.trim().isEmpty()) {
+			return null;
+		}
+		Path p = Paths.get(pathString.trim());
+		if (!p.isAbsolute()) {
+			p = p.toAbsolutePath();
+		}
+		p = p.normalize();
+		if (!Files.exists(p)) {
+			return null;
+		}
+		if (Files.isRegularFile(p) && p.getParent() != null) {
+			p = p.getParent();
+		}
+		if (!Files.isDirectory(p)) {
+			return null;
+		}
+
+		String stripped = ExperimentDirectories.getImagesDirectoryAsParentFromFileName(p.toString());
+		Path candidate = Paths.get(stripped);
+
+		if (directoryHasJpg(candidate)) {
+			return candidate.toAbsolutePath().normalize().toString();
+		}
+		Path grabs = candidate.resolve("grabs");
+		if (Files.isDirectory(grabs) && directoryHasJpg(grabs)) {
+			return grabs.toAbsolutePath().normalize().toString();
+		}
+		// Listed path is already cam* but stripping didn't apply; try grabs under p
+		Path grabsDirect = p.resolve("grabs");
+		if (Files.isDirectory(grabsDirect) && directoryHasJpg(grabsDirect)) {
+			return grabsDirect.toAbsolutePath().normalize().toString();
+		}
+		return null;
+	}
+
+	private static boolean directoryHasJpg(Path dir) {
+		if (dir == null || !Files.isDirectory(dir)) {
+			return false;
+		}
+		File[] files = dir.toFile().listFiles((d, name) -> name != null && name.toLowerCase().endsWith(".jpg"));
+		return files != null && files.length > 0;
 	}
 
 	private boolean isDirectoryWithJpg(String directoryName) {
-		String imageDirectory = ExperimentDirectories.getImagesDirectoryAsParentFromFileName(directoryName);
-		File dir = new File(imageDirectory);
-		File[] files = dir.listFiles((d, name) -> name != null && name.toLowerCase().endsWith(".jpg"));
-		return files != null && files.length > 0;
+		return resolveImagesDirectory(directoryName) != null;
 	}
 }
