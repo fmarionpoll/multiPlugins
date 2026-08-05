@@ -134,9 +134,20 @@ public class CageSpotKymographBuilder {
 				frameIndices.add(i);
 			}
 		}
+		int factor = 1;
+		if (options != null && options.kymoDownsampleFactor > 1) {
+			factor = options.kymoDownsampleFactor;
+		}
+		if (factor > 1 && frameIndices.size() > 1) {
+			java.util.ArrayList<Integer> subsampled = new java.util.ArrayList<>();
+			for (int i = 0; i < frameIndices.size(); i += factor) {
+				subsampled.add(frameIndices.get(i));
+			}
+			frameIndices = subsampled;
+		}
 		int expectedWidth = Math.max(1, frameIndices.size());
-		Logger.info("CageSpotKymographBuilder: native kymo width=" + expectedWidth + " (analysis frames="
-				+ nTotalFrames + ")");
+		Logger.info("CageSpotKymographBuilder: kymo width=" + expectedWidth + " (analysis frames="
+				+ nTotalFrames + ", downsample=x" + factor + ")");
 
 		Sequence seq = seqCamData.getSequence();
 		final int refSizex = seq.getSizeX();

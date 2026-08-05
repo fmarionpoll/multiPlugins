@@ -10,8 +10,10 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.ButtonGroup;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
@@ -22,23 +24,21 @@ import javax.swing.SwingConstants;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
+import plugins.fmp.multitools.experiment.GenerationMode;
 import plugins.fmp.multitools.series.BuildKymosFromCapillaries;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 public class CreateKymos extends JPanel implements PropertyChangeListener {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1771360416354320887L;
+	private static final int MAX_DOWNSAMPLE = 10;
 	private String detectString = "Start";
 
 	JButton startComputationButton = new JButton("Start");
 	JSpinner diskRadiusSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
 	JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
-	JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
-	JComboBoxMs binUnit = new JComboBoxMs();
+	JComboBox<String> downsampleCombo = new JComboBox<>();
+	JLabel samplingHintLabel = new JLabel(" ");
 
 	JRadioButton isFloatingFrameButton = new JRadioButton("all", true);
 	JRadioButton isFixedFrameButton = new JRadioButton("from ", false);
@@ -49,8 +49,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 	EnumStatusComputation sComputation = EnumStatusComputation.START_COMPUTATION;
 	private MultiCAFE parent0 = null;
 	private BuildKymosFromCapillaries threadBuildKymo = null;
-
-	// -----------------------------------------------------
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -65,13 +63,19 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		panel0.add(allSeriesCheckBox);
 		add(panel0);
 
+		DefaultComboBoxModel<String> dsModel = new DefaultComboBoxModel<>();
+		for (int i = 1; i <= MAX_DOWNSAMPLE; i++) {
+			dsModel.addElement("x" + i);
+		}
+		downsampleCombo.setModel(dsModel);
+		downsampleCombo.setSelectedIndex(0);
+
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("area around ROIs", SwingConstants.RIGHT));
 		panel1.add(diskRadiusSpinner);
-		panel1.add(new JLabel("analysis interval "));
-		panel1.add(binSize);
-		panel1.add(binUnit);
-		binUnit.setSelectedIndex(1);
+		panel1.add(new JLabel("downsample"));
+		panel1.add(downsampleCombo);
+		panel1.add(samplingHintLabel);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
@@ -82,7 +86,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		startJSpinner.setPreferredSize(new Dimension(80, 20));
 		panel2.add(new JLabel(" to "));
 		panel2.add(endJSpinner);
-		startJSpinner.setPreferredSize(new Dimension(80, 20));
+		endJSpinner.setPreferredSize(new Dimension(80, 20));
 		panel2.add(intervalsUnit);
 		intervalsUnit.setSelectedIndex(2);
 		add(panel2);
@@ -96,12 +100,15 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 	}
 
 	public void syncFromExperiment(Experiment exp) {
-		if (exp == null)
+		if (exp == null) {
+			samplingHintLabel.setText(" ");
 			return;
-		int nominal = exp.getNominalIntervalSec();
-		int value = nominal > 0 ? nominal : parent0.viewOptions.getDefaultNominalIntervalSec();
-		binSize.setValue(Double.valueOf(Math.max(1, value)));
-		binUnit.setSelectedIndex(1);
+		}
+		int stored = Math.max(1, exp.getKymoSubsampleFactor());
+		if (stored >= 1 && stored <= MAX_DOWNSAMPLE) {
+			downsampleCombo.setSelectedIndex(stored - 1);
+		}
+		updateSamplingHint(exp);
 	}
 
 	private void defineActionListeners() {
@@ -140,12 +147,42 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 			}
 		});
 
+		downsampleCombo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateSamplingHint((Experiment) parent0.expListComboLazy.getSelectedItem());
+			}
+		});
+	}
+
+	private void updateSamplingHint(Experiment exp) {
+		if (exp == null) {
+			samplingHintLabel.setText(" ");
+			return;
+		}
+		exp.getFileIntervalsFromSeqCamData();
+		long medianMs = exp.getCamImageBin_ms();
+		if (medianMs <= 0 && exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
+			medianMs = exp.getFrameTimeScale().medianDeltaMs();
+		}
+		int factor = getDownsampleFactor();
+		if (medianMs > 0) {
+			double sec = medianMs / 1000.0;
+			samplingHintLabel.setText(String.format("Native ~%.1fs · keep every %d frame(s)", sec, Integer.valueOf(factor)));
+		} else {
+			samplingHintLabel.setText("Native sampling unknown · keep every " + factor + " frame(s)");
+		}
 	}
 
 	private void enableIntervalButtons(boolean isSelected) {
 		startJSpinner.setEnabled(isSelected);
 		endJSpinner.setEnabled(isSelected);
 		intervalsUnit.setEnabled(isSelected);
+	}
+
+	private int getDownsampleFactor() {
+		int idx = downsampleCombo.getSelectedIndex();
+		return Math.max(1, idx + 1);
 	}
 
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {
@@ -160,11 +197,11 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		options.isFrameFixed = getIsFixedFrame();
 		options.t_Ms_First = getStartMs();
 		options.t_Ms_Last = getEndMs();
-		options.t_Ms_BinDuration = (long) ((double) binSize.getValue() * (double) binUnit.getMsUnitValue());
+		options.kymoDownsampleFactor = getDownsampleFactor();
 
 		options.diskRadius = (int) diskRadiusSpinner.getValue();
-		options.doRegistration = false; // doRegistrationCheckBox.isSelected();
-		options.referenceFrame = 0; // (int) startFrameSpinner.getValue();
+		options.doRegistration = false;
+		options.referenceFrame = 0;
 		options.concurrentDisplay = false;
 		options.doCreateBinDir = true;
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
@@ -180,20 +217,27 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 			return;
 
 		BuildSeriesOptions options = initBuildParameters(exp);
-		long binMs = options.t_Ms_BinDuration;
+		int factor = Math.max(1, options.kymoDownsampleFactor);
 
 		exp.getFileIntervalsFromSeqCamData();
 		long medianMs = exp.getCamImageBin_ms();
 		if (medianMs <= 0 && exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
 			medianMs = exp.getFrameTimeScale().medianDeltaMs();
 		}
-		// Console warn only — never block with a dialog (batch-safe).
-		binMs = NominalIntervalConfirmer.clampBinMsToCameraSampling(binMs, medianMs);
+		if (medianMs <= 0) {
+			medianMs = 1000L;
+		}
+		long binMs = medianMs * (long) factor;
 		options.t_Ms_BinDuration = binMs;
 		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
 
 		exp.setNominalIntervalSec(nominalSec);
 		exp.setKymoBin_ms(binMs);
+		exp.setKymoSubsampleFactor(factor);
+		if (exp.getActiveBinDescription() != null) {
+			exp.getActiveBinDescription().setCameraIntervalMs(medianMs);
+		}
+		exp.setGenerationMode(GenerationMode.KYMOGRAPH);
 		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 
 		exp.releaseKymographSequence();
@@ -217,11 +261,11 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 	}
 
 	long getStartMs() {
-		return (long) ((double) startJSpinner.getValue() * binUnit.getMsUnitValue());
+		return (long) ((double) startJSpinner.getValue() * intervalsUnit.getMsUnitValue());
 	}
 
 	long getEndMs() {
-		return (long) ((double) endJSpinner.getValue() * binUnit.getMsUnitValue());
+		return (long) ((double) endJSpinner.getValue() * intervalsUnit.getMsUnitValue());
 	}
 
 	@Override

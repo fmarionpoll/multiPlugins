@@ -31,12 +31,13 @@ public class GulpDetector {
 		if (!exp.isNativeFrameIndexedKymo()) {
 			int nFrames = exp.getAnalysisFrameCount();
 			int kymoWidth = exp.getKymoColumnCount();
-			String msg = "Gulp/derivative detection requires a native frame-indexed kymo "
-					+ "(one column per analysis-interval frame). " + "Got kymo width=" + kymoWidth
-					+ ", analysis frames=" + nFrames
-					+ ". QC downsampled kymos are browse-only; alternate curve-based detection is not yet implemented.";
-			Logger.warn("GulpDetector:detectGulps() - " + msg);
-			throw new IllegalStateException(msg);
+			String expName = exp.getExperimentDirectory();
+			if (expName == null || expName.isEmpty()) {
+				expName = exp.getResultsDirectory();
+			}
+			Logger.warn("GulpDetector:detectGulps() - skipped (non-native / downsampled kymo) for experiment="
+					+ expName + " (kymo width=" + kymoWidth + ", analysis frames=" + nFrames + ")");
+			return;
 		}
 
 		exp.getSeqKymos().getSequence().beginUpdate();

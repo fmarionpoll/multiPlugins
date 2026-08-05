@@ -4,29 +4,45 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.GulpDetector;
 import plugins.fmp.multitools.service.KymographService;
+import plugins.fmp.multitools.tools.Logger;
 
 public class DetectGulps extends BuildSeries {
 
 	void analyzeExperiment(Experiment exp) {
 		if (!loadExperimentDataToDetectGulps(exp)) {
-			exp.getSeqKymos().closeSequence();
+			if (exp.getSeqKymos() != null) {
+				exp.getSeqKymos().closeSequence();
+			}
 			return;
 		}
 		exp.ensureFrameTimeScale();
 		if (!exp.isNativeFrameIndexedKymo()) {
 			int nFrames = exp.getAnalysisFrameCount();
 			int kymoWidth = exp.getKymoColumnCount();
-			String msg = "Gulp/derivative blocked: kymo is not native frame-indexed "
-					+ "(kymo width=" + kymoWidth + ", analysis frames=" + nFrames
-					+ "). Use a 1-column-per-frame kymo, or wait for the future curve-based detector.";
-			plugins.fmp.multitools.tools.Logger.warn("DetectGulps: " + msg);
-			icy.gui.dialog.MessageDialog.showDialog(msg, icy.gui.dialog.MessageDialog.ERROR_MESSAGE);
-			exp.getSeqKymos().closeSequence();
+			String expName = experimentLabel(exp);
+			Logger.warn("DetectGulps: gulp detection skipped (non-native / downsampled kymo) for experiment="
+					+ expName + " (kymo width=" + kymoWidth + ", analysis frames=" + nFrames
+					+ "). Use downsample x1 for gulp detection.");
+			if (exp.getSeqKymos() != null) {
+				exp.getSeqKymos().closeSequence();
+			}
 			return;
 		}
 		buildFilteredImage(exp);
 		new GulpDetector().detectGulps(exp, options);
 		exp.getSeqKymos().closeSequence();
+	}
+
+	private static String experimentLabel(Experiment exp) {
+		if (exp == null) {
+			return "(null)";
+		}
+		String dir = exp.getExperimentDirectory();
+		if (dir != null && !dir.isEmpty()) {
+			return dir;
+		}
+		String results = exp.getResultsDirectory();
+		return results != null ? results : exp.toString();
 	}
 
 	private boolean loadExperimentDataToDetectGulps(Experiment exp) {

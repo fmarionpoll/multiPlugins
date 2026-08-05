@@ -280,9 +280,20 @@ public class KymographBuilder {
 				frameIndices.add(i);
 			}
 		}
+		int factor = 1;
+		if (options != null && options.kymoDownsampleFactor > 1) {
+			factor = options.kymoDownsampleFactor;
+		}
+		if (factor > 1 && frameIndices.size() > 1) {
+			java.util.ArrayList<Integer> subsampled = new java.util.ArrayList<>();
+			for (int i = 0; i < frameIndices.size(); i += factor) {
+				subsampled.add(frameIndices.get(i));
+			}
+			frameIndices = subsampled;
+		}
 		int expectedWidth = Math.max(1, frameIndices.size());
-		Logger.info("KymographBuilder: native kymo width=" + expectedWidth + " (analysis frames=" + nTotalFrames
-				+ ", fixedWindow=" + fixedWindow + ")");
+		Logger.info("KymographBuilder: kymo width=" + expectedWidth + " (analysis frames=" + nTotalFrames
+				+ ", downsample=x" + factor + ", fixedWindow=" + fixedWindow + ")");
 		if (expectedWidth <= 0 || nTotalFrames <= 0) {
 			Logger.error("KymographBuilder: no frames to process (nTotalFrames=" + nTotalFrames + ")");
 			return false;

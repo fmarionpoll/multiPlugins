@@ -8,7 +8,6 @@ import javax.swing.SwingUtilities;
 import icy.gui.viewer.Viewer;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.NominalIntervalConfirmer;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.KymographBuilder;
 import plugins.fmp.multitools.tools.Logger;
@@ -86,19 +85,25 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 
 	protected void getTimeLimitsOfSequence(Experiment exp) {
 		exp.getFileIntervalsFromSeqCamData();
-		long requested = options.t_Ms_BinDuration;
+		int factor = options.kymoDownsampleFactor > 0 ? options.kymoDownsampleFactor : 1;
 		long medianMs = exp.getCamImageBin_ms();
 		if (medianMs <= 0 && exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
 			medianMs = exp.getFrameTimeScale().medianDeltaMs();
 		}
-		// Batch-safe: console warn only; never abort. Native width is still 1 col/frame.
-		long binMs = NominalIntervalConfirmer.clampBinMsToCameraSampling(requested, medianMs);
+		if (medianMs <= 0) {
+			medianMs = Math.max(1L, options.t_Ms_BinDuration);
+		}
+		long binMs = medianMs * (long) factor;
 		options.t_Ms_BinDuration = binMs;
+		options.kymoDownsampleFactor = factor;
 		exp.setKymoBin_ms(binMs);
-		// Keep nominal in sync — getBinNameFromKymoFrameStep() prefers nominal and would
-		// otherwise keep writing into legacy bin_60 while kymoBin is already 300 s.
+		exp.setKymoSubsampleFactor(factor);
+		if (exp.getActiveBinDescription() != null && medianMs > 0) {
+			exp.getActiveBinDescription().setCameraIntervalMs(medianMs);
+		}
 		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
 		exp.setNominalIntervalSec(nominalSec);
+		exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.KYMOGRAPH);
 		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 		if (options.isFrameFixed) {
 			exp.setKymoFirst_ms(options.t_Ms_First);

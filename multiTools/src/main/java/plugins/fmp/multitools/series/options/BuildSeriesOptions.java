@@ -19,6 +19,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public long t_Ms_First = 0;
 	public long t_Ms_Last = 0;
 	public long t_Ms_BinDuration = 1;
+	/**
+	 * Keep every Nth analysis-interval frame when building kymographs (1 = native).
+	 */
+	public int kymoDownsampleFactor = 1;
 
 	public ArrayList<ROI2D> listROIStoBuildKymos = new ArrayList<ROI2D>();
 	public JComboBoxExperimentLazy expList;

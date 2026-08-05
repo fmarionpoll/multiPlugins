@@ -328,15 +328,18 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 	/**
 	 * Measurement series are sampled on the analysis/export bin timeline. Prefer
-	 * camera frame timestamps only when series length matches camera frames;
-	 * otherwise use the step that produced the series (export/analysis bin), never
-	 * the raw camera interval as a column step.
+	 * camera frame timestamps when available; for downsampled kymos map column
+	 * {@code j} to frame {@code j * subsampleFactor}.
 	 */
 	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints, int j,
 			ResultsOptions options) {
-		if (camImages_time_min != null && measureNPoints <= camImages_time_min.length
-				&& j < camImages_time_min.length) {
-			return camImages_time_min[j];
+		int factor = exp != null ? Math.max(1, exp.getKymoSubsampleFactor()) : 1;
+		if (camImages_time_min != null && camImages_time_min.length > 0) {
+			int frameIndex = factor > 1 ? j * factor : j;
+			if (frameIndex >= 0 && frameIndex < camImages_time_min.length
+					&& (factor > 1 || measureNPoints <= camImages_time_min.length)) {
+				return camImages_time_min[frameIndex];
+			}
 		}
 		long seriesStepMs = 0;
 		if (options != null && options.buildExcelStepMs > 0) {

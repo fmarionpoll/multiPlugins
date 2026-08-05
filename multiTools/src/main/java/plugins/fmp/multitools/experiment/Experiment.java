@@ -997,6 +997,20 @@ public class Experiment {
 			activeBinDescription.setGenerationMode(mode);
 	}
 
+	public BinDescription getActiveBinDescription() {
+		return activeBinDescription;
+	}
+
+	public int getKymoSubsampleFactor() {
+		return activeBinDescription != null ? Math.max(1, activeBinDescription.getSubsampleFactor()) : 1;
+	}
+
+	public void setKymoSubsampleFactor(int factor) {
+		if (activeBinDescription != null) {
+			activeBinDescription.setSubsampleFactor(Math.max(1, factor));
+		}
+	}
+
 	public long[] build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(long firstImage_ms) {
 		long[] ms = timeManager.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(seqCamData, firstImage_ms);
 		if (seqCamData != null && ms != null && ms.length > 0) {
