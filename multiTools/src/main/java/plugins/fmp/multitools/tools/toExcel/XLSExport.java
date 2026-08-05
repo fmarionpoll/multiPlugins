@@ -68,6 +68,9 @@ public abstract class XLSExport {
 	protected CellStyle redCellStyle = null;
 	protected CellStyle blueCellStyle = null;
 
+	/** Entity IDs already written to SERIES in this export (normalized layout). */
+	protected final java.util.Set<String> normalizedEntityIdsWritten = new java.util.LinkedHashSet<>();
+
 	/**
 	 * Template method that defines the overall export algorithm. This method should
 	 * not be overridden by subclasses.
@@ -397,8 +400,7 @@ public abstract class XLSExport {
 	 * specific cleanup logic.
 	 */
 	protected void cleanup() {
-		// Default implementation does nothing
-		// Subclasses can override for specific cleanup
+		normalizedEntityIdsWritten.clear();
 	}
 
 	// Common utility methods

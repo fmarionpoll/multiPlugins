@@ -170,8 +170,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				if (series == null || series.getItemCount() == 0) {
 					continue;
 				}
-				int seriesId = NormalizedExportSupport.writeSeriesDescriptors(seriesSheet, exp, charSeries, cage, cap,
-						resultType);
+				String entityId = NormalizedExportSupport.ensureSeriesRow(seriesSheet, normalizedEntityIdsWritten, exp,
+						charSeries, cage, cap);
 				long[] timesMs = new long[series.getItemCount()];
 				double[] values = new double[series.getItemCount()];
 				for (int i = 0; i < series.getItemCount(); i++) {
@@ -190,9 +190,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					}
 					long t0 = timesMs[0];
 					long[] centers = ExportTimePolicy.binCentersMs(t0, regrouped.length, step);
-					NormalizedExportSupport.writeDataPoints(dataSheet, seriesId, centers, regrouped, sparse);
+					NormalizedExportSupport.writeDataPoints(dataSheet, entityId, centers, regrouped, sparse);
 				} else {
-					NormalizedExportSupport.writeDataPoints(dataSheet, seriesId, timesMs, values, sparse);
+					NormalizedExportSupport.writeDataPoints(dataSheet, entityId, timesMs, values, sparse);
 				}
 			}
 		}
@@ -219,8 +219,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			if (seriesSum == null || seriesSum.getItemCount() == 0) {
 				continue;
 			}
-			int seriesId = NormalizedExportSupport.writeSeriesDescriptors(seriesSheet, exp, charSeries, cage, null,
-					resultType);
+			String entityId = NormalizedExportSupport.ensureSeriesRow(seriesSheet, normalizedEntityIdsWritten, exp,
+					charSeries, cage, null);
 			int n = seriesSum.getItemCount();
 			long[] timesMs = new long[n];
 			double[] sumValues = new double[n];
@@ -251,9 +251,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					}
 					piRegrouped = padded;
 				}
-				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, seriesId, centers, sumRegrouped, piRegrouped);
+				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, entityId, centers, sumRegrouped, piRegrouped);
 			} else {
-				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, seriesId, timesMs, sumValues, piValues);
+				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, entityId, timesMs, sumValues, piValues);
 			}
 		}
 		return 0;
