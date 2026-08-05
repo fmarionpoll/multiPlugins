@@ -227,15 +227,18 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		if (medianMs <= 0) {
 			medianMs = 1000L;
 		}
-		long binMs = medianMs * (long) factor;
-		options.t_Ms_BinDuration = binMs;
-		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
+		// Folder name = native camera sampling only (avoid bin_5 vs bin_10 proliferation).
+		// Effective column step and subsampleFactor carry the ×N downsample.
+		long effectiveBinMs = medianMs * (long) factor;
+		options.t_Ms_BinDuration = effectiveBinMs;
+		int cameraSec = (int) Math.max(1, Math.round(medianMs / 1000.0));
 
-		exp.setNominalIntervalSec(nominalSec);
-		exp.setKymoBin_ms(binMs);
+		exp.setNominalIntervalSec(cameraSec);
+		exp.setKymoBin_ms(effectiveBinMs);
 		exp.setKymoSubsampleFactor(factor);
 		if (exp.getActiveBinDescription() != null) {
 			exp.getActiveBinDescription().setCameraIntervalMs(medianMs);
+			exp.getActiveBinDescription().setSubsampleFactor(factor);
 		}
 		exp.setGenerationMode(GenerationMode.KYMOGRAPH);
 		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();

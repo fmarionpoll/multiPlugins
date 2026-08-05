@@ -93,16 +93,18 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 		if (medianMs <= 0) {
 			medianMs = Math.max(1L, options.t_Ms_BinDuration);
 		}
-		long binMs = medianMs * (long) factor;
-		options.t_Ms_BinDuration = binMs;
+		// Folder = native camera seconds; ×N is subsampleFactor + effective kymoBin_ms.
+		long effectiveBinMs = medianMs * (long) factor;
+		options.t_Ms_BinDuration = effectiveBinMs;
 		options.kymoDownsampleFactor = factor;
-		exp.setKymoBin_ms(binMs);
+		exp.setKymoBin_ms(effectiveBinMs);
 		exp.setKymoSubsampleFactor(factor);
 		if (exp.getActiveBinDescription() != null && medianMs > 0) {
 			exp.getActiveBinDescription().setCameraIntervalMs(medianMs);
+			exp.getActiveBinDescription().setSubsampleFactor(factor);
 		}
-		int nominalSec = (int) Math.max(1, Math.round(binMs / 1000.0));
-		exp.setNominalIntervalSec(nominalSec);
+		int cameraSec = (int) Math.max(1, Math.round(medianMs / 1000.0));
+		exp.setNominalIntervalSec(cameraSec);
 		exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.KYMOGRAPH);
 		options.binSubDirectory = exp.getBinNameFromKymoFrameStep();
 		if (options.isFrameFixed) {
