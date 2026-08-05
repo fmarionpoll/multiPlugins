@@ -56,8 +56,18 @@ public final class NormalizedExportSupport {
 		sheet = workbook.createSheet(title);
 		setCellString(sheet, 0, 0, "series_id");
 		setCellString(sheet, 0, 1, "t_min");
-		setCellString(sheet, 0, 2, "value");
+		if (isCageLrMeasure(resultType)) {
+			setCellString(sheet, 0, 2, "sum");
+			setCellString(sheet, 0, 3, "pi");
+		} else {
+			setCellString(sheet, 0, 2, "value");
+		}
 		return sheet;
+	}
+
+	public static boolean isCageLrMeasure(EnumResults resultType) {
+		return resultType == EnumResults.TOPLEVEL_LR || resultType == EnumResults.TOPLEVELDELTA_LR
+				|| resultType == EnumResults.SUMGULPS_LR;
 	}
 
 	public static int nextEmptyRow(SXSSFSheet sheet) {
@@ -118,6 +128,10 @@ public final class NormalizedExportSupport {
 			setCellString(seriesSheet, row, EnumXLSColumnHeader.CAP_CONC.getValue() + 1, capillary.getConcentration());
 			setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAP_NFLIES.getValue() + 1, capillary.getNFlies());
 			setCellString(seriesSheet, row, EnumXLSColumnHeader.DUM4.getValue() + 1, resultType.toString());
+		} else if (resultType != null) {
+			// Cage-level LR series: no Cap_* identity; measure name only
+			setCellString(seriesSheet, row, EnumXLSColumnHeader.CAP.getValue() + 1, "cage_LR");
+			setCellString(seriesSheet, row, EnumXLSColumnHeader.DUM4.getValue() + 1, resultType.toString());
 		}
 		return row;
 	}
@@ -137,6 +151,32 @@ public final class NormalizedExportSupport {
 			setCellInt(dataSheet, row, 0, seriesId);
 			setCellDouble(dataSheet, row, 1, timesMs[i] / 60000.0);
 			setCellDouble(dataSheet, row, 2, v);
+			row++;
+		}
+	}
+
+	/**
+	 * Cage LR export: one DATA row per time with both {@code sum} and {@code pi}.
+	 */
+	public static void writeDataPointsSumPi(SXSSFSheet dataSheet, int seriesId, long[] timesMs, double[] sumValues,
+			double[] piValues) {
+		int row = nextEmptyRow(dataSheet);
+		int n = Math.min(timesMs != null ? timesMs.length : 0,
+				Math.min(sumValues != null ? sumValues.length : 0, piValues != null ? piValues.length : 0));
+		for (int i = 0; i < n; i++) {
+			double sum = sumValues[i];
+			double pi = piValues[i];
+			if (Double.isNaN(sum) && Double.isNaN(pi)) {
+				continue;
+			}
+			setCellInt(dataSheet, row, 0, seriesId);
+			setCellDouble(dataSheet, row, 1, timesMs[i] / 60000.0);
+			if (!Double.isNaN(sum)) {
+				setCellDouble(dataSheet, row, 2, sum);
+			}
+			if (!Double.isNaN(pi)) {
+				setCellDouble(dataSheet, row, 3, pi);
+			}
 			row++;
 		}
 	}

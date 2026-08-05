@@ -148,6 +148,11 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		long nativeMedian = nativeMedianMs(exp);
 		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(resultsOptions.buildExcelStepMs, nativeMedian);
 
+		if (NormalizedExportSupport.isCageLrMeasure(resultType)) {
+			return exportNormalizedCageLrGulp(exp, charSeries, resultType, seriesSheet, dataSheet, resultsOptions,
+					builder, relation);
+		}
+
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
@@ -178,8 +183,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					double[] regrouped;
 					if (resultType == EnumResults.NBGULPS) {
 						regrouped = ExportTimePolicy.regroupPresence(timesMs, values, step);
-					} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS
-							|| resultType == EnumResults.SUMGULPS_LR) {
+					} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS) {
 						regrouped = ExportTimePolicy.regroupSum(timesMs, values, step);
 					} else {
 						regrouped = ExportTimePolicy.regroupHoldLast(timesMs, values, step);
@@ -190,6 +194,66 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				} else {
 					NormalizedExportSupport.writeDataPoints(dataSheet, seriesId, timesMs, values, sparse);
 				}
+			}
+		}
+		return 0;
+	}
+
+	private int exportNormalizedCageLrGulp(Experiment exp, String charSeries, EnumResults resultType,
+			SXSSFSheet seriesSheet, SXSSFSheet dataSheet, ResultsOptions resultsOptions,
+			CageCapillarySeriesBuilder builder, ExportTimePolicy.Relation relation) {
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
+			if (capillaries == null || capillaries.isEmpty()) {
+				continue;
+			}
+			XYSeriesCollection dataset = builder.build(exp, cage, resultsOptions);
+			if (dataset == null || dataset.getSeriesCount() == 0) {
+				continue;
+			}
+			XYSeries seriesSum = findSeriesByKey(dataset, cage.getCageID() + "_Sum");
+			XYSeries seriesPi = findSeriesByKey(dataset, cage.getCageID() + "_PI");
+			if (seriesSum == null || seriesSum.getItemCount() == 0) {
+				continue;
+			}
+			int seriesId = NormalizedExportSupport.writeSeriesDescriptors(seriesSheet, exp, charSeries, cage, null,
+					resultType);
+			int n = seriesSum.getItemCount();
+			long[] timesMs = new long[n];
+			double[] sumValues = new double[n];
+			double[] piValues = new double[n];
+			for (int i = 0; i < n; i++) {
+				timesMs[i] = Math.round(seriesSum.getX(i).doubleValue() * 60000.0);
+				sumValues[i] = seriesSum.getY(i).doubleValue();
+				piValues[i] = Double.NaN;
+				if (seriesPi != null) {
+					int idx = seriesPi.indexOf(seriesSum.getX(i));
+					if (idx >= 0) {
+						piValues[i] = seriesPi.getY(idx).doubleValue();
+					}
+				}
+			}
+			if (relation == ExportTimePolicy.Relation.COARSER) {
+				long step = resultsOptions.buildExcelStepMs;
+				double[] sumRegrouped = ExportTimePolicy.regroupSum(timesMs, sumValues, step);
+				double[] piRegrouped = ExportTimePolicy.regroupHoldLast(timesMs, piValues, step);
+				long t0 = timesMs[0];
+				int nBins = Math.max(sumRegrouped.length, piRegrouped.length);
+				long[] centers = ExportTimePolicy.binCentersMs(t0, nBins, step);
+				if (piRegrouped.length < nBins) {
+					double[] padded = new double[nBins];
+					System.arraycopy(piRegrouped, 0, padded, 0, piRegrouped.length);
+					for (int i = piRegrouped.length; i < nBins; i++) {
+						padded[i] = Double.NaN;
+					}
+					piRegrouped = padded;
+				}
+				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, seriesId, centers, sumRegrouped, piRegrouped);
+			} else {
+				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, seriesId, timesMs, sumValues, piValues);
 			}
 		}
 		return 0;
