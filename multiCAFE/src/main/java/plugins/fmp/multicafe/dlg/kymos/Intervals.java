@@ -84,7 +84,7 @@ public class Intervals extends JPanel implements ViewerListener {
 		add(panel1);
 
 		advancedPanel.setLayout(layout);
-		advancedPanel.add(new JLabel("Analysis interval:"));
+		advancedPanel.add(new JLabel("Kymograph folder"));
 		advancedPanel.add(viewsCombo);
 		advancedPanel.setVisible(false);
 		add(advancedPanel);

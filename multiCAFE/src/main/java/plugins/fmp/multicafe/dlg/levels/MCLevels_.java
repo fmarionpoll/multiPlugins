@@ -63,6 +63,11 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabEdit.addPropertyChangeListener(this);
 		tabsPane.addTab("Edit", null, tabEdit, "Edit Rois / measures");
 
+		tabAdjust.init(capLayout, parent0);
+		tabAdjust.addPropertyChangeListener(this);
+		tabsPane.addTab("Adjust", null, tabAdjust,
+				"Resize/crop capillary level curves to match kymograph width");
+
 		tabGraphs.init(capLayout, parent0);
 		tabGraphs.addPropertyChangeListener(this);
 		tabsPane.addTab("Graphs", null, tabGraphs, "Display results as a graph");
