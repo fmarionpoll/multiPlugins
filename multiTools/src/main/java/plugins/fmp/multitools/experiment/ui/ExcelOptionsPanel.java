@@ -16,19 +16,18 @@ import javax.swing.SpinnerNumberModel;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxMs;
 
 /**
- * Shared "Common options" panel used on the Excel export tab of both
- * multiCAFE and multiSPOTS96. Behaviour is parameterised through
- * {@link Features}: the three multiCAFE-only checkboxes (collate series,
- * pad intervals, dead=empty) are only rendered when the corresponding
- * feature flag is enabled.
+ * Shared "Common options" panel used on the Excel export tab of both multiCAFE
+ * and multiSPOTS96. Behaviour is parameterised through {@link Features}: the
+ * three multiCAFE-only checkboxes (collate series, pad intervals, dead=empty)
+ * are only rendered when the corresponding feature flag is enabled.
  */
 public class ExcelOptionsPanel extends JPanel {
 
 	private static final long serialVersionUID = 1814896922714679663L;
 
 	/**
-	 * Per-plugin feature flags controlling which optional checkboxes are
-	 * rendered. All flags default to {@code false}.
+	 * Per-plugin feature flags controlling which optional checkboxes are rendered.
+	 * All flags default to {@code false}.
 	 */
 	public static final class Features {
 		public boolean collateSeries = false;
@@ -55,14 +54,16 @@ public class ExcelOptionsPanel extends JPanel {
 	private final JCheckBox collateSeriesCheckBox = new JCheckBox("collate series", false);
 	private final JCheckBox padIntervalsCheckBox = new JCheckBox("pad intervals", false);
 	private final JCheckBox onlyAliveCheckBox = new JCheckBox("dead=empty", false);
-	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (SERIES+DATA)", true);
-	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix", false);
+
+	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (SERIES+DATA)", false);
+	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix", true);
 
 	private final JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
 	private final JComboBoxMs binUnit = new JComboBoxMs();
 
 	private final JRadioButton isFloatingFrameButton = new JRadioButton("all", true);
 	private final JRadioButton isFixedFrameButton = new JRadioButton("from ", false);
+
 	private final JSpinner startJSpinner = new JSpinner(new SpinnerNumberModel(0., 0., 10000., 1.));
 	private final JSpinner endJSpinner = new JSpinner(new SpinnerNumberModel(240., 1., 99999999., 1.));
 	private final JComboBoxMs intervalsUnit = new JComboBoxMs();
@@ -90,15 +91,6 @@ public class ExcelOptionsPanel extends JPanel {
 			panel0.add(onlyAliveCheckBox);
 		add(panel0);
 
-		JPanel panelLayout = new JPanel(layout1);
-		panelLayout.add(new JLabel("layout "));
-		panelLayout.add(layoutNormalizedButton);
-		panelLayout.add(layoutWideButton);
-		ButtonGroup layoutGroup = new ButtonGroup();
-		layoutGroup.add(layoutNormalizedButton);
-		layoutGroup.add(layoutWideButton);
-		add(panelLayout);
-
 		JPanel panel1 = new JPanel(layout1);
 		panel1.add(new JLabel("Analyze "));
 		panel1.add(isFloatingFrameButton);
@@ -117,10 +109,20 @@ public class ExcelOptionsPanel extends JPanel {
 		binUnit.setSelectedIndex(2);
 		add(panel2);
 
+		JPanel panel3 = new JPanel(layout1);
+		panel3.add(new JLabel("layout "));
+		panel3.add(layoutNormalizedButton);
+		panel3.add(layoutWideButton);
+		add(panel3);
+
 		enableIntervalButtons(false);
 		ButtonGroup group = new ButtonGroup();
 		group.add(isFloatingFrameButton);
 		group.add(isFixedFrameButton);
+
+		ButtonGroup layoutGroup = new ButtonGroup();
+		layoutGroup.add(layoutNormalizedButton);
+		layoutGroup.add(layoutWideButton);
 
 		defineActionListeners();
 	}

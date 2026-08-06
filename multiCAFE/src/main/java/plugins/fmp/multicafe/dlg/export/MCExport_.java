@@ -17,8 +17,8 @@ import icy.system.thread.ThreadUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
-import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.experiment.ui.TransferResultsHost;
+import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -49,7 +49,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		capPanel.setLayout(new BorderLayout());
 		capPopupPanel.collapse();
 		mainPanel.add(capPopupPanel);
-		GridLayout capLayout = new GridLayout(3, 2);
+		GridLayout capLayout = new GridLayout(4, 2);
 
 		tabCommonOptions.init(capLayout);
 		tabsPane.addTab("Common options", null, tabCommonOptions, "Define common options");

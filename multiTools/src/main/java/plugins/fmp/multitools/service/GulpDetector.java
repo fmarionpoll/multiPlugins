@@ -35,8 +35,8 @@ public class GulpDetector {
 			if (expName == null || expName.isEmpty()) {
 				expName = exp.getResultsDirectory();
 			}
-			Logger.warn("GulpDetector:detectGulps() - skipped (non-native / downsampled kymo) for experiment="
-					+ expName + " (kymo width=" + kymoWidth + ", analysis frames=" + nFrames + ")");
+			Logger.warn("GulpDetector:detectGulps() - skipped (non-native / downsampled kymo) for experiment=" + expName
+					+ " (kymo width=" + kymoWidth + ", analysis frames=" + nFrames + ")");
 			return;
 		}
 
@@ -90,7 +90,8 @@ public class GulpDetector {
 				continue;
 			}
 			if (tKymo != capi.getKymographIndex())
-				Logger.warn("discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
+				Logger.warn("discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex()
+						+ " folder: " + exp.getExperimentDirectory());
 			capi.setGulpsOptions(options);
 			futures.add(processor.submit(new Runnable() {
 				@Override
@@ -133,7 +134,8 @@ public class GulpDetector {
 			if (capi == null)
 				continue;
 			if (tKymo != capi.getKymographIndex())
-				Logger.warn("discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex());
+				Logger.warn("discrepancy between t=" + tKymo + " and cap.kymographIndex=" + capi.getKymographIndex()
+						+ " folder: " + exp.getExperimentDirectory());
 			capi.setGulpsOptions(options);
 			final CapillaryMeasure threshold = thresholdMeasure;
 			futures.add(processor.submit(new Runnable() {
