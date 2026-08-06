@@ -149,8 +149,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(resultsOptions.buildExcelStepMs, nativeMedian);
 
 		if (NormalizedExportSupport.isCageLrMeasure(resultType)) {
-			return exportNormalizedCageLrGulp(exp, charSeries, resultType, seriesSheet, dataSheet, resultsOptions,
-					builder, relation);
+			exportNormalizedCageLrGulp(exp, charSeries, resultType, seriesSheet, resultsOptions, builder, relation);
+			return 0;
 		}
 
 		for (Cage cage : exp.getCages().getCageList()) {
@@ -190,9 +190,11 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					}
 					long t0 = timesMs[0];
 					long[] centers = ExportTimePolicy.binCentersMs(t0, regrouped.length, step);
-					NormalizedExportSupport.writeDataPoints(dataSheet, entityId, centers, regrouped, sparse);
+					dataSheet = NormalizedExportSupport.writeDataPoints(resourceManager.getWorkbook(), resultType,
+							dataSheet, entityId, centers, regrouped, sparse);
 				} else {
-					NormalizedExportSupport.writeDataPoints(dataSheet, entityId, timesMs, values, sparse);
+					dataSheet = NormalizedExportSupport.writeDataPoints(resourceManager.getWorkbook(), resultType,
+							dataSheet, entityId, timesMs, values, sparse);
 				}
 			}
 		}
@@ -200,8 +202,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	}
 
 	private int exportNormalizedCageLrGulp(Experiment exp, String charSeries, EnumResults resultType,
-			SXSSFSheet seriesSheet, SXSSFSheet dataSheet, ResultsOptions resultsOptions,
-			CageCapillarySeriesBuilder builder, ExportTimePolicy.Relation relation) {
+			SXSSFSheet seriesSheet, ResultsOptions resultsOptions, CageCapillarySeriesBuilder builder,
+			ExportTimePolicy.Relation relation) throws ExcelResourceException {
+		SXSSFSheet dataSheet = NormalizedExportSupport.getOrCreateDataSheet(resourceManager.getWorkbook(), resultType);
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
@@ -251,9 +254,11 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					}
 					piRegrouped = padded;
 				}
-				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, entityId, centers, sumRegrouped, piRegrouped);
+				dataSheet = NormalizedExportSupport.writeDataPointsSumPi(resourceManager.getWorkbook(), resultType,
+						dataSheet, entityId, centers, sumRegrouped, piRegrouped);
 			} else {
-				NormalizedExportSupport.writeDataPointsSumPi(dataSheet, entityId, timesMs, sumValues, piValues);
+				dataSheet = NormalizedExportSupport.writeDataPointsSumPi(resourceManager.getWorkbook(), resultType,
+						dataSheet, entityId, timesMs, sumValues, piValues);
 			}
 		}
 		return 0;

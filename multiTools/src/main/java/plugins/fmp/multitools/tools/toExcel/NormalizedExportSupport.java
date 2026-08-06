@@ -30,6 +30,8 @@ public final class NormalizedExportSupport {
 	public static final String ENTITY_SEP = "|";
 	/** Capillary segment for cage-level L/R aggregate series. */
 	public static final String CAP_ID_LR = "LR";
+	/** Excel .xlsx max row index (0-based inclusive). */
+	public static final int EXCEL_MAX_ROW_INDEX = 1_048_575;
 
 	private static final int COL_ENTITY_ID = 0;
 	private static final int COL_EXP_KEY = 1;
@@ -41,8 +43,26 @@ public final class NormalizedExportSupport {
 	}
 
 	public static String dataSheetName(EnumResults resultType) {
-		String name = DATA_PREFIX + resultType.toString();
-		return name.length() > 31 ? name.substring(0, 31) : name;
+		return dataSheetName(resultType, 1);
+	}
+
+	/**
+	 * @param part 1 = {@code DATA_<measure>}, 2+ = {@code DATA_<measure>_2}, …
+	 */
+	public static String dataSheetName(EnumResults resultType, int part) {
+		String base = DATA_PREFIX + resultType.toString();
+		if (part <= 1) {
+			return base.length() > 31 ? base.substring(0, 31) : base;
+		}
+		String suffix = "_" + part;
+		int maxBase = 31 - suffix.length();
+		if (maxBase < 1) {
+			maxBase = 1;
+		}
+		if (base.length() > maxBase) {
+			base = base.substring(0, maxBase);
+		}
+		return base + suffix;
 	}
 
 	public static String buildExpKey(Experiment exp, String charSeries) {
@@ -108,12 +128,25 @@ public final class NormalizedExportSupport {
 	}
 
 	public static SXSSFSheet getOrCreateDataSheet(SXSSFWorkbook workbook, EnumResults resultType) {
-		String title = dataSheetName(resultType);
+		return getOrCreateDataSheet(workbook, resultType, 1);
+	}
+
+	public static SXSSFSheet getOrCreateDataSheet(SXSSFWorkbook workbook, EnumResults resultType, int part) {
+		String title = dataSheetName(resultType, part);
 		SXSSFSheet sheet = workbook.getSheet(title);
 		if (sheet != null) {
 			return sheet;
 		}
 		sheet = workbook.createSheet(title);
+		writeDataHeader(sheet, resultType);
+		if (part > 1) {
+			plugins.fmp.multitools.tools.Logger.info(
+					"NormalizedExportSupport: Excel row limit reached; continuing on sheet " + title);
+		}
+		return sheet;
+	}
+
+	private static void writeDataHeader(SXSSFSheet sheet, EnumResults resultType) {
 		setCellString(sheet, 0, 0, "entity_id");
 		setCellString(sheet, 0, 1, "t_minutes");
 		if (isCageLrMeasure(resultType)) {
@@ -122,7 +155,30 @@ public final class NormalizedExportSupport {
 		} else {
 			setCellString(sheet, 0, 2, "value");
 		}
-		return sheet;
+	}
+
+	/**
+	 * If {@code sheet} cannot accept another data row, open the next
+	 * {@code DATA_<measure>_N} part.
+	 */
+	public static SXSSFSheet rollDataSheetIfFull(SXSSFWorkbook workbook, EnumResults resultType, SXSSFSheet sheet) {
+		if (sheet == null) {
+			return getOrCreateDataSheet(workbook, resultType, 1);
+		}
+		if (nextEmptyRow(sheet) <= EXCEL_MAX_ROW_INDEX) {
+			return sheet;
+		}
+		int part = 2;
+		for (;;) {
+			SXSSFSheet existing = workbook.getSheet(dataSheetName(resultType, part));
+			if (existing == null) {
+				return getOrCreateDataSheet(workbook, resultType, part);
+			}
+			if (nextEmptyRow(existing) <= EXCEL_MAX_ROW_INDEX) {
+				return existing;
+			}
+			part++;
+		}
 	}
 
 	public static boolean isCageLrMeasure(EnumResults resultType) {
@@ -223,9 +279,14 @@ public final class NormalizedExportSupport {
 		return entityId;
 	}
 
-	public static void writeDataPoints(SXSSFSheet dataSheet, String entityId, long[] timesMs, double[] values,
-			boolean sparseSkipEmpty) {
-		int row = nextEmptyRow(dataSheet);
+	/**
+	 * Writes DATA rows; rolls to {@code DATA_<measure>_2}, {@code _3}, … when the
+	 * Excel sheet row limit is reached. Returns the sheet last written to.
+	 */
+	public static SXSSFSheet writeDataPoints(SXSSFWorkbook workbook, EnumResults resultType, SXSSFSheet dataSheet,
+			String entityId, long[] timesMs, double[] values, boolean sparseSkipEmpty) {
+		SXSSFSheet sheet = dataSheet != null ? dataSheet : getOrCreateDataSheet(workbook, resultType);
+		int row = nextEmptyRow(sheet);
 		int n = Math.min(timesMs != null ? timesMs.length : 0, values != null ? values.length : 0);
 		for (int i = 0; i < n; i++) {
 			double v = values[i];
@@ -235,19 +296,26 @@ public final class NormalizedExportSupport {
 			if (sparseSkipEmpty && v == 0.0) {
 				continue;
 			}
-			setCellString(dataSheet, row, 0, entityId);
-			setCellDouble(dataSheet, row, 1, timesMs[i] / 60000.0);
-			setCellDouble(dataSheet, row, 2, v);
+			if (row > EXCEL_MAX_ROW_INDEX) {
+				sheet = rollDataSheetIfFull(workbook, resultType, sheet);
+				row = nextEmptyRow(sheet);
+			}
+			setCellString(sheet, row, 0, entityId);
+			setCellDouble(sheet, row, 1, timesMs[i] / 60000.0);
+			setCellDouble(sheet, row, 2, v);
 			row++;
 		}
+		return sheet;
 	}
 
 	/**
 	 * Cage LR export: one DATA row per time with both {@code sum} and {@code pi}.
+	 * Rolls sheets like {@link #writeDataPoints}.
 	 */
-	public static void writeDataPointsSumPi(SXSSFSheet dataSheet, String entityId, long[] timesMs, double[] sumValues,
-			double[] piValues) {
-		int row = nextEmptyRow(dataSheet);
+	public static SXSSFSheet writeDataPointsSumPi(SXSSFWorkbook workbook, EnumResults resultType, SXSSFSheet dataSheet,
+			String entityId, long[] timesMs, double[] sumValues, double[] piValues) {
+		SXSSFSheet sheet = dataSheet != null ? dataSheet : getOrCreateDataSheet(workbook, resultType);
+		int row = nextEmptyRow(sheet);
 		int n = Math.min(timesMs != null ? timesMs.length : 0,
 				Math.min(sumValues != null ? sumValues.length : 0, piValues != null ? piValues.length : 0));
 		for (int i = 0; i < n; i++) {
@@ -256,16 +324,21 @@ public final class NormalizedExportSupport {
 			if (Double.isNaN(sum) && Double.isNaN(pi)) {
 				continue;
 			}
-			setCellString(dataSheet, row, 0, entityId);
-			setCellDouble(dataSheet, row, 1, timesMs[i] / 60000.0);
+			if (row > EXCEL_MAX_ROW_INDEX) {
+				sheet = rollDataSheetIfFull(workbook, resultType, sheet);
+				row = nextEmptyRow(sheet);
+			}
+			setCellString(sheet, row, 0, entityId);
+			setCellDouble(sheet, row, 1, timesMs[i] / 60000.0);
 			if (!Double.isNaN(sum)) {
-				setCellDouble(dataSheet, row, 2, sum);
+				setCellDouble(sheet, row, 2, sum);
 			}
 			if (!Double.isNaN(pi)) {
-				setCellDouble(dataSheet, row, 3, pi);
+				setCellDouble(sheet, row, 3, pi);
 			}
 			row++;
 		}
+		return sheet;
 	}
 
 	private static String nullToEmpty(String s) {
