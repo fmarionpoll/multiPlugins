@@ -37,23 +37,26 @@ public class Levels extends JPanel {
 		panel0.add(topLevelCheckBox);
 		panel0.add(bottomLevelCheckBox);
 		panel0.add(subtractEvaporationCheckBox);
-		panel0.add(derivativeCheckBox);
-		panel0.add(sumGulpsCheckBox);
-		panel0.add(sumGulpsLrCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
-		panel1.add(sumPerCageCheckBox);
-		panel1.add(lrPICheckBox);
-		panel1.add(lrPILabel);
-		panel1.add(lrPIThresholdJSpinner);
+		panel1.add(derivativeCheckBox);
+		panel1.add(sumGulpsCheckBox);
+		panel1.add(sumGulpsLrCheckBox);
 		add(panel1);
+
+		JPanel panel2 = new JPanel(flowLayout0);
+		panel2.add(sumPerCageCheckBox);
+		panel2.add(lrPICheckBox);
+		panel2.add(lrPILabel);
+		panel2.add(lrPIThresholdJSpinner);
+		add(panel2);
 
 		FlowLayout flowLayout2 = new FlowLayout(FlowLayout.RIGHT);
 		flowLayout2.setVgap(0);
-		JPanel panel2 = new JPanel(flowLayout2);
-		panel2.add(exportToXLSButton2);
-		add(panel2);
+		JPanel panel3 = new JPanel(flowLayout2);
+		panel3.add(exportToXLSButton2);
+		add(panel3);
 
 		defineActionListeners();
 	}

@@ -175,8 +175,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		}
 	}
 
-	private static final DateTimeFormatter CSV_EXPORT_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
-	private static final DateTimeFormatter XLSX_EXPORT_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+	private static final DateTimeFormatter EXPORT_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
 	/**
 	 * @param xlsxPattern e.g. {@code _feeding.xlsx} when Excel; ignored for CSV
@@ -187,9 +186,10 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		Path directory = Paths.get(filename0).getParent();
 		boolean csv = csvDescriptor != null && !csvDescriptor.isEmpty();
 		String parentDir = directory.getParent().toString();
+		String stamp = LocalDateTime.now().format(EXPORT_STAMP);
 
 		if (csv) {
-			String tentativeName = LocalDateTime.now().format(CSV_EXPORT_STAMP) + "-" + csvDescriptor;
+			String tentativeName = stamp + "_" + csvDescriptor;
 			try {
 				return Dialog.saveDirectoryAs(tentativeName, parentDir);
 			} catch (FileDialogException e) {
@@ -199,7 +199,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		}
 
 		Path subpath = directory.getName(directory.getNameCount() - 1);
-		String tentativeName = LocalDateTime.now().format(XLSX_EXPORT_STAMP) + "_" + subpath.toString() + xlsxPattern;
+		String tentativeName = stamp + "_" + subpath.toString() + xlsxPattern;
 		try {
 			return Dialog.saveFileAs(tentativeName, parentDir, "xlsx");
 		} catch (FileDialogException e) {
@@ -275,6 +275,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.exportLayoutMode = tabCommonOptions.isExportLayoutNormalized()
 				? plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.NORMALIZED
 				: plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.WIDE;
+		resultsOptions.forceCsvBinGrid = tabCommonOptions.isForceCsvBinGrid();
 		resultsOptions.buildExcelStepMs = tabCommonOptions.getExcelBuildStep();
 		resultsOptions.buildExcelUnitMs = tabCommonOptions.getBinUnitMs();
 		resultsOptions.fixedIntervals = tabCommonOptions.getIsFixedFrame();

@@ -28,21 +28,25 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 /**
  * Folder + stamped CSV writers for normalized relational export.
- * Filenames: {@code yyyy-MM-dd-HH-mm-ss_<descriptor>.csv}.
+ * Measure files: {@code *_measure_cap_raw.csv} / {@code *_measure_cap_binN.csv}
+ * (and cage equivalents). Bin files only when {@code writeBinFiles} is true.
  */
 public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	public static final String IDEXPT = "idexpt";
 	public static final String IDCAGE = "idcage";
 	public static final String IDCAP = "idcap";
-	public static final String MEASURE_CAP = "measure_cap";
-	public static final String MEASURE_CAGE = "measure_cage";
+	public static final String MEASURE_CAP_RAW = "measure_cap_raw";
+	public static final String MEASURE_CAGE_RAW = "measure_cage_raw";
 	public static final String GULP_EVENTS = "gulpevents";
 
-	private static final DateTimeFormatter STAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+	private static final DateTimeFormatter STAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
 
 	private final Path folder;
 	private final String stamp;
+	private final long binStepMs;
+	private final boolean writeBinFiles;
+	private final String binDescriptor; // e.g. bin60
 	private final Set<String> writtenExps = new LinkedHashSet<>();
 	private final Set<String> writtenCages = new LinkedHashSet<>();
 	private final Set<String> writtenCaps = new LinkedHashSet<>();
@@ -50,25 +54,27 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter idexptPrinter;
 	private CSVPrinter idcagePrinter;
 	private CSVPrinter idcapPrinter;
-	private CSVPrinter measureCapPrinter;
-	private CSVPrinter measureCagePrinter;
+	private CSVPrinter measureCapRawPrinter;
+	private CSVPrinter measureCapBinPrinter;
+	private CSVPrinter measureCageRawPrinter;
+	private CSVPrinter measureCageBinPrinter;
 	private CSVPrinter gulpEventsPrinter;
 
 	private final List<String> measureCapColumns;
-	private boolean measureCageOpen;
 	private boolean gulpEventsOpen;
 
-	public CsvNormalizedExportSupport(Path folder, List<String> measureCapColumns) throws IOException {
+	public CsvNormalizedExportSupport(Path folder, List<String> measureCapColumns, long binStepMs,
+			boolean writeBinFiles) throws IOException {
 		this.folder = folder;
 		this.stamp = LocalDateTime.now().format(STAMP_FMT);
 		this.measureCapColumns = measureCapColumns != null ? new ArrayList<>(measureCapColumns) : new ArrayList<>();
+		this.binStepMs = binStepMs;
+		this.writeBinFiles = writeBinFiles && binStepMs > 0;
+		int binSec = (int) Math.max(1L, Math.round(binStepMs / 1000.0));
+		this.binDescriptor = "bin" + binSec;
 		Files.createDirectories(folder);
 	}
 
-	/**
-	 * From a save-dialog path, use that path as the export folder.
-	 * Strips a trailing {@code .csv}/{@code .xlsx} if present (legacy dialogs).
-	 */
 	public static Path resolveCsvFolder(String chosenPath) {
 		if (chosenPath == null || chosenPath.isEmpty()) {
 			return null;
@@ -95,6 +101,18 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	public String getStamp() {
 		return stamp;
+	}
+
+	public boolean isWriteBinFiles() {
+		return writeBinFiles;
+	}
+
+	public long getBinStepMs() {
+		return binStepMs;
+	}
+
+	public String getBinDescriptor() {
+		return binDescriptor;
 	}
 
 	public void ensureDescriptors(Experiment exp, String charSeries, Cage cage, Capillary capillary)
@@ -162,12 +180,24 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 				capillary.getNFlies());
 	}
 
-	public void writeMeasureCapRow(String expKey, int cageId, String capId, double tMinutes,
+	public void writeMeasureCapRowRaw(String expKey, int cageId, String capId, double tMinutes,
+			java.util.Map<String, Double> values) throws IOException {
+		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, values);
+	}
+
+	public void writeMeasureCapRowBin(String expKey, int cageId, String capId, double tMinutes,
+			java.util.Map<String, Double> values) throws IOException {
+		if (!writeBinFiles) {
+			return;
+		}
+		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, values);
+	}
+
+	private void writeMeasureCapRow(CSVPrinter p, String expKey, int cageId, String capId, double tMinutes,
 			java.util.Map<String, Double> values) throws IOException {
 		if (measureCapColumns.isEmpty()) {
 			return;
 		}
-		CSVPrinter p = measureCapPrinter();
 		List<Object> row = new ArrayList<>(4 + measureCapColumns.size());
 		row.add(expKey);
 		row.add(cageId);
@@ -180,10 +210,23 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		p.printRecord(row);
 	}
 
-	public void writeMeasureCageRow(String expKey, int cageId, double tMinutes, String measure, double sum, double pi)
-			throws IOException {
-		CSVPrinter p = measureCagePrinter();
-		p.printRecord(expKey, cageId, tMinutes, measure, Double.isNaN(sum) ? null : sum, Double.isNaN(pi) ? null : pi);
+	public void writeMeasureCageRowRaw(String expKey, int cageId, double tMinutes, String measure, double sum,
+			double pi) throws IOException {
+		writeMeasureCageRow(measureCageRawPrinter(), expKey, cageId, tMinutes, measure, sum, pi);
+	}
+
+	public void writeMeasureCageRowBin(String expKey, int cageId, double tMinutes, String measure, double sum,
+			double pi) throws IOException {
+		if (!writeBinFiles) {
+			return;
+		}
+		writeMeasureCageRow(measureCageBinPrinter(), expKey, cageId, tMinutes, measure, sum, pi);
+	}
+
+	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, String measure,
+			double sum, double pi) throws IOException {
+		p.printRecord(expKey, cageId, tMinutes, measure, Double.isNaN(sum) ? null : sum,
+				Double.isNaN(pi) ? null : pi);
 	}
 
 	public void writeGulpEvent(String expKey, int cageId, String capId, double tMinutes, double amplitude)
@@ -216,25 +259,44 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		return idcapPrinter;
 	}
 
-	private CSVPrinter measureCapPrinter() throws IOException {
-		if (measureCapPrinter == null) {
-			List<String> header = new ArrayList<>();
-			header.add("exp_key");
-			header.add("cage_id");
-			header.add("cap_id");
-			header.add("t_minutes");
-			header.addAll(measureCapColumns);
-			measureCapPrinter = openPrinter(MEASURE_CAP, header.toArray(new String[0]));
+	private CSVPrinter measureCapRawPrinter() throws IOException {
+		if (measureCapRawPrinter == null) {
+			measureCapRawPrinter = openMeasureCapPrinter(MEASURE_CAP_RAW);
 		}
-		return measureCapPrinter;
+		return measureCapRawPrinter;
 	}
 
-	private CSVPrinter measureCagePrinter() throws IOException {
-		if (!measureCageOpen) {
-			measureCagePrinter = openPrinter(MEASURE_CAGE, "exp_key", "cage_id", "t_minutes", "measure", "sum", "pi");
-			measureCageOpen = true;
+	private CSVPrinter measureCapBinPrinter() throws IOException {
+		if (measureCapBinPrinter == null) {
+			measureCapBinPrinter = openMeasureCapPrinter("measure_cap_" + binDescriptor);
 		}
-		return measureCagePrinter;
+		return measureCapBinPrinter;
+	}
+
+	private CSVPrinter openMeasureCapPrinter(String descriptor) throws IOException {
+		List<String> header = new ArrayList<>();
+		header.add("exp_key");
+		header.add("cage_id");
+		header.add("cap_id");
+		header.add("t_minutes");
+		header.addAll(measureCapColumns);
+		return openPrinter(descriptor, header.toArray(new String[0]));
+	}
+
+	private CSVPrinter measureCageRawPrinter() throws IOException {
+		if (measureCageRawPrinter == null) {
+			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, "exp_key", "cage_id", "t_minutes", "measure", "sum",
+					"pi");
+		}
+		return measureCageRawPrinter;
+	}
+
+	private CSVPrinter measureCageBinPrinter() throws IOException {
+		if (measureCageBinPrinter == null) {
+			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, "exp_key", "cage_id", "t_minutes",
+					"measure", "sum", "pi");
+		}
+		return measureCageBinPrinter;
 	}
 
 	private CSVPrinter gulpEventsPrinter() throws IOException {
@@ -269,15 +331,11 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		closeQuietly(idexptPrinter);
 		closeQuietly(idcagePrinter);
 		closeQuietly(idcapPrinter);
-		closeQuietly(measureCapPrinter);
-		closeQuietly(measureCagePrinter);
+		closeQuietly(measureCapRawPrinter);
+		closeQuietly(measureCapBinPrinter);
+		closeQuietly(measureCageRawPrinter);
+		closeQuietly(measureCageBinPrinter);
 		closeQuietly(gulpEventsPrinter);
-		idexptPrinter = null;
-		idcagePrinter = null;
-		idcapPrinter = null;
-		measureCapPrinter = null;
-		measureCagePrinter = null;
-		gulpEventsPrinter = null;
 	}
 
 	private static void closeQuietly(CSVPrinter p) throws IOException {

@@ -17,8 +17,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
-import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
@@ -54,6 +52,7 @@ public final class CsvNormalizedExport {
 		List<String> denseCols = denseMeasureColumns(options, mode);
 		boolean wantGulpEvents = mode == Mode.GULPS && (options.amplitudeGulps || options.nbGulps);
 		List<EnumResults> cageLrTypes = cageLrResultTypes(options, mode);
+		long binStepMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 60000L;
 
 		Logger.info("CsvNormalizedExport: start -> " + csvFolder);
 
@@ -72,7 +71,7 @@ public final class CsvNormalizedExport {
 		int[] bx = expList.getExportExperimentIndexBounds(options);
 		int progressLen = (bx[1] >= bx[0]) ? (bx[1] - bx[0] + 1) : nbexpts;
 
-		try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(csvFolder, denseCols)) {
+		try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(csvFolder, denseCols, binStepMs, true)) {
 			progress.setLength(Math.max(1, progressLen));
 			int iSeries = 0;
 			for (int index = options.experimentIndexFirst; index <= options.experimentIndexLast; index++) {
@@ -91,11 +90,13 @@ public final class CsvNormalizedExport {
 
 				progress.setMessage("CSV export experiment " + (index + 1) + " of " + nbexpts);
 				String charSeries = CellReference.convertNumToColString(iSeries);
-				exportOneExperiment(exp, options, charSeries, mode, csv, denseCols, cageLrTypes, wantGulpEvents);
+				exportOneExperiment(exp, options, charSeries, mode, csv, denseCols, cageLrTypes, wantGulpEvents,
+						binStepMs);
 				iSeries++;
 				progress.incPosition();
 			}
-			Logger.info("CsvNormalizedExport: done stamp=" + csv.getStamp() + " folder=" + csv.getFolder());
+			Logger.info("CsvNormalizedExport: done stamp=" + csv.getStamp() + " folder=" + csv.getFolder()
+					+ (csv.isWriteBinFiles() ? (" bin=" + csv.getBinDescriptor()) : ""));
 		} catch (IOException e) {
 			throw new ExcelExportException("CSV write failed", "csv_export", csvFolder.toString(), e);
 		} catch (Exception e) {
@@ -111,28 +112,30 @@ public final class CsvNormalizedExport {
 
 	private static void exportOneExperiment(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
 			CsvNormalizedExportSupport csv, List<String> denseCols, List<EnumResults> cageLrTypes,
-			boolean wantGulpEvents) throws IOException {
+			boolean wantGulpEvents, long binStepMs) throws IOException {
 		exp.ensureFrameTimeScale();
 		exp.dispatchCapillariesToCages();
 
-		int stepMs = resolveStepMs(exp, options);
 		long nativeMedian = nativeMedianMs(exp);
-		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(stepMs, nativeMedian);
+		int nativeStepMs = (int) Math.max(1L, nativeMedian > 0 ? nativeMedian : binStepMs);
+		boolean writeBin = options.forceCsvBinGrid
+				|| ExportTimePolicy.relation(binStepMs, nativeMedian) == ExportTimePolicy.Relation.COARSER;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
 		for (EnumResults lrType : cageLrTypes) {
-			exportCageLr(exp, options, charSeries, lrType, csv, builder, stepMs, relation);
+			exportCageLr(exp, options, charSeries, lrType, csv, builder, nativeStepMs, binStepMs, writeBin);
 		}
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
-			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder, stepMs,
-					relation);
+			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
+					nativeStepMs, binStepMs, writeBin);
 		}
 	}
 
 	private static void exportCapillaryMeasures(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
 			CsvNormalizedExportSupport csv, List<String> denseCols, boolean wantGulpEvents,
-			CageCapillarySeriesBuilder builder, int stepMs, ExportTimePolicy.Relation relation) throws IOException {
+			CageCapillarySeriesBuilder builder, int nativeStepMs, long binStepMs, boolean writeBin)
+			throws IOException {
 
 		Map<EnumResults, String> denseTypes = denseResultTypes(options, mode);
 		EnumResults eventType = gulpEventResultType(options, mode);
@@ -148,13 +151,13 @@ public final class CsvNormalizedExport {
 
 			Map<EnumResults, XYSeriesCollection> datasets = new LinkedHashMap<>();
 			for (EnumResults rt : denseTypes.keySet()) {
-				XYSeriesCollection ds = buildDataset(exp, cage, options, rt, stepMs, builder);
+				XYSeriesCollection ds = buildDataset(exp, cage, options, rt, nativeStepMs, builder);
 				if (ds != null) {
 					datasets.put(rt, ds);
 				}
 			}
 			if (wantGulpEvents && eventType != null && !datasets.containsKey(eventType)) {
-				XYSeriesCollection ds = buildDataset(exp, cage, options, eventType, stepMs, builder);
+				XYSeriesCollection ds = buildDataset(exp, cage, options, eventType, nativeStepMs, builder);
 				if (ds != null) {
 					datasets.put(eventType, ds);
 				}
@@ -174,10 +177,13 @@ public final class CsvNormalizedExport {
 							continue;
 						}
 						XYSeries series = findSeriesForCapillary(ds, exp, cage, cap, e.getKey());
-						mergeSeries(byTime, series, e.getValue(), e.getKey(), stepMs, relation);
+						mergeSeriesNative(byTime, series, e.getValue());
 					}
 					for (Map.Entry<Long, Map<String, Double>> row : byTime.entrySet()) {
-						csv.writeMeasureCapRow(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue());
+						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue());
+					}
+					if (writeBin && !byTime.isEmpty()) {
+						writeMeasureCapBinned(csv, expKey, cageId, capId, byTime, denseCols, binStepMs);
 					}
 				}
 
@@ -187,15 +193,52 @@ public final class CsvNormalizedExport {
 						continue;
 					}
 					XYSeries series = findSeriesForCapillary(ds, exp, cage, cap, eventType);
-					writeGulpEvents(csv, expKey, cageId, capId, series, eventType, stepMs, relation);
+					writeGulpEventsNative(csv, expKey, cageId, capId, series);
 				}
 			}
 		}
 	}
 
+	private static void writeMeasureCapBinned(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
+			Map<Long, Map<String, Double>> byTime, List<String> denseCols, long binStepMs) throws IOException {
+		int n = byTime.size();
+		long[] timesMs = new long[n];
+		double[][] cols = new double[denseCols.size()][n];
+		int i = 0;
+		for (Map.Entry<Long, Map<String, Double>> e : byTime.entrySet()) {
+			timesMs[i] = e.getKey();
+			Map<String, Double> vals = e.getValue();
+			for (int c = 0; c < denseCols.size(); c++) {
+				Double v = vals.get(denseCols.get(c));
+				cols[c][i] = v != null ? v : Double.NaN;
+			}
+			i++;
+		}
+		double[][] binned = CsvTimeWeightedResample.resampleColumns(timesMs, cols, binStepMs);
+		if (binned.length == 0 || binned[0].length == 0) {
+			return;
+		}
+		int nBins = binned[0].length;
+		long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
+		for (int b = 0; b < nBins; b++) {
+			Map<String, Double> row = new LinkedHashMap<>();
+			boolean any = false;
+			for (int c = 0; c < denseCols.size(); c++) {
+				double v = binned[c][b];
+				if (!Double.isNaN(v)) {
+					row.put(denseCols.get(c), v);
+					any = true;
+				}
+			}
+			if (any) {
+				csv.writeMeasureCapRowBin(expKey, cageId, capId, starts[b] / 60000.0, row);
+			}
+		}
+	}
+
 	private static void exportCageLr(Experiment exp, ResultsOptions options, String charSeries, EnumResults lrType,
-			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int stepMs,
-			ExportTimePolicy.Relation relation) throws IOException {
+			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs, long binStepMs,
+			boolean writeBin) throws IOException {
 		String measureName = colName(lrType);
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
@@ -209,7 +252,7 @@ public final class CsvNormalizedExport {
 			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
 			int cageId = cage.getProperties().getCageID();
 
-			XYSeriesCollection dataset = buildDataset(exp, cage, options, lrType, stepMs, builder);
+			XYSeriesCollection dataset = buildDataset(exp, cage, options, lrType, nativeStepMs, builder);
 			if (dataset == null) {
 				continue;
 			}
@@ -233,29 +276,25 @@ public final class CsvNormalizedExport {
 					}
 				}
 			}
-			if (relation == ExportTimePolicy.Relation.COARSER) {
-				double[] sumRegrouped = lrType == EnumResults.SUMGULPS_LR
-						? ExportTimePolicy.regroupSum(timesMs, sumValues, stepMs)
-						: ExportTimePolicy.regroupHoldLast(timesMs, sumValues, stepMs);
-				double[] piRegrouped = ExportTimePolicy.regroupHoldLast(timesMs, piValues, stepMs);
-				long t0 = timesMs[0];
-				int nBins = Math.max(sumRegrouped.length, piRegrouped.length);
-				long[] centers = ExportTimePolicy.binCentersMs(t0, nBins, stepMs);
+			for (int i = 0; i < n; i++) {
+				if (Double.isNaN(sumValues[i]) && Double.isNaN(piValues[i])) {
+					continue;
+				}
+				csv.writeMeasureCageRowRaw(expKey, cageId, timesMs[i] / 60000.0, measureName, sumValues[i],
+						piValues[i]);
+			}
+			if (writeBin) {
+				double[] sumBin = CsvTimeWeightedResample.resampleOne(timesMs, sumValues, binStepMs);
+				double[] piBin = CsvTimeWeightedResample.resampleOne(timesMs, piValues, binStepMs);
+				int nBins = Math.max(sumBin.length, piBin.length);
+				long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
 				for (int i = 0; i < nBins; i++) {
-					double sum = i < sumRegrouped.length ? sumRegrouped[i] : Double.NaN;
-					double pi = i < piRegrouped.length ? piRegrouped[i] : Double.NaN;
+					double sum = i < sumBin.length ? sumBin[i] : Double.NaN;
+					double pi = i < piBin.length ? piBin[i] : Double.NaN;
 					if (Double.isNaN(sum) && Double.isNaN(pi)) {
 						continue;
 					}
-					csv.writeMeasureCageRow(expKey, cageId, centers[i] / 60000.0, measureName, sum, pi);
-				}
-			} else {
-				for (int i = 0; i < n; i++) {
-					if (Double.isNaN(sumValues[i]) && Double.isNaN(piValues[i])) {
-						continue;
-					}
-					csv.writeMeasureCageRow(expKey, cageId, timesMs[i] / 60000.0, measureName, sumValues[i],
-							piValues[i]);
+					csv.writeMeasureCageRowBin(expKey, cageId, starts[i] / 60000.0, measureName, sum, pi);
 				}
 			}
 		}
@@ -274,35 +313,13 @@ public final class CsvNormalizedExport {
 		return builder.build(exp, cage, ro);
 	}
 
-	private static void mergeSeries(Map<Long, Map<String, Double>> byTime, XYSeries series, String colName,
-			EnumResults resultType, int stepMs, ExportTimePolicy.Relation relation) {
+	private static void mergeSeriesNative(Map<Long, Map<String, Double>> byTime, XYSeries series, String colName) {
 		if (series == null || series.getItemCount() == 0) {
 			return;
 		}
-		int n = series.getItemCount();
-		long[] timesMs = new long[n];
-		double[] values = new double[n];
-		for (int i = 0; i < n; i++) {
-			timesMs[i] = Math.round(series.getX(i).doubleValue() * 60000.0);
-			values[i] = series.getY(i).doubleValue();
-		}
-		if (relation == ExportTimePolicy.Relation.COARSER) {
-			double[] regrouped;
-			if (resultType == EnumResults.NBGULPS) {
-				regrouped = ExportTimePolicy.regroupPresence(timesMs, values, stepMs);
-			} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS) {
-				regrouped = ExportTimePolicy.regroupSum(timesMs, values, stepMs);
-			} else {
-				regrouped = ExportTimePolicy.regroupHoldLast(timesMs, values, stepMs);
-			}
-			long[] centers = ExportTimePolicy.binCentersMs(timesMs[0], regrouped.length, stepMs);
-			for (int i = 0; i < regrouped.length; i++) {
-				putValue(byTime, centers[i], colName, regrouped[i]);
-			}
-		} else {
-			for (int i = 0; i < n; i++) {
-				putValue(byTime, timesMs[i], colName, values[i]);
-			}
+		for (int i = 0; i < series.getItemCount(); i++) {
+			long tMs = Math.round(series.getX(i).doubleValue() * 60000.0);
+			putValue(byTime, tMs, colName, series.getY(i).doubleValue());
 		}
 	}
 
@@ -313,36 +330,17 @@ public final class CsvNormalizedExport {
 		byTime.computeIfAbsent(tMs, k -> new LinkedHashMap<>()).put(col, v);
 	}
 
-	private static void writeGulpEvents(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
-			XYSeries series, EnumResults eventType, int stepMs, ExportTimePolicy.Relation relation) throws IOException {
+	private static void writeGulpEventsNative(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
+			XYSeries series) throws IOException {
 		if (series == null || series.getItemCount() == 0) {
 			return;
 		}
-		int n = series.getItemCount();
-		long[] timesMs = new long[n];
-		double[] values = new double[n];
-		for (int i = 0; i < n; i++) {
-			timesMs[i] = Math.round(series.getX(i).doubleValue() * 60000.0);
-			values[i] = series.getY(i).doubleValue();
-		}
-		long[] outTimes;
-		double[] outValues;
-		if (relation == ExportTimePolicy.Relation.COARSER) {
-			double[] regrouped = eventType == EnumResults.NBGULPS
-					? ExportTimePolicy.regroupPresence(timesMs, values, stepMs)
-					: ExportTimePolicy.regroupSum(timesMs, values, stepMs);
-			outTimes = ExportTimePolicy.binCentersMs(timesMs[0], regrouped.length, stepMs);
-			outValues = regrouped;
-		} else {
-			outTimes = timesMs;
-			outValues = values;
-		}
-		for (int i = 0; i < outValues.length; i++) {
-			double v = outValues[i];
+		for (int i = 0; i < series.getItemCount(); i++) {
+			double v = series.getY(i).doubleValue();
 			if (Double.isNaN(v) || v == 0.0) {
 				continue;
 			}
-			csv.writeGulpEvent(expKey, cageId, capId, outTimes[i] / 60000.0, v);
+			csv.writeGulpEvent(expKey, cageId, capId, series.getX(i).doubleValue(), v);
 		}
 	}
 
@@ -422,12 +420,6 @@ public final class CsvNormalizedExport {
 
 	private static String colName(EnumResults r) {
 		return r.toString().toLowerCase();
-	}
-
-	private static int resolveStepMs(Experiment exp, ResultsOptions options) {
-		long ms = TimestepResolver
-				.resolve(exp, options.buildExcelStepMs, TimestepResolutionContext.FOR_EXCEL_EXPORT).getStepMs();
-		return Math.max(1, (int) Math.min(ms, Integer.MAX_VALUE));
 	}
 
 	private static long nativeMedianMs(Experiment exp) {

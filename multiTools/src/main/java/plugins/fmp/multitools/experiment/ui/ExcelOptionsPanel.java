@@ -57,6 +57,7 @@ public class ExcelOptionsPanel extends JPanel {
 
 	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (CSV tables)", false);
 	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix (Excel)", true);
+	private final JCheckBox forceCsvBinCheckBox = new JCheckBox("force CSV bin grid", false);
 
 	private final JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
 	private final JComboBoxMs binUnit = new JComboBoxMs();
@@ -113,6 +114,10 @@ public class ExcelOptionsPanel extends JPanel {
 		panel3.add(new JLabel("layout "));
 		panel3.add(layoutNormalizedButton);
 		panel3.add(layoutWideButton);
+		panel3.add(forceCsvBinCheckBox);
+		forceCsvBinCheckBox.setToolTipText(
+				"CSV only: always write measure_*_binN (time-weighted grid at analysis interval), even when interval ≈ native sampling (±1 s).");
+		forceCsvBinCheckBox.setEnabled(false);
 		add(panel3);
 
 		enableIntervalButtons(false);
@@ -125,6 +130,7 @@ public class ExcelOptionsPanel extends JPanel {
 		layoutGroup.add(layoutWideButton);
 
 		defineActionListeners();
+		updateForceCsvBinEnabled();
 	}
 
 	private void defineActionListeners() {
@@ -136,6 +142,15 @@ public class ExcelOptionsPanel extends JPanel {
 				}
 			});
 		}
+
+		ActionListener layoutListener = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				updateForceCsvBinEnabled();
+			}
+		};
+		layoutNormalizedButton.addActionListener(layoutListener);
+		layoutWideButton.addActionListener(layoutListener);
 
 		isFixedFrameButton.addActionListener(new ActionListener() {
 			@Override
@@ -150,6 +165,14 @@ public class ExcelOptionsPanel extends JPanel {
 				enableIntervalButtons(false);
 			}
 		});
+	}
+
+	private void updateForceCsvBinEnabled() {
+		boolean csv = layoutNormalizedButton.isSelected();
+		forceCsvBinCheckBox.setEnabled(csv);
+		if (!csv) {
+			forceCsvBinCheckBox.setSelected(false);
+		}
 	}
 
 	private void enableIntervalButtons(boolean isSelected) {
@@ -168,6 +191,10 @@ public class ExcelOptionsPanel extends JPanel {
 
 	public boolean isExportLayoutNormalized() {
 		return layoutNormalizedButton.isSelected();
+	}
+
+	public boolean isForceCsvBinGrid() {
+		return layoutNormalizedButton.isSelected() && forceCsvBinCheckBox.isSelected();
 	}
 
 	public boolean isCollateSeries() {

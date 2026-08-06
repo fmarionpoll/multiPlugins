@@ -92,6 +92,11 @@ public class ResultsOptions {
 	 */
 	public int buildExcelStepMs = 1;
 	public int buildExcelUnitMs = 1;
+	/**
+	 * CSV normalized export: always write {@code measure_*_binN} even when analysis
+	 * interval ≈ native median (±1 s). Default false keeps exploratory exports light.
+	 */
+	public boolean forceCsvBinGrid = false;
 	public boolean fixedIntervals = false;
 	public long startAll_Ms = 0;
 	public long endAll_Ms = 999999;
@@ -221,6 +226,7 @@ public class ResultsOptions {
 		this.exportLayoutMode = resultsOptions.exportLayoutMode;
 		this.buildExcelStepMs = resultsOptions.buildExcelStepMs;
 		this.buildExcelUnitMs = resultsOptions.buildExcelUnitMs;
+		this.forceCsvBinGrid = resultsOptions.forceCsvBinGrid;
 		this.fixedIntervals = resultsOptions.fixedIntervals;
 		this.startAll_Ms = resultsOptions.startAll_Ms;
 		this.endAll_Ms = resultsOptions.endAll_Ms;
