@@ -512,7 +512,7 @@ public abstract class XLSExport {
 	}
 
 	/**
-	 * Writes median camera sampling interval (s) and analysis bin (s).
+	 * Writes median camera sampling interval (s), analysis bin (s), and analysis frame count.
 	 */
 	protected void writeTimebaseColumns(SXSSFSheet sheet, Point pt, boolean transpose, Experiment exp) {
 		if (exp == null) {
@@ -525,6 +525,10 @@ public abstract class XLSExport {
 		}
 		if (analysisSec > 0) {
 			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.ANALYSIS_BIN_S, transpose, analysisSec);
+		}
+		int nFrames = exp.getAnalysisFrameCount();
+		if (nFrames > 0) {
+			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.ANALYSIS_NFRAMES, transpose, nFrames);
 		}
 	}
 

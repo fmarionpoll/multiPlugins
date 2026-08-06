@@ -230,6 +230,11 @@ public final class NormalizedExportSupport {
 				setCellDouble(seriesSheet, row, EnumXLSColumnHeader.ANALYSIS_BIN_S.getValue() + DESCRIPTOR_COL0,
 						analysisSec);
 			}
+			int nFrames = exp.getAnalysisFrameCount();
+			if (nFrames > 0) {
+				setCellInt(seriesSheet, row, EnumXLSColumnHeader.ANALYSIS_NFRAMES.getValue() + DESCRIPTOR_COL0,
+						nFrames);
+			}
 			exp.loadExperimentDescriptors();
 			ExperimentProperties props = exp.getProperties();
 			if (props != null) {

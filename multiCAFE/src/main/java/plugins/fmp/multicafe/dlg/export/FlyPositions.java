@@ -20,7 +20,7 @@ public class FlyPositions extends JPanel {
 	JCheckBox sleepCheckBox = new JCheckBox("sleep", false);
 	JCheckBox illumPhaseCheckBox = new JCheckBox("light/dark", false);
 
-	JButton exportToXLSButton = new JButton("save XLS");
+	JButton exportToXLSButton = new JButton("save");
 	JCheckBox deadEmptyCheckBox = new JCheckBox("dead=empty");
 
 	void init(GridLayout capLayout) {

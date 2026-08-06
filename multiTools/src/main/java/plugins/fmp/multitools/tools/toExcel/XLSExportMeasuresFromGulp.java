@@ -79,7 +79,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		OptionToResultsMapping[] mappings = {
 				new OptionToResultsMapping(() -> options.derivative, EnumResults.DERIVEDVALUES),
 				new OptionToResultsMapping(() -> options.sumGulps, EnumResults.SUMGULPS),
-				new OptionToResultsMapping(() -> options.lrPI && options.sumGulps, EnumResults.SUMGULPS_LR),
+				new OptionToResultsMapping(() -> options.sumGulpsLr, EnumResults.SUMGULPS_LR),
 				new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
 				new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
 				new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),

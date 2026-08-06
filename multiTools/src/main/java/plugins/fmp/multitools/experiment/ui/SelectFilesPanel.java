@@ -116,7 +116,7 @@ public class SelectFilesPanel extends JPanel {
 
 	private IcyFrame dialogFrame = null;
 	private final JComboBox<String> filterCombo;
-	private final JButton findButton = new JButton("Select root directory and search...");
+	private final JButton findButton = new JButton("Search...");
 	private final JButton loadListButton = new JButton("Load list...");
 	private final JButton clearSelectedButton = new JButton("Clear selected");
 	private final JButton clearAllButton = new JButton("Clear all");
@@ -399,8 +399,7 @@ public class SelectFilesPanel extends JPanel {
 
 		JOptionPane.showMessageDialog(this,
 				"Loaded " + added + " path(s) from " + lines + " line(s).\n" + "Missing: " + skippedMissing
-						+ ", already listed: " + skippedDup + ".\n"
-						+ "Use Add selected / Add all to load experiments.",
+						+ ", already listed: " + skippedDup + ".\n" + "Use Add selected / Add all to load experiments.",
 				"Load list", JOptionPane.INFORMATION_MESSAGE);
 	}
 
@@ -878,8 +877,7 @@ public class SelectFilesPanel extends JPanel {
 		Collections.sort(selectedNames);
 		if (selectedNames.isEmpty() && skippedNoImages > 0) {
 			JOptionPane.showMessageDialog(this,
-					"None of the " + skippedNoImages
-							+ " selected path(s) contain JPG images.\n"
+					"None of the " + skippedNoImages + " selected path(s) contain JPG images.\n"
 							+ "For multiCAFE, list cam*/grabs (or cam* — grabs is auto-detected).",
 					"Add experiments", JOptionPane.WARNING_MESSAGE);
 		}

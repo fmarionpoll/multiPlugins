@@ -8,6 +8,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -126,7 +128,8 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 			});
 		} else if (evt.getPropertyName().equals("EXPORT_KYMOSDATA")) {
 			boolean csv = tabCommonOptions.isExportLayoutNormalized();
-			String file = defineExportFileName(exp, csv ? "_feeding.csv" : "_feeding.xlsx", csv);
+			String file = defineExportFileName(exp, csv ? null : "_feeding.xlsx",
+					csv ? "measure_levels" : null);
 			if (file == null)
 				return;
 			updateParametersCurrentExperiment(exp);
@@ -148,7 +151,8 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 			});
 		} else if (evt.getPropertyName().equals("EXPORT_GULPSDATA")) {
 			boolean csv = tabCommonOptions.isExportLayoutNormalized();
-			String file = defineExportFileName(exp, csv ? "_gulps.csv" : "_gulps.xlsx", csv);
+			String file = defineExportFileName(exp, csv ? null : "_gulps.xlsx",
+					csv ? "measure_gulps" : null);
 			if (file == null)
 				return;
 			updateParametersCurrentExperiment(exp);
@@ -171,15 +175,33 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		}
 	}
 
-	private String defineExportFileName(Experiment exp, String pattern, boolean csv) {
+	private static final DateTimeFormatter CSV_EXPORT_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd-HH-mm-ss");
+	private static final DateTimeFormatter XLSX_EXPORT_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+
+	/**
+	 * @param xlsxPattern e.g. {@code _feeding.xlsx} when Excel; ignored for CSV
+	 * @param csvDescriptor e.g. {@code measure_levels} when CSV; null for Excel
+	 */
+	private String defineExportFileName(Experiment exp, String xlsxPattern, String csvDescriptor) {
 		String filename0 = exp.getSeqCamData().getFileNameFromImageList(0);
 		Path directory = Paths.get(filename0).getParent();
-		Path subpath = directory.getName(directory.getNameCount() - 1);
-		String tentativeName = subpath.toString() + pattern;
-		String extension = csv ? "csv" : "xlsx";
+		boolean csv = csvDescriptor != null && !csvDescriptor.isEmpty();
+		String parentDir = directory.getParent().toString();
 
+		if (csv) {
+			String tentativeName = LocalDateTime.now().format(CSV_EXPORT_STAMP) + "-" + csvDescriptor;
+			try {
+				return Dialog.saveDirectoryAs(tentativeName, parentDir);
+			} catch (FileDialogException e) {
+				e.printStackTrace();
+			}
+			return Paths.get(parentDir, tentativeName).toString();
+		}
+
+		Path subpath = directory.getName(directory.getNameCount() - 1);
+		String tentativeName = LocalDateTime.now().format(XLSX_EXPORT_STAMP) + "_" + subpath.toString() + xlsxPattern;
 		try {
-			return Dialog.saveFileAs(tentativeName, directory.getParent().toString(), extension);
+			return Dialog.saveFileAs(tentativeName, parentDir, "xlsx");
 		} catch (FileDialogException e) {
 			e.printStackTrace();
 		}
@@ -187,7 +209,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private String defineXlsFileName(Experiment exp, String pattern) {
-		return defineExportFileName(exp, pattern, false);
+		return defineExportFileName(exp, pattern, null);
 	}
 
 	private void updateParametersCurrentExperiment(Experiment exp) {
@@ -211,11 +233,12 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 
 	private ResultsOptions getLevelsOptions(Experiment exp) {
 		ResultsOptions resultsOptions = new ResultsOptions();
-		resultsOptions.sumGulps = false;
 		resultsOptions.nbGulps = false;
+		resultsOptions.amplitudeGulps = false;
 		resultsOptions.topLevel = tabLevels.topLevelCheckBox.isSelected();
 		resultsOptions.bottomLevel = tabLevels.bottomLevelCheckBox.isSelected();
-		resultsOptions.sumGulps = false;
+		resultsOptions.sumGulps = tabLevels.sumGulpsCheckBox.isSelected();
+		resultsOptions.sumGulpsLr = tabLevels.sumGulpsLrCheckBox.isSelected();
 		resultsOptions.lrPI = tabLevels.lrPICheckBox.isSelected();
 		resultsOptions.lrPIThreshold = (double) tabLevels.lrPIThresholdJSpinner.getValue();
 		resultsOptions.sumPerCage = tabLevels.sumPerCageCheckBox.isSelected();
@@ -232,18 +255,15 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.topLevelDelta = false;
 		resultsOptions.bottomLevel = false;
 		resultsOptions.sumPerCage = false;
-
-		resultsOptions.derivative = tabGulps.derivativeCheckBox.isSelected();
+		resultsOptions.derivative = false;
 
 		resultsOptions.sumGulps = tabGulps.sumGulpsCheckBox.isSelected();
+		resultsOptions.sumGulpsLr = tabGulps.sumCheckBox.isSelected() && tabGulps.sumGulpsCheckBox.isSelected();
 		resultsOptions.lrPI = tabGulps.sumCheckBox.isSelected();
 		resultsOptions.nbGulps = tabGulps.nbGulpsCheckBox.isSelected();
 		resultsOptions.amplitudeGulps = tabGulps.amplitudeGulpsCheckBox.isSelected();
 
 		resultsOptions.markovChain = tabGulps.markovChainCheckBox.isSelected();
-//		resultsOptions.autocorrelation = tabGulps.autocorrelationCheckBox.isSelected();
-//		resultsOptions.crosscorrelation = tabGulps.crosscorrelationCheckBox.isSelected();
-//		resultsOptions.nBinsCorrelation = (int) tabGulps.nbinsJSpinner.getValue();
 
 		resultsOptions.correctEvaporation = false;
 		getCommonOptions(resultsOptions, exp);

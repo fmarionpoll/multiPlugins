@@ -63,7 +63,9 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 			new OptionToResultsMapping(() -> options.topLevel, EnumResults.TOPRAW, EnumResults.TOPLEVEL),
 			new OptionToResultsMapping(() -> options.lrPI, EnumResults.TOPLEVEL_LR),
 			new OptionToResultsMapping(() -> options.bottomLevel, EnumResults.BOTTOMLEVEL),
-			new OptionToResultsMapping(() -> options.derivative, EnumResults.DERIVEDVALUES)
+			new OptionToResultsMapping(() -> options.derivative, EnumResults.DERIVEDVALUES),
+			new OptionToResultsMapping(() -> options.sumGulps, EnumResults.SUMGULPS),
+			new OptionToResultsMapping(() -> options.sumGulpsLr, EnumResults.SUMGULPS_LR)
 		};
 
 		exp.dispatchCapillariesToCages();

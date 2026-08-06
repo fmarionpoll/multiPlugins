@@ -13,19 +13,16 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 public class Levels extends JPanel {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 1290058998782225526L;
 
-	JButton exportToXLSButton = new JButton("save XLS (v1)");
-	JButton exportToXLSButton2 = new JButton("save XLS");
+	JButton exportToXLSButton2 = new JButton("save");
 
 	JCheckBox topLevelCheckBox = new JCheckBox("top", true);
-	// JCheckBox topLevelDeltaCheckBox = new JCheckBox("delta top", false);
 	JCheckBox bottomLevelCheckBox = new JCheckBox("bottom", false);
 	JCheckBox subtractEvaporationCheckBox = new JCheckBox("subtract evaporation", true);
 	JCheckBox derivativeCheckBox = new JCheckBox("derivative", false);
+	JCheckBox sumGulpsCheckBox = new JCheckBox("sum gulps", false);
+	JCheckBox sumGulpsLrCheckBox = new JCheckBox("sum gulps L+R", false);
 	JCheckBox lrPICheckBox = new JCheckBox("L+R & pref index", true);
 	JLabel lrPILabel = new JLabel("compute PI only if L+R > ");
 	JCheckBox sumPerCageCheckBox = new JCheckBox("sum/cage", false);
@@ -38,10 +35,11 @@ public class Levels extends JPanel {
 		flowLayout0.setVgap(0);
 		JPanel panel0 = new JPanel(flowLayout0);
 		panel0.add(topLevelCheckBox);
-//		panel0.add(topLevelDeltaCheckBox);
 		panel0.add(bottomLevelCheckBox);
 		panel0.add(subtractEvaporationCheckBox);
 		panel0.add(derivativeCheckBox);
+		panel0.add(sumGulpsCheckBox);
+		panel0.add(sumGulpsLrCheckBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);

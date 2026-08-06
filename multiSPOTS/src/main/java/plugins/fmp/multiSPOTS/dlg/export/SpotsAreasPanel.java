@@ -15,7 +15,7 @@ public class SpotsAreasPanel extends JPanel {
 	 */
 	private static final long serialVersionUID = 1290058998782225526L;
 
-	JButton exportToXLSButton2 = new JButton("save XLS");
+	JButton exportToXLSButton2 = new JButton("save");
 
 	JCheckBox areaCheckBox = new JCheckBox("AREA_SUM", true);
 	JCheckBox sumNoFlyCheckBox = new JCheckBox("AREA_SUMNOFLY", false);

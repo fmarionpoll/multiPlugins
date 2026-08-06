@@ -66,7 +66,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	}
 
 	/**
-	 * From a save-dialog path, derive sibling folder {@code <stem>_csv}.
+	 * From a save-dialog path, use that path as the export folder.
+	 * Strips a trailing {@code .csv}/{@code .xlsx} if present (legacy dialogs).
 	 */
 	public static Path resolveCsvFolder(String chosenPath) {
 		if (chosenPath == null || chosenPath.isEmpty()) {
@@ -77,14 +78,15 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		String lower = name.toLowerCase(Locale.ROOT);
 		if (lower.endsWith(".csv")) {
 			name = name.substring(0, name.length() - 4);
-		} else if (lower.endsWith(".xlsx")) {
+			Path parent = p.getParent();
+			return (parent != null ? parent : Paths.get(".")).resolve(name);
+		}
+		if (lower.endsWith(".xlsx")) {
 			name = name.substring(0, name.length() - 5);
+			Path parent = p.getParent();
+			return (parent != null ? parent : Paths.get(".")).resolve(name);
 		}
-		Path parent = p.getParent();
-		if (parent == null) {
-			parent = Paths.get(".");
-		}
-		return parent.resolve(name + "_csv");
+		return p;
 	}
 
 	public Path getFolder() {
@@ -118,12 +120,13 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		String cam = exp.getExperimentField(EnumXLSColumnHeader.CAM);
 		Double camSec = exp.getCameraSampleIntervalSec() > 0 ? exp.getCameraSampleIntervalSec() : null;
 		Double analysisSec = exp.getAnalysisBinSec() > 0 ? exp.getAnalysisBinSec() : null;
+		Integer nFrames = exp.getAnalysisFrameCount() > 0 ? exp.getAnalysisFrameCount() : null;
 		ExperimentProperties props = exp.getProperties();
 		String expId = props != null ? props.getField(EnumXLSColumnHeader.EXP_ID) : "";
 		if (charSeries != null && !charSeries.isEmpty() && expId != null) {
 			expId = expId + "_" + charSeries;
 		}
-		p.printRecord(expKey, nullToEmpty(path), nullToEmpty(date), nullToEmpty(cam), camSec, analysisSec,
+		p.printRecord(expKey, nullToEmpty(path), nullToEmpty(date), nullToEmpty(cam), camSec, analysisSec, nFrames,
 				nullToEmpty(expId), prop(props, EnumXLSColumnHeader.EXP_EXPT),
 				prop(props, EnumXLSColumnHeader.EXP_STIM1), prop(props, EnumXLSColumnHeader.EXP_CONC1),
 				prop(props, EnumXLSColumnHeader.EXP_STIM2), prop(props, EnumXLSColumnHeader.EXP_CONC2),
@@ -177,10 +180,10 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		p.printRecord(row);
 	}
 
-	public void writeMeasureCageRow(String expKey, int cageId, double tMinutes, double sum, double pi)
+	public void writeMeasureCageRow(String expKey, int cageId, double tMinutes, String measure, double sum, double pi)
 			throws IOException {
 		CSVPrinter p = measureCagePrinter();
-		p.printRecord(expKey, cageId, tMinutes, Double.isNaN(sum) ? null : sum, Double.isNaN(pi) ? null : pi);
+		p.printRecord(expKey, cageId, tMinutes, measure, Double.isNaN(sum) ? null : sum, Double.isNaN(pi) ? null : pi);
 	}
 
 	public void writeGulpEvent(String expKey, int cageId, String capId, double tMinutes, double amplitude)
@@ -192,7 +195,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter idexptPrinter() throws IOException {
 		if (idexptPrinter == null) {
 			idexptPrinter = openPrinter(IDEXPT, "exp_key", "path", "date", "cam", "Cam_sample_s", "Analysis_bin_s",
-					"Exp_ID", "Expmt", "Stim1", "Conc1", "Stim2", "Conc2", "Strain", "Sex");
+					"Analysis_nframes", "Exp_ID", "Expmt", "Stim1", "Conc1", "Stim2", "Conc2", "Strain", "Sex");
 		}
 		return idexptPrinter;
 	}
@@ -228,7 +231,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter measureCagePrinter() throws IOException {
 		if (!measureCageOpen) {
-			measureCagePrinter = openPrinter(MEASURE_CAGE, "exp_key", "cage_id", "t_minutes", "sum", "pi");
+			measureCagePrinter = openPrinter(MEASURE_CAGE, "exp_key", "cage_id", "t_minutes", "measure", "sum", "pi");
 			measureCageOpen = true;
 		}
 		return measureCagePrinter;

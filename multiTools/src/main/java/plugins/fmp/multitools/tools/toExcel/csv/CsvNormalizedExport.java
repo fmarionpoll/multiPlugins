@@ -52,8 +52,8 @@ public final class CsvNormalizedExport {
 		options.exportLayoutMode = ExportLayoutMode.NORMALIZED;
 
 		List<String> denseCols = denseMeasureColumns(options, mode);
-		boolean wantCageLr = wantsCageLr(options, mode);
 		boolean wantGulpEvents = mode == Mode.GULPS && (options.amplitudeGulps || options.nbGulps);
+		List<EnumResults> cageLrTypes = cageLrResultTypes(options, mode);
 
 		Logger.info("CsvNormalizedExport: start -> " + csvFolder);
 
@@ -91,7 +91,7 @@ public final class CsvNormalizedExport {
 
 				progress.setMessage("CSV export experiment " + (index + 1) + " of " + nbexpts);
 				String charSeries = CellReference.convertNumToColString(iSeries);
-				exportOneExperiment(exp, options, charSeries, mode, csv, denseCols, wantCageLr, wantGulpEvents);
+				exportOneExperiment(exp, options, charSeries, mode, csv, denseCols, cageLrTypes, wantGulpEvents);
 				iSeries++;
 				progress.incPosition();
 			}
@@ -110,8 +110,8 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void exportOneExperiment(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
-			CsvNormalizedExportSupport csv, List<String> denseCols, boolean wantCageLr, boolean wantGulpEvents)
-			throws IOException {
+			CsvNormalizedExportSupport csv, List<String> denseCols, List<EnumResults> cageLrTypes,
+			boolean wantGulpEvents) throws IOException {
 		exp.ensureFrameTimeScale();
 		exp.dispatchCapillariesToCages();
 
@@ -120,8 +120,8 @@ public final class CsvNormalizedExport {
 		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(stepMs, nativeMedian);
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
-		if (wantCageLr) {
-			exportCageLr(exp, options, charSeries, mode, csv, builder, stepMs, relation);
+		for (EnumResults lrType : cageLrTypes) {
+			exportCageLr(exp, options, charSeries, lrType, csv, builder, stepMs, relation);
 		}
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
@@ -193,10 +193,10 @@ public final class CsvNormalizedExport {
 		}
 	}
 
-	private static void exportCageLr(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
+	private static void exportCageLr(Experiment exp, ResultsOptions options, String charSeries, EnumResults lrType,
 			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int stepMs,
 			ExportTimePolicy.Relation relation) throws IOException {
-		EnumResults lrType = mode == Mode.LEVELS ? EnumResults.TOPLEVEL_LR : EnumResults.SUMGULPS_LR;
+		String measureName = colName(lrType);
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
@@ -247,14 +247,15 @@ public final class CsvNormalizedExport {
 					if (Double.isNaN(sum) && Double.isNaN(pi)) {
 						continue;
 					}
-					csv.writeMeasureCageRow(expKey, cageId, centers[i] / 60000.0, sum, pi);
+					csv.writeMeasureCageRow(expKey, cageId, centers[i] / 60000.0, measureName, sum, pi);
 				}
 			} else {
 				for (int i = 0; i < n; i++) {
 					if (Double.isNaN(sumValues[i]) && Double.isNaN(piValues[i])) {
 						continue;
 					}
-					csv.writeMeasureCageRow(expKey, cageId, timesMs[i] / 60000.0, sumValues[i], piValues[i]);
+					csv.writeMeasureCageRow(expKey, cageId, timesMs[i] / 60000.0, measureName, sumValues[i],
+							piValues[i]);
 				}
 			}
 		}
@@ -358,10 +359,10 @@ public final class CsvNormalizedExport {
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
 			}
-		} else {
-			if (options.derivative) {
-				cols.add(colName(EnumResults.DERIVEDVALUES));
+			if (options.sumGulps) {
+				cols.add(colName(EnumResults.SUMGULPS));
 			}
+		} else {
 			if (options.sumGulps) {
 				cols.add(colName(EnumResults.SUMGULPS));
 			}
@@ -382,22 +383,28 @@ public final class CsvNormalizedExport {
 			if (options.derivative) {
 				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
 			}
-		} else {
-			if (options.derivative) {
-				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
-			}
 			if (options.sumGulps) {
 				map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
 			}
+		} else if (options.sumGulps) {
+			map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
 		}
 		return map;
 	}
 
-	private static boolean wantsCageLr(ResultsOptions options, Mode mode) {
+	private static List<EnumResults> cageLrResultTypes(ResultsOptions options, Mode mode) {
+		List<EnumResults> types = new ArrayList<>();
 		if (mode == Mode.LEVELS) {
-			return options.lrPI;
+			if (options.lrPI) {
+				types.add(EnumResults.TOPLEVEL_LR);
+			}
+			if (options.sumGulpsLr) {
+				types.add(EnumResults.SUMGULPS_LR);
+			}
+		} else if (options.sumGulpsLr) {
+			types.add(EnumResults.SUMGULPS_LR);
 		}
-		return options.lrPI && options.sumGulps;
+		return types;
 	}
 
 	private static EnumResults gulpEventResultType(ResultsOptions options, Mode mode) {

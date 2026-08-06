@@ -56,6 +56,8 @@ public class ResultsOptions {
 	public double lrPIThreshold = 0.;
 
 	public boolean sumGulps = false;
+	/** Cage-level sum gulps L+R / PI (independent of {@link #lrPI} for top level). */
+	public boolean sumGulpsLr = false;
 	public boolean nbGulps = false;
 	public boolean amplitudeGulps = false;
 	public boolean tToNextGulp = false;

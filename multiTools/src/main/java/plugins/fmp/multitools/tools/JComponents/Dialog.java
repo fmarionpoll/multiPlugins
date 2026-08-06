@@ -80,6 +80,57 @@ public final class Dialog {
 	}
 
 	/**
+	 * Opens a save dialog for a new or existing directory name (no file extension).
+	 *
+	 * @param defaultName suggested folder name (no path)
+	 * @param directory   initial parent directory
+	 * @return absolute path of the chosen folder, or null if cancelled
+	 */
+	public static String saveDirectoryAs(String defaultName, String directory) throws FileDialogException {
+		try {
+			final JFileChooser fileChooser = new JFileChooser();
+			if (directory != null && !directory.trim().isEmpty()) {
+				File dir = new File(directory);
+				if (dir.exists() && dir.isDirectory()) {
+					fileChooser.setCurrentDirectory(dir);
+				}
+			}
+			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+			fileChooser.setAcceptAllFileFilterUsed(true);
+			fileChooser.setMultiSelectionEnabled(false);
+			if (defaultName != null && !defaultName.trim().isEmpty()) {
+				fileChooser.setSelectedFile(new File(fileChooser.getCurrentDirectory(), defaultName));
+			}
+
+			final int returnValue = fileChooser.showSaveDialog(null);
+			if (returnValue != JFileChooser.APPROVE_OPTION) {
+				return null;
+			}
+			File selected = fileChooser.getSelectedFile();
+			if (selected == null) {
+				return null;
+			}
+			if (selected.exists() && selected.isDirectory()) {
+				File[] children = selected.listFiles();
+				if (children != null && children.length > 0) {
+					if (!ConfirmDialog.confirm("Folder is not empty:\n" + selected.getAbsolutePath()
+							+ "\n\nExport may overwrite matching CSV files. Continue?")) {
+						return null;
+					}
+				}
+			} else if (selected.exists() && selected.isFile()) {
+				ConfirmDialog.confirm("Please choose a folder name, not an existing file:\n" + selected.getAbsolutePath(),
+						"Not a folder");
+				return null;
+			}
+			return selected.getAbsolutePath();
+		} catch (Exception e) {
+			Logger.error("Error in saveDirectoryAs: " + e.getMessage(), e);
+			throw new FileDialogException("Failed to open directory save dialog", "save_directory_as", defaultName, e);
+		}
+	}
+
+	/**
 	 * Opens a directory selection dialog.
 	 *
 	 * @param directory The initial directory to open

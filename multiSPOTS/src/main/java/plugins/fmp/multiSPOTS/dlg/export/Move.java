@@ -23,7 +23,7 @@ public class Move extends JPanel {
 	JCheckBox sleepCheckBox = new JCheckBox("sleep", true);
 	JCheckBox rectSizeCheckBox = new JCheckBox("ellipse axes", false);
 
-	JButton exportToXLSButton = new JButton("save XLS");
+	JButton exportToXLSButton = new JButton("save");
 	JCheckBox deadEmptyCheckBox = new JCheckBox("dead=empty");
 
 	void init(GridLayout capLayout) {
