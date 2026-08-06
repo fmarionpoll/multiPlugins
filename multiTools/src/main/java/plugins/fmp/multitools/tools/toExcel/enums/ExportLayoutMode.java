@@ -1,11 +1,14 @@
 package plugins.fmp.multitools.tools.toExcel.enums;
 
 /**
- * Excel export layout for measure series.
+ * Export layout for measure series.
  */
 public enum ExportLayoutMode {
-	/** Wide matrix: one row per series, value columns {@code i*} or {@code t*}. */
+	/** Wide matrix Excel: one row per series, value columns {@code i*} or {@code t*}. */
 	WIDE,
-	/** Normalized: SERIES once per entity_id; DATA_<measure> joins on entity_id. */
+	/**
+	 * Normalized CSV tables: descriptor files ({@code idexpt}/{@code idcage}/{@code idcap})
+	 * plus dense {@code measure_*} and sparse {@code gulpevents} under a stamped prefix.
+	 */
 	NORMALIZED
 }

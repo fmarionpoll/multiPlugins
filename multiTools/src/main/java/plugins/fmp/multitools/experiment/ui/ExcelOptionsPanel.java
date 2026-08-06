@@ -55,8 +55,8 @@ public class ExcelOptionsPanel extends JPanel {
 	private final JCheckBox padIntervalsCheckBox = new JCheckBox("pad intervals", false);
 	private final JCheckBox onlyAliveCheckBox = new JCheckBox("dead=empty", false);
 
-	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (SERIES+DATA)", false);
-	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix", true);
+	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (CSV tables)", false);
+	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix (Excel)", true);
 
 	private final JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
 	private final JComboBoxMs binUnit = new JComboBoxMs();

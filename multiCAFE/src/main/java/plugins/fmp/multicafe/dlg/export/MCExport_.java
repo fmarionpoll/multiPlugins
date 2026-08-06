@@ -25,6 +25,9 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromCapillary;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromFlyPosition;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromGulp;
+import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport;
+import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExportSupport;
+import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
 public class MCExport_ extends JPanel implements PropertyChangeListener {
@@ -122,35 +125,45 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 				}
 			});
 		} else if (evt.getPropertyName().equals("EXPORT_KYMOSDATA")) {
-			String file = defineXlsFileName(exp, "_feeding.xlsx");
+			boolean csv = tabCommonOptions.isExportLayoutNormalized();
+			String file = defineExportFileName(exp, csv ? "_feeding.csv" : "_feeding.xlsx", csv);
 			if (file == null)
 				return;
 			updateParametersCurrentExperiment(exp);
 			ThreadUtil.bgRun(new Runnable() {
 				@Override
 				public void run() {
-					XLSExportMeasuresFromCapillary xlsExport2 = new XLSExportMeasuresFromCapillary();
+					ResultsOptions opts = getLevelsOptions(exp);
 					try {
-						xlsExport2.exportToFile(file, getLevelsOptions(exp));
+						if (opts.exportLayoutMode == ExportLayoutMode.NORMALIZED) {
+							Path folder = CsvNormalizedExportSupport.resolveCsvFolder(file);
+							CsvNormalizedExport.exportToFolder(folder, opts, CsvNormalizedExport.Mode.LEVELS);
+						} else {
+							new XLSExportMeasuresFromCapillary().exportToFile(file, opts);
+						}
 					} catch (ExcelExportException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				}
 			});
 		} else if (evt.getPropertyName().equals("EXPORT_GULPSDATA")) {
-			String file = defineXlsFileName(exp, "_gulps.xlsx");
+			boolean csv = tabCommonOptions.isExportLayoutNormalized();
+			String file = defineExportFileName(exp, csv ? "_gulps.csv" : "_gulps.xlsx", csv);
 			if (file == null)
 				return;
 			updateParametersCurrentExperiment(exp);
 			ThreadUtil.bgRun(new Runnable() {
 				@Override
 				public void run() {
-					XLSExportMeasuresFromGulp xlsExport2 = new XLSExportMeasuresFromGulp();
+					ResultsOptions opts = getGulpsOptions(exp);
 					try {
-						xlsExport2.exportToFile(file, getGulpsOptions(exp));
+						if (opts.exportLayoutMode == ExportLayoutMode.NORMALIZED) {
+							Path folder = CsvNormalizedExportSupport.resolveCsvFolder(file);
+							CsvNormalizedExport.exportToFolder(folder, opts, CsvNormalizedExport.Mode.GULPS);
+						} else {
+							new XLSExportMeasuresFromGulp().exportToFile(file, opts);
+						}
 					} catch (ExcelExportException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				}
@@ -158,19 +171,23 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		}
 	}
 
-	private String defineXlsFileName(Experiment exp, String pattern) {
+	private String defineExportFileName(Experiment exp, String pattern, boolean csv) {
 		String filename0 = exp.getSeqCamData().getFileNameFromImageList(0);
 		Path directory = Paths.get(filename0).getParent();
 		Path subpath = directory.getName(directory.getNameCount() - 1);
 		String tentativeName = subpath.toString() + pattern;
+		String extension = csv ? "csv" : "xlsx";
 
 		try {
-			return Dialog.saveFileAs(tentativeName, directory.getParent().toString(), "xlsx");
+			return Dialog.saveFileAs(tentativeName, directory.getParent().toString(), extension);
 		} catch (FileDialogException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		return tentativeName;
+	}
+
+	private String defineXlsFileName(Experiment exp, String pattern) {
+		return defineExportFileName(exp, pattern, false);
 	}
 
 	private void updateParametersCurrentExperiment(Experiment exp) {
