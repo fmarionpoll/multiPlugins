@@ -2,10 +2,14 @@ package plugins.fmp.multitools.tools.chart;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.prefs.Preferences;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -24,6 +28,7 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.interaction.CapillaryCombinedChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -38,9 +43,14 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * </p>
  */
 public class ChartCagesCombinedFrame {
+	private static final int DEFAULT_FRAME_WIDTH = 900;
+	private static final int DEFAULT_FRAME_HEIGHT = 500;
+
 	private IcyFrame mainChartFrame = null;
 	private JPanel mainChartPanel = null;
 	private ChartPanel chartPanel = null;
+	/** Fallback upper-left when no saved preference exists (e.g. relative to cam viewer). */
+	private Point graphLocation = new Point(0, 0);
 
 	public void createMainChartPanel(String title, Experiment exp, ResultsOptions options) {
 		if (title == null || title.trim().isEmpty())
@@ -53,12 +63,25 @@ public class ChartCagesCombinedFrame {
 		mainChartPanel = new JPanel(new BorderLayout());
 
 		String finalTitle = title + ": " + options.resultType;
-		if (mainChartFrame != null && (mainChartFrame.getParent() != null || mainChartFrame.isVisible())) {
+		boolean newFrame = !(mainChartFrame != null
+				&& (mainChartFrame.getParent() != null || mainChartFrame.isVisible()));
+		if (!newFrame) {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
 		} else {
-			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(), new Dimension(300, 70), true, true,
-					true, true);
+			mainChartFrame = GuiUtil.generateTitleFrame(finalTitle, new JPanel(),
+					new Dimension(DEFAULT_FRAME_WIDTH, DEFAULT_FRAME_HEIGHT), true, true, true, true);
+			mainChartFrame.addComponentListener(new ComponentAdapter() {
+				@Override
+				public void componentResized(ComponentEvent e) {
+					savePreferences();
+				}
+
+				@Override
+				public void componentMoved(ComponentEvent e) {
+					savePreferences();
+				}
+			});
 		}
 		mainChartFrame.setLayout(new BorderLayout());
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
@@ -76,6 +99,7 @@ public class ChartCagesCombinedFrame {
 		CombinedRangeXYPlot combined = new CombinedRangeXYPlot(sharedYAxis);
 
 		CageSeriesBuilder builder = selectDataBuilder(options.resultType);
+		List<Cage> subplotCages = new ArrayList<>();
 		for (Cage cage : filterCages(exp, options)) {
 			XYSeriesCollection dataset = builder.build(exp, cage, options);
 			if (dataset == null || dataset.getSeriesCount() == 0)
@@ -94,29 +118,59 @@ public class ChartCagesCombinedFrame {
 			CageChartPlotFactory.setXYPlotBackGroundAccordingToNFlies(subplot, nFlies);
 
 			combined.add(subplot, 1);
+			subplotCages.add(cage);
 		}
 
 		JFreeChart chart = new JFreeChart(combined);
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
+		chartPanel.addChartMouseListener(
+				new CapillaryCombinedChartInteractionHandler(exp, subplotCages).createMouseListener());
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 
 		mainChartFrame.pack();
-		mainChartFrame.addToDesktopPane();
+		loadPreferences();
+		if (mainChartFrame.getParent() == null) {
+			mainChartFrame.addToDesktopPane();
+		}
 		mainChartFrame.setVisible(true);
 		mainChartFrame.toFront();
 		mainChartFrame.requestFocus();
 	}
 
+	/**
+	 * Stores a fallback upper-left location (typically the cam viewer). Applied only
+	 * when no previous combined-chart window position is saved in preferences.
+	 */
 	public void setChartUpperLeftLocation(Rectangle rect) {
 		if (rect == null)
 			return;
-		if (mainChartFrame != null) {
-			mainChartFrame.setLocation(rect.getLocation());
-		}
+		graphLocation = new Point(rect.x, rect.y);
 	}
 
 	public IcyFrame getMainChartFrame() {
 		return mainChartFrame;
+	}
+
+	private void loadPreferences() {
+		if (mainChartFrame == null)
+			return;
+		Preferences prefs = Preferences.userNodeForPackage(ChartCagesCombinedFrame.class);
+		int x = prefs.getInt("window_x", graphLocation.x);
+		int y = prefs.getInt("window_y", graphLocation.y);
+		int w = prefs.getInt("window_w", DEFAULT_FRAME_WIDTH);
+		int h = prefs.getInt("window_h", DEFAULT_FRAME_HEIGHT);
+		mainChartFrame.setBounds(new Rectangle(x, y, w, h));
+	}
+
+	private void savePreferences() {
+		if (mainChartFrame == null)
+			return;
+		Preferences prefs = Preferences.userNodeForPackage(ChartCagesCombinedFrame.class);
+		Rectangle r = mainChartFrame.getBounds();
+		prefs.putInt("window_x", r.x);
+		prefs.putInt("window_y", r.y);
+		prefs.putInt("window_w", r.width);
+		prefs.putInt("window_h", r.height);
 	}
 
 	private CageSeriesBuilder selectDataBuilder(EnumResults resultType) {

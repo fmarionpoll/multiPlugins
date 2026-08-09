@@ -21,20 +21,15 @@ import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
-import icy.gui.viewer.Viewer;
-import icy.roi.ROI2D;
-import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.JFreeChartPlotCompat;
 import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
-import plugins.fmp.multitools.tools.chart.interaction.ChartCamFrameNavigation;
 
 /**
  * Capillary-related chart interactions (click-to-select ROI, jump to nearest T,
@@ -205,134 +200,6 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 		return closestCapillary;
 	}
 
-	/**
-	 * {@link Sequence#setSelectedROI} / {@link Sequence#setFocusedROI} only accept
-	 * ROI instances that are attached to the sequence. Capillary/AlongT may hold a
-	 * different reference (copy, reload); match the sequence ROI by identity, then
-	 * by name.
-	 */
-	private static ROI2D resolveRoiOnSequence(Sequence seq, ROI2D fromCapillary) {
-		if (seq == null || fromCapillary == null) {
-			return null;
-		}
-		ArrayList<ROI2D> onSeq = seq.getROI2Ds();
-		for (ROI2D r : onSeq) {
-			if (r == fromCapillary) {
-				return r;
-			}
-		}
-		String name = fromCapillary.getName();
-		if (name != null) {
-			for (ROI2D r : onSeq) {
-				if (name.equals(r.getName())) {
-					return r;
-				}
-			}
-		}
-		return null;
-	}
-
-	private void selectCapillaryAtT(Experiment exp, Capillary capillary, int frameIndex) {
-		if (exp == null || capillary == null) {
-			Logger.warn("Cannot select capillary: experiment or capillary is null");
-			return;
-		}
-
-		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
-			return;
-		}
-
-		Sequence seq = exp.getSeqCamData().getSequence();
-		Viewer v = seq.getFirstViewer();
-		if (v == null) {
-			v = new ViewerFMP(seq, true, true);
-		}
-		v.toFront();
-		if (frameIndex >= 0) {
-			v.setPositionT(frameIndex);
-		}
-
-		ROI2D roi = capillary.getRoiAtFrameT(frameIndex);
-		if (roi == null) {
-			return;
-		}
-		ROI2D seqRoi = resolveRoiOnSequence(seq, roi);
-		if (seqRoi == null) {
-			Logger.warn("Capillary ROI is not attached to the camera sequence (no instance/name match): "
-					+ roi.getName());
-			return;
-		}
-		seq.setFocusedROI(seqRoi);
-		seq.setSelectedROI(seqRoi);
-	}
-
-	private void chartSelectKymographForCapillary(Experiment exp, Capillary capillary) {
-		if (exp == null || capillary == null) {
-			Logger.warn("Cannot select kymograph: experiment or capillary is null");
-			return;
-		}
-		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null) {
-			return;
-		}
-
-		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
-		if (v == null) {
-			v = new ViewerFMP(exp.getSeqKymos().getSequence(), true, true);
-		}
-
-		List<String> kymographImagesList = exp.getSeqKymos().getImagesList();
-		int kymographIndex = capillary.deriveKymographIndexFromImageList(kymographImagesList);
-		if (kymographIndex >= 0 && kymographIndex < exp.getSeqKymos().getSequence().getSizeT()) {
-			v.setPositionT(kymographIndex);
-			v.toFront();
-		}
-	}
-
-	private void chartSelectClickedCapillary(Experiment exp, Capillary clickedCapillary, double timeMinutes) {
-		if (clickedCapillary == null) {
-			Logger.warn("Clicked capillary is null");
-			return;
-		}
-
-		int frameIndex = getFrameIndexFromTimeMinutes(exp, timeMinutes);
-		chartSelectKymographForCapillary(exp, clickedCapillary);
-
-		selectCapillaryAtT(exp, clickedCapillary, frameIndex);
-	}
-
-	private int getFrameIndexFromTimeMinutes(Experiment exp, double timeMinutes) {
-		if (exp == null || exp.getSeqCamData() == null || timeMinutes < 0) {
-			return -1;
-		}
-		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		if (nTotalFrames <= 0 && exp.getSeqCamData().getSequence() != null) {
-			nTotalFrames = exp.getSeqCamData().getSequence().getSizeT();
-		}
-		if (nTotalFrames <= 0) {
-			return -1;
-		}
-
-		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
-		if (timeArray != null && timeArray.length == nTotalFrames) {
-			// TimeManager.findNearestIntervalWithBinarySearch expects 'high' to be a valid index.
-			return exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch((long) (timeMinutes * 60000),
-					0, nTotalFrames - 1);
-		}
-
-		long binMs = exp.getSeqCamData().getTimeManager().getBinDurationMs();
-		if (binMs > 0) {
-			long tMs = (long) (timeMinutes * 60000.0);
-			int frame = (int) Math.round((double) tMs / (double) binMs);
-			if (frame < 0)
-				frame = 0;
-			if (frame >= nTotalFrames)
-				frame = nTotalFrames - 1;
-			return frame;
-		}
-
-		return -1;
-	}
-
 	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, XYPlot plot) {
 		return ChartCamFrameNavigation.getTimeMinutesFromEvent(e, panel, plot);
 	}
@@ -357,7 +224,7 @@ public class CapillaryChartInteractionHandler implements ChartInteractionHandler
 			}
 			XYPlot plot = (XYPlot) chart.getPlot();
 			double timeMinutes = getTimeMinutesFromEvent(e, panel, plot);
-			chartSelectClickedCapillary(experiment, clickedCapillary, timeMinutes);
+			CapillaryChartRoiFocus.selectClickedCapillary(experiment, clickedCapillary, timeMinutes);
 		}
 
 		@Override
