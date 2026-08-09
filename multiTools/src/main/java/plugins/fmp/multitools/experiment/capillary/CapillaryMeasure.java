@@ -58,6 +58,52 @@ public class CapillaryMeasure {
 		polylineLevel.ypoints[index] = Double.NaN;
 	}
 
+	/**
+	 * Fills NaN y-values with linear interpolation between neighboring valid
+	 * samples (edge NaNs copy the nearest valid value). Used after ROI cuts so
+	 * gaps can stay empty until Validate/Save.
+	 */
+	public void fillInvalidYWithLinearInterpolation() {
+		if (polylineLevel == null || polylineLevel.npoints == 0)
+			return;
+		double[] y = polylineLevel.ypoints;
+		int n = polylineLevel.npoints;
+		int firstValid = -1;
+		for (int i = 0; i < n; i++) {
+			if (!Double.isNaN(y[i])) {
+				firstValid = i;
+				break;
+			}
+		}
+		if (firstValid < 0)
+			return;
+		for (int i = 0; i < firstValid; i++) {
+			y[i] = y[firstValid];
+		}
+		int prevValid = firstValid;
+		for (int i = firstValid + 1; i < n; i++) {
+			if (!Double.isNaN(y[i])) {
+				if (i > prevValid + 1) {
+					int start = prevValid + 1;
+					int end = i - 1;
+					int len = end - start + 1;
+					double y0 = y[prevValid];
+					double y1 = y[i];
+					for (int k = 0; k < len; k++) {
+						double alpha = (double) (k + 1) / (len + 1);
+						y[start + k] = y0 + alpha * (y1 - y0);
+					}
+				}
+				prevValid = i;
+			}
+		}
+		if (prevValid < n - 1) {
+			for (int i = prevValid + 1; i < n; i++) {
+				y[i] = y[prevValid];
+			}
+		}
+	}
+
 	public void setPolylineLevelFromTempData(String name, int indexImage, int xStart, int xEnd) {
 		this.capName = name;
 		this.capIndexKymo = indexImage;

@@ -23,7 +23,6 @@ import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
-import plugins.fmp.multitools.tools.toExcel.ExportTimePolicy;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
 import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
@@ -118,8 +117,8 @@ public final class CsvNormalizedExport {
 
 		long nativeMedian = nativeMedianMs(exp);
 		int nativeStepMs = (int) Math.max(1L, nativeMedian > 0 ? nativeMedian : binStepMs);
-		boolean writeBin = options.forceCsvBinGrid
-				|| ExportTimePolicy.relation(binStepMs, nativeMedian) == ExportTimePolicy.Relation.COARSER;
+		// Bin grid follows dialog analysis interval when enabled; no auto COARSER/NATIVE gate.
+		boolean writeBin = options.forceCsvBinGrid;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
 		for (EnumResults lrType : cageLrTypes) {

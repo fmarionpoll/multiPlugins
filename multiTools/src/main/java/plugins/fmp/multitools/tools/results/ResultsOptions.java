@@ -93,10 +93,10 @@ public class ResultsOptions {
 	public int buildExcelStepMs = 1;
 	public int buildExcelUnitMs = 1;
 	/**
-	 * CSV normalized export: always write {@code measure_*_binN} even when analysis
-	 * interval ≈ native median (±1 s). Default false keeps exploratory exports light.
+	 * CSV normalized export: write {@code measure_*_binN} on the analysis-interval
+	 * grid (time-weighted). Default true; uncheck for raw-only dense measures.
 	 */
-	public boolean forceCsvBinGrid = false;
+	public boolean forceCsvBinGrid = true;
 	public boolean fixedIntervals = false;
 	public long startAll_Ms = 0;
 	public long endAll_Ms = 999999;

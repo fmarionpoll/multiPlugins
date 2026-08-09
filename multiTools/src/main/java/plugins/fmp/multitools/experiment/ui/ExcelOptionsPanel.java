@@ -57,7 +57,7 @@ public class ExcelOptionsPanel extends JPanel {
 
 	private final JRadioButton layoutNormalizedButton = new JRadioButton("normalized (CSV tables)", false);
 	private final JRadioButton layoutWideButton = new JRadioButton("wide matrix (Excel)", true);
-	private final JCheckBox forceCsvBinCheckBox = new JCheckBox("force CSV bin grid", false);
+	private final JCheckBox forceCsvBinCheckBox = new JCheckBox("force CSV bin grid", true);
 
 	private final JSpinner binSize = new JSpinner(new SpinnerNumberModel(1., 1., 1000., 1.));
 	private final JComboBoxMs binUnit = new JComboBoxMs();
@@ -112,11 +112,11 @@ public class ExcelOptionsPanel extends JPanel {
 
 		JPanel panel3 = new JPanel(layout1);
 		panel3.add(new JLabel("layout "));
-		panel3.add(layoutNormalizedButton);
 		panel3.add(layoutWideButton);
+		panel3.add(layoutNormalizedButton);
 		panel3.add(forceCsvBinCheckBox);
 		forceCsvBinCheckBox.setToolTipText(
-				"CSV only: always write measure_*_binN (time-weighted grid at analysis interval), even when interval ≈ native sampling (±1 s).");
+				"CSV only: write measure_*_binN using the analysis interval (bin size × unit) with time-weighted resampling. Uncheck to export raw native times only.");
 		forceCsvBinCheckBox.setEnabled(false);
 		add(panel3);
 
@@ -168,11 +168,7 @@ public class ExcelOptionsPanel extends JPanel {
 	}
 
 	private void updateForceCsvBinEnabled() {
-		boolean csv = layoutNormalizedButton.isSelected();
-		forceCsvBinCheckBox.setEnabled(csv);
-		if (!csv) {
-			forceCsvBinCheckBox.setSelected(false);
-		}
+		forceCsvBinCheckBox.setEnabled(layoutNormalizedButton.isSelected());
 	}
 
 	private void enableIntervalButtons(boolean isSelected) {

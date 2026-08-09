@@ -413,7 +413,11 @@ public class EditLevels extends JPanel {
 			attachGulpRoiListeners(exp);
 			break;
 		default:
+			// Pull ROI edits first, then fill cut gaps (NaNs), then refresh display ROIs.
 			ctx.seqKymos.validateLinearROIsAtT(ctx.cap);
+			fillInvalidMeasuresForAllCapillaries(exp);
+			refreshLinearRoisFromMeasures(exp);
+			exp.save_capillaries_description_and_measures();
 			break;
 		}
 		Viewer v = ctx.seqKymos.getSequence().getFirstViewer();
@@ -459,8 +463,7 @@ public class EditLevels extends JPanel {
 					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getDerivative(), ctx.selectedROI);
 			}
 
-			// Persist updated measures so later computations (charts, exports)
-			// see the already-cut data and do not re-derive from stale curves.
+			// Persist cut gaps as NaN; linear fill is deferred to Validate / Load-Save.
 			exp.save_capillaries_description_and_measures();
 			break;
 		}
@@ -468,8 +471,37 @@ public class EditLevels extends JPanel {
 
 	private void cutAndUpdate(SequenceKymos seqKymos, Capillary cap, CapillaryMeasure caplimits, ROI2D roiRemovedArea) {
 		removeMeasuresEnclosedInROI(caplimits, roiRemovedArea);
-		interpolateInvalidMeasures(caplimits);
 		seqKymos.updateROIFromCapillaryMeasure(cap, caplimits);
+	}
+
+	static void fillInvalidMeasuresForAllCapillaries(Experiment exp) {
+		if (exp == null || exp.getCapillaries() == null)
+			return;
+		for (Capillary cap : exp.getCapillaries().getList()) {
+			fillInvalidIfPresent(cap.getTopLevel());
+			fillInvalidIfPresent(cap.getBottomLevel());
+			fillInvalidIfPresent(cap.getDerivative());
+			fillInvalidIfPresent(cap.getTopCorrected());
+		}
+	}
+
+	private static void fillInvalidIfPresent(CapillaryMeasure measure) {
+		if (measure != null)
+			measure.fillInvalidYWithLinearInterpolation();
+	}
+
+	static void refreshLinearRoisFromMeasures(Experiment exp) {
+		SequenceKymos seqKymos = exp.getSeqKymos();
+		if (seqKymos == null || exp.getCapillaries() == null)
+			return;
+		for (Capillary cap : exp.getCapillaries().getList()) {
+			if (cap.getTopLevel() != null)
+				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopLevel());
+			if (cap.getBottomLevel() != null)
+				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomLevel());
+			if (cap.getDerivative() != null)
+				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
+		}
 	}
 
 	void removeMeasuresEnclosedInROI(CapillaryMeasure caplimits, ROI2D roiRemovedArea) {
@@ -497,55 +529,6 @@ public class EditLevels extends JPanel {
 			npointsInside += isInside[i] ? 1 : 0;
 		}
 		return npointsInside;
-	}
-
-	private void interpolateInvalidMeasures(CapillaryMeasure caplimits) {
-		Level2D level2D = caplimits.polylineLevel;
-		if (level2D == null || level2D.npoints == 0)
-			return;
-		double[] y = level2D.ypoints;
-		int n = level2D.npoints;
-		// Find first valid point
-		int firstValid = -1;
-		for (int i = 0; i < n; i++) {
-			if (!Double.isNaN(y[i])) {
-				firstValid = i;
-				break;
-			}
-		}
-		// If no valid points at all, nothing to interpolate
-		if (firstValid < 0)
-			return;
-		// If the first values are NaN, copy first valid backwards
-		for (int i = 0; i < firstValid; i++) {
-			y[i] = y[firstValid];
-		}
-		// Interpolate internal NaN runs
-		int prevValid = firstValid;
-		for (int i = firstValid + 1; i < n; i++) {
-			if (!Double.isNaN(y[i])) {
-				// We have a new valid point at i; if there is a NaN run between
-				// prevValid and i, interpolate linearly
-				if (i > prevValid + 1) {
-					int start = prevValid + 1;
-					int end = i - 1;
-					int len = end - start + 1;
-					double y0 = y[prevValid];
-					double y1 = y[i];
-					for (int k = 0; k < len; k++) {
-						double alpha = (double) (k + 1) / (len + 1);
-						y[start + k] = y0 + alpha * (y1 - y0);
-					}
-				}
-				prevValid = i;
-			}
-		}
-		// If last values are NaN, copy last valid forwards
-		if (prevValid < n - 1) {
-			for (int i = prevValid + 1; i < n; i++) {
-				y[i] = y[prevValid];
-			}
-		}
 	}
 
 }

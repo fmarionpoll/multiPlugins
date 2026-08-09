@@ -80,7 +80,12 @@ public class LoadSaveLevels extends JPanel {
 		boolean flag = true;
 		if (exp.getSeqKymos() != null) {
 			ProgressFrame progress = new ProgressFrame("save capillary measures");
-			flag = exp.saveCapillariesMeasures(exp.getKymosBinFullDirectory());
+			// Pull ROI state, fill cut gaps, refresh display, then write.
+			// Detector/CleanGaps saves use Experiment.save_* and do not fill.
+			exp.getSeqKymos().transferKymosRoisToCapillaries_Measures(exp.getCapillaries());
+			EditLevels.fillInvalidMeasuresForAllCapillaries(exp);
+			EditLevels.refreshLinearRoisFromMeasures(exp);
+			flag = exp.save_capillaries_description_and_measures();
 			progress.close();
 		}
 		return flag;
