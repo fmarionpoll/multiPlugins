@@ -9,6 +9,7 @@ import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.prefs.Preferences;
 
 import javax.swing.JPanel;
@@ -25,10 +26,12 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.CapillaryCombinedChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.interaction.SpotCombinedChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -39,7 +42,8 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * {@link CombinedRangeXYPlot}.
  *
  * <p>
- * Intended for MultiCAFE combined view; multiSPOTS96 uses grid view only.
+ * Used by MultiCAFE combined capillary view and multiSPOTS kymo combined view.
+ * multiSPOTS96 uses grid view only.
  * </p>
  */
 public class ChartCagesCombinedFrame {
@@ -51,6 +55,11 @@ public class ChartCagesCombinedFrame {
 	private ChartPanel chartPanel = null;
 	/** Fallback upper-left when no saved preference exists (e.g. relative to cam viewer). */
 	private Point graphLocation = new Point(0, 0);
+	private Consumer<Spot> onSpotSelectedFromChart;
+
+	public void setOnSpotSelectedFromChart(Consumer<Spot> callback) {
+		this.onSpotSelectedFromChart = callback;
+	}
 
 	public void createMainChartPanel(String title, Experiment exp, ResultsOptions options) {
 		if (title == null || title.trim().isEmpty())
@@ -123,8 +132,14 @@ public class ChartCagesCombinedFrame {
 
 		JFreeChart chart = new JFreeChart(combined);
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
-		chartPanel.addChartMouseListener(
-				new CapillaryCombinedChartInteractionHandler(exp, subplotCages).createMouseListener());
+		if (isSpotResultType(options.resultType)) {
+			chartPanel.addChartMouseListener(
+					new SpotCombinedChartInteractionHandler(exp, subplotCages, onSpotSelectedFromChart)
+							.createMouseListener());
+		} else {
+			chartPanel.addChartMouseListener(
+					new CapillaryCombinedChartInteractionHandler(exp, subplotCages).createMouseListener());
+		}
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 
 		mainChartFrame.pack();
@@ -222,7 +237,7 @@ public class ChartCagesCombinedFrame {
 	private List<Cage> filterCages(Experiment exp, ResultsOptions options) {
 		List<Cage> cages = exp.getCages() != null ? exp.getCages().getCageList() : null;
 		if (cages == null)
-			return List.of();
+			return Collections.emptyList();
 
 		boolean singleCageMode = options.cageIndexFirst == options.cageIndexLast && options.cageIndexFirst >= 0;
 		List<Cage> out = new ArrayList<>();

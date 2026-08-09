@@ -24,6 +24,7 @@ import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
+import plugins.fmp.multitools.tools.chart.ChartCagesCombinedFrame;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
@@ -57,14 +58,17 @@ public class GraphPanel extends JPanel {
 	private final JRadioButton displayAllButton = new JRadioButton("all cages", true);
 	private final JRadioButton displaySelectedCageButton = new JRadioButton("cage selected", false);
 	private final JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected", false);
+	private final JRadioButton viewGridButton = new JRadioButton("grid", true);
+	private final JRadioButton viewCombinedButton = new JRadioButton("combined", false);
 	private final JButton displayChartsButton = new JButton("Display charts");
 	private final JLabel graphStatusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private ChartCagesFrame chartCagesFrame;
+	private ChartCagesCombinedFrame chartCombinedFrame;
 	private KymoOverlayFrame overlayFrame;
 
 	public GraphPanel(MultiSPOTS parent0, AnalysisPanel analysisPanel) {
-		super(new GridLayout(3, 1));
+		super(new GridLayout(4, 1));
 		this.parent0 = parent0;
 		this.analysisPanel = analysisPanel;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
@@ -75,6 +79,15 @@ public class GraphPanel extends JPanel {
 		p0.add(new JLabel("Measure"));
 		p0.add(measureComboBox);
 		add(p0);
+
+		JPanel pView = new JPanel(left);
+		pView.add(new JLabel("View"));
+		pView.add(viewGridButton);
+		pView.add(viewCombinedButton);
+		ButtonGroup viewGroup = new ButtonGroup();
+		viewGroup.add(viewGridButton);
+		viewGroup.add(viewCombinedButton);
+		add(pView);
 
 		JPanel p1 = new JPanel(left);
 		p1.add(new JLabel("Display"));
@@ -101,6 +114,8 @@ public class GraphPanel extends JPanel {
 		displayAllButton.addActionListener(e -> maybeRefreshVisibleCharts());
 		displaySelectedCageButton.addActionListener(e -> maybeRefreshVisibleCharts());
 		displaySelectedSpotsButton.addActionListener(e -> maybeRefreshVisibleCharts());
+		viewGridButton.addActionListener(e -> maybeRefreshVisibleCharts());
+		viewCombinedButton.addActionListener(e -> maybeRefreshVisibleCharts());
 	}
 
 	void maybeRefreshVisibleCharts() {
@@ -109,9 +124,11 @@ public class GraphPanel extends JPanel {
 		}
 		boolean cagesVisible = chartCagesFrame != null && chartCagesFrame.getMainChartFrame() != null
 				&& chartCagesFrame.getMainChartFrame().isVisible();
+		boolean combinedVisible = chartCombinedFrame != null && chartCombinedFrame.getMainChartFrame() != null
+				&& chartCombinedFrame.getMainChartFrame().isVisible();
 		boolean overlayVisible = overlayFrame != null && overlayFrame.getMainChartFrame() != null
 				&& overlayFrame.getMainChartFrame().isVisible();
-		if (cagesVisible || overlayVisible) {
+		if (cagesVisible || combinedVisible || overlayVisible) {
 			onDisplayCharts();
 		}
 	}
@@ -210,22 +227,34 @@ public class GraphPanel extends JPanel {
 		options.relativeToMaximum = false;
 		applyKymoAggregateChartOptions(exp, options);
 
-		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
-			@Override
-			public ChartInteractionHandler createHandler(Experiment exp2, ResultsOptions options2,
-					ChartCagePair[][] charts) {
-				return new SpotChartInteractionHandler(exp2, options2, charts,
-						spot -> parent0.dlgSpots.onMeasureChartSpotClicked(spot));
+		if (viewCombinedButton.isSelected()) {
+			chartCombinedFrame = new ChartCagesCombinedFrame();
+			chartCombinedFrame.setOnSpotSelectedFromChart(parent0.dlgSpots::onMeasureChartSpotClicked);
+			chartCombinedFrame.createMainChartPanel("Kymograph", exp, options);
+			chartCombinedFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
+			chartCombinedFrame.displayData(exp, options);
+			if (chartCombinedFrame.getMainChartFrame() != null) {
+				chartCombinedFrame.getMainChartFrame().toFront();
+				chartCombinedFrame.getMainChartFrame().requestFocus();
 			}
-		};
-		chartCagesFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
-				createKymoChartUIControlsFactory());
-		chartCagesFrame.createMainChartPanel("Kymograph", exp, options);
-		chartCagesFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
-		chartCagesFrame.displayData(exp, options);
-		if (chartCagesFrame.getMainChartFrame() != null) {
-			chartCagesFrame.getMainChartFrame().toFront();
-			chartCagesFrame.getMainChartFrame().requestFocus();
+		} else {
+			ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
+				@Override
+				public ChartInteractionHandler createHandler(Experiment exp2, ResultsOptions options2,
+						ChartCagePair[][] charts) {
+					return new SpotChartInteractionHandler(exp2, options2, charts,
+							spot -> parent0.dlgSpots.onMeasureChartSpotClicked(spot));
+				}
+			};
+			chartCagesFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
+					createKymoChartUIControlsFactory());
+			chartCagesFrame.createMainChartPanel("Kymograph", exp, options);
+			chartCagesFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
+			chartCagesFrame.displayData(exp, options);
+			if (chartCagesFrame.getMainChartFrame() != null) {
+				chartCagesFrame.getMainChartFrame().toFront();
+				chartCagesFrame.getMainChartFrame().requestFocus();
+			}
 		}
 		graphStatusLabel.setText(" ");
 	}
@@ -253,6 +282,10 @@ public class GraphPanel extends JPanel {
 			chartCagesFrame.getMainChartFrame().dispose();
 		}
 		chartCagesFrame = null;
+		if (chartCombinedFrame != null && chartCombinedFrame.getMainChartFrame() != null) {
+			chartCombinedFrame.getMainChartFrame().dispose();
+		}
+		chartCombinedFrame = null;
 		if (overlayFrame != null) {
 			overlayFrame.dispose();
 		}
