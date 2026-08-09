@@ -18,7 +18,7 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.entity.ChartEntity;
 import org.jfree.chart.entity.XYItemEntity;
-import org.jfree.chart.plot.CombinedRangeXYPlot;
+import org.jfree.chart.plot.Plot;
 import org.jfree.chart.plot.PlotRenderingInfo;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYDataset;
@@ -33,8 +33,9 @@ import plugins.fmp.multitools.tools.chart.JFreeChartPlotCompat;
 import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
 
 /**
- * Capillary click interactions for the MultiCAFE combined
- * {@link CombinedRangeXYPlot} view (one subplot per cage).
+ * Capillary click interactions for the MultiCAFE combined chart view (one
+ * subplot per cage), supporting {@link org.jfree.chart.plot.CombinedDomainXYPlot}
+ * and {@link org.jfree.chart.plot.CombinedRangeXYPlot}.
  */
 public class CapillaryCombinedChartInteractionHandler {
 
@@ -70,10 +71,10 @@ public class CapillaryCombinedChartInteractionHandler {
 		}
 		ChartPanel panel = (ChartPanel) trigger.getSource();
 		JFreeChart chart = e.getChart();
-		if (chart == null || !(chart.getPlot() instanceof CombinedRangeXYPlot)) {
+		if (chart == null || !CombinedXYPlots.isCombinedXYPlot(chart.getPlot())) {
 			return null;
 		}
-		CombinedRangeXYPlot combined = (CombinedRangeXYPlot) chart.getPlot();
+		Plot combined = chart.getPlot();
 
 		Point2D java2DPoint = panel.translateScreenToJava2D(trigger.getPoint());
 		ChartRenderingInfo chartInfo = panel.getChartRenderingInfo();
@@ -81,12 +82,12 @@ public class CapillaryCombinedChartInteractionHandler {
 			return null;
 		}
 		PlotRenderingInfo plotInfo = chartInfo.getPlotInfo();
-		XYPlot subplot = combined.findSubplot(plotInfo, java2DPoint);
+		XYPlot subplot = CombinedXYPlots.findSubplot(combined, plotInfo, java2DPoint);
 		if (subplot == null) {
 			return null;
 		}
 
-		int subplotIndex = indexOfSubplot(combined, subplot);
+		int subplotIndex = CombinedXYPlots.indexOfSubplot(combined, subplot);
 		if (subplotIndex < 0 || subplotIndex >= subplotCages.size()) {
 			Logger.warn("Combined chart subplot index out of range: " + subplotIndex);
 			return null;
@@ -103,15 +104,6 @@ public class CapillaryCombinedChartInteractionHandler {
 
 		Rectangle2D dataArea = subplotDataArea(plotInfo, java2DPoint);
 		return findClosestCapillaryFromPoint(java2DPoint, cage, subplot, combined, dataArea);
-	}
-
-	private static int indexOfSubplot(CombinedRangeXYPlot combined, XYPlot subplot) {
-		@SuppressWarnings("unchecked")
-		List<XYPlot> subplots = combined.getSubplots();
-		if (subplots == null) {
-			return -1;
-		}
-		return subplots.indexOf(subplot);
 	}
 
 	private static Rectangle2D subplotDataArea(PlotRenderingInfo plotInfo, Point2D java2DPoint) {
@@ -155,23 +147,23 @@ public class CapillaryCombinedChartInteractionHandler {
 		return cap;
 	}
 
-	private Capillary findClosestCapillaryFromPoint(Point2D java2DPoint, Cage cage, XYPlot subplot,
-			CombinedRangeXYPlot combined, Rectangle2D dataArea) {
+	private Capillary findClosestCapillaryFromPoint(Point2D java2DPoint, Cage cage, XYPlot subplot, Plot combined,
+			Rectangle2D dataArea) {
 		if (java2DPoint == null || cage == null || subplot == null || dataArea == null) {
 			return null;
 		}
 
-		ValueAxis domainAxis = subplot.getDomainAxis();
-		ValueAxis rangeAxis = subplot.getRangeAxis();
-		if (rangeAxis == null) {
-			rangeAxis = combined.getRangeAxis();
-		}
+		ValueAxis domainAxis = CombinedXYPlots.resolveDomainAxis(subplot, combined);
+		ValueAxis rangeAxis = CombinedXYPlots.resolveRangeAxis(subplot, combined);
 		if (domainAxis == null || rangeAxis == null) {
 			return null;
 		}
 
-		double clickedX = JFreeChartPlotCompat.domainJava2DToValue(domainAxis, java2DPoint.getX(), dataArea, subplot);
-		double clickedY = JFreeChartPlotCompat.rangeJava2DToValue(rangeAxis, java2DPoint.getY(), dataArea, combined);
+		Plot domainPlot = subplot.getDomainAxis() != null ? subplot : combined;
+		Plot rangePlot = subplot.getRangeAxis() != null ? subplot : combined;
+		double clickedX = JFreeChartPlotCompat.domainJava2DToValue(domainAxis, java2DPoint.getX(), dataArea,
+				domainPlot);
+		double clickedY = JFreeChartPlotCompat.rangeJava2DToValue(rangeAxis, java2DPoint.getY(), dataArea, rangePlot);
 
 		XYDataset dataset = subplot.getDataset();
 		if (!(dataset instanceof XYSeriesCollection)) {
@@ -209,7 +201,7 @@ public class CapillaryCombinedChartInteractionHandler {
 		return closestCapillary;
 	}
 
-	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, CombinedRangeXYPlot combined) {
+	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, Plot combined) {
 		if (e == null || panel == null || combined == null) {
 			return -1;
 		}
@@ -224,13 +216,14 @@ public class CapillaryCombinedChartInteractionHandler {
 			return -1;
 		}
 		PlotRenderingInfo plotInfo = chartInfo.getPlotInfo();
-		XYPlot subplot = combined.findSubplot(plotInfo, java2DPoint);
+		XYPlot subplot = CombinedXYPlots.findSubplot(combined, plotInfo, java2DPoint);
 		if (subplot == null) {
 			return -1;
 		}
 		Rectangle2D dataArea = subplotDataArea(plotInfo, java2DPoint);
-		ValueAxis domainAxis = subplot.getDomainAxis();
-		return JFreeChartPlotCompat.domainJava2DToValue(domainAxis, java2DPoint.getX(), dataArea, subplot);
+		ValueAxis domainAxis = CombinedXYPlots.resolveDomainAxis(subplot, combined);
+		Plot domainPlot = subplot.getDomainAxis() != null ? subplot : combined;
+		return JFreeChartPlotCompat.domainJava2DToValue(domainAxis, java2DPoint.getX(), dataArea, domainPlot);
 	}
 
 	private class CombinedChartMouseListener implements ChartMouseListener {
@@ -242,11 +235,11 @@ public class CapillaryCombinedChartInteractionHandler {
 			}
 			Object source = e.getTrigger().getSource();
 			if (!(source instanceof ChartPanel) || e.getChart() == null
-					|| !(e.getChart().getPlot() instanceof CombinedRangeXYPlot)) {
+					|| !CombinedXYPlots.isCombinedXYPlot(e.getChart().getPlot())) {
 				return;
 			}
 			ChartPanel panel = (ChartPanel) source;
-			CombinedRangeXYPlot combined = (CombinedRangeXYPlot) e.getChart().getPlot();
+			Plot combined = e.getChart().getPlot();
 			double timeMinutes = getTimeMinutesFromEvent(e, panel, combined);
 			CapillaryChartRoiFocus.selectClickedCapillary(experiment, clickedCapillary, timeMinutes);
 		}

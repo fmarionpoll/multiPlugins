@@ -18,7 +18,7 @@ import javax.swing.JScrollPane;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.plot.CombinedRangeXYPlot;
+import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -39,7 +39,8 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
  * Displays cages in a single combined chart using a
- * {@link CombinedRangeXYPlot}.
+ * {@link CombinedDomainXYPlot} (vertical stack of cage subplots sharing the
+ * time domain axis).
  *
  * <p>
  * Used by MultiCAFE combined capillary view and multiSPOTS kymo combined view.
@@ -102,10 +103,9 @@ public class ChartCagesCombinedFrame {
 
 		mainChartPanel.removeAll();
 
-		NumberAxis sharedYAxis = new NumberAxis(options.resultType != null ? options.resultType.toUnit() : "");
-		sharedYAxis.setAutoRangeIncludesZero(false);
-
-		CombinedRangeXYPlot combined = new CombinedRangeXYPlot(sharedYAxis);
+		NumberAxis sharedX = new NumberAxis("time (min)");
+		sharedX.setAutoRangeIncludesZero(false);
+		CombinedDomainXYPlot combined = new CombinedDomainXYPlot(sharedX);
 
 		CageSeriesBuilder builder = selectDataBuilder(options.resultType);
 		List<Cage> subplotCages = new ArrayList<>();
@@ -115,13 +115,13 @@ public class ChartCagesCombinedFrame {
 				continue;
 
 			int cageId = cage.getProperties() != null ? cage.getProperties().getCageID() : -1;
-			NumberAxis xAxis = new NumberAxis("cage " + cageId);
-			xAxis.setAutoRangeIncludesZero(false);
+			NumberAxis yAxis = new NumberAxis("cage " + cageId);
+			yAxis.setAutoRangeIncludesZero(false);
 
-			NumberAxis dummyYAxis = new NumberAxis();
-			dummyYAxis.setAutoRangeIncludesZero(false);
-			XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, xAxis, dummyYAxis);
-			subplot.setRangeAxis(null);
+			NumberAxis dummyX = new NumberAxis();
+			dummyX.setAutoRangeIncludesZero(false);
+			XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, dummyX, yAxis);
+			subplot.setDomainAxis(null);
 
 			int nFlies = SeriesStyleCodec.getNFliesOrDefault(dataset, -1);
 			CageChartPlotFactory.setXYPlotBackGroundAccordingToNFlies(subplot, nFlies);
@@ -130,8 +130,9 @@ public class ChartCagesCombinedFrame {
 			subplotCages.add(cage);
 		}
 
-		JFreeChart chart = new JFreeChart(combined);
-		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
+		JFreeChart chart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, combined, false);
+		int h = Math.max(400, subplotCages.size() * 140);
+		chartPanel = new ChartPanel(chart, 900, h, 300, 200, 2000, 2000, true, true, true, true, false, true);
 		if (isSpotResultType(options.resultType)) {
 			chartPanel.addChartMouseListener(
 					new SpotCombinedChartInteractionHandler(exp, subplotCages, onSpotSelectedFromChart)
