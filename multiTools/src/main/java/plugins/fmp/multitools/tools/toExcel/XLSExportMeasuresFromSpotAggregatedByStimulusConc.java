@@ -232,6 +232,15 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			return Integer.toString(cage.getProperties().getFlyAge());
 		case CAGE_COMMENT:
 			return cage.getProperties().getComment();
+		case CAM_SAMPLE_S:
+			double camSec = exp.getCameraSampleIntervalSec();
+			return camSec > 0 ? Double.toString(camSec) : "";
+		case ANALYSIS_BIN_S:
+			double analysisSec = exp.getAnalysisBinSec();
+			return analysisSec > 0 ? Double.toString(analysisSec) : "";
+		case ANALYSIS_NFRAMES:
+			int nFrames = exp.getAnalysisFrameCount();
+			return nFrames > 0 ? Integer.toString(nFrames) : "";
 		case SPOT_VOLUME:
 			double volume = spot.getProperties().getSpotVolume();
 			return Double.isFinite(volume) ? Double.toString(volume) : "";
