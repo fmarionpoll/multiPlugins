@@ -202,6 +202,16 @@ public class StoredDataAccessors {
 	}
 
 	/**
+	 * Derived visible fly count per frame from FlyPositions bounding boxes.
+	 */
+	public static MeasurementComputation accessStored_VISIBLE_FLY_COUNT() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"VISIBLE_FLY_COUNT is derived from FlyPositions - access via cage.countVisibleFliesAtFrame(), not computation");
+		};
+	}
+
+	/**
 	 * Accesses stored AREA_SUM data from Spot measurements. Used via:
 	 * spot.getMeasurements(AREA_SUM)
 	 */

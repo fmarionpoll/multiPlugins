@@ -22,9 +22,7 @@ public class OptionsPanel extends JPanel {
 
 	public JCheckBox viewSpotsCheckBox = new JCheckBox("spots", true);
 	public JCheckBox viewCagesCheckbox = new JCheckBox("cages", true);
-	// TODO _CAGES JCheckBox viewFlyCheckbox = new JCheckBox("flies center", false);
-	// TODO _CAGES JCheckBox viewFlyRectCheckbox = new JCheckBox("flies rect",
-	// false);
+	public JCheckBox viewFlyRectCheckbox = new JCheckBox("flies rect", false);
 	private MultiSPOTS parent0 = null;
 
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
@@ -46,8 +44,7 @@ public class OptionsPanel extends JPanel {
 		panel1.add(new JLabel("View : "));
 		panel1.add(viewSpotsCheckBox);
 		panel1.add(viewCagesCheckbox);
-		// TODO _CAGES panel1.add(viewFlyCheckbox);
-		// TODO _CAGES panel1.add(viewFlyRectCheckbox);
+		panel1.add(viewFlyRectCheckbox);
 		add(panel1);
 
 		defineActionListeners();
@@ -114,19 +111,12 @@ public class OptionsPanel extends JPanel {
 			}
 		});
 
-		// TODO _CAGES viewFlyCheckbox.addActionListener(new ActionListener() {
-		// TODO _CAGES @Override
-		// TODO _CAGES public void actionPerformed(final ActionEvent e) {
-		// TODO _CAGES displayROIsCategory(viewFlyCheckbox.isSelected(), "det");
-		// TODO _CAGES }
-		// TODO _CAGES });
-
-		// TODO _CAGES viewFlyRectCheckbox.addActionListener(new ActionListener() {
-		// TODO _CAGES @Override
-		// TODO _CAGES public void actionPerformed(final ActionEvent e) {
-		// TODO _CAGES displayROIsCategory(viewFlyRectCheckbox.isSelected(), "det");
-		// TODO _CAGES }
-		// TODO _CAGES });
+		viewFlyRectCheckbox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				displayROIsCategory(viewFlyRectCheckbox.isSelected(), "det");
+			}
+		});
 	}
 
 	public void displayROIsCategory(boolean isVisible, String pattern) {

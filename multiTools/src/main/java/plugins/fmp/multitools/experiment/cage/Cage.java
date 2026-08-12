@@ -517,6 +517,20 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return fp.rectPosition.getX() == -1 && fp.rectPosition.getY() == -1;
 	}
 
+	/** Number of detected flies with a valid bounding box at camera frame {@code t}. */
+	public int countVisibleFliesAtFrame(int t) {
+		if (flyPositions == null || flyPositions.flyPositionList == null) {
+			return 0;
+		}
+		int count = 0;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp != null && fp.flyIndexT == t && !isEmptyFlyPositionSlot(fp)) {
+				count++;
+			}
+		}
+		return count;
+	}
+
 	/**
 	 * True if {@code (x,y)} lies inside this cage ROI (polygon, rectangle, or
 	 * bounds fallback).

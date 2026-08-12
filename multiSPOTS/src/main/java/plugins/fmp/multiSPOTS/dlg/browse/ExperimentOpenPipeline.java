@@ -81,6 +81,11 @@ final class ExperimentOpenPipeline {
 
 			owner.parent0.dlgExperiment.updateViewerForSequenceCam(exp);
 
+			if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null) {
+				exp.initTmsForFlyPositions(exp.getCamImageFirst_ms());
+			}
+			exp.updateROIsAt(0);
+
 			displayGraphsIfEnabled(exp);
 
 			if (owner.parent0.viewOptions.isAutoLoadKymographs()) {

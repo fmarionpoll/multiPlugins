@@ -100,6 +100,8 @@ public enum EnumResults {
 	SLEEP("sleep", "yes, no", "Fly sleeping", StoredDataAccessors.accessStored_SLEEP()),
 	ILLUM_PHASE("illumPhase", "light/dark", "Detect2 dual-background lighting phase (0=light, 1=dark)",
 			StoredDataAccessors.accessStored_ILLUM_PHASE()),
+	VISIBLE_FLY_COUNT("visibleFlyCount", "flies", "Number of visible flies detected in cage (at t)",
+			StoredDataAccessors.accessStored_VISIBLE_FLY_COUNT()),
 
 	// === SPOT AREA MEASURES (stored data) ===
 	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUM(),

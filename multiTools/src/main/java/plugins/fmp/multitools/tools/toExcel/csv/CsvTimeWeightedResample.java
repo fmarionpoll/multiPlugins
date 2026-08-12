@@ -1,10 +1,15 @@
 package plugins.fmp.multitools.tools.toExcel.csv;
 
 /**
- * Time-weighted piecewise-constant resampling onto a regular grid starting at
- * t=0. Value is constant on {@code [t_k, t_{k+1})}; each bin
- * {@code [i*step, (i+1)*step)} gets the duration-weighted mean of overlapping
- * segments. Empty bins stay {@link Double#NaN}.
+ * Time-weighted piecewise-constant (step-hold) resampling onto a regular grid
+ * starting at t=0. Each sample holds its value on {@code [t_k, t_{k+1})};
+ * each output bin {@code [i*step, (i+1)*step)} gets the duration-weighted mean
+ * of overlapping hold intervals.
+ * <p>
+ * NaN values in the input are forward-filled from the last known value so that
+ * cumulated/staircase signals (e.g. consumption) produce continuous output even
+ * when the native sampling is coarser than the bin grid or has missing frames.
+ * Bins before the first finite sample stay {@link Double#NaN}.
  */
 public final class CsvTimeWeightedResample {
 
@@ -13,7 +18,7 @@ public final class CsvTimeWeightedResample {
 
 	/**
 	 * @param timesMs   sorted relative times (ms), length n
-	 * @param values    parallel values, length n (NaN skipped in weights)
+	 * @param values    parallel values, length n
 	 * @param stepMs    bin width (ms), must be &gt; 0
 	 * @return length {@code floor(tLast/step)+1}; bin i starts at {@code i*stepMs}
 	 */
@@ -22,6 +27,18 @@ public final class CsvTimeWeightedResample {
 			return new double[0];
 		}
 		int n = Math.min(timesMs.length, values.length);
+
+		// Forward-fill NaN entries so cumulated/staircase signals have no gaps.
+		double[] filled = new double[n];
+		double last = Double.NaN;
+		for (int k = 0; k < n; k++) {
+			double v = values[k];
+			if (!Double.isNaN(v)) {
+				last = v;
+			}
+			filled[k] = last;
+		}
+
 		long tLast = timesMs[n - 1];
 		int nBins = (int) (tLast / stepMs) + 1;
 		if (nBins < 1) {
@@ -35,11 +52,13 @@ public final class CsvTimeWeightedResample {
 		long tMax = (long) nBins * stepMs;
 		for (int k = 0; k < n; k++) {
 			long aSeg = timesMs[k];
-			long bSeg = (k + 1 < n) ? timesMs[k + 1] : Math.max(timesMs[n - 1], tMax);
+			// Last sample holds to the end of its bin (at least one stepMs beyond).
+			long bSeg = (k + 1 < n) ? timesMs[k + 1]
+					: Math.max(aSeg + stepMs, tMax);
 			if (bSeg <= aSeg || bSeg <= 0 || aSeg >= tMax) {
 				continue;
 			}
-			double v = values[k];
+			double v = filled[k];
 			if (Double.isNaN(v)) {
 				continue;
 			}

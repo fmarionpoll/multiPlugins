@@ -16,6 +16,7 @@ import icy.preferences.XMLPreferences;
 import plugins.fmp.multiSPOTS.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS.dlg.define_spots._DlgSpots_;
 import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
+import plugins.fmp.multiSPOTS.dlg.e_flyPosition._DlgDetectFlies_;
 import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageColors._DlgMeasureUsingColors_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters._DlgMeasureUsingFilters_;
@@ -50,6 +51,7 @@ public class MultiSPOTS extends PluginActionable {
 	public _DlgMeasureUsingColors_ dlgMeasureV5 = new _DlgMeasureUsingColors_();
 	public _DlgMeasureUsingKymos_ dlgKymos = new _DlgMeasureUsingKymos_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
+	public _DlgDetectFlies_ dlgDetectFlies = new _DlgDetectFlies_();
 
 	public JTabbedPane tabsPane = new JTabbedPane();
 
@@ -75,6 +77,8 @@ public class MultiSPOTS extends PluginActionable {
 			dlgMeasureV5.chartsColorPanel.closeAllCharts();
 		if (dlgKymos != null && dlgKymos.tabKymoGraph != null)
 			dlgKymos.tabKymoGraph.closeAllCharts();
+		if (dlgDetectFlies != null && dlgDetectFlies.tabGraphics != null)
+			dlgDetectFlies.tabGraphics.closeAllCharts();
 	}
 
 	// -------------------------------------------------------------------
@@ -98,6 +102,7 @@ public class MultiSPOTS extends PluginActionable {
 		dlgMeasure.init(mainPanel, "Measure: image filter", this);
 		dlgMeasureV5.init(mainPanel, "Measure: image colors", this);
 		dlgKymos.init(mainPanel, "Measure: kymographs", this);
+		dlgDetectFlies.init(mainPanel, "Fly detection", this);
 		dlgExcel.init(mainPanel, "Export", this);
 
 		mainFrame.setLayout(new BorderLayout());

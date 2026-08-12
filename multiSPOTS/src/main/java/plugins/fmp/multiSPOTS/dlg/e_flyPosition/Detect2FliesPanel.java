@@ -40,6 +40,7 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 
 	private String detectString = "Detect...";
 	private JButton startComputationButton = new JButton(detectString);
+	private JSpinner nFliesPresentSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 255, 1));
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private String[] directions = new String[] { " threshold >", " threshold <" };
@@ -72,6 +73,8 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(startComputationButton);
+		panel1.add(new JLabel("n flies <="));
+		panel1.add(nFliesPresentSpinner);
 		panel1.add(allCagesComboBox);
 		allCagesComboBox.addPopupMenuListener(this);
 		panel1.add(allCheckBox);
@@ -226,6 +229,9 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		options.jitter = (int) jitterTextField.getValue();
 		options.thresholdDiff = (int) thresholdSpinner.getValue();
 		options.detectFlies = true;
+		options.nFliesPresent = (int) nFliesPresentSpinner.getValue();
+		options.blimitMaxBlobsPerCage = true;
+		options.detectCage = allCagesComboBox.getSelectedIndex() - 1;
 
 		options.parent0Rect = parent0.mainFrame.getBoundsInternal();
 		if (exp != null) {

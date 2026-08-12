@@ -80,11 +80,14 @@ public final class Dialog {
 	}
 
 	/**
-	 * Opens a save dialog for a new or existing directory name (no file extension).
+	 * Asks the user to pick a parent directory, then appends {@code defaultName}
+	 * to produce the export folder path. Using {@code DIRECTORIES_ONLY} avoids the
+	 * standard JFileChooser problem where navigating into a different directory
+	 * clears the filename field.
 	 *
-	 * @param defaultName suggested folder name (no path)
-	 * @param directory   initial parent directory
-	 * @return absolute path of the chosen folder, or null if cancelled
+	 * @param defaultName suggested folder name (appended to the chosen parent)
+	 * @param directory   initial parent directory shown in the chooser
+	 * @return absolute path of the resulting folder, or null if cancelled
 	 */
 	public static String saveDirectoryAs(String defaultName, String directory) throws FileDialogException {
 		try {
@@ -95,35 +98,38 @@ public final class Dialog {
 					fileChooser.setCurrentDirectory(dir);
 				}
 			}
-			fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-			fileChooser.setAcceptAllFileFilterUsed(true);
+			fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 			fileChooser.setMultiSelectionEnabled(false);
-			if (defaultName != null && !defaultName.trim().isEmpty()) {
-				fileChooser.setSelectedFile(new File(fileChooser.getCurrentDirectory(), defaultName));
-			}
+			fileChooser.setDialogTitle("Choose parent folder for: " + defaultName);
 
-			final int returnValue = fileChooser.showSaveDialog(null);
+			final int returnValue = fileChooser.showDialog(null, "Select");
 			if (returnValue != JFileChooser.APPROVE_OPTION) {
 				return null;
 			}
-			File selected = fileChooser.getSelectedFile();
-			if (selected == null) {
+			File parentDir = fileChooser.getSelectedFile();
+			if (parentDir == null) {
 				return null;
 			}
-			if (selected.exists() && selected.isDirectory()) {
-				File[] children = selected.listFiles();
+			if (!parentDir.isDirectory()) {
+				ConfirmDialog.confirm("Please choose a folder, not a file:\n" + parentDir.getAbsolutePath(),
+						"Not a folder");
+				return null;
+			}
+
+			File target = (defaultName != null && !defaultName.trim().isEmpty())
+					? new File(parentDir, defaultName)
+					: parentDir;
+
+			if (target.exists() && target.isDirectory()) {
+				File[] children = target.listFiles();
 				if (children != null && children.length > 0) {
-					if (!ConfirmDialog.confirm("Folder is not empty:\n" + selected.getAbsolutePath()
+					if (!ConfirmDialog.confirm("Folder is not empty:\n" + target.getAbsolutePath()
 							+ "\n\nExport may overwrite matching CSV files. Continue?")) {
 						return null;
 					}
 				}
-			} else if (selected.exists() && selected.isFile()) {
-				ConfirmDialog.confirm("Please choose a folder name, not an existing file:\n" + selected.getAbsolutePath(),
-						"Not a folder");
-				return null;
 			}
-			return selected.getAbsolutePath();
+			return target.getAbsolutePath();
 		} catch (Exception e) {
 			Logger.error("Error in saveDirectoryAs: " + e.getMessage(), e);
 			throw new FileDialogException("Failed to open directory save dialog", "save_directory_as", defaultName, e);

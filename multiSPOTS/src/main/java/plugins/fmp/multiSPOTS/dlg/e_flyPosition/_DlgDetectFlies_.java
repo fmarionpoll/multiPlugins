@@ -33,7 +33,7 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 	int iTAB_DETECT1 = 0;
 	int iTAB_DETECT2BCKGND = 1;
 	int iTAB_DETECT2FLIES = 2;
-	int iTAB_EDIT = 3;
+	public int iTAB_EDIT = 3;
 
 	MultiSPOTS parent0 = null;
 

@@ -34,12 +34,14 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 	private ChartPositions distanceChart = null;
 	private ChartPositions aliveChart = null;
 	private ChartPositions sleepChart = null;
+	private ChartPositions visibleFlyCountChart = null;
 	private MultiSPOTS parent0 = null;
 
 	public JCheckBox moveCheckbox = new JCheckBox("y position", true);
 	private JCheckBox distanceCheckbox = new JCheckBox("distance t/t+1", false);
 	JCheckBox aliveCheckbox = new JCheckBox("fly alive", true);
 	JCheckBox sleepCheckbox = new JCheckBox("sleep", false);
+	JCheckBox visibleFlyCountCheckbox = new JCheckBox("visible fly count", true);
 	JSpinner aliveThresholdSpinner = new JSpinner(new SpinnerNumberModel(50.0, 0., 100000., .1));
 	public JButton displayResultsButton = new JButton("Display results");
 
@@ -54,6 +56,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		panel1.add(distanceCheckbox);
 		panel1.add(aliveCheckbox);
 		panel1.add(sleepCheckbox);
+		panel1.add(visibleFlyCountCheckbox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
@@ -123,6 +126,14 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 			ptRelative.y += deltay;
 		} else if (sleepChart != null)
 			sleepChart = closeChart(sleepChart);
+
+		if (visibleFlyCountCheckbox.isSelected()) {
+			visibleFlyCountChart = plotYToChart("visible fly count", visibleFlyCountChart, rectv, ptRelative, exp,
+					EnumResults.VISIBLE_FLY_COUNT);
+			ptRelative.y += deltay;
+		} else if (visibleFlyCountChart != null) {
+			visibleFlyCountChart = closeChart(visibleFlyCountChart);
+		}
 	}
 
 	private ChartPositions plotYToChart(String title, ChartPositions iChart, Rectangle rectv, Point ptRelative,
@@ -144,6 +155,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		distanceChart = closeChart(distanceChart);
 		aliveChart = closeChart(aliveChart);
 		sleepChart = closeChart(sleepChart);
+		visibleFlyCountChart = closeChart(visibleFlyCountChart);
 	}
 
 	private ChartPositions closeChart(ChartPositions chart) {
