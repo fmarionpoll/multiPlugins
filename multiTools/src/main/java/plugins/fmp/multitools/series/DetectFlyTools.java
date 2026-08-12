@@ -19,6 +19,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cages.Cages;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DArea;
@@ -28,6 +29,7 @@ public class DetectFlyTools {
 	public Rectangle rectangleAllCages = null;
 	public BuildSeriesOptions options = null;
 	public Cages cages = null;
+	private Experiment experiment = null;
 
 	private static final class ScoredMask {
 		final BooleanMask2D mask;
@@ -59,7 +61,7 @@ public class DetectFlyTools {
 		List<ScoredMask> scored = new ArrayList<>();
 		BooleanMask2D roiBooleanMask = roi.getBooleanMask(true);
 		for (BooleanMask2D mask : roiBooleanMask.getComponents()) {
-			int len = scoreComponent(mask, prevCenters);
+			int len = scoreComponent(mask, prevCenters, cage);
 			if (len > 0)
 				scored.add(new ScoredMask(mask, len));
 		}
@@ -78,12 +80,15 @@ public class DetectFlyTools {
 		return out;
 	}
 
-	private int scoreComponent(BooleanMask2D mask, List<Point2D> prevCenters) throws InterruptedException {
+	private int scoreComponent(BooleanMask2D mask, List<Point2D> prevCenters, Cage cage) throws InterruptedException {
 		java.awt.Point[] pts = mask.getPoints();
 		int len = pts.length;
 		if (options.blimitLow && len < options.limitLow)
 			return 0;
 		if (options.blimitUp && len > options.limitUp)
+			return 0;
+
+		if (options.bexcludeSpotBlobs && blobCenterInSpotRegion(cage, mask))
 			return 0;
 
 		double ratio = computeOrientedBoundingBoxAspectRatio(pts);
@@ -101,6 +106,23 @@ public class DetectFlyTools {
 		}
 
 		return len;
+	}
+
+	private boolean blobCenterInSpotRegion(Cage cage, BooleanMask2D mask) {
+		if (experiment == null || experiment.getSpots() == null || cage == null || mask == null)
+			return false;
+		Rectangle2D bounds = mask.getOptimizedBounds();
+		if (bounds == null)
+			return false;
+		double cx = bounds.getCenterX();
+		double cy = bounds.getCenterY();
+		for (Spot spot : cage.getSpotList(experiment.getSpots())) {
+			if (spot == null || spot.getRoi() == null)
+				continue;
+			if (spot.getRoi().contains(cx, cy))
+				return true;
+		}
+		return false;
 	}
 
 	/**
@@ -207,8 +229,6 @@ public class DetectFlyTools {
 		for (Cage cage : cages.cagesList) {
 			if (options.detectCage != -1 && cage.getProperties().getCageID() != options.detectCage)
 				continue;
-			if (cage.getProperties().getCageNFlies() < 1)
-				continue;
 			for (BooleanMask2D m : findBlobMasksForCage(binarizedImageRoi, cage.cageMask2D, cage, t)) {
 				for (java.awt.Point p : m.getPoints()) {
 					int x = p.x - ib.x;
@@ -257,8 +277,6 @@ public class DetectFlyTools {
 
 		for (Cage cage : cages.cagesList) {
 			if (options.detectCage != -1 && cage.getProperties().getCageID() != options.detectCage)
-				continue;
-			if (cage.getProperties().getCageNFlies() < 1)
 				continue;
 
 			futures.add(processor.submit(new Runnable() {
@@ -321,6 +339,7 @@ public class DetectFlyTools {
 
 	public void initParametersForDetection(Experiment exp, BuildSeriesOptions options) {
 		this.options = options;
+		this.experiment = exp;
 		exp.getCages().detect_nframes = (int) (((exp.getCages().detectLast_Ms - exp.getCages().detectFirst_Ms)
 				/ exp.getCages().detectBin_Ms) + 1);
 		exp.getCages().clearAllMeasures(options.detectCage);
@@ -328,7 +347,7 @@ public class DetectFlyTools {
 		cages.computeBooleanMasksForCages();
 		rectangleAllCages = null;
 		for (Cage cage : cages.cagesList) {
-			if (cage.getProperties().getCageNFlies() < 1)
+			if (options.detectCage != -1 && cage.getProperties().getCageID() != options.detectCage)
 				continue;
 			Rectangle rect = cage.getRoi().getBounds();
 			if (rectangleAllCages == null)

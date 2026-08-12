@@ -904,12 +904,10 @@ public class Cages {
 			Cage cage = cagesList.get(i);
 			if (option_cagenumber != -1 && cage.getProperties().getCageID() != option_cagenumber)
 				continue;
-			if (cage.getProperties().getCageNFlies() > 0) {
-				cage.flyPositions = new FlyPositions();
-				cage.flyPositions.ensureCapacity(detect_nframes);
-				cage.flyPositions.setMmPerPixelX(mmPerPixelX);
-				cage.flyPositions.setMmPerPixelY(mmPerPixelY);
-			}
+			cage.flyPositions = new FlyPositions();
+			cage.flyPositions.ensureCapacity(detect_nframes);
+			cage.flyPositions.setMmPerPixelX(mmPerPixelX);
+			cage.flyPositions.setMmPerPixelY(mmPerPixelY);
 		}
 	}
 

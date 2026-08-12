@@ -51,6 +51,9 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 	private JSpinner objectUpsizeSpinner = new JSpinner(new SpinnerNumberModel(500, 0, 9999, 1));
 	private JCheckBox objectLowsizeCheckBox = new JCheckBox("object > ");
 	private JCheckBox objectUpsizeCheckBox = new JCheckBox("object < ");
+	private JCheckBox limitRatioCheckBox = new JCheckBox("ratio L/W <");
+	private JCheckBox jitterCheckBox = new JCheckBox("jitter <=");
+	private JCheckBox excludeSpotBlobsCheckBox = new JCheckBox("ignore blobs on spots", false);
 
 	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
@@ -87,18 +90,29 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);
+		objectLowsizeCheckBox.setSelected(true);
+		objectUpsizeCheckBox.setSelected(true);
 		panel3.add(objectLowsizeCheckBox);
 		panel3.add(objectLowsizeSpinner);
 		panel3.add(objectUpsizeCheckBox);
 		panel3.add(objectUpsizeSpinner);
 		add(panel3);
 
+		limitRatioCheckBox.setSelected(true);
+		jitterCheckBox.setSelected(false);
+		limitRatioSpinner.setEnabled(limitRatioCheckBox.isSelected());
+		jitterTextField.setEnabled(jitterCheckBox.isSelected());
+
 		JPanel panel4 = new JPanel(flowLayout);
-		panel4.add(new JLabel("ratio L/W <"));
+		panel4.add(limitRatioCheckBox);
 		panel4.add(limitRatioSpinner);
-		panel4.add(new JLabel("jitter <="));
+		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
+		panel4.add(excludeSpotBlobsCheckBox);
 		add(panel4);
+
+		limitRatioCheckBox.addItemListener(e -> limitRatioSpinner.setEnabled(limitRatioCheckBox.isSelected()));
+		jitterCheckBox.addItemListener(e -> jitterTextField.setEnabled(jitterCheckBox.isSelected()));
 
 		defineActionListeners();
 		thresholdSpinner.addChangeListener(this);
@@ -220,9 +234,12 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 
-		options.btrackWhite = true;
+		options.btrackWhite = spotsDirectionComboBox.getSelectedIndex() == 0;
 		options.blimitLow = objectLowsizeCheckBox.isSelected();
 		options.blimitUp = objectUpsizeCheckBox.isSelected();
+		options.blimitRatio = limitRatioCheckBox.isSelected();
+		options.bjitter = jitterCheckBox.isSelected();
+		options.bexcludeSpotBlobs = excludeSpotBlobsCheckBox.isSelected();
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
 		options.limitUp = (int) objectUpsizeSpinner.getValue();
 		options.limitRatio = (int) limitRatioSpinner.getValue();

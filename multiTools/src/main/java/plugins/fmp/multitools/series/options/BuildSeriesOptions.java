@@ -138,6 +138,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 	 */
 	public boolean blimitMaxBlobsPerCage = true;
 
+	/** When true, reject blobs whose center falls inside a spot ROI (reduces spot-consumption artifacts). */
+	public boolean bexcludeSpotBlobs = false;
+
 	public int videoChannel = 0;
 	public int background_delta = 50;
 	public int background_jitter = 1;

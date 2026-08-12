@@ -66,7 +66,7 @@ public class FlyDetect1 extends FlyDetect {
 		return src.getFunction().getTransformedImage(afterBg, srcOpts);
 	}
 
-	static void fillFlyDetectBackgroundOptions(Experiment exp, int t, CanvasImageTransformOptions bgOpts) {
+	public static void fillFlyDetectBackgroundOptions(Experiment exp, int t, CanvasImageTransformOptions bgOpts) {
 		SequenceLoaderService loader = new SequenceLoaderService();
 		switch (bgOpts.transformOption) {
 		case SUBTRACT_TM1:

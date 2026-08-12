@@ -45,36 +45,20 @@ public abstract class FlyDetect extends BuildSeries {
 			return false;
 		}
 
-		int cagesWithFlies = 0;
 		int targetCageID = options.detectCage;
-
-		for (Cage cage : exp.getCages().cagesList) {
-			if (cage.getProperties().getCageNFlies() > 0) {
-				cagesWithFlies++;
-				if (targetCageID != -1 && cage.getProperties().getCageID() == targetCageID) {
-					Logger.info("FlyDetect:checkCagesForFlyDetection() Found target cage " + targetCageID + " with "
-							+ cage.getProperties().getCageNFlies() + " fly(ies)");
+		if (targetCageID != -1) {
+			for (Cage cage : exp.getCages().cagesList) {
+				if (cage.getProperties().getCageID() == targetCageID) {
+					Logger.info("FlyDetect:checkCagesForFlyDetection() Found target cage " + targetCageID);
 					return true;
 				}
 			}
-		}
-
-		if (cagesWithFlies == 0) {
-			Logger.error("FlyDetect:checkCagesForFlyDetection() No cages with flies (nFlies > 0) found. All "
-					+ exp.getCages().cagesList.size() + " cages have nFlies = 0. Experiment: "
-					+ exp.getResultsDirectory());
+			Logger.error("FlyDetect:checkCagesForFlyDetection() Target cage " + targetCageID + " not found among "
+					+ exp.getCages().cagesList.size() + " cage(s). Experiment: " + exp.getResultsDirectory());
 			return false;
 		}
 
-		if (targetCageID != -1) {
-			Logger.error("FlyDetect:checkCagesForFlyDetection() Target cage " + targetCageID
-					+ " not found or has nFlies = 0. Found " + cagesWithFlies
-					+ " cage(s) with flies, but not the target cage.");
-			return false;
-		}
-
-		Logger.info("FlyDetect:checkCagesForFlyDetection() Found " + cagesWithFlies + " cage(s) with flies out of "
-				+ exp.getCages().cagesList.size() + " total cages");
+		Logger.info("FlyDetect:checkCagesForFlyDetection() Scanning " + exp.getCages().cagesList.size() + " cage(s)");
 		return true;
 	}
 

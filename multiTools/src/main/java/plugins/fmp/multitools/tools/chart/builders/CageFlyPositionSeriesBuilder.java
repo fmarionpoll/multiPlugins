@@ -5,7 +5,6 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -74,7 +73,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			XYSeries seriesXY = new XYSeries(name, false);
 			seriesXY.setDescription(name);
-			processVisibleFlyCountData(cage, flyPositions, seriesXY);
+			processVisibleFlyCountData(exp, cage, flyPositions, seriesXY);
 			if (seriesXY.getItemCount() > 0) {
 				dataset.addSeries(seriesXY);
 			}
@@ -121,7 +120,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			XYSeries seriesXY = new XYSeries(name, false);
 			seriesXY.setDescription(name);
-			addPointsToXYSeries(cage, flyPositions, resultType, seriesXY, options);
+			addPointsToXYSeries(exp, cage, flyPositions, resultType, seriesXY, options);
 			if (seriesXY.getItemCount() > 0) {
 				dataset.addSeries(seriesXY);
 			}
@@ -265,8 +264,8 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		return new Point2D.Double(rx, ry);
 	}
 
-	private void addPointsToXYSeries(Cage cage, FlyPositions flyPositions, EnumResults resultType, XYSeries seriesXY,
-			ResultsOptions options) {
+	private void addPointsToXYSeries(Experiment exp, Cage cage, FlyPositions flyPositions, EnumResults resultType,
+			XYSeries seriesXY, ResultsOptions options) {
 		if (cage == null || seriesXY == null || flyPositions == null || options == null) {
 			Logger.warn("Cannot add points: cage, series, flyPositions, or options is null");
 			return;
@@ -317,7 +316,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			break;
 
 		case VISIBLE_FLY_COUNT:
-			processVisibleFlyCountData(cage, flyPositions, seriesXY);
+			processVisibleFlyCountData(exp, cage, flyPositions, seriesXY);
 			break;
 
 		default:
@@ -434,22 +433,27 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		}
 	}
 
-	private void processVisibleFlyCountData(Cage cage, FlyPositions flyPositions, XYSeries seriesXY) {
-		if (cage == null || flyPositions == null || seriesXY == null
-				|| flyPositions.flyPositionList == null || flyPositions.flyPositionList.isEmpty()) {
+	private void processVisibleFlyCountData(Experiment exp, Cage cage, FlyPositions flyPositions, XYSeries seriesXY) {
+		if (cage == null || flyPositions == null || seriesXY == null) {
 			return;
 		}
-		TreeMap<Integer, Long> timeMsByFrame = new TreeMap<>();
-		for (FlyPosition fp : flyPositions.flyPositionList) {
-			if (fp == null) {
-				continue;
-			}
-			timeMsByFrame.putIfAbsent(fp.flyIndexT, fp.tMs);
+		int nFrames = 0;
+		if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getImageLoader() != null) {
+			nFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
 		}
-		for (Map.Entry<Integer, Long> e : timeMsByFrame.entrySet()) {
-			int count = cage.countVisibleFliesAtFrame(e.getKey());
-			double timeMinutes = e.getValue() / (60.0 * 1000.0);
-			seriesXY.add(timeMinutes, count);
+		if (nFrames <= 0 && flyPositions.flyPositionList != null) {
+			for (FlyPosition fp : flyPositions.flyPositionList) {
+				if (fp != null && fp.flyIndexT >= 0 && fp.flyIndexT + 1 > nFrames) {
+					nFrames = fp.flyIndexT + 1;
+				}
+			}
+		}
+		if (nFrames <= 0) {
+			return;
+		}
+		// X = camera frame index (matches viewer T) so spikes can be inspected frame-by-frame.
+		for (int t = 0; t < nFrames; t++) {
+			seriesXY.add(t, cage.countVisibleFliesAtFrame(t));
 		}
 	}
 

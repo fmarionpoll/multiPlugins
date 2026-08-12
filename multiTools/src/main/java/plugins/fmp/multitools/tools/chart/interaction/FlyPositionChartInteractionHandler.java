@@ -18,6 +18,8 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
+import plugins.fmp.multitools.tools.results.EnumResults;
+import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.chart.interaction.ChartCamFrameNavigation;
 
 /**
@@ -28,9 +30,15 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
+	private ResultsOptions resultsOptions;
 
 	public FlyPositionChartInteractionHandler(Experiment experiment) {
 		this.experiment = experiment;
+	}
+
+	public FlyPositionChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions) {
+		this.experiment = experiment;
+		this.resultsOptions = resultsOptions;
 	}
 
 	@Override
@@ -165,8 +173,13 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 				return;
 			}
 			XYPlot plot = (XYPlot) chart.getPlot();
-			double timeMinutes = getTimeMinutesFromEvent(e, (ChartPanel) source, plot);
-			int frameIndex = getFrameIndexFromTimeMinutes(experiment, timeMinutes);
+			double domainValue = getTimeMinutesFromEvent(e, (ChartPanel) source, plot);
+			int frameIndex;
+			if (resultsOptions != null && resultsOptions.resultType == EnumResults.VISIBLE_FLY_COUNT) {
+				frameIndex = (int) Math.round(domainValue);
+			} else {
+				frameIndex = getFrameIndexFromTimeMinutes(experiment, domainValue);
+			}
 
 			selectCageAndMoveT(cage, frameIndex);
 		}

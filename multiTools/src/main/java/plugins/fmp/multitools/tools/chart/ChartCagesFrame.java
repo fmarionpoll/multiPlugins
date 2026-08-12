@@ -313,7 +313,11 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected NumberAxis setXaxis(String label, ResultsOptions resultsOptions) {
 		NumberAxis xAxis = new NumberAxis();
-		xAxis.setLabel(label != null ? label : "");
+		String xLabel = label != null ? label : "";
+		if (resultsOptions != null && resultsOptions.resultType == EnumResults.VISIBLE_FLY_COUNT) {
+			xLabel = "frame";
+		}
+		xAxis.setLabel(xLabel);
 		xAxis.setAutoRange(true);
 		xAxis.setAutoRangeIncludesZero(false);
 		return xAxis;
