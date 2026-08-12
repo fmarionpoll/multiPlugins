@@ -94,7 +94,7 @@ public final class CsvNormalizedExport {
 				iSeries++;
 				progress.incPosition();
 			}
-			Logger.info("CsvNormalizedExport: done stamp=" + csv.getStamp() + " folder=" + csv.getFolder()
+			Logger.info("CsvNormalizedExport: done folder=" + csv.getFolder()
 					+ (csv.isWriteBinFiles() ? (" bin=" + csv.getBinDescriptor()) : ""));
 		} catch (IOException e) {
 			throw new ExcelExportException("CSV write failed", "csv_export", csvFolder.toString(), e);

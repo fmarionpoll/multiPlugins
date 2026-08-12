@@ -7,8 +7,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -27,8 +25,8 @@ import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 /**
- * Folder + stamped CSV writers for normalized relational export.
- * Measure files: {@code *_measure_cap_raw.csv} / {@code *_measure_cap_binN.csv}
+ * Folder + CSV writers for normalized relational export.
+ * Measure files: {@code measure_cap_raw.csv} / {@code measure_cap_binN.csv}
  * (and cage equivalents). Bin files only when {@code writeBinFiles} is true.
  */
 public final class CsvNormalizedExportSupport implements AutoCloseable {
@@ -40,10 +38,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String MEASURE_CAGE_RAW = "measure_cage_raw";
 	public static final String GULP_EVENTS = "gulpevents";
 
-	private static final DateTimeFormatter STAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
-
 	private final Path folder;
-	private final String stamp;
 	private final long binStepMs;
 	private final boolean writeBinFiles;
 	private final String binDescriptor; // e.g. bin60
@@ -66,7 +61,6 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public CsvNormalizedExportSupport(Path folder, List<String> measureCapColumns, long binStepMs,
 			boolean writeBinFiles) throws IOException {
 		this.folder = folder;
-		this.stamp = LocalDateTime.now().format(STAMP_FMT);
 		this.measureCapColumns = measureCapColumns != null ? new ArrayList<>(measureCapColumns) : new ArrayList<>();
 		this.binStepMs = binStepMs;
 		this.writeBinFiles = writeBinFiles && binStepMs > 0;
@@ -97,10 +91,6 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	public Path getFolder() {
 		return folder;
-	}
-
-	public String getStamp() {
-		return stamp;
 	}
 
 	public boolean isWriteBinFiles() {
@@ -308,7 +298,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	}
 
 	private CSVPrinter openPrinter(String descriptor, String... header) throws IOException {
-		Path file = folder.resolve(stamp + "_" + descriptor + ".csv");
+		Path file = folder.resolve(descriptor + ".csv");
 		BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
 				StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
 		CSVFormat format = CSVFormat.DEFAULT.builder().setHeader(header).setSkipHeaderRecord(false).build();

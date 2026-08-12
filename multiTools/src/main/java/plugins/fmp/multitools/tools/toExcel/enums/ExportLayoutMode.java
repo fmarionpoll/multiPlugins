@@ -8,7 +8,7 @@ public enum ExportLayoutMode {
 	WIDE,
 	/**
 	 * Normalized CSV tables: descriptor files ({@code idexpt}/{@code idcage}/{@code idcap})
-	 * plus dense {@code measure_*} and sparse {@code gulpevents} under a stamped prefix.
+	 * plus dense {@code measure_*} and sparse {@code gulpevents} in a timestamped folder.
 	 */
 	NORMALIZED
 }
