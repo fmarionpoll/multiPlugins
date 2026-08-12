@@ -43,8 +43,8 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 public class PlotFliesPositions extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
-	private static final EnumResults[] FLY_MEASURES = { EnumResults.YVSFOOD, EnumResults.DISTANCE,
-			EnumResults.ISALIVE, EnumResults.SLEEP, EnumResults.VISIBLE_FLY_COUNT };
+	private static final EnumResults[] FLY_MEASURES = { EnumResults.YVSFOOD, EnumResults.DISTANCE, EnumResults.ISALIVE,
+			EnumResults.SLEEP, EnumResults.VISIBLE_FLY_COUNT };
 
 	private MultiSPOTS parent0 = null;
 
@@ -89,7 +89,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		panel3.add(graphStatusLabel);
 		add(panel3);
 
-		measureComboBox.setSelectedItem(EnumResults.YVSFOOD);
+		measureComboBox.setSelectedItem(EnumResults.VISIBLE_FLY_COUNT);
 
 		defineActionListeners();
 	}

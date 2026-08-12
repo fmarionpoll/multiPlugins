@@ -240,6 +240,7 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		options.blimitRatio = limitRatioCheckBox.isSelected();
 		options.bjitter = jitterCheckBox.isSelected();
 		options.bexcludeSpotBlobs = excludeSpotBlobsCheckBox.isSelected();
+		options.bcarryStillFlies = false;
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
 		options.limitUp = (int) objectUpsizeSpinner.getValue();
 		options.limitRatio = (int) limitRatioSpinner.getValue();

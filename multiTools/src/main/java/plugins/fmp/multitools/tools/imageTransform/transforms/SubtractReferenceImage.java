@@ -7,20 +7,47 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformFunctionAbstrac
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 public class SubtractReferenceImage extends ImageTransformFunctionAbstract implements ImageTransformInterface {
+
+	/**
+	 * How {@code source - reference} is mapped to the display / detection image.
+	 * <ul>
+	 * <li>{@link #ABSOLUTE} — legacy {@code 255-|a-b|} (both arrivals and departures look dark → ghosts)</li>
+	 * <li>{@link #DARKER_NOW} — only where source is darker than ref (current dark fly; suppresses t-1 ghosts)</li>
+	 * <li>{@link #BRIGHTER_NOW} — only where source is brighter than ref (current white fly)</li>
+	 * </ul>
+	 */
+	public enum DifferencePolarity {
+		ABSOLUTE, DARKER_NOW, BRIGHTER_NOW
+	}
+
 	@Override
 	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
-		if (options.backgroundImage == null)
+		if (options == null || options.backgroundImage == null)
 			return null;
 
-		return mappedDifference(sourceImage, options.backgroundImage);
+		DifferencePolarity polarity = options.differencePolarity != null ? options.differencePolarity
+				: DifferencePolarity.ABSOLUTE;
+		return mappedDifference(sourceImage, options.backgroundImage, polarity);
 	}
 
 	/**
 	 * Per-channel absolute difference mapped like legacy {@code t-ref} display: {@code 0xFF - |a-b|}.
 	 */
 	public static IcyBufferedImage mappedDifference(IcyBufferedImage sourceImage, IcyBufferedImage refImage) {
+		return mappedDifference(sourceImage, refImage, DifferencePolarity.ABSOLUTE);
+	}
+
+	/**
+	 * Per-channel difference mapped to {@code 0..255} with optional polarity.
+	 * Darker output means stronger change of the selected polarity (or abs).
+	 */
+	public static IcyBufferedImage mappedDifference(IcyBufferedImage sourceImage, IcyBufferedImage refImage,
+			DifferencePolarity polarity) {
 		if (sourceImage == null || refImage == null) {
 			return null;
+		}
+		if (polarity == null) {
+			polarity = DifferencePolarity.ABSOLUTE;
 		}
 		IcyBufferedImage img2 = new IcyBufferedImage(sourceImage.getSizeX(), sourceImage.getSizeY(),
 				sourceImage.getSizeC(), sourceImage.getDataType_());
@@ -29,9 +56,26 @@ public class SubtractReferenceImage extends ImageTransformFunctionAbstract imple
 			int[] img2Int = Array1DUtil.arrayToIntArray(img2.getDataXY(c), img2.isSignedDataType());
 			int[] imgReferenceInt = Array1DUtil.arrayToIntArray(refImage.getDataXY(c), refImage.isSignedDataType());
 			for (int i = 0; i < imgSourceInt.length; i++) {
-				int val = imgSourceInt[i] - imgReferenceInt[i];
-				if (val < 0)
-					val = -val;
+				int val;
+				switch (polarity) {
+				case DARKER_NOW:
+					// Positive where the image got darker (fly present now for dark flies).
+					val = imgReferenceInt[i] - imgSourceInt[i];
+					if (val < 0)
+						val = 0;
+					break;
+				case BRIGHTER_NOW:
+					val = imgSourceInt[i] - imgReferenceInt[i];
+					if (val < 0)
+						val = 0;
+					break;
+				case ABSOLUTE:
+				default:
+					val = imgSourceInt[i] - imgReferenceInt[i];
+					if (val < 0)
+						val = -val;
+					break;
+				}
 				img2Int[i] = 0xFF - val;
 			}
 			Array1DUtil.intArrayToSafeArray(img2Int, img2.getDataXY(c), true, img2.isSignedDataType());

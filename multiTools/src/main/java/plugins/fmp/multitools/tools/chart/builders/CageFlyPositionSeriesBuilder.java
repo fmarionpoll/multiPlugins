@@ -14,6 +14,7 @@ import plugins.fmp.multitools.experiment.cage.FlyPosition;
 import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -77,7 +78,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			if (seriesXY.getItemCount() > 0) {
 				dataset.addSeries(seriesXY);
 			}
-			return dataset;
+			return publishDataset(dataset);
 		}
 
 		boolean multiFly = flyPositions.getNflies() > 1;
@@ -124,7 +125,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			if (seriesXY.getItemCount() > 0) {
 				dataset.addSeries(seriesXY);
 			}
-			return dataset;
+			return publishDataset(dataset);
 		}
 
 		// Multi-fly: create one series per pseudo flyId (rank-by-area per frame).
@@ -178,7 +179,10 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			if (s == null)
 				continue;
 
-			double timeMinutes = pos.tMs / (60.0 * 1000.0);
+			double frameIndex = pos.flyIndexT;
+			if (frameIndex < 0) {
+				continue;
+			}
 
 			double yOrX;
 			switch (resultType) {
@@ -187,13 +191,13 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 				if (rect1 == null)
 					continue;
 				yOrX = (yOrigin - pos.rectPosition.getY()) * sy;
-				s.add(timeMinutes, yOrX);
+				s.add(frameIndex, yOrX);
 				break;
 			case YTOPCAGE:
 				if (rect1 == null || pos.rectPosition == null)
 					continue;
 				yOrX = (pos.rectPosition.getY() - rect1.getY()) * sy;
-				s.add(timeMinutes, yOrX);
+				s.add(frameIndex, yOrX);
 				break;
 			case YVSFOOD: {
 				if (cageRoi == null) {
@@ -207,25 +211,25 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 				if (Double.isNaN(yOrX)) {
 					continue;
 				}
-				s.add(timeMinutes, yOrX);
+				s.add(frameIndex, yOrX);
 				break;
 			}
 			case XTOPCAGE:
 				if (rect1 == null)
 					continue;
 				yOrX = (pos.rectPosition.getX() - xLeft) * sx;
-				s.add(timeMinutes, yOrX);
+				s.add(frameIndex, yOrX);
 				break;
 			case ELLIPSEAXES:
 				yOrX = pos.axis1Mm;
-				s.add(timeMinutes, yOrX);
+				s.add(frameIndex, yOrX);
 				break;
 			default:
 				// Fallback to legacy bottom-of-cage Y.
 				if (rect1 == null)
 					continue;
 				yOrX = (yOrigin - pos.rectPosition.getY()) * sy;
-				s.add(timeMinutes, yOrX);
+				s.add(frameIndex, yOrX);
 				break;
 			}
 		}
@@ -237,6 +241,13 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 			}
 		}
 
+		return publishDataset(dataset);
+	}
+
+	private static XYSeriesCollection publishDataset(XYSeriesCollection dataset) {
+		if (dataset != null && dataset.getSeriesCount() > 0) {
+			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+		}
 		return dataset;
 	}
 	
@@ -458,9 +469,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
-	 * Adds a single data point to the series.
-	 * Converts time from milliseconds to minutes to match the pattern used by
-	 * other builders (Capillary, Gulp).
+	 * Adds a single data point to the series (X = camera frame index).
 	 */
 	private void addxyPos(XYSeries seriesXY, FlyPosition pos, Double ypos) {
 		if (seriesXY == null || pos == null) {
@@ -470,10 +479,11 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		if (ypos == null || Double.isNaN(ypos)) {
 			return;
 		}
+		if (pos.flyIndexT < 0) {
+			return;
+		}
 
-		// Convert time from milliseconds to minutes (matching Capillary/Gulp pattern)
-		double timeMinutes = pos.tMs / (60.0 * 1000.0);
-		seriesXY.add(timeMinutes, ypos);
+		seriesXY.add(pos.flyIndexT, ypos);
 	}
 	
 	/**

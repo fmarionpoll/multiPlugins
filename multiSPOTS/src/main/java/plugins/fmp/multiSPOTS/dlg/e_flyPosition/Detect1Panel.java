@@ -55,22 +55,17 @@ public class Detect1Panel extends JPanel
 			ImageTransformEnums.RGB, ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
 
 	private static final ImageTransformEnums[] BACKGROUND_TRANSFORMS = { ImageTransformEnums.NONE,
-			ImageTransformEnums.SUBTRACT_TM1, ImageTransformEnums.SUBTRACT_T0 };
+			ImageTransformEnums.SUBTRACT_TM1, ImageTransformEnums.SUBTRACT_TM1_CLEAN, ImageTransformEnums.SUBTRACT_T0 };
 
 	private MultiSPOTS parent0 = null;
 	private String detectString = "Detect...";
 	private JButton startComputationButton = new JButton(detectString);
 	private JToggleButton viewButton = new JToggleButton("View");
-	private JSpinner nFliesPresentSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 255, 1));
+	private JSpinner nFliesPresentSpinner = new JSpinner(new SpinnerNumberModel(32, 1, 255, 1));
 
-	JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(
-			new ImageTransformEnums[] { ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
-					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
-					ImageTransformEnums.NORM_BRMINUSG, ImageTransformEnums.RGB, ImageTransformEnums.H_HSB,
-					ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB });
+	JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(SOURCE_TRANSFORMS);
 
-	private JComboBox<ImageTransformEnums> backgroundComboBox = new JComboBox<>(new ImageTransformEnums[] {
-			ImageTransformEnums.NONE, ImageTransformEnums.SUBTRACT_TM1, ImageTransformEnums.SUBTRACT_T0 });
+	private JComboBox<ImageTransformEnums> backgroundComboBox = new JComboBox<>(BACKGROUND_TRANSFORMS);
 
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 255, 1));
@@ -113,7 +108,8 @@ public class Detect1Panel extends JPanel
 		allCagesComboBox.addPopupMenuListener(this);
 
 		JPanel panel2 = new JPanel(flowLayout);
-		transformComboBox.setSelectedIndex(1);
+		transformComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
+		backgroundComboBox.setSelectedItem(ImageTransformEnums.SUBTRACT_TM1);
 		panel2.add(new JLabel("source ", SwingConstants.RIGHT));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd ", SwingConstants.RIGHT));
@@ -172,7 +168,14 @@ public class Detect1Panel extends JPanel
 			refreshFlyDetectOverlay();
 		});
 		excludeSpotBlobsCheckBox.addItemListener(e -> refreshFlyDetectOverlay());
-		whiteObjectCheckBox.addItemListener(e -> refreshFlyDetectOverlay());
+		whiteObjectCheckBox.addItemListener(e -> {
+			refreshFlyDetectOverlay();
+			if (viewButton.isSelected()) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					syncViewTransforms(exp);
+			}
+		});
 		objectLowsizeSpinner.addChangeListener(refreshListener);
 		objectUpsizeSpinner.addChangeListener(refreshListener);
 		limitRatioSpinner.addChangeListener(refreshListener);
@@ -364,7 +367,11 @@ public class Detect1Panel extends JPanel
 		if (bg == null)
 			bg = ImageTransformEnums.NONE;
 		opts.transformOption = bg;
+		opts.simplethreshold = (int) thresholdSpinner.getValue();
+		opts.background_delta = 20;
+		opts.background_jitter = 1;
 		FlyDetect1.fillFlyDetectBackgroundOptions(exp, t, opts);
+		FlyDetect1.applyFlyDetectDifferencePolarity(opts, whiteObjectCheckBox.isSelected());
 	}
 
 	private void attachViewListener(Experiment exp) {
@@ -424,9 +431,13 @@ public class Detect1Panel extends JPanel
 		options.flyDetectSourceTransform = (ImageTransformEnums) transformComboBox.getSelectedItem();
 		options.flyDetectBackgroundTransform = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		options.threshold = (int) thresholdSpinner.getValue();
+		options.backgroundThreshold = options.threshold;
+		options.background_delta = 20;
+		options.background_jitter = 1;
 		options.nFliesPresent = (int) nFliesPresentSpinner.getValue();
 		options.blimitMaxBlobsPerCage = true;
 		options.bexcludeSpotBlobs = excludeSpotBlobsCheckBox.isSelected();
+		options.bcarryStillFlies = false;
 		if (exp != null) {
 			options.binSubDirectory = exp.getBinSubDirectory();
 		}

@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.util.ArrayList;
 
 import icy.image.IcyBufferedImage;
+import plugins.fmp.multitools.tools.imageTransform.transforms.SubtractReferenceImage;
 
 public class CanvasImageTransformOptions {
 	public ImageTransformEnums transformOption;
@@ -50,6 +51,12 @@ public class CanvasImageTransformOptions {
 	 * contrast stretch after the legacy {@code 255-|a-b|} difference (preview only).
 	 */
 	public boolean differencePreviewAutoContrast = false;
+
+	/**
+	 * Polarity for {@code SUBTRACT_*} transforms. Default {@link SubtractReferenceImage.DifferencePolarity#ABSOLUTE}
+	 * preserves legacy ghosts; fly detection sets {@code DARKER_NOW}/{@code BRIGHTER_NOW}.
+	 */
+	public SubtractReferenceImage.DifferencePolarity differencePolarity = SubtractReferenceImage.DifferencePolarity.ABSOLUTE;
 
 	public final byte byteFALSE = 0;
 	public final byte byteTRUE = (byte) 0xFF;

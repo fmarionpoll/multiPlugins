@@ -16,6 +16,7 @@ import javax.swing.ComboBoxModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import org.jfree.chart.ChartColor;
@@ -170,8 +171,11 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 			bottomPanel.add(new LegendItem("PI", Color.RED));
 		} else if (isSpotChartLegendResultType(currentOptions.resultType)) {
 			fillSpotLegendPanel(currentOptions, experiment, dataset);
-		} else if (isFlyPositionChartResultType(currentOptions.resultType)) {
-			// Fly-position charts: single series per cage; no capillary L/R legend.
+		} else if (ChartCageBuild.isFlyPositionChartResultType(currentOptions.resultType)) {
+			String axisLegend = ChartCageBuild.flyPositionChartAxisLegend(currentOptions.resultType);
+			if (axisLegend != null) {
+				bottomPanel.add(new JLabel(axisLegend));
+			}
 		} else {
 			createDynamicCapillaryLegend(experiment);
 		}
@@ -214,27 +218,6 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
 		case AGG_GREENHEIGHT_CONSO:
-			return true;
-		default:
-			return false;
-		}
-	}
-
-	private static boolean isFlyPositionChartResultType(EnumResults r) {
-		if (r == null) {
-			return false;
-		}
-		switch (r) {
-		case XYIMAGE:
-		case YVSFOOD:
-		case XTOPCAGE:
-		case YTOPCAGE:
-		case ELLIPSEAXES:
-		case DISTANCE:
-		case ISALIVE:
-		case SLEEP:
-		case ILLUM_PHASE:
-		case VISIBLE_FLY_COUNT:
 			return true;
 		default:
 			return false;

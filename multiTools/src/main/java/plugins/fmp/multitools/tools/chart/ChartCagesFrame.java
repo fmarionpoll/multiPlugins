@@ -33,6 +33,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
@@ -278,8 +279,12 @@ public class ChartCagesFrame extends IcyFrame {
 		if (kymoUnit != null) {
 			unit = kymoUnit;
 		}
-		String yLegend = label + unit;
-		yAxis.setLabel(yLegend);
+		if (ChartCageBuild.isFlyPositionChartResultType(resultsOptions.resultType)) {
+			yAxis.setLabel("");
+		} else {
+			String yLegend = label + unit;
+			yAxis.setLabel(yLegend);
+		}
 
 		if (resultsOptions.resultType == EnumResults.AREA_FLYPRESENT) {
 			yAxis.setAutoRange(false);
@@ -313,11 +318,7 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected NumberAxis setXaxis(String label, ResultsOptions resultsOptions) {
 		NumberAxis xAxis = new NumberAxis();
-		String xLabel = label != null ? label : "";
-		if (resultsOptions != null && resultsOptions.resultType == EnumResults.VISIBLE_FLY_COUNT) {
-			xLabel = "frame";
-		}
-		xAxis.setLabel(xLabel);
+		xAxis.setLabel(label != null ? label : "");
 		xAxis.setAutoRange(true);
 		xAxis.setAutoRangeIncludesZero(false);
 		return xAxis;

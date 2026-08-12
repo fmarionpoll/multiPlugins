@@ -123,6 +123,39 @@ public class ChartCageBuild {
 				|| resultType == EnumResults.SUMGULPS_LR;
 	}
 
+	public static boolean isFlyPositionChartResultType(EnumResults resultType) {
+		if (resultType == null) {
+			return false;
+		}
+		switch (resultType) {
+		case XYIMAGE:
+		case YVSFOOD:
+		case XTOPCAGE:
+		case YTOPCAGE:
+		case ELLIPSEAXES:
+		case DISTANCE:
+		case ISALIVE:
+		case SLEEP:
+		case ILLUM_PHASE:
+		case VISIBLE_FLY_COUNT:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	/** Shared axis legend for fly-position chart grids (shown once on the frame, not per mini-chart). */
+	public static String flyPositionChartAxisLegend(EnumResults resultType) {
+		if (!isFlyPositionChartResultType(resultType)) {
+			return null;
+		}
+		String yUnit = resultType.toUnit();
+		if (yUnit == null || yUnit.isEmpty()) {
+			return "X: frame";
+		}
+		return "X: frame    Y: " + yUnit;
+	}
+
 	/**
 	 * Updates the global max/min values by scanning a dataset.
 	 *

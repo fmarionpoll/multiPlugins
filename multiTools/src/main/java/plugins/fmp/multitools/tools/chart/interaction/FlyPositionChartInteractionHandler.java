@@ -18,7 +18,6 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
 import plugins.fmp.multitools.tools.chart.ChartCagePanel;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
-import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.chart.interaction.ChartCamFrameNavigation;
 
@@ -30,15 +29,13 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
-	private ResultsOptions resultsOptions;
 
 	public FlyPositionChartInteractionHandler(Experiment experiment) {
 		this.experiment = experiment;
 	}
 
 	public FlyPositionChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions) {
-		this.experiment = experiment;
-		this.resultsOptions = resultsOptions;
+		this(experiment);
 	}
 
 	@Override
@@ -82,45 +79,8 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 		return null;
 	}
 
-	private double getTimeMinutesFromEvent(ChartMouseEvent e, ChartPanel panel, XYPlot plot) {
+	private double getDomainValueFromEvent(ChartMouseEvent e, ChartPanel panel, XYPlot plot) {
 		return ChartCamFrameNavigation.getTimeMinutesFromEvent(e, panel, plot);
-	}
-
-	private int getFrameIndexFromTimeMinutes(Experiment exp, double timeMinutes) {
-		if (exp == null || exp.getSeqCamData() == null || timeMinutes < 0) {
-			return -1;
-		}
-		int nTotalFrames = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		if (nTotalFrames <= 0) {
-			Sequence seq = exp.getSeqCamData().getSequence();
-			if (seq != null) {
-				nTotalFrames = seq.getSizeT();
-			}
-		}
-		if (nTotalFrames <= 0) {
-			return -1;
-		}
-
-		long[] timeArray = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
-		if (timeArray != null && timeArray.length == nTotalFrames) {
-			// TimeManager.findNearestIntervalWithBinarySearch expects 'high' to be a valid index.
-			return exp.getSeqCamData().getTimeManager().findNearestIntervalWithBinarySearch((long) (timeMinutes * 60000),
-					0, nTotalFrames - 1);
-		}
-
-		// Fallback: approximate frame index from bin duration.
-		long binMs = exp.getSeqCamData().getTimeManager().getBinDurationMs();
-		if (binMs > 0) {
-			long tMs = (long) (timeMinutes * 60000.0);
-			int frame = (int) Math.round((double) tMs / (double) binMs);
-			if (frame < 0)
-				frame = 0;
-			if (frame >= nTotalFrames)
-				frame = nTotalFrames - 1;
-			return frame;
-		}
-
-		return -1;
 	}
 
 	private void selectCageAndMoveT(Cage cage, int frameIndex) {
@@ -173,13 +133,8 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 				return;
 			}
 			XYPlot plot = (XYPlot) chart.getPlot();
-			double domainValue = getTimeMinutesFromEvent(e, (ChartPanel) source, plot);
-			int frameIndex;
-			if (resultsOptions != null && resultsOptions.resultType == EnumResults.VISIBLE_FLY_COUNT) {
-				frameIndex = (int) Math.round(domainValue);
-			} else {
-				frameIndex = getFrameIndexFromTimeMinutes(experiment, domainValue);
-			}
+			double domainValue = getDomainValueFromEvent(e, (ChartPanel) source, plot);
+			int frameIndex = (int) Math.round(domainValue);
 
 			selectCageAndMoveT(cage, frameIndex);
 		}

@@ -56,6 +56,7 @@ public enum ImageTransformEnums {
 	//
 	SUBTRACT_T0("t-t0", new SubtractReferenceImage()), //
 	SUBTRACT_TM1("t-(t-1)", new SubtractReferenceImage()), //
+	SUBTRACT_TM1_CLEAN("t-clean(t-1)", new SubtractReferenceImage()), //
 	SUBTRACT_REF("t-ref", new SubtractReferenceImage()), //
 	SHIFT_SUBTRACT_REF("shift+t-ref", new TranslateThenSubtractReference()), //
 	SUBTRACT("neg(t-ref)", new ImageMinusBackground()), //
