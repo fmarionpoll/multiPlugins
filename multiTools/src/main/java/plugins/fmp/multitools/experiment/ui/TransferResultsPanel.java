@@ -24,6 +24,8 @@ public class TransferResultsPanel extends JPanel {
 	private final JComboBoxExperimentLazy experimentsCombo;
 	private final TransferResultsHost host;
 
+	private static final String TIP_OPEN = "Open the dialog to copy analysis results to or from another root (server, external disk). Images are not transferred.";
+
 	private final JButton openButton = new JButton("Transfer results...");
 
 	public TransferResultsPanel(JComboBoxExperimentLazy experimentsCombo, TransferResultsHost host) {
@@ -48,6 +50,7 @@ public class TransferResultsPanel extends JPanel {
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
+		openButton.setToolTipText(TIP_OPEN);
 		panel1.add(openButton);
 		add(panel1);
 	}

@@ -82,10 +82,11 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 
 		JPanel panel1 = new JPanel(flowLayout);
 		startComputationButton.setToolTipText(
-				"Median background is written to the file matching the Background type selected below (Reference, Light, or Dark).");
+				"Compute median background over N frames and save to the selected Background type (Reference, Light, or Dark).");
 		panel1.add(startComputationButton);
 		panel1.add(new JLabel("over n frames "));
 		panel1.add(backgroundNFramesSpinner);
+		allCheckBox.setToolTipText("Build background for this experiment through the last in the browse list.");
 		panel1.add(allCheckBox);
 		add(panel1);
 
@@ -127,10 +128,12 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			}
 		});
 		panel4.add(referenceKindCombo);
+		referenceKindCombo.setToolTipText("Which reference file is built, loaded, saved, and edited.");
 		referenceStatusLabel.setForeground(Color.GRAY.darker());
 		panel4.add(referenceStatusLabel);
 		panel4.add(loadButton);
 		panel4.add(saveButton);
+		editButton.setToolTipText("Open the reference image in the mask editor (overwrites the selected background type on save).");
 		panel4.add(editButton);
 		add(panel4);
 

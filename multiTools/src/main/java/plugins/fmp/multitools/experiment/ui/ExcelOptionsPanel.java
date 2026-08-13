@@ -49,6 +49,17 @@ public class ExcelOptionsPanel extends JPanel {
 
 	private final Features features;
 
+	private static final String TIP_EXPORT_ALL = "Export every experiment in the list, not only the selected one.";
+	private static final String TIP_TRANSPOSE = "Swap rows and columns in the exported table layout.";
+	private static final String TIP_COLLATE = "Merge consecutive series that share the same descriptors into one exported series.";
+	private static final String TIP_PAD = "When collating, pad missing time intervals so series align on a common time grid.";
+	private static final String TIP_DEAD_EMPTY = "Treat dead flies as empty cells in export instead of carrying last values.";
+	private static final String TIP_LAYOUT_NORM = "CSV-oriented layout with separate measure tables (see force CSV bin grid).";
+	private static final String TIP_LAYOUT_WIDE = "Classic wide Excel matrix (one sheet layout used historically).";
+	private static final String TIP_FORCE_CSV_BIN = "CSV only: write measure_*_binN using the analysis interval with time-weighted resampling. Uncheck to export raw native times only.";
+	private static final String TIP_ANALYZE_ALL = "Export the full experiment duration.";
+	private static final String TIP_ANALYZE_FROM = "Limit export to a fixed time window (from / to).";
+
 	private final JCheckBox exportAllFilesCheckBox = new JCheckBox("all experiments", true);
 	private final JCheckBox transposeCheckBox = new JCheckBox("transpose", true);
 	private final JCheckBox collateSeriesCheckBox = new JCheckBox("collate series", false);
@@ -80,20 +91,29 @@ public class ExcelOptionsPanel extends JPanel {
 		layout1.setVgap(0);
 
 		JPanel panel0 = new JPanel(layout1);
+		exportAllFilesCheckBox.setToolTipText(TIP_EXPORT_ALL);
+		transposeCheckBox.setToolTipText(TIP_TRANSPOSE);
 		panel0.add(exportAllFilesCheckBox);
 		panel0.add(transposeCheckBox);
-		if (features.collateSeries)
+		if (features.collateSeries) {
+			collateSeriesCheckBox.setToolTipText(TIP_COLLATE);
 			panel0.add(collateSeriesCheckBox);
+		}
 		if (features.padIntervals) {
+			padIntervalsCheckBox.setToolTipText(TIP_PAD);
 			panel0.add(padIntervalsCheckBox);
 			padIntervalsCheckBox.setEnabled(false);
 		}
-		if (features.onlyAlive)
+		if (features.onlyAlive) {
+			onlyAliveCheckBox.setToolTipText(TIP_DEAD_EMPTY);
 			panel0.add(onlyAliveCheckBox);
+		}
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layout1);
 		panel1.add(new JLabel("Analyze "));
+		isFloatingFrameButton.setToolTipText(TIP_ANALYZE_ALL);
+		isFixedFrameButton.setToolTipText(TIP_ANALYZE_FROM);
 		panel1.add(isFloatingFrameButton);
 		panel1.add(isFixedFrameButton);
 		panel1.add(startJSpinner);
@@ -112,11 +132,12 @@ public class ExcelOptionsPanel extends JPanel {
 
 		JPanel panel3 = new JPanel(layout1);
 		panel3.add(new JLabel("layout "));
+		layoutWideButton.setToolTipText(TIP_LAYOUT_WIDE);
+		layoutNormalizedButton.setToolTipText(TIP_LAYOUT_NORM);
 		panel3.add(layoutWideButton);
 		panel3.add(layoutNormalizedButton);
+		forceCsvBinCheckBox.setToolTipText(TIP_FORCE_CSV_BIN);
 		panel3.add(forceCsvBinCheckBox);
-		forceCsvBinCheckBox.setToolTipText(
-				"CSV only: write measure_*_binN using the analysis interval (bin size × unit) with time-weighted resampling. Uncheck to export raw native times only.");
 		forceCsvBinCheckBox.setEnabled(false);
 		add(panel3);
 

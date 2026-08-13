@@ -37,6 +37,15 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 	private static final double DEFAULT_FLY_W = 10;
 	private static final double DEFAULT_FLY_H = 5;
 
+	private static final String TIP_FIND_ALL = "List frames where a cage has an empty fly slot (−1, −1 placeholder).";
+	private static final String TIP_FIND_NEXT = "Jump to the next frame with an empty fly slot.";
+	private static final String TIP_VALIDATE = "Copy edited fly rectangles (detR…) into stored fly positions for the current frame.";
+	private static final String TIP_VALIDATE_NEXT = "Validate the current frame, then jump to the next missed fly slot.";
+	private static final String TIP_FIND_MISSING_CAGE = "Jump to the first frame where a cage has fewer flies than expected.";
+	private static final String TIP_ADD = "Click inside a cage to place a fly; toggle off when done. Validate to save positions.";
+	private static final String TIP_MOVE = "Click to move the selected fly rectangle to a new position inside a cage; toggle off when done.";
+	private static final String TIP_DELETE = "Delete the selected fly rectangle (detR…). Validate to commit.";
+
 	private MultiCAFE parent0;
 	private JButton findAllButton = new JButton(new String("Find all missed points"));
 	private JButton findNextButton = new JButton(new String("Find next missed point"));
@@ -61,22 +70,28 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 		flowLayout.setVgap(0);
 
 		JPanel panel1 = new JPanel(flowLayout);
+		findAllButton.setToolTipText(TIP_FIND_ALL);
 		panel1.add(findAllButton);
 		panel1.add(foundCombo);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
+		findNextButton.setToolTipText(TIP_FIND_NEXT);
+		validateButton.setToolTipText(TIP_VALIDATE);
+		validateAndNextButton.setToolTipText(TIP_VALIDATE_NEXT);
 		panel2.add(findNextButton);
 		panel2.add(validateButton);
 		panel2.add(validateAndNextButton);
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);
+		findFirstIntervalWithMissingFly.setToolTipText(TIP_FIND_MISSING_CAGE);
 		panel3.add(findFirstIntervalWithMissingFly);
 		add(panel3);
 
-		addFlyButton.setToolTipText("Click image to add flies; toggle off when done");
-		deleteFlyButton.setToolTipText("Delete the selected fly rectangle (detR…)");
+		addFlyButton.setToolTipText(TIP_ADD);
+		moveFlyButton.setToolTipText(TIP_MOVE);
+		deleteFlyButton.setToolTipText(TIP_DELETE);
 		JPanel panel4 = new JPanel(flowLayout);
 		panel4.add(addFlyButton);
 		panel4.add(moveFlyButton);

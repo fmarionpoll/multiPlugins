@@ -114,6 +114,14 @@ public class SelectFilesPanel extends JPanel {
 
 	private final Features features;
 
+	private static final String TIP_FIND = "Search the disk for experiment folders matching the filter pattern.";
+	private static final String TIP_LOAD_LIST = "Load a previously saved list of experiment paths.";
+	private static final String TIP_RB_FILE = "Match the filter against experiment.xml file names.";
+	private static final String TIP_RB_DIR = "Match the filter against directory names.";
+	private static final String TIP_CLEAR_ALL = "Clear the search results list (does not close experiments already in the main list).";
+	private static final String TIP_ADD_SELECTED = "Add the selected search hits to the main experiment list.";
+	private static final String TIP_ADD_ALL = "Add every search hit to the main experiment list.";
+
 	private IcyFrame dialogFrame = null;
 	private final JComboBox<String> filterCombo;
 	private final JButton findButton = new JButton("Search...");
@@ -221,6 +229,10 @@ public class SelectFilesPanel extends JPanel {
 		topPanel.add(findButton);
 		topPanel.add(loadListButton);
 		topPanel.add(filterCombo);
+		findButton.setToolTipText(TIP_FIND);
+		loadListButton.setToolTipText(TIP_LOAD_LIST);
+		rbFile.setToolTipText(TIP_RB_FILE);
+		rbDirectory.setToolTipText(TIP_RB_DIR);
 		topPanel.add(rbFile);
 		topPanel.add(rbDirectory);
 		mainPanel.add(GuiUtil.besidesPanel(topPanel));
@@ -233,6 +245,9 @@ public class SelectFilesPanel extends JPanel {
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		mainPanel.add(GuiUtil.besidesPanel(scrollPane));
 
+		clearAllButton.setToolTipText(TIP_CLEAR_ALL);
+		addSelectedButton.setToolTipText(TIP_ADD_SELECTED);
+		addAllButton.setToolTipText(TIP_ADD_ALL);
 		mainPanel.add(GuiUtil.besidesPanel(clearSelectedButton, clearAllButton));
 		mainPanel.add(GuiUtil.besidesPanel(addSelectedButton, addAllButton));
 

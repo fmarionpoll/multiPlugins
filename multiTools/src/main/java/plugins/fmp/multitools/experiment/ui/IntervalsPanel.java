@@ -40,10 +40,16 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 
 	private static final long serialVersionUID = -5739112045358747277L;
 
-	private static final String ANALYSIS_STEP_TOOLTIP = "<html>Duration added per frame in the analysis timeline.<br>"
-			+ "<b>Refresh</b> sets this from image timestamps (filename or file date).<br>"
-			+ "<b>Apply</b> saves it to the experiment; it drives camera/kymograph bins and time axes.<br>"
-			+ "Override only if you subsample frames or need a deliberate time correction.</html>";
+	private static final String ANALYSIS_STEP_TOOLTIP = "Duration added per frame in the analysis timeline. "
+			+ "Refresh estimates it from image timestamps; Apply saves it to the experiment (bins and time axes). "
+			+ "Override only if you subsample frames or need a deliberate time correction.";
+
+	private static final String TIP_APPLY = "Save frame range and analysis time settings to the current experiment.";
+	private static final String TIP_REFRESH = "Recompute acquisition interval and analysis time step from image timestamps.";
+	private static final String TIP_CURRENT_FRAME = "Set the first frame spinner from the camera viewer’s current T.";
+	private static final String TIP_CLIP_COMBO = "Use all images from the first frame, or clip to a fixed number of frames.";
+	private static final String TIP_ADVANCED = "Show or hide analysis time step and nominal interval controls.";
+	private static final String TIP_NOMINAL = "Expected seconds between frames when timestamps are missing or unreliable.";
 
 	Long val = 1L;
 	Long min = 0L;
@@ -89,15 +95,20 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		JPanel panel0 = new JPanel(layout1);
 		panel0.add(new JLabel("Frame:", SwingConstants.RIGHT));
 		panel0.add(indexFirstImageJSpinner);
+		clipNumberImagesCombo.setToolTipText(TIP_CLIP_COMBO);
 		panel0.add(clipNumberImagesCombo);
 		panel0.add(fixedNumberOfImagesJSpinner);
+		updateToCurrentFrameButton.setToolTipText(TIP_CURRENT_FRAME);
 		panel0.add(updateToCurrentFrameButton);
+		applyButton.setToolTipText(TIP_APPLY);
 		panel0.add(applyButton);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layout1);
 		panel1.add(analysisIntervalLabel);
+		refreshButton.setToolTipText(TIP_REFRESH);
 		panel1.add(refreshButton);
+		advancedToggleButton.setToolTipText(TIP_ADVANCED);
 		panel1.add(advancedToggleButton);
 		add(panel1);
 
@@ -112,7 +123,10 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		add(advancedPanel);
 
 		advancedPanel1.setLayout(layout1);
-		advancedPanel1.add(new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT));
+		JLabel nominalLabel = new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT);
+		nominalLabel.setToolTipText(TIP_NOMINAL);
+		nominalIntervalJSpinner.setToolTipText(TIP_NOMINAL);
+		advancedPanel1.add(nominalLabel);
 		advancedPanel1.add(nominalIntervalJSpinner);
 		advancedPanel1.add(classSummaryLabel);
 		advancedPanel1.setVisible(false);

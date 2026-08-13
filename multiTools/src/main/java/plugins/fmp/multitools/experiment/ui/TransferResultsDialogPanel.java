@@ -52,6 +52,16 @@ public class TransferResultsDialogPanel extends JPanel {
 	private static final String PREF_OVERRIDE_ENABLED = "transferResults.overrideEnabled";
 	private static final String PREF_OVERRIDE_ROOT = "transferResults.overrideRoot";
 
+	private static final String TIP_PREPARE = "Scan experiments and build the transfer plan before Start (required).";
+	private static final String TIP_OVERRIDE_ROOT = "Replace the computed common parent folder with a path you choose.";
+	private static final String TIP_SCOPE_ALL = "Include every experiment currently in the list.";
+	private static final String TIP_SCOPE_CURRENT = "Include only the experiment selected in the main list.";
+	private static final String TIP_DIRECTION = "Export copies local results outward; Import brings results from the other root inward.";
+	private static final String TIP_MODE = "How conflicts and missing files are handled (see mode name).";
+	private static final String TIP_START = "Run the prepared transfer. Disabled until Prepare transfer succeeds.";
+	private static final String TIP_CLOSE_RELOAD = "After Import, close open sequences and reload the project so on-disk results are visible.";
+	private static final String TIP_SCAN_SOURCE = "Import: scan the entire source results tree, not only files listed in the prepared plan.";
+
 	private final JComboBoxExperimentLazy experimentsCombo;
 	private final TransferResultsHost host;
 	private final Runnable closeAction;
@@ -109,12 +119,15 @@ public class TransferResultsDialogPanel extends JPanel {
 		warningLabel.setForeground(new Color(140, 90, 0));
 
 		JPanel row0 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		prepareButton.setToolTipText(TIP_PREPARE);
 		row0.add(prepareButton);
 		row0.add(scanSummaryLabel);
 		content.add(row0);
 
 		JPanel rowScope = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		rowScope.add(new JLabel("Scan scope:"));
+		rbAllExperiments.setToolTipText(TIP_SCOPE_ALL);
+		rbCurrentExperiment.setToolTipText(TIP_SCOPE_CURRENT);
 		rowScope.add(rbAllExperiments);
 		rowScope.add(rbCurrentExperiment);
 		content.add(rowScope);
@@ -126,6 +139,7 @@ public class TransferResultsDialogPanel extends JPanel {
 		content.add(row1);
 
 		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		overrideRootCheck.setToolTipText(TIP_OVERRIDE_ROOT);
 		row2.add(overrideRootCheck);
 		overrideRootField.setColumns(40);
 		row2.add(overrideRootField);
@@ -134,8 +148,10 @@ public class TransferResultsDialogPanel extends JPanel {
 
 		JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		row3.add(new JLabel("Direction:"));
+		directionCombo.setToolTipText(TIP_DIRECTION);
 		row3.add(directionCombo);
 		row3.add(new JLabel("Mode:"));
+		modeCombo.setToolTipText(TIP_MODE);
 		row3.add(modeCombo);
 		content.add(row3);
 
@@ -147,6 +163,9 @@ public class TransferResultsDialogPanel extends JPanel {
 		content.add(row4);
 
 		JPanel row5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		startButton.setToolTipText(TIP_START);
+		closeReloadBeforeImportCheck.setToolTipText(TIP_CLOSE_RELOAD);
+		importScanSourceTreesCheck.setToolTipText(TIP_SCAN_SOURCE);
 		row5.add(startButton);
 		row5.add(closeReloadBeforeImportCheck);
 		row5.add(importScanSourceTreesCheck);

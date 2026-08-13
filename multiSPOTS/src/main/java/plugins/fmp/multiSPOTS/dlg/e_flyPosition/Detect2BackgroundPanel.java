@@ -64,6 +64,9 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 		flowLayout.setVgap(0);
 
 		JPanel panel1 = new JPanel(flowLayout);
+		startComputationButton.setToolTipText(
+				"Compute median background over N frames; saved as the experiment reference image.");
+		allCheckBox.setToolTipText("Build background for this experiment through the last in the browse list.");
 		panel1.add(startComputationButton);
 		panel1.add(allCheckBox);
 		panel1.add(loadButton);

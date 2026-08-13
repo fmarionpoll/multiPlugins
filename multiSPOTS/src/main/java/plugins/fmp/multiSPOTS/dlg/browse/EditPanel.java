@@ -86,6 +86,8 @@ public class EditPanel extends JPanel {
 		panel2.add(newValueTextField);
 		newValueTextField.setPreferredSize(new Dimension(bWidth, bHeight));
 		panel2.add(applyButton);
+		applyButton.setToolTipText(
+				"Write the new value to the selected field on every experiment in the current browse list (filtered list when Filter is on).");
 		undoLastApplyButton.setToolTipText(
 				"Reverts the last successful Apply for the same field (one step, in memory only).");
 		panel2.add(undoLastApplyButton);

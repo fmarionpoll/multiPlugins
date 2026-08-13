@@ -62,6 +62,16 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 	private static final int MIN_FRAME = 0;
 	private static final int MAX_FRAME = 100000;
 
+	private static final String TIP_REF_EQUALS_T = "Set the reference frame to the current T for difference preview and alignment.";
+	private static final String TIP_VIEW_T_REF = "Preview the difference between the current frame and the reference (does not modify images until Apply).";
+	private static final String TIP_AUTO_CONTRAST = "Stretch T−Ref difference per frame (1–99% per channel, preview only).";
+	private static final String TIP_APPLY_TO_T = "Write the current X/Y/rotation offset into the image at this T (destructive for that frame until Restore).";
+	private static final String TIP_RESET_OFFSETS = "Clear X/Y/angle spinners for the current preview (does not undo applied transforms).";
+	private static final String TIP_SHOW_PIVOT = "Show the rotation pivot on the camera viewer (drag the circle to adjust).";
+	private static final String TIP_RESET_PIVOT = "Clear the manual pivot and use the cage-bounds centroid again.";
+	private static final String TIP_APPLY_RANGE = "Apply the current offsets to every frame from Start to end (batch; can take time).";
+	private static final String TIP_RESTORE = "Restore original images for the selected range from the drift backup, if available.";
+
 	private final JLabel frameIndexLabel = new JLabel("T");
 	private final JSpinner frameIndexSpinner = new JSpinner(new SpinnerNumberModel(0, 0, MAX_FRAME, 1));
 	private final JButton setReferenceButton = new JButton("Ref. = T");
@@ -171,7 +181,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		refPanel.add(referenceLabel);
 		refPanel.add(setReferenceButton);
 		refPanel.add(pivotLabel);
-		showPivotMarkerCheck.setToolTipText("Show rotation pivot on the camera viewer (drag circle to adjust)");
+		setReferenceButton.setToolTipText(TIP_REF_EQUALS_T);
+		showPivotMarkerCheck.setToolTipText(TIP_SHOW_PIVOT);
 		refPanel.add(showPivotMarkerCheck);
 		add(refPanel);
 
@@ -185,15 +196,18 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		framePanel.add(new JLabel("\u03b8\u00b0"));
 		framePanel.add(angleSpinner);
 		angleSpinner.setPreferredSize(new Dimension(56, 20));
+		viewTransformToggle.setToolTipText(TIP_VIEW_T_REF);
 		framePanel.add(viewTransformToggle);
-		autoContrastCheck.setToolTipText("Stretch T−Ref difference per frame (1–99% per channel, preview only)");
+		applyTransformButton.setToolTipText(TIP_APPLY_TO_T);
 		framePanel.add(applyTransformButton);
 		add(framePanel);
 
 		JPanel frame2Panel = new JPanel(flowlayout);
+		resetOffsetsButton.setToolTipText(TIP_RESET_OFFSETS);
 		frame2Panel.add(resetOffsetsButton);
-		resetPivotToCagesButton.setToolTipText("Clear manual pivot; use cage-bounds centroid again");
+		resetPivotToCagesButton.setToolTipText(TIP_RESET_PIVOT);
 		frame2Panel.add(resetPivotToCagesButton);
+		autoContrastCheck.setToolTipText(TIP_AUTO_CONTRAST);
 		frame2Panel.add(autoContrastCheck);
 		add(frame2Panel);
 
@@ -204,6 +218,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		batchPanel.add(new JLabel("end"));
 		batchPanel.add(rangeEndSpinner);
 		rangeEndSpinner.setPreferredSize(new Dimension(60, 20));
+		applyRangeButton.setToolTipText(TIP_APPLY_RANGE);
+		restoreButton.setToolTipText(TIP_RESTORE);
 		batchPanel.add(applyRangeButton);
 		batchPanel.add(restoreButton);
 		add(batchPanel);

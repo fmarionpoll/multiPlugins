@@ -59,6 +59,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		((FlowLayout) panel0.getLayout()).setVgap(1);
+		allSeriesCheckBox.setToolTipText("Build kymographs for the current experiment through the last in the browse list.");
 		panel0.add(startComputationButton);
 		panel0.add(allSeriesCheckBox);
 		add(panel0);
@@ -69,6 +70,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		}
 		downsampleCombo.setModel(dsModel);
 		downsampleCombo.setSelectedIndex(0);
+		downsampleCombo.setToolTipText("Keep every Nth camera frame; sets kymograph bin step and results subfolder.");
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("area around ROIs", SwingConstants.RIGHT));
@@ -80,6 +82,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(new JLabel("Analyze "));
+		isFixedFrameButton.setToolTipText("Limit analysis to the time range below instead of all frames.");
 		panel2.add(isFloatingFrameButton);
 		panel2.add(isFixedFrameButton);
 		panel2.add(startJSpinner);

@@ -70,6 +70,12 @@ public class FilterPanel extends JPanel {
 	private JButton updateButton = new JButton("Update");
 	private JLabel indexStatusLabel = new JLabel("index: loading...");
 
+	private static final String TIP_APPLY = "Replace the browse list with experiments matching all checked criteria (AND across fields).";
+	private static final String TIP_CLEAR = "Clear criteria and restore the full unfiltered experiment list.";
+	private static final String TIP_UPDATE = "Rebuild the descriptor index and refresh Select… value lists (after bulk Edit).";
+	private static final String TIP_SPOT_STIM = "Filter by spot-level stimulus metadata (any spot in the experiment must match).";
+	private static final String TIP_SPOT_CONC = "Filter by spot-level concentration metadata (any spot in the experiment must match).";
+
 	private MultiSPOTS parent0 = null;
 	public JComboBoxExperimentLazy filterExpList = new JComboBoxExperimentLazy();
 
@@ -93,11 +99,13 @@ public class FilterPanel extends JPanel {
 		c.gridy = 0;
 		DialogTools.addFiveComponentOnARow(this, experimentCheck, exptBtn, boxIDCheck, boxIDBtn, applyButton, c, delta1,
 				delta2);
+		applyButton.setToolTipText(TIP_APPLY);
 		// line 2
 		c.gridy = 1;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, strainCheck, strainBtn, sexCheck, sexBtn, clearButton, c, delta1,
 				delta2);
+		clearButton.setToolTipText(TIP_CLEAR);
 		// line 1
 		c.gridy = 2;
 		c.gridx = 0;
@@ -110,9 +118,12 @@ public class FilterPanel extends JPanel {
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, spotStimCheck, spotStimBtn, spotConcCheck, spotConcBtn, null, c, delta1,
 				delta2);
+		spotStimCheck.setToolTipText(TIP_SPOT_STIM);
+		spotConcCheck.setToolTipText(TIP_SPOT_CONC);
 		c.gridy = 5;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, indexStatusLabel, updateButton, null, null, null, c, delta1, delta2);
+		updateButton.setToolTipText(TIP_UPDATE);
 
 		defineActionListeners();
 	}
@@ -218,8 +229,6 @@ public class FilterPanel extends JPanel {
 				refreshFilterValueLists();
 			}
 		});
-		updateButton.setToolTipText(
-				"Re-scan all experiments and refresh Filter value lists (use after Edit changes descriptors)");
 	}
 
 	/**

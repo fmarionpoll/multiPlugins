@@ -25,6 +25,11 @@ public class OptionsPanel extends JPanel {
 	public JCheckBox viewFlyRectCheckbox = new JCheckBox("flies rect", false);
 	private MultiSPOTS parent0 = null;
 
+	private static final String TIP_AUTO_KYMO = "Auto-load cage kymograph sequences when opening an experiment.";
+	private static final String TIP_AUTO_SPOT_CHARTS = "Auto-open spot-measure chart windows when opening an experiment.";
+	private static final String TIP_AUTO_KYMO_CHARTS = "Auto-open kymograph chart windows when opening an experiment.";
+	private static final String TIP_FLIES_RECT = "Show or hide fly detection rectangles (ROI names starting with det).";
+
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
@@ -34,6 +39,9 @@ public class OptionsPanel extends JPanel {
 
 		JPanel panel0 = new JPanel(layout);
 		panel0.add(new JLabel("On open: "));
+		autoLoadKymographsCheckBox.setToolTipText(TIP_AUTO_KYMO);
+		autoGraphSpotMeasuresCheckBox.setToolTipText(TIP_AUTO_SPOT_CHARTS);
+		autoGraphKymoMeasuresCheckBox.setToolTipText(TIP_AUTO_KYMO_CHARTS);
 		panel0.add(autoLoadKymographsCheckBox);
 		panel0.add(autoGraphSpotMeasuresCheckBox);
 		panel0.add(autoGraphKymoMeasuresCheckBox);
@@ -42,6 +50,7 @@ public class OptionsPanel extends JPanel {
 
 		JPanel panel1 = new JPanel(layout);
 		panel1.add(new JLabel("View : "));
+		viewFlyRectCheckbox.setToolTipText(TIP_FLIES_RECT);
 		panel1.add(viewSpotsCheckBox);
 		panel1.add(viewCagesCheckbox);
 		panel1.add(viewFlyRectCheckbox);

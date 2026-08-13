@@ -74,6 +74,11 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
+	private static final String TIP_ALL = "Run detection on this experiment through the last in the browse list.";
+	private static final String TIP_VIEW = "Preview the source transform on the camera canvas; enable overlay to see the threshold mask.";
+	private static final String TIP_BKGND = "Image subtracted before thresholding: none, previous frame, or first frame.";
+	private static final String TIP_NFLIES = "Reject cages with more detected blobs than this count.";
+
 	private OverlayFlyDetect1Preview overlayFlyDetect1Preview = null;
 	private FlyDetect1 flyDetect1 = null;
 
@@ -89,6 +94,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(detectButton);
 		panel1.add(cagesComboBox);
+		allCheckBox.setToolTipText(TIP_ALL);
+		viewButton.setToolTipText(TIP_VIEW);
 		panel1.add(allCheckBox);
 		panel1.add(viewButton);
 		panel1.add(overlayCheckBox);
@@ -101,6 +108,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel2.add(new JLabel("source "));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd "));
+		backgroundComboBox.setToolTipText(TIP_BKGND);
 		panel2.add(backgroundComboBox);
 		panel2.add(directionComboBox);
 		((JLabel) directionComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -125,6 +133,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
 		nFliesCheckBox.setSelected(true);
+		nFliesCheckBox.setToolTipText(TIP_NFLIES);
 		nFliesSpinner.setEnabled(nFliesCheckBox.isSelected());
 
 		panel4.add(nFliesCheckBox);

@@ -98,12 +98,14 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 		JPanel panel00 = new JPanel(layoutLeft);
 		panel00.add(detectButton);
+		allSeriesCheckBox.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
 		panel00.add(allSeriesCheckBox);
 		panel00.add(selectedKymoCheckBox);
 		panel00.add(leftCheckBox);
 		panel00.add(rightCheckBox);
 
 		JPanel panel01 = new JPanel(layoutLeft);
+		pass1CheckBox.setToolTipText("First (coarse) threshold pass on the kymograph.");
 		panel01.add(pass1CheckBox);
 		panel01.add(direction1ComboBox);
 		((JLabel) direction1ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -113,6 +115,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel01.add(overlayPass1CheckBox);
 
 		JPanel panel02 = new JPanel(layoutLeft);
+		pass2CheckBox.setToolTipText("Second (refined) threshold pass on the kymograph.");
 		panel02.add(pass2CheckBox);
 		panel02.add(direction2ComboBox);
 		((JLabel) direction2ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -125,6 +128,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel03.add(new JLabel("pass2 vertical jitter"));
 		panel03.add(jitter2Spinner);
 		panel03.add(fromRectangleCheckBox);
+		runBackwardsCheckBox.setToolTipText("Track liquid level from bottom to top instead of top to bottom.");
 		panel03.add(runBackwardsCheckBox);
 
 		add(panel00);

@@ -49,6 +49,9 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	private static final String FILTER_BUTTON_OFF = "Filter (off)";
 	private static final String FILTER_BUTTON_ON = "Filter (on)";
+	private static final String TIP_EDIT = "Bulk-edit experiment, spot, or cage descriptors for the current list (respects active Filter).";
+	private static final String TIP_CLOSE = "Close all open experiments and clear the browse list.";
+	private static final String TIP_SEARCH = "Search disk for experiment folders and add them to the list.";
 
 	public boolean isListFiltered() {
 		return listFiltered;
@@ -196,6 +199,9 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	private JPanel initUI() {
 		JPanel navPanel = BrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
+		closeButton.setToolTipText(TIP_CLOSE);
+		searchButton.setToolTipText(TIP_SEARCH);
+		showEditButton.setToolTipText(TIP_EDIT);
 		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, showFilterButton,
 				showEditButton);
 		return BrowseUi.createMainGrid(navPanel, buttonPanel);
