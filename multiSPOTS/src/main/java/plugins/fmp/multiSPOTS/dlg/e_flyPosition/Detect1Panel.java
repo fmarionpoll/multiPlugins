@@ -68,6 +68,8 @@ public class Detect1Panel extends JPanel
 	private JComboBox<ImageTransformEnums> backgroundComboBox = new JComboBox<>(BACKGROUND_TRANSFORMS);
 
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
+	private final String[] thresholdDirections = new String[] { " threshold >", " threshold <" };
+	private JComboBox<String> thresholdDirectionComboBox = new JComboBox<>(thresholdDirections);
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 255, 1));
 	private JSpinner jitterTextField = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
 	private JSpinner objectLowsizeSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 9999, 1));
@@ -78,8 +80,9 @@ public class Detect1Panel extends JPanel
 	private JCheckBox jitterCheckBox = new JCheckBox("jitter<= ");
 	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 
-	private JCheckBox whiteObjectCheckBox = new JCheckBox("white object");
 	private JCheckBox excludeSpotBlobsCheckBox = new JCheckBox("ignore blobs on spots", false);
+	private JCheckBox morphCloseCheckBox = new JCheckBox("close", false);
+	private JSpinner morphCloseRadiusSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 5, 1));
 	JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
@@ -109,12 +112,13 @@ public class Detect1Panel extends JPanel
 
 		JPanel panel2 = new JPanel(flowLayout);
 		transformComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
-		backgroundComboBox.setSelectedItem(ImageTransformEnums.SUBTRACT_TM1);
+		backgroundComboBox.setSelectedItem(ImageTransformEnums.SUBTRACT_TM1_CLEAN);
+		thresholdDirectionComboBox.setSelectedIndex(1); // threshold < (dark flies), same default as former unchecked "white object"
 		panel2.add(new JLabel("source ", SwingConstants.RIGHT));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd ", SwingConstants.RIGHT));
 		panel2.add(backgroundComboBox);
-		panel2.add(new JLabel("threshold ", SwingConstants.RIGHT));
+		panel2.add(thresholdDirectionComboBox);
 		panel2.add(thresholdSpinner);
 		add(panel2);
 
@@ -127,7 +131,6 @@ public class Detect1Panel extends JPanel
 		panel3.add(objectLowsizeSpinner);
 		panel3.add(objectUpsizeCheckBox);
 		panel3.add(objectUpsizeSpinner);
-		panel3.add(whiteObjectCheckBox);
 		add(panel3);
 
 		limitRatioCheckBox.setSelected(true);
@@ -140,9 +143,17 @@ public class Detect1Panel extends JPanel
 		panel4.add(limitRatioSpinner);
 		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
-		panel4.add(excludeSpotBlobsCheckBox);
 		panel4.add(overlayCheckBox);
 		add(panel4);
+
+		JPanel panel5 = new JPanel(flowLayout);
+		panel5.add(excludeSpotBlobsCheckBox);
+		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
+		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
+		morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected());
+		panel5.add(morphCloseCheckBox);
+		panel5.add(morphCloseRadiusSpinner);
+		add(panel5);
 
 		limitRatioCheckBox.addItemListener(e -> {
 			limitRatioSpinner.setEnabled(limitRatioCheckBox.isSelected());
@@ -168,7 +179,14 @@ public class Detect1Panel extends JPanel
 			refreshFlyDetectOverlay();
 		});
 		excludeSpotBlobsCheckBox.addItemListener(e -> refreshFlyDetectOverlay());
-		whiteObjectCheckBox.addItemListener(e -> {
+		morphCloseCheckBox.addItemListener(e -> {
+			morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected());
+			refreshFlyDetectOverlay();
+		});
+		morphCloseRadiusSpinner.addChangeListener(e -> refreshFlyDetectOverlay());
+		thresholdDirectionComboBox.addItemListener(e -> {
+			if (e.getStateChange() != ItemEvent.SELECTED)
+				return;
 			refreshFlyDetectOverlay();
 			if (viewButton.isSelected()) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -371,7 +389,11 @@ public class Detect1Panel extends JPanel
 		opts.background_delta = 20;
 		opts.background_jitter = 1;
 		FlyDetect1.fillFlyDetectBackgroundOptions(exp, t, opts);
-		FlyDetect1.applyFlyDetectDifferencePolarity(opts, whiteObjectCheckBox.isSelected());
+		FlyDetect1.applyFlyDetectDifferencePolarity(opts, isTrackWhite());
+	}
+
+	private boolean isTrackWhite() {
+		return thresholdDirectionComboBox.getSelectedIndex() == 0;
 	}
 
 	private void attachViewListener(Experiment exp) {
@@ -418,7 +440,7 @@ public class Detect1Panel extends JPanel
 	}
 
 	private void applyDetect1FlyOptions(BuildSeriesOptions options, Experiment exp) {
-		options.btrackWhite = whiteObjectCheckBox.isSelected();
+		options.btrackWhite = isTrackWhite();
 		options.blimitLow = objectLowsizeCheckBox.isSelected();
 		options.blimitUp = objectUpsizeCheckBox.isSelected();
 		options.blimitRatio = limitRatioCheckBox.isSelected();
@@ -438,6 +460,8 @@ public class Detect1Panel extends JPanel
 		options.blimitMaxBlobsPerCage = true;
 		options.bexcludeSpotBlobs = excludeSpotBlobsCheckBox.isSelected();
 		options.bcarryStillFlies = false;
+		options.bmorphClose = morphCloseCheckBox.isSelected();
+		options.morphCloseRadius = (int) morphCloseRadiusSpinner.getValue();
 		if (exp != null) {
 			options.binSubDirectory = exp.getBinSubDirectory();
 		}

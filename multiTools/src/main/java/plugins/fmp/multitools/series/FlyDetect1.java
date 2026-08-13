@@ -123,8 +123,13 @@ public class FlyDetect1 extends FlyDetect {
 		}
 		int threshold = bgOpts != null && bgOpts.simplethreshold > 0 ? bgOpts.simplethreshold : 60;
 		int delta = bgOpts != null ? bgOpts.background_delta : 20;
-		int jitter = bgOpts != null ? bgOpts.background_jitter : 1;
-		return PatchPreviousFromReference.patchDarkFliesFromReference(previous, reference, threshold, delta, jitter);
+		int jitter = bgOpts != null ? Math.max(2, bgOpts.background_jitter) : 2;
+		IcyBufferedImage cleaned = PatchPreviousFromReference.patchDarkFliesFromReference(previous, reference,
+				threshold, delta, jitter);
+		// Also wipe known fly boxes from t-1 (covers partial silhouettes that failed the seed test).
+		cleaned = PatchPreviousFromReference.patchKnownFlyRects(cleaned, reference, exp.getCages(), tPrev,
+				Math.max(3, jitter + 1));
+		return cleaned;
 	}
 
 	/** Copies Detect2-style heal parameters used by {@link #SUBTRACT_TM1_CLEAN}. */

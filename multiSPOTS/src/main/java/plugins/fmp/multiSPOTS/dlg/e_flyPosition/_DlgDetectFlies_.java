@@ -22,11 +22,11 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 	Detect1Panel detect1Panel = new Detect1Panel();
 	Detect2BackgroundPanel detect2BackgroundPanel = new Detect2BackgroundPanel();
 	Detect2FliesPanel detect2FliesPanel = new Detect2FliesPanel();
-	EditPanel editPanel = new EditPanel();
+	public EditPanel editPanel = new EditPanel();
 	public LoadSavePositions tabFile = new LoadSavePositions();
 	public PlotFliesPositions tabGraphics = new PlotFliesPositions();
 	public PopupPanel capPopupPanel = null;
-	JTabbedPane tabsPane = new JTabbedPane();
+	public JTabbedPane tabsPane = new JTabbedPane();
 	int previouslySelected = -1;
 	public boolean bTrapROIsEdit = false;
 
@@ -46,12 +46,13 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 		capPopupPanel.collapse();
 
 		mainPanel.add(capPopupPanel);
-		GridLayout capLayout = new GridLayout(4, 1);
+		GridLayout capLayout = new GridLayout(5, 1);
 		createTabs(capLayout);
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		capPanel.add(tabsPane);
 		tabsPane.setSelectedIndex(0);
+		tabsPane.addChangeListener(editPanel);
 
 		capPopupPanel.addComponentListener(new ComponentAdapter() {
 			@Override
@@ -83,13 +84,15 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 		iTAB_DETECT2FLIES = iTab;
 		detect2FliesPanel.init(capLayout, parent0);
 		detect2FliesPanel.addPropertyChangeListener(this);
-		tabsPane.addTab("Detect (option 2)", null, detect2FliesPanel, "Detect flies position from subtracted background");
+		tabsPane.addTab("Detect (option 2)", null, detect2FliesPanel,
+				"Detect flies position from subtracted background");
 
 		iTab++;
 		iTAB_EDIT = iTab;
 		editPanel.init(capLayout, parent0);
 		editPanel.addPropertyChangeListener(this);
-		tabsPane.addTab("Edit", null, editPanel, "Edit flies detection");
+		tabsPane.addTab("Edit", null, editPanel,
+				"Edit fly detections at the current frame: add, delete, or move yellow rectangles, then Validate. Leaving the frame with unsaved edits asks to Validate or Discard.");
 
 		iTab++;
 		tabGraphics.init(capLayout, parent0);

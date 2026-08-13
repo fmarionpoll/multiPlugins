@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.experiment;
 
+import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.File;
@@ -11,7 +12,9 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -70,6 +73,7 @@ import plugins.fmp.multitools.tools.results.ResultsArray;
 import plugins.fmp.multitools.tools.results.ResultsArrayFromCapillaries;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
+import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 public class Experiment {
 	public final static String RESULTS = "results";
@@ -2086,6 +2090,138 @@ public class Experiment {
 		for (Cage cage : cages.cagesList) {
 			cage.transferRoisToPositions(detectedROIsList);
 		}
+	}
+
+	/**
+	 * Snapshot of valid fly rectangles at frame {@code t}, keyed by cage ID. Used
+	 * as an Edit-session entry baseline (Restore), not for disk I/O.
+	 */
+	public static final class FlyPositionsAtTSnapshot {
+		public final int t;
+		public final Map<Integer, List<Rectangle2D>> rectsByCageId;
+
+		public FlyPositionsAtTSnapshot(int t, Map<Integer, List<Rectangle2D>> rectsByCageId) {
+			this.t = t;
+			this.rectsByCageId = rectsByCageId;
+		}
+	}
+
+	/** Result of {@link #validateFlyPositionsFromScreenAtT(int)}. */
+	public static final class FlyEditValidateResult {
+		public final int flyCount;
+		public final int cageCountWithFlies;
+		public final int orphanCount;
+
+		public FlyEditValidateResult(int flyCount, int cageCountWithFlies, int orphanCount) {
+			this.flyCount = flyCount;
+			this.cageCountWithFlies = cageCountWithFlies;
+			this.orphanCount = orphanCount;
+		}
+	}
+
+	/**
+	 * Deep-copies valid fly rectangles at {@code t} for every cage (session
+	 * baseline for Edit Restore).
+	 */
+	public FlyPositionsAtTSnapshot snapshotFlyPositionsAtT(int t) {
+		Map<Integer, List<Rectangle2D>> map = new LinkedHashMap<>();
+		if (cages == null || cages.cagesList == null)
+			return new FlyPositionsAtTSnapshot(t, map);
+		for (Cage cage : cages.cagesList) {
+			if (cage == null)
+				continue;
+			map.put(cage.getCageID(), cage.copyValidRectsAtFrame(t));
+		}
+		return new FlyPositionsAtTSnapshot(t, map);
+	}
+
+	/**
+	 * Writes a session baseline back into {@link Cage#flyPositions} at
+	 * {@code snapshot.t} and refreshes yellow ROIs on screen.
+	 */
+	public void restoreFlyPositionsFromSnapshot(FlyPositionsAtTSnapshot snapshot) {
+		if (snapshot == null || cages == null || cages.cagesList == null)
+			return;
+		long[] camMs = getCamImages_ms();
+		for (Cage cage : cages.cagesList) {
+			if (cage == null)
+				continue;
+			List<Rectangle2D> rects = snapshot.rectsByCageId.get(cage.getCageID());
+			if (rects == null)
+				rects = new ArrayList<>();
+			cage.replaceFlyPositionsAtFrame(snapshot.t, rects, camMs);
+		}
+		cages.orderFlyPositions();
+		updateROIsAt(snapshot.t);
+	}
+
+	/**
+	 * Spatial rebuild of fly positions at frame {@code t} from yellow fly
+	 * rectangles currently on the camera sequence: assign each ROI to a cage by
+	 * center-in-cage, replace that frame's entries, refresh canonical {@code detR}
+	 * names. Orphan ROIs (center outside every cage) are discarded.
+	 */
+	public FlyEditValidateResult validateFlyPositionsFromScreenAtT(int t) {
+		Map<Integer, List<Rectangle2D>> byCage = new HashMap<>();
+		if (cages != null && cages.cagesList != null) {
+			for (Cage cage : cages.cagesList) {
+				if (cage != null)
+					byCage.put(cage.getCageID(), new ArrayList<>());
+			}
+		}
+		int orphanCount = 0;
+		if (seqCamData != null && seqCamData.getSequence() != null && cages != null) {
+			for (ROI2D roi : seqCamData.getSequence().getROI2Ds()) {
+				if (!(roi instanceof ROI2DRectangle))
+					continue;
+				if (roi.getT() != t)
+					continue;
+				if (!Cage.isFlyEditRectangleName(roi.getName()))
+					continue;
+				Rectangle2D rect = ((ROI2DRectangle) roi).getRectangle();
+				if (rect == null)
+					continue;
+				double cx = rect.getCenterX();
+				double cy = rect.getCenterY();
+				Cage owner = null;
+				for (Cage cage : cages.cagesList) {
+					if (cage != null && cage.containsImagePoint(cx, cy)) {
+						owner = cage;
+						break;
+					}
+				}
+				if (owner == null) {
+					orphanCount++;
+					continue;
+				}
+				List<Rectangle2D> list = byCage.get(owner.getCageID());
+				if (list == null) {
+					list = new ArrayList<>();
+					byCage.put(owner.getCageID(), list);
+				}
+				list.add(new Rectangle2D.Double(rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight()));
+			}
+		}
+		long[] camMs = getCamImages_ms();
+		int flyCount = 0;
+		int cageCountWithFlies = 0;
+		if (cages != null && cages.cagesList != null) {
+			for (Cage cage : cages.cagesList) {
+				if (cage == null)
+					continue;
+				List<Rectangle2D> rects = byCage.get(cage.getCageID());
+				if (rects == null)
+					rects = new ArrayList<>();
+				cage.replaceFlyPositionsAtFrame(t, rects, camMs);
+				if (!rects.isEmpty()) {
+					cageCountWithFlies++;
+					flyCount += rects.size();
+				}
+			}
+			cages.orderFlyPositions();
+		}
+		updateROIsAt(t);
+		return new FlyEditValidateResult(flyCount, cageCountWithFlies, orphanCount);
 	}
 
 	public void updateCapillaryRoisAtT(int t) {

@@ -15,8 +15,8 @@ import icy.preferences.GeneralPreferences;
 import icy.preferences.XMLPreferences;
 import plugins.fmp.multiSPOTS.dlg.browse._DlgBrowse_;
 import plugins.fmp.multiSPOTS.dlg.define_spots._DlgSpots_;
-import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS.dlg.e_flyPosition._DlgDetectFlies_;
+import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageColors._DlgMeasureUsingColors_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters._DlgMeasureUsingFilters_;
@@ -29,7 +29,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS Aug 12, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS Aug 13, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();

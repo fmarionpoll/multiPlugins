@@ -199,7 +199,19 @@ public class _DlgExperiment_ extends JPanel implements ViewerListener, ChangeLis
 			return;
 		if (v.getSequence().getId() != exp.getSeqCamData().getSequence().getId())
 			return;
-		exp.onViewerTPositionChanged(v, v.getPositionT(), false);
+		int newT = v.getPositionT();
+		if (parent0.dlgDetectFlies != null && parent0.dlgDetectFlies.editPanel != null
+				&& !parent0.dlgDetectFlies.editPanel.allowCamTChange(exp, v, newT)) {
+			return;
+		}
+		if (parent0.dlgDetectFlies != null && parent0.dlgDetectFlies.editPanel != null)
+			parent0.dlgDetectFlies.editPanel.beginSuppressRoiEvents();
+		try {
+			exp.onViewerTPositionChanged(v, newT, false);
+		} finally {
+			if (parent0.dlgDetectFlies != null && parent0.dlgDetectFlies.editPanel != null)
+				parent0.dlgDetectFlies.editPanel.endSuppressRoiEvents();
+		}
 	}
 
 	@Override

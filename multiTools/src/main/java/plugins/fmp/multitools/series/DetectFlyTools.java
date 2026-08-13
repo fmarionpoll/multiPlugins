@@ -261,8 +261,84 @@ public class DetectFlyTools {
 			for (int i = 0; i < arrayChan.length; i++)
 				mask[i] = (((int) arrayChan[i]) & 0xFF) < threshold;
 		}
+		if (options.bmorphClose) {
+			mask = morphClose(mask, img.getSizeX(), img.getSizeY(), options.morphCloseRadius);
+		}
 		BooleanMask2D bmask = new BooleanMask2D(img.getBounds(), mask);
 		return new ROI2DArea(bmask);
+	}
+
+	/**
+	 * Morphological close: dilate then erode with a 3×3 structuring element, {@code radius} times.
+	 * Bridges thin gaps that split one fly into two components.
+	 */
+	static boolean[] morphClose(boolean[] mask, int width, int height, int radius) {
+		if (mask == null || width <= 0 || height <= 0 || mask.length < width * height) {
+			return mask;
+		}
+		int r = radius;
+		if (r < 1) {
+			r = 1;
+		} else if (r > 5) {
+			r = 5;
+		}
+		boolean[] work = mask;
+		for (int i = 0; i < r; i++) {
+			work = dilate3x3(work, width, height);
+		}
+		for (int i = 0; i < r; i++) {
+			work = erode3x3(work, width, height);
+		}
+		return work;
+	}
+
+	private static boolean[] dilate3x3(boolean[] mask, int w, int h) {
+		boolean[] out = new boolean[w * h];
+		for (int y = 0; y < h; y++) {
+			for (int x = 0; x < w; x++) {
+				if (!mask[x + y * w]) {
+					continue;
+				}
+				for (int dy = -1; dy <= 1; dy++) {
+					int ny = y + dy;
+					if (ny < 0 || ny >= h) {
+						continue;
+					}
+					for (int dx = -1; dx <= 1; dx++) {
+						int nx = x + dx;
+						if (nx >= 0 && nx < w) {
+							out[nx + ny * w] = true;
+						}
+					}
+				}
+			}
+		}
+		return out;
+	}
+
+	private static boolean[] erode3x3(boolean[] mask, int w, int h) {
+		boolean[] out = new boolean[w * h];
+		for (int y = 0; y < h; y++) {
+			for (int x = 0; x < w; x++) {
+				boolean keep = true;
+				outer: for (int dy = -1; dy <= 1; dy++) {
+					int ny = y + dy;
+					if (ny < 0 || ny >= h) {
+						keep = false;
+						break;
+					}
+					for (int dx = -1; dx <= 1; dx++) {
+						int nx = x + dx;
+						if (nx < 0 || nx >= w || !mask[nx + ny * w]) {
+							keep = false;
+							break outer;
+						}
+					}
+				}
+				out[x + y * w] = keep;
+			}
+		}
+		return out;
 	}
 
 	public List<Rectangle2D> findFlies(IcyBufferedImage workimage, int t, int illumPhase) throws InterruptedException {
@@ -332,6 +408,9 @@ public class DetectFlyTools {
 			byte[] arrayChan = img.getDataXYAsByte(options.videoChannel);
 			for (int i = 0; i < arrayChan.length; i++)
 				mask[i] = (((int) arrayChan[i]) & 0xFF) > threshold;
+		}
+		if (options.bmorphClose) {
+			mask = morphClose(mask, img.getSizeX(), img.getSizeY(), options.morphCloseRadius);
 		}
 		BooleanMask2D bmask = new BooleanMask2D(img.getBounds(), mask);
 		return new ROI2DArea(bmask);

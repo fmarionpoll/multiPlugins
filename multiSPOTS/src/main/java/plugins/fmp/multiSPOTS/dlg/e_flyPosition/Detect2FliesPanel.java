@@ -54,6 +54,8 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 	private JCheckBox limitRatioCheckBox = new JCheckBox("ratio L/W <");
 	private JCheckBox jitterCheckBox = new JCheckBox("jitter <=");
 	private JCheckBox excludeSpotBlobsCheckBox = new JCheckBox("ignore blobs on spots", false);
+	private JCheckBox morphCloseCheckBox = new JCheckBox("close", false);
+	private JSpinner morphCloseRadiusSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 5, 1));
 
 	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
@@ -108,11 +110,20 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		panel4.add(limitRatioSpinner);
 		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
-		panel4.add(excludeSpotBlobsCheckBox);
 		add(panel4);
+
+		JPanel panel5 = new JPanel(flowLayout);
+		panel5.add(excludeSpotBlobsCheckBox);
+		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
+		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
+		morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected());
+		panel5.add(morphCloseCheckBox);
+		panel5.add(morphCloseRadiusSpinner);
+		add(panel5);
 
 		limitRatioCheckBox.addItemListener(e -> limitRatioSpinner.setEnabled(limitRatioCheckBox.isSelected()));
 		jitterCheckBox.addItemListener(e -> jitterTextField.setEnabled(jitterCheckBox.isSelected()));
+		morphCloseCheckBox.addItemListener(e -> morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected()));
 
 		defineActionListeners();
 		thresholdSpinner.addChangeListener(this);
@@ -226,7 +237,8 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 	}
 
 	private BuildSeriesOptions initTrackParameters(Experiment exp) {
-		BuildSeriesOptions options = flyDetect2 != null && flyDetect2.options != null ? flyDetect2.options : new BuildSeriesOptions();
+		BuildSeriesOptions options = flyDetect2 != null && flyDetect2.options != null ? flyDetect2.options
+				: new BuildSeriesOptions();
 		options.expList = parent0.expListComboLazy;
 		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
 		if (allCheckBox.isSelected())
@@ -241,6 +253,8 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		options.bjitter = jitterCheckBox.isSelected();
 		options.bexcludeSpotBlobs = excludeSpotBlobsCheckBox.isSelected();
 		options.bcarryStillFlies = false;
+		options.bmorphClose = morphCloseCheckBox.isSelected();
+		options.morphCloseRadius = (int) morphCloseRadiusSpinner.getValue();
 		options.limitLow = (int) objectLowsizeSpinner.getValue();
 		options.limitUp = (int) objectUpsizeSpinner.getValue();
 		options.limitRatio = (int) limitRatioSpinner.getValue();

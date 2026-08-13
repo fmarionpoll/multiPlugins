@@ -46,6 +46,9 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 	/** Fly rectangle ROI names: {@code detR<3-digit cage>_<t>_<idx>}. */
 	public static final Pattern DETR_FLY_ROI_NAME_PATTERN = Pattern.compile("^detR(\\d{3})_(\\d+)_(\\d+)$");
 
+	/** Temporary fly rectangles created by the Edit panel before Validate. */
+	public static final String DET_NEW_ROI_PREFIX = "detNew_";
+
 	private ROI2D cageROI2D = null;
 	public BooleanMask2D cageMask2D = null;
 	public CageProperties prop = new CageProperties();
@@ -515,6 +518,63 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		if (Double.isNaN(fp.rectPosition.getX()) || Double.isNaN(fp.rectPosition.getY()))
 			return true;
 		return fp.rectPosition.getX() == -1 && fp.rectPosition.getY() == -1;
+	}
+
+	/** True if {@code name} is a fly-edit rectangle ({@code detR…} or {@code detNew_…}). */
+	public static boolean isFlyEditRectangleName(String name) {
+		if (name == null || name.isEmpty())
+			return false;
+		if (name.startsWith(DET_NEW_ROI_PREFIX))
+			return true;
+		return DETR_FLY_ROI_NAME_PATTERN.matcher(name).matches();
+	}
+
+	/**
+	 * Deep-copies valid fly rectangles at frame {@code t} (same filter as
+	 * {@link #collectRoiRectanglesAtFrameIndexT(int)}).
+	 */
+	public List<Rectangle2D> copyValidRectsAtFrame(int t) {
+		List<Rectangle2D> out = new ArrayList<>();
+		if (flyPositions == null || flyPositions.flyPositionList == null)
+			return out;
+		for (FlyPosition fp : flyPositions.flyPositionList) {
+			if (fp == null || fp.flyIndexT != t || isEmptyFlyPositionSlot(fp))
+				continue;
+			if (fp.rectPosition == null || Double.isNaN(fp.rectPosition.getX()))
+				continue;
+			out.add(new Rectangle2D.Double(fp.rectPosition.getX(), fp.rectPosition.getY(), fp.rectPosition.getWidth(),
+					fp.rectPosition.getHeight()));
+		}
+		return out;
+	}
+
+	/**
+	 * Replaces all fly entries at frame {@code t} with the given rectangles (empty
+	 * list clears the frame). Updates {@code tMs} from {@code camImagesMs} when
+	 * available.
+	 */
+	public void replaceFlyPositionsAtFrame(int t, List<Rectangle2D> rects, long[] camImagesMs) {
+		if (flyPositions == null)
+			flyPositions = new FlyPositions();
+		if (flyPositions.flyPositionList == null)
+			flyPositions.flyPositionList = new ArrayList<>();
+		for (Iterator<FlyPosition> it = flyPositions.flyPositionList.iterator(); it.hasNext();) {
+			FlyPosition fp = it.next();
+			if (fp != null && fp.flyIndexT == t)
+				it.remove();
+		}
+		if (rects != null) {
+			for (Rectangle2D rect : rects) {
+				if (rect == null)
+					continue;
+				FlyPosition fp = new FlyPosition(t, rect);
+				if (camImagesMs != null && t >= 0 && t < camImagesMs.length)
+					fp.tMs = camImagesMs[t];
+				flyPositions.flyPositionList.add(fp);
+			}
+		}
+		flyPositions.recomputeNfliesFromEntries();
+		Collections.sort(flyPositions.flyPositionList, new Comparators.XYTaValue_Tindex());
 	}
 
 	/** Number of detected flies with a valid bounding box at camera frame {@code t}. */

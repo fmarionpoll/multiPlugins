@@ -142,6 +142,15 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean bexcludeSpotBlobs = false;
 
 	/**
+	 * When true, apply morphological close (dilate then erode) on the binary fly mask before
+	 * connected-component extraction — helps merge flies split by a thin threshold gap.
+	 */
+	public boolean bmorphClose = false;
+
+	/** Radius (iterations of 3×3 dilate/erode) for {@link #bmorphClose}; clamped to 1–5 at use. */
+	public int morphCloseRadius = 1;
+
+	/**
 	 * Deprecated: previous-frame rectangle carry-forward piled up false positives under
 	 * {@code t-(t-1)}. Kept for XML compatibility; detection no longer uses it.
 	 */
@@ -332,6 +341,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 		nFliesPresent = det.nFliesPresent;
 		blimitMaxBlobsPerCage = det.blimitMaxBlobsPerCage;
 		bexcludeSpotBlobs = det.bexcludeSpotBlobs;
+		bmorphClose = det.bmorphClose;
+		morphCloseRadius = det.morphCloseRadius;
 		bcarryStillFlies = det.bcarryStillFlies;
 		forceBuildBackground = det.forceBuildBackground;
 		detectFlies = det.detectFlies;
@@ -527,6 +538,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 			blimitMaxBlobsPerCage = XMLUtil.getElementBooleanValue(xmlVal, "blimitMaxBlobsPerCage",
 					blimitMaxBlobsPerCage);
 			bcarryStillFlies = XMLUtil.getElementBooleanValue(xmlVal, "bcarryStillFlies", bcarryStillFlies);
+			bmorphClose = XMLUtil.getElementBooleanValue(xmlVal, "bmorphClose", bmorphClose);
+			morphCloseRadius = XMLUtil.getElementIntValue(xmlVal, "morphCloseRadius", morphCloseRadius);
 			String op1 = XMLUtil.getElementValue(xmlVal, "transformOp", null);
 			transformop = ImageTransformEnums.findByText(op1);
 			videoChannel = XMLUtil.getAttributeIntValue(xmlVal, "videoChannel", 0);
@@ -556,6 +569,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 			XMLUtil.setElementIntValue(xmlVal, "nFliesPresent", nFliesPresent);
 			XMLUtil.setElementBooleanValue(xmlVal, "blimitMaxBlobsPerCage", blimitMaxBlobsPerCage);
 			XMLUtil.setElementBooleanValue(xmlVal, "bcarryStillFlies", bcarryStillFlies);
+			XMLUtil.setElementBooleanValue(xmlVal, "bmorphClose", bmorphClose);
+			XMLUtil.setElementIntValue(xmlVal, "morphCloseRadius", morphCloseRadius);
 			if (transformop != null) {
 				String transform1 = transformop.toString();
 				XMLUtil.setElementValue(xmlVal, "transformOp", transform1);

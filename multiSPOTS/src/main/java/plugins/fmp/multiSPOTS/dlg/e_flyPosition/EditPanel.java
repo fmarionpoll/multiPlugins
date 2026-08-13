@@ -6,38 +6,54 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
-import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
-import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import icy.gui.dialog.MessageDialog;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
-import icy.util.StringUtil;
+import icy.sequence.Sequence;
+import icy.sequence.SequenceEvent;
+import icy.sequence.SequenceEvent.SequenceEventSourceType;
+import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.Experiment.FlyEditValidateResult;
+import plugins.fmp.multitools.experiment.Experiment.FlyPositionsAtTSnapshot;
 import plugins.fmp.multitools.experiment.cage.Cage;
-import plugins.kernel.roi.roi2d.ROI2DPoint;
+import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
-public class EditPanel extends JPanel {
-	/**
-	 * 
-	 */
+public class EditPanel extends JPanel implements ChangeListener, SequenceListener {
 	private static final long serialVersionUID = -5257698990389571518L;
-	private MultiSPOTS parent0;
-	private JButton findAllButton = new JButton(new String("Find all missed points"));
-	private JButton findNextButton = new JButton(new String("Find next missed point"));
-	private JButton validateButton = new JButton(new String("Validate selected ROI"));
-	private JButton validateAndNextButton = new JButton(new String("Validate and find next"));
-	private JComboBox<String> foundCombo = new JComboBox<String>();
-	private int foundT = -1;
-	private int foundCage = -1;
+	private static final Color FLY_ROI_COLOR = Color.YELLOW;
+	private static final double DEFAULT_FLY_W = 10;
+	private static final double DEFAULT_FLY_H = 5;
+	private static final AtomicInteger DET_NEW_COUNTER = new AtomicInteger(0);
 
-	// ----------------------------------------------------
+	private static final String TIP_ADD = "Add a yellow fly rectangle at the selected cage center (or image center). Move/resize it, then Validate.";
+	private static final String TIP_DELETE = "Remove the selected yellow fly rectangle from the screen. Validate to commit.";
+	private static final String TIP_RESTORE = "Restore flies at current T to the state when this frame was entered (undo unvalidated edits and any Validate done during this visit).";
+	private static final String TIP_VALIDATE = "Validate changes at current T: keep yellow fly rectangles on screen, assign each to a cage by position, and store coordinates and size for this frame. Use Load/Save to write to disk.";
+
+	private MultiSPOTS parent0;
+	private final JButton addButton = new JButton("Add");
+	private final JButton deleteButton = new JButton("Delete");
+	private final JButton restoreButton = new JButton("Restore");
+	private final JButton validateButton = new JButton("Validate");
+
+	private boolean dirty = false;
+	private int sessionT = -1;
+	private FlyPositionsAtTSnapshot entryBaseline = null;
+	private boolean suppressRoiEvents = false;
+	private boolean suppressTChange = false;
+	private Sequence listenedSequence = null;
 
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
 		setLayout(capLayout);
@@ -45,166 +61,399 @@ public class EditPanel extends JPanel {
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 		flowLayout.setVgap(0);
 
+		addButton.setToolTipText(TIP_ADD);
+		deleteButton.setToolTipText(TIP_DELETE);
+		restoreButton.setToolTipText(TIP_RESTORE);
+		validateButton.setToolTipText(TIP_VALIDATE);
+
 		JPanel panel1 = new JPanel(flowLayout);
-		panel1.add(findAllButton);
-		panel1.add(foundCombo);
+		panel1.add(addButton);
+		panel1.add(deleteButton);
+		panel1.add(restoreButton);
+		panel1.add(validateButton);
 		add(panel1);
-
-		JPanel panel2 = new JPanel(flowLayout);
-		panel2.add(findNextButton);
-		panel2.add(validateButton);
-		add(panel2);
-
-		JPanel panel3 = new JPanel(flowLayout);
-		panel3.add(validateAndNextButton);
-		add(panel3);
 
 		defineActionListeners();
 	}
 
 	private void defineActionListeners() {
+		addButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				addFlyRoi();
+			}
+		});
+		deleteButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				deleteSelectedFlyRoi();
+			}
+		});
+		restoreButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				restoreEntryBaseline();
+			}
+		});
 		validateButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					exp.saveDetRoisToPositions();
-			}
-		});
-
-		findNextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					findFirstMissed(exp);
-			}
-		});
-
-		validateAndNextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.saveDetRoisToPositions();
-					findFirstMissed(exp);
-				}
-			}
-		});
-
-		findAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					findAllMissedPoints(exp);
-			}
-		});
-
-		foundCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (foundCombo.getItemCount() == 0) {
-					return;
-				}
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				String filter = (String) foundCombo.getSelectedItem();
-				int indexT = StringUtil.parseInt(filter.substring(filter.indexOf("_") + 1), -1);
-				if (indexT < 0)
-					return;
-				selectImageT(exp, indexT);
-				List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
-				for (ROI2D roi : roiList) {
-					String csName = roi.getName();
-					if (roi instanceof ROI2DPoint && csName.equals(filter)) {
-						moveROItoCageCenter(exp, roi, indexT);
-						selectImageT(exp, roi.getT());
-						break;
-					}
-				}
+				validateCurrentT(true);
 			}
 		});
 	}
 
-	void findFirstMissed(Experiment exp) {
-		if (findFirst(exp)) {
-			selectImageT(exp, foundT);
-			Cage cage = exp.getCages().getCageFromNumber(foundCage);
-			String name = "det" + cage.getCageNumberFromRoiName() + "_" + foundT;
-			foundCombo.setSelectedItem(name);
-		} else
-			MessageDialog.showDialog("no missed point found", MessageDialog.INFORMATION_MESSAGE);
+	boolean isEditTabActive() {
+		if (parent0 == null || parent0.dlgDetectFlies == null)
+			return false;
+		return parent0.dlgDetectFlies.tabsPane.getSelectedIndex() == parent0.dlgDetectFlies.iTAB_EDIT;
 	}
 
-	boolean findFirst(Experiment exp) {
-		int dataSize = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		foundT = -1;
-		foundCage = -1;
-		for (int frame = 0; frame < dataSize; frame++) {
-			for (Cage cage : exp.getCages().cagesList) {
-				if (frame >= cage.flyPositions.flyPositionList.size())
-					continue;
-				Rectangle2D rect = cage.flyPositions.flyPositionList.get(frame).rectPosition;
-				if (rect.getX() == -1 && rect.getY() == -1) {
-					foundT = cage.flyPositions.flyPositionList.get(frame).flyIndexT;
-					foundCage = cage.getProperties().getCageID();
-					return true;
-				}
-			}
+	/**
+	 * Called from the camera viewer T-change path before {@code updateROIsAt}.
+	 * Returns false if the user cancelled leaving the current frame (viewer T was
+	 * reverted).
+	 */
+	public boolean allowCamTChange(Experiment exp, Viewer viewer, int newT) {
+		if (suppressTChange)
+			return false;
+		if (exp == null)
+			return true;
+		if (!isEditTabActive()) {
+			clearSession();
+			return true;
 		}
-		return (foundT != -1);
+		ensureSequenceListener(exp);
+		if (sessionT < 0) {
+			beginSessionAtT(exp, newT);
+			return true;
+		}
+		if (newT == sessionT)
+			return true;
+		if (!dirty) {
+			beginSessionAtT(exp, newT);
+			return true;
+		}
+		int choice = JOptionPane.showOptionDialog(this,
+				"Validate changes, discard them, or cancel and stay on this frame?",
+				"Unvalidated edits at T=" + sessionT, JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,
+				null, new Object[] { "Validate", "Discard", "Cancel" }, "Validate");
+		if (choice == JOptionPane.CANCEL_OPTION || choice == JOptionPane.CLOSED_OPTION) {
+			suppressTChange = true;
+			try {
+				if (viewer != null)
+					viewer.setPositionT(sessionT);
+			} finally {
+				SwingUtilities.invokeLater(() -> suppressTChange = false);
+			}
+			return false;
+		}
+		if (choice == JOptionPane.YES_OPTION) {
+			validateAtT(exp, sessionT, false);
+		} else {
+			applyEntryBaseline(exp);
+		}
+		beginSessionAtT(exp, newT);
+		return true;
 	}
 
-	void selectImageT(Experiment exp, int t) {
-		Viewer viewer = exp.getSeqCamData().getSequence().getFirstViewer();
-		viewer.setPositionT(t);
+	void onEditTabSelected() {
+		Experiment exp = getExperiment();
+		if (exp == null)
+			return;
+		enableFliesRectVisible();
+		ensureSequenceListener(exp);
+		int t = getCurrentT(exp);
+		if (t >= 0) {
+			suppressRoiEvents = true;
+			try {
+				exp.updateROIsAt(t);
+			} finally {
+				suppressRoiEvents = false;
+			}
+			beginSessionAtT(exp, t);
+			exp.getSeqCamData().displaySpecificROIs(true, "det");
+		}
 	}
 
-	void findAllMissedPoints(Experiment exp) {
-		foundCombo.removeAllItems();
-		int dataSize = exp.getSeqCamData().getImageLoader().getNTotalFrames();
-		for (int frame = 0; frame < dataSize; frame++) {
-			for (Cage cage : exp.getCages().cagesList) {
-				if (frame >= cage.flyPositions.flyPositionList.size())
-					continue;
-				Rectangle2D rect = cage.flyPositions.flyPositionList.get(frame).rectPosition;
-				if (rect.getX() == -1 && rect.getY() == -1) {
-					String name = "det" + cage.getCageNumberFromRoiName() + "_"
-							+ cage.flyPositions.flyPositionList.get(frame).flyIndexT;
-					foundCombo.addItem(name);
+	void onEditTabDeselected() {
+		detachSequenceListener();
+		clearSession();
+	}
+
+	@Override
+	public void stateChanged(ChangeEvent e) {
+		if (!isEditTabActive()) {
+			onEditTabDeselected();
+			return;
+		}
+		onEditTabSelected();
+	}
+
+	@Override
+	public void sequenceChanged(SequenceEvent sequenceEvent) {
+		if (suppressRoiEvents || !isEditTabActive() || !dirtyPossible())
+			return;
+		if (sequenceEvent == null || sequenceEvent.getSourceType() != SequenceEventSourceType.SEQUENCE_ROI)
+			return;
+		Object source = sequenceEvent.getSource();
+		if (source instanceof ROI2D) {
+			ROI2D roi = (ROI2D) source;
+			if (Cage.isFlyEditRectangleName(roi.getName()))
+				markDirty();
+		} else {
+			markDirty();
+		}
+	}
+
+	@Override
+	public void sequenceClosed(Sequence sequence) {
+		if (sequence == listenedSequence)
+			detachSequenceListener();
+	}
+
+	public void beginSuppressRoiEvents() {
+		suppressRoiEvents = true;
+	}
+
+	public void endSuppressRoiEvents() {
+		suppressRoiEvents = false;
+	}
+
+	private boolean dirtyPossible() {
+		return sessionT >= 0;
+	}
+
+	private void markDirty() {
+		dirty = true;
+	}
+
+	private void clearDirty() {
+		dirty = false;
+	}
+
+	private void clearSession() {
+		entryBaseline = null;
+		sessionT = -1;
+		clearDirty();
+	}
+
+	private void beginSessionAtT(Experiment exp, int t) {
+		sessionT = t;
+		entryBaseline = exp.snapshotFlyPositionsAtT(t);
+		clearDirty();
+	}
+
+	private Experiment getExperiment() {
+		if (parent0 == null)
+			return null;
+		return (Experiment) parent0.expListComboLazy.getSelectedItem();
+	}
+
+	private int getCurrentT(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return -1;
+		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (v != null)
+			return v.getPositionT();
+		return exp.getSeqCamData().getCurrentFrame();
+	}
+
+	private void ensureSequenceListener(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		Sequence seq = exp.getSeqCamData().getSequence();
+		if (seq == listenedSequence)
+			return;
+		detachSequenceListener();
+		listenedSequence = seq;
+		seq.addListener(this);
+	}
+
+	private void detachSequenceListener() {
+		if (listenedSequence != null) {
+			listenedSequence.removeListener(this);
+			listenedSequence = null;
+		}
+	}
+
+	private void enableFliesRectVisible() {
+		if (parent0 == null || parent0.dlgExperiment == null || parent0.dlgExperiment.optionsPanel == null)
+			return;
+		parent0.dlgExperiment.optionsPanel.viewFlyRectCheckbox.setSelected(true);
+		parent0.dlgExperiment.optionsPanel.displayROIsCategory(true, "det");
+	}
+
+	private void addFlyRoi() {
+		Experiment exp = getExperiment();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			MessageDialog.showDialog("No experiment or camera sequence.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		int t = getCurrentT(exp);
+		if (t < 0)
+			t = 0;
+		if (sessionT != t)
+			beginSessionAtT(exp, t);
+
+		double cx;
+		double cy;
+		double w = DEFAULT_FLY_W;
+		double h = DEFAULT_FLY_H;
+		Cage cage = findSelectedCage(exp);
+		if (cage != null && cage.getCageRoi2D() != null) {
+			Rectangle bounds = cage.getCageRoi2D().getBounds();
+			cx = bounds.getCenterX();
+			cy = bounds.getCenterY();
+			for (Rectangle2D r : cage.copyValidRectsAtFrame(t)) {
+				if (r.getWidth() > 0 && r.getHeight() > 0) {
+					w = r.getWidth();
+					h = r.getHeight();
+					break;
 				}
 			}
+		} else {
+			cx = seq.getWidth() / 2.0;
+			cy = seq.getHeight() / 2.0;
 		}
-		if (foundCombo.getItemCount() == 0)
-			MessageDialog.showDialog("no missed point found", MessageDialog.INFORMATION_MESSAGE);
-	}
 
-	private int getCageNumberFromName(String name) {
-		int cagenumber = -1;
-		String strCageNumber = name.substring(4, 6);
+		ROI2DRectangle roi = new ROI2DRectangle(
+				new Rectangle2D.Double(cx - w / 2.0, cy - h / 2.0, w, h));
+		roi.setName(Cage.DET_NEW_ROI_PREFIX + DET_NEW_COUNTER.incrementAndGet());
+		roi.setT(t);
+		roi.setColor(FLY_ROI_COLOR);
+		suppressRoiEvents = true;
 		try {
-			return Integer.parseInt(strCageNumber);
-		} catch (NumberFormatException e) {
-			return cagenumber;
+			seq.addROI(roi);
+			seq.setSelectedROI(roi);
+		} finally {
+			suppressRoiEvents = false;
 		}
+		markDirty();
+		enableFliesRectVisible();
 	}
 
-	void moveROItoCageCenter(Experiment exp, ROI2D roi, int frame) {
-		roi.setColor(Color.RED);
-		exp.getSeqCamData().getSequence().setSelectedROI(roi);
-		String csName = roi.getName();
-		int cageNumber = getCageNumberFromName(csName);
-		if (cageNumber >= 0) {
-			Cage cage = exp.getCages().getCageFromNumber(cageNumber);
-			Rectangle2D rect0 = cage.flyPositions.flyPositionList.get(frame).rectPosition;
-			if (rect0.getX() == -1 && rect0.getY() == -1) {
-				Rectangle rect = cage.getRoi().getBounds();
-				Point2D point2 = new Point2D.Double(rect.x + rect.width / 2, rect.y + rect.height / 2);
-				roi.setPosition2D(point2);
+	private Cage findSelectedCage(Experiment exp) {
+		ROI2D selected = exp.getSeqCamData().getSequence().getSelectedROI2D();
+		if (selected == null || selected.getName() == null)
+			return null;
+		String name = selected.getName();
+		if (name.contains("cage") || name.contains("cell"))
+			return exp.getCages().getCageFromName(name);
+		return null;
+	}
+
+	private void deleteSelectedFlyRoi() {
+		Experiment exp = getExperiment();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
+			MessageDialog.showDialog("No experiment or camera sequence.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		Sequence seq = exp.getSeqCamData().getSequence();
+		ROI2D selected = seq.getSelectedROI2D();
+		if (selected == null || !Cage.isFlyEditRectangleName(selected.getName())) {
+			MessageDialog.showDialog("Select a yellow fly rectangle first.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		int t = getCurrentT(exp);
+		if (sessionT != t && t >= 0)
+			beginSessionAtT(exp, t);
+		suppressRoiEvents = true;
+		try {
+			seq.removeROI(selected);
+		} finally {
+			suppressRoiEvents = false;
+		}
+		markDirty();
+	}
+
+	private void restoreEntryBaseline() {
+		Experiment exp = getExperiment();
+		if (exp == null)
+			return;
+		int t = getCurrentT(exp);
+		if (t < 0)
+			return;
+		if (entryBaseline == null || entryBaseline.t != t) {
+			beginSessionAtT(exp, t);
+			MessageDialog.showDialog("Nothing to restore (baseline refreshed for current T).",
+					MessageDialog.INFORMATION_MESSAGE);
+			return;
+		}
+		if (!dirty && positionsMatchBaseline(exp, entryBaseline)) {
+			MessageDialog.showDialog("Nothing to restore.", MessageDialog.INFORMATION_MESSAGE);
+			return;
+		}
+		applyEntryBaseline(exp);
+	}
+
+	private boolean positionsMatchBaseline(Experiment exp, FlyPositionsAtTSnapshot snap) {
+		FlyPositionsAtTSnapshot current = exp.snapshotFlyPositionsAtT(snap.t);
+		if (current.rectsByCageId.size() != snap.rectsByCageId.size())
+			return false;
+		for (Integer cageId : snap.rectsByCageId.keySet()) {
+			java.util.List<Rectangle2D> a = snap.rectsByCageId.get(cageId);
+			java.util.List<Rectangle2D> b = current.rectsByCageId.get(cageId);
+			if (a == null || b == null || a.size() != b.size())
+				return false;
+			for (int i = 0; i < a.size(); i++) {
+				Rectangle2D ra = a.get(i);
+				Rectangle2D rb = b.get(i);
+				if (Math.abs(ra.getX() - rb.getX()) > 1e-6 || Math.abs(ra.getY() - rb.getY()) > 1e-6
+						|| Math.abs(ra.getWidth() - rb.getWidth()) > 1e-6
+						|| Math.abs(ra.getHeight() - rb.getHeight()) > 1e-6)
+					return false;
 			}
 		}
+		return true;
 	}
 
+	private void applyEntryBaseline(Experiment exp) {
+		if (entryBaseline == null)
+			return;
+		suppressRoiEvents = true;
+		try {
+			exp.restoreFlyPositionsFromSnapshot(entryBaseline);
+		} finally {
+			suppressRoiEvents = false;
+		}
+		clearDirty();
+		enableFliesRectVisible();
+	}
+
+	private void validateCurrentT(boolean showDialog) {
+		Experiment exp = getExperiment();
+		if (exp == null || exp.getSeqCamData() == null) {
+			MessageDialog.showDialog("No experiment or camera sequence.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		int t = getCurrentT(exp);
+		if (t < 0) {
+			MessageDialog.showDialog("No current frame.", MessageDialog.WARNING_MESSAGE);
+			return;
+		}
+		validateAtT(exp, t, showDialog);
+	}
+
+	private void validateAtT(Experiment exp, int t, boolean showDialog) {
+		if (sessionT < 0)
+			beginSessionAtT(exp, t);
+		suppressRoiEvents = true;
+		FlyEditValidateResult result;
+		try {
+			result = exp.validateFlyPositionsFromScreenAtT(t);
+		} finally {
+			suppressRoiEvents = false;
+		}
+		clearDirty();
+		enableFliesRectVisible();
+		if (showDialog) {
+			String msg = result.flyCount + " flies stored in " + result.cageCountWithFlies + " cages at T=" + t + ".";
+			if (result.orphanCount > 0)
+				msg += "\n" + result.orphanCount + " rectangle(s) outside all cages were discarded.";
+			msg += "\nUse Load/Save to write to disk.";
+			MessageDialog.showDialog(msg, MessageDialog.INFORMATION_MESSAGE);
+		}
+	}
 }
