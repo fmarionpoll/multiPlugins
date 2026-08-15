@@ -29,6 +29,13 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
 /**
  * Normalized CSV export for multiCAFE capillary levels and gulps.
+ * <p>
+ * Capillary ({@code measure_cap_*}) files include topraw / toplevel / bottomlevel
+ * when data exist, plus derivative if selected (not sumgulps — cage L+R gulps go
+ * in {@code measure_cage_*}). Cage files are wide: {@code sum}, {@code pi},
+ * {@code sum_gulps}, {@code pi_gulps}. Levels-tab checkboxes do not gate the
+ * standard columns; optional extras (derivative, gulp events) still follow
+ * options.
  */
 public final class CsvNormalizedExport {
 
@@ -50,7 +57,8 @@ public final class CsvNormalizedExport {
 
 		List<String> denseCols = denseMeasureColumns(options, mode);
 		boolean wantGulpEvents = mode == Mode.GULPS && (options.amplitudeGulps || options.nbGulps);
-		List<EnumResults> cageLrTypes = cageLrResultTypes(options, mode);
+		boolean wantCageLevels = mode == Mode.LEVELS;
+		boolean wantCageGulps = true;
 		long binStepMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 60000L;
 
 		Logger.info("CsvNormalizedExport: start -> " + csvFolder);
@@ -89,8 +97,8 @@ public final class CsvNormalizedExport {
 
 				progress.setMessage("CSV export experiment " + (index + 1) + " of " + nbexpts);
 				String charSeries = CellReference.convertNumToColString(iSeries);
-				exportOneExperiment(exp, options, charSeries, mode, csv, denseCols, cageLrTypes, wantGulpEvents,
-						binStepMs);
+				exportOneExperiment(exp, options, charSeries, mode, csv, denseCols, wantCageLevels, wantCageGulps,
+						wantGulpEvents, binStepMs);
 				iSeries++;
 				progress.incPosition();
 			}
@@ -110,7 +118,7 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void exportOneExperiment(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
-			CsvNormalizedExportSupport csv, List<String> denseCols, List<EnumResults> cageLrTypes,
+			CsvNormalizedExportSupport csv, List<String> denseCols, boolean wantCageLevels, boolean wantCageGulps,
 			boolean wantGulpEvents, long binStepMs) throws IOException {
 		exp.ensureFrameTimeScale();
 		exp.dispatchCapillariesToCages();
@@ -121,9 +129,8 @@ public final class CsvNormalizedExport {
 		boolean writeBin = options.forceCsvBinGrid;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
-		for (EnumResults lrType : cageLrTypes) {
-			exportCageLr(exp, options, charSeries, lrType, csv, builder, nativeStepMs, binStepMs, writeBin);
-		}
+		exportCageWide(exp, options, charSeries, csv, builder, nativeStepMs, binStepMs, writeBin, wantCageLevels,
+				wantCageGulps);
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
@@ -235,10 +242,9 @@ public final class CsvNormalizedExport {
 		}
 	}
 
-	private static void exportCageLr(Experiment exp, ResultsOptions options, String charSeries, EnumResults lrType,
+	private static void exportCageWide(Experiment exp, ResultsOptions options, String charSeries,
 			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs, long binStepMs,
-			boolean writeBin) throws IOException {
-		String measureName = colName(lrType);
+			boolean writeBin, boolean wantLevels, boolean wantGulps) throws IOException {
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
@@ -251,52 +257,102 @@ public final class CsvNormalizedExport {
 			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
 			int cageId = cage.getProperties().getCageID();
 
-			XYSeriesCollection dataset = buildDataset(exp, cage, options, lrType, nativeStepMs, builder);
-			if (dataset == null) {
+			XYSeries levelSum = null;
+			XYSeries levelPi = null;
+			XYSeries gulpSum = null;
+			XYSeries gulpPi = null;
+			if (wantLevels) {
+				XYSeriesCollection ds = buildDataset(exp, cage, options, EnumResults.TOPLEVEL_LR, nativeStepMs,
+						builder);
+				levelSum = findSeriesByKey(ds, cageId + "_Sum");
+				levelPi = findSeriesByKey(ds, cageId + "_PI");
+			}
+			if (wantGulps) {
+				XYSeriesCollection ds = buildDataset(exp, cage, options, EnumResults.SUMGULPS_LR, nativeStepMs,
+						builder);
+				gulpSum = findSeriesByKey(ds, cageId + "_Sum");
+				gulpPi = findSeriesByKey(ds, cageId + "_PI");
+			}
+
+			Map<Long, double[]> byTime = new TreeMap<>();
+			mergeCagePair(byTime, levelSum, levelPi, 0, 1);
+			mergeCagePair(byTime, gulpSum, gulpPi, 2, 3);
+			if (byTime.isEmpty()) {
 				continue;
 			}
-			XYSeries seriesSum = findSeriesByKey(dataset, cage.getCageID() + "_Sum");
-			XYSeries seriesPi = findSeriesByKey(dataset, cage.getCageID() + "_PI");
-			if (seriesSum == null || seriesSum.getItemCount() == 0) {
-				continue;
-			}
-			int n = seriesSum.getItemCount();
-			long[] timesMs = new long[n];
-			double[] sumValues = new double[n];
-			double[] piValues = new double[n];
-			for (int i = 0; i < n; i++) {
-				timesMs[i] = Math.round(seriesSum.getX(i).doubleValue() * 60000.0);
-				sumValues[i] = seriesSum.getY(i).doubleValue();
-				piValues[i] = Double.NaN;
-				if (seriesPi != null) {
-					int idx = seriesPi.indexOf(seriesSum.getX(i));
-					if (idx >= 0) {
-						piValues[i] = seriesPi.getY(idx).doubleValue();
-					}
-				}
-			}
-			for (int i = 0; i < n; i++) {
-				if (Double.isNaN(sumValues[i]) && Double.isNaN(piValues[i])) {
+
+			for (Map.Entry<Long, double[]> e : byTime.entrySet()) {
+				double[] v = e.getValue();
+				if (allNaN(v)) {
 					continue;
 				}
-				csv.writeMeasureCageRowRaw(expKey, cageId, timesMs[i] / 60000.0, measureName, sumValues[i],
-						piValues[i]);
+				csv.writeMeasureCageRowRaw(expKey, cageId, e.getKey() / 60000.0, v[0], v[1], v[2], v[3]);
 			}
+
 			if (writeBin) {
-				double[] sumBin = CsvTimeWeightedResample.resampleOne(timesMs, sumValues, binStepMs);
-				double[] piBin = CsvTimeWeightedResample.resampleOne(timesMs, piValues, binStepMs);
-				int nBins = Math.max(sumBin.length, piBin.length);
-				long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
-				for (int i = 0; i < nBins; i++) {
-					double sum = i < sumBin.length ? sumBin[i] : Double.NaN;
-					double pi = i < piBin.length ? piBin[i] : Double.NaN;
-					if (Double.isNaN(sum) && Double.isNaN(pi)) {
-						continue;
-					}
-					csv.writeMeasureCageRowBin(expKey, cageId, starts[i] / 60000.0, measureName, sum, pi);
+				writeMeasureCageBinned(csv, expKey, cageId, byTime, binStepMs);
+			}
+		}
+	}
+
+	private static void mergeCagePair(Map<Long, double[]> byTime, XYSeries seriesSum, XYSeries seriesPi, int sumIdx,
+			int piIdx) {
+		if (seriesSum == null || seriesSum.getItemCount() == 0) {
+			return;
+		}
+		for (int i = 0; i < seriesSum.getItemCount(); i++) {
+			long tMs = Math.round(seriesSum.getX(i).doubleValue() * 60000.0);
+			double[] row = byTime.computeIfAbsent(tMs, k -> new double[] { Double.NaN, Double.NaN, Double.NaN,
+					Double.NaN });
+			row[sumIdx] = seriesSum.getY(i).doubleValue();
+			if (seriesPi != null) {
+				int idx = seriesPi.indexOf(seriesSum.getX(i));
+				if (idx >= 0) {
+					row[piIdx] = seriesPi.getY(idx).doubleValue();
 				}
 			}
 		}
+	}
+
+	private static void writeMeasureCageBinned(CsvNormalizedExportSupport csv, String expKey, int cageId,
+			Map<Long, double[]> byTime, long binStepMs) throws IOException {
+		int n = byTime.size();
+		long[] timesMs = new long[n];
+		double[][] cols = new double[4][n];
+		int i = 0;
+		for (Map.Entry<Long, double[]> e : byTime.entrySet()) {
+			timesMs[i] = e.getKey();
+			double[] v = e.getValue();
+			for (int c = 0; c < 4; c++) {
+				cols[c][i] = v[c];
+			}
+			i++;
+		}
+		double[][] binned = CsvTimeWeightedResample.resampleColumns(timesMs, cols, binStepMs);
+		if (binned.length == 0 || binned[0].length == 0) {
+			return;
+		}
+		int nBins = binned[0].length;
+		long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
+		for (int b = 0; b < nBins; b++) {
+			double sum = binned[0][b];
+			double pi = binned[1][b];
+			double sumGulps = binned[2][b];
+			double piGulps = binned[3][b];
+			if (Double.isNaN(sum) && Double.isNaN(pi) && Double.isNaN(sumGulps) && Double.isNaN(piGulps)) {
+				continue;
+			}
+			csv.writeMeasureCageRowBin(expKey, cageId, starts[b] / 60000.0, sum, pi, sumGulps, piGulps);
+		}
+	}
+
+	private static boolean allNaN(double[] v) {
+		for (double d : v) {
+			if (!Double.isNaN(d)) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static XYSeriesCollection buildDataset(Experiment exp, Cage cage, ResultsOptions base, EnumResults resultType,
@@ -305,9 +361,10 @@ public final class CsvNormalizedExport {
 		ro.buildExcelStepMs = stepMs;
 		ro.relativeToMaximum = false;
 		ro.subtractT0 = false;
-		ro.correctEvaporation = (resultType == EnumResults.TOPLEVEL);
+		ro.correctEvaporation = (resultType == EnumResults.TOPLEVEL || resultType == EnumResults.TOPLEVEL_LR);
 		ro.resultType = resultType;
 		ro.exportLayoutMode = ExportLayoutMode.NORMALIZED;
+		ro.lrPIThreshold = base != null ? base.lrPIThreshold : 0.0;
 		exp.getCages().prepareComputations(exp, ro);
 		return builder.build(exp, cage, ro);
 	}
@@ -346,22 +403,13 @@ public final class CsvNormalizedExport {
 	private static List<String> denseMeasureColumns(ResultsOptions options, Mode mode) {
 		List<String> cols = new ArrayList<>();
 		if (mode == Mode.LEVELS) {
-			if (options.topLevel) {
-				cols.add(colName(EnumResults.TOPRAW));
-				cols.add(colName(EnumResults.TOPLEVEL));
-			}
-			if (options.bottomLevel) {
-				cols.add(colName(EnumResults.BOTTOMLEVEL));
-			}
+			// Capillary columns (not gated by Levels-tab checkboxes). sumgulps belongs
+			// on measure_cage_* (L+R), not per-capillary files.
+			cols.add(colName(EnumResults.TOPRAW));
+			cols.add(colName(EnumResults.TOPLEVEL));
+			cols.add(colName(EnumResults.BOTTOMLEVEL));
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
-			}
-			if (options.sumGulps) {
-				cols.add(colName(EnumResults.SUMGULPS));
-			}
-		} else {
-			if (options.sumGulps) {
-				cols.add(colName(EnumResults.SUMGULPS));
 			}
 		}
 		return cols;
@@ -370,38 +418,14 @@ public final class CsvNormalizedExport {
 	private static Map<EnumResults, String> denseResultTypes(ResultsOptions options, Mode mode) {
 		Map<EnumResults, String> map = new LinkedHashMap<>();
 		if (mode == Mode.LEVELS) {
-			if (options.topLevel) {
-				map.put(EnumResults.TOPRAW, colName(EnumResults.TOPRAW));
-				map.put(EnumResults.TOPLEVEL, colName(EnumResults.TOPLEVEL));
-			}
-			if (options.bottomLevel) {
-				map.put(EnumResults.BOTTOMLEVEL, colName(EnumResults.BOTTOMLEVEL));
-			}
+			map.put(EnumResults.TOPRAW, colName(EnumResults.TOPRAW));
+			map.put(EnumResults.TOPLEVEL, colName(EnumResults.TOPLEVEL));
+			map.put(EnumResults.BOTTOMLEVEL, colName(EnumResults.BOTTOMLEVEL));
 			if (options.derivative) {
 				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
 			}
-			if (options.sumGulps) {
-				map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
-			}
-		} else if (options.sumGulps) {
-			map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
 		}
 		return map;
-	}
-
-	private static List<EnumResults> cageLrResultTypes(ResultsOptions options, Mode mode) {
-		List<EnumResults> types = new ArrayList<>();
-		if (mode == Mode.LEVELS) {
-			if (options.lrPI) {
-				types.add(EnumResults.TOPLEVEL_LR);
-			}
-			if (options.sumGulpsLr) {
-				types.add(EnumResults.SUMGULPS_LR);
-			}
-		} else if (options.sumGulpsLr) {
-			types.add(EnumResults.SUMGULPS_LR);
-		}
-		return types;
 	}
 
 	private static EnumResults gulpEventResultType(ResultsOptions options, Mode mode) {

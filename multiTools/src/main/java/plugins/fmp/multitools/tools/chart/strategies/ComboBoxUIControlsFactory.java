@@ -29,6 +29,7 @@ import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
@@ -224,45 +225,160 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		}
 	}
 
+	/**
+	 * Bottom legend for spot/kymo charts: one entry per unique stimulus+concentration
+	 * category (using each category's spot color), not one entry per curve.
+	 */
 	private void fillSpotLegendPanel(ResultsOptions opts, Experiment exp, XYSeriesCollection dataset) {
-		EnumResults rt = opts.resultType;
+		if (fillStimulusConcCategoryLegend(exp, dataset)) {
+			return;
+		}
+		EnumResults rt = opts != null ? opts.resultType : null;
 		if (rt == EnumResults.AGG_SUMCLEAN || rt == EnumResults.AGG_SUMCLEAN_V5 || rt == EnumResults.AGG_AREA_COUNT_V5
 				|| rt == EnumResults.AGG_SUMCLEAN_COLOR || rt == EnumResults.AGG_AREA_COUNT_COLOR
-				|| rt == EnumResults.AGG_MEDIANREF) {
+				|| rt == EnumResults.AGG_MEDIANREF || rt == EnumResults.AGG_GREENHEIGHT_CONSO) {
 			if (dataset != null && dataset.getSeriesCount() > 0) {
+				List<String> seen = new ArrayList<>();
+				int palette = 0;
 				for (int i = 0; i < dataset.getSeriesCount(); i++) {
 					XYSeries s = dataset.getSeries(i);
 					String key = s.getKey().toString();
-					String rawLabel = SpotChartSeriesKeys.isMedianRefSeriesKey(key) ? "median ref (AREA_SUM)"
-							: labelFromAggregateSeriesKey(key);
+					if (SpotChartSeriesKeys.isMedianRefSeriesKey(key) || isCageMeanSeriesKey(key)) {
+						continue;
+					}
+					String rawLabel = SpotChartSeriesKeys.isAggregateSeriesKey(key) ? labelFromAggregateSeriesKey(key)
+							: spotLegendLabelFromSeriesKey(key);
 					String label = clipLegendText(rawLabel, 28);
-					Color c = SeriesStyleCodec.tryParseColor(s.getDescription()).orElse(aggregatePaletteColor(i));
+					if (seen.contains(label)) {
+						continue;
+					}
+					seen.add(label);
+					Color c = SeriesStyleCodec.tryParseColor(s.getDescription()).orElse(aggregatePaletteColor(palette++));
 					bottomPanel.add(new LegendItem(label, c));
 				}
-				return;
-			}
-			if (exp != null && exp.getSpots() != null) {
-				List<StimulusConcKey> keys = CageSpotStimulusAggregation.globalStimulusConcKeysFirstSeenOrder(exp,
-						exp.getSpots());
-				int i = 0;
-				for (StimulusConcKey k : keys) {
-					String label = clipLegendText(k.stimulus + "_" + k.concentration, 28);
-					bottomPanel.add(new LegendItem(label, aggregatePaletteColor(i++)));
+				if (datasetHasCageMean(dataset)) {
+					bottomPanel.add(new LegendItem("cage mean", Color.DARK_GRAY));
+				}
+				if (datasetHasMedianRef(dataset)) {
+					bottomPanel.add(new LegendItem("median ref", Color.GRAY));
+				}
+				if (!seen.isEmpty()) {
+					return;
 				}
 			}
-			return;
 		}
-		if (dataset != null && dataset.getSeriesCount() > 0) {
-			for (int i = 0; i < dataset.getSeriesCount(); i++) {
-				XYSeries s = dataset.getSeries(i);
-				String key = s.getKey().toString();
-				String label = clipLegendText(spotLegendLabelFromSeriesKey(key), 24);
-				Color c = SeriesStyleCodec.tryParseColor(s.getDescription()).orElse(Color.DARK_GRAY);
-				bottomPanel.add(new LegendItem(label, c));
-			}
+		if (dataset != null && dataset.getSeriesCount() > 0 && datasetHasCageMean(dataset)
+				&& dataset.getSeriesCount() <= 2) {
+			bottomPanel.add(new LegendItem("cage mean", Color.DARK_GRAY));
 			return;
 		}
 		bottomPanel.add(new LegendItem("Spots", Color.DARK_GRAY));
+	}
+
+	/**
+	 * @return true if at least one stim+conc category was added to the legend
+	 */
+	private boolean fillStimulusConcCategoryLegend(Experiment exp, XYSeriesCollection dataset) {
+		if (exp == null || exp.getSpots() == null) {
+			return false;
+		}
+		List<StimulusConcKey> keys = CageSpotStimulusAggregation.globalStimulusConcKeysFirstSeenOrder(exp,
+				exp.getSpots());
+		if (keys == null || keys.isEmpty()) {
+			return false;
+		}
+		boolean anyMeaningful = false;
+		int palette = 0;
+		for (StimulusConcKey k : keys) {
+			String label = formatStimConcLabel(k);
+			if (label.isEmpty() || "_".equals(label)) {
+				continue;
+			}
+			anyMeaningful = true;
+			Color c = colorOfFirstSpotMatching(exp, k);
+			if (c == null) {
+				c = aggregatePaletteColor(palette);
+			}
+			palette++;
+			bottomPanel.add(new LegendItem(clipLegendText(label, 28), c));
+		}
+		if (!anyMeaningful) {
+			return false;
+		}
+		if (datasetHasCageMean(dataset)) {
+			bottomPanel.add(new LegendItem("cage mean", Color.DARK_GRAY));
+		}
+		if (datasetHasMedianRef(dataset)) {
+			bottomPanel.add(new LegendItem("median ref", Color.GRAY));
+		}
+		return true;
+	}
+
+	private static String formatStimConcLabel(StimulusConcKey k) {
+		if (k == null) {
+			return "";
+		}
+		String stim = k.stimulus != null ? k.stimulus.trim() : "";
+		String conc = k.concentration != null ? k.concentration.trim() : "";
+		if (stim.isEmpty() && conc.isEmpty()) {
+			return "";
+		}
+		if (stim.isEmpty()) {
+			return conc;
+		}
+		if (conc.isEmpty()) {
+			return stim;
+		}
+		return stim + "_" + conc;
+	}
+
+	private static Color colorOfFirstSpotMatching(Experiment exp, StimulusConcKey key) {
+		if (exp == null || exp.getSpots() == null || key == null) {
+			return null;
+		}
+		for (Spot spot : exp.getSpots().getSpotList()) {
+			if (spot == null || spot.getProperties() == null) {
+				continue;
+			}
+			StimulusConcKey spotKey = new StimulusConcKey(spot.getProperties().getStimulus(),
+					spot.getProperties().getConcentration());
+			if (!key.equals(spotKey)) {
+				continue;
+			}
+			Color c = spot.getProperties().getColor();
+			if (c != null) {
+				return c;
+			}
+		}
+		return null;
+	}
+
+	private static boolean datasetHasCageMean(XYSeriesCollection dataset) {
+		if (dataset == null) {
+			return false;
+		}
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			if (isCageMeanSeriesKey(dataset.getSeries(i).getKey().toString())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean datasetHasMedianRef(XYSeriesCollection dataset) {
+		if (dataset == null) {
+			return false;
+		}
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			if (SpotChartSeriesKeys.isMedianRefSeriesKey(dataset.getSeries(i).getKey().toString())) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isCageMeanSeriesKey(String key) {
+		return key != null && key.startsWith("cage mean");
 	}
 
 	private static String clipLegendText(String s, int max) {

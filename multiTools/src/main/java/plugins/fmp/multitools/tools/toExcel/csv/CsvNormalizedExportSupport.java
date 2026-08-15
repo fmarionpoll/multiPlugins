@@ -200,23 +200,27 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		p.printRecord(row);
 	}
 
-	public void writeMeasureCageRowRaw(String expKey, int cageId, double tMinutes, String measure, double sum,
-			double pi) throws IOException {
-		writeMeasureCageRow(measureCageRawPrinter(), expKey, cageId, tMinutes, measure, sum, pi);
+	public void writeMeasureCageRowRaw(String expKey, int cageId, double tMinutes, double sum, double pi,
+			double sumGulps, double piGulps) throws IOException {
+		writeMeasureCageRow(measureCageRawPrinter(), expKey, cageId, tMinutes, sum, pi, sumGulps, piGulps);
 	}
 
-	public void writeMeasureCageRowBin(String expKey, int cageId, double tMinutes, String measure, double sum,
-			double pi) throws IOException {
+	public void writeMeasureCageRowBin(String expKey, int cageId, double tMinutes, double sum, double pi,
+			double sumGulps, double piGulps) throws IOException {
 		if (!writeBinFiles) {
 			return;
 		}
-		writeMeasureCageRow(measureCageBinPrinter(), expKey, cageId, tMinutes, measure, sum, pi);
+		writeMeasureCageRow(measureCageBinPrinter(), expKey, cageId, tMinutes, sum, pi, sumGulps, piGulps);
 	}
 
-	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, String measure,
-			double sum, double pi) throws IOException {
-		p.printRecord(expKey, cageId, tMinutes, measure, Double.isNaN(sum) ? null : sum,
-				Double.isNaN(pi) ? null : pi);
+	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, double sum, double pi,
+			double sumGulps, double piGulps) throws IOException {
+		p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumGulps),
+				nanToNull(piGulps));
+	}
+
+	private static Double nanToNull(double v) {
+		return Double.isNaN(v) ? null : v;
 	}
 
 	public void writeGulpEvent(String expKey, int cageId, String capId, double tMinutes, double amplitude)
@@ -275,8 +279,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter measureCageRawPrinter() throws IOException {
 		if (measureCageRawPrinter == null) {
-			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, "exp_key", "cage_id", "t_minutes", "measure", "sum",
-					"pi");
+			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, "exp_key", "cage_id", "t_minutes", "sum", "pi",
+					"sum_gulps", "pi_gulps");
 		}
 		return measureCageRawPrinter;
 	}
@@ -284,7 +288,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter measureCageBinPrinter() throws IOException {
 		if (measureCageBinPrinter == null) {
 			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, "exp_key", "cage_id", "t_minutes",
-					"measure", "sum", "pi");
+					"sum", "pi", "sum_gulps", "pi_gulps");
 		}
 		return measureCageBinPrinter;
 	}
