@@ -31,8 +31,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * Normalized CSV export for multiCAFE capillary levels and gulps.
  * <p>
  * Capillary ({@code measure_cap_*}) files include topraw / toplevel / bottomlevel
- * when data exist, plus derivative if selected (not sumgulps — cage L+R gulps go
- * in {@code measure_cage_*}). Cage files are wide: {@code sum}, {@code pi},
+ * / sumgulps when data exist, plus derivative if selected. Cage
+ * ({@code measure_cage_*}) files are wide: {@code sum}, {@code pi},
  * {@code sum_gulps}, {@code pi_gulps}. Levels-tab checkboxes do not gate the
  * standard columns; optional extras (derivative, gulp events) still follow
  * options.
@@ -403,11 +403,11 @@ public final class CsvNormalizedExport {
 	private static List<String> denseMeasureColumns(ResultsOptions options, Mode mode) {
 		List<String> cols = new ArrayList<>();
 		if (mode == Mode.LEVELS) {
-			// Capillary columns (not gated by Levels-tab checkboxes). sumgulps belongs
-			// on measure_cage_* (L+R), not per-capillary files.
+			// Capillary columns (not gated by Levels-tab checkboxes).
 			cols.add(colName(EnumResults.TOPRAW));
 			cols.add(colName(EnumResults.TOPLEVEL));
 			cols.add(colName(EnumResults.BOTTOMLEVEL));
+			cols.add(colName(EnumResults.SUMGULPS));
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
 			}
@@ -421,6 +421,7 @@ public final class CsvNormalizedExport {
 			map.put(EnumResults.TOPRAW, colName(EnumResults.TOPRAW));
 			map.put(EnumResults.TOPLEVEL, colName(EnumResults.TOPLEVEL));
 			map.put(EnumResults.BOTTOMLEVEL, colName(EnumResults.BOTTOMLEVEL));
+			map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
 			if (options.derivative) {
 				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
 			}
