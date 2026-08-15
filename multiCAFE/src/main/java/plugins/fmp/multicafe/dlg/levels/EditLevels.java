@@ -415,8 +415,17 @@ public class EditLevels extends JPanel {
 			attachGulpRoiListeners(exp);
 			break;
 		default:
-			// Pull ROI edits first, then fill cut gaps (NaNs), then refresh display ROIs.
+			// Cut gaps are NaN in CapillaryMeasure. Validate used to pull the ROI first
+			// via interpolateMissingPointsAlongXAxis, which cast NaN→0 and overwrote
+			// those gaps before fillInvalidYWithLinearInterpolation could run.
+			// Snapshot NaN masks, pull ROI edits, restore gaps, then interpolate.
+			boolean[] topInvalid = snapshotInvalidY(ctx.cap.getTopLevel());
+			boolean[] bottomInvalid = snapshotInvalidY(ctx.cap.getBottomLevel());
+			boolean[] derivInvalid = snapshotInvalidY(ctx.cap.getDerivative());
 			ctx.seqKymos.validateLinearROIsAtT(ctx.cap);
+			restoreInvalidY(ctx.cap.getTopLevel(), topInvalid);
+			restoreInvalidY(ctx.cap.getBottomLevel(), bottomInvalid);
+			restoreInvalidY(ctx.cap.getDerivative(), derivInvalid);
 			fillInvalidMeasuresForAllCapillaries(exp);
 			refreshLinearRoisFromMeasures(exp);
 			exp.save_capillaries_description_and_measures();
@@ -484,6 +493,29 @@ public class EditLevels extends JPanel {
 			fillInvalidIfPresent(cap.getBottomLevel());
 			fillInvalidIfPresent(cap.getDerivative());
 			fillInvalidIfPresent(cap.getTopCorrected());
+		}
+	}
+
+	private static boolean[] snapshotInvalidY(CapillaryMeasure measure) {
+		if (measure == null || measure.polylineLevel == null || measure.polylineLevel.npoints == 0)
+			return null;
+		double[] y = measure.polylineLevel.ypoints;
+		boolean[] mask = new boolean[measure.polylineLevel.npoints];
+		for (int i = 0; i < mask.length; i++) {
+			mask[i] = Double.isNaN(y[i]);
+		}
+		return mask;
+	}
+
+	private static void restoreInvalidY(CapillaryMeasure measure, boolean[] mask) {
+		if (measure == null || mask == null || measure.polylineLevel == null)
+			return;
+		double[] y = measure.polylineLevel.ypoints;
+		int n = Math.min(mask.length, measure.polylineLevel.npoints);
+		for (int i = 0; i < n; i++) {
+			if (mask[i]) {
+				y[i] = Double.NaN;
+			}
 		}
 	}
 

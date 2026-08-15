@@ -228,37 +228,51 @@ public class ROI2DUtilities {
 	public static void interpolateMissingPointsAlongXAxis(ROI2DPolyLine roiLine, int nintervals) {
 		if (nintervals <= 1)
 			return;
-		// interpolate points so that each x step has a value
-		// assume that points are ordered along x
+		// Densify so each integer X has a Y. Anchors with non-finite Y (e.g. cut
+		// gaps marked as NaN) are skipped and filled by linear interpolation
+		// between neighboring valid samples. Casting NaN to int yields 0 and must
+		// be avoided — that produced the "jump to roof" bug after Validate.
 		Polyline2D polyline = roiLine.getPolyline2D();
-		int roiLine_npoints = polyline.npoints;
-		if (roiLine_npoints == 0)
+		if (polyline == null || polyline.npoints == 0)
 			return;
 
-		if (roiLine_npoints > nintervals)
-			roiLine_npoints = nintervals;
+		List<Point2D> anchors = new ArrayList<>(polyline.npoints);
+		for (int i = 0; i < polyline.npoints; i++) {
+			double x = polyline.xpoints[i];
+			double y = polyline.ypoints[i];
+			if (!Double.isFinite(x) || !Double.isFinite(y))
+				continue;
+			anchors.add(new Point2D.Double(x, y));
+		}
+		if (anchors.isEmpty())
+			return;
+		if (anchors.size() == 1) {
+			roiLine.setPoints(anchors);
+			return;
+		}
 
-		List<Point2D> pts = new ArrayList<Point2D>(roiLine_npoints);
-		double ylast = polyline.ypoints[roiLine_npoints - 1];
-		int xfirst0 = (int) polyline.xpoints[0];
-
-		for (int i = 1; i < roiLine_npoints; i++) {
-			int xfirst = (int) polyline.xpoints[i - 1];
+		int xfirst0 = (int) anchors.get(0).getX();
+		List<Point2D> pts = new ArrayList<>();
+		double ylast = anchors.get(0).getY();
+		for (int i = 1; i < anchors.size(); i++) {
+			int xfirst = (int) anchors.get(i - 1).getX();
 			if (xfirst < 0)
 				xfirst = 0;
-			int xlast = (int) polyline.xpoints[i];
+			int xlast = (int) anchors.get(i).getX();
 			if (xlast > xfirst0 + nintervals - 1)
 				xlast = xfirst0 + nintervals - 1;
-			double yfirst = polyline.ypoints[i - 1];
-			ylast = polyline.ypoints[i];
+			double yfirst = anchors.get(i - 1).getY();
+			ylast = anchors.get(i).getY();
+			if (xlast <= xfirst) {
+				continue;
+			}
 			for (int j = xfirst; j < xlast; j++) {
-				int val = (int) (yfirst + (ylast - yfirst) * (j - xfirst) / (xlast - xfirst));
-				Point2D pt = new Point2D.Double(j, val);
-				pts.add(pt);
+				double val = yfirst + (ylast - yfirst) * (j - xfirst) / (double) (xlast - xfirst);
+				pts.add(new Point2D.Double(j, val));
 			}
 		}
-		Point2D pt = new Point2D.Double(polyline.xpoints[roiLine_npoints - 1], ylast);
-		pts.add(pt);
+		Point2D last = anchors.get(anchors.size() - 1);
+		pts.add(new Point2D.Double(last.getX(), ylast));
 		roiLine.setPoints(pts);
 	}
 
