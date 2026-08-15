@@ -616,6 +616,7 @@ public class Capillary implements Comparable<Capillary> {
 		case SUMGULPS_LR:
 		case TOPLEVELDELTA_LR:
 		case TOPLEVEL_LR:
+		case TOPRAW_LR:
 			if (side.equals("L"))
 				value = "sum";
 			else

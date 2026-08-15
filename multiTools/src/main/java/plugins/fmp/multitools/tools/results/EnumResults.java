@@ -49,6 +49,8 @@ public enum EnumResults {
 
 	TOPLEVEL_LR("toplevel_L+R", "volume (ul)", "volume consumed in capillaries / cage (t-t0)",
 			StoredDataAccessors.accessStored_TOPLEVEL_LR()),
+	TOPRAW_LR("topraw_L+R", "volume (ul)", "volume from raw top liquid / cage (t-t0)",
+			StoredDataAccessors.accessStored_TOPRAW_LR()),
 	TOPLEVELDELTA("topdelta", "volume (ul)", "top liquid consumed (t - t-1)",
 			StoredDataAccessors.accessStored_TOPLEVELDELTA()),
 	TOPLEVELDELTA_LR("topdelta_L+R", "volume (ul)", "volume consumed in capillaries /cage (t - t-1)",

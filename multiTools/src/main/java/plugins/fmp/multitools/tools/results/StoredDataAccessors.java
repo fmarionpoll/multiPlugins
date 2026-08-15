@@ -65,6 +65,17 @@ public class StoredDataAccessors {
 	}
 
 	/**
+	 * TOPRAW_LR is built on the fly as Sum/PI from TOPRAW capillary series (same
+	 * L+R path as TOPLEVEL_LR).
+	 */
+	public static MeasurementComputation accessStored_TOPRAW_LR() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"TOPRAW_LR is computed as Sum/PI from TOPRAW capillary series - access via chart builder, not computation");
+		};
+	}
+
+	/**
 	 * Accesses stored TOPLEVELDELTA data from measurements.ptsTop (delta
 	 * computation). Used via: cap.getTopLevel() with delta calculation
 	 */

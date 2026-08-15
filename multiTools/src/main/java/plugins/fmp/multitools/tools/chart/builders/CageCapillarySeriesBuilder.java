@@ -119,6 +119,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		switch (resultType) {
 		case TOPLEVEL_LR:
 			return EnumResults.TOPLEVEL;
+		case TOPRAW_LR:
+			return EnumResults.TOPRAW;
 		case TOPLEVELDELTA_LR:
 			return EnumResults.TOPLEVELDELTA;
 		case SUMGULPS_LR:
