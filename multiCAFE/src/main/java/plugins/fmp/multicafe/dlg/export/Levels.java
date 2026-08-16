@@ -20,7 +20,7 @@ public class Levels extends JPanel {
 	JCheckBox topLevelCheckBox = new JCheckBox("top", true);
 	JCheckBox bottomLevelCheckBox = new JCheckBox("bottom", false);
 	JCheckBox subtractEvaporationCheckBox = new JCheckBox("subtract evaporation", true);
-	JCheckBox derivativeCheckBox = new JCheckBox("derivative", false);
+	JCheckBox derivativeCheckBox = new JCheckBox("temporal change", false);
 	JCheckBox sumGulpsCheckBox = new JCheckBox("sum gulps", false);
 	JCheckBox sumGulpsLrCheckBox = new JCheckBox("sum gulps L+R", false);
 	JCheckBox lrPICheckBox = new JCheckBox("L+R & pref index", true);

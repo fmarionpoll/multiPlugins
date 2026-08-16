@@ -40,7 +40,7 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
 public class EditLevels extends JPanel {
 
 	private static final String[] ROI_TYPE_OPTIONS = new String[] { " top level", "bottom level", "top & bottom levels",
-			"derivative", "gulps" };
+			"temporal change", "gulps" };
 
 	/**
 	 * 

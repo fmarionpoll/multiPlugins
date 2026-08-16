@@ -27,14 +27,14 @@ public class Options extends JPanel {
 	JCheckBox measuresCheckBox = new JCheckBox("measures", true);
 	public JCheckBox graphsCheckBox = new JCheckBox("levels & move", true);
 
-	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries", true);
-	public JCheckBox viewCellsCheckbox = new JCheckBox("cages", true);
-	JCheckBox viewFlyCheckbox = new JCheckBox("flies", false);
+	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries (green)", true);
+	public JCheckBox viewCellsCheckbox = new JCheckBox("cages (fuschia)", true);
+	JCheckBox viewFlyCheckbox = new JCheckBox("flies (yellow)", false);
 
-	JCheckBox viewTopLevelsCheckbox = new JCheckBox("top level", true);
-	JCheckBox viewBottomLevelsCheckbox = new JCheckBox("bottom", true);
-	JCheckBox viewDerivativeCheckbox = new JCheckBox("derivative", true);
-	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps", true);
+	JCheckBox viewTopLevelsCheckbox = new JCheckBox("top level (green)", true);
+	JCheckBox viewBottomLevelsCheckbox = new JCheckBox("bottom (green)", true);
+	JCheckBox viewDerivativeCheckbox = new JCheckBox("temporal change (yellow)", true);
+	JCheckBox viewGulpsCheckbox = new JCheckBox("gulps (red)", true);
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {

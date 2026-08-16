@@ -42,7 +42,7 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_TOPLEVEL(), "TOPLEVEL_CORRECTED", PersistenceDomain.CAPILLARY),
 	BOTTOMLEVEL("bottomlevel", "volume (ul)", "bottom liquid level (t-t0)",
 			StoredDataAccessors.accessStored_BOTTOMLEVEL(), "BOTTOMLEVEL", PersistenceDomain.CAPILLARY),
-	DERIVEDVALUES("derivative", "volume (ul)", "derived top liquid level (t-t0)",
+	DERIVEDVALUES("temp_change", "volume (ul)", "temporal change of top liquid level (t-t0)",
 			StoredDataAccessors.accessStored_DERIVEDVALUES(), "TOPDERIVATIVE", PersistenceDomain.CAPILLARY),
 	THRESHOLD("threshold", "value", "dynamic threshold computed from empty cages",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "THRESHOLD", PersistenceDomain.CAPILLARY),
@@ -222,23 +222,23 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 
 	/**
-	 * Kymograph: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_GREEN_HEIGHT_RATIO)}, grouped by (stimulus,
-	 * concentration) per cage.
+	 * Kymograph: per-bin sum of per-spot consumption
+	 * {@code Σ (1 − KYMO_GREEN_HEIGHT_RATIO)}, grouped by (stimulus, concentration)
+	 * per cage.
 	 */
 	AGG_GREENHEIGHT_CONSO("AGG_GREENHEIGHT_CONSO", "Σ (1−h/h_max)",
 			"Kymograph: sum of per-spot (1 − peak-normalized height) by (stimulus, conc) per cage",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_GREENHEIGHT_CONSO"),
 
 	/**
-	 * Kymograph-only: fraction of vertical strip rows with metric above threshold (not persisted on spots).
-	 * {@link #toPersistenceKey()} remains {@code KYMO_CHROMA_FRACT} for saved data compatibility.
+	 * Kymograph-only: fraction of vertical strip rows with metric above threshold
+	 * (not persisted on spots). {@link #toPersistenceKey()} remains
+	 * {@code KYMO_CHROMA_FRACT} for saved data compatibility.
 	 */
-	KYMO_FRACT("KYMO_FRACT", "fraction (0-1)",
-			"Kymograph: fraction of rows with selected metric above threshold",
+	KYMO_FRACT("KYMO_FRACT", "fraction (0-1)", "Kymograph: fraction of rows with selected metric above threshold",
 			StoredDataAccessors.accessStored_KYMO_FRACT(), "KYMO_CHROMA_FRACT", PersistenceDomain.SPOT),
 	/** Kymograph: absolute bin-to-bin change in metric fraction. */
-	KYMO_ABS_DELTA("KYMO_ABS_DELTA", "|Δf|",
-			"Kymograph: |Δf| of metric fraction between consecutive time bins",
+	KYMO_ABS_DELTA("KYMO_ABS_DELTA", "|Δf|", "Kymograph: |Δf| of metric fraction between consecutive time bins",
 			StoredDataAccessors.accessStored_KYMO_ABS_DELTA(), "KYMO_CHROMA_ABS_DELTA", PersistenceDomain.SPOT),
 	/** Kymograph: per-bin mean of per-spot metric fractions within a cage. */
 	KYMO_CAGE_MEAN_FRACT("KYMO_CAGE_MEAN", "fraction (0-1)", "Kymograph: cage mean of spot metric fractions",
@@ -246,12 +246,16 @@ public enum EnumResults {
 	/** Kymograph: per-bin mean of per-spot |Δf| within a cage. */
 	KYMO_CAGE_MEAN_ABS_DELTA("KYMO_CAGE_MEAN_DF", "|Δf|", "Kymograph: cage mean of |Δf| across spots",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CHROMA_CAGE_MEAN_ABS_DELTA"),
-	/** Kymograph: count of ON rows in the cleaned green mask per time bin (bar height in pixels). */
+	/**
+	 * Kymograph: count of ON rows in the cleaned green mask per time bin (bar
+	 * height in pixels).
+	 */
 	KYMO_GREEN_HEIGHT("KYMO_GREEN_HEIGHT", "rows",
 			"Kymograph: vertical extent (rows) of cleaned green mask per time bin",
 			StoredDataAccessors.accessStored_KYMO_GREEN_HEIGHT(), "KYMO_GREEN_HEIGHT", PersistenceDomain.SPOT),
 	/**
-	 * Kymograph: green height divided by the maximum green height across the strip (peak-normalized occupancy).
+	 * Kymograph: green height divided by the maximum green height across the strip
+	 * (peak-normalized occupancy).
 	 */
 	KYMO_GREEN_HEIGHT_RATIO("KYMO_GREEN_HEIGHT_RATIO", "h / h_max",
 			"Kymograph: green mask height relative to strip maximum",
