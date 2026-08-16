@@ -36,6 +36,17 @@ public abstract class ImageTransformFunctionAbstract {
 		}
 	}
 
+	/**
+	 * Span for Diffn-family transforms. Uses {@link CanvasImageTransformOptions#spanDiff}
+	 * when ≥ 2; otherwise the constructor default baked into the transform instance.
+	 */
+	protected static int resolveSpanDiff(CanvasImageTransformOptions options, int fallback) {
+		if (options != null && options.spanDiff >= 2) {
+			return options.spanDiff;
+		}
+		return fallback;
+	}
+
 	protected IcyBufferedImage functionRGB_keepOneChan(IcyBufferedImage sourceImage, int keepChan) {
 		IcyBufferedImage resultImage = new IcyBufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), 3,
 				sourceImage.getDataType_());

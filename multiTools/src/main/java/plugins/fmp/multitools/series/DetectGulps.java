@@ -58,7 +58,7 @@ public class DetectGulps extends BuildSeries {
 		if (exp.getSeqKymos() == null)
 			return;
 		new KymographService().buildFiltered(exp, 0, BuildSeriesOptions.Z_INDEX_FILTERED_FOR_GULPS,
-				options.transformForGulps);
+				options.transformForGulps, options.spanDiffForGulps);
 	}
 
 }

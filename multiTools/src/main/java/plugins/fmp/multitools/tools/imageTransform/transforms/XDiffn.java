@@ -15,6 +15,7 @@ public class XDiffn extends ImageTransformFunctionAbstract implements ImageTrans
 
 	@Override
 	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
+		int spanDiff = resolveSpanDiff(options, this.spanDiff);
 		int chan0 = 0;
 		int chan1 = sourceImage.getSizeC();
 		int imageSizeX = sourceImage.getSizeX();

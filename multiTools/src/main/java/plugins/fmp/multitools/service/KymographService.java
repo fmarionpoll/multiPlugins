@@ -28,6 +28,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymosUtils;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.TiffTifSiblingPaths;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
@@ -35,6 +36,11 @@ public class KymographService {
 
 	public void buildFiltered(Experiment exp, int zChannelSource, int zChannelDestination,
 			ImageTransformEnums transformop1) {
+		buildFiltered(exp, zChannelSource, zChannelDestination, transformop1, -1);
+	}
+
+	public void buildFiltered(Experiment exp, int zChannelSource, int zChannelDestination,
+			ImageTransformEnums transformop1, int spanDiff) {
 		SequenceKymos seqKymos = exp.getSeqKymos();
 		int nimages = seqKymos.getSequence().getSizeT();
 		seqKymos.getSequence().beginUpdate();
@@ -43,12 +49,16 @@ public class KymographService {
 		if (transform == null)
 			return;
 
+		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
+		transformOptions.transformOption = transformop1;
+		transformOptions.spanDiff = spanDiff >= 2 ? spanDiff : transformop1.getDefaultSpanDiff();
+
 		if (exp.getCapillaries().getList().size() != nimages)
 			SequenceKymosUtils.transferCamDataROIStoKymo(exp);
 
 		for (int t = 0; t < nimages; t++) {
 			IcyBufferedImage img = seqKymos.getSeqImage(t, zChannelSource);
-			IcyBufferedImage img2 = transform.getTransformedImage(img, null);
+			IcyBufferedImage img2 = transform.getTransformedImage(img, transformOptions);
 			if (seqKymos.getSequence().getSizeZ(0) < (zChannelDestination + 1))
 				seqKymos.getSequence().addImage(t, img2);
 			else

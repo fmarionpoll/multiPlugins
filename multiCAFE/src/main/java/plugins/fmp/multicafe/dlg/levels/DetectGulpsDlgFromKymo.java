@@ -7,6 +7,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.EnumMap;
+import java.util.Map;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -17,6 +19,8 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -27,6 +31,7 @@ import plugins.fmp.multitools.series.DetectGulps;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.series.options.GulpThresholdMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
+import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeListener {
@@ -40,9 +45,15 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			ImageTransformEnums.YDIFFN, ImageTransformEnums.YDIFFN2, ImageTransformEnums.XYDIFFN };
 
 	JComboBox<ImageTransformEnums> gulpTransforms_comboBox = new JComboBox<ImageTransformEnums>(gulpTransforms);
+	/** Diffn span (≥2). Value remembered per transform for the session. */
+	private JSpinner thresholdXDiffnSpinner = new JSpinner(new SpinnerNumberModel(3, 2, 10, 1));
+	private final Map<ImageTransformEnums, Integer> spanByTransform = new EnumMap<>(ImageTransformEnums.class);
+	private ImageTransformEnums lastSpanTransform = null;
+	private boolean syncingSpanSpinner = false;
+
 	JSpinner start_spinner = new JSpinner(new SpinnerNumberModel(0, 0, 100000, 1));
 	JSpinner end_spinner = new JSpinner(new SpinnerNumberModel(5, 1, 100000, 1));
-	JCheckBox derivative_checkbox = new JCheckBox("derivative", true);
+	JCheckBox derivative_checkbox = new JCheckBox("temporal change", true);
 	JCheckBox gulps_checkbox = new JCheckBox("gulps", true);
 
 	private JCheckBox from_pixel_checkbox = new JCheckBox("from pixel", false);
@@ -87,6 +98,8 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		JPanel panel01 = new JPanel(layoutLeft);
 		panel01.add(derivative_checkbox);
 		panel01.add(gulpTransforms_comboBox);
+		panel01.add(new JLabel("span"));
+		panel01.add(thresholdXDiffnSpinner);
 		panel01.add(display_button);
 		add(panel01);
 
@@ -109,21 +122,92 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 
 		gulpTransforms_comboBox.setSelectedItem(ImageTransformEnums.XDIFFN);
 		thresholdMethodCombo.setSelectedItem(GulpThresholdMethod.MEAN_PLUS_SD);
+		initSpanMemoryDefaults();
+		syncSpanSpinnerToSelectedTransform();
 		defineActionListeners();
+	}
+
+	private void initSpanMemoryDefaults() {
+		for (ImageTransformEnums t : gulpTransforms) {
+			spanByTransform.put(t, t.getDefaultSpanDiff());
+		}
+	}
+
+	private void rememberCurrentSpan() {
+		if (lastSpanTransform == null) {
+			return;
+		}
+		spanByTransform.put(lastSpanTransform, (Integer) thresholdXDiffnSpinner.getValue());
+	}
+
+	private void syncSpanSpinnerToSelectedTransform() {
+		ImageTransformEnums selected = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
+		if (selected == null) {
+			return;
+		}
+		rememberCurrentSpan();
+		int span = spanByTransform.getOrDefault(selected, selected.getDefaultSpanDiff());
+		syncingSpanSpinner = true;
+		try {
+			thresholdXDiffnSpinner.setValue(span);
+		} finally {
+			syncingSpanSpinner = false;
+		}
+		lastSpanTransform = selected;
+	}
+
+	private int currentSpanDiff() {
+		return (Integer) thresholdXDiffnSpinner.getValue();
+	}
+
+	private CanvasImageTransformOptions spanTransformOptions() {
+		CanvasImageTransformOptions opt = new CanvasImageTransformOptions();
+		ImageTransformEnums selected = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
+		opt.transformOption = selected;
+		opt.spanDiff = currentSpanDiff();
+		return opt;
+	}
+
+	private void applySpanToDisplayCanvasIfNeeded() {
+		if (!display_button.isSelected()) {
+			return;
+		}
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null) {
+			return;
+		}
+		Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+		if (canvas == null) {
+			return;
+		}
+		int index = gulpTransforms_comboBox.getSelectedIndex();
+		canvas.setTransformStep1(index + 1, spanTransformOptions());
 	}
 
 	private void defineActionListeners() {
 		gulpTransforms_comboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				syncSpanSpinnerToSelectedTransform();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
 						int index = gulpTransforms_comboBox.getSelectedIndex();
-						canvas.setTransformStep1Index(index + 1);
+						canvas.setTransformStep1(index + 1, spanTransformOptions());
 					}
 				}
+			}
+		});
+
+		thresholdXDiffnSpinner.addChangeListener(new ChangeListener() {
+			@Override
+			public void stateChanged(ChangeEvent e) {
+				if (syncingSpanSpinner) {
+					return;
+				}
+				rememberCurrentSpan();
+				applySpanToDisplayCanvasIfNeeded();
 			}
 		});
 
@@ -147,7 +231,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 						if (canvas != null) {
 							canvas.updateTransformsStep1(gulpTransforms);
 							int index = gulpTransforms_comboBox.getSelectedIndex();
-							canvas.setTransformStep1(index + 1, null);
+							canvas.setTransformStep1(index + 1, spanTransformOptions());
 						}
 					} else {
 						Canvas2D_3Transforms canvas = getKymosCanvas(exp);
@@ -192,6 +276,8 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			options.kymoLast = exp.getSeqKymos().getSequence().getSizeT() - 1;
 		}
 		options.transformForGulps = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
+		rememberCurrentSpan();
+		options.spanDiffForGulps = currentSpanDiff();
 		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
 		options.thresholdMethod = (GulpThresholdMethod) thresholdMethodCombo.getSelectedItem();
 		options.thresholdSdMultiplier = (double) thresholdMultiplierSpinner.getValue();
@@ -224,6 +310,8 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 
 	void setInfos(Capillary cap) {
 		BuildSeriesOptions options = cap.getGulpsOptions();
+		spanByTransform.put(options.transformForGulps, Math.max(2, options.spanDiffForGulps));
+		lastSpanTransform = null;
 		gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
 		selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
 		thresholdMethodCombo.setSelectedItem(options.thresholdMethod);

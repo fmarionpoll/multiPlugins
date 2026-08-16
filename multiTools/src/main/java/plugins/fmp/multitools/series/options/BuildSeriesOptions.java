@@ -57,6 +57,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public double detectGulpsThreshold_uL = .3;
 	public static final int Z_INDEX_FILTERED_FOR_GULPS = 1;
 	public ImageTransformEnums transformForGulps = ImageTransformEnums.XDIFFN;
+	/** Span for Diffn-family gulp transforms ({@code XDiffn}/{@code YDiffn}/…). Min useful value is 2. */
+	public int spanDiffForGulps = 3;
 	public boolean buildGulps = true;
 
 	public GulpThresholdMethod thresholdMethod = GulpThresholdMethod.MEAN_PLUS_SD;

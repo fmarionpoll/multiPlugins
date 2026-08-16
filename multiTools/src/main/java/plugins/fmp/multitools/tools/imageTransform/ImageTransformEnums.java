@@ -92,6 +92,25 @@ public enum ImageTransformEnums {
 		return klass;
 	}
 
+	/**
+	 * Default Diffn-family span baked into the enum (constructor argument). Returns
+	 * 3 for unrelated transforms.
+	 */
+	public int getDefaultSpanDiff() {
+		switch (this) {
+		case XDIFFN:
+			return 3;
+		case YDIFFN:
+			return 5;
+		case YDIFFN2:
+			return 4;
+		case XYDIFFN:
+			return 5;
+		default:
+			return 3;
+		}
+	}
+
 	public static ImageTransformEnums findByText(String abbr) {
 		for (ImageTransformEnums v : values()) {
 			if (v.toString().equals(abbr))

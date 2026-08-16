@@ -16,6 +16,7 @@ public class YDiffn1D extends ImageTransformFunctionAbstract implements ImageTra
 
 	@Override
 	public IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {
+		int spanDiff = resolveSpanDiff(options, this.spanDiff);
 		int imageSizeX = sourceImage.getSizeX();
 		int imageSizeY = sourceImage.getSizeY();
 		IcyBufferedImage img2 = new IcyBufferedImage(imageSizeX, imageSizeY, 3, sourceImage.getDataType_());
@@ -39,7 +40,8 @@ public class YDiffn1D extends ImageTransformFunctionAbstract implements ImageTra
 				outValues[kx] = (int) Math.abs(outVal);
 			}
 		}
-		copyExGDoubleToIcyBufferedImage(outValues, img2, options.copyResultsToThe3planes);
+		copyExGDoubleToIcyBufferedImage(outValues, img2,
+				options == null || options.copyResultsToThe3planes);
 		return img2;
 	}
 }
