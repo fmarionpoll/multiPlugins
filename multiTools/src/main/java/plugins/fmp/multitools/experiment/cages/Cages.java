@@ -1529,11 +1529,15 @@ public class Cages {
 		 */
 
 		if (resultsOptions.resultType == EnumResults.TOPRAW || resultsOptions.resultType == EnumResults.TOPLEVEL
-				|| resultsOptions.resultType == EnumResults.TOPLEVEL_LR) {
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_LR
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI) {
 			computeEvaporationCorrection(exp);
 		}
 
-		if (resultsOptions.resultType == EnumResults.TOPLEVEL_LR) {
+		if (resultsOptions.resultType == EnumResults.TOPLEVEL_LR
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI) {
 			computeLRMeasures(exp, resultsOptions.lrPIThreshold);
 		}
 

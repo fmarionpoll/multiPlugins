@@ -60,7 +60,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			EnumResults.TOPRAW, //
 			EnumResults.TOPLEVEL, //
 			EnumResults.BOTTOMLEVEL, //
-			EnumResults.TOPLEVEL_LR, //
+			EnumResults.TOPLEVEL_SUM, //
+			EnumResults.TOPLEVEL_PI, //
 			EnumResults.DERIVEDVALUES, //
 			EnumResults.SUMGULPS, //
 			EnumResults.SUMGULPS_LR, //
@@ -279,6 +280,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.build();
 
 		iChart = new ChartCagesCombinedFrame();
+		iChart.setCombinedLayout(ChartCagesCombinedFrame.CombinedLayout.HORIZONTAL);
 		iChart.createMainChartPanel("Capillary level measures", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);

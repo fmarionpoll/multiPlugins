@@ -167,7 +167,11 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
 		bottomPanel.removeAll();
 
-		if (ChartCageBuild.isLRType(currentOptions.resultType)) {
+		if (currentOptions.resultType == EnumResults.TOPLEVEL_SUM) {
+			bottomPanel.add(new LegendItem("Sum", Color.BLUE));
+		} else if (currentOptions.resultType == EnumResults.TOPLEVEL_PI) {
+			bottomPanel.add(new LegendItem("PI", Color.RED));
+		} else if (ChartCageBuild.isLRType(currentOptions.resultType)) {
 			bottomPanel.add(new LegendItem("Sum", Color.BLUE));
 			bottomPanel.add(new LegendItem("PI", Color.RED));
 		} else if (isSpotChartLegendResultType(currentOptions.resultType)) {
@@ -524,7 +528,8 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 				EnumResults.TOPRAW, //
 				EnumResults.TOPLEVEL, //
 				EnumResults.BOTTOMLEVEL, //
-				EnumResults.TOPLEVEL_LR, //
+				EnumResults.TOPLEVEL_SUM, //
+				EnumResults.TOPLEVEL_PI, //
 				EnumResults.DERIVEDVALUES, //
 				EnumResults.SUMGULPS, //
 				EnumResults.SUMGULPS_LR, //

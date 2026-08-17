@@ -108,6 +108,18 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return result;
 
 		XYSeriesCollection sumAndPI = buildSumAndPISeries(cage, parts);
+		if (options.resultType == EnumResults.TOPLEVEL_SUM || options.resultType == EnumResults.TOPLEVEL_PI) {
+			String suffix = options.resultType == EnumResults.TOPLEVEL_SUM ? "_Sum" : "_PI";
+			XYSeriesCollection filtered = new XYSeriesCollection();
+			for (int i = 0; i < sumAndPI.getSeriesCount(); i++) {
+				XYSeries s = sumAndPI.getSeries(i);
+				if (s.getKey() != null && s.getKey().toString().endsWith(suffix)) {
+					filtered.addSeries(s);
+				}
+			}
+			ChartCageBuild.updateGlobalExtremaFromDataset(filtered);
+			return filtered;
+		}
 		for (int i = 0; i < sumAndPI.getSeriesCount(); i++)
 			result.addSeries(sumAndPI.getSeries(i));
 
@@ -118,6 +130,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	private static EnumResults getBaseType(EnumResults resultType) {
 		switch (resultType) {
 		case TOPLEVEL_LR:
+		case TOPLEVEL_SUM:
+		case TOPLEVEL_PI:
 			return EnumResults.TOPLEVEL;
 		case TOPRAW_LR:
 			return EnumResults.TOPRAW;

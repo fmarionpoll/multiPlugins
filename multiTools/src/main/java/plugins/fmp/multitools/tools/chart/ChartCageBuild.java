@@ -119,7 +119,8 @@ public class ChartCageBuild {
 	 */
 
 	public static boolean isLRType(EnumResults resultType) {
-		return resultType == EnumResults.TOPLEVEL_LR || resultType == EnumResults.TOPRAW_LR
+		return resultType == EnumResults.TOPLEVEL_LR || resultType == EnumResults.TOPLEVEL_SUM
+				|| resultType == EnumResults.TOPLEVEL_PI || resultType == EnumResults.TOPRAW_LR
 				|| resultType == EnumResults.TOPLEVELDELTA_LR || resultType == EnumResults.SUMGULPS_LR;
 	}
 

@@ -53,6 +53,11 @@ public final class CageChartPlotFactory {
 			return buildXYPlotLR(dataset, xAxis, yAxis);
 		}
 
+		if (isPiOnly(dataset)) {
+			yAxis.setAutoRange(false);
+			yAxis.setRange(-1.0, 1.0);
+		}
+
 		if (isAggMedianRefDualAxis(dataset)) {
 			return buildXYPlotAggMedianRef(dataset, xAxis, yAxis);
 		}
@@ -64,12 +69,30 @@ public final class CageChartPlotFactory {
 	}
 
 	private static boolean isLRData(XYSeriesCollection dataset) {
+		boolean hasPi = false;
+		boolean hasSum = false;
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = (String) dataset.getSeriesKey(i);
-			if (key != null && (key.endsWith("_PI") || key.endsWith("_Sum")))
-				return true;
+			if (key != null && key.endsWith("_PI")) {
+				hasPi = true;
+			} else if (key != null && key.endsWith("_Sum")) {
+				hasSum = true;
+			}
 		}
-		return false;
+		return hasPi && hasSum;
+	}
+
+	private static boolean isPiOnly(XYSeriesCollection dataset) {
+		if (dataset == null || dataset.getSeriesCount() == 0) {
+			return false;
+		}
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			String key = (String) dataset.getSeriesKey(i);
+			if (key == null || !key.endsWith("_PI")) {
+				return false;
+			}
+		}
+		return true;
 	}
 
 	private static boolean isAggMedianRefDualAxis(XYSeriesCollection dataset) {

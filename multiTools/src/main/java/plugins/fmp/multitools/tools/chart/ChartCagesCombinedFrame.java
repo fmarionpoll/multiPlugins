@@ -19,6 +19,7 @@ import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
+import org.jfree.chart.plot.CombinedRangeXYPlot;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.data.xy.XYSeriesCollection;
 
@@ -38,16 +39,21 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Displays cages in a single combined chart using a
- * {@link CombinedDomainXYPlot} (vertical stack of cage subplots sharing the
- * time domain axis).
+ * Displays cages in a single combined chart.
  *
  * <p>
- * Used by MultiCAFE combined capillary view and multiSPOTS kymo combined view.
- * multiSPOTS96 uses grid view only.
+ * {@link CombinedLayout#HORIZONTAL} (default): {@link CombinedRangeXYPlot} —
+ * cages side by side, shared Y. Used by MultiCAFE.
+ * {@link CombinedLayout#VERTICAL}: {@link CombinedDomainXYPlot} — cages stacked,
+ * shared time axis.
  * </p>
  */
 public class ChartCagesCombinedFrame {
+
+	public enum CombinedLayout {
+		HORIZONTAL, VERTICAL
+	}
+
 	private static final int DEFAULT_FRAME_WIDTH = 900;
 	private static final int DEFAULT_FRAME_HEIGHT = 500;
 
@@ -57,9 +63,14 @@ public class ChartCagesCombinedFrame {
 	/** Fallback upper-left when no saved preference exists (e.g. relative to cam viewer). */
 	private Point graphLocation = new Point(0, 0);
 	private Consumer<Spot> onSpotSelectedFromChart;
+	private CombinedLayout layout = CombinedLayout.HORIZONTAL;
 
 	public void setOnSpotSelectedFromChart(Consumer<Spot> callback) {
 		this.onSpotSelectedFromChart = callback;
+	}
+
+	public void setCombinedLayout(CombinedLayout layout) {
+		this.layout = layout != null ? layout : CombinedLayout.HORIZONTAL;
 	}
 
 	public void createMainChartPanel(String title, Experiment exp, ResultsOptions options) {
@@ -103,36 +114,35 @@ public class ChartCagesCombinedFrame {
 
 		mainChartPanel.removeAll();
 
-		NumberAxis sharedX = new NumberAxis("time (min)");
-		sharedX.setAutoRangeIncludesZero(false);
-		CombinedDomainXYPlot combined = new CombinedDomainXYPlot(sharedX);
+		exp.getCages().prepareComputations(exp, options);
 
+		boolean horizontal = layout != CombinedLayout.VERTICAL;
 		CageSeriesBuilder builder = selectDataBuilder(options.resultType);
 		List<Cage> subplotCages = new ArrayList<>();
+		List<XYPlot> subplots = new ArrayList<>();
 		for (Cage cage : filterCages(exp, options)) {
 			XYSeriesCollection dataset = builder.build(exp, cage, options);
 			if (dataset == null || dataset.getSeriesCount() == 0)
 				continue;
 
 			int cageId = cage.getProperties() != null ? cage.getProperties().getCageID() : -1;
-			NumberAxis yAxis = new NumberAxis("cage " + cageId);
-			yAxis.setAutoRangeIncludesZero(false);
-
-			NumberAxis dummyX = new NumberAxis();
-			dummyX.setAutoRangeIncludesZero(false);
-			XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, dummyX, yAxis);
-			subplot.setDomainAxis(null);
+			XYPlot subplot = horizontal ? buildHorizontalSubplot(dataset, cageId)
+					: buildVerticalSubplot(dataset, cageId);
 
 			int nFlies = SeriesStyleCodec.getNFliesOrDefault(dataset, -1);
 			CageChartPlotFactory.setXYPlotBackGroundAccordingToNFlies(subplot, nFlies);
 
-			combined.add(subplot, 1);
+			subplots.add(subplot);
 			subplotCages.add(cage);
 		}
 
+		XYPlot combined = horizontal ? buildHorizontalCombined(options, subplots)
+				: buildVerticalCombined(subplots);
 		JFreeChart chart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, combined, false);
-		int h = Math.max(400, subplotCages.size() * 140);
-		chartPanel = new ChartPanel(chart, 900, h, 300, 200, 2000, 2000, true, true, true, true, false, true);
+		int w = horizontal ? Math.max(900, subplotCages.size() * 280) : 900;
+		int h = horizontal ? 450 : Math.max(400, subplotCages.size() * 140);
+		chartPanel = new ChartPanel(chart, w, h, 300, 200, Math.max(2000, w), Math.max(2000, h), true, true, true, true,
+				false, true);
 		if (isSpotResultType(options.resultType)) {
 			chartPanel.addChartMouseListener(
 					new SpotCombinedChartInteractionHandler(exp, subplotCages, onSpotSelectedFromChart)
@@ -165,6 +175,57 @@ public class ChartCagesCombinedFrame {
 
 	public IcyFrame getMainChartFrame() {
 		return mainChartFrame;
+	}
+
+	private static XYPlot buildVerticalSubplot(XYSeriesCollection dataset, int cageId) {
+		NumberAxis yAxis = new NumberAxis("cage " + cageId);
+		yAxis.setAutoRangeIncludesZero(false);
+		NumberAxis dummyX = new NumberAxis();
+		dummyX.setAutoRangeIncludesZero(false);
+		XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, dummyX, yAxis);
+		subplot.setDomainAxis(null);
+		return subplot;
+	}
+
+	private static XYPlot buildHorizontalSubplot(XYSeriesCollection dataset, int cageId) {
+		NumberAxis xAxis = new NumberAxis("cage " + cageId);
+		xAxis.setAutoRangeIncludesZero(false);
+		NumberAxis dummyY = new NumberAxis();
+		dummyY.setAutoRangeIncludesZero(false);
+		XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, xAxis, dummyY);
+		subplot.setRangeAxis(null);
+		return subplot;
+	}
+
+	private static CombinedDomainXYPlot buildVerticalCombined(List<XYPlot> subplots) {
+		NumberAxis sharedX = new NumberAxis("time (min)");
+		sharedX.setAutoRangeIncludesZero(false);
+		CombinedDomainXYPlot combined = new CombinedDomainXYPlot(sharedX);
+		for (XYPlot subplot : subplots) {
+			combined.add(subplot, 1);
+		}
+		return combined;
+	}
+
+	private static CombinedRangeXYPlot buildHorizontalCombined(ResultsOptions options, List<XYPlot> subplots) {
+		String yLabel = "volume (ul)";
+		if (options != null && options.resultType != null) {
+			String unit = options.resultType.toUnit();
+			if (unit != null && !unit.isEmpty()) {
+				yLabel = unit;
+			}
+		}
+		NumberAxis sharedY = new NumberAxis(yLabel);
+		sharedY.setAutoRangeIncludesZero(false);
+		if (options != null && options.resultType == EnumResults.TOPLEVEL_PI) {
+			sharedY.setAutoRange(false);
+			sharedY.setRange(-1.0, 1.0);
+		}
+		CombinedRangeXYPlot combined = new CombinedRangeXYPlot(sharedY);
+		for (XYPlot subplot : subplots) {
+			combined.add(subplot, 1);
+		}
+		return combined;
 	}
 
 	private void loadPreferences() {
