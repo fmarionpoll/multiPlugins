@@ -60,10 +60,10 @@ public class ChartCagesCombinedFrame {
 		HORIZONTAL, VERTICAL
 	}
 
-	private static final int DEFAULT_FRAME_WIDTH = 640;
-	private static final int DEFAULT_FRAME_HEIGHT = 280;
-	private static final int SUBPLOT_WIDTH = 130;
-	private static final int SUBPLOT_HEIGHT = 180;
+	private static final int DEFAULT_FRAME_WIDTH = 480;
+	private static final int DEFAULT_FRAME_HEIGHT = 200;
+	private static final int SUBPLOT_WIDTH = 80;
+	private static final int SUBPLOT_HEIGHT = 120;
 	private static final Font AXIS_FONT = new Font("SansSerif", Font.PLAIN, 9);
 
 	private IcyFrame mainChartFrame = null;
@@ -189,12 +189,12 @@ public class ChartCagesCombinedFrame {
 				: buildVerticalCombined(subplots);
 		JFreeChart chart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, combined, false);
 		int n = Math.max(1, subplotCages.size());
-		int w = horizontal ? Math.max(360, n * SUBPLOT_WIDTH + 50) : 640;
-		int h = horizontal ? SUBPLOT_HEIGHT : Math.max(220, n * 90);
-		chartPanel = new ChartPanel(chart, w, h, 80, 50, Math.max(2400, w), Math.max(1200, h), true, true, true, true,
-				false, true);
-		chartPanel.setMinimumDrawWidth(80);
-		chartPanel.setMinimumDrawHeight(50);
+		int w = horizontal ? Math.max(200, n * SUBPLOT_WIDTH + 50) : 480;
+		int h = horizontal ? SUBPLOT_HEIGHT : Math.max(160, n * 80);
+		chartPanel = new ChartPanel(chart, w, h, n * SUBPLOT_WIDTH, SUBPLOT_HEIGHT, Math.max(2400, w),
+				Math.max(1200, h), true, true, true, true, false, true);
+		chartPanel.setMinimumDrawWidth(n * SUBPLOT_WIDTH);
+		chartPanel.setMinimumDrawHeight(SUBPLOT_HEIGHT);
 		if (isSpotResultType(options.resultType)) {
 			chartPanel.addChartMouseListener(
 					new SpotCombinedChartInteractionHandler(exp, subplotCages, onSpotSelectedFromChart)
