@@ -2,8 +2,11 @@ package plugins.fmp.multitools.tools.chart;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.util.ArrayList;
@@ -18,6 +21,7 @@ import javax.swing.JScrollPane;
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.CombinedDomainXYPlot;
 import org.jfree.chart.plot.CombinedRangeXYPlot;
 import org.jfree.chart.plot.XYPlot;
@@ -34,6 +38,8 @@ import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.CapillaryCombinedChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.interaction.SpotCombinedChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
+import plugins.fmp.multitools.tools.chart.strategies.ChartUIControlsFactory;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
@@ -54,8 +60,11 @@ public class ChartCagesCombinedFrame {
 		HORIZONTAL, VERTICAL
 	}
 
-	private static final int DEFAULT_FRAME_WIDTH = 900;
-	private static final int DEFAULT_FRAME_HEIGHT = 500;
+	private static final int DEFAULT_FRAME_WIDTH = 640;
+	private static final int DEFAULT_FRAME_HEIGHT = 280;
+	private static final int SUBPLOT_WIDTH = 130;
+	private static final int SUBPLOT_HEIGHT = 180;
+	private static final Font AXIS_FONT = new Font("SansSerif", Font.PLAIN, 9);
 
 	private IcyFrame mainChartFrame = null;
 	private JPanel mainChartPanel = null;
@@ -64,6 +73,10 @@ public class ChartCagesCombinedFrame {
 	private Point graphLocation = new Point(0, 0);
 	private Consumer<Spot> onSpotSelectedFromChart;
 	private CombinedLayout layout = CombinedLayout.HORIZONTAL;
+	private ChartUIControlsFactory uiControlsFactory;
+	private String baseTitle = "Capillary level measures";
+	private Experiment experiment;
+	private ResultsOptions currentOptions;
 
 	public void setOnSpotSelectedFromChart(Consumer<Spot> callback) {
 		this.onSpotSelectedFromChart = callback;
@@ -71,6 +84,10 @@ public class ChartCagesCombinedFrame {
 
 	public void setCombinedLayout(CombinedLayout layout) {
 		this.layout = layout != null ? layout : CombinedLayout.HORIZONTAL;
+	}
+
+	public void setUIControlsFactory(ChartUIControlsFactory uiControlsFactory) {
+		this.uiControlsFactory = uiControlsFactory;
 	}
 
 	public void createMainChartPanel(String title, Experiment exp, ResultsOptions options) {
@@ -83,6 +100,7 @@ public class ChartCagesCombinedFrame {
 
 		mainChartPanel = new JPanel(new BorderLayout());
 
+		this.baseTitle = title;
 		String finalTitle = title + ": " + options.resultType;
 		boolean newFrame = !(mainChartFrame != null
 				&& (mainChartFrame.getParent() != null || mainChartFrame.isVisible()));
@@ -105,12 +123,39 @@ public class ChartCagesCombinedFrame {
 			});
 		}
 		mainChartFrame.setLayout(new BorderLayout());
+		if (uiControlsFactory != null) {
+			JPanel topPanel = uiControlsFactory.createTopPanel(options, new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					if (currentOptions != null && experiment != null) {
+						updateFrameTitle();
+						displayData(experiment, currentOptions);
+					}
+				}
+			});
+			if (topPanel != null) {
+				mainChartFrame.add(topPanel, BorderLayout.NORTH);
+			}
+			JPanel bottomPanel = uiControlsFactory.createBottomPanel(options, exp);
+			if (bottomPanel != null) {
+				mainChartFrame.add(bottomPanel, BorderLayout.SOUTH);
+			}
+		}
 		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
 	}
 
 	public void displayData(Experiment exp, ResultsOptions options) {
 		if (mainChartPanel == null || mainChartFrame == null)
 			throw new IllegalStateException("createMainChartPanel must be called first");
+
+		this.experiment = exp;
+		this.currentOptions = options;
+		if (uiControlsFactory instanceof ComboBoxUIControlsFactory) {
+			((ComboBoxUIControlsFactory) uiControlsFactory).setExperiment(exp);
+		}
+		if (uiControlsFactory != null) {
+			uiControlsFactory.updateControls(options.resultType, options);
+		}
 
 		mainChartPanel.removeAll();
 
@@ -120,10 +165,14 @@ public class ChartCagesCombinedFrame {
 		CageSeriesBuilder builder = selectDataBuilder(options.resultType);
 		List<Cage> subplotCages = new ArrayList<>();
 		List<XYPlot> subplots = new ArrayList<>();
+		XYSeriesCollection firstDataset = null;
 		for (Cage cage : filterCages(exp, options)) {
 			XYSeriesCollection dataset = builder.build(exp, cage, options);
 			if (dataset == null || dataset.getSeriesCount() == 0)
 				continue;
+			if (firstDataset == null) {
+				firstDataset = dataset;
+			}
 
 			int cageId = cage.getProperties() != null ? cage.getProperties().getCageID() : -1;
 			XYPlot subplot = horizontal ? buildHorizontalSubplot(dataset, cageId)
@@ -139,10 +188,13 @@ public class ChartCagesCombinedFrame {
 		XYPlot combined = horizontal ? buildHorizontalCombined(options, subplots)
 				: buildVerticalCombined(subplots);
 		JFreeChart chart = new JFreeChart(null, JFreeChart.DEFAULT_TITLE_FONT, combined, false);
-		int w = horizontal ? Math.max(900, subplotCages.size() * 280) : 900;
-		int h = horizontal ? 450 : Math.max(400, subplotCages.size() * 140);
-		chartPanel = new ChartPanel(chart, w, h, 300, 200, Math.max(2000, w), Math.max(2000, h), true, true, true, true,
+		int n = Math.max(1, subplotCages.size());
+		int w = horizontal ? Math.max(360, n * SUBPLOT_WIDTH + 50) : 640;
+		int h = horizontal ? SUBPLOT_HEIGHT : Math.max(220, n * 90);
+		chartPanel = new ChartPanel(chart, w, h, 80, 50, Math.max(2400, w), Math.max(1200, h), true, true, true, true,
 				false, true);
+		chartPanel.setMinimumDrawWidth(80);
+		chartPanel.setMinimumDrawHeight(50);
 		if (isSpotResultType(options.resultType)) {
 			chartPanel.addChartMouseListener(
 					new SpotCombinedChartInteractionHandler(exp, subplotCages, onSpotSelectedFromChart)
@@ -152,6 +204,10 @@ public class ChartCagesCombinedFrame {
 					new CapillaryCombinedChartInteractionHandler(exp, subplotCages).createMouseListener());
 		}
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
+		if (uiControlsFactory != null) {
+			uiControlsFactory.refreshLegendFromDataset(exp, options, firstDataset);
+		}
+		updateFrameTitle();
 
 		mainChartFrame.pack();
 		loadPreferences();
@@ -184,6 +240,7 @@ public class ChartCagesCombinedFrame {
 		dummyX.setAutoRangeIncludesZero(false);
 		XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, dummyX, yAxis);
 		subplot.setDomainAxis(null);
+		applyCompactAxis(yAxis);
 		return subplot;
 	}
 
@@ -194,13 +251,16 @@ public class ChartCagesCombinedFrame {
 		dummyY.setAutoRangeIncludesZero(false);
 		XYPlot subplot = CageChartPlotFactory.buildXYPlot(dataset, xAxis, dummyY);
 		subplot.setRangeAxis(null);
+		applyCompactAxis(xAxis);
 		return subplot;
 	}
 
 	private static CombinedDomainXYPlot buildVerticalCombined(List<XYPlot> subplots) {
 		NumberAxis sharedX = new NumberAxis("time (min)");
 		sharedX.setAutoRangeIncludesZero(false);
+		applyCompactAxis(sharedX);
 		CombinedDomainXYPlot combined = new CombinedDomainXYPlot(sharedX);
+		combined.setGap(4.0);
 		for (XYPlot subplot : subplots) {
 			combined.add(subplot, 1);
 		}
@@ -221,21 +281,39 @@ public class ChartCagesCombinedFrame {
 			sharedY.setAutoRange(false);
 			sharedY.setRange(-1.0, 1.0);
 		}
+		applyCompactAxis(sharedY);
 		CombinedRangeXYPlot combined = new CombinedRangeXYPlot(sharedY);
+		combined.setGap(4.0);
 		for (XYPlot subplot : subplots) {
 			combined.add(subplot, 1);
 		}
 		return combined;
 	}
 
+	private static void applyCompactAxis(ValueAxis axis) {
+		if (axis == null) {
+			return;
+		}
+		axis.setLabelFont(AXIS_FONT);
+		axis.setTickLabelFont(AXIS_FONT);
+	}
+
+	private void updateFrameTitle() {
+		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
+			String rt = currentOptions.resultType != null ? currentOptions.resultType.toString() : "";
+			mainChartFrame.setTitle(baseTitle + ": " + rt);
+		}
+	}
+
 	private void loadPreferences() {
 		if (mainChartFrame == null)
 			return;
 		Preferences prefs = Preferences.userNodeForPackage(ChartCagesCombinedFrame.class);
-		int x = prefs.getInt("window_x", graphLocation.x);
-		int y = prefs.getInt("window_y", graphLocation.y);
-		int w = prefs.getInt("window_w", DEFAULT_FRAME_WIDTH);
-		int h = prefs.getInt("window_h", DEFAULT_FRAME_HEIGHT);
+		String suffix = layout == CombinedLayout.VERTICAL ? "_v" : "_h";
+		int x = prefs.getInt("window_x" + suffix, graphLocation.x);
+		int y = prefs.getInt("window_y" + suffix, graphLocation.y);
+		int w = prefs.getInt("window_w" + suffix, DEFAULT_FRAME_WIDTH);
+		int h = prefs.getInt("window_h" + suffix, DEFAULT_FRAME_HEIGHT);
 		mainChartFrame.setBounds(new Rectangle(x, y, w, h));
 	}
 
@@ -244,10 +322,11 @@ public class ChartCagesCombinedFrame {
 			return;
 		Preferences prefs = Preferences.userNodeForPackage(ChartCagesCombinedFrame.class);
 		Rectangle r = mainChartFrame.getBounds();
-		prefs.putInt("window_x", r.x);
-		prefs.putInt("window_y", r.y);
-		prefs.putInt("window_w", r.width);
-		prefs.putInt("window_h", r.height);
+		String suffix = layout == CombinedLayout.VERTICAL ? "_v" : "_h";
+		prefs.putInt("window_x" + suffix, r.x);
+		prefs.putInt("window_y" + suffix, r.y);
+		prefs.putInt("window_w" + suffix, r.width);
+		prefs.putInt("window_h" + suffix, r.height);
 	}
 
 	private CageSeriesBuilder selectDataBuilder(EnumResults resultType) {

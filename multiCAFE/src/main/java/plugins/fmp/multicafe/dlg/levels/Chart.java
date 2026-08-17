@@ -281,6 +281,10 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 		iChart = new ChartCagesCombinedFrame();
 		iChart.setCombinedLayout(ChartCagesCombinedFrame.CombinedLayout.HORIZONTAL);
+		ComboBoxUIControlsFactory combinedUi = new ComboBoxUIControlsFactory();
+		combinedUi.setMeasurementTypes(measures);
+		combinedUi.setParentComboBox(resultTypeComboBox);
+		iChart.setUIControlsFactory(combinedUi);
 		iChart.createMainChartPanel("Capillary level measures", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
