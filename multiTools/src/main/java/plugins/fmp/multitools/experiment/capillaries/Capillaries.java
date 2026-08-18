@@ -71,8 +71,8 @@ public class Capillaries {
 		if (lightStatusPerFrame == null || lightStatusPerFrame.length == 0)
 			return;
 		for (Capillary cap : capillariesList) {
-			clearMeasureAtDarkFrames(cap.getTopLevel(), lightStatusPerFrame);
-			clearMeasureAtDarkFrames(cap.getBottomLevel(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getTopRaw(), lightStatusPerFrame);
+			clearMeasureAtDarkFrames(cap.getBottomRaw(), lightStatusPerFrame);
 			clearMeasureAtDarkFrames(cap.getDerivative(), lightStatusPerFrame);
 			clearMeasureAtDarkFrames(cap.getTopCorrected(), lightStatusPerFrame);
 			if (cap.getGulps() != null) {

@@ -155,7 +155,7 @@ public class CageCapillariesComputation {
 		// Find maximum dimension
 		int maxPoints = 0;
 		for (Capillary cap : capillaries) {
-			CapillaryMeasure measure = (cap.getTopCorrected() != null) ? cap.getTopCorrected() : cap.getTopLevel();
+			CapillaryMeasure measure = (cap.getTopCorrected() != null) ? cap.getTopCorrected() : cap.getTopRaw();
 			if (measure != null && measure.polylineLevel != null) {
 				int npoints = measure.polylineLevel.npoints;
 				if (npoints > maxPoints)
@@ -173,7 +173,7 @@ public class CageCapillariesComputation {
 		}
 
 		for (Capillary cap : capillaries) {
-			CapillaryMeasure measure = (cap.getTopCorrected() != null) ? cap.getTopCorrected() : cap.getTopLevel();
+			CapillaryMeasure measure = (cap.getTopCorrected() != null) ? cap.getTopCorrected() : cap.getTopRaw();
 			if (measure == null || measure.polylineLevel == null || measure.polylineLevel.npoints == 0)
 				continue;
 

@@ -86,8 +86,8 @@ public class LevelDetectorFromCam {
 
 		for (Capillary cap : toProcess) {
 			cap.getProperties().getLimitsOptions().copyFrom(options);
-			cap.getTopLevel().limit = new int[nTimeBins];
-			cap.getBottomLevel().limit = new int[nTimeBins];
+			cap.getTopRaw().limit = new int[nTimeBins];
+			cap.getBottomRaw().limit = new int[nTimeBins];
 		}
 
 		SequenceLoaderService loader = new SequenceLoaderService();
@@ -149,15 +149,15 @@ public class LevelDetectorFromCam {
 		for (Capillary cap : toProcess) {
 			String name = cap.getLast2ofCapillaryName();
 			if (name != null) {
-				if (cap.getTopLevel() != null)
-					cap.getTopLevel().setPolylineLevelFromTempData(name + "_toplevel", 0, columnFirst,
+				if (cap.getTopRaw() != null)
+					cap.getTopRaw().setPolylineLevelFromTempData(name + "_toplevel", 0, columnFirst,
 							columnLast);
-				if (cap.getBottomLevel() != null)
-					cap.getBottomLevel().setPolylineLevelFromTempData(name + "_bottomlevel", 0, columnFirst,
+				if (cap.getBottomRaw() != null)
+					cap.getBottomRaw().setPolylineLevelFromTempData(name + "_bottomlevel", 0, columnFirst,
 							columnLast);
 			}
-			cap.getTopLevel().limit = null;
-			cap.getBottomLevel().limit = null;
+			cap.getTopRaw().limit = null;
+			cap.getBottomRaw().limit = null;
 		}
 
 		exp.save_capillaries_description_and_measures();
@@ -205,14 +205,14 @@ public class LevelDetectorFromCam {
 		int imageWidth = 1;
 		int imageHeight = profileLen;
 		int ix = 0;
-		int topSearchFrom = timeIndex > 0 ? capi.getTopLevel().limit[timeIndex - 1] : 0;
+		int topSearchFrom = timeIndex > 0 ? capi.getTopRaw().limit[timeIndex - 1] : 0;
 		int iyTop = detectThresholdFromTop(ix, topSearchFrom, JITTER_PASS1, arr, imageWidth, imageHeight, options,
 				searchRect);
 		int iyBottom = detectThresholdFromBottom(ix, JITTER_PASS1, arr, imageWidth, imageHeight, options, searchRect);
 		if (iyBottom <= iyTop)
 			iyTop = topSearchFrom;
-		capi.getTopLevel().limit[timeIndex] = iyTop;
-		capi.getBottomLevel().limit[timeIndex] = iyBottom;
+		capi.getTopRaw().limit[timeIndex] = iyTop;
+		capi.getBottomRaw().limit[timeIndex] = iyBottom;
 	}
 
 	private static int detectThresholdFromTop(int ix, int searchFrom, int jitter, int[] tabValues, int imageWidth,

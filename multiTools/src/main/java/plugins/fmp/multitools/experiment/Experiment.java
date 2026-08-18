@@ -397,8 +397,8 @@ public class Experiment {
 		}
 		if (capillaries != null) {
 			for (Capillary cap : capillaries.getList()) {
-				if (cap != null && cap.getTopLevel() != null && cap.getTopLevel().getNPoints() > 0) {
-					return cap.getTopLevel().getNPoints();
+				if (cap != null && cap.getTopRaw() != null && cap.getTopRaw().getNPoints() > 0) {
+					return cap.getTopRaw().getNPoints();
 				}
 			}
 		}

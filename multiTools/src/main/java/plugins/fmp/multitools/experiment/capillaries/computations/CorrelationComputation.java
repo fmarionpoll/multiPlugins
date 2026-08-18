@@ -43,7 +43,7 @@ public class CorrelationComputation {
 				return null;
 			}
 
-			int npoints = cap.getTopLevel().getNPoints();
+			int npoints = cap.getTopRaw().getNPoints();
 			long binData = exp.getKymoBin_ms();
 			long binExcel = options.buildExcelStepMs;
 			int nBins = options.nBinsCorrelation;
@@ -166,7 +166,7 @@ public class CorrelationComputation {
 				return null;
 			}
 
-			int npoints = cap.getTopLevel().getNPoints();
+			int npoints = cap.getTopRaw().getNPoints();
 			long binData = exp.getKymoBin_ms();
 			long binExcel = options.buildExcelStepMs;
 
@@ -293,7 +293,7 @@ public class CorrelationComputation {
 			return null;
 		}
 
-		int npoints = cap.getTopLevel().getNPoints();
+		int npoints = cap.getTopRaw().getNPoints();
 		long binData = exp.getKymoBin_ms();
 		long binExcel = options.buildExcelStepMs;
 

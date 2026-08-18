@@ -584,20 +584,20 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			return null;
 
 		Capillary cap = exp.getCapillaries().getList().get(currentKymoIndex);
-		if (cap == null || cap.getTopLevel() == null)
+		if (cap == null || cap.getTopRaw() == null)
 			return null;
 
-		if (cap.getTopLevel().polylineLevel == null || cap.getTopLevel().polylineLevel.npoints == 0) {
-			if (cap.getTopLevel().limit != null && cap.getTopLevel().limit.length > 0) {
-				return cap.getTopLevel().limit;
+		if (cap.getTopRaw().polylineLevel == null || cap.getTopRaw().polylineLevel.npoints == 0) {
+			if (cap.getTopRaw().limit != null && cap.getTopRaw().limit.length > 0) {
+				return cap.getTopRaw().limit;
 			}
 			return null;
 		}
 
-		int npoints = cap.getTopLevel().polylineLevel.npoints;
+		int npoints = cap.getTopRaw().polylineLevel.npoints;
 		int[] levels = new int[npoints];
 		for (int i = 0; i < npoints; i++) {
-			levels[i] = (int) cap.getTopLevel().polylineLevel.ypoints[i];
+			levels[i] = (int) cap.getTopRaw().polylineLevel.ypoints[i];
 		}
 		return levels;
 	}

@@ -245,7 +245,7 @@ public final class CapillaryKymographMeasureBridge {
 			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
 				gulpRois.add(r);
 		}
-		int npoints = (cap.getTopLevel() != null) ? cap.getTopLevel().getNPoints() : 0;
+		int npoints = (cap.getTopRaw() != null) ? cap.getTopRaw().getNPoints() : 0;
 		cap.getGulps().transferROIsToMeasures(gulpRois, npoints);
 
 		kymos.getSequence().removeROIs(gulpRois, false);

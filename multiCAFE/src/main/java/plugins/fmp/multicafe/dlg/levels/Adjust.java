@@ -133,8 +133,8 @@ public class Adjust extends JPanel implements PropertyChangeListener {
 		Capillary cap = exp.getCapillaries().getList().get(t);
 		cap.restoreClippedMeasures();
 
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopLevel());
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomLevel());
+		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopRaw());
+		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomRaw());
 		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
 	}
 

@@ -98,35 +98,35 @@ public class LevelDetectorFromKymo {
 					if (columnLast < columnFirst)
 						return;
 					if (options.analyzePartOnly) {
-						ensureFullWidthPolylineForPartialUpdate(capi.getTopLevel(), imageWidth, columnLast);
-						ensureFullWidthPolylineForPartialUpdate(capi.getBottomLevel(), imageWidth, columnLast);
-						if (capi.getTopLevel() != null && capi.getTopLevel().polylineLevel != null
-								&& capi.getTopLevel().limit != null)
-							capi.getTopLevel().polylineLevel.insertYPoints(capi.getTopLevel().limit, columnFirst,
+						ensureFullWidthPolylineForPartialUpdate(capi.getTopRaw(), imageWidth, columnLast);
+						ensureFullWidthPolylineForPartialUpdate(capi.getBottomRaw(), imageWidth, columnLast);
+						if (capi.getTopRaw() != null && capi.getTopRaw().polylineLevel != null
+								&& capi.getTopRaw().limit != null)
+							capi.getTopRaw().polylineLevel.insertYPoints(capi.getTopRaw().limit, columnFirst,
 									columnLast);
-						if (capi.getBottomLevel() != null && capi.getBottomLevel().limit != null
-								&& capi.getBottomLevel().polylineLevel != null)
-							capi.getBottomLevel().polylineLevel.insertYPoints(capi.getBottomLevel().limit, columnFirst,
+						if (capi.getBottomRaw() != null && capi.getBottomRaw().limit != null
+								&& capi.getBottomRaw().polylineLevel != null)
+							capi.getBottomRaw().polylineLevel.insertYPoints(capi.getBottomRaw().limit, columnFirst,
 									columnLast);
 					} else {
-						if (capi.getTopLevel() != null) {
+						if (capi.getTopRaw() != null) {
 							String topLevelName = capi.getLast2ofCapillaryName();
 							if (topLevelName != null)
-								capi.getTopLevel().setPolylineLevelFromTempData(topLevelName + "_toplevel",
+								capi.getTopRaw().setPolylineLevelFromTempData(topLevelName + "_toplevel",
 										capi.getKymographIndex(), columnFirst, columnLast);
 						}
 
-						if (capi.getBottomLevel() != null && capi.getBottomLevel().limit != null) {
+						if (capi.getBottomRaw() != null && capi.getBottomRaw().limit != null) {
 							String bottomLevelName = capi.getLast2ofCapillaryName();
 							if (bottomLevelName != null)
-								capi.getBottomLevel().setPolylineLevelFromTempData(bottomLevelName + "_bottomlevel",
+								capi.getBottomRaw().setPolylineLevelFromTempData(bottomLevelName + "_bottomlevel",
 										capi.getKymographIndex(), columnFirst, columnLast);
 						}
 					}
-					if (capi.getTopLevel() != null)
-						capi.getTopLevel().limit = null;
-					if (capi.getBottomLevel() != null)
-						capi.getBottomLevel().limit = null;
+					if (capi.getTopRaw() != null)
+						capi.getTopRaw().limit = null;
+					if (capi.getBottomRaw() != null)
+						capi.getBottomRaw().limit = null;
 				}
 			}));
 		}
@@ -173,21 +173,21 @@ public class LevelDetectorFromKymo {
 		if (columnLast < columnFirst)
 			return;
 		int n_measures = columnLast - columnFirst + 1;
-		capi.getTopLevel().limit = new int[n_measures];
-		capi.getBottomLevel().limit = new int[n_measures];
+		capi.getTopRaw().limit = new int[n_measures];
+		capi.getBottomRaw().limit = new int[n_measures];
 
 		boolean directionUp = options.directionUp1;
 		int threshold = options.detectLevel1Threshold;
 
 		computeTopBottomThresholds(transformed1DArray1, imageWidth, imageHeight, searchRect, directionUp, threshold,
-				columnFirst, columnLast, capi.getTopLevel().limit, capi.getBottomLevel().limit);
+				columnFirst, columnLast, capi.getTopRaw().limit, capi.getBottomRaw().limit);
 	}
 
 	private void detectPass2(IcyBufferedImage rawImage, ImageTransformInterface transformPass2, Capillary capi,
 			int imageWidth, int imageHeight, Rectangle searchRect, int jitter, BuildSeriesOptions options) {
 
-		if (capi.getTopLevel().limit == null)
-			capi.getTopLevel().setTempDataFromPolylineLevel();
+		if (capi.getTopRaw().limit == null)
+			capi.getTopRaw().setTempDataFromPolylineLevel();
 		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformedImage2 = transformPass2.getTransformedImage(rawImage, transformOptions);
 		Object transformedArray2 = transformedImage2.getDataXY(0);
@@ -204,12 +204,12 @@ public class LevelDetectorFromKymo {
 		switch (options.transform02) {
 		case COLORDISTANCE_L1_Y:
 		case COLORDISTANCE_L2_Y:
-			findBestPosition(capi.getTopLevel().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
+			findBestPosition(capi.getTopRaw().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
 					imageHeight, options.jitter2, options.detectLevel2Threshold, options.directionUp2);
 			break;
 		case SUBTRACT_1RSTCOL:
 		case L1DIST_TO_1RSTCOL:
-			detectThresholdUp(capi.getTopLevel().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
+			detectThresholdUp(capi.getTopRaw().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
 					imageHeight, options.jitter2, options.detectLevel2Threshold, options.directionUp2);
 			break;
 		case DERICHE:
@@ -217,7 +217,7 @@ public class LevelDetectorFromKymo {
 		case YDIFFN:
 		case YDIFFN2:
 		case MINUSHORIZAVG:
-			findBestPosition(capi.getTopLevel().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
+			findBestPosition(capi.getTopRaw().limit, columnFirst, columnLast, transformed1DArray2, imageWidth,
 					imageHeight, options.jitter2, options.detectLevel2Threshold, options.directionUp2);
 			break;
 		default:

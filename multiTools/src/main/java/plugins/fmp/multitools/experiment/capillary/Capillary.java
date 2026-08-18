@@ -222,11 +222,11 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	// Delegate getters for measurements
-	public CapillaryMeasure getTopLevel() {
+	public CapillaryMeasure getTopRaw() {
 		return measurements.ptsTop;
 	}
 
-	public CapillaryMeasure getBottomLevel() {
+	public CapillaryMeasure getBottomRaw() {
 		return measurements.ptsBottom;
 	}
 
@@ -1036,14 +1036,14 @@ public class Capillary implements Comparable<Capillary> {
 		ROI2DPolyLine polyLine = (ROI2DPolyLine) roi;
 		switch (target) {
 		case TOP_LEVEL:
-			getTopLevel().setFromROI(polyLine);
+			getTopRaw().setFromROI(polyLine);
 			break;
 		case BOTTOM_LEVEL:
-			getBottomLevel().setFromROI(polyLine);
+			getBottomRaw().setFromROI(polyLine);
 			break;
 		case TOP_AND_BOTTOM:
-			getTopLevel().setFromROI(polyLine);
-			getBottomLevel().setFromROI(polyLine);
+			getTopRaw().setFromROI(polyLine);
+			getBottomRaw().setFromROI(polyLine);
 			break;
 		case DERIVATIVE:
 			getDerivative().setFromROI(polyLine);

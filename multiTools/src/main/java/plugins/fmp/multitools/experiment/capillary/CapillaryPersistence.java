@@ -140,12 +140,12 @@ public class CapillaryPersistence {
 
 	public static boolean xmlLoadMeasures(Node node, Capillary cap) {
 		String header = cap.getLast2ofCapillaryName() + "_";
-		boolean result = cap.getTopLevel().loadCapillaryLimitFromXML(node, ID_TOPLEVEL, header) > 0;
-		result |= cap.getBottomLevel().loadCapillaryLimitFromXML(node, ID_BOTTOMLEVEL, header) > 0;
+		boolean result = cap.getTopRaw().loadCapillaryLimitFromXML(node, ID_TOPLEVEL, header) > 0;
+		result |= cap.getBottomRaw().loadCapillaryLimitFromXML(node, ID_BOTTOMLEVEL, header) > 0;
 		result |= cap.getDerivative().loadCapillaryLimitFromXML(node, ID_DERIVATIVE, header) > 0;
 		result |= cap.getTopCorrected().loadCapillaryLimitFromXML(node, ID_TOPLEVEL_CORRECTED, header) > 0;
 		result |= cap.getThreshold().loadCapillaryLimitFromXML(node, ID_THRESHOLD, header) > 0;
-		int npoints = (cap.getTopLevel() != null) ? cap.getTopLevel().getNPoints() : 0;
+		int npoints = (cap.getTopRaw() != null) ? cap.getTopRaw().getNPoints() : 0;
 		result |= cap.getGulps().loadGulpsFromXML(node, npoints);
 		return result;
 	}
@@ -300,14 +300,14 @@ public class CapillaryPersistence {
 
 		switch (measureType) {
 		case TOPRAW:
-			cap.getTopLevel().cvsExportYDataToRow(sbf, sep);
+			cap.getTopRaw().cvsExportYDataToRow(sbf, sep);
 			break;
 		case TOPLEVEL:
 			if (cap.getTopCorrected() != null && cap.getTopCorrected().isThereAnyMeasuresDone())
 				cap.getTopCorrected().cvsExportYDataToRow(sbf, sep);
 			break;
 		case BOTTOMLEVEL:
-			cap.getBottomLevel().cvsExportYDataToRow(sbf, sep);
+			cap.getBottomRaw().cvsExportYDataToRow(sbf, sep);
 			break;
 		case DERIVEDVALUES:
 			cap.getDerivative().cvsExportYDataToRow(sbf, sep);
@@ -535,9 +535,9 @@ public class CapillaryPersistence {
 			switch (measureType) {
 			case TOPRAW:
 				if (x && y)
-					cap.getTopLevel().csvImportXYDataFromRow(data, 2);
+					cap.getTopRaw().csvImportXYDataFromRow(data, 2);
 				else if (!x && y)
-					cap.getTopLevel().csvImportYDataFromRow(data, 2);
+					cap.getTopRaw().csvImportYDataFromRow(data, 2);
 				break;
 			case TOPLEVEL:
 				if (x && y)
@@ -547,9 +547,9 @@ public class CapillaryPersistence {
 				break;
 			case BOTTOMLEVEL:
 				if (x && y)
-					cap.getBottomLevel().csvImportXYDataFromRow(data, 2);
+					cap.getBottomRaw().csvImportXYDataFromRow(data, 2);
 				else if (!x && y)
-					cap.getBottomLevel().csvImportYDataFromRow(data, 2);
+					cap.getBottomRaw().csvImportYDataFromRow(data, 2);
 				break;
 			case DERIVEDVALUES:
 				if (x && y)

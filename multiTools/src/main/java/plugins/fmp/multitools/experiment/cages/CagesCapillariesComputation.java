@@ -58,8 +58,8 @@ public class CagesCapillariesComputation {
 
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
-				if (cap.getProperties().getNFlies() == 0 && cap.getTopLevel() != null
-						&& cap.getTopLevel().polylineLevel != null && cap.getTopLevel().polylineLevel.npoints > 0) {
+				if (cap.getProperties().getNFlies() == 0 && cap.getTopRaw() != null
+						&& cap.getTopRaw().polylineLevel != null && cap.getTopRaw().polylineLevel.npoints > 0) {
 					zeroFliesCapillariesAll.add(cap);
 					String side = getCapillarySide(cap);
 					if (side.contains("L") || side.contains("1")) {
@@ -100,12 +100,12 @@ public class CagesCapillariesComputation {
 
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
-				if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null
-						|| cap.getTopLevel().polylineLevel.npoints == 0)
+				if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null
+						|| cap.getTopRaw().polylineLevel.npoints == 0)
 					continue;
 
 				if (evaporationForCorrection != null) {
-					cap.setTopCorrected(subtractEvaporation(cap.getTopLevel(), evaporationForCorrection));
+					cap.setTopCorrected(subtractEvaporation(cap.getTopRaw(), evaporationForCorrection));
 				}
 			}
 		}
@@ -153,8 +153,8 @@ public class CagesCapillariesComputation {
 		// Find maximum dimension
 		int maxPoints = 0;
 		for (Capillary cap : capillaries) {
-			if (cap.getTopLevel() != null && cap.getTopLevel().polylineLevel != null) {
-				int npoints = cap.getTopLevel().polylineLevel.npoints;
+			if (cap.getTopRaw() != null && cap.getTopRaw().polylineLevel != null) {
+				int npoints = cap.getTopRaw().polylineLevel.npoints;
 				if (npoints > maxPoints)
 					maxPoints = npoints;
 			}
@@ -172,10 +172,10 @@ public class CagesCapillariesComputation {
 		}
 
 		for (Capillary cap : capillaries) {
-			if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null
-					|| cap.getTopLevel().polylineLevel.npoints == 0)
+			if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null
+					|| cap.getTopRaw().polylineLevel.npoints == 0)
 				continue;
-			Level2D polyline = cap.getTopLevel().polylineLevel;
+			Level2D polyline = cap.getTopRaw().polylineLevel;
 			if (polyline == null)
 				continue;
 

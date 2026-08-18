@@ -25,7 +25,7 @@ public class GulpMeasureComputation {
 				return null;
 			}
 
-			int npoints = cap.getTopLevel().getNPoints();
+			int npoints = cap.getTopRaw().getNPoints();
 			long binData = exp.getKymoBin_ms();
 			long binExcel = options.buildExcelStepMs;
 
@@ -64,7 +64,7 @@ public class GulpMeasureComputation {
 				return null;
 			}
 
-			int npoints = cap.getTopLevel().getNPoints();
+			int npoints = cap.getTopRaw().getNPoints();
 			long binData = exp.getKymoBin_ms();
 			long binExcel = options.buildExcelStepMs;
 
@@ -103,7 +103,7 @@ public class GulpMeasureComputation {
 				return null;
 			}
 
-			int npoints = cap.getTopLevel().getNPoints();
+			int npoints = cap.getTopRaw().getNPoints();
 			long binData = exp.getKymoBin_ms();
 			long binExcel = options.buildExcelStepMs;
 

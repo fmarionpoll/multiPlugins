@@ -151,11 +151,11 @@ public class GulpDetector {
 	}
 
 	private void detectGulpsForCapillary(Capillary cap, CapillaryMeasure thresholdMeasure) {
-		if (cap.getTopLevel() == null || cap.getTopLevel().polylineLevel == null || cap.getDerivative() == null
+		if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null || cap.getDerivative() == null
 				|| cap.getDerivative().polylineLevel == null)
 			return;
 
-		CapillaryMeasure ptsTop = cap.getTopLevel();
+		CapillaryMeasure ptsTop = cap.getTopRaw();
 		CapillaryMeasure ptsDerivative = cap.getDerivative();
 		CapillaryGulps ptsGulps = cap.getGulps();
 		if (ptsGulps == null)
@@ -511,7 +511,7 @@ public class GulpDetector {
 	 * transform (e.g. XDIFFN) from KymographService.buildFiltered.
 	 */
 	private List<Point2D> getDerivativeProfile(Sequence seq, Capillary cap, int jitter, int zIndex) {
-		Polyline2D polylineTopLevel = cap.getTopLevel().polylineLevel;
+		Polyline2D polylineTopLevel = cap.getTopRaw().polylineLevel;
 		if (polylineTopLevel == null)
 			return null;
 		if (zIndex < 0 || zIndex >= seq.getSizeZ()) {

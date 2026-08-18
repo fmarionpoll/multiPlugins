@@ -257,8 +257,8 @@ public class EditLevels extends JPanel {
 		int lastX = findLastXLeftOfRoi(cap, roiRef);
 		cap.cropMeasuresToNPoints(lastX + 1);
 
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopLevel());
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomLevel());
+		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopRaw());
+		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomRaw());
 		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
 	}
 
@@ -267,7 +267,7 @@ public class EditLevels extends JPanel {
 		Rectangle2D rectRef = roiRef.getBounds2D();
 		double xleft = rectRef.getX();
 
-		Polyline2D polyline = cap.getTopLevel().polylineLevel;
+		Polyline2D polyline = cap.getTopRaw().polylineLevel;
 		for (int i = 0; i < polyline.npoints; i++) {
 			if (polyline.xpoints[i] < xleft)
 				continue;
@@ -283,8 +283,8 @@ public class EditLevels extends JPanel {
 		Capillary cap = exp.getCapillaries().getList().get(t);
 		cap.restoreClippedMeasures();
 
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopLevel());
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomLevel());
+		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopRaw());
+		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomRaw());
 		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
 	}
 
@@ -419,12 +419,12 @@ public class EditLevels extends JPanel {
 			// via interpolateMissingPointsAlongXAxis, which cast NaN→0 and overwrote
 			// those gaps before fillInvalidYWithLinearInterpolation could run.
 			// Snapshot NaN masks, pull ROI edits, restore gaps, then interpolate.
-			boolean[] topInvalid = snapshotInvalidY(ctx.cap.getTopLevel());
-			boolean[] bottomInvalid = snapshotInvalidY(ctx.cap.getBottomLevel());
+			boolean[] topInvalid = snapshotInvalidY(ctx.cap.getTopRaw());
+			boolean[] bottomInvalid = snapshotInvalidY(ctx.cap.getBottomRaw());
 			boolean[] derivInvalid = snapshotInvalidY(ctx.cap.getDerivative());
 			ctx.seqKymos.validateLinearROIsAtT(ctx.cap);
-			restoreInvalidY(ctx.cap.getTopLevel(), topInvalid);
-			restoreInvalidY(ctx.cap.getBottomLevel(), bottomInvalid);
+			restoreInvalidY(ctx.cap.getTopRaw(), topInvalid);
+			restoreInvalidY(ctx.cap.getBottomRaw(), bottomInvalid);
 			restoreInvalidY(ctx.cap.getDerivative(), derivInvalid);
 			fillInvalidMeasuresForAllCapillaries(exp);
 			refreshLinearRoisFromMeasures(exp);
@@ -459,17 +459,17 @@ public class EditLevels extends JPanel {
 			if (allCaps.isSelected()) {
 				for (Capillary cap : exp.getCapillaries().getList()) {
 					if (target == MeasureEditTarget.TOP_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
-						cutAndUpdate(ctx.seqKymos, cap, cap.getTopLevel(), ctx.selectedROI);
+						cutAndUpdate(ctx.seqKymos, cap, cap.getTopRaw(), ctx.selectedROI);
 					if (target == MeasureEditTarget.BOTTOM_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
-						cutAndUpdate(ctx.seqKymos, cap, cap.getBottomLevel(), ctx.selectedROI);
+						cutAndUpdate(ctx.seqKymos, cap, cap.getBottomRaw(), ctx.selectedROI);
 					if (target == MeasureEditTarget.DERIVATIVE)
 						cutAndUpdate(ctx.seqKymos, cap, cap.getDerivative(), ctx.selectedROI);
 				}
 			} else {
 				if (target == MeasureEditTarget.TOP_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
-					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getTopLevel(), ctx.selectedROI);
+					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getTopRaw(), ctx.selectedROI);
 				if (target == MeasureEditTarget.BOTTOM_LEVEL || target == MeasureEditTarget.TOP_AND_BOTTOM)
-					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getBottomLevel(), ctx.selectedROI);
+					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getBottomRaw(), ctx.selectedROI);
 				if (target == MeasureEditTarget.DERIVATIVE)
 					cutAndUpdate(ctx.seqKymos, ctx.cap, ctx.cap.getDerivative(), ctx.selectedROI);
 			}
@@ -489,8 +489,8 @@ public class EditLevels extends JPanel {
 		if (exp == null || exp.getCapillaries() == null)
 			return;
 		for (Capillary cap : exp.getCapillaries().getList()) {
-			fillInvalidIfPresent(cap.getTopLevel());
-			fillInvalidIfPresent(cap.getBottomLevel());
+			fillInvalidIfPresent(cap.getTopRaw());
+			fillInvalidIfPresent(cap.getBottomRaw());
 			fillInvalidIfPresent(cap.getDerivative());
 			fillInvalidIfPresent(cap.getTopCorrected());
 		}
@@ -529,10 +529,10 @@ public class EditLevels extends JPanel {
 		if (seqKymos == null || exp.getCapillaries() == null)
 			return;
 		for (Capillary cap : exp.getCapillaries().getList()) {
-			if (cap.getTopLevel() != null)
-				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopLevel());
-			if (cap.getBottomLevel() != null)
-				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomLevel());
+			if (cap.getTopRaw() != null)
+				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopRaw());
+			if (cap.getBottomRaw() != null)
+				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomRaw());
 			if (cap.getDerivative() != null)
 				seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
 		}
