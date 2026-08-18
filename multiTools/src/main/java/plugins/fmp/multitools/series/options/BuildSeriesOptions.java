@@ -15,6 +15,35 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.imageTransform.SpotThresholdColorSpace;
 
 public class BuildSeriesOptions implements XMLPersistent {
+
+	public enum GulpDetectionMethod {
+		XDIFFN_REF("XDiffn vs ref (classic)"), TOPRAW_DY("topraw dY (v2)");
+
+		private final String label;
+
+		GulpDetectionMethod(String label) {
+			this.label = label;
+		}
+
+		@Override
+		public String toString() {
+			return label;
+		}
+
+		public static GulpDetectionMethod fromXml(String value) {
+			if (value == null || value.trim().isEmpty()) {
+				return TOPRAW_DY;
+			}
+			String trimmed = value.trim();
+			for (GulpDetectionMethod m : values()) {
+				if (m.name().equals(trimmed) || m.label.equals(trimmed)) {
+					return m;
+				}
+			}
+			return TOPRAW_DY;
+		}
+	}
+
 	public boolean isFrameFixed = false;
 	public long t_Ms_First = 0;
 	public long t_Ms_Last = 0;
@@ -61,6 +90,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int spanDiffForGulps = 3;
 	public boolean buildGulps = true;
 
+	public GulpDetectionMethod gulpDetectionMethod = GulpDetectionMethod.TOPRAW_DY;
 	public GulpThresholdMethod thresholdMethod = GulpThresholdMethod.MEAN_PLUS_SD;
 	public double thresholdSdMultiplier = 3.0;
 	public GulpThresholdSmoothing thresholdSmoothing = GulpThresholdSmoothing.NONE;
@@ -472,6 +502,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 		}
 
 		buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
+		gulpDetectionMethod = GulpDetectionMethod
+				.fromXml(XMLUtil.getElementValue(nodeMeta, "gulpDetectionMethod", null));
 		flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
 				"flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 	}
@@ -514,6 +546,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 		XMLUtil.setElementBooleanValue(nodeMeta, "colorFlyThresholdUp", flyThresholdUp);
 
 		XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
+		XMLUtil.setElementValue(nodeMeta, "gulpDetectionMethod",
+				gulpDetectionMethod != null ? gulpDetectionMethod.name() : GulpDetectionMethod.TOPRAW_DY.name());
 		XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 	}
 

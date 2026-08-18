@@ -32,7 +32,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * Normalized CSV export for multiCAFE capillary levels and gulps.
  * <p>
  * Capillary ({@code measure_cap_*}) files include topraw / toplevel / bottomlevel
- * / sumgulps when data exist, plus derivative if selected. Cage
+ * / sumgulps / gulp_amplitude (0 when no gulp at that time), plus derivative if
+ * selected. Cage
  * ({@code measure_cage_*}) files are wide: {@code sum}/{@code pi} (toplevel),
  * {@code sum_topraw}/{@code pi_topraw}, {@code sum_gulps}/{@code pi_gulps}.
  * Levels-tab checkboxes do not gate the standard columns; optional extras
@@ -225,6 +226,10 @@ public final class CsvNormalizedExport {
 		if (binned.length == 0 || binned[0].length == 0) {
 			return;
 		}
+		int gulpCol = denseCols.indexOf(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
+		if (gulpCol >= 0 && gulpCol < binned.length) {
+			binned[gulpCol] = sumEventsIntoBins(timesMs, cols[gulpCol], binStepMs, binned[0].length);
+		}
 		int nBins = binned[0].length;
 		long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
 		for (int b = 0; b < nBins; b++) {
@@ -232,8 +237,17 @@ public final class CsvNormalizedExport {
 			boolean any = false;
 			for (int c = 0; c < denseCols.size(); c++) {
 				double v = binned[c][b];
+				String col = denseCols.get(c);
+				if (CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(col)) {
+					double g = Double.isNaN(v) ? 0.0 : v;
+					row.put(col, g);
+					if (g != 0.0) {
+						any = true;
+					}
+					continue;
+				}
 				if (!Double.isNaN(v)) {
-					row.put(denseCols.get(c), v);
+					row.put(col, v);
 					any = true;
 				}
 			}
@@ -241,6 +255,24 @@ public final class CsvNormalizedExport {
 				csv.writeMeasureCapRowBin(expKey, cageId, capId, starts[b] / 60000.0, row);
 			}
 		}
+	}
+
+	private static double[] sumEventsIntoBins(long[] timesMs, double[] values, long binStepMs, int nBins) {
+		double[] out = new double[nBins];
+		if (timesMs == null || values == null || binStepMs <= 0 || nBins <= 0) {
+			return out;
+		}
+		int n = Math.min(timesMs.length, values.length);
+		for (int i = 0; i < n; i++) {
+			if (Double.isNaN(values[i]) || values[i] == 0.0) {
+				continue;
+			}
+			int b = (int) (timesMs[i] / binStepMs);
+			if (b >= 0 && b < nBins) {
+				out[b] += values[i];
+			}
+		}
+		return out;
 	}
 
 	private static void exportCageWide(Experiment exp, ResultsOptions options, String charSeries,
@@ -425,6 +457,7 @@ public final class CsvNormalizedExport {
 			cols.add(colName(EnumResults.TOPLEVEL));
 			cols.add(colName(EnumResults.BOTTOMLEVEL));
 			cols.add(colName(EnumResults.SUMGULPS));
+			cols.add(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
 			}
@@ -439,6 +472,7 @@ public final class CsvNormalizedExport {
 			map.put(EnumResults.TOPLEVEL, colName(EnumResults.TOPLEVEL));
 			map.put(EnumResults.BOTTOMLEVEL, colName(EnumResults.BOTTOMLEVEL));
 			map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
+			map.put(EnumResults.AMPLITUDEGULPS, CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
 			if (options.derivative) {
 				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
 			}

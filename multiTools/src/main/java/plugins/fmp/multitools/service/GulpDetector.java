@@ -19,6 +19,7 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions.GulpDetectionMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.Logger;
@@ -28,6 +29,11 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 public class GulpDetector {
 
 	public void detectGulps(Experiment exp, BuildSeriesOptions options) {
+		if (options != null && options.gulpDetectionMethod != GulpDetectionMethod.XDIFFN_REF) {
+			detectGulpsToprawDy(exp, options);
+			return;
+		}
+
 		if (!exp.isNativeFrameIndexedKymo()) {
 			int nFrames = exp.getAnalysisFrameCount();
 			int kymoWidth = exp.getKymoColumnCount();
@@ -61,6 +67,24 @@ public class GulpDetector {
 
 		exp.save_capillaries_description_and_measures();
 		exp.getSeqKymos().getSequence().endUpdate();
+	}
+
+	private void detectGulpsToprawDy(Experiment exp, BuildSeriesOptions options) {
+		Sequence seq = (exp.getSeqKymos() != null) ? exp.getSeqKymos().getSequence() : null;
+		boolean haveNativeKymo = seq != null && exp.isNativeFrameIndexedKymo();
+		if (haveNativeKymo) {
+			seq.beginUpdate();
+		}
+		if (options.buildDerivative && haveNativeKymo) {
+			buildDerivatives(exp, options);
+		}
+		if (options.buildGulps) {
+			new GulpDetectorFromTopraw().detectGulps(exp, options);
+		}
+		exp.save_capillaries_description_and_measures();
+		if (haveNativeKymo) {
+			seq.endUpdate();
+		}
 	}
 
 	private void buildDerivatives(Experiment exp, BuildSeriesOptions options) {
@@ -545,5 +569,263 @@ public class GulpDetector {
 			listOfMaxPoints.add(new Point2D.Double((double) ix, (double) max));
 		}
 		return listOfMaxPoints;
+	}
+}
+
+class GulpDetectorFromTopraw {
+
+	public void detectGulps(Experiment exp, BuildSeriesOptions options) {
+		if (exp == null || options == null || exp.getCapillaries() == null) {
+			return;
+		}
+
+		Double thetaDy = computeDeltaYThresholdFromEmptyCages(exp.getCapillaries().getList(), options);
+		if (thetaDy != null) {
+			Logger.debug("GulpDetectorFromTopraw: theta_dY=" + thetaDy + " px"
+					+ formatThetaUl(exp.getCapillaries().getList(), thetaDy));
+		} else {
+			Logger.warn(
+					"GulpDetectorFromTopraw: no empty capillaries with topraw; using fixed uL threshold per capillary");
+		}
+
+		List<Capillary> targets = selectCapillaries(exp, options);
+		for (Capillary cap : targets) {
+			if (cap == null) {
+				continue;
+			}
+			cap.setGulpsOptions(options);
+			cap.initGulps();
+			double theta = thetaDy != null ? thetaDy.doubleValue() : fallbackPixels(cap, options);
+			detectGulpsForCapillary(cap, theta);
+		}
+	}
+
+	static List<Capillary> selectCapillaries(Experiment exp, BuildSeriesOptions options) {
+		List<Capillary> all = exp.getCapillaries().getList();
+		if (all == null) {
+			return new ArrayList<Capillary>();
+		}
+		if (!options.detectSelectedKymo) {
+			return new ArrayList<Capillary>(all);
+		}
+		Sequence seq = exp.getSeqKymos() != null ? exp.getSeqKymos().getSequence() : null;
+		if (seq == null) {
+			return new ArrayList<Capillary>(all);
+		}
+		int t = options.kymoFirst;
+		if (t < 0 || t >= seq.getSizeT()) {
+			return new ArrayList<Capillary>(all);
+		}
+		String fullPath = exp.getSeqKymos().getFileNameFromImageList(t);
+		if (fullPath == null) {
+			return new ArrayList<Capillary>(all);
+		}
+		String nameWithoutExt = new File(fullPath).getName().replaceFirst("[.][^.]+$", "");
+		Capillary capi = exp.getCapillaries().getCapillaryFromKymographName(nameWithoutExt);
+		List<Capillary> one = new ArrayList<Capillary>();
+		if (capi != null) {
+			one.add(capi);
+		}
+		return one;
+	}
+
+	static Double computeDeltaYThresholdFromEmptyCages(List<Capillary> capillaries, BuildSeriesOptions options) {
+		if (capillaries == null || capillaries.isEmpty() || options == null) {
+			return null;
+		}
+		List<Double> absDy = new ArrayList<Double>();
+		for (Capillary cap : capillaries) {
+			if (cap == null || cap.getNFlies() != 0) {
+				continue;
+			}
+			double[] y = toprawY(cap);
+			collectAbsDeltaY(y, absDy);
+		}
+		if (absDy.isEmpty()) {
+			return null;
+		}
+		GulpThresholdMethod method = options.thresholdMethod != null ? options.thresholdMethod
+				: GulpThresholdMethod.MEAN_PLUS_SD;
+		return robustScale(absDy, method, options.thresholdSdMultiplier);
+	}
+
+	static void collectAbsDeltaY(double[] y, List<Double> dest) {
+		if (y == null || dest == null || y.length < 2) {
+			return;
+		}
+		for (int t = 1; t < y.length; t++) {
+			if (Double.isNaN(y[t]) || Double.isNaN(y[t - 1])) {
+				continue;
+			}
+			dest.add(Math.abs(y[t] - y[t - 1]));
+		}
+	}
+
+	static double robustScale(List<Double> values, GulpThresholdMethod method, double k) {
+		if (values == null || values.isEmpty()) {
+			return Double.NaN;
+		}
+		GulpThresholdMethod m = method != null ? method : GulpThresholdMethod.MEAN_PLUS_SD;
+		switch (m) {
+		case MEDIAN_PLUS_IQR: {
+			double median = computeMedian(values);
+			double iqr = computeIQR(values);
+			return median + k * Math.abs(iqr);
+		}
+		case MEDIAN_PLUS_MAD: {
+			double median = computeMedian(values);
+			double mad = computeMAD(values, median);
+			return median + k * Math.abs(mad);
+		}
+		case MEAN_PLUS_SD:
+		default: {
+			double mean = computeMean(values);
+			double std = computeStdDev(values, mean);
+			return mean + k * Math.abs(std);
+		}
+		}
+	}
+
+	static void detectGulpsFromLevel(double[] y, double[] gulpOut, double thetaDy, int firstPixel, int lastExclusive) {
+		if (y == null || gulpOut == null || y.length == 0 || gulpOut.length == 0) {
+			return;
+		}
+		int n = Math.min(y.length, gulpOut.length);
+		int first = Math.max(0, firstPixel);
+		int last = Math.min(n, lastExclusive);
+		for (int t = first; t < last; t++) {
+			if (t < 1) {
+				gulpOut[t] = 0;
+				continue;
+			}
+			if (Double.isNaN(y[t]) || Double.isNaN(y[t - 1])) {
+				gulpOut[t] = 0;
+				continue;
+			}
+			double deltaTop = y[t] - y[t - 1];
+			gulpOut[t] = deltaTop > thetaDy ? deltaTop : 0;
+		}
+	}
+
+	static void detectGulpsForCapillary(Capillary cap, double thetaDy) {
+		if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null) {
+			return;
+		}
+		CapillaryMeasure ptsTop = cap.getTopRaw();
+		CapillaryGulps ptsGulps = cap.getGulps();
+		if (ptsGulps == null) {
+			return;
+		}
+		int npoints = ptsTop.polylineLevel.npoints;
+		ptsGulps.ensureSize(npoints);
+		int firstPixel = 1;
+		int lastPixel = npoints;
+		if (cap.getProperties().getLimitsOptions().analyzePartOnly) {
+			firstPixel = (int) cap.getProperties().getLimitsOptions().searchArea.getX();
+			lastPixel = (int) cap.getProperties().getLimitsOptions().searchArea.getWidth() + firstPixel;
+		}
+		double[] y = ptsTop.polylineLevel.ypoints;
+		double[] gulpOut = ptsGulps.getHeightSeries().ypoints;
+		detectGulpsFromLevel(y, gulpOut, thetaDy, firstPixel, lastPixel);
+	}
+
+	static double fallbackPixels(Capillary cap, BuildSeriesOptions options) {
+		double uL = options != null ? options.detectGulpsThreshold_uL : 0.3;
+		if (cap.getProperties() != null && cap.getProperties().getLimitsOptions() != null) {
+			uL = cap.getProperties().getLimitsOptions().detectGulpsThreshold_uL;
+		}
+		if (cap.getVolume() <= 0 || cap.getPixels() <= 0) {
+			return uL;
+		}
+		return (uL / cap.getVolume()) * cap.getPixels();
+	}
+
+	private static double[] toprawY(Capillary cap) {
+		if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null) {
+			return null;
+		}
+		return cap.getTopRaw().polylineLevel.ypoints;
+	}
+
+	private static String formatThetaUl(List<Capillary> capillaries, double thetaPx) {
+		if (capillaries == null) {
+			return "";
+		}
+		for (Capillary cap : capillaries) {
+			if (cap != null && cap.getPixels() > 0 && cap.getVolume() > 0) {
+				double ul = thetaPx * cap.getVolume() / cap.getPixels();
+				return " (" + ul + " uL)";
+			}
+		}
+		return "";
+	}
+
+	private static double computeMean(List<Double> values) {
+		if (values.isEmpty()) {
+			return 0.0;
+		}
+		double sum = 0.0;
+		for (Double value : values) {
+			sum += value;
+		}
+		return sum / values.size();
+	}
+
+	private static double computeStdDev(List<Double> values, double mean) {
+		if (values.size() < 2) {
+			return 0.0;
+		}
+		double sumSquaredDiff = 0.0;
+		for (Double value : values) {
+			double diff = value - mean;
+			sumSquaredDiff += diff * diff;
+		}
+		return Math.sqrt(sumSquaredDiff / values.size());
+	}
+
+	private static double computeMedian(List<Double> values) {
+		if (values.isEmpty()) {
+			return 0.0;
+		}
+		double[] sorted = new double[values.size()];
+		int i = 0;
+		for (Double v : values) {
+			sorted[i++] = v;
+		}
+		Arrays.sort(sorted);
+		int mid = sorted.length / 2;
+		if (sorted.length % 2 == 0) {
+			return (sorted[mid - 1] + sorted[mid]) / 2;
+		}
+		return sorted[mid];
+	}
+
+	private static double computeMAD(List<Double> values, double median) {
+		if (values.isEmpty()) {
+			return 0.0;
+		}
+		List<Double> absDevs = new ArrayList<Double>();
+		for (Double v : values) {
+			absDevs.add(Math.abs(v - median));
+		}
+		return computeMedian(absDevs);
+	}
+
+	private static double computeIQR(List<Double> values) {
+		if (values.size() < 2) {
+			return 0.0;
+		}
+		double[] sorted = new double[values.size()];
+		int i = 0;
+		for (Double v : values) {
+			sorted[i++] = v;
+		}
+		Arrays.sort(sorted);
+		int q1idx = values.size() / 4;
+		int q3idx = (3 * values.size()) / 4;
+		if (q3idx >= sorted.length) {
+			q3idx = sorted.length - 1;
+		}
+		return sorted[q3idx] - sorted[q1idx];
 	}
 }

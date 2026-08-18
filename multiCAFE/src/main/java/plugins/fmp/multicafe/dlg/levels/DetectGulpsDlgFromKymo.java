@@ -29,6 +29,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectGulps;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions.GulpDetectionMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
@@ -59,6 +60,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	private JCheckBox from_pixel_checkbox = new JCheckBox("from pixel", false);
 	private JToggleButton display_button = new JToggleButton("Display");
 
+	private JComboBox<GulpDetectionMethod> gulpDetectionMethodCombo = new JComboBox<>(GulpDetectionMethod.values());
 	private JComboBox<GulpThresholdMethod> thresholdMethodCombo = new JComboBox<>(GulpThresholdMethod.values());
 	private JSpinner thresholdMultiplierSpinner = new JSpinner(new SpinnerNumberModel(5.0, 1.0, 10.0, 0.5));
 	private JComboBox<GulpThresholdSmoothing> thresholdSmoothingCombo = new JComboBox<>(
@@ -80,6 +82,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(detectButton);
+		panel0.add(gulpDetectionMethodCombo);
 		panel0.add(all_checkbox);
 		panel0.add(selectedKymoCheckBox);
 		panel0.add(from_pixel_checkbox);
@@ -121,10 +124,12 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		add(panel01b);
 
 		gulpTransforms_comboBox.setSelectedItem(ImageTransformEnums.XDIFFN);
+		gulpDetectionMethodCombo.setSelectedItem(GulpDetectionMethod.TOPRAW_DY);
 		thresholdMethodCombo.setSelectedItem(GulpThresholdMethod.MEAN_PLUS_SD);
 		initSpanMemoryDefaults();
 		syncSpanSpinnerToSelectedTransform();
 		defineActionListeners();
+		syncClassicOnlyControls();
 	}
 
 	private void initSpanMemoryDefaults() {
@@ -253,6 +258,20 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			}
 		});
 
+		gulpDetectionMethodCombo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				syncClassicOnlyControls();
+			}
+		});
+
+	}
+
+	private void syncClassicOnlyControls() {
+		boolean classic = gulpDetectionMethodCombo.getSelectedItem() == GulpDetectionMethod.XDIFFN_REF;
+		thresholdSmoothingCombo.setEnabled(classic);
+		thresholdSmoothingWindowSpinner.setEnabled(classic);
+		thresholdSmoothingAlphaSpinner.setEnabled(classic);
 	}
 
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {
@@ -266,14 +285,22 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
 
 		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
+		options.gulpDetectionMethod = (GulpDetectionMethod) gulpDetectionMethodCombo.getSelectedItem();
+		if (options.gulpDetectionMethod == null) {
+			options.gulpDetectionMethod = GulpDetectionMethod.TOPRAW_DY;
+		}
 
-		if (selectedKymoCheckBox.isSelected()) {
+		if (selectedKymoCheckBox.isSelected() && exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null
+				&& exp.getSeqKymos().getSequence().getFirstViewer() != null) {
 			int t = exp.getSeqKymos().getSequence().getFirstViewer().getPositionT();
 			options.kymoFirst = t;
 			options.kymoLast = t;
-		} else {
+		} else if (exp.getSeqKymos() != null && exp.getSeqKymos().getSequence() != null) {
 			options.kymoFirst = 0;
 			options.kymoLast = exp.getSeqKymos().getSequence().getSizeT() - 1;
+		} else {
+			options.kymoFirst = 0;
+			options.kymoLast = 0;
 		}
 		options.transformForGulps = (ImageTransformEnums) gulpTransforms_comboBox.getSelectedItem();
 		rememberCurrentSpan();
@@ -314,11 +341,17 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		lastSpanTransform = null;
 		gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
 		selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
+		if (options.gulpDetectionMethod != null) {
+			gulpDetectionMethodCombo.setSelectedItem(options.gulpDetectionMethod);
+		} else {
+			gulpDetectionMethodCombo.setSelectedItem(GulpDetectionMethod.TOPRAW_DY);
+		}
 		thresholdMethodCombo.setSelectedItem(options.thresholdMethod);
 		thresholdMultiplierSpinner.setValue(options.thresholdSdMultiplier);
 		thresholdSmoothingCombo.setSelectedItem(options.thresholdSmoothing);
 		thresholdSmoothingWindowSpinner.setValue(options.thresholdSmoothingWindow);
 		thresholdSmoothingAlphaSpinner.setValue(options.thresholdSmoothingAlpha);
+		syncClassicOnlyControls();
 	}
 
 	private void stopComputation() {

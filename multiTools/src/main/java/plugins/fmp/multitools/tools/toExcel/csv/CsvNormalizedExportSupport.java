@@ -37,6 +37,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String MEASURE_CAP_RAW = "measure_cap_raw";
 	public static final String MEASURE_CAGE_RAW = "measure_cage_raw";
 	public static final String GULP_EVENTS = "gulpevents";
+	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude";
 
 	private final Path folder;
 	private final long binStepMs;
@@ -195,7 +196,11 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		row.add(tMinutes);
 		for (String col : measureCapColumns) {
 			Double v = values != null ? values.get(col) : null;
-			row.add(v != null && !Double.isNaN(v) ? v : null);
+			if (COL_GULP_AMPLITUDE.equals(col)) {
+				row.add(v != null && !Double.isNaN(v) ? v : 0.0);
+			} else {
+				row.add(v != null && !Double.isNaN(v) ? v : null);
+			}
 		}
 		p.printRecord(row);
 	}
