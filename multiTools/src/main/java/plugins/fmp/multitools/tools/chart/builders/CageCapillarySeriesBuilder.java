@@ -261,7 +261,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j, options);
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, j, options);
 			double y = capMeasure.getValueAt(j) * scalingFactor;
 			seriesXY.add(x, y);
 		}
@@ -295,7 +295,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j, options);
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, j, options);
 			double y = thresholdMeasure.getValueAt(j) * scalingFactor;
 			thresholdSeries.add(x, y);
 		}
@@ -334,7 +334,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		for (int j = 0; j < npoints; j++) {
-			double x = getDisplayTimeMinutes(exp, camImages_time_min, npoints, j, options);
+			double x = getDisplayTimeMinutes(exp, camImages_time_min, j, options);
 			double y = evaporationMeasure.getValueAt(j) * scalingFactor;
 			evaporationSeries.add(x, y);
 		}
@@ -352,13 +352,12 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	 * camera frame timestamps when available; for downsampled kymos map column
 	 * {@code j} to frame {@code j * subsampleFactor}.
 	 */
-	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int measureNPoints, int j,
+	private static double getDisplayTimeMinutes(Experiment exp, double[] camImages_time_min, int j,
 			ResultsOptions options) {
 		int factor = exp != null ? Math.max(1, exp.getKymoSubsampleFactor()) : 1;
 		if (camImages_time_min != null && camImages_time_min.length > 0) {
 			int frameIndex = factor > 1 ? j * factor : j;
-			if (frameIndex >= 0 && frameIndex < camImages_time_min.length
-					&& (factor > 1 || measureNPoints <= camImages_time_min.length)) {
+			if (frameIndex >= 0 && frameIndex < camImages_time_min.length) {
 				return camImages_time_min[frameIndex];
 			}
 		}

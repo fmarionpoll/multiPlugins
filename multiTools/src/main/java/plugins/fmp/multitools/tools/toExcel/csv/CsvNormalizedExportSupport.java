@@ -37,7 +37,40 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String MEASURE_CAP_RAW = "measure_cap_raw";
 	public static final String MEASURE_CAGE_RAW = "measure_cage_raw";
 	public static final String GULP_EVENTS = "gulpevents";
-	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude";
+
+	public static final String COL_EXPERIMENT_ID = "experiment_id";
+	public static final String COL_EXPERIMENT_DATE = "experiment_date";
+	public static final String COL_CAMERA_ID = "camera_id";
+	public static final String COL_CAMERA_SAMPLE_INTERVAL_S = "camera_sample_interval_s";
+	public static final String COL_ANALYSIS_BIN_S = "analysis_bin_s";
+	public static final String COL_ANALYSIS_N_FRAMES = "analysis_n_frames";
+	public static final String COL_DEVICE_LABEL = "device_label";
+	public static final String COL_EXPERIMENT_DESCRIPTOR = "experiment_descriptor";
+	public static final String COL_STIMULUS_1 = "stimulus_1";
+	public static final String COL_CONCENTRATION_1 = "concentration_1";
+	public static final String COL_STIMULUS_2 = "stimulus_2";
+	public static final String COL_CONCENTRATION_2 = "concentration_2";
+	public static final String COL_STRAIN = "strain";
+	public static final String COL_SEX = "sex";
+	public static final String COL_CAGE_ID = "cage_id";
+	public static final String COL_CAGE_N_FLIES = "cage_n_flies";
+	public static final String COL_CAGE_STRAIN = "cage_strain";
+	public static final String COL_CAGE_SEX = "cage_sex";
+	public static final String COL_CAGE_AGE_DAYS = "cage_age_days";
+	public static final String COL_CAGE_COMMENT = "cage_comment";
+	public static final String COL_CAPILLARY_ID = "capillary_id";
+	public static final String COL_CAPILLARY_LABEL = "capillary_label";
+	public static final String COL_TIME_MIN = "time_min";
+	public static final String COL_CAPILLARY_VOLUME_UL = "capillary_volume_uL";
+	public static final String COL_CAPILLARY_LENGTH_PX = "capillary_length_px";
+	public static final String COL_CAPILLARY_STIMULUS = "capillary_stimulus";
+	public static final String COL_CAPILLARY_CONCENTRATION = "capillary_concentration";
+	public static final String COL_CAPILLARY_N_FLIES = "capillary_n_flies";
+	public static final String COL_CONSUMPTION_RAW_UL = "consumption_raw_uL";
+	public static final String COL_CONSUMPTION_CORRECTED_UL = "consumption_corrected_uL";
+	public static final String COL_BOTTOM_LEVEL_UL = "bottom_level_uL";
+	public static final String COL_CONSUMPTION_FROM_GULPS_UL = "consumption_from_gulps_uL";
+	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude_uL";
 
 	private final Path folder;
 	private final long binStepMs;
@@ -238,24 +271,27 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter idexptPrinter() throws IOException {
 		if (idexptPrinter == null) {
-			idexptPrinter = openPrinter(IDEXPT, "exp_key", "path", "date", "cam", "Cam_sample_s", "Analysis_bin_s",
-					"Analysis_nframes", "Exp_ID", "Expmt", "Stim1", "Conc1", "Stim2", "Conc2", "Strain", "Sex");
+			idexptPrinter = openPrinter(IDEXPT, COL_EXPERIMENT_ID, "path", COL_EXPERIMENT_DATE, COL_CAMERA_ID,
+					COL_CAMERA_SAMPLE_INTERVAL_S, COL_ANALYSIS_BIN_S, COL_ANALYSIS_N_FRAMES, COL_DEVICE_LABEL,
+					COL_EXPERIMENT_DESCRIPTOR, COL_STIMULUS_1, COL_CONCENTRATION_1, COL_STIMULUS_2, COL_CONCENTRATION_2,
+					COL_STRAIN, COL_SEX);
 		}
 		return idexptPrinter;
 	}
 
 	private CSVPrinter idcagePrinter() throws IOException {
 		if (idcagePrinter == null) {
-			idcagePrinter = openPrinter(IDCAGE, "exp_key", "cage_id", "Cage_nflies", "Cage_strain", "Cage_sex",
-					"Cage_age", "Cage_comment");
+			idcagePrinter = openPrinter(IDCAGE, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAGE_N_FLIES, COL_CAGE_STRAIN,
+					COL_CAGE_SEX, COL_CAGE_AGE_DAYS, COL_CAGE_COMMENT);
 		}
 		return idcagePrinter;
 	}
 
 	private CSVPrinter idcapPrinter() throws IOException {
 		if (idcapPrinter == null) {
-			idcapPrinter = openPrinter(IDCAP, "exp_key", "cage_id", "cap_id", "Cap", "Cap_ul", "Cap_npixels",
-					"Cap_stimulus", "Cap_concentration", "Cap_nflies");
+			idcapPrinter = openPrinter(IDCAP, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID, COL_CAPILLARY_LABEL,
+					COL_CAPILLARY_VOLUME_UL, COL_CAPILLARY_LENGTH_PX, COL_CAPILLARY_STIMULUS,
+					COL_CAPILLARY_CONCENTRATION, COL_CAPILLARY_N_FLIES);
 		}
 		return idcapPrinter;
 	}
@@ -276,33 +312,34 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter openMeasureCapPrinter(String descriptor) throws IOException {
 		List<String> header = new ArrayList<>();
-		header.add("exp_key");
-		header.add("cage_id");
-		header.add("cap_id");
-		header.add("t_minutes");
+		header.add(COL_EXPERIMENT_ID);
+		header.add(COL_CAGE_ID);
+		header.add(COL_CAPILLARY_ID);
+		header.add(COL_TIME_MIN);
 		header.addAll(measureCapColumns);
 		return openPrinter(descriptor, header.toArray(new String[0]));
 	}
 
 	private CSVPrinter measureCageRawPrinter() throws IOException {
 		if (measureCageRawPrinter == null) {
-			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, "exp_key", "cage_id", "t_minutes", "sum", "pi",
-					"sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps");
+			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN, "sum",
+					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps");
 		}
 		return measureCageRawPrinter;
 	}
 
 	private CSVPrinter measureCageBinPrinter() throws IOException {
 		if (measureCageBinPrinter == null) {
-			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, "exp_key", "cage_id", "t_minutes",
-					"sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps");
+			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, COL_EXPERIMENT_ID, COL_CAGE_ID,
+					COL_TIME_MIN, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps");
 		}
 		return measureCageBinPrinter;
 	}
 
 	private CSVPrinter gulpEventsPrinter() throws IOException {
 		if (!gulpEventsOpen) {
-			gulpEventsPrinter = openPrinter(GULP_EVENTS, "exp_key", "cage_id", "cap_id", "t_minutes", "amplitude");
+			gulpEventsPrinter = openPrinter(GULP_EVENTS, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID, COL_TIME_MIN,
+					"amplitude");
 			gulpEventsOpen = true;
 		}
 		return gulpEventsPrinter;

@@ -31,13 +31,14 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 /**
  * Normalized CSV export for multiCAFE capillary levels and gulps.
  * <p>
- * Capillary ({@code measure_cap_*}) files include topraw / toplevel / bottomlevel
- * / sumgulps / gulp_amplitude (0 when no gulp at that time), plus derivative if
- * selected. Cage
- * ({@code measure_cage_*}) files are wide: {@code sum}/{@code pi} (toplevel),
- * {@code sum_topraw}/{@code pi_topraw}, {@code sum_gulps}/{@code pi_gulps}.
- * Levels-tab checkboxes do not gate the standard columns; optional extras
- * (derivative, gulp events) still follow options.
+ * Capillary ({@code measure_cap_*}) files include consumption_raw_uL /
+ * consumption_corrected_uL / bottom_level_uL / consumption_from_gulps_uL /
+ * gulp_amplitude_uL (0 when no gulp at that time), plus derivative if selected.
+ * Cage ({@code measure_cage_*}) files are wide: {@code sum}/{@code pi}
+ * (toplevel), {@code sum_topraw}/{@code pi_topraw},
+ * {@code sum_gulps}/{@code pi_gulps}. Levels-tab checkboxes do not gate the
+ * standard columns; optional extras (derivative, gulp events) still follow
+ * options.
  */
 public final class CsvNormalizedExport {
 
@@ -127,16 +128,19 @@ public final class CsvNormalizedExport {
 
 		long nativeMedian = nativeMedianMs(exp);
 		int nativeStepMs = (int) Math.max(1L, nativeMedian > 0 ? nativeMedian : binStepMs);
+		// Raw series stay on kymo/camera-frame indices; do not resample onto Cam_sample_s.
+		long kymoBinMs = exp.getKymoBin_ms();
+		int rawStepMs = (int) Math.max(1L, kymoBinMs > 0 ? kymoBinMs : nativeStepMs);
 		// Bin grid follows dialog analysis interval when enabled; no auto COARSER/NATIVE gate.
 		boolean writeBin = options.forceCsvBinGrid;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
-		exportCageWide(exp, options, charSeries, csv, builder, nativeStepMs, binStepMs, writeBin, wantCageLevels,
+		exportCageWide(exp, options, charSeries, csv, builder, rawStepMs, binStepMs, writeBin, wantCageLevels,
 				wantCageGulps);
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
-					nativeStepMs, binStepMs, writeBin);
+					rawStepMs, binStepMs, writeBin);
 		}
 	}
 
@@ -188,6 +192,9 @@ public final class CsvNormalizedExport {
 						mergeSeriesNative(byTime, series, e.getValue());
 					}
 					for (Map.Entry<Long, Map<String, Double>> row : byTime.entrySet()) {
+						if (!hasRawMeasureValues(row.getValue())) {
+							continue;
+						}
 						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue());
 					}
 					if (writeBin && !byTime.isEmpty()) {
@@ -432,7 +439,27 @@ public final class CsvNormalizedExport {
 		if (Double.isNaN(v)) {
 			return;
 		}
+		if (CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(col) && v == 0.0) {
+			return;
+		}
 		byTime.computeIfAbsent(tMs, k -> new LinkedHashMap<>()).put(col, v);
+	}
+
+	private static boolean hasRawMeasureValues(Map<String, Double> values) {
+		if (values == null || values.isEmpty()) {
+			return false;
+		}
+		for (Map.Entry<String, Double> e : values.entrySet()) {
+			Double v = e.getValue();
+			if (v == null || Double.isNaN(v)) {
+				continue;
+			}
+			if (CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(e.getKey()) && v == 0.0) {
+				continue;
+			}
+			return true;
+		}
+		return false;
 	}
 
 	private static void writeGulpEventsNative(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
@@ -453,10 +480,10 @@ public final class CsvNormalizedExport {
 		List<String> cols = new ArrayList<>();
 		if (mode == Mode.LEVELS) {
 			// Capillary columns (not gated by Levels-tab checkboxes).
-			cols.add(colName(EnumResults.TOPRAW));
-			cols.add(colName(EnumResults.TOPLEVEL));
-			cols.add(colName(EnumResults.BOTTOMLEVEL));
-			cols.add(colName(EnumResults.SUMGULPS));
+			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_RAW_UL);
+			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED_UL);
+			cols.add(CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
+			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
 			cols.add(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
@@ -468,10 +495,10 @@ public final class CsvNormalizedExport {
 	private static Map<EnumResults, String> denseResultTypes(ResultsOptions options, Mode mode) {
 		Map<EnumResults, String> map = new LinkedHashMap<>();
 		if (mode == Mode.LEVELS) {
-			map.put(EnumResults.TOPRAW, colName(EnumResults.TOPRAW));
-			map.put(EnumResults.TOPLEVEL, colName(EnumResults.TOPLEVEL));
-			map.put(EnumResults.BOTTOMLEVEL, colName(EnumResults.BOTTOMLEVEL));
-			map.put(EnumResults.SUMGULPS, colName(EnumResults.SUMGULPS));
+			map.put(EnumResults.TOPRAW, CsvNormalizedExportSupport.COL_CONSUMPTION_RAW_UL);
+			map.put(EnumResults.TOPLEVEL, CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED_UL);
+			map.put(EnumResults.BOTTOMLEVEL, CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
+			map.put(EnumResults.SUMGULPS, CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
 			map.put(EnumResults.AMPLITUDEGULPS, CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
 			if (options.derivative) {
 				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
