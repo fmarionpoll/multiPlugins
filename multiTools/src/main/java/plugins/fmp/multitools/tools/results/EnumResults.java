@@ -64,6 +64,10 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_SUMGULPS()),
 	SUMGULPS_LR("sumGulps_L+R", "volume (ul)", "cumulated volume of gulps / cage (t-t0)",
 			StoredDataAccessors.accessStored_SUMGULPS_LR()),
+	SUMGULPS_SUM("SUM_sumgulps", "volume (ul)", "sum of L+R gulp volume / cage (t-t0)",
+			StoredDataAccessors.accessStored_SUMGULPS_LR()),
+	SUMGULPS_PI("PI_sumgulps", "PI", "preference index of gulp volume (L-R)/(L+R)",
+			StoredDataAccessors.accessStored_SUMGULPS_LR()),
 
 	/**
 	 * Capillary persistence stores raw gulp events as a flat CSV section. This is

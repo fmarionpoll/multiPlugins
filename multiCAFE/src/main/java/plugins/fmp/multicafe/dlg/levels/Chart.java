@@ -64,7 +64,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			EnumResults.TOPLEVEL_PI, //
 			EnumResults.DERIVEDVALUES, //
 			EnumResults.SUMGULPS, //
-			EnumResults.SUMGULPS_LR, //
+			EnumResults.SUMGULPS_SUM, //
+			EnumResults.SUMGULPS_PI, //
 			EnumResults.NBGULPS, //
 			EnumResults.AMPLITUDEGULPS, //
 			EnumResults.TTOGULP };

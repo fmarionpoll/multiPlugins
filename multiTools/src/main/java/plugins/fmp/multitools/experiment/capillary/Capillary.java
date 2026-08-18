@@ -614,6 +614,8 @@ public class Capillary implements Comparable<Capillary> {
 			value = side + "(L=R)";
 			break;
 		case SUMGULPS_LR:
+		case SUMGULPS_SUM:
+		case SUMGULPS_PI:
 		case TOPLEVELDELTA_LR:
 		case TOPLEVEL_LR:
 		case TOPRAW_LR:
@@ -673,6 +675,9 @@ public class Capillary implements Comparable<Capillary> {
 			yes = (measurements.ptsDerivative.isThereAnyMeasuresDone());
 			break;
 		case SUMGULPS:
+		case SUMGULPS_LR:
+		case SUMGULPS_SUM:
+		case SUMGULPS_PI:
 			yes = (measurements.ptsGulps.isThereAnyMeasuresDone());
 			break;
 		case BOTTOMLEVEL:
@@ -761,7 +766,8 @@ public class Capillary implements Comparable<Capillary> {
 			break;
 		case SUMGULPS:
 		case SUMGULPS_LR:
-			// These can use existing gulp data extraction
+		case SUMGULPS_SUM:
+		case SUMGULPS_PI:
 			if (measurements.ptsGulps != null)
 				datai = measurements.ptsGulps.getMeasuresFromGulps(resultType, measurements.ptsTop.getNPoints(),
 						seriesBinMs, outputBinMs);
@@ -1487,7 +1493,8 @@ public class Capillary implements Comparable<Capillary> {
 			break;
 		case SUMGULPS:
 		case SUMGULPS_LR:
-			// These can use existing gulp data extraction
+		case SUMGULPS_SUM:
+		case SUMGULPS_PI:
 			if (measurements.ptsGulps != null) {
 				int npoints = measurements.ptsTop.getNPoints();
 				ArrayList<Integer> data = measurements.ptsGulps.getMeasuresFromGulps(resultType, npoints, 1, 1);

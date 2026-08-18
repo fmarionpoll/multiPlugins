@@ -69,11 +69,14 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 		final JComboBoxExperimentLazy expList = options.expList;
 		ProgressFrame progress = new ProgressFrame("Analyze series");
 		final ArrayList<Experiment> experimentsBatch = new ArrayList<>();
+		final ArrayList<Integer> experimentComboIndices = new ArrayList<>();
+		final int[] listSizeHolder = new int[1];
 		try {
 			SwingUtilities.invokeAndWait(new Runnable() {
 				@Override
 				public void run() {
 					selectedExperimentIndex = expList.getSelectedIndex();
+					listSizeHolder[0] = expList.getItemCount();
 					int i0 = expList.index0;
 					int i1 = expList.index1;
 					if (i0 < 0 || i1 < i0) {
@@ -84,6 +87,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 						Experiment e = expList.getItemAt(i);
 						if (e != null) {
 							experimentsBatch.add(e);
+							experimentComboIndices.add(i);
 						} else {
 							Logger.warn("BuildSeries: null experiment at combo index " + i);
 						}
@@ -104,16 +108,18 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			selectList(expList, -1);
 
 			batchTotalSize = experimentsBatch.size();
+			int listSize = listSizeHolder[0] > 0 ? listSizeHolder[0] : experimentsBatch.size();
 			for (int i = 0; i < experimentsBatch.size(); i++) {
 				if (stopFlag)
 					break;
 				long startTimeInNs = System.nanoTime();
 				Experiment exp = experimentsBatch.get(i);
-				progress.setMessage("Processing file: " + (i + 1) + "//" + experimentsBatch.size());
+				int absIndex = experimentComboIndices.get(i) + 1;
+				progress.setMessage("Processing file: " + absIndex + "//" + listSize);
 
 				analyzeExperiment(exp);
 				long endTime2InNs = System.nanoTime();
-				Logger.debug("BuildSeries (" + (i + 1) + " / " + experimentsBatch.size()
+				Logger.debug("BuildSeries (" + absIndex + " / " + listSize
 						+ "):doInBackground process ended - duration: " + ((endTime2InNs - startTimeInNs) / 1000000000f)
 						+ " s");
 

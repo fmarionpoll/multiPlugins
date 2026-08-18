@@ -166,6 +166,8 @@ public class CapillaryGulps {
 		switch (resultType) {
 		case SUMGULPS:
 		case SUMGULPS_LR:
+		case SUMGULPS_SUM:
+		case SUMGULPS_PI:
 			data_in = getCumSumFromGulps(npoints);
 			data_in = stretchArrayToOutputBins(data_in, seriesBinMs, outputBinMs);
 			break;
