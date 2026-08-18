@@ -191,10 +191,8 @@ public final class CsvNormalizedExport {
 						XYSeries series = findSeriesForCapillary(ds, exp, cage, cap, e.getKey());
 						mergeSeriesNative(byTime, series, e.getValue());
 					}
+					byTime.entrySet().removeIf(row -> !hasRawMeasureValues(row.getValue()));
 					for (Map.Entry<Long, Map<String, Double>> row : byTime.entrySet()) {
-						if (!hasRawMeasureValues(row.getValue())) {
-							continue;
-						}
 						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue());
 					}
 					if (writeBin && !byTime.isEmpty()) {
@@ -321,9 +319,9 @@ public final class CsvNormalizedExport {
 			}
 
 			Map<Long, double[]> byTime = new TreeMap<>();
-			mergeCagePair(byTime, levelSum, levelPi, 0, 1);
-			mergeCagePair(byTime, toprawSum, toprawPi, 2, 3);
-			mergeCagePair(byTime, gulpSum, gulpPi, 4, 5);
+			mergeCagePair(byTime, levelSum, levelPi, 0, 1, true);
+			mergeCagePair(byTime, toprawSum, toprawPi, 2, 3, true);
+			mergeCagePair(byTime, gulpSum, gulpPi, 4, 5, !wantLevels);
 			if (byTime.isEmpty()) {
 				continue;
 			}
@@ -343,13 +341,20 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void mergeCagePair(Map<Long, double[]> byTime, XYSeries seriesSum, XYSeries seriesPi, int sumIdx,
-			int piIdx) {
+			int piIdx, boolean createKeys) {
 		if (seriesSum == null || seriesSum.getItemCount() == 0) {
 			return;
 		}
 		for (int i = 0; i < seriesSum.getItemCount(); i++) {
 			long tMs = Math.round(seriesSum.getX(i).doubleValue() * 60000.0);
-			double[] row = byTime.computeIfAbsent(tMs, k -> newNaNRow(6));
+			double[] row = byTime.get(tMs);
+			if (row == null) {
+				if (!createKeys) {
+					continue;
+				}
+				row = newNaNRow(6);
+				byTime.put(tMs, row);
+			}
 			row[sumIdx] = seriesSum.getY(i).doubleValue();
 			if (seriesPi != null) {
 				int idx = seriesPi.indexOf(seriesSum.getX(i));
@@ -442,6 +447,11 @@ public final class CsvNormalizedExport {
 		if (CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(col) && v == 0.0) {
 			return;
 		}
+		boolean gulpCol = CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL.equals(col)
+				|| CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(col);
+		if (gulpCol && !byTime.containsKey(tMs)) {
+			return;
+		}
 		byTime.computeIfAbsent(tMs, k -> new LinkedHashMap<>()).put(col, v);
 	}
 
@@ -455,6 +465,9 @@ public final class CsvNormalizedExport {
 				continue;
 			}
 			if (CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(e.getKey()) && v == 0.0) {
+				continue;
+			}
+			if (CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL.equals(e.getKey())) {
 				continue;
 			}
 			return true;
