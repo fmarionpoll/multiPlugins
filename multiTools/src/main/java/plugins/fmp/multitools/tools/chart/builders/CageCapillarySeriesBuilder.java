@@ -253,6 +253,13 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return null;
 
 		int npoints = capMeasure.getNPoints();
+		int factor = exp != null ? Math.max(1, exp.getKymoSubsampleFactor()) : 1;
+		if (camImages_time_min != null && camImages_time_min.length > 0) {
+			int maxFrames = factor > 1 ? camImages_time_min.length / factor : camImages_time_min.length;
+			if (npoints > maxFrames) {
+				npoints = maxFrames;
+			}
+		}
 
 		double scalingFactor = 1.0;
 		if ("volume (ul)".equals(options.resultType.toUnit())) {
