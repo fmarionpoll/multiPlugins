@@ -232,8 +232,9 @@ public final class CsvNormalizedExport {
 			return;
 		}
 		int gulpCol = denseCols.indexOf(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
-		if (gulpCol >= 0 && gulpCol < binned.length) {
-			binned[gulpCol] = sumEventsIntoBins(timesMs, cols[gulpCol], binStepMs, binned[0].length);
+		int cumulCol = denseCols.indexOf(CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
+		if (gulpCol >= 0 && cumulCol >= 0 && cumulCol < binned.length) {
+			binned[gulpCol] = amplitudeFromCumulativeDiffs(binned[cumulCol]);
 		}
 		int nBins = binned[0].length;
 		long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
@@ -262,19 +263,20 @@ public final class CsvNormalizedExport {
 		}
 	}
 
-	private static double[] sumEventsIntoBins(long[] timesMs, double[] values, long binStepMs, int nBins) {
-		double[] out = new double[nBins];
-		if (timesMs == null || values == null || binStepMs <= 0 || nBins <= 0) {
+	private static double[] amplitudeFromCumulativeDiffs(double[] cumulative) {
+		int n = cumulative == null ? 0 : cumulative.length;
+		double[] out = new double[n];
+		if (n == 0) {
 			return out;
 		}
-		int n = Math.min(timesMs.length, values.length);
-		for (int i = 0; i < n; i++) {
-			if (Double.isNaN(values[i]) || values[i] == 0.0) {
-				continue;
-			}
-			int b = (int) (timesMs[i] / binStepMs);
-			if (b >= 0 && b < nBins) {
-				out[b] += values[i];
+		out[0] = 0.0;
+		for (int i = 1; i < n; i++) {
+			double cur = cumulative[i];
+			double prev = cumulative[i - 1];
+			if (Double.isNaN(cur) || Double.isNaN(prev)) {
+				out[i] = 0.0;
+			} else {
+				out[i] = cur - prev;
 			}
 		}
 		return out;
