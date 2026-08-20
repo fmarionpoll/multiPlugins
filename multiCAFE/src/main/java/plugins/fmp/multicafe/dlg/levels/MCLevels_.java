@@ -12,6 +12,8 @@ import javax.swing.JTabbedPane;
 
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class MCLevels_ extends JPanel implements PropertyChangeListener {
@@ -100,6 +102,25 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		if (arg0.getPropertyName().equals("MEASURES_SAVE")) {
 			tabsPane.setSelectedIndex(0);
 		}
+	}
+
+	public void updateDialogs(Experiment exp) {
+		if (exp == null) {
+			return;
+		}
+		exp.loadExperimentDescriptors();
+		tabDetectLevels.loadLevelDefaultsFromExperiment(exp);
+		tabDetectLevelsDirect.loadLevelDefaultsFromExperiment(exp);
+		tabDetectGulps.loadGulpDefaultsFromExperiment(exp);
+	}
+
+	public void selectCapillaryForDetectionDialogs(Capillary cap) {
+		if (cap == null) {
+			return;
+		}
+		tabDetectLevels.setDialogFromOptions(cap);
+		tabDetectLevelsDirect.setDialogFromOptions(cap);
+		tabDetectGulps.setInfos(cap);
 	}
 
 }

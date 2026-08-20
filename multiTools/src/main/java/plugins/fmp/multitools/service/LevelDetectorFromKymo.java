@@ -12,6 +12,7 @@ import icy.image.IcyBufferedImage;
 import icy.system.SystemUtil;
 import icy.system.thread.Processor;
 import icy.type.collection.array.Array1DUtil;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
@@ -68,6 +69,7 @@ public class LevelDetectorFromKymo {
 			capi.getDerivative().clear();
 			capi.getGulps().clear();
 			capi.getProperties().getLimitsOptions().copyFrom(options);
+			DetectionProvenanceSupport.copyLevelRecipeTo(capi.getProperties().getLimitsOptions(), options);
 			final IcyBufferedImage rawImage = loader.imageIORead(fullPath);
 
 			futures.add(processor.submit(new Runnable() {

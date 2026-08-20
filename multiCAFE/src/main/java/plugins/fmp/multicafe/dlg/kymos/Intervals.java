@@ -606,6 +606,9 @@ public class Intervals extends JPanel implements ViewerListener {
 			if (capSel != null && capSel.getRoi() != null) {
 				capSel.getRoi().setSelected(true);
 			}
+			if (capSel != null && parent0.paneLevels != null) {
+				parent0.paneLevels.selectCapillaryForDetectionDialogs(capSel);
+			}
 		}
 	}
 

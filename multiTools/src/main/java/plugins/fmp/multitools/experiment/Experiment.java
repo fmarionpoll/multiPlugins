@@ -40,6 +40,7 @@ import plugins.fmp.multitools.experiment.cages.CagesSequenceMapper;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesDescription;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
 import plugins.fmp.multitools.experiment.sequence.ImageAdjustmentOptions;
@@ -62,6 +63,7 @@ import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolutionResult;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.series.BuildSeries;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.DescriptorsIO;
 import plugins.fmp.multitools.tools.Directories;
@@ -141,6 +143,12 @@ public class Experiment {
 	private double darkFrameRoiHeight = 50.0;
 	private double flyMmPerPixelX = 1.0;
 	private double flyMmPerPixelY = 1.0;
+
+	private BuildSeriesOptions levelDetectionDefaults = new BuildSeriesOptions();
+	private BuildSeriesOptions gulpDetectionDefaults = new BuildSeriesOptions();
+	private BuildSeriesOptions flyDetect1Defaults = new BuildSeriesOptions();
+	private BuildSeriesOptions flyDetect2Defaults = new BuildSeriesOptions();
+	private String lastFlyDetectMethod = "";
 
 	public Experiment chainToPreviousExperiment = null;
 	public Experiment chainToNextExperiment = null;
@@ -2399,6 +2407,62 @@ public class Experiment {
 		this.darkFrameThresholdMean = darkFrameThresholdMean;
 	}
 
+	public BuildSeriesOptions getLevelDetectionDefaults() {
+		return levelDetectionDefaults;
+	}
+
+	public BuildSeriesOptions getGulpDetectionDefaults() {
+		return gulpDetectionDefaults;
+	}
+
+	public BuildSeriesOptions getFlyDetect1Defaults() {
+		return flyDetect1Defaults;
+	}
+
+	public BuildSeriesOptions getFlyDetect2Defaults() {
+		return flyDetect2Defaults;
+	}
+
+	public String getLastFlyDetectMethod() {
+		return lastFlyDetectMethod != null ? lastFlyDetectMethod : "";
+	}
+
+	public void setLastFlyDetectMethod(String lastFlyDetectMethod) {
+		this.lastFlyDetectMethod = lastFlyDetectMethod != null ? lastFlyDetectMethod : "";
+	}
+
+	public void applyLevelDetectionDefaultsFrom(BuildSeriesOptions session, boolean fullBatch) {
+		if (session == null) {
+			return;
+		}
+		if (fullBatch) {
+			DetectionProvenanceSupport.copyLevelRecipeTo(levelDetectionDefaults, session);
+		}
+	}
+
+	public void applyGulpDetectionDefaultsFrom(BuildSeriesOptions session, boolean fullBatch) {
+		if (session == null) {
+			return;
+		}
+		if (fullBatch) {
+			DetectionProvenanceSupport.copyGulpRecipeTo(gulpDetectionDefaults, session);
+		}
+	}
+
+	public void applyFlyDetect1DefaultsFrom(BuildSeriesOptions session) {
+		if (session != null) {
+			DetectionProvenanceSupport.copyFlyDetect1RecipeTo(flyDetect1Defaults, session);
+		}
+		setLastFlyDetectMethod(DetectionProvenanceSupport.FLY_METHOD_DETECT1);
+	}
+
+	public void applyFlyDetect2DefaultsFrom(BuildSeriesOptions session) {
+		if (session != null) {
+			DetectionProvenanceSupport.copyFlyDetect2RecipeTo(flyDetect2Defaults, session);
+		}
+		setLastFlyDetectMethod(DetectionProvenanceSupport.FLY_METHOD_DETECT2);
+	}
+
 	public double getDarkFrameRoiX() {
 		return darkFrameRoiX;
 	}
@@ -3391,6 +3455,27 @@ public class Experiment {
 			}
 		}
 		return flag;
+	}
+
+	public static String multiToolsVersion() {
+		Package pkg = BuildSeriesOptions.class.getPackage();
+		if (pkg != null) {
+			String v = pkg.getImplementationVersion();
+			if (v != null && !v.isEmpty()) {
+				return v;
+			}
+		}
+		return "unknown";
+	}
+
+	public static String multiCafeVersionForExport() {
+		String rev = getProgramRevision();
+		return rev != null && !rev.isEmpty() ? rev : "unknown";
+	}
+
+	public static String programNameForExport() {
+		String ctx = getProgramContext();
+		return ctx != null && !ctx.isEmpty() ? ctx : "multiCAFE";
 	}
 
 	private void addCapillariesValues(EnumXLSColumnHeader fieldEnumCode, List<String> textList) {

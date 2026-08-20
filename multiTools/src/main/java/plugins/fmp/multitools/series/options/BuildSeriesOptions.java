@@ -504,6 +504,48 @@ public class BuildSeriesOptions implements XMLPersistent {
 		buildDerivative = XMLUtil.getElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 		gulpDetectionMethod = GulpDetectionMethod
 				.fromXml(XMLUtil.getElementValue(nodeMeta, "gulpDetectionMethod", null));
+		pass1 = XMLUtil.getElementBooleanValue(nodeMeta, "pass1", pass1);
+		pass2 = XMLUtil.getElementBooleanValue(nodeMeta, "pass2", pass2);
+		directionUp1 = XMLUtil.getElementBooleanValue(nodeMeta, "directionUp1", directionUp1);
+		directionUp2 = XMLUtil.getElementBooleanValue(nodeMeta, "directionUp2", directionUp2);
+		detectLevel1Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel1Threshold", detectLevel1Threshold);
+		detectLevel2Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
+		jitter2 = XMLUtil.getElementIntValue(nodeMeta, "jitter2", jitter2);
+		sourceCamDirect = XMLUtil.getElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
+		String gulpTransform = XMLUtil.getElementValue(nodeMeta, "transformForGulps", null);
+		if (gulpTransform != null) {
+			ImageTransformEnums t = ImageTransformEnums.findByText(gulpTransform);
+			if (t != null) {
+				transformForGulps = t;
+			}
+		}
+		spanDiffForGulps = XMLUtil.getElementIntValue(nodeMeta, "spanDiffForGulps", spanDiffForGulps);
+		String thMethod = XMLUtil.getElementValue(nodeMeta, "thresholdMethod", null);
+		if (thMethod != null && !thMethod.isEmpty()) {
+			for (GulpThresholdMethod m : GulpThresholdMethod.values()) {
+				if (m.name().equals(thMethod.trim())) {
+					thresholdMethod = m;
+					break;
+				}
+			}
+		}
+		thresholdSdMultiplier = XMLUtil.getElementDoubleValue(nodeMeta, "thresholdSdMultiplier", thresholdSdMultiplier);
+		detectGulpsThreshold_uL = XMLUtil.getElementDoubleValue(nodeMeta, "detectGulpsThreshold_uL",
+				detectGulpsThreshold_uL);
+		String flySrc = XMLUtil.getElementValue(nodeMeta, "flyDetectSourceTransform", null);
+		if (flySrc != null) {
+			ImageTransformEnums t = ImageTransformEnums.findByText(flySrc);
+			if (t != null) {
+				flyDetectSourceTransform = t;
+			}
+		}
+		String flyBkg = XMLUtil.getElementValue(nodeMeta, "flyDetectBackgroundTransform", null);
+		if (flyBkg != null) {
+			ImageTransformEnums t = ImageTransformEnums.findByText(flyBkg);
+			if (t != null) {
+				flyDetectBackgroundTransform = t;
+			}
+		}
 		flyOccupancyPercentForSpotSumNoFly = XMLUtil.getElementDoubleValue(nodeMeta,
 				"flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 	}
@@ -548,6 +590,25 @@ public class BuildSeriesOptions implements XMLPersistent {
 		XMLUtil.setElementBooleanValue(nodeMeta, "buildDerivative", buildDerivative);
 		XMLUtil.setElementValue(nodeMeta, "gulpDetectionMethod",
 				gulpDetectionMethod != null ? gulpDetectionMethod.name() : GulpDetectionMethod.TOPRAW_DY.name());
+		XMLUtil.setElementBooleanValue(nodeMeta, "pass1", pass1);
+		XMLUtil.setElementBooleanValue(nodeMeta, "pass2", pass2);
+		XMLUtil.setElementBooleanValue(nodeMeta, "directionUp1", directionUp1);
+		XMLUtil.setElementBooleanValue(nodeMeta, "directionUp2", directionUp2);
+		XMLUtil.setElementIntValue(nodeMeta, "detectLevel1Threshold", detectLevel1Threshold);
+		XMLUtil.setElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
+		XMLUtil.setElementIntValue(nodeMeta, "jitter2", jitter2);
+		XMLUtil.setElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
+		XMLUtil.setElementValue(nodeMeta, "transformForGulps",
+				transformForGulps != null ? transformForGulps.toString() : "");
+		XMLUtil.setElementIntValue(nodeMeta, "spanDiffForGulps", spanDiffForGulps);
+		XMLUtil.setElementValue(nodeMeta, "thresholdMethod",
+				thresholdMethod != null ? thresholdMethod.name() : GulpThresholdMethod.MEAN_PLUS_SD.name());
+		XMLUtil.setElementDoubleValue(nodeMeta, "thresholdSdMultiplier", thresholdSdMultiplier);
+		XMLUtil.setElementDoubleValue(nodeMeta, "detectGulpsThreshold_uL", detectGulpsThreshold_uL);
+		XMLUtil.setElementValue(nodeMeta, "flyDetectSourceTransform",
+				flyDetectSourceTransform != null ? flyDetectSourceTransform.toString() : "");
+		XMLUtil.setElementValue(nodeMeta, "flyDetectBackgroundTransform",
+				flyDetectBackgroundTransform != null ? flyDetectBackgroundTransform.toString() : "");
 		XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
 	}
 
@@ -578,6 +639,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 			morphCloseRadius = XMLUtil.getElementIntValue(xmlVal, "morphCloseRadius", morphCloseRadius);
 			String op1 = XMLUtil.getElementValue(xmlVal, "transformOp", null);
 			transformop = ImageTransformEnums.findByText(op1);
+			thresholdDiff = XMLUtil.getElementIntValue(xmlVal, "thresholdDiff", thresholdDiff);
+			dualBackground = XMLUtil.getElementBooleanValue(xmlVal, "dualBackground", dualBackground);
+			rednessThreshold = XMLUtil.getElementDoubleValue(xmlVal, "rednessThreshold", rednessThreshold);
+			backgroundNFrames = XMLUtil.getElementIntValue(xmlVal, "backgroundNFrames", backgroundNFrames);
+			backgroundFirst = XMLUtil.getElementIntValue(xmlVal, "backgroundFirst", backgroundFirst);
+			backgroundThreshold = XMLUtil.getElementIntValue(xmlVal, "backgroundThreshold", backgroundThreshold);
 			videoChannel = XMLUtil.getAttributeIntValue(xmlVal, "videoChannel", 0);
 		}
 		return true;
@@ -611,6 +678,12 @@ public class BuildSeriesOptions implements XMLPersistent {
 				String transform1 = transformop.toString();
 				XMLUtil.setElementValue(xmlVal, "transformOp", transform1);
 			}
+			XMLUtil.setElementIntValue(xmlVal, "thresholdDiff", thresholdDiff);
+			XMLUtil.setElementBooleanValue(xmlVal, "dualBackground", dualBackground);
+			XMLUtil.setElementDoubleValue(xmlVal, "rednessThreshold", rednessThreshold);
+			XMLUtil.setElementIntValue(xmlVal, "backgroundNFrames", backgroundNFrames);
+			XMLUtil.setElementIntValue(xmlVal, "backgroundFirst", backgroundFirst);
+			XMLUtil.setElementIntValue(xmlVal, "backgroundThreshold", backgroundThreshold);
 			XMLUtil.setAttributeIntValue(xmlVal, "videoChannel", videoChannel);
 		}
 		return true;

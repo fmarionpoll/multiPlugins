@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.DirectoryStream;
 
+import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -25,7 +26,7 @@ public class CapillariesPersistence {
 	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "CapillariesDescription.csv";
 	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "CapillariesMeasures.csv";
 	// Version for CSV files
-	private static final String CSV_VERSION = "2.1";
+	private static final String CSV_VERSION = "2.2";
 
 	// Legacy filenames (for fallback)
 	public final static String ID_CAPILLARIESARRAY_CSV = "CapillariesArray.csv";
@@ -624,6 +625,7 @@ public class CapillariesPersistence {
 				FileWriter csvWriter = new FileWriter(
 						resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV);
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
+				writeProvenanceHeaderComments(csvWriter);
 				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
@@ -656,6 +658,7 @@ public class CapillariesPersistence {
 				capillaries.copyThresholdToFirstEmptyCapillaryForLegacySave();
 				FileWriter csvWriter = new FileWriter(binDirectory + File.separator + ID_V2_CAPILLARIESMEASURES_CSV);
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
+				writeProvenanceHeaderComments(csvWriter);
 				if (nominalIntervalSec > 0)
 					csvWriter.write("# nominal_interval_sec=" + nominalIntervalSec + "\n");
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
@@ -678,6 +681,12 @@ public class CapillariesPersistence {
 				return false;
 			}
 		}
+	}
+
+	private static void writeProvenanceHeaderComments(FileWriter csvWriter) throws IOException {
+		csvWriter.write("# program=" + Experiment.programNameForExport() + "\n");
+		csvWriter.write("# multicafe_version=" + Experiment.multiCafeVersionForExport() + "\n");
+		csvWriter.write("# multitools_version=" + Experiment.multiToolsVersion() + "\n");
 	}
 
 }

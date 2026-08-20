@@ -91,6 +91,8 @@ final class CafeExperimentOpenPipeline {
 			owner.parent0.paneExperiment.updateDialogs(exp);
 			owner.parent0.paneKymos.updateDialogs(exp);
 			owner.parent0.paneCapillaries.updateDialogs(exp);
+			owner.parent0.paneLevels.updateDialogs(exp);
+			owner.parent0.paneCages.updateDetectionDefaultsDialogs(exp);
 
 			owner.parent0.paneExperiment.tabInfos.transferPreviousExperimentInfosToDialog(exp, exp);
 

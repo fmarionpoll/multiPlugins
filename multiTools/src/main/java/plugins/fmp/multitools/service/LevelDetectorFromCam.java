@@ -12,6 +12,7 @@ import icy.system.SystemUtil;
 import icy.system.thread.Processor;
 import icy.type.DataType;
 import icy.type.collection.array.Array1DUtil;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
@@ -86,6 +87,7 @@ public class LevelDetectorFromCam {
 
 		for (Capillary cap : toProcess) {
 			cap.getProperties().getLimitsOptions().copyFrom(options);
+			DetectionProvenanceSupport.copyLevelRecipeTo(cap.getProperties().getLimitsOptions(), options);
 			cap.getTopRaw().limit = new int[nTimeBins];
 			cap.getBottomRaw().limit = new int[nTimeBins];
 		}

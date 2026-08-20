@@ -28,6 +28,7 @@ import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectLevels;
@@ -338,7 +339,22 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	void setDialogFromOptions(Capillary cap) {
-		BuildSeriesOptions options = cap.getProperties().getLimitsOptions();
+		if (cap == null) {
+			return;
+		}
+		applyLevelOptionsToDialog(cap.getProperties().getLimitsOptions());
+	}
+
+	public void loadLevelDefaultsFromExperiment(Experiment exp) {
+		if (exp != null) {
+			applyLevelOptionsToDialog(exp.getLevelDetectionDefaults());
+		}
+	}
+
+	private void applyLevelOptionsToDialog(BuildSeriesOptions options) {
+		if (options == null) {
+			return;
+		}
 
 		pass1CheckBox.setSelected(options.pass1);
 		pass2CheckBox.setSelected(options.pass2);
@@ -449,6 +465,13 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
 			Logger.debug("thread_ended");
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
+				boolean fullBatch = DetectionProvenanceSupport
+						.isFullBatchLevelDetection(threadDetectLevels.options);
+				exp.applyLevelDetectionDefaultsFrom(threadDetectLevels.options, fullBatch);
+				exp.saveExperimentDescriptors();
+			}
 			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 			fromRectangleCheckBox.setSelected(false);

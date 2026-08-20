@@ -103,24 +103,7 @@ public class CapillaryProperties {
 		XMLUtil.setElementValue(nodeMeta, ID_SIDE, side);
 		XMLUtil.setElementValue(nodeMeta, ID_CONCL, concentration);
 
-		// Note: limitsOptions save logic is handled here too implicitly in legacy code,
-		// but typically options save to the same node.
-		// limitsOptions.saveToXML(nodeMeta); // Assuming BuildSeriesOptions has
-		// saveToXML?
-		// Checked legacy code: limitsOptions.loadFromXML(nodeMeta) is called, but
-		// saving?
-		// Legacy code didn't seem to explicitly save limitsOptions in
-		// saveToXml_CapillaryOnly?
-		// Wait, checked Capillary.java line 660: boolean flag =
-		// xmlSave_Intervals(node);
-		// Ah, limitsOptions seems to be missing an explicit save call in the original
-		// Capillary.java xmlSave_CapillaryOnly?
-		// Let's re-read carefully.
-		// Line 599: limitsOptions.loadFromXML(nodeMeta);
-		// Line 636: xmlSave_CapillaryOnly...
-		// It doesn't seem to call limitsOptions.saveToXML(nodeMeta).
-		// This might be a pre-existing issue or it uses separate storage.
-		// For now I will strictly move existing logic.
+		limitsOptions.saveToXML(nodeMeta);
 
 		return true;
 	}

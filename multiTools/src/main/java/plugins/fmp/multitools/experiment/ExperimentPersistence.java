@@ -8,6 +8,7 @@ import org.w3c.dom.Node;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
 import plugins.fmp.multitools.experiment.sequence.TimeManager;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
 
 public class ExperimentPersistence {
@@ -45,6 +46,11 @@ public class ExperimentPersistence {
 	private final static String ID_DARKFRAME_ROI_HEIGHT = "darkFrameRoiHeight";
 	private final static String ID_FLY_MM_PER_PIXEL_X = "flyMmPerPixelX";
 	private final static String ID_FLY_MM_PER_PIXEL_Y = "flyMmPerPixelY";
+	private final static String ID_LEVEL_DETECTION_DEFAULTS = "LevelDetectionDefaults";
+	private final static String ID_GULP_DETECTION_DEFAULTS = "GulpDetectionDefaults";
+	private final static String ID_FLY_DETECT1_DEFAULTS = "FlyDetect1Defaults";
+	private final static String ID_FLY_DETECT2_DEFAULTS = "FlyDetect2Defaults";
+	private final static String ID_LAST_FLY_DETECT_METHOD = "lastFlyDetectMethod";
 
 	// ========================================================================
 	// Public API methods (delegate to nested classes)
@@ -121,6 +127,7 @@ public class ExperimentPersistence {
 			loadPropertiesAndGeneratorProgram(exp, node);
 			loadDarkFrameParameters(exp, node);
 			loadFlyScaleParameters(exp, node);
+			loadDetectionProvenanceDefaults(exp, node);
 
 			return true;
 		}
@@ -308,6 +315,40 @@ public class ExperimentPersistence {
 			exp.setFlyMmPerPixelY(sy);
 		}
 
+		private static void loadDetectionProvenanceDefaults(Experiment exp, Node node) {
+			loadDefaultsNode(node, ID_LEVEL_DETECTION_DEFAULTS, exp.getLevelDetectionDefaults());
+			loadDefaultsNode(node, ID_GULP_DETECTION_DEFAULTS, exp.getGulpDetectionDefaults());
+			loadDefaultsNode(node, ID_FLY_DETECT1_DEFAULTS, exp.getFlyDetect1Defaults());
+			loadDefaultsNode(node, ID_FLY_DETECT2_DEFAULTS, exp.getFlyDetect2Defaults());
+			String method = XMLUtil.getElementValue(node, ID_LAST_FLY_DETECT_METHOD, "");
+			exp.setLastFlyDetectMethod(method);
+		}
+
+		private static void loadDefaultsNode(Node parent, String elementName, BuildSeriesOptions target) {
+			Node child = XMLUtil.getElement(parent, elementName);
+			if (child != null) {
+				target.loadFromXML(child);
+			}
+		}
+
+		private static void saveDetectionProvenanceDefaults(Experiment exp, Node node) {
+			saveDefaultsNode(node, ID_LEVEL_DETECTION_DEFAULTS, exp.getLevelDetectionDefaults());
+			saveDefaultsNode(node, ID_GULP_DETECTION_DEFAULTS, exp.getGulpDetectionDefaults());
+			saveDefaultsNode(node, ID_FLY_DETECT1_DEFAULTS, exp.getFlyDetect1Defaults());
+			saveDefaultsNode(node, ID_FLY_DETECT2_DEFAULTS, exp.getFlyDetect2Defaults());
+			String method = exp.getLastFlyDetectMethod();
+			if (method != null && !method.isEmpty()) {
+				XMLUtil.setElementValue(node, ID_LAST_FLY_DETECT_METHOD, method);
+			}
+		}
+
+		private static void saveDefaultsNode(Node parent, String elementName, BuildSeriesOptions source) {
+			Node child = XMLUtil.setElement(parent, elementName);
+			if (child != null) {
+				source.saveToXML(child);
+			}
+		}
+
 		private static boolean xmlSaveExperiment(Experiment exp, String csFileName) {
 			final Document doc = XMLUtil.createDocument(true);
 			if (doc != null) {
@@ -459,6 +500,7 @@ public class ExperimentPersistence {
 
 				saveDarkFrameParameters(exp, node);
 				saveFlyScaleParameters(exp, node);
+				saveDetectionProvenanceDefaults(exp, node);
 
 				XMLUtil.saveDocument(doc, csFileName);
 				return true;

@@ -261,6 +261,23 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		return options;
 	}
 
+	public void loadFlyDetect2DefaultsFromExperiment(Experiment exp) {
+		if (exp == null) {
+			return;
+		}
+		BuildSeriesOptions options = exp.getFlyDetect2Defaults();
+		whiteObjectCheckBox.setSelected(options.btrackWhite);
+		objectLowsizeCheckBox.setSelected(options.blimitLow);
+		objectUpsizeCheckBox.setSelected(options.blimitUp);
+		objectLowsizeSpinner.setValue(options.limitLow);
+		objectUpsizeSpinner.setValue(options.limitUp);
+		limitRatioSpinner.setValue((int) options.limitRatio);
+		jitterTextField.setValue(options.jitter);
+		thresholdSpinner.setValue(options.thresholdDiff);
+		dualBackgroundCheckBox.setSelected(options.dualBackground);
+		rednessThresholdSpinner.setValue(options.rednessThreshold);
+	}
+
 	void startComputation() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
@@ -269,6 +286,8 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 
 		flyDetect2 = new FlyDetect2();
 		flyDetect2.options = initTrackParameters(exp);
+		exp.applyFlyDetect2DefaultsFrom(flyDetect2.options);
+		exp.saveExperimentDescriptors();
 		flyDetect2.stopFlag = false;
 		flyDetect2.addPropertyChangeListener(this);
 		flyDetect2.execute();

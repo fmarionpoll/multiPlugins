@@ -17,6 +17,7 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
@@ -168,11 +169,29 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (charSeries != null && !charSeries.isEmpty() && expId != null) {
 			expId = expId + "_" + charSeries;
 		}
-		p.printRecord(expKey, nullToEmpty(path), nullToEmpty(date), nullToEmpty(cam), camSec, analysisSec, nFrames,
-				nullToEmpty(expId), prop(props, EnumXLSColumnHeader.EXP_EXPT),
-				prop(props, EnumXLSColumnHeader.EXP_STIM1), prop(props, EnumXLSColumnHeader.EXP_CONC1),
-				prop(props, EnumXLSColumnHeader.EXP_STIM2), prop(props, EnumXLSColumnHeader.EXP_CONC2),
-				prop(props, EnumXLSColumnHeader.EXP_STRAIN), prop(props, EnumXLSColumnHeader.EXP_SEX));
+		p.printRecord(buildIdexptRecord(expKey, path, date, cam, camSec, analysisSec, nFrames, expId, props, exp));
+	}
+
+	private Object[] buildIdexptRecord(String expKey, String path, String date, String cam, Double camSec,
+			Double analysisSec, Integer nFrames, String expId, ExperimentProperties props, Experiment exp) {
+		List<Object> row = new ArrayList<>();
+		row.add(expKey);
+		row.add(nullToEmpty(path));
+		row.add(nullToEmpty(date));
+		row.add(nullToEmpty(cam));
+		row.add(camSec);
+		row.add(analysisSec);
+		row.add(nFrames);
+		row.add(nullToEmpty(expId));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_EXPT));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_STIM1));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_CONC1));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_STIM2));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_CONC2));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_STRAIN));
+		row.add(prop(props, EnumXLSColumnHeader.EXP_SEX));
+		row.addAll(DetectionProvenanceSupport.idexptProvenanceValues(exp));
+		return row.toArray();
 	}
 
 	private void ensureIdcage(String expKey, Cage cage) throws IOException {
@@ -271,10 +290,24 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter idexptPrinter() throws IOException {
 		if (idexptPrinter == null) {
-			idexptPrinter = openPrinter(IDEXPT, COL_EXPERIMENT_ID, "path", COL_EXPERIMENT_DATE, COL_CAMERA_ID,
-					COL_CAMERA_SAMPLE_INTERVAL_S, COL_ANALYSIS_BIN_S, COL_ANALYSIS_N_FRAMES, COL_DEVICE_LABEL,
-					COL_EXPERIMENT_DESCRIPTOR, COL_STIMULUS_1, COL_CONCENTRATION_1, COL_STIMULUS_2, COL_CONCENTRATION_2,
-					COL_STRAIN, COL_SEX);
+			List<String> header = new ArrayList<>();
+			header.add(COL_EXPERIMENT_ID);
+			header.add("path");
+			header.add(COL_EXPERIMENT_DATE);
+			header.add(COL_CAMERA_ID);
+			header.add(COL_CAMERA_SAMPLE_INTERVAL_S);
+			header.add(COL_ANALYSIS_BIN_S);
+			header.add(COL_ANALYSIS_N_FRAMES);
+			header.add(COL_DEVICE_LABEL);
+			header.add(COL_EXPERIMENT_DESCRIPTOR);
+			header.add(COL_STIMULUS_1);
+			header.add(COL_CONCENTRATION_1);
+			header.add(COL_STIMULUS_2);
+			header.add(COL_CONCENTRATION_2);
+			header.add(COL_STRAIN);
+			header.add(COL_SEX);
+			header.addAll(DetectionProvenanceSupport.IDEXPT_PROVENANCE_COLUMNS);
+			idexptPrinter = openPrinter(IDEXPT, header.toArray(new String[0]));
 		}
 		return idexptPrinter;
 	}

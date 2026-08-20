@@ -812,7 +812,10 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	public void setGulpsOptions(BuildSeriesOptions options) {
-		properties.setLimitsOptions(options);
+		if (options != null) {
+			plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport
+					.copyGulpRecipeTo(properties.getLimitsOptions(), options);
+		}
 	}
 
 	public BuildSeriesOptions getGulpsOptions() {

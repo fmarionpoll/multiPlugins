@@ -25,6 +25,7 @@ import javax.swing.event.ChangeListener;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectGulps;
@@ -336,7 +337,22 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	}
 
 	void setInfos(Capillary cap) {
-		BuildSeriesOptions options = cap.getGulpsOptions();
+		if (cap == null) {
+			return;
+		}
+		applyGulpOptionsToDialog(cap.getGulpsOptions());
+	}
+
+	public void loadGulpDefaultsFromExperiment(Experiment exp) {
+		if (exp != null) {
+			applyGulpOptionsToDialog(exp.getGulpDetectionDefaults());
+		}
+	}
+
+	private void applyGulpOptionsToDialog(BuildSeriesOptions options) {
+		if (options == null) {
+			return;
+		}
 		spanByTransform.put(options.transformForGulps, Math.max(2, options.spanDiffForGulps));
 		lastSpanTransform = null;
 		gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
@@ -364,6 +380,12 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && threadDetectGulps != null && threadDetectGulps.options != null) {
+				boolean fullBatch = DetectionProvenanceSupport.isFullBatchGulpDetection(threadDetectGulps.options);
+				exp.applyGulpDetectionDefaultsFrom(threadDetectGulps.options, fullBatch);
+				exp.saveExperimentDescriptors();
+			}
 			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 

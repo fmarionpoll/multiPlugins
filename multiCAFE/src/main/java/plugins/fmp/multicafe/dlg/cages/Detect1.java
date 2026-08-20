@@ -382,6 +382,27 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		return options;
 	}
 
+	public void loadFlyDetect1DefaultsFromExperiment(Experiment exp) {
+		if (exp == null) {
+			return;
+		}
+		BuildSeriesOptions options = exp.getFlyDetect1Defaults();
+		transformComboBox.setSelectedItem(options.flyDetectSourceTransform);
+		backgroundComboBox.setSelectedItem(options.flyDetectBackgroundTransform);
+		thresholdSpinner.setValue(options.threshold);
+		directionComboBox.setSelectedIndex(options.btrackWhite ? 0 : 1);
+		objectLowsizeCheckBox.setSelected(options.blimitLow);
+		objectUpsizeCheckBox.setSelected(options.blimitUp);
+		limitRatioCheckBox.setSelected(options.blimitRatio);
+		jitterCheckBox.setSelected(options.bjitter);
+		objectLowsizeSpinner.setValue(options.limitLow);
+		objectUpsizeSpinner.setValue(options.limitUp);
+		limitRatioSpinner.setValue(options.limitRatio);
+		jitterTextField.setValue(options.jitter);
+		nFliesCheckBox.setSelected(options.blimitMaxBlobsPerCage);
+		nFliesSpinner.setValue(options.nFliesPresent);
+	}
+
 	void startComputation() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
@@ -390,6 +411,8 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 		flyDetect1 = new FlyDetect1();
 		flyDetect1.options = initTrackParameters(exp);
+		exp.applyFlyDetect1DefaultsFrom(flyDetect1.options);
+		exp.saveExperimentDescriptors();
 		flyDetect1.stopFlag = false;
 		flyDetect1.buildBackground = false;
 		flyDetect1.detectFlies = true;

@@ -11,6 +11,7 @@ import org.w3c.dom.Node;
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
 import icy.util.XMLUtil;
+import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
@@ -155,8 +156,10 @@ public class CapillaryPersistence {
 	public static String csvExportCapillarySubSectionHeader(String sep) {
 		StringBuffer sbf = new StringBuffer();
 		sbf.append("#" + sep + "CAPILLARIES" + sep + "describe each capillary\n");
-		List<String> row2 = Arrays.asList("cap_prefix", "kymoIndex", "roiName", "kymoFile", "cap_cage", "cap_nflies",
-				"cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType", "npoints");
+		List<String> row2 = new ArrayList<>(Arrays.asList("cap_prefix", "kymoIndex", "roiName", "kymoFile", "cap_cage",
+				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType",
+				"npoints"));
+		row2.addAll(DetectionProvenanceSupport.CAPILLARY_PROVENANCE_COLUMNS);
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -253,6 +256,8 @@ public class CapillaryPersistence {
 		} else {
 			row.add("0"); // No ROI
 		}
+
+		DetectionProvenanceSupport.appendCapillaryProvenanceColumns(row, cap.getProperties().getLimitsOptions());
 
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
@@ -455,6 +460,7 @@ public class CapillaryPersistence {
 		i++;
 
 		// Load ROI information if present (new format with ROI coordinates)
+		int provenanceStart = data.length;
 		if (i < data.length && data[i] != null && !data[i].isEmpty()) {
 			String roiName = data[i];
 			i++;
@@ -508,7 +514,9 @@ public class CapillaryPersistence {
 					// Invalid npoints, skip ROI reconstruction
 				}
 			}
+			provenanceStart = i;
 		}
+		DetectionProvenanceSupport.importCapillaryProvenance(cap, data, provenanceStart);
 	}
 
 	/**

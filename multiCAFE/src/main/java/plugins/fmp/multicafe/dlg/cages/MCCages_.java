@@ -14,6 +14,7 @@ import javax.swing.event.ChangeListener;
 
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multitools.experiment.Experiment;
 
 public class MCCages_ extends JPanel implements PropertyChangeListener {
 	/**
@@ -50,6 +51,15 @@ public class MCCages_ extends JPanel implements PropertyChangeListener {
 		if (tabInfos != null) {
 			tabInfos.refreshFromCurrentExperiment();
 		}
+	}
+
+	public void updateDetectionDefaultsDialogs(Experiment exp) {
+		if (exp == null) {
+			return;
+		}
+		exp.loadExperimentDescriptors();
+		tabDetect1.loadFlyDetect1DefaultsFromExperiment(exp);
+		tabDetect2.tabDetect2Flies.loadFlyDetect2DefaultsFromExperiment(exp);
 	}
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
