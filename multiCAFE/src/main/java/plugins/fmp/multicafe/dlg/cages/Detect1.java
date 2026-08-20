@@ -397,7 +397,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		jitterCheckBox.setSelected(options.bjitter);
 		objectLowsizeSpinner.setValue(options.limitLow);
 		objectUpsizeSpinner.setValue(options.limitUp);
-		limitRatioSpinner.setValue(options.limitRatio);
+		limitRatioSpinner.setValue((int) options.limitRatio);
 		jitterTextField.setValue(options.jitter);
 		nFliesCheckBox.setSelected(options.blimitMaxBlobsPerCage);
 		nFliesSpinner.setValue(options.nFliesPresent);
