@@ -73,6 +73,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	private JCheckBox all_checkbox = new JCheckBox("ALL", false);
 	private DetectGulps threadDetectGulps = null;
 	private MultiCAFE parent0 = null;
+	private boolean suppressDisplayUpdate = false;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -195,8 +196,11 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				syncSpanSpinnerToSelectedTransform();
+				if (suppressDisplayUpdate || !display_button.isSelected()) {
+					return;
+				}
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData() != null) {
+				if (exp != null && exp.getSeqKymos() != null) {
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
 						int index = gulpTransforms_comboBox.getSelectedIndex();
@@ -231,7 +235,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData() != null) {
+				if (exp != null && exp.getSeqKymos() != null) {
 					if (display_button.isSelected()) {
 						Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 						if (canvas != null) {
@@ -341,11 +345,24 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			return;
 		}
 		applyGulpOptionsToDialog(cap.getGulpsOptions());
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		resetDisplayToRaw(exp);
 	}
 
 	public void loadGulpDefaultsFromExperiment(Experiment exp) {
 		if (exp != null) {
 			applyGulpOptionsToDialog(exp.getGulpDetectionDefaults());
+			resetDisplayToRaw(exp);
+		}
+	}
+
+	void resetDisplayToRaw(Experiment exp) {
+		display_button.setSelected(false);
+		if (exp != null && exp.getSeqKymos() != null) {
+			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+			if (canvas != null) {
+				canvas.setTransformStep1Index(0);
+			}
 		}
 	}
 
@@ -353,21 +370,35 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		if (options == null) {
 			return;
 		}
-		spanByTransform.put(options.transformForGulps, Math.max(2, options.spanDiffForGulps));
-		lastSpanTransform = null;
-		gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
-		selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
-		if (options.gulpDetectionMethod != null) {
-			gulpDetectionMethodCombo.setSelectedItem(options.gulpDetectionMethod);
-		} else {
-			gulpDetectionMethodCombo.setSelectedItem(GulpDetectionMethod.TOPRAW_DY);
+		suppressDisplayUpdate = true;
+		try {
+			spanByTransform.put(options.transformForGulps, Math.max(2, options.spanDiffForGulps));
+			lastSpanTransform = null;
+			gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
+			selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
+			if (options.gulpDetectionMethod != null) {
+				gulpDetectionMethodCombo.setSelectedItem(options.gulpDetectionMethod);
+			} else {
+				gulpDetectionMethodCombo.setSelectedItem(GulpDetectionMethod.TOPRAW_DY);
+			}
+			thresholdMethodCombo.setSelectedItem(options.thresholdMethod);
+			thresholdMultiplierSpinner.setValue(options.thresholdSdMultiplier);
+			thresholdSmoothingCombo.setSelectedItem(options.thresholdSmoothing);
+			thresholdSmoothingWindowSpinner.setValue(options.thresholdSmoothingWindow);
+			thresholdSmoothingAlphaSpinner.setValue(options.thresholdSmoothingAlpha);
+		} finally {
+			suppressDisplayUpdate = false;
 		}
-		thresholdMethodCombo.setSelectedItem(options.thresholdMethod);
-		thresholdMultiplierSpinner.setValue(options.thresholdSdMultiplier);
-		thresholdSmoothingCombo.setSelectedItem(options.thresholdSmoothing);
-		thresholdSmoothingWindowSpinner.setValue(options.thresholdSmoothingWindow);
-		thresholdSmoothingAlphaSpinner.setValue(options.thresholdSmoothingAlpha);
+		syncSpanSpinnerToSelectedTransform();
 		syncClassicOnlyControls();
+	}
+
+	void restoreDialogFromSessionAfterDetection(BuildSeriesOptions session, Experiment exp) {
+		if (session == null) {
+			return;
+		}
+		applyGulpOptionsToDialog(session);
+		resetDisplayToRaw(exp);
 	}
 
 	private void stopComputation() {
@@ -386,11 +417,15 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 				exp.applyGulpDetectionDefaultsFrom(threadDetectGulps.options, fullBatch);
 				exp.saveExperimentDescriptors();
 			}
-			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
+			int kymoIndex = parent0.paneKymos.tabIntervals.indexImagesCombo;
+			parent0.paneKymos.tabIntervals.selectKymographImage(kymoIndex, false);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
-
-			start_spinner.setValue(threadDetectGulps.options.searchArea.x);
-			end_spinner.setValue(threadDetectGulps.options.searchArea.width + threadDetectGulps.options.searchArea.x);
+			if (exp != null && threadDetectGulps != null && threadDetectGulps.options != null) {
+				restoreDialogFromSessionAfterDetection(threadDetectGulps.options, exp);
+				start_spinner.setValue(threadDetectGulps.options.searchArea.x);
+				end_spinner.setValue(
+						threadDetectGulps.options.searchArea.width + threadDetectGulps.options.searchArea.x);
+			}
 
 		}
 	}

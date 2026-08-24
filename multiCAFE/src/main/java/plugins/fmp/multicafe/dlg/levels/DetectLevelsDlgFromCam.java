@@ -68,6 +68,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	private DetectLevels threadDetectLevels = null;
 	private OverlayThreshold overlayThreshold = null;
 	private int currentKymographImage = 0;
+	private boolean suppressDisplayUpdate = false;
 
 	// -----------------------------------------------------
 
@@ -128,12 +129,16 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		transformComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				if (suppressDisplayUpdate) {
+					return;
+				}
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
 					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null) {
+					if (canvas != null && viewButton.isSelected()) {
 						int index = transformComboBox.getSelectedIndex();
-						canvas.setTransformStep1Index(index + 1);
+						canvas.updateTransformsStep1(transformPass1);
+						canvas.setTransformStep1(index + 1, null);
 						updateOverlayThreshold();
 					}
 				}
@@ -201,11 +206,27 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			return;
 		}
 		applyLevelOptionsToDialog(cap.getProperties().getLimitsOptions());
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		resetDisplayToRaw(exp);
 	}
 
 	public void loadLevelDefaultsFromExperiment(Experiment exp) {
 		if (exp != null) {
 			applyLevelOptionsToDialog(exp.getLevelDetectionDefaults());
+			resetDisplayToRaw(exp);
+		}
+	}
+
+	void resetDisplayToRaw(Experiment exp) {
+		viewButton.setSelected(false);
+		overlayCheckBox.setSelected(false);
+		overlayCheckBox.setEnabled(false);
+		if (exp != null) {
+			removeOverlay(exp);
+			Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+			if (canvas != null) {
+				canvas.setTransformStep1Index(0);
+			}
 		}
 	}
 
@@ -214,14 +235,27 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			return;
 		}
 
-		transformComboBox.setSelectedItem(options.transform01);
-		int index = options.directionUp1 ? 0 : 1;
-		direction1ComboBox.setSelectedIndex(index);
-		threshold1Spinner.setValue(options.detectLevel1Threshold);
-		selectedCapillaryCheckBox.setSelected(!options.detectSelectedKymo);
-		leftCheckBox.setSelected(options.detectL);
-		rightCheckBox.setSelected(options.detectR);
-		profilePerpendicularCheckBox.setSelected(options.profilePerpendicular);
+		suppressDisplayUpdate = true;
+		try {
+			transformComboBox.setSelectedItem(options.transform01);
+			int index = options.directionUp1 ? 0 : 1;
+			direction1ComboBox.setSelectedIndex(index);
+			threshold1Spinner.setValue(options.detectLevel1Threshold);
+			selectedCapillaryCheckBox.setSelected(options.detectSelectedKymo);
+			leftCheckBox.setSelected(options.detectL);
+			rightCheckBox.setSelected(options.detectR);
+			profilePerpendicularCheckBox.setSelected(options.profilePerpendicular);
+		} finally {
+			suppressDisplayUpdate = false;
+		}
+	}
+
+	void restoreDialogFromSessionAfterDetection(BuildSeriesOptions session, Experiment exp) {
+		if (session == null) {
+			return;
+		}
+		applyLevelOptionsToDialog(session);
+		resetDisplayToRaw(exp);
 	}
 
 	void setOptionsFromDialog(Capillary cap) {
@@ -380,12 +414,13 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			Logger.debug("thread_ended");
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
-				boolean fullBatch = DetectionProvenanceSupport
-						.isFullBatchLevelDetection(threadDetectLevels.options);
-				exp.applyLevelDetectionDefaultsFrom(threadDetectLevels.options, fullBatch);
+				exp.applyLevelDetectionDefaultsFrom(threadDetectLevels.options);
 				exp.saveExperimentDescriptors();
 			}
-			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
+			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage, false);
+			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
+				restoreDialogFromSessionAfterDetection(threadDetectLevels.options, exp);
+			}
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 		}
 	}

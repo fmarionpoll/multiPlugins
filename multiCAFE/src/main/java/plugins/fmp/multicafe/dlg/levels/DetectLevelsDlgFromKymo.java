@@ -28,7 +28,6 @@ import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
-import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectLevels;
@@ -88,6 +87,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	private ROI2DRectangle searchRectangleROI2D = null;
 	private OverlayThreshold overlayThreshold = null;
 	private int currentKymographImage = 0;
+	private boolean suppressDisplayUpdate = false;
 
 	// -----------------------------------------------------
 
@@ -142,6 +142,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		allowItemsAccordingToSelection();
 		overlayPass1CheckBox.setEnabled(false);
 		overlayPass2CheckBox.setEnabled(false);
+		transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 	}
 
 	private void defineItemListeners() {
@@ -192,12 +193,16 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		transformPass1ComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				if (suppressDisplayUpdate) {
+					return;
+				}
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null) {
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
+					if (canvas != null && transformPass1DisplayButton.isSelected()) {
 						int index = transformPass1ComboBox.getSelectedIndex();
-						canvas.setTransformStep1Index(index + 1);
+						canvas.updateTransformsStep1(transformPass1);
+						canvas.setTransformStep1(index + 1, null);
 						updateOverlayThreshold();
 					}
 				}
@@ -207,13 +212,17 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		transformPass2ComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				if (suppressDisplayUpdate) {
+					return;
+				}
 				allowItemsAccordingToSelection();
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null) {
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
+					if (canvas != null && transformPass2DisplayButton.isSelected()) {
 						int index = transformPass2ComboBox.getSelectedIndex();
-						canvas.setTransformStep1Index(index + 1);
+						canvas.updateTransformsStep1(transformPass2);
+						canvas.setTransformStep1(index + 1, null);
 						updateOverlayThreshold();
 					}
 				}
@@ -343,11 +352,30 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			return;
 		}
 		applyLevelOptionsToDialog(cap.getProperties().getLimitsOptions());
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		resetDisplayToRaw(exp);
 	}
 
 	public void loadLevelDefaultsFromExperiment(Experiment exp) {
 		if (exp != null) {
 			applyLevelOptionsToDialog(exp.getLevelDetectionDefaults());
+			resetDisplayToRaw(exp);
+		}
+	}
+
+	void resetDisplayToRaw(Experiment exp) {
+		transformPass1DisplayButton.setSelected(false);
+		transformPass2DisplayButton.setSelected(false);
+		overlayPass1CheckBox.setSelected(false);
+		overlayPass2CheckBox.setSelected(false);
+		overlayPass1CheckBox.setEnabled(false);
+		overlayPass2CheckBox.setEnabled(false);
+		if (exp != null) {
+			removeOverlay(exp);
+			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+			if (canvas != null) {
+				canvas.setTransformStep1Index(0);
+			}
 		}
 	}
 
@@ -356,24 +384,38 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			return;
 		}
 
-		pass1CheckBox.setSelected(options.pass1);
-		pass2CheckBox.setSelected(options.pass2);
+		suppressDisplayUpdate = true;
+		try {
+			pass1CheckBox.setSelected(options.pass1);
+			pass2CheckBox.setSelected(options.pass2);
 
-		transformPass1ComboBox.setSelectedItem(options.transform01);
-		int index = options.directionUp1 ? 0 : 1;
-		direction1ComboBox.setSelectedIndex(index);
-		threshold1Spinner.setValue(options.detectLevel1Threshold);
+			transformPass1ComboBox.setSelectedItem(options.transform01);
+			int index = options.directionUp1 ? 0 : 1;
+			direction1ComboBox.setSelectedIndex(index);
+			threshold1Spinner.setValue(options.detectLevel1Threshold);
 
-		transformPass2ComboBox.setSelectedItem(options.transform02);
-		index = options.directionUp2 ? 0 : 1;
-		direction2ComboBox.setSelectedIndex(index);
-		threshold2Spinner.setValue(options.detectLevel2Threshold);
-		jitter2Spinner.setValue(options.jitter2);
-		selectedKymoCheckBox.setSelected(!options.detectSelectedKymo);
-		leftCheckBox.setSelected(options.detectL);
-		rightCheckBox.setSelected(options.detectR);
+			transformPass2ComboBox.setSelectedItem(options.transform02);
+			index = options.directionUp2 ? 0 : 1;
+			direction2ComboBox.setSelectedIndex(index);
+			threshold2Spinner.setValue(options.detectLevel2Threshold);
+			jitter2Spinner.setValue(options.jitter2);
+			selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
+			leftCheckBox.setSelected(options.detectL);
+			rightCheckBox.setSelected(options.detectR);
 
-		fromRectangleCheckBox.setSelected(false);
+			fromRectangleCheckBox.setSelected(false);
+		} finally {
+			suppressDisplayUpdate = false;
+		}
+		allowItemsAccordingToSelection();
+	}
+
+	void restoreDialogFromSessionAfterDetection(BuildSeriesOptions session, Experiment exp) {
+		if (session == null) {
+			return;
+		}
+		applyLevelOptionsToDialog(session);
+		resetDisplayToRaw(exp);
 	}
 
 	void setOptionsFromDialog(Capillary cap) {
@@ -467,12 +509,13 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			Logger.debug("thread_ended");
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
-				boolean fullBatch = DetectionProvenanceSupport
-						.isFullBatchLevelDetection(threadDetectLevels.options);
-				exp.applyLevelDetectionDefaultsFrom(threadDetectLevels.options, fullBatch);
+				exp.applyLevelDetectionDefaultsFrom(threadDetectLevels.options);
 				exp.saveExperimentDescriptors();
 			}
-			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage);
+			parent0.paneKymos.tabIntervals.selectKymographImage(currentKymographImage, false);
+			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
+				restoreDialogFromSessionAfterDetection(threadDetectLevels.options, exp);
+			}
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 			fromRectangleCheckBox.setSelected(false);
 		}

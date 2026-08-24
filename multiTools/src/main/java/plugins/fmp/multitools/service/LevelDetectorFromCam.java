@@ -86,7 +86,6 @@ public class LevelDetectorFromCam {
 			return;
 
 		for (Capillary cap : toProcess) {
-			cap.getProperties().getLimitsOptions().copyFrom(options);
 			DetectionProvenanceSupport.copyLevelRecipeTo(cap.getProperties().getLimitsOptions(), options);
 			cap.getTopRaw().limit = new int[nTimeBins];
 			cap.getBottomRaw().limit = new int[nTimeBins];

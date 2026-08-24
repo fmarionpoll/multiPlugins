@@ -2440,6 +2440,13 @@ public class Experiment {
 		}
 	}
 
+	/** Updates experiment level defaults from the last detection run (for dialog restore). */
+	public void applyLevelDetectionDefaultsFrom(BuildSeriesOptions session) {
+		if (session != null) {
+			DetectionProvenanceSupport.copyLevelRecipeTo(levelDetectionDefaults, session);
+		}
+	}
+
 	public void applyGulpDetectionDefaultsFrom(BuildSeriesOptions session, boolean fullBatch) {
 		if (session == null) {
 			return;

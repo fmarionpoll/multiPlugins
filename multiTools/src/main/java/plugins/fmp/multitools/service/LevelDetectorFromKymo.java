@@ -68,7 +68,6 @@ public class LevelDetectorFromKymo {
 
 			capi.getDerivative().clear();
 			capi.getGulps().clear();
-			capi.getProperties().getLimitsOptions().copyFrom(options);
 			DetectionProvenanceSupport.copyLevelRecipeTo(capi.getProperties().getLimitsOptions(), options);
 			final IcyBufferedImage rawImage = loader.imageIORead(fullPath);
 

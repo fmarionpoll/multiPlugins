@@ -484,31 +484,37 @@ public class CapillaryPersistence {
 
 					// Reconstruct ROI from coordinates if npoints > 0
 					if (npoints > 0 && i + (npoints * 2) <= data.length) {
-						if (npoints == 2) {
-							// Line: 2 points
-							int x1 = Integer.valueOf(data[i]);
-							int y1 = Integer.valueOf(data[i + 1]);
-							int x2 = Integer.valueOf(data[i + 2]);
-							int y2 = Integer.valueOf(data[i + 3]);
+						try {
+							if (npoints == 2) {
+								// Line: 2 points
+								int x1 = Integer.valueOf(data[i]);
+								int y1 = Integer.valueOf(data[i + 1]);
+								int x2 = Integer.valueOf(data[i + 2]);
+								int y2 = Integer.valueOf(data[i + 3]);
 
-							Line2D line = new Line2D.Double(x1, y1, x2, y2);
-							ROI2DLine roiLine = new ROI2DLine(line);
-							roiLine.setName(roiName);
-							cap.setRoi(roiLine);
-						} else {
-							// Polyline: multiple points
-							double[] xpoints = new double[npoints];
-							double[] ypoints = new double[npoints];
-							for (int j = 0; j < npoints; j++) {
-								xpoints[j] = Integer.valueOf(data[i + j * 2]);
-								ypoints[j] = Integer.valueOf(data[i + j * 2 + 1]);
+								Line2D line = new Line2D.Double(x1, y1, x2, y2);
+								ROI2DLine roiLine = new ROI2DLine(line);
+								roiLine.setName(roiName);
+								cap.setRoi(roiLine);
+							} else {
+								// Polyline: multiple points
+								double[] xpoints = new double[npoints];
+								double[] ypoints = new double[npoints];
+								for (int j = 0; j < npoints; j++) {
+									xpoints[j] = Integer.valueOf(data[i + j * 2]);
+									ypoints[j] = Integer.valueOf(data[i + j * 2 + 1]);
+								}
+
+								Polyline2D polyline = new Polyline2D(xpoints, ypoints, npoints);
+								ROI2DPolyLine roiPolyline = new ROI2DPolyLine(polyline);
+								roiPolyline.setName(roiName);
+								cap.setRoi(roiPolyline);
 							}
-
-							Polyline2D polyline = new Polyline2D(xpoints, ypoints, npoints);
-							ROI2DPolyLine roiPolyline = new ROI2DPolyLine(polyline);
-							roiPolyline.setName(roiName);
-							cap.setRoi(roiPolyline);
+						} catch (Exception e) {
+							Logger.warn("CapillaryPersistence:csvImportCapillaryDescription() ROI reconstruction skipped: "
+									+ e.getMessage());
 						}
+						i += npoints * 2;
 					}
 				} catch (NumberFormatException e) {
 					// Invalid npoints, skip ROI reconstruction

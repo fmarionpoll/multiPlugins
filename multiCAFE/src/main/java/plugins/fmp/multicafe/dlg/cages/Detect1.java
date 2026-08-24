@@ -208,6 +208,9 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		transformComboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
+				if (!viewButton.isSelected()) {
+					return;
+				}
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqCamData() != null) {
 					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
@@ -386,7 +389,13 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		if (exp == null) {
 			return;
 		}
-		BuildSeriesOptions options = exp.getFlyDetect1Defaults();
+		loadFlyDetect1DefaultsFromOptions(exp.getFlyDetect1Defaults(), exp);
+	}
+
+	void loadFlyDetect1DefaultsFromOptions(BuildSeriesOptions options, Experiment exp) {
+		if (options == null) {
+			return;
+		}
 		transformComboBox.setSelectedItem(options.flyDetectSourceTransform);
 		backgroundComboBox.setSelectedItem(options.flyDetectBackgroundTransform);
 		thresholdSpinner.setValue(options.threshold);
@@ -401,6 +410,16 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		jitterTextField.setValue(options.jitter);
 		nFliesCheckBox.setSelected(options.blimitMaxBlobsPerCage);
 		nFliesSpinner.setValue(options.nFliesPresent);
+		viewButton.setSelected(false);
+		overlayCheckBox.setSelected(false);
+		overlayCheckBox.setEnabled(false);
+		if (exp != null) {
+			removeOverlay(exp);
+			Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+			if (canvas != null) {
+				canvas.setTransformStep1Index(0);
+			}
+		}
 	}
 
 	void startComputation() {
@@ -461,7 +480,12 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
-			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && flyDetect1 != null && flyDetect1.options != null) {
+				loadFlyDetect1DefaultsFromOptions(flyDetect1.options, exp);
+			}
+			parent0.paneKymos.tabIntervals.selectKymographImage(parent0.paneKymos.tabIntervals.indexImagesCombo,
+					false);
 			parent0.paneKymos.tabIntervals.indexImagesCombo = -1;
 		}
 	}

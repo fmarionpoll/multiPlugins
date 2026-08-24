@@ -276,6 +276,11 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		thresholdSpinner.setValue(options.thresholdDiff);
 		dualBackgroundCheckBox.setSelected(options.dualBackground);
 		rednessThresholdSpinner.setValue(options.rednessThreshold);
+		viewButton.setSelected(false);
+		overlayCheckBox.setSelected(false);
+		overlayCheckBox.setEnabled(false);
+		viewDifference(exp, false);
+		removeOverlay(exp);
 	}
 
 	void startComputation() {

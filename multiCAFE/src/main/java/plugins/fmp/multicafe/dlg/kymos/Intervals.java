@@ -461,9 +461,13 @@ public class Intervals extends JPanel implements ViewerListener {
 	}
 
 	public void displayUpdateOnSwingThread() {
+		displayUpdateOnSwingThread(false);
+	}
+
+	public void displayUpdateOnSwingThread(boolean refreshDetectionDialogs) {
 		isActionEnabled = false;
 		try {
-			int isel = selectKymographImage(displayUpdate());
+			int isel = selectKymographImage(displayUpdate(), refreshDetectionDialogs);
 			selectKymographComboItem(isel);
 		} finally {
 			isActionEnabled = true;
@@ -497,6 +501,10 @@ public class Intervals extends JPanel implements ViewerListener {
 	}
 
 	public int selectKymographImage(int isel) {
+		return selectKymographImage(isel, true);
+	}
+
+	public int selectKymographImage(int isel, boolean refreshDetectionDialogs) {
 		int selectedImageIndex = -1;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
@@ -575,11 +583,15 @@ public class Intervals extends JPanel implements ViewerListener {
 
 		selectedImageIndex = seqKymos.getCurrentFrame();
 		applyCentralViewOptionsToKymosViewer(v);
-		selectCapillary(exp, selectedImageIndex);
+		selectCapillary(exp, selectedImageIndex, refreshDetectionDialogs);
 		return selectedImageIndex;
 	}
 
 	private void selectCapillary(Experiment exp, int isel) {
+		selectCapillary(exp, isel, true);
+	}
+
+	private void selectCapillary(Experiment exp, int isel, boolean refreshDetectionDialogs) {
 		Capillaries capillaries = exp.getCapillaries();
 
 		// First deselect all capillaries
@@ -606,7 +618,7 @@ public class Intervals extends JPanel implements ViewerListener {
 			if (capSel != null && capSel.getRoi() != null) {
 				capSel.getRoi().setSelected(true);
 			}
-			if (capSel != null && parent0.paneLevels != null) {
+			if (capSel != null && parent0.paneLevels != null && refreshDetectionDialogs) {
 				parent0.paneLevels.selectCapillaryForDetectionDialogs(capSel);
 			}
 		}
