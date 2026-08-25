@@ -43,11 +43,13 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 	private JButton closeButton = new JButton("Close");
 	JToggleButton showFilterButton = new JToggleButton("Filter (off)");
 	JToggleButton showEditButton = new JToggleButton("Edit");
+	JToggleButton showFindButton = new JToggleButton("Find");
 	private boolean listFiltered = false;
 
 	private static final String FILTER_BUTTON_OFF = "Filter (off)";
 	private static final String FILTER_BUTTON_ON = "Filter (on)";
 	private static final String TIP_EDIT = "Bulk-edit experiment or capillary descriptors for the current list (respects active Filter).";
+	private static final String TIP_FIND = "Scan capillary measures across the browse list (MAD, range, missing baseline, …) and jump to hits.";
 	private static final String TIP_CLOSE = "Close all open experiments and clear the browse list (releases viewers and file handles).";
 	private static final String TIP_SEARCH = "Search disk for experiment folders and add them to the list.";
 
@@ -96,7 +98,8 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 	public BrowsePanel() {
 	}
 
-	public JPanel initPanel(MultiCAFE parent0, FilterPanel filterPanel, EditCapillariesConditional editPanel) {
+	public JPanel initPanel(MultiCAFE parent0, FilterPanel filterPanel, EditCapillariesConditional editPanel,
+			MeasureSearchPanel findPanel) {
 		this.parent0 = parent0;
 		this.metadataScan = new CafeMetadataScanCoordinator(this);
 		this.openPipeline = new CafeExperimentOpenPipeline(this);
@@ -106,20 +109,24 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 		filterPanel.setVisible(false);
 		editPanel.init(new GridLayout(4, 1), parent0);
 		editPanel.setVisible(false);
+		findPanel.init(parent0);
+		findPanel.setVisible(false);
 
 		JPanel seriesTools = new JPanel();
 		seriesTools.setLayout(new BoxLayout(seriesTools, BoxLayout.Y_AXIS));
 		filterPanel.setAlignmentX(0f);
 		editPanel.setAlignmentX(0f);
+		findPanel.setAlignmentX(0f);
 		seriesTools.add(filterPanel);
 		seriesTools.add(editPanel);
+		seriesTools.add(findPanel);
 
 		JPanel browseRoot = new JPanel(new BorderLayout());
 		JPanel group2Panel = initUI();
 		browseRoot.add(group2Panel, BorderLayout.NORTH);
 		browseRoot.add(seriesTools, BorderLayout.CENTER);
 
-		defineActionListeners(filterPanel, editPanel);
+		defineActionListeners(filterPanel, editPanel, findPanel);
 		updateFilterButtonLabel();
 		SwingUtilities.invokeLater(() -> ExperimentBrowseKeyboard.install(group2Panel, previousButton, nextButton,
 				() -> parent0 != null && parent0.mainFrame != null && parent0.mainFrame.isVisible()));
@@ -133,12 +140,14 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 		closeButton.setToolTipText(TIP_CLOSE);
 		searchButton.setToolTipText(TIP_SEARCH);
 		showEditButton.setToolTipText(TIP_EDIT);
+		showFindButton.setToolTipText(TIP_FIND);
 		JPanel buttonPanel = CafeBrowseUi.createButtonPanel(openButton, createButton, searchButton, closeButton,
-				showFilterButton, showEditButton);
+				showFilterButton, showEditButton, showFindButton);
 		return CafeBrowseUi.createMainGrid(navPanel, buttonPanel);
 	}
 
-	private void defineActionListeners(FilterPanel filterPanel, EditCapillariesConditional editPanel) {
+	private void defineActionListeners(FilterPanel filterPanel, EditCapillariesConditional editPanel,
+			MeasureSearchPanel findPanel) {
 		openButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -187,7 +196,9 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 				boolean show = showFilterButton.isSelected();
 				if (show) {
 					showEditButton.setSelected(false);
+					showFindButton.setSelected(false);
 					editPanel.setVisible(false);
+					findPanel.setVisible(false);
 					filterPanel.initCombos();
 				}
 				filterPanel.setVisible(show);
@@ -201,10 +212,27 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 				boolean show = showEditButton.isSelected();
 				if (show) {
 					showFilterButton.setSelected(false);
+					showFindButton.setSelected(false);
 					filterPanel.setVisible(false);
+					findPanel.setVisible(false);
 					editPanel.initEditCombos();
 				}
 				editPanel.setVisible(show);
+				repackMainFrame();
+			}
+		});
+
+		showFindButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				boolean show = showFindButton.isSelected();
+				if (show) {
+					showFilterButton.setSelected(false);
+					showEditButton.setSelected(false);
+					filterPanel.setVisible(false);
+					editPanel.setVisible(false);
+				}
+				findPanel.setVisible(show);
 				repackMainFrame();
 			}
 		});

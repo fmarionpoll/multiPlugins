@@ -131,4 +131,10 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectGulps.setInfos(cap);
 	}
 
+	public void selectBottomTab() {
+		int idx = tabsPane.indexOfComponent(tabDetectBottom);
+		if (idx >= 0)
+			tabsPane.setSelectedIndex(idx);
+	}
+
 }

@@ -16,9 +16,10 @@ public class MCBrowse_ extends JPanel {
 	public BrowsePanel browsePanel = new BrowsePanel();
 	public FilterPanel filterPanel = new FilterPanel();
 	public EditCapillariesConditional editPanel = new EditCapillariesConditional();
+	public MeasureSearchPanel findPanel = new MeasureSearchPanel();
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
-		JPanel filesPanel = browsePanel.initPanel(parent0, filterPanel, editPanel);
+		JPanel filesPanel = browsePanel.initPanel(parent0, filterPanel, editPanel, findPanel);
 		mainPanel.add(filesPanel, BorderLayout.CENTER);
 		mainPanel.addComponentListener(new ComponentAdapter() {
 			@Override
