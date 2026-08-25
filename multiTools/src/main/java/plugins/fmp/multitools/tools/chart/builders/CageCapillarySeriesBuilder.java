@@ -128,7 +128,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 				solid.setDescription(buildSeriesDescription(cage, cap, i));
 				dataset.addSeries(solid);
 			}
-			XYSeries dashed = createXYSeriesFromCapillaryMeasure(exp, cap, t00Opts, CapillaryChartSeriesKeys.keyT00(cap));
+			XYSeries dashed = createXYSeriesFromCapillaryMeasure(exp, cap, t00Opts,
+					CapillaryChartSeriesKeys.keyT00(cap));
 			if (dashed != null) {
 				dashed.setDescription(buildSeriesDescription(cage, cap, i));
 				dataset.addSeries(dashed);
@@ -281,21 +282,27 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			for (XYSeries s : listL) {
 				int idx = s.indexOf(x);
 				if (idx >= 0) {
-					sumL += Math.abs(s.getY(idx).doubleValue());
+					sumL += s.getY(idx).doubleValue();
 					hasL = true;
 				}
 			}
 			for (XYSeries s : listR) {
 				int idx = s.indexOf(x);
 				if (idx >= 0) {
-					sumR += Math.abs(s.getY(idx).doubleValue());
+					sumR += s.getY(idx).doubleValue();
 					hasR = true;
 				}
 			}
 
-			if (hasL || hasR) {
+			if (hasL && hasR) {
 				double sum = sumL + sumR;
-				double pi = (sum != 0) ? (sumL - sumR) / sum : 0;
+				// For PI, negative apparent consumption is treated as no consumption
+				double piL = Math.max(0.0, sumL);
+				double piR = Math.max(0.0, sumR);
+				double piSum = piL + piR;
+
+				// No detected consumption on either side -> PI = 0
+				double pi = (piSum > 0.0) ? (piL - piR) / piSum : 0.0;
 				seriesSum.add(x.doubleValue(), sum);
 				seriesPI.add(x.doubleValue(), pi);
 			}

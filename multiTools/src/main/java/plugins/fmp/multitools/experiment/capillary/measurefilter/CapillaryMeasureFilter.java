@@ -155,10 +155,9 @@ public final class CapillaryMeasureFilter {
 	}
 
 	/**
-	 * Meniscus Y difference (pixels): {@code Y_top[t0] − Y_t00}. Same sign as
-	 * fill(t00)−fill(t0) when Y increases downward. Positive ⇒ capillary lower
-	 * than empty mean at t0 (early drink). Negative ⇒ higher than empty mean
-	 * (possible artefact).
+	 * Meniscus Y difference (pixels): {@code Y_top[t0] − Y_t00} with
+	 * {@code Y_t00 = tip − h}. Positive ⇒ lower fill than t00 reference at t0
+	 * (early drink / underfill). Negative ⇒ fuller than reference.
 	 */
 	public static Double computeT00MinusT0FillPx(Capillary cap) {
 		if (cap == null || !cap.hasT00YPixels())

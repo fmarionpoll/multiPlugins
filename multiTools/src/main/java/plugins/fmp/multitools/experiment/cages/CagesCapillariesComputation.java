@@ -8,6 +8,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.ReferenceMeasures;
+import plugins.fmp.multitools.experiment.capillary.BottomBaselineEstimator;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.Logger;
@@ -112,12 +113,19 @@ public class CagesCapillariesComputation {
 		}
 	}
 
+	/** Max px below the longest empty fill still accepted as a t00 reference. */
+	public static final double T00_FILL_TOLERANCE_PX = 6.0;
+
 	/**
-	 * Experiment-wide t00 meniscus Y (pixels) for TOPRAW00 / TOPLEVEL00.
-	 * Same display path as TOPRAW / TOPLEVEL, but the zero reference is not each
-	 * capillary's own {@code Y[t0]} — it is the mean of {@code Y_top[t0]} over all
-	 * capillaries with {@code nFlies==0} in the experiment. That single value is
-	 * cached on every capillary.
+	 * t00 fill reference from empty capillaries (native pixels).
+	 * <ol>
+	 * <li>Empties ({@code nFlies==0}) with tip (bottomlevel) and top[t0]</li>
+	 * <li>Fill length {@code L = tip − top[t0]}; keep those within
+	 * {@link #T00_FILL_TOLERANCE_PX} of the longest</li>
+	 * <li>Need ≥2 suitable; else mark experiment unsuitable and clear capillary
+	 * t00 Y</li>
+	 * <li>Else {@code h = median(L)}; each capillary {@code Y_t00 = tip − h}</li>
+	 * </ol>
 	 */
 	public void computeT00References(Experiment exp) {
 		if (exp == null || exp.getCapillaries() == null)
@@ -135,46 +143,138 @@ public class CagesCapillariesComputation {
 			allCaps.addAll(caps);
 		}
 
-		double t00Y = meanEmptyTopYAtT0(allCaps);
-		if (!Double.isFinite(t00Y)) {
+		ensureBottomBaselines(allCaps);
+
+		List<Double> emptyLengths = new ArrayList<>();
+		List<Capillary> emptyCapsWithLength = new ArrayList<>();
+		for (Capillary cap : allCaps) {
+			if (cap == null || cap.getProperties().getNFlies() != 0)
+				continue;
+			Double length = emptyFillLengthPx(cap);
+			if (length == null)
+				continue;
+			emptyLengths.add(length);
+			emptyCapsWithLength.add(cap);
+		}
+
+		if (emptyLengths.isEmpty()) {
+			clearT00(exp, allCaps);
+			Logger.warn("t00: no usable empty capillary (nFlies==0 with tip + top[t0])");
+			return;
+		}
+
+		double lMax = Double.NEGATIVE_INFINITY;
+		for (double l : emptyLengths) {
+			if (l > lMax)
+				lMax = l;
+		}
+
+		List<Double> suitableLengths = new ArrayList<>();
+		List<Capillary> suitableCaps = new ArrayList<>();
+		for (int i = 0; i < emptyLengths.size(); i++) {
+			double l = emptyLengths.get(i);
+			if (lMax - l <= T00_FILL_TOLERANCE_PX) {
+				suitableLengths.add(l);
+				suitableCaps.add(emptyCapsWithLength.get(i));
+			}
+		}
+
+		int nSuitable = suitableLengths.size();
+		exp.setT00NSuitable(nSuitable);
+		if (nSuitable < 2) {
+			exp.setT00ReferencePixels(Double.NaN);
+			exp.setT00UlPerPx(Double.NaN);
 			for (Capillary cap : allCaps) {
 				if (cap != null)
 					cap.setT00YPixels(Double.NaN);
 			}
-			Logger.warn("t00: no usable empty capillary (nFlies==0 with top[t0]) in the experiment");
 			return;
 		}
+
+		double h = median(suitableLengths);
+		double ulPerPx = medianUlPerPx(suitableCaps);
+		if (!Double.isFinite(ulPerPx))
+			ulPerPx = medianUlPerPx(allCaps);
+		exp.setT00ReferencePixels(h);
+		exp.setT00UlPerPx(ulPerPx);
 
 		int nSet = 0;
 		for (Capillary cap : allCaps) {
 			if (cap == null)
 				continue;
-			cap.setT00YPixels(t00Y);
+			double tip = cap.getBottomBaselineY();
+			if (!Double.isFinite(tip)) {
+				cap.setT00YPixels(Double.NaN);
+				continue;
+			}
+			cap.setT00YPixels(tip - h);
 			nSet++;
 		}
-		Logger.info("t00: Y=" + String.format("%.2f", t00Y) + " px (mean empty top at t0) set on " + nSet
-				+ " capillary(ies)");
+		Logger.info("t00: h=" + String.format("%.2f", h) + " px (median of " + nSuitable
+				+ " suitable empties), set Y_t00 on " + nSet + " capillary(ies)"
+				+ (Double.isFinite(ulPerPx) ? ", ref=" + String.format("%.4f", h * ulPerPx) + " uL" : ""));
 	}
 
-	/** Mean of top meniscus Y at first sample for capillaries with {@code nFlies==0}. */
-	static double meanEmptyTopYAtT0(List<Capillary> capillaries) {
-		if (capillaries == null || capillaries.isEmpty())
-			return Double.NaN;
-		double sum = 0;
-		int n = 0;
-		for (Capillary cap : capillaries) {
-			if (cap == null || cap.getProperties().getNFlies() != 0)
-				continue;
-			CapillaryMeasure top = cap.getTopRaw();
-			if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
-				continue;
-			Level2D poly = top.polylineLevel;
-			if (poly.ypoints == null || poly.ypoints.length == 0 || !Double.isFinite(poly.ypoints[0]))
-				continue;
-			sum += poly.ypoints[0];
-			n++;
+	private static void clearT00(Experiment exp, List<Capillary> allCaps) {
+		exp.clearT00Reference();
+		for (Capillary cap : allCaps) {
+			if (cap != null)
+				cap.setT00YPixels(Double.NaN);
 		}
-		return n == 0 ? Double.NaN : sum / n;
+	}
+
+	private static void ensureBottomBaselines(List<Capillary> caps) {
+		for (Capillary cap : caps) {
+			if (cap == null)
+				continue;
+			if (Double.isFinite(cap.getBottomBaselineY()))
+				continue;
+			CapillaryMeasure bottom = cap.getBottomRaw();
+			if (bottom != null && bottom.isThereAnyMeasuresDone())
+				BottomBaselineEstimator.estimateAndApply(cap);
+		}
+	}
+
+	/** {@code tip − top[t0]} in native pixels, or null if unavailable. */
+	static Double emptyFillLengthPx(Capillary cap) {
+		if (cap == null)
+			return null;
+		double tip = cap.getBottomBaselineY();
+		if (!Double.isFinite(tip))
+			return null;
+		CapillaryMeasure top = cap.getTopRaw();
+		if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
+			return null;
+		Level2D poly = top.polylineLevel;
+		if (poly.ypoints == null || poly.ypoints.length == 0 || !Double.isFinite(poly.ypoints[0]))
+			return null;
+		return tip - poly.ypoints[0];
+	}
+
+	static double median(List<Double> values) {
+		if (values == null || values.isEmpty())
+			return Double.NaN;
+		Double[] arr = values.toArray(new Double[0]);
+		java.util.Arrays.sort(arr);
+		int n = arr.length;
+		if ((n & 1) == 1)
+			return arr[n / 2];
+		return 0.5 * (arr[n / 2 - 1] + arr[n / 2]);
+	}
+
+	static double medianUlPerPx(List<Capillary> caps) {
+		if (caps == null || caps.isEmpty())
+			return Double.NaN;
+		List<Double> scales = new ArrayList<>();
+		for (Capillary cap : caps) {
+			if (cap == null)
+				continue;
+			double vol = cap.getVolume();
+			int px = cap.getPixels();
+			if (px > 0 && Double.isFinite(vol) && vol > 0)
+				scales.add(vol / px);
+		}
+		return median(scales);
 	}
 
 	/**

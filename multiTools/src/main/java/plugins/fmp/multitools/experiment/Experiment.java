@@ -174,6 +174,19 @@ public class Experiment {
 	 */
 	private boolean legacyExperimentFormat = false;
 
+	/**
+	 * Session cache: median empty fill length (px) for t00 after QC. {@link Double#NaN}
+	 * when unsuitable (&lt;2 reference capillaries within tolerance of the longest).
+	 */
+	private transient double t00ReferencePixels = Double.NaN;
+	/** Session cache: count of empty capillaries kept as t00 fill references. */
+	private transient int t00NSuitable = 0;
+	/**
+	 * Session cache: µL/px used to convert {@link #t00ReferencePixels} for export
+	 * (median volume/pixels of suitable empties).
+	 */
+	private transient double t00UlPerPx = Double.NaN;
+
 	// -----------------------------------------
 
 	public Sequence getSeqReference() {
@@ -2377,6 +2390,47 @@ public class Experiment {
 
 	public void setCapillaries(Capillaries capillaries) {
 		this.capillaries = capillaries;
+	}
+
+	public double getT00ReferencePixels() {
+		return t00ReferencePixels;
+	}
+
+	public void setT00ReferencePixels(double t00ReferencePixels) {
+		this.t00ReferencePixels = t00ReferencePixels;
+	}
+
+	public int getT00NSuitable() {
+		return t00NSuitable;
+	}
+
+	public void setT00NSuitable(int t00NSuitable) {
+		this.t00NSuitable = Math.max(0, t00NSuitable);
+	}
+
+	public boolean isT00Suitable() {
+		return t00NSuitable >= 2 && Double.isFinite(t00ReferencePixels);
+	}
+
+	public double getT00UlPerPx() {
+		return t00UlPerPx;
+	}
+
+	public void setT00UlPerPx(double t00UlPerPx) {
+		this.t00UlPerPx = t00UlPerPx;
+	}
+
+	/** Median empty fill length converted to µL; {@link Double#NaN} if unsuitable. */
+	public double getT00ReferenceUl() {
+		if (!isT00Suitable() || !Double.isFinite(t00UlPerPx))
+			return Double.NaN;
+		return t00ReferencePixels * t00UlPerPx;
+	}
+
+	public void clearT00Reference() {
+		t00ReferencePixels = Double.NaN;
+		t00NSuitable = 0;
+		t00UlPerPx = Double.NaN;
 	}
 
 	// ------------------------------ Spots Support

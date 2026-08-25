@@ -36,8 +36,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * gulp_amplitude_uL (0 when no gulp at that time), plus derivative if selected.
  * Cage ({@code measure_cage_*}) files are wide: {@code sum}/{@code pi}
  * (toplevel), {@code sum_topraw}/{@code pi_topraw},
- * {@code sum_gulps}/{@code pi_gulps}, {@code sum00}/{@code pi00} (toplevel00).
- * Levels-tab checkboxes do not gate the
+ * {@code sum_gulps}/{@code pi_gulps}, {@code sum00}/{@code pi00} (toplevel00),
+ * {@code t00_suitable}. Levels-tab checkboxes do not gate the
  * standard columns; optional extras (derivative, gulp events) still follow
  * options.
  */
@@ -126,6 +126,7 @@ public final class CsvNormalizedExport {
 			boolean wantGulpEvents, long binStepMs) throws IOException {
 		exp.ensureFrameTimeScale();
 		exp.dispatchCapillariesToCages();
+		exp.getCages().computeT00References(exp);
 
 		long nativeMedian = nativeMedianMs(exp);
 		int nativeStepMs = (int) Math.max(1L, nativeMedian > 0 ? nativeMedian : binStepMs);
@@ -193,11 +194,13 @@ public final class CsvNormalizedExport {
 						mergeSeriesNative(byTime, series, e.getValue());
 					}
 					byTime.entrySet().removeIf(row -> !hasRawMeasureValues(row.getValue()));
+					boolean t00Suitable = exp.isT00Suitable();
 					for (Map.Entry<Long, Map<String, Double>> row : byTime.entrySet()) {
-						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue());
+						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue(),
+								t00Suitable);
 					}
 					if (writeBin && !byTime.isEmpty()) {
-						writeMeasureCapBinned(csv, expKey, cageId, capId, byTime, denseCols, binStepMs);
+						writeMeasureCapBinned(csv, expKey, cageId, capId, byTime, denseCols, binStepMs, t00Suitable);
 					}
 				}
 
@@ -214,7 +217,8 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void writeMeasureCapBinned(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
-			Map<Long, Map<String, Double>> byTime, List<String> denseCols, long binStepMs) throws IOException {
+			Map<Long, Map<String, Double>> byTime, List<String> denseCols, long binStepMs, boolean t00Suitable)
+			throws IOException {
 		int n = byTime.size();
 		long[] timesMs = new long[n];
 		double[][] cols = new double[denseCols.size()][n];
@@ -223,7 +227,12 @@ public final class CsvNormalizedExport {
 			timesMs[i] = e.getKey();
 			Map<String, Double> vals = e.getValue();
 			for (int c = 0; c < denseCols.size(); c++) {
-				Double v = vals.get(denseCols.get(c));
+				String col = denseCols.get(c);
+				if (CsvNormalizedExportSupport.COL_T00_SUITABLE.equals(col)) {
+					cols[c][i] = Double.NaN;
+					continue;
+				}
+				Double v = vals.get(col);
 				cols[c][i] = v != null ? v : Double.NaN;
 			}
 			i++;
@@ -243,8 +252,11 @@ public final class CsvNormalizedExport {
 			Map<String, Double> row = new LinkedHashMap<>();
 			boolean any = false;
 			for (int c = 0; c < denseCols.size(); c++) {
-				double v = binned[c][b];
 				String col = denseCols.get(c);
+				if (CsvNormalizedExportSupport.COL_T00_SUITABLE.equals(col)) {
+					continue;
+				}
+				double v = binned[c][b];
 				if (CsvNormalizedExportSupport.COL_GULP_AMPLITUDE.equals(col)) {
 					double g = Double.isNaN(v) ? 0.0 : v;
 					row.put(col, g);
@@ -259,7 +271,7 @@ public final class CsvNormalizedExport {
 				}
 			}
 			if (any) {
-				csv.writeMeasureCapRowBin(expKey, cageId, capId, starts[b] / 60000.0, row);
+				csv.writeMeasureCapRowBin(expKey, cageId, capId, starts[b] / 60000.0, row, t00Suitable);
 			}
 		}
 	}
@@ -297,6 +309,7 @@ public final class CsvNormalizedExport {
 			csv.ensureDescriptors(exp, charSeries, cage, capillaries.get(0));
 			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
 			int cageId = cage.getProperties().getCageID();
+			boolean t00Suitable = exp.isT00Suitable();
 
 			XYSeries levelSum = null;
 			XYSeries levelPi = null;
@@ -342,11 +355,11 @@ public final class CsvNormalizedExport {
 					continue;
 				}
 				csv.writeMeasureCageRowRaw(expKey, cageId, e.getKey() / 60000.0, v[0], v[1], v[2], v[3], v[4], v[5],
-						v[6], v[7]);
+						v[6], v[7], t00Suitable);
 			}
 
 			if (writeBin) {
-				writeMeasureCageBinned(csv, expKey, cageId, byTime, binStepMs);
+				writeMeasureCageBinned(csv, expKey, cageId, byTime, binStepMs, t00Suitable);
 			}
 		}
 	}
@@ -383,7 +396,7 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void writeMeasureCageBinned(CsvNormalizedExportSupport csv, String expKey, int cageId,
-			Map<Long, double[]> byTime, long binStepMs) throws IOException {
+			Map<Long, double[]> byTime, long binStepMs, boolean t00Suitable) throws IOException {
 		int n = byTime.size();
 		long[] timesMs = new long[n];
 		double[][] cols = new double[8][n];
@@ -416,7 +429,7 @@ public final class CsvNormalizedExport {
 				continue;
 			}
 			csv.writeMeasureCageRowBin(expKey, cageId, starts[b] / 60000.0, sum, pi, sumTopraw, piTopraw, sumGulps,
-					piGulps, sum00, pi00);
+					piGulps, sum00, pi00, t00Suitable);
 		}
 	}
 
@@ -486,6 +499,9 @@ public final class CsvNormalizedExport {
 			if (CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL.equals(e.getKey())) {
 				continue;
 			}
+			if (CsvNormalizedExportSupport.COL_T00_SUITABLE.equals(e.getKey())) {
+				continue;
+			}
 			return true;
 		}
 		return false;
@@ -516,6 +532,7 @@ public final class CsvNormalizedExport {
 			cols.add(CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
 			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
 			cols.add(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
+			cols.add(CsvNormalizedExportSupport.COL_T00_SUITABLE);
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
 			}

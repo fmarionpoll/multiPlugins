@@ -56,14 +56,13 @@ public class CageCapillariesComputation {
 
 	/**
 	 * Computes L+R measures (SUM and PI) for capillaries within the associated
-	 * cage. Handles different numbers of capillaries: - 2 capillaries: standard L+R
-	 * (SUM = |L|+|R|, PI = (L-R)/SUM) - 4+ capillaries: groups into Left and Right
-	 * sets, then computes aggregated SUM and PI
-	 * 
-	 * Note: This should be called AFTER evaporation correction if needed.
-	 * 
+	 * cage. SUM = L + R (signed side totals). PI uses max(0, L) and max(0, R) so
+	 * negative apparent consumption counts as none for preference; PI = (L'−R')/(L'+R')
+	 * when L'+R' ≥ threshold.
+	 *
 	 * @param allCapillaries The global Capillaries containing all capillaries
-	 * @param threshold      Minimum SUM value required to compute PI
+	 * @param threshold      Minimum L'+R' required to compute PI (0 = any positive
+	 *                       clamped consumption)
 	 */
 	public void computeLRMeasures(Capillaries allCapillaries, double threshold) {
 		if (allCapillaries == null)
@@ -179,7 +178,7 @@ public class CageCapillariesComputation {
 
 			int npoints = Math.min(measure.polylineLevel.npoints, maxPoints);
 			for (int i = 0; i < npoints; i++) {
-				sumY[i] += Math.abs(measure.polylineLevel.ypoints[i]);
+				sumY[i] += measure.polylineLevel.ypoints[i];
 			}
 		}
 
@@ -198,8 +197,8 @@ public class CageCapillariesComputation {
 	}
 
 	/**
-	 * Computes SUM and PI from left and right aggregated measures. SUM = |L| + |R|
-	 * PI = (L-R)/SUM (if SUM >= threshold)
+	 * Computes SUM and PI from left and right aggregated measures (same rules as
+	 * {@link plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder#buildSumAndPISeries}).
 	 */
 	private void computeSumAndPI(CapillaryMeasure aggregatedLeft, CapillaryMeasure aggregatedRight, double threshold) {
 
@@ -217,12 +216,13 @@ public class CageCapillariesComputation {
 			xpoints[i] = i;
 			double valL = polylineL.ypoints[i];
 			double valR = polylineR.ypoints[i];
-			double sum = Math.abs(valL) + Math.abs(valR);
+			sumY[i] = valL + valR;
 
-			sumY[i] = sum;
-
-			if (sum > 0.0 && sum >= threshold) {
-				piY[i] = (valL - valR) / sum;
+			double piL = Math.max(0.0, valL);
+			double piR = Math.max(0.0, valR);
+			double piSum = piL + piR;
+			if (piSum > 0.0 && piSum >= threshold) {
+				piY[i] = (piL - piR) / piSum;
 			} else {
 				piY[i] = 0.0;
 			}
@@ -269,8 +269,9 @@ public class CageCapillariesComputation {
 	}
 
 	/**
-	 * Gets the PI measure for the associated cage ((L-R)/(L+R) preference index).
-	 * 
+	 * Gets the PI measure for the associated cage (preference index from clamped
+	 * side totals).
+	 *
 	 * @return The PI measure, or null if not computed
 	 */
 	public CapillaryMeasure getPIMeasure() {

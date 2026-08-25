@@ -55,8 +55,8 @@ public class Capillary implements Comparable<Capillary> {
 	private int lastAlongTIndex = -1;
 
 	/**
-	 * Session cache: experiment-wide empty mean meniscus Y at t0 (pixels) for
-	 * t−t00 series. {@link Double#NaN} when no usable empty capillary exists.
+	 * Session cache: putative full meniscus Y (pixels) = tip − experiment median
+	 * empty fill length. {@link Double#NaN} when t00 is unsuitable or tip missing.
 	 */
 	private transient double t00YPixels = Double.NaN;
 
