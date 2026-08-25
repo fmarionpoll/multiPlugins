@@ -11,7 +11,7 @@ public enum MeasureFilterSource {
 	BOTTOM_BASELINE_Y("bottomBaselineY"),
 	BOTTOM_BASELINE_MAD("bottomBaselineMad"),
 	BOTTOM_BASELINE_OUTLIER_FRAC("bottomBaselineOutlierFrac"),
-	/** Fill-height difference in pixels: (t00 fill) − (t0 fill) = Y_top[0] − Y_t00. */
+	/** Meniscus Y difference: Y_top[t0] − Y_t00 (empty-mean at t0). */
 	T00_MINUS_T0_FILL_PX("t00−t0 fill px");
 
 	private final String label;
@@ -30,7 +30,7 @@ public enum MeasureFilterSource {
 				|| this == BOTTOM_BASELINE_OUTLIER_FRAC;
 	}
 
-	/** True when the rule needs cage-scoped t00 Y cached on capillaries. */
+	/** True when the rule needs experiment-wide t00 Y cached on capillaries. */
 	public boolean requiresT00() {
 		return this == T00_MINUS_T0_FILL_PX;
 	}

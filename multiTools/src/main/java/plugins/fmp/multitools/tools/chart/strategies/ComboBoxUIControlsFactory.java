@@ -168,9 +168,13 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		bottomPanel.removeAll();
 
 		if (currentOptions.resultType == EnumResults.TOPLEVEL_SUM
+				|| currentOptions.resultType == EnumResults.TOPLEVEL_SUM00
+				|| currentOptions.resultType == EnumResults.TOPLEVEL_SUM_AND_00
 				|| currentOptions.resultType == EnumResults.SUMGULPS_SUM) {
 			bottomPanel.add(new LegendItem("Sum", Color.BLUE));
 		} else if (currentOptions.resultType == EnumResults.TOPLEVEL_PI
+				|| currentOptions.resultType == EnumResults.TOPLEVEL_PI00
+				|| currentOptions.resultType == EnumResults.TOPLEVEL_PI_AND_00
 				|| currentOptions.resultType == EnumResults.SUMGULPS_PI) {
 			bottomPanel.add(new LegendItem("PI", Color.RED));
 		} else if (ChartCageBuild.isLRType(currentOptions.resultType)) {
@@ -535,7 +539,11 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 				EnumResults.TOPLEVEL_AND_00, //
 				EnumResults.BOTTOMLEVEL, //
 				EnumResults.TOPLEVEL_SUM, //
+				EnumResults.TOPLEVEL_SUM00, //
+				EnumResults.TOPLEVEL_SUM_AND_00, //
 				EnumResults.TOPLEVEL_PI, //
+				EnumResults.TOPLEVEL_PI00, //
+				EnumResults.TOPLEVEL_PI_AND_00, //
 				EnumResults.DERIVEDVALUES, //
 				EnumResults.SUMGULPS, //
 				EnumResults.SUMGULPS_SUM, //

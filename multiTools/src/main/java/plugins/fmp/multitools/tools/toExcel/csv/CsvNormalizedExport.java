@@ -36,7 +36,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * gulp_amplitude_uL (0 when no gulp at that time), plus derivative if selected.
  * Cage ({@code measure_cage_*}) files are wide: {@code sum}/{@code pi}
  * (toplevel), {@code sum_topraw}/{@code pi_topraw},
- * {@code sum_gulps}/{@code pi_gulps}. Levels-tab checkboxes do not gate the
+ * {@code sum_gulps}/{@code pi_gulps}, {@code sum00}/{@code pi00} (toplevel00).
+ * Levels-tab checkboxes do not gate the
  * standard columns; optional extras (derivative, gulp events) still follow
  * options.
  */
@@ -303,6 +304,8 @@ public final class CsvNormalizedExport {
 			XYSeries toprawPi = null;
 			XYSeries gulpSum = null;
 			XYSeries gulpPi = null;
+			XYSeries level00Sum = null;
+			XYSeries level00Pi = null;
 			if (wantLevels) {
 				XYSeriesCollection ds = buildDataset(exp, cage, options, EnumResults.TOPLEVEL_LR, nativeStepMs,
 						builder);
@@ -312,6 +315,10 @@ public final class CsvNormalizedExport {
 						builder);
 				toprawSum = findSeriesByKey(rawDs, cageId + "_Sum");
 				toprawPi = findSeriesByKey(rawDs, cageId + "_PI");
+				XYSeriesCollection ds00 = buildDataset(exp, cage, options, EnumResults.TOPLEVEL00_LR, nativeStepMs,
+						builder);
+				level00Sum = findSeriesByKey(ds00, cageId + "_Sum");
+				level00Pi = findSeriesByKey(ds00, cageId + "_PI");
 			}
 			if (wantGulps) {
 				XYSeriesCollection ds = buildDataset(exp, cage, options, EnumResults.SUMGULPS_LR, nativeStepMs,
@@ -324,6 +331,7 @@ public final class CsvNormalizedExport {
 			mergeCagePair(byTime, levelSum, levelPi, 0, 1, true);
 			mergeCagePair(byTime, toprawSum, toprawPi, 2, 3, true);
 			mergeCagePair(byTime, gulpSum, gulpPi, 4, 5, !wantLevels);
+			mergeCagePair(byTime, level00Sum, level00Pi, 6, 7, true);
 			if (byTime.isEmpty()) {
 				continue;
 			}
@@ -333,7 +341,8 @@ public final class CsvNormalizedExport {
 				if (allNaN(v)) {
 					continue;
 				}
-				csv.writeMeasureCageRowRaw(expKey, cageId, e.getKey() / 60000.0, v[0], v[1], v[2], v[3], v[4], v[5]);
+				csv.writeMeasureCageRowRaw(expKey, cageId, e.getKey() / 60000.0, v[0], v[1], v[2], v[3], v[4], v[5],
+						v[6], v[7]);
 			}
 
 			if (writeBin) {
@@ -354,7 +363,7 @@ public final class CsvNormalizedExport {
 				if (!createKeys) {
 					continue;
 				}
-				row = newNaNRow(6);
+				row = newNaNRow(8);
 				byTime.put(tMs, row);
 			}
 			row[sumIdx] = seriesSum.getY(i).doubleValue();
@@ -377,12 +386,12 @@ public final class CsvNormalizedExport {
 			Map<Long, double[]> byTime, long binStepMs) throws IOException {
 		int n = byTime.size();
 		long[] timesMs = new long[n];
-		double[][] cols = new double[6][n];
+		double[][] cols = new double[8][n];
 		int i = 0;
 		for (Map.Entry<Long, double[]> e : byTime.entrySet()) {
 			timesMs[i] = e.getKey();
 			double[] v = e.getValue();
-			for (int c = 0; c < 6; c++) {
+			for (int c = 0; c < 8; c++) {
 				cols[c][i] = v[c];
 			}
 			i++;
@@ -400,12 +409,14 @@ public final class CsvNormalizedExport {
 			double piTopraw = binned[3][b];
 			double sumGulps = binned[4][b];
 			double piGulps = binned[5][b];
+			double sum00 = binned[6][b];
+			double pi00 = binned[7][b];
 			if (Double.isNaN(sum) && Double.isNaN(pi) && Double.isNaN(sumTopraw) && Double.isNaN(piTopraw)
-					&& Double.isNaN(sumGulps) && Double.isNaN(piGulps)) {
+					&& Double.isNaN(sumGulps) && Double.isNaN(piGulps) && Double.isNaN(sum00) && Double.isNaN(pi00)) {
 				continue;
 			}
 			csv.writeMeasureCageRowBin(expKey, cageId, starts[b] / 60000.0, sum, pi, sumTopraw, piTopraw, sumGulps,
-					piGulps);
+					piGulps, sum00, pi00);
 		}
 	}
 
@@ -425,7 +436,9 @@ public final class CsvNormalizedExport {
 		ro.relativeToMaximum = false;
 		ro.subtractT0 = false;
 		ro.correctEvaporation = (resultType == EnumResults.TOPLEVEL || resultType == EnumResults.TOPLEVEL_LR
-				|| resultType == EnumResults.TOPLEVEL00);
+				|| resultType == EnumResults.TOPLEVEL00 || resultType == EnumResults.TOPLEVEL00_LR
+				|| resultType == EnumResults.TOPLEVEL_SUM00 || resultType == EnumResults.TOPLEVEL_PI00
+				|| resultType == EnumResults.TOPLEVEL_SUM_AND_00 || resultType == EnumResults.TOPLEVEL_PI_AND_00);
 		ro.resultType = resultType;
 		ro.exportLayoutMode = ExportLayoutMode.NORMALIZED;
 		ro.lrPIThreshold = base != null ? base.lrPIThreshold : 0.0;
@@ -572,8 +585,9 @@ public final class CsvNormalizedExport {
 		if (dataset == null || cage == null || cap == null) {
 			return null;
 		}
-		boolean isLRType = resultType == EnumResults.TOPLEVEL_LR || resultType == EnumResults.TOPRAW_LR
-				|| resultType == EnumResults.TOPLEVELDELTA_LR || resultType == EnumResults.SUMGULPS_LR;
+		boolean isLRType = resultType == EnumResults.TOPLEVEL_LR || resultType == EnumResults.TOPLEVEL00_LR
+				|| resultType == EnumResults.TOPRAW_LR || resultType == EnumResults.TOPLEVELDELTA_LR
+				|| resultType == EnumResults.SUMGULPS_LR;
 		if (isLRType) {
 			return null;
 		}

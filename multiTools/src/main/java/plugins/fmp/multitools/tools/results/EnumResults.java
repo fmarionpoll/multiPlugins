@@ -60,6 +60,16 @@ public enum EnumResults {
 	TOPLEVEL_SUM("SUM", "volume (ul)", "sum of L+R capillary consumption (t-t0)",
 			StoredDataAccessors.accessStored_TOPLEVEL_LR()),
 	TOPLEVEL_PI("PI", "PI", "preference index (L-R)/(L+R)", StoredDataAccessors.accessStored_TOPLEVEL_LR()),
+	TOPLEVEL00_LR("toplevel00_L+R", "volume (ul)", "volume consumed in capillaries / cage (t-t00)",
+			StoredDataAccessors.accessStored_TOPLEVEL00_LR()),
+	TOPLEVEL_SUM00("SUM00", "volume (ul)", "sum of L+R capillary consumption (t-t00)",
+			StoredDataAccessors.accessStored_TOPLEVEL00_LR()),
+	TOPLEVEL_PI00("PI00", "PI", "preference index (L-R)/(L+R) (t-t00)",
+			StoredDataAccessors.accessStored_TOPLEVEL00_LR()),
+	TOPLEVEL_SUM_AND_00("SUM+00", "volume (ul)", "SUM (solid) and SUM00 (dashed)",
+			StoredDataAccessors.accessStored_TOPLEVEL_LR()),
+	TOPLEVEL_PI_AND_00("PI+00", "PI", "PI (solid) and PI00 (dashed)",
+			StoredDataAccessors.accessStored_TOPLEVEL_LR()),
 	TOPRAW_LR("topraw_L+R", "volume (ul)", "volume from raw top liquid / cage (t-t0)",
 			StoredDataAccessors.accessStored_TOPRAW_LR()),
 	TOPLEVELDELTA("topdelta", "volume (ul)", "top liquid consumed (t - t-1)",
@@ -467,8 +477,8 @@ public enum EnumResults {
 			computationStrategy.compute(null, null, null);
 			return false;
 		} catch (UnsupportedOperationException e) {
-			// If it throws UnsupportedOperationException, it's a stored data accessor
-			return e.getMessage().contains("uses stored data");
+			// Stored-data accessors always throw UnsupportedOperationException
+			return true;
 		}
 	}
 

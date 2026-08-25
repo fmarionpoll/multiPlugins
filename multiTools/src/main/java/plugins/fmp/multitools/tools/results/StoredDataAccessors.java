@@ -33,14 +33,14 @@ public class StoredDataAccessors {
 	public static MeasurementComputation accessStored_TOPRAW00() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
-					"TOPRAW00 uses stored top offset by cage t00 Y - access via cap.getMeasurements(), not computation");
+					"TOPRAW00 uses stored data (top offset by experiment t00 Y) - access via cap.getMeasurements(), not computation");
 		};
 	}
 
 	public static MeasurementComputation accessStored_TOPLEVEL00() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
-					"TOPLEVEL00 uses stored top/corrected offset by cage t00 Y - access via cap.getMeasurements(), not computation");
+					"TOPLEVEL00 uses stored data (top/corrected offset by experiment t00 Y) - access via cap.getMeasurements(), not computation");
 		};
 	}
 
@@ -86,6 +86,17 @@ public class StoredDataAccessors {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
 					"TOPRAW_LR is computed as Sum/PI from TOPRAW capillary series - access via chart builder, not computation");
+		};
+	}
+
+	/**
+	 * TOPLEVEL00_LR / SUM00 / PI00 are built as Sum/PI from TOPLEVEL00 capillary
+	 * series (same L+R path as TOPLEVEL_LR, zeroed on experiment t00).
+	 */
+	public static MeasurementComputation accessStored_TOPLEVEL00_LR() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"TOPLEVEL00_LR is computed as Sum/PI from TOPLEVEL00 capillary series - access via chart builder, not computation");
 		};
 	}
 

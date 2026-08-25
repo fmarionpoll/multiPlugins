@@ -260,24 +260,27 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	}
 
 	public void writeMeasureCageRowRaw(String expKey, int cageId, double tMinutes, double sum, double pi,
-			double sumTopraw, double piTopraw, double sumGulps, double piGulps) throws IOException {
+			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00)
+			throws IOException {
 		writeMeasureCageRow(measureCageRawPrinter(), expKey, cageId, tMinutes, sum, pi, sumTopraw, piTopraw, sumGulps,
-				piGulps);
+				piGulps, sum00, pi00);
 	}
 
 	public void writeMeasureCageRowBin(String expKey, int cageId, double tMinutes, double sum, double pi,
-			double sumTopraw, double piTopraw, double sumGulps, double piGulps) throws IOException {
+			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00)
+			throws IOException {
 		if (!writeBinFiles) {
 			return;
 		}
 		writeMeasureCageRow(measureCageBinPrinter(), expKey, cageId, tMinutes, sum, pi, sumTopraw, piTopraw, sumGulps,
-				piGulps);
+				piGulps, sum00, pi00);
 	}
 
 	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, double sum, double pi,
-			double sumTopraw, double piTopraw, double sumGulps, double piGulps) throws IOException {
+			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00)
+			throws IOException {
 		p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumTopraw),
-				nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps));
+				nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps), nanToNull(sum00), nanToNull(pi00));
 	}
 
 	private static Double nanToNull(double v) {
@@ -358,7 +361,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter measureCageRawPrinter() throws IOException {
 		if (measureCageRawPrinter == null) {
 			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN, "sum",
-					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps");
+					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00");
 		}
 		return measureCageRawPrinter;
 	}
@@ -366,7 +369,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter measureCageBinPrinter() throws IOException {
 		if (measureCageBinPrinter == null) {
 			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, COL_EXPERIMENT_ID, COL_CAGE_ID,
-					COL_TIME_MIN, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps");
+					COL_TIME_MIN, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00");
 		}
 		return measureCageBinPrinter;
 	}

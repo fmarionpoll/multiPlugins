@@ -1532,6 +1532,11 @@ public class Cages {
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_LR
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL00_LR
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM_AND_00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI_AND_00
 				|| resultsOptions.resultType == EnumResults.TOPRAW00
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL00
 				|| resultsOptions.resultType == EnumResults.TOPRAW_AND_00
@@ -1541,13 +1546,20 @@ public class Cages {
 
 		if (resultsOptions.resultType == EnumResults.TOPRAW00 || resultsOptions.resultType == EnumResults.TOPLEVEL00
 				|| resultsOptions.resultType == EnumResults.TOPRAW_AND_00
-				|| resultsOptions.resultType == EnumResults.TOPLEVEL_AND_00) {
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_AND_00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL00_LR
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM_AND_00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI_AND_00) {
 			computeT00References(exp);
 		}
 
 		if (resultsOptions.resultType == EnumResults.TOPLEVEL_LR
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM
-				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI) {
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM_AND_00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI_AND_00) {
 			computeLRMeasures(exp, resultsOptions.lrPIThreshold);
 		}
 

@@ -73,9 +73,9 @@ public final class CageChartPlotFactory {
 		boolean hasSum = false;
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = (String) dataset.getSeriesKey(i);
-			if (key != null && key.endsWith("_PI")) {
+			if (isPiSeriesKey(key)) {
 				hasPi = true;
-			} else if (key != null && key.endsWith("_Sum")) {
+			} else if (isSumSeriesKey(key)) {
 				hasSum = true;
 			}
 		}
@@ -88,11 +88,19 @@ public final class CageChartPlotFactory {
 		}
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = (String) dataset.getSeriesKey(i);
-			if (key == null || !key.endsWith("_PI")) {
+			if (!isPiSeriesKey(key)) {
 				return false;
 			}
 		}
 		return true;
+	}
+
+	private static boolean isPiSeriesKey(String key) {
+		return key != null && (key.endsWith("_PI") || key.contains("_PI*"));
+	}
+
+	private static boolean isSumSeriesKey(String key) {
+		return key != null && (key.endsWith("_Sum") || key.contains("_Sum*"));
 	}
 
 	private static boolean isAggMedianRefDualAxis(XYSeriesCollection dataset) {
@@ -147,7 +155,7 @@ public final class CageChartPlotFactory {
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			XYSeries series = dataset.getSeries(i);
 			String key = (String) series.getKey();
-			if (key != null && key.endsWith("_PI")) {
+			if (isPiSeriesKey(key)) {
 				piCollection.addSeries(series);
 			} else {
 				sumCollection.addSeries(series);

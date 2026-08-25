@@ -155,15 +155,13 @@ public final class CapillaryMeasureFilter {
 	}
 
 	/**
-	 * Fill-height difference (pixels): expected full (t00) minus fill at first top
-	 * sample. Positive ⇒ t00 &gt; t0 fill (early drink). Negative ⇒ t0 &gt; t00
+	 * Meniscus Y difference (pixels): {@code Y_top[t0] − Y_t00}. Same sign as
+	 * fill(t00)−fill(t0) when Y increases downward. Positive ⇒ capillary lower
+	 * than empty mean at t0 (early drink). Negative ⇒ higher than empty mean
 	 * (possible artefact).
 	 */
 	public static Double computeT00MinusT0FillPx(Capillary cap) {
 		if (cap == null || !cap.hasT00YPixels())
-			return null;
-		double tip = cap.getBottomBaselineY();
-		if (!Double.isFinite(tip))
 			return null;
 		CapillaryMeasure top = cap.getTopRaw();
 		if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
@@ -171,9 +169,7 @@ public final class CapillaryMeasureFilter {
 		Level2D poly = top.polylineLevel;
 		if (poly.ypoints == null || poly.ypoints.length == 0 || !Double.isFinite(poly.ypoints[0]))
 			return null;
-		double fillT0 = tip - poly.ypoints[0];
-		double fillT00 = tip - cap.getT00YPixels();
-		return fillT00 - fillT0;
+		return poly.ypoints[0] - cap.getT00YPixels();
 	}
 
 	private static CapillaryMeasure getSeries(Capillary cap, MeasureFilterSource source) {

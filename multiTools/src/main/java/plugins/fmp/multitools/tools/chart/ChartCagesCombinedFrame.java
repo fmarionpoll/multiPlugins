@@ -278,6 +278,8 @@ public class ChartCagesCombinedFrame {
 		NumberAxis sharedY = new NumberAxis(yLabel);
 		sharedY.setAutoRangeIncludesZero(false);
 		if (options != null && (options.resultType == EnumResults.TOPLEVEL_PI
+				|| options.resultType == EnumResults.TOPLEVEL_PI00
+				|| options.resultType == EnumResults.TOPLEVEL_PI_AND_00
 				|| options.resultType == EnumResults.SUMGULPS_PI)) {
 			sharedY.setAutoRange(false);
 			sharedY.setRange(-1.0, 1.0);

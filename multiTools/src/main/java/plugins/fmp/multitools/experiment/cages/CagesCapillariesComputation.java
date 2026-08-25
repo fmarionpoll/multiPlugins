@@ -10,6 +10,7 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.ReferenceMeasures;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
@@ -112,58 +113,65 @@ public class CagesCapillariesComputation {
 	}
 
 	/**
-	 * Cage-scoped t00 reference Y (pixels) for TOPRAW00 / TOPLEVEL00.
-	 * Empty capillaries (nFlies==0) with finite bottomBaselineY contribute
-	 * h_j = tip - top[0]; capillary i gets Y_t00 = tip_i - mean(h). Missing data
-	 * leaves NaN (no t0 fallback).
+	 * Experiment-wide t00 meniscus Y (pixels) for TOPRAW00 / TOPLEVEL00.
+	 * Same display path as TOPRAW / TOPLEVEL, but the zero reference is not each
+	 * capillary's own {@code Y[t0]} — it is the mean of {@code Y_top[t0]} over all
+	 * capillaries with {@code nFlies==0} in the experiment. That single value is
+	 * cached on every capillary.
 	 */
 	public void computeT00References(Experiment exp) {
 		if (exp == null || exp.getCapillaries() == null)
 			return;
 		exp.dispatchCapillariesToCages();
 		Capillaries allCapillaries = exp.getCapillaries();
+
+		List<Capillary> allCaps = new ArrayList<>();
 		for (Cage cage : cages.getCageList()) {
 			if (cage == null)
 				continue;
 			List<Capillary> caps = cage.getCapillaries(allCapillaries);
-			if (caps == null || caps.isEmpty())
+			if (caps == null)
 				continue;
-			double hC = meanEmptyFillHeightPixels(caps);
-			for (Capillary cap : caps) {
-				if (cap == null)
-					continue;
-				if (!Double.isFinite(hC)) {
-					cap.setT00YPixels(Double.NaN);
-					continue;
-				}
-				double tip = cap.getBottomBaselineY();
-				if (!Double.isFinite(tip)) {
-					cap.setT00YPixels(Double.NaN);
-					continue;
-				}
-				cap.setT00YPixels(tip - hC);
-			}
+			allCaps.addAll(caps);
 		}
+
+		double t00Y = meanEmptyTopYAtT0(allCaps);
+		if (!Double.isFinite(t00Y)) {
+			for (Capillary cap : allCaps) {
+				if (cap != null)
+					cap.setT00YPixels(Double.NaN);
+			}
+			Logger.warn("t00: no usable empty capillary (nFlies==0 with top[t0]) in the experiment");
+			return;
+		}
+
+		int nSet = 0;
+		for (Capillary cap : allCaps) {
+			if (cap == null)
+				continue;
+			cap.setT00YPixels(t00Y);
+			nSet++;
+		}
+		Logger.info("t00: Y=" + String.format("%.2f", t00Y) + " px (mean empty top at t0) set on " + nSet
+				+ " capillary(ies)");
 	}
 
-	static double meanEmptyFillHeightPixels(List<Capillary> cageCapillaries) {
-		if (cageCapillaries == null || cageCapillaries.isEmpty())
+	/** Mean of top meniscus Y at first sample for capillaries with {@code nFlies==0}. */
+	static double meanEmptyTopYAtT0(List<Capillary> capillaries) {
+		if (capillaries == null || capillaries.isEmpty())
 			return Double.NaN;
 		double sum = 0;
 		int n = 0;
-		for (Capillary cap : cageCapillaries) {
+		for (Capillary cap : capillaries) {
 			if (cap == null || cap.getProperties().getNFlies() != 0)
-				continue;
-			double tip = cap.getBottomBaselineY();
-			if (!Double.isFinite(tip))
 				continue;
 			CapillaryMeasure top = cap.getTopRaw();
 			if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
 				continue;
 			Level2D poly = top.polylineLevel;
-			if (poly.ypoints == null || poly.ypoints.length == 0)
+			if (poly.ypoints == null || poly.ypoints.length == 0 || !Double.isFinite(poly.ypoints[0]))
 				continue;
-			sum += tip - poly.ypoints[0];
+			sum += poly.ypoints[0];
 			n++;
 		}
 		return n == 0 ? Double.NaN : sum / n;

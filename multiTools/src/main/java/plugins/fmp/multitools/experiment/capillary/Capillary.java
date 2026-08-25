@@ -55,8 +55,8 @@ public class Capillary implements Comparable<Capillary> {
 	private int lastAlongTIndex = -1;
 
 	/**
-	 * Session cache: putative full meniscus Y (pixels) for t−t00 series.
-	 * {@link Double#NaN} when cage empties or tip baseline are missing.
+	 * Session cache: experiment-wide empty mean meniscus Y at t0 (pixels) for
+	 * t−t00 series. {@link Double#NaN} when no usable empty capillary exists.
 	 */
 	private transient double t00YPixels = Double.NaN;
 
@@ -665,6 +665,11 @@ public class Capillary implements Comparable<Capillary> {
 		case SUMGULPS_PI:
 		case TOPLEVELDELTA_LR:
 		case TOPLEVEL_LR:
+		case TOPLEVEL00_LR:
+		case TOPLEVEL_SUM00:
+		case TOPLEVEL_PI00:
+		case TOPLEVEL_SUM_AND_00:
+		case TOPLEVEL_PI_AND_00:
 		case TOPRAW_LR:
 			if (side.equals("L"))
 				value = "sum";
