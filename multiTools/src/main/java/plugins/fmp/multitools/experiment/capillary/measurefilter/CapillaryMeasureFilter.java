@@ -15,16 +15,30 @@ import plugins.fmp.multitools.tools.Logger;
  */
 public final class CapillaryMeasureFilter {
 
+	@FunctionalInterface
+	public interface ScanProgress {
+		/** Called before each experiment is examined ({@code index} is 0-based). */
+		void onExperiment(int index, int total, Experiment experiment);
+	}
+
 	private CapillaryMeasureFilter() {
 	}
 
 	public static List<MeasureFilterHit> scan(List<Experiment> experiments, MeasureFilterRule rule) {
+		return scan(experiments, rule, null);
+	}
+
+	public static List<MeasureFilterHit> scan(List<Experiment> experiments, MeasureFilterRule rule,
+			ScanProgress progress) {
 		List<MeasureFilterHit> hits = new ArrayList<>();
 		if (experiments == null || rule == null || rule.source == null)
 			return hits;
 
-		for (int i = 0; i < experiments.size(); i++) {
+		int total = experiments.size();
+		for (int i = 0; i < total; i++) {
 			Experiment exp = experiments.get(i);
+			if (progress != null)
+				progress.onExperiment(i, total, exp);
 			if (exp == null)
 				continue;
 			try {
@@ -48,7 +62,8 @@ public final class CapillaryMeasureFilter {
 					String name = cap.getLast2ofCapillaryName();
 					if (name == null || name.isEmpty())
 						name = cap.getRoiName();
-					hits.add(new MeasureFilterHit(i, expLabel, name, cap.getKymographIndex(), computed, rule.copy()));
+					hits.add(new MeasureFilterHit(i, exp, expLabel, name, cap.getKymographIndex(), computed,
+							rule.copy()));
 				}
 			}
 		}

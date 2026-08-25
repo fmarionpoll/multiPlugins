@@ -69,6 +69,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_CAPILLARY_N_FLIES = "capillary_n_flies";
 	public static final String COL_CONSUMPTION_RAW_UL = "consumption_raw_uL";
 	public static final String COL_CONSUMPTION_CORRECTED_UL = "consumption_corrected_uL";
+	public static final String COL_CONSUMPTION_RAW00_UL = "consumption_raw00_uL";
+	public static final String COL_CONSUMPTION_CORRECTED00_UL = "consumption_corrected00_uL";
 	public static final String COL_BOTTOM_LEVEL_UL = "bottom_level_uL";
 	public static final String COL_CONSUMPTION_FROM_GULPS_UL = "consumption_from_gulps_uL";
 	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude_uL";

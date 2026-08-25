@@ -424,7 +424,8 @@ public final class CsvNormalizedExport {
 		ro.buildExcelStepMs = stepMs;
 		ro.relativeToMaximum = false;
 		ro.subtractT0 = false;
-		ro.correctEvaporation = (resultType == EnumResults.TOPLEVEL || resultType == EnumResults.TOPLEVEL_LR);
+		ro.correctEvaporation = (resultType == EnumResults.TOPLEVEL || resultType == EnumResults.TOPLEVEL_LR
+				|| resultType == EnumResults.TOPLEVEL00);
 		ro.resultType = resultType;
 		ro.exportLayoutMode = ExportLayoutMode.NORMALIZED;
 		ro.lrPIThreshold = base != null ? base.lrPIThreshold : 0.0;
@@ -497,6 +498,8 @@ public final class CsvNormalizedExport {
 			// Capillary columns (not gated by Levels-tab checkboxes).
 			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_RAW_UL);
 			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED_UL);
+			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_RAW00_UL);
+			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED00_UL);
 			cols.add(CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
 			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
 			cols.add(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
@@ -512,6 +515,8 @@ public final class CsvNormalizedExport {
 		if (mode == Mode.LEVELS) {
 			map.put(EnumResults.TOPRAW, CsvNormalizedExportSupport.COL_CONSUMPTION_RAW_UL);
 			map.put(EnumResults.TOPLEVEL, CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED_UL);
+			map.put(EnumResults.TOPRAW00, CsvNormalizedExportSupport.COL_CONSUMPTION_RAW00_UL);
+			map.put(EnumResults.TOPLEVEL00, CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED00_UL);
 			map.put(EnumResults.BOTTOMLEVEL, CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
 			map.put(EnumResults.SUMGULPS, CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
 			map.put(EnumResults.AMPLITUDEGULPS, CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);

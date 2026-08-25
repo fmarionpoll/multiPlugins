@@ -51,6 +51,7 @@ public class EditCapillariesConditional extends JPanel {
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		this.parent0 = parent0;
+		setBorder(javax.swing.BorderFactory.createTitledBorder("Edit descriptors"));
 		setLayout(capLayout);
 
 		FlowLayout flowlayout = new FlowLayout(FlowLayout.LEFT);

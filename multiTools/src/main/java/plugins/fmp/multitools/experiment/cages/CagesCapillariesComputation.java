@@ -112,6 +112,64 @@ public class CagesCapillariesComputation {
 	}
 
 	/**
+	 * Cage-scoped t00 reference Y (pixels) for TOPRAW00 / TOPLEVEL00.
+	 * Empty capillaries (nFlies==0) with finite bottomBaselineY contribute
+	 * h_j = tip - top[0]; capillary i gets Y_t00 = tip_i - mean(h). Missing data
+	 * leaves NaN (no t0 fallback).
+	 */
+	public void computeT00References(Experiment exp) {
+		if (exp == null || exp.getCapillaries() == null)
+			return;
+		exp.dispatchCapillariesToCages();
+		Capillaries allCapillaries = exp.getCapillaries();
+		for (Cage cage : cages.getCageList()) {
+			if (cage == null)
+				continue;
+			List<Capillary> caps = cage.getCapillaries(allCapillaries);
+			if (caps == null || caps.isEmpty())
+				continue;
+			double hC = meanEmptyFillHeightPixels(caps);
+			for (Capillary cap : caps) {
+				if (cap == null)
+					continue;
+				if (!Double.isFinite(hC)) {
+					cap.setT00YPixels(Double.NaN);
+					continue;
+				}
+				double tip = cap.getBottomBaselineY();
+				if (!Double.isFinite(tip)) {
+					cap.setT00YPixels(Double.NaN);
+					continue;
+				}
+				cap.setT00YPixels(tip - hC);
+			}
+		}
+	}
+
+	static double meanEmptyFillHeightPixels(List<Capillary> cageCapillaries) {
+		if (cageCapillaries == null || cageCapillaries.isEmpty())
+			return Double.NaN;
+		double sum = 0;
+		int n = 0;
+		for (Capillary cap : cageCapillaries) {
+			if (cap == null || cap.getProperties().getNFlies() != 0)
+				continue;
+			double tip = cap.getBottomBaselineY();
+			if (!Double.isFinite(tip))
+				continue;
+			CapillaryMeasure top = cap.getTopRaw();
+			if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
+				continue;
+			Level2D poly = top.polylineLevel;
+			if (poly.ypoints == null || poly.ypoints.length == 0)
+				continue;
+			sum += tip - poly.ypoints[0];
+			n++;
+		}
+		return n == 0 ? Double.NaN : sum / n;
+	}
+
+	/**
 	 * Clears all computed measures from capillaries in all cages.
 	 * 
 	 * @param exp The experiment containing all capillaries

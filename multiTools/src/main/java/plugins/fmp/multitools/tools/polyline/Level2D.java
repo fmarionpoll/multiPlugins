@@ -296,6 +296,15 @@ public class Level2D extends Polyline2D {
 		}
 	}
 
+	/** Subtract a constant Y (e.g. t00 reference) from every sample. */
+	public void offsetByConstant(double y0) {
+		if (npoints == 0 || ypoints == null || !Double.isFinite(y0))
+			return;
+		for (int i = 0; i < npoints; i++) {
+			ypoints[i] -= y0;
+		}
+	}
+
 	public double getMaximum_Y() {
 		double maximum = ypoints[0];
 		for (int i = 0; i < npoints; i++) {

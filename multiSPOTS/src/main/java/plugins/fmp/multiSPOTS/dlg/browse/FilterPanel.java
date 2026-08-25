@@ -81,6 +81,7 @@ public class FilterPanel extends JPanel {
 
 	void init(MultiSPOTS parent0) {
 		this.parent0 = parent0;
+		setBorder(javax.swing.BorderFactory.createTitledBorder("Filter experiments by metadata"));
 		GridBagLayout layoutThis = new GridBagLayout();
 		setLayout(layoutThis);
 

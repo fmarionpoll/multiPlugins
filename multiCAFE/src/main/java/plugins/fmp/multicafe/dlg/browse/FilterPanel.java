@@ -68,6 +68,7 @@ public class FilterPanel extends JPanel {
 
 	void init(MultiCAFE parent0) {
 		this.parent0 = parent0;
+		setBorder(javax.swing.BorderFactory.createTitledBorder("Filter experiments by metadata"));
 		setLayout(new GridBagLayout());
 
 		GridBagConstraints c = new GridBagConstraints();

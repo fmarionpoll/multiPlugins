@@ -49,9 +49,11 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 	private static final String FILTER_BUTTON_OFF = "Filter (off)";
 	private static final String FILTER_BUTTON_ON = "Filter (on)";
 	private static final String TIP_EDIT = "Bulk-edit experiment or capillary descriptors for the current list (respects active Filter).";
-	private static final String TIP_FIND = "Scan capillary measures across the browse list (MAD, range, missing baseline, …) and jump to hits.";
+	private static final String TIP_FIND = "Find measure outliers / anomalies (noisy bottom MAD, missing baseline, runaway tops…). Scan keeps matching experiments in the browse list.";
 	private static final String TIP_CLOSE = "Close all open experiments and clear the browse list (releases viewers and file handles).";
 	private static final String TIP_SEARCH = "Search disk for experiment folders and add them to the list.";
+	private static final String TIP_FILTER_OFF = "Show filter panel: keep experiments by metadata (stim, strain, …).";
+	private static final String TIP_FILTER_ON = "Experiment list is filtered — click to show or hide the filter panel.";
 
 	public boolean isListFiltered() {
 		return listFiltered;
@@ -70,9 +72,7 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	void updateFilterButtonLabel() {
 		showFilterButton.setText(listFiltered ? FILTER_BUTTON_ON : FILTER_BUTTON_OFF);
-		showFilterButton.setToolTipText(listFiltered
-				? "Experiment list is filtered — click to show or hide filter panel"
-				: "Show or hide experiment filter panel");
+		showFilterButton.setToolTipText(listFiltered ? TIP_FILTER_ON : TIP_FILTER_OFF);
 	}
 
 	public List<String> selectedNames = new ArrayList<String>();
@@ -140,7 +140,9 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 		closeButton.setToolTipText(TIP_CLOSE);
 		searchButton.setToolTipText(TIP_SEARCH);
 		showEditButton.setToolTipText(TIP_EDIT);
+		showFindButton.setText("Find");
 		showFindButton.setToolTipText(TIP_FIND);
+		updateFilterButtonLabel();
 		JPanel buttonPanel = CafeBrowseUi.createButtonPanel(openButton, createButton, searchButton, closeButton,
 				showFilterButton, showEditButton, showFindButton);
 		return CafeBrowseUi.createMainGrid(navPanel, buttonPanel);

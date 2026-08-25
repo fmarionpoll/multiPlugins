@@ -42,6 +42,11 @@ public final class CapillaryChartSeriesKeys {
 		return base + SEP + "u" + System.identityHashCode(cap);
 	}
 
+	/** Series key for t00 overlay curves (contains {@code *} so renderers dash them). */
+	public static String keyT00(Capillary cap) {
+		return key(cap) + "*00";
+	}
+
 	/** Portion before {@value #SEP}, or the whole key if no separator (legacy). */
 	public static String displayBase(String seriesKey) {
 		if (seriesKey == null) {

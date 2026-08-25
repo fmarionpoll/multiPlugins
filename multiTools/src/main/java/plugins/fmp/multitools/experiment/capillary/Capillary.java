@@ -54,6 +54,12 @@ public class Capillary implements Comparable<Capillary> {
 	 */
 	private int lastAlongTIndex = -1;
 
+	/**
+	 * Session cache: putative full meniscus Y (pixels) for t−t00 series.
+	 * {@link Double#NaN} when cage empties or tip baseline are missing.
+	 */
+	private transient double t00YPixels = Double.NaN;
+
 	// === PUBLIC FIELDS (Deprecated/Moved logic) ===
 	// These are now delegated to properties but kept for backward compatibility
 	// (where not private)
@@ -175,6 +181,18 @@ public class Capillary implements Comparable<Capillary> {
 
 	public double getBottomBaselineY() {
 		return properties.getBottomBaselineY();
+	}
+
+	public double getT00YPixels() {
+		return t00YPixels;
+	}
+
+	public void setT00YPixels(double t00YPixels) {
+		this.t00YPixels = t00YPixels;
+	}
+
+	public boolean hasT00YPixels() {
+		return Double.isFinite(t00YPixels);
 	}
 
 	public void setBottomBaselineY(double y) {
@@ -431,6 +449,7 @@ public class Capillary implements Comparable<Capillary> {
 		if (measurements.ptsTopCorrected != null) {
 			measurements.ptsTopCorrected.clear();
 		}
+		t00YPixels = Double.NaN;
 	}
 
 	public void setRoiName(String name) {
@@ -712,6 +731,10 @@ public class Capillary implements Comparable<Capillary> {
 			yes = measurements.ptsBottom.isThereAnyMeasuresDone();
 			break;
 		case TOPLEVEL:
+		case TOPLEVEL00:
+		case TOPRAW00:
+		case TOPRAW_AND_00:
+		case TOPLEVEL_AND_00:
 		default:
 			yes = measurements.ptsTop.isThereAnyMeasuresDone();
 			break;
@@ -1562,6 +1585,29 @@ public class Capillary implements Comparable<Capillary> {
 			measure.copy(measurements.ptsTop);
 			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
 				measure.polylineLevel.offsetToStartWithZeroAmplitude();
+			break;
+
+		case TOPLEVEL00:
+			if (!hasT00YPixels())
+				return null;
+			if (measurements.ptsTopCorrected != null && measurements.ptsTopCorrected.isThereAnyMeasuresDone()) {
+				measure = new CapillaryMeasure(measurements.ptsTopCorrected.capName);
+				measure.copy(measurements.ptsTopCorrected);
+			} else {
+				measure = new CapillaryMeasure(measurements.ptsTop.capName);
+				measure.copy(measurements.ptsTop);
+			}
+			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
+				measure.polylineLevel.offsetByConstant(t00YPixels);
+			break;
+
+		case TOPRAW00:
+			if (!hasT00YPixels())
+				return null;
+			measure = new CapillaryMeasure(measurements.ptsTop.capName);
+			measure.copy(measurements.ptsTop);
+			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
+				measure.polylineLevel.offsetByConstant(t00YPixels);
 			break;
 
 		case TOPLEVELDELTA:

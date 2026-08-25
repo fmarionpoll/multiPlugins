@@ -58,7 +58,11 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 	private EnumResults[] measures = new EnumResults[] { //
 			EnumResults.TOPRAW, //
+			EnumResults.TOPRAW00, //
+			EnumResults.TOPRAW_AND_00, //
 			EnumResults.TOPLEVEL, //
+			EnumResults.TOPLEVEL00, //
+			EnumResults.TOPLEVEL_AND_00, //
 			EnumResults.BOTTOMLEVEL, //
 			EnumResults.TOPLEVEL_SUM, //
 			EnumResults.TOPLEVEL_PI, //

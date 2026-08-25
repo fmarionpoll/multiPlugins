@@ -52,6 +52,8 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 	private static final String TIP_EDIT = "Bulk-edit experiment, spot, or cage descriptors for the current list (respects active Filter).";
 	private static final String TIP_CLOSE = "Close all open experiments and clear the browse list.";
 	private static final String TIP_SEARCH = "Search disk for experiment folders and add them to the list.";
+	private static final String TIP_FILTER_OFF = "Show filter panel: keep experiments by metadata (stim, strain, …).";
+	private static final String TIP_FILTER_ON = "Experiment list is filtered — click to show or hide the filter panel.";
 
 	public boolean isListFiltered() {
 		return listFiltered;
@@ -70,9 +72,7 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	void updateFilterButtonLabel() {
 		showFilterButton.setText(listFiltered ? FILTER_BUTTON_ON : FILTER_BUTTON_OFF);
-		showFilterButton.setToolTipText(listFiltered
-				? "Experiment list is filtered — click to show or hide filter panel"
-				: "Show or hide experiment filter panel");
+		showFilterButton.setToolTipText(listFiltered ? TIP_FILTER_ON : TIP_FILTER_OFF);
 	}
 
 	public List<String> selectedNames = new ArrayList<String>();
@@ -202,6 +202,7 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 		closeButton.setToolTipText(TIP_CLOSE);
 		searchButton.setToolTipText(TIP_SEARCH);
 		showEditButton.setToolTipText(TIP_EDIT);
+		updateFilterButtonLabel();
 		JPanel buttonPanel = BrowseUi.createButtonPanel(openButton, searchButton, closeButton, showFilterButton,
 				showEditButton);
 		return BrowseUi.createMainGrid(navPanel, buttonPanel);

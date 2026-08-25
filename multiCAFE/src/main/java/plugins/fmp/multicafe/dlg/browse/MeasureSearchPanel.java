@@ -2,19 +2,21 @@ package plugins.fmp.multicafe.dlg.browse;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 
 import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multicafe.MultiCAFE;
@@ -28,6 +30,11 @@ import plugins.fmp.multitools.experiment.capillary.measurefilter.MeasureFilterSo
 import plugins.fmp.multitools.experiment.capillary.measurefilter.MeasureFilterStat;
 import plugins.fmp.multitools.tools.Logger;
 
+/**
+ * Find capillaries matching a measure rule. Scan narrows the browse list to
+ * matching experiments; browse {@code <}/{@code >} then skips good recordings.
+ * Selecting an experiment silently opens its first matching capillary.
+ */
 public class MeasureSearchPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
@@ -57,21 +64,21 @@ public class MeasureSearchPanel extends JPanel {
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(3.0, -1e6, 1e6, 0.5));
 	private JSpinner threshold2Spinner = new JSpinner(new SpinnerNumberModel(10.0, -1e6, 1e6, 0.5));
 	private JLabel threshold2Label = new JLabel("and");
+	private JCheckBox allCheckBox = new JCheckBox("All", true);
 
 	private JButton scanButton = new JButton("Scan");
-	private JButton prevHitButton = new JButton("< hit");
-	private JButton nextHitButton = new JButton("hit >");
-	private JButton applyListButton = new JButton("Apply to list");
-	private JButton clearListButton = new JButton("Clear list");
+	private JButton restoreListButton = new JButton("Restore list");
 	private JLabel hitLabel = new JLabel("Find: --");
 
 	private MultiCAFE parent0 = null;
 	private List<MeasureFilterHit> hits = new ArrayList<>();
-	private int hitIndex = -1;
 	private boolean suppressUi = false;
+	private boolean scanRunning = false;
+	private boolean suppressBrowseFollow = false;
 
 	void init(MultiCAFE parent0) {
 		this.parent0 = parent0;
+		setBorder(javax.swing.BorderFactory.createTitledBorder("Find measure outliers"));
 		setLayout(new GridLayout(3, 1));
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
@@ -79,7 +86,11 @@ public class MeasureSearchPanel extends JPanel {
 		JPanel row0 = new JPanel(left);
 		row0.add(new JLabel("preset"));
 		row0.add(presetCombo);
-		scanButton.setToolTipText("Scan the current browse list (honors metadata Filter) for matching capillaries.");
+		allCheckBox.setToolTipText(
+				"Checked: scan every experiment in the master list. Unchecked: scan only the currently selected experiment.");
+		row0.add(allCheckBox);
+		scanButton.setToolTipText(
+				"Scan for matching capillaries, keep only those experiments in the browse list, then open the first hit.");
 		row0.add(scanButton);
 		add(row0);
 
@@ -93,19 +104,15 @@ public class MeasureSearchPanel extends JPanel {
 		add(row1);
 
 		JPanel row2 = new JPanel(left);
-		row2.add(prevHitButton);
-		row2.add(nextHitButton);
 		row2.add(hitLabel);
-		applyListButton.setToolTipText("Keep only experiments that contain at least one hit.");
-		clearListButton.setToolTipText("Restore the full experiment list from Filter's master copy.");
-		row2.add(applyListButton);
-		row2.add(clearListButton);
+		restoreListButton.setToolTipText("Restore the full experiment list (undo Find’s filter).");
+		row2.add(restoreListButton);
 		add(row2);
 
 		defineListeners();
 		applyPreset(Preset.BOTTOM_MAD_HIGH);
 		updateFieldEnablement();
-		updateHitLabel();
+		updateHitLabel(null);
 	}
 
 	private void defineListeners() {
@@ -125,10 +132,12 @@ public class MeasureSearchPanel extends JPanel {
 				updateFieldEnablement();
 		});
 		scanButton.addActionListener(e -> runScan());
-		prevHitButton.addActionListener(e -> navigateHit(-1));
-		nextHitButton.addActionListener(e -> navigateHit(1));
-		applyListButton.addActionListener(e -> applyHitsToBrowseList());
-		clearListButton.addActionListener(e -> clearBrowseListNarrow());
+		restoreListButton.addActionListener(e -> restoreBrowseList());
+		parent0.expListComboLazy.addItemListener(e -> {
+			if (e.getStateChange() != ItemEvent.SELECTED || suppressBrowseFollow || hits.isEmpty())
+				return;
+			followBrowseSelection();
+		});
 	}
 
 	private void applyPreset(Preset preset) {
@@ -200,60 +209,144 @@ public class MeasureSearchPanel extends JPanel {
 		return rule;
 	}
 
-	private void runScan() {
-		if (parent0 == null || parent0.expListComboLazy == null)
-			return;
-		List<Experiment> experiments = parent0.expListComboLazy.getExperimentsAsListNoLoad();
-		if (experiments.isEmpty()) {
-			hits.clear();
-			hitIndex = -1;
-			updateHitLabel();
-			Logger.info("Find: no experiments in browse list");
-			return;
+	private List<Experiment> resolveScanScope() {
+		if (!allCheckBox.isSelected()) {
+			Experiment selected = parent0.expListComboLazy.getItemAtNoLoad(parent0.expListComboLazy.getSelectedIndex());
+			List<Experiment> one = new ArrayList<>(1);
+			if (selected != null)
+				one.add(selected);
+			return one;
 		}
-		MeasureFilterRule rule = buildRuleFromUi();
-		ProgressFrame progress = new ProgressFrame("Find: scanning measures...");
-		try {
-			hits = CapillaryMeasureFilter.scan(experiments, rule);
-			hitIndex = hits.isEmpty() ? -1 : 0;
-			updateHitLabel();
-			Logger.info("Find: " + hits.size() + " hit(s)");
-			if (!hits.isEmpty())
-				navigateHit(0);
-		} finally {
-			progress.close();
-		}
+		FilterPanel filter = parent0.paneBrowse != null ? parent0.paneBrowse.filterPanel : null;
+		if (filter != null && filter.filterExpList != null && filter.filterExpList.getItemCount() > 0)
+			return filter.filterExpList.getExperimentsAsListNoLoad();
+		return parent0.expListComboLazy.getExperimentsAsListNoLoad();
 	}
 
-	private void navigateHit(int delta) {
-		if (hits.isEmpty())
+	private void runScan() {
+		if (parent0 == null || parent0.expListComboLazy == null || scanRunning)
 			return;
-		if (hitIndex < 0)
-			hitIndex = 0;
-		else if (delta != 0)
-			hitIndex = (hitIndex + delta + hits.size()) % hits.size();
-		updateHitLabel();
-		MeasureFilterHit hit = hits.get(hitIndex);
-		openHit(hit);
+		List<Experiment> experiments = resolveScanScope();
+		if (experiments.isEmpty()) {
+			hits.clear();
+			updateHitLabel(null);
+			JOptionPane.showMessageDialog(this, "None found — no experiments to scan.", "Find",
+					JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+
+		MeasureFilterRule rule = buildRuleFromUi();
+		scanRunning = true;
+		scanButton.setEnabled(false);
+		hitLabel.setText("Find: scanning...");
+
+		final ProgressFrame progress = new ProgressFrame("Find: examining experiments...");
+		progress.setLength(experiments.size());
+
+		SwingWorker<List<MeasureFilterHit>, Void> worker = new SwingWorker<List<MeasureFilterHit>, Void>() {
+			@Override
+			protected List<MeasureFilterHit> doInBackground() {
+				return CapillaryMeasureFilter.scan(experiments, rule, (index, total, exp) -> {
+					String label = exp != null ? exp.toString() : "?";
+					progress.setMessage("Find: examining experiment " + (index + 1) + " / " + total + " — " + label);
+					progress.setPosition((double) (index + 1) / Math.max(1, total));
+				});
+			}
+
+			@Override
+			protected void done() {
+				try {
+					hits = get();
+					if (hits == null)
+						hits = new ArrayList<>();
+					if (hits.isEmpty()) {
+						updateHitLabel(null);
+						JOptionPane.showMessageDialog(MeasureSearchPanel.this,
+								"None found — no capillaries matched the criteria.", "Find",
+								JOptionPane.INFORMATION_MESSAGE);
+						Logger.info("Find: none found");
+					} else {
+						Logger.info("Find: " + hits.size() + " hit(s) in " + countHitExperiments() + " experiment(s)");
+						narrowBrowseListToHits();
+						MeasureFilterHit first = hits.get(0);
+						updateHitLabel(first);
+						openHit(first);
+					}
+				} catch (Exception ex) {
+					Logger.warn("Find scan failed: " + ex.getMessage());
+					hits.clear();
+					updateHitLabel(null);
+					JOptionPane.showMessageDialog(MeasureSearchPanel.this, "Find scan failed: " + ex.getMessage(),
+							"Find", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					progress.close();
+					scanRunning = false;
+					scanButton.setEnabled(true);
+				}
+			}
+		};
+		worker.execute();
+	}
+
+	/** When browse {@code <}/{@code >} changes experiment, open that experiment's first hit. */
+	private void followBrowseSelection() {
+		Experiment selected = parent0.expListComboLazy.getItemAtNoLoad(parent0.expListComboLazy.getSelectedIndex());
+		MeasureFilterHit hit = firstHitForExperiment(selected);
+		updateHitLabel(hit);
+		if (hit != null)
+			SwingUtilities.invokeLater(() -> selectCapillaryForHit(hit));
+	}
+
+	private MeasureFilterHit firstHitForExperiment(Experiment exp) {
+		if (exp == null)
+			return null;
+		for (MeasureFilterHit h : hits) {
+			if (h.experiment == exp)
+				return h;
+			if (h.experiment != null && exp.toString().equals(h.experiment.toString()))
+				return h;
+		}
+		return null;
 	}
 
 	private void openHit(MeasureFilterHit hit) {
 		if (hit == null || parent0 == null)
 			return;
-		int n = parent0.expListComboLazy.getItemCount();
-		if (hit.experimentIndex < 0 || hit.experimentIndex >= n) {
-			Logger.warn("Find: stale hit experiment index " + hit.experimentIndex);
+		int idx = indexOfExperimentInBrowseList(hit.experiment);
+		if (idx < 0 && hit.experiment != null)
+			idx = parent0.expListComboLazy.getExperimentIndexFromExptName(hit.experiment.toString());
+		if (idx < 0) {
+			Logger.warn("Find: experiment not in browse list for hit " + hit.formatLabel());
 			return;
 		}
 		int current = parent0.expListComboLazy.getSelectedIndex();
-		if (current != hit.experimentIndex) {
-			parent0.expListComboLazy.setSelectedIndex(hit.experimentIndex);
+		if (current != idx) {
+			suppressBrowseFollow = true;
+			try {
+				parent0.expListComboLazy.setSelectedIndex(idx);
+			} finally {
+				suppressBrowseFollow = false;
+			}
 		}
 		SwingUtilities.invokeLater(() -> selectCapillaryForHit(hit));
 	}
 
+	private int indexOfExperimentInBrowseList(Experiment target) {
+		if (target == null)
+			return -1;
+		int n = parent0.expListComboLazy.getItemCount();
+		for (int i = 0; i < n; i++) {
+			Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+			if (exp == target)
+				return i;
+		}
+		return -1;
+	}
+
 	private void selectCapillaryForHit(MeasureFilterHit hit) {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(parent0.expListComboLazy.getSelectedIndex());
+		if (exp == null)
+			exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getCapillaries() == null)
 			return;
 		Capillary cap = findCapillary(exp, hit);
@@ -299,48 +392,54 @@ public class MeasureSearchPanel extends JPanel {
 		return null;
 	}
 
-	private void applyHitsToBrowseList() {
-		if (parent0 == null || hits.isEmpty())
-			return;
-		LinkedHashSet<Integer> idxs = new LinkedHashSet<>();
-		for (MeasureFilterHit h : hits)
-			idxs.add(h.experimentIndex);
-		List<Experiment> narrowed = new ArrayList<>();
-		List<Experiment> current = parent0.expListComboLazy.getExperimentsAsListNoLoad();
-		for (Integer i : idxs) {
-			if (i != null && i >= 0 && i < current.size())
-				narrowed.add(current.get(i));
+	private void narrowBrowseListToHits() {
+		LinkedHashSet<Experiment> keep = new LinkedHashSet<>();
+		for (MeasureFilterHit h : hits) {
+			if (h.experiment != null)
+				keep.add(h.experiment);
 		}
-		if (narrowed.isEmpty())
+		if (keep.isEmpty())
 			return;
-		parent0.expListComboLazy.setExperimentsFromList(narrowed);
-		parent0.paneBrowse.browsePanel.setListFiltered(true);
-		if (parent0.expListComboLazy.getItemCount() > 0)
-			parent0.expListComboLazy.setSelectedIndex(0);
-		hits.clear();
-		hitIndex = -1;
-		updateHitLabel();
+		List<Experiment> narrowed = new ArrayList<>(keep);
+		suppressBrowseFollow = true;
+		try {
+			parent0.expListComboLazy.setExperimentsFromList(narrowed);
+			parent0.paneBrowse.browsePanel.setListFiltered(true);
+			if (parent0.expListComboLazy.getItemCount() > 0)
+				parent0.expListComboLazy.setSelectedIndex(0);
+		} finally {
+			suppressBrowseFollow = false;
+		}
 		Logger.info("Find: browse list narrowed to " + narrowed.size() + " experiment(s)");
 	}
 
-	private void clearBrowseListNarrow() {
+	private void restoreBrowseList() {
 		if (parent0 == null)
 			return;
-		parent0.paneBrowse.filterPanel.filterExperimentList(false);
 		hits.clear();
-		hitIndex = -1;
-		updateHitLabel();
+		parent0.paneBrowse.filterPanel.filterExperimentList(false);
+		updateHitLabel(null);
 	}
 
-	private void updateHitLabel() {
+	private int countHitExperiments() {
+		LinkedHashSet<Experiment> set = new LinkedHashSet<>();
+		for (MeasureFilterHit h : hits) {
+			if (h.experiment != null)
+				set.add(h.experiment);
+		}
+		return set.size();
+	}
+
+	private void updateHitLabel(MeasureFilterHit current) {
 		if (hits == null || hits.isEmpty()) {
-			hitLabel.setText("Find: 0 hits");
+			hitLabel.setText("Find: —");
 			return;
 		}
-		if (hitIndex < 0 || hitIndex >= hits.size()) {
-			hitLabel.setText("Find: " + hits.size() + " hits");
+		int nExp = countHitExperiments();
+		if (current == null) {
+			hitLabel.setText(String.format("Find: %d exp / %d caps — use browse < >", nExp, hits.size()));
 			return;
 		}
-		hitLabel.setText(String.format("Find: %d/%d — %s", hitIndex + 1, hits.size(), hits.get(hitIndex).formatLabel()));
+		hitLabel.setText(String.format("Find: %d exp / %d caps — %s", nExp, hits.size(), current.formatLabel()));
 	}
 }

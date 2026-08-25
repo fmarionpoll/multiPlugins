@@ -1531,8 +1531,18 @@ public class Cages {
 		if (resultsOptions.resultType == EnumResults.TOPRAW || resultsOptions.resultType == EnumResults.TOPLEVEL
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_LR
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM
-				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI) {
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI
+				|| resultsOptions.resultType == EnumResults.TOPRAW00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL00
+				|| resultsOptions.resultType == EnumResults.TOPRAW_AND_00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_AND_00) {
 			computeEvaporationCorrection(exp);
+		}
+
+		if (resultsOptions.resultType == EnumResults.TOPRAW00 || resultsOptions.resultType == EnumResults.TOPLEVEL00
+				|| resultsOptions.resultType == EnumResults.TOPRAW_AND_00
+				|| resultsOptions.resultType == EnumResults.TOPLEVEL_AND_00) {
+			computeT00References(exp);
 		}
 
 		if (resultsOptions.resultType == EnumResults.TOPLEVEL_LR
@@ -1727,6 +1737,11 @@ public class Cages {
 	public void computeEvaporationCorrection(Experiment exp) {
 		CagesCapillariesComputation computation = new CagesCapillariesComputation(this);
 		computation.computeEvaporationCorrection(exp);
+	}
+
+	public void computeT00References(Experiment exp) {
+		CagesCapillariesComputation computation = new CagesCapillariesComputation(this);
+		computation.computeT00References(exp);
 	}
 
 	/**

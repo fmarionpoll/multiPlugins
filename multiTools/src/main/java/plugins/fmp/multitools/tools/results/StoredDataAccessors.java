@@ -30,6 +30,20 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_TOPRAW00() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"TOPRAW00 uses stored top offset by cage t00 Y - access via cap.getMeasurements(), not computation");
+		};
+	}
+
+	public static MeasurementComputation accessStored_TOPLEVEL00() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"TOPLEVEL00 uses stored top/corrected offset by cage t00 Y - access via cap.getMeasurements(), not computation");
+		};
+	}
+
 	/**
 	 * Accesses stored BOTTOMLEVEL data from measurements.ptsBottom. Used via:
 	 * cap.getBottomLevel()

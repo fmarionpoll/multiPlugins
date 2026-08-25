@@ -66,6 +66,10 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return buildLR(exp, cage, options);
 		}
 
+		if (options.resultType == EnumResults.TOPRAW_AND_00 || options.resultType == EnumResults.TOPLEVEL_AND_00) {
+			return buildWithT00Overlay(exp, cage, options);
+		}
+
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		int i = 0;
 		for (Capillary cap : capillaries) {
@@ -91,6 +95,41 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 		}
 
+		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+		return dataset;
+	}
+
+	private static XYSeriesCollection buildWithT00Overlay(Experiment exp, Cage cage, ResultsOptions options) {
+		XYSeriesCollection dataset = new XYSeriesCollection();
+		EnumResults baseType = options.resultType == EnumResults.TOPRAW_AND_00 ? EnumResults.TOPRAW
+				: EnumResults.TOPLEVEL;
+		EnumResults t00Type = options.resultType == EnumResults.TOPRAW_AND_00 ? EnumResults.TOPRAW00
+				: EnumResults.TOPLEVEL00;
+
+		ResultsOptions baseOpts = new ResultsOptions();
+		baseOpts.copy(options);
+		baseOpts.resultType = baseType;
+		ResultsOptions t00Opts = new ResultsOptions();
+		t00Opts.copy(options);
+		t00Opts.resultType = t00Type;
+
+		Capillaries allCapillaries = exp.getCapillaries();
+		List<Capillary> capillaries = new ArrayList<>(cage.getCapillaries(allCapillaries));
+		Collections.sort(capillaries, new Comparators.Capillary_ROIName());
+		int i = 0;
+		for (Capillary cap : capillaries) {
+			XYSeries solid = createXYSeriesFromCapillaryMeasure(exp, cap, baseOpts, CapillaryChartSeriesKeys.key(cap));
+			if (solid != null) {
+				solid.setDescription(buildSeriesDescription(cage, cap, i));
+				dataset.addSeries(solid);
+			}
+			XYSeries dashed = createXYSeriesFromCapillaryMeasure(exp, cap, t00Opts, CapillaryChartSeriesKeys.keyT00(cap));
+			if (dashed != null) {
+				dashed.setDescription(buildSeriesDescription(cage, cap, i));
+				dataset.addSeries(dashed);
+			}
+			i++;
+		}
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
 	}
@@ -241,10 +280,15 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	}
 
 	private static XYSeries createXYSeriesFromCapillaryMeasure(Experiment exp, Capillary cap, ResultsOptions options) {
+		return createXYSeriesFromCapillaryMeasure(exp, cap, options, CapillaryChartSeriesKeys.key(cap));
+	}
+
+	private static XYSeries createXYSeriesFromCapillaryMeasure(Experiment exp, Capillary cap, ResultsOptions options,
+			String seriesKey) {
 		if (exp == null || cap == null || options == null)
 			return null;
 
-		XYSeries seriesXY = new XYSeries(CapillaryChartSeriesKeys.key(cap), false);
+		XYSeries seriesXY = new XYSeries(seriesKey != null ? seriesKey : CapillaryChartSeriesKeys.key(cap), false);
 
 		double[] camImages_time_min = exp.getMeasureTimeMinutes();
 
