@@ -43,7 +43,9 @@ public class MeasureSearchPanel extends JPanel {
 		BOTTOM_BASELINE_MISSING("Bottom baseline missing"),
 		BOTTOM_SERIES_NOISY("Bottom series RANGE"),
 		TOP_RUNAWAY("Top RANGE high"),
-		TOP_JUMP("Derivative ABSMAX");
+		TOP_JUMP("Derivative ABSMAX"),
+		T00_GT_T0_EARLY_DRINK("t00 > t0 (early drink)"),
+		T0_GT_T00_ARTEFACT("t0 > t00 (artefact?)");
 
 		final String label;
 
@@ -172,6 +174,18 @@ public class MeasureSearchPanel extends JPanel {
 				statCombo.setSelectedItem(MeasureFilterStat.ABSMAX);
 				opCombo.setSelectedItem(MeasureFilterOp.GE);
 				thresholdSpinner.setValue(10.0);
+				break;
+			case T00_GT_T0_EARLY_DRINK:
+				sourceCombo.setSelectedItem(MeasureFilterSource.T00_MINUS_T0_FILL_PX);
+				statCombo.setSelectedItem(MeasureFilterStat.VALUE);
+				opCombo.setSelectedItem(MeasureFilterOp.GT);
+				thresholdSpinner.setValue(0.0);
+				break;
+			case T0_GT_T00_ARTEFACT:
+				sourceCombo.setSelectedItem(MeasureFilterSource.T00_MINUS_T0_FILL_PX);
+				statCombo.setSelectedItem(MeasureFilterStat.VALUE);
+				opCombo.setSelectedItem(MeasureFilterOp.LT);
+				thresholdSpinner.setValue(0.0);
 				break;
 			default:
 				break;

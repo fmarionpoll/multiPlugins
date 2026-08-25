@@ -10,7 +10,9 @@ public enum MeasureFilterSource {
 	DERIVEDVALUES("DERIVEDVALUES"),
 	BOTTOM_BASELINE_Y("bottomBaselineY"),
 	BOTTOM_BASELINE_MAD("bottomBaselineMad"),
-	BOTTOM_BASELINE_OUTLIER_FRAC("bottomBaselineOutlierFrac");
+	BOTTOM_BASELINE_OUTLIER_FRAC("bottomBaselineOutlierFrac"),
+	/** Fill-height difference in pixels: (t00 fill) − (t0 fill) = Y_top[0] − Y_t00. */
+	T00_MINUS_T0_FILL_PX("t00−t0 fill px");
 
 	private final String label;
 
@@ -19,12 +21,18 @@ public enum MeasureFilterSource {
 	}
 
 	public boolean isScalar() {
-		return this == BOTTOM_BASELINE_Y || this == BOTTOM_BASELINE_MAD || this == BOTTOM_BASELINE_OUTLIER_FRAC;
+		return this == BOTTOM_BASELINE_Y || this == BOTTOM_BASELINE_MAD || this == BOTTOM_BASELINE_OUTLIER_FRAC
+				|| this == T00_MINUS_T0_FILL_PX;
 	}
 
 	public boolean isBottomRelated() {
 		return this == BOTTOMLEVEL || this == BOTTOM_BASELINE_Y || this == BOTTOM_BASELINE_MAD
 				|| this == BOTTOM_BASELINE_OUTLIER_FRAC;
+	}
+
+	/** True when the rule needs cage-scoped t00 Y cached on capillaries. */
+	public boolean requiresT00() {
+		return this == T00_MINUS_T0_FILL_PX;
 	}
 
 	@Override

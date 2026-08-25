@@ -9,6 +9,7 @@ import plugins.fmp.multitools.experiment.capillary.BottomBaselineEstimator;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
  * Scans experiments for capillaries matching a {@link MeasureFilterRule}.
@@ -50,6 +51,16 @@ public final class CapillaryMeasureFilter {
 			}
 			if (exp.getCapillaries() == null || exp.getCapillaries().getList() == null)
 				continue;
+
+			if (rule.source.requiresT00() && exp.getCages() != null) {
+				try {
+					exp.getCages().computeT00References(exp);
+				} catch (Exception e) {
+					Logger.warn("CapillaryMeasureFilter: t00 compute failed for " + safeExpLabel(exp) + ": "
+							+ e.getMessage());
+					continue;
+				}
+			}
 
 			String expLabel = shortExpLabel(exp);
 			for (Capillary cap : exp.getCapillaries().getList()) {
@@ -135,10 +146,34 @@ public final class CapillaryMeasureFilter {
 		case BOTTOM_BASELINE_OUTLIER_FRAC:
 			v = cap.getBottomBaselineOutlierFrac();
 			break;
+		case T00_MINUS_T0_FILL_PX:
+			return computeT00MinusT0FillPx(cap);
 		default:
 			return null;
 		}
 		return v;
+	}
+
+	/**
+	 * Fill-height difference (pixels): expected full (t00) minus fill at first top
+	 * sample. Positive ⇒ t00 &gt; t0 fill (early drink). Negative ⇒ t0 &gt; t00
+	 * (possible artefact).
+	 */
+	public static Double computeT00MinusT0FillPx(Capillary cap) {
+		if (cap == null || !cap.hasT00YPixels())
+			return null;
+		double tip = cap.getBottomBaselineY();
+		if (!Double.isFinite(tip))
+			return null;
+		CapillaryMeasure top = cap.getTopRaw();
+		if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
+			return null;
+		Level2D poly = top.polylineLevel;
+		if (poly.ypoints == null || poly.ypoints.length == 0 || !Double.isFinite(poly.ypoints[0]))
+			return null;
+		double fillT0 = tip - poly.ypoints[0];
+		double fillT00 = tip - cap.getT00YPixels();
+		return fillT00 - fillT0;
 	}
 
 	private static CapillaryMeasure getSeries(Capillary cap, MeasureFilterSource source) {
