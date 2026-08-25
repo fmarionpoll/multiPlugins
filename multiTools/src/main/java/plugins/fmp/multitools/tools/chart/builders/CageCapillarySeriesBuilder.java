@@ -13,6 +13,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cage.CageCapillariesComputation;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
@@ -239,7 +240,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 	}
 
-	static XYSeriesCollection buildSumAndPISeries(Cage cage, XYSeriesCollection parts) {
+	public static XYSeriesCollection buildSideTotalSeries(Cage cage, XYSeriesCollection parts) {
 		XYSeriesCollection result = new XYSeriesCollection();
 		if (parts == null || parts.getSeriesCount() == 0)
 			return result;
@@ -262,15 +263,15 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 				allX.add(series.getX(j).doubleValue());
 		}
 
-		XYSeries seriesSum = new XYSeries(cage.getCageID() + "_Sum", false);
-		XYSeries seriesPI = new XYSeries(cage.getCageID() + "_PI", false);
+		int cageId = cage.getCageID();
+		XYSeries seriesL = new XYSeries(cageId + "_L", false);
+		XYSeries seriesR = new XYSeries(cageId + "_R", false);
 
-		// Keep legacy side coloring semantics: Sum=Blue, PI=Red
 		CageProperties cageProp = cage.getProperties();
 		int nFlies = SeriesStyleCodec.getNFliesOrDefault(parts, -1);
-		seriesSum.setDescription(
+		seriesL.setDescription(
 				SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), nFlies, Color.BLUE));
-		seriesPI.setDescription(
+		seriesR.setDescription(
 				SeriesStyleCodec.buildDescription(cageProp.getCageID(), cageProp.getCageID(), nFlies, Color.RED));
 
 		for (Double x : allX) {
@@ -295,17 +296,42 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 
 			if (hasL && hasR) {
-				double sum = sumL + sumR;
-				// For PI, negative apparent consumption is treated as no consumption
-				double piL = Math.max(0.0, sumL);
-				double piR = Math.max(0.0, sumR);
-				double piSum = piL + piR;
-
-				// No detected consumption on either side -> PI = 0
-				double pi = (piSum > 0.0) ? (piL - piR) / piSum : 0.0;
-				seriesSum.add(x.doubleValue(), sum);
-				seriesPI.add(x.doubleValue(), pi);
+				seriesL.add(x.doubleValue(), sumL);
+				seriesR.add(x.doubleValue(), sumR);
 			}
+		}
+
+		result.addSeries(seriesL);
+		result.addSeries(seriesR);
+		return result;
+	}
+
+	static XYSeriesCollection buildSumAndPISeries(Cage cage, XYSeriesCollection parts) {
+		XYSeriesCollection result = new XYSeriesCollection();
+		if (parts == null || parts.getSeriesCount() == 0)
+			return result;
+
+		XYSeriesCollection sides = buildSideTotalSeries(cage, parts);
+		if (sides.getSeriesCount() < 2)
+			return result;
+
+		XYSeries seriesL = sides.getSeries(0);
+		XYSeries seriesR = sides.getSeries(1);
+		int cageId = cage.getCageID();
+		XYSeries seriesSum = new XYSeries(cageId + "_Sum", false);
+		XYSeries seriesPI = new XYSeries(cageId + "_PI", false);
+		seriesSum.setDescription(seriesL.getDescription());
+		seriesPI.setDescription(seriesR.getDescription());
+
+		for (int i = 0; i < seriesL.getItemCount(); i++) {
+			double x = seriesL.getX(i).doubleValue();
+			int idxR = seriesR.indexOf(x);
+			if (idxR < 0)
+				continue;
+			double valL = seriesL.getY(i).doubleValue();
+			double valR = seriesR.getY(idxR).doubleValue();
+			seriesSum.add(x, CageCapillariesComputation.computeSumFromSides(valL, valR));
+			seriesPI.add(x, CageCapillariesComputation.computePiFromSides(valL, valR));
 		}
 
 		result.addSeries(seriesSum);

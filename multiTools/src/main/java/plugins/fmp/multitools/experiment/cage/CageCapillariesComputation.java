@@ -57,14 +57,12 @@ public class CageCapillariesComputation {
 	/**
 	 * Computes L+R measures (SUM and PI) for capillaries within the associated
 	 * cage. SUM = L + R (signed side totals). PI uses max(0, L) and max(0, R) so
-	 * negative apparent consumption counts as none for preference; PI = (L'−R')/(L'+R')
-	 * when L'+R' ≥ threshold.
+	 * negative apparent consumption counts as none for preference; PI =
+	 * (L'−R')/(L'+R') when L'+R' ≥ threshold.
 	 *
 	 * @param allCapillaries The global Capillaries containing all capillaries
-	 * @param threshold      Minimum L'+R' required to compute PI (0 = any positive
-	 *                       clamped consumption)
 	 */
-	public void computeLRMeasures(Capillaries allCapillaries, double threshold) {
+	public void computeLRMeasures(Capillaries allCapillaries) {
 		if (allCapillaries == null)
 			return;
 
@@ -105,7 +103,7 @@ public class CageCapillariesComputation {
 			return;
 
 		// Compute SUM and PI from aggregated left and right
-		computeSumAndPI(aggregatedLeft, aggregatedRight, threshold);
+		computeSumAndPI(aggregatedLeft, aggregatedRight);
 	}
 
 	/**
@@ -138,6 +136,27 @@ public class CageCapillariesComputation {
 		if (key.equals("PI"))
 			return cage.measures.pi;
 		return null;
+	}
+
+	// --------------------------------------------------------
+	// SUM / PI formulas (canonical — used by charts and stored cage measures)
+
+	/** Signed cage SUM from aggregated left/right side totals at one sample. */
+	public static double computeSumFromSides(double valL, double valR) {
+		return valL + valR;
+	}
+
+	/**
+	 * Preference index from side totals. Negative apparent consumption is treated
+	 * as none for PI (each side clamped to ≥ 0 before (L'−R')/(L'+R')).
+	 */
+	public static double computePiFromSides(double valL, double valR) {
+		double piL = Math.max(0.0, valL);
+		double piR = Math.max(0.0, valR);
+		double piSum = piL + piR;
+		if (piSum > 0.0)
+			return (piL - piR) / piSum;
+		return 0.0;
 	}
 
 	// --------------------------------------------------------
@@ -197,10 +216,9 @@ public class CageCapillariesComputation {
 	}
 
 	/**
-	 * Computes SUM and PI from left and right aggregated measures (same rules as
-	 * {@link plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder#buildSumAndPISeries}).
+	 * Computes SUM and PI polylines from left and right aggregated side measures.
 	 */
-	private void computeSumAndPI(CapillaryMeasure aggregatedLeft, CapillaryMeasure aggregatedRight, double threshold) {
+	private void computeSumAndPI(CapillaryMeasure aggregatedLeft, CapillaryMeasure aggregatedRight) {
 
 		Level2D polylineL = aggregatedLeft.polylineLevel;
 		Level2D polylineR = aggregatedRight.polylineLevel;
@@ -216,16 +234,8 @@ public class CageCapillariesComputation {
 			xpoints[i] = i;
 			double valL = polylineL.ypoints[i];
 			double valR = polylineR.ypoints[i];
-			sumY[i] = valL + valR;
-
-			double piL = Math.max(0.0, valL);
-			double piR = Math.max(0.0, valR);
-			double piSum = piL + piR;
-			if (piSum > 0.0 && piSum >= threshold) {
-				piY[i] = (piL - piR) / piSum;
-			} else {
-				piY[i] = 0.0;
-			}
+			sumY[i] = computeSumFromSides(valL, valR);
+			piY[i] = computePiFromSides(valL, valR);
 		}
 
 		// Store SUM and PI in computed measures map

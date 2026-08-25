@@ -36,10 +36,10 @@ import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spot.SpotString;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.tools.Comparators;
-import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation;
 import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation.SumSeries;
+import plugins.fmp.multitools.tools.Comparators;
+import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.kernel.roi.roi2d.ROI2DArea;
@@ -116,7 +116,10 @@ public class Cages {
 	public int nColumnsPerCage = 2;
 	public int nRowsPerCage = 1;
 
-	/** Spots laid out in a cage ROI for {@link #ensureSpotROIsFromCageGeometry} and {@link Cage#mapSpotsToCageColumnRow}. */
+	/**
+	 * Spots laid out in a cage ROI for {@link #ensureSpotROIsFromCageGeometry} and
+	 * {@link Cage#mapSpotsToCageColumnRow}.
+	 */
 	private int spotRoiGridCols = 8;
 	private int spotRoiGridRows = 4;
 
@@ -214,8 +217,9 @@ public class Cages {
 	}
 
 	/**
-	 * Removes cage {@link SpotID} entries that do not resolve to any spot in {@code allSpots},
-	 * and collapses duplicate IDs. Safe to call after load or when repairing inconsistent lists.
+	 * Removes cage {@link SpotID} entries that do not resolve to any spot in
+	 * {@code allSpots}, and collapses duplicate IDs. Safe to call after load or
+	 * when repairing inconsistent lists.
 	 */
 	public void normalizeAllCageSpotIdLists(Spots allSpots) {
 		if (allSpots == null) {
@@ -243,8 +247,9 @@ public class Cages {
 	}
 
 	/**
-	 * Spots in cage list order; per-cage order matches {@link Cage#getSpotList} (deduped). Same
-	 * ordering as {@link #transferCageSpotsToSequenceAsROIs} for ROI transfer to the sequence.
+	 * Spots in cage list order; per-cage order matches {@link Cage#getSpotList}
+	 * (deduped). Same ordering as {@link #transferCageSpotsToSequenceAsROIs} for
+	 * ROI transfer to the sequence.
 	 */
 	public ArrayList<Spot> getSpotsInCageOrder(Spots allSpots) {
 		ArrayList<Spot> out = new ArrayList<>();
@@ -260,15 +265,19 @@ public class Cages {
 	}
 
 	/**
-	 * Spots in the global {@link Spots} list that are not referenced by any cage {@code spotIDs}
-	 * list (same notion as “not transferred” by {@link #getSpotsInCageOrder} / sequence ROI sync).
+	 * Spots in the global {@link Spots} list that are not referenced by any cage
+	 * {@code spotIDs} list (same notion as “not transferred” by
+	 * {@link #getSpotsInCageOrder} / sequence ROI sync).
 	 * <ul>
 	 * <li>Spots with {@code null} {@link Spot#getSpotUniqueID()} are orphans.</li>
-	 * <li>Spots whose ID never appears in any cage's {@link Cage#getSpotIDs()} are orphans.</li>
+	 * <li>Spots whose ID never appears in any cage's {@link Cage#getSpotIDs()} are
+	 * orphans.</li>
 	 * </ul>
 	 *
-	 * @param allSpots global spot collection (may contain null entries; those are skipped)
-	 * @return mutable list of orphan spots, stable iteration order as in {@code allSpots.getSpotList()}
+	 * @param allSpots global spot collection (may contain null entries; those are
+	 *                 skipped)
+	 * @return mutable list of orphan spots, stable iteration order as in
+	 *         {@code allSpots.getSpotList()}
 	 */
 	public ArrayList<Spot> getOrphanSpots(Spots allSpots) {
 		ArrayList<Spot> out = new ArrayList<>();
@@ -1075,8 +1084,10 @@ public class Cages {
 	}
 
 	/**
-	 * @param cloneSpotRoisForSequence when true, adds {@link ROI2D#getCopy()} of each spot ROI to the
-	 *          camera sequence so ICY/viewer cannot mutate the canonical ROI stored on {@link Spot}.
+	 * @param cloneSpotRoisForSequence when true, adds {@link ROI2D#getCopy()} of
+	 *                                 each spot ROI to the camera sequence so
+	 *                                 ICY/viewer cannot mutate the canonical ROI
+	 *                                 stored on {@link Spot}.
 	 */
 	public void transferCageSpotsToSequenceAsROIs(SequenceCamData seqCamData, Spots allSpots,
 			boolean cloneSpotRoisForSequence) {
@@ -1560,13 +1571,16 @@ public class Cages {
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_SUM_AND_00
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_PI_AND_00) {
-			computeLRMeasures(exp, resultsOptions.lrPIThreshold);
+			computeLRMeasures(exp);
 		}
 
 		prepareSpotAggregates(exp, resultsOptions);
 	}
 
-	/** Clears transient per-cage spot aggregate caches (e.g. after kymograph measures are updated). */
+	/**
+	 * Clears transient per-cage spot aggregate caches (e.g. after kymograph
+	 * measures are updated).
+	 */
 	public void clearSpotAggregatesCache() {
 		for (Cage cage : cagesList) {
 			if (cage != null) {
@@ -1576,9 +1590,11 @@ public class Cages {
 	}
 
 	/**
-	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when charting/exporting
-	 * spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5, AGG_AREA_COUNT_V5, AGG_SUMCLEAN_V6, AGG_AREA_COUNT_V6, AGG_MEDIANREF, or stimulus/conc aggregate export). Series are built on the
-	 * native spot/camera sample index (same basis as spot charts). Clears caches otherwise.
+	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when
+	 * charting/exporting spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5,
+	 * AGG_AREA_COUNT_V5, AGG_SUMCLEAN_V6, AGG_AREA_COUNT_V6, AGG_MEDIANREF, or
+	 * stimulus/conc aggregate export). Series are built on the native spot/camera
+	 * sample index (same basis as spot charts). Clears caches otherwise.
 	 */
 	public void prepareSpotAggregates(Experiment exp, ResultsOptions opt) {
 		if (opt == null) {
@@ -1642,8 +1658,8 @@ public class Cages {
 				if (cage.getSpotList(allSpots).isEmpty()) {
 					continue;
 				}
-				List<AggregateSeries> nativeList = CageSpotStimulusAggregation.buildAggregatesOnNativeSamples(exp,
-						cage, allSpots, opt);
+				List<AggregateSeries> nativeList = CageSpotStimulusAggregation.buildAggregatesOnNativeSamples(exp, cage,
+						allSpots, opt);
 				List<CageSpotAggregateSeries> entries = new ArrayList<>(nativeList.size());
 				EnumResults aggTag;
 				if (savedRt == EnumResults.AGG_SUMCLEAN_V5
@@ -1764,7 +1780,7 @@ public class Cages {
 	 * @param exp       The experiment
 	 * @param threshold Minimum SUM value required to compute PI
 	 */
-	public void computeLRMeasures(Experiment exp, double threshold) {
+	public void computeLRMeasures(Experiment exp) {
 		if (exp == null)
 			return;
 
@@ -1783,7 +1799,7 @@ public class Cages {
 
 		for (Cage cage : cagesList) {
 			CageCapillariesComputation cageComputation = new CageCapillariesComputation(cage);
-			cageComputation.computeLRMeasures(allCapillaries, threshold);
+			cageComputation.computeLRMeasures(allCapillaries);
 			// Store for later access
 			cageComputations.put(cage.getCageID(), cageComputation);
 		}
