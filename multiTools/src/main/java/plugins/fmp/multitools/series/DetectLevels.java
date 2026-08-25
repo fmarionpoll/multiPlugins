@@ -14,7 +14,8 @@ public class DetectLevels extends BuildSeries {
 			exp.load_capillaries_description_and_measures();
 			// Direct-from-cam detection now writes standard TOPLEVEL/BOTTOMLEVEL measures.
 			// Clear existing kymograph-based measures so results are fully replaced.
-			exp.getCapillaries().clearKymoMeasuresOnly(-1, -1, options.detectL, options.detectR);
+			exp.getCapillaries().clearKymoMeasuresOnly(-1, -1, options.detectL, options.detectR, options.detectTop,
+					options.detectBottom);
 			exp.getSeqCamData().loadImages();
 			exp.getFileIntervalsFromSeqCamData();
 			exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getSeqCamData().getFirstImageMs());
@@ -55,7 +56,7 @@ public class DetectLevels extends BuildSeries {
 			options.searchArea = new Rectangle(0, 0, w, h);
 			Logger.debug("DetectLevels: refreshed searchArea " + w + "x" + h + " for " + exp.getResultsDirectory());
 			exp.getCapillaries().clearKymoMeasuresOnly(options.kymoFirst, options.kymoLast, options.detectL,
-					options.detectR);
+					options.detectR, options.detectTop, options.detectBottom);
 		}
 	}
 

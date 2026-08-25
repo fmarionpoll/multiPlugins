@@ -277,10 +277,14 @@ public class Capillaries {
 	}
 
 	/**
-	 * Clears only kymograph-based measures (top, bottom, derivative, gulps, etc.)
-	 * for capillaries in [first, last] matching detectL/detectR.
+	 * Clears kymograph measures selectively for capillaries in [first, last]
+	 * matching detectL/detectR. When both detectTop and detectBottom are false,
+	 * nothing is cleared.
 	 */
-	public void clearKymoMeasuresOnly(int first, int last, boolean detectL, boolean detectR) {
+	public void clearKymoMeasuresOnly(int first, int last, boolean detectL, boolean detectR, boolean detectTop,
+			boolean detectBottom) {
+		if (!detectTop && !detectBottom)
+			return;
 		for (Capillary cap : getList()) {
 			int i = cap.getKymographIndex();
 			if (first >= 0 && last >= 0 && (i < first || i > last))
@@ -292,8 +296,21 @@ public class Capillaries {
 				if (name.endsWith("2") && !detectR)
 					continue;
 			}
-			cap.clearKymoMeasuresOnly();
+			if (detectTop && detectBottom)
+				cap.clearKymoMeasuresOnly();
+			else if (detectTop)
+				cap.clearTopKymoMeasuresOnly();
+			else
+				cap.clearBottomKymoMeasuresOnly();
 		}
+	}
+
+	/**
+	 * Clears only kymograph-based measures (top, bottom, derivative, gulps, etc.)
+	 * for capillaries in [first, last] matching detectL/detectR.
+	 */
+	public void clearKymoMeasuresOnly(int first, int last, boolean detectL, boolean detectR) {
+		clearKymoMeasuresOnly(first, last, detectL, detectR, true, true);
 	}
 
 	private void transferCapGroupCageIDToCapillary(Capillary cap) {

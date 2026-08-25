@@ -173,6 +173,34 @@ public class Capillary implements Comparable<Capillary> {
 		return properties.getPixels();
 	}
 
+	public double getBottomBaselineY() {
+		return properties.getBottomBaselineY();
+	}
+
+	public void setBottomBaselineY(double y) {
+		properties.setBottomBaselineY(y);
+	}
+
+	public double getBottomBaselineMad() {
+		return properties.getBottomBaselineMad();
+	}
+
+	public void setBottomBaselineMad(double mad) {
+		properties.setBottomBaselineMad(mad);
+	}
+
+	public double getBottomBaselineOutlierFrac() {
+		return properties.getBottomBaselineOutlierFrac();
+	}
+
+	public void setBottomBaselineOutlierFrac(double frac) {
+		properties.setBottomBaselineOutlierFrac(frac);
+	}
+
+	public void clearBottomBaseline() {
+		properties.clearBottomBaseline();
+	}
+
 	public boolean isDescriptionOK() {
 		return properties.isDescriptionOK();
 	}
@@ -1567,6 +1595,16 @@ public class Capillary implements Comparable<Capillary> {
 		measurements.clearKymoMeasuresOnly();
 	}
 
+	/** Clears top-related kymo measures without touching bottom. */
+	public void clearTopKymoMeasuresOnly() {
+		measurements.clearTopKymoMeasuresOnly();
+	}
+
+	/** Clears bottom measure only (leaves top / gulps / derivative). */
+	public void clearBottomKymoMeasuresOnly() {
+		measurements.clearBottomKymoMeasuresOnly();
+	}
+
 	// === INNER CLASSES ===
 
 	private static class CapillaryMeasurements {
@@ -1638,6 +1676,18 @@ public class Capillary implements Comparable<Capillary> {
 			ptsDerivative.clear();
 			ptsTopCorrected.clear();
 			ptsThreshold.clear();
+		}
+
+		void clearTopKymoMeasuresOnly() {
+			ptsGulps.clear();
+			ptsTop.clear();
+			ptsDerivative.clear();
+			ptsTopCorrected.clear();
+			ptsThreshold.clear();
+		}
+
+		void clearBottomKymoMeasuresOnly() {
+			ptsBottom.clear();
 		}
 	}
 

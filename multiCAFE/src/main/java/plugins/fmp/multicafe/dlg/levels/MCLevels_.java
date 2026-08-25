@@ -26,6 +26,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	public LoadSaveLevels tabFileLevels = new LoadSaveLevels();
 	DetectLevelsDlgFromKymo tabDetectLevels = new DetectLevelsDlgFromKymo();
 	DetectLevelsDlgFromCam tabDetectLevelsDirect = new DetectLevelsDlgFromCam();
+	DetectBottomDlg tabDetectBottom = new DetectBottomDlg();
 //	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
 //  DetectLevelsKMeans tabDetectLevelsK = new DetectLevelsKMeans();
 	CleanGapsCapillaries tabCleanGaps = new CleanGapsCapillaries();
@@ -53,6 +54,11 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectLevelsDirect.addPropertyChangeListener(this);
 		tabsPane.addTab("Levels (direct)", null, tabDetectLevelsDirect,
 				"Find limits of the columns of liquid directly from images");
+
+		tabDetectBottom.init(capLayout, parent0);
+		tabDetectBottom.addPropertyChangeListener(this);
+		tabsPane.addTab("Bottom", null, tabDetectBottom,
+				"Detect bottom tip independently and estimate bottomBaselineY");
 
 		tabCleanGaps.init(capLayout, parent0);
 		tabsPane.addTab("Clean gaps", null, tabCleanGaps, "remove night gaps from measures");
@@ -111,6 +117,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		exp.loadExperimentDescriptors();
 		tabDetectLevels.loadLevelDefaultsFromExperiment(exp);
 		tabDetectLevelsDirect.loadLevelDefaultsFromExperiment(exp);
+		tabDetectBottom.loadDefaultsFromExperiment(exp);
 		tabDetectGulps.loadGulpDefaultsFromExperiment(exp);
 	}
 
@@ -120,6 +127,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		}
 		tabDetectLevels.setDialogFromOptions(cap);
 		tabDetectLevelsDirect.setDialogFromOptions(cap);
+		tabDetectBottom.setDialogFromOptions(cap);
 		tabDetectGulps.setInfos(cap);
 	}
 

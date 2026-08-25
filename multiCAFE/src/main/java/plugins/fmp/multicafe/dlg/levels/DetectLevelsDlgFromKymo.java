@@ -477,6 +477,12 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		options.binSubDirectory = parent0.expListComboLazy.expListBinSubDirectory;
 		options.runBackwards = runBackwardsCheckBox.isSelected();
 		options.sourceCamDirect = false;
+		options.detectTop = true;
+		options.detectBottom = true;
+		options.transformBottom = options.transform01;
+		options.directionUpBottom = options.directionUp1;
+		options.detectLevelBottomThreshold = options.detectLevel1Threshold;
+		options.bottomSearchFromBottomPx = 0;
 		return options;
 	}
 
@@ -489,7 +495,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			if (!fromRectangleCheckBox.isSelected()) {
 				exp.getCapillaries().clearKymoMeasuresOnly(threadDetectLevels.options.kymoFirst,
 						threadDetectLevels.options.kymoLast, threadDetectLevels.options.detectL,
-						threadDetectLevels.options.detectR);
+						threadDetectLevels.options.detectR, threadDetectLevels.options.detectTop,
+						threadDetectLevels.options.detectBottom);
 			}
 			threadDetectLevels.addPropertyChangeListener(this);
 			threadDetectLevels.execute();

@@ -66,8 +66,10 @@ public class LevelDetectorFromKymo {
 			if (!options.detectL && capi.getKymographName().endsWith("1"))
 				continue;
 
-			capi.getDerivative().clear();
-			capi.getGulps().clear();
+			if (options.detectTop) {
+				capi.getDerivative().clear();
+				capi.getGulps().clear();
+			}
 			DetectionProvenanceSupport.copyLevelRecipeTo(capi.getProperties().getLimitsOptions(), options);
 			final IcyBufferedImage rawImage = loader.imageIORead(fullPath);
 
@@ -76,17 +78,14 @@ public class LevelDetectorFromKymo {
 				public void run() {
 					int imageWidth = rawImage.getSizeX();
 					int imageHeight = rawImage.getSizeY();
-					// Full-frame search must use THIS image size (batch reuses options from
-					// the first experiment whose searchArea height may be shorter).
 					final Rectangle searchRect = options.analyzePartOnly && options.searchArea != null
 							? options.searchArea
 							: new Rectangle(0, 0, imageWidth, imageHeight);
 
 					if (options.pass1)
-						detectPass1(rawImage, transformPass1, capi, imageWidth, imageHeight, searchRect, jitter,
-								options);
+						detectPass1(rawImage, transformPass1, capi, imageWidth, imageHeight, searchRect, options);
 
-					if (options.pass2)
+					if (options.pass2 && options.detectTop)
 						detectPass2(rawImage, transformPass2, capi, imageWidth, imageHeight, searchRect, jitter,
 								options);
 
@@ -99,25 +98,29 @@ public class LevelDetectorFromKymo {
 					if (columnLast < columnFirst)
 						return;
 					if (options.analyzePartOnly) {
-						ensureFullWidthPolylineForPartialUpdate(capi.getTopRaw(), imageWidth, columnLast);
-						ensureFullWidthPolylineForPartialUpdate(capi.getBottomRaw(), imageWidth, columnLast);
-						if (capi.getTopRaw() != null && capi.getTopRaw().polylineLevel != null
-								&& capi.getTopRaw().limit != null)
-							capi.getTopRaw().polylineLevel.insertYPoints(capi.getTopRaw().limit, columnFirst,
-									columnLast);
-						if (capi.getBottomRaw() != null && capi.getBottomRaw().limit != null
-								&& capi.getBottomRaw().polylineLevel != null)
-							capi.getBottomRaw().polylineLevel.insertYPoints(capi.getBottomRaw().limit, columnFirst,
-									columnLast);
+						if (options.detectTop) {
+							ensureFullWidthPolylineForPartialUpdate(capi.getTopRaw(), imageWidth, columnLast);
+							if (capi.getTopRaw() != null && capi.getTopRaw().polylineLevel != null
+									&& capi.getTopRaw().limit != null)
+								capi.getTopRaw().polylineLevel.insertYPoints(capi.getTopRaw().limit, columnFirst,
+										columnLast);
+						}
+						if (options.detectBottom) {
+							ensureFullWidthPolylineForPartialUpdate(capi.getBottomRaw(), imageWidth, columnLast);
+							if (capi.getBottomRaw() != null && capi.getBottomRaw().limit != null
+									&& capi.getBottomRaw().polylineLevel != null)
+								capi.getBottomRaw().polylineLevel.insertYPoints(capi.getBottomRaw().limit, columnFirst,
+										columnLast);
+						}
 					} else {
-						if (capi.getTopRaw() != null) {
+						if (options.detectTop && capi.getTopRaw() != null && capi.getTopRaw().limit != null) {
 							String topLevelName = capi.getLast2ofCapillaryName();
 							if (topLevelName != null)
 								capi.getTopRaw().setPolylineLevelFromTempData(topLevelName + "_toplevel",
 										capi.getKymographIndex(), columnFirst, columnLast);
 						}
 
-						if (capi.getBottomRaw() != null && capi.getBottomRaw().limit != null) {
+						if (options.detectBottom && capi.getBottomRaw() != null && capi.getBottomRaw().limit != null) {
 							String bottomLevelName = capi.getLast2ofCapillaryName();
 							if (bottomLevelName != null)
 								capi.getBottomRaw().setPolylineLevelFromTempData(bottomLevelName + "_bottomlevel",
@@ -158,12 +161,11 @@ public class LevelDetectorFromKymo {
 	}
 
 	private void detectPass1(IcyBufferedImage rawImage, ImageTransformInterface transformPass1, Capillary capi,
-			int imageWidth, int imageHeight, Rectangle searchRect, int jitter, BuildSeriesOptions options) {
-		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
-		IcyBufferedImage transformedImage1 = transformPass1.getTransformedImage(rawImage, transformOptions);
-		Object transformedArray1 = transformedImage1.getDataXY(0);
-		int[] transformed1DArray1 = Array1DUtil.arrayToIntArray(transformedArray1,
-				transformedImage1.isSignedDataType());
+			int imageWidth, int imageHeight, Rectangle searchRect, BuildSeriesOptions options) {
+		boolean doTop = options.detectTop;
+		boolean doBottom = options.detectBottom;
+		if (!doTop && !doBottom)
+			return;
 
 		int columnFirst = (int) searchRect.getX();
 		int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
@@ -174,14 +176,49 @@ public class LevelDetectorFromKymo {
 		if (columnLast < columnFirst)
 			return;
 		int n_measures = columnLast - columnFirst + 1;
-		capi.getTopRaw().limit = new int[n_measures];
-		capi.getBottomRaw().limit = new int[n_measures];
 
-		boolean directionUp = options.directionUp1;
-		int threshold = options.detectLevel1Threshold;
+		boolean sameTransformForBottom = doTop && doBottom && options.transformBottom == options.transform01
+				&& options.detectLevelBottomThreshold == options.detectLevel1Threshold
+				&& options.directionUpBottom == options.directionUp1;
 
-		computeTopBottomThresholds(transformed1DArray1, imageWidth, imageHeight, searchRect, directionUp, threshold,
-				columnFirst, columnLast, capi.getTopRaw().limit, capi.getBottomRaw().limit);
+		int[] topLimits = null;
+		int[] bottomLimits = null;
+		if (doTop) {
+			capi.getTopRaw().limit = new int[n_measures];
+			topLimits = capi.getTopRaw().limit;
+		}
+		if (doBottom) {
+			capi.getBottomRaw().limit = new int[n_measures];
+			bottomLimits = capi.getBottomRaw().limit;
+		}
+
+		if (doTop) {
+			CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
+			IcyBufferedImage transformedImage1 = transformPass1.getTransformedImage(rawImage, transformOptions);
+			Object transformedArray1 = transformedImage1.getDataXY(0);
+			int[] transformed1DArray1 = Array1DUtil.arrayToIntArray(transformedArray1,
+					transformedImage1.isSignedDataType());
+			computeTopThresholds(transformed1DArray1, imageWidth, imageHeight, searchRect, options.directionUp1,
+					options.detectLevel1Threshold, columnFirst, columnLast, topLimits);
+			if (doBottom && sameTransformForBottom) {
+				computeBottomThresholds(transformed1DArray1, imageWidth, imageHeight, searchRect,
+						options.directionUpBottom, options.detectLevelBottomThreshold,
+						options.bottomSearchFromBottomPx, columnFirst, columnLast, bottomLimits);
+			}
+		}
+
+		if (doBottom && !(doTop && sameTransformForBottom)) {
+			ImageTransformInterface bottomTransform = options.transformBottom != null
+					? options.transformBottom.getFunction()
+					: transformPass1;
+			CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
+			IcyBufferedImage transformedBottom = bottomTransform.getTransformedImage(rawImage, transformOptions);
+			Object transformedArray = transformedBottom.getDataXY(0);
+			int[] transformed1D = Array1DUtil.arrayToIntArray(transformedArray, transformedBottom.isSignedDataType());
+			computeBottomThresholds(transformed1D, imageWidth, imageHeight, searchRect, options.directionUpBottom,
+					options.detectLevelBottomThreshold, options.bottomSearchFromBottomPx, columnFirst, columnLast,
+					bottomLimits);
+		}
 	}
 
 	private void detectPass2(IcyBufferedImage rawImage, ImageTransformInterface transformPass2, Capillary capi,
@@ -299,48 +336,28 @@ public class LevelDetectorFromKymo {
 	}
 
 	/**
-	 * Computes, for each column in the given range, the first row from top and the
-	 * first row from bottom where the pixel value crosses the provided threshold.
-	 * The top search starts at searchRect.y + TOP_SEARCH_OFFSET_PIXELS (or 0 if no
-	 * searchRect is provided) and proceeds downwards to the bottom of the image.
-	 * The bottom search starts from the bottom of the image (or the bottom of
-	 * searchRect when provided) and proceeds upwards.
-	 *
-	 * @param tabValues    flattened image data (row-major order)
-	 * @param imageWidth   image width in pixels
-	 * @param imageHeight  image height in pixels
-	 * @param searchRect   vertical search region (can be null for full image)
-	 * @param directionUp  true if values greater than threshold are considered
-	 * @param threshold    threshold used for comparison
-	 * @param firstColumn  first column index (inclusive)
-	 * @param lastColumn   last column index (inclusive)
-	 * @param topLimits    output array for top crossings (length >= lastColumn -
-	 *                     firstColumn + 1)
-	 * @param bottomLimits output array for bottom crossings (length >= lastColumn -
-	 *                     firstColumn + 1)
+	 * Computes top and bottom threshold crossings for each column. Retained for
+	 * overlay preview compatibility; delegates to independent top/bottom scanners.
 	 */
 	public void computeTopBottomThresholds(int[] tabValues, int imageWidth, int imageHeight, Rectangle searchRect,
 			boolean directionUp, int threshold, int firstColumn, int lastColumn, int[] topLimits,
 			int[] bottomLimits) {
-		if (tabValues == null || topLimits == null || bottomLimits == null || imageWidth <= 0 || imageHeight <= 0
-				|| firstColumn > lastColumn) {
+		computeTopThresholds(tabValues, imageWidth, imageHeight, searchRect, directionUp, threshold, firstColumn,
+				lastColumn, topLimits);
+		computeBottomThresholds(tabValues, imageWidth, imageHeight, searchRect, directionUp, threshold, 0, firstColumn,
+				lastColumn, bottomLimits);
+	}
+
+	public void computeTopThresholds(int[] tabValues, int imageWidth, int imageHeight, Rectangle searchRect,
+			boolean directionUp, int threshold, int firstColumn, int lastColumn, int[] topLimits) {
+		if (tabValues == null || topLimits == null || imageWidth <= 0 || imageHeight <= 0 || firstColumn > lastColumn)
 			return;
-		}
 
 		int searchTopY = 0;
-		int searchBottomY = imageHeight - 1;
-
 		if (searchRect != null) {
-			searchTopY = searchRect.y;
-			searchBottomY = searchRect.y + searchRect.height - 1;
-			if (searchTopY < 0)
-				searchTopY = 0;
-			if (searchBottomY >= imageHeight)
-				searchBottomY = imageHeight - 1;
+			searchTopY = Math.max(0, searchRect.y);
 		}
-
 		int minTopStart = Math.min(searchTopY + TOP_SEARCH_OFFSET_PIXELS, imageHeight - 1);
-
 		int safeFirst = Math.max(0, firstColumn);
 		int safeLast = Math.min(imageWidth - 1, lastColumn);
 		if (safeLast < safeFirst)
@@ -348,9 +365,8 @@ public class LevelDetectorFromKymo {
 
 		for (int ix = safeFirst; ix <= safeLast; ix++) {
 			int index = ix - firstColumn;
-			if (index < 0 || index >= topLimits.length || index >= bottomLimits.length)
+			if (index < 0 || index >= topLimits.length)
 				continue;
-
 			int yTop = imageHeight - 1;
 			for (int iy = minTopStart; iy < imageHeight; iy++) {
 				int offset = ix + iy * imageWidth;
@@ -364,10 +380,39 @@ public class LevelDetectorFromKymo {
 				}
 			}
 			topLimits[index] = yTop;
+		}
+	}
 
+	public void computeBottomThresholds(int[] tabValues, int imageWidth, int imageHeight, Rectangle searchRect,
+			boolean directionUp, int threshold, int searchFromBottomPx, int firstColumn, int lastColumn,
+			int[] bottomLimits) {
+		if (tabValues == null || bottomLimits == null || imageWidth <= 0 || imageHeight <= 0 || firstColumn > lastColumn)
+			return;
+
+		int searchBottomY = imageHeight - 1;
+		int searchTopY = 0;
+		if (searchRect != null) {
+			searchTopY = Math.max(0, searchRect.y);
+			searchBottomY = searchRect.y + searchRect.height - 1;
+			if (searchBottomY >= imageHeight)
+				searchBottomY = imageHeight - 1;
+		}
+		int minY = searchTopY;
+		if (searchFromBottomPx > 0) {
+			minY = Math.max(minY, searchBottomY - searchFromBottomPx + 1);
+		}
+
+		int safeFirst = Math.max(0, firstColumn);
+		int safeLast = Math.min(imageWidth - 1, lastColumn);
+		if (safeLast < safeFirst)
+			return;
+
+		for (int ix = safeFirst; ix <= safeLast; ix++) {
+			int index = ix - firstColumn;
+			if (index < 0 || index >= bottomLimits.length)
+				continue;
 			int yBottom = 0;
-			int startFrom = searchBottomY;
-			for (int iy = startFrom; iy >= 0; iy--) {
+			for (int iy = searchBottomY; iy >= minY; iy--) {
 				int offset = ix + iy * imageWidth;
 				if (offset < 0 || offset >= tabValues.length)
 					continue;

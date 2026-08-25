@@ -20,6 +20,9 @@ public class CapillaryProperties {
 	private int cageID = 0;
 	private double volume = 5.;
 	private int pixels = 5;
+	private double bottomBaselineY = Double.NaN;
+	private double bottomBaselineMad = Double.NaN;
+	private double bottomBaselineOutlierFrac = Double.NaN;
 	private boolean descriptionOK = false;
 	private boolean valid = true;
 	private int versionInfos = 0;
@@ -36,6 +39,9 @@ public class CapillaryProperties {
 	private static final String ID_SIDE = "side";
 	private static final String ID_DESCOK = "descriptionOK";
 	private static final String ID_VERSIONINFOS = "versionInfos";
+	private static final String ID_BOTTOM_BASELINE_Y = "bottomBaselineY";
+	private static final String ID_BOTTOM_BASELINE_MAD = "bottomBaselineMad";
+	private static final String ID_BOTTOM_BASELINE_OUTLIER_FRAC = "bottomBaselineOutlierFrac";
 
 	// === METHODS ===
 
@@ -50,6 +56,9 @@ public class CapillaryProperties {
 		this.cageID = source.cageID;
 		this.volume = source.volume;
 		this.pixels = source.pixels;
+		this.bottomBaselineY = source.bottomBaselineY;
+		this.bottomBaselineMad = source.bottomBaselineMad;
+		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
 		this.descriptionOK = source.descriptionOK;
 		this.versionInfos = source.versionInfos;
 		this.limitsOptions = source.limitsOptions; // BuildSeriesOptions might need deep copy if mutable and shared
@@ -63,6 +72,9 @@ public class CapillaryProperties {
 		this.cageID = source.cageID;
 		this.volume = source.volume;
 		this.pixels = source.pixels;
+		this.bottomBaselineY = source.bottomBaselineY;
+		this.bottomBaselineMad = source.bottomBaselineMad;
+		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
 		this.descriptionOK = source.descriptionOK;
 		this.versionInfos = source.versionInfos;
 		this.limitsOptions = source.limitsOptions;
@@ -83,6 +95,10 @@ public class CapillaryProperties {
 		stimulus = XMLUtil.getElementValue(nodeMeta, ID_STIML, ID_STIML);
 		concentration = XMLUtil.getElementValue(nodeMeta, ID_CONCL, ID_CONCL);
 		side = XMLUtil.getElementValue(nodeMeta, ID_SIDE, ".");
+		bottomBaselineY = XMLUtil.getElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_Y, Double.NaN);
+		bottomBaselineMad = XMLUtil.getElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_MAD, Double.NaN);
+		bottomBaselineOutlierFrac = XMLUtil.getElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_OUTLIER_FRAC,
+				Double.NaN);
 
 		limitsOptions.loadFromXML(nodeMeta);
 
@@ -102,6 +118,9 @@ public class CapillaryProperties {
 		XMLUtil.setElementValue(nodeMeta, ID_STIML, stimulus);
 		XMLUtil.setElementValue(nodeMeta, ID_SIDE, side);
 		XMLUtil.setElementValue(nodeMeta, ID_CONCL, concentration);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_Y, bottomBaselineY);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_MAD, bottomBaselineMad);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_OUTLIER_FRAC, bottomBaselineOutlierFrac);
 
 		limitsOptions.saveToXML(nodeMeta);
 
@@ -164,6 +183,36 @@ public class CapillaryProperties {
 
 	public void setPixels(int pixels) {
 		this.pixels = pixels;
+	}
+
+	public double getBottomBaselineY() {
+		return bottomBaselineY;
+	}
+
+	public void setBottomBaselineY(double bottomBaselineY) {
+		this.bottomBaselineY = bottomBaselineY;
+	}
+
+	public double getBottomBaselineMad() {
+		return bottomBaselineMad;
+	}
+
+	public void setBottomBaselineMad(double bottomBaselineMad) {
+		this.bottomBaselineMad = bottomBaselineMad;
+	}
+
+	public double getBottomBaselineOutlierFrac() {
+		return bottomBaselineOutlierFrac;
+	}
+
+	public void setBottomBaselineOutlierFrac(double bottomBaselineOutlierFrac) {
+		this.bottomBaselineOutlierFrac = bottomBaselineOutlierFrac;
+	}
+
+	public void clearBottomBaseline() {
+		bottomBaselineY = Double.NaN;
+		bottomBaselineMad = Double.NaN;
+		bottomBaselineOutlierFrac = Double.NaN;
 	}
 
 	public boolean isDescriptionOK() {

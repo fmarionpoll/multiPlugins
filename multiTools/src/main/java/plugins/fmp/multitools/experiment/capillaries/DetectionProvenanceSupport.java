@@ -101,6 +101,10 @@ public final class DetectionProvenanceSupport {
 		dest.detectBottom = src.detectBottom;
 		dest.detectL = src.detectL;
 		dest.detectR = src.detectR;
+		dest.transformBottom = src.transformBottom;
+		dest.directionUpBottom = src.directionUpBottom;
+		dest.detectLevelBottomThreshold = src.detectLevelBottomThreshold;
+		dest.bottomSearchFromBottomPx = src.bottomSearchFromBottomPx;
 	}
 
 	public static void copyGulpRecipeTo(BuildSeriesOptions dest, BuildSeriesOptions src) {

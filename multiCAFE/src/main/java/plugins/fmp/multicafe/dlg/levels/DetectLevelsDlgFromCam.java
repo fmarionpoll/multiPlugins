@@ -304,6 +304,12 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		options.runBackwards = false;
 		options.profilePerpendicular = profilePerpendicularCheckBox.isSelected();
 		options.sourceCamDirect = true;
+		options.detectTop = true;
+		options.detectBottom = true;
+		options.transformBottom = options.transform01;
+		options.directionUpBottom = options.directionUp1;
+		options.detectLevelBottomThreshold = options.detectLevel1Threshold;
+		options.bottomSearchFromBottomPx = 0;
 		return options;
 	}
 

@@ -95,6 +95,12 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     /** When true, draw only the boundary lines (top/bottom threshold crossing) instead of the red mask. */
     private boolean boundaryOnlyMode = false;
 
+    /** When true with boundaryOnlyMode, draw only the bottom crossing (Bottom tab preview). */
+    private boolean bottomBoundaryOnly = false;
+
+    /** Tip search band for bottom boundary preview; 0 = full height upward. */
+    private int bottomSearchFromBottomPx = 0;
+
     /** When non-null, overlay is drawn only inside this rectangle (for preview in a ROI). */
     private Rectangle2D clipBounds = null;
 
@@ -281,6 +287,14 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
         return boundaryOnlyMode;
     }
 
+    public void setBottomBoundaryOnly(boolean bottomOnly) {
+        this.bottomBoundaryOnly = bottomOnly;
+    }
+
+    public void setBottomSearchFromBottomPx(int px) {
+        this.bottomSearchFromBottomPx = Math.max(0, px);
+    }
+
     /**
      * Restricts overlay drawing to the given rectangle (e.g. ROI). Pass null to draw on the full image.
      */
@@ -437,12 +451,19 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
         int[] yBottom = new int[w];
 
         Rectangle searchRect = new Rectangle(0, 0, w, h);
-        levelDetector.computeTopBottomThresholds(arr, w, h, searchRect, ifGreater, thresh, 0, w - 1, yTop, yBottom);
+        if (bottomBoundaryOnly) {
+            levelDetector.computeBottomThresholds(arr, w, h, searchRect, ifGreater, thresh, bottomSearchFromBottomPx, 0,
+                    w - 1, yBottom);
+        } else {
+            levelDetector.computeTopBottomThresholds(arr, w, h, searchRect, ifGreater, thresh, 0, w - 1, yTop, yBottom);
+        }
 
         graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
         graphics.setColor(Color.RED);
-        for (int ix = 0; ix < w - 1; ix++) {
-            graphics.drawLine(ix, yTop[ix], ix + 1, yTop[ix + 1]);
+        if (!bottomBoundaryOnly) {
+            for (int ix = 0; ix < w - 1; ix++) {
+                graphics.drawLine(ix, yTop[ix], ix + 1, yTop[ix + 1]);
+            }
         }
         for (int ix = 0; ix < w - 1; ix++) {
             graphics.drawLine(ix, yBottom[ix], ix + 1, yBottom[ix + 1]);

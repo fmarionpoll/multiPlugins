@@ -152,6 +152,16 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean directionUp1 = true;
 	public int detectLevel1Threshold = 35;
 
+	/** Transform used when detecting bottom independently of top pass-1. */
+	public ImageTransformEnums transformBottom = ImageTransformEnums.RGB_DIFFS;
+	public boolean directionUpBottom = true;
+	public int detectLevelBottomThreshold = 35;
+	/**
+	 * When &gt; 0, bottom search only scans the last N pixels from search/image bottom.
+	 * When 0, search the full vertical range upward from the bottom.
+	 */
+	public int bottomSearchFromBottomPx = 0;
+
 	public Rectangle searchArea = new Rectangle();
 	public int spanDiffTop = 3;
 
@@ -512,6 +522,18 @@ public class BuildSeriesOptions implements XMLPersistent {
 		detectLevel2Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
 		jitter2 = XMLUtil.getElementIntValue(nodeMeta, "jitter2", jitter2);
 		sourceCamDirect = XMLUtil.getElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
+		String bottomTransform = XMLUtil.getElementValue(nodeMeta, "transformBottom", null);
+		if (bottomTransform != null) {
+			ImageTransformEnums t = ImageTransformEnums.findByText(bottomTransform);
+			if (t != null) {
+				transformBottom = t;
+			}
+		}
+		directionUpBottom = XMLUtil.getElementBooleanValue(nodeMeta, "directionUpBottom", directionUpBottom);
+		detectLevelBottomThreshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevelBottomThreshold",
+				detectLevelBottomThreshold);
+		bottomSearchFromBottomPx = XMLUtil.getElementIntValue(nodeMeta, "bottomSearchFromBottomPx",
+				bottomSearchFromBottomPx);
 		String gulpTransform = XMLUtil.getElementValue(nodeMeta, "transformForGulps", null);
 		if (gulpTransform != null) {
 			ImageTransformEnums t = ImageTransformEnums.findByText(gulpTransform);
@@ -598,6 +620,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 		XMLUtil.setElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
 		XMLUtil.setElementIntValue(nodeMeta, "jitter2", jitter2);
 		XMLUtil.setElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
+		XMLUtil.setElementValue(nodeMeta, "transformBottom",
+				transformBottom != null ? transformBottom.toString() : "");
+		XMLUtil.setElementBooleanValue(nodeMeta, "directionUpBottom", directionUpBottom);
+		XMLUtil.setElementIntValue(nodeMeta, "detectLevelBottomThreshold", detectLevelBottomThreshold);
+		XMLUtil.setElementIntValue(nodeMeta, "bottomSearchFromBottomPx", bottomSearchFromBottomPx);
 		XMLUtil.setElementValue(nodeMeta, "transformForGulps",
 				transformForGulps != null ? transformForGulps.toString() : "");
 		XMLUtil.setElementIntValue(nodeMeta, "spanDiffForGulps", spanDiffForGulps);

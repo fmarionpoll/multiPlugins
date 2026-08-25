@@ -160,6 +160,9 @@ public class CapillaryPersistence {
 				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType",
 				"npoints"));
 		row2.addAll(DetectionProvenanceSupport.CAPILLARY_PROVENANCE_COLUMNS);
+		row2.add("bottom_baseline_y");
+		row2.add("bottom_baseline_mad");
+		row2.add("bottom_baseline_outlier_frac");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -258,6 +261,9 @@ public class CapillaryPersistence {
 		}
 
 		DetectionProvenanceSupport.appendCapillaryProvenanceColumns(row, cap.getProperties().getLimitsOptions());
+		row.add(Double.toString(props.getBottomBaselineY()));
+		row.add(Double.toString(props.getBottomBaselineMad()));
+		row.add(Double.toString(props.getBottomBaselineOutlierFrac()));
 
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
@@ -523,6 +529,20 @@ public class CapillaryPersistence {
 			provenanceStart = i;
 		}
 		DetectionProvenanceSupport.importCapillaryProvenance(cap, data, provenanceStart);
+		int baselineStart = provenanceStart + DetectionProvenanceSupport.CAPILLARY_PROVENANCE_COLUMNS.size();
+		props.setBottomBaselineY(parseOptionalDouble(data, baselineStart, Double.NaN));
+		props.setBottomBaselineMad(parseOptionalDouble(data, baselineStart + 1, Double.NaN));
+		props.setBottomBaselineOutlierFrac(parseOptionalDouble(data, baselineStart + 2, Double.NaN));
+	}
+
+	private static double parseOptionalDouble(String[] data, int index, double defaultValue) {
+		if (data == null || index < 0 || index >= data.length || data[index] == null || data[index].isEmpty())
+			return defaultValue;
+		try {
+			return Double.parseDouble(data[index].trim());
+		} catch (NumberFormatException e) {
+			return defaultValue;
+		}
 	}
 
 	/**
