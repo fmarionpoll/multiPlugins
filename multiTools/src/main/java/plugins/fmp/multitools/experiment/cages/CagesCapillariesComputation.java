@@ -236,7 +236,7 @@ public class CagesCapillariesComputation {
 	}
 
 	/** {@code tip − top[t0]} in native pixels, or null if unavailable. */
-	static Double emptyFillLengthPx(Capillary cap) {
+	public static Double emptyFillLengthPx(Capillary cap) {
 		if (cap == null)
 			return null;
 		double tip = cap.getBottomBaselineY();

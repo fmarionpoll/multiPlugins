@@ -21,6 +21,7 @@ import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.cages.CagesCapillariesComputation;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -64,6 +65,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_TIME_MIN = "time_min";
 	public static final String COL_CAPILLARY_VOLUME_UL = "capillary_volume_uL";
 	public static final String COL_CAPILLARY_LENGTH_PX = "capillary_length_px";
+	public static final String COL_T0_LIQUID_COLUMN_LENGTH_PX = "t0_liquid_column_length_px";
 	public static final String COL_CAPILLARY_STIMULUS = "capillary_stimulus";
 	public static final String COL_CAPILLARY_CONCENTRATION = "capillary_concentration";
 	public static final String COL_CAPILLARY_N_FLIES = "capillary_n_flies";
@@ -226,7 +228,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (name == null || name.isEmpty()) {
 			name = capId;
 		}
-		p.printRecord(expKey, cageId, capId, name, capillary.getVolume(), capillary.getPixels(),
+		Double t0LiquidColumnPx = CagesCapillariesComputation.emptyFillLengthPx(capillary);
+		p.printRecord(expKey, cageId, capId, name, capillary.getVolume(), capillary.getPixels(), t0LiquidColumnPx,
 				nullToEmpty(capillary.getStimulus()), nullToEmpty(capillary.getConcentration()),
 				capillary.getNFlies());
 	}
@@ -341,8 +344,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter idcapPrinter() throws IOException {
 		if (idcapPrinter == null) {
 			idcapPrinter = openPrinter(IDCAP, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID, COL_CAPILLARY_LABEL,
-					COL_CAPILLARY_VOLUME_UL, COL_CAPILLARY_LENGTH_PX, COL_CAPILLARY_STIMULUS,
-					COL_CAPILLARY_CONCENTRATION, COL_CAPILLARY_N_FLIES);
+					COL_CAPILLARY_VOLUME_UL, COL_CAPILLARY_LENGTH_PX, COL_T0_LIQUID_COLUMN_LENGTH_PX,
+					COL_CAPILLARY_STIMULUS, COL_CAPILLARY_CONCENTRATION, COL_CAPILLARY_N_FLIES);
 		}
 		return idcapPrinter;
 	}

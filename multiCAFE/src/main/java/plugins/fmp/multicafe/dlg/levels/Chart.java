@@ -36,8 +36,8 @@ import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.CapillaryChartInteractionHandler;
-import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
+import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
@@ -58,17 +58,17 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 	private EnumResults[] measures = new EnumResults[] { //
 			EnumResults.TOPRAW, //
-			EnumResults.TOPRAW00, //
+//			EnumResults.TOPRAW00, //
 			EnumResults.TOPRAW_AND_00, //
 			EnumResults.TOPLEVEL, //
-			EnumResults.TOPLEVEL00, //
+//			EnumResults.TOPLEVEL00, //
 			EnumResults.TOPLEVEL_AND_00, //
 			EnumResults.BOTTOMLEVEL, //
 			EnumResults.TOPLEVEL_SUM, //
-			EnumResults.TOPLEVEL_SUM00, //
+//			EnumResults.TOPLEVEL_SUM00, //
 			EnumResults.TOPLEVEL_SUM_AND_00, //
 			EnumResults.TOPLEVEL_PI, //
-			EnumResults.TOPLEVEL_PI00, //
+//			EnumResults.TOPLEVEL_PI00, //
 			EnumResults.TOPLEVEL_PI_AND_00, //
 			EnumResults.DERIVEDVALUES, //
 			EnumResults.SUMGULPS, //
@@ -300,7 +300,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		return iChart;
 	}
 
-	private ChartCagesFrame plotCapillaryMeasuresToChart(Experiment exp, EnumResults resultType, ChartCagesFrame iChart) {
+	private ChartCagesFrame plotCapillaryMeasuresToChart(Experiment exp, EnumResults resultType,
+			ChartCagesFrame iChart) {
 		// Properly dispose and clean up existing chart frame if it exists
 		if (iChart != null && iChart.getMainChartFrame() != null) {
 			IcyFrame oldFrame = iChart.getMainChartFrame();
@@ -336,7 +337,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override
-			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options, ChartCagePair[][] charts) {
+			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options,
+					ChartCagePair[][] charts) {
 				return new CapillaryChartInteractionHandler(exp, charts);
 			}
 		};
