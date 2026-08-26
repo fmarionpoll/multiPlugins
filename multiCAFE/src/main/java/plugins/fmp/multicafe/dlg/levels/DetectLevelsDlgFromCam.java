@@ -198,12 +198,15 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	}
 
 	void resetDisplayToRaw(Experiment exp) {
+		boolean wasViewing = viewButton.isSelected();
 		viewButton.setSelected(false);
 		if (exp != null) {
 			removeOverlay(exp);
-			Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-			if (canvas != null) {
-				canvas.setTransformStep1Index(0);
+			if (wasViewing) {
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null) {
+					canvas.setTransformStep1Index(0);
+				}
 			}
 		}
 	}

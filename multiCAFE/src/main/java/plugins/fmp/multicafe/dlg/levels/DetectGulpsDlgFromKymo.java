@@ -357,8 +357,9 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	}
 
 	void resetDisplayToRaw(Experiment exp) {
+		boolean wasViewing = display_button.isSelected();
 		display_button.setSelected(false);
-		if (exp != null && exp.getSeqKymos() != null) {
+		if (wasViewing && exp != null && exp.getSeqKymos() != null) {
 			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 			if (canvas != null) {
 				canvas.setTransformStep1Index(0);

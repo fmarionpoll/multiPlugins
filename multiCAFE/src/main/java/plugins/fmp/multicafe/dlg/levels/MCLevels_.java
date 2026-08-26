@@ -135,6 +135,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectLevelsDirect.setDialogFromOptions(cap);
 		tabDetectBottom.setDialogFromOptions(cap);
 		tabDetectGulps.setInfos(cap);
+		tabDetectLevelsV2.reapplyViewIfSelected();
 	}
 
 	public void selectBottomTab() {

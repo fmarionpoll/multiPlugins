@@ -42,11 +42,11 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(35, 1, 255, 1));
 
 	private ImageTransformEnums[] transforms = new ImageTransformEnums[] { //
-			ImageTransformEnums.B_MINUS_MEANGREY_CTR, //
+			ImageTransformEnums.RGB_DIFFS, //
 			ImageTransformEnums.B_MINUS_MINRG, //
 			ImageTransformEnums.B2MINUS_RG, //
 			ImageTransformEnums.B_RGB, //
-			ImageTransformEnums.RGB_DIFFS, //
+			ImageTransformEnums.B_MINUS_MEANGREY_CTR, //
 			ImageTransformEnums.GBMINUS_2R, //
 			ImageTransformEnums.R_RGB, //
 			ImageTransformEnums.G_RGB, //
@@ -123,7 +123,7 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 		add(panel02);
 		add(panel03);
 
-		transformComboBox.setSelectedItem(ImageTransformEnums.B_MINUS_MEANGREY_CTR);
+		transformComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		defineActionListeners();
 		defineItemListeners();
 	}
@@ -297,13 +297,34 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 		}
 	}
 
+	/**
+	 * Re-apply transform View + overlay after kymograph T changes (other dialogs
+	 * must not clear the canvas while this View stays selected).
+	 */
+	public void reapplyViewIfSelected() {
+		if (!transformViewButton.isSelected())
+			return;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqKymos() == null)
+			return;
+		Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+		if (canvas != null) {
+			canvas.updateTransformsStep1(transforms);
+			canvas.setTransformStep1(transformComboBox.getSelectedIndex() + 1, null);
+		}
+		addOverlayToSequence(exp);
+	}
+
 	void resetDisplayToRaw(Experiment exp) {
+		boolean wasViewing = transformViewButton.isSelected();
 		transformViewButton.setSelected(false);
 		if (exp != null) {
 			removeOverlay(exp);
-			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-			if (canvas != null)
-				canvas.setTransformStep1Index(0);
+			if (wasViewing) {
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null)
+					canvas.setTransformStep1Index(0);
+			}
 		}
 	}
 

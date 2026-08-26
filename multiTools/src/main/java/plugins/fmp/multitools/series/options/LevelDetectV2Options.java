@@ -9,7 +9,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
  */
 public class LevelDetectV2Options {
 
-	public ImageTransformEnums transform = ImageTransformEnums.B_MINUS_MEANGREY_CTR;
+	public ImageTransformEnums transform = ImageTransformEnums.RGB_DIFFS;
 	public boolean directionUp = true;
 	public int threshold = 35;
 
