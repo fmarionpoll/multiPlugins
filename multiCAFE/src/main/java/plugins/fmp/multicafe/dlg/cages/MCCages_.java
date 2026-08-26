@@ -90,7 +90,10 @@ public class MCCages_ extends JPanel implements PropertyChangeListener {
 					tabInfos.refreshFromCurrentExperiment();
 				}
 
-				tabDetect1.overlayCheckBox.setSelected(selectedIndex == iTAB_DETECT1);
+				if (selectedIndex != iTAB_DETECT1) {
+					Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+					tabDetect1.resetDisplayToRaw(exp);
+				}
 				if (selectedIndex == iTAB_DETECT1 || selectedIndex == iTAB_DETECT2) {
 //	            	parent0.paneExperiment.capPopupPanel.expand();
 					parent0.paneExperiment.tabsPane.setSelectedIndex(0);

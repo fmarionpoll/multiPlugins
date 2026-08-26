@@ -6,8 +6,6 @@ import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -53,7 +51,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			ImageTransformEnums.B_HSB };
 	public JComboBox<ImageTransformEnums> transformPass1ComboBox = new JComboBox<ImageTransformEnums>(transformPass1);
 	private JToggleButton transformPass1DisplayButton = new JToggleButton("View");
-	private JCheckBox overlayPass1CheckBox = new JCheckBox("overlay");
 
 	private JCheckBox pass2CheckBox = new JCheckBox("pass2", false);
 	private JComboBox<String> direction2ComboBox = new JComboBox<String>(
@@ -66,7 +63,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			ImageTransformEnums.L1DIST_TO_1RSTCOL };
 	private JComboBox<ImageTransformEnums> transformPass2ComboBox = new JComboBox<ImageTransformEnums>(transformPass2);
 	private JToggleButton transformPass2DisplayButton = new JToggleButton("View");
-	private JCheckBox overlayPass2CheckBox = new JCheckBox("overlay");
 	private JSpinner jitter2Spinner = new JSpinner(new SpinnerNumberModel(5, 0, 255, 1));
 
 	private JCheckBox selectedKymoCheckBox = new JCheckBox("selected kymograph", false);
@@ -113,7 +109,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel01.add(threshold1Spinner);
 		panel01.add(transformPass1ComboBox);
 		panel01.add(transformPass1DisplayButton);
-		panel01.add(overlayPass1CheckBox);
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		pass2CheckBox.setToolTipText("Second (refined) threshold pass on the kymograph.");
@@ -123,7 +118,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel02.add(threshold2Spinner);
 		panel02.add(transformPass2ComboBox);
 		panel02.add(transformPass2DisplayButton);
-		panel02.add(overlayPass2CheckBox);
 
 		JPanel panel03 = new JPanel(layoutLeft);
 		panel03.add(new JLabel("pass2 vertical jitter"));
@@ -140,36 +134,10 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		defineActionListeners();
 		defineItemListeners();
 		allowItemsAccordingToSelection();
-		overlayPass1CheckBox.setEnabled(false);
-		overlayPass2CheckBox.setEnabled(false);
 		transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 	}
 
 	private void defineItemListeners() {
-		overlayPass1CheckBox.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (transformPass1DisplayButton.isSelected() && overlayPass1CheckBox.isSelected())
-						addOverlayToSequence(exp);
-					else
-						removeOverlay(exp);
-				}
-			}
-		});
-
-		overlayPass2CheckBox.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (transformPass2DisplayButton.isSelected() && overlayPass2CheckBox.isSelected())
-						addOverlayToSequence(exp);
-					else
-						removeOverlay(exp);
-				}
-			}
-		});
-
 		threshold1Spinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				updateOverlayThreshold();
@@ -246,7 +214,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				if (exp == null)
 					return;
 
-				boolean displayCheckOverlay = false;
 				if (transformPass1DisplayButton.isSelected()) {
 					transformPass2DisplayButton.setSelected(false);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
@@ -254,17 +221,14 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 						canvas.updateTransformsStep1(transformPass1);
 						int index = transformPass1ComboBox.getSelectedIndex();
 						canvas.setTransformStep1(index + 1, null);
-						displayCheckOverlay = true;
 					}
+					addOverlayToSequence(exp);
 				} else {
 					removeOverlay(exp);
-					overlayPass1CheckBox.setSelected(false);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null)
 						canvas.setTransformStep1Index(0);
 				}
-				overlayPass1CheckBox.setEnabled(displayCheckOverlay);
-				overlayPass2CheckBox.setEnabled(false);
 			}
 
 		});
@@ -276,7 +240,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				if (exp == null)
 					return;
 
-				boolean displayCheckOverlay = false;
 				if (transformPass2DisplayButton.isSelected()) {
 					transformPass1DisplayButton.setSelected(false);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
@@ -284,17 +247,14 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 						canvas.updateTransformsStep1(transformPass2);
 						int index = transformPass2ComboBox.getSelectedIndex();
 						canvas.setTransformStep1(index + 1, null);
-						displayCheckOverlay = true;
 					}
+					addOverlayToSequence(exp);
 				} else {
 					removeOverlay(exp);
-					overlayPass2CheckBox.setSelected(false);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null)
 						canvas.setTransformStep1Index(0);
 				}
-				overlayPass2CheckBox.setEnabled(displayCheckOverlay);
-				overlayPass1CheckBox.setEnabled(false);
 			}
 
 		});
@@ -366,10 +326,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	void resetDisplayToRaw(Experiment exp) {
 		transformPass1DisplayButton.setSelected(false);
 		transformPass2DisplayButton.setSelected(false);
-		overlayPass1CheckBox.setSelected(false);
-		overlayPass2CheckBox.setSelected(false);
-		overlayPass1CheckBox.setEnabled(false);
-		overlayPass2CheckBox.setEnabled(false);
 		if (exp != null) {
 			removeOverlay(exp);
 			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
@@ -614,13 +570,13 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (overlayThreshold == null)
 			return;
 
-		if (transformPass1DisplayButton.isSelected() && overlayPass1CheckBox.isSelected()) {
+		if (transformPass1DisplayButton.isSelected()) {
 			boolean ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
 			int threshold = (int) threshold1Spinner.getValue();
 			ImageTransformEnums transform = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
 			overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
 
-		} else if (transformPass2DisplayButton.isSelected() && overlayPass2CheckBox.isSelected()) {
+		} else if (transformPass2DisplayButton.isSelected()) {
 			boolean ifGreater = (direction2ComboBox.getSelectedIndex() == 0);
 			int threshold = (int) threshold2Spinner.getValue();
 			ImageTransformEnums transform = (ImageTransformEnums) transformPass2ComboBox.getSelectedItem();

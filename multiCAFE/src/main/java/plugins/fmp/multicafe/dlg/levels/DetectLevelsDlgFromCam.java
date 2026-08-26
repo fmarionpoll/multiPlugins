@@ -5,8 +5,6 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -52,7 +50,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
 	public JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<ImageTransformEnums>(transformPass1);
 	private JToggleButton viewButton = new JToggleButton("View");
-	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 
 	private JCheckBox selectedCapillaryCheckBox = new JCheckBox("selected capillary", false);
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
@@ -91,7 +88,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		panel01.add(threshold1Spinner);
 		panel01.add(transformComboBox);
 		panel01.add(viewButton);
-		panel01.add(overlayCheckBox);
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(profilePerpendicularCheckBox);
@@ -102,24 +98,9 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 		transformComboBox.setSelectedItem(ImageTransformEnums.GBMINUS_2R);
 		defineListeners();
-
-		overlayCheckBox.setEnabled(false);
-
 	}
 
 	private void defineListeners() {
-		overlayCheckBox.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (viewButton.isSelected() && overlayCheckBox.isSelected())
-						addOverlayToSequence(exp);
-					else
-						removeOverlay(exp);
-				}
-			}
-		});
-
 		threshold1Spinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				updateOverlayThreshold();
@@ -169,14 +150,13 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 						int index = transformComboBox.getSelectedIndex();
 						canvas.setTransformStep1(index + 1, null);
 					}
+					addOverlayToSequence(exp);
 				} else {
 					removeOverlay(exp);
-					overlayCheckBox.setSelected(false);
 					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null)
 						canvas.setTransformStep1Index(0);
 				}
-				overlayCheckBox.setEnabled(viewButton.isSelected());
 			}
 
 		});
@@ -219,8 +199,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 	void resetDisplayToRaw(Experiment exp) {
 		viewButton.setSelected(false);
-		overlayCheckBox.setSelected(false);
-		overlayCheckBox.setEnabled(false);
 		if (exp != null) {
 			removeOverlay(exp);
 			Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
@@ -383,15 +361,13 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		if (overlayThreshold == null)
 			return;
 
-		if (viewButton.isSelected() && overlayCheckBox.isSelected()) {
-			boolean ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
-			int threshold = (int) threshold1Spinner.getValue();
-			ImageTransformEnums transform = (ImageTransformEnums) transformComboBox.getSelectedItem();
-			overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
-
-		} else {
+		if (!viewButton.isSelected())
 			return;
-		}
+
+		boolean ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
+		int threshold = (int) threshold1Spinner.getValue();
+		ImageTransformEnums transform = (ImageTransformEnums) transformComboBox.getSelectedItem();
+		overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
 
 		overlayThreshold.painterChanged();
 		if (overlayThreshold.getSequence() != null) {

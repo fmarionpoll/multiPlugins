@@ -49,7 +49,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private JComboBox<String> directionComboBox = new JComboBox<String>(
 			new String[] { " threshold >", " threshold <" });
 
-	public JCheckBox overlayCheckBox = new JCheckBox("overlay", false);
 	public JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(new ImageTransformEnums[] { //
 			ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
 					ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
@@ -75,7 +74,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private static final String TIP_ALL = "Run detection on this experiment through the last in the browse list.";
-	private static final String TIP_VIEW = "Preview the source transform on the camera canvas; enable overlay to see the threshold mask.";
+	private static final String TIP_VIEW = "Preview the source transform and threshold mask on the camera canvas.";
 	private static final String TIP_BKGND = "Image subtracted before thresholding: none, previous frame, or first frame.";
 	private static final String TIP_NFLIES = "Reject cages with more detected blobs than this count.";
 
@@ -98,7 +97,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		viewButton.setToolTipText(TIP_VIEW);
 		panel1.add(allCheckBox);
 		panel1.add(viewButton);
-		panel1.add(overlayCheckBox);
 		add(panel1);
 
 		cagesComboBox.addPopupMenuListener(this);
@@ -148,18 +146,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 
 	private void defineListeners() {
 
-		overlayCheckBox.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (overlayCheckBox.isSelected())
-						updateOverlay(exp);
-					else
-						removeOverlay(exp);
-				}
-			}
-		});
-
 		thresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -191,16 +177,14 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 					if (canvas != null) {
 						int index = transformComboBox.getSelectedIndex();
 						canvas.setTransformStep1Index(index + 1);
-						refreshFlyDetectOverlay();
 					}
+					updateOverlay(exp);
 				} else {
 					removeOverlay(exp);
-					overlayCheckBox.setSelected(false);
 					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null)
 						canvas.setTransformStep1Index(0);
 				}
-				overlayCheckBox.setEnabled(viewButton.isSelected());
 			}
 
 		});
@@ -410,9 +394,11 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		jitterTextField.setValue(options.jitter);
 		nFliesCheckBox.setSelected(options.blimitMaxBlobsPerCage);
 		nFliesSpinner.setValue(options.nFliesPresent);
+		resetDisplayToRaw(exp);
+	}
+
+	void resetDisplayToRaw(Experiment exp) {
 		viewButton.setSelected(false);
-		overlayCheckBox.setSelected(false);
-		overlayCheckBox.setEnabled(false);
 		if (exp != null) {
 			removeOverlay(exp);
 			Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
@@ -449,7 +435,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	void refreshFlyDetectOverlay() {
 		if (overlayFlyDetect1Preview == null)
 			return;
-		if (!viewButton.isSelected() || !overlayCheckBox.isSelected())
+		if (!viewButton.isSelected())
 			return;
 
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -522,7 +508,7 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 	public void itemStateChanged(ItemEvent e) {
 		if (e.getStateChange() == ItemEvent.SELECTED) {
 			Object source = e.getSource();
-			if (source instanceof JComboBox) {
+			if (source instanceof JComboBox && viewButton.isSelected()) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				updateOverlay(exp);
 			}

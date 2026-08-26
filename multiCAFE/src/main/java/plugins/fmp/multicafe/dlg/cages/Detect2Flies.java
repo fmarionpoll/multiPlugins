@@ -57,7 +57,6 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	private JSpinner limitRatioSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 1000, 1));
 
 	private JToggleButton viewButton = new JToggleButton("View");
-	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox whiteObjectCheckBox = new JCheckBox("white object");
 	private JCheckBox dualBackgroundCheckBox = new JCheckBox("dual background", true);
 	private JSpinner rednessThresholdSpinner = new JSpinner(new SpinnerNumberModel(0.42, 0.0, 1.0, 0.01));
@@ -84,7 +83,6 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(viewButton);
-		panel1.add(overlayCheckBox);
 		add(panel1);
 
 		allCagesComboBox.addPopupMenuListener(this);
@@ -157,28 +155,12 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-
-					if (!viewButton.isSelected()) {
-						viewDifference(exp, false);
-						overlayCheckBox.setSelected(false);
-						removeOverlay(exp);
-					} else {
+					if (viewButton.isSelected()) {
 						viewDifference(exp, true);
-					}
-					overlayCheckBox.setEnabled(viewButton.isSelected());
-				}
-			}
-		});
-
-		overlayCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (overlayCheckBox.isSelected()) {
 						updateOverlay(exp);
 						updateOverlayThreshold();
 					} else {
+						viewDifference(exp, false);
 						removeOverlay(exp);
 					}
 				}
@@ -277,8 +259,6 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 		dualBackgroundCheckBox.setSelected(options.dualBackground);
 		rednessThresholdSpinner.setValue(options.rednessThreshold);
 		viewButton.setSelected(false);
-		overlayCheckBox.setSelected(false);
-		overlayCheckBox.setEnabled(false);
 		viewDifference(exp, false);
 		removeOverlay(exp);
 	}
