@@ -16,6 +16,15 @@ public class LevelDetectV2Options {
 	/** Apply {@code MINUSHORIZAVG} on the raw kymo before the color transform. */
 	public boolean removeHorizontalAverage = false;
 
+	/**
+	 * Locate persistent thin horizontal seams (background tape) and skip those
+	 * edges when a liquid edge exists below.
+	 */
+	public boolean tapePrepass = false;
+
+	/** Scan columns right-to-left (useful when the late-time end is corrupted). */
+	public boolean runBackwards = false;
+
 	/** When true, localize by vertical edge peak; otherwise first threshold crossing. */
 	public boolean edgePeak = true;
 
@@ -37,6 +46,8 @@ public class LevelDetectV2Options {
 		o.directionUp = directionUp;
 		o.threshold = threshold;
 		o.removeHorizontalAverage = removeHorizontalAverage;
+		o.tapePrepass = tapePrepass;
+		o.runBackwards = runBackwards;
 		o.edgePeak = edgePeak;
 		o.trackUp = trackUp;
 		o.trackDown = trackDown;

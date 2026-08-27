@@ -16,9 +16,9 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
  * Handles experiment-wide capillary measure computations that require access to
- * all cages. This includes evaporation correction which needs to find all
- * capillaries with nFlies=0 across all cages to compute the average
- * evaporation.
+ * all cages. Evaporation correction means nFlies=0 capillaries, then either
+ * keeps that average (AVERAGE) or fits Y(t)=A(1-exp(-t/tau)) (MODEL), and
+ * subtracts the resulting Y_ref from each capillary topraw.
  * 
  * @author MultiSPOTS96
  * @version 2.3.3
@@ -35,16 +35,19 @@ public class CagesCapillariesComputation {
 	}
 
 	/**
-	 * Computes evaporation correction for all capillaries across all cages. For
-	 * capillaries with capNFlies == 0, computes average evaporation separately for
-	 * L and R sides. Subtracts the average evaporation from ptsTop to create
+	 * Computes evaporation correction for all capillaries across all cages. Means
+	 * topraw of nFlies==0 capillaries (combined / L / R), zeros at t0, optionally
+	 * fits Y(t)=A(1-exp(-t/tau)) when method is MODEL (falls back to the mean if
+	 * the fit fails), then subtracts that curve from each capillary topraw to
 	 * ptsTopCorrected.
-	 * 
-	 * @param exp The experiment containing all capillaries
+	 *
+	 * @param exp    The experiment containing all capillaries
+	 * @param method AVERAGE or MODEL (null treated as MODEL)
 	 */
-	public void computeEvaporationCorrection(Experiment exp) {
+	public void computeEvaporationCorrection(Experiment exp, EvaporationCorrectionMethod method) {
 		if (exp == null || exp.getCapillaries() == null)
 			return;
+		final EvaporationCorrectionMethod mode = EvaporationCorrectionMethod.fromOrDefault(method);
 
 		// First, dispatch capillaries to cages to ensure they're organized
 		exp.dispatchCapillariesToCages();
@@ -76,15 +79,9 @@ public class CagesCapillariesComputation {
 			}
 		}
 
-		Level2D avgEvapCombined = computeAverageMeasure(zeroFliesCapillariesAll);
-		Level2D avgEvapL = computeAverageMeasure(zeroFliesCapillariesL);
-		Level2D avgEvapR = computeAverageMeasure(zeroFliesCapillariesR);
-		if (avgEvapCombined != null && avgEvapCombined.npoints > 0)
-			avgEvapCombined.offsetToStartWithZeroAmplitude();
-		if (avgEvapL != null && avgEvapL.npoints > 0)
-			avgEvapL.offsetToStartWithZeroAmplitude();
-		if (avgEvapR != null && avgEvapR.npoints > 0)
-			avgEvapR.offsetToStartWithZeroAmplitude();
+		Level2D avgEvapCombined = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesAll), mode);
+		Level2D avgEvapL = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesL), mode);
+		Level2D avgEvapR = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesR), mode);
 
 		ReferenceMeasures ref = allCapillaries.getReferenceMeasures();
 		if (avgEvapCombined != null && avgEvapCombined.npoints > 0)
@@ -111,6 +108,22 @@ public class CagesCapillariesComputation {
 				}
 			}
 		}
+	}
+
+	/** @deprecated use {@link #computeEvaporationCorrection(Experiment, EvaporationCorrectionMethod)} */
+	public void computeEvaporationCorrection(Experiment exp) {
+		computeEvaporationCorrection(exp, EvaporationCorrectionMethod.MODEL);
+	}
+
+	/** Zero at t0; optionally fit exponential; keep the averaged series if fit fails or AVERAGE. */
+	private static Level2D fitEvaporationOrKeepAverage(Level2D avg, EvaporationCorrectionMethod method) {
+		if (avg == null || avg.npoints <= 0)
+			return avg;
+		avg.offsetToStartWithZeroAmplitude();
+		if (method != EvaporationCorrectionMethod.MODEL)
+			return avg;
+		Level2D fitted = EvaporationCurveFitter.fit(avg);
+		return fitted != null ? fitted : avg;
 	}
 
 	/** Max px below the longest empty fill still accepted as a t00 reference. */

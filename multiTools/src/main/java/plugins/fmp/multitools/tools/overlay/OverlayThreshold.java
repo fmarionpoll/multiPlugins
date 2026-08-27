@@ -18,7 +18,10 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceEvent.SequenceEventSourceType;
 import icy.sequence.SequenceEvent.SequenceEventType;
+import plugins.fmp.multitools.series.options.LevelDetectV2Options;
 import plugins.fmp.multitools.service.LevelDetectorFromKymo;
+import plugins.fmp.multitools.service.LevelDetectorFromKymoV2;
+import plugins.fmp.multitools.service.LevelSeriesSmoother;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
@@ -91,6 +94,11 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
     
     /** LevelDetector instance for calling detection methods */
     private final LevelDetectorFromKymo levelDetector = new LevelDetectorFromKymo();
+    private final LevelDetectorFromKymoV2 levelDetectorV2 = new LevelDetectorFromKymoV2();
+
+    /** When non-null, boundary preview uses the Levels v2 pipeline (top only). */
+    private LevelDetectV2Options v2PreviewOptions = null;
+    private Rectangle v2SearchRect = null;
 
     /** When true, draw only the boundary lines (top/bottom threshold crossing) instead of the red mask. */
     private boolean boundaryOnlyMode = false;
@@ -221,11 +229,36 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
             throw new IllegalArgumentException("Transform operation cannot be null");
         }
         
+        v2PreviewOptions = null;
+        v2SearchRect = null;
         imageTransformOptions.setSingleThreshold(threshold, ifGreater);
         imageTransformOptions.transformOption = transformOp;
         imageTransformFunction = transformOp.getFunction();
         imageThresholdFunction = ImageTransformEnums.THRESHOLD_SINGLE.getFunction();
         useJitterMode = false;
+        removeDetectionROI();
+    }
+
+    /**
+     * Boundary preview for Levels v2: same transform / threshold / tracking / edge-peak /
+     * post-smooth as {@link LevelDetectorFromKymoV2} (top line only).
+     */
+    public void setThresholdV2Preview(LevelDetectV2Options v2) {
+        setThresholdV2Preview(v2, null);
+    }
+
+    public void setThresholdV2Preview(LevelDetectV2Options v2, Rectangle searchRect) {
+        if (v2 == null || v2.transform == null) {
+            throw new IllegalArgumentException("V2 options and transform cannot be null");
+        }
+        v2PreviewOptions = v2.copy();
+        v2SearchRect = searchRect != null ? new Rectangle(searchRect) : null;
+        imageTransformOptions.setSingleThreshold(v2.threshold, v2.directionUp);
+        imageTransformOptions.transformOption = v2.transform;
+        imageTransformFunction = v2.transform.getFunction();
+        imageThresholdFunction = ImageTransformEnums.THRESHOLD_SINGLE.getFunction();
+        useJitterMode = false;
+        bottomBoundaryOnly = false;
         removeDetectionROI();
     }
     
@@ -247,6 +280,8 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
             throw new IllegalArgumentException("Transform operation cannot be null");
         }
         
+        v2PreviewOptions = null;
+        v2SearchRect = null;
         imageTransformOptions.setSingleThreshold(threshold, directionUp);
         imageTransformOptions.transformOption = transformOp;
         imageTransformFunction = transformOp.getFunction();
@@ -403,9 +438,13 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
             } else if (boundaryOnlyMode) {
                 IcyBufferedImage rawImage = sequence.getImage(timePosition, 0);
                 if (rawImage != null) {
-                    IcyBufferedImage transformedImage = imageTransformFunction.getTransformedImage(rawImage, imageTransformOptions);
-                    if (transformedImage != null) {
-                        drawBoundaryLines(graphics, transformedImage);
+                    if (v2PreviewOptions != null) {
+                        drawV2BoundaryLines(graphics, rawImage);
+                    } else {
+                        IcyBufferedImage transformedImage = imageTransformFunction.getTransformedImage(rawImage, imageTransformOptions);
+                        if (transformedImage != null) {
+                            drawBoundaryLines(graphics, transformedImage);
+                        }
                     }
                 }
             } else {
@@ -467,6 +506,34 @@ public class OverlayThreshold extends Overlay implements SequenceListener {
         }
         for (int ix = 0; ix < w - 1; ix++) {
             graphics.drawLine(ix, yBottom[ix], ix + 1, yBottom[ix + 1]);
+        }
+    }
+
+    /** Levels v2 top-only preview — same {@link LevelDetectorFromKymoV2#computeTopLimits} as Detect. */
+    private void drawV2BoundaryLines(Graphics2D graphics, IcyBufferedImage rawImage) {
+        if (rawImage == null || v2PreviewOptions == null)
+            return;
+        try {
+            int w = rawImage.getSizeX();
+            int h = rawImage.getSizeY();
+            Rectangle searchRect = v2SearchRect != null ? v2SearchRect : new Rectangle(0, 0, w, h);
+            int[] ySlice = levelDetectorV2.computeTopLimits(rawImage, searchRect, v2PreviewOptions);
+            if (ySlice == null || ySlice.length == 0)
+                return;
+            int columnFirst = Math.max(0, searchRect.x);
+            int columnLast = Math.min(w - 1, columnFirst + ySlice.length - 1);
+
+            graphics.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
+            graphics.setColor(Color.RED);
+            for (int ix = columnFirst; ix < columnLast; ix++) {
+                int i0 = ix - columnFirst;
+                int i1 = i0 + 1;
+                if (i1 >= ySlice.length)
+                    break;
+                graphics.drawLine(ix, ySlice[i0], ix + 1, ySlice[i1]);
+            }
+        } catch (Exception e) {
+            Logger.warn("OverlayThreshold: V2 boundary preview failed", e);
         }
     }
 

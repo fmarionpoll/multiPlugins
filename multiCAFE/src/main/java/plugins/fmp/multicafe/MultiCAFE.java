@@ -26,7 +26,7 @@ import plugins.fmp.multitools.tools.DescriptorIndex;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiCAFE extends PluginActionable {
-	public IcyFrame mainFrame = new IcyFrame("MultiCAFE Aug 26, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("MultiCAFE Aug 27, 2026", true, true, true, true);
 
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();

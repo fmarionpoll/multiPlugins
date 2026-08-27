@@ -3,6 +3,7 @@ package plugins.fmp.multitools.tools.results;
 import java.util.List;
 
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
+import plugins.fmp.multitools.experiment.cages.EvaporationCorrectionMethod;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ResultsOptions {
@@ -77,6 +78,7 @@ public class ResultsOptions {
 	public int medianT0FromNPoints = 5;
 	public boolean onlyalive = true;
 	public boolean correctEvaporation = false;
+	public EvaporationCorrectionMethod evaporationCorrectionMethod = EvaporationCorrectionMethod.MODEL;
 
 	public boolean transpose = false;
 	public boolean duplicateSeries = true;
@@ -220,6 +222,7 @@ public class ResultsOptions {
 		this.medianT0FromNPoints = resultsOptions.medianT0FromNPoints;
 		this.onlyalive = resultsOptions.onlyalive;
 		this.correctEvaporation = resultsOptions.correctEvaporation;
+		this.evaporationCorrectionMethod = resultsOptions.evaporationCorrectionMethod;
 
 		this.transpose = resultsOptions.transpose;
 		this.duplicateSeries = resultsOptions.duplicateSeries;

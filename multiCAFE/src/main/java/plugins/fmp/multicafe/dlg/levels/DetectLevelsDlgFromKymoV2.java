@@ -61,6 +61,8 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 	private JToggleButton transformViewButton = new JToggleButton("View");
 
 	private JCheckBox removeHzAvgCheckBox = new JCheckBox("remove Hz avg (tape)", false);
+	private JCheckBox tapePrepassCheckBox = new JCheckBox("tape prepass", false);
+	private JCheckBox runBackwardsCheckBox = new JCheckBox("run backwards", false);
 	private JCheckBox edgePeakCheckBox = new JCheckBox("edge peak", true);
 	private JSpinner trackUpSpinner = new JSpinner(new SpinnerNumberModel(3, 0, 100, 1));
 	private JSpinner trackDownSpinner = new JSpinner(new SpinnerNumberModel(25, 0, 500, 1));
@@ -90,7 +92,8 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 
 		JPanel panel00 = new JPanel(layoutLeft);
 		panel00.add(detectButton);
-		allSeriesCheckBox.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
+		allSeriesCheckBox
+				.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
 		panel00.add(allSeriesCheckBox);
 		panel00.add(selectedKymoCheckBox);
 		panel00.add(leftCheckBox);
@@ -105,35 +108,90 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(removeHzAvgCheckBox);
-		panel02.add(edgePeakCheckBox);
-		panel02.add(new JLabel("track up"));
-		panel02.add(trackUpSpinner);
-		panel02.add(new JLabel("down"));
-		panel02.add(trackDownSpinner);
+		panel02.add(tapePrepassCheckBox);
+		panel02.add(runBackwardsCheckBox);
+		panel02.add(fromRectangleCheckBox);
 
 		JPanel panel03 = new JPanel(layoutLeft);
-		panel03.add(new JLabel("median"));
-		panel03.add(medianWinSpinner);
-		panel03.add(new JLabel("max spike"));
-		panel03.add(maxSpikeSpinner);
-		panel03.add(fromRectangleCheckBox);
+		panel03.add(edgePeakCheckBox);
+		panel03.add(new JLabel("track up"));
+		panel03.add(trackUpSpinner);
+		panel03.add(new JLabel("down"));
+		panel03.add(trackDownSpinner);
+
+		JPanel panel04 = new JPanel(layoutLeft);
+		panel04.add(new JLabel("median"));
+		panel04.add(medianWinSpinner);
+		panel04.add(new JLabel("max spike"));
+		panel04.add(maxSpikeSpinner);
 
 		add(panel00);
 		add(panel01);
 		add(panel02);
 		add(panel03);
+		add(panel04);
 
+		removeHzAvgCheckBox.setToolTipText(
+				"Subtracts each row's mean — helps full-width horizontal tape bars, not a local end-of-kymo shadow.");
+		tapePrepassCheckBox.setToolTipText(
+				"Locate thin persistent horizontal seams (background tape) and skip those edges when a liquid edge exists below.");
+		runBackwardsCheckBox.setToolTipText(
+				"Blend forward+backward tracks; hold level when tape/shadow would pull the curve down.");
 		transformComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		defineActionListeners();
 		defineItemListeners();
 	}
 
 	private void defineItemListeners() {
-		thresholdSpinner.addChangeListener(new ChangeListener() {
+		ChangeListener refreshPreview = new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
-				updateOverlayThreshold();
+				if (transformViewButton.isSelected()) {
+					applyCanvasTransformForView();
+					updateOverlayThreshold();
+				}
 			}
-		});
+		};
+		thresholdSpinner.addChangeListener(refreshPreview);
+		trackUpSpinner.addChangeListener(refreshPreview);
+		trackDownSpinner.addChangeListener(refreshPreview);
+		medianWinSpinner.addChangeListener(refreshPreview);
+		maxSpikeSpinner.addChangeListener(refreshPreview);
+
+		ActionListener refreshPreviewAction = new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if (transformViewButton.isSelected()) {
+					applyCanvasTransformForView();
+					updateOverlayThreshold();
+				}
+			}
+		};
+		removeHzAvgCheckBox.addActionListener(refreshPreviewAction);
+		tapePrepassCheckBox.addActionListener(refreshPreviewAction);
+		runBackwardsCheckBox.addActionListener(refreshPreviewAction);
+		edgePeakCheckBox.addActionListener(refreshPreviewAction);
+	}
+
+	/**
+	 * Color transform on step1, or Hz-avg then color on step1/step2 when tape
+	 * prepass is on.
+	 */
+	private void applyCanvasTransformForView() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+		if (canvas == null)
+			return;
+		if (removeHzAvgCheckBox.isSelected()) {
+			canvas.updateTransformsStep1(new ImageTransformEnums[] { ImageTransformEnums.MINUSHORIZAVG });
+			canvas.setTransformStep1(ImageTransformEnums.MINUSHORIZAVG, null);
+			canvas.setTransformStep2((ImageTransformEnums) transformComboBox.getSelectedItem(), null);
+		} else {
+			canvas.setTransformStep2Index(0);
+			canvas.updateTransformsStep1(transforms);
+			canvas.setTransformStep1(transformComboBox.getSelectedIndex() + 1, null);
+		}
 	}
 
 	private void defineActionListeners() {
@@ -142,12 +200,8 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null && exp.getSeqKymos() != null && transformViewButton.isSelected()) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						canvas.updateTransformsStep1(transforms);
-						canvas.setTransformStep1(transformComboBox.getSelectedIndex() + 1, null);
-						updateOverlayThreshold();
-					}
+					applyCanvasTransformForView();
+					updateOverlayThreshold();
 				}
 			}
 		});
@@ -169,17 +223,17 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 				if (exp == null)
 					return;
 				if (transformViewButton.isSelected()) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						canvas.updateTransformsStep1(transforms);
-						canvas.setTransformStep1(transformComboBox.getSelectedIndex() + 1, null);
-					}
+					if (parent0.paneLevels != null)
+						parent0.paneLevels.clearLevelsV1View();
+					applyCanvasTransformForView();
 					addOverlayToSequence(exp);
 				} else {
 					removeOverlay(exp);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null)
+					if (canvas != null) {
+						canvas.setTransformStep2Index(0);
 						canvas.setTransformStep1Index(0);
+					}
 				}
 			}
 		});
@@ -203,6 +257,8 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 					displaySearchArea(exp);
 				else if (searchRectangleROI2D != null)
 					exp.getSeqKymos().getSequence().removeROI(searchRectangleROI2D);
+				if (transformViewButton.isSelected())
+					updateOverlayThreshold();
 			}
 		});
 
@@ -220,6 +276,8 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 		v2.directionUp = (directionComboBox.getSelectedIndex() == 0);
 		v2.threshold = (int) thresholdSpinner.getValue();
 		v2.removeHorizontalAverage = removeHzAvgCheckBox.isSelected();
+		v2.tapePrepass = tapePrepassCheckBox.isSelected();
+		v2.runBackwards = runBackwardsCheckBox.isSelected();
 		v2.edgePeak = edgePeakCheckBox.isSelected();
 		v2.trackUp = (int) trackUpSpinner.getValue();
 		v2.trackDown = (int) trackDownSpinner.getValue();
@@ -307,11 +365,7 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqKymos() == null)
 			return;
-		Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-		if (canvas != null) {
-			canvas.updateTransformsStep1(transforms);
-			canvas.setTransformStep1(transformComboBox.getSelectedIndex() + 1, null);
-		}
+		applyCanvasTransformForView();
 		addOverlayToSequence(exp);
 	}
 
@@ -322,8 +376,10 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 			removeOverlay(exp);
 			if (wasViewing) {
 				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-				if (canvas != null)
+				if (canvas != null) {
+					canvas.setTransformStep2Index(0);
 					canvas.setTransformStep1Index(0);
+				}
 			}
 		}
 	}
@@ -408,10 +464,13 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 	void updateOverlayThreshold() {
 		if (overlayThreshold == null || !transformViewButton.isSelected())
 			return;
-		boolean ifGreater = (directionComboBox.getSelectedIndex() == 0);
-		int threshold = (int) thresholdSpinner.getValue();
-		ImageTransformEnums transform = (ImageTransformEnums) transformComboBox.getSelectedItem();
-		overlayThreshold.setThresholdSingle(threshold, transform, ifGreater);
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Rectangle search = null;
+		if (exp != null && exp.getSeqKymos() != null) {
+			search = getSearchAreaFromSearchRectangle(exp,
+					fromRectangleCheckBox.isSelected() && searchRectangleROI2D != null);
+		}
+		overlayThreshold.setThresholdV2Preview(readV2OptionsFromDialog(), search);
 		overlayThreshold.setBoundaryOnlyMode(true);
 		overlayThreshold.painterChanged();
 		if (overlayThreshold.getSequence() != null) {

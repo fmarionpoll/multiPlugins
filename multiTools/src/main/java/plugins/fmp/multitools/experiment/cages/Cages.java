@@ -1552,7 +1552,7 @@ public class Cages {
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL00
 				|| resultsOptions.resultType == EnumResults.TOPRAW_AND_00
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_AND_00) {
-			computeEvaporationCorrection(exp);
+			computeEvaporationCorrection(exp, resultsOptions.evaporationCorrectionMethod);
 		}
 
 		if (resultsOptions.resultType == EnumResults.TOPRAW00 || resultsOptions.resultType == EnumResults.TOPLEVEL00
@@ -1763,8 +1763,12 @@ public class Cages {
 //	}
 
 	public void computeEvaporationCorrection(Experiment exp) {
+		computeEvaporationCorrection(exp, EvaporationCorrectionMethod.MODEL);
+	}
+
+	public void computeEvaporationCorrection(Experiment exp, EvaporationCorrectionMethod method) {
 		CagesCapillariesComputation computation = new CagesCapillariesComputation(this);
-		computation.computeEvaporationCorrection(exp);
+		computation.computeEvaporationCorrection(exp, method);
 	}
 
 	public void computeT00References(Experiment exp) {

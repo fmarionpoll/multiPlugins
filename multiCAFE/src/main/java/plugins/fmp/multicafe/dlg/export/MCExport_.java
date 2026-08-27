@@ -243,6 +243,7 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.lrPIThreshold = (double) tabLevels.lrPIThresholdJSpinner.getValue();
 		resultsOptions.sumPerCage = tabLevels.sumPerCageCheckBox.isSelected();
 		resultsOptions.correctEvaporation = tabLevels.subtractEvaporationCheckBox.isSelected();
+		resultsOptions.evaporationCorrectionMethod = tabLevels.getEvaporationCorrectionMethod();
 		resultsOptions.derivative = tabLevels.derivativeCheckBox.isSelected();
 
 		getCommonOptions(resultsOptions, exp);

@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.tools.results;
 
+import plugins.fmp.multitools.experiment.cages.EvaporationCorrectionMethod;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants;
 import plugins.fmp.multitools.tools.toExcel.config.ExcelExportConstants.DefaultOptions;
@@ -66,6 +67,7 @@ public class ResultsOptionsBuilder {
 	// Internal processing options
 	private boolean trim_alive = DefaultOptions.TRIM_ALIVE;
 	private boolean compensateEvaporation = DefaultOptions.COMPENSATE_EVAPORATION;
+	private EvaporationCorrectionMethod evaporationCorrectionMethod = EvaporationCorrectionMethod.MODEL;
 	private EnumResults resultType = null;
 	private KymoFractionTraceMode kymoFractionTraceMode = KymoFractionTraceMode.FINAL;
 
@@ -138,6 +140,7 @@ public class ResultsOptionsBuilder {
 
 		this.trim_alive = existing.trim_alive;
 		this.compensateEvaporation = existing.compensateEvaporation;
+		this.evaporationCorrectionMethod = existing.evaporationCorrectionMethod;
 		this.resultType = existing.resultType;
 		this.kymoFractionTraceMode = existing.kymoFractionTraceMode;
 
@@ -192,6 +195,11 @@ public class ResultsOptionsBuilder {
 
 	public ResultsOptionsBuilder withSubtractT0(boolean b) {
 		this.subtractT0 = b;
+		return this;
+	}
+
+	public ResultsOptionsBuilder withEvaporationCorrectionMethod(EvaporationCorrectionMethod method) {
+		this.evaporationCorrectionMethod = EvaporationCorrectionMethod.fromOrDefault(method);
 		return this;
 	}
 
@@ -353,6 +361,7 @@ public class ResultsOptionsBuilder {
 
 		options.trim_alive = this.trim_alive;
 		options.compensateEvaporation = this.compensateEvaporation;
+		options.evaporationCorrectionMethod = this.evaporationCorrectionMethod;
 		options.resultType = this.resultType;
 		options.kymoFractionTraceMode = this.kymoFractionTraceMode;
 

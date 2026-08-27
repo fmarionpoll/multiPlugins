@@ -45,7 +45,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		capPopupPanel.collapse();
 		mainPanel.add(capPopupPanel);
 
-		GridLayout capLayout = new GridLayout(4, 1);
+		GridLayout capLayout = new GridLayout(5, 1);
 
 		tabDetectLevels.init(capLayout, parent0);
 		tabDetectLevels.addPropertyChangeListener(this);
@@ -79,8 +79,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 		tabAdjust.init(capLayout, parent0);
 		tabAdjust.addPropertyChangeListener(this);
-		tabsPane.addTab("Adjust", null, tabAdjust,
-				"Resize/crop capillary level curves to match kymograph width");
+		tabsPane.addTab("Adjust", null, tabAdjust, "Resize/crop capillary level curves to match kymograph width");
 
 		tabGraphs.init(capLayout, parent0);
 		tabGraphs.addPropertyChangeListener(this);
@@ -135,7 +134,18 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectLevelsDirect.setDialogFromOptions(cap);
 		tabDetectBottom.setDialogFromOptions(cap);
 		tabDetectGulps.setInfos(cap);
+		tabDetectLevels.reapplyViewIfSelected();
 		tabDetectLevelsV2.reapplyViewIfSelected();
+	}
+
+	public void clearLevelsV1View() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		tabDetectLevels.resetDisplayToRaw(exp);
+	}
+
+	public void clearLevelsV2View() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		tabDetectLevelsV2.resetDisplayToRaw(exp);
 	}
 
 	public void selectBottomTab() {

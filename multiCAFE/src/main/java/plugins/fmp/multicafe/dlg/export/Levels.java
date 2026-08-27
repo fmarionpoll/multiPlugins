@@ -7,10 +7,13 @@ import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
+
+import plugins.fmp.multitools.experiment.cages.EvaporationCorrectionMethod;
 
 public class Levels extends JPanel {
 	private static final long serialVersionUID = 1290058998782225526L;
@@ -20,6 +23,8 @@ public class Levels extends JPanel {
 	JCheckBox topLevelCheckBox = new JCheckBox("top", true);
 	JCheckBox bottomLevelCheckBox = new JCheckBox("bottom", false);
 	JCheckBox subtractEvaporationCheckBox = new JCheckBox("subtract evaporation", true);
+	JComboBox<EvaporationCorrectionMethod> evapMethodComboBox = new JComboBox<>(
+			EvaporationCorrectionMethod.values());
 	JCheckBox derivativeCheckBox = new JCheckBox("temporal change", false);
 	JCheckBox sumGulpsCheckBox = new JCheckBox("sum gulps", false);
 	JCheckBox sumGulpsLrCheckBox = new JCheckBox("sum gulps L+R", false);
@@ -37,6 +42,7 @@ public class Levels extends JPanel {
 		panel0.add(topLevelCheckBox);
 		panel0.add(bottomLevelCheckBox);
 		panel0.add(subtractEvaporationCheckBox);
+		panel0.add(evapMethodComboBox);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
@@ -58,6 +64,9 @@ public class Levels extends JPanel {
 		panel3.add(exportToXLSButton2);
 		add(panel3);
 
+		evapMethodComboBox.setSelectedItem(EvaporationCorrectionMethod.MODEL);
+		updateEvapMethodEnabled();
+
 		defineActionListeners();
 	}
 
@@ -66,6 +75,20 @@ public class Levels extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				firePropertyChange("EXPORT_KYMOSDATA", false, true);
+			}
+		});
+
+		subtractEvaporationCheckBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateEvapMethodEnabled();
+			}
+		});
+
+		evapMethodComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateEvapMethodEnabled();
 			}
 		});
 
@@ -84,6 +107,19 @@ public class Levels extends JPanel {
 					enablePI(false);
 			}
 		});
+	}
+
+	EvaporationCorrectionMethod getEvaporationCorrectionMethod() {
+		return EvaporationCorrectionMethod
+				.fromOrDefault((EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem());
+	}
+
+	private void updateEvapMethodEnabled() {
+		boolean on = subtractEvaporationCheckBox.isSelected();
+		evapMethodComboBox.setEnabled(on);
+		EvaporationCorrectionMethod m = getEvaporationCorrectionMethod();
+		evapMethodComboBox.setToolTipText(on ? m.tooltip()
+				: "Enable subtract evaporation to choose mean-of-no-fly vs exponential model.");
 	}
 
 	private void enablePI(boolean yes) {

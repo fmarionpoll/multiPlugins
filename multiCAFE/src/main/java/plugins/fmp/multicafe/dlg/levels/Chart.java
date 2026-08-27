@@ -26,6 +26,7 @@ import icy.sequence.SequenceListener;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.cages.EvaporationCorrectionMethod;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Comparators;
@@ -82,9 +83,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 //			EnumResults.AUTOCORREL, //
 //			EnumResults.CROSSCORREL };
 	private JComboBox<EnumResults> resultTypeComboBox = new JComboBox<EnumResults>(measures);
+	private JComboBox<EvaporationCorrectionMethod> evapMethodComboBox = new JComboBox<>(
+			EvaporationCorrectionMethod.values());
 
-	// private JCheckBox correctEvaporationCheckbox = new JCheckBox("correct
-	// evaporation", false);
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
@@ -103,6 +104,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 		JPanel panel = new JPanel(layout);
 		panel.add(resultTypeComboBox);
+		panel.add(evapMethodComboBox);
 		add(panel);
 
 		JPanel panelView = new JPanel(layout);
@@ -131,6 +133,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		viewGridButton.setSelected(true);
 
 		resultTypeComboBox.setSelectedIndex(0);
+		evapMethodComboBox.setSelectedItem(EvaporationCorrectionMethod.MODEL);
+		evapMethodComboBox.setToolTipText(
+				"How evaporation Y_ref is built from nFlies=0 capillaries before TOPLEVEL correction.");
 		defineActionListeners();
 	}
 
@@ -143,6 +148,18 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				if (exp != null) {
 					displayChartPanels(exp); // displayGraphsPanels(exp);
 				}
+			}
+		});
+
+		evapMethodComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				EvaporationCorrectionMethod m = (EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem();
+				if (m != null)
+					evapMethodComboBox.setToolTipText(m.tooltip());
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					displayChartPanels(exp);
 			}
 		});
 
@@ -286,6 +303,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.withSubtractT0(true) //
 				.withResultType(resultType) //
 				.withCageRange(first, last) //
+				.withEvaporationCorrectionMethod(
+						(EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem()) //
 				.build();
 
 		iChart = new ChartCagesCombinedFrame();
@@ -333,6 +352,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.withSubtractT0(true) //
 				.withResultType(resultType) //
 				.withCageRange(first, last) //
+				.withEvaporationCorrectionMethod(
+						(EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem()) //
 				.build();
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {

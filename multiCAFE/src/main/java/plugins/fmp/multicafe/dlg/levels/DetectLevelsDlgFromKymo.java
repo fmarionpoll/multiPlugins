@@ -215,6 +215,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 					return;
 
 				if (transformPass1DisplayButton.isSelected()) {
+					if (parent0.paneLevels != null)
+						parent0.paneLevels.clearLevelsV2View();
 					transformPass2DisplayButton.setSelected(false);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
@@ -241,6 +243,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 					return;
 
 				if (transformPass2DisplayButton.isSelected()) {
+					if (parent0.paneLevels != null)
+						parent0.paneLevels.clearLevelsV2View();
 					transformPass1DisplayButton.setSelected(false);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null) {
@@ -311,15 +315,45 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (cap == null) {
 			return;
 		}
+		boolean keepView1 = transformPass1DisplayButton.isSelected();
+		boolean keepView2 = transformPass2DisplayButton.isSelected();
+		// While View is on, keep the user's current knobs so browsing kymos does not
+		// overwrite threshold/transform before a Detect-all.
+		if (keepView1 || keepView2) {
+			reapplyViewIfSelected();
+			return;
+		}
 		applyLevelOptionsToDialog(cap.getProperties().getLimitsOptions());
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		resetDisplayToRaw(exp);
 	}
 
 	public void loadLevelDefaultsFromExperiment(Experiment exp) {
 		if (exp != null) {
 			applyLevelOptionsToDialog(exp.getLevelDetectionDefaults());
 			resetDisplayToRaw(exp);
+		}
+	}
+
+	/**
+	 * Keep transform View + overlay when browsing kymographs (same idea as Levels v2).
+	 */
+	public void reapplyViewIfSelected() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqKymos() == null)
+			return;
+		if (transformPass1DisplayButton.isSelected()) {
+			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+			if (canvas != null) {
+				canvas.updateTransformsStep1(transformPass1);
+				canvas.setTransformStep1(transformPass1ComboBox.getSelectedIndex() + 1, null);
+			}
+			addOverlayToSequence(exp);
+		} else if (transformPass2DisplayButton.isSelected()) {
+			Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+			if (canvas != null) {
+				canvas.updateTransformsStep1(transformPass2);
+				canvas.setTransformStep1(transformPass2ComboBox.getSelectedIndex() + 1, null);
+			}
+			addOverlayToSequence(exp);
 		}
 	}
 
