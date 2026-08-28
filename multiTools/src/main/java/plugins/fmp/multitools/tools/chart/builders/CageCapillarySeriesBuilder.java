@@ -184,9 +184,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		switch (resultType) {
 		case TOPRAW:
 		case TOPRAW_AND_00:
-		case TOPLEVEL_AND_00:
-		case TOPLEVEL_SUM_AND_00:
-		case TOPLEVEL_PI_AND_00:
 			return true;
 		default:
 			return false;

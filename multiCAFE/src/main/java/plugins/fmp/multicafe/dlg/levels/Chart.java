@@ -77,7 +77,9 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			EnumResults.SUMGULPS_PI, //
 			EnumResults.NBGULPS, //
 			EnumResults.AMPLITUDEGULPS, //
-			EnumResults.TTOGULP };
+			// EnumResults.TTOGULP //
+	};
+
 //	, //
 //			EnumResults.MARKOV_CHAIN, //
 //			EnumResults.AUTOCORREL, //
@@ -134,8 +136,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 		resultTypeComboBox.setSelectedIndex(0);
 		evapMethodComboBox.setSelectedItem(EvaporationCorrectionMethod.MODEL);
-		evapMethodComboBox.setToolTipText(
-				"How evaporation Y_ref is built from nFlies=0 capillaries before TOPLEVEL correction.");
+		evapMethodComboBox
+				.setToolTipText("How evaporation Y_ref is built from nFlies=0 capillaries before TOPLEVEL correction.");
 		defineActionListeners();
 	}
 
@@ -303,8 +305,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.withSubtractT0(true) //
 				.withResultType(resultType) //
 				.withCageRange(first, last) //
-				.withEvaporationCorrectionMethod(
-						(EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem()) //
+				.withEvaporationCorrectionMethod((EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem()) //
 				.build();
 
 		iChart = new ChartCagesCombinedFrame();
@@ -352,8 +353,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 				.withSubtractT0(true) //
 				.withResultType(resultType) //
 				.withCageRange(first, last) //
-				.withEvaporationCorrectionMethod(
-						(EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem()) //
+				.withEvaporationCorrectionMethod((EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem()) //
 				.build();
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {

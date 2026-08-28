@@ -193,14 +193,18 @@ public class CagesCapillariesComputation {
 		}
 
 		int nSuitable = suitableLengths.size();
+		if (nSuitable < 2 && emptyLengths.size() >= 2) {
+			suitableLengths = new ArrayList<>(emptyLengths);
+			suitableCaps = new ArrayList<>(emptyCapsWithLength);
+			nSuitable = suitableLengths.size();
+			Logger.info("t00: fewer than 2 empties within " + T00_FILL_TOLERANCE_PX
+					+ " px of longest fill; using all " + nSuitable + " empty capillary(ies)");
+		}
 		exp.setT00NSuitable(nSuitable);
 		if (nSuitable < 2) {
-			exp.setT00ReferencePixels(Double.NaN);
-			exp.setT00UlPerPx(Double.NaN);
-			for (Capillary cap : allCaps) {
-				if (cap != null)
-					cap.setT00YPixels(Double.NaN);
-			}
+			clearT00(exp, allCaps);
+			Logger.warn("t00: need >=2 empty capillaries with tip + top[t0] (found " + emptyLengths.size()
+					+ " with fill length, " + suitableLengths.size() + " kept for reference)");
 			return;
 		}
 
@@ -223,8 +227,29 @@ public class CagesCapillariesComputation {
 			cap.setT00YPixels(tip - h);
 			nSet++;
 		}
+
+		List<Double> refY00 = new ArrayList<>();
+		for (Capillary cap : suitableCaps) {
+			if (cap != null && cap.hasT00YPixels())
+				refY00.add(cap.getT00YPixels());
+		}
+		double fallbackY00 = median(refY00);
+		int nFallback = 0;
+		if (Double.isFinite(fallbackY00)) {
+			for (Capillary cap : allCaps) {
+				if (cap == null || cap.hasT00YPixels())
+					continue;
+				CapillaryMeasure top = cap.getTopRaw();
+				if (top == null || !top.isThereAnyMeasuresDone())
+					continue;
+				cap.setT00YPixels(fallbackY00);
+				nFallback++;
+			}
+		}
+
 		Logger.info("t00: h=" + String.format("%.2f", h) + " px (median of " + nSuitable
 				+ " suitable empties), set Y_t00 on " + nSet + " capillary(ies)"
+				+ (nFallback > 0 ? ", fallback Y_t00 on " + nFallback + " without tip" : "")
 				+ (Double.isFinite(ulPerPx) ? ", ref=" + String.format("%.4f", h * ulPerPx) + " uL" : ""));
 	}
 
