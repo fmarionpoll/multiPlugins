@@ -244,11 +244,37 @@ public class Capillaries {
 			cap.cropToImageWidth(imageWidth);
 	}
 
+	/**
+	 * Copies the experiment-wide descriptors to every capillary, leaving pixel
+	 * lengths that were measured per capillary untouched.
+	 */
 	public void transferDescriptionToCapillaries() {
+		transferDescriptionToCapillaries(false);
+	}
+
+	/**
+	 * @param force when true, the experiment-wide pixel length overwrites
+	 *              auto-measured values and clears their flag (reset to a single
+	 *              calibration value)
+	 */
+	public void transferDescriptionToCapillaries(boolean force) {
 		for (Capillary cap : getList()) {
 			transferCapGroupCageIDToCapillary(cap);
-			cap.setVolumeAndPixels(capillariesDescription.getVolume(), capillariesDescription.getPixels());
+			if (!force && cap.isPixelsAutoMeasured())
+				cap.setVolumeKeepingMeasuredPixels(capillariesDescription.getVolume());
+			else
+				cap.setVolumeAndPixels(capillariesDescription.getVolume(), capillariesDescription.getPixels());
 		}
+	}
+
+	/** Number of capillaries whose pixel length was measured individually. */
+	public int countAutoMeasuredPixels() {
+		int count = 0;
+		for (Capillary cap : getList()) {
+			if (cap.isPixelsAutoMeasured())
+				count++;
+		}
+		return count;
 	}
 
 	public void clearAllMeasures(int first, int last) {
@@ -644,7 +670,15 @@ public class Capillaries {
 	}
 
 	public double getScalingFactorToPhysicalUnits(EnumResults resultType) {
-		double scalingFactorToPhysicalUnits;
+		return getScalingFactorToPhysicalUnits(resultType, null);
+	}
+
+	/**
+	 * Volume per pixel for one capillary. When the capillary carries its own pixel
+	 * length (measured on the image to compensate lens distortion), that value is
+	 * used instead of the experiment-wide one.
+	 */
+	public double getScalingFactorToPhysicalUnits(EnumResults resultType, Capillary capillary) {
 		switch (resultType) {
 		case NBGULPS:
 		case TTOGULP:
@@ -652,13 +686,13 @@ public class Capillaries {
 		case AUTOCORREL:
 		case CROSSCORREL:
 		case CROSSCORREL_LR:
-			scalingFactorToPhysicalUnits = 1.;
-			break;
+			return 1.;
 		default:
-			scalingFactorToPhysicalUnits = capillariesDescription.getVolume() / capillariesDescription.getPixels();
 			break;
 		}
-		return scalingFactorToPhysicalUnits;
+		if (capillary != null && capillary.getPixels() > 0 && capillary.getVolume() > 0)
+			return capillary.getVolume() / capillary.getPixels();
+		return capillariesDescription.getVolume() / capillariesDescription.getPixels();
 	}
 
 	public Polygon2D get2DPolygonEnclosingCapillaries() {

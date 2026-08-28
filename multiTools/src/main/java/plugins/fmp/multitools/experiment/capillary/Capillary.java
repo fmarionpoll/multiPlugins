@@ -179,6 +179,10 @@ public class Capillary implements Comparable<Capillary> {
 		return properties.getPixels();
 	}
 
+	public boolean isPixelsAutoMeasured() {
+		return properties.isPixelsAutoMeasured();
+	}
+
 	public double getBottomBaselineY() {
 		return properties.getBottomBaselineY();
 	}
@@ -1447,6 +1451,16 @@ public class Capillary implements Comparable<Capillary> {
 	public void setVolumeAndPixels(double volume, int pixels) {
 		properties.setVolume(volume);
 		properties.setPixels(pixels);
+		properties.setPixelsAutoMeasured(false);
+		properties.setDescriptionOK(true);
+	}
+
+	/**
+	 * Copies the experiment-wide volume but keeps the pixel length measured for
+	 * this capillary alone.
+	 */
+	public void setVolumeKeepingMeasuredPixels(double volume) {
+		properties.setVolume(volume);
 		properties.setDescriptionOK(true);
 	}
 

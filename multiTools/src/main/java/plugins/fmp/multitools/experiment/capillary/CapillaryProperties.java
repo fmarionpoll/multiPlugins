@@ -20,6 +20,7 @@ public class CapillaryProperties {
 	private int cageID = 0;
 	private double volume = 5.;
 	private int pixels = 5;
+	private boolean pixelsAutoMeasured = false;
 	private double bottomBaselineY = Double.NaN;
 	private double bottomBaselineMad = Double.NaN;
 	private double bottomBaselineOutlierFrac = Double.NaN;
@@ -34,6 +35,7 @@ public class CapillaryProperties {
 	private static final String ID_CAGENB = "cage_number";
 	private static final String ID_CAPVOLUME = "capillaryVolume";
 	private static final String ID_CAPPIXELS = "capillaryPixels";
+	private static final String ID_CAPPIXELSAUTO = "capillaryPixelsAutoMeasured";
 	private static final String ID_STIML = "stimulus";
 	private static final String ID_CONCL = "concentration";
 	private static final String ID_SIDE = "side";
@@ -56,6 +58,7 @@ public class CapillaryProperties {
 		this.cageID = source.cageID;
 		this.volume = source.volume;
 		this.pixels = source.pixels;
+		this.pixelsAutoMeasured = source.pixelsAutoMeasured;
 		this.bottomBaselineY = source.bottomBaselineY;
 		this.bottomBaselineMad = source.bottomBaselineMad;
 		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
@@ -72,6 +75,7 @@ public class CapillaryProperties {
 		this.cageID = source.cageID;
 		this.volume = source.volume;
 		this.pixels = source.pixels;
+		this.pixelsAutoMeasured = source.pixelsAutoMeasured;
 		this.bottomBaselineY = source.bottomBaselineY;
 		this.bottomBaselineMad = source.bottomBaselineMad;
 		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
@@ -92,6 +96,7 @@ public class CapillaryProperties {
 		cageID = XMLUtil.getElementIntValue(nodeMeta, ID_CAGENB, cageID);
 		volume = XMLUtil.getElementDoubleValue(nodeMeta, ID_CAPVOLUME, Double.NaN);
 		pixels = XMLUtil.getElementIntValue(nodeMeta, ID_CAPPIXELS, 5);
+		pixelsAutoMeasured = XMLUtil.getElementBooleanValue(nodeMeta, ID_CAPPIXELSAUTO, false);
 		stimulus = XMLUtil.getElementValue(nodeMeta, ID_STIML, ID_STIML);
 		concentration = XMLUtil.getElementValue(nodeMeta, ID_CONCL, ID_CONCL);
 		side = XMLUtil.getElementValue(nodeMeta, ID_SIDE, ".");
@@ -115,6 +120,7 @@ public class CapillaryProperties {
 		XMLUtil.setElementIntValue(nodeMeta, ID_CAGENB, cageID);
 		XMLUtil.setElementDoubleValue(nodeMeta, ID_CAPVOLUME, volume);
 		XMLUtil.setElementIntValue(nodeMeta, ID_CAPPIXELS, pixels);
+		XMLUtil.setElementBooleanValue(nodeMeta, ID_CAPPIXELSAUTO, pixelsAutoMeasured);
 		XMLUtil.setElementValue(nodeMeta, ID_STIML, stimulus);
 		XMLUtil.setElementValue(nodeMeta, ID_SIDE, side);
 		XMLUtil.setElementValue(nodeMeta, ID_CONCL, concentration);
@@ -183,6 +189,19 @@ public class CapillaryProperties {
 
 	public void setPixels(int pixels) {
 		this.pixels = pixels;
+	}
+
+	/**
+	 * True when {@code pixels} was measured on the image for this capillary alone
+	 * rather than copied from the experiment-wide description. Such values must
+	 * survive routine saves and are only discarded by an explicit reset.
+	 */
+	public boolean isPixelsAutoMeasured() {
+		return pixelsAutoMeasured;
+	}
+
+	public void setPixelsAutoMeasured(boolean pixelsAutoMeasured) {
+		this.pixelsAutoMeasured = pixelsAutoMeasured;
 	}
 
 	public double getBottomBaselineY() {

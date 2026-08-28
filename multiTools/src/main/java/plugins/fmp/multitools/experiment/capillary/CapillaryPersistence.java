@@ -163,6 +163,7 @@ public class CapillaryPersistence {
 		row2.add("bottom_baseline_y");
 		row2.add("bottom_baseline_mad");
 		row2.add("bottom_baseline_outlier_frac");
+		row2.add("cap_npixel_auto");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -264,6 +265,7 @@ public class CapillaryPersistence {
 		row.add(Double.toString(props.getBottomBaselineY()));
 		row.add(Double.toString(props.getBottomBaselineMad()));
 		row.add(Double.toString(props.getBottomBaselineOutlierFrac()));
+		row.add(Boolean.toString(props.isPixelsAutoMeasured()));
 
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
@@ -533,6 +535,13 @@ public class CapillaryPersistence {
 		props.setBottomBaselineY(parseOptionalDouble(data, baselineStart, Double.NaN));
 		props.setBottomBaselineMad(parseOptionalDouble(data, baselineStart + 1, Double.NaN));
 		props.setBottomBaselineOutlierFrac(parseOptionalDouble(data, baselineStart + 2, Double.NaN));
+		props.setPixelsAutoMeasured(parseOptionalBoolean(data, baselineStart + 3, false));
+	}
+
+	private static boolean parseOptionalBoolean(String[] data, int index, boolean defaultValue) {
+		if (data == null || index < 0 || index >= data.length || data[index] == null || data[index].isEmpty())
+			return defaultValue;
+		return Boolean.parseBoolean(data[index].trim());
 	}
 
 	private static double parseOptionalDouble(String[] data, int index, double defaultValue) {

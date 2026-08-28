@@ -139,9 +139,6 @@ public class ResultsArrayFromCapillaries extends ResultsArray {
 		// should be performed before calling this method via
 		// exp.prepareComputations(resultsOptions)
 
-		double scalingFactorToPhysicalUnits = exp.getCapillaries()
-				.getScalingFactorToPhysicalUnits(resultsOptions.resultType);
-
 		long kymoBin_ms = exp.getKymoBin_ms();
 		if (kymoBin_ms <= 0) {
 			kymoBin_ms = 60000;
@@ -156,6 +153,8 @@ public class ResultsArrayFromCapillaries extends ResultsArray {
 
 		for (Capillary capillary : capillaries) {
 			try {
+				double scalingFactorToPhysicalUnits = exp.getCapillaries()
+						.getScalingFactorToPhysicalUnits(resultsOptions.resultType, capillary);
 				Results results = getCapillaryMeasure(exp, capillary, resultsOptions);
 				if (results != null) {
 					results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultsOptions.resultType);
