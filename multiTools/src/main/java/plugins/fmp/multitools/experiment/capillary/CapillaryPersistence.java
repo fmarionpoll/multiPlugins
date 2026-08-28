@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.capillary;
 
 import java.awt.geom.Line2D;
+import java.awt.geom.Point2D;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -164,6 +165,10 @@ public class CapillaryPersistence {
 		row2.add("bottom_baseline_mad");
 		row2.add("bottom_baseline_outlier_frac");
 		row2.add("cap_npixel_auto");
+		row2.add("cap_measured_x1");
+		row2.add("cap_measured_y1");
+		row2.add("cap_measured_x2");
+		row2.add("cap_measured_y2");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -266,6 +271,12 @@ public class CapillaryPersistence {
 		row.add(Double.toString(props.getBottomBaselineMad()));
 		row.add(Double.toString(props.getBottomBaselineOutlierFrac()));
 		row.add(Boolean.toString(props.isPixelsAutoMeasured()));
+		Point2D measuredStart = props.getMeasuredStart();
+		Point2D measuredEnd = props.getMeasuredEnd();
+		row.add(measuredStart != null ? Double.toString(measuredStart.getX()) : "");
+		row.add(measuredStart != null ? Double.toString(measuredStart.getY()) : "");
+		row.add(measuredEnd != null ? Double.toString(measuredEnd.getX()) : "");
+		row.add(measuredEnd != null ? Double.toString(measuredEnd.getY()) : "");
 
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
@@ -536,6 +547,12 @@ public class CapillaryPersistence {
 		props.setBottomBaselineMad(parseOptionalDouble(data, baselineStart + 1, Double.NaN));
 		props.setBottomBaselineOutlierFrac(parseOptionalDouble(data, baselineStart + 2, Double.NaN));
 		props.setPixelsAutoMeasured(parseOptionalBoolean(data, baselineStart + 3, false));
+		double startX = parseOptionalDouble(data, baselineStart + 4, Double.NaN);
+		double startY = parseOptionalDouble(data, baselineStart + 5, Double.NaN);
+		double endX = parseOptionalDouble(data, baselineStart + 6, Double.NaN);
+		double endY = parseOptionalDouble(data, baselineStart + 7, Double.NaN);
+		if (Double.isFinite(startX) && Double.isFinite(startY) && Double.isFinite(endX) && Double.isFinite(endY))
+			props.setMeasuredEndpoints(new Point2D.Double(startX, startY), new Point2D.Double(endX, endY));
 	}
 
 	private static boolean parseOptionalBoolean(String[] data, int index, boolean defaultValue) {

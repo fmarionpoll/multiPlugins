@@ -25,10 +25,42 @@ public class CapillaryLengthDetectorOptions {
 	public int tangentWindow = 8;
 
 	/**
+	 * Closest and farthest distance from the axis, in pixels, where the two glass
+	 * walls are looked for. The wall pair marks the tube even where it holds no
+	 * liquid, which is what keeps an empty upper section from being cut off.
+	 */
+	public int wallSearchMin = 2;
+	public int wallSearchMax = 8;
+
+	/**
+	 * Grey levels a wall must stand out from the background to be believed. Without
+	 * this floor, plain noise in a tube-free area would look like a faint wall pair.
+	 */
+	public double wallMinContrast = 3.;
+
+	/** Same floor for the liquid clue: below it the tube is simply not visible. */
+	public double liquidMinContrast = 4.;
+
+	/**
 	 * Fraction of the contrast range (between background and capillary) above which
 	 * a position is considered to be on the capillary.
 	 */
 	public double thresholdFraction = 0.35;
+
+	/**
+	 * Longest interruption, in pixels, crossed while following the capillary. The
+	 * rack holding the tubes shows up as a dark horizontal bar that hides every
+	 * capillary over a few tens of pixels; without this the measure would stop
+	 * there and report only the upper or the lower half of the tube.
+	 */
+	public int maxGapPixels = 50;
+
+	/**
+	 * Pixels the search runs past each end of the ROI. Users draw the ROI a little
+	 * longer than the tube, but not always, and a tip falling just outside would
+	 * otherwise be missed.
+	 */
+	public int axisExtensionPixels = 10;
 
 	/**
 	 * Fraction of the ROI trimmed at each end before looking for the capillary. The

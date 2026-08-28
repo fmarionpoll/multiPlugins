@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.service;
 
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -43,6 +44,8 @@ public class CapillaryLengthResult {
 		private double detectedPixels = Double.NaN;
 		private double fittedPixels = Double.NaN;
 		private double centroidX = Double.NaN;
+		private Point2D detectedStart = null;
+		private Point2D detectedEnd = null;
 		private Status status = Status.FAILED;
 		private String message = "";
 		private boolean selected = false;
@@ -95,6 +98,24 @@ public class CapillaryLengthResult {
 
 		public void setCentroidX(double centroidX) {
 			this.centroidX = centroidX;
+		}
+
+		/** Image coordinates of the endpoint the detector found first along the ROI. */
+		public Point2D getDetectedStart() {
+			return detectedStart;
+		}
+
+		public Point2D getDetectedEnd() {
+			return detectedEnd;
+		}
+
+		public void setDetectedEndpoints(Point2D start, Point2D end) {
+			this.detectedStart = start;
+			this.detectedEnd = end;
+		}
+
+		public boolean hasDetectedEndpoints() {
+			return detectedStart != null && detectedEnd != null;
 		}
 
 		public Status getStatus() {

@@ -1,5 +1,7 @@
 package plugins.fmp.multitools.experiment.capillary;
 
+import java.awt.geom.Point2D;
+
 import org.w3c.dom.Node;
 
 import icy.util.XMLUtil;
@@ -21,6 +23,10 @@ public class CapillaryProperties {
 	private double volume = 5.;
 	private int pixels = 5;
 	private boolean pixelsAutoMeasured = false;
+	private double measuredStartX = Double.NaN;
+	private double measuredStartY = Double.NaN;
+	private double measuredEndX = Double.NaN;
+	private double measuredEndY = Double.NaN;
 	private double bottomBaselineY = Double.NaN;
 	private double bottomBaselineMad = Double.NaN;
 	private double bottomBaselineOutlierFrac = Double.NaN;
@@ -36,6 +42,10 @@ public class CapillaryProperties {
 	private static final String ID_CAPVOLUME = "capillaryVolume";
 	private static final String ID_CAPPIXELS = "capillaryPixels";
 	private static final String ID_CAPPIXELSAUTO = "capillaryPixelsAutoMeasured";
+	private static final String ID_MEASURED_STARTX = "measuredStartX";
+	private static final String ID_MEASURED_STARTY = "measuredStartY";
+	private static final String ID_MEASURED_ENDX = "measuredEndX";
+	private static final String ID_MEASURED_ENDY = "measuredEndY";
 	private static final String ID_STIML = "stimulus";
 	private static final String ID_CONCL = "concentration";
 	private static final String ID_SIDE = "side";
@@ -59,6 +69,10 @@ public class CapillaryProperties {
 		this.volume = source.volume;
 		this.pixels = source.pixels;
 		this.pixelsAutoMeasured = source.pixelsAutoMeasured;
+		this.measuredStartX = source.measuredStartX;
+		this.measuredStartY = source.measuredStartY;
+		this.measuredEndX = source.measuredEndX;
+		this.measuredEndY = source.measuredEndY;
 		this.bottomBaselineY = source.bottomBaselineY;
 		this.bottomBaselineMad = source.bottomBaselineMad;
 		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
@@ -76,6 +90,10 @@ public class CapillaryProperties {
 		this.volume = source.volume;
 		this.pixels = source.pixels;
 		this.pixelsAutoMeasured = source.pixelsAutoMeasured;
+		this.measuredStartX = source.measuredStartX;
+		this.measuredStartY = source.measuredStartY;
+		this.measuredEndX = source.measuredEndX;
+		this.measuredEndY = source.measuredEndY;
 		this.bottomBaselineY = source.bottomBaselineY;
 		this.bottomBaselineMad = source.bottomBaselineMad;
 		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
@@ -97,6 +115,10 @@ public class CapillaryProperties {
 		volume = XMLUtil.getElementDoubleValue(nodeMeta, ID_CAPVOLUME, Double.NaN);
 		pixels = XMLUtil.getElementIntValue(nodeMeta, ID_CAPPIXELS, 5);
 		pixelsAutoMeasured = XMLUtil.getElementBooleanValue(nodeMeta, ID_CAPPIXELSAUTO, false);
+		measuredStartX = XMLUtil.getElementDoubleValue(nodeMeta, ID_MEASURED_STARTX, Double.NaN);
+		measuredStartY = XMLUtil.getElementDoubleValue(nodeMeta, ID_MEASURED_STARTY, Double.NaN);
+		measuredEndX = XMLUtil.getElementDoubleValue(nodeMeta, ID_MEASURED_ENDX, Double.NaN);
+		measuredEndY = XMLUtil.getElementDoubleValue(nodeMeta, ID_MEASURED_ENDY, Double.NaN);
 		stimulus = XMLUtil.getElementValue(nodeMeta, ID_STIML, ID_STIML);
 		concentration = XMLUtil.getElementValue(nodeMeta, ID_CONCL, ID_CONCL);
 		side = XMLUtil.getElementValue(nodeMeta, ID_SIDE, ".");
@@ -121,6 +143,10 @@ public class CapillaryProperties {
 		XMLUtil.setElementDoubleValue(nodeMeta, ID_CAPVOLUME, volume);
 		XMLUtil.setElementIntValue(nodeMeta, ID_CAPPIXELS, pixels);
 		XMLUtil.setElementBooleanValue(nodeMeta, ID_CAPPIXELSAUTO, pixelsAutoMeasured);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_MEASURED_STARTX, measuredStartX);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_MEASURED_STARTY, measuredStartY);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_MEASURED_ENDX, measuredEndX);
+		XMLUtil.setElementDoubleValue(nodeMeta, ID_MEASURED_ENDY, measuredEndY);
 		XMLUtil.setElementValue(nodeMeta, ID_STIML, stimulus);
 		XMLUtil.setElementValue(nodeMeta, ID_SIDE, side);
 		XMLUtil.setElementValue(nodeMeta, ID_CONCL, concentration);
@@ -202,6 +228,43 @@ public class CapillaryProperties {
 
 	public void setPixelsAutoMeasured(boolean pixelsAutoMeasured) {
 		this.pixelsAutoMeasured = pixelsAutoMeasured;
+		if (!pixelsAutoMeasured)
+			clearMeasuredEndpoints();
+	}
+
+	/**
+	 * Image coordinates of the two ends the detector found, kept so the measured
+	 * extent can be drawn over the capillary long after the detection ran.
+	 */
+	public Point2D getMeasuredStart() {
+		return hasMeasuredEndpoints() ? new Point2D.Double(measuredStartX, measuredStartY) : null;
+	}
+
+	public Point2D getMeasuredEnd() {
+		return hasMeasuredEndpoints() ? new Point2D.Double(measuredEndX, measuredEndY) : null;
+	}
+
+	public boolean hasMeasuredEndpoints() {
+		return Double.isFinite(measuredStartX) && Double.isFinite(measuredStartY) && Double.isFinite(measuredEndX)
+				&& Double.isFinite(measuredEndY);
+	}
+
+	public void setMeasuredEndpoints(Point2D start, Point2D end) {
+		if (start == null || end == null) {
+			clearMeasuredEndpoints();
+			return;
+		}
+		measuredStartX = start.getX();
+		measuredStartY = start.getY();
+		measuredEndX = end.getX();
+		measuredEndY = end.getY();
+	}
+
+	public void clearMeasuredEndpoints() {
+		measuredStartX = Double.NaN;
+		measuredStartY = Double.NaN;
+		measuredEndX = Double.NaN;
+		measuredEndY = Double.NaN;
 	}
 
 	public double getBottomBaselineY() {

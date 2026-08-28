@@ -35,6 +35,16 @@ public class CapillaryLengthDetectorTest {
 	private static final double TUBE_G_LEVEL = 215.;
 	private static final double TUBE_B_LEVEL = 220.;
 
+	/** Second synthetic scene, closer to a real recording: see buildRackImage(). */
+	private static final int RACK_IMAGE_HEIGHT = 640;
+	private static final int TUBE_TOP = 40;
+	private static final double NOMINAL_RACK_LENGTH = 520.;
+	private static final int EMPTY_TOP_LENGTH = 90;
+	private static final int BAR_TOP = 430;
+	private static final int BAR_HEIGHT = 30;
+	private static final double BAR_LEVEL = 60.;
+	private static final double WALL_DARKENING = 14.;
+
 	/**
 	 * Ground truth mimics what the webcam does: capillaries near the edges of the
 	 * image occupy fewer pixels than those at the centre (radial term), with a
@@ -43,6 +53,11 @@ public class CapillaryLengthDetectorTest {
 	private static double trueLength(int index) {
 		double u = normalizedPosition(index);
 		return NOMINAL_LENGTH * (1. - 0.030 * u * u + 0.012 * u);
+	}
+
+	private static double rackTubeLength(int index) {
+		double u = normalizedPosition(index);
+		return NOMINAL_RACK_LENGTH * (1. - 0.030 * u * u + 0.012 * u);
 	}
 
 	private static double normalizedPosition(int index) {
@@ -126,13 +141,83 @@ public class CapillaryLengthDetectorTest {
 	}
 
 	/**
-	 * Runs on the recording frame used to design the detector, when it is available
-	 * on this machine. Endpoints are located inside full-height search corridors,
-	 * then the cross-capillary validation is applied to check that the measured
-	 * lengths follow a smooth spatial pattern rather than scattering at random.
+	 * Reproduces what a recording actually looks like: the rack holding the tubes
+	 * hides every capillary behind a dark horizontal bar, and the upper part of a
+	 * tube that is not filled to the brim shows only its two glass walls. The
+	 * measure must span the whole tube regardless.
 	 */
 	@Test
-	public void locatesCapillariesOnARealFrame() throws Exception {
+	public void measuresAcrossTheDarkBarAndOverTheEmptyTop() {
+		ImageData image = buildRackImage();
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+
+		for (int i = 0; i < N_CAPILLARIES; i++) {
+			ArrayList<int[]> axis = verticalAxis(capillaryX(i), 0, RACK_IMAGE_HEIGHT - 1);
+			AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
+			assertTrue("capillary " + i + " should be located", located.found);
+			assertEquals("capillary " + i + " must start at the glass top, not at the liquid meniscus", TUBE_TOP,
+					located.startFrac, 3.);
+			assertEquals("capillary " + i + " must reach its tip below the rack bar", TUBE_TOP + rackTubeLength(i),
+					located.endFrac, 3.);
+			assertTrue("the bar interrupting capillary " + i + " must be reported as crossed",
+					located.bridgedGap >= BAR_HEIGHT - 4);
+		}
+	}
+
+	/**
+	 * Without the empty upper section being recognised, the measure would start at
+	 * the meniscus and lose the air column entirely.
+	 */
+	@Test
+	public void countsTheAirColumnAsPartOfTheCapillary() {
+		ImageData image = buildRackImage();
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		ArrayList<int[]> axis = verticalAxis(capillaryX(9), 0, RACK_IMAGE_HEIGHT - 1);
+
+		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
+		double length = located.endFrac - located.startFrac;
+
+		assertEquals(rackTubeLength(9), length, 3.);
+		assertTrue("the air column must not be dropped, " + length + " px measured for a tube whose liquid alone is "
+				+ (rackTubeLength(9) - EMPTY_TOP_LENGTH) + " px", length > rackTubeLength(9) - EMPTY_TOP_LENGTH + 20.);
+	}
+
+	/**
+	 * A ROI stopping short of both tips must still find them, since the search runs
+	 * a little past each end of the ROI.
+	 */
+	@Test
+	public void findsTipsFallingJustOutsideTheRoi() {
+		ImageData image = buildRackImage();
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+
+		int index = 5;
+		int tubeEnd = (int) Math.round(TUBE_TOP + rackTubeLength(index));
+		ArrayList<int[]> shortRoi = verticalAxis(capillaryX(index), TUBE_TOP + 5, tubeEnd - 5);
+		AxisMeasure withoutExtension = CapillaryLengthDetector.locateAlongAxis(shortRoi, image, options);
+		assertTrue("a ROI shorter than the tube fills up to its own ends", withoutExtension.touchesBorder);
+
+		ArrayList<int[]> extended = CapillaryLengthDetector.extendAxis(shortRoi, options.axisExtensionPixels);
+		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(extended, image, options);
+		assertTrue("both tips must now be inside the searched corridor", !located.touchesBorder);
+
+		// extendAxis prepends axisExtensionPixels samples, so a position along the
+		// extended axis is that much ahead of the same position along the ROI.
+		double offset = TUBE_TOP + 5 - options.axisExtensionPixels;
+		assertEquals(TUBE_TOP, offset + located.startFrac, 3.);
+		assertEquals(tubeEnd, offset + located.endFrac, 3.);
+	}
+
+	/**
+	 * Runs on the recording frame used to design the detector, when it is available
+	 * on this machine. That frame is cropped below the rack, so the lower tips are
+	 * outside the picture and the lengths themselves cannot be checked; what it
+	 * does show is the dark bar of the rack cutting across every tube, and the two
+	 * things asserted here are that the tube tops are found where they really are
+	 * and that the measure carries on below the bar instead of stopping at it.
+	 */
+	@Test
+	public void followsCapillariesThroughTheRackBarOnARealFrame() throws Exception {
 		File file = realFrameFile();
 		Assume.assumeTrue("real frame not available on this machine", file != null && file.isFile());
 
@@ -140,76 +225,62 @@ public class CapillaryLengthDetectorTest {
 		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
 		List<Integer> columns = findCapillaryColumns(image);
 		Assume.assumeTrue("could not isolate capillary columns on this frame", columns.size() >= 10);
+		int barRow = findDarkestRow(image, image.height / 2, image.height - 1);
 
-		List<AxisMeasure> located = new ArrayList<AxisMeasure>();
+		// Corridors start a little above the tubes, the way a user draws a ROI, and
+		// run to the bottom edge where this frame cuts the tubes off.
+		int corridorTop = 20;
+		List<Double> tops = new ArrayList<Double>();
+		List<Double> bottoms = new ArrayList<Double>();
+		int crossedBar = 0;
 		for (Integer x : columns) {
-			ArrayList<int[]> axis = verticalAxis(x.intValue(), 0, image.height - 1);
+			ArrayList<int[]> axis = verticalAxis(x.intValue(), corridorTop, image.height - 1);
 			AxisMeasure measured = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
 			assertTrue("capillary at x=" + x + " should be located", measured.found);
-			located.add(measured);
-			System.out.println(String.format("x=%4d top=%7.2f bottom=%7.2f span=%7.2f", x.intValue(),
-					measured.startFrac, measured.endFrac, measured.endFrac - measured.startFrac));
+			double top = corridorTop + measured.startFrac;
+			double bottom = corridorTop + measured.endFrac;
+			tops.add(Double.valueOf(top));
+			bottoms.add(Double.valueOf(bottom));
+			if (bottom > barRow + 10)
+				crossedBar++;
+			System.out.println(String.format("x=%4d top=%7.2f bottom=%7.2f bridged=%3d", x.intValue(), top, bottom,
+					measured.bridgedGap));
 		}
+		System.out.println(String.format("rack bar at y=%d, %d of %d tubes measured past it, tops between "
+				+ "%.1f and %.1f px", barRow, crossedBar, columns.size(), min(tops), max(tops)));
 
-		// The column finder also catches the shadows between the tubes; a real tube
-		// starts near the top of the rack, which all the others agree on.
-		double referenceTop = median(startFractions(located));
-		List<Double> tops = new ArrayList<Double>();
-		CapillaryLengthResult result = new CapillaryLengthResult();
-		for (int i = 0; i < columns.size(); i++) {
-			AxisMeasure measured = located.get(i);
-			double span = measured.endFrac - measured.startFrac;
-			if (Math.abs(measured.startFrac - referenceTop) > 25. || span <= 0.5 * image.height)
-				continue;
-			tops.add(Double.valueOf(measured.startFrac));
-			CapillaryLengthResult.Measure measure = new CapillaryLengthResult.Measure(null,
-					"x" + columns.get(i), 0);
-			measure.setCentroidX(columns.get(i).intValue());
-			measure.setRoiPixels(image.height);
-			measure.setDetectedPixels(span);
-			measure.setStatus(CapillaryLengthResult.Status.OK);
-			measure.setSelected(true);
-			result.addMeasure(measure);
+		// The corridors here are strictly vertical while the real tubes lean with the
+		// perspective, so the lower half of a corridor can drift off its tube; the
+		// typical tube is what tells whether the bar is crossed.
+		assertTrue("the typical tube must be measured below the rack bar, median bottom was " + median(bottoms),
+				median(bottoms) > barRow + 10);
+		assertTrue("the rack bar must not cut the measure, only " + crossedBar + " of " + columns.size()
+				+ " tubes reached below it", 2 * crossedBar >= columns.size());
+
+		double referenceTop = median(tops);
+		int consistent = 0;
+		for (Double top : tops) {
+			if (Math.abs(top.doubleValue() - referenceTop) <= 15.)
+				consistent++;
 		}
-		int nTubes = result.getMeasures().size();
-		assertTrue("most columns should be capillary tubes, only " + nTubes + " of " + columns.size() + " were",
-				nTubes >= 0.7 * columns.size());
-
-		CapillaryLengthDetector.validate(result, image.width, options);
-		System.out.println(String.format("%d tubes measured, %d follow the trend, upper endpoints spread over "
-				+ "%.1f px, lengths %.1f to %.1f px (%.1f%% variation)", nTubes, result.countSelected(),
-				max(tops) - min(tops), result.getMinPixels(), result.getMaxPixels(), result.getSpreadPercent()));
-		reportCentreVersusEdge(result, image.width);
-
-		assertTrue("the measured lengths should follow a smooth spatial pattern, only " + result.countSelected()
-				+ " of " + nTubes + " fit it", result.countSelected() >= 0.8 * nTubes);
-		assertTrue("a real frame must show some geometric distortion", result.getSpreadPercent() > 1.);
+		assertTrue("tube tops should agree with each other, only " + consistent + " of " + tops.size()
+				+ " sit within 15 px of the median (" + referenceTop + ")", consistent >= 0.8 * tops.size());
 	}
 
-	/**
-	 * Prints the length the fitted model predicts at the centre and at both edges,
-	 * which is the number the per-capillary calibration corrects for.
-	 */
-	private static void reportCentreVersusEdge(CapillaryLengthResult result, int imageWidth) {
-		CapillaryLengthResult.Measure left = null;
-		CapillaryLengthResult.Measure right = null;
-		CapillaryLengthResult.Measure centre = null;
-		for (CapillaryLengthResult.Measure m : result.getMeasures()) {
-			if (!m.isSelected())
-				continue;
-			if (left == null || m.getCentroidX() < left.getCentroidX())
-				left = m;
-			if (right == null || m.getCentroidX() > right.getCentroidX())
-				right = m;
-			double distance = Math.abs(m.getCentroidX() - imageWidth / 2.);
-			if (centre == null || distance < Math.abs(centre.getCentroidX() - imageWidth / 2.))
-				centre = m;
+	/** Row where the image is darkest, i.e. the bar of the rack holding the tubes. */
+	private static int findDarkestRow(ImageData image, int from, int to) {
+		int darkest = from;
+		double lowest = Double.POSITIVE_INFINITY;
+		for (int y = from; y <= to; y++) {
+			double sum = 0.;
+			for (int x = 0; x < image.width; x++)
+				sum += image.channels[0][x + y * image.width];
+			if (sum < lowest) {
+				lowest = sum;
+				darkest = y;
+			}
 		}
-		if (left == null || right == null || centre == null)
-			return;
-		System.out.println(String.format("left x=%.0f %.1f px | centre x=%.0f %.1f px | right x=%.0f %.1f px",
-				left.getCentroidX(), left.getDetectedPixels(), centre.getCentroidX(), centre.getDetectedPixels(),
-				right.getCentroidX(), right.getDetectedPixels()));
+		return darkest;
 	}
 
 	// === helpers ===
@@ -314,6 +385,55 @@ public class CapillaryLengthDetectorTest {
 			}
 		}
 		return new ImageData(IMAGE_WIDTH, IMAGE_HEIGHT, channels);
+	}
+
+	/**
+	 * The three features of a real recording that a plain contrast search gets
+	 * wrong: an air column at the top of the tube where only the two glass walls
+	 * show, the dark bar of the rack hiding every tube part way down, and the
+	 * coloured liquid running all the way to the tip below it.
+	 */
+	private static ImageData buildRackImage() {
+		double[][] channels = new double[3][IMAGE_WIDTH * RACK_IMAGE_HEIGHT];
+		for (int y = 0; y < RACK_IMAGE_HEIGHT; y++) {
+			for (int x = 0; x < IMAGE_WIDTH; x++) {
+				double shade = BACKGROUND_LEVEL - 15. * (x / (double) IMAGE_WIDTH)
+						+ 10. * (y / (double) RACK_IMAGE_HEIGHT);
+				setPixel(channels, x, y, shade, shade, shade);
+			}
+		}
+
+		for (int i = 0; i < N_CAPILLARIES; i++) {
+			int cx = capillaryX(i);
+			int yEnd = (int) Math.round(TUBE_TOP + rackTubeLength(i));
+			int yLiquid = TUBE_TOP + EMPTY_TOP_LENGTH;
+			for (int y = TUBE_TOP; y < yEnd && y < RACK_IMAGE_HEIGHT; y++) {
+				double shade = BACKGROUND_LEVEL - 15. * (cx / (double) IMAGE_WIDTH)
+						+ 10. * (y / (double) RACK_IMAGE_HEIGHT);
+				if (y >= yLiquid) {
+					for (int dx = -TUBE_HALF_WIDTH + 1; dx <= TUBE_HALF_WIDTH - 1; dx++)
+						setPixel(channels, cx + dx, y, TUBE_R_LEVEL, TUBE_G_LEVEL, TUBE_B_LEVEL);
+				}
+				double wall = shade - WALL_DARKENING;
+				setPixel(channels, cx - TUBE_HALF_WIDTH, y, wall, wall, wall);
+				setPixel(channels, cx + TUBE_HALF_WIDTH, y, wall, wall, wall);
+			}
+		}
+
+		for (int y = BAR_TOP; y < BAR_TOP + BAR_HEIGHT; y++) {
+			for (int x = 0; x < IMAGE_WIDTH; x++)
+				setPixel(channels, x, y, BAR_LEVEL, BAR_LEVEL, BAR_LEVEL);
+		}
+		return new ImageData(IMAGE_WIDTH, RACK_IMAGE_HEIGHT, channels);
+	}
+
+	private static void setPixel(double[][] channels, int x, int y, double r, double g, double b) {
+		if (x < 0 || x >= IMAGE_WIDTH || y < 0 || y >= RACK_IMAGE_HEIGHT)
+			return;
+		int index = x + y * IMAGE_WIDTH;
+		channels[0][index] = r;
+		channels[1][index] = g;
+		channels[2][index] = b;
 	}
 
 	private static List<Double> startFractions(List<AxisMeasure> measures) {
