@@ -94,12 +94,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 		}
 
-		if (options.resultType == EnumResults.TOPRAW) {
-			XYSeries evaporationSeries = createEvaporationSeries(exp, cage, options);
-			if (evaporationSeries != null) {
-				dataset.addSeries(evaporationSeries);
-			}
-		}
+		appendEvaporationReferenceSeries(dataset, exp, cage, options);
 
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
@@ -137,6 +132,7 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 			i++;
 		}
+		appendEvaporationReferenceSeries(dataset, exp, cage, options);
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
 	}
@@ -176,8 +172,36 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			}
 			dataset.addSeries(renamed);
 		}
+		appendEvaporationReferenceSeries(dataset, exp, cage, options);
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
+	}
+
+	private static boolean includesEvaporationReferenceChart(EnumResults resultType) {
+		if (resultType == null) {
+			return false;
+		}
+		switch (resultType) {
+		case TOPRAW:
+		case TOPRAW_AND_00:
+		case TOPLEVEL_AND_00:
+		case TOPLEVEL_SUM_AND_00:
+		case TOPLEVEL_PI_AND_00:
+			return true;
+		default:
+			return false;
+		}
+	}
+
+	private static void appendEvaporationReferenceSeries(XYSeriesCollection dataset, Experiment exp, Cage cage,
+			ResultsOptions options) {
+		if (dataset == null || options == null || !includesEvaporationReferenceChart(options.resultType)) {
+			return;
+		}
+		XYSeries evaporationSeries = createEvaporationSeries(exp, cage, options);
+		if (evaporationSeries != null) {
+			dataset.addSeries(evaporationSeries);
+		}
 	}
 
 	private static XYSeriesCollection buildLR(Experiment exp, Cage cage, ResultsOptions options) {
