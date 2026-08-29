@@ -32,6 +32,7 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector;
 import plugins.fmp.multitools.service.CapillaryLengthDetectorOptions;
 import plugins.fmp.multitools.service.CapillaryLengthResult;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthMeasureDialog;
+import plugins.fmp.multitools.tools.JComponents.CapillaryLengthOptionsDialog;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
@@ -45,9 +46,9 @@ public class Infos extends JPanel {
 	private JSpinner capillaryPixelsSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
 	private JButton getCapillaryLengthButton = new JButton("pixels 1rst capillary");
 	private JButton editCapillariesButton = new JButton("Edit capillaries infos...");
-	private JButton autoMeasureButton = new JButton("Auto-measure all lengths");
+	private JButton autoMeasureButton = new JButton("Auto-measure lengths...");
 	private JButton resetPixelsButton = new JButton("Reset all to single value");
-	private JCheckBox allExperimentsCheckBox = new JCheckBox("all experiments");
+	private JCheckBox allExperimentsCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox showMeasuredCheckBox = new JCheckBox("show measured limits");
 	private JLabel calibrationStatusLabel = new JLabel("-");
 	private MultiCAFE parent0 = null;
@@ -92,9 +93,10 @@ public class Infos extends JPanel {
 		add(panel2);
 
 		autoMeasureButton.setToolTipText(
-				"Measure each capillary length inside its ROI, so peripheral capillaries get their own scale");
+				"Measure each capillary length inside its ROI; opens options for current or ALL (current to last)");
 		resetPixelsButton.setToolTipText("Give every capillary the length (pixels) value above again");
-		allExperimentsCheckBox.setToolTipText("Apply the auto-measure or the reset to the whole experiment list");
+		allExperimentsCheckBox.setToolTipText(
+				"Apply the reset to the selected experiment through the last in the browse list");
 		showMeasuredCheckBox.setToolTipText("Draw over the image the extent measured for each capillary");
 
 		defineActionListeners();
@@ -128,10 +130,7 @@ public class Infos extends JPanel {
 		autoMeasureButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				if (allExperimentsCheckBox.isSelected())
-					autoMeasureAllExperiments();
-				else
-					autoMeasureCurrentExperiment();
+				autoMeasureCapillaryLengths();
 			}
 		});
 
@@ -193,7 +192,23 @@ public class Infos extends JPanel {
 
 	// auto-measure
 
-	private void autoMeasureCurrentExperiment() {
+	private void autoMeasureCapillaryLengths() {
+		if (parent0.expListComboLazy.getSelectedIndex() < 0) {
+			JOptionPane.showMessageDialog(this, "Select an experiment first.", AUTO_MEASURE_TITLE,
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		CapillaryLengthOptionsDialog.Choice choice = CapillaryLengthOptionsDialog.show(this, AUTO_MEASURE_TITLE,
+				buildDetectorOptions());
+		if (choice == null)
+			return;
+		if (choice.allFromCurrent)
+			autoMeasureFromCurrentToLast(choice.options);
+		else
+			autoMeasureCurrentExperiment(choice.options);
+	}
+
+	private void autoMeasureCurrentExperiment(CapillaryLengthDetectorOptions options) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null) {
 			JOptionPane.showMessageDialog(this, "Select an experiment first.", AUTO_MEASURE_TITLE,
@@ -204,7 +219,7 @@ public class Infos extends JPanel {
 		getCapillaryDescriptorsFromDlgInfos(exp.getCapillaries());
 		exp.getCapillaries().transferDescriptionToCapillaries();
 
-		CapillaryLengthResult result = new CapillaryLengthDetector().measure(exp, buildDetectorOptions());
+		CapillaryLengthResult result = new CapillaryLengthDetector().measure(exp, options);
 		if (!CapillaryLengthMeasureDialog.showAndConfirm(this, result, AUTO_MEASURE_TITLE))
 			return;
 
@@ -219,12 +234,15 @@ public class Infos extends JPanel {
 				AUTO_MEASURE_TITLE, JOptionPane.INFORMATION_MESSAGE);
 	}
 
-	private void autoMeasureAllExperiments() {
-		final int nExperiments = parent0.expListComboLazy.getItemCount();
-		if (nExperiments < 1)
+	private void autoMeasureFromCurrentToLast(final CapillaryLengthDetectorOptions options) {
+		final int index0 = parent0.expListComboLazy.getSelectedIndex();
+		final int index1 = parent0.expListComboLazy.getItemCount() - 1;
+		if (index0 < 0 || index1 < index0)
 			return;
+		final int nExperiments = index1 - index0 + 1;
 		int answer = JOptionPane.showConfirmDialog(this,
-				"Measure capillary lengths on " + nExperiments + " experiment(s)?\n"
+				"Measure capillary lengths on " + nExperiments + " experiment(s)\n"
+						+ "(current through last in the browse list)?\n"
 						+ "Reliable measures are applied automatically; a report is written to the log.",
 				AUTO_MEASURE_TITLE, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 		if (answer != JOptionPane.OK_OPTION)
@@ -237,18 +255,17 @@ public class Infos extends JPanel {
 				ProgressFrame progress = new ProgressFrame("Measuring capillary lengths");
 				progress.setLength(nExperiments);
 				CapillaryLengthDetector detector = new CapillaryLengthDetector();
-				CapillaryLengthDetectorOptions options = buildDetectorOptions();
 				int nUpdated = 0;
 				int nExperimentsUpdated = 0;
 				Logger.info("CapillaryLength,experiment,capillaries,median_px,min_px,max_px,spread_percent");
 
-				for (int i = 0; i < nExperiments; i++) {
+				for (int i = index0; i <= index1; i++) {
 					Experiment exp = parent0.expListComboLazy.getItemAt(i);
 					if (exp == null) {
 						progress.incPosition();
 						continue;
 					}
-					progress.setMessage("Experiment " + (i + 1) + " of " + nExperiments);
+					progress.setMessage("Experiment " + (i - index0 + 1) + " of " + nExperiments);
 					try {
 						exp.loadExperimentDescriptors();
 						exp.load_capillaries_description_and_measures();
@@ -316,13 +333,16 @@ public class Infos extends JPanel {
 	}
 
 	private void resetAllExperiments() {
-		final int nExperiments = parent0.expListComboLazy.getItemCount();
-		if (nExperiments < 1)
+		final int index0 = parent0.expListComboLazy.getSelectedIndex();
+		final int index1 = parent0.expListComboLazy.getItemCount() - 1;
+		if (index0 < 0 || index1 < index0)
 			return;
+		final int nExperiments = index1 - index0 + 1;
 		final double volume = ((Number) capillaryVolumeSpinner.getValue()).doubleValue();
 		final int pixels = ((Number) capillaryPixelsSpinner.getValue()).intValue();
 		int answer = JOptionPane.showConfirmDialog(this,
-				"Give every capillary of " + nExperiments + " experiment(s) a length of " + pixels + " pixels?\n"
+				"Give every capillary of " + nExperiments + " experiment(s)\n"
+						+ "(current through last) a length of " + pixels + " pixels?\n"
 						+ "Any auto-measured length will be discarded.",
 				RESET_TITLE, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 		if (answer != JOptionPane.OK_OPTION)
@@ -334,13 +354,13 @@ public class Infos extends JPanel {
 				ProgressFrame progress = new ProgressFrame("Resetting capillary lengths");
 				progress.setLength(nExperiments);
 				int nReset = 0;
-				for (int i = 0; i < nExperiments; i++) {
+				for (int i = index0; i <= index1; i++) {
 					Experiment exp = parent0.expListComboLazy.getItemAt(i);
 					if (exp == null) {
 						progress.incPosition();
 						continue;
 					}
-					progress.setMessage("Experiment " + (i + 1) + " of " + nExperiments);
+					progress.setMessage("Experiment " + (i - index0 + 1) + " of " + nExperiments);
 					try {
 						exp.loadExperimentDescriptors();
 						exp.load_capillaries_description_and_measures();

@@ -28,6 +28,7 @@ public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 			return String.class;
 		case CAGE_ID:
 		case N_FLIES:
+		case LENGTH_PX:
 			return Integer.class;
 		case VOLUME:
 			return Double.class;
@@ -66,6 +67,8 @@ public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 			return cap.getNFlies();
 		case VOLUME:
 			return cap.getVolume();
+		case LENGTH_PX:
+			return Integer.valueOf(cap.getPixels());
 		case STIMULUS:
 			return cap.getStimulus();
 		case CONCENTRATION:
@@ -133,6 +136,10 @@ public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 		case VOLUME:
 			cap.setVolume((double) aValue);
 			break;
+		case LENGTH_PX:
+			cap.setPixels(toInt(aValue));
+			cap.getProperties().setPixelsAutoMeasured(false);
+			break;
 		case STIMULUS:
 			cap.setStimulus(aValue.toString());
 			break;
@@ -141,6 +148,18 @@ public class CapillaryTableModel extends javax.swing.table.AbstractTableModel {
 			break;
 		default:
 			break;
+		}
+	}
+
+	private static int toInt(Object aValue) {
+		if (aValue instanceof Number)
+			return ((Number) aValue).intValue();
+		if (aValue == null)
+			return 0;
+		try {
+			return (int) Math.round(Double.parseDouble(aValue.toString().trim()));
+		} catch (NumberFormatException e) {
+			return 0;
 		}
 	}
 

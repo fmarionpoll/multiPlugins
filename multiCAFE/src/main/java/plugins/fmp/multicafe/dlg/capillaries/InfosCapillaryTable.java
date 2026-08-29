@@ -56,14 +56,16 @@ public class InfosCapillaryTable extends JPanel {
 		capillaryTableModel = new CapillaryTableModel(parent0.expListComboLazy);
 		tableView.setModel(capillaryTableModel);
 		tableView.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-		tableView.setPreferredScrollableViewportSize(new Dimension(500, 400));
+		tableView.setPreferredScrollableViewportSize(new Dimension(620, 400));
 		tableView.setFillsViewportHeight(true);
 		TableColumnModel columnModel = tableView.getColumnModel();
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 		for (int i = 0; i < capillaryTableModel.getColumnCount(); i++) {
 			TableColumn col = columnModel.getColumn(i);
-			if (i <= CapillaryTableColumn.VOLUME.ordinal())
+			if (i == CapillaryTableColumn.LENGTH_PX.ordinal())
+				setLengthPxColumnProperties(col);
+			else if (i <= CapillaryTableColumn.VOLUME.ordinal())
 				setFixedColumnProperties(col);
 			col.setCellRenderer(centerRenderer);
 		}
@@ -240,6 +242,18 @@ public class InfosCapillaryTable extends JPanel {
 		column.setMinWidth(30);
 	}
 
+	private void setLengthPxColumnProperties(TableColumn column) {
+		column.setResizable(false);
+		column.setPreferredWidth(72);
+		column.setMaxWidth(80);
+		column.setMinWidth(50);
+	}
+
+	private static void copyLengthPx(Capillary from, Capillary to) {
+		to.setPixels(from.getPixels());
+		to.getProperties().setPixelsAutoMeasured(from.getProperties().isPixelsAutoMeasured());
+	}
+
 	private void exchangeLR(Experiment exp) {
 		int columnIndex = tableView.getSelectedColumn();
 		if (columnIndex < 0)
@@ -267,6 +281,7 @@ public class InfosCapillaryTable extends JPanel {
 	private void storeCapillaryValues(Capillary sourceCapillary, Capillary destinationCapillary) {
 		destinationCapillary.getProperties().setNFlies(sourceCapillary.getProperties().getNFlies());
 		destinationCapillary.getProperties().setVolume(sourceCapillary.getProperties().getVolume());
+		copyLengthPx(sourceCapillary, destinationCapillary);
 		destinationCapillary.setStimulus(sourceCapillary.getStimulus());
 		destinationCapillary.getProperties().setConcentration(sourceCapillary.getProperties().getConcentration());
 		destinationCapillary.setSide(sourceCapillary.getSide());
@@ -279,6 +294,9 @@ public class InfosCapillaryTable extends JPanel {
 			break;
 		case VOLUME:
 			destinationCapillary.setVolume(sourceCapillary.getVolume());
+			break;
+		case LENGTH_PX:
+			copyLengthPx(sourceCapillary, destinationCapillary);
 			break;
 		case STIMULUS:
 			destinationCapillary.setStimulus(sourceCapillary.getStimulus());
@@ -314,6 +332,7 @@ public class InfosCapillaryTable extends JPanel {
 				capTo.setCageID(capFrom.getCageID());
 				capTo.setNFlies(capFrom.getNFlies());
 				capTo.setVolume(capFrom.getVolume());
+				copyLengthPx(capFrom, capTo);
 				capTo.setStimulus(capFrom.getStimulus());
 				capTo.setConcentration(capFrom.getConcentration());
 				CapillaryCagePositionSwap.copyPositionOnto(capTo, capFrom);
@@ -379,6 +398,9 @@ public class InfosCapillaryTable extends JPanel {
 			case VOLUME:
 				cap.setVolume(cap0.getVolume());
 				break;
+			case LENGTH_PX:
+				copyLengthPx(cap0, cap);
+				break;
 			case STIMULUS:
 				cap.setStimulus(cap0.getStimulus());
 				break;
@@ -412,6 +434,9 @@ public class InfosCapillaryTable extends JPanel {
 				break;
 			case VOLUME:
 				cap.setVolume(cap0.getVolume());
+				break;
+			case LENGTH_PX:
+				copyLengthPx(cap0, cap);
 				break;
 			case STIMULUS:
 				cap.setStimulus(cap0.getStimulus());
@@ -467,6 +492,9 @@ public class InfosCapillaryTable extends JPanel {
 				break;
 			case VOLUME:
 				cap.setVolume(cap0.getVolume());
+				break;
+			case LENGTH_PX:
+				copyLengthPx(cap0, cap);
 				break;
 			case STIMULUS:
 				cap.setStimulus(cap0.getStimulus());

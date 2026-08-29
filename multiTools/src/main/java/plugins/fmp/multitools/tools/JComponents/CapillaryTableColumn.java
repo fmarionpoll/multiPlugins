@@ -9,6 +9,7 @@ public enum CapillaryTableColumn {
 	POSITION("Side", true),
 	N_FLIES("N flies", true),
 	VOLUME("Volume", true),
+	LENGTH_PX("length_px", true),
 	STIMULUS("Stimulus", true),
 	CONCENTRATION("Concentration", true);
 

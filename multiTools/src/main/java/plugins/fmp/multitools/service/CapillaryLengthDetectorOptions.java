@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.service;
 
 /**
- * Parameters of the ROI-guided capillary length measurement performed by
+ * Parameters of the ROI-end change-point measurement performed by
  * {@link CapillaryLengthDetector}.
  */
 public class CapillaryLengthDetectorOptions {
@@ -9,71 +9,69 @@ public class CapillaryLengthDetectorOptions {
 	/** First cam frame used for the measurement. */
 	public int frameIndex = 0;
 
-	/** Number of consecutive frames averaged before detection (noise reduction). */
-	public int nFramesAveraged = 3;
+	/** Number of frames combined before detection. */
+	public int nFramesAveraged = 7;
 
-	/** Half length, in pixels, of the cross-section sampled across the capillary axis. */
+	/**
+	 * Spacing between those frames. A fly sitting for a couple of frames is
+	 * then outvoted by the median; the glass walls are in every frame.
+	 */
+	public int frameStride = 3;
+
+	/**
+	 * Half length, in pixels, of the transverse strip sampled across the capillary.
+	 */
 	public int perpendicularHalfLength = 12;
-
-	/** Half width, in pixels, of the band considered to be inside the capillary. */
-	public int capillaryHalfWidth = 4;
-
-	/** Pixels skipped between the inner band and the background flanks. */
-	public int flankGap = 2;
 
 	/** Number of axis samples used to estimate the local capillary direction. */
 	public int tangentWindow = 8;
 
 	/**
-	 * Closest and farthest distance from the axis, in pixels, where the two glass
-	 * walls are looked for. The wall pair marks the tube even where it holds no
-	 * liquid, which is what keeps an empty upper section from being cut off.
+	 * Pixels searched inward from each ROI end. Covers the usual 5-10 px overhang
+	 * plus a little extra if the tip sits slightly further in.
 	 */
-	public int wallSearchMin = 2;
-	public int wallSearchMax = 8;
+	public int inwardSearchPixels = 30;
 
 	/**
-	 * Grey levels a wall must stand out from the background to be believed. Without
-	 * this floor, plain noise in a tube-free area would look like a faint wall pair.
+	 * Upper bound when the first window is still outside the tube (a longer
+	 * overhang into the cage). Past this the ROI is treated as not containing
+	 * the tip.
 	 */
-	public double wallMinContrast = 3.;
+	public int inwardSearchMaxPixels = 120;
 
-	/** Same floor for the liquid clue: below it the tube is simply not visible. */
-	public double liquidMinContrast = 4.;
-
-	/**
-	 * Fraction of the contrast range (between background and capillary) above which
-	 * a position is considered to be on the capillary.
-	 */
-	public double thresholdFraction = 0.35;
+	/** Samples at the ROI end used as the local outside / background reference. */
+	public int outsidePixels = 5;
 
 	/**
-	 * Longest interruption, in pixels, crossed while following the capillary. The
-	 * rack holding the tubes shows up as a dark horizontal bar that hides every
-	 * capillary over a few tens of pixels; without this the measure would stop
-	 * there and report only the upper or the lower half of the tube.
+	 * Consecutive capillary-like samples required after a candidate tip, so a fly
+	 * or a dust speck in the overhang is not taken as the glass end.
 	 */
-	public int maxGapPixels = 50;
+	public int persistencePixels = 4;
 
 	/**
-	 * Pixels the search runs past each end of the ROI. Users draw the ROI a little
-	 * longer than the tube, but not always, and a tip falling just outside would
-	 * otherwise be missed.
+	 * Stretch of wall-like scores that must follow a candidate tip before it is
+	 * accepted. A lid edge or a dust line is a few pixels; real glass continues.
 	 */
-	public int axisExtensionPixels = 10;
+	public int confirmationPixels = 12;
 
 	/**
-	 * Fraction of the ROI trimmed at each end before looking for the capillary. The
-	 * detected run is afterwards extended back into the trimmed zone, so this only
-	 * prevents ROI border artefacts from seeding the search.
+	 * Minimum rise of the wall score above the overhang baseline to treat a
+	 * sample as glass. Empty glass is only a little darker than air, so this
+	 * must stay low; liquid is not used as the inside reference.
 	 */
-	public double searchMarginFraction = 0.02;
+	public double capillaryScoreThreshold = 0.8;
 
 	/** Minimum detected length, as a fraction of the ROI length, to accept a measure. */
 	public double minLengthFraction = 0.30;
 
 	/** Robust deviation beyond which a capillary is flagged as an outlier. */
 	public double outlierMadFactor = 3.0;
+
+	/**
+	 * Smallest departure from the trend, as a fraction of the median length, that
+	 * may be called an outlier.
+	 */
+	public double outlierMinTolerance = 0.03;
 
 	/** Physical length of the calibrated capillaries, used for reporting mm/pixel. */
 	public double physicalLengthMm = 32.0;

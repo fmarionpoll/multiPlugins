@@ -98,7 +98,8 @@ public class CapillaryLengthMeasureDialog {
 		return String.format(
 				"<html>%d capillary(ies) measured &mdash; median %.1f px, from %.1f to %.1f px "
 						+ "(%.1f%% variation across the image).<br>"
-						+ "This variation is the geometric distortion the per-capillary scale removes.</html>",
+						+ "Measured lengths follow the spatial trend (trend px); that is the geometric "
+						+ "distortion the per-capillary scale removes.</html>",
 				result.countUsable(), result.getMedianPixels(), result.getMinPixels(), result.getMaxPixels(),
 				result.getSpreadPercent());
 	}
@@ -123,7 +124,7 @@ public class CapillaryLengthMeasureDialog {
 				boolean measured = Double.isFinite(m.getDetectedPixels()) && m.getDetectedPixels() > 0;
 				switch (mode) {
 				case RELIABLE:
-					m.setSelected(measured && m.getStatus() == CapillaryLengthResult.Status.OK);
+					m.setSelected(measured && m.getStatus().isUsable());
 					break;
 				case ANY_MEASURED:
 					m.setSelected(measured);
@@ -189,8 +190,7 @@ public class CapillaryLengthMeasureDialog {
 			case 6:
 				return formatScale(m);
 			case 7:
-				return m.getMessage() == null || m.getMessage().isEmpty() ? m.getStatus().getLabel()
-						: m.getStatus().getLabel() + ": " + m.getMessage();
+				return formatComment(m);
 			default:
 				return "";
 			}
@@ -201,6 +201,14 @@ public class CapillaryLengthMeasureDialog {
 			if (!(previous > 0) || !Double.isFinite(m.getDetectedPixels()))
 				return "-";
 			return String.format("%+.1f", 100. * (m.getDetectedPixels() - previous) / previous);
+		}
+
+		private static String formatComment(CapillaryLengthResult.Measure m) {
+			String comment = m.getMessage() == null || m.getMessage().isEmpty() ? m.getStatus().getLabel()
+					: m.getStatus().getLabel() + ": " + m.getMessage();
+			if (!Double.isFinite(m.getStartConfidence()) || !Double.isFinite(m.getEndConfidence()))
+				return comment;
+			return comment + String.format(" (top %.1f, bottom %.1f)", m.getStartConfidence(), m.getEndConfidence());
 		}
 
 		private String formatScale(CapillaryLengthResult.Measure m) {

@@ -17,37 +17,26 @@ import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.polyline.Bresenham;
 
 /**
- * Measures the true pixel length of each capillary inside the ROI drawn by the
- * user, so that every capillary gets its own volume/pixel scale.
+ * Measures the true pixel length of each capillary from the user-drawn ROI.
  * <p>
- * The detector walks along the ROI axis and, at each position, decides whether
- * the tube is there from two independent clues:
- * <ul>
- * <li>the coloured liquid, which makes the centre of the tube differ from the
- * background beside it;</li>
- * <li>the two glass walls, which appear as a pair of dark lines symmetric about
- * the axis. This clue survives where the tube holds no liquid, so an empty
- * upper section is measured as part of the capillary rather than cut off.</li>
- * </ul>
- * The two clues are scaled independently before being combined, otherwise the
- * much stronger liquid signal would raise the acceptance threshold above
- * anything the walls alone can produce.
+ * The ROI ends are assumed to sit a few pixels <em>past</em> the glass. Each
+ * end is therefore a short region known to be outside the tube. The detector
+ * walks inward along the ROI until a paired-wall capillary cross-section
+ * appears and stays, independently at the two extremities. The physical length
+ * is the distance between those two tips. The dark bar of the rack, which
+ * crosses the middle of the ROI, is never a candidate endpoint.
  * <p>
- * The rack holding the tubes crosses every capillary as a dark horizontal bar
- * that hides both clues over a few tens of pixels. The run is therefore grown
- * through interruptions up to {@code maxGapPixels}, so a tube is measured from
- * its top down to its tip in the cage rather than being cut in two.
- * <p>
- * Because all capillaries are calibrated to the same physical length, the
- * detected pixel lengths must vary smoothly with position in the image; the
- * residual variation is the lens distortion and camera tilt we want to correct.
- * Capillaries departing from that smooth pattern are flagged as outliers.
+ * Because all capillaries are cut to the same physical length, the detected
+ * pixel lengths must vary smoothly with position in the image. After tips are
+ * found, a length-vs-X trend is fitted on the reliable tubes and that trend
+ * length is applied to every usable capillary (and its blue overlay).
  */
 public class CapillaryLengthDetector {
 
 	private static final int MIN_POINTS_FOR_QUADRATIC_FIT = 6;
 	private static final int MIN_POINTS_FOR_LINEAR_FIT = 4;
 	private static final double MAD_TO_SIGMA = 1.4826;
+	private static final int GEOMETRY_HALF = 12;
 
 	public CapillaryLengthResult measure(Experiment exp, CapillaryLengthDetectorOptions options) {
 		CapillaryLengthResult result = new CapillaryLengthResult();
@@ -71,9 +60,8 @@ public class CapillaryLengthDetector {
 			return result;
 		}
 
-		for (Capillary cap : capillaries.getList()) {
+		for (Capillary cap : capillaries.getList())
 			result.addMeasure(measureOneCapillary(cap, image, options));
-		}
 		validate(result, image.width, options);
 		return result;
 	}
@@ -104,8 +92,6 @@ public class CapillaryLengthDetector {
 		return updated;
 	}
 
-	// === detection of one capillary ===
-
 	private CapillaryLengthResult.Measure measureOneCapillary(Capillary cap, ImageData image,
 			CapillaryLengthDetectorOptions options) {
 		String name = cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName();
@@ -123,20 +109,18 @@ public class CapillaryLengthDetector {
 			measure.setMessage("ROI is not a line");
 			return measure;
 		}
-		ArrayList<int[]> roiAxis = Bresenham.getPixelsAlongLineFromROI2D(roiPoints);
-		if (roiAxis.size() < 8) {
+		ArrayList<int[]> axis = Bresenham.getPixelsAlongLineFromROI2D(roiPoints);
+		if (axis.size() < 8) {
 			measure.setStatus(CapillaryLengthResult.Status.FAILED);
 			measure.setMessage("ROI too short");
 			return measure;
 		}
-		ArrayList<int[]> axis = extendAxis(roiAxis, options.axisExtensionPixels);
-		int n = axis.size();
 
 		measure.setCentroidX(centroidX(roiPoints));
 		boolean straight = roiPoints.size() == 2;
 		double[] cumulative = cumulativeArcLength(axis);
 		measure.setRoiPixels(straight ? roiPoints.get(0).distance(roiPoints.get(roiPoints.size() - 1))
-				: cumulativeArcLength(roiAxis)[roiAxis.size() - 1]);
+				: cumulative[axis.size() - 1]);
 
 		AxisMeasure located = locateAlongAxis(axis, image, options);
 		if (!located.found) {
@@ -151,6 +135,8 @@ public class CapillaryLengthDetector {
 				: interpolateArc(cumulative, located.endFrac) - interpolateArc(cumulative, located.startFrac);
 		measure.setDetectedPixels(lengthPx);
 		measure.setDetectedEndpoints(startPoint, endPoint);
+		measure.setStartConfidence(located.startConfidence);
+		measure.setEndConfidence(located.endConfidence);
 
 		if (lengthPx < options.minLengthFraction * measure.getRoiPixels()) {
 			measure.setStatus(CapillaryLengthResult.Status.FAILED);
@@ -159,58 +145,23 @@ public class CapillaryLengthDetector {
 		}
 		if (located.touchesBorder) {
 			measure.setStatus(CapillaryLengthResult.Status.BORDER);
-			measure.setMessage("capillary extends beyond the ROI: lengthen the ROI");
-			return measure;
+			measure.setMessage("tip sits on the ROI end: the ROI may be too short");
+		} else {
+			measure.setStatus(CapillaryLengthResult.Status.OK);
+			measure.setMessage("");
 		}
-		measure.setStatus(CapillaryLengthResult.Status.OK);
 		measure.setSelected(true);
-		measure.setMessage(located.bridgedGap > 0 ? String.format("crossed a %d px interruption", located.bridgedGap)
-				: "");
 		return measure;
-	}
-
-	/**
-	 * Adds a short run-up at both ends of the sampled axis. Users usually draw the
-	 * ROI a bit longer than the tube, but when they do not, the tip would sit
-	 * exactly on the ROI end and be reported as unmeasurable.
-	 */
-	static ArrayList<int[]> extendAxis(ArrayList<int[]> axis, int nPixels) {
-		int n = axis.size();
-		if (nPixels <= 0 || n < 2)
-			return axis;
-		int span = Math.min(4, n - 1);
-		ArrayList<int[]> extended = new ArrayList<int[]>(n + 2 * nPixels);
-		double[] head = outwardDirection(axis.get(span), axis.get(0));
-		for (int k = nPixels; k >= 1; k--)
-			extended.add(step(axis.get(0), head, k));
-		extended.addAll(axis);
-		double[] tail = outwardDirection(axis.get(n - 1 - span), axis.get(n - 1));
-		for (int k = 1; k <= nPixels; k++)
-			extended.add(step(axis.get(n - 1), tail, k));
-		return extended;
-	}
-
-	private static double[] outwardDirection(int[] from, int[] to) {
-		double dx = to[0] - from[0];
-		double dy = to[1] - from[1];
-		double len = Math.hypot(dx, dy);
-		if (len < 1e-6)
-			return new double[] { 0., 1. };
-		return new double[] { dx / len, dy / len };
-	}
-
-	private static int[] step(int[] origin, double[] direction, int k) {
-		return new int[] { (int) Math.round(origin[0] + k * direction[0]),
-				(int) Math.round(origin[1] + k * direction[1]) };
 	}
 
 	/** Where the capillary starts and ends along the sampled axis, in sample units. */
 	static final class AxisMeasure {
 		double startFrac;
 		double endFrac;
+		double startConfidence;
+		double endConfidence;
 		boolean found;
 		boolean touchesBorder;
-		int bridgedGap;
 		String failure;
 
 		static AxisMeasure failed(String failure) {
@@ -220,205 +171,489 @@ public class CapillaryLengthDetector {
 		}
 	}
 
+	static final class Geometry {
+		double offset;
+		double halfWidth;
+	}
+
+	static final class TipFind {
+		double axisFrac;
+		double confidence;
+		boolean atRoiEnd;
+		boolean found;
+		String failure;
+
+		static TipFind failed(String failure) {
+			TipFind t = new TipFind();
+			t.failure = failure;
+			return t;
+		}
+	}
+
+	/**
+	 * Finds both tips by walking inward from each ROI end. The axis is the ROI
+	 * itself; it is not extended past the ends.
+	 */
 	static AxisMeasure locateAlongAxis(ArrayList<int[]> axis, ImageData image,
 			CapillaryLengthDetectorOptions options) {
 		int n = axis.size();
-		double[] presence = buildPresenceProfile(axis, image, options);
-		double threshold = options.thresholdFraction;
-		int margin = (int) Math.round(Math.max(0., options.searchMarginFraction) * n);
-		margin = Math.min(margin, (n - 4) / 2);
-		int[] run = findLongestRun(presence, threshold, margin, n - 1 - margin);
-		if (run == null)
-			return AxisMeasure.failed("capillary not found inside the ROI");
-
-		int maxGap = Math.max(0, options.maxGapPixels);
-		int[] up = growThroughGaps(presence, threshold, run[0], -1, maxGap);
-		int[] down = growThroughGaps(presence, threshold, run[1], +1, maxGap);
-		int start = up[0];
-		int end = down[0];
+		if (n < 8)
+			return AxisMeasure.failed("ROI too short");
+		Geometry geometry = estimateGeometry(axis, image, options);
+		TipFind start = findTip(axis, image, geometry, 0, +1, options);
+		TipFind end = findTip(axis, image, geometry, n - 1, -1, options);
+		if (!start.found)
+			return AxisMeasure.failed("top: " + (start.failure != null ? start.failure : "tip not found"));
+		if (!end.found)
+			return AxisMeasure.failed("bottom: " + (end.failure != null ? end.failure : "tip not found"));
+		if (start.axisFrac >= end.axisFrac)
+			return AxisMeasure.failed("detected tips are in the wrong order");
 
 		AxisMeasure located = new AxisMeasure();
 		located.found = true;
-		located.touchesBorder = start == 0 || end == n - 1;
-		located.bridgedGap = Math.max(up[1], down[1]);
-		located.startFrac = refineCrossing(presence, threshold, start, -1);
-		located.endFrac = refineCrossing(presence, threshold, end, +1);
+		located.startFrac = start.axisFrac;
+		located.endFrac = end.axisFrac;
+		located.startConfidence = start.confidence;
+		located.endConfidence = end.confidence;
+		located.touchesBorder = start.atRoiEnd || end.atRoiEnd;
 		return located;
 	}
 
 	/**
-	 * Follows the capillary outwards from {@code index}, stepping over
-	 * interruptions shorter than {@code maxGap} such as the dark bar of the rack.
-	 *
-	 * @return the farthest position still on the capillary, and the longest
-	 *         interruption crossed on the way
+	 * Width and lateral offset of the glass, measured on the middle of the ROI,
+	 * which is certainly on the tube.
 	 */
-	private static int[] growThroughGaps(double[] values, double threshold, int index, int direction, int maxGap) {
-		int best = index;
-		int gap = 0;
-		int longestBridged = 0;
-		for (int i = index + direction; i >= 0 && i < values.length; i += direction) {
-			if (values[i] >= threshold) {
-				if (gap > longestBridged)
-					longestBridged = gap;
-				best = i;
-				gap = 0;
-			} else if (++gap > maxGap) {
-				break;
-			}
-		}
-		return new int[] { best, longestBridged };
-	}
-
-	/**
-	 * How strongly the capillary shows at each position along the axis, on a 0 to 1
-	 * scale. Liquid contrast and glass-wall contrast are scaled separately, so a
-	 * section of empty tube scores as high as a filled one.
-	 */
-	static double[] buildPresenceProfile(ArrayList<int[]> axis, ImageData image,
+	static Geometry estimateGeometry(ArrayList<int[]> axis, ImageData image,
 			CapillaryLengthDetectorOptions options) {
 		int n = axis.size();
-		int inner = Math.max(0, options.capillaryHalfWidth);
-		int outerStart = inner + Math.max(1, options.flankGap);
-		int half = Math.max(Math.max(options.perpendicularHalfLength, outerStart + 1), options.wallSearchMax + 1);
+		int half = Math.max(6, options.perpendicularHalfLength);
 		int window = Math.max(1, options.tangentWindow);
-		int nCh = image.nChannels;
-
-		double[] liquid = new double[n];
-		double[] wall = new double[n];
-		double[] centerSum = new double[nCh];
-		double[] flankSum = new double[nCh];
-		double[] cross = new double[2 * half + 1];
-		boolean[] sampled = new boolean[2 * half + 1];
-
-		for (int i = 0; i < n; i++) {
+		int from = n / 3;
+		int to = (2 * n) / 3;
+		if (to <= from)
+			to = n - 1;
+		double[] acc = new double[2 * half + 1];
+		int nAcc = 0;
+		for (int i = from; i <= to; i++) {
 			double[] normal = normalAt(axis, i, window);
-			int cx = axis.get(i)[0];
-			int cy = axis.get(i)[1];
-			Arrays.fill(centerSum, 0.);
-			Arrays.fill(flankSum, 0.);
-			Arrays.fill(sampled, false);
-			int centerN = 0;
-			int flankN = 0;
-			double backgroundSum = 0.;
+			double cx = axis.get(i)[0];
+			double cy = axis.get(i)[1];
+			for (int u = -half; u <= half; u++) {
+				acc[u + half] += grey(image, cx + u * normal[0], cy + u * normal[1]);
+			}
+			nAcc++;
+		}
+		Geometry geometry = new Geometry();
+		geometry.offset = 0.;
+		geometry.halfWidth = 4.;
+		if (nAcc == 0)
+			return geometry;
+		for (int u = 0; u < acc.length; u++)
+			acc[u] /= nAcc;
 
-			for (int d = -half; d <= half; d++) {
-				int x = (int) Math.round(cx + d * normal[0]);
-				int y = (int) Math.round(cy + d * normal[1]);
-				if (x < 0 || x >= image.width || y < 0 || y >= image.height)
-					continue;
-				int idx = x + y * image.width;
-				double grey = 0.;
-				for (int c = 0; c < nCh; c++)
-					grey += image.channels[c][idx];
-				grey /= nCh;
-				cross[d + half] = grey;
-				sampled[d + half] = true;
-
-				int ad = Math.abs(d);
-				if (ad <= inner) {
-					for (int c = 0; c < nCh; c++)
-						centerSum[c] += image.channels[c][idx];
-					centerN++;
-				} else if (ad >= outerStart) {
-					for (int c = 0; c < nCh; c++)
-						flankSum[c] += image.channels[c][idx];
-					flankN++;
-					backgroundSum += grey;
+		int left = bestLocalMin(acc, 1, half - 1);
+		int right = bestLocalMin(acc, half + 1, acc.length - 2);
+		if (left < 0 || right <= left) {
+			double bestPair = 0.;
+			for (int iL = 1; iL < half - 1; iL++) {
+				for (int iR = half + 1; iR < acc.length - 1; iR++) {
+					double gL = acc[iL + 1] - acc[iL - 1];
+					double gR = acc[iR + 1] - acc[iR - 1];
+					if (gL * gR >= 0.)
+						continue;
+					double pair = Math.min(Math.abs(gL), Math.abs(gR));
+					if (pair > bestPair) {
+						bestPair = pair;
+						left = iL;
+						right = iR;
+					}
 				}
 			}
-
-			if (centerN == 0 || flankN == 0)
-				continue;
-
-			double best = 0.;
-			for (int c = 0; c < nCh; c++) {
-				double diff = Math.abs(centerSum[c] / centerN - flankSum[c] / flankN);
-				if (diff > best)
-					best = diff;
-			}
-			liquid[i] = best;
-			wall[i] = wallScore(cross, sampled, half, backgroundSum / flankN, options);
 		}
-
-		return combine(liquid, wall, options);
+		if (left < 0 || right <= left)
+			return geometry;
+		double uL = left - half;
+		double uR = right - half;
+		geometry.offset = 0.5 * (uL + uR);
+		geometry.halfWidth = 0.5 * (uR - uL);
+		if (geometry.halfWidth < 1.5)
+			geometry.halfWidth = 4.;
+		return geometry;
 	}
 
 	/**
-	 * Strength of the darkest pair of thin lines flanking the axis, the signature
-	 * of the two glass walls. Each line must be darker than everything around it:
-	 * the background beside the tube, the tube interior between the two lines, and
-	 * the pixel just outside it. A wide shadow, the dark bar of the rack or a fly
-	 * therefore score zero, whereas an empty length of tube scores well.
+	 * Walks inward from one ROI end until a paired-wall cross-section appears and
+	 * persists. {@code direction} is +1 from the first axis sample, -1 from the
+	 * last.
 	 */
-	private static double wallScore(double[] cross, boolean[] sampled, int half, double background,
+	static TipFind findTip(ArrayList<int[]> axis, ImageData image, Geometry geometry, int origin, int direction,
 			CapillaryLengthDetectorOptions options) {
-		int from = Math.max(1, options.wallSearchMin);
-		int to = Math.min(half - 1, Math.max(from, options.wallSearchMax));
+		int n = axis.size();
+		int maxLen = Math.min(options.inwardSearchMaxPixels, n - 1);
+		int len = Math.min(Math.max(options.inwardSearchPixels, options.outsidePixels + options.persistencePixels + 2),
+				maxLen);
+		double[] score = null;
+		while (true) {
+			score = wallScoresInward(axis, image, geometry, origin, direction, len, options);
+			if (interiorLooksLikeCapillary(score, options) || len >= maxLen)
+				break;
+			len = Math.min(maxLen, len + 10);
+		}
+		double[] smooth = medianSmooth(score, 1);
+		int outsideN = Math.min(options.outsidePixels, Math.max(1, score.length / 4));
+		int confirm = confirmationPixels(options);
+
+		if (alreadyOnCapillary(smooth, outsideN, options)) {
+			TipFind atEnd = new TipFind();
+			atEnd.found = true;
+			atEnd.axisFrac = origin;
+			atEnd.atRoiEnd = true;
+			atEnd.confidence = 0.;
+			return atEnd;
+		}
+
+		if (!interiorLooksLikeCapillary(score, options))
+			return TipFind.failed("no capillary cross-section inward of the ROI end");
+
+		double threshold = outsideThreshold(smooth, outsideN, options);
+		int solid = firstSolidGlass(smooth, threshold, confirm);
+		if (solid < 0)
+			solid = firstSolidGlass(smooth, options.capillaryScoreThreshold, confirm);
+		if (solid < 0)
+			return TipFind.failed("no outside-to-inside transition");
+
+		double outsideMed = lowPercentile(smooth, 0, Math.min(outsideN, Math.max(1, solid)), 50.);
+		double innerMed = mean(smooth, solid, Math.min(smooth.length, solid + confirm));
+		double fracAlongWindow = onsetOfGlass(smooth, solid, outsideMed, innerMed);
+		double axisFrac = origin + direction * fracAlongWindow;
+		if (axisFrac < 0)
+			axisFrac = 0;
+		if (axisFrac > n - 1)
+			axisFrac = n - 1;
+
+		TipFind tip = new TipFind();
+		tip.found = true;
+		tip.axisFrac = axisFrac;
+		tip.atRoiEnd = fracAlongWindow < 1.25;
+		tip.confidence = confidence(smooth, Math.max(1, (int) Math.round(fracAlongWindow)), outsideN);
+		return tip;
+	}
+
+	private static boolean interiorLooksLikeCapillary(double[] score, CapillaryLengthDetectorOptions options) {
+		if (score == null || score.length < options.outsidePixels + confirmationPixels(options))
+			return false;
+		double[] smooth = medianSmooth(score, 1);
+		int outsideN = Math.min(options.outsidePixels, Math.max(1, score.length / 4));
+		if (alreadyOnCapillary(smooth, outsideN, options))
+			return true;
+		double threshold = outsideThreshold(smooth, outsideN, options);
+		int confirm = confirmationPixels(options);
+		return firstSolidGlass(smooth, threshold, confirm) >= 0
+				|| firstSolidGlass(smooth, options.capillaryScoreThreshold, confirm) >= 0;
+	}
+
+	private static int confirmationPixels(CapillaryLengthDetectorOptions options) {
+		return Math.max(10, Math.max(options.persistencePixels + 6, options.confirmationPixels));
+	}
+
+	/**
+	 * True when the ROI end is already on the tube: both the first samples and the
+	 * inward stretch show walls. Requiring a further rise would reject the
+	 * capillary instead of placing the tip on the ROI end.
+	 */
+	private static boolean alreadyOnCapillary(double[] smooth, int outsideN, CapillaryLengthDetectorOptions options) {
+		int n = smooth.length;
+		if (n < confirmationPixels(options) + 1)
+			return false;
+		double inner = median(smooth, Math.max(0, n - 8), n);
+		double floor = options.capillaryScoreThreshold;
+		int persist = confirmationPixels(options);
+		return inner >= floor && persists(smooth, 0, Math.min(persist, n), floor);
+	}
+
+	/**
+	 * Threshold is the overhang itself plus a small rise. Using the later liquid
+	 * column as the "inside" reference would push the crossing down to the
+	 * meniscus, because empty glass scores much less than coloured liquid. The
+	 * 25th percentile of the outer stretch is used so a couple of glass samples
+	 * at the ROI end do not raise the baseline.
+	 */
+	private static double outsideThreshold(double[] smooth, int outsideN, CapillaryLengthDetectorOptions options) {
+		int n = Math.max(1, Math.min(Math.max(outsideN, 8), Math.max(1, smooth.length / 3)));
+		n = Math.min(n, smooth.length);
+		double outsideMed = lowPercentile(smooth, 0, n, 25.);
+		double[] outer = copyRange(smooth, 0, n);
+		double outsideMad = mad(outer, outsideMed);
+		return outsideMed + Math.max(options.capillaryScoreThreshold, 2.5 * outsideMad + 0.3);
+	}
+
+	private static double[] wallScoresInward(ArrayList<int[]> axis, ImageData image, Geometry geometry, int origin,
+			int direction, int length, CapillaryLengthDetectorOptions options) {
+		double[] score = new double[length];
+		int window = Math.max(1, options.tangentWindow);
+		for (int k = 0; k < length; k++) {
+			int i = origin + direction * k;
+			if (i < 0 || i >= axis.size())
+				break;
+			double[] normal = normalAt(axis, i, window);
+			score[k] = pairedWallScore(image, axis.get(i)[0], axis.get(i)[1], normal, geometry, options);
+		}
+		return score;
+	}
+
+	/**
+	 * Two thin walls at the learned spacing, or a bright bar of that width in a
+	 * dark cage slot. A fly is a filled dark blob and scores 0.
+	 */
+	static double pairedWallScore(ImageData image, double cx, double cy, double[] normal, Geometry geometry,
+			CapillaryLengthDetectorOptions options) {
+		int half = Math.max(GEOMETRY_HALF, options.perpendicularHalfLength);
+		double[] grey = new double[2 * half + 1];
+		for (int u = -half; u <= half; u++) {
+			double px = cx + (geometry.offset + u) * normal[0];
+			double py = cy + (geometry.offset + u) * normal[1];
+			grey[u + half] = grey(image, px, py);
+		}
+		double bright = brightTubeScore(grey, geometry);
+		if (bright > 0.)
+			return bright;
+		if (isFilledDarkBlob(grey, geometry))
+			return 0.;
+		return ridgePair(grey, geometry);
+	}
+
+	/**
+	 * Glass in a dark cage slot is brighter than the slot at the learned width.
+	 * A horizontal background edge lights the whole strip, so the sides rise too
+	 * and this score stays 0.
+	 */
+	private static double brightTubeScore(double[] grey, Geometry geometry) {
+		int half = grey.length / 2;
+		int iL = (int) Math.round(-geometry.halfWidth) + half;
+		int iR = (int) Math.round(geometry.halfWidth) + half;
+		if (iL < 1 || iR >= grey.length - 1 || iR <= iL + 1)
+			return 0.;
+		int oL0 = Math.max(0, iL - 6);
+		int oR1 = Math.min(grey.length, iR + 7);
+		if (oL0 >= iL || iR + 1 >= oR1)
+			return 0.;
+		double core = mean(grey, iL, iR + 1);
+		double sides = 0.5 * (mean(grey, oL0, iL) + mean(grey, iR + 1, oR1));
+		double contrast = core - sides;
+		if (contrast < 5.)
+			return 0.;
+		return 0.2 * contrast;
+	}
+
+	/**
+	 * A fly or a filled slot is dark across the tube and immediately outside it.
+	 * Liquid on a light field has bright surroundings; a bright tube in a dark
+	 * slot is handled by {@link #brightTubeScore} first.
+	 */
+	private static boolean isFilledDarkBlob(double[] grey, Geometry geometry) {
+		int half = grey.length / 2;
+		int iL = (int) Math.round(-geometry.halfWidth) + half;
+		int iR = (int) Math.round(geometry.halfWidth) + half;
+		if (iL < 2 || iR >= grey.length - 2 || iR <= iL + 1)
+			return false;
+		double interior = mean(grey, iL, iR + 1);
+		double outL = mean(grey, Math.max(0, iL - 5), iL);
+		double outR = mean(grey, iR + 1, Math.min(grey.length, iR + 6));
+		double outside = 0.5 * (outL + outR);
+		if (outside > interior + 10.)
+			return false;
+		double cut = percentile(grey, 40.);
+		int from = Math.max(0, iL - 4);
+		int to = Math.min(grey.length, iR + 5);
+		int dark = 0;
+		for (int i = from; i < to; i++) {
+			if (grey[i] < cut)
+				dark++;
+		}
+		int span = to - from;
+		return span > 0 && dark >= 0.7 * span;
+	}
+
+	private static double ridgePair(double[] grey, Geometry geometry) {
+		int half = grey.length / 2;
+		int uL = (int) Math.round(-geometry.halfWidth);
+		int uR = (int) Math.round(geometry.halfWidth);
 		double best = 0.;
-		for (int w = from; w <= to; w++) {
-			if (!sampled[half - w - 1] || !sampled[half - w] || !sampled[half + w] || !sampled[half + w + 1])
+		for (int shift = -2; shift <= 2; shift++) {
+			int iL = uL + shift + half;
+			int iR = uR + shift + half;
+			if (iL < 1 || iR < 1 || iL >= grey.length - 1 || iR >= grey.length - 1 || iR <= iL + 1)
 				continue;
-			double interior = mean(cross, sampled, half - w + 1, half + w - 1);
-			if (Double.isNaN(interior))
-				continue;
-			double reference = Math.min(background, interior);
-			double left = Math.min(reference, cross[half - w - 1]) - cross[half - w];
-			double right = Math.min(reference, cross[half + w + 1]) - cross[half + w];
-			double pair = Math.min(left, right);
-			if (pair > best)
-				best = pair;
+			double ridgeL = 0.5 * (grey[iL - 1] + grey[iL + 1]) - grey[iL];
+			double ridgeR = 0.5 * (grey[iR - 1] + grey[iR + 1]) - grey[iR];
+			if (ridgeL > 0. && ridgeR > 0.) {
+				double ridge = Math.min(ridgeL, ridgeR);
+				if (ridge > best)
+					best = ridge;
+			}
+			double gL = grey[iL + 1] - grey[iL - 1];
+			double gR = grey[iR + 1] - grey[iR - 1];
+			if (gL * gR < 0.) {
+				double pair = 0.35 * Math.min(Math.abs(gL), Math.abs(gR));
+				if (pair > best)
+					best = pair;
+			}
 		}
-		return best >= options.wallMinContrast ? best : 0.;
+		return best;
 	}
 
-	private static double mean(double[] values, boolean[] sampled, int from, int to) {
+	private static int bestLocalMin(double[] values, int from, int to) {
+		int best = -1;
+		double bestDepth = 0.;
+		int start = Math.max(1, from);
+		int end = Math.min(values.length - 2, to);
+		for (int i = start; i <= end; i++) {
+			double depth = 0.5 * (values[i - 1] + values[i + 1]) - values[i];
+			if (depth > bestDepth) {
+				bestDepth = depth;
+				best = i;
+			}
+		}
+		return bestDepth > 0.4 ? best : -1;
+	}
+
+	/**
+	 * First index at which a long stretch looks like glass. Short lid edges and
+	 * dust lines do not last this long, so they are skipped. A mean over a mixed
+	 * overhang-plus-glass window is not enough: most samples in the stretch must
+	 * actually be above the threshold.
+	 */
+	private static int firstSolidGlass(double[] score, double threshold, int confirm) {
+		if (score == null || confirm < 2 || score.length < confirm)
+			return -1;
+		for (int k = 0; k <= score.length - confirm; k++) {
+			if (solidStretch(score, k, confirm, threshold))
+				return k;
+		}
+		return -1;
+	}
+
+	private static boolean solidStretch(double[] score, int from, int confirm, double threshold) {
+		int nLow = 0;
 		double sum = 0.;
-		int n = 0;
-		for (int i = from; i <= to; i++) {
-			if (i < 0 || i >= values.length || !sampled[i])
-				continue;
-			sum += values[i];
-			n++;
+		for (int i = 0; i < confirm; i++) {
+			double v = score[from + i];
+			sum += v;
+			if (v < threshold)
+				nLow++;
 		}
-		return n > 0 ? sum / n : Double.NaN;
+		return nLow <= 1 && sum / confirm >= threshold;
 	}
 
 	/**
-	 * Rescales both clues to their own dynamic range and keeps the stronger one.
-	 * Without the separate rescaling the wall signal, which is far weaker than the
-	 * coloured liquid, would never reach the acceptance threshold.
+	 * Walks back from a confirmed glass stretch to the last sample that still
+	 * looks like the overhang, so faint pre-tip leakage is not counted as glass.
 	 */
-	private static double[] combine(double[] liquid, double[] wall, CapillaryLengthDetectorOptions options) {
-		double[] liquidNorm = normalize(liquid, options.liquidMinContrast);
-		double[] wallNorm = normalize(wall, options.wallMinContrast);
-		double[] presence = new double[liquid.length];
-		for (int i = 0; i < presence.length; i++)
-			presence[i] = Math.max(liquidNorm[i], wallNorm[i]);
-		return presence;
+	private static double onsetOfGlass(double[] score, int solid, double outsideMed, double innerMed) {
+		if (solid <= 0)
+			return 0;
+		double rise = innerMed - outsideMed;
+		if (!(rise > 0.2))
+			return solid;
+		double cut = outsideMed + 0.5 * rise;
+		int k = solid;
+		while (k > 0 && score[k - 1] >= cut)
+			k--;
+		if (k <= 0)
+			return 0;
+		return refineCrossing(score, cut, k);
 	}
 
-	/**
-	 * Maps a profile onto 0 to 1. Both clues are contrasts measured against the
-	 * background beside the tube, so they already sit at zero away from the
-	 * capillary; taking zero as the low bound rather than a low percentile keeps
-	 * the scaling correct even for a ROI barely longer than the tube, where almost
-	 * every sample is on the capillary. The high bound is taken well up the
-	 * distribution rather than at the median, because the walls may only show over
-	 * the empty part of a tube, a minority of the samples. A profile whose peak
-	 * stays below {@code minAmplitude} carries no usable signal and is discarded,
-	 * which prevents plain noise from being stretched into a convincing shape.
-	 */
-	private static double[] normalize(double[] values, double minAmplitude) {
+	private static boolean persists(double[] values, int from, int count, double threshold) {
+		if (from + count > values.length)
+			return false;
+		for (int i = 0; i < count; i++) {
+			if (values[from + i] < threshold)
+				return false;
+		}
+		return true;
+	}
+
+	private static double refineCrossing(double[] values, double threshold, int index) {
+		if (index <= 0)
+			return index;
+		double vIn = values[index];
+		double vOut = values[index - 1];
+		double rise = vIn - vOut;
+		if (!(rise > 0))
+			return index;
+		double frac = (threshold - vOut) / rise;
+		if (frac < 0)
+			frac = 0;
+		if (frac > 1)
+			frac = 1;
+		return (index - 1) + frac;
+	}
+
+	private static double confidence(double[] smooth, int split, int outsideN) {
+		double[] out = copyRange(smooth, 0, Math.min(outsideN, split));
+		double[] in = copyRange(smooth, split, smooth.length);
+		if (out.length == 0 || in.length == 0)
+			return 0.;
+		double medIn = percentile(in, 50.);
+		double medOut = percentile(out, 50.);
+		double madIn = mad(in, medIn);
+		double madOut = mad(out, medOut);
+		return (medIn - medOut) / (madIn + madOut + 1.);
+	}
+
+	private static double[] copyRange(double[] values, int from, int to) {
+		if (to < from)
+			to = from;
+		if (from < 0)
+			from = 0;
+		if (to > values.length)
+			to = values.length;
+		double[] out = new double[to - from];
+		System.arraycopy(values, from, out, 0, out.length);
+		return out;
+	}
+
+	private static double mad(double[] values, double median) {
+		if (values.length == 0)
+			return 0.;
+		double[] dev = new double[values.length];
+		for (int i = 0; i < values.length; i++)
+			dev[i] = Math.abs(values[i] - median);
+		return percentile(dev, 50.);
+	}
+
+	private static double[] medianSmooth(double[] values, int radius) {
 		double[] out = new double[values.length];
-		double high = percentile(values, 95.);
-		if (!(high > 0) || high < minAmplitude)
-			return out;
 		for (int i = 0; i < values.length; i++) {
-			double v = values[i] / high;
-			out[i] = v < 0. ? 0. : (v > 1. ? 1. : v);
+			int from = Math.max(0, i - radius);
+			int to = Math.min(values.length, i + radius + 1);
+			out[i] = median(values, from, to);
 		}
 		return out;
+	}
+
+	private static double median(double[] values, int from, int to) {
+		return lowPercentile(values, from, to, 50.);
+	}
+
+	private static double lowPercentile(double[] values, int from, int to, double percent) {
+		int n = to - from;
+		if (n <= 0)
+			return 0.;
+		double[] slice = new double[n];
+		System.arraycopy(values, from, slice, 0, n);
+		return percentile(slice, percent);
+	}
+
+	private static double mean(double[] values, int from, int to) {
+		int n = to - from;
+		if (n <= 0)
+			return 0.;
+		double sum = 0.;
+		for (int i = from; i < to; i++)
+			sum += values[i];
+		return sum / n;
 	}
 
 	private static double[] normalAt(ArrayList<int[]> axis, int i, int window) {
@@ -433,42 +668,31 @@ public class CapillaryLengthDetector {
 		return new double[] { -ty / len, tx / len };
 	}
 
-	private static int[] findLongestRun(double[] values, double threshold, int from, int to) {
-		int bestStart = -1;
-		int bestEnd = -1;
-		int bestLength = 0;
-		int runStart = -1;
-		for (int i = from; i <= to; i++) {
-			if (values[i] >= threshold) {
-				if (runStart < 0)
-					runStart = i;
-				int length = i - runStart + 1;
-				if (length > bestLength) {
-					bestLength = length;
-					bestStart = runStart;
-					bestEnd = i;
-				}
-			} else {
-				runStart = -1;
-			}
-		}
-		return bestLength > 0 ? new int[] { bestStart, bestEnd } : null;
+	private static double grey(ImageData image, double x, double y) {
+		int x0 = (int) Math.floor(x);
+		int y0 = (int) Math.floor(y);
+		int x1 = x0 + 1;
+		int y1 = y0 + 1;
+		double fx = x - x0;
+		double fy = y - y0;
+		return (1. - fy) * ((1. - fx) * greyInt(image, x0, y0) + fx * greyInt(image, x1, y0))
+				+ fy * ((1. - fx) * greyInt(image, x0, y1) + fx * greyInt(image, x1, y1));
 	}
 
-	/**
-	 * Sub-pixel position where the presence profile crosses the threshold, just
-	 * outside the detected run (direction -1 for the start, +1 for the end).
-	 */
-	private static double refineCrossing(double[] values, double threshold, int index, int direction) {
-		int neighbour = index + direction;
-		if (neighbour < 0 || neighbour >= values.length)
-			return index;
-		double vIn = values[index];
-		double vOut = values[neighbour];
-		double drop = vIn - vOut;
-		if (!(drop > 0))
-			return index;
-		return index + direction * (vIn - threshold) / drop;
+	private static double greyInt(ImageData image, int x, int y) {
+		if (x < 0)
+			x = 0;
+		if (y < 0)
+			y = 0;
+		if (x >= image.width)
+			x = image.width - 1;
+		if (y >= image.height)
+			y = image.height - 1;
+		int idx = x + y * image.width;
+		double sum = 0.;
+		for (int c = 0; c < image.nChannels; c++)
+			sum += image.channels[c][idx];
+		return sum / image.nChannels;
 	}
 
 	private static Point2D interpolatePoint(ArrayList<int[]> axis, double frac) {
@@ -516,10 +740,10 @@ public class CapillaryLengthDetector {
 	// === cross-capillary validation ===
 
 	/**
-	 * Flags capillaries whose length departs from the smooth spatial pattern the
-	 * other capillaries describe. All tubes are physically identical, so any abrupt
-	 * departure is a detection failure (fly over the tip, bubble, misplaced ROI)
-	 * rather than real distortion.
+	 * Fits a smooth length-vs-X trend on the reliable tubes, then replaces every
+	 * usable capillary's length (and blue overlay) with that trend. Tip outliers
+	 * are cleaned first so the top/bottom curves used to place the overlays are
+	 * not pulled by a few bad tips.
 	 */
 	static void validate(CapillaryLengthResult result, int imageWidth, CapillaryLengthDetectorOptions options) {
 		List<CapillaryLengthResult.Measure> usable = new ArrayList<CapillaryLengthResult.Measure>();
@@ -530,6 +754,12 @@ public class CapillaryLengthDetector {
 		if (usable.isEmpty())
 			return;
 
+		correctEndpointOutliers(usable, imageWidth, options);
+		applyLengthTrend(result, usable, imageWidth, options);
+	}
+
+	private static void applyLengthTrend(CapillaryLengthResult result, List<CapillaryLengthResult.Measure> usable,
+			int imageWidth, CapillaryLengthDetectorOptions options) {
 		double[] lengths = new double[usable.size()];
 		for (int i = 0; i < usable.size(); i++)
 			lengths[i] = usable.get(i).getDetectedPixels();
@@ -545,28 +775,268 @@ public class CapillaryLengthDetector {
 		}
 
 		double tolerance = options.outlierMadFactor * MAD_TO_SIGMA * percentile(residuals, 50.);
-		double floor = 0.01 * median;
+		double floor = options.outlierMinTolerance * median;
 		if (!(tolerance > floor))
 			tolerance = floor;
 
+		List<CapillaryLengthResult.Measure> inliers = new ArrayList<CapillaryLengthResult.Measure>();
 		List<Double> retained = new ArrayList<Double>();
 		for (int i = 0; i < usable.size(); i++) {
 			CapillaryLengthResult.Measure m = usable.get(i);
 			if (residuals[i] <= tolerance) {
+				inliers.add(m);
 				retained.add(Double.valueOf(m.getDetectedPixels()));
-				continue;
 			}
-			m.setStatus(CapillaryLengthResult.Status.OUTLIER);
-			m.setSelected(false);
-			m.setMessage(String.format("%.0f px off the trend of the other capillaries", residuals[i]));
 		}
 
-		// Report the spread over the capillaries that follow the trend, so that a
-		// detection failure is not mistaken for a huge distortion.
-		double[] kept = retained.isEmpty() ? lengths : toArray(retained);
-		result.setMedianPixels(percentile(kept, 50.));
-		result.setMinPixels(min(kept));
-		result.setMaxPixels(max(kept));
+		if (inliers.isEmpty()) {
+			for (CapillaryLengthResult.Measure m : usable) {
+				m.setStatus(CapillaryLengthResult.Status.OUTLIER);
+				m.setSelected(false);
+				m.setMessage("off the trend of the other capillaries");
+			}
+			result.setMedianPixels(median);
+			result.setMinPixels(min(lengths));
+			result.setMaxPixels(max(lengths));
+			return;
+		}
+
+		double[] fit2 = fitLengthVersusPosition(inliers, imageWidth);
+		double inlierMedian = percentile(toArray(retained), 50.);
+		for (CapillaryLengthResult.Measure m : usable) {
+			double expected = fit2 != null ? evaluateFit(fit2, normalizeX(m.getCentroidX(), imageWidth))
+					: inlierMedian;
+			m.setFittedPixels(expected);
+		}
+
+		applyTrendOverlays(usable, imageWidth);
+
+		double[] applied = new double[usable.size()];
+		for (int i = 0; i < usable.size(); i++)
+			applied[i] = usable.get(i).getDetectedPixels();
+		result.setMedianPixels(percentile(applied, 50.));
+		result.setMinPixels(min(applied));
+		result.setMaxPixels(max(applied));
+	}
+
+	/**
+	 * Replaces every usable length with {@code fittedPixels} and rebuilds the
+	 * overlay so its tip-to-tip distance matches. Placement uses the midpoint of
+	 * the smooth top and bottom tip trends, so lengths vary regularly along X.
+	 */
+	static void applyTrendOverlays(List<CapillaryLengthResult.Measure> usable, int imageWidth) {
+		List<CapillaryLengthResult.Measure> withEnds = new ArrayList<CapillaryLengthResult.Measure>();
+		for (CapillaryLengthResult.Measure m : usable) {
+			if (m.hasDetectedEndpoints() && Double.isFinite(m.getCentroidX()))
+				withEnds.add(m);
+		}
+
+		double[] topFit = null;
+		double[] botFit = null;
+		double topMed = Double.NaN;
+		double botMed = Double.NaN;
+		if (withEnds.size() >= MIN_POINTS_FOR_LINEAR_FIT) {
+			double[] topY = valuesFor(withEnds, true);
+			double[] botY = valuesFor(withEnds, false);
+			topFit = fitScalarVersusPosition(withEnds, imageWidth, topY);
+			botFit = fitScalarVersusPosition(withEnds, imageWidth, botY);
+			topMed = percentile(topY, 50.);
+			botMed = percentile(botY, 50.);
+		}
+
+		for (CapillaryLengthResult.Measure m : usable) {
+			double target = m.getFittedPixels();
+			if (!Double.isFinite(target) || target <= 0)
+				continue;
+			double raw = m.getDetectedPixels();
+			if (m.hasDetectedEndpoints() && withEnds.size() >= MIN_POINTS_FOR_LINEAR_FIT) {
+				double u = normalizeX(m.getCentroidX(), imageWidth);
+				double fittedTop = topFit != null ? evaluateFit(topFit, u) : topMed;
+				double fittedBot = botFit != null ? evaluateFit(botFit, u) : botMed;
+				double mid = 0.5 * (fittedTop + fittedBot);
+				double newTop = mid - 0.5 * target;
+				double newBot = mid + 0.5 * target;
+				applyEndpointYs(m, newTop, newBot, axisOf(m));
+			}
+			m.setDetectedPixels(target);
+			m.setSelected(true);
+			if (Math.abs(raw - target) > 1.5) {
+				m.setStatus(CapillaryLengthResult.Status.CORRECTED);
+				m.setMessage(String.format("replaced %.0f px with trend %.0f px", raw, target));
+			} else if (m.getStatus() != CapillaryLengthResult.Status.CORRECTED
+					&& m.getStatus() != CapillaryLengthResult.Status.BORDER) {
+				m.setStatus(CapillaryLengthResult.Status.OK);
+				m.setMessage("trend length");
+			}
+		}
+	}
+
+	/**
+	 * Tops should form a smooth curve across the image, and bottoms another.
+	 * Moving only the outlier end avoids stretching a false tip that sits on the
+	 * glass (high wall score) and shoving the other end past the tube.
+	 */
+	static void correctEndpointOutliers(List<CapillaryLengthResult.Measure> measures, int imageWidth,
+			CapillaryLengthDetectorOptions options) {
+		List<CapillaryLengthResult.Measure> withEnds = new ArrayList<CapillaryLengthResult.Measure>();
+		for (CapillaryLengthResult.Measure m : measures) {
+			if (m.hasDetectedEndpoints() && Double.isFinite(m.getCentroidX()))
+				withEnds.add(m);
+		}
+		if (withEnds.size() < MIN_POINTS_FOR_LINEAR_FIT)
+			return;
+
+		int n = withEnds.size();
+		double[] topY = new double[n];
+		double[] botY = new double[n];
+		double[] span = new double[n];
+		for (int i = 0; i < n; i++) {
+			Point2D a = withEnds.get(i).getDetectedStart();
+			Point2D b = withEnds.get(i).getDetectedEnd();
+			topY[i] = Math.min(a.getY(), b.getY());
+			botY[i] = Math.max(a.getY(), b.getY());
+			span[i] = botY[i] - topY[i];
+		}
+		double medianSpan = percentile(span, 50.);
+		double[] fitTop = fitScalarVersusPosition(withEnds, imageWidth, topY);
+		double[] fitBot = fitScalarVersusPosition(withEnds, imageWidth, botY);
+		double[] topRes = residualsVersusFit(withEnds, imageWidth, topY, fitTop);
+		double[] botRes = residualsVersusFit(withEnds, imageWidth, botY, fitBot);
+		double topTol = yTolerance(topRes, medianSpan, options);
+		double botTol = yTolerance(botRes, medianSpan, options);
+
+		List<CapillaryLengthResult.Measure> topInliers = inliersOf(withEnds, topRes, topTol);
+		List<CapillaryLengthResult.Measure> botInliers = inliersOf(withEnds, botRes, botTol);
+		double[] topFit2 = topInliers.size() >= MIN_POINTS_FOR_LINEAR_FIT
+				? fitScalarVersusPosition(topInliers, imageWidth, valuesFor(topInliers, true))
+				: fitTop;
+		double[] botFit2 = botInliers.size() >= MIN_POINTS_FOR_LINEAR_FIT
+				? fitScalarVersusPosition(botInliers, imageWidth, valuesFor(botInliers, false))
+				: fitBot;
+		double topMed = percentile(topY, 50.);
+		double botMed = percentile(botY, 50.);
+
+		for (int i = 0; i < n; i++) {
+			CapillaryLengthResult.Measure m = withEnds.get(i);
+			double u = normalizeX(m.getCentroidX(), imageWidth);
+			double fittedTop = topFit2 != null ? evaluateFit(topFit2, u) : topMed;
+			double fittedBot = botFit2 != null ? evaluateFit(botFit2, u) : botMed;
+			boolean fixTop = topRes[i] > topTol;
+			boolean fixBot = botRes[i] > botTol;
+			if (!fixTop && !fixBot)
+				continue;
+			double newTop = fixTop ? fittedTop : topY[i];
+			double newBot = fixBot ? fittedBot : botY[i];
+			if (newBot < newTop + 4.)
+				newBot = newTop + 4.;
+			ArrayList<int[]> axis = axisOf(m);
+			StringBuilder note = new StringBuilder();
+			if (fixTop)
+				note.append(String.format("top %.0f->%.0f", topY[i], newTop));
+			if (fixBot) {
+				if (note.length() > 0)
+					note.append(", ");
+				note.append(String.format("bottom %.0f->%.0f", botY[i], newBot));
+			}
+			applyEndpointYs(m, newTop, newBot, axis);
+			m.setStatus(CapillaryLengthResult.Status.CORRECTED);
+			m.setSelected(true);
+			m.setMessage("replaced " + note);
+		}
+	}
+
+	private static double yTolerance(double[] residuals, double medianSpan, CapillaryLengthDetectorOptions options) {
+		double mad = percentile(residuals, 50.);
+		double tolerance = options.outlierMadFactor * MAD_TO_SIGMA * mad;
+		double floor = Math.max(6., 0.015 * medianSpan);
+		if (!(tolerance > floor))
+			tolerance = floor;
+		return tolerance;
+	}
+
+	private static List<CapillaryLengthResult.Measure> inliersOf(List<CapillaryLengthResult.Measure> measures,
+			double[] residuals, double tolerance) {
+		List<CapillaryLengthResult.Measure> inliers = new ArrayList<CapillaryLengthResult.Measure>();
+		for (int i = 0; i < measures.size(); i++) {
+			if (residuals[i] <= tolerance)
+				inliers.add(measures.get(i));
+		}
+		return inliers;
+	}
+
+	private static double[] valuesFor(List<CapillaryLengthResult.Measure> measures, boolean tops) {
+		double[] values = new double[measures.size()];
+		for (int i = 0; i < measures.size(); i++) {
+			Point2D a = measures.get(i).getDetectedStart();
+			Point2D b = measures.get(i).getDetectedEnd();
+			values[i] = tops ? Math.min(a.getY(), b.getY()) : Math.max(a.getY(), b.getY());
+		}
+		return values;
+	}
+
+	private static double[] residualsVersusFit(List<CapillaryLengthResult.Measure> measures, int imageWidth,
+			double[] values, double[] fit) {
+		double[] residuals = new double[values.length];
+		double median = percentile(values, 50.);
+		for (int i = 0; i < values.length; i++) {
+			double expected = fit != null ? evaluateFit(fit, normalizeX(measures.get(i).getCentroidX(), imageWidth))
+					: median;
+			residuals[i] = Math.abs(values[i] - expected);
+		}
+		return residuals;
+	}
+
+	private static ArrayList<int[]> axisOf(CapillaryLengthResult.Measure m) {
+		Capillary cap = m.getCapillary();
+		if (cap == null || cap.getRoi() == null)
+			return null;
+		ArrayList<Point2D> roiPoints = ROI2DUtilities.getCapillaryPoints(cap.getRoi());
+		if (roiPoints.size() < 2)
+			return null;
+		ArrayList<int[]> axis = Bresenham.getPixelsAlongLineFromROI2D(roiPoints);
+		return axis.size() < 2 ? null : axis;
+	}
+
+	/**
+	 * Places the overlay ends at {@code topY} / {@code botY}, walking the ROI
+	 * when one is available so a tilted tube stays on its axis.
+	 */
+	static void applyEndpointYs(CapillaryLengthResult.Measure m, double topY, double botY, ArrayList<int[]> axis) {
+		if (m == null || !m.hasDetectedEndpoints())
+			return;
+		Point2D start = m.getDetectedStart();
+		Point2D end = m.getDetectedEnd();
+		boolean startIsTop = start.getY() <= end.getY();
+		Point2D oldTop = startIsTop ? start : end;
+		Point2D oldBot = startIsTop ? end : start;
+		Point2D top;
+		Point2D bot;
+		if (axis != null && axis.size() >= 2) {
+			top = pointOnAxisAtY(axis, topY);
+			bot = pointOnAxisAtY(axis, botY);
+		} else {
+			top = new Point2D.Double(oldTop.getX(), topY);
+			bot = new Point2D.Double(oldBot.getX(), botY);
+		}
+		if (startIsTop)
+			m.setDetectedEndpoints(top, bot);
+		else
+			m.setDetectedEndpoints(bot, top);
+		m.setDetectedPixels(top.distance(bot));
+	}
+
+	static Point2D pointOnAxisAtY(ArrayList<int[]> axis, double targetY) {
+		int best = 0;
+		double bestD = Double.POSITIVE_INFINITY;
+		for (int i = 0; i < axis.size(); i++) {
+			double d = Math.abs(axis.get(i)[1] - targetY);
+			if (d < bestD) {
+				bestD = d;
+				best = i;
+			}
+		}
+		int[] p = axis.get(best);
+		return new Point2D.Double(p[0], p[1]);
 	}
 
 	private static double[] toArray(List<Double> values) {
@@ -581,23 +1051,27 @@ public class CapillaryLengthDetector {
 		return (x - halfWidth) / halfWidth;
 	}
 
-	/**
-	 * Least-squares fit of length versus horizontal position: the linear term
-	 * captures camera tilt, the quadratic term the radial lens effect. Returns the
-	 * coefficients of {@code a + b*u + c*u^2}, or null when there are too few
-	 * points.
-	 */
 	private static double[] fitLengthVersusPosition(List<CapillaryLengthResult.Measure> measures, int imageWidth) {
+		double[] values = new double[measures.size()];
+		for (int i = 0; i < measures.size(); i++)
+			values[i] = measures.get(i).getDetectedPixels();
+		return fitScalarVersusPosition(measures, imageWidth, values);
+	}
+
+	private static double[] fitScalarVersusPosition(List<CapillaryLengthResult.Measure> measures, int imageWidth,
+			double[] values) {
 		int n = measures.size();
+		if (values == null || values.length != n)
+			return null;
 		int degree = n >= MIN_POINTS_FOR_QUADRATIC_FIT ? 2 : (n >= MIN_POINTS_FOR_LINEAR_FIT ? 1 : -1);
 		if (degree < 0)
 			return null;
 
 		int nCoef = degree + 1;
 		double[][] normal = new double[nCoef][nCoef + 1];
-		for (CapillaryLengthResult.Measure m : measures) {
-			double u = normalizeX(m.getCentroidX(), imageWidth);
-			double y = m.getDetectedPixels();
+		for (int i = 0; i < n; i++) {
+			double u = normalizeX(measures.get(i).getCentroidX(), imageWidth);
+			double y = values[i];
 			double[] powers = new double[nCoef];
 			powers[0] = 1.;
 			for (int k = 1; k < nCoef; k++)
@@ -669,52 +1143,68 @@ public class CapillaryLengthDetector {
 			return null;
 		int nTotalFrames = seqCamData.getImageLoader() != null ? seqCamData.getImageLoader().getNTotalFrames() : 0;
 		int first = Math.max(0, options.frameIndex);
-		int nFrames = Math.max(1, options.nFramesAveraged);
-		if (nTotalFrames > 0)
-			nFrames = Math.min(nFrames, Math.max(1, nTotalFrames - first));
+		int nWanted = Math.max(1, options.nFramesAveraged);
+		int stride = Math.max(1, options.frameStride);
 
 		SequenceLoaderService loader = new SequenceLoaderService();
-		double[][] accumulator = null;
-		int width = 0;
-		int height = 0;
-		int nAveraged = 0;
+		List<ImageData> frames = new ArrayList<ImageData>();
 
-		for (int i = 0; i < nFrames; i++) {
-			String path = seqCamData.getFileNameFromImageList(first + i);
+		for (int i = 0; i < nWanted; i++) {
+			int t = first + i * stride;
+			if (nTotalFrames > 0 && t >= nTotalFrames)
+				break;
+			String path = seqCamData.getFileNameFromImageList(t);
 			if (path == null)
 				continue;
 			IcyBufferedImage image = loader.imageIORead(path);
 			if (image == null)
 				continue;
-			if (accumulator == null) {
-				width = image.getSizeX();
-				height = image.getSizeY();
-				accumulator = new double[Math.max(1, Math.min(3, image.getSizeC()))][width * height];
-			} else if (image.getSizeX() != width || image.getSizeY() != height) {
-				Logger.warn("CapillaryLengthDetector: frame " + (first + i) + " has a different size, skipped");
-				continue;
+			if (!frames.isEmpty()) {
+				ImageData firstFrame = frames.get(0);
+				if (image.getSizeX() != firstFrame.width || image.getSizeY() != firstFrame.height) {
+					Logger.warn("CapillaryLengthDetector: frame " + t + " has a different size, skipped");
+					continue;
+				}
 			}
-			int nCh = Math.min(accumulator.length, image.getSizeC());
+			int width = image.getSizeX();
+			int height = image.getSizeY();
+			int nCh = Math.max(1, Math.min(3, image.getSizeC()));
+			double[][] channels = new double[nCh][width * height];
 			for (int c = 0; c < nCh; c++) {
 				double[] values = Array1DUtil.arrayToDoubleArray(image.getDataXY(c), image.isSignedDataType());
-				for (int p = 0; p < accumulator[c].length && p < values.length; p++)
-					accumulator[c][p] += values[p];
+				int n = Math.min(channels[c].length, values.length);
+				System.arraycopy(values, 0, channels[c], 0, n);
 			}
-			nAveraged++;
+			frames.add(new ImageData(width, height, channels));
 		}
 
-		if (accumulator == null || nAveraged == 0)
+		if (frames.isEmpty())
 			return null;
-		if (nAveraged > 1) {
-			for (int c = 0; c < accumulator.length; c++) {
-				for (int p = 0; p < accumulator[c].length; p++)
-					accumulator[c][p] /= nAveraged;
-			}
-		}
-		return new ImageData(width, height, accumulator);
+		return combineFrames(frames);
 	}
 
-	// === small statistics helpers ===
+	/**
+	 * Per-pixel median across frames. A fly present in a minority of frames
+	 * disappears; the glass walls, present in every frame, remain.
+	 */
+	static ImageData combineFrames(List<ImageData> frames) {
+		if (frames == null || frames.isEmpty())
+			return null;
+		if (frames.size() == 1)
+			return frames.get(0);
+		ImageData first = frames.get(0);
+		int n = frames.size();
+		double[][] out = new double[first.nChannels][first.width * first.height];
+		double[] buf = new double[n];
+		for (int c = 0; c < first.nChannels; c++) {
+			for (int p = 0; p < out[c].length; p++) {
+				for (int f = 0; f < n; f++)
+					buf[f] = frames.get(f).channels[c][p];
+				out[c][p] = percentile(buf, 50.);
+			}
+		}
+		return new ImageData(first.width, first.height, out);
+	}
 
 	private static double percentile(double[] values, double percent) {
 		if (values.length == 0)

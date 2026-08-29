@@ -16,6 +16,7 @@ public class CapillaryLengthResult {
 	public enum Status {
 		OK("ok"),
 		BORDER("reaches ROI end"),
+		CORRECTED("replaced by trend"),
 		OUTLIER("outlier"),
 		FAILED("not detected"),
 		NO_ROI("no ROI");
@@ -32,7 +33,7 @@ public class CapillaryLengthResult {
 
 		/** True when the detected length is usable as a calibration value. */
 		public boolean isUsable() {
-			return this == OK || this == BORDER;
+			return this == OK || this == BORDER || this == CORRECTED;
 		}
 	}
 
@@ -46,6 +47,8 @@ public class CapillaryLengthResult {
 		private double centroidX = Double.NaN;
 		private Point2D detectedStart = null;
 		private Point2D detectedEnd = null;
+		private double startConfidence = Double.NaN;
+		private double endConfidence = Double.NaN;
 		private Status status = Status.FAILED;
 		private String message = "";
 		private boolean selected = false;
@@ -116,6 +119,22 @@ public class CapillaryLengthResult {
 
 		public boolean hasDetectedEndpoints() {
 			return detectedStart != null && detectedEnd != null;
+		}
+
+		public double getStartConfidence() {
+			return startConfidence;
+		}
+
+		public void setStartConfidence(double startConfidence) {
+			this.startConfidence = startConfidence;
+		}
+
+		public double getEndConfidence() {
+			return endConfidence;
+		}
+
+		public void setEndConfidence(double endConfidence) {
+			this.endConfidence = endConfidence;
 		}
 
 		public Status getStatus() {
