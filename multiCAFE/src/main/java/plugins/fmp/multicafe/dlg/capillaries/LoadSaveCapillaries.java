@@ -14,6 +14,7 @@ import javax.swing.SwingConstants;
 import icy.gui.util.FontUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 
 public class LoadSaveCapillaries extends JPanel {
 	/**
@@ -70,6 +71,9 @@ public class LoadSaveCapillaries extends JPanel {
 	public boolean loadCapillaries_File(Experiment exp) {
 		boolean flag = exp.loadMCCapillaries_Only();
 		exp.getCapillaries().transferROIsToSequence(exp.getSeqCamData().getSequence());
+		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData());
+		if (parent0 != null && parent0.paneExperiment != null && parent0.paneExperiment.tabOptions != null)
+			parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
 		if (flag && exp.getCages() != null)
 			exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
 		return flag;
@@ -85,6 +89,7 @@ public class LoadSaveCapillaries extends JPanel {
 
 		exp.saveExperimentDescriptors();
 		exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
+		CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData());
 		// Use new CSV-based persistence: descriptions in results/, measures in binXX/
 		return exp.save_capillaries_description_and_measures();
 	}

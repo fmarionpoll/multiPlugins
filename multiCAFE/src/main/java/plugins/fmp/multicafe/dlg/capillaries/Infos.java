@@ -1,12 +1,9 @@
 package plugins.fmp.multicafe.dlg.capillaries;
 
-import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.awt.geom.Line2D;
-import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,15 +23,13 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryProperties;
-import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 import plugins.fmp.multitools.service.CapillaryLengthDetector;
 import plugins.fmp.multitools.service.CapillaryLengthDetectorOptions;
 import plugins.fmp.multitools.service.CapillaryLengthResult;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthMeasureDialog;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthOptionsDialog;
 import plugins.fmp.multitools.tools.Logger;
-import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class Infos extends JPanel {
 	/**
@@ -57,15 +52,6 @@ public class Infos extends JPanel {
 
 	private static final String AUTO_MEASURE_TITLE = "Auto-measure capillary lengths";
 	private static final String RESET_TITLE = "Reset capillary lengths";
-
-	/**
-	 * Prefix of the overlay ROIs showing the measured extent. It deliberately
-	 * matches none of the patterns used to collect capillary, cage or spot ROIs
-	 * ("line", "cage", "spot", "det", "row", "col"), so these overlays are never
-	 * mistaken for data.
-	 */
-	private static final String MEASURED_ROI_PREFIX = "caplength_";
-	private static final Color MEASURED_ROI_COLOR = new Color(120, 200, 255);
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -416,55 +402,22 @@ public class Infos extends JPanel {
 	// measured extent overlay
 
 	/**
-	 * Draws the segment the detector measured over each capillary, so the
-	 * calibration can be checked against the image itself. Any previous overlay is
-	 * replaced.
+	 * Draws the segment measured for each capillary (editable light-blue tips).
 	 *
 	 * @return number of capillaries drawn
 	 */
 	private int showMeasuredLengths(Experiment exp) {
-		SequenceCamData seqCamData = exp != null ? exp.getSeqCamData() : null;
-		if (seqCamData == null || seqCamData.getSequence() == null || exp.getCapillaries() == null)
+		if (exp == null || exp.getSeqCamData() == null || exp.getCapillaries() == null)
 			return 0;
-		removeMeasuredLengths(exp);
-
-		int shown = 0;
-		for (Capillary cap : exp.getCapillaries().getList()) {
-			CapillaryProperties props = cap.getProperties();
-			if (!props.hasMeasuredEndpoints())
-				continue;
-			Point2D start = props.getMeasuredStart();
-			Point2D end = props.getMeasuredEnd();
-			ROI2DLine roi = new ROI2DLine(new Line2D.Double(start, end));
-			roi.setName(MEASURED_ROI_PREFIX + overlaySuffix(cap, shown));
-			roi.setColor(MEASURED_ROI_COLOR);
-			roi.setStroke(3);
-			roi.setReadOnly(true);
-			roi.setT(-1);
-			seqCamData.getSequence().addROI(roi);
-			shown++;
-		}
+		int shown = CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData());
+		if (shown > 0 && parent0 != null && parent0.paneExperiment != null && parent0.paneExperiment.tabOptions != null)
+			parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);
 		return shown;
 	}
 
-	/**
-	 * Identifies the overlay without reusing the capillary ROI name, which starts
-	 * with "line" and would make the overlay look like a capillary ROI.
-	 */
-	private static String overlaySuffix(Capillary cap, int fallbackIndex) {
-		String prefix = cap.getKymographPrefix();
-		if (prefix == null || prefix.isEmpty()) {
-			String roiName = cap.getRoiName();
-			if (roiName != null && roiName.startsWith("line") && roiName.length() > 4)
-				prefix = roiName.substring(4);
-		}
-		return prefix != null && !prefix.isEmpty() ? prefix : Integer.toString(fallbackIndex);
-	}
-
 	private void removeMeasuredLengths(Experiment exp) {
-		SequenceCamData seqCamData = exp != null ? exp.getSeqCamData() : null;
-		if (seqCamData != null && seqCamData.getSequence() != null)
-			seqCamData.removeROIsContainingString(MEASURED_ROI_PREFIX);
+		if (exp != null)
+			CapillaryMeasuredTipsOverlay.removeTipsFromSequence(exp.getSeqCamData());
 	}
 
 	private void refreshMeasuredLengths(Experiment exp) {
@@ -475,6 +428,7 @@ public class Infos extends JPanel {
 	}
 
 	private void saveCapillaries(Experiment exp) {
+		CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData());
 		exp.saveMCCapillaries_Only();
 		exp.save_capillaries_description_and_measures();
 	}

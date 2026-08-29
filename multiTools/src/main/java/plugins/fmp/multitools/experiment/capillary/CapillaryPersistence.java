@@ -157,9 +157,9 @@ public class CapillaryPersistence {
 	public static String csvExportCapillarySubSectionHeader(String sep) {
 		StringBuffer sbf = new StringBuffer();
 		sbf.append("#" + sep + "CAPILLARIES" + sep + "describe each capillary\n");
-		List<String> row2 = new ArrayList<>(Arrays.asList("cap_prefix", "kymoIndex", "roiName", "kymoFile", "cap_cage",
-				"cap_nflies", "cap_volume", "cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType",
-				"npoints"));
+		List<String> row2 = new ArrayList<>(
+				Arrays.asList("cap_prefix", "kymoIndex", "roiName", "kymoFile", "cap_cage", "cap_nflies", "cap_volume",
+						"cap_npixel", "cap_stim", "cap_conc", "cap_side", "ROIname", "roiType", "npoints"));
 		row2.addAll(DetectionProvenanceSupport.CAPILLARY_PROVENANCE_COLUMNS);
 		row2.add("bottom_baseline_y");
 		row2.add("bottom_baseline_mad");
@@ -169,6 +169,10 @@ public class CapillaryPersistence {
 		row2.add("cap_measured_y1");
 		row2.add("cap_measured_x2");
 		row2.add("cap_measured_y2");
+		row2.add("cap_length_x1");
+		row2.add("cap_length_y1");
+		row2.add("cap_length_x2");
+		row2.add("cap_length_y2");
 		sbf.append(String.join(sep, row2));
 		sbf.append("\n");
 		return sbf.toString();
@@ -220,13 +224,14 @@ public class CapillaryPersistence {
 			capPrefix = "";
 		}
 
-		// Build base row data; use listIndex when kymographIndex is invalid to avoid persisting -1
+		// Build base row data; use listIndex when kymographIndex is invalid to avoid
+		// persisting -1
 		int kymoIndex = cap.getKymographIndex() >= 0 ? cap.getKymographIndex()
 				: (listIndex >= 0 ? listIndex : cap.getKymographIndex());
-		List<String> row = new ArrayList<>(Arrays.asList(capPrefix, Integer.toString(kymoIndex),
-				cap.getKymographName(), cap.getKymographFileName(), Integer.toString(props.getCageID()),
-				Integer.toString(props.getNFlies()), Double.toString(props.getVolume()),
-				Integer.toString(props.getPixels()), props.getStimulus(), props.getConcentration(), props.getSide()));
+		List<String> row = new ArrayList<>(Arrays.asList(capPrefix, Integer.toString(kymoIndex), cap.getKymographName(),
+				cap.getKymographFileName(), Integer.toString(props.getCageID()), Integer.toString(props.getNFlies()),
+				Double.toString(props.getVolume()), Integer.toString(props.getPixels()), props.getStimulus(),
+				props.getConcentration(), props.getSide()));
 
 		// Add ROI name and type (v2.1 format)
 		String roiName = (cap.getRoi() != null && cap.getRoi().getName() != null) ? cap.getRoi().getName() : "";
@@ -530,8 +535,9 @@ public class CapillaryPersistence {
 								cap.setRoi(roiPolyline);
 							}
 						} catch (Exception e) {
-							Logger.warn("CapillaryPersistence:csvImportCapillaryDescription() ROI reconstruction skipped: "
-									+ e.getMessage());
+							Logger.warn(
+									"CapillaryPersistence:csvImportCapillaryDescription() ROI reconstruction skipped: "
+											+ e.getMessage());
 						}
 						i += npoints * 2;
 					}
@@ -589,8 +595,8 @@ public class CapillaryPersistence {
 		}
 	}
 
-	public static void csvImportCapillaryData(Capillary cap, EnumResults measureType, String[] data,
-			boolean x, boolean y) {
+	public static void csvImportCapillaryData(Capillary cap, EnumResults measureType, String[] data, boolean x,
+			boolean y) {
 		try {
 			switch (measureType) {
 			case TOPRAW:

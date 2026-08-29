@@ -13,6 +13,7 @@ package plugins.fmp.multitools.experiment.cafe;
 public class CafeViewOptionsDTO {
 
 	private boolean viewCapillaries = true;
+	private boolean viewCapTips = true;
 	private boolean viewCages = true;
 	private boolean viewFliesCenter = false;
 	private boolean viewFliesRect = false;
@@ -27,6 +28,14 @@ public class CafeViewOptionsDTO {
 
 	public void setViewCapillaries(boolean viewCapillaries) {
 		this.viewCapillaries = viewCapillaries;
+	}
+
+	public boolean isViewCapTips() {
+		return viewCapTips;
+	}
+
+	public void setViewCapTips(boolean viewCapTips) {
+		this.viewCapTips = viewCapTips;
 	}
 
 	public boolean isViewCages() {

@@ -12,6 +12,7 @@ import plugins.fmp.multitools.experiment.cafe.CafeViewOptionsDTO;
 public class ViewOptionsHolder extends ViewOptionsHolderBase {
 
 	private static final String KEY_VIEW_CAPILLARIES = "viewCapillaries";
+	private static final String KEY_VIEW_CAP_TIPS = "viewCapTips";
 	private static final String KEY_VIEW_FLIES_CENTER = "viewFliesCenter";
 	private static final String KEY_VIEW_FLIES_RECT = "viewFliesRect";
 	private static final String KEY_VIEW_TOPLEVELS = "viewTopLevels";
@@ -20,6 +21,7 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	private static final String KEY_VIEW_GULPS = "viewGulps";
 
 	private boolean viewCapillaries = true;
+	private boolean viewCapTips = true;
 	private boolean viewFliesCenter = false;
 	private boolean viewFliesRect = false;
 	private boolean viewTopLevels = true;
@@ -33,6 +35,14 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 
 	public void setViewCapillaries(boolean viewCapillaries) {
 		this.viewCapillaries = viewCapillaries;
+	}
+
+	public boolean isViewCapTips() {
+		return viewCapTips;
+	}
+
+	public void setViewCapTips(boolean viewCapTips) {
+		this.viewCapTips = viewCapTips;
 	}
 
 	public boolean isViewFliesCenter() {
@@ -86,6 +96,7 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	@Override
 	protected void loadPluginFields(XMLPreferences prefs) {
 		viewCapillaries = readBool(prefs, KEY_VIEW_CAPILLARIES, true);
+		viewCapTips = readBool(prefs, KEY_VIEW_CAP_TIPS, true);
 		viewFliesCenter = readBool(prefs, KEY_VIEW_FLIES_CENTER, false);
 		viewFliesRect = readBool(prefs, KEY_VIEW_FLIES_RECT, false);
 		viewTopLevels = readBool(prefs, KEY_VIEW_TOPLEVELS, true);
@@ -97,6 +108,7 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	@Override
 	protected void savePluginFields(XMLPreferences prefs) {
 		prefs.put(KEY_VIEW_CAPILLARIES, String.valueOf(viewCapillaries));
+		prefs.put(KEY_VIEW_CAP_TIPS, String.valueOf(viewCapTips));
 		prefs.put(KEY_VIEW_FLIES_CENTER, String.valueOf(viewFliesCenter));
 		prefs.put(KEY_VIEW_FLIES_RECT, String.valueOf(viewFliesRect));
 		prefs.put(KEY_VIEW_TOPLEVELS, String.valueOf(viewTopLevels));
@@ -108,6 +120,7 @@ public class ViewOptionsHolder extends ViewOptionsHolderBase {
 	public CafeViewOptionsDTO toCafeViewOptionsDTO() {
 		CafeViewOptionsDTO dto = new CafeViewOptionsDTO();
 		dto.setViewCapillaries(viewCapillaries);
+		dto.setViewCapTips(viewCapTips);
 		dto.setViewCages(viewCages);
 		dto.setViewFliesCenter(viewFliesCenter);
 		dto.setViewFliesRect(viewFliesRect);

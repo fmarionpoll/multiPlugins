@@ -66,10 +66,23 @@ public class CapillaryLengthOptionsDialog {
 		JSpinner strideSpinner = new JSpinner(new SpinnerNumberModel(Math.max(1, defaults.frameStride), 1, 50, 1));
 		JSpinner lengthMmSpinner = new JSpinner(
 				new SpinnerNumberModel(defaults.physicalLengthMm > 0 ? defaults.physicalLengthMm : 32., 1., 200., 0.5));
+		JLabel frameLabel = new JLabel("First frame");
+		JLabel nFramesLabel = new JLabel("Frames combined");
+		JLabel strideLabel = new JLabel("Frame stride");
+		JLabel lengthMmLabel = new JLabel("Physical length (mm)");
 		frameSpinner.setToolTipText("First camera frame used for the measurement.");
 		nFramesSpinner.setToolTipText("Number of frames combined (median) before tip detection.");
-		strideSpinner.setToolTipText("Spacing between those frames, so a transient fly is outvoted.");
+		String strideTip = "<html>Spacing between the frames that are averaged.<br>"
+				+ "Example with first frame 0, 7 frames combined, stride 3:<br>"
+				+ "frames used = 0, 3, 6, 9, 12, 15, 18.<br>"
+				+ "A larger stride means frames further apart in time,<br>"
+				+ "so a fly that only sits briefly is less likely to affect the tips.</html>";
+		strideSpinner.setToolTipText(strideTip);
+		strideLabel.setToolTipText(strideTip);
 		lengthMmSpinner.setToolTipText("Physical capillary length used to report mm/pixel.");
+		frameLabel.setToolTipText(frameSpinner.getToolTipText());
+		nFramesLabel.setToolTipText(nFramesSpinner.getToolTipText());
+		lengthMmLabel.setToolTipText(lengthMmSpinner.getToolTipText());
 
 		JPanel paramsPanel = new JPanel(new GridBagLayout());
 		paramsPanel.setBorder(BorderFactory.createTitledBorder("Detection"));
@@ -78,22 +91,22 @@ public class CapillaryLengthOptionsDialog {
 		c.insets = new Insets(2, 4, 2, 4);
 		c.gridy = 0;
 		c.gridx = 0;
-		paramsPanel.add(new JLabel("First frame"), c);
+		paramsPanel.add(frameLabel, c);
 		c.gridx = 1;
 		paramsPanel.add(frameSpinner, c);
 		c.gridy = 1;
 		c.gridx = 0;
-		paramsPanel.add(new JLabel("Frames combined"), c);
+		paramsPanel.add(nFramesLabel, c);
 		c.gridx = 1;
 		paramsPanel.add(nFramesSpinner, c);
 		c.gridy = 2;
 		c.gridx = 0;
-		paramsPanel.add(new JLabel("Frame stride"), c);
+		paramsPanel.add(strideLabel, c);
 		c.gridx = 1;
 		paramsPanel.add(strideSpinner, c);
 		c.gridy = 3;
 		c.gridx = 0;
-		paramsPanel.add(new JLabel("Physical length (mm)"), c);
+		paramsPanel.add(lengthMmLabel, c);
 		c.gridx = 1;
 		paramsPanel.add(lengthMmSpinner, c);
 

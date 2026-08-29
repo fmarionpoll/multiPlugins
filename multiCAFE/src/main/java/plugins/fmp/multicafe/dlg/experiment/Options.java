@@ -18,6 +18,7 @@ import icy.roi.ROI;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multicafe.ViewOptionsHolder;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 
 public class Options extends JPanel {
 	private static final long serialVersionUID = 6565346204580890307L;
@@ -28,6 +29,7 @@ public class Options extends JPanel {
 	public JCheckBox graphsCheckBox = new JCheckBox("levels & move", true);
 
 	public JCheckBox viewCapillariesCheckBox = new JCheckBox("capillaries (green)", true);
+	public JCheckBox viewCapTipsCheckBox = new JCheckBox("tips (light blue)", true);
 	public JCheckBox viewCellsCheckbox = new JCheckBox("cages (fuschia)", true);
 	JCheckBox viewFlyCheckbox = new JCheckBox("flies (yellow)", false);
 
@@ -42,6 +44,7 @@ public class Options extends JPanel {
 		this.parent0 = parent0;
 
 		viewCapillariesCheckBox.setSelected(parent0.viewOptions.isViewCapillaries());
+		viewCapTipsCheckBox.setSelected(parent0.viewOptions.isViewCapTips());
 		viewCellsCheckbox.setSelected(parent0.viewOptions.isViewCages());
 		viewFlyCheckbox.setSelected(parent0.viewOptions.isViewFliesCenter());
 		viewTopLevelsCheckbox.setSelected(parent0.viewOptions.isViewTopLevels());
@@ -64,6 +67,7 @@ public class Options extends JPanel {
 		JPanel panel1 = new JPanel(layout);
 		panel1.add(new JLabel("Camera:"));
 		panel1.add(viewCapillariesCheckBox);
+		panel1.add(viewCapTipsCheckBox);
 		panel1.add(viewCellsCheckbox);
 		panel1.add(viewFlyCheckbox);
 		add(panel1);
@@ -96,6 +100,18 @@ public class Options extends JPanel {
 				parent0.viewOptions.setViewCapillaries(sel);
 				saveViewOptions();
 				displayROIsCategory(sel, "line");
+			}
+		});
+
+		viewCapTipsCheckBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				boolean sel = viewCapTipsCheckBox.isSelected();
+				parent0.viewOptions.setViewCapTips(sel);
+				saveViewOptions();
+				if (sel)
+					ensureCapTipsOnSequence();
+				displayROIsCategory(sel, CapillaryMeasuredTipsOverlay.ROI_PREFIX);
 			}
 		});
 
@@ -164,23 +180,19 @@ public class Options extends JPanel {
 
 	public void displayROIsCategory(boolean isVisible, String pattern) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null)
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
 			return;
 		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-		if (v == null)
+		displayROIsCategory(v, pattern, isVisible);
+	}
+
+	private void ensureCapTipsOnSequence() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getCapillaries() == null || exp.getSeqCamData() == null)
 			return;
-		IcyCanvas canvas = v.getCanvas();
-		List<Layer> layers = canvas.getLayers(false);
-		if (layers == null)
+		if (!exp.getSeqCamData().findROIsMatchingNamePattern(CapillaryMeasuredTipsOverlay.ROI_PREFIX).isEmpty())
 			return;
-		for (Layer layer : layers) {
-			ROI roi = layer.getAttachedROI();
-			if (roi == null)
-				continue;
-			String cs = roi.getName();
-			if (cs.contains(pattern))
-				layer.setVisible(isVisible);
-		}
+		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData());
 	}
 
 	/**
@@ -195,6 +207,7 @@ public class Options extends JPanel {
 			return;
 		ViewOptionsHolder opts = parent0.viewOptions;
 		displayROIsCategory(v, "line", opts.isViewCapillaries());
+		displayROIsCategory(v, CapillaryMeasuredTipsOverlay.ROI_PREFIX, opts.isViewCapTips());
 		displayROIsCategory(v, "cell", opts.isViewCages());
 		displayROIsCategory(v, "cage", opts.isViewCages());
 		displayROIsCategory(v, "det", opts.isViewFliesCenter() || opts.isViewFliesRect());
@@ -207,13 +220,18 @@ public class Options extends JPanel {
 		List<Layer> layers = canvas.getLayers(false);
 		if (layers == null)
 			return;
+		boolean tipPattern = CapillaryMeasuredTipsOverlay.ROI_PREFIX.equals(pattern);
 		for (Layer layer : layers) {
 			ROI roi = layer.getAttachedROI();
 			if (roi == null)
 				continue;
 			String cs = roi.getName();
-			if (cs != null && cs.contains(pattern))
-				layer.setVisible(isVisible);
+			if (cs == null || !cs.contains(pattern))
+				continue;
+			// Capillary green lines use "line"; tip overlays must not follow that toggle.
+			if (!tipPattern && "line".equals(pattern) && cs.contains(CapillaryMeasuredTipsOverlay.ROI_PREFIX))
+				continue;
+			layer.setVisible(isVisible);
 		}
 	}
 

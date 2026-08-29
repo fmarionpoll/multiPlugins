@@ -42,6 +42,7 @@ import plugins.fmp.multitools.experiment.capillaries.CapillariesDescription;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
 import plugins.fmp.multitools.experiment.sequence.ImageAdjustmentOptions;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
@@ -1567,6 +1568,7 @@ public class Experiment {
 				roisAdded++;
 			}
 		}
+		CapillaryMeasuredTipsOverlay.transferTipsToSequence(capillaries, seqCamData);
 		icy.gui.viewer.Viewer viewer = seqCamData.getSequence().getFirstViewer();
 		if (roisAdded > 0 && viewer != null) {
 			seqCamData.displaySpecificROIs(true, "line");
@@ -2072,7 +2074,9 @@ public class Experiment {
 			String name = roi.getName();
 			if (name == null)
 				continue;
-			if (name.contains("line"))
+			if (name.contains("caplength_"))
+				layer.setVisible(opts.isViewCapTips());
+			else if (name.contains("line"))
 				layer.setVisible(opts.isViewCapillaries());
 			else if (name.contains("cell") || name.contains("cage"))
 				layer.setVisible(opts.isViewCages());
