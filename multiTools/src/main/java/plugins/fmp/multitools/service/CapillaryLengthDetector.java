@@ -306,7 +306,8 @@ public class CapillaryLengthDetector {
 		if (alreadyOnCapillary(smooth, outsideN, options)) {
 			TipFind atEnd = new TipFind();
 			atEnd.found = true;
-			atEnd.axisFrac = origin;
+			atEnd.axisFrac = origin + direction * tipInsetPixels(geometry, options);
+			atEnd.axisFrac = Math.max(0., Math.min(n - 1., atEnd.axisFrac));
 			atEnd.atRoiEnd = true;
 			atEnd.confidence = 0.;
 			return atEnd;
@@ -325,6 +326,8 @@ public class CapillaryLengthDetector {
 		double outsideMed = lowPercentile(smooth, 0, Math.min(outsideN, Math.max(1, solid)), 50.);
 		double innerMed = mean(smooth, solid, Math.min(smooth.length, solid + confirm));
 		double fracAlongWindow = onsetOfGlass(smooth, solid, outsideMed, innerMed);
+		fracAlongWindow += tipInsetPixels(geometry, options);
+		fracAlongWindow = Math.min(fracAlongWindow, score.length - 1.);
 		double axisFrac = origin + direction * fracAlongWindow;
 		if (axisFrac < 0)
 			axisFrac = 0;
@@ -337,6 +340,15 @@ public class CapillaryLengthDetector {
 		tip.atRoiEnd = fracAlongWindow < 1.25;
 		tip.confidence = confidence(smooth, Math.max(1, (int) Math.round(fracAlongWindow)), outsideN);
 		return tip;
+	}
+
+	private static double tipInsetPixels(Geometry geometry, CapillaryLengthDetectorOptions options) {
+		if (!(options.tipInsetHalfWidthScale > 0.) || !(geometry.halfWidth > 0.))
+			return 0.;
+		double inset = options.tipInsetHalfWidthScale * geometry.halfWidth;
+		double minimum = Math.max(0., options.tipInsetMinPixels);
+		double maximum = Math.max(minimum, options.tipInsetMaxPixels);
+		return Math.max(minimum, Math.min(maximum, inset));
 	}
 
 	private static boolean interiorLooksLikeCapillary(double[] score, CapillaryLengthDetectorOptions options) {

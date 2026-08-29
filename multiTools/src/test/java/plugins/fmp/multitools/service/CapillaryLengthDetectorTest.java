@@ -73,7 +73,7 @@ public class CapillaryLengthDetectorTest {
 	public void recoversPositionDependentLengths() {
 		int brokenIndex = 7;
 		ImageData image = buildSyntheticImage(brokenIndex);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 
 		List<Double> measured = new ArrayList<Double>();
 		double worstError = 0.;
@@ -222,7 +222,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void detectsEndpointsInsideAnOverhangingRoi() {
 		ImageData image = buildSyntheticImage(-1);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(5), CAPILLARY_TOP, trueLength(5));
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
 
@@ -235,7 +235,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void measuresTheEmptyTopAndIgnoresTheMidRoiBar() {
 		ImageData image = buildRackImage();
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 
 		for (int i = 0; i < N_CAPILLARIES; i++) {
 			ArrayList<int[]> axis = overhangingAxis(capillaryX(i), TUBE_TOP, rackTubeLength(i));
@@ -250,7 +250,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void countsTheAirColumnAsPartOfTheCapillary() {
 		ImageData image = buildRackImage();
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(9), TUBE_TOP, rackTubeLength(9));
 
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
@@ -264,7 +264,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void distortionIsKeptWithoutALengthPrior() {
 		ImageData image = buildRackImage();
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 
 		double worstError = 0.;
 		double edge = Double.NaN;
@@ -287,7 +287,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void aFlyInTheOverhangDoesNotBecomeTheTip() {
 		ImageData image = buildRackImage(true);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 5;
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
 
@@ -301,7 +301,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void aRoiStartingOnTheGlassIsFlaggedBorderNotFailed() {
 		ImageData image = buildRackImage();
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 3;
 		int yEnd = (int) Math.round(TUBE_TOP + rackTubeLength(index));
 		ArrayList<int[]> axis = verticalAxis(capillaryX(index), TUBE_TOP, yEnd + OVERHANG);
@@ -315,7 +315,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void aRoiShortOfTheTipIsNotSilentlyExtended() {
 		ImageData image = buildRackImage();
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 
 		int index = 5;
 		int tubeEnd = (int) Math.round(TUBE_TOP + rackTubeLength(index));
@@ -328,7 +328,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void startsAtTheGlassWhenTheMeniscusIsCloseToTheTop() {
 		ImageData image = buildRackImage(false, 16, false);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 8;
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
@@ -340,7 +340,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void findsTheTipWhenTheRoiOverhangsFarIntoTheCage() {
 		ImageData image = buildRackImage();
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 4;
 		int yEnd = (int) Math.round(TUBE_TOP + rackTubeLength(index));
 		ArrayList<int[]> axis = verticalAxis(capillaryX(index), TUBE_TOP - OVERHANG, yEnd + 70);
@@ -354,7 +354,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void findsTheBottomTipInsideADarkCage() {
 		ImageData image = buildRackImage(false, EMPTY_TOP_LENGTH, true);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 6;
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
@@ -367,7 +367,7 @@ public class CapillaryLengthDetectorTest {
 	@Test
 	public void aWideCageSlotBelowTheTipIsNotTheGlass() {
 		ImageData image = buildRackImage(false, EMPTY_TOP_LENGTH, false, true);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 7;
 		int yEnd = (int) Math.round(TUBE_TOP + rackTubeLength(index));
 		ArrayList<int[]> axis = verticalAxis(capillaryX(index), TUBE_TOP - OVERHANG, yEnd + 40);
@@ -382,7 +382,7 @@ public class CapillaryLengthDetectorTest {
 	public void aShortWallStubInTheOverhangIsNotTheTip() {
 		ImageData image = buildRackImage();
 		paintOverhangWallStub(image);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 5;
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
@@ -396,7 +396,7 @@ public class CapillaryLengthDetectorTest {
 	public void aHorizontalLidLineIsNotTheTopTip() {
 		ImageData image = buildRackImage();
 		paintTopLidLine(image);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 4;
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, image, options);
@@ -409,7 +409,7 @@ public class CapillaryLengthDetectorTest {
 	public void findsTheBottomTipWhenTheTubeIsBrighterThanTheCage() {
 		ImageData image = buildRackImage();
 		paintInvertedDarkSlot(image);
-		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
 		int index = 1;
 		int yEnd = (int) Math.round(TUBE_TOP + rackTubeLength(index));
 		ArrayList<int[]> axis = verticalAxis(capillaryX(index), TUBE_TOP - OVERHANG, yEnd + 40);
@@ -433,7 +433,7 @@ public class CapillaryLengthDetectorTest {
 		ImageData combined = CapillaryLengthDetector.combineFrames(frames);
 		int index = 5;
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
-		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, combined, new CapillaryLengthDetectorOptions());
+		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, combined, syntheticOptions());
 		assertTrue(located.found);
 		assertEquals("a fly present in a minority of frames must not become the tip",
 				OVERHANG + rackTubeLength(index), located.endFrac, 3.);
@@ -480,6 +480,14 @@ public class CapillaryLengthDetectorTest {
 		return new File(home + "/.cursor/projects/c-Users-fred-git-multiPlugins/assets/"
 				+ "c__Users_fred_AppData_Roaming_Cursor_User_workspaceStorage_empty-window_images_"
 				+ "image-8c44b292-f3d4-49d4-81e6-ff24915527f9.png");
+	}
+
+	private static CapillaryLengthDetectorOptions syntheticOptions() {
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		// Synthetic tubes have perfectly sharp square ends and therefore no optical
+		// side-wall shoulder to compensate.
+		options.tipInsetHalfWidthScale = 0.;
+		return options;
 	}
 
 	private static ImageData readImage(File file) throws Exception {

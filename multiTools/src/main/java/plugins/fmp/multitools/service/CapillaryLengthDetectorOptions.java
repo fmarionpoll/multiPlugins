@@ -9,8 +9,13 @@ public class CapillaryLengthDetectorOptions {
 	/** First cam frame used for the measurement. */
 	public int frameIndex = 0;
 
-	/** Number of frames combined before detection. */
-	public int nFramesAveraged = 7;
+	/**
+	 * Number of frames combined before detection. Image 0 is the annotation and
+	 * calibration reference, so one frame is the safe default when a recording may
+	 * drift. Users can still request a temporal median for stable recordings with
+	 * transient fly occlusions.
+	 */
+	public int nFramesAveraged = 1;
 
 	/**
 	 * Spacing between those frames. A fly sitting for a couple of frames is
@@ -60,6 +65,18 @@ public class CapillaryLengthDetectorOptions {
 	 * must stay low; liquid is not used as the inside reference.
 	 */
 	public double capillaryScoreThreshold = 0.8;
+
+	/**
+	 * Inward correction from the first persistent side-wall signal to the visually
+	 * defined tip, expressed as a fraction of the measured capillary half-width.
+	 * Webcam blur makes the paired walls appear several pixels before the tip centre;
+	 * scaling by width keeps the correction meaningful at different resolutions.
+	 */
+	public double tipInsetHalfWidthScale = 1.25;
+
+	/** Lower and upper safety bounds for the optical tip correction, in pixels. */
+	public double tipInsetMinPixels = 2.0;
+	public double tipInsetMaxPixels = 6.0;
 
 	/** Minimum detected length, as a fraction of the ROI length, to accept a measure. */
 	public double minLengthFraction = 0.30;
