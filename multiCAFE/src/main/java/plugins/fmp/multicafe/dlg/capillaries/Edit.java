@@ -20,9 +20,8 @@ public class Edit extends JPanel {
 	 */
 	private static final long serialVersionUID = -7582410775062671523L;
 
-	private JButton editCapillariesButton = new JButton("Edit capillaries position with time");
-	private JButton trackCapillariesButton = new JButton("Track capillaries");
-	private JButton saveAtTButton = new JButton("Save capillary positions at current T");
+	private JButton editCapillariesButton = new JButton("Edit observation corridors with time");
+	private JButton trackCapillariesButton = new JButton("Track physical capillaries");
 	private MultiCAFE parent0 = null;
 	private EditPositionWithTime editCapillariesTable = null;
 	private TrackCapillaries trackCapillariesDialog = null;
@@ -42,7 +41,7 @@ public class Edit extends JPanel {
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
-		panel2.add(saveAtTButton);
+		panel2.add(new JLabel("Green = observation corridor; light blue = physical capillary"));
 		add(panel2);
 
 		defineActionListeners();
@@ -60,19 +59,6 @@ public class Edit extends JPanel {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				openTrackCapillariesDialog();
-			}
-		});
-		saveAtTButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData() != null) {
-					icy.gui.viewer.Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-					if (v != null) {
-						exp.updateCapillaryRoisAtT(v.getPositionT());
-						exp.save_capillaries_description_and_measures();
-					}
-				}
 			}
 		});
 	}

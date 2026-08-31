@@ -1985,6 +1985,8 @@ public class Experiment {
 		} finally {
 			seq.endUpdate();
 		}
+		if (!seqCamData.findROIsMatchingNamePattern(CapillaryMeasuredTipsOverlay.ROI_PREFIX).isEmpty())
+			CapillaryMeasuredTipsOverlay.transferTipsToSequence(capillaries, seqCamData, t);
 	}
 
 	private List<ROIsAtTProvider> getCamRoiProviders() {

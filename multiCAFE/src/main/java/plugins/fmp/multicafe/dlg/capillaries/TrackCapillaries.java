@@ -22,11 +22,16 @@ import javax.swing.SwingWorker;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.frame.progress.ProgressFrame;
+import icy.gui.viewer.Viewer;
+import icy.gui.viewer.ViewerEvent;
+import icy.gui.viewer.ViewerListener;
 import icy.roi.ROI2D;
+import icy.sequence.DimensionId;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.series.ProgressReporter;
@@ -35,7 +40,7 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 
-public class TrackCapillaries extends JPanel {
+public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private static final long serialVersionUID = 1L;
 
@@ -50,11 +55,13 @@ public class TrackCapillaries extends JPanel {
 	private JButton runFromCurrentTButton = new JButton("Run from current T");
 	private JButton runBackwardFromCurrentTButton = new JButton("Run backwards from current T");
 	private JButton saveButton = new JButton("Save");
+	private JButton validateBlueButton = new JButton("Validate blue at current T");
 	private JButton addBoundaryButton = new JButton("Add boundary at current T");
 	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
 	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
 	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
 	private JList<TrackingBoundary> boundaryList = new JList<TrackingBoundary>(boundaryListModel);
+	private Viewer trackedViewer;
 
 	public void initialize(MultiCAFE parent0, Point pt) {
 		this.parent0 = parent0;
@@ -93,6 +100,7 @@ public class TrackCapillaries extends JPanel {
 		p2.add(runFrameByFrameButton);
 		p2.add(runFromCurrentTButton);
 		p2.add(runBackwardFromCurrentTButton);
+		p2.add(validateBlueButton);
 		p2.add(saveButton);
 		topPanel.add(p2);
 
@@ -133,11 +141,18 @@ public class TrackCapillaries extends JPanel {
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
 		dialogFrame.setVisible(true);
+		trackedViewer = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (trackedViewer != null) {
+			trackedViewer.removeListener(this);
+			trackedViewer.addListener(this);
+		}
+		showBlueOnly();
 
 		runFrameByFrameButton.addActionListener(e -> runTrackingFrameByFrame());
 		runFromCurrentTButton.addActionListener(e -> runFromCurrentT());
 		runBackwardFromCurrentTButton.addActionListener(e -> runBackwardFromCurrentT());
 		saveButton.addActionListener(e -> save());
+		validateBlueButton.addActionListener(e -> validateBlueAtCurrentT());
 		addBoundaryButton.addActionListener(e -> addBoundaryAtCurrentT());
 		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
 		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
@@ -215,6 +230,7 @@ public class TrackCapillaries extends JPanel {
 		if (viewer != null) {
 			viewer.setPositionT(frame);
 			exp.updateROIsAt(frame);
+			showBlueOnly();
 		}
 	}
 
@@ -437,8 +453,57 @@ public class TrackCapillaries extends JPanel {
 			exp.save_capillaries_description_and_measures();
 	}
 
+	private void validateBlueAtCurrentT() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null)
+			return;
+		int t = getViewerPositionT();
+		int updated = CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(),
+				exp.getSeqCamData(), t);
+		if (updated == 0) {
+			JOptionPane.showMessageDialog(this, "No editable light-blue capillary lines were found.",
+					"Physical capillaries", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		exp.save_capillaries_description_and_measures();
+		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), t);
+	}
+
 	void close() {
+		if (trackedViewer != null) {
+			trackedViewer.removeListener(this);
+			trackedViewer = null;
+		}
+		showGreenAgain();
 		if (dialogFrame != null)
 			dialogFrame.close();
+	}
+
+	private void showBlueOnly() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null)
+			return;
+		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(),
+				getViewerPositionT());
+		exp.getSeqCamData().displaySpecificROIs(false, "line");
+		exp.getSeqCamData().displaySpecificROIs(true, CapillaryMeasuredTipsOverlay.ROI_PREFIX);
+	}
+
+	private void showGreenAgain() {
+		Experiment exp = parent0 == null ? null : (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp != null && exp.getSeqCamData() != null)
+			exp.getSeqCamData().displaySpecificROIs(parent0.viewOptions.isViewCapillaries(), "line");
+	}
+
+	@Override
+	public void viewerChanged(ViewerEvent event) {
+		if (event.getType() == ViewerEvent.ViewerEventType.POSITION_CHANGED && event.getDim() == DimensionId.T)
+			SwingUtilities.invokeLater(() -> showBlueOnly());
+	}
+
+	@Override
+	public void viewerClosed(Viewer viewer) {
+		if (viewer == trackedViewer)
+			trackedViewer = null;
 	}
 }

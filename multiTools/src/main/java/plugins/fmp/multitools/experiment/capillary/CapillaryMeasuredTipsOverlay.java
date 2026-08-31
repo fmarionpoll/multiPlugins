@@ -31,6 +31,15 @@ public final class CapillaryMeasuredTipsOverlay {
 	 * @return number of tip ROIs added
 	 */
 	public static int transferTipsToSequence(Capillaries capillaries, SequenceCamData seqCamData) {
+		int t = 0;
+		if (seqCamData != null && seqCamData.getSequence() != null
+				&& seqCamData.getSequence().getFirstViewer() != null)
+			t = seqCamData.getSequence().getFirstViewer().getPositionT();
+		return transferTipsToSequence(capillaries, seqCamData, t);
+	}
+
+	/** Rebuilds the physical-capillary overlay for the phase containing {@code t}. */
+	public static int transferTipsToSequence(Capillaries capillaries, SequenceCamData seqCamData, int t) {
 		if (capillaries == null || seqCamData == null || seqCamData.getSequence() == null)
 			return 0;
 		removeTipsFromSequence(seqCamData);
@@ -38,11 +47,21 @@ public final class CapillaryMeasuredTipsOverlay {
 		int shown = 0;
 		for (Capillary cap : capillaries.getList()) {
 			CapillaryProperties props = cap.getProperties();
-			if (!props.hasMeasuredEndpoints())
-				continue;
-			Point2D start = props.getMeasuredStart();
-			Point2D end = props.getMeasuredEnd();
-			ROI2DLine roi = new ROI2DLine(new Line2D.Double(start, end));
+			Line2D physical = cap.getPhaseGeometry().getBlueAt(t);
+			if (physical == null) {
+				if (props.hasMeasuredEndpoints()) {
+					Point2D start = props.getMeasuredStart();
+					Point2D end = props.getMeasuredEnd();
+					physical = new Line2D.Double(start, end);
+				} else {
+					plugins.fmp.multitools.tools.ROI2D.AlongT phase = cap.getAlongTAtT(t);
+					if (phase != null && phase.getRoi() instanceof ROI2DLine)
+						physical = ((ROI2DLine) phase.getRoi()).getLine();
+				}
+				if (physical == null)
+					continue;
+			}
+			ROI2DLine roi = new ROI2DLine(physical);
 			roi.setName(ROI_PREFIX + tipSuffix(cap, shown));
 			roi.setColor(ROI_COLOR);
 			roi.setStroke(3);
@@ -66,6 +85,15 @@ public final class CapillaryMeasuredTipsOverlay {
 	 * @return number of capillaries updated from tip ROIs
 	 */
 	public static int transferTipsFromSequence(Capillaries capillaries, SequenceCamData seqCamData) {
+		int t = 0;
+		if (seqCamData != null && seqCamData.getSequence() != null
+				&& seqCamData.getSequence().getFirstViewer() != null)
+			t = seqCamData.getSequence().getFirstViewer().getPositionT();
+		return transferTipsFromSequence(capillaries, seqCamData, t);
+	}
+
+	/** Saves edited blue lines as keyframes at the active green phase start. */
+	public static int transferTipsFromSequence(Capillaries capillaries, SequenceCamData seqCamData, int t) {
 		if (capillaries == null || seqCamData == null || seqCamData.getSequence() == null)
 			return 0;
 
@@ -91,9 +119,19 @@ public final class CapillaryMeasuredTipsOverlay {
 				continue;
 			Point2D p1 = line.getP1();
 			Point2D p2 = line.getP2();
+			plugins.fmp.multitools.tools.ROI2D.AlongT phase = cap.getAlongTAtT(t);
+			long phaseStart = phase == null ? t : phase.getStart();
+			if (cap.getPhaseGeometry().isInitialized())
+				cap.getPhaseGeometry().putBlue(phaseStart, line);
+			else if (phase != null && phase.getRoi() instanceof ROI2DLine)
+				cap.getPhaseGeometry().initialize(phaseStart, ((ROI2DLine) phase.getRoi()).getLine(), line);
+			else
+				continue;
 
 			CapillaryProperties props = cap.getProperties();
-			props.setMeasuredEndpoints(p1, p2);
+			// Keep the old single reference synchronized for old readers and old kymos.
+			if (phaseStart == 0 || !props.hasMeasuredEndpoints())
+				props.setMeasuredEndpoints(p1, p2);
 			int pixels = (int) Math.round(p1.distance(p2));
 			if (pixels > 0)
 				cap.setPixels(pixels);

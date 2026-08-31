@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.capillaries;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Line2D;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -13,6 +14,7 @@ import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillary.CapillaryProperties;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Comparators;
@@ -145,9 +147,38 @@ public class Capillaries {
 	 */
 	public boolean loadDescriptions(String resultsDirectory) {
 		boolean ok = persistence.loadDescriptions(this, resultsDirectory);
-		if (ok)
+		if (ok) {
+			for (Capillary capillary : capillariesList) {
+				double deviation = capillary.normalizeLoadedCorridorsToLines();
+				if (deviation > plugins.fmp.multitools.experiment.capillary.CapillaryCorridorNormalizer.DEFAULT_WARNING_DEVIATION_PX)
+					plugins.fmp.multitools.tools.Logger.warn("Legacy capillary corridor " + capillary.getRoiName()
+							+ " deviated " + String.format("%.1f", deviation) + " px from a straight line; converted on load.");
+			}
+			initializeMissingPhaseGeometryFromLegacyEndpoints();
 			setAlongTUnified(false);
+		}
 		return ok;
+	}
+
+	private void initializeMissingPhaseGeometryFromLegacyEndpoints() {
+		for (Capillary capillary : capillariesList) {
+			if (capillary.getPhaseGeometry().isInitialized())
+				continue;
+			CapillaryProperties properties = capillary.getProperties();
+			if (!properties.hasMeasuredEndpoints())
+				continue;
+			AlongT first = capillary.getAlongTAtT(0);
+			if (first == null || !(first.getRoi() instanceof plugins.kernel.roi.roi2d.ROI2DLine))
+				continue;
+			Line2D green = ((plugins.kernel.roi.roi2d.ROI2DLine) first.getRoi()).getLine();
+			Line2D blue = new Line2D.Double(properties.getMeasuredStart(), properties.getMeasuredEnd());
+			try {
+				capillary.getPhaseGeometry().initialize(first.getStart(), green, blue);
+			} catch (IllegalArgumentException e) {
+				plugins.fmp.multitools.tools.Logger.warn("Cannot initialize physical geometry for "
+						+ capillary.getRoiName() + ": " + e.getMessage());
+			}
+		}
 	}
 
 	/**

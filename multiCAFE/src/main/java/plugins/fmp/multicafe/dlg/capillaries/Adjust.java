@@ -103,12 +103,24 @@ public class Adjust extends JPanel {
 		if (seqCamData == null)
 			return;
 
-		List<ROI2D> capillaryRois = seqCamData.findROIsMatchingNamePattern("line");
-		if (capillaryRois == null || capillaryRois.isEmpty())
+		boolean modelChanged = false;
+		for (plugins.fmp.multitools.experiment.capillary.Capillary cap : exp.getCapillaries().getList())
+			modelChanged |= cap.changeCorridorLengthPixels(deltaY);
+		if (modelChanged) {
+			int t = seqCamData.getSequence().getFirstViewer().getPositionT();
+			exp.getCapillaries().invalidateKymoIntervalsCache();
+			exp.updateROIsAt(t);
+			exp.save_capillaries_description_and_measures();
 			return;
+		}
 
-		elongateCapillaries(deltaY, capillaryRois);
-		clampCapillariesToImageBounds(seqCamData, capillaryRois);
+		// Legacy experiments without measured blue endpoints retain the old behavior.
+		List<ROI2D> capillaryRois = seqCamData.findROIsMatchingNamePattern("line");
+		if (capillaryRois != null && !capillaryRois.isEmpty()) {
+			elongateCapillaries(deltaY, capillaryRois);
+			clampCapillariesToImageBounds(seqCamData, capillaryRois);
+			exp.updateCapillaryRoisAtT(seqCamData.getSequence().getFirstViewer().getPositionT());
+		}
 	}
 
 	private void elongateCapillaries(int deltaY, List<ROI2D> capillaryRois) {
@@ -273,13 +285,28 @@ public class Adjust extends JPanel {
 		for (ROI2D roi : viewerRois) {
 			if (roi instanceof ROI2DLine) {
 				Line2D line = roisCenterLinetoCapillary(sourceValues, xwidth, (ROI2DLine) roi, jitter);
-				((ROI2DLine) roi).setLine(line);
+				if (line != null)
+					((ROI2DLine) roi).setLine(line);
 			}
 		}
 		// transfer ROIs to capillaries
 		if (!viewerRois.isEmpty() && !exp.getCapillaries().getList().isEmpty()
 				&& !exp.getCapillaries().getList().get(0).getAlongTList().isEmpty()) {
-			exp.updateCapillaryRoisAtT(t);
+			boolean modelChanged = false;
+			for (ROI2D roi : viewerRois) {
+				if (!(roi instanceof ROI2DLine))
+					continue;
+				plugins.fmp.multitools.experiment.capillary.Capillary cap = exp.getCapillaries()
+						.getCapillaryFromRoiName(roi.getName());
+				if (cap != null)
+					modelChanged |= cap.alignPhaseGeometry(t, ((ROI2DLine) roi).getLine());
+			}
+			if (!modelChanged)
+				exp.updateCapillaryRoisAtT(t);
+			else {
+				exp.getCapillaries().invalidateKymoIntervalsCache();
+				exp.updateROIsAt(t);
+			}
 			exp.save_capillaries_description_and_measures();
 		}
 	}

@@ -27,6 +27,7 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometryModel;
 
 public class Capillary implements Comparable<Capillary> {
 
@@ -59,6 +60,7 @@ public class Capillary implements Comparable<Capillary> {
 	 * empty fill length. {@link Double#NaN} when t00 is unsuitable or tip missing.
 	 */
 	private transient double t00YPixels = Double.NaN;
+	private final CapillaryPhaseGeometryModel phaseGeometry = new CapillaryPhaseGeometryModel();
 
 	// === PUBLIC FIELDS (Deprecated/Moved logic) ===
 	// These are now delegated to properties but kept for backward compatibility
@@ -148,6 +150,56 @@ public class Capillary implements Comparable<Capillary> {
 
 	public CapillaryProperties getProperties() {
 		return properties;
+	}
+
+	public CapillaryPhaseGeometryModel getPhaseGeometry() {
+		return phaseGeometry;
+	}
+
+	/** Applies an aligned green axis only to the phase containing {@code t}. */
+	public boolean alignPhaseGeometry(long t, Line2D alignedGreen) {
+		AlongT phase = getAlongTAtT(t);
+		if (phase == null || alignedGreen == null || !phaseGeometry.isInitialized())
+			return false;
+		Line2D blue = phaseGeometry.alignPhase(phase.getStart(), alignedGreen);
+		phase.setRoi(copyLineMetadata(phaseGeometry.greenForBlue(blue), phase.getRoi()));
+		invalidateAlongTLookupCache();
+		return true;
+	}
+
+	/** Changes contextual corridor length globally while preserving every blue line. */
+	public boolean changeCorridorLengthPixels(double totalDeltaPixels) {
+		if (!phaseGeometry.isInitialized())
+			return false;
+		Line2D reference = phaseGeometry.getBlueAt(0);
+		double length = reference == null ? 0 : reference.getP1().distance(reference.getP2());
+		if (length <= 0)
+			return false;
+		double eachEndRatio = totalDeltaPixels / (2.0 * length);
+		phaseGeometry.changeExtensions(eachEndRatio, eachEndRatio);
+		for (AlongT phase : metadata.alongTRois) {
+			Line2D blue = phaseGeometry.getBlueAt(phase.getStart());
+			if (blue != null)
+				phase.setRoi(copyLineMetadata(phaseGeometry.greenForBlue(blue), phase.getRoi()));
+		}
+		if (!metadata.alongTRois.isEmpty())
+			metadata.roiCap = metadata.alongTRois.get(0).getRoi();
+		invalidateAlongTLookupCache();
+		return true;
+	}
+
+	private static ROI2DLine copyLineMetadata(Line2D geometry, ROI2D source) {
+		ROI2DLine out = new ROI2DLine(geometry);
+		if (source != null) {
+			out.setName(source.getName());
+			out.setColor(source.getColor());
+			out.setStroke(source.getStroke());
+			out.setReadOnly(source.isReadOnly());
+			out.setT(source.getT());
+			out.setZ(source.getZ());
+			out.setC(source.getC());
+		}
+		return out;
 	}
 
 	// Delegate getters for properties
@@ -324,6 +376,27 @@ public class Capillary implements Comparable<Capillary> {
 				&& (metadata.kymographPrefix == null || metadata.kymographPrefix.isEmpty())) {
 			metadata.kymographPrefix = extractPrefixFromRoiName(roi.getName());
 		}
+	}
+
+	/** Normalize a loaded capillary corridor and every AlongT interval to lines. */
+	public double normalizeLoadedCorridorsToLines() {
+		double maxDeviation = 0;
+		CapillaryCorridorNormalizer.Result base = CapillaryCorridorNormalizer.normalize(metadata.roiCap);
+		if (base.getLine() != null) {
+			metadata.roiCap = base.getLine();
+			maxDeviation = Math.max(maxDeviation, base.getMaxPerpendicularDeviation());
+		}
+		for (AlongT at : metadata.alongTRois) {
+			CapillaryCorridorNormalizer.Result normalized = CapillaryCorridorNormalizer.normalize(at.getRoi());
+			if (normalized.getLine() != null) {
+				at.setRoi(normalized.getLine());
+				maxDeviation = Math.max(maxDeviation, normalized.getMaxPerpendicularDeviation());
+			}
+		}
+		if (!metadata.alongTRois.isEmpty() && metadata.alongTRois.get(0).getRoi() != null)
+			metadata.roiCap = metadata.alongTRois.get(0).getRoi();
+		invalidateAlongTLookupCache();
+		return maxDeviation;
 	}
 
 	public List<AlongT> getAlongTList() {

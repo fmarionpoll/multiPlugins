@@ -12,6 +12,7 @@ import java.nio.file.DirectoryStream;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimelinePersistence;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometryPersistence;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -52,6 +53,8 @@ public class CapillariesPersistence {
 		boolean loaded = Persistence.loadDescription(capillaries, resultsDirectory);
 		if (loaded)
 			TrackingTimelinePersistence.load(capillaries.getTrackingTimeline(), resultsDirectory);
+		if (loaded)
+			CapillaryPhaseGeometryPersistence.load(capillaries, resultsDirectory);
 		return loaded;
 	}
 
@@ -168,6 +171,8 @@ public class CapillariesPersistence {
 		boolean saved = Persistence.saveDescription(capillaries, resultsDirectory);
 		if (saved)
 			saved = TrackingTimelinePersistence.save(capillaries.getTrackingTimeline(), resultsDirectory);
+		if (saved)
+			saved = CapillaryPhaseGeometryPersistence.save(capillaries, resultsDirectory);
 		return saved;
 	}
 

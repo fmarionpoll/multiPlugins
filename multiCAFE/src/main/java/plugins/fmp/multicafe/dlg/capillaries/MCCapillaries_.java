@@ -152,7 +152,6 @@ public class MCCapillaries_ extends JPanel implements PropertyChangeListener, Ch
 					exp.updateROIsAt(v.getPositionT());
 				}
 			}
-			tabEdit.openDialog();
 			editSelected = true;
 		} else if (editSelected) {
 			tabEdit.closeDialog();
