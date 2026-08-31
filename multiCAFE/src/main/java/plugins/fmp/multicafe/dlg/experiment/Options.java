@@ -213,7 +213,8 @@ public class Options extends JPanel {
 		displayROIsCategory(v, "det", opts.isViewFliesCenter() || opts.isViewFliesRect());
 	}
 
-	private void displayROIsCategory(Viewer v, String pattern, boolean isVisible) {
+	/** Applies the same category visibility rules used by the experiment options UI. */
+	public void displayROIsCategory(Viewer v, String pattern, boolean isVisible) {
 		if (v == null)
 			return;
 		IcyCanvas canvas = v.getCanvas();

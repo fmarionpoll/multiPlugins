@@ -1,7 +1,10 @@
 package plugins.fmp.multitools.series;
 
+import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
+import java.awt.Rectangle;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -11,20 +14,27 @@ import java.util.concurrent.Executors;
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
 import icy.system.SystemUtil;
+import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.CapillaryTracker;
 import plugins.fmp.multitools.service.SequenceLoaderService;
+import plugins.fmp.multitools.service.tracking.CapillaryFrameRegistration;
+import plugins.fmp.multitools.service.tracking.CapillaryFrameRegistration.Result;
+import plugins.fmp.multitools.service.tracking.DirectionalCapillaryTracker;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.TrackedRoisByFrame;
+import plugins.fmp.multitools.tools.Logger;
+import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /**
- * Frame-by-frame capillary tracking. Loads 2 images at a time (t-1 and t), tracks
- * all capillaries for that frame pair, then advances. Uses futures for parallel
- * image loading and parallel per-capillary phase correlation within each frame.
+ * Anchor-based capillary tracking. Each frame is compared with the selected run
+ * start, so sub-pixel gradual motion is not lost by repeated adjacent-frame
+ * estimates. Uses parallel per-capillary phase correlation within each frame.
  * When tStart > tEnd, runs backward: seed at tStart, fills from tStart-1 down to tEnd
  * (e.g. after a jump at t, user corrects at t+4 and runs backwards from t+4 to t).
  */
@@ -32,6 +42,8 @@ public class TrackCapillariesAlongTime {
 
 	private final CapillaryTracker tracker = new CapillaryTracker();
 	private final SequenceLoaderService loadSvc = new SequenceLoaderService();
+	private final CapillaryFrameRegistration frameRegistration = new CapillaryFrameRegistration();
+	private final DirectionalCapillaryTracker directionalTracker = new DirectionalCapillaryTracker();
 
 	public static final double DEFAULT_OUTLIER_MAD_FACTOR = 2.5;
 	public static final double DEFAULT_OUTLIER_MIN_PX = 5.0;
@@ -90,12 +102,12 @@ public class TrackCapillariesAlongTime {
 		int nThreads = Math.min(indices.size(), Math.max(1, SystemUtil.getNumberOfCPUs()));
 		ExecutorService exec = Executors.newFixedThreadPool(nThreads);
 		try {
-			CompletableFuture<IcyBufferedImage> loadPrev = CompletableFuture
+			CompletableFuture<IcyBufferedImage> loadReference = CompletableFuture
 					.supplyAsync(() -> loadImage(seqCamData, t0), exec);
 			CompletableFuture<IcyBufferedImage> loadCurr = CompletableFuture
 					.supplyAsync(() -> loadImage(seqCamData, t0 + 1), exec);
-			IcyBufferedImage imgPrev = loadPrev.join();
-			if (imgPrev == null) {
+			IcyBufferedImage imgReference = loadReference.join();
+			if (imgReference == null) {
 				progress.failed("Cannot load image at t=" + t0);
 				return;
 			}
@@ -109,17 +121,17 @@ public class TrackCapillariesAlongTime {
 				for (int i : indices)
 					prevRoi[i] = table.getRoiAtNoCopy(i, t - 1);
 
-				final IcyBufferedImage fp = imgPrev;
+				final IcyBufferedImage fp = imgReference;
 				final IcyBufferedImage fc = imgCurr;
 				final long frameT = t;
 				List<CompletableFuture<Void>> tasks = new ArrayList<>();
 				for (int i : indices) {
-					ROI2D roiPrev = table.getRoiAtNoCopy(i, t - 1);
-					if (roiPrev == null)
+					ROI2D roiReference = table.getRoiAtNoCopy(i, t0);
+					if (roiReference == null)
 						continue;
 					final int capIndex = i;
 					tasks.add(CompletableFuture.runAsync(() -> {
-						ROI2D roiNew = tracker.trackOneFrame(roiPrev, fp, fc);
+						ROI2D roiNew = tracker.trackOneFrame(roiReference, fp, fc);
 						if (roiNew != null)
 							table.setRoiAt(capIndex, (int) frameT, roiNew);
 					}, exec));
@@ -130,24 +142,13 @@ public class TrackCapillariesAlongTime {
 				for (int i : indices)
 					currentRoi[i] = table.getRoiAtNoCopy(i, frameT);
 				List<Integer> outlierIndices = findOutlierDisplacements(indices, prevRoi, currentRoi, outlierMadFactor, outlierMinPx);
-				if (!outlierIndices.isEmpty()) {
-					int choice = progress.reportOutliers(t, outlierIndices, caps);
-					if (choice == ProgressReporter.STOP_TRACKING) {
-						List<Map<Long, ROI2D>> maps = table.toTrackedMaps(t - 1);
-						for (int i : indices)
-							if (!maps.get(i).isEmpty())
-								capillaries.injectTrackedRoisForCapillary(i, t0, t - 1, maps.get(i));
-						progress.failed("Stopped at frame " + t + ": unusual movement in " + outlierIndices.size() + " capillary/capillaries.");
-						exec.shutdown();
-						return;
-					}
-					if (choice == ProgressReporter.SKIP_OUTLIERS_THIS_FRAME) {
-						for (int i : outlierIndices)
-							table.copyIndexFromPreviousFrame(i, (int) frameT);
-					}
-				}
+				if (!outlierIndices.isEmpty())
+					Logger.debug("Local motion outliers at T=" + t + ": " + outlierIndices
+							+ " (handled automatically by robust frame registration)");
+				applyFrameRegistration(caps, indices, table, t0, t,
+						estimateCageMotions(exp, imgReference, imgCurr),
+						estimateDirectionalLines(caps, indices, t0, imgReference, imgCurr));
 
-				imgPrev = imgCurr;
 				int frameDone = t - t0;
 				progress.updateProgress("Frame " + t + "/" + t1, frameDone, nFrames);
 			}
@@ -204,29 +205,36 @@ public class TrackCapillariesAlongTime {
 		int nThreads = Math.min(indices.size(), Math.max(1, SystemUtil.getNumberOfCPUs()));
 		ExecutorService exec = Executors.newFixedThreadPool(nThreads);
 		try {
+			IcyBufferedImage imgReference = loadImage(seqCamData, tSeed);
+			if (imgReference == null) {
+				progress.failed("Cannot load image at t=" + tSeed);
+				return;
+			}
 			for (int t = tSeed - 1; t >= tTarget; t--) {
 				if (progress.isCancelled())
 					break;
-				IcyBufferedImage imgNext = loadImage(seqCamData, t + 1);
 				IcyBufferedImage imgCurr = loadImage(seqCamData, t);
-				if (imgNext == null || imgCurr == null)
+				if (imgCurr == null)
 					continue;
-				final IcyBufferedImage fp = imgNext;
+				final IcyBufferedImage fp = imgReference;
 				final IcyBufferedImage fc = imgCurr;
 				final long frameT = t;
 				List<CompletableFuture<Void>> tasks = new ArrayList<>();
 				for (int i : indices) {
-					ROI2D roiNext = table.getRoiAtNoCopy(i, t + 1);
-					if (roiNext == null)
+					ROI2D roiReference = table.getRoiAtNoCopy(i, tSeed);
+					if (roiReference == null)
 						continue;
 					final int capIndex = i;
 					tasks.add(CompletableFuture.runAsync(() -> {
-						ROI2D roiAtT = tracker.trackOneFrame(roiNext, fp, fc);
+						ROI2D roiAtT = tracker.trackOneFrame(roiReference, fp, fc);
 						if (roiAtT != null)
 							table.setRoiAt(capIndex, (int) frameT, roiAtT);
 					}, exec));
 				}
 				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
+				applyFrameRegistration(caps, indices, table, tSeed, t,
+						estimateCageMotions(exp, imgReference, imgCurr),
+						estimateDirectionalLines(caps, indices, tSeed, imgReference, imgCurr));
 				int frameDone = tSeed - 1 - t;
 				progress.updateProgress("Backward " + t + ".." + tSeed, frameDone, nFrames);
 			}
@@ -304,6 +312,135 @@ public class TrackCapillariesAlongTime {
 				indices.add(i);
 		}
 		return indices;
+	}
+
+	/** Regularizes local translations with one robust transform of the rigid frame. */
+	private void applyFrameRegistration(List<Capillary> caps, List<Integer> indices, TrackedRoisByFrame table,
+			int sourceT, int targetT, Map<Integer, CageEndpointMotion> cageMotions,
+			List<Line2D> directionalLines) {
+		List<Line2D> source = new ArrayList<Line2D>(caps.size());
+		List<Line2D> locallyTracked = new ArrayList<Line2D>(caps.size());
+		for (int i = 0; i < caps.size(); i++) {
+			source.add(null);
+			locallyTracked.add(null);
+		}
+		for (int i : indices) {
+			ROI2D roiBefore = table.getRoiAtNoCopy(i, sourceT);
+			ROI2D roiLocal = table.getRoiAtNoCopy(i, targetT);
+			if (!(roiBefore instanceof ROI2DLine) || !(roiLocal instanceof ROI2DLine))
+				continue;
+			Capillary cap = caps.get(i);
+			Line2D physical = cap.getPhaseGeometry().getBlueAt(sourceT);
+			if (physical == null)
+				physical = ((ROI2DLine) roiBefore).getLine();
+			Line2D directional = directionalLines.get(i);
+			if (directional != null) {
+				source.set(i, physical);
+				locallyTracked.set(i, directional);
+				continue;
+			}
+			Point2D beforeCenter = ROI2DUtilities.getRoiCentroid(roiBefore);
+			Point2D localCenter = ROI2DUtilities.getRoiCentroid(roiLocal);
+			if (beforeCenter == null || localCenter == null)
+				continue;
+			double dx = localCenter.getX() - beforeCenter.getX();
+			double dy = localCenter.getY() - beforeCenter.getY();
+			CageEndpointMotion cageMotion = cageMotions.get(cap.getCageID());
+			if (cageMotion != null) {
+				dx = cageMotion.upper.getX();
+				dy = cageMotion.upper.getY();
+			}
+			source.set(i, physical);
+			double dx2 = cageMotion == null ? dx : cageMotion.lower.getX();
+			double dy2 = cageMotion == null ? dy : cageMotion.lower.getY();
+			locallyTracked.set(i, new Line2D.Double(physical.getX1() + dx, physical.getY1() + dy,
+					physical.getX2() + dx2, physical.getY2() + dy2));
+		}
+		try {
+			Result result = frameRegistration.fit(source, locallyTracked);
+			for (int i : indices) {
+				Line2D registered = result.getRegisteredLines().get(i);
+				ROI2D previous = table.getRoiAtNoCopy(i, sourceT);
+				if (registered == null || previous == null)
+					continue;
+				Capillary cap = caps.get(i);
+				Line2D green = registered;
+				if (cap.getPhaseGeometry().isInitialized()) {
+					cap.getPhaseGeometry().putBlue(targetT, registered);
+					green = cap.getPhaseGeometry().greenForBlue(registered);
+				}
+				ROI2DLine roi = new ROI2DLine(green);
+				roi.setName(previous.getName());
+				roi.setColor(previous.getColor());
+				roi.setStroke(previous.getStroke());
+				roi.setReadOnly(previous.isReadOnly());
+				table.setRoiAt(i, targetT, roi);
+			}
+			Logger.debug("Frame registration T=" + targetT + " model="
+					+ result.getFit().getTransform().getModel() + " rms=" + result.getFit().getRms() + " landmarks="
+					+ result.getLandmarkCount());
+		} catch (IllegalArgumentException ex) {
+			Logger.warn("Frame registration skipped at T=" + targetT + ": " + ex.getMessage());
+		}
+	}
+
+	private List<Line2D> estimateDirectionalLines(List<Capillary> caps, List<Integer> indices, int sourceT,
+			IcyBufferedImage reference, IcyBufferedImage current) {
+		List<Line2D> lines = new ArrayList<Line2D>(caps.size());
+		for (int i = 0; i < caps.size(); i++) lines.add(null);
+		if (reference == null || current == null || reference.getWidth() != current.getWidth()
+				|| reference.getHeight() != current.getHeight())
+			return lines;
+		double[] ref = Array1DUtil.arrayToDoubleArray(reference.getDataXY(0), reference.isSignedDataType());
+		double[] cur = Array1DUtil.arrayToDoubleArray(current.getDataXY(0), current.isSignedDataType());
+		for (int i : indices) {
+			Line2D physical = caps.get(i).getPhaseGeometry().getBlueAt(sourceT);
+			if (physical != null)
+				lines.set(i, directionalTracker.track(physical, ref, cur, reference.getWidth(), reference.getHeight()));
+		}
+		return lines;
+	}
+
+	/** Motion of each broader cage patch; less ambiguous than a narrow shaft. */
+	private Map<Integer, CageEndpointMotion> estimateCageMotions(Experiment exp, IcyBufferedImage reference,
+			IcyBufferedImage current) {
+		Map<Integer, CageEndpointMotion> motions = new HashMap<Integer, CageEndpointMotion>();
+		if (exp == null || exp.getCages() == null || exp.getCages().cagesList == null)
+			return motions;
+		for (Cage cage : exp.getCages().cagesList) {
+			if (cage == null || cage.getRoi() == null)
+				continue;
+			Rectangle b = cage.getRoi().getBounds();
+			if (b.width < 20 || b.height < 20)
+				continue;
+			double inset = Math.min(12, b.width / 5.0);
+			ROI2DLine upper = new ROI2DLine(new Line2D.Double(b.x + inset, b.y + 3,
+					b.x + b.width - inset, b.y + 3));
+			ROI2DLine lower = new ROI2DLine(new Line2D.Double(b.x + inset, b.y + b.height - 4,
+					b.x + b.width - inset, b.y + b.height - 4));
+			Point2D du = motionOf(upper, reference, current);
+			Point2D dl = motionOf(lower, reference, current);
+			if (du != null && dl != null)
+				motions.put(cage.getCageID(), new CageEndpointMotion(du, dl));
+		}
+		return motions;
+	}
+
+	private Point2D motionOf(ROI2D roi, IcyBufferedImage reference, IcyBufferedImage current) {
+		ROI2D moved = tracker.trackOneFrame(roi, reference, current, 14);
+		Point2D p0 = ROI2DUtilities.getRoiCentroid(roi);
+		Point2D p1 = ROI2DUtilities.getRoiCentroid(moved);
+		return p0 == null || p1 == null ? null
+				: new Point2D.Double(p1.getX() - p0.getX(), p1.getY() - p0.getY());
+	}
+
+	private static final class CageEndpointMotion {
+		final Point2D upper;
+		final Point2D lower;
+		CageEndpointMotion(Point2D upper, Point2D lower) {
+			this.upper = upper;
+			this.lower = lower;
+		}
 	}
 
 	private IcyBufferedImage loadImage(SequenceCamData seqCamData, int t) {

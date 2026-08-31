@@ -4,9 +4,10 @@ import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
 import javax.swing.DefaultListModel;
@@ -62,6 +63,11 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
 	private JList<TrackingBoundary> boundaryList = new JList<TrackingBoundary>(boundaryListModel);
 	private Viewer trackedViewer;
+	private Experiment trackedExperiment;
+	private final ItemListener experimentSelectionListener = e -> {
+		if (e.getStateChange() == ItemEvent.SELECTED)
+			SwingUtilities.invokeLater(() -> bindSelectedExperiment());
+	};
 
 	public void initialize(MultiCAFE parent0, Point pt) {
 		this.parent0 = parent0;
@@ -90,10 +96,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		topPanel.add(p1);
 
 		JPanel p1b = new JPanel(flow);
-		p1b.add(new JLabel("Outlier detection (higher = less sensitive): MAD factor"));
-		p1b.add(outlierMadFactorSpinner);
-		p1b.add(new JLabel("min px"));
-		p1b.add(outlierMinPxSpinner);
+		p1b.add(new JLabel("Inconsistent capillary motions are rejected automatically by the shared frame fit."));
 		topPanel.add(p1b);
 
 		JPanel p2 = new JPanel(flow);
@@ -141,12 +144,9 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
 		dialogFrame.setVisible(true);
-		trackedViewer = exp.getSeqCamData().getSequence().getFirstViewer();
-		if (trackedViewer != null) {
-			trackedViewer.removeListener(this);
-			trackedViewer.addListener(this);
-		}
-		showBlueOnly();
+		parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
+		parent0.expListComboLazy.addItemListener(experimentSelectionListener);
+		bindSelectedExperiment();
 
 		runFrameByFrameButton.addActionListener(e -> runTrackingFrameByFrame());
 		runFromCurrentTButton.addActionListener(e -> runFromCurrentT());
@@ -412,38 +412,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 				return false;
 			}
 
-			@Override
-			public int reportOutliers(int frameT, List<Integer> outlierIndices, List<Capillary> caps) {
-				AtomicInteger choice = new AtomicInteger(ProgressReporter.CONTINUE_APPLY_ALL);
-				try {
-					SwingUtilities.invokeAndWait(() -> {
-						StringBuilder msg = new StringBuilder();
-						msg.append("At frame T=").append(frameT).append(
-								" the following capillary/capillaries show unusual movement compared to the others:\n\n");
-						for (int i : outlierIndices) {
-							if (i >= 0 && i < caps.size()) {
-								Capillary cap = caps.get(i);
-								String name = cap.getKymographName() != null ? cap.getKymographName() : ("cap " + i);
-								msg.append("• ").append(name).append("\n");
-							}
-						}
-						msg.append("\nThis may indicate a tracking jump. Choose an action.");
-						String[] options = { "Stop tracking", "Continue anyway", "Skip these for this frame only" };
-						int c = JOptionPane.showOptionDialog(getParent(), msg.toString(),
-								"Unusual movement at frame " + frameT, JOptionPane.DEFAULT_OPTION,
-								JOptionPane.WARNING_MESSAGE, null, options, options[0]);
-						if (c == 0)
-							choice.set(ProgressReporter.STOP_TRACKING);
-						else if (c == 2)
-							choice.set(ProgressReporter.SKIP_OUTLIERS_THIS_FRAME);
-						else
-							choice.set(ProgressReporter.CONTINUE_APPLY_ALL);
-					});
-				} catch (Exception e) {
-					choice.set(ProgressReporter.CONTINUE_APPLY_ALL);
-				}
-				return choice.get();
-			}
 		};
 	}
 
@@ -470,11 +438,14 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	void close() {
+		if (parent0 != null)
+			parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
 		if (trackedViewer != null) {
 			trackedViewer.removeListener(this);
 			trackedViewer = null;
 		}
-		showGreenAgain();
+		showGreenAgain(trackedExperiment);
+		trackedExperiment = null;
 		if (dialogFrame != null)
 			dialogFrame.close();
 	}
@@ -485,14 +456,55 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			return;
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(),
 				getViewerPositionT());
-		exp.getSeqCamData().displaySpecificROIs(false, "line");
-		exp.getSeqCamData().displaySpecificROIs(true, CapillaryMeasuredTipsOverlay.ROI_PREFIX);
+		Viewer viewer = exp.getSeqCamData().getSequence() == null ? null
+				: exp.getSeqCamData().getSequence().getFirstViewer();
+		parent0.paneExperiment.tabOptions.displayROIsCategory(viewer, "line", false);
+		parent0.paneExperiment.tabOptions.displayROIsCategory(viewer, CapillaryMeasuredTipsOverlay.ROI_PREFIX, true);
 	}
 
 	private void showGreenAgain() {
 		Experiment exp = parent0 == null ? null : (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp != null && exp.getSeqCamData() != null)
-			exp.getSeqCamData().displaySpecificROIs(parent0.viewOptions.isViewCapillaries(), "line");
+		showGreenAgain(exp);
+	}
+
+	private void showGreenAgain(Experiment exp) {
+		if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
+			parent0.paneExperiment.tabOptions.displayROIsCategory(
+					exp.getSeqCamData().getSequence().getFirstViewer(), "line",
+					parent0.viewOptions.isViewCapillaries());
+	}
+
+	private void bindSelectedExperiment() {
+		Experiment selected = parent0 == null ? null : (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (selected == trackedExperiment) {
+			refreshBoundaries();
+			showBlueOnly();
+			return;
+		}
+		showGreenAgain(trackedExperiment);
+		if (trackedViewer != null)
+			trackedViewer.removeListener(this);
+		trackedExperiment = selected;
+		trackedViewer = null;
+		if (selected == null || selected.getSeqCamData() == null
+				|| selected.getSeqCamData().getSequence() == null) {
+			boundaryListModel.clear();
+			return;
+		}
+		int nFrames = selected.getSeqCamData().getImageLoader().getNTotalFrames();
+		if (nFrames <= 0)
+			nFrames = 1000;
+		int maxT = nFrames - 1;
+		trackedViewer = selected.getSeqCamData().getSequence().getFirstViewer();
+		int currentT = trackedViewer == null ? 0 : trackedViewer.getPositionT();
+		tStartSpinner.setModel(new SpinnerNumberModel(Math.min(currentT, maxT), 0, maxT, 1));
+		tEndSpinner.setModel(new SpinnerNumberModel(maxT, 0, maxT, 1));
+		if (trackedViewer != null) {
+			trackedViewer.removeListener(this);
+			trackedViewer.addListener(this);
+		}
+		refreshBoundaries();
+		showBlueOnly();
 	}
 
 	@Override
