@@ -9,9 +9,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.swing.JButton;
+import javax.swing.DefaultListModel;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
@@ -24,6 +27,8 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
+import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
 import plugins.fmp.multitools.tools.Logger;
@@ -45,6 +50,11 @@ public class TrackCapillaries extends JPanel {
 	private JButton runFromCurrentTButton = new JButton("Run from current T");
 	private JButton runBackwardFromCurrentTButton = new JButton("Run backwards from current T");
 	private JButton saveButton = new JButton("Save");
+	private JButton addBoundaryButton = new JButton("Add boundary at current T");
+	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
+	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
+	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
+	private JList<TrackingBoundary> boundaryList = new JList<TrackingBoundary>(boundaryListModel);
 
 	public void initialize(MultiCAFE parent0, Point pt) {
 		this.parent0 = parent0;
@@ -61,7 +71,7 @@ public class TrackCapillaries extends JPanel {
 		outlierMadFactorSpinner = new JSpinner(new SpinnerNumberModel(2.5, 1.0, 8.0, 0.5));
 		outlierMinPxSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 50, 1));
 
-		JPanel topPanel = new JPanel(new GridLayout(5, 1));
+		JPanel topPanel = new JPanel(new GridLayout(6, 1));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
 
 		JPanel p1 = new JPanel(flow);
@@ -96,8 +106,29 @@ public class TrackCapillaries extends JPanel {
 				"Tracking will replace AlongT intervals in the selected range. Intervals outside the range are unchanged."));
 		topPanel.add(p4);
 
+		JPanel p5 = new JPanel(flow);
+		p5.add(addBoundaryButton);
+		p5.add(moveBoundaryButton);
+		p5.add(deleteBoundaryButton);
+		topPanel.add(p5);
+
+		boundaryList.setVisibleRowCount(6);
+		boundaryList.setCellRenderer((list, value, index, selected, focus) -> {
+			String prefix = value.getOrigin() == TrackingBoundary.Origin.MANUAL ? "manual" : "suggested";
+			String reason = value.getReason().isEmpty() ? "" : " — " + value.getReason();
+			JLabel label = new JLabel("T=" + value.getFrame() + "  " + prefix + " / "
+					+ value.getStatus().name().toLowerCase() + reason);
+			if (selected) {
+				label.setOpaque(true);
+				label.setBackground(list.getSelectionBackground());
+				label.setForeground(list.getSelectionForeground());
+			}
+			return label;
+		});
+
 		dialogFrame = new IcyFrame("Track capillaries along time", true, true);
 		dialogFrame.add(topPanel, BorderLayout.NORTH);
+		dialogFrame.add(new JScrollPane(boundaryList), BorderLayout.CENTER);
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
@@ -107,6 +138,84 @@ public class TrackCapillaries extends JPanel {
 		runFromCurrentTButton.addActionListener(e -> runFromCurrentT());
 		runBackwardFromCurrentTButton.addActionListener(e -> runBackwardFromCurrentT());
 		saveButton.addActionListener(e -> save());
+		addBoundaryButton.addActionListener(e -> addBoundaryAtCurrentT());
+		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
+		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
+		boundaryList.addListSelectionListener(e -> {
+			if (!e.getValueIsAdjusting() && boundaryList.getSelectedValue() != null)
+				setViewerPositionT(boundaryList.getSelectedValue().getFrame());
+		});
+		refreshBoundaries();
+	}
+
+	private TrackingTimeline timeline() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		return exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getTrackingTimeline() : null;
+	}
+
+	private void refreshBoundaries() {
+		boundaryListModel.clear();
+		TrackingTimeline timeline = timeline();
+		if (timeline != null)
+			for (TrackingBoundary boundary : timeline.getBoundaries())
+				boundaryListModel.addElement(boundary);
+	}
+
+	private void addBoundaryAtCurrentT() {
+		int frame = getViewerPositionT();
+		if (frame < 1) {
+			JOptionPane.showMessageDialog(this, "Frame 0 cannot begin a new segment.", "Tracking boundary",
+					JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		TrackingTimeline timeline = timeline();
+		if (timeline != null) {
+			timeline.addManual(frame, "user boundary");
+			refreshBoundaries();
+			selectBoundary(frame);
+		}
+	}
+
+	private void moveSelectedBoundaryToCurrentT() {
+		TrackingBoundary selected = boundaryList.getSelectedValue();
+		int frame = getViewerPositionT();
+		if (selected == null || frame < 1)
+			return;
+		TrackingTimeline timeline = timeline();
+		if (timeline != null) {
+			timeline.move(selected.getFrame(), frame);
+			refreshBoundaries();
+			selectBoundary(frame);
+		}
+	}
+
+	private void deleteSelectedBoundary() {
+		TrackingBoundary selected = boundaryList.getSelectedValue();
+		TrackingTimeline timeline = timeline();
+		if (selected != null && timeline != null) {
+			timeline.remove(selected.getFrame());
+			refreshBoundaries();
+		}
+	}
+
+	private void selectBoundary(int frame) {
+		for (int i = 0; i < boundaryListModel.size(); i++)
+			if (boundaryListModel.get(i).getFrame() == frame) {
+				boundaryList.setSelectedIndex(i);
+				boundaryList.ensureIndexIsVisible(i);
+				return;
+			}
+	}
+
+	private void setViewerPositionT(int frame) {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
+			return;
+		icy.gui.viewer.Viewer viewer = exp.getSeqCamData().getSequence().getFirstViewer();
+		if (viewer != null) {
+			viewer.setPositionT(frame);
+			exp.updateROIsAt(frame);
+		}
 	}
 
 	private int getViewerPositionT() {

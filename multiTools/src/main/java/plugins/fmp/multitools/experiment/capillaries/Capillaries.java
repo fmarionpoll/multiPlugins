@@ -13,6 +13,7 @@ import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
@@ -32,6 +33,7 @@ public class Capillaries {
 	private boolean alongTUnified = false;
 	private CapillariesPersistence persistence = new CapillariesPersistence();
 	private ReferenceMeasures referenceMeasures = new ReferenceMeasures();
+	private final TrackingTimeline trackingTimeline = new TrackingTimeline();
 
 	public CapillariesDescription getCapillariesDescription() {
 		return capillariesDescription;
@@ -102,6 +104,10 @@ public class Capillaries {
 
 	public ReferenceMeasures getReferenceMeasures() {
 		return referenceMeasures;
+	}
+
+	public TrackingTimeline getTrackingTimeline() {
+		return trackingTimeline;
 	}
 
 	public void migrateThresholdFromCapillariesIfNeeded() {
