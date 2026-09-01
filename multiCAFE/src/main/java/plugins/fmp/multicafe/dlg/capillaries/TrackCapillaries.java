@@ -20,6 +20,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.BorderFactory;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.frame.progress.ProgressFrame;
@@ -37,6 +38,9 @@ import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.series.ProgressReporter;
 import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
+import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner;
+import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionAnalysis;
+import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionProposal;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
@@ -52,6 +56,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JSpinner tEndSpinner;
 	private JSpinner outlierMadFactorSpinner;
 	private JSpinner outlierMinPxSpinner;
+	private JSpinner transitionThresholdSpinner;
 	private JButton runFrameByFrameButton = new JButton("Run tracking");
 	private JButton runFromCurrentTButton = new JButton("Run from current T");
 	private JButton runBackwardFromCurrentTButton = new JButton("Run backwards from current T");
@@ -61,11 +66,21 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JButton addBoundaryButton = new JButton("Add boundary at current T");
 	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
 	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
+	private JButton analyzeTransitionsButton = new JButton("Analyze transitions (read-only)");
+	private JButton stopAnalysisButton = new JButton("Stop analysis");
+	private JButton acceptProposalButton = new JButton("Accept selected");
+	private JButton acceptAllProposalsButton = new JButton("Accept all");
+	private JButton moveProposalButton = new JButton("Move proposal to current T");
+	private JButton deleteProposalButton = new JButton("Remove proposal");
+	private JLabel proposalStatusLabel = new JLabel("No transition analysis run.");
+	private DefaultListModel<TransitionProposal> proposalListModel = new DefaultListModel<TransitionProposal>();
+	private JList<TransitionProposal> proposalList = new JList<TransitionProposal>(proposalListModel);
 	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
 	private JList<TrackingBoundary> boundaryList = new JList<TrackingBoundary>(boundaryListModel);
 	private Viewer trackedViewer;
 	private EndpointTrajectoryChart endpointChart;
 	private Experiment trackedExperiment;
+	private volatile boolean transitionAnalysisCancelled;
 	private final ItemListener experimentSelectionListener = e -> {
 		if (e.getStateChange() == ItemEvent.SELECTED)
 			SwingUtilities.invokeLater(() -> bindSelectedExperiment());
@@ -85,8 +100,9 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		tEndSpinner = new JSpinner(new SpinnerNumberModel(Math.min(nFrames - 1, 100), 0, nFrames - 1, 1));
 		outlierMadFactorSpinner = new JSpinner(new SpinnerNumberModel(2.5, 1.0, 8.0, 0.5));
 		outlierMinPxSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 50, 1));
+		transitionThresholdSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
 
-		JPanel topPanel = new JPanel(new GridLayout(6, 1));
+		JPanel topPanel = new JPanel(new GridLayout(8, 1));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
 
 		JPanel p1 = new JPanel(flow);
@@ -126,6 +142,23 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p5.add(deleteBoundaryButton);
 		topPanel.add(p5);
 
+		JPanel p6 = new JPanel(flow);
+		p6.add(analyzeTransitionsButton);
+		stopAnalysisButton.setEnabled(false);
+		p6.add(stopAnalysisButton);
+		p6.add(new JLabel("minimum movement"));
+		p6.add(transitionThresholdSpinner);
+		p6.add(new JLabel("px"));
+		topPanel.add(p6);
+
+		JPanel p7 = new JPanel(flow);
+		p7.add(acceptProposalButton);
+		p7.add(acceptAllProposalsButton);
+		p7.add(moveProposalButton);
+		p7.add(deleteProposalButton);
+		p7.add(proposalStatusLabel);
+		topPanel.add(p7);
+
 		boundaryList.setVisibleRowCount(6);
 		boundaryList.setCellRenderer((list, value, index, selected, focus) -> {
 			String prefix = value.getOrigin() == TrackingBoundary.Origin.MANUAL ? "manual" : "suggested";
@@ -139,10 +172,27 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			}
 			return label;
 		});
+		proposalList.setVisibleRowCount(5);
+		proposalList.setCellRenderer((list, value, index, selected, focus) -> {
+			JLabel label = new JLabel(value.summary());
+			if (selected) {
+				label.setOpaque(true);
+				label.setBackground(list.getSelectionBackground());
+				label.setForeground(list.getSelectionForeground());
+			}
+			return label;
+		});
 
 		dialogFrame = new IcyFrame("Track capillaries along time", true, true);
 		dialogFrame.add(topPanel, BorderLayout.NORTH);
-		dialogFrame.add(new JScrollPane(boundaryList), BorderLayout.CENTER);
+		JPanel listsPanel = new JPanel(new GridLayout(2, 1));
+		JScrollPane proposalsScroll = new JScrollPane(proposalList);
+		proposalsScroll.setBorder(BorderFactory.createTitledBorder("Detected transition proposals (not yet applied)"));
+		JScrollPane boundariesScroll = new JScrollPane(boundaryList);
+		boundariesScroll.setBorder(BorderFactory.createTitledBorder("Accepted tracking boundaries"));
+		listsPanel.add(proposalsScroll);
+		listsPanel.add(boundariesScroll);
+		dialogFrame.add(listsPanel, BorderLayout.CENTER);
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
@@ -160,6 +210,16 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		addBoundaryButton.addActionListener(e -> addBoundaryAtCurrentT());
 		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
 		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
+		analyzeTransitionsButton.addActionListener(e -> analyzeTransitions());
+		stopAnalysisButton.addActionListener(e -> transitionAnalysisCancelled = true);
+		acceptProposalButton.addActionListener(e -> acceptSelectedProposal());
+		acceptAllProposalsButton.addActionListener(e -> acceptAllProposals());
+		moveProposalButton.addActionListener(e -> moveSelectedProposalToCurrentT());
+		deleteProposalButton.addActionListener(e -> deleteSelectedProposal());
+		proposalList.addListSelectionListener(e -> {
+			if (!e.getValueIsAdjusting() && proposalList.getSelectedValue() != null)
+				setViewerPositionT(proposalList.getSelectedValue().frame);
+		});
 		boundaryList.addListSelectionListener(e -> {
 			if (!e.getValueIsAdjusting() && boundaryList.getSelectedValue() != null)
 				setViewerPositionT(boundaryList.getSelectedValue().getFrame());
@@ -441,6 +501,99 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), t);
 	}
 
+	private void analyzeTransitions() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null)
+			return;
+		final int from = (Integer) tStartSpinner.getValue();
+		final int to = (Integer) tEndSpinner.getValue();
+		if (to <= from) {
+			JOptionPane.showMessageDialog(this, "The analysis range must contain at least two frames.",
+					"Transition analysis", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		final double minimum = ((Number) transitionThresholdSpinner.getValue()).doubleValue();
+		transitionAnalysisCancelled = false;
+		analyzeTransitionsButton.setEnabled(false);
+		stopAnalysisButton.setEnabled(true);
+		proposalStatusLabel.setText("Analyzing T=" + from + " to " + to + "...");
+		final ProgressFrame progress = new ProgressFrame("Analyzing image transitions (read-only)");
+		new SwingWorker<TransitionAnalysis, Void>() {
+			@Override
+			protected TransitionAnalysis doInBackground() {
+				return new ExperimentMovementPrescanner().analyzeTransitions(exp, from, to, minimum,
+						() -> transitionAnalysisCancelled);
+			}
+
+			@Override
+			protected void done() {
+				try {
+					TransitionAnalysis result = get();
+					proposalListModel.clear();
+					for (TransitionProposal proposal : result.proposals)
+						proposalListModel.addElement(proposal);
+					if (!result.succeeded())
+						proposalStatusLabel.setText("Analysis failed: " + result.error);
+					else
+						proposalStatusLabel.setText(result.proposals.size() + " proposal(s), "
+								+ result.comparedFrames + " pairs, threshold "
+								+ String.format("%.1f px", result.thresholdUsed)
+								+ (result.cancelled ? " (stopped)" : ""));
+				} catch (Exception ex) {
+					proposalStatusLabel.setText("Analysis failed: " + ex.getMessage());
+					Logger.warn("Transition analysis failed: " + ex.getMessage());
+				} finally {
+					progress.close();
+					analyzeTransitionsButton.setEnabled(true);
+					stopAnalysisButton.setEnabled(false);
+					transitionAnalysisCancelled = false;
+				}
+			}
+		}.execute();
+	}
+
+	private void acceptSelectedProposal() {
+		TransitionProposal proposal = proposalList.getSelectedValue();
+		if (proposal == null)
+			return;
+		acceptProposal(proposal);
+		proposalListModel.removeElement(proposal);
+	}
+
+	private void acceptAllProposals() {
+		List<TransitionProposal> proposals = new ArrayList<TransitionProposal>();
+		for (int i = 0; i < proposalListModel.size(); i++)
+			proposals.add(proposalListModel.get(i));
+		for (TransitionProposal proposal : proposals)
+			acceptProposal(proposal);
+		proposalListModel.clear();
+	}
+
+	private void acceptProposal(TransitionProposal proposal) {
+		TrackingTimeline timeline = timeline();
+		if (timeline == null || proposal == null || proposal.frame < 1)
+			return;
+		timeline.put(new TrackingBoundary(proposal.frame, TrackingBoundary.Origin.AUTOMATIC,
+				TrackingBoundary.Status.CONFIRMED, proposal.summary(), proposal.score));
+		refreshBoundaries();
+		selectBoundary(proposal.frame);
+	}
+
+	private void moveSelectedProposalToCurrentT() {
+		int index = proposalList.getSelectedIndex();
+		int frame = getViewerPositionT();
+		if (index < 0 || frame < 1)
+			return;
+		proposalListModel.set(index, proposalListModel.get(index).atFrame(frame));
+		proposalList.setSelectedIndex(index);
+	}
+
+	private void deleteSelectedProposal() {
+		int index = proposalList.getSelectedIndex();
+		if (index >= 0)
+			proposalListModel.remove(index);
+	}
+
 	private void plotEndpointTrajectories() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
@@ -452,6 +605,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	void close() {
+		transitionAnalysisCancelled = true;
 		if (parent0 != null)
 			parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
 		if (trackedViewer != null) {
@@ -503,6 +657,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		if (trackedViewer != null)
 			trackedViewer.removeListener(this);
 		trackedExperiment = selected;
+		proposalListModel.clear();
+		proposalStatusLabel.setText("No transition analysis run for this experiment.");
 		trackedViewer = null;
 		if (selected == null || selected.getSeqCamData() == null
 				|| selected.getSeqCamData().getSequence() == null) {

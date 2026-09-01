@@ -48,6 +48,8 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	private static final String FILTER_BUTTON_OFF = "Filter (off)";
 	private static final String FILTER_BUTTON_ON = "Filter (on)";
+	private static final String FIND_BUTTON_OFF = "Find";
+	private static final String FIND_BUTTON_ON = "Find(*)";
 	private static final String TIP_EDIT = "Bulk-edit experiment or capillary descriptors for the current list (respects active Filter).";
 	private static final String TIP_FIND = "Find measure outliers / anomalies (noisy bottom MAD, missing baseline, runaway tops…). Scan keeps matching experiments in the browse list.";
 	private static final String TIP_CLOSE = "Close all open experiments and clear the browse list (releases viewers and file handles).";
@@ -68,6 +70,10 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	public JToggleButton getShowFilterButton() {
 		return showFilterButton;
+	}
+
+	public void setFindSelectionActive(boolean active) {
+		showFindButton.setText(active ? FIND_BUTTON_ON : FIND_BUTTON_OFF);
 	}
 
 	void updateFilterButtonLabel() {

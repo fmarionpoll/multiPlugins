@@ -385,6 +385,9 @@ public class SelectFilesPanel extends JPanel {
 				if (trimmed.isEmpty()) {
 					continue;
 				}
+				if ("path".equalsIgnoreCase(trimmed)) {
+					continue;
+				}
 				Path path = Paths.get(trimmed);
 				if (!path.isAbsolute() && baseDir != null) {
 					path = baseDir.resolve(path).normalize();

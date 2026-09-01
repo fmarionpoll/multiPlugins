@@ -1,8 +1,16 @@
 package plugins.fmp.multicafe.dlg.browse;
 
+import java.awt.BorderLayout;
+import java.awt.CardLayout;
+import java.awt.Color;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ItemEvent;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -13,11 +21,21 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.RowSorter;
+import javax.swing.SortOrder;
 import javax.swing.JSpinner;
+import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
+
+import icy.gui.frame.IcyFrame;
 import icy.gui.frame.progress.ProgressFrame;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -28,7 +46,12 @@ import plugins.fmp.multitools.experiment.capillary.measurefilter.MeasureFilterOp
 import plugins.fmp.multitools.experiment.capillary.measurefilter.MeasureFilterRule;
 import plugins.fmp.multitools.experiment.capillary.measurefilter.MeasureFilterSource;
 import plugins.fmp.multitools.experiment.capillary.measurefilter.MeasureFilterStat;
+import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner;
+import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.Result;
+import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TrackingStatus;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.JComponents.Dialog;
+import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
 
 /**
  * Find capillaries matching a measure rule. Scan narrows the browse list to
@@ -39,6 +62,7 @@ public class MeasureSearchPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private enum Preset {
+		IMAGE_MOVEMENT("Image movement"),
 		BOTTOM_MAD_HIGH("Bottom MAD high"),
 		BOTTOM_BASELINE_MISSING("Bottom baseline missing"),
 		BOTTOM_SERIES_NOISY("Bottom series RANGE"),
@@ -69,50 +93,85 @@ public class MeasureSearchPanel extends JPanel {
 	private JCheckBox allCheckBox = new JCheckBox("All", true);
 
 	private JButton scanButton = new JButton("Scan");
-	private JButton restoreListButton = new JButton("Restore list");
+	private JButton selectionButton = new JButton("Select found experiments");
 	private JLabel hitLabel = new JLabel("Find: --");
+	private JButton movementCancelButton = new JButton("Stop scan");
+	private JSpinner movementSamplesSpinner = new JSpinner(new SpinnerNumberModel(10, 3, 30, 1));
+	private JSpinner movementThresholdSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
+	private JCheckBox excludeTrackedCheckBox = new JCheckBox("Exclude already tracked", true);
+	private JLabel movementLabel = new JLabel("Movement: not scanned");
+	private JPanel searchOptionsPanel = new JPanel(new CardLayout());
+	private static final String CARD_MOVEMENT = "movement";
+	private static final String CARD_MEASURE = "measure";
 
 	private MultiCAFE parent0 = null;
 	private List<MeasureFilterHit> hits = new ArrayList<>();
 	private boolean suppressUi = false;
 	private boolean scanRunning = false;
 	private boolean suppressBrowseFollow = false;
+	private List<Result> movementResults = new ArrayList<>();
+	private List<Result> movementCandidates = new ArrayList<>();
+	private IcyFrame movementResultsFrame;
+	private JButton movementResultsSelectionButton;
+	private volatile boolean movementCancelRequested;
+	private double movementThresholdUsed = 2.0;
+	private boolean findSelectionActive = false;
+	private boolean lastResultsWereMovement = true;
+	private List<Experiment> listBeforeFindSelection = new ArrayList<Experiment>();
 
 	void init(MultiCAFE parent0) {
 		this.parent0 = parent0;
-		setBorder(javax.swing.BorderFactory.createTitledBorder("Find measure outliers"));
+		setBorder(javax.swing.BorderFactory.createTitledBorder("Find experiments"));
 		setLayout(new GridLayout(3, 1));
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
 
 		JPanel row0 = new JPanel(left);
-		row0.add(new JLabel("preset"));
+		row0.add(new JLabel("Search for:"));
 		row0.add(presetCombo);
 		allCheckBox.setToolTipText(
 				"Checked: scan every experiment in the master list. Unchecked: scan only the currently selected experiment.");
 		row0.add(allCheckBox);
-		scanButton.setToolTipText(
-				"Scan for matching capillaries, keep only those experiments in the browse list, then open the first hit.");
+		scanButton.setToolTipText("Run the selected experiment search.");
 		row0.add(scanButton);
+		selectionButton.setEnabled(false);
+		selectionButton.setToolTipText("Limit browsing to the experiments found by the last scan.");
+		row0.add(selectionButton);
+		movementCancelButton.setEnabled(false);
+		movementCancelButton.setVisible(false);
+		movementCancelButton.setForeground(Color.RED.darker());
+		movementCancelButton.setToolTipText("Stop after the current sampled frame and keep completed results.");
+		row0.add(movementCancelButton);
 		add(row0);
 
-		JPanel row1 = new JPanel(left);
-		row1.add(sourceCombo);
-		row1.add(statCombo);
-		row1.add(opCombo);
-		row1.add(thresholdSpinner);
-		row1.add(threshold2Label);
-		row1.add(threshold2Spinner);
-		add(row1);
+		JPanel measureOptions = new JPanel(left);
+		measureOptions.add(sourceCombo);
+		measureOptions.add(statCombo);
+		measureOptions.add(opCombo);
+		measureOptions.add(thresholdSpinner);
+		measureOptions.add(threshold2Label);
+		measureOptions.add(threshold2Spinner);
+		searchOptionsPanel.add(measureOptions, CARD_MEASURE);
+
+		JPanel movementOptions = new JPanel(left);
+		movementOptions.add(new JLabel("sampled frames"));
+		movementOptions.add(movementSamplesSpinner);
+		movementOptions.add(new JLabel("candidate >="));
+		movementOptions.add(movementThresholdSpinner);
+		movementOptions.add(new JLabel("px"));
+		excludeTrackedCheckBox.setToolTipText("Exclude experiments with saved time-dependent geometry or manual tracking segments from the results.");
+		movementOptions.add(excludeTrackedCheckBox);
+		searchOptionsPanel.add(movementOptions, CARD_MOVEMENT);
+		add(searchOptionsPanel);
 
 		JPanel row2 = new JPanel(left);
 		row2.add(hitLabel);
-		restoreListButton.setToolTipText("Restore the full experiment list (undo Find’s filter).");
-		row2.add(restoreListButton);
+		row2.add(movementLabel);
 		add(row2);
 
 		defineListeners();
-		applyPreset(Preset.BOTTOM_MAD_HIGH);
+		presetCombo.setSelectedItem(Preset.IMAGE_MOVEMENT);
+		applyPreset(Preset.IMAGE_MOVEMENT);
 		updateFieldEnablement();
 		updateHitLabel(null);
 	}
@@ -133,13 +192,230 @@ public class MeasureSearchPanel extends JPanel {
 			if (!suppressUi)
 				updateFieldEnablement();
 		});
-		scanButton.addActionListener(e -> runScan());
-		restoreListButton.addActionListener(e -> restoreBrowseList());
-		parent0.expListComboLazy.addItemListener(e -> {
-			if (e.getStateChange() != ItemEvent.SELECTED || suppressBrowseFollow || hits.isEmpty())
-				return;
-			followBrowseSelection();
+		scanButton.addActionListener(e -> {
+			if (presetCombo.getSelectedItem() == Preset.IMAGE_MOVEMENT)
+				runMovementPrescan();
+			else
+				runScan();
 		});
+		selectionButton.addActionListener(e -> toggleFoundExperimentSelection());
+		movementCancelButton.addActionListener(e -> {
+			movementCancelRequested = true;
+			movementCancelButton.setEnabled(false);
+			movementLabel.setText("Movement: stopping after current frame...");
+		});
+		parent0.expListComboLazy.addItemListener(e -> {
+			if (e.getStateChange() != ItemEvent.SELECTED || suppressBrowseFollow)
+				return;
+			if (!hits.isEmpty())
+				followBrowseSelection();
+			updateMovementLabelForSelection();
+		});
+	}
+
+	private void runMovementPrescan() {
+		if (parent0 == null || scanRunning)
+			return;
+		prepareForNewScan(true);
+		List<Experiment> experiments = resolveScanScope();
+		if (experiments.isEmpty())
+			return;
+		final int samples = ((Number) movementSamplesSpinner.getValue()).intValue();
+		final double threshold = ((Number) movementThresholdSpinner.getValue()).doubleValue();
+		final boolean excludeTracked = excludeTrackedCheckBox.isSelected();
+		movementCancelRequested = false;
+		scanRunning = true;
+		scanButton.setEnabled(false);
+		movementCancelButton.setEnabled(true);
+		movementCancelButton.setVisible(true);
+		movementLabel.setText("Movement: scanning...");
+		final ProgressFrame progress = new ProgressFrame("Prescan movement...");
+		progress.setLength(experiments.size());
+		SwingWorker<List<Result>, Void> worker = new SwingWorker<List<Result>, Void>() {
+			@Override
+			protected List<Result> doInBackground() {
+				ExperimentMovementPrescanner scanner = new ExperimentMovementPrescanner();
+				List<Result> results = new ArrayList<Result>();
+				int skippedTracked = 0;
+				for (int i = 0; i < experiments.size(); i++) {
+					if (movementCancelRequested)
+						break;
+					Experiment exp = experiments.get(i);
+					progress.setMessage("Movement " + (i + 1) + " / " + experiments.size() + " — " + exp);
+					Result result = scanner.scan(exp, samples, () -> movementCancelRequested);
+					if (excludeTracked && result.trackingStatus != TrackingStatus.NOT_TRACKED) {
+						skippedTracked++;
+					} else if (result.sampledFrames > 0 || !movementCancelRequested) {
+						results.add(result);
+					}
+					progress.setPosition((double) (i + 1) / experiments.size());
+				}
+				Logger.info("Movement prescan: skipped " + skippedTracked + " already tracked experiment(s)");
+				return results;
+			}
+
+			@Override
+			protected void done() {
+				try {
+					movementResults = get();
+					movementThresholdUsed = threshold;
+					hits.clear();
+					movementCandidates = new ArrayList<Result>();
+					int unscored = 0;
+					for (Result result : movementResults) {
+						if (!result.succeeded()) unscored++;
+						else if (result.isCandidate(threshold)) movementCandidates.add(result);
+					}
+					lastResultsWereMovement = true;
+					updateSelectionControls();
+					updateMovementLabelForSelection();
+					showMovementResults();
+					Logger.info("Movement prescan" + (movementCancelRequested ? " (stopped)" : "") + ": "
+							+ movementCandidates.size() + " candidate(s), " + unscored + " unscored");
+				} catch (Exception ex) {
+					movementResults.clear();
+					movementLabel.setText("Movement: scan failed");
+					Logger.warn("Movement prescan failed: " + ex.getMessage());
+					JOptionPane.showMessageDialog(MeasureSearchPanel.this,
+							"Movement prescan failed: " + ex.getMessage(), "Find", JOptionPane.ERROR_MESSAGE);
+				} finally {
+					progress.close();
+					scanRunning = false;
+					scanButton.setEnabled(true);
+					movementCancelButton.setEnabled(false);
+					movementCancelButton.setVisible(false);
+					movementCancelRequested = false;
+				}
+			}
+		};
+		worker.execute();
+	}
+
+	private void showMovementResults() {
+		if (movementResultsFrame != null)
+			movementResultsFrame.close();
+		String[] columns = { "Record", "Tracking status", "Priority", "Move px", "Rotation deg", "Scale %",
+				"Residual px", "Frame", "Confidence %", "Detected pattern", "Path" };
+		DefaultTableModel model = new DefaultTableModel(columns, 0) {
+			private static final long serialVersionUID = 1L;
+			@Override public boolean isCellEditable(int row, int column) { return false; }
+		};
+		for (Result result : movementCandidates)
+			model.addRow(new Object[] { recordId(result.experiment), result.trackingStatus.toString(),
+					result.reviewPriorityLabel(movementThresholdUsed), String.format("%.1f", result.maxDisplacementPx),
+					String.format("%.3f", result.maxRotationDeg),
+					String.format("%.3f", result.maxScalePercent), String.format("%.1f", result.maxResidualPx),
+					result.worstFrame, String.format("%.0f", result.confidence * 100),
+					result.detectedPattern(movementThresholdUsed), experimentPath(result.experiment) });
+		JTable table = new JTable(model);
+		TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<DefaultTableModel>(model);
+		sorter.setComparator(2, (a, b) -> Integer.compare(priorityRank(a), priorityRank(b)));
+		sorter.setSortKeys(java.util.Arrays.asList(new RowSorter.SortKey(2, SortOrder.DESCENDING)));
+		table.setRowSorter(sorter);
+		table.setFillsViewportHeight(true);
+		table.getColumnModel().getColumn(1).setPreferredWidth(170);
+		table.getColumnModel().getColumn(2).setPreferredWidth(125);
+		table.getColumnModel().getColumn(9).setPreferredWidth(300);
+		table.getColumnModel().getColumn(10).setPreferredWidth(500);
+		movementResultsSelectionButton = new JButton("Select found experiments");
+		movementResultsSelectionButton.setEnabled(!movementCandidates.isEmpty());
+		movementResultsSelectionButton.addActionListener(e -> toggleFoundExperimentSelection());
+		JButton exportButton = new JButton("Export CSV...");
+		exportButton.setEnabled(!movementCandidates.isEmpty());
+		exportButton.addActionListener(e -> exportMovementCandidatesCsv());
+		JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		bottom.add(movementResultsSelectionButton);
+		bottom.add(exportButton);
+		bottom.add(new JLabel(movementCandidates.size() + " flagged record(s)"
+				+ (movementCancelRequested ? " — partial scan (stopped by user)" : "")));
+		movementResultsFrame = new IcyFrame("Movement prescan results", true, true);
+		JScrollPane scroll = new JScrollPane(table);
+		scroll.setPreferredSize(new Dimension(950, 360));
+		movementResultsFrame.add(scroll, BorderLayout.CENTER);
+		movementResultsFrame.add(bottom, BorderLayout.SOUTH);
+		movementResultsFrame.pack();
+		movementResultsFrame.addToDesktopPane();
+		movementResultsFrame.setVisible(true);
+	}
+
+	private void exportMovementCandidatesCsv() {
+		if (movementCandidates.isEmpty())
+			return;
+		String startDirectory = experimentPath(movementCandidates.get(0).experiment);
+		java.io.File start = startDirectory.isEmpty() ? null : new java.io.File(startDirectory);
+		if (start != null && !start.isDirectory()) start = start.getParentFile();
+		try {
+			String filename = Dialog.saveFileAs("movement_prescan.csv",
+					start == null ? null : start.getAbsolutePath(), "csv");
+			if (filename == null)
+				return;
+			List<Result> ordered = new ArrayList<Result>(movementCandidates);
+			ordered.sort((a, b) -> {
+				int priority = Integer.compare(b.reviewPriority(movementThresholdUsed),
+						a.reviewPriority(movementThresholdUsed));
+				return priority != 0 ? priority : Double.compare(b.maxDisplacementPx, a.maxDisplacementPx);
+			});
+			CSVFormat format = CSVFormat.DEFAULT.builder().setHeader("Path", "Record", "Tracking_status", "Priority", "Move_px",
+					"Rotation_deg", "Scale_percent", "Residual_px", "Frame", "Confidence_percent",
+					"Detected_pattern").setSkipHeaderRecord(false).build();
+			try (CSVPrinter printer = new CSVPrinter(
+					Files.newBufferedWriter(Paths.get(filename), StandardCharsets.UTF_8), format)) {
+				for (Result result : ordered)
+					printer.printRecord(experimentPath(result.experiment), recordId(result.experiment),
+							result.trackingStatus.toString(), result.reviewPriorityLabel(movementThresholdUsed), result.maxDisplacementPx,
+							result.maxRotationDeg, result.maxScalePercent, result.maxResidualPx, result.worstFrame,
+							result.confidence * 100, result.detectedPattern(movementThresholdUsed));
+			}
+			JOptionPane.showMessageDialog(this, "Exported " + ordered.size() + " flagged records to:\n" + filename,
+					"Movement prescan", JOptionPane.INFORMATION_MESSAGE);
+		} catch (FileDialogException | IOException ex) {
+			Logger.warn("Movement CSV export failed: " + ex.getMessage());
+			JOptionPane.showMessageDialog(this, "CSV export failed: " + ex.getMessage(), "Movement prescan",
+					JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private String experimentPath(Experiment experiment) {
+		if (experiment == null)
+			return "";
+		String path = experiment.getImagesDirectory();
+		return path == null || path.trim().isEmpty() ? experiment.toString() : path;
+	}
+
+	private static int priorityRank(Object value) {
+		String text = value == null ? "" : value.toString();
+		if (text.startsWith("Very high")) return 3;
+		if (text.startsWith("High")) return 2;
+		if (text.startsWith("Moderate")) return 1;
+		return 0;
+	}
+
+	private int recordId(Experiment experiment) {
+		if (experiment == null)
+			return -1;
+		List<Experiment> master = parent0.paneBrowse.filterPanel.filterExpList.getExperimentsAsListNoLoad();
+		for (int i = 0; i < master.size(); i++)
+			if (master.get(i) == experiment || master.get(i).toString().equals(experiment.toString()))
+				return i;
+		for (int i = 0; i < parent0.expListComboLazy.getItemCount(); i++) {
+			Experiment listed = parent0.expListComboLazy.getItemAtNoLoad(i);
+			if (listed == experiment || (listed != null && listed.toString().equals(experiment.toString())))
+				return i;
+		}
+		return -1;
+	}
+
+	private void updateMovementLabelForSelection() {
+		Experiment selected = parent0.expListComboLazy.getItemAtNoLoad(parent0.expListComboLazy.getSelectedIndex());
+		for (Result result : movementResults) {
+			if (result.experiment == selected || (selected != null && result.experiment != null
+					&& selected.toString().equals(result.experiment.toString()))) {
+				movementLabel.setText("Movement: " + result.format());
+				return;
+			}
+		}
+		if (!movementResults.isEmpty())
+			movementLabel.setText("Movement: not in scan results");
 	}
 
 	private void applyPreset(Preset preset) {
@@ -193,6 +469,10 @@ public class MeasureSearchPanel extends JPanel {
 		} finally {
 			suppressUi = false;
 		}
+		CardLayout cards = (CardLayout) searchOptionsPanel.getLayout();
+		cards.show(searchOptionsPanel, preset == Preset.IMAGE_MOVEMENT ? CARD_MOVEMENT : CARD_MEASURE);
+		hitLabel.setVisible(preset != Preset.IMAGE_MOVEMENT);
+		movementLabel.setVisible(preset == Preset.IMAGE_MOVEMENT);
 		updateFieldEnablement();
 	}
 
@@ -240,6 +520,7 @@ public class MeasureSearchPanel extends JPanel {
 	private void runScan() {
 		if (parent0 == null || parent0.expListComboLazy == null || scanRunning)
 			return;
+		prepareForNewScan(false);
 		List<Experiment> experiments = resolveScanScope();
 		if (experiments.isEmpty()) {
 			hits.clear();
@@ -281,11 +562,10 @@ public class MeasureSearchPanel extends JPanel {
 						Logger.info("Find: none found");
 					} else {
 						Logger.info("Find: " + hits.size() + " hit(s) in " + countHitExperiments() + " experiment(s)");
-						narrowBrowseListToHits();
-						MeasureFilterHit first = hits.get(0);
-						updateHitLabel(first);
-						openHit(first);
+						updateHitLabel(null);
 					}
+					lastResultsWereMovement = false;
+					updateSelectionControls();
 				} catch (Exception ex) {
 					Logger.warn("Find scan failed: " + ex.getMessage());
 					hits.clear();
@@ -406,33 +686,100 @@ public class MeasureSearchPanel extends JPanel {
 		return null;
 	}
 
-	private void narrowBrowseListToHits() {
+	private List<Experiment> foundExperiments() {
 		LinkedHashSet<Experiment> keep = new LinkedHashSet<>();
-		for (MeasureFilterHit h : hits) {
-			if (h.experiment != null)
-				keep.add(h.experiment);
+		if (lastResultsWereMovement) {
+			for (Result result : movementCandidates)
+				if (result.experiment != null)
+					keep.add(result.experiment);
+		} else {
+			for (MeasureFilterHit hit : hits)
+				if (hit.experiment != null)
+					keep.add(hit.experiment);
 		}
-		if (keep.isEmpty())
+		return new ArrayList<Experiment>(keep);
+	}
+
+	private void toggleFoundExperimentSelection() {
+		if (findSelectionActive)
+			restoreBrowseList();
+		else
+			selectFoundExperiments();
+	}
+
+	private void selectFoundExperiments() {
+		List<Experiment> found = foundExperiments();
+		if (found.isEmpty())
 			return;
-		List<Experiment> narrowed = new ArrayList<>(keep);
+		listBeforeFindSelection = parent0.expListComboLazy.getExperimentsAsListNoLoad();
 		suppressBrowseFollow = true;
 		try {
-			parent0.expListComboLazy.setExperimentsFromList(narrowed);
-			parent0.paneBrowse.browsePanel.setListFiltered(true);
+			parent0.expListComboLazy.setExperimentsFromList(found);
 			if (parent0.expListComboLazy.getItemCount() > 0)
 				parent0.expListComboLazy.setSelectedIndex(0);
 		} finally {
 			suppressBrowseFollow = false;
 		}
-		Logger.info("Find: browse list narrowed to " + narrowed.size() + " experiment(s)");
+		findSelectionActive = true;
+		updateSelectionControls();
+		if (lastResultsWereMovement)
+			updateMovementLabelForSelection();
+		else if (!hits.isEmpty()) {
+			MeasureFilterHit first = hits.get(0);
+			updateHitLabel(first);
+			openHit(first);
+		}
+		Logger.info("Find: browse list narrowed to " + found.size() + " experiment(s)");
 	}
 
 	private void restoreBrowseList() {
-		if (parent0 == null)
+		if (parent0 == null || !findSelectionActive)
 			return;
+		suppressBrowseFollow = true;
+		try {
+			parent0.expListComboLazy.setExperimentsFromList(listBeforeFindSelection);
+			if (parent0.expListComboLazy.getItemCount() > 0)
+				parent0.expListComboLazy.setSelectedIndex(0);
+		} finally {
+			suppressBrowseFollow = false;
+		}
+		findSelectionActive = false;
+		listBeforeFindSelection.clear();
+		updateSelectionControls();
+		if (lastResultsWereMovement)
+			updateMovementLabelForSelection();
+		else
+			updateHitLabel(null);
+	}
+
+	private void prepareForNewScan(boolean movement) {
+		if (findSelectionActive)
+			restoreBrowseList();
 		hits.clear();
-		parent0.paneBrowse.filterPanel.filterExperimentList(false);
+		movementResults.clear();
+		movementCandidates.clear();
+		if (movementResultsFrame != null) {
+			movementResultsFrame.close();
+			movementResultsFrame = null;
+			movementResultsSelectionButton = null;
+		}
+		lastResultsWereMovement = movement;
 		updateHitLabel(null);
+		movementLabel.setText("Movement: not scanned");
+		updateSelectionControls();
+	}
+
+	private void updateSelectionControls() {
+		boolean hasResults = !foundExperiments().isEmpty();
+		String text = findSelectionActive ? "Restore full list" : "Select found experiments";
+		selectionButton.setText(text);
+		selectionButton.setEnabled(findSelectionActive || hasResults);
+		if (movementResultsSelectionButton != null) {
+			movementResultsSelectionButton.setText(text);
+			movementResultsSelectionButton.setEnabled(findSelectionActive || hasResults);
+		}
+		if (parent0 != null && parent0.paneBrowse != null)
+			parent0.paneBrowse.browsePanel.setFindSelectionActive(findSelectionActive);
 	}
 
 	private int countHitExperiments() {
