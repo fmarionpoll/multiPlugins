@@ -1,6 +1,8 @@
 package plugins.fmp.multitools.experiment;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.w3c.dom.Document;
@@ -229,16 +231,22 @@ public class LazyExperiment extends Experiment {
 	/**
 	 * Lightweight metadata class for experiment information. Contains only
 	 * essential information needed for the dropdown and lazy loading.
+	 * <p>
+	 * List identity (dedup in {@code JComboBoxExperimentLazy}) is the canonical
+	 * results directory where {@code Experiment.xml} lives; bin and grabs paths
+	 * may differ for the same dataset.
 	 */
 	public static class ExperimentMetadata {
 		private final String cameraDirectory;
 		private final String resultsDirectory;
 		private final String binDirectory;
+		private final String identityKey;
 
 		public ExperimentMetadata(String cameraDirectory, String resultsDirectory, String binDirectory) {
-			this.cameraDirectory = cameraDirectory;
-			this.resultsDirectory = resultsDirectory;
+			this.cameraDirectory = canonicalPathOrKeep(cameraDirectory);
+			this.resultsDirectory = canonicalPathOrKeep(resultsDirectory);
 			this.binDirectory = binDirectory;
+			this.identityKey = buildIdentityKey(this.resultsDirectory, this.cameraDirectory);
 		}
 
 		public String getCameraDirectory() {
@@ -253,6 +261,47 @@ public class LazyExperiment extends Experiment {
 			return binDirectory;
 		}
 
+		/** Canonical results folder used to detect duplicates in the browse list. */
+		public String getIdentityKey() {
+			return identityKey;
+		}
+
+		/** Path to the experiment descriptor XML (may not exist yet for new datasets). */
+		public String getExperimentXmlPath() {
+			if (resultsDirectory == null || resultsDirectory.isEmpty())
+				return null;
+			return resultsDirectory + File.separator + ExperimentPersistence.ID_V2_EXPERIMENT_XML;
+		}
+
+		/**
+		 * Same key as {@link #getIdentityKey()}; compares Open/Search paths to items
+		 * already in the combo.
+		 */
+		public static String identityKeyFor(String resultsDirectory, String cameraDirectory) {
+			return buildIdentityKey(canonicalPathOrKeep(resultsDirectory), canonicalPathOrKeep(cameraDirectory));
+		}
+
+		private static String buildIdentityKey(String resultsDirectory, String cameraDirectory) {
+			if (resultsDirectory != null && !resultsDirectory.isEmpty())
+				return resultsDirectory;
+			if (cameraDirectory == null || cameraDirectory.isEmpty())
+				return "";
+			return cameraDirectory + File.separator + Experiment.RESULTS;
+		}
+
+		private static String canonicalPathOrKeep(String path) {
+			if (path == null)
+				return null;
+			String trimmed = path.trim();
+			if (trimmed.isEmpty())
+				return trimmed;
+			try {
+				return Paths.get(trimmed).toAbsolutePath().normalize().toString();
+			} catch (Exception e) {
+				return trimmed;
+			}
+		}
+
 		@Override
 		public String toString() {
 			return cameraDirectory; // Used for dropdown display
@@ -265,16 +314,12 @@ public class LazyExperiment extends Experiment {
 			if (obj == null || getClass() != obj.getClass())
 				return false;
 			ExperimentMetadata that = (ExperimentMetadata) obj;
-			return cameraDirectory.equals(that.cameraDirectory) && resultsDirectory.equals(that.resultsDirectory)
-					&& binDirectory.equals(that.binDirectory);
+			return identityKey.equals(that.identityKey);
 		}
 
 		@Override
 		public int hashCode() {
-			int result = cameraDirectory != null ? cameraDirectory.hashCode() : 0;
-			result = 31 * result + (resultsDirectory != null ? resultsDirectory.hashCode() : 0);
-			result = 31 * result + (binDirectory != null ? binDirectory.hashCode() : 0);
-			return result;
+			return identityKey.hashCode();
 		}
 	}
 }

@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import plugins.fmp.multitools.experiment.LazyExperiment.ExperimentMetadata;
 import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryPersistence;
@@ -89,5 +90,27 @@ public class DetectionProvenanceSupportTest {
 		for (Object v : values) {
 			assertEquals("", v);
 		}
+	}
+
+	@Test
+	public void experimentMetadataSameResultsDifferentBinAreEqual() {
+		ExperimentMetadata a = new ExperimentMetadata("C:\\grabs\\exp1", "C:\\grabs\\exp1\\results", null);
+		ExperimentMetadata b = new ExperimentMetadata("C:\\grabs\\exp1", "C:\\grabs\\exp1\\results", "bin_60");
+		assertEquals(a, b);
+		assertEquals(a.hashCode(), b.hashCode());
+	}
+
+	@Test
+	public void experimentMetadataTrailingSlashNormalized() {
+		ExperimentMetadata a = new ExperimentMetadata("C:\\grabs\\exp1", "C:\\grabs\\exp1\\results", null);
+		ExperimentMetadata b = new ExperimentMetadata("C:\\grabs\\exp1", "C:\\grabs\\exp1\\results\\", "bin_60");
+		assertEquals(a, b);
+	}
+
+	@Test
+	public void experimentMetadataDifferentResultsNotEqual() {
+		ExperimentMetadata a = new ExperimentMetadata("C:\\grabs\\exp1", "C:\\grabs\\exp1\\results", null);
+		ExperimentMetadata b = new ExperimentMetadata("C:\\grabs\\exp2", "C:\\grabs\\exp2\\results", null);
+		assertFalse(a.equals(b));
 	}
 }

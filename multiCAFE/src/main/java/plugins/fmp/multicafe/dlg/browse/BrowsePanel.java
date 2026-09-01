@@ -275,8 +275,8 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 		if (eDAF.getDirectoriesFromDialog(binDirectory, null, false)) {
 			String camDataImagesDirectory = eDAF.getCameraImagesDirectory();
 			String resultsDirectory = eDAF.getResultsDirectory();
-			ExperimentMetadata metadata = new ExperimentMetadata(camDataImagesDirectory, resultsDirectory,
-					binDirectory);
+			String resolvedBin = eDAF.getBinSubDirectory();
+			ExperimentMetadata metadata = new ExperimentMetadata(camDataImagesDirectory, resultsDirectory, resolvedBin);
 
 			LazyExperiment lazyExp = new LazyExperiment(metadata);
 			int selectedIndex = parent0.expListComboLazy.addLazyExperiment(lazyExp);

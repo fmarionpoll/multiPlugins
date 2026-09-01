@@ -57,12 +57,14 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JButton runBackwardFromCurrentTButton = new JButton("Run backwards from current T");
 	private JButton saveButton = new JButton("Save");
 	private JButton validateBlueButton = new JButton("Validate blue at current T");
+	private JButton plotEndpointsButton = new JButton("Plot endpoint trajectories");
 	private JButton addBoundaryButton = new JButton("Add boundary at current T");
 	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
 	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
 	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
 	private JList<TrackingBoundary> boundaryList = new JList<TrackingBoundary>(boundaryListModel);
 	private Viewer trackedViewer;
+	private EndpointTrajectoryChart endpointChart;
 	private Experiment trackedExperiment;
 	private final ItemListener experimentSelectionListener = e -> {
 		if (e.getStateChange() == ItemEvent.SELECTED)
@@ -104,6 +106,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p2.add(runFromCurrentTButton);
 		p2.add(runBackwardFromCurrentTButton);
 		p2.add(validateBlueButton);
+		p2.add(plotEndpointsButton);
 		p2.add(saveButton);
 		topPanel.add(p2);
 
@@ -153,6 +156,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		runBackwardFromCurrentTButton.addActionListener(e -> runBackwardFromCurrentT());
 		saveButton.addActionListener(e -> save());
 		validateBlueButton.addActionListener(e -> validateBlueAtCurrentT());
+		plotEndpointsButton.addActionListener(e -> plotEndpointTrajectories());
 		addBoundaryButton.addActionListener(e -> addBoundaryAtCurrentT());
 		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
 		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
@@ -437,6 +441,16 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), t);
 	}
 
+	private void plotEndpointTrajectories() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null)
+			return;
+		if (endpointChart == null)
+			endpointChart = new EndpointTrajectoryChart();
+		Point location = dialogFrame == null ? new Point(100, 100) : dialogFrame.getLocation();
+		endpointChart.open(exp, location);
+	}
+
 	void close() {
 		if (parent0 != null)
 			parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
@@ -446,6 +460,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		}
 		showGreenAgain(trackedExperiment);
 		trackedExperiment = null;
+		if (endpointChart != null)
+			endpointChart.close();
 		if (dialogFrame != null)
 			dialogFrame.close();
 	}
@@ -476,6 +492,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private void bindSelectedExperiment() {
 		Experiment selected = parent0 == null ? null : (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (endpointChart != null)
+			endpointChart.updateExperiment(selected);
 		if (selected == trackedExperiment) {
 			refreshBoundaries();
 			showBlueOnly();
