@@ -202,6 +202,7 @@ public class Infos extends JPanel {
 			return;
 		}
 		exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
+		CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData());
 		getCapillaryDescriptorsFromDlgInfos(exp.getCapillaries());
 		exp.getCapillaries().transferDescriptionToCapillaries();
 
@@ -209,7 +210,7 @@ public class Infos extends JPanel {
 		if (!CapillaryLengthMeasureDialog.showAndConfirm(this, result, AUTO_MEASURE_TITLE))
 			return;
 
-		int updated = CapillaryLengthDetector.apply(result);
+		int updated = CapillaryLengthDetector.apply(result, options.frameIndex);
 		saveCapillaries(exp);
 		updateCalibrationStatus(exp.getCapillaries());
 		if (updated > 0)
@@ -263,7 +264,7 @@ public class Infos extends JPanel {
 							Logger.warn("CapillaryLength: " + exp.getResultsDirectory() + " - "
 									+ result.getErrorMessage());
 						} else {
-							int updated = CapillaryLengthDetector.apply(result);
+							int updated = CapillaryLengthDetector.apply(result, options.frameIndex);
 							if (updated > 0) {
 								saveCapillaries(exp);
 								nUpdated += updated;
@@ -428,7 +429,8 @@ public class Infos extends JPanel {
 	}
 
 	private void saveCapillaries(Experiment exp) {
-		CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData());
+		// These callers have just applied a detection or an explicit reset. The
+		// displayed overlays are still the OLD values and must not be imported here.
 		exp.saveMCCapillaries_Only();
 		exp.save_capillaries_description_and_measures();
 	}

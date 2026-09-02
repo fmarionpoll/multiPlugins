@@ -29,6 +29,7 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /** Read-only sparse movement assessment; it never modifies tracked ROI geometry. */
 public final class ExperimentMovementPrescanner {
+	public enum Assessment { MOVEMENT, UNCERTAIN, BELOW_THRESHOLD, UNSCORED }
 	public enum TrackingStatus {
 		NOT_TRACKED("not tracked"), TRACKED("tracked"), MANUALLY_SEGMENTED("manually segmented / edited");
 		private final String label;
@@ -248,6 +249,13 @@ public final class ExperimentMovementPrescanner {
 		Point2D movedCenter = fit.getTransform().transform(center);
 		double translationX = movedCenter.getX() - centerX;
 		double translationY = movedCenter.getY() - centerY;
+		// Report coherent motion predicted by the robust fit, not the largest
+		// raw matches (which can include flies and mismatched cage features).
+		magnitudes.clear();
+		for (ROI2DLine roi : rois) {
+			Point2D point = ROI2DUtilities.getRoiCentroid(roi);
+			if (point != null) magnitudes.add(point.distance(fit.getTransform().transform(point)));
+		}
 		Collections.sort(magnitudes);
 		int p90index = Math.min(magnitudes.size() - 1, (int) Math.ceil(magnitudes.size() * .9) - 1);
 		double displacement90 = magnitudes.get(Math.max(0, p90index));
@@ -328,7 +336,7 @@ public final class ExperimentMovementPrescanner {
 		return new ArrayList<Integer>(frames);
 	}
 
-	private static final class FrameMetrics {
+	static final class FrameMetrics {
 		final int frame;
 		final double displacement, translationX, translationY, rotation, scalePercent, residual, inlierFraction;
 		FrameMetrics(int frame, double displacement, double translationX, double translationY, double rotation,
@@ -377,12 +385,14 @@ public final class ExperimentMovementPrescanner {
 		public String error;
 		public TrackingStatus trackingStatus = TrackingStatus.NOT_TRACKED;
 		private double minimumInlierFraction = 1;
+		private final List<FrameMetrics> frameEvidence = new ArrayList<FrameMetrics>();
 
-		private Result(Experiment experiment) { this.experiment = experiment; }
+		Result(Experiment experiment) { this.experiment = experiment; }
 		static Result failed(Experiment experiment, String error) {
 			Result result = new Result(experiment); result.error = error; return result;
 		}
 		void accept(FrameMetrics m) {
+			frameEvidence.add(m);
 			sampledFrames++;
 			minimumInlierFraction = Math.min(minimumInlierFraction, m.inlierFraction);
 			if (m.displacement > maxDisplacementPx) {
@@ -395,8 +405,24 @@ public final class ExperimentMovementPrescanner {
 		}
 		public boolean succeeded() { return error == null && sampledFrames > 0; }
 		public boolean isCandidate(double displacementThresholdPx) {
-			return succeeded() && (maxDisplacementPx >= displacementThresholdPx
-					|| maxResidualPx >= displacementThresholdPx);
+			return assessment(displacementThresholdPx) == Assessment.MOVEMENT;
+		}
+
+		/** Poor registration is uncertainty, not evidence that the specimen moved. */
+		public Assessment assessment(double threshold) {
+			if (!succeeded()) return Assessment.UNSCORED;
+			int supportedFrames = 0;
+			boolean uncertain = failedSamples > 0;
+			for (FrameMetrics m : frameEvidence) {
+				boolean reliable = Double.isFinite(m.displacement) && Double.isFinite(m.residual)
+						&& m.inlierFraction >= .75 && m.residual < threshold;
+				if (reliable && m.displacement >= threshold) supportedFrames++;
+				if (!reliable || m.displacement >= threshold) uncertain = true;
+			}
+			if (supportedFrames >= 2) return Assessment.MOVEMENT;
+			// A single spike remains available for review rather than being discarded.
+			if (uncertain || frameEvidence.isEmpty()) return Assessment.UNCERTAIN;
+			return Assessment.BELOW_THRESHOLD;
 		}
 		public String detectedPattern(double displacementThresholdPx) {
 			if (!succeeded()) return "unscored";
@@ -410,7 +436,7 @@ public final class ExperimentMovementPrescanner {
 			if (maxRotationDeg >= .05) patterns.add("rotation");
 			if (maxScalePercent >= .15) patterns.add("scale change");
 			if (maxResidualPx >= Math.max(1.0, displacementThresholdPx * .5))
-				patterns.add("local deformation / perspective");
+				patterns.add("registration disagreement (not proof of deformation)");
 			if (patterns.isEmpty()) patterns.add("local displacement");
 			String joined = String.join(" + ", patterns);
 			return confidence < .75 ? "uncertain: " + joined : joined;

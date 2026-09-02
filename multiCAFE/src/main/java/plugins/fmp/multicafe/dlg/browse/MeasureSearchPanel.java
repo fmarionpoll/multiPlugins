@@ -115,6 +115,7 @@ public class MeasureSearchPanel extends JPanel {
 	private JButton movementResultsSelectionButton;
 	private volatile boolean movementCancelRequested;
 	private double movementThresholdUsed = 2.0;
+	private JCheckBox includeUncertainMovementCheckBox = new JCheckBox("Include uncertain registrations", false);
 	private boolean findSelectionActive = false;
 	private boolean lastResultsWereMovement = true;
 	private List<Experiment> listBeforeFindSelection = new ArrayList<Experiment>();
@@ -158,6 +159,8 @@ public class MeasureSearchPanel extends JPanel {
 		movementOptions.add(movementSamplesSpinner);
 		movementOptions.add(new JLabel("candidate >="));
 		movementOptions.add(movementThresholdSpinner);
+		movementOptions.add(includeUncertainMovementCheckBox);
+		includeUncertainMovementCheckBox.setToolTipText("Include isolated movement estimates and poor matches; these are not confirmed movement.");
 		movementOptions.add(new JLabel("px"));
 		excludeTrackedCheckBox.setToolTipText("Exclude experiments with saved time-dependent geometry or manual tracking segments from the results.");
 		movementOptions.add(excludeTrackedCheckBox);
@@ -223,6 +226,7 @@ public class MeasureSearchPanel extends JPanel {
 		final int samples = ((Number) movementSamplesSpinner.getValue()).intValue();
 		final double threshold = ((Number) movementThresholdSpinner.getValue()).doubleValue();
 		final boolean excludeTracked = excludeTrackedCheckBox.isSelected();
+		final boolean includeUncertain = includeUncertainMovementCheckBox.isSelected();
 		movementCancelRequested = false;
 		scanRunning = true;
 		scanButton.setEnabled(false);
@@ -264,7 +268,8 @@ public class MeasureSearchPanel extends JPanel {
 					int unscored = 0;
 					for (Result result : movementResults) {
 						if (!result.succeeded()) unscored++;
-						else if (result.isCandidate(threshold)) movementCandidates.add(result);
+						else if (result.isCandidate(threshold) || (includeUncertain && result.assessment(threshold)
+								== ExperimentMovementPrescanner.Assessment.UNCERTAIN)) movementCandidates.add(result);
 					}
 					lastResultsWereMovement = true;
 					updateSelectionControls();
@@ -295,7 +300,7 @@ public class MeasureSearchPanel extends JPanel {
 		if (movementResultsFrame != null)
 			movementResultsFrame.close();
 		String[] columns = { "Record", "Tracking status", "Priority", "Move px", "Rotation deg", "Scale %",
-				"Residual px", "Frame", "Confidence %", "Detected pattern", "Path" };
+				"Residual px", "Frame", "Confidence %", "Detected pattern", "Path", "Assessment" };
 		DefaultTableModel model = new DefaultTableModel(columns, 0) {
 			private static final long serialVersionUID = 1L;
 			@Override public boolean isCellEditable(int row, int column) { return false; }
@@ -306,7 +311,8 @@ public class MeasureSearchPanel extends JPanel {
 					String.format("%.3f", result.maxRotationDeg),
 					String.format("%.3f", result.maxScalePercent), String.format("%.1f", result.maxResidualPx),
 					result.worstFrame, String.format("%.0f", result.confidence * 100),
-					result.detectedPattern(movementThresholdUsed), experimentPath(result.experiment) });
+					result.detectedPattern(movementThresholdUsed), experimentPath(result.experiment),
+					result.assessment(movementThresholdUsed) });
 		JTable table = new JTable(model);
 		TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<DefaultTableModel>(model);
 		sorter.setComparator(2, (a, b) -> Integer.compare(priorityRank(a), priorityRank(b)));
@@ -320,12 +326,15 @@ public class MeasureSearchPanel extends JPanel {
 		movementResultsSelectionButton = new JButton("Select found experiments");
 		movementResultsSelectionButton.setEnabled(!movementCandidates.isEmpty());
 		movementResultsSelectionButton.addActionListener(e -> toggleFoundExperimentSelection());
-		JButton exportButton = new JButton("Export CSV...");
-		exportButton.setEnabled(!movementCandidates.isEmpty());
+		JButton exportButton = new JButton("Export all assessments...");
+		exportButton.setEnabled(!movementResults.isEmpty());
 		exportButton.addActionListener(e -> exportMovementCandidatesCsv());
 		JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		bottom.add(movementResultsSelectionButton);
 		bottom.add(exportButton);
+		long uncertainCount = movementResults.stream().filter(r -> r.assessment(movementThresholdUsed)
+				== ExperimentMovementPrescanner.Assessment.UNCERTAIN).count();
+		bottom.add(new JLabel(uncertainCount + " uncertain registration(s); available in export"));
 		bottom.add(new JLabel(movementCandidates.size() + " flagged record(s)"
 				+ (movementCancelRequested ? " — partial scan (stopped by user)" : "")));
 		movementResultsFrame = new IcyFrame("Movement prescan results", true, true);
@@ -339,9 +348,9 @@ public class MeasureSearchPanel extends JPanel {
 	}
 
 	private void exportMovementCandidatesCsv() {
-		if (movementCandidates.isEmpty())
+		if (movementResults.isEmpty())
 			return;
-		String startDirectory = experimentPath(movementCandidates.get(0).experiment);
+		String startDirectory = experimentPath(movementResults.get(0).experiment);
 		java.io.File start = startDirectory.isEmpty() ? null : new java.io.File(startDirectory);
 		if (start != null && !start.isDirectory()) start = start.getParentFile();
 		try {
@@ -349,7 +358,7 @@ public class MeasureSearchPanel extends JPanel {
 					start == null ? null : start.getAbsolutePath(), "csv");
 			if (filename == null)
 				return;
-			List<Result> ordered = new ArrayList<Result>(movementCandidates);
+			List<Result> ordered = new ArrayList<Result>(movementResults);
 			ordered.sort((a, b) -> {
 				int priority = Integer.compare(b.reviewPriority(movementThresholdUsed),
 						a.reviewPriority(movementThresholdUsed));
@@ -357,16 +366,17 @@ public class MeasureSearchPanel extends JPanel {
 			});
 			CSVFormat format = CSVFormat.DEFAULT.builder().setHeader("Path", "Record", "Tracking_status", "Priority", "Move_px",
 					"Rotation_deg", "Scale_percent", "Residual_px", "Frame", "Confidence_percent",
-					"Detected_pattern").setSkipHeaderRecord(false).build();
+					"Detected_pattern", "Assessment", "Threshold_px", "Sampled_frames", "Failed_samples").setSkipHeaderRecord(false).build();
 			try (CSVPrinter printer = new CSVPrinter(
 					Files.newBufferedWriter(Paths.get(filename), StandardCharsets.UTF_8), format)) {
 				for (Result result : ordered)
 					printer.printRecord(experimentPath(result.experiment), recordId(result.experiment),
 							result.trackingStatus.toString(), result.reviewPriorityLabel(movementThresholdUsed), result.maxDisplacementPx,
 							result.maxRotationDeg, result.maxScalePercent, result.maxResidualPx, result.worstFrame,
-							result.confidence * 100, result.detectedPattern(movementThresholdUsed));
+							result.confidence * 100, result.detectedPattern(movementThresholdUsed),
+							result.assessment(movementThresholdUsed), movementThresholdUsed, result.sampledFrames, result.failedSamples);
 			}
-			JOptionPane.showMessageDialog(this, "Exported " + ordered.size() + " flagged records to:\n" + filename,
+			JOptionPane.showMessageDialog(this, "Exported " + ordered.size() + " assessed records to:\n" + filename,
 					"Movement prescan", JOptionPane.INFORMATION_MESSAGE);
 		} catch (FileDialogException | IOException ex) {
 			Logger.warn("Movement CSV export failed: " + ex.getMessage());

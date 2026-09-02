@@ -29,6 +29,59 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.Geometry;
  */
 public class CapillaryLengthRealDataBenchmarkTest {
 
+    @Test
+    public void benchmarkFinalPhaseEndpoints() throws Exception {
+        String roots = System.getProperty("capillary.benchmark.roots");
+        Assume.assumeTrue("real-data roots not supplied", roots != null && !roots.trim().isEmpty());
+        icy.preferences.IcyPreferences.init();
+        for (double scale : new double[] { 0., 1.25 }) {
+            List<Double> rawErrors = new ArrayList<Double>();
+            List<Double> finalErrors = new ArrayList<Double>();
+            List<Double> lengthErrors = new ArrayList<Double>();
+            for (String root : roots.split("::")) {
+                File directory = new File(root);
+                Map<String, double[]> green = readCoordinates(new File(directory, "CapillariesDescription.csv"), false);
+                Map<String, double[]> truth = readCoordinates(groundTruthFile(directory), true);
+                ImageData image = readImage(firstJpeg(directory.getParentFile()));
+                CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+                options.tipInsetHalfWidthScale = scale;
+                CapillaryLengthResult result = new CapillaryLengthResult();
+                CapillaryLengthDetector detector = new CapillaryLengthDetector();
+                for (Map.Entry<String, double[]> entry : green.entrySet()) {
+                    if (!truth.containsKey(entry.getKey())) continue;
+                    double[] p = entry.getValue();
+                    plugins.fmp.multitools.experiment.capillary.Capillary cap = new plugins.fmp.multitools.experiment.capillary.Capillary();
+                    cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(new java.awt.geom.Line2D.Double(p[0], p[1], p[2], p[3])));
+                    CapillaryLengthResult.Measure m = detector.measureOneCapillary(cap, image, options);
+                    result.addMeasure(m);
+                    if (m.getStatus().isUsable()) rawErrors.add(endpointError(m.getDetectedStart(), m.getDetectedEnd(), truth.get(entry.getKey())));
+                    // Retain the annotation key independently of display naming.
+                    cap.setKymographName(entry.getKey());
+                }
+                CapillaryLengthDetector.validate(result, image.width, options);
+                CapillaryLengthDetector.apply(result, 0);
+                List<Double> experimentErrors = new ArrayList<Double>();
+                for (CapillaryLengthResult.Measure m : result.getMeasures()) {
+                    if (!m.isSelected()) continue;
+                    double[] gt = truth.get(m.getCapillary().getKymographName());
+                    java.awt.geom.Line2D blue = m.getCapillary().getPhaseGeometry().getBlueAt(0);
+                    assertTrue("accepted detection must have display geometry", blue != null);
+                    double error = endpointError(blue.getP1(), blue.getP2(), gt);
+                    finalErrors.add(error); experimentErrors.add(error);
+                    lengthErrors.add(Math.abs(blue.getP1().distance(blue.getP2()) - Math.hypot(gt[2]-gt[0], gt[3]-gt[1])));
+                }
+                System.out.printf(Locale.US, "FINAL scale=%.2f %s tipMAE=%.3f n=%d%n", scale, root, mean(experimentErrors), experimentErrors.size());
+            }
+            System.out.printf(Locale.US, "FINAL ALL scale=%.2f rawTip=%.3f finalTip=%.3f finalLength=%.3f n=%d%n",
+                    scale, mean(rawErrors), mean(finalErrors), mean(lengthErrors), finalErrors.size());
+        }
+    }
+
+    private static double endpointError(java.awt.geom.Point2D a, java.awt.geom.Point2D b, double[] gt) {
+        return .5 * Math.min(a.distance(gt[0], gt[1]) + b.distance(gt[2], gt[3]),
+                a.distance(gt[2], gt[3]) + b.distance(gt[0], gt[1]));
+    }
+
 	@Test
 	public void benchmarkImageZeroGroundTruth() throws Exception {
 		String property = System.getProperty("capillary.benchmark.roots");

@@ -113,6 +113,8 @@ public class CapillaryLengthOptionsDialog {
 		JPanel panel = new JPanel(new BorderLayout(4, 6));
 		panel.add(scopePanel, BorderLayout.NORTH);
 		panel.add(paramsPanel, BorderLayout.CENTER);
+		panel.add(new JLabel("<html>Accepted detections replace existing tips in the measured phase,<br>"
+				+ "including manually adjusted tips. Other phases are retained.</html>"), BorderLayout.SOUTH);
 
 		int answer = JOptionPane.showConfirmDialog(parent, panel, title, JOptionPane.OK_CANCEL_OPTION,
 				JOptionPane.PLAIN_MESSAGE);

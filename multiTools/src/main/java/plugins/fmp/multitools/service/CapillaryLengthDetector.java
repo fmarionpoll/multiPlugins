@@ -1,6 +1,9 @@
 package plugins.fmp.multitools.service;
 
 import java.awt.geom.Point2D;
+import java.awt.geom.Line2D;
+import plugins.kernel.roi.roi2d.ROI2DLine;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -74,6 +77,11 @@ public class CapillaryLengthDetector {
 	 * @return number of capillaries updated
 	 */
 	public static int apply(CapillaryLengthResult result) {
+		return apply(result, 0);
+	}
+
+	/** Replace accepted measurements in the phase containing the measured frame. */
+	public static int apply(CapillaryLengthResult result, int frameIndex) {
 		if (result == null)
 			return 0;
 		int updated = 0;
@@ -85,19 +93,34 @@ public class CapillaryLengthDetector {
 				continue;
 			m.getCapillary().setPixels(pixels);
 			m.getCapillary().getProperties().setPixelsAutoMeasured(true);
-			m.getCapillary().getProperties().setMeasuredEndpoints(m.getDetectedStart(), m.getDetectedEnd());
+			Capillary cap = m.getCapillary();
+			AlongT phase = cap.getRoi() == null ? null : cap.getAlongTAtT(Math.max(0, frameIndex));
+			long phaseStart = phase == null ? Math.max(0, frameIndex) : phase.getStart();
+			if (m.hasDetectedEndpoints()) {
+				Line2D blue = new Line2D.Double(m.getDetectedStart(), m.getDetectedEnd());
+				if (cap.getPhaseGeometry().isInitialized())
+					cap.getPhaseGeometry().putBlue(phaseStart, blue);
+				else {
+					ROI2D green = cap.getRoi() == null ? null : cap.getRoiAtFrameT(frameIndex);
+					if (green instanceof ROI2DLine)
+						cap.getPhaseGeometry().initialize(phaseStart, ((ROI2DLine) green).getLine(), blue);
+				}
+				if (phaseStart == 0 || !cap.getProperties().hasMeasuredEndpoints())
+					cap.getProperties().setMeasuredEndpoints(m.getDetectedStart(), m.getDetectedEnd());
+			}
 			m.getCapillary().setDescriptionOK(true);
 			updated++;
 		}
 		return updated;
 	}
 
-	private CapillaryLengthResult.Measure measureOneCapillary(Capillary cap, ImageData image,
+	CapillaryLengthResult.Measure measureOneCapillary(Capillary cap, ImageData image,
 			CapillaryLengthDetectorOptions options) {
 		String name = cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName();
 		CapillaryLengthResult.Measure measure = new CapillaryLengthResult.Measure(cap, name, cap.getPixels());
+		measure.setFrameIndex(options.frameIndex);
 
-		ROI2D roi = cap.getRoi();
+		ROI2D roi = cap.getRoiAtFrameT(options.frameIndex);
 		if (roi == null) {
 			measure.setStatus(CapillaryLengthResult.Status.NO_ROI);
 			measure.setMessage("capillary has no ROI");
@@ -1000,9 +1023,10 @@ public class CapillaryLengthDetector {
 
 	private static ArrayList<int[]> axisOf(CapillaryLengthResult.Measure m) {
 		Capillary cap = m.getCapillary();
-		if (cap == null || cap.getRoi() == null)
+		ROI2D roi = cap == null ? null : cap.getRoiAtFrameT(m.getFrameIndex());
+		if (roi == null)
 			return null;
-		ArrayList<Point2D> roiPoints = ROI2DUtilities.getCapillaryPoints(cap.getRoi());
+		ArrayList<Point2D> roiPoints = ROI2DUtilities.getCapillaryPoints(roi);
 		if (roiPoints.size() < 2)
 			return null;
 		ArrayList<int[]> axis = Bresenham.getPixelsAlongLineFromROI2D(roiPoints);

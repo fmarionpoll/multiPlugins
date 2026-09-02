@@ -52,6 +52,10 @@ public class CapillaryLengthResult {
 		private Status status = Status.FAILED;
 		private String message = "";
 		private boolean selected = false;
+		private int frameIndex = 0;
+
+		public int getFrameIndex() { return frameIndex; }
+		public void setFrameIndex(int frameIndex) { this.frameIndex = Math.max(0, frameIndex); }
 
 		public Measure(Capillary capillary, String name, int previousPixels) {
 			this.capillary = capillary;
