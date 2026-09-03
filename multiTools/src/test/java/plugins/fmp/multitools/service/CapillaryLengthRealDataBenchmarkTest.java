@@ -225,7 +225,7 @@ public class CapillaryLengthRealDataBenchmarkTest {
 		return result;
 	}
 
-	private static File groundTruthFile(File results) {
+	static File groundTruthFile(File results) {
 		// Explicit opt-in only: never silently treat operational detections as truth.
 		String override = System.getProperty("capillary.benchmark.groundTruthName");
 		if (override != null && !override.trim().isEmpty()) {
@@ -233,7 +233,8 @@ public class CapillaryLengthRealDataBenchmarkTest {
 			if (!file.isFile()) throw new IllegalArgumentException("Missing ground truth: " + file);
 			return file;
 		}
-		String[] names = { "CapillariesDescription - Copy.csv", "CapillariesDescription_groundtruth.csv",
+		String[] names = { plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence.GROUND_TRUTH_CSV,
+				"CapillariesDescription - Copy.csv", "CapillariesDescription_groundtruth.csv",
 				"CapillariesDescription_ground_truth.csv" };
 		for (String name : names) {
 			File candidate = new File(results, name);

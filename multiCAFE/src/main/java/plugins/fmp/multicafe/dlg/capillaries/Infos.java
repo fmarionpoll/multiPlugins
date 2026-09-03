@@ -416,6 +416,12 @@ public class Infos extends JPanel {
 		return shown;
 	}
 
+	void displayLoadedGroundTruth(Experiment exp) {
+		showMeasuredCheckBox.setSelected(true);
+		updateCalibrationStatus(exp.getCapillaries());
+		showMeasuredLengths(exp);
+	}
+
 	private void removeMeasuredLengths(Experiment exp) {
 		if (exp != null)
 			CapillaryMeasuredTipsOverlay.removeTipsFromSequence(exp.getSeqCamData());

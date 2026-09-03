@@ -38,7 +38,7 @@ public class CapillaryGroundTruthSaveTest {
         assertTrue(caps.getPersistence().saveGroundTruthDescriptions(caps, directory.toString()));
         for (Map.Entry<Path, byte[]> entry : original.entrySet())
             assertArrayEquals(entry.getKey().toString(), entry.getValue(), Files.readAllBytes(entry.getKey()));
-        Path truth = directory.resolve(CapillariesPersistence.GROUND_TRUTH_CSV);
+        Path truth = directory.resolve("CapillariesDescription-groundtruth.csv");
         String content = new String(Files.readAllBytes(truth), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(content.contains("cap_length_x1;cap_length_y1;cap_length_x2;cap_length_y2"));
         assertTrue(content.contains(";10.0;5.5;10.0;125.5\n"));
@@ -51,5 +51,26 @@ public class CapillaryGroundTruthSaveTest {
 
     @Test public void rejectsMissingDirectory() {
         assertFalse(new CapillariesPersistence().saveGroundTruthDescriptions(new Capillaries(), null));
+    }
+
+    @Test public void comparisonPrefersNewNameAndStillAcceptsLegacyNames() throws Exception {
+        String property = "capillary.benchmark.groundTruthName";
+        String previous = System.getProperty(property);
+        try {
+            System.clearProperty(property);
+            String[] legacyNames = { "CapillariesDescription - Copy.csv",
+                    "CapillariesDescription_groundtruth.csv", "CapillariesDescription_ground_truth.csv" };
+            for (String legacyName : legacyNames) {
+                Path directory = temporary.newFolder().toPath();
+                Path legacy = Files.createFile(directory.resolve(legacyName));
+                assertEquals(legacy.toFile(), CapillaryLengthRealDataBenchmarkTest.groundTruthFile(directory.toFile()));
+                Path preferred = Files.createFile(directory.resolve("CapillariesDescription-groundtruth.csv"));
+                assertEquals(preferred.toFile(), CapillaryLengthRealDataBenchmarkTest.groundTruthFile(directory.toFile()));
+                assertTrue(Files.exists(legacy));
+            }
+        } finally {
+            if (previous == null) System.clearProperty(property);
+            else System.setProperty(property, previous);
+        }
     }
 }

@@ -18,6 +18,7 @@ import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
+import plugins.fmp.multitools.service.CapillaryGroundTruthLoader;
 
 public class LoadSaveCapillaries extends JPanel {
 	/**
@@ -28,6 +29,7 @@ public class LoadSaveCapillaries extends JPanel {
 	private JButton openButtonCapillaries = new JButton("Load...");
 	private JButton saveButtonCapillaries = new JButton("Save normal CSV");
 	private JButton saveGroundTruthButton = new JButton("Save ground truth CSV");
+	private JButton loadGroundTruthButton = new JButton("Load ground truth measurements");
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
@@ -41,18 +43,23 @@ public class LoadSaveCapillaries extends JPanel {
 		panel1.add(loadsaveText);
 		panel1.add(openButtonCapillaries);
 		panel1.add(saveButtonCapillaries);
-		panel1.add(saveGroundTruthButton);
+		JPanel referencePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		referencePanel.add(loadGroundTruthButton);
+		referencePanel.add(saveGroundTruthButton);
 		saveButtonCapillaries.setToolTipText("Save the selected experiment, including edited blue tips, as CapillariesDescription.csv");
 		saveGroundTruthButton.setToolTipText("Save image-0 reference tips as " + CapillariesPersistence.GROUND_TRUTH_CSV
 				+ "; leaves normal files unchanged");
 		panel1.validate();
 		add(panel1);
+		add(referencePanel);
+		loadGroundTruthButton.setToolTipText("Load blue endpoints for image 0 only; no files are overwritten");
 
 		this.parent0 = parent0;
 		defineActionListeners();
 	}
 
 	private void defineActionListeners() {
+		loadGroundTruthButton.addActionListener(e -> loadGroundTruth());
 		saveGroundTruthButton.addActionListener(e -> saveGroundTruth());
 		openButtonCapillaries.addActionListener(new ActionListener() {
 			@Override
@@ -78,6 +85,44 @@ public class LoadSaveCapillaries extends JPanel {
 				}
 			}
 		});
+	}
+
+	private void loadGroundTruth() {
+		String title = "Load ground truth measurements";
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getResultsDirectory() == null || exp.getCapillaries().getList().isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Select an experiment with capillaries first.", title,
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null
+				|| exp.getSeqCamData().getSequence().getFirstViewer() == null
+				|| exp.getSeqCamData().getSequence().getFirstViewer().getPositionT() != 0) {
+			JOptionPane.showMessageDialog(this, "Display image 0 before loading ground truth measurements.", title,
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		try {
+			File source = CapillaryGroundTruthLoader.findFile(new File(exp.getResultsDirectory()));
+			CapillaryGroundTruthLoader.Preview preview = CapillaryGroundTruthLoader.read(source, exp.getCapillaries());
+			if (preview.count() == 0) {
+				JOptionPane.showMessageDialog(this, preview.summary(), title, JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+			if (JOptionPane.showConfirmDialog(this, source.getAbsolutePath() + "\n" + preview.summary()
+					+ "\nReplace the matched blue measurements (including unsaved edits)?\n"
+					+ "Green ROIs and files on disk will not be changed.", title,
+					JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) return;
+			// Preserve unsaved blue edits for unmatched capillaries before rebuilding the overlay.
+			CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
+			preview.apply();
+			parent0.paneCapillaries.tabInfos.displayLoadedGroundTruth(exp);
+			JOptionPane.showMessageDialog(this, "Loaded " + preview.count()
+					+ " measurements. No files were changed.\nUse Save normal CSV only if you want to adopt these values.",
+					title, JOptionPane.INFORMATION_MESSAGE);
+		} catch (java.io.IOException ex) {
+			JOptionPane.showMessageDialog(this, ex.getMessage(), title, JOptionPane.ERROR_MESSAGE);
+		}
 	}
 
 	private void saveGroundTruth() {
