@@ -23,8 +23,9 @@ public final class CapillaryGroundTruthLoader {
     private CapillaryGroundTruthLoader() { }
 
     public static File findFile(File directory) throws IOException {
-        String[] names = { CapillariesPersistence.GROUND_TRUTH_CSV, "CapillariesDescription - Copy.csv",
-                "CapillariesDescription_groundtruth.csv", "CapillariesDescription_ground_truth.csv" };
+        String[] names = { CapillariesPersistence.GROUND_TRUTH_CSV,
+                "CapillariesDescription_groundtruth.csv", "CapillariesDescription_ground_truth.csv",
+                "CapillariesDescription - Copy.csv" };
         for (String name : names) {
             File file = new File(directory, name);
             if (file.isFile()) return file;

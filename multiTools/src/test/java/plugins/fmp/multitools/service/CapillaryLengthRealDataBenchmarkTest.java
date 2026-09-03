@@ -234,8 +234,8 @@ public class CapillaryLengthRealDataBenchmarkTest {
 			return file;
 		}
 		String[] names = { plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence.GROUND_TRUTH_CSV,
-				"CapillariesDescription - Copy.csv", "CapillariesDescription_groundtruth.csv",
-				"CapillariesDescription_ground_truth.csv" };
+				"CapillariesDescription_groundtruth.csv", "CapillariesDescription_ground_truth.csv",
+				"CapillariesDescription - Copy.csv" };
 		for (String name : names) {
 			File candidate = new File(results, name);
 			if (candidate.isFile())

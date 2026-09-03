@@ -10,20 +10,34 @@ import java.awt.event.ActionListener;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.List;
+import java.util.ArrayList;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
+import javax.swing.JOptionPane;
+import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
+import javax.swing.SwingUtilities;
 import javax.swing.SpinnerNumberModel;
 
 import icy.image.IcyBufferedImage;
+import icy.gui.frame.progress.ProgressFrame;
+import icy.system.thread.ThreadUtil;
 import icy.roi.ROI2D;
+import icy.roi.ROI;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.service.FrameSupportBarDetector;
+import plugins.fmp.multitools.service.FrameScaleDiagnostic;
 import plugins.fmp.multitools.tools.polyline.Line2DPlus;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
@@ -37,6 +51,9 @@ public class Adjust extends JPanel {
 	private JButton adjustButton = new JButton("Align");
 	private JButton elongateButton = new JButton("+");
 	private JButton shortenButton = new JButton("-");
+	private JButton detectFrameBarButton = new JButton("Detect frame bar...");
+	private JButton exportFrameScaleButton = new JButton("Save frame-scale CSV...");
+	private JCheckBox allFrameScaleCheckBox = new JCheckBox("ALL (current to last)");
 	private static final int ELONGATION_STEP = 1;
 	private static final int MIN_LENGTH_PIXELS = 2;
 	private MultiCAFE parent0 = null;
@@ -44,6 +61,7 @@ public class Adjust extends JPanel {
 	private Line2D refLineLower = null;
 	private ROI2DLine roiRefLineUpper = new ROI2DLine();
 	private ROI2DLine roiRefLineLower = new ROI2DLine();
+	private List<ROI2DLine> frameBarDiagnostics = new ArrayList<ROI2DLine>();
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
@@ -65,6 +83,14 @@ public class Adjust extends JPanel {
 		panel02.add(shortenButton);
 		panel02.add(elongateButton);
 		add(panel02);
+
+		JPanel panel03 = new JPanel(layoutLeft);
+		panel03.add(detectFrameBarButton);
+		panel03.add(exportFrameScaleButton);
+		panel03.add(allFrameScaleCheckBox);
+		detectFrameBarButton.setToolTipText("Detect nine cage dividers and display inferred frame limits");
+		exportFrameScaleButton.setToolTipText("Analyze image 0 without changing experiments and save a diagnostic CSV");
+		add(panel03);
 
 		defineActionListeners();
 	}
@@ -92,6 +118,125 @@ public class Adjust extends JPanel {
 				changeCapillariesLength(-ELONGATION_STEP);
 			}
 		});
+
+		detectFrameBarButton.addActionListener(e -> detectFrameBar());
+		exportFrameScaleButton.addActionListener(e -> exportFrameScaleCsv());
+	}
+
+	private void exportFrameScaleCsv() {
+		final int first=parent0.expListComboLazy.getSelectedIndex();
+		if(first<0){JOptionPane.showMessageDialog(this,"Select an experiment first.","Frame-scale diagnostic",
+				JOptionPane.WARNING_MESSAGE);return;}
+		JFileChooser chooser=new JFileChooser();
+		Experiment selected=parent0.expListComboLazy.getItemAt(first);
+		chooser.setSelectedFile(new File(selected.getResultsDirectory(),"frame_scale_diagnostic.csv"));
+		if(chooser.showSaveDialog(this)!=JFileChooser.APPROVE_OPTION)return;
+		final File output=chooser.getSelectedFile().getName().toLowerCase().endsWith(".csv")
+				?chooser.getSelectedFile():new File(chooser.getSelectedFile().getAbsolutePath()+".csv");
+		if(output.exists()&&JOptionPane.showConfirmDialog(this,"Replace existing file?\n"+output,
+				"Frame-scale diagnostic",JOptionPane.OK_CANCEL_OPTION,JOptionPane.WARNING_MESSAGE)!=JOptionPane.OK_OPTION)return;
+		final int last=allFrameScaleCheckBox.isSelected()?parent0.expListComboLazy.getItemCount()-1:first;
+		ThreadUtil.bgRun(() -> {
+			ProgressFrame progress=new ProgressFrame("Testing frame scale");progress.setLength(last-first+1);
+			int ok=0,uncertain=0,errors=0;
+			try(BufferedWriter writer=Files.newBufferedWriter(output.toPath(),StandardCharsets.UTF_8)){
+				writer.write(FrameScaleDiagnostic.header());writer.newLine();
+				for(int i=first;i<=last;i++){
+					progress.setMessage("Recording "+(i-first+1)+" of "+(last-first+1));
+					FrameScaleDiagnostic row=FrameScaleDiagnostic.analyze(parent0.expListComboLazy.getItemAt(i));
+					writer.write(row.csv());writer.newLine();
+					if("OK".equals(row.status))ok++;else if("UNCERTAIN".equals(row.status))uncertain++;else errors++;
+					progress.incPosition();
+				}
+			}catch(Exception ex){Logger.error("Frame-scale diagnostic failed",ex);errors++;}
+			progress.close();final int nok=ok,nuncertain=uncertain,nerrors=errors;
+			SwingUtilities.invokeLater(()->JOptionPane.showMessageDialog(Adjust.this,
+					"Report saved:\n"+output.getAbsolutePath()+"\n\nOK: "+nok+"   Uncertain: "+nuncertain+"   Errors: "+nerrors,
+					"Frame-scale diagnostic",nerrors==0?JOptionPane.INFORMATION_MESSAGE:JOptionPane.WARNING_MESSAGE));
+		});
+	}
+
+	private void detectFrameBar() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) return;
+		SequenceCamData data = exp.getSeqCamData();
+		removeFrameBarDiagnostics(data);
+		int t = data.getSequence().getFirstViewer().getPositionT();
+		IcyBufferedImage image = data.getSequence().getImage(t, 0, 0);
+		if (image == null) {
+			JOptionPane.showMessageDialog(this, "The current image could not be read.", "Detect frame bar",
+					JOptionPane.ERROR_MESSAGE); return;
+		}
+		double[] pixels = Array1DUtil.arrayToDoubleArray(image.getDataXY(0), image.isSignedDataType());
+		int yMin = image.getSizeY() / 5, yMax = image.getSizeY() * 4 / 5;
+		List<ROI2D> caps = data.findROIsMatchingNamePattern("line");
+		ArrayList<Double> capillaryX = new ArrayList<Double>();
+		if (caps != null && !caps.isEmpty()) {
+			Rectangle bounds = new Rectangle(caps.get(0).getBounds());
+			for (ROI2D roi : caps) {
+				bounds.add(roi.getBounds());
+				if (roi instanceof ROI2DLine) {
+					Line2D line=((ROI2DLine)roi).getLine();
+					capillaryX.add((line.getX1()+line.getX2())/2.);
+				}
+			}
+			yMin = Math.max(2, bounds.y + bounds.height / 6);
+			yMax = Math.min(image.getSizeY() - 3, bounds.y + bounds.height * 5 / 6);
+		}
+		int[] guidedX=FrameSupportBarDetector.internalDividerSearchBounds(capillaryX,image.getSizeX());
+		FrameSupportBarDetector.Result result = guidedX==null
+				? new FrameSupportBarDetector().detect(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax)
+				: new FrameSupportBarDetector().detect(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,
+						guidedX[0],guidedX[1],guidedX[2]);
+		if (!result.found()) {
+			JOptionPane.showMessageDialog(this, "No sufficiently continuous dark support-bar edge was detected.",
+					"Detect frame bar", JOptionPane.WARNING_MESSAGE); return;
+		}
+		// If the regular nine-divider fit fails, keep the individual validated
+		// detections visible so the failure can be understood instead of showing
+		// an apparently empty result.
+		addDiagnosticLines(data, result.dividers.isEmpty() ? result.dividerCandidates : result.dividers,
+				result.dividers.isEmpty() ? "frameBar_candidate_" : "frameBar_divider_");
+		if (!result.dividers.isEmpty()) {
+			ArrayList<Line2D> outer = new ArrayList<Line2D>();
+			outer.add(new Line2D.Double(result.frameLeft, result.upperY-15, result.frameLeft, result.lowerY+40));
+			outer.add(new Line2D.Double(result.frameRight, result.upperY-15, result.frameRight, result.lowerY+40));
+			addDiagnosticLines(data, outer, "frameBar_outer_");
+		}
+		String spanText = result.dividers.size()==result.expectedDividers
+				? String.format("Frame limits: x = %d to %d (%.0f native pixels)\n",
+						result.frameLeft, result.frameRight, result.frameWidth)
+				: "Frame span: uncertain\n";
+		JOptionPane.showMessageDialog(this, String.format(
+				"Upper edge: y = %d px\nDetected internal dividers: %d / %d\n%s"
+				+ "Confidence: %.1f",
+				result.upperY, result.dividers.size(), result.expectedDividers, spanText, result.confidence),
+				"Detect frame bar", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	private void removeFrameBarDiagnostics(SequenceCamData data) {
+		// The selected experiment may have changed since the previous click, so
+		// object references held by this panel are not a reliable cleanup target.
+		// Remove diagnostic ROIs by their reserved name in the current sequence.
+		for (ROI roi : new ArrayList<ROI>(data.getSequence().getROIs())) {
+			String name = roi.getName();
+			if (name != null && name.startsWith("frameBar_"))
+				data.getSequence().removeROI(roi);
+		}
+		frameBarDiagnostics.clear();
+	}
+
+	private void addDiagnosticLines(SequenceCamData data, List<Line2D> lines, String prefix) {
+		int index = 0;
+		for (Line2D line : lines) {
+			ROI2DLine roi = new ROI2DLine(line);
+			roi.setName(prefix + index++);
+			roi.setColor(Color.RED);
+			roi.setStroke(3);
+			roi.setReadOnly(true);
+			data.getSequence().addROI(roi);
+			frameBarDiagnostics.add(roi);
+		}
 	}
 
 	// -------------------------------------------------------
