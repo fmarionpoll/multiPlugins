@@ -26,6 +26,7 @@ public class CapillariesPersistence {
 
 	// Current format filenames (version stored internally in file header)
 	public final static String ID_V2_CAPILLARIESDESCRIPTION_CSV = "CapillariesDescription.csv";
+	public static final String GROUND_TRUTH_CSV = "CapillariesDescription - Copy.csv";
 	public final static String ID_V2_CAPILLARIESMEASURES_CSV = "CapillariesMeasures.csv";
 	// Version for CSV files
 	private static final String CSV_VERSION = "2.2";
@@ -174,6 +175,11 @@ public class CapillariesPersistence {
 		if (saved)
 			saved = CapillaryPhaseGeometryPersistence.save(capillaries, resultsDirectory);
 		return saved;
+	}
+
+	/** Saves an independent image-0 reference CSV, without changing operational files or sidecars. */
+	public boolean saveGroundTruthDescriptions(Capillaries capillaries, String resultsDirectory) {
+		return Persistence.saveDescription(capillaries, resultsDirectory, GROUND_TRUTH_CSV);
 	}
 
 	/**
@@ -615,6 +621,10 @@ public class CapillariesPersistence {
 		 * @return true if successful
 		 */
 		public static boolean saveDescription(Capillaries capillaries, String resultsDirectory) {
+			return saveDescription(capillaries, resultsDirectory, ID_V2_CAPILLARIESDESCRIPTION_CSV);
+		}
+
+		private static boolean saveDescription(Capillaries capillaries, String resultsDirectory, String filename) {
 			if (resultsDirectory == null) {
 				Logger.warn("CapillariesPersistence:saveDescription() resultsDirectory is null");
 				return false;
@@ -633,19 +643,16 @@ public class CapillariesPersistence {
 				}
 			}
 
-			try {
-				FileWriter csvWriter = new FileWriter(
-						resultsDirectory + File.separator + ID_V2_CAPILLARIESDESCRIPTION_CSV);
+			try (FileWriter csvWriter = new FileWriter(resultsDirectory + File.separator + filename)) {
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				writeProvenanceHeaderComments(csvWriter);
 				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
-				csvWriter.close();
 				return true;
 			} catch (IOException e) {
 				Logger.error(
 						"CapillariesPersistence:saveDescription() failed to write "
-								+ ID_V2_CAPILLARIESDESCRIPTION_CSV + ": " + e.getMessage(),
+								+ filename + ": " + e.getMessage(),
 						e);
 				return false;
 			}

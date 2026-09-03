@@ -29,6 +29,58 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.Geometry;
  */
 public class CapillaryLengthRealDataBenchmarkTest {
 
+    /** Exploratory diagnostics only: annotations are never fed into detection. */
+    @Test public void diagnoseCorrectionFeatures() throws Exception {
+        String roots = System.getProperty("capillary.benchmark.roots");
+        Assume.assumeTrue("real-data roots not supplied", roots != null && !roots.trim().isEmpty());
+        for (String root : roots.split("::")) {
+            File directory = new File(root);
+            Map<String, double[]> rois = readCoordinates(new File(directory, "CapillariesDescription.csv"), false);
+            Map<String, double[]> truth = readCoordinates(groundTruthFile(directory), true);
+            ImageData image = readImage(firstJpeg(directory.getParentFile()));
+            CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+            options.tipInsetHalfWidthScale = 0.;
+            double[] sums = new double[8]; int count = 0;
+            for (Map.Entry<String, double[]> entry : rois.entrySet()) {
+                double[] gt = truth.get(entry.getKey());
+                if (gt == null) continue;
+                double[] p = entry.getValue();
+                ArrayList<int[]> axis = line(p);
+                Geometry g = CapillaryLengthDetector.estimateGeometry(axis, image, options);
+                double dx = p[2]-p[0], dy = p[3]-p[1], length = Math.hypot(dx,dy);
+                dx /= length; dy /= length;
+                boolean direct = Math.hypot(p[0]-gt[0],p[1]-gt[1])+Math.hypot(p[2]-gt[2],p[3]-gt[3])
+                        <= Math.hypot(p[0]-gt[2],p[1]-gt[3])+Math.hypot(p[2]-gt[0],p[3]-gt[1]);
+                for (int end = 0; end < 2; end++) {
+                    int origin = end == 0 ? 0 : axis.size()-1, direction = end == 0 ? 1 : -1;
+                    CapillaryLengthDetector.TipFind tip = CapillaryLengthDetector.findTip(axis,image,g,origin,direction,options);
+                    if (!tip.found) continue;
+                    int gi = direct ? 2*end : 2*(1-end);
+                    double overhang = direction*((gt[gi]-p[2*end])*dx+(gt[gi+1]-p[2*end+1])*dy);
+                    double[] scores = new double[Math.min(30,axis.size())];
+                    for (int k=0;k<scores.length;k++) {
+                        int i=origin+direction*k, i0=Math.max(0,i-8), i1=Math.min(axis.size()-1,i+8);
+                        double tx=axis.get(i1)[0]-axis.get(i0)[0], ty=axis.get(i1)[1]-axis.get(i0)[1];
+                        double norm=Math.hypot(tx,ty);
+                        scores[k]=CapillaryLengthDetector.pairedWallScore(image,axis.get(i)[0],axis.get(i)[1],
+                                new double[]{-ty/norm,tx/norm},g,options);
+                    }
+                    double outside=0, inside=0, sharpness=0;
+                    for(int k=0;k<5;k++) outside+=scores[k]/5.;
+                    for(int k=15;k<25;k++) inside+=scores[k]/10.;
+                    for(int k=1;k<25;k++) sharpness=Math.max(sharpness,scores[k]-scores[k-1]);
+                    double[] values={2*g.halfWidth,overhang,direction*(tip.axisFrac-origin),tip.atRoiEnd?1:0,
+                            tip.confidence,outside,inside,sharpness};
+                    for(int j=0;j<sums.length;j++) sums[j]+=values[j];
+                    count++;
+                }
+            }
+            System.out.print("FEATURES|"+root+"|"+count);
+            for(double sum:sums) System.out.printf(Locale.US,"|%.6f",sum/count);
+            System.out.println();
+        }
+    }
+
     @Test
     public void benchmarkFinalPhaseEndpoints() throws Exception {
         String roots = System.getProperty("capillary.benchmark.roots");
@@ -49,7 +101,12 @@ public class CapillaryLengthRealDataBenchmarkTest {
                 CapillaryLengthDetector detector = new CapillaryLengthDetector();
                 for (Map.Entry<String, double[]> entry : green.entrySet()) {
                     if (!truth.containsKey(entry.getKey())) continue;
-                    double[] p = entry.getValue();
+                    double[] p = entry.getValue().clone();
+                    // Test-only sensitivity check; source ROIs are never modified.
+                    double extension = Double.parseDouble(System.getProperty("capillary.benchmark.roiExtensionPixels", "0"));
+                    double axisLength = Math.hypot(p[2]-p[0],p[3]-p[1]);
+                    double ex = extension*(p[2]-p[0])/axisLength, ey = extension*(p[3]-p[1])/axisLength;
+                    p[0]-=ex; p[1]-=ey; p[2]+=ex; p[3]+=ey;
                     plugins.fmp.multitools.experiment.capillary.Capillary cap = new plugins.fmp.multitools.experiment.capillary.Capillary();
                     cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(new java.awt.geom.Line2D.Double(p[0], p[1], p[2], p[3])));
                     CapillaryLengthResult.Measure m = detector.measureOneCapillary(cap, image, options);
@@ -169,6 +226,13 @@ public class CapillaryLengthRealDataBenchmarkTest {
 	}
 
 	private static File groundTruthFile(File results) {
+		// Explicit opt-in only: never silently treat operational detections as truth.
+		String override = System.getProperty("capillary.benchmark.groundTruthName");
+		if (override != null && !override.trim().isEmpty()) {
+			File file = new File(results, override);
+			if (!file.isFile()) throw new IllegalArgumentException("Missing ground truth: " + file);
+			return file;
+		}
 		String[] names = { "CapillariesDescription - Copy.csv", "CapillariesDescription_groundtruth.csv",
 				"CapillariesDescription_ground_truth.csv" };
 		for (String name : names) {

@@ -73,7 +73,7 @@ public class MCCapillaries_ extends JPanel implements PropertyChangeListener, Ch
 
 		tabFile.init(capLayout, parent0);
 		tabFile.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, tabFile, "Load/Save xml file with capillaries descriptors");
+		tabsPane.addTab("Load/Save", null, tabFile, "Load/save capillary descriptors or export a ground truth CSV");
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		capPanel.add(tabsPane);

@@ -5,15 +5,18 @@ import java.awt.Font;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JOptionPane;
 import javax.swing.SwingConstants;
 
 import icy.gui.util.FontUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillaries.CapillariesPersistence;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 
 public class LoadSaveCapillaries extends JPanel {
@@ -23,13 +26,14 @@ public class LoadSaveCapillaries extends JPanel {
 	private static final long serialVersionUID = -4019075448319252245L;
 
 	private JButton openButtonCapillaries = new JButton("Load...");
-	private JButton saveButtonCapillaries = new JButton("Save...");
+	private JButton saveButtonCapillaries = new JButton("Save normal CSV");
+	private JButton saveGroundTruthButton = new JButton("Save ground truth CSV");
 	private MultiCAFE parent0 = null;
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
 
-		JLabel loadsaveText = new JLabel("-> Capillaries (xml) ", SwingConstants.RIGHT);
+		JLabel loadsaveText = new JLabel("-> Capillaries (CSV) ", SwingConstants.RIGHT);
 		loadsaveText.setFont(FontUtil.setStyle(loadsaveText.getFont(), Font.ITALIC));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.RIGHT);
 		flowLayout.setVgap(0);
@@ -37,6 +41,10 @@ public class LoadSaveCapillaries extends JPanel {
 		panel1.add(loadsaveText);
 		panel1.add(openButtonCapillaries);
 		panel1.add(saveButtonCapillaries);
+		panel1.add(saveGroundTruthButton);
+		saveButtonCapillaries.setToolTipText("Save the selected experiment, including edited blue tips, as CapillariesDescription.csv");
+		saveGroundTruthButton.setToolTipText("Save image-0 reference tips as " + CapillariesPersistence.GROUND_TRUTH_CSV
+				+ "; leaves normal files unchanged");
 		panel1.validate();
 		add(panel1);
 
@@ -45,6 +53,7 @@ public class LoadSaveCapillaries extends JPanel {
 	}
 
 	private void defineActionListeners() {
+		saveGroundTruthButton.addActionListener(e -> saveGroundTruth());
 		openButtonCapillaries.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -61,11 +70,47 @@ public class LoadSaveCapillaries extends JPanel {
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					saveCapillaries_file(exp);
-					firePropertyChange("CAP_ROIS_SAVE", false, true);
+					if (saveCapillaries_file(exp))
+						firePropertyChange("CAP_ROIS_SAVE", false, true);
+					else
+						JOptionPane.showMessageDialog(LoadSaveCapillaries.this, "Could not save capillaries. See the log.",
+								"Save normal CSV", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
+	}
+
+	private void saveGroundTruth() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		String title = "Save ground truth CSV";
+		if (exp == null || exp.getResultsDirectory() == null || exp.getCapillaries().getList().isEmpty()) {
+			JOptionPane.showMessageDialog(this, "Select an experiment with capillaries first.", title,
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null
+				|| exp.getSeqCamData().getSequence().getFirstViewer() == null
+				|| exp.getSeqCamData().getSequence().getFirstViewer().getPositionT() != 0) {
+			JOptionPane.showMessageDialog(this, "Display image 0 and adjust the blue tips before saving ground truth.",
+					title, JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		File target = new File(exp.getResultsDirectory(), CapillariesPersistence.GROUND_TRUTH_CSV);
+		if (target.exists() && JOptionPane.showConfirmDialog(this,
+				"Replace the existing ground truth file?\n" + target.getAbsolutePath(), title,
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION)
+			return;
+
+		// Capture the user's visible edits, but do not call the normal save pipeline.
+		parent0.paneCapillaries.getDialogCapillariesInfos(exp);
+		exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
+		CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
+		boolean saved = exp.getCapillaries().getPersistence()
+				.saveGroundTruthDescriptions(exp.getCapillaries(), exp.getResultsDirectory());
+		JOptionPane.showMessageDialog(this,
+				saved ? "Ground truth saved:\n" + target.getAbsolutePath() + "\nNormal files were not changed."
+						: "Could not save ground truth. See the log.",
+				title, saved ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.ERROR_MESSAGE);
 	}
 
 	public boolean loadCapillaries_File(Experiment exp) {
