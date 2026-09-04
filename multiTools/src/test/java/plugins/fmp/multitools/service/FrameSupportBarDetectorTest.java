@@ -32,6 +32,16 @@ public class FrameSupportBarDetectorTest {
         assertEquals(10.,guide[3],.01);
     }
 
+    @Test public void rejectsRegularHalfScaleLatticeAgainstCapillaryGuide() {
+        FrameSupportBarDetector.Result result=new FrameSupportBarDetector.Result();
+        for(int i=0;i<9;i++)result.dividers.add(new java.awt.geom.Line2D.Double(100+i*67,0,100+i*67,20));
+        double[] guide={150,1050,100,10};
+        assertTrue(FrameSupportBarDetector.pitchDisagreesWithGuide(result,guide,.15));
+        FrameSupportBarDetector.Result compatible=new FrameSupportBarDetector.Result();
+        for(int i=0;i<9;i++)compatible.dividers.add(new java.awt.geom.Line2D.Double(100+i*98,0,100+i*98,20));
+        assertFalse(FrameSupportBarDetector.pitchDisagreesWithGuide(compatible,guide,.15));
+    }
+
     @Test public void findsElevenFrameBarsWhenTwoCagesHaveNoCapillaries() {
         int w=800,h=320,top=65,bottom=88;
         double[] p=new double[w*h]; java.util.Arrays.fill(p,210);
@@ -47,6 +57,44 @@ public class FrameSupportBarDetectorTest {
         assertEquals(70,r.frameLeft,8);
         assertEquals(670,r.frameRight,8);
         assertEquals(600,r.frameWidth,12);
+    }
+
+    @Test public void frameGridIgnoresFliesAndObscuredOuterWalls() {
+        int w=900,h=360,top=70,bottom=94;
+        double[] p=new double[w*h]; java.util.Arrays.fill(p,215);
+        for(int y=top;y<=bottom;y++)for(int x=80;x<=780;x++)p[y*w+x]=45;
+        // Only the nine internal walls are reliable. Both outer walls merge into
+        // broad dark labels/background and cannot be localized symmetrically.
+        for(int k=1;k<10;k++){int x=80+k*70;for(int y=bottom+1;y<h;y++)
+            for(int dx=-6;dx<=6;dx++)p[y*w+x+dx]=65;}
+        for(int y=bottom+1;y<h;y++)for(int x=45;x<=90;x++)p[y*w+x]=55;
+        for(int y=bottom+1;y<h;y++)for(int x=770;x<=840;x++)p[y*w+x]=55;
+        // Fly-shaped dark objects contaminate different shallow/deep portions.
+        for(int y=112;y<=155;y++)for(int x=280;x<=305;x++)p[y*w+x]=25;
+        for(int y=205;y<=245;y++)for(int x=555;x<=580;x++)p[y*w+x]=25;
+        double[] guide={115,745,70,10};
+        FrameSupportBarDetector.Result r=new FrameSupportBarDetector().detectUsingFrameGrid(
+                p,w,h,30,300,guide);
+        assertEquals(9,r.dividers.size());
+        assertEquals(80,r.frameLeft,8);
+        assertEquals(780,r.frameRight,8);
+        assertEquals(700,r.frameWidth,12);
+    }
+
+    @Test public void frameGridAllowsOuterSearchWindowBeyondImageEdge() {
+        int w=1280,h=720,top=375,bottom=401;
+        double[] p=new double[w*h]; java.util.Arrays.fill(p,215);
+        for(int y=top;y<=bottom;y++)for(int x=58;x<=1083;x++)p[y*w+x]=45;
+        for(int k=1;k<10;k++){int x=58+k*102;for(int y=bottom+1;y<h;y++)
+            for(int dx=-7;dx<=7;dx++)p[y*w+x+dx]=60;}
+        // The first predicted boundary is so near x=0 that its wide symmetric
+        // search region cannot be sampled, as in 2022.05.06/cam04.
+        double[] guide={109,1027,102,10};
+        FrameSupportBarDetector.Result r=new FrameSupportBarDetector().detectUsingFrameGrid(
+                p,w,h,140,575,guide);
+        assertEquals(9,r.dividers.size());
+        assertEquals(58,r.frameLeft,8);
+        assertEquals(1078,r.frameRight,8);
     }
 
     @Test public void guidedSearchFindsSevenPaleDividersBelowGlobalThreshold() {

@@ -53,7 +53,8 @@ public final class FrameScaleDiagnostic {
                             image.getSizeY()*4/5,frameGuide)
                     : detector.detect(pixels,image.getSizeX(),image.getSizeY(),image.getSizeY()/5,
                             image.getSizeY()*4/5,guidedX[0],guidedX[1],guidedX[2]);
-            if(detected.dividers.isEmpty() && frameGuide!=null)
+            if(frameGuide!=null && (detected.dividers.isEmpty()
+                    || FrameSupportBarDetector.pitchDisagreesWithGuide(detected,frameGuide,.15)))
                 detected=detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),
                         image.getSizeY()/5,image.getSizeY()*4/5,frameGuide);
             row.dividers=detected.dividers.size();

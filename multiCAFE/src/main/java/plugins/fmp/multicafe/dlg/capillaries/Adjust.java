@@ -192,7 +192,8 @@ public class Adjust extends JPanel {
 				? detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,frameGuide)
 				: detector.detect(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,
 						guidedX[0],guidedX[1],guidedX[2]);
-		if(result.dividers.isEmpty() && frameGuide!=null)
+		if(frameGuide!=null && (result.dividers.isEmpty()
+				|| FrameSupportBarDetector.pitchDisagreesWithGuide(result,frameGuide,.15)))
 			result=detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,frameGuide);
 		if (!result.found()) {
 			JOptionPane.showMessageDialog(this, "No sufficiently continuous dark support-bar edge was detected.",

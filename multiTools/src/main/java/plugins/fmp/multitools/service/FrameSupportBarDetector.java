@@ -84,6 +84,17 @@ public final class FrameSupportBarDetector {
         return new double[]{cage.get(0),cage.get(cage.size()-1),pitch,cage.size()};
     }
 
+    /** True when an apparently regular image fit conflicts with capillary-pair scale. */
+    public static boolean pitchDisagreesWithGuide(Result result, double[] guide, double toleranceFraction) {
+        if(result==null || result.dividers.size()<2 || guide==null || guide.length<3 || !(guide[2]>0.))
+            return false;
+        ArrayList<Double> gaps=new ArrayList<Double>();
+        for(int i=1;i<result.dividers.size();i++)
+            gaps.add(result.dividers.get(i).getX1()-result.dividers.get(i-1).getX1());
+        double measured=percentile(gaps,.5);
+        return Math.abs(measured/guide[2]-1.)>toleranceFraction;
+    }
+
     /** Detects all eleven frame boundaries when some of the twenty capillaries are absent. */
     public Result detectUsingFrameGrid(double[] pixels, int width, int height, int yMin, int yMax,
             double[] guide) {
@@ -345,11 +356,6 @@ public final class FrameSupportBarDetector {
         int deepStart=Math.min(h-2,lowerY+Math.max(8,h/100));
         int deepEnd=Math.min(h-2,lowerY+Math.max(180,h/3));
         if(deepEnd<=deepStart+20)return null;
-        double[] vertical=new double[w];
-        for(int x=0;x<w;x++) {
-            double sum=0.; for(int y=deepStart;y<=deepEnd;y++)sum+=p[y*w+x];
-            vertical[x]=sum/(deepEnd-deepStart+1);
-        }
         double firstCage=guide[0], basePitch=guide[2];
         int occupied=(int)Math.round(guide[3]);
         int missing=Math.max(0,10-occupied);
@@ -364,33 +370,72 @@ public final class FrameSupportBarDetector {
             for(int missingLeft=0;missingLeft<=missing;missingLeft++) {
                 double predictedLeft=firstCage-.5*pitch-missingLeft*pitch;
                 int[] bars=new int[11]; double score=0.; boolean ok=true;
+                double outerScore=0.;
                 for(int k=0;k<11;k++) {
                     int expected=(int)Math.round(predictedLeft+k*pitch);
                     int search=Math.max(3,(int)Math.round((k==0||k==10?.40:.18)*pitch));
-                    if(expected-search-flank-core<1 || expected+search+flank+core>=w-1){ok=false;break;}
+                    int from=Math.max(flank+core+1,expected-search);
+                    int to=Math.min(w-flank-core-2,expected+search);
+                    // An outer wall may be too close to an image edge for the
+                    // symmetric contrast measurement. It is inferred later from
+                    // the internal grid, so do not reject all nine internal walls.
+                    if(from>to) {
+                        if(k==0||k==10){bars[k]=expected;continue;}
+                        ok=false;break;
+                    }
                     int bestX=expected; double localBest=Double.NEGATIVE_INFINITY;
-                    for(int x=expected-search;x<=expected+search;x++) {
-                        double centre=rangeMean(vertical,x-core,x+core);
-                        double sides=(rangeMean(vertical,x-flank-core,x-flank)
-                                +rangeMean(vertical,x+flank,x+flank+core))/2.;
-                        double contrast=sides-centre-.08*Math.abs(x-expected);
+                    for(int x=from;x<=to;x++) {
+                        // Use the median contrast from several horizontal bands.
+                        // Cage walls persist with depth, whereas a fly normally
+                        // contaminates only one or two bands.
+                        double contrast=multiDepthContrast(p,w,deepStart,deepEnd,x,core,flank)
+                                -.08*Math.abs(x-expected);
                         if(contrast>localBest){localBest=contrast;bestX=x;}
                     }
                     if(k>0 && bestX<=bars[k-1]){ok=false;break;}
-                    bars[k]=bestX; score+=localBest;
+                    bars[k]=bestX;
+                    // Broad/cropped outer walls and labels are unreliable. The
+                    // nine internal walls determine whether the grid is valid.
+                    if(k>0&&k<10)score+=localBest;
+                    else outerScore+=Math.max(-5.,Math.min(20.,localBest));
                 }
+                // Outer evidence resolves one-cage shifts when cages are empty,
+                // but is deliberately weak and capped because labels often merge
+                // with an outside wall.
+                score+=.20*outerScore;
                 if(ok && score>bestScore){bestScore=score;best=bars;}
             }
         }
-        if(best==null || bestScore/11.<=2.)return null;
-        // Thick/textured outer walls have several possible centres and edges.
-        // Their midpoint locates the frame, while ten capillary-derived cage
-        // pitches provide the stable physical span.
-        double centre=(best[0]+best[10])/2.;
-        double span=10.*basePitch;
-        best[0]=(int)Math.round(centre-span/2.);
-        best[10]=(int)Math.round(centre+span/2.);
+        if(best==null || bestScore/9.<=2.)return null;
+        // Infer the frame origin from all nine internal walls. This is robust when
+        // either outer wall is broad, cropped, or covered by a handwritten label.
+        double origin=0.;
+        for(int k=1;k<10;k++)origin+=best[k]-k*basePitch;
+        origin/=9.;
+        best[0]=(int)Math.round(origin);
+        best[10]=(int)Math.round(origin+10.*basePitch);
         return best;
+    }
+
+    private static double multiDepthContrast(double[] p, int w, int y1, int y2, int x,
+            int core, int flank) {
+        ArrayList<Double> contrasts=new ArrayList<Double>();
+        final int bands=5;
+        for(int band=0;band<bands;band++) {
+            int from=y1+(y2-y1+1)*band/bands;
+            int to=y1+(y2-y1+1)*(band+1)/bands-1;
+            double centre=rectMean(p,w,from,to,x-core,x+core);
+            double sides=(rectMean(p,w,from,to,x-flank-core,x-flank)
+                    +rectMean(p,w,from,to,x+flank,x+flank+core))/2.;
+            contrasts.add(sides-centre);
+        }
+        return percentile(contrasts,.5);
+    }
+
+    private static double rectMean(double[] p, int w, int y1, int y2, int x1, int x2) {
+        double sum=0.; int n=0;
+        for(int y=y1;y<=y2;y++)for(int x=x1;x<=x2;x++){sum+=p[y*w+x];n++;}
+        return sum/n;
     }
 
     private static double rangeMean(double[] values, int from, int to) {
