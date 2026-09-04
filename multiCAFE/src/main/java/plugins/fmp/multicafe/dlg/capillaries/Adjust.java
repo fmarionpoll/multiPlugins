@@ -161,33 +161,39 @@ public class Adjust extends JPanel {
 		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) return;
 		SequenceCamData data = exp.getSeqCamData();
 		removeFrameBarDiagnostics(data);
-		int t = data.getSequence().getFirstViewer().getPositionT();
+		// Frame-scale diagnostics and ground-truth endpoints are defined on image 0.
+		// Using the viewer's current frame made this button disagree with batch CSVs
+		// whenever the camera drifted during a recording.
+		int t = 0;
 		IcyBufferedImage image = data.getSequence().getImage(t, 0, 0);
 		if (image == null) {
 			JOptionPane.showMessageDialog(this, "The current image could not be read.", "Detect frame bar",
 					JOptionPane.ERROR_MESSAGE); return;
 		}
 		double[] pixels = Array1DUtil.arrayToDoubleArray(image.getDataXY(0), image.isSignedDataType());
+		// Keep this path identical to FrameScaleDiagnostic: image 0, canonical
+		// capillary-model ROIs, and the same fixed vertical search interval.
 		int yMin = image.getSizeY() / 5, yMax = image.getSizeY() * 4 / 5;
-		List<ROI2D> caps = data.findROIsMatchingNamePattern("line");
 		ArrayList<Double> capillaryX = new ArrayList<Double>();
-		if (caps != null && !caps.isEmpty()) {
-			Rectangle bounds = new Rectangle(caps.get(0).getBounds());
-			for (ROI2D roi : caps) {
-				bounds.add(roi.getBounds());
-				if (roi instanceof ROI2DLine) {
-					Line2D line=((ROI2DLine)roi).getLine();
-					capillaryX.add((line.getX1()+line.getX2())/2.);
-				}
+		java.util.Map<Integer,ArrayList<Double>> xByCage=new java.util.TreeMap<Integer,ArrayList<Double>>();
+		for (plugins.fmp.multitools.experiment.capillary.Capillary cap : exp.getCapillaries().getList())
+			if (cap.getRoi() instanceof ROI2DLine) {
+				Line2D line=((ROI2DLine)cap.getRoi()).getLine();
+				double x=(line.getX1()+line.getX2())/2.; capillaryX.add(x);
+				xByCage.computeIfAbsent(cap.getCageID(),key->new ArrayList<Double>()).add(x);
 			}
-			yMin = Math.max(2, bounds.y + bounds.height / 6);
-			yMax = Math.min(image.getSizeY() - 3, bounds.y + bounds.height * 5 / 6);
-		}
 		int[] guidedX=FrameSupportBarDetector.internalDividerSearchBounds(capillaryX,image.getSizeX());
+		ArrayList<Double> cageCenters=new ArrayList<Double>();
+		for(ArrayList<Double> values:xByCage.values()){
+			double sum=0.;for(double x:values)sum+=x;cageCenters.add(sum/values.size());}
+		double[] frameGuide=FrameSupportBarDetector.frameGridGuideFromCageCenters(cageCenters,image.getSizeX());
+		FrameSupportBarDetector detector=new FrameSupportBarDetector();
 		FrameSupportBarDetector.Result result = guidedX==null
-				? new FrameSupportBarDetector().detect(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax)
-				: new FrameSupportBarDetector().detect(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,
+				? detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,frameGuide)
+				: detector.detect(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,
 						guidedX[0],guidedX[1],guidedX[2]);
+		if(result.dividers.isEmpty() && frameGuide!=null)
+			result=detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),yMin,yMax,frameGuide);
 		if (!result.found()) {
 			JOptionPane.showMessageDialog(this, "No sufficiently continuous dark support-bar edge was detected.",
 					"Detect frame bar", JOptionPane.WARNING_MESSAGE); return;
@@ -234,6 +240,9 @@ public class Adjust extends JPanel {
 			roi.setColor(Color.RED);
 			roi.setStroke(3);
 			roi.setReadOnly(true);
+			// Detection is performed on image 0, but the user may currently be
+			// viewing any frame. Keep diagnostic markers visible across all T.
+			roi.setT(-1);
 			data.getSequence().addROI(roi);
 			frameBarDiagnostics.add(roi);
 		}

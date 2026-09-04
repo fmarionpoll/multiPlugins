@@ -23,6 +23,32 @@ public class FrameSupportBarDetectorTest {
         assertNull(bounds);
     }
 
+    @Test public void buildsGuideWhenOneCageHasOnlyOneCapillary() {
+        java.util.ArrayList<Double> cages=new java.util.ArrayList<Double>();
+        for(int cage=0;cage<10;cage++)cages.add(100.+cage*72);
+        double[] guide=FrameSupportBarDetector.frameGridGuideFromCageCenters(cages,1280);
+        assertNotNull(guide);
+        assertEquals(72.,guide[2],.01);
+        assertEquals(10.,guide[3],.01);
+    }
+
+    @Test public void findsElevenFrameBarsWhenTwoCagesHaveNoCapillaries() {
+        int w=800,h=320,top=65,bottom=88;
+        double[] p=new double[w*h]; java.util.Arrays.fill(p,210);
+        for(int y=top;y<=bottom;y++)for(int x=70;x<=670;x++)p[y*w+x]=50;
+        for(int k=0;k<=10;k++){int x=70+k*60;for(int y=bottom+1;y<h;y++)
+            for(int dx=-6;dx<=6;dx++)p[y*w+x+dx]=80;}
+        java.util.ArrayList<Double> capX=new java.util.ArrayList<Double>();
+        // Only cages 2..9 contain their L/R capillary pair.
+        for(int cage=2;cage<10;cage++){double centre=100+cage*60;capX.add(centre-7);capX.add(centre+7);}
+        double[] guide=FrameSupportBarDetector.frameGridGuide(capX,w);
+        FrameSupportBarDetector.Result r=new FrameSupportBarDetector().detectUsingFrameGrid(p,w,h,30,270,guide);
+        assertEquals(9,r.dividers.size());
+        assertEquals(70,r.frameLeft,8);
+        assertEquals(670,r.frameRight,8);
+        assertEquals(600,r.frameWidth,12);
+    }
+
     @Test public void guidedSearchFindsSevenPaleDividersBelowGlobalThreshold() {
         int w=700,h=300,top=70,bottom=92;
         double[] p=new double[w*h]; java.util.Arrays.fill(p,210);

@@ -36,16 +36,26 @@ public final class FrameScaleDiagnostic {
             if(image==null) throw new IllegalArgumentException("image 0 could not be read");
             double[] pixels=Array1DUtil.arrayToDoubleArray(image.getDataXY(0),image.isSignedDataType());
             ArrayList<Double> capillaryX=new ArrayList<Double>();
+            java.util.Map<Integer,ArrayList<Double>> xByCage=new java.util.TreeMap<Integer,ArrayList<Double>>();
             for(Capillary cap:exp.getCapillaries().getList()) if(cap.getRoi() instanceof ROI2DLine) {
                 Line2D line=((ROI2DLine)cap.getRoi()).getLine();
-                capillaryX.add((line.getX1()+line.getX2())/2.);
+                double x=(line.getX1()+line.getX2())/2.; capillaryX.add(x);
+                xByCage.computeIfAbsent(cap.getCageID(),key->new ArrayList<Double>()).add(x);
             }
             int[] guidedX=FrameSupportBarDetector.internalDividerSearchBounds(capillaryX,image.getSizeX());
+            ArrayList<Double> cageCenters=new ArrayList<Double>();
+            for(ArrayList<Double> values:xByCage.values()){
+                double sum=0.;for(double x:values)sum+=x;cageCenters.add(sum/values.size());}
+            double[] frameGuide=FrameSupportBarDetector.frameGridGuideFromCageCenters(cageCenters,image.getSizeX());
             FrameSupportBarDetector detector=new FrameSupportBarDetector();
             FrameSupportBarDetector.Result detected=guidedX==null
-                    ? detector.detect(pixels,image.getSizeX(),image.getSizeY(),image.getSizeY()/5,image.getSizeY()*4/5)
+                    ? detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),image.getSizeY()/5,
+                            image.getSizeY()*4/5,frameGuide)
                     : detector.detect(pixels,image.getSizeX(),image.getSizeY(),image.getSizeY()/5,
                             image.getSizeY()*4/5,guidedX[0],guidedX[1],guidedX[2]);
+            if(detected.dividers.isEmpty() && frameGuide!=null)
+                detected=detector.detectUsingFrameGrid(pixels,image.getSizeX(),image.getSizeY(),
+                        image.getSizeY()/5,image.getSizeY()*4/5,frameGuide);
             row.dividers=detected.dividers.size();
             if(row.dividers==detected.expectedDividers) {
                 row.frameWidth=detected.frameWidth;

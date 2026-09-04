@@ -58,6 +58,48 @@ public final class FrameSupportBarDetector {
                 Math.min(imageWidth-3,(int)Math.ceil(last)+margin), 9};
     }
 
+    /** Approximate first/last occupied cage centre, cage pitch, and occupied cage count. */
+    public static double[] frameGridGuide(List<Double> capillaryX, int imageWidth) {
+        if (capillaryX==null || capillaryX.size()<4 || capillaryX.size()%2!=0) return null;
+        ArrayList<Double> sorted=new ArrayList<Double>(capillaryX);
+        Collections.sort(sorted);
+        ArrayList<Double> cage=new ArrayList<Double>();
+        for(int i=0;i<sorted.size();i+=2)cage.add((sorted.get(i)+sorted.get(i+1))/2.);
+        return frameGridGuideFromCageCenters(cage,imageWidth);
+    }
+
+    /** Builds a frame guide from cage centres, including cages represented by only one capillary. */
+    public static double[] frameGridGuideFromCageCenters(List<Double> cageCenters, int imageWidth) {
+        if(cageCenters==null || cageCenters.size()<2)return null;
+        ArrayList<Double> cage=new ArrayList<Double>(cageCenters);
+        Collections.sort(cage);
+        ArrayList<Double> gaps=new ArrayList<Double>();
+        for(int i=1;i<cage.size();i++)gaps.add(cage.get(i)-cage.get(i-1));
+        Collections.sort(gaps);
+        // Missing cages create multiples of the ordinary pitch, so estimate it
+        // from the lower half of the observed inter-cage gaps.
+        ArrayList<Double> lower=new ArrayList<Double>(gaps.subList(0,Math.max(1,(gaps.size()+1)/2)));
+        double pitch=percentile(lower,.5);
+        if(!(pitch>imageWidth/40.&&pitch<imageWidth/4.))return null;
+        return new double[]{cage.get(0),cage.get(cage.size()-1),pitch,cage.size()};
+    }
+
+    /** Detects all eleven frame boundaries when some of the twenty capillaries are absent. */
+    public Result detectUsingFrameGrid(double[] pixels, int width, int height, int yMin, int yMax,
+            double[] guide) {
+        Result result=detect(pixels,width,height,yMin,yMax);
+        if(guide==null || result.lowerY<=0)return result;
+        int[] bars=findElevenFrameBars(pixels,width,height,result.lowerY,guide);
+        if(bars==null)return result;
+        result.expectedDividers=9;
+        result.dividers.clear(); result.dividerCandidates.clear();
+        result.frameLeft=bars[0]; result.frameRight=bars[10];
+        result.frameWidth=result.frameRight-result.frameLeft;
+        int tickBottom=Math.min(height-1,result.lowerY+Math.max(25,height/18));
+        for(int i=1;i<10;i++)result.dividers.add(new Line2D.Double(bars[i],result.lowerY+2,bars[i],tickBottom));
+        return result;
+    }
+
 	private Result detect(double[] pixels, int width, int height, int yMin, int yMax,
 			int xMin, int xMax, boolean trustedHorizontalBounds, int expectedDividers) {
         Result result = new Result();
@@ -297,6 +339,63 @@ public final class FrameSupportBarDetector {
         double sum=0.;
         for(int x=x1;x<=x2;x++)sum+=p[y*w+x];
         return sum/(x2-x1+1);
+    }
+
+    private static int[] findElevenFrameBars(double[] p, int w, int h, int lowerY, double[] guide) {
+        int deepStart=Math.min(h-2,lowerY+Math.max(8,h/100));
+        int deepEnd=Math.min(h-2,lowerY+Math.max(180,h/3));
+        if(deepEnd<=deepStart+20)return null;
+        double[] vertical=new double[w];
+        for(int x=0;x<w;x++) {
+            double sum=0.; for(int y=deepStart;y<=deepEnd;y++)sum+=p[y*w+x];
+            vertical[x]=sum/(deepEnd-deepStart+1);
+        }
+        double firstCage=guide[0], basePitch=guide[2];
+        int occupied=(int)Math.round(guide[3]);
+        int missing=Math.max(0,10-occupied);
+        int[] best=null; double bestScore=Double.NEGATIVE_INFINITY;
+        // Capillary-pair spacing is the scale estimate. Optimizing the global
+        // pitch against darkness systematically expands the grid toward the thick
+        // outer walls; only individual bar positions are refined below.
+        for(int scaleStep=0;scaleStep<=0;scaleStep++) {
+            double pitch=basePitch*(1.+scaleStep*.01);
+            int core=Math.max(2,w/300);
+            int flank=Math.max(core+4,(int)Math.round(.20*pitch));
+            for(int missingLeft=0;missingLeft<=missing;missingLeft++) {
+                double predictedLeft=firstCage-.5*pitch-missingLeft*pitch;
+                int[] bars=new int[11]; double score=0.; boolean ok=true;
+                for(int k=0;k<11;k++) {
+                    int expected=(int)Math.round(predictedLeft+k*pitch);
+                    int search=Math.max(3,(int)Math.round((k==0||k==10?.40:.18)*pitch));
+                    if(expected-search-flank-core<1 || expected+search+flank+core>=w-1){ok=false;break;}
+                    int bestX=expected; double localBest=Double.NEGATIVE_INFINITY;
+                    for(int x=expected-search;x<=expected+search;x++) {
+                        double centre=rangeMean(vertical,x-core,x+core);
+                        double sides=(rangeMean(vertical,x-flank-core,x-flank)
+                                +rangeMean(vertical,x+flank,x+flank+core))/2.;
+                        double contrast=sides-centre-.08*Math.abs(x-expected);
+                        if(contrast>localBest){localBest=contrast;bestX=x;}
+                    }
+                    if(k>0 && bestX<=bars[k-1]){ok=false;break;}
+                    bars[k]=bestX; score+=localBest;
+                }
+                if(ok && score>bestScore){bestScore=score;best=bars;}
+            }
+        }
+        if(best==null || bestScore/11.<=2.)return null;
+        // Thick/textured outer walls have several possible centres and edges.
+        // Their midpoint locates the frame, while ten capillary-derived cage
+        // pitches provide the stable physical span.
+        double centre=(best[0]+best[10])/2.;
+        double span=10.*basePitch;
+        best[0]=(int)Math.round(centre-span/2.);
+        best[10]=(int)Math.round(centre+span/2.);
+        return best;
+    }
+
+    private static double rangeMean(double[] values, int from, int to) {
+        double sum=0.; for(int i=from;i<=to;i++)sum+=values[i];
+        return sum/(to-from+1);
     }
 
     private static double percentile(List<Double> values, double p) {
