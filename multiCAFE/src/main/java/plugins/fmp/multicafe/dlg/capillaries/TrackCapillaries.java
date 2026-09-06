@@ -58,6 +58,12 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JSpinner outlierMinPxSpinner;
 	private JSpinner transitionThresholdSpinner;
 	private JButton runFrameByFrameButton = new JButton("Run tracking");
+	private JButton rackTrackingButton = new JButton("Track rack from image 0 (full stack)");
+	private JButton stopRackButton = new JButton("Stop rack tracking");
+	private volatile boolean rackCancelled;
+	private boolean rackRunning;
+	private boolean legacyTrackingRunning;
+	private JSpinner rackPhaseSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
 	private JButton runFromCurrentTButton = new JButton("Run from current T");
 	private JButton runBackwardFromCurrentTButton = new JButton("Run backwards from current T");
 	private JButton saveButton = new JButton("Save");
@@ -102,7 +108,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		outlierMinPxSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 50, 1));
 		transitionThresholdSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
 
-		JPanel topPanel = new JPanel(new GridLayout(8, 1));
+		JPanel topPanel = new JPanel(new GridLayout(9, 1));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
 
 		JPanel p1 = new JPanel(flow);
@@ -119,12 +125,20 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 		JPanel p2 = new JPanel(flow);
 		p2.add(runFrameByFrameButton);
+		stopRackButton.setEnabled(false);
 		p2.add(runFromCurrentTButton);
 		p2.add(runBackwardFromCurrentTButton);
 		p2.add(validateBlueButton);
 		p2.add(plotEndpointsButton);
 		p2.add(saveButton);
 		topPanel.add(p2);
+		JPanel rackPanel = new JPanel(flow);
+		rackPanel.add(rackTrackingButton);
+		rackPanel.add(stopRackButton);
+		rackPanel.add(new JLabel("Blue phase change (px):"));
+		rackPanel.add(rackPhaseSpinner);
+		rackPanel.add(new JLabel("Replaces later blue phases; keeps image 0."));
+		topPanel.add(rackPanel);
 
 		JPanel p3 = new JPanel(flow);
 		p3.add(new JLabel(
@@ -202,6 +216,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		bindSelectedExperiment();
 
 		runFrameByFrameButton.addActionListener(e -> runTrackingFrameByFrame());
+		rackTrackingButton.addActionListener(e -> runRackTracking());
+		stopRackButton.addActionListener(e -> rackCancelled = true);
 		runFromCurrentTButton.addActionListener(e -> runFromCurrentT());
 		runBackwardFromCurrentTButton.addActionListener(e -> runBackwardFromCurrentT());
 		saveButton.addActionListener(e -> save());
@@ -408,6 +424,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void runTrackingInWorker(int tStart, int tEnd) {
+		if (rackRunning || legacyTrackingRunning) return;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
@@ -418,6 +435,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		final double minPx = ((Number) outlierMinPxSpinner.getValue()).intValue();
 		final ProgressFrame pf = new ProgressFrame("Tracking capillaries (dlg)");
 		ProgressReporter progress = progressReporterFor(pf);
+		legacyTrackingRunning = true;
+		rackTrackingButton.setEnabled(false);
 
 		new SwingWorker<Void, Void>() {
 			@Override
@@ -431,6 +450,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 			@Override
 			protected void done() {
+				legacyTrackingRunning = false;
+				rackTrackingButton.setEnabled(true);
 				pf.close();
 			}
 		}.execute();
@@ -499,6 +520,45 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		}
 		exp.save_capillaries_description_and_measures();
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), t);
+	}
+
+	private void runRackTracking() {
+		final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null || rackRunning || legacyTrackingRunning) return;
+		final double threshold = ((Number) rackPhaseSpinner.getValue()).doubleValue();
+		rackCancelled = false;
+		rackRunning = true;
+		rackTrackingButton.setEnabled(false);
+		stopRackButton.setEnabled(true);
+		validateBlueButton.setEnabled(false);
+		final ProgressFrame pf = new ProgressFrame("Tracking rack from image 0");
+		new SwingWorker<plugins.fmp.multitools.service.tracking.RackTrackingService.Scan, Void>() {
+			@Override protected plugins.fmp.multitools.service.tracking.RackTrackingService.Scan doInBackground()
+					throws Exception {
+				return new plugins.fmp.multitools.service.tracking.RackTrackingService().scan(exp, threshold,
+						() -> rackCancelled, frame -> SwingUtilities.invokeLater(() -> pf.setMessage("Frame " + frame)));
+			}
+			@Override protected void done() {
+				try {
+					plugins.fmp.multitools.service.tracking.RackTrackingService.Scan scan = get();
+					if (scan.cancelled || rackCancelled) return;
+					scan.apply();
+					showBlueOnly();
+					JOptionPane.showMessageDialog(TrackCapillaries.this,
+							scan.frames + " frames, " + scan.phases + " geometry phases, " + scan.uncertain
+							+ " uncertain frames (last accepted position retained).\n"
+							+ "Blue phases are ready to inspect with the viewer and endpoint plot. Use Save to persist.\n"
+							+ "Report: " + scan.reportPath,
+							"Rack tracking complete", JOptionPane.INFORMATION_MESSAGE);
+				} catch (Exception ex) {
+					JOptionPane.showMessageDialog(TrackCapillaries.this, "Rack tracking failed: " + ex.getMessage());
+				} finally {
+					pf.close(); rackRunning = false;
+					rackTrackingButton.setEnabled(true); stopRackButton.setEnabled(false);
+					validateBlueButton.setEnabled(true);
+				}
+			}
+		}.execute();
 	}
 
 	private void analyzeTransitions() {
@@ -605,6 +665,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	void close() {
+		rackCancelled = true;
 		transitionAnalysisCancelled = true;
 		if (parent0 != null)
 			parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
@@ -657,6 +718,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		if (trackedViewer != null)
 			trackedViewer.removeListener(this);
 		trackedExperiment = selected;
+		if (rackRunning) rackCancelled = true;
 		proposalListModel.clear();
 		proposalStatusLabel.setText("No transition analysis run for this experiment.");
 		trackedViewer = null;

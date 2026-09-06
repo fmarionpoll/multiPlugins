@@ -65,6 +65,26 @@ public final class CapillaryPhaseGeometryModel {
 		extensions = null;
 	}
 
+	public synchronized Long getBluePhaseStartAt(long frame) {
+		return blueByPhase.floorKey(frame);
+	}
+
+	/** Replace temporal poses after a completed rack scan, preserving corridor ratios. */
+	public synchronized void replaceBlueKeyframes(Map<Long, Line2D> frames) {
+		if (frames == null || !frames.containsKey(0L))
+			throw new IllegalArgumentException("image-zero reference is required");
+		NavigableMap<Long, Line2D> validated = new TreeMap<Long, Line2D>();
+		for (Map.Entry<Long, Line2D> entry : frames.entrySet()) {
+			Line2D line = entry.getValue();
+			if (entry.getKey() < 0 || line == null || !(length(line) > 0)
+					|| !Double.isFinite(line.getX1() + line.getY1() + line.getX2() + line.getY2()))
+				throw new IllegalArgumentException("invalid blue keyframe");
+			validated.put(entry.getKey(), CapillaryPhaseGeometry.copy(line));
+		}
+		blueByPhase.clear();
+		blueByPhase.putAll(validated);
+	}
+
 	/** Phase-only pose change: blue length and shared extensions are preserved. */
 	public synchronized Line2D alignPhase(long phaseStart, Line2D alignedGreenAxis) {
 		ensureInitialized();

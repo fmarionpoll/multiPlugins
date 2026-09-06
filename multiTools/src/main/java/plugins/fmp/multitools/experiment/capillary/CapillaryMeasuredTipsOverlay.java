@@ -121,6 +121,9 @@ public final class CapillaryMeasuredTipsOverlay {
 			Point2D p2 = line.getP2();
 			plugins.fmp.multitools.tools.ROI2D.AlongT phase = cap.getAlongTAtT(t);
 			long phaseStart = phase == null ? t : phase.getStart();
+			Long bluePhase = cap.getPhaseGeometry().getBluePhaseStartAt(t);
+			if (bluePhase != null)
+				phaseStart = Math.max(phaseStart, bluePhase);
 			if (cap.getPhaseGeometry().isInitialized())
 				cap.getPhaseGeometry().putBlue(phaseStart, line);
 			else if (phase != null && phase.getRoi() instanceof ROI2DLine)
