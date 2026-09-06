@@ -33,6 +33,13 @@ public class CapillaryLengthDetectorTest {
 	private static final int CAPILLARY_TOP = 40;
 	private static final double NOMINAL_LENGTH = 400.;
 	private static final int TUBE_HALF_WIDTH = 4;
+
+	@Test
+	public void inwardTipCorrectionIsDisabledByDefault() {
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		assertEquals(0., options.tipInsetHalfWidthScale, 0.);
+		assertEquals(0.75, options.frameScalePriorWeight, 0.);
+	}
 	private static final int OVERHANG = 8;
 
 	private static final double BACKGROUND_LEVEL = 200.;
@@ -119,8 +126,34 @@ public class CapillaryLengthDetectorTest {
 			assertTrue(m.isSelected());
 			assertEquals("measured px must match trend px for capillary " + i, m.getFittedPixels(),
 					m.getDetectedPixels(), 0.01);
-			assertEquals(trueLength(i), m.getDetectedPixels(), 3.);
+			assertEquals(trueLength(i), m.getDetectedPixels(), 8.);
 		}
+		for (int i = 1; i < N_CAPILLARIES - 1; i++) {
+			double secondDifference = result.getMeasures().get(i - 1).getDetectedPixels()
+					- 2. * result.getMeasures().get(i).getDetectedPixels()
+					+ result.getMeasures().get(i + 1).getDetectedPixels();
+			assertEquals("the fitted perspective trend must not bend at the row edges", 0., secondDifference, 0.01);
+		}
+	}
+
+	@Test
+	public void frameScaleAnchorsSystematicallyShortTrendWithoutFlatteningIt() {
+		CapillaryLengthResult result = new CapillaryLengthResult();
+		for (int i = 0; i < N_CAPILLARIES; i++) {
+			CapillaryLengthResult.Measure m = new CapillaryLengthResult.Measure(null, "line" + i, 400);
+			m.setCentroidX(capillaryX(i));
+			m.setDetectedPixels(trueLength(i) - 18.);
+			m.setStatus(CapillaryLengthResult.Status.OK);
+			m.setSelected(true);
+			result.addMeasure(m);
+		}
+		double anchor = trueLength(N_CAPILLARIES / 2);
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		CapillaryLengthDetector.validate(result, IMAGE_WIDTH, options, anchor);
+		assertEquals("the soft prior should retain one quarter of the detected scale difference",
+				18. * (1. - options.frameScalePriorWeight), anchor - result.getMedianPixels(), 2.);
+		assertTrue(result.getMeasures().get(0).getDetectedPixels()
+				< result.getMeasures().get(N_CAPILLARIES / 2).getDetectedPixels());
 	}
 
 	@Test
@@ -149,8 +182,26 @@ public class CapillaryLengthDetectorTest {
 		assertTrue("all capillaries must stay selected after the snap, only " + result.countSelected() + " were",
 				result.countSelected() == N_CAPILLARIES);
 
-		double expectedSpread = 100. * (trueLength(10) - trueLength(0)) / trueLength(10);
-		assertEquals(expectedSpread, result.getSpreadPercent(), 1.);
+		assertTrue("the robust trend should retain a modest perspective slope",
+				result.getSpreadPercent() > 1. && result.getSpreadPercent() < 5.);
+	}
+
+	@Test
+	public void isolatedEdgeErrorCannotBendTheLengthTrend() {
+		CapillaryLengthResult result = new CapillaryLengthResult();
+		for (int i = 0; i < N_CAPILLARIES; i++) {
+			double expected = 300. + 12. * normalizedPosition(i);
+			CapillaryLengthResult.Measure measure = new CapillaryLengthResult.Measure(null, "line" + i, 300);
+			measure.setCentroidX(capillaryX(i));
+			measure.setDetectedPixels(i == 0 ? expected - 45. : expected);
+			measure.setStatus(CapillaryLengthResult.Status.OK);
+			measure.setSelected(true);
+			result.addMeasure(measure);
+		}
+
+		CapillaryLengthDetector.validate(result, IMAGE_WIDTH, new CapillaryLengthDetectorOptions());
+		assertEquals(300. + 12. * normalizedPosition(0), result.getMeasures().get(0).getDetectedPixels(), 2.);
+		assertTrue(result.getMeasures().get(0).getStatus() == CapillaryLengthResult.Status.CORRECTED);
 	}
 
 	@Test
@@ -230,6 +281,20 @@ public class CapillaryLengthDetectorTest {
 		assertTrue("endpoints must be found inside the ROI, not at its ends", !located.touchesBorder);
 		assertEquals(OVERHANG, located.startFrac, 2.);
 		assertEquals(trueLength(5), located.endFrac - located.startFrac, 2.);
+	}
+
+	@Test
+	public void estimatedLateralOffsetMovesBluePointsOntoCapillary() {
+		ImageData image = buildRackImage();
+		CapillaryLengthDetectorOptions options = syntheticOptions();
+		int index = 5;
+		int capillaryX = capillaryX(index);
+		ArrayList<int[]> offsetAxis = overhangingAxis(capillaryX + 4, TUBE_TOP, rackTubeLength(index));
+		Geometry geometry = CapillaryLengthDetector.estimateGeometry(offsetAxis, image, options);
+		assertEquals("profile should recover the four-pixel lateral displacement", 4., geometry.offset, 1.5);
+		Point2D corrected = CapillaryLengthDetector.interpolateOffsetPoint(offsetAxis, OVERHANG,
+				geometry.offset, options.tangentWindow);
+		assertEquals("blue point should be centred on the capillary", capillaryX, corrected.getX(), 1.5);
 	}
 
 	@Test

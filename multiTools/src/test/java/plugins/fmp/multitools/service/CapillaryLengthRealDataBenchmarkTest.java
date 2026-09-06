@@ -29,6 +29,66 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.Geometry;
  */
 public class CapillaryLengthRealDataBenchmarkTest {
 
+    @Test
+    public void benchmarkSavedEndpoints() throws Exception {
+        String roots = System.getProperty("capillary.benchmark.roots");
+        Assume.assumeTrue("real-data roots not supplied", roots != null && !roots.trim().isEmpty());
+        List<Double> allTips = new ArrayList<Double>();
+        List<Double> allLengths = new ArrayList<Double>();
+        List<Double> allSignedLengths = new ArrayList<Double>();
+        Map<Integer, List<Double>> lengthsByWidth = new LinkedHashMap<Integer, List<Double>>();
+        Map<Integer, Integer> experimentsByWidth = new LinkedHashMap<Integer, Integer>();
+
+        for (String root : roots.split("::")) {
+            File directory = new File(root);
+            Map<String, double[]> saved = readCoordinates(new File(directory, "CapillariesDescription.csv"), true);
+            Map<String, double[]> truth = readCoordinates(groundTruthFile(directory), true);
+            int width = readImage(firstJpeg(directory.getParentFile())).width;
+            List<Double> tips = new ArrayList<Double>();
+            List<Double> lengths = new ArrayList<Double>();
+            List<Double> signedLengths = new ArrayList<Double>();
+            for (Map.Entry<String, double[]> entry : saved.entrySet()) {
+                double[] gt = truth.get(entry.getKey());
+                if (gt == null) continue;
+                double[] detected = entry.getValue();
+                double tipError = endpointError(new java.awt.geom.Point2D.Double(detected[0], detected[1]),
+                        new java.awt.geom.Point2D.Double(detected[2], detected[3]), gt);
+                double signedLengthError = Math.hypot(detected[2] - detected[0], detected[3] - detected[1])
+                        - Math.hypot(gt[2] - gt[0], gt[3] - gt[1]);
+                tips.add(tipError);
+                lengths.add(Math.abs(signedLengthError));
+                signedLengths.add(signedLengthError);
+            }
+            allTips.addAll(tips);
+            allLengths.addAll(lengths);
+            allSignedLengths.addAll(signedLengths);
+            lengthsByWidth.computeIfAbsent(Integer.valueOf(width), key -> new ArrayList<Double>()).addAll(lengths);
+            experimentsByWidth.put(Integer.valueOf(width),
+                    Integer.valueOf(experimentsByWidth.getOrDefault(Integer.valueOf(width), 0) + 1));
+            System.out.printf(Locale.US,
+                    "SAVED %s width=%d n=%d tipMAE=%.3f lengthMAE=%.3f lengthBias=%+.3f%n",
+                    root, width, lengths.size(), mean(tips), mean(lengths), mean(signedLengths));
+        }
+        System.out.printf(Locale.US,
+                "SAVED ALL experiments=%d n=%d tipMAE=%.3f tipP50=%.3f tipP90=%.3f "
+                + "lengthMAE=%.3f lengthP50=%.3f lengthP90=%.3f lengthLE3=%.1f%% "
+                + "lengthLE5=%.1f%% lengthBias=%+.3f%n",
+                roots.split("::").length, allLengths.size(), mean(allTips), percentile(allTips, .5),
+                percentile(allTips, .9), mean(allLengths), percentile(allLengths, .5),
+                percentile(allLengths, .9), percentAtMost(allLengths, 3.), percentAtMost(allLengths, 5.),
+                mean(allSignedLengths));
+        for (Map.Entry<Integer, List<Double>> entry : lengthsByWidth.entrySet()) {
+            int width = entry.getKey().intValue();
+            List<Double> lengths = entry.getValue();
+            System.out.printf(Locale.US,
+                    "SAVED WIDTH width=%d experiments=%d n=%d lengthMAE=%.3f lengthP50=%.3f "
+                    + "lengthP90=%.3f normalizedLengthMAE=%.6f%n",
+                    width, experimentsByWidth.get(entry.getKey()).intValue(), lengths.size(), mean(lengths),
+                    percentile(lengths, .5), percentile(lengths, .9), mean(lengths) / width);
+        }
+        assertTrue("at least one saved ground-truth comparison is required", !allLengths.isEmpty());
+    }
+
     /** Exploratory diagnostics only: annotations are never fed into detection. */
     @Test public void diagnoseCorrectionFeatures() throws Exception {
         String roots = System.getProperty("capillary.benchmark.roots");
@@ -90,6 +150,9 @@ public class CapillaryLengthRealDataBenchmarkTest {
             List<Double> rawErrors = new ArrayList<Double>();
             List<Double> finalErrors = new ArrayList<Double>();
             List<Double> lengthErrors = new ArrayList<Double>();
+            Map<Integer, List<Double>> tipsByWidth = new LinkedHashMap<Integer, List<Double>>();
+            Map<Integer, List<Double>> lengthsByWidth = new LinkedHashMap<Integer, List<Double>>();
+            Map<Integer, Integer> experimentsByWidth = new LinkedHashMap<Integer, Integer>();
             for (String root : roots.split("::")) {
                 File directory = new File(root);
                 Map<String, double[]> green = readCoordinates(new File(directory, "CapillariesDescription.csv"), false);
@@ -97,8 +160,14 @@ public class CapillaryLengthRealDataBenchmarkTest {
                 ImageData image = readImage(firstJpeg(directory.getParentFile()));
                 CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
                 options.tipInsetHalfWidthScale = scale;
+                options.useFrameScalePrior = Boolean.parseBoolean(
+                        System.getProperty("capillary.benchmark.useFrameScalePrior", "true"));
+                options.frameScalePriorWeight = Double.parseDouble(
+                        System.getProperty("capillary.benchmark.frameScalePriorWeight", "1"));
                 CapillaryLengthResult result = new CapillaryLengthResult();
                 CapillaryLengthDetector detector = new CapillaryLengthDetector();
+                plugins.fmp.multitools.experiment.capillaries.Capillaries capillaries =
+                        new plugins.fmp.multitools.experiment.capillaries.Capillaries();
                 for (Map.Entry<String, double[]> entry : green.entrySet()) {
                     if (!truth.containsKey(entry.getKey())) continue;
                     double[] p = entry.getValue().clone();
@@ -109,15 +178,21 @@ public class CapillaryLengthRealDataBenchmarkTest {
                     p[0]-=ex; p[1]-=ey; p[2]+=ex; p[3]+=ey;
                     plugins.fmp.multitools.experiment.capillary.Capillary cap = new plugins.fmp.multitools.experiment.capillary.Capillary();
                     cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(new java.awt.geom.Line2D.Double(p[0], p[1], p[2], p[3])));
+                    cap.setCageID(cageId(entry.getKey()));
+                    capillaries.addCapillary(cap);
                     CapillaryLengthResult.Measure m = detector.measureOneCapillary(cap, image, options);
                     result.addMeasure(m);
                     if (m.getStatus().isUsable()) rawErrors.add(endpointError(m.getDetectedStart(), m.getDetectedEnd(), truth.get(entry.getKey())));
                     // Retain the annotation key independently of display naming.
                     cap.setKymographName(entry.getKey());
                 }
-                CapillaryLengthDetector.validate(result, image.width, options);
+                double frameExpected = CapillaryLengthDetector.estimateExpectedLengthFromFrame(
+                        capillaries, image, options);
+                result.setFrameExpectedPixels(frameExpected);
+                CapillaryLengthDetector.validate(result, image.width, options, frameExpected);
                 CapillaryLengthDetector.apply(result, 0);
                 List<Double> experimentErrors = new ArrayList<Double>();
+                List<Double> experimentLengths = new ArrayList<Double>();
                 for (CapillaryLengthResult.Measure m : result.getMeasures()) {
                     if (!m.isSelected()) continue;
                     double[] gt = truth.get(m.getCapillary().getKymographName());
@@ -125,18 +200,58 @@ public class CapillaryLengthRealDataBenchmarkTest {
                     assertTrue("accepted detection must have display geometry", blue != null);
                     double error = endpointError(blue.getP1(), blue.getP2(), gt);
                     finalErrors.add(error); experimentErrors.add(error);
-                    lengthErrors.add(Math.abs(blue.getP1().distance(blue.getP2()) - Math.hypot(gt[2]-gt[0], gt[3]-gt[1])));
+                    double lengthError = Math.abs(blue.getP1().distance(blue.getP2())
+                            - Math.hypot(gt[2]-gt[0], gt[3]-gt[1]));
+                    lengthErrors.add(lengthError); experimentLengths.add(lengthError);
                 }
+                tipsByWidth.computeIfAbsent(Integer.valueOf(image.width), key -> new ArrayList<Double>())
+                        .addAll(experimentErrors);
+                lengthsByWidth.computeIfAbsent(Integer.valueOf(image.width), key -> new ArrayList<Double>())
+                        .addAll(experimentLengths);
+                experimentsByWidth.put(Integer.valueOf(image.width),
+                        Integer.valueOf(experimentsByWidth.getOrDefault(Integer.valueOf(image.width), 0) + 1));
                 System.out.printf(Locale.US, "FINAL scale=%.2f %s tipMAE=%.3f n=%d%n", scale, root, mean(experimentErrors), experimentErrors.size());
             }
-            System.out.printf(Locale.US, "FINAL ALL scale=%.2f rawTip=%.3f finalTip=%.3f finalLength=%.3f n=%d%n",
-                    scale, mean(rawErrors), mean(finalErrors), mean(lengthErrors), finalErrors.size());
+            System.out.printf(Locale.US,
+                    "FINAL ALL scale=%.2f rawTip=%.3f finalTip=%.3f tipP50=%.3f tipP90=%.3f "
+                    + "tipLE3=%.1f%% tipLE5=%.1f%% finalLength=%.3f lengthP50=%.3f lengthP90=%.3f "
+                    + "lengthLE3=%.1f%% lengthLE5=%.1f%% n=%d%n",
+                    scale, mean(rawErrors), mean(finalErrors), percentile(finalErrors, .5),
+                    percentile(finalErrors, .9), percentAtMost(finalErrors, 3.), percentAtMost(finalErrors, 5.),
+                    mean(lengthErrors), percentile(lengthErrors, .5), percentile(lengthErrors, .9),
+                    percentAtMost(lengthErrors, 3.), percentAtMost(lengthErrors, 5.), finalErrors.size());
+            for (Map.Entry<Integer, List<Double>> entry : tipsByWidth.entrySet()) {
+                int width = entry.getKey().intValue();
+                List<Double> widthTips = entry.getValue();
+                List<Double> widthLengths = lengthsByWidth.get(entry.getKey());
+                System.out.printf(Locale.US,
+                        "FINAL WIDTH scale=%.2f width=%d experiments=%d n=%d tipMAE=%.3f "
+                        + "tipP50=%.3f tipP90=%.3f lengthMAE=%.3f lengthP50=%.3f lengthP90=%.3f "
+                        + "normalizedLengthMAE=%.6f%n",
+                        scale, width, experimentsByWidth.get(entry.getKey()).intValue(), widthTips.size(),
+                        mean(widthTips), percentile(widthTips, .5), percentile(widthTips, .9),
+                        mean(widthLengths), percentile(widthLengths, .5), percentile(widthLengths, .9),
+                        mean(widthLengths) / width);
+            }
         }
+    }
+
+    private static double percentAtMost(List<Double> values, double limit) {
+        if (values.isEmpty()) return Double.NaN;
+        int count = 0;
+        for (Double value : values) if (value.doubleValue() <= limit) count++;
+        return 100. * count / values.size();
     }
 
     private static double endpointError(java.awt.geom.Point2D a, java.awt.geom.Point2D b, double[] gt) {
         return .5 * Math.min(a.distance(gt[0], gt[1]) + b.distance(gt[2], gt[3]),
                 a.distance(gt[2], gt[3]) + b.distance(gt[0], gt[1]));
+    }
+
+    private static int cageId(String capillaryName) {
+        int end = 0;
+        while (end < capillaryName.length() && Character.isDigit(capillaryName.charAt(end))) end++;
+        return end == 0 ? 0 : Integer.parseInt(capillaryName.substring(0, end));
     }
 
 	@Test

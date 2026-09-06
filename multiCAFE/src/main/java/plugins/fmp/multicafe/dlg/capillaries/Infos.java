@@ -230,7 +230,7 @@ public class Infos extends JPanel {
 		int answer = JOptionPane.showConfirmDialog(this,
 				"Measure capillary lengths on " + nExperiments + " experiment(s)\n"
 						+ "(current through last in the browse list)?\n"
-						+ "Reliable measures are applied automatically; a report is written to the log.",
+						+ "Reliable measures are applied automatically; a report is printed to the console.",
 				AUTO_MEASURE_TITLE, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 		if (answer != JOptionPane.OK_OPTION)
 			return;
@@ -244,7 +244,8 @@ public class Infos extends JPanel {
 				CapillaryLengthDetector detector = new CapillaryLengthDetector();
 				int nUpdated = 0;
 				int nExperimentsUpdated = 0;
-				Logger.info("CapillaryLength,experiment,capillaries,median_px,min_px,max_px,spread_percent");
+				Logger.report("CapillaryLength,experiment,capillaries,median_px,min_px,max_px,spread_percent");
+				Logger.report("CapillaryLengthRejected,experiment,capillary,status,reason,previous_px");
 
 				for (int i = index0; i <= index1; i++) {
 					Experiment exp = parent0.expListComboLazy.getItemAt(i);
@@ -270,9 +271,10 @@ public class Infos extends JPanel {
 								nUpdated += updated;
 								nExperimentsUpdated++;
 							}
-							Logger.info(String.format("CapillaryLength,%s,%d,%.1f,%.1f,%.1f,%.2f",
+							Logger.report(String.format("CapillaryLength,%s,%d,%.1f,%.1f,%.1f,%.2f",
 									exp.getResultsDirectory(), updated, result.getMedianPixels(),
 									result.getMinPixels(), result.getMaxPixels(), result.getSpreadPercent()));
+							reportRejectedCapillaries(exp, result);
 						}
 					} catch (Exception e) {
 						Logger.error("CapillaryLength: failed on " + exp.getResultsDirectory(), e);
@@ -282,7 +284,7 @@ public class Infos extends JPanel {
 				progress.close();
 
 				final String message = nUpdated + " capillary(ies) updated in " + nExperimentsUpdated + " of "
-						+ nExperiments + " experiment(s).\nPer-experiment values are listed in the log.";
+						+ nExperiments + " experiment(s).\nPer-experiment values are listed in the console.";
 				SwingUtilities.invokeLater(new Runnable() {
 					@Override
 					public void run() {
@@ -294,6 +296,18 @@ public class Infos extends JPanel {
 				});
 			}
 		});
+	}
+
+	private static void reportRejectedCapillaries(Experiment exp, CapillaryLengthResult result) {
+		for (CapillaryLengthResult.Measure measure : result.getMeasures()) {
+			if (measure.isSelected())
+				continue;
+			String reason = measure.getMessage() == null ? "" : measure.getMessage();
+			reason = reason.replace(',', ';').replace('\r', ' ').replace('\n', ' ');
+			Logger.report(String.format("CapillaryLengthRejected,%s,%s,%s,%s,%d",
+					exp.getResultsDirectory(), measure.getName(), measure.getStatus().name(), reason,
+					measure.getPreviousPixels()));
+		}
 	}
 
 	// reset to a single value

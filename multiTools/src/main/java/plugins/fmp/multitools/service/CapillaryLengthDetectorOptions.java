@@ -67,12 +67,12 @@ public class CapillaryLengthDetectorOptions {
 	public double capillaryScoreThreshold = 0.8;
 
 	/**
-	 * Inward correction from the first persistent side-wall signal to the visually
-	 * defined tip, expressed as a fraction of the measured capillary half-width.
-	 * Webcam blur makes the paired walls appear several pixels before the tip centre;
-	 * scaling by width keeps the correction meaningful at different resolutions.
+	 * Optional inward correction from the first persistent side-wall signal,
+	 * expressed as a fraction of the measured capillary half-width. Ground-truth
+	 * validation at both 640- and 1280-pixel resolution showed that the detected
+	 * onset already matches the visible tip, so correction is disabled by default.
 	 */
-	public double tipInsetHalfWidthScale = 1.25;
+	public double tipInsetHalfWidthScale = 0.;
 
 	/** Lower and upper safety bounds for the optical tip correction, in pixels. */
 	public double tipInsetMinPixels = 2.0;
@@ -89,6 +89,23 @@ public class CapillaryLengthDetectorOptions {
 	 * may be called an outlier.
 	 */
 	public double outlierMinTolerance = 0.03;
+
+	/**
+	 * Median physical capillary length expressed in cage pitches. This robust
+	 * calibration was obtained from the manually checked experiments and is
+	 * independent of image resolution.
+	 */
+	public double capillaryLengthPerCagePitch = 4.34;
+
+	/**
+	 * Weight of the frame-derived absolute length relative to detected tips. A soft
+	 * prior tolerates perspective changes between horizontal cage pitch and the
+	 * vertical capillary scale.
+	 */
+	public double frameScalePriorWeight = 0.75;
+
+	/** Use the detected ten-cage frame to anchor the absolute length trend. */
+	public boolean useFrameScalePrior = true;
 
 	/** Physical length of the calibrated capillaries, used for reporting mm/pixel. */
 	public double physicalLengthMm = 32.0;

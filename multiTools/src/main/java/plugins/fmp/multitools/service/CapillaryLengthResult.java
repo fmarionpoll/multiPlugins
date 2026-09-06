@@ -175,6 +175,7 @@ public class CapillaryLengthResult {
 	private double minPixels = Double.NaN;
 	private double maxPixels = Double.NaN;
 	private double physicalLengthMm = Double.NaN;
+	private double frameExpectedPixels = Double.NaN;
 	private String errorMessage = null;
 
 	public List<Measure> getMeasures() {
@@ -215,6 +216,12 @@ public class CapillaryLengthResult {
 
 	public void setPhysicalLengthMm(double physicalLengthMm) {
 		this.physicalLengthMm = physicalLengthMm;
+	}
+
+	public double getFrameExpectedPixels() { return frameExpectedPixels; }
+
+	public void setFrameExpectedPixels(double frameExpectedPixels) {
+		this.frameExpectedPixels = frameExpectedPixels;
 	}
 
 	public String getErrorMessage() {

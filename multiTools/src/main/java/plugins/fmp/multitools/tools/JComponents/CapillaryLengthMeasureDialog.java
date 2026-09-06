@@ -95,13 +95,15 @@ public class CapillaryLengthMeasureDialog {
 	public static String buildSummary(CapillaryLengthResult result) {
 		if (result == null || result.countUsable() == 0)
 			return "No capillary length could be measured.";
+		String frame = Double.isFinite(result.getFrameExpectedPixels())
+				? String.format(" Frame-scale anchor: %.1f px.", result.getFrameExpectedPixels()) : "";
 		return String.format(
 				"<html>%d capillary(ies) measured &mdash; median %.1f px, from %.1f to %.1f px "
-						+ "(%.1f%% variation across the image).<br>"
+						+ "(%.1f%% variation across the image).%s<br>"
 						+ "Measured lengths follow the spatial trend (trend px); that is the geometric "
 						+ "distortion the per-capillary scale removes.</html>",
 				result.countUsable(), result.getMedianPixels(), result.getMinPixels(), result.getMaxPixels(),
-				result.getSpreadPercent());
+				result.getSpreadPercent(), frame);
 	}
 
 	private enum SelectionMode {

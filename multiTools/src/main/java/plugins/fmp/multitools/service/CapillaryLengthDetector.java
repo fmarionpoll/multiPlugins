@@ -1,12 +1,12 @@
 package plugins.fmp.multitools.service;
 
-import java.awt.geom.Point2D;
 import java.awt.geom.Line2D;
-import plugins.kernel.roi.roi2d.ROI2DLine;
-import plugins.fmp.multitools.tools.ROI2D.AlongT;
+import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
@@ -16,8 +16,10 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.polyline.Bresenham;
+import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /**
  * Measures the true pixel length of each capillary from the user-drawn ROI.
@@ -36,7 +38,6 @@ import plugins.fmp.multitools.tools.polyline.Bresenham;
  */
 public class CapillaryLengthDetector {
 
-	private static final int MIN_POINTS_FOR_QUADRATIC_FIT = 6;
 	private static final int MIN_POINTS_FOR_LINEAR_FIT = 4;
 	private static final double MAD_TO_SIGMA = 1.4826;
 	private static final int GEOMETRY_HALF = 12;
@@ -63,10 +64,53 @@ public class CapillaryLengthDetector {
 			return result;
 		}
 
+		double frameExpectedPixels = estimateExpectedLengthFromFrame(capillaries, image, options);
+		result.setFrameExpectedPixels(frameExpectedPixels);
 		for (Capillary cap : capillaries.getList())
 			result.addMeasure(measureOneCapillary(cap, image, options));
-		validate(result, image.width, options);
+		validate(result, image.width, options, frameExpectedPixels);
 		return result;
+	}
+
+	static double estimateExpectedLengthFromFrame(Capillaries capillaries, ImageData image,
+			CapillaryLengthDetectorOptions options) {
+		if (capillaries == null || image == null || options == null || !options.useFrameScalePrior
+				|| !(options.capillaryLengthPerCagePitch > 0.))
+			return Double.NaN;
+		ArrayList<Double> capillaryX = new ArrayList<Double>();
+		Map<Integer, ArrayList<Double>> byCage = new TreeMap<Integer, ArrayList<Double>>();
+		for (Capillary cap : capillaries.getList()) {
+			ROI2D roi = cap.getRoiAtFrameT(options.frameIndex);
+			if (!(roi instanceof ROI2DLine))
+				continue;
+			Line2D line = ((ROI2DLine) roi).getLine();
+			double x = .5 * (line.getX1() + line.getX2());
+			capillaryX.add(x);
+			ArrayList<Double> cage = byCage.get(cap.getCageID());
+			if (cage == null) { cage = new ArrayList<Double>(); byCage.put(cap.getCageID(), cage); }
+			cage.add(x);
+		}
+		ArrayList<Double> cageCenters = new ArrayList<Double>();
+		for (ArrayList<Double> cage : byCage.values()) {
+			double sum = 0.; for (double x : cage) sum += x;
+			cageCenters.add(sum / cage.size());
+		}
+		double[] guide = FrameSupportBarDetector.frameGridGuideFromCageCenters(cageCenters, image.width);
+		if (guide == null)
+			return Double.NaN;
+		int[] bounds = FrameSupportBarDetector.internalDividerSearchBounds(capillaryX, image.width);
+		FrameSupportBarDetector detector = new FrameSupportBarDetector();
+		FrameSupportBarDetector.Result frame = bounds == null
+				? detector.detectUsingFrameGrid(image.channels[0], image.width, image.height,
+						image.height / 5, image.height * 4 / 5, guide)
+				: detector.detect(image.channels[0], image.width, image.height,
+						image.height / 5, image.height * 4 / 5, bounds[0], bounds[1], bounds[2]);
+		if (frame.dividers.isEmpty() || FrameSupportBarDetector.pitchDisagreesWithGuide(frame, guide, .15))
+			frame = detector.detectUsingFrameGrid(image.channels[0], image.width, image.height,
+					image.height / 5, image.height * 4 / 5, guide);
+		if (frame.dividers.size() != frame.expectedDividers || !(frame.frameWidth > 0.))
+			return Double.NaN;
+		return options.capillaryLengthPerCagePitch * frame.frameWidth / 10.;
 	}
 
 	/**
@@ -152,8 +196,14 @@ public class CapillaryLengthDetector {
 			return measure;
 		}
 
-		Point2D startPoint = interpolatePoint(axis, located.startFrac);
-		Point2D endPoint = interpolatePoint(axis, located.endFrac);
+		// Tip positions are found along the ROI, but the paired-wall profile also
+		// estimates where the actual capillary centre sits across that ROI. Preserve
+		// that lateral correction in the blue measurement instead of drawing it back
+		// on a deliberately offset green search corridor.
+		Point2D startPoint = interpolateOffsetPoint(axis, located.startFrac, located.offset,
+				options.tangentWindow);
+		Point2D endPoint = interpolateOffsetPoint(axis, located.endFrac, located.offset,
+				options.tangentWindow);
 		double lengthPx = straight ? startPoint.distance(endPoint)
 				: interpolateArc(cumulative, located.endFrac) - interpolateArc(cumulative, located.startFrac);
 		measure.setDetectedPixels(lengthPx);
@@ -183,6 +233,7 @@ public class CapillaryLengthDetector {
 		double endFrac;
 		double startConfidence;
 		double endConfidence;
+		double offset;
 		boolean found;
 		boolean touchesBorder;
 		String failure;
@@ -238,6 +289,7 @@ public class CapillaryLengthDetector {
 		located.endFrac = end.axisFrac;
 		located.startConfidence = start.confidence;
 		located.endConfidence = end.confidence;
+		located.offset = geometry.offset;
 		located.touchesBorder = start.atRoiEnd || end.atRoiEnd;
 		return located;
 	}
@@ -274,8 +326,9 @@ public class CapillaryLengthDetector {
 		for (int u = 0; u < acc.length; u++)
 			acc[u] /= nAcc;
 
-		int left = bestLocalMin(acc, 1, half - 1);
-		int right = bestLocalMin(acc, half + 1, acc.length - 2);
+		int[] walls = bestWallPair(acc, half);
+		int left = walls[0];
+		int right = walls[1];
 		if (left < 0 || right <= left) {
 			double bestPair = 0.;
 			for (int iL = 1; iL < half - 1; iL++) {
@@ -302,6 +355,42 @@ public class CapillaryLengthDetector {
 		if (geometry.halfWidth < 1.5)
 			geometry.halfWidth = 4.;
 		return geometry;
+	}
+
+	/**
+	 * Finds the two glass walls as a pair. They need not straddle the user's ROI:
+	 * a deliberately displaced green ROI can have both walls on the same side.
+	 */
+	private static int[] bestWallPair(double[] values, int centre) {
+		int bestLeft = -1;
+		int bestRight = -1;
+		double bestScore = 0.;
+		int maxSeparation = Math.min(16, values.length - 3);
+		for (int left = 1; left < values.length - 2; left++) {
+			double leftDepth = localMinimumDepth(values, left);
+			if (leftDepth <= 0.4)
+				continue;
+			for (int right = left + 4; right <= Math.min(values.length - 2, left + maxSeparation); right++) {
+				double rightDepth = localMinimumDepth(values, right);
+				if (rightDepth <= 0.4)
+					continue;
+				double midpoint = 0.5 * (left + right);
+				if (Math.abs(midpoint - centre) > centre - 2)
+					continue;
+				double balance = Math.min(leftDepth, rightDepth);
+				double score = balance - 0.015 * Math.abs(midpoint - centre);
+				if (score > bestScore) {
+					bestScore = score;
+					bestLeft = left;
+					bestRight = right;
+				}
+			}
+		}
+		return new int[] { bestLeft, bestRight };
+	}
+
+	private static double localMinimumDepth(double[] values, int index) {
+		return 0.5 * (values[index - 1] + values[index + 1]) - values[index];
 	}
 
 	/**
@@ -543,7 +632,7 @@ public class CapillaryLengthDetector {
 		int start = Math.max(1, from);
 		int end = Math.min(values.length - 2, to);
 		for (int i = start; i <= end; i++) {
-			double depth = 0.5 * (values[i - 1] + values[i + 1]) - values[i];
+			double depth = localMinimumDepth(values, i);
 			if (depth > bestDepth) {
 				bestDepth = depth;
 				best = i;
@@ -743,6 +832,14 @@ public class CapillaryLengthDetector {
 		return new Point2D.Double(p0[0] + f * (p1[0] - p0[0]), p0[1] + f * (p1[1] - p0[1]));
 	}
 
+	static Point2D interpolateOffsetPoint(ArrayList<int[]> axis, double frac, double offset,
+			int tangentWindow) {
+		Point2D point = interpolatePoint(axis, frac);
+		int index = Math.max(0, Math.min(axis.size() - 1, (int) Math.round(frac)));
+		double[] normal = normalAt(axis, index, Math.max(1, tangentWindow));
+		return new Point2D.Double(point.getX() + offset * normal[0], point.getY() + offset * normal[1]);
+	}
+
 	private static double[] cumulativeArcLength(ArrayList<int[]> axis) {
 		int n = axis.size();
 		double[] cumulative = new double[n];
@@ -781,6 +878,11 @@ public class CapillaryLengthDetector {
 	 * not pulled by a few bad tips.
 	 */
 	static void validate(CapillaryLengthResult result, int imageWidth, CapillaryLengthDetectorOptions options) {
+		validate(result, imageWidth, options, Double.NaN);
+	}
+
+	static void validate(CapillaryLengthResult result, int imageWidth, CapillaryLengthDetectorOptions options,
+			double frameExpectedPixels) {
 		List<CapillaryLengthResult.Measure> usable = new ArrayList<CapillaryLengthResult.Measure>();
 		for (CapillaryLengthResult.Measure m : result.getMeasures()) {
 			if (m.getStatus().isUsable() && Double.isFinite(m.getDetectedPixels()))
@@ -790,11 +892,11 @@ public class CapillaryLengthDetector {
 			return;
 
 		correctEndpointOutliers(usable, imageWidth, options);
-		applyLengthTrend(result, usable, imageWidth, options);
+		applyLengthTrend(result, usable, imageWidth, options, frameExpectedPixels);
 	}
 
 	private static void applyLengthTrend(CapillaryLengthResult result, List<CapillaryLengthResult.Measure> usable,
-			int imageWidth, CapillaryLengthDetectorOptions options) {
+			int imageWidth, CapillaryLengthDetectorOptions options, double frameExpectedPixels) {
 		double[] lengths = new double[usable.size()];
 		for (int i = 0; i < usable.size(); i++)
 			lengths[i] = usable.get(i).getDetectedPixels();
@@ -838,6 +940,14 @@ public class CapillaryLengthDetector {
 
 		double[] fit2 = fitLengthVersusPosition(inliers, imageWidth);
 		double inlierMedian = percentile(toArray(retained), 50.);
+		if (Double.isFinite(frameExpectedPixels) && frameExpectedPixels > 0.) {
+			double weight = Math.max(0., Math.min(1., options.frameScalePriorWeight));
+			double targetMedian = inlierMedian + weight * (frameExpectedPixels - inlierMedian);
+			if (fit2 != null)
+				fit2[0] += targetMedian - medianPredicted(fit2, inliers, imageWidth);
+			else
+				inlierMedian = targetMedian;
+		}
 		for (CapillaryLengthResult.Measure m : usable) {
 			double expected = fit2 != null ? evaluateFit(fit2, normalizeX(m.getCentroidX(), imageWidth))
 					: inlierMedian;
@@ -852,6 +962,14 @@ public class CapillaryLengthDetector {
 		result.setMedianPixels(percentile(applied, 50.));
 		result.setMinPixels(min(applied));
 		result.setMaxPixels(max(applied));
+	}
+
+	private static double medianPredicted(double[] fit, List<CapillaryLengthResult.Measure> measures,
+			int imageWidth) {
+		double[] predicted = new double[measures.size()];
+		for (int i = 0; i < predicted.length; i++)
+			predicted[i] = evaluateFit(fit, normalizeX(measures.get(i).getCentroidX(), imageWidth));
+		return percentile(predicted, 50.);
 	}
 
 	/**
@@ -905,6 +1023,7 @@ public class CapillaryLengthDetector {
 			}
 		}
 	}
+
 
 	/**
 	 * Tops should form a smooth curve across the image, and bottoms another.
@@ -1099,7 +1218,10 @@ public class CapillaryLengthDetector {
 		int n = measures.size();
 		if (values == null || values.length != n)
 			return null;
-		int degree = n >= MIN_POINTS_FOR_QUADRATIC_FIT ? 2 : (n >= MIN_POINTS_FOR_LINEAR_FIT ? 1 : -1);
+		// Across one rack, perspective produces a predominantly linear trend. A free
+		// quadratic is unstable at the row boundaries and can turn one bad edge tip
+		// into a large, smoothly varying length error over several capillaries.
+		int degree = n >= MIN_POINTS_FOR_LINEAR_FIT ? 1 : -1;
 		if (degree < 0)
 			return null;
 

@@ -108,6 +108,12 @@ public class Logger {
 		//toConsole("INFO", message, null);
 	}
 
+	/** Logs an informational report and also makes it visible in Icy's console. */
+	public static void report(String message) {
+		logger.info(message);
+		toConsole("INFO", message, null);
+	}
+
 	/**
 	 * Logs a debug message.
 	 * 

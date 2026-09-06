@@ -50,7 +50,7 @@ public class CapillaryLengthOptionsDialog {
 		currentButton.setToolTipText("Measure only the experiment selected in the browse list.");
 		allFromCurrentButton.setToolTipText(
 				"Measure from the selected experiment through the last one in the browse list. "
-						+ "Reliable measures are applied automatically; a report is written to the log.");
+						+ "Reliable measures are applied automatically; a report is printed to the console.");
 		ButtonGroup scopeGroup = new ButtonGroup();
 		scopeGroup.add(currentButton);
 		scopeGroup.add(allFromCurrentButton);
