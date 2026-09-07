@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BooleanSupplier;
+import java.util.function.BiConsumer;
 
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
@@ -125,6 +126,11 @@ public final class ExperimentMovementPrescanner {
 	 */
 	public TransitionAnalysis analyzeTransitions(Experiment experiment, int fromFrame, int toFrame,
 			double minimumMovementPx, BooleanSupplier cancelled) {
+		return analyzeTransitions(experiment, fromFrame, toFrame, minimumMovementPx, cancelled, null);
+	}
+
+	public TransitionAnalysis analyzeTransitions(Experiment experiment, int fromFrame, int toFrame,
+			double minimumMovementPx, BooleanSupplier cancelled, BiConsumer<Integer, Integer> progress) {
 		TransitionAnalysis analysis = new TransitionAnalysis();
 		if (experiment == null) {
 			analysis.error = "no experiment";
@@ -156,38 +162,84 @@ public final class ExperimentMovementPrescanner {
 			analysis.error = "fewer than two cage/capillary landmark pairs";
 			return analysis;
 		}
-		IcyBufferedImage previous = load(sequence, first);
-		List<FrameMetrics> metrics = new ArrayList<FrameMetrics>();
+		final int[] lags = { 1, 3, 5, 10 };
+		TreeMap<Integer, IcyBufferedImage> recent = new TreeMap<Integer, IcyBufferedImage>();
+		IcyBufferedImage firstImage = load(sequence, first);
+		recent.put(first, firstImage);
+		int anchorFrame = first;
+		IcyBufferedImage anchorImage = firstImage;
+		List<FrameObservation> observations = new ArrayList<FrameObservation>();
+		List<FrameObservation> adjacentObservations = new ArrayList<FrameObservation>();
+		List<FrameObservation> cumulativeSteps = new ArrayList<FrameObservation>();
+		List<FrameObservation> baselineObservations = new ArrayList<FrameObservation>();
 		for (int frame = first + 1; frame <= last; frame++) {
 			if (cancelled != null && cancelled.getAsBoolean()) {
 				analysis.cancelled = true;
 				break;
 			}
 			IcyBufferedImage current = load(sequence, frame);
-			if (previous == null || current == null) {
+			if (current == null) {
 				analysis.failedFrames++;
-				previous = current;
 				continue;
 			}
-			FrameMetrics value = compareFrame(landmarks, previous, current, frame);
-			if (value == null)
+			recent.put(frame, current);
+			FrameObservation best = null;
+			for (int lag : lags) {
+				IcyBufferedImage reference = recent.get(frame - lag);
+				if (reference == null)
+					continue;
+				FrameMetrics value = compareFrame(landmarks, reference, current, frame);
+				if (value != null) {
+					FrameObservation candidate = new FrameObservation(frame - lag, frame, value);
+					if (lag == 1)
+						adjacentObservations.add(candidate);
+					if (best == null || candidate.score > best.score)
+						best = candidate;
+				}
+			}
+			// A resetting local reference accumulates small frame-to-frame drift until it
+			// becomes measurable, then starts a new local segment.
+			if (anchorImage != null && frame - anchorFrame > 1) {
+				FrameMetrics cumulative = compareFrame(landmarks, anchorImage, current, frame);
+				if (cumulative != null) {
+					FrameObservation candidate = new FrameObservation(anchorFrame, frame, cumulative);
+					if (best == null || candidate.score > best.score)
+						best = candidate;
+					if (candidate.coherentScore >= Math.max(.5, minimumMovementPx * .5)) {
+						cumulativeSteps.add(candidate);
+						anchorFrame = frame;
+						anchorImage = current;
+					}
+				}
+			}
+			// Preserve a frame-zero baseline as a conservative fallback for motion so
+			// slow that it never produces enough resetting-anchor steps.
+			if (firstImage != null && frame - first > 10) {
+				FrameMetrics baseline = compareFrame(landmarks, firstImage, current, frame);
+				if (baseline != null)
+					baselineObservations.add(new FrameObservation(first, frame, baseline));
+			}
+			if (best == null)
 				analysis.failedFrames++;
-			else
-				metrics.add(value);
-			previous = current;
+			else {
+				observations.add(best);
+				if (analysis.strongest == null || best.score > analysis.strongest.score)
+					analysis.strongest = proposalFrom(best, best.fromFrame + 1, best.toFrame, minimumMovementPx);
+			}
+			while (!recent.isEmpty() && recent.firstKey() < frame - 10)
+				recent.pollFirstEntry();
+			if (progress != null)
+				progress.accept(frame - first, last - first);
 		}
-		analysis.comparedFrames = metrics.size();
-		if (metrics.isEmpty()) {
-			analysis.error = "no consecutive frame pair could be registered";
+		analysis.comparedFrames = observations.size();
+		if (observations.isEmpty()) {
+			analysis.error = "no frame pair could be registered";
 			return analysis;
 		}
-		double[] scores = new double[metrics.size()];
 		List<Double> ordered = new ArrayList<Double>();
-		for (int i = 0; i < metrics.size(); i++) {
-			FrameMetrics m = metrics.get(i);
-			scores[i] = Math.max(m.displacement, Math.max(m.residual, Math.max(m.rotation * 20, m.scalePercent * 5)));
-			ordered.add(scores[i]);
-		}
+		for (FrameObservation observation : adjacentObservations) ordered.add(observation.score);
+		if (ordered.isEmpty())
+			for (FrameObservation observation : observations) ordered.add(observation.score);
 		Collections.sort(ordered);
 		double median = ordered.get(ordered.size() / 2);
 		List<Double> deviations = new ArrayList<Double>();
@@ -196,19 +248,164 @@ public final class ExperimentMovementPrescanner {
 		double mad = deviations.get(deviations.size() / 2);
 		double threshold = Math.max(minimumMovementPx, median + Math.max(.5, 4 * mad));
 		analysis.thresholdUsed = threshold;
-		for (int i = 0; i < metrics.size(); i++) {
-			if (scores[i] < threshold)
+		int clusterStart = -1, clusterEnd = -1;
+		FrameObservation clusterBest = null;
+		for (FrameObservation observation : adjacentObservations) {
+			if (observation.score < threshold)
 				continue;
-			boolean left = i == 0 || scores[i] >= scores[i - 1];
-			boolean right = i == metrics.size() - 1 || scores[i] > scores[i + 1];
-			if (!left || !right)
-				continue;
-			FrameMetrics m = metrics.get(i);
-			double confidence = Math.min(1, m.inlierFraction * Math.min(1.5, scores[i] / Math.max(.001, threshold)));
-			analysis.proposals.add(new TransitionProposal(m.frame, m.translationX, m.translationY, m.displacement,
-					m.rotation, m.scalePercent, m.residual, confidence, scores[i]));
+			int possibleStart = observation.fromFrame + 1;
+			if (clusterBest == null || possibleStart > clusterEnd + 2) {
+				if (clusterBest != null)
+					analysis.proposals.add(proposalFrom(clusterBest, clusterStart, clusterEnd, threshold));
+				clusterStart = possibleStart;
+				clusterEnd = observation.toFrame;
+				clusterBest = observation;
+			} else {
+				clusterStart = Math.min(clusterStart, possibleStart);
+				clusterEnd = Math.max(clusterEnd, observation.toFrame);
+				if (observation.score > clusterBest.score)
+					clusterBest = observation;
+			}
 		}
+		if (clusterBest != null)
+			analysis.proposals.add(proposalFrom(clusterBest, clusterStart, clusterEnd, threshold));
+		addGradualProposals(analysis.proposals, cumulativeSteps, minimumMovementPx);
+		if (analysis.proposals.isEmpty())
+			addPersistentBaselineProposal(analysis, baselineObservations, minimumMovementPx);
+		Collections.sort(analysis.proposals, (a, b) -> Integer.compare(a.startFrame, b.startFrame));
 		return analysis;
+	}
+
+	private static void addPersistentBaselineProposal(TransitionAnalysis analysis,
+			List<FrameObservation> baseline, double minimumMovementPx) {
+		if (baseline.size() < 5)
+			return;
+		int tailSize = Math.max(5, baseline.size() / 5);
+		int tailStart = baseline.size() - tailSize;
+		double supportThreshold = minimumMovementPx * .8;
+		int supported = 0;
+		FrameObservation peak = null;
+		for (int i = 0; i < baseline.size(); i++) {
+			FrameObservation observation = baseline.get(i);
+			if (i >= tailStart && observation.coherentScore >= supportThreshold)
+				supported++;
+			if (peak == null || observation.coherentScore > peak.coherentScore)
+				peak = observation;
+		}
+		analysis.baselineTailSupported = supported;
+		analysis.baselineTailFrames = tailSize;
+		if (peak != null) {
+			analysis.baselinePeakScore = peak.coherentScore;
+			analysis.baselinePeakFrame = peak.toFrame;
+			analysis.baselinePeakInlierFraction = peak.metrics.inlierFraction;
+		}
+		// A real final displacement must be present in most of the final fifth,
+		// not merely appear as a transient registration or illumination artefact.
+		if (peak == null || peak.coherentScore < minimumMovementPx
+				|| supported < Math.ceil(tailSize * .6) || peak.metrics.inlierFraction < .6)
+			return;
+		FrameMetrics m = peak.metrics;
+		double confidence = Math.min(1, m.inlierFraction
+				* Math.min(1.25, peak.coherentScore / Math.max(.001, minimumMovementPx)));
+		analysis.proposals.add(new TransitionProposal(peak.toFrame, peak.fromFrame + 1, peak.toFrame,
+				m.translationX, m.translationY, m.displacement, m.rotation, m.scalePercent,
+				m.residual, confidence, peak.coherentScore));
+	}
+
+	private static void addGradualProposals(List<TransitionProposal> proposals,
+			List<FrameObservation> cumulativeSteps, double minimumMovementPx) {
+		List<FrameObservation> chain = new ArrayList<FrameObservation>();
+		for (FrameObservation step : cumulativeSteps) {
+			if (!chain.isEmpty() && !continuesCoherently(chain.get(chain.size() - 1), step)) {
+				addGradualChain(proposals, chain, minimumMovementPx);
+				chain.clear();
+			}
+			chain.add(step);
+		}
+		addGradualChain(proposals, chain, minimumMovementPx);
+	}
+
+	private static boolean continuesCoherently(FrameObservation previous, FrameObservation next) {
+		if (next.fromFrame - previous.toFrame > 2)
+			return false;
+		double[] a = motionVector(previous.metrics), b = motionVector(next.metrics);
+		double dot = 0, an2 = 0, bn2 = 0;
+		for (int i = 0; i < a.length; i++) {
+			dot += a[i] * b[i];
+			an2 += a[i] * a[i];
+			bn2 += b[i] * b[i];
+		}
+		double an = Math.sqrt(an2), bn = Math.sqrt(bn2);
+		if (an < .25 || bn < .25)
+			return true;
+		// Minor rotation/scale noise can rotate a weak translation vector markedly.
+		// Only split a gradual chain when two successive steps clearly oppose.
+		return dot / (an * bn) >= -.15;
+	}
+
+	private static double[] motionVector(FrameMetrics metrics) {
+		return new double[] { metrics.translationX, metrics.translationY,
+				metrics.signedRotation * 20, metrics.signedScalePercent * 5 };
+	}
+
+	private static void addGradualChain(List<TransitionProposal> proposals, List<FrameObservation> chain,
+			double minimumMovementPx) {
+		if (chain.size() < 2)
+			return;
+		double dx = 0, dy = 0, path = 0, signedRotation = 0, signedScale = 0, residual = 0;
+		double confidence = 1, score = 0;
+		FrameObservation peak = chain.get(0);
+		for (FrameObservation step : chain) {
+			dx += step.metrics.translationX;
+			dy += step.metrics.translationY;
+			double[] vector = motionVector(step.metrics);
+			double vectorNorm2 = 0;
+			for (double component : vector) vectorNorm2 += component * component;
+			path += Math.sqrt(vectorNorm2);
+			signedRotation += step.metrics.signedRotation;
+			signedScale += step.metrics.signedScalePercent;
+			residual = Math.max(residual, step.metrics.residual);
+			confidence = Math.min(confidence, step.metrics.inlierFraction);
+			score = Math.max(score, step.score);
+			if (step.score > peak.score) peak = step;
+		}
+		double translationNet = Math.hypot(dx, dy);
+		double net = Math.sqrt(translationNet * translationNet + Math.pow(signedRotation * 20, 2)
+				+ Math.pow(signedScale * 5, 2));
+		if (net < minimumMovementPx * 1.2 || (path > 0 && net / path < .65))
+			return;
+		int start = chain.get(0).fromFrame + 1;
+		int end = chain.get(chain.size() - 1).toFrame;
+		for (TransitionProposal existing : proposals)
+			if (existing.startFrame <= end && existing.endFrame >= start)
+				return;
+		proposals.add(new TransitionProposal(peak.toFrame, start, end, dx, dy, translationNet,
+				Math.abs(signedRotation), Math.abs(signedScale),
+				residual, confidence, Math.max(score, net)));
+	}
+
+	private static TransitionProposal proposalFrom(FrameObservation observation, int startFrame, int endFrame,
+			double threshold) {
+		FrameMetrics m = observation.metrics;
+		double confidence = Math.min(1, m.inlierFraction * Math.min(1.5,
+				observation.score / Math.max(.001, threshold)));
+		return new TransitionProposal(m.frame, startFrame, endFrame, m.translationX, m.translationY,
+				m.displacement, m.rotation, m.scalePercent, m.residual, confidence, observation.score);
+	}
+
+	private static double movementScore(FrameMetrics metrics) {
+		return Math.max(metrics.displacement,
+				Math.max(metrics.residual, Math.max(metrics.rotation * 20, metrics.scalePercent * 5)));
+	}
+
+	/**
+	 * Motion that can legitimately advance a temporal reference. Image residual is
+	 * deliberately excluded: illumination changes and flies may increase the RMS
+	 * mismatch without describing any motion of the rigid capillary support.
+	 */
+	private static double coherentMovementScore(FrameMetrics metrics) {
+		return Math.max(metrics.displacement, Math.max(Math.hypot(metrics.translationX, metrics.translationY),
+				Math.max(metrics.rotation * 20, metrics.scalePercent * 5)));
 	}
 
 	private FrameMetrics compareFrame(List<ROI2DLine> rois, IcyBufferedImage reference, IcyBufferedImage current,
@@ -249,6 +446,7 @@ public final class ExperimentMovementPrescanner {
 		Point2D movedCenter = fit.getTransform().transform(center);
 		double translationX = movedCenter.getX() - centerX;
 		double translationY = movedCenter.getY() - centerY;
+		double partialFrameDisplacement = consensusDisplacement(matches);
 		// Report coherent motion predicted by the robust fit, not the largest
 		// raw matches (which can include flies and mismatched cage features).
 		magnitudes.clear();
@@ -258,10 +456,38 @@ public final class ExperimentMovementPrescanner {
 		}
 		Collections.sort(magnitudes);
 		int p90index = Math.min(magnitudes.size() - 1, (int) Math.ceil(magnitudes.size() * .9) - 1);
-		double displacement90 = magnitudes.get(Math.max(0, p90index));
+		double displacement90 = Math.max(magnitudes.get(Math.max(0, p90index)), partialFrameDisplacement);
 		double inlierFraction = fit.getInlierIndices().size() / (double) matches.size();
-		return new FrameMetrics(frame, displacement90, translationX, translationY, Math.abs(rotationDeg),
-				Math.abs(scale - 1) * 100, fit.getRms(), inlierFraction);
+		return new FrameMetrics(frame, displacement90, translationX, translationY, rotationDeg,
+				(scale - 1) * 100, fit.getRms(), inlierFraction);
+	}
+
+	/**
+	 * Detects a coherent movement confined to part of the rack (typically its upper
+	 * branches). At least 30% of all landmarks must share the vector, preventing a
+	 * changed background behind one cage from being classified as rack movement.
+	 */
+	private static double consensusDisplacement(List<LandmarkMatch> matches) {
+		int required = Math.max(4, (int) Math.ceil(matches.size() * .30));
+		double bestMagnitude = 0;
+		for (LandmarkMatch seed : matches) {
+			Point2D ss = seed.getSource(), st = seed.getTarget();
+			double seedX = st.getX() - ss.getX(), seedY = st.getY() - ss.getY();
+			double sumX = 0, sumY = 0;
+			int count = 0;
+			for (LandmarkMatch candidate : matches) {
+				Point2D cs = candidate.getSource(), ct = candidate.getTarget();
+				double dx = ct.getX() - cs.getX(), dy = ct.getY() - cs.getY();
+				if (Math.hypot(dx - seedX, dy - seedY) <= 1.0) {
+					sumX += dx;
+					sumY += dy;
+					count++;
+				}
+			}
+			if (count >= required)
+				bestMagnitude = Math.max(bestMagnitude, Math.hypot(sumX / count, sumY / count));
+		}
+		return bestMagnitude;
 	}
 
 	private List<ROI2DLine> cageLandmarks(Experiment experiment) {
@@ -339,40 +565,70 @@ public final class ExperimentMovementPrescanner {
 	static final class FrameMetrics {
 		final int frame;
 		final double displacement, translationX, translationY, rotation, scalePercent, residual, inlierFraction;
+		final double signedRotation, signedScalePercent;
 		FrameMetrics(int frame, double displacement, double translationX, double translationY, double rotation,
 				double scalePercent, double residual, double inlierFraction) {
-			this.frame = frame; this.displacement = displacement; this.rotation = rotation;
+			this.frame = frame; this.displacement = displacement;
+			this.signedRotation = rotation; this.rotation = Math.abs(rotation);
 			this.translationX = translationX; this.translationY = translationY;
-			this.scalePercent = scalePercent; this.residual = residual; this.inlierFraction = inlierFraction;
+			this.signedScalePercent = scalePercent; this.scalePercent = Math.abs(scalePercent);
+			this.residual = residual; this.inlierFraction = inlierFraction;
+		}
+	}
+
+	private static final class FrameObservation {
+		final int fromFrame, toFrame;
+		final FrameMetrics metrics;
+		final double score, coherentScore;
+		FrameObservation(int fromFrame, int toFrame, FrameMetrics metrics) {
+			this.fromFrame = fromFrame;
+			this.toFrame = toFrame;
+			this.metrics = metrics;
+			this.score = movementScore(metrics);
+			this.coherentScore = coherentMovementScore(metrics);
 		}
 	}
 
 	public static final class TransitionAnalysis {
 		public final List<TransitionProposal> proposals = new ArrayList<TransitionProposal>();
+		public TransitionProposal strongest;
 		public int comparedFrames, failedFrames;
 		public double thresholdUsed;
+		public double baselinePeakScore, baselinePeakInlierFraction;
+		public int baselinePeakFrame = -1, baselineTailSupported, baselineTailFrames;
 		public boolean cancelled;
 		public String error;
 		public boolean succeeded() { return error == null && comparedFrames > 0; }
 	}
 
 	public static final class TransitionProposal {
-		public final int frame;
+		public final int frame, startFrame, endFrame;
 		public final double translationX, translationY, displacement, rotationDeg, scalePercent, residualPx;
 		public final double confidence, score;
-		public TransitionProposal(int frame, double translationX, double translationY, double displacement,
+		public TransitionProposal(int frame, int startFrame, int endFrame,
+				double translationX, double translationY, double displacement,
 				double rotationDeg, double scalePercent, double residualPx, double confidence, double score) {
-			this.frame = frame; this.translationX = translationX; this.translationY = translationY;
+			this.frame = frame; this.startFrame = startFrame; this.endFrame = endFrame;
+			this.translationX = translationX; this.translationY = translationY;
 			this.displacement = displacement; this.rotationDeg = rotationDeg; this.scalePercent = scalePercent;
 			this.residualPx = residualPx; this.confidence = confidence; this.score = score;
 		}
 		public TransitionProposal atFrame(int newFrame) {
-			return new TransitionProposal(newFrame, translationX, translationY, displacement, rotationDeg,
+			int shift = newFrame - frame;
+			return new TransitionProposal(newFrame, Math.max(1, startFrame + shift), Math.max(1, endFrame + shift),
+					translationX, translationY, displacement, rotationDeg,
 					scalePercent, residualPx, confidence, score);
 		}
+		public String temporalPattern() {
+			int duration = Math.max(1, endFrame - startFrame + 1);
+			return duration == 1 ? "abrupt" : duration <= 5 ? "short transition" : "gradual";
+		}
 		public String summary() {
-			return String.format("T=%d  Δx=%.1f Δy=%.1f px, rot=%.3f°, scale=%.3f%%, residual=%.1f px, confidence=%.0f%%",
-					frame, translationX, translationY, rotationDeg, scalePercent, residualPx, confidence * 100);
+			String location = startFrame == endFrame ? "T=" + frame
+					: "T=" + startFrame + "–" + endFrame + " (peak " + frame + ")";
+			return String.format("%s  %s, Δx=%.1f Δy=%.1f px, rot=%.3f°, scale=%.3f%%, residual=%.1f px, confidence=%.0f%%",
+					location, temporalPattern(), translationX, translationY, rotationDeg, scalePercent, residualPx,
+					confidence * 100);
 		}
 	}
 

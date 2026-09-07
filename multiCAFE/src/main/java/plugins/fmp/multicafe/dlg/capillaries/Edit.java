@@ -99,8 +99,12 @@ public class Edit extends JPanel {
 		if (exp != null) {
 			exp.getCapillaries().invalidateKymoIntervalsCache();
 			exp.getCapillaries().transferDescriptionToCapillaries();
-			if (trackCapillariesDialog == null)
-				trackCapillariesDialog = new TrackCapillaries();
+			// TrackCapillaries owns listeners and background workers. Reusing the same
+			// panel and calling initialize() again duplicated both, and left one progress
+			// frame per invocation on Icy's status area.
+			if (trackCapillariesDialog != null)
+				trackCapillariesDialog.close();
+			trackCapillariesDialog = new TrackCapillaries();
 			trackCapillariesDialog.initialize(parent0, getFramePosition());
 		}
 	}

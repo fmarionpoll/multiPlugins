@@ -8,6 +8,7 @@ import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.swing.JButton;
 import javax.swing.DefaultListModel;
@@ -86,7 +87,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private Viewer trackedViewer;
 	private EndpointTrajectoryChart endpointChart;
 	private Experiment trackedExperiment;
-	private volatile boolean transitionAnalysisCancelled;
+	private AtomicBoolean transitionAnalysisCancelToken;
+	private SwingWorker<TransitionAnalysis, Void> transitionAnalysisWorker;
+	private ProgressFrame transitionAnalysisProgress;
+	private int transitionAnalysisGeneration;
 	private final ItemListener experimentSelectionListener = e -> {
 		if (e.getStateChange() == ItemEvent.SELECTED)
 			SwingUtilities.invokeLater(() -> bindSelectedExperiment());
@@ -227,7 +231,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
 		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
 		analyzeTransitionsButton.addActionListener(e -> analyzeTransitions());
-		stopAnalysisButton.addActionListener(e -> transitionAnalysisCancelled = true);
+		stopAnalysisButton.addActionListener(e -> stopTransitionAnalysis());
 		acceptProposalButton.addActionListener(e -> acceptSelectedProposal());
 		acceptAllProposalsButton.addActionListener(e -> acceptAllProposals());
 		moveProposalButton.addActionListener(e -> moveSelectedProposalToCurrentT());
@@ -562,6 +566,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void analyzeTransitions() {
+		if (transitionAnalysisWorker != null && !transitionAnalysisWorker.isDone())
+			return;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
@@ -573,22 +579,36 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			return;
 		}
 		final double minimum = ((Number) transitionThresholdSpinner.getValue()).doubleValue();
-		transitionAnalysisCancelled = false;
+		final AtomicBoolean cancelToken = new AtomicBoolean(false);
+		transitionAnalysisCancelToken = cancelToken;
+		final int analysisGeneration = ++transitionAnalysisGeneration;
 		analyzeTransitionsButton.setEnabled(false);
 		stopAnalysisButton.setEnabled(true);
 		proposalStatusLabel.setText("Analyzing T=" + from + " to " + to + "...");
+		closeTransitionProgress();
 		final ProgressFrame progress = new ProgressFrame("Analyzing image transitions (read-only)");
-		new SwingWorker<TransitionAnalysis, Void>() {
+		progress.setLength(to - from);
+		transitionAnalysisProgress = progress;
+		transitionAnalysisWorker = new SwingWorker<TransitionAnalysis, Void>() {
 			@Override
 			protected TransitionAnalysis doInBackground() {
 				return new ExperimentMovementPrescanner().analyzeTransitions(exp, from, to, minimum,
-						() -> transitionAnalysisCancelled);
+						cancelToken::get, (current, total) -> SwingUtilities.invokeLater(() -> {
+							if (analysisGeneration != transitionAnalysisGeneration)
+								return;
+							progress.setMessage("Analyzing frame " + (from + current) + " / " + to);
+							progress.setLength(total);
+							progress.setPosition((double) current / Math.max(1, total));
+							proposalStatusLabel.setText("Analyzing frame " + (from + current) + " / " + to + "...");
+						}));
 			}
 
 			@Override
 			protected void done() {
 				try {
 					TransitionAnalysis result = get();
+					if (analysisGeneration != transitionAnalysisGeneration)
+						return;
 					proposalListModel.clear();
 					for (TransitionProposal proposal : result.proposals)
 						proposalListModel.addElement(proposal);
@@ -598,18 +618,61 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 						proposalStatusLabel.setText(result.proposals.size() + " proposal(s), "
 								+ result.comparedFrames + " pairs, threshold "
 								+ String.format("%.1f px", result.thresholdUsed)
+								+ (result.proposals.isEmpty() && result.baselinePeakFrame >= 0
+										? String.format(" — baseline peak %.2f px at T=%d, tail %d/%d, inliers %.0f%%",
+												result.baselinePeakScore, result.baselinePeakFrame,
+												result.baselineTailSupported, result.baselineTailFrames,
+												result.baselinePeakInlierFraction * 100) : "")
+								+ (result.proposals.isEmpty() && result.strongest != null
+										? " — strongest below threshold: " + result.strongest.summary() : "")
 								+ (result.cancelled ? " (stopped)" : ""));
 				} catch (Exception ex) {
-					proposalStatusLabel.setText("Analysis failed: " + ex.getMessage());
-					Logger.warn("Transition analysis failed: " + ex.getMessage());
+					if (analysisGeneration == transitionAnalysisGeneration) {
+						proposalStatusLabel.setText("Analysis failed: " + ex.getMessage());
+						Logger.warn("Transition analysis failed: " + ex.getMessage());
+					}
 				} finally {
 					progress.close();
-					analyzeTransitionsButton.setEnabled(true);
-					stopAnalysisButton.setEnabled(false);
-					transitionAnalysisCancelled = false;
+					if (transitionAnalysisProgress == progress)
+						transitionAnalysisProgress = null;
+					if (analysisGeneration == transitionAnalysisGeneration) {
+						analyzeTransitionsButton.setEnabled(true);
+						stopAnalysisButton.setEnabled(false);
+						transitionAnalysisCancelToken = null;
+						transitionAnalysisWorker = null;
+					}
 				}
 			}
-		}.execute();
+		};
+		transitionAnalysisWorker.execute();
+	}
+
+	private void stopTransitionAnalysis() {
+		if (transitionAnalysisCancelToken != null)
+			transitionAnalysisCancelToken.set(true);
+		stopAnalysisButton.setEnabled(false);
+		proposalStatusLabel.setText("Stopping transition analysis...");
+		closeTransitionProgress();
+	}
+
+	private void closeTransitionProgress() {
+		if (transitionAnalysisProgress != null) {
+			transitionAnalysisProgress.close();
+			transitionAnalysisProgress = null;
+		}
+	}
+
+	private void cancelTransitionAnalysis() {
+		transitionAnalysisGeneration++;
+		if (transitionAnalysisCancelToken != null)
+			transitionAnalysisCancelToken.set(true);
+		transitionAnalysisCancelToken = null;
+		if (transitionAnalysisWorker != null && !transitionAnalysisWorker.isDone())
+			transitionAnalysisWorker.cancel(true);
+		transitionAnalysisWorker = null;
+		closeTransitionProgress();
+		stopAnalysisButton.setEnabled(false);
+		analyzeTransitionsButton.setEnabled(true);
 	}
 
 	private void acceptSelectedProposal() {
@@ -631,12 +694,12 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private void acceptProposal(TransitionProposal proposal) {
 		TrackingTimeline timeline = timeline();
-		if (timeline == null || proposal == null || proposal.frame < 1)
+		if (timeline == null || proposal == null || proposal.endFrame < 1)
 			return;
-		timeline.put(new TrackingBoundary(proposal.frame, TrackingBoundary.Origin.AUTOMATIC,
+		timeline.put(new TrackingBoundary(proposal.endFrame, TrackingBoundary.Origin.AUTOMATIC,
 				TrackingBoundary.Status.CONFIRMED, proposal.summary(), proposal.score));
 		refreshBoundaries();
-		selectBoundary(proposal.frame);
+		selectBoundary(proposal.endFrame);
 	}
 
 	private void moveSelectedProposalToCurrentT() {
@@ -666,7 +729,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	void close() {
 		rackCancelled = true;
-		transitionAnalysisCancelled = true;
+		cancelTransitionAnalysis();
 		if (parent0 != null)
 			parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
 		if (trackedViewer != null) {
@@ -714,6 +777,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			showBlueOnly();
 			return;
 		}
+		cancelTransitionAnalysis();
 		showGreenAgain(trackedExperiment);
 		if (trackedViewer != null)
 			trackedViewer.removeListener(this);

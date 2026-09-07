@@ -46,4 +46,24 @@ public class ExperimentMovementPrescannerTest {
 		assertTrue(frames.contains(2));
 		assertTrue(frames.contains(3));
 	}
+
+	@Test
+	public void proposalDurationClassifiesTemporalPattern() {
+		assertEquals("abrupt", proposal(8, 8, 8).temporalPattern());
+		assertEquals("short transition", proposal(8, 6, 9).temporalPattern());
+		assertEquals("gradual", proposal(8, 2, 10).temporalPattern());
+	}
+
+	@Test
+	public void movingAProposalPreservesItsIntervalDuration() {
+		ExperimentMovementPrescanner.TransitionProposal moved = proposal(8, 5, 9).atFrame(20);
+		assertEquals(20, moved.frame);
+		assertEquals(17, moved.startFrame);
+		assertEquals(21, moved.endFrame);
+	}
+
+	private ExperimentMovementPrescanner.TransitionProposal proposal(int peak, int start, int end) {
+		return new ExperimentMovementPrescanner.TransitionProposal(peak, start, end,
+				1, 2, 2.2, .1, .2, .3, .9, 3);
+	}
 }
