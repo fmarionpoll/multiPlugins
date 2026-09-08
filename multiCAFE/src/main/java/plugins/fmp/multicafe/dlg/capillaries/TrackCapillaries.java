@@ -1,6 +1,7 @@
 package plugins.fmp.multicafe.dlg.capillaries;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
@@ -18,6 +19,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -35,6 +37,9 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
+import plugins.fmp.multitools.service.CapillaryLengthDetector;
+import plugins.fmp.multitools.service.CapillaryLengthDetectorOptions;
+import plugins.fmp.multitools.service.CapillaryLengthResult;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.series.ProgressReporter;
@@ -43,8 +48,10 @@ import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionAnalysis;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionProposal;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.JComponents.CapillaryLengthMeasureDialog;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class TrackCapillaries extends JPanel implements ViewerListener {
 
@@ -70,6 +77,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JButton saveButton = new JButton("Save");
 	private JButton validateBlueButton = new JButton("Validate blue at current T");
 	private JButton plotEndpointsButton = new JButton("Plot endpoint trajectories");
+	private JButton initializeBlueButton = new JButton("Initialize blue ROIs from T=0");
 	private JButton addBoundaryButton = new JButton("Add boundary at current T");
 	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
 	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
@@ -79,7 +87,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JButton acceptAllProposalsButton = new JButton("Accept all");
 	private JButton moveProposalButton = new JButton("Move proposal to current T");
 	private JButton deleteProposalButton = new JButton("Remove proposal");
-	private JLabel proposalStatusLabel = new JLabel("No transition analysis run.");
+	private JTextArea proposalStatusLabel = new JTextArea("No transition analysis run.", 2, 82);
 	private DefaultListModel<TransitionProposal> proposalListModel = new DefaultListModel<TransitionProposal>();
 	private JList<TransitionProposal> proposalList = new JList<TransitionProposal>(proposalListModel);
 	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
@@ -112,8 +120,14 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		outlierMinPxSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 50, 1));
 		transitionThresholdSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
 
-		JPanel topPanel = new JPanel(new GridLayout(9, 1));
+		JPanel topPanel = new JPanel(new GridLayout(0, 1));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
+		proposalStatusLabel.setEditable(false);
+		proposalStatusLabel.setFocusable(false);
+		proposalStatusLabel.setOpaque(false);
+		proposalStatusLabel.setLineWrap(true);
+		proposalStatusLabel.setWrapStyleWord(true);
+		proposalStatusLabel.setFont(new JLabel().getFont());
 
 		JPanel p1 = new JPanel(flow);
 		p1.add(new JLabel("Frame range:"));
@@ -136,6 +150,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p2.add(plotEndpointsButton);
 		p2.add(saveButton);
 		topPanel.add(p2);
+		JPanel initializePanel = new JPanel(flow);
+		initializePanel.add(initializeBlueButton);
+		initializePanel.add(new JLabel("Preview detected shafts and physical endpoints before accepting."));
+		topPanel.add(initializePanel);
 		JPanel rackPanel = new JPanel(flow);
 		rackPanel.add(rackTrackingButton);
 		rackPanel.add(stopRackButton);
@@ -174,8 +192,13 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p7.add(acceptAllProposalsButton);
 		p7.add(moveProposalButton);
 		p7.add(deleteProposalButton);
-		p7.add(proposalStatusLabel);
 		topPanel.add(p7);
+
+		// Keep analysis feedback on a dedicated row. On ordinary-width dialogs it
+		// was previously laid out beyond the right edge after the four action buttons.
+		JPanel p8 = new JPanel(flow);
+		p8.add(proposalStatusLabel);
+		topPanel.add(p8);
 
 		boundaryList.setVisibleRowCount(6);
 		boundaryList.setCellRenderer((list, value, index, selected, focus) -> {
@@ -227,6 +250,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		saveButton.addActionListener(e -> save());
 		validateBlueButton.addActionListener(e -> validateBlueAtCurrentT());
 		plotEndpointsButton.addActionListener(e -> plotEndpointTrajectories());
+		initializeBlueButton.addActionListener(e -> initializeBlueAtT0());
 		addBoundaryButton.addActionListener(e -> addBoundaryAtCurrentT());
 		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
 		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
@@ -526,6 +550,51 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), t);
 	}
 
+	private void initializeBlueAtT0() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null || exp.getSeqCamData() == null)
+			return;
+		exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		options.frameIndex = 0;
+		options.nFramesAveraged = 1;
+		CapillaryLengthResult result = new CapillaryLengthDetector().measure(exp, options);
+		if (result.hasError()) {
+			JOptionPane.showMessageDialog(this, result.getErrorMessage(), "Initialize physical capillaries",
+					JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		showInitialGeometryPreview(exp, result);
+		setViewerPositionT(0);
+		boolean accepted = CapillaryLengthMeasureDialog.showAndConfirm(this, result,
+				"Review provisional physical capillaries at T=0");
+		if (!accepted) {
+			CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
+			return;
+		}
+		int updated = CapillaryLengthDetector.apply(result, 0);
+		exp.save_capillaries_description_and_measures();
+		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
+		proposalStatusLabel.setText(updated + " provisional blue ROI(s) accepted at T=0.");
+	}
+
+	private void showInitialGeometryPreview(Experiment exp, CapillaryLengthResult result) {
+		CapillaryMeasuredTipsOverlay.removeTipsFromSequence(exp.getSeqCamData());
+		int fallback = 0;
+		for (CapillaryLengthResult.Measure measure : result.getMeasures()) {
+			if (!measure.hasDetectedEndpoints() || measure.getCapillary() == null)
+				continue;
+			ROI2DLine roi = new ROI2DLine(measure.getDetectedStart(), measure.getDetectedEnd());
+			roi.setName(CapillaryMeasuredTipsOverlay.ROI_PREFIX
+					+ CapillaryMeasuredTipsOverlay.tipSuffix(measure.getCapillary(), fallback++));
+			roi.setColor(measure.getStatus().isUsable() ? CapillaryMeasuredTipsOverlay.ROI_COLOR : Color.ORANGE);
+			roi.setStroke(3);
+			roi.setReadOnly(false);
+			roi.setT(-1);
+			exp.getSeqCamData().getSequence().addROI(roi);
+		}
+	}
+
 	private void runRackTracking() {
 		final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null || rackRunning || legacyTrackingRunning) return;
@@ -614,8 +683,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 						proposalListModel.addElement(proposal);
 					if (!result.succeeded())
 						proposalStatusLabel.setText("Analysis failed: " + result.error);
-					else
-						proposalStatusLabel.setText(result.proposals.size() + " proposal(s), "
+					else {
+						String status = result.proposals.size() + " proposal(s), "
 								+ result.comparedFrames + " pairs, threshold "
 								+ String.format("%.1f px", result.thresholdUsed)
 								+ (result.proposals.isEmpty() && result.baselinePeakFrame >= 0
@@ -625,7 +694,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 												result.baselinePeakInlierFraction * 100) : "")
 								+ (result.proposals.isEmpty() && result.strongest != null
 										? " — strongest below threshold: " + result.strongest.summary() : "")
-								+ (result.cancelled ? " (stopped)" : ""));
+								+ (result.cancelled ? " (stopped)" : "");
+						proposalStatusLabel.setText(status);
+						proposalStatusLabel.setToolTipText(status);
+					}
 				} catch (Exception ex) {
 					if (analysisGeneration == transitionAnalysisGeneration) {
 						proposalStatusLabel.setText("Analysis failed: " + ex.getMessage());

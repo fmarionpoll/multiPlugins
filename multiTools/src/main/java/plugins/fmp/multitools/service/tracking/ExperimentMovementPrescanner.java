@@ -301,15 +301,46 @@ public final class ExperimentMovementPrescanner {
 		}
 		// A real final displacement must be present in most of the final fifth,
 		// not merely appear as a transient registration or illumination artefact.
-		if (peak == null || peak.coherentScore < minimumMovementPx
+		// Allow a small subpixel/numerical tolerance at the threshold boundary
+		// (for example, a physical 2 px shift fitted as 1.98 px).
+		if (peak == null || peak.coherentScore < minimumMovementPx * .98
 				|| supported < Math.ceil(tailSize * .6) || peak.metrics.inlierFraction < .6)
 			return;
-		FrameMetrics m = peak.metrics;
+		FrameObservation plateau = findPersistentPlateau(baseline, tailStart);
+		if (plateau == null)
+			plateau = peak;
+		FrameMetrics m = plateau.metrics;
 		double confidence = Math.min(1, m.inlierFraction
-				* Math.min(1.25, peak.coherentScore / Math.max(.001, minimumMovementPx)));
-		analysis.proposals.add(new TransitionProposal(peak.toFrame, peak.fromFrame + 1, peak.toFrame,
+				* Math.min(1.25, plateau.coherentScore / Math.max(.001, minimumMovementPx)));
+		analysis.proposals.add(new TransitionProposal(plateau.toFrame, plateau.fromFrame + 1, plateau.toFrame,
 				m.translationX, m.translationY, m.displacement, m.rotation, m.scalePercent,
-				m.residual, confidence, peak.coherentScore));
+				m.residual, confidence, plateau.coherentScore));
+	}
+
+	private static FrameObservation findPersistentPlateau(List<FrameObservation> baseline, int tailStart) {
+		List<Double> tailScores = new ArrayList<Double>();
+		for (int i = tailStart; i < baseline.size(); i++)
+			tailScores.add(baseline.get(i).coherentScore);
+		Collections.sort(tailScores);
+		double finalLevel = tailScores.get(tailScores.size() / 2);
+		double plateauThreshold = finalLevel * .90;
+		for (int i = 0; i <= baseline.size() - 5; i++) {
+			boolean fiveConsecutive = true;
+			for (int j = i; j < i + 5; j++)
+				if (baseline.get(j).coherentScore < plateauThreshold) {
+					fiveConsecutive = false;
+					break;
+				}
+			if (!fiveConsecutive)
+				continue;
+			int laterSupported = 0;
+			for (int j = i; j < baseline.size(); j++)
+				if (baseline.get(j).coherentScore >= plateauThreshold)
+					laterSupported++;
+			if (laterSupported >= Math.ceil((baseline.size() - i) * .80))
+				return baseline.get(i);
+		}
+		return null;
 	}
 
 	private static void addGradualProposals(List<TransitionProposal> proposals,
