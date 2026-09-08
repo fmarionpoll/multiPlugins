@@ -200,9 +200,9 @@ public class CapillaryLengthDetector {
 		// estimates where the actual capillary centre sits across that ROI. Preserve
 		// that lateral correction in the blue measurement instead of drawing it back
 		// on a deliberately offset green search corridor.
-		Point2D startPoint = interpolateOffsetPoint(axis, located.startFrac, located.offset,
+		Point2D startPoint = interpolateOffsetPoint(axis, located.startFrac, located.offset, located.offsetSlope,
 				options.tangentWindow);
-		Point2D endPoint = interpolateOffsetPoint(axis, located.endFrac, located.offset,
+		Point2D endPoint = interpolateOffsetPoint(axis, located.endFrac, located.offset, located.offsetSlope,
 				options.tangentWindow);
 		double lengthPx = straight ? startPoint.distance(endPoint)
 				: interpolateArc(cumulative, located.endFrac) - interpolateArc(cumulative, located.startFrac);
@@ -234,6 +234,7 @@ public class CapillaryLengthDetector {
 		double startConfidence;
 		double endConfidence;
 		double offset;
+		double offsetSlope;
 		boolean found;
 		boolean touchesBorder;
 		String failure;
@@ -247,6 +248,7 @@ public class CapillaryLengthDetector {
 
 	static final class Geometry {
 		double offset;
+		double offsetSlope;
 		double halfWidth;
 	}
 
@@ -290,6 +292,7 @@ public class CapillaryLengthDetector {
 		located.startConfidence = start.confidence;
 		located.endConfidence = end.confidence;
 		located.offset = geometry.offset;
+		located.offsetSlope = geometry.offsetSlope;
 		located.touchesBorder = start.atRoiEnd || end.atRoiEnd;
 		return located;
 	}
@@ -320,6 +323,7 @@ public class CapillaryLengthDetector {
 		}
 		Geometry geometry = new Geometry();
 		geometry.offset = 0.;
+		geometry.offsetSlope = 0.;
 		geometry.halfWidth = 4.;
 		if (nAcc == 0)
 			return geometry;
@@ -354,7 +358,129 @@ public class CapillaryLengthDetector {
 		geometry.halfWidth = 0.5 * (uR - uL);
 		if (geometry.halfWidth < 1.5)
 			geometry.halfWidth = 4.;
+		refineCenterline(axis, image, options, geometry);
 		return geometry;
+	}
+
+	/** Fits the glass centre across the shaft, correcting both offset and angle. */
+	private static void refineCenterline(ArrayList<int[]> axis, ImageData image,
+			CapillaryLengthDetectorOptions options, Geometry geometry) {
+		int n = axis.size();
+		int half = Math.max(6, options.perpendicularHalfLength);
+		int window = Math.max(1, options.tangentWindow);
+		ArrayList<Double> positions = new ArrayList<Double>();
+		ArrayList<Double> offsets = new ArrayList<Double>();
+		// Use the whole reliable shaft rather than a few middle cross-sections. The
+		// ends are excluded because the transverse wall profile changes at a tip.
+		for (int sample = 0; sample < 21; sample++) {
+			int index = (int) Math.round((.10 + .80 * sample / 20.) * (n - 1));
+			double[] profile = new double[2 * half + 1];
+			int count = 0;
+			for (int j = Math.max(0, index - 2); j <= Math.min(n - 1, index + 2); j++) {
+				double[] normal = normalAt(axis, j, window);
+				for (int u = -half; u <= half; u++)
+					profile[u + half] += grey(image, axis.get(j)[0] + u * normal[0],
+							axis.get(j)[1] + u * normal[1]);
+				count++;
+			}
+			if (count == 0)
+				continue;
+			for (int i = 0; i < profile.length; i++)
+				profile[i] /= count;
+			int[] walls = bestWallPairNearWidth(profile, half, 2. * geometry.halfWidth);
+			if (walls[0] < 0 || walls[1] <= walls[0])
+				continue;
+			double left = refineMinimumPosition(profile, walls[0]);
+			double right = refineMinimumPosition(profile, walls[1]);
+			positions.add(index - .5 * (n - 1));
+			offsets.add(.5 * (left + right) - half);
+		}
+		if (positions.size() < 4)
+			return;
+		ArrayList<Double> slopes = new ArrayList<Double>();
+		for (int i = 0; i < positions.size(); i++)
+			for (int j = i + 1; j < positions.size(); j++) {
+				double ds = positions.get(j) - positions.get(i);
+				if (Math.abs(ds) > 1.)
+					slopes.add((offsets.get(j) - offsets.get(i)) / ds);
+			}
+		if (slopes.isEmpty())
+			return;
+		double[] slopeValues = new double[slopes.size()];
+		for (int i = 0; i < slopes.size(); i++) slopeValues[i] = slopes.get(i);
+		double slope = Math.max(-.15, Math.min(.15, percentile(slopeValues, 50.)));
+		double[] intercepts = new double[positions.size()];
+		for (int i = 0; i < intercepts.length; i++)
+			intercepts[i] = offsets.get(i) - slope * positions.get(i);
+		double intercept = percentile(intercepts, 50.);
+
+		// Theil-Sen supplies a resistant seed. Refit its inliers by least squares
+		// to remove the half-pixel quantisation of individual wall pairs while dust,
+		// flies and liquid edges remain excluded.
+		double[] residuals = new double[positions.size()];
+		for (int i = 0; i < residuals.length; i++)
+			residuals[i] = Math.abs(offsets.get(i) - intercept - slope * positions.get(i));
+		double residualMedian = percentile(residuals, 50.);
+		double tolerance = Math.max(.75, 3. * MAD_TO_SIGMA * residualMedian);
+		double sx = 0., sy = 0., sxx = 0., sxy = 0.;
+		int retained = 0;
+		for (int i = 0; i < positions.size(); i++) {
+			if (residuals[i] > tolerance)
+				continue;
+			double x = positions.get(i), y = offsets.get(i);
+			sx += x; sy += y; sxx += x * x; sxy += x * y; retained++;
+		}
+		if (retained >= 4) {
+			double denominator = retained * sxx - sx * sx;
+			if (Math.abs(denominator) > 1.e-9) {
+				slope = (retained * sxy - sx * sy) / denominator;
+				slope = Math.max(-.15, Math.min(.15, slope));
+				intercept = (sy - slope * sx) / retained;
+			}
+		}
+		geometry.offset = intercept;
+		geometry.offsetSlope = slope;
+	}
+
+	/** Sub-pixel position of a dark wall from a three-sample parabola. */
+	private static double refineMinimumPosition(double[] values, int index) {
+		if (index <= 0 || index >= values.length - 1)
+			return index;
+		double left = values[index - 1], centre = values[index], right = values[index + 1];
+		double denominator = left - 2. * centre + right;
+		if (!(denominator > 1.e-9))
+			return index;
+		double delta = .5 * (left - right) / denominator;
+		return index + Math.max(-.5, Math.min(.5, delta));
+	}
+
+	/** Selects local walls while rejecting liquid/fly edges with the wrong spacing. */
+	private static int[] bestWallPairNearWidth(double[] values, int centre, double expectedWidth) {
+		int bestLeft = -1, bestRight = -1;
+		double bestScore = 0.;
+		double widthTolerance = Math.max(2., expectedWidth * .30);
+		for (int left = 1; left < values.length - 2; left++) {
+			double leftDepth = localMinimumDepth(values, left);
+			if (leftDepth <= .4)
+				continue;
+			int from = Math.max(left + 4, (int) Math.floor(left + expectedWidth - widthTolerance));
+			int to = Math.min(values.length - 2, (int) Math.ceil(left + expectedWidth + widthTolerance));
+			for (int right = from; right <= to; right++) {
+				double rightDepth = localMinimumDepth(values, right);
+				if (rightDepth <= .4)
+					continue;
+				double widthError = Math.abs((right - left) - expectedWidth);
+				double midpoint = .5 * (left + right);
+				double score = Math.min(leftDepth, rightDepth) - .12 * widthError
+						- .015 * Math.abs(midpoint - centre);
+				if (score > bestScore) {
+					bestScore = score;
+					bestLeft = left;
+					bestRight = right;
+				}
+			}
+		}
+		return new int[] { bestLeft, bestRight };
 	}
 
 	/**
@@ -834,10 +960,17 @@ public class CapillaryLengthDetector {
 
 	static Point2D interpolateOffsetPoint(ArrayList<int[]> axis, double frac, double offset,
 			int tangentWindow) {
+		return interpolateOffsetPoint(axis, frac, offset, 0., tangentWindow);
+	}
+
+	static Point2D interpolateOffsetPoint(ArrayList<int[]> axis, double frac, double offset,
+			double offsetSlope, int tangentWindow) {
 		Point2D point = interpolatePoint(axis, frac);
 		int index = Math.max(0, Math.min(axis.size() - 1, (int) Math.round(frac)));
 		double[] normal = normalAt(axis, index, Math.max(1, tangentWindow));
-		return new Point2D.Double(point.getX() + offset * normal[0], point.getY() + offset * normal[1]);
+		double localOffset = offset + offsetSlope * (frac - .5 * (axis.size() - 1));
+		return new Point2D.Double(point.getX() + localOffset * normal[0],
+				point.getY() + localOffset * normal[1]);
 	}
 
 	private static double[] cumulativeArcLength(ArrayList<int[]> axis) {
@@ -1153,8 +1286,9 @@ public class CapillaryLengthDetector {
 	}
 
 	/**
-	 * Places the overlay ends at {@code topY} / {@code botY}, walking the ROI
-	 * when one is available so a tilted tube stays on its axis.
+	 * Places the overlay ends at {@code topY} / {@code botY} while preserving the
+	 * detected blue centreline. Falling back to the green ROI here would erase the
+	 * wall-derived angle refinement performed earlier.
 	 */
 	static void applyEndpointYs(CapillaryLengthResult.Measure m, double topY, double botY, ArrayList<int[]> axis) {
 		if (m == null || !m.hasDetectedEndpoints())
@@ -1166,7 +1300,10 @@ public class CapillaryLengthDetector {
 		Point2D oldBot = startIsTop ? end : start;
 		Point2D top;
 		Point2D bot;
-		if (axis != null && axis.size() >= 2) {
+		if (Math.abs(oldBot.getY() - oldTop.getY()) >= 2.) {
+			top = pointOnLineAtY(oldTop, oldBot, topY);
+			bot = pointOnLineAtY(oldTop, oldBot, botY);
+		} else if (axis != null && axis.size() >= 2) {
 			top = pointOnAxisAtY(axis, topY);
 			bot = pointOnAxisAtY(axis, botY);
 		} else {
@@ -1178,6 +1315,11 @@ public class CapillaryLengthDetector {
 		else
 			m.setDetectedEndpoints(bot, top);
 		m.setDetectedPixels(top.distance(bot));
+	}
+
+	private static Point2D pointOnLineAtY(Point2D top, Point2D bottom, double targetY) {
+		double fraction = (targetY - top.getY()) / (bottom.getY() - top.getY());
+		return new Point2D.Double(top.getX() + fraction * (bottom.getX() - top.getX()), targetY);
 	}
 
 	static Point2D pointOnAxisAtY(ArrayList<int[]> axis, double targetY) {

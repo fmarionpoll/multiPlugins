@@ -150,6 +150,9 @@ public class CapillaryLengthRealDataBenchmarkTest {
             List<Double> rawErrors = new ArrayList<Double>();
             List<Double> finalErrors = new ArrayList<Double>();
             List<Double> lengthErrors = new ArrayList<Double>();
+            List<Double> lateralErrors = new ArrayList<Double>();
+            List<Double> axialErrors = new ArrayList<Double>();
+            List<Double> angleErrors = new ArrayList<Double>();
             Map<Integer, List<Double>> tipsByWidth = new LinkedHashMap<Integer, List<Double>>();
             Map<Integer, List<Double>> lengthsByWidth = new LinkedHashMap<Integer, List<Double>>();
             Map<Integer, Integer> experimentsByWidth = new LinkedHashMap<Integer, Integer>();
@@ -193,6 +196,9 @@ public class CapillaryLengthRealDataBenchmarkTest {
                 CapillaryLengthDetector.apply(result, 0);
                 List<Double> experimentErrors = new ArrayList<Double>();
                 List<Double> experimentLengths = new ArrayList<Double>();
+                List<Double> experimentLateral = new ArrayList<Double>();
+                List<Double> experimentAxial = new ArrayList<Double>();
+                List<Double> experimentAngles = new ArrayList<Double>();
                 for (CapillaryLengthResult.Measure m : result.getMeasures()) {
                     if (!m.isSelected()) continue;
                     double[] gt = truth.get(m.getCapillary().getKymographName());
@@ -200,6 +206,13 @@ public class CapillaryLengthRealDataBenchmarkTest {
                     assertTrue("accepted detection must have display geometry", blue != null);
                     double error = endpointError(blue.getP1(), blue.getP2(), gt);
                     finalErrors.add(error); experimentErrors.add(error);
+                    double[] pose = poseError(blue, gt);
+                    lateralErrors.add(pose[0]);
+                    axialErrors.add(pose[1]);
+                    angleErrors.add(pose[2]);
+                    experimentLateral.add(pose[0]);
+                    experimentAxial.add(pose[1]);
+                    experimentAngles.add(pose[2]);
                     double lengthError = Math.abs(blue.getP1().distance(blue.getP2())
                             - Math.hypot(gt[2]-gt[0], gt[3]-gt[1]));
                     lengthErrors.add(lengthError); experimentLengths.add(lengthError);
@@ -210,14 +223,19 @@ public class CapillaryLengthRealDataBenchmarkTest {
                         .addAll(experimentLengths);
                 experimentsByWidth.put(Integer.valueOf(image.width),
                         Integer.valueOf(experimentsByWidth.getOrDefault(Integer.valueOf(image.width), 0) + 1));
-                System.out.printf(Locale.US, "FINAL scale=%.2f %s tipMAE=%.3f n=%d%n", scale, root, mean(experimentErrors), experimentErrors.size());
+                System.out.printf(Locale.US,
+                        "FINAL scale=%.2f %s tipMAE=%.3f lateral=%.3f axial=%.3f angleDeg=%.3f n=%d%n",
+                        scale, root, mean(experimentErrors), mean(experimentLateral), mean(experimentAxial),
+                        mean(experimentAngles), experimentErrors.size());
             }
             System.out.printf(Locale.US,
                     "FINAL ALL scale=%.2f rawTip=%.3f finalTip=%.3f tipP50=%.3f tipP90=%.3f "
-                    + "tipLE3=%.1f%% tipLE5=%.1f%% finalLength=%.3f lengthP50=%.3f lengthP90=%.3f "
+                    + "tipLE3=%.1f%% tipLE5=%.1f%% lateral=%.3f axial=%.3f angleDeg=%.3f "
+                    + "finalLength=%.3f lengthP50=%.3f lengthP90=%.3f "
                     + "lengthLE3=%.1f%% lengthLE5=%.1f%% n=%d%n",
                     scale, mean(rawErrors), mean(finalErrors), percentile(finalErrors, .5),
                     percentile(finalErrors, .9), percentAtMost(finalErrors, 3.), percentAtMost(finalErrors, 5.),
+                    mean(lateralErrors), mean(axialErrors), mean(angleErrors),
                     mean(lengthErrors), percentile(lengthErrors, .5), percentile(lengthErrors, .9),
                     percentAtMost(lengthErrors, 3.), percentAtMost(lengthErrors, 5.), finalErrors.size());
             for (Map.Entry<Integer, List<Double>> entry : tipsByWidth.entrySet()) {
@@ -246,6 +264,23 @@ public class CapillaryLengthRealDataBenchmarkTest {
     private static double endpointError(java.awt.geom.Point2D a, java.awt.geom.Point2D b, double[] gt) {
         return .5 * Math.min(a.distance(gt[0], gt[1]) + b.distance(gt[2], gt[3]),
                 a.distance(gt[2], gt[3]) + b.distance(gt[0], gt[1]));
+    }
+
+    /** Absolute midpoint displacement across/along the truth axis, plus angle. */
+    private static double[] poseError(java.awt.geom.Line2D detected, double[] gt) {
+        double gx = gt[2] - gt[0], gy = gt[3] - gt[1];
+        double gl = Math.hypot(gx, gy);
+        double mx = .5 * (detected.getX1() + detected.getX2());
+        double my = .5 * (detected.getY1() + detected.getY2());
+        double gmx = .5 * (gt[0] + gt[2]), gmy = .5 * (gt[1] + gt[3]);
+        double dx = mx - gmx, dy = my - gmy;
+        double lateral = Math.abs(dx * (-gy / gl) + dy * (gx / gl));
+        double axial = Math.abs(dx * (gx / gl) + dy * (gy / gl));
+        double angle = Math.abs(Math.toDegrees(Math.atan2(detected.getY2() - detected.getY1(),
+                detected.getX2() - detected.getX1()) - Math.atan2(gy, gx)));
+        while (angle > 180.) angle -= 180.;
+        if (angle > 90.) angle = 180. - angle;
+        return new double[] { lateral, axial, angle };
     }
 
     private static int cageId(String capillaryName) {
