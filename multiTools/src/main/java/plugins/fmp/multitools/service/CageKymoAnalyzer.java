@@ -13,11 +13,12 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
-import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
- * Computes per-spot vertical metric-fraction time series from loaded cage kymograph TIFFs.
+ * CODEX Computes per-spot vertical metric-fraction time series from loaded cage
+ * kymograph TIFFs.
  */
 public final class CageKymoAnalyzer {
 
@@ -29,28 +30,35 @@ public final class CageKymoAnalyzer {
 		public int minValidRowsPerColumn;
 		public boolean useGpuTransforms;
 		/**
-		 * Max length (columns) of a bad run along a row that may be filled when bracketed by good pixels (row-wise
-		 * occlusion lift only). 0 disables row lift fills.
+		 * Max length (columns) of a bad run along a row that may be filled when
+		 * bracketed by good pixels (row-wise occlusion lift only). 0 disables row lift
+		 * fills.
 		 */
 		public int maxRowOcclusionGapColumns;
 		/**
-		 * When true, copy the frame and lift short temporal occlusions inside each spot band row-wise (see
-		 * {@link KymoStripRowwiseOcclusionFill}) before metric fractions and overlays.
+		 * When true, copy the frame and lift short temporal occlusions inside each spot
+		 * band row-wise (see {@link KymoStripRowwiseOcclusionFill}) before metric
+		 * fractions and overlays.
 		 */
 		public boolean rowwiseOcclusionFill;
 		/**
-		 * When true (and row lift is on), kymograph overlay blends the lifted RGB inside spot bands so the corrected
-		 * picture is visible; ignored by {@link CageKymoAnalyzer#analyze}.
+		 * When true (and row lift is on), kymograph overlay blends the lifted RGB
+		 * inside spot bands so the corrected picture is visible; ignored by
+		 * {@link CageKymoAnalyzer#analyze}.
 		 */
 		public boolean previewLiftedBands;
 		/**
-		 * When true, pixels where the insect metric passes the insect threshold are excluded from spot-on detection
-		 * (parallel to a separate flies filter on camera frames).
+		 * When true, pixels where the insect metric passes the insect threshold are
+		 * excluded from spot-on detection (parallel to a separate flies filter on
+		 * camera frames).
 		 */
 		public boolean insectMetricGateEnabled;
 		public ImageTransformEnums insectMetricTransform;
 		public int insectMetricThreshold;
-		/** When true, insect is "on" when metric {@code >} threshold; when false, when metric {@code <=} threshold. */
+		/**
+		 * When true, insect is "on" when metric {@code >} threshold; when false, when
+		 * metric {@code <=} threshold.
+		 */
 		public boolean insectMetricThresholdUp;
 
 		public Params(ImageTransformEnums metricTransform, int metricThreshold, int minSumRgbForValidPixel,
@@ -96,8 +104,7 @@ public final class CageKymoAnalyzer {
 			refH = exp.getSeqCamData().getSequence().getSizeY();
 		}
 		if (refW <= 0 || refH <= 0) {
-			int[] csvRef = CageKymographStripLayoutCsv
-					.readRefCameraDimensionsOrNull(exp.getKymosBinFullDirectory());
+			int[] csvRef = CageKymographStripLayoutCsv.readRefCameraDimensionsOrNull(exp.getKymosBinFullDirectory());
 			if (csvRef != null) {
 				refW = csvRef[0];
 				refH = csvRef[1];
@@ -128,9 +135,8 @@ public final class CageKymoAnalyzer {
 			int bandRefW = refW;
 			int bandRefH = refH;
 			if (bandRefW <= 0 || bandRefH <= 0) {
-				Logger.warn(
-						"CageKymoAnalyzer: no camera reference size — open the experiment or rebuild kymographs so "
-								+ CageKymographStripLayoutCsv.FILENAME + " is available");
+				Logger.warn("CageKymoAnalyzer: no camera reference size — open the experiment or rebuild kymographs so "
+						+ CageKymographStripLayoutCsv.FILENAME + " is available");
 				bandRefW = imgW;
 				bandRefH = imgH;
 			}
@@ -141,8 +147,8 @@ public final class CageKymoAnalyzer {
 			}
 			if (widthBins == 0) {
 				widthBins = imgW;
-				persistedKymoGrid = CageKymographStripLayoutCsv.readPersistedKymoGridOrNull(
-						exp.getKymosBinFullDirectory(), widthBins);
+				persistedKymoGrid = CageKymographStripLayoutCsv
+						.readPersistedKymoGridOrNull(exp.getKymosBinFullDirectory(), widthBins);
 				xAxis = buildXAxisMinutes(exp, widthBins, persistedKymoGrid);
 			} else if (imgW != widthBins) {
 				Logger.warn("CageKymoAnalyzer: image width " + imgW + " differs from first (" + widthBins
@@ -176,7 +182,10 @@ public final class CageKymoAnalyzer {
 		return x;
 	}
 
-	/** Per-column green mask height (row count ON in band) and ratio to max height across the strip. */
+	/**
+	 * Per-column green mask height (row count ON in band) and ratio to max height
+	 * across the strip.
+	 */
 	public static double[] greenHeightRatioFromHeights(int[] greenHeight) {
 		int n = greenHeight != null ? greenHeight.length : 0;
 		double[] ratio = new double[n];
@@ -239,9 +248,9 @@ public final class CageKymoAnalyzer {
 	}
 
 	/**
-	 * Fraction, green height (rows), and h/h_max for one spot band on one kymograph frame. Rows counted as ON use the
-	 * post-lift cleaned mask when row lift is on; otherwise raw spot metric &gt; threshold (with optional insect
-	 * exclusion).
+	 * Fraction, green height (rows), and h/h_max for one spot band on one kymograph
+	 * frame. Rows counted as ON use the post-lift cleaned mask when row lift is on;
+	 * otherwise raw spot metric &gt; threshold (with optional insect exclusion).
 	 */
 	public static ColumnMetrics computeColumnMetrics(IcyBufferedImage img, CageKymographSpotBands band, Params params,
 			int imgW) {

@@ -3,7 +3,10 @@ package plugins.fmp.multitools.service.tracking;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 
-/** Tracks both glass endpoints with profiles aligned to the capillary shaft. */
+/**
+ * CODEX Tracks both glass endpoints with profiles aligned to the capillary
+ * shaft.
+ */
 public final class DirectionalCapillaryTracker {
 	private static final int SEARCH = 12;
 	private static final int PROFILE_RADIUS = 18;
@@ -34,8 +37,7 @@ public final class DirectionalCapillaryTracker {
 			return null;
 		double lateral = bestShift(refAcross, curAcross);
 		double axial = bestShift(gradient(refAlong), gradient(curAlong));
-		return new Point2D.Double(point.getX() + lateral * nx + axial * ux,
-				point.getY() + lateral * ny + axial * uy);
+		return new Point2D.Double(point.getX() + lateral * nx + axial * ux, point.getY() + lateral * ny + axial * uy);
 	}
 
 	private double[] profile(Point2D center, double ax, double ay, double bx, double by, double[] image, int width,
@@ -62,8 +64,8 @@ public final class DirectionalCapillaryTracker {
 		double best = -Double.MAX_VALUE;
 		int bestShift = 0;
 		for (int shift = -SEARCH; shift <= SEARCH; shift++) {
-			double score = normalizedCorrelation(reference, current, center - PROFILE_RADIUS,
-					center + PROFILE_RADIUS, shift);
+			double score = normalizedCorrelation(reference, current, center - PROFILE_RADIUS, center + PROFILE_RADIUS,
+					shift);
 			if (score > best) {
 				best = score;
 				bestShift = shift;
@@ -75,12 +77,18 @@ public final class DirectionalCapillaryTracker {
 	private static double normalizedCorrelation(double[] a, double[] b, int from, int to, int shift) {
 		double ma = 0, mb = 0;
 		int n = to - from + 1;
-		for (int i = from; i <= to; i++) { ma += a[i]; mb += b[i + shift]; }
-		ma /= n; mb /= n;
+		for (int i = from; i <= to; i++) {
+			ma += a[i];
+			mb += b[i + shift];
+		}
+		ma /= n;
+		mb /= n;
 		double num = 0, da = 0, db = 0;
 		for (int i = from; i <= to; i++) {
 			double va = a[i] - ma, vb = b[i + shift] - mb;
-			num += va * vb; da += va * va; db += vb * vb;
+			num += va * vb;
+			da += va * va;
+			db += vb * vb;
 		}
 		return num / Math.sqrt(Math.max(1e-12, da * db));
 	}

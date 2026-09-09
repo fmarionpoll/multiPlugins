@@ -8,8 +8,9 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 
 /**
- * Maps a {@code kymocage_*.tif*} file path to a {@link Cage}, matching
- * {@link CageSpotKymographBuilder} naming ({@code kymocage_<cageID>} or {@code kymocage_i<listIndex>}).
+ * CODEX Maps a {@code kymocage_*.tif*} file path to a {@link Cage}, matching
+ * {@link CageSpotKymographBuilder} naming ({@code kymocage_<cageID>} or
+ * {@code kymocage_i<listIndex>}).
  */
 public final class KymocageCageResolver {
 
@@ -20,8 +21,9 @@ public final class KymocageCageResolver {
 	}
 
 	/**
-	 * File name stem (no extension), e.g. {@code kymocage_0} or {@code kymocage_i3}, or null if the path
-	 * does not look like a cage kymograph TIFF.
+	 * File name stem (no extension), e.g. {@code kymocage_0} or
+	 * {@code kymocage_i3}, or null if the path does not look like a cage kymograph
+	 * TIFF.
 	 */
 	public static String fileBaseFromKymographPath(String filePath) {
 		if (filePath == null) {

@@ -27,62 +27,67 @@ import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 import plugins.fmp.multitools.service.CapillaryLengthDetector;
 import plugins.fmp.multitools.service.CapillaryLengthDetectorOptions;
 import plugins.fmp.multitools.service.CapillaryLengthResult;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthMeasureDialog;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthOptionsDialog;
-import plugins.fmp.multitools.tools.Logger;
 
 public class Infos extends JPanel {
 	/**
-	 * 
+	 * CODEX
 	 */
 	private static final long serialVersionUID = 4950182090521600937L;
 
 	private JSpinner capillaryVolumeSpinner = new JSpinner(new SpinnerNumberModel(5., 0., 100., 1.));
 	private JSpinner capillaryPixelsSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
-	private JButton getCapillaryLengthButton = new JButton("pixels 1rst capillary");
+	private JButton getCapillaryLengthButton = new JButton("Measure cap 0");
+	private JButton setPixelsButton = new JButton("Set all capillaries");
+
 	private JButton editCapillariesButton = new JButton("Edit capillaries infos...");
 	private JButton autoMeasureButton = new JButton("Auto-measure lengths...");
-	private JButton resetPixelsButton = new JButton("Reset all to single value");
+
 	private JCheckBox allExperimentsCheckBox = new JCheckBox("ALL (current to last)", false);
-	private JCheckBox showMeasuredCheckBox = new JCheckBox("show measured limits");
+	private JCheckBox showMeasuredCheckBox = new JCheckBox("Show measured limits");
 	private JLabel calibrationStatusLabel = new JLabel("-");
 	private MultiCAFE parent0 = null;
 	private InfosCapillaryTable infosCapillaryTable = null;
 	private List<Capillary> capillariesArrayCopy = new ArrayList<Capillary>();
 
 	private static final String AUTO_MEASURE_TITLE = "Auto-measure capillary lengths";
-	private static final String RESET_TITLE = "Reset capillary lengths";
+	private static final String RESET_TITLE = "Set capillary lengths";
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		setLayout(capLayout);
 		this.parent0 = parent0;
+		FlowLayout flow = new FlowLayout(FlowLayout.LEFT, 3, 1);
 
-		JPanel panel0 = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 1));
-		panel0.add(new JLabel("volume (µl) ", SwingConstants.RIGHT));
+		JPanel panel0 = new JPanel(flow);
+		panel0.add(new JLabel("Volume (µl) ", SwingConstants.RIGHT));
 		panel0.add(capillaryVolumeSpinner);
-		panel0.add(new JLabel("length (pixels) ", SwingConstants.RIGHT));
+		panel0.add(new JLabel("length (px) ", SwingConstants.RIGHT));
 		panel0.add(capillaryPixelsSpinner);
 		panel0.add(getCapillaryLengthButton);
+		panel0.add(setPixelsButton);
 		add(panel0);
 
-		JPanel panel1 = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 1));
+		JPanel panel1 = new JPanel(flow);
 		panel1.add(autoMeasureButton);
-		panel1.add(resetPixelsButton);
 		panel1.add(allExperimentsCheckBox);
 		panel1.add(showMeasuredCheckBox);
 		add(panel1);
 
-		JPanel panel2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 1));
+		JPanel panel2 = new JPanel(flow);
 		panel2.add(editCapillariesButton);
 		panel2.add(new JLabel("calibration: ", SwingConstants.RIGHT));
 		panel2.add(calibrationStatusLabel);
 		add(panel2);
 
+		getCapillaryLengthButton.setToolTipText("Set value to the pixels length of capillary 0");
+		setPixelsButton.setToolTipText("Give every capillary the length (pixels)");
+
 		autoMeasureButton.setToolTipText(
 				"Measure each capillary length inside its ROI; opens options for current or ALL (current to last)");
-		resetPixelsButton.setToolTipText("Give every capillary the length (pixels) value above again");
-		allExperimentsCheckBox.setToolTipText(
-				"Apply the reset to the selected experiment through the last in the browse list");
+		allExperimentsCheckBox
+				.setToolTipText("Apply the reset to the selected experiment through the last in the browse list");
 		showMeasuredCheckBox.setToolTipText("Draw over the image the extent measured for each capillary");
 
 		defineActionListeners();
@@ -120,7 +125,7 @@ public class Infos extends JPanel {
 			}
 		});
 
-		resetPixelsButton.addActionListener(new ActionListener() {
+		setPixelsButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				if (allExperimentsCheckBox.isSelected())
@@ -141,8 +146,8 @@ public class Infos extends JPanel {
 				if (showMeasuredLengths(exp) == 0) {
 					showMeasuredCheckBox.setSelected(false);
 					JOptionPane.showMessageDialog(Infos.this,
-							"No capillary has a measured length yet. Run the auto-measure first.",
-							AUTO_MEASURE_TITLE, JOptionPane.INFORMATION_MESSAGE);
+							"No capillary has a measured length yet. Run the auto-measure first.", AUTO_MEASURE_TITLE,
+							JOptionPane.INFORMATION_MESSAGE);
 				}
 			}
 		});
@@ -217,8 +222,8 @@ public class Infos extends JPanel {
 			showMeasuredCheckBox.setSelected(true);
 		refreshMeasuredLengths(exp);
 		JOptionPane.showMessageDialog(this,
-				updated + " capillary(ies) now use their own pixel length.\n" + summaryLine(result),
-				AUTO_MEASURE_TITLE, JOptionPane.INFORMATION_MESSAGE);
+				updated + " capillary(ies) now use their own pixel length.\n" + summaryLine(result), AUTO_MEASURE_TITLE,
+				JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private void autoMeasureFromCurrentToLast(final CapillaryLengthDetectorOptions options) {
@@ -262,8 +267,8 @@ public class Infos extends JPanel {
 
 						CapillaryLengthResult result = detector.measure(exp, options);
 						if (result.hasError()) {
-							Logger.warn("CapillaryLength: " + exp.getResultsDirectory() + " - "
-									+ result.getErrorMessage());
+							Logger.warn(
+									"CapillaryLength: " + exp.getResultsDirectory() + " - " + result.getErrorMessage());
 						} else {
 							int updated = CapillaryLengthDetector.apply(result, options.frameIndex);
 							if (updated > 0) {
@@ -272,8 +277,8 @@ public class Infos extends JPanel {
 								nExperimentsUpdated++;
 							}
 							Logger.report(String.format("CapillaryLength,%s,%d,%.1f,%.1f,%.1f,%.2f",
-									exp.getResultsDirectory(), updated, result.getMedianPixels(),
-									result.getMinPixels(), result.getMaxPixels(), result.getSpreadPercent()));
+									exp.getResultsDirectory(), updated, result.getMedianPixels(), result.getMinPixels(),
+									result.getMaxPixels(), result.getSpreadPercent()));
 							reportRejectedCapillaries(exp, result);
 						}
 					} catch (Exception e) {
@@ -304,9 +309,8 @@ public class Infos extends JPanel {
 				continue;
 			String reason = measure.getMessage() == null ? "" : measure.getMessage();
 			reason = reason.replace(',', ';').replace('\r', ' ').replace('\n', ' ');
-			Logger.report(String.format("CapillaryLengthRejected,%s,%s,%s,%s,%d",
-					exp.getResultsDirectory(), measure.getName(), measure.getStatus().name(), reason,
-					measure.getPreviousPixels()));
+			Logger.report(String.format("CapillaryLengthRejected,%s,%s,%s,%s,%d", exp.getResultsDirectory(),
+					measure.getName(), measure.getStatus().name(), reason, measure.getPreviousPixels()));
 		}
 	}
 
@@ -328,9 +332,9 @@ public class Infos extends JPanel {
 		updateCalibrationStatus(exp.getCapillaries());
 		removeMeasuredLengths(exp);
 		showMeasuredCheckBox.setSelected(false);
-		JOptionPane.showMessageDialog(this,
-				"All capillaries use " + exp.getCapillaries().getCapillariesDescription().getPixels() + " pixels again.",
-				RESET_TITLE, JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog(this, "All capillaries use "
+				+ exp.getCapillaries().getCapillariesDescription().getPixels() + " pixels again.", RESET_TITLE,
+				JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private void resetAllExperiments() {
@@ -342,9 +346,8 @@ public class Infos extends JPanel {
 		final double volume = ((Number) capillaryVolumeSpinner.getValue()).doubleValue();
 		final int pixels = ((Number) capillaryPixelsSpinner.getValue()).intValue();
 		int answer = JOptionPane.showConfirmDialog(this,
-				"Give every capillary of " + nExperiments + " experiment(s)\n"
-						+ "(current through last) a length of " + pixels + " pixels?\n"
-						+ "Any auto-measured length will be discarded.",
+				"Give every capillary of " + nExperiments + " experiment(s)\n" + "(current through last) a length of "
+						+ pixels + " pixels?\n" + "Any auto-measured length will be discarded.",
 				RESET_TITLE, JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
 		if (answer != JOptionPane.OK_OPTION)
 			return;

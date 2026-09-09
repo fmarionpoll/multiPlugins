@@ -7,7 +7,8 @@ import java.util.Map;
 import plugins.fmp.multitools.experiment.spot.Spot;
 
 /**
- * In-memory per-spot kymograph metric fraction series (and optional |Δf|), keyed by cage id.
+ * CODEX In-memory per-spot kymograph metric fraction series (and optional
+ * |Δf|), keyed by cage id.
  */
 public final class KymoAnalysisResult {
 
@@ -29,20 +30,24 @@ public final class KymoAnalysisResult {
 	public static final class SpotKymoSeries {
 		public final Spot spot;
 		/**
-		 * Index of this series in the cage's name-sorted spot list (including spots that use a
-		 * geometry placeholder band).
+		 * Index of this series in the cage's name-sorted spot list (including spots
+		 * that use a geometry placeholder band).
 		 */
 		public final int indexInCage;
-		/** Fraction of valid rows in the spot band with spot ON (cleaned mask when row lift is on). */
+		/**
+		 * Fraction of valid rows in the spot band with spot ON (cleaned mask when row
+		 * lift is on).
+		 */
 		public final double[] fraction;
 		public final double[] absDeltaFraction;
 		/**
-		 * Per time column: count of rows in the spot band where the cleaned (or raw) green mask is ON — vertical
-		 * extent of the green bar in pixels.
+		 * Per time column: count of rows in the spot band where the cleaned (or raw)
+		 * green mask is ON — vertical extent of the green bar in pixels.
 		 */
 		public final int[] greenHeight;
 		/**
-		 * {@code greenHeight[x] / max(greenHeight)} over the strip (peak-normalized occupancy).
+		 * {@code greenHeight[x] / max(greenHeight)} over the strip (peak-normalized
+		 * occupancy).
 		 */
 		public final double[] greenHeightRatio;
 

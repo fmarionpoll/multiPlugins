@@ -9,16 +9,21 @@ import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Per spot band, each horizontal row (fixed {@code y}) is scanned along time ({@code x}). A pixel is
- * <em>good</em> when it passes the same gates as the spot metric overlay (valid sum RGB and spot metric above
- * threshold), and when {@link CageKymoAnalyzer.Params#insectMetricGateEnabled} is on, it must not be classified as
- * insect-like by the insect metric (so fly pixels are not used as bracket anchors). A maximal run of <em>bad</em>
- * pixels strictly between a good pixel on the left and a good pixel on the right is filled with a constant per
- * channel: the average of the bracketing good pixels. Only gaps whose length (columns) is ≤
- * {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns} are modified. Leading/trailing bad runs are left
- * unchanged unless the insect gate is on: a leading prefix whose columns are all insect-marked in the band may be
- * filled from the first good bracket pixel (same rule as {@link KymoStripPostLiftMetricMask}). Bands do not interact;
- * rows outside bands are unchanged.
+ * CODEX Per spot band, each horizontal row (fixed {@code y}) is scanned along
+ * time ({@code x}). A pixel is <em>good</em> when it passes the same gates as
+ * the spot metric overlay (valid sum RGB and spot metric above threshold), and
+ * when {@link CageKymoAnalyzer.Params#insectMetricGateEnabled} is on, it must
+ * not be classified as insect-like by the insect metric (so fly pixels are not
+ * used as bracket anchors). A maximal run of <em>bad</em> pixels strictly
+ * between a good pixel on the left and a good pixel on the right is filled with
+ * a constant per channel: the average of the bracketing good pixels. Only gaps
+ * whose length (columns) is ≤
+ * {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns} are modified.
+ * Leading/trailing bad runs are left unchanged unless the insect gate is on: a
+ * leading prefix whose columns are all insect-marked in the band may be filled
+ * from the first good bracket pixel (same rule as
+ * {@link KymoStripPostLiftMetricMask}). Bands do not interact; rows outside
+ * bands are unchanged.
  */
 public final class KymoStripRowwiseOcclusionFill {
 

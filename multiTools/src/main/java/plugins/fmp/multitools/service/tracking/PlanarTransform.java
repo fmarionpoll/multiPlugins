@@ -2,9 +2,13 @@ package plugins.fmp.multitools.service.tracking;
 
 import java.awt.geom.Point2D;
 
-/** Immutable 3x3 planar transform, normalized so m[2][2] is one. */
+/**
+ * CODEX Immutable 3x3 planar transform, normalized so m[2][2] is one.
+ */
 public final class PlanarTransform {
-	public enum Model { TRANSLATION, SIMILARITY, AFFINE, PROJECTIVE }
+	public enum Model {
+		TRANSLATION, SIMILARITY, AFFINE, PROJECTIVE
+	}
 
 	private final Model model;
 	private final double[][] matrix;
@@ -16,7 +20,9 @@ public final class PlanarTransform {
 			System.arraycopy(matrix[r], 0, this.matrix[r], 0, 3);
 	}
 
-	public Model getModel() { return model; }
+	public Model getModel() {
+		return model;
+	}
 
 	public Point2D transform(Point2D point) {
 		double x = point.getX();

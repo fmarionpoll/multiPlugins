@@ -8,11 +8,11 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
-import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Writes per-spot kymograph analysis series (green height and h/h_max) to a CSV file in the kymographs bin.
+ * CODEX Writes per-spot kymograph analysis series (green height and h/h_max) to
+ * a CSV file in the kymographs bin.
  */
 public final class KymoAnalysisCsvExport {
 
@@ -35,8 +35,7 @@ public final class KymoAnalysisCsvExport {
 				Files.createDirectories(parent);
 			}
 			try (BufferedWriter w = Files.newBufferedWriter(outputFile, StandardCharsets.UTF_8)) {
-				w.write(
-						"cage_id,spot_index,spot_name,stimulus,concentration,time_min,green_height_rows,green_height_ratio,fraction");
+				w.write("cage_id,spot_index,spot_name,stimulus,concentration,time_min,green_height_rows,green_height_ratio,fraction");
 				w.newLine();
 				for (Map.Entry<Integer, List<KymoAnalysisResult.SpotKymoSeries>> e : result.byCageId.entrySet()) {
 					int cageId = e.getKey();

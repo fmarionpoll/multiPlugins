@@ -11,14 +11,13 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 /**
- * Detects dark intervals in camera sequences by measuring light level inside a
- * small rectangular ROI for each frame.
+ * CODEX Detects dark intervals in camera sequences by measuring light level
+ * inside a small rectangular ROI for each frame.
  *
  * The result is a per-frame light status array aligned with the camera frames:
  * value 1 means \"light\", 0 means \"dark\".
  */
 public class DarkFrameDetector {
-
 
 	public static class DarkFrameDetectionOptions {
 		public ROI2DRectangle rectMonitor = new ROI2DRectangle(100., 100., 200., 150.);
@@ -49,11 +48,11 @@ public class DarkFrameDetector {
 		}
 
 		SequenceCamData seqCam = exp.getSeqCamData();
-		if (seqCam.getSequence() == null ) {
+		if (seqCam.getSequence() == null) {
 			Logger.warn("DarkFrameDetector: no reference image available");
 			return null;
 		}
-		
+
 		Dimension dim = seqCam.getSequence().getDimension2D();
 		int imageWidth = (int) dim.getWidth();
 		int imageHeight = (int) dim.getHeight();
@@ -99,8 +98,7 @@ public class DarkFrameDetector {
 					progress.setMessage("Frame " + (t + 1) + "/" + nFrames);
 				}
 
-			    IcyBufferedImage image = loader
-							.imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
+				IcyBufferedImage image = loader.imageIORead(exp.getSeqCamData().getFileNameFromImageList(t));
 
 				if (image == null) {
 					lightStatus[t] = 0;
@@ -137,8 +135,8 @@ public class DarkFrameDetector {
 			long endTimeNs = System.nanoTime();
 			double durationSec = (endTimeNs - startTimeNs) / 1_000_000_000.0;
 			Logger.info("DarkFrameDetector: ROI sum per frame, min=" + minSum + ", max=" + maxSum
-					+ " ; mean per pixel, min=" + minMean + ", max=" + maxMean
-					+ " ; detection time=" + String.format("%.3f", durationSec) + " s for " + nFrames + " frames");
+					+ " ; mean per pixel, min=" + minMean + ", max=" + maxMean + " ; detection time="
+					+ String.format("%.3f", durationSec) + " s for " + nFrames + " frames");
 		}
 		return lightStatus;
 	}

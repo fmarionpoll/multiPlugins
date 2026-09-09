@@ -22,14 +22,17 @@ import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Persists vertical strip layout (stacked spot band heights) for cage kymograph TIFFs in the bin
- * directory next to {@code kymocage_*.tif*}. Written when kymographs are built; pick/analysis read
- * it so layout stays correct if spot ROIs are edited later. Falls back to
- * {@link CageKymographSpotBands#layout} when the file is missing or does not match the experiment.
+ * CODEX Persists vertical strip layout (stacked spot band heights) for cage
+ * kymograph TIFFs in the bin directory next to {@code kymocage_*.tif*}. Written
+ * when kymographs are built; pick/analysis read it so layout stays correct if
+ * spot ROIs are edited later. Falls back to
+ * {@link CageKymographSpotBands#layout} when the file is missing or does not
+ * match the experiment.
  * <p>
- * Meta also stores the kymograph column time grid ({@code kymo_first_ms}, {@code kymo_last_ms},
- * {@code kymo_step_ms}) used at export so column→camera-frame mapping stays correct when the
- * camera interval differs from the kymograph bin (nearest-frame sampling at build time).
+ * Meta also stores the kymograph column time grid ({@code kymo_first_ms},
+ * {@code kymo_last_ms}, {@code kymo_step_ms}) used at export so
+ * column→camera-frame mapping stays correct when the camera interval differs
+ * from the kymograph bin (nearest-frame sampling at build time).
  * <p>
  * Spot names must not contain {@code ';'}.
  */
@@ -39,7 +42,10 @@ public final class CageKymographStripLayoutCsv {
 
 	private static final String VERSION_LINE = "#;version;2";
 
-	/** Time grid and width from {@link CageKymographStripLayoutCsv} when present and matching image width. */
+	/**
+	 * Time grid and width from {@link CageKymographStripLayoutCsv} when present and
+	 * matching image width.
+	 */
 	public static final class PersistedKymoGrid {
 		public final long firstMs;
 		public final long lastMs;
@@ -92,8 +98,8 @@ public final class CageKymographStripLayoutCsv {
 
 	/**
 	 * Writes layout for every cage that has at least one spot (same cages as
-	 * {@link CageSpotKymographBuilder} exports). Persists the kymograph time grid used for each column
-	 * (same values as {@link CageSpotKymographBuilder}).
+	 * {@link CageSpotKymographBuilder} exports). Persists the kymograph time grid
+	 * used for each column (same values as {@link CageSpotKymographBuilder}).
 	 */
 	public static void write(String binDirectory, Cages cages, Spots spots, int refCamWidth, int refCamHeight,
 			int kymographColumnCount, long kymoFirstMs, long kymoLastMs, long kymoStepMs) {
@@ -121,8 +127,7 @@ public final class CageKymographStripLayoutCsv {
 					+ ";kymograph_column_count;" + kymographColumnCount + ";kymo_first_ms;" + kymoFirstMs
 					+ ";kymo_last_ms;" + kymoLastMs + ";kymo_step_ms;" + kymoStepMs);
 			w.newLine();
-			w.write(
-					"#;file_base;strip_index;spot_name;height_px;geometry_missing (1 = placeholder row at build time)");
+			w.write("#;file_base;strip_index;spot_name;height_px;geometry_missing (1 = placeholder row at build time)");
 			w.newLine();
 			for (Cage cage : cages.cagesList) {
 				List<Spot> raw = cage != null ? cage.getSpotList(spots) : null;
@@ -154,13 +159,16 @@ public final class CageKymographStripLayoutCsv {
 	}
 
 	/**
-	 * Bands for one cage kymograph file, or null to fall back to ROI-based {@link CageKymographSpotBands#layout}.
+	 * Bands for one cage kymograph file, or null to fall back to ROI-based
+	 * {@link CageKymographSpotBands#layout}.
 	 *
-	 * @param kymographColumnCount logical kymograph width (columns); when {@code refCamWidth} or
-	 *            {@code refCamHeight} are &lt;= 0, only column count is checked against the file meta.
+	 * @param kymographColumnCount logical kymograph width (columns); when
+	 *                             {@code refCamWidth} or {@code refCamHeight} are
+	 *                             &lt;= 0, only column count is checked against the
+	 *                             file meta.
 	 */
-	public static List<CageKymographSpotBands> readBandsOrNull(String binDirectory, String kymocageFileBase,
-			Cage cage, Spots spots, int refCamWidth, int refCamHeight, int kymographColumnCount) {
+	public static List<CageKymographSpotBands> readBandsOrNull(String binDirectory, String kymocageFileBase, Cage cage,
+			Spots spots, int refCamWidth, int refCamHeight, int kymographColumnCount) {
 		if (binDirectory == null || kymocageFileBase == null || cage == null || spots == null
 				|| kymographColumnCount <= 0) {
 			return null;
@@ -211,12 +219,14 @@ public final class CageKymographStripLayoutCsv {
 	}
 
 	/**
-	 * Kymograph column time parameters stored next to cage kymograph TIFFs, or null if the file is
-	 * missing, is legacy without time fields, or {@code kymographImageWidth} does not match.
+	 * Kymograph column time parameters stored next to cage kymograph TIFFs, or null
+	 * if the file is missing, is legacy without time fields, or
+	 * {@code kymographImageWidth} does not match.
 	 */
 	/**
-	 * Camera width/height stored when kymographs were built ({@code ref_cam_width/height} in
-	 * {@link #FILENAME}), or {@code null} if the layout file is missing.
+	 * Camera width/height stored when kymographs were built
+	 * ({@code ref_cam_width/height} in {@link #FILENAME}), or {@code null} if the
+	 * layout file is missing.
 	 */
 	public static int[] readRefCameraDimensionsOrNull(String binDirectory) {
 		if (binDirectory == null || binDirectory.isEmpty()) {

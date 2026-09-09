@@ -7,19 +7,27 @@ import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 
 /**
- * Post-lift binary mask (spot metric &gt; threshold, valid sum RGB) per spot band, optionally after excluding pixels
- * that match a second insect-style metric on the same RGB. When the insect gate is on, each time column where insect
- * is detected anywhere in the band is marked; along each row, OFF gaps are filled when every column in the gap is
- * insect-marked: strictly between ON pixels (internal jump), or as a leading prefix before the first ON when the
- * bracketing ON run is at least {@link #MIN_HORIZONTAL_ON_RUN} columns (start-of-strip occlusion), up to
- * {@link #MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS}. Then: generic row-wise temporal gap closing, a single-pass vertical
- * bridge (only immediate 1-row holes), left-anchored 4-connected keep, and removal of sub-pixel-wide horizontal ON
- * runs. No leading fill to x=0. See {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns}.
+ * CODEX Post-lift binary mask (spot metric &gt; threshold, valid sum RGB) per
+ * spot band, optionally after excluding pixels that match a second insect-style
+ * metric on the same RGB. When the insect gate is on, each time column where
+ * insect is detected anywhere in the band is marked; along each row, OFF gaps
+ * are filled when every column in the gap is insect-marked: strictly between ON
+ * pixels (internal jump), or as a leading prefix before the first ON when the
+ * bracketing ON run is at least {@link #MIN_HORIZONTAL_ON_RUN} columns
+ * (start-of-strip occlusion), up to
+ * {@link #MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS}. Then: generic row-wise
+ * temporal gap closing, a single-pass vertical bridge (only immediate 1-row
+ * holes), left-anchored 4-connected keep, and removal of sub-pixel-wide
+ * horizontal ON runs. No leading fill to x=0. See
+ * {@link CageKymoAnalyzer.Params#maxRowOcclusionGapColumns}.
  */
 public final class KymoStripPostLiftMetricMask {
 
 	private static final int MIN_HORIZONTAL_ON_RUN = 2;
-	/** Max width (columns) of an insect-only OFF gap that may be bridged along a row between spot ON pixels. */
+	/**
+	 * Max width (columns) of an insect-only OFF gap that may be bridged along a row
+	 * between spot ON pixels.
+	 */
 	private static final int MAX_INSECT_COLUMN_MEDIATED_GAP_COLUMNS = 262144;
 
 	private KymoStripPostLiftMetricMask() {
@@ -41,7 +49,8 @@ public final class KymoStripPostLiftMetricMask {
 	}
 
 	/**
-	 * Same as {@link #build} but reuses a precomputed metric channel (same layout as {@code img} pixels).
+	 * Same as {@link #build} but reuses a precomputed metric channel (same layout
+	 * as {@code img} pixels).
 	 */
 	public static boolean[] buildWithMetric(IcyBufferedImage img, CageKymographSpotBands band,
 			CageKymoAnalyzer.Params params, int imgW, int imgH, double[] metric, int[] r, int[] g, int[] b, int nC) {
@@ -108,7 +117,8 @@ public final class KymoStripPostLiftMetricMask {
 	}
 
 	/**
-	 * For each time column x, true if some row in the band has valid RGB sum and insect metric on at (y,x).
+	 * For each time column x, true if some row in the band has valid RGB sum and
+	 * insect metric on at (y,x).
 	 */
 	private static void fillColumnInsectInBand(boolean[] colInsect, int w, int y0, int y1, double[] insectMetric,
 			int[] r, int[] g, int[] b, int nC, int minSum, CageKymoAnalyzer.Params params) {
@@ -135,8 +145,8 @@ public final class KymoStripPostLiftMetricMask {
 	}
 
 	/**
-	 * Along each row, fills OFF runs strictly bracketed by ON when every column in the run is insect-present in the
-	 * band (see {@link #fillColumnInsectInBand}).
+	 * Along each row, fills OFF runs strictly bracketed by ON when every column in
+	 * the run is insect-present in the band (see {@link #fillColumnInsectInBand}).
 	 */
 	private static void insectColumnMediatedRowBridges(boolean[] m, int w, int y0, int y1, boolean[] colInsect,
 			int maxBridge) {
@@ -200,8 +210,9 @@ public final class KymoStripPostLiftMetricMask {
 	}
 
 	/**
-	 * Fills a leading OFF prefix [0, firstOn) when every column in the prefix is insect-marked and the first ON run to
-	 * the right is at least {@code minBracketRun} columns (avoids extending to t=0 from a 1-pixel speck).
+	 * Fills a leading OFF prefix [0, firstOn) when every column in the prefix is
+	 * insect-marked and the first ON run to the right is at least
+	 * {@code minBracketRun} columns (avoids extending to t=0 from a 1-pixel speck).
 	 */
 	private static void insectColumnMediatedLeadingGaps(boolean[] m, int w, int y0, int y1, boolean[] colInsect,
 			int maxBridge, int minBracketRun) {
@@ -400,8 +411,8 @@ public final class KymoStripPostLiftMetricMask {
 	}
 
 	/**
-	 * Removes ON pixels that are not part of a horizontal run of at least {@code minRun} columns (same row). Kills
-	 * 1-pixel-wide vertical artifacts.
+	 * Removes ON pixels that are not part of a horizontal run of at least
+	 * {@code minRun} columns (same row). Kills 1-pixel-wide vertical artifacts.
 	 */
 	private static void stripShortHorizontalRuns(boolean[] m, int w, int y0, int y1, int minRun) {
 		if (minRun <= 1) {

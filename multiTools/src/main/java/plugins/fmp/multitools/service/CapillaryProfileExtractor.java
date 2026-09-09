@@ -11,8 +11,8 @@ import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.polyline.Bresenham;
 
 /**
- * Extracts a 1D intensity profile along a capillary ROI from a cam image (one
- * value per position along the line). Uses the same sampling as
+ * CODEX Extracts a 1D intensity profile along a capillary ROI from a cam image
+ * (one value per position along the line). Uses the same sampling as
  * KymographBuilder (Bresenham + disk radius) so the profile matches one column
  * of a kymograph.
  */
@@ -24,7 +24,8 @@ public final class CapillaryProfileExtractor {
 	/**
 	 * Builds the list of pixel masks along the ROI line (one mask per position).
 	 */
-	public static List<ArrayList<int[]>> buildMasksAlongRoi(ROI2D roi, int imageWidth, int imageHeight, int diskRadius) {
+	public static List<ArrayList<int[]>> buildMasksAlongRoi(ROI2D roi, int imageWidth, int imageHeight,
+			int diskRadius) {
 		List<ArrayList<int[]>> masks = new ArrayList<>();
 		ArrayList<Point2D> points = ROI2DUtilities.getCapillaryPoints(roi);
 		if (points == null || points.isEmpty())
@@ -103,8 +104,10 @@ public final class CapillaryProfileExtractor {
 	}
 
 	private static int clip(int v, int lo, int hi) {
-		if (v < lo) return lo;
-		if (v > hi) return hi;
+		if (v < lo)
+			return lo;
+		if (v > hi)
+			return hi;
 		return v;
 	}
 
@@ -112,7 +115,8 @@ public final class CapillaryProfileExtractor {
 	 * Extracts a 1D profile (one value per mask) by averaging pixel values in each
 	 * mask. Uses channel 0 of the source image.
 	 *
-	 * @return array of length masks.size(), or empty array if masks empty or image null
+	 * @return array of length masks.size(), or empty array if masks empty or image
+	 *         null
 	 */
 	public static int[] extractProfileFromMasks(IcyBufferedImage sourceImage, List<ArrayList<int[]>> masks) {
 		if (sourceImage == null || masks == null || masks.isEmpty())
@@ -144,7 +148,8 @@ public final class CapillaryProfileExtractor {
 	 * values in each mask. Use for direct-from-cam detection so color transforms
 	 * (e.g. 2G-(R+B)) get real R,G,B and do not zero out.
 	 *
-	 * @return new int[3][masks.size()] with {R, G, B} profiles, or null if masks empty or image null
+	 * @return new int[3][masks.size()] with {R, G, B} profiles, or null if masks
+	 *         empty or image null
 	 */
 	public static int[][] extractRgbProfileFromMasks(IcyBufferedImage sourceImage, List<ArrayList<int[]>> masks) {
 		if (sourceImage == null || masks == null || masks.isEmpty())

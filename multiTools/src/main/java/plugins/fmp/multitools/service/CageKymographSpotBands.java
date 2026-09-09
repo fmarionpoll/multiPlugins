@@ -12,20 +12,26 @@ import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Comparators;
 
 /**
- * Vertical band layout (y0 inclusive, y1 exclusive) for one cage's stacked kymograph image.
- * Matches row stacking in {@link CageSpotKymographBuilder}. When present in the kymograph bin,
- * {@link CageKymographStripLayoutCsv} overrides ROI-derived heights for picking and analysis.
+ * CODEX Vertical band layout (y0 inclusive, y1 exclusive) for one cage's
+ * stacked kymograph image. Matches row stacking in
+ * {@link CageSpotKymographBuilder}. When present in the kymograph bin,
+ * {@link CageKymographStripLayoutCsv} overrides ROI-derived heights for picking
+ * and analysis.
  * <p>
- * {@link #layout} emits <strong>one band per spot</strong> in the cage (name-sorted), so stack index aligns
- * with that ordering. When ROI geometry is missing, a one-pixel placeholder band ({@link #geometryMissing})
- * still reserves vertical space and analysis yields an all-NaN series for that spot.
+ * {@link #layout} emits <strong>one band per spot</strong> in the cage
+ * (name-sorted), so stack index aligns with that ordering. When ROI geometry is
+ * missing, a one-pixel placeholder band ({@link #geometryMissing}) still
+ * reserves vertical space and analysis yields an all-NaN series for that spot.
  */
 public final class CageKymographSpotBands {
 
 	public final Spot spot;
 	public final int y0;
 	public final int y1Exclusive;
-	/** When true, ROI was unusable; the band is a single-row placeholder and metrics are not computed from pixels. */
+	/**
+	 * When true, ROI was unusable; the band is a single-row placeholder and metrics
+	 * are not computed from pixels.
+	 */
 	public final boolean geometryMissing;
 
 	public CageKymographSpotBands(Spot spot, int y0, int y1Exclusive, boolean geometryMissing) {
@@ -40,8 +46,9 @@ public final class CageKymographSpotBands {
 	}
 
 	/**
-	 * Same ordering as {@link CageSpotKymographBuilder}: spots sorted by name, one band per spot.
-	 * Band height = clipped ROI bounding-box height, or a single-row placeholder if geometry is invalid.
+	 * Same ordering as {@link CageSpotKymographBuilder}: spots sorted by name, one
+	 * band per spot. Band height = clipped ROI bounding-box height, or a single-row
+	 * placeholder if geometry is invalid.
 	 */
 	public static List<CageKymographSpotBands> layout(Cage cage, Spots allSpots, int refSizex, int refSizey) {
 		List<CageKymographSpotBands> out = new ArrayList<>();

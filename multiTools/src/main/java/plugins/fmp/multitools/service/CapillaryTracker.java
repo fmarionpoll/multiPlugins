@@ -11,14 +11,15 @@ import icy.image.IcyBufferedImageUtil;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
-import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.registration.GaspardRigidRegistration;
 
 /**
- * Tracks capillary ROIs across frames using local phase correlation on cropped
- * regions. Translation-only; no rotation. For use by TrackCapillaries dialog.
+ * CODEX Tracks capillary ROIs across frames using local phase correlation on
+ * cropped regions. Translation-only; no rotation. For use by TrackCapillaries
+ * dialog.
  */
 public class CapillaryTracker {
 
@@ -31,10 +32,10 @@ public class CapillaryTracker {
 	 * correlation, and translates the ROI.
 	 *
 	 * @param seqCamData camera sequence with image loader and file list
-	 * @param cap       capillary to track
-	 * @param t0        reference frame (ROI from getAlongTAtT(t0) is the seed)
-	 * @param tEnd      last frame to track (inclusive)
-	 * @param marginPx  crop margin around ROI bounds
+	 * @param cap        capillary to track
+	 * @param t0         reference frame (ROI from getAlongTAtT(t0) is the seed)
+	 * @param tEnd       last frame to track (inclusive)
+	 * @param marginPx   crop margin around ROI bounds
 	 * @return map of frame index -> tracked ROI (includes t0)
 	 */
 	public Map<Long, ROI2D> track(Capillary cap, SequenceCamData seqCamData, int t0, int tEnd, int marginPx) {

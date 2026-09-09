@@ -10,9 +10,10 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
 
 /**
- * Cage-level kymograph aggregates of per-spot {@code 1 − KYMO_GREEN_HEIGHT_RATIO}, grouped by (stimulus,
- * concentration). Each bin sums finite per-spot consumption values (same role as {@code AGG_SUMCLEAN} on camera
- * traces).
+ * CODEX Cage-level kymograph aggregates of per-spot
+ * {@code 1 − KYMO_GREEN_HEIGHT_RATIO}, grouped by (stimulus, concentration).
+ * Each bin sums finite per-spot consumption values (same role as
+ * {@code AGG_SUMCLEAN} on camera traces).
  */
 public final class CageKymoGreenHeightAggregation {
 
@@ -45,7 +46,10 @@ public final class CageKymoGreenHeightAggregation {
 		return buildSumConsoByStimulusConcFromSources(sources, nBins);
 	}
 
-	/** Builds stimulus/conc sums from persisted per-spot {@link Spot} kymograph h/h_max series. */
+	/**
+	 * Builds stimulus/conc sums from persisted per-spot {@link Spot} kymograph
+	 * h/h_max series.
+	 */
 	public static List<SumSeries> buildSumConsoByStimulusConcFromSpots(List<Spot> spots, int nBins) {
 		if (spots == null || spots.isEmpty() || nBins <= 0) {
 			return List.of();

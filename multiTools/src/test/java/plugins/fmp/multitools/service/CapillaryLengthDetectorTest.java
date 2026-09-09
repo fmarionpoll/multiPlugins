@@ -20,12 +20,28 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.ImageData;
 import plugins.fmp.multitools.service.CapillaryLengthDetector.TipFind;
 
 /**
- * Checks that walking inward from each ROI end recovers the glass tips: empty
- * tops count, the rack bar in the middle is ignored, a fly in the overhang is
- * not a tip, and peripheral tubes stay shorter than central ones without a
- * length prior.
+ * CODEX Checks that walking inward from each ROI end recovers the glass tips:
+ * empty tops count, the rack bar in the middle is ignored, a fly in the
+ * overhang is not a tip, and peripheral tubes stay shorter than central ones
+ * without a length prior.
  */
 public class CapillaryLengthDetectorTest {
+
+	@Test
+	public void inferredAndWeakEndpointsRequireReviewEvenWhenUsable() {
+		CapillaryLengthResult.Measure m = new CapillaryLengthResult.Measure(null, "0L", 300);
+		m.setStartConfidence(3.);
+		m.setEndConfidence(3.);
+		m.setStatus(CapillaryLengthResult.Status.OK);
+		assertTrue(!m.needsReview());
+		m.setStatus(CapillaryLengthResult.Status.CORRECTED);
+		assertTrue(m.getStatus().isUsable() && m.needsReview());
+		m.setStatus(CapillaryLengthResult.Status.BORDER);
+		assertTrue(m.needsReview());
+		m.setStatus(CapillaryLengthResult.Status.OK);
+		m.setEndConfidence(.5);
+		assertTrue(m.needsReview());
+	}
 
 	private static final int IMAGE_WIDTH = 1024;
 	private static final int IMAGE_HEIGHT = 520;
@@ -40,6 +56,7 @@ public class CapillaryLengthDetectorTest {
 		assertEquals(0., options.tipInsetHalfWidthScale, 0.);
 		assertEquals(0.75, options.frameScalePriorWeight, 0.);
 	}
+
 	private static final int OVERHANG = 8;
 
 	private static final double BACKGROUND_LEVEL = 200.;
@@ -152,8 +169,8 @@ public class CapillaryLengthDetectorTest {
 		CapillaryLengthDetector.validate(result, IMAGE_WIDTH, options, anchor);
 		assertEquals("the soft prior should retain one quarter of the detected scale difference",
 				18. * (1. - options.frameScalePriorWeight), anchor - result.getMedianPixels(), 2.);
-		assertTrue(result.getMeasures().get(0).getDetectedPixels()
-				< result.getMeasures().get(N_CAPILLARIES / 2).getDetectedPixels());
+		assertTrue(result.getMeasures().get(0).getDetectedPixels() < result.getMeasures().get(N_CAPILLARIES / 2)
+				.getDetectedPixels());
 	}
 
 	@Test
@@ -175,8 +192,8 @@ public class CapillaryLengthDetectorTest {
 		CapillaryLengthResult.Measure broken = result.getMeasures().get(brokenIndex);
 		assertEquals(CapillaryLengthResult.Status.CORRECTED, broken.getStatus());
 		assertTrue("a corrected outlier must be applied by default", broken.isSelected());
-		assertEquals("the short tube must be replaced by the trend", broken.getFittedPixels(), broken.getDetectedPixels(),
-				1.);
+		assertEquals("the short tube must be replaced by the trend", broken.getFittedPixels(),
+				broken.getDetectedPixels(), 1.);
 		assertTrue("the comment must record the original length, was: " + broken.getMessage(),
 				broken.getMessage().contains("replaced") && broken.getMessage().contains("trend"));
 		assertTrue("all capillaries must stay selected after the snap, only " + result.countSelected() + " were",
@@ -292,9 +309,36 @@ public class CapillaryLengthDetectorTest {
 		ArrayList<int[]> offsetAxis = overhangingAxis(capillaryX + 4, TUBE_TOP, rackTubeLength(index));
 		Geometry geometry = CapillaryLengthDetector.estimateGeometry(offsetAxis, image, options);
 		assertEquals("profile should recover the four-pixel lateral displacement", 4., geometry.offset, 1.5);
-		Point2D corrected = CapillaryLengthDetector.interpolateOffsetPoint(offsetAxis, OVERHANG,
-				geometry.offset, options.tangentWindow);
+		Point2D corrected = CapillaryLengthDetector.interpolateOffsetPoint(offsetAxis, OVERHANG, geometry.offset,
+				options.tangentWindow);
 		assertEquals("blue point should be centred on the capillary", capillaryX, corrected.getX(), 1.5);
+	}
+
+	@Test
+	public void jointWallsRecoverStraightAndTiltedTubesThroughLocalObstruction() {
+		for (double displacement : new double[] { 0., 3. }) {
+			int width = 80, height = 240;
+			double[][] channels = new double[1][width * height];
+			ArrayList<int[]> axis = new ArrayList<>();
+			for (int y = 0; y < height; y++) {
+				double centre = 40. + displacement * (y / (height - 1.) - .5);
+				for (int x = 0; x < width; x++) {
+					double l = x - (centre - 4.), r = x - (centre + 4.);
+					double value = 200. - 80. * Math.exp(-l * l / .8) - 65. * Math.exp(-r * r / .8);
+					if (y >= 100 && y < 125)
+						value = 30.;
+					channels[0][x + y * width] = value;
+				}
+				axis.add(new int[] { 43, y });
+			}
+			Geometry g = CapillaryLengthDetector.estimateGeometry(axis, new ImageData(width, height, channels),
+					syntheticOptions());
+			Point2D top = CapillaryLengthDetector.interpolateOffsetPoint(axis, 0, g.offset, g.offsetSlope, 8);
+			Point2D bottom = CapillaryLengthDetector.interpolateOffsetPoint(axis, height - 1, g.offset, g.offsetSlope,
+					8);
+			assertEquals("centre", 40., .5 * (top.getX() + bottom.getX()), .75);
+			assertEquals("shaft displacement", displacement, bottom.getX() - top.getX(), 1.);
+		}
 	}
 
 	@Test
@@ -322,8 +366,10 @@ public class CapillaryLengthDetectorTest {
 		double length = located.endFrac - located.startFrac;
 
 		assertEquals(rackTubeLength(9), length, 3.);
-		assertTrue("the air column must not be dropped, " + length + " px measured for a tube whose liquid alone is "
-				+ (rackTubeLength(9) - EMPTY_TOP_LENGTH) + " px", length > rackTubeLength(9) - EMPTY_TOP_LENGTH + 20.);
+		assertTrue(
+				"the air column must not be dropped, " + length + " px measured for a tube whose liquid alone is "
+						+ (rackTubeLength(9) - EMPTY_TOP_LENGTH) + " px",
+				length > rackTubeLength(9) - EMPTY_TOP_LENGTH + 20.);
 	}
 
 	@Test
@@ -500,8 +546,8 @@ public class CapillaryLengthDetectorTest {
 		ArrayList<int[]> axis = overhangingAxis(capillaryX(index), TUBE_TOP, rackTubeLength(index));
 		AxisMeasure located = CapillaryLengthDetector.locateAlongAxis(axis, combined, syntheticOptions());
 		assertTrue(located.found);
-		assertEquals("a fly present in a minority of frames must not become the tip",
-				OVERHANG + rackTubeLength(index), located.endFrac, 3.);
+		assertEquals("a fly present in a minority of frames must not become the tip", OVERHANG + rackTubeLength(index),
+				located.endFrac, 3.);
 	}
 
 	@Test
@@ -665,8 +711,7 @@ public class CapillaryLengthDetectorTest {
 			double length = i == brokenIndex ? trueLength(i) - 120. : trueLength(i);
 			int yEnd = (int) Math.round(CAPILLARY_TOP + length);
 			for (int y = CAPILLARY_TOP; y < yEnd && y < IMAGE_HEIGHT; y++) {
-				double shade = BACKGROUND_LEVEL - 15. * (cx / (double) IMAGE_WIDTH)
-						+ 10. * (y / (double) IMAGE_HEIGHT);
+				double shade = BACKGROUND_LEVEL - 15. * (cx / (double) IMAGE_WIDTH) + 10. * (y / (double) IMAGE_HEIGHT);
 				for (int dx = -TUBE_HALF_WIDTH + 1; dx <= TUBE_HALF_WIDTH - 1; dx++) {
 					int x = cx + dx;
 					if (x < 0 || x >= IMAGE_WIDTH)

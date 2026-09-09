@@ -11,8 +11,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.swing.JButton;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
+import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JOptionPane;
@@ -23,7 +24,6 @@ import javax.swing.JTextArea;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
-import javax.swing.BorderFactory;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.frame.progress.ProgressFrame;
@@ -35,24 +35,28 @@ import icy.sequence.DimensionId;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
+import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
+import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
+import plugins.fmp.multitools.series.ProgressReporter;
+import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
 import plugins.fmp.multitools.service.CapillaryLengthDetector;
 import plugins.fmp.multitools.service.CapillaryLengthDetectorOptions;
 import plugins.fmp.multitools.service.CapillaryLengthResult;
-import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
-import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
-import plugins.fmp.multitools.series.ProgressReporter;
-import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionAnalysis;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionProposal;
+import plugins.fmp.multitools.service.tracking.RackTrackingService;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthMeasureDialog;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
+/*
+ * CODEX
+ */
 public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private static final long serialVersionUID = 1L;
@@ -204,8 +208,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		boundaryList.setCellRenderer((list, value, index, selected, focus) -> {
 			String prefix = value.getOrigin() == TrackingBoundary.Origin.MANUAL ? "manual" : "suggested";
 			String reason = value.getReason().isEmpty() ? "" : " — " + value.getReason();
-			JLabel label = new JLabel("T=" + value.getFrame() + "  " + prefix + " / "
-					+ value.getStatus().name().toLowerCase() + reason);
+			JLabel label = new JLabel(
+					"T=" + value.getFrame() + "  " + prefix + " / " + value.getStatus().name().toLowerCase() + reason);
 			if (selected) {
 				label.setOpaque(true);
 				label.setBackground(list.getSelectionBackground());
@@ -452,7 +456,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void runTrackingInWorker(int tStart, int tEnd) {
-		if (rackRunning || legacyTrackingRunning) return;
+		if (rackRunning || legacyTrackingRunning)
+			return;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
@@ -539,8 +544,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
 		int t = getViewerPositionT();
-		int updated = CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(),
-				exp.getSeqCamData(), t);
+		int updated = CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData(),
+				t);
 		if (updated == 0) {
 			JOptionPane.showMessageDialog(this, "No editable light-blue capillary lines were found.",
 					"Physical capillaries", JOptionPane.INFORMATION_MESSAGE);
@@ -566,8 +571,16 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		}
 		showInitialGeometryPreview(exp, result);
 		setViewerPositionT(0);
+		int reviewCount = 0;
+		int missingCount = 0;
+		for (CapillaryLengthResult.Measure measure : result.getMeasures()) {
+			if (!measure.hasDetectedEndpoints())
+				missingCount++;
+			else if (measure.needsReview())
+				reviewCount++;
+		}
 		boolean accepted = CapillaryLengthMeasureDialog.showAndConfirm(this, result,
-				"Review provisional physical capillaries at T=0");
+				"T=0: " + reviewCount + " orange (review), " + missingCount + " missing");
 		if (!accepted) {
 			CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
 			return;
@@ -587,7 +600,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			ROI2DLine roi = new ROI2DLine(measure.getDetectedStart(), measure.getDetectedEnd());
 			roi.setName(CapillaryMeasuredTipsOverlay.ROI_PREFIX
 					+ CapillaryMeasuredTipsOverlay.tipSuffix(measure.getCapillary(), fallback++));
-			roi.setColor(measure.getStatus().isUsable() ? CapillaryMeasuredTipsOverlay.ROI_COLOR : Color.ORANGE);
+			roi.setColor(measure.needsReview() ? Color.ORANGE : CapillaryMeasuredTipsOverlay.ROI_COLOR);
 			roi.setStroke(3);
 			roi.setReadOnly(false);
 			roi.setT(-1);
@@ -597,7 +610,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private void runRackTracking() {
 		final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null || exp.getSeqCamData() == null || rackRunning || legacyTrackingRunning) return;
+		if (exp == null || exp.getSeqCamData() == null || rackRunning || legacyTrackingRunning)
+			return;
 		final double threshold = ((Number) rackPhaseSpinner.getValue()).doubleValue();
 		rackCancelled = false;
 		rackRunning = true;
@@ -605,29 +619,33 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		stopRackButton.setEnabled(true);
 		validateBlueButton.setEnabled(false);
 		final ProgressFrame pf = new ProgressFrame("Tracking rack from image 0");
-		new SwingWorker<plugins.fmp.multitools.service.tracking.RackTrackingService.Scan, Void>() {
-			@Override protected plugins.fmp.multitools.service.tracking.RackTrackingService.Scan doInBackground()
-					throws Exception {
-				return new plugins.fmp.multitools.service.tracking.RackTrackingService().scan(exp, threshold,
-						() -> rackCancelled, frame -> SwingUtilities.invokeLater(() -> pf.setMessage("Frame " + frame)));
+		new SwingWorker<RackTrackingService.Scan, Void>() {
+			@Override
+			protected RackTrackingService.Scan doInBackground() throws Exception {
+				return new RackTrackingService().scan(exp, threshold, () -> rackCancelled,
+						frame -> SwingUtilities.invokeLater(() -> pf.setMessage("Frame " + frame)));
 			}
-			@Override protected void done() {
+
+			@Override
+			protected void done() {
 				try {
-					plugins.fmp.multitools.service.tracking.RackTrackingService.Scan scan = get();
-					if (scan.cancelled || rackCancelled) return;
+					RackTrackingService.Scan scan = get();
+					if (scan.cancelled || rackCancelled)
+						return;
 					scan.apply();
 					showBlueOnly();
-					JOptionPane.showMessageDialog(TrackCapillaries.this,
-							scan.frames + " frames, " + scan.phases + " geometry phases, " + scan.uncertain
+					JOptionPane.showMessageDialog(TrackCapillaries.this, scan.frames + " frames, " + scan.phases
+							+ " geometry phases, " + scan.uncertain
 							+ " uncertain frames (last accepted position retained).\n"
 							+ "Blue phases are ready to inspect with the viewer and endpoint plot. Use Save to persist.\n"
-							+ "Report: " + scan.reportPath,
-							"Rack tracking complete", JOptionPane.INFORMATION_MESSAGE);
+							+ "Report: " + scan.reportPath, "Rack tracking complete", JOptionPane.INFORMATION_MESSAGE);
 				} catch (Exception ex) {
 					JOptionPane.showMessageDialog(TrackCapillaries.this, "Rack tracking failed: " + ex.getMessage());
 				} finally {
-					pf.close(); rackRunning = false;
-					rackTrackingButton.setEnabled(true); stopRackButton.setEnabled(false);
+					pf.close();
+					rackRunning = false;
+					rackTrackingButton.setEnabled(true);
+					stopRackButton.setEnabled(false);
 					validateBlueButton.setEnabled(true);
 				}
 			}
@@ -661,8 +679,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		transitionAnalysisWorker = new SwingWorker<TransitionAnalysis, Void>() {
 			@Override
 			protected TransitionAnalysis doInBackground() {
-				return new ExperimentMovementPrescanner().analyzeTransitions(exp, from, to, minimum,
-						cancelToken::get, (current, total) -> SwingUtilities.invokeLater(() -> {
+				return new ExperimentMovementPrescanner().analyzeTransitions(exp, from, to, minimum, cancelToken::get,
+						(current, total) -> SwingUtilities.invokeLater(() -> {
 							if (analysisGeneration != transitionAnalysisGeneration)
 								return;
 							progress.setMessage("Analyzing frame " + (from + current) + " / " + to);
@@ -684,16 +702,17 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 					if (!result.succeeded())
 						proposalStatusLabel.setText("Analysis failed: " + result.error);
 					else {
-						String status = result.proposals.size() + " proposal(s), "
-								+ result.comparedFrames + " pairs, threshold "
-								+ String.format("%.1f px", result.thresholdUsed)
+						String status = result.proposals.size() + " proposal(s), " + result.comparedFrames
+								+ " pairs, threshold " + String.format("%.1f px", result.thresholdUsed)
 								+ (result.proposals.isEmpty() && result.baselinePeakFrame >= 0
 										? String.format(" — baseline peak %.2f px at T=%d, tail %d/%d, inliers %.0f%%",
 												result.baselinePeakScore, result.baselinePeakFrame,
 												result.baselineTailSupported, result.baselineTailFrames,
-												result.baselinePeakInlierFraction * 100) : "")
+												result.baselinePeakInlierFraction * 100)
+										: "")
 								+ (result.proposals.isEmpty() && result.strongest != null
-										? " — strongest below threshold: " + result.strongest.summary() : "")
+										? " — strongest below threshold: " + result.strongest.summary()
+										: "")
 								+ (result.cancelled ? " (stopped)" : "");
 						proposalStatusLabel.setText(status);
 						proposalStatusLabel.setToolTipText(status);
@@ -835,9 +854,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private void showGreenAgain(Experiment exp) {
 		if (exp != null && exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
-			parent0.paneExperiment.tabOptions.displayROIsCategory(
-					exp.getSeqCamData().getSequence().getFirstViewer(), "line",
-					parent0.viewOptions.isViewCapillaries());
+			parent0.paneExperiment.tabOptions.displayROIsCategory(exp.getSeqCamData().getSequence().getFirstViewer(),
+					"line", parent0.viewOptions.isViewCapillaries());
 	}
 
 	private void bindSelectedExperiment() {
@@ -854,12 +872,12 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		if (trackedViewer != null)
 			trackedViewer.removeListener(this);
 		trackedExperiment = selected;
-		if (rackRunning) rackCancelled = true;
+		if (rackRunning)
+			rackCancelled = true;
 		proposalListModel.clear();
 		proposalStatusLabel.setText("No transition analysis run for this experiment.");
 		trackedViewer = null;
-		if (selected == null || selected.getSeqCamData() == null
-				|| selected.getSeqCamData().getSequence() == null) {
+		if (selected == null || selected.getSeqCamData() == null || selected.getSeqCamData().getSequence() == null) {
 			boundaryListModel.clear();
 			return;
 		}

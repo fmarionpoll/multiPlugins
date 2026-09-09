@@ -9,8 +9,9 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Combines noisy per-capillary motion estimates into one rigid-frame planar
- * transform. Each capillary contributes its two physical glass endpoints.
+ * CODEX Combines noisy per-capillary motion estimates into one rigid-frame
+ * planar transform. Each capillary contributes its two physical glass
+ * endpoints.
  */
 public final class CapillaryFrameRegistration {
 	private final PlanarTransformFitter fitter = new PlanarTransformFitter();
@@ -74,9 +75,20 @@ public final class CapillaryFrameRegistration {
 			this.landmarkCount = landmarkCount;
 		}
 
-		public PlanarTransformFit getFit() { return fit; }
-		public List<Line2D> getRegisteredLines() { return registeredLines; }
-		public List<Integer> getInlierCapillaryIndices() { return inlierCapillaryIndices; }
-		public int getLandmarkCount() { return landmarkCount; }
+		public PlanarTransformFit getFit() {
+			return fit;
+		}
+
+		public List<Line2D> getRegisteredLines() {
+			return registeredLines;
+		}
+
+		public List<Integer> getInlierCapillaryIndices() {
+			return inlierCapillaryIndices;
+		}
+
+		public int getLandmarkCount() {
+			return landmarkCount;
+		}
 	}
 }

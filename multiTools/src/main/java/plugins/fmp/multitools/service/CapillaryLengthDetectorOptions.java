@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.service;
 
 /**
- * Parameters of the ROI-end change-point measurement performed by
+ * CODEX Parameters of the ROI-end change-point measurement performed by
  * {@link CapillaryLengthDetector}.
  */
 public class CapillaryLengthDetectorOptions {
@@ -18,8 +18,8 @@ public class CapillaryLengthDetectorOptions {
 	public int nFramesAveraged = 1;
 
 	/**
-	 * Spacing between those frames. A fly sitting for a couple of frames is
-	 * then outvoted by the median; the glass walls are in every frame.
+	 * Spacing between those frames. A fly sitting for a couple of frames is then
+	 * outvoted by the median; the glass walls are in every frame.
 	 */
 	public int frameStride = 3;
 
@@ -39,8 +39,8 @@ public class CapillaryLengthDetectorOptions {
 
 	/**
 	 * Upper bound when the first window is still outside the tube (a longer
-	 * overhang into the cage). Past this the ROI is treated as not containing
-	 * the tip.
+	 * overhang into the cage). Past this the ROI is treated as not containing the
+	 * tip.
 	 */
 	public int inwardSearchMaxPixels = 120;
 
@@ -60,9 +60,9 @@ public class CapillaryLengthDetectorOptions {
 	public int confirmationPixels = 12;
 
 	/**
-	 * Minimum rise of the wall score above the overhang baseline to treat a
-	 * sample as glass. Empty glass is only a little darker than air, so this
-	 * must stay low; liquid is not used as the inside reference.
+	 * Minimum rise of the wall score above the overhang baseline to treat a sample
+	 * as glass. Empty glass is only a little darker than air, so this must stay
+	 * low; liquid is not used as the inside reference.
 	 */
 	public double capillaryScoreThreshold = 0.8;
 
@@ -78,7 +78,10 @@ public class CapillaryLengthDetectorOptions {
 	public double tipInsetMinPixels = 2.0;
 	public double tipInsetMaxPixels = 6.0;
 
-	/** Minimum detected length, as a fraction of the ROI length, to accept a measure. */
+	/**
+	 * Minimum detected length, as a fraction of the ROI length, to accept a
+	 * measure.
+	 */
 	public double minLengthFraction = 0.30;
 
 	/** Robust deviation beyond which a capillary is flagged as an outlier. */
@@ -107,6 +110,8 @@ public class CapillaryLengthDetectorOptions {
 	/** Use the detected ten-cage frame to anchor the absolute length trend. */
 	public boolean useFrameScalePrior = true;
 
-	/** Physical length of the calibrated capillaries, used for reporting mm/pixel. */
+	/**
+	 * Physical length of the calibrated capillaries, used for reporting mm/pixel.
+	 */
 	public double physicalLengthMm = 32.0;
 }

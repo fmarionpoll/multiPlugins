@@ -7,18 +7,14 @@ import java.util.List;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 
 /**
- * Outcome of a {@link CapillaryLengthDetector} run over one experiment: one
- * {@link Measure} per capillary plus the cross-capillary statistics used to
+ * CODEX Outcome of a {@link CapillaryLengthDetector} run over one experiment:
+ * one {@link Measure} per capillary plus the cross-capillary statistics used to
  * spot detection failures.
  */
 public class CapillaryLengthResult {
 
 	public enum Status {
-		OK("ok"),
-		BORDER("reaches ROI end"),
-		CORRECTED("replaced by trend"),
-		OUTLIER("outlier"),
-		FAILED("not detected"),
+		OK("ok"), BORDER("reaches ROI end"), CORRECTED("replaced by trend"), OUTLIER("outlier"), FAILED("not detected"),
 		NO_ROI("no ROI");
 
 		private final String label;
@@ -54,8 +50,13 @@ public class CapillaryLengthResult {
 		private boolean selected = false;
 		private int frameIndex = 0;
 
-		public int getFrameIndex() { return frameIndex; }
-		public void setFrameIndex(int frameIndex) { this.frameIndex = Math.max(0, frameIndex); }
+		public int getFrameIndex() {
+			return frameIndex;
+		}
+
+		public void setFrameIndex(int frameIndex) {
+			this.frameIndex = Math.max(0, frameIndex);
+		}
 
 		public Measure(Capillary capillary, String name, int previousPixels) {
 			this.capillary = capillary;
@@ -145,6 +146,12 @@ public class CapillaryLengthResult {
 			return status;
 		}
 
+		/** Usable geometry can still require review; confidence is a contrast score. */
+		public boolean needsReview() {
+			return status != Status.OK || !Double.isFinite(startConfidence) || !Double.isFinite(endConfidence)
+					|| startConfidence < 2. || endConfidence < 2.;
+		}
+
 		public void setStatus(Status status) {
 			this.status = status;
 		}
@@ -218,7 +225,9 @@ public class CapillaryLengthResult {
 		this.physicalLengthMm = physicalLengthMm;
 	}
 
-	public double getFrameExpectedPixels() { return frameExpectedPixels; }
+	public double getFrameExpectedPixels() {
+		return frameExpectedPixels;
+	}
 
 	public void setFrameExpectedPixels(double frameExpectedPixels) {
 		this.frameExpectedPixels = frameExpectedPixels;

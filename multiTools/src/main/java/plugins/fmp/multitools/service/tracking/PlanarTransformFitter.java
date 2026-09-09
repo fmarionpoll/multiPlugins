@@ -7,7 +7,10 @@ import java.util.List;
 
 import plugins.fmp.multitools.service.tracking.PlanarTransform.Model;
 
-/** Robust hierarchical fit of the simplest planar model supported by landmarks. */
+/**
+ * CODEX Robust hierarchical fit of the simplest planar model supported by
+ * landmarks.
+ */
 public final class PlanarTransformFitter {
 	public static final double DEFAULT_MIN_RMS_IMPROVEMENT_PX = 0.35;
 	public static final double DEFAULT_MIN_RELATIVE_IMPROVEMENT = 0.15;
@@ -166,17 +169,23 @@ public final class PlanarTransformFitter {
 					pivot = r;
 			if (Math.abs(a[pivot][col]) < 1e-10)
 				throw new IllegalArgumentException("degenerate landmark geometry");
-			double[] tmp = a[col]; a[col] = a[pivot]; a[pivot] = tmp;
+			double[] tmp = a[col];
+			a[col] = a[pivot];
+			a[pivot] = tmp;
 			double divisor = a[col][col];
-			for (int c = col; c <= n; c++) a[col][c] /= divisor;
+			for (int c = col; c <= n; c++)
+				a[col][c] /= divisor;
 			for (int r = 0; r < n; r++) {
-				if (r == col) continue;
+				if (r == col)
+					continue;
 				double factor = a[r][col];
-				for (int c = col; c <= n; c++) a[r][c] -= factor * a[col][c];
+				for (int c = col; c <= n; c++)
+					a[r][c] -= factor * a[col][c];
 			}
 		}
 		double[] result = new double[n];
-		for (int i = 0; i < n; i++) result[i] = a[i][n];
+		for (int i = 0; i < n; i++)
+			result[i] = a[i][n];
 		return result;
 	}
 
@@ -191,20 +200,25 @@ public final class PlanarTransformFitter {
 	}
 
 	private static double median(double[] values) {
-		if (values.length == 0) return 0;
+		if (values.length == 0)
+			return 0;
 		double[] copy = values.clone();
 		Arrays.sort(copy);
-		return copy.length % 2 == 1 ? copy[copy.length / 2]
-				: (copy[copy.length / 2 - 1] + copy[copy.length / 2]) / 2.0;
+		return copy.length % 2 == 1 ? copy[copy.length / 2] : (copy[copy.length / 2 - 1] + copy[copy.length / 2]) / 2.0;
 	}
 
 	private static int minimumPoints(Model model) {
 		switch (model) {
-		case TRANSLATION: return 1;
-		case SIMILARITY: return 2;
-		case AFFINE: return 3;
-		case PROJECTIVE: return 4;
-		default: throw new IllegalArgumentException(model.name());
+		case TRANSLATION:
+			return 1;
+		case SIMILARITY:
+			return 2;
+		case AFFINE:
+			return 3;
+		case PROJECTIVE:
+			return 4;
+		default:
+			throw new IllegalArgumentException(model.name());
 		}
 	}
 }

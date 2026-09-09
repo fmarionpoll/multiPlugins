@@ -16,7 +16,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 
 public class Edit extends JPanel {
 	/**
-	 * 
+	 * CODEX
 	 */
 	private static final long serialVersionUID = -7582410775062671523L;
 
