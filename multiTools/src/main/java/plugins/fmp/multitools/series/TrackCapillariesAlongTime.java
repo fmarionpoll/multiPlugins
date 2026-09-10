@@ -41,6 +41,10 @@ public class TrackCapillariesAlongTime {
 	private final CapillaryTracker tracker = new CapillaryTracker();
 	private final SequenceLoaderService loadSvc = new SequenceLoaderService();
 	private final CapillaryFrameRegistration frameRegistration = new CapillaryFrameRegistration();
+	private final Map<Integer, plugins.fmp.multitools.service.tracking.TipPatchTracker.AcceptedPositions> acceptedTips = new HashMap<>();
+	private int reviewObservations;
+	private int registrationFailures;
+	private final java.util.Set<Integer> reviewFrames = new java.util.HashSet<>();
 
 	public static final double DEFAULT_OUTLIER_MAD_FACTOR = 2.5;
 	public static final double DEFAULT_OUTLIER_MIN_PX = 5.0;
@@ -55,10 +59,21 @@ public class TrackCapillariesAlongTime {
 		int t1 = Math.max(tStart, tEnd);
 		double mad = (outlierMadFactor > 0 && !Double.isNaN(outlierMadFactor)) ? outlierMadFactor : DEFAULT_OUTLIER_MAD_FACTOR;
 		double minPx = (outlierMinPx >= 0) ? outlierMinPx : DEFAULT_OUTLIER_MIN_PX;
-		if (backward)
-			runBackward(exp, t1, t0, progress);
-		else
-			runForward(exp, t0, t1, progress, mad, minPx);
+		reviewObservations = 0;
+		registrationFailures = 0;
+		reviewFrames.clear();
+		acceptedTips.clear();
+		try {
+			if (backward)
+				runBackward(exp, t1, t0, progress);
+			else
+				runForward(exp, t0, t1, progress, mad, minPx);
+		} finally {
+			if (reviewObservations > 0 || registrationFailures > 0)
+				Logger.warn("Tracking summary: " + reviewObservations + " capillary/frame observations need review across "
+						+ reviewFrames.size() + " frames; " + registrationFailures
+						+ " shared-registration checks skipped. Review flags retained; repeated warnings suppressed.");
+		}
 	}
 
 	private void runForward(Experiment exp, int t0, int t1, ProgressReporter progress, double outlierMadFactor, double outlierMinPx) {
@@ -143,7 +158,7 @@ public class TrackCapillariesAlongTime {
 					Logger.debug("Local motion outliers at T=" + t + ": " + outlierIndices
 							+ " (handled automatically by robust frame registration)");
 				applyFrameRegistration(caps, indices, table, t0, t,
-						estimateCageMotions(exp, imgReference, imgCurr));
+						estimateCageMotions(exp, imgReference, imgCurr), imgReference, imgCurr);
 
 				int frameDone = t - t0;
 				progress.updateProgress("Frame " + t + "/" + t1, frameDone, nFrames);
@@ -229,7 +244,7 @@ public class TrackCapillariesAlongTime {
 				}
 				CompletableFuture.allOf(tasks.toArray(new CompletableFuture[0])).join();
 				applyFrameRegistration(caps, indices, table, tSeed, t,
-						estimateCageMotions(exp, imgReference, imgCurr));
+						estimateCageMotions(exp, imgReference, imgCurr), imgReference, imgCurr);
 				int frameDone = tSeed - 1 - t;
 				progress.updateProgress("Backward " + t + ".." + tSeed, frameDone, nFrames);
 			}
@@ -311,7 +326,14 @@ public class TrackCapillariesAlongTime {
 
 	/** Regularizes local translations with one robust transform of the rigid frame. */
 	private void applyFrameRegistration(List<Capillary> caps, List<Integer> indices, TrackedRoisByFrame table,
-			int sourceT, int targetT, Map<Integer, CageEndpointMotion> cageMotions) {
+			int sourceT, int targetT, Map<Integer, CageEndpointMotion> cageMotions,
+			IcyBufferedImage referenceImage, IcyBufferedImage currentImage) {
+		if (referenceImage.getWidth()!=currentImage.getWidth() || referenceImage.getHeight()!=currentImage.getHeight())
+			throw new IllegalArgumentException("Tracking images must have identical dimensions");
+		double[] reference=icy.type.collection.array.Array1DUtil.arrayToDoubleArray(referenceImage.getDataXY(0),referenceImage.isSignedDataType());
+		double[] current=icy.type.collection.array.Array1DUtil.arrayToDoubleArray(currentImage.getDataXY(0),currentImage.isSignedDataType());
+		plugins.fmp.multitools.service.tracking.TipPatchTracker tipTracker=new plugins.fmp.multitools.service.tracking.TipPatchTracker();
+		java.util.Set<Integer> uncertain=new java.util.HashSet<>();
 		List<Line2D> source = new ArrayList<Line2D>(caps.size());
 		List<Line2D> locallyTracked = new ArrayList<Line2D>(caps.size());
 		for (int i = 0; i < caps.size(); i++) {
@@ -343,11 +365,36 @@ public class TrackCapillariesAlongTime {
 			double dy2 = cageMotion == null ? dy : cageMotion.lower.getY();
 			locallyTracked.set(i, new Line2D.Double(physical.getX1() + dx, physical.getY1() + dy,
 					physical.getX2() + dx2, physical.getY2() + dy2));
+			plugins.fmp.multitools.service.tracking.TipPatchTracker.Match top=tipTracker.track(physical.getP1(),reference,current,referenceImage.getWidth(),referenceImage.getHeight());
+			plugins.fmp.multitools.service.tracking.TipPatchTracker.Match bottom=tipTracker.track(physical.getP2(),reference,current,referenceImage.getWidth(),referenceImage.getHeight());
+			// Cage motion is a check, never an overwrite of local endpoint observations.
+			boolean disagree=cageMotion!=null && (top.position.distance(physical.getX1()+dx,physical.getY1()+dy)>3.
+					|| bottom.position.distance(physical.getX2()+dx2,physical.getY2()+dy2)>3.);
+			if(!top.reliable || !bottom.reliable || disagree) {
+				uncertain.add(i);
+			}
+			plugins.fmp.multitools.service.tracking.TipPatchTracker.AcceptedPositions history=acceptedTips.get(i);
+			if (history==null) {
+				history=new plugins.fmp.multitools.service.tracking.TipPatchTracker.AcceptedPositions(physical);
+				acceptedTips.put(i,history);
+			}
+			// Keep each endpoint's last accepted position independently. Reference
+			// images remain fixed at the run anchor, including during backward runs.
+			locallyTracked.set(i,history.update(top,bottom));
 		}
+		Result result = null;
 		try {
-			Result result = frameRegistration.fit(source, locallyTracked);
+			result = frameRegistration.fit(source, locallyTracked);
+		} catch (IllegalArgumentException ex) {
+			registrationFailures++;
+			uncertain.addAll(indices);
+		}
+		{
 			for (int i : indices) {
-				Line2D registered = result.getRegisteredLines().get(i);
+				Line2D registered = locallyTracked.get(i);
+				Line2D shared = result == null ? null : result.getRegisteredLines().get(i);
+				if(registered!=null && shared!=null && (registered.getP1().distance(shared.getP1())>3.
+						|| registered.getP2().distance(shared.getP2())>3.)) uncertain.add(i);
 				ROI2D previous = table.getRoiAtNoCopy(i, sourceT);
 				if (registered == null || previous == null)
 					continue;
@@ -359,17 +406,17 @@ public class TrackCapillariesAlongTime {
 				}
 				ROI2DLine roi = new ROI2DLine(green);
 				roi.setName(previous.getName());
-				roi.setColor(previous.getColor());
+				roi.setColor(uncertain.contains(i)?java.awt.Color.ORANGE:previous.getColor());
 				roi.setStroke(previous.getStroke());
 				roi.setReadOnly(previous.isReadOnly());
 				table.setRoiAt(i, targetT, roi);
 			}
-			Logger.debug("Frame registration T=" + targetT + " model="
+			if (result != null) Logger.debug("Frame registration T=" + targetT + " model="
 					+ result.getFit().getTransform().getModel() + " rms=" + result.getFit().getRms() + " landmarks="
 					+ result.getLandmarkCount());
-		} catch (IllegalArgumentException ex) {
-			Logger.warn("Frame registration skipped at T=" + targetT + ": " + ex.getMessage());
 		}
+		reviewObservations += uncertain.size();
+		if (!uncertain.isEmpty()) reviewFrames.add(targetT);
 	}
 
 

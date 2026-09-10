@@ -70,7 +70,147 @@ public class CapillaryLengthDetector {
 		for (Capillary cap : capillaries.getList())
 			result.addMeasure(measureOneCapillary(cap, image, options));
 		validate(result, image.width, options, frameExpectedPixels);
+		refineEndpointEvidence(result, image, options);
 		return result;
+	}
+
+	/** Record support before any population-level correction can move the endpoints. */
+	static void protectSupportedEndpoints(CapillaryLengthResult.Measure m, ImageData image,
+			CapillaryLengthDetectorOptions options) {
+		m.supportedStart = null;
+		m.supportedEnd = null;
+		if (!m.hasDetectedEndpoints() || !m.getStatus().isUsable()) return;
+		Point2D a = m.getDetectedStart(), b = m.getDetectedEnd();
+		double length = a.distance(b);
+		if (length < 40.) return;
+		Geometry g = estimateGeometry(axisOf(m), image, options);
+		g.offset = 0.;
+		double dx = (b.getX()-a.getX())/length, dy = (b.getY()-a.getY())/length;
+		if (endpointTransition(a, dx, dy, g, image, options) == 0.)
+			m.supportedStart = new Point2D.Double(a.getX(), a.getY());
+		if (endpointTransition(b, -dx, -dy, g, image, options) == 0.)
+			m.supportedEnd = new Point2D.Double(b.getX(), b.getY());
+	}
+
+	/** Check final proposals, retaining independently supported raw endpoints. */
+	static void refineEndpointEvidence(CapillaryLengthResult result, ImageData image,
+			CapillaryLengthDetectorOptions options) {
+		for (CapillaryLengthResult.Measure m : result.getMeasures()) {
+			if (!m.isSelected() || !m.hasDetectedEndpoints()) continue;
+			Point2D a=m.getDetectedStart(), b=m.getDetectedEnd();
+			// Until glass and liquid tops have independent evidence, only protect
+			// a top that also agrees with the shared proposal to within 3 pixels.
+			boolean startIsTop = a.getY() <= b.getY();
+			boolean keepStart = m.supportedStart != null
+					&& (!startIsTop || a.distance(m.supportedStart) <= 3.);
+			boolean keepEnd = m.supportedEnd != null
+					&& (startIsTop || b.distance(m.supportedEnd) <= 3.);
+			double length=a.distance(b);
+			if(length<40.) continue;
+			Geometry g=estimateGeometry(axisOf(m),image,options); g.offset=0.;
+			double dx=(b.getX()-a.getX())/length,dy=(b.getY()-a.getY())/length;
+			double sa=keepStart ? 0. : endpointTransition(a,dx,dy,g,image,options);
+			double sb=keepEnd ? 0. : endpointTransition(b,-dx,-dy,g,image,options);
+			// Local contrast is supporting evidence, not an exact physical boundary.
+			// Dampen the adjustment to avoid jumping onto a neighbouring optical edge.
+			sa *= .5; sb *= .5;
+			Point2D na=Double.isFinite(sa)?new Point2D.Double(a.getX()+sa*dx,a.getY()+sa*dy):a;
+			Point2D nb=Double.isFinite(sb)?new Point2D.Double(b.getX()-sb*dx,b.getY()-sb*dy):b;
+			if (keepStart) na = new Point2D.Double(m.supportedStart.getX(), m.supportedStart.getY());
+			if (keepEnd) nb = new Point2D.Double(m.supportedEnd.getX(), m.supportedEnd.getY());
+			m.setDetectedEndpoints(na,nb); m.setDetectedPixels(na.distance(nb));
+			if(!Double.isFinite(sa)||!Double.isFinite(sb)) {
+				m.setStatus(CapillaryLengthResult.Status.CORRECTED);
+				m.setMessage((!Double.isFinite(sa) ? "start " : "")
+						+ (!Double.isFinite(sb) ? "end " : "")
+						+ "inferred: local glass termination not confirmed");
+			} else if (sa != 0. || sb != 0.) {
+				m.setStatus(CapillaryLengthResult.Status.CORRECTED);
+				m.setMessage("endpoints adjusted using local glass/background evidence; review");
+			}
+		}
+		for (CapillaryLengthResult.Measure m : result.getMeasures()) {
+			if (!m.isSelected() || !m.hasDetectedEndpoints()) continue;
+			Point2D a=m.getDetectedStart(), b=m.getDetectedEnd();
+			boolean forward=a.getY()<=b.getY();
+			Geometry geometry=estimateGeometry(axisOf(m),image,options);
+			CapillaryGlassTipDetector.Evidence evidence=CapillaryGlassTipDetector.find(image,
+					forward?a:b,forward?b:a,geometry.halfWidth);
+			m.setLiquidTop(evidence.liquidTop);
+			if (evidence.glassTip != null) {
+				m.setDetectedEndpoints(forward?evidence.glassTip:a,forward?b:evidence.glassTip);
+				m.setDetectedPixels(m.getDetectedStart().distance(m.getDetectedEnd()));
+				m.setMessage("top located from paired glass-wall termination; liquid boundary measured separately");
+			} else {
+				m.setStatus(CapillaryLengthResult.Status.CORRECTED);
+				m.setMessage("top inferred: paired glass-wall termination not confirmed; review");
+			}
+		}
+		List<Double> lengths = new ArrayList<Double>();
+		for (CapillaryLengthResult.Measure m : result.getMeasures())
+			if (m.isSelected() && Double.isFinite(m.getDetectedPixels())) lengths.add(m.getDetectedPixels());
+		if (!lengths.isEmpty()) {
+			double[] values = toArray(lengths);
+			result.setMedianPixels(percentile(values,50.));
+			result.setMinPixels(min(values));
+			result.setMaxPixels(max(values));
+		}
+	}
+
+	private static double endpointTransition(Point2D end,double dx,double dy,Geometry g,
+			ImageData image,CapillaryLengthDetectorOptions options) {
+		double[] score=new double[33];
+		for(int k=0;k<score.length;k++) {
+			double x=end.getX()+(k-12)*dx,y=end.getY()+(k-12)*dy;
+			if(x<1||y<1||x>=image.width-1||y>=image.height-1) return Double.NaN;
+			score[k]=endpointCrossSection(image,x,y,new double[]{-dy,dx},g,options);
+		}
+		double best=0.,shift=Double.NaN;
+		for(int k=6;k<=18;k++) {
+			double outside=median(score,k-5,k-1),inside=median(score,k+1,k+9);
+			double noise=mad(copyRange(score,k-5,k-1),outside)+mad(copyRange(score,k+1,k+9),inside)+1.;
+			double contrast=(inside-outside)/noise;
+			if(inside<options.capillaryScoreThreshold||contrast<1.||outside>.5*inside) continue;
+			int supported=0;
+			for(int j=k+1;j<k+9;j++) if(score[j]>outside+.5*(inside-outside)) supported++;
+			if(supported<6) continue;
+			// A supported current boundary should not move merely because a nearby
+			// liquid edge gives greater contrast.
+			if(k==12) return 0.;
+			double quality=contrast/(1.+.1*Math.abs(k-12));
+			if(quality>best){best=quality;shift=k-12;}
+		}
+		return shift;
+	}
+
+	/** Side-specific background evidence also handles an opaque lateral frame branch. */
+	static double endpointCrossSection(ImageData image,double x,double y,double[] normal,
+			Geometry g,CapillaryLengthDetectorOptions options) {
+		int half=Math.max(GEOMETRY_HALF,options.perpendicularHalfLength);
+		double[] profile=new double[2*half+1];
+		for(int u=-half;u<=half;u++) {
+			double px=x+u*normal[0],py=y+u*normal[1];
+			if(px<0||py<0||px>=image.width||py>=image.height) return 0.;
+			profile[u+half]=grey(image,px,py);
+		}
+		int left=half-(int)Math.round(g.halfWidth),right=half+(int)Math.round(g.halfWidth);
+		if(left<3||right>=profile.length-3) return 0.;
+		double core=mean(profile,left+1,right);
+		double backgroundLeft=mean(profile,Math.max(0,left-5),left-1);
+		double backgroundRight=mean(profile,right+2,Math.min(profile.length,right+6));
+		boolean darkLeft=backgroundLeft<core-10.,darkRight=backgroundRight<core-10.;
+		if(darkLeft&&darkRight)
+			return .2*Math.min(core-backgroundLeft,core-backgroundRight);
+		if(darkLeft!=darkRight) {
+			// The visible opposite wall must support the bright-tube interpretation.
+			int wall=darkLeft?right:left;
+			double wallEvidence=0.;
+			for(int i=wall-1;i<=wall+1;i++) wallEvidence=Math.max(wallEvidence,localMinimumDepth(profile,i));
+			if(wallEvidence>.4)
+				return Math.min(.2*(core-Math.min(backgroundLeft,backgroundRight)),wallEvidence);
+			return 0.;
+		}
+		return pairedWallScore(image,x,y,normal,g,options);
 	}
 
 	static double estimateExpectedLengthFromFrame(Capillaries capillaries, ImageData image,
@@ -230,6 +370,7 @@ public class CapillaryLengthDetector {
 			measure.setMessage("");
 		}
 		measure.setSelected(true);
+		protectSupportedEndpoints(measure, image, options);
 		return measure;
 	}
 
@@ -1236,6 +1377,14 @@ public class CapillaryLengthDetector {
 				boolean forward = m.getDetectedStart().getY() <= m.getDetectedEnd().getY();
 				double topConfidence = forward ? m.getStartConfidence() : m.getEndConfidence();
 				double bottomConfidence = forward ? m.getEndConfidence() : m.getStartConfidence();
+				// Agreement of both local tips with the independent length estimate
+				// supports their placement; a shared midpoint must not move them as a pair.
+				if (m.getStatus() == CapillaryLengthResult.Status.OK
+						&& Math.abs(raw - target) <= 3.
+						&& topConfidence > 0. && bottomConfidence > 0.) {
+					newTop = observedTop;
+					newBot = observedBot;
+				}
 				if (topConfidence >= 2. && Math.abs(newTop - observedTop) <= 3.)
 					newTop = .5 * (newTop + observedTop);
 				if (bottomConfidence >= 2. && Math.abs(newBot - observedBot) <= 3.)

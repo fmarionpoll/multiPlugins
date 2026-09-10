@@ -69,19 +69,19 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JSpinner outlierMadFactorSpinner;
 	private JSpinner outlierMinPxSpinner;
 	private JSpinner transitionThresholdSpinner;
-	private JButton runFrameByFrameButton = new JButton("Run tracking");
-	private JButton rackTrackingButton = new JButton("Track rack from image 0 (full stack)");
+	private JButton runFrameByFrameButton = new JButton("Track validated tips");
+	private JButton rackTrackingButton = new JButton("Legacy: track rack from image 0");
 	private JButton stopRackButton = new JButton("Stop rack tracking");
 	private volatile boolean rackCancelled;
 	private boolean rackRunning;
 	private boolean legacyTrackingRunning;
 	private JSpinner rackPhaseSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
-	private JButton runFromCurrentTButton = new JButton("Run from current T");
-	private JButton runBackwardFromCurrentTButton = new JButton("Run backwards from current T");
+	private JButton runFromCurrentTButton = new JButton("Track tips from current T");
+	private JButton runBackwardFromCurrentTButton = new JButton("Track tips backwards from current T");
 	private JButton saveButton = new JButton("Save");
-	private JButton validateBlueButton = new JButton("Validate blue at current T");
+	private JButton validateBlueButton = new JButton("Validate adjusted tips at current T");
 	private JButton plotEndpointsButton = new JButton("Plot endpoint trajectories");
-	private JButton initializeBlueButton = new JButton("Initialize blue ROIs from T=0");
+	private JButton initializeBlueButton = new JButton("Initialize blue ROIs at image 0");
 	private JButton addBoundaryButton = new JButton("Add boundary at current T");
 	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
 	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
@@ -142,7 +142,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		topPanel.add(p1);
 
 		JPanel p1b = new JPanel(flow);
-		p1b.add(new JLabel("Inconsistent capillary motions are rejected automatically by the shared frame fit."));
+		p1b.add(new JLabel("Review uncertain tips; cage motion is a check, not a replacement."));
 		topPanel.add(p1b);
 
 		JPanel p2 = new JPanel(flow);
@@ -237,7 +237,74 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		boundariesScroll.setBorder(BorderFactory.createTitledBorder("Accepted tracking boundaries"));
 		listsPanel.add(proposalsScroll);
 		listsPanel.add(boundariesScroll);
-		dialogFrame.add(listsPanel, BorderLayout.CENTER);
+		// Main path: prepare, validate, track, inspect/save. Keep alternate methods
+		// available without presenting them as equivalent primary actions.
+		topPanel.removeAll();
+		JPanel prepare = new JPanel(flow);
+		prepare.add(new JLabel("1. Initialize"));
+		prepare.add(initializeBlueButton);
+		topPanel.add(prepare);
+		JPanel validate = new JPanel(flow);
+		validate.add(new JLabel("2. Adjust tips in the viewer, then"));
+		validate.add(validateBlueButton);
+		topPanel.add(validate);
+		topPanel.add(p1);
+		JPanel track = new JPanel(flow);
+		track.add(new JLabel("3."));
+		track.add(runFrameByFrameButton);
+		track.add(runFromCurrentTButton);
+		topPanel.add(track);
+		JPanel inspect = new JPanel(flow);
+		inspect.add(new JLabel("4. Inspect and save"));
+		inspect.add(plotEndpointsButton);
+		inspect.add(saveButton);
+		topPanel.add(inspect);
+		JPanel warning = new JPanel(flow);
+		warning.add(new JLabel("Tracking replaces geometry in the selected range. Review before saving."));
+		topPanel.add(warning);
+
+		JPanel advanced = new JPanel();
+		advanced.setLayout(new javax.swing.BoxLayout(advanced, javax.swing.BoxLayout.Y_AXIS));
+		JPanel backward = new JPanel(flow);
+		backward.add(runBackwardFromCurrentTButton);
+		advanced.add(backward);
+		JPanel backwardHelp = new JPanel(flow);
+		backwardHelp.add(new JLabel("Backwards: current viewer frame to From. Forward: From to To."));
+		advanced.add(backwardHelp);
+		advanced.add(p1b);
+		rackPanel.removeAll();
+		rackPanel.add(rackTrackingButton);
+		rackPanel.add(stopRackButton);
+		advanced.add(rackPanel);
+		JPanel rackOptions = new JPanel(flow);
+		rackOptions.add(new JLabel("Legacy blue phase change (px):"));
+		rackOptions.add(rackPhaseSpinner);
+		advanced.add(rackOptions);
+		JPanel rackWarning = new JPanel(flow);
+		rackWarning.add(new JLabel("Legacy rack method: replaces later blue phases; keeps image 0. Not tip tracking."));
+		advanced.add(rackWarning);
+		advanced.add(p5);
+		advanced.add(p6);
+		advanced.add(p7);
+		proposalStatusLabel.setColumns(55);
+		advanced.add(p8);
+		listsPanel.setPreferredSize(new java.awt.Dimension(680, 210));
+		advanced.add(listsPanel);
+		JScrollPane advancedScroll = new JScrollPane(advanced);
+		advancedScroll.setPreferredSize(new java.awt.Dimension(740, 300));
+		advancedScroll.setVisible(false);
+		javax.swing.JToggleButton advancedToggle = new javax.swing.JToggleButton("Show advanced / legacy controls");
+		JPanel toggleRow = new JPanel(flow);
+		toggleRow.add(advancedToggle);
+		topPanel.add(toggleRow);
+		dialogFrame.add(advancedScroll, BorderLayout.CENTER);
+		advancedToggle.addActionListener(e -> {
+			advancedScroll.setVisible(advancedToggle.isSelected());
+			advancedToggle.setText(advancedToggle.isSelected() ? "Hide advanced / legacy controls" : "Show advanced / legacy controls");
+			dialogFrame.pack();
+		});
+		runFrameByFrameButton.setToolTipText("Track physical tip patches from the From frame to the To frame; validate your starting tips first.");
+		rackTrackingButton.setToolTipText("Alternate legacy rack/phase method, not the validated-tip patch tracker.");
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
@@ -470,6 +537,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		ProgressReporter progress = progressReporterFor(pf);
 		legacyTrackingRunning = true;
 		rackTrackingButton.setEnabled(false);
+		saveButton.setEnabled(false);
+		plotEndpointsButton.setEnabled(false);
+		initializeBlueButton.setEnabled(false);
+		validateBlueButton.setEnabled(false);
 
 		new SwingWorker<Void, Void>() {
 			@Override
@@ -485,6 +556,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			protected void done() {
 				legacyTrackingRunning = false;
 				rackTrackingButton.setEnabled(true);
+				saveButton.setEnabled(true);
+				plotEndpointsButton.setEnabled(true);
+				initializeBlueButton.setEnabled(true);
+				validateBlueButton.setEnabled(true);
 				pf.close();
 			}
 		}.execute();
@@ -522,6 +597,9 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 				SwingUtilities.invokeLater(() -> {
 					pf.setMessage("Failed: " + errorMessage);
 					pf.close();
+					JOptionPane.showMessageDialog(TrackCapillaries.this,
+							"Tracking did not finish: " + errorMessage + "\nResults may cover only part of the requested range.",
+							"Tracking incomplete", JOptionPane.WARNING_MESSAGE);
 				});
 			}
 
@@ -534,6 +612,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void save() {
+		if (legacyTrackingRunning || rackRunning) {
+			JOptionPane.showMessageDialog(this, "Wait for tracking to finish before saving.");
+			return;
+		}
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp != null)
 			exp.save_capillaries_description_and_measures();

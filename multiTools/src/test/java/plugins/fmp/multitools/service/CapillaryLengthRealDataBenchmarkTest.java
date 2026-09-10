@@ -51,6 +51,7 @@ public class CapillaryLengthRealDataBenchmarkTest {
 			CapillaryLengthResult result = new CapillaryLengthResult();
 			Capillaries caps = new Capillaries();
 			List<CapillaryLengthResult.Measure> usable = new ArrayList<>();
+			Map<String, double[]> rawEndpoints = new LinkedHashMap<>();
 			for (Map.Entry<String, double[]> entry : green.entrySet()) {
 				String id = entry.getKey();
 				if (!truth.containsKey(id))
@@ -76,6 +77,8 @@ public class CapillaryLengthRealDataBenchmarkTest {
 				result.addMeasure(m);
 				if (m.getStatus().isUsable() && m.hasDetectedEndpoints()) {
 					usable.add(m);
+					rawEndpoints.put(id, new double[] { m.getDetectedStart().getX(), m.getDetectedStart().getY(),
+							m.getDetectedEnd().getX(), m.getDetectedEnd().getY() });
 					stageRow(root, id, "raw", m.getDetectedStart(), m.getDetectedEnd(), truth.get(id));
 				} else
 					System.out.println("STAGE_FAILED|" + root + "|" + id);
@@ -90,6 +93,13 @@ public class CapillaryLengthRealDataBenchmarkTest {
 					double.class);
 			trend.setAccessible(true);
 			trend.invoke(null, result, usable, image.width, options, expected);
+			for (CapillaryLengthResult.Measure m : usable)
+				stageRow(root, m.getCapillary().getKymographName(), "beforeLocal", m.getDetectedStart(),
+						m.getDetectedEnd(), truth.get(m.getCapillary().getKymographName()));
+			CapillaryLengthDetector.refineEndpointEvidence(result, image, options);
+			if (System.getProperty("capillary.diagnostic.output") != null)
+				CapillaryEndpointDiagnostic.export(new File(System.getProperty("capillary.diagnostic.output")),
+						root, firstJpeg(directory.getParentFile()), truth, rawEndpoints, usable);
 			for (CapillaryLengthResult.Measure m : usable)
 				stageRow(root, m.getCapillary().getKymographName(), "final", m.getDetectedStart(), m.getDetectedEnd(),
 						truth.get(m.getCapillary().getKymographName()));
@@ -316,6 +326,7 @@ public class CapillaryLengthRealDataBenchmarkTest {
 						options);
 				result.setFrameExpectedPixels(frameExpected);
 				CapillaryLengthDetector.validate(result, image.width, options, frameExpected);
+				CapillaryLengthDetector.refineEndpointEvidence(result, image, options);
 				CapillaryLengthDetector.apply(result, 0);
 				List<Double> experimentErrors = new ArrayList<Double>();
 				List<Double> experimentLengths = new ArrayList<Double>();

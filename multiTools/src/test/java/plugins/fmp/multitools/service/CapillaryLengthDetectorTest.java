@@ -28,6 +28,74 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.TipFind;
 public class CapillaryLengthDetectorTest {
 
 	@Test
+	public void uniformBackgroundDoesNotProtectEndpointsOrRestoreDisputedTop() {
+		int width=80,height=180;
+		double[][] channels=new double[1][width*height];
+		java.util.Arrays.fill(channels[0],150.);
+		ImageData image=new ImageData(width,height,channels);
+		plugins.fmp.multitools.experiment.capillary.Capillary cap=
+				new plugins.fmp.multitools.experiment.capillary.Capillary();
+		cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(new java.awt.geom.Line2D.Double(40,30,40,140)));
+		CapillaryLengthResult.Measure m=new CapillaryLengthResult.Measure(cap,"test",110);
+		m.setDetectedEndpoints(new Point2D.Double(40,30),new Point2D.Double(40,140));
+		m.setStatus(CapillaryLengthResult.Status.OK);m.setSelected(true);
+		CapillaryLengthDetector.protectSupportedEndpoints(m,image,syntheticOptions());
+		assertTrue(m.supportedStart==null && m.supportedEnd==null);
+		m.supportedStart=new Point2D.Double(40,45);
+		CapillaryLengthResult result=new CapillaryLengthResult();result.addMeasure(m);
+		CapillaryLengthDetector.refineEndpointEvidence(result,image,syntheticOptions());
+		assertEquals("disputed top must not be restored",30.,m.getDetectedStart().getY(),1.e-9);
+	}
+
+	@Test
+	public void localSupportSurvivesCorrectionInEitherRoiDirection() {
+		for (boolean reverse : new boolean[] {false, true}) {
+			ImageData image = buildSyntheticImage(-1);
+			double x = capillaryX(5), bottom = Math.round(CAPILLARY_TOP + trueLength(5));
+			Point2D top = new Point2D.Double(x, CAPILLARY_TOP);
+			Point2D bot = new Point2D.Double(x, bottom);
+			plugins.fmp.multitools.experiment.capillary.Capillary cap =
+					new plugins.fmp.multitools.experiment.capillary.Capillary();
+			cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(
+					new java.awt.geom.Line2D.Double(top, bot)));
+			CapillaryLengthResult.Measure m = new CapillaryLengthResult.Measure(cap, "test", 400);
+			m.setDetectedEndpoints(reverse ? bot : top, reverse ? top : bot);
+			m.setStatus(CapillaryLengthResult.Status.OK); m.setSelected(true);
+			CapillaryLengthDetector.protectSupportedEndpoints(m, image, syntheticOptions());
+			assertTrue("visible bottom must be supported", (reverse ? m.supportedStart : m.supportedEnd) != null);
+			Point2D movedBottom = new Point2D.Double(x, bottom + 6.);
+			m.setDetectedEndpoints(reverse ? movedBottom : top, reverse ? top : movedBottom);
+			CapillaryLengthResult result = new CapillaryLengthResult(); result.addMeasure(m);
+			CapillaryLengthDetector.refineEndpointEvidence(result, image, syntheticOptions());
+			assertEquals(bottom, (reverse ? m.getDetectedStart() : m.getDetectedEnd()).getY(), 1.e-9);
+			assertEquals(m.getDetectedStart().distance(m.getDetectedEnd()), m.getDetectedPixels(), 1.e-9);
+			assertEquals(m.getDetectedPixels(), result.getMedianPixels(), 1.e-9);
+		}
+	}
+
+	@Test
+	public void endpointEvidenceHandlesDarkAndAsymmetricFrameBackgrounds() {
+		for (boolean asymmetric : new boolean[] {false,true}) {
+			int width=80,height=40;
+			double[][] channels=new double[1][width*height];
+			for (int y=0;y<height;y++) for(int x=0;x<width;x++) {
+				double value=asymmetric && x>44 ? 200. : 20.;
+				if (x>36 && x<44) value=150.;
+				if(x==36||x==44) value=50.;
+				channels[0][x+y*width]=value;
+			}
+			Geometry g=new Geometry();g.halfWidth=4.;
+			assertTrue("tube should remain visible against the frame",
+					CapillaryLengthDetector.endpointCrossSection(new ImageData(width,height,channels),40,20,
+							new double[]{1,0},g,syntheticOptions())>.8);
+			java.util.Arrays.fill(channels[0],20.);
+			assertEquals("opaque background alone is not a tube",0.,
+					CapillaryLengthDetector.endpointCrossSection(new ImageData(width,height,channels),40,20,
+							new double[]{1,0},g,syntheticOptions()),1.e-9);
+		}
+	}
+
+	@Test
 	public void inferredAndWeakEndpointsRequireReviewEvenWhenUsable() {
 		CapillaryLengthResult.Measure m = new CapillaryLengthResult.Measure(null, "0L", 300);
 		m.setStartConfidence(3.);

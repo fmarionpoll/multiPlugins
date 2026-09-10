@@ -43,6 +43,13 @@ public class CapillaryLengthResult {
 		private double centroidX = Double.NaN;
 		private Point2D detectedStart = null;
 		private Point2D detectedEnd = null;
+		// Image-supported raw endpoints; transient evidence, never loaded from annotations.
+		Point2D supportedStart = null;
+		Point2D supportedEnd = null;
+		private Point2D liquidTop = null;
+		/** Independent local colour-boundary diagnostic; null means not observed. */
+		public Point2D getLiquidTop() { return liquidTop; }
+		void setLiquidTop(Point2D point) { liquidTop = point; }
 		private double startConfidence = Double.NaN;
 		private double endConfidence = Double.NaN;
 		private Status status = Status.FAILED;
