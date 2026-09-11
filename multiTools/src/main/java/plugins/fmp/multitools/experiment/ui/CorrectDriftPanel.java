@@ -570,6 +570,7 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 					}
 					if (clippedAtBoundary) {
 						resetOffsetSpinners();
+						viewTransformToggle.setSelected(false);
 					}
 					refreshDifferenceView();
 				});
@@ -629,11 +630,12 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		Files.createDirectories(originalsAbs);
 		Path backup = originalsAbs.resolve(src.getFileName().toString());
 		/*
-		 * Backup path must differ from the live frame: when the sequence already points at
-		 * .../grabs/original_images/Frame.jpg, getImagesDirectory() is .../original_images and
-		 * originalsDir is .../original_images/original_images — but if paths ever normalize to
-		 * the same file, Files.copy would throw FileAlreadyExistsException. Also handle TOCTOU /
-		 * concurrent apply without failing the transform.
+		 * Backup path must differ from the live frame: when the sequence already points
+		 * at .../grabs/original_images/Frame.jpg, getImagesDirectory() is
+		 * .../original_images and originalsDir is .../original_images/original_images —
+		 * but if paths ever normalize to the same file, Files.copy would throw
+		 * FileAlreadyExistsException. Also handle TOCTOU / concurrent apply without
+		 * failing the transform.
 		 */
 		if (!src.equals(backup)) {
 			if (!Files.exists(backup)) {
@@ -643,7 +645,8 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 					manifestOut.newLine();
 					manifestOut.flush();
 				} catch (FileAlreadyExistsException e) {
-					// Backup appeared between exists check and copy (e.g. parallel apply) — continue.
+					// Backup appeared between exists check and copy (e.g. parallel apply) —
+					// continue.
 				}
 			}
 		}

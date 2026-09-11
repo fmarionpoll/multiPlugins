@@ -1,58 +1,53 @@
 package plugins.fmp.multiSPOTS.dlg.browse;
 
-import java.awt.Cursor;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JTextField;
-import javax.swing.SwingWorker;
-
+import java.util.Collections;
 import java.util.List;
 
-import icy.gui.frame.progress.ProgressFrame;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.LazyExperiment;
-import plugins.fmp.multitools.experiment.persistence.MigrationBackupFieldRestore;
-import plugins.fmp.multitools.tools.DescriptorsIO;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 
 public class EditPanel extends JPanel {
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = 2190848825783418962L;
 
-	private JComboBox<EnumXLSColumnHeader> fieldNamesCombo = new JComboBox<EnumXLSColumnHeader>(
-			new EnumXLSColumnHeader[] { EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_ID,
-					EnumXLSColumnHeader.EXP_STIM1, EnumXLSColumnHeader.EXP_CONC1, EnumXLSColumnHeader.EXP_STRAIN,
-					EnumXLSColumnHeader.EXP_SEX, EnumXLSColumnHeader.EXP_STIM2, EnumXLSColumnHeader.EXP_CONC2,
-					EnumXLSColumnHeader.SPOT_STIM, EnumXLSColumnHeader.SPOT_CONC, EnumXLSColumnHeader.SPOT_VOLUME,
-					EnumXLSColumnHeader.CAGE_SEX, EnumXLSColumnHeader.CAGE_STRAIN, EnumXLSColumnHeader.CAGE_AGE });
+	private static final EnumXLSColumnHeader[] CONDITION_FIELDS = {
+			EnumXLSColumnHeader.EXP_EXPT, EnumXLSColumnHeader.EXP_ID, EnumXLSColumnHeader.EXP_STIM1,
+			EnumXLSColumnHeader.EXP_CONC1, EnumXLSColumnHeader.EXP_STRAIN, EnumXLSColumnHeader.EXP_SEX,
+			EnumXLSColumnHeader.EXP_STIM2, EnumXLSColumnHeader.EXP_CONC2,
+			EnumXLSColumnHeader.CAGE_SEX, EnumXLSColumnHeader.CAGE_STRAIN, EnumXLSColumnHeader.CAGE_AGE,
+			EnumXLSColumnHeader.SPOT_STIM, EnumXLSColumnHeader.SPOT_CONC, EnumXLSColumnHeader.SPOT_VOLUME };
 
-	private JComboBox<String> fieldOldValuesCombo = new JComboBox<String>();
-	private JButton refreshButton = new JButton("Refresh");
-	private JButton restoreFromBackupButton = new JButton("Restore from backup");
+	private JComboBox<EnumXLSColumnHeader> conditionField1Combo = new JComboBox<>(CONDITION_FIELDS);
+	private JComboBox<String> conditionValue1Combo = new JComboBox<>();
+	private JButton updateValue1Button = new JButton("Update");
+
+	private JCheckBox useCondition2CheckBox = new JCheckBox("AND", false);
+	private JComboBox<EnumXLSColumnHeader> conditionField2Combo = new JComboBox<>(CONDITION_FIELDS);
+	private JComboBox<String> conditionValue2Combo = new JComboBox<>();
+	private JButton updateValue2Button = new JButton("Update");
+
+	private JComboBox<EnumXLSColumnHeader> targetFieldCombo = new JComboBox<>(CONDITION_FIELDS);
 	private JTextField newValueTextField = new JTextField(10);
 	private JButton applyButton = new JButton("Apply");
-	private JButton undoLastApplyButton = new JButton("Undo last apply");
-	private JLabel statusLabel = new JLabel("");
 
 	private MultiSPOTS parent0 = null;
 	JComboBoxExperimentLazy editExpList = new JComboBoxExperimentLazy();
-	private EditApplyUndoSnapshot lastApplyUndoSnapshot = null;
-
-	private volatile boolean editPanelLongJobRunning = false;
 
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
 		this.parent0 = parent0;
@@ -65,41 +60,53 @@ public class EditPanel extends JPanel {
 		int bWidth = 100;
 		int bHeight = 21;
 
-		JPanel panel0 = new JPanel(flowlayout);
-		panel0.add(new JLabel("Field name "));
-		panel0.add(fieldNamesCombo);
-		fieldNamesCombo.setPreferredSize(new Dimension(bWidth, bHeight));
-		panel0.add(refreshButton);
-		restoreFromBackupButton.setToolTipText(
-				"Reload the selected field from MS96_experiment.xml / MS96_cages.xml: first in backup_before_migration, else in the results folder (legacy imports).");
-		panel0.add(restoreFromBackupButton);
-		add(panel0);
-
-		bWidth = 200;
 		JPanel panel1 = new JPanel(flowlayout);
-		panel1.add(new JLabel("Field value "));
-		panel1.add(fieldOldValuesCombo);
-		fieldOldValuesCombo.setPreferredSize(new Dimension(bWidth, bHeight));
+		conditionField1Combo.setPreferredSize(new Dimension(bWidth, bHeight));
+		panel1.add(conditionField1Combo);
+		panel1.add(new JLabel(" Value: "));
+		bWidth = 200;
+		conditionValue1Combo.setPreferredSize(new Dimension(bWidth, bHeight));
+		panel1.add(conditionValue1Combo);
+		updateValue1Button.setPreferredSize(new Dimension(80, bHeight));
+		panel1.add(updateValue1Button);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowlayout);
-		panel2.add(new JLabel("replace with"));
-		panel2.add(newValueTextField);
-		newValueTextField.setPreferredSize(new Dimension(bWidth, bHeight));
-		panel2.add(applyButton);
-		applyButton.setToolTipText(
-				"Write the new value to the selected field on every experiment in the current browse list (filtered list when Filter is on).");
-		undoLastApplyButton.setToolTipText(
-				"Reverts the last successful Apply for the same field (one step, in memory only).");
-		panel2.add(undoLastApplyButton);
+		useCondition2CheckBox.setPreferredSize(new Dimension(150, bHeight));
+		panel2.add(useCondition2CheckBox);
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowlayout);
-		panel3.add(statusLabel);
+		bWidth = 100;
+		conditionField2Combo.setPreferredSize(new Dimension(bWidth, bHeight));
+		panel3.add(conditionField2Combo);
+		panel3.add(new JLabel(" Value: "));
+		bWidth = 200;
+		conditionValue2Combo.setPreferredSize(new Dimension(bWidth, bHeight));
+		panel3.add(conditionValue2Combo);
+		updateValue2Button.setPreferredSize(new Dimension(80, bHeight));
+		panel3.add(updateValue2Button);
 		add(panel3);
 
+		updateCondition2Enabled();
+
+		JPanel panel4 = new JPanel(flowlayout);
+		panel4.add(new JLabel("Change field: "));
+		bWidth = 100;
+		targetFieldCombo.setPreferredSize(new Dimension(bWidth, bHeight));
+		panel4.add(targetFieldCombo);
+		panel4.add(new JLabel(" to: "));
+		bWidth = 200;
+		newValueTextField.setPreferredSize(new Dimension(bWidth, bHeight));
+		panel4.add(newValueTextField);
+		applyButton.setPreferredSize(new Dimension(80, bHeight));
+		applyButton.setToolTipText(
+				"If condition(s) match, write the new value on every experiment in the current browse list (filtered list when Filter is on).");
+		panel4.add(applyButton);
+		add(panel4);
+
 		defineActionListeners();
-		updateUndoLastApplyButtonState();
+		initEditCombos();
 	}
 
 	/**
@@ -119,593 +126,313 @@ public class EditPanel extends JPanel {
 		editExpList.setExperimentsFromList(src.getExperimentsAsListNoLoad());
 	}
 
-	private static boolean fieldUsesLiveCageOrSpotScan(EnumXLSColumnHeader field) {
-		switch (field) {
-		case CAGE_SEX:
-		case CAGE_STRAIN:
-		case CAGE_AGE:
-		case SPOT_STIM:
-		case SPOT_CONC:
-		case SPOT_VOLUME:
-			return true;
-		default:
-			return false;
-		}
-	}
-
 	public void initEditCombos() {
 		syncEditExpListFromProject();
-		EnumXLSColumnHeader field = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
-		fieldOldValuesCombo.removeAllItems();
-		if (fieldUsesLiveCageOrSpotScan(field)) {
-			editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
-			updateRestoreFromBackupButtonState();
-			updateUndoLastApplyButtonState();
-			return;
-		}
-		java.util.List<String> values;
-		if (parent0.descriptorIndex != null && parent0.descriptorIndex.isReady()) {
-			values = parent0.descriptorIndex.getDistinctValues(field);
-		} else {
-			editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
-			updateRestoreFromBackupButtonState();
-			updateUndoLastApplyButtonState();
-			return;
-		}
-		java.util.Collections.sort(values);
-		for (String v : values)
-			fieldOldValuesCombo.addItem(v);
-		updateRestoreFromBackupButtonState();
-		updateUndoLastApplyButtonState();
+		updateConditionValueCombo(conditionField1Combo, conditionValue1Combo);
+		updateConditionValueCombo(conditionField2Combo, conditionValue2Combo);
 	}
 
-	private void updateUndoLastApplyButtonState() {
-		boolean ok = lastApplyUndoSnapshot != null && !lastApplyUndoSnapshot.isEmpty()
-				&& lastApplyUndoSnapshot.getField() == fieldNamesCombo.getSelectedItem();
-		undoLastApplyButton.setEnabled(ok);
-	}
-
-	private void clearApplyUndoSnapshot() {
-		lastApplyUndoSnapshot = null;
-		updateUndoLastApplyButtonState();
-	}
-
-	private void updateRestoreFromBackupButtonState() {
-		int n = editExpList.getItemCount();
-		boolean any = false;
-		for (int i = 0; i < n; i++) {
-			Experiment exp = editExpList.getItemAtNoLoad(i);
-			if (exp == null) {
-				continue;
-			}
-			String rd = exp.getResultsDirectory();
-			if (rd == null && exp instanceof LazyExperiment) {
-				LazyExperiment le = (LazyExperiment) exp;
-				if (le.getMetadata() != null) {
-					rd = le.getMetadata().getResultsDirectory();
-				}
-			}
-			if (rd != null && MigrationBackupFieldRestore.isMigrationBackupPresent(rd)) {
-				any = true;
-				break;
-			}
-		}
-		restoreFromBackupButton.setEnabled(any);
-	}
-
-	private boolean tryBeginLongOperation() {
-		if (editPanelLongJobRunning) {
-			JOptionPane.showMessageDialog(this, "Please wait for the current operation to finish.", "Edit panel",
-					JOptionPane.INFORMATION_MESSAGE);
-			return false;
-		}
-		editPanelLongJobRunning = true;
-		applyButton.setEnabled(false);
-		refreshButton.setEnabled(false);
-		restoreFromBackupButton.setEnabled(false);
-		undoLastApplyButton.setEnabled(false);
-		fieldNamesCombo.setEnabled(false);
-		fieldOldValuesCombo.setEnabled(false);
-		newValueTextField.setEnabled(false);
-		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
-		return true;
-	}
-
-	private void finishLongOperation() {
-		if (!editPanelLongJobRunning) {
-			return;
-		}
-		editPanelLongJobRunning = false;
-		setCursor(Cursor.getDefaultCursor());
-		fieldNamesCombo.setEnabled(true);
-		fieldOldValuesCombo.setEnabled(true);
-		newValueTextField.setEnabled(true);
-		refreshButton.setEnabled(true);
-		applyButton.setEnabled(true);
-		updateRestoreFromBackupButtonState();
-		updateUndoLastApplyButtonState();
-	}
-
-	/**
-	 * Closes the main progress frame, runs EDT callbacks, optionally runs descriptor index
-	 * refresh (second progress), then sets final status and re-enables the panel.
-	 *
-	 * @param narrowDescriptorIndexRefresh when true and the descriptor index is already ready,
-	 *        reload only experiment-level descriptors (no cage/spot file scan).
-	 */
-	private void finishLongJobSequence(ProgressFrame mainProgress, boolean runDescriptorIndexRefresh,
-			boolean narrowDescriptorIndexRefresh, Runnable applyEdtCommitments, Runnable loadChartsForSelection,
-			Runnable rebuildInfosFiltersCombos, String statusWhileRefreshingDescriptors,
-			String finalStatusWhenFullyDone) {
-		if (mainProgress != null) {
-			mainProgress.close();
-		}
-		if (applyEdtCommitments != null) {
-			applyEdtCommitments.run();
-		}
-		if (loadChartsForSelection != null) {
-			loadChartsForSelection.run();
-		}
-		if (runDescriptorIndexRefresh && parent0.descriptorIndex != null) {
-			statusLabel.setText(statusWhileRefreshingDescriptors);
-			final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-			try {
-				parent0.dlgBrowse.filterPanel.initCombos();
-				JComboBoxExperimentLazy indexSource = parent0.dlgBrowse.filterPanel.filterExpList;
-				if (indexSource.getItemCount() < 1) {
-					indexSource = parent0.expListComboLazy;
-				}
-				final boolean scanLiveCageSpot = !(narrowDescriptorIndexRefresh
-						&& parent0.descriptorIndex.isReady());
-				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
-					@Override
-					public void run() {
-						try {
-							pf.close();
-							if (rebuildInfosFiltersCombos != null) {
-								rebuildInfosFiltersCombos.run();
-							}
-							statusLabel.setText(finalStatusWhenFullyDone);
-						} finally {
-							finishLongOperation();
-						}
-					}
-				}, pf, scanLiveCageSpot);
-			} catch (Exception ex) {
-				Logger.warn("EditPanel.finishLongJobSequence preload: " + ex.getMessage());
-				pf.close();
-				if (rebuildInfosFiltersCombos != null) {
-					rebuildInfosFiltersCombos.run();
-				}
-				statusLabel.setText(finalStatusWhenFullyDone);
-				finishLongOperation();
-			}
-		} else {
-			if (rebuildInfosFiltersCombos != null) {
-				rebuildInfosFiltersCombos.run();
-			}
-			statusLabel.setText(finalStatusWhenFullyDone);
-			finishLongOperation();
+	private void updateConditionValueCombo(JComboBox<EnumXLSColumnHeader> fieldCombo, JComboBox<String> valueCombo) {
+		EnumXLSColumnHeader selectedField = (EnumXLSColumnHeader) fieldCombo.getSelectedItem();
+		if (selectedField != null) {
+			syncEditExpListFromProject();
+			editExpList.getFieldValuesToComboLightweight(valueCombo, selectedField);
 		}
 	}
 
 	private void defineActionListeners() {
+		updateValue1Button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateConditionValueCombo(conditionField1Combo, conditionValue1Combo);
+			}
+		});
+
+		updateValue2Button.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateConditionValueCombo(conditionField2Combo, conditionValue2Combo);
+			}
+		});
+
+		conditionField1Combo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateConditionValueCombo(conditionField1Combo, conditionValue1Combo);
+			}
+		});
+
+		conditionField2Combo.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateConditionValueCombo(conditionField2Combo, conditionValue2Combo);
+			}
+		});
+
+		useCondition2CheckBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				updateCondition2Enabled();
+			}
+		});
+
 		applyButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
 				applyChange();
 				newValueTextField.setText("");
+				initEditCombos();
 			}
 		});
+	}
 
-		fieldNamesCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				clearApplyUndoSnapshot();
-				syncEditExpListFromProject();
-				EnumXLSColumnHeader field = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
-				fieldOldValuesCombo.removeAllItems();
-				if (fieldUsesLiveCageOrSpotScan(field)) {
-					editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
-					updateRestoreFromBackupButtonState();
-					updateUndoLastApplyButtonState();
-					return;
-				}
-				java.util.List<String> values;
-				if (parent0.descriptorIndex != null && parent0.descriptorIndex.isReady()) {
-					values = parent0.descriptorIndex.getDistinctValues(field);
-					java.util.Collections.sort(values);
-					for (String v : values)
-						fieldOldValuesCombo.addItem(v);
-				} else {
-					editExpList.getFieldValuesToComboLightweight(fieldOldValuesCombo, field);
-				}
-				updateRestoreFromBackupButtonState();
-				updateUndoLastApplyButtonState();
-			}
-		});
-
-		refreshButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (!tryBeginLongOperation()) {
-					return;
-				}
-				statusLabel.setText("Refreshing descriptor index…");
-				final ProgressFrame pf = new ProgressFrame("Refreshing descriptors");
-				parent0.dlgBrowse.filterPanel.initCombos();
-				JComboBoxExperimentLazy indexSource = parent0.dlgBrowse.filterPanel.filterExpList;
-				if (indexSource.getItemCount() < 1) {
-					indexSource = parent0.expListComboLazy;
-				}
-				if (parent0.descriptorIndex == null) {
-					pf.close();
-					initEditCombos();
-					statusLabel.setText("Descriptors refreshed.");
-					finishLongOperation();
-					return;
-				}
-				parent0.descriptorIndex.preloadFromCombo(indexSource, new Runnable() {
-					@Override
-					public void run() {
-						try {
-							pf.close();
-							initEditCombos();
-							statusLabel.setText("Descriptors refreshed.");
-						} finally {
-							finishLongOperation();
-						}
-					}
-				});
-			}
-		});
-
-		restoreFromBackupButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				restoreFieldFromMigrationBackup();
-			}
-		});
-
-		undoLastApplyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				undoLastApply();
-			}
-		});
-
+	private void updateCondition2Enabled() {
+		boolean enabled = useCondition2CheckBox.isSelected();
+		conditionField2Combo.setEnabled(enabled);
+		conditionValue2Combo.setEnabled(enabled);
+		updateValue2Button.setEnabled(enabled);
 	}
 
 	void applyChange() {
-		if (!tryBeginLongOperation()) {
+		EnumXLSColumnHeader conditionField1 = (EnumXLSColumnHeader) conditionField1Combo.getSelectedItem();
+		String conditionValue1 = (String) conditionValue1Combo.getSelectedItem();
+		EnumXLSColumnHeader targetField = (EnumXLSColumnHeader) targetFieldCombo.getSelectedItem();
+		String newValue = newValueTextField.getText();
+
+		if (conditionField1 == null || conditionValue1 == null || targetField == null || newValue == null
+				|| newValue.isEmpty()) {
+			Logger.warn("EditPanel: Missing required fields");
 			return;
 		}
+
+		boolean useCondition2 = useCondition2CheckBox.isSelected();
+		EnumXLSColumnHeader conditionField2 = null;
+		String conditionValue2 = null;
+
+		if (useCondition2) {
+			conditionField2 = (EnumXLSColumnHeader) conditionField2Combo.getSelectedItem();
+			conditionValue2 = (String) conditionValue2Combo.getSelectedItem();
+			if (conditionField2 == null || conditionValue2 == null) {
+				Logger.warn("EditPanel: Condition 2 is enabled but missing values");
+				return;
+			}
+			if (conditionField1 == conditionField2) {
+				Logger.warn("EditPanel: Condition fields must be different");
+				return;
+			}
+		}
+
+		boolean condition1IsCage = isCageField(conditionField1);
+		boolean condition1IsSpot = isSpotField(conditionField1);
+		boolean condition2IsCage = useCondition2 && isCageField(conditionField2);
+		boolean condition2IsSpot = useCondition2 && isSpotField(conditionField2);
+		boolean targetIsCage = isCageField(targetField);
+		boolean targetIsSpot = isSpotField(targetField);
+
 		syncEditExpListFromProject();
-		final int nExperiments = editExpList.getItemCount();
-		final EnumXLSColumnHeader fieldEnumCode = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
-		final String oldValue = (String) fieldOldValuesCombo.getSelectedItem();
-		final String newValue = newValueTextField.getText();
+		int nExperiments = editExpList.getItemCount();
+		int totalUpdated = 0;
 
-		final ProgressFrame progress = new ProgressFrame("Apply changes to " + fieldEnumCode);
-		progress.setLength(Math.max(1, nExperiments));
-		statusLabel.setText("Applying " + fieldEnumCode + "…");
+		for (int i = 0; i < nExperiments; i++) {
+			Experiment exp = editExpList.getItemAtNoLoad(i);
+			if (exp == null)
+				continue;
 
-		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-			private boolean anyChanged = false;
-			private final EditApplyUndoSnapshot[] snapshotHolder = new EditApplyUndoSnapshot[1];
+			waitForSaveToComplete(exp, i);
 
-			@Override
-			protected Void doInBackground() throws Exception {
-				publish("Preparing undo snapshot…");
-				snapshotHolder[0] = EditApplyUndoSnapshot.capture(editExpList, nExperiments, fieldEnumCode, oldValue);
-				for (int i = 0; i < nExperiments; i++) {
-					publish("Applying " + fieldEnumCode + "… " + (i + 1) + " / " + nExperiments);
-					Experiment exp = editExpList.getItemAtNoLoad(i);
-					boolean isChanged = false;
-					progress.setMessage("Updating (" + (i + 1) + "/" + nExperiments + ")");
-					if (exp == null) {
-						Logger.warn("Edit.applyChange: null experiment at index " + i);
-						progress.incPosition();
-						continue;
-					}
-					switch (fieldEnumCode) {
-					case EXP_EXPT:
-					case EXP_ID:
-					case EXP_STIM1:
-					case EXP_CONC1:
-					case EXP_STRAIN:
-					case EXP_SEX:
-					case EXP_STIM2:
-					case EXP_CONC2:
-						exp.loadExperimentDescriptors();
-						isChanged = exp.replaceExperimentFieldIfEqualOldValue(fieldEnumCode, oldValue, newValue);
-						if (isChanged) {
-							exp.saveExperimentDescriptors();
-						}
-						break;
-					case CAGE_SEX:
-					case CAGE_STRAIN:
-					case CAGE_AGE:
-						isChanged = exp.replaceCageFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
-						if (isChanged) {
-							exp.save_cages_description_and_measures();
-						}
-						break;
-					case SPOT_STIM:
-					case SPOT_CONC:
-					case SPOT_VOLUME:
-						isChanged = exp.replaceSpotsFieldValueWithNewValueIfOld(fieldEnumCode, oldValue, newValue);
-						if (isChanged) {
-							exp.save_spots_description_and_measures();
-						}
-						break;
-					default:
-						break;
-					}
-					if (isChanged) {
-						DescriptorsIO.buildFromExperiment(exp);
-					}
-					anyChanged |= isChanged;
-
-					progress.incPosition();
-				}
-				return null;
+			exp.loadExperimentDescriptors();
+			exp.load_cages_description_and_measures();
+			if (condition1IsSpot || condition2IsSpot || targetIsSpot) {
+				exp.load_spots_description_and_measures();
 			}
 
-			@Override
-			protected void process(List<String> chunks) {
-				if (!chunks.isEmpty()) {
-					statusLabel.setText(chunks.get(chunks.size() - 1));
-				}
-			}
+			int updated = replaceFieldWithConditions(exp, conditionField1, conditionValue1, useCondition2, conditionField2,
+					conditionValue2, targetField, newValue, condition1IsCage, condition1IsSpot, condition2IsCage,
+					condition2IsSpot, targetIsCage, targetIsSpot);
 
-			@Override
-			protected void done() {
-				try {
-					final boolean refreshIdx = anyChanged && parent0.descriptorIndex != null;
-					final boolean narrowIdx = refreshIdx && !fieldUsesLiveCageOrSpotScan(fieldEnumCode);
-					finishLongJobSequence(progress, refreshIdx, narrowIdx, new Runnable() {
-						@Override
-						public void run() {
-							if (anyChanged && snapshotHolder[0] != null && !snapshotHolder[0].isEmpty()) {
-								lastApplyUndoSnapshot = snapshotHolder[0];
-							}
-						}
-					}, new Runnable() {
-						@Override
-						public void run() {
-							Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-							if (exp != null) {
-								exp.load_spots_description_and_measures();
-								parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
-							}
-						}
-					}, new Runnable() {
-						@Override
-						public void run() {
-							parent0.dlgExperiment.infosPanel.initCombos();
-							parent0.dlgBrowse.filterPanel.initCombos();
-							initEditCombos();
-						}
-					}, "Refreshing descriptor index…", "Done applying changes to " + fieldEnumCode + ".");
-				} catch (Exception ex) {
-					Logger.warn("EditPanel.applyChange: " + ex.getMessage(), ex);
-					try {
-						progress.close();
-					} catch (Exception ignored) {
-					}
-					statusLabel.setText("Apply failed (see log).");
-					finishLongOperation();
+			if (updated > 0) {
+				if (targetIsSpot) {
+					exp.save_spots_description_and_measures();
+				} else if (targetIsCage) {
+					exp.save_cages_description_and_measures();
+				} else {
+					exp.saveExperimentDescriptors();
 				}
+				totalUpdated += updated;
 			}
-		};
-		worker.execute();
+		}
+
+		String updateType = targetIsSpot ? "spots" : (targetIsCage ? "cages" : "experiments");
+		Logger.info("EditPanel: Updated " + totalUpdated + " " + updateType + " across " + nExperiments
+				+ " experiment(s) in the current Browse list");
 	}
 
-	void restoreFieldFromMigrationBackup() {
-		syncEditExpListFromProject();
-		final int nExperiments = editExpList.getItemCount();
-		final EnumXLSColumnHeader fieldEnumCode = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
-		if (nExperiments < 1) {
-			statusLabel.setText("No experiments in the edit list.");
-			return;
-		}
-		int r = JOptionPane.showConfirmDialog(this,
-				"Replace the selected field \"" + fieldEnumCode
-						+ "\" for every experiment in the list\nwith values read from MS96_experiment.xml / MS96_cages.xml\n"
-						+ "(in backup_before_migration when present, otherwise in the experiment results folder),\n"
-						+ "when both files exist in that location.\n"
-						+ "Spots are matched by spot ID when present in the backup, otherwise by cage ID and cage position.\n\n"
-						+ "Continue?",
-				"Restore from migration backup", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-		if (r != JOptionPane.YES_OPTION) {
-			return;
-		}
-		if (!tryBeginLongOperation()) {
-			return;
-		}
-
-		final ProgressFrame progress = new ProgressFrame("Restore from migration backup: " + fieldEnumCode);
-		progress.setLength(Math.max(1, nExperiments));
-		statusLabel.setText("Restoring " + fieldEnumCode + "…");
-
-		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-			private boolean anyChanged = false;
-			private int nSkipped = 0;
-
-			@Override
-			protected Void doInBackground() throws Exception {
-				for (int i = 0; i < nExperiments; i++) {
-					publish("Restoring " + fieldEnumCode + "… " + (i + 1) + " / " + nExperiments);
-					Experiment exp = editExpList.getItemAtNoLoad(i);
-					progress.setMessage("Restore (" + (i + 1) + "/" + nExperiments + ")");
-					if (exp == null) {
-						Logger.warn("Edit.restoreFieldFromMigrationBackup: null experiment at index " + i);
-						progress.incPosition();
-						continue;
-					}
-					String rd = exp.getResultsDirectory();
-					if (rd == null && exp instanceof LazyExperiment) {
-						LazyExperiment le = (LazyExperiment) exp;
-						if (le.getMetadata() != null) {
-							rd = le.getMetadata().getResultsDirectory();
-						}
-					}
-					if (rd == null || !MigrationBackupFieldRestore.isMigrationBackupPresent(rd)) {
-						nSkipped++;
-						progress.incPosition();
-						continue;
-					}
-					if (MigrationBackupFieldRestore.restoreFieldFromMigrationBackup(exp, fieldEnumCode)) {
-						anyChanged = true;
-					} else {
-						nSkipped++;
-					}
-					progress.incPosition();
-				}
-				return null;
-			}
-
-			@Override
-			protected void process(List<String> chunks) {
-				if (!chunks.isEmpty()) {
-					statusLabel.setText(chunks.get(chunks.size() - 1));
-				}
-			}
-
-			@Override
-			protected void done() {
-				try {
-					final String summary = "Restore finished (" + fieldEnumCode + "). Updated: " + (anyChanged ? "yes" : "no")
-							+ ", skipped (no backup or no match): " + nSkipped + ".";
-					final boolean refreshIdx = anyChanged && parent0.descriptorIndex != null;
-					final boolean narrowIdx = refreshIdx && !fieldUsesLiveCageOrSpotScan(fieldEnumCode);
-					finishLongJobSequence(progress, refreshIdx, narrowIdx, new Runnable() {
-						@Override
-						public void run() {
-							if (anyChanged) {
-								clearApplyUndoSnapshot();
-							}
-						}
-					}, new Runnable() {
-						@Override
-						public void run() {
-							Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-							if (exp != null) {
-								exp.load_spots_description_and_measures();
-								parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
-							}
-						}
-					}, new Runnable() {
-						@Override
-						public void run() {
-							parent0.dlgExperiment.infosPanel.initCombos();
-							parent0.dlgBrowse.filterPanel.initCombos();
-							initEditCombos();
-						}
-					}, "Refreshing descriptor index…", summary);
-				} catch (Exception ex) {
-					Logger.warn("EditPanel.restoreFieldFromMigrationBackup: " + ex.getMessage(), ex);
-					try {
-						progress.close();
-					} catch (Exception ignored) {
-					}
-					statusLabel.setText("Restore failed (see log).");
-					finishLongOperation();
-				}
-			}
-		};
-		worker.execute();
+	private boolean isSpotField(EnumXLSColumnHeader field) {
+		return field == EnumXLSColumnHeader.SPOT_STIM || field == EnumXLSColumnHeader.SPOT_CONC
+				|| field == EnumXLSColumnHeader.SPOT_VOLUME;
 	}
 
-	void undoLastApply() {
-		syncEditExpListFromProject();
-		final int nExperiments = editExpList.getItemCount();
-		final EnumXLSColumnHeader fieldEnumCode = (EnumXLSColumnHeader) fieldNamesCombo.getSelectedItem();
-		if (lastApplyUndoSnapshot == null || lastApplyUndoSnapshot.isEmpty()) {
-			statusLabel.setText("Nothing to undo.");
-			return;
-		}
-		if (lastApplyUndoSnapshot.getField() != fieldEnumCode) {
-			statusLabel.setText("Undo is only available for field \"" + lastApplyUndoSnapshot.getField()
-					+ "\" (select that field name first).");
-			return;
-		}
-		if (!tryBeginLongOperation()) {
-			return;
-		}
-
-		final ProgressFrame progress = new ProgressFrame("Undo last apply: " + fieldEnumCode);
-		progress.setLength(Math.max(1, nExperiments));
-		statusLabel.setText("Undoing last apply for " + fieldEnumCode + "…");
-
-		final EditApplyUndoSnapshot snap = lastApplyUndoSnapshot;
-		final boolean[] okBox = new boolean[1];
-		SwingWorker<Void, String> worker = new SwingWorker<Void, String>() {
-			@Override
-			protected Void doInBackground() throws Exception {
-				publish("Undoing last apply…");
-				try {
-					okBox[0] = snap.undo(editExpList, nExperiments, fieldEnumCode);
-				} catch (Exception ex) {
-					Logger.warn("Edit.undoLastApply: " + ex.getMessage());
-					okBox[0] = false;
-				}
-				progress.incPosition();
-				return null;
-			}
-
-			@Override
-			protected void process(List<String> chunks) {
-				if (!chunks.isEmpty()) {
-					statusLabel.setText(chunks.get(chunks.size() - 1));
-				}
-			}
-
-			@Override
-			protected void done() {
-				boolean ok = okBox[0];
-				final String failMsg = "Undo failed or nothing matched (list may have changed).";
-				final String successMsg = "Undo completed for " + fieldEnumCode + ".";
-				try {
-					final boolean refreshIdx = ok && parent0.descriptorIndex != null;
-					final boolean narrowIdx = refreshIdx && !fieldUsesLiveCageOrSpotScan(fieldEnumCode);
-					finishLongJobSequence(progress, refreshIdx, narrowIdx, new Runnable() {
-						@Override
-						public void run() {
-							if (ok) {
-								lastApplyUndoSnapshot = null;
-							}
-						}
-					}, new Runnable() {
-						@Override
-						public void run() {
-							Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-							if (exp != null) {
-								exp.load_spots_description_and_measures();
-								parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
-							}
-						}
-					}, ok ? new Runnable() {
-						@Override
-						public void run() {
-							parent0.dlgExperiment.infosPanel.initCombos();
-							parent0.dlgBrowse.filterPanel.initCombos();
-							initEditCombos();
-						}
-					} : null, "Refreshing descriptor index…", ok ? successMsg : failMsg);
-				} catch (Exception ex) {
-					Logger.warn("EditPanel.undoLastApply: " + ex.getMessage(), ex);
-					try {
-						progress.close();
-					} catch (Exception ignored) {
-					}
-					statusLabel.setText("Undo failed (see log).");
-					finishLongOperation();
-				}
-			}
-		};
-		worker.execute();
+	private boolean isCageField(EnumXLSColumnHeader field) {
+		return field == EnumXLSColumnHeader.CAGE_SEX || field == EnumXLSColumnHeader.CAGE_STRAIN
+				|| field == EnumXLSColumnHeader.CAGE_AGE;
 	}
 
+	private int replaceFieldWithConditions(Experiment exp, EnumXLSColumnHeader conditionField1, String conditionValue1,
+			boolean useCondition2, EnumXLSColumnHeader conditionField2, String conditionValue2,
+			EnumXLSColumnHeader targetField, String newValue, boolean condition1IsCage, boolean condition1IsSpot,
+			boolean condition2IsCage, boolean condition2IsSpot, boolean targetIsCage, boolean targetIsSpot) {
+
+		boolean condition1IsExp = !condition1IsCage && !condition1IsSpot;
+		boolean condition2IsExp = useCondition2 && !condition2IsCage && !condition2IsSpot;
+		boolean anyCageCond = condition1IsCage || condition2IsCage;
+		boolean anySpotCond = condition1IsSpot || condition2IsSpot;
+
+		if (condition1IsExp) {
+			String expValue1 = exp.getExperimentField(conditionField1);
+			if (expValue1 == null || !expValue1.equals(conditionValue1))
+				return 0;
+		}
+		if (condition2IsExp) {
+			String expValue2 = exp.getExperimentField(conditionField2);
+			if (expValue2 == null || !expValue2.equals(conditionValue2))
+				return 0;
+		}
+
+		List<Cage> cages = exp.getCages() != null ? exp.getCages().cagesList : null;
+		if (cages == null)
+			cages = Collections.emptyList();
+
+		if (!anyCageCond && !anySpotCond && !targetIsCage && !targetIsSpot) {
+			exp.setExperimentFieldNoTest(targetField, newValue);
+			return 1;
+		}
+
+		if (!anyCageCond && !anySpotCond) {
+			if (targetIsCage) {
+				int updated = 0;
+				for (Cage cage : cages) {
+					cage.setField(targetField, newValue);
+					updated++;
+				}
+				return updated;
+			}
+			if (targetIsSpot) {
+				int updated = 0;
+				for (Cage cage : cages) {
+					for (Spot spot : cage.getSpotList(exp.getSpots())) {
+						spot.setField(targetField, newValue);
+						updated++;
+					}
+				}
+				return updated;
+			}
+		}
+
+		int updated = 0;
+		for (Cage cage : cages) {
+			if (anyCageCond && !cageMatchesConditions(cage, conditionField1, conditionValue1, condition1IsCage,
+					useCondition2, conditionField2, conditionValue2, condition2IsCage)) {
+				continue;
+			}
+
+			if (!anySpotCond) {
+				if (targetIsCage) {
+					cage.setField(targetField, newValue);
+					updated++;
+				} else if (targetIsSpot) {
+					for (Spot spot : cage.getSpotList(exp.getSpots())) {
+						spot.setField(targetField, newValue);
+						updated++;
+					}
+				} else {
+					exp.setExperimentFieldNoTest(targetField, newValue);
+					return 1;
+				}
+				continue;
+			}
+
+			boolean cageTargetDone = false;
+			for (Spot spot : cage.getSpotList(exp.getSpots())) {
+				if (!spotMatchesConditions(spot, conditionField1, conditionValue1, condition1IsSpot, useCondition2,
+						conditionField2, conditionValue2, condition2IsSpot)) {
+					continue;
+				}
+				if (targetIsSpot) {
+					spot.setField(targetField, newValue);
+					updated++;
+				} else if (targetIsCage) {
+					if (!cageTargetDone) {
+						cage.setField(targetField, newValue);
+						updated++;
+						cageTargetDone = true;
+					}
+					break;
+				} else {
+					exp.setExperimentFieldNoTest(targetField, newValue);
+					return 1;
+				}
+			}
+		}
+		return updated;
+	}
+
+	private boolean cageMatchesConditions(Cage cage, EnumXLSColumnHeader conditionField1, String conditionValue1,
+			boolean condition1IsCage, boolean useCondition2, EnumXLSColumnHeader conditionField2,
+			String conditionValue2, boolean condition2IsCage) {
+		if (condition1IsCage) {
+			String v = cage.getField(conditionField1);
+			if (v == null || !v.equals(conditionValue1))
+				return false;
+		}
+		if (useCondition2 && condition2IsCage) {
+			String v = cage.getField(conditionField2);
+			if (v == null || !v.equals(conditionValue2))
+				return false;
+		}
+		return true;
+	}
+
+	private boolean spotMatchesConditions(Spot spot, EnumXLSColumnHeader conditionField1, String conditionValue1,
+			boolean condition1IsSpot, boolean useCondition2, EnumXLSColumnHeader conditionField2,
+			String conditionValue2, boolean condition2IsSpot) {
+		if (condition1IsSpot) {
+			String v = spot.getField(conditionField1);
+			if (v == null || !v.equals(conditionValue1))
+				return false;
+		}
+		if (useCondition2 && condition2IsSpot) {
+			String v = spot.getField(conditionField2);
+			if (v == null || !v.equals(conditionValue2))
+				return false;
+		}
+		return true;
+	}
+
+	private void waitForSaveToComplete(Experiment exp, int expIndex) {
+		if (!exp.isSaving())
+			return;
+
+		long timeoutMs = 30000;
+		long startTime = System.currentTimeMillis();
+		long pollIntervalMs = 100;
+
+		Logger.info("Waiting for save operation to complete for experiment [" + expIndex + "]: " + exp.toString());
+
+		while (exp.isSaving() && (System.currentTimeMillis() - startTime) < timeoutMs) {
+			try {
+				Thread.sleep(pollIntervalMs);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				Logger.warn("Interrupted while waiting for save to complete for experiment [" + expIndex + "]");
+				return;
+			}
+		}
+
+		if (exp.isSaving()) {
+			Logger.warn("Timeout waiting for save operation to complete for experiment [" + expIndex
+					+ "]. Proceeding anyway, but save may not have completed: " + exp.toString());
+		} else {
+			Logger.info("Save operation completed for experiment [" + expIndex + "]");
+		}
+	}
 }
