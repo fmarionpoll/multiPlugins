@@ -41,7 +41,6 @@ public class TrackCapillariesAlongTime {
 	private final CapillaryTracker tracker = new CapillaryTracker();
 	private final SequenceLoaderService loadSvc = new SequenceLoaderService();
 	private final CapillaryFrameRegistration frameRegistration = new CapillaryFrameRegistration();
-	private final Map<Integer, plugins.fmp.multitools.service.tracking.TipPatchTracker.AcceptedPositions> acceptedTips = new HashMap<>();
 	private int reviewObservations;
 	private int registrationFailures;
 	private final java.util.Set<Integer> reviewFrames = new java.util.HashSet<>();
@@ -62,7 +61,6 @@ public class TrackCapillariesAlongTime {
 		reviewObservations = 0;
 		registrationFailures = 0;
 		reviewFrames.clear();
-		acceptedTips.clear();
 		try {
 			if (backward)
 				runBackward(exp, t1, t0, progress);
@@ -330,9 +328,6 @@ public class TrackCapillariesAlongTime {
 			IcyBufferedImage referenceImage, IcyBufferedImage currentImage) {
 		if (referenceImage.getWidth()!=currentImage.getWidth() || referenceImage.getHeight()!=currentImage.getHeight())
 			throw new IllegalArgumentException("Tracking images must have identical dimensions");
-		double[] reference=icy.type.collection.array.Array1DUtil.arrayToDoubleArray(referenceImage.getDataXY(0),referenceImage.isSignedDataType());
-		double[] current=icy.type.collection.array.Array1DUtil.arrayToDoubleArray(currentImage.getDataXY(0),currentImage.isSignedDataType());
-		plugins.fmp.multitools.service.tracking.TipPatchTracker tipTracker=new plugins.fmp.multitools.service.tracking.TipPatchTracker();
 		java.util.Set<Integer> uncertain=new java.util.HashSet<>();
 		List<Line2D> source = new ArrayList<Line2D>(caps.size());
 		List<Line2D> locallyTracked = new ArrayList<Line2D>(caps.size());
@@ -365,22 +360,7 @@ public class TrackCapillariesAlongTime {
 			double dy2 = cageMotion == null ? dy : cageMotion.lower.getY();
 			locallyTracked.set(i, new Line2D.Double(physical.getX1() + dx, physical.getY1() + dy,
 					physical.getX2() + dx2, physical.getY2() + dy2));
-			plugins.fmp.multitools.service.tracking.TipPatchTracker.Match top=tipTracker.track(physical.getP1(),reference,current,referenceImage.getWidth(),referenceImage.getHeight());
-			plugins.fmp.multitools.service.tracking.TipPatchTracker.Match bottom=tipTracker.track(physical.getP2(),reference,current,referenceImage.getWidth(),referenceImage.getHeight());
-			// Cage motion is a check, never an overwrite of local endpoint observations.
-			boolean disagree=cageMotion!=null && (top.position.distance(physical.getX1()+dx,physical.getY1()+dy)>3.
-					|| bottom.position.distance(physical.getX2()+dx2,physical.getY2()+dy2)>3.);
-			if(!top.reliable || !bottom.reliable || disagree) {
-				uncertain.add(i);
-			}
-			plugins.fmp.multitools.service.tracking.TipPatchTracker.AcceptedPositions history=acceptedTips.get(i);
-			if (history==null) {
-				history=new plugins.fmp.multitools.service.tracking.TipPatchTracker.AcceptedPositions(physical);
-				acceptedTips.put(i,history);
-			}
-			// Keep each endpoint's last accepted position independently. Reference
-			// images remain fixed at the run anchor, including during backward runs.
-			locallyTracked.set(i,history.update(top,bottom));
+
 		}
 		Result result = null;
 		try {
@@ -391,7 +371,7 @@ public class TrackCapillariesAlongTime {
 		}
 		{
 			for (int i : indices) {
-				Line2D registered = locallyTracked.get(i);
+				Line2D registered = result == null ? locallyTracked.get(i) : result.getRegisteredLines().get(i);
 				Line2D shared = result == null ? null : result.getRegisteredLines().get(i);
 				if(registered!=null && shared!=null && (registered.getP1().distance(shared.getP1())>3.
 						|| registered.getP2().distance(shared.getP2())>3.)) uncertain.add(i);

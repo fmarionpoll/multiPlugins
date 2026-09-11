@@ -39,8 +39,6 @@ import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
-import plugins.fmp.multitools.series.ProgressReporter;
-import plugins.fmp.multitools.series.TrackCapillariesAlongTime;
 import plugins.fmp.multitools.service.CapillaryLengthDetector;
 import plugins.fmp.multitools.service.CapillaryLengthDetectorOptions;
 import plugins.fmp.multitools.service.CapillaryLengthResult;
@@ -69,15 +67,11 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JSpinner outlierMadFactorSpinner;
 	private JSpinner outlierMinPxSpinner;
 	private JSpinner transitionThresholdSpinner;
-	private JButton runFrameByFrameButton = new JButton("Track validated tips");
 	private JButton rackTrackingButton = new JButton("Legacy: track rack from image 0");
 	private JButton stopRackButton = new JButton("Stop rack tracking");
 	private volatile boolean rackCancelled;
 	private boolean rackRunning;
-	private boolean legacyTrackingRunning;
 	private JSpinner rackPhaseSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
-	private JButton runFromCurrentTButton = new JButton("Track tips from current T");
-	private JButton runBackwardFromCurrentTButton = new JButton("Track tips backwards from current T");
 	private JButton saveButton = new JButton("Save");
 	private JButton validateBlueButton = new JButton("Validate adjusted tips at current T");
 	private JButton plotEndpointsButton = new JButton("Plot endpoint trajectories");
@@ -142,14 +136,11 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		topPanel.add(p1);
 
 		JPanel p1b = new JPanel(flow);
-		p1b.add(new JLabel("Review uncertain tips; cage motion is a check, not a replacement."));
+		p1b.add(new JLabel("Legacy rack tracking and transition tools."));
 		topPanel.add(p1b);
 
 		JPanel p2 = new JPanel(flow);
-		p2.add(runFrameByFrameButton);
 		stopRackButton.setEnabled(false);
-		p2.add(runFromCurrentTButton);
-		p2.add(runBackwardFromCurrentTButton);
 		p2.add(validateBlueButton);
 		p2.add(plotEndpointsButton);
 		p2.add(saveButton);
@@ -250,26 +241,23 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		topPanel.add(validate);
 		topPanel.add(p1);
 		JPanel track = new JPanel(flow);
-		track.add(new JLabel("3."));
-		track.add(runFrameByFrameButton);
-		track.add(runFromCurrentTButton);
+		track.add(new JLabel("Tip-patch tracking retired. Structural tracking is not yet available."));
 		topPanel.add(track);
 		JPanel inspect = new JPanel(flow);
-		inspect.add(new JLabel("4. Inspect and save"));
+		inspect.add(new JLabel("3. Inspect and save"));
 		inspect.add(plotEndpointsButton);
 		inspect.add(saveButton);
 		topPanel.add(inspect);
 		JPanel warning = new JPanel(flow);
-		warning.add(new JLabel("Tracking replaces geometry in the selected range. Review before saving."));
+		warning.add(new JLabel("Review blue geometry in the viewer before saving."));
 		topPanel.add(warning);
 
 		JPanel advanced = new JPanel();
 		advanced.setLayout(new javax.swing.BoxLayout(advanced, javax.swing.BoxLayout.Y_AXIS));
 		JPanel backward = new JPanel(flow);
-		backward.add(runBackwardFromCurrentTButton);
 		advanced.add(backward);
 		JPanel backwardHelp = new JPanel(flow);
-		backwardHelp.add(new JLabel("Backwards: current viewer frame to From. Forward: From to To."));
+		backwardHelp.add(new JLabel("Frame range applies to transition analysis."));
 		advanced.add(backwardHelp);
 		advanced.add(p1b);
 		rackPanel.removeAll();
@@ -303,7 +291,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			advancedToggle.setText(advancedToggle.isSelected() ? "Hide advanced / legacy controls" : "Show advanced / legacy controls");
 			dialogFrame.pack();
 		});
-		runFrameByFrameButton.setToolTipText("Track physical tip patches from the From frame to the To frame; validate your starting tips first.");
 		rackTrackingButton.setToolTipText("Alternate legacy rack/phase method, not the validated-tip patch tracker.");
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
@@ -313,11 +300,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		parent0.expListComboLazy.addItemListener(experimentSelectionListener);
 		bindSelectedExperiment();
 
-		runFrameByFrameButton.addActionListener(e -> runTrackingFrameByFrame());
 		rackTrackingButton.addActionListener(e -> runRackTracking());
 		stopRackButton.addActionListener(e -> rackCancelled = true);
-		runFromCurrentTButton.addActionListener(e -> runFromCurrentT());
-		runBackwardFromCurrentTButton.addActionListener(e -> runBackwardFromCurrentT());
 		saveButton.addActionListener(e -> save());
 		validateBlueButton.addActionListener(e -> validateBlueAtCurrentT());
 		plotEndpointsButton.addActionListener(e -> plotEndpointTrajectories());
@@ -423,37 +407,12 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		return v != null ? v.getPositionT() : 0;
 	}
 
-	private void runFromCurrentT() {
-		int t = getViewerPositionT();
-		tStartSpinner.setValue(t);
-		runTrackingFrameByFrame();
-	}
+
 
 	private static final double LENGTH_TOLERANCE_PX = 2.0;
 	private static final double LENGTH_TOLERANCE_RATIO = 0.03;
 
-	private void runBackwardFromCurrentT() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null || exp.getSeqCamData() == null)
-			return;
-		int tCurr = getViewerPositionT();
-		tEndSpinner.setValue(tCurr);
-		int tFrom = (Integer) tStartSpinner.getValue();
 
-		List<int[]> mismatches = collectLengthMismatches(exp, tCurr);
-		if (!mismatches.isEmpty()) {
-			String msg = buildLengthMismatchMessage(exp.getCapillaries(), mismatches);
-			String[] options = { "Cancel", "Continue anyway", "Normalize length and run" };
-			int choice = JOptionPane.showOptionDialog(getParent(), msg, "Capillary length changed",
-					JOptionPane.DEFAULT_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
-			if (choice == 0)
-				return;
-			if (choice == 2) {
-				normalizeLengthsAndSync(exp, tCurr, mismatches);
-			}
-		}
-		runTrackingInWorker(tCurr, tFrom);
-	}
 
 	private List<int[]> collectLengthMismatches(Experiment exp, int tCurr) {
 		Capillaries caps = exp.getCapillaries();
@@ -516,103 +475,14 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			caps.transferROIsToSequence(exp.getSeqCamData().getSequence());
 	}
 
-	private void runTrackingFrameByFrame() {
-		int t0 = (Integer) tStartSpinner.getValue();
-		int t1 = (Integer) tEndSpinner.getValue();
-		runTrackingInWorker(t0, t1);
-	}
 
-	private void runTrackingInWorker(int tStart, int tEnd) {
-		if (rackRunning || legacyTrackingRunning)
-			return;
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null || exp.getSeqCamData() == null)
-			return;
 
-		final int t0 = tStart;
-		final int t1 = tEnd;
-		final double madFactor = ((Number) outlierMadFactorSpinner.getValue()).doubleValue();
-		final double minPx = ((Number) outlierMinPxSpinner.getValue()).intValue();
-		final ProgressFrame pf = new ProgressFrame("Tracking capillaries (dlg)");
-		ProgressReporter progress = progressReporterFor(pf);
-		legacyTrackingRunning = true;
-		rackTrackingButton.setEnabled(false);
-		saveButton.setEnabled(false);
-		plotEndpointsButton.setEnabled(false);
-		initializeBlueButton.setEnabled(false);
-		validateBlueButton.setEnabled(false);
 
-		new SwingWorker<Void, Void>() {
-			@Override
-			protected Void doInBackground() {
-				long t0Ms = System.currentTimeMillis();
-				new TrackCapillariesAlongTime().run(exp, t0, t1, progress, madFactor, minPx);
-				long elapsed = System.currentTimeMillis() - t0Ms;
-				Logger.debug("Track capillaries: " + elapsed + " ms");
-				return null;
-			}
 
-			@Override
-			protected void done() {
-				legacyTrackingRunning = false;
-				rackTrackingButton.setEnabled(true);
-				saveButton.setEnabled(true);
-				plotEndpointsButton.setEnabled(true);
-				initializeBlueButton.setEnabled(true);
-				validateBlueButton.setEnabled(true);
-				pf.close();
-			}
-		}.execute();
-	}
 
-	private ProgressReporter progressReporterFor(ProgressFrame pf) {
-		return new ProgressReporter() {
-			@Override
-			public void updateMessage(String message) {
-				SwingUtilities.invokeLater(() -> pf.setMessage(message));
-			}
-
-			@Override
-			public void updateProgress(int percentage) {
-				SwingUtilities.invokeLater(() -> pf.setMessage(percentage + "%"));
-			}
-
-			@Override
-			public void updateProgress(String message, int current, int total) {
-				SwingUtilities.invokeLater(() -> {
-					pf.setMessage(message);
-					pf.setLength(total);
-					if (total > 0 && current >= 0)
-						pf.setPosition((double) current / total);
-				});
-			}
-
-			@Override
-			public void completed() {
-				SwingUtilities.invokeLater(() -> pf.close());
-			}
-
-			@Override
-			public void failed(String errorMessage) {
-				SwingUtilities.invokeLater(() -> {
-					pf.setMessage("Failed: " + errorMessage);
-					pf.close();
-					JOptionPane.showMessageDialog(TrackCapillaries.this,
-							"Tracking did not finish: " + errorMessage + "\nResults may cover only part of the requested range.",
-							"Tracking incomplete", JOptionPane.WARNING_MESSAGE);
-				});
-			}
-
-			@Override
-			public boolean isCancelled() {
-				return false;
-			}
-
-		};
-	}
 
 	private void save() {
-		if (legacyTrackingRunning || rackRunning) {
+		if (rackRunning) {
 			JOptionPane.showMessageDialog(this, "Wait for tracking to finish before saving.");
 			return;
 		}
@@ -692,7 +562,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private void runRackTracking() {
 		final Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null || exp.getSeqCamData() == null || rackRunning || legacyTrackingRunning)
+		if (exp == null || exp.getSeqCamData() == null || rackRunning)
 			return;
 		final double threshold = ((Number) rackPhaseSpinner.getValue()).doubleValue();
 		rackCancelled = false;
