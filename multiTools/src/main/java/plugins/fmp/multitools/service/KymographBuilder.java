@@ -346,6 +346,8 @@ public class KymographBuilder {
 			String binDir = chooseWritableBinSubDirectory(exp, exp.getBinNameFromKymoFrameStep(), options);
 			exp.setBinSubDirectory(binDir);
 			exp.setGenerationMode(plugins.fmp.multitools.experiment.GenerationMode.KYMOGRAPH);
+			if (exp.getActiveBinDescription() != null)
+				exp.getActiveBinDescription().setKymoFromNormedBlue(false);
 			exp.saveBinDescription(binDir);
 			if (previousBinDir != null && !previousBinDir.equals(binDir)) {
 				copyMeasuresBetweenBins(exp, previousBinDir, binDir);

@@ -15,10 +15,12 @@ import icy.roi.ROI;
 import icy.roi.ROI2D;
 import icy.type.geom.Polyline2D;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometryModel;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
+import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;
@@ -26,8 +28,6 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
-import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
-import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometryModel;
 
 public class Capillary implements Comparable<Capillary> {
 
@@ -46,7 +46,6 @@ public class Capillary implements Comparable<Capillary> {
 
 	// === METADATA ===
 	private final CapillaryMetadata metadata;
-
 	private boolean gulpMeasuresDirty = false;
 
 	/**
@@ -167,7 +166,9 @@ public class Capillary implements Comparable<Capillary> {
 		return true;
 	}
 
-	/** Changes contextual corridor length globally while preserving every blue line. */
+	/**
+	 * Changes contextual corridor length globally while preserving every blue line.
+	 */
 	public boolean changeCorridorLengthPixels(double totalDeltaPixels) {
 		if (!phaseGeometry.isInitialized())
 			return false;
@@ -539,8 +540,8 @@ public class Capillary implements Comparable<Capillary> {
 	}
 
 	/**
-	 * Renames each AlongT interval ROI to match the main capillary ROI name (AlongT stores ROI
-	 * copies).
+	 * Renames each AlongT interval ROI to match the main capillary ROI name (AlongT
+	 * stores ROI copies).
 	 */
 	public void syncAlongTROI2DNamesWithCapillaryRoi() {
 		String n = getRoiName();
@@ -552,7 +553,10 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
-	/** After {@link #setRoiName(String)}, keep AlongT names and kymograph prefix aligned with the ROI. */
+	/**
+	 * After {@link #setRoiName(String)}, keep AlongT names and kymograph prefix
+	 * aligned with the ROI.
+	 */
 	public void syncDerivedNamesAfterRoiRename() {
 		syncAlongTROI2DNamesWithCapillaryRoi();
 		if (metadata.roiCap != null && metadata.roiCap.getName() != null) {
@@ -562,7 +566,10 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
-	/** Sets {@link #getKymographName()} / file from current ROI name ({@link #replace_LR_with_12}). */
+	/**
+	 * Sets {@link #getKymographName()} / file from current ROI name
+	 * ({@link #replace_LR_with_12}).
+	 */
 	public void syncKymographStemFromRoiName() {
 		String roi = getRoiName();
 		if (roi == null)

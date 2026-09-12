@@ -10,6 +10,7 @@ import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.KymographBuilder;
+import plugins.fmp.multitools.service.NormedBlueKymographBuilder;
 import plugins.fmp.multitools.tools.Logger;
 
 public class BuildKymosFromCapillaries extends BuildSeries {
@@ -39,8 +40,12 @@ public class BuildKymosFromCapillaries extends BuildSeries {
 		openDataViewer(exp);
 		getTimeLimitsOfSequence(exp);
 
-		KymographBuilder builder = new KymographBuilder();
-		if (builder.buildKymograph(exp, options)) {
+		boolean built;
+		if (options != null && options.kymoFromNormedBlue)
+			built = new NormedBlueKymographBuilder().buildKymograph(exp, options);
+		else
+			built = new KymographBuilder().buildKymograph(exp, options);
+		if (built) {
 			exp.saveExperimentDescriptors();
 			// Session bin hint must follow the directory we just wrote (e.g. bin_300),
 			// not a legacy bin_60 left from before the rebuild.

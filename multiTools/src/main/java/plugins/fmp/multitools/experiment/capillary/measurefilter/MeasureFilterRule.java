@@ -1,7 +1,7 @@
 package plugins.fmp.multitools.experiment.capillary.measurefilter;
 
 /**
- * One Find rule: Source → Stat → Op + threshold(s).
+ * CODEX One Find rule: Source → Stat → Op + threshold(s).
  */
 public class MeasureFilterRule {
 	public MeasureFilterSource source = MeasureFilterSource.BOTTOM_BASELINE_MAD;
@@ -11,7 +11,8 @@ public class MeasureFilterRule {
 	public double threshold2 = 0.0;
 
 	/**
-	 * When true and source is BOTTOM_BASELINE_Y with IS_NAN, require BOTTOMLEVEL series present.
+	 * When true and source is BOTTOM_BASELINE_Y with IS_NAN, require BOTTOMLEVEL
+	 * series present.
 	 */
 	public boolean requireBottomSeriesIfBaselineMissing = true;
 

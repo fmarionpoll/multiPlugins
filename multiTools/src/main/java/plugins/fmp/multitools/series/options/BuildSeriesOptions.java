@@ -59,6 +59,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public Rectangle parent0Rect = null;
 	public String binSubDirectory = null;
 	public int diskRadius = 5;
+	/** When true, build kymographs from expanded, length-normalized blue physical lines. */
+	public boolean kymoFromNormedBlue = false;
+	/** Extra length as a fraction of blue length, split equally on both ends (0.10 = +5% each end). */
+	public double kymoBlueExpansionRatio = 0.10;
 	/** When true (default), profile uses segment perpendicular to capillary; when false, horizontal line at each point. */
 	public boolean profilePerpendicular = true;
 	public boolean doRegistration = false;

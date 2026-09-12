@@ -3400,11 +3400,9 @@ public class Experiment {
 
 		ResultsArrayFromCapillaries collectResults = new ResultsArrayFromCapillaries(getCapillaries().getList().size());
 		for (Capillary capillary : getCapillaries().getList()) {
-			double scalingFactorToPhysicalUnits = getCapillaries().getScalingFactorToPhysicalUnits(resultType,
-					capillary);
 			Results results = collectResults.getCapillaryMeasure(this, capillary, resultsOptions);
 			if (results != null) {
-				results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultType);
+				results.transferDataValuesToUl(capillary, this, resultType);
 				resultsArray.addRow(results);
 			}
 		}

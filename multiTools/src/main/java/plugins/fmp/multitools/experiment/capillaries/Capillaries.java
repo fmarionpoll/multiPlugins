@@ -12,9 +12,11 @@ import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import icy.type.geom.Polygon2D;
+import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.capillary.CapillaryProperties;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.tools.Comparators;
@@ -716,20 +718,23 @@ public class Capillaries {
 	 * used instead of the experiment-wide one.
 	 */
 	public double getScalingFactorToPhysicalUnits(EnumResults resultType, Capillary capillary) {
-		switch (resultType) {
-		case NBGULPS:
-		case TTOGULP:
-		case TTOGULP_LR:
-		case AUTOCORREL:
-		case CROSSCORREL:
-		case CROSSCORREL_LR:
+		return getScalingFactorToPhysicalUnits(resultType, capillary, null, 0);
+	}
+
+	public double getScalingFactorToPhysicalUnits(EnumResults resultType, Capillary capillary, Experiment exp,
+			long t) {
+		if (CapillaryPixelScale.isCountType(resultType))
 			return 1.;
-		default:
-			break;
+		if (!CapillaryPixelScale.isVolumeUnit(resultType))
+			return 1.;
+		if (capillary == null) {
+			if (capillariesDescription.getPixels() > 0 && capillariesDescription.getVolume() > 0)
+				return capillariesDescription.getVolume() / capillariesDescription.getPixels();
+			return 1.;
 		}
-		if (capillary != null && capillary.getPixels() > 0 && capillary.getVolume() > 0)
-			return capillary.getVolume() / capillary.getPixels();
-		return capillariesDescription.getVolume() / capillariesDescription.getPixels();
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double e = CapillaryPixelScale.expansionRatioOf(exp);
+		return CapillaryPixelScale.ulPerNativePixel(capillary, t, source, e);
 	}
 
 	public Polygon2D get2DPolygonEnclosingCapillaries() {

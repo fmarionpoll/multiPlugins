@@ -1,6 +1,6 @@
 package plugins.fmp.multitools.experiment.capillaries.tracking;
 
-/** Inclusive frame interval derived from adjacent tracking boundaries. */
+/** CODEX Inclusive frame interval derived from adjacent tracking boundaries. */
 public final class TrackingSegment {
 	private final int startFrame;
 	private final int endFrame;
@@ -12,9 +12,17 @@ public final class TrackingSegment {
 		this.openingBoundary = openingBoundary;
 	}
 
-	public int getStartFrame() { return startFrame; }
-	public int getEndFrame() { return endFrame; }
-	public TrackingBoundary getOpeningBoundary() { return openingBoundary; }
+	public int getStartFrame() {
+		return startFrame;
+	}
+
+	public int getEndFrame() {
+		return endFrame;
+	}
+
+	public TrackingBoundary getOpeningBoundary() {
+		return openingBoundary;
+	}
 
 	public boolean contains(int frame) {
 		return frame >= startFrame && frame <= endFrame;

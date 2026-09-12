@@ -6,8 +6,8 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * Robust constant tip marker from a noisy bottom-level series (median after MAD
- * outlier rejection).
+ * CODEX Robust constant tip marker from a noisy bottom-level series (median
+ * after MAD outlier rejection).
  */
 public final class BottomBaselineEstimator {
 

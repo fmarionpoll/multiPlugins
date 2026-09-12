@@ -12,7 +12,7 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
- * Scans experiments for capillaries matching a {@link MeasureFilterRule}.
+ * CODEX Scans experiments for capillaries matching a {@link MeasureFilterRule}.
  */
 public final class CapillaryMeasureFilter {
 
@@ -45,8 +45,8 @@ public final class CapillaryMeasureFilter {
 			try {
 				exp.load_capillaries_description_and_measures();
 			} catch (Exception e) {
-				Logger.warn("CapillaryMeasureFilter: failed to load capillaries for "
-						+ safeExpLabel(exp) + ": " + e.getMessage());
+				Logger.warn("CapillaryMeasureFilter: failed to load capillaries for " + safeExpLabel(exp) + ": "
+						+ e.getMessage());
 				continue;
 			}
 			if (exp.getCapillaries() == null || exp.getCapillaries().getList() == null)
@@ -82,7 +82,8 @@ public final class CapillaryMeasureFilter {
 	}
 
 	/**
-	 * @return computed value, or null if this capillary cannot be evaluated for the rule
+	 * @return computed value, or null if this capillary cannot be evaluated for the
+	 *         rule
 	 */
 	public static Double compute(Capillary cap, MeasureFilterRule rule) {
 		if (cap == null || rule == null || rule.source == null)

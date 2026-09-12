@@ -18,6 +18,7 @@ import plugins.fmp.multitools.experiment.cage.CageProperties;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
@@ -410,14 +411,19 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		double scalingFactor = 1.0;
-		if ("volume (ul)".equals(options.resultType.toUnit())) {
-			if (cap.getPixels() > 0)
-				scalingFactor = cap.getVolume() / cap.getPixels();
-		}
+		boolean volume = CapillaryPixelScale.isVolumeUnit(options.resultType)
+				&& !CapillaryPixelScale.isCountType(options.resultType);
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double e = CapillaryPixelScale.expansionRatioOf(exp);
+		boolean abs = CapillaryPixelScale.isAbsoluteLevel(options.resultType);
 
 		for (int j = 0; j < npoints; j++) {
 			double x = getDisplayTimeMinutes(exp, camImages_time_min, j, options);
-			double y = capMeasure.getValueAt(j) * scalingFactor;
+			double y = capMeasure.getValueAt(j);
+			if (volume)
+				y = CapillaryPixelScale.toUl(y, cap, CapillaryPixelScale.frameOfColumn(j, factor), source, e, abs);
+			else
+				y = y * scalingFactor;
 			seriesXY.add(x, y);
 		}
 		return seriesXY;
@@ -437,21 +443,24 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		double[] camImages_time_min = exp.getMeasureTimeMinutes();
 
 		int npoints = thresholdMeasure.getNPoints();
-
-		double scalingFactor = 1.0;
-		if ("volume (ul)".equals(options.resultType.toUnit())) {
+		int factor = exp != null ? Math.max(1, exp.getKymoSubsampleFactor()) : 1;
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double e = CapillaryPixelScale.expansionRatioOf(exp);
+		boolean volume = options.resultType != null && CapillaryPixelScale.isVolumeUnit(options.resultType);
+		plugins.fmp.multitools.experiment.capillary.Capillary firstCap = null;
+		if (volume) {
 			List<plugins.fmp.multitools.experiment.capillary.Capillary> capillaries = cage
 					.getCapillaries(exp.getCapillaries());
-			if (capillaries != null && !capillaries.isEmpty()) {
-				plugins.fmp.multitools.experiment.capillary.Capillary firstCap = capillaries.get(0);
-				if (firstCap.getPixels() > 0)
-					scalingFactor = firstCap.getVolume() / firstCap.getPixels();
-			}
+			if (capillaries != null && !capillaries.isEmpty())
+				firstCap = capillaries.get(0);
 		}
 
 		for (int j = 0; j < npoints; j++) {
 			double x = getDisplayTimeMinutes(exp, camImages_time_min, j, options);
-			double y = thresholdMeasure.getValueAt(j) * scalingFactor;
+			double y = thresholdMeasure.getValueAt(j);
+			if (volume && firstCap != null)
+				y = CapillaryPixelScale.toUl(y, firstCap, CapillaryPixelScale.frameOfColumn(j, factor), source, e,
+						false);
 			thresholdSeries.add(x, y);
 		}
 
@@ -477,20 +486,23 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		double[] camImages_time_min = exp.getMeasureTimeMinutes();
 
 		int npoints = evaporationMeasure.getNPoints();
-
-		double scalingFactor = 1.0;
-		if ("volume (ul)".equals(options.resultType.toUnit())) {
+		int factor = exp != null ? Math.max(1, exp.getKymoSubsampleFactor()) : 1;
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double e = CapillaryPixelScale.expansionRatioOf(exp);
+		boolean volume = options.resultType != null && CapillaryPixelScale.isVolumeUnit(options.resultType);
+		Capillary firstCap = null;
+		if (volume) {
 			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
-			if (capillaries != null && !capillaries.isEmpty()) {
-				Capillary firstCap = capillaries.get(0);
-				if (firstCap.getPixels() > 0)
-					scalingFactor = firstCap.getVolume() / firstCap.getPixels();
-			}
+			if (capillaries != null && !capillaries.isEmpty())
+				firstCap = capillaries.get(0);
 		}
 
 		for (int j = 0; j < npoints; j++) {
 			double x = getDisplayTimeMinutes(exp, camImages_time_min, j, options);
-			double y = evaporationMeasure.getValueAt(j) * scalingFactor;
+			double y = evaporationMeasure.getValueAt(j);
+			if (volume && firstCap != null)
+				y = CapillaryPixelScale.toUl(y, firstCap, CapillaryPixelScale.frameOfColumn(j, factor), source, e,
+						false);
 			evaporationSeries.add(x, y);
 		}
 

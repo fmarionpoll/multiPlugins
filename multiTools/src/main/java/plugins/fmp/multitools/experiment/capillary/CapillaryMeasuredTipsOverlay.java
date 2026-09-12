@@ -11,10 +11,11 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /**
- * Light-blue tip overlays ({@code caplength_xx}) for measured capillary extents.
- * Named so they never match the capillary ROI pattern {@code line}, and can be
- * edited by the user then written back to {@link CapillaryProperties} measured
- * endpoints (and thus CapillariesDescription.csv).
+ * CODEX Light-blue tip overlays ({@code caplength_xx}) for measured capillary
+ * extents. Named so they never match the capillary ROI pattern {@code line},
+ * and can be edited by the user then written back to
+ * {@link CapillaryProperties} measured endpoints (and thus
+ * CapillariesDescription.csv).
  */
 public final class CapillaryMeasuredTipsOverlay {
 
@@ -32,13 +33,14 @@ public final class CapillaryMeasuredTipsOverlay {
 	 */
 	public static int transferTipsToSequence(Capillaries capillaries, SequenceCamData seqCamData) {
 		int t = 0;
-		if (seqCamData != null && seqCamData.getSequence() != null
-				&& seqCamData.getSequence().getFirstViewer() != null)
+		if (seqCamData != null && seqCamData.getSequence() != null && seqCamData.getSequence().getFirstViewer() != null)
 			t = seqCamData.getSequence().getFirstViewer().getPositionT();
 		return transferTipsToSequence(capillaries, seqCamData, t);
 	}
 
-	/** Rebuilds the physical-capillary overlay for the phase containing {@code t}. */
+	/**
+	 * Rebuilds the physical-capillary overlay for the phase containing {@code t}.
+	 */
 	public static int transferTipsToSequence(Capillaries capillaries, SequenceCamData seqCamData, int t) {
 		if (capillaries == null || seqCamData == null || seqCamData.getSequence() == null)
 			return 0;
@@ -86,8 +88,7 @@ public final class CapillaryMeasuredTipsOverlay {
 	 */
 	public static int transferTipsFromSequence(Capillaries capillaries, SequenceCamData seqCamData) {
 		int t = 0;
-		if (seqCamData != null && seqCamData.getSequence() != null
-				&& seqCamData.getSequence().getFirstViewer() != null)
+		if (seqCamData != null && seqCamData.getSequence() != null && seqCamData.getSequence().getFirstViewer() != null)
 			t = seqCamData.getSequence().getFirstViewer().getPositionT();
 		return transferTipsFromSequence(capillaries, seqCamData, t);
 	}

@@ -9,8 +9,9 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
- * Time-dependent physical capillary geometry. Green pose is kept by AlongT;
- * this model stores blue keyframes and capillary-wide corridor extension ratios.
+ * CODEX Time-dependent physical capillary geometry. Green pose is kept by
+ * AlongT; this model stores blue keyframes and capillary-wide corridor
+ * extension ratios.
  */
 public final class CapillaryPhaseGeometryModel {
 	private final NavigableMap<Long, Line2D> blueByPhase = new TreeMap<Long, Line2D>();
@@ -20,7 +21,9 @@ public final class CapillaryPhaseGeometryModel {
 		return extensions != null && !blueByPhase.isEmpty();
 	}
 
-	public synchronized CorridorExtensionRatios getExtensions() { return extensions; }
+	public synchronized CorridorExtensionRatios getExtensions() {
+		return extensions;
+	}
 
 	public synchronized void setExtensions(CorridorExtensionRatios extensions) {
 		if (extensions == null)
@@ -69,7 +72,10 @@ public final class CapillaryPhaseGeometryModel {
 		return blueByPhase.floorKey(frame);
 	}
 
-	/** Replace temporal poses after a completed rack scan, preserving corridor ratios. */
+	/**
+	 * Replace temporal poses after a completed rack scan, preserving corridor
+	 * ratios.
+	 */
 	public synchronized void replaceBlueKeyframes(Map<Long, Line2D> frames) {
 		if (frames == null || !frames.containsKey(0L))
 			throw new IllegalArgumentException("image-zero reference is required");
@@ -100,7 +106,9 @@ public final class CapillaryPhaseGeometryModel {
 		return CapillaryPhaseGeometry.copy(alignedBlue);
 	}
 
-	/** Global contextual extent change; blue keyframes are deliberately untouched. */
+	/**
+	 * Global contextual extent change; blue keyframes are deliberately untouched.
+	 */
 	public synchronized void changeExtensions(double upperDelta, double lowerDelta) {
 		ensureInitialized();
 		extensions = extensions.plus(upperDelta, lowerDelta);
@@ -170,7 +178,9 @@ public final class CapillaryPhaseGeometryModel {
 		return new Point2D.Double((line.getX1() + line.getX2()) / 2.0, (line.getY1() + line.getY2()) / 2.0);
 	}
 
-	private static double length(Line2D line) { return line.getP1().distance(line.getP2()); }
+	private static double length(Line2D line) {
+		return line.getP1().distance(line.getP2());
+	}
 
 	private static double signedAlong(Point2D from, Point2D to, Vector axis) {
 		return (to.getX() - from.getX()) * axis.x + (to.getY() - from.getY()) * axis.y;
@@ -186,6 +196,10 @@ public final class CapillaryPhaseGeometryModel {
 
 	private static final class Vector {
 		final double x, y;
-		Vector(double x, double y) { this.x = x; this.y = y; }
+
+		Vector(double x, double y) {
+			this.x = x;
+			this.y = y;
+		}
 	}
 }

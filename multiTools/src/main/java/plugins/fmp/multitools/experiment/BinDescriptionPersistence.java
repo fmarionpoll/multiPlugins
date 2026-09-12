@@ -25,6 +25,8 @@ public class BinDescriptionPersistence {
 	private final static String ID_GENERATIONMODE = "generationMode";
 	private final static String ID_PRIMARYTIMEBASE = "primaryTimebase";
 	private final static String ID_MEASURESPRESENT = "measuresPresent";
+	private final static String ID_KYMOFROMNORMEDBLUE = "kymoFromNormedBlue";
+	private final static String ID_KYMOBLUEEXPANSIONRATIO = "kymoBlueExpansionRatio";
 	private final static String ID_BINDESCRIPTION = "binDescription";
 
 	public final static String ID_V2_BINDESCRIPTION_XML = "BinDescription.xml";
@@ -113,6 +115,8 @@ public class BinDescriptionPersistence {
 		String generationModeStr = XMLUtil.getElementValue(node, ID_GENERATIONMODE, null);
 		String primaryTimebaseStr = XMLUtil.getElementValue(node, ID_PRIMARYTIMEBASE, null);
 		boolean measuresPresent = XMLUtil.getElementBooleanValue(node, ID_MEASURESPRESENT, false);
+		boolean kymoFromNormedBlue = XMLUtil.getElementBooleanValue(node, ID_KYMOFROMNORMEDBLUE, false);
+		double kymoBlueExpansionRatio = XMLUtil.getElementDoubleValue(node, ID_KYMOBLUEEXPANSIONRATIO, 0.10);
 
 		if (firstKymoColMs >= 0)
 			binDescription.setFirstKymoColMs(firstKymoColMs);
@@ -136,6 +140,8 @@ public class BinDescriptionPersistence {
 			}
 		}
 		binDescription.setMeasuresPresent(measuresPresent);
+		binDescription.setKymoFromNormedBlue(kymoFromNormedBlue);
+		binDescription.setKymoBlueExpansionRatio(kymoBlueExpansionRatio);
 
 		return true;
 	}
@@ -160,6 +166,8 @@ public class BinDescriptionPersistence {
 			XMLUtil.setElementValue(node, ID_GENERATIONMODE, binDescription.getGenerationMode().name());
 			XMLUtil.setElementValue(node, ID_PRIMARYTIMEBASE, binDescription.getPrimaryTimebase().name());
 			XMLUtil.setElementBooleanValue(node, ID_MEASURESPRESENT, binDescription.isMeasuresPresent());
+			XMLUtil.setElementBooleanValue(node, ID_KYMOFROMNORMEDBLUE, binDescription.isKymoFromNormedBlue());
+			XMLUtil.setElementDoubleValue(node, ID_KYMOBLUEEXPANSIONRATIO, binDescription.getKymoBlueExpansionRatio());
 
 			XMLUtil.saveDocument(doc, csFileName);
 			return true;

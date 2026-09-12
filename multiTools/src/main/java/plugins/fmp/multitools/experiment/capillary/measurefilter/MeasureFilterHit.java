@@ -3,7 +3,7 @@ package plugins.fmp.multitools.experiment.capillary.measurefilter;
 import plugins.fmp.multitools.experiment.Experiment;
 
 /**
- * One capillary that matched a Find rule.
+ * CODEX One capillary that matched a Find rule.
  */
 public class MeasureFilterHit {
 	public final int experimentIndex;

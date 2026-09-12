@@ -362,18 +362,17 @@ public class Results {
 	public void transferDataValuesToValuesOut(double scalingFactorToPhysicalUnits, EnumResults resultType) {
 		if (valuesOutLength == 0 || dataValues == null || dataValues.size() < 1)
 			return;
-
-		boolean removeZeros = false;
 		int len = Math.min(valuesOutLength, dataValues.size());
-		if (removeZeros) {
-			for (int i = 0; i < len; i++) {
-				double ivalue = dataValues.get(i);
-				valuesOut[i] = (ivalue == 0 ? Double.NaN : ivalue) * scalingFactorToPhysicalUnits;
-			}
-		} else {
-			for (int i = 0; i < len; i++)
-				valuesOut[i] = dataValues.get(i) * scalingFactorToPhysicalUnits;
-		}
+		for (int i = 0; i < len; i++)
+			valuesOut[i] = dataValues.get(i) * scalingFactorToPhysicalUnits;
+	}
+
+	public void transferDataValuesToUl(plugins.fmp.multitools.experiment.capillary.Capillary cap,
+			plugins.fmp.multitools.experiment.Experiment exp, EnumResults resultType) {
+		if (valuesOutLength == 0 || dataValues == null || dataValues.size() < 1)
+			return;
+		plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale.applyToUl(dataValues, valuesOut,
+				valuesOutLength, cap, exp, resultType);
 	}
 
 	public void copyValuesOut(Results sourceRow) {

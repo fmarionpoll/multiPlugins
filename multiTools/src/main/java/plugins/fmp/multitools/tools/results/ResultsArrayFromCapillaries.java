@@ -153,11 +153,9 @@ public class ResultsArrayFromCapillaries extends ResultsArray {
 
 		for (Capillary capillary : capillaries) {
 			try {
-				double scalingFactorToPhysicalUnits = exp.getCapillaries()
-						.getScalingFactorToPhysicalUnits(resultsOptions.resultType, capillary);
 				Results results = getCapillaryMeasure(exp, capillary, resultsOptions);
 				if (results != null) {
-					results.transferDataValuesToValuesOut(scalingFactorToPhysicalUnits, resultsOptions.resultType);
+					results.transferDataValuesToUl(capillary, exp, resultsOptions.resultType);
 					resultsArray.addRow(results);
 				}
 			} catch (Exception e) {

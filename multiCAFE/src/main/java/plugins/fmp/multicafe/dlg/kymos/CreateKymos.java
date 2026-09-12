@@ -36,6 +36,8 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 	JButton startComputationButton = new JButton("Start");
 	JSpinner diskRadiusSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
+	JCheckBox fromBlueRoisCheckBox = new JCheckBox("from blue ROIs", false);
+	JSpinner blueExpandPercentSpinner = new JSpinner(new SpinnerNumberModel(10, 0, 50, 1));
 	JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
 	JComboBox<String> downsampleCombo = new JComboBox<>();
 	JLabel samplingHintLabel = new JLabel(" ");
@@ -78,6 +80,12 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		panel1.add(new JLabel("downsample"));
 		panel1.add(downsampleCombo);
 		panel1.add(samplingHintLabel);
+		fromBlueRoisCheckBox.setToolTipText("Sample kymographs from expanded blue physical lines, normalized to a constant height.");
+		blueExpandPercentSpinner.setToolTipText("Extra length as percent of the blue 32 mm line, split equally on both ends.");
+		panel1.add(fromBlueRoisCheckBox);
+		panel1.add(new JLabel("expand %"));
+		panel1.add(blueExpandPercentSpinner);
+		blueExpandPercentSpinner.setEnabled(false);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
@@ -156,6 +164,13 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 				updateSamplingHint((Experiment) parent0.expListComboLazy.getSelectedItem());
 			}
 		});
+
+		fromBlueRoisCheckBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				blueExpandPercentSpinner.setEnabled(fromBlueRoisCheckBox.isSelected());
+			}
+		});
 	}
 
 	private void updateSamplingHint(Experiment exp) {
@@ -203,6 +218,8 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		options.kymoDownsampleFactor = getDownsampleFactor();
 
 		options.diskRadius = (int) diskRadiusSpinner.getValue();
+		options.kymoFromNormedBlue = fromBlueRoisCheckBox.isSelected();
+		options.kymoBlueExpansionRatio = ((Number) blueExpandPercentSpinner.getValue()).doubleValue() / 100.0;
 		options.doRegistration = false;
 		options.referenceFrame = 0;
 		options.concurrentDisplay = false;

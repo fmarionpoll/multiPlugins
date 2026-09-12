@@ -34,6 +34,8 @@ public class BinDescription {
 	 * was scanned or saved. Not authoritative - the resolver rescans when deciding.
 	 */
 	private boolean measuresPresent = false;
+	private boolean kymoFromNormedBlue = false;
+	private double kymoBlueExpansionRatio = 0.10;
 
 	public BinDescription() {
 	}
@@ -129,6 +131,25 @@ public class BinDescription {
 		this.measuresPresent = measuresPresent;
 	}
 
+	public boolean isKymoFromNormedBlue() {
+		return kymoFromNormedBlue;
+	}
+
+	public void setKymoFromNormedBlue(boolean kymoFromNormedBlue) {
+		this.kymoFromNormedBlue = kymoFromNormedBlue;
+	}
+
+	public double getKymoBlueExpansionRatio() {
+		return kymoBlueExpansionRatio;
+	}
+
+	public void setKymoBlueExpansionRatio(double kymoBlueExpansionRatio) {
+		if (!Double.isFinite(kymoBlueExpansionRatio) || kymoBlueExpansionRatio < 0)
+			this.kymoBlueExpansionRatio = 0;
+		else
+			this.kymoBlueExpansionRatio = kymoBlueExpansionRatio;
+	}
+
 	/**
 	 * Effective interval per sample in ms, i.e. {@code cameraIntervalMs * subsampleFactor}
 	 * when both are known, otherwise falls back to {@link #binKymoColMs}.
@@ -151,6 +172,8 @@ public class BinDescription {
 			this.generationMode = other.generationMode;
 			this.measuresPresent = other.measuresPresent;
 			this.primaryTimebase = other.primaryTimebase;
+			this.kymoFromNormedBlue = other.kymoFromNormedBlue;
+			this.kymoBlueExpansionRatio = other.kymoBlueExpansionRatio;
 		}
 	}
 

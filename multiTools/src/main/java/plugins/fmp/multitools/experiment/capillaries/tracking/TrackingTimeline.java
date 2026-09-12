@@ -8,8 +8,8 @@ import java.util.NavigableMap;
 import java.util.TreeMap;
 
 /**
- * Editable tracking boundaries. Segments are deliberately derived rather than
- * stored, so moving or deleting a boundary never destroys capillary ROIs.
+ * CODEX Editable tracking boundaries. Segments are deliberately derived rather
+ * than stored, so moving or deleting a boundary never destroys capillary ROIs.
  */
 public final class TrackingTimeline {
 	private final NavigableMap<Integer, TrackingBoundary> boundaries = new TreeMap<Integer, TrackingBoundary>();

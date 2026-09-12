@@ -15,11 +15,12 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
 
-/** Sidecar persistence for time-dependent blue physical geometry. */
+/** CODEX Sidecar persistence for time-dependent blue physical geometry. */
 public final class CapillaryPhaseGeometryPersistence {
 	public static final String FILE_NAME = "CapillaryPhaseGeometry.csv";
 
-	private CapillaryPhaseGeometryPersistence() {}
+	private CapillaryPhaseGeometryPersistence() {
+	}
 
 	public static boolean load(Capillaries capillaries, String resultsDirectory) {
 		if (capillaries == null || resultsDirectory == null)
@@ -43,7 +44,8 @@ public final class CapillaryPhaseGeometryPersistence {
 					continue;
 				CapillaryPhaseGeometryModel model = capillary.getPhaseGeometry();
 				if ("RATIO".equals(f[0]))
-					model.setExtensions(new CorridorExtensionRatios(Double.parseDouble(f[2]), Double.parseDouble(f[3])));
+					model.setExtensions(
+							new CorridorExtensionRatios(Double.parseDouble(f[2]), Double.parseDouble(f[3])));
 				else if ("BLUE".equals(f[0]) && f.length >= 7)
 					model.putBlue(Long.parseLong(f[2]), new Line2D.Double(Double.parseDouble(f[3]),
 							Double.parseDouble(f[4]), Double.parseDouble(f[5]), Double.parseDouble(f[6])));
@@ -68,13 +70,14 @@ public final class CapillaryPhaseGeometryPersistence {
 					CapillaryPhaseGeometryModel model = capillary.getPhaseGeometry();
 					if (!model.isInitialized())
 						continue;
-					String name = encode(capillary.getRoiName() != null ? capillary.getRoiName() : capillary.getKymographName());
+					String name = encode(
+							capillary.getRoiName() != null ? capillary.getRoiName() : capillary.getKymographName());
 					writer.write("RATIO;" + name + ";" + model.getExtensions().getUpper() + ";"
 							+ model.getExtensions().getLower() + ";;;\n");
 					for (Map.Entry<Long, Line2D> entry : model.getBlueKeyframes().entrySet()) {
 						Line2D blue = entry.getValue();
-						writer.write("BLUE;" + name + ";" + entry.getKey() + ";" + blue.getX1() + ";"
-								+ blue.getY1() + ";" + blue.getX2() + ";" + blue.getY2() + "\n");
+						writer.write("BLUE;" + name + ";" + entry.getKey() + ";" + blue.getX1() + ";" + blue.getY1()
+								+ ";" + blue.getX2() + ";" + blue.getY2() + "\n");
 					}
 				}
 			}

@@ -1,6 +1,8 @@
 package plugins.fmp.multitools.experiment.capillary.geometry;
 
-/** Green-corridor extensions expressed relative to physical blue length. */
+/**
+ * CODEX Green-corridor extensions expressed relative to physical blue length.
+ */
 public final class CorridorExtensionRatios {
 	private final double upper;
 	private final double lower;
@@ -12,8 +14,13 @@ public final class CorridorExtensionRatios {
 		this.lower = lower;
 	}
 
-	public double getUpper() { return upper; }
-	public double getLower() { return lower; }
+	public double getUpper() {
+		return upper;
+	}
+
+	public double getLower() {
+		return lower;
+	}
 
 	public CorridorExtensionRatios plus(double upperDelta, double lowerDelta) {
 		return new CorridorExtensionRatios(Math.max(0, upper + upperDelta), Math.max(0, lower + lowerDelta));

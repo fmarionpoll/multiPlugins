@@ -8,7 +8,9 @@ import icy.roi.ROI2D;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
-/** Converts a legacy capillary polyline to its best-fit straight corridor. */
+/**
+ * CODEX Converts a legacy capillary polyline to its best-fit straight corridor.
+ */
 public final class CapillaryCorridorNormalizer {
 	public static final double DEFAULT_WARNING_DEVIATION_PX = 3.0;
 
@@ -21,11 +23,17 @@ public final class CapillaryCorridorNormalizer {
 			this.maxPerpendicularDeviation = maxPerpendicularDeviation;
 		}
 
-		public ROI2DLine getLine() { return line; }
-		public double getMaxPerpendicularDeviation() { return maxPerpendicularDeviation; }
+		public ROI2DLine getLine() {
+			return line;
+		}
+
+		public double getMaxPerpendicularDeviation() {
+			return maxPerpendicularDeviation;
+		}
 	}
 
-	private CapillaryCorridorNormalizer() {}
+	private CapillaryCorridorNormalizer() {
+	}
 
 	static final class Fit {
 		final Line2D line;

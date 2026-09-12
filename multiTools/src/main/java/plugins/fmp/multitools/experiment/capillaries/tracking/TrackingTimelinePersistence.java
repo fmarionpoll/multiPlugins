@@ -13,12 +13,13 @@ import java.util.List;
 
 import plugins.fmp.multitools.tools.Logger;
 
-/** Sidecar persistence for editable tracking boundaries. */
+/** CODEX Sidecar persistence for editable tracking boundaries. */
 public final class TrackingTimelinePersistence {
 	public static final String FILE_NAME = "CapillaryTrackingBoundaries.csv";
 	private static final String HEADER = "# multiCAFE capillary tracking boundaries v1";
 
-	private TrackingTimelinePersistence() {}
+	private TrackingTimelinePersistence() {
+	}
 
 	public static boolean load(TrackingTimeline timeline, String resultsDirectory) {
 		if (timeline == null || resultsDirectory == null)
@@ -37,9 +38,8 @@ public final class TrackingTimelinePersistence {
 				String[] fields = line.split(";", -1);
 				if (fields.length < 5)
 					continue;
-				loaded.add(new TrackingBoundary(Integer.parseInt(fields[0]),
-						TrackingBoundary.Origin.valueOf(fields[1]), TrackingBoundary.Status.valueOf(fields[2]),
-						decode(fields[4]), Double.parseDouble(fields[3])));
+				loaded.add(new TrackingBoundary(Integer.parseInt(fields[0]), TrackingBoundary.Origin.valueOf(fields[1]),
+						TrackingBoundary.Status.valueOf(fields[2]), decode(fields[4]), Double.parseDouble(fields[3])));
 			}
 			timeline.replaceAll(loaded);
 			return true;

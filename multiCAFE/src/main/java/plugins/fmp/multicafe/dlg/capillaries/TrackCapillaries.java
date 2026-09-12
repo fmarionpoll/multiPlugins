@@ -241,7 +241,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		topPanel.add(validate);
 		topPanel.add(p1);
 		JPanel track = new JPanel(flow);
-		track.add(new JLabel("Tip-patch tracking retired. Structural tracking is not yet available."));
+		JButton structuralReference = new JButton("Structural reference: polygon test");
+		structuralReference.addActionListener(e -> StructuralReferenceDialog.open((Experiment) parent0.expListComboLazy.getSelectedItem()));
+		track.add(structuralReference);
+		track.add(new JLabel("Image-0 edge preview only; no tracking yet."));
 		topPanel.add(track);
 		JPanel inspect = new JPanel(flow);
 		inspect.add(new JLabel("3. Inspect and save"));

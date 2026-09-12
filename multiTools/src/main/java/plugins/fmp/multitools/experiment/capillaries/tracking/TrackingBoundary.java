@@ -1,13 +1,19 @@
 package plugins.fmp.multitools.experiment.capillaries.tracking;
 
 /**
- * Boundary between two independently trackable intervals. A boundary at T means
- * that the preceding segment ends at T-1 and the next segment begins at T.
+ * CODEX Boundary between two independently trackable intervals. A boundary at T
+ * means that the preceding segment ends at T-1 and the next segment begins at
+ * T.
  */
 public final class TrackingBoundary implements Comparable<TrackingBoundary> {
 
-	public enum Origin { AUTOMATIC, MANUAL }
-	public enum Status { SUGGESTED, CONFIRMED, UNRESOLVED }
+	public enum Origin {
+		AUTOMATIC, MANUAL
+	}
+
+	public enum Status {
+		SUGGESTED, CONFIRMED, UNRESOLVED
+	}
 
 	private final int frame;
 	private final Origin origin;
@@ -25,11 +31,25 @@ public final class TrackingBoundary implements Comparable<TrackingBoundary> {
 		this.score = score;
 	}
 
-	public int getFrame() { return frame; }
-	public Origin getOrigin() { return origin; }
-	public Status getStatus() { return status; }
-	public String getReason() { return reason; }
-	public double getScore() { return score; }
+	public int getFrame() {
+		return frame;
+	}
+
+	public Origin getOrigin() {
+		return origin;
+	}
+
+	public Status getStatus() {
+		return status;
+	}
+
+	public String getReason() {
+		return reason;
+	}
+
+	public double getScore() {
+		return score;
+	}
 
 	public TrackingBoundary atFrame(int newFrame) {
 		return new TrackingBoundary(newFrame, origin, status, reason, score);

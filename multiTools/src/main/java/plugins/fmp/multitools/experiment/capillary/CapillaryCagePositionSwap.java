@@ -15,12 +15,15 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Position label within a cage (L/R for two capillaries; last-character digit 0–9 otherwise). A
- * position change between two capillaries is a <strong>full ROI name swap</strong> (plus kymograph
- * stems, TIFF/XML on disk, {@link Capillary#syncDerivedNamesAfterRoiRename()} for AlongT copies
- * and prefix). The capillary table shows Side as read-only; use dedicated actions to swap.
+ * CODEX Position label within a cage (L/R for two capillaries; last-character
+ * digit 0–9 otherwise). A position change between two capillaries is a
+ * <strong>full ROI name swap</strong> (plus kymograph stems, TIFF/XML on disk,
+ * {@link Capillary#syncDerivedNamesAfterRoiRename()} for AlongT copies and
+ * prefix). The capillary table shows Side as read-only; use dedicated actions
+ * to swap.
  * <p>
- * Capillaries in a cage are ordered by {@link Capillary#getRoiName()} (lexicographic, nulls last).
+ * Capillaries in a cage are ordered by {@link Capillary#getRoiName()}
+ * (lexicographic, nulls last).
  */
 public final class CapillaryCagePositionSwap {
 
@@ -69,7 +72,8 @@ public final class CapillaryCagePositionSwap {
 	}
 
 	/**
-	 * @return row indices in {@code exp.getCapillaries().getList()} that were modified
+	 * @return row indices in {@code exp.getCapillaries().getList()} that were
+	 *         modified
 	 */
 	public static int[] applyPositionSelection(Experiment exp, int rowIndex, String newLabel) {
 		Objects.requireNonNull(exp, "exp");
@@ -115,7 +119,10 @@ public final class CapillaryCagePositionSwap {
 		return null;
 	}
 
-	/** Exchanges complete ROI names and kymograph stems on disk between two capillaries (stimulus/concentration unchanged). */
+	/**
+	 * Exchanges complete ROI names and kymograph stems on disk between two
+	 * capillaries (stimulus/concentration unchanged).
+	 */
 	private static void swapCapillaryPair(Experiment exp, Capillary a, Capillary b) {
 		String roiA = a.getRoiName();
 		String roiB = b.getRoiName();
@@ -129,10 +136,8 @@ public final class CapillaryCagePositionSwap {
 			try {
 				swapStemsOnDisk(bin, stemA, stemB);
 			} catch (IOException e) {
-				Logger.error(
-						"CapillaryCagePositionSwap: TIFF/XML swap failed (close kymograph viewers, then retry). "
-								+ stemA + " <-> " + stemB,
-						e);
+				Logger.error("CapillaryCagePositionSwap: TIFF/XML swap failed (close kymograph viewers, then retry). "
+						+ stemA + " <-> " + stemB, e);
 				return;
 			}
 		}
@@ -209,7 +214,10 @@ public final class CapillaryCagePositionSwap {
 		}
 	}
 
-	/** In-memory only (exchange / paste / duplicate column): copies full ROI name from source. */
+	/**
+	 * In-memory only (exchange / paste / duplicate column): copies full ROI name
+	 * from source.
+	 */
 	public static void copyPositionOnto(Capillary dest, Capillary source) {
 		if (dest == null || source == null || dest.getRoi() == null || source.getRoi() == null)
 			return;

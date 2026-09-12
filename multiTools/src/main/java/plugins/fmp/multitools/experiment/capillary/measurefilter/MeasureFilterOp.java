@@ -1,12 +1,8 @@
 package plugins.fmp.multitools.experiment.capillary.measurefilter;
 
+/* CODEX */
 public enum MeasureFilterOp {
-	GT(">"),
-	GE(">="),
-	LT("<"),
-	LE("<="),
-	BETWEEN("between"),
-	IS_NAN("isNaN");
+	GT(">"), GE(">="), LT("<"), LE("<="), BETWEEN("between"), IS_NAN("isNaN");
 
 	private final String label;
 

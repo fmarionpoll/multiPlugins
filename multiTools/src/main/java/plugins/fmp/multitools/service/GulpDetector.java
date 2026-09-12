@@ -18,6 +18,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions.GulpDetectionMethod;
 import plugins.fmp.multitools.series.options.GulpThresholdMethod;
@@ -166,7 +167,7 @@ public class GulpDetector {
 				@Override
 				public void run() {
 					capi.initGulps();
-					detectGulpsForCapillary(capi, threshold);
+					detectGulpsForCapillary(capi, threshold, exp);
 				}
 			}));
 		}
@@ -174,7 +175,7 @@ public class GulpDetector {
 		processor.shutdown();
 	}
 
-	private void detectGulpsForCapillary(Capillary cap, CapillaryMeasure thresholdMeasure) {
+	private void detectGulpsForCapillary(Capillary cap, CapillaryMeasure thresholdMeasure, Experiment exp) {
 		if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null || cap.getDerivative() == null
 				|| cap.getDerivative().polylineLevel == null)
 			return;
@@ -202,8 +203,13 @@ public class GulpDetector {
 					&& indexPixel - 1 < thresholdMeasure.polylineLevel.npoints) {
 				threshold = (int) thresholdMeasure.polylineLevel.ypoints[indexPixel - 1];
 			} else {
-				threshold = (int) ((cap.getProperties().getLimitsOptions().detectGulpsThreshold_uL / cap.getVolume())
-						* cap.getPixels());
+				CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+				double e = CapillaryPixelScale.expansionRatioOf(exp);
+				int factor = exp != null ? Math.max(1, exp.getKymoSubsampleFactor()) : 1;
+				long t = CapillaryPixelScale.frameOfColumn(indexPixel, factor);
+				double perPx = CapillaryPixelScale.ulPerNativePixel(cap, t, source, e);
+				double uL = cap.getProperties().getLimitsOptions().detectGulpsThreshold_uL;
+				threshold = perPx > 0 ? (int) Math.round(uL / perPx) : (int) uL;
 			}
 			if (derivativeValue >= threshold) {
 				double deltaTop = ptsTop.polylineLevel.ypoints[indexPixel]
@@ -582,7 +588,7 @@ class GulpDetectorFromTopraw {
 		Double thetaDy = computeDeltaYThresholdFromEmptyCages(exp.getCapillaries().getList(), options);
 		if (thetaDy != null) {
 			Logger.debug("GulpDetectorFromTopraw: theta_dY=" + thetaDy + " px"
-					+ formatThetaUl(exp.getCapillaries().getList(), thetaDy));
+					+ formatThetaUl(exp.getCapillaries().getList(), thetaDy, exp));
 		} else {
 			Logger.warn(
 					"GulpDetectorFromTopraw: no empty capillaries with topraw; using fixed uL threshold per capillary");
@@ -595,7 +601,7 @@ class GulpDetectorFromTopraw {
 			}
 			cap.setGulpsOptions(options);
 			cap.initGulps();
-			double theta = thetaDy != null ? thetaDy.doubleValue() : fallbackPixels(cap, options);
+			double theta = thetaDy != null ? thetaDy.doubleValue() : fallbackPixels(cap, options, exp, 0);
 			detectGulpsForCapillary(cap, theta);
 		}
 	}
@@ -730,14 +736,20 @@ class GulpDetectorFromTopraw {
 	}
 
 	static double fallbackPixels(Capillary cap, BuildSeriesOptions options) {
+		return fallbackPixels(cap, options, null, 0);
+	}
+
+	static double fallbackPixels(Capillary cap, BuildSeriesOptions options, Experiment exp, long t) {
 		double uL = options != null ? options.detectGulpsThreshold_uL : 0.3;
 		if (cap.getProperties() != null && cap.getProperties().getLimitsOptions() != null) {
 			uL = cap.getProperties().getLimitsOptions().detectGulpsThreshold_uL;
 		}
-		if (cap.getVolume() <= 0 || cap.getPixels() <= 0) {
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double e = CapillaryPixelScale.expansionRatioOf(exp);
+		double perPx = CapillaryPixelScale.ulPerNativePixel(cap, t, source, e);
+		if (perPx <= 0)
 			return uL;
-		}
-		return (uL / cap.getVolume()) * cap.getPixels();
+		return uL / perPx;
 	}
 
 	private static double[] toprawY(Capillary cap) {
@@ -747,13 +759,15 @@ class GulpDetectorFromTopraw {
 		return cap.getTopRaw().polylineLevel.ypoints;
 	}
 
-	private static String formatThetaUl(List<Capillary> capillaries, double thetaPx) {
+	private static String formatThetaUl(List<Capillary> capillaries, double thetaPx, Experiment exp) {
 		if (capillaries == null) {
 			return "";
 		}
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double e = CapillaryPixelScale.expansionRatioOf(exp);
 		for (Capillary cap : capillaries) {
-			if (cap != null && cap.getPixels() > 0 && cap.getVolume() > 0) {
-				double ul = thetaPx * cap.getVolume() / cap.getPixels();
+			if (cap != null && cap.getVolume() > 0) {
+				double ul = thetaPx * CapillaryPixelScale.ulPerNativePixel(cap, 0, source, e);
 				return " (" + ul + " uL)";
 			}
 		}
