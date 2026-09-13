@@ -474,14 +474,15 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 	void convertBlobsToCircles(Experiment exp, int diameter, int nMaxSpotsPerCage) {
 		boolean bOnlySelectedCages = (allCellsComboBox.getSelectedIndex() == 1);
 		Spots allSpots = exp.getSpots();
-		boolean limitSpotsPerCage = nMaxSpotsPerCage > 0;
+		boolean forceSpotsPerCage = nMaxSpotsPerCage > 0;
+		int radius = Math.max(1, diameter / 2);
 
 		for (Cage cage : exp.getCages().cagesList) {
 			if (bOnlySelectedCages && !cage.getRoi().isSelected())
 				continue;
 
 			List<Spot> cageSpots = cage.getSpotList(allSpots);
-			if (limitSpotsPerCage && cageSpots.size() > nMaxSpotsPerCage) {
+			if (forceSpotsPerCage && cageSpots.size() > nMaxSpotsPerCage) {
 				cageSpots.sort((a, b) -> {
 					Rectangle ra = a.getRoi() != null ? a.getRoi().getBounds() : null;
 					Rectangle rb = b.getRoi() != null ? b.getRoi().getBounds() : null;
@@ -509,7 +510,6 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 
 				double centerX = rect.getCenterX();
 				double centerY = rect.getCenterY();
-				double radius = diameter / 2.0;
 
 				String name = spot.getRoi().getName();
 				Ellipse2D ellipse = new Ellipse2D.Double(centerX - radius, centerY - radius, diameter, diameter);
@@ -517,10 +517,30 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 				roiEllipse.setName(name);
 				spot.setRoi(roiEllipse);
 			}
+
+			if (forceSpotsPerCage && cageSpots.size() < nMaxSpotsPerCage) {
+				ROI2D cageRoi = cage.getRoi();
+				if (cageRoi == null)
+					continue;
+				Rectangle cageBounds = cageRoi.getBounds();
+				if (cageBounds == null)
+					continue;
+				int missing = nMaxSpotsPerCage - cageSpots.size();
+				double baseX = cageBounds.getX();
+				double baseY = cageBounds.getY() + cageBounds.getHeight() - diameter;
+				for (int i = 0; i < missing; i++) {
+					Point2D.Double pos = new Point2D.Double(baseX - i, baseY);
+					cage.addEllipseSpot(pos, radius, allSpots);
+				}
+			}
 		}
-		exp.getSeqCamData().removeROIsContainingString("spot");
-		exp.getSpots().transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
-		exp.saveSpots_File();
+		if (forceSpotsPerCage) {
+			cleanUpSpotNames(exp);
+		} else {
+			exp.getSeqCamData().removeROIsContainingString("spot");
+			exp.getSpots().transferSpotsToSequenceAsROIs(exp.getSeqCamData().getSequence());
+			exp.saveSpots_File();
+		}
 	}
 
 	private void cleanUpSpotNames(Experiment exp) {
