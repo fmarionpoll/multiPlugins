@@ -1,116 +1,70 @@
 # Multi Plugins - Maven Multi-Module Project
 
-This is the parent Maven project containing all ICY plugins that share common code.
+This repository contains three related [Icy](https://icy.bioimageanalysis.org/) plugins and libraries for analyzing fly behavior and feeding experiments. Common experiment, image-processing, persistence, charting, and export code is shared through `multiTools`.
 
-## Structure
+## Modules
 
 ```
 multiPlugins/
-├── pom.xml                    # Parent POM (manages all modules)
-├── multiTools/                # Shared library module
-│   ├── pom.xml
-│   └── src/main/java/plugins/fmp/multitools/
-│       ├── fmp_experiment/    # Experiment, Cage, Spot, Capillary classes
-│       ├── fmp_tools/         # Charts, Excel export, utilities
-│       ├── fmp_series/        # Series processing
-│       ├── fmp_service/       # Services (KymographBuilder, etc.)
-│       └── fmp_resource/       # Resource utilities
-├── multiCAFE/                 # MultiCAFE plugin module
-│   ├── pom.xml
-│   └── src/main/java/plugins/fmp/multicafe/
-│       ├── dlg/               # UI dialogs (plugin-specific)
-│       ├── viewer1D/          # Plugin-specific viewers
-│       └── workinprogress_gpu/
-├── multiSPOTS/                # TODO: Add multiSPOTS module
-└── multiSPOTS96/              # TODO: Add multiSPOTS96 module
+|-- pom.xml                    # Parent Maven project
+|-- multiTools/                # Shared library
+|   `-- src/main/java/plugins/fmp/multitools/
+|       |-- experiment/        # Experiment, cage, spot, and capillary models
+|       |-- series/            # Image-series and kymograph processing
+|       |-- service/           # Detection, tracking, and analysis services
+|       |-- tools/             # Charts, Excel export, registration, and utilities
+|       |-- transfer/          # Experiment data transfer support
+|       `-- workinprogress_gpu/# Experimental GPU code; not production functionality
+|-- multiCAFE/                 # Capillary-feeding analysis plugin
+|   `-- src/main/java/plugins/fmp/multicafe/
+|       |-- dlg/               # Analysis workflows and dialogs
+|       `-- viewer1D/          # One-dimensional data viewers
+`-- multiSPOTS/                # Liquid-spot feeding analysis plugin
+    `-- src/main/java/plugins/fmp/multiSPOTS/
+        `-- dlg/               # Analysis workflows and dialogs
 ```
 
-## Package Naming
+`multiCAFE` and `multiSPOTS` both depend on `multiTools`. The experimental GPU classes are retained from earlier investigations but are unfinished and are not part of the supported analysis workflow.
 
-- **Shared code (multiTools)**: `plugins.fmp.multitools.fmp_*`
-- **Plugin-specific code**: `plugins.fmp.multicafe.*`, `plugins.fmp.multispots.*`, etc.
+## Requirements
+
+- Maven
+- A JDK capable of compiling Java 8 source and target bytecode
+- Access to the dependency repositories declared in the parent POM
+
+The project currently targets Java 8 for compatibility with Icy 2.5.x installations.
 
 ## Building
 
-### Build all modules:
+Build and test all modules from the repository root:
+
 ```bash
-cd multiPlugins
 mvn clean install
 ```
 
-### Build specific module:
+Build one plugin together with any required upstream modules:
+
 ```bash
-cd multiPlugins/multiCAFE
-mvn clean install
+mvn -pl multiCAFE -am clean install
+mvn -pl multiSPOTS -am clean install
 ```
 
-Maven will automatically build dependencies (multiTools) first.
+The generated JAR files are placed in each module's `target/` directory.
 
 ## Eclipse Setup
 
-1. **Import the parent project:**
-   - File → Import → Existing Maven Projects
-   - Select `C:\Users\fred\git\multiPlugins\pom.xml`
-   - Eclipse will automatically import all modules
+1. Select **File > Import > Existing Maven Projects**.
+2. Choose this repository's root directory (the directory containing the parent `pom.xml`).
+3. Import the parent and all three discovered modules.
 
-2. **All modules will appear in Package Explorer:**
-   - multiPlugins (parent)
-   - multiTools
-   - multiCAFE
-   - (multiSPOTS and multiSPOTS96 when added)
+Keeping the modules in one workspace allows changes in `multiTools` to be resolved immediately by both plugins and supports refactoring across module boundaries.
 
-3. **Benefits:**
-   - Changes in multiTools are immediately visible in dependent projects
-   - Single workspace for all plugins
-   - Easy refactoring across modules
-   - Single build command for all projects
+## Package Naming
 
-## Adding multiSPOTS and multiSPOTS96
+- Shared code: `plugins.fmp.multitools.*`
+- MultiCAFE-specific code: `plugins.fmp.multicafe.*`
+- multiSPOTS-specific code: `plugins.fmp.multiSPOTS.*`
 
-### Steps to add a new plugin module:
+## License
 
-1. **Copy plugin structure:**
-   ```powershell
-   # From C:\Users\fred\git\multiSPOTS
-   Copy-Item -Path "C:\Users\fred\git\multiSPOTS\src" -Destination "C:\Users\fred\git\multiPlugins\multiSPOTS\src" -Recurse
-   ```
-
-2. **Create pom.xml for the module:**
-   - Copy `multiCAFE/pom.xml` as template
-   - Change `<artifactId>multiCAFE</artifactId>` to `multiSPOTS`
-   - Update description
-   - Keep the multiTools dependency
-
-3. **Update imports:**
-   - Replace `import plugins.fmp.multispots.fmp_*` with `import plugins.fmp.multitools.fmp_*`
-   - Remove old `fmp_*` directories from the plugin's src
-
-4. **Add module to parent pom.xml:**
-   ```xml
-   <modules>
-       <module>multiTools</module>
-       <module>multiCAFE</module>
-       <module>multiSPOTS</module>  <!-- Add this -->
-   </modules>
-   ```
-
-5. **Refresh Maven project in Eclipse**
-
-## Migration Notes
-
-- All `fmp_*` packages have been moved to `multiTools`
-- Package names changed from `plugins.fmp.multicafe.fmp_*` to `plugins.fmp.multitools.fmp_*`
-- Imports in plugin code have been updated automatically
-- Old `fmp_*` directories should be removed from plugin source (already done for multiCAFE)
-
-## Deployment
-
-Each module produces its own JAR file for ICY server distribution:
-- `multiTools/target/multiTools-2.2.3.jar`
-- `multiCAFE/target/multiCAFE-2.2.3.jar`
-
-For end users, you can either:
-1. **Bundle multiTools inside each plugin JAR** (fat JAR - recommended)
-2. **Distribute multiTools separately** on ICY server
-
-To create fat JARs, add Maven Shade plugin to each plugin's pom.xml.
+GNU GPLv3. See the Maven project metadata for organization and developer information.

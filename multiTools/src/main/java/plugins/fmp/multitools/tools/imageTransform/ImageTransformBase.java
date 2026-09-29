@@ -28,6 +28,11 @@ public abstract class ImageTransformBase implements ImageTransformInterface {
     
     // Static cache for array operations to improve performance
     private static final ArrayOperationCache arrayCache = new ArrayOperationCache();
+
+    /** Releases RGB buffers kept for reuse. One-shot frames are not needed after a batch. */
+    public static void clearArrayCache() {
+        arrayCache.clear();
+    }
     
     @Override
     public final IcyBufferedImage getTransformedImage(IcyBufferedImage sourceImage, CanvasImageTransformOptions options) {

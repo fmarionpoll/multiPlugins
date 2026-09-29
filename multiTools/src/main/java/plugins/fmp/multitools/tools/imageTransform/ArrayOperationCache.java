@@ -69,15 +69,24 @@ public class ArrayOperationCache {
 			}
 		}
 
-		// Extract arrays from image
 		double[][] rgbArrays = extractRGBArrays(sourceImage);
 
-		// Cache if appropriate
-		if (isCacheable && cache.size() < maxCacheSize) {
+		if (isCacheable) {
+			while (cache.size() >= maxCacheSize) {
+				java.util.Iterator<String> keys = cache.keySet().iterator();
+				if (!keys.hasNext())
+					break;
+				cache.remove(keys.next());
+			}
 			cache.put(cacheKey, new CachedArrays(sourceImage, rgbArrays));
 		}
 
 		return rgbArrays;
+	}
+
+	/** Drops every cached RGB buffer. */
+	public void clear() {
+		cache.clear();
 	}
 
 	/**

@@ -122,7 +122,8 @@ public final class ImageTransformConstants {
     // Performance and memory management constants
     public static final class Performance {
         /** Cache size for array operations */
-        public static final int ARRAY_CACHE_SIZE = 100;
+        /** Same-image reuse only. A large cap retains one-shot frames for the whole session. */
+        public static final int ARRAY_CACHE_SIZE = 2;
         
         /** Threshold for using optimized operations */
         public static final int OPTIMIZATION_THRESHOLD = 1000;

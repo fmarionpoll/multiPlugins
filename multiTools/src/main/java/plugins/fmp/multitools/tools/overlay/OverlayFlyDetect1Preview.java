@@ -21,6 +21,7 @@ import plugins.fmp.multitools.series.DetectFlyTools;
 import plugins.fmp.multitools.series.FlyDetect1;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
  * Preview overlay for FlyDetect1: same transform pipeline, binarization, and per-cage blob
@@ -36,6 +37,7 @@ public class OverlayFlyDetect1Preview extends Overlay implements SequenceListene
 	private Experiment experiment;
 	private BuildSeriesOptions previewOptions;
 	private final DetectFlyTools previewTools = new DetectFlyTools();
+	private boolean missingReferenceWarned;
 
 	public OverlayFlyDetect1Preview(Sequence sequence) {
 		super(OVERLAY_NAME);
@@ -89,10 +91,30 @@ public class OverlayFlyDetect1Preview extends Overlay implements SequenceListene
 
 		try {
 			int t = canvas.getPositionT();
-			IcyBufferedImage neg = FlyDetect1.transformFrameForFlyDetect1(experiment, previewOptions, t);
-			if (neg == null)
+			if (!FlyDetect1.comparisonReferenceReady(experiment, previewOptions)) {
+				if (!missingReferenceWarned) {
+					Logger.warn(FlyDetect1.MISSING_REFERENCE_WARNING);
+					missingReferenceWarned = true;
+				}
+				previewTools.clearBackgroundComparison();
 				return;
-			BooleanMask2D union = previewTools.unionFilteredFlyBlobs(neg, t);
+			}
+			missingReferenceWarned = false;
+			IcyBufferedImage direct = FlyDetect1.transformFrameForFlyDetect1(experiment, previewOptions, t);
+			if (direct == null)
+				return;
+			IcyBufferedImage comparison = FlyDetect1.comparisonFrameForFlyDetect1(experiment, previewOptions, t);
+			ImageTransformEnums bg = previewOptions.flyDetectBackgroundTransform;
+			if (bg != null && bg != ImageTransformEnums.NONE && comparison == null) {
+				previewTools.clearBackgroundComparison();
+				return;
+			}
+			if (comparison == null)
+				previewTools.clearBackgroundComparison();
+			else if (!previewTools.setBackgroundComparison(direct, comparison, previewOptions.background_delta,
+					previewOptions.btrackWhite))
+				return;
+			BooleanMask2D union = previewTools.unionFilteredFlyBlobs(direct, t);
 			if (union == null)
 				return;
 			BufferedImage bi = maskToArgb(union);

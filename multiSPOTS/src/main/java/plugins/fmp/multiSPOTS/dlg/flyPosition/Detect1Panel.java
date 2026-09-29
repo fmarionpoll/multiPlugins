@@ -25,6 +25,7 @@ import javax.swing.event.PopupMenuEvent;
 import javax.swing.event.PopupMenuListener;
 
 import icy.canvas.IcyCanvas;
+import icy.gui.dialog.MessageDialog;
 import icy.gui.viewer.Viewer;
 import icy.gui.viewer.ViewerEvent;
 import icy.gui.viewer.ViewerEvent.ViewerEventType;
@@ -38,7 +39,6 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.FlyDetect1;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
-import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.fmp.multitools.tools.overlay.OverlayFlyDetect1Preview;
 
@@ -54,8 +54,11 @@ public class Detect1Panel extends JPanel
 			ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.NORM_BRMINUSG,
 			ImageTransformEnums.RGB, ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
 
-	private static final ImageTransformEnums[] BACKGROUND_TRANSFORMS = { ImageTransformEnums.NONE,
-			ImageTransformEnums.SUBTRACT_TM1, ImageTransformEnums.SUBTRACT_TM1_CLEAN, ImageTransformEnums.SUBTRACT_T0 };
+	private static final ImageTransformEnums[] BACKGROUND_VALUES = { ImageTransformEnums.NONE,
+			ImageTransformEnums.SUBTRACT_REF, ImageTransformEnums.SUBTRACT_T0, ImageTransformEnums.SUBTRACT_TM1,
+			ImageTransformEnums.SUBTRACT_TM1_CLEAN };
+	private static final String[] BACKGROUND_LABELS = { "none", "ref", "t0", "t-1", "clean(t-1)" };
+	private static final ImageTransformEnums[] VIEW_STEP1 = { ImageTransformEnums.NONE };
 
 	private MultiSPOTS parent0 = null;
 	private String detectString = "Detect...";
@@ -65,12 +68,12 @@ public class Detect1Panel extends JPanel
 
 	JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<>(SOURCE_TRANSFORMS);
 
-	private JComboBox<ImageTransformEnums> backgroundComboBox = new JComboBox<>(BACKGROUND_TRANSFORMS);
+	private JComboBox<String> backgroundComboBox = new JComboBox<>(BACKGROUND_LABELS);
 
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
 	private final String[] thresholdDirections = new String[] { " threshold >", " threshold <" };
 	private JComboBox<String> thresholdDirectionComboBox = new JComboBox<>(thresholdDirections);
-	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(200, 0, 255, 1));
+	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 255, 1));
 	private JSpinner jitterTextField = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
 	private JSpinner objectLowsizeSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 9999, 1));
 	private JSpinner objectUpsizeSpinner = new JSpinner(new SpinnerNumberModel(500, 0, 9999, 1));
@@ -113,14 +116,14 @@ public class Detect1Panel extends JPanel
 
 		JPanel panel2 = new JPanel(flowLayout);
 		transformComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
-		backgroundComboBox.setSelectedItem(ImageTransformEnums.SUBTRACT_TM1_CLEAN);
+		backgroundComboBox.setSelectedIndex(1);
 		thresholdDirectionComboBox.setSelectedIndex(1); // threshold < (dark flies), same default as former unchecked
 														// "white object"
 		panel2.add(new JLabel("source ", SwingConstants.RIGHT));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd ", SwingConstants.RIGHT));
 		backgroundComboBox.setToolTipText(
-				"Background subtraction before threshold: none, previous frame (cleaned), or first frame.");
+				"Comparison background used to reject static blobs. The image is not subtracted.");
 		panel2.add(backgroundComboBox);
 		panel2.add(thresholdDirectionComboBox);
 		panel2.add(thresholdSpinner);
@@ -341,38 +344,15 @@ public class Detect1Panel extends JPanel
 		if (canvas == null)
 			return;
 
-		canvas.updateTransformsStep1(BACKGROUND_TRANSFORMS);
+		canvas.updateTransformsStep1(VIEW_STEP1);
 		canvas.updateTransformsStep2(SOURCE_TRANSFORMS);
-		updateCanvasBackgroundForCurrentFrame(exp, canvas);
+		canvas.setTransformStep1(ImageTransformEnums.NONE, null);
 
-		ImageTransformEnums bg = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		ImageTransformEnums src = (ImageTransformEnums) transformComboBox.getSelectedItem();
-		if (bg != null)
-			canvas.setTransformStep1(bg, null);
 		if (src != null)
 			canvas.setTransformStep2(src, null);
 
 		attachViewListener(exp);
-	}
-
-	private void updateCanvasBackgroundForCurrentFrame(Experiment exp, Canvas2D_3Transforms canvas) {
-		if (exp == null || canvas == null || exp.getSeqCamData() == null)
-			return;
-		int t = exp.getSeqCamData().getCurrentFrame();
-		Viewer v = exp.getSeqCamData().getSequence().getFirstViewer();
-		if (v != null)
-			t = v.getPositionT();
-
-		CanvasImageTransformOptions opts = canvas.getOptionsStep1();
-		ImageTransformEnums bg = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
-		if (bg == null)
-			bg = ImageTransformEnums.NONE;
-		opts.transformOption = bg;
-		opts.simplethreshold = (int) thresholdSpinner.getValue();
-		opts.background_delta = 20;
-		opts.background_jitter = 1;
-		FlyDetect1.fillFlyDetectBackgroundOptions(exp, t, opts);
-		FlyDetect1.applyFlyDetectDifferencePolarity(opts, isTrackWhite());
 	}
 
 	private boolean isTrackWhite() {
@@ -408,11 +388,6 @@ public class Detect1Panel extends JPanel
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
-		Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-		if (canvas != null) {
-			updateCanvasBackgroundForCurrentFrame(exp, canvas);
-			canvas.refresh();
-		}
 		refreshFlyDetectOverlay();
 	}
 
@@ -434,7 +409,7 @@ public class Detect1Panel extends JPanel
 		options.jitter = (int) jitterTextField.getValue();
 		options.videoChannel = 0;
 		options.flyDetectSourceTransform = (ImageTransformEnums) transformComboBox.getSelectedItem();
-		options.flyDetectBackgroundTransform = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
+		options.flyDetectBackgroundTransform = selectedBackground();
 		options.threshold = (int) thresholdSpinner.getValue();
 		options.backgroundThreshold = options.threshold;
 		options.background_delta = 20;
@@ -478,10 +453,21 @@ public class Detect1Panel extends JPanel
 		return options;
 	}
 
+	private ImageTransformEnums selectedBackground() {
+		int index = backgroundComboBox.getSelectedIndex();
+		if (index < 0 || index >= BACKGROUND_VALUES.length)
+			return ImageTransformEnums.SUBTRACT_REF;
+		return BACKGROUND_VALUES[index];
+	}
+
 	void startComputation() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
+		if (!FlyDetect1.comparisonReferenceReady(exp, selectedBackground())) {
+			MessageDialog.showDialog(FlyDetect1.MISSING_REFERENCE_WARNING, MessageDialog.WARNING_MESSAGE);
+			return;
+		}
 		parent0.dlgBrowse.browsePanel.closeViewsForCurrentExperiment(exp);
 
 		flyDetect1 = new FlyDetect1();
