@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.e_flyPosition;
+package plugins.fmp.multiSPOTS.dlg.flyPosition;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
