@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.tools.chart.builders;
 
+import java.awt.Color;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
@@ -15,6 +16,7 @@ import plugins.fmp.multitools.experiment.cage.FlyPositions;
 import plugins.fmp.multitools.experiment.cage.FoodSide;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
+import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -73,7 +75,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 							: "Cage " + cage.getProperties().getCageID());
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			XYSeries seriesXY = new XYSeries(name, false);
-			seriesXY.setDescription(name);
+			describeSeries(cage, seriesXY);
 			processVisibleFlyCountData(exp, cage, flyPositions, seriesXY);
 			if (seriesXY.getItemCount() > 0) {
 				dataset.addSeries(seriesXY);
@@ -120,7 +122,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		if (!multiFly) {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			XYSeries seriesXY = new XYSeries(name, false);
-			seriesXY.setDescription(name);
+			describeSeries(cage, seriesXY);
 			addPointsToXYSeries(exp, cage, flyPositions, resultType, seriesXY, options);
 			if (seriesXY.getItemCount() > 0) {
 				dataset.addSeries(seriesXY);
@@ -141,7 +143,7 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		Map<Integer, XYSeries> byId = new HashMap<>();
 		for (int flyId = 0; flyId < nSeries; flyId++) {
 			XYSeries s = new XYSeries(name + "_fly" + flyId, false);
-			s.setDescription(name + "_fly" + flyId);
+			describeSeries(cage, s);
 			byId.put(flyId, s);
 		}
 
@@ -242,6 +244,19 @@ public class CageFlyPositionSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		return publishDataset(dataset);
+	}
+
+	/**
+	 * Encodes cage fly count so {@code CageChartPlotFactory} paints a light grey
+	 * background when the cage fly flag is off (nflies == 0), same as spot charts.
+	 */
+	private static void describeSeries(Cage cage, XYSeries series) {
+		if (series == null || cage == null || cage.getProperties() == null) {
+			return;
+		}
+		int cageId = cage.getProperties().getCageID();
+		series.setDescription(SeriesStyleCodec.buildDescription(cageId, cageId, cage.getProperties().getCageNFlies(),
+				Color.BLACK));
 	}
 
 	private static XYSeriesCollection publishDataset(XYSeriesCollection dataset) {

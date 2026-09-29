@@ -176,7 +176,8 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 			@Override
 			public ChartInteractionHandler createHandler(Experiment exp2, ResultsOptions options2,
 					plugins.fmp.multitools.tools.chart.ChartCagePair[][] charts) {
-				return new FlyPositionChartInteractionHandler(exp2, options2);
+				return new FlyPositionChartInteractionHandler(exp2, options2,
+						cage -> parent0.dlgSpots.onMeasureChartCageClicked(cage));
 			}
 		};
 		chartCagesFrame = new ChartCagesFrame(new CageFlyPositionSeriesBuilder(), handlerFactory,

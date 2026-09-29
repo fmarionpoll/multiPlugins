@@ -188,9 +188,13 @@ public class Canvas2D_3Transforms extends Canvas2D {
 			// Apply step 1 transformation
 			if (transformStep1 != null) {
 				IcyBufferedImage step1Result = transformStep1.getTransformedImage(originalImage, optionsStep1);
+				if (step1Result == null) {
+					return originalImage;
+				}
 				// Apply step 2 transformation if available
 				if (transformStep2 != null) {
-					return transformStep2.getTransformedImage(step1Result, optionsStep2);
+					IcyBufferedImage step2Result = transformStep2.getTransformedImage(step1Result, optionsStep2);
+					return step2Result != null ? step2Result : step1Result;
 				}
 				return step1Result;
 			}

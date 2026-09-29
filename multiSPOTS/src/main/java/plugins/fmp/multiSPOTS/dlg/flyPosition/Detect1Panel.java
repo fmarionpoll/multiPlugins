@@ -70,7 +70,7 @@ public class Detect1Panel extends JPanel
 	private JComboBox<String> allCagesComboBox = new JComboBox<String>(new String[] { "all cages" });
 	private final String[] thresholdDirections = new String[] { " threshold >", " threshold <" };
 	private JComboBox<String> thresholdDirectionComboBox = new JComboBox<>(thresholdDirections);
-	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(60, 0, 255, 1));
+	private JSpinner thresholdSpinner = new JSpinner(new SpinnerNumberModel(200, 0, 255, 1));
 	private JSpinner jitterTextField = new JSpinner(new SpinnerNumberModel(5, 0, 1000, 1));
 	private JSpinner objectLowsizeSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 9999, 1));
 	private JSpinner objectUpsizeSpinner = new JSpinner(new SpinnerNumberModel(500, 0, 9999, 1));
@@ -83,7 +83,6 @@ public class Detect1Panel extends JPanel
 	private JCheckBox excludeSpotBlobsCheckBox = new JCheckBox("ignore blobs on spots", false);
 	private JCheckBox morphCloseCheckBox = new JCheckBox("close", false);
 	private JSpinner morphCloseRadiusSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 5, 1));
-	JCheckBox overlayCheckBox = new JCheckBox("overlay");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 
 	private OverlayFlyDetect1Preview overlayFlyDetect1Preview = null;
@@ -115,7 +114,8 @@ public class Detect1Panel extends JPanel
 		JPanel panel2 = new JPanel(flowLayout);
 		transformComboBox.setSelectedItem(ImageTransformEnums.B_RGB);
 		backgroundComboBox.setSelectedItem(ImageTransformEnums.SUBTRACT_TM1_CLEAN);
-		thresholdDirectionComboBox.setSelectedIndex(1); // threshold < (dark flies), same default as former unchecked "white object"
+		thresholdDirectionComboBox.setSelectedIndex(1); // threshold < (dark flies), same default as former unchecked
+														// "white object"
 		panel2.add(new JLabel("source ", SwingConstants.RIGHT));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd ", SwingConstants.RIGHT));
@@ -147,11 +147,11 @@ public class Detect1Panel extends JPanel
 		panel4.add(limitRatioSpinner);
 		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
-		panel4.add(overlayCheckBox);
 		add(panel4);
 
 		JPanel panel5 = new JPanel(flowLayout);
-		excludeSpotBlobsCheckBox.setToolTipText("Ignore detections overlapping spot ROIs (reduces false flies on food).");
+		excludeSpotBlobsCheckBox
+				.setToolTipText("Ignore detections overlapping spot ROIs (reduces false flies on food).");
 		panel5.add(excludeSpotBlobsCheckBox);
 		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
 		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
@@ -204,8 +204,6 @@ public class Detect1Panel extends JPanel
 		limitRatioSpinner.addChangeListener(refreshListener);
 		jitterTextField.addChangeListener(refreshListener);
 		nFliesPresentSpinner.addChangeListener(refreshListener);
-
-		overlayCheckBox.setEnabled(false);
 	}
 
 	private void defineActionListeners() {
@@ -217,19 +215,16 @@ public class Detect1Panel extends JPanel
 					return;
 				if (viewButton.isSelected()) {
 					syncViewTransforms(exp);
-					if (overlayCheckBox.isSelected())
-						updateOverlay(exp);
+					updateOverlay(exp);
 				} else {
 					detachViewListener();
 					removeOverlay(exp);
-					overlayCheckBox.setSelected(false);
 					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
 					if (canvas != null) {
 						canvas.setTransformStep1Index(0);
 						canvas.setTransformStep2Index(0);
 					}
 				}
-				overlayCheckBox.setEnabled(viewButton.isSelected());
 			}
 		});
 
@@ -250,22 +245,6 @@ public class Detect1Panel extends JPanel
 				if (exp != null && viewButton.isSelected())
 					syncViewTransforms(exp);
 				refreshFlyDetectOverlay();
-			}
-		});
-
-		overlayCheckBox.addItemListener(new ItemListener() {
-			public void itemStateChanged(ItemEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (overlayCheckBox.isSelected()) {
-						if (!viewButton.isSelected()) {
-							viewButton.setSelected(true);
-							syncViewTransforms(exp);
-						}
-						updateOverlay(exp);
-					} else
-						removeOverlay(exp);
-				}
 			}
 		});
 
@@ -330,7 +309,7 @@ public class Detect1Panel extends JPanel
 	void refreshFlyDetectOverlay() {
 		if (overlayFlyDetect1Preview == null)
 			return;
-		if (!viewButton.isSelected() || !overlayCheckBox.isSelected())
+		if (!viewButton.isSelected())
 			return;
 
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -364,6 +343,7 @@ public class Detect1Panel extends JPanel
 
 		canvas.updateTransformsStep1(BACKGROUND_TRANSFORMS);
 		canvas.updateTransformsStep2(SOURCE_TRANSFORMS);
+		updateCanvasBackgroundForCurrentFrame(exp, canvas);
 
 		ImageTransformEnums bg = (ImageTransformEnums) backgroundComboBox.getSelectedItem();
 		ImageTransformEnums src = (ImageTransformEnums) transformComboBox.getSelectedItem();
@@ -372,9 +352,7 @@ public class Detect1Panel extends JPanel
 		if (src != null)
 			canvas.setTransformStep2(src, null);
 
-		updateCanvasBackgroundForCurrentFrame(exp, canvas);
 		attachViewListener(exp);
-		canvas.refresh();
 	}
 
 	private void updateCanvasBackgroundForCurrentFrame(Experiment exp, Canvas2D_3Transforms canvas) {

@@ -239,6 +239,9 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 			Rectangle rect = new Rectangle(cageTable.getCellRect(selectedRow, 0, true));
 			rect.height = rect.height * 2;
 			cageTable.scrollRectToVisible(rect);
+			if (dialogFrame != null) {
+				dialogFrame.toFront();
+			}
 		}
 	}
 

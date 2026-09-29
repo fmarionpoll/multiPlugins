@@ -163,6 +163,17 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 		}
 	}
 
+	/**
+	 * Called when the user picks a cage on a fly-position chart: select that row in
+	 * the cages properties table when the table has been opened.
+	 */
+	public void onMeasureChartCageClicked(Cage cage) {
+		if (cage == null) {
+			return;
+		}
+		infosPanel.selectCage(cage);
+	}
+
 	@Override
 	public void stateChanged(ChangeEvent e) {
 		JTabbedPane tabbedPane = (JTabbedPane) e.getSource();

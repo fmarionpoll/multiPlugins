@@ -2,6 +2,7 @@ package plugins.fmp.multitools.tools.chart.interaction;
 
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.function.Consumer;
 
 import org.jfree.chart.ChartMouseEvent;
 import org.jfree.chart.ChartMouseListener;
@@ -29,13 +30,20 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
+	private final Consumer<Cage> onCageSelectedFromChart;
 
 	public FlyPositionChartInteractionHandler(Experiment experiment) {
-		this.experiment = experiment;
+		this(experiment, null, null);
 	}
 
 	public FlyPositionChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions) {
-		this(experiment);
+		this(experiment, resultsOptions, null);
+	}
+
+	public FlyPositionChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
+			Consumer<Cage> onCageSelectedFromChart) {
+		this.experiment = experiment;
+		this.onCageSelectedFromChart = onCageSelectedFromChart;
 	}
 
 	@Override
@@ -99,6 +107,7 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 			v.setPositionT(frameIndex);
 		}
 
+		applyExclusiveCageRoiSelection(experiment, cage);
 		ROI2D cageRoi = cage.getRoi() != null ? cage.getRoi() : cage.getCageRoi2D();
 		if (cageRoi != null) {
 			ROI2D seqRoi = resolveRoiOnSequence(seq, cageRoi);
@@ -108,8 +117,24 @@ public class FlyPositionChartInteractionHandler implements ChartInteractionHandl
 			} else {
 				seq.setFocusedROI(seqRoi);
 				seq.setSelectedROI(seqRoi);
+				seqRoi.setSelected(true);
 				experiment.getSeqCamData().centerDisplayOnRoi(seqRoi);
 			}
+		}
+		if (onCageSelectedFromChart != null) {
+			onCageSelectedFromChart.accept(cage);
+		}
+	}
+
+	private static void applyExclusiveCageRoiSelection(Experiment exp, Cage cageToSelect) {
+		if (exp == null || exp.getCages() == null || cageToSelect == null) {
+			return;
+		}
+		for (Cage cage : exp.getCages().cagesList) {
+			if (cage == null || cage.getRoi() == null) {
+				continue;
+			}
+			cage.getRoi().setSelected(cage == cageToSelect);
 		}
 	}
 

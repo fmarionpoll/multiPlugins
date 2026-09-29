@@ -28,6 +28,9 @@ public class ChartCagePanel extends ChartPanel implements PropertyChangeListener
 	}
 
 	private void updateFlyCountDisplay(int flyCount) {
+		if (getChart() == null) {
+			return;
+		}
 		XYPlot xyPlot = getChart().getXYPlot();
 		CageChartPlotFactory.setXYPlotBackGroundAccordingToNFlies(xyPlot, flyCount);
 	}
@@ -35,6 +38,7 @@ public class ChartCagePanel extends ChartPanel implements PropertyChangeListener
 	public void subscribeToCagePropertiesUpdates(Cage cage) {
 		this.cageListened = cage;
 		this.cageListened.getProperties().addPropertyChangeListener(this);
+		updateFlyCountDisplay(cage.getProperties().getCageNFlies());
 	}
 
 	/**
