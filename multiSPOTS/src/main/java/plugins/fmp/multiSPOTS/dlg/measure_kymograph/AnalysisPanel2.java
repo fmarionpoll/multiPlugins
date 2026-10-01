@@ -1,31 +1,47 @@
 package plugins.fmp.multiSPOTS.dlg.measure_kymograph;
 
+import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 
+import icy.gui.viewer.Viewer;
+import icy.roi.ROI;
+import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.series.AnalyzeSpotLineDeficits;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer;
+import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.SpotCross;
+import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.SpotGeom;
+import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
+import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /**
- * Line analysis: extended horizontal lines, floor outside the circles as zero.
+ * Line analysis: an X through each spot, floor on the tips outside the circles.
  */
 public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 
@@ -33,6 +49,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 
 	private static final String ANALYZE_LABEL = "Analyze";
 	private static final String STOP_LABEL = "STOP";
+	private static final String LINE_ROI_PREFIX = "lineFloor_";
 
 	public static final String PROPERTY_KYMO_RESULT_UPDATED = "kymoLineResultUpdated";
 
@@ -42,20 +59,28 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 	private final JSpinner madMultiplierSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 30.0, 0.5));
 	private final JSpinner initialBinsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 500, 1));
 	private final JSpinner flankPxSpinner = new JSpinner(new SpinnerNumberModel(40, 0, 2000, 1));
+	private final JCheckBox insectGateCheckBox = new JCheckBox("Insect filter (exclude)", true);
+	private final JComboBox<ImageTransformEnums> insectTransformCombo = new JComboBox<>(
+			KymoImageTransforms.METRIC_CHOICES);
+	private final JComboBox<String> insectDirectionCombo = new JComboBox<>(new String[] { "metric ≤", "metric >" });
+	private final JSpinner insectThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 512, 1));
 	private final JButton analyzeButton = new JButton(ANALYZE_LABEL);
+	private final JToggleButton showLinesButton = new JToggleButton("Show crosses");
 	private final JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private AnalyzeSpotLineDeficits analyzeThread;
 
 	public AnalysisPanel2(MultiSPOTS parent0) {
-		super(new GridLayout(3, 1));
+		super(new GridLayout(4, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
 		narrowSpinner(madMultiplierSpinner, 4);
 		narrowSpinner(initialBinsSpinner, 4);
 		narrowSpinner(flankPxSpinner, 4);
+		narrowSpinner(insectThresholdSpinner, 4);
+		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
 
 		JPanel actions = new JPanel(left);
 		actions.add(analyzeButton);
@@ -73,9 +98,24 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		params.add(flankPxSpinner);
 		add(params);
 
+		JPanel insect = new JPanel(left);
+		insect.add(insectGateCheckBox);
+		insect.add(insectTransformCombo);
+		insect.add(insectDirectionCombo);
+		insect.add(insectThresholdSpinner);
+		add(insect);
+
 		JPanel hint = new JPanel(left);
-		hint.add(new JLabel("Zero = floor outside the circles. Charts: KYMO_LINE_RATIO."));
+		hint.add(showLinesButton);
+		hint.add(new JLabel("Cyan = cross on each spot, green = floor used as zero."));
 		add(hint);
+
+		showLinesButton.addActionListener(e -> refreshFloorLines());
+		flankPxSpinner.addChangeListener(e -> {
+			if (showLinesButton.isSelected()) {
+				refreshFloorLines();
+			}
+		});
 
 		analyzeButton.addActionListener(e -> {
 			if (ANALYZE_LABEL.equals(analyzeButton.getText())) {
@@ -91,9 +131,14 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 	}
 
 	public SpotLineDeficitAnalyzer.Params readParams() {
+		ImageTransformEnums insectTf = insectTransformCombo.getSelectedItem() instanceof ImageTransformEnums
+				? (ImageTransformEnums) insectTransformCombo.getSelectedItem()
+				: ImageTransformEnums.B_RGB;
 		return new SpotLineDeficitAnalyzer.Params(((Number) madMultiplierSpinner.getValue()).doubleValue(),
 				((Number) initialBinsSpinner.getValue()).intValue(),
-				((Number) flankPxSpinner.getValue()).intValue());
+				((Number) flankPxSpinner.getValue()).intValue(), SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS,
+				insectGateCheckBox.isSelected(), insectTf, ((Number) insectThresholdSpinner.getValue()).intValue(),
+				insectDirectionCombo.getSelectedIndex() == 1);
 	}
 
 	private void startAnalyze() {
@@ -172,6 +217,76 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 			statusLabel.setText("Done: " + cages + " cage(s), " + bins + " bin(s). Chart KYMO_LINE_RATIO.");
 		}
 		pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
+	}
+
+	private void refreshFloorLines() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Sequence seq = exp != null && exp.getSeqCamData() != null ? exp.getSeqCamData().getSequence() : null;
+		if (seq == null) {
+			showLinesButton.setSelected(false);
+			statusLabel.setText("Open an experiment to show the lines.");
+			return;
+		}
+		removeFloorLines(seq);
+		if (!showLinesButton.isSelected()) {
+			statusLabel.setText(" ");
+			return;
+		}
+		int width = seq.getSizeX();
+		int height = seq.getSizeY();
+		int flank = ((Number) flankPxSpinner.getValue()).intValue();
+		int nLines = 0;
+		if (exp.getCages() != null && exp.getCages().cagesList != null && exp.getSpots() != null) {
+			for (Cage cage : exp.getCages().cagesList) {
+				if (cage == null) {
+					continue;
+				}
+				List<Spot> spots = cage.getSpotList(exp.getSpots());
+				if (spots == null || spots.isEmpty()) {
+					continue;
+				}
+				List<SpotGeom> geoms = new ArrayList<>(spots.size());
+				for (Spot spot : spots) {
+					geoms.add(AnalyzeSpotLineDeficits.geomOf(spot));
+				}
+				for (SpotCross cross : SpotLineDeficitAnalyzer.crosses(geoms, width, height, flank)) {
+					if (cross == null) {
+						continue;
+					}
+					addLine(seq, cross.x0, cross.y0, cross.x1, cross.y1, Color.CYAN, 2, nLines, "a");
+					addLine(seq, cross.u0, cross.v0, cross.u1, cross.v1, Color.CYAN, 2, nLines, "b");
+					for (int i = 0; i < cross.tipX0.length; i++) {
+						addLine(seq, cross.tipX0[i], cross.tipY0[i], cross.tipX1[i], cross.tipY1[i], Color.GREEN, 3,
+								nLines, "zero" + i);
+					}
+					nLines++;
+				}
+			}
+		}
+		statusLabel.setText(nLines + " cross(es). Green tips are the floor.");
+		Viewer viewer = seq.getFirstViewer();
+		if (viewer != null) {
+			viewer.toFront();
+		}
+	}
+
+	private static void addLine(Sequence seq, int x0, int y0, int x1, int y1, Color color, int stroke, int row,
+			String kind) {
+		ROI2DLine roi = new ROI2DLine(x0, y0, x1, y1);
+		roi.setName(LINE_ROI_PREFIX + kind + "_" + row);
+		roi.setColor(color);
+		roi.setStroke(stroke);
+		roi.setReadOnly(true);
+		seq.addROI(roi);
+	}
+
+	private static void removeFloorLines(Sequence seq) {
+		List<ROI> copy = new ArrayList<>(seq.getROIs());
+		for (ROI roi : copy) {
+			if (roi != null && roi.getName() != null && roi.getName().startsWith(LINE_ROI_PREFIX)) {
+				seq.removeROI(roi);
+			}
+		}
 	}
 
 	private static void narrowSpinner(JSpinner spinner, int columns) {

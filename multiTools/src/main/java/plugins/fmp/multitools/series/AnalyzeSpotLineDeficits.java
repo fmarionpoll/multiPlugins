@@ -12,16 +12,18 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.service.KymoImageTransforms;
+import plugins.fmp.multitools.service.KymoMetricGate;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer;
+import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Layout;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Params;
-import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.SeriesAccumulator;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.SpotGeom;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Samples an extended horizontal line through each row of spots on the camera
- * frames and stores {@code KYMO_LINE_RATIO}.
+ * Samples each spot disk on the camera frames. The zero is the floor on the
+ * extended row line, outside the circles. Stores {@code KYMO_LINE_RATIO}.
  */
 public class AnalyzeSpotLineDeficits extends BuildSeries {
 
@@ -57,34 +59,25 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				Logger.warn("AnalyzeSpotLineDeficits: no spots for " + exp.getResultsDirectory());
 				return;
 			}
-			SequenceLoaderService loader = new SequenceLoaderService();
-			for (int frameIndex : frames) {
-				if (stopFlag) {
-					return;
-				}
-				String name = seq.getFileNameFromImageList(frameIndex);
-				IcyBufferedImage img = name != null ? loader.imageIORead(name) : null;
-				if (img == null) {
-					Logger.warn("AnalyzeSpotLineDeficits: could not read frame " + frameIndex);
-					for (CageLines cage : cages) {
-						cage.accumulator.addFrame(null, null, null);
-					}
-					continue;
-				}
-				int nC = Math.max(1, img.getSizeC());
-				boolean signed = img.isSignedDataType();
-				int[] red = Array1DUtil.arrayToIntArray(img.getDataXY(0), signed);
-				int[] green = nC > 1 ? Array1DUtil.arrayToIntArray(img.getDataXY(1), signed) : red;
-				int[] blue = nC > 2 ? Array1DUtil.arrayToIntArray(img.getDataXY(2), signed) : red;
-				for (CageLines cage : cages) {
-					cage.accumulator.addFrame(red, green, blue);
-				}
+			int nFrames = frames.size();
+			for (CageLines cage : cages) {
+				cage.flanks = new double[nFrames][];
+				cage.integral = new double[cage.spots.size()][nFrames];
 			}
-			if (stopFlag) {
+			SequenceLoaderService loader = new SequenceLoaderService();
+			if (!readFlanks(seq, loader, frames, cages)) {
 				return;
 			}
 			for (CageLines cage : cages) {
-				double[][] ratios = cage.accumulator.ratios();
+				int window = Math.min(analyzerParams.initialBins, nFrames);
+				cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
+			}
+			if (!readIntegrals(seq, loader, frames, cages)) {
+				return;
+			}
+			for (CageLines cage : cages) {
+				double[][] ratios = SpotLineDeficitAnalyzer.ratiosFromIntegrals(cage.integral,
+						analyzerParams.initialBins, analyzerParams.smoothBins);
 				for (int i = 0; i < cage.spots.size(); i++) {
 					copyDoubles(cage.spots.get(i).getKymoLineRatio(), i < ratios.length ? ratios[i] : null);
 				}
@@ -94,7 +87,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			}
 			lastSaved = exp.save_kymo_spot_measures();
 			lastCageCount = cages.size();
-			lastBinCount = frames.size();
+			lastBinCount = nFrames;
 			if (!lastSaved) {
 				Logger.warn("AnalyzeSpotLineDeficits: ratios computed but SpotsMeasures.csv was not saved for "
 						+ exp.getResultsDirectory());
@@ -104,6 +97,84 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		} finally {
 			exp.releaseKymographSequence();
 			exp.closeSequences();
+		}
+	}
+
+	private boolean readFlanks(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+			List<CageLines> cages) {
+		for (int t = 0; t < frames.size(); t++) {
+			if (stopFlag) {
+				return false;
+			}
+			FramePixels frame = readFrame(seq, loader, frames.get(t));
+			for (CageLines cage : cages) {
+				cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
+						frame.insect);
+			}
+		}
+		return true;
+	}
+
+	private boolean readIntegrals(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+			List<CageLines> cages) {
+		for (int t = 0; t < frames.size(); t++) {
+			if (stopFlag) {
+				return false;
+			}
+			FramePixels frame = readFrame(seq, loader, frames.get(t));
+			for (CageLines cage : cages) {
+				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+				SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
+						cage.integral, t, frame.insect);
+			}
+		}
+		return true;
+	}
+
+	private FramePixels readFrame(SequenceCamData seq, SequenceLoaderService loader, int frameIndex) {
+		String name = seq.getFileNameFromImageList(frameIndex);
+		IcyBufferedImage img = name != null ? loader.imageIORead(name) : null;
+		if (img == null) {
+			Logger.warn("AnalyzeSpotLineDeficits: could not read frame " + frameIndex);
+			return new FramePixels(null, null, null, null);
+		}
+		int nC = Math.max(1, img.getSizeC());
+		boolean signed = img.isSignedDataType();
+		int[] red = Array1DUtil.arrayToIntArray(img.getDataXY(0), signed);
+		int[] green = nC > 1 ? Array1DUtil.arrayToIntArray(img.getDataXY(1), signed) : red;
+		int[] blue = nC > 2 ? Array1DUtil.arrayToIntArray(img.getDataXY(2), signed) : red;
+		return new FramePixels(red, green, blue, insectMask(img));
+	}
+
+	/** Same rule as the kymograph insect filter. Null when the filter is off. */
+	private boolean[] insectMask(IcyBufferedImage img) {
+		Params p = analyzerParams;
+		if (p == null || !p.insectGate || img == null) {
+			return null;
+		}
+		double[] metric = KymoImageTransforms.channel0AsDouble(
+				KymoImageTransforms.applyMetricTransform(img, p.insectTransform, false));
+		if (metric == null) {
+			return null;
+		}
+		boolean[] insect = new boolean[metric.length];
+		for (int i = 0; i < metric.length; i++) {
+			insect[i] = KymoMetricGate.directedFinite(metric[i], p.insectThreshold, p.insectAbove);
+		}
+		return insect;
+	}
+
+	private static final class FramePixels {
+		final int[] red;
+		final int[] green;
+		final int[] blue;
+		final boolean[] insect;
+
+		FramePixels(int[] red, int[] green, int[] blue, boolean[] insect) {
+			this.red = red;
+			this.green = green;
+			this.blue = blue;
+			this.insect = insect;
 		}
 	}
 
@@ -209,12 +280,13 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			for (Spot spot : spots) {
 				geoms.add(geomOf(spot));
 			}
-			out.add(new CageLines(spots, new SeriesAccumulator(geoms, width, height, params)));
+			Layout layout = SpotLineDeficitAnalyzer.layout(geoms, width, height, params.flankPx);
+			out.add(new CageLines(spots, layout));
 		}
 		return out;
 	}
 
-	static SpotGeom geomOf(Spot spot) {
+	public static SpotGeom geomOf(Spot spot) {
 		if (spot == null) {
 			return new SpotGeom(0, 0, 0);
 		}
@@ -247,11 +319,14 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 
 	private static final class CageLines {
 		final List<Spot> spots;
-		final SeriesAccumulator accumulator;
+		final Layout layout;
+		double[][] flanks;
+		double[][] integral;
+		double noise;
 
-		CageLines(List<Spot> spots, SeriesAccumulator accumulator) {
+		CageLines(List<Spot> spots, Layout layout) {
 			this.spots = spots;
-			this.accumulator = accumulator;
+			this.layout = layout;
 		}
 	}
 }

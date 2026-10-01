@@ -53,9 +53,16 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5
 				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_COLOR
 				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR
-				|| resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO;
+				|| resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO
+				|| resultsOptions.resultType == EnumResults.AGG_LINE_CONSO;
 		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
+		}
+		if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
+			int heightCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_GREENHEIGHT_CONSO,
+					"spot_aggregate");
+			int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_LINE_CONSO, "spot_aggregate");
+			return Math.max(heightCol, lineCol);
 		}
 		EnumResults gridProbe;
 		if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5) {
@@ -68,6 +75,8 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			gridProbe = EnumResults.AREA_COUNT_COLOR;
 		} else if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
 			gridProbe = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+		} else if (resultsOptions.resultType == EnumResults.AGG_LINE_CONSO) {
+			gridProbe = EnumResults.KYMO_LINE_RATIO;
 		} else {
 			gridProbe = EnumResults.AREA_SUMCLEAN;
 		}
@@ -87,6 +96,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				&& resultType != EnumResults.AGG_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN_V5
 				&& resultType != EnumResults.AGG_AREA_COUNT_V5 && resultType != EnumResults.AGG_SUMCLEAN_COLOR
 				&& resultType != EnumResults.AGG_AREA_COUNT_COLOR && resultType != EnumResults.AGG_GREENHEIGHT_CONSO
+				&& resultType != EnumResults.AGG_LINE_CONSO
 				&& resultType != EnumResults.KYMO_GREEN_HEIGHT_RATIO) {
 			return col0;
 		}

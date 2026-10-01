@@ -65,6 +65,24 @@ public final class CageKymoGreenHeightAggregation {
 		return buildSumConsoByStimulusConcFromSources(sources, nBins);
 	}
 
+	/**
+	 * Same stimulus/conc sums from persisted per-spot line ratios.
+	 */
+	public static List<SumSeries> buildSumConsoByStimulusConcFromLineRatios(List<Spot> spots, int nBins) {
+		if (spots == null || spots.isEmpty() || nBins <= 0) {
+			return List.of();
+		}
+		List<RatioSource> sources = new ArrayList<>(spots.size());
+		for (Spot spot : spots) {
+			if (spot == null) {
+				continue;
+			}
+			double[] ratio = spot.getKymoLineRatio().getValues();
+			sources.add(new RatioSource(spot, ratio));
+		}
+		return buildSumConsoByStimulusConcFromSources(sources, nBins);
+	}
+
 	private static final class RatioSource {
 		final Spot spot;
 		final double[] ratio;

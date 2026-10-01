@@ -295,8 +295,15 @@ public enum EnumResults {
 	 * median over the initial window. Zero is the floor outside the circles.
 	 */
 	KYMO_LINE_RATIO("KYMO_LINE_RATIO", "I / I0",
-			"Line: red-deficit integral relative to the initial window, zero from floor outside the circles",
-			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT);
+			"Line: fraction of the cross above the floor, relative to the initial window",
+			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT),
+	/**
+	 * Line analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_LINE_RATIO)},
+	 * grouped by (stimulus, concentration) per cage.
+	 */
+	AGG_LINE_CONSO("AGG_LINE_CONSO", "Σ (1−I/I0)",
+			"Line: sum of per-spot (1 − initial cross fraction) by (stimulus, conc) per cage",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_LINE_CONSO");
 
 	public enum PersistenceDomain {
 		SPOT, CAPILLARY, FLYPOSITION
@@ -402,6 +409,7 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
 		case KYMO_LINE_RATIO:
+		case AGG_LINE_CONSO:
 			return true;
 		default:
 			return false;
@@ -443,6 +451,7 @@ public enum EnumResults {
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
 		case KYMO_LINE_RATIO:
 		case AGG_GREENHEIGHT_CONSO:
+		case AGG_LINE_CONSO:
 			return true;
 		default:
 			return false;
