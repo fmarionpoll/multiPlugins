@@ -81,6 +81,8 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		narrowSpinner(flankPxSpinner, 4);
 		narrowSpinner(insectThresholdSpinner, 4);
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
+		insectGateCheckBox.setToolTipText(
+				"Drop a time bin when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
 
 		JPanel actions = new JPanel(left);
 		actions.add(analyzeButton);

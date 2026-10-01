@@ -48,12 +48,12 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 		tabKymoAnalysis = new AnalysisPanel(parent0);
 		tabKymoAnalysis2 = new AnalysisPanel2(parent0);
 		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabKymoAnalysis2);
-		tabsPane.addTab("Analysis", null, tabKymoAnalysis,
-				"Metric parameters, along-time segmentation, preview overlay, and Analyze");
-		tabsPane.addTab("Analysis 2", null, tabKymoAnalysis2,
-				"Extended line through each row; zero from the floor outside the circles");
+		tabsPane.addTab("Kymo", null, tabKymoAnalysis,
+				"Measure the vertical line on the cage kymograph TIFF");
+		tabsPane.addTab("Cross", null, tabKymoAnalysis2,
+				"Measure the X on the camera frames; floor from the tips outside the circles");
 		tabsPane.addTab("Charts", null, tabKymoGraph,
-				"Display kymograph metric charts (run Analyze on Kymo analysis first)");
+				"Display Kymo (h/h_max) and Cross (I/I0)");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);

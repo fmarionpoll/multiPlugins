@@ -110,6 +110,10 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		List<CageLines> cages, ProgressFrame progress) {
 		int n = frames.size();
 		int window = Math.min(analyzerParams.initialBins, n);
+		for (CageLines cage : cages) {
+			int nSpots = cage.spots.size();
+			cage.openingExcess = new double[nSpots][window];
+		}
 		for (int t = 0; t < window; t++) {
 			if (!sampleFlanksAt(seq, loader, frames, cages, t)) {
 				return false;
@@ -118,6 +122,11 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		for (CageLines cage : cages) {
 			cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
+			int nSpots = cage.spots.size();
+			cage.dyeLevel = new double[nSpots];
+			for (int s = 0; s < nSpots; s++) {
+				cage.dyeLevel[s] = SpotLineDeficitAnalyzer.referenceExcess(cage.openingExcess[s]);
+			}
 		}
 		for (int t = 0; t < window; t++) {
 			if (!integrateAt(seq, loader, frames, cages, t)) {
@@ -135,7 +144,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 					frame.blue, frame.insect);
 				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
 				SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors,
-					cage.noise, cage.integral, t, frame.insect);
+					cage.noise, cage.integral, t, frame.insect, cage.dyeLevel);
 			}
 		}
 		return true;
@@ -150,6 +159,14 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		for (CageLines cage : cages) {
 			cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
 				frame.insect);
+			if (cage.openingExcess != null && cage.openingExcess.length > 0 && t < cage.openingExcess[0].length) {
+				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+				for (int s = 0; s < cage.openingExcess.length; s++) {
+					double floor = floors != null && s < floors.length ? floors[s] : 0.0;
+					cage.openingExcess[s][t] = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
+							frame.green, frame.blue, floor, frame.insect);
+				}
+			}
 		}
 		return true;
 	}
@@ -163,7 +180,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		for (CageLines cage : cages) {
 			double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
 			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
-				cage.integral, t, frame.insect);
+				cage.integral, t, frame.insect, cage.dyeLevel);
 		}
 		return true;
 	}
@@ -428,6 +445,8 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		double[][] flanks;
 		double[][] integral;
 		double noise;
+		double[] dyeLevel;
+		double[][] openingExcess;
 
 		CageLines(List<Spot> spots, Layout layout) {
 			this.spots = spots;

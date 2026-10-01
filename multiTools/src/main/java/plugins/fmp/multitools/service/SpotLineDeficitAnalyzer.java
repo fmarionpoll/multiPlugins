@@ -19,6 +19,19 @@ public final class SpotLineDeficitAnalyzer {
 	/** Odd width, in bins, of the moving median applied before I/I0. */
 	public static final int DEFAULT_SMOOTH_BINS = 9;
 
+	/** Same cutoff as the other spot measures: a fly on at least this fraction of the cross drops the bin. */
+	static final double FLY_OCCUPANCY_FRACTION = 0.08;
+
+	/**
+	 * A pixel still counts only while its excess is at least this share of the
+	 * spot's initial upper-quartile excess. The median of the cross sits in the
+	 * empty center of a thin dye ring and would keep an eaten spot on.
+	 */
+	public static final double DYE_KEEP_FRACTION = 0.5;
+
+	/** Quantile of the in-circle excess used as that spot's initial dye level. */
+	static final double DYE_REFERENCE_QUANTILE = 0.75;
+
 	public static final class Params {
 		public final double madMultiplier;
 		public final int initialBins;
@@ -193,10 +206,12 @@ public final class SpotLineDeficitAnalyzer {
 		}
 		int window = Math.min(p.initialBins, n);
 		double noise = p.madMultiplier * mad(pool(flanks, window));
+		double[] dye = dyeReference(layout, red, green, blue, flanks, window);
 		double[][] integral = new double[layout.nSpots][n];
 		for (int t = 0; t < n; t++) {
 			double[] floors = spotFloors(layout, flanks[t]);
-			integrate(layout, channel(red, t), channel(green, t), channel(blue, t), floors, noise, integral, t);
+			integrate(layout, channel(red, t), channel(green, t), channel(blue, t), floors, noise, integral, t, null,
+					dye);
 		}
 		return ratiosFromIntegrals(integral, window, p.smoothBins);
 	}
@@ -212,19 +227,18 @@ public final class SpotLineDeficitAnalyzer {
 		}
 		int n = 0;
 		for (int[] row : layout.flankPix) {
-			for (int pix : row) {
-				if (!isInsect(insect, pix)) {
-					n++;
-				}
+			if (row != null) {
+				n += row.length;
 			}
 		}
 		double[] out = new double[n];
 		int k = 0;
 		for (int[] row : layout.flankPix) {
+			if (row == null) {
+				continue;
+			}
 			for (int pix : row) {
-				if (!isInsect(insect, pix)) {
-					out[k++] = deficitAt(red, green, blue, pix);
-				}
+				out[k++] = isInsect(insect, pix) ? Double.NaN : deficitAt(red, green, blue, pix);
 			}
 		}
 		return out;
@@ -259,28 +273,98 @@ public final class SpotLineDeficitAnalyzer {
 
 	public static void integrate(Layout layout, int[] red, int[] green, int[] blue, double[] spotFloor, double noise,
 			double[][] integral, int time, boolean[] insect) {
+		integrate(layout, red, green, blue, spotFloor, noise, integral, time, insect, null);
+	}
+
+	public static void integrate(Layout layout, int[] red, int[] green, int[] blue, double[] spotFloor, double noise,
+			double[][] integral, int time, boolean[] insect, double[] dyeLevel) {
 		if (layout == null || red == null || green == null || blue == null || integral == null) {
 			return;
 		}
 		for (int s = 0; s < layout.nSpots; s++) {
 			double floor = spotFloor != null && s < spotFloor.length ? spotFloor[s] : 0.0;
 			int[] pix = layout.spotPix[s];
+			int total = pix.length;
+			int insectCount = 0;
 			int used = 0;
 			int above = 0;
 			for (int i = 0; i < pix.length; i++) {
 				if (isInsect(insect, pix[i])) {
+					insectCount++;
 					continue;
 				}
 				used++;
 				double excess = deficitAt(red, green, blue, pix[i]) - floor;
-				if (excess > noise) {
+				if (excess > cutFor(noise, dyeLevel, s)) {
 					above++;
 				}
 			}
+			double value = Double.NaN;
+			if (used > 0 && insectCount < FLY_OCCUPANCY_FRACTION * total) {
+				value = above / (double) used;
+			}
 			if (time >= 0 && time < integral[s].length) {
-				integral[s][time] = used == 0 ? Double.NaN : above / (double) used;
+				integral[s][time] = value;
 			}
 		}
+	}
+
+	static double cutFor(double noise, double[] dyeLevel, int spot) {
+		double cut = noise;
+		if (dyeLevel != null && spot >= 0 && spot < dyeLevel.length && Double.isFinite(dyeLevel[spot])
+				&& dyeLevel[spot] > 0.0) {
+			cut = Math.max(noise, DYE_KEEP_FRACTION * dyeLevel[spot]);
+		}
+		return cut;
+	}
+
+	/** Upper-quartile excess on the cross for one frame. NaN when the cross is empty. */
+	public static double medianSignalExcess(Layout layout, int spot, int[] red, int[] green, int[] blue, double floor,
+			boolean[] insect) {
+		if (layout == null || layout.spotPix == null || spot < 0 || spot >= layout.spotPix.length || red == null) {
+			return Double.NaN;
+		}
+		int[] pix = layout.spotPix[spot];
+		if (pix == null || pix.length == 0) {
+			return Double.NaN;
+		}
+		double[] excess = new double[pix.length];
+		int n = 0;
+		for (int i = 0; i < pix.length; i++) {
+			if (isInsect(insect, pix[i])) {
+				continue;
+			}
+			double deficit = deficitAt(red, green, blue, pix[i]);
+			if (Double.isFinite(deficit)) {
+				excess[n++] = deficit - floor;
+			}
+		}
+		if (n == 0) {
+			return Double.NaN;
+		}
+		return quantile(Arrays.copyOf(excess, n), DYE_REFERENCE_QUANTILE);
+	}
+
+	public static double referenceExcess(double[] frameMedians) {
+		return median(frameMedians);
+	}
+
+	public static double[] dyeReference(Layout layout, int[][] red, int[][] green, int[][] blue, double[][] flanks,
+			int window) {
+		int nSpots = layout != null ? layout.nSpots : 0;
+		double[] ref = new double[nSpots];
+		int limit = Math.min(Math.max(0, window), flanks != null ? flanks.length : 0);
+		for (int s = 0; s < nSpots; s++) {
+			double[] samples = new double[limit];
+			for (int t = 0; t < limit; t++) {
+				double[] floors = spotFloors(layout, flanks[t]);
+				double floor = floors != null && s < floors.length ? floors[s] : 0.0;
+				samples[t] = medianSignalExcess(layout, s, channel(red, t), channel(green, t), channel(blue, t), floor,
+						null);
+			}
+			ref[s] = median(samples);
+		}
+		return ref;
 	}
 
 	private static boolean isInsect(boolean[] insect, int pix) {
@@ -554,6 +638,34 @@ public final class SpotLineDeficitAnalyzer {
 			}
 		}
 		return best;
+	}
+
+	static double quantile(double[] values, double q) {
+		if (values == null || values.length == 0) {
+			return 0.0;
+		}
+		int n = 0;
+		for (int i = 0; i < values.length; i++) {
+			if (Double.isFinite(values[i])) {
+				n++;
+			}
+		}
+		if (n == 0) {
+			return 0.0;
+		}
+		double[] copy = new double[n];
+		int k = 0;
+		for (int i = 0; i < values.length; i++) {
+			if (Double.isFinite(values[i])) {
+				copy[k++] = values[i];
+			}
+		}
+		Arrays.sort(copy);
+		double pos = Math.min(1.0, Math.max(0.0, q)) * (copy.length - 1);
+		int lo = (int) pos;
+		int hi = Math.min(copy.length - 1, lo + 1);
+		double w = pos - lo;
+		return copy[lo] * (1.0 - w) + copy[hi] * w;
 	}
 
 	static double median(double[] values) {

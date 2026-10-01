@@ -115,6 +115,61 @@ public class SpotLineDeficitAnalyzerTest {
 	}
 
 	@Test
+	public void faintStainFallsBelowHalfTheInitialExcess() {
+		int width = 220;
+		int height = 80;
+		int nFrames = 6;
+		int[][] red = new int[nFrames][];
+		int[][] green = new int[nFrames][];
+		int[][] blue = new int[nFrames][];
+		for (int t = 0; t < nFrames; t++) {
+			int[] r = new int[width * height];
+			int[] g = new int[width * height];
+			int[] b = new int[width * height];
+			fillFloor(r, g, b, width, height);
+			int depth = t < 3 ? 40 : 8;
+			addDisk(r, width, 50, 40, 12, depth);
+			red[t] = r;
+			green[t] = g;
+			blue[t] = b;
+		}
+		List<SpotGeom> spots = Arrays.asList(new SpotGeom(50, 40, 8));
+		double[][] ratio = SpotLineDeficitAnalyzer.analyze(spots, width, height, red, green, blue,
+				new Params(5.0, 3, 40));
+		assertEquals(1.0, ratio[0][0], 1e-6);
+		assertTrue(ratio[0][5] < 0.2);
+	}
+
+	@Test
+	public void collapsedRingFallsWhileRemainingRingStays() {
+		int width = 220;
+		int height = 80;
+		int nFrames = 6;
+		int[][] red = new int[nFrames][];
+		int[][] green = new int[nFrames][];
+		int[][] blue = new int[nFrames][];
+		for (int t = 0; t < nFrames; t++) {
+			int[] r = new int[width * height];
+			int[] g = new int[width * height];
+			int[] b = new int[width * height];
+			fillFloor(r, g, b, width, height);
+			int eaten = t < 3 ? 50 : 8;
+			addRing(r, width, 50, 40, 6, 11, eaten);
+			addRing(r, width, 150, 40, 6, 11, 50);
+			red[t] = r;
+			green[t] = g;
+			blue[t] = b;
+		}
+		List<SpotGeom> spots = Arrays.asList(new SpotGeom(50, 40, 15), new SpotGeom(150, 40, 15));
+		double[][] ratio = SpotLineDeficitAnalyzer.analyze(spots, width, height, red, green, blue,
+				new Params(5.0, 3, 40));
+		assertEquals(1.0, ratio[0][0], 1e-6);
+		assertEquals(1.0, ratio[1][0], 1e-6);
+		assertTrue(ratio[0][5] < 0.25);
+		assertTrue(ratio[1][5] > 0.85);
+	}
+
+	@Test
 	public void darkerDiskDoesNotRaiseTheRatio() {
 		int width = 220;
 		int height = 80;
@@ -159,7 +214,25 @@ public class SpotLineDeficitAnalyzerTest {
 		assertEquals(2.0 / 3.0, integral[0][0], 1e-6);
 		boolean[] insect = new boolean[] { true, false, false };
 		SpotLineDeficitAnalyzer.integrate(layout, red, green, blue, new double[] { 0.0 }, 0.0, integral, 1, insect);
-		assertEquals(0.5, integral[0][1], 1e-6);
+		assertTrue(Double.isNaN(integral[0][1]));
+
+		int n = 20;
+		int[] redN = new int[n];
+		int[] greenN = new int[n];
+		int[] blueN = new int[n];
+		int[] pix = new int[n];
+		boolean[] mask = new boolean[n];
+		Arrays.fill(greenN, 100);
+		Arrays.fill(blueN, 100);
+		for (int i = 0; i < n; i++) {
+			pix[i] = i;
+			redN[i] = i < 10 ? 0 : 100;
+		}
+		mask[0] = true;
+		Layout wide = new Layout(n, 1, new int[][] { new int[0] }, new int[][] { pix });
+		double[][] wideIntegral = new double[1][1];
+		SpotLineDeficitAnalyzer.integrate(wide, redN, greenN, blueN, new double[] { 0.0 }, 0.0, wideIntegral, 0, mask);
+		assertEquals(9.0 / 19.0, wideIntegral[0][0], 1e-6);
 	}
 
 	@Test
@@ -201,6 +274,22 @@ public class SpotLineDeficitAnalyzerTest {
 		}
 	}
 
+	private static void addRing(int[] red, int width, int cx, int cy, int inner, int outer, int depth) {
+		int height = red.length / width;
+		long inner2 = (long) inner * inner;
+		long outer2 = (long) outer * outer;
+		for (int y = Math.max(0, cy - outer); y <= Math.min(height - 1, cy + outer); y++) {
+			for (int x = Math.max(0, cx - outer); x <= Math.min(width - 1, cx + outer); x++) {
+				long dx = (long) x - cx;
+				long dy = (long) y - cy;
+				long d2 = dx * dx + dy * dy;
+				if (d2 > inner2 && d2 <= outer2) {
+					int pix = y * width + x;
+					red[pix] = Math.max(0, red[pix] - depth);
+				}
+			}
+		}
+	}
 	private static void addDisk(int[] red, int width, int cx, int cy, int radius, int depth) {
 		int height = red.length / width;
 		long r2 = (long) radius * radius;
