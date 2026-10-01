@@ -81,14 +81,26 @@ public abstract class XLSExportSpots extends XLSExport {
 	}
 
 	protected boolean hasSpotMeasuresSelectedForExport(ResultsOptions o) {
-		return o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2
+		return hasAnySpotMeasureSelected(o);
+	}
+
+	public static boolean hasAnySpotMeasureSelected(ResultsOptions o) {
+		return o != null && o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2
 				|| o.spotSumCleanV2 || o.spotAggregateByStimulusConc || o.spotAreaCountV5 || o.spotGreySumV5
 				|| o.spotGreySumCleanV5 || o.spotAreaCountColor || o.spotGreySumColor || o.spotGreySumCleanColor
 				|| o.spotKymoFract || o.spotKymoAbsDelta || o.spotKymoGreenHeight || o.spotKymoGreenHeightRatio);
 	}
 
 	protected EnumResults[] enabledSpotMeasureTypesForExport(ResultsOptions o) {
+		return spotMeasureTypes(o);
+	}
+
+	/** Measure columns written for a per-spot export, in sheet order. Includes fly presence when any box is ticked. */
+	public static EnumResults[] spotMeasureTypes(ResultsOptions o) {
 		List<EnumResults> list = new ArrayList<>(9);
+		if (o == null) {
+			return new EnumResults[0];
+		}
 		if (o.sum) {
 			list.add(EnumResults.AREA_SUM);
 		}

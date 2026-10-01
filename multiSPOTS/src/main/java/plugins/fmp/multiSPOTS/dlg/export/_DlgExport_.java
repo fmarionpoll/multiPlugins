@@ -8,6 +8,8 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -25,6 +27,9 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpotAggregatedByStimulusConc;
+import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExportSupport;
+import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedSpotExport;
+import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
 public class _DlgExport_ extends JPanel implements PropertyChangeListener {
@@ -112,58 +117,67 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 			return;
 
 		if (evt.getPropertyName().equals("EXPORT_SPOTSMEASURES")) {
-			String file = defineXlsFileName(exp, "_spotsareas.xlsx");
-			if (file == null)
-				return;
-			updateParametersCurrentExperiment(exp);
-			ThreadUtil.bgRun(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-						ResultsOptions o = getSpotsOptions(exp);
-						new XLSExportMeasuresFromSpot().exportToFile(file, o);
-					} catch (ExcelExportException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
-				}
-			});
+			startExport(exp, "_spotsareas.xlsx", "measure_spots", CsvNormalizedSpotExport.Mode.SPOTS);
 		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES")) {
-			String file = defineXlsFileName(exp, "_spots_kymo_aggregate.xlsx");
-			if (file == null)
-				return;
-			updateParametersCurrentExperiment(exp);
-			ThreadUtil.bgRun(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-						ResultsOptions o = getAggregatedKymoSpotsOptions(exp);
-						new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
-					} catch (ExcelExportException e) {
-						e.printStackTrace();
-					}
-				}
-			});
+			startExport(exp, "_spots_kymo_aggregate.xlsx", "measure_spotgroups_kymo",
+					CsvNormalizedSpotExport.Mode.AGGREGATE_KYMO);
 		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_SPOTSMEASURES")) {
-			String file = defineXlsFileName(exp, "_spots_aggregate.xlsx");
-			if (file == null)
-				return;
-			updateParametersCurrentExperiment(exp);
-			ThreadUtil.bgRun(new Runnable() {
-				@Override
-				public void run() {
-					try {
-						Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-						ResultsOptions o = getAggregatedSpotsOptions(exp);
-						new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
-					} catch (ExcelExportException e) {
-						e.printStackTrace();
-					}
-				}
-			});
+			startExport(exp, "_spots_aggregate.xlsx", "measure_spotgroups", CsvNormalizedSpotExport.Mode.AGGREGATE);
 		}
+	}
+
+	private void startExport(Experiment exp, String xlsxPattern, String csvDescriptor,
+			CsvNormalizedSpotExport.Mode mode) {
+		boolean csv = excelOptionsPanel.isExportLayoutNormalized();
+		String file = csv ? defineCsvFolderName(exp, csvDescriptor) : defineXlsFileName(exp, xlsxPattern);
+		if (file == null) {
+			return;
+		}
+		updateParametersCurrentExperiment(exp);
+		ThreadUtil.bgRun(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					Experiment current = (Experiment) parent0.expListComboLazy.getSelectedItem();
+					ResultsOptions o = optionsFor(mode, current);
+					if (o.exportLayoutMode == ExportLayoutMode.NORMALIZED) {
+						Path folder = CsvNormalizedExportSupport.resolveCsvFolder(file);
+						CsvNormalizedSpotExport.exportToFolder(folder, o, mode);
+					} else if (mode == CsvNormalizedSpotExport.Mode.SPOTS) {
+						new XLSExportMeasuresFromSpot().exportToFile(file, o);
+					} else {
+						new XLSExportMeasuresFromSpotAggregatedByStimulusConc().exportToFile(file, o);
+					}
+				} catch (ExcelExportException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+	}
+
+	private ResultsOptions optionsFor(CsvNormalizedSpotExport.Mode mode, Experiment exp) {
+		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE_KYMO) {
+			return getAggregatedKymoSpotsOptions(exp);
+		}
+		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE) {
+			return getAggregatedSpotsOptions(exp);
+		}
+		return getSpotsOptions(exp);
+	}
+
+	private static final DateTimeFormatter EXPORT_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss");
+
+	private String defineCsvFolderName(Experiment exp, String csvDescriptor) {
+		String filename0 = exp.getSeqCamData().getFileNameFromImageList(0);
+		Path directory = Paths.get(filename0).getParent();
+		String parentDir = directory.getParent() != null ? directory.getParent().toString() : directory.toString();
+		String tentativeName = LocalDateTime.now().format(EXPORT_STAMP) + "_" + csvDescriptor;
+		try {
+			return Dialog.saveDirectoryAs(tentativeName, parentDir);
+		} catch (FileDialogException e) {
+			e.printStackTrace();
+		}
+		return Paths.get(parentDir, tentativeName).toString();
 	}
 
 	private String defineXlsFileName(Experiment exp, String pattern) {
@@ -246,6 +260,9 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 
 	private void getCommonOptions(ResultsOptions resultsOptions, Experiment exp) {
 		resultsOptions.transpose = excelOptionsPanel.isTranspose();
+		resultsOptions.exportLayoutMode = excelOptionsPanel.isExportLayoutNormalized() ? ExportLayoutMode.NORMALIZED
+				: ExportLayoutMode.WIDE;
+		resultsOptions.forceCsvBinGrid = excelOptionsPanel.isForceCsvBinGrid();
 		resultsOptions.buildExcelStepMs = excelOptionsPanel.getExcelBuildStep();
 		resultsOptions.buildExcelUnitMs = excelOptionsPanel.getBinUnitMs();
 		resultsOptions.fixedIntervals = excelOptionsPanel.getIsFixedFrame();

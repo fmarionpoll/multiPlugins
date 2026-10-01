@@ -59,10 +59,18 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			return startColumn;
 		}
 		if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
-			int heightCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_GREENHEIGHT_CONSO,
-					"spot_aggregate");
-			int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_LINE_CONSO, "spot_aggregate");
-			return Math.max(heightCol, lineCol);
+			// exportResultType overwrites options.resultType. Restore it so later
+			// experiments still take this branch and write both sheets.
+			EnumResults savedType = resultsOptions.resultType;
+			try {
+				int heightCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_GREENHEIGHT_CONSO,
+						"spot_aggregate");
+				int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_LINE_CONSO,
+						"spot_aggregate");
+				return Math.max(heightCol, lineCol);
+			} finally {
+				resultsOptions.resultType = savedType;
+			}
 		}
 		EnumResults gridProbe;
 		if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5) {
