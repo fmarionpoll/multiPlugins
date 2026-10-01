@@ -667,6 +667,10 @@ public class Spot implements Comparable<Spot> {
 		return measurementsKymo.getKymoGreenHeightRatio();
 	}
 
+	public SpotMeasure getKymoLineRatio() {
+		return measurementsKymo.getKymoLineRatio();
+	}
+
 	public SpotMeasurementsKymo getMeasurementsKymo() {
 		return measurementsKymo;
 	}
@@ -733,6 +737,8 @@ public class Spot implements Comparable<Spot> {
 			return measurementsKymo.getKymoGreenHeight();
 		case KYMO_GREEN_HEIGHT_RATIO:
 			return measurementsKymo.getKymoGreenHeightRatio();
+		case KYMO_LINE_RATIO:
+			return measurementsKymo.getKymoLineRatio();
 		default:
 			return null;
 		}

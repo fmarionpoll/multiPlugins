@@ -27,6 +27,7 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 	public BuildPanel tabCreate = new BuildPanel();
 	public LoadSavePanel tabLoadSave = new LoadSavePanel();
 	public AnalysisPanel tabKymoAnalysis = null;
+	public AnalysisPanel2 tabKymoAnalysis2 = null;
 	public GraphPanel tabKymoGraph = null;
 
 	private MultiSPOTS parent0 = null;
@@ -45,9 +46,12 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 		tabsPane.addTab("Build", null, tabCreate, "Build stacked cage kymographs from spot ROIs");
 
 		tabKymoAnalysis = new AnalysisPanel(parent0);
-		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis);
+		tabKymoAnalysis2 = new AnalysisPanel2(parent0);
+		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabKymoAnalysis2);
 		tabsPane.addTab("Analysis", null, tabKymoAnalysis,
 				"Metric parameters, along-time segmentation, preview overlay, and Analyze");
+		tabsPane.addTab("Analysis 2", null, tabKymoAnalysis2,
+				"Extended line through each row; zero from the floor outside the circles");
 		tabsPane.addTab("Charts", null, tabKymoGraph,
 				"Display kymograph metric charts (run Analyze on Kymo analysis first)");
 

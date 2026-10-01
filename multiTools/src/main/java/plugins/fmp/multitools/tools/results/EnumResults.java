@@ -289,7 +289,14 @@ public enum EnumResults {
 	/** Kymograph: per-bin mean of per-spot green height ratios within a cage. */
 	KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO("KYMO_CAGE_MEAN_H", "h / h_max",
 			"Kymograph: cage mean of peak-normalized green height ratio across spots",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO");
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO"),
+	/**
+	 * Horizontal line through a row of spots: red-deficit integral divided by its
+	 * median over the initial window. Zero is the floor outside the circles.
+	 */
+	KYMO_LINE_RATIO("KYMO_LINE_RATIO", "I / I0",
+			"Line: red-deficit integral relative to the initial window, zero from floor outside the circles",
+			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT);
 
 	public enum PersistenceDomain {
 		SPOT, CAPILLARY, FLYPOSITION
@@ -394,6 +401,7 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+		case KYMO_LINE_RATIO:
 			return true;
 		default:
 			return false;
@@ -418,7 +426,7 @@ public enum EnumResults {
 	/** Per-spot kymograph strip series persisted in {@code SpotsMeasures.csv}. */
 	public boolean isPersistedKymographSpotMeasure() {
 		return this == KYMO_FRACT || this == KYMO_ABS_DELTA || this == KYMO_GREEN_HEIGHT
-				|| this == KYMO_GREEN_HEIGHT_RATIO;
+				|| this == KYMO_GREEN_HEIGHT_RATIO || this == KYMO_LINE_RATIO;
 	}
 
 	public static boolean isKymographMeasure(EnumResults resultType) {
@@ -433,6 +441,7 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+		case KYMO_LINE_RATIO:
 		case AGG_GREENHEIGHT_CONSO:
 			return true;
 		default:

@@ -142,6 +142,7 @@ public class SpotPersistence {
 		case KYMO_ABS_DELTA:
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
+		case KYMO_LINE_RATIO:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toPersistenceKey() + sep + "v0\n" + "name" + sep
 					+ "index" + sep + "npts" + sep + "yi\n";
 		default:
@@ -204,6 +205,9 @@ public class SpotPersistence {
 			break;
 		case KYMO_GREEN_HEIGHT_RATIO:
 			spot.getKymoGreenHeightRatio().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_LINE_RATIO:
+			spot.getKymoLineRatio().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -456,6 +460,9 @@ public class SpotPersistence {
 			break;
 		case KYMO_GREEN_HEIGHT_RATIO:
 			importKymoY(spot.getKymoGreenHeightRatio(), data, x, y);
+			break;
+		case KYMO_LINE_RATIO:
+			importKymoY(spot.getKymoLineRatio(), data, x, y);
 			break;
 		default:
 			break;

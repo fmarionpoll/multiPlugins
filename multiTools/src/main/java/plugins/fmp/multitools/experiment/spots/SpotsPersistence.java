@@ -592,6 +592,10 @@ public class SpotsPersistence {
 						EnumResults.KYMO_GREEN_HEIGHT_RATIO, ";")) {
 					return false;
 				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_LINE_RATIO,
+						";")) {
+					return false;
+				}
 				Logger.debug("SpotsArrayPersistence:saveKymoMeasures() saved to " + ID_V2_SPOTSARRAYMEASURES_CSV);
 				return true;
 			} catch (IOException e) {
