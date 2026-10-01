@@ -323,6 +323,7 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 	private ComboBoxUIControlsFactory createChartUIControlsFactory() {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
 		ui.setMeasurementTypes(buildChartEnumResultsChoices());
+		ui.setSingleCageSelectionListener((exp, cage) -> parent0.dlgSpots.onChartSingleCageSelected(exp, cage));
 		return ui;
 	}
 

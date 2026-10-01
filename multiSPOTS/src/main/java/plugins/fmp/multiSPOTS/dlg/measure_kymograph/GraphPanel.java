@@ -310,6 +310,7 @@ public class GraphPanel extends JPanel {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
 		ui.setMeasurementTypes(KYMO_MEASURES);
 		ui.setParentComboBox(measureComboBox);
+		ui.setSingleCageSelectionListener((exp, cage) -> parent0.dlgSpots.onChartSingleCageSelected(exp, cage));
 		return ui;
 	}
 

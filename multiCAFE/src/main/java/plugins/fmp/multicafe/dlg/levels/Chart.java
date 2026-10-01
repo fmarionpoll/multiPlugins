@@ -56,6 +56,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 	// Listener references for dynamic updates
 	private Viewer kymographViewer = null;
 	private Experiment currentExperiment = null;
+	private boolean ignoreSequenceRefresh = false;
 
 	private EnumResults[] measures = new EnumResults[] { //
 			EnumResults.TOPRAW, //
@@ -313,6 +314,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		ComboBoxUIControlsFactory combinedUi = new ComboBoxUIControlsFactory();
 		combinedUi.setMeasurementTypes(measures);
 		combinedUi.setParentComboBox(resultTypeComboBox);
+		attachSingleCageNavigation(combinedUi);
 		iChart.setUIControlsFactory(combinedUi);
 		iChart.createMainChartPanel("Capillary level measures", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
@@ -367,6 +369,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 		ComboBoxUIControlsFactory uiControlsFactory = new ComboBoxUIControlsFactory();
 		uiControlsFactory.setMeasurementTypes(measures);
 		uiControlsFactory.setParentComboBox(resultTypeComboBox);
+		attachSingleCageNavigation(uiControlsFactory);
 
 		iChart = new ChartCagesFrame(new CageCapillarySeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
 				uiControlsFactory);
@@ -480,9 +483,32 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 	@Override
 	public void sequenceChanged(SequenceEvent sequenceEvent) {
+		if (ignoreSequenceRefresh) {
+			return;
+		}
 		if (displaySelectedButton.isSelected() && currentExperiment != null) {
 			displayChartPanels(currentExperiment);
 		}
+	}
+
+	private void attachSingleCageNavigation(ComboBoxUIControlsFactory ui) {
+		ui.setSingleCageSelectionListener((exp, cage) -> {
+			if (cage == null) {
+				return;
+			}
+			ignoreSequenceRefresh = true;
+			try {
+				ComboBoxUIControlsFactory.selectCageOnCamera(exp, cage);
+				if (parent0 != null && parent0.paneCages != null) {
+					parent0.paneCages.selectCageInPropertiesIfOpen(cage);
+				}
+				if (parent0 != null && parent0.paneCapillaries != null && parent0.paneCapillaries.tabInfos != null) {
+					parent0.paneCapillaries.tabInfos.selectFirstCapillaryOfCageIfOpen(exp, cage);
+				}
+			} finally {
+				ignoreSequenceRefresh = false;
+			}
+		});
 	}
 
 	@Override

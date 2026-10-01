@@ -105,6 +105,28 @@ public class InfosCapillaryTable extends JPanel {
 		pasteButton.setEnabled(capillariesArrayCopy.size() > 0);
 	}
 
+	public boolean isDialogOpen() {
+		return dialogFrame != null && dialogFrame.isVisible();
+	}
+
+	public void selectRowFromCapillary(Capillary cap) {
+		if (!isDialogOpen() || cap == null) {
+			return;
+		}
+		String name = cap.getRoiName();
+		int nameCol = CapillaryTableColumn.NAME.ordinal();
+		int nrows = tableView.getRowCount();
+		for (int i = 0; i < nrows; i++) {
+			Object value = tableView.getValueAt(i, nameCol);
+			if (name != null && name.equals(value)) {
+				tableView.setRowSelectionInterval(i, i);
+				tableView.scrollRectToVisible(tableView.getCellRect(i, 0, true));
+				dialogFrame.toFront();
+				return;
+			}
+		}
+	}
+
 	private void installSideComboEditor(TableColumnModel columnModel) {
 		TableColumn sideCol = columnModel.getColumn(CapillaryTableColumn.POSITION.ordinal());
 		JComboBox<String> combo = new JComboBox<>();

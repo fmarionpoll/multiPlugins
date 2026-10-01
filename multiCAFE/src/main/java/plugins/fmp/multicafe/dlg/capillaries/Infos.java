@@ -21,6 +21,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.system.thread.ThreadUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
@@ -91,6 +92,34 @@ public class Infos extends JPanel {
 		showMeasuredCheckBox.setToolTipText("Draw over the image the extent measured for each capillary");
 
 		defineActionListeners();
+	}
+
+	public void selectFirstCapillaryOfCageIfOpen(Experiment exp, Cage cage) {
+		if (infosCapillaryTable == null || !infosCapillaryTable.isDialogOpen() || exp == null || cage == null
+				|| exp.getCapillaries() == null) {
+			return;
+		}
+		Capillary first = null;
+		List<Capillary> fromCage = cage.getCapillaries(exp.getCapillaries());
+		if (fromCage != null) {
+			for (Capillary cap : fromCage) {
+				if (cap != null) {
+					first = cap;
+					break;
+				}
+			}
+		}
+		if (first == null) {
+			for (Capillary cap : exp.getCapillaries().getList()) {
+				if (cap != null && cap.getCageID() == cage.getCageID()) {
+					first = cap;
+					break;
+				}
+			}
+		}
+		if (first != null) {
+			infosCapillaryTable.selectRowFromCapillary(first);
+		}
 	}
 
 	private void defineActionListeners() {

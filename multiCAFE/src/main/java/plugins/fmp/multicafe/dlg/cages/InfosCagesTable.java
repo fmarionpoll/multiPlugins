@@ -261,6 +261,32 @@ public class InfosCagesTable extends JPanel {
 			copyColumnFromSourceToTarget(list.get(i), sourceCage, columnIndex);
 	}
 
+	public boolean isDialogOpen() {
+		return dialogFrame != null && dialogFrame.isVisible();
+	}
+
+	public void selectRowFromCage(Cage cage) {
+		if (!isDialogOpen() || cage == null || tableView == null) {
+			return;
+		}
+		String cageName = null;
+		if (cage.getCageRoi2D() != null) {
+			cageName = cage.getCageRoi2D().getName();
+		} else {
+			cageName = "cage_" + cage.formatCageNumberToString(cage.getCageID());
+		}
+		int nrows = tableView.getRowCount();
+		for (int i = 0; i < nrows; i++) {
+			Object value = tableView.getValueAt(i, 0);
+			if (cageName != null && cageName.equals(value)) {
+				tableView.setRowSelectionInterval(i, i);
+				tableView.scrollRectToVisible(tableView.getCellRect(i, 0, true));
+				dialogFrame.toFront();
+				return;
+			}
+		}
+	}
+
 	void close() {
 		dialogFrame.close();
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();

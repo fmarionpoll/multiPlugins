@@ -245,6 +245,16 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 		}
 	}
 
+	public boolean isDialogOpen() {
+		return dialogFrame != null && dialogFrame.isVisible();
+	}
+
+	public void bringToFront() {
+		if (isDialogOpen()) {
+			dialogFrame.toFront();
+		}
+	}
+
 	void close() {
 		if (orphanSpotsDialog != null) {
 			orphanSpotsDialog.dispose();

@@ -15,6 +15,7 @@ import javax.swing.event.ChangeListener;
 import icy.gui.component.PopupPanel;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 
 public class MCCages_ extends JPanel implements PropertyChangeListener {
 	/**
@@ -175,6 +176,12 @@ public class MCCages_ extends JPanel implements PropertyChangeListener {
 		tabFile.init(capLayout, parent0);
 		tabFile.addPropertyChangeListener(this);
 		tabsPane.addTab("Load/Save", null, tabFile, "Load/save cages and flies position");
+	}
+
+	public void selectCageInPropertiesIfOpen(Cage cage) {
+		if (tabInfos != null) {
+			tabInfos.selectCageIfOpen(cage);
+		}
 	}
 
 	@Override

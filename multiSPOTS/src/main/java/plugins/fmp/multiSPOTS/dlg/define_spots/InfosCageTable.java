@@ -188,6 +188,10 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 		refreshCageTable();
 	}
 
+	public boolean isDialogOpen() {
+		return dialogFrame != null && dialogFrame.isVisible();
+	}
+
 	public void close() {
 		dialogFrame.close();
 		Experiment exp = (Experiment) expListComboLazy.getSelectedItem();

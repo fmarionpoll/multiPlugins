@@ -1,13 +1,17 @@
 package plugins.fmp.multitools.series;
 
 import java.awt.Rectangle;
+import java.io.File;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
+import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -37,18 +41,21 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		if (exp == null || analyzerParams == null) {
 			return;
 		}
+		lastSaved = false;
+		ProgressFrame progress = null;
 		try {
 			if (!prepareExperiment(exp)) {
 				Logger.warn("AnalyzeSpotLineDeficits: could not prepare experiment " + exp.getResultsDirectory());
 				return;
 			}
 			SequenceCamData seq = exp.getSeqCamData();
-			int width = seq.getSequence().getSizeX();
-			int height = seq.getSequence().getSizeY();
-			if (width <= 0 || height <= 0) {
+			int[] camera = cameraSize(seq);
+			if (camera == null) {
 				Logger.warn("AnalyzeSpotLineDeficits: camera size unknown for " + exp.getResultsDirectory());
 				return;
 			}
+			int width = camera[0];
+			int height = camera[1];
 			List<Integer> frames = binFrames(exp);
 			if (frames.isEmpty()) {
 				Logger.warn("AnalyzeSpotLineDeficits: no frames for " + exp.getResultsDirectory());
@@ -65,14 +72,8 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				cage.integral = new double[cage.spots.size()][nFrames];
 			}
 			SequenceLoaderService loader = new SequenceLoaderService();
-			if (!readFlanks(seq, loader, frames, cages)) {
-				return;
-			}
-			for (CageLines cage : cages) {
-				int window = Math.min(analyzerParams.initialBins, nFrames);
-				cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
-			}
-			if (!readIntegrals(seq, loader, frames, cages)) {
+			progress = new ProgressFrame("Analyze line ratio");
+			if (!readMeasures(seq, loader, frames, cages, progress)) {
 				return;
 			}
 			for (CageLines cage : cages) {
@@ -85,52 +86,93 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			if (exp.getCages() != null) {
 				exp.getCages().clearSpotAggregatesCache();
 			}
+			ensureKymoBinDirectory(exp);
+			String binDir = exp.getKymosBinFullDirectory();
 			lastSaved = exp.save_kymo_spot_measures();
 			lastCageCount = cages.size();
 			lastBinCount = nFrames;
 			if (!lastSaved) {
 				Logger.warn("AnalyzeSpotLineDeficits: ratios computed but SpotsMeasures.csv was not saved for "
-						+ exp.getResultsDirectory());
+						+ exp.getResultsDirectory() + " (bin " + binDir + ")");
 			}
 			Logger.info("AnalyzeSpotLineDeficits: " + lastCageCount + " cage(s), " + lastBinCount + " bin(s) — "
-					+ exp.getResultsDirectory());
+					+ exp.getResultsDirectory() + " -> " + binDir);
 		} finally {
+			if (progress != null) {
+				progress.close();
+			}
 			exp.releaseKymographSequence();
 			exp.closeSequences();
 		}
 	}
 
-	private boolean readFlanks(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
-			List<CageLines> cages) {
-		for (int t = 0; t < frames.size(); t++) {
-			if (stopFlag) {
+	private boolean readMeasures(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+		List<CageLines> cages, ProgressFrame progress) {
+		int n = frames.size();
+		int window = Math.min(analyzerParams.initialBins, n);
+		for (int t = 0; t < window; t++) {
+			if (!sampleFlanksAt(seq, loader, frames, cages, t)) {
 				return false;
 			}
-			FramePixels frame = readFrame(seq, loader, frames.get(t));
-			for (CageLines cage : cages) {
-				cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
-						frame.insect);
+			showFrame(progress, t, n);
+		}
+		for (CageLines cage : cages) {
+			cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
+		}
+		for (int t = 0; t < window; t++) {
+			if (!integrateAt(seq, loader, frames, cages, t)) {
+				return false;
 			}
 		}
-		return true;
-	}
-
-	private boolean readIntegrals(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
-			List<CageLines> cages) {
-		for (int t = 0; t < frames.size(); t++) {
+		for (int t = window; t < n; t++) {
 			if (stopFlag) {
 				return false;
 			}
+			showFrame(progress, t, n);
 			FramePixels frame = readFrame(seq, loader, frames.get(t));
 			for (CageLines cage : cages) {
+				cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green,
+					frame.blue, frame.insect);
 				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
-				SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
-						cage.integral, t, frame.insect);
+				SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors,
+					cage.noise, cage.integral, t, frame.insect);
 			}
 		}
 		return true;
 	}
 
+	private boolean sampleFlanksAt(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+		List<CageLines> cages, int t) {
+		if (stopFlag) {
+			return false;
+		}
+		FramePixels frame = readFrame(seq, loader, frames.get(t));
+		for (CageLines cage : cages) {
+			cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
+				frame.insect);
+		}
+		return true;
+	}
+
+	private boolean integrateAt(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+		List<CageLines> cages, int t) {
+		if (stopFlag) {
+			return false;
+		}
+		FramePixels frame = readFrame(seq, loader, frames.get(t));
+		for (CageLines cage : cages) {
+			double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
+				cage.integral, t, frame.insect);
+		}
+		return true;
+	}
+
+	private static void showFrame(ProgressFrame progress, int t, int n) {
+		if (progress != null) {
+			progress.setMessage("Analyze frame: " + (t + 1) + "//" + n);
+		}
+	}
 	private FramePixels readFrame(SequenceCamData seq, SequenceLoaderService loader, int frameIndex) {
 		String name = seq.getFileNameFromImageList(frameIndex);
 		IcyBufferedImage img = name != null ? loader.imageIORead(name) : null;
@@ -179,12 +221,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 	}
 
 	private boolean prepareExperiment(Experiment exp) {
-		if (options != null && options.expList != null) {
-			String sessionBin = options.expList.expListBinSubDirectory;
-			if (sessionBin != null && !sessionBin.isEmpty()) {
-				exp.setBinSubDirectory(sessionBin);
-			}
-		}
+		applySessionBinName(exp);
 		exp.adoptBinSubdirectoryContainingCageKymographTiffs();
 		exp.load_cages_description_and_measures();
 		exp.load_spots_description_and_measures();
@@ -194,18 +231,12 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			Logger.warn("AnalyzeSpotLineDeficits: seqCamData is null for " + exp.getResultsDirectory());
 			return false;
 		}
-		if (seqData.getSequence() == null) {
-			if (!seqData.loadImages()) {
-				List<String> imagesList = seqData.getImagesList(true);
-				if (imagesList == null || imagesList.isEmpty()) {
-					Logger.warn("AnalyzeSpotLineDeficits: no camera images for " + exp.getResultsDirectory());
-					return false;
-				}
-				seqData.attachSequence(seqData.getImageLoader().initSequenceFromFirstImage(imagesList));
-			}
-		}
-		if (seqData.getSequence() == null) {
-			Logger.warn("AnalyzeSpotLineDeficits: camera sequence unavailable for " + exp.getResultsDirectory());
+		// SequenceCamData() installs an empty Sequence, so size stays 0 until images
+		// are attached. This measure reads one JPEG at a time and must not load the
+		// whole stack (that exhausts memory across a series).
+		ensureImageList(exp, seqData);
+		if (seqData.getImageLoader().getNTotalFrames() <= 0) {
+			Logger.warn("AnalyzeSpotLineDeficits: no camera images for " + exp.getResultsDirectory());
 			return false;
 		}
 		exp.getFileIntervalsFromSeqCamData();
@@ -218,6 +249,80 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(firstValidEpochMs);
 		return true;
+	}
+
+	/**
+	 * The session bin is often the absolute folder of the experiment that was open
+	 * when kymographs were built. Storing that path on every later experiment makes
+	 * {@code save_kymo_spot_measures} overwrite the first experiment's CSV.
+	 */
+	private void applySessionBinName(Experiment exp) {
+		if (options == null || options.expList == null) {
+			return;
+		}
+		String sessionBin = options.expList.expListBinSubDirectory;
+		if (sessionBin == null || sessionBin.isEmpty()) {
+			return;
+		}
+		String binName = Paths.get(sessionBin).getFileName().toString();
+		if (binName.isEmpty() || ".".equals(binName)) {
+			return;
+		}
+		exp.setBinSubDirectory(binName);
+	}
+
+	private static void ensureImageList(Experiment exp, SequenceCamData seqData) {
+		List<String> current = seqData.getImagesList();
+		if (current == null || current.isEmpty()) {
+			String dir = seqData.getImagesDirectory();
+			if (dir == null || dir.isEmpty()) {
+				dir = exp.getImagesDirectory();
+			}
+			if (dir != null && !dir.isEmpty()) {
+				seqData.setImagesDirectory(dir);
+				List<String> images = ExperimentDirectories.getImagesListFromPathV2(dir, "jpg");
+				if (images != null && !images.isEmpty()) {
+					seqData.setImagesList(images);
+				}
+			}
+		}
+		seqData.getImageLoader().getNTotalFrames();
+	}
+
+	/** Sequence size when the viewer is open; otherwise the first JPEG. */
+	private static int[] cameraSize(SequenceCamData seq) {
+		if (seq.getSequence() != null && seq.getSequence().getSizeX() > 0 && seq.getSequence().getSizeY() > 0) {
+			return new int[] { seq.getSequence().getSizeX(), seq.getSequence().getSizeY() };
+		}
+		String name = seq.getFileNameFromImageList(0);
+		if (name == null) {
+			List<String> images = seq.getImagesList(true);
+			if (images != null && !images.isEmpty()) {
+				name = images.get(0);
+			}
+		}
+		if (name == null) {
+			return null;
+		}
+		IcyBufferedImage img = new SequenceLoaderService().imageIORead(name);
+		if (img == null || img.getSizeX() <= 0 || img.getSizeY() <= 0) {
+			return null;
+		}
+		return new int[] { img.getSizeX(), img.getSizeY() };
+	}
+
+	private static void ensureKymoBinDirectory(Experiment exp) {
+		String bin = exp.getKymosBinFullDirectory();
+		if (bin == null) {
+			return;
+		}
+		File dir = new File(bin);
+		if (dir.isDirectory()) {
+			return;
+		}
+		if (!dir.mkdirs()) {
+			Logger.warn("AnalyzeSpotLineDeficits: could not create kymograph bin " + bin);
+		}
 	}
 
 	static List<Integer> binFrames(Experiment exp) {

@@ -6,6 +6,7 @@ import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import java.util.List;
 
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
@@ -19,6 +20,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 
 public class _DlgSpots_ extends JPanel implements PropertyChangeListener, ChangeListener {
 	/**
@@ -172,6 +174,38 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 			return;
 		}
 		infosPanel.selectCage(cage);
+	}
+
+	/**
+	 * Single-cage chart combo: show that cage on the camera sequence, and select it
+	 * (plus its first spot) in the properties tables when those dialogs are open.
+	 */
+	public void onChartSingleCageSelected(Experiment exp, Cage cage) {
+		if (cage == null) {
+			return;
+		}
+		ComboBoxUIControlsFactory.selectCageOnCamera(exp, cage);
+		infosPanel.selectCageIfOpen(cage);
+		Spot first = firstSpotOfCage(exp, cage);
+		if (first != null) {
+			infosPanel.selectFirstSpotIfOpen(first);
+		}
+	}
+
+	private static Spot firstSpotOfCage(Experiment exp, Cage cage) {
+		if (exp == null || exp.getSpots() == null || cage == null) {
+			return null;
+		}
+		List<Spot> spots = cage.getSpotList(exp.getSpots());
+		if (spots == null) {
+			return null;
+		}
+		for (Spot spot : spots) {
+			if (spot != null) {
+				return spot;
+			}
+		}
+		return null;
 	}
 
 	@Override

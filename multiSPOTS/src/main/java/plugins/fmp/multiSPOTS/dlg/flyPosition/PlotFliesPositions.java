@@ -196,6 +196,7 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
 		ui.setMeasurementTypes(FLY_MEASURES);
 		ui.setParentComboBox(measureComboBox);
+		ui.setSingleCageSelectionListener((exp, cage) -> parent0.dlgSpots.onChartSingleCageSelected(exp, cage));
 		return ui;
 	}
 

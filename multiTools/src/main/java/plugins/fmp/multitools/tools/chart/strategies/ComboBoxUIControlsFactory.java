@@ -8,9 +8,12 @@ import java.awt.Paint;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import icy.roi.ROI2D;
 
 import javax.swing.ComboBoxModel;
 import javax.swing.JButton;
@@ -42,11 +45,27 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  */
 public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
+	/**
+	 * Called after the user picks another cage in a single-cage chart.
+	 * The chart data is already updated to that cage.
+	 */
+	@FunctionalInterface
+	public interface SingleCageSelectionListener {
+		void onCageSelected(Experiment experiment, Cage cage);
+	}
+
 	private JComboBox<EnumResults> resultTypeComboBox;
 	private JComboBox<EnumResults> parentComboBox;
+	private JComboBox<CageComboItem> cageComboBox;
+	private JLabel cageComboLabel;
+	private JPanel controlsTopPanel;
 	private JPanel bottomPanel;
 	private EnumResults[] measurementTypes;
 	private Experiment currentExperiment;
+	private ResultsOptions boundOptions;
+	private ActionListener optionsChangeListener;
+	private SingleCageSelectionListener singleCageSelectionListener;
+	private boolean updatingCageCombo;
 
 	/**
 	 * Sets the current experiment for legend generation.
@@ -55,6 +74,39 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	 */
 	public void setExperiment(Experiment experiment) {
 		this.currentExperiment = experiment;
+		refreshCageCombo();
+	}
+
+	public void setSingleCageSelectionListener(SingleCageSelectionListener listener) {
+		this.singleCageSelectionListener = listener;
+	}
+
+	/**
+	 * Selects {@code cage} on the camera sequence and centers the viewer on it.
+	 */
+	public static void selectCageOnCamera(Experiment exp, Cage cage) {
+		if (exp == null || exp.getCages() == null || cage == null) {
+			return;
+		}
+		ROI2D target = cage.getRoi();
+		if (target != null) {
+			target.setSelected(true);
+			if (exp.getSeqCamData() != null) {
+				if (exp.getSeqCamData().getSequence() != null) {
+					exp.getSeqCamData().getSequence().setFocusedROI(target);
+				}
+				exp.getSeqCamData().centerDisplayOnRoi(target);
+			}
+		}
+		for (Cage other : exp.getCages().getCageList()) {
+			if (other == null || other == cage) {
+				continue;
+			}
+			ROI2D roi = other.getRoi();
+			if (roi != null && roi.isSelected()) {
+				roi.setSelected(false);
+			}
+		}
 	}
 
 	/**
@@ -86,7 +138,10 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
 	@Override
 	public JPanel createTopPanel(ResultsOptions currentOptions, ActionListener changeListener) {
+		this.boundOptions = currentOptions;
+		this.optionsChangeListener = changeListener;
 		JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		this.controlsTopPanel = topPanel;
 
 		EnumResults[] typesToUse = getMeasurementTypes();
 		resultTypeComboBox = new JComboBox<EnumResults>(typesToUse);
@@ -135,6 +190,21 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		});
 		topPanel.add(updateButton);
 
+		cageComboLabel = new JLabel("Cage");
+		cageComboBox = new JComboBox<>();
+		cageComboBox.setMaximumRowCount(16);
+		cageComboLabel.setVisible(false);
+		cageComboBox.setVisible(false);
+		cageComboBox.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				onCageComboChanged();
+			}
+		});
+		topPanel.add(cageComboLabel);
+		topPanel.add(cageComboBox);
+		refreshCageCombo();
+
 		return topPanel;
 	}
 
@@ -148,10 +218,96 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
 	@Override
 	public void updateControls(EnumResults newResultType, ResultsOptions currentOptions) {
+		this.boundOptions = currentOptions;
 		if (resultTypeComboBox != null && newResultType != null) {
 			resultTypeComboBox.setSelectedItem(newResultType);
 		}
+		refreshCageCombo();
 		fillBottomPanel(currentOptions, currentExperiment, null);
+	}
+
+	private void onCageComboChanged() {
+		if (updatingCageCombo || boundOptions == null || cageComboBox == null) {
+			return;
+		}
+		Object selected = cageComboBox.getSelectedItem();
+		if (!(selected instanceof CageComboItem)) {
+			return;
+		}
+		Cage cage = ((CageComboItem) selected).cage;
+		if (cage == null) {
+			return;
+		}
+		int id = cage.getCageID();
+		if (boundOptions.cageIndexFirst == id && boundOptions.cageIndexLast == id) {
+			return;
+		}
+		boundOptions.cageIndexFirst = id;
+		boundOptions.cageIndexLast = id;
+		if (optionsChangeListener != null) {
+			optionsChangeListener.actionPerformed(
+					new ActionEvent(cageComboBox, ActionEvent.ACTION_PERFORMED, "cage"));
+		}
+		if (singleCageSelectionListener != null) {
+			singleCageSelectionListener.onCageSelected(currentExperiment, cage);
+		}
+	}
+
+	private void refreshCageCombo() {
+		if (cageComboBox == null) {
+			return;
+		}
+		boolean singleCage = isSingleCageMode(boundOptions);
+		cageComboLabel.setVisible(singleCage);
+		cageComboBox.setVisible(singleCage);
+		updatingCageCombo = true;
+		try {
+			cageComboBox.removeAllItems();
+			if (!singleCage || currentExperiment == null || currentExperiment.getCages() == null) {
+				return;
+			}
+			List<Cage> cages = new ArrayList<>();
+			for (Cage cage : currentExperiment.getCages().getCageList()) {
+				if (cage != null && cage.getProperties() != null) {
+					cages.add(cage);
+				}
+			}
+			cages.sort(Comparator.comparingInt(Cage::getCageID));
+			CageComboItem select = null;
+			for (Cage cage : cages) {
+				CageComboItem item = new CageComboItem(cage);
+				cageComboBox.addItem(item);
+				if (cage.getCageID() == boundOptions.cageIndexFirst) {
+					select = item;
+				}
+			}
+			if (select != null) {
+				cageComboBox.setSelectedItem(select);
+			}
+		} finally {
+			updatingCageCombo = false;
+			if (controlsTopPanel != null) {
+				controlsTopPanel.revalidate();
+				controlsTopPanel.repaint();
+			}
+		}
+	}
+
+	private static boolean isSingleCageMode(ResultsOptions options) {
+		return options != null && options.cageIndexFirst == options.cageIndexLast && options.cageIndexFirst >= 0;
+	}
+
+	private static final class CageComboItem {
+		private final Cage cage;
+
+		private CageComboItem(Cage cage) {
+			this.cage = cage;
+		}
+
+		@Override
+		public String toString() {
+			return cage == null ? "" : "Cage " + cage.getCageID();
+		}
 	}
 
 	@Override

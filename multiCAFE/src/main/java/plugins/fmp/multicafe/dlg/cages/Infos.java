@@ -102,6 +102,13 @@ public class Infos extends JPanel {
 		refreshFromCurrentExperiment();
 	}
 
+	public void selectCageIfOpen(Cage cage) {
+		if (dialog == null || !dialog.isDialogOpen()) {
+			return;
+		}
+		dialog.selectRowFromCage(cage);
+	}
+
 	public void refreshFromCurrentExperiment() {
 		Experiment exp = parent0 != null ? (Experiment) parent0.expListComboLazy.getSelectedItem() : null;
 		refreshDisplayedScale(exp);

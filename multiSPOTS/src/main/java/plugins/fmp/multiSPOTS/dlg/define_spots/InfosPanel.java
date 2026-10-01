@@ -123,6 +123,21 @@ public class InfosPanel extends JPanel {
 		infosCageTable.selectRowFromCage(cage);
 	}
 
+	public void selectCageIfOpen(Cage cage) {
+		if (infosCageTable == null || !infosCageTable.isDialogOpen()) {
+			return;
+		}
+		infosCageTable.selectRowFromCage(cage);
+	}
+
+	public void selectFirstSpotIfOpen(Spot spot) {
+		if (infosSpotTable == null || !infosSpotTable.isDialogOpen() || spot == null) {
+			return;
+		}
+		infosSpotTable.selectRowFromSpotWithoutNavigation(spot);
+		infosSpotTable.bringToFront();
+	}
+
 	public void selectSpot(Spot spot) {
 		if (infosSpotTable == null)
 			return;
