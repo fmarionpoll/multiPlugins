@@ -596,6 +596,10 @@ public class SpotsPersistence {
 						";")) {
 					return false;
 				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_RIM_RATIO,
+						";")) {
+					return false;
+				}
 				Logger.debug("SpotsArrayPersistence:saveKymoMeasures() saved to " + ID_V2_SPOTSARRAYMEASURES_CSV);
 				return true;
 			} catch (IOException e) {

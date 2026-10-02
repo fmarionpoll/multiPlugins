@@ -45,14 +45,17 @@ public class GraphPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_LINE_RATIO, EnumResults.AGG_LINE_CONSO,
-			EnumResults.KYMO_GREEN_HEIGHT_RATIO, EnumResults.AGG_GREENHEIGHT_CONSO, EnumResults.KYMO_GREEN_HEIGHT,
-			EnumResults.KYMO_FRACT, EnumResults.KYMO_ABS_DELTA, EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO,
-			EnumResults.KYMO_CAGE_MEAN_FRACT, EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
+	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_LINE_RATIO, EnumResults.KYMO_RIM_RATIO,
+			EnumResults.AGG_LINE_CONSO, EnumResults.AGG_RIM, EnumResults.KYMO_GREEN_HEIGHT_RATIO,
+			EnumResults.AGG_GREENHEIGHT_CONSO,
+			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT, EnumResults.KYMO_ABS_DELTA,
+			EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,
+			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
 	private final MultiSPOTS parent0;
 	private final AnalysisPanel analysisPanel;
 	private final AnalysisPanel2 analysisPanel2;
+	private final AnalysisPanelRim analysisPanelRim;
 
 	private final JComboBox<EnumResults> measureComboBox = new JComboBox<>(KYMO_MEASURES);
 	private final JRadioButton displayAllButton = new JRadioButton("all cages", true);
@@ -64,11 +67,13 @@ public class GraphPanel extends JPanel {
 	private ChartCagesFrame chartCagesFrame;
 	private KymoOverlayFrame overlayFrame;
 
-	public GraphPanel(MultiSPOTS parent0, AnalysisPanel analysisPanel, AnalysisPanel2 analysisPanel2) {
+	public GraphPanel(MultiSPOTS parent0, AnalysisPanel analysisPanel, AnalysisPanel2 analysisPanel2,
+			AnalysisPanelRim analysisPanelRim) {
 		super(new GridLayout(3, 1));
 		this.parent0 = parent0;
 		this.analysisPanel = analysisPanel;
 		this.analysisPanel2 = analysisPanel2;
+		this.analysisPanelRim = analysisPanelRim;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
 
@@ -99,6 +104,9 @@ public class GraphPanel extends JPanel {
 		analysisPanel.addKymoResultListener(e -> maybeRefreshVisibleCharts());
 		if (analysisPanel2 != null) {
 			analysisPanel2.addKymoResultListener(e -> maybeRefreshVisibleCharts());
+		}
+		if (analysisPanelRim != null) {
+			analysisPanelRim.addKymoResultListener(e -> maybeRefreshVisibleCharts());
 		}
 
 		displayChartsButton.addActionListener(e -> onDisplayCharts());
@@ -131,7 +139,7 @@ public class GraphPanel extends JPanel {
 			return;
 		}
 		if (options.resultType == EnumResults.AGG_GREENHEIGHT_CONSO
-				|| options.resultType == EnumResults.AGG_LINE_CONSO) {
+				|| options.resultType == EnumResults.AGG_LINE_CONSO || options.resultType == EnumResults.AGG_RIM) {
 			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
 					.globalStimulusConcKeysFirstSeenOrder(exp, exp.getSpots());
 		} else {

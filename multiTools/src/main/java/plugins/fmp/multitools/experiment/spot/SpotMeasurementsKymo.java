@@ -10,6 +10,7 @@ public final class SpotMeasurementsKymo {
 	private final SpotMeasure kymoGreenHeight;
 	private final SpotMeasure kymoGreenHeightRatio;
 	private final SpotMeasure kymoLineRatio;
+	private final SpotMeasure kymoRimRatio;
 
 	public SpotMeasurementsKymo() {
 		this.kymoFract = new SpotMeasure("kymoFract");
@@ -17,6 +18,7 @@ public final class SpotMeasurementsKymo {
 		this.kymoGreenHeight = new SpotMeasure("kymoGreenHeight");
 		this.kymoGreenHeightRatio = new SpotMeasure("kymoGreenHeightRatio");
 		this.kymoLineRatio = new SpotMeasure("kymoLineRatio");
+		this.kymoRimRatio = new SpotMeasure("kymoRimRatio");
 	}
 
 	public SpotMeasurementsKymo(SpotMeasurementsKymo source, boolean includeData) {
@@ -25,6 +27,7 @@ public final class SpotMeasurementsKymo {
 		this.kymoGreenHeight = new SpotMeasure("kymoGreenHeight");
 		this.kymoGreenHeightRatio = new SpotMeasure("kymoGreenHeightRatio");
 		this.kymoLineRatio = new SpotMeasure("kymoLineRatio");
+		this.kymoRimRatio = new SpotMeasure("kymoRimRatio");
 		if (includeData && source != null) {
 			copyFrom(source);
 		}
@@ -39,6 +42,7 @@ public final class SpotMeasurementsKymo {
 		kymoGreenHeight.copyMeasures(source.kymoGreenHeight);
 		kymoGreenHeightRatio.copyMeasures(source.kymoGreenHeightRatio);
 		kymoLineRatio.copyMeasures(source.kymoLineRatio);
+		kymoRimRatio.copyMeasures(source.kymoRimRatio);
 	}
 
 	public SpotMeasure getKymoFract() {
@@ -61,12 +65,17 @@ public final class SpotMeasurementsKymo {
 		return kymoLineRatio;
 	}
 
+	public SpotMeasure getKymoRimRatio() {
+		return kymoRimRatio;
+	}
+
 	public void restoreClippedMeasures() {
 		restoreClippedMeasure(kymoFract);
 		restoreClippedMeasure(kymoAbsDelta);
 		restoreClippedMeasure(kymoGreenHeight);
 		restoreClippedMeasure(kymoGreenHeightRatio);
 		restoreClippedMeasure(kymoLineRatio);
+		restoreClippedMeasure(kymoRimRatio);
 	}
 
 	private static void restoreClippedMeasure(SpotMeasure measure) {
@@ -85,7 +94,7 @@ public final class SpotMeasurementsKymo {
 
 	public boolean hasAnyData() {
 		return hasData(kymoFract) || hasData(kymoAbsDelta) || hasData(kymoGreenHeight)
-				|| hasData(kymoGreenHeightRatio) || hasData(kymoLineRatio);
+				|| hasData(kymoGreenHeightRatio) || hasData(kymoLineRatio) || hasData(kymoRimRatio);
 	}
 
 	private static boolean hasData(SpotMeasure m) {

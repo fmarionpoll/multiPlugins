@@ -106,7 +106,8 @@ public final class KymoSpotChartSupport {
 			return dataset;
 		}
 		EnumResults rt = options.resultType;
-		if (rt == EnumResults.AGG_GREENHEIGHT_CONSO || rt == EnumResults.AGG_LINE_CONSO) {
+		if (rt == EnumResults.AGG_GREENHEIGHT_CONSO || rt == EnumResults.AGG_LINE_CONSO
+				|| rt == EnumResults.AGG_RIM) {
 			addConsoAggregates(exp, cage, spots, options, dataset, rt);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;
@@ -155,7 +156,8 @@ public final class KymoSpotChartSupport {
 				continue;
 			}
 			List<Spot> cageSpots = e.getValue();
-			if (rt == EnumResults.AGG_GREENHEIGHT_CONSO || rt == EnumResults.AGG_LINE_CONSO) {
+			if (rt == EnumResults.AGG_GREENHEIGHT_CONSO || rt == EnumResults.AGG_LINE_CONSO
+					|| rt == EnumResults.AGG_RIM) {
 				addConsoAggregates(exp, cage, cageSpots, options, dataset, rt);
 				continue;
 			}
@@ -186,8 +188,7 @@ public final class KymoSpotChartSupport {
 
 	private static void addConsoAggregates(Experiment exp, Cage cage, List<Spot> spots, ResultsOptions options,
 			XYSeriesCollection dataset, EnumResults aggregateType) {
-		EnumResults source = aggregateType == EnumResults.AGG_LINE_CONSO ? EnumResults.KYMO_LINE_RATIO
-				: EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+		EnumResults source = CageKymoGreenHeightAggregation.sourceOf(aggregateType);
 		int nBins = maxKymoBinsForSpots(spots, source);
 		if (nBins <= 0) {
 			return;
@@ -198,9 +199,7 @@ public final class KymoSpotChartSupport {
 			addCachedAggregates(cage, spots, x, cached, options, dataset);
 			return;
 		}
-		List<SumSeries> sums = aggregateType == EnumResults.AGG_LINE_CONSO
-				? CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromLineRatios(spots, nBins)
-				: CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromSpots(spots, nBins);
+		List<SumSeries> sums = CageKymoGreenHeightAggregation.sumsFor(spots, nBins, aggregateType);
 		List<StimulusConcKey> globalOrder = options != null ? options.spotAggregateGlobalKeyOrder : null;
 		int ai = 0;
 		CageProperties cageProp = cage.getProperties();

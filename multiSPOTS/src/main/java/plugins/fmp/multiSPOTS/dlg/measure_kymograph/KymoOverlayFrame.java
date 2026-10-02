@@ -225,7 +225,7 @@ public class KymoOverlayFrame {
 			return;
 		}
 		if (options.resultType == EnumResults.AGG_GREENHEIGHT_CONSO
-				|| options.resultType == EnumResults.AGG_LINE_CONSO) {
+				|| options.resultType == EnumResults.AGG_LINE_CONSO || options.resultType == EnumResults.AGG_RIM) {
 			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation.globalStimulusConcKeysFirstSeenOrder(exp,
 					exp.getSpots());
 		} else {

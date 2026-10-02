@@ -385,8 +385,10 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
 		case KYMO_LINE_RATIO:
+		case KYMO_RIM_RATIO:
 		case AGG_GREENHEIGHT_CONSO:
 		case AGG_LINE_CONSO:
+		case AGG_RIM:
 			return true;
 		default:
 			return false;
@@ -405,7 +407,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		if (rt == EnumResults.AGG_SUMCLEAN || rt == EnumResults.AGG_SUMCLEAN_V5 || rt == EnumResults.AGG_AREA_COUNT_V5
 				|| rt == EnumResults.AGG_SUMCLEAN_COLOR || rt == EnumResults.AGG_AREA_COUNT_COLOR
 				|| rt == EnumResults.AGG_MEDIANREF || rt == EnumResults.AGG_GREENHEIGHT_CONSO
-				|| rt == EnumResults.AGG_LINE_CONSO) {
+				|| rt == EnumResults.AGG_LINE_CONSO || rt == EnumResults.AGG_RIM) {
 			if (dataset != null && dataset.getSeriesCount() > 0) {
 				List<String> seen = new ArrayList<>();
 				int palette = 0;

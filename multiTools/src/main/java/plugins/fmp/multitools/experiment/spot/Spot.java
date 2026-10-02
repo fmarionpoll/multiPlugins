@@ -48,6 +48,7 @@ public class Spot implements Comparable<Spot> {
 	private final SpotMeasurementsColor measurementsColor;
 	private final SpotMeasurementsKymo measurementsKymo;
 	private final SpotMetadata metadata;
+	private final SpotRimGeometry rimGeometry;
 
 	// === CONSTRUCTORS ===
 
@@ -65,6 +66,7 @@ public class Spot implements Comparable<Spot> {
 		this.measurementsColor = new SpotMeasurementsColor();
 		this.measurementsKymo = new SpotMeasurementsKymo();
 		this.metadata = new SpotMetadata();
+		this.rimGeometry = new SpotRimGeometry();
 	}
 
 	/**
@@ -77,6 +79,7 @@ public class Spot implements Comparable<Spot> {
 		this.measurementsColor = new SpotMeasurementsColor();
 		this.measurementsKymo = new SpotMeasurementsKymo();
 		this.metadata = new SpotMetadata();
+		this.rimGeometry = new SpotRimGeometry();
 	}
 
 	/**
@@ -94,6 +97,7 @@ public class Spot implements Comparable<Spot> {
 		this.measurementsColor = new SpotMeasurementsColor(sourceSpot.measurementsColor, includeMeasurements);
 		this.measurementsKymo = new SpotMeasurementsKymo(sourceSpot.measurementsKymo, includeMeasurements);
 		this.metadata = new SpotMetadata(sourceSpot.metadata);
+		this.rimGeometry = sourceSpot.rimGeometry.copy();
 
 		if (sourceSpot.spotROI2D != null) {
 			this.spotROI2D = (ROI2DShape) sourceSpot.spotROI2D.getCopy();
@@ -143,6 +147,7 @@ public class Spot implements Comparable<Spot> {
 		if (sourceSpot.spotROI2D != null) {
 			this.spotROI2D = (ROI2DShape) sourceSpot.spotROI2D.getCopy();
 		}
+		this.rimGeometry.copyFrom(sourceSpot.rimGeometry);
 
 		if (includeMeasurements) {
 			this.measurements.copyFrom(sourceSpot.measurements);
@@ -671,6 +676,14 @@ public class Spot implements Comparable<Spot> {
 		return measurementsKymo.getKymoLineRatio();
 	}
 
+	public SpotMeasure getKymoRimRatio() {
+		return measurementsKymo.getKymoRimRatio();
+	}
+
+	public SpotRimGeometry getRimGeometry() {
+		return rimGeometry;
+	}
+
 	public SpotMeasurementsKymo getMeasurementsKymo() {
 		return measurementsKymo;
 	}
@@ -739,6 +752,8 @@ public class Spot implements Comparable<Spot> {
 			return measurementsKymo.getKymoGreenHeightRatio();
 		case KYMO_LINE_RATIO:
 			return measurementsKymo.getKymoLineRatio();
+		case KYMO_RIM_RATIO:
+			return measurementsKymo.getKymoRimRatio();
 		default:
 			return null;
 		}

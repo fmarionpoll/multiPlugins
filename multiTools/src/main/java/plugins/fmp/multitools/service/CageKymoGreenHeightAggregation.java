@@ -8,6 +8,7 @@ import java.util.Set;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 /**
  * CODEX Cage-level kymograph aggregates of per-spot
@@ -69,16 +70,45 @@ public final class CageKymoGreenHeightAggregation {
 	 * Same stimulus/conc sums from persisted per-spot line ratios.
 	 */
 	public static List<SumSeries> buildSumConsoByStimulusConcFromLineRatios(List<Spot> spots, int nBins) {
+		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.KYMO_LINE_RATIO);
+	}
+
+	/** Same stimulus/conc sums from persisted per-spot rim ratios. */
+	public static List<SumSeries> buildSumConsoByStimulusConcFromRimRatios(List<Spot> spots, int nBins) {
+		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.KYMO_RIM_RATIO);
+	}
+
+	public static List<SumSeries> sumsFor(List<Spot> spots, int nBins, EnumResults aggregateType) {
+		if (aggregateType == EnumResults.AGG_LINE_CONSO) {
+			return buildSumConsoByStimulusConcFromLineRatios(spots, nBins);
+		}
+		if (aggregateType == EnumResults.AGG_RIM) {
+			return buildSumConsoByStimulusConcFromRimRatios(spots, nBins);
+		}
+		return buildSumConsoByStimulusConcFromSpots(spots, nBins);
+	}
+
+	public static EnumResults sourceOf(EnumResults aggregateType) {
+		if (aggregateType == EnumResults.AGG_LINE_CONSO) {
+			return EnumResults.KYMO_LINE_RATIO;
+		}
+		if (aggregateType == EnumResults.AGG_RIM) {
+			return EnumResults.KYMO_RIM_RATIO;
+		}
+		return EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+	}
+
+	private static List<SumSeries> buildSumConsoByStimulusConcFromMeasure(List<Spot> spots, int nBins,
+			EnumResults measure) {
 		if (spots == null || spots.isEmpty() || nBins <= 0) {
 			return List.of();
 		}
 		List<RatioSource> sources = new ArrayList<>(spots.size());
 		for (Spot spot : spots) {
-			if (spot == null) {
+			if (spot == null || spot.getMeasurements(measure) == null) {
 				continue;
 			}
-			double[] ratio = spot.getKymoLineRatio().getValues();
-			sources.add(new RatioSource(spot, ratio));
+			sources.add(new RatioSource(spot, spot.getMeasurements(measure).getValues()));
 		}
 		return buildSumConsoByStimulusConcFromSources(sources, nBins);
 	}

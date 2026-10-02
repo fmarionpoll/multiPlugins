@@ -432,6 +432,13 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_KYMO_RIM_RATIO() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException(
+					"KYMO_RIM_RATIO uses stored data from Spot kymograph measurements - access via spot.getMeasurements(), not computation");
+		};
+	}
+
 	/**
 	 * Placeholder for measures not yet implemented.
 	 */

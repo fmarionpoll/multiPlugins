@@ -372,8 +372,10 @@ public class ChartCagesCombinedFrame {
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
 		case KYMO_LINE_RATIO:
+		case KYMO_RIM_RATIO:
 		case AGG_GREENHEIGHT_CONSO:
 		case AGG_LINE_CONSO:
+		case AGG_RIM:
 			return true;
 		default:
 			return false;

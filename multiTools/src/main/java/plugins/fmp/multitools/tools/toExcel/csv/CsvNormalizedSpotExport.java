@@ -183,7 +183,8 @@ public final class CsvNormalizedSpotExport {
 
 	private static EnumResults[] aggregateTypes(ResultsOptions options, Mode mode) {
 		if (mode == Mode.AGGREGATE_KYMO) {
-			return new EnumResults[] { EnumResults.AGG_GREENHEIGHT_CONSO, EnumResults.AGG_LINE_CONSO };
+			return new EnumResults[] { EnumResults.AGG_GREENHEIGHT_CONSO, EnumResults.AGG_LINE_CONSO,
+					EnumResults.AGG_RIM };
 		}
 		EnumResults rt = options.resultType != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
 		return new EnumResults[] { rt };

@@ -28,6 +28,7 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 	public LoadSavePanel tabLoadSave = new LoadSavePanel();
 	public AnalysisPanel tabKymoAnalysis = null;
 	public AnalysisPanel2 tabKymoAnalysis2 = null;
+	public AnalysisPanelRim tabKymoRim = null;
 	public GraphPanel tabKymoGraph = null;
 
 	private MultiSPOTS parent0 = null;
@@ -47,13 +48,16 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 
 		tabKymoAnalysis = new AnalysisPanel(parent0);
 		tabKymoAnalysis2 = new AnalysisPanel2(parent0);
-		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabKymoAnalysis2);
+		tabKymoRim = new AnalysisPanelRim(parent0);
+		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabKymoAnalysis2, tabKymoRim);
 		tabsPane.addTab("Kymo", null, tabKymoAnalysis,
 				"Measure the vertical line on the cage kymograph TIFF");
 		tabsPane.addTab("Cross", null, tabKymoAnalysis2,
 				"Measure the X on the camera frames; floor from the tips outside the circles");
+		tabsPane.addTab("Rim", null, tabKymoRim,
+				"Measure the physical rim inside each spot; floor is the outer band");
 		tabsPane.addTab("Charts", null, tabKymoGraph,
-				"Display Kymo (h/h_max) and Cross (I/I0)");
+				"Display Kymo (h/h_max), Cross and Rim (I/I0)");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);

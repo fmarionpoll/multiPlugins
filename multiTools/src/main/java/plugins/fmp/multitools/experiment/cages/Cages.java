@@ -1612,6 +1612,7 @@ public class Cages {
 				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_SUMCLEAN_COLOR
 				|| opt.resultType == EnumResults.AGG_AREA_COUNT_COLOR || opt.resultType == EnumResults.AGG_MEDIANREF
 				|| opt.resultType == EnumResults.AGG_GREENHEIGHT_CONSO || opt.resultType == EnumResults.AGG_LINE_CONSO
+				|| opt.resultType == EnumResults.AGG_RIM
 				|| opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
@@ -1623,7 +1624,8 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
-		if (savedRt == EnumResults.AGG_GREENHEIGHT_CONSO || savedRt == EnumResults.AGG_LINE_CONSO) {
+		if (savedRt == EnumResults.AGG_GREENHEIGHT_CONSO || savedRt == EnumResults.AGG_LINE_CONSO
+				|| savedRt == EnumResults.AGG_RIM) {
 			prepareKymoConsoAggregates(allSpots, savedRt);
 			return;
 		}
@@ -1700,8 +1702,7 @@ public class Cages {
 	}
 
 	private void prepareKymoConsoAggregates(Spots allSpots, EnumResults aggregateType) {
-		EnumResults source = aggregateType == EnumResults.AGG_LINE_CONSO ? EnumResults.KYMO_LINE_RATIO
-				: EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+		EnumResults source = CageKymoGreenHeightAggregation.sourceOf(aggregateType);
 		for (Cage cage : cagesList) {
 			if (cage == null) {
 				continue;
@@ -1723,9 +1724,7 @@ public class Cages {
 			if (nBins <= 0) {
 				continue;
 			}
-			List<SumSeries> sums = aggregateType == EnumResults.AGG_LINE_CONSO
-					? CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromLineRatios(spots, nBins)
-					: CageKymoGreenHeightAggregation.buildSumConsoByStimulusConcFromSpots(spots, nBins);
+			List<SumSeries> sums = CageKymoGreenHeightAggregation.sumsFor(spots, nBins, aggregateType);
 			List<CageSpotAggregateSeries> entries = new ArrayList<>(sums.size());
 			for (SumSeries agg : sums) {
 				if (agg == null || agg.key == null || agg.values == null) {

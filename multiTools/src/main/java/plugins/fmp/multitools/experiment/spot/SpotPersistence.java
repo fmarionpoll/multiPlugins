@@ -3,6 +3,7 @@ package plugins.fmp.multitools.experiment.spot;
 import java.awt.Color;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 
 import org.w3c.dom.Node;
 
@@ -10,6 +11,7 @@ import icy.roi.ROI2D;
 import icy.util.XMLUtil;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.fmp.multitools.tools.ROI2D.ROIPersistenceUtils;
+import plugins.fmp.multitools.tools.ROI2D.ROIType;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
@@ -81,7 +83,8 @@ public class SpotPersistence {
 		return "#" + sep + "SPOTS" + sep + "multiSPOTS data\n" + "name" + sep + "index" + sep + "cageID" + sep
 				+ "cagePos" + sep + "cageColumn" + sep + "cageRow" + sep + "volume" + sep + "npixels" + sep + "radius"
 				+ sep 				+ "stim" + sep + "conc" + sep + "colorR" + sep + "colorG" + sep + "colorB" + sep + "preConsumed" + sep
-				+ "preConsumedBaseStroke" + sep + "roiType" + sep + "roiData\n";
+				+ "preConsumedBaseStroke" + sep + "roiType" + sep + "roiData" + sep + "rimWidth" + sep
+				+ "outerPx" + sep + "outlineType" + sep + "outlineData\n";
 	}
 
 	public static String csvExportSpotDescription(Spot spot, String sep) {
@@ -117,8 +120,28 @@ public class SpotPersistence {
 			sbf.append(sep); // Empty roiType and roiData
 		}
 
+		SpotRimGeometry rim = spot.getRimGeometry();
+		sbf.append(sep).append(rim.getRimWidthPx());
+		sbf.append(sep).append(rim.getOuterPx());
+		if (rim.hasOutline()) {
+			sbf.append(sep).append(csvOutline(rim, sep));
+		}
+
 		sbf.append("\n");
 		return sbf.toString();
+	}
+
+	private static String csvOutline(SpotRimGeometry rim, String sep) {
+		double[] xs = rim.outlineX();
+		double[] ys = rim.outlineY();
+		StringBuilder sb = new StringBuilder();
+		sb.append(ROIType.POLYLINE.toCsvString());
+		sb.append(sep).append(xs.length);
+		for (int i = 0; i < xs.length; i++) {
+			sb.append(sep).append(String.format(Locale.ROOT, "%.3f", xs[i]));
+			sb.append(sep).append(String.format(Locale.ROOT, "%.3f", ys[i]));
+		}
+		return sb.toString();
 	}
 
 	public static String csvExportMeasureSectionHeader(EnumResults measureType, String sep) {
@@ -143,6 +166,7 @@ public class SpotPersistence {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_LINE_RATIO:
+		case KYMO_RIM_RATIO:
 			return "#" + sep + "#\n" + "#" + sep + measureType.toPersistenceKey() + sep + "v0\n" + "name" + sep
 					+ "index" + sep + "npts" + sep + "yi\n";
 		default:
@@ -208,6 +232,9 @@ public class SpotPersistence {
 			break;
 		case KYMO_LINE_RATIO:
 			spot.getKymoLineRatio().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_RIM_RATIO:
+			spot.getKymoRimRatio().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -278,29 +305,32 @@ public class SpotPersistence {
 
 			if (index < data.length) {
 				String roiType = data[index++];
-				String roiData = index < data.length
-						? String.join(";", java.util.Arrays.copyOfRange(data, index, data.length))
-						: "";
-				index = data.length;
-
-				if (roiType != null && !roiType.trim().isEmpty() && !roiType.equals("unknown")) {
-					ROI2D reconstructedROI = ROIPersistenceUtils.importROIFromCSV(roiType, roiData, props.getName());
-					if (reconstructedROI instanceof ROI2DShape) {
-						spot.setRoi((ROI2DShape) reconstructedROI);
-					} else if (reconstructedROI != null) {
-						System.err.println("Warning: Reconstructed ROI is not ROI2DShape for spot: " + props.getName());
-						// Fall back to regeneration
-						spot.regenerateROIFromCoordinates();
+				int roiFields = roiDataFieldCount(roiType, data, index);
+				if (roiFields < 0) {
+					spot.regenerateROIFromCoordinates();
+				} else {
+					String roiData = roiFields == 0 ? ""
+							: String.join(";", Arrays.copyOfRange(data, index, index + roiFields));
+					index += roiFields;
+					if (roiType != null && !roiType.trim().isEmpty() && !roiType.equals("unknown")) {
+						ROI2D reconstructedROI = ROIPersistenceUtils.importROIFromCSV(roiType, roiData, props.getName());
+						if (reconstructedROI instanceof ROI2DShape) {
+							spot.setRoi((ROI2DShape) reconstructedROI);
+						} else if (reconstructedROI != null) {
+							System.err.println(
+									"Warning: Reconstructed ROI is not ROI2DShape for spot: " + props.getName());
+							spot.regenerateROIFromCoordinates();
+						} else {
+							spot.regenerateROIFromCoordinates();
+						}
 					} else {
-						// Reconstruction failed, regenerate from coordinates
 						spot.regenerateROIFromCoordinates();
 					}
-				} else {
-					spot.regenerateROIFromCoordinates();
 				}
 			} else {
 				spot.regenerateROIFromCoordinates();
 			}
+			importRimGeometry(spot, data, index);
 
 			if (props.getColor() != null && spot.getRoi() != null) {
 				spot.getRoi().setColor(props.getColor());
@@ -314,6 +344,83 @@ public class SpotPersistence {
 		} catch (ArrayIndexOutOfBoundsException e) {
 			throw new IllegalArgumentException("Insufficient data in CSV array", e);
 		}
+	}
+
+	private static int roiDataFieldCount(String roiType, String[] data, int index) {
+		int remain = data.length - index;
+		if (remain < 0) {
+			return -1;
+		}
+		ROIType type = ROIType.fromString(roiType);
+		switch (type) {
+		case ELLIPSE:
+			if (remain >= 4) {
+				return 4;
+			}
+			return remain >= 3 ? 3 : -1;
+		case LINE:
+		case RECTANGLE:
+			return remain >= 4 ? 4 : -1;
+		case POLYLINE:
+		case POLYGON:
+			if (remain < 1) {
+				return -1;
+			}
+			try {
+				int n = Integer.parseInt(data[index].trim());
+				int need = 1 + n * 2;
+				return remain >= need ? need : -1;
+			} catch (NumberFormatException e) {
+				return -1;
+			}
+		default:
+			if (remain > 0 && data[index].trim().isEmpty()) {
+				return 1;
+			}
+			return 0;
+		}
+	}
+
+	private static void importRimGeometry(Spot spot, String[] data, int index) {
+		if (data == null || index + 1 >= data.length) {
+			return;
+		}
+		SpotRimGeometry rim = spot.getRimGeometry();
+		try {
+			rim.setRimWidthPx(Integer.parseInt(data[index].trim()));
+			rim.setOuterPx(Integer.parseInt(data[index + 1].trim()));
+			index += 2;
+		} catch (NumberFormatException e) {
+			return;
+		}
+		if (index >= data.length || !ROIType.POLYLINE.toCsvString().equalsIgnoreCase(data[index].trim())) {
+			return;
+		}
+		index++;
+		if (index >= data.length) {
+			return;
+		}
+		int n;
+		try {
+			n = Integer.parseInt(data[index].trim());
+			index++;
+		} catch (NumberFormatException e) {
+			return;
+		}
+		if (n < 3 || index + n * 2 > data.length) {
+			return;
+		}
+		double[] xs = new double[n];
+		double[] ys = new double[n];
+		try {
+			for (int i = 0; i < n; i++) {
+				xs[i] = Double.parseDouble(data[index++].trim().replace(',', '.'));
+				ys[i] = Double.parseDouble(data[index++].trim().replace(',', '.'));
+			}
+		} catch (NumberFormatException e) {
+			return;
+		}
+		rim.setOutline(xs, ys);
 	}
 
 	private static boolean isPreConsumedFlagField(String field) {
@@ -463,6 +570,9 @@ public class SpotPersistence {
 			break;
 		case KYMO_LINE_RATIO:
 			importKymoY(spot.getKymoLineRatio(), data, x, y);
+			break;
+		case KYMO_RIM_RATIO:
+			importKymoY(spot.getKymoRimRatio(), data, x, y);
 			break;
 		default:
 			break;
