@@ -45,6 +45,29 @@ public class SpotRimAnalyzerTest {
 	}
 
 	@Test
+	public void darkRingIsPreferredToPaleFringe() {
+		int width = 220;
+		int height = 220;
+		int cx = 100;
+		int cy = 100;
+		int[] r = new int[width * height];
+		int[] g = new int[width * height];
+		int[] b = new int[width * height];
+		fill(r, g, b, 80);
+		paintBand(r, g, b, width, cx, cy, 30, 36, 70, 100, 100);
+		paintBand(r, g, b, width, cx, cy, 18, 24, 20, 200, 200);
+		EllipseGeom ellipse = new EllipseGeom(cx, cy, 40, 40);
+		double[][] outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r }, new int[][] { g },
+				new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
+		assertNotNull(outline);
+		for (int i = 0; i < outline[0].length; i++) {
+			double radius = Math.hypot(outline[0][i] - cx, outline[1][i] - cy);
+			assertTrue("radius " + radius, radius > 16 && radius < 28);
+		}
+	}
+
+
+	@Test
 	public void blankEllipseHasNoOutline() {
 		int width = 80;
 		int height = 80;
@@ -145,4 +168,20 @@ public class SpotRimAnalyzerTest {
 			}
 		}
 	}
+	private static void paintBand(int[] r, int[] g, int[] b, int width, int cx, int cy, double inner, double outer,
+			int rv, int gv, int bv) {
+		int height = r.length / width;
+		for (int y = 0; y < height; y++) {
+			for (int x = 0; x < width; x++) {
+				double d = Math.hypot(x - cx, y - cy);
+				if (d >= inner && d <= outer) {
+					int pix = y * width + x;
+					r[pix] = rv;
+					g[pix] = gv;
+					b[pix] = bv;
+				}
+			}
+		}
+	}
+
 }

@@ -12,15 +12,19 @@ import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Layout;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
- * Closed rim inside a spot ellipse. The outline is the outermost dye pixel
- * along each ray, taken over the first bins. The floor is that outline offset
- * outward.
+ * Closed rim inside a spot ellipse. Along each ray the outline sits on the dark
+ * dye ridge, inside the pale fringe, taken over the first bins and smoothed
+ * around the circle. The floor is that outline offset outward.
  */
 public final class SpotRimAnalyzer {
 
 	public static final int ANGLE_STEP_DEG = 5;
 	public static final int OUTSIDE_RING_PX = 3;
 	static final int MIN_VERTICES = 8;
+	/** Half-width of the radial moving average, in pixels. */
+	private static final int RADIAL_SMOOTH_HALF = 2;
+	/** Half-width of the circular median, in angle steps. */
+	private static final int ANGULAR_SMOOTH_HALF = 2;
 
 	public static final class Params {
 		public final double madMultiplier;
@@ -105,9 +109,9 @@ public final class SpotRimAnalyzer {
 			return null;
 		}
 		int nAngles = 360 / ANGLE_STEP_DEG;
-		double[] xs = new double[nAngles];
-		double[] ys = new double[nAngles];
-		int kept = 0;
+		double[] byAngle = new double[nAngles];
+		Arrays.fill(byAngle, Double.NaN);
+		int detected = 0;
 		for (int a = 0; a < nAngles; a++) {
 			double theta = Math.toRadians(a * ANGLE_STEP_DEG);
 			double cos = Math.cos(theta);
@@ -115,7 +119,7 @@ public final class SpotRimAnalyzer {
 			double[] radii = new double[red.length];
 			int n = 0;
 			for (int t = 0; t < red.length; t++) {
-				double radius = outermost(ellipse, imageWidth, imageHeight, channel(red, t), channel(green, t),
+				double radius = ridgeRadius(ellipse, imageWidth, imageHeight, channel(red, t), channel(green, t),
 						channel(blue, t), cos, sin, cutoff);
 				if (radius >= 0) {
 					radii[n++] = radius;
@@ -124,12 +128,26 @@ public final class SpotRimAnalyzer {
 			if (n == 0) {
 				continue;
 			}
-			double radius = median(Arrays.copyOf(radii, n));
-			xs[kept] = ellipse.cx + radius * cos;
-			ys[kept] = ellipse.cy + radius * sin;
-			kept++;
+			byAngle[a] = median(Arrays.copyOf(radii, n));
+			detected++;
 		}
 		int minKeep = Math.max(MIN_VERTICES, (nAngles + 3) / 4);
+		if (detected < minKeep) {
+			return null;
+		}
+		double[] smooth = circularMedian(byAngle, ANGULAR_SMOOTH_HALF);
+		double[] xs = new double[nAngles];
+		double[] ys = new double[nAngles];
+		int kept = 0;
+		for (int a = 0; a < nAngles; a++) {
+			if (!Double.isFinite(byAngle[a]) || !Double.isFinite(smooth[a])) {
+				continue;
+			}
+			double theta = Math.toRadians(a * ANGLE_STEP_DEG);
+			xs[kept] = ellipse.cx + smooth[a] * Math.cos(theta);
+			ys[kept] = ellipse.cy + smooth[a] * Math.sin(theta);
+			kept++;
+		}
 		if (kept < minKeep) {
 			return null;
 		}
@@ -262,14 +280,22 @@ public final class SpotRimAnalyzer {
 		return Arrays.copyOf(values, n);
 	}
 
-	/** Outermost integer radius along the ray whose deficit clears the cutoff, or -1. */
-	private static double outermost(EllipseGeom ellipse, int imageWidth, int imageHeight, int[] red, int[] green,
+	/**
+	 * Radius of the dark dye ridge on this ray, or -1. The ridge is the outermost
+	 * strong local maximum inside the ellipse, so a pale fringe beyond the dark
+	 * ring is left outside the outline.
+	 */
+	private static double ridgeRadius(EllipseGeom ellipse, int imageWidth, int imageHeight, int[] red, int[] green,
 			int[] blue, double cos, double sin, double cutoff) {
 		if (red == null || green == null || blue == null) {
 			return -1;
 		}
 		int limit = (int) Math.floor(boundaryRadius(ellipse, cos, sin));
-		int best = -1;
+		if (limit < 2) {
+			return -1;
+		}
+		double[] profile = new double[limit + 1];
+		Arrays.fill(profile, Double.NaN);
 		for (int r = 0; r <= limit; r++) {
 			int x = (int) Math.round(ellipse.cx + r * cos);
 			int y = (int) Math.round(ellipse.cy + r * sin);
@@ -279,12 +305,75 @@ public final class SpotRimAnalyzer {
 			if (!ellipse.contains(x + 0.0, y + 0.0)) {
 				break;
 			}
-			double deficit = deficitAt(red, green, blue, y * imageWidth + x);
-			if (deficit > cutoff) {
-				best = r;
+			profile[r] = deficitAt(red, green, blue, y * imageWidth + x);
+		}
+		smoothRadial(profile, RADIAL_SMOOTH_HALF);
+		double peak = Double.NEGATIVE_INFINITY;
+		for (double value : profile) {
+			if (Double.isFinite(value) && value > peak) {
+				peak = value;
 			}
 		}
-		return best;
+		if (!(peak > cutoff)) {
+			return -1;
+		}
+		double level = cutoff + 0.5 * (peak - cutoff);
+		int ridge = -1;
+		for (int r = 1; r < limit; r++) {
+			double value = profile[r];
+			double prev = profile[r - 1];
+			double next = profile[r + 1];
+			if (!Double.isFinite(value) || !Double.isFinite(prev) || !Double.isFinite(next)) {
+				continue;
+			}
+			if (value >= level && value >= prev && value >= next) {
+				ridge = r;
+			}
+		}
+		if (ridge >= 0) {
+			return ridge;
+		}
+		for (int r = limit; r >= 1; r--) {
+			if (Double.isFinite(profile[r]) && profile[r] >= level) {
+				return r;
+			}
+		}
+		return -1;
+	}
+
+	private static void smoothRadial(double[] profile, int half) {
+		double[] copy = profile.clone();
+		for (int i = 0; i < profile.length; i++) {
+			double sum = 0;
+			int n = 0;
+			int from = Math.max(0, i - half);
+			int to = Math.min(copy.length - 1, i + half);
+			for (int j = from; j <= to; j++) {
+				if (!Double.isFinite(copy[j])) {
+					continue;
+				}
+				sum += copy[j];
+				n++;
+			}
+			profile[i] = n == 0 ? Double.NaN : sum / n;
+		}
+	}
+
+	private static double[] circularMedian(double[] radii, int half) {
+		int n = radii.length;
+		double[] out = new double[n];
+		double[] window = new double[half * 2 + 1];
+		for (int i = 0; i < n; i++) {
+			int count = 0;
+			for (int k = -half; k <= half; k++) {
+				double value = radii[Math.floorMod(i + k, n)];
+				if (Double.isFinite(value)) {
+					window[count++] = value;
+				}
+			}
+			out[i] = count == 0 ? Double.NaN : median(Arrays.copyOf(window, count));
+		}
+		return out;
 	}
 
 	static double boundaryRadius(EllipseGeom ellipse, double cos, double sin) {

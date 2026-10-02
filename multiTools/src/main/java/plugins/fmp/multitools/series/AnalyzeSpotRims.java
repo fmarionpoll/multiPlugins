@@ -82,7 +82,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 				showFrame(progress, t, nFrames);
 				opening[t] = readFrame(seq, loader, frames.get(t));
 			}
-			lastOutlineCount = ensureOutlines(cages, width, height, opening);
+			lastOutlineCount = ensureOutlines(cages, width, height, opening, detectOnly);
 			lastCageCount = cages.size();
 			lastBinCount = nFrames;
 			boolean descriptions = saveDescriptions(exp);
@@ -155,7 +155,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 		}
 	}
 
-	private int ensureOutlines(List<CageRims> cages, int width, int height, FramePixels[] opening) {
+	private int ensureOutlines(List<CageRims> cages, int width, int height, FramePixels[] opening, boolean replace) {
 		int nFrames = opening.length;
 		int[][] red = new int[nFrames][];
 		int[][] green = new int[nFrames][];
@@ -178,7 +178,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 				SpotRimGeometry rim = spot.getRimGeometry();
 				rim.setRimWidthPx(analyzerParams.rimWidthPx);
 				rim.setOuterPx(analyzerParams.outerPx);
-				if (!rim.hasOutline()) {
+				if (replace || !rim.hasOutline()) {
 					EllipseGeom ellipse = cage.ellipses.get(i);
 					double[][] xy = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue, containers,
 							analyzerParams.madMultiplier);
