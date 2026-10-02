@@ -108,7 +108,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		params.add(madMultiplierSpinner);
 		params.add(new JLabel("initial bins"));
 		params.add(initialBinsSpinner);
-		params.add(new JLabel("width (px)"));
+		params.add(new JLabel("path (px)"));
 		params.add(rimWidthSpinner);
 		params.add(new JLabel("outer (px)"));
 		params.add(outerPxSpinner);
@@ -123,7 +123,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 
 		JPanel hint = new JPanel(left);
 		hint.add(showRimsButton);
-		hint.add(new JLabel("Blue = physical rim (editable). Green = floor band."));
+		hint.add(new JLabel("Blue = outer edge of the dye (editable). Green = floor."));
 		add(hint);
 
 		showRimsButton.addActionListener(e -> refreshRims());

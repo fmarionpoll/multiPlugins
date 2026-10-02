@@ -12,19 +12,32 @@ import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Layout;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
- * Closed rim inside a spot ellipse. Along each ray the outline sits on the dark
- * dye ridge, inside the pale fringe, taken over the first bins and smoothed
- * around the circle. The floor is that outline offset outward.
+ * Outer perimeter of the dye inside a spot ellipse, from the first bins. The
+ * stored outline is that perimeter. The path width is the inward distance that
+ * still holds most of the dye. The floor is the outline offset outward.
  */
 public final class SpotRimAnalyzer {
 
 	public static final int ANGLE_STEP_DEG = 5;
 	public static final int OUTSIDE_RING_PX = 3;
 	static final int MIN_VERTICES = 8;
-	/** Half-width of the radial moving average, in pixels. */
-	private static final int RADIAL_SMOOTH_HALF = 2;
-	/** Half-width of the circular median, in angle steps. */
-	private static final int ANGULAR_SMOOTH_HALF = 2;
+	/** Fraction of dye pixels the inward path must contain. */
+	private static final double COLOR_COVERAGE = 0.8;
+	private static final int MIN_DYE_PIXELS = 40;
+	private static final int CONTOUR_SMOOTH_HALF = 4;
+
+	/** Outer dye perimeter and the inward path width that covers most of the dye. */
+	public static final class Detection {
+		public final double[] x;
+		public final double[] y;
+		public final int pathWidthPx;
+
+		public Detection(double[] x, double[] y, int pathWidthPx) {
+			this.x = x;
+			this.y = y;
+			this.pathWidthPx = Math.max(1, pathWidthPx);
+		}
+	}
 
 	public static final class Params {
 		public final double madMultiplier;
@@ -95,67 +108,47 @@ public final class SpotRimAnalyzer {
 	}
 
 	/**
-	 * Closed outline, or null when too few rays still see dye. {@code containers}
-	 * are every spot ellipse; pixels inside one of them are not part of the floor
-	 * ring that sets the cutoff.
+	 * Outer perimeter of the dye, or null when the ellipse has no separable stain.
+	 * {@code containers} are every spot ellipse; pixels inside another one are not
+	 * part of this spot, and they are not part of the floor ring that sets the cutoff.
 	 */
-	public static double[][] detect(EllipseGeom ellipse, int imageWidth, int imageHeight, int[][] red, int[][] green,
+	public static Detection detect(EllipseGeom ellipse, int imageWidth, int imageHeight, int[][] red, int[][] green,
 			int[][] blue, EllipseGeom[] containers, double madMultiplier) {
 		if (ellipse == null || imageWidth <= 0 || imageHeight <= 0 || red == null || red.length == 0) {
 			return null;
 		}
-		double cutoff = cutoff(ellipse, imageWidth, imageHeight, red, green, blue, containers, madMultiplier);
-		if (Double.isNaN(cutoff)) {
+		Box box = Box.of(ellipse, imageWidth, imageHeight);
+		if (box == null) {
 			return null;
 		}
-		int nAngles = 360 / ANGLE_STEP_DEG;
-		double[] byAngle = new double[nAngles];
-		Arrays.fill(byAngle, Double.NaN);
-		int detected = 0;
-		for (int a = 0; a < nAngles; a++) {
-			double theta = Math.toRadians(a * ANGLE_STEP_DEG);
-			double cos = Math.cos(theta);
-			double sin = Math.sin(theta);
-			double[] radii = new double[red.length];
-			int n = 0;
-			for (int t = 0; t < red.length; t++) {
-				double radius = ridgeRadius(ellipse, imageWidth, imageHeight, channel(red, t), channel(green, t),
-						channel(blue, t), cos, sin, cutoff);
-				if (radius >= 0) {
-					radii[n++] = radius;
-				}
-			}
-			if (n == 0) {
-				continue;
-			}
-			byAngle[a] = median(Arrays.copyOf(radii, n));
-			detected++;
-		}
-		int minKeep = Math.max(MIN_VERTICES, (nAngles + 3) / 4);
-		if (detected < minKeep) {
+		double[] score = medianScore(box, imageWidth, red, green, blue);
+		double threshold = dyeThreshold(score, box, ellipse, containers, imageWidth, imageHeight, red, green, blue,
+				madMultiplier);
+		if (Double.isNaN(threshold)) {
 			return null;
 		}
-		double[] smooth = circularMedian(byAngle, ANGULAR_SMOOTH_HALF);
-		double[] xs = new double[nAngles];
-		double[] ys = new double[nAngles];
-		int kept = 0;
-		for (int a = 0; a < nAngles; a++) {
-			if (!Double.isFinite(byAngle[a]) || !Double.isFinite(smooth[a])) {
-				continue;
-			}
-			double theta = Math.toRadians(a * ANGLE_STEP_DEG);
-			xs[kept] = ellipse.cx + smooth[a] * Math.cos(theta);
-			ys[kept] = ellipse.cy + smooth[a] * Math.sin(theta);
-			kept++;
-		}
-		if (kept < minKeep) {
+		boolean[] dye = dyeMask(score, box, ellipse, containers, threshold);
+		if (count(dye) < MIN_DYE_PIXELS) {
 			return null;
 		}
-		return new double[][] { Arrays.copyOf(xs, kept), Arrays.copyOf(ys, kept) };
+		dye = largestComponent(dye, box.w);
+		if (count(dye) < MIN_DYE_PIXELS) {
+			return null;
+		}
+		double[][] contour = outerContour(dye, box);
+		if (contour == null) {
+			return null;
+		}
+		contour = smoothClosed(contour[0], contour[1], CONTOUR_SMOOTH_HALF);
+		if (contour[0].length < MIN_VERTICES) {
+			return null;
+		}
+		int path = pathWidth(dye, box, contour[0], contour[1]);
+		return new Detection(contour[0], contour[1], path);
 	}
 
 	public static int[] signalPixels(double[] xs, double[] ys, int rimWidthPx, int imageWidth, int imageHeight) {
-		return SpotRimGeometry.strokePixels(xs, ys, rimWidthPx, imageWidth, imageHeight);
+		return SpotRimGeometry.inwardBandPixels(xs, ys, rimWidthPx, imageWidth, imageHeight);
 	}
 
 	/**
@@ -204,8 +197,8 @@ public final class SpotRimAnalyzer {
 			double[] ys = rim.outlineY();
 			EllipseGeom self = spotEllipses != null && i < spotEllipses.size() ? spotEllipses.get(i) : null;
 			signal[i] = signalPixels(xs, ys, rim.getRimWidthPx(), imageWidth, imageHeight);
-			floor[i] = floorPixels(xs, ys, rim.getRimWidthPx(), rim.getOuterPx(), imageWidth, imageHeight,
-					others(self, allEllipses));
+			floor[i] = floorPixels(xs, ys, SpotRimGeometry.DEFAULT_RIM_WIDTH_PX, rim.getOuterPx(), imageWidth,
+					imageHeight, others(self, allEllipses));
 		}
 		return new Layout(imageWidth, n, floor, signal);
 	}
@@ -280,100 +273,354 @@ public final class SpotRimAnalyzer {
 		return Arrays.copyOf(values, n);
 	}
 
-	/**
-	 * Radius of the dark dye ridge on this ray, or -1. The ridge is the outermost
-	 * strong local maximum inside the ellipse, so a pale fringe beyond the dark
-	 * ring is left outside the outline.
-	 */
-	private static double ridgeRadius(EllipseGeom ellipse, int imageWidth, int imageHeight, int[] red, int[] green,
-			int[] blue, double cos, double sin, double cutoff) {
-		if (red == null || green == null || blue == null) {
-			return -1;
-		}
-		int limit = (int) Math.floor(boundaryRadius(ellipse, cos, sin));
-		if (limit < 2) {
-			return -1;
-		}
-		double[] profile = new double[limit + 1];
-		Arrays.fill(profile, Double.NaN);
-		for (int r = 0; r <= limit; r++) {
-			int x = (int) Math.round(ellipse.cx + r * cos);
-			int y = (int) Math.round(ellipse.cy + r * sin);
-			if (x < 0 || y < 0 || x >= imageWidth || y >= imageHeight) {
-				break;
-			}
-			if (!ellipse.contains(x + 0.0, y + 0.0)) {
-				break;
-			}
-			profile[r] = deficitAt(red, green, blue, y * imageWidth + x);
-		}
-		smoothRadial(profile, RADIAL_SMOOTH_HALF);
-		double peak = Double.NEGATIVE_INFINITY;
-		for (double value : profile) {
-			if (Double.isFinite(value) && value > peak) {
-				peak = value;
+	private static double[] medianScore(Box box, int imageWidth, int[][] red, int[][] green, int[][] blue) {
+		double[] score = new double[box.w * box.h];
+		Arrays.fill(score, Double.NaN);
+		double[] samples = new double[red.length];
+		for (int y = 0; y < box.h; y++) {
+			int iy = box.y0 + y;
+			for (int x = 0; x < box.w; x++) {
+				int ix = box.x0 + x;
+				int n = 0;
+				int pix = iy * imageWidth + ix;
+				for (int t = 0; t < red.length; t++) {
+					double value = deficitAt(channel(red, t), channel(green, t), channel(blue, t), pix);
+					if (Double.isFinite(value)) {
+						samples[n++] = value;
+					}
+				}
+				if (n > 0) {
+					score[y * box.w + x] = median(Arrays.copyOf(samples, n));
+				}
 			}
 		}
-		if (!(peak > cutoff)) {
-			return -1;
-		}
-		double level = cutoff + 0.5 * (peak - cutoff);
-		int ridge = -1;
-		for (int r = 1; r < limit; r++) {
-			double value = profile[r];
-			double prev = profile[r - 1];
-			double next = profile[r + 1];
-			if (!Double.isFinite(value) || !Double.isFinite(prev) || !Double.isFinite(next)) {
+		return score;
+	}
+
+	private static double dyeThreshold(double[] score, Box box, EllipseGeom ellipse, EllipseGeom[] containers,
+			int imageWidth, int imageHeight, int[][] red, int[][] green, int[][] blue, double madMultiplier) {
+		double[] inside = new double[score.length];
+		int n = 0;
+		for (int i = 0; i < score.length; i++) {
+			if (!Double.isFinite(score[i])) {
 				continue;
 			}
-			if (value >= level && value >= prev && value >= next) {
-				ridge = r;
+			int x = box.x0 + i % box.w;
+			int y = box.y0 + i / box.w;
+			if (!ellipse.contains(x, y) || insideAny(othersOf(ellipse, containers), x, y)) {
+				continue;
 			}
+			inside[n++] = score[i];
 		}
-		if (ridge >= 0) {
-			return ridge;
+		double otsu = otsu(Arrays.copyOf(inside, n));
+		if (Double.isNaN(otsu)) {
+			return Double.NaN;
 		}
-		for (int r = limit; r >= 1; r--) {
-			if (Double.isFinite(profile[r]) && profile[r] >= level) {
-				return r;
-			}
+		double floor = cutoff(ellipse, imageWidth, imageHeight, red, green, blue, containers, madMultiplier);
+		if (Double.isNaN(floor)) {
+			return otsu;
 		}
-		return -1;
+		return Math.max(floor, otsu);
 	}
 
-	private static void smoothRadial(double[] profile, int half) {
-		double[] copy = profile.clone();
-		for (int i = 0; i < profile.length; i++) {
-			double sum = 0;
-			int n = 0;
-			int from = Math.max(0, i - half);
-			int to = Math.min(copy.length - 1, i + half);
-			for (int j = from; j <= to; j++) {
-				if (!Double.isFinite(copy[j])) {
+	/** Otsu cut on {@code values}, or NaN when they are not split into two classes. */
+	static double otsu(double[] values) {
+		int n = 0;
+		double min = Double.POSITIVE_INFINITY;
+		double max = Double.NEGATIVE_INFINITY;
+		if (values != null) {
+			for (double v : values) {
+				if (!Double.isFinite(v)) {
 					continue;
 				}
-				sum += copy[j];
 				n++;
+				min = Math.min(min, v);
+				max = Math.max(max, v);
 			}
-			profile[i] = n == 0 ? Double.NaN : sum / n;
 		}
+		if (n < MIN_DYE_PIXELS || !(max - min > 1e-3)) {
+			return Double.NaN;
+		}
+		int bins = 256;
+		int[] hist = new int[bins];
+		double scale = (bins - 1) / (max - min);
+		for (double v : values) {
+			if (!Double.isFinite(v)) {
+				continue;
+			}
+			int b = (int) Math.round((v - min) * scale);
+			if (b < 0) {
+				b = 0;
+			} else if (b >= bins) {
+				b = bins - 1;
+			}
+			hist[b]++;
+		}
+		double sum = 0;
+		for (int i = 0; i < bins; i++) {
+			sum += (double) i * hist[i];
+		}
+		double sumB = 0;
+		int wB = 0;
+		double maxVar = -1;
+		int best = 0;
+		for (int i = 0; i < bins; i++) {
+			wB += hist[i];
+			if (wB == 0) {
+				continue;
+			}
+			int wF = n - wB;
+			if (wF == 0) {
+				break;
+			}
+			sumB += (double) i * hist[i];
+			double mB = sumB / wB;
+			double mF = (sum - sumB) / wF;
+			double between = (double) wB * wF * (mB - mF) * (mB - mF);
+			if (between > maxVar) {
+				maxVar = between;
+				best = i;
+			}
+		}
+		if (!(maxVar > 0)) {
+			return Double.NaN;
+		}
+		return min + (best + 1) / scale;
 	}
 
-	private static double[] circularMedian(double[] radii, int half) {
-		int n = radii.length;
-		double[] out = new double[n];
-		double[] window = new double[half * 2 + 1];
-		for (int i = 0; i < n; i++) {
-			int count = 0;
-			for (int k = -half; k <= half; k++) {
-				double value = radii[Math.floorMod(i + k, n)];
-				if (Double.isFinite(value)) {
-					window[count++] = value;
+	private static boolean[] dyeMask(double[] score, Box box, EllipseGeom ellipse, EllipseGeom[] containers,
+			double threshold) {
+		boolean[] dye = new boolean[score.length];
+		for (int i = 0; i < score.length; i++) {
+			if (!Double.isFinite(score[i]) || score[i] < threshold) {
+				continue;
+			}
+			int x = box.x0 + i % box.w;
+			int y = box.y0 + i / box.w;
+			if (ellipse.contains(x, y) && !insideAny(othersOf(ellipse, containers), x, y)) {
+				dye[i] = true;
+			}
+		}
+		return dye;
+	}
+
+	private static EllipseGeom[] othersOf(EllipseGeom self, EllipseGeom[] containers) {
+		if (containers == null || containers.length == 0) {
+			return new EllipseGeom[0];
+		}
+		List<EllipseGeom> out = new ArrayList<>();
+		for (EllipseGeom ellipse : containers) {
+			if (ellipse != null && ellipse != self) {
+				out.add(ellipse);
+			}
+		}
+		return out.toArray(new EllipseGeom[0]);
+	}
+
+	private static boolean[] largestComponent(boolean[] dye, int w) {
+		boolean[] seen = new boolean[dye.length];
+		boolean[] best = new boolean[dye.length];
+		int bestN = 0;
+		int[] stack = new int[dye.length];
+		int h = dye.length / w;
+		for (int seed = 0; seed < dye.length; seed++) {
+			if (!dye[seed] || seen[seed]) {
+				continue;
+			}
+			int sp = 0;
+			stack[sp++] = seed;
+			seen[seed] = true;
+			int n = 0;
+			int[] cells = new int[dye.length];
+			while (sp > 0) {
+				int i = stack[--sp];
+				cells[n++] = i;
+				int x = i % w;
+				int y = i / w;
+				if (x > 0) {
+					sp = push(dye, seen, stack, sp, i - 1);
+				}
+				if (x + 1 < w) {
+					sp = push(dye, seen, stack, sp, i + 1);
+				}
+				if (y > 0) {
+					sp = push(dye, seen, stack, sp, i - w);
+				}
+				if (y + 1 < h) {
+					sp = push(dye, seen, stack, sp, i + w);
 				}
 			}
-			out[i] = count == 0 ? Double.NaN : median(Arrays.copyOf(window, count));
+			if (n > bestN) {
+				bestN = n;
+				Arrays.fill(best, false);
+				for (int k = 0; k < n; k++) {
+					best[cells[k]] = true;
+				}
+			}
 		}
-		return out;
+		return best;
+	}
+
+	private static int push(boolean[] dye, boolean[] seen, int[] stack, int sp, int i) {
+		if (!dye[i] || seen[i]) {
+			return sp;
+		}
+		seen[i] = true;
+		stack[sp++] = i;
+		return sp;
+	}
+
+	private static final int[] TRACE_X = { 1, 1, 0, -1, -1, -1, 0, 1 };
+	private static final int[] TRACE_Y = { 0, 1, 1, 1, 0, -1, -1, -1 };
+
+	/** Outer boundary of {@code dye}, in image coordinates. */
+	private static double[][] outerContour(boolean[] dye, Box box) {
+		int start = -1;
+		for (int i = 0; i < dye.length; i++) {
+			if (dye[i]) {
+				start = i;
+				break;
+			}
+		}
+		if (start < 0) {
+			return null;
+		}
+		int sx = box.x0 + start % box.w;
+		int sy = box.y0 + start / box.w;
+		int x = sx;
+		int y = sy;
+		int dir = 7;
+		double[] xs = new double[dye.length];
+		double[] ys = new double[dye.length];
+		int n = 0;
+		int guard = dye.length + 2;
+		while (guard-- > 0) {
+			xs[n] = x;
+			ys[n] = y;
+			n++;
+			boolean found = false;
+			for (int k = 0; k < 8; k++) {
+				int d = (dir + k) % 8;
+				int nx = x + TRACE_X[d];
+				int ny = y + TRACE_Y[d];
+				if (!foreground(dye, box, nx, ny)) {
+					continue;
+				}
+				x = nx;
+				y = ny;
+				dir = (d + 5) % 8;
+				found = true;
+				break;
+			}
+			if (!found || (x == sx && y == sy)) {
+				break;
+			}
+		}
+		if (n < MIN_VERTICES) {
+			return null;
+		}
+		return new double[][] { Arrays.copyOf(xs, n), Arrays.copyOf(ys, n) };
+	}
+
+	private static boolean foreground(boolean[] dye, Box box, int x, int y) {
+		if (x < box.x0 || y < box.y0 || x >= box.x0 + box.w || y >= box.y0 + box.h) {
+			return false;
+		}
+		return dye[(y - box.y0) * box.w + (x - box.x0)];
+	}
+
+	private static double[][] smoothClosed(double[] xs, double[] ys, int half) {
+		int n = Math.min(xs.length, ys.length);
+		double[] sx = new double[n];
+		double[] sy = new double[n];
+		for (int i = 0; i < n; i++) {
+			double ax = 0;
+			double ay = 0;
+			int c = 0;
+			for (int k = -half; k <= half; k++) {
+				int j = Math.floorMod(i + k, n);
+				ax += xs[j];
+				ay += ys[j];
+				c++;
+			}
+			sx[i] = ax / c;
+			sy[i] = ay / c;
+		}
+		int step = Math.max(1, n / 72);
+		int m = (n + step - 1) / step;
+		double[] ox = new double[m];
+		double[] oy = new double[m];
+		int t = 0;
+		for (int i = 0; i < n; i += step) {
+			ox[t] = sx[i];
+			oy[t] = sy[i];
+			t++;
+		}
+		return new double[][] { Arrays.copyOf(ox, t), Arrays.copyOf(oy, t) };
+	}
+
+	private static int pathWidth(boolean[] dye, Box box, double[] xs, double[] ys) {
+		int n = count(dye);
+		double[] dist = new double[n];
+		int k = 0;
+		for (int i = 0; i < dye.length; i++) {
+			if (!dye[i]) {
+				continue;
+			}
+			double x = box.x0 + i % box.w;
+			double y = box.y0 + i / box.w;
+			dist[k++] = SpotRimGeometry.distanceToClosed(x, y, xs, ys);
+		}
+		Arrays.sort(dist, 0, k);
+		int at = Math.max(0, (int) Math.ceil(COLOR_COVERAGE * k) - 1);
+		return Math.max(1, (int) Math.ceil(dist[at]));
+	}
+
+	private static int count(boolean[] dye) {
+		int n = 0;
+		for (boolean pixel : dye) {
+			if (pixel) {
+				n++;
+			}
+		}
+		return n;
+	}
+
+	private static final class Box {
+		final int x0;
+		final int y0;
+		final int w;
+		final int h;
+
+		Box(int x0, int y0, int w, int h) {
+			this.x0 = x0;
+			this.y0 = y0;
+			this.w = w;
+			this.h = h;
+		}
+
+		static Box of(EllipseGeom ellipse, int imageWidth, int imageHeight) {
+			int x0 = (int) Math.floor(ellipse.cx - ellipse.rx) - 1;
+			int y0 = (int) Math.floor(ellipse.cy - ellipse.ry) - 1;
+			int x1 = (int) Math.ceil(ellipse.cx + ellipse.rx) + 1;
+			int y1 = (int) Math.ceil(ellipse.cy + ellipse.ry) + 1;
+			if (x0 < 0) {
+				x0 = 0;
+			}
+			if (y0 < 0) {
+				y0 = 0;
+			}
+			if (x1 >= imageWidth) {
+				x1 = imageWidth - 1;
+			}
+			if (y1 >= imageHeight) {
+				y1 = imageHeight - 1;
+			}
+			if (x1 <= x0 || y1 <= y0) {
+				return null;
+			}
+			return new Box(x0, y0, x1 - x0 + 1, y1 - y0 + 1);
+		}
 	}
 
 	static double boundaryRadius(EllipseGeom ellipse, double cos, double sin) {

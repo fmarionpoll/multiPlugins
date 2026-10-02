@@ -5,9 +5,9 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * Physical rim of a spot: a closed centerline, the stroke used as signal, and
- * the outward distance of the floor band. The floor band is rebuilt from the
- * centerline and is not stored.
+ * Physical rim of a spot: the outer dye perimeter, the inward path used as
+ * signal, and the outward distance of the floor band. The floor band is rebuilt
+ * from the perimeter and is not stored.
  */
 public final class SpotRimGeometry {
 
@@ -147,6 +147,91 @@ public final class SpotRimGeometry {
 			oy[i] = ys[i] + ny * distance;
 		}
 		return new double[][] { ox, oy };
+	}
+
+	/**
+	 * Pixels inside the closed outline and within {@code widthPx} of it, as
+	 * {@code y * width + x}.
+	 */
+	public static int[] inwardBandPixels(double[] xs, double[] ys, int widthPx, int imageWidth, int imageHeight) {
+		int n = xs != null && ys != null ? Math.min(xs.length, ys.length) : 0;
+		if (n < 3 || imageWidth <= 0 || imageHeight <= 0 || widthPx <= 0) {
+			return new int[0];
+		}
+		double minX = xs[0];
+		double maxX = xs[0];
+		double minY = ys[0];
+		double maxY = ys[0];
+		for (int i = 1; i < n; i++) {
+			minX = Math.min(minX, xs[i]);
+			maxX = Math.max(maxX, xs[i]);
+			minY = Math.min(minY, ys[i]);
+			maxY = Math.max(maxY, ys[i]);
+		}
+		int x0 = Math.max(0, (int) Math.floor(minX) - 1);
+		int y0 = Math.max(0, (int) Math.floor(minY) - 1);
+		int x1 = Math.min(imageWidth - 1, (int) Math.ceil(maxX) + 1);
+		int y1 = Math.min(imageHeight - 1, (int) Math.ceil(maxY) + 1);
+		int cap = Math.max(16, (x1 - x0 + 1) * (y1 - y0 + 1));
+		int[] raw = new int[cap];
+		int count = 0;
+		double limit = widthPx;
+		for (int y = y0; y <= y1; y++) {
+			for (int x = x0; x <= x1; x++) {
+				double d = distanceToClosed(x, y, xs, ys);
+				if (d <= limit && (d <= 0.6 || insideClosed(x, y, xs, ys))) {
+					if (count == raw.length) {
+						raw = Arrays.copyOf(raw, raw.length * 2);
+					}
+					raw[count++] = y * imageWidth + x;
+				}
+			}
+		}
+		return Arrays.copyOf(raw, count);
+	}
+
+	public static double distanceToClosed(double px, double py, double[] xs, double[] ys) {
+		int n = Math.min(xs.length, ys.length);
+		double best = Double.POSITIVE_INFINITY;
+		for (int i = 0; i < n; i++) {
+			int j = (i + 1) % n;
+			best = Math.min(best, distanceToSegment(px, py, xs[i], ys[i], xs[j], ys[j]));
+		}
+		return best;
+	}
+
+	private static double distanceToSegment(double px, double py, double ax, double ay, double bx, double by) {
+		double dx = bx - ax;
+		double dy = by - ay;
+		double len2 = dx * dx + dy * dy;
+		double t = 0;
+		if (len2 > 1e-12) {
+			t = ((px - ax) * dx + (py - ay) * dy) / len2;
+			if (t < 0) {
+				t = 0;
+			} else if (t > 1) {
+				t = 1;
+			}
+		}
+		double qx = ax + t * dx;
+		double qy = ay + t * dy;
+		return Math.hypot(px - qx, py - qy);
+	}
+
+	static boolean insideClosed(double px, double py, double[] xs, double[] ys) {
+		boolean in = false;
+		int n = Math.min(xs.length, ys.length);
+		for (int i = 0, j = n - 1; i < n; j = i++) {
+			double yi = ys[i];
+			double yj = ys[j];
+			if ((yi > py) != (yj > py)) {
+				double x = xs[j] + (xs[i] - xs[j]) * (py - yj) / (yi - yj);
+				if (px < x) {
+					in = !in;
+				}
+			}
+		}
+		return in;
 	}
 
 	/** Pixels within half the stroke of the closed centerline, as {@code y * width + x}. */

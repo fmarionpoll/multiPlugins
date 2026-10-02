@@ -180,10 +180,11 @@ public class AnalyzeSpotRims extends BuildSeries {
 				rim.setOuterPx(analyzerParams.outerPx);
 				if (replace || !rim.hasOutline()) {
 					EllipseGeom ellipse = cage.ellipses.get(i);
-					double[][] xy = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue, containers,
-							analyzerParams.madMultiplier);
-					if (xy != null) {
-						rim.setOutline(xy[0], xy[1]);
+					SpotRimAnalyzer.Detection found = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,
+							containers, analyzerParams.madMultiplier);
+					if (found != null) {
+						rim.setOutline(found.x, found.y);
+						rim.setRimWidthPx(found.pathWidthPx);
 					}
 				}
 				if (rim.hasOutline()) {

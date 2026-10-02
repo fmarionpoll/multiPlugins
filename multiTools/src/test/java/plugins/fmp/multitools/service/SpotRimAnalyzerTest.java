@@ -34,14 +34,38 @@ public class SpotRimAnalyzerTest {
 			blue[t] = b;
 		}
 		EllipseGeom ellipse = new EllipseGeom(cx, cy, 40, 40);
-		double[][] outline = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,
 				new EllipseGeom[] { ellipse }, 5.0);
 		assertNotNull(outline);
-		assertTrue(outline[0].length >= 18);
-		for (int i = 0; i < outline[0].length; i++) {
-			double radius = Math.hypot(outline[0][i] - cx, outline[1][i] - cy);
-			assertTrue("radius " + radius, radius > 22 && radius < 28);
+		assertTrue(outline.x.length >= 18);
+		for (int i = 0; i < outline.x.length; i++) {
+			double radius = Math.hypot(outline.x[i] - cx, outline.y[i] - cy);
+			assertTrue("radius " + radius, radius > 24 && radius < 30);
 		}
+		assertTrue("path " + outline.pathWidthPx, outline.pathWidthPx >= 2 && outline.pathWidthPx <= 8);
+	}
+
+	@Test
+	public void outlineFollowsOuterEdgeOfTheStain() {
+		int width = 220;
+		int height = 220;
+		int cx = 100;
+		int cy = 100;
+		int[] r = new int[width * height];
+		int[] g = new int[width * height];
+		int[] b = new int[width * height];
+		fill(r, g, b, 80);
+		paintBand(r, g, b, width, cx, cy, 8, 30, 50, 160, 160);
+		paintBand(r, g, b, width, cx, cy, 22, 30, 20, 220, 220);
+		EllipseGeom ellipse = new EllipseGeom(cx, cy, 40, 40);
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r },
+				new int[][] { g }, new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
+		assertNotNull(outline);
+		for (int i = 0; i < outline.x.length; i++) {
+			double radius = Math.hypot(outline.x[i] - cx, outline.y[i] - cy);
+			assertTrue("radius " + radius, radius > 27 && radius < 33);
+		}
+		assertTrue("path " + outline.pathWidthPx, outline.pathWidthPx >= 8);
 	}
 
 	@Test
@@ -57,12 +81,12 @@ public class SpotRimAnalyzerTest {
 		paintBand(r, g, b, width, cx, cy, 30, 36, 70, 100, 100);
 		paintBand(r, g, b, width, cx, cy, 18, 24, 20, 200, 200);
 		EllipseGeom ellipse = new EllipseGeom(cx, cy, 40, 40);
-		double[][] outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r }, new int[][] { g },
-				new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r },
+				new int[][] { g }, new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
 		assertNotNull(outline);
-		for (int i = 0; i < outline[0].length; i++) {
-			double radius = Math.hypot(outline[0][i] - cx, outline[1][i] - cy);
-			assertTrue("radius " + radius, radius > 16 && radius < 28);
+		for (int i = 0; i < outline.x.length; i++) {
+			double radius = Math.hypot(outline.x[i] - cx, outline.y[i] - cy);
+			assertTrue("radius " + radius, radius > 20 && radius < 28);
 		}
 	}
 
@@ -76,8 +100,8 @@ public class SpotRimAnalyzerTest {
 		int[] b = new int[width * height];
 		fill(r, g, b, 80);
 		EllipseGeom ellipse = new EllipseGeom(40, 40, 20, 20);
-		double[][] outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r }, new int[][] { g },
-				new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r },
+				new int[][] { g }, new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
 		assertNull(outline);
 	}
 
