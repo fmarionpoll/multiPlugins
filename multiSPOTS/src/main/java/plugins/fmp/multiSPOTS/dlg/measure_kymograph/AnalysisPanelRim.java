@@ -1,18 +1,23 @@
 package plugins.fmp.multiSPOTS.dlg.measure_kymograph;
 
 import java.awt.Color;
+import java.awt.Dialog;
 import java.awt.FlowLayout;
+import java.awt.Frame;
 import java.awt.GridLayout;
+import java.awt.Window;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.beans.PropertyChangeSupport;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFormattedTextField;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -22,6 +27,7 @@ import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
+import javax.swing.WindowConstants;
 
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI;
@@ -41,6 +47,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer;
 import plugins.fmp.multitools.service.SpotRimAnalyzer;
+import plugins.fmp.multitools.service.SpotRimAnalyzer.EllipseGeom;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
@@ -75,14 +82,24 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 	private final JButton detectButton = new JButton("Detect");
 	private final JButton analyzeButton = new JButton(ANALYZE_LABEL);
 	private final JToggleButton showRimsButton = new JToggleButton("Show rims");
+	private final JButton editRimButton = new JButton("Edit rim...");
 	private final JCheckBox allSeriesCheckBox = new JCheckBox("ALL series (current to last)", false);
 	private final JLabel statusLabel = new JLabel(" ", SwingConstants.LEFT);
+	private final JLabel editSpotLabel = new JLabel(" ");
+	private final JLabel editPointsLabel = new JLabel(" ");
+	private final JLabel editMessageLabel = new JLabel(" ");
+	private final JButton simplifyButton = new JButton("Simplify");
+	private final JButton cloneSpotButton = new JButton("Clone spot");
+	private final JSpinner insetSpinner = new JSpinner(new SpinnerNumberModel(2, 1, 40, 1));
 
 	private AnalyzeSpotRims analyzeThread;
 	private boolean updatingRois;
+	private JDialog editDialog;
+
+	private final JCheckBox trackPlateCheckBox = new JCheckBox("Track plate movement", false);
 
 	public AnalysisPanelRim(MultiSPOTS parent0) {
-		super(new GridLayout(4, 1));
+		super(new GridLayout(5, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
@@ -91,9 +108,12 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		narrowSpinner(rimWidthSpinner, 3);
 		narrowSpinner(outerPxSpinner, 3);
 		narrowSpinner(insectThresholdSpinner, 4);
+		narrowSpinner(insetSpinner, 3);
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
 		insectGateCheckBox.setToolTipText(
 				"Drop a time bin when a fly covers at least 8% of the rim. Uncheck to keep those pixels.");
+		trackPlateCheckBox.setToolTipText(
+				"Small x, y, and rotation of the whole plate. Flies and eaten spots are left out of the fit.");
 
 		JPanel actions = new JPanel(left);
 		actions.add(detectButton);
@@ -121,12 +141,20 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		insect.add(insectThresholdSpinner);
 		add(insect);
 
+		JPanel track = new JPanel(left);
+		track.add(trackPlateCheckBox);
+		add(track);
+
 		JPanel hint = new JPanel(left);
 		hint.add(showRimsButton);
+		hint.add(editRimButton);
 		hint.add(new JLabel("Blue = outer edge of the dye (editable). Green = floor."));
 		add(hint);
 
 		showRimsButton.addActionListener(e -> refreshRims());
+		editRimButton.addActionListener(e -> showEditDialog());
+		simplifyButton.addActionListener(e -> simplifySelected());
+		cloneSpotButton.addActionListener(e -> cloneSelectedSpot());
 		rimWidthSpinner.addChangeListener(e -> onBandChanged());
 		outerPxSpinner.addChangeListener(e -> onBandChanged());
 		detectButton.addActionListener(e -> startDetect());
@@ -151,7 +179,8 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 				((Number) initialBinsSpinner.getValue()).intValue(),
 				((Number) rimWidthSpinner.getValue()).intValue(), ((Number) outerPxSpinner.getValue()).intValue(),
 				SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS, insectGateCheckBox.isSelected(), insectTf,
-				((Number) insectThresholdSpinner.getValue()).intValue(), insectDirectionCombo.getSelectedIndex() == 1);
+				((Number) insectThresholdSpinner.getValue()).intValue(), insectDirectionCombo.getSelectedIndex() == 1,
+				trackPlateCheckBox.isSelected());
 	}
 
 	private void startDetect() {
@@ -368,6 +397,10 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 	}
 
 	private static ROI2DPolyLine closedLine(double[] xs, double[] ys) {
+		return new ROI2DPolyLine(closedPolyline(xs, ys));
+	}
+
+	private static Polyline2D closedPolyline(double[] xs, double[] ys) {
 		int n = Math.min(xs.length, ys.length);
 		double[] cx = new double[n + 1];
 		double[] cy = new double[n + 1];
@@ -375,7 +408,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		System.arraycopy(ys, 0, cy, 0, n);
 		cx[n] = xs[0];
 		cy[n] = ys[0];
-		return new ROI2DPolyLine(new Polyline2D(cx, cy, n + 1));
+		return new Polyline2D(cx, cy, n + 1);
 	}
 
 	private final class OutlineEdit implements ROIListener {
@@ -426,6 +459,174 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 			if (roi.getName().startsWith(OUTLINE_PREFIX) || roi.getName().startsWith(FLOOR_PREFIX)) {
 				seq.removeROI(roi);
 			}
+		}
+	}
+
+	private void showEditDialog() {
+		if (editDialog == null || !editDialog.isDisplayable()) {
+			editDialog = newEditDialog();
+		}
+		refreshEditDialog();
+		editDialog.setVisible(true);
+		editDialog.toFront();
+	}
+
+	private JDialog newEditDialog() {
+		JPanel body = new JPanel(new GridLayout(0, 1, 0, 4));
+		body.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
+		body.add(editSpotLabel);
+		body.add(editPointsLabel);
+		JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		actions.add(simplifyButton);
+		body.add(actions);
+		JPanel clone = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
+		clone.add(cloneSpotButton);
+		clone.add(new JLabel("smaller by"));
+		clone.add(insetSpinner);
+		clone.add(new JLabel("px"));
+		body.add(clone);
+		body.add(editMessageLabel);
+
+		Window owner = SwingUtilities.getWindowAncestor(this);
+		JDialog dialog;
+		if (owner != null) {
+			dialog = new JDialog(owner, "Edit rim", Dialog.ModalityType.MODELESS);
+		} else {
+			dialog = new JDialog((Frame) null, "Edit rim");
+			dialog.setModal(false);
+		}
+		dialog.setContentPane(body);
+		dialog.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE);
+		dialog.pack();
+		dialog.setLocationRelativeTo(owner);
+		return dialog;
+	}
+
+	private void refreshEditDialog() {
+		SelectedRim selected = selectedRim();
+		simplifyButton.setEnabled(selected != null);
+		cloneSpotButton.setEnabled(selected != null);
+		if (selected == null) {
+			editSpotLabel.setText("Spot: none");
+			editPointsLabel.setText("Points: -");
+			editMessageLabel.setText("Select a blue rim in the viewer.");
+			if (editDialog != null) {
+				editDialog.pack();
+			}
+			return;
+		}
+		editSpotLabel.setText("Spot: " + selected.spot.getName());
+		editPointsLabel.setText("Points: " + vertexCount(selected.roi));
+		editMessageLabel.setText("Drag blue points in the viewer. Green follows.");
+		if (editDialog != null) {
+			editDialog.pack();
+		}
+	}
+
+	private void simplifySelected() {
+		SelectedRim selected = selectedRim();
+		if (selected == null) {
+			refreshEditDialog();
+			return;
+		}
+		EllipseGeom ellipse = SpotRimAnalyzer.ellipseOf(selected.spot);
+		double[] xs = new double[vertexCount(selected.roi)];
+		double[] ys = new double[xs.length];
+		copyVertices(selected.roi, xs, ys);
+		double[][] simplified = SpotRimGeometry.simplifyOutline(xs, ys, ellipse.cx, ellipse.cy);
+		if (simplified == null) {
+			editMessageLabel.setText("Could not simplify this outline.");
+			return;
+		}
+		applyOutline(selected.roi, simplified[0], simplified[1]);
+		editPointsLabel.setText("Points: " + simplified[0].length);
+		editMessageLabel.setText("Simplified to " + simplified[0].length + " points.");
+	}
+
+	private void cloneSelectedSpot() {
+		SelectedRim selected = selectedRim();
+		if (selected == null) {
+			refreshEditDialog();
+			return;
+		}
+		int inset = ((Number) insetSpinner.getValue()).intValue();
+		EllipseGeom ellipse = SpotRimAnalyzer.ellipseOf(selected.spot);
+		double[][] circle = SpotRimGeometry.ellipseOutline(ellipse.cx, ellipse.cy, ellipse.rx - inset,
+				ellipse.ry - inset);
+		applyOutline(selected.roi, circle[0], circle[1]);
+		editPointsLabel.setText("Points: " + circle[0].length);
+		editMessageLabel.setText("Outline set to the spot, " + inset + " px smaller.");
+	}
+
+	private void applyOutline(ROI2DPolyLine roi, double[] xs, double[] ys) {
+		roi.setPolyline2D(closedPolyline(xs, ys));
+	}
+
+	private SelectedRim selectedRim() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Sequence seq = exp != null && exp.getSeqCamData() != null ? exp.getSeqCamData().getSequence() : null;
+		if (seq == null) {
+			return null;
+		}
+		ROI roi = seq.getSelectedROI();
+		if (!(roi instanceof ROI2DPolyLine) || roi.getName() == null || !roi.getName().startsWith(OUTLINE_PREFIX)) {
+			return null;
+		}
+		String spotName = roi.getName().substring(OUTLINE_PREFIX.length());
+		Spot spot = spotNamed(exp, spotName);
+		if (spot == null) {
+			return null;
+		}
+		return new SelectedRim((ROI2DPolyLine) roi, spot);
+	}
+
+	private Spot spotNamed(Experiment exp, String name) {
+		if (exp.getCages() == null || exp.getCages().cagesList == null || exp.getSpots() == null || name == null) {
+			return null;
+		}
+		for (Cage cage : exp.getCages().cagesList) {
+			if (cage == null) {
+				continue;
+			}
+			List<Spot> spots = cage.getSpotList(exp.getSpots());
+			if (spots == null) {
+				continue;
+			}
+			for (Spot spot : spots) {
+				if (spot != null && name.equals(spot.getName())) {
+					return spot;
+				}
+			}
+		}
+		return null;
+	}
+
+	private static int vertexCount(ROI2DPolyLine roi) {
+		Polyline2D line = roi.getPolyline2D();
+		if (line == null || line.npoints <= 0) {
+			return 0;
+		}
+		int n = line.npoints;
+		if (n >= 2 && line.xpoints[0] == line.xpoints[n - 1] && line.ypoints[0] == line.ypoints[n - 1]) {
+			n--;
+		}
+		return n;
+	}
+
+	private static void copyVertices(ROI2DPolyLine roi, double[] xs, double[] ys) {
+		Polyline2D line = roi.getPolyline2D();
+		int n = Math.min(xs.length, line.npoints);
+		System.arraycopy(line.xpoints, 0, xs, 0, n);
+		System.arraycopy(line.ypoints, 0, ys, 0, n);
+	}
+
+	private static final class SelectedRim {
+		final ROI2DPolyLine roi;
+		final Spot spot;
+
+		SelectedRim(ROI2DPolyLine roi, Spot spot) {
+			this.roi = roi;
+			this.spot = spot;
 		}
 	}
 

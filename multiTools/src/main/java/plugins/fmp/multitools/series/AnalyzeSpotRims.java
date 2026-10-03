@@ -20,6 +20,7 @@ import plugins.fmp.multitools.service.KymoMetricGate;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Layout;
+import plugins.fmp.multitools.service.SpotPlateRegistration;
 import plugins.fmp.multitools.service.SpotRimAnalyzer;
 import plugins.fmp.multitools.service.SpotRimAnalyzer.EllipseGeom;
 import plugins.fmp.multitools.service.SpotRimAnalyzer.Params;
@@ -82,7 +83,10 @@ public class AnalyzeSpotRims extends BuildSeries {
 				showFrame(progress, t, nFrames);
 				opening[t] = readFrame(seq, loader, frames.get(t));
 			}
-			lastOutlineCount = ensureOutlines(cages, width, height, opening, detectOnly);
+			PlateTrack plate = alignOpening(cages, opening, width, height);
+			List<String> concave = new ArrayList<>();
+			lastOutlineCount = ensureOutlines(cages, width, height, opening, detectOnly, concave);
+			reportConcave(exp, concave);
 			lastCageCount = cages.size();
 			lastBinCount = nFrames;
 			boolean descriptions = saveDescriptions(exp);
@@ -122,6 +126,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 				}
 				showFrame(progress, t, nFrames);
 				FramePixels frame = readFrame(seq, loader, frames.get(t));
+				frame = plate.follow(frame, width, height);
 				sampleOpening(cages, frame, t);
 				integrateFrame(cages, frame, t);
 			}
@@ -146,6 +151,10 @@ public class AnalyzeSpotRims extends BuildSeries {
 			}
 			Logger.info("AnalyzeSpotRims: " + lastCageCount + " cage(s), " + lastBinCount + " bin(s), "
 					+ lastOutlineCount + " outline(s) — " + exp.getResultsDirectory());
+			if (plate.tracking) {
+				Logger.info(String.format("AnalyzeSpotRims: plate pose dx=%.2f dy=%.2f angle=%.3f deg", plate.pose.dx,
+						plate.pose.dy, Math.toDegrees(plate.pose.angleRad)));
+			}
 		} finally {
 			if (progress != null) {
 				progress.close();
@@ -155,7 +164,58 @@ public class AnalyzeSpotRims extends BuildSeries {
 		}
 	}
 
-	private int ensureOutlines(List<CageRims> cages, int width, int height, FramePixels[] opening, boolean replace) {
+	/**
+	 * When plate tracking is on, rewrites {@code opening} so every frame sits in
+	 * the coordinates of frame 0. The returned tracker keeps the pose of the last
+	 * opening frame and the raw pixels of that frame.
+	 */
+	private PlateTrack alignOpening(List<CageRims> cages, FramePixels[] opening, int width, int height) {
+		List<EllipseGeom> ellipses = allEllipses(cages);
+		double[] pivot = SpotPlateRegistration.pivot(ellipses);
+		PlateTrack plate = new PlateTrack(analyzerParams != null && analyzerParams.trackPlate, ellipses,
+				SpotPlateRegistration.Pose.identity(pivot[0], pivot[1]));
+		if (!plate.tracking || opening.length == 0) {
+			return plate;
+		}
+		plate.prevRaw = opening[0];
+		for (int t = 1; t < opening.length; t++) {
+			opening[t] = plate.follow(opening[t], width, height);
+		}
+		return plate;
+	}
+
+	private void reportConcave(Experiment exp, List<String> concave) {
+		if (concave == null || concave.isEmpty()) {
+			return;
+		}
+		Logger.info(experimentHeader(exp));
+		Logger.info("Concave rims filled: " + String.join(", ", concave));
+	}
+
+	private String experimentHeader(Experiment exp) {
+		String dir = exp.getResultsDirectory() != null ? exp.getResultsDirectory() : "";
+		int number = experimentNumber(exp);
+		if (number > 0) {
+			return "Experiment " + number + ": " + dir;
+		}
+		return "Experiment: " + dir;
+	}
+
+	private int experimentNumber(Experiment exp) {
+		if (options == null || options.expList == null || exp == null) {
+			return -1;
+		}
+		int n = options.expList.getItemCount();
+		for (int i = 0; i < n; i++) {
+			if (options.expList.getItemAtNoLoad(i) == exp) {
+				return i + 1;
+			}
+		}
+		return -1;
+	}
+
+	private int ensureOutlines(List<CageRims> cages, int width, int height, FramePixels[] opening, boolean replace,
+			List<String> concave) {
 		int nFrames = opening.length;
 		int[][] red = new int[nFrames][];
 		int[][] green = new int[nFrames][];
@@ -183,7 +243,14 @@ public class AnalyzeSpotRims extends BuildSeries {
 					SpotRimAnalyzer.Detection found = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,
 							containers, analyzerParams.madMultiplier);
 					if (found != null) {
-						rim.setOutline(found.x, found.y);
+						double[][] filled = SpotRimGeometry.withoutInwardBite(found.x, found.y,
+								SpotRimGeometry.INWARD_BITE_PX);
+						if (filled != null) {
+							rim.setOutline(filled[0], filled[1]);
+							concave.add(cageLabel(cage) + " / " + spot.getName());
+						} else {
+							rim.setOutline(found.x, found.y);
+						}
 						rim.setRimWidthPx(found.pathWidthPx);
 					}
 				}
@@ -193,6 +260,17 @@ public class AnalyzeSpotRims extends BuildSeries {
 			}
 		}
 		return outlines;
+	}
+
+	private static String cageLabel(CageRims cage) {
+		if (cage.cage == null) {
+			return "cage ?";
+		}
+		String number = cage.cage.getCageNumberFromRoiName();
+		if (number == null || number.isEmpty()) {
+			number = cage.cage.formatCageNumberToString(cage.cage.getCageID());
+		}
+		return "cage " + number;
 	}
 
 	private static void sampleOpening(List<CageRims> cages, FramePixels frame, int t) {
@@ -260,7 +338,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			for (Spot spot : spots) {
 				ellipses.add(SpotRimAnalyzer.ellipseOf(spot));
 			}
-			out.add(new CageRims(spots, ellipses));
+			out.add(new CageRims(cage, spots, ellipses));
 		}
 		return out;
 	}
@@ -453,6 +531,44 @@ public class AnalyzeSpotRims extends BuildSeries {
 		measure.setValues(src.clone());
 	}
 
+	private static final class PlateTrack {
+		final boolean tracking;
+		final List<EllipseGeom> referenceEllipses;
+		SpotPlateRegistration.Pose pose;
+		FramePixels prevRaw;
+
+		PlateTrack(boolean tracking, List<EllipseGeom> referenceEllipses, SpotPlateRegistration.Pose pose) {
+			this.tracking = tracking;
+			this.referenceEllipses = referenceEllipses;
+			this.pose = pose;
+		}
+
+		FramePixels follow(FramePixels frame, int width, int height) {
+			if (!tracking || frame == null || frame.red == null) {
+				return frame;
+			}
+			if (prevRaw != null && prevRaw.red != null) {
+				double[] pivot = pose.map(pose.cx, pose.cy);
+				List<EllipseGeom> where = new ArrayList<>(referenceEllipses.size());
+				for (EllipseGeom ellipse : referenceEllipses) {
+					where.add(ellipse == null ? null : pose.mapEllipse(ellipse));
+				}
+				SpotPlateRegistration.Step step = SpotPlateRegistration.fit(width, height, prevRaw.red, prevRaw.green,
+						prevRaw.blue, frame.red, frame.green, frame.blue, prevRaw.insect, frame.insect, where, pivot[0],
+						pivot[1]);
+				pose = pose.compose(step);
+			}
+			prevRaw = frame;
+			if (pose.isIdentity()) {
+				return frame;
+			}
+			return new FramePixels(SpotPlateRegistration.warp(frame.red, width, height, pose),
+					SpotPlateRegistration.warp(frame.green, width, height, pose),
+					SpotPlateRegistration.warp(frame.blue, width, height, pose),
+					SpotPlateRegistration.warpMask(frame.insect, width, height, pose));
+		}
+	}
+
 	private static final class FramePixels {
 		final int[] red;
 		final int[] green;
@@ -468,6 +584,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 	}
 
 	private static final class CageRims {
+		final Cage cage;
 		final List<Spot> spots;
 		final List<EllipseGeom> ellipses;
 		Layout layout;
@@ -477,7 +594,8 @@ public class AnalyzeSpotRims extends BuildSeries {
 		double[] dyeLevel;
 		double[][] openingExcess;
 
-		CageRims(List<Spot> spots, List<EllipseGeom> ellipses) {
+		CageRims(Cage cage, List<Spot> spots, List<EllipseGeom> ellipses) {
+			this.cage = cage;
 			this.spots = spots;
 			this.ellipses = ellipses;
 		}

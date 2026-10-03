@@ -49,9 +49,11 @@ public final class SpotRimAnalyzer {
 		public final ImageTransformEnums insectTransform;
 		public final int insectThreshold;
 		public final boolean insectAbove;
+		public final boolean trackPlate;
 
 		public Params(double madMultiplier, int initialBins, int rimWidthPx, int outerPx, int smoothBins,
-				boolean insectGate, ImageTransformEnums insectTransform, int insectThreshold, boolean insectAbove) {
+				boolean insectGate, ImageTransformEnums insectTransform, int insectThreshold, boolean insectAbove,
+				boolean trackPlate) {
 			this.madMultiplier = madMultiplier;
 			this.initialBins = Math.max(1, initialBins);
 			this.rimWidthPx = Math.max(1, rimWidthPx);
@@ -61,6 +63,7 @@ public final class SpotRimAnalyzer {
 			this.insectTransform = insectTransform != null ? insectTransform : ImageTransformEnums.B_RGB;
 			this.insectThreshold = insectThreshold;
 			this.insectAbove = insectAbove;
+			this.trackPlate = trackPlate;
 		}
 	}
 

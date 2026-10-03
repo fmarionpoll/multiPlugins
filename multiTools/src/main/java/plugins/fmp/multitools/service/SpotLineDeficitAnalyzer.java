@@ -2,17 +2,21 @@ package plugins.fmp.multitools.service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
  * Fraction of an X through each spot that still sits above the floor. The two
- * diagonals cross at the circle center and run past the rim by flankPx. Pixels
- * on those arms outside every circle are that spot's floor. A pixel inside the
- * circle counts when its red deficit clears that floor. Darkening the same
- * pixels does not raise the fraction. A shrinking drop loses pixels and the
- * ratio falls. A short moving median takes out bin-to-bin flicker.
+ * diagonals cross at the circle center and run past the rim by flankPx. Each
+ * sample is the mean red deficit of a band across the line
+ * ({@code bandWidthPx} pixels; 1 keeps the single-pixel line). Samples on
+ * those arms outside every circle are that spot's floor. A sample inside the
+ * circle counts when its deficit clears that floor. Darkening the same pixels
+ * does not raise the fraction. A shrinking drop loses samples and the ratio
+ * falls. A short moving median takes out bin-to-bin flicker.
  */
 public final class SpotLineDeficitAnalyzer {
 
@@ -41,17 +45,30 @@ public final class SpotLineDeficitAnalyzer {
 		public final ImageTransformEnums insectTransform;
 		public final int insectThreshold;
 		public final boolean insectAbove;
+		/** Odd pixel count averaged across each arm. 1 is the single-pixel line. */
+		public final int bandWidthPx;
 
 		public Params(double madMultiplier, int initialBins, int flankPx) {
 			this(madMultiplier, initialBins, flankPx, 1);
 		}
 
 		public Params(double madMultiplier, int initialBins, int flankPx, int smoothBins) {
-			this(madMultiplier, initialBins, flankPx, smoothBins, false, ImageTransformEnums.B_RGB, 50, false);
+			this(madMultiplier, initialBins, flankPx, smoothBins, 1);
+		}
+
+		public Params(double madMultiplier, int initialBins, int flankPx, int smoothBins, int bandWidthPx) {
+			this(madMultiplier, initialBins, flankPx, smoothBins, false, ImageTransformEnums.B_RGB, 50, false,
+					bandWidthPx);
 		}
 
 		public Params(double madMultiplier, int initialBins, int flankPx, int smoothBins, boolean insectGate,
 				ImageTransformEnums insectTransform, int insectThreshold, boolean insectAbove) {
+			this(madMultiplier, initialBins, flankPx, smoothBins, insectGate, insectTransform, insectThreshold,
+					insectAbove, 1);
+		}
+
+		public Params(double madMultiplier, int initialBins, int flankPx, int smoothBins, boolean insectGate,
+				ImageTransformEnums insectTransform, int insectThreshold, boolean insectAbove, int bandWidthPx) {
 			this.madMultiplier = madMultiplier;
 			this.initialBins = Math.max(1, initialBins);
 			this.flankPx = Math.max(0, flankPx);
@@ -60,6 +77,7 @@ public final class SpotLineDeficitAnalyzer {
 			this.insectTransform = insectTransform != null ? insectTransform : ImageTransformEnums.B_RGB;
 			this.insectThreshold = insectThreshold;
 			this.insectAbove = insectAbove;
+			this.bandWidthPx = Math.max(1, bandWidthPx);
 		}
 	}
 
@@ -115,19 +133,28 @@ public final class SpotLineDeficitAnalyzer {
 	/**
 	 * Pixel sets for one cage. Flank pixels are the X tips of one spot, outside
 	 * every circle. Spot pixels are the same X inside that circle. Index matches
-	 * the spot list.
+	 * the spot list. {@code flankRun} and {@code spotRun} group those pixels into
+	 * stations that are averaged; a null run array means one pixel per station.
 	 */
 	public static final class Layout {
 		public final int width;
 		public final int nSpots;
 		final int[][] flankPix;
 		final int[][] spotPix;
+		final int[][] flankRun;
+		final int[][] spotRun;
 
 		Layout(int width, int nSpots, int[][] flankPix, int[][] spotPix) {
+			this(width, nSpots, flankPix, spotPix, null, null);
+		}
+
+		Layout(int width, int nSpots, int[][] flankPix, int[][] spotPix, int[][] flankRun, int[][] spotRun) {
 			this.width = width;
 			this.nSpots = nSpots;
 			this.flankPix = flankPix;
 			this.spotPix = spotPix;
+			this.flankRun = flankRun;
+			this.spotRun = spotRun;
 		}
 	}
 
@@ -143,12 +170,16 @@ public final class SpotLineDeficitAnalyzer {
 
 	private static final class BuiltCross {
 		final int[] signal;
+		final int[] signalRun;
 		final int[] flank;
+		final int[] flankRun;
 		final SpotCross cross;
 
-		BuiltCross(int[] signal, int[] flank, SpotCross cross) {
+		BuiltCross(int[] signal, int[] signalRun, int[] flank, int[] flankRun, SpotCross cross) {
 			this.signal = signal;
+			this.signalRun = signalRun;
 			this.flank = flank;
+			this.flankRun = flankRun;
 			this.cross = cross;
 		}
 	}
@@ -169,36 +200,47 @@ public final class SpotLineDeficitAnalyzer {
 		int flank = Math.max(0, flankPx);
 		List<IndexedSpot> usable = usableSpots(spots);
 		for (IndexedSpot s : usable) {
-			out.set(s.index, buildCross(s, usable, width, height, flank).cross);
+			out.set(s.index, buildCross(s, usable, width, height, flank, 1).cross);
 		}
 		return out;
 	}
 
 	public static Layout layout(List<SpotGeom> spots, int width, int height, int flankPx) {
+		return layout(spots, width, height, flankPx, 1);
+	}
+
+	public static Layout layout(List<SpotGeom> spots, int width, int height, int flankPx, int bandWidthPx) {
 		int nSpots = spots != null ? spots.size() : 0;
 		int[][] spotPix = new int[nSpots][];
 		int[][] flankPix = new int[nSpots][];
+		int[][] spotRun = new int[nSpots][];
+		int[][] flankRun = new int[nSpots][];
 		for (int i = 0; i < nSpots; i++) {
 			spotPix[i] = new int[0];
 			flankPix[i] = new int[0];
+			spotRun[i] = new int[0];
+			flankRun[i] = new int[0];
 		}
 		if (spots == null || width <= 0 || height <= 0) {
-			return new Layout(width, nSpots, flankPix, spotPix);
+			return new Layout(width, nSpots, flankPix, spotPix, flankRun, spotRun);
 		}
 		int flank = Math.max(0, flankPx);
+		int band = Math.max(1, bandWidthPx);
 		List<IndexedSpot> usable = usableSpots(spots);
 		for (IndexedSpot s : usable) {
-			BuiltCross built = buildCross(s, usable, width, height, flank);
+			BuiltCross built = buildCross(s, usable, width, height, flank, band);
 			spotPix[s.index] = built.signal;
 			flankPix[s.index] = built.flank;
+			spotRun[s.index] = built.signalRun;
+			flankRun[s.index] = built.flankRun;
 		}
-		return new Layout(width, nSpots, flankPix, spotPix);
+		return new Layout(width, nSpots, flankPix, spotPix, flankRun, spotRun);
 	}
 
 	public static double[][] analyze(List<SpotGeom> spots, int width, int height, int[][] red, int[][] green,
 			int[][] blue, Params params) {
 		Params p = params != null ? params : new Params(5.0, 5, 40);
-		Layout layout = layout(spots, width, height, p.flankPx);
+		Layout layout = layout(spots, width, height, p.flankPx, p.bandWidthPx);
 		int n = red != null ? red.length : 0;
 		double[][] flanks = new double[n][];
 		for (int t = 0; t < n; t++) {
@@ -222,23 +264,24 @@ public final class SpotLineDeficitAnalyzer {
 	}
 
 	public static double[] sampleFlanks(Layout layout, int[] red, int[] green, int[] blue, boolean[] insect) {
-		if (layout == null || red == null || green == null || blue == null) {
+		if (layout == null || red == null || green == null || blue == null || layout.flankPix == null) {
 			return new double[0];
 		}
 		int n = 0;
-		for (int[] row : layout.flankPix) {
-			if (row != null) {
-				n += row.length;
-			}
+		for (int s = 0; s < layout.flankPix.length; s++) {
+			n += stationCount(layout.flankPix[s], runAt(layout.flankRun, s));
 		}
 		double[] out = new double[n];
 		int k = 0;
-		for (int[] row : layout.flankPix) {
-			if (row == null) {
-				continue;
-			}
-			for (int pix : row) {
-				out[k++] = isInsect(insect, pix) ? Double.NaN : deficitAt(red, green, blue, pix);
+		for (int s = 0; s < layout.flankPix.length; s++) {
+			int[] pix = layout.flankPix[s];
+			int[] run = runAt(layout.flankRun, s);
+			int nStations = stationCount(pix, run);
+			int cursor = 0;
+			for (int i = 0; i < nStations; i++) {
+				int len = stationLength(run, i);
+				out[k++] = stationDeficit(pix, cursor, len, red, green, blue, insect);
+				cursor += len;
 			}
 		}
 		return out;
@@ -257,7 +300,7 @@ public final class SpotLineDeficitAnalyzer {
 		}
 		int offset = 0;
 		for (int s = 0; s < nSpots; s++) {
-			int len = layout.flankPix[s].length;
+			int len = stationCount(layout.flankPix[s], runAt(layout.flankRun, s));
 			if (offset + len <= allFlanks.length && len > 0) {
 				floors[s] = median(Arrays.copyOfRange(allFlanks, offset, offset + len));
 			}
@@ -284,20 +327,24 @@ public final class SpotLineDeficitAnalyzer {
 		for (int s = 0; s < layout.nSpots; s++) {
 			double floor = spotFloor != null && s < spotFloor.length ? spotFloor[s] : 0.0;
 			int[] pix = layout.spotPix[s];
-			int total = pix.length;
+			int[] run = runAt(layout.spotRun, s);
+			int total = stationCount(pix, run);
 			int insectCount = 0;
 			int used = 0;
 			int above = 0;
-			for (int i = 0; i < pix.length; i++) {
-				if (isInsect(insect, pix[i])) {
+			int cursor = 0;
+			for (int i = 0; i < total; i++) {
+				int len = stationLength(run, i);
+				if (pix != null && cursor < pix.length && isInsect(insect, pix[cursor])) {
 					insectCount++;
-					continue;
+				} else {
+					used++;
+					double excess = stationDeficit(pix, cursor, len, red, green, blue, insect) - floor;
+					if (excess > cutFor(noise, dyeLevel, s)) {
+						above++;
+					}
 				}
-				used++;
-				double excess = deficitAt(red, green, blue, pix[i]) - floor;
-				if (excess > cutFor(noise, dyeLevel, s)) {
-					above++;
-				}
+				cursor += len;
 			}
 			double value = Double.NaN;
 			if (used > 0 && insectCount < FLY_OCCUPANCY_FRACTION * total) {
@@ -325,19 +372,23 @@ public final class SpotLineDeficitAnalyzer {
 			return Double.NaN;
 		}
 		int[] pix = layout.spotPix[spot];
-		if (pix == null || pix.length == 0) {
+		int[] run = runAt(layout.spotRun, spot);
+		int total = stationCount(pix, run);
+		if (pix == null || total == 0) {
 			return Double.NaN;
 		}
-		double[] excess = new double[pix.length];
+		double[] excess = new double[total];
 		int n = 0;
-		for (int i = 0; i < pix.length; i++) {
-			if (isInsect(insect, pix[i])) {
-				continue;
+		int cursor = 0;
+		for (int i = 0; i < total; i++) {
+			int len = stationLength(run, i);
+			if (cursor < pix.length && !isInsect(insect, pix[cursor])) {
+				double deficit = stationDeficit(pix, cursor, len, red, green, blue, insect);
+				if (Double.isFinite(deficit)) {
+					excess[n++] = deficit - floor;
+				}
 			}
-			double deficit = deficitAt(red, green, blue, pix[i]);
-			if (Double.isFinite(deficit)) {
-				excess[n++] = deficit - floor;
-			}
+			cursor += len;
 		}
 		if (n == 0) {
 			return Double.NaN;
@@ -435,15 +486,14 @@ public final class SpotLineDeficitAnalyzer {
 		return madMultiplier * mad(pool(flankFrames, window));
 	}
 
-	private static BuiltCross buildCross(IndexedSpot spot, List<IndexedSpot> all, int width, int height, int flankPx) {
+	private static BuiltCross buildCross(IndexedSpot spot, List<IndexedSpot> all, int width, int height, int flankPx,
+			int bandWidthPx) {
 		int cx = spot.geom.centerX;
 		int cy = spot.geom.centerY;
 		int radius = spot.geom.radius;
 		int sIn = edgeSteps(radius);
 		int sTip = armSteps(radius, flankPx);
-		int[] sigTmp = new int[Math.max(1, 2 * (2 * sIn + 1))];
-		int nSig = 0;
-		boolean centerAdded = false;
+		int half = bandHalf(bandWidthPx);
 		int ax0 = cx;
 		int ay0 = cy;
 		int ax1 = cx;
@@ -458,6 +508,7 @@ public final class SpotLineDeficitAnalyzer {
 		int maxA = 0;
 		int minB = 0;
 		int maxB = 0;
+		List<int[]> signalStations = new ArrayList<>();
 		for (int s = -sTip; s <= sTip; s++) {
 			int ax = cx + s;
 			int ay = cy + s;
@@ -473,19 +524,12 @@ public final class SpotLineDeficitAnalyzer {
 					ay1 = ay;
 				}
 				anyA = true;
-				if (Math.abs(s) <= sIn && (s != 0 || !centerAdded) && nearest(all, ax, ay) == spot.index) {
-					sigTmp[nSig++] = ay * width + ax;
-					if (s == 0) {
-						centerAdded = true;
-					}
+				if (Math.abs(s) <= sIn && nearest(all, ax, ay) == spot.index) {
+					signalStations.add(signalBand(spot, all, ax, ay, -1, 1, half, width, height));
 				}
 			}
 			int bx = cx + s;
 			int by = cy - s;
-			if (inImage(bx, by, width, height) && Math.abs(s) <= sIn && s != 0
-					&& nearest(all, bx, by) == spot.index) {
-				sigTmp[nSig++] = by * width + bx;
-			}
 			if (inImage(bx, by, width, height)) {
 				if (!anyB || s < minB) {
 					minB = s;
@@ -499,13 +543,19 @@ public final class SpotLineDeficitAnalyzer {
 				}
 				anyB = true;
 			}
+			// The other diagonal's center neighborhood already sits in the first band.
+			if (inImage(bx, by, width, height) && Math.abs(s) <= sIn && Math.abs(s) > half
+					&& nearest(all, bx, by) == spot.index) {
+				signalStations.add(signalBand(spot, all, bx, by, 1, 1, half, width, height));
+			}
 		}
 		int[][] dirs = { { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 } };
-		int flankCap = 4 * Math.max(0, sTip - sIn);
-		int[] flankTmp = new int[flankCap];
-		int nFlank = 0;
+		List<int[]> flankStations = new ArrayList<>();
+		Set<Integer> claimed = new HashSet<>();
 		List<int[]> tips = new ArrayList<>();
 		for (int[] d : dirs) {
+			int pdx = -d[1];
+			int pdy = d[0];
 			int run = -1;
 			for (int s = sIn + 1; s <= sTip; s++) {
 				int x = cx + d[0] * s;
@@ -519,7 +569,10 @@ public final class SpotLineDeficitAnalyzer {
 					run = -1;
 				}
 				if (floor) {
-					flankTmp[nFlank++] = y * width + x;
+					int[] band = flankBand(all, x, y, pdx, pdy, half, width, height, claimed);
+					if (band != null) {
+						flankStations.add(band);
+					}
 				}
 			}
 			if (run >= 0) {
@@ -538,8 +591,148 @@ public final class SpotLineDeficitAnalyzer {
 			tipX1[i] = tip[2];
 			tipY1[i] = tip[3];
 		}
+		int[][] signal = packStations(signalStations);
+		int[][] flank = packStations(flankStations);
 		SpotCross cross = new SpotCross(ax0, ay0, ax1, ay1, bx0, by0, bx1, by1, tipX0, tipY0, tipX1, tipY1);
-		return new BuiltCross(Arrays.copyOf(sigTmp, nSig), Arrays.copyOf(flankTmp, nFlank), cross);
+		return new BuiltCross(signal[0], signal[1], flank[0], flank[1], cross);
+	}
+
+	/** Pixels on each side of the line, not counting the line itself. */
+	private static int bandHalf(int bandWidthPx) {
+		return Math.max(0, (Math.max(1, bandWidthPx) - 1) / 2);
+	}
+
+	private static int[] signalBand(IndexedSpot spot, List<IndexedSpot> all, int x, int y, int pdx, int pdy, int half,
+			int width, int height) {
+		int[] tmp = new int[2 * half + 1];
+		int n = 0;
+		tmp[n++] = y * width + x;
+		for (int k = 1; k <= half; k++) {
+			n = addSignalPixel(tmp, n, x + pdx * k, y + pdy * k, spot, all, width, height);
+			n = addSignalPixel(tmp, n, x - pdx * k, y - pdy * k, spot, all, width, height);
+		}
+		return Arrays.copyOf(tmp, n);
+	}
+
+	private static int addSignalPixel(int[] tmp, int n, int x, int y, IndexedSpot spot, List<IndexedSpot> all,
+			int width, int height) {
+		if (!inImage(x, y, width, height) || !insideSpot(spot, x, y) || nearest(all, x, y) != spot.index) {
+			return n;
+		}
+		tmp[n] = y * width + x;
+		return n + 1;
+	}
+
+	/**
+	 * Floor band. The center pixel is the sample; side pixels must also lie
+	 * outside every circle. A center already claimed by another arm is skipped.
+	 */
+	private static int[] flankBand(List<IndexedSpot> all, int x, int y, int pdx, int pdy, int half, int width,
+			int height, Set<Integer> claimed) {
+		int center = y * width + x;
+		if (claimed.contains(center)) {
+			return null;
+		}
+		int[] tmp = new int[2 * half + 1];
+		int n = 0;
+		tmp[n++] = center;
+		claimed.add(center);
+		for (int k = 1; k <= half; k++) {
+			n = addFlankPixel(tmp, n, x + pdx * k, y + pdy * k, all, width, height, claimed);
+			n = addFlankPixel(tmp, n, x - pdx * k, y - pdy * k, all, width, height, claimed);
+		}
+		return Arrays.copyOf(tmp, n);
+	}
+
+	private static int addFlankPixel(int[] tmp, int n, int x, int y, List<IndexedSpot> all, int width, int height,
+			Set<Integer> claimed) {
+		if (!inImage(x, y, width, height) || insideAny(all, x, y)) {
+			return n;
+		}
+		int pix = y * width + x;
+		if (!claimed.add(pix)) {
+			return n;
+		}
+		tmp[n] = pix;
+		return n + 1;
+	}
+
+	private static boolean insideSpot(IndexedSpot spot, int x, int y) {
+		long dx = (long) x - spot.geom.centerX;
+		long dy = (long) y - spot.geom.centerY;
+		long radius = spot.geom.radius;
+		return dx * dx + dy * dy <= radius * radius;
+	}
+
+	private static int[][] packStations(List<int[]> stations) {
+		int nPix = 0;
+		int nStations = 0;
+		for (int[] station : stations) {
+			if (station != null && station.length > 0) {
+				nPix += station.length;
+				nStations++;
+			}
+		}
+		int[] pix = new int[nPix];
+		int[] run = new int[nStations];
+		int cursor = 0;
+		int r = 0;
+		for (int[] station : stations) {
+			if (station == null || station.length == 0) {
+				continue;
+			}
+			System.arraycopy(station, 0, pix, cursor, station.length);
+			run[r++] = station.length;
+			cursor += station.length;
+		}
+		return new int[][] { pix, run };
+	}
+
+	private static int[] runAt(int[][] runs, int spot) {
+		if (runs == null || spot < 0 || spot >= runs.length) {
+			return null;
+		}
+		return runs[spot];
+	}
+
+	private static int stationCount(int[] pix, int[] run) {
+		if (run != null) {
+			return run.length;
+		}
+		return pix != null ? pix.length : 0;
+	}
+
+	private static int stationLength(int[] run, int index) {
+		return run == null ? 1 : run[index];
+	}
+
+	/**
+	 * Mean deficit of one station. The first pixel is the line itself: a fly
+	 * there drops the station. Other fly pixels in the band are left out of the
+	 * mean. NaN when the line pixel is a fly or no finite pixel remains.
+	 */
+	private static double stationDeficit(int[] pix, int start, int len, int[] red, int[] green, int[] blue,
+			boolean[] insect) {
+		if (pix == null || len <= 0 || start < 0 || start >= pix.length) {
+			return Double.NaN;
+		}
+		if (isInsect(insect, pix[start])) {
+			return Double.NaN;
+		}
+		double sum = 0.0;
+		int n = 0;
+		int end = Math.min(pix.length, start + len);
+		for (int i = start; i < end; i++) {
+			if (isInsect(insect, pix[i])) {
+				continue;
+			}
+			double deficit = deficitAt(red, green, blue, pix[i]);
+			if (Double.isFinite(deficit)) {
+				sum += deficit;
+				n++;
+			}
+		}
+		return n == 0 ? Double.NaN : sum / n;
 	}
 
 	/** Largest chessboard step whose diagonal pixel still lies inside the circle. */

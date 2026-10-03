@@ -402,7 +402,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			for (Spot spot : spots) {
 				geoms.add(geomOf(spot));
 			}
-			Layout layout = SpotLineDeficitAnalyzer.layout(geoms, width, height, params.flankPx);
+			Layout layout = SpotLineDeficitAnalyzer.layout(geoms, width, height, params.flankPx, params.bandWidthPx);
 			out.add(new CageLines(spots, layout));
 		}
 		return out;

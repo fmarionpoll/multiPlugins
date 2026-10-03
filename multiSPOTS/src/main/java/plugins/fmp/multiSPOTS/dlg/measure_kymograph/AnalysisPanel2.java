@@ -41,7 +41,8 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /**
- * Line analysis: an X through each spot, floor on the tips outside the circles.
+ * Line analysis: an X through each spot. Each sample is the mean of a band
+ * across the line. Floor is the tips outside the circles.
  */
 public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 
@@ -59,6 +60,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 	private final JSpinner madMultiplierSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 30.0, 0.5));
 	private final JSpinner initialBinsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 500, 1));
 	private final JSpinner flankPxSpinner = new JSpinner(new SpinnerNumberModel(40, 0, 2000, 1));
+	private final JSpinner bandWidthSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 21, 2));
 	private final JCheckBox insectGateCheckBox = new JCheckBox("Insect filter (exclude)", true);
 	private final JComboBox<ImageTransformEnums> insectTransformCombo = new JComboBox<>(
 			KymoImageTransforms.METRIC_CHOICES);
@@ -79,7 +81,10 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		narrowSpinner(madMultiplierSpinner, 4);
 		narrowSpinner(initialBinsSpinner, 4);
 		narrowSpinner(flankPxSpinner, 4);
+		narrowSpinner(bandWidthSpinner, 4);
 		narrowSpinner(insectThresholdSpinner, 4);
+		bandWidthSpinner.setToolTipText(
+				"Pixels averaged across each arm of the X. 1 is the single-pixel line. 3 averages the line and one pixel on each side, the same idea as the vertical kymograph strip. Wider bands reduce pixel noise until the band is wider than the dye.");
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
 		insectGateCheckBox.setToolTipText(
 				"Drop a time bin when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
@@ -98,6 +103,8 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		params.add(initialBinsSpinner);
 		params.add(new JLabel("flank (px)"));
 		params.add(flankPxSpinner);
+		params.add(new JLabel("width (px)"));
+		params.add(bandWidthSpinner);
 		add(params);
 
 		JPanel insect = new JPanel(left);
@@ -113,11 +120,8 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		add(hint);
 
 		showLinesButton.addActionListener(e -> refreshFloorLines());
-		flankPxSpinner.addChangeListener(e -> {
-			if (showLinesButton.isSelected()) {
-				refreshFloorLines();
-			}
-		});
+		flankPxSpinner.addChangeListener(e -> refreshLinesIfShown());
+		bandWidthSpinner.addChangeListener(e -> refreshLinesIfShown());
 
 		analyzeButton.addActionListener(e -> {
 			if (ANALYZE_LABEL.equals(analyzeButton.getText())) {
@@ -140,7 +144,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 				((Number) initialBinsSpinner.getValue()).intValue(),
 				((Number) flankPxSpinner.getValue()).intValue(), SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS,
 				insectGateCheckBox.isSelected(), insectTf, ((Number) insectThresholdSpinner.getValue()).intValue(),
-				insectDirectionCombo.getSelectedIndex() == 1);
+				insectDirectionCombo.getSelectedIndex() == 1, ((Number) bandWidthSpinner.getValue()).intValue());
 	}
 
 	private void startAnalyze() {
@@ -237,6 +241,9 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		int width = seq.getSizeX();
 		int height = seq.getSizeY();
 		int flank = ((Number) flankPxSpinner.getValue()).intValue();
+		int band = Math.max(1, ((Number) bandWidthSpinner.getValue()).intValue());
+		int lineStroke = Math.max(2, band);
+		int tipStroke = Math.max(3, band);
 		int nLines = 0;
 		if (exp.getCages() != null && exp.getCages().cagesList != null && exp.getSpots() != null) {
 			for (Cage cage : exp.getCages().cagesList) {
@@ -255,20 +262,27 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 					if (cross == null) {
 						continue;
 					}
-					addLine(seq, cross.x0, cross.y0, cross.x1, cross.y1, Color.CYAN, 2, nLines, "a");
-					addLine(seq, cross.u0, cross.v0, cross.u1, cross.v1, Color.CYAN, 2, nLines, "b");
+					addLine(seq, cross.x0, cross.y0, cross.x1, cross.y1, Color.CYAN, lineStroke, nLines, "a");
+					addLine(seq, cross.u0, cross.v0, cross.u1, cross.v1, Color.CYAN, lineStroke, nLines, "b");
 					for (int i = 0; i < cross.tipX0.length; i++) {
-						addLine(seq, cross.tipX0[i], cross.tipY0[i], cross.tipX1[i], cross.tipY1[i], Color.GREEN, 3,
-								nLines, "zero" + i);
+						addLine(seq, cross.tipX0[i], cross.tipY0[i], cross.tipX1[i], cross.tipY1[i], Color.GREEN,
+								tipStroke, nLines, "zero" + i);
 					}
 					nLines++;
 				}
 			}
 		}
-		statusLabel.setText(nLines + " cross(es). Green tips are the floor.");
+		String widthNote = band > 1 ? ", width " + band + " px" : "";
+		statusLabel.setText(nLines + " cross(es)" + widthNote + ". Green tips are the floor.");
 		Viewer viewer = seq.getFirstViewer();
 		if (viewer != null) {
 			viewer.toFront();
+		}
+	}
+
+	private void refreshLinesIfShown() {
+		if (showLinesButton.isSelected()) {
+			refreshFloorLines();
 		}
 	}
 

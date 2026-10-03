@@ -46,6 +46,45 @@ public class SpotRimAnalyzerTest {
 	}
 
 	@Test
+	public void inwardVertexIsDroppedByHull() {
+		int n = 24;
+		double[] xs = new double[n];
+		double[] ys = new double[n];
+		for (int i = 0; i < n; i++) {
+			double angle = 2.0 * Math.PI * i / n;
+			double radius = i == 0 ? 5.0 : 20.0;
+			xs[i] = radius * Math.cos(angle);
+			ys[i] = radius * Math.sin(angle);
+		}
+		double[][] hull = SpotRimGeometry.convexHull(xs, ys);
+		assertEquals(n - 1, hull[0].length);
+		for (int i = 0; i < hull[0].length; i++) {
+			assertTrue(Math.hypot(hull[0][i], hull[1][i]) > 15);
+		}
+		double[][] simple = SpotRimGeometry.simplifyOutline(xs, ys, 0, 0);
+		assertNotNull(simple);
+		assertTrue(simple[0].length <= 24);
+		for (int i = 0; i < simple[0].length; i++) {
+			assertTrue(Math.hypot(simple[0][i], simple[1][i]) > 15);
+		}
+	}
+
+	@Test
+	public void inwardBiteIsReplacedByTheHull() {
+		double[] xs = new double[] { 0, 20, 20, 10, 0 };
+		double[] ys = new double[] { 0, 0, 20, 6, 20 };
+		double[][] filled = SpotRimGeometry.withoutInwardBite(xs, ys, SpotRimGeometry.INWARD_BITE_PX);
+		assertNotNull(filled);
+		assertEquals(4, filled[0].length);
+		for (int i = 0; i < filled[0].length; i++) {
+			assertTrue(Math.hypot(filled[0][i] - 10, filled[1][i] - 6) > 1);
+		}
+		double[] squareX = new double[] { 0, 10, 10, 0 };
+		double[] squareY = new double[] { 0, 0, 10, 10 };
+		assertNull(SpotRimGeometry.withoutInwardBite(squareX, squareY, SpotRimGeometry.INWARD_BITE_PX));
+	}
+
+	@Test
 	public void outlineFollowsOuterEdgeOfTheStain() {
 		int width = 220;
 		int height = 220;

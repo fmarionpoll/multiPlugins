@@ -236,6 +236,53 @@ public class SpotLineDeficitAnalyzerTest {
 	}
 
 	@Test
+	public void bandWidthSeesDyeBesideTheLine() {
+		int width = 220;
+		int height = 80;
+		int cx = 50;
+		int cy = 40;
+		int radius = 15;
+		int nFrames = 6;
+		int[][] red = new int[nFrames][];
+		int[][] green = new int[nFrames][];
+		int[][] blue = new int[nFrames][];
+		for (int t = 0; t < nFrames; t++) {
+			int[] r = new int[width * height];
+			int[] g = new int[width * height];
+			int[] b = new int[width * height];
+			fillFloor(r, g, b, width, height);
+			if (t < 3) {
+				darkenOffAxis(r, width, height, cx, cy, radius, 60);
+			}
+			red[t] = r;
+			green[t] = g;
+			blue[t] = b;
+		}
+		List<SpotGeom> spots = Arrays.asList(new SpotGeom(cx, cy, radius));
+		double[][] thin = SpotLineDeficitAnalyzer.analyze(spots, width, height, red, green, blue,
+				new Params(5.0, 3, 40, 1, 1));
+		double[][] band = SpotLineDeficitAnalyzer.analyze(spots, width, height, red, green, blue,
+				new Params(5.0, 3, 40, 1, 3));
+		assertTrue(Double.isNaN(thin[0][0]));
+		assertTrue(band[0][0] > 0.6);
+		assertTrue(band[0][5] < 0.15);
+	}
+
+	@Test
+	public void bandWidthKeepsOneSamplePerStep() {
+		List<SpotGeom> spots = Arrays.asList(new SpotGeom(50, 40, 15));
+		Layout thin = SpotLineDeficitAnalyzer.layout(spots, 220, 80, 40, 1);
+		Layout wide = SpotLineDeficitAnalyzer.layout(spots, 220, 80, 40, 3);
+		assertEquals(thin.spotPix[0].length, thin.spotRun[0].length);
+		assertTrue(wide.spotPix[0].length > thin.spotPix[0].length);
+		assertEquals(thin.spotRun[0].length - 2, wide.spotRun[0].length);
+		assertEquals(thin.flankPix[0].length, wide.flankRun[0].length);
+		assertTrue(wide.flankPix[0].length > thin.flankPix[0].length);
+		assertEquals(sum(wide.spotRun[0]), wide.spotPix[0].length);
+		assertEquals(sum(wide.flankRun[0]), wide.flankPix[0].length);
+	}
+
+	@Test
 	public void crossTipsStartOutsideTheCircle() {
 		List<SpotGeom> spots = Arrays.asList(new SpotGeom(50, 40, 10));
 		List<SpotCross> crosses = SpotLineDeficitAnalyzer.crosses(spots, 120, 90, 5);
@@ -265,6 +312,46 @@ public class SpotLineDeficitAnalyzerTest {
 				b[pix] = v;
 			}
 		}
+	}
+
+	private static int sum(int[] values) {
+		int n = 0;
+		for (int v : values) {
+			n += v;
+		}
+		return n;
+	}
+
+	/** Darkens the pixels one step off the X, never the X itself. */
+	private static void darkenOffAxis(int[] red, int width, int height, int cx, int cy, int radius, int depth) {
+		int sIn = 0;
+		long r2 = (long) radius * radius;
+		while (2L * (sIn + 1) * (sIn + 1) <= r2) {
+			sIn++;
+		}
+		for (int s = -sIn; s <= sIn; s++) {
+			darkenIfInside(red, width, height, cx, cy, radius, cx + s - 1, cy + s + 1, depth);
+			darkenIfInside(red, width, height, cx, cy, radius, cx + s + 1, cy + s - 1, depth);
+			darkenIfInside(red, width, height, cx, cy, radius, cx + s + 1, cy - s + 1, depth);
+			darkenIfInside(red, width, height, cx, cy, radius, cx + s - 1, cy - s - 1, depth);
+		}
+	}
+
+	private static void darkenIfInside(int[] red, int width, int height, int cx, int cy, int radius, int x, int y,
+			int depth) {
+		if (x < 0 || y < 0 || x >= width || y >= height) {
+			return;
+		}
+		int dx = x - cx;
+		int dy = y - cy;
+		if (dx == dy || dx == -dy) {
+			return;
+		}
+		if ((long) dx * dx + (long) dy * dy > (long) radius * radius) {
+			return;
+		}
+		int pix = y * width + x;
+		red[pix] = Math.max(0, red[pix] - depth);
 	}
 
 	private static void addDip(int[] red, int width, int y, int x0, int x1, int depth) {

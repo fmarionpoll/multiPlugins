@@ -11,8 +11,12 @@ import java.util.Set;
  */
 public final class SpotRimGeometry {
 
-	public static final int DEFAULT_RIM_WIDTH_PX = 2;
-	public static final int DEFAULT_OUTER_PX = 4;
+	public static final int DEFAULT_RIM_WIDTH_PX = 4;
+	public static final int DEFAULT_OUTER_PX = 5;
+	/** One stored vertex per this many degrees. A full rim has 24 vertices. */
+	public static final int OUTLINE_STEP_DEG = 15;
+	/** A vertex this far inside the hull is an inward bite, not pixel noise. */
+	public static final double INWARD_BITE_PX = 2.0;
 
 	private double[] x = new double[0];
 	private double[] y = new double[0];
@@ -91,6 +95,171 @@ public final class SpotRimGeometry {
 
 	public void setOuterPx(int outerPx) {
 		this.outerPx = Math.max(0, outerPx);
+	}
+
+	/**
+	 * Vertices of the convex hull, in boundary order. A point that lies inside the
+	 * others is omitted.
+	 */
+	public static double[][] convexHull(double[] xs, double[] ys) {
+		int n = xs != null && ys != null ? Math.min(xs.length, ys.length) : 0;
+		if (n <= 0) {
+			return new double[][] { new double[0], new double[0] };
+		}
+		Integer[] order = new Integer[n];
+		for (int i = 0; i < n; i++) {
+			order[i] = i;
+		}
+		Arrays.sort(order, (a, b) -> {
+			int cmp = Double.compare(xs[a], xs[b]);
+			return cmp != 0 ? cmp : Double.compare(ys[a], ys[b]);
+		});
+		int[] uniq = new int[n];
+		int u = 0;
+		for (int i = 0; i < n; i++) {
+			int id = order[i];
+			if (u > 0 && xs[uniq[u - 1]] == xs[id] && ys[uniq[u - 1]] == ys[id]) {
+				continue;
+			}
+			uniq[u++] = id;
+		}
+		if (u < 3) {
+			return copyPoints(xs, ys, uniq, u);
+		}
+		int[] hull = new int[u * 2];
+		int k = 0;
+		for (int i = 0; i < u; i++) {
+			while (k >= 2 && cross(xs, ys, hull[k - 2], hull[k - 1], uniq[i]) <= 0) {
+				k--;
+			}
+			hull[k++] = uniq[i];
+		}
+		int t = k + 1;
+		for (int i = u - 2; i >= 0; i--) {
+			while (k >= t && cross(xs, ys, hull[k - 2], hull[k - 1], uniq[i]) <= 0) {
+				k--;
+			}
+			hull[k++] = uniq[i];
+		}
+		k--;
+		return copyPoints(xs, ys, hull, k);
+	}
+
+	/**
+	 * Convex hull when a vertex lies more than {@code minDepthPx} inside it.
+	 * Returns null when the outline has no inward bite.
+	 */
+	public static double[][] withoutInwardBite(double[] xs, double[] ys, double minDepthPx) {
+		int n = xs != null && ys != null ? Math.min(xs.length, ys.length) : 0;
+		if (n < 4) {
+			return null;
+		}
+		double[][] hull = convexHull(xs, ys);
+		if (hull[0].length < 3 || hull[0].length >= n) {
+			return null;
+		}
+		double limit = Math.max(0, minDepthPx);
+		for (int i = 0; i < n; i++) {
+			if (distanceToClosed(xs[i], ys[i], hull[0], hull[1]) > limit) {
+				return hull;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * One radius every {@link #OUTLINE_STEP_DEG} from {@code (cx, cy)}, using the
+	 * outermost hit on the polygon, then the convex hull of those radii.
+	 */
+	public static double[][] simplifyOutline(double[] xs, double[] ys, double cx, double cy) {
+		int n = xs != null && ys != null ? Math.min(xs.length, ys.length) : 0;
+		if (n >= 2 && xs[0] == xs[n - 1] && ys[0] == ys[n - 1]) {
+			n--;
+		}
+		if (n < 3) {
+			return null;
+		}
+		int steps = 360 / OUTLINE_STEP_DEG;
+		double[] rx = new double[steps];
+		double[] ry = new double[steps];
+		int m = 0;
+		for (int a = 0; a < steps; a++) {
+			double theta = Math.toRadians(a * OUTLINE_STEP_DEG);
+			double cos = Math.cos(theta);
+			double sin = Math.sin(theta);
+			double radius = outermostRayHit(xs, ys, n, cx, cy, cos, sin);
+			if (radius < 0) {
+				continue;
+			}
+			rx[m] = cx + radius * cos;
+			ry[m] = cy + radius * sin;
+			m++;
+		}
+		if (m < 3) {
+			return null;
+		}
+		double[][] hull = convexHull(Arrays.copyOf(rx, m), Arrays.copyOf(ry, m));
+		if (hull[0].length < 3) {
+			return null;
+		}
+		return hull;
+	}
+
+	/** Closed ellipse sampled every {@link #OUTLINE_STEP_DEG}. */
+	public static double[][] ellipseOutline(double cx, double cy, double rx, double ry) {
+		double safeRx = Math.max(1.0, rx);
+		double safeRy = Math.max(1.0, ry);
+		int steps = 360 / OUTLINE_STEP_DEG;
+		double[] xs = new double[steps];
+		double[] ys = new double[steps];
+		for (int i = 0; i < steps; i++) {
+			double theta = Math.toRadians(i * OUTLINE_STEP_DEG);
+			double cos = Math.cos(theta);
+			double sin = Math.sin(theta);
+			double a = cos / safeRx;
+			double b = sin / safeRy;
+			double q = a * a + b * b;
+			double bound = q <= 1e-12 ? 0 : 1.0 / Math.sqrt(q);
+			xs[i] = cx + bound * cos;
+			ys[i] = cy + bound * sin;
+		}
+		return new double[][] { xs, ys };
+	}
+
+	private static double[][] copyPoints(double[] xs, double[] ys, int[] ids, int n) {
+		double[] ox = new double[n];
+		double[] oy = new double[n];
+		for (int i = 0; i < n; i++) {
+			ox[i] = xs[ids[i]];
+			oy[i] = ys[ids[i]];
+		}
+		return new double[][] { ox, oy };
+	}
+
+	private static double cross(double[] xs, double[] ys, int o, int a, int b) {
+		return (xs[a] - xs[o]) * (ys[b] - ys[o]) - (ys[a] - ys[o]) * (xs[b] - xs[o]);
+	}
+
+	/** Distance along the unit ray to the farthest edge hit, or -1. */
+	private static double outermostRayHit(double[] xs, double[] ys, int n, double cx, double cy, double dx, double dy) {
+		double best = -1;
+		for (int i = 0; i < n; i++) {
+			int j = (i + 1) % n;
+			double ex = xs[j] - xs[i];
+			double ey = ys[j] - ys[i];
+			double denom = dx * ey - dy * ex;
+			if (Math.abs(denom) < 1e-9) {
+				continue;
+			}
+			double fx = xs[i] - cx;
+			double fy = ys[i] - cy;
+			double t = (fx * ey - fy * ex) / denom;
+			double s = (fx * dy - fy * dx) / denom;
+			if (t > 1e-6 && s >= -1e-9 && s <= 1.0 + 1e-9 && t > best) {
+				best = t;
+			}
+		}
+		return best;
 	}
 
 	/** Slides the stored centerline. The floor band is derived again from it. */
@@ -234,7 +403,10 @@ public final class SpotRimGeometry {
 		return in;
 	}
 
-	/** Pixels within half the stroke of the closed centerline, as {@code y * width + x}. */
+	/**
+	 * Pixels within half the stroke of the closed centerline, as
+	 * {@code y * width + x}.
+	 */
 	public static int[] strokePixels(double[] xs, double[] ys, int strokePx, int imageWidth, int imageHeight) {
 		int n = xs != null && ys != null ? Math.min(xs.length, ys.length) : 0;
 		if (n < 2 || imageWidth <= 0 || imageHeight <= 0) {
