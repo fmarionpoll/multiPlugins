@@ -85,7 +85,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			}
 			PlateTrack plate = alignOpening(cages, opening, width, height);
 			List<String> concave = new ArrayList<>();
-			lastOutlineCount = ensureOutlines(cages, width, height, opening, detectOnly, concave);
+			lastOutlineCount = ensureOutlines(exp, cages, width, height, opening, detectOnly, concave);
 			reportConcave(exp, concave);
 			lastCageCount = cages.size();
 			lastBinCount = nFrames;
@@ -136,6 +136,9 @@ public class AnalyzeSpotRims extends BuildSeries {
 				for (int i = 0; i < cage.spots.size(); i++) {
 					if (!cage.spots.get(i).getRimGeometry().hasOutline()) {
 						continue;
+					}
+					if (i < ratios.length) {
+						SpotLineDeficitAnalyzer.suppressRebound(ratios[i]);
 					}
 					copyDoubles(cage.spots.get(i).getKymoRimRatio(), i < ratios.length ? ratios[i] : null);
 				}
@@ -192,6 +195,15 @@ public class AnalyzeSpotRims extends BuildSeries {
 		Logger.info("Concave rims filled: " + String.join(", ", concave));
 	}
 
+	private static String directoryName(Experiment exp) {
+		String dir = exp != null ? exp.getResultsDirectory() : null;
+		if (dir == null || dir.isEmpty()) {
+			return "";
+		}
+		String name = Paths.get(dir).getFileName().toString();
+		return name != null ? name : dir;
+	}
+
 	private String experimentHeader(Experiment exp) {
 		String dir = exp.getResultsDirectory() != null ? exp.getResultsDirectory() : "";
 		int number = experimentNumber(exp);
@@ -214,12 +226,13 @@ public class AnalyzeSpotRims extends BuildSeries {
 		return -1;
 	}
 
-	private int ensureOutlines(List<CageRims> cages, int width, int height, FramePixels[] opening, boolean replace,
-			List<String> concave) {
+	private int ensureOutlines(Experiment exp, List<CageRims> cages, int width, int height, FramePixels[] opening,
+			boolean replace, List<String> concave) {
 		int nFrames = opening.length;
 		int[][] red = new int[nFrames][];
 		int[][] green = new int[nFrames][];
 		int[][] blue = new int[nFrames][];
+		boolean[][] insect = new boolean[nFrames][];
 		for (int t = 0; t < nFrames; t++) {
 			FramePixels frame = opening[t];
 			if (frame == null) {
@@ -228,6 +241,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			red[t] = frame.red;
 			green[t] = frame.green;
 			blue[t] = frame.blue;
+			insect[t] = frame.insect;
 		}
 		List<EllipseGeom> all = allEllipses(cages);
 		EllipseGeom[] containers = all.toArray(new EllipseGeom[0]);
@@ -241,8 +255,12 @@ public class AnalyzeSpotRims extends BuildSeries {
 				if (replace || !rim.hasOutline()) {
 					EllipseGeom ellipse = cage.ellipses.get(i);
 					SpotRimAnalyzer.Detection found = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,
-							containers, analyzerParams.madMultiplier);
-					if (found != null) {
+							insect, containers, analyzerParams.madMultiplier);
+					if (found != null && found.flyFallback) {
+						rim.setOutline(found.x, found.y);
+						Logger.warn(experimentNumber(exp) + " " + directoryName(exp) + " " + spot.getName()
+								+ " fly covers this spot in every opening frame; blue outline set to the spot ROI minus 30%");
+					} else if (found != null) {
 						double[][] filled = SpotRimGeometry.withoutInwardBite(found.x, found.y,
 								SpotRimGeometry.INWARD_BITE_PX);
 						if (filled != null) {

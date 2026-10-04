@@ -427,8 +427,10 @@ public final class SpotLineDeficitAnalyzer {
 	}
 
 	/**
-	 * Moving median of {@code smoothBins}, then each bin divided by the median of
-	 * the first {@code initialBins} of that smoothed series.
+	 * Moving median of {@code smoothBins}, then each bin divided by the dye level
+	 * in the first {@code initialBins} raw samples. Bins already emptied inside
+	 * that window are left out of the reference, so a drop eaten in the first
+	 * minute still starts at 1.
 	 */
 	public static double[][] ratiosFromIntegrals(double[][] integral, int initialBins, int smoothBins) {
 		int nSpots = integral != null ? integral.length : 0;
@@ -443,9 +445,7 @@ public final class SpotLineDeficitAnalyzer {
 		int window = Math.min(Math.max(1, initialBins), nFrames);
 		for (int s = 0; s < nSpots; s++) {
 			double[] smoothed = movingMedian(integral[s], smoothBins);
-			double[] initial = new double[window];
-			System.arraycopy(smoothed, 0, initial, 0, window);
-			double i0 = median(initial);
+			double i0 = openingReference(integral[s], window);
 			if (!(i0 > 0.0)) {
 				continue;
 			}
@@ -454,6 +454,70 @@ public final class SpotLineDeficitAnalyzer {
 			}
 		}
 		return ratio;
+	}
+
+	/**
+	 * Once the ratio has fallen to a quarter of the start, later samples cannot
+	 * rise. An empty well does not refill.
+	 */
+	public static void suppressRebound(double[] ratio) {
+		if (ratio == null) {
+			return;
+		}
+		double low = Double.POSITIVE_INFINITY;
+		boolean gone = false;
+		for (int t = 0; t < ratio.length; t++) {
+			double y = ratio[t];
+			if (!Double.isFinite(y)) {
+				continue;
+			}
+			if (!gone) {
+				if (y < low) {
+					low = y;
+				}
+				if (low <= REBOUND_FLOOR) {
+					gone = true;
+				}
+				continue;
+			}
+			if (y > low) {
+				ratio[t] = low;
+			} else {
+				low = y;
+			}
+		}
+	}
+
+	private static final double REBOUND_FLOOR = 0.25;
+
+	/** Median of opening samples that still hold at least half the opening peak. */
+	static double openingReference(double[] values, int window) {
+		int n = values != null ? Math.min(Math.max(0, window), values.length) : 0;
+		double peak = Double.NEGATIVE_INFINITY;
+		int finite = 0;
+		for (int i = 0; i < n; i++) {
+			if (Double.isFinite(values[i])) {
+				finite++;
+				if (values[i] > peak) {
+					peak = values[i];
+				}
+			}
+		}
+		if (finite == 0 || !(peak > 0.0)) {
+			return 0.0;
+		}
+		double[] kept = new double[finite];
+		int k = 0;
+		double floor = 0.5 * peak;
+		for (int i = 0; i < n; i++) {
+			if (Double.isFinite(values[i]) && values[i] >= floor) {
+				kept[k++] = values[i];
+			}
+		}
+		if (k == 0) {
+			return 0.0;
+		}
+		return median(Arrays.copyOf(kept, k));
 	}
 
 	static double[] movingMedian(double[] values, int window) {

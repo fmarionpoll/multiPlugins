@@ -25,17 +25,28 @@ public final class SpotRimAnalyzer {
 	private static final double COLOR_COVERAGE = 0.8;
 	private static final int MIN_DYE_PIXELS = 40;
 	private static final int CONTOUR_SMOOTH_HALF = 4;
+	/** Same share of the spot as the later rim measurement: a fly covers the spot. */
+	private static final double FLY_SPOT_FRACTION = 0.08;
+	/** Outline used when every opening frame has a fly on the spot: ROI radius minus 30%. */
+	private static final double FLY_FALLBACK_SCALE = 0.7;
 
 	/** Outer dye perimeter and the inward path width that covers most of the dye. */
 	public static final class Detection {
 		public final double[] x;
 		public final double[] y;
 		public final int pathWidthPx;
+		/** True when the outline is the spot ROI shrunk because every frame had a fly. */
+		public final boolean flyFallback;
 
 		public Detection(double[] x, double[] y, int pathWidthPx) {
+			this(x, y, pathWidthPx, false);
+		}
+
+		public Detection(double[] x, double[] y, int pathWidthPx, boolean flyFallback) {
 			this.x = x;
 			this.y = y;
 			this.pathWidthPx = Math.max(1, pathWidthPx);
+			this.flyFallback = flyFallback;
 		}
 	}
 
@@ -117,6 +128,17 @@ public final class SpotRimAnalyzer {
 	 */
 	public static Detection detect(EllipseGeom ellipse, int imageWidth, int imageHeight, int[][] red, int[][] green,
 			int[][] blue, EllipseGeom[] containers, double madMultiplier) {
+		return detect(ellipse, imageWidth, imageHeight, red, green, blue, null, containers, madMultiplier);
+	}
+
+	/**
+	 * {@code insect} aligns with the color frames. A pixel under a fly is left out
+	 * of the median. A frame whose fly covers at least {@link #FLY_SPOT_FRACTION}
+	 * of the ellipse is left out entirely. When every frame is covered, the
+	 * outline is the spot ellipse at {@link #FLY_FALLBACK_SCALE}.
+	 */
+	public static Detection detect(EllipseGeom ellipse, int imageWidth, int imageHeight, int[][] red, int[][] green,
+			int[][] blue, boolean[][] insect, EllipseGeom[] containers, double madMultiplier) {
 		if (ellipse == null || imageWidth <= 0 || imageHeight <= 0 || red == null || red.length == 0) {
 			return null;
 		}
@@ -124,7 +146,11 @@ public final class SpotRimAnalyzer {
 		if (box == null) {
 			return null;
 		}
-		double[] score = medianScore(box, imageWidth, red, green, blue);
+		boolean[] covered = flyCoveredFrames(ellipse, imageWidth, imageHeight, red, insect);
+		if (everyFrameCovered(red, covered)) {
+			return spotRoiShrunk(ellipse);
+		}
+		double[] score = medianScore(box, imageWidth, red, green, blue, insect, covered);
 		double threshold = dyeThreshold(score, box, ellipse, containers, imageWidth, imageHeight, red, green, blue,
 				madMultiplier);
 		if (Double.isNaN(threshold)) {
@@ -276,7 +302,8 @@ public final class SpotRimAnalyzer {
 		return Arrays.copyOf(values, n);
 	}
 
-	private static double[] medianScore(Box box, int imageWidth, int[][] red, int[][] green, int[][] blue) {
+	private static double[] medianScore(Box box, int imageWidth, int[][] red, int[][] green, int[][] blue,
+			boolean[][] insect, boolean[] covered) {
 		double[] score = new double[box.w * box.h];
 		Arrays.fill(score, Double.NaN);
 		double[] samples = new double[red.length];
@@ -287,6 +314,12 @@ public final class SpotRimAnalyzer {
 				int n = 0;
 				int pix = iy * imageWidth + ix;
 				for (int t = 0; t < red.length; t++) {
+					if (covered != null && t < covered.length && covered[t]) {
+						continue;
+					}
+					if (insectAt(insect, t, pix)) {
+						continue;
+					}
 					double value = deficitAt(channel(red, t), channel(green, t), channel(blue, t), pix);
 					if (Double.isFinite(value)) {
 						samples[n++] = value;
@@ -298,6 +331,78 @@ public final class SpotRimAnalyzer {
 			}
 		}
 		return score;
+	}
+
+	/** True for each frame whose fly covers at least {@link #FLY_SPOT_FRACTION} of the ellipse. */
+	private static boolean[] flyCoveredFrames(EllipseGeom ellipse, int imageWidth, int imageHeight, int[][] red,
+			boolean[][] insect) {
+		boolean[] covered = new boolean[red.length];
+		if (insect == null) {
+			return covered;
+		}
+		for (int t = 0; t < red.length; t++) {
+			boolean[] mask = t < insect.length ? insect[t] : null;
+			if (mask == null || channel(red, t) == null) {
+				continue;
+			}
+			int inside = 0;
+			int hits = 0;
+			int x0 = Math.max(0, (int) Math.floor(ellipse.cx - ellipse.rx));
+			int y0 = Math.max(0, (int) Math.floor(ellipse.cy - ellipse.ry));
+			int x1 = Math.min(imageWidth - 1, (int) Math.ceil(ellipse.cx + ellipse.rx));
+			int y1 = Math.min(imageHeight - 1, (int) Math.ceil(ellipse.cy + ellipse.ry));
+			for (int y = y0; y <= y1; y++) {
+				for (int x = x0; x <= x1; x++) {
+					if (!ellipse.contains(x, y)) {
+						continue;
+					}
+					inside++;
+					int pix = y * imageWidth + x;
+					if (pix >= 0 && pix < mask.length && mask[pix]) {
+						hits++;
+					}
+				}
+			}
+			covered[t] = inside > 0 && hits >= FLY_SPOT_FRACTION * inside;
+		}
+		return covered;
+	}
+
+	private static boolean everyFrameCovered(int[][] red, boolean[] covered) {
+		int data = 0;
+		int hits = 0;
+		for (int t = 0; t < red.length; t++) {
+			if (channel(red, t) == null) {
+				continue;
+			}
+			data++;
+			if (covered != null && t < covered.length && covered[t]) {
+				hits++;
+			}
+		}
+		return data > 0 && hits == data;
+	}
+
+	private static boolean insectAt(boolean[][] insect, int t, int pix) {
+		if (insect == null || t < 0 || t >= insect.length) {
+			return false;
+		}
+		boolean[] mask = insect[t];
+		return mask != null && pix >= 0 && pix < mask.length && mask[pix];
+	}
+
+	private static Detection spotRoiShrunk(EllipseGeom ellipse) {
+		int n = 360 / ANGLE_STEP_DEG;
+		double[] xs = new double[n];
+		double[] ys = new double[n];
+		double rx = ellipse.rx * FLY_FALLBACK_SCALE;
+		double ry = ellipse.ry * FLY_FALLBACK_SCALE;
+		for (int a = 0; a < n; a++) {
+			double theta = Math.toRadians(a * ANGLE_STEP_DEG);
+			xs[a] = ellipse.cx + rx * Math.cos(theta);
+			ys[a] = ellipse.cy + ry * Math.sin(theta);
+		}
+		return new Detection(xs, ys, SpotRimGeometry.DEFAULT_RIM_WIDTH_PX, true);
 	}
 
 	private static double dyeThreshold(double[] score, Box box, EllipseGeom ellipse, EllipseGeom[] containers,

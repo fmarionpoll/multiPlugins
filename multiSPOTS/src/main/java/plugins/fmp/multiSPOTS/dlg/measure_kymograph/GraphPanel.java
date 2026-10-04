@@ -16,6 +16,7 @@ import javax.swing.SwingConstants;
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
+import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.AxisOptions;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.SpotSequenceRois;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
@@ -62,10 +63,12 @@ public class GraphPanel extends JPanel {
 	private final JRadioButton displaySelectedCageButton = new JRadioButton("cage selected", false);
 	private final JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected", false);
 	private final JButton displayChartsButton = new JButton("Display charts");
+	private final JButton axisOptionsButton = new JButton("Axis options");
 	private final JLabel graphStatusLabel = new JLabel(" ", SwingConstants.LEFT);
 
 	private ChartCagesFrame chartCagesFrame;
 	private KymoOverlayFrame overlayFrame;
+	private AxisOptions graphOptions;
 
 	public GraphPanel(MultiSPOTS parent0, AnalysisPanel analysisPanel, AnalysisPanel2 analysisPanel2,
 			AnalysisPanelRim analysisPanelRim) {
@@ -79,6 +82,7 @@ public class GraphPanel extends JPanel {
 
 		JPanel p0 = new JPanel(left);
 		p0.add(displayChartsButton);
+		p0.add(axisOptionsButton);
 		p0.add(new JLabel("Measure"));
 		p0.add(measureComboBox);
 		add(p0);
@@ -110,6 +114,7 @@ public class GraphPanel extends JPanel {
 		}
 
 		displayChartsButton.addActionListener(e -> onDisplayCharts());
+		axisOptionsButton.addActionListener(e -> openAxisOptions());
 		measureComboBox.addActionListener(e -> maybeRefreshVisibleCharts());
 		displayAllButton.addActionListener(e -> maybeRefreshVisibleCharts());
 		displaySelectedCageButton.addActionListener(e -> maybeRefreshVisibleCharts());
@@ -245,11 +250,6 @@ public class GraphPanel extends JPanel {
 	}
 
 	private void plotSpotsOverlay(Experiment exp, ResultsOptions options) {
-		List<Spot> selectedSpots = SpotSequenceRois.selectedSpotsFromSequence(exp);
-		if (selectedSpots.isEmpty()) {
-			graphStatusLabel.setText("Select one or more spot ROIs on the camera sequence.");
-			return;
-		}
 		overlayFrame = new KymoOverlayFrame();
 		overlayFrame.setMeasurementTypes(KYMO_MEASURES);
 		overlayFrame.setParentComboBox(measureComboBox);
@@ -262,7 +262,33 @@ public class GraphPanel extends JPanel {
 		graphStatusLabel.setText(" ");
 	}
 
+	private void openAxisOptions() {
+		boolean cagesVisible = chartCagesFrame != null && chartCagesFrame.getMainChartFrame() != null
+				&& chartCagesFrame.getMainChartFrame().isVisible();
+		boolean overlayVisible = overlayFrame != null && overlayFrame.getChartPanel() != null
+				&& overlayFrame.getMainChartFrame() != null && overlayFrame.getMainChartFrame().isVisible();
+		if (!cagesVisible && !overlayVisible) {
+			graphStatusLabel.setText("Display a chart first.");
+			return;
+		}
+		if (graphOptions != null) {
+			graphOptions.close();
+			graphOptions = null;
+		}
+		graphOptions = new AxisOptions();
+		if (cagesVisible) {
+			graphOptions.initialize(parent0, chartCagesFrame);
+		} else {
+			graphOptions.initialize(parent0, overlayFrame::getChartPanel);
+		}
+		graphStatusLabel.setText(" ");
+	}
+
 	public void closeAllCharts() {
+		if (graphOptions != null) {
+			graphOptions.close();
+			graphOptions = null;
+		}
 		if (chartCagesFrame != null && chartCagesFrame.getMainChartFrame() != null) {
 			chartCagesFrame.getMainChartFrame().dispose();
 		}

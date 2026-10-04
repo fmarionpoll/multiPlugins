@@ -12,13 +12,16 @@ import org.jfree.data.xy.XYDataset;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
+import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class SpotOverlayChartInteractionHandler {
 	private static final int LEFT_MOUSE_BUTTON = MouseEvent.BUTTON1;
 
 	private final Experiment experiment;
+	private final ResultsOptions resultsOptions;
 	private final Consumer<Spot> onSpotSelectedFromChart;
 
 	public SpotOverlayChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions) {
@@ -28,6 +31,7 @@ public class SpotOverlayChartInteractionHandler {
 	public SpotOverlayChartInteractionHandler(Experiment experiment, ResultsOptions resultsOptions,
 			Consumer<Spot> onSpotSelectedFromChart) {
 		this.experiment = experiment;
+		this.resultsOptions = resultsOptions;
 		this.onSpotSelectedFromChart = onSpotSelectedFromChart;
 	}
 
@@ -84,7 +88,10 @@ public class SpotOverlayChartInteractionHandler {
 			int frameIndex = -1;
 			if (e.getEntity() instanceof XYItemEntity) {
 				double timeMinutes = ChartCamFrameNavigation.getTimeMinutesFromXYItem((XYItemEntity) e.getEntity());
-				frameIndex = ChartCamFrameNavigation.getFrameIndexFromTimeMinutes(experiment, timeMinutes);
+				EnumResults type = resultsOptions != null ? resultsOptions.resultType : null;
+				frameIndex = EnumResults.isKymographMeasure(type)
+						? KymoSpotChartSupport.cameraFrameForChartMinute(experiment, type, timeMinutes)
+						: ChartCamFrameNavigation.getFrameIndexFromTimeMinutes(experiment, timeMinutes);
 			}
 
 			Spot spot = getSpotFromClickedChart(e, frameIndex);

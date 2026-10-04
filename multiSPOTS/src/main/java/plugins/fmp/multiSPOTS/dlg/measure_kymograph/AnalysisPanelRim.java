@@ -148,7 +148,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		JPanel hint = new JPanel(left);
 		hint.add(showRimsButton);
 		hint.add(editRimButton);
-		hint.add(new JLabel("Blue = outer edge of the dye (editable). Green = floor."));
+		hint.add(new JLabel("Blue = dye outline (editable). Green = floor."));
 		add(hint);
 
 		showRimsButton.addActionListener(e -> refreshRims());

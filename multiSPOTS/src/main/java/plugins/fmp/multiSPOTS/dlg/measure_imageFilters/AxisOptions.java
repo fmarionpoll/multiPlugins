@@ -5,6 +5,7 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.function.Supplier;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -40,6 +41,7 @@ public class AxisOptions extends JPanel {
 	IcyFrame dialogFrame = null;
 	private MultiSPOTS parent0 = null;
 	private ChartCagesFrame chartCagesFrame = null;
+	private Supplier<ChartPanel> singleChartPanel = null;
 	private JSpinner lowerXSpinner = new JSpinner(new SpinnerNumberModel(0., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 0.1));
 	private JSpinner upperXSpinner = new JSpinner(
 			new SpinnerNumberModel(120., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 0.1));
@@ -52,7 +54,18 @@ public class AxisOptions extends JPanel {
 	public void initialize(MultiSPOTS parent0, ChartCagesFrame chartSpots) {
 		this.parent0 = parent0;
 		this.chartCagesFrame = chartSpots;
+		this.singleChartPanel = null;
+		buildDialog();
+	}
 
+	public void initialize(MultiSPOTS parent0, Supplier<ChartPanel> chartPanel) {
+		this.parent0 = parent0;
+		this.chartCagesFrame = null;
+		this.singleChartPanel = chartPanel;
+		buildDialog();
+	}
+
+	private void buildDialog() {
 		JPanel topPanel = new JPanel(new GridLayout(2, 1));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 
@@ -116,6 +129,9 @@ public class AxisOptions extends JPanel {
 	private void collectValuesFromAllCharts() {
 		if (chartCagesFrame != null) {
 			collectValuesFromChartCagesFrame();
+		} else if (singleChartPanel != null) {
+			ChartPanel chartPanel = singleChartPanel.get();
+			applyCollectedRange(rangeOf(chartPanel, true), rangeOf(chartPanel, false));
 		}
 	}
 
@@ -149,22 +165,38 @@ public class AxisOptions extends JPanel {
 			}
 		}
 
-		if (chartCagesFrame.getXRange() != null) {
-			lowerXSpinner.setValue(chartCagesFrame.getXRange().getLowerBound());
-			upperXSpinner.setValue(chartCagesFrame.getXRange().getUpperBound());
+		applyCollectedRange(chartCagesFrame.getXRange(), chartCagesFrame.getYRange());
+	}
+
+	private void applyCollectedRange(Range xRange, Range yRange) {
+		if (xRange != null) {
+			lowerXSpinner.setValue(xRange.getLowerBound());
+			upperXSpinner.setValue(xRange.getUpperBound());
 		}
-		if (chartCagesFrame.getYRange() != null) {
-			lowerYSpinner.setValue(chartCagesFrame.getYRange().getLowerBound());
-			upperYSpinner.setValue(chartCagesFrame.getYRange().getUpperBound());
+		if (yRange != null) {
+			lowerYSpinner.setValue(yRange.getLowerBound());
+			upperYSpinner.setValue(yRange.getUpperBound());
 		}
 		lowerYSpinner.setEnabled(true);
 		upperYSpinner.setEnabled(true);
 		setYaxis.setEnabled(true);
 	}
 
+	private static Range rangeOf(ChartPanel chartPanel, boolean domain) {
+		if (chartPanel == null || chartPanel.getChart() == null || !(chartPanel.getChart().getPlot() instanceof XYPlot)) {
+			return null;
+		}
+		XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+		ValueAxis axis = domain ? plot.getDomainAxis() : plot.getRangeAxis();
+		return axis != null ? axis.getRange() : null;
+	}
+
 	private void updateXAxis() {
 		if (chartCagesFrame != null) {
 			updateXAxisChartCagesFrame();
+		} else {
+			setAxisRange(currentSingleChart(), true, (double) lowerXSpinner.getValue(),
+					(double) upperXSpinner.getValue());
 		}
 	}
 
@@ -196,7 +228,33 @@ public class AxisOptions extends JPanel {
 	private void updateYAxis() {
 		if (chartCagesFrame != null) {
 			updateYAxisChartCagesFrame();
+		} else {
+			setAxisRange(currentSingleChart(), false, (double) lowerYSpinner.getValue(),
+					(double) upperYSpinner.getValue());
 		}
+	}
+
+	private ChartPanel currentSingleChart() {
+		return singleChartPanel != null ? singleChartPanel.get() : null;
+	}
+
+	private static void setAxisRange(ChartPanel chartPanel, boolean domain, double lower, double upper) {
+		if (chartPanel == null || chartPanel.getChart() == null || !(chartPanel.getChart().getPlot() instanceof XYPlot)) {
+			return;
+		}
+		if (lower > upper) {
+			double swap = lower;
+			lower = upper;
+			upper = swap;
+		}
+		XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
+		ValueAxis axis = domain ? plot.getDomainAxis() : plot.getRangeAxis();
+		if (!(axis instanceof NumberAxis)) {
+			return;
+		}
+		NumberAxis numberAxis = (NumberAxis) axis;
+		numberAxis.setAutoRange(false);
+		numberAxis.setRange(lower, upper);
 	}
 
 	private void updateYAxisChartCagesFrame() {

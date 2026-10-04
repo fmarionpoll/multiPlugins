@@ -9,30 +9,40 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.prefs.Preferences;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.ValueAxis;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.data.Range;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
+import icy.roi.ROI2D;
+import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
 import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
+import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
@@ -54,6 +64,9 @@ public class KymoOverlayFrame {
 	private final JButton updateButton = new JButton("Update");
 	private JComboBox<EnumResults> measureComboBox;
 	private JComboBox<EnumResults> parentMeasureComboBox;
+	private JComboBox<CageChoice> cageComboBox;
+	private JComboBox<SpotChoice> spotComboBox;
+	private boolean updatingChoices;
 	private EnumResults[] measurementTypes;
 
 	private String baseTitle;
@@ -125,6 +138,8 @@ public class KymoOverlayFrame {
 		}
 		this.lastExperiment = exp;
 		this.lastOptions = options;
+		fillCageCombo(preferredCage());
+		fillSpotCombo(selectedCage(), preferredSpot());
 		refreshChart();
 		mainChartFrame.pack();
 		loadPrefs();
@@ -157,8 +172,186 @@ public class KymoOverlayFrame {
 			}
 		});
 		top.add(measureComboBox);
+		cageComboBox = new JComboBox<>();
+		cageComboBox.setMaximumRowCount(16);
+		spotComboBox = new JComboBox<>();
+		spotComboBox.setMaximumRowCount(16);
+		cageComboBox.addActionListener(e -> onCageChosen());
+		spotComboBox.addActionListener(e -> onSpotChosen());
+		top.add(new JLabel("Cage"));
+		top.add(cageComboBox);
+		top.add(new JLabel("Spot"));
+		top.add(spotComboBox);
 		top.add(updateButton);
 		return top;
+	}
+
+	private void onCageChosen() {
+		if (updatingChoices) {
+			return;
+		}
+		fillSpotCombo(selectedCage(), null);
+		refreshChart();
+		ComboBoxUIControlsFactory.selectCageOnCamera(lastExperiment, selectedCage());
+		notifySpotChosen();
+	}
+
+	private void onSpotChosen() {
+		if (updatingChoices) {
+			return;
+		}
+		refreshChart();
+		selectSpotOnCamera(selectedSpot());
+		notifySpotChosen();
+	}
+
+	private void notifySpotChosen() {
+		if (onSpotChartClicked != null && selectedSpot() != null) {
+			onSpotChartClicked.accept(selectedSpot());
+		}
+	}
+
+	private void fillCageCombo(Cage prefer) {
+		if (cageComboBox == null) {
+			return;
+		}
+		updatingChoices = true;
+		try {
+			cageComboBox.removeAllItems();
+			if (lastExperiment == null || lastExperiment.getCages() == null) {
+				return;
+			}
+			List<Cage> cages = new ArrayList<>();
+			for (Cage cage : lastExperiment.getCages().getCageList()) {
+				if (cage != null && cage.getProperties() != null) {
+					cages.add(cage);
+				}
+			}
+			cages.sort(Comparator.comparingInt(Cage::getCageID));
+			CageChoice select = null;
+			for (Cage cage : cages) {
+				CageChoice item = new CageChoice(cage);
+				cageComboBox.addItem(item);
+				if (prefer != null && cage.getCageID() == prefer.getCageID()) {
+					select = item;
+				}
+			}
+			if (select != null) {
+				cageComboBox.setSelectedItem(select);
+			}
+		} finally {
+			updatingChoices = false;
+		}
+	}
+
+	private void fillSpotCombo(Cage cage, Spot prefer) {
+		if (spotComboBox == null) {
+			return;
+		}
+		updatingChoices = true;
+		try {
+			spotComboBox.removeAllItems();
+			if (cage == null || lastExperiment == null || lastExperiment.getSpots() == null) {
+				return;
+			}
+			List<Spot> spots = cage.getSpotList(lastExperiment.getSpots());
+			SpotChoice select = null;
+			if (spots != null) {
+				for (Spot spot : spots) {
+					if (spot == null) {
+						continue;
+					}
+					SpotChoice item = new SpotChoice(spot);
+					spotComboBox.addItem(item);
+					if (prefer != null && prefer.getName() != null && prefer.getName().equals(spot.getName())) {
+						select = item;
+					}
+				}
+			}
+			if (select != null) {
+				spotComboBox.setSelectedItem(select);
+			}
+		} finally {
+			updatingChoices = false;
+		}
+	}
+
+	private Cage preferredCage() {
+		List<Spot> hinted = selectedSpotsProvider != null ? selectedSpotsProvider.getSelectedSpots() : null;
+		if (hinted != null) {
+			for (Spot spot : hinted) {
+				Cage cage = cageOf(spot);
+				if (cage != null) {
+					return cage;
+				}
+			}
+		}
+		return null;
+	}
+
+	private Spot preferredSpot() {
+		List<Spot> hinted = selectedSpotsProvider != null ? selectedSpotsProvider.getSelectedSpots() : null;
+		if (hinted == null) {
+			return null;
+		}
+		for (Spot spot : hinted) {
+			if (spot != null) {
+				return spot;
+			}
+		}
+		return null;
+	}
+
+	private Cage cageOf(Spot spot) {
+		if (spot == null || spot.getProperties() == null || lastExperiment == null || lastExperiment.getCages() == null) {
+			return null;
+		}
+		int id = spot.getProperties().getCageID();
+		for (Cage cage : lastExperiment.getCages().getCageList()) {
+			if (cage != null && cage.getCageID() == id) {
+				return cage;
+			}
+		}
+		return null;
+	}
+
+	private Cage selectedCage() {
+		Object item = cageComboBox != null ? cageComboBox.getSelectedItem() : null;
+		return item instanceof CageChoice ? ((CageChoice) item).cage : null;
+	}
+
+	private Spot selectedSpot() {
+		Object item = spotComboBox != null ? spotComboBox.getSelectedItem() : null;
+		return item instanceof SpotChoice ? ((SpotChoice) item).spot : null;
+	}
+
+	private void selectSpotOnCamera(Spot spot) {
+		if (lastExperiment == null || lastExperiment.getSeqCamData() == null || spot == null || spot.getName() == null) {
+			return;
+		}
+		Sequence seq = lastExperiment.getSeqCamData().getSequence();
+		if (seq == null) {
+			return;
+		}
+		List<ROI2D> roiList = seq.getROI2Ds();
+		if (roiList == null) {
+			return;
+		}
+		ROI2D target = null;
+		for (ROI2D roi : roiList) {
+			if (roi == null || roi.getName() == null || !roi.getName().startsWith("spot")) {
+				continue;
+			}
+			roi.setSelected(false);
+			if (roi.getName().equals(spot.getName())) {
+				target = roi;
+			}
+		}
+		if (target != null) {
+			target.setSelected(true);
+			seq.setSelectedROI(target);
+			lastExperiment.getSeqCamData().centerDisplayOnRoi(target);
+		}
 	}
 
 	private void syncParentMeasureCombo(EnumResults selected) {
@@ -189,12 +382,15 @@ public class KymoOverlayFrame {
 				applyKymoAggregateChartOptions(lastExperiment, lastOptions);
 			}
 		}
-		List<Spot> spots = selectedSpotsProvider != null ? selectedSpotsProvider.getSelectedSpots() : null;
+		Spot chosen = selectedSpot();
+		List<Spot> spots = chosen != null ? Collections.singletonList(chosen) : null;
+		Range keepX = fixedRange(chartPanel, true);
+		Range keepY = fixedRange(chartPanel, false);
 		mainChartPanel.removeAll();
 		if (spots == null || spots.isEmpty()) {
 			mainChartPanel.revalidate();
 			mainChartPanel.repaint();
-			updateTitle(0);
+			updateTitle(null);
 			return;
 		}
 		XYSeriesCollection ds = KymoSpotChartSupport.buildOverlayForSpots(lastExperiment, lastOptions, spots);
@@ -207,6 +403,8 @@ public class KymoOverlayFrame {
 		}
 		NumberAxis yAxis = new NumberAxis(yUnit);
 		yAxis.setAutoRangeIncludesZero(true);
+		applyFixedRange(xAxis, keepX);
+		applyFixedRange(yAxis, keepY);
 		XYPlot plot = new XYPlot(ds, xAxis, yAxis, new XYLineAndShapeRenderer());
 		JFreeChart chart = new JFreeChart(plot);
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
@@ -217,7 +415,27 @@ public class KymoOverlayFrame {
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 		mainChartPanel.revalidate();
 		mainChartPanel.repaint();
-		updateTitle(spots.size());
+		updateTitle(chosen);
+	}
+
+	private static Range fixedRange(ChartPanel panel, boolean domain) {
+		if (panel == null || panel.getChart() == null || !(panel.getChart().getPlot() instanceof XYPlot)) {
+			return null;
+		}
+		ValueAxis axis = domain ? ((XYPlot) panel.getChart().getPlot()).getDomainAxis()
+				: ((XYPlot) panel.getChart().getPlot()).getRangeAxis();
+		if (axis == null || axis.isAutoRange()) {
+			return null;
+		}
+		return axis.getRange();
+	}
+
+	private static void applyFixedRange(NumberAxis axis, Range range) {
+		if (axis == null || range == null) {
+			return;
+		}
+		axis.setAutoRange(false);
+		axis.setRange(range);
 	}
 
 	private static void applyKymoAggregateChartOptions(Experiment exp, ResultsOptions options) {
@@ -233,13 +451,13 @@ public class KymoOverlayFrame {
 		}
 	}
 
-	private void updateTitle(int nSpots) {
+	private void updateTitle(Spot spot) {
 		if (mainChartFrame == null) {
 			return;
 		}
 		String t = baseTitle != null ? baseTitle : "Kymograph";
-		if (nSpots > 0) {
-			t = t + " (" + nSpots + " spot" + (nSpots > 1 ? "s" : "") + ")";
+		if (spot != null && spot.getName() != null && !spot.getName().isEmpty()) {
+			t = t + ": " + spot.getName();
 		}
 		mainChartFrame.setTitle(t);
 	}
@@ -256,6 +474,10 @@ public class KymoOverlayFrame {
 
 	public IcyFrame getMainChartFrame() {
 		return mainChartFrame;
+	}
+
+	public ChartPanel getChartPanel() {
+		return chartPanel;
 	}
 
 	public void dispose() {
@@ -289,5 +511,44 @@ public class KymoOverlayFrame {
 		prefs.putInt("window_y", r.y);
 		prefs.putInt("window_w", r.width);
 		prefs.putInt("window_h", r.height);
+	}
+
+	private static final class CageChoice {
+		final Cage cage;
+
+		private CageChoice(Cage cage) {
+			this.cage = cage;
+		}
+
+		@Override
+		public String toString() {
+			return cage == null ? "" : "Cage " + cage.getCageID();
+		}
+	}
+
+	private static final class SpotChoice {
+		final Spot spot;
+
+		private SpotChoice(Spot spot) {
+			this.spot = spot;
+		}
+
+		@Override
+		public String toString() {
+			if (spot == null) {
+				return "";
+			}
+			String name = spot.getName() != null ? spot.getName() : "";
+			if (spot.getProperties() == null) {
+				return name;
+			}
+			String stim = spot.getProperties().getStimulus();
+			String conc = spot.getProperties().getConcentration();
+			String extra = stim != null ? stim.trim() : "";
+			if (conc != null && !conc.trim().isEmpty()) {
+				extra = extra.isEmpty() ? conc.trim() : extra + " " + conc.trim();
+			}
+			return extra.isEmpty() ? name : name + "  " + extra;
+		}
 	}
 }

@@ -11,7 +11,7 @@ import java.util.Set;
  */
 public final class SpotRimGeometry {
 
-	public static final int DEFAULT_RIM_WIDTH_PX = 4;
+	public static final int DEFAULT_RIM_WIDTH_PX = 3;
 	public static final int DEFAULT_OUTER_PX = 5;
 	/** One stored vertex per this many degrees. A full rim has 24 vertices. */
 	public static final int OUTLINE_STEP_DEG = 15;

@@ -302,6 +302,32 @@ public class SpotLineDeficitAnalyzerTest {
 		assertTrue(dx * dx + dy * dy > 100);
 	}
 
+	@Test
+	public void referenceStaysOnTheFullDropWhenFeedingStartsInsideTheWindow() {
+		double[][] fraction = new double[][] { { 1, 1, 1, 0.16, 0, 0, 0, 0, 0, 0.8, 0.8, 0.8 } };
+		double[][] ratio = SpotLineDeficitAnalyzer.ratiosFromIntegrals(fraction, 5, 9);
+		assertEquals(1.0, ratio[0][0], 1e-6);
+		assertTrue(ratio[0][1] < 1.5);
+	}
+
+	@Test
+	public void reboundAfterTheWellIsEmptyStaysDown() {
+		double[] ratio = new double[] { 1, 0.5, 0.1, 0, 0, 0.8, 0.8 };
+		SpotLineDeficitAnalyzer.suppressRebound(ratio);
+		assertEquals(1.0, ratio[0], 1e-9);
+		assertEquals(0.1, ratio[2], 1e-9);
+		assertEquals(0.0, ratio[5], 1e-9);
+		assertEquals(0.0, ratio[6], 1e-9);
+	}
+
+	@Test
+	public void seriesThatStaysHighIsNotClamped() {
+		double[] ratio = new double[] { 1.0, 0.95, 0.9, 0.92, 0.88 };
+		SpotLineDeficitAnalyzer.suppressRebound(ratio);
+		assertEquals(0.92, ratio[3], 1e-9);
+		assertEquals(0.88, ratio[4], 1e-9);
+	}
+
 	private static void fillFloor(int[] r, int[] g, int[] b, int width, int height) {
 		for (int y = 0; y < height; y++) {
 			for (int x = 0; x < width; x++) {

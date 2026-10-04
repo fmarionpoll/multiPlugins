@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -66,6 +67,41 @@ public class SpotRimAnalyzerTest {
 		assertTrue(simple[0].length <= 24);
 		for (int i = 0; i < simple[0].length; i++) {
 			assertTrue(Math.hypot(simple[0][i], simple[1][i]) > 15);
+		}
+	}
+
+	@Test
+	public void detectedOutlineFollowsAnOffsetStain() {
+		int width = 220;
+		int height = 220;
+		int spotX = 100;
+		int spotY = 100;
+		int stainX = 112;
+		int stainY = 96;
+		int[] r = new int[width * height];
+		int[] g = new int[width * height];
+		int[] b = new int[width * height];
+		fill(r, g, b, 80);
+		paintRing(r, g, b, width, stainX, stainY, 12, 16);
+		EllipseGeom ellipse = new EllipseGeom(spotX, spotY, 40, 30);
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r },
+				new int[][] { g }, new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
+		assertNotNull(outline);
+		assertFalse(outline.flyFallback);
+		double cx = 0;
+		double cy = 0;
+		for (int i = 0; i < outline.x.length; i++) {
+			cx += outline.x[i];
+			cy += outline.y[i];
+		}
+		cx /= outline.x.length;
+		cy /= outline.y.length;
+		assertEquals(stainX, cx, 3.0);
+		assertEquals(stainY, cy, 3.0);
+		assertTrue(Math.hypot(cx - spotX, cy - spotY) > 8);
+		for (int i = 0; i < outline.x.length; i++) {
+			double radius = Math.hypot(outline.x[i] - stainX, outline.y[i] - stainY);
+			assertTrue("radius " + radius, radius > 12 && radius < 20);
 		}
 	}
 
@@ -142,6 +178,60 @@ public class SpotRimAnalyzerTest {
 		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r },
 				new int[][] { g }, new int[][] { b }, new EllipseGeom[] { ellipse }, 5.0);
 		assertNull(outline);
+	}
+
+	@Test
+	public void flyOnEveryFrameUsesShrunkSpotRoi() {
+		int width = 220;
+		int height = 220;
+		int cx = 100;
+		int cy = 100;
+		int[] r = new int[width * height];
+		int[] g = new int[width * height];
+		int[] b = new int[width * height];
+		fill(r, g, b, 80);
+		paintRing(r, g, b, width, cx, cy, 23, 27);
+		boolean[] fly = new boolean[width * height];
+		Arrays.fill(fly, true);
+		EllipseGeom ellipse = new EllipseGeom(cx, cy, 40, 40);
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height, new int[][] { r },
+				new int[][] { g }, new int[][] { b }, new boolean[][] { fly }, new EllipseGeom[] { ellipse }, 5.0);
+		assertNotNull(outline);
+		assertTrue(outline.flyFallback);
+		for (int i = 0; i < outline.x.length; i++) {
+			double radius = Math.hypot(outline.x[i] - cx, outline.y[i] - cy);
+			assertEquals(28.0, radius, 0.05);
+		}
+	}
+
+	@Test
+	public void cleanFrameIsKeptWhenAnotherFrameHasAFly() {
+		int width = 220;
+		int height = 220;
+		int cx = 100;
+		int cy = 100;
+		int[] coveredR = new int[width * height];
+		int[] coveredG = new int[width * height];
+		int[] coveredB = new int[width * height];
+		fill(coveredR, coveredG, coveredB, 80);
+		paintRing(coveredR, coveredG, coveredB, width, cx, cy, 30, 36);
+		int[] cleanR = new int[width * height];
+		int[] cleanG = new int[width * height];
+		int[] cleanB = new int[width * height];
+		fill(cleanR, cleanG, cleanB, 80);
+		paintRing(cleanR, cleanG, cleanB, width, cx, cy, 14, 18);
+		boolean[] fly = new boolean[width * height];
+		Arrays.fill(fly, true);
+		EllipseGeom ellipse = new EllipseGeom(cx, cy, 40, 40);
+		SpotRimAnalyzer.Detection outline = SpotRimAnalyzer.detect(ellipse, width, height,
+				new int[][] { coveredR, cleanR }, new int[][] { coveredG, cleanG }, new int[][] { coveredB, cleanB },
+				new boolean[][] { fly, null }, new EllipseGeom[] { ellipse }, 5.0);
+		assertNotNull(outline);
+		assertFalse(outline.flyFallback);
+		for (int i = 0; i < outline.x.length; i++) {
+			double radius = Math.hypot(outline.x[i] - cx, outline.y[i] - cy);
+			assertTrue("radius " + radius, radius > 15 && radius < 22);
+		}
 	}
 
 	@Test

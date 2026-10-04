@@ -53,10 +53,61 @@ public final class KymoSpotChartSupport {
 		if (nBins <= 0) {
 			return new double[0];
 		}
+		long[] axis = kymoOriginAndStep(exp, nBins);
+		double[] x = new double[nBins];
+		for (int j = 0; j < nBins; j++) {
+			x[j] = (axis[0] + (long) j * axis[1]) / 60000.0;
+		}
+		return x;
+	}
+
+	/**
+	 * Camera frame under a kymograph chart click. {@code timeMinutes} is the chart
+	 * domain value, not a frame index.
+	 */
+	public static int cameraFrameForChartMinute(Experiment exp, EnumResults resultType, double timeMinutes) {
+		if (exp == null || !(timeMinutes >= 0.0) || Double.isNaN(timeMinutes)) {
+			return -1;
+		}
+		EnumResults spotType = persistedSpotMeasure(resultType);
+		int nBins = 0;
+		if (exp.getSpots() != null && spotType != null) {
+			nBins = maxKymoBinsForSpots(exp.getSpots().getSpotList(), spotType);
+		}
+		int nFrames = cameraFrameCount(exp);
+		long[] axis = kymoOriginAndStep(exp, nBins > 0 ? nBins : nFrames);
+		long firstMs = axis[0];
+		long stepMs = axis[1];
+		long tMs = Math.round(timeMinutes * 60000.0);
+		int bin = binIndexAtMinute(timeMinutes, firstMs, stepMs, nFrames);
+		long[] cam = cameraTimes(exp, stepMs);
+		if (cam != null) {
+			return nearestFrame(cam, nFrames, tMs);
+		}
+		return bin;
+	}
+
+	static int binIndexAtMinute(double timeMinutes, long firstMs, long stepMs, int nFrames) {
+		if (!(timeMinutes >= 0.0) || Double.isNaN(timeMinutes) || stepMs <= 0) {
+			return -1;
+		}
+		long tMs = Math.round(timeMinutes * 60000.0);
+		int bin = (int) Math.round((tMs - firstMs) / (double) stepMs);
+		if (bin < 0) {
+			bin = 0;
+		}
+		if (nFrames > 0 && bin >= nFrames) {
+			bin = nFrames - 1;
+		}
+		return bin;
+	}
+
+	private static long[] kymoOriginAndStep(Experiment exp, int nBins) {
 		long stepMs;
 		long firstMs;
 		String binDir = exp != null ? exp.getKymosBinFullDirectory() : null;
-		PersistedKymoGrid grid = binDir != null ? CageKymographStripLayoutCsv.readPersistedKymoGridOrNull(binDir, nBins)
+		PersistedKymoGrid grid = binDir != null && nBins > 0
+				? CageKymographStripLayoutCsv.readPersistedKymoGridOrNull(binDir, nBins)
 				: null;
 		if (grid != null && grid.columnCount == nBins) {
 			stepMs = Math.max(1L, grid.stepMs);
@@ -71,11 +122,86 @@ public final class KymoSpotChartSupport {
 				firstMs = 0;
 			}
 		}
-		double[] x = new double[nBins];
-		for (int j = 0; j < nBins; j++) {
-			x[j] = (firstMs + (long) j * stepMs) / 60000.0;
+		return new long[] { firstMs, stepMs };
+	}
+
+	private static EnumResults persistedSpotMeasure(EnumResults resultType) {
+		if (resultType == null) {
+			return null;
 		}
-		return x;
+		if (resultType.isPersistedKymographSpotMeasure()) {
+			return resultType;
+		}
+		if (resultType == EnumResults.AGG_LINE_CONSO || resultType == EnumResults.AGG_RIM
+				|| resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
+			return CageKymoGreenHeightAggregation.sourceOf(resultType);
+		}
+		if (resultType == EnumResults.KYMO_CAGE_MEAN_FRACT) {
+			return EnumResults.KYMO_FRACT;
+		}
+		if (resultType == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA) {
+			return EnumResults.KYMO_ABS_DELTA;
+		}
+		if (resultType == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO) {
+			return EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+		}
+		return resultType;
+	}
+
+	private static int cameraFrameCount(Experiment exp) {
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getImageLoader() == null) {
+			return 0;
+		}
+		int n = exp.getSeqCamData().getImageLoader().getNTotalFrames();
+		if (n <= 0 && exp.getSeqCamData().getSequence() != null) {
+			n = exp.getSeqCamData().getSequence().getSizeT();
+		}
+		return Math.max(0, n);
+	}
+
+	private static long[] cameraTimes(Experiment exp, long stepMs) {
+		if (exp.getSeqCamData() == null || exp.getSeqCamData().getTimeManager() == null) {
+			return null;
+		}
+		long[] cam = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
+		if (!cameraTimesFollow(cam, stepMs)) {
+			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
+			cam = exp.getSeqCamData().getTimeManager().getCamImagesTime_Ms();
+		}
+		return cameraTimesFollow(cam, stepMs) ? cam : null;
+	}
+
+	private static boolean cameraTimesFollow(long[] cam, long stepMs) {
+		if (cam == null || cam.length < 2 || stepMs <= 0) {
+			return false;
+		}
+		int last = Math.min(cam.length - 1, 10);
+		if (last <= 0) {
+			return false;
+		}
+		long mean = (cam[last] - cam[0]) / last;
+		if (mean <= 0) {
+			return false;
+		}
+		long tol = Math.max(1000L, stepMs / 5);
+		if (Math.abs(mean - stepMs) <= tol) {
+			return true;
+		}
+		return mean != 60_000L;
+	}
+
+	private static int nearestFrame(long[] cam, int nFrames, long tMs) {
+		int n = Math.min(nFrames > 0 ? nFrames : cam.length, cam.length);
+		int best = 0;
+		long bestDist = Long.MAX_VALUE;
+		for (int i = 0; i < n; i++) {
+			long dist = Math.abs(cam[i] - tMs);
+			if (dist < bestDist) {
+				bestDist = dist;
+				best = i;
+			}
+		}
+		return best;
 	}
 
 	public static int maxKymoBinsForSpots(List<Spot> spots, EnumResults rt) {
