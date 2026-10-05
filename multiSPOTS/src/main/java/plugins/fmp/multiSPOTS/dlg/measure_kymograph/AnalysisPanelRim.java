@@ -74,6 +74,8 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 			new SpinnerNumberModel(SpotRimGeometry.DEFAULT_RIM_WIDTH_PX, 1, 20, 1));
 	private final JSpinner outerPxSpinner = new JSpinner(
 			new SpinnerNumberModel(SpotRimGeometry.DEFAULT_OUTER_PX, 0, 40, 1));
+	private final JSpinner floorWidthSpinner = new JSpinner(
+			new SpinnerNumberModel(SpotRimGeometry.DEFAULT_FLOOR_WIDTH_PX, 1, 20, 1));
 	private final JCheckBox insectGateCheckBox = new JCheckBox("Insect filter (exclude)", true);
 	private final JComboBox<ImageTransformEnums> insectTransformCombo = new JComboBox<>(
 			KymoImageTransforms.METRIC_CHOICES);
@@ -107,6 +109,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		narrowSpinner(initialBinsSpinner, 4);
 		narrowSpinner(rimWidthSpinner, 3);
 		narrowSpinner(outerPxSpinner, 3);
+		narrowSpinner(floorWidthSpinner, 3);
 		narrowSpinner(insectThresholdSpinner, 4);
 		narrowSpinner(insetSpinner, 3);
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
@@ -132,6 +135,8 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		params.add(rimWidthSpinner);
 		params.add(new JLabel("outer (px)"));
 		params.add(outerPxSpinner);
+		params.add(new JLabel("outer path (px)"));
+		params.add(floorWidthSpinner);
 		add(params);
 
 		JPanel insect = new JPanel(left);
@@ -157,6 +162,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		cloneSpotButton.addActionListener(e -> cloneSelectedSpot());
 		rimWidthSpinner.addChangeListener(e -> onBandChanged());
 		outerPxSpinner.addChangeListener(e -> onBandChanged());
+		floorWidthSpinner.addChangeListener(e -> onBandChanged());
 		detectButton.addActionListener(e -> startDetect());
 		analyzeButton.addActionListener(e -> {
 			if (ANALYZE_LABEL.equals(analyzeButton.getText())) {
@@ -178,7 +184,8 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		return new SpotRimAnalyzer.Params(((Number) madMultiplierSpinner.getValue()).doubleValue(),
 				((Number) initialBinsSpinner.getValue()).intValue(),
 				((Number) rimWidthSpinner.getValue()).intValue(), ((Number) outerPxSpinner.getValue()).intValue(),
-				SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS, insectGateCheckBox.isSelected(), insectTf,
+				((Number) floorWidthSpinner.getValue()).intValue(), SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS,
+				insectGateCheckBox.isSelected(), insectTf,
 				((Number) insectThresholdSpinner.getValue()).intValue(), insectDirectionCombo.getSelectedIndex() == 1,
 				trackPlateCheckBox.isSelected());
 	}
@@ -293,6 +300,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		}
 		int width = ((Number) rimWidthSpinner.getValue()).intValue();
 		int outer = ((Number) outerPxSpinner.getValue()).intValue();
+		int floorWidth = ((Number) floorWidthSpinner.getValue()).intValue();
 		for (Cage cage : exp.getCages().cagesList) {
 			if (cage == null) {
 				continue;
@@ -305,6 +313,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 				if (spot != null && spot.getRimGeometry().hasOutline()) {
 					spot.getRimGeometry().setRimWidthPx(width);
 					spot.getRimGeometry().setOuterPx(outer);
+					spot.getRimGeometry().setFloorWidthPx(floorWidth);
 				}
 			}
 		}

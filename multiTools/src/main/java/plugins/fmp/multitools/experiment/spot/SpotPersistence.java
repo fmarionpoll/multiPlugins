@@ -84,7 +84,7 @@ public class SpotPersistence {
 				+ "cagePos" + sep + "cageColumn" + sep + "cageRow" + sep + "volume" + sep + "npixels" + sep + "radius"
 				+ sep 				+ "stim" + sep + "conc" + sep + "colorR" + sep + "colorG" + sep + "colorB" + sep + "preConsumed" + sep
 				+ "preConsumedBaseStroke" + sep + "roiType" + sep + "roiData" + sep + "rimWidth" + sep
-				+ "outerPx" + sep + "outlineType" + sep + "outlineData\n";
+				+ "outerPx" + sep + "outlineType" + sep + "outlineData" + sep + "floorWidth\n";
 	}
 
 	public static String csvExportSpotDescription(Spot spot, String sep) {
@@ -126,6 +126,7 @@ public class SpotPersistence {
 		if (rim.hasOutline()) {
 			sbf.append(sep).append(csvOutline(rim, sep));
 		}
+		sbf.append(sep).append(rim.getFloorWidthPx());
 
 		sbf.append("\n");
 		return sbf.toString();
@@ -394,6 +395,7 @@ public class SpotPersistence {
 			return;
 		}
 		if (index >= data.length || !ROIType.POLYLINE.toCsvString().equalsIgnoreCase(data[index].trim())) {
+			readFloorWidth(rim, data, index);
 			return;
 		}
 		index++;
@@ -421,6 +423,19 @@ public class SpotPersistence {
 			return;
 		}
 		rim.setOutline(xs, ys);
+		readFloorWidth(rim, data, index);
+	}
+
+	/** Trailing integer after the outline, or just after outerPx when there is no outline. */
+	private static void readFloorWidth(SpotRimGeometry rim, String[] data, int index) {
+		if (data == null || index >= data.length) {
+			return;
+		}
+		try {
+			rim.setFloorWidthPx(Integer.parseInt(data[index].trim()));
+		} catch (NumberFormatException e) {
+			return;
+		}
 	}
 
 	private static boolean isPreConsumedFlagField(String field) {

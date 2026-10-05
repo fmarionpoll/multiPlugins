@@ -252,6 +252,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 				SpotRimGeometry rim = spot.getRimGeometry();
 				rim.setRimWidthPx(analyzerParams.rimWidthPx);
 				rim.setOuterPx(analyzerParams.outerPx);
+				rim.setFloorWidthPx(analyzerParams.floorWidthPx);
 				if (replace || !rim.hasOutline()) {
 					EllipseGeom ellipse = cage.ellipses.get(i);
 					SpotRimAnalyzer.Detection found = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,

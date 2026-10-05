@@ -13,6 +13,8 @@ public final class SpotRimGeometry {
 
 	public static final int DEFAULT_RIM_WIDTH_PX = 3;
 	public static final int DEFAULT_OUTER_PX = 5;
+	/** Stroke width of the floor ring, outside the blue outline. */
+	public static final int DEFAULT_FLOOR_WIDTH_PX = 3;
 	/** One stored vertex per this many degrees. A full rim has 24 vertices. */
 	public static final int OUTLINE_STEP_DEG = 15;
 	/** A vertex this far inside the hull is an inward bite, not pixel noise. */
@@ -22,6 +24,7 @@ public final class SpotRimGeometry {
 	private double[] y = new double[0];
 	private int rimWidthPx = DEFAULT_RIM_WIDTH_PX;
 	private int outerPx = DEFAULT_OUTER_PX;
+	private int floorWidthPx = DEFAULT_FLOOR_WIDTH_PX;
 
 	public SpotRimGeometry() {
 	}
@@ -38,12 +41,14 @@ public final class SpotRimGeometry {
 			y = new double[0];
 			rimWidthPx = DEFAULT_RIM_WIDTH_PX;
 			outerPx = DEFAULT_OUTER_PX;
+			floorWidthPx = DEFAULT_FLOOR_WIDTH_PX;
 			return;
 		}
 		x = source.x.clone();
 		y = source.y.clone();
 		rimWidthPx = source.rimWidthPx;
 		outerPx = source.outerPx;
+		floorWidthPx = source.floorWidthPx;
 	}
 
 	public boolean hasOutline() {
@@ -95,6 +100,14 @@ public final class SpotRimGeometry {
 
 	public void setOuterPx(int outerPx) {
 		this.outerPx = Math.max(0, outerPx);
+	}
+
+	public int getFloorWidthPx() {
+		return floorWidthPx;
+	}
+
+	public void setFloorWidthPx(int floorWidthPx) {
+		this.floorWidthPx = Math.max(1, floorWidthPx);
 	}
 
 	/**

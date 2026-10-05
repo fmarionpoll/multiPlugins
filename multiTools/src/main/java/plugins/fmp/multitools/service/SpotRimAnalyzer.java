@@ -55,6 +55,7 @@ public final class SpotRimAnalyzer {
 		public final int initialBins;
 		public final int rimWidthPx;
 		public final int outerPx;
+		public final int floorWidthPx;
 		public final int smoothBins;
 		public final boolean insectGate;
 		public final ImageTransformEnums insectTransform;
@@ -62,13 +63,14 @@ public final class SpotRimAnalyzer {
 		public final boolean insectAbove;
 		public final boolean trackPlate;
 
-		public Params(double madMultiplier, int initialBins, int rimWidthPx, int outerPx, int smoothBins,
-				boolean insectGate, ImageTransformEnums insectTransform, int insectThreshold, boolean insectAbove,
-				boolean trackPlate) {
+		public Params(double madMultiplier, int initialBins, int rimWidthPx, int outerPx, int floorWidthPx,
+				int smoothBins, boolean insectGate, ImageTransformEnums insectTransform, int insectThreshold,
+				boolean insectAbove, boolean trackPlate) {
 			this.madMultiplier = madMultiplier;
 			this.initialBins = Math.max(1, initialBins);
 			this.rimWidthPx = Math.max(1, rimWidthPx);
 			this.outerPx = Math.max(0, outerPx);
+			this.floorWidthPx = Math.max(1, floorWidthPx);
 			this.smoothBins = Math.max(1, smoothBins);
 			this.insectGate = insectGate;
 			this.insectTransform = insectTransform != null ? insectTransform : ImageTransformEnums.B_RGB;
@@ -226,8 +228,8 @@ public final class SpotRimAnalyzer {
 			double[] ys = rim.outlineY();
 			EllipseGeom self = spotEllipses != null && i < spotEllipses.size() ? spotEllipses.get(i) : null;
 			signal[i] = signalPixels(xs, ys, rim.getRimWidthPx(), imageWidth, imageHeight);
-			floor[i] = floorPixels(xs, ys, SpotRimGeometry.DEFAULT_RIM_WIDTH_PX, rim.getOuterPx(), imageWidth,
-					imageHeight, others(self, allEllipses));
+			floor[i] = floorPixels(xs, ys, rim.getFloorWidthPx(), rim.getOuterPx(), imageWidth, imageHeight,
+					others(self, allEllipses));
 		}
 		return new Layout(imageWidth, n, floor, signal);
 	}

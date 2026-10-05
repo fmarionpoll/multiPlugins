@@ -15,6 +15,7 @@ public class SpotRimPersistenceTest {
 		Spot spot = describedSpot();
 		spot.getRimGeometry().setRimWidthPx(3);
 		spot.getRimGeometry().setOuterPx(6);
+		spot.getRimGeometry().setFloorWidthPx(7);
 		spot.getRimGeometry().setOutline(new double[] { 10.5, 20.25, 15 }, new double[] { 30, 30.5, 40.125 });
 
 		Spot loaded = new Spot();
@@ -23,10 +24,25 @@ public class SpotRimPersistenceTest {
 		assertEquals("spotA", loaded.getProperties().getName());
 		assertEquals(3, loaded.getRimGeometry().getRimWidthPx());
 		assertEquals(6, loaded.getRimGeometry().getOuterPx());
+		assertEquals(7, loaded.getRimGeometry().getFloorWidthPx());
 		assertTrue(loaded.getRimGeometry().hasOutline());
 		assertEquals(3, loaded.getRimGeometry().vertexCount());
 		assertEquals(10.5, loaded.getRimGeometry().outlineX()[0], 0.001);
 		assertEquals(40.125, loaded.getRimGeometry().outlineY()[2], 0.001);
+	}
+
+	@Test
+	public void outlineWithoutFloorWidthKeepsDefault() {
+		Spot spot = describedSpot();
+		spot.getRimGeometry().setOutline(new double[] { 10, 20, 15 }, new double[] { 30, 30, 40 });
+		String[] fields = fieldsOf(spot);
+		String[] older = java.util.Arrays.copyOf(fields, fields.length - 1);
+
+		Spot loaded = new Spot();
+		SpotPersistence.csvImportSpotDescription(loaded, older);
+
+		assertTrue(loaded.getRimGeometry().hasOutline());
+		assertEquals(SpotRimGeometry.DEFAULT_FLOOR_WIDTH_PX, loaded.getRimGeometry().getFloorWidthPx());
 	}
 
 	@Test
@@ -39,6 +55,7 @@ public class SpotRimPersistenceTest {
 		assertFalse(loaded.getRimGeometry().hasOutline());
 		assertEquals(SpotRimGeometry.DEFAULT_RIM_WIDTH_PX, loaded.getRimGeometry().getRimWidthPx());
 		assertEquals(SpotRimGeometry.DEFAULT_OUTER_PX, loaded.getRimGeometry().getOuterPx());
+		assertEquals(SpotRimGeometry.DEFAULT_FLOOR_WIDTH_PX, loaded.getRimGeometry().getFloorWidthPx());
 	}
 
 	private static Spot describedSpot() {
