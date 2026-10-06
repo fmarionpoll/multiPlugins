@@ -13,8 +13,10 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
  * diagonals cross at the circle center and run past the rim by flankPx. Each
  * sample is the mean red deficit of a band across the line
  * ({@code bandWidthPx} pixels; 1 keeps the single-pixel line). Samples on
- * those arms outside every circle are that spot's floor. A sample inside the
- * circle counts when its deficit clears that floor. Darkening the same pixels
+ * those arms outside every circle are that spot's floor. A fly on an arm is
+ * left out of that floor; when flies cover half of it, the opening floor is
+ * kept. A sample inside the circle counts when its deficit clears that floor.
+ * Darkening the same pixels
  * does not raise the fraction. A shrinking drop loses samples and the ratio
  * falls. A short moving median takes out bin-to-bin flicker.
  */
@@ -25,6 +27,13 @@ public final class SpotLineDeficitAnalyzer {
 
 	/** Same cutoff as the other spot measures: a fly on at least this fraction of the cross drops the bin. */
 	static final double FLY_OCCUPANCY_FRACTION = 0.08;
+
+	/**
+	 * Radius, in pixels, added around each detected fly before the floor and the
+	 * cross are sampled. The darkest pixel is the body; legs and the shadow sit
+	 * just outside it and would otherwise enter the floor.
+	 */
+	public static final int FLY_FLOOR_DILATE_PX = 4;
 
 	/**
 	 * A pixel still counts only while its excess is at least this share of the
@@ -290,7 +299,9 @@ public final class SpotLineDeficitAnalyzer {
 	/**
 	 * One floor level per spot, in spot-list order. Values are medians of that
 	 * spot's flank deficits inside {@code allFlanks}, which is the concatenation
-	 * produced by {@link #sampleFlanks}.
+	 * produced by {@link #sampleFlanks}. Fly samples are already NaN. When they
+	 * are half or more of the arm, the floor is NaN so the caller can keep the
+	 * opening floor instead of a fly, or instead of 0.
 	 */
 	public static double[] spotFloors(Layout layout, double[] allFlanks) {
 		int nSpots = layout != null && layout.flankPix != null ? layout.flankPix.length : 0;
@@ -301,12 +312,133 @@ public final class SpotLineDeficitAnalyzer {
 		int offset = 0;
 		for (int s = 0; s < nSpots; s++) {
 			int len = stationCount(layout.flankPix[s], runAt(layout.flankRun, s));
-			if (offset + len <= allFlanks.length && len > 0) {
-				floors[s] = median(Arrays.copyOfRange(allFlanks, offset, offset + len));
+			if (len > 0 && offset + len <= allFlanks.length) {
+				int finite = 0;
+				for (int i = 0; i < len; i++) {
+					if (Double.isFinite(allFlanks[offset + i])) {
+						finite++;
+					}
+				}
+				if (finite * 2 >= len) {
+					floors[s] = median(Arrays.copyOfRange(allFlanks, offset, offset + len));
+				} else {
+					floors[s] = Double.NaN;
+				}
 			}
 			offset += len;
 		}
 		return floors;
+	}
+
+	/**
+	 * Median flank deficit of each spot over the opening frames. One fly crossing
+	 * during that window does not set the zero.
+	 */
+	public static double[] referenceFloors(Layout layout, double[][] flanks, int window) {
+		int nSpots = layout != null && layout.flankPix != null ? layout.flankPix.length : 0;
+		double[] floors = new double[nSpots];
+		Arrays.fill(floors, Double.NaN);
+		if (layout == null || flanks == null || nSpots == 0) {
+			return floors;
+		}
+		int limit = Math.min(Math.max(0, window), flanks.length);
+		int[] counts = new int[nSpots];
+		for (int t = 0; t < limit; t++) {
+			accumulateFinite(layout, flanks[t], counts, null, null);
+		}
+		double[][] values = new double[nSpots][];
+		int[] cursor = new int[nSpots];
+		for (int s = 0; s < nSpots; s++) {
+			values[s] = new double[counts[s]];
+		}
+		for (int t = 0; t < limit; t++) {
+			accumulateFinite(layout, flanks[t], null, values, cursor);
+		}
+		for (int s = 0; s < nSpots; s++) {
+			if (counts[s] > 0) {
+				floors[s] = median(values[s]);
+			}
+		}
+		return floors;
+	}
+
+	/** Per-frame floor, or the opening floor when this frame's arm is mostly flies. */
+	public static double[] floorsWithReference(Layout layout, double[] allFlanks, double[] reference) {
+		double[] floors = spotFloors(layout, allFlanks);
+		if (reference == null) {
+			return floors;
+		}
+		int n = Math.min(floors.length, reference.length);
+		for (int s = 0; s < n; s++) {
+			if (!Double.isFinite(floors[s]) && Double.isFinite(reference[s])) {
+				floors[s] = reference[s];
+			}
+		}
+		return floors;
+	}
+
+	/**
+	 * The opening window still held dye above the flank noise. Below that, I/I0
+	 * divides a flicker by a near-zero reference and an empty spot reads as full.
+	 */
+	public static boolean openingShowsDye(double dyeLevel, double noise) {
+		return Double.isFinite(dyeLevel) && dyeLevel > noise && dyeLevel > 0.0;
+	}
+
+	/** Disk around each fly pixel. The source mask is not grown into itself. */
+	public static boolean[] dilateInsects(boolean[] insect, int width, int height, int radius) {
+		if (insect == null || radius <= 0 || width <= 0 || height <= 0 || insect.length != width * height) {
+			return insect;
+		}
+		boolean[] out = insect.clone();
+		int r2 = radius * radius;
+		for (int y = 0; y < height; y++) {
+			int row = y * width;
+			for (int x = 0; x < width; x++) {
+				if (!insect[row + x]) {
+					continue;
+				}
+				int y0 = Math.max(0, y - radius);
+				int y1 = Math.min(height - 1, y + radius);
+				int x0 = Math.max(0, x - radius);
+				int x1 = Math.min(width - 1, x + radius);
+				for (int yy = y0; yy <= y1; yy++) {
+					int dy = yy - y;
+					int yRow = yy * width;
+					for (int xx = x0; xx <= x1; xx++) {
+						int dx = xx - x;
+						if (dx * dx + dy * dy <= r2) {
+							out[yRow + xx] = true;
+						}
+					}
+				}
+			}
+		}
+		return out;
+	}
+
+	private static void accumulateFinite(Layout layout, double[] frame, int[] counts, double[][] values, int[] cursor) {
+		if (frame == null || layout.flankPix == null) {
+			return;
+		}
+		int offset = 0;
+		int nSpots = layout.flankPix.length;
+		for (int s = 0; s < nSpots; s++) {
+			int len = stationCount(layout.flankPix[s], runAt(layout.flankRun, s));
+			for (int i = 0; i < len && offset + i < frame.length; i++) {
+				double v = frame[offset + i];
+				if (!Double.isFinite(v)) {
+					continue;
+				}
+				if (counts != null) {
+					counts[s]++;
+				}
+				if (values != null && cursor[s] < values[s].length) {
+					values[s][cursor[s]++] = v;
+				}
+			}
+			offset += len;
+		}
 	}
 
 	public static void integrate(Layout layout, int[] red, int[] green, int[] blue, double[] spotFloor, double noise,

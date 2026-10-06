@@ -321,6 +321,41 @@ public class SpotLineDeficitAnalyzerTest {
 	}
 
 	@Test
+	public void flyCoveringTheFloorDoesNotBecomeAZeroFloor() {
+		Layout layout = new Layout(4, 1, new int[][] { new int[] { 0, 1, 2, 3 } }, new int[][] { new int[] { 0 } });
+		double[] flanks = new double[] { Double.NaN, Double.NaN, Double.NaN, 4.0 };
+		assertTrue(Double.isNaN(SpotLineDeficitAnalyzer.spotFloors(layout, flanks)[0]));
+		double[] held = SpotLineDeficitAnalyzer.floorsWithReference(layout, flanks, new double[] { 5.0 });
+		assertEquals(5.0, held[0], 1e-9);
+	}
+
+	@Test
+	public void oneFlyPixelStaysOutOfTheFloorMedian() {
+		Layout layout = new Layout(5, 1, new int[][] { new int[] { 0, 1, 2, 3, 4 } },
+				new int[][] { new int[] { 0 } });
+		double[] flanks = new double[] { Double.NaN, 5.0, 5.0, 5.0, 5.0 };
+		assertEquals(5.0, SpotLineDeficitAnalyzer.spotFloors(layout, flanks)[0], 1e-9);
+	}
+
+	@Test
+	public void emptyOpeningIsNotTreatedAsDye() {
+		assertTrue(!SpotLineDeficitAnalyzer.openingShowsDye(3.0, 5.0));
+		assertTrue(SpotLineDeficitAnalyzer.openingShowsDye(12.0, 5.0));
+	}
+
+	@Test
+	public void flyMaskGrowsAroundTheBody() {
+		boolean[] mask = new boolean[] { false, false, false, false, true, false, false, false, false };
+		boolean[] grown = SpotLineDeficitAnalyzer.dilateInsects(mask, 3, 3, 1);
+		assertTrue(grown[1]);
+		assertTrue(grown[3]);
+		assertTrue(grown[4]);
+		assertTrue(grown[5]);
+		assertTrue(grown[7]);
+		assertTrue(!grown[0]);
+	}
+
+	@Test
 	public void seriesThatStaysHighIsNotClamped() {
 		double[] ratio = new double[] { 1.0, 0.95, 0.9, 0.92, 0.88 };
 		SpotLineDeficitAnalyzer.suppressRebound(ratio);

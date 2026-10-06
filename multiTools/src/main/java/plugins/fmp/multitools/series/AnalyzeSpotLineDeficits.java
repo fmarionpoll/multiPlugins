@@ -4,6 +4,7 @@ import java.awt.Rectangle;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import icy.gui.frame.progress.ProgressFrame;
@@ -80,7 +81,16 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				double[][] ratios = SpotLineDeficitAnalyzer.ratiosFromIntegrals(cage.integral,
 						analyzerParams.initialBins, analyzerParams.smoothBins);
 				for (int i = 0; i < cage.spots.size(); i++) {
-					copyDoubles(cage.spots.get(i).getKymoLineRatio(), i < ratios.length ? ratios[i] : null);
+					double[] row = i < ratios.length ? ratios[i] : null;
+					if (row != null) {
+						double dye = cage.dyeLevel != null && i < cage.dyeLevel.length ? cage.dyeLevel[i] : Double.NaN;
+						if (!SpotLineDeficitAnalyzer.openingShowsDye(dye, cage.noise)) {
+							Arrays.fill(row, 0.0);
+						} else {
+							SpotLineDeficitAnalyzer.suppressRebound(row);
+						}
+					}
+					copyDoubles(cage.spots.get(i).getKymoLineRatio(), row);
 				}
 			}
 			if (exp.getCages() != null) {
@@ -122,6 +132,14 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		for (CageLines cage : cages) {
 			cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
+			cage.refFloor = SpotLineDeficitAnalyzer.referenceFloors(cage.layout, cage.flanks, window);
+		}
+		for (int t = 0; t < window; t++) {
+			if (!fillOpeningExcess(seq, loader, frames, cages, t)) {
+				return false;
+			}
+		}
+		for (CageLines cage : cages) {
 			int nSpots = cage.spots.size();
 			cage.dyeLevel = new double[nSpots];
 			for (int s = 0; s < nSpots; s++) {
@@ -142,7 +160,8 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			for (CageLines cage : cages) {
 				cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green,
 					frame.blue, frame.insect);
-				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+				double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t],
+						cage.refFloor);
 				SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors,
 					cage.noise, cage.integral, t, frame.insect, cage.dyeLevel);
 			}
@@ -159,13 +178,29 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		for (CageLines cage : cages) {
 			cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
 				frame.insect);
-			if (cage.openingExcess != null && cage.openingExcess.length > 0 && t < cage.openingExcess[0].length) {
-				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
-				for (int s = 0; s < cage.openingExcess.length; s++) {
-					double floor = floors != null && s < floors.length ? floors[s] : 0.0;
-					cage.openingExcess[s][t] = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
-							frame.green, frame.blue, floor, frame.insect);
+		}
+		return true;
+	}
+
+	private boolean fillOpeningExcess(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+		List<CageLines> cages, int t) {
+		if (stopFlag) {
+			return false;
+		}
+		FramePixels frame = readFrame(seq, loader, frames.get(t));
+		for (CageLines cage : cages) {
+			if (cage.openingExcess == null || cage.openingExcess.length == 0 || t >= cage.openingExcess[0].length) {
+				continue;
+			}
+			double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t], cage.refFloor);
+			for (int s = 0; s < cage.openingExcess.length; s++) {
+				double floor = floors != null && s < floors.length ? floors[s] : Double.NaN;
+				if (!Double.isFinite(floor)) {
+					cage.openingExcess[s][t] = Double.NaN;
+					continue;
 				}
+				cage.openingExcess[s][t] = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
+						frame.green, frame.blue, floor, frame.insect);
 			}
 		}
 		return true;
@@ -178,7 +213,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		FramePixels frame = readFrame(seq, loader, frames.get(t));
 		for (CageLines cage : cages) {
-			double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+			double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t], cage.refFloor);
 			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
 				cage.integral, t, frame.insect, cage.dyeLevel);
 		}
@@ -220,7 +255,8 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		for (int i = 0; i < metric.length; i++) {
 			insect[i] = KymoMetricGate.directedFinite(metric[i], p.insectThreshold, p.insectAbove);
 		}
-		return insect;
+		return SpotLineDeficitAnalyzer.dilateInsects(insect, img.getSizeX(), img.getSizeY(),
+				SpotLineDeficitAnalyzer.FLY_FLOOR_DILATE_PX);
 	}
 
 	private static final class FramePixels {
@@ -445,6 +481,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		double[][] flanks;
 		double[][] integral;
 		double noise;
+		double[] refFloor;
 		double[] dyeLevel;
 		double[][] openingExcess;
 

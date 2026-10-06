@@ -114,7 +114,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		narrowSpinner(insetSpinner, 3);
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
 		insectGateCheckBox.setToolTipText(
-				"Drop a time bin when a fly covers at least 8% of the rim. Uncheck to keep those pixels.");
+				"Leave flies out of the floor and out of the rim. A bin is dropped when a fly covers at least 8% of the rim. Uncheck to keep those pixels.");
 		trackPlateCheckBox.setToolTipText(
 				"Small x, y, and rotation of the whole plate. Flies and eaten spots are left out of the fit.");
 

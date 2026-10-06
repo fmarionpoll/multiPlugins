@@ -111,6 +111,12 @@ public class AnalyzeSpotRims extends BuildSeries {
 				sampleOpening(cages, opening[t], t);
 			}
 			for (CageRims cage : cages) {
+				cage.refFloor = SpotLineDeficitAnalyzer.referenceFloors(cage.layout, cage.flanks, window);
+			}
+			for (int t = 0; t < window; t++) {
+				sampleOpening(cages, opening[t], t);
+			}
+			for (CageRims cage : cages) {
 				cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
 				cage.dyeLevel = new double[cage.spots.size()];
 				for (int s = 0; s < cage.spots.size(); s++) {
@@ -300,9 +306,14 @@ public class AnalyzeSpotRims extends BuildSeries {
 			cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
 					frame.insect);
 			if (cage.openingExcess != null && t < cage.openingExcess[0].length) {
-				double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+				double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t],
+						cage.refFloor);
 				for (int s = 0; s < cage.openingExcess.length; s++) {
-					double floor = floors != null && s < floors.length ? floors[s] : 0.0;
+					double floor = floors != null && s < floors.length ? floors[s] : Double.NaN;
+					if (!Double.isFinite(floor)) {
+						cage.openingExcess[s][t] = Double.NaN;
+						continue;
+					}
 					cage.openingExcess[s][t] = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
 							frame.green, frame.blue, floor, frame.insect);
 				}
@@ -315,7 +326,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			if (cage.layout == null) {
 				continue;
 			}
-			double[] floors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+			double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t], cage.refFloor);
 			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
 					cage.integral, t, frame.insect, cage.dyeLevel);
 		}
@@ -397,7 +408,8 @@ public class AnalyzeSpotRims extends BuildSeries {
 		for (int i = 0; i < metric.length; i++) {
 			insect[i] = KymoMetricGate.directedFinite(metric[i], p.insectThreshold, p.insectAbove);
 		}
-		return insect;
+		return SpotLineDeficitAnalyzer.dilateInsects(insect, img.getSizeX(), img.getSizeY(),
+				SpotLineDeficitAnalyzer.FLY_FLOOR_DILATE_PX);
 	}
 
 	private boolean prepareExperiment(Experiment exp) {
@@ -610,6 +622,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 		double[][] flanks;
 		double[][] integral;
 		double noise;
+		double[] refFloor;
 		double[] dyeLevel;
 		double[][] openingExcess;
 

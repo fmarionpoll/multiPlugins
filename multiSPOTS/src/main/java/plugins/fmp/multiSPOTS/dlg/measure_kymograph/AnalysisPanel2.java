@@ -60,7 +60,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 	private final JSpinner madMultiplierSpinner = new JSpinner(new SpinnerNumberModel(5.0, 0.5, 30.0, 0.5));
 	private final JSpinner initialBinsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 500, 1));
 	private final JSpinner flankPxSpinner = new JSpinner(new SpinnerNumberModel(40, 0, 2000, 1));
-	private final JSpinner bandWidthSpinner = new JSpinner(new SpinnerNumberModel(1, 1, 21, 2));
+	private final JSpinner bandWidthSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 21, 2));
 	private final JCheckBox insectGateCheckBox = new JCheckBox("Insect filter (exclude)", true);
 	private final JComboBox<ImageTransformEnums> insectTransformCombo = new JComboBox<>(
 			KymoImageTransforms.METRIC_CHOICES);
@@ -87,7 +87,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 				"Pixels averaged across each arm of the X. 1 is the single-pixel line. 3 averages the line and one pixel on each side, the same idea as the vertical kymograph strip. Wider bands reduce pixel noise until the band is wider than the dye.");
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
 		insectGateCheckBox.setToolTipText(
-				"Drop a time bin when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
+				"Leave flies out of the floor and out of the cross. A bin is dropped when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
 
 		JPanel actions = new JPanel(left);
 		actions.add(analyzeButton);
@@ -141,10 +141,10 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 				? (ImageTransformEnums) insectTransformCombo.getSelectedItem()
 				: ImageTransformEnums.B_RGB;
 		return new SpotLineDeficitAnalyzer.Params(((Number) madMultiplierSpinner.getValue()).doubleValue(),
-				((Number) initialBinsSpinner.getValue()).intValue(),
-				((Number) flankPxSpinner.getValue()).intValue(), SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS,
-				insectGateCheckBox.isSelected(), insectTf, ((Number) insectThresholdSpinner.getValue()).intValue(),
-				insectDirectionCombo.getSelectedIndex() == 1, ((Number) bandWidthSpinner.getValue()).intValue());
+				((Number) initialBinsSpinner.getValue()).intValue(), ((Number) flankPxSpinner.getValue()).intValue(),
+				SpotLineDeficitAnalyzer.DEFAULT_SMOOTH_BINS, insectGateCheckBox.isSelected(), insectTf,
+				((Number) insectThresholdSpinner.getValue()).intValue(), insectDirectionCombo.getSelectedIndex() == 1,
+				((Number) bandWidthSpinner.getValue()).intValue());
 	}
 
 	private void startAnalyze() {
