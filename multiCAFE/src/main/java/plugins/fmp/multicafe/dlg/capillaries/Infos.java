@@ -48,6 +48,7 @@ public class Infos extends JPanel {
 
 	private JCheckBox allExperimentsCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox showMeasuredCheckBox = new JCheckBox("Show measured limits");
+	private JCheckBox showOutlineCheckBox = new JCheckBox("Show glass outline");
 	private JLabel calibrationStatusLabel = new JLabel("-");
 	private MultiCAFE parent0 = null;
 	private InfosCapillaryTable infosCapillaryTable = null;
@@ -74,6 +75,7 @@ public class Infos extends JPanel {
 		panel1.add(autoMeasureButton);
 		panel1.add(allExperimentsCheckBox);
 		panel1.add(showMeasuredCheckBox);
+		panel1.add(showOutlineCheckBox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flow);
@@ -90,6 +92,7 @@ public class Infos extends JPanel {
 		allExperimentsCheckBox
 				.setToolTipText("Apply the reset to the selected experiment through the last in the browse list");
 		showMeasuredCheckBox.setToolTipText("Draw over the image the extent measured for each capillary");
+		showOutlineCheckBox.setToolTipText("Show fitted walls and ends when a measured width is available");
 
 		defineActionListeners();
 	}
@@ -123,6 +126,14 @@ public class Infos extends JPanel {
 	}
 
 	private void defineActionListeners() {
+		showOutlineCheckBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (showOutlineCheckBox.isSelected())
+				showMeasuredCheckBox.setSelected(true);
+			if (exp != null)
+				CapillaryMeasuredTipsOverlay.setOutlinesVisible(exp.getSeqCamData(), showOutlineCheckBox.isSelected());
+			refreshMeasuredLengths(exp);
+		});
 		getCapillaryLengthButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -456,6 +467,7 @@ public class Infos extends JPanel {
 	private int showMeasuredLengths(Experiment exp) {
 		if (exp == null || exp.getSeqCamData() == null || exp.getCapillaries() == null)
 			return 0;
+		CapillaryMeasuredTipsOverlay.setOutlinesVisible(exp.getSeqCamData(), showOutlineCheckBox.isSelected());
 		int shown = CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData());
 		if (shown > 0 && parent0 != null && parent0.paneExperiment != null && parent0.paneExperiment.tabOptions != null)
 			parent0.paneExperiment.tabOptions.applyCentralViewOptionsToCamViewer(exp);

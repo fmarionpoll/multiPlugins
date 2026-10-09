@@ -40,6 +40,7 @@ public class CapillaryLengthResult {
 		private double roiPixels = Double.NaN;
 		private double detectedPixels = Double.NaN;
 		private double fittedPixels = Double.NaN;
+		private double widthPixels = Double.NaN;
 		private double centroidX = Double.NaN;
 		private Point2D detectedStart = null;
 		private Point2D detectedEnd = null;
@@ -101,6 +102,15 @@ public class CapillaryLengthResult {
 
 		public double getFittedPixels() {
 			return fittedPixels;
+		}
+
+		/** Full distance between the fitted glass walls, perpendicular to the shaft. */
+		public double getWidthPixels() {
+			return widthPixels;
+		}
+
+		public void setWidthPixels(double widthPixels) {
+			this.widthPixels = Double.isFinite(widthPixels) && widthPixels > 0. ? widthPixels : Double.NaN;
 		}
 
 		public void setFittedPixels(double fittedPixels) {

@@ -48,7 +48,8 @@ public final class CapillaryPhaseGeometryPersistence {
 							new CorridorExtensionRatios(Double.parseDouble(f[2]), Double.parseDouble(f[3])));
 				else if ("BLUE".equals(f[0]) && f.length >= 7)
 					model.putBlue(Long.parseLong(f[2]), new Line2D.Double(Double.parseDouble(f[3]),
-							Double.parseDouble(f[4]), Double.parseDouble(f[5]), Double.parseDouble(f[6])));
+							Double.parseDouble(f[4]), Double.parseDouble(f[5]), Double.parseDouble(f[6])),
+							f.length >= 8 && !f[7].isEmpty() ? Double.parseDouble(f[7]) : Double.NaN);
 			}
 			return true;
 		} catch (Exception e) {
@@ -64,8 +65,8 @@ public final class CapillaryPhaseGeometryPersistence {
 		try {
 			Files.createDirectories(path.getParent());
 			try (BufferedWriter writer = Files.newBufferedWriter(path, StandardCharsets.UTF_8)) {
-				writer.write("# multiCAFE coordinated capillary phase geometry v1\n");
-				writer.write("type;capillary_base64;frame_or_upper;lower_or_x1;y1;x2;y2\n");
+				writer.write("# multiCAFE coordinated capillary phase geometry v2\n");
+				writer.write("type;capillary_base64;frame_or_upper;lower_or_x1;y1;x2;y2;width_px\n");
 				for (Capillary capillary : capillaries.getList()) {
 					CapillaryPhaseGeometryModel model = capillary.getPhaseGeometry();
 					if (!model.isInitialized())
@@ -73,11 +74,13 @@ public final class CapillaryPhaseGeometryPersistence {
 					String name = encode(
 							capillary.getRoiName() != null ? capillary.getRoiName() : capillary.getKymographName());
 					writer.write("RATIO;" + name + ";" + model.getExtensions().getUpper() + ";"
-							+ model.getExtensions().getLower() + ";;;\n");
+							+ model.getExtensions().getLower() + ";;;;\n");
 					for (Map.Entry<Long, Line2D> entry : model.getBlueKeyframes().entrySet()) {
 						Line2D blue = entry.getValue();
+						double width = model.getWidthAt(entry.getKey());
 						writer.write("BLUE;" + name + ";" + entry.getKey() + ";" + blue.getX1() + ";" + blue.getY1()
-								+ ";" + blue.getX2() + ";" + blue.getY2() + "\n");
+								+ ";" + blue.getX2() + ";" + blue.getY2() + ";"
+								+ (Double.isFinite(width) ? Double.toString(width) : "") + "\n");
 					}
 				}
 			}

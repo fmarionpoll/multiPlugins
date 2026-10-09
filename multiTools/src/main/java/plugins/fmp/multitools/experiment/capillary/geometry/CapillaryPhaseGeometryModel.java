@@ -10,11 +10,12 @@ import java.util.TreeMap;
 
 /**
  * CODEX Time-dependent physical capillary geometry. Green pose is kept by
- * AlongT; this model stores blue keyframes and capillary-wide corridor
- * extension ratios.
+ * AlongT; this model stores blue keyframes, their measured wall-to-wall widths,
+ * and capillary-wide corridor extension ratios. Width is unknown for old data.
  */
 public final class CapillaryPhaseGeometryModel {
 	private final NavigableMap<Long, Line2D> blueByPhase = new TreeMap<Long, Line2D>();
+	private final Map<Long, Double> widthByPhase = new TreeMap<Long, Double>();
 	private CorridorExtensionRatios extensions;
 
 	public synchronized boolean isInitialized() {
@@ -32,17 +33,46 @@ public final class CapillaryPhaseGeometryModel {
 	}
 
 	public synchronized void initialize(long phaseStart, Line2D green, Line2D blue) {
+		initialize(phaseStart, green, blue, Double.NaN);
+	}
+
+	public synchronized void initialize(long phaseStart, Line2D green, Line2D blue, double widthPixels) {
 		if (green == null || blue == null || blue.getP1().distance(blue.getP2()) <= 0)
 			throw new IllegalArgumentException("non-empty green and blue lines are required");
 		Line2D orientedBlue = orientLike(blue, green);
 		extensions = inferExtensions(green, orientedBlue);
 		blueByPhase.put(phaseStart, CapillaryPhaseGeometry.copy(orientedBlue));
+		storeWidth(phaseStart, widthPixels);
 	}
 
 	public synchronized void putBlue(long phaseStart, Line2D blue) {
+		putBlue(phaseStart, blue, getWidthAt(phaseStart));
+	}
+
+	/** Detection supplies a new width; NaN explicitly denotes an unknown width. */
+	public synchronized void putBlue(long phaseStart, Line2D blue, double widthPixels) {
 		if (blue == null || blue.getP1().distance(blue.getP2()) <= 0)
 			throw new IllegalArgumentException("a non-empty blue line is required");
 		blueByPhase.put(phaseStart, CapillaryPhaseGeometry.copy(blue));
+		storeWidth(phaseStart, widthPixels);
+	}
+
+	/** Full wall-to-wall width of the selected blue phase; old files return NaN. */
+	public synchronized double getWidthAt(long frame) {
+		Long phase = blueByPhase.floorKey(frame);
+		if (phase == null && !blueByPhase.isEmpty())
+			phase = blueByPhase.firstKey();
+		if (phase == null)
+			return Double.NaN;
+		Double width = widthByPhase.get(phase);
+		return width == null ? Double.NaN : width;
+	}
+
+	private void storeWidth(long phaseStart, double widthPixels) {
+		if (Double.isFinite(widthPixels) && widthPixels > 0.)
+			widthByPhase.put(phaseStart, widthPixels);
+		else
+			widthByPhase.remove(phaseStart);
 	}
 
 	public synchronized Line2D getBlueAt(long frame) {
@@ -65,6 +95,7 @@ public final class CapillaryPhaseGeometryModel {
 
 	public synchronized void clear() {
 		blueByPhase.clear();
+		widthByPhase.clear();
 		extensions = null;
 	}
 
@@ -87,8 +118,14 @@ public final class CapillaryPhaseGeometryModel {
 				throw new IllegalArgumentException("invalid blue keyframe");
 			validated.put(entry.getKey(), CapillaryPhaseGeometry.copy(line));
 		}
+		Map<Long, Double> widths = new TreeMap<Long, Double>();
+		for (Long phase : validated.keySet())
+			widths.put(phase, getWidthAt(phase));
 		blueByPhase.clear();
 		blueByPhase.putAll(validated);
+		widthByPhase.clear();
+		for (Map.Entry<Long, Double> entry : widths.entrySet())
+			storeWidth(entry.getKey(), entry.getValue());
 	}
 
 	/** Phase-only pose change: blue length and shared extensions are preserved. */
@@ -102,7 +139,7 @@ public final class CapillaryPhaseGeometryModel {
 		Point2D blueMid = new Point2D.Double(greenMid.getX() - midpointOffset * axis.x,
 				greenMid.getY() - midpointOffset * axis.y);
 		Line2D alignedBlue = centeredLine(blueMid, axis, blueLength);
-		blueByPhase.put(phaseStart, alignedBlue);
+		putBlue(phaseStart, alignedBlue);
 		return CapillaryPhaseGeometry.copy(alignedBlue);
 	}
 
@@ -138,7 +175,7 @@ public final class CapillaryPhaseGeometryModel {
 		Point2D projectedMid = projectOntoLine(midpoint(oldBlue), editedGreen, axis);
 		Line2D newBlue = centeredLine(projectedMid, axis, blueLength);
 		extensions = inferExtensions(editedGreen, newBlue);
-		blueByPhase.put(phaseStart, newBlue);
+		putBlue(phaseStart, newBlue);
 		return CapillaryPhaseGeometry.copy(newBlue);
 	}
 

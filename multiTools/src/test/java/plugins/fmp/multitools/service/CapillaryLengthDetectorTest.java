@@ -26,6 +26,45 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.TipFind;
  * without a length prior.
  */
 public class CapillaryLengthDetectorTest {
+	@org.junit.BeforeClass
+	public static void initializeIcy() {
+		icy.preferences.IcyPreferences.init();
+	}
+
+	@Test
+	public void tiltedOffsetTubeUsesSameWallsForWidthCenterAndBothTips() {
+		int width = 90, height = 260;
+		for (double halfWidth : new double[] { 3., 4.5, 6. }) {
+			double[][] channels = new double[1][width * height];
+			ArrayList<int[]> axis = new ArrayList<>();
+			for (int y = 0; y < height; y++) {
+				double centre = 40. + 8. * (y / (height - 1.) - .5);
+				for (int x = 0; x < width; x++) {
+					double value = 200.;
+					if (y >= 30 && y < 230) {
+						double left = x - (centre - halfWidth), right = x - (centre + halfWidth);
+						value -= 80. * Math.exp(-left * left / .8) + 65. * Math.exp(-right * right / .8);
+					}
+					channels[0][x + y * width] = value;
+				}
+				if (y >= 20 && y <= 240)
+					axis.add(new int[] { 43, y });
+			}
+			AxisMeasure found = CapillaryLengthDetector.locateAlongAxis(axis,
+					new ImageData(width, height, channels), syntheticOptions());
+			assertTrue(found.failure, found.found);
+			assertEquals("top", 10., found.startFrac, 2.);
+			assertEquals("bottom", 210., found.endFrac, 2.);
+			assertEquals("width", 2. * halfWidth, found.widthPixels, .6);
+			for (double tip : new double[] { found.startFrac, found.endFrac }) {
+				Point2D point = CapillaryLengthDetector.interpolateOffsetPoint(axis, tip, found.offset,
+						found.offsetSlope, 8);
+				assertEquals("wall midpoint (halfWidth=" + halfWidth + ", offset=" + found.offset
+						+ ", slope=" + found.offsetSlope + ", width=" + found.widthPixels + ")",
+						40. + 8. * (point.getY() / (height - 1.) - .5), point.getX(), .5);
+			}
+		}
+	}
 
 	@Test
 	public void uniformBackgroundDoesNotProtectEndpointsOrRestoreDisputedTop() {

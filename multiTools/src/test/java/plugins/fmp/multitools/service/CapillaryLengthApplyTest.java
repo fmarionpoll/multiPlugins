@@ -27,6 +27,7 @@ public class CapillaryLengthApplyTest {
         CapillaryLengthResult.Measure m = new CapillaryLengthResult.Measure(cap, "line01", 100);
         m.setDetectedEndpoints(new Point2D.Double(10, 15), new Point2D.Double(10, 115));
         m.setDetectedPixels(100);
+        m.setWidthPixels(8.5);
         m.setSelected(selected);
         result.addMeasure(m);
         return result;
@@ -48,6 +49,7 @@ public class CapillaryLengthApplyTest {
         Capillaries loaded = new Capillaries(); loaded.addCapillary(restored);
         assertTrue(CapillaryPhaseGeometryPersistence.load(loaded, directory.toString()));
         assertEquals(15, restored.getPhaseGeometry().getBlueAt(0).getY1(), 0);
+        assertEquals(8.5, restored.getPhaseGeometry().getWidthAt(0), 0);
         assertEquals(20, restored.getPhaseGeometry().getBlueAt(50).getY1(), 0);
     }
 
@@ -70,6 +72,8 @@ public class CapillaryLengthApplyTest {
         assertEquals(1, CapillaryLengthDetector.apply(result(cap, true), 60));
         assertEquals(5, cap.getPhaseGeometry().getBlueAt(0).getY1(), 0);
         assertEquals(15, cap.getPhaseGeometry().getBlueStartingAt(50).getY1(), 0);
+        assertEquals(8.5, cap.getPhaseGeometry().getWidthAt(60), 0);
+        assertTrue(Double.isNaN(cap.getPhaseGeometry().getWidthAt(0)));
         assertEquals(5, cap.getProperties().getMeasuredStart().getY(), 0);
     }
 }

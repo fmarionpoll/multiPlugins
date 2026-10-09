@@ -29,7 +29,7 @@ public class CapillaryLengthMeasureDialog {
 	}
 
 	private static final String[] COLUMNS = { "apply", "capillary", "current px", "measured px", "trend px", "diff %",
-			"mm/px", "comment" };
+			"mm/px", "width px", "comment" };
 
 	public static boolean showAndConfirm(Component parent, CapillaryLengthResult result, String title) {
 		if (result == null)
@@ -192,6 +192,8 @@ public class CapillaryLengthMeasureDialog {
 			case 6:
 				return formatScale(m);
 			case 7:
+				return format(m.getWidthPixels(), "%.1f");
+			case 8:
 				return formatComment(m);
 			default:
 				return "";

@@ -208,6 +208,7 @@ public class Options extends JPanel {
 		ViewOptionsHolder opts = parent0.viewOptions;
 		displayROIsCategory(v, "line", opts.isViewCapillaries());
 		displayROIsCategory(v, CapillaryMeasuredTipsOverlay.ROI_PREFIX, opts.isViewCapTips());
+		displayROIsCategory(v, CapillaryMeasuredTipsOverlay.OUTLINE_PREFIX, opts.isViewCapTips());
 		displayROIsCategory(v, "cell", opts.isViewCages());
 		displayROIsCategory(v, "cage", opts.isViewCages());
 		displayROIsCategory(v, "det", opts.isViewFliesCenter() || opts.isViewFliesRect());

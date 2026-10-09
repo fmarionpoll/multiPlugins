@@ -27,7 +27,7 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
  * <p>
  * The ROI ends are assumed to sit a few pixels <em>past</em> the glass. Each
  * end is therefore a short region known to be outside the tube. The detector
- * walks inward along the ROI until a paired-wall capillary cross-section
+ * fits a parallel wall pair, then walks inward along its midpoint until a capillary cross-section
  * appears and stays, independently at the two extremities. The physical length
  * is the distance between those two tips. The dark bar of the rack, which
  * crosses the middle of the ROI, is never a candidate endpoint.
@@ -83,7 +83,7 @@ public class CapillaryLengthDetector {
 		Point2D a = m.getDetectedStart(), b = m.getDetectedEnd();
 		double length = a.distance(b);
 		if (length < 40.) return;
-		Geometry g = estimateGeometry(axisOf(m), image, options);
+		Geometry g = endpointGeometry(m, image, options);
 		g.offset = 0.;
 		double dx = (b.getX()-a.getX())/length, dy = (b.getY()-a.getY())/length;
 		if (endpointTransition(a, dx, dy, g, image, options) == 0.)
@@ -107,7 +107,7 @@ public class CapillaryLengthDetector {
 					&& (startIsTop || b.distance(m.supportedEnd) <= 3.);
 			double length=a.distance(b);
 			if(length<40.) continue;
-			Geometry g=estimateGeometry(axisOf(m),image,options); g.offset=0.;
+			Geometry g=endpointGeometry(m,image,options); g.offset=0.;
 			double dx=(b.getX()-a.getX())/length,dy=(b.getY()-a.getY())/length;
 			double sa=keepStart ? 0. : endpointTransition(a,dx,dy,g,image,options);
 			double sb=keepEnd ? 0. : endpointTransition(b,-dx,-dy,g,image,options);
@@ -133,7 +133,7 @@ public class CapillaryLengthDetector {
 			if (!m.isSelected() || !m.hasDetectedEndpoints()) continue;
 			Point2D a=m.getDetectedStart(), b=m.getDetectedEnd();
 			boolean forward=a.getY()<=b.getY();
-			Geometry geometry=estimateGeometry(axisOf(m),image,options);
+			Geometry geometry=endpointGeometry(m,image,options);
 			CapillaryGlassTipDetector.Evidence evidence=CapillaryGlassTipDetector.find(image,
 					forward?a:b,forward?b:a,geometry.halfWidth);
 			m.setLiquidTop(evidence.liquidTop);
@@ -155,6 +155,17 @@ public class CapillaryLengthDetector {
 			result.setMinPixels(min(values));
 			result.setMaxPixels(max(values));
 		}
+	}
+
+	/** Reuse the measured walls after trend corrections rather than refitting width. */
+	private static Geometry endpointGeometry(CapillaryLengthResult.Measure m, ImageData image,
+			CapillaryLengthDetectorOptions options) {
+		if (!Double.isFinite(m.getWidthPixels()))
+			return estimateGeometry(axisOf(m), image, options);
+		Geometry geometry = new Geometry();
+		geometry.halfWidth = .5 * m.getWidthPixels();
+		geometry.wallsFound = true;
+		return geometry;
 	}
 
 	private static double endpointTransition(Point2D end,double dx,double dy,Geometry g,
@@ -289,11 +300,12 @@ public class CapillaryLengthDetector {
 			if (m.hasDetectedEndpoints()) {
 				Line2D blue = new Line2D.Double(m.getDetectedStart(), m.getDetectedEnd());
 				if (cap.getPhaseGeometry().isInitialized())
-					cap.getPhaseGeometry().putBlue(phaseStart, blue);
+					cap.getPhaseGeometry().putBlue(phaseStart, blue, m.getWidthPixels());
 				else {
 					ROI2D green = cap.getRoi() == null ? null : cap.getRoiAtFrameT(frameIndex);
 					if (green instanceof ROI2DLine)
-						cap.getPhaseGeometry().initialize(phaseStart, ((ROI2DLine) green).getLine(), blue);
+						cap.getPhaseGeometry().initialize(phaseStart, ((ROI2DLine) green).getLine(), blue,
+								m.getWidthPixels());
 				}
 				if (phaseStart == 0 || !cap.getProperties().hasMeasuredEndpoints())
 					cap.getProperties().setMeasuredEndpoints(m.getDetectedStart(), m.getDetectedEnd());
@@ -353,6 +365,7 @@ public class CapillaryLengthDetector {
 		double lengthPx = straight ? startPoint.distance(endPoint)
 				: interpolateArc(cumulative, located.endFrac) - interpolateArc(cumulative, located.startFrac);
 		measure.setDetectedPixels(lengthPx);
+		measure.setWidthPixels(located.widthPixels);
 		measure.setDetectedEndpoints(startPoint, endPoint);
 		measure.setStartConfidence(located.startConfidence);
 		measure.setEndConfidence(located.endConfidence);
@@ -384,6 +397,7 @@ public class CapillaryLengthDetector {
 		double endConfidence;
 		double offset;
 		double offsetSlope;
+		double widthPixels = Double.NaN;
 		boolean found;
 		boolean touchesBorder;
 		String failure;
@@ -399,7 +413,7 @@ public class CapillaryLengthDetector {
 		double offset;
 		double offsetSlope;
 		double halfWidth;
-		double tipSearchOffset;
+		boolean wallsFound;
 	}
 
 	static final class TipFind {
@@ -417,19 +431,16 @@ public class CapillaryLengthDetector {
 	}
 
 	/**
-	 * Finds both tips by walking inward from each ROI end. The axis is the ROI
-	 * itself; it is not extended past the ends.
+	 * Finds both tips from each ROI end along the fitted wall midpoint and angle.
+	 * The longitudinal search is not extended past the ROI ends.
 	 */
 	static AxisMeasure locateAlongAxis(ArrayList<int[]> axis, ImageData image, CapillaryLengthDetectorOptions options) {
 		int n = axis.size();
 		if (n < 8)
 			return AxisMeasure.failed("ROI too short");
 		Geometry geometry = estimateGeometry(axis, image, options);
-		Geometry tipGeometry = new Geometry();
-		tipGeometry.offset = geometry.tipSearchOffset;
-		tipGeometry.halfWidth = geometry.halfWidth;
-		TipFind start = findTip(axis, image, tipGeometry, 0, +1, options);
-		TipFind end = findTip(axis, image, tipGeometry, n - 1, -1, options);
+		TipFind start = findTip(axis, image, geometry, 0, +1, options);
+		TipFind end = findTip(axis, image, geometry, n - 1, -1, options);
 		if (!start.found)
 			return AxisMeasure.failed("top: " + (start.failure != null ? start.failure : "tip not found"));
 		if (!end.found)
@@ -445,6 +456,7 @@ public class CapillaryLengthDetector {
 		located.endConfidence = end.confidence;
 		located.offset = geometry.offset;
 		located.offsetSlope = geometry.offsetSlope;
+		located.widthPixels = geometry.wallsFound ? 2. * geometry.halfWidth : Double.NaN;
 		located.touchesBorder = start.atRoiEnd || end.atRoiEnd;
 		return located;
 	}
@@ -507,11 +519,10 @@ public class CapillaryLengthDetector {
 		double uR = right - half;
 		geometry.offset = 0.5 * (uL + uR);
 		geometry.halfWidth = 0.5 * (uR - uL);
+		geometry.wallsFound = geometry.halfWidth >= 1.5;
 		if (geometry.halfWidth < 1.5)
 			geometry.halfWidth = 4.;
 		refineCenterline(axis, image, options, geometry);
-		// Preserve endpoint evidence while step 2 changes shaft placement only.
-		geometry.tipSearchOffset = geometry.offset;
 		refineJointWalls(axis, image, options, geometry);
 		return geometry;
 	}
@@ -535,42 +546,52 @@ public class CapillaryLengthDetector {
 							/ 5.;
 			}
 		}
-		double best = 0., bestCentre = geometry.offset, bestShift = 0.;
+		double seedShift = geometry.offsetSlope * (axis.size() - 1.);
+		double best = 0., bestCentre = geometry.offset, bestShift = seedShift, bestWidth = geometry.halfWidth;
 		for (double width = Math.max(2., geometry.halfWidth - 1.); width <= Math.min(8.,
 				geometry.halfWidth + 1.); width += .5)
 			for (double centre = Math.max(-half + width + 1., geometry.offset - 2.); centre <= Math
 					.min(half - width - 1., geometry.offset + 2.); centre += .25)
-				for (double shift = -4.; shift <= 4.; shift += .5) {
+				for (double shift = seedShift - 4.; shift <= seedShift + 4.; shift += .5) {
 					double score = jointWallScore(profiles, positions, half, centre, width, shift);
-					// Require image evidence to justify moving away from the search angle.
-					score -= .015 * Math.abs(shift);
+					// Prefer the robust wall-angle seed when evidence is nearly tied.
+					// Penalizing tilt relative to the green ROI pulls a real tilted tube off centre.
+					score -= .002 * Math.abs(shift - seedShift);
 					if (score > best) {
 						best = score;
 						bestCentre = centre;
 						bestShift = shift;
+						bestWidth = width;
 					}
 				}
 		if (best <= 0.)
 			return;
-		// Keep the resistant midpoint estimate as the lateral anchor. The joint
-		// evidence refines it conservatively because reflections can shift both walls.
-		geometry.offset += .25 * (bestCentre - geometry.offset);
+		// One wall model supplies the midpoint, width, angle, and endpoint search.
+		geometry.offset = bestCentre;
+		geometry.halfWidth = bestWidth;
+		geometry.wallsFound = true;
 		geometry.offsetSlope = bestShift / (axis.size() - 1.);
 	}
 
 	private static double jointWallScore(double[][] profiles, double[] positions, int half, double centre, double width,
 			double shift) {
 		double[] scores = new double[profiles.length];
+		int supportedStrips = 0;
 		for (int k = 0; k < scores.length; k++) {
 			double c = half + centre + shift * (positions[k] - .5);
 			double left = c - width, right = c + width;
+			// A displaced, tilted tube can leave the strip near one end. These
+			// samples are missing evidence, not evidence for a flatter tube.
 			if (left < 1. || right > profiles[k].length - 2.)
-				return -1.;
+				continue;
+			supportedStrips++;
 			double l = profileDepth(profiles[k], left), r = profileDepth(profiles[k], right);
 			// Saturation prevents one high-contrast obstruction dominating the shaft.
 			double evidence = Math.max(0., Math.min(l, r));
 			scores[k] = evidence / (evidence + 4.);
 		}
+		if (supportedStrips < profiles.length - 10)
+			return -1.;
 		java.util.Arrays.sort(scores);
 		double sum = 0.;
 		// Trim both occluded strips and isolated strong distractors.
@@ -872,12 +893,21 @@ public class CapillaryLengthDetector {
 			int direction, int length, CapillaryLengthDetectorOptions options) {
 		double[] score = new double[length];
 		int window = Math.max(1, options.tangentWindow);
+		Geometry centredGeometry = new Geometry();
+		centredGeometry.halfWidth = geometry.halfWidth;
 		for (int k = 0; k < length; k++) {
 			int i = origin + direction * k;
 			if (i < 0 || i >= axis.size())
 				break;
-			double[] normal = normalAt(axis, i, window);
-			score[k] = pairedWallScore(image, axis.get(i)[0], axis.get(i)[1], normal, geometry, options);
+			Point2D centre = interpolateOffsetPoint(axis, i, geometry.offset, geometry.offsetSlope, window);
+			Point2D before = interpolateOffsetPoint(axis, Math.max(0, i - window), geometry.offset,
+					geometry.offsetSlope, window);
+			Point2D after = interpolateOffsetPoint(axis, Math.min(axis.size() - 1, i + window), geometry.offset,
+					geometry.offsetSlope, window);
+			double dx = after.getX() - before.getX(), dy = after.getY() - before.getY();
+			double span = Math.hypot(dx, dy);
+			double[] normal = span > 0. ? new double[] { -dy / span, dx / span } : normalAt(axis, i, window);
+			score[k] = pairedWallScore(image, centre.getX(), centre.getY(), normal, centredGeometry, options);
 		}
 		return score;
 	}
@@ -957,23 +987,21 @@ public class CapillaryLengthDetector {
 
 	private static double ridgePair(double[] grey, Geometry geometry) {
 		int half = grey.length / 2;
-		int uL = (int) Math.round(-geometry.halfWidth);
-		int uR = (int) Math.round(geometry.halfWidth);
 		double best = 0.;
-		for (int shift = -2; shift <= 2; shift++) {
-			int iL = uL + shift + half;
-			int iR = uR + shift + half;
+		for (double shift = -2.; shift <= 2.; shift += .5) {
+			double iL = -geometry.halfWidth + shift + half;
+			double iR = geometry.halfWidth + shift + half;
 			if (iL < 1 || iR < 1 || iL >= grey.length - 1 || iR >= grey.length - 1 || iR <= iL + 1)
 				continue;
-			double ridgeL = 0.5 * (grey[iL - 1] + grey[iL + 1]) - grey[iL];
-			double ridgeR = 0.5 * (grey[iR - 1] + grey[iR + 1]) - grey[iR];
+			double ridgeL = profileDepth(grey, iL);
+			double ridgeR = profileDepth(grey, iR);
 			if (ridgeL > 0. && ridgeR > 0.) {
 				double ridge = Math.min(ridgeL, ridgeR);
 				if (ridge > best)
 					best = ridge;
 			}
-			double gL = grey[iL + 1] - grey[iL - 1];
-			double gR = grey[iR + 1] - grey[iR - 1];
+			double gL = profileValue(grey, iL + 1.) - profileValue(grey, iL - 1.);
+			double gR = profileValue(grey, iR + 1.) - profileValue(grey, iR - 1.);
 			if (gL * gR < 0.) {
 				double pair = 0.35 * Math.min(Math.abs(gL), Math.abs(gR));
 				if (pair > best)
