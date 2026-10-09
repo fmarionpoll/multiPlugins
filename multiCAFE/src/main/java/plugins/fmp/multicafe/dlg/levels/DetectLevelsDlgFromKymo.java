@@ -1,6 +1,8 @@
 package plugins.fmp.multicafe.dlg.levels;
 
 import java.awt.Color;
+import javax.swing.BoxLayout;
+import plugins.fmp.multitools.series.options.LevelDetectV2Options;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
@@ -76,6 +78,21 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	private JCheckBox rightCheckBox = new JCheckBox("R", true);
 	private JCheckBox runBackwardsCheckBox = new JCheckBox("run backwards", false);
 
+	private JCheckBox trackingCheckBox = new JCheckBox("Track level across time", false);
+	private JCheckBox smoothCheckBox = new JCheckBox("Smooth detected curve", false);
+	private JCheckBox bottomCheckBox = new JCheckBox("Detect bottom level", true);
+	private JCheckBox advancedCheckBox = new JCheckBox("Advanced", false);
+	private JCheckBox removeHzAvgCheckBox = new JCheckBox("remove Hz avg (tape)", false);
+	private JCheckBox tapePrepassCheckBox = new JCheckBox("tape prepass", false);
+	private JCheckBox edgePeakCheckBox = new JCheckBox("edge peak", true);
+	private JSpinner trackUpSpinner = new JSpinner(new SpinnerNumberModel(3, 0, 100, 1));
+	private JSpinner trackDownSpinner = new JSpinner(new SpinnerNumberModel(25, 0, 500, 1));
+	private JSpinner medianWinSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 51, 2));
+	private JSpinner maxSpikeSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 100, 1));
+	private JPanel pass2Panel;
+	private JPanel legacyPanel;
+	private JPanel trackingPanel;
+	private JPanel smoothingPanel;
 	private MultiCAFE parent0 = null;
 	private DetectLevels threadDetectLevels = null;
 
@@ -89,7 +106,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		this.parent0 = parent0;
-		setLayout(capLayout);
+		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 
@@ -126,15 +143,93 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		runBackwardsCheckBox.setToolTipText("Track liquid level from bottom to top instead of top to bottom.");
 		panel03.add(runBackwardsCheckBox);
 
+		JPanel choices = new JPanel(layoutLeft);
+		choices.add(trackingCheckBox);
+		choices.add(smoothCheckBox);
+		choices.add(bottomCheckBox);
+		choices.add(advancedCheckBox);
+		trackingCheckBox.setToolTipText("Use temporal tracking instead of independent pass1/pass2 detection.");
+		smoothCheckBox.setToolTipText("Apply median and spike filtering to the top-level curve; may alter short gulp events.");
+		bottomCheckBox.setToolTipText("Also detect the bottom boundary using the first transform and threshold.");
+		runBackwardsCheckBox.setText("Forward + backward tracking");
+		runBackwardsCheckBox.setToolTipText("Combine forward and backward tracks to reject inconsistent jumps.");
+		panel03.remove(runBackwardsCheckBox);
+		removeHzAvgCheckBox.setToolTipText("Subtract each row mean to suppress persistent full-width horizontal bands.");
+		tapePrepassCheckBox.setToolTipText("Identify thin persistent tape seams and prefer a liquid boundary below them.");
+		panel03.remove(fromRectangleCheckBox);
+		panel00.add(fromRectangleCheckBox);
+		trackingPanel = new JPanel(layoutLeft);
+		trackingPanel.add(removeHzAvgCheckBox);
+		trackingPanel.add(tapePrepassCheckBox);
+		trackingPanel.add(edgePeakCheckBox);
+		trackingPanel.add(runBackwardsCheckBox);
+		trackingPanel.add(new JLabel("track up (px)"));
+		trackingPanel.add(trackUpSpinner);
+		trackingPanel.add(new JLabel("down (px)"));
+		trackingPanel.add(trackDownSpinner);
+		smoothingPanel = new JPanel(layoutLeft);
+		smoothingPanel.add(new JLabel("median (columns)"));
+		smoothingPanel.add(medianWinSpinner);
+		smoothingPanel.add(new JLabel("max spike (px)"));
+		smoothingPanel.add(maxSpikeSpinner);
+		pass2Panel = panel02;
+		legacyPanel = panel03;
 		add(panel00);
+		add(choices);
 		add(panel01);
 		add(panel02);
 		add(panel03);
+		add(trackingPanel);
+		add(smoothingPanel);
+		trackingCheckBox.addActionListener(e -> { resetDisplayToRaw(currentExperiment()); updateModeControls(); });
+		smoothCheckBox.addActionListener(e -> { updateModeControls(); updateOverlayThreshold(); });
+		advancedCheckBox.addActionListener(e -> updateModeControls());
+		for (JCheckBox control : new JCheckBox[] { removeHzAvgCheckBox, tapePrepassCheckBox, edgePeakCheckBox, runBackwardsCheckBox })
+			control.addActionListener(e -> updateOverlayThreshold());
+		for (JSpinner control : new JSpinner[] { trackUpSpinner, trackDownSpinner, medianWinSpinner, maxSpikeSpinner })
+			control.addChangeListener(e -> updateOverlayThreshold());
+		updateModeControls();
 
 		defineActionListeners();
 		defineItemListeners();
 		allowItemsAccordingToSelection();
 		transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+	}
+
+	private Experiment currentExperiment() {
+		return (Experiment) parent0.expListComboLazy.getSelectedItem();
+	}
+
+	private void updateModeControls() {
+		boolean track = trackingCheckBox.isSelected();
+		boolean advanced = advancedCheckBox.isSelected();
+		pass1CheckBox.setVisible(!track);
+		pass2Panel.setVisible(!track && advanced);
+		legacyPanel.setVisible(!track && advanced);
+		trackingPanel.setVisible(track && advanced);
+		smoothingPanel.setVisible(smoothCheckBox.isSelected() && advanced);
+		// The common first transform/threshold controls both methods.
+		revalidate();
+		if (parent0 != null && parent0.mainFrame != null) {
+			parent0.mainFrame.revalidate();
+			parent0.mainFrame.pack();
+		}
+	}
+
+	private LevelDetectV2Options readTrackingOptions() {
+		LevelDetectV2Options v2 = new LevelDetectV2Options();
+		v2.transform = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();
+		v2.threshold = (int) threshold1Spinner.getValue();
+		v2.directionUp = direction1ComboBox.getSelectedIndex() == 0;
+		v2.removeHorizontalAverage = removeHzAvgCheckBox.isSelected();
+		v2.tapePrepass = tapePrepassCheckBox.isSelected();
+		v2.edgePeak = edgePeakCheckBox.isSelected();
+		v2.runBackwards = runBackwardsCheckBox.isSelected();
+		v2.trackUp = (int) trackUpSpinner.getValue();
+		v2.trackDown = (int) trackDownSpinner.getValue();
+		v2.medianWindow = (int) medianWinSpinner.getValue();
+		v2.maxSpikePx = (int) maxSpikeSpinner.getValue();
+		return v2;
 	}
 
 	private void defineItemListeners() {
@@ -229,7 +324,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 					removeOverlay(exp);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null)
-						canvas.setTransformStep1Index(0);
+						canvas.setTransformStep2Index(0);
+					canvas.setTransformStep1Index(0);
 				}
 			}
 
@@ -257,7 +353,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 					removeOverlay(exp);
 					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 					if (canvas != null)
-						canvas.setTransformStep1Index(0);
+						canvas.setTransformStep2Index(0);
+					canvas.setTransformStep1Index(0);
 				}
 			}
 
@@ -366,6 +463,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			if (wasViewing) {
 				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 				if (canvas != null) {
+					canvas.setTransformStep2Index(0);
 					canvas.setTransformStep1Index(0);
 				}
 			}
@@ -379,6 +477,18 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 		suppressDisplayUpdate = true;
 		try {
+			trackingCheckBox.setSelected(options.levelTracking);
+			smoothCheckBox.setSelected(options.levelSmoothing);
+			bottomCheckBox.setSelected(options.detectBottom);
+			LevelDetectV2Options v2 = options.levelV2;
+			removeHzAvgCheckBox.setSelected(v2.removeHorizontalAverage);
+			tapePrepassCheckBox.setSelected(v2.tapePrepass);
+			edgePeakCheckBox.setSelected(v2.edgePeak);
+			runBackwardsCheckBox.setSelected(v2.runBackwards);
+			trackUpSpinner.setValue(v2.trackUp);
+			trackDownSpinner.setValue(v2.trackDown);
+			medianWinSpinner.setValue(v2.medianWindow);
+			maxSpikeSpinner.setValue(v2.maxSpikePx);
 			pass1CheckBox.setSelected(options.pass1);
 			pass2CheckBox.setSelected(options.pass2);
 
@@ -401,6 +511,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			suppressDisplayUpdate = false;
 		}
 		allowItemsAccordingToSelection();
+		updateModeControls();
 	}
 
 	void restoreDialogFromSessionAfterDetection(BuildSeriesOptions session, Experiment exp) {
@@ -471,7 +582,10 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		options.runBackwards = runBackwardsCheckBox.isSelected();
 		options.sourceCamDirect = false;
 		options.detectTop = true;
-		options.detectBottom = true;
+		options.detectBottom = bottomCheckBox.isSelected();
+		options.levelTracking = trackingCheckBox.isSelected();
+		options.levelSmoothing = smoothCheckBox.isSelected();
+		options.levelV2 = readTrackingOptions();
 		options.transformBottom = options.transform01;
 		options.directionUpBottom = options.directionUp1;
 		options.detectLevelBottomThreshold = options.detectLevel1Threshold;
@@ -493,6 +607,9 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			}
 			threadDetectLevels.addPropertyChangeListener(this);
 			threadDetectLevels.execute();
+			trackingCheckBox.setEnabled(false);
+			smoothCheckBox.setEnabled(false);
+			bottomCheckBox.setEnabled(false);
 			detectButton.setText("STOP");
 		}
 	}
@@ -506,6 +623,9 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
+			trackingCheckBox.setEnabled(true);
+			smoothCheckBox.setEnabled(true);
+			bottomCheckBox.setEnabled(true);
 			Logger.debug("thread_ended");
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
@@ -607,7 +727,26 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (overlayThreshold == null)
 			return;
 
-		if (transformPass1DisplayButton.isSelected()) {
+		if (trackingCheckBox.isSelected() && transformPass1DisplayButton.isSelected()) {
+			Canvas2D_3Transforms canvas = getKymosCanvas(currentExperiment());
+			if (canvas != null) {
+				if (removeHzAvgCheckBox.isSelected()) {
+					canvas.updateTransformsStep1(new ImageTransformEnums[] { ImageTransformEnums.MINUSHORIZAVG });
+					canvas.setTransformStep1(ImageTransformEnums.MINUSHORIZAVG, null);
+					canvas.setTransformStep2((ImageTransformEnums) transformPass1ComboBox.getSelectedItem(), null);
+				} else {
+					canvas.setTransformStep2Index(0);
+					canvas.updateTransformsStep1(transformPass1);
+					canvas.setTransformStep1(transformPass1ComboBox.getSelectedIndex() + 1, null);
+				}
+			}
+			LevelDetectV2Options v2 = readTrackingOptions();
+			if (!smoothCheckBox.isSelected()) { v2.medianWindow = 1; v2.maxSpikePx = 0; }
+			Experiment exp = currentExperiment();
+			Rectangle search = exp == null ? null : getSearchAreaFromSearchRectangle(exp,
+					fromRectangleCheckBox.isSelected() && searchRectangleROI2D != null);
+			overlayThreshold.setThresholdV2Preview(v2, search);
+		} else if (transformPass1DisplayButton.isSelected()) {
 			boolean ifGreater = (direction1ComboBox.getSelectedIndex() == 0);
 			int threshold = (int) threshold1Spinner.getValue();
 			ImageTransformEnums transform = (ImageTransformEnums) transformPass1ComboBox.getSelectedItem();

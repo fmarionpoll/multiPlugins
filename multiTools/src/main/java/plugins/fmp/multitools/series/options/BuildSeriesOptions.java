@@ -79,6 +79,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	public boolean loopRunning = false;
 
+	public boolean levelTracking = false;
+	public boolean levelSmoothing = false;
+	public LevelDetectV2Options levelV2 = new LevelDetectV2Options();
 	public boolean detectTop = true;
 	public boolean detectBottom = true;
 	public int detectCage = -1;
@@ -524,6 +527,16 @@ public class BuildSeriesOptions implements XMLPersistent {
 		directionUp2 = XMLUtil.getElementBooleanValue(nodeMeta, "directionUp2", directionUp2);
 		detectLevel1Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel1Threshold", detectLevel1Threshold);
 		detectLevel2Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
+		levelTracking = XMLUtil.getElementBooleanValue(nodeMeta, "levelTracking", false);
+		levelSmoothing = XMLUtil.getElementBooleanValue(nodeMeta, "levelSmoothing", false);
+		levelV2.removeHorizontalAverage = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_removeHorizontalAverage", levelV2.removeHorizontalAverage);
+		levelV2.tapePrepass = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_tapePrepass", levelV2.tapePrepass);
+		levelV2.runBackwards = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_runBackwards", levelV2.runBackwards);
+		levelV2.edgePeak = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_edgePeak", levelV2.edgePeak);
+		levelV2.trackUp = XMLUtil.getElementIntValue(nodeMeta, "levelV2_trackUp", levelV2.trackUp);
+		levelV2.trackDown = XMLUtil.getElementIntValue(nodeMeta, "levelV2_trackDown", levelV2.trackDown);
+		levelV2.medianWindow = XMLUtil.getElementIntValue(nodeMeta, "levelV2_medianWindow", levelV2.medianWindow);
+		levelV2.maxSpikePx = XMLUtil.getElementIntValue(nodeMeta, "levelV2_maxSpikePx", levelV2.maxSpikePx);
 		jitter2 = XMLUtil.getElementIntValue(nodeMeta, "jitter2", jitter2);
 		sourceCamDirect = XMLUtil.getElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
 		String bottomTransform = XMLUtil.getElementValue(nodeMeta, "transformBottom", null);
@@ -622,6 +635,16 @@ public class BuildSeriesOptions implements XMLPersistent {
 		XMLUtil.setElementBooleanValue(nodeMeta, "directionUp2", directionUp2);
 		XMLUtil.setElementIntValue(nodeMeta, "detectLevel1Threshold", detectLevel1Threshold);
 		XMLUtil.setElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
+		XMLUtil.setElementBooleanValue(nodeMeta, "levelTracking", levelTracking);
+		XMLUtil.setElementBooleanValue(nodeMeta, "levelSmoothing", levelSmoothing);
+		XMLUtil.setElementBooleanValue(nodeMeta, "levelV2_removeHorizontalAverage", levelV2.removeHorizontalAverage);
+		XMLUtil.setElementBooleanValue(nodeMeta, "levelV2_tapePrepass", levelV2.tapePrepass);
+		XMLUtil.setElementBooleanValue(nodeMeta, "levelV2_runBackwards", levelV2.runBackwards);
+		XMLUtil.setElementBooleanValue(nodeMeta, "levelV2_edgePeak", levelV2.edgePeak);
+		XMLUtil.setElementIntValue(nodeMeta, "levelV2_trackUp", levelV2.trackUp);
+		XMLUtil.setElementIntValue(nodeMeta, "levelV2_trackDown", levelV2.trackDown);
+		XMLUtil.setElementIntValue(nodeMeta, "levelV2_medianWindow", levelV2.medianWindow);
+		XMLUtil.setElementIntValue(nodeMeta, "levelV2_maxSpikePx", levelV2.maxSpikePx);
 		XMLUtil.setElementIntValue(nodeMeta, "jitter2", jitter2);
 		XMLUtil.setElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
 		XMLUtil.setElementValue(nodeMeta, "transformBottom",

@@ -80,6 +80,8 @@ public class LevelDetectorFromKymoV2 {
 			if (!batch.detectL && capi.getKymographName() != null && capi.getKymographName().endsWith("1"))
 				continue;
 
+			plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport.copyLevelRecipeTo(
+					capi.getProperties().getLimitsOptions(), batch);
 			capi.getDerivative().clear();
 			capi.getGulps().clear();
 

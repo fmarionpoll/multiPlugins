@@ -25,7 +25,6 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	private JTabbedPane tabsPane = new JTabbedPane();
 	public LoadSaveLevels tabFileLevels = new LoadSaveLevels();
 	DetectLevelsDlgFromKymo tabDetectLevels = new DetectLevelsDlgFromKymo();
-	DetectLevelsDlgFromKymoV2 tabDetectLevelsV2 = new DetectLevelsDlgFromKymoV2();
 	DetectLevelsDlgFromCam tabDetectLevelsDirect = new DetectLevelsDlgFromCam();
 	DetectBottomDlg tabDetectBottom = new DetectBottomDlg();
 //	DetectLevelsDlgKMeans tabDetectLevelsKMeans = new DetectLevelsDlgKMeans();
@@ -50,11 +49,6 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectLevels.init(capLayout, parent0);
 		tabDetectLevels.addPropertyChangeListener(this);
 		tabsPane.addTab("Levels", null, tabDetectLevels, "Find limits of the columns of liquid using kymographs");
-
-		tabDetectLevelsV2.init(capLayout, parent0);
-		tabDetectLevelsV2.addPropertyChangeListener(this);
-		tabsPane.addTab("Levels v2", null, tabDetectLevelsV2,
-				"Top meniscus from kymographs (tracking, edge peak, tape prepass)");
 
 		tabDetectLevelsDirect.init(capLayout, parent0);
 		tabDetectLevelsDirect.addPropertyChangeListener(this);
@@ -135,7 +129,6 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectBottom.setDialogFromOptions(cap);
 		tabDetectGulps.setInfos(cap);
 		tabDetectLevels.reapplyViewIfSelected();
-		tabDetectLevelsV2.reapplyViewIfSelected();
 	}
 
 	public void clearLevelsV1View() {
@@ -144,8 +137,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	}
 
 	public void clearLevelsV2View() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		tabDetectLevelsV2.resetDisplayToRaw(exp);
+		// The unified Levels dialog owns the only kymograph detection preview.
 	}
 
 	public void selectBottomTab() {

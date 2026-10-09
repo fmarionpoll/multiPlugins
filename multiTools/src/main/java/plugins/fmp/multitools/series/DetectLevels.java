@@ -5,6 +5,8 @@ import java.awt.Rectangle;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.service.LevelDetectorFromCam;
 import plugins.fmp.multitools.service.LevelDetectorFromKymo;
+import plugins.fmp.multitools.service.LevelDetectorFromKymoV2;
+import plugins.fmp.multitools.series.options.LevelDetectV2Options;
 import plugins.fmp.multitools.tools.Logger;
 
 public class DetectLevels extends BuildSeries {
@@ -25,7 +27,25 @@ public class DetectLevels extends BuildSeries {
 		} else if (loadExperimentDataToDetectLevels(exp)) {
 			refreshKymoOptionsForExperiment(exp);
 			exp.getSeqKymos().displayViewerAtRectangle(options.parent0Rect);
-			new LevelDetectorFromKymo().detectLevels(exp, options);
+			if (options.levelTracking && options.detectTop) {
+				LevelDetectV2Options v2 = options.levelV2.copy();
+				v2.transform = options.transform01;
+				v2.threshold = options.detectLevel1Threshold;
+				v2.directionUp = options.directionUp1;
+				if (!options.levelSmoothing) { v2.medianWindow = 1; v2.maxSpikePx = 0; }
+				new LevelDetectorFromKymoV2().detectLevels(exp, options, v2);
+				if (options.detectBottom) {
+					boolean pass1 = options.pass1;
+					options.detectTop = false;
+					options.pass1 = true;
+					try { new LevelDetectorFromKymo().detectLevels(exp, options); }
+					finally { options.detectTop = true; options.pass1 = pass1; }
+				}
+			} else {
+				new LevelDetectorFromKymo().detectLevels(exp, options);
+			}
+			exp.applyLevelDetectionDefaultsFrom(options);
+			exp.saveExperimentDescriptors();
 		}
 		exp.closeSequences();
 	}

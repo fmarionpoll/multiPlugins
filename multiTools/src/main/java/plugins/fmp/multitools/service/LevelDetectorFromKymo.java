@@ -70,7 +70,8 @@ public class LevelDetectorFromKymo {
 				capi.getDerivative().clear();
 				capi.getGulps().clear();
 			}
-			DetectionProvenanceSupport.copyLevelRecipeTo(capi.getProperties().getLimitsOptions(), options);
+			if (!options.levelTracking || options.detectTop)
+				DetectionProvenanceSupport.copyLevelRecipeTo(capi.getProperties().getLimitsOptions(), options);
 			final IcyBufferedImage rawImage = loader.imageIORead(fullPath);
 
 			futures.add(processor.submit(new Runnable() {
@@ -89,6 +90,9 @@ public class LevelDetectorFromKymo {
 						detectPass2(rawImage, transformPass2, capi, imageWidth, imageHeight, searchRect, jitter,
 								options);
 
+					if (options.detectTop && options.levelSmoothing && capi.getTopRaw().limit != null)
+						LevelSeriesSmoother.smooth(capi.getTopRaw().limit, options.levelV2.medianWindow,
+								options.levelV2.maxSpikePx);
 					int columnFirst = (int) searchRect.getX();
 					int columnLast = (int) (searchRect.getWidth() + columnFirst) - 1;
 					if (columnFirst < 0)

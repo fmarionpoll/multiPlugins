@@ -165,6 +165,7 @@ public class CapillaryPersistence {
 		row2.add("bottom_baseline_mad");
 		row2.add("bottom_baseline_outlier_frac");
 		row2.add("cap_npixel_auto");
+		row2.add("unified_level_recipe");
 		row2.add("cap_measured_x1");
 		row2.add("cap_measured_y1");
 		row2.add("cap_measured_x2");
@@ -276,6 +277,7 @@ public class CapillaryPersistence {
 		row.add(Double.toString(props.getBottomBaselineMad()));
 		row.add(Double.toString(props.getBottomBaselineOutlierFrac()));
 		row.add(Boolean.toString(props.isPixelsAutoMeasured()));
+		row.add(DetectionProvenanceSupport.unifiedLevelRecipe(props.getLimitsOptions()));
 		Point2D measuredStart = props.getMeasuredStart();
 		Point2D measuredEnd = props.getMeasuredEnd();
 		row.add(measuredStart != null ? Double.toString(measuredStart.getX()) : "");
@@ -553,10 +555,15 @@ public class CapillaryPersistence {
 		props.setBottomBaselineMad(parseOptionalDouble(data, baselineStart + 1, Double.NaN));
 		props.setBottomBaselineOutlierFrac(parseOptionalDouble(data, baselineStart + 2, Double.NaN));
 		props.setPixelsAutoMeasured(parseOptionalBoolean(data, baselineStart + 3, false));
-		double startX = parseOptionalDouble(data, baselineStart + 4, Double.NaN);
-		double startY = parseOptionalDouble(data, baselineStart + 5, Double.NaN);
-		double endX = parseOptionalDouble(data, baselineStart + 6, Double.NaN);
-		double endY = parseOptionalDouble(data, baselineStart + 7, Double.NaN);
+		int endpointStart = baselineStart + 4;
+		if (data.length > endpointStart && data[endpointStart].startsWith("levels:")) {
+			DetectionProvenanceSupport.importUnifiedLevelRecipe(props.getLimitsOptions(), data[endpointStart]);
+			endpointStart++;
+		}
+		double startX = parseOptionalDouble(data, endpointStart, Double.NaN);
+		double startY = parseOptionalDouble(data, endpointStart + 1, Double.NaN);
+		double endX = parseOptionalDouble(data, endpointStart + 2, Double.NaN);
+		double endY = parseOptionalDouble(data, endpointStart + 3, Double.NaN);
 		if (Double.isFinite(startX) && Double.isFinite(startY) && Double.isFinite(endX) && Double.isFinite(endY))
 			props.setMeasuredEndpoints(new Point2D.Double(startX, startY), new Point2D.Double(endX, endY));
 	}

@@ -61,6 +61,7 @@ public final class DetectionProvenanceSupport {
 		cols.add(COL_MULTICAFE_VERSION);
 		cols.add(COL_MULTITOOLS_VERSION);
 		cols.addAll(CAPILLARY_PROVENANCE_COLUMNS);
+		cols.add("unified_level_recipe");
 		cols.add(COL_FLY_DETECT_METHOD);
 		cols.add(COL_FLY1_SOURCE_TRANSFORM);
 		cols.add(COL_FLY1_BACKGROUND_TRANSFORM);
@@ -87,6 +88,9 @@ public final class DetectionProvenanceSupport {
 		if (dest == null || src == null) {
 			return;
 		}
+		dest.levelTracking = src.levelTracking;
+		dest.levelSmoothing = src.levelSmoothing;
+		dest.levelV2 = src.levelV2.copy();
 		dest.pass1 = src.pass1;
 		dest.pass2 = src.pass2;
 		dest.transform01 = src.transform01;
@@ -105,6 +109,35 @@ public final class DetectionProvenanceSupport {
 		dest.directionUpBottom = src.directionUpBottom;
 		dest.detectLevelBottomThreshold = src.detectLevelBottomThreshold;
 		dest.bottomSearchFromBottomPx = src.bottomSearchFromBottomPx;
+	}
+
+	/** Compact optional column appended after geometry; older CSV rows remain valid. */
+	public static String unifiedLevelRecipe(BuildSeriesOptions o) {
+		plugins.fmp.multitools.series.options.LevelDetectV2Options v = o.levelV2;
+		return "levels:" + o.levelTracking + "|" + o.levelSmoothing + "|" + o.detectBottom + "|"
+				+ v.removeHorizontalAverage + "|" + v.tapePrepass + "|" + v.runBackwards + "|"
+				+ v.edgePeak + "|" + v.trackUp + "|" + v.trackDown + "|" + v.medianWindow + "|" + v.maxSpikePx;
+	}
+
+	public static void importUnifiedLevelRecipe(BuildSeriesOptions o, String value) {
+		if (value == null || !value.startsWith("levels:")) return;
+		String[] f = value.substring(7).split("\\|", -1);
+		if (f.length != 11) return;
+		try {
+			plugins.fmp.multitools.series.options.LevelDetectV2Options v = o.levelV2.copy();
+			v.removeHorizontalAverage = Boolean.parseBoolean(f[3]);
+			v.tapePrepass = Boolean.parseBoolean(f[4]);
+			v.runBackwards = Boolean.parseBoolean(f[5]);
+			v.edgePeak = Boolean.parseBoolean(f[6]);
+			v.trackUp = Integer.parseInt(f[7]);
+			v.trackDown = Integer.parseInt(f[8]);
+			v.medianWindow = Integer.parseInt(f[9]);
+			v.maxSpikePx = Integer.parseInt(f[10]);
+			o.levelTracking = Boolean.parseBoolean(f[0]);
+			o.levelSmoothing = Boolean.parseBoolean(f[1]);
+			o.detectBottom = Boolean.parseBoolean(f[2]);
+			o.levelV2 = v;
+		} catch (NumberFormatException ignored) { /* Keep the existing recipe on malformed rows. */ }
 	}
 
 	public static void copyGulpRecipeTo(BuildSeriesOptions dest, BuildSeriesOptions src) {
@@ -230,6 +263,8 @@ public final class DetectionProvenanceSupport {
 		BuildSeriesOptions fly1 = exp.getFlyDetect1Defaults();
 		BuildSeriesOptions fly2 = exp.getFlyDetect2Defaults();
 		switch (col) {
+		case "unified_level_recipe":
+			return unifiedLevelRecipe(level);
 		case COL_MULTICAFE_VERSION:
 			return nullToEmpty(Experiment.multiCafeVersionForExport());
 		case COL_MULTITOOLS_VERSION:
