@@ -47,12 +47,12 @@ public class LoadSaveCapillaries extends JPanel {
 		referencePanel.add(loadGroundTruthButton);
 		referencePanel.add(saveGroundTruthButton);
 		saveButtonCapillaries.setToolTipText("Save the selected experiment, including edited blue tips, as CapillariesDescription.csv");
-		saveGroundTruthButton.setToolTipText("Save image-0 reference tips as " + CapillariesPersistence.GROUND_TRUTH_CSV
+		saveGroundTruthButton.setToolTipText("Save image-0 reference tips and width as " + CapillariesPersistence.GROUND_TRUTH_CSV
 				+ "; leaves normal files unchanged");
 		panel1.validate();
 		add(panel1);
 		add(referencePanel);
-		loadGroundTruthButton.setToolTipText("Load blue endpoints for image 0 only; no files are overwritten");
+		loadGroundTruthButton.setToolTipText("Restore blue endpoints and saved widths for image 0 only; no files are overwritten");
 
 		this.parent0 = parent0;
 		defineActionListeners();
@@ -110,7 +110,7 @@ public class LoadSaveCapillaries extends JPanel {
 				return;
 			}
 			if (JOptionPane.showConfirmDialog(this, source.getAbsolutePath() + "\n" + preview.summary()
-					+ "\nReplace the matched blue measurements (including unsaved edits)?\n"
+					+ "\nReplace the matched blue endpoints and saved widths (including unsaved edits)?\n"
 					+ "Green ROIs and files on disk will not be changed.", title,
 					JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) return;
 			// Preserve unsaved blue edits for unmatched capillaries before rebuilding the overlay.

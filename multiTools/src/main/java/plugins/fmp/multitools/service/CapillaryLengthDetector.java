@@ -71,6 +71,15 @@ public class CapillaryLengthDetector {
 			result.addMeasure(measureOneCapillary(cap, image, options));
 		validate(result, image.width, options, frameExpectedPixels);
 		refineEndpointEvidence(result, image, options);
+		if (options.frameIndex == 0) {
+			try {
+				int widths = CapillaryGroundTruthWidths.fillMissing(exp.getResultsDirectory(), result);
+				if (widths > 0)
+					Logger.info("CapillaryLength: added " + widths + " missing widths to the existing ground truth CSV");
+			} catch (java.io.IOException e) {
+				Logger.warn("CapillaryLength: ground truth widths were not saved: " + e.getMessage());
+			}
+		}
 		return result;
 	}
 

@@ -155,6 +155,10 @@ public class CapillaryPersistence {
 	// === CSV EXPORT/IMPORT ===
 
 	public static String csvExportCapillarySubSectionHeader(String sep) {
+		return csvExportCapillarySubSectionHeader(sep, false);
+	}
+
+	public static String csvExportCapillarySubSectionHeader(String sep, boolean includeWidth) {
 		StringBuffer sbf = new StringBuffer();
 		sbf.append("#" + sep + "CAPILLARIES" + sep + "describe each capillary\n");
 		List<String> row2 = new ArrayList<>(
@@ -166,6 +170,8 @@ public class CapillaryPersistence {
 		row2.add("bottom_baseline_outlier_frac");
 		row2.add("cap_npixel_auto");
 		row2.add("unified_level_recipe");
+		if (includeWidth)
+			row2.add("cap_width_px");
 		row2.add("cap_measured_x1");
 		row2.add("cap_measured_y1");
 		row2.add("cap_measured_x2");
@@ -189,6 +195,10 @@ public class CapillaryPersistence {
 	 * persisted.
 	 */
 	public static String csvExportCapillaryDescription(Capillary cap, String sep, int listIndex) {
+		return csvExportCapillaryDescription(cap, sep, listIndex, false);
+	}
+
+	public static String csvExportCapillaryDescription(Capillary cap, String sep, int listIndex, boolean includeWidth) {
 		StringBuffer sbf = new StringBuffer();
 		// Access properties via getter
 		CapillaryProperties props = cap.getProperties();
@@ -278,6 +288,11 @@ public class CapillaryPersistence {
 		row.add(Double.toString(props.getBottomBaselineOutlierFrac()));
 		row.add(Boolean.toString(props.isPixelsAutoMeasured()));
 		row.add(DetectionProvenanceSupport.unifiedLevelRecipe(props.getLimitsOptions()));
+		if (includeWidth) {
+			double width = cap.getPhaseGeometry().getBlueStartingAt(0) == null ? Double.NaN
+					: cap.getPhaseGeometry().getWidthAt(0);
+			row.add(Double.isFinite(width) && width > 0. ? Double.toString(width) : "");
+		}
 		Point2D measuredStart = props.getMeasuredStart();
 		Point2D measuredEnd = props.getMeasuredEnd();
 		row.add(measuredStart != null ? Double.toString(measuredStart.getX()) : "");

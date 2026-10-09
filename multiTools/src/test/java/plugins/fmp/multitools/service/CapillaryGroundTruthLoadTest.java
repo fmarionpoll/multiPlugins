@@ -27,6 +27,8 @@ public class CapillaryGroundTruthLoadTest {
         Capillaries source = new Capillaries();
         Capillary reference = cap("0L");
         reference.getProperties().setMeasuredEndpoints(new Point2D.Double(10, 5.5), new Point2D.Double(10, 125.5));
+        reference.getPhaseGeometry().initialize(0, ((ROI2DLine)reference.getRoi()).getLine(),
+                new Line2D.Double(10, 5.5, 10, 125.5), 8.5);
         source.addCapillary(reference);
         File dir = temp.newFolder();
         assertTrue(source.getPersistence().saveGroundTruthDescriptions(source, dir.toString()));
@@ -36,8 +38,8 @@ public class CapillaryGroundTruthLoadTest {
         Capillary missing = cap("1L"), current = cap("0L");
         target.addCapillary(missing); target.addCapillary(current);
         current.setPixels(100);
-        current.getPhaseGeometry().initialize(0, ((ROI2DLine)current.getRoi()).getLine(), new Line2D.Double(10, 15, 10, 115));
-        current.getPhaseGeometry().putBlue(50, new Line2D.Double(20, 20, 20, 120));
+        current.getPhaseGeometry().initialize(0, ((ROI2DLine)current.getRoi()).getLine(), new Line2D.Double(10, 15, 10, 115), 7.);
+        current.getPhaseGeometry().putBlue(50, new Line2D.Double(20, 20, 20, 120), 9.);
         double volume = current.getVolume();
         CapillaryGroundTruthLoader.Preview preview = CapillaryGroundTruthLoader.read(csv, target);
         assertEquals(1, preview.count());
@@ -48,6 +50,8 @@ public class CapillaryGroundTruthLoadTest {
         assertEquals(5.5, current.getProperties().getMeasuredStart().getY(), 0);
         assertEquals(5.5, current.getPhaseGeometry().getBlueAt(0).getY1(), 0);
         assertEquals(20, current.getPhaseGeometry().getBlueAt(50).getY1(), 0);
+        assertEquals(8.5, current.getPhaseGeometry().getWidthAt(0), 0);
+        assertEquals(9., current.getPhaseGeometry().getWidthAt(50), 0);
         assertEquals(0, ((ROI2DLine)current.getRoi()).getLine().getY1(), 0);
         assertEquals(volume, current.getVolume(), 0);
         assertFalse(missing.getProperties().hasMeasuredEndpoints());

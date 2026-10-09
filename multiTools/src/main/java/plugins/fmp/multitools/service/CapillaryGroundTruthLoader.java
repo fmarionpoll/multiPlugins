@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -39,6 +40,7 @@ public final class CapillaryGroundTruthLoader {
 
 	public static final class Preview {
 		private final Map<Capillary, Line2D> matches = new LinkedHashMap<>();
+		private final Map<Capillary, Double> widths = new LinkedHashMap<>();
 		private final List<String> warnings = new ArrayList<>();
 
 		public int count() {
@@ -46,7 +48,8 @@ public final class CapillaryGroundTruthLoader {
 		}
 
 		public String summary() {
-			return count() + " capillary measurements matched."
+			long knownWidths = widths.values().stream().filter(Double::isFinite).count();
+			return count() + " capillary measurements matched, including " + knownWidths + " saved widths."
 					+ (warnings.isEmpty() ? "" : "\n" + String.join("\n", warnings));
 		}
 
@@ -58,10 +61,14 @@ public final class CapillaryGroundTruthLoader {
 			for (Map.Entry<Capillary, Line2D> entry : matches.entrySet()) {
 				Capillary cap = entry.getKey();
 				Line2D blue = entry.getValue();
-				if (cap.getPhaseGeometry().isInitialized())
-					cap.getPhaseGeometry().putBlue(0, blue);
-				else
-					cap.getPhaseGeometry().initialize(0, ((ROI2DLine) cap.getRoi()).getLine(), blue);
+				double width = widths.getOrDefault(cap, Double.NaN);
+				if (cap.getPhaseGeometry().isInitialized()) {
+					if (Double.isFinite(width))
+						cap.getPhaseGeometry().putBlue(0, blue, width);
+					else
+						cap.getPhaseGeometry().putBlue(0, blue);
+				} else
+					cap.getPhaseGeometry().initialize(0, ((ROI2DLine) cap.getRoi()).getLine(), blue, width);
 				cap.getProperties().setMeasuredEndpoints(blue.getP1(), blue.getP2());
 				cap.setPixels((int) Math.round(blue.getP1().distance(blue.getP2())));
 				cap.getProperties().setPixelsAutoMeasured(true);
@@ -72,9 +79,10 @@ public final class CapillaryGroundTruthLoader {
 	public static Preview read(File file, Capillaries caps) throws IOException {
 		Preview preview = new Preview();
 		Map<String, Line2D> tips = new LinkedHashMap<>();
+		Map<String, Double> widths = new HashMap<>();
 		Set<String> seen = new HashSet<>();
 		boolean section = false, headerRead = false;
-		int headerLength = 0, aliasColumns = 0;
+		CsvLayout layout = null;
 		try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
 			String row;
 			while ((row = reader.readLine()) != null) {
@@ -88,12 +96,8 @@ public final class CapillaryGroundTruthLoader {
 				if (row.trim().isEmpty())
 					continue;
 				if (!headerRead) {
-					if (!row.startsWith("cap_prefix;")
-							|| !(row.endsWith("cap_length_y2") || row.endsWith("cap_measured_y2")))
-						throw new IOException("Unsupported ground truth coordinate header in " + file);
+					layout = new CsvLayout(row);
 					headerRead = true;
-					headerLength = row.split(";", -1).length;
-					aliasColumns = row.contains("cap_measured_x1;") && row.contains("cap_length_x1;") ? 4 : 0;
 					continue;
 				}
 				String[] fields = row.split(";", -1);
@@ -101,25 +105,10 @@ public final class CapillaryGroundTruthLoader {
 				if (!seen.add(id))
 					throw new IOException("Duplicate capillary identifier: " + id);
 				try {
-					// The native format embeds variable-length green coordinates after npoints;
-					// blue coordinates are the final four fields (including older alias headers).
-					if (fields.length < 18 || id.isEmpty())
+					if (id.isEmpty())
 						throw new IllegalArgumentException();
-					int points = Integer.parseInt(fields[13]);
-					if (points < 0 || points > 10000 || fields.length != headerLength + 2 * points - aliasColumns)
-						throw new IllegalArgumentException();
-					int start = fields.length - 4;
-					double[] xy = new double[4];
-					for (int i = 0; i < 4; i++) {
-						xy[i] = Double.parseDouble(fields[start + i].trim());
-						if (!Double.isFinite(xy[i]))
-							throw new IllegalArgumentException();
-					}
-					Line2D line = new Line2D.Double(xy[0], xy[1], xy[2], xy[3]);
-					double length = line.getP1().distance(line.getP2());
-					if (!Double.isFinite(length) || length < 0.5 || length > Integer.MAX_VALUE)
-						throw new IllegalArgumentException();
-					tips.put(id, line);
+					tips.put(id, layout.endpoints(fields));
+					widths.put(id, layout.width(fields));
 				} catch (IllegalArgumentException ex) {
 					preview.warnings.add("Invalid or missing endpoints: " + id);
 				}
@@ -139,11 +128,78 @@ public final class CapillaryGroundTruthLoader {
 				preview.warnings.add("No valid ground truth for: " + id);
 			else if (!(cap.getRoi() instanceof ROI2DLine))
 				preview.warnings.add("Unsupported green ROI: " + id);
-			else
+			else {
 				preview.matches.put(cap, line);
+				preview.widths.put(cap, widths.getOrDefault(id, Double.NaN));
+			}
 		}
 		for (String id : tips.keySet())
 			preview.warnings.add("Reference capillary not in this experiment: " + id);
 		return preview;
+	}
+
+	/** Native rows embed ROI points after npoints and may omit four header-only aliases. */
+	static final class CsvLayout {
+		static final String WIDTH_COLUMN = "cap_width_px";
+		final List<String> columns;
+		final int endpointsColumn, firstEndpointsColumn, widthColumn, measuredColumn;
+		final boolean aliases;
+
+		CsvLayout(String header) throws IOException {
+			columns = Arrays.asList(header.split(";", -1));
+			measuredColumn = columns.indexOf("cap_measured_x1");
+			int lengthColumn = columns.indexOf("cap_length_x1");
+			endpointsColumn = lengthColumn >= 0 ? lengthColumn : measuredColumn;
+			aliases = measuredColumn >= 0 && lengthColumn >= 0;
+			firstEndpointsColumn = aliases ? Math.min(measuredColumn, lengthColumn) : endpointsColumn;
+			widthColumn = columns.indexOf(WIDTH_COLUMN);
+			String prefix = lengthColumn >= 0 ? "cap_length_" : "cap_measured_";
+			if (columns.size() < 18 || !"cap_prefix".equals(columns.get(0))
+					|| widthColumn != columns.lastIndexOf(WIDTH_COLUMN)
+					|| !"npoints".equals(columns.get(13)) || endpointsColumn < 14
+					|| endpointsColumn + 3 >= columns.size()
+					|| !columns.subList(endpointsColumn, endpointsColumn + 4)
+							.equals(Arrays.asList(prefix + "x1", prefix + "y1", prefix + "x2", prefix + "y2")))
+				throw new IOException("Unsupported ground truth coordinate header");
+		}
+
+		int fieldIndex(int column, String[] fields) {
+			if (fields.length < 18)
+				throw new IllegalArgumentException("short capillary row");
+			int points = Integer.parseInt(fields[13]);
+			if (points < 0 || points > 10000)
+				throw new IllegalArgumentException("invalid ROI point count");
+			int omitted = aliases && fields.length == columns.size() + 2 * points - 4 ? 4 : 0;
+			if (fields.length != columns.size() + 2 * points - omitted)
+				throw new IllegalArgumentException("invalid capillary row length");
+			return column + (column > 13 ? 2 * points : 0)
+					- (omitted > 0 && column >= measuredColumn + 4 ? omitted : 0);
+		}
+
+		Line2D endpoints(String[] fields) {
+			int first = fieldIndex(endpointsColumn, fields);
+			double[] xy = new double[4];
+			for (int i = 0; i < xy.length; i++) {
+				xy[i] = Double.parseDouble(fields[first + i].trim());
+				if (!Double.isFinite(xy[i]))
+					throw new IllegalArgumentException("non-finite endpoint");
+			}
+			Line2D line = new Line2D.Double(xy[0], xy[1], xy[2], xy[3]);
+			double length = line.getP1().distance(line.getP2());
+			if (!Double.isFinite(length) || length < .5 || length > Integer.MAX_VALUE)
+				throw new IllegalArgumentException("invalid capillary length");
+			return line;
+		}
+
+		double width(String[] fields) {
+			if (widthColumn < 0)
+				return Double.NaN;
+			try {
+				double width = Double.parseDouble(fields[fieldIndex(widthColumn, fields)].trim());
+				return Double.isFinite(width) && width > 0. ? width : Double.NaN;
+			} catch (NumberFormatException e) {
+				return Double.NaN;
+			}
+		}
 	}
 }

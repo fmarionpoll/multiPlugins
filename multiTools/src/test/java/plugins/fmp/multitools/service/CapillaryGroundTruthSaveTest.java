@@ -26,6 +26,8 @@ public class CapillaryGroundTruthSaveTest {
         cap.setKymographName("line01");
         cap.setRoi(new ROI2DLine(new Line2D.Double(10, 0, 10, 130)));
         cap.getProperties().setMeasuredEndpoints(new Point2D.Double(10, 10), new Point2D.Double(10, 120));
+        cap.getPhaseGeometry().initialize(0, ((ROI2DLine)cap.getRoi()).getLine(),
+                new Line2D.Double(10, 10, 10, 120), 8.5);
         caps.addCapillary(cap);
         Path directory = temporary.newFolder().toPath();
         assertTrue(caps.getPersistence().saveDescriptions(caps, directory.toString()));
@@ -42,6 +44,8 @@ public class CapillaryGroundTruthSaveTest {
         String content = new String(Files.readAllBytes(truth), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(content.contains("cap_length_x1;cap_length_y1;cap_length_x2;cap_length_y2"));
         assertTrue(content.contains(";10.0;5.5;10.0;125.5\n"));
+        assertTrue(content.contains("cap_width_px;cap_measured_x1"));
+        assertTrue(content.contains(";8.5;10.0;5.5;10.0;125.5\n"));
         try (java.util.stream.Stream<Path> files = Files.list(directory)) {
             assertEquals(original.size() + 1, files.count());
         }

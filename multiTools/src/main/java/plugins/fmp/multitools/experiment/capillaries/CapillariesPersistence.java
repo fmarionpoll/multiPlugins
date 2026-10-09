@@ -646,7 +646,8 @@ public class CapillariesPersistence {
 			try (FileWriter csvWriter = new FileWriter(resultsDirectory + File.separator + filename)) {
 				csvWriter.write("#" + csvSep + "version" + csvSep + CSV_VERSION + "\n");
 				writeProvenanceHeaderComments(csvWriter);
-				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep);
+				CapillariesPersistenceLegacy.csvSave_DescriptionSection(capillaries, csvWriter, csvSep,
+						GROUND_TRUTH_CSV.equals(filename));
 				csvWriter.flush();
 				return true;
 			} catch (IOException e) {

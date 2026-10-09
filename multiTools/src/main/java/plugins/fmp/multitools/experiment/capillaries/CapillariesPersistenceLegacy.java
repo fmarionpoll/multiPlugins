@@ -687,16 +687,21 @@ public class CapillariesPersistenceLegacy {
 	 */
 	static void csvSave_DescriptionSection(Capillaries capillaries, FileWriter csvWriter, String csvSep)
 			throws IOException {
+		csvSave_DescriptionSection(capillaries, csvWriter, csvSep, false);
+	}
+
+	static void csvSave_DescriptionSection(Capillaries capillaries, FileWriter csvWriter, String csvSep,
+			boolean includeWidth) throws IOException {
 		csvWriter.append(capillaries.getCapillariesDescription().csvExportSectionHeader(csvSep));
 		csvWriter.append(capillaries.getCapillariesDescription().csvExportExperimentDescriptors(csvSep));
 		csvWriter.append("n caps=" + csvSep + Integer.toString(capillaries.getList().size()) + "\n");
 		csvWriter.append("#" + csvSep + "#\n");
 
 		if (capillaries.getList().size() > 0) {
-			csvWriter.append(capillaries.getList().get(0).csvExport_CapillarySubSectionHeader(csvSep));
+			csvWriter.append(CapillaryPersistence.csvExportCapillarySubSectionHeader(csvSep, includeWidth));
 			int index = 0;
 			for (Capillary cap : capillaries.getList()) {
-				csvWriter.append(CapillaryPersistence.csvExportCapillaryDescription(cap, csvSep, index));
+				csvWriter.append(CapillaryPersistence.csvExportCapillaryDescription(cap, csvSep, index, includeWidth));
 				index++;
 			}
 			csvWriter.append("#" + csvSep + "#\n");
