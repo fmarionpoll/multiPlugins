@@ -4,6 +4,7 @@ import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -36,6 +37,8 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
  * pixel lengths must vary smoothly with position in the image. After tips are
  * found, a length-vs-X trend is fitted on the reliable tubes and that trend
  * length is applied to every usable capillary (and its blue overlay).
+ * Shaft color, when supported along the tube, disambiguates dark reflections.
+ * A consensus glass width is fitted across the rack before searching for tips.
  */
 public class CapillaryLengthDetector {
 
@@ -65,12 +68,7 @@ public class CapillaryLengthDetector {
 			return result;
 		}
 
-		double frameExpectedPixels = estimateExpectedLengthFromFrame(capillaries, image, options);
-		result.setFrameExpectedPixels(frameExpectedPixels);
-		for (Capillary cap : capillaries.getList())
-			result.addMeasure(measureOneCapillary(cap, image, options));
-		validate(result, image.width, options, frameExpectedPixels);
-		refineEndpointEvidence(result, image, options);
+		result = measureFrame(capillaries, image, options);
 		if (options.frameIndex == 0) {
 			try {
 				int widths = CapillaryGroundTruthWidths.fillMissing(exp.getResultsDirectory(), result);
@@ -81,6 +79,62 @@ public class CapillaryLengthDetector {
 			}
 		}
 		return result;
+	}
+
+	/** In-memory detection, shared by the UI and read-only image benchmarks. */
+	CapillaryLengthResult measureFrame(Capillaries capillaries, ImageData image,
+			CapillaryLengthDetectorOptions options) {
+		CapillaryLengthResult result = new CapillaryLengthResult();
+		result.setPhysicalLengthMm(options.physicalLengthMm);
+		Map<Capillary, Geometry> geometries = estimateFrameGeometry(capillaries, image, options);
+		double expected = estimateExpectedLengthFromFrame(capillaries, image, options);
+		result.setFrameExpectedPixels(expected);
+		for (Capillary cap : capillaries.getList())
+			result.addMeasure(measureOneCapillary(cap, image, options, geometries.get(cap)));
+		validate(result, image.width, options, expected);
+		refineEndpointEvidence(result, image, options);
+		return result;
+	}
+
+	/** Identical glass diameters provide a resistant width prior for this camera frame. */
+	static Map<Capillary, Geometry> estimateFrameGeometry(Capillaries capillaries, ImageData image,
+			CapillaryLengthDetectorOptions options) {
+		Map<Capillary, Geometry> geometries = new LinkedHashMap<>();
+		Map<Capillary, ArrayList<int[]>> axes = new LinkedHashMap<>();
+		List<Double> widths = new ArrayList<>();
+		for (Capillary cap : capillaries.getList()) {
+			ROI2D roi = cap.getRoiAtFrameT(options.frameIndex);
+			if (roi == null) continue;
+			ArrayList<Point2D> points = ROI2DUtilities.getCapillaryPoints(roi);
+			if (points.size() < 2) continue;
+			ArrayList<int[]> axis = Bresenham.getPixelsAlongLineFromROI2D(points);
+			if (axis.size() < 8) continue;
+			Geometry g = estimateGeometry(axis, image, options);
+			geometries.put(cap, g); axes.put(cap, axis);
+			if (g.wallsFound) widths.add(g.halfWidth);
+		}
+		if (widths.size() < MIN_POINTS_FOR_LINEAR_FIT) return geometries;
+		double[] values = new double[widths.size()];
+		for (int i = 0; i < values.length; i++) values[i] = widths.get(i);
+		double shared = percentile(values, 50.);
+		int agrees = 0;
+		for (double width : values) if (Math.abs(width - shared) <= Math.max(.75, .2 * shared)) agrees++;
+		// Do not impose a diameter when the frame has no clear consensus.
+		if (agrees < Math.max(MIN_POINTS_FOR_LINEAR_FIT, (int) Math.ceil(.6 * values.length))) return geometries;
+		for (Map.Entry<Capillary, Geometry> entry : geometries.entrySet()) {
+			Geometry g = entry.getValue();
+			if (g.coloredWallsFound) {
+				g.offset = g.colorOffset; g.offsetSlope = g.colorSlope;
+				// The glass diameter comes from the rack; weak dark rims must not
+				// displace the independently supported shaft midpoint or angle.
+				g.halfWidth = shared;
+			} else {
+				g.halfWidth = shared;
+				refineCenterline(axes.get(entry.getKey()), image, options, g);
+				refineJointWalls(axes.get(entry.getKey()), image, options, g, shared);
+			}
+		}
+		return geometries;
 	}
 
 	/** Record support before any population-level correction can move the endpoints. */
@@ -107,13 +161,14 @@ public class CapillaryLengthDetector {
 		for (CapillaryLengthResult.Measure m : result.getMeasures()) {
 			if (!m.isSelected() || !m.hasDetectedEndpoints()) continue;
 			Point2D a=m.getDetectedStart(), b=m.getDetectedEnd();
-			// Until glass and liquid tops have independent evidence, only protect
-			// a top that also agrees with the shared proposal to within 3 pixels.
+			// Small trend adjustments can retain an independently supported tip.
+			// A much shorter raw bottom can instead be the edge of an occlusion.
 			boolean startIsTop = a.getY() <= b.getY();
+			double bottomTolerance = Math.max(8., Double.isFinite(m.getWidthPixels()) ? 2. * m.getWidthPixels() : 0.);
 			boolean keepStart = m.supportedStart != null
-					&& (!startIsTop || a.distance(m.supportedStart) <= 3.);
+					&& a.distance(m.supportedStart) <= (startIsTop ? 3. : bottomTolerance);
 			boolean keepEnd = m.supportedEnd != null
-					&& (startIsTop || b.distance(m.supportedEnd) <= 3.);
+					&& b.distance(m.supportedEnd) <= (startIsTop ? bottomTolerance : 3.);
 			double length=a.distance(b);
 			if(length<40.) continue;
 			Geometry g=endpointGeometry(m,image,options); g.offset=0.;
@@ -327,6 +382,11 @@ public class CapillaryLengthDetector {
 
 	CapillaryLengthResult.Measure measureOneCapillary(Capillary cap, ImageData image,
 			CapillaryLengthDetectorOptions options) {
+		return measureOneCapillary(cap, image, options, null);
+	}
+
+	private CapillaryLengthResult.Measure measureOneCapillary(Capillary cap, ImageData image,
+			CapillaryLengthDetectorOptions options, Geometry geometry) {
 		String name = cap.getRoiName() != null ? cap.getRoiName() : cap.getKymographName();
 		CapillaryLengthResult.Measure measure = new CapillaryLengthResult.Measure(cap, name, cap.getPixels());
 		measure.setFrameIndex(options.frameIndex);
@@ -356,7 +416,7 @@ public class CapillaryLengthDetector {
 		measure.setRoiPixels(straight ? roiPoints.get(0).distance(roiPoints.get(roiPoints.size() - 1))
 				: cumulative[axis.size() - 1]);
 
-		AxisMeasure located = locateAlongAxis(axis, image, options);
+		AxisMeasure located = locateAlongAxis(axis, image, options, geometry);
 		if (!located.found) {
 			measure.setStatus(CapillaryLengthResult.Status.FAILED);
 			measure.setMessage(located.failure);
@@ -423,6 +483,9 @@ public class CapillaryLengthDetector {
 		double offsetSlope;
 		double halfWidth;
 		boolean wallsFound;
+		boolean coloredWallsFound;
+		double colorOffset;
+		double colorSlope;
 	}
 
 	static final class TipFind {
@@ -444,10 +507,15 @@ public class CapillaryLengthDetector {
 	 * The longitudinal search is not extended past the ROI ends.
 	 */
 	static AxisMeasure locateAlongAxis(ArrayList<int[]> axis, ImageData image, CapillaryLengthDetectorOptions options) {
+		return locateAlongAxis(axis, image, options, null);
+	}
+
+	private static AxisMeasure locateAlongAxis(ArrayList<int[]> axis, ImageData image,
+			CapillaryLengthDetectorOptions options, Geometry geometry) {
 		int n = axis.size();
 		if (n < 8)
 			return AxisMeasure.failed("ROI too short");
-		Geometry geometry = estimateGeometry(axis, image, options);
+		if (geometry == null) geometry = estimateGeometry(axis, image, options);
 		TipFind start = findTip(axis, image, geometry, 0, +1, options);
 		TipFind end = findTip(axis, image, geometry, n - 1, -1, options);
 		if (!start.found)
@@ -522,8 +590,11 @@ public class CapillaryLengthDetector {
 				}
 			}
 		}
-		if (left < 0 || right <= left)
+		if (left < 0 || right <= left) {
+			refineColoredWalls(axis, image, options, geometry);
+			if (geometry.coloredWallsFound) refineJointWalls(axis, image, options, geometry);
 			return geometry;
+		}
 		double uL = left - half;
 		double uR = right - half;
 		geometry.offset = 0.5 * (uL + uR);
@@ -533,7 +604,88 @@ public class CapillaryLengthDetector {
 			geometry.halfWidth = 4.;
 		refineCenterline(axis, image, options, geometry);
 		refineJointWalls(axis, image, options, geometry);
+		refineColoredWalls(axis, image, options, geometry);
+		if (geometry.coloredWallsFound)
+			refineJointWalls(axis, image, options, geometry);
 		return geometry;
+	}
+
+	/** Blue/cyan or green liquid separates the shaft from achromatic reflections. */
+	private static void refineColoredWalls(ArrayList<int[]> axis, ImageData image,
+			CapillaryLengthDetectorOptions options, Geometry geometry) {
+		if (image.nChannels < 3) return;
+		int half = Math.max(6, options.perpendicularHalfLength), samples = 25;
+		double[][] profiles = new double[samples][2 * half + 1];
+		double[][] greenProfiles = new double[samples][2 * half + 1];
+		double[] positions = new double[samples];
+		for (int k = 0; k < samples; k++) {
+			positions[k] = .1 + .8 * k / (samples - 1.);
+			int index = (int) Math.round(positions[k] * (axis.size() - 1));
+			for (int j = index - 2; j <= index + 2; j++) {
+				int i = Math.max(0, Math.min(axis.size() - 1, j));
+				double[] normal = normalAt(axis, i, Math.max(1, options.tangentWindow));
+				for (int u = -half; u <= half; u++) {
+					double x = axis.get(i)[0] + u * normal[0], y = axis.get(i)[1] + u * normal[1];
+					double red = sample(image, 0, x, y), green = sample(image, 1, x, y), blue = sample(image, 2, x, y);
+					profiles[k][u + half] += liquidColorContrast(red,green,blue,false) / 5.;
+					greenProfiles[k][u + half] += liquidColorContrast(red,green,blue,true) / 5.;
+				}
+			}
+		}
+		// Select one color cue for the whole shaft. Comparing with the local
+		// background keeps green lighting or paper from selecting the liquid hue.
+		if (colorProfileContrast(greenProfiles) > 1.25 * colorProfileContrast(profiles)) profiles = greenProfiles;
+		double seedShift = geometry.offsetSlope * (axis.size() - 1.);
+		double best = .35, bestCentre = 0., bestShift = 0., bestWidth = 0.;
+		for (double width = 2.; width <= Math.min(8., half - 2.); width += .25)
+			for (double centre = -half + width + 1.; centre <= half - width - 1.; centre += .25)
+				for (double shift = seedShift - 6.; shift <= seedShift + 6.; shift += .5) {
+					double score = coloredWallScore(profiles, positions, half, centre, width, shift)
+							- .001 * Math.abs(shift - seedShift);
+					if (score > best) {
+						best = score; bestCentre = centre; bestShift = shift; bestWidth = width;
+					}
+				}
+		if (bestWidth == 0.) return;
+		geometry.offset = bestCentre;
+		geometry.offsetSlope = bestShift / (axis.size() - 1.);
+		geometry.halfWidth = bestWidth;
+		geometry.wallsFound = true;
+		geometry.coloredWallsFound = true;
+		geometry.colorOffset = geometry.offset;
+		geometry.colorSlope = geometry.offsetSlope;
+	}
+
+	static double liquidColorContrast(double red, double green, double blue, boolean greenLiquid) {
+		return greenLiquid ? green - .5 * (red + blue) : .5 * (green + blue) - red;
+	}
+
+	private static double colorProfileContrast(double[][] profiles) {
+		double[] contrast = new double[profiles.length];
+		for (int k=0;k<profiles.length;k++) {
+			double[] profile=profiles[k];
+			double left=.5*(profile[0]+profile[1]),right=.5*(profile[profile.length-1]+profile[profile.length-2]);
+			for(int i=2;i<profile.length-2;i++)
+				contrast[k]=Math.max(contrast[k],profile[i]-(left+(right-left)*i/(profile.length-1.)));
+		}
+		return percentile(contrast,50.);
+	}
+
+	private static double coloredWallScore(double[][] profiles, double[] positions, int half,
+			double centre, double width, double shift) {
+		double[] scores = new double[profiles.length];
+		for (int k = 0; k < scores.length; k++) {
+			double c = half + centre + shift * (positions[k] - .5), left = c - width, right = c + width;
+			if (left < 1. || right > profiles[k].length - 2.) continue;
+			double l = profileValue(profiles[k], left + 1.) - profileValue(profiles[k], left - 1.);
+			double r = profileValue(profiles[k], right - 1.) - profileValue(profiles[k], right + 1.);
+			double evidence = Math.max(0., Math.min(l, r));
+			scores[k] = evidence / (evidence + 4.);
+		}
+		Arrays.sort(scores);
+		double sum = 0.;
+		for (int k = 5; k < scores.length - 5; k++) sum += scores[k];
+		return sum / (scores.length - 10);
 	}
 
 	/**
@@ -541,6 +693,11 @@ public class CapillaryLengthDetector {
 	 */
 	private static void refineJointWalls(ArrayList<int[]> axis, ImageData image, CapillaryLengthDetectorOptions options,
 			Geometry geometry) {
+		refineJointWalls(axis, image, options, geometry, Double.NaN);
+	}
+
+	private static void refineJointWalls(ArrayList<int[]> axis, ImageData image, CapillaryLengthDetectorOptions options,
+			Geometry geometry, double sharedHalfWidth) {
 		int half = Math.max(6, options.perpendicularHalfLength), samples = 25;
 		double[][] profiles = new double[samples][2 * half + 1];
 		double[] positions = new double[samples];
@@ -557,10 +714,13 @@ public class CapillaryLengthDetector {
 		}
 		double seedShift = geometry.offsetSlope * (axis.size() - 1.);
 		double best = 0., bestCentre = geometry.offset, bestShift = seedShift, bestWidth = geometry.halfWidth;
-		for (double width = Math.max(2., geometry.halfWidth - 1.); width <= Math.min(8.,
-				geometry.halfWidth + 1.); width += .5)
-			for (double centre = Math.max(-half + width + 1., geometry.offset - 2.); centre <= Math
-					.min(half - width - 1., geometry.offset + 2.); centre += .25)
+		double centreRange = geometry.coloredWallsFound ? .75 : 2.;
+		double minWidth = Math.max(2., geometry.halfWidth - (geometry.coloredWallsFound ? 0. : 1.));
+		double maxWidth = Math.min(8., geometry.halfWidth + (geometry.coloredWallsFound ? 2. : 1.));
+		if (Double.isFinite(sharedHalfWidth)) minWidth = maxWidth = sharedHalfWidth;
+		for (double width = minWidth; width <= maxWidth; width += .5)
+			for (double centre = Math.max(-half + width + 1., geometry.offset - centreRange); centre <= Math
+					.min(half - width - 1., geometry.offset + centreRange); centre += .25)
 				for (double shift = seedShift - 4.; shift <= seedShift + 4.; shift += .5) {
 					double score = jointWallScore(profiles, positions, half, centre, width, shift);
 					// Prefer the robust wall-angle seed when evidence is nearly tied.
@@ -1195,6 +1355,17 @@ public class CapillaryLengthDetector {
 		double fy = y - y0;
 		return (1. - fy) * ((1. - fx) * greyInt(image, x0, y0) + fx * greyInt(image, x1, y0))
 				+ fy * ((1. - fx) * greyInt(image, x0, y1) + fx * greyInt(image, x1, y1));
+	}
+
+	private static double sample(ImageData image, int channel, double x, double y) {
+		x = Math.max(0., Math.min(image.width - 1., x));
+		y = Math.max(0., Math.min(image.height - 1., y));
+		int x0 = (int) x, y0 = (int) y;
+		int x1 = Math.min(image.width - 1, x0 + 1), y1 = Math.min(image.height - 1, y0 + 1);
+		double fx = x - x0, fy = y - y0;
+		double[] data = image.channels[channel];
+		return (1. - fy) * ((1. - fx) * data[x0 + y0 * image.width] + fx * data[x1 + y0 * image.width])
+				+ fy * ((1. - fx) * data[x0 + y1 * image.width] + fx * data[x1 + y1 * image.width]);
 	}
 
 	private static double greyInt(ImageData image, int x, int y) {

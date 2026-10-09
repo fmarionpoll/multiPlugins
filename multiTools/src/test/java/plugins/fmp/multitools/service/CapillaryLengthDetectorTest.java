@@ -32,6 +32,83 @@ public class CapillaryLengthDetectorTest {
 	}
 
 	@Test
+	public void coloredShaftRejectsReflectionAndSharesGlassWidthAcrossRack() {
+		checkColoredShaft(false);
+	}
+
+	@Test
+	public void greenShaftHasTheSameGlassWidthAndCenterAsBlueDespiteReflections() {
+		checkColoredShaft(true);
+	}
+
+	private void checkColoredShaft(boolean greenLiquid) {
+		int width = 300, height = 260;
+		double[][] channels = new double[3][width * height];
+		plugins.fmp.multitools.experiment.capillaries.Capillaries caps =
+				new plugins.fmp.multitools.experiment.capillaries.Capillaries();
+		for (int y = 0; y < height; y++) for (int x = 0; x < width; x++) {
+			double shade = 200.;
+			for (int tube = 0; tube < 6; tube++) {
+				double centre = 30. + 45. * tube + 4. * (y / (height - 1.) - .5);
+				if (y >= 30 && y < 230) {
+					for (int side : new int[] { -1, 1 }) {
+						double d = x - centre - side * 4.;
+						shade -= 45. * Math.exp(-d * d / .8);
+					}
+					// Stronger parallel reflections can form a false pair outside the tube.
+					if (tube == 0 || tube == 5) for (double offset : new double[] { -9., -5. }) {
+						double d = x - centre - offset;
+						shade -= 65. * Math.exp(-d * d / .5);
+					}
+				}
+			}
+			for (int c = 0; c < 3; c++) channels[c][x + y * width] = shade;
+			if (y >= 30 && y < 230) for (int tube = 0; tube < 6; tube++) {
+				double centre = 30. + 45. * tube + 4. * (y / (height - 1.) - .5);
+				double cyan = 55. / (1. + Math.exp(3. * (Math.abs(x - centre) - 3.)));
+				channels[0][x + y * width] -= (greenLiquid ? .25 : 1.) * cyan;
+				if (greenLiquid) channels[2][x + y * width] -= cyan;
+			}
+		}
+		for (int tube = 0; tube < 6; tube++) {
+			plugins.fmp.multitools.experiment.capillary.Capillary cap =
+					new plugins.fmp.multitools.experiment.capillary.Capillary();
+			double x = 30. + 45. * tube + (tube == 5 ? -6. : 2.);
+			cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(new java.awt.geom.Line2D.Double(x,20,x,240)));
+			caps.addCapillary(cap);
+		}
+		java.util.Map<plugins.fmp.multitools.experiment.capillary.Capillary, Geometry> fitted =
+				CapillaryLengthDetector.estimateFrameGeometry(caps, new ImageData(width,height,channels), syntheticOptions());
+		double shared = Double.NaN;
+		for (int tube = 0; tube < 6; tube++) {
+			Geometry g = fitted.get(caps.getList().get(tube));
+			assertTrue("colored shaft supported", g.coloredWallsFound);
+			if (tube == 0) shared = g.halfWidth;
+			assertEquals("common diameter", shared, g.halfWidth, 1.e-9);
+			assertEquals("glass width", 4., g.halfWidth, .6);
+			ArrayList<int[]> axis = new ArrayList<>();
+			int x = (int) (30 + 45*tube + (tube == 5 ? -6 : 2));
+			for (int y = 20; y <= 240; y++) axis.add(new int[] {x,y});
+			for (int tip : new int[] { 10, 210 }) {
+				Point2D p = CapillaryLengthDetector.interpolateOffsetPoint(axis, tip, g.offset, g.offsetSlope,8);
+				assertEquals("midpoint despite reflection or displaced ROI", 30. + 45.*tube
+						+ 4.*(p.getY()/(height-1.)-.5), p.getX(), .6);
+			}
+		}
+		CapillaryLengthResult result = new CapillaryLengthDetector().measureFrame(caps,
+				new ImageData(width, height, channels), syntheticOptions());
+		for (int tube = 0; tube < 6; tube++) {
+			CapillaryLengthResult.Measure m = result.getMeasures().get(tube);
+			assertTrue(m.getMessage(), m.getStatus().isUsable() && m.hasDetectedEndpoints());
+			assertEquals("top", 30., m.getDetectedStart().getY(), 2.);
+			assertEquals("bottom", 230., m.getDetectedEnd().getY(), 2.);
+			assertEquals(2. * shared, m.getWidthPixels(), 1.e-9);
+			for (Point2D p : new Point2D[] { m.getDetectedStart(), m.getDetectedEnd() })
+				assertEquals("final midpoint", 30. + 45.*tube + 4.*(p.getY()/(height-1.)-.5), p.getX(), .6);
+		}
+	}
+
+	@Test
 	public void tiltedOffsetTubeUsesSameWallsForWidthCenterAndBothTips() {
 		int width = 90, height = 260;
 		for (double halfWidth : new double[] { 3., 4.5, 6. }) {
@@ -109,6 +186,28 @@ public class CapillaryLengthDetectorTest {
 			assertEquals(bottom, (reverse ? m.getDetectedStart() : m.getDetectedEnd()).getY(), 1.e-9);
 			assertEquals(m.getDetectedStart().distance(m.getDetectedEnd()), m.getDetectedPixels(), 1.e-9);
 			assertEquals(m.getDetectedPixels(), result.getMedianPixels(), 1.e-9);
+		}
+	}
+
+	@Test
+	public void disputedShortBottomDoesNotOverrideCorrectedGlassTipInEitherRoiDirection() {
+		for (boolean reverse : new boolean[] {false,true}) {
+			ImageData image = buildSyntheticImage(-1);
+			double x = capillaryX(5), bottom = Math.round(CAPILLARY_TOP + trueLength(5));
+			Point2D top = new Point2D.Double(x,CAPILLARY_TOP), end = new Point2D.Double(x,bottom);
+			plugins.fmp.multitools.experiment.capillary.Capillary cap =
+					new plugins.fmp.multitools.experiment.capillary.Capillary();
+			cap.setRoi(new plugins.kernel.roi.roi2d.ROI2DLine(new java.awt.geom.Line2D.Double(top,end)));
+			CapillaryLengthResult.Measure m = new CapillaryLengthResult.Measure(cap,"test",(int)Math.round(bottom-CAPILLARY_TOP));
+			m.setDetectedEndpoints(reverse?end:top,reverse?top:end);
+			m.setWidthPixels(8.); m.setStatus(CapillaryLengthResult.Status.OK); m.setSelected(true);
+			Point2D falseBottom = new Point2D.Double(x,bottom-25.);
+			if(reverse) m.supportedStart=falseBottom; else m.supportedEnd=falseBottom;
+			CapillaryLengthResult result=new CapillaryLengthResult(); result.addMeasure(m);
+			CapillaryLengthDetector.refineEndpointEvidence(result,image,syntheticOptions());
+			assertEquals("an occlusion must not restore the short raw bottom",bottom,
+					(reverse?m.getDetectedStart():m.getDetectedEnd()).getY(),2.);
+			assertEquals(m.getDetectedStart().distance(m.getDetectedEnd()),m.getDetectedPixels(),1.e-9);
 		}
 	}
 

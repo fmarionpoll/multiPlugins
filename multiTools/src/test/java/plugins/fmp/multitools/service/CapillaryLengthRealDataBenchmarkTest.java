@@ -34,6 +34,49 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
  */
 public class CapillaryLengthRealDataBenchmarkTest {
 
+	/** Read-only wall-fit diagnostic; does not require annotations or save experiment files. */
+	@Test
+	public void diagnoseWallWidths() throws Exception {
+		String root = System.getProperty("capillary.wall.root");
+		Assume.assumeTrue(root != null && !root.trim().isEmpty());
+		IcyPreferences.init();
+		File directory = new File(root);
+		Map<String, double[]> green = readCoordinates(new File(directory, "CapillariesDescription.csv"), false);
+		String selectedImage = System.getProperty("capillary.wall.image");
+		File imageFile = selectedImage == null ? firstJpeg(directory.getParentFile()) : new File(selectedImage);
+		BufferedImage source = ImageIO.read(imageFile);
+		ImageData image = readImage(imageFile);
+		java.awt.Graphics2D graphics = source.createGraphics();
+		graphics.setColor(java.awt.Color.GREEN);
+		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
+		Capillaries caps = new Capillaries();
+		for (Map.Entry<String, double[]> entry : green.entrySet()) {
+			double[] p = entry.getValue();
+			Capillary cap = new Capillary();
+			cap.setRoi(new ROI2DLine(new Line2D.Double(p[0], p[1], p[2], p[3])));
+			cap.setKymographName(entry.getKey()); cap.setCageID(cageId(entry.getKey()));
+			caps.addCapillary(cap);
+		}
+		CapillaryLengthResult result = new CapillaryLengthDetector().measureFrame(caps, image, options);
+		for (CapillaryLengthResult.Measure m : result.getMeasures()) {
+			String id = m.getCapillary().getKymographName();
+			assertTrue(id + ": " + m.getMessage(), m.getStatus().isUsable() && m.hasDetectedEndpoints());
+			java.awt.geom.Point2D a = m.getDetectedStart(), b = m.getDetectedEnd();
+			double halfWidth = m.getWidthPixels() / 2.;
+			System.out.printf(Locale.US, "WALL|%s|%.3f|%.3f|%.3f|%.3f|%.3f%n", id,
+					m.getWidthPixels(), a.getX(), a.getY(), b.getX(), b.getY());
+			double length = a.distance(b), nx = (b.getY() - a.getY()) / length,
+					ny = (a.getX() - b.getX()) / length;
+			for (int side : new int[] { -1, 1 })
+				graphics.draw(new java.awt.geom.Line2D.Double(a.getX() + side * halfWidth * nx,
+						a.getY() + side * halfWidth * ny, b.getX() + side * halfWidth * nx,
+						b.getY() + side * halfWidth * ny));
+		}
+		graphics.dispose();
+		String output = System.getProperty("capillary.wall.output");
+		if (output != null) ImageIO.write(source, "png", new File(output));
+	}
+
 	/**
 	 * Stage isolation using production defaults; annotations are evaluation only.
 	 */
@@ -322,11 +365,7 @@ public class CapillaryLengthRealDataBenchmarkTest {
 					// Retain the annotation key independently of display naming.
 					cap.setKymographName(entry.getKey());
 				}
-				double frameExpected = CapillaryLengthDetector.estimateExpectedLengthFromFrame(capillaries, image,
-						options);
-				result.setFrameExpectedPixels(frameExpected);
-				CapillaryLengthDetector.validate(result, image.width, options, frameExpected);
-				CapillaryLengthDetector.refineEndpointEvidence(result, image, options);
+				result = detector.measureFrame(capillaries, image, options);
 				CapillaryLengthDetector.apply(result, 0);
 				List<Double> experimentErrors = new ArrayList<Double>();
 				List<Double> experimentLengths = new ArrayList<Double>();
