@@ -23,6 +23,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.geometry.NormedBlueKymoGeometry;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
@@ -293,6 +294,7 @@ public class NormedBlueKymographBuilder {
 		if (directory == null)
 			return;
 		commitBuffersToCapImages();
+		padCapillaryImagesToCommonCanvas(exp.getCapillaries().getList());
 		final Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("exportNormedBlueKymograph");
 		processor.setPriority(Processor.NORM_PRIORITY);
@@ -316,6 +318,22 @@ public class NormedBlueKymographBuilder {
 			}));
 		}
 		waitFuturesCompletion(processor, tasks);
+	}
+
+	void padCapillaryImagesToCommonCanvas(List<Capillary> capillaries) {
+		int width = 0, height = 0;
+		for (Capillary cap : capillaries) {
+			IcyBufferedImage image = cap.getCap_Image();
+			if (!cap.getKymographBuild() || image == null)
+				continue;
+			width = Math.max(width, image.getSizeX());
+			height = Math.max(height, image.getSizeY());
+		}
+		for (Capillary cap : capillaries) {
+			IcyBufferedImage image = cap.getCap_Image();
+			if (cap.getKymographBuild() && image != null)
+				cap.setCap_Image(SequenceKymos.padImageToCanvas(image, width, height));
+		}
 	}
 
 	private void prepareCapillaries(Experiment exp) {

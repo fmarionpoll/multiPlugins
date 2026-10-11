@@ -87,5 +87,21 @@ public class NormedBlueKymographBuilderTest {
 		builder.allocateKymoBuffers(caps, 1, 3, 0.10);
 		assertEquals(66, center.getCap_Image().getHeight());
 		assertEquals(33, edge.getCap_Image().getHeight());
+		// Padding happens after sampling and committing buffers; physical rows stay fixed.
+		builder.commitBuffersToCapImages();
+		byte[] edgeRed = (byte[]) edge.getCap_Image().getDataXY(0);
+		edgeRed[0] = 11;
+		edgeRed[32] = 22;
+		edge.getCap_Image().setDataXY(0, edgeRed);
+		builder.padCapillaryImagesToCommonCanvas(caps);
+		assertEquals(66, edge.getCap_Image().getHeight());
+		assertEquals(66, center.getCap_Image().getHeight());
+		assertEquals(3, edge.getCap_Image().getSizeC());
+		byte[] paddedRed = (byte[]) edge.getCap_Image().getDataXY(0);
+		assertEquals(11, paddedRed[0]);
+		assertEquals(22, paddedRed[32]);
+		for (int row = 33; row < 66; row++)
+			assertEquals(0, paddedRed[row]);
+		assertEquals(33, NormedBlueKymoGeometry.kymoHeight(edge, 0.10));
 	}
 }

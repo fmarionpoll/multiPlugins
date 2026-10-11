@@ -654,11 +654,7 @@ public class SequenceKymos extends SequenceCamData {
 			IcyBufferedImage sourceImage = Loader.loadImage(descriptor.fileName);
 
 			// Create target image with new dimensions
-			IcyBufferedImage targetImage = new IcyBufferedImage(targetDimensions.width, targetDimensions.height,
-					sourceImage.getSizeC(), sourceImage.getDataType_());
-
-			// Transfer image data
-			transferImageData(sourceImage, targetImage);
+			IcyBufferedImage targetImage = padImageToCanvas(sourceImage, targetDimensions.width, targetDimensions.height);
 
 			// Save adjusted image
 			Saver.saveImage(targetImage, new File(descriptor.fileName), true);
@@ -668,13 +664,19 @@ public class SequenceKymos extends SequenceCamData {
 		}
 	}
 
-	/**
-	 * Transfers image data from source to destination.
-	 * 
-	 * @param source      the source image
-	 * @param destination the destination image
-	 */
-	private void transferImageData(IcyBufferedImage source, IcyBufferedImage destination) {
+	/** Pad on the right and bottom without changing pixel positions or sampling scale. */
+	public static IcyBufferedImage padImageToCanvas(IcyBufferedImage source, int width, int height) {
+		if (width < source.getSizeX() || height < source.getSizeY())
+			throw new IllegalArgumentException("Canvas must contain the source image");
+		if (width == source.getSizeX() && height == source.getSizeY())
+			return source;
+		IcyBufferedImage target = new IcyBufferedImage(width, height, source.getSizeC(), source.getDataType_());
+		transferImageData(source, target);
+		return target;
+	}
+
+	/** Transfers image data from source to destination without rescaling. */
+	private static void transferImageData(IcyBufferedImage source, IcyBufferedImage destination) {
 		final int sourceHeight = source.getSizeY();
 		final int channelCount = source.getSizeC();
 		final int sourceWidth = source.getSizeX();

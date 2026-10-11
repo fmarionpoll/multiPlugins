@@ -11,6 +11,7 @@ import org.junit.Test;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale.MeasurePixelSource;
 import plugins.kernel.roi.roi2d.ROI2DLine;
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 public class CapillaryPixelScaleTest {
 
@@ -81,6 +82,22 @@ public class CapillaryPixelScaleTest {
 		double offset = CapillaryPixelScale.absoluteRowOffset(cap, MeasurePixelSource.BLUE_NORMED_KYMO, e);
 		assertEquals(h * e / (2.0 * (1.0 + e)), offset, 1e-12);
 		assertEquals(0, CapillaryPixelScale.absoluteRowOffset(cap, MeasurePixelSource.GREEN_KYMO, e), 0);
+	}
+
+	@Test
+	public void relativeTopLevelsDoNotSubtractExpansionOriginTwice() {
+		Capillary cap = capillaryWithTwoBlues();
+		cap.setVolume(5.0);
+		for (EnumResults type : new EnumResults[] { EnumResults.TOPRAW, EnumResults.TOPLEVEL,
+				EnumResults.TOPRAW00, EnumResults.TOPLEVEL00 }) {
+			boolean absolute = CapillaryPixelScale.isAbsoluteLevel(type);
+			assertEquals(type.toString(), 0.0,
+					CapillaryPixelScale.toUl(0, cap, 0, MeasurePixelSource.BLUE_NORMED_KYMO, 0.10, absolute), 1e-12);
+			assertEquals(type.toString(), 0.5,
+					CapillaryPixelScale.toUl(6, cap, 0, MeasurePixelSource.BLUE_NORMED_KYMO, 0.10, absolute), 1e-12);
+		}
+		assertEquals(-0.25, CapillaryPixelScale.toUl(0, cap, 0, MeasurePixelSource.BLUE_NORMED_KYMO,
+				0.10, CapillaryPixelScale.isAbsoluteLevel(EnumResults.BOTTOMLEVEL)), 1e-12);
 	}
 
 	private static Capillary capillaryWithTwoBlues() {

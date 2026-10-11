@@ -136,13 +136,10 @@ public final class CapillaryPixelScale {
 		if (resultType == null)
 			return false;
 		switch (resultType) {
-		case TOPRAW:
-		case TOPLEVEL:
 		case BOTTOMLEVEL:
-		case TOPRAW00:
-		case TOPLEVEL00:
 			return true;
 		default:
+			// Top levels already subtract t0 or t00; the expansion origin cancels.
 			return false;
 		}
 	}
