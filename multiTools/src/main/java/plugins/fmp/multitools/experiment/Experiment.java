@@ -1980,17 +1980,16 @@ public class Experiment {
 		seq.beginUpdate();
 		try {
 			for (ROIsAtTProvider p : getCamRoiProviders()) {
-				MeasureRoiSync.updateMeasureROIsAt(t, seq, p.getFilter(), p.getROIsAtT(t));
+				if (p.isEnabled())
+					MeasureRoiSync.updateMeasureROIsAt(t, seq, p.getFilter(), p.getROIsAtT(t));
 			}
 		} finally {
 			seq.endUpdate();
 		}
-		if (!seqCamData.findROIsMatchingNamePattern(CapillaryMeasuredTipsOverlay.ROI_PREFIX).isEmpty())
-			CapillaryMeasuredTipsOverlay.transferTipsToSequence(capillaries, seqCamData, t);
 	}
 
 	private List<ROIsAtTProvider> getCamRoiProviders() {
-		List<ROIsAtTProvider> list = new ArrayList<>(2);
+		List<ROIsAtTProvider> list = new ArrayList<>(3);
 		list.add(new ROIsAtTProvider() {
 			@Override
 			public MeasureRoiFilter getFilter() {
@@ -2011,6 +2010,22 @@ public class Experiment {
 			@Override
 			public List<ROI2D> getROIsAtT(int t) {
 				return capillaries.getCapillaryROIsAtT(t);
+			}
+		});
+		list.add(new ROIsAtTProvider() {
+			@Override
+			public boolean isEnabled() {
+				return !seqCamData.findROIsMatchingNamePattern(CapillaryMeasuredTipsOverlay.ROI_PREFIX).isEmpty();
+			}
+
+			@Override
+			public MeasureRoiFilter getFilter() {
+				return MeasureRoiFilter.CAPILLARY_TIPS;
+			}
+
+			@Override
+			public List<ROI2D> getROIsAtT(int t) {
+				return CapillaryMeasuredTipsOverlay.getROIsAtT(capillaries, seqCamData, t);
 			}
 		});
 		return list;

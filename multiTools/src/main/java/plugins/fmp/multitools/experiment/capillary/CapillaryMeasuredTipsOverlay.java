@@ -4,6 +4,7 @@ import java.awt.Color;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -14,6 +15,8 @@ import icy.roi.ROIEvent.ROIEventType;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometry;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync;
+import plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
@@ -59,8 +62,25 @@ public final class CapillaryMeasuredTipsOverlay {
 	public static int transferTipsToSequence(Capillaries capillaries, SequenceCamData seqCamData, int t) {
 		if (capillaries == null || seqCamData == null || seqCamData.getSequence() == null)
 			return 0;
-		removeTipsFromSequence(seqCamData);
+		List<ROI2D> rois = getROIsAtT(capillaries, seqCamData, t);
+		seqCamData.getSequence().beginUpdate();
+		try {
+			MeasureRoiSync.updateMeasureROIsAt(t, seqCamData.getSequence(), MeasureRoiFilter.CAPILLARY_TIPS, rois);
+		} finally {
+			seqCamData.getSequence().endUpdate();
+		}
+		int shown = 0;
+		for (ROI2D roi : rois)
+			if (roi.getName().startsWith(ROI_PREFIX))
+				shown++;
+		return shown;
+	}
 
+	/** Creates detached display ROIs without changing the sequence or stored geometry. */
+	public static List<ROI2D> getROIsAtT(Capillaries capillaries, SequenceCamData seqCamData, int t) {
+		List<ROI2D> rois = new ArrayList<>();
+		if (capillaries == null)
+			return rois;
 		int shown = 0;
 		for (Capillary cap : capillaries.getList()) {
 			CapillaryProperties props = cap.getProperties();
@@ -84,7 +104,7 @@ public final class CapillaryMeasuredTipsOverlay {
 			roi.setStroke(3);
 			roi.setReadOnly(false);
 			roi.setT(-1);
-			seqCamData.getSequence().addROI(roi);
+			rois.add(roi);
 			double width = cap.getPhaseGeometry().getWidthAt(t);
 			if (Boolean.TRUE.equals(outlinesVisible.get(seqCamData)) && Double.isFinite(width)) {
 				Point2D[] corners = new CapillaryPhaseGeometry(t, null, physical, width).getPhysicalCorners();
@@ -105,12 +125,12 @@ public final class CapillaryMeasuredTipsOverlay {
 								outline.setPoints(Arrays.asList(updated));
 						}
 					});
-					seqCamData.getSequence().addROI(outline);
+					rois.add(outline);
 				}
 			}
 			shown++;
 		}
-		return shown;
+		return rois;
 	}
 
 	public static void removeTipsFromSequence(SequenceCamData seqCamData) {
@@ -135,6 +155,17 @@ public final class CapillaryMeasuredTipsOverlay {
 
 	/** Saves edited blue lines as keyframes at the active green phase start. */
 	public static int transferTipsFromSequence(Capillaries capillaries, SequenceCamData seqCamData, int t) {
+		return transferTipsFromSequence(capillaries, seqCamData, t, false, false);
+	}
+
+	/** Explicit manual editing: add at t, or update only the active blue phase. */
+	public static int editBluePositionFromSequence(Capillaries capillaries, SequenceCamData seqCamData, int t,
+			boolean addAtCurrentFrame) {
+		return transferTipsFromSequence(capillaries, seqCamData, t, addAtCurrentFrame, true);
+	}
+
+	private static int transferTipsFromSequence(Capillaries capillaries, SequenceCamData seqCamData, int t,
+			boolean addAtCurrentFrame, boolean bluePhaseOnly) {
 		if (capillaries == null || seqCamData == null || seqCamData.getSequence() == null)
 			return 0;
 
@@ -160,11 +191,29 @@ public final class CapillaryMeasuredTipsOverlay {
 				continue;
 			Point2D p1 = line.getP1();
 			Point2D p2 = line.getP2();
+			if (!(p1.distance(p2) > 0) || !Double.isFinite(p1.getX() + p1.getY() + p2.getX() + p2.getY()))
+				continue;
 			plugins.fmp.multitools.tools.ROI2D.AlongT phase = cap.getAlongTAtT(t);
 			long phaseStart = phase == null ? t : phase.getStart();
 			Long bluePhase = cap.getPhaseGeometry().getBluePhaseStartAt(t);
 			if (bluePhase != null)
 				phaseStart = Math.max(phaseStart, bluePhase);
+			if (bluePhaseOnly) {
+				// Legacy measurements can be displayed without a blue keyframe map.
+				// Preserve that original pose before adding the first later position.
+				if (addAtCurrentFrame && t > 0 && !cap.getPhaseGeometry().isInitialized()) {
+					ROI2D reference = cap.getRoiAtFrameT(0);
+					if (!(reference instanceof ROI2DLine))
+						continue;
+					Line2D initial = ((ROI2DLine) reference).getLine();
+					if (cap.getProperties().hasMeasuredEndpoints())
+						initial = new Line2D.Double(cap.getProperties().getMeasuredStart(), cap.getProperties().getMeasuredEnd());
+					cap.getPhaseGeometry().initialize(0, ((ROI2DLine) reference).getLine(), initial);
+				}
+				if (!addAtCurrentFrame && bluePhase == null)
+					continue;
+				phaseStart = addAtCurrentFrame ? t : bluePhase;
+			}
 			if (cap.getPhaseGeometry().isInitialized())
 				cap.getPhaseGeometry().putBlue(phaseStart, line);
 			else if (phase != null && phase.getRoi() instanceof ROI2DLine)

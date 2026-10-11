@@ -23,7 +23,6 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 import icy.gui.frame.IcyFrame;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 
 /** Diagnostic plot of physical endpoints and pixel length through time. */
@@ -139,8 +138,8 @@ final class EndpointTrajectoryChart {
 		XYLineAndShapeRenderer lr = new XYLineAndShapeRenderer(true, false);
 		lr.setSeriesPaint(0, new Color(30, 160, 70));
 		plot.setRenderer(1, lr);
-		for (TrackingBoundary b : experiment.getCapillaries().getTrackingTimeline().getBoundaries())
-			plot.addDomainMarker(new ValueMarker(b.getFrame(), new Color(140, 80, 180), new java.awt.BasicStroke(1f)));
+		for (Long start : cap.getPhaseGeometry().getBlueKeyframes().keySet())
+			plot.addDomainMarker(new ValueMarker(start, new Color(140, 80, 180), new java.awt.BasicStroke(1f)));
 		holder.removeAll();
 		holder.add(new ChartPanel(chart), BorderLayout.CENTER);
 		holder.revalidate();
@@ -192,8 +191,10 @@ final class EndpointTrajectoryChart {
 			}
 			XYPlot subplot = new XYPlot(data, timeAxis, null, renderer);
 			subplot.setBackgroundPaint(new Color(245, 245, 245));
-			for (TrackingBoundary b : experiment.getCapillaries().getTrackingTimeline().getBoundaries())
-				subplot.addDomainMarker(new ValueMarker(b.getFrame(), Color.GRAY, new java.awt.BasicStroke(1f)));
+			java.util.Set<Long> starts = new java.util.TreeSet<>();
+			for (Capillary cap : caps) starts.addAll(cap.getPhaseGeometry().getBlueKeyframes().keySet());
+			for (Long start : starts)
+				subplot.addDomainMarker(new ValueMarker(start, Color.GRAY, new java.awt.BasicStroke(1f)));
 			combined.add(subplot, 1);
 		}
 		JFreeChart chart = new JFreeChart("All cages: physical capillary endpoints", JFreeChart.DEFAULT_TITLE_FONT,
@@ -210,5 +211,9 @@ final class EndpointTrajectoryChart {
 	private static String name(Capillary cap) {
 		String n = cap.getRoiName();
 		return n == null || n.isEmpty() ? cap.getKymographName() : n;
+	}
+
+	void refresh() {
+		if (frame != null) rebuild();
 	}
 }

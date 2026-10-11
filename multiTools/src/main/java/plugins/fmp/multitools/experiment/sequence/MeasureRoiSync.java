@@ -37,6 +37,8 @@ public final class MeasureRoiSync {
 				Collections.singletonList("det"));
 		public static final MeasureRoiFilter CAPILLARY_LINES = new MeasureRoiFilter(null,
 				Collections.singletonList("line"));
+		public static final MeasureRoiFilter CAPILLARY_TIPS = new MeasureRoiFilter(null,
+				Arrays.asList("caplength_", "capshape_"));
 		public static final MeasureRoiFilter CAPILLARY_MEASURES = new MeasureRoiFilter("_",
 				Arrays.asList("toplevel", "bottomlevel", "derivative", "gulp", "gulps"));
 	}

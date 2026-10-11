@@ -16,9 +16,10 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
  * Handles experiment-wide capillary measure computations that require access to
- * all cages. Evaporation correction means nFlies=0 capillaries, then either
- * keeps that average (AVERAGE) or fits Y(t)=A(1-exp(-t/tau)) (MODEL), and
- * subtracts the resulting Y_ref from each capillary topraw.
+ * all cages. Evaporation correction means nFlies=0 capillaries (skipping
+ * non-finite samples at each time), then either keeps that average (AVERAGE)
+ * or fits Y(t)=A(1-exp(-t/tau)) (MODEL), and subtracts the resulting Y_ref
+ * from each capillary topraw.
  * 
  * @author MultiSPOTS96
  * @version 2.3.3
@@ -36,10 +37,12 @@ public class CagesCapillariesComputation {
 
 	/**
 	 * Computes evaporation correction for all capillaries across all cages. Means
-	 * topraw of nFlies==0 capillaries (combined / L / R), zeros at t0, optionally
-	 * fits Y(t)=A(1-exp(-t/tau)) when method is MODEL (falls back to the mean if
-	 * the fit fails), then subtracts that curve from each capillary topraw to
-	 * ptsTopCorrected.
+	 * topraw of nFlies==0 capillaries (combined / L / R). At each time, non-finite
+	 * samples are left out of that mean, so one invalid capillary does not drop
+	 * the others. Times with no finite sample stay NaN. The mean is zeroed at t0,
+	 * then optionally fit to Y(t)=A(1-exp(-t/tau)) when method is MODEL (falls
+	 * back to the mean if the fit fails), then subtracted from each capillary
+	 * topraw to ptsTopCorrected.
 	 *
 	 * @param exp    The experiment containing all capillaries
 	 * @param method AVERAGE or MODEL (null treated as MODEL)
@@ -350,7 +353,7 @@ public class CagesCapillariesComputation {
 		return "";
 	}
 
-	private Level2D computeAverageMeasure(List<Capillary> capillaries) {
+	static Level2D computeAverageMeasure(List<Capillary> capillaries) {
 		if (capillaries == null || capillaries.isEmpty())
 			return null;
 
@@ -385,12 +388,14 @@ public class CagesCapillariesComputation {
 
 			int npoints = Math.min(polyline.npoints, maxPoints);
 			for (int i = 0; i < npoints; i++) {
-				sumY[i] += polyline.ypoints[i];
+				double y = polyline.ypoints[i];
+				if (!Double.isFinite(y))
+					continue;
+				sumY[i] += y;
 				count[i]++;
 			}
 		}
 
-		// Average
 		double[] avgY = new double[maxPoints];
 		double[] xpoints = new double[maxPoints];
 		for (int i = 0; i < maxPoints; i++) {
@@ -398,7 +403,7 @@ public class CagesCapillariesComputation {
 			if (count[i] > 0)
 				avgY[i] = sumY[i] / count[i];
 			else
-				avgY[i] = 0.0;
+				avgY[i] = Double.NaN;
 		}
 
 		return new Level2D(xpoints, avgY, maxPoints);

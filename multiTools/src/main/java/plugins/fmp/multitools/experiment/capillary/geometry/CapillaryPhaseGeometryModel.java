@@ -2,11 +2,11 @@ package plugins.fmp.multitools.experiment.capillary.geometry;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
-import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
+import plugins.fmp.multitools.tools.time.TimelineT;
+import plugins.fmp.multitools.tools.time.TimelineT.BeforeFirst;
 
 /**
  * CODEX Time-dependent physical capillary geometry. Green pose is kept by
@@ -14,7 +14,7 @@ import java.util.TreeMap;
  * and capillary-wide corridor extension ratios. Width is unknown for old data.
  */
 public final class CapillaryPhaseGeometryModel {
-	private final NavigableMap<Long, Line2D> blueByPhase = new TreeMap<Long, Line2D>();
+	private final TimelineT<Line2D> blueByPhase = new TimelineT<>(CapillaryPhaseGeometry::copy);
 	private final Map<Long, Double> widthByPhase = new TreeMap<Long, Double>();
 	private CorridorExtensionRatios extensions;
 
@@ -59,9 +59,7 @@ public final class CapillaryPhaseGeometryModel {
 
 	/** Full wall-to-wall width of the selected blue phase; old files return NaN. */
 	public synchronized double getWidthAt(long frame) {
-		Long phase = blueByPhase.floorKey(frame);
-		if (phase == null && !blueByPhase.isEmpty())
-			phase = blueByPhase.firstKey();
+		Long phase = blueByPhase.startAt(frame, BeforeFirst.FIRST);
 		if (phase == null)
 			return Double.NaN;
 		Double width = widthByPhase.get(phase);
@@ -76,21 +74,23 @@ public final class CapillaryPhaseGeometryModel {
 	}
 
 	public synchronized Line2D getBlueAt(long frame) {
-		Map.Entry<Long, Line2D> entry = blueByPhase.floorEntry(frame);
-		if (entry == null)
-			entry = blueByPhase.firstEntry();
-		return entry == null ? null : CapillaryPhaseGeometry.copy(entry.getValue());
+		return blueByPhase.valueAt(frame, BeforeFirst.FIRST);
 	}
 
 	public synchronized Line2D getBlueStartingAt(long phaseStart) {
-		return CapillaryPhaseGeometry.copy(blueByPhase.get(phaseStart));
+		return blueByPhase.startingAt(phaseStart);
+	}
+
+	/** Removing a later keyframe extends the preceding pose; image zero is protected. */
+	public synchronized boolean removeBluePhase(long phaseStart) {
+		boolean removed = blueByPhase.removeLater(phaseStart);
+		if (removed)
+			widthByPhase.remove(phaseStart);
+		return removed;
 	}
 
 	public synchronized Map<Long, Line2D> getBlueKeyframes() {
-		Map<Long, Line2D> copy = new LinkedHashMap<Long, Line2D>();
-		for (Map.Entry<Long, Line2D> entry : blueByPhase.entrySet())
-			copy.put(entry.getKey(), CapillaryPhaseGeometry.copy(entry.getValue()));
-		return Collections.unmodifiableMap(copy);
+		return blueByPhase.snapshot();
 	}
 
 	public synchronized void clear() {
@@ -100,7 +100,7 @@ public final class CapillaryPhaseGeometryModel {
 	}
 
 	public synchronized Long getBluePhaseStartAt(long frame) {
-		return blueByPhase.floorKey(frame);
+		return blueByPhase.startAt(frame);
 	}
 
 	/**
@@ -122,7 +122,8 @@ public final class CapillaryPhaseGeometryModel {
 		for (Long phase : validated.keySet())
 			widths.put(phase, getWidthAt(phase));
 		blueByPhase.clear();
-		blueByPhase.putAll(validated);
+		for (Map.Entry<Long, Line2D> entry : validated.entrySet())
+			blueByPhase.put(entry.getKey(), entry.getValue());
 		widthByPhase.clear();
 		for (Map.Entry<Long, Double> entry : widths.entrySet())
 			storeWidth(entry.getKey(), entry.getValue());

@@ -30,11 +30,9 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.gui.viewer.Viewer;
 import icy.gui.viewer.ViewerEvent;
 import icy.gui.viewer.ViewerListener;
-import icy.roi.ROI2D;
 import icy.sequence.DimensionId;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingBoundary;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimeline;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
@@ -46,10 +44,9 @@ import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionAnalysis;
 import plugins.fmp.multitools.service.tracking.ExperimentMovementPrescanner.TransitionProposal;
 import plugins.fmp.multitools.service.tracking.RackTrackingService;
+import plugins.fmp.multitools.service.tracking.PhysicalCapillaryPhases;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.CapillaryLengthMeasureDialog;
-import plugins.fmp.multitools.tools.ROI2D.AlongT;
-import plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /*
@@ -64,32 +61,31 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 	private JSpinner tStartSpinner;
 	private JSpinner tEndSpinner;
-	private JSpinner outlierMadFactorSpinner;
-	private JSpinner outlierMinPxSpinner;
 	private JSpinner transitionThresholdSpinner;
-	private JButton rackTrackingButton = new JButton("Legacy: track rack from image 0");
+	private JButton rackTrackingButton = new JButton("Track rack from image 0");
 	private JButton stopRackButton = new JButton("Stop rack tracking");
 	private volatile boolean rackCancelled;
 	private boolean rackRunning;
 	private JSpinner rackPhaseSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
 	private JButton saveButton = new JButton("Save");
-	private JButton validateBlueButton = new JButton("Validate adjusted tips at current T");
+	private JButton validateBlueButton = new JButton("Update current phase");
+	private JButton addPositionButton = new JButton("Add phase at current frame");
+	private JLabel geometryStatus = new JLabel();
 	private JButton plotEndpointsButton = new JButton("Plot endpoint trajectories");
-	private JButton initializeBlueButton = new JButton("Initialize blue ROIs at image 0");
-	private JButton addBoundaryButton = new JButton("Add boundary at current T");
-	private JButton moveBoundaryButton = new JButton("Move selected boundary here");
-	private JButton deleteBoundaryButton = new JButton("Delete boundary / merge");
+	private JButton initializeBlueButton = new JButton("Detect endpoints at image 0...");
+	private JButton deletePhaseButton = new JButton("Remove selected phase");
 	private JButton analyzeTransitionsButton = new JButton("Analyze transitions (read-only)");
 	private JButton stopAnalysisButton = new JButton("Stop analysis");
-	private JButton acceptProposalButton = new JButton("Accept selected");
-	private JButton acceptAllProposalsButton = new JButton("Accept all");
+	private JButton acceptProposalButton = new JButton("Create phase from selected proposal");
+	private JButton acceptAllProposalsButton = new JButton("Create phases from all proposals");
 	private JButton moveProposalButton = new JButton("Move proposal to current T");
 	private JButton deleteProposalButton = new JButton("Remove proposal");
 	private JTextArea proposalStatusLabel = new JTextArea("No transition analysis run.", 2, 82);
 	private DefaultListModel<TransitionProposal> proposalListModel = new DefaultListModel<TransitionProposal>();
 	private JList<TransitionProposal> proposalList = new JList<TransitionProposal>(proposalListModel);
-	private DefaultListModel<TrackingBoundary> boundaryListModel = new DefaultListModel<TrackingBoundary>();
-	private JList<TrackingBoundary> boundaryList = new JList<TrackingBoundary>(boundaryListModel);
+	private DefaultListModel<Long> phaseListModel = new DefaultListModel<Long>();
+	private JList<Long> phaseList = new JList<Long>(phaseListModel);
+	private boolean refreshingPhases;
 	private Viewer trackedViewer;
 	private EndpointTrajectoryChart endpointChart;
 	private Experiment trackedExperiment;
@@ -114,11 +110,17 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 		tStartSpinner = new JSpinner(new SpinnerNumberModel(0, 0, nFrames - 1, 1));
 		tEndSpinner = new JSpinner(new SpinnerNumberModel(Math.min(nFrames - 1, 100), 0, nFrames - 1, 1));
-		outlierMadFactorSpinner = new JSpinner(new SpinnerNumberModel(2.5, 1.0, 8.0, 0.5));
-		outlierMinPxSpinner = new JSpinner(new SpinnerNumberModel(5, 0, 50, 1));
 		transitionThresholdSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
+		initializeBlueButton.setToolTipText("Optional: detect physical endpoints at image 0. If blue data exists, choose whether to keep it or replace it.");
+		validateBlueButton.setToolTipText("Apply adjusted blue lines to their existing blue phase starts, leaving earlier and later phases intact. Use Save to persist.");
+		addPositionButton.setToolTipText("Store adjusted blue lines as a new position starting at the displayed frame, until the next blue phase. Use Save to persist.");
+		plotEndpointsButton.setToolTipText("Plot stored physical capillary endpoint positions over time to inspect blue geometry.");
+		saveButton.setToolTipText("Save physical capillary phases, measurements, and phase review status.");
+		tStartSpinner.setToolTipText("First frame for transition analysis only; legacy rack tracking always starts at image 0.");
+		tEndSpinner.setToolTipText("Last frame for transition analysis only; legacy rack tracking scans the full series.");
 
-		JPanel topPanel = new JPanel(new GridLayout(0, 1));
+		JPanel topPanel = new JPanel();
+		topPanel.setLayout(new javax.swing.BoxLayout(topPanel, javax.swing.BoxLayout.Y_AXIS));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
 		proposalStatusLabel.setEditable(false);
 		proposalStatusLabel.setFocusable(false);
@@ -133,45 +135,9 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p1.add(tStartSpinner);
 		p1.add(new JLabel("to"));
 		p1.add(tEndSpinner);
-		topPanel.add(p1);
 
-		JPanel p1b = new JPanel(flow);
-		p1b.add(new JLabel("Legacy rack tracking and transition tools."));
-		topPanel.add(p1b);
-
-		JPanel p2 = new JPanel(flow);
 		stopRackButton.setEnabled(false);
-		p2.add(validateBlueButton);
-		p2.add(plotEndpointsButton);
-		p2.add(saveButton);
-		topPanel.add(p2);
-		JPanel initializePanel = new JPanel(flow);
-		initializePanel.add(initializeBlueButton);
-		initializePanel.add(new JLabel("Preview detected shafts and physical endpoints before accepting."));
-		topPanel.add(initializePanel);
 		JPanel rackPanel = new JPanel(flow);
-		rackPanel.add(rackTrackingButton);
-		rackPanel.add(stopRackButton);
-		rackPanel.add(new JLabel("Blue phase change (px):"));
-		rackPanel.add(rackPhaseSpinner);
-		rackPanel.add(new JLabel("Replaces later blue phases; keeps image 0."));
-		topPanel.add(rackPanel);
-
-		JPanel p3 = new JPanel(flow);
-		p3.add(new JLabel(
-				"From current T: sets From then runs forward. Backwards: sets To to viewer, tracks from To down to From."));
-		topPanel.add(p3);
-
-		JPanel p4 = new JPanel(flow);
-		p4.add(new JLabel(
-				"Tracking will replace AlongT intervals in the selected range. Intervals outside the range are unchanged."));
-		topPanel.add(p4);
-
-		JPanel p5 = new JPanel(flow);
-		p5.add(addBoundaryButton);
-		p5.add(moveBoundaryButton);
-		p5.add(deleteBoundaryButton);
-		topPanel.add(p5);
 
 		JPanel p6 = new JPanel(flow);
 		p6.add(analyzeTransitionsButton);
@@ -180,27 +146,24 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p6.add(new JLabel("minimum movement"));
 		p6.add(transitionThresholdSpinner);
 		p6.add(new JLabel("px"));
-		topPanel.add(p6);
 
 		JPanel p7 = new JPanel(flow);
 		p7.add(acceptProposalButton);
 		p7.add(acceptAllProposalsButton);
 		p7.add(moveProposalButton);
 		p7.add(deleteProposalButton);
-		topPanel.add(p7);
 
 		// Keep analysis feedback on a dedicated row. On ordinary-width dialogs it
 		// was previously laid out beyond the right edge after the four action buttons.
 		JPanel p8 = new JPanel(flow);
 		p8.add(proposalStatusLabel);
-		topPanel.add(p8);
 
-		boundaryList.setVisibleRowCount(6);
-		boundaryList.setCellRenderer((list, value, index, selected, focus) -> {
-			String prefix = value.getOrigin() == TrackingBoundary.Origin.MANUAL ? "manual" : "suggested";
-			String reason = value.getReason().isEmpty() ? "" : " — " + value.getReason();
-			JLabel label = new JLabel(
-					"T=" + value.getFrame() + "  " + prefix + " / " + value.getStatus().name().toLowerCase() + reason);
+		phaseList.setVisibleRowCount(4);
+		phaseList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+		phaseList.setToolTipText("Actual blue keyframe starts. Hover for capillary details; select a row to display that image.");
+		phaseList.setCellRenderer((list, value, index, selected, focus) -> {
+			JLabel label = new JLabel(phaseDescription(value));
+			label.setToolTipText(phaseDetails(value));
 			if (selected) {
 				label.setOpaque(true);
 				label.setBackground(list.getSelectionBackground());
@@ -219,82 +182,88 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			return label;
 		});
 
-		dialogFrame = new IcyFrame("Track capillaries along time", true, true);
+		dialogFrame = new IcyFrame("Track physical capillaries along time", true, true);
 		dialogFrame.add(topPanel, BorderLayout.NORTH);
-		JPanel listsPanel = new JPanel(new GridLayout(2, 1));
 		JScrollPane proposalsScroll = new JScrollPane(proposalList);
-		proposalsScroll.setBorder(BorderFactory.createTitledBorder("Detected transition proposals (not yet applied)"));
-		JScrollPane boundariesScroll = new JScrollPane(boundaryList);
-		boundariesScroll.setBorder(BorderFactory.createTitledBorder("Accepted tracking boundaries"));
-		listsPanel.add(proposalsScroll);
-		listsPanel.add(boundariesScroll);
-		// Main path: prepare, validate, track, inspect/save. Keep alternate methods
-		// available without presenting them as equivalent primary actions.
-		topPanel.removeAll();
+		proposalsScroll.setBorder(BorderFactory.createTitledBorder("Candidate phase starts (not yet applied)"));
+		JScrollPane phasesScroll = new JScrollPane(phaseList);
+		phasesScroll.setBorder(BorderFactory.createTitledBorder("Physical capillary phases — select to display the starting image"));
+		phasesScroll.setPreferredSize(new java.awt.Dimension(740, 110));
 		JPanel prepare = new JPanel(flow);
-		prepare.add(new JLabel("1. Initialize"));
+		prepare.setBorder(BorderFactory.createTitledBorder("1. Starting geometry"));
 		prepare.add(initializeBlueButton);
+		prepare.add(new JLabel("Optional if blue geometry already exists."));
 		topPanel.add(prepare);
+		JPanel manual = new JPanel();
+		manual.setLayout(new javax.swing.BoxLayout(manual, javax.swing.BoxLayout.Y_AXIS));
+		manual.setBorder(BorderFactory.createTitledBorder("2. Physical capillary phases / manual positions"));
+		manual.add(new JLabel("Choose an image in the viewer, adjust the blue lines, then add a position or update a phase."));
+		manual.add(geometryStatus);
+		manual.add(phasesScroll);
 		JPanel validate = new JPanel(flow);
-		validate.add(new JLabel("2. Adjust tips in the viewer, then"));
+		validate.add(addPositionButton);
 		validate.add(validateBlueButton);
-		topPanel.add(validate);
-		topPanel.add(p1);
+		validate.add(deletePhaseButton);
+		deletePhaseButton.setToolTipText("Remove blue keyframes at the selected start for the capillaries listed there. Previous positions continue until their next phase. Frame 0 is protected.");
+		manual.add(validate);
+		manual.add(new JLabel("Removing a later phase extends previous positions. The image-zero reference is protected."));
+		topPanel.add(manual);
 		JPanel track = new JPanel(flow);
 		JButton structuralReference = new JButton("Structural reference: polygon test");
+		structuralReference.setToolTipText("Preview polygon edges at image 0 and load or save reference bands; this does not track capillaries.");
 		structuralReference.addActionListener(e -> StructuralReferenceDialog.open((Experiment) parent0.expListComboLazy.getSelectedItem()));
 		track.add(structuralReference);
 		track.add(new JLabel("Image-0 edge preview only; no tracking yet."));
-		topPanel.add(track);
+		JPanel automatic = new JPanel(new GridLayout(0, 1));
+		automatic.setBorder(BorderFactory.createTitledBorder("3. Automatic tracking"));
+		rackPanel.add(rackTrackingButton);
+		rackPanel.add(stopRackButton);
+		rackPanel.add(new JLabel("New phase after movement of"));
+		rackPanel.add(rackPhaseSpinner);
+		rackPanel.add(new JLabel("px"));
+		automatic.add(rackPanel);
+		automatic.add(new JLabel("Tracks shared rack translation over the full series; replaces later blue phases and keeps image 0."));
+		automatic.add(new JLabel("Inspect results before saving. Uncertain images retain the last accepted position."));
+		topPanel.add(automatic);
 		JPanel inspect = new JPanel(flow);
-		inspect.add(new JLabel("3. Inspect and save"));
+		inspect.setBorder(BorderFactory.createTitledBorder("4. Inspect"));
 		inspect.add(plotEndpointsButton);
-		inspect.add(saveButton);
 		topPanel.add(inspect);
 		JPanel warning = new JPanel(flow);
-		warning.add(new JLabel("Review blue geometry in the viewer before saving."));
+		warning.setBorder(BorderFactory.createTitledBorder("5. Save"));
+		warning.add(saveButton);
+		warning.add(new JLabel("Manual and automatic positions stay in memory until saved."));
 		topPanel.add(warning);
 
 		JPanel advanced = new JPanel();
 		advanced.setLayout(new javax.swing.BoxLayout(advanced, javax.swing.BoxLayout.Y_AXIS));
-		JPanel backward = new JPanel(flow);
-		advanced.add(backward);
 		JPanel backwardHelp = new JPanel(flow);
-		backwardHelp.add(new JLabel("Frame range applies to transition analysis."));
+		backwardHelp.add(new JLabel("Analyze movement to propose phase starts. Accepting copies preceding blue positions; adjust them in the viewer."));
 		advanced.add(backwardHelp);
-		advanced.add(p1b);
-		rackPanel.removeAll();
-		rackPanel.add(rackTrackingButton);
-		rackPanel.add(stopRackButton);
-		advanced.add(rackPanel);
-		JPanel rackOptions = new JPanel(flow);
-		rackOptions.add(new JLabel("Legacy blue phase change (px):"));
-		rackOptions.add(rackPhaseSpinner);
-		advanced.add(rackOptions);
-		JPanel rackWarning = new JPanel(flow);
-		rackWarning.add(new JLabel("Legacy rack method: replaces later blue phases; keeps image 0. Not tip tracking."));
-		advanced.add(rackWarning);
-		advanced.add(p5);
+		advanced.add(track);
+		advanced.add(p1);
 		advanced.add(p6);
 		advanced.add(p7);
 		proposalStatusLabel.setColumns(55);
 		advanced.add(p8);
-		listsPanel.setPreferredSize(new java.awt.Dimension(680, 210));
-		advanced.add(listsPanel);
+		proposalsScroll.setPreferredSize(new java.awt.Dimension(680, 140));
+		advanced.add(proposalsScroll);
 		JScrollPane advancedScroll = new JScrollPane(advanced);
 		advancedScroll.setPreferredSize(new java.awt.Dimension(740, 300));
 		advancedScroll.setVisible(false);
-		javax.swing.JToggleButton advancedToggle = new javax.swing.JToggleButton("Show advanced / legacy controls");
+		javax.swing.JToggleButton advancedToggle = new javax.swing.JToggleButton("Show phase proposals / reference tools");
+		advancedToggle.setToolTipText("Analyze movement and turn proposed transitions into editable physical capillary phases, or preview structural references.");
 		JPanel toggleRow = new JPanel(flow);
 		toggleRow.add(advancedToggle);
 		topPanel.add(toggleRow);
 		dialogFrame.add(advancedScroll, BorderLayout.CENTER);
 		advancedToggle.addActionListener(e -> {
 			advancedScroll.setVisible(advancedToggle.isSelected());
-			advancedToggle.setText(advancedToggle.isSelected() ? "Hide advanced / legacy controls" : "Show advanced / legacy controls");
+			advancedToggle.setText(advancedToggle.isSelected() ? "Hide phase proposals / reference tools" : "Show phase proposals / reference tools");
 			dialogFrame.pack();
 		});
-		rackTrackingButton.setToolTipText("Alternate legacy rack/phase method, not the validated-tip patch tracker.");
+		rackTrackingButton.setToolTipText("Estimate shared rack translation from image 0 over all images and replace later blue phases. Use Save to persist.");
+		rackPhaseSpinner.setToolTipText("Minimum displacement from the last stored rack position required to create a new blue phase, in pixels.");
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
@@ -307,11 +276,10 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		stopRackButton.addActionListener(e -> rackCancelled = true);
 		saveButton.addActionListener(e -> save());
 		validateBlueButton.addActionListener(e -> validateBlueAtCurrentT());
+		addPositionButton.addActionListener(e -> editBluePosition(true));
 		plotEndpointsButton.addActionListener(e -> plotEndpointTrajectories());
 		initializeBlueButton.addActionListener(e -> initializeBlueAtT0());
-		addBoundaryButton.addActionListener(e -> addBoundaryAtCurrentT());
-		moveBoundaryButton.addActionListener(e -> moveSelectedBoundaryToCurrentT());
-		deleteBoundaryButton.addActionListener(e -> deleteSelectedBoundary());
+		deletePhaseButton.addActionListener(e -> deleteSelectedPhase());
 		analyzeTransitionsButton.addActionListener(e -> analyzeTransitions());
 		stopAnalysisButton.addActionListener(e -> stopTransitionAnalysis());
 		acceptProposalButton.addActionListener(e -> acceptSelectedProposal());
@@ -322,11 +290,13 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			if (!e.getValueIsAdjusting() && proposalList.getSelectedValue() != null)
 				setViewerPositionT(proposalList.getSelectedValue().frame);
 		});
-		boundaryList.addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting() && boundaryList.getSelectedValue() != null)
-				setViewerPositionT(boundaryList.getSelectedValue().getFrame());
+		phaseList.addListSelectionListener(e -> {
+			if (!refreshingPhases && !e.getValueIsAdjusting() && phaseList.getSelectedValue() != null) {
+				deletePhaseButton.setEnabled(!rackRunning && phaseList.getSelectedValue() > 0);
+				setViewerPositionT(phaseList.getSelectedValue().intValue());
+			}
 		});
-		refreshBoundaries();
+		refreshPhases();
 	}
 
 	private TrackingTimeline timeline() {
@@ -334,60 +304,74 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		return exp != null && exp.getCapillaries() != null ? exp.getCapillaries().getTrackingTimeline() : null;
 	}
 
-	private void refreshBoundaries() {
-		boundaryListModel.clear();
-		TrackingTimeline timeline = timeline();
-		if (timeline != null)
-			for (TrackingBoundary boundary : timeline.getBoundaries())
-				boundaryListModel.addElement(boundary);
+	private String phaseDescription(long frame) {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		int count = 0;
+		int total = exp == null ? 0 : exp.getCapillaries().getList().size();
+		if (exp != null)
+			for (Capillary cap : exp.getCapillaries().getList())
+				if (cap.getPhaseGeometry().getBlueStartingAt(frame) != null
+						|| (frame == 0 && cap.getProperties().hasMeasuredEndpoints()))
+					count++;
+		TrackingBoundary metadata = timeline() == null || frame == 0 ? null : timeline().get((int) frame);
+		String review = metadata != null && metadata.getStatus() == TrackingBoundary.Status.UNRESOLVED
+				? " | adjust copied positions" : "";
+		return "T=" + frame + (frame == 0 ? " — Reference" : "") + " — "
+				+ (count == total ? "All " + total : count + " of " + total) + " capillaries" + review;
 	}
 
-	private void addBoundaryAtCurrentT() {
-		int frame = getViewerPositionT();
-		if (frame < 1) {
-			JOptionPane.showMessageDialog(this, "Frame 0 cannot begin a new segment.", "Tracking boundary",
-					JOptionPane.INFORMATION_MESSAGE);
-			return;
-		}
-		TrackingTimeline timeline = timeline();
-		if (timeline != null) {
-			timeline.addManual(frame, "user boundary");
-			refreshBoundaries();
-			selectBoundary(frame);
-		}
-	}
-
-	private void moveSelectedBoundaryToCurrentT() {
-		TrackingBoundary selected = boundaryList.getSelectedValue();
-		int frame = getViewerPositionT();
-		if (selected == null || frame < 1)
-			return;
-		TrackingTimeline timeline = timeline();
-		if (timeline != null) {
-			timeline.move(selected.getFrame(), frame);
-			refreshBoundaries();
-			selectBoundary(frame);
-		}
-	}
-
-	private void deleteSelectedBoundary() {
-		TrackingBoundary selected = boundaryList.getSelectedValue();
-		TrackingTimeline timeline = timeline();
-		if (selected != null && timeline != null) {
-			timeline.remove(selected.getFrame());
-			refreshBoundaries();
-		}
-	}
-
-	private void selectBoundary(int frame) {
-		for (int i = 0; i < boundaryListModel.size(); i++)
-			if (boundaryListModel.get(i).getFrame() == frame) {
-				boundaryList.setSelectedIndex(i);
-				boundaryList.ensureIndexIsVisible(i);
-				return;
+	private String phaseDetails(long frame) {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		List<String> included = new ArrayList<>();
+		List<String> missing = new ArrayList<>();
+		if (exp != null)
+			for (Capillary cap : exp.getCapillaries().getList()) {
+				String name = cap.getRoiName() == null ? cap.getKymographName() : cap.getRoiName();
+				boolean startsHere = cap.getPhaseGeometry().getBlueStartingAt(frame) != null
+						|| (frame == 0 && cap.getProperties().hasMeasuredEndpoints());
+				(startsHere ? included : missing).add(name);
 			}
+		return "Positions start here: " + String.join(", ", included)
+				+ (missing.isEmpty() ? "" : " | No position starts here: " + String.join(", ", missing));
 	}
 
+	private void refreshPhases() {
+		Long selected = phaseList.getSelectedValue();
+		refreshingPhases = true;
+		try {
+			phaseListModel.clear();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				for (Long frame : PhysicalCapillaryPhases.starts(exp.getCapillaries()))
+					phaseListModel.addElement(frame);
+			if (selected != null) phaseList.setSelectedValue(selected, true);
+		} finally {
+			refreshingPhases = false;
+		}
+		deletePhaseButton.setEnabled(!rackRunning && phaseList.getSelectedValue() != null && phaseList.getSelectedValue() > 0);
+	}
+
+	private void deleteSelectedPhase() {
+		Long frame = phaseList.getSelectedValue();
+		if (rackRunning || frame == null || frame <= 0) return;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null) return;
+		int choice = JOptionPane.showConfirmDialog(this,
+				"Remove blue positions starting at T=" + frame + " for the listed capillaries?\n"
+				+ "Each preceding position will continue until its next phase. Green sampling ROIs are unchanged.",
+				"Remove physical capillary phase", JOptionPane.OK_CANCEL_OPTION);
+		if (choice != JOptionPane.OK_OPTION) return;
+		int removed = PhysicalCapillaryPhases.remove(exp.getCapillaries(), frame);
+		if (removed == 0)
+			JOptionPane.showMessageDialog(this, "This phase is the first stored reference and cannot be removed.");
+		showBlueOnly();
+		refreshPhases();
+		if (endpointChart != null) endpointChart.refresh();
+	}
+
+	private void selectPhase(int frame) {
+		phaseList.setSelectedValue((long) frame, true);
+	}
 	private void setViewerPositionT(int frame) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null)
@@ -412,75 +396,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 
 
-	private static final double LENGTH_TOLERANCE_PX = 2.0;
-	private static final double LENGTH_TOLERANCE_RATIO = 0.03;
-
-
-
-	private List<int[]> collectLengthMismatches(Experiment exp, int tCurr) {
-		Capillaries caps = exp.getCapillaries();
-		List<int[]> out = new ArrayList<>();
-		List<Capillary> list = caps.getList();
-		for (int i = 0; i < list.size(); i++) {
-			Capillary cap = list.get(i);
-			if (!cap.getKymographBuild())
-				continue;
-			AlongT atCurr = cap.getAlongTAtT(tCurr);
-			AlongT atRef = cap.getAlongTAtT(tCurr - 1);
-			if (atCurr == null || atCurr.getRoi() == null || atRef == null || atRef.getRoi() == null)
-				continue;
-			ROI2D roiCurr = atCurr.getRoi();
-			ROI2D roiRef = atRef.getRoi();
-			double lenCurr = ROI2DUtilities.getPolylinePathLength(roiCurr);
-			double lenRef = ROI2DUtilities.getPolylinePathLength(roiRef);
-			int nCurr = ROI2DUtilities.getPolylinePointCount(roiCurr);
-			int nRef = ROI2DUtilities.getPolylinePointCount(roiRef);
-			boolean lengthDiff = Math.abs(lenCurr - lenRef) > LENGTH_TOLERANCE_PX
-					|| (lenRef > 0 && Math.abs(lenCurr - lenRef) / lenRef > LENGTH_TOLERANCE_RATIO);
-			boolean npointsDiff = nCurr != nRef;
-			if (lengthDiff || npointsDiff)
-				out.add(new int[] { i, nRef });
-		}
-		return out;
-	}
-
-	private String buildLengthMismatchMessage(Capillaries caps, List<int[]> mismatches) {
-		StringBuilder sb = new StringBuilder();
-		sb.append("Some capillaries have different length or point count than the previous frame (reference). ");
-		sb.append("This can affect kymograph consistency.\n\n");
-		for (int[] m : mismatches) {
-			int i = m[0];
-			Capillary cap = caps.getList().get(i);
-			String name = cap.getKymographName() != null ? cap.getKymographName() : ("cap " + i);
-			sb.append("• ").append(name).append(" (reference npoints: ").append(m[1]).append(")\n");
-		}
-		sb.append(
-				"\nCancel to fix manually, Continue to run anyway, or Normalize to resample current ROIs to reference point count.");
-		return sb.toString();
-	}
-
-	private void normalizeLengthsAndSync(Experiment exp, int tCurr, List<int[]> mismatches) {
-		Capillaries caps = exp.getCapillaries();
-		List<Capillary> list = caps.getList();
-		for (int[] m : mismatches) {
-			int i = m[0];
-			int refNpoints = m[1];
-			Capillary cap = list.get(i);
-			AlongT atCurr = cap.getAlongTAtT(tCurr);
-			if (atCurr == null || atCurr.getRoi() == null)
-				continue;
-			ROI2D resampled = ROI2DUtilities.resamplePolylineToNPoints(atCurr.getRoi(), refNpoints);
-			if (resampled != null)
-				cap.updateROIAtFrameT(tCurr, resampled);
-		}
-		caps.invalidateKymoIntervalsCache();
-		if (exp.getSeqCamData() != null && exp.getSeqCamData().getSequence() != null)
-			caps.transferROIsToSequence(exp.getSeqCamData().getSequence());
-	}
-
-
-
-
 
 
 
@@ -495,26 +410,83 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void validateBlueAtCurrentT() {
+		editBluePosition(false);
+	}
+
+	private void editBluePosition(boolean addAtCurrentFrame) {
+		if (rackRunning)
+			return;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
 		int t = getViewerPositionT();
-		int updated = CapillaryMeasuredTipsOverlay.transferTipsFromSequence(exp.getCapillaries(), exp.getSeqCamData(),
-				t);
+		if (addAtCurrentFrame && exp.getCapillaries().getList().stream()
+				.anyMatch(cap -> cap.getPhaseGeometry().getBlueStartingAt(t) != null)) {
+			int choice = JOptionPane.showConfirmDialog(this,
+					"A blue position already starts at frame " + t + ". Replace positions at this frame with the adjusted lines?",
+					"Existing blue position", JOptionPane.OK_CANCEL_OPTION);
+			if (choice != JOptionPane.OK_OPTION)
+				return;
+		}
+		int updated = CapillaryMeasuredTipsOverlay.editBluePositionFromSequence(exp.getCapillaries(),
+				exp.getSeqCamData(), t, addAtCurrentFrame);
 		if (updated == 0) {
-			JOptionPane.showMessageDialog(this, "No editable light-blue capillary lines were found.",
+			JOptionPane.showMessageDialog(this, "No valid editable blue lines with an applicable phase were found. Detect image-zero endpoints first.",
 					"Physical capillaries", JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
-		exp.save_capillaries_description_and_measures();
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), t);
+		if (timeline() != null)
+			for (Long start : PhysicalCapillaryPhases.starts(exp.getCapillaries())) {
+				TrackingBoundary metadata = start > 0 ? timeline().get(start.intValue()) : null;
+				if (metadata != null && metadata.getStatus() == TrackingBoundary.Status.UNRESOLVED
+						&& (addAtCurrentFrame ? start == t : exp.getCapillaries().getList().stream()
+								.anyMatch(cap -> start.equals(cap.getPhaseGeometry().getBluePhaseStartAt(t)))))
+					timeline().put(metadata.withStatus(TrackingBoundary.Status.CONFIRMED));
+			}
+		refreshGeometryStatus();
+		refreshPhases();
+		if (addAtCurrentFrame) selectPhase(t);
+		if (endpointChart != null) endpointChart.refresh();
+	}
+
+	private void refreshGeometryStatus() {
+		refreshPhases();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		int t = getViewerPositionT();
+		java.util.Set<Long> starts = new java.util.TreeSet<>();
+		int initialized = 0;
+		if (exp != null && exp.getCapillaries() != null)
+			for (Capillary cap : exp.getCapillaries().getList()) {
+				Long start = cap.getPhaseGeometry().getBluePhaseStartAt(t);
+				if (start != null) {
+					starts.add(start);
+					initialized++;
+				}
+			}
+		geometryStatus.setText("Current frame: " + t + " | " + initialized + " capillaries with blue positions | Active blue phase starts: "
+				+ (starts.isEmpty() ? "none" : starts.toString()));
 	}
 
 	private void initializeBlueAtT0() {
+		if (rackRunning)
+			return;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
-		exp.getCapillaries().transferROIsFromSequence(exp.getSeqCamData());
+		boolean replaceExisting = exp.getCapillaries().getList().stream().anyMatch(cap ->
+				!cap.getPhaseGeometry().getBlueKeyframes().isEmpty() || cap.getProperties().hasMeasuredEndpoints());
+		if (replaceExisting) {
+			Object[] choices = { "Keep existing data", "Erase and reinitialize" };
+			int choice = JOptionPane.showOptionDialog(this,
+					"Physical capillary data already exists.\n"
+					+ "Keep it, or erase all blue positions (including later tracked phases) and detect new endpoints at image 0?\n"
+					+ "Erasure occurs only after you confirm the new measurements. Green ROIs and tracking boundaries are kept.",
+					"Existing physical capillary data", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+					null, choices, choices[0]);
+			if (choice != 1)
+				return;
+		}
 		CapillaryLengthDetectorOptions options = new CapillaryLengthDetectorOptions();
 		options.frameIndex = 0;
 		options.nFramesAveraged = 1;
@@ -540,9 +512,24 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
 			return;
 		}
+		boolean hasReplacement = result.getMeasures().stream().anyMatch(measure -> measure.isSelected()
+				&& measure.getCapillary() != null && measure.hasDetectedEndpoints() && measure.getRoundedPixels() > 0);
+		if (!hasReplacement) {
+			CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
+			JOptionPane.showMessageDialog(this, "No detected physical endpoints were selected. Existing blue data was kept.",
+					"Initialize physical capillaries", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		if (replaceExisting)
+			for (Capillary cap : exp.getCapillaries().getList()) {
+				cap.getPhaseGeometry().clear();
+				cap.getProperties().setPixelsAutoMeasured(false);
+			}
 		int updated = CapillaryLengthDetector.apply(result, 0);
-		exp.save_capillaries_description_and_measures();
 		CapillaryMeasuredTipsOverlay.transferTipsToSequence(exp.getCapillaries(), exp.getSeqCamData(), 0);
+		refreshGeometryStatus();
+		refreshPhases();
+		if (endpointChart != null) endpointChart.refresh();
 		proposalStatusLabel.setText(updated + " provisional blue ROI(s) accepted at T=0.");
 	}
 
@@ -568,11 +555,24 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		if (exp == null || exp.getSeqCamData() == null || rackRunning)
 			return;
 		final double threshold = ((Number) rackPhaseSpinner.getValue()).doubleValue();
+		if (exp.getCapillaries().getList().stream()
+				.anyMatch(cap -> cap.getPhaseGeometry().getBlueKeyframes().keySet().stream().anyMatch(t -> t > 0))) {
+			int choice = JOptionPane.showConfirmDialog(this,
+					"Rack tracking replaces all later blue positions with shared rack translations. Continue?",
+					"Replace later blue positions", JOptionPane.OK_CANCEL_OPTION);
+			if (choice != JOptionPane.OK_OPTION)
+				return;
+		}
 		rackCancelled = false;
 		rackRunning = true;
+		deletePhaseButton.setEnabled(false);
+		acceptProposalButton.setEnabled(false);
+		acceptAllProposalsButton.setEnabled(false);
 		rackTrackingButton.setEnabled(false);
 		stopRackButton.setEnabled(true);
 		validateBlueButton.setEnabled(false);
+		addPositionButton.setEnabled(false);
+		initializeBlueButton.setEnabled(false);
 		final ProgressFrame pf = new ProgressFrame("Tracking rack from image 0");
 		new SwingWorker<RackTrackingService.Scan, Void>() {
 			@Override
@@ -588,6 +588,8 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 					if (scan.cancelled || rackCancelled)
 						return;
 					scan.apply();
+					refreshPhases();
+					if (endpointChart != null) endpointChart.refresh();
 					showBlueOnly();
 					JOptionPane.showMessageDialog(TrackCapillaries.this, scan.frames + " frames, " + scan.phases
 							+ " geometry phases, " + scan.uncertain
@@ -602,6 +604,11 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 					rackTrackingButton.setEnabled(true);
 					stopRackButton.setEnabled(false);
 					validateBlueButton.setEnabled(true);
+					addPositionButton.setEnabled(true);
+					initializeBlueButton.setEnabled(true);
+					acceptProposalButton.setEnabled(true);
+					acceptAllProposalsButton.setEnabled(true);
+					refreshPhases();
 				}
 			}
 		}.execute();
@@ -725,8 +732,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		TransitionProposal proposal = proposalList.getSelectedValue();
 		if (proposal == null)
 			return;
-		acceptProposal(proposal);
-		proposalListModel.removeElement(proposal);
+		if (acceptProposal(proposal)) proposalListModel.removeElement(proposal);
 	}
 
 	private void acceptAllProposals() {
@@ -734,18 +740,28 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		for (int i = 0; i < proposalListModel.size(); i++)
 			proposals.add(proposalListModel.get(i));
 		for (TransitionProposal proposal : proposals)
-			acceptProposal(proposal);
-		proposalListModel.clear();
+			if (acceptProposal(proposal)) proposalListModel.removeElement(proposal);
 	}
 
-	private void acceptProposal(TransitionProposal proposal) {
+	private boolean acceptProposal(TransitionProposal proposal) {
 		TrackingTimeline timeline = timeline();
-		if (timeline == null || proposal == null || proposal.endFrame < 1)
-			return;
-		timeline.put(new TrackingBoundary(proposal.endFrame, TrackingBoundary.Origin.AUTOMATIC,
-				TrackingBoundary.Status.CONFIRMED, proposal.summary(), proposal.score));
-		refreshBoundaries();
-		selectBoundary(proposal.endFrame);
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (rackRunning || timeline == null || proposal == null || proposal.endFrame < 1 || exp == null)
+			return false;
+		int added = PhysicalCapillaryPhases.addFromPrevious(exp.getCapillaries(), proposal.endFrame);
+		if (added == 0 && !PhysicalCapillaryPhases.starts(exp.getCapillaries()).contains((long) proposal.endFrame)) {
+			proposalStatusLabel.setText("No preceding physical geometry available. Detect image-zero endpoints before accepting proposals.");
+			return false;
+		}
+		if (added > 0)
+			timeline.put(new TrackingBoundary(proposal.endFrame, TrackingBoundary.Origin.AUTOMATIC,
+					TrackingBoundary.Status.UNRESOLVED, proposal.summary(), proposal.score));
+		refreshPhases();
+		selectPhase(proposal.endFrame);
+		proposalStatusLabel.setText(added > 0 ? "Phase created: preceding blue positions copied. Adjust lines, then Update current phase and Save."
+				: "Phase already exists; existing positions were kept.");
+		if (endpointChart != null) endpointChart.refresh();
+		return true;
 	}
 
 	private void moveSelectedProposalToCurrentT() {
@@ -791,6 +807,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void showBlueOnly() {
+		refreshGeometryStatus();
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
@@ -800,11 +817,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 				: exp.getSeqCamData().getSequence().getFirstViewer();
 		parent0.paneExperiment.tabOptions.displayROIsCategory(viewer, "line", false);
 		parent0.paneExperiment.tabOptions.displayROIsCategory(viewer, CapillaryMeasuredTipsOverlay.ROI_PREFIX, true);
-	}
-
-	private void showGreenAgain() {
-		Experiment exp = parent0 == null ? null : (Experiment) parent0.expListComboLazy.getSelectedItem();
-		showGreenAgain(exp);
 	}
 
 	private void showGreenAgain(Experiment exp) {
@@ -818,7 +830,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		if (endpointChart != null)
 			endpointChart.updateExperiment(selected);
 		if (selected == trackedExperiment) {
-			refreshBoundaries();
+			refreshPhases();
 			showBlueOnly();
 			return;
 		}
@@ -833,7 +845,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		proposalStatusLabel.setText("No transition analysis run for this experiment.");
 		trackedViewer = null;
 		if (selected == null || selected.getSeqCamData() == null || selected.getSeqCamData().getSequence() == null) {
-			boundaryListModel.clear();
+			phaseListModel.clear();
 			return;
 		}
 		int nFrames = selected.getSeqCamData().getImageLoader().getNTotalFrames();
@@ -848,7 +860,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			trackedViewer.removeListener(this);
 			trackedViewer.addListener(this);
 		}
-		refreshBoundaries();
+		refreshPhases();
 		showBlueOnly();
 	}
 

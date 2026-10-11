@@ -11,6 +11,11 @@ import icy.roi.ROI2D;
  */
 public interface ROIsAtTProvider {
 
+	/** Whether this family currently participates in frame refreshes. */
+	default boolean isEnabled() {
+		return true;
+	}
+
 	MeasureRoiSync.MeasureRoiFilter getFilter();
 
 	List<ROI2D> getROIsAtT(int t);

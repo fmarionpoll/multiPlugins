@@ -20,8 +20,8 @@ public class Edit extends JPanel {
 	 */
 	private static final long serialVersionUID = -7582410775062671523L;
 
-	private JButton editCapillariesButton = new JButton("Edit observation corridors with time");
-	private JButton trackCapillariesButton = new JButton("Track physical capillaries");
+	private JButton editCapillariesButton = new JButton("Edit green ROIs with time");
+	private JButton trackCapillariesButton = new JButton("Track blue ROIs with time");
 	private MultiCAFE parent0 = null;
 	private EditPositionWithTime editCapillariesTable = null;
 	private TrackCapillaries trackCapillariesDialog = null;
@@ -41,7 +41,7 @@ public class Edit extends JPanel {
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
-		panel2.add(new JLabel("Green = observation corridor; light blue = physical capillary"));
+		panel2.add(new JLabel("Green ROI= capillary as defined by user; blue ROIs = physical capillary"));
 		add(panel2);
 
 		defineActionListeners();
