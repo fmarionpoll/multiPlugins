@@ -32,6 +32,7 @@ import icy.image.IcyBufferedImageUtil;
 import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
+import plugins.fmp.multitools.experiment.ui.ReferenceImageEditor;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildBackground;
@@ -178,7 +179,7 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			public void actionPerformed(final ActionEvent e) {
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null) {
-					ReferenceImageEditor.open(parent0, exp, getSelectedReferenceKind());
+					ReferenceImageEditor.open(exp, getSelectedReferenceKind(), parent0.mainFrame);
 					updateReferenceStatusLabel();
 				}
 			}

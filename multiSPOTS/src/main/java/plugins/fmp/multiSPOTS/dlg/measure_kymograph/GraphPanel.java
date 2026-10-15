@@ -22,7 +22,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
 import plugins.fmp.multitools.experiment.cage.CageString;
-import plugins.fmp.multitools.experiment.spot.Spot;
+
 import plugins.fmp.multitools.service.KymoAnalysisResult;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
@@ -125,13 +125,17 @@ public class GraphPanel extends JPanel {
 		if (!hasChartableKymoData()) {
 			return;
 		}
+		if (isAnyChartVisible()) {
+			onDisplayCharts();
+		}
+	}
+
+	private boolean isAnyChartVisible() {
 		boolean cagesVisible = chartCagesFrame != null && chartCagesFrame.getMainChartFrame() != null
 				&& chartCagesFrame.getMainChartFrame().isVisible();
 		boolean overlayVisible = overlayFrame != null && overlayFrame.getMainChartFrame() != null
 				&& overlayFrame.getMainChartFrame().isVisible();
-		if (cagesVisible || overlayVisible) {
-			onDisplayCharts();
-		}
+		return cagesVisible || overlayVisible;
 	}
 
 	private EnumResults selectedMeasure() {
@@ -163,23 +167,48 @@ public class GraphPanel extends JPanel {
 
 	/** Called when an experiment is opened and auto-graph kymo measures is enabled. */
 	public void displayChartsOnExperimentOpen() {
-		onDisplayCharts();
+		showCharts((Experiment) parent0.expListComboLazy.getSelectedItem(), true);
+	}
+
+	/**
+	 * Rebuilds kymograph charts that are already open so they follow the experiment
+	 * just loaded. Chart windows are not closed with the camera sequence, and they
+	 * keep the previous experiment until this runs.
+	 */
+	public void refreshIfDisplayed(Experiment exp) {
+		if (!isAnyChartVisible()) {
+			return;
+		}
+		if (exp == null || !KymoSpotChartSupport.experimentHasKymoSpotMeasures(exp)) {
+			closeAllCharts();
+			graphStatusLabel.setText("No kymo measures for this experiment.");
+			return;
+		}
+		showCharts(exp, true);
 	}
 
 	private void onDisplayCharts() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		showCharts((Experiment) parent0.expListComboLazy.getSelectedItem(), false);
+	}
+
+	private void showCharts(Experiment exp, boolean experimentChanged) {
 		if (exp == null) {
 			graphStatusLabel.setText("No experiment selected.");
+			if (experimentChanged) {
+				closeAllCharts();
+			}
 			return;
 		}
 		if (!KymoSpotChartSupport.experimentHasKymoSpotMeasures(exp)) {
 			KymoAnalysisResult lastResult = analysisPanel.getLastResult();
 			if (lastResult == null || lastResult.byCageId.isEmpty()) {
+				if (experimentChanged) {
+					closeAllCharts();
+				}
 				graphStatusLabel.setText("Run Analyze or load saved kymo measures first.");
 				return;
 			}
 		}
-		closeCharts();
 
 		int stepMs = (int) Math.min(Integer.MAX_VALUE, Math.max(1L, exp.getKymoBin_ms()));
 		EnumResults measure = selectedMeasure();
@@ -190,15 +219,14 @@ public class GraphPanel extends JPanel {
 					.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 			options.relativeToMaximum = false;
 			applyKymoAggregateChartOptions(exp, options);
+			closeCharts();
 			plotSpotsOverlay(exp, options);
 			graphStatusLabel.setText(" ");
 			return;
 		}
 
-		if (displayAllButton.isSelected()) {
-			options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
-					.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
-		} else {
+		boolean allCages = displayAllButton.isSelected();
+		if (!allCages) {
 			Cage cageFound = exp.getCages().findFirstSelectedCage();
 			if (cageFound == null) {
 				cageFound = exp.getCages().findFirstCageWithSelectedSpot(exp.getSpots());
@@ -207,27 +235,42 @@ public class GraphPanel extends JPanel {
 				cageFound = findCageFromSelectedSpotRoisOnSequence(exp);
 			}
 			if (cageFound == null) {
-				graphStatusLabel.setText("Select a cage ROI or spot ROI on the camera sequence.");
+				if (!experimentChanged) {
+					graphStatusLabel.setText("Select a cage ROI or spot ROI on the camera sequence.");
+					return;
+				}
+				allCages = true;
+			} else {
+				applyExclusiveCageRoiSelection(exp, cageFound);
+				if (exp.getSeqCamData() != null && cageFound.getRoi() != null) {
+					exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
+				}
+				int cageNumber;
+				try {
+					cageNumber = Integer.parseInt(CageString.getCageNumberFromCageRoiName(cageFound.getRoi().getName()));
+				} catch (NumberFormatException ex) {
+					graphStatusLabel.setText("Could not parse cage id from ROI name.");
+					return;
+				}
+				options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
+						.withCageRange(cageNumber, cageNumber).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL)
+						.build();
+				options.relativeToMaximum = false;
+				applyKymoAggregateChartOptions(exp, options);
+				closeCharts();
+				openCageCharts(exp, options);
 				return;
 			}
-			applyExclusiveCageRoiSelection(exp, cageFound);
-			if (exp.getSeqCamData() != null && cageFound.getRoi() != null) {
-				exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
-			}
-			int cageNumber;
-			try {
-				cageNumber = Integer.parseInt(CageString.getCageNumberFromCageRoiName(cageFound.getRoi().getName()));
-			} catch (NumberFormatException ex) {
-				graphStatusLabel.setText("Could not parse cage id from ROI name.");
-				return;
-			}
-			int first = cageNumber;
-			int last = cageNumber;
-			options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
-					.withCageRange(first, last).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 		}
+		options = ResultsOptionsBuilder.forChart().withResultType(measure).withBuildExcelStepMs(stepMs)
+				.withCageRange(-1, -1).withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 		options.relativeToMaximum = false;
 		applyKymoAggregateChartOptions(exp, options);
+		closeCharts();
+		openCageCharts(exp, options);
+	}
+
+	private void openCageCharts(Experiment exp, ResultsOptions options) {
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override

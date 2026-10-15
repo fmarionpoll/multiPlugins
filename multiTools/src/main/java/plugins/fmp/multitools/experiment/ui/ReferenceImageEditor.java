@@ -1,4 +1,4 @@
-package plugins.fmp.multicafe.dlg.cages;
+package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -34,7 +34,6 @@ import icy.image.IcyBufferedImageUtil;
 import icy.painter.Overlay;
 import icy.sequence.Sequence;
 import icy.type.point.Point5D;
-import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.SequenceLoaderService;
@@ -61,11 +60,7 @@ public class ReferenceImageEditor {
 	private ReferenceImageEditor() {
 	}
 
-	public static void open(MultiCAFE parent0, Experiment exp) {
-		open(parent0, exp, ReferenceImageKind.DEFAULT);
-	}
-
-	public static void open(MultiCAFE parent0, Experiment exp, ReferenceImageKind kind) {
+	public static void open(Experiment exp, ReferenceImageKind kind, IcyFrame parentFrame) {
 		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getSequence() == null) {
 			return;
 		}
@@ -130,7 +125,7 @@ public class ReferenceImageEditor {
 
 		frame.addToDesktopPane();
 		frame.pack();
-		positionOverMainFrame(frame, parent0);
+		positionOverMainFrame(frame, parentFrame);
 		frame.setVisible(true);
 	}
 
@@ -156,12 +151,12 @@ public class ReferenceImageEditor {
 		}
 	}
 
-	private static void positionOverMainFrame(IcyFrame frame, MultiCAFE parent0) {
-		if (parent0 == null || parent0.mainFrame == null) {
+	private static void positionOverMainFrame(IcyFrame frame, IcyFrame parentFrame) {
+		if (parentFrame == null) {
 			frame.center();
 			return;
 		}
-		Rectangle parentBounds = parent0.mainFrame.getBoundsInternal();
+		Rectangle parentBounds = parentFrame.getBoundsInternal();
 		if (parentBounds == null || parentBounds.width < 1 || parentBounds.height < 1) {
 			frame.center();
 			return;

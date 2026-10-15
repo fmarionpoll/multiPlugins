@@ -150,9 +150,12 @@ final class ExperimentOpenPipeline {
 				&& owner.parent0.dlgMeasure.chartsPanel != null) {
 			owner.parent0.dlgMeasure.chartsPanel.displayChartPanels(exp);
 		}
-		if (owner.parent0.viewOptions.isAutoGraphKymoMeasures() && owner.parent0.dlgKymos != null
-				&& owner.parent0.dlgKymos.tabKymoGraph != null) {
-			owner.parent0.dlgKymos.tabKymoGraph.displayChartsOnExperimentOpen();
+		if (owner.parent0.dlgKymos != null && owner.parent0.dlgKymos.tabKymoGraph != null) {
+			if (owner.parent0.viewOptions.isAutoGraphKymoMeasures()) {
+				owner.parent0.dlgKymos.tabKymoGraph.displayChartsOnExperimentOpen();
+			} else {
+				owner.parent0.dlgKymos.tabKymoGraph.refreshIfDisplayed(exp);
+			}
 		}
 	}
 

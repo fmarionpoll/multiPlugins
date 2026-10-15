@@ -26,6 +26,8 @@ import icy.image.IcyBufferedImageUtil;
 import icy.util.StringUtil;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.ui.ReferenceImageEditor;
+import plugins.fmp.multitools.service.SequenceLoaderService.ReferenceImageKind;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.series.BuildBackground;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
@@ -48,6 +50,7 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 	// private JCheckBox viewsCheckBox = new JCheckBox("view ref img", true);
 	private JButton loadButton = new JButton("Load...");
 	private JButton saveButton = new JButton("Save...");
+	private JButton editButton = new JButton("Edit...");
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox overlayCheckBox = new JCheckBox("overlay");
 
@@ -71,6 +74,9 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 		panel1.add(allCheckBox);
 		panel1.add(loadButton);
 		panel1.add(saveButton);
+		editButton.setToolTipText(
+				"Open the reference image in the mask editor (overwrites the reference image on save).");
+		panel1.add(editButton);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
@@ -116,6 +122,15 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					exp.saveReferenceImage(exp.getSeqCamData().getReferenceImage());
+			}
+		});
+
+		editButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(final ActionEvent e) {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null)
+					ReferenceImageEditor.open(exp, ReferenceImageKind.DEFAULT, parent0.mainFrame);
 			}
 		});
 
