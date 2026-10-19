@@ -77,6 +77,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_CONSUMPTION_FROM_GULPS_UL = "consumption_from_gulps_uL";
 	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude_uL";
 	public static final String COL_T00_SUITABLE = "t00_suitable";
+	public static final String COL_EVAPORATION_UL = "evaporation_uL";
 	public static final String COL_T00_REFERENCE_UL = "t00_reference_uL";
 	public static final String COL_T00_N_VALID_REFERENCE = "t00_n_valid_reference";
 
@@ -236,7 +237,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	public void writeMeasureCapRowRaw(String expKey, int cageId, String capId, double tMinutes,
 			java.util.Map<String, Double> values, boolean t00Suitable) throws IOException {
-		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, values, t00Suitable);
+		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, values, t00Suitable, true);
 	}
 
 	public void writeMeasureCapRowBin(String expKey, int cageId, String capId, double tMinutes,
@@ -244,11 +245,11 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (!writeBinFiles) {
 			return;
 		}
-		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, values, t00Suitable);
+		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, values, t00Suitable, false);
 	}
 
 	private void writeMeasureCapRow(CSVPrinter p, String expKey, int cageId, String capId, double tMinutes,
-			java.util.Map<String, Double> values, boolean t00Suitable) throws IOException {
+			java.util.Map<String, Double> values, boolean t00Suitable, boolean includeEvaporation) throws IOException {
 		if (measureCapColumns.isEmpty()) {
 			return;
 		}
@@ -269,14 +270,18 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 				row.add(v != null && !Double.isNaN(v) ? v : null);
 			}
 		}
+		if (includeEvaporation) {
+			Double evap = values != null ? values.get(COL_EVAPORATION_UL) : null;
+			row.add(evap != null && !Double.isNaN(evap) ? evap : null);
+		}
 		p.printRecord(row);
 	}
 
 	public void writeMeasureCageRowRaw(String expKey, int cageId, double tMinutes, double sum, double pi,
 			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
-			boolean t00Suitable) throws IOException {
+			boolean t00Suitable, double evaporationUl) throws IOException {
 		writeMeasureCageRow(measureCageRawPrinter(), expKey, cageId, tMinutes, sum, pi, sumTopraw, piTopraw, sumGulps,
-				piGulps, sum00, pi00, t00Suitable);
+				piGulps, sum00, pi00, t00Suitable, true, evaporationUl);
 	}
 
 	public void writeMeasureCageRowBin(String expKey, int cageId, double tMinutes, double sum, double pi,
@@ -286,15 +291,21 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 			return;
 		}
 		writeMeasureCageRow(measureCageBinPrinter(), expKey, cageId, tMinutes, sum, pi, sumTopraw, piTopraw, sumGulps,
-				piGulps, sum00, pi00, t00Suitable);
+				piGulps, sum00, pi00, t00Suitable, false, Double.NaN);
 	}
 
 	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, double sum, double pi,
 			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
-			boolean t00Suitable) throws IOException {
-		p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumTopraw),
-				nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps), nanToNull(sum00), nanToNull(pi00),
-				t00Suitable ? "TRUE" : "FALSE");
+			boolean t00Suitable, boolean includeEvaporation, double evaporationUl) throws IOException {
+		if (includeEvaporation) {
+			p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumTopraw),
+					nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps), nanToNull(sum00), nanToNull(pi00),
+					t00Suitable ? "TRUE" : "FALSE", nanToNull(evaporationUl));
+		} else {
+			p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumTopraw),
+					nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps), nanToNull(sum00), nanToNull(pi00),
+					t00Suitable ? "TRUE" : "FALSE");
+		}
 	}
 
 	private static Double nanToNull(double v) {
@@ -352,7 +363,9 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter measureCapRawPrinter() throws IOException {
 		if (measureCapRawPrinter == null) {
-			measureCapRawPrinter = openMeasureCapPrinter(MEASURE_CAP_RAW);
+			List<String> header = measureCapHeader();
+			header.add(COL_EVAPORATION_UL);
+			measureCapRawPrinter = openPrinter(MEASURE_CAP_RAW, header.toArray(new String[0]));
 		}
 		return measureCapRawPrinter;
 	}
@@ -364,20 +377,25 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		return measureCapBinPrinter;
 	}
 
-	private CSVPrinter openMeasureCapPrinter(String descriptor) throws IOException {
+	private List<String> measureCapHeader() {
 		List<String> header = new ArrayList<>();
 		header.add(COL_EXPERIMENT_ID);
 		header.add(COL_CAGE_ID);
 		header.add(COL_CAPILLARY_ID);
 		header.add(COL_TIME_MIN);
 		header.addAll(measureCapColumns);
-		return openPrinter(descriptor, header.toArray(new String[0]));
+		return header;
+	}
+
+	private CSVPrinter openMeasureCapPrinter(String descriptor) throws IOException {
+		return openPrinter(descriptor, measureCapHeader().toArray(new String[0]));
 	}
 
 	private CSVPrinter measureCageRawPrinter() throws IOException {
 		if (measureCageRawPrinter == null) {
 			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN, "sum",
-					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00", COL_T00_SUITABLE);
+					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00", COL_T00_SUITABLE,
+					COL_EVAPORATION_UL);
 		}
 		return measureCageRawPrinter;
 	}

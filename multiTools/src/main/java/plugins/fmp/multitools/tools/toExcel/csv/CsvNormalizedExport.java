@@ -18,7 +18,11 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageCapillariesComputation;
+import plugins.fmp.multitools.experiment.capillaries.ReferenceMeasures;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale;
+import plugins.fmp.multitools.experiment.cages.EvaporationCorrectionMethod;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder;
@@ -40,8 +44,9 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * {@code sum_gulps}/{@code pi_gulps}, {@code sum00}/{@code pi00} (toplevel00),
  * {@code t00_suitable}. Levels-tab checkboxes do not gate the
  * standard columns; optional extras (derivative, gulp events) still follow
- * options. Each experiment also gets {@code evaporation_<experiment>.csv}: the
- * no-fly curve subtracted from topraw, in uL and in pixels, along {@code time_min}.
+ * options. {@code measure_cap_raw.csv} and {@code measure_cage_raw.csv} also
+ * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
+ * on the same {@code time_min} rows.
  */
 public final class CsvNormalizedExport {
 
@@ -128,6 +133,8 @@ public final class CsvNormalizedExport {
 			boolean wantGulpEvents, long binStepMs) throws IOException {
 		exp.ensureFrameTimeScale();
 		exp.dispatchCapillariesToCages();
+		exp.getCages().computeEvaporationCorrection(exp,
+				EvaporationCorrectionMethod.fromOrDefault(options.evaporationCorrectionMethod));
 		exp.getCages().computeT00References(exp);
 
 		long nativeMedian = nativeMedianMs(exp);
@@ -146,7 +153,6 @@ public final class CsvNormalizedExport {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
 					rawStepMs, binStepMs, writeBin);
 		}
-		EvaporationCsvWriter.writeExperiment(csv.getFolder(), exp, options, charSeries, rawStepMs);
 	}
 
 	private static void exportCapillaryMeasures(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
@@ -197,8 +203,12 @@ public final class CsvNormalizedExport {
 						mergeSeriesNative(byTime, series, e.getValue());
 					}
 					byTime.entrySet().removeIf(row -> !hasRawMeasureValues(row.getValue()));
+					Map<Long, Double> evaporationUl = evaporationUlByTime(exp, cap, nativeStepMs);
 					boolean t00Suitable = exp.isT00Suitable();
 					for (Map.Entry<Long, Map<String, Double>> row : byTime.entrySet()) {
+						Double evap = evaporationUl.get(row.getKey());
+						if (evap != null)
+							row.getValue().put(CsvNormalizedExportSupport.COL_EVAPORATION_UL, evap);
 						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue(),
 								t00Suitable);
 					}
@@ -313,6 +323,9 @@ public final class CsvNormalizedExport {
 			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
 			int cageId = cage.getProperties().getCageID();
 			boolean t00Suitable = exp.isT00Suitable();
+			List<Map<Long, Double>> evaporationByCap = new ArrayList<>();
+			for (Capillary cap : capillaries)
+				evaporationByCap.add(evaporationUlByTime(exp, cap, nativeStepMs));
 
 			XYSeries levelSum = null;
 			XYSeries levelPi = null;
@@ -358,7 +371,7 @@ public final class CsvNormalizedExport {
 					continue;
 				}
 				csv.writeMeasureCageRowRaw(expKey, cageId, e.getKey() / 60000.0, v[0], v[1], v[2], v[3], v[4], v[5],
-						v[6], v[7], t00Suitable);
+						v[6], v[7], t00Suitable, cageEvaporationUl(evaporationByCap, e.getKey()));
 			}
 
 			if (writeBin) {
@@ -600,6 +613,64 @@ public final class CsvNormalizedExport {
 			}
 			csv.writeGulpEvent(expKey, cageId, capId, series.getX(i).doubleValue(), v);
 		}
+	}
+
+	/** Evaporation curve actually subtracted: combined, else left, else right. */
+	private static CapillaryMeasure evaporationSeries(Experiment exp) {
+		if (exp == null || exp.getCapillaries() == null)
+			return null;
+		ReferenceMeasures ref = exp.getCapillaries().getReferenceMeasures();
+		if (ref == null)
+			return null;
+		if (ref.getEvaporation() != null && ref.getEvaporation().getNPoints() > 0)
+			return ref.getEvaporation();
+		if (ref.getEvaporationL() != null && ref.getEvaporationL().getNPoints() > 0)
+			return ref.getEvaporationL();
+		if (ref.getEvaporationR() != null && ref.getEvaporationR().getNPoints() > 0)
+			return ref.getEvaporationR();
+		return null;
+	}
+
+	/** Model (or mean fallback) in uL for one capillary, keyed like the other CSV rows. */
+	private static Map<Long, Double> evaporationUlByTime(Experiment exp, Capillary cap, long seriesStepMs) {
+		Map<Long, Double> out = new LinkedHashMap<>();
+		CapillaryMeasure measure = evaporationSeries(exp);
+		if (measure == null || cap == null)
+			return out;
+		int factor = Math.max(1, exp.getKymoSubsampleFactor());
+		CapillaryPixelScale.MeasurePixelSource source = CapillaryPixelScale.sourceOf(exp);
+		double expansion = CapillaryPixelScale.expansionRatioOf(exp);
+		int n = measure.getNPoints();
+		for (int j = 0; j < n; j++) {
+			double px = measure.getValueAt(j);
+			if (!Double.isFinite(px))
+				continue;
+			double ul = CapillaryPixelScale.toUl(px, cap, CapillaryPixelScale.frameOfColumn(j, factor), source,
+					expansion, false);
+			if (!Double.isFinite(ul))
+				continue;
+			long tMs = Math.round(CageCapillarySeriesBuilder.displayTimeMinutes(exp, j, seriesStepMs) * 60000.0);
+			out.put(tMs, ul);
+		}
+		return out;
+	}
+
+	/** Sum of per-capillary evaporation at one time. NaN when none of them have a sample. */
+	private static double cageEvaporationUl(List<Map<Long, Double>> perCapillary, long tMs) {
+		double sum = 0;
+		boolean any = false;
+		if (perCapillary == null)
+			return Double.NaN;
+		for (Map<Long, Double> series : perCapillary) {
+			if (series == null)
+				continue;
+			Double v = series.get(tMs);
+			if (v == null || !Double.isFinite(v))
+				continue;
+			sum += v;
+			any = true;
+		}
+		return any ? sum : Double.NaN;
 	}
 
 	private static List<String> denseMeasureColumns(ResultsOptions options, Mode mode) {
