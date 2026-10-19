@@ -515,6 +515,17 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 	}
 
 	/**
+	 * Minutes for kymo column {@code column}, using the same clock as capillary
+	 * CSV rows ({@code seriesStepMs} is the fallback when frame times are missing).
+	 */
+	public static double displayTimeMinutes(Experiment exp, int column, long seriesStepMs) {
+		double[] camImages_time_min = exp != null ? exp.getMeasureTimeMinutes() : null;
+		ResultsOptions options = new ResultsOptions();
+		options.buildExcelStepMs = seriesStepMs > 0 ? (int) Math.min(seriesStepMs, Integer.MAX_VALUE) : 0;
+		return getDisplayTimeMinutes(exp, camImages_time_min, column, options);
+	}
+
+	/**
 	 * Measurement series are sampled on the analysis/export bin timeline. Prefer
 	 * camera frame timestamps when available; for downsampled kymos map column
 	 * {@code j} to frame {@code j * subsampleFactor}.

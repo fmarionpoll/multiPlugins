@@ -14,6 +14,12 @@ public class ReferenceMeasures {
 	private CapillaryMeasure evaporationL = new CapillaryMeasure(ID_EVAPORATION_L);
 	private CapillaryMeasure evaporationR = new CapillaryMeasure(ID_EVAPORATION_R);
 	private CapillaryMeasure derivativeThreshold = new CapillaryMeasure(ID_THRESHOLD);
+	/** True when the stored series is the exponential fit, false when it is the mean. */
+	private boolean evaporationFromModel;
+	private boolean evaporationLFromModel;
+	private boolean evaporationRFromModel;
+	/** True after a computation pass stored at least one series. Not persisted. */
+	private boolean evaporationComputed;
 
 	public CapillaryMeasure getEvaporation() {
 		return evaporation;
@@ -48,6 +54,38 @@ public class ReferenceMeasures {
 			evaporationR.clear();
 	}
 
+	public boolean isEvaporationFromModel() {
+		return evaporationFromModel;
+	}
+
+	public void setEvaporationFromModel(boolean fromModel) {
+		this.evaporationFromModel = fromModel;
+	}
+
+	public boolean isEvaporationLFromModel() {
+		return evaporationLFromModel;
+	}
+
+	public void setEvaporationLFromModel(boolean fromModel) {
+		this.evaporationLFromModel = fromModel;
+	}
+
+	public boolean isEvaporationRFromModel() {
+		return evaporationRFromModel;
+	}
+
+	public void setEvaporationRFromModel(boolean fromModel) {
+		this.evaporationRFromModel = fromModel;
+	}
+
+	public boolean isEvaporationComputed() {
+		return evaporationComputed;
+	}
+
+	public void setEvaporationComputed(boolean computed) {
+		this.evaporationComputed = computed;
+	}
+
 	public CapillaryMeasure getDerivativeThreshold() {
 		return derivativeThreshold;
 	}
@@ -64,6 +102,10 @@ public class ReferenceMeasures {
 		evaporationL.clear();
 		evaporationR.clear();
 		derivativeThreshold.clear();
+		evaporationFromModel = false;
+		evaporationLFromModel = false;
+		evaporationRFromModel = false;
+		evaporationComputed = false;
 	}
 
 	public void copy(ReferenceMeasures other) {
@@ -77,6 +119,10 @@ public class ReferenceMeasures {
 			evaporationR.copy(other.evaporationR);
 		if (other.derivativeThreshold.isThereAnyMeasuresDone())
 			derivativeThreshold.copy(other.derivativeThreshold);
+		evaporationFromModel = other.evaporationFromModel;
+		evaporationLFromModel = other.evaporationLFromModel;
+		evaporationRFromModel = other.evaporationRFromModel;
+		evaporationComputed = other.evaporationComputed;
 	}
 
 	public boolean hasAnyData() {

@@ -82,23 +82,19 @@ public class CagesCapillariesComputation {
 			}
 		}
 
-		Level2D avgEvapCombined = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesAll), mode);
-		Level2D avgEvapL = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesL), mode);
-		Level2D avgEvapR = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesR), mode);
+		EvapCurve avgEvapCombined = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesAll), mode);
+		EvapCurve avgEvapL = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesL), mode);
+		EvapCurve avgEvapR = fitEvaporationOrKeepAverage(computeAverageMeasure(zeroFliesCapillariesR), mode);
 
 		ReferenceMeasures ref = allCapillaries.getReferenceMeasures();
-		if (avgEvapCombined != null && avgEvapCombined.npoints > 0)
-			ref.setEvaporation(level2DToCapillaryMeasure(avgEvapCombined, "_ref_evaporation"));
-		if (avgEvapL != null && avgEvapL.npoints > 0)
-			ref.setEvaporationL(level2DToCapillaryMeasure(avgEvapL, "_ref_evaporationL"));
-		if (avgEvapR != null && avgEvapR.npoints > 0)
-			ref.setEvaporationR(level2DToCapillaryMeasure(avgEvapR, "_ref_evaporationR"));
+		boolean stored = storeEvaporation(ref, avgEvapCombined, avgEvapL, avgEvapR);
+		ref.setEvaporationComputed(stored);
 
-		Level2D evaporationForCorrection = avgEvapCombined;
-		if (evaporationForCorrection == null && avgEvapL != null)
-			evaporationForCorrection = avgEvapL;
-		if (evaporationForCorrection == null && avgEvapR != null)
-			evaporationForCorrection = avgEvapR;
+		Level2D evaporationForCorrection = usable(avgEvapCombined.series);
+		if (evaporationForCorrection == null)
+			evaporationForCorrection = usable(avgEvapL.series);
+		if (evaporationForCorrection == null)
+			evaporationForCorrection = usable(avgEvapR.series);
 
 		for (Cage cage : cages.getCageList()) {
 			for (Capillary cap : cage.getCapillaries(allCapillaries)) {
@@ -118,15 +114,58 @@ public class CagesCapillariesComputation {
 		computeEvaporationCorrection(exp, EvaporationCorrectionMethod.MODEL);
 	}
 
+	private boolean storeEvaporation(ReferenceMeasures ref, EvapCurve combined, EvapCurve left, EvapCurve right) {
+		boolean stored = false;
+		if (combined.series != null && combined.series.npoints > 0) {
+			ref.setEvaporation(level2DToCapillaryMeasure(combined.series, "_ref_evaporation"));
+			ref.setEvaporationFromModel(combined.fromModel);
+			stored = true;
+		} else {
+			ref.setEvaporation(null);
+			ref.setEvaporationFromModel(false);
+		}
+		if (left.series != null && left.series.npoints > 0) {
+			ref.setEvaporationL(level2DToCapillaryMeasure(left.series, "_ref_evaporationL"));
+			ref.setEvaporationLFromModel(left.fromModel);
+			stored = true;
+		} else {
+			ref.setEvaporationL(null);
+			ref.setEvaporationLFromModel(false);
+		}
+		if (right.series != null && right.series.npoints > 0) {
+			ref.setEvaporationR(level2DToCapillaryMeasure(right.series, "_ref_evaporationR"));
+			ref.setEvaporationRFromModel(right.fromModel);
+			stored = true;
+		} else {
+			ref.setEvaporationR(null);
+			ref.setEvaporationRFromModel(false);
+		}
+		return stored;
+	}
+
 	/** Zero at t0; optionally fit exponential; keep the averaged series if fit fails or AVERAGE. */
-	private static Level2D fitEvaporationOrKeepAverage(Level2D avg, EvaporationCorrectionMethod method) {
+	private static EvapCurve fitEvaporationOrKeepAverage(Level2D avg, EvaporationCorrectionMethod method) {
 		if (avg == null || avg.npoints <= 0)
-			return avg;
+			return new EvapCurve(avg, false);
 		avg.offsetToStartWithZeroAmplitude();
 		if (method != EvaporationCorrectionMethod.MODEL)
-			return avg;
+			return new EvapCurve(avg, false);
 		Level2D fitted = EvaporationCurveFitter.fit(avg);
-		return fitted != null ? fitted : avg;
+		return fitted != null ? new EvapCurve(fitted, true) : new EvapCurve(avg, false);
+	}
+
+	private static Level2D usable(Level2D series) {
+		return series != null && series.npoints > 0 ? series : null;
+	}
+
+	private static final class EvapCurve {
+		final Level2D series;
+		final boolean fromModel;
+
+		EvapCurve(Level2D series, boolean fromModel) {
+			this.series = series;
+			this.fromModel = fromModel;
+		}
 	}
 
 	/** Max px below the longest empty fill still accepted as a t00 reference. */

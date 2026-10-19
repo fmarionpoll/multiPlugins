@@ -40,7 +40,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * {@code sum_gulps}/{@code pi_gulps}, {@code sum00}/{@code pi00} (toplevel00),
  * {@code t00_suitable}. Levels-tab checkboxes do not gate the
  * standard columns; optional extras (derivative, gulp events) still follow
- * options.
+ * options. Each experiment also gets {@code evaporation_<experiment>.csv}: the
+ * no-fly curve subtracted from topraw, in uL and in pixels, along {@code time_min}.
  */
 public final class CsvNormalizedExport {
 
@@ -145,6 +146,7 @@ public final class CsvNormalizedExport {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
 					rawStepMs, binStepMs, writeBin);
 		}
+		EvaporationCsvWriter.writeExperiment(csv.getFolder(), exp, options, charSeries, rawStepMs);
 	}
 
 	private static void exportCapillaryMeasures(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
@@ -396,6 +398,8 @@ public final class CsvNormalizedExport {
 		ro.relativeToMaximum = false;
 		ro.subtractT0 = false;
 		ro.correctEvaporation = (baseType == EnumResults.TOPLEVEL || baseType == EnumResults.TOPLEVEL00);
+		ro.evaporationCorrectionMethod = base != null ? base.evaporationCorrectionMethod
+				: ro.evaporationCorrectionMethod;
 		ro.resultType = baseType;
 		ro.exportLayoutMode = ExportLayoutMode.NORMALIZED;
 		ro.lrPIThreshold = base != null ? base.lrPIThreshold : 0.0;
@@ -527,6 +531,8 @@ public final class CsvNormalizedExport {
 				|| resultType == EnumResults.TOPLEVEL00 || resultType == EnumResults.TOPLEVEL00_LR
 				|| resultType == EnumResults.TOPLEVEL_SUM00 || resultType == EnumResults.TOPLEVEL_PI00
 				|| resultType == EnumResults.TOPLEVEL_SUM_AND_00 || resultType == EnumResults.TOPLEVEL_PI_AND_00);
+		ro.evaporationCorrectionMethod = base != null ? base.evaporationCorrectionMethod
+				: ro.evaporationCorrectionMethod;
 		ro.resultType = resultType;
 		ro.exportLayoutMode = ExportLayoutMode.NORMALIZED;
 		ro.lrPIThreshold = base != null ? base.lrPIThreshold : 0.0;
