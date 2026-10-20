@@ -222,7 +222,6 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			int index = options.directionUp1 ? 0 : 1;
 			direction1ComboBox.setSelectedIndex(index);
 			threshold1Spinner.setValue(options.detectLevel1Threshold);
-			selectedCapillaryCheckBox.setSelected(options.detectSelectedKymo);
 			leftCheckBox.setSelected(options.detectL);
 			rightCheckBox.setSelected(options.detectR);
 			profilePerpendicularCheckBox.setSelected(options.profilePerpendicular);

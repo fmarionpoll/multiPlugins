@@ -376,7 +376,6 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			spanByTransform.put(options.transformForGulps, Math.max(2, options.spanDiffForGulps));
 			lastSpanTransform = null;
 			gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
-			selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
 			if (options.gulpDetectionMethod != null) {
 				gulpDetectionMethodCombo.setSelectedItem(options.gulpDetectionMethod);
 			} else {

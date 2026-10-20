@@ -502,7 +502,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			direction2ComboBox.setSelectedIndex(index);
 			threshold2Spinner.setValue(options.detectLevel2Threshold);
 			jitter2Spinner.setValue(options.jitter2);
-			selectedKymoCheckBox.setSelected(options.detectSelectedKymo);
 			leftCheckBox.setSelected(options.detectL);
 			rightCheckBox.setSelected(options.detectR);
 
