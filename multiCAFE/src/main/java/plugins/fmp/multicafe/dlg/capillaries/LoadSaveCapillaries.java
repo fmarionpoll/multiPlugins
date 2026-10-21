@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.capillaries;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.JButton;
@@ -67,28 +65,22 @@ public class LoadSaveCapillaries extends JPanel {
 	private void defineActionListeners() {
 		loadGroundTruthButton.addActionListener(e -> loadGroundTruth());
 		saveGroundTruthButton.addActionListener(e -> saveGroundTruth());
-		openButtonCapillaries.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					loadCapillaries_File(exp);
-					firePropertyChange("CAP_ROIS_OPEN", false, true);
-				}
+		openButtonCapillaries.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				loadCapillaries_File(exp);
+				firePropertyChange("CAP_ROIS_OPEN", false, true);
 			}
 		});
 
-		saveButtonCapillaries.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (saveCapillaries_file(exp))
-						firePropertyChange("CAP_ROIS_SAVE", false, true);
-					else
-						JOptionPane.showMessageDialog(LoadSaveCapillaries.this, "Could not save capillaries. See the log.",
-								"Save normal CSV", JOptionPane.ERROR_MESSAGE);
-				}
+		saveButtonCapillaries.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (saveCapillaries_file(exp))
+					firePropertyChange("CAP_ROIS_SAVE", false, true);
+				else
+					JOptionPane.showMessageDialog(LoadSaveCapillaries.this, "Could not save capillaries. See the log.",
+							"Save normal CSV", JOptionPane.ERROR_MESSAGE);
 			}
 		});
 	}

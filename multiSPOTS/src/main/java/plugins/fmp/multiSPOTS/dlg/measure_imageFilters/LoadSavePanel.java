@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -43,25 +41,19 @@ public class LoadSavePanel extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		loadButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					dlg_spotsmeasures_loadSpotsArray_File(exp);
-					firePropertyChange("CAP_ROIS_OPEN", false, true);
-				}
+		loadButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				dlg_spotsmeasures_loadSpotsArray_File(exp);
+				firePropertyChange("CAP_ROIS_OPEN", false, true);
 			}
 		});
 
-		saveButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					saveSpotsArray_file(exp);
-					firePropertyChange("CAP_ROIS_SAVE", false, true);
-				}
+		saveButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				saveSpotsArray_file(exp);
+				firePropertyChange("CAP_ROIS_SAVE", false, true);
 			}
 		});
 	}

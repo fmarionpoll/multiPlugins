@@ -152,14 +152,18 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		hint.add(editRimButton);
 		hint.add(new JLabel("Blue = dye outline (editable). Green = floor."));
 		add(hint);
+		rimWidthSpinner.addChangeListener(e -> onBandChanged());
+		outerPxSpinner.addChangeListener(e -> onBandChanged());
+		floorWidthSpinner.addChangeListener(e -> onBandChanged());
+		defineActionListeners();
+	}
+
+	private void defineActionListeners() {
 
 		showRimsButton.addActionListener(e -> refreshRims());
 		editRimButton.addActionListener(e -> showEditDialog());
 		simplifyButton.addActionListener(e -> simplifySelected());
 		cloneSpotButton.addActionListener(e -> cloneSelectedSpot());
-		rimWidthSpinner.addChangeListener(e -> onBandChanged());
-		outerPxSpinner.addChangeListener(e -> onBandChanged());
-		floorWidthSpinner.addChangeListener(e -> onBandChanged());
 		detectButton.addActionListener(e -> startDetect());
 		analyzeButton.addActionListener(e -> {
 			if (ANALYZE_LABEL.equals(analyzeButton.getText())) {

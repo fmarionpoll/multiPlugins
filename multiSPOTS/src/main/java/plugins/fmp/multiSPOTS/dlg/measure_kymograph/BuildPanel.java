@@ -4,8 +4,6 @@ import java.awt.Desktop;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -100,49 +98,28 @@ public class BuildPanel extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineActionListeners() {
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString)) {
-					startComputation();
-				} else {
-					stopComputation();
-				}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString)) {
+				startComputation();
+			} else {
+				stopComputation();
 			}
 		});
 
-		allSeriesCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				java.awt.Color color = java.awt.Color.BLACK;
-				if (allSeriesCheckBox.isSelected()) {
-					color = java.awt.Color.RED;
-				}
-				allSeriesCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
+		allSeriesCheckBox.addActionListener(e -> {
+			java.awt.Color color = java.awt.Color.BLACK;
+			if (allSeriesCheckBox.isSelected()) {
+				color = java.awt.Color.RED;
 			}
+			allSeriesCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 
-		isFixedFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				enableIntervalButtons(true);
-			}
-		});
+		isFixedFrameButton.addActionListener(e -> enableIntervalButtons(true));
 
-		isFloatingFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				enableIntervalButtons(false);
-			}
-		});
+		isFloatingFrameButton.addActionListener(e -> enableIntervalButtons(false));
 
-		openBinFolderButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				openResultsBinFolder();
-			}
-		});
+		openBinFolderButton.addActionListener(e -> openResultsBinFolder());
 	}
 
 	private void enableIntervalButtons(boolean isSelected) {

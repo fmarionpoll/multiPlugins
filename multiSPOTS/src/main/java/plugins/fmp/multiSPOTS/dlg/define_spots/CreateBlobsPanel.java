@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.geom.Ellipse2D;
@@ -145,34 +143,25 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 	}
 
 	private void defineActionListeners() {
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
-			}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
 		});
 
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
-			}
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 
-		spotsViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayTransform(exp);
-			}
+		spotsViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayTransform(exp);
 		});
 
 		spotsOverlayCheckBox.addItemListener(new ItemListener() {
@@ -190,12 +179,7 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 			}
 		});
 
-		spotsDirectionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateOverlayThreshold();
-			}
-		});
+		spotsDirectionComboBox.addActionListener(e -> updateOverlayThreshold());
 
 		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -203,16 +187,13 @@ public class CreateBlobsPanel extends JPanel implements ChangeListener, Property
 			}
 		});
 
-		convertBlobsToSpotButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int diameter = (int) spotDiameterSpinner.getValue();
-					int nMaxSpotsPerCage = (int) maxNSpotsPerCageSpinner.getValue();
-					convertBlobsToCircles(exp, diameter, nMaxSpotsPerCage);
-					firePropertyChange("SPOTS_BLOBS_CONVERTED", false, true);
-				}
+		convertBlobsToSpotButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int diameter = (int) spotDiameterSpinner.getValue();
+				int nMaxSpotsPerCage = (int) maxNSpotsPerCageSpinner.getValue();
+				convertBlobsToCircles(exp, diameter, nMaxSpotsPerCage);
+				firePropertyChange("SPOTS_BLOBS_CONVERTED", false, true);
 			}
 		});
 

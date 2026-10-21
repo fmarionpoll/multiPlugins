@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.define_spots;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.awt.geom.Point2D.Double;
 import java.awt.geom.Rectangle2D;
@@ -83,53 +81,44 @@ public class CreateSpots extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		cageGridButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.getSeqCamData().removeROIsContainingString("carre");
-					exp.getSeqCamData().removeROIsContainingString("spot");
-					Cage cageFound = exp.getCages().findFirstSelectedCage();
-					if (cageFound == null)
-						cageFound = exp.getCages().cagesList.get(0);
+		cageGridButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.getSeqCamData().removeROIsContainingString("carre");
+				exp.getSeqCamData().removeROIsContainingString("spot");
+				Cage cageFound = exp.getCages().findFirstSelectedCage();
+				if (cageFound == null)
+					cageFound = exp.getCages().cagesList.get(0);
 
-					if (cageFound != null) {
-						exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
-						changeGrid(exp, cageFound);
-					}
+				if (cageFound != null) {
+					exp.getSeqCamData().centerDisplayOnRoi(cageFound.getRoi());
+					changeGrid(exp, cageFound);
+				}
 
-					if (spotsPanel == null) {
-						spotsPanel = new CreateSpotsArrayPanel();
-						int n_columns = (int) nColumnsCombo.getSelectedItem();
-						int n_rows = (int) nRowsCombo.getSelectedItem();
-						spotsPanel.initialize(parent0, n_columns, n_rows);
-						spotsPanel.requestFocus();
-					}
+				if (spotsPanel == null) {
+					spotsPanel = new CreateSpotsArrayPanel();
+					int n_columns = (int) nColumnsCombo.getSelectedItem();
+					int n_rows = (int) nRowsCombo.getSelectedItem();
+					spotsPanel.initialize(parent0, n_columns, n_rows);
+					spotsPanel.requestFocus();
 				}
 			}
 		});
 
-		selectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					keepSelectedAreas(exp);
-				}
+		selectButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				keepSelectedAreas(exp);
 			}
 		});
 
-		createSpotsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.getSeqCamData().removeROIsContainingString("spot");
-					createSpotsForAllCages(exp, roiGrid, referencePosition);
-					ExperimentUtils.transferSpotsToCamDataSequence(exp);
-					exp.getSeqCamData().removeROIsContainingString("carre");
-				}
+		createSpotsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.getSeqCamData().removeROIsContainingString("spot");
+				createSpotsForAllCages(exp, roiGrid, referencePosition);
+				ExperimentUtils.transferSpotsToCamDataSequence(exp);
+				exp.getSeqCamData().removeROIsContainingString("carre");
 			}
 		});
 

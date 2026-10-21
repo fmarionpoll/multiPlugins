@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -69,12 +67,7 @@ public class SpotsAreasPanel extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		exportToXLSButton2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				firePropertyChange("EXPORT_SPOTSMEASURES", false, true);
-			}
-		});
+		exportToXLSButton2.addActionListener(e -> firePropertyChange("EXPORT_SPOTSMEASURES", false, true));
 
 	}
 

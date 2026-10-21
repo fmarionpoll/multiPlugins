@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -96,26 +94,20 @@ public class AxisOptions extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		setXaxis.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					updateXAxis();
-				}
+		setXaxis.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				updateXAxis();
 			}
 		});
 
 		// Add action listeners for each y-axis button
 		for (int i = 0; i < setYaxisButtons.size(); i++) {
 			final int axisIndex = i;
-			setYaxisButtons.get(i).addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(final ActionEvent e) {
-					Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-					if (exp != null) {
-						updateYAxis(axisIndex);
-					}
+			setYaxisButtons.get(i).addActionListener(e -> {
+				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+				if (exp != null) {
+					updateYAxis(axisIndex);
 				}
 			});
 		}

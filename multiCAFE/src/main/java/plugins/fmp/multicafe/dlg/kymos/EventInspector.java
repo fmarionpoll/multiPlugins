@@ -141,23 +141,10 @@ public final class EventInspector extends JPanel implements ViewerListener {
         classification.setSelectedItem("Uncertain");
         chart.getXYPlot().addDomainMarker(marker);
         chart.getXYPlot().getRangeAxis().setInverted(true); // Same downward-positive orientation as the kymograph.
-        refresh.addActionListener(e -> activate());
-        capillaries.addActionListener(e -> { if (active && !updating) selectCapillary(); });
-        previous.addActionListener(e -> navigate(column - 1));
-        next.addActionListener(e -> navigate(column + 1));
         columnInput.addChangeListener(e -> { if (!updating) navigate(((Number) columnInput.getValue()).intValue()); });
         slider.addChangeListener(e -> { if (!updating) navigate(slider.getValue()); });
-        goTime.addActionListener(e -> {
-            if (axis != null) navigate(axis.nearestColumn(((Number) timeInput.getValue()).doubleValue()));
-        });
         halfWindow.addChangeListener(e -> { if (!updating) navigate(column); });
-        showMeasures.addActionListener(e -> { if (sequence != null) overlay.painterChanged(); });
-        showCursor.addActionListener(e -> { marker.setAlpha(showCursor.isSelected() ? 1f : 0f); overlay.painterChanged(); });
-        previousGulp.addActionListener(e -> navigateGulp(-1));
-        nextGulp.addActionListener(e -> navigateGulp(1));
-        save.addActionListener(e -> saveReview());
-        loadReviews.addActionListener(e -> loadReviews());
-        classification.addActionListener(e -> rememberDraft());
+        defineActionListeners(refresh, previous, next, goTime, previousGulp, nextGulp, loadReviews);
         comment.getDocument().addDocumentListener(new DocumentListener() {
             @Override public void insertUpdate(DocumentEvent e) { rememberDraft(); }
             @Override public void removeUpdate(DocumentEvent e) { rememberDraft(); }
@@ -167,6 +154,23 @@ public final class EventInspector extends JPanel implements ViewerListener {
             @Override public void icyFrameClosed(IcyFrameEvent e) { deactivate(); }
         });
         defineToolTips();
+    }
+
+    private void defineActionListeners(JButton refresh, JButton previous, JButton next, JButton goTime, JButton previousGulp, JButton nextGulp, JButton loadReviews) {
+        refresh.addActionListener(e -> activate());
+        capillaries.addActionListener(e -> { if (active && !updating) selectCapillary(); });
+        previous.addActionListener(e -> navigate(column - 1));
+        next.addActionListener(e -> navigate(column + 1));
+        goTime.addActionListener(e -> {
+            if (axis != null) navigate(axis.nearestColumn(((Number) timeInput.getValue()).doubleValue()));
+        });
+        showMeasures.addActionListener(e -> { if (sequence != null) overlay.painterChanged(); });
+        showCursor.addActionListener(e -> { marker.setAlpha(showCursor.isSelected() ? 1f : 0f); overlay.painterChanged(); });
+        previousGulp.addActionListener(e -> navigateGulp(-1));
+        nextGulp.addActionListener(e -> navigateGulp(1));
+        save.addActionListener(e -> saveReview());
+        loadReviews.addActionListener(e -> loadReviews());
+        classification.addActionListener(e -> rememberDraft());
     }
 
     private void defineToolTips() {

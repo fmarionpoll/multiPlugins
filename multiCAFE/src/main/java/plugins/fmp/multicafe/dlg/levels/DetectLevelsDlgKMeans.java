@@ -2,8 +2,6 @@ package plugins.fmp.multicafe.dlg.levels;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.JButton;
@@ -101,13 +99,10 @@ public class DetectLevelsDlgKMeans extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		displayButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && (currentlyRunning == null)) {
-					runKMeans(exp);
-				}
+		displayButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && (currentlyRunning == null)) {
+				runKMeans(exp);
 			}
 		});
 

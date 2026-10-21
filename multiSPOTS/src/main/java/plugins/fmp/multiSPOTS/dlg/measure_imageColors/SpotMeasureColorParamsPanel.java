@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageColors;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.JButton;
@@ -56,19 +54,13 @@ public class SpotMeasureColorParamsPanel extends JPanel {
 		row.add(loadBtn);
 		row.add(saveBtn);
 		add(row, BorderLayout.CENTER);
+		defineActionListeners(loadBtn, saveBtn);
+	}
 
-		loadBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				doLoad(SpotMeasureColorParamsPanel.this);
-			}
-		});
-		saveBtn.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				doSave(SpotMeasureColorParamsPanel.this);
-			}
-		});
+	private void defineActionListeners(JButton loadBtn, JButton saveBtn) {
+
+		loadBtn.addActionListener(e -> doLoad(SpotMeasureColorParamsPanel.this));
+		saveBtn.addActionListener(e -> doSave(SpotMeasureColorParamsPanel.this));
 	}
 
 	private File suggestStartDirectory() {

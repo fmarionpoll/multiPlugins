@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.define_spots;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JPanel;
@@ -47,22 +45,16 @@ public class InfosPanel extends JPanel {
 	}
 
 	private void declareListeners() {
-		editCagesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					editCagesInfos(exp);
-			}
+		editCagesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				editCagesInfos(exp);
 		});
 
-		editSpotsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					editSpotsInfos(exp);
-			}
+		editSpotsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				editSpotsInfos(exp);
 		});
 	}
 

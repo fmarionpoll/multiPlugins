@@ -2,7 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageColors;
 
 import java.awt.Color;
 import java.awt.FlowLayout;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
@@ -315,12 +314,7 @@ public class ThresholdColors extends JPanel {
 	}
 
 	private void declareActionListeners() {
-		ActionListener fire = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				updateThresholdOverlayParameters();
-			}
-		};
+		ActionListener fire = e -> updateThresholdOverlayParameters();;
 		rbRGB.addActionListener(fire);
 		rbHSV.addActionListener(fire);
 		rbH1H2H3.addActionListener(fire);
@@ -340,53 +334,27 @@ public class ThresholdColors extends JPanel {
 			}
 		});
 
-		deleteIncludeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (colorIncludeCombo.getItemCount() > 0 && colorIncludeCombo.getSelectedIndex() >= 0) {
-					colorIncludeCombo.removeItemAt(colorIncludeCombo.getSelectedIndex());
-				}
-				lastComboCount = colorIncludeCombo.getItemCount();
-				updateThresholdOverlayParameters();
+		deleteIncludeButton.addActionListener(e -> {
+			if (colorIncludeCombo.getItemCount() > 0 && colorIncludeCombo.getSelectedIndex() >= 0) {
+				colorIncludeCombo.removeItemAt(colorIncludeCombo.getSelectedIndex());
 			}
+			lastComboCount = colorIncludeCombo.getItemCount();
+			updateThresholdOverlayParameters();
 		});
-		deleteExcludeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (colorExcludeCombo.getItemCount() > 0 && colorExcludeCombo.getSelectedIndex() >= 0) {
-					colorExcludeCombo.removeItemAt(colorExcludeCombo.getSelectedIndex());
-				}
-				lastExcludeComboCount = colorExcludeCombo.getItemCount();
-				updateThresholdOverlayParameters();
+		deleteExcludeButton.addActionListener(e -> {
+			if (colorExcludeCombo.getItemCount() > 0 && colorExcludeCombo.getSelectedIndex() >= 0) {
+				colorExcludeCombo.removeItemAt(colorExcludeCombo.getSelectedIndex());
 			}
+			lastExcludeComboCount = colorExcludeCombo.getItemCount();
+			updateThresholdOverlayParameters();
 		});
 
-		pickIncludeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				pickColor();
-			}
-		});
-		pickExcludeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				pickExcludeColor();
-			}
-		});
+		pickIncludeButton.addActionListener(e -> pickColor());
+		pickExcludeButton.addActionListener(e -> pickExcludeColor());
 
-		sampleBackgroundButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				sampleBackgroundFromRois();
-			}
-		});
+		sampleBackgroundButton.addActionListener(e -> sampleBackgroundFromRois());
 
-		spotsDirectionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				updateThresholdOverlayParameters();
-			}
-		});
+		spotsDirectionComboBox.addActionListener(e -> updateThresholdOverlayParameters());
 		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {

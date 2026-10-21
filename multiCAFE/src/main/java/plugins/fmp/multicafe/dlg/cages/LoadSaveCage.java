@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.cages;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -44,26 +42,20 @@ public class LoadSaveCage extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		openCageButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					loadCage(exp);
-					firePropertyChange("LOAD_DATA", false, true);
-					parent0.paneCages.tabsPane.setSelectedIndex(3);
-				}
+		openCageButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				loadCage(exp);
+				firePropertyChange("LOAD_DATA", false, true);
+				parent0.paneCages.tabsPane.setSelectedIndex(3);
 			}
 		});
 
-		saveCageButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					saveCageAndMeasures(exp);
-					parent0.paneCages.tabsPane.setSelectedIndex(3);
-				}
+		saveCageButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				saveCageAndMeasures(exp);
+				parent0.paneCages.tabsPane.setSelectedIndex(3);
 			}
 		});
 	}

@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -72,58 +70,43 @@ public class Adjust extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineListeners() {
-		adjustButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (adjustButton.getText().equals(adjustString))
-					series_adjustDimensionsStart();
-				else
-					series_adjustDimensionsStop();
-			}
+		adjustButton.addActionListener(e -> {
+			if (adjustButton.getText().equals(adjustString))
+				series_adjustDimensionsStart();
+			else
+				series_adjustDimensionsStop();
 		});
 
-		cropButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (cropButton.getText().equals(cropString))
-					series_cropDimensionsStart();
-				else
-					series_cropDimensionsStop();
-			}
+		cropButton.addActionListener(e -> {
+			if (cropButton.getText().equals(cropString))
+				series_cropDimensionsStart();
+			else
+				series_cropDimensionsStop();
 		});
 
-		restoreButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (restoreButton.getText().equals(restoreString))
-					series_restoreStart();
-				else
-					series_restoreStop();
-			}
+		restoreButton.addActionListener(e -> {
+			if (restoreButton.getText().equals(restoreString))
+				series_restoreStart();
+			else
+				series_restoreStop();
 		});
 
-		clipButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (restoreButton.getText().equals(restoreString))
-					series_clipStart();
-				else
-					series_clipStop();
-			}
+		clipButton.addActionListener(e -> {
+			if (restoreButton.getText().equals(restoreString))
+				series_clipStart();
+			else
+				series_clipStop();
 		});
 
-		allSeriesCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allSeriesCheckBox.isSelected())
-					color = Color.RED;
-				allSeriesCheckBox.setForeground(color);
-				adjustButton.setForeground(color);
-				clipButton.setForeground(color);
-				restoreButton.setForeground(color);
-				cropButton.setForeground(color);
-			}
+		allSeriesCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allSeriesCheckBox.isSelected())
+				color = Color.RED;
+			allSeriesCheckBox.setForeground(color);
+			adjustButton.setForeground(color);
+			clipButton.setForeground(color);
+			restoreButton.setForeground(color);
+			cropButton.setForeground(color);
 		});
 	}
 

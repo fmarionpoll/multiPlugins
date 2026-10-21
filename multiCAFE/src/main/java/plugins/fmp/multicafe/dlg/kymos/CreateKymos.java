@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -130,54 +128,28 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineActionListeners() {
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
-			}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
 		});
 
-		allSeriesCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allSeriesCheckBox.isSelected())
-					color = Color.RED;
-				allSeriesCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
-			}
+		allSeriesCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allSeriesCheckBox.isSelected())
+				color = Color.RED;
+			allSeriesCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 
-		isFixedFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				enableIntervalButtons(true);
-			}
-		});
+		isFixedFrameButton.addActionListener(e -> enableIntervalButtons(true));
 
-		isFloatingFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				enableIntervalButtons(false);
-			}
-		});
+		isFloatingFrameButton.addActionListener(e -> enableIntervalButtons(false));
 
-		downsampleCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				updateSamplingHint((Experiment) parent0.expListComboLazy.getSelectedItem());
-			}
-		});
+		downsampleCombo.addActionListener(e -> updateSamplingHint((Experiment) parent0.expListComboLazy.getSelectedItem()));
 
-		fromBlueRoisCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				blueExpandPercentSpinner.setEnabled(fromBlueRoisCheckBox.isSelected());
-			}
-		});
+		fromBlueRoisCheckBox.addActionListener(e -> blueExpandPercentSpinner.setEnabled(fromBlueRoisCheckBox.isSelected()));
 	}
 
 	private void updateSamplingHint(Experiment exp) {

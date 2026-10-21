@@ -2,8 +2,6 @@ package plugins.fmp.multicafe.dlg.capillaries;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -138,61 +136,44 @@ public class Infos extends JPanel {
 				CapillaryMeasuredTipsOverlay.setOutlinesVisible(exp.getSeqCamData(), showOutlineCheckBox.isSelected());
 			refreshMeasuredLengths(exp);
 		});
-		getCapillaryLengthButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				double npixels = getLengthFirstCapillaryROI();
-				capillaryPixelsSpinner.setValue((int) npixels);
-			}
+		getCapillaryLengthButton.addActionListener(e -> {
+			double npixels = getLengthFirstCapillaryROI();
+			capillaryPixelsSpinner.setValue((int) npixels);
 		});
 
-		editCapillariesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.getCapillaries().transferDescriptionToCapillaries();
-					if (infosCapillaryTable != null) {
-						infosCapillaryTable.close();
-					}
-					infosCapillaryTable = new InfosCapillaryTable();
-					infosCapillaryTable.initialize(parent0, capillariesArrayCopy);
-					infosCapillaryTable.requestFocus();
+		editCapillariesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.getCapillaries().transferDescriptionToCapillaries();
+				if (infosCapillaryTable != null) {
+					infosCapillaryTable.close();
 				}
+				infosCapillaryTable = new InfosCapillaryTable();
+				infosCapillaryTable.initialize(parent0, capillariesArrayCopy);
+				infosCapillaryTable.requestFocus();
 			}
 		});
 
-		autoMeasureButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				autoMeasureCapillaryLengths();
-			}
+		autoMeasureButton.addActionListener(e -> autoMeasureCapillaryLengths());
+
+		setPixelsButton.addActionListener(e -> {
+			if (allExperimentsCheckBox.isSelected())
+				resetAllExperiments();
+			else
+				resetCurrentExperiment();
 		});
 
-		setPixelsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (allExperimentsCheckBox.isSelected())
-					resetAllExperiments();
-				else
-					resetCurrentExperiment();
+		showMeasuredCheckBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (!showMeasuredCheckBox.isSelected()) {
+				removeMeasuredLengths(exp);
+				return;
 			}
-		});
-
-		showMeasuredCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (!showMeasuredCheckBox.isSelected()) {
-					removeMeasuredLengths(exp);
-					return;
-				}
-				if (showMeasuredLengths(exp) == 0) {
-					showMeasuredCheckBox.setSelected(false);
-					JOptionPane.showMessageDialog(Infos.this,
-							"No capillary has a measured length yet. Run the auto-measure first.", AUTO_MEASURE_TITLE,
-							JOptionPane.INFORMATION_MESSAGE);
-				}
+			if (showMeasuredLengths(exp) == 0) {
+				showMeasuredCheckBox.setSelected(false);
+				JOptionPane.showMessageDialog(Infos.this,
+						"No capillary has a measured length yet. Run the auto-measure first.", AUTO_MEASURE_TITLE,
+						JOptionPane.INFORMATION_MESSAGE);
 			}
 		});
 	}

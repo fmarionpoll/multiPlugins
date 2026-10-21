@@ -6,8 +6,6 @@ import plugins.fmp.multitools.series.options.LevelDetectV2Options;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -171,9 +169,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		add(panel03);
 		add(trackingPanel);
 		add(smoothingPanel);
-		trackingCheckBox.addActionListener(e -> { resetDisplayToRaw(currentExperiment()); updateModeControls(); });
-		smoothCheckBox.addActionListener(e -> { updateModeControls(); updateOverlayThreshold(); });
-		advancedCheckBox.addActionListener(e -> updateModeControls());
 		for (JCheckBox control : new JCheckBox[] { removeHzAvgCheckBox, tapePrepassCheckBox, edgePeakCheckBox, runBackwardsCheckBox })
 			control.addActionListener(e -> updateOverlayThreshold());
 		for (JSpinner control : new JSpinner[] { trackUpSpinner, trackDownSpinner, medianWinSpinner, maxSpikeSpinner })
@@ -259,144 +254,120 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	private void defineActionListeners() {
-		transformPass1ComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (suppressDisplayUpdate) {
-					return;
-				}
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqKymos() != null) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null && transformPass1DisplayButton.isSelected()) {
-						int index = transformPass1ComboBox.getSelectedIndex();
-						canvas.updateTransformsStep1(transformPass1);
-						canvas.setTransformStep1(index + 1, null);
-						updateOverlayThreshold();
-					}
+		transformPass1ComboBox.addActionListener(e -> {
+			if (suppressDisplayUpdate) {
+				return;
+			}
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqKymos() != null) {
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null && transformPass1DisplayButton.isSelected()) {
+					int index = transformPass1ComboBox.getSelectedIndex();
+					canvas.updateTransformsStep1(transformPass1);
+					canvas.setTransformStep1(index + 1, null);
+					updateOverlayThreshold();
 				}
 			}
 		});
 
-		transformPass2ComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (suppressDisplayUpdate) {
-					return;
-				}
-				allowItemsAccordingToSelection();
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqKymos() != null) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null && transformPass2DisplayButton.isSelected()) {
-						int index = transformPass2ComboBox.getSelectedIndex();
-						canvas.updateTransformsStep1(transformPass2);
-						canvas.setTransformStep1(index + 1, null);
-						updateOverlayThreshold();
-					}
+		transformPass2ComboBox.addActionListener(e -> {
+			if (suppressDisplayUpdate) {
+				return;
+			}
+			allowItemsAccordingToSelection();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqKymos() != null) {
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null && transformPass2DisplayButton.isSelected()) {
+					int index = transformPass2ComboBox.getSelectedIndex();
+					canvas.updateTransformsStep1(transformPass2);
+					canvas.setTransformStep1(index + 1, null);
+					updateOverlayThreshold();
 				}
 			}
 		});
 
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString))
-					startLevelsDetection();
-				else
-					stopLevelsDetection();
-			}
+		detectButton.addActionListener(e -> {
+			if (detectButton.getText().equals(detectString))
+				startLevelsDetection();
+			else
+				stopLevelsDetection();
 		});
 
-		transformPass1DisplayButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+		transformPass1DisplayButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
 
-				if (transformPass1DisplayButton.isSelected()) {
-					if (parent0.paneLevels != null)
-						parent0.paneLevels.clearLevelsV2View();
-					transformPass2DisplayButton.setSelected(false);
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						canvas.updateTransformsStep1(transformPass1);
-						int index = transformPass1ComboBox.getSelectedIndex();
-						canvas.setTransformStep1(index + 1, null);
-					}
-					addOverlayToSequence(exp);
-				} else {
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null)
-						canvas.setTransformStep2Index(0);
-					canvas.setTransformStep1Index(0);
+			if (transformPass1DisplayButton.isSelected()) {
+				if (parent0.paneLevels != null)
+					parent0.paneLevels.clearLevelsV2View();
+				transformPass2DisplayButton.setSelected(false);
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null) {
+					canvas.updateTransformsStep1(transformPass1);
+					int index = transformPass1ComboBox.getSelectedIndex();
+					canvas.setTransformStep1(index + 1, null);
 				}
+				addOverlayToSequence(exp);
+			} else {
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null)
+					canvas.setTransformStep2Index(0);
+				canvas.setTransformStep1Index(0);
 			}
-
 		});
 
-		transformPass2DisplayButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+		transformPass2DisplayButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
 
-				if (transformPass2DisplayButton.isSelected()) {
-					if (parent0.paneLevels != null)
-						parent0.paneLevels.clearLevelsV2View();
-					transformPass1DisplayButton.setSelected(false);
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						canvas.updateTransformsStep1(transformPass2);
-						int index = transformPass2ComboBox.getSelectedIndex();
-						canvas.setTransformStep1(index + 1, null);
-					}
-					addOverlayToSequence(exp);
-				} else {
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null)
-						canvas.setTransformStep2Index(0);
-					canvas.setTransformStep1Index(0);
+			if (transformPass2DisplayButton.isSelected()) {
+				if (parent0.paneLevels != null)
+					parent0.paneLevels.clearLevelsV2View();
+				transformPass1DisplayButton.setSelected(false);
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null) {
+					canvas.updateTransformsStep1(transformPass2);
+					int index = transformPass2ComboBox.getSelectedIndex();
+					canvas.setTransformStep1(index + 1, null);
 				}
-			}
-
-		});
-
-		allSeriesCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allSeriesCheckBox.isSelected())
-					color = Color.RED;
-				allSeriesCheckBox.setForeground(color);
-				detectButton.setForeground(color);
+				addOverlayToSequence(exp);
+			} else {
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null)
+					canvas.setTransformStep2Index(0);
+				canvas.setTransformStep1Index(0);
 			}
 		});
 
-		fromRectangleCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				if (fromRectangleCheckBox.isSelected())
-					displaySearchArea(exp);
-				else if (searchRectangleROI2D != null)
-					exp.getSeqKymos().getSequence().removeROI(searchRectangleROI2D);
-			}
+		allSeriesCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allSeriesCheckBox.isSelected())
+				color = Color.RED;
+			allSeriesCheckBox.setForeground(color);
+			detectButton.setForeground(color);
 		});
 
-		direction1ComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateOverlayThreshold();
-			}
+		fromRectangleCheckBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			if (fromRectangleCheckBox.isSelected())
+				displaySearchArea(exp);
+			else if (searchRectangleROI2D != null)
+				exp.getSeqKymos().getSequence().removeROI(searchRectangleROI2D);
 		});
-	}
+
+		direction1ComboBox.addActionListener(e -> updateOverlayThreshold());
+	
+		trackingCheckBox.addActionListener(e -> { resetDisplayToRaw(currentExperiment()); updateModeControls(); });
+		smoothCheckBox.addActionListener(e -> { updateModeControls(); updateOverlayThreshold(); });
+		advancedCheckBox.addActionListener(e -> updateModeControls());
+}
 
 	void allowItemsAccordingToSelection() {
 		boolean flag = false;

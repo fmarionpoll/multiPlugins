@@ -112,6 +112,10 @@ public class GraphPanel extends JPanel {
 		if (analysisPanelRim != null) {
 			analysisPanelRim.addKymoResultListener(e -> maybeRefreshVisibleCharts());
 		}
+		defineActionListeners();
+	}
+
+	private void defineActionListeners() {
 
 		displayChartsButton.addActionListener(e -> onDisplayCharts());
 		axisOptionsButton.addActionListener(e -> openAxisOptions());

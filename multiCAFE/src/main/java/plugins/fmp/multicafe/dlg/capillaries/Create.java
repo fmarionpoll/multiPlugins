@@ -4,8 +4,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,60 +96,54 @@ public class Create extends JPanel {
 	}
 
 	private void defineDlgItemsListeners() {
-		displayFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+		displayFrameButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
 
-				if (exp.getCapillaries() != null && exp.getCapillaries().getList().size() > 0) {
-					Polygon2D extPolygon = exp.getCapillaries().get2DPolygonEnclosingCapillaries();
-					if (extPolygon == null) {
-						extPolygon = getCapillariesPolygon(exp.getSeqCamData().getSequence());
-					}
-					capillariesRoiPolygon = new ROI2DPolygon(extPolygon);
-					exp.getCapillaries().deleteAllCapillaries();
-					exp.releaseKymographSequence();
-					exp.getSeqCamData().getSequence().removeAllROI();
-					final String dummyname = "perimeter_enclosing_capillaries";
-					capillariesRoiPolygon.setName(dummyname);
-					exp.getSeqCamData().getSequence().addROI(capillariesRoiPolygon);
-					exp.getSeqCamData().getSequence().setSelectedROI(capillariesRoiPolygon);
-				} else
-					create_capillariesRoiPolygon(exp);
-			}
+			if (exp.getCapillaries() != null && exp.getCapillaries().getList().size() > 0) {
+				Polygon2D extPolygon = exp.getCapillaries().get2DPolygonEnclosingCapillaries();
+				if (extPolygon == null) {
+					extPolygon = getCapillariesPolygon(exp.getSeqCamData().getSequence());
+				}
+				capillariesRoiPolygon = new ROI2DPolygon(extPolygon);
+				exp.getCapillaries().deleteAllCapillaries();
+				exp.releaseKymographSequence();
+				exp.getSeqCamData().getSequence().removeAllROI();
+				final String dummyname = "perimeter_enclosing_capillaries";
+				capillariesRoiPolygon.setName(dummyname);
+				exp.getSeqCamData().getSequence().addROI(capillariesRoiPolygon);
+				exp.getSeqCamData().getSequence().setSelectedROI(capillariesRoiPolygon);
+			} else
+				create_capillariesRoiPolygon(exp);
 		});
 
-		generateCapillariesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+		generateCapillariesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
 
-				prepareForCapillaryRegeneration(exp);
-				roisGenerateFromPolygon();
-				SequenceKymosUtils.replaceCapillariesFromCamLineRois(exp);
+			prepareForCapillaryRegeneration(exp);
+			roisGenerateFromPolygon();
+			SequenceKymosUtils.replaceCapillariesFromCamLineRois(exp);
 
-				int nbFliesPerCage = (int) nbFliesPerCellJSpinner.getValue();
-				switch (cagesJCombo.getSelectedIndex()) {
-				case 0:
-					exp.getCapillaries().initCapillariesWith10Cages(nbFliesPerCage, true);
-					break;
-				case 1:
-					exp.getCapillaries().initCapillariesWith6Cages(nbFliesPerCage);
-					break;
-				default:
-					break;
-				}
-
-				if (exp.getCages() != null)
-					exp.getCages().removeCages();
-				exp.dispatchCapillariesToCages();
-				exp.releaseKymographSequence();
-				firePropertyChange("CAPILLARIES_NEW", false, true);
+			int nbFliesPerCage = (int) nbFliesPerCellJSpinner.getValue();
+			switch (cagesJCombo.getSelectedIndex()) {
+			case 0:
+				exp.getCapillaries().initCapillariesWith10Cages(nbFliesPerCage, true);
+				break;
+			case 1:
+				exp.getCapillaries().initCapillariesWith6Cages(nbFliesPerCage);
+				break;
+			default:
+				break;
 			}
+
+			if (exp.getCages() != null)
+				exp.getCages().removeCages();
+			exp.dispatchCapillariesToCages();
+			exp.releaseKymographSequence();
+			firePropertyChange("CAPILLARIES_NEW", false, true);
 		});
 
 		nCapillariesPerCell.addChangeListener(new ChangeListener() {

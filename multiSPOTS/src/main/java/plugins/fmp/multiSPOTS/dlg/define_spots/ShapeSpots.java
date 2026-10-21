@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.define_spots;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.geom.Ellipse2D;
@@ -119,30 +117,22 @@ public class ShapeSpots extends JPanel {
 			}
 		});
 
-		spotsTransformsComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int index = spotsTransformsComboBox.getSelectedIndex();
-					updateTransformFunctionsOfCanvas(exp);
-					if (!spotsViewButton.isSelected()) {
-						spotsViewButton.setSelected(true);
-					}
-					IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
-					if (canvas instanceof Canvas2D_3Transforms)
-						((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
-					updateOverlayThreshold();
+		spotsTransformsComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int index = spotsTransformsComboBox.getSelectedIndex();
+				updateTransformFunctionsOfCanvas(exp);
+				if (!spotsViewButton.isSelected()) {
+					spotsViewButton.setSelected(true);
 				}
-			}
-		});
-
-		spotsDirectionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
+				IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+				if (canvas instanceof Canvas2D_3Transforms)
+					((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
 				updateOverlayThreshold();
 			}
 		});
+
+		spotsDirectionComboBox.addActionListener(e -> updateOverlayThreshold());
 
 		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -150,45 +140,33 @@ public class ShapeSpots extends JPanel {
 			}
 		});
 
-		spotsViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayTransform(exp);
+		spotsViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayTransform(exp);
+		});
+
+		detectContoursButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.getSeqCamData().removeROIsContainingString("_mask");
+				detectContours(exp);
+				exp.saveSpots_File();
 			}
 		});
 
-		detectContoursButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.getSeqCamData().removeROIsContainingString("_mask");
-					detectContours(exp);
-					exp.saveSpots_File();
-				}
+		restoreContoursButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				restoreContours(exp);
 			}
 		});
 
-		restoreContoursButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					restoreContours(exp);
-				}
-			}
-		});
-
-		cutAndInterpolateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					cutAndInterpolate(exp);
-					exp.saveSpots_File();
-				}
+		cutAndInterpolateButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				cutAndInterpolate(exp);
+				exp.saveSpots_File();
 			}
 		});
 	}

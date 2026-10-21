@@ -201,7 +201,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		topPanel.add(manual);
 		JPanel track = new JPanel(flow);
 		JButton structuralReference = new JButton("Structural reference: polygon test");
-		structuralReference.addActionListener(e -> StructuralReferenceDialog.open((Experiment) parent0.expListComboLazy.getSelectedItem()));
 		track.add(structuralReference);
 		track.add(new JLabel("Image-0 edge preview only; no tracking yet."));
 		JPanel automatic = new JPanel(new GridLayout(0, 1));
@@ -246,11 +245,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		toggleRow.add(advancedToggle);
 		topPanel.add(toggleRow);
 		dialogFrame.add(advancedScroll, BorderLayout.CENTER);
-		advancedToggle.addActionListener(e -> {
-			advancedScroll.setVisible(advancedToggle.isSelected());
-			advancedToggle.setText(advancedToggle.isSelected() ? "Hide phase proposals / reference tools" : "Show phase proposals / reference tools");
-			dialogFrame.pack();
-		});
 		defineToolTips(structuralReference, advancedToggle);
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
@@ -259,6 +253,27 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		parent0.expListComboLazy.removeItemListener(experimentSelectionListener);
 		parent0.expListComboLazy.addItemListener(experimentSelectionListener);
 		bindSelectedExperiment();
+		defineActionListeners(parent0, structuralReference, advancedScroll, advancedToggle);
+		proposalList.addListSelectionListener(e -> {
+			if (!e.getValueIsAdjusting() && proposalList.getSelectedValue() != null)
+				setViewerPositionT(proposalList.getSelectedValue().frame);
+		});
+		phaseList.addListSelectionListener(e -> {
+			if (!refreshingPhases && !e.getValueIsAdjusting() && phaseList.getSelectedValue() != null) {
+				deletePhaseButton.setEnabled(!rackRunning && phaseList.getSelectedValue() > 0);
+				setViewerPositionT(phaseList.getSelectedValue().intValue());
+			}
+		});
+		refreshPhases();
+	}
+
+	private void defineActionListeners(MultiCAFE parent0, JButton structuralReference, JScrollPane advancedScroll, javax.swing.JToggleButton advancedToggle) {
+		structuralReference.addActionListener(e -> StructuralReferenceDialog.open((Experiment) parent0.expListComboLazy.getSelectedItem()));
+		advancedToggle.addActionListener(e -> {
+			advancedScroll.setVisible(advancedToggle.isSelected());
+			advancedToggle.setText(advancedToggle.isSelected() ? "Hide phase proposals / reference tools" : "Show phase proposals / reference tools");
+			dialogFrame.pack();
+		});
 
 		rackTrackingButton.addActionListener(e -> runRackTracking());
 		stopRackButton.addActionListener(e -> rackCancelled = true);
@@ -274,17 +289,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		acceptAllProposalsButton.addActionListener(e -> acceptAllProposals());
 		moveProposalButton.addActionListener(e -> moveSelectedProposalToCurrentT());
 		deleteProposalButton.addActionListener(e -> deleteSelectedProposal());
-		proposalList.addListSelectionListener(e -> {
-			if (!e.getValueIsAdjusting() && proposalList.getSelectedValue() != null)
-				setViewerPositionT(proposalList.getSelectedValue().frame);
-		});
-		phaseList.addListSelectionListener(e -> {
-			if (!refreshingPhases && !e.getValueIsAdjusting() && phaseList.getSelectedValue() != null) {
-				deletePhaseButton.setEnabled(!rackRunning && phaseList.getSelectedValue() > 0);
-				setViewerPositionT(phaseList.getSelectedValue().intValue());
-			}
-		});
-		refreshPhases();
 	}
 
 	private void defineToolTips(JButton structuralReference, JToggleButton advancedToggle) {

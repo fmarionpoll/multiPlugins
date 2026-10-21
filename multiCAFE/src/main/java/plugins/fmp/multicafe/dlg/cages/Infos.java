@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.cages;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -125,62 +123,40 @@ public class Infos extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		editCageButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (exp.getCages().getCageList().size() < 1)
-						exp.getCages().createEmptyCagesFromCapillaries(exp.getCapillaries());
-					exp.getCapillaries().transferDescriptionToCapillaries();
-					exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
-					dialog = new InfosCagesTable();
-					dialog.initialize(parent0, cagesCopy);
-				}
+		editCageButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (exp.getCages().getCageList().size() < 1)
+					exp.getCages().createEmptyCagesFromCapillaries(exp.getCapillaries());
+				exp.getCapillaries().transferDescriptionToCapillaries();
+				exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
+				dialog = new InfosCagesTable();
+				dialog.initialize(parent0, cagesCopy);
 			}
 		});
 
-		useCapillaries.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				lengthSpinner.setValue(23.);
-				measureButton.setText("get length 1rst capillary");
-				updateModeVisibility();
-				applyFlyScaleToExperiment();
-			}
+		useCapillaries.addActionListener(e -> {
+			lengthSpinner.setValue(23.);
+			measureButton.setText("get length 1rst capillary");
+			updateModeVisibility();
+			applyFlyScaleToExperiment();
 		});
 
-		useROI.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateModeVisibility();
+		useROI.addActionListener(e -> {
+			updateModeVisibility();
+			measureROI();
+		});
+
+		measureButton.addActionListener(e -> {
+			if (useCapillaries.isSelected()) {
+				measureFirstCapillary();
+			} else if (useROI.isSelected()) {
 				measureROI();
 			}
 		});
+		measureROIButton.addActionListener(e -> measureROIUsingScaleModelRoi());
 
-		measureButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (useCapillaries.isSelected()) {
-					measureFirstCapillary();
-				} else if (useROI.isSelected()) {
-					measureROI();
-				}
-			}
-		});
-		measureROIButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				measureROIUsingScaleModelRoi();
-			}
-		});
-
-		generateScaleModelRoiButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				toggleScaleModelRoiPolygon();
-			}
-		});
+		generateScaleModelRoiButton.addActionListener(e -> toggleScaleModelRoiPolygon());
 
 		ChangeListener scaleListener = new ChangeListener() {
 			@Override

@@ -7,8 +7,6 @@ import java.awt.FontMetrics;
 import java.awt.Toolkit;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeListener;
@@ -289,67 +287,45 @@ public class SelectFilesPanel extends JPanel {
 	}
 
 	private void addActionListeners() {
-		findButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				String pattern = (String) filterCombo.getSelectedItem();
-				pattern = features.patternNormalizer != null ? features.patternNormalizer.normalize(pattern) : pattern;
-				pattern = (pattern != null) ? pattern.toLowerCase() : "";
+		findButton.addActionListener(arg0 -> {
+			String pattern = (String) filterCombo.getSelectedItem();
+			pattern = features.patternNormalizer != null ? features.patternNormalizer.normalize(pattern) : pattern;
+			pattern = (pattern != null) ? pattern.toLowerCase() : "";
 
-				boolean isFileName = rbFile.isSelected();
-				if (pattern.contains("grabs") || pattern.contains("cam"))
-					isFileName = false;
+			boolean isFileName = rbFile.isSelected();
+			if (pattern.contains("grabs") || pattern.contains("cam"))
+				isFileName = false;
 
-				startScan(pattern, isFileName);
-			}
+			startScan(pattern, isFileName);
 		});
 
-		loadListButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				loadPathsFromTextFile();
-			}
+		loadListButton.addActionListener(e -> loadPathsFromTextFile());
+
+		clearSelectedButton.addActionListener(arg0 -> {
+			List<String> selectedItems = directoriesJList.getSelectedValuesList();
+			removeListofNamesFromList(selectedItems);
 		});
 
-		clearSelectedButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				List<String> selectedItems = directoriesJList.getSelectedValuesList();
-				removeListofNamesFromList(selectedItems);
-			}
+		clearAllButton.addActionListener(arg0 -> ((DefaultListModel<String>) directoriesJList.getModel()).removeAllElements());
+
+		addSelectedButton.addActionListener(arg0 -> {
+			List<String> selectedItems = directoriesJList.getSelectedValuesList();
+			addNamesToSelectedList(selectedItems);
+			removeListofNamesFromList(selectedItems);
+			firePropertyChange(PROPERTY_SELECT_CLOSED, false, true);
+			close();
 		});
 
-		clearAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				((DefaultListModel<String>) directoriesJList.getModel()).removeAllElements();
+		addAllButton.addActionListener(arg0 -> {
+			List<String> allItems = new ArrayList<>(directoriesJList.getModel().getSize());
+			for (int i = 0; i < directoriesJList.getModel().getSize(); i++) {
+				String name = directoriesJList.getModel().getElementAt(i);
+				allItems.add(name);
 			}
-		});
-
-		addSelectedButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				List<String> selectedItems = directoriesJList.getSelectedValuesList();
-				addNamesToSelectedList(selectedItems);
-				removeListofNamesFromList(selectedItems);
-				firePropertyChange(PROPERTY_SELECT_CLOSED, false, true);
-				close();
-			}
-		});
-
-		addAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				List<String> allItems = new ArrayList<>(directoriesJList.getModel().getSize());
-				for (int i = 0; i < directoriesJList.getModel().getSize(); i++) {
-					String name = directoriesJList.getModel().getElementAt(i);
-					allItems.add(name);
-				}
-				addNamesToSelectedList(allItems);
-				((DefaultListModel<String>) directoriesJList.getModel()).removeAllElements();
-				firePropertyChange(PROPERTY_SELECT_CLOSED, false, true);
-				close();
-			}
+			addNamesToSelectedList(allItems);
+			((DefaultListModel<String>) directoriesJList.getModel()).removeAllElements();
+			firePropertyChange(PROPERTY_SELECT_CLOSED, false, true);
+			close();
 		});
 	}
 

@@ -2,8 +2,6 @@ package plugins.fmp.multicafe.dlg.browse;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -161,105 +159,63 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	private void defineActionListeners(FilterPanel filterPanel, EditCapillariesConditional editPanel,
 			MeasureSearchPanel findPanel) {
-		openButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				handleOpenButton();
+		openButton.addActionListener(e -> handleOpenButton());
+
+		searchButton.addActionListener(e -> handleSearchButton());
+
+		closeButton.addActionListener(arg0 -> handleCloseButton());
+
+		previousButton.addActionListener(arg0 -> handlePreviousButton());
+
+		nextButton.addActionListener(arg0 -> handleNextButton());
+
+		parent0.expListComboLazy.addActionListener(e -> updateBrowseInterface());
+
+		showFilterButton.addActionListener(arg0 -> {
+			boolean show = showFilterButton.isSelected();
+			if (show) {
+				showEditButton.setSelected(false);
+				showFindButton.setSelected(false);
+				editPanel.setVisible(false);
+				findPanel.setVisible(false);
+				filterPanel.initCombos();
 			}
+			filterPanel.setVisible(show);
+			repackMainFrame();
 		});
 
-		searchButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				handleSearchButton();
+		showEditButton.addActionListener(arg0 -> {
+			boolean show = showEditButton.isSelected();
+			if (show) {
+				showFilterButton.setSelected(false);
+				showFindButton.setSelected(false);
+				filterPanel.setVisible(false);
+				findPanel.setVisible(false);
+				editPanel.initEditCombos();
 			}
+			editPanel.setVisible(show);
+			repackMainFrame();
 		});
 
-		closeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				handleCloseButton();
+		showFindButton.addActionListener(arg0 -> {
+			boolean show = showFindButton.isSelected();
+			if (show) {
+				showFilterButton.setSelected(false);
+				showEditButton.setSelected(false);
+				filterPanel.setVisible(false);
+				editPanel.setVisible(false);
 			}
+			findPanel.setVisible(show);
+			repackMainFrame();
 		});
 
-		previousButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				handlePreviousButton();
-			}
-		});
-
-		nextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				handleNextButton();
-			}
-		});
-
-		parent0.expListComboLazy.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateBrowseInterface();
-			}
-		});
-
-		showFilterButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				boolean show = showFilterButton.isSelected();
-				if (show) {
-					showEditButton.setSelected(false);
-					showFindButton.setSelected(false);
-					editPanel.setVisible(false);
-					findPanel.setVisible(false);
-					filterPanel.initCombos();
-				}
-				filterPanel.setVisible(show);
-				repackMainFrame();
-			}
-		});
-
-		showEditButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				boolean show = showEditButton.isSelected();
-				if (show) {
-					showFilterButton.setSelected(false);
-					showFindButton.setSelected(false);
-					filterPanel.setVisible(false);
-					findPanel.setVisible(false);
-					editPanel.initEditCombos();
-				}
-				editPanel.setVisible(show);
-				repackMainFrame();
-			}
-		});
-
-		showFindButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				boolean show = showFindButton.isSelected();
-				if (show) {
-					showFilterButton.setSelected(false);
-					showEditButton.setSelected(false);
-					filterPanel.setVisible(false);
-					editPanel.setVisible(false);
-				}
-				findPanel.setVisible(show);
-				repackMainFrame();
-			}
-		});
-
-		createButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				ExperimentDirectories eDAF = new ExperimentDirectories();
-				if (eDAF.getDirectoriesFromDialog(parent0.expListComboLazy, null, true)) {
-					int item = addExperimentFrom3NamesAnd2Lists(eDAF);
-					parent0.expListComboLazy.setSelectedIndex(item);
-					parent0.paneExperiment.tabInfos.initCombos();
-					parent0.paneBrowse.filterPanel.initCombos();
-				}
+		createButton.addActionListener(arg0 -> {
+			ExperimentDirectories eDAF = new ExperimentDirectories();
+			if (eDAF.getDirectoriesFromDialog(parent0.expListComboLazy, null, true)) {
+				int item = addExperimentFrom3NamesAnd2Lists(eDAF);
+				parent0.expListComboLazy.setSelectedIndex(item);
+				parent0.paneExperiment.tabInfos.initCombos();
+				parent0.paneBrowse.filterPanel.initCombos();
 			}
 		});
 

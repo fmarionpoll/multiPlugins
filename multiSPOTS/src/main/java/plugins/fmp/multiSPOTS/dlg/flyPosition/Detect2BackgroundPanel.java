@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -109,50 +107,33 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 	}
 
 	private void defineActionListeners() {
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
-			}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
 		});
 
-		saveButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					exp.saveReferenceImage(exp.getSeqCamData().getReferenceImage());
-			}
+		saveButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				exp.saveReferenceImage(exp.getSeqCamData().getReferenceImage());
 		});
 
-		editButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					ReferenceImageEditor.open(exp, ReferenceImageKind.DEFAULT, parent0.mainFrame);
-			}
+		editButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				ReferenceImageEditor.open(exp, ReferenceImageKind.DEFAULT, parent0.mainFrame);
 		});
 
-		loadButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				loadBackground();
-			}
-		});
+		loadButton.addActionListener(e -> loadBackground());
 
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
-			}
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 
 		overlayCheckBox.addItemListener(new ItemListener() {

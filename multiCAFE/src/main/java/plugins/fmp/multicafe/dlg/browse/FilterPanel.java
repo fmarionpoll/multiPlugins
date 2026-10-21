@@ -3,7 +3,6 @@ package plugins.fmp.multicafe.dlg.browse;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -148,17 +147,14 @@ public class FilterPanel extends JPanel {
 
 	private ActionListener createFilterButtonListener(JButton button, EnumXLSColumnHeader field,
 			List<String> selectionList, JCheckBox checkBox) {
-		return new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				List<String> all = getValuesForField(field);
-				List<String> chosen = MultiSelectDialog.showDialog(button, field.toString(), all, selectionList);
-				if (chosen != null) {
-					selectionList.clear();
-					selectionList.addAll(chosen);
-					updateButtonLabel(button, selectionList);
-					checkBox.setSelected(!selectionList.isEmpty());
-				}
+		return e -> {
+			List<String> all = getValuesForField(field);
+			List<String> chosen = MultiSelectDialog.showDialog(button, field.toString(), all, selectionList);
+			if (chosen != null) {
+				selectionList.clear();
+				selectionList.addAll(chosen);
+				updateButtonLabel(button, selectionList);
+				checkBox.setSelected(!selectionList.isEmpty());
 			}
 		};
 	}
@@ -186,24 +182,9 @@ public class FilterPanel extends JPanel {
 				createFilterButtonListener(stim2Btn, EnumXLSColumnHeader.EXP_STIM2, selStim2, stim2Check));
 		conc2Btn.addActionListener(
 				createFilterButtonListener(conc2Btn, EnumXLSColumnHeader.EXP_CONC2, selConc2, conc2Check));
-		applyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				filterExperimentList(true);
-			}
-		});
-		clearButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				filterExperimentList(false);
-			}
-		});
-		updateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				refreshFilterValueLists();
-			}
-		});
+		applyButton.addActionListener(e -> filterExperimentList(true));
+		clearButton.addActionListener(e -> filterExperimentList(false));
+		updateButton.addActionListener(e -> refreshFilterValueLists());
 	}
 
 	/**

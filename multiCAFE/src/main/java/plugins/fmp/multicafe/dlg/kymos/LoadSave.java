@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.kymos;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -61,24 +59,18 @@ public class LoadSave extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		openButtonKymos.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && loadDefaultKymos(exp))
-					firePropertyChange("KYMOS_OPEN", false, true);
-			}
+		openButtonKymos.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && loadDefaultKymos(exp))
+				firePropertyChange("KYMOS_OPEN", false, true);
 		});
 
-		saveButtonKymos.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					String path = exp.getExperimentDirectory();
-					saveKymographFiles(path);
-					firePropertyChange("KYMOS_SAVE", false, true);
-				}
+		saveButtonKymos.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				String path = exp.getExperimentDirectory();
+				saveKymographFiles(path);
+				firePropertyChange("KYMOS_SAVE", false, true);
 			}
 		});
 	}

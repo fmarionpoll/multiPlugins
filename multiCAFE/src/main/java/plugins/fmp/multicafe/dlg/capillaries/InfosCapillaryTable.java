@@ -5,8 +5,6 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 
 import javax.swing.DefaultCellEditor;
@@ -156,99 +154,72 @@ public class InfosCapillaryTable extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		copyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					copyInfos(exp);
-			}
+		copyButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				copyInfos(exp);
 		});
 
-		pasteButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					pasteInfos(exp);
+		pasteButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				pasteInfos(exp);
+			capillaryTableModel.fireTableDataChanged();
+		});
+
+		noFliesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				setFliesNumbers(exp);
 				capillaryTableModel.fireTableDataChanged();
 			}
 		});
 
-		noFliesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					setFliesNumbers(exp);
-					capillaryTableModel.fireTableDataChanged();
-				}
-			}
-		});
-
-		duplicateLRButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					duplicateLR(exp);
-					capillaryTableModel.fireTableDataChanged();
-				}
-			}
-		});
-
-		duplicateCageButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					duplicateCage(exp);
-					capillaryTableModel.fireTableDataChanged();
-				}
-			}
-		});
-
-		exchangeLRButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null || exp.getCapillaries().getCapillariesDescription().getGrouping() != 2)
-					return;
-				exchangeLR(exp);
+		duplicateLRButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				duplicateLR(exp);
 				capillaryTableModel.fireTableDataChanged();
 			}
 		});
 
-		duplicateAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					duplicateAll(exp);
-					capillaryTableModel.fireTableDataChanged();
-				}
+		duplicateCageButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				duplicateCage(exp);
+				capillaryTableModel.fireTableDataChanged();
 			}
 		});
 
-		getNfliesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getCages().getCageList().size() > 0) {
-					exp.getCages().transferNFliesFromCagesToCapillaries(exp.getCapillaries().getList());
-					capillaryTableModel.fireTableDataChanged();
-				}
+		exchangeLRButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null || exp.getCapillaries().getCapillariesDescription().getGrouping() != 2)
+				return;
+			exchangeLR(exp);
+			capillaryTableModel.fireTableDataChanged();
+		});
+
+		duplicateAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				duplicateAll(exp);
+				capillaryTableModel.fireTableDataChanged();
 			}
 		});
 
-		getCageNoButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.getCages().setCageNbFromName(exp.getCapillaries().getList());
-					capillaryTableModel.fireTableDataChanged();
-				}
+		getNfliesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getCages().getCageList().size() > 0) {
+				exp.getCages().transferNFliesFromCagesToCapillaries(exp.getCapillaries().getList());
+				capillaryTableModel.fireTableDataChanged();
+			}
+		});
+
+		getCageNoButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.getCages().setCageNbFromName(exp.getCapillaries().getList());
+				capillaryTableModel.fireTableDataChanged();
 			}
 		});
 	}

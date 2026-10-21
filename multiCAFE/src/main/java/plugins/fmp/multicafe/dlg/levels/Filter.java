@@ -1,8 +1,6 @@
 package plugins.fmp.multicafe.dlg.levels;
 
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -35,17 +33,14 @@ public class Filter extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		startButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					SequenceKymos seqKymos = exp.getSeqKymos();
-					int span = getSpan();
-					int c = 1;
-					for (int t = 0; t < seqKymos.getSequence().getSizeT(); t++)
-						crossCorrelatePixels(seqKymos, t, span, c);
-				}
+		startButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				SequenceKymos seqKymos = exp.getSeqKymos();
+				int span = getSpan();
+				int c = 1;
+				for (int t = 0; t < seqKymos.getSequence().getSizeT(); t++)
+					crossCorrelatePixels(seqKymos, t, span, c);
 			}
 		});
 	}

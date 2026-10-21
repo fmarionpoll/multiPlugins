@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Rectangle2D;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -80,30 +78,10 @@ public class EditPanel extends JPanel implements ChangeListener, SequenceListene
 	}
 
 	private void defineActionListeners() {
-		addButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				addFlyRoi();
-			}
-		});
-		deleteButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				deleteSelectedFlyRoi();
-			}
-		});
-		restoreButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				restoreEntryBaseline();
-			}
-		});
-		validateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				validateCurrentT(true);
-			}
-		});
+		addButton.addActionListener(e -> addFlyRoi());
+		deleteButton.addActionListener(e -> deleteSelectedFlyRoi());
+		restoreButton.addActionListener(e -> restoreEntryBaseline());
+		validateButton.addActionListener(e -> validateCurrentT(true));
 	}
 
 	boolean isEditTabActive() {

@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -142,48 +140,32 @@ public class ThresholdLightPanel extends JPanel implements PropertyChangeListene
 	}
 
 	private void declareListeners() {
-		spotsTransformsComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int index = spotsTransformsComboBox.getSelectedIndex();
-					updateCanvasFunctions(exp, index);
-					updateOverlaysThreshold();
-				}
-			}
-		});
-
-		fliesTransformsComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && fliesViewButton.isSelected()) {
-					int index = fliesTransformsComboBox.getSelectedIndex();
-					IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
-					updateTransformFunctions2OfCanvas(canvas);
-					if (!fliesViewButton.isSelected())
-						fliesViewButton.setSelected(true);
-					if (canvas instanceof Canvas2D_3Transforms)
-						((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
-					updateOverlaysThreshold();
-				}
-			}
-		});
-
-		spotsDirectionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
+		spotsTransformsComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int index = spotsTransformsComboBox.getSelectedIndex();
+				updateCanvasFunctions(exp, index);
 				updateOverlaysThreshold();
 			}
 		});
 
-		fliesDirectionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
+		fliesTransformsComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && fliesViewButton.isSelected()) {
+				int index = fliesTransformsComboBox.getSelectedIndex();
+				IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+				updateTransformFunctions2OfCanvas(canvas);
+				if (!fliesViewButton.isSelected())
+					fliesViewButton.setSelected(true);
+				if (canvas instanceof Canvas2D_3Transforms)
+					((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
 				updateOverlaysThreshold();
 			}
 		});
+
+		spotsDirectionComboBox.addActionListener(e -> updateOverlaysThreshold());
+
+		fliesDirectionComboBox.addActionListener(e -> updateOverlaysThreshold());
 
 		spotsThresholdSpinner.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -197,52 +179,46 @@ public class ThresholdLightPanel extends JPanel implements PropertyChangeListene
 			}
 		});
 
-		spotsViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (spotsViewButton.isSelected()) {
-						fliesViewButton.setSelected(false);
-						fliesOverlayCheckBox.setEnabled(false);
-					}
-					displayTransform1(exp);
-					spotsOverlayCheckBox.setEnabled(spotsViewButton.isSelected());
-					if (spotsViewButton.isSelected()) {
-						if (spotsOverlayCheckBox.isSelected())
-							updateOverlaysThreshold();
-						else
-							removeOurOverlay(exp);
-					} else {
+		spotsViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (spotsViewButton.isSelected()) {
+					fliesViewButton.setSelected(false);
+					fliesOverlayCheckBox.setEnabled(false);
+				}
+				displayTransform1(exp);
+				spotsOverlayCheckBox.setEnabled(spotsViewButton.isSelected());
+				if (spotsViewButton.isSelected()) {
+					if (spotsOverlayCheckBox.isSelected())
+						updateOverlaysThreshold();
+					else
 						removeOurOverlay(exp);
-						if (exp.getSeqCamData() != null)
-							exp.getSeqCamData().removeOverlay();
-					}
+				} else {
+					removeOurOverlay(exp);
+					if (exp.getSeqCamData() != null)
+						exp.getSeqCamData().removeOverlay();
 				}
 			}
 		});
 
-		fliesViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (fliesViewButton.isSelected()) {
-						spotsViewButton.setSelected(false);
-						spotsOverlayCheckBox.setEnabled(false);
-					}
-					displayTransform2(exp);
-					fliesOverlayCheckBox.setEnabled(fliesViewButton.isSelected());
-					if (fliesViewButton.isSelected()) {
-						if (fliesOverlayCheckBox.isSelected())
-							updateOverlaysThreshold();
-						else
-							removeOurOverlay(exp);
-					} else {
+		fliesViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (fliesViewButton.isSelected()) {
+					spotsViewButton.setSelected(false);
+					spotsOverlayCheckBox.setEnabled(false);
+				}
+				displayTransform2(exp);
+				fliesOverlayCheckBox.setEnabled(fliesViewButton.isSelected());
+				if (fliesViewButton.isSelected()) {
+					if (fliesOverlayCheckBox.isSelected())
+						updateOverlaysThreshold();
+					else
 						removeOurOverlay(exp);
-						if (exp.getSeqCamData() != null)
-							exp.getSeqCamData().removeOverlay();
-					}
+				} else {
+					removeOurOverlay(exp);
+					if (exp.getSeqCamData() != null)
+						exp.getSeqCamData().removeOverlay();
 				}
 			}
 		});
@@ -279,26 +255,20 @@ public class ThresholdLightPanel extends JPanel implements PropertyChangeListene
 			}
 		});
 
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString))
-					startDetection();
-				else
-					stopDetection();
-			}
+		detectButton.addActionListener(e -> {
+			if (detectButton.getText().equals(detectString))
+				startDetection();
+			else
+				stopDetection();
 		});
 
-		usePipelinedDetectionCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (parent0 == null)
-					return;
-				SpotDetectionMode mode = usePipelinedDetectionCheckBox.isSelected() ? SpotDetectionMode.PIPELINED
-						: SpotDetectionMode.BASIC;
-				parent0.viewOptions.setSpotDetectionMode(mode);
-				parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
-			}
+		usePipelinedDetectionCheckBox.addActionListener(e -> {
+			if (parent0 == null)
+				return;
+			SpotDetectionMode mode = usePipelinedDetectionCheckBox.isSelected() ? SpotDetectionMode.PIPELINED
+					: SpotDetectionMode.BASIC;
+			parent0.viewOptions.setSpotDetectionMode(mode);
+			parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
 		});
 	}
 

@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -107,77 +105,59 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			}
 		});
 
-		transformComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (suppressDisplayUpdate) {
-					return;
-				}
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData() != null) {
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null && viewButton.isSelected()) {
-						int index = transformComboBox.getSelectedIndex();
-						canvas.updateTransformsStep1(transformPass1);
-						canvas.setTransformStep1(index + 1, null);
-						updateOverlayThreshold();
-					}
+		transformComboBox.addActionListener(e -> {
+			if (suppressDisplayUpdate) {
+				return;
+			}
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqCamData() != null) {
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null && viewButton.isSelected()) {
+					int index = transformComboBox.getSelectedIndex();
+					canvas.updateTransformsStep1(transformPass1);
+					canvas.setTransformStep1(index + 1, null);
+					updateOverlayThreshold();
 				}
 			}
 		});
 
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString))
-					startLevelsDetection();
-				else
-					stopLevelsDetection();
-			}
+		detectButton.addActionListener(e -> {
+			if (detectButton.getText().equals(detectString))
+				startLevelsDetection();
+			else
+				stopLevelsDetection();
 		});
 
-		viewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+		viewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
 
-				if (viewButton.isSelected()) {
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null) {
-						canvas.updateTransformsStep1(transformPass1);
-						int index = transformComboBox.getSelectedIndex();
-						canvas.setTransformStep1(index + 1, null);
-					}
-					addOverlayToSequence(exp);
-				} else {
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null)
-						canvas.setTransformStep1Index(0);
+			if (viewButton.isSelected()) {
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null) {
+					canvas.updateTransformsStep1(transformPass1);
+					int index = transformComboBox.getSelectedIndex();
+					canvas.setTransformStep1(index + 1, null);
 				}
-			}
-
-		});
-
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				detectButton.setForeground(color);
+				addOverlayToSequence(exp);
+			} else {
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null)
+					canvas.setTransformStep1Index(0);
 			}
 		});
 
-		direction1ComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateOverlayThreshold();
-			}
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			detectButton.setForeground(color);
 		});
+
+		direction1ComboBox.addActionListener(e -> updateOverlayThreshold());
 
 	}
 

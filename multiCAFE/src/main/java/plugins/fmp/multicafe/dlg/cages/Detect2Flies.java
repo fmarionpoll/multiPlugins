@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -129,50 +127,36 @@ public class Detect2Flies extends JPanel implements ChangeListener, PropertyChan
 	}
 
 	private void defineActionListeners() {
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
-			}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
 		});
 
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
-			}
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 
-		viewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (viewButton.isSelected()) {
-						viewDifference(exp, true);
-						updateOverlay(exp);
-						updateOverlayThreshold();
-					} else {
-						viewDifference(exp, false);
-						removeOverlay(exp);
-					}
+		viewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (viewButton.isSelected()) {
+					viewDifference(exp, true);
+					updateOverlay(exp);
+					updateOverlayThreshold();
+				} else {
+					viewDifference(exp, false);
+					removeOverlay(exp);
 				}
 			}
 		});
 
-		whiteObjectCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateOverlayThreshold();
-			}
-		});
+		whiteObjectCheckBox.addActionListener(e -> updateOverlayThreshold());
 
 	}
 

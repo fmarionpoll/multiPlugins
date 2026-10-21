@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.geom.Point2D;
@@ -106,75 +104,57 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 	}
 
 	private void defineActionListeners() {
-		validateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					exp.saveDetRoisToPositions();
+		validateButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				exp.saveDetRoisToPositions();
+		});
+
+		findNextButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				findFirstMissed(exp);
+		});
+
+		validateAndNextButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.saveDetRoisToPositions();
+				findFirstMissed(exp);
 			}
 		});
 
-		findNextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					findFirstMissed(exp);
-			}
+		findAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				findAllMissedPoints(exp);
 		});
 
-		validateAndNextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.saveDetRoisToPositions();
-					findFirstMissed(exp);
-				}
-			}
+		findFirstIntervalWithMissingFly.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				findFirstIntervalWithMissingFly(exp);
 		});
 
-		findAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					findAllMissedPoints(exp);
+		foundCombo.addActionListener(e -> {
+			if (foundCombo.getItemCount() == 0) {
+				return;
 			}
-		});
-
-		findFirstIntervalWithMissingFly.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					findFirstIntervalWithMissingFly(exp);
-			}
-		});
-
-		foundCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (foundCombo.getItemCount() == 0) {
-					return;
-				}
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				String filter = (String) foundCombo.getSelectedItem();
-				int indexT = StringUtil.parseInt(filter.substring(filter.indexOf("_") + 1), -1);
-				if (indexT < 0)
-					return;
-				selectImageT(exp, indexT);
-				List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
-				for (ROI2D roi : roiList) {
-					String csName = roi.getName();
-					if (roi instanceof ROI2DPoint && csName.equals(filter)) {
-						moveROItoCageCenter(exp, roi, indexT);
-						selectImageT(exp, roi.getT());
-						break;
-					}
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			String filter = (String) foundCombo.getSelectedItem();
+			int indexT = StringUtil.parseInt(filter.substring(filter.indexOf("_") + 1), -1);
+			if (indexT < 0)
+				return;
+			selectImageT(exp, indexT);
+			List<ROI2D> roiList = exp.getSeqCamData().getSequence().getROI2Ds();
+			for (ROI2D roi : roiList) {
+				String csName = roi.getName();
+				if (roi instanceof ROI2DPoint && csName.equals(filter)) {
+					moveROItoCageCenter(exp, roi, indexT);
+					selectImageT(exp, roi.getT());
+					break;
 				}
 			}
 		});
@@ -237,13 +217,10 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 			}
 		});
 
-		deleteFlyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				addFlyButton.setSelected(false);
-				moveFlyButton.setSelected(false);
-				deleteSelectedFlyRoi();
-			}
+		deleteFlyButton.addActionListener(e -> {
+			addFlyButton.setSelected(false);
+			moveFlyButton.setSelected(false);
+			deleteSelectedFlyRoi();
 		});
 	}
 

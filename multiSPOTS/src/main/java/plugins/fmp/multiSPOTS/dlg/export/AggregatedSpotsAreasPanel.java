@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -53,18 +51,12 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 		panel2.add(exportAggregatedButton);
 		panel2.add(exportKymoAggButton);
 		add(panel2);
+		defineActionListeners();
+	}
 
-		exportAggregatedButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				firePropertyChange("EXPORT_AGGREGATED_SPOTSMEASURES", false, true);
-			}
-		});
-		exportKymoAggButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				firePropertyChange("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES", false, true);
-			}
-		});
+	private void defineActionListeners() {
+
+		exportAggregatedButton.addActionListener(e -> firePropertyChange("EXPORT_AGGREGATED_SPOTSMEASURES", false, true));
+		exportKymoAggButton.addActionListener(e -> firePropertyChange("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES", false, true));
 	}
 }

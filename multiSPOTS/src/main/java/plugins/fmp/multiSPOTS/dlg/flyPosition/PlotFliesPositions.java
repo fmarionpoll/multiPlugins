@@ -3,7 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.flyPosition;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.ButtonGroup;
@@ -95,20 +94,12 @@ public class PlotFliesPositions extends JPanel implements SequenceListener {
 	}
 
 	private void defineActionListeners() {
-		displayResultsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				onDisplayCharts();
-				firePropertyChange("DISPLAY_RESULTS", false, true);
-			}
+		displayResultsButton.addActionListener(e -> {
+			onDisplayCharts();
+			firePropertyChange("DISPLAY_RESULTS", false, true);
 		});
 
-		ActionListener refreshListener = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				maybeRefreshVisibleCharts();
-			}
-		};
+		ActionListener refreshListener = e -> maybeRefreshVisibleCharts();;
 		measureComboBox.addActionListener(refreshListener);
 		displayAllButton.addActionListener(refreshListener);
 		displaySelectedCageButton.addActionListener(refreshListener);

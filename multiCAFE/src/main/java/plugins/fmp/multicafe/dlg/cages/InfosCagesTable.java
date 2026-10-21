@@ -4,8 +4,6 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 
 import javax.swing.DefaultCellEditor;
@@ -94,123 +92,99 @@ public class InfosCagesTable extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		copyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					cageArrayCopy.clear();
-					for (Cage cage : exp.getCages().getCageList()) {
-						cageArrayCopy.add(cage);
+		copyButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				cageArrayCopy.clear();
+				for (Cage cage : exp.getCages().getCageList()) {
+					cageArrayCopy.add(cage);
+				}
+				pasteButton.setEnabled(true);
+			}
+		});
+
+		pasteButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				for (Cage cageFrom : cageArrayCopy) {
+					for (Cage cageTo : exp.getCages().getCageList()) {
+						if (!cageFrom.getCageRoi2D().getName().equals(cageTo.getCageRoi2D().getName()))
+							continue;
+						cageTo.setCageNFlies(cageFrom.getCageNFlies());
+						cageTo.prop.setFlyAge(cageFrom.prop.getFlyAge());
+						cageTo.prop.setComment(cageFrom.prop.getComment());
+						cageTo.prop.setFlySex(cageFrom.prop.getFlySex());
+						cageTo.prop.setFlyStrain(cageFrom.prop.getFlyStrain());
+						cageTo.prop.setFoodSide(cageFrom.prop.getFoodSide());
 					}
-					pasteButton.setEnabled(true);
 				}
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 
-		pasteButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					for (Cage cageFrom : cageArrayCopy) {
-						for (Cage cageTo : exp.getCages().getCageList()) {
-							if (!cageFrom.getCageRoi2D().getName().equals(cageTo.getCageRoi2D().getName()))
-								continue;
-							cageTo.setCageNFlies(cageFrom.getCageNFlies());
-							cageTo.prop.setFlyAge(cageFrom.prop.getFlyAge());
-							cageTo.prop.setComment(cageFrom.prop.getComment());
-							cageTo.prop.setFlySex(cageFrom.prop.getFlySex());
-							cageTo.prop.setFlyStrain(cageFrom.prop.getFlyStrain());
-							cageTo.prop.setFoodSide(cageFrom.prop.getFoodSide());
-						}
-					}
-					cageTableModel.fireTableDataChanged();
-				}
+		duplicateAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int rowIndex = tableView.getSelectedRow();
+				int columnIndex = tableView.getSelectedColumn();
+				if (rowIndex >= 0)
+					duplicateColumnFromSourceToAllOtherCages(exp, rowIndex, columnIndex);
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 
-		duplicateAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int rowIndex = tableView.getSelectedRow();
-					int columnIndex = tableView.getSelectedColumn();
-					if (rowIndex >= 0)
-						duplicateColumnFromSourceToAllOtherCages(exp, rowIndex, columnIndex);
-					cageTableModel.fireTableDataChanged();
-				}
+		duplicatePreviousButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int rowIndex = tableView.getSelectedRow();
+				int columnIndex = tableView.getSelectedColumn();
+				List<Cage> list = exp.getCages().getCageList();
+				if (rowIndex > 0)
+					copyColumnFromSourceToTarget(list.get(rowIndex), list.get(rowIndex - 1), columnIndex);
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 
-		duplicatePreviousButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int rowIndex = tableView.getSelectedRow();
-					int columnIndex = tableView.getSelectedColumn();
-					List<Cage> list = exp.getCages().getCageList();
-					if (rowIndex > 0)
-						copyColumnFromSourceToTarget(list.get(rowIndex), list.get(rowIndex - 1), columnIndex);
-					cageTableModel.fireTableDataChanged();
-				}
+		duplicateNextButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int rowIndex = tableView.getSelectedRow();
+				int columnIndex = tableView.getSelectedColumn();
+				List<Cage> list = exp.getCages().getCageList();
+				if (rowIndex >= 0 && rowIndex < list.size() - 1)
+					copyColumnFromSourceToTarget(list.get(rowIndex), list.get(rowIndex + 1), columnIndex);
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 
-		duplicateNextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int rowIndex = tableView.getSelectedRow();
-					int columnIndex = tableView.getSelectedColumn();
-					List<Cage> list = exp.getCages().getCageList();
-					if (rowIndex >= 0 && rowIndex < list.size() - 1)
-						copyColumnFromSourceToTarget(list.get(rowIndex), list.get(rowIndex + 1), columnIndex);
-					cageTableModel.fireTableDataChanged();
-				}
+		duplicateForwardButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int rowIndex = tableView.getSelectedRow();
+				int columnIndex = tableView.getSelectedColumn();
+				if (rowIndex >= 0)
+					duplicateColumnFromSourceToCageRange(exp, rowIndex, columnIndex, rowIndex + 1,
+							exp.getCages().getCageList().size());
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 
-		duplicateForwardButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int rowIndex = tableView.getSelectedRow();
-					int columnIndex = tableView.getSelectedColumn();
-					if (rowIndex >= 0)
-						duplicateColumnFromSourceToCageRange(exp, rowIndex, columnIndex, rowIndex + 1,
-								exp.getCages().getCageList().size());
-					cageTableModel.fireTableDataChanged();
-				}
+		duplicateBackwardButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int rowIndex = tableView.getSelectedRow();
+				int columnIndex = tableView.getSelectedColumn();
+				if (rowIndex >= 0)
+					duplicateColumnFromSourceToCageRange(exp, rowIndex, columnIndex, 0, rowIndex);
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 
-		duplicateBackwardButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					int rowIndex = tableView.getSelectedRow();
-					int columnIndex = tableView.getSelectedColumn();
-					if (rowIndex >= 0)
-						duplicateColumnFromSourceToCageRange(exp, rowIndex, columnIndex, 0, rowIndex);
-					cageTableModel.fireTableDataChanged();
-				}
-			}
-		});
-
-		noFliesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.getCages().setFirstAndLastCageToZeroFly();
-					cageTableModel.fireTableDataChanged();
-				}
+		noFliesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.getCages().setFirstAndLastCageToZeroFly();
+				cageTableModel.fireTableDataChanged();
 			}
 		});
 

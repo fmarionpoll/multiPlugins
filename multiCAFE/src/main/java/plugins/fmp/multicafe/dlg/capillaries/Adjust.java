@@ -5,8 +5,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.List;
@@ -100,28 +98,15 @@ public class Adjust extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		adjustButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Object o = e.getSource();
-				if (o == adjustButton)
-					roisCenterLinestoAllCapillaries();
-			}
+		adjustButton.addActionListener(e -> {
+			Object o = e.getSource();
+			if (o == adjustButton)
+				roisCenterLinestoAllCapillaries();
 		});
 
-		elongateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				changeCapillariesLength(ELONGATION_STEP);
-			}
-		});
+		elongateButton.addActionListener(e -> changeCapillariesLength(ELONGATION_STEP));
 
-		shortenButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				changeCapillariesLength(-ELONGATION_STEP);
-			}
-		});
+		shortenButton.addActionListener(e -> changeCapillariesLength(-ELONGATION_STEP));
 
 		detectFrameBarButton.addActionListener(e -> detectFrameBar());
 		exportFrameScaleButton.addActionListener(e -> exportFrameScaleCsv());

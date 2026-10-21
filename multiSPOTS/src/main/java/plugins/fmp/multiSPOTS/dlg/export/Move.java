@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -54,12 +52,7 @@ public class Move extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		exportToXLSButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				firePropertyChange("EXPORT_MOVEDATA", false, true);
-			}
-		});
+		exportToXLSButton.addActionListener(e -> firePropertyChange("EXPORT_MOVEDATA", false, true));
 	}
 
 }

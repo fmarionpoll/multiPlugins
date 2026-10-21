@@ -4,8 +4,6 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -86,14 +84,11 @@ public class ChartPositionsPanel extends JPanel implements SequenceListener {
 	}
 
 	private void defineActionListeners() {
-		displayResultsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) ChartPositionsPanel.this.parent0.expListComboLazy.getSelectedItem();
-				followExperimentNavigation = true;
-				displayGraphsPanels(exp);
-				firePropertyChange("DISPLAY_RESULTS", false, true);
-			}
+		displayResultsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) ChartPositionsPanel.this.parent0.expListComboLazy.getSelectedItem();
+			followExperimentNavigation = true;
+			displayGraphsPanels(exp);
+			firePropertyChange("DISPLAY_RESULTS", false, true);
 		});
 	}
 

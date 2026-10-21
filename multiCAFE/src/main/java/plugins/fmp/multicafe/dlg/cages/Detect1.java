@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.cages;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -159,89 +157,61 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 			}
 		});
 
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
+		detectButton.addActionListener(e -> {
+			if (detectButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
+		});
+
+		viewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+
+			if (viewButton.isSelected()) {
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null) {
+					int index = transformComboBox.getSelectedIndex();
+					canvas.setTransformStep1Index(index + 1);
+				}
+				updateOverlay(exp);
+			} else {
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null)
+					canvas.setTransformStep1Index(0);
 			}
 		});
 
-		viewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-
-				if (viewButton.isSelected()) {
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null) {
-						int index = transformComboBox.getSelectedIndex();
-						canvas.setTransformStep1Index(index + 1);
-					}
-					updateOverlay(exp);
-				} else {
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null)
-						canvas.setTransformStep1Index(0);
-				}
+		transformComboBox.addActionListener(e -> {
+			if (!viewButton.isSelected()) {
+				return;
 			}
-
-		});
-
-		transformComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (!viewButton.isSelected()) {
-					return;
-				}
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqCamData() != null) {
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null) {
-						int index = transformComboBox.getSelectedIndex();
-						canvas.setTransformStep1Index(index + 1);
-						refreshFlyDetectOverlay();
-					}
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqCamData() != null) {
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null) {
+					int index = transformComboBox.getSelectedIndex();
+					canvas.setTransformStep1Index(index + 1);
+					refreshFlyDetectOverlay();
 				}
 			}
 		});
 
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				detectButton.setForeground(color);
-			}
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			detectButton.setForeground(color);
 		});
 
-		directionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				refreshFlyDetectOverlay();
-			}
-		});
+		directionComboBox.addActionListener(e -> refreshFlyDetectOverlay());
 
-		backgroundComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				refreshFlyDetectOverlay();
-			}
-		});
+		backgroundComboBox.addActionListener(e -> refreshFlyDetectOverlay());
 
-		cagesComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				refreshFlyDetectOverlay();
-			}
-		});
+		cagesComboBox.addActionListener(e -> refreshFlyDetectOverlay());
 
 		objectLowsizeCheckBox.addItemListener(new ItemListener() {
 			@Override

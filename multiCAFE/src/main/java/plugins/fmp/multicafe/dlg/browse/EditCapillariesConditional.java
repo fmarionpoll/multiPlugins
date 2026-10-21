@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.browse;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -140,48 +138,20 @@ public class EditCapillariesConditional extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		updateValue1Button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateConditionValueCombo(conditionField1Combo, conditionValue1Combo);
-			}
-		});
+		updateValue1Button.addActionListener(e -> updateConditionValueCombo(conditionField1Combo, conditionValue1Combo));
 
-		updateValue2Button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateConditionValueCombo(conditionField2Combo, conditionValue2Combo);
-			}
-		});
+		updateValue2Button.addActionListener(e -> updateConditionValueCombo(conditionField2Combo, conditionValue2Combo));
 
-		conditionField1Combo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateConditionValueCombo(conditionField1Combo, conditionValue1Combo);
-			}
-		});
+		conditionField1Combo.addActionListener(e -> updateConditionValueCombo(conditionField1Combo, conditionValue1Combo));
 
-		conditionField2Combo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateConditionValueCombo(conditionField2Combo, conditionValue2Combo);
-			}
-		});
+		conditionField2Combo.addActionListener(e -> updateConditionValueCombo(conditionField2Combo, conditionValue2Combo));
 
-		useCondition2CheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateCondition2Enabled();
-			}
-		});
+		useCondition2CheckBox.addActionListener(e -> updateCondition2Enabled());
 
-		applyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				applyChange();
-				newValueTextField.setText("");
-				initEditCombos();
-			}
+		applyButton.addActionListener(e -> {
+			applyChange();
+			newValueTextField.setText("");
+			initEditCombos();
 		});
 	}
 

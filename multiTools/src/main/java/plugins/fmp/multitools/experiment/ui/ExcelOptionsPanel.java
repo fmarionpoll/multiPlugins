@@ -2,7 +2,6 @@ package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
 import javax.swing.ButtonGroup;
@@ -163,36 +162,16 @@ public class ExcelOptionsPanel extends JPanel {
 
 	private void defineActionListeners() {
 		if (features.collateSeries && features.padIntervals) {
-			collateSeriesCheckBox.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent event) {
-					padIntervalsCheckBox.setEnabled(collateSeriesCheckBox.isSelected());
-				}
-			});
+			collateSeriesCheckBox.addActionListener(event -> padIntervalsCheckBox.setEnabled(collateSeriesCheckBox.isSelected()));
 		}
 
-		ActionListener layoutListener = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				updateForceCsvBinEnabled();
-			}
-		};
+		ActionListener layoutListener = e -> updateForceCsvBinEnabled();;
 		layoutNormalizedButton.addActionListener(layoutListener);
 		layoutWideButton.addActionListener(layoutListener);
 
-		isFixedFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				enableIntervalButtons(true);
-			}
-		});
+		isFixedFrameButton.addActionListener(e -> enableIntervalButtons(true));
 
-		isFloatingFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				enableIntervalButtons(false);
-			}
-		});
+		isFloatingFrameButton.addActionListener(e -> enableIntervalButtons(false));
 	}
 
 	private void updateForceCsvBinEnabled() {

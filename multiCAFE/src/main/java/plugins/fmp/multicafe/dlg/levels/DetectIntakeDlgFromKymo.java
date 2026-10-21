@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.EnumMap;
@@ -196,20 +194,17 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	private void defineActionListeners() {
-		gulpTransforms_comboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				syncSpanSpinnerToSelectedTransform();
-				if (suppressDisplayUpdate || !display_button.isSelected()) {
-					return;
-				}
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqKymos() != null) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						int index = gulpTransforms_comboBox.getSelectedIndex();
-						canvas.setTransformStep1(index + 1, spanTransformOptions());
-					}
+		gulpTransforms_comboBox.addActionListener(e -> {
+			syncSpanSpinnerToSelectedTransform();
+			if (suppressDisplayUpdate || !display_button.isSelected()) {
+				return;
+			}
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqKymos() != null) {
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null) {
+					int index = gulpTransforms_comboBox.getSelectedIndex();
+					canvas.setTransformStep1(index + 1, spanTransformOptions());
 				}
 			}
 		});
@@ -225,56 +220,42 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 			}
 		});
 
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (!detectButton.getText().equals(detectString))
-					stopComputation();
-				else if (selectedMethod().isInteractiveOnly())
-					openCorrelationPanel();
-				else
-					startComputation(true);
-			}
+		detectButton.addActionListener(e -> {
+			if (!detectButton.getText().equals(detectString))
+				stopComputation();
+			else if (selectedMethod().isInteractiveOnly())
+				openCorrelationPanel();
+			else
+				startComputation(true);
 		});
 
-		display_button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqKymos() != null) {
-					if (display_button.isSelected()) {
-						Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-						if (canvas != null) {
-							canvas.updateTransformsStep1(gulpTransforms);
-							int index = gulpTransforms_comboBox.getSelectedIndex();
-							canvas.setTransformStep1(index + 1, spanTransformOptions());
-						}
-					} else {
-						Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-						if (canvas != null)
-							canvas.setTransformStep1Index(0);
+		display_button.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqKymos() != null) {
+				if (display_button.isSelected()) {
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+					if (canvas != null) {
+						canvas.updateTransformsStep1(gulpTransforms);
+						int index = gulpTransforms_comboBox.getSelectedIndex();
+						canvas.setTransformStep1(index + 1, spanTransformOptions());
 					}
+				} else {
+					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+					if (canvas != null)
+						canvas.setTransformStep1Index(0);
 				}
 			}
 		});
 
-		all_checkbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (all_checkbox.isSelected())
-					color = Color.RED;
-				all_checkbox.setForeground(color);
-				detectButton.setForeground(color);
-			}
+		all_checkbox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (all_checkbox.isSelected())
+				color = Color.RED;
+			all_checkbox.setForeground(color);
+			detectButton.setForeground(color);
 		});
 
-		gulpDetectionMethodCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				syncClassicOnlyControls();
-			}
-		});
+		gulpDetectionMethodCombo.addActionListener(e -> syncClassicOnlyControls());
 
 	}
 

@@ -5,8 +5,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.ArrayList;
 
 import javax.swing.JButton;
@@ -106,80 +104,65 @@ public class InfosCageTable extends JPanel implements ListSelectionListener {
 	private void defineActionListeners() {
 		updateButton.addActionListener(e -> refreshCageTable());
 
-		copyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					cagesArrayCopy = exp.getCages();
-					pasteButton.setEnabled(true);
-				}
+		copyButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				cagesArrayCopy = exp.getCages();
+				pasteButton.setEnabled(true);
 			}
 		});
 
-		pasteButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					for (Cage cageFrom : cagesArrayCopy.cagesList) {
-						cageFrom.valid = false;
-						for (Cage cageTo : exp.getCages().cagesList) {
-							if (!cageFrom.getRoi().getName().equals(cageTo.getRoi().getName()))
-								continue;
-							cageFrom.valid = true;
-							cageTo.getProperties().copy(cageFrom.prop);
+		pasteButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				for (Cage cageFrom : cagesArrayCopy.cagesList) {
+					cageFrom.valid = false;
+					for (Cage cageTo : exp.getCages().cagesList) {
+						if (!cageFrom.getRoi().getName().equals(cageTo.getRoi().getName()))
+							continue;
+						cageFrom.valid = true;
+						cageTo.getProperties().copy(cageFrom.prop);
+					}
+				}
+				cageTable.cageTableModel.fireTableDataChanged();
+			}
+		});
+
+		duplicateAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				duplicateCageToAll(exp);
+			}
+		});
+
+		duplicateCellToAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				duplicateCellToAll(exp);
+			}
+		});
+
+		selectedCageButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				ArrayList<ROI> roiList = exp.getSeqCamData().getSequence().getSelectedROIs();
+				if (roiList.size() > 0) {
+					Cage cage = null;
+					Spots allSpots = exp.getSpots();
+					for (ROI roi : roiList) {
+						String name = roi.getName();
+						if (name.contains("cage")) {
+							cage = exp.getCages().getCageFromName(name);
+							break;
+						}
+						if (name.contains("spot")) {
+							cage = exp.getCages().getCageFromSpotROIName(name, allSpots);
+							break;
 						}
 					}
-					cageTable.cageTableModel.fireTableDataChanged();
-				}
-			}
-		});
 
-		duplicateAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					duplicateCageToAll(exp);
-				}
-			}
-		});
-
-		duplicateCellToAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					duplicateCellToAll(exp);
-				}
-			}
-		});
-
-		selectedCageButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					ArrayList<ROI> roiList = exp.getSeqCamData().getSequence().getSelectedROIs();
-					if (roiList.size() > 0) {
-						Cage cage = null;
-						Spots allSpots = exp.getSpots();
-						for (ROI roi : roiList) {
-							String name = roi.getName();
-							if (name.contains("cage")) {
-								cage = exp.getCages().getCageFromName(name);
-								break;
-							}
-							if (name.contains("spot")) {
-								cage = exp.getCages().getCageFromSpotROIName(name, allSpots);
-								break;
-							}
-						}
-
-						if (cage != null) {
-							selectRowFromCage(cage);
-						}
+					if (cage != null) {
+						selectRowFromCage(cage);
 					}
 				}
 			}

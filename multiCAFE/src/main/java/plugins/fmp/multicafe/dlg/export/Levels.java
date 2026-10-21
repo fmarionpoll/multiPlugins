@@ -2,8 +2,6 @@ package plugins.fmp.multicafe.dlg.export;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -72,41 +70,20 @@ public class Levels extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		exportToXLSButton2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				firePropertyChange("EXPORT_KYMOSDATA", false, true);
-			}
+		exportToXLSButton2.addActionListener(e -> firePropertyChange("EXPORT_KYMOSDATA", false, true));
+
+		subtractEvaporationCheckBox.addActionListener(e -> updateEvapMethodEnabled());
+
+		evapMethodComboBox.addActionListener(e -> updateEvapMethodEnabled());
+
+		lrPICheckBox.addActionListener(e -> {
+			if (lrPICheckBox.isSelected())
+				enablePI(true);
 		});
 
-		subtractEvaporationCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateEvapMethodEnabled();
-			}
-		});
-
-		evapMethodComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateEvapMethodEnabled();
-			}
-		});
-
-		lrPICheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (lrPICheckBox.isSelected())
-					enablePI(true);
-			}
-		});
-
-		sumPerCageCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (sumPerCageCheckBox.isSelected())
-					enablePI(false);
-			}
+		sumPerCageCheckBox.addActionListener(e -> {
+			if (sumPerCageCheckBox.isSelected())
+				enablePI(false);
 		});
 	}
 

@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,35 +83,26 @@ public class BuildCagesAsArray extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		drawPolygon2DButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					create2DPolygon(exp);
+		drawPolygon2DButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				create2DPolygon(exp);
+		});
+
+		createCellsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				createROIsFromSelectedPolygon(exp);
+				exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
+				if (exp.getCapillaries().getList().size() > 0)
+					exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
 			}
 		});
 
-		createCellsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					createROIsFromSelectedPolygon(exp);
-					exp.getCages().transferROIsFromSequence(exp.getSeqCamData());
-					if (exp.getCapillaries().getList().size() > 0)
-						exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
-				}
-			}
-		});
-
-		editButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					CageSkeletonEditor.open(parent0, exp);
-				}
+		editButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				CageSkeletonEditor.open(parent0, exp);
 			}
 		});
 	}

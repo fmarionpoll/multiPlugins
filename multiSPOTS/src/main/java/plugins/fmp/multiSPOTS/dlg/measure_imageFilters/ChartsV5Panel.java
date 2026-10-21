@@ -3,7 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.List;
@@ -96,57 +95,42 @@ public class ChartsV5Panel extends JPanel implements SequenceListener {
 
 	private void defineActionListeners() {
 
-		exportTypeComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateMeasureDependentControls();
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayChartPanels(exp);
-			}
+		exportTypeComboBox.addActionListener(e -> {
+			updateMeasureDependentControls();
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayChartPanels(exp);
 		});
 
-		displayResultsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayChartPanels(exp);
-			}
+		displayResultsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayChartPanels(exp);
 		});
 
-		axisOptionsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && chartCageArrayFrame != null) {
-					if (graphOptions != null) {
-						graphOptions.close();
-					}
-					graphOptions = new AxisOptions();
-					graphOptions.initialize(parent0, chartCageArrayFrame);
-					graphOptions.requestFocus();
+		axisOptionsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && chartCageArrayFrame != null) {
+				if (graphOptions != null) {
+					graphOptions.close();
 				}
+				graphOptions = new AxisOptions();
+				graphOptions.initialize(parent0, chartCageArrayFrame);
+				graphOptions.requestFocus();
 			}
 		});
 
-		relativeToCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayChartPanels(exp);
-			}
+		relativeToCheckbox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayChartPanels(exp);
 		});
 
-		ActionListener refreshOnChange = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				axisOptionsButton.setEnabled(!displaySelectedSpotsButton.isSelected());
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayChartPanels(exp);
-			}
+		ActionListener refreshOnChange = e -> {
+			axisOptionsButton.setEnabled(!displaySelectedSpotsButton.isSelected());
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayChartPanels(exp);
 		};
 		displayAllButton.addActionListener(refreshOnChange);
 		displaySelectedCageButton.addActionListener(refreshOnChange);

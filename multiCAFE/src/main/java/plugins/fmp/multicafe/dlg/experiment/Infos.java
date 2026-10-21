@@ -4,8 +4,6 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -100,42 +98,28 @@ public class Infos extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		openButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					exp.xmlLoad_MCExperiment();
-					transferPreviousExperimentInfosToDialog(exp, exp);
-				}
+		openButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				exp.xmlLoad_MCExperiment();
+				transferPreviousExperimentInfosToDialog(exp, exp);
 			}
 		});
 
-		saveButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					getExperimentInfosFromDialog(exp);
-					exp.saveExperimentDescriptors();
-				}
+		saveButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				getExperimentInfosFromDialog(exp);
+				exp.saveExperimentDescriptors();
 			}
 		});
 
-		duplicateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				duplicatePreviousDescriptors();
-			}
-		});
+		duplicateButton.addActionListener(e -> duplicatePreviousDescriptors());
 
-		zoomButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					zoomToUpperCorner(exp);
-			}
+		zoomButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				zoomToUpperCorner(exp);
 		});
 	}
 

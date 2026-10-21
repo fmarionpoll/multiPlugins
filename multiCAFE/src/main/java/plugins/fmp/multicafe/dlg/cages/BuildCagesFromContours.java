@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -89,49 +87,37 @@ public class BuildCagesFromContours extends JPanel implements ChangeListener {
 	}
 
 	private void defineActionListeners() {
-		drawPolygon2DButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					create2DPolygon(exp);
+		drawPolygon2DButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				create2DPolygon(exp);
+		});
+
+		createCagesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				createROIsFromSelectedPolygon(exp);
+				exp.getCages().transferROIsToSequence(exp.getSeqCamData());
+				if (exp.getCapillaries().getList().size() > 0)
+					exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
 			}
 		});
 
-		createCagesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					createROIsFromSelectedPolygon(exp);
-					exp.getCages().transferROIsToSequence(exp.getSeqCamData());
-					if (exp.getCapillaries().getList().size() > 0)
-						exp.getCages().transferNFliesFromCapillariesToCageBox(exp.getCapillaries().getList());
+		transformForLevelsComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				updateOverlay(exp);
+		});
+
+		deleteButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				try {
+					deletePointsIncluded(exp);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
 				}
-			}
-		});
-
-		transformForLevelsComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					updateOverlay(exp);
-			}
-		});
-
-		deleteButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					try {
-						deletePointsIncluded(exp);
-					} catch (InterruptedException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
-					}
-			}
 		});
 	}
 

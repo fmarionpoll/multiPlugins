@@ -5,8 +5,6 @@ import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -150,14 +148,11 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 	}
 
 	private void defineActionListeners() {
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
-			}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
 		});
 
 		referenceKindCombo.addItemListener(new ItemListener() {
@@ -168,45 +163,33 @@ public class Detect2Background extends JPanel implements ChangeListener, Propert
 			}
 		});
 
-		saveButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					new SequenceLoaderService().saveReferenceImage(exp, getSelectedReferenceKind());
-					updateReferenceStatusLabel();
-				}
-			}
-		});
-
-		editButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					ReferenceImageEditor.open(exp, getSelectedReferenceKind(), parent0.mainFrame);
-					updateReferenceStatusLabel();
-				}
-			}
-		});
-
-		loadButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				loadBackground(getSelectedReferenceKind());
+		saveButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				new SequenceLoaderService().saveReferenceImage(exp, getSelectedReferenceKind());
 				updateReferenceStatusLabel();
 			}
 		});
 
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
+		editButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				ReferenceImageEditor.open(exp, getSelectedReferenceKind(), parent0.mainFrame);
+				updateReferenceStatusLabel();
 			}
+		});
+
+		loadButton.addActionListener(e -> {
+			loadBackground(getSelectedReferenceKind());
+			updateReferenceStatusLabel();
+		});
+
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 
 		overlayCheckBox.addItemListener(new ItemListener() {

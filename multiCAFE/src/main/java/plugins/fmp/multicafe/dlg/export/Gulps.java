@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.export;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -63,12 +61,7 @@ public class Gulps extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		exportToXLSButton2.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				firePropertyChange("EXPORT_GULPSDATA", false, true);
-			}
-		});
+		exportToXLSButton2.addActionListener(e -> firePropertyChange("EXPORT_GULPSDATA", false, true));
 	}
 
 }

@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -52,22 +50,16 @@ public class EditKymos extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineListeners() {
-		cutAndInterpolateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					cutAndInterpolate(exp);
-			}
+		cutAndInterpolateButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				cutAndInterpolate(exp);
 		});
 
-		compensateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					compensate(exp);
-			}
+		compensateButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				compensate(exp);
 		});
 
 	}

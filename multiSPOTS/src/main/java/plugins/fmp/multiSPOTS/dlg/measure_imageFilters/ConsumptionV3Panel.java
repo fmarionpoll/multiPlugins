@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
@@ -61,13 +59,12 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 		panel2.add(statusLabel);
 		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
 		defineToolTips();
+		defineActionListeners();
+	}
 
-		rebuildV3Button.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				onRebuildV3Clicked();
-			}
-		});
+	private void defineActionListeners() {
+
+		rebuildV3Button.addActionListener(e -> onRebuildV3Clicked());
 	}
 
 	private void defineToolTips() {

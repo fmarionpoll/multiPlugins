@@ -5,8 +5,6 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Polygon;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -101,116 +99,83 @@ public class EditSpotsPanel extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		deleteSelectedSpotsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					deleteSelectedSpot(exp);
+		deleteSelectedSpotsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				deleteSelectedSpot(exp);
+		});
+
+		duplicateSelectedSpotButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				duplicateSelectedSpot(exp);
+		});
+
+		cleanUpNamesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				cleanUpSpotNames(exp, true);
 			}
 		});
 
-		duplicateSelectedSpotButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					duplicateSelectedSpot(exp);
+		cleanUpNamesKeepCagesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				cleanUpSpotNames(exp, false);
 			}
 		});
 
-		cleanUpNamesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					cleanUpSpotNames(exp, true);
-				}
+		selectRoisCheckBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			boolean isSelected = selectRoisCheckBox.isSelected();
+			updateButtonsStateAccordingToSelectRois(isSelected, false);
+			showFrameEnclosingRois(exp, isSelected);
+		});
+
+		displaySnakeCheckBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			boolean isSelected = displaySnakeCheckBox.isSelected();
+			showSnake(exp, isSelected);
+			showFrameEnclosingRois(exp, !isSelected);
+			updateButtonsStateAccordingToSelectRois(true, isSelected);
+		});
+
+		centerRoisToSnakeButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			updateRoisFromSnake(exp);
+		});
+
+		dilateButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			resizeRois(exp, +1);
+		});
+
+		erodeButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			resizeRois(exp, -1);
+		});
+
+		markSelectedRoisAsEatenButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				markSelectedSpotsPreConsumed(exp);
 			}
 		});
 
-		cleanUpNamesKeepCagesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					cleanUpSpotNames(exp, false);
-				}
-			}
-		});
-
-		selectRoisCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				boolean isSelected = selectRoisCheckBox.isSelected();
-				updateButtonsStateAccordingToSelectRois(isSelected, false);
-				showFrameEnclosingRois(exp, isSelected);
-			}
-		});
-
-		displaySnakeCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				boolean isSelected = displaySnakeCheckBox.isSelected();
-				showSnake(exp, isSelected);
-				showFrameEnclosingRois(exp, !isSelected);
-				updateButtonsStateAccordingToSelectRois(true, isSelected);
-			}
-		});
-
-		centerRoisToSnakeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				updateRoisFromSnake(exp);
-			}
-		});
-
-		dilateButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				resizeRois(exp, +1);
-			}
-		});
-
-		erodeButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				resizeRois(exp, -1);
-			}
-		});
-
-		markSelectedRoisAsEatenButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					markSelectedSpotsPreConsumed(exp);
-				}
-			}
-		});
-
-		clearPreConsumedMarkButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					clearSelectedSpotsPreConsumed(exp);
-				}
+		clearPreConsumedMarkButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				clearSelectedSpotsPreConsumed(exp);
 			}
 		});
 	}

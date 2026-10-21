@@ -2,8 +2,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
@@ -106,18 +104,8 @@ public class EditSpotMeasuresPanel extends JPanel implements PropertyChangeListe
 	}
 
 	private void defineListeners() {
-		rebuildSumCleanButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				onRebuildSumCleanClicked();
-			}
-		});
-		reconstructSumNoFlyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				onReconstructSumNoFlyClicked();
-			}
-		});
+		rebuildSumCleanButton.addActionListener(e -> onRebuildSumCleanClicked());
+		reconstructSumNoFlyButton.addActionListener(e -> onReconstructSumNoFlyClicked());
 	}
 
 	private static List<Spot> resolveSpotsForRoiNames(Experiment exp, List<String> roiNames) {

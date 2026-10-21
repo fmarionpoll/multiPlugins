@@ -5,8 +5,6 @@ import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
@@ -117,104 +115,74 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 	}
 
 	private void defineActionListeners() {
-		copyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					Spots allSpots = exp.getSpots();
-					allSpotsCopy = exp.getCages().getAllSpotsArray(allSpots);
-					pasteButton.setEnabled(true);
-				}
+		copyButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				Spots allSpots = exp.getSpots();
+				allSpotsCopy = exp.getCages().getAllSpotsArray(allSpots);
+				pasteButton.setEnabled(true);
 			}
 		});
 
 		updateButton.addActionListener(e -> refreshTable());
 
-		pasteButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					Spots allSpots = exp.getSpots();
-					Spots spotsArray = exp.getCages().getAllSpotsArray(allSpots);
-					allSpotsCopy.pasteSpotsInfo(spotsArray);
-				}
+		pasteButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				Spots allSpots = exp.getSpots();
+				Spots spotsArray = exp.getCages().getAllSpotsArray(allSpots);
+				allSpotsCopy.pasteSpotsInfo(spotsArray);
 			}
 		});
 
-		getNPixelsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					measureNPixelsForAllSpots(exp);
+		getNPixelsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				measureNPixelsForAllSpots(exp);
+		});
+
+		duplicateRowAtCagePositionButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				duplicatePos(exp);
+		});
+
+		duplicateCagetoAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				duplicateCage(exp);
+		});
+
+		duplicatePreviousButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				duplicateRelativeRow(exp, -1);
+		});
+
+		duplicateNextButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				duplicateRelativeRow(exp, 1);
+		});
+
+		duplicateCellToAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				duplicateCellToAll(exp);
 			}
 		});
 
-		duplicateRowAtCagePositionButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					duplicatePos(exp);
-			}
+		selectedSpotButton.addActionListener(e -> {
+			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
+			if (exp != null)
+				locateSelectedROI(exp);
 		});
 
-		duplicateCagetoAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					duplicateCage(exp);
+		orphanSpotsButton.addActionListener(e -> {
+			if (orphanSpotsDialog == null) {
+				orphanSpotsDialog = new InfosOrphanSpotsDialog(expListComboLazy);
 			}
-		});
-
-		duplicatePreviousButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					duplicateRelativeRow(exp, -1);
-			}
-		});
-
-		duplicateNextButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					duplicateRelativeRow(exp, 1);
-			}
-		});
-
-		duplicateCellToAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					duplicateCellToAll(exp);
-				}
-			}
-		});
-
-		selectedSpotButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
-				if (exp != null)
-					locateSelectedROI(exp);
-			}
-		});
-
-		orphanSpotsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (orphanSpotsDialog == null) {
-					orphanSpotsDialog = new InfosOrphanSpotsDialog(expListComboLazy);
-				}
-				orphanSpotsDialog.showOrBringToFront();
-			}
+			orphanSpotsDialog.showOrBringToFront();
 		});
 
 		refreshTable();

@@ -6,8 +6,6 @@ import java.awt.FlowLayout;
 import java.awt.Frame;
 import java.awt.GridLayout;
 import java.awt.Window;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -187,52 +185,29 @@ public class DetectColorPanel extends JPanel implements PropertyChangeListener {
 	}
 
 	private void declareListeners() {
-		editColorsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				showFloatingColorsEditor();
-			}
-		});
+		editColorsButton.addActionListener(e -> showFloatingColorsEditor());
 
-		editMaskFliesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				showFloatingMaskFliesEditor();
-			}
-		});
+		editMaskFliesButton.addActionListener(e -> showFloatingMaskFliesEditor());
 
-		loadSavePresetButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				showFloatingPresetEditor();
-			}
-		});
+		loadSavePresetButton.addActionListener(e -> showFloatingPresetEditor());
 
-		fliesTransformsComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && fliesViewButton.isSelected()) {
-					int index = fliesTransformsComboBox.getSelectedIndex();
-					IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
-					updateTransformFunctions2OfCanvas(canvas);
-					if (!fliesViewButton.isSelected()) {
-						fliesViewButton.setSelected(true);
-					}
-					if (canvas instanceof Canvas2D_3Transforms) {
-						((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
-					}
-					updateOverlaysThreshold();
+		fliesTransformsComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && fliesViewButton.isSelected()) {
+				int index = fliesTransformsComboBox.getSelectedIndex();
+				IcyCanvas canvas = exp.getSeqCamData().getSequence().getFirstViewer().getCanvas();
+				updateTransformFunctions2OfCanvas(canvas);
+				if (!fliesViewButton.isSelected()) {
+					fliesViewButton.setSelected(true);
 				}
-			}
-		});
-
-		fliesDirectionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
+				if (canvas instanceof Canvas2D_3Transforms) {
+					((Canvas2D_3Transforms) canvas).setTransformStep1Index(index + 1);
+				}
 				updateOverlaysThreshold();
 			}
 		});
+
+		fliesDirectionComboBox.addActionListener(e -> updateOverlaysThreshold());
 
 		fliesThresholdSpinner.addChangeListener(new ChangeListener() {
 			@Override
@@ -241,55 +216,49 @@ public class DetectColorPanel extends JPanel implements PropertyChangeListener {
 			}
 		});
 
-		thresholdColors.getSpotsViewButton().addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (thresholdColors.getSpotsViewButton().isSelected()) {
-						fliesViewButton.setSelected(false);
-						fliesOverlayCheckBox.setEnabled(false);
-					}
-					clearSpotCanvasTransform(exp);
-					thresholdColors.getSpotsOverlayCheckBox()
-							.setEnabled(thresholdColors.getSpotsViewButton().isSelected());
-					if (thresholdColors.getSpotsViewButton().isSelected()) {
-						if (thresholdColors.getSpotsOverlayCheckBox().isSelected()) {
-							updateOverlaysThreshold();
-						} else {
-							removeOurOverlay(exp);
-						}
+		thresholdColors.getSpotsViewButton().addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (thresholdColors.getSpotsViewButton().isSelected()) {
+					fliesViewButton.setSelected(false);
+					fliesOverlayCheckBox.setEnabled(false);
+				}
+				clearSpotCanvasTransform(exp);
+				thresholdColors.getSpotsOverlayCheckBox()
+						.setEnabled(thresholdColors.getSpotsViewButton().isSelected());
+				if (thresholdColors.getSpotsViewButton().isSelected()) {
+					if (thresholdColors.getSpotsOverlayCheckBox().isSelected()) {
+						updateOverlaysThreshold();
 					} else {
 						removeOurOverlay(exp);
-						if (exp.getSeqCamData() != null) {
-							exp.getSeqCamData().removeOverlay();
-						}
+					}
+				} else {
+					removeOurOverlay(exp);
+					if (exp.getSeqCamData() != null) {
+						exp.getSeqCamData().removeOverlay();
 					}
 				}
 			}
 		});
 
-		fliesViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (fliesViewButton.isSelected()) {
-						thresholdColors.clearSpotsPreviewForFlyExclusive();
-					}
-					displayTransform2(exp);
-					fliesOverlayCheckBox.setEnabled(fliesViewButton.isSelected());
-					if (fliesViewButton.isSelected()) {
-						if (fliesOverlayCheckBox.isSelected()) {
-							updateOverlaysThreshold();
-						} else {
-							removeOurOverlay(exp);
-						}
+		fliesViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (fliesViewButton.isSelected()) {
+					thresholdColors.clearSpotsPreviewForFlyExclusive();
+				}
+				displayTransform2(exp);
+				fliesOverlayCheckBox.setEnabled(fliesViewButton.isSelected());
+				if (fliesViewButton.isSelected()) {
+					if (fliesOverlayCheckBox.isSelected()) {
+						updateOverlaysThreshold();
 					} else {
 						removeOurOverlay(exp);
-						if (exp.getSeqCamData() != null) {
-							exp.getSeqCamData().removeOverlay();
-						}
+					}
+				} else {
+					removeOurOverlay(exp);
+					if (exp.getSeqCamData() != null) {
+						exp.getSeqCamData().removeOverlay();
 					}
 				}
 			}
@@ -329,14 +298,11 @@ public class DetectColorPanel extends JPanel implements PropertyChangeListener {
 			}
 		});
 
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString)) {
-					startDetection();
-				} else {
-					stopDetection();
-				}
+		detectButton.addActionListener(e -> {
+			if (detectButton.getText().equals(detectString)) {
+				startDetection();
+			} else {
+				stopDetection();
 			}
 		});
 	}

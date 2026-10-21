@@ -167,6 +167,13 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		minValidRowsSpinner.addChangeListener(previewParamsListener);
 		maxRowOcclusionGapColsSpinner.addChangeListener(previewParamsListener);
 		insectMetricThresholdSpinner.addChangeListener(previewParamsListener);
+		defineActionListeners();
+
+		syncPreviewLiftedEnabled();
+		syncInsectControlsEnabled();
+	}
+
+	private void defineActionListeners() {
 
 		insectOverlayCheckBox.addActionListener(e -> {
 			if (viewKymoButton.isSelected()) {
@@ -237,9 +244,6 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 			allSeriesCheckBox.setForeground(color);
 			analyzeButton.setForeground(color);
 		});
-
-		syncPreviewLiftedEnabled();
-		syncInsectControlsEnabled();
 	}
 
 	private void defineToolTips() {

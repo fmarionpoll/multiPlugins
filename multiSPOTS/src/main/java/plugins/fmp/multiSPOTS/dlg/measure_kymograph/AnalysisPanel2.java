@@ -115,10 +115,14 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		hint.add(showLinesButton);
 		hint.add(new JLabel("Cyan = cross on each spot, green = floor used as zero."));
 		add(hint);
-
-		showLinesButton.addActionListener(e -> refreshFloorLines());
 		flankPxSpinner.addChangeListener(e -> refreshLinesIfShown());
 		bandWidthSpinner.addChangeListener(e -> refreshLinesIfShown());
+		defineActionListeners();
+	}
+
+	private void defineActionListeners() {
+
+		showLinesButton.addActionListener(e -> refreshFloorLines());
 
 		analyzeButton.addActionListener(e -> {
 			if (ANALYZE_LABEL.equals(analyzeButton.getText())) {

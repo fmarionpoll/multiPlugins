@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
@@ -160,54 +158,43 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		prevNoiseButton.addActionListener(e -> navigateNoise(-1));
 		nextNoiseButton.addActionListener(e -> navigateNoise(1));
 
-		transformCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (suppressDisplayUpdate)
-					return;
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqKymos() != null) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null && transformViewButton.isSelected()) {
-						int index = transformCombo.getSelectedIndex();
-						canvas.updateTransformsStep1(transformChoices);
-						canvas.setTransformStep1(index + 1, null);
-						updateOverlayThreshold();
-					}
+		transformCombo.addActionListener(e -> {
+			if (suppressDisplayUpdate)
+				return;
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqKymos() != null) {
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null && transformViewButton.isSelected()) {
+					int index = transformCombo.getSelectedIndex();
+					canvas.updateTransformsStep1(transformChoices);
+					canvas.setTransformStep1(index + 1, null);
+					updateOverlayThreshold();
 				}
 			}
 		});
 
-		transformViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
+		transformViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
 
-				if (transformViewButton.isSelected()) {
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						canvas.updateTransformsStep1(transformChoices);
-						int index = transformCombo.getSelectedIndex();
-						canvas.setTransformStep1(index + 1, null);
-					}
-					addOverlayToSequence(exp);
-				} else {
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null)
-						canvas.setTransformStep1Index(0);
+			if (transformViewButton.isSelected()) {
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null) {
+					canvas.updateTransformsStep1(transformChoices);
+					int index = transformCombo.getSelectedIndex();
+					canvas.setTransformStep1(index + 1, null);
 				}
+				addOverlayToSequence(exp);
+			} else {
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null)
+					canvas.setTransformStep1Index(0);
 			}
 		});
 
-		directionCombo.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				updateOverlayThreshold();
-			}
-		});
+		directionCombo.addActionListener(e -> updateOverlayThreshold());
 	}
 
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {

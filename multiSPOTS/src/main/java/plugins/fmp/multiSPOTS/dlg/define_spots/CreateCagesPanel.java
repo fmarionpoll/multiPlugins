@@ -5,8 +5,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.geom.Point2D;
@@ -110,37 +108,28 @@ public class CreateCagesPanel extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		createFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					selectRoiPerimeterEnclosingCages(exp);
-					exp.getSeqCamData().removeROIsContainingString("cage");
-					removeGrid(exp);
-				}
+		createFrameButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				selectRoiPerimeterEnclosingCages(exp);
+				exp.getSeqCamData().removeROIsContainingString("cage");
+				removeGrid(exp);
 			}
 		});
 
-		createGridButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					createGrid(exp);
-				}
+		createGridButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				createGrid(exp);
 			}
 		});
 
-		createCagesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					createCages(exp);
-					removeGrid(exp);
-					exp.saveCages_File();
-				}
+		createCagesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				createCages(exp);
+				removeGrid(exp);
+				exp.saveCages_File();
 			}
 		});
 

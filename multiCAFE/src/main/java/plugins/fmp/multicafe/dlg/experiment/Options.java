@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.experiment;
 import java.awt.ComponentOrientation;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.List;
 
 import javax.swing.JCheckBox;
@@ -93,87 +91,63 @@ public class Options extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		viewCapillariesCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewCapillariesCheckBox.isSelected();
-				parent0.viewOptions.setViewCapillaries(sel);
-				saveViewOptions();
-				displayROIsCategory(sel, "line");
-			}
+		viewCapillariesCheckBox.addActionListener(e -> {
+			boolean sel = viewCapillariesCheckBox.isSelected();
+			parent0.viewOptions.setViewCapillaries(sel);
+			saveViewOptions();
+			displayROIsCategory(sel, "line");
 		});
 
-		viewCapTipsCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewCapTipsCheckBox.isSelected();
-				parent0.viewOptions.setViewCapTips(sel);
-				saveViewOptions();
-				if (sel)
-					ensureCapTipsOnSequence();
-				displayROIsCategory(sel, CapillaryMeasuredTipsOverlay.ROI_PREFIX);
-			}
+		viewCapTipsCheckBox.addActionListener(e -> {
+			boolean sel = viewCapTipsCheckBox.isSelected();
+			parent0.viewOptions.setViewCapTips(sel);
+			saveViewOptions();
+			if (sel)
+				ensureCapTipsOnSequence();
+			displayROIsCategory(sel, CapillaryMeasuredTipsOverlay.ROI_PREFIX);
 		});
 
-		viewCellsCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewCellsCheckbox.isSelected();
-				parent0.viewOptions.setViewCages(sel);
-				saveViewOptions();
-				displayROIsCategory(sel, "cell");
-				displayROIsCategory(sel, "cage");
-			}
+		viewCellsCheckbox.addActionListener(e -> {
+			boolean sel = viewCellsCheckbox.isSelected();
+			parent0.viewOptions.setViewCages(sel);
+			saveViewOptions();
+			displayROIsCategory(sel, "cell");
+			displayROIsCategory(sel, "cage");
 		});
 
-		viewFlyCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewFlyCheckbox.isSelected();
-				parent0.viewOptions.setViewFliesCenter(sel);
-				saveViewOptions();
-				displayROIsCategory(sel, "det");
-			}
+		viewFlyCheckbox.addActionListener(e -> {
+			boolean sel = viewFlyCheckbox.isSelected();
+			parent0.viewOptions.setViewFliesCenter(sel);
+			saveViewOptions();
+			displayROIsCategory(sel, "det");
 		});
 
-		viewDerivativeCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewDerivativeCheckbox.isSelected();
-				parent0.viewOptions.setViewDerivative(sel);
-				saveViewOptions();
-				displayROIs("deriv", sel);
-			}
+		viewDerivativeCheckbox.addActionListener(e -> {
+			boolean sel = viewDerivativeCheckbox.isSelected();
+			parent0.viewOptions.setViewDerivative(sel);
+			saveViewOptions();
+			displayROIs("deriv", sel);
 		});
 
-		viewGulpsCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewGulpsCheckbox.isSelected();
-				parent0.viewOptions.setViewGulps(sel);
-				saveViewOptions();
-				displayROIs("gulp", sel);
-			}
+		viewGulpsCheckbox.addActionListener(e -> {
+			boolean sel = viewGulpsCheckbox.isSelected();
+			parent0.viewOptions.setViewGulps(sel);
+			saveViewOptions();
+			displayROIs("gulp", sel);
 		});
 
-		viewTopLevelsCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewTopLevelsCheckbox.isSelected();
-				parent0.viewOptions.setViewTopLevels(sel);
-				saveViewOptions();
-				displayROIs("toplevel", sel);
-			}
+		viewTopLevelsCheckbox.addActionListener(e -> {
+			boolean sel = viewTopLevelsCheckbox.isSelected();
+			parent0.viewOptions.setViewTopLevels(sel);
+			saveViewOptions();
+			displayROIs("toplevel", sel);
 		});
 
-		viewBottomLevelsCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean sel = viewBottomLevelsCheckbox.isSelected();
-				parent0.viewOptions.setViewBottomLevels(sel);
-				saveViewOptions();
-				displayROIs("bottomlevel", sel);
-			}
+		viewBottomLevelsCheckbox.addActionListener(e -> {
+			boolean sel = viewBottomLevelsCheckbox.isSelected();
+			parent0.viewOptions.setViewBottomLevels(sel);
+			saveViewOptions();
+			displayROIs("bottomlevel", sel);
 		});
 
 	}

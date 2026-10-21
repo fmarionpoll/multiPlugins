@@ -4,7 +4,6 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
@@ -161,13 +160,10 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 		medianWinSpinner.addChangeListener(refreshPreview);
 		maxSpikeSpinner.addChangeListener(refreshPreview);
 
-		ActionListener refreshPreviewAction = new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				if (transformViewButton.isSelected()) {
-					applyCanvasTransformForView();
-					updateOverlayThreshold();
-				}
+		ActionListener refreshPreviewAction = e -> {
+			if (transformViewButton.isSelected()) {
+				applyCanvasTransformForView();
+				updateOverlayThreshold();
 			}
 		};
 		removeHzAvgCheckBox.addActionListener(refreshPreviewAction);
@@ -199,79 +195,59 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 	}
 
 	private void defineActionListeners() {
-		transformComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && exp.getSeqKymos() != null && transformViewButton.isSelected()) {
-					applyCanvasTransformForView();
-					updateOverlayThreshold();
-				}
-			}
-		});
-
-		detectButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString))
-					startLevelsDetection();
-				else
-					stopLevelsDetection();
-			}
-		});
-
-		transformViewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				if (transformViewButton.isSelected()) {
-					if (parent0.paneLevels != null)
-						parent0.paneLevels.clearLevelsV1View();
-					applyCanvasTransformForView();
-					addOverlayToSequence(exp);
-				} else {
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getKymosCanvas(exp);
-					if (canvas != null) {
-						canvas.setTransformStep2Index(0);
-						canvas.setTransformStep1Index(0);
-					}
-				}
-			}
-		});
-
-		allSeriesCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = allSeriesCheckBox.isSelected() ? Color.RED : Color.BLACK;
-				allSeriesCheckBox.setForeground(color);
-				detectButton.setForeground(color);
-			}
-		});
-
-		fromRectangleCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				if (fromRectangleCheckBox.isSelected())
-					displaySearchArea(exp);
-				else if (searchRectangleROI2D != null)
-					exp.getSeqKymos().getSequence().removeROI(searchRectangleROI2D);
-				if (transformViewButton.isSelected())
-					updateOverlayThreshold();
-			}
-		});
-
-		directionComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
+		transformComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && exp.getSeqKymos() != null && transformViewButton.isSelected()) {
+				applyCanvasTransformForView();
 				updateOverlayThreshold();
 			}
 		});
+
+		detectButton.addActionListener(e -> {
+			if (detectButton.getText().equals(detectString))
+				startLevelsDetection();
+			else
+				stopLevelsDetection();
+		});
+
+		transformViewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			if (transformViewButton.isSelected()) {
+				if (parent0.paneLevels != null)
+					parent0.paneLevels.clearLevelsV1View();
+				applyCanvasTransformForView();
+				addOverlayToSequence(exp);
+			} else {
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
+				if (canvas != null) {
+					canvas.setTransformStep2Index(0);
+					canvas.setTransformStep1Index(0);
+				}
+			}
+		});
+
+		allSeriesCheckBox.addActionListener(e -> {
+			Color color = allSeriesCheckBox.isSelected() ? Color.RED : Color.BLACK;
+			allSeriesCheckBox.setForeground(color);
+			detectButton.setForeground(color);
+		});
+
+		fromRectangleCheckBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			if (fromRectangleCheckBox.isSelected())
+				displaySearchArea(exp);
+			else if (searchRectangleROI2D != null)
+				exp.getSeqKymos().getSequence().removeROI(searchRectangleROI2D);
+			if (transformViewButton.isSelected())
+				updateOverlayThreshold();
+		});
+
+		directionComboBox.addActionListener(e -> updateOverlayThreshold());
 	}
 
 	private LevelDetectV2Options readV2OptionsFromDialog() {

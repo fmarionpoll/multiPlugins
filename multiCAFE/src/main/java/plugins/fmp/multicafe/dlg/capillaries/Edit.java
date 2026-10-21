@@ -4,8 +4,6 @@ import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -49,18 +47,8 @@ public class Edit extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		editCapillariesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				openDialog();
-			}
-		});
-		trackCapillariesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				openTrackCapillariesDialog();
-			}
-		});
+		editCapillariesButton.addActionListener(e -> openDialog());
+		trackCapillariesButton.addActionListener(e -> openTrackCapillariesDialog());
 	}
 
 	private Point getFramePosition() {

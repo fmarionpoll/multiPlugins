@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -46,23 +44,17 @@ public class LoadSaveLevels extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		loadMeasuresButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					dlg_levels_loadCapillaries_Measures(exp);
-			}
+		loadMeasuresButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				dlg_levels_loadCapillaries_Measures(exp);
 		});
 
-		saveMeasuresButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					dlg_levels_saveCapillaries_Measures(exp);
-					firePropertyChange("MEASURES_SAVE", false, true);
-				}
+		saveMeasuresButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				dlg_levels_saveCapillaries_Measures(exp);
+				firePropertyChange("MEASURES_SAVE", false, true);
 			}
 		});
 	}

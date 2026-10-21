@@ -58,7 +58,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 
 		tabInspector.init(parent0);
 		JButton openInspector = new JButton("Open Event Inspector...");
-		openInspector.addActionListener(e -> tabInspector.openWindow());
+		defineActionListeners(openInspector);
 		inspectorLauncher.add(openInspector);
 		tabsPane.addTab("Event Inspector", null, inspectorLauncher, "Open the event inspection window");
 
@@ -75,6 +75,10 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 				tabbedCapillariesAndKymosSelected();
 			}
 		});
+	}
+
+	private void defineActionListeners(JButton openInspector) {
+		openInspector.addActionListener(e -> tabInspector.openWindow());
 	}
 
 	@Override

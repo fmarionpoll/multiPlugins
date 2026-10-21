@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.function.Supplier;
 
 import javax.swing.JButton;
@@ -105,23 +103,17 @@ public class AxisOptions extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		setXaxis.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					updateXAxis();
-				}
+		setXaxis.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				updateXAxis();
 			}
 		});
 
-		setYaxis.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					updateYAxis();
-				}
+		setYaxis.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				updateYAxis();
 			}
 		});
 	}

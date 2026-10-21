@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.experiment;
 import java.awt.ComponentOrientation;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
@@ -79,57 +77,37 @@ public class OptionsPanel extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		autoLoadKymographsCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				parent0.viewOptions.setAutoLoadKymographs(autoLoadKymographsCheckBox.isSelected());
-				saveViewOptions();
-			}
+		autoLoadKymographsCheckBox.addActionListener(e -> {
+			parent0.viewOptions.setAutoLoadKymographs(autoLoadKymographsCheckBox.isSelected());
+			saveViewOptions();
 		});
 
-		autoGraphSpotMeasuresCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				parent0.viewOptions.setAutoGraphSpotMeasures(autoGraphSpotMeasuresCheckBox.isSelected());
-				saveViewOptions();
-			}
+		autoGraphSpotMeasuresCheckBox.addActionListener(e -> {
+			parent0.viewOptions.setAutoGraphSpotMeasures(autoGraphSpotMeasuresCheckBox.isSelected());
+			saveViewOptions();
 		});
 
-		autoGraphKymoMeasuresCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				parent0.viewOptions.setAutoGraphKymoMeasures(autoGraphKymoMeasuresCheckBox.isSelected());
-				saveViewOptions();
-			}
+		autoGraphKymoMeasuresCheckBox.addActionListener(e -> {
+			parent0.viewOptions.setAutoGraphKymoMeasures(autoGraphKymoMeasuresCheckBox.isSelected());
+			saveViewOptions();
 		});
 
-		viewSpotsCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean v = viewSpotsCheckBox.isSelected();
-				parent0.viewOptions.setViewSpots(v);
-				saveViewOptions();
-				displayROIsCategory(v, "line");
-				displayROIsCategory(v, "spot");
-			}
+		viewSpotsCheckBox.addActionListener(e -> {
+			boolean v = viewSpotsCheckBox.isSelected();
+			parent0.viewOptions.setViewSpots(v);
+			saveViewOptions();
+			displayROIsCategory(v, "line");
+			displayROIsCategory(v, "spot");
 		});
 
-		viewCagesCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean v = viewCagesCheckbox.isSelected();
-				parent0.viewOptions.setViewCages(v);
-				saveViewOptions();
-				displayROIsCategory(v, "cage");
-			}
+		viewCagesCheckbox.addActionListener(e -> {
+			boolean v = viewCagesCheckbox.isSelected();
+			parent0.viewOptions.setViewCages(v);
+			saveViewOptions();
+			displayROIsCategory(v, "cage");
 		});
 
-		viewFlyRectCheckbox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				displayROIsCategory(viewFlyRectCheckbox.isSelected(), "det");
-			}
-		});
+		viewFlyRectCheckbox.addActionListener(e -> displayROIsCategory(viewFlyRectCheckbox.isSelected(), "det"));
 	}
 
 	public void displayROIsCategory(boolean isVisible, String pattern) {

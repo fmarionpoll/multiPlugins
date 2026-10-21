@@ -3,8 +3,6 @@ package plugins.fmp.multitools.experiment.ui;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.util.ArrayList;
@@ -142,43 +140,31 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 	}
 
 	private void defineActionListeners() {
-		applyButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
-				if (exp != null)
-					setExperimentParameters(exp);
-			}
+		applyButton.addActionListener(e -> {
+			Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+			if (exp != null)
+				setExperimentParameters(exp);
 		});
 
-		updateToCurrentFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
-				if (exp != null)
-					applyStartFromCurrentViewerFrame(exp);
-			}
+		updateToCurrentFrameButton.addActionListener(e -> {
+			Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+			if (exp != null)
+				applyStartFromCurrentViewerFrame(exp);
 		});
 
-		refreshButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
-				if (exp != null)
-					refreshBinSize(exp);
-			}
+		refreshButton.addActionListener(e -> {
+			Experiment exp = (Experiment) host.getExperimentsCombo().getSelectedItem();
+			if (exp != null)
+				refreshBinSize(exp);
 		});
 
-		advancedToggleButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				boolean show = !advancedPanel.isVisible();
-				advancedPanel.setVisible(show);
-				advancedToggleButton.setText(show ? "Hide advanced" : "Advanced...");
-				advancedPanel1.setVisible(show);
-				revalidate();
-				repaint();
-			}
+		advancedToggleButton.addActionListener(e -> {
+			boolean show = !advancedPanel.isVisible();
+			advancedPanel.setVisible(show);
+			advancedToggleButton.setText(show ? "Hide advanced" : "Advanced...");
+			advancedPanel1.setVisible(show);
+			revalidate();
+			repaint();
 		});
 
 		indexFirstImageJSpinner.addChangeListener(new ChangeListener() {

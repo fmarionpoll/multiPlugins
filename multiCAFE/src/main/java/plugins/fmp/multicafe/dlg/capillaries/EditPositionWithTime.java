@@ -6,8 +6,6 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
 import java.util.List;
@@ -112,49 +110,25 @@ public class EditPositionWithTime extends JPanel implements ListSelectionListene
 
 	private void defineActionListeners() {
 
-		fitToFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				moveAllCapillaries();
-			}
+		fitToFrameButton.addActionListener(e -> moveAllCapillaries());
+
+		showFrameButton.addActionListener(e -> {
+			fitToFrameButton.setEnabled(showFrameButton.isSelected());
+			showFrame(showFrameButton.isSelected());
 		});
 
-		showFrameButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				fitToFrameButton.setEnabled(showFrameButton.isSelected());
-				showFrame(showFrameButton.isSelected());
-			}
+		addItemButton.addActionListener(e -> addTableItem());
+
+		deleteItemButton.addActionListener(e -> {
+			int selectedRow = tableView.getSelectedRow();
+			deleteTableItem(selectedRow);
 		});
 
-		addItemButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				addTableItem();
-			}
-		});
+		deleteAllButton.addActionListener(e -> deleteAllRows());
 
-		deleteItemButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				int selectedRow = tableView.getSelectedRow();
-				deleteTableItem(selectedRow);
-			}
-		});
-
-		deleteAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				deleteAllRows();
-			}
-		});
-
-		saveCapillariesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				int selectedRow = tableView.getSelectedRow();
-				saveCapillaries(selectedRow);
-			}
+		saveCapillariesButton.addActionListener(e -> {
+			int selectedRow = tableView.getSelectedRow();
+			saveCapillaries(selectedRow);
 		});
 	}
 

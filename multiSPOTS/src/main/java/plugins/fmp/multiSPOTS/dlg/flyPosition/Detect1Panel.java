@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.flyPosition;
 import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.beans.PropertyChangeEvent;
@@ -214,66 +212,51 @@ public class Detect1Panel extends JPanel
 	}
 
 	private void defineActionListeners() {
-		viewButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp == null)
-					return;
-				if (viewButton.isSelected()) {
-					syncViewTransforms(exp);
-					updateOverlay(exp);
-				} else {
-					detachViewListener();
-					removeOverlay(exp);
-					Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
-					if (canvas != null) {
-						canvas.setTransformStep1Index(0);
-						canvas.setTransformStep2Index(0);
-					}
+		viewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp == null)
+				return;
+			if (viewButton.isSelected()) {
+				syncViewTransforms(exp);
+				updateOverlay(exp);
+			} else {
+				detachViewListener();
+				removeOverlay(exp);
+				Canvas2D_3Transforms canvas = getCamDataCanvas(exp);
+				if (canvas != null) {
+					canvas.setTransformStep1Index(0);
+					canvas.setTransformStep2Index(0);
 				}
 			}
 		});
 
-		transformComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && viewButton.isSelected())
-					syncViewTransforms(exp);
-				refreshFlyDetectOverlay();
-			}
+		transformComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && viewButton.isSelected())
+				syncViewTransforms(exp);
+			refreshFlyDetectOverlay();
 		});
 
-		backgroundComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null && viewButton.isSelected())
-					syncViewTransforms(exp);
-				refreshFlyDetectOverlay();
-			}
+		backgroundComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null && viewButton.isSelected())
+				syncViewTransforms(exp);
+			refreshFlyDetectOverlay();
 		});
 
-		startComputationButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				if (startComputationButton.getText().equals(detectString))
-					startComputation();
-				else
-					stopComputation();
-			}
+		startComputationButton.addActionListener(e -> {
+			if (startComputationButton.getText().equals(detectString))
+				startComputation();
+			else
+				stopComputation();
 		});
 
-		allCheckBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Color color = Color.BLACK;
-				if (allCheckBox.isSelected())
-					color = Color.RED;
-				allCheckBox.setForeground(color);
-				startComputationButton.setForeground(color);
-			}
+		allCheckBox.addActionListener(e -> {
+			Color color = Color.BLACK;
+			if (allCheckBox.isSelected())
+				color = Color.RED;
+			allCheckBox.setForeground(color);
+			startComputationButton.setForeground(color);
 		});
 	}
 

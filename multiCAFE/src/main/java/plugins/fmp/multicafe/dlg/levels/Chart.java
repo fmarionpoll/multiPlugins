@@ -3,8 +3,6 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.Collections;
 import java.util.Comparator;
 
@@ -152,96 +150,72 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 	private void defineActionListeners() {
 
-		resultTypeComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					displayChartPanels(exp); // displayGraphsPanels(exp);
+		resultTypeComboBox.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp); // displayGraphsPanels(exp);
+			}
+		});
+
+		evapMethodComboBox.addActionListener(e -> {
+			EvaporationCorrectionMethod m = (EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem();
+			if (m != null)
+				defineToolTips(m);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null)
+				displayChartPanels(exp);
+		});
+
+		viewGridButton.addActionListener(e -> {
+			axisOptionsButton.setEnabled(true);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp);
+			}
+		});
+
+		viewCombinedButton.addActionListener(e -> {
+			// AxisOptions is currently implemented for grid charts only
+			axisOptionsButton.setEnabled(false);
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp);
+			}
+		});
+
+		displayResultsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp); // displayGraphsPanels(exp);
+			}
+		});
+
+		axisOptionsButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				if (graphOptions != null) {
+					graphOptions.close();
+				}
+				if (chartCagesFrame != null && viewGridButton.isSelected()) {
+					graphOptions = new AxisOptions();
+					graphOptions.initialize(parent0, chartCagesFrame);
 				}
 			}
 		});
 
-		evapMethodComboBox.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				EvaporationCorrectionMethod m = (EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem();
-				if (m != null)
-					defineToolTips(m);
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null)
-					displayChartPanels(exp);
+		displayAllButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				removeSelectionListeners(exp);
+				displayChartPanels(exp);
 			}
 		});
 
-		viewGridButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				axisOptionsButton.setEnabled(true);
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					displayChartPanels(exp);
-				}
-			}
-		});
-
-		viewCombinedButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				// AxisOptions is currently implemented for grid charts only
-				axisOptionsButton.setEnabled(false);
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					displayChartPanels(exp);
-				}
-			}
-		});
-
-		displayResultsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					displayChartPanels(exp); // displayGraphsPanels(exp);
-				}
-			}
-		});
-
-		axisOptionsButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					if (graphOptions != null) {
-						graphOptions.close();
-					}
-					if (chartCagesFrame != null && viewGridButton.isSelected()) {
-						graphOptions = new AxisOptions();
-						graphOptions.initialize(parent0, chartCagesFrame);
-					}
-				}
-			}
-		});
-
-		displayAllButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					removeSelectionListeners(exp);
-					displayChartPanels(exp);
-				}
-			}
-		});
-
-		displaySelectedButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					displayChartPanels(exp);
-					addSelectionListeners(exp);
-				}
+		displaySelectedButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				displayChartPanels(exp);
+				addSelectionListeners(exp);
 			}
 		});
 	}

@@ -3,8 +3,6 @@ package plugins.fmp.multiSPOTS.dlg.flyPosition;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 import javax.swing.JButton;
 import javax.swing.JLabel;
@@ -44,26 +42,20 @@ public class LoadSavePositions extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		openCagesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					loadCages(exp);
-					firePropertyChange("LOAD_DATA", false, true);
-					parent0.dlgDetectFlies.tabsPane.setSelectedIndex(parent0.dlgDetectFlies.iTAB_EDIT);
-				}
+		openCagesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				loadCages(exp);
+				firePropertyChange("LOAD_DATA", false, true);
+				parent0.dlgDetectFlies.tabsPane.setSelectedIndex(parent0.dlgDetectFlies.iTAB_EDIT);
 			}
 		});
 
-		saveCagesButton.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(final ActionEvent e) {
-				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-				if (exp != null) {
-					saveMeasures(exp);
-					parent0.dlgDetectFlies.tabsPane.setSelectedIndex(parent0.dlgDetectFlies.iTAB_EDIT);
-				}
+		saveCagesButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				saveMeasures(exp);
+				parent0.dlgDetectFlies.tabsPane.setSelectedIndex(parent0.dlgDetectFlies.iTAB_EDIT);
 			}
 		});
 	}
