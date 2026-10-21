@@ -38,7 +38,7 @@ import plugins.fmp.multitools.series.options.GulpThresholdSmoothing;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
-public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeListener {
+public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeListener {
 	/**
 	 * 
 	 */
@@ -74,7 +74,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox all_checkbox = new JCheckBox("ALL", false);
 	private DetectGulps threadDetectGulps = null;
-	private CorrelationGulpPanel correlationPanel = null;
+	private CorrelationIntakePanel correlationPanel = null;
 	private MultiCAFE parent0 = null;
 	private boolean suppressDisplayUpdate = false;
 
@@ -317,7 +317,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			return;
 		}
 		closeCorrelationPanel();
-		correlationPanel = CorrelationGulpPanel.open(this, exp, cap,
+		correlationPanel = CorrelationIntakePanel.open(this, exp, cap,
 				c -> parent0.paneKymos.tabIntervals.selectKymographImageAndCombo(c.getKymographIndex()));
 	}
 
