@@ -86,6 +86,7 @@ public final class CorrelationIntakePanel extends JPanel {
 			export = new JButton("Export CSV...");
 	private final JButton save = new JButton("Save"), copyToGulps = new JButton("Copy to gulps...");
 	private final JCheckBox showRois = new JCheckBox("Show on kymograph", true);
+	private final JCheckBox compensateEvaporation = new JCheckBox("Subtract evaporation from intake steps", true);
 	private final JLabel source = new JLabel(" "),
 			status = new JLabel("Select a capillary to analyze its correlation motion.");
 	private final MotionPlot plot = new MotionPlot();
@@ -100,6 +101,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	private Capillary computedCapillary, roiCapillary;
 	private boolean[] roiCandidates;
 	private boolean roiStored, released;
+	private boolean roiCompensated;
 	private CorrelationGulpPreview roiPreview;
 	private BufferedImage refinedStrip;
 	private int selectedFrame;
@@ -175,6 +177,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		controls.add(new JLabel("Max shift +/- pixels"));
 		controls.add(maxShift);
 		controls.add(compute);
+		controls.add(compensateEvaporation);
 		JPanel thresholdControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		thresholdControls.add(new JLabel("Threshold (pixels/min)"));
 		thresholdControls.add(threshold);
@@ -207,7 +210,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		JPanel footer = new JPanel(new BorderLayout(4, 4));
 		footer.add(status, BorderLayout.NORTH);
 		footer.add(new JLabel(
-				"<html>Blue bars show intake amplitudes; thin grey curves predict evaporation from the bottom of each intake to the next.<br>"
+				"<html>Blue bars show total displacement; grey = evaporation + cumulative intake. Checkbox subtracts evaporation from grey intake steps only.<br>"
 						+ "Drag the red bar to adjust the threshold; click the graph to inspect a time point. "
 						+ "Save stores them as correlation gulps, kept apart from the gulps. Copy to gulps replaces the gulps of this capillary.</html>"),
 				BorderLayout.SOUTH);
@@ -245,6 +248,10 @@ public final class CorrelationIntakePanel extends JPanel {
 				setThreshold(preview.noise.automatic, false);
 		});
 		showRois.addActionListener(e -> updateRois());
+		compensateEvaporation.addActionListener(e -> {
+			alignment.repaint();
+			updateRois();
+		});
 		export.addActionListener(e -> export());
 	}
 
@@ -266,7 +273,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void defineToolTips() {
-		showRois.setToolTipText("Show intake amplitudes and the evaporation predicted between intakes on the raw kymograph.");
+		compensateEvaporation.setToolTipText("Checked: grey steps = max(0, stored amplitude minus the model's evaporation in that bin). Unchecked: full stored amplitudes. Blue bars, detection and saved measures are unchanged.");
+		showRois.setToolTipText("Show intake amplitudes and evaporation plus cumulative intake, starting at raw t=0; later raw levels do not reset the grey curve.");
 		radius.setToolTipText(
 				"Half-height of the image profile matched around the meniscus. Scale with the camera resolution.");
 		maxShift.setToolTipText(
@@ -597,7 +605,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		boolean show = showRois.isSelected();
 		boolean[] chosen = !released && show && preview != null && cap == computedCapillary ? candidates() : null;
 		boolean stored = released || (show && chosen == null);
-		if (!released && cap == roiCapillary && stored == roiStored && Arrays.equals(chosen, roiCandidates)
+		if (!released && cap == roiCapillary && stored == roiStored && roiCompensated == compensateEvaporation.isSelected()
+				&& Arrays.equals(chosen, roiCandidates)
 				&& (chosen == null || roiPreview == preview))
 			return;
 		List<Integer> frames = new ArrayList<>();
@@ -617,8 +626,8 @@ public final class CorrelationIntakePanel extends JPanel {
 					rois.add(CapillaryCorrelationGulps.createRoi(cap.getKymographPrefix(), i, preview.raw[i],
 							preview.motion.shift[i], t));
 			if (preview.hasEvaporationReference)
-				rois.addAll(IntakeEvaporationOverlay.createRois(cap.getKymographPrefix(), chosen,
-						preview.raw, preview.evaporation, t));
+				rois.addAll(IntakeEvaporationOverlay.createRois(cap.getKymographPrefix(), candidateAmplitudes(),
+						preview.raw, preview.evaporation, t, compensateEvaporation.isSelected()));
 		} else if (stored) {
 			Capillary owner = released ? roiCapillary : cap;
 			if (owner != null)
@@ -636,6 +645,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		roiCapillary = cap;
 		roiCandidates = chosen;
 		roiStored = stored;
+		roiCompensated = compensateEvaporation.isSelected();
 		roiPreview = chosen == null ? null : preview;
 	}
 
@@ -664,7 +674,7 @@ public final class CorrelationIntakePanel extends JPanel {
 			writer.write("# prototype=vertical_correlation;capillary=" + computedCapillary.getLast2ofCapillaryName()
 					+ ";window_radius=" + radius.getValue() + ";max_shift_px=" + maxShift.getValue() + "\n");
 			writer.write("# experiment=" + experiment.getResultsDirectory() + ";reference="
-					+ preview.referenceDescription + "\n");
+					+ preview.referenceDescription + ";grey_subtract_intake_evaporation=" + compensateEvaporation.isSelected() + "\n");
 			writer.write("# threshold_source=" + preview.noise.source + ";manual=" + manual
 					+ ";automatic_threshold_px_per_min=" + preview.noise.automatic + "\n");
 			writer.write(
@@ -889,7 +899,8 @@ public final class CorrelationIntakePanel extends JPanel {
 			int width = imageWidth();
 			int[] tops = { 25, 25 + cropHeight + 25 };
 			int[] heights = { cropHeight, 81 };
-			String[] labels = { "Raw kymograph: blue intake amplitudes; grey = evaporation predicted between intakes",
+			String[] labels = { "Raw kymograph: grey = evaporation + cumulative "
+					+ (compensateEvaporation.isSelected() ? "net intake" : "total intake displacement") + ", anchored at t=0",
 					"Aligned using refined levels (+/-10 pixels); red ticks = candidate intervals" };
 			boolean[] chosen = candidates();
 			for (int p = 0; p < 2; p++) {
@@ -926,7 +937,8 @@ public final class CorrelationIntakePanel extends JPanel {
 			g.setColor(IntakeEvaporationOverlay.COLOR);
 			g.setStroke(new BasicStroke(1));
 			List<List<java.awt.geom.Point2D>> paths = preview.hasEvaporationReference
-					? IntakeEvaporationOverlay.paths(chosen, preview.raw, preview.evaporation) : java.util.Collections.emptyList();
+					? IntakeEvaporationOverlay.paths(candidateAmplitudes(), preview.raw, preview.evaporation,
+							compensateEvaporation.isSelected()) : java.util.Collections.emptyList();
 			for (List<java.awt.geom.Point2D> points : paths) {
 				java.awt.geom.Path2D path = new java.awt.geom.Path2D.Double();
 				for (int i = 0; i < points.size(); i++) {

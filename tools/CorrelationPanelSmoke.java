@@ -123,14 +123,40 @@ public class CorrelationPanelSmoke {
         render(panel, output.resolve("panel_1L_automatic.png"));
         Method updateRois = panel.getClass().getDeclaredMethod("updateRois"); updateRois.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> { try { updateRois.invoke(panel); } catch (Exception e) { throw new RuntimeException(e); } });
+        Method amplitudesMethod = panel.getClass().getDeclaredMethod("candidateAmplitudes"); amplitudesMethod.setAccessible(true);
+        double[] intakeAmplitudes = (double[]) amplitudesMethod.invoke(panel);
+        double totalIntake = java.util.Arrays.stream(intakeAmplitudes).sum(), netIntake = 0;
+        for (int i = 1; i < intakeAmplitudes.length; i++) if (intakeAmplitudes[i] > 0)
+            netIntake += Math.max(0, intakeAmplitudes[i] - (result.evaporation[i] - result.evaporation[i - 1]));
+        javax.swing.JCheckBox compensate = (javax.swing.JCheckBox) field(panel, "compensateEvaporation");
+        if (!compensate.isSelected()) throw new AssertionError("Net-intake display must be enabled by default");
+        double baselineEnd = result.raw[0] + result.evaporation[result.evaporation.length - 1] - result.evaporation[0];
+        double expectedEnd = baselineEnd + netIntake;
         int projections = 0;
         for (icy.roi.ROI2D roi : sequence.getROI2Ds()) {
             if (roi.getName().contains("_xcorr_evap")) {
                 projections++;
                 if (!roi.isReadOnly() || roi.getStroke() != 1 || roi.getT() != 2) throw new AssertionError("Incorrect evaporation ROI style/lifetime");
+                if (Math.abs(roi.getBounds2D().getMinY() - result.raw[0]) > 1e-7
+                        || Math.abs(roi.getBounds2D().getMaxY() - expectedEnd) > 1e-7)
+                    throw new AssertionError("Grey model is not initial raw + evaporation + cumulative intake");
             }
         }
         if (projections == 0) throw new AssertionError("Evaporation projections missing from raw kymograph");
+        Map<String,String> originalBars = new LinkedHashMap<>();
+        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr") && !roi.getName().contains("_xcorr_evap"))
+            originalBars.put(roi.getName(), roi.getBounds2D().toString());
+        SwingUtilities.invokeAndWait(compensate::doClick);
+        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) {
+            if (roi.getName().contains("_xcorr_evap") && Math.abs(roi.getBounds2D().getMaxY() - (baselineEnd + totalIntake)) > 1e-7)
+                throw new AssertionError("Unchecking compensation did not restore full displacement curve");
+            if (originalBars.containsKey(roi.getName()) && !originalBars.get(roi.getName()).equals(roi.getBounds2D().toString()))
+                throw new AssertionError("Display compensation changed intake bars");
+        }
+        render(panel, output.resolve("panel_1L_total_amplitudes.png"));
+        SwingUtilities.invokeAndWait(compensate::doClick);
+        if (!java.util.Arrays.equals(intakeAmplitudes, (double[]) amplitudesMethod.invoke(panel)))
+            throw new AssertionError("Display compensation changed intake amplitudes");
         JSpinner threshold = (JSpinner) field(panel, "threshold");
         double initial = ((Number) threshold.getValue()).doubleValue();
         Component plot = (Component) field(panel, "plot");
@@ -146,16 +172,28 @@ public class CorrelationPanelSmoke {
         Method export = panel.getClass().getDeclaredMethod("writeCsv", Path.class); export.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> { try { export.invoke(panel, output.resolve("panel_preview.csv")); } catch (Exception e) { throw new RuntimeException(e); } });
         String csv = new String(Files.readAllBytes(output.resolve("panel_preview.csv")), StandardCharsets.UTF_8);
-        if (!csv.contains("manual=true") || csv.split("\n").length != 145) throw new AssertionError("CSV preview incomplete");
+        if (!csv.contains("manual=true") || !csv.contains("grey_subtract_intake_evaporation=true")
+                || csv.split("\n").length != 145) throw new AssertionError("CSV preview incomplete");
         SwingUtilities.invokeAndWait(() -> threshold.setValue(100.));
         Method candidates = panel.getClass().getDeclaredMethod("candidates"); candidates.setAccessible(true);
         for (boolean b : (boolean[]) candidates.invoke(panel)) if (b) throw new AssertionError("Candidate preview did not update with threshold");
         SwingUtilities.invokeAndWait(() -> { try { updateRois.invoke(panel); } catch (Exception e) { throw new RuntimeException(e); } });
-        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr_evap")) throw new AssertionError("Stale projections after removing all candidates");
+        int baselines = 0;
+        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr_evap")) {
+            baselines++;
+            double expectedBaseline = result.raw[0] + result.evaporation[result.evaporation.length - 1] - result.evaporation[0];
+            if (Math.abs(roi.getBounds2D().getMaxY() - expectedBaseline) > 1e-7)
+                throw new AssertionError("Stale intake offsets after removing all candidates");
+        }
+        if (baselines != 1) throw new AssertionError("Pure evaporation model should remain without candidates");
         SwingUtilities.invokeAndWait(() -> { try { ((JButton) field(panel,"automatic")).doClick(); } catch (Exception e) { throw new RuntimeException(e); } });
         if (Math.abs(((Number) threshold.getValue()).doubleValue()-initial)>1e-10) throw new AssertionError("Automatic reset failed");
         SwingUtilities.invokeAndWait(() -> { try { ((JComboBox<?>) field(panel,"capillaries")).setSelectedItem(caps.get("7L")); } catch (Exception e) { throw new RuntimeException(e); } });
         compute(panel); render(panel, output.resolve("panel_7L_automatic.png"));
+        SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get("2L")));
+        compute(panel); render(panel, output.resolve("panel_2L_net_intakes.png"));
+        SwingUtilities.invokeAndWait(compensate::doClick);
+        render(panel, output.resolve("panel_2L_total_amplitudes.png"));
         SwingUtilities.invokeAndWait(panel::close);
         for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr_evap")) throw new AssertionError("Display-only projections left behind on close");
         if (!java.util.Arrays.equals(before, caps.get("1L").getTopRaw().polylineLevel.ypoints)) throw new AssertionError("Original levels modified");

@@ -9,7 +9,7 @@ import icy.roi.ROI2D;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
-/** Display-only evaporation projections, restarted at each intake's lower endpoint. */
+/** Display-only evaporation plus cumulative intake, anchored once at the first raw level. */
 public final class IntakeEvaporationOverlay {
     // Shares the preview ROI token so viewer synchronization removes these too.
     // Contains no measure-import token such as "gulp", "level", or "derivative".
@@ -18,30 +18,58 @@ public final class IntakeEvaporationOverlay {
 
     private IntakeEvaporationOverlay() { }
 
-    public static List<List<Point2D>> paths(boolean[] intakes, double[] raw, double[] evaporation) {
-        if (intakes.length != raw.length || raw.length != evaporation.length)
+    public static List<List<Point2D>> paths(double[] amplitudes, double[] raw, double[] evaporation) {
+        return paths(amplitudes, raw, evaporation, false);
+    }
+
+    /** Compensation affects this display only; amplitudes remain unchanged. */
+    public static List<List<Point2D>> paths(double[] amplitudes, double[] raw, double[] evaporation,
+            boolean subtractIntakeEvaporation) {
+        if (amplitudes.length != raw.length || raw.length != evaporation.length)
             throw new IllegalArgumentException("Intake, level and evaporation arrays must have equal lengths.");
         List<List<Point2D>> paths = new ArrayList<>();
-        for (int start = 0; start < intakes.length; start++) {
-            if (!intakes[start] || !Double.isFinite(raw[start]) || !Double.isFinite(evaporation[start])) continue;
-            int end = start + 1;
-            while (end < intakes.length && !intakes[end]) end++;
-            end = Math.min(end, intakes.length - 1);
-            List<Point2D> points = new ArrayList<>();
-            for (int i = start; i <= end; i++) {
-                if (!Double.isFinite(evaporation[i])) break;
-                // Increasing image Y is downward. Use model increments rather
-                // than a constant slope so actual frame timing/curvature remain.
-                points.add(new Point2D.Double(i + .5, raw[start] + evaporation[i] - evaporation[start]));
+        if (raw.length == 0 || !Double.isFinite(raw[0]) || !Double.isFinite(evaporation[0])) return paths;
+        List<Point2D> points = new ArrayList<>();
+        double cumulative = 0;
+        for (int i = 0; i < amplitudes.length; i++) {
+            if (!Double.isFinite(amplitudes[i]) || amplitudes[i] < 0)
+                throw new IllegalArgumentException("Intake amplitudes must be finite and nonnegative.");
+            // No displacement interval precedes sample 0. Its coordinate is
+            // exactly raw[0], even if an imported series has a nonzero bin 0.
+            double amplitude = i == 0 ? 0 : amplitudes[i];
+            if (subtractIntakeEvaporation && amplitude > 0) {
+                // An unknown interval evaporation makes the cumulative net
+                // intake unknown: do not silently resume with an invented offset.
+                if (!Double.isFinite(evaporation[i]) || !Double.isFinite(evaporation[i - 1])) {
+                    if (points.size() > 1) paths.add(points);
+                    return paths;
+                }
+                amplitude = Math.max(0, amplitude - (evaporation[i] - evaporation[i - 1]));
             }
-            if (points.size() > 1) paths.add(points);
+            if (Double.isFinite(evaporation[i])) {
+                double before = raw[0] + (evaporation[i] - evaporation[0]) + cumulative;
+                points.add(new Point2D.Double(i + .5, before));
+                // A repeated X draws the complete downward step at the intake
+                // bin; never move the model back onto a later measured level.
+                if (amplitude > 0) points.add(new Point2D.Double(i + .5, before + amplitude));
+            } else {
+                if (points.size() > 1) paths.add(points);
+                points = new ArrayList<>();
+            }
+            cumulative += amplitude;
         }
+        if (points.size() > 1) paths.add(points);
         return paths;
     }
 
-    public static List<ROI2D> createRois(String prefix, boolean[] intakes, double[] raw, double[] evaporation, int t) {
+    public static List<ROI2D> createRois(String prefix, double[] amplitudes, double[] raw, double[] evaporation, int t) {
+        return createRois(prefix, amplitudes, raw, evaporation, t, false);
+    }
+
+    public static List<ROI2D> createRois(String prefix, double[] amplitudes, double[] raw, double[] evaporation, int t,
+            boolean subtractIntakeEvaporation) {
         List<ROI2D> rois = new ArrayList<>();
-        for (List<Point2D> points : paths(intakes, raw, evaporation)) {
+        for (List<Point2D> points : paths(amplitudes, raw, evaporation, subtractIntakeEvaporation)) {
             ROI2DPolyLine roi = new ROI2DPolyLine(new Level2D(points));
             int start = (int) Math.floor(points.get(0).getX());
             roi.setName(prefix + "_" + ROI_TOKEN + String.format(java.util.Locale.ROOT, "%07d", start));
