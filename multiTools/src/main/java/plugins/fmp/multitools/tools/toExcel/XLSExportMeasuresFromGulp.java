@@ -82,6 +82,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				new OptionToResultsMapping(() -> options.sumGulpsLr, EnumResults.SUMGULPS_LR),
 				new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
 				new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
+				new OptionToResultsMapping(() -> options.intakeBins, EnumResults.INTAKE_BIN_RAW,
+						EnumResults.INTAKE_BIN_CORR, EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR),
 				new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
 				new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),
 				new OptionToResultsMapping(() -> options.markovChain, EnumResults.MARKOV_CHAIN),
@@ -138,13 +140,15 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 		resultsOptions.resultType = resultType;
 		resultsOptions.exportLayoutMode = ExportLayoutMode.NORMALIZED;
+		resultsOptions.evaporationCorrectionMethod = options.evaporationCorrectionMethod;
 
 		exp.dispatchCapillariesToCages();
 		exp.getCages().prepareComputations(exp, resultsOptions);
 
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 		boolean sparse = resultType == EnumResults.NBGULPS || resultType == EnumResults.AMPLITUDEGULPS
-				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR;
+				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR
+				|| isIntakeBinPerBin(resultType);
 		long nativeMedian = nativeMedianMs(exp);
 		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(resultsOptions.buildExcelStepMs, nativeMedian);
 
@@ -183,7 +187,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					double[] regrouped;
 					if (resultType == EnumResults.NBGULPS) {
 						regrouped = ExportTimePolicy.regroupPresence(timesMs, values, step);
-					} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS) {
+					} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS
+							|| isIntakeBinPerBin(resultType)) {
 						regrouped = ExportTimePolicy.regroupSum(timesMs, values, step);
 					} else {
 						regrouped = ExportTimePolicy.regroupHoldLast(timesMs, values, step);
@@ -264,6 +269,10 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		return 0;
 	}
 
+	private static boolean isIntakeBinPerBin(EnumResults resultType) {
+		return resultType == EnumResults.INTAKE_BIN_RAW || resultType == EnumResults.INTAKE_BIN_CORR;
+	}
+
 	private static long nativeMedianMs(Experiment exp) {
 		if (exp.getFrameTimeScale() != null && !exp.getFrameTimeScale().isEmpty()) {
 			long m = exp.getFrameTimeScale().medianDeltaMs();
@@ -342,6 +351,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		ResultsOptions resultsOptions = new ResultsOptions();
 		resultsOptions.buildExcelStepMs = resolveBuildExcelStepMsForExport(exp);
 		resultsOptions.resultType = resultType;
+		resultsOptions.evaporationCorrectionMethod = options.evaporationCorrectionMethod;
 
 		exp.dispatchCapillariesToCages();
 		exp.getCages().prepareComputations(exp, resultsOptions);
@@ -736,7 +746,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		// Event-like gulp measures: nearest-sample hold. Continuous SUMGULPS: linear.
 		boolean holdEvents = resultType == EnumResults.NBGULPS || resultType == EnumResults.AMPLITUDEGULPS
 				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR
-				|| resultType == EnumResults.MARKOV_CHAIN;
+				|| resultType == EnumResults.MARKOV_CHAIN || isIntakeBinPerBin(resultType);
+		boolean sumEvents = isIntakeBinPerBin(resultType) && buildExcelStepMs > 1.5 * nativeMedianMs(exp);
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
 			long binTimeMs = (long) binIndex * buildExcelStepMs;
 
@@ -745,8 +756,13 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				continue; // Skip bins beyond experiment duration
 			}
 
-			double sampledValue = holdEvents ? nearestSampleHold(dataTimesMs, dataValues, binTimeMs)
-					: linearInterpolate(dataTimesMs, dataValues, binTimeMs);
+			double sampledValue;
+			if (sumEvents)
+				sampledValue = sumSince(dataTimesMs, dataValues, binTimeMs - buildExcelStepMs, binTimeMs);
+			else if (holdEvents)
+				sampledValue = nearestSampleHold(dataTimesMs, dataValues, binTimeMs);
+			else
+				sampledValue = linearInterpolate(dataTimesMs, dataValues, binTimeMs);
 			if (!Double.isNaN(sampledValue)) {
 				results.getValuesOut()[binIndex] = sampledValue;
 			}
@@ -774,6 +790,20 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 			}
 		}
 		return values[best];
+	}
+
+	/**
+	 * Sum of finite samples in (fromMs, toMs], so consecutive output bins add up to
+	 * the cumulated series; the first bin also takes samples at or before 0.
+	 */
+	static double sumSince(double[] timesMs, double[] values, long fromMs, long toMs) {
+		double sum = 0;
+		for (int i = 0; i < timesMs.length; i++) {
+			boolean inside = timesMs[i] <= toMs && (timesMs[i] > fromMs || toMs <= 0);
+			if (inside && Double.isFinite(values[i]))
+				sum += values[i];
+		}
+		return sum;
 	}
 
 	/**

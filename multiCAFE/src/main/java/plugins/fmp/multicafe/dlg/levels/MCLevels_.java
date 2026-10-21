@@ -131,6 +131,10 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectLevels.reapplyViewIfSelected();
 	}
 
+	public void onKymographCapillaryShown(Capillary cap) {
+		tabDetectGulps.followCapillary(cap);
+	}
+
 	public void clearLevelsV1View() {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		tabDetectLevels.resetDisplayToRaw(exp);

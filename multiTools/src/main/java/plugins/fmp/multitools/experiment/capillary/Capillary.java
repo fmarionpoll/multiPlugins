@@ -350,6 +350,20 @@ public class Capillary implements Comparable<Capillary> {
 		return measurements.ptsGulps;
 	}
 
+	public CapillaryCorrelationGulps getCorrelationGulps() {
+		return measurements.ptsGulpsCorr;
+	}
+
+	/** Replaces the genuine gulps with the stored correlation gulps; records the method. */
+	public boolean copyCorrelationGulpsToGulps() {
+		if (!measurements.ptsGulpsCorr.hasMeasures())
+			return false;
+		measurements.ptsGulps.copy(measurements.ptsGulpsCorr.getEvents());
+		properties.getLimitsOptions().gulpDetectionMethod = BuildSeriesOptions.GulpDetectionMethod.VERTICAL_CORRELATION;
+		gulpMeasuresDirty = false;
+		return true;
+	}
+
 	public CapillaryMeasure getTopCorrected() {
 		return measurements.ptsTopCorrected;
 	}
@@ -1052,6 +1066,7 @@ public class Capillary implements Comparable<Capillary> {
 		getROIFromCapillaryLevel(measurements.ptsBottom, listrois, kymographImagesList);
 		getROIFromCapillaryLevel(measurements.ptsDerivative, listrois, kymographImagesList);
 		getROIsFromCapillaryGulps(measurements.ptsGulps, listrois, kymographImagesList);
+		getROIsFromCorrelationGulpsAtT(listrois, kymographIndex);
 		return listrois;
 	}
 
@@ -1122,6 +1137,26 @@ public class Capillary implements Comparable<Capillary> {
 		}
 	}
 
+	private void getROIsFromCorrelationGulpsAtT(List<ROI2D> listrois, int tIndex) {
+		CapillaryCorrelationGulps corr = measurements.ptsGulpsCorr;
+		if (!corr.hasMeasures())
+			return;
+		Level2D heights = corr.getEvents().getHeightSeries();
+		Level2D top = measurements.ptsTop != null ? measurements.ptsTop.polylineLevel : null;
+		for (int x = 0; x < heights.npoints; x++) {
+			double value = heights.ypoints[x];
+			if (!(value > 0) || top == null || x >= top.npoints || !Double.isFinite(top.ypoints[x]))
+				continue;
+			listrois.add(CapillaryCorrelationGulps.createRoi(metadata.kymographPrefix, x, top.ypoints[x], value, tIndex));
+		}
+	}
+
+	public List<ROI2D> getCorrelationGulpROIsForCapillaryAtT(int t) {
+		List<ROI2D> listrois = new ArrayList<>();
+		getROIsFromCorrelationGulpsAtT(listrois, t);
+		return listrois;
+	}
+
 	/**
 	 * Exports ROIs for this capillary at time index t (top, bottom, derivative,
 	 * gulps). Same content as transferMeasuresToROIs but at fixed t, without
@@ -1133,6 +1168,7 @@ public class Capillary implements Comparable<Capillary> {
 		getROIFromCapillaryLevelAtT(measurements.ptsBottom, listrois, t);
 		getROIFromCapillaryLevelAtT(measurements.ptsDerivative, listrois, t);
 		getROIsFromCapillaryGulpsAtT(measurements.ptsGulps, listrois, t);
+		getROIsFromCorrelationGulpsAtT(listrois, t);
 		return listrois;
 	}
 
@@ -1694,11 +1730,13 @@ public class Capillary implements Comparable<Capillary> {
 		public CapillaryMeasure ptsBottom = new CapillaryMeasure("bottomlevel");
 		public CapillaryMeasure ptsDerivative = new CapillaryMeasure("derivative");
 		public CapillaryGulps ptsGulps = new CapillaryGulps();
+		public final CapillaryCorrelationGulps ptsGulpsCorr = new CapillaryCorrelationGulps();
 		public CapillaryMeasure ptsTopCorrected = new CapillaryMeasure("toplevel_corrected");
 		public CapillaryMeasure ptsThreshold = new CapillaryMeasure("threshold");
 
 		void copyFrom(CapillaryMeasurements source) {
 			ptsGulps.copy(source.ptsGulps);
+			ptsGulpsCorr.copy(source.ptsGulpsCorr);
 			ptsTop.copy(source.ptsTop);
 			ptsBottom.copy(source.ptsBottom);
 			ptsDerivative.copy(source.ptsDerivative);
@@ -1731,6 +1769,7 @@ public class Capillary implements Comparable<Capillary> {
 			// safest: invalidate gulps when width changes; they must be re-detected
 			ptsGulps.clear();
 			ptsGulps.ensureSize(imageWidth);
+			ptsGulpsCorr.clear();
 		}
 
 		void cropToImageWidth(int imageWidth) {
@@ -1740,10 +1779,12 @@ public class Capillary implements Comparable<Capillary> {
 			// safest: invalidate gulps when width changes; they must be re-detected
 			ptsGulps.clear();
 			ptsGulps.ensureSize(imageWidth);
+			ptsGulpsCorr.clear();
 		}
 
 		void clearAllMeasures() {
 			ptsGulps.clear();
+			ptsGulpsCorr.clear();
 			ptsTop.clear();
 			ptsBottom.clear();
 			ptsDerivative.clear();
@@ -1753,6 +1794,7 @@ public class Capillary implements Comparable<Capillary> {
 
 		void clearKymoMeasuresOnly() {
 			ptsGulps.clear();
+			ptsGulpsCorr.clear();
 			ptsTop.clear();
 			ptsBottom.clear();
 			ptsDerivative.clear();
@@ -1762,6 +1804,7 @@ public class Capillary implements Comparable<Capillary> {
 
 		void clearTopKymoMeasuresOnly() {
 			ptsGulps.clear();
+			ptsGulpsCorr.clear();
 			ptsTop.clear();
 			ptsDerivative.clear();
 			ptsTopCorrected.clear();

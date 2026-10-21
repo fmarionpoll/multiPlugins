@@ -30,6 +30,11 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 public class GulpDetector {
 
 	public void detectGulps(Experiment exp, BuildSeriesOptions options) {
+		if (options != null && options.gulpDetectionMethod != null && options.gulpDetectionMethod.isInteractiveOnly()) {
+			Logger.warn("GulpDetector:detectGulps() - " + options.gulpDetectionMethod
+					+ " is interactive only; batch detection skipped");
+			return;
+		}
 		if (options != null && options.gulpDetectionMethod != GulpDetectionMethod.XDIFFN_REF) {
 			detectGulpsToprawDy(exp, options);
 			return;

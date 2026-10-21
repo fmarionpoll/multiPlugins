@@ -11,6 +11,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.GridLayout;
 import java.awt.RenderingHints;
+import java.awt.Window;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -20,15 +21,20 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -41,33 +47,51 @@ import javax.swing.JSplitPane;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 
+import icy.roi.ROI;
+import icy.roi.ROI2D;
+import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.VerticalCorrelation;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 
-/** Standalone preview: drag the threshold and inspect aligned original pixels. */
+/** Drag the threshold, inspect aligned original pixels, see candidates on the kymograph, store them as a measure. */
 public final class CorrelationGulpPanel extends JPanel {
     private static final long serialVersionUID = 1L;
+    private static final String ROI_NAME_PART = "_" + CapillaryCorrelationGulps.ROI_TOKEN;
     private final Experiment experiment;
     private final JComboBox<Capillary> capillaries = new JComboBox<>();
-    private final JSpinner radius = new JSpinner(new SpinnerNumberModel(10, 3, 20, 1));
+    private final JSpinner radius = new JSpinner(new SpinnerNumberModel(10, 3, 60, 1));
+    private final JSpinner maxShift = new JSpinner(new SpinnerNumberModel(CapillaryCorrelationGulps.DEFAULT_MAX_SHIFT_PX, 1.0, 60.0, 1.0));
     private final JSpinner threshold = new JSpinner(new SpinnerNumberModel(1.0, 0.0, 10000.0, .05));
-    private final JButton compute = new JButton("Compute"), automatic = new JButton("Automatic"), export = new JButton("Export CSV...");
-    private final JLabel source = new JLabel(" "), status = new JLabel("Select a capillary and compute its correlation motion.");
+    private final JButton compute = new JButton("Recompute"), automatic = new JButton("Automatic"), export = new JButton("Export CSV...");
+    private final JButton save = new JButton("Save"), copyToGulps = new JButton("Copy to gulps...");
+    private final JCheckBox showRois = new JCheckBox("Show on kymograph", true);
+    private final JLabel source = new JLabel(" "), status = new JLabel("Select a capillary to analyze its correlation motion.");
     private final MotionPlot plot = new MotionPlot();
     private final AlignmentView alignment = new AlignmentView();
     private final Map<Capillary, Double> manualThresholds = new IdentityHashMap<>();
+    private final Map<Capillary, CorrelationGulpPreview> cache = new IdentityHashMap<>();
+    private final Timer roiTimer = new Timer(120, e -> updateRois());
+    private Consumer<Capillary> onCapillaryChosen;
     private SwingWorker<CorrelationGulpPreview, Void> worker;
+    private Capillary pendingCapillary;
     private CorrelationGulpPreview preview;
-    private Capillary computedCapillary;
+    private Capillary computedCapillary, roiCapillary;
+    private boolean[] roiCandidates;
+    private boolean roiStored, released;
     private BufferedImage rawStrip, refinedStrip;
     private int selectedFrame;
-    private boolean settingThreshold, manual;
+    private boolean settingThreshold, manual, syncingSelection;
 
-    public static void open(Component owner, Experiment exp, int initialKymo) {
-        CorrelationGulpPanel panel = new CorrelationGulpPanel(exp, initialKymo);
+    /** onCapillaryChosen is notified when the user picks a capillary in this panel (e.g. to move the kymograph viewer). */
+    public static CorrelationGulpPanel open(Component owner, Experiment exp, Capillary initial, Consumer<Capillary> onCapillaryChosen) {
+        CorrelationGulpPanel panel = new CorrelationGulpPanel(exp, initial);
+        panel.onCapillaryChosen = onCapillaryChosen;
         JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(owner), "Gulp correlation prototype", Dialog.ModalityType.MODELESS);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         dialog.setContentPane(panel);
@@ -75,19 +99,23 @@ public final class CorrelationGulpPanel extends JPanel {
         dialog.setMinimumSize(new Dimension(920, 700));
         dialog.setLocationRelativeTo(owner);
         dialog.addWindowListener(new WindowAdapter() {
-            @Override public void windowClosed(WindowEvent e) { if (panel.worker != null) panel.worker.cancel(true); }
+            @Override public void windowClosed(WindowEvent e) { panel.release(); }
         });
         dialog.setVisible(true);
-        panel.compute();
+        panel.analyzeSelected();
+        return panel;
     }
 
-    public CorrelationGulpPanel(Experiment exp, int initialKymo) {
+    public CorrelationGulpPanel(Experiment exp, Capillary initial) {
         super(new BorderLayout(6, 6));
         experiment = exp;
         setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-        for (Capillary cap : exp.getCapillaries().getList()) {
-            capillaries.addItem(cap);
-            if (cap.getKymographIndex() == initialKymo) capillaries.setSelectedItem(cap);
+        for (Capillary cap : exp.getCapillaries().getList()) capillaries.addItem(cap);
+        if (initial != null) capillaries.setSelectedItem(initial);
+        Capillary first = (Capillary) capillaries.getSelectedItem();
+        if (first != null && first.getCorrelationGulps().hasMeasures()) {
+            setIfInRange(radius, first.getCorrelationGulps().getWindowRadius());
+            setIfInRange(maxShift, first.getCorrelationGulps().getMaxShiftPx());
         }
         capillaries.setRenderer(new DefaultListCellRenderer() {
             private static final long serialVersionUID = 1L;
@@ -103,10 +131,12 @@ public final class CorrelationGulpPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout());
         JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT));
         controls.add(new JLabel("Capillary")); controls.add(capillaries);
-        controls.add(new JLabel("Window +/- pixels")); controls.add(radius); controls.add(compute);
+        controls.add(new JLabel("Window +/- pixels")); controls.add(radius);
+        controls.add(new JLabel("Max shift +/- pixels")); controls.add(maxShift); controls.add(compute);
         JPanel thresholdControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
         thresholdControls.add(new JLabel("Threshold (pixels/min)")); thresholdControls.add(threshold);
-        thresholdControls.add(automatic); thresholdControls.add(export);
+        thresholdControls.add(automatic); thresholdControls.add(showRois);
+        thresholdControls.add(save); thresholdControls.add(copyToGulps); thresholdControls.add(export);
         JPanel rows = new JPanel(new GridLayout(0, 1));
         rows.add(controls); rows.add(thresholdControls);
         header.add(rows, BorderLayout.NORTH);
@@ -118,14 +148,32 @@ public final class CorrelationGulpPanel extends JPanel {
         add(split, BorderLayout.CENTER);
         JPanel footer = new JPanel(new BorderLayout(4, 4));
         footer.add(status, BorderLayout.NORTH);
-        footer.add(new JLabel("Preview only. Drag the red bar to adjust the threshold; click the graph to inspect a time point. Export saves this preview."), BorderLayout.SOUTH);
+        footer.add(new JLabel("<html>Candidates are drawn in blue on the kymograph. Drag the red bar to adjust the threshold; click the graph to inspect a time point.<br>"
+                + "Save stores them as correlation gulps, kept apart from the gulps. Copy to gulps replaces the gulps of this capillary.</html>"), BorderLayout.SOUTH);
         add(footer, BorderLayout.SOUTH);
-        automatic.setEnabled(false); export.setEnabled(false); threshold.setEnabled(false);
+        setResultControlsEnabled(false);
+        roiTimer.setRepeats(false);
         threshold.setToolTipText("Threshold on downward motion minus expected evaporation, divided by interval duration.");
         automatic.setToolTipText("Quiet-period median + 3 robust noise SD, with an empty-capillary noise floor.");
-        compute.addActionListener(e -> compute());
-        capillaries.addActionListener(e -> clearPreview());
-        radius.addChangeListener(e -> clearPreview());
+        compute.setToolTipText("Discard the cached result for this capillary and analyze it again.");
+        save.setToolTipText("Store the candidates of this capillary as correlation gulps (saved with the capillary measures).");
+        copyToGulps.setToolTipText("Save, then replace the gulps of this capillary with the correlation gulps.");
+        save.addActionListener(e -> store());
+        copyToGulps.addActionListener(e -> copyToGulps());
+        compute.addActionListener(e -> {
+            Capillary cap = (Capillary) capillaries.getSelectedItem();
+            if (cap != null) { cache.remove(cap); startCompute(cap, true); }
+        });
+        capillaries.addActionListener(e -> {
+            if (syncingSelection) return;
+            Capillary cap = (Capillary) capillaries.getSelectedItem();
+            if (onCapillaryChosen != null && cap != null) onCapillaryChosen.accept(cap);
+            analyzeSelected();
+        });
+        radius.setToolTipText("Half-height of the image profile matched around the meniscus. Scale with the camera resolution.");
+        maxShift.setToolTipText("Largest meniscus displacement searched between two frames. Larger steps are rejected as 'Search limit'.");
+        radius.addChangeListener(e -> { cache.clear(); clearPreview(); analyzeSelected(); });
+        maxShift.addChangeListener(e -> { cache.clear(); clearPreview(); analyzeSelected(); });
         automatic.addActionListener(e -> {
             if (preview != null && Double.isFinite(preview.noise.automatic)) setThreshold(preview.noise.automatic, false);
         });
@@ -136,44 +184,94 @@ public final class CorrelationGulpPanel extends JPanel {
             }
             refresh();
         });
+        showRois.addActionListener(e -> updateRois());
         export.addActionListener(e -> export());
+    }
+
+    public Experiment getExperiment() { return experiment; }
+
+    /** Follows a capillary selected elsewhere (kymograph viewer); analyzes it if not cached. */
+    public void showCapillary(Capillary cap) {
+        if (cap == null || cap == capillaries.getSelectedItem()) return;
+        syncingSelection = true;
+        try { capillaries.setSelectedItem(cap); } finally { syncingSelection = false; }
+        analyzeSelected();
+    }
+
+    public void bringToFront() {
+        Window window = SwingUtilities.getWindowAncestor(this);
+        if (window != null) window.toFront();
+    }
+
+    public void close() {
+        Window window = SwingUtilities.getWindowAncestor(this);
+        if (window != null) window.dispose();
+        else release();
+    }
+
+    private void release() {
+        if (worker != null) worker.cancel(true);
+        worker = null; pendingCapillary = null;
+        roiTimer.stop();
+        released = true;
+        preview = null; computedCapillary = null;
+        cache.clear();
+        updateRois();
+    }
+
+    private void setResultControlsEnabled(boolean enabled) {
+        automatic.setEnabled(enabled && preview != null && Double.isFinite(preview.noise.automatic));
+        export.setEnabled(enabled); threshold.setEnabled(enabled);
+        save.setEnabled(enabled); copyToGulps.setEnabled(enabled);
+    }
+
+    private void analyzeSelected() {
+        Capillary cap = (Capillary) capillaries.getSelectedItem();
+        if (cap == null) { status.setText("No capillaries loaded."); return; }
+        if (cap == computedCapillary && preview != null) return;
+        if (cap == pendingCapillary && worker != null && !worker.isDone()) return;
+        CorrelationGulpPreview cached = cache.get(cap);
+        if (cached != null && matchesSavedLevels(cached, cap)) {
+            if (worker != null) worker.cancel(true);
+            worker = null; pendingCapillary = null;
+            display(cap, cached);
+        } else startCompute(cap, false);
+    }
+
+    private static boolean matchesSavedLevels(CorrelationGulpPreview p, Capillary cap) {
+        if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null) return false;
+        Level2D level = cap.getTopRaw().polylineLevel;
+        return level.npoints == p.raw.length && Arrays.equals(Arrays.copyOf(level.ypoints, level.npoints), p.raw);
     }
 
     private void clearPreview() {
         preview = null; computedCapillary = null;
         rawStrip = null; refinedStrip = null;
-        automatic.setEnabled(false); export.setEnabled(false); threshold.setEnabled(false);
-        source.setText(" "); status.setText("Click Compute to analyze the selected capillary and window.");
+        setResultControlsEnabled(false);
+        source.setText(" ");
         plot.repaint(); alignment.repaint();
+        scheduleRoiUpdate();
     }
 
-    private void compute() {
-        if (worker != null && !worker.isDone()) return;
-        Capillary cap = (Capillary) capillaries.getSelectedItem();
-        if (cap == null) { status.setText("No capillaries loaded."); return; }
+    private void startCompute(Capillary cap, boolean interactive) {
+        if (worker != null) worker.cancel(true);
         clearPreview();
-        int window = ((Number) radius.getValue()).intValue();
-        compute.setEnabled(false); capillaries.setEnabled(false); radius.setEnabled(false);
-        status.setText("Computing image motion and empty-capillary noise...");
+        int window = windowRadius();
+        double shift = maxShiftValue();
+        pendingCapillary = cap;
+        status.setText("Computing image motion and empty-capillary noise for " + cap.getLast2ofCapillaryName() + "...");
         worker = new SwingWorker<CorrelationGulpPreview, Void>() {
             @Override protected CorrelationGulpPreview doInBackground() {
-                return CorrelationGulpPreview.compute(experiment, cap, window);
+                return CorrelationGulpPreview.compute(experiment, cap, window, shift);
             }
             @Override protected void done() {
-                compute.setEnabled(true); capillaries.setEnabled(true); radius.setEnabled(true);
+                if (worker != this) return;
+                worker = null; pendingCapillary = null;
                 try {
                     if (isCancelled()) return;
-                    preview = get(); computedCapillary = cap; selectedFrame = 0;
-                    BufferedImage initialStrip = aligned(preview.image, preview.raw, 0);
-                    double offset = displayOffset(initialStrip);
-                    rawStrip = aligned(preview.image, preview.raw, offset);
-                    refinedStrip = aligned(preview.image, preview.motion.refined, offset);
-                    Double saved = manualThresholds.get(cap);
-                    double initial = saved != null ? saved : preview.noise.automatic;
-                    threshold.setEnabled(true);
-                    automatic.setEnabled(Double.isFinite(preview.noise.automatic));
-                    export.setEnabled(true);
-                    setThreshold(Double.isFinite(initial) ? initial : 1, saved != null || !Double.isFinite(initial));
+                    CorrelationGulpPreview result = get();
+                    cache.put(cap, result);
+                    display(cap, result);
                 } catch (CancellationException ignored) {
                     status.setText("Computation cancelled.");
                 } catch (InterruptedException e) {
@@ -181,12 +279,93 @@ public final class CorrelationGulpPanel extends JPanel {
                 } catch (ExecutionException | RuntimeException e) {
                     clearPreview();
                     Throwable cause = e.getCause() == null ? e : e.getCause();
-                    status.setText(cause.getMessage());
-                    JOptionPane.showMessageDialog(CorrelationGulpPanel.this, cause.getMessage(), "Correlation preview", JOptionPane.ERROR_MESSAGE);
+                    status.setText(cap.getLast2ofCapillaryName() + ": " + cause.getMessage());
+                    if (interactive)
+                        JOptionPane.showMessageDialog(CorrelationGulpPanel.this, cause.getMessage(), "Correlation preview", JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
         worker.execute();
+    }
+
+    private void display(Capillary cap, CorrelationGulpPreview result) {
+        preview = result; computedCapillary = cap; selectedFrame = 0;
+        BufferedImage initialStrip = aligned(preview.image, preview.raw, 0);
+        double offset = displayOffset(initialStrip);
+        rawStrip = aligned(preview.image, preview.raw, offset);
+        refinedStrip = aligned(preview.image, preview.motion.refined, offset);
+        Double saved = manualThresholds.get(cap);
+        CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
+        if (saved == null && stored.hasMeasures() && stored.isManualThreshold() && sameSettings(stored)
+                && Double.isFinite(stored.getThresholdPxPerMin()))
+            saved = stored.getThresholdPxPerMin();
+        double initial = saved != null ? saved : preview.noise.automatic;
+        setResultControlsEnabled(true);
+        setThreshold(Double.isFinite(initial) ? initial : 1, saved != null || !Double.isFinite(initial));
+    }
+
+    private int windowRadius() { return ((Number) radius.getValue()).intValue(); }
+
+    private double maxShiftValue() { return ((Number) maxShift.getValue()).doubleValue(); }
+
+    private boolean sameSettings(CapillaryCorrelationGulps stored) {
+        return stored.getWindowRadius() == windowRadius() && Math.abs(stored.getMaxShiftPx() - maxShiftValue()) < 1e-9;
+    }
+
+    private static void setIfInRange(JSpinner spinner, double v) {
+        SpinnerNumberModel model = (SpinnerNumberModel) spinner.getModel();
+        if (v < ((Number) model.getMinimum()).doubleValue() || v > ((Number) model.getMaximum()).doubleValue()) return;
+        spinner.setValue(model.getValue() instanceof Integer ? Integer.valueOf((int) Math.round(v)) : Double.valueOf(v));
+    }
+
+    private double[] candidateAmplitudes() {
+        boolean[] chosen = candidates();
+        double[] amplitudes = new double[chosen.length];
+        for (int i = 0; i < chosen.length; i++) amplitudes[i] = chosen[i] ? Math.max(0, preview.motion.shift[i]) : 0;
+        return amplitudes;
+    }
+
+    private boolean isStoredCurrent() {
+        if (preview == null) return false;
+        CapillaryCorrelationGulps stored = computedCapillary.getCorrelationGulps();
+        if (!stored.hasMeasures() || !sameSettings(stored)) return false;
+        Level2D heights = stored.getEvents().getHeightSeries();
+        double[] current = candidateAmplitudes();
+        if (heights.npoints != current.length) return false;
+        for (int i = 0; i < current.length; i++) if (Math.abs(heights.ypoints[i] - current[i]) > 1e-4) return false;
+        return true;
+    }
+
+    private boolean store() {
+        if (preview == null) return false;
+        computedCapillary.getCorrelationGulps().set(candidateAmplitudes(), windowRadius(), maxShiftValue(), value(), manual);
+        boolean ok = experiment.save_capillaries_description_and_measures();
+        if (!ok) JOptionPane.showMessageDialog(this, "Could not save the capillary measures.", "Correlation gulps", JOptionPane.ERROR_MESSAGE);
+        refresh();
+        return ok;
+    }
+
+    private void copyToGulps() {
+        if (preview == null) return;
+        Capillary cap = computedCapillary;
+        int current = 0, replacement = 0;
+        Level2D heights = cap.getGulps() == null ? null : cap.getGulps().getHeightSeries();
+        if (heights != null) for (int i = 0; i < heights.npoints; i++) if (heights.ypoints[i] > 0) current++;
+        for (boolean v : candidates()) if (v) replacement++;
+        String message = "Replace the " + current + " gulps of capillary " + cap.getLast2ofCapillaryName() + " with "
+                + replacement + " correlation gulps?" + (cap.isGulpMeasuresDirty() ? "\nUnsaved gulp edits on this capillary will be lost." : "");
+        if (JOptionPane.showConfirmDialog(this, message, "Copy to gulps", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) return;
+        cap.getCorrelationGulps().set(candidateAmplitudes(), windowRadius(), maxShiftValue(), value(), manual);
+        cap.copyCorrelationGulpsToGulps();
+        int t = cap.getKymographIndex();
+        Sequence seq = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
+        if (seq != null && seq.getFirstViewer() != null && seq.getFirstViewer().getPositionT() == t) {
+            experiment.getSeqKymos().replaceCapillaryMeasureRoisAtT(t, experiment.getCapillaries());
+            roiCapillary = null;
+        }
+        if (!experiment.save_capillaries_description_and_measures())
+            JOptionPane.showMessageDialog(this, "Could not save the capillary measures.", "Copy to gulps", JOptionPane.ERROR_MESSAGE);
+        refresh();
     }
 
     private double value() { return ((Number) threshold.getValue()).doubleValue(); }
@@ -212,11 +391,54 @@ public final class CorrelationGulpPanel extends JPanel {
             String auto = Double.isFinite(preview.noise.automatic) ? format(preview.noise.automatic) : "unavailable";
             source.setText("<html>" + preview.referenceDescription + "<br>Initial threshold: " + auto
                     + " px/min | " + preview.noise.source + " | quiet intervals: " + preview.noise.quietSamples + "</html>");
+            CapillaryCorrelationGulps stored = computedCapillary.getCorrelationGulps();
+            String storage = isStoredCurrent() ? "saved"
+                    : stored.hasMeasures() ? "not saved (stored: " + stored.countEvents() + " events, window " + stored.getWindowRadius()
+                            + ", max shift " + format(stored.getMaxShiftPx()) + ", threshold " + format(stored.getThresholdPxPerMin()) + ")"
+                    : "not saved";
             status.setText(count + " candidate intervals | " + good + "/" + (preview.raw.length - 1)
                     + " reliable correlations | threshold " + format(value()) + " px/min (" + (manual ? "manual" : "automatic")
-                    + ") | time " + format(preview.minutes[selectedFrame]) + " min");
+                    + ") | time " + format(preview.minutes[selectedFrame]) + " min | " + storage);
         }
         plot.repaint(); alignment.repaint();
+        scheduleRoiUpdate();
+    }
+
+    private void scheduleRoiUpdate() { roiTimer.restart(); }
+
+    /** Live candidates replace the stored correlation gulps of the displayed capillary; closing restores them. */
+    private void updateRois() {
+        Sequence seq = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
+        if (seq == null) return;
+        Capillary cap = released ? null : (Capillary) capillaries.getSelectedItem();
+        boolean show = showRois.isSelected();
+        boolean[] chosen = !released && show && preview != null && cap == computedCapillary ? candidates() : null;
+        boolean stored = released || (show && chosen == null);
+        if (!released && cap == roiCapillary && stored == roiStored && Arrays.equals(chosen, roiCandidates)) return;
+        List<Integer> frames = new ArrayList<>();
+        if (roiCapillary != null) frames.add(roiCapillary.getKymographIndex());
+        if (cap != null) frames.add(cap.getKymographIndex());
+        List<ROI> old = new ArrayList<>();
+        for (ROI2D roi : seq.getROI2Ds())
+            if (roi.getName() != null && roi.getName().contains(ROI_NAME_PART) && frames.contains(roi.getT())) old.add(roi);
+        List<ROI2D> rois = new ArrayList<>();
+        if (chosen != null) {
+            int t = cap.getKymographIndex();
+            for (int i = 1; i < chosen.length; i++)
+                if (chosen[i] && Double.isFinite(preview.raw[i]))
+                    rois.add(CapillaryCorrelationGulps.createRoi(cap.getKymographPrefix(), i, preview.raw[i], preview.motion.shift[i], t));
+        } else if (stored) {
+            Capillary owner = released ? roiCapillary : cap;
+            if (owner != null) rois.addAll(owner.getCorrelationGulpROIsForCapillaryAtT(owner.getKymographIndex()));
+        }
+        seq.beginUpdate();
+        try {
+            if (!old.isEmpty()) seq.removeROIs(old, false);
+            if (!rois.isEmpty()) seq.addROIs(rois, false);
+        } finally {
+            seq.endUpdate();
+        }
+        roiCapillary = cap; roiCandidates = chosen; roiStored = stored;
     }
 
     private void export() {
@@ -233,7 +455,7 @@ public final class CorrelationGulpPanel extends JPanel {
     private void writeCsv(Path file) throws IOException {
         boolean[] selected = candidates();
         try (java.io.BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
-            writer.write("# prototype=vertical_correlation;capillary=" + computedCapillary.getLast2ofCapillaryName() + ";window_radius=" + radius.getValue() + "\n");
+            writer.write("# prototype=vertical_correlation;capillary=" + computedCapillary.getLast2ofCapillaryName() + ";window_radius=" + radius.getValue() + ";max_shift_px=" + maxShift.getValue() + "\n");
             writer.write("# experiment=" + experiment.getResultsDirectory() + ";reference=" + preview.referenceDescription + "\n");
             writer.write("# threshold_source=" + preview.noise.source + ";manual=" + manual + ";automatic_threshold_px_per_min=" + preview.noise.automatic + "\n");
             writer.write("frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px\n");

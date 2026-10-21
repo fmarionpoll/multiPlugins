@@ -12,6 +12,8 @@ import java.nio.file.DirectoryStream;
 
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.tracking.TrackingTimelinePersistence;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryPersistence;
 import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometryPersistence;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.csv.CsvNumberParsing;
@@ -598,6 +600,10 @@ public class CapillariesPersistence {
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_ReferenceMeasures(capillaries, csvReader, sep);
 							break;
+						case CapillaryPersistence.ID_GULPS_CORR:
+							csvLoad_CorrelationGulps(capillaries, csvReader, sep,
+									row.contains(CapillaryPersistence.ID_MAX_SHIFT_COLUMN));
+							break;
 						default:
 							break;
 						}
@@ -693,12 +699,42 @@ public class CapillariesPersistence {
 						EnumResults.THRESHOLD, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumResults.GULPS_FLAT, csvSep);
+				csvSave_CorrelationGulps(capillaries, csvWriter, csvSep);
 				CapillariesPersistenceLegacy.csvSave_ReferenceSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
 				return true;
 			} catch (IOException e) {
 				return false;
+			}
+		}
+
+		private static void csvSave_CorrelationGulps(Capillaries capillaries, FileWriter csvWriter, String sep)
+				throws IOException {
+			boolean any = false;
+			for (Capillary cap : capillaries.getList())
+				any |= cap.getCorrelationGulps().hasMeasures();
+			if (!any)
+				return;
+			csvWriter.append(CapillaryPersistence.csvExportCorrelationGulpsSectionHeader(sep));
+			for (Capillary cap : capillaries.getList())
+				if (cap.getCorrelationGulps().hasMeasures())
+					csvWriter.append(CapillaryPersistence.csvExportCorrelationGulps(cap, sep));
+			csvWriter.append("#" + sep + "#\n");
+		}
+
+		private static void csvLoad_CorrelationGulps(Capillaries capillaries, BufferedReader csvReader, String sep,
+				boolean withMaxShift) throws IOException {
+			String row;
+			while ((row = csvReader.readLine()) != null) {
+				String[] data = row.split(sep);
+				if (data.length > 0 && data[0].equals("#"))
+					return;
+				if (data.length < 1 || data[0].isEmpty())
+					continue;
+				Capillary cap = capillaries.getCapillaryFromRoiNamePrefix(data[0]);
+				if (cap != null)
+					CapillaryPersistence.csvImportCorrelationGulps(cap, data, withMaxShift);
 			}
 		}
 	}

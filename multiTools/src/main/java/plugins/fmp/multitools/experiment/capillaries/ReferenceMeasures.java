@@ -155,6 +155,17 @@ public class ReferenceMeasures {
 		return false;
 	}
 
+	/** Curve subtracted from topraw: combined, else left, else right; null if none. */
+	public CapillaryMeasure getEvaporationUsedForCorrection() {
+		if (evaporation.isThereAnyMeasuresDone())
+			return evaporation;
+		if (evaporationL.isThereAnyMeasuresDone())
+			return evaporationL;
+		if (evaporationR.isThereAnyMeasuresDone())
+			return evaporationR;
+		return null;
+	}
+
 	public CapillaryMeasure getEvaporationForDisplay() {
 		if (evaporation.isThereAnyMeasuresDone())
 			return evaporation;

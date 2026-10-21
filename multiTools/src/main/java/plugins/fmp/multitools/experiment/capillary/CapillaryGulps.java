@@ -447,6 +447,43 @@ public class CapillaryGulps {
 		return out;
 	}
 
+	/**
+	 * Sub-pixel volume per intake bin (pixels), 0 outside intake bins. With an
+	 * evaporation curve, each intake bin loses the evaporation increment over the
+	 * same interval ({@code E[i] - E[i-1]}); the result may be negative and is NaN
+	 * where the curve has no finite increment.
+	 */
+	public double[] getIntakeBins(int npoints, double[] evaporation) {
+		double[] out = new double[Math.max(0, npoints)];
+		if (gulpHeights == null)
+			return out;
+		int n = Math.min(out.length, gulpHeights.npoints);
+		for (int i = 0; i < n; i++) {
+			double h = gulpHeights.ypoints[i];
+			if (!(h > 0))
+				continue;
+			if (evaporation == null) {
+				out[i] = h;
+				continue;
+			}
+			double delta = i > 0 && i < evaporation.length ? evaporation[i] - evaporation[i - 1] : Double.NaN;
+			out[i] = Double.isFinite(delta) ? h - delta : Double.NaN;
+		}
+		return out;
+	}
+
+	/** Running total of {@link #getIntakeBins}; NaN bins add nothing. */
+	public static double[] cumulate(double[] bins) {
+		double[] out = new double[bins.length];
+		double running = 0;
+		for (int i = 0; i < bins.length; i++) {
+			if (Double.isFinite(bins[i]))
+				running += bins[i];
+			out[i] = running;
+		}
+		return out;
+	}
+
 	private ArrayList<Integer> getIsGulpsFromHeightSeries(int npoints) {
 		ArrayList<Integer> amp = getAmplitudeGulpsFromHeightSeries(npoints);
 		if (amp == null)

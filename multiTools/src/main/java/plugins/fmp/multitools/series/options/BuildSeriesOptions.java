@@ -17,7 +17,13 @@ import plugins.fmp.multitools.tools.imageTransform.SpotThresholdColorSpace;
 public class BuildSeriesOptions implements XMLPersistent {
 
 	public enum GulpDetectionMethod {
-		XDIFFN_REF("XDiffn vs ref (classic)"), TOPRAW_DY("topraw dY (v2)");
+		XDIFFN_REF("XDiffn vs ref (classic)"), TOPRAW_DY("topraw dY (v2)"),
+		VERTICAL_CORRELATION("vertical correlation (prototype)");
+
+		/** Interactive only: not run by the batch {@code DetectGulps} pipeline. */
+		public boolean isInteractiveOnly() {
+			return this == VERTICAL_CORRELATION;
+		}
 
 		private final String label;
 

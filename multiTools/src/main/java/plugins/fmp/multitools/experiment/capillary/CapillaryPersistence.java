@@ -371,6 +371,33 @@ public class CapillaryPersistence {
 		return sbf.toString();
 	}
 
+	public static final String ID_GULPS_CORR = "GULPS_CORR";
+	public static final String ID_MAX_SHIFT_COLUMN = "max_shift_px";
+
+	public static String csvExportCorrelationGulpsSectionHeader(String sep) {
+		return "#" + sep + ID_GULPS_CORR + sep + "columns=" + sep + "name" + sep + "index" + sep + "window_radius"
+				+ sep + ID_MAX_SHIFT_COLUMN + sep + "threshold_px_per_min" + sep + "manual_threshold" + sep + "npts"
+				+ sep + "yi\n";
+	}
+
+	public static String csvExportCorrelationGulps(Capillary cap, String sep) {
+		StringBuffer sbf = new StringBuffer();
+		sbf.append(cap.getKymographPrefix() + sep + cap.getKymographIndex() + sep);
+		cap.getCorrelationGulps().csvExportToRow(sbf, sep);
+		sbf.append("\n");
+		return sbf.toString();
+	}
+
+	public static void csvImportCorrelationGulps(Capillary cap, String[] data, boolean withMaxShift) {
+		try {
+			cap.getCorrelationGulps().csvImportFromRow(data, 2, withMaxShift);
+		} catch (NumberFormatException e) {
+			cap.getCorrelationGulps().clear();
+			Logger.warn("CapillaryPersistence:csvImportCorrelationGulps() invalid row for capillary "
+					+ cap.getKymographPrefix() + ": " + e.getMessage());
+		}
+	}
+
 	public static String csvExportAlongTRow(Capillary cap, AlongT at, String sep) {
 		if (at == null || at.getRoi() == null)
 			return "";

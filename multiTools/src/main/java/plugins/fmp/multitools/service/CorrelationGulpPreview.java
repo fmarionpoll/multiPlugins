@@ -40,6 +40,10 @@ public final class CorrelationGulpPreview {
     }
 
     public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius) {
+        return compute(exp, selected, radius, VerticalCorrelation.DEFAULT_MAX_SHIFT);
+    }
+
+    public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius, double maxShift) {
         Sequence sequence = exp.getSeqKymos() == null ? null : exp.getSeqKymos().getSequence();
         if (sequence == null) throw new IllegalArgumentException("Open the experiment's kymographs first.");
         if (exp.getActiveBinDescription() != null && exp.getActiveBinDescription().isKymoFromNormedBlue())
@@ -54,7 +58,7 @@ public final class CorrelationGulpPreview {
         for (int i = 1; i < minutes.length; i++)
             if (!(minutes[i] > minutes[i - 1])) throw new IllegalArgumentException("Frame times must increase strictly.");
         BufferedImage image = image(sequence, selected, raw.length);
-        VerticalCorrelation.Result motion = VerticalCorrelation.analyze(image, raw, radius);
+        VerticalCorrelation.Result motion = VerticalCorrelation.analyze(image, raw, radius, maxShift);
         List<Capillary> controls = new ArrayList<>();
         List<double[]> curves = new ArrayList<>();
         double targetScale = pixelScale(exp, selected);
@@ -75,7 +79,7 @@ public final class CorrelationGulpPreview {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
             Capillary cap = controls.get(c);
             BufferedImage controlImage = image(sequence, cap, raw.length);
-            VerticalCorrelation.Result controlMotion = VerticalCorrelation.analyze(controlImage, levels(cap), radius);
+            VerticalCorrelation.Result controlMotion = VerticalCorrelation.analyze(controlImage, levels(cap), radius, maxShift);
             // A held-out control never supplies its own evaporation curve.
             List<double[]> others = new ArrayList<>(curves);
             others.remove(c);

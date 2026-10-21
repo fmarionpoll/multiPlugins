@@ -30,9 +30,18 @@ public final class VerticalCorrelation {
         boolean atLimit;
     }
 
+    public static final double DEFAULT_MAX_SHIFT = 6;
+    private static final double SHIFT_STEP = .1;
+
     public static Result analyze(BufferedImage image, double[] raw, int radius) {
+        return analyze(image, raw, radius, DEFAULT_MAX_SHIFT);
+    }
+
+    /** maxShift: largest displacement searched between two columns (pixels); larger steps are flagged "Search limit". */
+    public static Result analyze(BufferedImage image, double[] raw, int radius, double maxShift) {
         if (image == null || raw == null || image.getWidth() != raw.length || radius < 2)
             throw new IllegalArgumentException("Native kymograph columns must match the saved levels.");
+        if (!(maxShift >= 1)) throw new IllegalArgumentException("Maximum shift must be at least 1 pixel.");
         int n = raw.length, h = image.getHeight();
         double[][][] color = new double[n][2][h];
         for (int t = 0; t < n; t++) {
@@ -50,8 +59,8 @@ public final class VerticalCorrelation {
                 result.reason[t] = "Missing meniscus position";
                 continue;
             }
-            Match forward = match(color[t - 1], color[t], raw[t - 1], radius);
-            Match reverse = match(color[t], color[t - 1], raw[t], radius);
+            Match forward = match(color[t - 1], color[t], raw[t - 1], radius, maxShift);
+            Match reverse = match(color[t], color[t - 1], raw[t], radius, maxShift);
             if (forward == null || reverse == null) {
                 result.reason[t] = "Image border or flat profile";
                 continue;
@@ -72,8 +81,7 @@ public final class VerticalCorrelation {
         return result;
     }
 
-    private static Match match(double[][] previous, double[][] current, double center, int radius) {
-        final double maxShift = 6;
+    private static Match match(double[][] previous, double[][] current, double center, int radius, double maxShift) {
         int h = previous[0].length, count = 2 * radius + 1;
         if (center - radius - maxShift < 0 || center + radius + maxShift > h - 1) return null;
         double[][] template = new double[2][count];
@@ -88,11 +96,11 @@ public final class VerticalCorrelation {
             }
         }
         if (!(energy > 1e-12)) return null;
-        double[] scores = new double[121];
+        double[] scores = new double[(int) Math.round(2 * maxShift / SHIFT_STEP) + 1];
         int best = 0;
         double[] values = new double[count];
         for (int k = 0; k < scores.length; k++) {
-            double shift = -6 + k * .1, numerator = 0, targetEnergy = 0;
+            double shift = -maxShift + k * SHIFT_STEP, numerator = 0, targetEnergy = 0;
             for (int c = 0; c < 2; c++) {
                 double mean = 0;
                 for (int j = 0; j < count; j++) mean += values[j] = sample(current[c], center - radius + j + shift);
@@ -107,13 +115,14 @@ public final class VerticalCorrelation {
             if (scores[k] > scores[best]) best = k;
         }
         Match m = new Match();
-        m.shift = -6 + best * .1;
+        m.shift = -maxShift + best * SHIFT_STEP;
         m.correlation = scores[best];
         m.contrast = Math.sqrt(energy / (2 * count));
-        m.atLimit = best == 0 || best == 120;
+        m.atLimit = best == 0 || best == scores.length - 1;
         double other = -1;
+        int onePixel = (int) Math.round(1 / SHIFT_STEP);
         for (int k = 0; k < scores.length; k++)
-            if (Math.abs(k - best) >= 10) other = Math.max(other, scores[k]);
+            if (Math.abs(k - best) >= onePixel) other = Math.max(other, scores[k]);
         m.separation = m.correlation - other;
         return m;
     }

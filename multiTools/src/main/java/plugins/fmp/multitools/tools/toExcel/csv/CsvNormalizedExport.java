@@ -46,7 +46,9 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * standard columns; optional extras (derivative, gulp events) still follow
  * options. {@code measure_cap_raw.csv} and {@code measure_cage_raw.csv} also
  * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
- * on the same {@code time_min} rows.
+ * on the same {@code time_min} rows. With {@code intakeBins}, gulp exports add
+ * {@code intakebins.csv}: per intake bin, raw and evaporation-corrected volume
+ * plus their running totals.
  */
 public final class CsvNormalizedExport {
 
@@ -153,6 +155,55 @@ public final class CsvNormalizedExport {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
 					rawStepMs, binStepMs, writeBin);
 		}
+		if (mode == Mode.GULPS && options.intakeBins) {
+			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs);
+		}
+	}
+
+	/** One row per intake bin (raw volume > 0), at native resolution. */
+	private static void exportIntakeBins(Experiment exp, ResultsOptions options, String charSeries,
+			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs) throws IOException {
+		EnumResults[] types = { EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
+				EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR };
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) {
+				continue;
+			}
+			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
+			if (capillaries == null || capillaries.isEmpty()) {
+				continue;
+			}
+			XYSeriesCollection[] datasets = new XYSeriesCollection[types.length];
+			for (int k = 0; k < types.length; k++) {
+				datasets[k] = buildDataset(exp, cage, options, types[k], nativeStepMs, builder);
+			}
+			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
+			int cageId = cage.getProperties().getCageID();
+			for (Capillary cap : capillaries) {
+				XYSeries[] series = new XYSeries[types.length];
+				for (int k = 0; k < types.length; k++) {
+					series[k] = findSeriesForCapillary(datasets[k], exp, cage, cap, types[k]);
+				}
+				XYSeries raw = series[0];
+				if (raw == null) {
+					continue;
+				}
+				csv.ensureDescriptors(exp, charSeries, cage, cap);
+				String capId = NormalizedExportSupport.buildCapId(cap);
+				for (int i = 0; i < raw.getItemCount(); i++) {
+					double v = raw.getY(i).doubleValue();
+					if (!(v > 0)) {
+						continue;
+					}
+					csv.writeIntakeBin(expKey, cageId, capId, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+							valueAt(series[2], i), valueAt(series[3], i));
+				}
+			}
+		}
+	}
+
+	private static double valueAt(XYSeries series, int index) {
+		return series != null && index < series.getItemCount() ? series.getY(index).doubleValue() : Double.NaN;
 	}
 
 	private static void exportCapillaryMeasures(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
@@ -620,15 +671,7 @@ public final class CsvNormalizedExport {
 		if (exp == null || exp.getCapillaries() == null)
 			return null;
 		ReferenceMeasures ref = exp.getCapillaries().getReferenceMeasures();
-		if (ref == null)
-			return null;
-		if (ref.getEvaporation() != null && ref.getEvaporation().getNPoints() > 0)
-			return ref.getEvaporation();
-		if (ref.getEvaporationL() != null && ref.getEvaporationL().getNPoints() > 0)
-			return ref.getEvaporationL();
-		if (ref.getEvaporationR() != null && ref.getEvaporationR().getNPoints() > 0)
-			return ref.getEvaporationR();
-		return null;
+		return ref != null ? ref.getEvaporationUsedForCorrection() : null;
 	}
 
 	/** Model (or mean fallback) in uL for one capillary, keyed like the other CSV rows. */

@@ -504,6 +504,10 @@ public class Intervals extends JPanel implements ViewerListener {
 		return selectKymographImage(isel, true);
 	}
 
+	public void selectKymographImageAndCombo(int isel) {
+		selectKymographComboItem(selectKymographImage(isel));
+	}
+
 	public int selectKymographImage(int isel, boolean refreshDetectionDialogs) {
 		int selectedImageIndex = -1;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
@@ -620,6 +624,9 @@ public class Intervals extends JPanel implements ViewerListener {
 			}
 			if (capSel != null && parent0.paneLevels != null && refreshDetectionDialogs) {
 				parent0.paneLevels.selectCapillaryForDetectionDialogs(capSel);
+			}
+			if (capSel != null && parent0.paneLevels != null) {
+				parent0.paneLevels.onKymographCapillaryShown(capSel);
 			}
 		}
 	}

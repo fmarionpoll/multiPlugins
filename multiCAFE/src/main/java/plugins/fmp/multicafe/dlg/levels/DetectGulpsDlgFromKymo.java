@@ -1,6 +1,7 @@
 package plugins.fmp.multicafe.dlg.levels;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
@@ -22,6 +23,7 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
+import icy.gui.viewer.Viewer;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
@@ -70,9 +72,9 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	private JSpinner thresholdSmoothingAlphaSpinner = new JSpinner(new SpinnerNumberModel(0.3, 0.01, 0.99, 0.05));
 	private String detectString = " Detect ";
 	private JButton detectButton = new JButton(detectString);
-	private final JButton correlationPreviewButton = new JButton("Correlation prototype...");
 	private JCheckBox all_checkbox = new JCheckBox("ALL", false);
 	private DetectGulps threadDetectGulps = null;
+	private CorrelationGulpPanel correlationPanel = null;
 	private MultiCAFE parent0 = null;
 	private boolean suppressDisplayUpdate = false;
 
@@ -107,7 +109,6 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		panel01.add(new JLabel("span"));
 		panel01.add(thresholdXDiffnSpinner);
 		panel01.add(display_button);
-		panel01.add(correlationPreviewButton);
 		add(panel01);
 
 		JPanel panel01a = new JPanel(layoutLeft);
@@ -194,13 +195,6 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	}
 
 	private void defineActionListeners() {
-		correlationPreviewButton.addActionListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				int index = parent0.paneKymos.tabIntervals.indexImagesCombo;
-				CorrelationGulpPanel.open(this, exp, index);
-			}
-		});
 		gulpTransforms_comboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
@@ -233,10 +227,12 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		detectButton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
-				if (detectButton.getText().equals(detectString))
-					startComputation(true);
-				else
+				if (!detectButton.getText().equals(detectString))
 					stopComputation();
+				else if (selectedMethod().isInteractiveOnly())
+					openCorrelationPanel();
+				else
+					startComputation(true);
 			}
 		});
 
@@ -281,11 +277,59 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 
 	}
 
+	private GulpDetectionMethod selectedMethod() {
+		GulpDetectionMethod method = (GulpDetectionMethod) gulpDetectionMethodCombo.getSelectedItem();
+		return method != null ? method : GulpDetectionMethod.TOPRAW_DY;
+	}
+
 	private void syncClassicOnlyControls() {
-		boolean classic = gulpDetectionMethodCombo.getSelectedItem() == GulpDetectionMethod.XDIFFN_REF;
+		boolean classic = selectedMethod() == GulpDetectionMethod.XDIFFN_REF;
+		boolean batch = !selectedMethod().isInteractiveOnly();
 		thresholdSmoothingCombo.setEnabled(classic);
 		thresholdSmoothingWindowSpinner.setEnabled(classic);
 		thresholdSmoothingAlphaSpinner.setEnabled(classic);
+		for (Component c : new Component[] { all_checkbox, selectedKymoCheckBox,
+				from_pixel_checkbox, start_spinner, end_spinner, derivative_checkbox, gulpTransforms_comboBox,
+				thresholdXDiffnSpinner, gulps_checkbox, thresholdMethodCombo, thresholdMultiplierSpinner })
+			c.setEnabled(batch);
+		detectButton.setToolTipText(batch ? "Detect gulps and replace the stored gulp measures"
+				: "Open the correlation panel for the capillary shown in the kymograph viewer");
+	}
+
+	private Capillary capillaryShownInKymoViewer(Experiment exp) {
+		if (exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return null;
+		Viewer v = exp.getSeqKymos().getSequence().getFirstViewer();
+		if (v == null)
+			return null;
+		return exp.getSeqKymos().getCapillaryForFrame(v.getPositionT(), exp.getCapillaries());
+	}
+
+	private void openCorrelationPanel() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		Capillary cap = capillaryShownInKymoViewer(exp);
+		if (correlationPanel != null && correlationPanel.isDisplayable() && correlationPanel.getExperiment() == exp) {
+			correlationPanel.bringToFront();
+			if (cap != null)
+				correlationPanel.showCapillary(cap);
+			return;
+		}
+		closeCorrelationPanel();
+		correlationPanel = CorrelationGulpPanel.open(this, exp, cap,
+				c -> parent0.paneKymos.tabIntervals.selectKymographImageAndCombo(c.getKymographIndex()));
+	}
+
+	private void closeCorrelationPanel() {
+		if (correlationPanel != null)
+			correlationPanel.close();
+		correlationPanel = null;
+	}
+
+	void followCapillary(Capillary cap) {
+		if (correlationPanel != null && correlationPanel.isDisplayable())
+			correlationPanel.showCapillary(cap);
 	}
 
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {
@@ -359,6 +403,8 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	}
 
 	public void loadGulpDefaultsFromExperiment(Experiment exp) {
+		if (correlationPanel != null && correlationPanel.getExperiment() != exp)
+			closeCorrelationPanel();
 		if (exp != null) {
 			applyGulpOptionsToDialog(exp.getGulpDetectionDefaults());
 			resetDisplayToRaw(exp);
@@ -385,10 +431,9 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 			spanByTransform.put(options.transformForGulps, Math.max(2, options.spanDiffForGulps));
 			lastSpanTransform = null;
 			gulpTransforms_comboBox.setSelectedItem(options.transformForGulps);
-			if (options.gulpDetectionMethod != null) {
-				gulpDetectionMethodCombo.setSelectedItem(options.gulpDetectionMethod);
-			} else {
-				gulpDetectionMethodCombo.setSelectedItem(GulpDetectionMethod.TOPRAW_DY);
+			if (!selectedMethod().isInteractiveOnly()) {
+				gulpDetectionMethodCombo.setSelectedItem(
+						options.gulpDetectionMethod != null ? options.gulpDetectionMethod : GulpDetectionMethod.TOPRAW_DY);
 			}
 			thresholdMethodCombo.setSelectedItem(options.thresholdMethod);
 			thresholdMultiplierSpinner.setValue(options.thresholdSdMultiplier);

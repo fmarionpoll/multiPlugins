@@ -61,6 +61,8 @@ public class ResultsOptions {
 	public boolean sumGulpsLr = false;
 	public boolean nbGulps = false;
 	public boolean amplitudeGulps = false;
+	/** Intake bins raw and minus evaporation, per bin and cumulated. */
+	public boolean intakeBins = false;
 	public boolean tToNextGulp = false;
 	public boolean tToNextGulp_LR = false;
 

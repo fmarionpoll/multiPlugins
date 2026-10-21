@@ -14,6 +14,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
@@ -263,6 +264,8 @@ public final class CapillaryKymographMeasureBridge {
 						|| name.contains("derivative") || name.contains("gulps"))) {
 					roisToRemove.add(roi);
 				}
+			} else if (roi.getName() != null && roi.getName().contains("_" + CapillaryCorrelationGulps.ROI_TOKEN)) {
+				roisToRemove.add(roi);
 			}
 		}
 		if (!roisToRemove.isEmpty()) {

@@ -263,10 +263,12 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.lrPI = tabGulps.sumCheckBox.isSelected();
 		resultsOptions.nbGulps = tabGulps.nbGulpsCheckBox.isSelected();
 		resultsOptions.amplitudeGulps = tabGulps.amplitudeGulpsCheckBox.isSelected();
+		resultsOptions.intakeBins = tabGulps.intakeBinsCheckBox.isSelected();
 
 		resultsOptions.markovChain = tabGulps.markovChainCheckBox.isSelected();
 
 		resultsOptions.correctEvaporation = false;
+		resultsOptions.evaporationCorrectionMethod = tabLevels.getEvaporationCorrectionMethod();
 		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}

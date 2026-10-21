@@ -41,6 +41,16 @@ public class VerticalCorrelationTest {
         assertEquals(-1.4, down.shift[1], .15);
     }
 
+    @Test public void largeStepNeedsLargerMaxShift() {
+        double[] center = {40, 40, 49, 49};
+        VerticalCorrelation.Result limited = VerticalCorrelation.analyze(movie(center), center, 10);
+        assertFalse(limited.reliable[2]);
+        assertEquals("Search limit", limited.reason[2]);
+        VerticalCorrelation.Result wide = VerticalCorrelation.analyze(movie(center), center, 10, 12);
+        assertTrue(wide.reliable[2]);
+        assertEquals(9, wide.shift[2], .15);
+    }
+
     @Test public void flatAndBorderProfilesAreRejected() {
         VerticalCorrelation.Result flat = VerticalCorrelation.analyze(new BufferedImage(4, 60, BufferedImage.TYPE_INT_RGB),
                 new double[] {30, 30, 30, 30}, 10);
