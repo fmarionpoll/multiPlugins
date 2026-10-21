@@ -44,6 +44,7 @@ import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasuredTipsOverlay;
 import plugins.fmp.multitools.experiment.ids.CapillaryID;
+import plugins.fmp.multitools.experiment.inspection.EventReview;
 import plugins.fmp.multitools.experiment.sequence.ImageAdjustmentOptions;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.ImageLoader;
@@ -79,6 +80,17 @@ import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
 import plugins.kernel.roi.roi2d.ROI2DRectangle;
 
 public class Experiment {
+	/** Inspector-only observations, independent of canonical measurements. */
+	private final List<EventReview> eventReviews = new ArrayList<>();
+
+	public List<EventReview> getEventReviews() {
+		return java.util.Collections.unmodifiableList(eventReviews);
+	}
+
+	public void putEventReview(EventReview review) {
+		eventReviews.removeIf(previous -> previous.key().equals(review.key()));
+		eventReviews.add(review);
+	}
 	public final static String RESULTS = "results";
 	public final static String BIN = "bin_";
 

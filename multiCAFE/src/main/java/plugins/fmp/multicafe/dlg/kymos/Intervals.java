@@ -632,6 +632,10 @@ public class Intervals extends JPanel implements ViewerListener {
 			if (v.getSequence() == null)
 				return;
 			Experiment exp = findExperimentOwningSequence(v.getSequence());
+			// Inspector renders detached read-only ROIs. Do not run the editable
+			// combo/validation path (including its action listener) during inspection.
+			if (parent0.paneKymos.tabInspector.isInspecting(v.getSequence()))
+				return;
 			if (exp != null)
 				exp.onViewerTPositionChanged(v, tNew, false, parent0.viewOptions.toCafeViewOptionsDTO());
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {

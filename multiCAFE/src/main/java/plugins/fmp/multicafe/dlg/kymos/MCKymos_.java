@@ -1,6 +1,7 @@
 package plugins.fmp.multicafe.dlg.kymos;
 
 import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -8,6 +9,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
 import javax.swing.JPanel;
+import javax.swing.JButton;
 import javax.swing.JTabbedPane;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -26,6 +28,8 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	JTabbedPane tabsPane = new JTabbedPane();
 	public CreateKymos tabCreate = new CreateKymos();
 	public Intervals tabIntervals = new Intervals();
+	public EventInspector tabInspector = new EventInspector();
+	private final JPanel inspectorLauncher = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
 	public LoadSave tabLoadSave = new LoadSave();
 
@@ -51,6 +55,12 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);
 		tabsPane.addTab("Load/Save", null, tabLoadSave, "Load/Save xml file with capillaries descriptors");
+
+		tabInspector.init(parent0);
+		JButton openInspector = new JButton("Open Event Inspector...");
+		openInspector.addActionListener(e -> tabInspector.openWindow());
+		inspectorLauncher.add(openInspector);
+		tabsPane.addTab("Event Inspector", null, inspectorLauncher, "Open the event inspection window");
 
 		tabsPane.addChangeListener(this);
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
@@ -82,6 +92,7 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	}
 
 	public void updateDialogs(Experiment exp) {
+		tabInspector.experimentChanged(exp);
 		if (exp != null) {
 			tabCreate.syncFromExperiment(exp);
 //			if (exp.getSeqKymos() != null)
@@ -89,6 +100,10 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 	}
 
 	void tabbedCapillariesAndKymosSelected() {
+		if (tabsPane.getSelectedComponent() == inspectorLauncher) {
+			return;
+		}
+		tabInspector.deactivate();
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null || exp.getSeqCamData() == null)
 			return;
