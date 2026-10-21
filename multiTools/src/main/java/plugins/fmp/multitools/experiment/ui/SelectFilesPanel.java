@@ -4,8 +4,13 @@ import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.FontMetrics;
+import java.awt.Toolkit;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.File;
@@ -13,6 +18,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
@@ -41,6 +47,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
 import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
@@ -121,6 +128,7 @@ public class SelectFilesPanel extends JPanel {
 	private static final String TIP_CLEAR_ALL = "Clear the search results list (does not close experiments already in the main list).";
 	private static final String TIP_ADD_SELECTED = "Add the selected search hits to the main experiment list.";
 	private static final String TIP_ADD_ALL = "Add every search hit to the main experiment list.";
+	private static final String TIP_PASTE = "Right-click to paste a list of directories from the clipboard.";
 
 	private IcyFrame dialogFrame = null;
 	private final JComboBox<String> filterCombo;
@@ -240,7 +248,9 @@ public class SelectFilesPanel extends JPanel {
 		directoriesJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		directoriesJList.setLayoutOrientation(JList.VERTICAL);
 		directoriesJList.setVisibleRowCount(20);
+		directoriesJList.setToolTipText(TIP_PASTE);
 		JScrollPane scrollPane = new JScrollPane(directoriesJList);
+		installDirectoryPastePopup(scrollPane);
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		mainPanel.add(GuiUtil.besidesPanel(scrollPane));
@@ -350,63 +360,11 @@ public class SelectFilesPanel extends JPanel {
 		if (listFile == null) {
 			return;
 		}
-		Path baseDir = null;
-		String lastRoot = getPreferencesPath();
-		if (lastRoot != null && !lastRoot.isEmpty()) {
-			Path p = Paths.get(lastRoot);
-			if (Files.isDirectory(p)) {
-				baseDir = p;
-			}
-		}
-		if (baseDir == null && listFile.getParentFile() != null) {
-			baseDir = listFile.getParentFile().toPath();
-		}
-
-		int added = 0;
-		int skippedMissing = 0;
-		int skippedDup = 0;
-		int lines = 0;
+		List<String> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(listFile.toPath(), StandardCharsets.UTF_8)) {
 			String line;
 			while ((line = reader.readLine()) != null) {
-				lines++;
-				String trimmed = line.trim();
-				if (trimmed.isEmpty() || trimmed.startsWith("#")) {
-					continue;
-				}
-				// Allow optional CSV first column: path,other...
-				if (trimmed.indexOf(',') >= 0) {
-					trimmed = trimmed.substring(0, trimmed.indexOf(',')).trim();
-				}
-				if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
-						|| (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
-					trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
-				}
-				if (trimmed.isEmpty()) {
-					continue;
-				}
-				if ("path".equalsIgnoreCase(trimmed)) {
-					continue;
-				}
-				Path path = Paths.get(trimmed);
-				if (!path.isAbsolute() && baseDir != null) {
-					path = baseDir.resolve(path).normalize();
-				}
-				if (!Files.exists(path)) {
-					skippedMissing++;
-					Logger.warn("SelectFilesPanel: load list path not found: " + path);
-					continue;
-				}
-				String resolved = resolveImagesDirectory(path.toString());
-				String toAdd = resolved != null ? resolved : path.toAbsolutePath().normalize().toString();
-				int before = ((DefaultListModel<String>) directoriesJList.getModel()).getSize();
-				addNameToListIfNew(toAdd);
-				int after = ((DefaultListModel<String>) directoriesJList.getModel()).getSize();
-				if (after > before) {
-					added++;
-				} else {
-					skippedDup++;
-				}
+				lines.add(line);
 			}
 		} catch (IOException e) {
 			Logger.warn("SelectFilesPanel: failed to read list file " + listFile + ": " + e.getMessage(), e);
@@ -414,11 +372,150 @@ public class SelectFilesPanel extends JPanel {
 					JOptionPane.ERROR_MESSAGE);
 			return;
 		}
+		Path baseDir = relativePathBase(listFile);
+		importPathLines(lines, baseDir, "Load list", "Loaded");
+	}
 
+	private void installDirectoryPastePopup(JScrollPane scrollPane) {
+		MouseAdapter popup = new MouseAdapter() {
+			@Override
+			public void mousePressed(MouseEvent e) {
+				showPasteDialogIfTriggered(e);
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e) {
+				showPasteDialogIfTriggered(e);
+			}
+		};
+		directoriesJList.addMouseListener(popup);
+		scrollPane.addMouseListener(popup);
+		if (scrollPane.getViewport() != null) {
+			scrollPane.getViewport().addMouseListener(popup);
+		}
+	}
+
+	private void showPasteDialogIfTriggered(MouseEvent e) {
+		if (!e.isPopupTrigger()) {
+			return;
+		}
+		String text = clipboardText();
+		if (text == null) {
+			return;
+		}
+		e.consume();
+		proposePaste(text);
+	}
+
+	private void proposePaste(String text) {
+		JTextArea area = new JTextArea(text, 12, 60);
+		area.setEditable(false);
+		area.setCaretPosition(0);
+		JScrollPane preview = new JScrollPane(area);
+		preview.setPreferredSize(new Dimension(520, 220));
+
+		JPanel panel = new JPanel(new BorderLayout(0, 8));
+		panel.add(new JLabel("Paste these paths into the directory list?"), BorderLayout.NORTH);
+		panel.add(preview, BorderLayout.CENTER);
+
+		int choice = JOptionPane.showConfirmDialog(this, panel, "Paste directories", JOptionPane.OK_CANCEL_OPTION,
+				JOptionPane.PLAIN_MESSAGE);
+		if (choice != JOptionPane.OK_OPTION) {
+			return;
+		}
+		importPathLines(Arrays.asList(text.split("\\R", -1)), relativePathBase(null), "Paste directories", "Pasted");
+	}
+
+	private static String clipboardText() {
+		try {
+			java.awt.datatransfer.Clipboard clipboard = Toolkit.getDefaultToolkit().getSystemClipboard();
+			if (!clipboard.isDataFlavorAvailable(DataFlavor.stringFlavor)) {
+				return null;
+			}
+			Object data = clipboard.getData(DataFlavor.stringFlavor);
+			if (!(data instanceof String)) {
+				return null;
+			}
+			String text = (String) data;
+			return text.trim().isEmpty() ? null : text;
+		} catch (IllegalStateException | UnsupportedFlavorException | IOException ex) {
+			return null;
+		}
+	}
+
+	private Path relativePathBase(File listFile) {
+		String lastRoot = getPreferencesPath();
+		if (lastRoot != null && !lastRoot.isEmpty()) {
+			Path p = Paths.get(lastRoot);
+			if (Files.isDirectory(p)) {
+				return p;
+			}
+		}
+		if (listFile != null && listFile.getParentFile() != null) {
+			return listFile.getParentFile().toPath();
+		}
+		return null;
+	}
+
+	/**
+	 * One path per line. Blank lines and {@code #} comments are skipped. An optional
+	 * {@code [index:total]} prefix and surrounding quotes are removed. Relative paths
+	 * resolve against {@code baseDir}.
+	 */
+	private void importPathLines(Iterable<String> lines, Path baseDir, String title, String verb) {
+		int added = 0;
+		int skippedMissing = 0;
+		int skippedDup = 0;
+		int lineCount = 0;
+		for (String line : lines) {
+			lineCount++;
+			String trimmed = line == null ? "" : line.trim();
+			if (trimmed.isEmpty() || trimmed.startsWith("#")) {
+				continue;
+			}
+			if (trimmed.indexOf(',') >= 0) {
+				trimmed = trimmed.substring(0, trimmed.indexOf(',')).trim();
+			}
+			if ((trimmed.startsWith("\"") && trimmed.endsWith("\""))
+					|| (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+				trimmed = trimmed.substring(1, trimmed.length() - 1).trim();
+			}
+			trimmed = trimmed.replaceFirst("^\\[\\d+:\\d+\\]\\s*", "");
+			if (trimmed.isEmpty() || "path".equalsIgnoreCase(trimmed)) {
+				continue;
+			}
+			Path path;
+			try {
+				path = Paths.get(trimmed);
+				if (!path.isAbsolute() && baseDir != null) {
+					path = baseDir.resolve(path).normalize();
+				}
+			} catch (InvalidPathException ex) {
+				skippedMissing++;
+				Logger.warn("SelectFilesPanel: " + title + " invalid path: " + trimmed);
+				continue;
+			}
+			if (!Files.exists(path)) {
+				skippedMissing++;
+				Logger.warn("SelectFilesPanel: " + title + " path not found: " + path);
+				continue;
+			}
+			String resolved = resolveImagesDirectory(path.toString());
+			String toAdd = resolved != null ? resolved : path.toAbsolutePath().normalize().toString();
+			int before = ((DefaultListModel<String>) directoriesJList.getModel()).getSize();
+			addNameToListIfNew(toAdd);
+			int after = ((DefaultListModel<String>) directoriesJList.getModel()).getSize();
+			if (after > before) {
+				added++;
+			} else {
+				skippedDup++;
+			}
+		}
 		JOptionPane.showMessageDialog(this,
-				"Loaded " + added + " path(s) from " + lines + " line(s).\n" + "Missing: " + skippedMissing
-						+ ", already listed: " + skippedDup + ".\n" + "Use Add selected / Add all to load experiments.",
-				"Load list", JOptionPane.INFORMATION_MESSAGE);
+				verb + " " + added + " path(s) from " + lineCount + " line(s).\n" + "Missing: " + skippedMissing
+						+ ", already listed: " + skippedDup + ".\n"
+						+ "Use Add selected / Add all to load experiments.",
+				title, JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private File chooseListFile(String startDirectory) {

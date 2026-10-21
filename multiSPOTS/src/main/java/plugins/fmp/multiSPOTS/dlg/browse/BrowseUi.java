@@ -11,6 +11,7 @@ import javax.swing.JPanel;
 import javax.swing.JToggleButton;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
+import plugins.fmp.multitools.tools.JComponents.ExperimentListCopyMenu;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.SequenceNameListRenderer;
 
@@ -34,6 +35,7 @@ final class BrowseUi {
 		JComboBoxExperimentLazy combo = parent0.expListComboLazy;
 		combo.setRenderer(new SequenceNameListRenderer());
 		SequenceNameListRenderer.installWidePopup(combo);
+		ExperimentListCopyMenu.install(combo);
 		int bWidth = 30;
 		int height = 20;
 		previousButton.setPreferredSize(new Dimension(bWidth, height));
