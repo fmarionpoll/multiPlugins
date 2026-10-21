@@ -23,7 +23,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
-import plugins.fmp.multicafe.dlg.levels.CorrelationGulpPanel;
+import plugins.fmp.multicafe.dlg.levels.CorrelationIntakePanel;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
@@ -56,7 +56,7 @@ public class CorrelationPanelSmoke {
         Field f = o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
     }
     private static void layout(Container c) { c.doLayout(); for (Component child : c.getComponents()) if (child instanceof Container) layout((Container) child); }
-    private static void render(CorrelationGulpPanel panel, Path path) throws Exception {
+    private static void render(CorrelationIntakePanel panel, Path path) throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             panel.setSize(1160, 820); layout(panel);
             BufferedImage image = new BufferedImage(1160, 820, BufferedImage.TYPE_INT_RGB);
@@ -64,7 +64,7 @@ public class CorrelationPanelSmoke {
             try { ImageIO.write(image, "png", path.toFile()); } catch (Exception e) { throw new RuntimeException(e); }
         });
     }
-    private static void compute(CorrelationGulpPanel panel) throws Exception {
+    private static void compute(CorrelationIntakePanel panel) throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             try { ((JButton) field(panel, "compute")).doClick(); } catch (Exception e) { throw new RuntimeException(e); }
         });
@@ -115,12 +115,22 @@ public class CorrelationPanelSmoke {
         SequenceKymos kymos = new SequenceKymos(); kymos.setSequence(sequence); exp.setSeqKymos(kymos);
         System.out.println("Loaded real experiment images and measures in memory.");
         double[] before = caps.get("1L").getTopRaw().polylineLevel.ypoints.clone();
-        final CorrelationGulpPanel[] ref = new CorrelationGulpPanel[1];
-        SwingUtilities.invokeAndWait(() -> ref[0] = new CorrelationGulpPanel(exp, 2));
-        CorrelationGulpPanel panel = ref[0]; compute(panel);
+        final CorrelationIntakePanel[] ref = new CorrelationIntakePanel[1];
+        SwingUtilities.invokeAndWait(() -> ref[0] = new CorrelationIntakePanel(exp, caps.get("1L")));
+        CorrelationIntakePanel panel = ref[0]; compute(panel);
         CorrelationGulpPreview result = (CorrelationGulpPreview) field(panel, "preview");
         if (Math.abs(result.motion.shift[57] - 1.4) > .051) throw new AssertionError("Icy image adapter changed channel interpretation");
         render(panel, output.resolve("panel_1L_automatic.png"));
+        Method updateRois = panel.getClass().getDeclaredMethod("updateRois"); updateRois.setAccessible(true);
+        SwingUtilities.invokeAndWait(() -> { try { updateRois.invoke(panel); } catch (Exception e) { throw new RuntimeException(e); } });
+        int projections = 0;
+        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) {
+            if (roi.getName().contains("_xcorr_evap")) {
+                projections++;
+                if (!roi.isReadOnly() || roi.getStroke() != 1 || roi.getT() != 2) throw new AssertionError("Incorrect evaporation ROI style/lifetime");
+            }
+        }
+        if (projections == 0) throw new AssertionError("Evaporation projections missing from raw kymograph");
         JSpinner threshold = (JSpinner) field(panel, "threshold");
         double initial = ((Number) threshold.getValue()).doubleValue();
         Component plot = (Component) field(panel, "plot");
@@ -140,12 +150,16 @@ public class CorrelationPanelSmoke {
         SwingUtilities.invokeAndWait(() -> threshold.setValue(100.));
         Method candidates = panel.getClass().getDeclaredMethod("candidates"); candidates.setAccessible(true);
         for (boolean b : (boolean[]) candidates.invoke(panel)) if (b) throw new AssertionError("Candidate preview did not update with threshold");
+        SwingUtilities.invokeAndWait(() -> { try { updateRois.invoke(panel); } catch (Exception e) { throw new RuntimeException(e); } });
+        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr_evap")) throw new AssertionError("Stale projections after removing all candidates");
         SwingUtilities.invokeAndWait(() -> { try { ((JButton) field(panel,"automatic")).doClick(); } catch (Exception e) { throw new RuntimeException(e); } });
         if (Math.abs(((Number) threshold.getValue()).doubleValue()-initial)>1e-10) throw new AssertionError("Automatic reset failed");
         SwingUtilities.invokeAndWait(() -> { try { ((JComboBox<?>) field(panel,"capillaries")).setSelectedItem(caps.get("7L")); } catch (Exception e) { throw new RuntimeException(e); } });
         compute(panel); render(panel, output.resolve("panel_7L_automatic.png"));
+        SwingUtilities.invokeAndWait(panel::close);
+        for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr_evap")) throw new AssertionError("Display-only projections left behind on close");
         if (!java.util.Arrays.equals(before, caps.get("1L").getTopRaw().polylineLevel.ypoints)) throw new AssertionError("Original levels modified");
-        System.out.println("PASS: real 1L/7L preview, image adapter, draggable threshold, automatic reset, CSV export, and unchanged raw levels.");
+        System.out.println("PASS: real 1L/7L preview, intake/evaporation overlays, threshold updates, ROI cleanup, CSV export, and unchanged raw levels.");
         sequence.close();
         System.exit(0);
     }

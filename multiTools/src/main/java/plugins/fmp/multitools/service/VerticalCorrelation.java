@@ -27,7 +27,7 @@ public final class VerticalCorrelation {
 
     private static final class Match {
         double shift, correlation, contrast, separation;
-        boolean atLimit;
+        boolean atLimit, imageLimit;
     }
 
     public static final double DEFAULT_MAX_SHIFT = 6;
@@ -41,7 +41,8 @@ public final class VerticalCorrelation {
     public static Result analyze(BufferedImage image, double[] raw, int radius, double maxShift) {
         if (image == null || raw == null || image.getWidth() != raw.length || radius < 2)
             throw new IllegalArgumentException("Native kymograph columns must match the saved levels.");
-        if (!(maxShift >= 1)) throw new IllegalArgumentException("Maximum shift must be at least 1 pixel.");
+        if (!Double.isFinite(maxShift) || !(maxShift >= 1))
+            throw new IllegalArgumentException("Maximum shift must be a finite value of at least 1 pixel.");
         int n = raw.length, h = image.getHeight();
         double[][][] color = new double[n][2][h];
         for (int t = 0; t < n; t++) {
@@ -68,7 +69,8 @@ public final class VerticalCorrelation {
             result.shift[t] = (forward.shift - reverse.shift) / 2;
             result.correlation[t] = Math.min(forward.correlation, reverse.correlation);
             String reason = "";
-            if (forward.atLimit || reverse.atLimit) reason = "Search limit";
+            if (forward.imageLimit || reverse.imageLimit) reason = "Image border";
+            else if (forward.atLimit || reverse.atLimit) reason = "Search limit";
             else if (Math.min(forward.contrast, reverse.contrast) < 2) reason = "Low contrast";
             else if (result.correlation[t] < .90) reason = "Weak correlation";
             else if (Math.min(forward.separation, reverse.separation) < .005) reason = "Broad correlation peak";
@@ -83,7 +85,13 @@ public final class VerticalCorrelation {
 
     private static Match match(double[][] previous, double[][] current, double center, int radius, double maxShift) {
         int h = previous[0].length, count = 2 * radius + 1;
-        if (center - radius - maxShift < 0 || center + radius + maxShift > h - 1) return null;
+        // Only the unshifted template must fit in full. A wide requested search
+        // must not reject a valid small displacement near an image border.
+        if (center - radius < 0 || center + radius > h - 1) return null;
+        int requestedSteps = (int) Math.floor(maxShift / SHIFT_STEP + 1e-9);
+        int firstStep = Math.max(-requestedSteps, (int) Math.ceil((radius - center) / SHIFT_STEP - 1e-9));
+        int lastStep = Math.min(requestedSteps, (int) Math.floor((h - 1 - radius - center) / SHIFT_STEP + 1e-9));
+        if (lastStep <= firstStep) return null;
         double[][] template = new double[2][count];
         double energy = 0;
         for (int c = 0; c < 2; c++) {
@@ -96,11 +104,11 @@ public final class VerticalCorrelation {
             }
         }
         if (!(energy > 1e-12)) return null;
-        double[] scores = new double[(int) Math.round(2 * maxShift / SHIFT_STEP) + 1];
+        double[] scores = new double[lastStep - firstStep + 1];
         int best = 0;
         double[] values = new double[count];
         for (int k = 0; k < scores.length; k++) {
-            double shift = -maxShift + k * SHIFT_STEP, numerator = 0, targetEnergy = 0;
+            double shift = (firstStep + k) * SHIFT_STEP, numerator = 0, targetEnergy = 0;
             for (int c = 0; c < 2; c++) {
                 double mean = 0;
                 for (int j = 0; j < count; j++) mean += values[j] = sample(current[c], center - radius + j + shift);
@@ -115,10 +123,12 @@ public final class VerticalCorrelation {
             if (scores[k] > scores[best]) best = k;
         }
         Match m = new Match();
-        m.shift = -maxShift + best * SHIFT_STEP;
+        m.shift = (firstStep + best) * SHIFT_STEP;
         m.correlation = scores[best];
         m.contrast = Math.sqrt(energy / (2 * count));
         m.atLimit = best == 0 || best == scores.length - 1;
+        m.imageLimit = (best == 0 && firstStep > -requestedSteps)
+                || (best == scores.length - 1 && lastStep < requestedSteps);
         double other = -1;
         int onePixel = (int) Math.round(1 / SHIFT_STEP);
         for (int k = 0; k < scores.length; k++)
@@ -128,6 +138,8 @@ public final class VerticalCorrelation {
     }
 
     private static double sample(double[] values, double row) {
+        // Clamp only floating-point roundoff at valid grid endpoints.
+        row = Math.max(0, Math.min(values.length - 1, row));
         int lo = (int) Math.floor(row);
         int hi = Math.min(values.length - 1, lo + 1);
         return values[lo] + (row - lo) * (values[hi] - values[lo]);

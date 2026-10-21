@@ -23,17 +23,19 @@ public final class CorrelationGulpPreview {
     public final VerticalCorrelation.Result motion;
     public final VerticalCorrelation.Noise noise;
     public final int controlCount;
+    public final boolean hasEvaporationReference;
     public final String referenceDescription;
 
     private CorrelationGulpPreview(BufferedImage image, double[] raw, double[] minutes,
             double[] evaporation, VerticalCorrelation.Result motion, double[] controls,
-            int controlCount, String referenceDescription) {
+            int controlCount, boolean hasEvaporationReference, String referenceDescription) {
         this.image = image;
         this.raw = raw;
         this.minutes = minutes;
         this.evaporation = evaporation;
         this.motion = motion;
         this.controlCount = controlCount;
+        this.hasEvaporationReference = hasEvaporationReference;
         this.referenceDescription = referenceDescription;
         residualRate = residualRate(motion, evaporation, minutes, 1);
         noise = VerticalCorrelation.estimateNoise(residualRate, motion.reliable, controls);
@@ -94,7 +96,7 @@ public final class CorrelationGulpPreview {
         String description = controls.isEmpty() ? "No empty-capillary evaporation reference (uncorrected motion)"
                 : "Evaporation model from " + controls.size() + " empty capillaries; noise from " + usableControls;
         return new CorrelationGulpPreview(image, raw, minutes, reference, motion,
-                controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, description);
+                controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description);
     }
 
     private static double[] levels(Capillary cap) {

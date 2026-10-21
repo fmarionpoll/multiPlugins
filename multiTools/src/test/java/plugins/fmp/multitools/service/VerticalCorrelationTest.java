@@ -60,6 +60,25 @@ public class VerticalCorrelationTest {
         assertFalse(border.reliable[1]);
     }
 
+    @Test public void widerSearchPreservesValidMotionNearBothImageBorders() {
+        for (double[] center : new double[][] {{30,31.4,32.8,34.2}, {62,60.6,59.2,57.8}}) {
+            VerticalCorrelation.Result narrow = VerticalCorrelation.analyze(movie(center), center, 12, 10);
+            VerticalCorrelation.Result wide = VerticalCorrelation.analyze(movie(center), center, 12, 26);
+            for (int i = 1; i < center.length; i++) {
+                assertTrue("narrow comparison " + i, narrow.reliable[i]);
+                assertTrue("wide comparison " + i + ": " + wide.reason[i], wide.reliable[i]);
+                assertEquals(narrow.shift[i], wide.shift[i], .051);
+            }
+        }
+    }
+
+    @Test public void trulyTruncatedDisplacementIsFlaggedAsImageBorder() {
+        // The target boundary lies above the valid profile region. A larger
+        // requested search cannot recover a full profile for that boundary.
+        VerticalCorrelation.Result result = VerticalCorrelation.analyze(movie(new double[] {30,0}), new double[] {30,30}, 12, 40);
+        assertFalse(result.reliable[1]);
+    }
+
     @Test public void missingFramesAreNotBridged() {
         double[] raw = {40, 40, Double.NaN, 42, 42};
         VerticalCorrelation.Result r = VerticalCorrelation.analyze(movie(new double[] {40,40,41,42,42}), raw, 10);
@@ -128,5 +147,24 @@ public class VerticalCorrelationTest {
         int reliable = 0;
         for (boolean b : r.reliable) if (b) reliable++;
         assertEquals(139, reliable);
+    }
+
+    @Test public void optionalReal2LEarlyBinsSurviveWideningSearchTo26Pixels() throws Exception {
+        String directory = System.getProperty("correlation.fixture");
+        Assume.assumeNotNull(directory);
+        File root = new File(directory, "results");
+        String first = Files.readAllLines(new File(root, "CapillariesMeasures.csv").toPath(), StandardCharsets.UTF_8)
+                .stream().filter(line -> line.startsWith("2L;")).findFirst().get();
+        String[] row = first.split(";");
+        double[] raw = new double[Integer.parseInt(row[2])];
+        for (int i = 0; i < raw.length; i++) raw[i] = Double.parseDouble(row[i + 3]);
+        BufferedImage image = ImageIO.read(new File(root, "bin_60/line21.tiff"));
+        VerticalCorrelation.Result narrow = VerticalCorrelation.analyze(image, raw, 12, 10);
+        VerticalCorrelation.Result wide = VerticalCorrelation.analyze(image, raw, 12, 26);
+        for (int i = 1; i <= 4; i++) {
+            assertTrue("narrow bin " + i + ": " + narrow.reason[i], narrow.reliable[i]);
+            assertTrue("wide bin " + i + ": " + wide.reason[i], wide.reliable[i]);
+            assertEquals("bin " + i, narrow.shift[i], wide.shift[i], .051);
+        }
     }
 }

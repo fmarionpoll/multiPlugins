@@ -119,7 +119,7 @@ public class CapillaryCorrelationGulps {
 	 */
 	public static ROI2DLine createRoi(String kymographPrefix, int x, double yBottom, double amplitude, int t) {
 		double xx = x + .5;
-		ROI2DLine line = new ROI2DLine(xx, yBottom, xx, yBottom - Math.max(1, amplitude));
+		ROI2DLine line = new ROI2DLine(xx, yBottom, xx, yBottom - Math.max(0, amplitude));
 		line.setName(kymographPrefix + "_" + ROI_TOKEN + String.format(Locale.ROOT, "%07d", x));
 		line.setColor(ROI_COLOR);
 		line.setStroke(2);
