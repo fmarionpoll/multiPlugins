@@ -70,6 +70,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	private JSpinner thresholdSmoothingAlphaSpinner = new JSpinner(new SpinnerNumberModel(0.3, 0.01, 0.99, 0.05));
 	private String detectString = " Detect ";
 	private JButton detectButton = new JButton(detectString);
+	private final JButton correlationPreviewButton = new JButton("Correlation prototype...");
 	private JCheckBox all_checkbox = new JCheckBox("ALL", false);
 	private DetectGulps threadDetectGulps = null;
 	private MultiCAFE parent0 = null;
@@ -106,6 +107,7 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 		panel01.add(new JLabel("span"));
 		panel01.add(thresholdXDiffnSpinner);
 		panel01.add(display_button);
+		panel01.add(correlationPreviewButton);
 		add(panel01);
 
 		JPanel panel01a = new JPanel(layoutLeft);
@@ -192,6 +194,13 @@ public class DetectGulpsDlgFromKymo extends JPanel implements PropertyChangeList
 	}
 
 	private void defineActionListeners() {
+		correlationPreviewButton.addActionListener(e -> {
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			if (exp != null) {
+				int index = parent0.paneKymos.tabIntervals.indexImagesCombo;
+				CorrelationGulpPanel.open(this, exp, index);
+			}
+		});
 		gulpTransforms_comboBox.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(final ActionEvent e) {
