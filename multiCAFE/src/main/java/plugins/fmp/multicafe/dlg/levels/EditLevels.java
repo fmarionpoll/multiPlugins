@@ -71,12 +71,10 @@ public class EditLevels extends JPanel {
 		JPanel panel0 = new JPanel(layoutLeft);
 		panel0.add(new JLabel("Apply to "));
 		panel0.add(roiTypeCombo);
-		validateChangesButton.setToolTipText("Commit level/gulp edits on the kymograph into capillary measures.");
 		panel0.add(validateChangesButton);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layoutLeft);
-		cutButton.setToolTipText("Delete level or gulp points inside the drawn rectangle/polygon.");
 		panel1.add(cutButton);
 		panel1.add(addGulpButton);
 		panel1.add(allCaps);
@@ -94,7 +92,13 @@ public class EditLevels extends JPanel {
 		panel3.add(restoreButton);
 		add(panel3);
 
+		defineToolTips();
 		defineListeners();
+	}
+
+	private void defineToolTips() {
+		validateChangesButton.setToolTipText("Commit level/gulp edits on the kymograph into capillary measures.");
+		cutButton.setToolTipText("Delete level or gulp points inside the drawn rectangle/polygon.");
 	}
 
 	private MeasureEditTarget getMeasureEditTarget() {

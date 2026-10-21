@@ -60,13 +60,7 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(statusLabel);
 		SpotsMeasuresUi.layoutStackedRows(this, panel0, panel1, panel2);
-
-		perCageMedianCheckBox.setToolTipText(
-				"When on, the reference median at each time bin uses only spots in the same cage (same lighting region). When off, all ready spots on the experiment are pooled (can bias dark cages negative if other cages are brighter).");
-		rebuildV3Button.setToolTipText(
-				"Recomputes cleanV3: shift each spot by early-bin median of sumClean, take median of shifted sumClean per bin (per cage or whole experiment), smooth with running median (odd W), subtract from shifted sumClean.");
-		v3LambdaSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
-		v3StepBinsSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
+		defineToolTips();
 
 		rebuildV3Button.addActionListener(new ActionListener() {
 			@Override
@@ -74,6 +68,15 @@ public class ConsumptionV3Panel extends JPanel implements PropertyChangeListener
 				onRebuildV3Clicked();
 			}
 		});
+	}
+
+	private void defineToolTips() {
+		perCageMedianCheckBox.setToolTipText(
+				"When on, the reference median at each time bin uses only spots in the same cage (same lighting region). When off, all ready spots on the experiment are pooled (can bias dark cages negative if other cages are brighter).");
+		rebuildV3Button.setToolTipText(
+				"Recomputes cleanV3: shift each spot by early-bin median of sumClean, take median of shifted sumClean per bin (per cage or whole experiment), smooth with running median (odd W), subtract from shifted sumClean.");
+		v3LambdaSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
+		v3StepBinsSpinner.setToolTipText("Reserved for automated step detection (Tier B).");
 	}
 
 	private void onRebuildV3Clicked() {

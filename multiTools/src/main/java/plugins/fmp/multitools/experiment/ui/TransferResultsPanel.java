@@ -50,9 +50,13 @@ public class TransferResultsPanel extends JPanel {
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
-		openButton.setToolTipText(TIP_OPEN);
 		panel1.add(openButton);
 		add(panel1);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		openButton.setToolTipText(TIP_OPEN);
 	}
 
 	private void wireUi() {

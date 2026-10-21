@@ -127,12 +127,6 @@ public class ThresholdColors extends JPanel {
 
 		JPanel panelSpotRoi = new JPanel(layoutLeft);
 		panelSpotRoi.add(new JLabel("ROI count"));
-		spotsDirectionComboBox.setToolTipText("<html>Detection only. The color <b>Distance</b> control builds the mask.<br>"
-				+ "This control chooses whether spot ROI statistics count pixels that <b>match</b> your reference colors or pixels <b>outside</b> that match.<br>"
-				+ "Default &quot;matching refs&quot; matches the red overlay (mask drawn on matched pixels).</html>");
-		spotsThresholdSpinner.setToolTipText(
-				"<html>Used only after the color step produces a 0/255 mask. For typical thresholds (0&ndash;254) it does <b>not</b> change which pixels match;<br>"
-						+ "tune the mask with the <b>Distance</b> control. Very high values (e.g. &ge; 255) can exclude all pixels.</html>");
 		panelSpotRoi.add(spotsDirectionComboBox);
 		panelSpotRoi.add(new JLabel("post step "));
 		panelSpotRoi.add(spotsThresholdSpinner);
@@ -149,6 +143,16 @@ public class ThresholdColors extends JPanel {
 		lastExcludeComboCount = colorExcludeCombo.getItemCount();
 
 		declareActionListeners();
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		spotsDirectionComboBox.setToolTipText("<html>Detection only. The color <b>Distance</b> control builds the mask.<br>"
+				+ "This control chooses whether spot ROI statistics count pixels that <b>match</b> your reference colors or pixels <b>outside</b> that match.<br>"
+				+ "Default &quot;matching refs&quot; matches the red overlay (mask drawn on matched pixels).</html>");
+		spotsThresholdSpinner.setToolTipText(
+				"<html>Used only after the color step produces a 0/255 mask. For typical thresholds (0&ndash;254) it does <b>not</b> change which pixels match;<br>"
+						+ "tune the mask with the <b>Distance</b> control. Very high values (e.g. &ge; 255) can exclude all pixels.</html>");
 	}
 
 	public JToggleButton getSpotsViewButton() {

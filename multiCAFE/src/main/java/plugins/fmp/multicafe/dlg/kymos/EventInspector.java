@@ -124,9 +124,7 @@ public final class EventInspector extends JPanel implements ViewerListener {
         add(row(new JLabel("Capillary"), capillaries, refresh));
         JButton previous = new JButton("<");
         JButton next = new JButton(">");
-        columnInput.setToolTipText("Zero-based kymograph column; not the viewer T index");
         add(row(previous, next, new JLabel("Column (0-based)"), columnInput));
-        slider.setToolTipText("Kymograph time column");
         add(slider);
         JButton goTime = new JButton("Go to time");
         add(row(new JLabel("Minutes"), timeInput, goTime, new JLabel("Window +/- min"), halfWindow));
@@ -168,6 +166,12 @@ public final class EventInspector extends JPanel implements ViewerListener {
         owner.mainFrame.addFrameListener(new IcyFrameAdapter() {
             @Override public void icyFrameClosed(IcyFrameEvent e) { deactivate(); }
         });
+        defineToolTips();
+    }
+
+    private void defineToolTips() {
+        columnInput.setToolTipText("Zero-based kymograph column; not the viewer T index");
+        slider.setToolTipText("Kymograph time column");
     }
 
     private static JPanel row(java.awt.Component... components) {

@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
+import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -111,14 +112,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		tStartSpinner = new JSpinner(new SpinnerNumberModel(0, 0, nFrames - 1, 1));
 		tEndSpinner = new JSpinner(new SpinnerNumberModel(Math.min(nFrames - 1, 100), 0, nFrames - 1, 1));
 		transitionThresholdSpinner = new JSpinner(new SpinnerNumberModel(2.0, 0.5, 30.0, 0.5));
-		initializeBlueButton.setToolTipText("Optional: detect physical endpoints at image 0. If blue data exists, choose whether to keep it or replace it.");
-		validateBlueButton.setToolTipText("Apply adjusted blue lines to their existing blue phase starts, leaving earlier and later phases intact. Use Save to persist.");
-		addPositionButton.setToolTipText("Store adjusted blue lines as a new position starting at the displayed frame, until the next blue phase. Use Save to persist.");
-		plotEndpointsButton.setToolTipText("Plot stored physical capillary endpoint positions over time to inspect blue geometry.");
-		saveButton.setToolTipText("Save physical capillary phases, measurements, and phase review status.");
-		tStartSpinner.setToolTipText("First frame for transition analysis only; legacy rack tracking always starts at image 0.");
-		tEndSpinner.setToolTipText("Last frame for transition analysis only; legacy rack tracking scans the full series.");
-
 		JPanel topPanel = new JPanel();
 		topPanel.setLayout(new javax.swing.BoxLayout(topPanel, javax.swing.BoxLayout.Y_AXIS));
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
@@ -160,7 +153,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 
 		phaseList.setVisibleRowCount(4);
 		phaseList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-		phaseList.setToolTipText("Actual blue keyframe starts. Hover for capillary details; select a row to display that image.");
 		phaseList.setCellRenderer((list, value, index, selected, focus) -> {
 			JLabel label = new JLabel(phaseDescription(value));
 			label.setToolTipText(phaseDetails(value));
@@ -204,13 +196,11 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		validate.add(addPositionButton);
 		validate.add(validateBlueButton);
 		validate.add(deletePhaseButton);
-		deletePhaseButton.setToolTipText("Remove blue keyframes at the selected start for the capillaries listed there. Previous positions continue until their next phase. Frame 0 is protected.");
 		manual.add(validate);
 		manual.add(new JLabel("Removing a later phase extends previous positions. The image-zero reference is protected."));
 		topPanel.add(manual);
 		JPanel track = new JPanel(flow);
 		JButton structuralReference = new JButton("Structural reference: polygon test");
-		structuralReference.setToolTipText("Preview polygon edges at image 0 and load or save reference bands; this does not track capillaries.");
 		structuralReference.addActionListener(e -> StructuralReferenceDialog.open((Experiment) parent0.expListComboLazy.getSelectedItem()));
 		track.add(structuralReference);
 		track.add(new JLabel("Image-0 edge preview only; no tracking yet."));
@@ -252,7 +242,6 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		advancedScroll.setPreferredSize(new java.awt.Dimension(740, 300));
 		advancedScroll.setVisible(false);
 		javax.swing.JToggleButton advancedToggle = new javax.swing.JToggleButton("Show phase proposals / reference tools");
-		advancedToggle.setToolTipText("Analyze movement and turn proposed transitions into editable physical capillary phases, or preview structural references.");
 		JPanel toggleRow = new JPanel(flow);
 		toggleRow.add(advancedToggle);
 		topPanel.add(toggleRow);
@@ -262,8 +251,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			advancedToggle.setText(advancedToggle.isSelected() ? "Hide phase proposals / reference tools" : "Show phase proposals / reference tools");
 			dialogFrame.pack();
 		});
-		rackTrackingButton.setToolTipText("Estimate shared rack translation from image 0 over all images and replace later blue phases. Use Save to persist.");
-		rackPhaseSpinner.setToolTipText("Minimum displacement from the last stored rack position required to create a new blue phase, in pixels.");
+		defineToolTips(structuralReference, advancedToggle);
 		dialogFrame.setLocation(pt);
 		dialogFrame.pack();
 		dialogFrame.addToDesktopPane();
@@ -297,6 +285,33 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 			}
 		});
 		refreshPhases();
+	}
+
+	private void defineToolTips(JButton structuralReference, JToggleButton advancedToggle) {
+		initializeBlueButton.setToolTipText(
+				"Optional: detect physical endpoints at image 0. If blue data exists, choose whether to keep it or replace it.");
+		validateBlueButton.setToolTipText(
+				"Apply adjusted blue lines to their existing blue phase starts, leaving earlier and later phases intact. Use Save to persist.");
+		addPositionButton.setToolTipText(
+				"Store adjusted blue lines as a new position starting at the displayed frame, until the next blue phase. Use Save to persist.");
+		plotEndpointsButton.setToolTipText(
+				"Plot stored physical capillary endpoint positions over time to inspect blue geometry.");
+		saveButton.setToolTipText("Save physical capillary phases, measurements, and phase review status.");
+		tStartSpinner.setToolTipText(
+				"First frame for transition analysis only; legacy rack tracking always starts at image 0.");
+		tEndSpinner.setToolTipText("Last frame for transition analysis only; legacy rack tracking scans the full series.");
+		phaseList.setToolTipText(
+				"Actual blue keyframe starts. Hover for capillary details; select a row to display that image.");
+		deletePhaseButton.setToolTipText(
+				"Remove blue keyframes at the selected start for the capillaries listed there. Previous positions continue until their next phase. Frame 0 is protected.");
+		structuralReference.setToolTipText(
+				"Preview polygon edges at image 0 and load or save reference bands; this does not track capillaries.");
+		advancedToggle.setToolTipText(
+				"Analyze movement and turn proposed transitions into editable physical capillary phases, or preview structural references.");
+		rackTrackingButton.setToolTipText(
+				"Estimate shared rack translation from image 0 over all images and replace later blue phases. Use Save to persist.");
+		rackPhaseSpinner.setToolTipText(
+				"Minimum displacement from the last stored rack position required to create a new blue phase, in pixels.");
 	}
 
 	private TrackingTimeline timeline() {

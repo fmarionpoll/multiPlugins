@@ -92,8 +92,6 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 
 		JPanel panel00 = new JPanel(layoutLeft);
 		panel00.add(detectButton);
-		allSeriesCheckBox
-				.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
 		panel00.add(allSeriesCheckBox);
 		panel00.add(selectedKymoCheckBox);
 		panel00.add(leftCheckBox);
@@ -131,15 +129,21 @@ public class DetectLevelsDlgFromKymoV2 extends JPanel implements PropertyChangeL
 		add(panel03);
 		add(panel04);
 
+		transformComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+		defineToolTips();
+		defineActionListeners();
+		defineItemListeners();
+	}
+
+	private void defineToolTips() {
+		allSeriesCheckBox
+				.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
 		removeHzAvgCheckBox.setToolTipText(
 				"Subtracts each row's mean — helps full-width horizontal tape bars, not a local end-of-kymo shadow.");
 		tapePrepassCheckBox.setToolTipText(
 				"Locate thin persistent horizontal seams (background tape) and skip those edges when a liquid edge exists below.");
 		runBackwardsCheckBox.setToolTipText(
 				"Blend forward+backward tracks; hold level when tape/shadow would pull the curve down.");
-		transformComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
-		defineActionListeners();
-		defineItemListeners();
 	}
 
 	private void defineItemListeners() {

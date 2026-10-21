@@ -134,6 +134,7 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 		initSpanMemoryDefaults();
 		syncSpanSpinnerToSelectedTransform();
 		defineActionListeners();
+		defineToolTips();
 		syncClassicOnlyControls();
 	}
 
@@ -292,6 +293,11 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 				from_pixel_checkbox, start_spinner, end_spinner, derivative_checkbox, gulpTransforms_comboBox,
 				thresholdXDiffnSpinner, gulps_checkbox, thresholdMethodCombo, thresholdMultiplierSpinner })
 			c.setEnabled(batch);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		boolean batch = !selectedMethod().isInteractiveOnly();
 		detectButton.setToolTipText(batch ? "Detect gulps and replace the stored gulp measures"
 				: "Open the correlation panel for the capillary shown in the kymograph viewer");
 	}

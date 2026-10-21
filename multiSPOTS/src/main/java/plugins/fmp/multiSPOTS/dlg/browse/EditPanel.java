@@ -100,13 +100,17 @@ public class EditPanel extends JPanel {
 		newValueTextField.setPreferredSize(new Dimension(bWidth, bHeight));
 		panel4.add(newValueTextField);
 		applyButton.setPreferredSize(new Dimension(80, bHeight));
-		applyButton.setToolTipText(
-				"If condition(s) match, write the new value on every experiment in the current browse list (filtered list when Filter is on).");
 		panel4.add(applyButton);
 		add(panel4);
 
+		defineToolTips();
 		defineActionListeners();
 		initEditCombos();
+	}
+
+	private void defineToolTips() {
+		applyButton.setToolTipText(
+				"If condition(s) match, write the new value on every experiment in the current browse list (filtered list when Filter is on).");
 	}
 
 	/**

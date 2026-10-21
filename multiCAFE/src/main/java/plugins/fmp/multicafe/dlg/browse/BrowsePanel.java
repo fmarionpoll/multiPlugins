@@ -78,6 +78,14 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	void updateFilterButtonLabel() {
 		showFilterButton.setText(listFiltered ? FILTER_BUTTON_ON : FILTER_BUTTON_OFF);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		closeButton.setToolTipText(TIP_CLOSE);
+		searchButton.setToolTipText(TIP_SEARCH);
+		showEditButton.setToolTipText(TIP_EDIT);
+		showFindButton.setToolTipText(TIP_FIND);
 		showFilterButton.setToolTipText(listFiltered ? TIP_FILTER_ON : TIP_FILTER_OFF);
 	}
 
@@ -143,11 +151,8 @@ public class BrowsePanel extends JPanel implements PropertyChangeListener, ItemL
 
 	private JPanel initUI() {
 		JPanel navPanel = CafeBrowseUi.createNavigationPanel(parent0, previousButton, nextButton);
-		closeButton.setToolTipText(TIP_CLOSE);
-		searchButton.setToolTipText(TIP_SEARCH);
-		showEditButton.setToolTipText(TIP_EDIT);
 		showFindButton.setText("Find");
-		showFindButton.setToolTipText(TIP_FIND);
+		defineToolTips();
 		updateFilterButtonLabel();
 		JPanel buttonPanel = CafeBrowseUi.createButtonPanel(openButton, createButton, searchButton, closeButton,
 				showFilterButton, showEditButton, showFindButton);

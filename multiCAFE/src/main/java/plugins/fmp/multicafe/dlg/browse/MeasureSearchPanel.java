@@ -130,18 +130,13 @@ public class MeasureSearchPanel extends JPanel {
 		JPanel row0 = new JPanel(left);
 		row0.add(new JLabel("Search for:"));
 		row0.add(presetCombo);
-		allCheckBox.setToolTipText(
-				"Checked: scan every experiment in the master list. Unchecked: scan only the currently selected experiment.");
 		row0.add(allCheckBox);
-		scanButton.setToolTipText("Run the selected experiment search.");
 		row0.add(scanButton);
 		selectionButton.setEnabled(false);
-		selectionButton.setToolTipText("Limit browsing to the experiments found by the last scan.");
 		row0.add(selectionButton);
 		movementCancelButton.setEnabled(false);
 		movementCancelButton.setVisible(false);
 		movementCancelButton.setForeground(Color.RED.darker());
-		movementCancelButton.setToolTipText("Stop after the current sampled frame and keep completed results.");
 		row0.add(movementCancelButton);
 		add(row0);
 
@@ -160,9 +155,7 @@ public class MeasureSearchPanel extends JPanel {
 		movementOptions.add(new JLabel("candidate >="));
 		movementOptions.add(movementThresholdSpinner);
 		movementOptions.add(includeUncertainMovementCheckBox);
-		includeUncertainMovementCheckBox.setToolTipText("Include isolated movement estimates and poor matches; these are not confirmed movement.");
 		movementOptions.add(new JLabel("px"));
-		excludeTrackedCheckBox.setToolTipText("Exclude experiments with saved time-dependent geometry or manual tracking segments from the results.");
 		movementOptions.add(excludeTrackedCheckBox);
 		searchOptionsPanel.add(movementOptions, CARD_MOVEMENT);
 		add(searchOptionsPanel);
@@ -172,11 +165,24 @@ public class MeasureSearchPanel extends JPanel {
 		row2.add(movementLabel);
 		add(row2);
 
+		defineToolTips();
 		defineListeners();
 		presetCombo.setSelectedItem(Preset.IMAGE_MOVEMENT);
 		applyPreset(Preset.IMAGE_MOVEMENT);
 		updateFieldEnablement();
 		updateHitLabel(null);
+	}
+
+	private void defineToolTips() {
+		allCheckBox.setToolTipText(
+				"Checked: scan every experiment in the master list. Unchecked: scan only the currently selected experiment.");
+		scanButton.setToolTipText("Run the selected experiment search.");
+		selectionButton.setToolTipText("Limit browsing to the experiments found by the last scan.");
+		movementCancelButton.setToolTipText("Stop after the current sampled frame and keep completed results.");
+		includeUncertainMovementCheckBox.setToolTipText(
+				"Include isolated movement estimates and poor matches; these are not confirmed movement.");
+		excludeTrackedCheckBox.setToolTipText(
+				"Exclude experiments with saved time-dependent geometry or manual tracking segments from the results.");
 	}
 
 	private void defineListeners() {

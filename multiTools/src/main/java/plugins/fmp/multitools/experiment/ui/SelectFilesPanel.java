@@ -237,10 +237,6 @@ public class SelectFilesPanel extends JPanel {
 		topPanel.add(findButton);
 		topPanel.add(loadListButton);
 		topPanel.add(filterCombo);
-		findButton.setToolTipText(TIP_FIND);
-		loadListButton.setToolTipText(TIP_LOAD_LIST);
-		rbFile.setToolTipText(TIP_RB_FILE);
-		rbDirectory.setToolTipText(TIP_RB_DIR);
 		topPanel.add(rbFile);
 		topPanel.add(rbDirectory);
 		mainPanel.add(GuiUtil.besidesPanel(topPanel));
@@ -248,16 +244,12 @@ public class SelectFilesPanel extends JPanel {
 		directoriesJList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
 		directoriesJList.setLayoutOrientation(JList.VERTICAL);
 		directoriesJList.setVisibleRowCount(20);
-		directoriesJList.setToolTipText(TIP_PASTE);
 		JScrollPane scrollPane = new JScrollPane(directoriesJList);
 		installDirectoryPastePopup(scrollPane);
 		scrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 		scrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
 		mainPanel.add(GuiUtil.besidesPanel(scrollPane));
 
-		clearAllButton.setToolTipText(TIP_CLEAR_ALL);
-		addSelectedButton.setToolTipText(TIP_ADD_SELECTED);
-		addAllButton.setToolTipText(TIP_ADD_ALL);
 		mainPanel.add(GuiUtil.besidesPanel(clearSelectedButton, clearAllButton));
 		mainPanel.add(GuiUtil.besidesPanel(addSelectedButton, addAllButton));
 
@@ -265,6 +257,7 @@ public class SelectFilesPanel extends JPanel {
 		filterCombo.setSelectedIndex(
 				Math.max(0, Math.min(features.defaultSelectedPresetIndex, filterCombo.getItemCount() - 1)));
 
+		defineToolTips();
 		addActionListeners();
 
 		dialogFrame.pack();
@@ -282,6 +275,17 @@ public class SelectFilesPanel extends JPanel {
 			FrameGeometryPreferences.save(dialogFrame, guiPrefs, "selectFiles.");
 			dialogFrame.close();
 		}
+	}
+
+	private void defineToolTips() {
+		findButton.setToolTipText(TIP_FIND);
+		loadListButton.setToolTipText(TIP_LOAD_LIST);
+		rbFile.setToolTipText(TIP_RB_FILE);
+		rbDirectory.setToolTipText(TIP_RB_DIR);
+		directoriesJList.setToolTipText(TIP_PASTE);
+		clearAllButton.setToolTipText(TIP_CLEAR_ALL);
+		addSelectedButton.setToolTipText(TIP_ADD_SELECTED);
+		addAllButton.setToolTipText(TIP_ADD_ALL);
 	}
 
 	private void addActionListeners() {

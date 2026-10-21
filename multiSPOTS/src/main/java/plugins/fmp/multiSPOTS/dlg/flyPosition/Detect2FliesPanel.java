@@ -82,7 +82,6 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		panel1.add(nFliesPresentSpinner);
 		panel1.add(allCagesComboBox);
 		allCagesComboBox.addPopupMenuListener(this);
-		allCheckBox.setToolTipText("Run detection on this experiment through the last in the browse list.");
 		panel1.add(allCheckBox);
 		add(panel1);
 
@@ -114,10 +113,7 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		add(panel4);
 
 		JPanel panel5 = new JPanel(flowLayout);
-		excludeSpotBlobsCheckBox.setToolTipText("Ignore detections overlapping spot ROIs (reduces false flies on food).");
 		panel5.add(excludeSpotBlobsCheckBox);
-		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
-		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
 		morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected());
 		panel5.add(morphCloseCheckBox);
 		panel5.add(morphCloseRadiusSpinner);
@@ -127,8 +123,16 @@ public class Detect2FliesPanel extends JPanel implements ChangeListener, Propert
 		jitterCheckBox.addItemListener(e -> jitterTextField.setEnabled(jitterCheckBox.isSelected()));
 		morphCloseCheckBox.addItemListener(e -> morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected()));
 
+		defineToolTips();
 		defineActionListeners();
 		thresholdSpinner.addChangeListener(this);
+	}
+
+	private void defineToolTips() {
+		allCheckBox.setToolTipText("Run detection on this experiment through the last in the browse list.");
+		excludeSpotBlobsCheckBox.setToolTipText("Ignore detections overlapping spot ROIs (reduces false flies on food).");
+		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
+		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
 	}
 
 	private void defineActionListeners() {

@@ -149,26 +149,7 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 		metricOverlayCheckBox.setEnabled(false);
 		mergedOverlayCheckBox.setEnabled(false);
 		insectOverlayCheckBox.setEnabled(false);
-		metricOverlayCheckBox.setToolTipText(
-				"Per strip: spot metric passes min R+G+B and threshold; optional insect filter removes insect-like pixels (same idea as spots vs flies filters).");
-		mergedOverlayCheckBox.setToolTipText(
-				"Green = cleaned post-lift spot mask (insect gate on: jump across and before insect-only columns when spot resumes; then temporal gap fill ≤ max row gap, vertical bridge, left-anchored trace, 1-px speck removal). Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
-		insectMetricGateCheckBox.setToolTipText(
-				"When on: pixels that pass the insect transform + direction + threshold are excluded from spot-on (parallel to Flies filter in Spots measures / ThresholdLightPanel).");
-		insectMetricTransformCombo
-				.setToolTipText("Second transform on the same kymograph RGB (e.g. B_RGB for fly body).");
-		insectDirectionComboBox.setToolTipText(
-				"metric ≤ : insect-like when transformed value ≤ threshold (flies-style). metric > : insect-like when value > threshold.");
-		insectMetricThresholdSpinner
-				.setToolTipText("Threshold for the insect transform channel (same units as spot metric threshold).");
-		insectOverlayCheckBox.setToolTipText(
-				"Magenta overlay on pixels classified as insect-like by the insect transform + direction + threshold (same rule as exclusion). Uses current insect controls even when 'Insect filter' is off.");
-		previewLiftedBandsCheckBox.setToolTipText(
-				"When row lift is on: blend the row-lifted image over each band so you see corrected intensities (does not change saved TIFFs).");
-		rowOcclusionLiftCheckBox.setToolTipText(
-				"Per strip and each row y, bad runs along time between good pixels are filled with mean RGB of bracketing good pixels (length ≤ max row gap). When insect filter is on, insect-like pixels are not treated as good bracket anchors.");
-		maxRowOcclusionGapColsSpinner.setToolTipText(
-				"Maximum width (columns) of a bad run along one row that may be filled when good pixels lie on both sides. 0 disables row fill.");
+		defineToolTips();
 
 		metricOverlayCheckBox.setSelected(true);
 		mergedOverlayCheckBox.setSelected(true);
@@ -259,6 +240,29 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 
 		syncPreviewLiftedEnabled();
 		syncInsectControlsEnabled();
+	}
+
+	private void defineToolTips() {
+		metricOverlayCheckBox.setToolTipText(
+				"Per strip: spot metric passes min R+G+B and threshold; optional insect filter removes insect-like pixels (same idea as spots vs flies filters).");
+		mergedOverlayCheckBox.setToolTipText(
+				"Green = cleaned post-lift spot mask (insect gate on: jump across and before insect-only columns when spot resumes; then temporal gap fill ≤ max row gap, vertical bridge, left-anchored trace, 1-px speck removal). Same mask drives Analyze when row lift is on. Optional: 'Preview lifted bands' blends corrected RGB in bands.");
+		insectMetricGateCheckBox.setToolTipText(
+				"When on: pixels that pass the insect transform + direction + threshold are excluded from spot-on (parallel to Flies filter in Spots measures / ThresholdLightPanel).");
+		insectMetricTransformCombo
+				.setToolTipText("Second transform on the same kymograph RGB (e.g. B_RGB for fly body).");
+		insectDirectionComboBox.setToolTipText(
+				"metric ≤ : insect-like when transformed value ≤ threshold (flies-style). metric > : insect-like when value > threshold.");
+		insectMetricThresholdSpinner
+				.setToolTipText("Threshold for the insect transform channel (same units as spot metric threshold).");
+		insectOverlayCheckBox.setToolTipText(
+				"Magenta overlay on pixels classified as insect-like by the insect transform + direction + threshold (same rule as exclusion). Uses current insect controls even when 'Insect filter' is off.");
+		previewLiftedBandsCheckBox.setToolTipText(
+				"When row lift is on: blend the row-lifted image over each band so you see corrected intensities (does not change saved TIFFs).");
+		rowOcclusionLiftCheckBox.setToolTipText(
+				"Per strip and each row y, bad runs along time between good pixels are filled with mean RGB of bracketing good pixels (length ≤ max row gap). When insect filter is on, insect-like pixels are not treated as good bracket anchors.");
+		maxRowOcclusionGapColsSpinner.setToolTipText(
+				"Maximum width (columns) of a bad run along one row that may be filled when good pixels lie on both sides. 0 disables row fill.");
 	}
 
 	private void syncPreviewLiftedEnabled() {

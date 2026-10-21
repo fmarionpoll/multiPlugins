@@ -88,11 +88,15 @@ public class Adjust extends JPanel {
 		panel03.add(detectFrameBarButton);
 		panel03.add(exportFrameScaleButton);
 		panel03.add(allFrameScaleCheckBox);
-		detectFrameBarButton.setToolTipText("Detect nine cage dividers and display inferred frame limits");
-		exportFrameScaleButton.setToolTipText("Analyze image 0 without changing experiments and save a diagnostic CSV");
+		defineToolTips();
 		add(panel03);
 
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		detectFrameBarButton.setToolTipText("Detect nine cage dividers and display inferred frame limits");
+		exportFrameScaleButton.setToolTipText("Analyze image 0 without changing experiments and save a diagnostic CSV");
 	}
 
 	private void defineActionListeners() {

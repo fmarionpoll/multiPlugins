@@ -112,14 +112,12 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 		JPanel panel00 = new JPanel(layoutLeft);
 		panel00.add(detectButton);
-		allSeriesCheckBox.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
 		panel00.add(allSeriesCheckBox);
 		panel00.add(selectedKymoCheckBox);
 		panel00.add(leftCheckBox);
 		panel00.add(rightCheckBox);
 
 		JPanel panel01 = new JPanel(layoutLeft);
-		pass1CheckBox.setToolTipText("First (coarse) threshold pass on the kymograph.");
 		panel01.add(pass1CheckBox);
 		panel01.add(direction1ComboBox);
 		((JLabel) direction1ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -128,7 +126,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel01.add(transformPass1DisplayButton);
 
 		JPanel panel02 = new JPanel(layoutLeft);
-		pass2CheckBox.setToolTipText("Second (refined) threshold pass on the kymograph.");
 		panel02.add(pass2CheckBox);
 		panel02.add(direction2ComboBox);
 		((JLabel) direction2ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -140,7 +137,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel03.add(new JLabel("pass2 vertical jitter"));
 		panel03.add(jitter2Spinner);
 		panel03.add(fromRectangleCheckBox);
-		runBackwardsCheckBox.setToolTipText("Track liquid level from bottom to top instead of top to bottom.");
 		panel03.add(runBackwardsCheckBox);
 
 		JPanel choices = new JPanel(layoutLeft);
@@ -148,14 +144,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		choices.add(smoothCheckBox);
 		choices.add(bottomCheckBox);
 		choices.add(advancedCheckBox);
-		trackingCheckBox.setToolTipText("Use temporal tracking instead of independent pass1/pass2 detection.");
-		smoothCheckBox.setToolTipText("Apply median and spike filtering to the top-level curve; may alter short gulp events.");
-		bottomCheckBox.setToolTipText("Also detect the bottom boundary using the first transform and threshold.");
 		runBackwardsCheckBox.setText("Forward + backward tracking");
-		runBackwardsCheckBox.setToolTipText("Combine forward and backward tracks to reject inconsistent jumps.");
 		panel03.remove(runBackwardsCheckBox);
-		removeHzAvgCheckBox.setToolTipText("Subtract each row mean to suppress persistent full-width horizontal bands.");
-		tapePrepassCheckBox.setToolTipText("Identify thin persistent tape seams and prefer a liquid boundary below them.");
 		panel03.remove(fromRectangleCheckBox);
 		panel00.add(fromRectangleCheckBox);
 		trackingPanel = new JPanel(layoutLeft);
@@ -190,10 +180,26 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			control.addChangeListener(e -> updateOverlayThreshold());
 		updateModeControls();
 
+		defineToolTips();
 		defineActionListeners();
 		defineItemListeners();
 		allowItemsAccordingToSelection();
 		transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+	}
+
+	private void defineToolTips() {
+		allSeriesCheckBox.setToolTipText(
+				"Run level detection for the current experiment through the last in the browse list.");
+		pass1CheckBox.setToolTipText("First (coarse) threshold pass on the kymograph.");
+		pass2CheckBox.setToolTipText("Second (refined) threshold pass on the kymograph.");
+		trackingCheckBox.setToolTipText("Use temporal tracking instead of independent pass1/pass2 detection.");
+		smoothCheckBox.setToolTipText(
+				"Apply median and spike filtering to the top-level curve; may alter short gulp events.");
+		bottomCheckBox.setToolTipText("Also detect the bottom boundary using the first transform and threshold.");
+		runBackwardsCheckBox.setToolTipText("Combine forward and backward tracks to reject inconsistent jumps.");
+		removeHzAvgCheckBox.setToolTipText("Subtract each row mean to suppress persistent full-width horizontal bands.");
+		tapePrepassCheckBox
+				.setToolTipText("Identify thin persistent tape seams and prefer a liquid boundary below them.");
 	}
 
 	private Experiment currentExperiment() {

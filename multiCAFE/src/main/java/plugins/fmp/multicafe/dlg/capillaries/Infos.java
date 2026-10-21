@@ -84,16 +84,9 @@ public class Infos extends JPanel {
 		panel2.add(calibrationStatusLabel);
 		add(panel2);
 
-		getCapillaryLengthButton.setToolTipText("Set value to the pixels length of capillary 0");
-		setPixelsButton.setToolTipText("Give every capillary the length (pixels)");
+		showOutlineCheckBox.setSelected(false);
 
-		autoMeasureButton.setToolTipText(
-				"Measure each capillary length inside its ROI; opens options for current or ALL (current to last)");
-		allExperimentsCheckBox
-				.setToolTipText("Apply the reset to the selected experiment through the last in the browse list");
-		showMeasuredCheckBox.setToolTipText("Draw over the image the extent measured for each capillary");
-		showOutlineCheckBox.setToolTipText("Show fitted walls and ends when a measured width is available");
-
+		defineToolTips();
 		defineActionListeners();
 	}
 
@@ -123,6 +116,17 @@ public class Infos extends JPanel {
 		if (first != null) {
 			infosCapillaryTable.selectRowFromCapillary(first);
 		}
+	}
+
+	private void defineToolTips() {
+		getCapillaryLengthButton.setToolTipText("Set value to the pixels length of capillary 0");
+		setPixelsButton.setToolTipText("Give every capillary the length (pixels)");
+		autoMeasureButton.setToolTipText(
+				"Measure each capillary length inside its ROI; opens options for current or ALL (current to last)");
+		allExperimentsCheckBox
+				.setToolTipText("Apply the reset to the selected experiment through the last in the browse list");
+		showMeasuredCheckBox.setToolTipText("Draw over the image the extent measured for each capillary");
+		showOutlineCheckBox.setToolTipText("Show fitted walls and ends when a measured width is available");
 	}
 
 	private void defineActionListeners() {

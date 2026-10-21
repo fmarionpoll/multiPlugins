@@ -61,11 +61,6 @@ public class EditPanel extends JPanel implements ChangeListener, SequenceListene
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.LEFT);
 		flowLayout.setVgap(0);
 
-		addButton.setToolTipText(TIP_ADD);
-		deleteButton.setToolTipText(TIP_DELETE);
-		restoreButton.setToolTipText(TIP_RESTORE);
-		validateButton.setToolTipText(TIP_VALIDATE);
-
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(addButton);
 		panel1.add(deleteButton);
@@ -73,7 +68,15 @@ public class EditPanel extends JPanel implements ChangeListener, SequenceListene
 		panel1.add(validateButton);
 		add(panel1);
 
+		defineToolTips();
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		addButton.setToolTipText(TIP_ADD);
+		deleteButton.setToolTipText(TIP_DELETE);
+		restoreButton.setToolTipText(TIP_RESTORE);
+		validateButton.setToolTipText(TIP_VALIDATE);
 	}
 
 	private void defineActionListeners() {

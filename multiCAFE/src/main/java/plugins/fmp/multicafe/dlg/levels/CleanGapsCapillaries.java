@@ -66,7 +66,6 @@ public class CleanGapsCapillaries extends JPanel {
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(detectBlackCheckbBox);
 		panel1.add(cleanMeasuresCheckBox);
-		cleanMeasuresCheckBox.setToolTipText("Zero measure bins flagged as black/dropped frames (destructive; preview with Detect black zones first).");
 		add(panel1);
 
 		JPanel panel2 = new JPanel(layoutLeft);
@@ -80,6 +79,7 @@ public class CleanGapsCapillaries extends JPanel {
 		add(panel3);
 
 		options.rectMonitor.setName("rectMonitor");
+		defineToolTips();
 		defineActionListeners();
 		defineItemListeners();
 		thresholdSpinner.addChangeListener(new ChangeListener() {
@@ -120,6 +120,11 @@ public class CleanGapsCapillaries extends JPanel {
 					removeOverlay(exp);
 			}
 		});
+	}
+
+	private void defineToolTips() {
+		cleanMeasuresCheckBox.setToolTipText(
+				"Zero measure bins flagged as black/dropped frames (destructive; preview with Detect black zones first).");
 	}
 
 	private void defineActionListeners() {

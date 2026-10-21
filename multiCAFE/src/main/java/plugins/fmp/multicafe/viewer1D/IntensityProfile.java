@@ -138,7 +138,6 @@ public class IntensityProfile {
 				updateChart();
 			}
 		});
-		rowOColBtn.setToolTipText("slide in row or column");
 
 		exportToFileBtn.setFocusPainted(false);
 		exportToFileBtn.setPreferredSize(new Dimension(180, 22));
@@ -206,7 +205,6 @@ public class IntensityProfile {
 				}
 			}
 		});
-		exportToFileBtn.setToolTipText("Print current line data to the console of Icy.");
 
 		indexLbl.setHorizontalAlignment(JLabel.RIGHT);
 		maxIndexLbl.setHorizontalAlignment(JLabel.RIGHT);
@@ -216,7 +214,7 @@ public class IntensityProfile {
 		slider.setFocusable(false);
 		slider.setMaximum(0);
 		slider.setMinimum(0);
-		slider.setToolTipText("Move cursor to navigate in T dimension");
+		defineToolTips();
 		slider.addChangeListener(new ChangeListener() {
 			@Override
 			public void stateChanged(ChangeEvent e) {
@@ -325,6 +323,12 @@ public class IntensityProfile {
 
 		updateXYNav();
 		updateChart();
+	}
+
+	private void defineToolTips() {
+		rowOColBtn.setToolTipText("slide in row or column");
+		exportToFileBtn.setToolTipText("Print current line data to the console of Icy.");
+		slider.setToolTipText("Move cursor to navigate in T dimension");
 	}
 
 	Runnable updateRunnable;

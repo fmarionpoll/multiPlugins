@@ -119,15 +119,12 @@ public class TransferResultsDialogPanel extends JPanel {
 		warningLabel.setForeground(new Color(140, 90, 0));
 
 		JPanel row0 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-		prepareButton.setToolTipText(TIP_PREPARE);
 		row0.add(prepareButton);
 		row0.add(scanSummaryLabel);
 		content.add(row0);
 
 		JPanel rowScope = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		rowScope.add(new JLabel("Scan scope:"));
-		rbAllExperiments.setToolTipText(TIP_SCOPE_ALL);
-		rbCurrentExperiment.setToolTipText(TIP_SCOPE_CURRENT);
 		rowScope.add(rbAllExperiments);
 		rowScope.add(rbCurrentExperiment);
 		content.add(rowScope);
@@ -139,7 +136,6 @@ public class TransferResultsDialogPanel extends JPanel {
 		content.add(row1);
 
 		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-		overrideRootCheck.setToolTipText(TIP_OVERRIDE_ROOT);
 		row2.add(overrideRootCheck);
 		overrideRootField.setColumns(40);
 		row2.add(overrideRootField);
@@ -148,10 +144,8 @@ public class TransferResultsDialogPanel extends JPanel {
 
 		JPanel row3 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
 		row3.add(new JLabel("Direction:"));
-		directionCombo.setToolTipText(TIP_DIRECTION);
 		row3.add(directionCombo);
 		row3.add(new JLabel("Mode:"));
-		modeCombo.setToolTipText(TIP_MODE);
 		row3.add(modeCombo);
 		content.add(row3);
 
@@ -163,9 +157,6 @@ public class TransferResultsDialogPanel extends JPanel {
 		content.add(row4);
 
 		JPanel row5 = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-		startButton.setToolTipText(TIP_START);
-		closeReloadBeforeImportCheck.setToolTipText(TIP_CLOSE_RELOAD);
-		importScanSourceTreesCheck.setToolTipText(TIP_SCAN_SOURCE);
 		row5.add(startButton);
 		row5.add(closeReloadBeforeImportCheck);
 		row5.add(importScanSourceTreesCheck);
@@ -176,6 +167,19 @@ public class TransferResultsDialogPanel extends JPanel {
 		content.add(row6);
 
 		add(content, BorderLayout.NORTH);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		prepareButton.setToolTipText(TIP_PREPARE);
+		rbAllExperiments.setToolTipText(TIP_SCOPE_ALL);
+		rbCurrentExperiment.setToolTipText(TIP_SCOPE_CURRENT);
+		overrideRootCheck.setToolTipText(TIP_OVERRIDE_ROOT);
+		directionCombo.setToolTipText(TIP_DIRECTION);
+		modeCombo.setToolTipText(TIP_MODE);
+		startButton.setToolTipText(TIP_START);
+		closeReloadBeforeImportCheck.setToolTipText(TIP_CLOSE_RELOAD);
+		importScanSourceTreesCheck.setToolTipText(TIP_SCAN_SOURCE);
 	}
 
 	private void wireUi() {

@@ -137,9 +137,17 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 
 		resultTypeComboBox.setSelectedIndex(0);
 		evapMethodComboBox.setSelectedItem(EvaporationCorrectionMethod.MODEL);
-		evapMethodComboBox
-				.setToolTipText("How evaporation Y_ref is built from nFlies=0 capillaries before TOPLEVEL correction.");
+		defineToolTips();
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		evapMethodComboBox.setToolTipText(
+				"How evaporation Y_ref is built from nFlies=0 capillaries before TOPLEVEL correction.");
+	}
+
+	private void defineToolTips(EvaporationCorrectionMethod method) {
+		evapMethodComboBox.setToolTipText(method.tooltip());
 	}
 
 	private void defineActionListeners() {
@@ -159,7 +167,7 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 			public void actionPerformed(final ActionEvent e) {
 				EvaporationCorrectionMethod m = (EvaporationCorrectionMethod) evapMethodComboBox.getSelectedItem();
 				if (m != null)
-					evapMethodComboBox.setToolTipText(m.tooltip());
+					defineToolTips(m);
 				Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 				if (exp != null)
 					displayChartPanels(exp);

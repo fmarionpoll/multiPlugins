@@ -91,29 +91,22 @@ public class ExcelOptionsPanel extends JPanel {
 		layout1.setVgap(0);
 
 		JPanel panel0 = new JPanel(layout1);
-		exportAllFilesCheckBox.setToolTipText(TIP_EXPORT_ALL);
-		transposeCheckBox.setToolTipText(TIP_TRANSPOSE);
 		panel0.add(exportAllFilesCheckBox);
 		panel0.add(transposeCheckBox);
 		if (features.collateSeries) {
-			collateSeriesCheckBox.setToolTipText(TIP_COLLATE);
 			panel0.add(collateSeriesCheckBox);
 		}
 		if (features.padIntervals) {
-			padIntervalsCheckBox.setToolTipText(TIP_PAD);
 			panel0.add(padIntervalsCheckBox);
 			padIntervalsCheckBox.setEnabled(false);
 		}
 		if (features.onlyAlive) {
-			onlyAliveCheckBox.setToolTipText(TIP_DEAD_EMPTY);
 			panel0.add(onlyAliveCheckBox);
 		}
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layout1);
 		panel1.add(new JLabel("Analyze "));
-		isFloatingFrameButton.setToolTipText(TIP_ANALYZE_ALL);
-		isFixedFrameButton.setToolTipText(TIP_ANALYZE_FROM);
 		panel1.add(isFloatingFrameButton);
 		panel1.add(isFixedFrameButton);
 		panel1.add(startJSpinner);
@@ -132,11 +125,8 @@ public class ExcelOptionsPanel extends JPanel {
 
 		JPanel panel3 = new JPanel(layout1);
 		panel3.add(new JLabel("layout "));
-		layoutWideButton.setToolTipText(TIP_LAYOUT_WIDE);
-		layoutNormalizedButton.setToolTipText(TIP_LAYOUT_NORM);
 		panel3.add(layoutWideButton);
 		panel3.add(layoutNormalizedButton);
-		forceCsvBinCheckBox.setToolTipText(TIP_FORCE_CSV_BIN);
 		panel3.add(forceCsvBinCheckBox);
 		forceCsvBinCheckBox.setEnabled(false);
 		add(panel3);
@@ -150,8 +140,25 @@ public class ExcelOptionsPanel extends JPanel {
 		layoutGroup.add(layoutNormalizedButton);
 		layoutGroup.add(layoutWideButton);
 
+		defineToolTips();
 		defineActionListeners();
 		updateForceCsvBinEnabled();
+	}
+
+	private void defineToolTips() {
+		exportAllFilesCheckBox.setToolTipText(TIP_EXPORT_ALL);
+		transposeCheckBox.setToolTipText(TIP_TRANSPOSE);
+		if (features.collateSeries)
+			collateSeriesCheckBox.setToolTipText(TIP_COLLATE);
+		if (features.padIntervals)
+			padIntervalsCheckBox.setToolTipText(TIP_PAD);
+		if (features.onlyAlive)
+			onlyAliveCheckBox.setToolTipText(TIP_DEAD_EMPTY);
+		isFloatingFrameButton.setToolTipText(TIP_ANALYZE_ALL);
+		isFixedFrameButton.setToolTipText(TIP_ANALYZE_FROM);
+		layoutWideButton.setToolTipText(TIP_LAYOUT_WIDE);
+		layoutNormalizedButton.setToolTipText(TIP_LAYOUT_NORM);
+		forceCsvBinCheckBox.setToolTipText(TIP_FORCE_CSV_BIN);
 	}
 
 	private void defineActionListeners() {

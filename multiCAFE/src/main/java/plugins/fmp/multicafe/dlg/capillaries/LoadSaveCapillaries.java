@@ -46,16 +46,22 @@ public class LoadSaveCapillaries extends JPanel {
 		JPanel referencePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		referencePanel.add(loadGroundTruthButton);
 		referencePanel.add(saveGroundTruthButton);
-		saveButtonCapillaries.setToolTipText("Save the selected experiment, including edited blue tips, as CapillariesDescription.csv");
-		saveGroundTruthButton.setToolTipText("Save image-0 reference tips and width as " + CapillariesPersistence.GROUND_TRUTH_CSV
-				+ "; leaves normal files unchanged");
 		panel1.validate();
 		add(panel1);
 		add(referencePanel);
-		loadGroundTruthButton.setToolTipText("Restore blue endpoints and saved widths for image 0 only; no files are overwritten");
 
 		this.parent0 = parent0;
+		defineToolTips();
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		saveButtonCapillaries.setToolTipText(
+				"Save the selected experiment, including edited blue tips, as CapillariesDescription.csv");
+		saveGroundTruthButton.setToolTipText("Save image-0 reference tips and width as "
+				+ CapillariesPersistence.GROUND_TRUTH_CSV + "; leaves normal files unchanged");
+		loadGroundTruthButton
+				.setToolTipText("Restore blue endpoints and saved widths for image 0 only; no files are overwritten");
 	}
 
 	private void defineActionListeners() {

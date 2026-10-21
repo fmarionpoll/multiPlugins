@@ -67,15 +67,10 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 		flowLayout.setVgap(0);
 
 		JPanel panel1 = new JPanel(flowLayout);
-		startComputationButton.setToolTipText(
-				"Compute median background over N frames; saved as the experiment reference image.");
-		allCheckBox.setToolTipText("Build background for this experiment through the last in the browse list.");
 		panel1.add(startComputationButton);
 		panel1.add(allCheckBox);
 		panel1.add(loadButton);
 		panel1.add(saveButton);
-		editButton.setToolTipText(
-				"Open the reference image in the mask editor (overwrites the reference image on save).");
 		panel1.add(editButton);
 		add(panel1);
 
@@ -100,9 +95,17 @@ public class Detect2BackgroundPanel extends JPanel implements ChangeListener, Pr
 //		panel4.add(saveButton);
 //		add(panel4);
 
+		defineToolTips();
 		defineActionListeners();
 
 		backgroundThresholdSpinner.addChangeListener(this);
+	}
+
+	private void defineToolTips() {
+		startComputationButton.setToolTipText(
+				"Compute median background over N frames; saved as the experiment reference image.");
+		allCheckBox.setToolTipText("Build background for this experiment through the last in the browse list.");
+		editButton.setToolTipText("Open the reference image in the mask editor (overwrites the reference image on save).");
 	}
 
 	private void defineActionListeners() {

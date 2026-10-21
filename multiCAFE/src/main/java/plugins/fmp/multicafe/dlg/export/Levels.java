@@ -68,6 +68,7 @@ public class Levels extends JPanel {
 		updateEvapMethodEnabled();
 
 		defineActionListeners();
+		defineToolTips();
 	}
 
 	private void defineActionListeners() {
@@ -117,6 +118,11 @@ public class Levels extends JPanel {
 	private void updateEvapMethodEnabled() {
 		boolean on = subtractEvaporationCheckBox.isSelected();
 		evapMethodComboBox.setEnabled(on);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		boolean on = subtractEvaporationCheckBox.isSelected();
 		EvaporationCorrectionMethod m = getEvaporationCorrectionMethod();
 		evapMethodComboBox.setToolTipText(on ? m.tooltip()
 				: "Enable subtract evaporation to choose mean-of-no-fly vs exponential model.");

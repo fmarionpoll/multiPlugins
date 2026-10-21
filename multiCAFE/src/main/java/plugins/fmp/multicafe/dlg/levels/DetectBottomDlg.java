@@ -86,7 +86,6 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 		JPanel panel0 = new JPanel(layoutLeft);
-		detectButton.setToolTipText("Re-detect bottom level only (does not overwrite top).");
 		panel0.add(detectButton);
 		panel0.add(allSeriesCheckBox);
 		panel0.add(selectedKymoCheckBox);
@@ -99,7 +98,6 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		panel1.add(transformCombo);
 		panel1.add(transformViewButton);
 		panel1.add(new JLabel("search from bottom px"));
-		searchFromBottomSpinner.setToolTipText("0 = full height; greater than 0 restricts tip search band.");
 		panel1.add(searchFromBottomSpinner);
 		add(panel1);
 		JPanel panel2 = new JPanel(layoutLeft);
@@ -119,6 +117,7 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		panel4.add(new JLabel("Tip marker = median of bottom series after MAD outlier rejection."));
 		add(panel4);
 		transformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
+		defineToolTips();
 		defineActionListeners();
 		defineItemListeners();
 	}
@@ -135,6 +134,11 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 				updateOverlayThreshold();
 			}
 		});
+	}
+
+	private void defineToolTips() {
+		detectButton.setToolTipText("Re-detect bottom level only (does not overwrite top).");
+		searchFromBottomSpinner.setToolTipText("0 = full height; greater than 0 restricts tip search band.");
 	}
 
 	private void defineActionListeners() {

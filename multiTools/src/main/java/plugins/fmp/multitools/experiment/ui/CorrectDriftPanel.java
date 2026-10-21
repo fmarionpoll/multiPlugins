@@ -181,8 +181,6 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		refPanel.add(referenceLabel);
 		refPanel.add(setReferenceButton);
 		refPanel.add(pivotLabel);
-		setReferenceButton.setToolTipText(TIP_REF_EQUALS_T);
-		showPivotMarkerCheck.setToolTipText(TIP_SHOW_PIVOT);
 		refPanel.add(showPivotMarkerCheck);
 		add(refPanel);
 
@@ -196,18 +194,13 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		framePanel.add(new JLabel("\u03b8\u00b0"));
 		framePanel.add(angleSpinner);
 		angleSpinner.setPreferredSize(new Dimension(56, 20));
-		viewTransformToggle.setToolTipText(TIP_VIEW_T_REF);
 		framePanel.add(viewTransformToggle);
-		applyTransformButton.setToolTipText(TIP_APPLY_TO_T);
 		framePanel.add(applyTransformButton);
 		add(framePanel);
 
 		JPanel frame2Panel = new JPanel(flowlayout);
-		resetOffsetsButton.setToolTipText(TIP_RESET_OFFSETS);
 		frame2Panel.add(resetOffsetsButton);
-		resetPivotToCagesButton.setToolTipText(TIP_RESET_PIVOT);
 		frame2Panel.add(resetPivotToCagesButton);
-		autoContrastCheck.setToolTipText(TIP_AUTO_CONTRAST);
 		frame2Panel.add(autoContrastCheck);
 		add(frame2Panel);
 
@@ -218,11 +211,22 @@ public class CorrectDriftPanel extends JPanel implements ViewerListener {
 		batchPanel.add(new JLabel("end"));
 		batchPanel.add(rangeEndSpinner);
 		rangeEndSpinner.setPreferredSize(new Dimension(60, 20));
-		applyRangeButton.setToolTipText(TIP_APPLY_RANGE);
-		restoreButton.setToolTipText(TIP_RESTORE);
 		batchPanel.add(applyRangeButton);
 		batchPanel.add(restoreButton);
 		add(batchPanel);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		setReferenceButton.setToolTipText(TIP_REF_EQUALS_T);
+		showPivotMarkerCheck.setToolTipText(TIP_SHOW_PIVOT);
+		viewTransformToggle.setToolTipText(TIP_VIEW_T_REF);
+		applyTransformButton.setToolTipText(TIP_APPLY_TO_T);
+		resetOffsetsButton.setToolTipText(TIP_RESET_OFFSETS);
+		resetPivotToCagesButton.setToolTipText(TIP_RESET_PIVOT);
+		autoContrastCheck.setToolTipText(TIP_AUTO_CONTRAST);
+		applyRangeButton.setToolTipText(TIP_APPLY_RANGE);
+		restoreButton.setToolTipText(TIP_RESTORE);
 	}
 
 	private void defineActionListeners() {

@@ -61,7 +61,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 		JPanel panel0 = new JPanel(layoutLeft);
 		((FlowLayout) panel0.getLayout()).setVgap(1);
-		allSeriesCheckBox.setToolTipText("Build kymographs for the current experiment through the last in the browse list.");
 		panel0.add(startComputationButton);
 		panel0.add(allSeriesCheckBox);
 		add(panel0);
@@ -72,7 +71,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		}
 		downsampleCombo.setModel(dsModel);
 		downsampleCombo.setSelectedIndex(0);
-		downsampleCombo.setToolTipText("Keep every Nth camera frame; sets kymograph bin step and results subfolder.");
 
 		JPanel panel1 = new JPanel(layoutLeft);
 		panel1.add(new JLabel("area around ROIs", SwingConstants.RIGHT));
@@ -80,8 +78,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		panel1.add(new JLabel("downsample"));
 		panel1.add(downsampleCombo);
 		panel1.add(samplingHintLabel);
-		fromBlueRoisCheckBox.setToolTipText("Sample kymographs from expanded blue physical lines, normalized to a constant height.");
-		blueExpandPercentSpinner.setToolTipText("Extra length as percent of the blue 32 mm line, split equally on both ends.");
 		panel1.add(fromBlueRoisCheckBox);
 		panel1.add(new JLabel("expand %"));
 		panel1.add(blueExpandPercentSpinner);
@@ -90,7 +86,6 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 
 		JPanel panel2 = new JPanel(layoutLeft);
 		panel2.add(new JLabel("Analyze "));
-		isFixedFrameButton.setToolTipText("Limit analysis to the time range below instead of all frames.");
 		panel2.add(isFloatingFrameButton);
 		panel2.add(isFixedFrameButton);
 		panel2.add(startJSpinner);
@@ -107,6 +102,7 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 		group.add(isFloatingFrameButton);
 		group.add(isFixedFrameButton);
 
+		defineToolTips();
 		defineActionListeners();
 	}
 
@@ -120,6 +116,17 @@ public class CreateKymos extends JPanel implements PropertyChangeListener {
 			downsampleCombo.setSelectedIndex(stored - 1);
 		}
 		updateSamplingHint(exp);
+	}
+
+	private void defineToolTips() {
+		allSeriesCheckBox.setToolTipText(
+				"Build kymographs for the current experiment through the last in the browse list.");
+		downsampleCombo.setToolTipText("Keep every Nth camera frame; sets kymograph bin step and results subfolder.");
+		fromBlueRoisCheckBox.setToolTipText(
+				"Sample kymographs from expanded blue physical lines, normalized to a constant height.");
+		blueExpandPercentSpinner
+				.setToolTipText("Extra length as percent of the blue 32 mm line, split equally on both ends.");
+		isFixedFrameButton.setToolTipText("Limit analysis to the time range below instead of all frames.");
 	}
 
 	private void defineActionListeners() {

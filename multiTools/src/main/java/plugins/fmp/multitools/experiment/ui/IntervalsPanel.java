@@ -95,28 +95,20 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		JPanel panel0 = new JPanel(layout1);
 		panel0.add(new JLabel("Frame:", SwingConstants.RIGHT));
 		panel0.add(indexFirstImageJSpinner);
-		clipNumberImagesCombo.setToolTipText(TIP_CLIP_COMBO);
 		panel0.add(clipNumberImagesCombo);
 		panel0.add(fixedNumberOfImagesJSpinner);
-		updateToCurrentFrameButton.setToolTipText(TIP_CURRENT_FRAME);
 		panel0.add(updateToCurrentFrameButton);
-		applyButton.setToolTipText(TIP_APPLY);
 		panel0.add(applyButton);
 		add(panel0);
 
 		JPanel panel1 = new JPanel(layout1);
 		panel1.add(analysisIntervalLabel);
-		refreshButton.setToolTipText(TIP_REFRESH);
 		panel1.add(refreshButton);
-		advancedToggleButton.setToolTipText(TIP_ADVANCED);
 		panel1.add(advancedToggleButton);
 		add(panel1);
 
 		advancedPanel.setLayout(layout1);
 		JLabel analysisStepLabel = new JLabel("Analysis time step ", SwingConstants.RIGHT);
-		analysisStepLabel.setToolTipText(ANALYSIS_STEP_TOOLTIP);
-		binSizeJSpinner.setToolTipText(ANALYSIS_STEP_TOOLTIP);
-		binUnit.setToolTipText(ANALYSIS_STEP_TOOLTIP);
 		advancedPanel.add(analysisStepLabel);
 		advancedPanel.add(binSizeJSpinner);
 		advancedPanel.add(binUnit);
@@ -124,8 +116,6 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 
 		advancedPanel1.setLayout(layout1);
 		JLabel nominalLabel = new JLabel("  Nominal interval (s) ", SwingConstants.RIGHT);
-		nominalLabel.setToolTipText(TIP_NOMINAL);
-		nominalIntervalJSpinner.setToolTipText(TIP_NOMINAL);
 		advancedPanel1.add(nominalLabel);
 		advancedPanel1.add(nominalIntervalJSpinner);
 		advancedPanel1.add(classSummaryLabel);
@@ -133,8 +123,22 @@ public class IntervalsPanel extends JPanel implements ItemListener {
 		add(advancedPanel1);
 
 		fixedNumberOfImagesJSpinner.setVisible(false);
+		defineToolTips(analysisStepLabel, nominalLabel);
 		defineActionListeners();
 		clipNumberImagesCombo.addItemListener(this);
+	}
+
+	private void defineToolTips(JLabel analysisStepLabel, JLabel nominalLabel) {
+		clipNumberImagesCombo.setToolTipText(TIP_CLIP_COMBO);
+		updateToCurrentFrameButton.setToolTipText(TIP_CURRENT_FRAME);
+		applyButton.setToolTipText(TIP_APPLY);
+		refreshButton.setToolTipText(TIP_REFRESH);
+		advancedToggleButton.setToolTipText(TIP_ADVANCED);
+		analysisStepLabel.setToolTipText(ANALYSIS_STEP_TOOLTIP);
+		binSizeJSpinner.setToolTipText(ANALYSIS_STEP_TOOLTIP);
+		binUnit.setToolTipText(ANALYSIS_STEP_TOOLTIP);
+		nominalLabel.setToolTipText(TIP_NOMINAL);
+		nominalIntervalJSpinner.setToolTipText(TIP_NOMINAL);
 	}
 
 	private void defineActionListeners() {

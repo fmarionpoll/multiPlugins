@@ -100,13 +100,11 @@ public class FilterPanel extends JPanel {
 		c.gridy = 0;
 		DialogTools.addFiveComponentOnARow(this, experimentCheck, exptBtn, boxIDCheck, boxIDBtn, applyButton, c, delta1,
 				delta2);
-		applyButton.setToolTipText(TIP_APPLY);
 		// line 2
 		c.gridy = 1;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, strainCheck, strainBtn, sexCheck, sexBtn, clearButton, c, delta1,
 				delta2);
-		clearButton.setToolTipText(TIP_CLEAR);
 		// line 1
 		c.gridy = 2;
 		c.gridx = 0;
@@ -119,14 +117,19 @@ public class FilterPanel extends JPanel {
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, spotStimCheck, spotStimBtn, spotConcCheck, spotConcBtn, null, c, delta1,
 				delta2);
-		spotStimCheck.setToolTipText(TIP_SPOT_STIM);
-		spotConcCheck.setToolTipText(TIP_SPOT_CONC);
 		c.gridy = 5;
 		c.gridx = 0;
 		DialogTools.addFiveComponentOnARow(this, indexStatusLabel, updateButton, null, null, null, c, delta1, delta2);
-		updateButton.setToolTipText(TIP_UPDATE);
-
+		defineToolTips();
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		applyButton.setToolTipText(TIP_APPLY);
+		clearButton.setToolTipText(TIP_CLEAR);
+		spotStimCheck.setToolTipText(TIP_SPOT_STIM);
+		spotConcCheck.setToolTipText(TIP_SPOT_CONC);
+		updateButton.setToolTipText(TIP_UPDATE);
 	}
 
 	public void initCombos() {

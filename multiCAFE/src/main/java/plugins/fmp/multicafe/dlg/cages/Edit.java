@@ -70,35 +70,39 @@ public class Edit extends JPanel implements AddFlyOverlay.Host {
 		flowLayout.setVgap(0);
 
 		JPanel panel1 = new JPanel(flowLayout);
-		findAllButton.setToolTipText(TIP_FIND_ALL);
 		panel1.add(findAllButton);
 		panel1.add(foundCombo);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout);
-		findNextButton.setToolTipText(TIP_FIND_NEXT);
-		validateButton.setToolTipText(TIP_VALIDATE);
-		validateAndNextButton.setToolTipText(TIP_VALIDATE_NEXT);
 		panel2.add(findNextButton);
 		panel2.add(validateButton);
 		panel2.add(validateAndNextButton);
 		add(panel2);
 
 		JPanel panel3 = new JPanel(flowLayout);
-		findFirstIntervalWithMissingFly.setToolTipText(TIP_FIND_MISSING_CAGE);
 		panel3.add(findFirstIntervalWithMissingFly);
 		add(panel3);
 
-		addFlyButton.setToolTipText(TIP_ADD);
-		moveFlyButton.setToolTipText(TIP_MOVE);
-		deleteFlyButton.setToolTipText(TIP_DELETE);
 		JPanel panel4 = new JPanel(flowLayout);
 		panel4.add(addFlyButton);
 		panel4.add(moveFlyButton);
 		panel4.add(deleteFlyButton);
 		add(panel4);
 
+		defineToolTips();
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		findAllButton.setToolTipText(TIP_FIND_ALL);
+		findNextButton.setToolTipText(TIP_FIND_NEXT);
+		validateButton.setToolTipText(TIP_VALIDATE);
+		validateAndNextButton.setToolTipText(TIP_VALIDATE_NEXT);
+		findFirstIntervalWithMissingFly.setToolTipText(TIP_FIND_MISSING_CAGE);
+		addFlyButton.setToolTipText(TIP_ADD);
+		moveFlyButton.setToolTipText(TIP_MOVE);
+		deleteFlyButton.setToolTipText(TIP_DELETE);
 	}
 
 	private void defineActionListeners() {

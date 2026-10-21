@@ -83,11 +83,8 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 		narrowSpinner(flankPxSpinner, 4);
 		narrowSpinner(bandWidthSpinner, 4);
 		narrowSpinner(insectThresholdSpinner, 4);
-		bandWidthSpinner.setToolTipText(
-				"Pixels averaged across each arm of the X. 1 is the single-pixel line. 3 averages the line and one pixel on each side, the same idea as the vertical kymograph strip. Wider bands reduce pixel noise until the band is wider than the dye.");
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
-		insectGateCheckBox.setToolTipText(
-				"Leave flies out of the floor and out of the cross. A bin is dropped when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
+		defineToolTips();
 
 		JPanel actions = new JPanel(left);
 		actions.add(analyzeButton);
@@ -130,6 +127,13 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 				stopAnalyze();
 			}
 		});
+	}
+
+	private void defineToolTips() {
+		bandWidthSpinner.setToolTipText(
+				"Pixels averaged across each arm of the X. 1 is the single-pixel line. 3 averages the line and one pixel on each side, the same idea as the vertical kymograph strip. Wider bands reduce pixel noise until the band is wider than the dye.");
+		insectGateCheckBox.setToolTipText(
+				"Leave flies out of the floor and out of the cross. A bin is dropped when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
 	}
 
 	public void addKymoResultListener(java.beans.PropertyChangeListener listener) {

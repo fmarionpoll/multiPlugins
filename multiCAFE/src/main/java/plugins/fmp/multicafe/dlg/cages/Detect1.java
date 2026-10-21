@@ -93,8 +93,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		JPanel panel1 = new JPanel(flowLayout);
 		panel1.add(detectButton);
 		panel1.add(cagesComboBox);
-		allCheckBox.setToolTipText(TIP_ALL);
-		viewButton.setToolTipText(TIP_VIEW);
 		panel1.add(allCheckBox);
 		panel1.add(viewButton);
 		add(panel1);
@@ -106,7 +104,6 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel2.add(new JLabel("source "));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd "));
-		backgroundComboBox.setToolTipText(TIP_BKGND);
 		panel2.add(backgroundComboBox);
 		panel2.add(directionComboBox);
 		((JLabel) directionComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
@@ -131,17 +128,24 @@ public class Detect1 extends JPanel implements ChangeListener, ItemListener, Pro
 		panel4.add(jitterCheckBox);
 		panel4.add(jitterTextField);
 		nFliesCheckBox.setSelected(true);
-		nFliesCheckBox.setToolTipText(TIP_NFLIES);
 		nFliesSpinner.setEnabled(nFliesCheckBox.isSelected());
 
 		panel4.add(nFliesCheckBox);
 		panel4.add(nFliesSpinner);
 		add(panel4);
 
+		defineToolTips();
 		defineListeners();
 
 		transformComboBox.addItemListener(this);
 		backgroundComboBox.addItemListener(this);
+	}
+
+	private void defineToolTips() {
+		allCheckBox.setToolTipText(TIP_ALL);
+		viewButton.setToolTipText(TIP_VIEW);
+		backgroundComboBox.setToolTipText(TIP_BKGND);
+		nFliesCheckBox.setToolTipText(TIP_NFLIES);
 	}
 
 	private void defineListeners() {

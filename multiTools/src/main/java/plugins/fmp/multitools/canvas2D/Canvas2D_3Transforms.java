@@ -89,6 +89,12 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		this.transformStep2Handler = new TransformStep2Handler();
 		this.scalingHandler = new ScalingHandler();
 		this.navigationHandler = new NavigationHandler();
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		transformsComboStep1.setToolTipText(Canvas2DConstants.Toolbar.STEP1_TOOLTIP);
+		transformsComboStep2.setToolTipText(Canvas2DConstants.Toolbar.STEP2_TOOLTIP);
 	}
 
 	@Override
@@ -119,7 +125,6 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		toolBar.addSeparator();
 		toolBar.add(new JLabel(Canvas2DConstants.Toolbar.STEP1_LABEL));
 		toolBar.add(transformsComboStep1);
-		transformsComboStep1.setToolTipText(Canvas2DConstants.Toolbar.STEP1_TOOLTIP);
 		transformsComboStep1.setEditable(true);
 
 		// Add scaling buttons
@@ -597,7 +602,6 @@ public class Canvas2D_3Transforms extends Canvas2D {
 		toolBar.add(new JLabel(Canvas2DConstants.Toolbar.STEP2_LABEL), Canvas2DConstants.Toolbar.STEP2_LABEL_POSITION);
 		toolBar.add(transformsComboStep2, Canvas2DConstants.Toolbar.STEP2_COMBO_POSITION);
 
-		transformsComboStep2.setToolTipText(Canvas2DConstants.Toolbar.STEP2_TOOLTIP);
 		transformsComboStep2.addActionListener(transformStep2Handler);
 	}
 

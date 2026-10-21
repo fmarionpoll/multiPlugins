@@ -34,9 +34,8 @@ public class Gulps extends JPanel {
 		JPanel panel0 = new JPanel(flowLayout0);
 		panel0.add(sumGulpsCheckBox);
 		panel0.add(sumCheckBox);
-		intakeBinsCheckBox.setToolTipText("<html>Export intake_bin_raw / intake_bin_corr and their running totals.<br>"
-				+ "corr = raw minus the evaporation increment of the empty-capillary model over the same interval.</html>");
 		panel0.add(intakeBinsCheckBox);
+		defineToolTips();
 		add(panel0);
 
 		JPanel panel1 = new JPanel(flowLayout0);
@@ -56,6 +55,11 @@ public class Gulps extends JPanel {
 		add(panel2);
 
 		defineActionListeners();
+	}
+
+	private void defineToolTips() {
+		intakeBinsCheckBox.setToolTipText("<html>Export intake_bin_raw / intake_bin_corr and their running totals.<br>"
+				+ "corr = raw minus the evaporation increment of the empty-capillary model over the same interval.</html>");
 	}
 
 	private void defineActionListeners() {

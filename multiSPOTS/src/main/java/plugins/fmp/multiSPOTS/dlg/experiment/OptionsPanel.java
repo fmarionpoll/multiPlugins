@@ -39,9 +39,6 @@ public class OptionsPanel extends JPanel {
 
 		JPanel panel0 = new JPanel(layout);
 		panel0.add(new JLabel("On open: "));
-		autoLoadKymographsCheckBox.setToolTipText(TIP_AUTO_KYMO);
-		autoGraphSpotMeasuresCheckBox.setToolTipText(TIP_AUTO_SPOT_CHARTS);
-		autoGraphKymoMeasuresCheckBox.setToolTipText(TIP_AUTO_KYMO_CHARTS);
 		panel0.add(autoLoadKymographsCheckBox);
 		panel0.add(autoGraphSpotMeasuresCheckBox);
 		panel0.add(autoGraphKymoMeasuresCheckBox);
@@ -50,12 +47,12 @@ public class OptionsPanel extends JPanel {
 
 		JPanel panel1 = new JPanel(layout);
 		panel1.add(new JLabel("View : "));
-		viewFlyRectCheckbox.setToolTipText(TIP_FLIES_RECT);
 		panel1.add(viewSpotsCheckBox);
 		panel1.add(viewCagesCheckbox);
 		panel1.add(viewFlyRectCheckbox);
 		add(panel1);
 
+		defineToolTips();
 		defineActionListeners();
 		syncCheckboxesFromViewOptions();
 	}
@@ -72,6 +69,13 @@ public class OptionsPanel extends JPanel {
 
 	private void saveViewOptions() {
 		parent0.viewOptions.save(parent0.getPreferences("viewOptions"));
+	}
+
+	private void defineToolTips() {
+		autoLoadKymographsCheckBox.setToolTipText(TIP_AUTO_KYMO);
+		autoGraphSpotMeasuresCheckBox.setToolTipText(TIP_AUTO_SPOT_CHARTS);
+		autoGraphKymoMeasuresCheckBox.setToolTipText(TIP_AUTO_KYMO_CHARTS);
+		viewFlyRectCheckbox.setToolTipText(TIP_FLIES_RECT);
 	}
 
 	private void defineActionListeners() {

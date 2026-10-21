@@ -105,10 +105,8 @@ public class Detect1Panel extends JPanel
 		panel1.add(startComputationButton);
 		panel1.add(viewButton);
 		panel1.add(allCagesComboBox);
-		allCheckBox.setToolTipText("Run detection on this experiment through the last in the browse list.");
 		panel1.add(allCheckBox);
 		panel1.add(new JLabel("n flies "));
-		nFliesPresentSpinner.setToolTipText("Expected flies per cage; used to cap blobs per cage.");
 		panel1.add(nFliesPresentSpinner);
 		add(panel1);
 
@@ -122,8 +120,6 @@ public class Detect1Panel extends JPanel
 		panel2.add(new JLabel("source ", SwingConstants.RIGHT));
 		panel2.add(transformComboBox);
 		panel2.add(new JLabel("bkgnd ", SwingConstants.RIGHT));
-		backgroundComboBox.setToolTipText(
-				"Comparison background used to reject static blobs. The image is not subtracted.");
 		panel2.add(backgroundComboBox);
 		panel2.add(thresholdDirectionComboBox);
 		panel2.add(thresholdSpinner);
@@ -153,11 +149,7 @@ public class Detect1Panel extends JPanel
 		add(panel4);
 
 		JPanel panel5 = new JPanel(flowLayout);
-		excludeSpotBlobsCheckBox
-				.setToolTipText("Ignore detections overlapping spot ROIs (reduces false flies on food).");
 		panel5.add(excludeSpotBlobsCheckBox);
-		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
-		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
 		morphCloseRadiusSpinner.setEnabled(morphCloseCheckBox.isSelected());
 		panel5.add(morphCloseCheckBox);
 		panel5.add(morphCloseRadiusSpinner);
@@ -207,6 +199,18 @@ public class Detect1Panel extends JPanel
 		limitRatioSpinner.addChangeListener(refreshListener);
 		jitterTextField.addChangeListener(refreshListener);
 		nFliesPresentSpinner.addChangeListener(refreshListener);
+		defineToolTips();
+	}
+
+	private void defineToolTips() {
+		allCheckBox.setToolTipText("Run detection on this experiment through the last in the browse list.");
+		nFliesPresentSpinner.setToolTipText("Expected flies per cage; used to cap blobs per cage.");
+		backgroundComboBox.setToolTipText(
+				"Comparison background used to reject static blobs. The image is not subtracted.");
+		excludeSpotBlobsCheckBox
+				.setToolTipText("Ignore detections overlapping spot ROIs (reduces false flies on food).");
+		morphCloseCheckBox.setToolTipText("Dilate then erode the binary mask to merge flies split by a thin gap.");
+		morphCloseRadiusSpinner.setToolTipText("Close radius (1–5 iterations of 3×3 dilate/erode).");
 	}
 
 	private void defineActionListeners() {
