@@ -40,4 +40,27 @@ public class CapillaryGulpsIntakeBinsTest {
 		assertTrue(Double.isNaN(corr[3]));
 		assertEquals(0.9, CapillaryGulps.cumulate(corr)[3], 1e-12);
 	}
+
+    @Test public void fittedPositionsSurviveFlatCsvAndInvalidateOnAmplitudeEdit() {
+        CapillaryGulps g = gulps(0, 2.25, 0, 1.5);
+        g.setBottomPositions(new double[]{40, 42.25, 42.5, 44});
+        StringBuffer row=new StringBuffer(); g.csvExportDataFlatToRow(row,";");
+        CapillaryGulps loaded=new CapillaryGulps(); loaded.csvImportDataFromRow(row.toString().split(";"),0);
+        assertEquals(44,loaded.bottomAt(3,999),1e-9);
+        assertEquals(1.5,loaded.getHeightSeries().ypoints[3],1e-9);
+        loaded.setAmplitudeAt(3,2);
+        assertEquals(999,loaded.bottomAt(3,999),0);
+    }
+
+    @Test public void fittedCsvDoesNotRoundAmplitudesIntoOverlaps() {
+        double a=2.2983376070307457, b=1.96020494631955;
+        CapillaryGulps g=gulps(0,a,b);
+        double[] bottom={40,40+a,40+a+b};
+        g.setBottomPositions(bottom);
+        StringBuffer row=new StringBuffer(); g.csvExportDataFlatToRow(row,";");
+        CapillaryGulps loaded=new CapillaryGulps(); loaded.csvImportDataFromRow(row.toString().split(";"),0);
+        assertEquals(a,loaded.getHeightSeries().ypoints[1],0);
+        assertEquals(b,loaded.getHeightSeries().ypoints[2],0);
+        assertTrue(loaded.bottomAt(2,0)-loaded.getHeightSeries().ypoints[2]+1e-12>=loaded.bottomAt(1,0));
+    }
 }

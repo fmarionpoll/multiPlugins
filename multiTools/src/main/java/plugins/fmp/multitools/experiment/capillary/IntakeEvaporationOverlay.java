@@ -77,6 +77,7 @@ public final class IntakeEvaporationOverlay {
             roi.setStroke(1);
             roi.setT(t);
             roi.setReadOnly(true);
+            CapillaryCorrelationGulps.markOverlay(roi);
             rois.add(roi);
         }
         return rois;

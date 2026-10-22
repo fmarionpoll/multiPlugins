@@ -43,6 +43,7 @@ public final class CapillaryKymographMeasureBridge {
 		int sequenceWidth = kymos.getSequence().getWidth();
 
 		for (ROI2D roi : roiList) {
+            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
 			if (!(roi instanceof ROI2DPolyLine)) {
 				continue;
 			}
@@ -83,6 +84,7 @@ public final class CapillaryKymographMeasureBridge {
 		List<ROI2D> listRois = kymos.getSequence().getROI2Ds();
 		int width = kymos.getSequence().getWidth();
 		for (ROI2D roi : listRois) {
+            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
 			if (!(roi instanceof ROI2DPolyLine))
 				continue;
 			if (roi.getT() == -1)
@@ -243,7 +245,7 @@ public final class CapillaryKymographMeasureBridge {
 		List<ROI2D> allRois = kymos.getSequence().getROI2Ds();
 		ArrayList<ROI2D> gulpRois = new ArrayList<>();
 		for (ROI2D r : allRois) {
-			if (r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
+			if (!CapillaryCorrelationGulps.isOverlay(r) && r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
 				gulpRois.add(r);
 		}
 		int npoints = (cap.getTopRaw() != null) ? cap.getTopRaw().getNPoints() : 0;

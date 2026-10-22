@@ -1112,7 +1112,7 @@ public class Capillary implements Comparable<Capillary> {
 	private void getROIsFromCapillaryGulpsAtT(CapillaryGulps capGulps, List<ROI2D> listrois, int tIndex) {
 		if (capGulps == null || capGulps.getHeightSeries() == null || capGulps.getHeightSeries().npoints == 0)
 			return;
-		for (int x = 0; x < (capGulps.getHeightSeries().npoints - 1); x++) {
+		for (int x = 0; x < (capGulps.getHeightSeries().npoints - (capGulps.hasBottomPositions() ? 0 : 1)); x++) {
 			double value = capGulps.getHeightSeries().ypoints[x];
 			if (value == 0)
 				continue;
@@ -1129,7 +1129,10 @@ public class Capillary implements Comparable<Capillary> {
 				yTop = yBottom + (int) Math.abs(value);
 				color = Color.gray;
 			}
-			ROI2DLine gulpRoi = new ROI2DLine(x, yBottom, x, yTop);
+            double fittedBottom = capGulps.bottomAt(x, yBottom);
+			ROI2DLine gulpRoi = capGulps.hasBottomPositions()
+                    ? new ROI2DLine(x, fittedBottom, x, fittedBottom - value)
+                    : new ROI2DLine(x, yBottom, x, yTop);
 			gulpRoi.setName(metadata.kymographPrefix + "_gulp" + String.format("%07d", x));
 			gulpRoi.setColor(color);
 			gulpRoi.setT(tIndex);
@@ -1147,7 +1150,7 @@ public class Capillary implements Comparable<Capillary> {
 			double value = heights.ypoints[x];
 			if (!(value > 0) || top == null || x >= top.npoints || !Double.isFinite(top.ypoints[x]))
 				continue;
-			listrois.add(CapillaryCorrelationGulps.createRoi(metadata.kymographPrefix, x, top.ypoints[x], value, tIndex));
+			listrois.add(CapillaryCorrelationGulps.createRoi(metadata.kymographPrefix, x, corr.bottomAt(x, top.ypoints[x]), value, tIndex));
 		}
 	}
 

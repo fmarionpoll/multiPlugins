@@ -86,6 +86,7 @@ public class CorrelationPanelSmoke {
         exp.setResultsDirectory(root.toString());
         exp.setFrameTimeScale(FrameTimeScale.load(root.toString()));
         Map<String, Capillary> caps = new LinkedHashMap<>();
+        Map<String, Integer> cageIds = new LinkedHashMap<>();
         boolean section = false;
         Sequence sequence = new Sequence();
         for (String line : Files.readAllLines(root.resolve("CapillariesDescription.csv"), StandardCharsets.UTF_8)) {
@@ -94,6 +95,7 @@ public class CorrelationPanelSmoke {
                 String[] row = line.split(";");
                 ROI2DLine roi = new ROI2DLine(); roi.setName("line" + row[0]);
                 Capillary cap = new Capillary(roi);
+                cageIds.put(row[0], Integer.parseInt(row[4]));
                 cap.setKymographIndex(Integer.parseInt(row[1])); cap.setNFlies(Integer.parseInt(row[5]));
                 cap.setVolume(Double.parseDouble(row[6])); cap.setPixels(Integer.parseInt(row[7]));
                 cap.setKymographName(row[2]); caps.put(row[0], cap);
@@ -112,6 +114,16 @@ public class CorrelationPanelSmoke {
                 caps.get(row[0]).getTopRaw().polylineLevel = new Level2D(x, y, n);
             }
         }
+        section = false;
+        for (String line : Files.readAllLines(root.resolve("CagesDescription.csv"), StandardCharsets.UTF_8)) {
+            if (line.startsWith("#;")) section = line.startsWith("#;CAGE;");
+            else if (section && !line.startsWith("cageID") && !line.isEmpty()) {
+                String[] row = line.split(";");
+                int cage = Integer.parseInt(row[0]), flies = Integer.parseInt(row[1]);
+                for (Map.Entry<String, Capillary> entry : caps.entrySet())
+                    if (cageIds.get(entry.getKey()) == cage) entry.getValue().setNFlies(flies);
+            }
+        }
         SequenceKymos kymos = new SequenceKymos(); kymos.setSequence(sequence); exp.setSeqKymos(kymos);
         System.out.println("Loaded real experiment images and measures in memory.");
         double[] before = caps.get("1L").getTopRaw().polylineLevel.ypoints.clone();
@@ -119,12 +131,35 @@ public class CorrelationPanelSmoke {
         SwingUtilities.invokeAndWait(() -> ref[0] = new CorrelationIntakePanel(exp, caps.get("1L")));
         CorrelationIntakePanel panel = ref[0]; compute(panel);
         CorrelationGulpPreview result = (CorrelationGulpPreview) field(panel, "preview");
-        if (Math.abs(result.motion.shift[57] - 1.4) > .051) throw new AssertionError("Icy image adapter changed channel interpretation");
+        if (args.length < 3 && Math.abs(result.motion.shift[57] - 1.4) > .051) throw new AssertionError("Icy image adapter changed channel interpretation");
         render(panel, output.resolve("panel_1L_automatic.png"));
         Method updateRois = panel.getClass().getDeclaredMethod("updateRois"); updateRois.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> { try { updateRois.invoke(panel); } catch (Exception e) { throw new RuntimeException(e); } });
+        SwingUtilities.invokeAndWait(() -> {
+            plugins.fmp.multitools.experiment.sequence.CapillaryKymographMeasureBridge bridge =
+                    new plugins.fmp.multitools.experiment.sequence.CapillaryKymographMeasureBridge(exp.getSeqKymos());
+            bridge.validateROIs(); bridge.validateRoisAtT(caps.get("1L").getKymographIndex());
+            for(icy.roi.ROI2D roi:sequence.getROI2Ds())
+                if(roi.getName().matches("gulp[0-9]+")) throw new AssertionError("Prototype curve converted into a gulp");
+        });
         Method amplitudesMethod = panel.getClass().getDeclaredMethod("candidateAmplitudes"); amplitudesMethod.setAccessible(true);
         double[] intakeAmplitudes = (double[]) amplitudesMethod.invoke(panel);
+        Method bottomsMethod = panel.getClass().getDeclaredMethod("candidateBottoms"); bottomsMethod.setAccessible(true);
+        double[] bottoms = (double[]) bottomsMethod.invoke(panel);
+        double lastBottom=Double.NEGATIVE_INFINITY;
+        for(int i=1;i<intakeAmplitudes.length;i++) if(intakeAmplitudes[i]>0) {
+            double top=bottoms[i]-intakeAmplitudes[i];
+            if(top+1e-8<lastBottom) throw new AssertionError("Overlapping intake geometry at " + i);
+            lastBottom=bottoms[i];
+            String suffix=String.format(java.util.Locale.ROOT,"_xcorr%07d",i);
+            boolean found=false;
+            for(icy.roi.ROI2D roi:sequence.getROI2Ds()) if(roi.getName().endsWith(suffix)) {
+                found=true;
+                if(Math.abs(roi.getBounds2D().getMaxY()-bottoms[i])>1e-8 || Math.abs(roi.getBounds2D().getMinY()-top)>1e-8)
+                    throw new AssertionError("Native ROI differs from fitted endpoints");
+            }
+            if(!found) throw new AssertionError("Missing ordered ROI");
+        }
         double totalIntake = java.util.Arrays.stream(intakeAmplitudes).sum(), netIntake = 0;
         for (int i = 1; i < intakeAmplitudes.length; i++) if (intakeAmplitudes[i] > 0)
             netIntake += Math.max(0, intakeAmplitudes[i] - (result.evaporation[i] - result.evaporation[i - 1]));
@@ -173,7 +208,7 @@ public class CorrelationPanelSmoke {
         SwingUtilities.invokeAndWait(() -> { try { export.invoke(panel, output.resolve("panel_preview.csv")); } catch (Exception e) { throw new RuntimeException(e); } });
         String csv = new String(Files.readAllBytes(output.resolve("panel_preview.csv")), StandardCharsets.UTF_8);
         if (!csv.contains("manual=true") || !csv.contains("grey_subtract_intake_evaporation=true")
-                || csv.split("\n").length != 145) throw new AssertionError("CSV preview incomplete");
+                || csv.split("\n").length != result.raw.length + 4) throw new AssertionError("CSV preview incomplete");
         SwingUtilities.invokeAndWait(() -> threshold.setValue(100.));
         Method candidates = panel.getClass().getDeclaredMethod("candidates"); candidates.setAccessible(true);
         for (boolean b : (boolean[]) candidates.invoke(panel)) if (b) throw new AssertionError("Candidate preview did not update with threshold");
@@ -194,10 +229,57 @@ public class CorrelationPanelSmoke {
         compute(panel); render(panel, output.resolve("panel_2L_net_intakes.png"));
         SwingUtilities.invokeAndWait(compensate::doClick);
         render(panel, output.resolve("panel_2L_total_amplitudes.png"));
+        javax.swing.JCheckBox episodes = (javax.swing.JCheckBox) field(panel,"persistentEpisodes");
+        javax.swing.JCheckBox local = (javax.swing.JCheckBox) field(panel,"localEvaporation");
+        SwingUtilities.invokeAndWait(episodes::doClick);
+        CorrelationGulpPreview current = (CorrelationGulpPreview) field(panel,"preview");
+        boolean[] legacy = plugins.fmp.multitools.service.VerticalCorrelation.candidates(current.residualRate,
+                current.motion.reliable, ((Number) threshold.getValue()).doubleValue());
+        if (!java.util.Arrays.equals(legacy, (boolean[]) candidates.invoke(panel)))
+            throw new AssertionError("Turning episodes off did not restore the single-bin detector");
+        SwingUtilities.invokeAndWait(episodes::doClick);
+        SwingUtilities.invokeAndWait(compensate::doClick);
+        SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get("5L")));
+        compute(panel); render(panel, output.resolve("panel_5L_episodes.png"));
+        SwingUtilities.invokeAndWait(local::doClick);
+        compute(panel);
+        current = (CorrelationGulpPreview) field(panel,"preview");
+        if(!current.localEvaporation) throw new AssertionError("Local evaporation checkbox did not recompute");
+        render(panel, output.resolve("panel_5L_local_evaporation.png"));
+        SwingUtilities.invokeAndWait(local::doClick);
+        compute(panel);
+        javax.swing.JCheckBox gaps = (javax.swing.JCheckBox) field(panel,"showGaps");
+        double[] beforeGapToggle = (double[]) amplitudesMethod.invoke(panel);
+        SwingUtilities.invokeAndWait(gaps::doClick);
+        if(!java.util.Arrays.equals(beforeGapToggle,(double[])amplitudesMethod.invoke(panel)))
+            throw new AssertionError("Gap markers changed detected consumption");
+        for(icy.roi.ROI2D roi:sequence.getROI2Ds()) if(roi.getName().contains("_xcorr_gap_"))
+            throw new AssertionError("Gap overlay did not hide");
+        SwingUtilities.invokeAndWait(gaps::doClick);
+        if(((CorrelationGulpPreview)field(panel,"preview")).localEvaporation)
+            throw new AssertionError("Common evaporation did not return after toggling local mode off");
+        for(String name:new String[]{"0L","0R"}) {
+            SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get(name)));
+            compute(panel); render(panel, output.resolve("panel_" + name + "_ordered.png"));
+        }
+        Capillary copyCheck = new Capillary();
+        copyCheck.getCorrelationGulps().set(new double[]{0,2.25,0,1.5},10,6,1.4,false);
+        copyCheck.getCorrelationGulps().setBottomPositions(new double[]{40,42.25,42.5,44});
+        copyCheck.copyCorrelationGulpsToGulps();
+        copyCheck.getCorrelationGulps().clear();
+        java.util.List<icy.roi.ROI2D> copiedRois=copyCheck.getGulpROIsForCapillaryAtT(0);
+        if(copiedRois.size()!=2 || Math.abs(copiedRois.get(0).getBounds2D().getMinY()-40)>1e-8
+                || Math.abs(copiedRois.get(0).getBounds2D().getMaxY()-42.25)>1e-8
+                || Math.abs(copiedRois.get(1).getBounds2D().getMaxY()-44)>1e-8)
+            throw new AssertionError("Copy to gulps changed fitted geometry or lost the last bin");
+        StringBuffer copiedCsv=new StringBuffer(); copyCheck.getGulps().csvExportDataFlatToRow(copiedCsv,";");
+        copyCheck.getGulps().clear(); copyCheck.getGulps().csvImportDataFromRow(copiedCsv.toString().split(";"),0);
+        if(Math.abs(copyCheck.getGulpROIsForCapillaryAtT(0).get(1).getBounds2D().getMinY()-42.5)>1e-8)
+            throw new AssertionError("Reload changed copied geometry");
         SwingUtilities.invokeAndWait(panel::close);
         for (icy.roi.ROI2D roi : sequence.getROI2Ds()) if (roi.getName().contains("_xcorr_evap")) throw new AssertionError("Display-only projections left behind on close");
         if (!java.util.Arrays.equals(before, caps.get("1L").getTopRaw().polylineLevel.ypoints)) throw new AssertionError("Original levels modified");
-        System.out.println("PASS: real 1L/7L preview, intake/evaporation overlays, threshold updates, ROI cleanup, CSV export, and unchanged raw levels.");
+        System.out.println("PASS: real 1L/2L/5L/7L preview, ordered geometry, episode/local-evaporation/gap toggles, intake/evaporation overlays, threshold updates, ROI cleanup, saved/copied geometry, CSV export, and unchanged raw levels.");
         sequence.close();
         System.exit(0);
     }

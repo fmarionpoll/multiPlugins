@@ -51,6 +51,19 @@ public class VerticalCorrelationTest {
         assertEquals(9, wide.shift[2], .15);
     }
 
+    @Test public void adaptiveSearchRecoversBoundaryStepAndKeepsOrdinaryShifts() {
+        double[] center = {40, 40.3, 48.2, 48.4};
+        VerticalCorrelation.Result fixed = VerticalCorrelation.analyze(movie(center), center, 6, 7);
+        VerticalCorrelation.Result adaptive = VerticalCorrelation.analyze(movie(center), center, 6, 7, true);
+        assertFalse(fixed.reliable[2]);
+        assertTrue(adaptive.reliable[2]);
+        assertEquals(7.9, adaptive.shift[2], .15);
+        assertEquals(10.5, adaptive.searchRange[2], 1e-9);
+        assertEquals(fixed.shift[1], adaptive.shift[1], 1e-9);
+        assertEquals(7, adaptive.searchRange[1], 1e-9);
+        assertFalse(VerticalCorrelation.analyze(movie(new double[]{30,65}), new double[]{30,65},6,7,true).reliable[1]);
+    }
+
     @Test public void flatAndBorderProfilesAreRejected() {
         VerticalCorrelation.Result flat = VerticalCorrelation.analyze(new BufferedImage(4, 60, BufferedImage.TYPE_INT_RGB),
                 new double[] {30, 30, 30, 30}, 10);

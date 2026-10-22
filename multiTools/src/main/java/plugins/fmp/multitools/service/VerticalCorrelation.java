@@ -9,11 +9,12 @@ public final class VerticalCorrelation {
     private VerticalCorrelation() { }
 
     public static final class Result {
-        public final double[] shift, correlation, refined;
+        public final double[] shift, correlation, refined, searchRange;
         public final boolean[] reliable;
         public final String[] reason;
 
         private Result(int n) {
+            searchRange = new double[n];
             shift = new double[n];
             correlation = new double[n];
             refined = new double[n];
@@ -39,6 +40,11 @@ public final class VerticalCorrelation {
 
     /** maxShift: largest displacement searched between two columns (pixels); larger steps are flagged "Search limit". */
     public static Result analyze(BufferedImage image, double[] raw, int radius, double maxShift) {
+        return analyze(image, raw, radius, maxShift, false);
+    }
+
+    /** Expand boundary matches up to four times the initial range (at most 64 pixels). */
+    public static Result analyze(BufferedImage image, double[] raw, int radius, double maxShift, boolean adaptive) {
         if (image == null || raw == null || image.getWidth() != raw.length || radius < 2)
             throw new IllegalArgumentException("Native kymograph columns must match the saved levels.");
         if (!Double.isFinite(maxShift) || !(maxShift >= 1))
@@ -62,6 +68,15 @@ public final class VerticalCorrelation {
             }
             Match forward = match(color[t - 1], color[t], raw[t - 1], radius, maxShift);
             Match reverse = match(color[t], color[t - 1], raw[t], radius, maxShift);
+            double range = maxShift;
+            double ceiling = Math.max(maxShift, Math.min(64, 4 * maxShift));
+            while (adaptive && forward != null && reverse != null && range < ceiling
+                    && ((forward.atLimit && !forward.imageLimit) || (reverse.atLimit && !reverse.imageLimit))) {
+                range = Math.min(ceiling, range * 1.5);
+                forward = match(color[t - 1], color[t], raw[t - 1], radius, range);
+                reverse = match(color[t], color[t - 1], raw[t], radius, range);
+            }
+            result.searchRange[t] = range;
             if (forward == null || reverse == null) {
                 result.reason[t] = "Image border or flat profile";
                 continue;

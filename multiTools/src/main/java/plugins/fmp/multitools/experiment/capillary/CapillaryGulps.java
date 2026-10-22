@@ -28,6 +28,7 @@ public class CapillaryGulps {
 	 * feeding extent; &lt;0 = negative event (excluded from metrics).
 	 */
 	private Level2D gulpHeights = new Level2D();
+    private double[] bottomPositions;
 
 	// -------------------------------
 
@@ -35,6 +36,7 @@ public class CapillaryGulps {
 		if (capG == null)
 			return;
 		this.gulpHeights = capG.gulpHeights != null ? capG.gulpHeights.clone() : new Level2D();
+        bottomPositions = capG.bottomPositions == null ? null : capG.bottomPositions.clone();
 	}
 
 	/** npoints: kymograph width when known (>0); otherwise inferred from ROIs. */
@@ -56,10 +58,23 @@ public class CapillaryGulps {
 
 	// -------------------------------
 	public void clear() {
+        bottomPositions = null;
 		gulpHeights = new Level2D();
 	}
 
+    public boolean hasBottomPositions() { return bottomPositions != null; }
+    public void setBottomPositions(double[] positions) {
+        if (positions != null && positions.length != gulpHeights.npoints)
+            throw new IllegalArgumentException("Intake positions must match event count");
+        bottomPositions = positions == null ? null : positions.clone();
+    }
+    public double bottomAt(int i, double fallback) {
+        return bottomPositions != null && i >= 0 && i < bottomPositions.length && Double.isFinite(bottomPositions[i])
+                ? bottomPositions[i] : fallback;
+    }
+
 	public void ensureSize(int npoints) {
+        if (gulpHeights == null || gulpHeights.npoints != npoints) bottomPositions = null;
 		if (npoints <= 0) {
 			gulpHeights = new Level2D();
 			return;
@@ -76,6 +91,7 @@ public class CapillaryGulps {
 	public void setAmplitudeAt(int index, double value) {
 		if (gulpHeights == null || index < 0 || index >= gulpHeights.npoints)
 			return;
+        if (gulpHeights.ypoints[index] != value) bottomPositions = null;
 		gulpHeights.ypoints[index] = value;
 	}
 
@@ -88,6 +104,7 @@ public class CapillaryGulps {
 			return;
 		if (index < 0 || index >= gulpHeights.npoints)
 			return;
+        bottomPositions = null;
 		gulpHeights.ypoints[index] = Double.NaN;
 	}
 
@@ -115,7 +132,7 @@ public class CapillaryGulps {
 		int size = Math.max((int) Math.ceil(maxX), x) + 1;
 		ensureSize(size);
 		if (x >= 0 && x < gulpHeights.npoints)
-			gulpHeights.ypoints[x] = amplitude;
+			setAmplitudeAt(x, amplitude);
 	}
 
 	/**
@@ -127,7 +144,7 @@ public class CapillaryGulps {
 			return;
 		ensureSize(npoints);
 		double amplitude = Math.abs(yTop - yBottom);
-		gulpHeights.ypoints[xPixel] = amplitude;
+		setAmplitudeAt(xPixel, amplitude);
 	}
 
 	boolean isThereAnyMeasuresDone() {
@@ -231,7 +248,7 @@ public class CapillaryGulps {
 			int start = Math.max(0, startPixel);
 			int end = Math.min(endPixel, gulpHeights.npoints - 1);
 			for (int i = start; i <= end; i++)
-				gulpHeights.ypoints[i] = 0;
+				setAmplitudeAt(i, 0);
 		}
 	}
 
@@ -244,9 +261,18 @@ public class CapillaryGulps {
 		int npoints = level2D.npoints;
 		sbf.append(Integer.toString(npoints) + sep);
 		for (int i = 0; i < npoints; i++) {
-			sbf.append(StringUtil.toString((double) level2D.ypoints[i]));
+			sbf.append(bottomPositions == null ? StringUtil.toString((double) level2D.ypoints[i])
+                    : Double.toString(level2D.ypoints[i]));
 			sbf.append(sep);
 		}
+        if (bottomPositions != null) {
+            sbf.append("bottom_positions=");
+            for (int i = 0; i < bottomPositions.length; i++) {
+                if (i > 0) sbf.append(':');
+                sbf.append(Double.toString(bottomPositions[i]));
+            }
+            sbf.append(sep);
+        }
 		return true;
 	}
 
@@ -293,6 +319,13 @@ public class CapillaryGulps {
 				gulpHeights.ypoints[i] = val;
 			}
 		}
+        for (int k = offset; k < data.length; k++) if (data[k].startsWith("bottom_positions=")) {
+            String[] positions = data[k].substring("bottom_positions=".length()).split(":");
+            if (positions.length != gulpHeights.npoints)
+                throw new NumberFormatException("Intake positions do not match event count");
+            bottomPositions = new double[positions.length];
+            for (int j = 0; j < positions.length; j++) bottomPositions[j] = Double.parseDouble(positions[j]);
+        }
 	}
 
 	private int csvImportOneGulp(String[] data, int offset) {
@@ -321,7 +354,7 @@ public class CapillaryGulps {
 			maxX = Math.max(maxX, x[i]);
 		ensureSize(maxX + 1);
 		if (xPixel >= 0 && xPixel < gulpHeights.npoints)
-			gulpHeights.ypoints[xPixel] = amplitude;
+			setAmplitudeAt(xPixel, amplitude);
 		return offset;
 	}
 
@@ -340,6 +373,7 @@ public class CapillaryGulps {
 		} else {
 			int maxX = 0;
 			for (ROI2D roi : rois) {
+            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
 				if (roi instanceof ROI2DLine) {
 					Line2D line = ((ROI2DLine) roi).getLine();
 					int xPixel = (int) Math.round((line.getX1() + line.getX2()) / 2);
@@ -359,6 +393,7 @@ public class CapillaryGulps {
 		}
 		// transfer roi to measure
 		for (ROI2D roi : rois) {
+            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
 			if (roi instanceof ROI2DLine)
 				addGulpFromROI2DLine((ROI2DLine) roi);
 			else if (roi instanceof ROI2DPolyLine)
@@ -389,7 +424,7 @@ public class CapillaryGulps {
 			amplitude = 1.0;
 		}
 		if (x >= 0 && x < gulpHeights.npoints)
-			gulpHeights.ypoints[x] = amplitude;
+			setAmplitudeAt(x, amplitude);
 	}
 
 	private void addGulpFromROI2DLine(ROI2DLine roi) {
@@ -399,7 +434,7 @@ public class CapillaryGulps {
 		double amplitude = y1 - y2;
 		if (amplitude == 0 || gulpHeights == null || gulpHeights.npoints <= 0 || x < 0 || x >= gulpHeights.npoints)
 			return;
-		gulpHeights.ypoints[x] = amplitude;
+		setAmplitudeAt(x, amplitude);
 	}
 
 	/**
@@ -410,6 +445,7 @@ public class CapillaryGulps {
 	public void transferROIsToMeasures(List<? extends ROI> listRois, int npoints) {
 		ArrayList<ROI2D> rois = new ArrayList<ROI2D>();
 		for (ROI roi : listRois) {
+            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
 			String roiname = roi.getName();
 			if (roiname == null || !roiname.contains("gulp"))
 				continue;

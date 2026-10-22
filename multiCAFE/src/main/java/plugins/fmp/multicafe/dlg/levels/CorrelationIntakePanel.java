@@ -38,6 +38,8 @@ import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import plugins.fmp.multitools.service.IntakeEpisodes;
+import plugins.fmp.multitools.tools.JComponents.RichTooltipLayoutGuard;
 import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
@@ -72,7 +74,6 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
  */
 public final class CorrelationIntakePanel extends JPanel {
 	private static final long serialVersionUID = 1L;
-	private static final String ROI_NAME_PART = "_" + CapillaryCorrelationGulps.ROI_TOKEN;
 	private final Experiment experiment;
 	private final JComboBox<Capillary> capillaries = new JComboBox<>();
 	private JButton previousButton = new JButton("<");
@@ -85,8 +86,12 @@ public final class CorrelationIntakePanel extends JPanel {
 	private final JButton compute = new JButton("Recompute"), automatic = new JButton("Automatic"),
 			export = new JButton("Export CSV...");
 	private final JButton save = new JButton("Save"), copyToGulps = new JButton("Copy to gulps...");
-	private final JCheckBox showRois = new JCheckBox("Show on kymograph", true);
-	private final JCheckBox compensateEvaporation = new JCheckBox("Subtract evaporation from intake steps", true);
+	private final JCheckBox adaptiveSearch = new JCheckBox("Expand search at limit", true);
+    private final JCheckBox persistentEpisodes = new JCheckBox("Persistent episodes (1-6 bins)", true);
+    private final JCheckBox showGaps = new JCheckBox("Show unexplained gaps", true);
+    private final JCheckBox localEvaporation = new JCheckBox("Local evaporation", false);
+    private final JCheckBox showRois = new JCheckBox("Show on kymograph", true);
+	private final JCheckBox compensateEvaporation = new JCheckBox("Subtract evaporation", true);
 	private final JLabel source = new JLabel(" "),
 			status = new JLabel("Select a capillary to analyze its correlation motion.");
 	private final MotionPlot plot = new MotionPlot();
@@ -98,8 +103,13 @@ public final class CorrelationIntakePanel extends JPanel {
 	private SwingWorker<CorrelationGulpPreview, Void> worker;
 	private Capillary pendingCapillary;
 	private CorrelationGulpPreview preview;
+    private CorrelationGulpPreview episodePreview;
+    private double episodeThreshold = Double.NaN;
+    private IntakeEpisodes.Detection cachedEpisodes;
 	private Capillary computedCapillary, roiCapillary;
 	private boolean[] roiCandidates;
+    private double[] roiAmplitudes, roiBottoms;
+    private boolean roiShowGaps;
 	private boolean roiStored, released;
 	private boolean roiCompensated;
 	private CorrelationGulpPreview roiPreview;
@@ -107,6 +117,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	private int selectedFrame;
 	private int revealedFrame = -1;
 	private boolean settingThreshold, manual, syncingSelection;
+    private RichTooltipLayoutGuard tooltipLayoutGuard;
 
 	/**
 	 * onCapillaryChosen is notified when the user picks a capillary in this panel
@@ -146,6 +157,10 @@ public final class CorrelationIntakePanel extends JPanel {
 		if (first != null && first.getCorrelationGulps().hasMeasures()) {
 			setIfInRange(radius, first.getCorrelationGulps().getWindowRadius());
 			setIfInRange(maxShift, first.getCorrelationGulps().getMaxShiftPx());
+            String options = first.getCorrelationGulps().getMethodOptions();
+            adaptiveSearch.setSelected(options.contains("adaptive=true"));
+            persistentEpisodes.setSelected(options.contains("persistent=true"));
+            localEvaporation.setSelected(options.contains("local=true"));
 		}
 		capillaries.setRenderer(new DefaultListCellRenderer() {
 			private static final long serialVersionUID = 1L;
@@ -188,6 +203,12 @@ public final class CorrelationIntakePanel extends JPanel {
 		thresholdControls.add(export);
 		JPanel rows = new JPanel(new GridLayout(0, 1));
 		rows.add(controls);
+        JPanel methodControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        methodControls.add(adaptiveSearch);
+        methodControls.add(persistentEpisodes);
+        methodControls.add(localEvaporation);
+        methodControls.add(showGaps);
+        rows.add(methodControls);
 		rows.add(thresholdControls);
 		header.add(rows, BorderLayout.NORTH);
 		header.add(source, BorderLayout.SOUTH);
@@ -210,7 +231,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		JPanel footer = new JPanel(new BorderLayout(4, 4));
 		footer.add(status, BorderLayout.NORTH);
 		footer.add(new JLabel(
-				"<html>Blue bars show total displacement; grey = evaporation + cumulative intake. Checkbox subtracts evaporation from grey intake steps only.<br>"
+				"<html>Blue bars: intake displacement (episode mode uses jointly ordered meniscus positions; amber spans need review). Grey: evaporation + cumulative intake.<br>"
 						+ "Drag the red bar to adjust the threshold; click the graph to inspect a time point. "
 						+ "Save stores them as correlation gulps, kept apart from the gulps. Copy to gulps replaces the gulps of this capillary.</html>"),
 				BorderLayout.SOUTH);
@@ -221,6 +242,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		defineToolTips();
 		defineActionListeners();
 		defineChangeListeners();
+        tooltipLayoutGuard = new RichTooltipLayoutGuard();
 	}
 
 	private void defineActionListeners() {
@@ -253,6 +275,14 @@ public final class CorrelationIntakePanel extends JPanel {
 			updateRois();
 		});
 		export.addActionListener(e -> export());
+        showGaps.setToolTipText("Amber spans mark unassigned downward displacement beyond evaporation and control noise. Review only; not added to intake.");
+        showGaps.addActionListener(e -> { refresh(); updateRois(); });
+        adaptiveSearch.setToolTipText("Expand only boundary matches, up to 4 times the initial range, capped at 64 pixels. Reliability checks still apply.");
+        persistentEpisodes.setToolTipText("Signed 1-6 bin accumulation, thresholds calibrated on empty capillaries; neighbouring negative movements test persistence. Amplitudes come from ordered level positions. Slider scales all duration thresholds.");
+        localEvaporation.setToolTipText("Optional scale of the common evaporation shape from quiet runs; uncertain estimates retain the common model.");
+        adaptiveSearch.addActionListener(e -> { cache.clear(); clearPreview(); analyzeSelected(); });
+        localEvaporation.addActionListener(e -> { cache.clear(); clearPreview(); analyzeSelected(); });
+        persistentEpisodes.addActionListener(e -> { refresh(); roiCandidates = null; updateRois(); });
 	}
 
 	private void defineChangeListeners() {
@@ -273,12 +303,14 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void defineToolTips() {
-		compensateEvaporation.setToolTipText("Checked: grey steps = max(0, stored amplitude minus the model's evaporation in that bin). Unchecked: full stored amplitudes. Blue bars, detection and saved measures are unchanged.");
-		showRois.setToolTipText("Show intake amplitudes and evaporation plus cumulative intake, starting at raw t=0; later raw levels do not reset the grey curve.");
+		compensateEvaporation.setToolTipText(
+				"Checked: grey steps = max(0, stored amplitude minus the model's evaporation in that bin). Unchecked: full stored amplitudes. Blue bars, detection and saved measures are unchanged.");
+		showRois.setToolTipText(
+				"Show intake amplitudes and evaporation plus cumulative intake, starting at raw t=0; later raw levels do not reset the grey curve.");
 		radius.setToolTipText(
 				"Half-height of the image profile matched around the meniscus. Scale with the camera resolution.");
 		maxShift.setToolTipText(
-				"Largest meniscus displacement searched between two frames. Larger steps are rejected as 'Search limit'.");
+				"Initial displacement range. With expansion off, larger steps are rejected as 'Search limit'.");
 		threshold.setToolTipText(
 				"Threshold on downward motion minus expected evaporation, divided by interval duration.");
 		automatic.setToolTipText("Quiet-period median + 3 robust noise SD, with an empty-capillary noise floor.");
@@ -325,6 +357,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void release() {
+        if (tooltipLayoutGuard != null) { tooltipLayoutGuard.close(); tooltipLayoutGuard = null; }
 		if (worker != null)
 			worker.cancel(true);
 		worker = null;
@@ -392,12 +425,13 @@ public final class CorrelationIntakePanel extends JPanel {
 		clearPreview();
 		int window = windowRadius();
 		double shift = maxShiftValue();
+        boolean expand = adaptiveSearch.isSelected(), local = localEvaporation.isSelected();
 		pendingCapillary = cap;
 		status.setText("Computing image motion and empty-capillary noise for " + cap.getLast2ofCapillaryName() + "...");
 		worker = new SwingWorker<CorrelationGulpPreview, Void>() {
 			@Override
 			protected CorrelationGulpPreview doInBackground() {
-				return CorrelationGulpPreview.compute(experiment, cap, window, shift);
+				return CorrelationGulpPreview.compute(experiment, cap, window, shift, expand, local);
 			}
 
 			@Override
@@ -457,7 +491,10 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private boolean sameSettings(CapillaryCorrelationGulps stored) {
-		return stored.getWindowRadius() == windowRadius() && Math.abs(stored.getMaxShiftPx() - maxShiftValue()) < 1e-9;
+		return stored.getWindowRadius() == windowRadius() && Math.abs(stored.getMaxShiftPx() - maxShiftValue()) < 1e-9
+                && (stored.getMethodOptions().isEmpty()
+                    ? !adaptiveSearch.isSelected() && !persistentEpisodes.isSelected() && !localEvaporation.isSelected()
+                    : stored.getMethodOptions().startsWith(methodOptions()));
 	}
 
 	private static void setIfInRange(JSpinner spinner, double v) {
@@ -469,12 +506,29 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private double[] candidateAmplitudes() {
+        if (persistentEpisodes.isSelected()) {
+            double[] amplitudes = episodeDetection().net.clone();
+            for (int i = 1; i < amplitudes.length; i++)
+                if (amplitudes[i] > 0) amplitudes[i] += preview.evaporation[i] - preview.evaporation[i - 1];
+            return amplitudes;
+        }
 		boolean[] chosen = candidates();
 		double[] amplitudes = new double[chosen.length];
 		for (int i = 0; i < chosen.length; i++)
 			amplitudes[i] = chosen[i] ? Math.max(0, preview.motion.shift[i]) : 0;
 		return amplitudes;
 	}
+
+    private double[] candidateBottoms() {
+        if (!persistentEpisodes.isSelected()) return preview.raw.clone();
+        double[] positions = episodeDetection().position.clone();
+        for (int i = 0; i < positions.length; i++) positions[i] += preview.evaporation[i];
+        return positions;
+    }
+
+    private void storeGeometry(Capillary cap) {
+        cap.getCorrelationGulps().setBottomPositions(persistentEpisodes.isSelected() ? candidateBottoms() : null);
+    }
 
 	private boolean isStoredCurrent() {
 		if (preview == null)
@@ -486,6 +540,14 @@ public final class CorrelationIntakePanel extends JPanel {
 		double[] current = candidateAmplitudes();
 		if (heights.npoints != current.length)
 			return false;
+        if (persistentEpisodes.isSelected()) {
+            if (!stored.getEvents().hasBottomPositions()) return false;
+            double[] bottoms = candidateBottoms();
+            for (int i = 0; i < current.length; i++) if (current[i] > 0) {
+                double savedBottom = stored.bottomAt(i, Double.NaN);
+                if (!Double.isFinite(savedBottom) || Math.abs(savedBottom - bottoms[i]) > 1e-4) return false;
+            }
+        }
 		for (int i = 0; i < current.length; i++)
 			if (Math.abs(heights.ypoints[i] - current[i]) > 1e-4)
 				return false;
@@ -497,6 +559,9 @@ public final class CorrelationIntakePanel extends JPanel {
 			return false;
 		computedCapillary.getCorrelationGulps().set(candidateAmplitudes(), windowRadius(), maxShiftValue(), value(),
 				manual);
+        storeGeometry(computedCapillary);
+        computedCapillary.getCorrelationGulps().setMethodOptions(methodOptions() + ",scale="
+                + (localEvaporation.isSelected() ? preview.localScale.factor : 1));
 		boolean ok = experiment.save_capillaries_description_and_measures();
 		if (!ok)
 			JOptionPane.showMessageDialog(this, "Could not save the capillary measures.", "Correlation gulps",
@@ -525,6 +590,9 @@ public final class CorrelationIntakePanel extends JPanel {
 				JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION)
 			return;
 		cap.getCorrelationGulps().set(candidateAmplitudes(), windowRadius(), maxShiftValue(), value(), manual);
+        storeGeometry(cap);
+        cap.getCorrelationGulps().setMethodOptions(methodOptions() + ",scale="
+                + (localEvaporation.isSelected() ? preview.localScale.factor : 1));
 		cap.copyCorrelationGulpsToGulps();
 		int t = cap.getKymographIndex();
 		Sequence seq = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
@@ -552,7 +620,28 @@ public final class CorrelationIntakePanel extends JPanel {
 		refresh();
 	}
 
+    private String methodOptions() {
+        return "v2,adaptive=" + adaptiveSearch.isSelected() + ",persistent=" + persistentEpisodes.isSelected()
+                + ",local=" + localEvaporation.isSelected();
+    }
+
+    private IntakeEpisodes.Detection episodeDetection() {
+        if (episodePreview != preview || episodeThreshold != value() || cachedEpisodes == null) {
+            cachedEpisodes = IntakeEpisodes.detect(preview.residualRate, preview.minutes, preview.motion.reliable,
+                    preview.controlRates, preview.noise.automatic, value(), preview.correctedLevels);
+            episodePreview = preview;
+            episodeThreshold = value();
+        }
+        return cachedEpisodes;
+    }
+
 	private boolean[] candidates() {
+        if (persistentEpisodes.isSelected()) {
+            double[] net = episodeDetection().net;
+            boolean[] selected = new boolean[net.length];
+            for (int i = 1; i < net.length; i++) selected[i] = net[i] > 0;
+            return selected;
+        }
 		return VerticalCorrelation.candidates(preview.residualRate, preview.motion.reliable, value());
 	}
 
@@ -575,10 +664,20 @@ public final class CorrelationIntakePanel extends JPanel {
 									+ stored.getWindowRadius() + ", max shift " + format(stored.getMaxShiftPx())
 									+ ", threshold " + format(stored.getThresholdPxPerMin()) + ")"
 							: "not saved";
-			status.setText(count + " candidate intervals | " + good + "/" + (preview.raw.length - 1)
+			double net = 0;
+            double[] amplitudes = candidateAmplitudes();
+            for (int i = 1; i < amplitudes.length; i++) if (amplitudes[i] > 0)
+                net += Math.max(0, amplitudes[i] - preview.evaporation[i] + preview.evaporation[i - 1]);
+            double observed = preview.raw[preview.raw.length - 1] - preview.raw[0]
+                    - preview.evaporation[preview.evaporation.length - 1] + preview.evaporation[0];
+            status.setText("<html>" + (persistentEpisodes.isSelected() ? episodeDetection().episodes + " episodes / " : "")
+                    + count + " bins" + (persistentEpisodes.isSelected() ? " / " + episodeDetection().gaps.size() + " gaps ("
+                        + episodeDetection().gaps.stream().filter(g -> !g.reliable).count() + " uncertain)" : "") + " | net " + format(net) + " px; raw minus evaporation " + format(observed) + " px"
+                    + (Math.abs(net - observed) > Math.max(3, .2 * Math.abs(observed))
+                            ? " | cumulative mismatch: inspect tracking/evaporation" : "") + "<br>" + good + "/" + (preview.raw.length - 1)
 					+ " reliable correlations | threshold " + format(value()) + " px/min ("
 					+ (manual ? "manual" : "automatic") + ") | time " + format(preview.minutes[selectedFrame])
-					+ " min | " + storage);
+					+ " min | " + storage + "</html>");
 		}
 		plot.repaint();
 		alignment.repaint();
@@ -605,9 +704,11 @@ public final class CorrelationIntakePanel extends JPanel {
 		boolean show = showRois.isSelected();
 		boolean[] chosen = !released && show && preview != null && cap == computedCapillary ? candidates() : null;
 		boolean stored = released || (show && chosen == null);
-		if (!released && cap == roiCapillary && stored == roiStored && roiCompensated == compensateEvaporation.isSelected()
-				&& Arrays.equals(chosen, roiCandidates)
-				&& (chosen == null || roiPreview == preview))
+        double[] heights = chosen == null ? null : candidateAmplitudes();
+        double[] bottoms = chosen == null ? null : candidateBottoms();
+		if (!released && cap == roiCapillary && stored == roiStored
+				&& roiCompensated == compensateEvaporation.isSelected() && Arrays.equals(chosen, roiCandidates)
+				&& roiShowGaps == showGaps.isSelected() && Arrays.equals(bottoms, roiBottoms) && Arrays.equals(heights, roiAmplitudes) && (chosen == null || roiPreview == preview))
 			return;
 		List<Integer> frames = new ArrayList<>();
 		if (roiCapillary != null)
@@ -616,15 +717,24 @@ public final class CorrelationIntakePanel extends JPanel {
 			frames.add(cap.getKymographIndex());
 		List<ROI> old = new ArrayList<>();
 		for (ROI2D roi : seq.getROI2Ds())
-			if (roi.getName() != null && roi.getName().contains(ROI_NAME_PART) && frames.contains(roi.getT()))
+			if (CapillaryCorrelationGulps.isOverlay(roi) && frames.contains(roi.getT()))
 				old.add(roi);
 		List<ROI2D> rois = new ArrayList<>();
 		if (chosen != null) {
 			int t = cap.getKymographIndex();
 			for (int i = 1; i < chosen.length; i++)
 				if (chosen[i] && Double.isFinite(preview.raw[i]))
-					rois.add(CapillaryCorrelationGulps.createRoi(cap.getKymographPrefix(), i, preview.raw[i],
-							preview.motion.shift[i], t));
+					rois.add(CapillaryCorrelationGulps.createRoi(cap.getKymographPrefix(), i, bottoms[i],
+							heights[i], t));
+            if (persistentEpisodes.isSelected() && showGaps.isSelected())
+                for (IntakeEpisodes.Gap gap : episodeDetection().gaps) {
+                    plugins.kernel.roi.roi2d.ROI2DLine marker = new plugins.kernel.roi.roi2d.ROI2DLine(
+                            gap.first + .5, preview.motion.refined[gap.first], gap.last + .5, preview.motion.refined[gap.last]);
+                    marker.setName(cap.getKymographPrefix() + "_xcorr_gap_" + gap.first + "_" + gap.last + (gap.reliable ? "" : "_uncertain"));
+                    CapillaryCorrelationGulps.markOverlay(marker);
+                    marker.setColor(new Color(210, 135, 0)); marker.setStroke(1); marker.setReadOnly(true); marker.setT(t);
+                    rois.add(marker);
+                }
 			if (preview.hasEvaporationReference)
 				rois.addAll(IntakeEvaporationOverlay.createRois(cap.getKymographPrefix(), candidateAmplitudes(),
 						preview.raw, preview.evaporation, t, compensateEvaporation.isSelected()));
@@ -644,6 +754,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		}
 		roiCapillary = cap;
 		roiCandidates = chosen;
+        roiAmplitudes = heights;
+        roiBottoms = bottoms; roiShowGaps = showGaps.isSelected();
 		roiStored = stored;
 		roiCompensated = compensateEvaporation.isSelected();
 		roiPreview = chosen == null ? null : preview;
@@ -670,22 +782,30 @@ public final class CorrelationIntakePanel extends JPanel {
 
 	private void writeCsv(Path file) throws IOException {
 		boolean[] selected = candidates();
+        double[] amplitudes = candidateAmplitudes();
+        double[] bottoms = candidateBottoms();
 		try (java.io.BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8)) {
 			writer.write("# prototype=vertical_correlation;capillary=" + computedCapillary.getLast2ofCapillaryName()
 					+ ";window_radius=" + radius.getValue() + ";max_shift_px=" + maxShift.getValue() + "\n");
-			writer.write("# experiment=" + experiment.getResultsDirectory() + ";reference="
-					+ preview.referenceDescription + ";grey_subtract_intake_evaporation=" + compensateEvaporation.isSelected() + "\n");
+			writer.write(
+					"# experiment=" + experiment.getResultsDirectory() + ";reference=" + preview.referenceDescription
+							+ ";method_options=" + methodOptions() + ";grey_subtract_intake_evaporation=" + compensateEvaporation.isSelected() + "\n");
 			writer.write("# threshold_source=" + preview.noise.source + ";manual=" + manual
 					+ ";automatic_threshold_px_per_min=" + preview.noise.automatic + "\n");
 			writer.write(
-					"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px\n");
+					"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px;searched_range_px;fitted_meniscus_px;intake_top_px;intake_bottom_px;unexplained_gap_px;gap_reliable\n");
 			for (int i = 0; i < preview.raw.length; i++) {
 				double evap = i == 0 ? Double.NaN : preview.evaporation[i] - preview.evaporation[i - 1];
+                double gapAmount = 0; boolean gapReliable = false;
+                if (persistentEpisodes.isSelected()) for (IntakeEpisodes.Gap gap : episodeDetection().gaps)
+                    if (gap.last == i) { gapAmount = gap.excess; gapReliable = gap.reliable; }
 				writer.write(i + ";" + preview.minutes[i] + ";" + preview.raw[i] + ";" + preview.motion.refined[i] + ";"
 						+ preview.motion.shift[i] + ";" + evap + ";" + preview.residualRate[i] + ";"
 						+ preview.motion.correlation[i] + ";" + preview.motion.reliable[i] + ";"
 						+ preview.motion.reason[i] + ";" + preview.noise.automatic + ";" + value() + ";" + selected[i]
-						+ ";" + (selected[i] ? Math.max(0, preview.motion.shift[i]) : 0) + "\n");
+						+ ";" + amplitudes[i] + ";" + preview.motion.searchRange[i] + ";" + bottoms[i] + ";"
+                        + (selected[i] ? bottoms[i] - amplitudes[i] : Double.NaN) + ";"
+                        + (selected[i] ? bottoms[i] : Double.NaN) + ";" + gapAmount + ";" + gapReliable + "\n");
 			}
 		}
 	}
@@ -769,7 +889,9 @@ public final class CorrelationIntakePanel extends JPanel {
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g.setColor(Color.DARK_GRAY);
 			g.drawString(
-					"Blue: motion minus evaporation; grey: evaporation model (pixels/min); red points = candidate intervals",
+					persistentEpisodes.isSelected()
+                        ? "Blue: motion minus evaporation; red: episode bins; line: single-bin threshold (multi-bin thresholds differ)"
+                        : "Blue: motion minus evaporation; grey: evaporation model (pixels/min); red: candidate intervals",
 					65, 20);
 			if (preview == null) {
 				g.dispose();
@@ -899,8 +1021,10 @@ public final class CorrelationIntakePanel extends JPanel {
 			int width = imageWidth();
 			int[] tops = { 25, 25 + cropHeight + 25 };
 			int[] heights = { cropHeight, 81 };
-			String[] labels = { "Raw kymograph: grey = evaporation + cumulative "
-					+ (compensateEvaporation.isSelected() ? "net intake" : "total intake displacement") + ", anchored at t=0",
+			String[] labels = {
+					"Raw kymograph: grey = evaporation + cumulative "
+							+ (compensateEvaporation.isSelected() ? "net intake" : "total intake displacement")
+							+ ", anchored at t=0",
 					"Aligned using refined levels (+/-10 pixels); red ticks = candidate intervals" };
 			boolean[] chosen = candidates();
 			for (int p = 0; p < 2; p++) {
@@ -916,7 +1040,8 @@ public final class CorrelationIntakePanel extends JPanel {
 					for (int x = LEFT; x < LEFT + width; x += 40)
 						g.drawLine(x, top + heights[p] / 2, x + 8, top + heights[p] / 2);
 				}
-				if (p == 0) drawIntakeOverlay(g, chosen, crop, top, heights[p]);
+				if (p == 0)
+					drawIntakeOverlay(g, chosen, crop, top, heights[p]);
 				for (int i = 0; i < chosen.length; i++)
 					if (p != 0 && chosen[i]) {
 						g.setColor(Color.RED);
@@ -932,30 +1057,46 @@ public final class CorrelationIntakePanel extends JPanel {
 		}
 
 		private void drawIntakeOverlay(Graphics graphics, boolean[] chosen, int[] crop, int top, int height) {
+            double[] amplitudes = candidateAmplitudes();
+            double[] bottoms = candidateBottoms();
 			Graphics2D g = (Graphics2D) graphics.create();
 			g.clipRect(LEFT, top, imageWidth(), height);
 			g.setColor(IntakeEvaporationOverlay.COLOR);
 			g.setStroke(new BasicStroke(1));
 			List<List<java.awt.geom.Point2D>> paths = preview.hasEvaporationReference
 					? IntakeEvaporationOverlay.paths(candidateAmplitudes(), preview.raw, preview.evaporation,
-							compensateEvaporation.isSelected()) : java.util.Collections.emptyList();
+							compensateEvaporation.isSelected())
+					: java.util.Collections.emptyList();
 			for (List<java.awt.geom.Point2D> points : paths) {
 				java.awt.geom.Path2D path = new java.awt.geom.Path2D.Double();
 				for (int i = 0; i < points.size(); i++) {
 					java.awt.geom.Point2D point = points.get(i);
 					double x = LEFT + imageWidth() * point.getX() / preview.image.getWidth();
 					double y = top + height * (point.getY() - crop[0]) / (crop[1] - crop[0]);
-					if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
+					if (i == 0)
+						path.moveTo(x, y);
+					else
+						path.lineTo(x, y);
 				}
 				g.draw(path);
 			}
+            if (persistentEpisodes.isSelected() && showGaps.isSelected()) {
+                for (IntakeEpisodes.Gap gap : episodeDetection().gaps) {
+                    g.setColor(new Color(230, 155, 0, 30));
+                    g.fillRect(xOf(gap.first), top, Math.max(2, xOf(gap.last) - xOf(gap.first)), height);
+                    g.setColor(new Color(180, 110, 0));
+                    g.drawLine(xOf(gap.first), top + 3, xOf(gap.last), top + 3);
+                    if (!gap.reliable) g.drawString("?", xOf(gap.first) + 2, top + 16);
+                }
+            }
 			g.setColor(CapillaryCorrelationGulps.ROI_COLOR);
 			g.setStroke(new BasicStroke(2));
-			for (int i = 1; i < chosen.length; i++) if (chosen[i] && Double.isFinite(preview.raw[i])) {
-				double bottom = top + height * (preview.raw[i] - crop[0]) / (crop[1] - crop[0]);
-				double tip = bottom - height * Math.max(0, preview.motion.shift[i]) / (crop[1] - crop[0]);
-				g.draw(new java.awt.geom.Line2D.Double(xOf(i), bottom, xOf(i), tip));
-			}
+			for (int i = 1; i < chosen.length; i++)
+				if (chosen[i] && Double.isFinite(preview.raw[i])) {
+					double bottom = top + height * (bottoms[i] - crop[0]) / (crop[1] - crop[0]);
+					double tip = bottom - height * amplitudes[i] / (crop[1] - crop[0]);
+					g.draw(new java.awt.geom.Line2D.Double(xOf(i), bottom, xOf(i), tip));
+				}
 			g.dispose();
 		}
 	}

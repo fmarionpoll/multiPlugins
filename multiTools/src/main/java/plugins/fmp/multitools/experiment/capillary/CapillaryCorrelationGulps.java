@@ -18,6 +18,12 @@ public class CapillaryCorrelationGulps {
 	 * those names are absorbed into the genuine measures.
 	 */
 	public static final String ROI_TOKEN = "xcorr";
+    public static final String ROI_OWNER_PROPERTY = "fmp.verticalCorrelationOverlay";
+    public static void markOverlay(icy.roi.ROI roi) { roi.setProperty(ROI_OWNER_PROPERTY, "true"); }
+    public static boolean isOverlay(icy.roi.ROI roi) {
+        return roi != null && ("true".equals(roi.getProperty(ROI_OWNER_PROPERTY))
+                || (roi.getName() != null && roi.getName().contains("_" + ROI_TOKEN)));
+    }
 	public static final Color ROI_COLOR = new Color(30, 110, 255);
 
 	public static final double DEFAULT_MAX_SHIFT_PX = 6;
@@ -27,11 +33,13 @@ public class CapillaryCorrelationGulps {
 	private double maxShiftPx = DEFAULT_MAX_SHIFT_PX;
 	private double thresholdPxPerMin = Double.NaN;
 	private boolean manualThreshold = false;
+    private String methodOptions = "";
 
 	public void copy(CapillaryCorrelationGulps source) {
 		if (source == null)
 			return;
 		events.copy(source.events);
+        methodOptions = source.methodOptions;
 		windowRadius = source.windowRadius;
 		maxShiftPx = source.maxShiftPx;
 		thresholdPxPerMin = source.thresholdPxPerMin;
@@ -40,6 +48,7 @@ public class CapillaryCorrelationGulps {
 
 	public void clear() {
 		events.clear();
+        methodOptions = "";
 		windowRadius = 0;
 		maxShiftPx = DEFAULT_MAX_SHIFT_PX;
 		thresholdPxPerMin = Double.NaN;
@@ -49,6 +58,7 @@ public class CapillaryCorrelationGulps {
 	public void set(double[] amplitudes, int windowRadius, double maxShiftPx, double thresholdPxPerMin,
 			boolean manualThreshold) {
 		events.clear();
+        methodOptions = "";
 		events.ensureSize(amplitudes.length);
 		for (int i = 0; i < amplitudes.length; i++)
 			events.setAmplitudeAt(i, amplitudes[i]);
@@ -57,6 +67,12 @@ public class CapillaryCorrelationGulps {
 		this.thresholdPxPerMin = thresholdPxPerMin;
 		this.manualThreshold = manualThreshold;
 	}
+
+    public void setBottomPositions(double[] positions) { events.setBottomPositions(positions); }
+    public double bottomAt(int i, double fallback) { return events.bottomAt(i, fallback); }
+
+    public String getMethodOptions() { return methodOptions; }
+    public void setMethodOptions(String options) { methodOptions = options == null ? "" : options; }
 
 	public boolean hasMeasures() {
 		Level2D heights = events.getHeightSeries();
@@ -97,6 +113,8 @@ public class CapillaryCorrelationGulps {
 		sbf.append(windowRadius).append(sep).append(maxShiftPx).append(sep).append(thresholdPxPerMin).append(sep)
 				.append(manualThreshold).append(sep);
 		events.csvExportDataFlatToRow(sbf, sep);
+        if (!methodOptions.isEmpty()) sbf.append("method_options=").append(methodOptions).append(sep);
+
 	}
 
 	/** withMaxShift: false for rows written before the max_shift_px column existed. */
@@ -111,6 +129,10 @@ public class CapillaryCorrelationGulps {
 		thresholdPxPerMin = CsvNumberParsing.parseDouble(data[i++]);
 		manualThreshold = Boolean.parseBoolean(data[i++].trim());
 		events.csvImportDataFromRow(data, i);
+        for (int k = i + 1; k < data.length; k++) {
+            if (data[k].startsWith("method_options=")) methodOptions = data[k].substring("method_options=".length());
+
+        }
 	}
 
 	/**
@@ -125,6 +147,7 @@ public class CapillaryCorrelationGulps {
 		line.setStroke(2);
 		line.setT(t);
 		line.setReadOnly(true);
+        markOverlay(line);
 		return line;
 	}
 }

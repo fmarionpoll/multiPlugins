@@ -19,7 +19,10 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 /** Read-only adapter for the experimental gulp panel. No saved measures are replaced. */
 public final class CorrelationGulpPreview {
     public final BufferedImage image;
-    public final double[] raw, minutes, evaporation, residualRate;
+    public final List<double[]> controlRates;
+    public final IntakeEpisodes.EvaporationScale localScale;
+    public final boolean adaptiveSearch, localEvaporation;
+    public final double[] raw, minutes, evaporation, residualRate, correctedLevels;
     public final VerticalCorrelation.Result motion;
     public final VerticalCorrelation.Noise noise;
     public final int controlCount;
@@ -28,7 +31,12 @@ public final class CorrelationGulpPreview {
 
     private CorrelationGulpPreview(BufferedImage image, double[] raw, double[] minutes,
             double[] evaporation, VerticalCorrelation.Result motion, double[] controls,
-            int controlCount, boolean hasEvaporationReference, String referenceDescription) {
+            int controlCount, boolean hasEvaporationReference, String referenceDescription,
+            List<double[]> controlRates, IntakeEpisodes.EvaporationScale localScale, boolean adaptiveSearch, boolean localEvaporation) {
+        this.controlRates = controlRates;
+        this.localScale = localScale;
+        this.adaptiveSearch = adaptiveSearch;
+        this.localEvaporation = localEvaporation;
         this.image = image;
         this.raw = raw;
         this.minutes = minutes;
@@ -37,6 +45,8 @@ public final class CorrelationGulpPreview {
         this.controlCount = controlCount;
         this.hasEvaporationReference = hasEvaporationReference;
         this.referenceDescription = referenceDescription;
+        correctedLevels = motion.refined.clone();
+        for (int i = 0; i < correctedLevels.length; i++) correctedLevels[i] -= evaporation[i];
         residualRate = residualRate(motion, evaporation, minutes, 1);
         noise = VerticalCorrelation.estimateNoise(residualRate, motion.reliable, controls);
     }
@@ -46,6 +56,11 @@ public final class CorrelationGulpPreview {
     }
 
     public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius, double maxShift) {
+        return compute(exp, selected, radius, maxShift, false, false);
+    }
+
+    public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius,
+            double maxShift, boolean adaptive, boolean localEvaporation) {
         Sequence sequence = exp.getSeqKymos() == null ? null : exp.getSeqKymos().getSequence();
         if (sequence == null) throw new IllegalArgumentException("Open the experiment's kymographs first.");
         if (exp.getActiveBinDescription() != null && exp.getActiveBinDescription().isKymoFromNormedBlue())
@@ -60,7 +75,7 @@ public final class CorrelationGulpPreview {
         for (int i = 1; i < minutes.length; i++)
             if (!(minutes[i] > minutes[i - 1])) throw new IllegalArgumentException("Frame times must increase strictly.");
         BufferedImage image = image(sequence, selected, raw.length);
-        VerticalCorrelation.Result motion = VerticalCorrelation.analyze(image, raw, radius, maxShift);
+        VerticalCorrelation.Result motion = VerticalCorrelation.analyze(image, raw, radius, maxShift, adaptive);
         List<Capillary> controls = new ArrayList<>();
         List<double[]> curves = new ArrayList<>();
         double targetScale = pixelScale(exp, selected);
@@ -76,27 +91,48 @@ public final class CorrelationGulpPreview {
         }
         double[] reference = reference(curves, minutes, raw.length);
         List<Double> controlResiduals = new ArrayList<>();
+        List<double[]> controlRates = new ArrayList<>();
         int usableControls = 0;
         for (int c = 0; c < controls.size(); c++) {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
             Capillary cap = controls.get(c);
             BufferedImage controlImage = image(sequence, cap, raw.length);
-            VerticalCorrelation.Result controlMotion = VerticalCorrelation.analyze(controlImage, levels(cap), radius, maxShift);
+            VerticalCorrelation.Result controlMotion = VerticalCorrelation.analyze(controlImage, levels(cap), radius, maxShift, adaptive);
             // A held-out control never supplies its own evaporation curve.
             List<double[]> others = new ArrayList<>(curves);
             others.remove(c);
             if (others.isEmpty()) continue;
             double[] ownReference = reference(others, minutes, raw.length);
             double[] residuals = residualRate(controlMotion, ownReference, minutes, pixelScale(exp, cap) / targetScale);
+            if (localEvaporation) {
+                double[] scaledRaw = curves.get(c).clone();
+                double[] scaledMotion = controlMotion.shift.clone();
+                double factor = pixelScale(exp, cap) / targetScale;
+                for (int i = 0; i < scaledMotion.length; i++) scaledMotion[i] *= factor;
+                VerticalCorrelation.Noise preliminary = VerticalCorrelation.estimateNoise(residuals, controlMotion.reliable, new double[0]);
+                IntakeEpisodes.EvaporationScale local = IntakeEpisodes.evaporationScale(scaledRaw, scaledMotion,
+                        ownReference, minutes, controlMotion.reliable, preliminary.sigma);
+                for (int i = 0; i < ownReference.length; i++) ownReference[i] *= local.factor;
+                residuals = residualRate(controlMotion, ownReference, minutes, factor);
+            }
+            controlRates.add(residuals.clone());
             int before = controlResiduals.size();
             for (int i = 1; i < residuals.length; i++)
                 if (controlMotion.reliable[i] && Double.isFinite(residuals[i])) controlResiduals.add(residuals[i]);
             if (controlResiduals.size() > before) usableControls++;
         }
+        double[] pooled = controlResiduals.stream().mapToDouble(Double::doubleValue).toArray();
+        double[] preliminaryRate = residualRate(motion, reference, minutes, 1);
+        VerticalCorrelation.Noise preliminary = VerticalCorrelation.estimateNoise(preliminaryRate, motion.reliable, pooled);
+        IntakeEpisodes.EvaporationScale local = IntakeEpisodes.evaporationScale(raw, motion.shift, reference,
+                minutes, motion.reliable, preliminary.sigma);
+        if (localEvaporation) for (int i = 0; i < reference.length; i++) reference[i] *= local.factor;
         String description = controls.isEmpty() ? "No empty-capillary evaporation reference (uncorrected motion)"
                 : "Evaporation model from " + controls.size() + " empty capillaries; noise from " + usableControls;
+        if (localEvaporation) description += local.reliable ? String.format("; local evaporation x%.2f (%d quiet bins)", local.factor, local.quietIntervals)
+                : "; local evaporation uncertain: common model retained";
         return new CorrelationGulpPreview(image, raw, minutes, reference, motion,
-                controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description);
+                controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description, controlRates, local, adaptive, localEvaporation);
     }
 
     private static double[] levels(Capillary cap) {
