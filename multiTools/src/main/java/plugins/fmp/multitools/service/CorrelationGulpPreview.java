@@ -63,8 +63,7 @@ public final class CorrelationGulpPreview {
             double maxShift, boolean adaptive, boolean localEvaporation) {
         Sequence sequence = exp.getSeqKymos() == null ? null : exp.getSeqKymos().getSequence();
         if (sequence == null) throw new IllegalArgumentException("Open the experiment's kymographs first.");
-        if (exp.getActiveBinDescription() != null && exp.getActiveBinDescription().isKymoFromNormedBlue())
-            throw new IllegalArgumentException("This prototype requires native, non-normalized RGB kymographs.");
+        boolean resampled = exp.getActiveBinDescription() != null && exp.getActiveBinDescription().isKymoFromNormedBlue();
         double[] raw = levels(selected);
         if (raw == null || raw.length < 8) throw new IllegalArgumentException("Detect the top meniscus first (at least 8 samples).");
         FrameTimeScale scale = exp.getFrameTimeScale();
@@ -127,8 +126,9 @@ public final class CorrelationGulpPreview {
         IntakeEpisodes.EvaporationScale local = IntakeEpisodes.evaporationScale(raw, motion.shift, reference,
                 minutes, motion.reliable, preliminary.sigma);
         if (localEvaporation) for (int i = 0; i < reference.length; i++) reference[i] *= local.factor;
-        String description = controls.isEmpty() ? "No empty-capillary evaporation reference (uncorrected motion)"
-                : "Evaporation model from " + controls.size() + " empty capillaries; noise from " + usableControls;
+        String description = controls.isEmpty() ? "No evaporation reference from no-fly controls (uncorrected motion)"
+                : "Evaporation model from " + controls.size() + " no-fly controls; noise from " + usableControls;
+        if (resampled) description += "; resampled RGB: pixels are kymograph rows";
         if (localEvaporation) description += local.reliable ? String.format("; local evaporation x%.2f (%d quiet bins)", local.factor, local.quietIntervals)
                 : "; local evaporation uncertain: common model retained";
         return new CorrelationGulpPreview(image, raw, minutes, reference, motion,
@@ -141,7 +141,19 @@ public final class CorrelationGulpPreview {
         return Arrays.copyOf(level.ypoints, level.npoints);
     }
 
+    public static double normalizedUlPerPixel(double volume, double expansion, int imageHeight) {
+        if (!(volume > 0) || !Double.isFinite(volume) || expansion < 0 || !Double.isFinite(expansion) || imageHeight < 2)
+            throw new IllegalArgumentException("Invalid calibration for resampled RGB kymograph.");
+        // sampleArc includes both endpoints: there are height-1 spatial intervals.
+        return volume * (1 + expansion) / (imageHeight - 1.0);
+    }
+
     private static double pixelScale(Experiment exp, Capillary cap) {
+        if (exp.getActiveBinDescription() != null && exp.getActiveBinDescription().isKymoFromNormedBlue()) {
+            IcyBufferedImage input = exp.getSeqKymos().getSequence().getImage(cap.getKymographIndex(), 0);
+            if (input == null) throw new IllegalArgumentException("Missing resampled kymograph: " + cap.getKymographName());
+            return normalizedUlPerPixel(cap.getVolume(), CapillaryPixelScale.expansionRatioOf(exp), input.getSizeY());
+        }
         double scale = CapillaryPixelScale.ulPerNativePixel(cap, 0, CapillaryPixelScale.sourceOf(exp),
                 CapillaryPixelScale.expansionRatioOf(exp));
         if (!(scale > 0) || !Double.isFinite(scale)) throw new IllegalArgumentException("Invalid capillary pixel calibration.");

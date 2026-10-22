@@ -61,21 +61,42 @@ Neither endpoint is forced to agree with the measured recording endpoint.
 Adjacent bins can share a boundary and are not necessarily resolved gulps.
 Legacy single-bin mode remains unchanged for comparison.
 
-**Show unexplained gaps** (default on) adds amber review spans between accepted
-movements, including the start and end of the record. On spans of at least
-four samples, the median first/last 2-3 evaporation-corrected measured levels
-are compared against same-duration empty-control signed displacement sums.
-The tolerance is at least one pixel and scales with the threshold. Gaps with
-fewer than 30 usable control windows or unreliable intervening correlations
-are explicitly uncertain (question mark in the panel; `_uncertain` in native
-ROI names; a reliability field in CSV). This is a review heuristic, not proof
-of feeding. It can reflect local evaporation, tracking error, or missed intake.
+**Show diagnostics** (default on) separates warning types:
 
-A flagged gap permits an unassigned baseline change at its strongest local
-median change, so it is not silently absorbed into neighbouring event
-amplitudes. No intake is created there and it does not enter consumption.
-Toggling gap visibility changes only display. Gap analysis and ordered fitting
-remain active whenever persistent episodes are enabled.
+- Amber: abrupt unexplained downward movement. A no-fly control is explicitly
+  labelled as a control change, never feeding.
+- Teal: gradual evaporation/model drift. Positive and negative discrepancies
+  are tested against absolute same-duration control displacement sums.
+- Purple: upward steps, sustained reconstruction offsets in either direction,
+  and a separate uncertain initial anchor/early-intake warning.
+
+The pause endpoints use median first/last 2-3 measured positions. A step-like
+change must concentrate at least 65% of the pause's net movement locally.
+A second local search compares three-point flanks after removing their local
+trend, so a missed step can be flagged even when evaporation mismatch cancels
+its total. Neighbouring local flags are suppressed within three bins. These
+are review heuristics, not validated event probabilities. Quality flags reflect
+registration support; control calibration is limited when too few windows exist.
+No endpoint or initial anchor is automatically moved.
+
+The underlying ordered fit can retain an unassigned baseline change inside an
+unresolved span rather than absorbing it into adjacent intake amplitudes.
+Diagnostics and review do not create intake or change consumption; hiding the
+markers changes only display.
+
+**Review interval...** opens a modeless estimate-only panel containing a snapshot
+of the selected capillary and settings, so the source images can still be inspected. Select a diagnostic or
+set the first and last interval bins manually (bin i means transition i-1 to i).
+The panel estimates positions using up to three samples before/after the span,
+then reports excess using the active evaporation model. An alternative estimate
+uses robust pairwise slopes in the physical flanking positions and actual
+acquisition times, independently of the shared evaporation slope. Unreliable,
+insufficient, negative or inconsistent flank slopes are explicitly uncertain.
+The panel also shows already detected net intake in the selected interval and
+the remaining difference for both estimates, to avoid counting it twice.
+Choose stable flanks using the source image: adjacent feeding and low contrast
+can bias either estimate. This action deliberately does not save, accept or
+copy the proposed interval into intake totals.
 
 The grey reconstruction starts at raw t=0 and adds the evaporation curve
 plus cumulative intake. **Subtract evaporation** (default on) subtracts the
@@ -97,7 +118,9 @@ re-anchor these bars to noisy raw positions. Editing amplitudes invalidates
 the saved fitted positions. Existing red legacy results retain their display. Old rows load with the old method flags off.
 CSV export records flags, active reference, amplitudes, actual search range,
 fitted meniscus, intake top/bottom positions, and gap excess/reliability.
-Gap excess is recorded at the last frame of the flagged span.
+Diagnostic types, signed excess and support are recorded at the last frame
+of each flagged span; multiple types, amounts and support flags ending there
+are aligned and separated by vertical bars.
 
 ## Validation and limitations
 
@@ -146,3 +169,17 @@ polylines are still converted into manual gulp ROIs by the existing workflow.
 Old renamed overlays created before this fix have no ownership metadata and
 may remain until the kymographs are reloaded; no bulk deletion by gulp name is
 performed, since those names can also identify genuine manual edits.
+
+## Resampled RGB kymographs
+
+Spatially resampled, extended-blue RGB kymographs are supported. Positions,
+profile radii and shifts remain in displayed kymograph rows; the native camera
+pixel scale is not reused. Control conversion uses capillary volume times
+(1 + extension ratio) / (actual image height - 1), since sampling includes both
+endpoints of the expanded blue line. This works for common-height and
+per-capillary-height arc-length resampling. It assumes the TIFF contains the
+complete resampled line, not unrelated padded rows. Colour is not normalized
+or recoloured. The same registration quality checks apply to pale cyan and
+greenish dye. Non-RGB/unsupported intensities, mismatched saved level columns
+or timestamps remain explanatory errors. Record 3 is part of the real-data
+smoke/benchmark checks rather than being excluded.

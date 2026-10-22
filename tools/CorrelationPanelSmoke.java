@@ -84,6 +84,7 @@ public class CorrelationPanelSmoke {
         Files.createDirectories(output);
         Experiment exp = new Experiment();
         exp.setResultsDirectory(root.toString());
+        new plugins.fmp.multitools.experiment.BinDescriptionPersistence().load(exp.getActiveBinDescription(),root.resolve("bin_60").toString());
         exp.setFrameTimeScale(FrameTimeScale.load(root.toString()));
         Map<String, Capillary> caps = new LinkedHashMap<>();
         Map<String, Integer> cageIds = new LinkedHashMap<>();
@@ -132,6 +133,8 @@ public class CorrelationPanelSmoke {
         CorrelationIntakePanel panel = ref[0]; compute(panel);
         CorrelationGulpPreview result = (CorrelationGulpPreview) field(panel, "preview");
         if (args.length < 3 && Math.abs(result.motion.shift[57] - 1.4) > .051) throw new AssertionError("Icy image adapter changed channel interpretation");
+        if(exp.getActiveBinDescription().isKymoFromNormedBlue() && !result.referenceDescription.contains("resampled RGB"))
+            throw new AssertionError("Resampled calibration was not selected");
         render(panel, output.resolve("panel_1L_automatic.png"));
         Method updateRois = panel.getClass().getDeclaredMethod("updateRois"); updateRois.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> { try { updateRois.invoke(panel); } catch (Exception e) { throw new RuntimeException(e); } });
@@ -146,6 +149,18 @@ public class CorrelationPanelSmoke {
         double[] intakeAmplitudes = (double[]) amplitudesMethod.invoke(panel);
         Method bottomsMethod = panel.getClass().getDeclaredMethod("candidateBottoms"); bottomsMethod.setAccessible(true);
         double[] bottoms = (double[]) bottomsMethod.invoke(panel);
+        Method reviewPanelMethod=panel.getClass().getDeclaredMethod("reviewPanel");reviewPanelMethod.setAccessible(true);
+        SwingUtilities.invokeAndWait(() -> {
+            try {
+                javax.swing.JPanel reviewContent=(javax.swing.JPanel)reviewPanelMethod.invoke(panel);
+                reviewContent.setSize(780,470);layout(reviewContent);
+                BufferedImage reviewImage=new BufferedImage(780,470,BufferedImage.TYPE_INT_RGB);
+                Graphics2D graphics=reviewImage.createGraphics();reviewContent.printAll(graphics);graphics.dispose();
+                ImageIO.write(reviewImage,"png",output.resolve("review_interval.png").toFile());
+                if(!java.util.Arrays.equals(intakeAmplitudes,(double[])amplitudesMethod.invoke(panel)))
+                    throw new AssertionError("Review estimate changed intake");
+            } catch(Exception e){throw new RuntimeException(e);}
+        });
         double lastBottom=Double.NEGATIVE_INFINITY;
         for(int i=1;i<intakeAmplitudes.length;i++) if(intakeAmplitudes[i]>0) {
             double top=bottoms[i]-intakeAmplitudes[i];
@@ -207,7 +222,7 @@ public class CorrelationPanelSmoke {
         Method export = panel.getClass().getDeclaredMethod("writeCsv", Path.class); export.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> { try { export.invoke(panel, output.resolve("panel_preview.csv")); } catch (Exception e) { throw new RuntimeException(e); } });
         String csv = new String(Files.readAllBytes(output.resolve("panel_preview.csv")), StandardCharsets.UTF_8);
-        if (!csv.contains("manual=true") || !csv.contains("grey_subtract_intake_evaporation=true")
+        if (!csv.contains("diagnostic_types") || !csv.contains("manual=true") || !csv.contains("grey_subtract_intake_evaporation=true")
                 || csv.split("\n").length != result.raw.length + 4) throw new AssertionError("CSV preview incomplete");
         SwingUtilities.invokeAndWait(() -> threshold.setValue(100.));
         Method candidates = panel.getClass().getDeclaredMethod("candidates"); candidates.setAccessible(true);
@@ -258,7 +273,8 @@ public class CorrelationPanelSmoke {
         SwingUtilities.invokeAndWait(gaps::doClick);
         if(((CorrelationGulpPreview)field(panel,"preview")).localEvaporation)
             throw new AssertionError("Common evaporation did not return after toggling local mode off");
-        for(String name:new String[]{"0L","0R"}) {
+        for(String name:new String[]{"0L","0R","3L","6L","8L","9R"}) {
+            if(!caps.containsKey(name)) continue;
             SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get(name)));
             compute(panel); render(panel, output.resolve("panel_" + name + "_ordered.png"));
         }
