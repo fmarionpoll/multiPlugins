@@ -12,6 +12,11 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions.GulpDetectionMet
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class BuildSeriesOptionsProvenanceXmlTest {
+    @Test public void oldInteractiveMethodLabelRemainsReadable() {
+        assertEquals(GulpDetectionMethod.VERTICAL_CORRELATION,GulpDetectionMethod.fromXml("vertical correlation (prototype)"));
+        assertEquals(GulpDetectionMethod.VERTICAL_CORRELATION,GulpDetectionMethod.fromXml("accepted topraw intake (prototype)"));
+    }
+
 
 	@Test
 	public void limitsOptionsXmlRoundTripIncludesLevelAndGulpFields() {

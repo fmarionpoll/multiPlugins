@@ -89,8 +89,8 @@ public class CorrelationMethodsBenchmark {
             if(cap.getTopRaw().polylineLevel == null || cap.getTopRaw().polylineLevel.npoints != exp.getFrameTimeScale().size()) {
                 System.out.println(name + " SKIPPED: saved levels do not match native timestamps"); continue;
             }
-            CorrelationGulpPreview old=CorrelationGulpPreview.compute(exp,cap,10,7);
-            CorrelationGulpPreview p=CorrelationGulpPreview.compute(exp,cap,10,7,true,false);
+            CorrelationGulpPreview p=CorrelationGulpPreview.computeAccepted(exp,cap,false);
+            CorrelationGulpPreview old=p;
             plugins.fmp.multitools.service.IntakeEpisodes.Detection detection=plugins.fmp.multitools.service.IntakeEpisodes.detect(
                 p.residualRate,p.minutes,p.motion.reliable,p.controlRates,p.noise.automatic,p.noise.automatic,p.correctedLevels);
             int oldCount=0,newCount=0; double oldNet=0, previousBottom=Double.NEGATIVE_INFINITY;
@@ -104,10 +104,10 @@ public class CorrelationMethodsBenchmark {
                     previousBottom=bottom;
                 }
             }
-            System.out.printf(java.util.Locale.ROOT,"%s old=%d/%.2fpx episodes=%d bins=%d net=%.2fpx rawNet=%.2fpx local=%.3f reliable=%s quiet=%d firstShift=%.2f range=%.1f%n",
+            System.out.printf(java.util.Locale.ROOT,"%s singleBin=%d/%.2fpx episodes=%d bins=%d net=%.2fpx rawNet=%.2fpx local=%.3f reliable=%s quiet=%d firstAcceptedShift=%.2f%n",
                 name,oldCount,oldNet,detection.episodes,newCount,java.util.Arrays.stream(detection.net).sum(),
                 p.raw[p.raw.length-1]-p.raw[0]-p.evaporation[p.raw.length-1]+p.evaporation[0],
-                p.localScale.factor,p.localScale.reliable,p.localScale.quietIntervals,p.motion.shift[2],p.motion.searchRange[2]);
+                p.localScale.factor,p.localScale.reliable,p.localScale.quietIntervals,p.motion.shift[2]);
             java.util.List<plugins.fmp.multitools.service.IntakeDiagnostics.Warning> warnings=
                 plugins.fmp.multitools.service.IntakeDiagnostics.analyze(p.raw,p.correctedLevels,p.evaporation,p.minutes,
                     p.motion.reliable,detection,p.controlRates,p.noise.automatic,cap.getNFlies()==0);
@@ -115,7 +115,7 @@ public class CorrelationMethodsBenchmark {
                 System.out.println(" diagnostic: "+warning.label()+" ["+warning.first+"-"+warning.last+"] excess="+warning.excess);
             System.out.println(" gap review spans=" + detection.gaps.size() + "; ordered geometry PASS");
             if(name.equals("2R")) {
-                CorrelationGulpPreview local=CorrelationGulpPreview.compute(exp,cap,10,7,true,true);
+                CorrelationGulpPreview local=CorrelationGulpPreview.computeAccepted(exp,cap,true);
                 System.out.printf(java.util.Locale.ROOT," local2R modelEnd=%.2f adjustedEnd=%.2f factor=%.3f reliable=%s%n",
                         p.evaporation[p.evaporation.length-1],local.evaporation[local.evaporation.length-1],
                         local.localScale.factor,local.localScale.reliable);

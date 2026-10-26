@@ -96,9 +96,36 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 
 		appendEvaporationReferenceSeries(dataset, exp, cage, options);
+		if (options.resultType == EnumResults.TOPRAW)
+			appendRefinementPreviews(dataset, exp, cage, capillaries);
 
 		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 		return dataset;
+	}
+
+	/** Match the existing series clock/calibration and keep its original t0 anchor. */
+	private static void appendRefinementPreviews(XYSeriesCollection dataset, Experiment exp, Cage cage,
+			List<Capillary> capillaries) {
+		for (Capillary cap : capillaries) {
+			plugins.fmp.multitools.service.MeniscusRefinement.Proposal proposal =
+					plugins.fmp.multitools.service.MeniscusRefinementPreview.get(cap);
+			int index = dataset.indexOf(CapillaryChartSeriesKeys.key(cap));
+			if (proposal == null || index < 0) continue;
+			XYSeries base = dataset.getSeries(index);
+			double[] original = proposal.original(), refined = proposal.refined();
+			XYSeries preview = new XYSeries(cap.getLast2ofCapillaryName() + " proposed (preview)", false);
+			boolean left = CapillaryChartSeriesKeys.isLeftSideKey(base.getKey().toString());
+			preview.setDescription(SeriesStyleCodec.buildDescription(cage.getCageID(), cage.getCageID(),
+					cap.getNFlies(), left ? Color.MAGENTA : Color.ORANGE));
+			int factor = Math.max(1, exp.getKymoSubsampleFactor());
+			for (int j = 0; j < Math.min(base.getItemCount(), refined.length); j++) {
+				double delta = CapillaryPixelScale.toUl(refined[j] - original[j], cap,
+						CapillaryPixelScale.frameOfColumn(j, factor), CapillaryPixelScale.sourceOf(exp),
+						CapillaryPixelScale.expansionRatioOf(exp), false);
+				preview.add(base.getX(j).doubleValue(), base.getY(j).doubleValue() + delta);
+			}
+			dataset.addSeries(preview);
+		}
 	}
 
 	private static XYSeriesCollection buildWithT00Overlay(Experiment exp, Cage cage, ResultsOptions options) {

@@ -26,6 +26,21 @@ public final class VerticalCorrelation {
         }
     }
 
+    /** Phase 2: increments of one accepted trajectory, without image registration. */
+    public static Result fromLevels(double[] levels, boolean[] quality) {
+        Result result = new Result(levels.length);
+        Arrays.fill(result.searchRange,Double.NaN);
+        System.arraycopy(levels, 0, result.refined, 0, levels.length);
+        for (int i=1; i<levels.length; i++) {
+            result.shift[i] = levels[i] - levels[i-1];
+            result.reliable[i] = Double.isFinite(result.shift[i]) && (quality == null || quality[i]);
+            result.reason[i] = !Double.isFinite(result.shift[i]) ? "Missing accepted level"
+                    : quality == null ? "Saved level; correlation quality unavailable"
+                    : quality[i] ? "Accepted refinement" : "Uncertain refinement";
+        }
+        return result;
+    }
+
     private static final class Match {
         double shift, correlation, contrast, separation;
         boolean atLimit, imageLimit;
@@ -45,6 +60,15 @@ public final class VerticalCorrelation {
 
     /** Expand boundary matches up to four times the initial range (at most 64 pixels). */
     public static Result analyze(BufferedImage image, double[] raw, int radius, double maxShift, boolean adaptive) {
+        return analyze(image, raw, radius, maxShift, adaptive, false);
+    }
+
+    /** Search for a correction around the displacement predicted by saved levels. */
+    public static Result analyzeSeeded(BufferedImage image, double[] raw, int radius, double correction, boolean adaptive) {
+        return analyze(image, raw, radius, correction, adaptive, true);
+    }
+
+    private static Result analyze(BufferedImage image, double[] raw, int radius, double maxShift, boolean adaptive, boolean seeded) {
         if (image == null || raw == null || image.getWidth() != raw.length || radius < 2)
             throw new IllegalArgumentException("Native kymograph columns must match the saved levels.");
         if (!Double.isFinite(maxShift) || !(maxShift >= 1))
@@ -66,15 +90,16 @@ public final class VerticalCorrelation {
                 result.reason[t] = "Missing meniscus position";
                 continue;
             }
-            Match forward = match(color[t - 1], color[t], raw[t - 1], radius, maxShift);
-            Match reverse = match(color[t], color[t - 1], raw[t], radius, maxShift);
+            double prediction = seeded ? raw[t] - raw[t-1] : 0;
+            Match forward = match(color[t - 1], color[t], raw[t - 1], radius, maxShift, prediction);
+            Match reverse = match(color[t], color[t - 1], raw[t], radius, maxShift, -prediction);
             double range = maxShift;
             double ceiling = Math.max(maxShift, Math.min(64, 4 * maxShift));
             while (adaptive && forward != null && reverse != null && range < ceiling
                     && ((forward.atLimit && !forward.imageLimit) || (reverse.atLimit && !reverse.imageLimit))) {
                 range = Math.min(ceiling, range * 1.5);
-                forward = match(color[t - 1], color[t], raw[t - 1], radius, range);
-                reverse = match(color[t], color[t - 1], raw[t], radius, range);
+                forward = match(color[t - 1], color[t], raw[t - 1], radius, range, prediction);
+                reverse = match(color[t], color[t - 1], raw[t], radius, range, -prediction);
             }
             result.searchRange[t] = range;
             if (forward == null || reverse == null) {
@@ -98,14 +123,15 @@ public final class VerticalCorrelation {
         return result;
     }
 
-    private static Match match(double[][] previous, double[][] current, double center, int radius, double maxShift) {
+    private static Match match(double[][] previous, double[][] current, double center, int radius, double maxShift, double prediction) {
         int h = previous[0].length, count = 2 * radius + 1;
         // Only the unshifted template must fit in full. A wide requested search
         // must not reject a valid small displacement near an image border.
         if (center - radius < 0 || center + radius > h - 1) return null;
-        int requestedSteps = (int) Math.floor(maxShift / SHIFT_STEP + 1e-9);
-        int firstStep = Math.max(-requestedSteps, (int) Math.ceil((radius - center) / SHIFT_STEP - 1e-9));
-        int lastStep = Math.min(requestedSteps, (int) Math.floor((h - 1 - radius - center) / SHIFT_STEP + 1e-9));
+        int requestedFirst = (int) Math.ceil((prediction-maxShift) / SHIFT_STEP - 1e-9);
+        int requestedLast = (int) Math.floor((prediction+maxShift) / SHIFT_STEP + 1e-9);
+        int firstStep = Math.max(requestedFirst, (int) Math.ceil((radius - center) / SHIFT_STEP - 1e-9));
+        int lastStep = Math.min(requestedLast, (int) Math.floor((h - 1 - radius - center) / SHIFT_STEP + 1e-9));
         if (lastStep <= firstStep) return null;
         double[][] template = new double[2][count];
         double energy = 0;
@@ -142,8 +168,8 @@ public final class VerticalCorrelation {
         m.correlation = scores[best];
         m.contrast = Math.sqrt(energy / (2 * count));
         m.atLimit = best == 0 || best == scores.length - 1;
-        m.imageLimit = (best == 0 && firstStep > -requestedSteps)
-                || (best == scores.length - 1 && lastStep < requestedSteps);
+        m.imageLimit = (best == 0 && firstStep > requestedFirst)
+                || (best == scores.length - 1 && lastStep < requestedLast);
         double other = -1;
         int onePixel = (int) Math.round(1 / SHIFT_STEP);
         for (int k = 0; k < scores.length; k++)

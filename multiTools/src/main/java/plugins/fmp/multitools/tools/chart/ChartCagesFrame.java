@@ -66,6 +66,19 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * @author MultiCAFE
  */
 public class ChartCagesFrame extends IcyFrame {
+	private static final List<java.lang.ref.WeakReference<ChartCagesFrame>> openCharts = new ArrayList<>();
+
+	/** Refresh open TOPRAW grids when a phase-1 preview changes, without modifying measurements. */
+	public static void refreshRefinement(Experiment exp) {
+		openCharts.removeIf(reference -> reference.get() == null);
+		for (java.lang.ref.WeakReference<ChartCagesFrame> reference : new ArrayList<>(openCharts)) {
+			ChartCagesFrame frame = reference.get();
+			if (frame != null && frame.experiment == exp && frame.mainChartFrame != null
+					&& frame.mainChartFrame.isVisible() && frame.currentOptions != null
+					&& frame.currentOptions.resultType == EnumResults.TOPRAW)
+				frame.displayData(exp, frame.currentOptions);
+		}
+	}
 
 	/** Default chart width in pixels */
 	protected static final int DEFAULT_CHART_WIDTH = 200;
@@ -170,6 +183,7 @@ public class ChartCagesFrame extends IcyFrame {
 		this.interactionHandlerFactory = interactionHandlerFactory;
 		this.layoutStrategy = layoutStrategy;
 		this.uiControlsFactory = uiControlsFactory;
+		openCharts.add(new java.lang.ref.WeakReference<>(this));
 	}
 
 	/**

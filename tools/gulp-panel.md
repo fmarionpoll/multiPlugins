@@ -1,30 +1,106 @@
-# Correlation intake prototype
+# Meniscus refinement and intake detection
 
-Open **Correlation prototype...** from the main intake detection dialog after
-loading native RGB kymographs and saved top meniscus measures. All runtime
-computation is Java; the Python files are optional research utilities.
+The prototype has two independent steps. All runtime computation is Java.
 
-## Comparison options
+## Phase 1: refine meniscus
 
-- **Expand search at limit** (default on): the shift spinner is the initial
-  displacement range. A match at a configured boundary triggers a 1.5-fold
-  expansion, at most four times the initial range and at most 64 pixels.
-  Image borders do not trigger expansion. Forward/reverse agreement, contrast,
-  correlation and peak-distinctness checks still apply. Turning this off
-  restores the fixed-range search. The profile window is a separate radius:
-  matching uses 2 * radius + 1 vertically sampled points at 0.1-pixel lags.
+Open **Refine topraw by correlation...** in the level-detection dialog, or
+**Refine meniscus...** from the intake panel. Load RGB kymographs and detect
+initial topraw first. This is an alternative refinement operation alongside
+existing threshold pass 2, not another intake detector.
+
+The **Apply to** selector offers **Current capillary**, **Current cage** (default),
+and **All cages of this experiment**. The selected scope controls both preview
+and validation. In experiment scope, all loaded capillaries (including no-fly
+controls) are prepared, while the stabilized images and comparison graph show
+only the current cage. Selecting another cage reuses the prepared previews. Refinement previews start
+automatically when the panel opens, when selecting another cage/capillary,
+and when refinement settings or source levels change. Rapid settings changes
+are grouped before recomputing. There is no separate preview button. Both
+capillaries display one stabilized image strip each, sampled around
+its proposed meniscus (+/-15 pixels). The white dashed line is the alignment
+origin; red ticks mark uncertain registrations, and grey pixels indicate missing
+image support. No evaporation is subtracted in this phase.
+
+The separate Icy kymograph displays original topraw in orange and proposed
+positions in magenta. These read-only comparisons survive switching frames and
+are removed on acceptance, cancellation, stale input, or closing phase 1.
+They are not saved as measures or converted into manual gulps.
+
+Open **Cage graphs...** to inspect the selected cage at a readable size. The
+upper graph overlays original L/R curves (blue/red, thin solid) with proposed
+L/R curves (magenta/orange, thicker dashed). The lower graph plots proposed
+minus original in pixels on its own symmetric scale around zero, exposing small
+corrections hidden by the cumulative volume scale. The header reports maximum
+absolute corrections per capillary; positive means a lower position in the image.
+Drag a chart region to zoom, or use its right-click zoom menu. This window follows
+selection and preview changes; acceptance clears the provisional comparison.
+
+Existing **Capillary level measures: topraw** grids still include proposal
+curves. All comparisons use the same clock, calibration and original t0 anchor
+as the existing curves. Other result types do not include these comparisons.
+
+Correlation searches around
+`topraw[i] - topraw[i-1]`, initially within a configurable correction radius
+(default 3 pixels). The image-profile window defaults to +/-10 pixels. Optional
+expansion increases the correction radius by 1.5 up to four times its initial
+value, capped at 64 pixels; image borders never trigger expansion. Existing
+contrast, correlation-peak and forward/reverse checks still apply.
+
+Each preview snapshots the current inputs and does not change measures.
+**Validate** becomes available once every required preview is ready; the status
+shows how many capillaries are ready. It installs all proposals in the selected
+scope after checking that every source trajectory is unchanged. A missing or
+stale preview prevents the whole validation; no capillaries are skipped.
+**Undo validation** restores exactly the capillaries changed by this panel's
+last validation, even after changing scope or current capillary/cage. It checks
+all of those levels and their acceptance entries before restoring any, so later
+edits or validation in another panel cannot be overwritten. The undo count is
+shown in the button tooltip. Validation installs physical meniscus positions
+before evaporation subtraction. Existing derivative/corrected/prototype-intake
+results are invalidated; classic annotated gulps are kept and marked dirty.
+Undo restores original topraw and its previous derived results.
+A stale preview or undo cannot overwrite subsequent external edits.
+Undo is available during the current application session. Use normal Levels
+Save to persist accepted levels. Registration-quality flags persist in an optional `refinement_quality=` CSV
+trailer (and XML metadata) bound to the exact trajectory. Older files and
+subsequent level edits report quality unavailable. Accepted coordinates retain
+full double precision in CSV so reopening does not change interval differences.
+
+Refine the no-fly controls as well as the selected experimental capillaries
+when comparing the full refined workflow: phase 2 uses their accepted trajectories
+too. A saved smooth trajectory may give a much smaller noise estimate than image
+registration did. This change requires scientific validation, not just UI tests.
+
+## Phase 2: detect intake
+
+Select **accepted topraw intake (prototype)** in the intake detection dialog.
+Existing stored method IDs remain readable. Phase 2 reads topraw without running
+image correlation, and derives every signed increment from adjacent positions
+of that same trajectory. It can run on existing saved topraw without phase 1.
+Missing values and available refinement quality constrain usable increments.
+Changing a threshold never refines levels. An open preview is invalidated when
+selected or control levels/quality change.
+
+The aligned-level strip and horizontal diagnostic ROIs have been removed.
+Diagnostics appear as shaded time spans on the displacement graph and in
+**Review interval...**. The raw kymograph retains intake bars and the grey
+reconstruction for comparison.
+
+## Intake options
+
 - **Persistent episodes (1-6 bins)** (default on): signed displacements minus
   expected evaporation accumulate over 1 through 6 consecutive valid bins.
   Each duration is compared against the 99.5th percentile of same-duration
-  signed sums from held-out empty capillaries, with the automatic single-bin
+  signed sums from held-out no-fly controls, with the automatic single-bin
   threshold as an additional floor. At least 30 control windows are required
   for a duration longer than one bin. The threshold slider scales all duration
   thresholds together; its red horizontal line represents only the single-bin
   threshold. Red points may therefore lie below it in episode mode.
   Negative increments within a candidate window count fully. Negative
   increments in the preceding/following two bins reduce its persistent
-  amplitude. Missing correlations cannot be bridged. A median before/after
-  check on the raw-anchored refined level minus evaporation also limits the
+  amplitude. Missing or excluded increments cannot be bridged. A median before/after
+  check on the accepted level minus evaporation also limits the
   amplitude. Highest-scoring non-overlapping windows become episodes.
   Turning this off restores the original single-bin threshold detector.
 - **Local evaporation** (default off): optional scaling of the shared
@@ -42,13 +118,13 @@ computation is Java; the Python files are optional research utilities.
 The graph always shows motion minus the active evaporation model in pixels
 per minute. Actual timestamps supply interval durations. The automatic
 single-bin estimate remains quiet-period median + 3 robust noise SD, with an
-empty-capillary noise floor. Quality exclusions appear as crosses.
+no-fly control noise floor. Quality exclusions appear as crosses.
 
 ## Amplitudes, display and saving
 
-In single-bin mode amplitudes remain total positive image displacement.
-In episode mode (method version 2), accepted bin boundaries partition the
-refined evaporation-corrected levels into plateaus. Plateau medians, weighted
+In single-bin mode amplitudes remain total positive accepted-level displacement.
+In episode mode (method version 3), accepted bin boundaries partition the
+accepted evaporation-corrected levels into plateaus. Plateau medians, weighted
 by their observed sample counts, are fitted jointly under a nondecreasing
 constraint using isotonic regression. Reversals are pooled; accepted boundaries
 that yield zero movement disappear. Net amplitudes are differences of these
@@ -59,7 +135,7 @@ its top is the preceding fitted level plus preceding evaporation. Successive
 bars therefore cannot overlap when modeled evaporation is nondecreasing.
 Neither endpoint is forced to agree with the measured recording endpoint.
 Adjacent bins can share a boundary and are not necessarily resolved gulps.
-Legacy single-bin mode remains unchanged for comparison.
+Single-bin mode uses the same accepted-level increments for comparison.
 
 **Show diagnostics** (default on) separates warning types:
 
@@ -76,7 +152,7 @@ A second local search compares three-point flanks after removing their local
 trend, so a missed step can be flagged even when evaporation mismatch cancels
 its total. Neighbouring local flags are suppressed within three bins. These
 are review heuristics, not validated event probabilities. Quality flags reflect
-registration support; control calibration is limited when too few windows exist.
+available level support (registration quality is available for unchanged accepted refinements); control calibration is limited when too few windows exist.
 No endpoint or initial anchor is automatically moved.
 
 The underlying ordered fit can retain an unassigned baseline change inside an
@@ -116,8 +192,8 @@ scale. Fitted positions are also copied independently into classic gulps and
 persisted with their flat CSV series, so saving/reloading or copying does not
 re-anchor these bars to noisy raw positions. Editing amplitudes invalidates
 the saved fitted positions. Existing red legacy results retain their display. Old rows load with the old method flags off.
-CSV export records flags, active reference, amplitudes, actual search range,
-fitted meniscus, intake top/bottom positions, and gap excess/reliability.
+CSV export records flags, active reference, amplitudes,
+fitted meniscus, intake top/bottom positions, and gap excess/reliability. Legacy correlation-score/search-range columns contain NaN in phase 2.
 Diagnostic types, signed excess and support are recorded at the last frame
 of each flagged span; multiple types, amounts and support flags ending there
 are aligned and separated by vertical bars.
@@ -134,13 +210,18 @@ registration tests use `-Dcorrelation.fixture=<experiment directory>`.
 `CorrelationPanelSmoke.java` loads actual data read-only with isolated memory
 preferences and exercises the real Swing panel offscreen: threshold dragging,
 mode switches, evaporation overlays, CSV, ROI cleanup and unchanged raw levels.
+It also previews, accepts and undoes refinement of cages 2/3/4 (both L/R) in
+memory, verifies phase-2 differences, comparison datasets, frame-switch overlay
+ownership and tooltip-listener cleanup, and renders stabilized and cage graph
+views without writing experimental files.
 It is not a manual test in the installed Icy application.
 
 `CorrelationMethodsBenchmark.java` uses the same Java pipeline on listed
 experiments, holding out each empty capillary from its evaporation/noise fit.
 The initial evaluation uses experiments 1-2 and checks experiments 3-6 without
-changing parameters (radius 10, initial shift 7, automatic threshold, common
-evaporation). Some saved series do not match native timestamp lengths and
+changing intake parameters (automatic threshold, common evaporation). It now
+compares single-bin and episode detection from existing topraw; it does not
+perform phase-1 refinement. Some saved series do not match native timestamp lengths and
 are explicitly skipped.
 
 Examples recovered include cam01 5L's groups at 43-48, 115-116 and 128-130
@@ -156,11 +237,11 @@ small intakes near tracking fluctuations.
 
 ## Tooltip layout workaround
 
-While the prototype is open, a scoped listener guards newly attached Flamingo rich-tooltip panels against transient widths too narrow for their text. Such layouts are deferred; normal preferred sizing and the installed look-and-feel layout are retained. This avoids the reproduced JDK LineBreakMeasurer index-minus-one exception without suppressing application exceptions or changing intake calculations. The listener is removed when the panel closes. Narrow-title, normal-layout and listener-lifecycle regression tests cover the workaround.
+While either phase-1 or phase-2 panel is open, its scoped listener guards newly attached Flamingo rich-tooltip panels against transient widths too narrow for their text. Such layouts are deferred; normal preferred sizing and the installed look-and-feel layout are retained. This avoids the reproduced JDK LineBreakMeasurer index-minus-one exception without suppressing application exceptions or changing intake calculations. The listener is removed when the panel closes. Narrow-title, normal-layout and listener-lifecycle regression tests cover the workaround.
 
 ## Overlay ownership and legacy ROI validation
 
-Correlation bars, evaporation polylines and gap markers carry an explicit
+Intake bars and evaporation polylines carry an explicit
 `fmp.verticalCorrelationOverlay` property as well as their `_xcorr` names.
 Legacy kymograph validators skip them rather than renaming unknown polylines
 as manual gulps. Gulp import excludes owned overlays even if their names have

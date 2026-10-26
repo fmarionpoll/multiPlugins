@@ -8,7 +8,6 @@ import java.util.concurrent.CancellationException;
 
 import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
-import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cages.EvaporationCurveFitter;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
@@ -18,10 +17,19 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /** Read-only adapter for the experimental gulp panel. No saved measures are replaced. */
 public final class CorrelationGulpPreview {
+    private final java.util.Map<Capillary,double[]> sourceLevels = new java.util.IdentityHashMap<>();
+    private final java.util.Map<Capillary,boolean[]> sourceQuality = new java.util.IdentityHashMap<>();
+    public boolean matchesSources(Experiment experiment) {
+        if(sourceLevels.size()!=experiment.getCapillaries().getList().size())return false;
+        for(Capillary cap:experiment.getCapillaries().getList())
+            if(!sourceLevels.containsKey(cap) || !Arrays.equals(sourceLevels.get(cap),levels(cap))
+                    || !Arrays.equals(sourceQuality.get(cap),MeniscusRefinement.quality(cap))) return false;
+        return true;
+    }
     public final BufferedImage image;
     public final List<double[]> controlRates;
     public final IntakeEpisodes.EvaporationScale localScale;
-    public final boolean adaptiveSearch, localEvaporation;
+    public final boolean localEvaporation;
     public final double[] raw, minutes, evaporation, residualRate, correctedLevels;
     public final VerticalCorrelation.Result motion;
     public final VerticalCorrelation.Noise noise;
@@ -32,10 +40,9 @@ public final class CorrelationGulpPreview {
     private CorrelationGulpPreview(BufferedImage image, double[] raw, double[] minutes,
             double[] evaporation, VerticalCorrelation.Result motion, double[] controls,
             int controlCount, boolean hasEvaporationReference, String referenceDescription,
-            List<double[]> controlRates, IntakeEpisodes.EvaporationScale localScale, boolean adaptiveSearch, boolean localEvaporation) {
+            List<double[]> controlRates, IntakeEpisodes.EvaporationScale localScale, boolean localEvaporation) {
         this.controlRates = controlRates;
         this.localScale = localScale;
-        this.adaptiveSearch = adaptiveSearch;
         this.localEvaporation = localEvaporation;
         this.image = image;
         this.raw = raw;
@@ -51,20 +58,17 @@ public final class CorrelationGulpPreview {
         noise = VerticalCorrelation.estimateNoise(residualRate, motion.reliable, controls);
     }
 
-    public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius) {
-        return compute(exp, selected, radius, VerticalCorrelation.DEFAULT_MAX_SHIFT);
-    }
-
-    public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius, double maxShift) {
-        return compute(exp, selected, radius, maxShift, false, false);
-    }
-
-    public static CorrelationGulpPreview compute(Experiment exp, Capillary selected, int radius,
-            double maxShift, boolean adaptive, boolean localEvaporation) {
+    /** Phase 2 consumes accepted levels; refinement parameters do not participate. */
+    public static CorrelationGulpPreview computeAccepted(Experiment exp, Capillary selected, boolean localEvaporation) {
+        java.util.Map<Capillary,double[]> inputs=new java.util.IdentityHashMap<>();
+        java.util.Map<Capillary,boolean[]> qualities=new java.util.IdentityHashMap<>();
+        for(Capillary cap:exp.getCapillaries().getList()) {
+            inputs.put(cap,levels(cap)); qualities.put(cap,MeniscusRefinement.quality(cap));
+        }
         Sequence sequence = exp.getSeqKymos() == null ? null : exp.getSeqKymos().getSequence();
         if (sequence == null) throw new IllegalArgumentException("Open the experiment's kymographs first.");
         boolean resampled = exp.getActiveBinDescription() != null && exp.getActiveBinDescription().isKymoFromNormedBlue();
-        double[] raw = levels(selected);
+        double[] raw = inputs.get(selected);
         if (raw == null || raw.length < 8) throw new IllegalArgumentException("Detect the top meniscus first (at least 8 samples).");
         FrameTimeScale scale = exp.getFrameTimeScale();
         if (scale == null || scale.isEmpty()) scale = FrameTimeScale.load(exp.getResultsDirectory());
@@ -74,14 +78,15 @@ public final class CorrelationGulpPreview {
         for (int i = 1; i < minutes.length; i++)
             if (!(minutes[i] > minutes[i - 1])) throw new IllegalArgumentException("Frame times must increase strictly.");
         BufferedImage image = image(sequence, selected, raw.length);
-        VerticalCorrelation.Result motion = VerticalCorrelation.analyze(image, raw, radius, maxShift, adaptive);
+        VerticalCorrelation.Result motion = VerticalCorrelation.fromLevels(raw, qualities.get(selected));
         List<Capillary> controls = new ArrayList<>();
         List<double[]> curves = new ArrayList<>();
         double targetScale = pixelScale(exp, selected);
         for (Capillary cap : exp.getCapillaries().getList()) {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
             if (cap == selected || cap.getNFlies() != 0) continue;
-            double[] y = levels(cap);
+            double[] y = inputs.get(cap);
+            if(y!=null)y=y.clone();
             if (y == null || y.length != raw.length || !Double.isFinite(y[0])) continue;
             double factor = pixelScale(exp, cap) / targetScale;
             for (int i = y.length - 1; i >= 0; i--) y[i] = (y[i] - y[0]) * factor;
@@ -95,8 +100,7 @@ public final class CorrelationGulpPreview {
         for (int c = 0; c < controls.size(); c++) {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
             Capillary cap = controls.get(c);
-            BufferedImage controlImage = image(sequence, cap, raw.length);
-            VerticalCorrelation.Result controlMotion = VerticalCorrelation.analyze(controlImage, levels(cap), radius, maxShift, adaptive);
+            VerticalCorrelation.Result controlMotion = VerticalCorrelation.fromLevels(inputs.get(cap), qualities.get(cap));
             // A held-out control never supplies its own evaporation curve.
             List<double[]> others = new ArrayList<>(curves);
             others.remove(c);
@@ -128,14 +132,18 @@ public final class CorrelationGulpPreview {
         if (localEvaporation) for (int i = 0; i < reference.length; i++) reference[i] *= local.factor;
         String description = controls.isEmpty() ? "No evaporation reference from no-fly controls (uncorrected motion)"
                 : "Evaporation model from " + controls.size() + " no-fly controls; noise from " + usableControls;
+        description += "; accepted topraw increments (no image correlation)";
+        if (MeniscusRefinement.quality(selected) == null) description += "; correlation quality unavailable";
         if (resampled) description += "; resampled RGB: pixels are kymograph rows";
         if (localEvaporation) description += local.reliable ? String.format("; local evaporation x%.2f (%d quiet bins)", local.factor, local.quietIntervals)
                 : "; local evaporation uncertain: common model retained";
-        return new CorrelationGulpPreview(image, raw, minutes, reference, motion,
-                controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description, controlRates, local, adaptive, localEvaporation);
+        CorrelationGulpPreview result = new CorrelationGulpPreview(image, raw, minutes, reference, motion,
+                controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description, controlRates, local, localEvaporation);
+        result.sourceLevels.putAll(inputs);result.sourceQuality.putAll(qualities);
+        return result;
     }
 
-    private static double[] levels(Capillary cap) {
+    public static double[] levels(Capillary cap) {
         if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null) return null;
         Level2D level = cap.getTopRaw().polylineLevel;
         return Arrays.copyOf(level.ypoints, level.npoints);
@@ -160,28 +168,8 @@ public final class CorrelationGulpPreview {
         return scale;
     }
 
-    private static BufferedImage image(Sequence seq, Capillary cap, int width) {
-        int index = cap.getKymographIndex();
-        if (index < 0 || index >= seq.getSizeT()) throw new IllegalArgumentException("Kymograph not loaded: " + cap.getKymographName());
-        IcyBufferedImage input = seq.getImage(index, 0);
-        if (input == null || input.getSizeX() != width || input.getSizeC() < 3)
-            throw new IllegalArgumentException("Expected a native RGB kymograph for " + cap.getKymographName());
-        double[][] channels = new double[3][];
-        for (int c = 0; c < 3; c++) channels[c] = Array1DUtil.arrayToDoubleArray(input.getDataXY(c), input.isSignedDataType());
-        BufferedImage output = new BufferedImage(width, input.getSizeY(), BufferedImage.TYPE_INT_RGB);
-        int[] pixels = new int[width * input.getSizeY()];
-        for (int i = 0; i < pixels.length; i++) {
-            int rgb = 0;
-            for (int c = 0; c < 3; c++) {
-                double v = channels[c][i];
-                if (!Double.isFinite(v) || v < 0 || v > 255)
-                    throw new IllegalArgumentException("This prototype requires RGB values between 0 and 255.");
-                rgb = (rgb << 8) | (int) Math.round(v);
-            }
-            pixels[i] = rgb;
-        }
-        output.setRGB(0, 0, width, input.getSizeY(), pixels, 0, width);
-        return output;
+    public static BufferedImage image(Sequence seq, Capillary cap, int width) {
+        return MeniscusRefinement.image(seq,cap,width);
     }
 
     private static double[] residualRate(VerticalCorrelation.Result motion, double[] reference, double[] times, double factor) {

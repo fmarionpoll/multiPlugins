@@ -60,6 +60,10 @@ public final class MeasureRoiSync {
 		List<ROI2D> all = seq.getROI2Ds();
 		List<ROI2D> toRemove = new ArrayList<>();
 		for (ROI2D roi : all) {
+			// Phase-1 comparisons belong to their dialog, across both cage frames.
+			if (filter == MeasureRoiFilter.CAPILLARY_MEASURES && "true".equals(roi.getProperty(
+					plugins.fmp.multitools.service.MeniscusRefinementPreview.ROI_PROPERTY)))
+				continue;
 			if (roi.getName() == null)
 				continue;
 			String name = roi.getName();

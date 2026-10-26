@@ -56,7 +56,7 @@ public class CorrelationPanelSmoke {
         Field f = o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
     }
     private static void layout(Container c) { c.doLayout(); for (Component child : c.getComponents()) if (child instanceof Container) layout((Container) child); }
-    private static void render(CorrelationIntakePanel panel, Path path) throws Exception {
+    private static void render(javax.swing.JPanel panel, Path path) throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             panel.setSize(1160, 820); layout(panel);
             BufferedImage image = new BufferedImage(1160, 820, BufferedImage.TYPE_INT_RGB);
@@ -77,6 +77,88 @@ public class CorrelationPanelSmoke {
         }
         throw new AssertionError("Panel did not publish its preview");
     }
+    private static void collectCharts(Container parent,java.util.List<org.jfree.chart.ChartPanel> charts) {
+        for(Component child:parent.getComponents()) {
+            if(child instanceof org.jfree.chart.ChartPanel)charts.add((org.jfree.chart.ChartPanel)child);
+            else if(child instanceof Container)collectCharts((Container)child,charts);
+        }
+    }
+    private static void waitForRefinement(javax.swing.JPanel panel) throws Exception {
+        long deadline=System.currentTimeMillis()+30000;
+        while(System.currentTimeMillis()<deadline) {
+            final boolean[] done={false};
+            SwingUtilities.invokeAndWait(()->done[0]=uncheckedField(panel,"worker")==null
+                    && !((javax.swing.Timer)uncheckedField(panel,"previewTimer")).isRunning()
+                    && uncheckedField(panel,"proposal")!=null);
+            if(done[0])return;
+            Thread.sleep(25);
+        }
+        throw new AssertionError("Automatic refinement preview failed: "+((javax.swing.JLabel)field(panel,"status")).getText());
+    }
+    private static Object uncheckedField(Object object,String name) {
+        try{return field(object,name);}catch(Exception error){throw new RuntimeException(error);}
+    }
+    private static void checkValidationScopes(Experiment exp,Map<String,Capillary> caps,Path output) throws Exception {
+        Map<Capillary,double[]> originals=new LinkedHashMap<>();
+        for(Capillary cap:caps.values())originals.put(cap,cap.getTopRaw().polylineLevel.ypoints.clone());
+        final plugins.fmp.multicafe.dlg.levels.MeniscusRefinementPanel[] ref={null};
+        SwingUtilities.invokeAndWait(()->ref[0]=new plugins.fmp.multicafe.dlg.levels.MeniscusRefinementPanel(exp,caps.get("4L"),null));
+        javax.swing.JPanel refinement=ref[0];
+        try {
+            JComboBox<?> scope=(JComboBox<?>)field(refinement,"validationScope");
+            if(!"Current cage".equals(scope.getSelectedItem().toString()))throw new AssertionError("Default validation scope changed");
+            SwingUtilities.invokeAndWait(()->scope.setSelectedIndex(0));
+            waitForRefinement(refinement);
+            if(((Map<?,?>)field(refinement,"proposals")).size()!=1)throw new AssertionError("Current-capillary scope prepared other capillaries");
+            render(refinement,output.resolve("scope_current_capillary.png"));
+            SwingUtilities.invokeAndWait(()->((JButton)uncheckedField(refinement,"accept")).doClick());
+            if(!plugins.fmp.multitools.service.MeniscusRefinement.canUndo(caps.get("4L")))throw new AssertionError("Single validation failed");
+            for(Capillary cap:caps.values())if(cap!=caps.get("4L") && !java.util.Arrays.equals(originals.get(cap),cap.getTopRaw().polylineLevel.ypoints))
+                throw new AssertionError("Single validation changed another capillary");
+            SwingUtilities.invokeAndWait(()-> {
+                ((JComboBox<?>)uncheckedField(refinement,"capillaries")).setSelectedItem(caps.get("2L"));
+                scope.setSelectedIndex(1);
+            });
+            waitForRefinement(refinement);
+            SwingUtilities.invokeAndWait(()->((JButton)uncheckedField(refinement,"undo")).doClick());
+            for(Capillary cap:caps.values())if(!java.util.Arrays.equals(originals.get(cap),cap.getTopRaw().polylineLevel.ypoints))
+                throw new AssertionError("Undo followed the new scope instead of the last validation");
+
+            SwingUtilities.invokeAndWait(()->scope.setSelectedIndex(2));
+            waitForRefinement(refinement);
+            Map<?,?> proposals=(Map<?,?>)field(refinement,"proposals");
+            if(proposals.size()!=caps.size())throw new AssertionError("All-cage scope missed capillaries");
+            Object firstProposal=proposals.get(caps.get("0L"));
+            SwingUtilities.invokeAndWait(()->((JComboBox<?>)uncheckedField(refinement,"capillaries")).setSelectedItem(caps.get("4L")));
+            if(field(refinement,"worker")!=null || ((javax.swing.Timer)field(refinement,"previewTimer")).isRunning()
+                    || ((Map<?,?>)field(refinement,"proposals")).get(caps.get("0L"))!=firstProposal)
+                throw new AssertionError("Inspecting another cage restarted the experiment preview");
+            Method comparison=refinement.getClass().getDeclaredMethod("comparisonContent");comparison.setAccessible(true);
+            final javax.swing.JPanel[] content={null};
+            SwingUtilities.invokeAndWait(()-> {
+                try {content[0]=(javax.swing.JPanel)comparison.invoke(refinement);}
+                catch(Exception error){throw new RuntimeException(error);}
+            });
+            java.util.List<org.jfree.chart.ChartPanel> charts=new java.util.ArrayList<>();collectCharts(content[0],charts);
+            if(charts.get(1).getChart().getXYPlot().getDataset().getSeriesCount()!=2)
+                throw new AssertionError("All-cage inspection should display the current cage only");
+            render(refinement,output.resolve("scope_all_cages.png"));
+            render(content[0],output.resolve("scope_all_cages_current_cage_graph.png"));
+            SwingUtilities.invokeAndWait(()->((JButton)uncheckedField(refinement,"accept")).doClick());
+            Object validation=field(refinement,"lastValidation");
+            if(validation==null || ((plugins.fmp.multitools.service.MeniscusRefinement.Validation)validation).size()!=caps.size())
+                throw new AssertionError("All-cage validation did not capture the entire experiment");
+            for(Capillary cap:caps.values())if(!plugins.fmp.multitools.service.MeniscusRefinement.canUndo(cap))
+                throw new AssertionError("Experiment validation missed "+cap.getLast2ofCapillaryName());
+            SwingUtilities.invokeAndWait(()->scope.setSelectedIndex(0));
+            waitForRefinement(refinement);
+            SwingUtilities.invokeAndWait(()->((JButton)uncheckedField(refinement,"undo")).doClick());
+            for(Capillary cap:caps.values())if(!java.util.Arrays.equals(originals.get(cap),cap.getTopRaw().polylineLevel.ypoints))
+                throw new AssertionError("Experiment undo did not restore "+cap.getLast2ofCapillaryName());
+            if(field(refinement,"lastValidation")!=null)throw new AssertionError("Undone validation remains active");
+            System.out.println("PASS: all three validation scopes; exact undo after changing selection/scope; "+caps.size()+" capillaries validated/restored in memory.");
+        } finally {SwingUtilities.invokeAndWait(ref[0]::close);}
+    }
     public static void main(String[] args) throws Exception {
         System.setProperty("java.util.prefs.PreferencesFactory", MemoryPreferencesFactory.class.getName());
         icy.preferences.IcyPreferences.init();
@@ -90,15 +172,28 @@ public class CorrelationPanelSmoke {
         Map<String, Integer> cageIds = new LinkedHashMap<>();
         boolean section = false;
         Sequence sequence = new Sequence();
+        int measuredStart=-1;
         for (String line : Files.readAllLines(root.resolve("CapillariesDescription.csv"), StandardCharsets.UTF_8)) {
             if (line.startsWith("#;")) section = line.startsWith("#;CAPILLARIES;");
+            else if(section && line.startsWith("cap_prefix")) {
+                int column=java.util.Arrays.asList(line.split(";")).indexOf("cap_measured_x1");
+                measuredStart=column<0?-1:column+4; // four variable ROI coordinates follow npoints
+            }
             else if (section && !line.startsWith("cap_prefix")) {
                 String[] row = line.split(";");
-                ROI2DLine roi = new ROI2DLine(); roi.setName("line" + row[0]);
+                java.awt.geom.Line2D green=new java.awt.geom.Line2D.Double(Double.parseDouble(row[14]),Double.parseDouble(row[15]),Double.parseDouble(row[16]),Double.parseDouble(row[17]));
+                ROI2DLine roi = new ROI2DLine(green); roi.setName("line" + row[0]);
                 Capillary cap = new Capillary(roi);
                 cageIds.put(row[0], Integer.parseInt(row[4]));
+                cap.setCageID(Integer.parseInt(row[4]));
                 cap.setKymographIndex(Integer.parseInt(row[1])); cap.setNFlies(Integer.parseInt(row[5]));
                 cap.setVolume(Double.parseDouble(row[6])); cap.setPixels(Integer.parseInt(row[7]));
+                if(measuredStart>=0 && row.length>=measuredStart+4) {
+                    double bx1=Double.parseDouble(row[measuredStart]), by1=Double.parseDouble(row[measuredStart+1]);
+                    double bx2=Double.parseDouble(row[measuredStart+2]), by2=Double.parseDouble(row[measuredStart+3]);
+                    if(Double.isFinite(bx1+by1+bx2+by2))
+                        cap.getPhaseGeometry().initialize(0,green,new java.awt.geom.Line2D.Double(bx1,by1,bx2,by2));
+                }
                 cap.setKymographName(row[2]); caps.put(row[0], cap);
                 BufferedImage image = ImageIO.read(root.resolve("bin_60").resolve(row[3]).toFile());
                 sequence.setImage(cap.getKymographIndex(), 0, IcyBufferedImage.createFrom(image));
@@ -121,6 +216,10 @@ public class CorrelationPanelSmoke {
             else if (section && !line.startsWith("cageID") && !line.isEmpty()) {
                 String[] row = line.split(";");
                 int cage = Integer.parseInt(row[0]), flies = Integer.parseInt(row[1]);
+                plugins.fmp.multitools.experiment.cage.Cage cageObject=new plugins.fmp.multitools.experiment.cage.Cage();
+                cageObject.getProperties().setCageID(cage);
+                cageObject.addCapillaryIfUniqueBulkFilteredOnCageID(exp.getCapillaries().getList());
+                exp.getCages().addCageIfUnique(cageObject);
                 for (Map.Entry<String, Capillary> entry : caps.entrySet())
                     if (cageIds.get(entry.getKey()) == cage) entry.getValue().setNFlies(flies);
             }
@@ -132,7 +231,17 @@ public class CorrelationPanelSmoke {
         SwingUtilities.invokeAndWait(() -> ref[0] = new CorrelationIntakePanel(exp, caps.get("1L")));
         CorrelationIntakePanel panel = ref[0]; compute(panel);
         CorrelationGulpPreview result = (CorrelationGulpPreview) field(panel, "preview");
-        if (args.length < 3 && Math.abs(result.motion.shift[57] - 1.4) > .051) throw new AssertionError("Icy image adapter changed channel interpretation");
+        for(int i=1;i<result.raw.length;i++)
+            if(Math.abs(result.motion.shift[i]-(result.raw[i]-result.raw[i-1]))>1e-10)
+                throw new AssertionError("Phase 2 is not using accepted-level differences");
+        if(!result.referenceDescription.contains("no image correlation"))throw new AssertionError("Wrong phase-2 source");
+        Capillary control=caps.get("0L");
+        if(control!=null){
+            double original=control.getTopRaw().polylineLevel.ypoints[1];
+            control.getTopRaw().polylineLevel.ypoints[1]=original+1;
+            if(result.matchesSources(exp))throw new AssertionError("Control edit did not invalidate intake snapshot");
+            control.getTopRaw().polylineLevel.ypoints[1]=original;
+        }
         if(exp.getActiveBinDescription().isKymoFromNormedBlue() && !result.referenceDescription.contains("resampled RGB"))
             throw new AssertionError("Resampled calibration was not selected");
         render(panel, output.resolve("panel_1L_automatic.png"));
@@ -278,6 +387,91 @@ public class CorrelationPanelSmoke {
             SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get(name)));
             compute(panel); render(panel, output.resolve("panel_" + name + "_ordered.png"));
         }
+        // Exercise both independent panels on the reported record-3 cases, in memory only.
+        for(String name:new String[]{"2L","3L","4L"}) {
+            Capillary selected=caps.get(name);if(selected==null)continue;
+            double[] original=selected.getTopRaw().polylineLevel.ypoints.clone();
+            Capillary partner=caps.get(name.replace("L","R"));
+            double[] partnerOriginal=partner.getTopRaw().polylineLevel.ypoints.clone();
+
+            final plugins.fmp.multicafe.dlg.levels.MeniscusRefinementPanel[] refinementRef=new plugins.fmp.multicafe.dlg.levels.MeniscusRefinementPanel[1];
+            SwingUtilities.invokeAndWait(()->refinementRef[0]=new plugins.fmp.multicafe.dlg.levels.MeniscusRefinementPanel(exp,selected,null));
+            javax.swing.JPanel refinement=refinementRef[0];
+            Object guard=field(refinement,"tooltipGuard");
+            Object guardListener=field(guard,"listener");
+            waitForRefinement(refinement);
+            Object initialProposal=field(refinement,"proposal");
+            SwingUtilities.invokeAndWait(()->((JSpinner)uncheckedField(refinement,"radius")).setValue(11));
+            waitForRefinement(refinement);
+            if(field(refinement,"proposal")==initialProposal)throw new AssertionError("Settings did not refresh preview automatically");
+            if(field(refinement,"proposal")==null)throw new AssertionError("Refinement preview failed: "+((javax.swing.JLabel)field(refinement,"status")).getText());
+            if(!java.util.Arrays.equals(original,selected.getTopRaw().polylineLevel.ypoints))throw new AssertionError("Preview overwrote topraw");
+            render(refinement,output.resolve("phase1_"+name+".png"));
+            Method comparisonMethod=refinement.getClass().getDeclaredMethod("comparisonContent");comparisonMethod.setAccessible(true);
+            final javax.swing.JPanel[] comparisonView={null};
+            SwingUtilities.invokeAndWait(()-> {
+                try { comparisonView[0]=(javax.swing.JPanel)comparisonMethod.invoke(refinement); }
+                catch(Exception error){throw new RuntimeException(error);}
+            });
+            java.util.List<org.jfree.chart.ChartPanel> comparisonCharts=new java.util.ArrayList<>();
+            collectCharts(comparisonView[0],comparisonCharts);
+            if(comparisonCharts.size()!=2)throw new AssertionError("Expected level and correction graphs");
+            org.jfree.data.xy.XYDataset corrections=comparisonCharts.get(1).getChart().getXYPlot().getDataset();
+            if(corrections.getSeriesCount()!=2)throw new AssertionError("Both sides need visible correction curves");
+            for(Capillary cap:java.util.Arrays.asList(selected,partner)) {
+                plugins.fmp.multitools.service.MeniscusRefinement.Proposal correctionProposal=
+                    plugins.fmp.multitools.service.MeniscusRefinementPreview.get(cap);
+                int series=corrections.indexOf(cap.getLast2ofCapillaryName()+" correction");
+                double[] raw=correctionProposal.original(), refined=correctionProposal.refined();
+                for(int i=0;i<raw.length;i++)
+                    if(Math.abs(corrections.getYValue(series,i)-(refined[i]-raw[i]))>1e-10)
+                        throw new AssertionError("Correction plot does not match the actual proposal");
+            }
+            if(comparisonCharts.get(1).getChart().getXYPlot().getRangeAxis().getRange().getLowerBound()>=0)
+                throw new AssertionError("Correction plot must show both signs around zero");
+            render(comparisonView[0],output.resolve("phase1_cage_"+selected.getCageID()+"_comparison.png"));
+            if(((Map<?,?>)field(refinement,"proposals")).size()!=2)throw new AssertionError("Did not preview both sides");
+            if(!java.util.Arrays.equals(partnerOriginal,partner.getTopRaw().polylineLevel.ypoints))throw new AssertionError("Partner preview overwrote topraw");
+            SwingUtilities.invokeAndWait(()-> {
+                plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.updateMeasureROIsAt(selected.getKymographIndex(),sequence,
+                    plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter.CAPILLARY_MEASURES,java.util.Collections.emptyList());
+                long overlays=sequence.getROIs().stream().filter(r->"true".equals(r.getProperty(plugins.fmp.multitools.service.MeniscusRefinementPreview.ROI_PROPERTY))).count();
+                if(overlays!=4)throw new AssertionError("Cage comparison ROIs lost during frame sync: "+overlays);
+            });
+            plugins.fmp.multitools.experiment.cage.Cage cage=exp.getCages().getCageList().stream().filter(c->c.getCageID()==selected.getCageID()).findFirst().get();
+            plugins.fmp.multitools.tools.results.ResultsOptions chartOptions=new plugins.fmp.multitools.tools.results.ResultsOptions();
+            chartOptions.resultType=plugins.fmp.multitools.tools.results.EnumResults.TOPRAW;
+            chartOptions.buildExcelStepMs=(int)exp.getKymoBin_ms();
+            System.out.println("Chart calibration "+name+": volume="+selected.getVolume()+" pixels="+selected.getPixels()+" source="+plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale.sourceOf(exp));
+            org.jfree.data.xy.XYSeriesCollection dataset=new plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder().build(exp,cage,chartOptions);
+            if(dataset.getSeriesCount()!=4)throw new AssertionError("Cage graph must contain two original and two proposed curves");
+            org.jfree.chart.JFreeChart comparison=org.jfree.chart.ChartFactory.createXYLineChart("Cage "+cage.getCageID()+" original/proposed", "Time (min)","Volume (ul)",dataset);
+            plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec.applySeriesPaintsFromDescription(dataset,
+                (org.jfree.chart.renderer.xy.XYLineAndShapeRenderer)comparison.getXYPlot().getRenderer());
+            ImageIO.write(comparison.createBufferedImage(1000,600),"png",output.resolve("cage_"+cage.getCageID()+"_comparison.png").toFile());
+            SwingUtilities.invokeAndWait(()->((javax.swing.JButton)uncheckedField(refinement,"accept")).doClick());
+            if(!plugins.fmp.multitools.service.MeniscusRefinement.canUndo(selected)
+                || !plugins.fmp.multitools.service.MeniscusRefinement.canUndo(partner))throw new AssertionError("Cage acceptance failed");
+            CorrelationGulpPreview accepted=CorrelationGulpPreview.computeAccepted(exp,selected,false);
+            for(int i=1;i<accepted.raw.length;i++)if(Math.abs(accepted.motion.shift[i]-(accepted.raw[i]-accepted.raw[i-1]))>1e-10)
+                throw new AssertionError("Refined input and phase-2 motion disagree");
+            SwingUtilities.invokeAndWait(()->panel.showCapillary(selected));compute(panel);
+            render(panel,output.resolve("phase2_"+name+"_accepted.png"));
+            SwingUtilities.invokeAndWait(()->((javax.swing.JButton)uncheckedField(refinement,"undo")).doClick());
+            if(!java.util.Arrays.equals(original,selected.getTopRaw().polylineLevel.ypoints))throw new AssertionError("Undo changed original levels");
+            if(accepted.matchesSources(exp))throw new AssertionError("Undo did not invalidate phase 2");
+            if(!java.util.Arrays.equals(partnerOriginal,partner.getTopRaw().polylineLevel.ypoints))throw new AssertionError("Cage undo did not restore partner");
+            SwingUtilities.invokeAndWait(refinementRef[0]::close);
+            for(java.awt.event.AWTEventListener listener:java.awt.Toolkit.getDefaultToolkit().getAWTEventListeners(java.awt.AWTEvent.CONTAINER_EVENT_MASK)) {
+                Object actual=listener instanceof java.awt.event.AWTEventListenerProxy ? ((java.awt.event.AWTEventListenerProxy)listener).getListener() : listener;
+                if(actual==guardListener)throw new AssertionError("Phase-1 tooltip guard leaked after close");
+            }
+            for(icy.roi.ROI roi:sequence.getROIs())if("true".equals(roi.getProperty(plugins.fmp.multitools.service.MeniscusRefinementPreview.ROI_PROPERTY)))
+                throw new AssertionError("Refinement preview overlay leaked after close");
+        }
+        checkValidationScopes(exp,caps,output);
+        for(icy.roi.ROI2D roi:sequence.getROI2Ds())if(roi.getName().contains("_xcorr_gap_"))
+            throw new AssertionError("Horizontal diagnostic markers remain in phase 2");
         Capillary copyCheck = new Capillary();
         copyCheck.getCorrelationGulps().set(new double[]{0,2.25,0,1.5},10,6,1.4,false);
         copyCheck.getCorrelationGulps().setBottomPositions(new double[]{40,42.25,42.5,44});

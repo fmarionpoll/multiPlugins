@@ -2,6 +2,7 @@ package plugins.fmp.multitools.experiment.capillary;
 
 import java.awt.geom.Point2D;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.w3c.dom.Element;
@@ -23,6 +24,42 @@ public class CapillaryMeasure {
 	public int capIndexKymo = -1;
 	public String header = null;
 
+    private boolean[] refinementQuality;
+    private double[] qualityX, qualityY;
+
+    /** Quality belongs to this exact trajectory; manual edits invalidate it. */
+    public boolean[] getRefinementQuality() {
+        if(refinementQuality==null || polylineLevel==null || polylineLevel.npoints!=refinementQuality.length
+                || !Arrays.equals(qualityX,Arrays.copyOf(polylineLevel.xpoints,polylineLevel.npoints))
+                || !Arrays.equals(qualityY,Arrays.copyOf(polylineLevel.ypoints,polylineLevel.npoints))) return null;
+        return refinementQuality.clone();
+    }
+    public void setRefinementQuality(boolean[] quality) {
+        refinementQuality=null;qualityX=null;qualityY=null;
+        if(quality==null)return;
+        if(polylineLevel==null || quality.length!=polylineLevel.npoints)
+            throw new IllegalArgumentException("Refinement quality must match the level trajectory");
+        refinementQuality=quality.clone();qualityX=Arrays.copyOf(polylineLevel.xpoints,polylineLevel.npoints);
+        qualityY=Arrays.copyOf(polylineLevel.ypoints,polylineLevel.npoints);
+    }
+    private String qualityText() {
+        boolean[] quality=getRefinementQuality();if(quality==null)return "";
+        StringBuilder text=new StringBuilder();for(boolean valid:quality)text.append(valid?'1':'0');return text.toString();
+    }
+    private void readQuality(String text) {
+        setRefinementQuality(null);
+        if(polylineLevel==null || text==null || text.length()!=polylineLevel.npoints || !text.matches("[01]+"))return;
+        boolean[] quality=new boolean[text.length()];for(int i=0;i<quality.length;i++)quality[i]=text.charAt(i)=='1';
+        setRefinementQuality(quality);
+    }
+    private void appendQuality(StringBuffer row,String separator) {
+        String text=qualityText();if(!text.isEmpty())row.append("refinement_quality=").append(text).append(separator);
+    }
+    private void readQualityTrailer(String[] data,int start) {
+        setRefinementQuality(null);
+        for(int i=start;i<data.length;i++)if(data[i].startsWith("refinement_quality="))readQuality(data[i].substring(19));
+    }
+
 	private final String ID_NPOINTS = "npoints";
 	private final String ID_NAME = "name";
 	private final String ID_N = "n";
@@ -42,6 +79,7 @@ public class CapillaryMeasure {
 	}
 
 	public void clear() {
+        setRefinementQuality(null);
 		polylineLevel = new Level2D();
 	}
 
@@ -183,6 +221,7 @@ public class CapillaryMeasure {
 	public void copy(CapillaryMeasure cap) {
 		if (cap.polylineLevel != null)
 			polylineLevel = cap.polylineLevel.clone();
+        setRefinementQuality(cap.getRefinementQuality());
 	}
 
 	public boolean isThereAnyMeasuresDone() {
@@ -275,7 +314,8 @@ public class CapillaryMeasure {
 	// ----------------------------------------------------------------------
 
 	public int loadCapillaryLimitFromXML(Node node, String nodename, String header) {
-		final Node nodeMeta = XMLUtil.getElement(node, nodename);
+		setRefinementQuality(null);
+        final Node nodeMeta = XMLUtil.getElement(node, nodename);
 		int npoints = 0;
 		polylineLevel = null;
 		if (nodeMeta != null) {
@@ -285,6 +325,7 @@ public class CapillaryMeasure {
 				capName = header + capName;
 			}
 			polylineLevel = loadPolyline2DFromXML(nodeMeta);
+            readQuality(XMLUtil.getElementValue(nodeMeta,"refinement_quality",""));
 			if (polylineLevel != null)
 				npoints = polylineLevel.npoints;
 		}
@@ -320,6 +361,7 @@ public class CapillaryMeasure {
 		if (nodeMeta != null) {
 			XMLUtil.setElementValue(nodeMeta, ID_NAME, capName);
 			saveLevel2XML(nodeMeta, polylineLevel);
+            XMLUtil.setElementValue(nodeMeta,"refinement_quality",qualityText());
 			final Node nodeMeta_old = XMLUtil.setElement(node, nodename + "old");
 			if (polyline_old != null && polyline_old.npoints != polylineLevel.npoints)
 				saveLevel2XML(nodeMeta_old, polyline_old);
@@ -387,6 +429,7 @@ public class CapillaryMeasure {
 	// ----------------------------------------------------------------------
 
 	public boolean cvsExportXYDataToRow(StringBuffer sbf, String sep) {
+        boolean refined=getRefinementQuality()!=null;
 		int npoints = 0;
 		if (polylineLevel != null && polylineLevel.npoints > 0)
 			npoints = polylineLevel.npoints;
@@ -394,16 +437,18 @@ public class CapillaryMeasure {
 		sbf.append(Integer.toString(npoints) + sep);
 		if (npoints > 0) {
 			for (int i = 0; i < polylineLevel.npoints; i++) {
-				sbf.append(StringUtil.toString((double) polylineLevel.xpoints[i]));
+				sbf.append((!refined ? StringUtil.toString(polylineLevel.xpoints[i]) : Double.toString(polylineLevel.xpoints[i])));
 				sbf.append(sep);
-				sbf.append(StringUtil.toString((double) polylineLevel.ypoints[i]));
+				sbf.append((!refined ? StringUtil.toString(polylineLevel.ypoints[i]) : Double.toString(polylineLevel.ypoints[i])));
 				sbf.append(sep);
 			}
 		}
+		appendQuality(sbf,sep);
 		return true;
 	}
 
 	public boolean cvsExportYDataToRow(StringBuffer sbf, String sep) {
+        boolean refined=getRefinementQuality()!=null;
 		int npoints = 0;
 		if (polylineLevel != null && polylineLevel.npoints > 0)
 			npoints = polylineLevel.npoints;
@@ -411,15 +456,17 @@ public class CapillaryMeasure {
 		sbf.append(Integer.toString(npoints) + sep);
 		if (npoints > 0) {
 			for (int i = 0; i < polylineLevel.npoints; i++) {
-				sbf.append(StringUtil.toString((double) polylineLevel.ypoints[i]));
+				sbf.append((!refined ? StringUtil.toString(polylineLevel.ypoints[i]) : Double.toString(polylineLevel.ypoints[i])));
 				sbf.append(sep);
 			}
 		}
 
+		appendQuality(sbf,sep);
 		return true;
 	}
 
 	public boolean csvImportXYDataFromRow(String[] data, int startAt) {
+        setRefinementQuality(null);
 		if (data.length < startAt)
 			return false;
 
@@ -435,11 +482,13 @@ public class CapillaryMeasure {
 				offset++;
 			}
 			polylineLevel = new Level2D(x, y, npoints);
+            readQualityTrailer(data,offset);
 		}
 		return true;
 	}
 
 	public boolean csvImportYDataFromRow(String[] data, int startAt) {
+        setRefinementQuality(null);
 		int len = data.length;
 		if (len <= startAt)
 			return false;
@@ -455,6 +504,7 @@ public class CapillaryMeasure {
 				offset++;
 			}
 			polylineLevel = new Level2D(x, y, npoints);
+            readQualityTrailer(data,offset);
 		}
 		return true;
 	}

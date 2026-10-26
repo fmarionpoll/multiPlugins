@@ -18,7 +18,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	public enum GulpDetectionMethod {
 		XDIFFN_REF("XDiffn vs ref (classic)"), TOPRAW_DY("topraw dY (v2)"),
-		VERTICAL_CORRELATION("vertical correlation (prototype)");
+		VERTICAL_CORRELATION("accepted topraw intake (prototype)");
 
 		/** Interactive only: not run by the batch {@code DetectGulps} pipeline. */
 		public boolean isInteractiveOnly() {
@@ -41,6 +41,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 				return TOPRAW_DY;
 			}
 			String trimmed = value.trim();
+            if ("vertical correlation (prototype)".equals(trimmed)) return VERTICAL_CORRELATION;
 			for (GulpDetectionMethod m : values()) {
 				if (m.name().equals(trimmed) || m.label.equals(trimmed)) {
 					return m;

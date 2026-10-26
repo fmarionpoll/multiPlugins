@@ -593,6 +593,12 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	 * and their properties (position, stimulus, concentration).
 	 */
 	private void createDynamicCapillaryLegend(Experiment experiment) {
+		if (experiment != null && boundOptions != null && boundOptions.resultType == EnumResults.TOPRAW
+				&& experiment.getCapillaries().getList().stream().anyMatch(cap ->
+						plugins.fmp.multitools.service.MeniscusRefinementPreview.get(cap) != null)) {
+			bottomPanel.add(new LegendItem("L proposed (preview)", Color.MAGENTA));
+			bottomPanel.add(new LegendItem("R proposed (preview)", Color.ORANGE));
+		}
 		if (experiment == null || experiment.getCapillaries() == null) {
 			// Fallback to default L/R if no experiment data
 			bottomPanel.add(new LegendItem("L", Color.BLUE));

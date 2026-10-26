@@ -280,7 +280,7 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 	private void defineToolTips() {
 		boolean batch = !selectedMethod().isInteractiveOnly();
 		detectButton.setToolTipText(batch ? "Detect gulps and replace the stored gulp measures"
-				: "Open the correlation panel for the capillary shown in the kymograph viewer");
+				: "Open phase 2: intake from accepted topraw for the capillary shown in the kymograph viewer");
 	}
 
 	private Capillary capillaryShownInKymoViewer(Experiment exp) {
