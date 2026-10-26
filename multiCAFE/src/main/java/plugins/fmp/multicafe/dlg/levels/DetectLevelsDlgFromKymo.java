@@ -111,11 +111,12 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 		JPanel panel00 = new JPanel(layoutLeft);
 		panel00.add(detectButton);
-		panel00.add(refineMeniscus);
+//		panel00.add(refineMeniscus);
 		panel00.add(allSeriesCheckBox);
 		panel00.add(selectedKymoCheckBox);
 		panel00.add(leftCheckBox);
 		panel00.add(rightCheckBox);
+		panel00.add(fromRectangleCheckBox);
 
 		JPanel panel01 = new JPanel(layoutLeft);
 		panel01.add(pass1CheckBox);
@@ -132,22 +133,24 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		panel02.add(threshold2Spinner);
 		panel02.add(transformPass2ComboBox);
 		panel02.add(transformPass2DisplayButton);
+		panel02.add(new JLabel("vertical jitter"));
+		panel02.add(jitter2Spinner);
 
 		JPanel panel03 = new JPanel(layoutLeft);
-		panel03.add(new JLabel("pass2 vertical jitter"));
-		panel03.add(jitter2Spinner);
 		panel03.add(fromRectangleCheckBox);
 		panel03.add(runBackwardsCheckBox);
+		panel03.add(refineMeniscus);
 
 		JPanel choices = new JPanel(layoutLeft);
 		choices.add(trackingCheckBox);
 		choices.add(smoothCheckBox);
 		choices.add(bottomCheckBox);
 		choices.add(advancedCheckBox);
+
 		runBackwardsCheckBox.setText("Forward + backward tracking");
 		panel03.remove(runBackwardsCheckBox);
 		panel03.remove(fromRectangleCheckBox);
-		panel00.add(fromRectangleCheckBox);
+
 		trackingPanel = new JPanel(layoutLeft);
 		trackingPanel.add(removeHzAvgCheckBox);
 		trackingPanel.add(tapePrepassCheckBox);
@@ -157,13 +160,16 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		trackingPanel.add(trackUpSpinner);
 		trackingPanel.add(new JLabel("down (px)"));
 		trackingPanel.add(trackDownSpinner);
+
 		smoothingPanel = new JPanel(layoutLeft);
 		smoothingPanel.add(new JLabel("median (columns)"));
 		smoothingPanel.add(medianWinSpinner);
 		smoothingPanel.add(new JLabel("max spike (px)"));
 		smoothingPanel.add(maxSpikeSpinner);
+
 		pass2Panel = panel02;
 		legacyPanel = panel03;
+
 		add(panel00);
 		add(choices);
 		add(panel01);
@@ -211,7 +217,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		boolean advanced = advancedCheckBox.isSelected();
 		pass1CheckBox.setVisible(!track);
 		pass2Panel.setVisible(!track && advanced);
-		legacyPanel.setVisible(!track && advanced);
+//		legacyPanel.setVisible(!track && advanced);
 		trackingPanel.setVisible(track && advanced);
 		smoothingPanel.setVisible(smoothCheckBox.isSelected() && advanced);
 		// The common first transform/threshold controls both methods.
@@ -377,6 +383,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			updateModeControls();
 			updateOverlayThreshold();
 		});
+
 		advancedCheckBox.addActionListener(e -> updateModeControls());
 		refineMeniscus.addActionListener(e -> MeniscusRefinementPanel.open(this, currentExperiment(), null, null));
 	}

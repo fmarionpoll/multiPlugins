@@ -157,6 +157,96 @@ public class MeniscusRefinementTest {
         assertNull(MeniscusRefinement.quality(cap));assertFalse(MeniscusRefinement.canUndo(cap));
         try{MeniscusRefinement.undo(cap);fail("External edit overwritten");}catch(IllegalStateException expected){}
     }
+    @Test public void rangeOffsetChangesOnlySelectedColumnsAndPersistsOnValidate() {
+        double[] positions={30,30.3,31,32,33};
+        Capillary cap=cap(positions);
+        MeniscusRefinement.Proposal proposal=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(positions),10,3,true);
+        double[] before=proposal.refined();
+        boolean[] automatic=proposal.motion.reliable.clone();
+        proposal.addOffset(1,2,1.5);
+        double[] shifted=proposal.refined();
+        assertEquals(before[0],shifted[0],0);
+        assertEquals(before[3],shifted[3],0);
+        assertEquals(before[4],shifted[4],0);
+        assertEquals(before[1]+1.5,shifted[1],0);
+        assertEquals(before[2]+1.5,shifted[2],0);
+        boolean[] edited=proposal.quality();
+        assertTrue(edited[1]);assertTrue(edited[2]);
+        assertEquals(automatic[0],edited[0]);
+        assertEquals(automatic[3],edited[3]);
+        assertEquals(automatic[4],edited[4]);
+        proposal.addOffset(1,2,-1.5);
+        assertArrayEquals(before,proposal.refined(),0);
+        assertArrayEquals(automatic,proposal.quality());
+        proposal.addOffset(1,2,1.5);
+        assertTrue(MeniscusRefinement.isCurrent(cap,proposal));
+        MeniscusRefinement.accept(cap,proposal);
+        assertArrayEquals(proposal.refined(),cap.getTopRaw().polylineLevel.ypoints,0);
+        assertTrue(MeniscusRefinement.quality(cap)[1]);
+        assertTrue(MeniscusRefinement.quality(cap)[2]);
+        assertEquals(automatic[0],MeniscusRefinement.quality(cap)[0]);
+    }
+    @Test public void holdValidatedKeepsSavedLevelsUntilTheNextManualOffset() {
+        double[] raw={30,30,48,48};
+        double[] edge={30,30.2,48.2,48.4};
+        Capillary cap=cap(raw);
+        MeniscusRefinement.Proposal placed=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(edge),10,3,true);
+        placed.addOffset(2,3,1.5);
+        MeniscusRefinement.accept(cap,placed);
+        double[] saved=cap.getTopRaw().polylineLevel.ypoints.clone();
+        MeniscusRefinement.Proposal again=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(edge),10,3,true);
+        Arrays.fill(again.motion.refined, 0);
+        again.holdValidated(saved,MeniscusRefinement.quality(cap));
+        assertArrayEquals(saved,again.refined(),0);
+        assertTrue(again.quality()[2]);
+        assertTrue(again.quality()[3]);
+        again.addOffset(1,1,2);
+        assertEquals(saved[0],again.refined()[0],0);
+        assertEquals(saved[1]+2,again.refined()[1],0);
+        assertEquals(saved[2],again.refined()[2],0);
+        assertEquals(saved[3],again.refined()[3],0);
+    }
+    @Test public void perColumnOffsetsLeaveOtherColumnsUnchanged() {
+        double[] positions={30,30.3,31,32,33};
+        Capillary cap=cap(positions);
+        MeniscusRefinement.Proposal proposal=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(positions),10,3,true);
+        double[] before=proposal.refined();
+        double[] delta=new double[positions.length];
+        Arrays.fill(delta, Double.NaN);
+        delta[1]=2;
+        delta[3]=-1;
+        proposal.addOffsets(delta);
+        assertEquals(before[0], proposal.refined()[0], 0);
+        assertEquals(before[1] + 2, proposal.refined()[1], 0);
+        assertEquals(before[2], proposal.refined()[2], 0);
+        assertEquals(before[3] - 1, proposal.refined()[3], 0);
+        assertEquals(before[4], proposal.refined()[4], 0);
+        assertFalse(proposal.placedColumns()[0]);
+        assertTrue(proposal.placedColumns()[1]);
+        assertFalse(proposal.placedColumns()[2]);
+        assertTrue(proposal.placedColumns()[3]);
+        assertFalse(proposal.placedColumns()[4]);
+    }
+    @Test public void holdValidatedPinsOnlyPlacedColumns() {
+        double[] raw={30,30,48,48};
+        double[] edge={30,30.2,48.2,48.4};
+        Capillary cap=cap(raw);
+        MeniscusRefinement.Proposal placed=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(edge),10,3,true);
+        placed.addOffset(2, 2, 1.5);
+        MeniscusRefinement.accept(cap, placed);
+        double[] saved=cap.getTopRaw().polylineLevel.ypoints.clone();
+        MeniscusRefinement.Proposal again=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(edge),10,3,true);
+        Arrays.fill(again.motion.refined, 0);
+        boolean[] mask=new boolean[saved.length];
+        mask[2]=true;
+        again.holdValidated(saved, MeniscusRefinement.quality(cap), mask);
+        assertEquals(0, again.refined()[0], 0);
+        assertEquals(0, again.refined()[1], 0);
+        assertEquals(saved[2], again.refined()[2], 0);
+        assertEquals(0, again.refined()[3], 0);
+        assertTrue(Math.abs(saved[2]) > 1);
+        assertTrue(again.quality()[2]);
+    }
     @Test public void phaseTwoPreservesSignedDifferencesAndQualityWithoutInventedCorrelationScores() {
         double[] levels={10,13,12,Double.NaN,18,20};boolean[] quality={false,true,false,false,false,true};
         VerticalCorrelation.Result result=VerticalCorrelation.fromLevels(levels,quality);

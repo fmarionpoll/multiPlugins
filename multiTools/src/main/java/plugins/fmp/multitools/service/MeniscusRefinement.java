@@ -41,16 +41,91 @@ public final class MeniscusRefinement {
     }
 
     public static final class Proposal {
-        private final double[] x, original;
+        private final double[] x, original, adjustment;
+        private final int imageHeight;
         public final VerticalCorrelation.Result motion;
         private Proposal(Level2D source, BufferedImage image, int radius, double correction, boolean expand) {
             x = Arrays.copyOf(source.xpoints, source.npoints);
             original = Arrays.copyOf(source.ypoints, source.npoints);
+            adjustment = new double[source.npoints];
+            imageHeight = image.getHeight();
             motion = VerticalCorrelation.analyzeSeeded(image, original, radius, correction, expand);
         }
+        public int columnCount() { return adjustment.length; }
         public double[] original() { return original.clone(); }
-        public double[] refined() { return motion.refined.clone(); }
+        /** Correlation result plus any manual column offsets, clamped to the kymograph. */
+        public double[] refined() {
+            double[] y = new double[motion.refined.length];
+            double max = Math.max(0, imageHeight - 1);
+            for (int i = 0; i < y.length; i++) {
+                double value = motion.refined[i] + adjustment[i];
+                if (!Double.isFinite(value)) y[i] = value;
+                else if (value < 0) y[i] = 0;
+                else if (value > max) y[i] = max;
+                else y[i] = value;
+            }
+            return y;
+        }
         public double[] x() { return x.clone(); }
+        /** Hand-placed columns count as reliable. A later nudge back to zero restores the automatic flag. */
+        public boolean[] quality() {
+            boolean[] flags = motion.reliable.clone();
+            for (int i = 0; i < flags.length; i++)
+                if (adjustment[i] != 0) flags[i] = true;
+            return flags;
+        }
+        /** Columns with a manual offset. Correlation may still move the others after Validate. */
+        public boolean[] placedColumns() {
+            boolean[] placed = new boolean[adjustment.length];
+            for (int i = 0; i < adjustment.length; i++)
+                placed[i] = adjustment[i] != 0;
+            return placed;
+        }
+
+        /**
+         * Keep saved columns on the next correlation. A null mask keeps every column.
+         * A mask keeps only the hand-placed ones, so the dark band can be left behind
+         * without freezing columns the user did not move.
+         */
+        public void holdValidated(double[] saved, boolean[] quality, boolean[] placed) {
+            if (saved == null || saved.length != motion.refined.length)
+                return;
+            if (placed == null) {
+                System.arraycopy(saved, 0, motion.refined, 0, saved.length);
+                if (quality != null && quality.length == motion.reliable.length)
+                    System.arraycopy(quality, 0, motion.reliable, 0, quality.length);
+                return;
+            }
+            int n = Math.min(saved.length, placed.length);
+            for (int i = 0; i < n; i++) {
+                if (!placed[i])
+                    continue;
+                motion.refined[i] = saved[i];
+                motion.reliable[i] = quality != null && i < quality.length ? quality[i] : true;
+            }
+        }
+
+        public void holdValidated(double[] saved, boolean[] quality) {
+            holdValidated(saved, quality, null);
+        }
+
+        /** Add one delta per column. NaN leaves that column alone. Positive moves the meniscus down. */
+        public void addOffsets(double[] delta) {
+            if (delta == null)
+                return;
+            int n = Math.min(adjustment.length, delta.length);
+            for (int i = 0; i < n; i++)
+                if (Double.isFinite(delta[i]))
+                    adjustment[i] += delta[i];
+        }
+
+        /** Add the same pixel delta to an inclusive column range. Positive moves the meniscus down. */
+        public void addOffset(int from, int to, double delta) {
+            if (adjustment.length == 0 || delta == 0 || !Double.isFinite(delta)) return;
+            int first = Math.max(0, Math.min(from, to));
+            int last = Math.min(adjustment.length - 1, Math.max(from, to));
+            for (int i = first; i <= last; i++) adjustment[i] += delta;
+        }
     }
 
     private static final class Accepted {
@@ -62,7 +137,7 @@ public final class MeniscusRefinement {
         final boolean gulpsDirty;
         final CapillaryCorrelationGulps events=new CapillaryCorrelationGulps();
         Accepted(Capillary cap, Proposal p, Accepted previous) {
-            proposal=p; values=p.refined(); quality=p.motion.reliable.clone(); this.previous=previous;
+            proposal=p; values=p.refined(); quality=p.quality(); this.previous=previous;
             derivative=copy(cap.getDerivative().polylineLevel);
             corrected=copy(cap.getTopCorrected().polylineLevel);
             gulpsDirty=cap.isGulpMeasuresDirty();events.copy(cap.getCorrelationGulps());

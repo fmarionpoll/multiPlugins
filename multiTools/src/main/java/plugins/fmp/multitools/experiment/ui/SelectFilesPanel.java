@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.experiment.ui;
 
 import java.awt.BorderLayout;
+import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.FontMetrics;
@@ -9,6 +10,8 @@ import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.File;
@@ -38,6 +41,7 @@ import javax.swing.ButtonGroup;
 import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -50,6 +54,7 @@ import javax.swing.ListSelectionModel;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
+import javax.swing.Timer;
 import javax.swing.filechooser.FileNameExtensionFilter;
 
 import icy.gui.frame.IcyFrame;
@@ -118,6 +123,8 @@ public class SelectFilesPanel extends JPanel {
 	}
 
 	private final Features features;
+	private JDialog importNotice;
+	private Timer importNoticeTimer;
 
 	private static final String TIP_FIND = "Search the disk for experiment folders matching the filter pattern.";
 	private static final String TIP_LOAD_LIST = "Load a previously saved list of experiment paths.";
@@ -269,9 +276,21 @@ public class SelectFilesPanel extends JPanel {
 	}
 
 	private void close() {
+		dismissImportNotice();
 		if (dialogFrame != null) {
 			FrameGeometryPreferences.save(dialogFrame, guiPrefs, "selectFiles.");
 			dialogFrame.close();
+		}
+	}
+
+	private void dismissImportNotice() {
+		if (importNoticeTimer != null) {
+			importNoticeTimer.stop();
+			importNoticeTimer = null;
+		}
+		if (importNotice != null) {
+			importNotice.dispose();
+			importNotice = null;
 		}
 	}
 
@@ -491,11 +510,50 @@ public class SelectFilesPanel extends JPanel {
 				skippedDup++;
 			}
 		}
-		JOptionPane.showMessageDialog(this,
-				verb + " " + added + " path(s) from " + lineCount + " line(s).\n" + "Missing: " + skippedMissing
-						+ ", already listed: " + skippedDup + ".\n"
-						+ "Use Add selected / Add all to load experiments.",
-				title, JOptionPane.INFORMATION_MESSAGE);
+		showTimedImportNotice(verb + " " + added + " path(s) from " + lineCount + " line(s).\n" + "Missing: "
+				+ skippedMissing + ", already listed: " + skippedDup + ".\n"
+				+ "Use Add selected / Add all to load experiments.", title);
+	}
+
+	/** Modeless summary. Stays 20 s, or until OK / close, without blocking the panel. */
+	private void showTimedImportNotice(String message, String title) {
+		dismissImportNotice();
+		final JDialog dialog = new JDialog(SwingUtilities.getWindowAncestor(this), title, Dialog.ModalityType.MODELESS);
+		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+		JTextArea text = new JTextArea(message);
+		text.setEditable(false);
+		text.setOpaque(false);
+		text.setFocusable(false);
+		text.setBorder(BorderFactory.createEmptyBorder(12, 14, 4, 14));
+		JButton ok = new JButton("OK");
+		JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 8));
+		buttons.add(ok);
+		JPanel content = new JPanel(new BorderLayout());
+		content.add(text, BorderLayout.CENTER);
+		content.add(buttons, BorderLayout.SOUTH);
+		dialog.setContentPane(content);
+		dialog.pack();
+		dialog.setLocationRelativeTo(this);
+		Timer timer = new Timer(20_000, e -> {
+			if (importNotice == dialog)
+				dialog.dispose();
+		});
+		timer.setRepeats(false);
+		dialog.addWindowListener(new WindowAdapter() {
+			@Override
+			public void windowClosed(WindowEvent event) {
+				timer.stop();
+				if (importNotice == dialog) {
+					importNotice = null;
+					importNoticeTimer = null;
+				}
+			}
+		});
+		ok.addActionListener(e -> dialog.dispose());
+		importNotice = dialog;
+		importNoticeTimer = timer;
+		dialog.setVisible(true);
+		timer.start();
 	}
 
 	private File chooseListFile(String startDirectory) {

@@ -140,8 +140,8 @@ public class CorrelationPanelSmoke {
                 catch(Exception error){throw new RuntimeException(error);}
             });
             java.util.List<org.jfree.chart.ChartPanel> charts=new java.util.ArrayList<>();collectCharts(content[0],charts);
-            if(charts.get(1).getChart().getXYPlot().getDataset().getSeriesCount()!=2)
-                throw new AssertionError("All-cage inspection should display the current cage only");
+            if(charts.get(1).getChart().getXYPlot().getDataset().getSeriesCount()!=1)
+                throw new AssertionError("All-cage inspection should display the selected capillary only");
             render(refinement,output.resolve("scope_all_cages.png"));
             render(content[0],output.resolve("scope_all_cages_current_cage_graph.png"));
             SwingUtilities.invokeAndWait(()->((JButton)uncheckedField(refinement,"accept")).doClick());
@@ -417,8 +417,8 @@ public class CorrelationPanelSmoke {
             collectCharts(comparisonView[0],comparisonCharts);
             if(comparisonCharts.size()!=2)throw new AssertionError("Expected level and correction graphs");
             org.jfree.data.xy.XYDataset corrections=comparisonCharts.get(1).getChart().getXYPlot().getDataset();
-            if(corrections.getSeriesCount()!=2)throw new AssertionError("Both sides need visible correction curves");
-            for(Capillary cap:java.util.Arrays.asList(selected,partner)) {
+            if(corrections.getSeriesCount()!=1)throw new AssertionError("Comparison should show the selected capillary only");
+            for(Capillary cap:java.util.Collections.singletonList(selected)) {
                 plugins.fmp.multitools.service.MeniscusRefinement.Proposal correctionProposal=
                     plugins.fmp.multitools.service.MeniscusRefinementPreview.get(cap);
                 int series=corrections.indexOf(cap.getLast2ofCapillaryName()+" correction");
@@ -436,7 +436,7 @@ public class CorrelationPanelSmoke {
                 plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.updateMeasureROIsAt(selected.getKymographIndex(),sequence,
                     plugins.fmp.multitools.experiment.sequence.MeasureRoiSync.MeasureRoiFilter.CAPILLARY_MEASURES,java.util.Collections.emptyList());
                 long overlays=sequence.getROIs().stream().filter(r->"true".equals(r.getProperty(plugins.fmp.multitools.service.MeniscusRefinementPreview.ROI_PROPERTY))).count();
-                if(overlays!=4)throw new AssertionError("Cage comparison ROIs lost during frame sync: "+overlays);
+                if(overlays!=2)throw new AssertionError("Selected capillary comparison ROIs lost during frame sync: "+overlays);
             });
             plugins.fmp.multitools.experiment.cage.Cage cage=exp.getCages().getCageList().stream().filter(c->c.getCageID()==selected.getCageID()).findFirst().get();
             plugins.fmp.multitools.tools.results.ResultsOptions chartOptions=new plugins.fmp.multitools.tools.results.ResultsOptions();

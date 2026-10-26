@@ -10,31 +10,58 @@ initial topraw first. This is an alternative refinement operation alongside
 existing threshold pass 2, not another intake detector.
 
 The **Apply to** selector offers **Current capillary**, **Current cage** (default),
-and **All cages of this experiment**. The selected scope controls both preview
-and validation. In experiment scope, all loaded capillaries (including no-fly
-controls) are prepared, while the stabilized images and comparison graph show
-only the current cage. Selecting another cage reuses the prepared previews. Refinement previews start
+and **All cages of this experiment**. The selected scope controls preview
+preparation and validation. The strip, kymograph overlays, and comparison graph
+show only the capillary selected in the combo. `<` and `>` change that capillary.
+In experiment scope, all loaded capillaries (including no-fly controls) are
+prepared, and selecting another cage reuses the prepared previews. Refinement previews start
 automatically when the panel opens, when selecting another cage/capillary,
 and when refinement settings or source levels change. Rapid settings changes
-are grouped before recomputing. There is no separate preview button. Both
-capillaries display one stabilized image strip each, sampled around
-its proposed meniscus (+/-15 pixels). The white dashed line is the alignment
-origin; red ticks mark uncertain registrations, and grey pixels indicate missing
-image support. No evaporation is subtracted in this phase.
+are grouped before recomputing. Correlation starts on its own. **Strip +/- px** (default 15, range 5 to 80) sets how many rows are sampled
+above and below the proposed meniscus. Changing it redraws the strip and keeps
+the vertical-drag scale matched to those rows; it does not rerun correlation or
+drop manual offsets. The white dashed line is
+the alignment origin; red ticks mark uncertain registrations, and grey pixels
+indicate missing image support. No evaporation is subtracted in this phase.
 
-The separate Icy kymograph displays original topraw in orange and proposed
-positions in magenta. These read-only comparisons survive switching frames and
-are removed on acceptance, cancellation, stale input, or closing phase 1.
-They are not saved as measures or converted into manual gulps.
+**Move** is Range, Ramp, or Curve. Range drags horizontally to select columns.
+A vertical drag, the mouse wheel, or **-1 px** / **+1 px** adds the same pixel
+offset to that range. Positive moves the meniscus down in the image. During a
+vertical drag only the selected columns slide; the white line stays put.
+Dragging up moves that selection up. On release the strip is rebuilt around the
+new proposal.
 
-Open **Cage graphs...** to inspect the selected cage at a readable size. The
-upper graph overlays original L/R curves (blue/red, thin solid) with proposed
-L/R curves (magenta/orange, thicker dashed). The lower graph plots proposed
-minus original in pixels on its own symmetric scale around zero, exposing small
-corrections hidden by the cumulative volume scale. The header reports maximum
-absolute corrections per capillary; positive means a lower position in the image.
-Drag a chart region to zoom, or use its right-click zoom menu. This window follows
-selection and preview changes; acceptance clears the provisional comparison.
+Ramp and Curve each take two profiles while the strip stays on the current proposal.
+**Profile** selects **Source** (orange, the edge to move) or **Final** (blue, where that edge should land).
+Ramp drags a straight segment for the selected profile. Curve clicks control points, drags a point to move it, and right-click removes one. Offsets between points are linear.
+The column shift is final minus source. Where the source curve does not cover a column, the source is the white line, so a final curve alone is still measured from that line. A source curve alone does not preview.
+Eight columns outside each end of a profile ramp back to the white line so the join is not a step.
+**Preview alignment** shifts the strip by that gap, and the blue curve stays where it was drawn so the moved edge can meet it.
+**Back** restores the picture and keeps both curves. Validate writes the difference into the proposal, then into topraw.
+
+Columns you move are reliably placed. A later nudge back to the automatic
+position restores the automatic flag. Changing the window, correction radius,
+Expand, Apply to, or the capillary drops an unvalidated path. Validate writes
+the adjusted positions into topraw for every capillary in the scope, then
+recomputes correlation. Hand-placed columns stay on the levels that were
+written. Columns you did not move can follow the new correlation. Undo
+validation restores the previous topraw and holds that whole curve.
+
+The separate Icy kymograph displays original topraw in orange, the committed
+proposal in magenta, and the pending correction in red for the selected
+capillary only. These read-only comparisons
+survive switching frames and are removed on acceptance, cancellation, stale
+input, or closing phase 1. They are not saved as measures or converted into
+manual gulps.
+
+Open **Cage graphs...** to inspect the selected capillary at a readable size.
+The upper graph overlays its original curve with the proposed curve. The lower
+graph plots proposed minus original in pixels on its own symmetric scale around
+zero, exposing small corrections hidden by the cumulative volume scale. The
+header reports the maximum absolute correction; positive means a lower position
+in the image. Drag a chart region to zoom, or use its right-click zoom menu.
+This window follows selection and preview changes. Acceptance starts a new
+comparison from the validated topraw.
 
 Existing **Capillary level measures: topraw** grids still include proposal
 curves. All comparisons use the same clock, calibration and original t0 anchor
