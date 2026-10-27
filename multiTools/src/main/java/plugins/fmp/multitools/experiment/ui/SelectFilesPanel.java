@@ -359,6 +359,11 @@ public class SelectFilesPanel extends JPanel {
 		if (listFile == null) {
 			return;
 		}
+		Path baseDir = relativePathBase(listFile);
+		File parent = listFile.getParentFile();
+		if (parent != null) {
+			setPreferencesPath(parent.getAbsolutePath());
+		}
 		List<String> lines = new ArrayList<>();
 		try (BufferedReader reader = Files.newBufferedReader(listFile.toPath(), StandardCharsets.UTF_8)) {
 			String line;
@@ -371,7 +376,6 @@ public class SelectFilesPanel extends JPanel {
 					JOptionPane.ERROR_MESSAGE);
 			return;
 		}
-		Path baseDir = relativePathBase(listFile);
 		importPathLines(lines, baseDir, "Load list", "Loaded");
 	}
 

@@ -193,6 +193,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final RichTooltipLayoutGuard tooltipGuard = new RichTooltipLayoutGuard();
 	private boolean closed;
 	private boolean suspended;
+	private boolean correlateAfterPreview = true;
 	private JDialog comparisonDialog;
 	private final JPanel comparisonView = new JPanel(new BorderLayout());
 	private final javax.swing.Timer previewTimer = new javax.swing.Timer(200, e -> compute());
@@ -216,11 +217,15 @@ public final class MeniscusRefinementPanel extends JPanel {
 			requestPreview();
 			return;
 		}
-		for (Map.Entry<Capillary, MeniscusRefinement.Proposal> entry : proposals.entrySet())
-			if (!MeniscusRefinement.isCurrent(entry.getKey(), entry.getValue())) {
-				requestPreview();
-				break;
-			}
+        // Only the displayed scope is refreshed by compute(). Cached drafts in
+        // other scopes are checked when the user returns to them.
+        for (Capillary c : scope()) {
+            Level2D raw = c.getTopRaw().polylineLevel;
+            if (raw != null && raw.npoints >= 2 && !MeniscusRefinement.isCurrent(c, proposals.get(c))) {
+                if (!previewTimer.isRunning() && worker == null) requestPreview();
+                break;
+            }
+        }
 	}
 
 	private SwingWorker<MeniscusRefinement.Proposal, Void> worker;
@@ -503,16 +508,11 @@ public final class MeniscusRefinementPanel extends JPanel {
 			clearSelection();
 			clearStroke();
 			updateOverlays();
-			List<Capillary> targets = scope();
-			boolean ready = !targets.isEmpty()
-					&& targets.stream().allMatch(c -> MeniscusRefinement.isCurrent(c, proposals.get(c)));
-			boolean coveredByWorker = worker != null && computingCaps.containsAll(targets);
-			if (!ready && !coveredByWorker)
-				requestPreview();
-
-			buttons();
-			if (ready)
-				readyStatus();
+            // Debounce rapid navigation and cancel the previous capillary's job.
+            // compute() prepares the selected scope before starting its preview.
+            correlateAfterPreview = cap() != null;
+            requestPreview();
+            buttons();
 			plot.repaint();
 			refreshComparison();
 			Sequence seq = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
@@ -590,7 +590,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 			summary.append(cap.getLast2ofCapillaryName()).append(": ").append(good).append("/").append(flags.length - 1)
 					.append(" reliable; ");
 		}
-		status.setText(summary + "Editable topraw; Validate saves the selected scope. Run correlation explicitly to refresh its preview.");
+		status.setText(summary + "Editable topraw; Validate saves the selected scope. Correlation previews refresh on capillary changes or Run correlation.");
 	}
 
 	private void reset() {
@@ -649,6 +649,7 @@ public final class MeniscusRefinementPanel extends JPanel {
     void resumeSession() {
         if (closed) return;
         suspended = false;
+        correlateAfterPreview = true;
         sourceTimer.start();
         if (hasKymographs()) {
             compute();
@@ -670,6 +671,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
     private void compute() {
+        // A one-shot Swing timer remains running during its callback. Stop it
+        // before buttons() evaluates busy, rather than waiting for the next poll.
+        previewTimer.stop();
         if (closed || suspended || cap() == null) return;
         try {
             if (experiment.getSeqKymos() == null || experiment.getSeqKymos().getSequence() == null)
@@ -688,6 +692,10 @@ public final class MeniscusRefinementPanel extends JPanel {
             rebuildStrips();
             publishEdits();
             readyStatus();
+            if (correlateAfterPreview) {
+                correlateAfterPreview = false;
+                runCorrelation();
+            }
         } catch (RuntimeException error) { status.setText(message(error)); }
         buttons();
     }
@@ -956,7 +964,7 @@ public final class MeniscusRefinementPanel extends JPanel {
             clearStroke();
             compute();
             status.setText((undoing ? "Restored previous topraw for " : "Validated edited topraw for ") + count
-                    + " capillaries. Use Levels Save to persist. Correlation runs only on request.");
+                    + " capillaries. Use Levels Save to persist. Change capillary or use Run correlation to refresh the preview.");
 		} catch (RuntimeException error) {
 			status.setText(message(error));
 			buttons();
