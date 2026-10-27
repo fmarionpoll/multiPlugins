@@ -61,7 +61,7 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
-/** Independent phase-1 preview. Only Accept/Undo can change topraw. */
+/** Independent phase-1 preview. Manual draft and explicit correlation preview. Only Validate/Undo change saved topraw. */
 public final class MeniscusRefinementPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private final Experiment experiment;
@@ -73,9 +73,11 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final JSpinner radius = new JSpinner(new SpinnerNumberModel(10, 3, 60, 1));
 	private final JSpinner stripRadius = new JSpinner(new SpinnerNumberModel(15, 5, 80, 1));
 	private final JSpinner correction = new JSpinner(new SpinnerNumberModel(3., 1., 32., 1.));
-	private final JCheckBox showOriginal = new JCheckBox("Original (orange)", true),
-			showProposed = new JCheckBox("Proposed (magenta)", true);
+	private final JCheckBox showOriginal = new JCheckBox("Saved topraw (orange)", true),
+			showProposed = new JCheckBox("Edited topraw (magenta)", true);
 	private final JCheckBox expand = new JCheckBox("Expand correction search", true);
+	private final JButton runCorrelation = new JButton("Run correlation"), applyCorrelation = new JButton("Apply correlation");
+	private final Map<Capillary, MeniscusRefinement.Proposal> correlations = new LinkedHashMap<>();
 	private final JButton accept = new JButton("Validate"), undo = new JButton("Undo validation");
 	private final JButton nudgeUp = new JButton("-1 px");
 	private final JButton nudgeDown = new JButton("+1 px");
@@ -137,23 +139,13 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final List<Capillary> computingCaps = new ArrayList<>();
 	private final Map<Capillary, MeniscusRefinement.Proposal> proposals = new LinkedHashMap<>();
 	private final Map<Capillary, BufferedImage> aligned = new LinkedHashMap<>();
-	private final Map<Capillary, BufferedImage> toprawStrips = new LinkedHashMap<>();
+	private final Map<Capillary, BufferedImage> correlatedStrips = new LinkedHashMap<>();
 	private final Map<Capillary, BufferedImage> sources = new LinkedHashMap<>();
 	private static final int DRAG_LOCK_PX = 4;
 	private int selectFrom = -1, selectTo = -1;
 	private int pressX, pressY, pressColumn;
 	private boolean dragNudging, dragSelecting, editingStrip;
 	private double pendingDelta;
-	/**
-	 * After Validate, resample from the saved topraw until the follow-up proposal
-	 * exists.
-	 */
-	private boolean alignStripToSavedLevels;
-	/**
-	 * Hand-placed columns to keep on the follow-up correlation. Null holds the
-	 * whole curve (undo).
-	 */
-	private Map<Capillary, boolean[]> pinnedColumns;
 	private static final int BLEND_COLUMNS = 8;
 
 	private static final class StrokePoint {
@@ -200,12 +192,27 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private Sequence overlaySequence;
 	private final RichTooltipLayoutGuard tooltipGuard = new RichTooltipLayoutGuard();
 	private boolean closed;
+	private boolean suspended;
 	private JDialog comparisonDialog;
 	private final JPanel comparisonView = new JPanel(new BorderLayout());
 	private final javax.swing.Timer previewTimer = new javax.swing.Timer(200, e -> compute());
-	private final javax.swing.Timer sourceTimer = new javax.swing.Timer(750, e -> {
-		buttons();
-		if (proposals.isEmpty() && aligned.keySet().stream().anyMatch(cap -> !MeniscusRefinement.canUndo(cap))) {
+	private final javax.swing.Timer sourceTimer = new javax.swing.Timer(750, e -> checkSources());
+
+	private void checkSources() {
+        if (closed || suspended) return;
+        buttons();
+        if (!hasKymographs()) {
+            cancel();
+            clearOverlays();
+            MeniscusRefinementPreview.clear(this);
+            status.setText("Load this experiment's kymographs and saved measurements first.");
+            return;
+        }
+        if (capillaries.getItemCount() == 0) {
+            for (Capillary c : experiment.getCapillaries().getList()) capillaries.addItem(c);
+        }
+        if (proposals.isEmpty() && cap() != null && cap().getTopRaw().polylineLevel != null
+                && cap().getTopRaw().polylineLevel.npoints >= 2) {
 			requestPreview();
 			return;
 		}
@@ -214,10 +221,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 				requestPreview();
 				break;
 			}
-	});
+	}
+
 	private SwingWorker<MeniscusRefinement.Proposal, Void> worker;
-	private MeniscusRefinement.Proposal proposal;
-	private BufferedImage image;
 
 	private final JPanel plot = new JPanel() {
 		private static final long serialVersionUID = 1L;
@@ -225,7 +231,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 			MouseAdapter mouse = new MouseAdapter() {
 				@Override
 				public void mousePressed(MouseEvent e) {
-					if (!inProposedStrip(e.getY(), getHeight())) {
+					if (suspended || !hasKymographs() || !inEditableStrip(e.getY(), getHeight())) {
 						editingStrip = false;
 						return;
 					}
@@ -305,7 +311,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 				@Override
 				public void mouseWheelMoved(MouseWheelEvent e) {
-					if (!inProposedStrip(e.getY(), getHeight()) || moveMode() != MoveMode.RANGE)
+					if (suspended || !hasKymographs() || !inEditableStrip(e.getY(), getHeight()) || moveMode() != MoveMode.RANGE)
 						return;
 					int steps = e.getWheelRotation();
 					if (steps == 0)
@@ -327,7 +333,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 			super.paintComponent(graphics);
 			Graphics2D g = (Graphics2D) graphics.create();
 			Capillary selected = cap();
-			if (selected == null || !aligned.containsKey(selected)) {
+			if (!hasKymographs()) {
+				g.drawString("Load this experiment's kymographs and saved measurements first.", 12, 24);
+			} else if (selected == null || !aligned.containsKey(selected)) {
 				g.drawString("Preparing stabilized image...", 12, 24);
 			} else {
 				int width = getWidth();
@@ -335,12 +343,12 @@ public final class MeniscusRefinementPanel extends JPanel {
 				g.setColor(Color.DARK_GRAY);
 				String range = selectFrom < 0 ? "" : "  |  columns " + selectFrom + "-" + selectTo;
 				g.drawString(selected.getLast2ofCapillaryName() + " (+/- " + stripRadius() + " px)" + range, 10, 16);
-				paintReferenceStrip(g, toprawStrips.get(selected), toprawTop(height), toprawBottom(height), width);
+				paintReferenceStrip(g, correlatedStrips.get(selected), correlatedTop(height), correlatedBottom(height), width);
 				g.setColor(Color.DARK_GRAY);
-				g.drawString("topraw", 10, toprawTop(height) - 4);
-				paintProposedStrip(g, selected, width, height);
+				g.drawString("Correlated preview" + (correlations.containsKey(selected) ? "" : " (out of date - Run correlation)"), 10, correlatedTop(height) - 4);
+				paintEditableStrip(g, selected, width, height);
 				g.setColor(Color.DARK_GRAY);
-				g.drawString("proposed", 10, stripTop(height) - 4);
+				g.drawString("Topraw - editable", 10, stripTop(height) - 4);
 			}
 			g.dispose();
 		}
@@ -416,6 +424,8 @@ public final class MeniscusRefinementPanel extends JPanel {
 		actions.add(profileChoice);
 		actions.add(previewAlignment);
 		actions.add(backAlignment);
+		actions.add(runCorrelation);
+		actions.add(applyCorrelation);
 		actions.add(accept);
 		actions.add(undo);
 		actions.add(showOriginal);
@@ -436,7 +446,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		defineToolTips();
 		defineActionListeners();
 
-		ChangeListener reset = e -> requestPreview();
+		ChangeListener reset = e -> invalidateCorrelation();
 		radius.addChangeListener(reset);
 		correction.addChangeListener(reset);
 		stripRadius.addChangeListener(e -> resampleStripRadius());
@@ -447,13 +457,13 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private void defineToolTips() {
-		stripRadius.setToolTipText("Rows shown above and below the proposed meniscus. Does not rerun correlation.");
+		stripRadius.setToolTipText("Rows shown above and below each meniscus. Does not rerun correlation.");
 		moveMode.setToolTipText(
 				"Range shifts a block. Ramp and Curve draw a path on the strip and leave the picture in place until Preview alignment.");
 		profileChoice.setToolTipText(
 				"Source (orange) is the edge to move. Final (blue) is where it should land. The shift is final minus source.");
 		previewAlignment.setToolTipText(
-				"Shift the strip by the gap between the orange source and the blue final curve. The proposal is not changed.");
+				"Shift the strip by the gap between the orange source and the blue final curve. The draft is not changed.");
 		backAlignment.setToolTipText("Restore the strip picture and keep both curves.");
 		nudgeUp.setToolTipText("Move the selected columns up in the image.");
 		nudgeDown.setToolTipText("Move the selected columns down in the image.");
@@ -467,11 +477,14 @@ public final class MeniscusRefinementPanel extends JPanel {
 		graphs.addActionListener(e -> showGraphs());
 		showOriginal.addActionListener(e -> updateOverlays());
 		showProposed.addActionListener(e -> updateOverlays());
+		runCorrelation.addActionListener(e -> runCorrelation());
+		applyCorrelation.addActionListener(e -> applyCorrelation());
 		accept.addActionListener(e -> apply(false));
 		undo.addActionListener(e -> apply(true));
 		previewAlignment.addActionListener(e -> showAlignmentPreview());
 		backAlignment.addActionListener(e -> restoreFrozenStrip());
 		moveMode.addActionListener(e -> {
+			commitStroke();
 			clearSelection();
 			clearStroke();
 			updateHint();
@@ -486,6 +499,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 			plot.repaint();
 		});
 		capillaries.addActionListener(e -> {
+			commitStroke();
 			clearSelection();
 			clearStroke();
 			updateOverlays();
@@ -495,7 +509,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 			boolean coveredByWorker = worker != null && computingCaps.containsAll(targets);
 			if (!ready && !coveredByWorker)
 				requestPreview();
-			proposal = proposals.get(cap());
+
 			buttons();
 			if (ready)
 				readyStatus();
@@ -507,7 +521,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		});
 		previousButton.addActionListener(e -> capillaries.setSelectedIndex(capillaries.getSelectedIndex() - 1));
 		nextButton.addActionListener(e -> capillaries.setSelectedIndex(capillaries.getSelectedIndex() + 1));
-		expand.addActionListener(e -> requestPreview());
+		expand.addActionListener(e -> invalidateCorrelation());
 		validationScope.addActionListener(e -> requestPreview());
 	}
 
@@ -545,15 +559,19 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 	private void buttons() {
 		List<Capillary> caps = scope();
-		boolean busy = worker != null || previewTimer.isRunning();
+		boolean busy = suspended || !hasKymographs() || worker != null || previewTimer.isRunning();
+		runCorrelation.setEnabled(!closed && !busy && !caps.isEmpty() && caps.stream().allMatch(c -> MeniscusRefinement.isCurrent(c, proposals.get(c))));
+		applyCorrelation.setEnabled(!closed && !busy && !caps.isEmpty() && caps.stream().allMatch(c -> correlations.containsKey(c) && MeniscusRefinement.isCurrent(c, proposals.get(c))));
 		accept.setEnabled(!closed && !busy && !caps.isEmpty()
 				&& caps.stream().allMatch(cap -> MeniscusRefinement.isCurrent(cap, proposals.get(cap))));
-		undo.setEnabled(!closed && MeniscusRefinement.canUndo(lastValidation));
+		undo.setEnabled(!closed && !busy && MeniscusRefinement.canUndo(lastValidation));
+		nudgeUp.setEnabled(!closed && !busy);
+		nudgeDown.setEnabled(!closed && !busy);
 		defineToolTips();
 		previousButton.setEnabled(capillaries.getSelectedIndex() > 0);
 		nextButton.setEnabled(capillaries.getSelectedIndex() + 1 < capillaries.getItemCount());
-		previewAlignment.setEnabled(!closed && hasStroke() && !alignmentPreview);
-		backAlignment.setEnabled(!closed && alignmentPreview);
+		previewAlignment.setEnabled(!closed && !busy && hasStroke() && !alignmentPreview);
+		backAlignment.setEnabled(!closed && !busy && alignmentPreview);
 		profileChoice.setEnabled(!closed && moveMode() != MoveMode.RANGE);
 	}
 
@@ -572,22 +590,21 @@ public final class MeniscusRefinementPanel extends JPanel {
 			summary.append(cap.getLast2ofCapillaryName()).append(": ").append(good).append("/").append(flags.length - 1)
 					.append(" reliable; ");
 		}
-		status.setText(summary + "Preview only; Validate accepts the selected scope into topraw.");
+		status.setText(summary + "Editable topraw; Validate saves the selected scope. Run correlation explicitly to refresh its preview.");
 	}
 
 	private void reset() {
 		previewTimer.stop();
 		cancel();
 		clearStroke();
-		proposal = null;
+
 		proposals.clear();
-		if (!alignStripToSavedLevels) {
+		{
 			aligned.clear();
-			toprawStrips.clear();
+			correlatedStrips.clear();
 			sources.clear();
 		}
 		clearSelection();
-		image = null;
 		clearOverlays();
 		MeniscusRefinementPreview.clear(this);
 		ChartCagesFrame.refreshRefinement(experiment);
@@ -598,17 +615,48 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private void requestPreview() {
-		alignStripToSavedLevels = false;
 		restartPreview();
 	}
 
 	private void restartPreview() {
-		if (closed)
+		if (closed || suspended)
 			return;
-		reset();
+		cancel();
 		previewTimer.restart();
 		buttons();
 	}
+
+    private boolean hasKymographs() {
+        return experiment.getSeqKymos() != null && experiment.getSeqKymos().getSequence() != null
+                && experiment.getSeqKymos().getSequence().getSizeT() > 0;
+    }
+
+    /** Keep the draft and validation history while another experiment is displayed. */
+    void suspendSession() {
+        previewTimer.stop();
+        cancel();
+        commitStroke();
+        clearStroke();
+        suspended = true;
+        sourceTimer.stop();
+        clearOverlays();
+        MeniscusRefinementPreview.clear(this);
+        ChartCagesFrame.refreshRefinement(experiment);
+        if (comparisonDialog != null) comparisonDialog.setVisible(false);
+        buttons();
+    }
+
+    void resumeSession() {
+        if (closed) return;
+        suspended = false;
+        sourceTimer.start();
+        if (hasKymographs()) {
+            compute();
+        } else {
+            buttons();
+            status.setText("Load this experiment's kymographs and saved measurements first.");
+        }
+    }
 
 	public void close() {
 		if (closed)
@@ -621,94 +669,105 @@ public final class MeniscusRefinementPanel extends JPanel {
 			comparisonDialog.dispose();
 	}
 
-	private void compute() {
-		Capillary selected = cap();
-		if (closed || selected == null)
-			return;
-		reset();
-		try {
-			if (experiment.getSeqKymos() == null || experiment.getSeqKymos().getSequence() == null)
-				throw new IllegalStateException("Open the kymographs first.");
-			final Map<Capillary, Level2D> inputs = new LinkedHashMap<>();
-			final Map<Capillary, BufferedImage> images = new LinkedHashMap<>();
-			for (Capillary cap : scope()) {
-				Level2D source = cap.getTopRaw().polylineLevel;
-				if (source == null || source.npoints < 2)
-					throw new IllegalStateException("Detect topraw first for " + cap.getLast2ofCapillaryName());
-				inputs.put(cap, new Level2D(Arrays.copyOf(source.xpoints, source.npoints),
-						Arrays.copyOf(source.ypoints, source.npoints), source.npoints));
-				images.put(cap, MeniscusRefinement.image(experiment.getSeqKymos().getSequence(), cap, source.npoints));
-			}
-			computingCaps.addAll(inputs.keySet());
-			final int window = ((Number) radius.getValue()).intValue();
-			final double range = ((Number) correction.getValue()).doubleValue();
-			final boolean adaptive = expand.isSelected();
-			final int viewRadius = stripRadius();
-			final boolean alignToSaved = alignStripToSavedLevels;
-			final Map<Capillary, boolean[]> pins = pinnedColumns;
-			image = images.get(selected);
-			status.setText("Refining " + inputs.size() + " capillaries...");
-			worker = new SwingWorker<MeniscusRefinement.Proposal, Void>() {
-				private final Map<Capillary, MeniscusRefinement.Proposal> results = new LinkedHashMap<>();
-				private final Map<Capillary, BufferedImage> strips = new LinkedHashMap<>();
-				private final Map<Capillary, BufferedImage> rawStrips = new LinkedHashMap<>();
+    private void compute() {
+        if (closed || suspended || cap() == null) return;
+        try {
+            if (experiment.getSeqKymos() == null || experiment.getSeqKymos().getSequence() == null)
+                throw new IllegalStateException("Open the kymographs first.");
+            for (Capillary c : scope()) {
+                if (MeniscusRefinement.isCurrent(c, proposals.get(c))) continue;
+                Level2D raw = c.getTopRaw().polylineLevel;
+                if (raw == null || raw.npoints < 2) throw new IllegalStateException("Detect topraw first.");
+                BufferedImage source = MeniscusRefinement.image(experiment.getSeqKymos().getSequence(), c, raw.npoints);
+                sources.put(c, source);
+                proposals.put(c, MeniscusRefinement.editable(raw, source, c.getTopRaw().getRefinementQuality()));
+                correlations.remove(c);
+                correlatedStrips.remove(c);
+            }
 
-				@Override
-				protected MeniscusRefinement.Proposal doInBackground() {
-					for (Capillary cap : inputs.keySet()) {
-						if (isCancelled())
-							return null;
-						MeniscusRefinement.Proposal p = MeniscusRefinement.propose(inputs.get(cap), images.get(cap),
-								window, range, adaptive);
-						if (alignToSaved)
-							p.holdValidated(inputs.get(cap).ypoints, cap.getTopRaw().getRefinementQuality(),
-									pins == null ? null : pins.get(cap));
-						results.put(cap, p);
-						BufferedImage source = images.get(cap);
-						strips.put(cap, MeniscusRefinement.stabilized(source, p.refined(), viewRadius));
-						rawStrips.put(cap, MeniscusRefinement.stabilized(source, p.original(), viewRadius));
-					}
-					return results.get(selected);
-				}
+            rebuildStrips();
+            publishEdits();
+            readyStatus();
+        } catch (RuntimeException error) { status.setText(message(error)); }
+        buttons();
+    }
 
-				@Override
-				protected void done() {
-					if (worker != this || closed)
-						return;
-					worker = null;
-					computingCaps.clear();
-					try {
-						get();
-						for (Capillary cap : results.keySet())
-							if (!MeniscusRefinement.isCurrent(cap, results.get(cap))) {
-								requestPreview();
-								return;
-							}
-						proposals.putAll(results);
-						aligned.putAll(strips);
-						toprawStrips.putAll(rawStrips);
-						sources.putAll(images);
-						if (stripRadius() != viewRadius)
-							rebuildStrips();
-						proposal = proposals.get(cap());
-						MeniscusRefinementPreview.publish(MeniscusRefinementPanel.this, proposals);
-						updateOverlays();
-						ChartCagesFrame.refreshRefinement(experiment);
-						readyStatus();
-					} catch (Exception error) {
-						status.setText(message(error));
-					}
-					buttons();
-					plot.repaint();
-					refreshComparison();
-				}
-			};
-			worker.execute();
-			buttons();
-		} catch (RuntimeException error) {
-			status.setText(message(error));
-		}
-	}
+    private void invalidateCorrelation() {
+        cancel();
+        correlations.clear();
+        buttons();
+        plot.repaint();
+    }
+
+    private void publishEdits() {
+        MeniscusRefinementPreview.publish(this, proposals);
+        updateOverlays();
+        ChartCagesFrame.refreshRefinement(experiment);
+        refreshComparison();
+    }
+
+    private void runCorrelation() {
+        commitStroke();
+        if (worker != null) return;
+        final Map<Capillary, Level2D> inputs = new LinkedHashMap<>();
+        for (Capillary c : scope()) {
+            MeniscusRefinement.Proposal p = proposals.get(c);
+            if (!MeniscusRefinement.isCurrent(c, p)) return;
+            inputs.put(c, new Level2D(p.x(), p.refined(), p.columnCount()));
+        }
+        final int window = ((Number) radius.getValue()).intValue();
+        final double range = ((Number) correction.getValue()).doubleValue();
+        final boolean adaptive = expand.isSelected();
+        final Map<Capillary, BufferedImage> images = new LinkedHashMap<>(sources);
+        computingCaps.addAll(inputs.keySet());
+        worker = new SwingWorker<MeniscusRefinement.Proposal, Void>() {
+            private final Map<Capillary, MeniscusRefinement.Proposal> results = new LinkedHashMap<>();
+            protected MeniscusRefinement.Proposal doInBackground() {
+                for (Capillary c : inputs.keySet()) {
+                    if (isCancelled()) return null;
+                    results.put(c, MeniscusRefinement.propose(inputs.get(c), images.get(c), window, range, adaptive));
+                }
+                return null;
+            }
+            protected void done() {
+                if (worker != this || closed) return;
+                worker = null;
+                computingCaps.clear();
+                try {
+                    get();
+                    for (Capillary c : results.keySet()) {
+                        MeniscusRefinement.Proposal p = proposals.get(c);
+                        if (!MeniscusRefinement.isCurrent(c, p) || !Arrays.equals(p.refined(), inputs.get(c).ypoints))
+                            throw new IllegalStateException("Topraw changed; run correlation again.");
+                    }
+                    correlations.putAll(results);
+                    for (Capillary c : results.keySet())
+                        correlatedStrips.put(c, MeniscusRefinement.stabilized(images.get(c), results.get(c).refined(), stripRadius()));
+                    status.setText("Correlation ready. Apply correlation transfers the preview into editable topraw.");
+                } catch (Exception error) { status.setText(message(error)); }
+                buttons();
+                plot.repaint();
+            }
+        };
+        worker.execute();
+        status.setText("Computing correlation...");
+        buttons();
+    }
+
+    private void applyCorrelation() {
+        List<Capillary> targets = scope();
+        if (targets.isEmpty() || !targets.stream().allMatch(c -> correlations.containsKey(c)
+                && MeniscusRefinement.isCurrent(c, proposals.get(c)))) return;
+        clearStroke();
+        for (Capillary c : targets) {
+            MeniscusRefinement.Proposal p = proposals.get(c);
+            p.replaceLevels(correlations.get(c).refined(), correlations.get(c).quality());
+        }
+        invalidateCorrelation();
+        rebuildStrips();
+        publishEdits();
+        readyStatus();
+    }
 
 	private void clearOverlays() {
 		if (overlaySequence != null && !overlays.isEmpty())
@@ -893,20 +952,11 @@ public final class MeniscusRefinementPanel extends JPanel {
 						experiment.getCapillaries());
 			if (changed != null)
 				changed.run();
-			if (undoing)
-				pinnedColumns = null;
-			else {
-				pinnedColumns = new LinkedHashMap<>();
-				for (Capillary capillary : scope()) {
-					MeniscusRefinement.Proposal p = proposals.get(capillary);
-					pinnedColumns.put(capillary, p == null ? new boolean[0] : p.placedColumns());
-				}
-			}
-			alignStripToSavedLevels = true;
-			rebuildStrips();
-			restartPreview();
-			status.setText((undoing ? "Restored previous topraw for " : "Validated refined topraw for ") + count
-					+ " capillaries. Recomputing correlation. Use Levels Save to persist.");
+            invalidateCorrelation();
+            clearStroke();
+            compute();
+            status.setText((undoing ? "Restored previous topraw for " : "Validated edited topraw for ") + count
+                    + " capillaries. Use Levels Save to persist. Correlation runs only on request.");
 		} catch (RuntimeException error) {
 			status.setText(message(error));
 			buttons();
@@ -948,16 +998,21 @@ public final class MeniscusRefinementPanel extends JPanel {
 		return toprawTop(panelHeight) + bandHeight(panelHeight);
 	}
 
-	/** Top of the proposed strip. Nudge and stroke coordinates use this band. */
-	private static int stripTop(int panelHeight) {
+	/** Top of the read-only correlated strip. */
+	private static int correlatedTop(int panelHeight) {
 		return toprawBottom(panelHeight) + STRIP_GAP + STRIP_LABEL;
 	}
 
-	private static int stripBottom(int panelHeight) {
-		return stripTop(panelHeight) + bandHeight(panelHeight);
+	private static int correlatedBottom(int panelHeight) {
+		return correlatedTop(panelHeight) + bandHeight(panelHeight);
 	}
 
-	private static boolean inProposedStrip(int y, int panelHeight) {
+	private static int stripTop(int panelHeight) { return toprawTop(panelHeight); }
+	private static int stripBottom(int panelHeight) {
+		return toprawBottom(panelHeight);
+	}
+
+	private static boolean inEditableStrip(int y, int panelHeight) {
 		return y >= stripTop(panelHeight) && y < stripBottom(panelHeight);
 	}
 
@@ -968,7 +1023,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		paintMidline(g, y1, y2, width);
 	}
 
-	private void paintProposedStrip(Graphics2D g, Capillary selected, int width, int height) {
+	private void paintEditableStrip(Graphics2D g, Capillary selected, int width, int height) {
 		int y1 = stripTop(height), y2 = stripBottom(height);
 		if (y2 <= y1)
 			return;
@@ -1057,26 +1112,12 @@ public final class MeniscusRefinementPanel extends JPanel {
 			double[] levels = levelsForStrip(entry.getKey(), width);
 			if (levels != null)
 				aligned.put(entry.getKey(), MeniscusRefinement.stabilized(source, levels, radius));
-			double[] raw = levelsForTopraw(entry.getKey(), width);
+			MeniscusRefinement.Proposal correlated = correlations.get(entry.getKey());
+			double[] raw = correlated == null ? null : correlated.refined();
 			if (raw != null)
-				toprawStrips.put(entry.getKey(), MeniscusRefinement.stabilized(source, raw, radius));
+				correlatedStrips.put(entry.getKey(), MeniscusRefinement.stabilized(source, raw, radius));
 		}
 		plot.repaint();
-	}
-
-	private double[] levelsForTopraw(Capillary cap, int width) {
-		MeniscusRefinement.Proposal p = proposals.get(cap);
-		if (p != null && MeniscusRefinement.isCurrent(cap, p)) {
-			double[] original = p.original();
-			if (original.length == width)
-				return original;
-		}
-		if (alignStripToSavedLevels) {
-			Level2D saved = cap.getTopRaw().polylineLevel;
-			if (saved != null && saved.ypoints != null && saved.ypoints.length == width)
-				return saved.ypoints;
-		}
-		return null;
 	}
 
 	private double[] levelsForStrip(Capillary cap, int width) {
@@ -1085,11 +1126,6 @@ public final class MeniscusRefinementPanel extends JPanel {
 			double[] refined = p.refined();
 			if (refined.length == width)
 				return refined;
-		}
-		if (alignStripToSavedLevels) {
-			Level2D saved = cap.getTopRaw().polylineLevel;
-			if (saved != null && saved.ypoints != null && saved.ypoints.length == width)
-				return saved.ypoints;
 		}
 		return null;
 	}
@@ -1113,12 +1149,12 @@ public final class MeniscusRefinementPanel extends JPanel {
 			return;
 		if (!MeniscusRefinement.isCurrent(selected, p))
 			return;
-		alignStripToSavedLevels = false;
+		invalidateCorrelation();
 		p.addOffset(selectFrom, selectTo, delta);
 		BufferedImage source = sources.get(selected);
 		if (source != null)
 			aligned.put(selected, MeniscusRefinement.stabilized(source, p.refined(), stripRadius()));
-		proposal = p;
+
 		MeniscusRefinementPreview.publish(this, proposals);
 		updateOverlays();
 		ChartCagesFrame.refreshRefinement(experiment);
@@ -1270,10 +1306,11 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private boolean hasStroke() {
-		return frozenLevels != null && finalProfile.drawn(moveMode());
+		return frozenLevels != null && (finalProfile.rampDefined || !finalProfile.points.isEmpty());
 	}
 
 	private void rebuildStroke() {
+		invalidateCorrelation();
 		int n = frozenLevels == null ? 0 : frozenLevels.length;
 		if (n <= 0) {
 			strokeOffset = null;
@@ -1384,7 +1421,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		if (selected != null && frozenStrip != null)
 			aligned.put(selected, frozenStrip);
 		alignmentPreview = false;
-		status.setText("The strip is back on the current proposal. Both curves are still in place.");
+		status.setText("The strip is back on editable topraw. Both curves are still in place.");
 		buttons();
 		plot.repaint();
 	}
@@ -1432,12 +1469,13 @@ public final class MeniscusRefinementPanel extends JPanel {
 		MeniscusRefinement.Proposal p = selected == null ? null : proposals.get(selected);
 		if (p == null || strokeOffset == null || !hasStroke() || !MeniscusRefinement.isCurrent(selected, p))
 			return;
+		invalidateCorrelation();
 		p.addOffsets(imageDeltas(strokeOffset));
 		clearStroke();
 		BufferedImage source = sources.get(selected);
 		if (source != null)
 			aligned.put(selected, MeniscusRefinement.stabilized(source, p.refined(), stripRadius()));
-		proposal = p;
+
 		MeniscusRefinementPreview.publish(this, proposals);
 		updateOverlays();
 		ChartCagesFrame.refreshRefinement(experiment);
@@ -1450,9 +1488,10 @@ public final class MeniscusRefinementPanel extends JPanel {
 		BufferedImage source = selected == null ? null : sources.get(selected);
 		if (frozenLevels != null && source != null && frozenLevels.length == source.getWidth()) {
 			frozenStrip = MeniscusRefinement.stabilized(source, frozenLevels, stripRadius());
-			double[] raw = levelsForTopraw(selected, source.getWidth());
+			MeniscusRefinement.Proposal correlated = correlations.get(selected);
+			double[] raw = correlated == null ? null : correlated.refined();
 			if (raw != null)
-				toprawStrips.put(selected, MeniscusRefinement.stabilized(source, raw, stripRadius()));
+				correlatedStrips.put(selected, MeniscusRefinement.stabilized(source, raw, stripRadius()));
 			if (alignmentPreview)
 				showAlignmentPreview();
 			else {

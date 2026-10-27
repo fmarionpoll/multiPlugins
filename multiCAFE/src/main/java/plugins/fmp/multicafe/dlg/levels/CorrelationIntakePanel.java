@@ -74,6 +74,9 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 public final class CorrelationIntakePanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private final Experiment experiment;
+    private JComboBox<?> experimentBrowser;
+
+    void followExperimentBrowser(JComboBox<?> browser) { experimentBrowser = browser; }
 	private final JComboBox<Capillary> capillaries = new JComboBox<>();
 	private JButton previousButton = new JButton("<");
 	private JButton nextButton = new JButton(">");
@@ -185,8 +188,15 @@ public final class CorrelationIntakePanel extends JPanel {
 		controls.add(nextButton);
 
         JButton refine = new JButton("Refine meniscus...");
-        refine.addActionListener(e -> MeniscusRefinementPanel.open(this,experiment,(Capillary)capillaries.getSelectedItem(),
-                () -> { cache.clear(); clearPreview(); analyzeSelected(); }));
+        refine.addActionListener(e -> {
+            Runnable changed = () -> { cache.clear(); clearPreview(); analyzeSelected(); };
+            if (experimentBrowser == null)
+                MeniscusRefinementPanel.open(this, experiment, (Capillary) capillaries.getSelectedItem(), changed);
+            else
+                MeniscusRefinementBrowser.open(this, experimentBrowser,
+                        (Capillary) capillaries.getSelectedItem(),
+                        e2 -> { if (e2 == experiment && !released) changed.run(); });
+        });
         controls.add(refine);
 		controls.add(compute);
 		controls.add(compensateEvaporation);

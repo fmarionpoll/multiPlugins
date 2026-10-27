@@ -51,6 +51,13 @@ public final class MeniscusRefinement {
             imageHeight = image.getHeight();
             motion = VerticalCorrelation.analyzeSeeded(image, original, radius, correction, expand);
         }
+        private Proposal(Level2D source, BufferedImage image, boolean[] quality) {
+            x = Arrays.copyOf(source.xpoints, source.npoints);
+            original = Arrays.copyOf(source.ypoints, source.npoints);
+            adjustment = new double[source.npoints];
+            imageHeight = image.getHeight();
+            motion = VerticalCorrelation.fromLevels(original, quality);
+        }
         public int columnCount() { return adjustment.length; }
         public double[] original() { return original.clone(); }
         /** Correlation result plus any manual column offsets, clamped to the kymograph. */
@@ -109,6 +116,14 @@ public final class MeniscusRefinement {
             holdValidated(saved, quality, null);
         }
 
+        /** Replace the working trajectory with an explicitly chosen result. */
+        public void replaceLevels(double[] levels, boolean[] quality) {
+            if (levels == null || levels.length != adjustment.length)
+                throw new IllegalArgumentException("Level count must match the working trajectory.");
+            Arrays.fill(adjustment, 0);
+            holdValidated(levels, quality);
+        }
+
         /** Add one delta per column. NaN leaves that column alone. Positive moves the meniscus down. */
         public void addOffsets(double[] delta) {
             if (delta == null)
@@ -153,6 +168,13 @@ public final class MeniscusRefinement {
     public static Proposal propose(Level2D original, BufferedImage image, int radius, double correction, boolean expand) {
         if (original == null || original.npoints < 2) throw new IllegalArgumentException("Detect topraw first.");
         return new Proposal(original, image, radius, correction, expand);
+    }
+
+    /** Editable saved trajectory without running correlation. */
+    public static Proposal editable(Level2D source, BufferedImage image, boolean[] quality) {
+        if (source == null || source.npoints < 2 || image.getWidth() != source.npoints)
+            throw new IllegalArgumentException("Detect topraw first; image columns must match levels.");
+        return new Proposal(source, image, quality);
     }
 
     private static boolean matches(Capillary cap, double[] x, double[] y) {

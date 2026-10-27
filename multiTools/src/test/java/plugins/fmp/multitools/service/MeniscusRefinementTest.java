@@ -8,6 +8,36 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class MeniscusRefinementTest {
+    @Test public void editableDraftValidatesOnlyManualChangesAndCanBeUndone() {
+        double[] positions = {30, 30.3, 31, 32};
+        Capillary c = cap(positions);
+        MeniscusRefinement.Proposal draft = MeniscusRefinement.editable(c.getTopRaw().polylineLevel,
+                image(positions), null);
+        assertArrayEquals(positions, draft.refined(), 0);
+        draft.addOffset(1, 2, 2);
+        assertArrayEquals(positions, c.getTopRaw().polylineLevel.ypoints, 0);
+        double[] edited = {30, 32.3, 33, 32};
+        MeniscusRefinement.Validation validation = MeniscusRefinement.validateAll(
+                java.util.Collections.singletonMap(c, draft));
+        assertArrayEquals(edited, c.getTopRaw().polylineLevel.ypoints, 0);
+        MeniscusRefinement.undo(validation);
+        assertArrayEquals(positions, c.getTopRaw().polylineLevel.ypoints, 0);
+    }
+
+    @Test public void applyingCorrelationReplacesAccumulatedOffsetsAndQuality() {
+        double[] positions = {30, 30.3, 31, 32};
+        Capillary c = cap(positions);
+        MeniscusRefinement.Proposal draft = MeniscusRefinement.editable(c.getTopRaw().polylineLevel,
+                image(positions), null);
+        draft.addOffset(0, 3, 1000);
+        double[] chosen = {29, 30, 31, 33};
+        boolean[] quality = {false, true, false, true};
+        draft.replaceLevels(chosen, quality);
+        assertArrayEquals(chosen, draft.refined(), 0);
+        assertArrayEquals(quality, draft.quality());
+        assertArrayEquals(positions, draft.original(), 0);
+    }
+
     @Test public void validationUndoCapturesExactBatchAndRejectsReplacementWithIdenticalCoordinates() {
         double[] positions={30,30.3,31,32};
         Capillary left=cap(positions), right=cap(positions), anotherCage=cap(positions);

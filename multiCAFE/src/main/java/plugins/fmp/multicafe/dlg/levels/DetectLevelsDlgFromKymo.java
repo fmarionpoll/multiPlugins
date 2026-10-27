@@ -391,7 +391,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				resetDisplayToRaw(currentExperiment());
 			updateModeControls();
 		});
-		refineMeniscus.addActionListener(e -> MeniscusRefinementPanel.open(this, currentExperiment(), null, null));
+		refineMeniscus.addActionListener(e -> MeniscusRefinementBrowser.open(this, parent0.expListComboLazy, null, null));
 	}
 
 	void allowItemsAccordingToSelection() {

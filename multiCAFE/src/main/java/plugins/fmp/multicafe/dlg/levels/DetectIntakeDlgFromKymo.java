@@ -306,6 +306,7 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 		closeCorrelationPanel();
 		correlationPanel = CorrelationIntakePanel.open(this, exp, cap,
 				c -> parent0.paneKymos.tabIntervals.selectKymographImageAndCombo(c.getKymographIndex()));
+		correlationPanel.followExperimentBrowser(parent0.expListComboLazy);
 	}
 
 	private void closeCorrelationPanel() {
