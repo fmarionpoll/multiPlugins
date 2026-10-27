@@ -1,6 +1,8 @@
 package plugins.fmp.multicafe.dlg.levels;
 
 import java.awt.BorderLayout;
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridLayout;
 import java.awt.event.ComponentAdapter;
 import java.awt.event.ComponentEvent;
@@ -22,7 +24,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	 */
 	private static final long serialVersionUID = -7339633966002954720L;
 	PopupPanel capPopupPanel = null;
-	private JTabbedPane tabsPane = new JTabbedPane();
+	private JTabbedPane tabsPane = new SelectedTabHeightPane();
 	public LoadSaveLevels tabFileLevels = new LoadSaveLevels();
 	DetectLevelsDlgFromKymo tabDetectLevels = new DetectLevelsDlgFromKymo();
 	DetectLevelsDlgFromCam tabDetectLevelsDirect = new DetectLevelsDlgFromCam();
@@ -35,6 +37,37 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 	Adjust tabAdjust = new Adjust();
 	public Chart tabGraphs = new Chart();
 	MultiCAFE parent0 = null;
+
+	/** Keep a stable width, but let each tab determine its own content height. */
+	static class SelectedTabHeightPane extends JTabbedPane {
+		private static final long serialVersionUID = 1L;
+
+		@Override
+		public Dimension getPreferredSize() {
+			return heightForSelectedTab(super.getPreferredSize(), false);
+		}
+
+		@Override
+		public Dimension getMinimumSize() {
+			return heightForSelectedTab(super.getMinimumSize(), true);
+		}
+
+		private Dimension heightForSelectedTab(Dimension size, boolean minimum) {
+			Component selected = getSelectedComponent();
+			if (selected == null)
+				return size;
+			int tallest = 0;
+			for (int i = 0; i < getTabCount(); i++) {
+				Component content = getComponentAt(i);
+				if (content != null)
+					tallest = Math.max(tallest,
+							(minimum ? content.getMinimumSize() : content.getPreferredSize()).height);
+			}
+			int selectedHeight = (minimum ? selected.getMinimumSize() : selected.getPreferredSize()).height;
+			// Retain the look-and-feel's tab strip, borders and insets from the normal size.
+			return new Dimension(size.width, size.height - tallest + selectedHeight);
+		}
+	}
 
 	public void init(JPanel mainPanel, String string, MultiCAFE parent0) {
 		this.parent0 = parent0;
@@ -91,6 +124,11 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		capPanel.add(tabsPane);
 		tabDetectLevels.transformPass1ComboBox.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		tabsPane.setSelectedIndex(0);
+		tabsPane.addChangeListener(e -> {
+			capPanel.revalidate();
+			if (parent0 != null && parent0.mainFrame != null)
+				parent0.mainFrame.pack();
+		});
 
 		capPopupPanel.addComponentListener(new ComponentAdapter() {
 			@Override

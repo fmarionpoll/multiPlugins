@@ -77,6 +77,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 			showProposed = new JCheckBox("Proposed (magenta)", true);
 	private final JCheckBox expand = new JCheckBox("Expand correction search", true);
 	private final JButton accept = new JButton("Validate"), undo = new JButton("Undo validation");
+	private final JButton nudgeUp = new JButton("-1 px");
+	private final JButton nudgeDown = new JButton("+1 px");
+	private final JButton graphs = new JButton("Cage graphs...");
 	private final JLabel status = new JLabel("Preparing refinement preview...");
 
 	private enum ProfileKind {
@@ -134,17 +137,25 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final List<Capillary> computingCaps = new ArrayList<>();
 	private final Map<Capillary, MeniscusRefinement.Proposal> proposals = new LinkedHashMap<>();
 	private final Map<Capillary, BufferedImage> aligned = new LinkedHashMap<>();
+	private final Map<Capillary, BufferedImage> toprawStrips = new LinkedHashMap<>();
 	private final Map<Capillary, BufferedImage> sources = new LinkedHashMap<>();
 	private static final int DRAG_LOCK_PX = 4;
 	private int selectFrom = -1, selectTo = -1;
 	private int pressX, pressY, pressColumn;
-	private boolean dragNudging, dragSelecting;
+	private boolean dragNudging, dragSelecting, editingStrip;
 	private double pendingDelta;
-	/** After Validate, resample from the saved topraw until the follow-up proposal exists. */
+	/**
+	 * After Validate, resample from the saved topraw until the follow-up proposal
+	 * exists.
+	 */
 	private boolean alignStripToSavedLevels;
-	/** Hand-placed columns to keep on the follow-up correlation. Null holds the whole curve (undo). */
+	/**
+	 * Hand-placed columns to keep on the follow-up correlation. Null holds the
+	 * whole curve (undo).
+	 */
 	private Map<Capillary, boolean[]> pinnedColumns;
 	private static final int BLEND_COLUMNS = 8;
+
 	private static final class StrokePoint {
 		int column;
 		double offset;
@@ -214,6 +225,11 @@ public final class MeniscusRefinementPanel extends JPanel {
 			MouseAdapter mouse = new MouseAdapter() {
 				@Override
 				public void mousePressed(MouseEvent e) {
+					if (!inProposedStrip(e.getY(), getHeight())) {
+						editingStrip = false;
+						return;
+					}
+					editingStrip = true;
 					if (moveMode() != MoveMode.RANGE) {
 						shapePressed(e);
 						return;
@@ -230,6 +246,8 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 				@Override
 				public void mouseDragged(MouseEvent e) {
+					if (!editingStrip)
+						return;
 					if (moveMode() != MoveMode.RANGE) {
 						shapeDragged(e);
 						return;
@@ -261,6 +279,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 				@Override
 				public void mouseReleased(MouseEvent e) {
+					if (!editingStrip)
+						return;
+					editingStrip = false;
 					if (moveMode() != MoveMode.RANGE) {
 						shapeReleased(e);
 						return;
@@ -284,7 +305,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 				@Override
 				public void mouseWheelMoved(MouseWheelEvent e) {
-					if (moveMode() != MoveMode.RANGE)
+					if (!inProposedStrip(e.getY(), getHeight()) || moveMode() != MoveMode.RANGE)
 						return;
 					int steps = e.getWheelRotation();
 					if (steps == 0)
@@ -309,53 +330,17 @@ public final class MeniscusRefinementPanel extends JPanel {
 			if (selected == null || !aligned.containsKey(selected)) {
 				g.drawString("Preparing stabilized image...", 12, 24);
 			} else {
+				int width = getWidth();
+				int height = getHeight();
 				g.setColor(Color.DARK_GRAY);
 				String range = selectFrom < 0 ? "" : "  |  columns " + selectFrom + "-" + selectTo;
-				g.drawString(selected.getLast2ofCapillaryName() + " - aligned to proposed meniscus (+/- "
-						+ stripRadius() + " px); red ticks: uncertain registration" + range, 10, 16);
-				int y1 = stripTop(), y2 = stripBottom(getHeight());
-				if (y2 > y1) {
-					BufferedImage strip = aligned.get(selected);
-					MeniscusRefinement.Proposal p = proposals.get(selected);
-					boolean[] quality = p == null ? selected.getTopRaw().getRefinementQuality() : p.quality();
-					int n = quality == null ? 0 : quality.length;
-					g.drawImage(strip, 10, y1, getWidth() - 20, y2 - y1, null);
-					int imageShift = 0;
-					if (pendingDelta != 0 && selectFrom >= 0 && n > 0) {
-						imageShift = -(int) Math.round(pendingDelta * (y2 - y1) / (2.0 * stripRadius() + 1));
-						int left = columnEdge(selectFrom, n, getWidth(), true);
-						int right = columnEdge(selectTo, n, getWidth(), false);
-						int bandWidth = Math.max(1, right - left);
-						java.awt.Shape previousClip = g.getClip();
-						g.setClip(left, y1, bandWidth, y2 - y1);
-						g.setColor(getBackground());
-						g.fillRect(left, y1, bandWidth, y2 - y1);
-						g.drawImage(strip, 10, y1 + imageShift, getWidth() - 20, y2 - y1, null);
-						g.setClip(previousClip);
-					}
-					if (moveMode() == MoveMode.RANGE && selectFrom >= 0 && n > 0) {
-						int left = columnEdge(selectFrom, n, getWidth(), true);
-						int right = columnEdge(selectTo, n, getWidth(), false);
-						g.setColor(new Color(255, 220, 0, 70));
-						g.fillRect(left, y1, Math.max(1, right - left), y2 - y1);
-					}
-					g.setColor(Color.WHITE);
-					g.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10,
-							new float[] { 6, 6 }, 0));
-					int mid = (y1 + y2) / 2;
-					g.drawLine(10, mid, getWidth() - 10, mid);
-					g.setStroke(new BasicStroke(1));
-					if (quality != null) {
-						g.setColor(Color.RED);
-						for (int i = 1; i < quality.length; i++)
-							if (!quality[i]) {
-								int x = 10 + (int) ((i + .5) * (getWidth() - 20.) / quality.length);
-								int tickShift = i >= selectFrom && i <= selectTo ? imageShift : 0;
-								g.drawLine(x, y1 + tickShift, x, y1 + tickShift + 9);
-							}
-					}
-					paintStroke(g, getWidth(), getHeight());
-				}
+				g.drawString(selected.getLast2ofCapillaryName() + " (+/- " + stripRadius() + " px)" + range, 10, 16);
+				paintReferenceStrip(g, toprawStrips.get(selected), toprawTop(height), toprawBottom(height), width);
+				g.setColor(Color.DARK_GRAY);
+				g.drawString("topraw", 10, toprawTop(height) - 4);
+				paintProposedStrip(g, selected, width, height);
+				g.setColor(Color.DARK_GRAY);
+				g.drawString("proposed", 10, stripTop(height) - 4);
 			}
 			g.dispose();
 		}
@@ -413,57 +398,75 @@ public final class MeniscusRefinementPanel extends JPanel {
 		controls.add(previousButton);
 		controls.add(capillaries);
 		controls.add(nextButton);
-
 		controls.add(new JLabel("Window +/- px"));
 		controls.add(radius);
 		controls.add(new JLabel("Strip +/- px"));
 		controls.add(stripRadius);
-		stripRadius.setToolTipText("Rows shown above and below the proposed meniscus. Does not rerun correlation.");
 		controls.add(new JLabel("Correction around topraw shift +/- px"));
 		controls.add(correction);
 		controls.add(expand);
+
 		JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		actions.add(new JLabel("Apply to"));
 		actions.add(validationScope);
 		actions.add(new JLabel("Move"));
-		moveMode.setToolTipText(
-				"Range shifts a block. Ramp and Curve draw a path on the strip and leave the picture in place until Preview alignment.");
 		actions.add(moveMode);
 		actions.add(new JLabel("Profile"));
 		profileChoice.setSelectedItem(ProfileKind.FINAL);
-		profileChoice.setToolTipText(
-				"Source (orange) is the edge to move. Final (blue) is where it should land. The shift is final minus source.");
 		actions.add(profileChoice);
-		previewAlignment.setToolTipText(
-				"Shift the strip by the gap between the orange source and the blue final curve. The proposal is not changed.");
-		backAlignment.setToolTipText("Restore the strip picture and keep both curves.");
 		actions.add(previewAlignment);
 		actions.add(backAlignment);
 		actions.add(accept);
 		actions.add(undo);
 		actions.add(showOriginal);
 		actions.add(showProposed);
-		JButton nudgeUp = new JButton("-1 px");
-		JButton nudgeDown = new JButton("+1 px");
-		nudgeUp.setToolTipText("Move the selected columns up in the image.");
-		nudgeDown.setToolTipText("Move the selected columns down in the image.");
-		nudgeUp.addActionListener(e -> nudgeSelection(-1));
-		nudgeDown.addActionListener(e -> nudgeSelection(1));
 		actions.add(nudgeUp);
 		actions.add(nudgeDown);
-		JButton graphs = new JButton("Cage graphs...");
 		actions.add(graphs);
-		graphs.addActionListener(e -> showGraphs());
-		showOriginal.addActionListener(e -> updateOverlays());
-		showProposed.addActionListener(e -> updateOverlays());
+
 		JPanel header = new JPanel(new GridLayout(0, 1));
 		header.add(controls);
 		header.add(actions);
 		header.add(hint);
 		updateHint();
+
 		add(header, BorderLayout.NORTH);
 		add(plot, BorderLayout.CENTER);
 		add(status, BorderLayout.SOUTH);
+		defineToolTips();
+		defineActionListeners();
+
+		ChangeListener reset = e -> requestPreview();
+		radius.addChangeListener(reset);
+		correction.addChangeListener(reset);
+		stripRadius.addChangeListener(e -> resampleStripRadius());
+		previewTimer.setRepeats(false);
+		buttons();
+		sourceTimer.start();
+		requestPreview();
+	}
+
+	private void defineToolTips() {
+		stripRadius.setToolTipText("Rows shown above and below the proposed meniscus. Does not rerun correlation.");
+		moveMode.setToolTipText(
+				"Range shifts a block. Ramp and Curve draw a path on the strip and leave the picture in place until Preview alignment.");
+		profileChoice.setToolTipText(
+				"Source (orange) is the edge to move. Final (blue) is where it should land. The shift is final minus source.");
+		previewAlignment.setToolTipText(
+				"Shift the strip by the gap between the orange source and the blue final curve. The proposal is not changed.");
+		backAlignment.setToolTipText("Restore the strip picture and keep both curves.");
+		nudgeUp.setToolTipText("Move the selected columns up in the image.");
+		nudgeDown.setToolTipText("Move the selected columns down in the image.");
+		undo.setToolTipText(lastValidation == null ? "Undo the last validation"
+				: "Restore the " + lastValidation.size() + " capillaries changed by the last validation");
+	}
+
+	private void defineActionListeners() {
+		nudgeUp.addActionListener(e -> nudgeSelection(-1));
+		nudgeDown.addActionListener(e -> nudgeSelection(1));
+		graphs.addActionListener(e -> showGraphs());
+		showOriginal.addActionListener(e -> updateOverlays());
+		showProposed.addActionListener(e -> updateOverlays());
 		accept.addActionListener(e -> apply(false));
 		undo.addActionListener(e -> apply(true));
 		previewAlignment.addActionListener(e -> showAlignmentPreview());
@@ -504,16 +507,8 @@ public final class MeniscusRefinementPanel extends JPanel {
 		});
 		previousButton.addActionListener(e -> capillaries.setSelectedIndex(capillaries.getSelectedIndex() - 1));
 		nextButton.addActionListener(e -> capillaries.setSelectedIndex(capillaries.getSelectedIndex() + 1));
-		ChangeListener reset = e -> requestPreview();
-		radius.addChangeListener(reset);
-		correction.addChangeListener(reset);
-		stripRadius.addChangeListener(e -> resampleStripRadius());
 		expand.addActionListener(e -> requestPreview());
 		validationScope.addActionListener(e -> requestPreview());
-		previewTimer.setRepeats(false);
-		buttons();
-		sourceTimer.start();
-		requestPreview();
 	}
 
 	private Capillary cap() {
@@ -554,8 +549,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		accept.setEnabled(!closed && !busy && !caps.isEmpty()
 				&& caps.stream().allMatch(cap -> MeniscusRefinement.isCurrent(cap, proposals.get(cap))));
 		undo.setEnabled(!closed && MeniscusRefinement.canUndo(lastValidation));
-		undo.setToolTipText(lastValidation == null ? "Undo the last validation"
-				: "Restore the " + lastValidation.size() + " capillaries changed by the last validation");
+		defineToolTips();
 		previousButton.setEnabled(capillaries.getSelectedIndex() > 0);
 		nextButton.setEnabled(capillaries.getSelectedIndex() + 1 < capillaries.getItemCount());
 		previewAlignment.setEnabled(!closed && hasStroke() && !alignmentPreview);
@@ -589,6 +583,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		proposals.clear();
 		if (!alignStripToSavedLevels) {
 			aligned.clear();
+			toprawStrips.clear();
 			sources.clear();
 		}
 		clearSelection();
@@ -656,6 +651,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 			worker = new SwingWorker<MeniscusRefinement.Proposal, Void>() {
 				private final Map<Capillary, MeniscusRefinement.Proposal> results = new LinkedHashMap<>();
 				private final Map<Capillary, BufferedImage> strips = new LinkedHashMap<>();
+				private final Map<Capillary, BufferedImage> rawStrips = new LinkedHashMap<>();
 
 				@Override
 				protected MeniscusRefinement.Proposal doInBackground() {
@@ -668,7 +664,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 							p.holdValidated(inputs.get(cap).ypoints, cap.getTopRaw().getRefinementQuality(),
 									pins == null ? null : pins.get(cap));
 						results.put(cap, p);
-						strips.put(cap, MeniscusRefinement.stabilized(images.get(cap), p.refined(), viewRadius));
+						BufferedImage source = images.get(cap);
+						strips.put(cap, MeniscusRefinement.stabilized(source, p.refined(), viewRadius));
+						rawStrips.put(cap, MeniscusRefinement.stabilized(source, p.original(), viewRadius));
 					}
 					return results.get(selected);
 				}
@@ -688,6 +686,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 							}
 						proposals.putAll(results);
 						aligned.putAll(strips);
+						toprawStrips.putAll(rawStrips);
 						sources.putAll(images);
 						if (stripRadius() != viewRadius)
 							rebuildStrips();
@@ -931,12 +930,91 @@ public final class MeniscusRefinementPanel extends JPanel {
 		return p == null ? 0 : p.columnCount();
 	}
 
-	private static int stripTop() {
-		return 24;
+	private static final int STRIP_HEADER = 24;
+	private static final int STRIP_LABEL = 16;
+	private static final int STRIP_GAP = 6;
+	private static final int STRIP_MARGIN = 8;
+
+	private static int bandHeight(int panelHeight) {
+		int available = panelHeight - STRIP_HEADER - STRIP_MARGIN - 2 * STRIP_LABEL - STRIP_GAP;
+		return Math.max(1, available / 2);
+	}
+
+	private static int toprawTop(int panelHeight) {
+		return STRIP_HEADER + STRIP_LABEL;
+	}
+
+	private static int toprawBottom(int panelHeight) {
+		return toprawTop(panelHeight) + bandHeight(panelHeight);
+	}
+
+	/** Top of the proposed strip. Nudge and stroke coordinates use this band. */
+	private static int stripTop(int panelHeight) {
+		return toprawBottom(panelHeight) + STRIP_GAP + STRIP_LABEL;
 	}
 
 	private static int stripBottom(int panelHeight) {
-		return panelHeight - 8;
+		return stripTop(panelHeight) + bandHeight(panelHeight);
+	}
+
+	private static boolean inProposedStrip(int y, int panelHeight) {
+		return y >= stripTop(panelHeight) && y < stripBottom(panelHeight);
+	}
+
+	private void paintReferenceStrip(Graphics2D g, BufferedImage strip, int y1, int y2, int width) {
+		if (strip == null || y2 <= y1)
+			return;
+		g.drawImage(strip, 10, y1, width - 20, y2 - y1, null);
+		paintMidline(g, y1, y2, width);
+	}
+
+	private void paintProposedStrip(Graphics2D g, Capillary selected, int width, int height) {
+		int y1 = stripTop(height), y2 = stripBottom(height);
+		if (y2 <= y1)
+			return;
+		BufferedImage strip = aligned.get(selected);
+		MeniscusRefinement.Proposal p = proposals.get(selected);
+		boolean[] quality = p == null ? selected.getTopRaw().getRefinementQuality() : p.quality();
+		int n = quality == null ? 0 : quality.length;
+		g.drawImage(strip, 10, y1, width - 20, y2 - y1, null);
+		int imageShift = 0;
+		if (pendingDelta != 0 && selectFrom >= 0 && n > 0) {
+			imageShift = -(int) Math.round(pendingDelta * (y2 - y1) / (2.0 * stripRadius() + 1));
+			int left = columnEdge(selectFrom, n, width, true);
+			int right = columnEdge(selectTo, n, width, false);
+			int bandWidth = Math.max(1, right - left);
+			java.awt.Shape previousClip = g.getClip();
+			g.setClip(left, y1, bandWidth, y2 - y1);
+			g.setColor(plot.getBackground());
+			g.fillRect(left, y1, bandWidth, y2 - y1);
+			g.drawImage(strip, 10, y1 + imageShift, width - 20, y2 - y1, null);
+			g.setClip(previousClip);
+		}
+		if (moveMode() == MoveMode.RANGE && selectFrom >= 0 && n > 0) {
+			int left = columnEdge(selectFrom, n, width, true);
+			int right = columnEdge(selectTo, n, width, false);
+			g.setColor(new Color(255, 220, 0, 70));
+			g.fillRect(left, y1, Math.max(1, right - left), y2 - y1);
+		}
+		paintMidline(g, y1, y2, width);
+		if (quality != null) {
+			g.setColor(Color.RED);
+			for (int i = 1; i < quality.length; i++)
+				if (!quality[i]) {
+					int x = 10 + (int) ((i + .5) * (width - 20.) / quality.length);
+					int tickShift = i >= selectFrom && i <= selectTo ? imageShift : 0;
+					g.drawLine(x, y1 + tickShift, x, y1 + tickShift + 9);
+				}
+		}
+		paintStroke(g, width, height);
+	}
+
+	private static void paintMidline(Graphics2D g, int y1, int y2, int width) {
+		g.setColor(Color.WHITE);
+		g.setStroke(new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[] { 6, 6 }, 0));
+		int mid = (y1 + y2) / 2;
+		g.drawLine(10, mid, width - 10, mid);
+		g.setStroke(new BasicStroke(1));
 	}
 
 	private static int columnAt(int mouseX, int n, int width) {
@@ -958,7 +1036,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private double nudgePixels(int dy, int panelHeight) {
-		int span = stripBottom(panelHeight) - stripTop();
+		int span = stripBottom(panelHeight) - stripTop(panelHeight);
 		if (span <= 0)
 			return 0;
 		// Screen y grows downward, so an upward drag has a negative dy.
@@ -974,12 +1052,31 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private void rebuildStrips() {
 		int radius = stripRadius();
 		for (Map.Entry<Capillary, BufferedImage> entry : sources.entrySet()) {
-			double[] levels = levelsForStrip(entry.getKey(), entry.getValue().getWidth());
-			if (levels == null)
-				continue;
-			aligned.put(entry.getKey(), MeniscusRefinement.stabilized(entry.getValue(), levels, radius));
+			BufferedImage source = entry.getValue();
+			int width = source.getWidth();
+			double[] levels = levelsForStrip(entry.getKey(), width);
+			if (levels != null)
+				aligned.put(entry.getKey(), MeniscusRefinement.stabilized(source, levels, radius));
+			double[] raw = levelsForTopraw(entry.getKey(), width);
+			if (raw != null)
+				toprawStrips.put(entry.getKey(), MeniscusRefinement.stabilized(source, raw, radius));
 		}
 		plot.repaint();
+	}
+
+	private double[] levelsForTopraw(Capillary cap, int width) {
+		MeniscusRefinement.Proposal p = proposals.get(cap);
+		if (p != null && MeniscusRefinement.isCurrent(cap, p)) {
+			double[] original = p.original();
+			if (original.length == width)
+				return original;
+		}
+		if (alignStripToSavedLevels) {
+			Level2D saved = cap.getTopRaw().polylineLevel;
+			if (saved != null && saved.ypoints != null && saved.ypoints.length == width)
+				return saved.ypoints;
+		}
+		return null;
 	}
 
 	private double[] levelsForStrip(Capillary cap, int width) {
@@ -1353,6 +1450,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 		BufferedImage source = selected == null ? null : sources.get(selected);
 		if (frozenLevels != null && source != null && frozenLevels.length == source.getWidth()) {
 			frozenStrip = MeniscusRefinement.stabilized(source, frozenLevels, stripRadius());
+			double[] raw = levelsForTopraw(selected, source.getWidth());
+			if (raw != null)
+				toprawStrips.put(selected, MeniscusRefinement.stabilized(source, raw, stripRadius()));
 			if (alignmentPreview)
 				showAlignmentPreview();
 			else {
@@ -1366,7 +1466,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 	private void paintStroke(Graphics2D g, int width, int height) {
 		int n = sourceScreen == null ? 0 : sourceScreen.length;
-		if (n <= 0 || stripBottom(height) <= stripTop())
+		if (n <= 0 || stripBottom(height) <= stripTop(height))
 			return;
 		g.setStroke(new BasicStroke(2f));
 		paintProfile(g, sourceScreen, new Color(255, 140, 0), width, height);
@@ -1430,7 +1530,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private int offsetToScreen(double offset, int panelHeight) {
-		int y1 = stripTop(), y2 = stripBottom(panelHeight);
+		int y1 = stripTop(panelHeight), y2 = stripBottom(panelHeight);
 		int mid = (y1 + y2) / 2;
 		return mid + (int) Math.round(offset * (y2 - y1) / (2.0 * stripRadius() + 1));
 	}
@@ -1448,7 +1548,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private double screenToOffset(int mouseY, int panelHeight) {
-		int y1 = stripTop(), y2 = stripBottom(panelHeight);
+		int y1 = stripTop(panelHeight), y2 = stripBottom(panelHeight);
 		int span = y2 - y1;
 		if (span <= 0)
 			return 0;

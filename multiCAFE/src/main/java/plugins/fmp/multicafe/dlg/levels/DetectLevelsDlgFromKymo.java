@@ -1,12 +1,15 @@
 package plugins.fmp.multicafe.dlg.levels;
 
+import java.awt.CardLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Rectangle;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 
+import javax.swing.BorderFactory;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -38,9 +41,9 @@ import plugins.kernel.roi.roi2d.ROI2DRectangle;
 public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = -6329863521455897561L;
 
-	private JCheckBox pass1CheckBox = new JCheckBox("pass1", true);
+	private JCheckBox pass1CheckBox = new JCheckBox("First detection pass", true);
 	private JComboBox<String> direction1ComboBox = new JComboBox<String>(
-			new String[] { " threshold >", " threshold <" });
+			new String[] { ">", "<" });
 	private JSpinner threshold1Spinner = new JSpinner(new SpinnerNumberModel(35, 1, 255, 1));
 	private ImageTransformEnums[] transformPass1 = new ImageTransformEnums[] { ImageTransformEnums.R_RGB,
 			ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, ImageTransformEnums.B_MINUS_MINRG,
@@ -51,9 +54,9 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	public JComboBox<ImageTransformEnums> transformPass1ComboBox = new JComboBox<ImageTransformEnums>(transformPass1);
 	private JToggleButton transformPass1DisplayButton = new JToggleButton("View");
 
-	private JCheckBox pass2CheckBox = new JCheckBox("pass2", false);
+	private JCheckBox pass2CheckBox = new JCheckBox("Second detection pass", false);
 	private JComboBox<String> direction2ComboBox = new JComboBox<String>(
-			new String[] { " threshold >", " threshold <" });
+			new String[] { ">", "<" });
 	private JSpinner threshold2Spinner = new JSpinner(new SpinnerNumberModel(40, 1, 255, 1));
 	private ImageTransformEnums[] transformPass2 = new ImageTransformEnums[] { ImageTransformEnums.DERICHE_COLOR,
 			ImageTransformEnums.DERICHE, ImageTransformEnums.YDIFFN, ImageTransformEnums.YDIFFN2,
@@ -64,36 +67,37 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	private JToggleButton transformPass2DisplayButton = new JToggleButton("View");
 	private JSpinner jitter2Spinner = new JSpinner(new SpinnerNumberModel(5, 0, 255, 1));
 
-	private JCheckBox selectedKymoCheckBox = new JCheckBox("selected kymograph", false);
+	private JComboBox<String> kymographRangeComboBox = new JComboBox<>(
+			new String[] { "All kymographs", "Selected kymograph" });
 	private JSpinner spanTopSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 100, 1));
-	private String detectString = "        Detect     ";
+	private String detectString = "Detect";
 	private JButton detectButton = new JButton(detectString);
-	private JCheckBox fromRectangleCheckBox = new JCheckBox(" detection from ROI rectangle", false);
+	private JCheckBox fromRectangleCheckBox = new JCheckBox("Rectangle ROI (upper meniscus only)", false);
 
-	private JCheckBox allSeriesCheckBox = new JCheckBox("ALL (current to last)", false);
-	private JCheckBox leftCheckBox = new JCheckBox("L", true);
-	private JCheckBox rightCheckBox = new JCheckBox("R", true);
+	private JComboBox<String> experimentRangeComboBox = new JComboBox<>(
+			new String[] { "Current experiment", "Current to last experiment" });
+	private JCheckBox leftCheckBox = new JCheckBox("Left", true);
+	private JCheckBox rightCheckBox = new JCheckBox("Right", true);
 	private JCheckBox runBackwardsCheckBox = new JCheckBox("run backwards", false);
 
-	private JCheckBox trackingCheckBox = new JCheckBox("Track level across time", false);
+	private JComboBox<String> detectionMethodComboBox = new JComboBox<>(
+			new String[] { "Independent columns", "Track across time" });
 	private JCheckBox smoothCheckBox = new JCheckBox("Smooth detected curve", false);
 	private JCheckBox bottomCheckBox = new JCheckBox("Detect bottom level", true);
-	private JCheckBox advancedCheckBox = new JCheckBox("Advanced", false);
-	private JCheckBox removeHzAvgCheckBox = new JCheckBox("remove Hz avg (tape)", false);
-	private JCheckBox tapePrepassCheckBox = new JCheckBox("tape prepass", false);
-	private JCheckBox edgePeakCheckBox = new JCheckBox("edge peak", true);
+	private boolean detectBottomBeforeRectangle = true;
+	private JCheckBox removeHzAvgCheckBox = new JCheckBox("Subtract horizontal bands", false);
+	private JCheckBox tapePrepassCheckBox = new JCheckBox("Suppress tape seams", false);
+	private JCheckBox edgePeakCheckBox = new JCheckBox("Prefer edge peaks", true);
 	private JSpinner trackUpSpinner = new JSpinner(new SpinnerNumberModel(3, 0, 100, 1));
 	private JSpinner trackDownSpinner = new JSpinner(new SpinnerNumberModel(25, 0, 500, 1));
 	private JSpinner medianWinSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 51, 2));
 	private JSpinner maxSpikeSpinner = new JSpinner(new SpinnerNumberModel(4, 0, 100, 1));
-	private JPanel pass2Panel;
-	private JPanel legacyPanel;
-	private JPanel trackingPanel;
+	private JPanel methodSettingsPanel;
 	private JPanel smoothingPanel;
 	private MultiCAFE parent0 = null;
 	private DetectLevels threadDetectLevels = null;
 
-	private JButton refineMeniscus = new JButton("Refine topraw by correlation...");
+	private JButton refineMeniscus = new JButton("Refine existing meniscus...");
 
 	private String SEARCHRECT = new String("search_rectangle");
 	private ROI2DRectangle searchRectangleROI2D = null;
@@ -106,77 +110,47 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	void init(GridLayout capLayout, MultiCAFE parent0) {
 		this.parent0 = parent0;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
-		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
-		layoutLeft.setVgap(0);
+		JPanel scope = section("Scope and search region");
+		scope.add(row(experimentRangeComboBox, kymographRangeComboBox, leftCheckBox, rightCheckBox));
+		scope.add(row(fromRectangleCheckBox, bottomCheckBox));
 
-		JPanel panel00 = new JPanel(layoutLeft);
-		panel00.add(detectButton);
-//		panel00.add(refineMeniscus);
-		panel00.add(allSeriesCheckBox);
-		panel00.add(selectedKymoCheckBox);
-		panel00.add(leftCheckBox);
-		panel00.add(rightCheckBox);
-		panel00.add(fromRectangleCheckBox);
+		JPanel detection = section("Detection");
+		detection.add(row(new JLabel("Method:"), detectionMethodComboBox));
+		detection.add(row(new JLabel("Image:"), transformPass1ComboBox,
+				new JLabel("Threshold:"), direction1ComboBox, threshold1Spinner, transformPass1DisplayButton));
 
-		JPanel panel01 = new JPanel(layoutLeft);
-		panel01.add(pass1CheckBox);
-		panel01.add(direction1ComboBox);
-		((JLabel) direction1ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
-		panel01.add(threshold1Spinner);
-		panel01.add(transformPass1ComboBox);
-		panel01.add(transformPass1DisplayButton);
-
-		JPanel panel02 = new JPanel(layoutLeft);
-		panel02.add(pass2CheckBox);
-		panel02.add(direction2ComboBox);
-		((JLabel) direction2ComboBox.getRenderer()).setHorizontalAlignment(JLabel.RIGHT);
-		panel02.add(threshold2Spinner);
-		panel02.add(transformPass2ComboBox);
-		panel02.add(transformPass2DisplayButton);
-		panel02.add(new JLabel("vertical jitter"));
-		panel02.add(jitter2Spinner);
-
-		JPanel panel03 = new JPanel(layoutLeft);
-		panel03.add(fromRectangleCheckBox);
-		panel03.add(runBackwardsCheckBox);
-		panel03.add(refineMeniscus);
-
-		JPanel choices = new JPanel(layoutLeft);
-		choices.add(trackingCheckBox);
-		choices.add(smoothCheckBox);
-		choices.add(bottomCheckBox);
-		choices.add(advancedCheckBox);
+		JPanel independent = new JPanel(new GridLayout(2, 1));
+		independent.add(row(pass1CheckBox));
+		independent.add(row(pass2CheckBox, transformPass2ComboBox, new JLabel("Threshold:"), direction2ComboBox,
+				threshold2Spinner, new JLabel("Vertical jitter (px):"), jitter2Spinner,
+				transformPass2DisplayButton));
 
 		runBackwardsCheckBox.setText("Forward + backward tracking");
-		panel03.remove(runBackwardsCheckBox);
-		panel03.remove(fromRectangleCheckBox);
+		JPanel tracking = new JPanel(new GridLayout(2, 1));
+		tracking.add(row(new JLabel("Maximum movement (px): up"), trackUpSpinner,
+				new JLabel("down"), trackDownSpinner, runBackwardsCheckBox));
+		tracking.add(row(removeHzAvgCheckBox, tapePrepassCheckBox, edgePeakCheckBox));
 
-		trackingPanel = new JPanel(layoutLeft);
-		trackingPanel.add(removeHzAvgCheckBox);
-		trackingPanel.add(tapePrepassCheckBox);
-		trackingPanel.add(edgePeakCheckBox);
-		trackingPanel.add(runBackwardsCheckBox);
-		trackingPanel.add(new JLabel("track up (px)"));
-		trackingPanel.add(trackUpSpinner);
-		trackingPanel.add(new JLabel("down (px)"));
-		trackingPanel.add(trackDownSpinner);
+		// Reserve space for both methods so switching does not move other sections.
+		methodSettingsPanel = new JPanel(new CardLayout());
+		methodSettingsPanel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		methodSettingsPanel.add(independent, "columns");
+		methodSettingsPanel.add(tracking, "tracking");
+		detection.add(methodSettingsPanel);
 
-		smoothingPanel = new JPanel(layoutLeft);
-		smoothingPanel.add(new JLabel("median (columns)"));
-		smoothingPanel.add(medianWinSpinner);
-		smoothingPanel.add(new JLabel("max spike (px)"));
-		smoothingPanel.add(maxSpikeSpinner);
+		JPanel cleanup = section("Curve cleanup");
+		smoothingPanel = row(new JLabel("Median window (time columns):"), medianWinSpinner,
+				new JLabel("Maximum spike (px):"), maxSpikeSpinner);
+		cleanup.add(row(smoothCheckBox, new JLabel("May alter short gulp events.")));
+		cleanup.add(smoothingPanel);
 
-		pass2Panel = panel02;
-		legacyPanel = panel03;
-
-		add(panel00);
-		add(choices);
-		add(panel01);
-		add(panel02);
-		add(panel03);
-		add(trackingPanel);
-		add(smoothingPanel);
+		JPanel refinement = section("Refinement");
+		refinement.add(row(refineMeniscus, new JLabel("Correlation refinement with preview and undo.")));
+		add(scope);
+		add(detection);
+		add(cleanup);
+		add(refinement);
+		add(row(detectButton));
 		for (JCheckBox control : new JCheckBox[] { removeHzAvgCheckBox, tapePrepassCheckBox, edgePeakCheckBox,
 				runBackwardsCheckBox })
 			control.addActionListener(e -> updateOverlayThreshold());
@@ -192,40 +166,59 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	private void defineToolTips() {
-		allSeriesCheckBox
+		experimentRangeComboBox
 				.setToolTipText("Run level detection for the current experiment through the last in the browse list.");
 		pass1CheckBox.setToolTipText("First (coarse) threshold pass on the kymograph.");
 		pass2CheckBox.setToolTipText("Second (refined) threshold pass on the kymograph.");
-		trackingCheckBox.setToolTipText("Use temporal tracking instead of independent pass1/pass2 detection.");
+		detectionMethodComboBox.setToolTipText("Detect each time column independently, or track the meniscus across time.");
 		smoothCheckBox.setToolTipText(
 				"Apply median and spike filtering to the top-level curve; may alter short gulp events.");
 		bottomCheckBox.setToolTipText("Also detect the bottom boundary using the first transform and threshold.");
+		fromRectangleCheckBox.setToolTipText(
+				"Repair the upper meniscus inside a rectangle ROI; bottom detection is temporarily disabled.");
 		runBackwardsCheckBox.setToolTipText("Combine forward and backward tracks to reject inconsistent jumps.");
 		removeHzAvgCheckBox
 				.setToolTipText("Subtract each row mean to suppress persistent full-width horizontal bands.");
 		tapePrepassCheckBox
 				.setToolTipText("Identify thin persistent tape seams and prefer a liquid boundary below them.");
-		refineMeniscus.setToolTipText("Independent refinement of existing topraw, with preview, acceptance and undo.");
+		refineMeniscus.setToolTipText("Refine an existing upper meniscus curve, with preview, acceptance and undo.");
 	}
 
 	private Experiment currentExperiment() {
-		return (Experiment) parent0.expListComboLazy.getSelectedItem();
+		return parent0 == null ? null : (Experiment) parent0.expListComboLazy.getSelectedItem();
+	}
+
+	private static JPanel row(Component... controls) {
+		JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 1));
+		panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		for (Component control : controls)
+			panel.add(control);
+		return panel;
+	}
+
+	private static JPanel section(String title) {
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+		panel.setBorder(BorderFactory.createTitledBorder(title));
+		panel.setAlignmentX(Component.LEFT_ALIGNMENT);
+		return panel;
+	}
+
+	private boolean isTracking() {
+		return detectionMethodComboBox.getSelectedIndex() == 1;
 	}
 
 	private void updateModeControls() {
-		boolean track = trackingCheckBox.isSelected();
-		boolean advanced = advancedCheckBox.isSelected();
-		pass1CheckBox.setVisible(!track);
-		pass2Panel.setVisible(!track && advanced);
-//		legacyPanel.setVisible(!track && advanced);
-		trackingPanel.setVisible(track && advanced);
-		smoothingPanel.setVisible(smoothCheckBox.isSelected() && advanced);
-		// The common first transform/threshold controls both methods.
+		((CardLayout) methodSettingsPanel.getLayout()).show(methodSettingsPanel,
+				isTracking() ? "tracking" : "columns");
+		boolean secondPass = !isTracking() && pass2CheckBox.isSelected();
+		for (Component control : new Component[] { transformPass2ComboBox, direction2ComboBox,
+				threshold2Spinner, jitter2Spinner, transformPass2DisplayButton })
+			control.setEnabled(secondPass);
+		for (Component control : smoothingPanel.getComponents())
+			control.setEnabled(smoothCheckBox.isSelected());
 		revalidate();
-		if (parent0 != null && parent0.mainFrame != null) {
-			parent0.mainFrame.revalidate();
-			parent0.mainFrame.pack();
-		}
+		repaint();
 	}
 
 	private LevelDetectV2Options readTrackingOptions() {
@@ -269,7 +262,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			if (suppressDisplayUpdate) {
 				return;
 			}
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			Experiment exp = currentExperiment();
 			if (exp != null && exp.getSeqKymos() != null) {
 				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 				if (canvas != null && transformPass1DisplayButton.isSelected()) {
@@ -286,7 +279,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 				return;
 			}
 			allowItemsAccordingToSelection();
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			Experiment exp = currentExperiment();
 			if (exp != null && exp.getSeqKymos() != null) {
 				Canvas2D_3Transforms canvas = getKymosCanvas(exp);
 				if (canvas != null && transformPass2DisplayButton.isSelected()) {
@@ -306,7 +299,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		});
 
 		transformPass1DisplayButton.addActionListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			Experiment exp = currentExperiment();
 			if (exp == null)
 				return;
 
@@ -331,7 +324,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		});
 
 		transformPass2DisplayButton.addActionListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			Experiment exp = currentExperiment();
 			if (exp == null)
 				return;
 
@@ -355,16 +348,23 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			}
 		});
 
-		allSeriesCheckBox.addActionListener(e -> {
+		experimentRangeComboBox.addActionListener(e -> {
 			Color color = Color.BLACK;
-			if (allSeriesCheckBox.isSelected())
+			if (experimentRangeComboBox.getSelectedIndex() == 1)
 				color = Color.RED;
-			allSeriesCheckBox.setForeground(color);
+			experimentRangeComboBox.setForeground(color);
 			detectButton.setForeground(color);
 		});
 
-		fromRectangleCheckBox.addActionListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		fromRectangleCheckBox.addItemListener(e -> {
+			if (fromRectangleCheckBox.isSelected()) {
+				detectBottomBeforeRectangle = bottomCheckBox.isSelected();
+				bottomCheckBox.setSelected(false);
+			} else {
+				bottomCheckBox.setSelected(detectBottomBeforeRectangle);
+			}
+			bottomCheckBox.setEnabled(!fromRectangleCheckBox.isSelected());
+			Experiment exp = currentExperiment();
 			if (exp == null)
 				return;
 			if (fromRectangleCheckBox.isSelected())
@@ -374,9 +374,11 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		});
 
 		direction1ComboBox.addActionListener(e -> updateOverlayThreshold());
+		direction2ComboBox.addActionListener(e -> updateOverlayThreshold());
 
-		trackingCheckBox.addActionListener(e -> {
-			resetDisplayToRaw(currentExperiment());
+		detectionMethodComboBox.addActionListener(e -> {
+			if (!suppressDisplayUpdate)
+				resetDisplayToRaw(currentExperiment());
 			updateModeControls();
 		});
 		smoothCheckBox.addActionListener(e -> {
@@ -384,24 +386,16 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			updateOverlayThreshold();
 		});
 
-		advancedCheckBox.addActionListener(e -> updateModeControls());
+		pass2CheckBox.addActionListener(e -> {
+			if (!pass2CheckBox.isSelected() && transformPass2DisplayButton.isSelected())
+				resetDisplayToRaw(currentExperiment());
+			updateModeControls();
+		});
 		refineMeniscus.addActionListener(e -> MeniscusRefinementPanel.open(this, currentExperiment(), null, null));
 	}
 
 	void allowItemsAccordingToSelection() {
-		boolean flag = false;
-		switch ((ImageTransformEnums) transformPass2ComboBox.getSelectedItem()) {
-		case SUBTRACT_1RSTCOL:
-		case L1DIST_TO_1RSTCOL:
-			flag = true;
-			break;
-
-		default:
-			flag = true;
-			break;
-		}
-		threshold2Spinner.setEnabled(flag);
-		jitter2Spinner.setEnabled(flag);
+		updateModeControls();
 	}
 
 	void setDialogFromOptions(Capillary cap) {
@@ -431,7 +425,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	 * v2).
 	 */
 	public void reapplyViewIfSelected() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Experiment exp = currentExperiment();
 		if (exp == null || exp.getSeqKymos() == null)
 			return;
 		if (transformPass1DisplayButton.isSelected()) {
@@ -474,7 +468,9 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 
 		suppressDisplayUpdate = true;
 		try {
-			trackingCheckBox.setSelected(options.levelTracking);
+			// Leave ROI mode before loading another recipe, restoring its temporary state.
+			fromRectangleCheckBox.setSelected(false);
+			detectionMethodComboBox.setSelectedIndex(options.levelTracking ? 1 : 0);
 			smoothCheckBox.setSelected(options.levelSmoothing);
 			bottomCheckBox.setSelected(options.detectBottom);
 			LevelDetectV2Options v2 = options.levelV2;
@@ -501,8 +497,6 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			jitter2Spinner.setValue(options.jitter2);
 			leftCheckBox.setSelected(options.detectL);
 			rightCheckBox.setSelected(options.detectR);
-
-			fromRectangleCheckBox.setSelected(false);
 		} finally {
 			suppressDisplayUpdate = false;
 		}
@@ -514,7 +508,11 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (session == null) {
 			return;
 		}
+		boolean restoreBottom = session.analyzePartOnly;
+		boolean previousBottom = detectBottomBeforeRectangle;
 		applyLevelOptionsToDialog(session);
+		if (restoreBottom)
+			bottomCheckBox.setSelected(previousBottom);
 		resetDisplayToRaw(exp);
 	}
 
@@ -528,7 +526,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		options.detectLevel1Threshold = (int) threshold1Spinner.getValue();
 		options.directionUp2 = (direction2ComboBox.getSelectedIndex() == 0);
 		options.detectLevel2Threshold = (int) threshold2Spinner.getValue();
-		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
+		options.detectSelectedKymo = kymographRangeComboBox.getSelectedIndex() == 1;
 
 		options.detectL = leftCheckBox.isSelected();
 		options.detectR = rightCheckBox.isSelected();
@@ -539,13 +537,13 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		// list of stack experiments
 		options.expList = parent0.expListComboLazy;
 		options.expList.index0 = parent0.expListComboLazy.getSelectedIndex();
-		if (allSeriesCheckBox.isSelected())
+		if (experimentRangeComboBox.getSelectedIndex() == 1)
 			options.expList.index1 = options.expList.getItemCount() - 1;
 		else
 			options.expList.index1 = parent0.expListComboLazy.getSelectedIndex();
-		options.detectSelectedKymo = selectedKymoCheckBox.isSelected();
+		options.detectSelectedKymo = kymographRangeComboBox.getSelectedIndex() == 1;
 
-		if (selectedKymoCheckBox.isSelected()) {
+		if (kymographRangeComboBox.getSelectedIndex() == 1) {
 			options.kymoFirst = exp.getSeqKymos().getSequence().getFirstViewer().getPositionT();
 			options.kymoLast = options.kymoFirst;
 			currentKymographImage = options.kymoFirst;
@@ -578,8 +576,8 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 		options.runBackwards = runBackwardsCheckBox.isSelected();
 		options.sourceCamDirect = false;
 		options.detectTop = true;
-		options.detectBottom = bottomCheckBox.isSelected();
-		options.levelTracking = trackingCheckBox.isSelected();
+		options.detectBottom = !fromRectangleCheckBox.isSelected() && bottomCheckBox.isSelected();
+		options.levelTracking = isTracking();
 		options.levelSmoothing = smoothCheckBox.isSelected();
 		options.levelV2 = readTrackingOptions();
 		options.transformBottom = options.transform01;
@@ -590,7 +588,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	void startLevelsDetection() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Experiment exp = currentExperiment();
 		if (exp != null) {
 
 			threadDetectLevels = new DetectLevels();
@@ -603,9 +601,10 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 			}
 			threadDetectLevels.addPropertyChangeListener(this);
 			threadDetectLevels.execute();
-			trackingCheckBox.setEnabled(false);
+			detectionMethodComboBox.setEnabled(false);
 			smoothCheckBox.setEnabled(false);
 			bottomCheckBox.setEnabled(false);
+			fromRectangleCheckBox.setEnabled(false);
 			detectButton.setText("STOP");
 		}
 	}
@@ -619,11 +618,12 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	public void propertyChange(PropertyChangeEvent evt) {
 		if (StringUtil.equals("thread_ended", evt.getPropertyName())) {
 			detectButton.setText(detectString);
-			trackingCheckBox.setEnabled(true);
+			detectionMethodComboBox.setEnabled(true);
 			smoothCheckBox.setEnabled(true);
-			bottomCheckBox.setEnabled(true);
+			bottomCheckBox.setEnabled(!fromRectangleCheckBox.isSelected());
+			fromRectangleCheckBox.setEnabled(true);
 			Logger.debug("thread_ended");
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			Experiment exp = currentExperiment();
 			if (exp != null && threadDetectLevels != null && threadDetectLevels.options != null) {
 				exp.applyLevelDetectionDefaultsFrom(threadDetectLevels.options);
 				exp.saveExperimentDescriptors();
@@ -720,10 +720,10 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	void updateOverlayThreshold() {
-		if (overlayThreshold == null)
+		if (suppressDisplayUpdate || overlayThreshold == null)
 			return;
 
-		if (trackingCheckBox.isSelected() && transformPass1DisplayButton.isSelected()) {
+		if (isTracking() && transformPass1DisplayButton.isSelected()) {
 			Canvas2D_3Transforms canvas = getKymosCanvas(currentExperiment());
 			if (canvas != null) {
 				if (removeHzAvgCheckBox.isSelected()) {
@@ -777,7 +777,7 @@ public class DetectLevelsDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	private int[] getInitialLevelPositions() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Experiment exp = currentExperiment();
 		if (exp == null || exp.getSeqKymos() == null)
 			return null;
 
