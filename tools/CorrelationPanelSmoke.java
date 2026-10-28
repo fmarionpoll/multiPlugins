@@ -66,9 +66,12 @@ public class CorrelationPanelSmoke {
     }
     private static void compute(CorrelationIntakePanel panel) throws Exception {
         SwingUtilities.invokeAndWait(() -> {
-            try { ((JButton) field(panel, "compute")).doClick(); } catch (Exception e) { throw new RuntimeException(e); }
+            try {
+                Method analyze = panel.getClass().getDeclaredMethod("analyzeSelected"); analyze.setAccessible(true); analyze.invoke(panel);
+            } catch (Exception e) { throw new RuntimeException(e); }
         });
-        ((SwingWorker<?, ?>) field(panel, "worker")).get();
+        SwingWorker<?, ?> active = (SwingWorker<?, ?>) field(panel, "worker");
+        if (active != null) active.get();
         for (int i = 0; i < 100; i++) {
             final boolean[] done = {false};
             SwingUtilities.invokeAndWait(() -> { try { done[0] = field(panel, "preview") != null; } catch (Exception e) { throw new RuntimeException(e); } });

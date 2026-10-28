@@ -4,8 +4,8 @@ The prototype has two independent steps. All runtime computation is Java.
 
 ## Phase 1: refine meniscus
 
-Open **Refine topraw by correlation...** in the level-detection dialog, or
-**Refine meniscus...** from the intake panel. Load RGB kymographs and detect
+Open **Refine topraw by correlation...** in the level-detection dialog.
+Load RGB kymographs and detect
 initial topraw first. This is an alternative refinement operation alongside
 existing threshold pass 2, not another intake detector.
 
@@ -101,6 +101,16 @@ registration did. This change requires scientific validation, not just UI tests.
 
 ## Phase 2: detect intake
 
+The intake dialog follows the experiment browser and remains open for previous,
+next, direct, or temporarily empty selections. Each experiment keeps its own
+session and manual thresholds. Switching suspends preview workers, timers and
+overlays for the old experiment, then readies the selected experiment. Descriptor
+reloads refresh capillary references; reopened kymographs refresh image previews.
+If images or accepted levels are not loaded yet, the panel waits and analyzes
+when those inputs become available. Batch runs retain the browser lock and
+graceful stop behavior. Closing the dialog releases every session and removes
+its browser listener.
+
 Select **accepted topraw intake (prototype)** in the intake detection dialog.
 Existing stored method IDs remain readable. Phase 2 reads topraw without running
 image correlation, and derives every signed increment from adjacent positions
@@ -115,6 +125,57 @@ Diagnostics appear as shaded time spans on the displacement graph and in
 reconstruction for comparison.
 
 ## Intake options
+
+The **Mode** selector offers **Manual - single capillary**,
+**Automatic - all capillaries**, and **Batch - detect, copy & save**. Manual mode retains per-capillary threshold
+editing, Save intake, and Copy to gulps. Single-capillary detection runs on
+selection and relevant settings/source changes; the intake panel has no
+refinement or Recompute button. Automatic mode exposes **Detect
+all**, **Cancel**, **Save all intake**, and **Copy all to gulps...**. Detect all computes each capillary in the
+current experiment (including no-fly controls), using a separate automatic
+threshold and the selected episode/local evaporation options. Existing manual
+thresholds are not used. Detection runs in the background with progress;
+capillary selection and method settings are locked during computation.
+
+Detection prepares results without changing saved measures. Once all previews
+are ready, browse the capillaries to review results and choose Save all intake to
+replace their correlation results in one experiment save. Classic gulps and
+topraw are retained. **Copy all to gulps...** replaces ordinary gulp measures
+for the whole batch after confirmation and saves them once. This is the
+conversion needed to use the detected intake in ordinary gulp graphs and
+exports. Within this panel, red graph points mark detected bins and blue
+kymograph bars show their amplitudes. Cancellation or any capillary failure discards the batch;
+there is no partial batch save. Changed source levels/quality or method settings
+invalidate the prepared batch. Switching to manual mode permits individual
+adjustments; changing a threshold also invalidates the prepared batch.
+
+**Batch - detect, copy & save** runs the full pipeline without per-experiment
+review: detect every capillary, copy intake into ordinary gulps, then save both
+capillary descriptions and measures before continuing. It replaces existing
+ordinary gulps, including manual edits. Choose **Current experiment**,
+**Current experiment to end**, or **All experiments (0 to end)**, then
+**Detect, copy to gulps & save**. Current is captured from the experiment
+browser when the run starts; both range endpoints are included. Episode and
+local evaporation options are captured once for the run; each capillary uses
+its own automatic threshold. This mode never refines topraw.
+
+The browser and detection settings are locked during the run. Experiments are
+loaded as needed without changing browser selection; already loaded topraw
+is retained. Kymographs opened by the batch are released after each experiment;
+preexisting viewers remain open. Progress names the experiment and capillary.
+**Stop** cancels before copying an unfinished experiment; once copying has
+started, its save completes. A failure stops the series and reports the number
+of experiments already saved. Earlier successful saves remain on disk.
+Saving descriptions and measures uses the existing persistence writers, not
+a transactional filesystem update; a save failure may require retrying the
+current experiment. Closing the panel requests the same graceful stop.
+
+`CorrelationIntakeBatchSmoke.java` exercises both detector modes on a synthetic
+experiment, including parity with single-capillary amplitudes and geometry,
+stale-save rejection, save-all persistence with a stubbed disk writer, failure,
+cancellation, and return to manual editing. It also exercises the three series
+ranges with actual CSV writes in temporary test directories, copying to ordinary
+gulps, browser restoration, stopping before/during save, and detection/save failures.
 
 - **Persistent episodes (1-6 bins)** (default on): signed displacements minus
   expected evaporation accumulate over 1 through 6 consecutive valid bins.
@@ -210,7 +271,7 @@ The status compares net detected displacement with endpoint raw displacement
 minus evaporation and flags a difference greater than 3 pixels or 20% of the
 latter (whichever is larger). This is a diagnostic, never an endpoint constraint.
 
-**Save** stores correlation events separately; **Copy to gulps...** replaces
+**Save intake** stores correlation events separately; **Copy to gulps...** replaces
 classic gulps after confirmation. Raw levels are unchanged. Saved correlation
 rows append optional `bottom_positions=` (colon-separated fitted positions)
 and `method_options=` trailers after their dense amplitude values, preserving
@@ -226,6 +287,37 @@ of each flagged span; multiple types, amounts and support flags ending there
 are aligned and separated by vertical bars.
 
 ## Validation and limitations
+
+`IntakeMissInvestigation.java` replays saved accepted topraw with the production
+description/measure readers (including refinement quality) and writes local
+per-capillary traces plus every 1-6-bin acceptance gate. Arguments are an output
+directory followed by experiment directories; no experiment save is performed.
+Compile with the same classpath as `CorrelationPanelSmoke.java`.
+
+The reported misses in cam02_1mM (1L/3L/6L/7L/8L), cam03_10mM (4L/8L), and
+cam04_10mM (2L/3L), under `17-10-26_Quinine`, provide a targeted regression set.
+The October 28 replay reproduces the saved event counts on all 60 capillaries
+using automatic thresholds, persistent episodes and common evaporation. Examples:
+
+- Cam02 1L, minutes 85-86: 2.10 px excess exceeds the two-bin 1.74 px limit,
+  but subtracting neighbouring negative increments leaves 1.19 px, so it fails
+  persistence. Cam02 3L at minute 35 and 7L at minute 90 fail the same gate.
+- Cam03 4L, minute 75.08: 1.227 px excess falls just below the empirical
+  single-bin limit of 1.245 px, even though its displayed automatic setting is
+  1.036 px/min. The graph's setting is therefore not the full acceptance rule.
+  Cam03 8L at minute 85.08 passes the amplitude limit but fails persistence.
+- Cam04 3L, minute 8 is quality-excluded; its presence in the required context
+  also rejects the otherwise valid 3.69 px excess at minute 7. Later small
+  movements also fail persistence. A missing event interval must remain distinct
+  from missing neighbouring context when considering any detector revision.
+- Cam04 2L retains positive adjacent bins 6 and 7; the episode counter groups
+  adjacent positive bins. Resolving close individual gulps requires separate
+  segmentation validation, not just a lower detection threshold.
+
+These are rejection explanations, not independently verified event labels.
+Some no-fly controls already contain detected events, so a sensitivity change
+must also be checked against controls and additional experiments. No detector
+threshold or acceptance rule was changed by this investigation.
 
 JUnit covers signed fractional registration, adaptive search limits, noise
 returns, grouped intake, missing data, anchored-level checks, local scale

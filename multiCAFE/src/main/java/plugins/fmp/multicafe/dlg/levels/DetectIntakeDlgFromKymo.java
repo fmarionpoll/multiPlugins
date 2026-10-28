@@ -72,7 +72,7 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox all_checkbox = new JCheckBox("ALL", false);
 	private DetectGulps threadDetectGulps = null;
-	private CorrelationIntakePanel correlationPanel = null;
+	private CorrelationIntakeBrowser correlationPanel = null;
 	private MultiCAFE parent0 = null;
 	private boolean suppressDisplayUpdate = false;
 
@@ -297,16 +297,16 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 		if (exp == null)
 			return;
 		Capillary cap = capillaryShownInKymoViewer(exp);
-		if (correlationPanel != null && correlationPanel.isDisplayable() && correlationPanel.getExperiment() == exp) {
+		if (correlationPanel != null && correlationPanel.isDisplayable()) {
 			correlationPanel.bringToFront();
+			correlationPanel.followSelection();
 			if (cap != null)
 				correlationPanel.showCapillary(cap);
 			return;
 		}
 		closeCorrelationPanel();
-		correlationPanel = CorrelationIntakePanel.open(this, exp, cap,
+		correlationPanel = CorrelationIntakeBrowser.open(this, parent0.expListComboLazy, cap,
 				c -> parent0.paneKymos.tabIntervals.selectKymographImageAndCombo(c.getKymographIndex()));
-		correlationPanel.followExperimentBrowser(parent0.expListComboLazy);
 	}
 
 	private void closeCorrelationPanel() {
@@ -391,8 +391,8 @@ public class DetectIntakeDlgFromKymo extends JPanel implements PropertyChangeLis
 	}
 
 	public void loadGulpDefaultsFromExperiment(Experiment exp) {
-		if (correlationPanel != null && correlationPanel.getExperiment() != exp)
-			closeCorrelationPanel();
+		if (correlationPanel != null && correlationPanel.isDisplayable())
+			correlationPanel.followSelection();
 		if (exp != null) {
 			applyGulpOptionsToDialog(exp.getGulpDetectionDefaults());
 			resetDisplayToRaw(exp);
