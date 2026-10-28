@@ -115,6 +115,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	private final JCheckBox compensateEvaporation = new JCheckBox("Subtract evaporation", true);
 	private final JLabel source = new JLabel(" "),
 			status = new JLabel("Select a capillary to analyze its accepted topraw levels.");
+	private final JLabel detectorVersion = new JLabel();
 	private final MotionPlot plot = new MotionPlot();
 	private final AlignmentView alignment = new AlignmentView();
 	private final Map<Capillary, Double> manualThresholds = new IdentityHashMap<>();
@@ -181,7 +182,9 @@ public final class CorrelationIntakePanel extends JPanel {
 		if (initial != null)
 			capillaries.setSelectedItem(initial);
 		Capillary first = (Capillary) capillaries.getSelectedItem();
-		if (first != null && first.getCorrelationGulps().getMethodOptions().startsWith("v3,source=accepted_topraw")) {
+		if (first != null && (first.getCorrelationGulps().getMethodOptions().startsWith("v3,source=accepted_topraw")
+				|| first.getCorrelationGulps().getMethodOptions().startsWith("v4,source=accepted_topraw")
+				|| first.getCorrelationGulps().getMethodOptions().startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
 			String options = first.getCorrelationGulps().getMethodOptions();
 			persistentEpisodes.setSelected(options.contains("persistent=true"));
 			localEvaporation.setSelected(options.contains("local=true"));
@@ -214,7 +217,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		controls.add(nextButton);
 
 		JPanel thresholdControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
-		thresholdControls.add(new JLabel("Threshold (pixels/min)"));
+		thresholdControls.add(new JLabel("Threshold setting (pixels/min)"));
 		thresholdControls.add(threshold);
 		thresholdControls.add(automatic);
 		thresholdControls.add(save);
@@ -226,6 +229,9 @@ public final class CorrelationIntakePanel extends JPanel {
 		JPanel modeControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		modeControls.add(new JLabel("Mode"));
 		modeControls.add(runMode);
+		detectorVersion.setToolTipText("Persistent episodes uses the " + IntakeEpisodes.METHOD_VERSION
+				+ " plateau and fitted-amplitude checks. With persistence off, detection uses only the single-bin threshold rule.");
+		modeControls.add(detectorVersion);
 		rows.add(modeControls);
 		rows.add(controls);
 		JPanel methodControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
@@ -334,7 +340,7 @@ public final class CorrelationIntakePanel extends JPanel {
 			updateRois();
 		});
 		persistentEpisodes.setToolTipText(
-				"Signed 1-6 bin accumulation, thresholds calibrated on no-fly controls; neighbouring negative movements test persistence. Amplitudes come from ordered level positions. Slider scales all duration thresholds.");
+				"Signed 1-6 bin movement must persist between robust level plateaus and remain above its limit after fitting. Controls use the same test. Groups keep their time span; bars within one group are time bins, not separately resolved gulps.");
 		localEvaporation.setToolTipText(
 				"Optional scale of the common evaporation shape from quiet runs; uncertain estimates retain the common model.");
 		localEvaporation.addActionListener(e -> {
@@ -376,7 +382,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		showRois.setToolTipText(
 				"Show intake amplitudes and evaporation plus cumulative intake, starting at raw t=0; later raw levels do not reset the grey curve.");
 		threshold.setToolTipText(
-				"Threshold on downward motion minus expected evaporation, divided by interval duration.");
+				"Sensitivity setting in pixels/min. In episode mode, control-calibrated thresholds and sustained plateau checks also apply; crossing the red line alone does not accept a gulp.");
 		automatic.setToolTipText("Quiet-period median + 3 robust noise SD, with a no-fly control noise floor.");
 		save.setToolTipText(
 				"Store the candidates of this capillary as correlation gulps (saved with the capillary measures).");
@@ -790,7 +796,14 @@ public final class CorrelationIntakePanel extends JPanel {
 		seriesWorker.execute();
 	}
 
+	private void updateDetectorLabel() {
+		detectorVersion.setText(persistentEpisodes.isSelected()
+				? "Detector " + IntakeEpisodes.METHOD_VERSION + " - persistent episodes"
+				: "Detector " + IntakeEpisodes.METHOD_VERSION + " - single-bin (persistence off)");
+	}
+
 	private void updateModeControls() {
+		updateDetectorLabel();
 		boolean busy = batchWorker != null || seriesWorker != null;
 		batchControls.setVisible(runMode.getSelectedIndex() == 1);
 		seriesControls.setVisible(runMode.getSelectedIndex() == 2);
@@ -864,7 +877,7 @@ public final class CorrelationIntakePanel extends JPanel {
 				for (int i = 0; i < chosen.length; i++)
 					if (chosen[i]) amplitudes[i] = Math.max(0, p.motion.shift[i]);
 			}
-			options = "v3,source=accepted_topraw,persistent=" + episodes + ",local=" + local
+			options = IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes + ",local=" + local
 					+ ",scale=" + (local ? p.localScale.factor : 1);
 		}
 
@@ -1252,7 +1265,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private String methodOptions() {
-		return "v3,source=accepted_topraw,persistent=" + persistentEpisodes.isSelected() + ",local="
+		return IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + persistentEpisodes.isSelected() + ",local="
 				+ localEvaporation.isSelected();
 	}
 
@@ -1278,6 +1291,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void refresh() {
+		updateDetectorLabel();
 		if (preview != null) {
 			int count = 0, good = 0;
 			for (boolean v : candidates())
@@ -1313,15 +1327,17 @@ public final class CorrelationIntakePanel extends JPanel {
 			double observed = preview.raw[preview.raw.length - 1] - preview.raw[0]
 					- preview.evaporation[preview.evaporation.length - 1] + preview.evaporation[0];
 			status.setText("<html>"
-					+ (persistentEpisodes.isSelected() ? episodeDetection().episodes + " episodes / " : "") + count
-					+ " bins" + (persistentEpisodes.isSelected() ? " / " + diagnostics().size() + " diagnostics" : "")
+					+ (persistentEpisodes.isSelected() ? episodeDetection().episodes + " episodes / " + count + " intake bins" : count + " bins")
+					+ (persistentEpisodes.isSelected() ? " / " + diagnostics().size() + " diagnostics" : "")
 					+ " | net " + format(net) + " px; raw minus evaporation " + format(observed) + " px"
 					+ (Math.abs(net - observed) > Math.max(3, .2 * Math.abs(observed))
 							? " | cumulative mismatch: inspect tracking/evaporation"
 							: "")
 					+ "<br>" + good + "/" + (preview.raw.length - 1) + " usable level increments | threshold "
 					+ format(value()) + " px/min (" + (manual ? "manual" : "automatic") + ") | time "
-					+ format(preview.minutes[selectedFrame]) + " min | " + storage + "</html>");
+					+ format(preview.minutes[selectedFrame]) + " min | method " + IntakeEpisodes.METHOD_VERSION
+					+ (persistentEpisodes.isSelected() ? " / persistent episodes" : " / single-bin (persistence off)")
+					+ " | " + storage + "</html>");
 		}
 		plot.repaint();
 		alignment.repaint();
@@ -1537,7 +1553,7 @@ public final class CorrelationIntakePanel extends JPanel {
 			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 			g.setColor(Color.DARK_GRAY);
 			g.drawString(persistentEpisodes.isSelected()
-					? "Blue: accepted-level motion minus evaporation; red: episode bins; line: single-bin threshold (multi-bin thresholds differ)"
+					? "Blue: motion minus evaporation; red: detected intake bins; line: threshold setting (controls and persistence also apply)"
 					: "Blue: accepted-level motion minus evaporation; grey: evaporation model (pixels/min); red: candidate intervals",
 					65, 20);
 			if (preview == null) {
@@ -1597,7 +1613,7 @@ public final class CorrelationIntakePanel extends JPanel {
 			g.setColor(new Color(180, 30, 30));
 			g.setStroke(new BasicStroke(2));
 			g.drawLine(65, y(value()), getWidth() - 25, y(value()));
-			g.drawString((automaticMode() ? "Automatic threshold: " : "Drag threshold: ") + format(value()),
+			g.drawString((automaticMode() ? "Automatic setting: " : "Drag threshold setting: ") + format(value()),
 					75, Math.max(35, y(value()) - 6));
 			g.setColor(Color.GRAY);
 			g.setStroke(new BasicStroke(1));

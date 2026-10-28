@@ -179,17 +179,28 @@ gulps, browser restoration, stopping before/during save, and detection/save fail
 
 - **Persistent episodes (1-6 bins)** (default on): signed displacements minus
   expected evaporation accumulate over 1 through 6 consecutive valid bins.
-  Each duration is compared against the 99.5th percentile of same-duration
-  signed sums from held-out no-fly controls, with the automatic single-bin
-  threshold as an additional floor. At least 30 control windows are required
+  Method v5 limits this signed amount by the sustained before/after level
+  contrast. Overlapping three-point medians on each side reject one- and
+  two-bin excursions without subtracting every negative noise fluctuation.
+  Held-out no-fly controls undergo the same sustained-change test; each duration
+  uses its 99.5th percentile, with the automatic setting as an additional floor.
+  At least 30 control windows are required
   for a duration longer than one bin. The threshold slider scales all duration
-  thresholds together; its red horizontal line represents only the single-bin
-  threshold. Red points may therefore lie below it in episode mode.
-  Negative increments within a candidate window count fully. Negative
-  increments in the preceding/following two bins reduce its persistent
-  amplitude. Missing or excluded increments cannot be bridged. A median before/after
-  check on the accepted level minus evaporation also limits the
-  amplitude. Highest-scoring non-overlapping windows become episodes.
+  thresholds together; the red horizontal line is labelled as a **threshold
+  setting**, not the complete acceptance rule. Red points may lie below it in
+  episode mode. Negative increments inside a candidate count fully, and
+  missing/excluded increments cannot be bridged. Unusable neighbouring context
+  truncates the available flank instead of vetoing a valid event.
+  Individually supported one-bin steps are selected before grouped windows.
+  Remaining non-overlapping windows are ranked by evidence relative to their
+  limit. Each group has a temporary representative boundary for fitting;
+  intermediate transition samples are excluded from plateau observations.
+  Its final fitted amplitude must still exceed the acceptance limit. Unsupported
+  fitted events are removed and the remaining plateaus are refitted until stable.
+  A retained group's fitted amplitude is distributed over its positive measured
+  excess increments, preserving its time span, total volume and ordered geometry.
+  The status distinguishes episodes from intake bins; small bars within one
+  supported episode are not separately resolved biological gulps.
   Turning this off restores the original single-bin threshold detector.
 - **Local evaporation** (default off): optional scaling of the shared
   evaporation shape using quiet runs of at least five intervals. Each run
@@ -203,15 +214,38 @@ gulps, browser restoration, stopping before/during save, and detection/save fail
   was untouched, nor identify evaporation during uninterrupted feeding.
   Held-out noise controls undergo the same optional adjustment.
 
+The cam02_1mM follow-up annotations show why this option matters: quiet-run
+estimates use approximately 0.61 of the common evaporation for 2L, 0.64 for
+3L, 0.37 for 6L, 0.49 for 7L, and 0.45 for 8L (all pass the estimator's
+existing support/stability checks). A read-only common/local comparison
+recovers 3L near minutes 17/35, 7L near 90, 8L near 48, and several grouped
+6L movements when local scaling is enabled. This supports an evaporation-model
+mismatch, not a universal recommendation to lower the detection threshold.
+The 7L early fitted bar amplitudes also change and need image-based review.
+Local scaling is a heuristic estimate from presumed quiet runs; it does not
+prove that those runs contain no feeding, or establish the physical cause of
+the difference from the controls. Keep the common/local comparison available.
+
 The graph always shows motion minus the active evaporation model in pixels
 per minute. Actual timestamps supply interval durations. The automatic
 single-bin estimate remains quiet-period median + 3 robust noise SD, with an
 no-fly control noise floor. Quality exclusions appear as crosses.
 
+For v4/v5 validation, keep **Persistent episodes** enabled when comparing common
+and local evaporation. Turning it off selects the legacy per-bin threshold
+rule, bypassing plateau persistence and grouped fitting. The header and bottom
+status explicitly name the active rule, in addition to the version. In
+cam03_10mM, local evaporation plus single-bin mode reproduces 5R/6R/7R counts
+of 9/9/7 and the 148.10-minute time axis. For 6L, its net single-bin total is
+about 83.25 px versus 88.32 px observed minus evaporation; persistent mode gives
+88.52 px. This explains that reconstruction mismatch without changing its t0
+anchor. Persistent mode still produces some apparent events in quiet right
+capillaries, so it is not a substitute for validating the evaporation model.
+
 ## Amplitudes, display and saving
 
 In single-bin mode amplitudes remain total positive accepted-level displacement.
-In episode mode (method version 3), accepted bin boundaries partition the
+In episode mode (method version 5), accepted bin boundaries partition the
 accepted evaporation-corrected levels into plateaus. Plateau medians, weighted
 by their observed sample counts, are fitted jointly under a nondecreasing
 constraint using isotonic regression. Reversals are pooled; accepted boundaries
@@ -222,7 +256,8 @@ amplitude convention. A bar's bottom is the fitted level plus evaporation;
 its top is the preceding fitted level plus preceding evaporation. Successive
 bars therefore cannot overlap when modeled evaporation is nondecreasing.
 Neither endpoint is forced to agree with the measured recording endpoint.
-Adjacent bins can share a boundary and are not necessarily resolved gulps.
+Adjacent supported steps remain separate. A multi-bin group retains its temporal
+support after fitting and does not establish how many individual gulps occurred.
 Single-bin mode uses the same accepted-level increments for comparison.
 
 **Show diagnostics** (default on) separates warning types:
@@ -293,11 +328,15 @@ description/measure readers (including refinement quality) and writes local
 per-capillary traces plus every 1-6-bin acceptance gate. Arguments are an output
 directory followed by experiment directories; no experiment save is performed.
 Compile with the same classpath as `CorrelationPanelSmoke.java`.
+Use `-Dintake.local=true` for a separate local-evaporation replay; the summary
+and trace files record the estimated/applied scale, quiet sample count, and
+estimator support flag. Output goes only to the specified local directory.
 
 The reported misses in cam02_1mM (1L/3L/6L/7L/8L), cam03_10mM (4L/8L), and
 cam04_10mM (2L/3L), under `17-10-26_Quinine`, provide a targeted regression set.
-The October 28 replay reproduces the saved event counts on all 60 capillaries
-using automatic thresholds, persistent episodes and common evaporation. Examples:
+The initial October 28 replay reproduced the saved v3 event counts on all 60
+capillaries using automatic thresholds, persistent episodes and common evaporation.
+The v3 rejection explanations were:
 
 - Cam02 1L, minutes 85-86: 2.10 px excess exceeds the two-bin 1.74 px limit,
   but subtracting neighbouring negative increments leaves 1.19 px, so it fails
@@ -314,10 +353,40 @@ using automatic thresholds, persistent episodes and common evaporation. Examples
   adjacent positive bins. Resolving close individual gulps requires separate
   segmentation validation, not just a lower detection threshold.
 
-These are rejection explanations, not independently verified event labels.
-Some no-fly controls already contain detected events, so a sensitivity change
-must also be checked against controls and additional experiments. No detector
-threshold or acceptance rule was changed by this investigation.
+The v4 revision implements sustained plateau evidence, identical control
+calibration, truncated quality context, separate supported single-bin steps,
+and transition-aware plateau fits. The method version is stored in result
+metadata; old v3 rows remain readable and are not treated as current v4 results.
+
+The subsequent v5 revision checks each episode's fitted amplitude against the
+limit that accepted it, removing unsupported events and refitting. Grouped intake
+is distributed back over its observed positive increments after the shared
+plateau fit; it is no longer rendered as one displaced bar. On cam03_10mM with
+local evaporation and persistence, the extra 1R/2R/4R events become zero. The
+3L/4L cascades retain their measured time span and unchanged total intake.
+Some initial 0R events and events in 5R/6R/8R remain: these require further
+startup/evaporation validation, not a claim that false detections are solved.
+The six-experiment read-only comparison covers the same 119 usable capillaries;
+no previously zero no-fly control becomes positive, and total detected control
+displacement does not increase in any of those experiments. Old v3/v4 results
+remain readable; v5 results carry distinct method metadata.
+The rate-only API without accepted-level anchors retains its legacy rule.
+
+A read-only old/new comparison covered 119 usable capillaries (23 controls)
+across the three reported experiments plus cam01_1mM, cam03_0.1mM and
+cam04_0.1mM. One capillary with a saved-level/timestamp length mismatch was
+explicitly skipped. Recoveries include cam02 1L at 85-86 minutes, 6L around
+69-74 and 90-94, 8L's post-step tail at 40-41, cam03 4L/8L near 75/85 minutes,
+and cam04 3L at minute 7 and later early steps. Cam03 8L's fitted amplitude
+remains small despite accepted local evidence; evaporation/plateau-fit bias
+still needs image-based review. Cam02 3L around minute 35, 7L around minute 90,
+and 6L around 35-38 remain too weak or inconsistent for the revised rule.
+
+The comparison does not establish sensitivity or specificity. One previously
+zero control (cam01 9R) acquires approximately 0.33 px of fitted intake; some
+already-positive control amplitudes increase. Other zero controls remain zero.
+Review the named capillaries and controls before applying the new method to
+all experiments. No experimental measurements were saved by the comparison.
 
 JUnit covers signed fractional registration, adaptive search limits, noise
 returns, grouped intake, missing data, anchored-level checks, local scale
@@ -349,7 +418,7 @@ minutes, and cam02 1L's first large drop (about 7.9 pixels; range expands to
 under/overestimated cumulative intake, and cam02 9R retains an apparent event
 with the common evaporation model. These checks do not establish event-level
 sensitivity or specificity: no independent annotated ground truth is available.
-The 1-6-bin range, two-bin persistence context, empirical percentile and local
+The 1-6-bin range, overlapping three-point persistence flanks, empirical percentile and local
 scale limits remain prototype choices; sustained/longer feeding needs separate
 review. Fewer false events must be weighed against losing genuine isolated
 small intakes near tracking fluctuations.

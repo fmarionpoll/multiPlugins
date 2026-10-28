@@ -210,6 +210,8 @@ public class CorrelationIntakeBatchSmoke {
                         Map<?, ?> results = (Map<?, ?>)field(p, "batchResults");
                         check(results.size() == 3, "Missing batch capillaries: " + ((JLabel)field(p, "batchStatus")).getText());
                         check(!((JSpinner)field(p, "threshold")).isEnabled(), "Automatic threshold editable");
+                        check(((JLabel)field(p, "detectorVersion")).getText().contains(episodes ? "persistent episodes" : "single-bin (persistence off)"),
+                                "Detector label does not identify the active rule");
                         Method amplitudes = p.getClass().getDeclaredMethod("candidateAmplitudes"); amplitudes.setAccessible(true);
                         Method bottoms = p.getClass().getDeclaredMethod("candidateBottoms"); bottoms.setAccessible(true);
                         for (Capillary cap : exp.getCapillaries().getList()) {

@@ -6,6 +6,71 @@ import java.util.Collections;
 import org.junit.Test;
 
 public class IntakeEpisodesTest {
+    private double[] levels(double[] rate) {
+        double[] levels = new double[rate.length];
+        for (int i = 1; i < rate.length; i++) levels[i] = levels[i - 1] + rate[i];
+        return levels;
+    }
+    private IntakeEpisodes.Detection accepted(double[] rate, boolean[] valid) {
+        return IntakeEpisodes.detect(rate, times(rate.length), valid,
+                Collections.singletonList(new double[rate.length]), 1.4, 1.4, levels(rate));
+    }
+    @Test public void nearbySmallNoiseDoesNotErasePersistentStep() {
+        double[] r = new double[60]; r[18] = -.5; r[19] = .4; r[20] = 1.6; r[21] = -.2; r[22] = .3;
+        IntakeEpisodes.Detection d = accepted(r, valid(60));
+        assertTrue(d.net[20] > 1.4);
+    }
+    @Test public void acceptedLevelsRejectOneAndTwoBinExcursionsInBothDirections() {
+        for (int duration : new int[] { 1, 2 }) for (int direction : new int[] { -1, 1 }) {
+            double[] r = new double[60]; r[20] = direction * 3; r[20 + duration] = -direction * 3;
+            assertEquals(0, Arrays.stream(accepted(r, valid(60)).net).sum(), 0);
+        }
+    }
+    @Test public void excludedNeighbourDoesNotVetoValidStepAndCannotBeBridged() {
+        double[] r = new double[60]; r[19] = 4; boolean[] v = valid(60); v[20] = false;
+        assertEquals(4, accepted(r, v).net[19], 1e-9);
+        r[19] = .9; r[21] = .9;
+        assertEquals(0, Arrays.stream(accepted(r, v).net).sum(), 0);
+    }
+    @Test public void closeIndividuallyResolvedStepsKeepSeparateBoundaries() {
+        double[] r = new double[60]; r[20] = 4; r[21] = 3;
+        IntakeEpisodes.Detection d = accepted(r, valid(60));
+        assertEquals(4, d.net[20], 1e-9); assertEquals(3, d.net[21], 1e-9);
+        assertEquals(2, d.episodes);
+    }
+    @Test public void groupedMovementPreservesItsTimeSpanAndOrderedGeometry() {
+        double[] r = new double[60]; r[20] = .8; r[21] = .9; r[22] = -.1; r[23] = .7;
+        IntakeEpisodes.Detection d = accepted(r, valid(60));
+        assertEquals(2.3, Arrays.stream(d.net).sum(), 1e-9);
+        assertEquals(3, Arrays.stream(d.net).filter(v -> v > 0).count());
+        assertEquals(0, d.net[22], 0);
+        for (int i = 20; i <= 23; i++)
+            assertEquals(d.net[i], d.position[i] - d.position[i-1], 1e-9);
+        assertEquals(1, d.episodes);
+    }
+    @Test public void groupedRampIsNotAPlateauAndDoesNotMergeWithFollowingStep() {
+        double[] r = new double[60]; r[1] = .8; r[2] = .9; r[3] = .7; r[4] = 5;
+        IntakeEpisodes.Detection d = accepted(r, valid(60));
+        assertEquals(.8, d.net[1], 1e-9);
+        assertEquals(.9, d.net[2], 1e-9);
+        assertEquals(.7, d.net[3], 1e-9);
+        assertEquals(5, d.net[4], 1e-9);
+        assertEquals(7.4, Arrays.stream(d.net).sum(), 1e-9);
+    }
+    @Test public void locallyPlausibleEventIsRemovedIfFittedAmplitudeFailsItsLimit() {
+        double[] r = new double[60]; r[20] = 4; r[25] = -3;
+        IntakeEpisodes.Detection d = accepted(r, valid(60));
+        assertEquals(0, Arrays.stream(d.net).sum(), 0);
+        assertEquals(0, d.episodes);
+    }
+    @Test public void controlCalibrationUsesSustainedChangesRatherThanReturningSpikes() {
+        double[] r = new double[80]; r[30] = 1.6;
+        double[] control = new double[80]; control[20] = 3; control[21] = -3;
+        control[45] = -3; control[46] = 3;
+        IntakeEpisodes.Detection d = IntakeEpisodes.detect(r, times(80), valid(80),
+                Collections.singletonList(control), 1.4, 1.4, levels(r));
+        assertEquals(1.6, d.net[30], 1e-9);
+    }
     private double[] times(int n) { double[] t = new double[n]; for (int i=0;i<n;i++) t[i]=i; return t; }
     private boolean[] valid(int n) { boolean[] v = new boolean[n]; Arrays.fill(v,true); v[0]=false; return v; }
     private IntakeEpisodes.Detection detect(double[] r, boolean[] valid) {

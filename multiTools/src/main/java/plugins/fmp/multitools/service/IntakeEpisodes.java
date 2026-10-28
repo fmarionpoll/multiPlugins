@@ -5,8 +5,9 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-/** Experimental signed, persistent intake episodes. All amplitudes are native pixels. */
+/** Experimental signed, persistent intake episodes. Amplitudes are kymograph pixels. */
 public final class IntakeEpisodes {
+    public static final String METHOD_VERSION = "v5";
     private IntakeEpisodes() { }
 
     public static final class EvaporationScale {
@@ -60,6 +61,7 @@ public final class IntakeEpisodes {
         /** Jointly ordered evaporation-corrected positions; null for the legacy rate-only API. */
         public final double[] position;
         public final List<Gap> gaps;
+        /** Surviving fitted episodes; a multi-bin episode need not be one biological gulp. */
         public final int episodes;
         private Detection(double[] net, int episodes) { this(net, episodes, null, new ArrayList<>()); }
         private Detection(double[] net, int episodes, double[] position, List<Gap> gaps) {
@@ -79,14 +81,14 @@ public final class IntakeEpisodes {
     }
 
     private static final class Candidate {
-        int first, last;
-        double amount, score;
+        int first, last, boundary;
+        double amount, score, limit;
     }
 
-    /** Search 1..6 consecutive bins. Calibrate each duration using held-out empty
-     * capillaries. Threshold slider scales all duration thresholds together.
-     * Neighbouring signed increments test whether the displacement persists.
-     * Greedy non-overlapping episodes prevent counting the same movement twice.
+    /** Search 1..6 consecutive bins, calibrated against held-out empty capillaries.
+     * Accepted-level mode compares signed movement with robust before/after plateaus;
+     * neighbouring quality gaps truncate the flanks, never the candidate itself.
+     * Resolve supported single-bin steps before grouping unresolved movement.
      */
     public static Detection detect(double[] rate, double[] times, boolean[] valid,
             List<double[]> controlRates, double automatic, double threshold) {
@@ -98,14 +100,25 @@ public final class IntakeEpisodes {
         double[] net = new double[rate.length];
         if (!Double.isFinite(threshold) || threshold < 0) return new Detection(net, 0);
         if (!(automatic > 0)) automatic = Math.max(threshold, .05);
+        List<double[]> controlLevels = new ArrayList<>();
+        if (correctedLevels != null) for (double[] control : controlRates) {
+            double[] levels = new double[control.length];
+            for (int i = 1; i < levels.length; i++)
+                levels[i] = Double.isFinite(control[i]) ? levels[i - 1] + control[i] * (times[i] - times[i - 1]) : 0;
+            controlLevels.add(levels);
+        }
         List<Candidate> all = new ArrayList<>();
         for (int width = 1; width <= 6; width++) {
             List<Double> background = new ArrayList<>();
-            for (double[] control : controlRates)
+            for (int c = 0; c < controlRates.size(); c++) {
+                double[] control = controlRates.get(c);
                 for (int a = 1; a + width <= rate.length; a++) {
                     double sum = sum(control, times, null, a, a + width - 1);
+                    if (correctedLevels != null) sum = Math.min(sum,
+                            plateauContrast(controlLevels.get(c), control, null, a, a + width - 1));
                     if (Double.isFinite(sum)) background.add(sum);
                 }
+            }
             // No duration calibration: preserve only the single-bin option.
             if (background.size() < 30 && width > 1) continue;
             background.sort(Double::compare);
@@ -117,30 +130,36 @@ public final class IntakeEpisodes {
                 double duration = times[b] - times[a - 1];
                 double limit = Math.max(empirical, automatic * duration / width) * threshold / automatic;
                 if (!(amount > limit)) continue;
-                // Keep every negative neighbouring displacement; positive neighbours
-                // are left for their own episode. This rejects overshoot-and-return.
-                double persistent = amount;
-                for (int k = Math.max(1, a - 2); k <= Math.min(rate.length - 1, b + 2); k++) {
-                    if (k >= a && k <= b) continue;
-                    if (!valid[k] || !Double.isFinite(rate[k])) { persistent = Double.NaN; break; }
-                    persistent += Math.min(0, rate[k] * (times[k] - times[k - 1]));
+                double persistent;
+                if (correctedLevels != null) {
+                    // Test the sustained level difference, not the sum of every
+                    // negative noise fluctuation on both sides of a true step.
+                    // Controls above use this same sustained-change statistic.
+                    persistent = Math.min(amount, plateauContrast(correctedLevels, rate, valid, a, b));
+                } else {
+                    // Preserve the legacy rate-only API when no level anchors exist.
+                    persistent = amount;
+                    for (int k = Math.max(1, a - 2); k <= Math.min(rate.length - 1, b + 2); k++) {
+                        if (k >= a && k <= b) continue;
+                        if (!valid[k] || !Double.isFinite(rate[k])) { persistent = Double.NaN; break; }
+                        persistent += Math.min(0, rate[k] * (times[k] - times[k - 1]));
+                    }
                 }
                 if (!(persistent > limit)) continue;
-                if (correctedLevels != null) {
-                    // A separate, raw-anchored level check limits accumulation drift.
-                    // Median positions suppress isolated tracking excursions.
-                    double before = medianRange(correctedLevels, Math.max(0, a - 3), a - 1);
-                    double after = medianRange(correctedLevels, b, Math.min(rate.length - 1, b + 2));
-                    persistent = Math.min(persistent, after - before);
-                    if (!(persistent > limit)) continue;
-                }
                 Candidate c = new Candidate();
                 c.first = a; c.last = b; c.amount = persistent; c.score = persistent / Math.max(limit, 1e-9);
+                c.limit = limit;
                 all.add(c);
             }
         }
-        all.sort(Comparator.comparingDouble((Candidate c) -> -c.score).thenComparingInt(c -> c.last - c.first));
+        Comparator<Candidate> ranking = Comparator.comparingDouble((Candidate c) -> -c.score)
+                .thenComparingInt(c -> c.last - c.first);
+        if (correctedLevels != null)
+            ranking = Comparator.comparingInt((Candidate c) -> c.first == c.last ? 0 : 1).thenComparing(ranking);
+        all.sort(ranking);
         boolean[] used = new boolean[rate.length];
+        boolean[] transition = new boolean[rate.length];
+        List<Candidate> selected = new ArrayList<>();
         int count = 0;
         for (Candidate c : all) {
             boolean overlaps = false;
@@ -148,23 +167,70 @@ public final class IntakeEpisodes {
             if (overlaps) continue;
             double positive = 0;
             for (int k = c.first; k <= c.last; k++) positive += Math.max(0, rate[k] * (times[k] - times[k - 1]));
+            int boundary = c.first;
+            for (int k = c.first + 1; k <= c.last; k++)
+                if (rate[k] * (times[k] - times[k - 1]) > rate[boundary] * (times[boundary] - times[boundary - 1])) boundary = k;
+            c.boundary = boundary;
+            selected.add(c);
             for (int k = c.first; k <= c.last; k++) {
                 used[k] = true;
-                net[k] = c.amount * Math.max(0, rate[k] * (times[k] - times[k - 1])) / positive;
+                // A grouped change has one representative boundary; intermediate
+                // ramp samples must not bias either neighbouring plateau's fit.
+                if (correctedLevels != null && k < c.last) transition[k] = true;
+                net[k] = correctedLevels == null
+                        ? c.amount * Math.max(0, rate[k] * (times[k] - times[k - 1])) / positive
+                        : k == boundary ? c.amount : 0;
             }
             count++;
         }
-        return correctedLevels == null ? new Detection(net, count)
-                : ordered(net, correctedLevels, times, valid, controlRates, automatic, threshold);
+        if (correctedLevels == null) return new Detection(net, count);
+        Detection fitted;
+        for (;;) {
+            fitted = ordered(net, correctedLevels, times, valid, controlRates, automatic, threshold, transition);
+            boolean removed = false;
+            for (java.util.Iterator<Candidate> it = selected.iterator(); it.hasNext();) {
+                Candidate c = it.next();
+                // A locally plausible candidate is not an intake if its fitted
+                // amount no longer clears the same acceptance limit. Refit after
+                // removal instead of keeping a tiny noise bar or clipping it.
+                if (!(fitted.net[c.boundary] > c.limit)) {
+                    net[c.boundary] = 0;
+                    for (int k = c.first; k < c.last; k++) transition[k] = false;
+                    it.remove();
+                    removed = true;
+                }
+            }
+            if (!removed) break;
+        }
+        double[] amounts = fitted.net.clone(), positions = fitted.position.clone();
+        for (Candidate c : selected) {
+            if (c.first == c.last) continue;
+            double total = fitted.net[c.boundary], weight = 0;
+            for (int k = c.first; k <= c.last; k++)
+                weight += Math.max(0, rate[k] * (times[k] - times[k - 1]));
+            double position = fitted.position[c.boundary - 1];
+            for (int k = c.first; k <= c.last; k++) {
+                amounts[k] = total * Math.max(0, rate[k] * (times[k] - times[k - 1])) / weight;
+                position += amounts[k];
+                positions[k] = position;
+            }
+        }
+        return new Detection(amounts, selected.size(), positions, fitted.gaps);
     }
 
     /** Fit shared plateau positions, rather than assigning independent bar lengths.
      * Robust plateau medians are jointly constrained by weighted isotonic regression.
      * Acceptance uses signed motion; amplitude uses only the fitted level difference.
+     * Samples inside an accepted grouped transition are excluded from plateau observations.
      * No endpoint constraint and no clipping of independently anchored bars is used.
      */
     public static Detection ordered(double[] accepted, double[] levels, double[] times, boolean[] valid,
             List<double[]> controls, double automatic, double threshold) {
+        return ordered(accepted, levels, times, valid, controls, automatic, threshold, new boolean[levels.length]);
+    }
+
+    private static Detection ordered(double[] accepted, double[] levels, double[] times, boolean[] valid,
+            List<double[]> controls, double automatic, double threshold, boolean[] transition) {
         int n = levels.length;
         if (accepted.length != n || times.length != n || valid.length != n)
             throw new IllegalArgumentException("Episode arrays must have equal lengths");
@@ -174,9 +240,9 @@ public final class IntakeEpisodes {
         boolean[] unassigned = new boolean[n];
         int pauseStart = 0;
         for (int i = 1; i <= n; i++) {
-            if (i < n && !(accepted[i] > 0)) continue;
+            if (i < n && !(accepted[i] > 0) && !transition[i]) continue;
             inspectGap(gaps, levels, times, valid, controls, pauseStart, i - 1, automatic, threshold);
-            pauseStart = i;
+            pauseStart = i < n && transition[i] ? i + 1 : i;
         }
         // Let a flagged gap have its own unresolved level change, so its movement
         // is not silently absorbed into the amplitudes of neighbouring intakes.
@@ -203,7 +269,7 @@ public final class IntakeEpisodes {
         for (int b = 0; b < blocks; b++) {
             List<Double> observations = new ArrayList<>();
             for (int i = starts.get(b); i <= ends.get(b); i++)
-                if (Double.isFinite(levels[i])) observations.add(levels[i]);
+                if (!transition[i] && Double.isFinite(levels[i])) observations.add(levels[i]);
             if (observations.isEmpty()) continue;
             value[used] = median(observations); weight[used] = observations.size();
             first[used] = b; last[used] = b; used++;
@@ -222,7 +288,7 @@ public final class IntakeEpisodes {
             if (accepted[i] > 0 && valid[i] && Double.isFinite(position[i]) && Double.isFinite(position[i - 1])) {
                 net[i] = Math.max(0, position[i] - position[i - 1]);
                 if (net[i] <= 1e-9) net[i] = 0;
-                if (net[i] > 1e-9 && (i == 1 || net[i - 1] <= 1e-9)) count++;
+                if (net[i] > 1e-9) count++;
             }
         }
         return new Detection(net, count, position, gaps);
@@ -260,6 +326,23 @@ public final class IntakeEpisodes {
             sum += rate[i] * (times[i] - times[i - 1]);
         }
         return sum;
+    }
+
+    private static double plateauContrast(double[] levels, double[] rate, boolean[] valid, int a, int b) {
+        int first = a - 1, last = b;
+        while (first > Math.max(0, a - 4) && usable(rate, valid, first)) first--;
+        while (last < Math.min(levels.length - 1, b + 3) && usable(rate, valid, last + 1)) last++;
+        double after = medianRange(levels, b, Math.min(last, b + 2));
+        // Overlapping three-point flanks reject one/two-bin excursions without
+        // adding every unrelated negative noise increment to the event's score.
+        if (last >= b + 3) after = Math.min(after, medianRange(levels, b + 1, last));
+        double before = medianRange(levels, Math.max(first, a - 3), a - 1);
+        if (first <= a - 4) before = Math.max(before, medianRange(levels, first, a - 2));
+        return after - before;
+    }
+
+    private static boolean usable(double[] rate, boolean[] valid, int i) {
+        return (valid == null || valid[i]) && Double.isFinite(rate[i]);
     }
 
     private static double median(List<Double> values) {
