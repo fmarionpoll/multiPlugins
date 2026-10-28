@@ -19,22 +19,52 @@ public final class MeniscusRefinement {
     public static BufferedImage image(Sequence seq, Capillary cap, int width) {
         int index = cap.getKymographIndex();
         if (index < 0 || index >= seq.getSizeT()) throw new IllegalArgumentException("Kymograph not loaded: " + cap.getKymographName());
-        IcyBufferedImage input = seq.getImage(index, 0);
-        if (input == null || input.getSizeX() != width || input.getSizeC() < 3)
-            throw new IllegalArgumentException("Expected a native RGB kymograph for " + cap.getKymographName());
+        return image(seq.getImage(index, 0), cap, width);
+    }
+
+    /**
+     * Sample native RGB pixels at the saved topraw X coordinates. A trajectory
+     * may cover only part of the image or omit columns; its point count is not
+     * the image width. No levels are added or rescaled.
+     */
+    public static BufferedImage image(IcyBufferedImage input, Capillary cap, int width) {
+        if (input == null)
+            throw new IllegalArgumentException("Kymograph image is missing for " + cap.getKymographName());
+        Level2D raw = cap.getTopRaw().polylineLevel;
+        if (raw == null || raw.npoints != width || width < 1)
+            throw new IllegalArgumentException("Topraw point count changed for " + cap.getKymographName());
+        for (int i = 0; i < width; i++) {
+            double x = raw.xpoints[i];
+            if (!Double.isFinite(x) || x < 0 || x > input.getSizeX() - 1
+                    || (i > 0 && x <= raw.xpoints[i - 1]))
+                throw new IllegalArgumentException("Invalid topraw column for " + cap.getKymographName()
+                        + ": point=" + i + ", x=" + x + ", image=" + input.getSizeX()
+                        + " columns, topraw=" + width + " points; X coordinates must increase within the image");
+        }
+        if (input.getSizeC() < 3)
+            throw new IllegalArgumentException("RGB correlation requires at least 3 channels for "
+                    + cap.getKymographName() + "; image=" + input.getSizeX() + "x" + input.getSizeY()
+                    + ", channels=" + input.getSizeC() + ", topraw=" + width + " points");
         double[][] channels = new double[3][];
         for (int c = 0; c < 3; c++) channels[c] = Array1DUtil.arrayToDoubleArray(input.getDataXY(c), input.isSignedDataType());
         BufferedImage output = new BufferedImage(width, input.getSizeY(), BufferedImage.TYPE_INT_RGB);
         int[] pixels = new int[width * input.getSizeY()];
-        for (int i = 0; i < pixels.length; i++) {
-            int rgb = 0;
-            for (int c = 0; c < 3; c++) {
-                double v = channels[c][i];
-                if (!Double.isFinite(v) || v < 0 || v > 255)
-                    throw new IllegalArgumentException("This prototype requires RGB values between 0 and 255.");
-                rgb = (rgb << 8) | (int) Math.round(v);
+        for (int y = 0; y < input.getSizeY(); y++) {
+            for (int i = 0; i < width; i++) {
+                double x = raw.xpoints[i];
+                int left = (int) Math.floor(x), right = (int) Math.ceil(x);
+                double fraction = x - left;
+                int rgb = 0;
+                for (int c = 0; c < 3; c++) {
+                    double a = channels[c][y * input.getSizeX() + left];
+                    double b = channels[c][y * input.getSizeX() + right];
+                    if (!Double.isFinite(a) || a < 0 || a > 255
+                            || !Double.isFinite(b) || b < 0 || b > 255)
+                        throw new IllegalArgumentException("This prototype requires RGB values between 0 and 255.");
+                    rgb = (rgb << 8) | (int) Math.round(a * (1 - fraction) + b * fraction);
+                }
+                pixels[y * width + i] = rgb;
             }
-            pixels[i] = rgb;
         }
         output.setRGB(0, 0, width, input.getSizeY(), pixels, 0, width);
         return output;

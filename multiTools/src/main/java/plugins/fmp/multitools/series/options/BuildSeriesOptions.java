@@ -18,7 +18,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	public enum GulpDetectionMethod {
 		XDIFFN_REF("XDiffn vs ref (classic)"), TOPRAW_DY("topraw dY (v2)"),
-		VERTICAL_CORRELATION("accepted topraw intake (prototype)");
+		VERTICAL_CORRELATION("topraw vertical correlation");
 
 		/** Interactive only: not run by the batch {@code DetectGulps} pipeline. */
 		public boolean isInteractiveOnly() {
@@ -41,7 +41,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 				return TOPRAW_DY;
 			}
 			String trimmed = value.trim();
-            if ("vertical correlation (prototype)".equals(trimmed)) return VERTICAL_CORRELATION;
+			if ("vertical correlation (prototype)".equals(trimmed)
+					|| GulpDetectionMethod.VERTICAL_CORRELATION.toString().equals(trimmed))
+				return VERTICAL_CORRELATION;
 			for (GulpDetectionMethod m : values()) {
 				if (m.name().equals(trimmed) || m.label.equals(trimmed)) {
 					return m;
@@ -66,11 +68,20 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public Rectangle parent0Rect = null;
 	public String binSubDirectory = null;
 	public int diskRadius = 5;
-	/** When true, build kymographs from expanded, length-normalized blue physical lines. */
+	/**
+	 * When true, build kymographs from expanded, length-normalized blue physical
+	 * lines.
+	 */
 	public boolean kymoFromNormedBlue = false;
-	/** Extra length as a fraction of blue length, split equally on both ends (0.10 = +5% each end). */
+	/**
+	 * Extra length as a fraction of blue length, split equally on both ends (0.10 =
+	 * +5% each end).
+	 */
 	public double kymoBlueExpansionRatio = 0.10;
-	/** When true (default), profile uses segment perpendicular to capillary; when false, horizontal line at each point. */
+	/**
+	 * When true (default), profile uses segment perpendicular to capillary; when
+	 * false, horizontal line at each point.
+	 */
 	public boolean profilePerpendicular = true;
 	public boolean doRegistration = false;
 	public int referenceFrame = 0;
@@ -95,8 +106,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean detectL = true;
 	public boolean detectR = true;
 	/**
-	 * Limit a detection run to the kymograph or capillary currently shown.
-	 * The levels dialog checkboxes own this for the session; stored options must not push it back onto those checkboxes.
+	 * Limit a detection run to the kymograph or capillary currently shown. The
+	 * levels dialog checkboxes own this for the session; stored options must not
+	 * push it back onto those checkboxes.
 	 */
 	public boolean detectSelectedKymo = false;
 	public int kymoFirst = 0;
@@ -104,7 +116,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public double detectGulpsThreshold_uL = .3;
 	public static final int Z_INDEX_FILTERED_FOR_GULPS = 1;
 	public ImageTransformEnums transformForGulps = ImageTransformEnums.XDIFFN;
-	/** Span for Diffn-family gulp transforms ({@code XDiffn}/{@code YDiffn}/…). Min useful value is 2. */
+	/**
+	 * Span for Diffn-family gulp transforms ({@code XDiffn}/{@code YDiffn}/…). Min
+	 * useful value is 2.
+	 */
 	public int spanDiffForGulps = 3;
 	public boolean buildGulps = true;
 
@@ -127,7 +142,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	public int threshold = -1;
 	public int flyThreshold = 60;
-	/** Percent of spot ROI mask pixels (flyPresent counts) required to treat a bin as fly-occluded when reconstructing sumNoFly. */
+	/**
+	 * Percent of spot ROI mask pixels (flyPresent counts) required to treat a bin
+	 * as fly-occluded when reconstructing sumNoFly.
+	 */
 	public double flyOccupancyPercentForSpotSumNoFly = 8.0;
 	public int backgroundThreshold = 40;
 	public int overlayThreshold = 0;
@@ -150,7 +168,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean blimitUp = false;
 	/** When true, reject blobs whose length/width exceeds {@link #limitRatio}. */
 	public boolean blimitRatio = true;
-	/** When true, reject blobs whose centroid moved more than {@link #jitter} px vs. previous frame. */
+	/**
+	 * When true, reject blobs whose centroid moved more than {@link #jitter} px vs.
+	 * previous frame.
+	 */
 	public boolean bjitter = false;
 	public boolean forceBuildBackground = false;
 	public boolean detectFlies = true;
@@ -160,7 +181,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean buildDerivative = true;
 	public boolean pass1 = true;
 	public boolean pass2 = false;
-	/** When true, detect levels directly from cam images (no kymograph build/load). */
+	/**
+	 * When true, detect levels directly from cam images (no kymograph build/load).
+	 */
 	public boolean sourceCamDirect = false;
 	public boolean directionUp2 = true;
 	public int detectLevel2Threshold = 35;
@@ -175,8 +198,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean directionUpBottom = true;
 	public int detectLevelBottomThreshold = 35;
 	/**
-	 * When &gt; 0, bottom search only scans the last N pixels from search/image bottom.
-	 * When 0, search the full vertical range upward from the bottom.
+	 * When &gt; 0, bottom search only scans the last N pixels from search/image
+	 * bottom. When 0, search the full vertical range upward from the bottom.
 	 */
 	public int bottomSearchFromBottomPx = 0;
 
@@ -193,26 +216,34 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public int jitter = 10;
 	public int nFliesPresent = 1;
 	/**
-	 * When true, keep at most {@link #nFliesPresent} largest blobs per cage per frame. When false, keep all
-	 * blobs that pass the other filters.
+	 * When true, keep at most {@link #nFliesPresent} largest blobs per cage per
+	 * frame. When false, keep all blobs that pass the other filters.
 	 */
 	public boolean blimitMaxBlobsPerCage = true;
 
-	/** When true, reject blobs whose center falls inside a spot ROI (reduces spot-consumption artifacts). */
+	/**
+	 * When true, reject blobs whose center falls inside a spot ROI (reduces
+	 * spot-consumption artifacts).
+	 */
 	public boolean bexcludeSpotBlobs = false;
 
 	/**
-	 * When true, apply morphological close (dilate then erode) on the binary fly mask before
-	 * connected-component extraction — helps merge flies split by a thin threshold gap.
+	 * When true, apply morphological close (dilate then erode) on the binary fly
+	 * mask before connected-component extraction — helps merge flies split by a
+	 * thin threshold gap.
 	 */
 	public boolean bmorphClose = false;
 
-	/** Radius (iterations of 3×3 dilate/erode) for {@link #bmorphClose}; clamped to 1–5 at use. */
+	/**
+	 * Radius (iterations of 3×3 dilate/erode) for {@link #bmorphClose}; clamped to
+	 * 1–5 at use.
+	 */
 	public int morphCloseRadius = 1;
 
 	/**
-	 * Deprecated: previous-frame rectangle carry-forward piled up false positives under
-	 * {@code t-(t-1)}. Kept for XML compatibility; detection no longer uses it.
+	 * Deprecated: previous-frame rectangle carry-forward piled up false positives
+	 * under {@code t-(t-1)}. Kept for XML compatibility; detection no longer uses
+	 * it.
 	 */
 	public boolean bcarryStillFlies = false;
 
@@ -240,71 +271,89 @@ public class BuildSeriesOptions implements XMLPersistent {
 	public boolean useGpuTransforms = false;
 
 	/**
-	 * V6 color-distance spot detection: reference colors (RGB); distance computed in {@link #spotColorSpace}.
+	 * V6 color-distance spot detection: reference colors (RGB); distance computed
+	 * in {@link #spotColorSpace}.
 	 */
 	public ArrayList<Color> spotColorReferenceList = new ArrayList<>();
 
-	/** V6: 1 = L1, 2 = L2 (matches {@link plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions#colordistanceType}). */
+	/**
+	 * V6: 1 = L1, 2 = L2 (matches
+	 * {@link plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions#colordistanceType}).
+	 */
 	public int spotColorDistanceType = 1;
 
-	/** V6: max color distance to treat a pixel as matching a reference (passed to threshold-colors transform). */
+	/**
+	 * V6: max color distance to treat a pixel as matching a reference (passed to
+	 * threshold-colors transform).
+	 */
 	public int spotColorDistanceMax = 10;
 
 	/** V6: color space for distance to {@link #spotColorReferenceList}. */
 	public SpotThresholdColorSpace spotColorSpace = SpotThresholdColorSpace.RGB;
 
 	/**
-	 * Optional V6 colors treated as background: a pixel matching {@link #spotColorReferenceList} is rejected if it is
-	 * also within {@link #spotColorExcludeDistanceMax} of any color here (same metric as spot references).
+	 * Optional V6 colors treated as background: a pixel matching
+	 * {@link #spotColorReferenceList} is rejected if it is also within
+	 * {@link #spotColorExcludeDistanceMax} of any color here (same metric as spot
+	 * references).
 	 */
 	public ArrayList<Color> spotColorExcludeList = new ArrayList<>();
 
-	/** V6: distance threshold for {@link #spotColorExcludeList}; {@code <= 0} disables exclusion. */
+	/**
+	 * V6: distance threshold for {@link #spotColorExcludeList}; {@code <= 0}
+	 * disables exclusion.
+	 */
 	public int spotColorExcludeDistanceMax = 0;
 
 	/**
-	 * V5 only: when using {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN}, restrict the local-mean neighborhood to
-	 * the spot disk ROI (CPU path).
+	 * V5 only: when using {@link ImageTransformEnums#RGB_DIFFS_LOCAL_MEAN},
+	 * restrict the local-mean neighborhood to the spot disk ROI (CPU path).
 	 */
 	public boolean v5SpotLocalMeanRestrictedToRoi = false;
 
-
 	/**
-	 * V5 only: max distance (bins) from a fly-gated NaN for which a finite sample may be tested as a border spike;
-	 * {@code 0} disables adaptive trim. Not a uniform dilation: only outliers vs. a local median are cleared.
+	 * V5 only: max distance (bins) from a fly-gated NaN for which a finite sample
+	 * may be tested as a border spike; {@code 0} disables adaptive trim. Not a
+	 * uniform dilation: only outliers vs. a local median are cleared.
 	 */
 	public int v5FlyNaNDilationBins = 1;
 
 	/**
-	 * V5 only: half-width (bins) of the window used to compute the local median grey (excluding the center bin
-	 * and NaNs) when testing border spikes. Ignored when {@link #v5FlyNaNDilationBins} is {@code 0}.
+	 * V5 only: half-width (bins) of the window used to compute the local median
+	 * grey (excluding the center bin and NaNs) when testing border spikes. Ignored
+	 * when {@link #v5FlyNaNDilationBins} is {@code 0}.
 	 */
 	public int v5FlyNaNBorderMedianHalfWidth = 2;
 
 	/**
-	 * V5 only: when a finite bin lies within {@link #v5FlyNaNDilationBins} of a fly NaN, it is cleared only if
-	 * {@code GREY_SUM_V5} is an <strong>upward</strong> outlier: strictly greater than the previous finite grey
-	 * (if any) and greater than a local median × this ratio. Genuine downward steps (fly eating) are never cleared.
-	 * Invalid values ({@code <= 1}) fall back to {@code 1.35}.
+	 * V5 only: when a finite bin lies within {@link #v5FlyNaNDilationBins} of a fly
+	 * NaN, it is cleared only if {@code GREY_SUM_V5} is an <strong>upward</strong>
+	 * outlier: strictly greater than the previous finite grey (if any) and greater
+	 * than a local median × this ratio. Genuine downward steps (fly eating) are
+	 * never cleared. Invalid values ({@code <= 1}) fall back to {@code 1.35}.
 	 */
 	public double v5FlyNaNBorderSpikeRatio = 1.35;
 
 	/**
-	 * V5 only: controls lookback for upward spike suppression before {@code GREY_SUM_CLEAN_V5}: the median baseline
-	 * uses up to {@code 2 × halfWidth + 1} <strong>prior</strong> finite bins only (current bin excluded), so wide
-	 * spikes are not mistaken for a raised local level. {@code 0} disables this pre-pass (running median only).
+	 * V5 only: controls lookback for upward spike suppression before
+	 * {@code GREY_SUM_CLEAN_V5}: the median baseline uses up to
+	 * {@code 2 × halfWidth + 1} <strong>prior</strong> finite bins only (current
+	 * bin excluded), so wide spikes are not mistaken for a raised local level.
+	 * {@code 0} disables this pre-pass (running median only).
 	 */
 	public int v5GreySumCleanSpikeMedianHalfWidth = 5;
 
 	/**
-	 * V5 only: a finite bin strictly above the previous finite grey and strictly above {@code localMedian × this}
-	 * is pulled down to that median before running median. Values {@code <= 1} disable the ratio test (and the
-	 * pre-pass has no effect when combined with half-width {@code 0}).
+	 * V5 only: a finite bin strictly above the previous finite grey and strictly
+	 * above {@code localMedian × this} is pulled down to that median before running
+	 * median. Values {@code <= 1} disable the ratio test (and the pre-pass has no
+	 * effect when combined with half-width {@code 0}).
 	 */
 	public double v5GreySumCleanSpikeRatio = 1.12;
 
 	/**
-	 * V5 only: number of upward spike passes (1–5). Multiple passes erode wider spike plateaus.
+	 * V5 only: number of upward spike passes (1–5). Multiple passes erode wider
+	 * spike plateaus.
 	 */
 	public int v5GreySumCleanSpikePasses = 2;
 
@@ -312,14 +361,14 @@ public class BuildSeriesOptions implements XMLPersistent {
 	/** When true, per-spot computations may run in parallel on the CPU. */
 	public boolean enableSpotParallelism = false;
 	/**
-	 * Desired parallelism level for spot processing.
-	 * 0 = use runtime default, 1 = force single-threaded, >1 = requested number of threads.
+	 * Desired parallelism level for spot processing. 0 = use runtime default, 1 =
+	 * force single-threaded, >1 = requested number of threads.
 	 */
 	public int spotParallelism = 0;
 
 	/**
-	 * Fraction in (0, 1] for sumNoFly reconstruction: a bin is fly-masked when flyPresent count
-	 * {@code >= ceil(fraction * ROI mask pixel count)}.
+	 * Fraction in (0, 1] for sumNoFly reconstruction: a bin is fly-masked when
+	 * flyPresent count {@code >= ceil(fraction * ROI mask pixel count)}.
 	 */
 	public double getFlyOccupancyFractionForSpotSumNoFly() {
 		double p = flyOccupancyPercentForSpotSumNoFly;
@@ -430,8 +479,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 	}
 
 	/**
-	 * Loads only the {@code LimitsOptions} subtree from {@code parent} (child element or {@code parent} itself if it is
-	 * already {@code LimitsOptions}). Used for standalone color-threshold preset files and by {@link #loadFromXML}.
+	 * Loads only the {@code LimitsOptions} subtree from {@code parent} (child
+	 * element or {@code parent} itself if it is already {@code LimitsOptions}).
+	 * Used for standalone color-threshold preset files and by {@link #loadFromXML}.
 	 *
 	 * @return true if a limits node was found and read
 	 */
@@ -451,7 +501,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 	}
 
 	/**
-	 * Writes the {@code LimitsOptions} subtree under {@code parent} without adding {@code DetectFliesParameters}.
+	 * Writes the {@code LimitsOptions} subtree under {@code parent} without adding
+	 * {@code DetectFliesParameters}.
 	 */
 	public boolean saveLimitsOptionsToParentNode(Node parent) {
 		if (parent == null) {
@@ -540,7 +591,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 		detectLevel2Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
 		levelTracking = XMLUtil.getElementBooleanValue(nodeMeta, "levelTracking", false);
 		levelSmoothing = XMLUtil.getElementBooleanValue(nodeMeta, "levelSmoothing", false);
-		levelV2.removeHorizontalAverage = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_removeHorizontalAverage", levelV2.removeHorizontalAverage);
+		levelV2.removeHorizontalAverage = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_removeHorizontalAverage",
+				levelV2.removeHorizontalAverage);
 		levelV2.tapePrepass = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_tapePrepass", levelV2.tapePrepass);
 		levelV2.runBackwards = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_runBackwards", levelV2.runBackwards);
 		levelV2.edgePeak = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_edgePeak", levelV2.edgePeak);
@@ -658,8 +710,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 		XMLUtil.setElementIntValue(nodeMeta, "levelV2_maxSpikePx", levelV2.maxSpikePx);
 		XMLUtil.setElementIntValue(nodeMeta, "jitter2", jitter2);
 		XMLUtil.setElementBooleanValue(nodeMeta, "sourceCamDirect", sourceCamDirect);
-		XMLUtil.setElementValue(nodeMeta, "transformBottom",
-				transformBottom != null ? transformBottom.toString() : "");
+		XMLUtil.setElementValue(nodeMeta, "transformBottom", transformBottom != null ? transformBottom.toString() : "");
 		XMLUtil.setElementBooleanValue(nodeMeta, "directionUpBottom", directionUpBottom);
 		XMLUtil.setElementIntValue(nodeMeta, "detectLevelBottomThreshold", detectLevelBottomThreshold);
 		XMLUtil.setElementIntValue(nodeMeta, "bottomSearchFromBottomPx", bottomSearchFromBottomPx);
@@ -674,7 +725,8 @@ public class BuildSeriesOptions implements XMLPersistent {
 				flyDetectSourceTransform != null ? flyDetectSourceTransform.toString() : "");
 		XMLUtil.setElementValue(nodeMeta, "flyDetectBackgroundTransform",
 				flyDetectBackgroundTransform != null ? flyDetectBackgroundTransform.toString() : "");
-		XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly", flyOccupancyPercentForSpotSumNoFly);
+		XMLUtil.setElementDoubleValue(nodeMeta, "flyOccupancyPercentForSpotSumNoFly",
+				flyOccupancyPercentForSpotSumNoFly);
 	}
 
 	@Override

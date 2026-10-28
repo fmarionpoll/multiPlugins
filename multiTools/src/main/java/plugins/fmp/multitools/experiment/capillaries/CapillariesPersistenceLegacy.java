@@ -26,6 +26,7 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryPersistence;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.AlongT;
+import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.kernel.roi.roi2d.ROI2DShape;
 
@@ -755,12 +756,34 @@ public class CapillariesPersistenceLegacy {
 	static boolean csvSave_MeasuresSection(Capillaries capillaries, FileWriter csvWriter,
 			EnumResults measureType, String csvSep) {
 		try {
-			if (capillaries.getList().size() <= 1)
+			if (capillaries.getList().isEmpty())
 				return false;
 
-			csvWriter.append(capillaries.getList().get(0).csvExport_MeasureSectionHeader(measureType, csvSep));
-			for (Capillary cap : capillaries.getList())
-				csvWriter.append(cap.csvExport_MeasuresOneType(measureType, csvSep));
+			boolean explicitX = false;
+			if (measureType == EnumResults.TOPRAW) {
+				for (Capillary cap : capillaries.getList()) {
+					Level2D raw = cap.getTopRaw().polylineLevel;
+					if (raw != null)
+						for (int i = 0; i < raw.npoints; i++)
+							if (raw.xpoints[i] != i) explicitX = true;
+				}
+			}
+			// The existing reader accepts XY sections. Use one for the entire
+			// TOPRAW section if any trajectory has an offset or missing columns.
+			if (explicitX) {
+				csvWriter.append("#" + csvSep + "TOPRAW" + csvSep + "columns=" + csvSep
+						+ "name" + csvSep + "index" + csvSep + "npts" + csvSep + "xi" + csvSep + "yi\n");
+				for (Capillary cap : capillaries.getList()) {
+					StringBuffer row = new StringBuffer(cap.getKymographPrefix() + csvSep
+							+ cap.getKymographIndex() + csvSep);
+					cap.getTopRaw().cvsExportXYDataToRow(row, csvSep);
+					csvWriter.append(row).append("\n");
+				}
+			} else {
+				csvWriter.append(capillaries.getList().get(0).csvExport_MeasureSectionHeader(measureType, csvSep));
+				for (Capillary cap : capillaries.getList())
+					csvWriter.append(cap.csvExport_MeasuresOneType(measureType, csvSep));
+			}
 
 			csvWriter.append("#" + csvSep + "#\n");
 		} catch (IOException e) {
