@@ -2,6 +2,37 @@
 
 The prototype has two independent steps. All runtime computation is Java.
 
+## Manual level interpolation and native columns
+
+Validating edited level/derivative ROIs now reconstructs exactly one point per
+native image column, X=0..width-1. Y is interpolated using the original double
+anchor coordinates; anchors are not truncated to integer X before interpolation.
+Crossed handles are sorted by X. For duplicate X the last original ROI anchor
+wins deterministically. End gaps copy the nearest finite anchor, matching the
+existing CapillaryMeasure validation policy. Non-finite anchors are excluded;
+if none are finite, the native grid contains NaN Y, never invented zero levels.
+An already canonical curve retains its measured Y values.
+
+This fixes the Denatonium `2018-08-09_Dénatonium/cam06_0.1mM` failure. Its images
+and timestamps have 208 columns/frames, but saved 7L had 207 points ending at
+X=206.91282855432615 and 7R had 207 points starting at X=1. The old interpolator
+kept the fractional last point and never restored the missing first column.
+Cage 3 is absent; this does not cause the mismatch. In-memory validation of the
+edited curves restores the native grid and detection completes on all 18
+capillaries. The read-only replay flag `-Dintake.validateLevels=true` reproduces
+that repair without saving experiment files.
+
+Existing saved files are not migrated automatically. After restarting Eclipse,
+open 7L and 7R in the level editor and Validate/save each before redetection.
+The gulp alignment check remains: correct counts alone cannot establish that
+point i belongs to frame i. It now checks image/timestamp counts and each native
+X, with a message naming the capillary, actual mismatch and Validate/save action.
+Changed X coordinates also invalidate prepared detections, including batch saves.
+The focused suite has 111 passing tests and two optional fixtures skipped;
+batch and browser smoke checks pass. Coverage includes fractional endpoints,
+missing end columns, crossed/duplicate handles, NaN cuts, native-grid checks,
+and transfer from an edited ROI into saved measures through the validation bridge.
+
 As of v6.2, image registration tries a full symmetric window first. Near the
 upper/lower image edge, an unreliable full-window match is retried using a
 window predominantly below/above the meniscus. The same relative rows are used
@@ -134,6 +165,21 @@ too. A saved smooth trajectory may give a much smaller noise estimate than image
 registration did. This change requires scientific validation, not just UI tests.
 
 ## Phase 2: detect intake
+
+Batch progress uses the experiment browser's absolute zero-based index and total
+experiment count. Starting a current-to-end range at index 13 of 370 displays
+`Experiment 13/370`, then 14/370, rather than numbering the subset again. The
+saved/target count in the final summary remains a count of completed work.
+
+On a processing/save failure, the browser selects that experiment and the
+persistent dialog follows it in batch mode, retaining the error details. Stop
+selects the first unfinished experiment; a save already underway finishes before
+stopping. A completed run keeps the original browser selection. Target selection
+uses experiment identity, so a changed browser model cannot select a different
+experiment merely because its index moved. Completion is signalled by the panel
+after the final status is available; late worker progress cannot overwrite it.
+Smoke checks cover all three ranges, absolute failure indices, stopping, automatic
+browser selection and preservation of the error message across panel sessions.
 
 The active detector is **v6.2**. Its header reads `Detector v6.2 - persistent
 episodes` when persistence is checked. Eclipse users can restart the debug

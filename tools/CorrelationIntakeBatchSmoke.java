@@ -65,7 +65,7 @@ public class CorrelationIntakeBatchSmoke {
     }
     static void checkSeries() throws Exception {
         java.nio.file.Path output = java.nio.file.Files.createTempDirectory(Paths.get("multiCAFE/target"), "intake-series-");
-        for (int scope = 0; scope < 4; scope++) {
+        for (int scope = 0; scope < 7; scope++) {
             Experiment[] experiments = new Experiment[3];
             for (int i = 0; i < 3; i++) {
                 experiments[i] = fixture(new int[1]);
@@ -77,28 +77,38 @@ public class CorrelationIntakeBatchSmoke {
             JComboBox<Experiment> browser = new JComboBox<>(experiments);
             browser.setSelectedIndex(1);
             int range = scope;
-            if (scope == 3) experiments[1].getCapillaries().getList().get(1).getTopRaw().polylineLevel.npoints = 4;
+            int failingIndex=scope==3?1:scope==4?2:scope==5?0:-1;
+            if (failingIndex>=0) experiments[failingIndex].getCapillaries().getList().get(1).getTopRaw().polylineLevel.npoints = 4;
             SwingUtilities.invokeAndWait(() -> {
                 try {
                     holder[0] = new CorrelationIntakePanel(experiments[1], experiments[1].getCapillaries().getList().get(0));
                     Method follow = holder[0].getClass().getDeclaredMethod("followExperimentBrowser", JComboBox.class);
                     follow.setAccessible(true); follow.invoke(holder[0], browser);
                     ((JComboBox<?>)get(holder[0], "runMode")).setSelectedIndex(2);
-                    ((JComboBox<?>)get(holder[0], "seriesRange")).setSelectedIndex(Math.min(range, 2));
+                    int chosenRange=range==4?1:Math.min(range,2);
+                    ((JComboBox<?>)get(holder[0], "seriesRange")).setSelectedIndex(chosenRange);
                     ((JButton)get(holder[0], "runSeries")).doClick();
+                    int first=chosenRange==2?0:1,last=chosenRange==0?1:2;
+                    check(((JLabel)get(holder[0], "seriesStatus")).getText().contains("indices "+first+"-"+last+" / 3"),
+                            "Initial progress does not use absolute browser indices");
                     check(!browser.isEnabled(), "Browser not locked during series");
                     check(!((JComboBox<?>)get(holder[0], "runMode")).isEnabled(), "Mode editable during series");
+                    if(range==6) ((JButton)get(holder[0],"stopSeries")).doClick();
                 } catch (Exception e) { throw new RuntimeException(e); }
             });
             CorrelationIntakePanel p = holder[0];
             try {
                 waitSeries(p);
                 SwingUtilities.invokeAndWait(() -> {
-                    check(browser.isEnabled() && browser.getSelectedIndex() == 1, "Browser state changed");
-                    int expected = range == 0 || range == 3 ? 1 : range == 1 ? 2 : 3;
+                    int selected=range==4?2:range>=5?0:1;
+                    check(browser.isEnabled() && browser.getSelectedIndex() == selected, "Wrong experiment selected after batch");
+                    int expected = range==0 || range==3 || range==4 ? 1 : range==1 ? 2 : range==2 ? 3 : 0;
                     check((Integer)get(p, "seriesSaved") == expected, "Wrong saved count: " + ((JLabel)get(p, "seriesStatus")).getText());
+                    String status=((JLabel)get(p,"seriesStatus")).getText();
+                    if(failingIndex>=0) check(status.contains("Failed at Experiment "+failingIndex+"/3:"),"Failure index is relative: "+status);
+                    if(range==6) check(status.contains("Stopped at Experiment 0/3:"),"Stop lost absolute experiment: "+status);
                     for (int i = 0; i < 3; i++) {
-                        boolean processed = range == 3 ? i == 0 : range == 2 || i == 1 || (range == 1 && i == 2);
+                        boolean processed = range==0 ? i==1 : range==1 ? i>=1 : range==2 ? true : range==3 ? i==0 : range==4 ? i==1 : false;
                         check(java.nio.file.Files.exists(Paths.get(experiments[i].getResultsDirectory(), "CapillariesMeasures.csv")) == processed, "Wrong experiment range saved");
                         for (Capillary cap : experiments[i].getCapillaries().getList()) {
                             check(cap.getCorrelationGulps().hasMeasures() == processed, "Wrong range detected");
@@ -228,12 +238,14 @@ public class CorrelationIntakeBatchSmoke {
                             ImageIO.write(image, "png", Paths.get(args[0]).toFile());
                         }
                         Capillary cap = exp.getCapillaries().getList().get(0);
-                        cap.getTopRaw().polylineLevel.ypoints[1] += 1;
+                        if(episodes) cap.getTopRaw().polylineLevel.xpoints[1] += .25;
+                        else cap.getTopRaw().polylineLevel.ypoints[1] += 1;
                         call(p, "saveAll");
                         check(((Map<?, ?>)field(p, "batchResults")).isEmpty(), "Stale batch accepted");
                         check(!cap.getCorrelationGulps().hasMeasures(), "Stale batch installed");
                         check(saves[0] == 0, "Stale batch wrote files");
-                        cap.getTopRaw().polylineLevel.ypoints[1] -= 1;
+                        if(episodes) cap.getTopRaw().polylineLevel.xpoints[1] -= .25;
+                        else cap.getTopRaw().polylineLevel.ypoints[1] -= 1;
                     } catch (Exception e) { throw new RuntimeException(e); }
                 });
             }

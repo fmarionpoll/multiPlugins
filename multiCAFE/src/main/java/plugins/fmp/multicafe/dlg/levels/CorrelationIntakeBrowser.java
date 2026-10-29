@@ -90,7 +90,15 @@ final class CorrelationIntakeBrowser extends JPanel {
                         capillaryChosen.accept(chosen);
                 });
                 active.addPropertyChangeListener(event -> {
-                    if ("intake_series_finished".equals(event.getPropertyName())) followSelection();
+                    if ("intake_series_finished".equals(event.getPropertyName())) {
+                        Object outcomeTarget=browser.getSelectedItem();
+                        SwingUtilities.invokeLater(() -> {
+                            if(closed || browser.getSelectedItem()!=outcomeTarget) return;
+                            showSelected(null);
+                            if(active!=null && event.getNewValue() instanceof String)
+                                active.showSeriesOutcome((String)event.getNewValue());
+                        });
+                    }
                 });
                 sessions.put(next, active);
             }

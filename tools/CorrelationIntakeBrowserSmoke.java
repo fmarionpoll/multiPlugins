@@ -8,6 +8,38 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 
 public class CorrelationIntakeBrowserSmoke {
+    static void checkBatchFailureFollow() throws Exception {
+        Experiment a=CorrelationIntakeBatchSmoke.fixture(new int[1]),b=CorrelationIntakeBatchSmoke.fixture(new int[1]);
+        java.nio.file.Path output=java.nio.file.Files.createTempDirectory(java.nio.file.Paths.get("multiCAFE/target"),"intake-failed-navigation-");
+        a.setResultsDirectory(java.nio.file.Files.createDirectories(output.resolve("a")).toAbsolutePath().toString());
+        b.setResultsDirectory(java.nio.file.Files.createDirectories(output.resolve("b")).toAbsolutePath().toString());
+        b.getCapillaries().getList().get(1).getTopRaw().polylineLevel.npoints=4;
+        JComboBox<Experiment> browser=new JComboBox<>(new Experiment[]{a,b});
+        Object[] root={null},originalPanel={null};
+        SwingUtilities.invokeAndWait(()-> {
+            try {
+                Class<?> type=Class.forName("plugins.fmp.multicafe.dlg.levels.CorrelationIntakeBrowser");
+                Constructor<?> constructor=type.getDeclaredConstructor(JComboBox.class,Capillary.class,Consumer.class);
+                constructor.setAccessible(true);root[0]=constructor.newInstance(browser,null,null);
+                originalPanel[0]=get(root[0],"active");
+                ((JComboBox<?>)get(originalPanel[0],"runMode")).setSelectedIndex(2);
+                ((JComboBox<?>)get(originalPanel[0],"seriesRange")).setSelectedIndex(1);
+                ((JButton)get(originalPanel[0],"runSeries")).doClick();
+            } catch(Exception error){throw new RuntimeException(error);}
+        });
+        try {
+            CorrelationIntakeBatchSmoke.waitSeries((plugins.fmp.multicafe.dlg.levels.CorrelationIntakePanel)originalPanel[0]);
+            drain();drain();
+            SwingUtilities.invokeAndWait(()-> {
+                Object failedPanel=get(root[0],"active");
+                check(browser.getSelectedIndex()==1 && browser.isEnabled(),"Failed experiment was not selected/unlocked");
+                check(failedPanel!=originalPanel[0] && get(failedPanel,"experiment")==b,"Dialog did not follow failing experiment");
+                check(((JComboBox<?>)get(failedPanel,"runMode")).getSelectedIndex()==2,"Failure status hidden in another mode");
+                check(((JLabel)get(failedPanel,"seriesStatus")).getText().contains("Failed at Experiment 1/2:"),"Failure details lost when panel switched");
+                check((Integer)get(originalPanel[0],"seriesSaved")==1,"Navigation changed completed saves");
+            });
+        } finally {SwingUtilities.invokeAndWait(()->call(root[0],"close"));}
+    }
     static Object get(Object o, String name) { return CorrelationIntakeBatchSmoke.get(o, name); }
     static void check(boolean value, String message) { CorrelationIntakeBatchSmoke.check(value, message); }
     static void call(Object o, String name) {
@@ -95,7 +127,8 @@ public class CorrelationIntakeBrowserSmoke {
             check(browser.getItemListeners().length == initialListeners, "Browser listener leaked on close");
             check(((Map<?, ?>)get(root, "sessions")).isEmpty(), "Closing retained sessions");
         });
-        System.out.println("PASS: next/previous/direct/rapid/empty experiment selection; per-experiment thresholds; descriptor reload; delayed image loading; timer/worker/tooltip/browser-listener cleanup.");
+        checkBatchFailureFollow();
+        System.out.println("PASS: next/previous/direct/rapid/empty experiment selection; per-experiment thresholds; descriptor reload; delayed image loading; timer/worker/tooltip/browser-listener cleanup; automatic failed-experiment selection and visible batch error.");
         System.exit(0);
     }
 }

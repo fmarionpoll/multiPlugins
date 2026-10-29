@@ -226,12 +226,10 @@ public class ROI2DUtilities {
 	}
 
 	public static void interpolateMissingPointsAlongXAxis(ROI2DPolyLine roiLine, int nintervals) {
-		if (nintervals <= 1)
+		if (nintervals < 1)
 			return;
-		// Densify so each integer X has a Y. Anchors with non-finite Y (e.g. cut
-		// gaps marked as NaN) are skipped and filled by linear interpolation
-		// between neighboring valid samples. Casting NaN to int yields 0 and must
-		// be avoided — that produced the "jump to roof" bug after Validate.
+		// Evaluate the edited curve at native columns without truncating anchors.
+		// End gaps copy the nearest valid value, like CapillaryMeasure validation.
 		Polyline2D polyline = roiLine.getPolyline2D();
 		if (polyline == null || polyline.npoints == 0)
 			return;
@@ -244,35 +242,35 @@ public class ROI2DUtilities {
 				continue;
 			anchors.add(new Point2D.Double(x, y));
 		}
-		if (anchors.isEmpty())
-			return;
-		if (anchors.size() == 1) {
-			roiLine.setPoints(anchors);
-			return;
+		// Dragged handles may cross. Stable sorting makes duplicate X deterministic:
+		// the last anchor in the original ROI replaces earlier anchors at that X.
+		anchors.sort(java.util.Comparator.comparingDouble(Point2D::getX));
+		List<Point2D> unique = new ArrayList<>(anchors.size());
+		for (Point2D anchor : anchors) {
+			if (!unique.isEmpty() && unique.get(unique.size() - 1).getX() == anchor.getX())
+				unique.set(unique.size() - 1, anchor);
+			else
+				unique.add(anchor);
 		}
-
-		int xfirst0 = (int) anchors.get(0).getX();
-		List<Point2D> pts = new ArrayList<>();
-		double ylast = anchors.get(0).getY();
-		for (int i = 1; i < anchors.size(); i++) {
-			int xfirst = (int) anchors.get(i - 1).getX();
-			if (xfirst < 0)
-				xfirst = 0;
-			int xlast = (int) anchors.get(i).getX();
-			if (xlast > xfirst0 + nintervals - 1)
-				xlast = xfirst0 + nintervals - 1;
-			double yfirst = anchors.get(i - 1).getY();
-			ylast = anchors.get(i).getY();
-			if (xlast <= xfirst) {
-				continue;
+		List<Point2D> pts = new ArrayList<>(nintervals);
+		int right = 0;
+		for (int x = 0; x < nintervals; x++) {
+			while (right < unique.size() && unique.get(right).getX() < x)
+				right++;
+			double y = Double.NaN;
+			if (!unique.isEmpty()) {
+				if (right == 0)
+					y = unique.get(0).getY();
+				else if (right == unique.size())
+					y = unique.get(right - 1).getY();
+				else {
+					Point2D left = unique.get(right - 1), next = unique.get(right);
+					double fraction = (x - left.getX()) / (next.getX() - left.getX());
+					y = left.getY() * (1 - fraction) + next.getY() * fraction;
+				}
 			}
-			for (int j = xfirst; j < xlast; j++) {
-				double val = yfirst + (ylast - yfirst) * (j - xfirst) / (double) (xlast - xfirst);
-				pts.add(new Point2D.Double(j, val));
-			}
+			pts.add(new Point2D.Double(x, y));
 		}
-		Point2D last = anchors.get(anchors.size() - 1);
-		pts.add(new Point2D.Double(last.getX(), ylast));
 		roiLine.setPoints(pts);
 	}
 

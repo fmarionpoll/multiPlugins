@@ -19,11 +19,13 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 public final class CorrelationGulpPreview {
     private final java.util.Map<Capillary,double[]> sourceLevels = new java.util.IdentityHashMap<>();
     private final java.util.Map<Capillary,boolean[]> sourceQuality = new java.util.IdentityHashMap<>();
+    private final java.util.Map<Capillary,double[]> sourceColumns = new java.util.IdentityHashMap<>();
     public boolean matchesSources(Experiment experiment) {
         if(sourceLevels.size()!=experiment.getCapillaries().getList().size())return false;
         for(Capillary cap:experiment.getCapillaries().getList())
             if(!sourceLevels.containsKey(cap) || !Arrays.equals(sourceLevels.get(cap),levels(cap))
-                    || !Arrays.equals(sourceQuality.get(cap),MeniscusRefinement.quality(cap))) return false;
+                    || !Arrays.equals(sourceQuality.get(cap),MeniscusRefinement.quality(cap))
+                    || !Arrays.equals(sourceColumns.get(cap),columns(cap))) return false;
         return true;
     }
     public final BufferedImage image;
@@ -90,8 +92,10 @@ public final class CorrelationGulpPreview {
     public static CorrelationGulpPreview computeAccepted(Experiment exp, Capillary selected, boolean localEvaporation) {
         java.util.Map<Capillary,double[]> inputs=new java.util.IdentityHashMap<>();
         java.util.Map<Capillary,boolean[]> qualities=new java.util.IdentityHashMap<>();
+        java.util.Map<Capillary,double[]> coordinates=new java.util.IdentityHashMap<>();
         for(Capillary cap:exp.getCapillaries().getList()) {
             inputs.put(cap,levels(cap)); qualities.put(cap,MeniscusRefinement.quality(cap));
+            coordinates.put(cap,columns(cap));
         }
         Sequence sequence = exp.getSeqKymos() == null ? null : exp.getSeqKymos().getSequence();
         if (sequence == null) throw new IllegalArgumentException("Open the experiment's kymographs first.");
@@ -100,8 +104,9 @@ public final class CorrelationGulpPreview {
         if (raw == null || raw.length < 8) throw new IllegalArgumentException("Detect the top meniscus first (at least 8 samples).");
         FrameTimeScale scale = exp.getFrameTimeScale();
         if (scale == null || scale.isEmpty()) scale = FrameTimeScale.load(exp.getResultsDirectory());
-        if (scale == null || scale.size() != raw.length)
-            throw new IllegalArgumentException("Native frame timestamps must match the saved levels; downsampled kymographs are unsupported.");
+        IcyBufferedImage nativeImage=sequence.getImage(selected.getKymographIndex(),0);
+        if(nativeImage==null) throw new IllegalArgumentException("Kymograph image is missing for "+selected.getKymographName());
+        validateNativeTopraw(selected.getTopRaw().polylineLevel,scale,nativeImage.getSizeX(),selected.getLast2ofCapillaryName());
         double[] minutes = scale.toMinutes();
         for (int i = 1; i < minutes.length; i++)
             if (!(minutes[i] > minutes[i - 1])) throw new IllegalArgumentException("Frame times must increase strictly.");
@@ -116,6 +121,9 @@ public final class CorrelationGulpPreview {
             double[] y = inputs.get(cap);
             if(y!=null)y=y.clone();
             if (y == null || y.length != raw.length || !Double.isFinite(y[0])) continue;
+            IcyBufferedImage controlImage=sequence.getImage(cap.getKymographIndex(),0);
+            if(controlImage==null) throw new IllegalArgumentException("Missing control kymograph: "+cap.getLast2ofCapillaryName());
+            validateNativeTopraw(cap.getTopRaw().polylineLevel,scale,controlImage.getSizeX(),"Control "+cap.getLast2ofCapillaryName());
             double factor = pixelScale(exp, cap) / targetScale;
             for (int i = y.length - 1; i >= 0; i--) y[i] = (y[i] - y[0]) * factor;
             controls.add(cap);
@@ -176,7 +184,7 @@ public final class CorrelationGulpPreview {
                 : "; local evaporation uncertain: common model retained";
         CorrelationGulpPreview result = new CorrelationGulpPreview(image, raw, minutes, reference, motion,
                 controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description, controlRates, local, localEvaporation);
-        result.sourceLevels.putAll(inputs);result.sourceQuality.putAll(qualities);
+        result.sourceLevels.putAll(inputs);result.sourceQuality.putAll(qualities);result.sourceColumns.putAll(coordinates);
         return result;
     }
 
@@ -184,6 +192,28 @@ public final class CorrelationGulpPreview {
         if (cap.getTopRaw() == null || cap.getTopRaw().polylineLevel == null) return null;
         Level2D level = cap.getTopRaw().polylineLevel;
         return Arrays.copyOf(level.ypoints, level.npoints);
+    }
+
+    private static double[] columns(Capillary cap) {
+        if(cap.getTopRaw()==null || cap.getTopRaw().polylineLevel==null) return null;
+        Level2D level=cap.getTopRaw().polylineLevel;
+        return Arrays.copyOf(level.xpoints,level.npoints);
+    }
+
+    /** Numerical intake series require exactly one measured level per native column. */
+    public static void validateNativeTopraw(Level2D level,FrameTimeScale scale,int imageWidth,String name) {
+        if(scale==null || scale.isEmpty())
+            throw new IllegalArgumentException(name+": native frame timestamps are missing; reload the experiment time scale.");
+        if(imageWidth!=scale.size())
+            throw new IllegalArgumentException(name+": kymograph has "+imageWidth+" columns but the time scale has "
+                    +scale.size()+" timestamps. Check the kymograph/time-scale pairing.");
+        if(level==null || level.npoints!=imageWidth)
+            throw new IllegalArgumentException(name+": topraw has "+(level==null?0:level.npoints)
+                    +" points; image and timestamps have "+imageWidth+" columns. Validate/save the edited level ROI to restore one point per native column.");
+        for(int i=0;i<imageWidth;i++)
+            if(!Double.isFinite(level.xpoints[i]) || Math.abs(level.xpoints[i]-i)>1e-9)
+                throw new IllegalArgumentException(name+": topraw point "+i+" has X="+level.xpoints[i]
+                        +"; expected native column "+i+". Validate/save the edited level ROI before detecting intakes.");
     }
 
     public static double normalizedUlPerPixel(double volume, double expansion, int imageHeight) {

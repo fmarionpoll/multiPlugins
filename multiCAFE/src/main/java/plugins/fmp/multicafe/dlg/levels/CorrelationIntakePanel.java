@@ -374,7 +374,7 @@ public final class CorrelationIntakePanel extends JPanel {
 
 	private void defineToolTips() {
 		runSeries.setToolTipText("Detect every capillary with its automatic threshold, replace ordinary gulps (including manual edits), and save each experiment in the selected range.");
-		seriesRange.setToolTipText("Current means the experiment selected in the experiment browser when the batch starts; ranges include both endpoints.");
+		seriesRange.setToolTipText("Current means the experiment selected when the batch starts; ranges include both endpoints. Progress uses the browser's zero-based absolute experiment index.");
 		stopSeries.setToolTipText("Stop before copying the current experiment if detection is unfinished; a save already started is completed.");
 		detectAll.setToolTipText("Detect every capillary in this experiment, including no-fly controls, using its own automatic threshold.");
 		saveAll.setToolTipText("Save all prepared results as correlation gulps. Existing correlation results are replaced; classic gulps are kept.");
@@ -727,6 +727,9 @@ public final class CorrelationIntakePanel extends JPanel {
 			seriesStatus.setText(error.getMessage());
 			return;
 		}
+		final int firstIndex = experimentBrowser == null || seriesRange.getSelectedIndex() == 2
+				? 0 : experimentBrowser.getSelectedIndex();
+		final int experimentCount = experimentBrowser == null ? 1 : experimentBrowser.getItemCount();
 		if (worker != null) worker.cancel(true);
 		worker = null;
 		pendingCapillary = null;
@@ -741,18 +744,24 @@ public final class CorrelationIntakePanel extends JPanel {
 			experimentBrowser.setEnabled(false);
 		}
 		seriesWorker = new SwingWorker<Integer, String>() {
+			private Experiment attentionTarget;
+			private String attentionLabel;
 			@Override
 			protected Integer doInBackground() throws Exception {
 				IntakeSeriesProcessor processor = new IntakeSeriesProcessor();
 				for (int i = 0; i < targets.size(); i++) {
-					if (seriesStopping) break;
 					Experiment target = targets.get(i);
-					String label = "Experiment " + (i + 1) + "/" + targets.size() + ": " + target;
+					String label = "Experiment " + (firstIndex + i) + "/" + experimentCount + ": " + target;
+					attentionTarget = target;
+					attentionLabel = label;
+					if (seriesStopping) break;
 					publish(label + " - loading...");
 					try {
 						if (!processor.process(target, episodes, local, () -> seriesStopping,
 								message -> publish(label + " - " + message))) break;
 						seriesSaved++;
+						attentionTarget = null;
+						attentionLabel = null;
 					} catch (Exception error) {
 						Throwable cause = error;
 						while (cause.getCause() != null) cause = cause.getCause();
@@ -764,7 +773,7 @@ public final class CorrelationIntakePanel extends JPanel {
 
 			@Override
 			protected void process(List<String> messages) {
-				if (!released) seriesStatus.setText(messages.get(messages.size() - 1));
+				if (!released && seriesWorker == this) seriesStatus.setText(messages.get(messages.size() - 1));
 			}
 
 			@Override
@@ -772,7 +781,7 @@ public final class CorrelationIntakePanel extends JPanel {
 				String result;
 				try {
 					get();
-					result = seriesStopping ? "Stopped. " : "Complete. ";
+					result = seriesStopping ? (attentionLabel == null ? "Stopped. " : "Stopped at " + attentionLabel + ". ") : "Complete. ";
 				} catch (InterruptedException error) {
 					Thread.currentThread().interrupt();
 					result = "Interrupted. ";
@@ -781,22 +790,45 @@ public final class CorrelationIntakePanel extends JPanel {
 				}
 				seriesWorker = null;
 				if (experimentBrowser != null) experimentBrowser.setEnabled(browserWasEnabled);
-				firePropertyChange("intake_series_finished", false, true);
-				if (released) return;
+				if (!released && attentionTarget != null) selectSeriesExperiment(attentionTarget);
+				String outcome = result + seriesSaved + "/" + targets.size() + " experiment(s) copied to gulps and saved.";
+				if (released) {
+					CorrelationIntakePanel.this.firePropertyChange("intake_series_finished", null, outcome);
+					return;
+				}
 				cache.clear();
 				if (targets.contains(experiment)) {
 					manualThresholds.clear();
 					refreshGulpRois();
 				}
 				updateModeControls();
-				sourceTimer.start();
-				analyzeSelected();
-				seriesStatus.setText(result + seriesSaved + "/" + targets.size() + " experiment(s) copied to gulps and saved.");
+				if (experimentBrowser == null || experimentBrowser.getSelectedItem() == experiment) {
+					sourceTimer.start();
+					analyzeSelected();
+				}
+				seriesStatus.setText(outcome);
+				CorrelationIntakePanel.this.firePropertyChange("intake_series_finished", null, outcome);
 			}
 		};
-		seriesStatus.setText("Detecting, replacing gulps and saving " + targets.size() + " experiment(s)...");
+		seriesStatus.setText("Detecting, replacing gulps and saving " + targets.size() + " experiment(s), indices "
+				+ firstIndex + "-" + (firstIndex + targets.size() - 1) + " / " + experimentCount + "...");
 		updateModeControls();
 		seriesWorker.execute();
+	}
+
+	private void selectSeriesExperiment(Experiment target) {
+		if (experimentBrowser == null) return;
+		for (int i = 0; i < experimentBrowser.getItemCount(); i++) {
+			Object item = experimentBrowser instanceof JComboBoxExperimentLazy
+					? ((JComboBoxExperimentLazy) experimentBrowser).getItemAtNoLoad(i) : experimentBrowser.getItemAt(i);
+			if (item == target) { experimentBrowser.setSelectedIndex(i); return; }
+		}
+	}
+
+	void showSeriesOutcome(String message) {
+		if (released) return;
+		runMode.setSelectedIndex(2);
+		seriesStatus.setText(message);
 	}
 
 	private void updateDetectorLabel() {

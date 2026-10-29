@@ -1,7 +1,8 @@
 /* Read-only reproduction of intake decisions on saved accepted topraw.
  * Args: output directory, experiment directory...; never saves experiment objects.
  * Set -Dintake.local=true to compare the optional local evaporation model.
- * Set -Dintake.image=true for read-only image-motion support diagnostics. */
+ * Set -Dintake.image=true for read-only image-motion support diagnostics.
+ * Set -Dintake.validateLevels=true to validate edited curves in memory only. */
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.lang.reflect.Method;
@@ -71,6 +72,13 @@ public class IntakeMissInvestigation {
                     seq.setImage(cap.getKymographIndex(), 0, IcyBufferedImage.createFrom(image));
                 }
                 SequenceKymos kymos = new SequenceKymos(); kymos.setSequence(seq); exp.setSeqKymos(kymos);
+                if(Boolean.getBoolean("intake.validateLevels")) for(Capillary cap:exp.getCapillaries().getList()) {
+                    if(cap.getTopRaw().polylineLevel==null) continue;
+                    plugins.kernel.roi.roi2d.ROI2DPolyLine edited=new plugins.kernel.roi.roi2d.ROI2DPolyLine(cap.getTopRaw().polylineLevel);
+                    plugins.fmp.multitools.tools.ROI2D.ROI2DUtilities.interpolateMissingPointsAlongXAxis(edited,
+                            seq.getImage(cap.getKymographIndex(),0).getSizeX());
+                    cap.getTopRaw().setFromROI(edited); // Never persists repairs.
+                }
                 for (Capillary cap : exp.getCapillaries().getList()) {
                     String id = cap.getLast2ofCapillaryName();
                     if (cap.getTopRaw().polylineLevel == null || cap.getTopRaw().polylineLevel.npoints != exp.getFrameTimeScale().size()) {

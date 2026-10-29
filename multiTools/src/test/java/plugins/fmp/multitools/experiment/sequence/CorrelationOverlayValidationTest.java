@@ -16,6 +16,24 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class CorrelationOverlayValidationTest {
+    @Test public void linearValidationCommitsCanonicalColumnsAfterEndpointDrag() {
+        Sequence seq=new Sequence();
+        try {
+            seq.setImage(0,0,IcyBufferedImage.createFrom(new BufferedImage(5,80,BufferedImage.TYPE_INT_RGB)));
+            SequenceKymos kymos=new SequenceKymos();kymos.setSequence(seq);
+            plugins.fmp.multitools.experiment.capillary.Capillary cap=new plugins.fmp.multitools.experiment.capillary.Capillary();
+            cap.getTopRaw().capName="toplevel";
+            ROI2DPolyLine edited=new ROI2DPolyLine(new Level2D(new double[]{1,3.7},new double[]{10,20},2));
+            edited.setName("toplevel");edited.setT(0);seq.addROI(edited);
+            assertTrue(new CapillaryKymographMeasureBridge(kymos).validateLinearROIsAtT(0,cap));
+            Level2D saved=cap.getTopRaw().polylineLevel;
+            assertEquals(5,saved.npoints);
+            for(int i=0;i<5;i++) assertEquals(i,saved.xpoints[i],0);
+            assertEquals(10,saved.ypoints[0],0);
+            assertEquals(10+10/2.7,saved.ypoints[2],1e-10);
+            assertEquals(20,saved.ypoints[4],0);
+        } finally {seq.close();}
+    }
     @Test public void refinementComparisonsSurviveFrameSyncAndNeverBecomeGulps() {
         Sequence seq=new Sequence();
         seq.setImage(0,0,IcyBufferedImage.createFrom(new BufferedImage(10,80,BufferedImage.TYPE_INT_RGB)));
