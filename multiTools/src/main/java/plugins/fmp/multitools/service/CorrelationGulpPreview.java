@@ -86,7 +86,7 @@ public final class CorrelationGulpPreview {
         noise = VerticalCorrelation.estimateNoise(residualRate, motion.reliable, controls);
     }
 
-    /** Phase 2 consumes accepted levels; refinement parameters do not participate. */
+    /** Phase 2 consumes saved levels, with border-only image revalidation of uncertain flags. */
     public static CorrelationGulpPreview computeAccepted(Experiment exp, Capillary selected, boolean localEvaporation) {
         java.util.Map<Capillary,double[]> inputs=new java.util.IdentityHashMap<>();
         java.util.Map<Capillary,boolean[]> qualities=new java.util.IdentityHashMap<>();
@@ -106,7 +106,7 @@ public final class CorrelationGulpPreview {
         for (int i = 1; i < minutes.length; i++)
             if (!(minutes[i] > minutes[i - 1])) throw new IllegalArgumentException("Frame times must increase strictly.");
         BufferedImage image = image(sequence, selected, raw.length);
-        VerticalCorrelation.Result motion = VerticalCorrelation.fromLevels(raw, qualities.get(selected));
+        VerticalCorrelation.Result motion = VerticalCorrelation.fromLevels(raw, qualities.get(selected),image,10);
         List<Capillary> controls = new ArrayList<>();
         List<double[]> curves = new ArrayList<>();
         double targetScale = pixelScale(exp, selected);
@@ -128,7 +128,8 @@ public final class CorrelationGulpPreview {
         for (int c = 0; c < controls.size(); c++) {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
             Capillary cap = controls.get(c);
-            VerticalCorrelation.Result controlMotion = VerticalCorrelation.fromLevels(inputs.get(cap), qualities.get(cap));
+            VerticalCorrelation.Result controlMotion = VerticalCorrelation.fromLevels(inputs.get(cap), qualities.get(cap),
+                    image(sequence,cap,raw.length),10);
             // A held-out control never supplies its own evaporation curve.
             List<double[]> others = new ArrayList<>(curves);
             others.remove(c);
@@ -160,7 +161,15 @@ public final class CorrelationGulpPreview {
         if (localEvaporation) for (int i = 0; i < reference.length; i++) reference[i] *= local.factor;
         String description = controls.isEmpty() ? "No evaporation reference from no-fly controls (uncorrected motion)"
                 : "Evaporation model from " + controls.size() + " no-fly controls; noise from " + usableControls;
-        description += "; accepted topraw increments (no image correlation)";
+        description += "; saved topraw increments (border image checks)";
+        int hemi=0,fallback=0;
+        for(int i=1;i<raw.length;i++) {
+            if(motion.reliable[i] && !motion.toprawFallback[i]
+                    && (motion.profile[i]==VerticalCorrelation.Profile.BELOW_MENISCUS
+                            || motion.profile[i]==VerticalCorrelation.Profile.ABOVE_MENISCUS)) hemi++;
+            if(motion.toprawFallback[i]) fallback++;
+        }
+        if(hemi>0 || fallback>0) description+="; border: "+hemi+" one-sided confirmed / "+fallback+" topraw fallback";
         if (MeniscusRefinement.quality(selected) == null) description += "; correlation quality unavailable";
         if (resampled) description += "; resampled RGB: pixels are kymograph rows";
         if (localEvaporation) description += local.reliable ? String.format("; local evaporation x%.2f (%d quiet bins)", local.factor, local.quietIntervals)

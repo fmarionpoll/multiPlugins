@@ -104,7 +104,11 @@ public class IntakeMissInvestigation {
                             + p.controlRates.stream().map(Arrays::toString).collect(java.util.stream.Collectors.joining(",", "[", "]"))
                             + ",\"raw\":" + Arrays.toString(p.raw) + ",\"minutes\":" + Arrays.toString(p.minutes)
                             + ",\"evaporation\":" + Arrays.toString(p.evaporation) + ",\"rate\":" + Arrays.toString(p.residualRate)
-                            + ",\"valid\":" + Arrays.toString(p.motion.reliable) + ",\"net\":" + Arrays.toString(d.net)
+                            + ",\"valid\":" + Arrays.toString(p.motion.reliable)
+                            + ",\"border_fallback\":" + Arrays.toString(p.motion.toprawFallback)
+                            + ",\"profile\":" + Arrays.stream(p.motion.profile).map(x->"\""+x.name()+"\"")
+                                    .collect(java.util.stream.Collectors.joining(",","[","]"))
+                            + ",\"net\":" + Arrays.toString(d.net)
                             + ",\"position\":" + Arrays.toString(d.position)
                             + ",\"estimated_scale\":" + p.localScale.factor + ",\"scale_reliable\":" + p.localScale.reliable
                             + ",\"quiet_intervals\":" + p.localScale.quietIntervals + ",\"applied_scale\":" + (local ? p.localScale.factor : 1) + "}";

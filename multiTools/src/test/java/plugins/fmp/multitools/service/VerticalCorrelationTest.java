@@ -33,6 +33,7 @@ public class VerticalCorrelationTest {
         assertFalse(r.reliable[0]);
         assertTrue(Double.isNaN(r.shift[0]));
         assertTrue(r.reliable[20]);
+        assertEquals(VerticalCorrelation.Profile.FULL,r.profile[20]);
         assertEquals(3.15, r.shift[20], .15);
         assertEquals(3.15, r.refined[20] - r.refined[19], .20);
         double[] decreasing = {45, 43.6, 42.2, 40.8};
@@ -64,13 +65,75 @@ public class VerticalCorrelationTest {
         assertFalse(VerticalCorrelation.analyze(movie(new double[]{30,65}), new double[]{30,65},6,7,true).reliable[1]);
     }
 
-    @Test public void flatAndBorderProfilesAreRejected() {
+    @Test public void flatProfilesAreRejectedAndUpperBorderUsesOneSidedCorrelation() {
         VerticalCorrelation.Result flat = VerticalCorrelation.analyze(new BufferedImage(4, 60, BufferedImage.TYPE_INT_RGB),
                 new double[] {30, 30, 30, 30}, 10);
         assertFalse(flat.reliable[1]);
         assertTrue(Double.isNaN(flat.shift[1]));
         VerticalCorrelation.Result border = VerticalCorrelation.analyze(movie(new double[] {8, 9}), new double[] {8, 9}, 10);
-        assertFalse(border.reliable[1]);
+        assertTrue(border.reason[1],border.reliable[1]);
+        assertEquals(VerticalCorrelation.Profile.BELOW_MENISCUS,border.profile[1]);
+        assertEquals(1,border.shift[1],.15);
+    }
+
+    @Test public void lowerBorderUsesUpperHalfAndPreservesSignedMotion() {
+        double[] y={83,81.6,80.2};
+        VerticalCorrelation.Result r=VerticalCorrelation.analyze(movie(y),y,10,6,true);
+        for(int i=1;i<y.length;i++) {
+            assertTrue(r.reason[i],r.reliable[i]);
+            assertEquals(VerticalCorrelation.Profile.ABOVE_MENISCUS,r.profile[i]);
+            assertEquals(-1.4,r.shift[i],.15);
+        }
+    }
+
+    @Test public void untexturedBorderRetainsToprawWithoutClaimingImageConfidence() {
+        double[] y={6,6.5,7};
+        BufferedImage flat=new BufferedImage(y.length,90,BufferedImage.TYPE_INT_RGB);
+        VerticalCorrelation.Result image=VerticalCorrelation.analyzeSeeded(flat,y,10,3,true);
+        assertFalse(image.reliable[1]);assertTrue(image.toprawFallback[1]);
+        assertArrayEquals(y,image.refined,0);
+        boolean[] quality={false,false,false};
+        VerticalCorrelation.Result intake=VerticalCorrelation.fromLevels(y,quality,flat,10);
+        assertTrue(intake.reliable[1]);assertTrue(intake.toprawFallback[1]);
+        assertEquals(.5,intake.shift[1],0);
+        assertArrayEquals(y,intake.refined,0);
+        assertFalse(quality[1]);
+        assertTrue(intake.reason[1].contains("unconfirmed"));
+    }
+
+    @Test public void uncertainInteriorFlagsAndMissingLevelsAreNotClearedByBorderFallback() {
+        double[] y={40,40.5,Double.NaN,41};
+        VerticalCorrelation.Result r=VerticalCorrelation.fromLevels(y,new boolean[4],
+                movie(new double[]{40,40.5,40.7,41}),10);
+        assertFalse(r.reliable[1]);assertFalse(r.toprawFallback[1]);
+        assertFalse(r.reliable[2]);assertFalse(r.reliable[3]);
+    }
+
+    @Test public void borderRevalidationDoesNotChangeSavedTrajectory() {
+        double[] y={6,6.5,7};
+        boolean[] quality={false,false,false};
+        VerticalCorrelation.Result r=VerticalCorrelation.fromLevels(y,quality,movie(y),10);
+        assertTrue(r.reason[1],r.reliable[1]);
+        assertFalse(r.toprawFallback[1]);
+        assertEquals(VerticalCorrelation.Profile.BELOW_MENISCUS,r.profile[1]);
+        assertArrayEquals(y,r.refined,0);assertFalse(quality[1]);
+    }
+
+    @Test public void reliableContradictoryBorderMotionDoesNotBecomeToprawFallback() {
+        double[] raw={6,6};
+        VerticalCorrelation.Result r=VerticalCorrelation.fromLevels(raw,new boolean[2],
+                movie(new double[]{6,8}),10);
+        assertFalse(r.reliable[1]);assertFalse(r.toprawFallback[1]);
+        assertEquals("Image motion contradicts saved topraw",r.reason[1]);
+        assertArrayEquals(raw,r.refined,0);
+    }
+
+    @Test public void integerToprawRoundingIsAllowedWhenCheckingSubpixelBorderMotion() {
+        double[] raw={6,7};
+        VerticalCorrelation.Result r=VerticalCorrelation.fromLevels(raw,new boolean[2],
+                movie(new double[]{6.45,6.55}),10);
+        assertTrue(r.reason[1],r.reliable[1]);assertFalse(r.toprawFallback[1]);
+        assertArrayEquals(raw,r.refined,0);
     }
 
     @Test public void widerSearchPreservesValidMotionNearBothImageBorders() {

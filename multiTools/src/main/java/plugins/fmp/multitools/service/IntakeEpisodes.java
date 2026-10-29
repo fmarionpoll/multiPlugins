@@ -7,7 +7,7 @@ import java.util.List;
 
 /** Experimental signed, persistent intake episodes. Amplitudes are kymograph pixels. */
 public final class IntakeEpisodes {
-    public static final String METHOD_VERSION = "v6.1";
+    public static final String METHOD_VERSION = "v6.2";
     private IntakeEpisodes() { }
 
     /** Independent image support for newly recovered steps; existing trajectories are unchanged. */

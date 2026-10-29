@@ -7,10 +7,16 @@ import java.util.concurrent.CancellationException;
 /** Experimental, signed image registration. Positive displacement is down. */
 public final class VerticalCorrelation {
     private VerticalCorrelation() { }
+    public enum Profile { NONE, FULL, BELOW_MENISCUS, ABOVE_MENISCUS }
 
     public static final class Result {
         public final double[] shift, correlation, refined, searchRange;
+        /** Image confidence for analyze(); increment usability for fromLevels().
+         * toprawFallback distinguishes unconfirmed but usable saved increments. */
         public final boolean[] reliable;
+        /** Image support is separate from usability of saved topraw increments. */
+        public final Profile[] profile;
+        public final boolean[] toprawFallback;
         public final String[] reason;
 
         private Result(int n) {
@@ -19,6 +25,9 @@ public final class VerticalCorrelation {
             correlation = new double[n];
             refined = new double[n];
             reliable = new boolean[n];
+            profile = new Profile[n];
+            Arrays.fill(profile,Profile.NONE);
+            toprawFallback = new boolean[n];
             reason = new String[n];
             Arrays.fill(shift, Double.NaN);
             Arrays.fill(correlation, Double.NaN);
@@ -41,9 +50,60 @@ public final class VerticalCorrelation {
         return result;
     }
 
+    /** Border-only revalidation of old uncertain flags. Never changes saved levels
+     * or flags. An unconfirmed but finite topraw increment remains usable with an
+     * explicit fallback reason; reliable contradictory image motion still vetoes it.
+     */
+    public static Result fromLevels(double[] levels, boolean[] quality, BufferedImage image, int radius) {
+        if(image==null || image.getWidth()!=levels.length || radius<2)
+            throw new IllegalArgumentException("Native kymograph columns must match the saved levels.");
+        Result result=fromLevels(levels,quality);
+        Result evidence=null;
+        for(int i=1;i<levels.length;i++) {
+            if(result.reliable[i] || !inside(levels[i-1],image.getHeight())
+                    || !inside(levels[i],image.getHeight())
+                    || !nearBorder(levels[i-1],levels[i],radius,image.getHeight())) continue;
+            if(evidence==null) evidence=analyzeSeeded(image,levels,radius,3,true);
+            result.profile[i]=evidence.profile[i];
+            result.correlation[i]=evidence.correlation[i];
+            result.searchRange[i]=evidence.searchRange[i];
+            if(evidence.reliable[i]) {
+                // Two integer level positions can differ from subpixel motion
+                // by one rounding pixel, plus one registration grid step.
+                boolean integerLevels=levels[i]==Math.rint(levels[i]) && levels[i-1]==Math.rint(levels[i-1]);
+                double tolerance=integerLevels?1+SHIFT_STEP:.75;
+                boolean agrees=Math.abs(evidence.shift[i]-result.shift[i])
+                        <=Math.max(tolerance,.3*Math.abs(result.shift[i]));
+                result.reliable[i]=agrees;
+                result.reason[i]=agrees ? "Saved topraw: " + (evidence.reason[i].isEmpty()
+                        ? "full correlation confirmed" : evidence.reason[i])
+                        : "Image motion contradicts saved topraw";
+            } else {
+                result.reliable[i]=true;
+                result.toprawFallback[i]=true;
+                result.reason[i]="Saved topraw fallback at image border (image unconfirmed): "+evidence.reason[i];
+            }
+        }
+        return result;
+    }
+
+    private static boolean inside(double center,int height) {
+        return Double.isFinite(center) && center>=0 && center<=height-1;
+    }
+
+    private static boolean nearBorder(double a,double b,int radius,int height) {
+        return Math.min(a,b)<=radius || Math.max(a,b)>=height-1-radius;
+    }
+
     private static final class Match {
         double shift, correlation, contrast, separation;
         boolean atLimit, imageLimit;
+    }
+
+    private static final class Registration {
+        Match forward,reverse;
+        double range;
+        String reason;
     }
 
     public static final double DEFAULT_MAX_SHIFT = 6;
@@ -91,53 +151,86 @@ public final class VerticalCorrelation {
                 continue;
             }
             double prediction = seeded ? raw[t] - raw[t-1] : 0;
-            Match forward = match(color[t - 1], color[t], raw[t - 1], radius, maxShift, prediction);
-            Match reverse = match(color[t], color[t - 1], raw[t], radius, maxShift, -prediction);
-            double range = maxShift;
-            double ceiling = Math.max(maxShift, Math.min(64, 4 * maxShift));
-            while (adaptive && forward != null && reverse != null && range < ceiling
-                    && ((forward.atLimit && !forward.imageLimit) || (reverse.atLimit && !reverse.imageLimit))) {
-                range = Math.min(ceiling, range * 1.5);
-                forward = match(color[t - 1], color[t], raw[t - 1], radius, range, prediction);
-                reverse = match(color[t], color[t - 1], raw[t], radius, range, -prediction);
+            Registration registration=register(color[t-1],color[t],raw[t-1],raw[t],
+                    -radius,radius,maxShift,prediction,adaptive);
+            result.profile[t]=Profile.FULL;
+            boolean border=inside(raw[t-1],h) && inside(raw[t],h) && nearBorder(raw[t-1],raw[t],radius,h);
+            if(!registration.reason.isEmpty() && border) {
+                boolean below=Math.min(raw[t-1],raw[t])<=radius;
+                // Keep two available rows across the meniscus when possible.
+                // A pure half of a smooth edge can have an ambiguous correlation
+                // peak. Leave one border row free so the true match is not
+                // forced onto the image-boundary end of the search.
+                int across=below ? (int)Math.floor(Math.min(raw[t-1],raw[t]))-1
+                        : (int)Math.floor(h-1-Math.max(raw[t-1],raw[t]))-1;
+                across=Math.max(0,Math.min(2,across));
+                int low=below?-across:-radius, high=below?radius:across;
+                registration=register(color[t-1],color[t],raw[t-1],raw[t],
+                        low,high,maxShift,prediction,adaptive);
+                result.profile[t]=below?Profile.BELOW_MENISCUS:Profile.ABOVE_MENISCUS;
             }
-            result.searchRange[t] = range;
-            if (forward == null || reverse == null) {
-                result.reason[t] = "Image border or flat profile";
-                continue;
+            result.searchRange[t]=registration.range;
+            if(registration.forward!=null && registration.reverse!=null) {
+                result.shift[t]=(registration.forward.shift-registration.reverse.shift)/2;
+                result.correlation[t]=Math.min(registration.forward.correlation,registration.reverse.correlation);
             }
-            result.shift[t] = (forward.shift - reverse.shift) / 2;
-            result.correlation[t] = Math.min(forward.correlation, reverse.correlation);
-            String reason = "";
-            if (forward.imageLimit || reverse.imageLimit) reason = "Image border";
-            else if (forward.atLimit || reverse.atLimit) reason = "Search limit";
-            else if (Math.min(forward.contrast, reverse.contrast) < 2) reason = "Low contrast";
-            else if (result.correlation[t] < .90) reason = "Weak correlation";
-            else if (Math.min(forward.separation, reverse.separation) < .005) reason = "Broad correlation peak";
-            else if (Math.abs(forward.shift + reverse.shift) > .75) reason = "Forward/reverse disagreement";
-            result.reason[t] = reason;
-            result.reliable[t] = reason.isEmpty();
+            result.reliable[t]=registration.reason.isEmpty();
+            result.reason[t]=registration.reason;
+            if(result.reliable[t] && result.profile[t]!=Profile.FULL)
+                result.reason[t]="One-sided correlation " +(result.profile[t]==Profile.BELOW_MENISCUS
+                        ? "below meniscus" : "above meniscus");
+            if(!result.reliable[t] && border) {
+                result.toprawFallback[t]=true;
+                result.reason[t]="Saved topraw fallback at image border: "+registration.reason;
+            }
         }
         double[] refined = refine(raw, result.shift, result.reliable, .05);
         System.arraycopy(refined, 0, result.refined, 0, n);
+        for(int i=1;i<n;i++) if(result.toprawFallback[i]) {
+            result.refined[i]=raw[i];
+            if(i==1) result.refined[0]=raw[0];
+        }
         return result;
     }
 
-    private static Match match(double[][] previous, double[][] current, double center, int radius, double maxShift, double prediction) {
-        int h = previous[0].length, count = 2 * radius + 1;
+    private static Registration register(double[][] previous,double[][] current,double a,double b,
+            int low,int high,double maxShift,double prediction,boolean adaptive) {
+        Registration r=new Registration();r.range=maxShift;
+        double ceiling=Math.max(maxShift,Math.min(64,4*maxShift));
+        do {
+            r.forward=match(previous,current,a,low,high,r.range,prediction);
+            r.reverse=match(current,previous,b,low,high,r.range,-prediction);
+            if(!adaptive || r.forward==null || r.reverse==null || r.range>=ceiling
+                    || !((r.forward.atLimit&&!r.forward.imageLimit)||(r.reverse.atLimit&&!r.reverse.imageLimit))) break;
+            r.range=Math.min(ceiling,r.range*1.5);
+        } while(true);
+        Match f=r.forward,v=r.reverse;
+        r.reason=f==null || v==null ? "Image border or flat profile"
+                : f.imageLimit || v.imageLimit ? "Image border"
+                : f.atLimit || v.atLimit ? "Search limit"
+                : Math.min(f.contrast,v.contrast)<2 ? "Low contrast"
+                : Math.min(f.correlation,v.correlation)<.90 ? "Weak correlation"
+                : Math.min(f.separation,v.separation)<.005 ? "Broad correlation peak"
+                : Math.abs(f.shift+v.shift)>.75 ? "Forward/reverse disagreement" : "";
+        return r;
+    }
+
+    private static Match match(double[][] previous, double[][] current, double center, int low, int high,
+            double maxShift, double prediction) {
+        int h = previous[0].length, count = high-low+1;
         // Only the unshifted template must fit in full. A wide requested search
         // must not reject a valid small displacement near an image border.
-        if (center - radius < 0 || center + radius > h - 1) return null;
+        if (count<5 || center+low<0 || center+high>h-1) return null;
         int requestedFirst = (int) Math.ceil((prediction-maxShift) / SHIFT_STEP - 1e-9);
         int requestedLast = (int) Math.floor((prediction+maxShift) / SHIFT_STEP + 1e-9);
-        int firstStep = Math.max(requestedFirst, (int) Math.ceil((radius - center) / SHIFT_STEP - 1e-9));
-        int lastStep = Math.min(requestedLast, (int) Math.floor((h - 1 - radius - center) / SHIFT_STEP + 1e-9));
+        int firstStep = Math.max(requestedFirst, (int) Math.ceil((-low - center) / SHIFT_STEP - 1e-9));
+        int lastStep = Math.min(requestedLast, (int) Math.floor((h - 1 - high - center) / SHIFT_STEP + 1e-9));
         if (lastStep <= firstStep) return null;
         double[][] template = new double[2][count];
         double energy = 0;
         for (int c = 0; c < 2; c++) {
             double mean = 0;
-            for (int j = 0; j < count; j++) mean += template[c][j] = sample(previous[c], center - radius + j);
+            for (int j = 0; j < count; j++) mean += template[c][j] = sample(previous[c], center + low + j);
             mean /= count;
             for (int j = 0; j < count; j++) {
                 template[c][j] -= mean;
@@ -152,7 +245,7 @@ public final class VerticalCorrelation {
             double shift = (firstStep + k) * SHIFT_STEP, numerator = 0, targetEnergy = 0;
             for (int c = 0; c < 2; c++) {
                 double mean = 0;
-                for (int j = 0; j < count; j++) mean += values[j] = sample(current[c], center - radius + j + shift);
+                for (int j = 0; j < count; j++) mean += values[j] = sample(current[c], center + low + j + shift);
                 mean /= count;
                 for (int j = 0; j < count; j++) {
                     double v = values[j] - mean;

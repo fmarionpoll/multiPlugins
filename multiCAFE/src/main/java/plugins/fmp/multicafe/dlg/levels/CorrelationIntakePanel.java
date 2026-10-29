@@ -186,6 +186,7 @@ public final class CorrelationIntakePanel extends JPanel {
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v4,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v5,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6,source=accepted_topraw")
+				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6.1,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
 			String options = first.getCorrelationGulps().getMethodOptions();
 			persistentEpisodes.setSelected(options.contains("persistent=true"));
@@ -1305,7 +1306,8 @@ public final class CorrelationIntakePanel extends JPanel {
 				if (v)
 					good++;
 			String auto = Double.isFinite(preview.noise.automatic) ? format(preview.noise.automatic) : "unavailable";
-			source.setText("<html>" + preview.referenceDescription + "<br>Initial threshold: " + auto + " px/min | "
+			source.setText("<html>" + preview.referenceDescription.replace("; border:", "<br>Border:")
+					+ "<br>Initial threshold: " + auto + " px/min | "
 					+ preview.noise.source.replace("Empty-capillary", "No-fly control")
 							.replace("empty-capillary", "no-fly control")
 					+ " | quiet intervals: " + preview.noise.quietSamples
@@ -1454,7 +1456,7 @@ public final class CorrelationIntakePanel extends JPanel {
 			writer.write("# threshold_source=" + preview.noise.source + ";manual=" + manual
 					+ ";automatic_threshold_px_per_min=" + preview.noise.automatic + "\n");
 			writer.write(
-					"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px;searched_range_px;fitted_meniscus_px;intake_top_px;intake_bottom_px;diagnostic_excess_px;diagnostic_reliable;diagnostic_types\n");
+					"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px;searched_range_px;fitted_meniscus_px;intake_top_px;intake_bottom_px;diagnostic_excess_px;diagnostic_reliable;diagnostic_types;image_profile;topraw_fallback\n");
 			for (int i = 0; i < preview.raw.length; i++) {
 				double evap = i == 0 ? Double.NaN : preview.evaporation[i] - preview.evaporation[i - 1];
 				String gapAmount = "", gapReliable = "", diagnosticTypes = "";
@@ -1469,11 +1471,12 @@ public final class CorrelationIntakePanel extends JPanel {
 				writer.write(i + ";" + preview.minutes[i] + ";" + preview.raw[i] + ";" + preview.motion.refined[i] + ";"
 						+ preview.motion.shift[i] + ";" + evap + ";" + preview.residualRate[i] + ";"
 						+ preview.motion.correlation[i] + ";" + preview.motion.reliable[i] + ";"
-						+ preview.motion.reason[i] + ";" + preview.noise.automatic + ";" + value() + ";" + selected[i]
+						+ "\"" + preview.motion.reason[i].replace("\"", "\"\"") + "\";"
+						+ preview.noise.automatic + ";" + value() + ";" + selected[i]
 						+ ";" + amplitudes[i] + ";" + preview.motion.searchRange[i] + ";" + bottoms[i] + ";"
 						+ (selected[i] ? bottoms[i] - amplitudes[i] : Double.NaN) + ";"
 						+ (selected[i] ? bottoms[i] : Double.NaN) + ";" + gapAmount + ";" + gapReliable + ";"
-						+ diagnosticTypes + "\n");
+						+ diagnosticTypes + ";" + preview.motion.profile[i] + ";" + preview.motion.toprawFallback[i] + "\n");
 			}
 		}
 	}

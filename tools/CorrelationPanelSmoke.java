@@ -228,6 +228,9 @@ public class CorrelationPanelSmoke {
             }
         }
         SequenceKymos kymos = new SequenceKymos(); kymos.setSequence(sequence); exp.setSeqKymos(kymos);
+        // Retain persisted refinement quality, not only the manually parsed level coordinates.
+        if(!exp.getCapillaries().getPersistence().loadMeasures(exp.getCapillaries(),root.toString()))
+            throw new AssertionError("Could not load saved measurement quality");
         System.out.println("Loaded real experiment images and measures in memory.");
         double[] before = caps.get("1L").getTopRaw().polylineLevel.ypoints.clone();
         final CorrelationIntakePanel[] ref = new CorrelationIntakePanel[1];
@@ -237,7 +240,9 @@ public class CorrelationPanelSmoke {
         for(int i=1;i<result.raw.length;i++)
             if(Math.abs(result.motion.shift[i]-(result.raw[i]-result.raw[i-1]))>1e-10)
                 throw new AssertionError("Phase 2 is not using accepted-level differences");
-        if(!result.referenceDescription.contains("no image correlation"))throw new AssertionError("Wrong phase-2 source");
+        if(!result.referenceDescription.contains("saved topraw increments"))throw new AssertionError("Wrong phase-2 source");
+        if(!java.util.Arrays.equals(result.raw,result.motion.refined))
+            throw new AssertionError("Intake border checks changed saved topraw positions");
         Capillary control=caps.get("0L");
         if(control!=null){
             double original=control.getTopRaw().polylineLevel.ypoints[1];
@@ -367,6 +372,7 @@ public class CorrelationPanelSmoke {
         SwingUtilities.invokeAndWait(episodes::doClick);
         SwingUtilities.invokeAndWait(compensate::doClick);
         SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get("5L")));
+        SwingUtilities.invokeAndWait(() -> { if(local.isSelected()) local.doClick(); });
         compute(panel); render(panel, output.resolve("panel_5L_episodes.png"));
         SwingUtilities.invokeAndWait(local::doClick);
         compute(panel);
@@ -390,6 +396,8 @@ public class CorrelationPanelSmoke {
             SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get(name)));
             compute(panel); render(panel, output.resolve("panel_" + name + "_ordered.png"));
         }
+        // Phase-2-only runs do not depend on the legacy refinement UI's private fields.
+        if(!Boolean.getBoolean("intake.panelOnly")) {
         // Exercise both independent panels on the reported record-3 cases, in memory only.
         for(String name:new String[]{"2L","3L","4L"}) {
             Capillary selected=caps.get(name);if(selected==null)continue;
@@ -473,6 +481,7 @@ public class CorrelationPanelSmoke {
                 throw new AssertionError("Refinement preview overlay leaked after close");
         }
         checkValidationScopes(exp,caps,output);
+        }
         for(icy.roi.ROI2D roi:sequence.getROI2Ds())if(roi.getName().contains("_xcorr_gap_"))
             throw new AssertionError("Horizontal diagnostic markers remain in phase 2");
         Capillary copyCheck = new Capillary();

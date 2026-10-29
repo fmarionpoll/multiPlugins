@@ -2,6 +2,40 @@
 
 The prototype has two independent steps. All runtime computation is Java.
 
+As of v6.2, image registration tries a full symmetric window first. Near the
+upper/lower image edge, an unreliable full-window match is retried using a
+window predominantly below/above the meniscus. The same relative rows are used
+in both frames and both registration directions. Two available rows across
+the meniscus are retained when possible: a strict half of a smooth edge can
+have an ambiguous correlation peak. Contrast, peak separation, correlation,
+search-limit and forward/reverse consistency checks are unchanged.
+
+If neither image check is reliable near a border, refinement retains the saved
+topraw position and keeps its image-quality flag uncertain. Intake previews
+recheck old uncertain border flags automatically. Image agreement makes the
+saved increment usable; unavailable image evidence uses labelled topraw
+fallback. Confidently contradictory image motion remains excluded. Integer
+topraw positions allow one pixel of rounding difference plus one registration
+grid step. Non-border uncertain flags, missing levels and out-of-image fallback
+positions are not automatically accepted. Saved topraw and its quality flags
+are never rewritten by an intake preview.
+
+The intake source label reports counts of one-sided confirmations and topraw
+fallback intervals. Tooltips retain the reason, and CSV export appends
+`image_profile` and `topraw_fallback`; the existing `reliable` column describes
+increment usability, not independent image confirmation. The read-only replay
+tool records the same profile and fallback information in its JSON output.
+
+For Caffeine `2018-08-09_Caféine/cam01_0.001mM`, 0L previously had no usable increments in the
+first 27 minutes. The v6.2 replay makes 24 usable: 20 one-sided confirmations
+and four topraw fallbacks. Samples 1/19/25 remain uncertain due to conflicting
+image motion. Detected intake remains zero and saved positions are unchanged.
+The replay covers 199 capillaries across ten recordings, including the previous
+eight, Berberine cam08A and this Caffeine recording. Restoring source intervals
+can change local evaporation/noise estimates and intake totals, so recheck
+the Caffeine recording. The expanded focused suite has 99 passing tests and
+two optional fixture tests skipped; batch/browser checks pass.
+
 ## Phase 1: refine meniscus
 
 Open **Refine topraw by correlation...** in the level-detection dialog.
@@ -101,7 +135,7 @@ registration did. This change requires scientific validation, not just UI tests.
 
 ## Phase 2: detect intake
 
-The active detector is **v6.1**. Its header reads `Detector v6.1 - persistent
+The active detector is **v6.2**. Its header reads `Detector v6.2 - persistent
 episodes` when persistence is checked. Eclipse users can restart the debug
 session; no packaged jar is required.
 
