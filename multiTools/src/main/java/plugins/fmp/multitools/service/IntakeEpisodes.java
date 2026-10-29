@@ -7,8 +7,11 @@ import java.util.List;
 
 /** Experimental signed, persistent intake episodes. Amplitudes are kymograph pixels. */
 public final class IntakeEpisodes {
-    public static final String METHOD_VERSION = "v5";
+    public static final String METHOD_VERSION = "v6.1";
     private IntakeEpisodes() { }
+
+    /** Independent image support for newly recovered steps; existing trajectories are unchanged. */
+    public interface StepEvidence { boolean supports(int boundary); }
 
     public static final class EvaporationScale {
         public final double factor;
@@ -58,13 +61,14 @@ public final class IntakeEpisodes {
 
     public static final class Detection {
         public final double[] net;
-        /** Jointly ordered evaporation-corrected positions; null for the legacy rate-only API. */
+        /** Evaporation-corrected positions, including local recovered-step fits;
+         * null for the legacy rate-only API. */
         public final double[] position;
         public final List<Gap> gaps;
         /** Surviving fitted episodes; a multi-bin episode need not be one biological gulp. */
         public final int episodes;
         private Detection(double[] net, int episodes) { this(net, episodes, null, new ArrayList<>()); }
-        private Detection(double[] net, int episodes, double[] position, List<Gap> gaps) {
+        Detection(double[] net, int episodes, double[] position, List<Gap> gaps) {
             this.net = net; this.episodes = episodes; this.position = position; this.gaps = gaps;
         }
     }
@@ -83,6 +87,7 @@ public final class IntakeEpisodes {
     private static final class Candidate {
         int first, last, boundary;
         double amount, score, limit;
+        boolean startupDrift;
     }
 
     /** Search 1..6 consecutive bins, calibrated against held-out empty capillaries.
@@ -96,6 +101,19 @@ public final class IntakeEpisodes {
     }
 
     public static Detection detect(double[] rate, double[] times, boolean[] valid,
+            List<double[]> controlRates, double automatic, double threshold, double[] correctedLevels) {
+        return detect(rate,times,valid,controlRates,automatic,threshold,correctedLevels,null);
+    }
+
+    public static Detection detect(double[] rate, double[] times, boolean[] valid,
+            List<double[]> controlRates, double automatic, double threshold, double[] correctedLevels,
+            StepEvidence evidence) {
+        Detection baseline = detectConstant(rate, times, valid, controlRates, automatic, threshold, correctedLevels);
+        return correctedLevels == null || !Double.isFinite(threshold) || threshold < 0 ? baseline
+                : IntakeLocalSteps.refine(baseline, correctedLevels, times, valid, controlRates, automatic, threshold,evidence);
+    }
+
+    private static Detection detectConstant(double[] rate, double[] times, boolean[] valid,
             List<double[]> controlRates, double automatic, double threshold, double[] correctedLevels) {
         double[] net = new double[rate.length];
         if (!Double.isFinite(threshold) || threshold < 0) return new Detection(net, 0);
@@ -130,6 +148,16 @@ public final class IntakeEpisodes {
                 double duration = times[b] - times[a - 1];
                 double limit = Math.max(empirical, automatic * duration / width) * threshold / automatic;
                 if (!(amount > limit)) continue;
+                // At startup there is no preceding plateau. Do not turn only a
+                // gradual subthreshold drift into an episode; retain an early
+                // cascade when it contains or immediately precedes a resolved step.
+                boolean startupDrift=false;
+                if(correctedLevels!=null && a<=6 && width>1) {
+                    boolean abrupt=false;
+                    for(int k=a;k<=Math.min(rate.length-1,b+3);k++)
+                        abrupt |= valid[k] && rate[k]*(times[k]-times[k-1])>limit;
+                    startupDrift=!abrupt;
+                }
                 double persistent;
                 if (correctedLevels != null) {
                     // Test the sustained level difference, not the sum of every
@@ -149,6 +177,7 @@ public final class IntakeEpisodes {
                 Candidate c = new Candidate();
                 c.first = a; c.last = b; c.amount = persistent; c.score = persistent / Math.max(limit, 1e-9);
                 c.limit = limit;
+                c.startupDrift=startupDrift;
                 all.add(c);
             }
         }
@@ -215,7 +244,16 @@ public final class IntakeEpisodes {
                 positions[k] = position;
             }
         }
-        return new Detection(amounts, selected.size(), positions, fitted.gaps);
+        int suppressed=0;
+        for(Candidate c:selected) if(c.startupDrift && selected.size()==1) {
+            // An isolated gradual startup has no resolved feeding step or
+            // preceding plateau. Keep early cascades in feeding traces for
+            // review; suppressing them broadly could discard genuine feeding.
+            // Do not refit or change amplitudes elsewhere.
+            for(int k=c.first;k<=c.last;k++) amounts[k]=0;
+            suppressed++;
+        }
+        return new Detection(amounts, selected.size()-suppressed, positions, fitted.gaps);
     }
 
     /** Fit shared plateau positions, rather than assigning independent bar lengths.

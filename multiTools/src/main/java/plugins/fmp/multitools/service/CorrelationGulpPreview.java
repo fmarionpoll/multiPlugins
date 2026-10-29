@@ -36,6 +36,34 @@ public final class CorrelationGulpPreview {
     public final int controlCount;
     public final boolean hasEvaporationReference;
     public final String referenceDescription;
+    private VerticalCorrelation.Result intakeImageSupport;
+
+    /** Confirm a rescued boundary independently of its saved refinement flag.
+     * For uncertain boundaries, also register across the short interval rather
+     * than requiring the failing adjacent pair to succeed again.
+     */
+    public synchronized boolean supportsIntakeStep(int boundary) {
+        if(intakeImageSupport==null) intakeImageSupport=VerticalCorrelation.analyze(image,raw,10,3,true);
+        if(matchesIntakeShift(intakeImageSupport,boundary,raw[boundary]-raw[boundary-1])) return true;
+        if(motion.reliable[boundary]) return false;
+        int confirmed=0;
+        for(int offset=1;offset<=3;offset++) {
+            int a=boundary-1-offset,b=boundary+offset;
+            if(a<0 || b>=raw.length || !motion.reliable[a] || !motion.reliable[b]) continue;
+            BufferedImage pair=new BufferedImage(2,image.getHeight(),BufferedImage.TYPE_INT_RGB);
+            for(int y=0;y<image.getHeight();y++) {
+                pair.setRGB(0,y,image.getRGB(a,y));pair.setRGB(1,y,image.getRGB(b,y));
+            }
+            VerticalCorrelation.Result support=VerticalCorrelation.analyze(pair,new double[]{raw[a],raw[b]},10,3,true);
+            if(matchesIntakeShift(support,1,raw[b]-raw[a])) confirmed++;
+        }
+        return confirmed>=2;
+    }
+
+    private static boolean matchesIntakeShift(VerticalCorrelation.Result support,int index,double measured) {
+        return support.reliable[index] && support.shift[index]>0
+                && Math.abs(support.shift[index]-measured)<=Math.max(.75,.3*Math.abs(measured));
+    }
 
     private CorrelationGulpPreview(BufferedImage image, double[] raw, double[] minutes,
             double[] evaporation, VerticalCorrelation.Result motion, double[] controls,

@@ -1,6 +1,7 @@
 /* Read-only reproduction of intake decisions on saved accepted topraw.
  * Args: output directory, experiment directory...; never saves experiment objects.
- * Set -Dintake.local=true to compare the optional local evaporation model. */
+ * Set -Dintake.local=true to compare the optional local evaporation model.
+ * Set -Dintake.image=true for read-only image-motion support diagnostics. */
 import java.awt.image.BufferedImage;
 import java.io.BufferedWriter;
 import java.lang.reflect.Method;
@@ -78,8 +79,19 @@ public class IntakeMissInvestigation {
                     }
                     boolean local = Boolean.getBoolean("intake.local");
                     CorrelationGulpPreview p = CorrelationGulpPreview.computeAccepted(exp, cap, local);
-                    IntakeEpisodes.Detection d = IntakeEpisodes.detect(p.residualRate, p.minutes, p.motion.reliable,
-                            p.controlRates, p.noise.automatic, p.noise.automatic, p.correctedLevels);
+                    VerticalCorrelation.Result imageMotion = Boolean.getBoolean("intake.image")
+                            ? VerticalCorrelation.analyze(p.image,p.raw,10,3,true) : null;
+                    IntakeEpisodes.Detection d;
+                    try {
+                        Method physical = IntakeEpisodes.class.getMethod("detect", double[].class, double[].class, boolean[].class,
+                                List.class, double.class, double.class, double[].class, double[].class);
+                        d = (IntakeEpisodes.Detection)physical.invoke(null, p.residualRate, p.minutes, p.motion.reliable,
+                                p.controlRates, p.noise.automatic, p.noise.automatic, p.correctedLevels, p.evaporation);
+                    } catch (NoSuchMethodException legacy) {
+                        d = IntakeEpisodes.detect(p.residualRate, p.minutes, p.motion.reliable,
+                                p.controlRates, p.noise.automatic, p.noise.automatic, p.correctedLevels,
+                                p::supportsIntakeStep);
+                    }
                     int bins = 0, usable = 0; for (int i = 1; i < p.raw.length; i++) { if (d.net[i] > 0) bins++; if (p.motion.reliable[i]) usable++; }
                     summary.write(name + ";" + id + ";" + cap.getNFlies() + ";" + p.noise.automatic + ";"
                             + cap.getCorrelationGulps().getThresholdPxPerMin() + ";" + cap.getCorrelationGulps().getMethodOptions()
@@ -88,12 +100,18 @@ public class IntakeMissInvestigation {
                             + ";" + local + ";" + p.localScale.factor + ";" + p.localScale.reliable + ";" + p.localScale.quietIntervals
                             + ";" + (local ? p.localScale.factor : 1) + "\n");
                     String json = "{\"experiment\":\"" + name + "\",\"capillary\":\"" + id + "\",\"threshold\":" + p.noise.automatic
+                            + ",\"noise_sigma\":" + p.noise.sigma + ",\"control_rates\":"
+                            + p.controlRates.stream().map(Arrays::toString).collect(java.util.stream.Collectors.joining(",", "[", "]"))
                             + ",\"raw\":" + Arrays.toString(p.raw) + ",\"minutes\":" + Arrays.toString(p.minutes)
                             + ",\"evaporation\":" + Arrays.toString(p.evaporation) + ",\"rate\":" + Arrays.toString(p.residualRate)
                             + ",\"valid\":" + Arrays.toString(p.motion.reliable) + ",\"net\":" + Arrays.toString(d.net)
                             + ",\"position\":" + Arrays.toString(d.position)
                             + ",\"estimated_scale\":" + p.localScale.factor + ",\"scale_reliable\":" + p.localScale.reliable
                             + ",\"quiet_intervals\":" + p.localScale.quietIntervals + ",\"applied_scale\":" + (local ? p.localScale.factor : 1) + "}";
+                    if (imageMotion != null) json = json.substring(0,json.length()-1)
+                            + ",\"image_shift\":" + Arrays.toString(imageMotion.shift)
+                            + ",\"image_reliable\":" + Arrays.toString(imageMotion.reliable)
+                            + ",\"image_correlation\":" + Arrays.toString(imageMotion.correlation) + "}";
                     Files.write(output.resolve(name + "-" + id + ".json"), json.getBytes(StandardCharsets.UTF_8));
                     boolean investigate = id.endsWith("L") && (name.startsWith("cam02") ? Arrays.asList("1L","3L","6L","7L","8L").contains(id)
                             : name.startsWith("cam03") ? Arrays.asList("4L","8L").contains(id) : Arrays.asList("2L","3L").contains(id));

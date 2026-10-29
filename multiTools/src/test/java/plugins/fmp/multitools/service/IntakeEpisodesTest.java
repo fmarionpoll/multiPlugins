@@ -6,6 +6,80 @@ import java.util.Collections;
 import org.junit.Test;
 
 public class IntakeEpisodesTest {
+    @Test public void adjacentLargeStepsSurviveDecliningBackgroundTogether() {
+        double[] r=new double[100];Arrays.fill(r,-.12);r[0]=0;r[20]+=5;r[21]+=5;
+        IntakeEpisodes.Detection d=accepted(r,valid(r.length));
+        assertEquals(5,d.net[20],1e-8);assertEquals(5,d.net[21],1e-8);
+        assertEquals(10,Arrays.stream(d.net).sum(),1e-8);
+    }
+    @Test public void adjacentUncertainIncrementRedistributesAlreadyCountedVolume() {
+        double[] r=new double[60];r[20]=4;r[21]=2;
+        boolean[] v=valid(r.length);v[21]=false;
+        IntakeEpisodes.Detection d=accepted(r,v);
+        assertEquals(4,d.net[20],1e-8);assertEquals(2,d.net[21],1e-8);
+        assertEquals(6,Arrays.stream(d.net).sum(),1e-8);
+        assertEquals(1,d.episodes);
+    }
+    @Test public void signedBackgroundCannotCancelEarlierPersistentStep() {
+        double[] r=new double[100];
+        Arrays.fill(r,-.12);r[0]=0;r[20]+=4;
+        IntakeEpisodes.Detection d=accepted(r,valid(r.length));
+        assertEquals(4,d.net[20],1e-8);
+    }
+    @Test public void uncertainStepCanBeRecoveredFromReliableFlanks() {
+        double[] r=new double[60];r[20]=5;
+        boolean[] v=valid(r.length);v[20]=false;
+        IntakeEpisodes.Detection d=accepted(r,v);
+        assertEquals(5,d.net[20],1e-8);
+        assertEquals(d.net[20],d.position[20]-d.position[19],1e-8);
+        assertFalse(v[20]); // Recovery does not rewrite saved quality flags.
+    }
+    @Test public void shortUncertainCascadeKeepsItsObservedTimeSpan() {
+        double[] r=new double[60];r[20]=1;r[21]=4;
+        boolean[] v=valid(r.length);v[20]=v[21]=false;
+        IntakeEpisodes.Detection d=accepted(r,v);
+        assertEquals(1,d.episodes);
+        assertEquals(1,d.net[20],1e-8);assertEquals(4,d.net[21],1e-8);
+        for(int i=20;i<=21;i++) assertEquals(d.net[i],d.position[i]-d.position[i-1],1e-8);
+    }
+    @Test public void longUncertainRunWithoutReliableFlanksIsNotBridged() {
+        double[] r=new double[60];r[20]=5;
+        boolean[] v=valid(r.length);Arrays.fill(v,17,25,false);
+        assertEquals(0,Arrays.stream(accepted(r,v).net).sum(),0);
+    }
+    @Test public void irregularSamplingUsesElapsedTimeForLocalBackground() {
+        double[] t=times(60),y=new double[60],r=new double[60];
+        for(int i=0;i<t.length;i++) {
+            t[i]=i*.7+(i>15?.3:0);y[i]=-.12*t[i]+(i>=20?4:0);
+            if(i>0) r[i]=(y[i]-y[i-1])/(t[i]-t[i-1]);
+        }
+        boolean[] v=valid(r.length);v[20]=false;
+        IntakeEpisodes.Detection d=IntakeEpisodes.detect(r,t,v,
+                Collections.singletonList(new double[r.length]),1.4,1.4,y);
+        assertEquals(4,d.net[20],1e-8);
+    }
+    @Test public void imageEvidenceCanVetoRescueWithoutRemovingEstablishedStep() {
+        double[] r=new double[60];r[10]=4;r[30]=5;
+        boolean[] v=valid(r.length);v[30]=false;
+        IntakeEpisodes.Detection d=IntakeEpisodes.detect(r,times(r.length),v,
+                Collections.singletonList(new double[r.length]),1.4,1.4,levels(r),i->false);
+        assertEquals(4,d.net[10],1e-8);assertEquals(0,d.net[30],0);
+    }
+    @Test public void uncertainOneFrameExcursionIsNotRecoveredAsFeeding() {
+        double[] r=new double[60];r[20]=5;r[21]=-5;
+        boolean[] v=valid(r.length);v[20]=false;
+        assertEquals(0,Arrays.stream(accepted(r,v).net).sum(),0);
+    }
+    @Test public void smoothSubthresholdStartupIsNotAnIntakeEpisode() {
+        double[] r=new double[60];Arrays.fill(r,1,7,.4);
+        assertEquals(0,Arrays.stream(accepted(r,valid(r.length)).net).sum(),0);
+    }
+    @Test public void startupGuardDoesNotEraseEarlyCascadeInFeedingTrace() {
+        double[] r=new double[60];Arrays.fill(r,1,7,.4);r[20]=4;
+        IntakeEpisodes.Detection d=accepted(r,valid(r.length));
+        assertTrue(Arrays.stream(Arrays.copyOfRange(d.net,1,7)).sum()>1.4);
+        assertEquals(4,d.net[20],1e-8);
+    }
     private double[] levels(double[] rate) {
         double[] levels = new double[rate.length];
         for (int i = 1; i < rate.length; i++) levels[i] = levels[i - 1] + rate[i];

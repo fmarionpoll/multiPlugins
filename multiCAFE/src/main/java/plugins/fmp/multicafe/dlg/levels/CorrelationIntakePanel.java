@@ -184,6 +184,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		Capillary first = (Capillary) capillaries.getSelectedItem();
 		if (first != null && (first.getCorrelationGulps().getMethodOptions().startsWith("v3,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v4,source=accepted_topraw")
+				|| first.getCorrelationGulps().getMethodOptions().startsWith("v5,source=accepted_topraw")
+				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
 			String options = first.getCorrelationGulps().getMethodOptions();
 			persistentEpisodes.setSelected(options.contains("persistent=true"));
@@ -230,7 +232,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		modeControls.add(new JLabel("Mode"));
 		modeControls.add(runMode);
 		detectorVersion.setToolTipText("Persistent episodes uses the " + IntakeEpisodes.METHOD_VERSION
-				+ " plateau and fitted-amplitude checks. With persistence off, detection uses only the single-bin threshold rule.");
+				+ " plateau checks and image-confirmed local step recovery. With persistence off, detection uses only the single-bin threshold rule.");
 		modeControls.add(detectorVersion);
 		rows.add(modeControls);
 		rows.add(controls);
@@ -277,7 +279,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		JPanel footer = new JPanel(new BorderLayout(4, 4));
 		footer.add(status, BorderLayout.NORTH);
 		footer.add(new JLabel(
-				"<html>Blue bars: intake displacement (episode mode uses jointly ordered meniscus positions; amber: downward steps; teal: drift; purple: anchor/offset/upward warnings). Grey: evaporation + cumulative intake.<br>"
+				"<html>Blue bars: intake displacement (fitted meniscus steps; amber: downward steps; teal: drift; purple: anchor/offset/upward warnings). Grey: evaporation + cumulative intake.<br>"
 						+ "Drag the red bar to adjust the threshold; click the graph to inspect a time point. "
 						+ "Save intake keeps separate prototype results. Copy to gulps (or Copy all to gulps) installs them in the ordinary gulp measures and graphs.</html>"),
 				BorderLayout.SOUTH);
@@ -862,7 +864,8 @@ public final class CorrelationIntakePanel extends JPanel {
 				throw new IllegalArgumentException("Automatic threshold unavailable");
 			if (episodes) {
 				IntakeEpisodes.Detection detection = IntakeEpisodes.detect(p.residualRate, p.minutes,
-						p.motion.reliable, p.controlRates, p.noise.automatic, p.noise.automatic, p.correctedLevels);
+						p.motion.reliable, p.controlRates, p.noise.automatic, p.noise.automatic, p.correctedLevels,
+						p::supportsIntakeStep);
 				amplitudes = detection.net.clone();
 				bottoms = detection.position.clone();
 				for (int i = 0; i < bottoms.length; i++) {
@@ -1272,7 +1275,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	private IntakeEpisodes.Detection episodeDetection() {
 		if (episodePreview != preview || episodeThreshold != value() || cachedEpisodes == null) {
 			cachedEpisodes = IntakeEpisodes.detect(preview.residualRate, preview.minutes, preview.motion.reliable,
-					preview.controlRates, preview.noise.automatic, value(), preview.correctedLevels);
+					preview.controlRates, preview.noise.automatic, value(), preview.correctedLevels,
+					preview::supportsIntakeStep);
 			episodePreview = preview;
 			episodeThreshold = value();
 		}

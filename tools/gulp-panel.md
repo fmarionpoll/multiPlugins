@@ -101,6 +101,78 @@ registration did. This change requires scientific validation, not just UI tests.
 
 ## Phase 2: detect intake
 
+The active detector is **v6.1**. Its header reads `Detector v6.1 - persistent
+episodes` when persistence is checked. Eclipse users can restart the debug
+session; no packaged jar is required.
+
+V6.1 fixes a recovery veto next to an accepted boundary. A short span of up to
+three increments can now contain one accepted boundary and an adjacent
+resolved-size increment, instead of automatically rejecting the latter. It
+fits the whole span against the local signed background, retains image and
+control confirmation, and distributes the amplitude over its observed positive
+increments. Already separated accepted boundaries remain separate. If the old
+bar already includes the neighbouring movement, its volume is redistributed;
+additional volume needs independent displacement above the amount threshold.
+This does not imply that every intake bin is a separate biological gulp.
+
+The reported Denatonium cam02 4L event is at samples 85-86: raw motion is
+4.78/4.74 pixels, while v6 had one 3.11-pixel bar. V6.1 produces 4.81/4.77-pixel
+net bars. Quinine cam03 8L's post-gulp increment at sample 99 (100.08 min)
+is also recovered (about 1.81 pixels). The eight-recording comparison on
+identical saved input arrays has no decreased capillary totals and no increased
+control totals. Many other changes redistribute previously counted volume
+across adjacent increments. The Quinine cam03 5R/6R/8R false positives are
+unchanged; the Berberine 2L subthreshold candidates are not rescued by lowering
+the threshold. Both issues remain open. V6.1 adds regression tests for adjacent
+large steps on a declining background and for redistribution without counting
+volume twice. The former v6 results and settings remain readable.
+All 53 focused JUnit tests and the batch/browser smoke checks pass for v6.1.
+
+V6 retains established v5 detections and adds a local step-recovery pass. It
+fits a step plus a signed quadratic background over up to six samples on each
+side, with at least three reliable observations per side. The same statistic
+on held-out controls supplies a duration-matched 99.5th-percentile noise limit.
+This local background may rise; a later declining evaporation residual cannot
+erase a separately confirmed step. Updates to an existing amplitude require
+that the v5 fit retained less than 65% of the local estimate.
+
+Short runs of up to three uncertain increments may be bridged. Their saved
+quality flags are unchanged. Recovered volume is spread over the observed
+positive increments within that short interval; its exact timing remains
+uncertain. The panel requires independent image registration for recoveries.
+When an adjacent registration is uncertain, two reliable registrations across
+different wider flanks must support the measured displacement. Unsupported
+flanks and abrupt returns in either direction veto recovery. This is distinct
+from treating every grey cross as an intake or ignoring quality globally.
+
+An isolated startup episode made entirely of gradual subthreshold movement is
+suppressed when no resolved step occurs in or immediately after it. Early
+cascades in traces with other accepted episodes are retained for review. This
+guard does not globally refit or change later amplitudes.
+
+Read-only validation on 159 capillaries in eight experiments covers the six
+Quinine records plus Denatonium cam02_1mM and Berberine cam06_1mM. Local
+evaporation was on for Quinine/Berberine and off for Denatonium, matching the
+reported examples. Recoveries include Denatonium 5L at 93 min, 6L at
+35/40/60/67 min, 8L at 36/54 min; Berberine 1L at 102-103 min, 2L at 42-43 min,
+6L at 43 min; and the approximately 1.66-pixel Quinine cam03 8L step at
+85.08 min. Berberine 8R's isolated startup episode is removed. Comparisons use
+the archived v5 implementation on identical input arrays, since saved source
+measurements can change between investigations. No experiment files are saved.
+The final comparison includes 31 no-fly controls; no previously zero control
+becomes positive. Total intake decreases only in four startup-only traces
+(Quinine cam01 5R/9R, cam04_10mM 9R, and Berberine 8R). All 51 focused JUnit
+tests and both batch/browser smoke checks pass.
+
+Known limitations: some quiet-capillary false positives remain, and splitting
+close gulps is not generally solved. The grey reconstruction still uses the
+selected evaporation model plus cumulative intake; local recovery does not
+replace that displayed background with a globally fitted signed drift curve.
+Review startup-only traces and the named examples before a 360-experiment
+batch. Synthetic tests cover signed drift, short/long quality gaps, image-veto
+behavior, interval geometry, excursions, startup ambiguity, and irregular time
+sampling; batch/save/browser smoke checks exercise the normal application path.
+
 The intake dialog follows the experiment browser and remains open for previous,
 next, direct, or temporarily empty selections. Each experiment keeps its own
 session and manual thresholds. Switching suspends preview workers, timers and
@@ -331,6 +403,10 @@ Compile with the same classpath as `CorrelationPanelSmoke.java`.
 Use `-Dintake.local=true` for a separate local-evaporation replay; the summary
 and trace files record the estimated/applied scale, quiet sample count, and
 estimator support flag. Output goes only to the specified local directory.
+Use `-Dintake.image=true` to append signed image-motion estimates, registration
+reliability and correlation scores without modifying topraw or gulp measures.
+Trace files also include control-rate series and the noise estimate for
+reproducing alternative evidence statistics outside the application.
 
 The reported misses in cam02_1mM (1L/3L/6L/7L/8L), cam03_10mM (4L/8L), and
 cam04_10mM (2L/3L), under `17-10-26_Quinine`, provide a targeted regression set.
@@ -370,6 +446,17 @@ The six-experiment read-only comparison covers the same 119 usable capillaries;
 no previously zero no-fly control becomes positive, and total detected control
 displacement does not increase in any of those experiments. Old v3/v4 results
 remain readable; v5 results carry distinct method metadata.
+
+The next cam03 follow-up identified the small 8L step near minute 85 plus
+spurious 0R/5R/6R/8R intake bins. A local-trend/curvature prototype recovered 8L
+and removed the 0R/8R startup detections, but a six-experiment comparison also
+lost approximately 5-11 pixels of feeding volume on several other records.
+That prototype was rejected and removed from runtime sources; the application
+remained on v5 at that stage. A read-only image-motion check supported the 8L displacement
+(about 1.65 px with reliable registration). Several 5R/6R event intervals had
+unreliable registration despite high correlation. This motivates independent
+image support and explicit startup modelling; it does not validate automatic
+rejection of every unreliable registration or a global threshold change.
 The rate-only API without accepted-level anchors retains its legacy rule.
 
 A read-only old/new comparison covered 119 usable capillaries (23 controls)
