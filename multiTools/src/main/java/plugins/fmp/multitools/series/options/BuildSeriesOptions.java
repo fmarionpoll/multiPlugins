@@ -42,6 +42,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 			}
 			String trimmed = value.trim();
 			if ("vertical correlation (prototype)".equals(trimmed)
+					|| "accepted topraw intake (prototype)".equals(trimmed)
 					|| GulpDetectionMethod.VERTICAL_CORRELATION.toString().equals(trimmed))
 				return VERTICAL_CORRELATION;
 			for (GulpDetectionMethod m : values()) {
