@@ -17,13 +17,19 @@ public class RefineMeniscus extends BuildSeries {
     private final int radius;
     private final double correction;
     private final boolean expand;
+    private final MeniscusRefinement.Method method;
     private volatile boolean stopping;
     private int savedExperiments;
 
     public RefineMeniscus(int radius, double correction, boolean expand) {
+        this(radius, correction, expand, MeniscusRefinement.Method.ADJACENT);
+    }
+
+    public RefineMeniscus(int radius, double correction, boolean expand, MeniscusRefinement.Method method) {
         this.radius = radius;
         this.correction = correction;
         this.expand = expand;
+        this.method = java.util.Objects.requireNonNull(method, "Correlation method");
     }
 
     /** Finish any save already in progress; never leave half an experiment validated. */
@@ -54,7 +60,7 @@ public class RefineMeniscus extends BuildSeries {
                 if (raw == null || raw.npoints < 2)
                     throw new IllegalStateException("Detect topraw first for " + cap.getKymographName());
                 BufferedImage image = nativeImage(exp, cap, raw.npoints);
-                proposals.put(cap, MeniscusRefinement.propose(raw, image, radius, correction, expand));
+                proposals.put(cap, MeniscusRefinement.propose(raw, image, radius, correction, expand, null, method));
             }
             if (proposals.isEmpty())
                 throw new IllegalStateException("No capillaries to refine");

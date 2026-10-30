@@ -133,11 +133,54 @@ curves. All comparisons use the same clock, calibration and original t0 anchor
 as the existing curves. Other result types do not include these comparisons.
 
 Correlation searches around
-`topraw[i] - topraw[i-1]`, initially within a configurable correction radius
+`topraw[b] - topraw[a]`, initially within a configurable correction radius
 (default 3 pixels). The image-profile window defaults to +/-10 pixels. Optional
 expansion increases the correction radius by 1.5 up to four times its initial
 value, capped at 64 pixels; image borders never trigger expansion. Existing
 contrast, correlation-peak and forward/reverse checks still apply.
+
+The **Correlation method** selector defaults to **Adjacent columns (previous)**.
+This restores the full-profile adjacent method after the Nicotine 0R comparison
+showed extra column jumps with the new method. The selected method also controls
+**Correlate, validate & save** series runs. A method change invalidates the old
+preview; run correlation again before applying it.
+
+The optional **Neighbours + median (experimental)** method matches each column
+against neighbours at t +/- 1, 2 and 3.
+Profiles receive their strongest weight near the meniscus, reducing interference
+from moving background stripes. Reliable pair displacements enter a robust joint
+fit; inconsistent pairs are rejected. There is no temporal smoothing or
+monotonicity penalty, so actual feeding steps can remain abrupt. Missing levels
+are not bridged, and columns without reliable image support retain topraw.
+The intake detector's independent adjacent-image checks are unchanged.
+
+In that experimental method, a subsequent appearance pass aligns supported columns to a median profile of
+up to six neighbours on each side. Profiles are sampled relative to their
+current meniscus positions; Y coordinates are not averaged across feeding steps.
+Rows whose colour varies between neighbours receive less weight, reducing the
+influence of transient texture. Three conservative passes require contrast,
+correlation, peak separation and forward/reverse consistency. Unsupported,
+border-limited and manually pinned columns retain their previous result.
+The Nicotine `22-09-30_Nicotine/cam04/grabs`, 0L replay at window 18 / correction
+13 shows a modest visual improvement, not equivalence to manual adjustment.
+The screenshot's old bottom preview is explicitly out of date after validation;
+Run correlation refreshes it. No saved experiment files are modified by replay.
+
+Manual edits are exact anchors through Run correlation, Apply correlation and
+Validate followed by another Run in the current panel session. Historical manual
+provenance is not reconstructed when reopening saved files. The ready status
+identifies the selected method and reports supported intervals.
+
+Seven synthetic regression tests cover exact restoration of the previous default,
+noisy positions, signed feeding steps,
+missing/blank columns, a moving background stripe and exact manual anchors.
+`MeniscusNeighbourSmoke.java` exercises Run/Apply/Validate/Run and Undo through
+the Swing panel using an in-memory fixture. A read-only replay on saved Paraquat
+`22-09-29_Paraquat/cam07/grabs`, 0L, uses native `results/bin_61` images.
+At window 26 and correction 13, supported intervals increase from 137 to 235.
+This measures support rather than accuracy: the user's unsaved manual trace is
+unavailable, and visual comparison is still required. No experiment files are
+written by these checks.
 
 Each preview snapshots the current inputs and does not change measures.
 **Validate** becomes available once every required preview is ready; the status

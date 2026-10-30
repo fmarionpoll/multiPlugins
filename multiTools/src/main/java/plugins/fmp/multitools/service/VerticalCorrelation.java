@@ -18,8 +18,10 @@ public final class VerticalCorrelation {
         public final Profile[] profile;
         public final boolean[] toprawFallback;
         public final String[] reason;
+        public final int[] neighbourSupport;
+        public final double[] fitResidual;
 
-        private Result(int n) {
+        Result(int n) {
             searchRange = new double[n];
             shift = new double[n];
             correlation = new double[n];
@@ -29,6 +31,8 @@ public final class VerticalCorrelation {
             Arrays.fill(profile,Profile.NONE);
             toprawFallback = new boolean[n];
             reason = new String[n];
+            neighbourSupport=new int[n];
+            fitResidual=new double[n];Arrays.fill(fitResidual,Double.NaN);
             Arrays.fill(shift, Double.NaN);
             Arrays.fill(correlation, Double.NaN);
             Arrays.fill(reason, "No previous sample");
@@ -100,10 +104,14 @@ public final class VerticalCorrelation {
         boolean atLimit, imageLimit;
     }
 
-    private static final class Registration {
+    static final class Registration {
         Match forward,reverse;
         double range;
         String reason;
+        Profile profile=Profile.FULL;
+        double shift() {return (forward.shift-reverse.shift)/2;}
+        double correlation() {return Math.min(forward.correlation,reverse.correlation);}
+        double separation() {return Math.min(forward.separation,reverse.separation);}
     }
 
     public static final double DEFAULT_MAX_SHIFT = 6;
@@ -195,11 +203,32 @@ public final class VerticalCorrelation {
 
     private static Registration register(double[][] previous,double[][] current,double a,double b,
             int low,int high,double maxShift,double prediction,boolean adaptive) {
+        return register(previous,current,a,b,low,high,maxShift,prediction,adaptive,false);
+    }
+
+    /** Independent, centre-weighted image evidence for the refinement graph. */
+    static Registration neighbourPair(double[][] previous,double[][] current,double a,double b,
+            int radius,double correction,boolean adaptive) {
+        Registration r=register(previous,current,a,b,-radius,radius,correction,b-a,adaptive,true);
+        int h=previous[0].length;
+        if(!r.reason.isEmpty() && inside(a,h) && inside(b,h) && nearBorder(a,b,radius,h)) {
+            boolean below=Math.min(a,b)<=radius;
+            int across=below?(int)Math.floor(Math.min(a,b))-1:(int)Math.floor(h-1-Math.max(a,b))-1;
+            across=Math.max(0,Math.min(2,across));
+            r=register(previous,current,a,b,below?-across:-radius,below?radius:across,
+                    correction,b-a,adaptive,true);
+            r.profile=below?Profile.BELOW_MENISCUS:Profile.ABOVE_MENISCUS;
+        }
+        return r;
+    }
+
+    private static Registration register(double[][] previous,double[][] current,double a,double b,
+            int low,int high,double maxShift,double prediction,boolean adaptive,boolean weighted) {
         Registration r=new Registration();r.range=maxShift;
         double ceiling=Math.max(maxShift,Math.min(64,4*maxShift));
         do {
-            r.forward=match(previous,current,a,low,high,r.range,prediction);
-            r.reverse=match(current,previous,b,low,high,r.range,-prediction);
+            r.forward=match(previous,current,a,low,high,r.range,prediction,weighted);
+            r.reverse=match(current,previous,b,low,high,r.range,-prediction,weighted);
             if(!adaptive || r.forward==null || r.reverse==null || r.range>=ceiling
                     || !((r.forward.atLimit&&!r.forward.imageLimit)||(r.reverse.atLimit&&!r.reverse.imageLimit))) break;
             r.range=Math.min(ceiling,r.range*1.5);
@@ -216,7 +245,7 @@ public final class VerticalCorrelation {
     }
 
     private static Match match(double[][] previous, double[][] current, double center, int low, int high,
-            double maxShift, double prediction) {
+            double maxShift, double prediction,boolean weighted) {
         int h = previous[0].length, count = high-low+1;
         // Only the unshifted template must fit in full. A wide requested search
         // must not reject a valid small displacement near an image border.
@@ -226,15 +255,22 @@ public final class VerticalCorrelation {
         int firstStep = Math.max(requestedFirst, (int) Math.ceil((-low - center) / SHIFT_STEP - 1e-9));
         int lastStep = Math.min(requestedLast, (int) Math.floor((h - 1 - high - center) / SHIFT_STEP + 1e-9));
         if (lastStep <= firstStep) return null;
+        double[] weights=new double[count];double weightSum=0;
+        double sigma=Math.max(2,Math.min(3,(high-low)/6.0));
+        for(int j=0;j<count;j++) {
+            double distance=(low+j)/sigma;
+            weights[j]=weighted?.001+.999*Math.exp(-.5*distance*distance):1;
+            weightSum+=weights[j];
+        }
         double[][] template = new double[2][count];
         double energy = 0;
         for (int c = 0; c < 2; c++) {
             double mean = 0;
-            for (int j = 0; j < count; j++) mean += template[c][j] = sample(previous[c], center + low + j);
-            mean /= count;
+            for (int j = 0; j < count; j++) {template[c][j]=sample(previous[c],center+low+j);mean+=weights[j]*template[c][j];}
+            mean /= weightSum;
             for (int j = 0; j < count; j++) {
                 template[c][j] -= mean;
-                energy += template[c][j] * template[c][j];
+                energy += weights[j]*template[c][j] * template[c][j];
             }
         }
         if (!(energy > 1e-12)) return null;
@@ -245,12 +281,12 @@ public final class VerticalCorrelation {
             double shift = (firstStep + k) * SHIFT_STEP, numerator = 0, targetEnergy = 0;
             for (int c = 0; c < 2; c++) {
                 double mean = 0;
-                for (int j = 0; j < count; j++) mean += values[j] = sample(current[c], center + low + j + shift);
-                mean /= count;
+                for (int j = 0; j < count; j++) {values[j]=sample(current[c],center+low+j+shift);mean+=weights[j]*values[j];}
+                mean /= weightSum;
                 for (int j = 0; j < count; j++) {
                     double v = values[j] - mean;
-                    numerator += v * template[c][j];
-                    targetEnergy += v * v;
+                    numerator += weights[j]*v * template[c][j];
+                    targetEnergy += weights[j]*v * v;
                 }
             }
             scores[k] = targetEnergy > 1e-12 ? numerator / Math.sqrt(energy * targetEnergy) : -1;
@@ -259,7 +295,7 @@ public final class VerticalCorrelation {
         Match m = new Match();
         m.shift = (firstStep + best) * SHIFT_STEP;
         m.correlation = scores[best];
-        m.contrast = Math.sqrt(energy / (2 * count));
+        m.contrast = Math.sqrt(energy / (2 * weightSum));
         m.atLimit = best == 0 || best == scores.length - 1;
         m.imageLimit = (best == 0 && firstStep > requestedFirst)
                 || (best == scores.length - 1 && lastStep < requestedLast);

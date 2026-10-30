@@ -80,6 +80,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final JCheckBox showOriginal = new JCheckBox("Saved topraw (orange)", true),
 			showProposed = new JCheckBox("Edited topraw (magenta)", true);
 	private final JCheckBox expand = new JCheckBox("Expand correction search", true);
+	private final JComboBox<MeniscusRefinement.Method> correlationMethod = new JComboBox<>(MeniscusRefinement.Method.values());
 	private final JButton runCorrelation = new JButton("Run correlation"),
 			applyCorrelation = new JButton("Apply correlation");
 	private final Map<Capillary, MeniscusRefinement.Proposal> correlations = new LinkedHashMap<>();
@@ -207,7 +208,8 @@ public final class MeniscusRefinementPanel extends JPanel {
 	/** Capture the same correlation parameters used by the interactive preview. */
 	RefineMeniscus newSeriesWorker() {
 		return new RefineMeniscus(((Number) radius.getValue()).intValue(),
-				((Number) correction.getValue()).doubleValue(), expand.isSelected());
+				((Number) correction.getValue()).doubleValue(), expand.isSelected(),
+				(MeniscusRefinement.Method) correlationMethod.getSelectedItem());
 	}
 
 	private void checkSources() {
@@ -449,6 +451,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		actions.add(previewAlignment);
 		actions.add(backAlignment);
 		actions.add(runCorrelation);
+		runCorrelation.setToolTipText("Run the selected correlation method. Hand-placed columns stay fixed.");
 		actions.add(applyCorrelation);
 		actions.add(accept);
 		actions.add(undo);
@@ -460,6 +463,10 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 		JPanel header = new JPanel(new GridLayout(0, 1));
 		header.add(controls);
+		JPanel methods = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		methods.add(new JLabel("Correlation method"));
+		methods.add(correlationMethod);
+		header.add(methods);
 		header.add(actions);
 		header.add(hint);
 		updateHint();
@@ -473,6 +480,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		ChangeListener reset = e -> invalidateCorrelation();
 		radius.addChangeListener(reset);
 		correction.addChangeListener(reset);
+		correlationMethod.addActionListener(e -> invalidateCorrelation());
 		stripRadius.addChangeListener(e -> resampleStripRadius());
 		previewTimer.setRepeats(false);
 		buttons();
@@ -750,15 +758,18 @@ public final class MeniscusRefinementPanel extends JPanel {
 		if (worker != null)
 			return;
 		final Map<Capillary, Level2D> inputs = new LinkedHashMap<>();
+		final Map<Capillary, boolean[]> fixed = new LinkedHashMap<>();
 		for (Capillary c : scope()) {
 			MeniscusRefinement.Proposal p = proposals.get(c);
 			if (!MeniscusRefinement.isCurrent(c, p))
 				return;
 			inputs.put(c, new Level2D(p.x(), p.refined(), p.columnCount()));
+			fixed.put(c,p.placedColumns());
 		}
 		final int window = ((Number) radius.getValue()).intValue();
 		final double range = ((Number) correction.getValue()).doubleValue();
 		final boolean adaptive = expand.isSelected();
+		final MeniscusRefinement.Method method = (MeniscusRefinement.Method) correlationMethod.getSelectedItem();
 		final Map<Capillary, BufferedImage> images = new LinkedHashMap<>(sources);
 		computingCaps.addAll(inputs.keySet());
 		worker = new SwingWorker<MeniscusRefinement.Proposal, Void>() {
@@ -768,7 +779,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 				for (Capillary c : inputs.keySet()) {
 					if (isCancelled())
 						return null;
-					results.put(c, MeniscusRefinement.propose(inputs.get(c), images.get(c), window, range, adaptive));
+					results.put(c, MeniscusRefinement.propose(inputs.get(c), images.get(c), window, range, adaptive,fixed.get(c),method));
 				}
 				return null;
 			}
@@ -789,7 +800,12 @@ public final class MeniscusRefinementPanel extends JPanel {
 					for (Capillary c : results.keySet())
 						correlatedStrips.put(c,
 								MeniscusRefinement.stabilized(images.get(c), results.get(c).refined(), stripRadius()));
-					status.setText("Correlation ready. Apply correlation transfers the preview into editable topraw.");
+					int good=0,total=0;
+					for(MeniscusRefinement.Proposal p:results.values()) {
+						boolean[] flags=p.quality();
+						for(int i=1;i<p.columnCount();i++) {total++;if(flags[i])good++;}
+					}
+					status.setText(method+" ready ("+good+"/"+total+" reliable). Apply transfers the preview; manual columns stay fixed.");
 				} catch (Exception error) {
 					status.setText(message(error));
 				}
@@ -810,7 +826,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		clearStroke();
 		for (Capillary c : targets) {
 			MeniscusRefinement.Proposal p = proposals.get(c);
-			p.replaceLevels(correlations.get(c).refined(), correlations.get(c).quality());
+			p.replaceCorrelation(correlations.get(c));
 		}
 		invalidateCorrelation();
 		rebuildStrips();
@@ -995,6 +1011,14 @@ public final class MeniscusRefinementPanel extends JPanel {
 					batch.put(cap, proposals.get(cap));
 				lastValidation = MeniscusRefinement.validateAll(batch);
 				count = lastValidation.size();
+				for (Map.Entry<Capillary, MeniscusRefinement.Proposal> entry : batch.entrySet()) {
+					Capillary c = entry.getKey();
+					MeniscusRefinement.Proposal previous = entry.getValue();
+					MeniscusRefinement.Proposal editable = MeniscusRefinement.editable(c.getTopRaw().polylineLevel,
+							sources.get(c), c.getTopRaw().getRefinementQuality());
+					editable.holdValidated(previous.refined(), previous.quality(), previous.placedColumns());
+					proposals.put(c, editable);
+				}
 			}
 			if (cap() != null)
 				experiment.getSeqKymos().replaceCapillaryMeasureRoisAtT(cap().getKymographIndex(),

@@ -5,14 +5,21 @@ import java.awt.Color;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Point;
+import java.awt.event.ActionEvent;
+import java.awt.event.InputEvent;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
+import java.awt.event.KeyEvent;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultListModel;
+import javax.swing.DefaultListSelectionModel;
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JList;
@@ -22,6 +29,8 @@ import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
 import javax.swing.JTextArea;
 import javax.swing.JToggleButton;
+import javax.swing.KeyStroke;
+import javax.swing.ListSelectionModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
@@ -74,7 +83,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	private JLabel geometryStatus = new JLabel();
 	private JButton plotEndpointsButton = new JButton("Plot endpoint trajectories");
 	private JButton initializeBlueButton = new JButton("Detect endpoints at image 0...");
-	private JButton deletePhaseButton = new JButton("Remove selected phase");
+	private JButton deletePhaseButton = new JButton("Remove selected phases");
 	private JButton analyzeTransitionsButton = new JButton("Analyze transitions (read-only)");
 	private JButton stopAnalysisButton = new JButton("Stop analysis");
 	private JButton acceptProposalButton = new JButton("Create phase from selected proposal");
@@ -152,7 +161,18 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		p8.add(proposalStatusLabel);
 
 		phaseList.setVisibleRowCount(4);
-		phaseList.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+		phaseList.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+		phaseList.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_A, InputEvent.CTRL_DOWN_MASK), "selectAllPhases");
+		phaseList.getActionMap().put("selectAllPhases", new AbstractAction() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				int size = phaseListModel.getSize();
+				if (size > 0)
+					phaseList.setSelectionInterval(0, size - 1);
+			}
+		});
 		phaseList.setCellRenderer((list, value, index, selected, focus) -> {
 			JLabel label = new JLabel(phaseDescription(value));
 			label.setToolTipText(phaseDetails(value));
@@ -197,7 +217,7 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 		validate.add(validateBlueButton);
 		validate.add(deletePhaseButton);
 		manual.add(validate);
-		manual.add(new JLabel("Removing a later phase extends previous positions. The image-zero reference is protected."));
+		manual.add(new JLabel("Shift-click selects a range. Removing phases extends previous positions. The image-zero reference is protected."));
 		topPanel.add(manual);
 		JPanel track = new JPanel(flow);
 		JButton structuralReference = new JButton("Structural reference: polygon test");
@@ -259,10 +279,12 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 				setViewerPositionT(proposalList.getSelectedValue().frame);
 		});
 		phaseList.addListSelectionListener(e -> {
-			if (!refreshingPhases && !e.getValueIsAdjusting() && phaseList.getSelectedValue() != null) {
-				deletePhaseButton.setEnabled(!rackRunning && phaseList.getSelectedValue() > 0);
-				setViewerPositionT(phaseList.getSelectedValue().intValue());
-			}
+			if (refreshingPhases || e.getValueIsAdjusting())
+				return;
+			updateDeletePhaseButton();
+			int lead = phaseList.getLeadSelectionIndex();
+			if (lead >= 0 && lead < phaseListModel.getSize())
+				setViewerPositionT(phaseListModel.getElementAt(lead).intValue());
 		});
 		refreshPhases();
 	}
@@ -305,9 +327,9 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 				"First frame for transition analysis only; legacy rack tracking always starts at image 0.");
 		tEndSpinner.setToolTipText("Last frame for transition analysis only; legacy rack tracking scans the full series.");
 		phaseList.setToolTipText(
-				"Actual blue keyframe starts. Hover for capillary details; select a row to display that image.");
+				"Actual blue keyframe starts. Hover for capillary details. Click a row to display that image. Shift-click selects a range, Ctrl-click toggles individual phases, and Ctrl+A selects all.");
 		deletePhaseButton.setToolTipText(
-				"Remove blue keyframes at the selected start for the capillaries listed there. Previous positions continue until their next phase. Frame 0 is protected.");
+				"Remove blue keyframes at every selected start. Previous positions continue until their next remaining phase. Frame 0 is protected.");
 		structuralReference.setToolTipText(
 				"Preview polygon edges at image 0 and load or save reference bands; this does not track capillaries.");
 		advancedToggle.setToolTipText(
@@ -355,37 +377,123 @@ public class TrackCapillaries extends JPanel implements ViewerListener {
 	}
 
 	private void refreshPhases() {
-		Long selected = phaseList.getSelectedValue();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		List<Long> frames = new ArrayList<>();
+		if (exp != null)
+			for (Long frame : PhysicalCapillaryPhases.starts(exp.getCapillaries()))
+				frames.add(frame);
+		if (samePhaseFrames(frames)) {
+			phaseList.repaint();
+			updateDeletePhaseButton();
+			return;
+		}
+		List<Long> selected = new ArrayList<>(phaseList.getSelectedValuesList());
+		Long anchor = phaseFrameAt(phaseList.getAnchorSelectionIndex());
+		Long lead = phaseFrameAt(phaseList.getLeadSelectionIndex());
 		refreshingPhases = true;
 		try {
 			phaseListModel.clear();
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null)
-				for (Long frame : PhysicalCapillaryPhases.starts(exp.getCapillaries()))
-					phaseListModel.addElement(frame);
-			if (selected != null) phaseList.setSelectedValue(selected, true);
+			for (Long frame : frames)
+				phaseListModel.addElement(frame);
+			restorePhaseSelection(selected, anchor, lead);
 		} finally {
 			refreshingPhases = false;
 		}
-		deletePhaseButton.setEnabled(!rackRunning && phaseList.getSelectedValue() != null && phaseList.getSelectedValue() > 0);
+		updateDeletePhaseButton();
+	}
+
+	private boolean samePhaseFrames(List<Long> frames) {
+		if (frames.size() != phaseListModel.getSize())
+			return false;
+		for (int i = 0; i < frames.size(); i++)
+			if (!frames.get(i).equals(phaseListModel.getElementAt(i)))
+				return false;
+		return true;
+	}
+
+	private Long phaseFrameAt(int index) {
+		return index >= 0 && index < phaseListModel.getSize() ? phaseListModel.getElementAt(index) : null;
+	}
+
+	private void restorePhaseSelection(List<Long> selected, Long anchor, Long lead) {
+		if (selected.isEmpty())
+			return;
+		Set<Long> wanted = new HashSet<>(selected);
+		ListSelectionModel model = phaseList.getSelectionModel();
+		model.setValueIsAdjusting(true);
+		model.clearSelection();
+		int first = -1;
+		int anchorIndex = -1;
+		int leadIndex = -1;
+		for (int i = 0; i < phaseListModel.getSize(); i++) {
+			Long frame = phaseListModel.getElementAt(i);
+			if (!wanted.contains(frame))
+				continue;
+			model.addSelectionInterval(i, i);
+			if (first < 0)
+				first = i;
+			if (anchor != null && anchor.equals(frame))
+				anchorIndex = i;
+			if (lead != null && lead.equals(frame))
+				leadIndex = i;
+		}
+		if (anchorIndex >= 0)
+			model.setAnchorSelectionIndex(anchorIndex);
+		if (leadIndex >= 0 && model instanceof DefaultListSelectionModel)
+			((DefaultListSelectionModel) model).moveLeadSelectionIndex(leadIndex);
+		model.setValueIsAdjusting(false);
+		int scroll = leadIndex >= 0 ? leadIndex : first;
+		if (scroll >= 0)
+			phaseList.ensureIndexIsVisible(scroll);
+	}
+
+	private void updateDeletePhaseButton() {
+		boolean removable = false;
+		if (!rackRunning)
+			for (Long frame : phaseList.getSelectedValuesList())
+				if (frame != null && frame > 0) {
+					removable = true;
+					break;
+				}
+		deletePhaseButton.setEnabled(removable);
 	}
 
 	private void deleteSelectedPhase() {
-		Long frame = phaseList.getSelectedValue();
-		if (rackRunning || frame == null || frame <= 0) return;
+		if (rackRunning)
+			return;
+		List<Long> frames = new ArrayList<>();
+		for (Long frame : phaseList.getSelectedValuesList())
+			if (frame != null && frame > 0)
+				frames.add(frame);
+		if (frames.isEmpty())
+			return;
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null) return;
-		int choice = JOptionPane.showConfirmDialog(this,
-				"Remove blue positions starting at T=" + frame + " for the listed capillaries?\n"
-				+ "Each preceding position will continue until its next phase. Green sampling ROIs are unchanged.",
-				"Remove physical capillary phase", JOptionPane.OK_CANCEL_OPTION);
-		if (choice != JOptionPane.OK_OPTION) return;
-		int removed = PhysicalCapillaryPhases.remove(exp.getCapillaries(), frame);
+		if (exp == null)
+			return;
+		boolean single = frames.size() == 1;
+		String message = single
+				? "Remove blue positions starting at T=" + frames.get(0) + " for the listed capillaries?\n"
+						+ "Each preceding position will continue until its next phase. Green sampling ROIs are unchanged."
+				: "Remove blue positions at " + frames.size() + " selected phase starts (T=" + frames.get(0) + " to T="
+						+ frames.get(frames.size() - 1) + ")?\n"
+						+ "Only the selected rows are removed. Each preceding position continues until the next remaining phase. "
+						+ "The image-zero reference is kept. Green sampling ROIs are unchanged.";
+		int choice = JOptionPane.showConfirmDialog(this, message,
+				single ? "Remove physical capillary phase" : "Remove physical capillary phases",
+				JOptionPane.OK_CANCEL_OPTION);
+		if (choice != JOptionPane.OK_OPTION)
+			return;
+		int removed = 0;
+		for (Long frame : frames)
+			removed += PhysicalCapillaryPhases.remove(exp.getCapillaries(), frame);
 		if (removed == 0)
-			JOptionPane.showMessageDialog(this, "This phase is the first stored reference and cannot be removed.");
+			JOptionPane.showMessageDialog(this, single
+					? "This phase is the first stored reference and cannot be removed."
+					: "None of the selected phases could be removed.");
 		showBlueOnly();
 		refreshPhases();
-		if (endpointChart != null) endpointChart.refresh();
+		if (endpointChart != null)
+			endpointChart.refresh();
 	}
 
 	private void selectPhase(int frame) {

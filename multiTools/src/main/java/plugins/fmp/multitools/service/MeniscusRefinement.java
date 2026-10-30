@@ -14,6 +14,12 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 /** Phase 1. Image-based refinement only: no evaporation or intake decisions. */
 public final class MeniscusRefinement {
     private MeniscusRefinement() { }
+    public enum Method {
+        ADJACENT("Adjacent columns (previous)"), NEIGHBOURS("Neighbours + median (experimental)");
+        private final String label;
+        Method(String label) { this.label = label; }
+        @Override public String toString() { return label; }
+    }
     private static final Map<Capillary, Accepted> accepted = new WeakHashMap<>();
 
     public static BufferedImage image(Sequence seq, Capillary cap, int width) {
@@ -72,19 +78,35 @@ public final class MeniscusRefinement {
 
     public static final class Proposal {
         private final double[] x, original, adjustment;
+        private final boolean[] manualAnchors;
         private final int imageHeight;
         public final VerticalCorrelation.Result motion;
-        private Proposal(Level2D source, BufferedImage image, int radius, double correction, boolean expand) {
+        private Proposal(Level2D source, BufferedImage image, int radius, double correction, boolean expand,boolean[] pinned,Method method) {
             x = Arrays.copyOf(source.xpoints, source.npoints);
             original = Arrays.copyOf(source.ypoints, source.npoints);
             adjustment = new double[source.npoints];
+            manualAnchors=pinned==null?new boolean[source.npoints]:pinned.clone();
             imageHeight = image.getHeight();
-            motion = VerticalCorrelation.analyzeSeeded(image, original, radius, correction, expand);
+            motion = method == Method.NEIGHBOURS
+                    ? MeniscusNeighbourRefinement.analyze(image, original, radius, correction, expand,manualAnchors)
+                    : VerticalCorrelation.analyzeSeeded(image, original, radius, correction, expand);
+            if (method == Method.ADJACENT) {
+                boolean hasPins = false;
+                for (int i = 0; i < original.length; i++) if (manualAnchors[i]) {
+                    hasPins = true;
+                    motion.refined[i] = original[i];
+                    motion.reliable[i] = true;
+                    motion.reason[i] = "Manual anchor (fixed)";
+                }
+                for (int i = 1; hasPins && i < original.length; i++)
+                    motion.shift[i] = motion.refined[i] - motion.refined[i - 1];
+            }
         }
         private Proposal(Level2D source, BufferedImage image, boolean[] quality) {
             x = Arrays.copyOf(source.xpoints, source.npoints);
             original = Arrays.copyOf(source.ypoints, source.npoints);
             adjustment = new double[source.npoints];
+            manualAnchors=new boolean[source.npoints];
             imageHeight = image.getHeight();
             motion = VerticalCorrelation.fromLevels(original, quality);
         }
@@ -108,14 +130,14 @@ public final class MeniscusRefinement {
         public boolean[] quality() {
             boolean[] flags = motion.reliable.clone();
             for (int i = 0; i < flags.length; i++)
-                if (adjustment[i] != 0) flags[i] = true;
+                if (adjustment[i] != 0 || manualAnchors[i]) flags[i] = true;
             return flags;
         }
         /** Columns with a manual offset. Correlation may still move the others after Validate. */
         public boolean[] placedColumns() {
             boolean[] placed = new boolean[adjustment.length];
             for (int i = 0; i < adjustment.length; i++)
-                placed[i] = adjustment[i] != 0;
+                placed[i] = adjustment[i] != 0 || manualAnchors[i];
             return placed;
         }
 
@@ -139,6 +161,7 @@ public final class MeniscusRefinement {
                     continue;
                 motion.refined[i] = saved[i];
                 motion.reliable[i] = quality != null && i < quality.length ? quality[i] : true;
+                manualAnchors[i]=true;
             }
         }
 
@@ -151,7 +174,19 @@ public final class MeniscusRefinement {
             if (levels == null || levels.length != adjustment.length)
                 throw new IllegalArgumentException("Level count must match the working trajectory.");
             Arrays.fill(adjustment, 0);
+            Arrays.fill(manualAnchors,false);
             holdValidated(levels, quality);
+        }
+
+        /** Transfer an automatic preview while retaining hand-placed columns. */
+        public void replaceCorrelation(Proposal correlated) {
+            boolean[] fixed=placedColumns();
+            double[] current=refined(),chosen=correlated.refined();
+            boolean[] quality=correlated.quality();
+            if(chosen.length!=current.length) throw new IllegalArgumentException("Correlation column count changed");
+            for(int i=0;i<fixed.length;i++) if(fixed[i]) {chosen[i]=current[i];quality[i]=true;}
+            replaceLevels(chosen,quality);
+            System.arraycopy(fixed,0,manualAnchors,0,fixed.length);
         }
 
         /** Add one delta per column. NaN leaves that column alone. Positive moves the meniscus down. */
@@ -196,8 +231,20 @@ public final class MeniscusRefinement {
     }
 
     public static Proposal propose(Level2D original, BufferedImage image, int radius, double correction, boolean expand) {
-        if (original == null || original.npoints < 2) throw new IllegalArgumentException("Detect topraw first.");
-        return new Proposal(original, image, radius, correction, expand);
+        return propose(original,image,radius,correction,expand,null,Method.ADJACENT);
+    }
+
+    public static Proposal propose(Level2D original,BufferedImage image,int radius,double correction,
+            boolean expand,boolean[] pinned) {
+        return propose(original,image,radius,correction,expand,pinned,Method.ADJACENT);
+    }
+
+    public static Proposal propose(Level2D original,BufferedImage image,int radius,double correction,
+            boolean expand,boolean[] pinned,Method method) {
+        if(original==null || original.npoints<2 || (pinned!=null && pinned.length!=original.npoints))
+            throw new IllegalArgumentException("Invalid topraw/manual anchors");
+        if(method==null) throw new IllegalArgumentException("Select a correlation method");
+        return new Proposal(original,image,radius,correction,expand,pinned,method);
     }
 
     /** Editable saved trajectory without running correlation. */
