@@ -41,8 +41,14 @@ public class IntakeMissInvestigation {
         System.setProperty("java.util.prefs.PreferencesFactory", CorrelationPanelSmoke.MemoryPreferencesFactory.class.getName());
         icy.preferences.IcyPreferences.init();
         Path output = Paths.get(args[0]); Files.createDirectories(output);
+        List<String[]> annotations = new ArrayList<>();
+        String annotationFile = System.getProperty("intake.annotations");
+        if (annotationFile != null) for (String line : Files.readAllLines(Paths.get(annotationFile)))
+            annotations.add(line.split(";")); // capillary;native bin;added/removed/resized
         try (BufferedWriter summary = Files.newBufferedWriter(output.resolve("summary.csv"));
-             BufferedWriter windows = Files.newBufferedWriter(output.resolve("windows.csv"))) {
+             BufferedWriter windows = Files.newBufferedWriter(output.resolve("windows.csv"));
+             BufferedWriter sweep = Files.newBufferedWriter(output.resolve("threshold-sweep.csv"))) {
+            sweep.write("experiment;capillary;flies;threshold_factor;added_bins_recovered_exact;added_bins_recovered_within_one;annotated_added_bins;extra_unedited_bins;removed_bins_still_detected\n");
             summary.write("experiment;capillary;flies;automatic;stored_threshold;stored_options;stored_bins;detected_bins;net_px;usable;intervals;episodes;local_enabled;estimated_scale;scale_reliable;quiet_intervals;applied_scale\n");
             windows.write("experiment;capillary;first;last;first_min;last_min;amount;limit;persistent;anchored;gate\n");
             for (int f = 1; f < args.length; f++) {
@@ -81,6 +87,8 @@ public class IntakeMissInvestigation {
                 }
                 for (Capillary cap : exp.getCapillaries().getList()) {
                     String id = cap.getLast2ofCapillaryName();
+                    String selectedCapillary = System.getProperty("intake.capillary");
+                    if (selectedCapillary != null && !selectedCapillary.equals(id)) continue;
                     if (cap.getTopRaw().polylineLevel == null || cap.getTopRaw().polylineLevel.npoints != exp.getFrameTimeScale().size()) {
                         System.out.println("Skipped " + name + " " + id + ": saved levels do not match native timestamps");
                         continue;
@@ -99,6 +107,29 @@ public class IntakeMissInvestigation {
                         d = IntakeEpisodes.detect(p.residualRate, p.minutes, p.motion.reliable,
                                 p.controlRates, p.noise.automatic, p.noise.automatic, p.correctedLevels,
                                 p::supportsIntakeStep);
+                    }
+                    if (annotationFile != null) for (double factor : new double[] {1, .8, .6}) {
+                        IntakeEpisodes.Detection variant = factor == 1 ? d : IntakeEpisodes.detect(p.residualRate,
+                                p.minutes, p.motion.reliable, p.controlRates, p.noise.automatic,
+                                factor * p.noise.automatic, p.correctedLevels, p::supportsIntakeStep);
+                        boolean[] edited = new boolean[p.raw.length];
+                        int recovered = 0, nearby = 0, added = 0, extra = 0, removed = 0;
+                        for (String[] annotation : annotations) if (annotation.length >= 3 && annotation[0].equals(id)) {
+                            int i = Integer.parseInt(annotation[1]);
+                            edited[i] = true;
+                            if (annotation[2].equals("added")) {
+                                added++;
+                                if (variant.net[i] > 0) recovered++;
+                                boolean found = false;
+                                for (int k = Math.max(1, i - 1); k <= Math.min(p.raw.length - 1, i + 1); k++)
+                                    found |= variant.net[k] > 0;
+                                if (found) nearby++;
+                            } else if (annotation[2].equals("removed") && variant.net[i] > 0) removed++;
+                        }
+                        for (int i = 1; i < p.raw.length; i++)
+                            if (!edited[i] && variant.net[i] > 0 && !(d.net[i] > 0)) extra++;
+                        sweep.write(name + ";" + id + ";" + cap.getNFlies() + ";" + factor + ";" + recovered
+                                + ";" + nearby + ";" + added + ";" + extra + ";" + removed + "\n");
                     }
                     int bins = 0, usable = 0; for (int i = 1; i < p.raw.length; i++) { if (d.net[i] > 0) bins++; if (p.motion.reliable[i]) usable++; }
                     summary.write(name + ";" + id + ";" + cap.getNFlies() + ";" + p.noise.automatic + ";"
@@ -127,7 +158,7 @@ public class IntakeMissInvestigation {
                     Files.write(output.resolve(name + "-" + id + ".json"), json.getBytes(StandardCharsets.UTF_8));
                     boolean investigate = id.endsWith("L") && (name.startsWith("cam02") ? Arrays.asList("1L","3L","6L","7L","8L").contains(id)
                             : name.startsWith("cam03") ? Arrays.asList("4L","8L").contains(id) : Arrays.asList("2L","3L").contains(id));
-                    if (!investigate) continue;
+                    if (!investigate && selectedCapillary == null && !Boolean.getBoolean("intake.windows.all")) continue;
                     for (int width = 1; width <= 6; width++) {
                         List<Double> background = new ArrayList<>();
                         for (double[] control : p.controlRates) {

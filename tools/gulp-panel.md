@@ -633,6 +633,86 @@ scale limits remain prototype choices; sustained/longer feeding needs separate
 review. Fewer false events must be weighed against losing genuine isolated
 small intakes near tracking fluctuations.
 
+## Intake rejection and manual correction
+
+Phase 2 reads accepted `topraw`; it does not rerun meniscus tracking. A grey `x`
+in the motion graph means `motion.reliable[i]` is false or the residual rate
+is nonfinite. Missing adjacent levels and a saved uncertain refinement flag
+are the usual causes. Changing the threshold does not change those flags.
+Click a graph or kymograph time point to see the saved reason in the status
+line; the CSV also includes reliability and reason.
+
+Uncertain samples within 10 rows of an image edge receive extra image checks.
+Confirmed motion must agree with the saved increment within max(0.75 px,
+30% of its size), or max(1.25 px, 30%) for integer levels. If registration
+itself fails at the border, finite in-image topraw positions can still be
+used as an explicitly unconfirmed fallback. Reliable contradictory motion
+vetoes the increment. Interior uncertain flags are not revalidated by this
+border path.
+
+Without persistence, acceptance is simply a usable increment with
+`(topraw increment - evaporation increment) / elapsed minutes > threshold`.
+With persistence, the baseline searches 1-6 bins and requires signed excess
+and robust before/after plateau contrast above a duration-dependent limit.
+The limit uses the 99.5th percentile of held-out control changes and the
+threshold setting. Widths above one bin require at least 30 control windows.
+Overlapping candidates compete; jointly fitted amplitudes must still exceed
+their limits. Isolated gradual startup drift is suppressed. Local recovery
+searches short steps with at least three usable flank samples on each side,
+at least 30 duration-matched control fits, sufficient fitted jump/score,
+no nearby large reverse excursion, and independent image confirmation.
+These checks can reject a visible intake even when its peak exceeds the red line.
+
+In **Manual - single capillary**, enable **Add/edit gulp**, then click a point
+or drag a time region on the graph or embedded kymograph. Confirm the **net
+intake after evaporation subtraction** and bottom meniscus position in pixels.
+The starting estimate uses the selected raw level change minus model
+evaporation; edit it against the image. Missing endpoints default to 1 px and
+the image mid-height, so these values need user correction.
+
+The selection replaces all detected intake bins inside that region with one
+unresolved event at its last bin, avoiding double counting. It bypasses quality,
+threshold and persistence gates. Click **Delete intake event** to remove intake
+in the selected region directly (entering zero and clicking OK also works);
+**Reset manual gulps** discards all overrides for that capillary. Edits survive
+capillary navigation and detector-setting changes. Source changes detected
+while the panel is open discard the overrides. **Save intake** persists the
+geometry and region metadata; **Copy to gulps** installs the edited measures
+for ordinary graphs and exports. Automatic batch runs replace manual edits.
+Saved edits should be reviewed if levels are changed outside this panel.
+
+The manual edit dialog includes a bounded, scrollable kymograph zoom centered
+on the proposed intake. Choose 4–24 display pixels per image pixel. The blue
+line previews the full stored displacement (net intake plus the event bin's
+evaporation), with the saved meniscus in orange. Spinner changes update the
+preview; dragging the upper endpoint changes net intake, and dragging the
+lower endpoint changes bottom position and net intake while keeping the top
+fixed. These changes apply only on OK; Cancel leaves the intake unchanged.
+
+**Export selected CSV...** produces a single before/after review file for the selected
+capillary, including unsaved event edits. It includes fully automatic net intake,
+detector net intake at the chosen threshold before event edits, final edited net
+intake, manual-region flags and per-bin change labels (added, removed, resized,
+manual override or unchanged), alongside timestamps, source quality and reasons.
+The baseline is recomputed using current accepted levels and method settings;
+it is not a historical snapshot before level/setting changes. Unchanged bins
+are not assumed to have been reviewed or confirmed. Send this one CSV for
+detector-versus-edit analysis; no separate event list or before/after export
+is needed. Kymographs may still be needed to judge ambiguous image evidence.
+
+For an entire edited experiment, use **Export experiment review...**. It writes
+one ZIP with a comparison CSV and original kymograph PNG for every capillary,
+including other capillaries' unsaved manual edits and previously saved edits.
+The README identifies controls and capillaries with manual overrides. This
+does not change selection or save experiment measures. Send the single ZIP;
+exporting the selected 9R alone does not include edits made on 1R or other
+capillaries.
+
+`ManualIntakeEditsTest` covers replacement, removal and metadata decoding.
+`ManualIntakePanelSmoke` uses synthetic data to check rejected bins, detector
+modes, CSV persistence, copy, reopening, rendering and reset without writing
+experimental files. It is not a test in the installed Icy application.
+
 ## Tooltip layout workaround
 
 While either phase-1 or phase-2 panel is open, its scoped listener guards newly attached Flamingo rich-tooltip panels against transient widths too narrow for their text. Such layouts are deferred; normal preferred sizing and the installed look-and-feel layout are retained. This avoids the reproduced JDK LineBreakMeasurer index-minus-one exception without suppressing application exceptions or changing intake calculations. The listener is removed when the panel closes. Narrow-title, normal-layout and listener-lifecycle regression tests cover the workaround.
