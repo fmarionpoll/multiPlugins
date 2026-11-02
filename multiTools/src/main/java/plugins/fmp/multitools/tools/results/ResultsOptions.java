@@ -34,19 +34,26 @@ public class ResultsOptions {
 	/** Spot Excel export (V2 channel): AREA_SUMCLEAN_V2. */
 	public boolean spotSumCleanV2 = false;
 	/**
-	 * Spot Excel export: aggregate spots by (stimulus, concentration) at cage level.
-	 * When enabled, the export iterates cages × distinct (stim,conc) instead of cages × spots.
+	 * Spot Excel export: aggregate spots by (stimulus, concentration) at cage
+	 * level. When enabled, the export iterates cages × distinct (stim,conc) instead
+	 * of cages × spots.
 	 */
 	public boolean spotAggregateByStimulusConc = false;
 
-	/** Baseline window length (minutes) used to compute per-spot max reference. Default: 2. */
+	/**
+	 * Baseline window length (minutes) used to compute per-spot max reference.
+	 * Default: 2.
+	 */
 	public int spotBaselineWindowMinutes = 2;
 	/**
-	 * Optional baseline mode: scan bins from 0 upward and stop early when the running
-	 * maximum has not changed for {@link #spotBaselineStableBins} consecutive bins.
+	 * Optional baseline mode: scan bins from 0 upward and stop early when the
+	 * running maximum has not changed for {@link #spotBaselineStableBins}
+	 * consecutive bins.
 	 */
 	public boolean spotBaselineStopWhenStable = false;
-	/** Number of consecutive bins without change to consider baseline max stable. */
+	/**
+	 * Number of consecutive bins without change to consider baseline max stable.
+	 */
 	public int spotBaselineStableBins = 3;
 
 	public boolean topLevel = true;
@@ -57,12 +64,16 @@ public class ResultsOptions {
 	public double lrPIThreshold = 0.;
 
 	public boolean sumGulps = false;
-	/** Cage-level sum gulps L+R / PI (independent of {@link #lrPI} for top level). */
+	/**
+	 * Cage-level sum gulps L+R / PI (independent of {@link #lrPI} for top level).
+	 */
 	public boolean sumGulpsLr = false;
 	public boolean nbGulps = false;
 	public boolean amplitudeGulps = false;
+
 	/** Intake bins raw and minus evaporation, per bin and cumulated. */
 	public boolean savedIntake = false;
+	public boolean intakeBins = false;
 	public boolean tToNextGulp = false;
 	public boolean tToNextGulp_LR = false;
 
@@ -85,8 +96,9 @@ public class ResultsOptions {
 	public boolean transpose = false;
 	public boolean duplicateSeries = true;
 	/**
-	 * Wide matrix ({@link plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode#WIDE})
-	 * or normalized SERIES+DATA
+	 * Wide matrix
+	 * ({@link plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode#WIDE}) or
+	 * normalized SERIES+DATA
 	 * ({@link plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode#NORMALIZED}).
 	 */
 	public plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode exportLayoutMode = plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode.NORMALIZED;
@@ -125,33 +137,47 @@ public class ResultsOptions {
 	public EnumResults resultType = null;
 
 	/**
-	 * Kymograph chart: which fraction trace to plot when {@link plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries}
-	 * includes diagnostic arrays. Ignored for non-fraction kymograph measures (e.g. {@link EnumResults#KYMO_ABS_DELTA}).
+	 * Kymograph chart: which fraction trace to plot when
+	 * {@link plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries}
+	 * includes diagnostic arrays. Ignored for non-fraction kymograph measures (e.g.
+	 * {@link EnumResults#KYMO_ABS_DELTA}).
 	 */
 	public KymoFractionTraceMode kymoFractionTraceMode = KymoFractionTraceMode.FINAL;
 
 	/**
-	 * When charting {@link EnumResults#AGG_SUMCLEAN}, filled by {@link plugins.fmp.multitools.tools.chart.ChartCagesFrame}
-	 * so each cage subplot uses the same (stimulus,conc) color index.
+	 * When charting {@link EnumResults#AGG_SUMCLEAN}, filled by
+	 * {@link plugins.fmp.multitools.tools.chart.ChartCagesFrame} so each cage
+	 * subplot uses the same (stimulus,conc) color index.
 	 */
 	public List<StimulusConcKey> spotAggregateGlobalKeyOrder = null;
 
-	/** V4 / evaluation: how per-spot depletion is formed before summing into {@code AGG_SUMCLEAN}. */
+	/**
+	 * V4 / evaluation: how per-spot depletion is formed before summing into
+	 * {@code AGG_SUMCLEAN}.
+	 */
 	public AggSumCleanPolicy aggSumCleanPolicy = AggSumCleanPolicy.LEGACY;
 	/**
 	 * Minutes from t=0 excluded when scanning for baseline max (only used with
-	 * {@link AggSumCleanPolicy#V4_BASELINE_PLUS}). If camera time is unavailable, interpreted as bins to skip.
+	 * {@link AggSumCleanPolicy#V4_BASELINE_PLUS}). If camera time is unavailable,
+	 * interpreted as bins to skip.
 	 */
 	public int aggBaselineSkipMinutes = 0;
-	/** Fly occupancy fraction above which depletion is forced to 0 for that bin ({@link AggSumCleanPolicy#V4_FLY_GUARD}). */
+	/**
+	 * Fly occupancy fraction above which depletion is forced to 0 for that bin
+	 * ({@link AggSumCleanPolicy#V4_FLY_GUARD}).
+	 */
 	public double aggFlyGuardMaxFraction = 0.2;
-	/** Reference stimulus label for {@link AggSumCleanPolicy#V4_REF_STIM} (trimmed; empty disables correction). */
+	/**
+	 * Reference stimulus label for {@link AggSumCleanPolicy#V4_REF_STIM} (trimmed;
+	 * empty disables correction).
+	 */
 	public String aggRefStimulus = "";
 	/** Reference concentration label for {@link AggSumCleanPolicy#V4_REF_STIM}. */
 	public String aggRefConcentration = "";
 	/**
-	 * Native-bin window for temporal smoothing of {@link EnumResults#AGG_MEDIANREF} (centered mean
-	 * over finite samples in the window). Use {@code 1} for no smoothing.
+	 * Native-bin window for temporal smoothing of {@link EnumResults#AGG_MEDIANREF}
+	 * (centered mean over finite samples in the window). Use {@code 1} for no
+	 * smoothing.
 	 */
 	public int aggMedianRefSmoothWindowBins = 5;
 
