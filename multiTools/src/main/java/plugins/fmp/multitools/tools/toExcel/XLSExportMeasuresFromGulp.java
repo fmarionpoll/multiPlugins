@@ -82,7 +82,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				new OptionToResultsMapping(() -> options.sumGulpsLr, EnumResults.SUMGULPS_LR),
 				new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
 				new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
-				new OptionToResultsMapping(() -> options.intakeBins, EnumResults.INTAKE_BIN_RAW,
+				new OptionToResultsMapping(() -> options.savedIntake, EnumResults.SAVED_INTAKE_RAW,
+						EnumResults.SAVED_INTAKE_CORR, EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR),
+				new OptionToResultsMapping(() -> options.amplitudeGulps || options.nbGulps, EnumResults.INTAKE_BIN_RAW,
 						EnumResults.INTAKE_BIN_CORR, EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR),
 				new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
 				new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),
@@ -91,6 +93,14 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				new OptionToResultsMapping(() -> options.crosscorrelation, EnumResults.CROSSCORREL),
 				new OptionToResultsMapping(() -> options.crosscorrelationLR, EnumResults.CROSSCORREL_LR) };
 
+		if (options.savedIntake) {
+			exp.dispatchCapillariesToCages();
+			try {
+				exportSavedIntakeDetails(exp, charSeries);
+			} catch (ExcelResourceException e) {
+				throw new ExcelExportException("Failed to export saved intake details", e);
+			}
+		}
 		int colmax = 0;
 		for (OptionToResultsMapping mapping : mappings) {
 			if (mapping.isEnabled()) {
@@ -108,6 +118,63 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		}
 
 		return colmax;
+	}
+
+	private void exportSavedIntakeDetails(Experiment exp, String charSeries) throws ExcelResourceException {
+		exp.ensureFrameTimeScale();
+		ResultsOptions nativeOptions = new ResultsOptions();
+		nativeOptions.resultType = EnumResults.SAVED_INTAKE_CORR;
+		nativeOptions.evaporationCorrectionMethod = options.evaporationCorrectionMethod;
+		nativeOptions.buildExcelStepMs = (int) Math.max(1, exp.getKymoBin_ms());
+		exp.getCages().prepareComputations(exp, nativeOptions);
+		SXSSFSheet intervals = resourceManager.getWorkbook().getSheet("saved_intake_intervals");
+		if (intervals == null) {
+			intervals = resourceManager.getWorkbook().createSheet("saved_intake_intervals");
+			String[] headers = { "experiment_id", "cage_id", "capillary_id", "interval_start_min", "interval_end_min",
+				"saved_intake_raw_uL", "saved_intake_corr_uL", "sum_saved_intake_raw_uL", "sum_saved_intake_corr_uL" };
+			for (int i = 0; i < headers.length; i++) XLSUtils.setValue(intervals, i, 0, false, headers[i]);
+		}
+		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
+		SXSSFSheet sheet = resourceManager.getWorkbook().getSheet("saved_intake_metadata");
+		if (sheet == null) {
+			sheet = resourceManager.getWorkbook().createSheet("saved_intake_metadata");
+			for (int i = 0; i < SavedIntakeMetadata.HEADERS.length; i++) XLSUtils.setValue(sheet, i, 0, false, SavedIntakeMetadata.HEADERS[i]);
+		}
+		for (Cage cage : exp.getCages().getCageList()) {
+			if (cage == null) continue;
+			List<Capillary> caps = cage.getCapillaries(exp.getCapillaries());
+			if (caps == null || caps.isEmpty()) continue;
+			EnumResults[] types = { EnumResults.SAVED_INTAKE_RAW, EnumResults.SAVED_INTAKE_CORR,
+					EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR };
+			XYSeriesCollection[] datasets = new XYSeriesCollection[types.length];
+			for (int k = 0; k < types.length; k++) {
+				nativeOptions.resultType = types[k];
+				datasets[k] = builder.build(exp, cage, nativeOptions);
+			}
+			for (Capillary cap : caps) {
+				if (!cap.getCorrelationGulps().hasMeasures()) continue;
+				String[] row = SavedIntakeMetadata.row(NormalizedExportSupport.buildExpKey(exp, charSeries), cage.getCageID(), NormalizedExportSupport.buildCapId(cap), cap);
+				int index = sheet.getLastRowNum() + 1;
+				for (int i = 0; i < row.length; i++) XLSUtils.setValue(sheet, i, index, false, row[i]);
+				XYSeries[] series = new XYSeries[types.length];
+				for (int k = 0; k < types.length; k++) {
+					series[k] = findSeriesForCapillary(datasets[k], exp, cage, cap, types[k]);
+				}
+				XYSeries raw = series[0];
+				if (raw == null) continue;
+				for (int j = 0; j < raw.getItemCount(); j++) {
+					int r = intervals.getLastRowNum() + 1;
+					for (int k = 0; k < 3; k++) XLSUtils.setValue(intervals, k, r, false, row[k]);
+					if (j > 0) XLSUtils.setValue(intervals, 3, r, false, raw.getX(j - 1).doubleValue());
+					XLSUtils.setValue(intervals, 4, r, false, raw.getX(j).doubleValue());
+					for (int k = 0; k < series.length; k++) {
+						if (series[k] == null || j >= series[k].getItemCount()) continue;
+						double value = series[k].getY(j).doubleValue();
+						if (Double.isFinite(value)) XLSUtils.setValue(intervals, 5 + k, r, false, value);
+					}
+				}
+			}
+		}
 	}
 
 	@Override
@@ -270,7 +337,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 	}
 
 	private static boolean isIntakeBinPerBin(EnumResults resultType) {
-		return resultType == EnumResults.INTAKE_BIN_RAW || resultType == EnumResults.INTAKE_BIN_CORR;
+		return resultType == EnumResults.INTAKE_BIN_RAW || resultType == EnumResults.INTAKE_BIN_CORR
+				|| resultType == EnumResults.SAVED_INTAKE_RAW || resultType == EnumResults.SAVED_INTAKE_CORR;
 	}
 
 	private static long nativeMedianMs(Experiment exp) {

@@ -98,9 +98,14 @@ public class GulpMeasureComputation {
 	 * variants return null when no evaporation curve is available.
 	 */
 	public static MeasurementComputation computeIntakeBins(boolean corrected, boolean cumulative) {
+		return computeIntakeBins(corrected, cumulative, false);
+	}
+
+	public static MeasurementComputation computeIntakeBins(boolean corrected, boolean cumulative, boolean saved) {
 		return (exp, cap, options) -> {
 			if (cap == null || cap.getGulps() == null || cap.getTopRaw() == null
-					|| cap.getGulps().getHeightSeries() == null || cap.getGulps().getHeightSeries().npoints == 0) {
+					|| (saved ? !cap.getCorrelationGulps().hasMeasures()
+						: cap.getGulps().getHeightSeries() == null || cap.getGulps().getHeightSeries().npoints == 0)) {
 				return null;
 			}
 			double[] evaporation = null;
@@ -113,7 +118,8 @@ public class GulpMeasureComputation {
 				}
 				evaporation = Arrays.copyOf(curve.polylineLevel.ypoints, curve.polylineLevel.npoints);
 			}
-			double[] bins = cap.getGulps().getIntakeBins(cap.getTopRaw().getNPoints(), evaporation);
+			CapillaryGulps source = saved ? cap.getCorrelationGulps().getEvents() : cap.getGulps();
+			double[] bins = source.getIntakeBins(cap.getTopRaw().getNPoints(), evaporation);
 			if (cumulative) {
 				bins = CapillaryGulps.cumulate(bins);
 			}
