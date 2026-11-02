@@ -66,8 +66,8 @@ import plugins.fmp.multitools.service.IntakeDiagnostics;
 import plugins.fmp.multitools.service.IntakeEpisodes;
 import plugins.fmp.multitools.service.ManualIntakeEdits;
 import plugins.fmp.multitools.service.VerticalCorrelation;
-import plugins.fmp.multitools.tools.JComponents.RichTooltipLayoutGuard;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
+import plugins.fmp.multitools.tools.JComponents.RichTooltipLayoutGuard;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
@@ -78,8 +78,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 	private final Experiment experiment;
 	private JComboBox<?> experimentBrowser;
-	private final JComboBox<String> seriesRange = new JComboBox<>(new String[] {
-			"Current experiment", "Current experiment to end", "All experiments (0 to end)" });
+	private final JComboBox<String> seriesRange = new JComboBox<>(
+			new String[] { "Current experiment", "Current experiment to end", "All experiments (0 to end)" });
 	private final JButton runSeries = new JButton("Detect, copy to gulps & save"), stopSeries = new JButton("Stop");
 	private final JLabel seriesStatus = new JLabel("Uses automatic thresholds for every capillary.");
 	private final JPanel seriesControls = new JPanel(new BorderLayout());
@@ -91,9 +91,10 @@ public final class CorrelationIntakePanel extends JPanel {
 	void followExperimentBrowser(JComboBox<?> browser) {
 		experimentBrowser = browser;
 	}
+
 	private final JComboBox<Capillary> capillaries = new JComboBox<>();
-	private final JComboBox<String> runMode = new JComboBox<>(new String[] {
-			"Manual - single capillary", "Automatic - all capillaries", "Batch - detect, copy & save" });
+	private final JComboBox<String> runMode = new JComboBox<>(
+			new String[] { "Manual - single capillary", "Automatic - all capillaries", "Batch - detect, copy & save" });
 	private final JButton detectAll = new JButton("Detect all"), saveAll = new JButton("Save all intake"),
 			cancelAll = new JButton("Cancel");
 	private final JButton copyAllToGulps = new JButton("Copy all to gulps...");
@@ -105,8 +106,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	private JButton nextButton = new JButton(">");
 
 	private final JSpinner threshold = new JSpinner(new SpinnerNumberModel(1.0, 0.0, 10000.0, .05));
-	private final JButton automatic = new JButton("Automatic"),
-			export = new JButton("Export CSV...");
+	private final JButton automatic = new JButton("Automatic"), export = new JButton("Export CSV...");
 	private final JButton review = new JButton("Review interval...");
 	private final JButton exportExperiment = new JButton("Export experiment review...");
 	private final JButton saveAllEdited = new JButton("Save all edited intake");
@@ -197,7 +197,8 @@ public final class CorrelationIntakePanel extends JPanel {
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v5,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6,source=accepted_topraw")
 				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6.1,source=accepted_topraw")
-				|| first.getCorrelationGulps().getMethodOptions().startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
+				|| first.getCorrelationGulps().getMethodOptions()
+						.startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
 			String options = first.getCorrelationGulps().getMethodOptions();
 			persistentEpisodes.setSelected(options.contains("persistent=true"));
 			localEvaporation.setSelected(options.contains("local=true"));
@@ -323,7 +324,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		});
 		runMode.addActionListener(e -> {
 			updateModeControls();
-			if (preview != null) display(computedCapillary, preview);
+			if (preview != null)
+				display(computedCapillary, preview);
 		});
 		detectAll.addActionListener(e -> detectAll());
 		saveAll.addActionListener(e -> saveAll());
@@ -354,23 +356,29 @@ public final class CorrelationIntakePanel extends JPanel {
 		});
 		export.addActionListener(e -> export());
 		exportExperiment.addActionListener(e -> exportExperimentReview());
-		exportExperiment.setToolTipText("Export one ZIP with before/after CSVs and kymographs for every capillary, including unsaved manual gulp edits.");
+		exportExperiment.setToolTipText(
+				"Export one ZIP with before/after CSVs and kymographs for every capillary, including unsaved manual gulp edits.");
 		saveAllEdited.addActionListener(e -> persistEditedIntake(false));
 		saveAllEdited.setName("saveAllEditedIntake");
-		saveAllEdited.setToolTipText("Save correlation intake for every capillary, using each capillary's threshold and manual edits. Ordinary gulps stay unchanged.");
+		saveAllEdited.setToolTipText(
+				"Save correlation intake for every capillary, using each capillary's threshold and manual edits. Ordinary gulps stay unchanged.");
 		copyAllEdited.addActionListener(e -> persistEditedIntake(true));
 		copyAllEdited.setName("copyAllEditedToGulps");
-		copyAllEdited.setToolTipText("Save that edited intake, then replace ordinary gulps for every capillary. Existing gulp measures are replaced.");
+		copyAllEdited.setToolTipText(
+				"Save that edited intake, then replace ordinary gulps for every capillary. Existing gulp measures are replaced.");
 		export.setText("Export selected CSV...");
-		export.setToolTipText("Export one CSV with automatic detection, current detector settings, edited intake and per-bin change labels for review.");
+		export.setToolTipText(
+				"Export one CSV with automatic detection, current detector settings, edited intake and per-bin change labels for review.");
 		review.addActionListener(e -> reviewInterval());
 		resetManualGulps.addActionListener(e -> {
 			manualGulps.put(computedCapillary, new ManualIntakeEdits());
 			invalidateBatch();
 			refresh();
 		});
-		addGulp.setToolTipText("Select a region, then confirm its net intake (after evaporation subtraction) and bottom position in pixels. Overrides automatic detection, including x-marked bins. Save intake or Copy to gulps to persist.");
-		resetManualGulps.setToolTipText("Discard manual overrides on this capillary and return to automatic detection at the current threshold; save to persist the reset.");
+		addGulp.setToolTipText(
+				"Select a region, then confirm its net intake (after evaporation subtraction) and bottom position in pixels. Overrides automatic detection, including x-marked bins. Save intake or Copy to gulps to persist.");
+		resetManualGulps.setToolTipText(
+				"Discard manual overrides on this capillary and return to automatic detection at the current threshold; save to persist the reset.");
 		showGaps.setToolTipText(
 				"Amber: abrupt steps. Teal: gradual drift. Purple: initial-anchor or reconstruction offsets in either direction. Diagnostics are not intake.");
 		showGaps.addActionListener(e -> {
@@ -408,12 +416,18 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void defineToolTips() {
-		runSeries.setToolTipText("Detect every capillary with its automatic threshold, replace ordinary gulps (including manual edits), and save each experiment in the selected range.");
-		seriesRange.setToolTipText("Current means the experiment selected when the batch starts; ranges include both endpoints. Progress uses the browser's zero-based absolute experiment index.");
-		stopSeries.setToolTipText("Stop before copying the current experiment if detection is unfinished; a save already started is completed.");
-		detectAll.setToolTipText("Detect every capillary in this experiment, including no-fly controls, using its own automatic threshold.");
-		saveAll.setToolTipText("Save all prepared results as correlation gulps. Existing correlation results are replaced; classic gulps are kept.");
-		copyAllToGulps.setToolTipText("Replace ordinary gulps for every capillary with the prepared intake, then save. These measures supply ordinary gulp graphs and exports.");
+		runSeries.setToolTipText(
+				"Detect every capillary with its automatic threshold, replace ordinary gulps (including manual edits), and save each experiment in the selected range.");
+		seriesRange.setToolTipText(
+				"Current means the experiment selected when the batch starts; ranges include both endpoints. Progress uses the browser's zero-based absolute experiment index.");
+		stopSeries.setToolTipText(
+				"Stop before copying the current experiment if detection is unfinished; a save already started is completed.");
+		detectAll.setToolTipText(
+				"Detect every capillary in this experiment, including no-fly controls, using its own automatic threshold.");
+		saveAll.setToolTipText(
+				"Save all prepared results as correlation gulps. Existing correlation results are replaced; classic gulps are kept.");
+		copyAllToGulps.setToolTipText(
+				"Replace ordinary gulps for every capillary with the prepared intake, then save. These measures supply ordinary gulp graphs and exports.");
 		cancelAll.setToolTipText("Cancel detection without installing or saving batch results.");
 		compensateEvaporation.setToolTipText(
 				"Checked: grey steps = max(0, stored amplitude minus the model's evaporation in that bin). Unchecked: full stored amplitudes. Blue bars, detection and saved measures are unchanged.");
@@ -442,10 +456,12 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	void suspendSession() {
-		if (released || suspended) return;
+		if (released || suspended)
+			return;
 		suspended = true;
 		cancelBatch();
-		if (worker != null) worker.cancel(true);
+		if (worker != null)
+			worker.cancel(true);
 		worker = null;
 		pendingCapillary = null;
 		sourceTimer.stop();
@@ -465,9 +481,11 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	void resumeSession() {
-		if (released) return;
+		if (released)
+			return;
 		suspended = false;
-		if (tooltipLayoutGuard == null) tooltipLayoutGuard = new RichTooltipLayoutGuard();
+		if (tooltipLayoutGuard == null)
+			tooltipLayoutGuard = new RichTooltipLayoutGuard();
 		refreshCapillaries();
 		Sequence currentSequence = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
 		if (preview != null && previewSequence != currentSequence) {
@@ -490,17 +508,20 @@ public final class CorrelationIntakePanel extends JPanel {
 	private boolean hasAcceptedInput() {
 		Capillary cap = (Capillary) capillaries.getSelectedItem();
 		return experiment.getSeqKymos() != null && experiment.getSeqKymos().getSequence() != null
-				&& experiment.getSeqKymos().getSequence().getSizeT() > 0 && cap != null
-				&& cap.getTopRaw() != null && cap.getTopRaw().polylineLevel != null
-				&& cap.getTopRaw().polylineLevel.npoints >= 8;
+				&& experiment.getSeqKymos().getSequence().getSizeT() > 0 && cap != null && cap.getTopRaw() != null
+				&& cap.getTopRaw().polylineLevel != null && cap.getTopRaw().polylineLevel.npoints >= 8;
 	}
 
-	/** Reloading descriptors may replace capillary objects in the same experiment. */
+	/**
+	 * Reloading descriptors may replace capillary objects in the same experiment.
+	 */
 	private void refreshCapillaries() {
 		List<Capillary> current = experiment.getCapillaries().getList();
 		boolean same = current.size() == capillaries.getItemCount();
-		for (int i = 0; same && i < current.size(); i++) same = current.get(i) == capillaries.getItemAt(i);
-		if (same) return;
+		for (int i = 0; same && i < current.size(); i++)
+			same = current.get(i) == capillaries.getItemAt(i);
+		if (same)
+			return;
 		Capillary old = (Capillary) capillaries.getSelectedItem();
 		Map<String, Double> thresholdsByName = new java.util.HashMap<>();
 		manualThresholds.forEach((cap, value) -> thresholdsByName.put(cap.getKymographPrefix(), value));
@@ -515,13 +536,15 @@ public final class CorrelationIntakePanel extends JPanel {
 			for (Capillary cap : current) {
 				capillaries.addItem(cap);
 				Double previous = thresholdsByName.get(cap.getKymographPrefix());
-				if (previous != null) manualThresholds.put(cap, previous);
+				if (previous != null)
+					manualThresholds.put(cap, previous);
 			}
-			if (old != null) for (Capillary cap : current)
-				if (java.util.Objects.equals(old.getKymographPrefix(), cap.getKymographPrefix())) {
-					capillaries.setSelectedItem(cap);
-					break;
-				}
+			if (old != null)
+				for (Capillary cap : current)
+					if (java.util.Objects.equals(old.getKymographPrefix(), cap.getKymographPrefix())) {
+						capillaries.setSelectedItem(cap);
+						break;
+					}
 		} finally {
 			syncingSelection = false;
 		}
@@ -564,7 +587,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void release() {
-		if (released) return;
+		if (released)
+			return;
 		released = true;
 		seriesStopping = true;
 		cancelBatch();
@@ -611,7 +635,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void checkSources() {
-		if (released || suspended || seriesWorker != null || reviewExportWorker != null || editedPersistWorker != null) return;
+		if (released || suspended || seriesWorker != null || reviewExportWorker != null || editedPersistWorker != null)
+			return;
 		if (waitingForSources) {
 			refreshCapillaries();
 			if (hasAcceptedInput()) {
@@ -635,7 +660,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void analyzeSelected() {
-		if (batchWorker != null || seriesWorker != null || released || suspended) return;
+		if (batchWorker != null || seriesWorker != null || released || suspended)
+			return;
 		Capillary cap = (Capillary) capillaries.getSelectedItem();
 		if (cap == null) {
 			status.setText("No capillaries loaded.");
@@ -734,8 +760,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
 		if (!manualGulps.containsKey(cap))
 			manualGulps.put(cap, ManualIntakeEdits.fromOptions(stored.getMethodOptions(), preview.raw.length));
-		if (!automaticMode() && saved == null && stored.hasMeasures() && stored.isManualThreshold() && sameSettings(stored)
-				&& Double.isFinite(stored.getThresholdPxPerMin()))
+		if (!automaticMode() && saved == null && stored.hasMeasures() && stored.isManualThreshold()
+				&& sameSettings(stored) && Double.isFinite(stored.getThresholdPxPerMin()))
 			saved = stored.getThresholdPxPerMin();
 		double initial = saved != null ? saved : preview.noise.automatic;
 		setResultControlsEnabled(true);
@@ -750,12 +776,14 @@ public final class CorrelationIntakePanel extends JPanel {
 		List<Experiment> targets = new ArrayList<>();
 		if (experimentBrowser == null) {
 			if (seriesRange.getSelectedIndex() != 0)
-				throw new IllegalStateException("Open this panel from the experiment browser to run multiple experiments.");
+				throw new IllegalStateException(
+						"Open this panel from the experiment browser to run multiple experiments.");
 			targets.add(experiment);
 			return targets;
 		}
 		int current = experimentBrowser.getSelectedIndex();
-		if (current < 0) throw new IllegalStateException("Select an experiment first.");
+		if (current < 0)
+			throw new IllegalStateException("Select an experiment first.");
 		int first = seriesRange.getSelectedIndex() == 2 ? 0 : current;
 		int last = seriesRange.getSelectedIndex() == 0 ? current : experimentBrowser.getItemCount() - 1;
 		for (int i = first; i <= last; i++) {
@@ -763,14 +791,16 @@ public final class CorrelationIntakePanel extends JPanel {
 			Object item = experimentBrowser instanceof JComboBoxExperimentLazy
 					? ((JComboBoxExperimentLazy) experimentBrowser).getItemAtNoLoad(i)
 					: experimentBrowser.getItemAt(i);
-			if (!(item instanceof Experiment)) throw new IllegalStateException("Missing experiment at index " + i);
+			if (!(item instanceof Experiment))
+				throw new IllegalStateException("Missing experiment at index " + i);
 			targets.add((Experiment) item);
 		}
 		return targets;
 	}
 
 	private void startSeries() {
-		if (released || suspended || seriesWorker != null || batchWorker != null) return;
+		if (released || suspended || seriesWorker != null || batchWorker != null)
+			return;
 		final List<Experiment> targets;
 		try {
 			targets = seriesTargets();
@@ -778,10 +808,11 @@ public final class CorrelationIntakePanel extends JPanel {
 			seriesStatus.setText(error.getMessage());
 			return;
 		}
-		final int firstIndex = experimentBrowser == null || seriesRange.getSelectedIndex() == 2
-				? 0 : experimentBrowser.getSelectedIndex();
+		final int firstIndex = experimentBrowser == null || seriesRange.getSelectedIndex() == 2 ? 0
+				: experimentBrowser.getSelectedIndex();
 		final int experimentCount = experimentBrowser == null ? 1 : experimentBrowser.getItemCount();
-		if (worker != null) worker.cancel(true);
+		if (worker != null)
+			worker.cancel(true);
 		worker = null;
 		pendingCapillary = null;
 		sourceTimer.stop();
@@ -797,6 +828,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		seriesWorker = new SwingWorker<Integer, String>() {
 			private Experiment attentionTarget;
 			private String attentionLabel;
+
 			@Override
 			protected Integer doInBackground() throws Exception {
 				IntakeSeriesProcessor processor = new IntakeSeriesProcessor();
@@ -805,17 +837,20 @@ public final class CorrelationIntakePanel extends JPanel {
 					String label = "Experiment " + (firstIndex + i) + "/" + experimentCount + ": " + target;
 					attentionTarget = target;
 					attentionLabel = label;
-					if (seriesStopping) break;
+					if (seriesStopping)
+						break;
 					publish(label + " - loading...");
 					try {
 						if (!processor.process(target, episodes, local, () -> seriesStopping,
-								message -> publish(label + " - " + message))) break;
+								message -> publish(label + " - " + message)))
+							break;
 						seriesSaved++;
 						attentionTarget = null;
 						attentionLabel = null;
 					} catch (Exception error) {
 						Throwable cause = error;
-						while (cause.getCause() != null) cause = cause.getCause();
+						while (cause.getCause() != null)
+							cause = cause.getCause();
 						throw new IllegalStateException(label + ": " + cause.getMessage(), error);
 					}
 				}
@@ -824,7 +859,8 @@ public final class CorrelationIntakePanel extends JPanel {
 
 			@Override
 			protected void process(List<String> messages) {
-				if (!released && seriesWorker == this) seriesStatus.setText(messages.get(messages.size() - 1));
+				if (!released && seriesWorker == this)
+					seriesStatus.setText(messages.get(messages.size() - 1));
 			}
 
 			@Override
@@ -832,7 +868,9 @@ public final class CorrelationIntakePanel extends JPanel {
 				String result;
 				try {
 					get();
-					result = seriesStopping ? (attentionLabel == null ? "Stopped. " : "Stopped at " + attentionLabel + ". ") : "Complete. ";
+					result = seriesStopping
+							? (attentionLabel == null ? "Stopped. " : "Stopped at " + attentionLabel + ". ")
+							: "Complete. ";
 				} catch (InterruptedException error) {
 					Thread.currentThread().interrupt();
 					result = "Interrupted. ";
@@ -840,9 +878,12 @@ public final class CorrelationIntakePanel extends JPanel {
 					result = "Failed at " + error.getCause().getMessage() + ". ";
 				}
 				seriesWorker = null;
-				if (experimentBrowser != null) experimentBrowser.setEnabled(browserWasEnabled);
-				if (!released && attentionTarget != null) selectSeriesExperiment(attentionTarget);
-				String outcome = result + seriesSaved + "/" + targets.size() + " experiment(s) copied to gulps and saved.";
+				if (experimentBrowser != null)
+					experimentBrowser.setEnabled(browserWasEnabled);
+				if (!released && attentionTarget != null)
+					selectSeriesExperiment(attentionTarget);
+				String outcome = result + seriesSaved + "/" + targets.size()
+						+ " experiment(s) copied to gulps and saved.";
 				if (released) {
 					CorrelationIntakePanel.this.firePropertyChange("intake_series_finished", null, outcome);
 					return;
@@ -869,29 +910,36 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void selectSeriesExperiment(Experiment target) {
-		if (experimentBrowser == null) return;
+		if (experimentBrowser == null)
+			return;
 		for (int i = 0; i < experimentBrowser.getItemCount(); i++) {
 			Object item = experimentBrowser instanceof JComboBoxExperimentLazy
-					? ((JComboBoxExperimentLazy) experimentBrowser).getItemAtNoLoad(i) : experimentBrowser.getItemAt(i);
-			if (item == target) { experimentBrowser.setSelectedIndex(i); return; }
+					? ((JComboBoxExperimentLazy) experimentBrowser).getItemAtNoLoad(i)
+					: experimentBrowser.getItemAt(i);
+			if (item == target) {
+				experimentBrowser.setSelectedIndex(i);
+				return;
+			}
 		}
 	}
 
 	void showSeriesOutcome(String message) {
-		if (released) return;
+		if (released)
+			return;
 		runMode.setSelectedIndex(2);
 		seriesStatus.setText(message);
 	}
 
 	private void updateDetectorLabel() {
-		detectorVersion.setText(persistentEpisodes.isSelected()
-				? "Detector " + IntakeEpisodes.METHOD_VERSION + " - persistent episodes"
-				: "Detector " + IntakeEpisodes.METHOD_VERSION + " - single-bin (persistence off)");
+		detectorVersion.setText(
+				persistentEpisodes.isSelected() ? "Detector " + IntakeEpisodes.METHOD_VERSION + " - persistent episodes"
+						: "Detector " + IntakeEpisodes.METHOD_VERSION + " - single-bin (persistence off)");
 	}
 
 	private void updateModeControls() {
 		updateDetectorLabel();
-		boolean busy = batchWorker != null || seriesWorker != null || reviewExportWorker != null || editedPersistWorker != null;
+		boolean busy = batchWorker != null || seriesWorker != null || reviewExportWorker != null
+				|| editedPersistWorker != null;
 		batchControls.setVisible(runMode.getSelectedIndex() == 1);
 		seriesControls.setVisible(runMode.getSelectedIndex() == 2);
 		seriesRange.setEnabled(!busy);
@@ -925,21 +973,25 @@ public final class CorrelationIntakePanel extends JPanel {
 
 	private boolean batchSourcesCurrent() {
 		List<Capillary> current = experiment.getCapillaries().getList();
-		return current.size() == batchResults.size() && current.stream().allMatch(cap ->
-				batchResults.containsKey(cap) && batchResults.get(cap).preview.matchesSources(experiment));
+		return current.size() == batchResults.size() && current.stream().allMatch(
+				cap -> batchResults.containsKey(cap) && batchResults.get(cap).preview.matchesSources(experiment));
 	}
 
 	private void cancelBatch() {
-		if (batchWorker == null) return;
+		if (batchWorker == null)
+			return;
 		batchWorker.cancel(true);
 		batchWorker = null;
 		invalidateBatch();
 		batchStatus.setText("Cancelled; no batch results saved.");
 		updateModeControls();
-		if (!released) analyzeSelected();
+		if (!released)
+			analyzeSelected();
 	}
 
-	/** Captures the same amplitudes and fitted geometry used by manual detection. */
+	/**
+	 * Captures the same amplitudes and fitted geometry used by manual detection.
+	 */
 	static final class AutomaticResult {
 		final CorrelationGulpPreview preview;
 		final double[] amplitudes, bottoms;
@@ -954,9 +1006,8 @@ public final class CorrelationIntakePanel extends JPanel {
 			if (!Double.isFinite(threshold) || threshold < 0)
 				throw new IllegalArgumentException("Detection threshold unavailable");
 			if (episodes) {
-				IntakeEpisodes.Detection detection = IntakeEpisodes.detect(p.residualRate, p.minutes,
-						p.motion.reliable, p.controlRates, p.noise.automatic, threshold, p.correctedLevels,
-						p::supportsIntakeStep);
+				IntakeEpisodes.Detection detection = IntakeEpisodes.detect(p.residualRate, p.minutes, p.motion.reliable,
+						p.controlRates, p.noise.automatic, threshold, p.correctedLevels, p::supportsIntakeStep);
 				amplitudes = detection.net.clone();
 				bottoms = detection.position.clone();
 				for (int i = 0; i < bottoms.length; i++) {
@@ -969,10 +1020,11 @@ public final class CorrelationIntakePanel extends JPanel {
 				boolean[] chosen = VerticalCorrelation.candidates(p.residualRate, p.motion.reliable, threshold);
 				amplitudes = new double[chosen.length];
 				for (int i = 0; i < chosen.length; i++)
-					if (chosen[i]) amplitudes[i] = Math.max(0, p.motion.shift[i]);
+					if (chosen[i])
+						amplitudes[i] = Math.max(0, p.motion.shift[i]);
 			}
-			options = IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes + ",local=" + local
-					+ ",scale=" + (local ? p.localScale.factor : 1);
+			options = IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes + ",local="
+					+ local + ",scale=" + (local ? p.localScale.factor : 1);
 		}
 
 		void install(Capillary cap) {
@@ -983,8 +1035,10 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void detectAll() {
-		if (batchWorker != null || seriesWorker != null || released || suspended) return;
-		if (worker != null) worker.cancel(true);
+		if (batchWorker != null || seriesWorker != null || released || suspended)
+			return;
+		if (worker != null)
+			worker.cancel(true);
 		worker = null;
 		pendingCapillary = null;
 		invalidateBatch();
@@ -996,10 +1050,13 @@ public final class CorrelationIntakePanel extends JPanel {
 			protected Map<Capillary, AutomaticResult> doInBackground() {
 				Map<Capillary, AutomaticResult> results = new IdentityHashMap<>();
 				for (Capillary cap : targets) {
-					if (isCancelled()) throw new CancellationException();
-					publish("Detecting " + (results.size() + 1) + "/" + targets.size() + ": " + cap.getLast2ofCapillaryName());
+					if (isCancelled())
+						throw new CancellationException();
+					publish("Detecting " + (results.size() + 1) + "/" + targets.size() + ": "
+							+ cap.getLast2ofCapillaryName());
 					try {
-						results.put(cap, new AutomaticResult(CorrelationGulpPreview.computeAccepted(experiment, cap, local), episodes, local));
+						results.put(cap, new AutomaticResult(
+								CorrelationGulpPreview.computeAccepted(experiment, cap, local), episodes, local));
 					} catch (RuntimeException e) {
 						throw new IllegalArgumentException(cap.getLast2ofCapillaryName() + ": " + e.getMessage(), e);
 					}
@@ -1009,19 +1066,23 @@ public final class CorrelationIntakePanel extends JPanel {
 
 			@Override
 			protected void process(List<String> messages) {
-				if (batchWorker == this) batchStatus.setText(messages.get(messages.size() - 1));
+				if (batchWorker == this)
+					batchStatus.setText(messages.get(messages.size() - 1));
 			}
 
 			@Override
 			protected void done() {
-				if (batchWorker != this || released) return;
+				if (batchWorker != this || released)
+					return;
 				batchWorker = null;
 				try {
 					batchResults = get();
-					if (!batchSourcesCurrent()) throw new IllegalStateException("Levels changed; run Detect all again.");
+					if (!batchSourcesCurrent())
+						throw new IllegalStateException("Levels changed; run Detect all again.");
 					for (Map.Entry<Capillary, AutomaticResult> entry : batchResults.entrySet())
 						cache.put(entry.getKey(), entry.getValue().preview);
-					batchStatus.setText("Ready: " + batchResults.size() + " capillaries. Save intake or copy to gulps.");
+					batchStatus
+							.setText("Ready: " + batchResults.size() + " capillaries. Save intake or copy to gulps.");
 					analyzeSelected();
 				} catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
@@ -1044,7 +1105,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void copyAllToGulps() {
-		if (batchWorker != null || batchResults.isEmpty()) return;
+		if (batchWorker != null || batchResults.isEmpty())
+			return;
 		if (!batchSourcesCurrent()) {
 			invalidateBatch();
 			batchStatus.setText("Levels changed; run Detect all again.");
@@ -1053,15 +1115,18 @@ public final class CorrelationIntakePanel extends JPanel {
 		Map<Capillary, AutomaticResult> confirmed = batchResults;
 		if (JOptionPane.showConfirmDialog(this,
 				"Replace ordinary gulps for all " + batchResults.size() + " capillaries with the detected intake?"
-				+ "\nExisting gulps, including unsaved manual edits, will be replaced."
-				+ "\nThe new gulp measures will be saved for graphs and exports.",
-				"Copy all to gulps", JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION)
+						+ "\nExisting gulps, including unsaved manual edits, will be replaced."
+						+ "\nThe new gulp measures will be saved for graphs and exports.",
+				"Copy all to gulps", JOptionPane.OK_CANCEL_OPTION,
+				JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION)
 			return;
-		if (batchResults == confirmed) persistBatch(true);
+		if (batchResults == confirmed)
+			persistBatch(true);
 	}
 
 	private void persistBatch(boolean copy) {
-		if (batchWorker != null || batchResults.isEmpty()) return;
+		if (batchWorker != null || batchResults.isEmpty())
+			return;
 		if (!batchSourcesCurrent()) {
 			invalidateBatch();
 			batchStatus.setText("Levels changed; run Detect all again.");
@@ -1070,20 +1135,23 @@ public final class CorrelationIntakePanel extends JPanel {
 		for (Map.Entry<Capillary, AutomaticResult> entry : batchResults.entrySet()) {
 			entry.getValue().install(entry.getKey());
 			manualGulps.put(entry.getKey(), new ManualIntakeEdits());
-			if (copy) entry.getKey().copyCorrelationGulpsToGulps();
+			if (copy)
+				entry.getKey().copyCorrelationGulpsToGulps();
 			manualThresholds.remove(entry.getKey());
 		}
-		if (copy) refreshGulpRois();
+		if (copy)
+			refreshGulpRois();
 		boolean saved = experiment.save_capillaries_description_and_measures();
-		batchStatus.setText(saved ? "Saved " + (copy ? "ordinary gulps" : "separate intake") + " for " + batchResults.size() + " capillaries."
-				: "Save failed; results remain in memory. Retry saving.");
+		batchStatus.setText(saved ? "Saved " + (copy ? "ordinary gulps" : "separate intake") + " for "
+				+ batchResults.size() + " capillaries." : "Save failed; results remain in memory. Retry saving.");
 		refresh();
 	}
 
 	private void refreshGulpRois() {
 		Sequence seq = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
 		if (seq != null && seq.getFirstViewer() != null) {
-			experiment.getSeqKymos().replaceCapillaryMeasureRoisAtT(seq.getFirstViewer().getPositionT(), experiment.getCapillaries());
+			experiment.getSeqKymos().replaceCapillaryMeasureRoisAtT(seq.getFirstViewer().getPositionT(),
+					experiment.getCapillaries());
 			roiCapillary = null;
 			updateRois();
 		}
@@ -1116,7 +1184,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private double[] candidateBottoms() {
-		double[] positions = persistentEpisodes.isSelected() ? episodeDetection().position.clone() : preview.raw.clone();
+		double[] positions = persistentEpisodes.isSelected() ? episodeDetection().position.clone()
+				: preview.raw.clone();
 		if (persistentEpisodes.isSelected())
 			for (int i = 0; i < positions.length; i++)
 				positions[i] += preview.evaporation[i];
@@ -1367,31 +1436,36 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private String methodOptions() {
-		return IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + persistentEpisodes.isSelected() + ",local="
-				+ localEvaporation.isSelected() + manualEdits().options();
+		return IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + persistentEpisodes.isSelected()
+				+ ",local=" + localEvaporation.isSelected() + manualEdits().options();
 	}
 
 	private ManualIntakeEdits manualEdits() {
-		if (automaticMode() || computedCapillary == null) return new ManualIntakeEdits();
+		if (automaticMode() || computedCapillary == null)
+			return new ManualIntakeEdits();
 		return manualGulps.computeIfAbsent(computedCapillary, cap -> new ManualIntakeEdits());
 	}
 
 	private void editGulp(int first, int last) {
-		if (!addGulp.isEnabled() || !addGulp.isSelected() || preview == null) return;
+		if (!addGulp.isEnabled() || !addGulp.isSelected() || preview == null)
+			return;
 		checkSources();
-		if (preview == null) return;
+		if (preview == null)
+			return;
 		first = Math.max(1, first);
 		last = Math.max(first, Math.min(preview.raw.length - 1, last));
 		final CorrelationGulpPreview edited = preview;
 		final Capillary cap = computedCapillary;
 		double bottom = candidateBottoms()[last];
-		if (!Double.isFinite(bottom)) bottom = preview.image.getHeight() / 2.;
+		if (!Double.isFinite(bottom))
+			bottom = preview.image.getHeight() / 2.;
 		double binEvaporation = preview.evaporation[last] - preview.evaporation[last - 1];
-		double amount = preview.raw[last] - preview.raw[first - 1]
-				- preview.evaporation[last] + preview.evaporation[first - 1];
+		double amount = preview.raw[last] - preview.raw[first - 1] - preview.evaporation[last]
+				+ preview.evaporation[first - 1];
 		if (first == last && candidateAmplitudes()[last] > 0)
 			amount = Math.max(0, candidateAmplitudes()[last] - binEvaporation);
-		if (!Double.isFinite(amount) || amount <= 0) amount = 1;
+		if (!Double.isFinite(amount) || amount <= 0)
+			amount = 1;
 		ManualGulpDialog.Result result = ManualGulpDialog.show(this, edited, first, last, amount, bottom,
 				candidateAmplitudes(), candidateBottoms(), manualGulpContextMinutes,
 				() -> preview == edited && computedCapillary == cap && edited.matchesSources(experiment));
@@ -1400,7 +1474,8 @@ public final class CorrelationIntakePanel extends JPanel {
 			checkSources();
 			return;
 		}
-		if (result.accepted == null) return;
+		if (result.accepted == null)
+			return;
 		ManualGulpDialog.Result.Accepted accepted = result.accepted;
 		if (accepted.selectedFirst != first || accepted.selectedLast != last)
 			manualEdits().replace(first, last, 0, bottom);
@@ -1426,7 +1501,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	private boolean[] candidates() {
 		double[] amplitudes = candidateAmplitudes();
 		boolean[] selected = new boolean[amplitudes.length];
-		for (int i = 1; i < amplitudes.length; i++) selected[i] = amplitudes[i] > 0;
+		for (int i = 1; i < amplitudes.length; i++)
+			selected[i] = amplitudes[i] > 0;
 		return selected;
 	}
 
@@ -1468,9 +1544,12 @@ public final class CorrelationIntakePanel extends JPanel {
 			double observed = preview.raw[preview.raw.length - 1] - preview.raw[0]
 					- preview.evaporation[preview.evaporation.length - 1] + preview.evaporation[0];
 			status.setText("<html>"
-					+ (persistentEpisodes.isSelected() ? episodeDetection().episodes + " automatic episodes / " + count + " intake bins (including overrides)" : count + " bins")
-					+ (persistentEpisodes.isSelected() ? " / " + diagnostics().size() + " diagnostics" : "")
-					+ " | net " + format(net) + " px; raw minus evaporation " + format(observed) + " px"
+					+ (persistentEpisodes.isSelected()
+							? episodeDetection().episodes + " automatic episodes / " + count
+									+ " intake bins (including overrides)"
+							: count + " bins")
+					+ (persistentEpisodes.isSelected() ? " / " + diagnostics().size() + " diagnostics" : "") + " | net "
+					+ format(net) + " px; raw minus evaporation " + format(observed) + " px"
 					+ (Math.abs(net - observed) > Math.max(3, .2 * Math.abs(observed))
 							? " | cumulative mismatch: inspect tracking/evaporation"
 							: "")
@@ -1492,7 +1571,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void scheduleRoiUpdate() {
-		if (!released && !suspended) roiTimer.restart();
+		if (!released && !suspended)
+			roiTimer.restart();
 	}
 
 	/**
@@ -1560,28 +1640,39 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void persistEditedIntake(boolean copy) {
-		if (preview == null || editedPersistWorker != null || automaticMode()) return;
+		if (preview == null || editedPersistWorker != null || automaticMode())
+			return;
 		int count = experiment.getCapillaries().getList().size();
-		if (count == 0) return;
+		if (count == 0)
+			return;
 		String title = copy ? "Copy all edited to gulps" : "Save all edited intake";
-		String message = copy
-				? "Replace ordinary gulps for all " + count + " capillaries with their edited intake?\nExisting gulps will be replaced and the measures will be saved."
-				: "Save correlation intake for all " + count + " capillaries, including each capillary's manual edits?\nOrdinary gulps stay unchanged.";
-		if (JOptionPane.showConfirmDialog(this, message, title,
-				JOptionPane.OK_CANCEL_OPTION, copy ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION)
+		String message = copy ? "Replace ordinary gulps for all " + count
+				+ " capillaries with their edited intake?\nExisting gulps will be replaced and the measures will be saved."
+				: "Save correlation intake for all " + count
+						+ " capillaries, including each capillary's manual edits?\nOrdinary gulps stay unchanged.";
+		if (JOptionPane.showConfirmDialog(this, message, title, JOptionPane.OK_CANCEL_OPTION,
+				copy ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION)
 			return;
 		EditedIntakeSnapshot snapshot = new EditedIntakeSnapshot(this);
 		editedPersistWorker = new SwingWorker<Void, String>() {
-			@Override protected Void doInBackground() {
+			@Override
+			protected Void doInBackground() {
 				snapshot.prepare(this::publish);
 				return null;
 			}
-			@Override protected void process(List<String> messages) {
-				if (editedPersistWorker == this) status.setText(messages.get(messages.size() - 1));
+
+			@Override
+			protected void process(List<String> messages) {
+				if (editedPersistWorker == this)
+					status.setText(messages.get(messages.size() - 1));
 			}
-			@Override protected void done() {
-				if (editedPersistWorker == this) editedPersistWorker = null;
-				if (released) return;
+
+			@Override
+			protected void done() {
+				if (editedPersistWorker == this)
+					editedPersistWorker = null;
+				if (released)
+					return;
 				updateModeControls();
 				try {
 					get();
@@ -1589,29 +1680,38 @@ public final class CorrelationIntakePanel extends JPanel {
 						status.setText("Levels changed; edited intake was not saved.");
 						return;
 					}
-					if (copy) refreshGulpRois();
+					if (copy)
+						refreshGulpRois();
 					boolean saved = experiment.save_capillaries_description_and_measures();
 					refresh();
 					if (!saved)
-						JOptionPane.showMessageDialog(CorrelationIntakePanel.this, "Could not save the capillary measures.", title, JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(CorrelationIntakePanel.this,
+								"Could not save the capillary measures.", title, JOptionPane.ERROR_MESSAGE);
 					else
 						JOptionPane.showMessageDialog(CorrelationIntakePanel.this,
-								(copy ? "Copied edited intake to gulps for " : "Saved edited intake for ") + snapshot.caps.size() + " capillaries.",
+								(copy ? "Copied edited intake to gulps for " : "Saved edited intake for ")
+										+ snapshot.caps.size() + " capillaries.",
 								title, JOptionPane.INFORMATION_MESSAGE);
 				} catch (InterruptedException | ExecutionException | RuntimeException error) {
-					if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+					if (error instanceof InterruptedException)
+						Thread.currentThread().interrupt();
 					Throwable cause = error.getCause() == null ? error : error.getCause();
 					status.setText(cause.getMessage());
-					JOptionPane.showMessageDialog(CorrelationIntakePanel.this, cause.getMessage(), title, JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(CorrelationIntakePanel.this, cause.getMessage(), title,
+							JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		};
 		updateModeControls();
-		status.setText((copy ? "Copying edited intake to gulps for " : "Saving edited intake for ") + count + " capillaries...");
+		status.setText((copy ? "Copying edited intake to gulps for " : "Saving edited intake for ") + count
+				+ " capillaries...");
 		editedPersistWorker.execute();
 	}
 
-	/** Settings captured on the event thread. Previews are prepared in the background, then installed together. */
+	/**
+	 * Settings captured on the event thread. Previews are prepared in the
+	 * background, then installed together.
+	 */
 	private static final class EditedIntakeSnapshot {
 		final Experiment exp;
 		final List<Capillary> caps;
@@ -1635,12 +1735,14 @@ public final class CorrelationIntakePanel extends JPanel {
 				} else if (panel.manualThresholds.containsKey(cap)) {
 					chosenThresholds.put(cap, panel.manualThresholds.get(cap));
 					manualThreshold.put(cap, true);
-				} else if (stored.isManualThreshold() && stored.hasMeasures() && Double.isFinite(stored.getThresholdPxPerMin())) {
+				} else if (stored.isManualThreshold() && stored.hasMeasures()
+						&& Double.isFinite(stored.getThresholdPxPerMin())) {
 					chosenThresholds.put(cap, stored.getThresholdPxPerMin());
 					manualThreshold.put(cap, true);
 				} else
 					manualThreshold.put(cap, false);
-				edits.put(cap, panel.manualGulps.containsKey(cap) ? panel.manualGulps.get(cap).options() : stored.getMethodOptions());
+				edits.put(cap, panel.manualGulps.containsKey(cap) ? panel.manualGulps.get(cap).options()
+						: stored.getMethodOptions());
 			}
 		}
 
@@ -1657,9 +1759,11 @@ public final class CorrelationIntakePanel extends JPanel {
 
 		boolean install(boolean copy) {
 			List<Capillary> current = exp.getCapillaries().getList();
-			if (current.size() != caps.size() || !current.containsAll(caps)) return false;
+			if (current.size() != caps.size() || !current.containsAll(caps))
+				return false;
 			for (CorrelationGulpPreview preview : previews.values())
-				if (preview == null || !preview.matchesSources(exp)) return false;
+				if (preview == null || !preview.matchesSources(exp))
+					return false;
 			for (Capillary cap : caps) {
 				CorrelationGulpPreview preview = previews.get(cap);
 				boolean manual = Boolean.TRUE.equals(manualThreshold.get(cap));
@@ -1673,42 +1777,57 @@ public final class CorrelationIntakePanel extends JPanel {
 				CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
 				stored.set(amplitudes, 0, 0, threshold, manual);
 				stored.setBottomPositions(bottoms);
-				stored.setMethodOptions(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes
-						+ ",local=" + local + manualEdits.options()
-						+ ",scale=" + (local ? preview.localScale.factor : 1));
+				stored.setMethodOptions(
+						IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes + ",local="
+								+ local + manualEdits.options() + ",scale=" + (local ? preview.localScale.factor : 1));
 			}
-			if (copy) for (Capillary cap : caps)
-				if (!cap.copyCorrelationGulpsToGulps())
-					throw new IllegalStateException("Could not copy intake to gulps for " + cap.getLast2ofCapillaryName());
+			if (copy)
+				for (Capillary cap : caps)
+					if (!cap.copyCorrelationGulpsToGulps())
+						throw new IllegalStateException(
+								"Could not copy intake to gulps for " + cap.getLast2ofCapillaryName());
 			return true;
 		}
 	}
 
 	private void exportExperimentReview() {
-		if (preview == null || reviewExportWorker != null) return;
+		if (preview == null || reviewExportWorker != null)
+			return;
 		JFileChooser chooser = new JFileChooser();
 		chooser.setSelectedFile(new java.io.File("intake-experiment-review.zip"));
-		if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+		if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION)
+			return;
 		Path file = chooser.getSelectedFile().toPath();
 		if (Files.exists(file) && JOptionPane.showConfirmDialog(this, "Replace " + file.getFileName() + "?",
-				"Export experiment review", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+				"Export experiment review", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION)
+			return;
 		ReviewExport snapshot = new ReviewExport(this);
 		reviewExportWorker = new SwingWorker<Void, Void>() {
-			@Override protected Void doInBackground() throws Exception { snapshot.write(file); return null; }
-			@Override protected void done() {
+			@Override
+			protected Void doInBackground() throws Exception {
+				snapshot.write(file);
+				return null;
+			}
+
+			@Override
+			protected void done() {
 				reviewExportWorker = null;
-				if (released) return;
+				if (released)
+					return;
 				updateModeControls();
 				checkSources();
 				try {
 					get();
-					JOptionPane.showMessageDialog(CorrelationIntakePanel.this,
-							"Exported all " + snapshot.caps.size() + " capillaries, including retained manual edits.\n" + file,
+					JOptionPane.showMessageDialog(
+							CorrelationIntakePanel.this, "Exported all " + snapshot.caps.size()
+									+ " capillaries, including retained manual edits.\n" + file,
 							"Experiment review exported", JOptionPane.INFORMATION_MESSAGE);
 				} catch (InterruptedException | ExecutionException | CancellationException error) {
-					if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+					if (error instanceof InterruptedException)
+						Thread.currentThread().interrupt();
 					Throwable cause = error.getCause() == null ? error : error.getCause();
-					JOptionPane.showMessageDialog(CorrelationIntakePanel.this, cause.getMessage(), "Export failed", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(CorrelationIntakePanel.this, cause.getMessage(), "Export failed",
+							JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		};
@@ -1717,7 +1836,10 @@ public final class CorrelationIntakePanel extends JPanel {
 		reviewExportWorker.execute();
 	}
 
-	/** Capture UI settings and unsaved edits on the EDT; write without changing selection or measures. */
+	/**
+	 * Capture UI settings and unsaved edits on the EDT; write without changing
+	 * selection or measures.
+	 */
 	private static final class ReviewExport {
 		final Experiment exp;
 		final List<Capillary> caps;
@@ -1725,25 +1847,32 @@ public final class CorrelationIntakePanel extends JPanel {
 		final Map<Capillary, Double> thresholds = new IdentityHashMap<>();
 		final Map<Capillary, String> edits = new IdentityHashMap<>();
 		final Map<Capillary, CorrelationGulpPreview> previews;
+
 		ReviewExport(CorrelationIntakePanel panel) {
 			exp = panel.experiment;
 			caps = new ArrayList<>(exp.getCapillaries().getList());
-			episodes = panel.persistentEpisodes.isSelected(); local = panel.localEvaporation.isSelected();
+			episodes = panel.persistentEpisodes.isSelected();
+			local = panel.localEvaporation.isSelected();
 			previews = new IdentityHashMap<>(panel.cache);
 			for (Capillary cap : caps) {
 				CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
 				Double setting = panel.manualThresholds.get(cap);
 				if (setting == null && stored.isManualThreshold() && stored.hasMeasures())
 					setting = stored.getThresholdPxPerMin();
-				if (cap == panel.computedCapillary && !panel.automaticMode()) setting = panel.value();
-				if (setting != null && Double.isFinite(setting)) thresholds.put(cap, setting);
-				edits.put(cap, panel.manualGulps.containsKey(cap) ? panel.manualGulps.get(cap).options() : stored.getMethodOptions());
+				if (cap == panel.computedCapillary && !panel.automaticMode())
+					setting = panel.value();
+				if (setting != null && Double.isFinite(setting))
+					thresholds.put(cap, setting);
+				edits.put(cap, panel.manualGulps.containsKey(cap) ? panel.manualGulps.get(cap).options()
+						: stored.getMethodOptions());
 			}
 		}
+
 		void write(Path destination) throws IOException {
 			Path temp = Files.createTempFile(destination.toAbsolutePath().getParent(), "intake-review-", ".zip");
 			try {
-				try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(Files.newOutputStream(temp))) {
+				try (java.util.zip.ZipOutputStream zip = new java.util.zip.ZipOutputStream(
+						Files.newOutputStream(temp))) {
 					StringBuilder summary = new StringBuilder("Intake review: " + exp.getResultsDirectory()
 							+ "\nAll capillaries; current detector settings; includes unsaved manual event edits."
 							+ "\nEach CSV compares automatic, chosen-threshold and edited intake. PNGs are original kymographs."
@@ -1759,22 +1888,30 @@ public final class CorrelationIntakePanel extends JPanel {
 						String id = cap.getLast2ofCapillaryName().replaceAll("[^A-Za-z0-9_-]", "_");
 						java.io.StringWriter text = new java.io.StringWriter();
 						java.io.BufferedWriter writer = new java.io.BufferedWriter(text);
-						writeReviewCsv(writer, exp, cap, p, setting, thresholds.containsKey(cap), episodes, local, manual);
+						writeReviewCsv(writer, exp, cap, p, setting, thresholds.containsKey(cap), episodes, local,
+								manual);
 						writer.flush();
 						zip.putNextEntry(new java.util.zip.ZipEntry("correlation-" + id + ".csv"));
-						zip.write(text.toString().getBytes(StandardCharsets.UTF_8)); zip.closeEntry();
+						zip.write(text.toString().getBytes(StandardCharsets.UTF_8));
+						zip.closeEntry();
 						zip.putNextEntry(new java.util.zip.ZipEntry("kymograph-" + id + ".png"));
-						javax.imageio.ImageIO.write(p.image, "png", zip); zip.closeEntry();
+						javax.imageio.ImageIO.write(p.image, "png", zip);
+						zip.closeEntry();
 						summary.append(id).append(cap.getNFlies() == 0 ? " (no-fly control)" : "")
-								.append(manual.isEmpty() ? ": no manual event overrides\n" : ": manual event overrides included\n");
+								.append(manual.isEmpty() ? ": no manual event overrides\n"
+										: ": manual event overrides included\n");
 					}
 					for (CorrelationGulpPreview p : previews.values())
-						if (!p.matchesSources(exp)) throw new IOException("Levels changed during export; export the review again.");
+						if (!p.matchesSources(exp))
+							throw new IOException("Levels changed during export; export the review again.");
 					zip.putNextEntry(new java.util.zip.ZipEntry("README.txt"));
-					zip.write(summary.toString().getBytes(StandardCharsets.UTF_8)); zip.closeEntry();
+					zip.write(summary.toString().getBytes(StandardCharsets.UTF_8));
+					zip.closeEntry();
 				}
 				Files.move(temp, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-			} finally { Files.deleteIfExists(temp); }
+			} finally {
+				Files.deleteIfExists(temp);
+			}
 		}
 	}
 
@@ -1815,55 +1952,58 @@ public final class CorrelationIntakePanel extends JPanel {
 		double[] bottoms = detected.bottoms == null ? preview.raw.clone() : detected.bottoms.clone();
 		edits.apply(amplitudes, bottoms);
 		boolean[] selected = new boolean[amplitudes.length];
-		for (int i = 1; i < selected.length; i++) selected[i] = amplitudes[i] > 0;
+		for (int i = 1; i < selected.length; i++)
+			selected[i] = amplitudes[i] > 0;
 		List<IntakeDiagnostics.Warning> warnings = episodes ? IntakeDiagnostics.analyze(preview.raw,
 				preview.correctedLevels, preview.evaporation, preview.minutes, preview.motion.reliable,
 				IntakeEpisodes.detect(preview.residualRate, preview.minutes, preview.motion.reliable,
-						preview.controlRates, preview.noise.automatic, threshold, preview.correctedLevels, preview::supportsIntakeStep),
-				preview.controlRates, threshold, computedCapillary.getNFlies() == 0) : java.util.Collections.emptyList();
+						preview.controlRates, preview.noise.automatic, threshold, preview.correctedLevels,
+						preview::supportsIntakeStep),
+				preview.controlRates, threshold, computedCapillary.getNFlies() == 0)
+				: java.util.Collections.emptyList();
 		double[] automaticAmplitudes = Double.isFinite(preview.noise.automatic)
-				? new AutomaticResult(preview, episodes, local).amplitudes : null;
-			writer.write("# prototype=accepted_level_intake;capillary=" + computedCapillary.getLast2ofCapillaryName()
-					+ ";source=accepted_topraw\n");
-			writer.write("# experiment=" + experiment.getResultsDirectory() + ";reference="
-					+ preview.referenceDescription + ";method_options=" + IntakeEpisodes.METHOD_VERSION
-					+ ",source=accepted_topraw,persistent=" + episodes + ",local=" + local + edits.options() + "\n");
-			writer.write("# threshold_source=" + preview.noise.source + ";manual=" + manual
-					+ ";automatic_threshold_px_per_min=" + preview.noise.automatic + "\n");
-			writer.write("# comparison=detector recomputed from current accepted levels and method settings;"
-					+ "edit_action compares chosen threshold before/after event edits;"
-					+ "automatic_net_intake_px uses automatic threshold (NaN if unavailable);"
-					+ "unchanged does not imply user reviewed\n");
-			writer.write(
-					"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px;searched_range_px;fitted_meniscus_px;intake_top_px;intake_bottom_px;diagnostic_excess_px;diagnostic_reliable;diagnostic_types;image_profile;topraw_fallback;automatic_net_intake_px;detector_net_before_edits_px;edited_net_intake_px;manual_override;edit_action\n");
-			for (int i = 0; i < preview.raw.length; i++) {
-				double evap = i == 0 ? Double.NaN : preview.evaporation[i] - preview.evaporation[i - 1];
-				String change = !edits.covers(i) ? "unchanged"
-						: !(beforeEdits[i] > 0) && amplitudes[i] > 0 ? "added"
-						: beforeEdits[i] > 0 && !(amplitudes[i] > 0) ? "removed"
-						: Math.abs(amplitudes[i] - beforeEdits[i]) > 1e-4 ? "resized" : "manual_override";
-				String gapAmount = "", gapReliable = "", diagnosticTypes = "";
-				if (episodes)
-					for (IntakeDiagnostics.Warning gap : warnings)
-						if (gap.last == i) {
-							String separator = diagnosticTypes.isEmpty() ? "" : "|";
-							gapAmount += separator + gap.excess;
-							gapReliable += separator + gap.reliable;
-							diagnosticTypes += separator + (gap.noFly ? "CONTROL_" : "") + gap.kind.name();
-						}
-				writer.write(i + ";" + preview.minutes[i] + ";" + preview.raw[i] + ";" + preview.motion.refined[i] + ";"
-						+ preview.motion.shift[i] + ";" + evap + ";" + preview.residualRate[i] + ";"
-						+ preview.motion.correlation[i] + ";" + preview.motion.reliable[i] + ";"
-						+ "\"" + preview.motion.reason[i].replace("\"", "\"\"") + "\";"
-						+ preview.noise.automatic + ";" + threshold + ";" + selected[i]
-						+ ";" + amplitudes[i] + ";" + preview.motion.searchRange[i] + ";" + bottoms[i] + ";"
-						+ (selected[i] ? bottoms[i] - amplitudes[i] : Double.NaN) + ";"
-						+ (selected[i] ? bottoms[i] : Double.NaN) + ";" + gapAmount + ";" + gapReliable + ";"
-						+ diagnosticTypes + ";" + preview.motion.profile[i] + ";" + preview.motion.toprawFallback[i]
-						+ ";" + (automaticAmplitudes == null ? Double.NaN : netIntake(automaticAmplitudes[i], evap))
-						+ ";" + netIntake(beforeEdits[i], evap) + ";" + netIntake(amplitudes[i], evap)
-						+ ";" + edits.covers(i) + ";" + change + "\n");
-			}
+				? new AutomaticResult(preview, episodes, local).amplitudes
+				: null;
+		writer.write("# prototype=accepted_level_intake;capillary=" + computedCapillary.getLast2ofCapillaryName()
+				+ ";source=accepted_topraw\n");
+		writer.write("# experiment=" + experiment.getResultsDirectory() + ";reference=" + preview.referenceDescription
+				+ ";method_options=" + IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes
+				+ ",local=" + local + edits.options() + "\n");
+		writer.write("# threshold_source=" + preview.noise.source + ";manual=" + manual
+				+ ";automatic_threshold_px_per_min=" + preview.noise.automatic + "\n");
+		writer.write("# comparison=detector recomputed from current accepted levels and method settings;"
+				+ "edit_action compares chosen threshold before/after event edits;"
+				+ "automatic_net_intake_px uses automatic threshold (NaN if unavailable);"
+				+ "unchanged does not imply user reviewed\n");
+		writer.write(
+				"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px;searched_range_px;fitted_meniscus_px;intake_top_px;intake_bottom_px;diagnostic_excess_px;diagnostic_reliable;diagnostic_types;image_profile;topraw_fallback;automatic_net_intake_px;detector_net_before_edits_px;edited_net_intake_px;manual_override;edit_action\n");
+		for (int i = 0; i < preview.raw.length; i++) {
+			double evap = i == 0 ? Double.NaN : preview.evaporation[i] - preview.evaporation[i - 1];
+			String change = !edits.covers(i) ? "unchanged"
+					: !(beforeEdits[i] > 0) && amplitudes[i] > 0 ? "added"
+							: beforeEdits[i] > 0 && !(amplitudes[i] > 0) ? "removed"
+									: Math.abs(amplitudes[i] - beforeEdits[i]) > 1e-4 ? "resized" : "manual_override";
+			String gapAmount = "", gapReliable = "", diagnosticTypes = "";
+			if (episodes)
+				for (IntakeDiagnostics.Warning gap : warnings)
+					if (gap.last == i) {
+						String separator = diagnosticTypes.isEmpty() ? "" : "|";
+						gapAmount += separator + gap.excess;
+						gapReliable += separator + gap.reliable;
+						diagnosticTypes += separator + (gap.noFly ? "CONTROL_" : "") + gap.kind.name();
+					}
+			writer.write(i + ";" + preview.minutes[i] + ";" + preview.raw[i] + ";" + preview.motion.refined[i] + ";"
+					+ preview.motion.shift[i] + ";" + evap + ";" + preview.residualRate[i] + ";"
+					+ preview.motion.correlation[i] + ";" + preview.motion.reliable[i] + ";" + "\""
+					+ preview.motion.reason[i].replace("\"", "\"\"") + "\";" + preview.noise.automatic + ";" + threshold
+					+ ";" + selected[i] + ";" + amplitudes[i] + ";" + preview.motion.searchRange[i] + ";" + bottoms[i]
+					+ ";" + (selected[i] ? bottoms[i] - amplitudes[i] : Double.NaN) + ";"
+					+ (selected[i] ? bottoms[i] : Double.NaN) + ";" + gapAmount + ";" + gapReliable + ";"
+					+ diagnosticTypes + ";" + preview.motion.profile[i] + ";" + preview.motion.toprawFallback[i] + ";"
+					+ (automaticAmplitudes == null ? Double.NaN : netIntake(automaticAmplitudes[i], evap)) + ";"
+					+ netIntake(beforeEdits[i], evap) + ";" + netIntake(amplitudes[i], evap) + ";" + edits.covers(i)
+					+ ";" + change + "\n");
+		}
 	}
 
 	private static double netIntake(double amplitude, double evaporation) {
@@ -2025,8 +2165,8 @@ public final class CorrelationIntakePanel extends JPanel {
 			g.setColor(new Color(180, 30, 30));
 			g.setStroke(new BasicStroke(2));
 			g.drawLine(65, y(value()), getWidth() - 25, y(value()));
-			g.drawString((automaticMode() ? "Automatic setting: " : "Drag threshold setting: ") + format(value()),
-					75, Math.max(35, y(value()) - 6));
+			g.drawString((automaticMode() ? "Automatic setting: " : "Drag threshold setting: ") + format(value()), 75,
+					Math.max(35, y(value()) - 6));
 			g.setColor(Color.GRAY);
 			g.setStroke(new BasicStroke(1));
 			g.drawLine(x(selectedFrame), 35, x(selectedFrame), getHeight() - 50);
@@ -2051,16 +2191,25 @@ public final class CorrelationIntakePanel extends JPanel {
 			setBackground(Color.WHITE);
 			MouseAdapter mouse = new MouseAdapter() {
 				private int start = -1;
-				@Override public void mousePressed(MouseEvent e) {
-					if (preview == null || !SwingUtilities.isLeftMouseButton(e)
-							|| e.getX() < LEFT || e.getX() >= getWidth() - RIGHT || e.getY() < 25
-							|| e.getY() >= 25 + (cropBounds()[1] - cropBounds()[0]) * COLUMN_PX) return;
+
+				@Override
+				public void mousePressed(MouseEvent e) {
+					if (preview == null || !SwingUtilities.isLeftMouseButton(e) || e.getX() < LEFT
+							|| e.getX() >= getWidth() - RIGHT || e.getY() < 25
+							|| e.getY() >= 25 + (cropBounds()[1] - cropBounds()[0]) * COLUMN_PX)
+						return;
 					selectedFrame = frameAt(e.getX());
-					if (addGulp.isEnabled() && addGulp.isSelected()) start = selectedFrame;
+					if (addGulp.isEnabled() && addGulp.isSelected())
+						start = selectedFrame;
 					refresh();
 				}
-				@Override public void mouseReleased(MouseEvent e) {
-					if (start < 0 || preview == null) { start = -1; return; }
+
+				@Override
+				public void mouseReleased(MouseEvent e) {
+					if (start < 0 || preview == null) {
+						start = -1;
+						return;
+					}
 					int end = frameAt(e.getX()), first = start;
 					start = -1;
 					editGulp(Math.min(first, end), Math.max(first, end));
