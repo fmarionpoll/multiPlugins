@@ -47,9 +47,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * standard columns; optional extras (derivative, gulp events) still follow
  * options. {@code measure_cap_raw.csv} and {@code measure_cage_raw.csv} also
  * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
- * on the same {@code time_min} rows. With {@code intakeBins}, gulp exports add
- * {@code intakebins.csv}: per intake bin, raw and evaporation-corrected volume
- * plus their running totals. With {@code savedIntake}, {@code intakeevents.csv}
+ * on the same {@code time_min} rows. Gulp event exports include fractional raw and evaporation-corrected
+ * volumes plus their running totals in {@code gulpevents.csv}. With {@code savedIntake}, {@code intakeevents.csv}
  * exports the separately saved intake and {@code saved_intake_metadata.csv}
  * its provenance. Both event files include native interval start/end times.
  */
@@ -158,7 +157,7 @@ public final class CsvNormalizedExport {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
 					rawStepMs, binStepMs, writeBin);
 		}
-		if (mode == Mode.GULPS && options.intakeBins) {
+		if (wantGulpEvents) {
 			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs, false);
 		}
 		if (mode == Mode.GULPS && options.savedIntake) {
@@ -210,7 +209,8 @@ public final class CsvNormalizedExport {
 						csv.writeSavedIntake(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
 								valueAt(series[2], i), valueAt(series[3], i));
 					} else {
-						csv.writeIntakeBin(expKey, cageId, capId, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+						csv.writeGulpEvent(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN,
+								raw.getX(i).doubleValue(), v, valueAt(series[1], i),
 								valueAt(series[2], i), valueAt(series[3], i));
 					}
 				}
@@ -228,7 +228,6 @@ public final class CsvNormalizedExport {
 			throws IOException {
 
 		Map<EnumResults, String> denseTypes = denseResultTypes(options, mode);
-		EnumResults eventType = gulpEventResultType(options, mode);
 
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
@@ -244,12 +243,6 @@ public final class CsvNormalizedExport {
 				XYSeriesCollection ds = buildDataset(exp, cage, options, rt, nativeStepMs, builder);
 				if (ds != null) {
 					datasets.put(rt, ds);
-				}
-			}
-			if (wantGulpEvents && eventType != null && !datasets.containsKey(eventType)) {
-				XYSeriesCollection ds = buildDataset(exp, cage, options, eventType, nativeStepMs, builder);
-				if (ds != null) {
-					datasets.put(eventType, ds);
 				}
 			}
 
@@ -282,15 +275,6 @@ public final class CsvNormalizedExport {
 					if (writeBin && !byTime.isEmpty()) {
 						writeMeasureCapBinned(csv, expKey, cageId, capId, byTime, denseCols, binStepMs, t00Suitable);
 					}
-				}
-
-				if (wantGulpEvents && eventType != null) {
-					XYSeriesCollection ds = datasets.get(eventType);
-					if (ds == null) {
-						continue;
-					}
-					XYSeries series = findSeriesForCapillary(ds, exp, cage, cap, eventType);
-					writeGulpEventsNative(csv, expKey, cageId, capId, series);
 				}
 			}
 		}
@@ -668,21 +652,6 @@ public final class CsvNormalizedExport {
 		return false;
 	}
 
-	private static void writeGulpEventsNative(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
-			XYSeries series) throws IOException {
-		if (series == null || series.getItemCount() == 0) {
-			return;
-		}
-		for (int i = 0; i < series.getItemCount(); i++) {
-			double v = series.getY(i).doubleValue();
-			if (Double.isNaN(v) || v == 0.0) {
-				continue;
-			}
-			csv.writeGulpEvent(expKey, cageId, capId, i > 0 ? series.getX(i - 1).doubleValue() : Double.NaN,
-					series.getX(i).doubleValue(), v);
-		}
-	}
-
 	/** Evaporation curve actually subtracted: combined, else left, else right. */
 	private static CapillaryMeasure evaporationSeries(Experiment exp) {
 		if (exp == null || exp.getCapillaries() == null)
@@ -767,19 +736,6 @@ public final class CsvNormalizedExport {
 			}
 		}
 		return map;
-	}
-
-	private static EnumResults gulpEventResultType(ResultsOptions options, Mode mode) {
-		if (mode != Mode.GULPS) {
-			return null;
-		}
-		if (options.amplitudeGulps) {
-			return EnumResults.AMPLITUDEGULPS;
-		}
-		if (options.nbGulps) {
-			return EnumResults.NBGULPS;
-		}
-		return null;
 	}
 
 	private static String colName(EnumResults r) {

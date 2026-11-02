@@ -54,7 +54,7 @@ public class SavedIntakeExportTest {
     @Test public void csvKeepsIndependentFilesAndProvenance() throws Exception {
         Path folder = Files.createTempDirectory("saved-intake-export");
         try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder, Collections.emptyList(), 60000, false)) {
-            csv.writeGulpEvent("expA", 2, "L", 1.5, 9);
+            csv.writeGulpEvent("expA", 2, "L", 0, 1.5, 9, 8, 9, 8);
             csv.writeSavedIntake("expA", 2, "L", 0, 1.5, 2.25, Double.NaN, 3, 2);
             csv.writeSavedIntakeMetadata(SavedIntakeMetadata.row("expA", 2, "L", capillary()));
         }
@@ -68,34 +68,12 @@ public class SavedIntakeExportTest {
         assertTrue(metadata.contains("version=test,manual=1;edited"));
     }
 
-    @Test public void gulpIntervalsUsePreviousImageEvenAcrossMissingImages() throws Exception {
-        org.jfree.data.xy.XYSeries series = new org.jfree.data.xy.XYSeries("cap", false);
-        series.add(0, 0);
-        series.add(1, 2);
-        series.add(4, 3); // images at 2 and 3 minutes are missing
-        series.add(5, 0);
-        series.add(6, 1); // preceding image, not preceding event, starts the interval
-        Path folder = Files.createTempDirectory("gulp-interval-export");
-        try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder, Collections.emptyList(), 60000, false)) {
-            java.lang.reflect.Method method = plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport.class
-                .getDeclaredMethod("writeGulpEventsNative", CsvNormalizedExportSupport.class, String.class,
-                    int.class, String.class, org.jfree.data.xy.XYSeries.class);
-            method.setAccessible(true);
-            method.invoke(null, csv, "expA", 2, "L", series);
-        }
-        String events = new String(Files.readAllBytes(folder.resolve("gulpevents.csv")), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue(events.contains("interval_start_min,interval_end_min"));
-        assertTrue(events.contains("expA,2,L,4.0,3.0,1.0,4.0"));
-        assertTrue(events.contains("expA,2,L,6.0,1.0,5.0,6.0"));
-    }
-
     @Test public void copiedOptionsRetainIndependentSelections() {
         ResultsOptions options = new ResultsOptions();
         options.savedIntake = true;
         ResultsOptions copy = new ResultsOptions();
         copy.copy(options);
         assertTrue(copy.savedIntake);
-        assertFalse(copy.intakeBins);
     }
 
     @Test public void intakeCsvAndExcelPreserveAcquisitionGapsAtNativeResolution() throws Exception {
@@ -111,6 +89,9 @@ public class SavedIntakeExportTest {
         cap.setVolume(1);
         cap.getTopRaw().polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {10, 11, 13, 14}, 4);
         cap.getCorrelationGulps().set(new double[] {0, 0, 2.25, 0}, 3, 6, 0.5, true);
+        cap.getGulps().ensureSize(4);
+        cap.getGulps().setAmplitudeAt(1, 0.25);
+        cap.getGulps().setAmplitudeAt(2, 2.75);
         exp.getCapillaries().getList().add(cap);
         plugins.fmp.multitools.experiment.cage.Cage cage = new plugins.fmp.multitools.experiment.cage.Cage();
         cage.getProperties().setCageID(2);
@@ -128,6 +109,8 @@ public class SavedIntakeExportTest {
             method.setAccessible(true);
             method.invoke(null, exp, options, "A", csv,
                 new plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder(), 60000, true);
+            method.invoke(null, exp, options, "A", csv,
+                new plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder(), 60000, false);
         }
         java.util.List<String> lines = Files.readAllLines(folder.resolve("intakeevents.csv"));
         assertEquals(2, lines.size());
@@ -136,6 +119,18 @@ public class SavedIntakeExportTest {
         assertEquals(0.0225, Double.parseDouble(fields[4]), 1e-12);
         assertEquals(1, Double.parseDouble(fields[8]), 0);
         assertEquals(4, Double.parseDouble(fields[9]), 0);
+        assertFalse(Files.exists(folder.resolve("legacy_gulps.csv")));
+        assertFalse(Files.exists(folder.resolve("intakebins.csv")));
+        java.util.List<String> gulpLines = Files.readAllLines(folder.resolve("gulpevents.csv"));
+        assertEquals(3, gulpLines.size()); // the 0.25-pixel event must survive
+        String[] gulp = gulpLines.get(2).split(",", -1);
+        assertEquals(0.0275, Double.parseDouble(gulp[4]), 1e-12);
+        assertEquals(1, Double.parseDouble(gulp[5]), 0);
+        assertEquals(4, Double.parseDouble(gulp[6]), 0);
+        assertEquals(0.0275, Double.parseDouble(gulp[7]), 1e-12);
+        assertEquals("", gulp[8]); // no evaporation curve
+        assertEquals(0.03, Double.parseDouble(gulp[9]), 1e-12);
+        assertEquals("", gulp[10]);
         XLSExportMeasuresFromGulp exporter = new XLSExportMeasuresFromGulp();
         exporter.options = options;
         try (plugins.fmp.multitools.tools.toExcel.utils.ExcelResourceManager manager =

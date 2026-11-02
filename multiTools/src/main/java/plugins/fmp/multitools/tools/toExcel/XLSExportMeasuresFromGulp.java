@@ -84,7 +84,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
 				new OptionToResultsMapping(() -> options.savedIntake, EnumResults.SAVED_INTAKE_RAW,
 						EnumResults.SAVED_INTAKE_CORR, EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR),
-				new OptionToResultsMapping(() -> options.intakeBins, EnumResults.INTAKE_BIN_RAW,
+				new OptionToResultsMapping(() -> options.amplitudeGulps || options.nbGulps, EnumResults.INTAKE_BIN_RAW,
 						EnumResults.INTAKE_BIN_CORR, EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR),
 				new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
 				new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),

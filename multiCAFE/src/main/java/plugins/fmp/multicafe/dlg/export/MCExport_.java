@@ -264,7 +264,6 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.nbGulps = tabGulps.nbGulpsCheckBox.isSelected();
 		resultsOptions.amplitudeGulps = tabGulps.amplitudeGulpsCheckBox.isSelected();
 		resultsOptions.savedIntake = tabGulps.savedIntakeCheckBox.isSelected();
-		resultsOptions.intakeBins = tabGulps.intakeBinsCheckBox.isSelected();
 
 		resultsOptions.markovChain = tabGulps.markovChainCheckBox.isSelected();
 

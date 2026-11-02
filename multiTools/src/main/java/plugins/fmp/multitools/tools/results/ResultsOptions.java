@@ -62,7 +62,6 @@ public class ResultsOptions {
 	public boolean nbGulps = false;
 	public boolean amplitudeGulps = false;
 	/** Intake bins raw and minus evaporation, per bin and cumulated. */
-	public boolean intakeBins = false;
 	public boolean savedIntake = false;
 	public boolean tToNextGulp = false;
 	public boolean tToNextGulp_LR = false;
@@ -212,7 +211,6 @@ public class ResultsOptions {
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
 		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;
 
-		this.intakeBins = resultsOptions.intakeBins;
 		this.savedIntake = resultsOptions.savedIntake;
 		this.autocorrelation = resultsOptions.autocorrelation;
 		this.crosscorrelation = resultsOptions.crosscorrelation;
