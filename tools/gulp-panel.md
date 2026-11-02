@@ -670,10 +670,14 @@ The starting estimate uses the selected raw level change minus model
 evaporation; edit it against the image. Missing endpoints default to 1 px and
 the image mid-height, so these values need user correction.
 
-The selection replaces all detected intake bins inside that region with one
-unresolved event at its last bin, avoiding double counting. It bypasses quality,
-threshold and persistence gates. Click **Delete intake event** to remove intake
-in the selected region directly (entering zero and clicking OK also works);
+For a multi-bin selection, every native interval is measured separately from
+its saved topraw level increment. Net intake is max(0, level increment minus
+that bin's evaporation). Each positive bin gets a vertical blue bar anchored
+at its own saved bottom level; negative or evaporation-only motion stays zero.
+This manual measurement bypasses automatic quality, threshold and persistence
+gates. Missing data are flagged and require explicit manual values before OK.
+Click **Delete intake event** to remove all intake in the selected region
+directly (entering zero removes only the bin currently being edited);
 **Reset manual gulps** discards all overrides for that capillary. Edits survive
 capillary navigation and detector-setting changes. Source changes detected
 while the panel is open discard the overrides. **Save intake** persists the
@@ -688,6 +692,26 @@ evaporation), with the saved meniscus in orange. Spinner changes update the
 preview; dragging the upper endpoint changes net intake, and dragging the
 lower endpoint changes bottom position and net intake while keeping the top
 fixed. These changes apply only on OK; Cancel leaves the intake unchanged.
+Other automatic and manually edited intakes in the displayed area are also
+shown as blue lines, without handles. Within the selected interval, all bins
+are previewed separately; **Bin to edit** or clicking a bin selects the one
+whose handles and numeric fields can be adjusted. **Context +/- (min)** adjusts
+the time shown before and after that interval using the actual timestamps;
+the adjacent label reports the resulting range. This is a view setting and
+is remembered across edit dialogs in the current panel session.
+**Selected bins** now has editable first/last spinners. These change the actual
+replacement interval, whereas Context changes only the view. The selected
+interval is shaded and its times and total net intake are displayed. All blue
+bars are vertical at their own bins. The first/last bounds stay ordered.
+Changing the range remeasures every selected bin; adjusting a bin's amplitude
+or bottom changes only that bin. Moving to another bin keeps that bin's intake
+and position, including a number typed in the field but not yet confirmed.
+**Save** checks the bin being edited and keeps that intake and position.
+**Delete** sets that bin's intake to zero and leaves the other selected bins
+unchanged. OK replaces the selection with these per-bin
+values and clears an original selection that was moved, preventing duplicates.
+Cancel applies none of these changes. Existing saved grouped edits are left
+unchanged until explicitly remeasured in the editor.
 
 **Export selected CSV...** produces a single before/after review file for the selected
 capillary, including unsaved event edits. It includes fully automatic net intake,
@@ -707,6 +731,15 @@ The README identifies controls and capillaries with manual overrides. This
 does not change selection or save experiment measures. Send the single ZIP;
 exporting the selected 9R alone does not include edits made on 1R or other
 capillaries.
+
+**Save all edited intake** writes that same combined result for every capillary:
+its own threshold, current detector settings, and manual edits, stored as
+correlation gulps. Ordinary gulps stay unchanged. **Copy all edited to gulps...**
+does that write and then replaces ordinary gulps for every capillary. Both
+confirm first, prepare every capillary before changing any of them, and save
+the capillary measures once. They keep the manual edits. Batch **Save all
+intake** and **Copy all to gulps...** remain the automatic Detect all path and
+clear those edits.
 
 `ManualIntakeEditsTest` covers replacement, removal and metadata decoding.
 `ManualIntakePanelSmoke` uses synthetic data to check rejected bins, detector

@@ -8,6 +8,34 @@ public final class ManualIntakeEdits {
     private static final String KEY = ",manual_intakes=";
     private final List<double[]> regions = new ArrayList<>();
 
+    public static final class BinMeasures {
+        public final double[] amplitudes, bottoms;
+        private BinMeasures(int length) {
+            amplitudes = new double[length]; bottoms = new double[length];
+            java.util.Arrays.fill(amplitudes, Double.NaN);
+            java.util.Arrays.fill(bottoms, Double.NaN);
+        }
+    }
+
+    /** Independently measure each selected native interval. Stored amplitudes
+     * include evaporation, just like ordinary intake bars. No automatic quality
+     * or threshold gate is applied to a manually selected region. Missing levels
+     * remain NaN so the editor must obtain an explicit measurement from the user.
+     */
+    public static BinMeasures measureBins(double[] levels, double[] evaporation, int first, int last) {
+        if (levels.length != evaporation.length || first < 1 || last < first || last >= levels.length)
+            throw new IllegalArgumentException("Invalid intake measurement interval");
+        BinMeasures result = new BinMeasures(levels.length);
+        for (int i = first; i <= last; i++) {
+            result.bottoms[i] = levels[i];
+            double displacement = levels[i] - levels[i - 1];
+            double drift = evaporation[i] - evaporation[i - 1];
+            if (Double.isFinite(displacement) && Double.isFinite(drift))
+                result.amplitudes[i] = displacement > drift ? Math.max(0, displacement) : 0;
+        }
+        return result;
+    }
+
     /** Replace the selected bins by one unresolved event at the last bin.
      * A zero amplitude explicitly removes intake in that region.
      */

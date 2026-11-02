@@ -4,6 +4,32 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 
 public class ManualIntakeEditsTest {
+    @Test public void measuresEveryBinAndSubtractsEvaporationOnlyOnce() {
+        double[] raw = {10, 12, 15, 14, 14.2};
+        double[] evaporation = {0, .2, .5, .7, 1};
+        ManualIntakeEdits.BinMeasures measured = ManualIntakeEdits.measureBins(raw, evaporation, 1, 4);
+        assertEquals(2, measured.amplitudes[1], 0);
+        assertEquals(3, measured.amplitudes[2], 0);
+        assertEquals(0, measured.amplitudes[3], 0);
+        assertEquals(0, measured.amplitudes[4], 0);
+        assertEquals(1.8, measured.amplitudes[1] - (evaporation[1] - evaporation[0]), 1e-9);
+        assertEquals(2.7, measured.amplitudes[2] - (evaporation[2] - evaporation[1]), 1e-9);
+        ManualIntakeEdits edits = new ManualIntakeEdits();
+        for (int i = 1; i <= 4; i++) edits.replace(i, i, measured.amplitudes[i], measured.bottoms[i]);
+        ManualIntakeEdits restored = ManualIntakeEdits.fromOptions(edits.options(), raw.length);
+        double[] amounts = new double[raw.length], bottoms = new double[raw.length];
+        restored.apply(amounts, bottoms);
+        assertArrayEquals(new double[] {0, 2, 3, 0, 0}, amounts, 0);
+        assertEquals(12, bottoms[1], 0); assertEquals(15, bottoms[2], 0);
+    }
+
+    @Test public void missingLevelsAreNotSilentlyInvented() {
+        ManualIntakeEdits.BinMeasures measured = ManualIntakeEdits.measureBins(
+                new double[]{10, Double.NaN, 14, 16}, new double[]{0, .1, .2, .3}, 1, 3);
+        assertTrue(Double.isNaN(measured.amplitudes[1]));
+        assertTrue(Double.isNaN(measured.amplitudes[2]));
+        assertEquals(2, measured.amplitudes[3], 0);
+    }
     @Test public void regionReplacesAutomaticBinsWithoutDoubleCounting() {
         ManualIntakeEdits edits = new ManualIntakeEdits();
         edits.replace(2, 4, 7, 30);

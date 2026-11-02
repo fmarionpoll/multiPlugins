@@ -48,7 +48,7 @@ public class IntakeMissInvestigation {
         try (BufferedWriter summary = Files.newBufferedWriter(output.resolve("summary.csv"));
              BufferedWriter windows = Files.newBufferedWriter(output.resolve("windows.csv"));
              BufferedWriter sweep = Files.newBufferedWriter(output.resolve("threshold-sweep.csv"))) {
-            sweep.write("experiment;capillary;flies;threshold_factor;added_bins_recovered_exact;added_bins_recovered_within_one;annotated_added_bins;extra_unedited_bins;removed_bins_still_detected\n");
+            sweep.write("experiment;capillary;flies;threshold_factor;added_bins_recovered_exact;added_bins_recovered_within_one;annotated_added_bins;extra_unedited_bins;removed_bins_still_detected;baseline_positive_bins_lost;positive_bins_with_zero_edited_reference\n");
             summary.write("experiment;capillary;flies;automatic;stored_threshold;stored_options;stored_bins;detected_bins;net_px;usable;intervals;episodes;local_enabled;estimated_scale;scale_reliable;quiet_intervals;applied_scale\n");
             windows.write("experiment;capillary;first;last;first_min;last_min;amount;limit;persistent;anchored;gate\n");
             for (int f = 1; f < args.length; f++) {
@@ -113,7 +113,7 @@ public class IntakeMissInvestigation {
                                 p.minutes, p.motion.reliable, p.controlRates, p.noise.automatic,
                                 factor * p.noise.automatic, p.correctedLevels, p::supportsIntakeStep);
                         boolean[] edited = new boolean[p.raw.length];
-                        int recovered = 0, nearby = 0, added = 0, extra = 0, removed = 0;
+                        int recovered = 0, nearby = 0, added = 0, extra = 0, removed = 0, lost = 0, referenceZero = 0;
                         for (String[] annotation : annotations) if (annotation.length >= 3 && annotation[0].equals(id)) {
                             int i = Integer.parseInt(annotation[1]);
                             edited[i] = true;
@@ -125,11 +125,14 @@ public class IntakeMissInvestigation {
                                     found |= variant.net[k] > 0;
                                 if (found) nearby++;
                             } else if (annotation[2].equals("removed") && variant.net[i] > 0) removed++;
+                            if (annotation.length >= 4 && Double.parseDouble(annotation[3]) == 0 && variant.net[i] > 0) referenceZero++;
                         }
                         for (int i = 1; i < p.raw.length; i++)
                             if (!edited[i] && variant.net[i] > 0 && !(d.net[i] > 0)) extra++;
+                        for (int i = 1; i < p.raw.length; i++)
+                            if (d.net[i] > 0 && !(variant.net[i] > 0)) lost++;
                         sweep.write(name + ";" + id + ";" + cap.getNFlies() + ";" + factor + ";" + recovered
-                                + ";" + nearby + ";" + added + ";" + extra + ";" + removed + "\n");
+                                + ";" + nearby + ";" + added + ";" + extra + ";" + removed + ";" + lost + ";" + referenceZero + "\n");
                     }
                     int bins = 0, usable = 0; for (int i = 1; i < p.raw.length; i++) { if (d.net[i] > 0) bins++; if (p.motion.reliable[i]) usable++; }
                     summary.write(name + ";" + id + ";" + cap.getNFlies() + ";" + p.noise.automatic + ";"

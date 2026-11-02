@@ -3,6 +3,7 @@ import java.awt.image.BufferedImage;
 import java.lang.reflect.Method;
 import javax.swing.*;
 import plugins.fmp.multicafe.dlg.levels.CorrelationIntakePanel;
+import plugins.fmp.multicafe.dlg.levels.ManualGulpDialog;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
@@ -33,10 +34,13 @@ public class ManualIntakePanelSmoke {
             try {
                 JSpinner amplitude = new JSpinner(new SpinnerNumberModel(2.5, 0., Double.MAX_VALUE, .1));
                 JSpinner position = new JSpinner(new SpinnerNumberModel(40., -Double.MAX_VALUE, Double.MAX_VALUE, .1));
-                Method fieldsMethod = CorrelationIntakePanel.class.getDeclaredMethod("manualGulpFields",
-                        int.class, int.class, JSpinner.class, JSpinner.class);
+                Method fieldsMethod = ManualGulpDialog.class.getDeclaredMethod("manualGulpFields",
+                        JSpinner.class, JSpinner.class, JSpinner.class, JSpinner.class, JSpinner.class);
                 fieldsMethod.setAccessible(true);
-                JPanel fields = (JPanel) fieldsMethod.invoke(null, 29, 30, amplitude, position);
+                JPanel fields = (JPanel) fieldsMethod.invoke(null,
+                        new JSpinner(new SpinnerNumberModel(29, 1, 49, 1)),
+                        new JSpinner(new SpinnerNumberModel(30, 1, 49, 1)),
+                        new JSpinner(new SpinnerNumberModel(30, 29, 30, 1)), amplitude, position);
                 JOptionPane popup = new JOptionPane(fields, JOptionPane.PLAIN_MESSAGE, JOptionPane.OK_CANCEL_OPTION);
                 java.awt.Dimension popupSize = popup.getPreferredSize();
                 check(popupSize.width < 800 && popupSize.height < 400,

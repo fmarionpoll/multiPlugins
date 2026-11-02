@@ -109,9 +109,13 @@ public final class CorrelationIntakePanel extends JPanel {
 			export = new JButton("Export CSV...");
 	private final JButton review = new JButton("Review interval...");
 	private final JButton exportExperiment = new JButton("Export experiment review...");
+	private final JButton saveAllEdited = new JButton("Save all edited intake");
+	private final JButton copyAllEdited = new JButton("Copy all edited to gulps...");
 	private SwingWorker<Void, Void> reviewExportWorker;
+	private SwingWorker<Void, String> editedPersistWorker;
 	private final JCheckBox addGulp = new JCheckBox("Add/edit gulp");
 	private final JButton resetManualGulps = new JButton("Reset manual gulps");
+	private double manualGulpContextMinutes = 8;
 	private final Map<Capillary, ManualIntakeEdits> manualGulps = new IdentityHashMap<>();
 	private final JButton save = new JButton("Save intake"), copyToGulps = new JButton("Copy to gulps...");
 	private final JCheckBox persistentEpisodes = new JCheckBox("Persistent episodes (1-6 bins)", true);
@@ -236,6 +240,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		JPanel editControls = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		editControls.add(addGulp);
 		editControls.add(resetManualGulps);
+		editControls.add(saveAllEdited);
+		editControls.add(copyAllEdited);
 		editControls.add(exportExperiment);
 		editControls.add(new JLabel("Select a point or drag a region on the graph or kymograph."));
 		JPanel rows = new JPanel();
@@ -349,6 +355,12 @@ public final class CorrelationIntakePanel extends JPanel {
 		export.addActionListener(e -> export());
 		exportExperiment.addActionListener(e -> exportExperimentReview());
 		exportExperiment.setToolTipText("Export one ZIP with before/after CSVs and kymographs for every capillary, including unsaved manual gulp edits.");
+		saveAllEdited.addActionListener(e -> persistEditedIntake(false));
+		saveAllEdited.setName("saveAllEditedIntake");
+		saveAllEdited.setToolTipText("Save correlation intake for every capillary, using each capillary's threshold and manual edits. Ordinary gulps stay unchanged.");
+		copyAllEdited.addActionListener(e -> persistEditedIntake(true));
+		copyAllEdited.setName("copyAllEditedToGulps");
+		copyAllEdited.setToolTipText("Save that edited intake, then replace ordinary gulps for every capillary. Existing gulp measures are replaced.");
 		export.setText("Export selected CSV...");
 		export.setToolTipText("Export one CSV with automatic detection, current detector settings, edited intake and per-bin change labels for review.");
 		review.addActionListener(e -> reviewInterval());
@@ -582,10 +594,13 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void setResultControlsEnabled(boolean enabled) {
-		boolean editable = enabled && !automaticMode() && batchWorker == null && seriesWorker == null && reviewExportWorker == null;
+		boolean background = reviewExportWorker != null || editedPersistWorker != null;
+		boolean editable = enabled && !automaticMode() && batchWorker == null && seriesWorker == null && !background;
 		automatic.setEnabled(editable && preview != null && Double.isFinite(preview.noise.automatic));
 		export.setEnabled(enabled);
-		exportExperiment.setEnabled(enabled && reviewExportWorker == null);
+		exportExperiment.setEnabled(enabled && !background);
+		saveAllEdited.setEnabled(editable);
+		copyAllEdited.setEnabled(editable);
 		review.setEnabled(enabled && persistentEpisodes.isSelected());
 		threshold.setEnabled(editable);
 		save.setEnabled(editable);
@@ -596,7 +611,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void checkSources() {
-		if (released || suspended || seriesWorker != null || reviewExportWorker != null) return;
+		if (released || suspended || seriesWorker != null || reviewExportWorker != null || editedPersistWorker != null) return;
 		if (waitingForSources) {
 			refreshCapillaries();
 			if (hasAcceptedInput()) {
@@ -876,7 +891,7 @@ public final class CorrelationIntakePanel extends JPanel {
 
 	private void updateModeControls() {
 		updateDetectorLabel();
-		boolean busy = batchWorker != null || seriesWorker != null || reviewExportWorker != null;
+		boolean busy = batchWorker != null || seriesWorker != null || reviewExportWorker != null || editedPersistWorker != null;
 		batchControls.setVisible(runMode.getSelectedIndex() == 1);
 		seriesControls.setVisible(runMode.getSelectedIndex() == 2);
 		seriesRange.setEnabled(!busy);
@@ -890,6 +905,8 @@ public final class CorrelationIntakePanel extends JPanel {
 		automatic.setVisible(!automaticMode());
 		save.setVisible(!automaticMode());
 		copyToGulps.setVisible(!automaticMode());
+		saveAllEdited.setVisible(!automaticMode());
+		copyAllEdited.setVisible(!automaticMode());
 		capillaries.setEnabled(!busy);
 		previousButton.setEnabled(!busy && capillaries.getSelectedIndex() > 0);
 		nextButton.setEnabled(!busy && capillaries.getSelectedIndex() < capillaries.getItemCount() - 1);
@@ -1375,146 +1392,24 @@ public final class CorrelationIntakePanel extends JPanel {
 		if (first == last && candidateAmplitudes()[last] > 0)
 			amount = Math.max(0, candidateAmplitudes()[last] - binEvaporation);
 		if (!Double.isFinite(amount) || amount <= 0) amount = 1;
-		JSpinner amplitude = new JSpinner(new SpinnerNumberModel(amount, 0., Double.MAX_VALUE, .1));
-		JSpinner position = new JSpinner(new SpinnerNumberModel(bottom, -Double.MAX_VALUE, Double.MAX_VALUE, .1));
-		JPanel fields = manualGulpEditor(edited, first, last, amplitude, position);
-		Object[] actions = { "OK", "Delete intake event", "Cancel" };
-		int action = JOptionPane.showOptionDialog(this, fields, "Manual gulp (evaporation subtracted)",
-				JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, actions, actions[0]);
-		if (action != 0 && action != 1) return;
-		boolean delete = action == 1;
-		try {
-			if (!delete) {
-				amplitude.commitEdit(); position.commitEdit();
-			}
-			if (preview != edited || computedCapillary != cap || !edited.matchesSources(experiment)) {
-				checkSources(); return;
-			}
-			double netAmount = delete ? 0 : ((Number) amplitude.getValue()).doubleValue();
-			manualEdits().replace(first, last, netAmount > 0 ? netAmount + binEvaporation : 0,
-					delete ? bottom : ((Number) position.getValue()).doubleValue());
-			invalidateBatch();
-			selectedFrame = last;
-			refresh();
-		} catch (java.text.ParseException | IllegalArgumentException error) {
-			JOptionPane.showMessageDialog(this, error.getMessage(), "Invalid manual gulp", JOptionPane.ERROR_MESSAGE);
+		ManualGulpDialog.Result result = ManualGulpDialog.show(this, edited, first, last, amount, bottom,
+				candidateAmplitudes(), candidateBottoms(), manualGulpContextMinutes,
+				() -> preview == edited && computedCapillary == cap && edited.matchesSources(experiment));
+		manualGulpContextMinutes = result.contextMinutes;
+		if (result.stale) {
+			checkSources();
+			return;
 		}
-	}
-
-	private static JPanel manualGulpFields(int first, int last, JSpinner amplitude, JSpinner position) {
-		// NumberEditor otherwise reserves enough columns for Double.MAX_VALUE.
-		// Limit the visible width, without restricting the values users can enter.
-		((JSpinner.NumberEditor) amplitude.getEditor()).getTextField().setColumns(10);
-		((JSpinner.NumberEditor) position.getEditor()).getTextField().setColumns(10);
-		JPanel fields = new JPanel(new java.awt.GridLayout(0, 2, 6, 6));
-		fields.add(new JLabel("Selected bins")); fields.add(new JLabel(first + " - " + last));
-		fields.add(new JLabel("Net intake (px; 0 removes)")); fields.add(amplitude);
-		fields.add(new JLabel("Bottom meniscus position (px)")); fields.add(position);
-		fields.add(new JLabel("Replaces intake in this region")); fields.add(new JLabel("One gulp at bin " + last));
-		return fields;
-	}
-
-	private static JPanel manualGulpEditor(CorrelationGulpPreview preview, int first, int last,
-			JSpinner amplitude, JSpinner position) {
-		JPanel editor = new JPanel(new BorderLayout(4, 6));
-		editor.add(manualGulpFields(first, last, amplitude, position), BorderLayout.NORTH);
-		ManualGulpZoom image = new ManualGulpZoom(preview, first, last, amplitude, position);
-		JScrollPane scroll = new JScrollPane(image);
-		scroll.setPreferredSize(new Dimension(560, 260));
-		scroll.getVerticalScrollBar().setUnitIncrement(12);
-		scroll.getHorizontalScrollBar().setUnitIncrement(12);
-		editor.add(scroll, BorderLayout.CENTER);
-		JPanel controls = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
-		controls.add(new JLabel("Zoom"));
-		JComboBox<Integer> zoom = new JComboBox<>(new Integer[] { 4, 8, 12, 16, 24 });
-		zoom.setName("manualIntakeZoomScale");
-		zoom.setSelectedItem(12);
-		zoom.addActionListener(e -> {
-			image.scale = (Integer) zoom.getSelectedItem();
-			image.revalidate(); image.repaint();
-			SwingUtilities.invokeLater(image::revealLine);
-		});
-		controls.add(zoom);
-		controls.add(new JLabel("Blue: intake. Orange: saved level. Drag blue endpoints."));
-		editor.add(controls, BorderLayout.SOUTH);
-		amplitude.addChangeListener(e -> image.repaint());
-		position.addChangeListener(e -> image.repaint());
-		SwingUtilities.invokeLater(image::revealLine);
-		return editor;
-	}
-
-	/** Live geometry preview only; OK installs edits, Cancel leaves measures untouched. */
-	private static final class ManualGulpZoom extends JPanel {
-		private static final long serialVersionUID = 1L;
-		private static final int MARGIN = 12;
-		private final CorrelationGulpPreview preview;
-		private final int left, right, last;
-		private final JSpinner amplitude, position;
-		private int scale = 12;
-		private int dragging;
-		private double fixedTop;
-
-		ManualGulpZoom(CorrelationGulpPreview preview, int first, int last, JSpinner amplitude, JSpinner position) {
-			this.preview = preview; this.last = last;
-			this.amplitude = amplitude; this.position = position;
-			left = Math.max(0, first - 8); right = Math.min(preview.image.getWidth(), last + 9);
-			setName("manualIntakeZoom");
-			setBackground(Color.DARK_GRAY);
-			setToolTipText("Drag the upper or lower blue endpoint to adjust intake; scroll for surrounding image pixels.");
-			MouseAdapter mouse = new MouseAdapter() {
-				@Override public void mousePressed(MouseEvent e) {
-					if (!SwingUtilities.isLeftMouseButton(e) || Math.abs(e.getX() - lineX()) > 10) return;
-					double bottom = number(position), top = bottom - fullAmplitude();
-					int topDistance = Math.abs(e.getY() - y(top)), bottomDistance = Math.abs(e.getY() - y(bottom));
-					if (topDistance <= 9 && topDistance <= bottomDistance) dragging = 1;
-					else if (bottomDistance <= 9) { dragging = 2; fixedTop = top; }
-				}
-				@Override public void mouseDragged(MouseEvent e) {
-					if (dragging == 0) return;
-					double row = Math.max(0, Math.min(preview.image.getHeight() - 1, (e.getY() - MARGIN) / (double) scale));
-					if (dragging == 1)
-						amplitude.setValue(Math.max(0, number(position) - row - evaporation()));
-					else {
-						position.setValue(row);
-						amplitude.setValue(Math.max(0, row - fixedTop - evaporation()));
-					}
-				}
-				@Override public void mouseReleased(MouseEvent e) { dragging = 0; }
-			};
-			addMouseListener(mouse); addMouseMotionListener(mouse);
-		}
-
-		private static double number(JSpinner spinner) { return ((Number) spinner.getValue()).doubleValue(); }
-		private double evaporation() { return preview.evaporation[last] - preview.evaporation[last - 1]; }
-		private double fullAmplitude() { return number(amplitude) > 0 ? number(amplitude) + evaporation() : 0; }
-		private int lineX() { return MARGIN + (int) Math.round((last - left + .5) * scale); }
-		private int y(double row) { return MARGIN + (int) Math.round(row * scale); }
-		@Override public Dimension getPreferredSize() {
-			return new Dimension((right - left) * scale + 2 * MARGIN, preview.image.getHeight() * scale + 2 * MARGIN);
-		}
-		void revealLine() {
-			int center = y(number(position) - fullAmplitude() / 2);
-			Rectangle visible = getVisibleRect();
-			scrollRectToVisible(new Rectangle(Math.max(0, lineX() - visible.width / 2),
-					Math.max(0, center - visible.height / 2), Math.max(1, visible.width), Math.max(1, visible.height)));
-		}
-		@Override protected void paintComponent(Graphics graphics) {
-			super.paintComponent(graphics);
-			Graphics2D g = (Graphics2D) graphics.create();
-			g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
-			g.drawImage(preview.image, MARGIN, MARGIN, MARGIN + (right - left) * scale,
-					MARGIN + preview.image.getHeight() * scale, left, 0, right, preview.image.getHeight(), null);
-			g.setStroke(new BasicStroke(1)); g.setColor(Color.ORANGE);
-			for (int i = left + 1; i < right; i++)
-				if (Double.isFinite(preview.raw[i - 1]) && Double.isFinite(preview.raw[i]))
-					g.drawLine(MARGIN + (int) ((i - left - .5) * scale), y(preview.raw[i - 1]),
-							MARGIN + (int) ((i - left + .5) * scale), y(preview.raw[i]));
-			int x = lineX(), bottom = y(number(position)), top = y(number(position) - fullAmplitude());
-			g.setColor(CapillaryCorrelationGulps.ROI_COLOR); g.setStroke(new BasicStroke(3));
-			g.drawLine(x, bottom, x, top);
-			g.fillOval(x - 5, top - 5, 10, 10); g.fillOval(x - 5, bottom - 5, 10, 10);
-			g.dispose();
-		}
+		if (result.accepted == null) return;
+		ManualGulpDialog.Result.Accepted accepted = result.accepted;
+		if (accepted.selectedFirst != first || accepted.selectedLast != last)
+			manualEdits().replace(first, last, 0, bottom);
+		for (int i = accepted.selectedFirst; i <= accepted.selectedLast; i++)
+			manualEdits().replace(i, i, accepted.delete ? 0 : accepted.amplitudes[i],
+					accepted.delete ? bottom : accepted.bottoms[i]);
+		invalidateBatch();
+		selectedFrame = accepted.active;
+		refresh();
 	}
 
 	private IntakeEpisodes.Detection episodeDetection() {
@@ -1662,6 +1557,131 @@ public final class CorrelationIntakePanel extends JPanel {
 		roiStored = stored;
 		roiCompensated = compensateEvaporation.isSelected();
 		roiPreview = chosen == null ? null : preview;
+	}
+
+	private void persistEditedIntake(boolean copy) {
+		if (preview == null || editedPersistWorker != null || automaticMode()) return;
+		int count = experiment.getCapillaries().getList().size();
+		if (count == 0) return;
+		String title = copy ? "Copy all edited to gulps" : "Save all edited intake";
+		String message = copy
+				? "Replace ordinary gulps for all " + count + " capillaries with their edited intake?\nExisting gulps will be replaced and the measures will be saved."
+				: "Save correlation intake for all " + count + " capillaries, including each capillary's manual edits?\nOrdinary gulps stay unchanged.";
+		if (JOptionPane.showConfirmDialog(this, message, title,
+				JOptionPane.OK_CANCEL_OPTION, copy ? JOptionPane.WARNING_MESSAGE : JOptionPane.QUESTION_MESSAGE) != JOptionPane.OK_OPTION)
+			return;
+		EditedIntakeSnapshot snapshot = new EditedIntakeSnapshot(this);
+		editedPersistWorker = new SwingWorker<Void, String>() {
+			@Override protected Void doInBackground() {
+				snapshot.prepare(this::publish);
+				return null;
+			}
+			@Override protected void process(List<String> messages) {
+				if (editedPersistWorker == this) status.setText(messages.get(messages.size() - 1));
+			}
+			@Override protected void done() {
+				if (editedPersistWorker == this) editedPersistWorker = null;
+				if (released) return;
+				updateModeControls();
+				try {
+					get();
+					if (!snapshot.install(copy)) {
+						status.setText("Levels changed; edited intake was not saved.");
+						return;
+					}
+					if (copy) refreshGulpRois();
+					boolean saved = experiment.save_capillaries_description_and_measures();
+					refresh();
+					if (!saved)
+						JOptionPane.showMessageDialog(CorrelationIntakePanel.this, "Could not save the capillary measures.", title, JOptionPane.ERROR_MESSAGE);
+					else
+						JOptionPane.showMessageDialog(CorrelationIntakePanel.this,
+								(copy ? "Copied edited intake to gulps for " : "Saved edited intake for ") + snapshot.caps.size() + " capillaries.",
+								title, JOptionPane.INFORMATION_MESSAGE);
+				} catch (InterruptedException | ExecutionException | RuntimeException error) {
+					if (error instanceof InterruptedException) Thread.currentThread().interrupt();
+					Throwable cause = error.getCause() == null ? error : error.getCause();
+					status.setText(cause.getMessage());
+					JOptionPane.showMessageDialog(CorrelationIntakePanel.this, cause.getMessage(), title, JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		};
+		updateModeControls();
+		status.setText((copy ? "Copying edited intake to gulps for " : "Saving edited intake for ") + count + " capillaries...");
+		editedPersistWorker.execute();
+	}
+
+	/** Settings captured on the event thread. Previews are prepared in the background, then installed together. */
+	private static final class EditedIntakeSnapshot {
+		final Experiment exp;
+		final List<Capillary> caps;
+		final boolean episodes, local;
+		final Map<Capillary, Double> chosenThresholds = new IdentityHashMap<>();
+		final Map<Capillary, Boolean> manualThreshold = new IdentityHashMap<>();
+		final Map<Capillary, String> edits = new IdentityHashMap<>();
+		final Map<Capillary, CorrelationGulpPreview> previews;
+
+		EditedIntakeSnapshot(CorrelationIntakePanel panel) {
+			exp = panel.experiment;
+			caps = new ArrayList<>(exp.getCapillaries().getList());
+			episodes = panel.persistentEpisodes.isSelected();
+			local = panel.localEvaporation.isSelected();
+			previews = new IdentityHashMap<>(panel.cache);
+			for (Capillary cap : caps) {
+				CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
+				if (cap == panel.computedCapillary && !panel.automaticMode()) {
+					chosenThresholds.put(cap, panel.value());
+					manualThreshold.put(cap, panel.manual);
+				} else if (panel.manualThresholds.containsKey(cap)) {
+					chosenThresholds.put(cap, panel.manualThresholds.get(cap));
+					manualThreshold.put(cap, true);
+				} else if (stored.isManualThreshold() && stored.hasMeasures() && Double.isFinite(stored.getThresholdPxPerMin())) {
+					chosenThresholds.put(cap, stored.getThresholdPxPerMin());
+					manualThreshold.put(cap, true);
+				} else
+					manualThreshold.put(cap, false);
+				edits.put(cap, panel.manualGulps.containsKey(cap) ? panel.manualGulps.get(cap).options() : stored.getMethodOptions());
+			}
+		}
+
+		void prepare(Consumer<String> progress) {
+			int done = 0;
+			for (Capillary cap : caps) {
+				progress.accept("Preparing " + (++done) + "/" + caps.size() + ": " + cap.getLast2ofCapillaryName());
+				CorrelationGulpPreview preview = previews.get(cap);
+				if (preview == null || preview.localEvaporation != local || !preview.matchesSources(exp))
+					preview = CorrelationGulpPreview.computeAccepted(exp, cap, local);
+				previews.put(cap, preview);
+			}
+		}
+
+		boolean install(boolean copy) {
+			List<Capillary> current = exp.getCapillaries().getList();
+			if (current.size() != caps.size() || !current.containsAll(caps)) return false;
+			for (CorrelationGulpPreview preview : previews.values())
+				if (preview == null || !preview.matchesSources(exp)) return false;
+			for (Capillary cap : caps) {
+				CorrelationGulpPreview preview = previews.get(cap);
+				boolean manual = Boolean.TRUE.equals(manualThreshold.get(cap));
+				double threshold = manual ? chosenThresholds.get(cap)
+						: Double.isFinite(preview.noise.automatic) ? preview.noise.automatic : 1;
+				AutomaticResult detected = new AutomaticResult(preview, episodes, local, threshold);
+				double[] amplitudes = detected.amplitudes.clone();
+				double[] bottoms = detected.bottoms == null ? preview.raw.clone() : detected.bottoms.clone();
+				ManualIntakeEdits manualEdits = ManualIntakeEdits.fromOptions(edits.get(cap), preview.raw.length);
+				manualEdits.apply(amplitudes, bottoms);
+				CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
+				stored.set(amplitudes, 0, 0, threshold, manual);
+				stored.setBottomPositions(bottoms);
+				stored.setMethodOptions(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes
+						+ ",local=" + local + manualEdits.options()
+						+ ",scale=" + (local ? preview.localScale.factor : 1));
+			}
+			if (copy) for (Capillary cap : caps)
+				if (!cap.copyCorrelationGulpsToGulps())
+					throw new IllegalStateException("Could not copy intake to gulps for " + cap.getLast2ofCapillaryName());
+			return true;
+		}
 	}
 
 	private void exportExperimentReview() {

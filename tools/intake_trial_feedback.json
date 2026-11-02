@@ -1,0 +1,31 @@
+{
+  "review_version": 1,
+  "reviews": [
+    {
+      "case_id": "1",
+      "experiment": "021",
+      "capillary": "5R",
+      "first_bin": 89,
+      "last_bin": 89,
+      "panel_interpretation": "Third panel (edited reference) preferred over the middle trial panel, inferred from the displayed comparison and the user's explanation.",
+      "assessment": "feeding_present_trial_amplitude_contaminated",
+      "source": "User review in this chat after the frozen trial comparison",
+      "user_explanation": "A horizontal tape line close to the meniscus causes bleeding. The blue-green/yellow region included by the middle panel was judged contamination. In previous inspection, an earlier intake bottom appeared close to the top of the larger edited intake.",
+      "continuity_observation_status": "The user recalled this from earlier inspection, not directly from the displayed narrow crop. Bin 70 is a candidate earlier anchor identified in the archived edits; it is not independently verified as the intended event.",
+      "criterion": "Prefer a continuous physical meniscus trajectory anchored by trustworthy earlier levels and allowing evaporation, rather than including the whole apparent jump away from a contaminating line.",
+      "limitations": [
+        "This is a post-evaluation development annotation, not an independent validation label.",
+        "The nearest previous positive bin can itself follow the contaminated raw trace.",
+        "Do not force exact alignment: evaporation, model drift and measurement uncertainty remain relevant."
+      ],
+      "frozen_trial_net_px": 12.104349982746275,
+      "edited_net_px": 6.951,
+      "trial_top_px": 23.013341756335677,
+      "edited_top_px": 28.166877644118408,
+      "candidate_previous_anchor_bin": 70,
+      "candidate_previous_bottom_px": 27.667,
+      "model_evaporation_from_anchor_to_before_event_px": 0.9157122315017716,
+      "candidate_projected_before_event_px": 28.582712231501773
+    }
+  ]
+}
