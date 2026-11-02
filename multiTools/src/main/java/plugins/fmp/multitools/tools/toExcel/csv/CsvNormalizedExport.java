@@ -30,6 +30,7 @@ import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
+import plugins.fmp.multitools.tools.toExcel.SavedIntakeMetadata;
 import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
@@ -48,7 +49,9 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
  * on the same {@code time_min} rows. With {@code intakeBins}, gulp exports add
  * {@code intakebins.csv}: per intake bin, raw and evaporation-corrected volume
- * plus their running totals.
+ * plus their running totals. With {@code savedIntake}, {@code intakeevents.csv}
+ * exports the separately saved intake and {@code saved_intake_metadata.csv}
+ * its provenance. Both event files include native interval start/end times.
  */
 public final class CsvNormalizedExport {
 
@@ -156,14 +159,19 @@ public final class CsvNormalizedExport {
 					rawStepMs, binStepMs, writeBin);
 		}
 		if (mode == Mode.GULPS && options.intakeBins) {
-			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs);
+			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs, false);
+		}
+		if (mode == Mode.GULPS && options.savedIntake) {
+			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs, true);
 		}
 	}
 
 	/** One row per intake bin (raw volume > 0), at native resolution. */
 	private static void exportIntakeBins(Experiment exp, ResultsOptions options, String charSeries,
-			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs) throws IOException {
-		EnumResults[] types = { EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
+			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs, boolean saved) throws IOException {
+		EnumResults[] types = saved ? new EnumResults[] { EnumResults.SAVED_INTAKE_RAW, EnumResults.SAVED_INTAKE_CORR,
+				EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR }
+				: new EnumResults[] { EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
 				EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR };
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
@@ -190,13 +198,21 @@ public final class CsvNormalizedExport {
 				}
 				csv.ensureDescriptors(exp, charSeries, cage, cap);
 				String capId = NormalizedExportSupport.buildCapId(cap);
+				if (saved) {
+					csv.writeSavedIntakeMetadata(SavedIntakeMetadata.row(expKey, cageId, capId, cap));
+				}
 				for (int i = 0; i < raw.getItemCount(); i++) {
 					double v = raw.getY(i).doubleValue();
 					if (!(v > 0)) {
 						continue;
 					}
-					csv.writeIntakeBin(expKey, cageId, capId, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
-							valueAt(series[2], i), valueAt(series[3], i));
+					if (saved) {
+						csv.writeSavedIntake(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+								valueAt(series[2], i), valueAt(series[3], i));
+					} else {
+						csv.writeIntakeBin(expKey, cageId, capId, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+								valueAt(series[2], i), valueAt(series[3], i));
+					}
 				}
 			}
 		}
@@ -662,7 +678,8 @@ public final class CsvNormalizedExport {
 			if (Double.isNaN(v) || v == 0.0) {
 				continue;
 			}
-			csv.writeGulpEvent(expKey, cageId, capId, series.getX(i).doubleValue(), v);
+			csv.writeGulpEvent(expKey, cageId, capId, i > 0 ? series.getX(i - 1).doubleValue() : Double.NaN,
+					series.getX(i).doubleValue(), v);
 		}
 	}
 

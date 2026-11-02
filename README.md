@@ -51,6 +51,16 @@ mvn -pl multiSPOTS -am clean install
 
 The generated JAR files are placed in each module's `target/` directory.
 
+## multiCAFE intake exports
+
+In **Export > Gulps**, select **saved intake** to export intake alongside ordinary gulps. Save the intake measurements in the intake editor first. This option reads the separate saved intake; it does not copy intake into ordinary gulps.
+
+CSV exports add `intakeevents.csv`, with raw and evaporation-corrected volume in uL and their cumulative totals. `saved_intake_metadata.csv` records the detector settings and method options, including saved manual edits. The existing **intake bins raw/corr** option continues to use ordinary gulps.
+
+Both `intakeevents.csv` and `gulpevents.csv` include `interval_start_min` and `interval_end_min`. These are the timestamps of the preceding and current images on the native measurement timeline, before filtering out zero-event bins. Missing images therefore produce a longer interval rather than an assumed nominal interval. `time_min` remains the interval end for compatibility. If no preceding image exists, the start is blank. When acquisition timestamps are unavailable, the existing kymograph timeline is used as a fallback.
+
+Excel exports include separate saved-intake raw/corrected and cumulative sheets, a `saved_intake_metadata` sheet, and a `saved_intake_intervals` sheet with both boundaries at native resolution, including zero-intake intervals. Summary sheets still follow the selected export bin size. Corrected values are blank when no evaporation correction is available; raw values remain available.
+
 ## Eclipse Setup
 
 1. Select **File > Import > Existing Maven Projects**.

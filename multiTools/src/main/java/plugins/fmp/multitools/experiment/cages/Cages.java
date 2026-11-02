@@ -1553,7 +1553,9 @@ public class Cages {
 				|| resultsOptions.resultType == EnumResults.TOPRAW_AND_00
 				|| resultsOptions.resultType == EnumResults.TOPLEVEL_AND_00
 				|| resultsOptions.resultType == EnumResults.INTAKE_BIN_CORR
-				|| resultsOptions.resultType == EnumResults.SUM_INTAKE_BIN_CORR) {
+				|| resultsOptions.resultType == EnumResults.SUM_INTAKE_BIN_CORR
+				|| resultsOptions.resultType == EnumResults.SAVED_INTAKE_CORR
+				|| resultsOptions.resultType == EnumResults.SUM_SAVED_INTAKE_CORR) {
 			computeEvaporationCorrection(exp, resultsOptions.evaporationCorrectionMethod);
 		}
 
