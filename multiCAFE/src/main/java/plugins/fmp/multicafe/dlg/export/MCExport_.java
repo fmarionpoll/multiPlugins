@@ -251,6 +251,13 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private ResultsOptions getGulpsOptions(Experiment exp) {
+		ResultsOptions resultsOptions = getGulpsMeasurementOptions();
+		getCommonOptions(resultsOptions, exp);
+		return resultsOptions;
+	}
+
+	/** Dialog selections shared by CSV and Excel export, independent of experiment loading. */
+	ResultsOptions getGulpsMeasurementOptions() {
 		ResultsOptions resultsOptions = new ResultsOptions();
 		resultsOptions.topLevel = false;
 		resultsOptions.topLevelDelta = false;
@@ -263,13 +270,12 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.lrPI = tabGulps.sumCheckBox.isSelected();
 		resultsOptions.nbGulps = tabGulps.nbGulpsCheckBox.isSelected();
 		resultsOptions.amplitudeGulps = tabGulps.amplitudeGulpsCheckBox.isSelected();
-		resultsOptions.intakeBins = tabGulps.intakeBinsCheckBox.isSelected();
+		resultsOptions.savedIntake = tabGulps.savedIntakeCheckBox.isSelected();
 
 		resultsOptions.markovChain = tabGulps.markovChainCheckBox.isSelected();
 
 		resultsOptions.correctEvaporation = false;
 		resultsOptions.evaporationCorrectionMethod = tabLevels.getEvaporationCorrectionMethod();
-		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}
 

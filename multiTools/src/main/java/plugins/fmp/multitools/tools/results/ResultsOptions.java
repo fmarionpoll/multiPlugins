@@ -71,9 +71,8 @@ public class ResultsOptions {
 	public boolean nbGulps = false;
 	public boolean amplitudeGulps = false;
 
-	/** Intake bins raw and minus evaporation, per bin and cumulated. */
+	/** Separately saved intake: raw/corrected volumes, cumulative totals and provenance. */
 	public boolean savedIntake = false;
-	public boolean intakeBins = false;
 	public boolean tToNextGulp = false;
 	public boolean tToNextGulp_LR = false;
 
