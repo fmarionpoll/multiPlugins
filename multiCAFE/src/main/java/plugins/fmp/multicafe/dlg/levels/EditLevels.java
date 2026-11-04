@@ -29,6 +29,7 @@ import icy.type.geom.Polyline2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.capillary.MeasureEditTarget;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
@@ -178,16 +179,25 @@ public class EditLevels extends JPanel {
 		Capillary cap = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
 		if (cap == null)
 			return;
-		Capillary capRef = cap;
 		for (ROI2D r : seqKymos.getSequence().getROI2Ds()) {
-			if (r.getT() != t || r.getName() == null || !r.getName().contains("gulp"))
+			if (r.getT() != t || r.getName() == null || !r.getName().contains("gulp")
+					|| CapillaryCorrelationGulps.isOverlay(r))
 				continue;
-			ROIListener listener = (ROIEvent evt) -> {
-				capRef.setGulpMeasuresDirty(true);
-			};
+			ROIListener listener = gulpRoiEditListener(cap);
 			r.addListener(listener);
 			gulpRoiListeners.put(r, listener);
 		}
+	}
+
+	static ROIListener gulpRoiEditListener(Capillary cap) {
+		return (ROIEvent event) -> {
+			// Selection, focus and display properties do not change gulp measures.
+			ROI roi = event.getSource();
+			if (event.getType() == ROIEvent.ROIEventType.ROI_CHANGED
+					&& roi.getName() != null && roi.getName().contains("gulp")
+					&& !CapillaryCorrelationGulps.isOverlay(roi))
+				cap.setGulpMeasuresDirty(true);
+		};
 	}
 
 	private void defineListeners() {

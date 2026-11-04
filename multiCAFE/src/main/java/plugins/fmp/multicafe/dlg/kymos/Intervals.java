@@ -526,7 +526,8 @@ public class Intervals extends JPanel implements ViewerListener {
 					if (capOld != null && capOld.isGulpMeasuresDirty()) {
 						String[] options = new String[] { "Save", "Discard", "Cancel" };
 						int choice = JOptionPane.showOptionDialog(this,
-								"Unsaved gulp changes. Save, Discard, or Cancel?", "Gulp changes",
+								"Unsaved edits to ordinary gulps in the kymograph viewer.\n"
+										+ "These are separate from correlation intake. Save, Discard, or Cancel?", "Ordinary gulp changes",
 								JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
 						if (choice == 2 || choice == JOptionPane.CLOSED_OPTION)
 							return t;

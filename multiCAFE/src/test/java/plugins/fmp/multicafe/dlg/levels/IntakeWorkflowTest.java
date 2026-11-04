@@ -67,6 +67,9 @@ public class IntakeWorkflowTest {
 
     @Test public void preparedEditsMatchCsvAndSavedGeometryWithoutRecomputingOnInstall() throws Exception {
         Capillary cap = experiment.getCapillaries().getList().get(0);
+        cap.getGulps().ensureSize(50);
+        cap.getGulps().setAmplitudeAt(20, 7.5);
+        cap.setGulpMeasuresDirty(false);
         CorrelationGulpPreview preview = CorrelationGulpPreview.computeAccepted(experiment, cap, false);
         ManualIntakeEdits edits = new ManualIntakeEdits();
         edits.replace(30, 30, 4.5, 40);
@@ -84,6 +87,8 @@ public class IntakeWorkflowTest {
         assertFalse(cap.getCorrelationGulps().hasMeasures());
         assertEquals(4.5, snapshot.results.get(cap).amplitudes[30], 0);
         SwingUtilities.invokeAndWait(() -> assertTrue(snapshot.install(IntakePersistence.Destination.SAVE_INTAKE)));
+        assertEquals(7.5, cap.getGulps().getHeightSeries().ypoints[20], 0);
+        assertFalse("Saving separate intake must not mark ordinary gulps as edited", cap.isGulpMeasuresDirty());
         assertEquals(.75, cap.getCorrelationGulps().getThresholdPxPerMin(), 0);
         assertEquals(40, cap.getCorrelationGulps().bottomAt(30, 0), 0);
         assertTrue(cap.getCorrelationGulps().getMethodOptions().contains(edits.options()));
