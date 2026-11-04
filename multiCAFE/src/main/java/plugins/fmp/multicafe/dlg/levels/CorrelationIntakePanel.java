@@ -201,7 +201,7 @@ public final class CorrelationIntakePanel extends JPanel {
 						.startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
 			String options = first.getCorrelationGulps().getMethodOptions();
 			persistentEpisodes.setSelected(options.contains("persistent=true"));
-			localEvaporation.setSelected(options.contains("local=true"));
+			localEvaporation.setSelected(options.contains("local=false"));
 		}
 		capillaries.setRenderer(new DefaultListCellRenderer() {
 			private static final long serialVersionUID = 1L;
