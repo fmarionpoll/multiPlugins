@@ -19,8 +19,10 @@ public class SavedIntakeExportOptionsTest {
                 gulps.init(new GridLayout(4, 2));
                 assertEquals("saved intake", gulps.savedIntakeCheckBox.getText());
                 assertTrue(SwingUtilities.isDescendingFrom(gulps.savedIntakeCheckBox, gulps));
-                assertFalse(dialog.getGulpsMeasurementOptions().savedIntake);
+                assertTrue(dialog.getGulpsMeasurementOptions().savedIntake);
                 assertFalse(dialog.getGulpsMeasurementOptions().lrPI);
+                gulps.savedIntakeCheckBox.setSelected(false);
+                assertFalse(dialog.getGulpsMeasurementOptions().savedIntake);
                 gulps.nbGulpsCheckBox.setSelected(false);
                 gulps.amplitudeGulpsCheckBox.setSelected(false);
                 gulps.savedIntakeCheckBox.setSelected(true);
