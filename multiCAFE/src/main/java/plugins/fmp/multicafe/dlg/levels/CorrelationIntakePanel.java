@@ -80,6 +80,7 @@ public final class CorrelationIntakePanel extends JPanel {
 	private JComboBox<?> experimentBrowser;
 	private final JComboBox<String> seriesRange = new JComboBox<>(
 			new String[] { "Current experiment", "Current experiment to end", "All experiments (0 to end)" });
+	private final JButton runSeriesSave = new JButton("Detect & save");
 	private final JButton runSeries = new JButton("Detect, copy to gulps & save"), stopSeries = new JButton("Stop");
 	private final JLabel seriesStatus = new JLabel("Uses automatic thresholds for every capillary.");
 	private final JPanel seriesControls = new JPanel(new BorderLayout());
@@ -273,6 +274,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		JPanel seriesActions = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		seriesActions.add(new JLabel("Experiments"));
 		seriesActions.add(seriesRange);
+		seriesActions.add(runSeriesSave);
 		seriesActions.add(runSeries);
 		seriesActions.add(stopSeries);
 		seriesControls.add(seriesActions, BorderLayout.NORTH);
@@ -316,7 +318,8 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void defineActionListeners() {
-		runSeries.addActionListener(e -> startSeries());
+		runSeriesSave.addActionListener(e -> startSeries(false));
+		runSeries.addActionListener(e -> startSeries(true));
 		stopSeries.addActionListener(e -> {
 			seriesStopping = true;
 			stopSeries.setEnabled(false);
@@ -416,12 +419,14 @@ public final class CorrelationIntakePanel extends JPanel {
 	}
 
 	private void defineToolTips() {
+		runSeriesSave.setToolTipText(
+				"Detect every capillary with its automatic threshold and save correlation intake for each experiment in the selected range. Ordinary gulps are left as they are.");
 		runSeries.setToolTipText(
 				"Detect every capillary with its automatic threshold, replace ordinary gulps (including manual edits), and save each experiment in the selected range.");
 		seriesRange.setToolTipText(
 				"Current means the experiment selected when the batch starts; ranges include both endpoints. Progress uses the browser's zero-based absolute experiment index.");
 		stopSeries.setToolTipText(
-				"Stop before copying the current experiment if detection is unfinished; a save already started is completed.");
+				"Stop before saving the current experiment if detection is unfinished; a save already started is completed.");
 		detectAll.setToolTipText(
 				"Detect every capillary in this experiment, including no-fly controls, using its own automatic threshold.");
 		saveAll.setToolTipText(
@@ -798,7 +803,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		return targets;
 	}
 
-	private void startSeries() {
+	private void startSeries(boolean copyToGulps) {
 		if (released || suspended || seriesWorker != null || batchWorker != null)
 			return;
 		final List<Experiment> targets;
@@ -841,7 +846,7 @@ public final class CorrelationIntakePanel extends JPanel {
 						break;
 					publish(label + " - loading...");
 					try {
-						if (!processor.process(target, episodes, local, () -> seriesStopping,
+						if (!processor.process(target, episodes, local, copyToGulps, () -> seriesStopping,
 								message -> publish(label + " - " + message)))
 							break;
 						seriesSaved++;
@@ -883,7 +888,8 @@ public final class CorrelationIntakePanel extends JPanel {
 				if (!released && attentionTarget != null)
 					selectSeriesExperiment(attentionTarget);
 				String outcome = result + seriesSaved + "/" + targets.size()
-						+ " experiment(s) copied to gulps and saved.";
+						+ (copyToGulps ? " experiment(s) copied to gulps and saved."
+								: " experiment(s) detected and saved.");
 				if (released) {
 					CorrelationIntakePanel.this.firePropertyChange("intake_series_finished", null, outcome);
 					return;
@@ -903,8 +909,9 @@ public final class CorrelationIntakePanel extends JPanel {
 				CorrelationIntakePanel.this.firePropertyChange("intake_series_finished", null, outcome);
 			}
 		};
-		seriesStatus.setText("Detecting, replacing gulps and saving " + targets.size() + " experiment(s), indices "
-				+ firstIndex + "-" + (firstIndex + targets.size() - 1) + " / " + experimentCount + "...");
+		seriesStatus.setText((copyToGulps ? "Detecting, replacing gulps and saving " : "Detecting and saving ")
+				+ targets.size() + " experiment(s), indices " + firstIndex + "-" + (firstIndex + targets.size() - 1)
+				+ " / " + experimentCount + "...");
 		updateModeControls();
 		seriesWorker.execute();
 	}
@@ -943,6 +950,7 @@ public final class CorrelationIntakePanel extends JPanel {
 		batchControls.setVisible(runMode.getSelectedIndex() == 1);
 		seriesControls.setVisible(runMode.getSelectedIndex() == 2);
 		seriesRange.setEnabled(!busy);
+		runSeriesSave.setEnabled(!busy);
 		runSeries.setEnabled(!busy);
 		stopSeries.setEnabled(seriesWorker != null && !seriesStopping);
 		runMode.setEnabled(!busy);

@@ -14,9 +14,14 @@ import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 
-/** Prepares every capillary before replacing any gulps; saves one experiment at a time. */
+/** Prepares every capillary before installing results; saves one experiment at a time. */
 public class IntakeSeriesProcessor {
     public boolean process(Experiment exp, boolean episodes, boolean local,
+            BooleanSupplier stopping, Consumer<String> progress) throws Exception {
+        return process(exp, episodes, local, true, stopping, progress);
+    }
+
+    public boolean process(Experiment exp, boolean episodes, boolean local, boolean copyToGulps,
             BooleanSupplier stopping, Consumer<String> progress) throws Exception {
         boolean hadImages = hasImages(exp);
         try {
@@ -47,7 +52,7 @@ public class IntakeSeriesProcessor {
                     throw new IllegalStateException("Source levels changed during detection");
                 for (Capillary cap : targets) {
                     results.get(cap).install(cap);
-                    if (!cap.copyCorrelationGulpsToGulps())
+                    if (copyToGulps && !cap.copyCorrelationGulpsToGulps())
                         throw new IllegalStateException("Could not copy intake to gulps for " + cap.getLast2ofCapillaryName());
                 }
                 installed[0] = true;
@@ -55,7 +60,7 @@ public class IntakeSeriesProcessor {
             if (SwingUtilities.isEventDispatchThread()) commit.run();
             else SwingUtilities.invokeAndWait(commit);
             if (!installed[0]) return false;
-            progress.accept("Saving gulp measures...");
+            progress.accept(copyToGulps ? "Saving gulp measures..." : "Saving intake...");
             // Once installed, always finish this save, even if Stop is requested.
             save(exp);
             return true;
