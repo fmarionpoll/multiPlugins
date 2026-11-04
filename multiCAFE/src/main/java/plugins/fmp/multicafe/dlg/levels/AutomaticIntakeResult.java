@@ -5,22 +5,33 @@ import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.IntakeEpisodes;
 import plugins.fmp.multitools.service.VerticalCorrelation;
 
-/** Amplitudes and fitted geometry for one capillary at one threshold. */
+/** Detector output before event overrides, at an automatic or explicitly chosen threshold. */
 public final class AutomaticIntakeResult {
 	final CorrelationGulpPreview preview;
 	final double[] amplitudes, bottoms;
 	final String options;
+	final double threshold;
+	final boolean manualThreshold;
 
 	public AutomaticIntakeResult(CorrelationGulpPreview p, boolean episodes, boolean local) {
-		this(p, episodes, local, p.noise.automatic);
+		this(p, new IntakeDetectionSettings(episodes, local), p.noise.automatic, false, null);
 	}
 
 	public AutomaticIntakeResult(CorrelationGulpPreview p, boolean episodes, boolean local, double threshold) {
+		this(p, new IntakeDetectionSettings(episodes, local), threshold, true, null);
+	}
+
+	AutomaticIntakeResult(CorrelationGulpPreview p, IntakeDetectionSettings settings, double threshold,
+			boolean manualThreshold, IntakeEpisodes.Detection cachedDetection) {
 		preview = p;
+		this.threshold = threshold;
+		this.manualThreshold = manualThreshold;
+		boolean episodes = settings.episodes, local = settings.local;
 		if (!Double.isFinite(threshold) || threshold < 0)
 			throw new IllegalArgumentException("Detection threshold unavailable");
 		if (episodes) {
-			IntakeEpisodes.Detection detection = IntakeEpisodes.detect(p.residualRate, p.minutes, p.motion.reliable,
+			IntakeEpisodes.Detection detection = cachedDetection != null ? cachedDetection
+					: IntakeEpisodes.detect(p.residualRate, p.minutes, p.motion.reliable,
 					p.controlRates, p.noise.automatic, threshold, p.correctedLevels, p::supportsIntakeStep);
 			amplitudes = detection.net.clone();
 			bottoms = detection.position.clone();
@@ -30,19 +41,18 @@ public final class AutomaticIntakeResult {
 					amplitudes[i] += p.evaporation[i] - p.evaporation[i - 1];
 			}
 		} else {
-			bottoms = null;
+			bottoms = p.raw.clone();
 			boolean[] chosen = VerticalCorrelation.candidates(p.residualRate, p.motion.reliable, threshold);
 			amplitudes = new double[chosen.length];
 			for (int i = 0; i < chosen.length; i++)
 				if (chosen[i])
 					amplitudes[i] = Math.max(0, p.motion.shift[i]);
 		}
-		options = IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw,persistent=" + episodes + ",local=" + local
-				+ ",scale=" + (local ? p.localScale.factor : 1);
+		options = settings.options() + ",scale=" + (local ? p.localScale.factor : 1);
 	}
 
 	public void install(Capillary cap) {
-		cap.getCorrelationGulps().set(amplitudes, 0, 0, preview.noise.automatic, false);
+		cap.getCorrelationGulps().set(amplitudes, 0, 0, threshold, manualThreshold);
 		cap.getCorrelationGulps().setBottomPositions(bottoms);
 		cap.getCorrelationGulps().setMethodOptions(options);
 	}

@@ -20,13 +20,36 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class CorrelationIntakeBatchSmoke {
     static Object field(Object o, String name) throws Exception {
-        Field f = o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
+        if (o instanceof CorrelationIntakePanel) {
+            String job = name.equals("worker") ? "preview" : name.equals("batchWorker") ? "batch"
+                    : name.equals("seriesWorker") ? "series" : name.equals("reviewExportWorker") ? "export"
+                    : name.equals("editedPersistWorker") ? "edited" : null;
+            if (job != null) return field(field(o, "jobs"), job);
+        }
+        try {
+            Field f = o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
+        } catch (NoSuchFieldException error) {
+            if (o instanceof CorrelationIntakePanel) return field(field(o, "controls"), name);
+            throw error;
+        }
     }
     static Object get(Object o, String name) {
         try { return field(o, name); } catch (Exception e) { throw new RuntimeException(e); }
     }
     static void call(Object o, String name) throws Exception {
         Method m = o.getClass().getDeclaredMethod(name); m.setAccessible(true); m.invoke(o);
+    }
+    static void waitSaveOnEdt(CorrelationIntakePanel panel) {
+        java.awt.SecondaryLoop loop = java.awt.Toolkit.getDefaultToolkit().getSystemEventQueue().createSecondaryLoop();
+        long deadline = System.currentTimeMillis() + 30000;
+        Timer timer = new Timer(10, null);
+        timer.addActionListener(e -> {
+            if (get(get(panel, "jobs"), "save") == null || System.currentTimeMillis() > deadline) {
+                timer.stop(); loop.exit();
+            }
+        });
+        timer.start(); loop.enter();
+        check(get(get(panel, "jobs"), "save") == null, "Save timed out");
     }
     static void check(boolean ok, String message) { if (!ok) throw new AssertionError(message); }
     static void waitBatch(CorrelationIntakePanel p) throws Exception {
@@ -240,6 +263,7 @@ public class CorrelationIntakeBatchSmoke {
                         if(episodes) cap.getTopRaw().polylineLevel.xpoints[1] += .25;
                         else cap.getTopRaw().polylineLevel.ypoints[1] += 1;
                         call(p, "saveAll");
+                        waitSaveOnEdt(p);
                         check(((Map<?, ?>)field(p, "batchResults")).isEmpty(), "Stale batch accepted");
                         check(!cap.getCorrelationGulps().hasMeasures(), "Stale batch installed");
                         check(saves[0] == 0, "Stale batch wrote files");
@@ -254,6 +278,7 @@ public class CorrelationIntakeBatchSmoke {
                 try {
                     double[][] raw = exp.getCapillaries().getList().stream().map(c -> c.getTopRaw().polylineLevel.ypoints.clone()).toArray(double[][]::new);
                     call(p, "saveAll");
+                    waitSaveOnEdt(p);
                     check(saves[0] == 1, "Save all did not persist once");
                     for (int i = 0; i < 3; i++) {
                         Capillary c = exp.getCapillaries().getList().get(i);
@@ -263,6 +288,7 @@ public class CorrelationIntakeBatchSmoke {
                     }
                     Method persist = p.getClass().getDeclaredMethod("persistBatch", boolean.class); persist.setAccessible(true);
                     persist.invoke(p, true);
+                    waitSaveOnEdt(p);
                     check(saves[0] == 2, "Copy all did not save once");
                     for (Capillary c : exp.getCapillaries().getList()) {
                         Level2D ordinary = c.getGulps().getHeightSeries();

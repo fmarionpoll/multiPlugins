@@ -71,6 +71,7 @@ public class ManualIntakePanelSmoke {
                 check(Double.parseDouble(removedFields[removedFields.length - 3]) == 0,
                         "CSV lost edited zero after deletion");
                 invoke(panel, "store");
+                CorrelationIntakeBatchSmoke.waitSaveOnEdt(panel);
                 check(saves[0] == 1 && cap.getCorrelationGulps().bottomAt(30, 0) == 40, "Save did not retain geometry");
                 StringBuffer row = new StringBuffer(); cap.getCorrelationGulps().csvExportToRow(row, ";");
                 CapillaryCorrelationGulps restored = new CapillaryCorrelationGulps();
@@ -83,12 +84,12 @@ public class ManualIntakePanelSmoke {
                 display(reopened, cap, preview);
                 check(((double[]) invoke(reopened, "candidateAmplitudes"))[30] == 4.5, "Reopen lost override");
                 check((Boolean) invoke(reopened, "isStoredCurrent"), "Reopened manual geometry marked unsaved");
-                @SuppressWarnings("unchecked")
-                java.util.Map<Capillary, ManualIntakeEdits> allEdits = (java.util.Map<Capillary, ManualIntakeEdits>)
-                        CorrelationIntakeBatchSmoke.get(panel, "manualGulps");
+                Object session = CorrelationIntakeBatchSmoke.get(panel, "session");
+                Method putEdits = session.getClass().getDeclaredMethod("edits", Capillary.class, ManualIntakeEdits.class);
+                putEdits.setAccessible(true);
                 Capillary other = exp.getCapillaries().getList().get(1);
                 ManualIntakeEdits otherEdits = new ManualIntakeEdits();
-                otherEdits.replace(25, 25, 2, 30); allEdits.put(other, otherEdits);
+                otherEdits.replace(25, 25, 2, 30); putEdits.invoke(session, other, otherEdits);
                 Method capture = CorrelationIntakePanel.class.getDeclaredMethod("captureReviewExport");
                 capture.setAccessible(true);
                 Object reviewExport = capture.invoke(panel);
@@ -112,7 +113,7 @@ public class ManualIntakePanelSmoke {
                 java.awt.Graphics2D graphics = screenshot.createGraphics(); panel.paint(graphics); graphics.dispose();
                 javax.imageio.ImageIO.write(screenshot, "png", new java.io.File("multiCAFE/target/manual-intake-panel.png"));
                 check(((JCheckBox) CorrelationIntakeBatchSmoke.get(panel, "addGulp")).isEnabled(), "Add/edit gulp unavailable while idle");
-                ((JButton) CorrelationIntakeBatchSmoke.get(panel, "resetManualGulps")).doClick();
+                invoke(panel, "resetManualEdits");
                 check(!((boolean[]) invoke(panel, "candidates"))[30], "Reset kept rejected manual bin");
                 JCheckBox addGulp = (JCheckBox) CorrelationIntakeBatchSmoke.get(panel, "addGulp");
                 addGulp.setSelected(true);

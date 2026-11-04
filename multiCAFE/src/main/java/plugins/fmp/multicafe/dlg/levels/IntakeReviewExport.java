@@ -23,17 +23,19 @@ public final class IntakeReviewExport {
 	final boolean episodes, local;
 	final Map<Capillary, Double> thresholds;
 	final Map<Capillary, String> edits;
+	final Map<Capillary, Boolean> manualThresholds;
 	final Map<Capillary, CorrelationGulpPreview> previews;
 
 	IntakeReviewExport(Experiment exp, List<Capillary> caps, boolean episodes, boolean local,
-			Map<Capillary, Double> thresholds, Map<Capillary, String> edits,
+			Map<Capillary, Double> thresholds, Map<Capillary, Boolean> manualThresholds, Map<Capillary, String> edits,
 			Map<Capillary, CorrelationGulpPreview> previews) {
 		this.exp = exp;
-		this.caps = caps;
+		this.caps = new java.util.ArrayList<>(caps);
 		this.episodes = episodes;
 		this.local = local;
-		this.thresholds = thresholds;
-		this.edits = edits;
+		this.thresholds = new IdentityHashMap<>(thresholds);
+		this.manualThresholds = new IdentityHashMap<>(manualThresholds);
+		this.edits = new IdentityHashMap<>(edits);
 		this.previews = new IdentityHashMap<>(previews);
 	}
 
@@ -50,13 +52,13 @@ public final class IntakeReviewExport {
 					if (p == null || p.localEvaporation != local || !p.matchesSources(exp))
 						p = CorrelationGulpPreview.computeAccepted(exp, cap, local);
 					previews.put(cap, p);
-					double setting = thresholds.containsKey(cap) ? thresholds.get(cap)
+					double setting = Boolean.TRUE.equals(manualThresholds.get(cap)) && thresholds.containsKey(cap) ? thresholds.get(cap)
 							: Double.isFinite(p.noise.automatic) ? p.noise.automatic : 1;
-					ManualIntakeEdits manual = ManualIntakeEdits.fromOptions(edits.get(cap), p.raw.length);
+					ManualIntakeEdits manual = ManualIntakeEdits.fromOptions(edits.getOrDefault(cap, ""), p.raw.length);
 					String id = cap.getLast2ofCapillaryName().replaceAll("[^A-Za-z0-9_-]", "_");
 					java.io.StringWriter text = new java.io.StringWriter();
 					java.io.BufferedWriter writer = new java.io.BufferedWriter(text);
-					writeReviewCsv(writer, exp, cap, p, setting, thresholds.containsKey(cap), episodes, local, manual);
+					writeReviewCsv(writer, exp, cap, p, setting, Boolean.TRUE.equals(manualThresholds.get(cap)), episodes, local, manual);
 					writer.flush();
 					zip.putNextEntry(new java.util.zip.ZipEntry("correlation-" + id + ".csv"));
 					zip.write(text.toString().getBytes(StandardCharsets.UTF_8));
@@ -86,9 +88,9 @@ public final class IntakeReviewExport {
 			ManualIntakeEdits edits) throws IOException {
 		AutomaticIntakeResult detected = new AutomaticIntakeResult(preview, episodes, local, threshold);
 		double[] beforeEdits = detected.amplitudes;
-		double[] amplitudes = beforeEdits.clone();
-		double[] bottoms = detected.bottoms == null ? preview.raw.clone() : detected.bottoms.clone();
-		edits.apply(amplitudes, bottoms);
+		PreparedIntake prepared = new PreparedIntake(detected, edits);
+		double[] amplitudes = prepared.amplitudes;
+		double[] bottoms = prepared.bottoms;
 		boolean[] selected = new boolean[amplitudes.length];
 		for (int i = 1; i < selected.length; i++)
 			selected[i] = amplitudes[i] > 0;

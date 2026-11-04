@@ -1601,6 +1601,7 @@ public class Experiment {
 		}
 
 		boolean descriptionsSaved = false;
+		boolean measuresSaved = false;
 		if (capillaries.getList().size() > 0) {
 			descriptionsSaved = capillaries.getPersistence().saveDescriptions(capillaries, resultsDir);
 			if (!descriptionsSaved) {
@@ -1625,13 +1626,13 @@ public class Experiment {
 			}
 
 			if (hasMeasures) {
-				capillaries.getPersistence().saveMeasures(capillaries, resultsDir);
+				measuresSaved = capillaries.getPersistence().saveMeasures(capillaries, resultsDir, getNominalIntervalSec());
 			} else {
-				saveCapillariesMeasures(resultsDir);
+				measuresSaved = saveCapillariesMeasures(resultsDir);
 			}
 		}
 
-		return descriptionsSaved;
+		return descriptionsSaved && measuresSaved;
 	}
 
 	public boolean load_FliesPositions() {

@@ -46,15 +46,12 @@ public class IntakeSeriesProcessor {
             boolean[] installed = { false };
             Runnable commit = () -> {
                 if (stopping.getAsBoolean()) return;
-                List<Capillary> current = exp.getCapillaries().getList();
-                if (current.size() != targets.size() || !current.containsAll(targets)
-                        || results.values().stream().anyMatch(r -> !r.preview.matchesSources(exp)))
+                Map<Capillary, PreparedIntake> prepared = new IdentityHashMap<>();
+                results.forEach((cap, result) -> prepared.put(cap,
+                        new PreparedIntake(result, new plugins.fmp.multitools.service.ManualIntakeEdits())));
+                if (!IntakePersistence.install(exp, targets, prepared, copyToGulps
+                        ? IntakePersistence.Destination.REPLACE_GULPS_AND_SAVE : IntakePersistence.Destination.SAVE_INTAKE))
                     throw new IllegalStateException("Source levels changed during detection");
-                for (Capillary cap : targets) {
-                    results.get(cap).install(cap);
-                    if (copyToGulps && !cap.copyCorrelationGulpsToGulps())
-                        throw new IllegalStateException("Could not copy intake to gulps for " + cap.getLast2ofCapillaryName());
-                }
                 installed[0] = true;
             };
             if (SwingUtilities.isEventDispatchThread()) commit.run();

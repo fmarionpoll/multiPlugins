@@ -53,7 +53,15 @@ public class CorrelationPanelSmoke {
         protected void flushSpi() { }
     }
     private static Object field(Object o, String name) throws Exception {
-        Field f = o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
+        try {
+            Field f = o.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(o);
+        } catch (NoSuchFieldException error) {
+            if (o instanceof CorrelationIntakePanel) {
+                if (name.equals("worker")) return field(field(o, "jobs"), "preview");
+                return field(field(o, "controls"), name);
+            }
+            throw error;
+        }
     }
     private static void layout(Container c) { c.doLayout(); for (Component child : c.getComponents()) if (child instanceof Container) layout((Container) child); }
     private static void render(javax.swing.JPanel panel, Path path) throws Exception {
