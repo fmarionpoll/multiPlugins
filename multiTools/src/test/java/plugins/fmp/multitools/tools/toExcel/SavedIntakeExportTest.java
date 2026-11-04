@@ -63,9 +63,79 @@ public class SavedIntakeExportTest {
         assertTrue(saved.contains("2.25"));
         assertTrue(saved.contains("interval_start_min,interval_end_min"));
         assertFalse(saved.contains("NaN"));
-        String metadata = new String(Files.readAllBytes(folder.resolve("saved_intake_metadata.csv")), java.nio.charset.StandardCharsets.UTF_8);
+        String metadata = new String(Files.readAllBytes(folder.resolve("intakeevents_metadata.csv")), java.nio.charset.StandardCharsets.UTF_8);
+        assertFalse(Files.exists(folder.resolve("saved_intake_metadata.csv")));
+        assertEquals(2, Files.readAllLines(folder.resolve("intakeevents_metadata.csv")).size());
         assertTrue(metadata.contains("method_options"));
         assertTrue(metadata.contains("version=test,manual=1;edited"));
+    }
+
+    @Test public void cageCsvRequiresLrSelectionAndIncludesSavedIntake() throws Exception {
+        Experiment exp = new Experiment();
+        exp.setFrameTimeScale(plugins.fmp.multitools.experiment.timebase.FrameTimeScale.fromArrays(0,
+            new long[] {0, 60000, 120000, 180000}, new String[] {"a", "b", "c", "d"}, 0, 4));
+        plugins.fmp.multitools.experiment.cage.Cage cage = new plugins.fmp.multitools.experiment.cage.Cage();
+        cage.getProperties().setCageID(2);
+        exp.getCages().getCageList().add(cage);
+        for (String side : new String[] {"L", "R"}) {
+            plugins.kernel.roi.roi2d.ROI2DLine roi = new plugins.kernel.roi.roi2d.ROI2DLine(0, 0, 0, 100);
+            roi.setName("line2" + side);
+            Capillary cap = new Capillary(roi);
+            cap.setKymographIndex("L".equals(side) ? 0 : 1);
+            cap.setCageID(2);
+            cap.setPixels(100);
+            cap.setVolume(1);
+            cap.getTopRaw().polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {10, 11, 12, 13}, 4);
+            cap.getCorrelationGulps().set(new double[] {0, 2.25, 0, 0.75}, 3, 6, 0.5, true);
+            cap.getGulps().ensureSize(4);
+            cap.getGulps().setAmplitudeAt(1, 1);
+            exp.getCapillaries().getList().add(cap);
+            cage.addCapillaryIfUnique(cap);
+        }
+        java.lang.reflect.Method method = plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport.class
+            .getDeclaredMethod("exportOneExperiment", Experiment.class, ResultsOptions.class, String.class,
+                plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport.Mode.class,
+                CsvNormalizedExportSupport.class, java.util.List.class, boolean.class, boolean.class, boolean.class, long.class);
+        method.setAccessible(true);
+        ResultsOptions options = new ResultsOptions();
+        options.savedIntake = true;
+        options.buildExcelStepMs = 60000;
+        for (boolean selected : new boolean[] {false, true}) {
+            options.lrPI = selected;
+            options.forceCsvBinGrid = true;
+            Path folder = Files.createTempDirectory("cage-export-options");
+            try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder, Collections.emptyList(), 60000, true)) {
+                method.invoke(null, exp, options, "A",
+                    plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport.Mode.GULPS,
+                    csv, Collections.emptyList(), false, true, true, 60000L);
+            }
+            assertTrue(Files.exists(folder.resolve("gulpevents.csv")));
+            assertTrue(Files.exists(folder.resolve("intakeevents.csv")));
+            assertEquals(selected, Files.exists(folder.resolve("measure_cage_raw.csv")));
+            try (java.util.stream.Stream<Path> paths = Files.list(folder)) {
+                java.util.List<Path> cageFiles = paths.filter(path -> path.getFileName().toString().startsWith("measure_cage_"))
+                    .collect(java.util.stream.Collectors.toList());
+                assertEquals(selected ? 2 : 0, cageFiles.size());
+                for (Path file : cageFiles) {
+                    try (java.io.Reader reader = Files.newBufferedReader(file);
+                            org.apache.commons.csv.CSVParser parser = org.apache.commons.csv.CSVFormat.DEFAULT.builder()
+                                .setHeader().setSkipHeaderRecord(true).build().parse(reader)) {
+                        boolean found = false;
+                        for (org.apache.commons.csv.CSVRecord row : parser) {
+                            assertTrue(row.isConsistent());
+                            if (Double.parseDouble(row.get("time_min")) == 1) {
+                                assertEquals(0.045, Double.parseDouble(row.get("sum_intake_raw_uL")), 1e-12);
+                                assertEquals(0, Double.parseDouble(row.get("pi_intake_raw")), 1e-12);
+                                assertEquals("", row.get("sum_intake_corr_uL"));
+                                assertEquals("", row.get("pi_intake_corr"));
+                                found = true;
+                            }
+                        }
+                        assertTrue(found);
+                    }
+                }
+            }
+        }
     }
 
     @Test public void copiedOptionsRetainIndependentSelections() {
@@ -115,22 +185,24 @@ public class SavedIntakeExportTest {
         java.util.List<String> lines = Files.readAllLines(folder.resolve("intakeevents.csv"));
         assertEquals(2, lines.size());
         String[] fields = lines.get(1).split(",");
-        assertEquals(4, Double.parseDouble(fields[3]), 0);
-        assertEquals(0.0225, Double.parseDouble(fields[4]), 1e-12);
-        assertEquals(1, Double.parseDouble(fields[8]), 0);
-        assertEquals(4, Double.parseDouble(fields[9]), 0);
+        assertEquals(1, Double.parseDouble(fields[3]), 0);
+        assertEquals(4, Double.parseDouble(fields[4]), 0);
+        assertEquals(0.0225, Double.parseDouble(fields[5]), 1e-12);
+        assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,"
+            + "saved_intake_raw_uL,saved_intake_corr_uL,sum_saved_intake_raw_uL,sum_saved_intake_corr_uL", lines.get(0));
         assertFalse(Files.exists(folder.resolve("legacy_gulps.csv")));
         assertFalse(Files.exists(folder.resolve("intakebins.csv")));
         java.util.List<String> gulpLines = Files.readAllLines(folder.resolve("gulpevents.csv"));
         assertEquals(3, gulpLines.size()); // the 0.25-pixel event must survive
         String[] gulp = gulpLines.get(2).split(",", -1);
-        assertEquals(0.0275, Double.parseDouble(gulp[4]), 1e-12);
-        assertEquals(1, Double.parseDouble(gulp[5]), 0);
-        assertEquals(4, Double.parseDouble(gulp[6]), 0);
-        assertEquals(0.0275, Double.parseDouble(gulp[7]), 1e-12);
-        assertEquals("", gulp[8]); // no evaporation curve
-        assertEquals(0.03, Double.parseDouble(gulp[9]), 1e-12);
-        assertEquals("", gulp[10]);
+        assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,"
+            + "gulp_raw_uL,gulp_corr_uL,sum_gulp_raw_uL,sum_gulp_corr_uL", gulpLines.get(0));
+        assertEquals(1, Double.parseDouble(gulp[3]), 0);
+        assertEquals(4, Double.parseDouble(gulp[4]), 0);
+        assertEquals(0.0275, Double.parseDouble(gulp[5]), 1e-12);
+        assertEquals("", gulp[6]); // no evaporation curve
+        assertEquals(0.03, Double.parseDouble(gulp[7]), 1e-12);
+        assertEquals("", gulp[8]);
         XLSExportMeasuresFromGulp exporter = new XLSExportMeasuresFromGulp();
         exporter.options = options;
         try (plugins.fmp.multitools.tools.toExcel.utils.ExcelResourceManager manager =

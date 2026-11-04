@@ -49,7 +49,7 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
  * on the same {@code time_min} rows. Gulp event exports include fractional raw and evaporation-corrected
  * volumes plus their running totals in {@code gulpevents.csv}. With {@code savedIntake}, {@code intakeevents.csv}
- * exports the separately saved intake and {@code saved_intake_metadata.csv}
+ * exports the separately saved intake and {@code intakeevents_metadata.csv}
  * its provenance. Both event files include native interval start/end times.
  */
 public final class CsvNormalizedExport {
@@ -150,8 +150,10 @@ public final class CsvNormalizedExport {
 		boolean writeBin = options.forceCsvBinGrid;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
-		exportCageWide(exp, options, charSeries, csv, builder, rawStepMs, binStepMs, writeBin, wantCageLevels,
-				wantCageGulps);
+		if (mode == Mode.LEVELS || options.lrPI) {
+			exportCageWide(exp, options, charSeries, csv, builder, rawStepMs, binStepMs, writeBin, wantCageLevels,
+					wantCageGulps);
+		}
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
@@ -412,6 +414,10 @@ public final class CsvNormalizedExport {
 			mergeCagePair(byTime, toprawSum, toprawPi, 2, 3, true);
 			mergeCagePair(byTime, gulpSum, gulpPi, 4, 5, !wantLevels);
 			mergeCagePair(byTime, level00Sum, level00Pi, 6, 7, true);
+			if (options.savedIntake) {
+				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_RAW, nativeStepMs, builder, 8);
+				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_CORR, nativeStepMs, builder, 10);
+			}
 			if (byTime.isEmpty()) {
 				continue;
 			}
@@ -421,8 +427,8 @@ public final class CsvNormalizedExport {
 				if (allNaN(v)) {
 					continue;
 				}
-				csv.writeMeasureCageRowRaw(expKey, cageId, e.getKey() / 60000.0, v[0], v[1], v[2], v[3], v[4], v[5],
-						v[6], v[7], t00Suitable, cageEvaporationUl(evaporationByCap, e.getKey()));
+				csv.writeMeasureCageSummary(true, expKey, cageId, e.getKey() / 60000.0, v,
+						t00Suitable, cageEvaporationUl(evaporationByCap, e.getKey()));
 			}
 
 			if (writeBin) {
@@ -439,10 +445,28 @@ public final class CsvNormalizedExport {
 					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUMGULPS, nativeStepMs, builder,
 							cageId, 4, 5, !wantLevels);
 				}
+				if (options.savedIntake) {
+					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_RAW, nativeStepMs, builder, cageId, 8, 9, true);
+					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_CORR, nativeStepMs, builder, cageId, 10, 11, true);
+				}
 				if (!byTimeSides.isEmpty()) {
 					writeMeasureCageBinned(csv, expKey, cageId, byTimeSides, binStepMs, t00Suitable);
 				}
 			}
+		}
+	}
+
+	/** Saved intake uses the same L/R aggregation as ordinary cumulative gulps. */
+	private static void mergeIntakeCagePair(Map<Long, double[]> byTime, Experiment exp, Cage cage,
+			ResultsOptions options, EnumResults type, int stepMs, CageCapillarySeriesBuilder builder, int offset) {
+		Map<Long, double[]> sides = new TreeMap<>();
+		mergeCageSidePair(sides, exp, cage, options, type, stepMs, builder, cage.getCageID(), offset, offset + 1, true);
+		for (Map.Entry<Long, double[]> entry : sides.entrySet()) {
+			double[] pair = entry.getValue();
+			if (!Double.isFinite(pair[offset]) || !Double.isFinite(pair[offset + 1])) continue;
+			double[] row = byTime.computeIfAbsent(entry.getKey(), key -> newNaNRow(12));
+			row[offset] = CageCapillariesComputation.computeSumFromSides(pair[offset], pair[offset + 1]);
+			row[offset + 1] = CageCapillariesComputation.computePiFromSides(pair[offset], pair[offset + 1]);
 		}
 	}
 
@@ -487,7 +511,7 @@ public final class CsvNormalizedExport {
 				if (!createKeys) {
 					continue;
 				}
-				row = newNaNRow(8);
+				row = newNaNRow(12);
 				byTime.put(tMs, row);
 			}
 			row[lIdx] = seriesL.getY(i).doubleValue();
@@ -507,7 +531,7 @@ public final class CsvNormalizedExport {
 				if (!createKeys) {
 					continue;
 				}
-				row = newNaNRow(8);
+				row = newNaNRow(12);
 				byTime.put(tMs, row);
 			}
 			row[sumIdx] = seriesSum.getY(i).doubleValue();
@@ -530,12 +554,12 @@ public final class CsvNormalizedExport {
 			Map<Long, double[]> byTimeSides, long binStepMs, boolean t00Suitable) throws IOException {
 		int n = byTimeSides.size();
 		long[] timesMs = new long[n];
-		double[][] cols = new double[8][n];
+		double[][] cols = new double[12][n];
 		int i = 0;
 		for (Map.Entry<Long, double[]> e : byTimeSides.entrySet()) {
 			timesMs[i] = e.getKey();
 			double[] v = e.getValue();
-			for (int c = 0; c < 8; c++) {
+			for (int c = 0; c < 12; c++) {
 				cols[c][i] = v[c];
 			}
 			i++;
@@ -547,32 +571,15 @@ public final class CsvNormalizedExport {
 		int nBins = binned[0].length;
 		long[] starts = CsvTimeWeightedResample.binStartsMs(nBins, binStepMs);
 		for (int b = 0; b < nBins; b++) {
-			double valL = binned[0][b];
-			double valR = binned[1][b];
-			double sum = CageCapillariesComputation.computeSumFromSides(valL, valR);
-			double pi = CageCapillariesComputation.computePiFromSides(valL, valR);
-
-			valL = binned[2][b];
-			valR = binned[3][b];
-			double sumTopraw = CageCapillariesComputation.computeSumFromSides(valL, valR);
-			double piTopraw = CageCapillariesComputation.computePiFromSides(valL, valR);
-
-			valL = binned[4][b];
-			valR = binned[5][b];
-			double sumGulps = CageCapillariesComputation.computeSumFromSides(valL, valR);
-			double piGulps = CageCapillariesComputation.computePiFromSides(valL, valR);
-
-			valL = binned[6][b];
-			valR = binned[7][b];
-			double sum00 = CageCapillariesComputation.computeSumFromSides(valL, valR);
-			double pi00 = CageCapillariesComputation.computePiFromSides(valL, valR);
-
-			if (Double.isNaN(sum) && Double.isNaN(pi) && Double.isNaN(sumTopraw) && Double.isNaN(piTopraw)
-					&& Double.isNaN(sumGulps) && Double.isNaN(piGulps) && Double.isNaN(sum00) && Double.isNaN(pi00)) {
-				continue;
+			double[] values = newNaNRow(12);
+			for (int c = 0; c < values.length; c += 2) {
+				if (c >= 8 && (!Double.isFinite(binned[c][b]) || !Double.isFinite(binned[c + 1][b]))) continue;
+				values[c] = CageCapillariesComputation.computeSumFromSides(binned[c][b], binned[c + 1][b]);
+				values[c + 1] = CageCapillariesComputation.computePiFromSides(binned[c][b], binned[c + 1][b]);
 			}
-			csv.writeMeasureCageRowBin(expKey, cageId, starts[b] / 60000.0, sum, pi, sumTopraw, piTopraw, sumGulps,
-					piGulps, sum00, pi00, t00Suitable);
+			if (!allNaN(values)) {
+				csv.writeMeasureCageSummary(false, expKey, cageId, starts[b] / 60000.0, values, t00Suitable, Double.NaN);
+			}
 		}
 	}
 

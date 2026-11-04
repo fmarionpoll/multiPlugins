@@ -20,6 +20,7 @@ public class SavedIntakeExportOptionsTest {
                 assertEquals("saved intake", gulps.savedIntakeCheckBox.getText());
                 assertTrue(SwingUtilities.isDescendingFrom(gulps.savedIntakeCheckBox, gulps));
                 assertFalse(dialog.getGulpsMeasurementOptions().savedIntake);
+                assertFalse(dialog.getGulpsMeasurementOptions().lrPI);
                 gulps.nbGulpsCheckBox.setSelected(false);
                 gulps.amplitudeGulpsCheckBox.setSelected(false);
                 gulps.savedIntakeCheckBox.setSelected(true);
@@ -30,6 +31,8 @@ public class SavedIntakeExportOptionsTest {
                 gulps.nbGulpsCheckBox.setSelected(true);
                 assertTrue(dialog.getGulpsMeasurementOptions().savedIntake);
                 assertTrue(dialog.getGulpsMeasurementOptions().nbGulps);
+                gulps.sumCheckBox.setSelected(true);
+                assertTrue(dialog.getGulpsMeasurementOptions().lrPI);
                 gulps.savedIntakeCheckBox.setSelected(false);
                 assertFalse(dialog.getGulpsMeasurementOptions().savedIntake);
             } catch (ReflectiveOperationException e) {

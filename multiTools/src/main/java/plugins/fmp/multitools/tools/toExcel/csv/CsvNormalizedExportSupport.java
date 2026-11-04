@@ -302,15 +302,30 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, double sum, double pi,
 			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
 			boolean t00Suitable, boolean includeEvaporation, double evaporationUl) throws IOException {
-		if (includeEvaporation) {
-			p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumTopraw),
-					nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps), nanToNull(sum00), nanToNull(pi00),
-					t00Suitable ? "TRUE" : "FALSE", nanToNull(evaporationUl));
-		} else {
-			p.printRecord(expKey, cageId, tMinutes, nanToNull(sum), nanToNull(pi), nanToNull(sumTopraw),
-					nanToNull(piTopraw), nanToNull(sumGulps), nanToNull(piGulps), nanToNull(sum00), nanToNull(pi00),
-					t00Suitable ? "TRUE" : "FALSE");
-		}
+		writeMeasureCageSummary(p, expKey, cageId, tMinutes,
+				new double[] {sum, pi, sumTopraw, piTopraw, sumGulps, piGulps, sum00, pi00,
+						Double.NaN, Double.NaN, Double.NaN, Double.NaN}, t00Suitable, includeEvaporation, evaporationUl);
+	}
+
+	/** Values are sum/PI pairs for levels, raw levels, gulps, T00, raw intake and corrected intake. */
+	public void writeMeasureCageSummary(boolean raw, String expKey, int cageId, double time,
+			double[] values, boolean suitable, double evaporation) throws IOException {
+		if (!raw && !writeBinFiles) return;
+		writeMeasureCageSummary(raw ? measureCageRawPrinter() : measureCageBinPrinter(), expKey, cageId,
+				time, values, suitable, raw, evaporation);
+	}
+
+	private void writeMeasureCageSummary(CSVPrinter printer, String expKey, int cageId, double time,
+			double[] values, boolean suitable, boolean raw, double evaporation) throws IOException {
+		List<Object> row = new ArrayList<>();
+		row.add(expKey);
+		row.add(cageId);
+		row.add(time);
+		for (int i = 0; i < 8; i++) row.add(nanToNull(values[i]));
+		row.add(suitable ? "TRUE" : "FALSE");
+		if (raw) row.add(nanToNull(evaporation));
+		for (int i = 8; i < 12; i++) row.add(nanToNull(values[i]));
+		printer.printRecord(row);
 	}
 
 	private static Double nanToNull(double v) {
@@ -320,20 +335,21 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public void writeGulpEvent(String expKey, int cageId, String capId, double start, double end,
 			double raw, double corr, double sumRaw, double sumCorr) throws IOException {
 		CSVPrinter p = gulpEventsPrinter();
-		p.printRecord(expKey, cageId, capId, end, nanToNull(raw), nanToNull(start), end,
+		p.printRecord(expKey, cageId, capId, nanToNull(start), end,
 				nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr));
 	}
 
-	public void writeSavedIntake(String expKey, int cageId, String capId, double start, double time, double raw, double corr,
+	public void writeSavedIntake(String expKey, int cageId, String capId, double start, double end, double raw, double corr,
 			double sumRaw, double sumCorr) throws IOException {
 		if (savedIntakePrinter == null) savedIntakePrinter = openPrinter("intakeevents", COL_EXPERIMENT_ID,
-				COL_CAGE_ID, COL_CAPILLARY_ID, COL_TIME_MIN, "saved_intake_raw_uL", "saved_intake_corr_uL",
-				"sum_saved_intake_raw_uL", "sum_saved_intake_corr_uL", "interval_start_min", "interval_end_min");
-		savedIntakePrinter.printRecord(expKey, cageId, capId, time, nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr), nanToNull(start), time);
+				COL_CAGE_ID, COL_CAPILLARY_ID, "interval_start_min", "interval_end_min",
+				"saved_intake_raw_uL", "saved_intake_corr_uL", "sum_saved_intake_raw_uL", "sum_saved_intake_corr_uL");
+		savedIntakePrinter.printRecord(expKey, cageId, capId, nanToNull(start), end,
+				nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr));
 	}
 
 	public void writeSavedIntakeMetadata(String[] row) throws IOException {
-		if (savedIntakeMetadataPrinter == null) savedIntakeMetadataPrinter = openPrinter("saved_intake_metadata",
+		if (savedIntakeMetadataPrinter == null) savedIntakeMetadataPrinter = openPrinter("intakeevents_metadata",
 				plugins.fmp.multitools.tools.toExcel.SavedIntakeMetadata.HEADERS);
 		savedIntakeMetadataPrinter.printRecord((Object[]) row);
 	}
@@ -415,7 +431,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (measureCageRawPrinter == null) {
 			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN, "sum",
 					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00", COL_T00_SUITABLE,
-					COL_EVAPORATION_UL);
+					COL_EVAPORATION_UL, "sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
 		}
 		return measureCageRawPrinter;
 	}
@@ -424,15 +440,15 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (measureCageBinPrinter == null) {
 			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, COL_EXPERIMENT_ID, COL_CAGE_ID,
 					COL_TIME_MIN, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00",
-					COL_T00_SUITABLE);
+					COL_T00_SUITABLE, "sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
 		}
 		return measureCageBinPrinter;
 	}
 
 	private CSVPrinter gulpEventsPrinter() throws IOException {
 		if (!gulpEventsOpen) {
-			gulpEventsPrinter = openPrinter(GULP_EVENTS, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID, COL_TIME_MIN,
-					"amplitude", "interval_start_min", "interval_end_min", "gulp_raw_uL", "gulp_corr_uL",
+			gulpEventsPrinter = openPrinter(GULP_EVENTS, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID,
+					"interval_start_min", "interval_end_min", "gulp_raw_uL", "gulp_corr_uL",
 					"sum_gulp_raw_uL", "sum_gulp_corr_uL");
 			gulpEventsOpen = true;
 		}

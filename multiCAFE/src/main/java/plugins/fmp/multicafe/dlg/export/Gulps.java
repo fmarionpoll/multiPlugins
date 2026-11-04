@@ -18,8 +18,8 @@ public class Gulps extends JPanel {
 	JCheckBox sumCheckBox = new JCheckBox("L+R & ratio", false);
 	JCheckBox nbGulpsCheckBox = new JCheckBox("number/bin", true);
 	JCheckBox amplitudeGulpsCheckBox = new JCheckBox("amplitude/bin", true);
-	JCheckBox markovChainCheckBox = new JCheckBox("Markov chain", true);
-	JCheckBox savedIntakeCheckBox = new JCheckBox("saved intake", false);
+	JCheckBox markovChainCheckBox = new JCheckBox("Markov chain", false);
+	JCheckBox savedIntakeCheckBox = new JCheckBox("saved intake", true);
 
 	JSpinner nbinsJSpinner = new JSpinner(new SpinnerNumberModel(40, 1, 99999999, 1));
 
@@ -56,7 +56,8 @@ public class Gulps extends JPanel {
 	}
 
 	private void defineToolTips() {
-		savedIntakeCheckBox.setToolTipText("Export separately saved intake: raw/corrected volumes, running totals and detector settings, alongside ordinary gulps.");
+		savedIntakeCheckBox.setToolTipText(
+				"Export separately saved intake: raw/corrected volumes, running totals and detector settings, alongside ordinary gulps.");
 	}
 
 	private void defineActionListeners() {
