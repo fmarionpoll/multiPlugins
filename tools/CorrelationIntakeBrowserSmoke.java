@@ -22,7 +22,6 @@ public class CorrelationIntakeBrowserSmoke {
                 Constructor<?> constructor=type.getDeclaredConstructor(JComboBox.class,Capillary.class,Consumer.class);
                 constructor.setAccessible(true);root[0]=constructor.newInstance(browser,null,null);
                 originalPanel[0]=get(root[0],"active");
-                ((JComboBox<?>)get(originalPanel[0],"runMode")).setSelectedIndex(2);
                 ((JComboBox<?>)get(originalPanel[0],"seriesRange")).setSelectedIndex(1);
                 ((JButton)get(originalPanel[0],"runSeries")).doClick();
             } catch(Exception error){throw new RuntimeException(error);}
@@ -34,7 +33,7 @@ public class CorrelationIntakeBrowserSmoke {
                 Object failedPanel=get(root[0],"active");
                 check(browser.getSelectedIndex()==1 && browser.isEnabled(),"Failed experiment was not selected/unlocked");
                 check(failedPanel!=originalPanel[0] && get(failedPanel,"experiment")==b,"Dialog did not follow failing experiment");
-                check(((JComboBox<?>)get(failedPanel,"runMode")).getSelectedIndex()==2,"Failure status hidden in another mode");
+                check(((JPanel)get(failedPanel,"seriesControls")).isVisible(),"Range status hidden");
                 check(((JLabel)get(failedPanel,"seriesStatus")).getText().contains("Failed at Experiment 1/2:"),"Failure details lost when panel switched");
                 check((Integer)get(originalPanel[0],"seriesSaved")==1,"Navigation changed completed saves");
             });

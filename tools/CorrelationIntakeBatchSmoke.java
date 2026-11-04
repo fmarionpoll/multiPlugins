@@ -84,7 +84,6 @@ public class CorrelationIntakeBatchSmoke {
                     holder[0] = new CorrelationIntakePanel(experiments[1], experiments[1].getCapillaries().getList().get(0));
                     Method follow = holder[0].getClass().getDeclaredMethod("followExperimentBrowser", JComboBox.class);
                     follow.setAccessible(true); follow.invoke(holder[0], browser);
-                    ((JComboBox<?>)get(holder[0], "runMode")).setSelectedIndex(2);
                     int chosenRange=range==4?1:Math.min(range,2);
                     ((JComboBox<?>)get(holder[0], "seriesRange")).setSelectedIndex(chosenRange);
                     ((JButton)get(holder[0], "runSeries")).doClick();
@@ -92,7 +91,8 @@ public class CorrelationIntakeBatchSmoke {
                     check(((JLabel)get(holder[0], "seriesStatus")).getText().contains("indices "+first+"-"+last+" / 3"),
                             "Initial progress does not use absolute browser indices");
                     check(!browser.isEnabled(), "Browser not locked during series");
-                    check(!((JComboBox<?>)get(holder[0], "runMode")).isEnabled(), "Mode editable during series");
+                    check(!((JButton)get(holder[0], "runSeries")).isEnabled(), "Series actions stay enabled during a run");
+                    check(!((JCheckBox)get(holder[0], "addGulp")).isEnabled(), "Add/edit gulp stays available during a series");
                     if(range==6) ((JButton)get(holder[0],"stopSeries")).doClick();
                 } catch (Exception e) { throw new RuntimeException(e); }
             });
@@ -211,7 +211,6 @@ public class CorrelationIntakeBatchSmoke {
             for (boolean episodes : new boolean[] { true, false }) {
                 SwingUtilities.invokeAndWait(() -> {
                     ((JCheckBox)get(p, "persistentEpisodes")).setSelected(episodes);
-                    ((JComboBox<?>)get(p, "runMode")).setSelectedIndex(1);
                     ((JButton)get(p, "detectAll")).doClick();
                 });
                 waitBatch(p);
@@ -219,7 +218,7 @@ public class CorrelationIntakeBatchSmoke {
                     try {
                         Map<?, ?> results = (Map<?, ?>)field(p, "batchResults");
                         check(results.size() == 3, "Missing batch capillaries: " + ((JLabel)field(p, "batchStatus")).getText());
-                        check(!((JSpinner)field(p, "threshold")).isEnabled(), "Automatic threshold editable");
+                        check(((JSpinner)field(p, "threshold")).isEnabled(), "Inspector threshold disabled after Detect all");
                         check(((JLabel)field(p, "detectorVersion")).getText().contains(episodes ? "persistent episodes" : "single-bin (persistence off)"),
                                 "Detector label does not identify the active rule");
                         Method amplitudes = p.getClass().getDeclaredMethod("candidateAmplitudes"); amplitudes.setAccessible(true);
@@ -286,7 +285,6 @@ public class CorrelationIntakeBatchSmoke {
                 ((JButton)get(p, "cancelAll")).doClick();
                 check(get(p, "batchWorker") == null, "Cancellation did not release worker");
                 check(((Map<?, ?>)get(p, "batchResults")).isEmpty(), "Cancelled batch retained results");
-                ((JComboBox<?>)get(p, "runMode")).setSelectedIndex(0);
                 try { call(p, "analyzeSelected"); } catch (Exception e) { throw new RuntimeException(e); }
             });
             long deadline = System.currentTimeMillis() + 30000;
@@ -296,7 +294,7 @@ public class CorrelationIntakeBatchSmoke {
                 if (ready[0]) break;
                 Thread.sleep(20);
             }
-            SwingUtilities.invokeAndWait(() -> check(((JSpinner)get(p, "threshold")).isEnabled(), "Manual mode no longer editable"));
+            SwingUtilities.invokeAndWait(() -> check(((JSpinner)get(p, "threshold")).isEnabled(), "Threshold stays disabled after the batch"));
             System.out.println("PASS: all capillaries; episode/single-bin parity; preview-only detection; stale-save rejection; save-all persistence; unchanged topraw; failed batch; cancellation; manual mode.");
         } finally { SwingUtilities.invokeAndWait(p::close); }
         checkSeries();

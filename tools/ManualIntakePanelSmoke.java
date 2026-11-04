@@ -89,10 +89,10 @@ public class ManualIntakePanelSmoke {
                 Capillary other = exp.getCapillaries().getList().get(1);
                 ManualIntakeEdits otherEdits = new ManualIntakeEdits();
                 otherEdits.replace(25, 25, 2, 30); allEdits.put(other, otherEdits);
-                Class<?> reviewClass = Class.forName(CorrelationIntakePanel.class.getName() + "$ReviewExport");
-                java.lang.reflect.Constructor<?> constructor = reviewClass.getDeclaredConstructor(CorrelationIntakePanel.class);
-                constructor.setAccessible(true); Object reviewExport = constructor.newInstance(panel);
-                Method archiveWrite = reviewClass.getDeclaredMethod("write", java.nio.file.Path.class);
+                Method capture = CorrelationIntakePanel.class.getDeclaredMethod("captureReviewExport");
+                capture.setAccessible(true);
+                Object reviewExport = capture.invoke(panel);
+                Method archiveWrite = reviewExport.getClass().getDeclaredMethod("write", java.nio.file.Path.class);
                 archiveWrite.setAccessible(true);
                 java.nio.file.Path archive = java.nio.file.Paths.get("multiCAFE/target/manual-intake-experiment-review.zip");
                 archiveWrite.invoke(reviewExport, archive);
@@ -111,9 +111,7 @@ public class ManualIntakePanelSmoke {
                 BufferedImage screenshot = new BufferedImage(1180, 950, BufferedImage.TYPE_INT_RGB);
                 java.awt.Graphics2D graphics = screenshot.createGraphics(); panel.paint(graphics); graphics.dispose();
                 javax.imageio.ImageIO.write(screenshot, "png", new java.io.File("multiCAFE/target/manual-intake-panel.png"));
-                ((JComboBox<?>) CorrelationIntakeBatchSmoke.get(panel, "runMode")).setSelectedIndex(1);
-                check(!((JCheckBox) CorrelationIntakeBatchSmoke.get(panel, "addGulp")).isEnabled(), "Batch mode permits manual editing");
-                ((JComboBox<?>) CorrelationIntakeBatchSmoke.get(panel, "runMode")).setSelectedIndex(0);
+                check(((JCheckBox) CorrelationIntakeBatchSmoke.get(panel, "addGulp")).isEnabled(), "Add/edit gulp unavailable while idle");
                 ((JButton) CorrelationIntakeBatchSmoke.get(panel, "resetManualGulps")).doClick();
                 check(!((boolean[]) invoke(panel, "candidates"))[30], "Reset kept rejected manual bin");
                 JCheckBox addGulp = (JCheckBox) CorrelationIntakeBatchSmoke.get(panel, "addGulp");

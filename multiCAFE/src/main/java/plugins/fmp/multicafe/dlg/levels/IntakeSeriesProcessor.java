@@ -29,12 +29,12 @@ public class IntakeSeriesProcessor {
             load(exp);
             List<Capillary> targets = new ArrayList<>(exp.getCapillaries().getList());
             if (targets.isEmpty()) throw new IllegalStateException("No capillaries to detect");
-            Map<Capillary, CorrelationIntakePanel.AutomaticResult> results = new IdentityHashMap<>();
+            Map<Capillary, AutomaticIntakeResult> results = new IdentityHashMap<>();
             for (Capillary cap : targets) {
                 if (stopping.getAsBoolean()) return false;
                 progress.accept("Capillary " + (results.size() + 1) + "/" + targets.size() + ": " + cap.getLast2ofCapillaryName());
                 try {
-                    results.put(cap, new CorrelationIntakePanel.AutomaticResult(
+                    results.put(cap, new AutomaticIntakeResult(
                             CorrelationGulpPreview.computeAccepted(exp, cap, local), episodes, local));
                 } catch (RuntimeException error) {
                     throw new IllegalStateException(cap.getLast2ofCapillaryName() + ": " + error.getMessage(), error);
