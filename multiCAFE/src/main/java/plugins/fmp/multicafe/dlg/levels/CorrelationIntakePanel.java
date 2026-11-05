@@ -38,7 +38,7 @@ import javax.swing.Timer;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.IntakeDiagnostics;
 import plugins.fmp.multitools.service.IntakeEpisodes;
@@ -133,14 +133,14 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		if (initial != null)
 			controls.capillaries.setSelectedItem(initial);
 		Capillary first = (Capillary) controls.capillaries.getSelectedItem();
-		if (first != null && (first.getCorrelationGulps().getMethodOptions().startsWith("v3,source=accepted_topraw")
-				|| first.getCorrelationGulps().getMethodOptions().startsWith("v4,source=accepted_topraw")
-				|| first.getCorrelationGulps().getMethodOptions().startsWith("v5,source=accepted_topraw")
-				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6,source=accepted_topraw")
-				|| first.getCorrelationGulps().getMethodOptions().startsWith("v6.1,source=accepted_topraw")
-				|| first.getCorrelationGulps().getMethodOptions()
+		if (first != null && (first.getIntakes().getMethodOptions().startsWith("v3,source=accepted_topraw")
+				|| first.getIntakes().getMethodOptions().startsWith("v4,source=accepted_topraw")
+				|| first.getIntakes().getMethodOptions().startsWith("v5,source=accepted_topraw")
+				|| first.getIntakes().getMethodOptions().startsWith("v6,source=accepted_topraw")
+				|| first.getIntakes().getMethodOptions().startsWith("v6.1,source=accepted_topraw")
+				|| first.getIntakes().getMethodOptions()
 						.startsWith(IntakeEpisodes.METHOD_VERSION + ",source=accepted_topraw"))) {
-			String options = first.getCorrelationGulps().getMethodOptions();
+			String options = first.getIntakes().getMethodOptions();
 			IntakeDetectionSettings settings = IntakeDetectionSettings.fromOptions(options);
 			controls.persistentEpisodes.setSelected(settings.episodes);
 			controls.localEvaporation.setSelected(settings.local);
@@ -296,7 +296,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		controls.detectAll.setToolTipText(
 				"Detect every capillary in this experiment, including no-fly controls, using its own automatic threshold.");
 		controls.saveAll.setToolTipText(
-				"Save all prepared results as correlation gulps. Existing correlation results are replaced; classic gulps are kept.");
+				"Save all prepared results as intake events. Existing intake results are replaced; ordinary gulps are kept.");
 		controls.copyAllToGulps.setToolTipText(
 				"Replace ordinary gulps for every capillary with the prepared intake, then save. These measures supply ordinary gulp graphs and exports.");
 		controls.cancelAll.setToolTipText("Cancel detection without installing or saving batch results.");
@@ -625,7 +625,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 
 		alignment.revalidate();
 		Double saved = session.threshold(cap);
-		CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
+		CapillaryIntakes stored = cap.getIntakes();
 		if (!session.hasEdits(cap))
 			session.edits(cap, ManualIntakeEdits.fromOptions(stored.getMethodOptions(), preview.raw.length));
 		if (saved == null && stored.hasMeasures() && stored.isManualThreshold()
@@ -975,7 +975,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		}
 	}
 
-	private boolean sameSettings(CapillaryCorrelationGulps stored) {
+	private boolean sameSettings(CapillaryIntakes stored) {
 		return stored.getMethodOptions().startsWith(methodOptions());
 	}
 
@@ -1007,7 +1007,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	private boolean isStoredCurrent() {
 		if (preview == null)
 			return false;
-		CapillaryCorrelationGulps stored = computedCapillary.getCorrelationGulps();
+		CapillaryIntakes stored = computedCapillary.getIntakes();
 		if (!stored.hasMeasures() || !sameSettings(stored))
 			return false;
 		Level2D heights = stored.getEvents().getHeightSeries();
@@ -1071,7 +1071,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 			if (v)
 				replacement++;
 		String message = "Replace the " + current + " gulps of capillary " + cap.getLast2ofCapillaryName() + " with "
-				+ replacement + " correlation gulps?"
+				+ replacement + " intake events?"
 				+ (cap.isGulpMeasuresDirty() ? "\nUnsaved gulp edits on this capillary will be lost." : "");
 		if (JOptionPane.showConfirmDialog(this, message, "Copy to gulps", JOptionPane.OK_CANCEL_OPTION,
 				JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION)
@@ -1206,7 +1206,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		for (boolean v : preview.motion.reliable)
 			if (v)
 				good++;
-		CapillaryCorrelationGulps stored = computedCapillary.getCorrelationGulps();
+		CapillaryIntakes stored = computedCapillary.getIntakes();
 		String storage = jobs.save != null ? "saving..." : persistenceFailed ? "save failed; retry saving" : isStoredCurrent() ? "saved"
 				: stored.hasMeasures()
 						? "not saved (stored: " + stored.countEvents() + " events, window "
@@ -1277,7 +1277,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	}
 
 	/**
-	 * Live candidates replace the stored correlation gulps of the displayed
+	 * Live candidates replace the stored intake events of the displayed
 	 * capillary; closing restores them.
 	 */
 	private void updateRois() {
@@ -1396,7 +1396,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		Map<Capillary, Boolean> manualThreshold = new IdentityHashMap<>();
 		Map<Capillary, String> edits = new IdentityHashMap<>();
 		for (Capillary cap : caps) {
-			CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
+			CapillaryIntakes stored = cap.getIntakes();
 			if (cap == computedCapillary) {
 				chosenThresholds.put(cap, value());
 				manualThreshold.put(cap, manual);

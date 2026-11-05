@@ -6,7 +6,7 @@ import plugins.fmp.multicafe.dlg.levels.CorrelationIntakePanel;
 import plugins.fmp.multicafe.dlg.levels.ManualGulpDialog;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.ManualIntakeEdits;
 
@@ -72,13 +72,13 @@ public class ManualIntakePanelSmoke {
                         "CSV lost edited zero after deletion");
                 invoke(panel, "store");
                 CorrelationIntakeBatchSmoke.waitSaveOnEdt(panel);
-                check(saves[0] == 1 && cap.getCorrelationGulps().bottomAt(30, 0) == 40, "Save did not retain geometry");
-                StringBuffer row = new StringBuffer(); cap.getCorrelationGulps().csvExportToRow(row, ";");
-                CapillaryCorrelationGulps restored = new CapillaryCorrelationGulps();
+                check(saves[0] == 1 && cap.getIntakes().bottomAt(30, 0) == 40, "Save did not retain geometry");
+                StringBuffer row = new StringBuffer(); cap.getIntakes().csvExportToRow(row, ";");
+                CapillaryIntakes restored = new CapillaryIntakes();
                 restored.csvImportFromRow(row.toString().split(";"), 0, true);
                 check(restored.getMethodOptions().contains("manual_intakes="), "CSV lost manual metadata");
                 check(restored.bottomAt(30, 0) == 40, "CSV lost manual bottom");
-                cap.copyCorrelationGulpsToGulps();
+                cap.copyIntakesToGulps();
                 check(cap.getGulps().getHeightSeries().ypoints[30] == 4.5, "Copy lost manual amplitude");
                 reopened = new CorrelationIntakePanel(exp, cap);
                 display(reopened, cap, preview);

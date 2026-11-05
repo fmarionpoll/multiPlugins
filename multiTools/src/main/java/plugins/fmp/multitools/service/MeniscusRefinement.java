@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.WeakHashMap;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /** Phase 1. Image-based refinement only: no evaporation or intake decisions. */
@@ -215,12 +215,12 @@ public final class MeniscusRefinement {
         final Accepted previous;
         final Level2D derivative, corrected;
         final boolean gulpsDirty;
-        final CapillaryCorrelationGulps events=new CapillaryCorrelationGulps();
+        final CapillaryIntakes events=new CapillaryIntakes();
         Accepted(Capillary cap, Proposal p, Accepted previous) {
             proposal=p; values=p.refined(); quality=p.quality(); this.previous=previous;
             derivative=copy(cap.getDerivative().polylineLevel);
             corrected=copy(cap.getTopCorrected().polylineLevel);
-            gulpsDirty=cap.isGulpMeasuresDirty();events.copy(cap.getCorrelationGulps());
+            gulpsDirty=cap.isGulpMeasuresDirty();events.copy(cap.getIntakes());
             previousQuality=cap.getTopRaw().getRefinementQuality();
         }
     }
@@ -355,7 +355,7 @@ public final class MeniscusRefinement {
         if(entry.previous==null)accepted.remove(cap); else accepted.put(cap,entry.previous);
         cap.getDerivative().polylineLevel=copy(entry.derivative);
         cap.getTopCorrected().polylineLevel=copy(entry.corrected);
-        cap.getCorrelationGulps().copy(entry.events);
+        cap.getIntakes().copy(entry.events);
         cap.setGulpMeasuresDirty(entry.gulpsDirty);
         cap.getTopRaw().setRefinementQuality(entry.previousQuality);
     }
@@ -376,6 +376,6 @@ public final class MeniscusRefinement {
         cap.setGulpMeasuresDirty(true);
         // Classic gulps may be manually annotated. Keep them, but require recalculation
         // of the prototype's derived events after the level input changes.
-        cap.getCorrelationGulps().clear();
+        cap.getIntakes().clear();
     }
 }

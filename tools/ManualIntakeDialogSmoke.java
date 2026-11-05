@@ -90,7 +90,7 @@ public class ManualIntakeDialogSmoke {
                                     Method neighbourY = image.getClass().getDeclaredMethod("y", double.class); neighbourY.setAccessible(true);
                                     int neighbourX = (Integer) columnX.invoke(image, 27), neighbourRow = (Integer) neighbourY.invoke(image, 39.);
                                     CorrelationIntakeBatchSmoke.check(painted.getRGB(neighbourX, neighbourRow)
-                                            == plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps.ROI_COLOR.getRGB(),
+                                            == plugins.fmp.multitools.experiment.capillary.CapillaryIntakes.ROI_COLOR.getRGB(),
                                             "Neighbouring intake line was not painted in blue");
                                     amount.setValue(2.); bottom.setValue(40.);
                                     Method xMethod = image.getClass().getDeclaredMethod("lineX"); xMethod.setAccessible(true);
@@ -150,7 +150,7 @@ public class ManualIntakeDialogSmoke {
                                     editBin.setValue(31);
                                     CorrelationIntakeBatchSmoke.check(Math.abs(((Number) amount.getValue()).doubleValue() - 6.5) < 1e-6
                                             && Math.abs(((Number) bottom.getValue()).doubleValue() - 40) < 1e-6,
-                                            "Returning to a bin did not restore its saved intake");
+                                            "Returning to a bin did not restore its intake");
                                     JButton saveBin = (JButton) named((Container) window, "manualIntakeSaveBin");
                                     JButton deleteBin = (JButton) named((Container) window, "manualIntakeDeleteBin");
                                     amountEditor.getTextField().setText(amountEditor.getFormat().format(7));

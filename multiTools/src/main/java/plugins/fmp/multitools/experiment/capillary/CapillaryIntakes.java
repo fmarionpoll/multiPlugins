@@ -8,14 +8,14 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 /**
- * Gulps detected by vertical correlation, stored apart from the genuine gulps
+ * Intake events stored independently of the ordinary gulps
  * together with the settings that produced them. Amplitudes are the downward
  * meniscus shift in pixels, indexed by kymograph column.
  */
-public class CapillaryCorrelationGulps {
+public class CapillaryIntakes {
 	/**
 	 * ROI name token. Must not contain "gulp", "level" or "derivative": ROIs with
-	 * those names are absorbed into the genuine measures.
+	 * those names are absorbed into the ordinary gulp measures.
 	 */
 	public static final String ROI_TOKEN = "xcorr";
     public static final String ROI_OWNER_PROPERTY = "fmp.verticalCorrelationOverlay";
@@ -35,7 +35,7 @@ public class CapillaryCorrelationGulps {
 	private boolean manualThreshold = false;
     private String methodOptions = "";
 
-	public void copy(CapillaryCorrelationGulps source) {
+	public void copy(CapillaryIntakes source) {
 		if (source == null)
 			return;
 		events.copy(source.events);
@@ -136,7 +136,7 @@ public class CapillaryCorrelationGulps {
 	}
 
 	/**
-	 * Drawn half a column right of column x so a genuine (red) gulp at the same
+	 * Drawn half a column right of column x so an ordinary (red) gulp at the same
 	 * column stays visible.
 	 */
 	public static ROI2DLine createRoi(String kymographPrefix, int x, double yBottom, double amplitude, int t) {

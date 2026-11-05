@@ -373,7 +373,7 @@ public class CapillaryGulps {
 		} else {
 			int maxX = 0;
 			for (ROI2D roi : rois) {
-            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
+            if (CapillaryIntakes.isOverlay(roi)) continue;
 				if (roi instanceof ROI2DLine) {
 					Line2D line = ((ROI2DLine) roi).getLine();
 					int xPixel = (int) Math.round((line.getX1() + line.getX2()) / 2);
@@ -393,7 +393,7 @@ public class CapillaryGulps {
 		}
 		// transfer roi to measure
 		for (ROI2D roi : rois) {
-            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
+            if (CapillaryIntakes.isOverlay(roi)) continue;
 			if (roi instanceof ROI2DLine)
 				addGulpFromROI2DLine((ROI2DLine) roi);
 			else if (roi instanceof ROI2DPolyLine)
@@ -445,7 +445,7 @@ public class CapillaryGulps {
 	public void transferROIsToMeasures(List<? extends ROI> listRois, int npoints) {
 		ArrayList<ROI2D> rois = new ArrayList<ROI2D>();
 		for (ROI roi : listRois) {
-            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
+            if (CapillaryIntakes.isOverlay(roi)) continue;
 			String roiname = roi.getName();
 			if (roiname == null || !roiname.contains("gulp"))
 				continue;
@@ -484,12 +484,12 @@ public class CapillaryGulps {
 	}
 
 	/**
-	 * Sub-pixel volume per intake bin (pixels), 0 outside intake bins. With an
-	 * evaporation curve, each intake bin loses the evaporation increment over the
+	 * Sub-pixel amplitude per gulp or intake event bin (pixels), 0 outside events. With an
+	 * evaporation curve, each event bin loses the evaporation increment over the
 	 * same interval ({@code E[i] - E[i-1]}); the result may be negative and is NaN
 	 * where the curve has no finite increment.
 	 */
-	public double[] getIntakeBins(int npoints, double[] evaporation) {
+	public double[] getEventBins(int npoints, double[] evaporation) {
 		double[] out = new double[Math.max(0, npoints)];
 		if (gulpHeights == null)
 			return out;
@@ -508,7 +508,7 @@ public class CapillaryGulps {
 		return out;
 	}
 
-	/** Running total of {@link #getIntakeBins}; NaN bins add nothing. */
+	/** Running total of {@link #getEventBins}; NaN bins add nothing. */
 	public static double[] cumulate(double[] bins) {
 		double[] out = new double[bins.length];
 		double running = 0;

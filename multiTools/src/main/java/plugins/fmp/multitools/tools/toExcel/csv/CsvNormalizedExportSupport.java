@@ -76,10 +76,10 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_BOTTOM_LEVEL_UL = "bottom_level_uL";
 	public static final String COL_CONSUMPTION_FROM_GULPS_UL = "consumption_from_gulps_uL";
 	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude_uL";
-	public static final String COL_INTAKE_BIN_RAW_UL = "intake_bin_raw_uL";
-	public static final String COL_INTAKE_BIN_CORR_UL = "intake_bin_corr_uL";
-	public static final String COL_SUM_INTAKE_BIN_RAW_UL = "sum_intake_bin_raw_uL";
-	public static final String COL_SUM_INTAKE_BIN_CORR_UL = "sum_intake_bin_corr_uL";
+	public static final String COL_GULP_BIN_RAW_UL = "gulp_bin_raw_uL";
+	public static final String COL_GULP_BIN_CORR_UL = "gulp_bin_corr_uL";
+	public static final String COL_SUM_GULP_BIN_RAW_UL = "sum_gulp_bin_raw_uL";
+	public static final String COL_SUM_GULP_BIN_CORR_UL = "sum_gulp_bin_corr_uL";
 	public static final String COL_T00_SUITABLE = "t00_suitable";
 	public static final String COL_EVAPORATION_UL = "evaporation_uL";
 	public static final String COL_T00_REFERENCE_UL = "t00_reference_uL";
@@ -101,7 +101,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter measureCageRawPrinter;
 	private CSVPrinter measureCageBinPrinter;
 	private CSVPrinter gulpEventsPrinter;
-	private CSVPrinter savedIntakePrinter, savedIntakeMetadataPrinter;
+	private CSVPrinter intakePrinter, intakeMetadataPrinter;
 
 	private final List<String> measureCapColumns;
 	private boolean gulpEventsOpen;
@@ -339,19 +339,19 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 				nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr));
 	}
 
-	public void writeSavedIntake(String expKey, int cageId, String capId, double start, double end, double raw, double corr,
+	public void writeIntake(String expKey, int cageId, String capId, double start, double end, double raw, double corr,
 			double sumRaw, double sumCorr) throws IOException {
-		if (savedIntakePrinter == null) savedIntakePrinter = openPrinter("intakeevents", COL_EXPERIMENT_ID,
+		if (intakePrinter == null) intakePrinter = openPrinter("intakeevents", COL_EXPERIMENT_ID,
 				COL_CAGE_ID, COL_CAPILLARY_ID, "interval_start_min", "interval_end_min",
-				"saved_intake_raw_uL", "saved_intake_corr_uL", "sum_saved_intake_raw_uL", "sum_saved_intake_corr_uL");
-		savedIntakePrinter.printRecord(expKey, cageId, capId, nanToNull(start), end,
+				"intake_bin_raw_uL", "intake_bin_corr_uL", "sum_intake_bin_raw_uL", "sum_intake_bin_corr_uL");
+		intakePrinter.printRecord(expKey, cageId, capId, nanToNull(start), end,
 				nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr));
 	}
 
-	public void writeSavedIntakeMetadata(String[] row) throws IOException {
-		if (savedIntakeMetadataPrinter == null) savedIntakeMetadataPrinter = openPrinter("intakeevents_metadata",
-				plugins.fmp.multitools.tools.toExcel.SavedIntakeMetadata.HEADERS);
-		savedIntakeMetadataPrinter.printRecord((Object[]) row);
+	public void writeIntakeMetadata(String[] row) throws IOException {
+		if (intakeMetadataPrinter == null) intakeMetadataPrinter = openPrinter("intakeevents_metadata",
+				plugins.fmp.multitools.tools.toExcel.IntakeMetadata.HEADERS);
+		intakeMetadataPrinter.printRecord((Object[]) row);
 	}
 
 	private CSVPrinter idexptPrinter() throws IOException {
@@ -484,8 +484,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		closeQuietly(measureCageRawPrinter);
 		closeQuietly(measureCageBinPrinter);
 		closeQuietly(gulpEventsPrinter);
-		closeQuietly(savedIntakePrinter);
-		closeQuietly(savedIntakeMetadataPrinter);
+		closeQuietly(intakePrinter);
+		closeQuietly(intakeMetadataPrinter);
 	}
 
 	private static void closeQuietly(CSVPrinter p) throws IOException {

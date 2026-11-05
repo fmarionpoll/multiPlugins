@@ -600,8 +600,8 @@ public class CapillariesPersistence {
 							measuresLoaded = true;
 							CapillariesPersistenceLegacy.csvLoad_ReferenceMeasures(capillaries, csvReader, sep);
 							break;
-						case CapillaryPersistence.ID_GULPS_CORR:
-							csvLoad_CorrelationGulps(capillaries, csvReader, sep,
+						case CapillaryPersistence.ID_INTAKES:
+							csvLoad_Intakes(capillaries, csvReader, sep,
 									row.contains(CapillaryPersistence.ID_MAX_SHIFT_COLUMN));
 							break;
 						default:
@@ -699,7 +699,7 @@ public class CapillariesPersistence {
 						EnumResults.THRESHOLD, csvSep);
 				CapillariesPersistenceLegacy.csvSave_MeasuresSection(capillaries, csvWriter,
 						EnumResults.GULPS_FLAT, csvSep);
-				csvSave_CorrelationGulps(capillaries, csvWriter, csvSep);
+				csvSave_Intakes(capillaries, csvWriter, csvSep);
 				CapillariesPersistenceLegacy.csvSave_ReferenceSection(capillaries, csvWriter, csvSep);
 				csvWriter.flush();
 				csvWriter.close();
@@ -709,21 +709,21 @@ public class CapillariesPersistence {
 			}
 		}
 
-		private static void csvSave_CorrelationGulps(Capillaries capillaries, FileWriter csvWriter, String sep)
+		private static void csvSave_Intakes(Capillaries capillaries, FileWriter csvWriter, String sep)
 				throws IOException {
 			boolean any = false;
 			for (Capillary cap : capillaries.getList())
-				any |= cap.getCorrelationGulps().hasMeasures();
+				any |= cap.getIntakes().hasMeasures();
 			if (!any)
 				return;
-			csvWriter.append(CapillaryPersistence.csvExportCorrelationGulpsSectionHeader(sep));
+			csvWriter.append(CapillaryPersistence.csvExportIntakesSectionHeader(sep));
 			for (Capillary cap : capillaries.getList())
-				if (cap.getCorrelationGulps().hasMeasures())
-					csvWriter.append(CapillaryPersistence.csvExportCorrelationGulps(cap, sep));
+				if (cap.getIntakes().hasMeasures())
+					csvWriter.append(CapillaryPersistence.csvExportIntakes(cap, sep));
 			csvWriter.append("#" + sep + "#\n");
 		}
 
-		private static void csvLoad_CorrelationGulps(Capillaries capillaries, BufferedReader csvReader, String sep,
+		private static void csvLoad_Intakes(Capillaries capillaries, BufferedReader csvReader, String sep,
 				boolean withMaxShift) throws IOException {
 			String row;
 			while ((row = csvReader.readLine()) != null) {
@@ -734,7 +734,7 @@ public class CapillariesPersistence {
 					continue;
 				Capillary cap = capillaries.getCapillaryFromRoiNamePrefix(data[0]);
 				if (cap != null)
-					CapillaryPersistence.csvImportCorrelationGulps(cap, data, withMaxShift);
+					CapillaryPersistence.csvImportIntakes(cap, data, withMaxShift);
 			}
 		}
 	}

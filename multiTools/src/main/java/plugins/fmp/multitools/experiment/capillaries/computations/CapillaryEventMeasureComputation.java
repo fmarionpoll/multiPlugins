@@ -9,9 +9,9 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.MeasurementComputation;
 
 /**
- * Computations for gulp-based measures (NBGULPS, AMPLITUDEGULPS, TTOGULP).
+ * Computations for the separate capillary gulp and intake event datasets.
  */
-public class GulpMeasureComputation {
+public class CapillaryEventMeasureComputation {
 
 	/**
 	 * Computes the number of gulps per time bin (NBGULPS). Returns 1 if a gulp
@@ -93,19 +93,26 @@ public class GulpMeasureComputation {
 	}
 
 	/**
-	 * Intake bins at native kymograph resolution (pixels), raw or minus the
+	 * Gulp bins at native kymograph resolution (pixels), raw or minus the
 	 * experiment evaporation increment; optionally as a running total. Corrected
 	 * variants return null when no evaporation curve is available.
 	 */
-	public static MeasurementComputation computeIntakeBins(boolean corrected, boolean cumulative) {
-		return computeIntakeBins(corrected, cumulative, false);
+	public static MeasurementComputation computeGulpBins(boolean corrected, boolean cumulative) {
+		return computeEventBins(corrected, cumulative, false);
 	}
 
-	public static MeasurementComputation computeIntakeBins(boolean corrected, boolean cumulative, boolean saved) {
+	/** Intake events, independent of the ordinary gulp dataset. */
+	public static MeasurementComputation computeIntakeBins(boolean corrected, boolean cumulative) {
+		return computeEventBins(corrected, cumulative, true);
+	}
+
+	private static MeasurementComputation computeEventBins(boolean corrected, boolean cumulative, boolean intakeEvents) {
 		return (exp, cap, options) -> {
-			if (cap == null || cap.getGulps() == null || cap.getTopRaw() == null
-					|| (saved ? !cap.getCorrelationGulps().hasMeasures()
-						: cap.getGulps().getHeightSeries() == null || cap.getGulps().getHeightSeries().npoints == 0)) {
+			if (cap == null || cap.getTopRaw() == null) {
+				return null;
+			}
+			CapillaryGulps source = intakeEvents ? cap.getIntakes().getEvents() : cap.getGulps();
+			if (source == null || source.getHeightSeries() == null || source.getHeightSeries().npoints == 0) {
 				return null;
 			}
 			double[] evaporation = null;
@@ -118,8 +125,7 @@ public class GulpMeasureComputation {
 				}
 				evaporation = Arrays.copyOf(curve.polylineLevel.ypoints, curve.polylineLevel.npoints);
 			}
-			CapillaryGulps source = saved ? cap.getCorrelationGulps().getEvents() : cap.getGulps();
-			double[] bins = source.getIntakeBins(cap.getTopRaw().getNPoints(), evaporation);
+			double[] bins = source.getEventBins(cap.getTopRaw().getNPoints(), evaporation);
 			if (cumulative) {
 				bins = CapillaryGulps.cumulate(bins);
 			}

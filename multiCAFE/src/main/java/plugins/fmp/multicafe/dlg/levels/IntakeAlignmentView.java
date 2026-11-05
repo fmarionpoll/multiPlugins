@@ -14,7 +14,7 @@ import javax.swing.JPanel;
 import javax.swing.JViewport;
 import javax.swing.SwingUtilities;
 
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.experiment.capillary.IntakeEvaporationOverlay;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 
@@ -165,7 +165,7 @@ final class IntakeAlignmentView extends JPanel {
 			}
 			g.draw(path);
 		}
-		g.setColor(CapillaryCorrelationGulps.ROI_COLOR);
+		g.setColor(CapillaryIntakes.ROI_COLOR);
 		g.setStroke(new BasicStroke(2));
 		for (int i = 1; i < chosen.length; i++)
 			if (chosen[i] && Double.isFinite(bottoms[i])) {

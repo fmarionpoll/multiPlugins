@@ -21,10 +21,10 @@ public class IntakeSaveFailureTest {
         plugins.kernel.roi.roi2d.ROI2DLine roi = new plugins.kernel.roi.roi2d.ROI2DLine(0, 0, 0, 100);
         roi.setName("line0L");
         Capillary capillary = new Capillary(roi);
-        capillary.getCorrelationGulps().set(new double[] {0, 2, 0}, 0, 0, .5, false);
+        capillary.getIntakes().set(new double[] {0, 2, 0}, 0, 0, .5, false);
         experiment.getCapillaries().getList().add(capillary);
         assertFalse(experiment.save_capillaries_description_and_measures());
         assertTrue(Files.isRegularFile(directory.resolve("CapillariesDescription.csv")));
-        assertEquals(1, capillary.getCorrelationGulps().countEvents());
+        assertEquals(1, capillary.getIntakes().countEvents());
     }
 }

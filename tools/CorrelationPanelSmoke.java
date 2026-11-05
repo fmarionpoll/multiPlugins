@@ -493,10 +493,10 @@ public class CorrelationPanelSmoke {
         for(icy.roi.ROI2D roi:sequence.getROI2Ds())if(roi.getName().contains("_xcorr_gap_"))
             throw new AssertionError("Horizontal diagnostic markers remain in phase 2");
         Capillary copyCheck = new Capillary();
-        copyCheck.getCorrelationGulps().set(new double[]{0,2.25,0,1.5},10,6,1.4,false);
-        copyCheck.getCorrelationGulps().setBottomPositions(new double[]{40,42.25,42.5,44});
-        copyCheck.copyCorrelationGulpsToGulps();
-        copyCheck.getCorrelationGulps().clear();
+        copyCheck.getIntakes().set(new double[]{0,2.25,0,1.5},10,6,1.4,false);
+        copyCheck.getIntakes().setBottomPositions(new double[]{40,42.25,42.5,44});
+        copyCheck.copyIntakesToGulps();
+        copyCheck.getIntakes().clear();
         java.util.List<icy.roi.ROI2D> copiedRois=copyCheck.getGulpROIsForCapillaryAtT(0);
         if(copiedRois.size()!=2 || Math.abs(copiedRois.get(0).getBounds2D().getMinY()-40)>1e-8
                 || Math.abs(copiedRois.get(0).getBounds2D().getMaxY()-42.25)>1e-8

@@ -15,7 +15,7 @@ final class IntakePersistence {
         for (Map.Entry<Capillary, PreparedIntake> entry : results.entrySet()) entry.getValue().install(entry.getKey());
         if (destination == Destination.REPLACE_GULPS_AND_SAVE)
             for (Capillary cap : results.keySet())
-                if (!cap.copyCorrelationGulpsToGulps())
+                if (!cap.copyIntakesToGulps())
                     throw new IllegalStateException("Could not replace gulps for " + cap.getLast2ofCapillaryName());
         return true;
     }

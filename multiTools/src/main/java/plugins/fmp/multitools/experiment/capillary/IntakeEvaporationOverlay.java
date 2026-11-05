@@ -13,7 +13,7 @@ import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 public final class IntakeEvaporationOverlay {
     // Shares the preview ROI token so viewer synchronization removes these too.
     // Contains no measure-import token such as "gulp", "level", or "derivative".
-    public static final String ROI_TOKEN = CapillaryCorrelationGulps.ROI_TOKEN + "_evap";
+    public static final String ROI_TOKEN = CapillaryIntakes.ROI_TOKEN + "_evap";
     public static final Color COLOR = new Color(145, 145, 145);
 
     private IntakeEvaporationOverlay() { }
@@ -77,7 +77,7 @@ public final class IntakeEvaporationOverlay {
             roi.setStroke(1);
             roi.setT(t);
             roi.setReadOnly(true);
-            CapillaryCorrelationGulps.markOverlay(roi);
+            CapillaryIntakes.markOverlay(roi);
             rois.add(roi);
         }
         return rois;

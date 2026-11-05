@@ -49,7 +49,7 @@ import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.service.MeniscusRefinement;
 import plugins.fmp.multitools.service.MeniscusRefinementPreview;
 import plugins.fmp.multitools.series.RefineMeniscus;
@@ -873,7 +873,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		roi.setColor(color);
 		roi.setStroke(1.5);
 		roi.setReadOnly(true);
-		CapillaryCorrelationGulps.markOverlay(roi);
+		CapillaryIntakes.markOverlay(roi);
 		roi.setProperty(MeniscusRefinementPreview.ROI_PROPERTY, "true");
 		overlays.add(roi);
 	}

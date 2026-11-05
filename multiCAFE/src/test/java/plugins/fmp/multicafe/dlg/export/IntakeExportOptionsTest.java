@@ -8,8 +8,8 @@ import javax.swing.SwingUtilities;
 import org.junit.Test;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
-public class SavedIntakeExportOptionsTest {
-    @Test public void savedIntakeSelectionReachesExportWithoutOrdinaryGulps() throws Exception {
+public class IntakeExportOptionsTest {
+    @Test public void intakeSelectionReachesExportWithoutOrdinaryGulps() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
             try {
                 MCExport_ dialog = new MCExport_();
@@ -17,26 +17,26 @@ public class SavedIntakeExportOptionsTest {
                 field.setAccessible(true);
                 Gulps gulps = (Gulps) field.get(dialog);
                 gulps.init(new GridLayout(4, 2));
-                assertEquals("saved intake", gulps.savedIntakeCheckBox.getText());
-                assertTrue(SwingUtilities.isDescendingFrom(gulps.savedIntakeCheckBox, gulps));
-                assertTrue(dialog.getGulpsMeasurementOptions().savedIntake);
+                assertEquals("intake", gulps.intakeCheckBox.getText());
+                assertTrue(SwingUtilities.isDescendingFrom(gulps.intakeCheckBox, gulps));
+                assertTrue(dialog.getGulpsMeasurementOptions().intake);
                 assertFalse(dialog.getGulpsMeasurementOptions().lrPI);
-                gulps.savedIntakeCheckBox.setSelected(false);
-                assertFalse(dialog.getGulpsMeasurementOptions().savedIntake);
+                gulps.intakeCheckBox.setSelected(false);
+                assertFalse(dialog.getGulpsMeasurementOptions().intake);
                 gulps.nbGulpsCheckBox.setSelected(false);
                 gulps.amplitudeGulpsCheckBox.setSelected(false);
-                gulps.savedIntakeCheckBox.setSelected(true);
+                gulps.intakeCheckBox.setSelected(true);
                 ResultsOptions options = dialog.getGulpsMeasurementOptions();
-                assertTrue(options.savedIntake);
+                assertTrue(options.intake);
                 assertFalse(options.nbGulps);
                 assertFalse(options.amplitudeGulps);
                 gulps.nbGulpsCheckBox.setSelected(true);
-                assertTrue(dialog.getGulpsMeasurementOptions().savedIntake);
+                assertTrue(dialog.getGulpsMeasurementOptions().intake);
                 assertTrue(dialog.getGulpsMeasurementOptions().nbGulps);
                 gulps.sumCheckBox.setSelected(true);
                 assertTrue(dialog.getGulpsMeasurementOptions().lrPI);
-                gulps.savedIntakeCheckBox.setSelected(false);
-                assertFalse(dialog.getGulpsMeasurementOptions().savedIntake);
+                gulps.intakeCheckBox.setSelected(false);
+                assertFalse(dialog.getGulpsMeasurementOptions().intake);
             } catch (ReflectiveOperationException e) {
                 throw new AssertionError(e);
             }

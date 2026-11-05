@@ -167,14 +167,14 @@ public class MeniscusRefinementTest {
         double[] values={30,31,35,36};Capillary cap=cap(values);
         cap.getDerivative().polylineLevel=new Level2D(new double[]{0,1},new double[]{4,5},2);
         cap.getTopCorrected().polylineLevel=new Level2D(new double[]{0,1},new double[]{1,2},2);
-        cap.getCorrelationGulps().set(new double[]{0,1,4,1},10,6,1,false);
+        cap.getIntakes().set(new double[]{0,1,4,1},10,6,1,false);
         cap.setGulpMeasuresDirty(false);
         MeniscusRefinement.Proposal p=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(values),10,3,true);
         MeniscusRefinement.accept(cap,p);
-        assertFalse(cap.getCorrelationGulps().hasMeasures());assertEquals(0,cap.getDerivative().polylineLevel.npoints);
+        assertFalse(cap.getIntakes().hasMeasures());assertEquals(0,cap.getDerivative().polylineLevel.npoints);
         assertEquals(0,cap.getTopCorrected().polylineLevel.npoints);assertTrue(cap.isGulpMeasuresDirty());
         MeniscusRefinement.undo(cap);
-        assertEquals(3,cap.getCorrelationGulps().countEvents());assertEquals(2,cap.getDerivative().polylineLevel.npoints);
+        assertEquals(3,cap.getIntakes().countEvents());assertEquals(2,cap.getDerivative().polylineLevel.npoints);
         assertEquals(2,cap.getTopCorrected().polylineLevel.npoints);assertFalse(cap.isGulpMeasuresDirty());
     }
     @Test public void externalEditRejectsStaleProposalAndUndo() {

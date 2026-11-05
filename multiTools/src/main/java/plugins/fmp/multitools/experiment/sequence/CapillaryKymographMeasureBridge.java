@@ -14,7 +14,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesKymosMapper;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.tools.Comparators;
 import plugins.fmp.multitools.tools.Logger;
@@ -43,7 +43,7 @@ public final class CapillaryKymographMeasureBridge {
 		int sequenceWidth = kymos.getSequence().getWidth();
 
 		for (ROI2D roi : roiList) {
-            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
+            if (CapillaryIntakes.isOverlay(roi)) continue;
 			if (!(roi instanceof ROI2DPolyLine)) {
 				continue;
 			}
@@ -84,7 +84,7 @@ public final class CapillaryKymographMeasureBridge {
 		List<ROI2D> listRois = kymos.getSequence().getROI2Ds();
 		int width = kymos.getSequence().getWidth();
 		for (ROI2D roi : listRois) {
-            if (CapillaryCorrelationGulps.isOverlay(roi)) continue;
+            if (CapillaryIntakes.isOverlay(roi)) continue;
 			if (!(roi instanceof ROI2DPolyLine))
 				continue;
 			if (roi.getT() == -1)
@@ -245,7 +245,7 @@ public final class CapillaryKymographMeasureBridge {
 		List<ROI2D> allRois = kymos.getSequence().getROI2Ds();
 		ArrayList<ROI2D> gulpRois = new ArrayList<>();
 		for (ROI2D r : allRois) {
-			if (!CapillaryCorrelationGulps.isOverlay(r) && r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
+			if (!CapillaryIntakes.isOverlay(r) && r.getT() == t && r.getName() != null && r.getName().contains("gulp"))
 				gulpRois.add(r);
 		}
 		int npoints = (cap.getTopRaw() != null) ? cap.getTopRaw().getNPoints() : 0;
@@ -266,7 +266,7 @@ public final class CapillaryKymographMeasureBridge {
 						|| name.contains("derivative") || name.contains("gulps"))) {
 					roisToRemove.add(roi);
 				}
-			} else if (roi.getName() != null && roi.getName().contains("_" + CapillaryCorrelationGulps.ROI_TOKEN)) {
+			} else if (roi.getName() != null && roi.getName().contains("_" + CapillaryIntakes.ROI_TOKEN)) {
 				roisToRemove.add(roi);
 			}
 		}

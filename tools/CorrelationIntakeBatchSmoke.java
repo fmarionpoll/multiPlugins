@@ -134,9 +134,9 @@ public class CorrelationIntakeBatchSmoke {
                         boolean processed = range==0 ? i==1 : range==1 ? i>=1 : range==2 ? true : range==3 ? i==0 : range==4 ? i==1 : false;
                         check(java.nio.file.Files.exists(Paths.get(experiments[i].getResultsDirectory(), "CapillariesMeasures.csv")) == processed, "Wrong experiment range saved");
                         for (Capillary cap : experiments[i].getCapillaries().getList()) {
-                            check(cap.getCorrelationGulps().hasMeasures() == processed, "Wrong range detected");
+                            check(cap.getIntakes().hasMeasures() == processed, "Wrong range detected");
                             if (processed) check(Arrays.equals(cap.getGulps().getHeightSeries().ypoints,
-                                    cap.getCorrelationGulps().getEvents().getHeightSeries().ypoints), "Series failed to copy gulps");
+                                    cap.getIntakes().getEvents().getHeightSeries().ypoints), "Series failed to copy gulps");
                         }
                         check(experiments[i].getSeqKymos().getSequence() != null, "Closed preexisting images");
                     }
@@ -192,12 +192,12 @@ public class CorrelationIntakeBatchSmoke {
             throw new AssertionError("Invalid experiment accepted");
         } catch (IllegalStateException expected) {
             check(!java.nio.file.Files.exists(failedDir.resolve("CapillariesMeasures.csv")), "Failed detection wrote files");
-            for (Capillary c : failed.getCapillaries().getList()) check(!c.getCorrelationGulps().hasMeasures(), "Failed detection installed partial results");
+            for (Capillary c : failed.getCapillaries().getList()) check(!c.getIntakes().hasMeasures(), "Failed detection installed partial results");
         }
         Experiment stopped = fixture(new int[1]);
         boolean[] stop = { false };
         check(!processor.process(stopped, true, false, () -> stop[0], message -> stop[0] = true), "Stop ignored");
-        for (Capillary c : stopped.getCapillaries().getList()) check(!c.getCorrelationGulps().hasMeasures(), "Stopped series installed results");
+        for (Capillary c : stopped.getCapillaries().getList()) check(!c.getIntakes().hasMeasures(), "Stopped series installed results");
         boolean[] savingStop = { false };
         plugins.fmp.multicafe.dlg.levels.IntakeSeriesProcessor finishSave = new plugins.fmp.multicafe.dlg.levels.IntakeSeriesProcessor() {
             @Override protected void save(Experiment e) { savingStop[0] = true; }
@@ -251,7 +251,7 @@ public class CorrelationIntakeBatchSmoke {
                             Object result = results.get(cap);
                             check(Arrays.equals((double[])field(result, "amplitudes"), (double[])amplitudes.invoke(p)), "Batch/manual amplitude mismatch");
                             if (episodes) check(Arrays.equals((double[])field(result, "bottoms"), (double[])bottoms.invoke(p)), "Geometry mismatch");
-                            check(!cap.getCorrelationGulps().hasMeasures(), "Detection saved results prematurely");
+                            check(!cap.getIntakes().hasMeasures(), "Detection saved results prematurely");
                         }
                         if (args.length > 0 && episodes) {
                             p.setSize(1180, 880); layout(p);
@@ -265,7 +265,7 @@ public class CorrelationIntakeBatchSmoke {
                         call(p, "saveAll");
                         waitSaveOnEdt(p);
                         check(((Map<?, ?>)field(p, "batchResults")).isEmpty(), "Stale batch accepted");
-                        check(!cap.getCorrelationGulps().hasMeasures(), "Stale batch installed");
+                        check(!cap.getIntakes().hasMeasures(), "Stale batch installed");
                         check(saves[0] == 0, "Stale batch wrote files");
                         if(episodes) cap.getTopRaw().polylineLevel.xpoints[1] -= .25;
                         else cap.getTopRaw().polylineLevel.ypoints[1] -= 1;
@@ -282,8 +282,8 @@ public class CorrelationIntakeBatchSmoke {
                     check(saves[0] == 1, "Save all did not persist once");
                     for (int i = 0; i < 3; i++) {
                         Capillary c = exp.getCapillaries().getList().get(i);
-                        check(c.getCorrelationGulps().hasMeasures(), "Save all missed capillary");
-                        check(!c.getCorrelationGulps().isManualThreshold(), "Batch used manual threshold");
+                        check(c.getIntakes().hasMeasures(), "Save all missed capillary");
+                        check(!c.getIntakes().isManualThreshold(), "Batch used manual threshold");
                         check(Arrays.equals(raw[i], c.getTopRaw().polylineLevel.ypoints), "Batch changed topraw");
                     }
                     Method persist = p.getClass().getDeclaredMethod("persistBatch", boolean.class); persist.setAccessible(true);
@@ -292,7 +292,7 @@ public class CorrelationIntakeBatchSmoke {
                     check(saves[0] == 2, "Copy all did not save once");
                     for (Capillary c : exp.getCapillaries().getList()) {
                         Level2D ordinary = c.getGulps().getHeightSeries();
-                        Level2D detected = c.getCorrelationGulps().getEvents().getHeightSeries();
+                        Level2D detected = c.getIntakes().getEvents().getHeightSeries();
                         check(ordinary.npoints == detected.npoints && Arrays.equals(ordinary.ypoints, detected.ypoints), "Ordinary gulps differ from detected intake");
                     }
                 } catch (Exception e) { throw new RuntimeException(e); }

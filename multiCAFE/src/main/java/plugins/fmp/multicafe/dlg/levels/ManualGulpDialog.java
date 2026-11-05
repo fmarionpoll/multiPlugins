@@ -28,7 +28,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.ManualIntakeEdits;
 
@@ -405,7 +405,7 @@ public final class ManualGulpDialog {
 				if (Double.isFinite(preview.raw[i - 1]) && Double.isFinite(preview.raw[i]))
 					g.drawLine(MARGIN + (int) ((i - left - .5) * scale), y(preview.raw[i - 1]),
 							MARGIN + (int) ((i - left + .5) * scale), y(preview.raw[i]));
-			g.setColor(CapillaryCorrelationGulps.ROI_COLOR); g.setStroke(new BasicStroke(2));
+			g.setColor(CapillaryIntakes.ROI_COLOR); g.setStroke(new BasicStroke(2));
 			for (int i = Math.max(1, left); i < right; i++)
 				if ((i < first || i > last) && (i < originalFirst || i > originalLast)
 						&& otherAmplitudes[i] > 0 && Double.isFinite(otherBottoms[i]))
@@ -414,7 +414,7 @@ public final class ManualGulpDialog {
 				if (i != active && measuredAmplitudes[i] > 0 && Double.isFinite(measuredAmplitudes[i]) && Double.isFinite(measuredBottoms[i]))
 					g.drawLine(columnX(i), y(measuredBottoms[i]), columnX(i), y(measuredBottoms[i] - measuredAmplitudes[i]));
 			int x = lineX(), bottom = y(number(position)), top = y(number(position) - fullAmplitude());
-			g.setColor(CapillaryCorrelationGulps.ROI_COLOR); g.setStroke(new BasicStroke(3));
+			g.setColor(CapillaryIntakes.ROI_COLOR); g.setStroke(new BasicStroke(3));
 			g.drawLine(x, top, x, bottom);
 			g.fillOval(x - 5, top - 5, 10, 10); g.fillOval(x - 5, bottom - 5, 10, 10);
 			g.dispose();

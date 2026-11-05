@@ -82,10 +82,10 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				new OptionToResultsMapping(() -> options.sumGulpsLr, EnumResults.SUMGULPS_LR),
 				new OptionToResultsMapping(() -> options.nbGulps, EnumResults.NBGULPS),
 				new OptionToResultsMapping(() -> options.amplitudeGulps, EnumResults.AMPLITUDEGULPS),
-				new OptionToResultsMapping(() -> options.savedIntake, EnumResults.SAVED_INTAKE_RAW,
-						EnumResults.SAVED_INTAKE_CORR, EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR),
-				new OptionToResultsMapping(() -> options.amplitudeGulps || options.nbGulps, EnumResults.INTAKE_BIN_RAW,
+				new OptionToResultsMapping(() -> options.intake, EnumResults.INTAKE_BIN_RAW,
 						EnumResults.INTAKE_BIN_CORR, EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR),
+				new OptionToResultsMapping(() -> options.amplitudeGulps || options.nbGulps, EnumResults.GULP_BIN_RAW,
+						EnumResults.GULP_BIN_CORR, EnumResults.SUM_GULP_BIN_RAW, EnumResults.SUM_GULP_BIN_CORR),
 				new OptionToResultsMapping(() -> options.tToNextGulp, EnumResults.TTOGULP),
 				new OptionToResultsMapping(() -> options.tToNextGulp_LR, EnumResults.TTOGULP_LR),
 				new OptionToResultsMapping(() -> options.markovChain, EnumResults.MARKOV_CHAIN),
@@ -93,12 +93,12 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 				new OptionToResultsMapping(() -> options.crosscorrelation, EnumResults.CROSSCORREL),
 				new OptionToResultsMapping(() -> options.crosscorrelationLR, EnumResults.CROSSCORREL_LR) };
 
-		if (options.savedIntake) {
+		if (options.intake) {
 			exp.dispatchCapillariesToCages();
 			try {
-				exportSavedIntakeDetails(exp, charSeries);
+				exportIntakeDetails(exp, charSeries);
 			} catch (ExcelResourceException e) {
-				throw new ExcelExportException("Failed to export saved intake details", e);
+				throw new ExcelExportException("Failed to export intake details", e);
 			}
 		}
 		int colmax = 0;
@@ -120,40 +120,40 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		return colmax;
 	}
 
-	private void exportSavedIntakeDetails(Experiment exp, String charSeries) throws ExcelResourceException {
+	private void exportIntakeDetails(Experiment exp, String charSeries) throws ExcelResourceException {
 		exp.ensureFrameTimeScale();
 		ResultsOptions nativeOptions = new ResultsOptions();
-		nativeOptions.resultType = EnumResults.SAVED_INTAKE_CORR;
+		nativeOptions.resultType = EnumResults.INTAKE_BIN_CORR;
 		nativeOptions.evaporationCorrectionMethod = options.evaporationCorrectionMethod;
 		nativeOptions.buildExcelStepMs = (int) Math.max(1, exp.getKymoBin_ms());
 		exp.getCages().prepareComputations(exp, nativeOptions);
-		SXSSFSheet intervals = resourceManager.getWorkbook().getSheet("saved_intake_intervals");
+		SXSSFSheet intervals = resourceManager.getWorkbook().getSheet("intake_intervals");
 		if (intervals == null) {
-			intervals = resourceManager.getWorkbook().createSheet("saved_intake_intervals");
+			intervals = resourceManager.getWorkbook().createSheet("intake_intervals");
 			String[] headers = { "experiment_id", "cage_id", "capillary_id", "interval_start_min", "interval_end_min",
-				"saved_intake_raw_uL", "saved_intake_corr_uL", "sum_saved_intake_raw_uL", "sum_saved_intake_corr_uL" };
+				"intake_bin_raw_uL", "intake_bin_corr_uL", "sum_intake_bin_raw_uL", "sum_intake_bin_corr_uL" };
 			for (int i = 0; i < headers.length; i++) XLSUtils.setValue(intervals, i, 0, false, headers[i]);
 		}
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
-		SXSSFSheet sheet = resourceManager.getWorkbook().getSheet("saved_intake_metadata");
+		SXSSFSheet sheet = resourceManager.getWorkbook().getSheet("intake_metadata");
 		if (sheet == null) {
-			sheet = resourceManager.getWorkbook().createSheet("saved_intake_metadata");
-			for (int i = 0; i < SavedIntakeMetadata.HEADERS.length; i++) XLSUtils.setValue(sheet, i, 0, false, SavedIntakeMetadata.HEADERS[i]);
+			sheet = resourceManager.getWorkbook().createSheet("intake_metadata");
+			for (int i = 0; i < IntakeMetadata.HEADERS.length; i++) XLSUtils.setValue(sheet, i, 0, false, IntakeMetadata.HEADERS[i]);
 		}
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) continue;
 			List<Capillary> caps = cage.getCapillaries(exp.getCapillaries());
 			if (caps == null || caps.isEmpty()) continue;
-			EnumResults[] types = { EnumResults.SAVED_INTAKE_RAW, EnumResults.SAVED_INTAKE_CORR,
-					EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR };
+			EnumResults[] types = { EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
+					EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR };
 			XYSeriesCollection[] datasets = new XYSeriesCollection[types.length];
 			for (int k = 0; k < types.length; k++) {
 				nativeOptions.resultType = types[k];
 				datasets[k] = builder.build(exp, cage, nativeOptions);
 			}
 			for (Capillary cap : caps) {
-				if (!cap.getCorrelationGulps().hasMeasures()) continue;
-				String[] row = SavedIntakeMetadata.row(NormalizedExportSupport.buildExpKey(exp, charSeries), cage.getCageID(), NormalizedExportSupport.buildCapId(cap), cap);
+				if (!cap.getIntakes().hasMeasures()) continue;
+				String[] row = IntakeMetadata.row(NormalizedExportSupport.buildExpKey(exp, charSeries), cage.getCageID(), NormalizedExportSupport.buildCapId(cap), cap);
 				int index = sheet.getLastRowNum() + 1;
 				for (int i = 0; i < row.length; i++) XLSUtils.setValue(sheet, i, index, false, row[i]);
 				XYSeries[] series = new XYSeries[types.length];
@@ -215,7 +215,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 		boolean sparse = resultType == EnumResults.NBGULPS || resultType == EnumResults.AMPLITUDEGULPS
 				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR
-				|| isIntakeBinPerBin(resultType);
+				|| isEventBinPerBin(resultType);
 		long nativeMedian = nativeMedianMs(exp);
 		ExportTimePolicy.Relation relation = ExportTimePolicy.relation(resultsOptions.buildExcelStepMs, nativeMedian);
 
@@ -255,7 +255,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 					if (resultType == EnumResults.NBGULPS) {
 						regrouped = ExportTimePolicy.regroupPresence(timesMs, values, step);
 					} else if (resultType == EnumResults.AMPLITUDEGULPS || resultType == EnumResults.SUMGULPS
-							|| isIntakeBinPerBin(resultType)) {
+							|| isEventBinPerBin(resultType)) {
 						regrouped = ExportTimePolicy.regroupSum(timesMs, values, step);
 					} else {
 						regrouped = ExportTimePolicy.regroupHoldLast(timesMs, values, step);
@@ -336,9 +336,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		return 0;
 	}
 
-	private static boolean isIntakeBinPerBin(EnumResults resultType) {
-		return resultType == EnumResults.INTAKE_BIN_RAW || resultType == EnumResults.INTAKE_BIN_CORR
-				|| resultType == EnumResults.SAVED_INTAKE_RAW || resultType == EnumResults.SAVED_INTAKE_CORR;
+	private static boolean isEventBinPerBin(EnumResults resultType) {
+		return resultType == EnumResults.GULP_BIN_RAW || resultType == EnumResults.GULP_BIN_CORR
+				|| resultType == EnumResults.INTAKE_BIN_RAW || resultType == EnumResults.INTAKE_BIN_CORR;
 	}
 
 	private static long nativeMedianMs(Experiment exp) {
@@ -814,8 +814,8 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		// Event-like gulp measures: nearest-sample hold. Continuous SUMGULPS: linear.
 		boolean holdEvents = resultType == EnumResults.NBGULPS || resultType == EnumResults.AMPLITUDEGULPS
 				|| resultType == EnumResults.TTOGULP || resultType == EnumResults.TTOGULP_LR
-				|| resultType == EnumResults.MARKOV_CHAIN || isIntakeBinPerBin(resultType);
-		boolean sumEvents = isIntakeBinPerBin(resultType) && buildExcelStepMs > 1.5 * nativeMedianMs(exp);
+				|| resultType == EnumResults.MARKOV_CHAIN || isEventBinPerBin(resultType);
+		boolean sumEvents = isEventBinPerBin(resultType) && buildExcelStepMs > 1.5 * nativeMedianMs(exp);
 		for (int binIndex = 0; binIndex < nBins; binIndex++) {
 			long binTimeMs = (long) binIndex * buildExcelStepMs;
 

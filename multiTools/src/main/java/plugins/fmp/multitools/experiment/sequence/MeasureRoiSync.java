@@ -7,7 +7,7 @@ import java.util.List;
 
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 
 /**
  * Generic "update measure ROIs at frame t" for a sequence: remove existing
@@ -42,7 +42,7 @@ public final class MeasureRoiSync {
 				Arrays.asList("caplength_", "capshape_"));
 		public static final MeasureRoiFilter CAPILLARY_MEASURES = new MeasureRoiFilter("_",
 				Arrays.asList("toplevel", "bottomlevel", "derivative", "gulp", "gulps",
-						CapillaryCorrelationGulps.ROI_TOKEN));
+						CapillaryIntakes.ROI_TOKEN));
 	}
 
 	/**

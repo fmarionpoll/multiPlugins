@@ -5,7 +5,7 @@ import java.util.EnumSet;
 import java.util.Objects;
 
 import plugins.fmp.multitools.experiment.capillaries.computations.CorrelationComputation;
-import plugins.fmp.multitools.experiment.capillaries.computations.GulpMeasureComputation;
+import plugins.fmp.multitools.experiment.capillaries.computations.CapillaryEventMeasureComputation;
 
 /**
  * Enumeration of all available measurement types.
@@ -95,27 +95,28 @@ public enum EnumResults {
 			"GULPS_FLAT", PersistenceDomain.CAPILLARY),
 
 	// === COMPUTED GULP MEASURES ===
-	NBGULPS("nbGulps", "volume (ul)", "number of gulps (at t)", GulpMeasureComputation.computeNbGulps()),
+	NBGULPS("nbGulps", "volume (ul)", "number of gulps (at t)", CapillaryEventMeasureComputation.computeNbGulps()),
 	AMPLITUDEGULPS("amplitudeGulps", "volume (ul)", "amplitude of gulps (at t)",
-			GulpMeasureComputation.computeAmplitudeGulps()),
+			CapillaryEventMeasureComputation.computeAmplitudeGulps()),
+	GULP_BIN_RAW("gulp_bin_raw", "volume (ul)", "volume per gulp bin, raw (at t)",
+			CapillaryEventMeasureComputation.computeGulpBins(false, false)),
+	GULP_BIN_CORR("gulp_bin_corr", "volume (ul)", "volume per gulp bin, minus evaporation (at t)",
+			CapillaryEventMeasureComputation.computeGulpBins(true, false)),
+	SUM_GULP_BIN_RAW("sum_gulp_bin_raw", "volume (ul)", "cumulated volume of gulp bins, raw (t-t0)",
+			CapillaryEventMeasureComputation.computeGulpBins(false, true)),
+	SUM_GULP_BIN_CORR("sum_gulp_bin_corr", "volume (ul)",
+			"cumulated volume of gulp bins, minus evaporation (t-t0)",
+			CapillaryEventMeasureComputation.computeGulpBins(true, true)),
+	// Intake events are stored separately from the ordinary gulps.
 	INTAKE_BIN_RAW("intake_bin_raw", "volume (ul)", "volume per intake bin, raw (at t)",
-			GulpMeasureComputation.computeIntakeBins(false, false)),
+			CapillaryEventMeasureComputation.computeIntakeBins(false, false)),
 	INTAKE_BIN_CORR("intake_bin_corr", "volume (ul)", "volume per intake bin, minus evaporation (at t)",
-			GulpMeasureComputation.computeIntakeBins(true, false)),
+			CapillaryEventMeasureComputation.computeIntakeBins(true, false)),
 	SUM_INTAKE_BIN_RAW("sum_intake_bin_raw", "volume (ul)", "cumulated volume of intake bins, raw (t-t0)",
-			GulpMeasureComputation.computeIntakeBins(false, true)),
-	SUM_INTAKE_BIN_CORR("sum_intake_bin_corr", "volume (ul)",
-			"cumulated volume of intake bins, minus evaporation (t-t0)",
-			GulpMeasureComputation.computeIntakeBins(true, true)),
-	SAVED_INTAKE_RAW("saved_intake_raw", "volume (ul)", "Separately saved intake volume",
-			GulpMeasureComputation.computeIntakeBins(false, false, true)),
-	SAVED_INTAKE_CORR("saved_intake_corr", "volume (ul)", "Separately saved intake volume",
-			GulpMeasureComputation.computeIntakeBins(true, false, true)),
-	SUM_SAVED_INTAKE_RAW("sum_saved_intake_raw", "volume (ul)", "Separately saved intake volume",
-			GulpMeasureComputation.computeIntakeBins(false, true, true)),
-	SUM_SAVED_INTAKE_CORR("sum_saved_intake_corr", "volume (ul)", "Separately saved intake volume",
-			GulpMeasureComputation.computeIntakeBins(true, true, true)),
-	TTOGULP("tToGulp", "minutes", "time to previous gulp(at t)", GulpMeasureComputation.computeTToGulp()),
+			CapillaryEventMeasureComputation.computeIntakeBins(false, true)),
+	SUM_INTAKE_BIN_CORR("sum_intake_bin_corr", "volume (ul)", "cumulated volume of intake bins, minus evaporation (t-t0)",
+			CapillaryEventMeasureComputation.computeIntakeBins(true, true)),
+	TTOGULP("tToGulp", "minutes", "time to previous gulp(at t)", CapillaryEventMeasureComputation.computeTToGulp()),
 	TTOGULP_LR("tToGulp_LR", "minutes", "time to previous gulp of either capillary (at t)",
 			StoredDataAccessors.notImplemented_TTOGULP_LR()),
 

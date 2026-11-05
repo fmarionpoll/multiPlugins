@@ -1,6 +1,6 @@
 package plugins.fmp.multicafe.dlg.levels;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.service.ManualIntakeEdits;
 /** Fully calculated result. Construction can run in the background; install only mutates the model. */
 final class PreparedIntake {
@@ -16,7 +16,7 @@ final class PreparedIntake {
         options = detected.options.substring(0, scale) + edits.options() + detected.options.substring(scale);
     }
     void install(Capillary cap) {
-        CapillaryCorrelationGulps stored = cap.getCorrelationGulps();
+        CapillaryIntakes stored = cap.getIntakes();
         stored.set(amplitudes, 0, 0, detected.threshold, detected.manualThreshold);
         stored.setBottomPositions(bottoms);
         stored.setMethodOptions(options);

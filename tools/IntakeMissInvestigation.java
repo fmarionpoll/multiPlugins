@@ -136,8 +136,8 @@ public class IntakeMissInvestigation {
                     }
                     int bins = 0, usable = 0; for (int i = 1; i < p.raw.length; i++) { if (d.net[i] > 0) bins++; if (p.motion.reliable[i]) usable++; }
                     summary.write(name + ";" + id + ";" + cap.getNFlies() + ";" + p.noise.automatic + ";"
-                            + cap.getCorrelationGulps().getThresholdPxPerMin() + ";" + cap.getCorrelationGulps().getMethodOptions()
-                            + ";" + cap.getCorrelationGulps().countEvents() + ";" + bins + ";" + Arrays.stream(d.net).sum()
+                            + cap.getIntakes().getThresholdPxPerMin() + ";" + cap.getIntakes().getMethodOptions()
+                            + ";" + cap.getIntakes().countEvents() + ";" + bins + ";" + Arrays.stream(d.net).sum()
                             + ";" + usable + ";" + (p.raw.length - 1) + ";" + d.episodes
                             + ";" + local + ";" + p.localScale.factor + ";" + p.localScale.reliable + ";" + p.localScale.quietIntervals
                             + ";" + (local ? p.localScale.factor : 1) + "\n");

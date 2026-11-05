@@ -13,27 +13,27 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExportSupport;
 
-public class SavedIntakeExportTest {
+public class IntakeExportTest {
     @org.junit.BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
     private Capillary capillary() {
         Capillary cap = new Capillary();
         cap.getTopRaw().polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {10, 11, 12, 13}, 4);
-        cap.getCorrelationGulps().set(new double[] {0, 2.25, 0, 0.75}, 3, 6, 0.5, true);
-        cap.getCorrelationGulps().setMethodOptions("version=test,manual=1;edited");
+        cap.getIntakes().set(new double[] {0, 2.25, 0, 0.75}, 3, 6, 0.5, true);
+        cap.getIntakes().setMethodOptions("version=test,manual=1;edited");
         return cap;
     }
 
-    @Test public void savedIntakeWorksWithoutOrdinaryGulpsAndPreservesFractions() {
+    @Test public void intakeWorksWithoutOrdinaryGulpsAndPreservesFractions() {
         Capillary cap = capillary();
         Experiment exp = new Experiment();
         ResultsOptions options = new ResultsOptions();
-        assertEquals(2.25, cap.getMeasurements(EnumResults.SAVED_INTAKE_RAW, exp, options).getValueAt(1), 1e-12);
-        assertEquals(3, cap.getMeasurements(EnumResults.SUM_SAVED_INTAKE_RAW, exp, options).getValueAt(3), 1e-12);
-        assertNull(cap.getMeasurements(EnumResults.INTAKE_BIN_RAW, exp, options));
+        assertEquals(2.25, cap.getMeasurements(EnumResults.INTAKE_BIN_RAW, exp, options).getValueAt(1), 1e-12);
+        assertEquals(3, cap.getMeasurements(EnumResults.SUM_INTAKE_BIN_RAW, exp, options).getValueAt(3), 1e-12);
+        assertNull(cap.getMeasurements(EnumResults.GULP_BIN_RAW, exp, options));
         cap.getGulps().ensureSize(4);
         cap.getGulps().setAmplitudeAt(1, 9);
-        assertEquals(9, cap.getMeasurements(EnumResults.INTAKE_BIN_RAW, exp, options).getValueAt(1), 1e-12);
-        assertEquals(2.25, cap.getMeasurements(EnumResults.SAVED_INTAKE_RAW, exp, options).getValueAt(1), 1e-12);
+        assertEquals(9, cap.getMeasurements(EnumResults.GULP_BIN_RAW, exp, options).getValueAt(1), 1e-12);
+        assertEquals(2.25, cap.getMeasurements(EnumResults.INTAKE_BIN_RAW, exp, options).getValueAt(1), 1e-12);
         assertEquals(9, cap.getGulps().getHeightSeries().ypoints[1], 0);
     }
 
@@ -41,36 +41,61 @@ public class SavedIntakeExportTest {
         Capillary cap = capillary();
         Experiment exp = new Experiment();
         ResultsOptions options = new ResultsOptions();
-        assertNull(cap.getMeasurements(EnumResults.SAVED_INTAKE_CORR, exp, options));
+        assertNull(cap.getMeasurements(EnumResults.INTAKE_BIN_CORR, exp, options));
         CapillaryMeasure evaporation = new CapillaryMeasure("evaporation");
         evaporation.polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {0, 0.25, 0.5, 1}, 4);
         exp.getCapillaries().getReferenceMeasures().setEvaporation(evaporation);
-        assertEquals(2, cap.getMeasurements(EnumResults.SAVED_INTAKE_CORR, exp, options).getValueAt(1), 1e-12);
-        assertEquals(2.25, cap.getMeasurements(EnumResults.SUM_SAVED_INTAKE_CORR, exp, options).getValueAt(3), 1e-12);
-        cap.getCorrelationGulps().clear();
-        assertNull(cap.getMeasurements(EnumResults.SAVED_INTAKE_RAW, exp, options));
+        assertEquals(2, cap.getMeasurements(EnumResults.INTAKE_BIN_CORR, exp, options).getValueAt(1), 1e-12);
+        assertEquals(2.25, cap.getMeasurements(EnumResults.SUM_INTAKE_BIN_CORR, exp, options).getValueAt(3), 1e-12);
+        cap.getIntakes().clear();
+        assertNull(cap.getMeasurements(EnumResults.INTAKE_BIN_RAW, exp, options));
+    }
+
+    @Test public void allGulpAndIntakeVariantsUseTheirOwnFractionalEvents() {
+        Capillary cap = capillary();
+        cap.getGulps().ensureSize(4);
+        cap.getGulps().setAmplitudeAt(2, 4.125);
+        cap.getGulps().setAmplitudeAt(3, 1.25);
+        Experiment exp = new Experiment();
+        ResultsOptions options = new ResultsOptions();
+        CapillaryMeasure evaporation = new CapillaryMeasure("evaporation");
+        evaporation.polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {0, .25, .5, 1}, 4);
+        exp.getCapillaries().getReferenceMeasures().setEvaporation(evaporation);
+        EnumResults[] types = { EnumResults.GULP_BIN_RAW, EnumResults.GULP_BIN_CORR,
+            EnumResults.SUM_GULP_BIN_RAW, EnumResults.SUM_GULP_BIN_CORR,
+            EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
+            EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR };
+        double[][] expected = { {0, 0, 4.125, 1.25}, {0, 0, 3.875, .75},
+            {0, 0, 4.125, 5.375}, {0, 0, 3.875, 4.625},
+            {0, 2.25, 0, .75}, {0, 2, 0, .25},
+            {0, 2.25, 2.25, 3}, {0, 2, 2, 2.25} };
+        for (int type = 0; type < types.length; type++) {
+            CapillaryMeasure results = cap.getMeasurements(types[type], exp, options);
+            for (int bin = 0; bin < 4; bin++)
+                assertEquals(types[type] + " at bin " + bin, expected[type][bin], results.getValueAt(bin), 1e-12);
+        }
     }
 
     @Test public void csvKeepsIndependentFilesAndProvenance() throws Exception {
-        Path folder = Files.createTempDirectory("saved-intake-export");
+        Path folder = Files.createTempDirectory("intake-export");
         try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder, Collections.emptyList(), 60000, false)) {
             csv.writeGulpEvent("expA", 2, "L", 0, 1.5, 9, 8, 9, 8);
-            csv.writeSavedIntake("expA", 2, "L", 0, 1.5, 2.25, Double.NaN, 3, 2);
-            csv.writeSavedIntakeMetadata(SavedIntakeMetadata.row("expA", 2, "L", capillary()));
+            csv.writeIntake("expA", 2, "L", 0, 1.5, 2.25, Double.NaN, 3, 2);
+            csv.writeIntakeMetadata(IntakeMetadata.row("expA", 2, "L", capillary()));
         }
         String saved = new String(Files.readAllBytes(folder.resolve("intakeevents.csv")), java.nio.charset.StandardCharsets.UTF_8);
-        assertTrue(saved.contains("saved_intake_raw_uL"));
+        assertTrue(saved.contains("intake_bin_raw_uL"));
         assertTrue(saved.contains("2.25"));
         assertTrue(saved.contains("interval_start_min,interval_end_min"));
         assertFalse(saved.contains("NaN"));
         String metadata = new String(Files.readAllBytes(folder.resolve("intakeevents_metadata.csv")), java.nio.charset.StandardCharsets.UTF_8);
-        assertFalse(Files.exists(folder.resolve("saved_intake_metadata.csv")));
+        assertFalse(Files.exists(folder.resolve("intake_metadata.csv")));
         assertEquals(2, Files.readAllLines(folder.resolve("intakeevents_metadata.csv")).size());
         assertTrue(metadata.contains("method_options"));
         assertTrue(metadata.contains("version=test,manual=1;edited"));
     }
 
-    @Test public void cageCsvRequiresLrSelectionAndIncludesSavedIntake() throws Exception {
+    @Test public void cageCsvRequiresLrSelectionAndIncludesIntake() throws Exception {
         Experiment exp = new Experiment();
         exp.setFrameTimeScale(plugins.fmp.multitools.experiment.timebase.FrameTimeScale.fromArrays(0,
             new long[] {0, 60000, 120000, 180000}, new String[] {"a", "b", "c", "d"}, 0, 4));
@@ -86,7 +111,7 @@ public class SavedIntakeExportTest {
             cap.setPixels(100);
             cap.setVolume(1);
             cap.getTopRaw().polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {10, 11, 12, 13}, 4);
-            cap.getCorrelationGulps().set(new double[] {0, 2.25, 0, 0.75}, 3, 6, 0.5, true);
+            cap.getIntakes().set(new double[] {0, 2.25, 0, 0.75}, 3, 6, 0.5, true);
             cap.getGulps().ensureSize(4);
             cap.getGulps().setAmplitudeAt(1, 1);
             exp.getCapillaries().getList().add(cap);
@@ -98,7 +123,7 @@ public class SavedIntakeExportTest {
                 CsvNormalizedExportSupport.class, java.util.List.class, boolean.class, boolean.class, boolean.class, long.class);
         method.setAccessible(true);
         ResultsOptions options = new ResultsOptions();
-        options.savedIntake = true;
+        options.intake = true;
         options.buildExcelStepMs = 60000;
         for (boolean selected : new boolean[] {false, true}) {
             options.lrPI = selected;
@@ -140,10 +165,10 @@ public class SavedIntakeExportTest {
 
     @Test public void copiedOptionsRetainIndependentSelections() {
         ResultsOptions options = new ResultsOptions();
-        options.savedIntake = true;
+        options.intake = true;
         ResultsOptions copy = new ResultsOptions();
         copy.copy(options);
-        assertTrue(copy.savedIntake);
+        assertTrue(copy.intake);
     }
 
     @Test public void intakeCsvAndExcelPreserveAcquisitionGapsAtNativeResolution() throws Exception {
@@ -158,7 +183,7 @@ public class SavedIntakeExportTest {
         cap.setPixels(100);
         cap.setVolume(1);
         cap.getTopRaw().polylineLevel = new Level2D(new double[] {0, 1, 2, 3}, new double[] {10, 11, 13, 14}, 4);
-        cap.getCorrelationGulps().set(new double[] {0, 0, 2.25, 0}, 3, 6, 0.5, true);
+        cap.getIntakes().set(new double[] {0, 0, 2.25, 0}, 3, 6, 0.5, true);
         cap.getGulps().ensureSize(4);
         cap.getGulps().setAmplitudeAt(1, 0.25);
         cap.getGulps().setAmplitudeAt(2, 2.75);
@@ -168,12 +193,12 @@ public class SavedIntakeExportTest {
         cage.addCapillaryIfUnique(cap);
         exp.getCages().getCageList().add(cage);
         ResultsOptions options = new ResultsOptions();
-        options.savedIntake = true;
+        options.intake = true;
         options.buildExcelStepMs = 600000; // summary bins must not replace native event boundaries
         Path folder = Files.createTempDirectory("intake-native-gap");
         try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder, Collections.emptyList(), 600000, false)) {
             java.lang.reflect.Method method = plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport.class
-                .getDeclaredMethod("exportIntakeBins", Experiment.class, ResultsOptions.class, String.class,
+                .getDeclaredMethod("exportEventBins", Experiment.class, ResultsOptions.class, String.class,
                     CsvNormalizedExportSupport.class, plugins.fmp.multitools.tools.chart.builders.CageCapillarySeriesBuilder.class,
                     int.class, boolean.class);
             method.setAccessible(true);
@@ -189,7 +214,7 @@ public class SavedIntakeExportTest {
         assertEquals(4, Double.parseDouble(fields[4]), 0);
         assertEquals(0.0225, Double.parseDouble(fields[5]), 1e-12);
         assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,"
-            + "saved_intake_raw_uL,saved_intake_corr_uL,sum_saved_intake_raw_uL,sum_saved_intake_corr_uL", lines.get(0));
+            + "intake_bin_raw_uL,intake_bin_corr_uL,sum_intake_bin_raw_uL,sum_intake_bin_corr_uL", lines.get(0));
         assertFalse(Files.exists(folder.resolve("legacy_gulps.csv")));
         assertFalse(Files.exists(folder.resolve("intakebins.csv")));
         java.util.List<String> gulpLines = Files.readAllLines(folder.resolve("gulpevents.csv"));
@@ -208,10 +233,10 @@ public class SavedIntakeExportTest {
         try (plugins.fmp.multitools.tools.toExcel.utils.ExcelResourceManager manager =
                 new plugins.fmp.multitools.tools.toExcel.utils.ExcelResourceManager(folder.resolve("test.xlsx").toString())) {
             exporter.resourceManager = manager;
-            java.lang.reflect.Method method = XLSExportMeasuresFromGulp.class.getDeclaredMethod("exportSavedIntakeDetails", Experiment.class, String.class);
+            java.lang.reflect.Method method = XLSExportMeasuresFromGulp.class.getDeclaredMethod("exportIntakeDetails", Experiment.class, String.class);
             method.setAccessible(true);
             method.invoke(exporter, exp, "A");
-            org.apache.poi.xssf.streaming.SXSSFSheet sheet = manager.getWorkbook().getSheet("saved_intake_intervals");
+            org.apache.poi.xssf.streaming.SXSSFSheet sheet = manager.getWorkbook().getSheet("intake_intervals");
             assertEquals(1, sheet.getRow(3).getCell(3).getNumericCellValue(), 0);
             assertEquals(4, sheet.getRow(3).getCell(4).getNumericCellValue(), 0);
             assertEquals(0.0225, sheet.getRow(3).getCell(5).getNumericCellValue(), 1e-12);

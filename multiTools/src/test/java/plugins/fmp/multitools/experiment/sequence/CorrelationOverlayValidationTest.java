@@ -9,7 +9,7 @@ import org.junit.Test;
 import icy.image.IcyBufferedImage;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.experiment.capillary.CapillaryGulps;
 import plugins.fmp.multitools.experiment.capillary.IntakeEvaporationOverlay;
 import plugins.fmp.multitools.tools.polyline.Level2D;
@@ -39,7 +39,7 @@ public class CorrelationOverlayValidationTest {
         seq.setImage(0,0,IcyBufferedImage.createFrom(new BufferedImage(10,80,BufferedImage.TYPE_INT_RGB)));
         ROI2DPolyLine preview=new ROI2DPolyLine(new Level2D(new double[]{0,1,2},new double[]{20,21,24},3));
         preview.setName("line2L_xcorr_refinement_proposed");preview.setT(0);preview.setReadOnly(true);
-        CapillaryCorrelationGulps.markOverlay(preview);
+        CapillaryIntakes.markOverlay(preview);
         preview.setProperty(plugins.fmp.multitools.service.MeniscusRefinementPreview.ROI_PROPERTY,"true");
         seq.addROI(preview);
         MeasureRoiSync.updateMeasureROIsAt(1,seq,MeasureRoiSync.MeasureRoiFilter.CAPILLARY_MEASURES,java.util.Collections.emptyList());
@@ -79,7 +79,7 @@ public class CorrelationOverlayValidationTest {
 
     @Test public void ownershipPreventsRenamedOverlayFromBecomingAMeasure() {
         ROI2D overlay=curve(); overlay.setName("gulp0000000");
-        assertTrue(CapillaryCorrelationGulps.isOverlay(overlay));
+        assertTrue(CapillaryIntakes.isOverlay(overlay));
         CapillaryGulps gulps=new CapillaryGulps();
         gulps.transferROIsToMeasures(Arrays.asList(overlay),10);
         assertEquals(0,Arrays.stream(gulps.getHeightSeries().ypoints).sum(),0);

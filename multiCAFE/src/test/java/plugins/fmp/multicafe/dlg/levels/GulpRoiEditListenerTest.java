@@ -7,7 +7,7 @@ import java.awt.geom.Line2D;
 import javax.swing.SwingUtilities;
 import org.junit.Test;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class GulpRoiEditListenerTest {
@@ -36,7 +36,7 @@ public class GulpRoiEditListenerTest {
             Capillary cap = new Capillary();
             ROI2DLine intake = new ROI2DLine(10, 20, 10, 15);
             intake.setName("before_gulp0000010");
-            CapillaryCorrelationGulps.markOverlay(intake);
+            CapillaryIntakes.markOverlay(intake);
             intake.addListener(EditLevels.gulpRoiEditListener(cap));
             intake.setLine(new Line2D.Double(10, 20, 10, 12));
             ROI2DLine level = new ROI2DLine(0, 20, 10, 20);

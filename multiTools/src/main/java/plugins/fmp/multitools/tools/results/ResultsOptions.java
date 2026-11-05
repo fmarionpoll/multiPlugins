@@ -71,8 +71,8 @@ public class ResultsOptions {
 	public boolean nbGulps = false;
 	public boolean amplitudeGulps = false;
 
-	/** Separately saved intake: raw/corrected volumes, cumulative totals and provenance. */
-	public boolean savedIntake = false;
+	/** Intake events: raw/corrected volumes, cumulative totals and provenance. */
+	public boolean intake = false;
 	public boolean tToNextGulp = false;
 	public boolean tToNextGulp_LR = false;
 
@@ -236,7 +236,7 @@ public class ResultsOptions {
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
 		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;
 
-		this.savedIntake = resultsOptions.savedIntake;
+		this.intake = resultsOptions.intake;
 		this.autocorrelation = resultsOptions.autocorrelation;
 		this.crosscorrelation = resultsOptions.crosscorrelation;
 		this.crosscorrelationLR = resultsOptions.crosscorrelationLR;

@@ -52,8 +52,8 @@ public final class AutomaticIntakeResult {
 	}
 
 	public void install(Capillary cap) {
-		cap.getCorrelationGulps().set(amplitudes, 0, 0, threshold, manualThreshold);
-		cap.getCorrelationGulps().setBottomPositions(bottoms);
-		cap.getCorrelationGulps().setMethodOptions(options);
+		cap.getIntakes().set(amplitudes, 0, 0, threshold, manualThreshold);
+		cap.getIntakes().setBottomPositions(bottoms);
+		cap.getIntakes().setMethodOptions(options);
 	}
 }

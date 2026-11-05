@@ -8,7 +8,7 @@ import icy.roi.ROI2D;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.experiment.capillary.IntakeEvaporationOverlay;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 
@@ -44,7 +44,7 @@ final class IntakeOverlayController {
 			frames.add(cap.getKymographIndex());
 		List<ROI> old = new ArrayList<>();
 		for (ROI2D roi : seq.getROI2Ds())
-			if (CapillaryCorrelationGulps.isOverlay(roi) && frames.contains(roi.getT()) && !"true"
+			if (CapillaryIntakes.isOverlay(roi) && frames.contains(roi.getT()) && !"true"
 					.equals(roi.getProperty(plugins.fmp.multitools.service.MeniscusRefinementPreview.ROI_PROPERTY)))
 				old.add(roi);
 		List<ROI2D> rois = new ArrayList<>();
@@ -52,7 +52,7 @@ final class IntakeOverlayController {
 			int t = cap.getKymographIndex();
 			for (int i = 1; i < chosen.length; i++)
 				if (chosen[i] && Double.isFinite(bottoms[i]))
-					rois.add(CapillaryCorrelationGulps.createRoi(cap.getKymographPrefix(), i, bottoms[i], heights[i],
+					rois.add(CapillaryIntakes.createRoi(cap.getKymographPrefix(), i, bottoms[i], heights[i],
 							t));
 			if (preview.hasEvaporationReference)
 				rois.addAll(IntakeEvaporationOverlay.createRois(cap.getKymographPrefix(), heights,

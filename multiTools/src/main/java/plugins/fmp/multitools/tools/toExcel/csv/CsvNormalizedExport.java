@@ -30,7 +30,7 @@ import plugins.fmp.multitools.tools.chart.builders.CapillaryChartSeriesKeys;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
-import plugins.fmp.multitools.tools.toExcel.SavedIntakeMetadata;
+import plugins.fmp.multitools.tools.toExcel.IntakeMetadata;
 import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
@@ -48,8 +48,8 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * options. {@code measure_cap_raw.csv} and {@code measure_cage_raw.csv} also
  * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
  * on the same {@code time_min} rows. Gulp event exports include fractional raw and evaporation-corrected
- * volumes plus their running totals in {@code gulpevents.csv}. With {@code savedIntake}, {@code intakeevents.csv}
- * exports the separately saved intake and {@code intakeevents_metadata.csv}
+ * volumes plus their running totals in {@code gulpevents.csv}. With {@code intake}, {@code intakeevents.csv}
+ * exports the separate intake dataset and {@code intakeevents_metadata.csv}
  * its provenance. Both event files include native interval start/end times.
  */
 public final class CsvNormalizedExport {
@@ -160,20 +160,20 @@ public final class CsvNormalizedExport {
 					rawStepMs, binStepMs, writeBin);
 		}
 		if (wantGulpEvents) {
-			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs, false);
+			exportEventBins(exp, options, charSeries, csv, builder, rawStepMs, false);
 		}
-		if (mode == Mode.GULPS && options.savedIntake) {
-			exportIntakeBins(exp, options, charSeries, csv, builder, rawStepMs, true);
+		if (mode == Mode.GULPS && options.intake) {
+			exportEventBins(exp, options, charSeries, csv, builder, rawStepMs, true);
 		}
 	}
 
-	/** One row per intake bin (raw volume > 0), at native resolution. */
-	private static void exportIntakeBins(Experiment exp, ResultsOptions options, String charSeries,
-			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs, boolean saved) throws IOException {
-		EnumResults[] types = saved ? new EnumResults[] { EnumResults.SAVED_INTAKE_RAW, EnumResults.SAVED_INTAKE_CORR,
-				EnumResults.SUM_SAVED_INTAKE_RAW, EnumResults.SUM_SAVED_INTAKE_CORR }
-				: new EnumResults[] { EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
-				EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR };
+	/** One row per gulp or intake event bin (raw volume > 0), at native resolution. */
+	private static void exportEventBins(Experiment exp, ResultsOptions options, String charSeries,
+			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs, boolean intakeEvents) throws IOException {
+		EnumResults[] types = intakeEvents ? new EnumResults[] { EnumResults.INTAKE_BIN_RAW, EnumResults.INTAKE_BIN_CORR,
+				EnumResults.SUM_INTAKE_BIN_RAW, EnumResults.SUM_INTAKE_BIN_CORR }
+				: new EnumResults[] { EnumResults.GULP_BIN_RAW, EnumResults.GULP_BIN_CORR,
+				EnumResults.SUM_GULP_BIN_RAW, EnumResults.SUM_GULP_BIN_CORR };
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
 				continue;
@@ -199,16 +199,16 @@ public final class CsvNormalizedExport {
 				}
 				csv.ensureDescriptors(exp, charSeries, cage, cap);
 				String capId = NormalizedExportSupport.buildCapId(cap);
-				if (saved) {
-					csv.writeSavedIntakeMetadata(SavedIntakeMetadata.row(expKey, cageId, capId, cap));
+				if (intakeEvents) {
+					csv.writeIntakeMetadata(IntakeMetadata.row(expKey, cageId, capId, cap));
 				}
 				for (int i = 0; i < raw.getItemCount(); i++) {
 					double v = raw.getY(i).doubleValue();
 					if (!(v > 0)) {
 						continue;
 					}
-					if (saved) {
-						csv.writeSavedIntake(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+					if (intakeEvents) {
+						csv.writeIntake(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
 								valueAt(series[2], i), valueAt(series[3], i));
 					} else {
 						csv.writeGulpEvent(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN,
@@ -414,9 +414,9 @@ public final class CsvNormalizedExport {
 			mergeCagePair(byTime, toprawSum, toprawPi, 2, 3, true);
 			mergeCagePair(byTime, gulpSum, gulpPi, 4, 5, !wantLevels);
 			mergeCagePair(byTime, level00Sum, level00Pi, 6, 7, true);
-			if (options.savedIntake) {
-				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_RAW, nativeStepMs, builder, 8);
-				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_CORR, nativeStepMs, builder, 10);
+			if (options.intake) {
+				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_INTAKE_BIN_RAW, nativeStepMs, builder, 8);
+				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_INTAKE_BIN_CORR, nativeStepMs, builder, 10);
 			}
 			if (byTime.isEmpty()) {
 				continue;
@@ -445,9 +445,9 @@ public final class CsvNormalizedExport {
 					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUMGULPS, nativeStepMs, builder,
 							cageId, 4, 5, !wantLevels);
 				}
-				if (options.savedIntake) {
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_RAW, nativeStepMs, builder, cageId, 8, 9, true);
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_SAVED_INTAKE_CORR, nativeStepMs, builder, cageId, 10, 11, true);
+				if (options.intake) {
+					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_INTAKE_BIN_RAW, nativeStepMs, builder, cageId, 8, 9, true);
+					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_INTAKE_BIN_CORR, nativeStepMs, builder, cageId, 10, 11, true);
 				}
 				if (!byTimeSides.isEmpty()) {
 					writeMeasureCageBinned(csv, expKey, cageId, byTimeSides, binStepMs, t00Suitable);
@@ -456,7 +456,7 @@ public final class CsvNormalizedExport {
 		}
 	}
 
-	/** Saved intake uses the same L/R aggregation as ordinary cumulative gulps. */
+	/** Intake uses the same L/R aggregation as ordinary cumulative gulps. */
 	private static void mergeIntakeCagePair(Map<Long, double[]> byTime, Experiment exp, Cage cage,
 			ResultsOptions options, EnumResults type, int stepMs, CageCapillarySeriesBuilder builder, int offset) {
 		Map<Long, double[]> sides = new TreeMap<>();

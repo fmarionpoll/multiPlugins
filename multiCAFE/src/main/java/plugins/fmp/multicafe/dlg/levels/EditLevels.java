@@ -29,7 +29,7 @@ import icy.type.geom.Polyline2D;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
-import plugins.fmp.multitools.experiment.capillary.CapillaryCorrelationGulps;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.experiment.capillary.CapillaryMeasure;
 import plugins.fmp.multitools.experiment.capillary.MeasureEditTarget;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
@@ -181,7 +181,7 @@ public class EditLevels extends JPanel {
 			return;
 		for (ROI2D r : seqKymos.getSequence().getROI2Ds()) {
 			if (r.getT() != t || r.getName() == null || !r.getName().contains("gulp")
-					|| CapillaryCorrelationGulps.isOverlay(r))
+					|| CapillaryIntakes.isOverlay(r))
 				continue;
 			ROIListener listener = gulpRoiEditListener(cap);
 			r.addListener(listener);
@@ -195,7 +195,7 @@ public class EditLevels extends JPanel {
 			ROI roi = event.getSource();
 			if (event.getType() == ROIEvent.ROIEventType.ROI_CHANGED
 					&& roi.getName() != null && roi.getName().contains("gulp")
-					&& !CapillaryCorrelationGulps.isOverlay(roi))
+					&& !CapillaryIntakes.isOverlay(roi))
 				cap.setGulpMeasuresDirty(true);
 		};
 	}

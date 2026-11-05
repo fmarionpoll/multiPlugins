@@ -59,10 +59,10 @@ public class IntakeWorkflowTest {
         Capillary cap = experiment.getCapillaries().getList().get(0);
         CorrelationGulpPreview preview = CorrelationGulpPreview.computeAccepted(experiment, cap, false);
         new AutomaticIntakeResult(preview, true, false, preview.noise.automatic).install(cap);
-        assertTrue(cap.getCorrelationGulps().isManualThreshold());
-        assertEquals(preview.noise.automatic, cap.getCorrelationGulps().getThresholdPxPerMin(), 0);
+        assertTrue(cap.getIntakes().isManualThreshold());
+        assertEquals(preview.noise.automatic, cap.getIntakes().getThresholdPxPerMin(), 0);
         new AutomaticIntakeResult(preview, true, false).install(cap);
-        assertFalse(cap.getCorrelationGulps().isManualThreshold());
+        assertFalse(cap.getIntakes().isManualThreshold());
     }
 
     @Test public void preparedEditsMatchCsvAndSavedGeometryWithoutRecomputingOnInstall() throws Exception {
@@ -84,14 +84,14 @@ public class IntakeWorkflowTest {
                 thresholds, manual, overrides, new IdentityHashMap<>());
         thresholds.put(cap, 99.0); // captured settings must be independent of later edits
         snapshot.prepare(message -> assertFalse(SwingUtilities.isEventDispatchThread()));
-        assertFalse(cap.getCorrelationGulps().hasMeasures());
+        assertFalse(cap.getIntakes().hasMeasures());
         assertEquals(4.5, snapshot.results.get(cap).amplitudes[30], 0);
         SwingUtilities.invokeAndWait(() -> assertTrue(snapshot.install(IntakePersistence.Destination.SAVE_INTAKE)));
         assertEquals(7.5, cap.getGulps().getHeightSeries().ypoints[20], 0);
         assertFalse("Saving separate intake must not mark ordinary gulps as edited", cap.isGulpMeasuresDirty());
-        assertEquals(.75, cap.getCorrelationGulps().getThresholdPxPerMin(), 0);
-        assertEquals(40, cap.getCorrelationGulps().bottomAt(30, 0), 0);
-        assertTrue(cap.getCorrelationGulps().getMethodOptions().contains(edits.options()));
+        assertEquals(.75, cap.getIntakes().getThresholdPxPerMin(), 0);
+        assertEquals(40, cap.getIntakes().bottomAt(30, 0), 0);
+        assertTrue(cap.getIntakes().getMethodOptions().contains(edits.options()));
         StringWriter csv = new StringWriter();
         BufferedWriter writer = new BufferedWriter(csv);
         IntakeReviewExport.writeReviewCsv(writer, experiment, cap, preview, .75, true, true, false, edits);
@@ -114,6 +114,6 @@ public class IntakeWorkflowTest {
         experiment.getCapillaries().getList().get(1).getTopRaw().polylineLevel.ypoints[10] += 1;
         SwingUtilities.invokeAndWait(() -> assertFalse(snapshot.install(IntakePersistence.Destination.REPLACE_GULPS_AND_SAVE)));
         for (Capillary cap : experiment.getCapillaries().getList())
-            assertFalse(cap.getCorrelationGulps().hasMeasures());
+            assertFalse(cap.getIntakes().hasMeasures());
     }
 }
