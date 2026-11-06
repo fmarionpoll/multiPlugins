@@ -77,6 +77,8 @@ public class Chart extends JPanel implements SequenceListener, ViewerListener {
 //			EnumResults.NBGULPS, //
 			EnumResults.AMPLITUDEGULPS, //
 			EnumResults.GULP_BIN_RAW, //
+			EnumResults.INTAKE_BIN_RAW, //
+			EnumResults.SUM_INTAKE_BIN_RAW, //
 			// EnumResults.TTOGULP //
 	};
 

@@ -8,6 +8,29 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class MeniscusRefinementTest {
+    @Test public void refiningLevelsPreservesOrdinaryGulpsAndTheirEditState() {
+        for (boolean dirty : new boolean[] {false, true}) {
+            double[] positions = {30, 30.3, 31, 32};
+            Capillary c = cap(positions);
+            c.getGulps().ensureSize(positions.length);
+            c.getGulps().setAmplitudeAt(2, 3);
+            c.setGulpMeasuresDirty(dirty);
+            c.getIntakes().set(new double[] {0, 0, 2, 0}, 3, 6, 1, false);
+            MeniscusRefinement.Proposal draft = MeniscusRefinement.editable(c.getTopRaw().polylineLevel,
+                    image(positions), null);
+            draft.addOffset(1, 2, 2);
+            MeniscusRefinement.accept(c, draft);
+            assertEquals("Refining levels must not manufacture or clear ordinary gulp edits",
+                    dirty, c.isGulpMeasuresDirty());
+            assertEquals(3, c.getGulps().getHeightSeries().ypoints[2], 0);
+            assertFalse("Correlation intake must still be invalidated", c.getIntakes().hasMeasures());
+            MeniscusRefinement.undo(c);
+            assertEquals(dirty, c.isGulpMeasuresDirty());
+            assertEquals(3, c.getGulps().getHeightSeries().ypoints[2], 0);
+            assertTrue(c.getIntakes().hasMeasures());
+        }
+    }
+
     @Test public void editableDraftValidatesOnlyManualChangesAndCanBeUndone() {
         double[] positions = {30, 30.3, 31, 32};
         Capillary c = cap(positions);
@@ -172,7 +195,7 @@ public class MeniscusRefinementTest {
         MeniscusRefinement.Proposal p=MeniscusRefinement.propose(cap.getTopRaw().polylineLevel,image(values),10,3,true);
         MeniscusRefinement.accept(cap,p);
         assertFalse(cap.getIntakes().hasMeasures());assertEquals(0,cap.getDerivative().polylineLevel.npoints);
-        assertEquals(0,cap.getTopCorrected().polylineLevel.npoints);assertTrue(cap.isGulpMeasuresDirty());
+        assertEquals(0,cap.getTopCorrected().polylineLevel.npoints);assertFalse(cap.isGulpMeasuresDirty());
         MeniscusRefinement.undo(cap);
         assertEquals(3,cap.getIntakes().countEvents());assertEquals(2,cap.getDerivative().polylineLevel.npoints);
         assertEquals(2,cap.getTopCorrected().polylineLevel.npoints);assertFalse(cap.isGulpMeasuresDirty());

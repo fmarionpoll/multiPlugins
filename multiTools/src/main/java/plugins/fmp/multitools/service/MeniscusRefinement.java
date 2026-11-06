@@ -373,9 +373,9 @@ public final class MeniscusRefinement {
     private static void invalidateDerived(Capillary cap) {
         cap.getDerivative().clear();
         cap.getTopCorrected().clear();
-        cap.setGulpMeasuresDirty(true);
-        // Classic gulps may be manually annotated. Keep them, but require recalculation
-        // of the prototype's derived events after the level input changes.
+        // Classic gulps may be manually annotated. Preserve them and their edit
+        // state: changing topraw does not edit the ordinary gulp ROIs.
+        // Correlation intake must be recalculated after its level input changes.
         cap.getIntakes().clear();
     }
 }

@@ -52,6 +52,7 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.service.MeniscusRefinement;
 import plugins.fmp.multitools.service.MeniscusRefinementPreview;
+import plugins.fmp.multitools.service.MeniscusReferenceTracking;
 import plugins.fmp.multitools.series.RefineMeniscus;
 import plugins.fmp.multitools.tools.JComponents.RichTooltipLayoutGuard;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
@@ -84,6 +85,18 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final JButton runCorrelation = new JButton("Run correlation"),
 			applyCorrelation = new JButton("Apply correlation");
 	private final Map<Capillary, MeniscusRefinement.Proposal> correlations = new LinkedHashMap<>();
+	private final JCheckBox pickReference = new JCheckBox("Track reference");
+	private final JSpinner referenceSmoothness = new JSpinner(new SpinnerNumberModel(12, 1, 200, 1));
+	private final JComboBox<MeniscusReferenceTracking.Model> referenceModel = new JComboBox<>(MeniscusReferenceTracking.Model.values());
+	private final JButton previewReference = new JButton("Preview reference"),
+			applyReference = new JButton("Apply reference"), clearReference = new JButton("Clear reference");
+	private final Map<Capillary, Map<Integer, Double>> referenceAnchors = new LinkedHashMap<>();
+	private final Map<Capillary, MeniscusReferenceTracking.Result> referenceResults = new LinkedHashMap<>();
+	private final Map<Capillary, double[]> referenceInputs = new LinkedHashMap<>();
+	private Capillary referenceDragCapillary;
+	private int referenceDragColumn = -1, referenceDragTarget, referencePressX, referencePressY;
+	private double referenceDragY, referenceDragOffset;
+	private boolean referenceDragged;
 	private final JButton accept = new JButton("Validate"), undo = new JButton("Undo validation");
 	private final JButton nudgeUp = new JButton("-1 px");
 	private final JButton nudgeDown = new JButton("+1 px");
@@ -252,11 +265,17 @@ public final class MeniscusRefinementPanel extends JPanel {
 			MouseAdapter mouse = new MouseAdapter() {
 				@Override
 				public void mousePressed(MouseEvent e) {
+					clearReferenceDrag();
 					if (suspended || !hasKymographs() || !inEditableStrip(e.getY(), getHeight())) {
 						editingStrip = false;
 						return;
 					}
 					editingStrip = true;
+					if (pickReference.isSelected()) {
+						editingStrip = false;
+						pickReference(e);
+						return;
+					}
 					if (moveMode() != MoveMode.RANGE) {
 						shapePressed(e);
 						return;
@@ -273,6 +292,10 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 				@Override
 				public void mouseDragged(MouseEvent e) {
+					if (referenceDragColumn >= 0) {
+						dragReference(e);
+						return;
+					}
 					if (!editingStrip)
 						return;
 					if (moveMode() != MoveMode.RANGE) {
@@ -306,6 +329,10 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 				@Override
 				public void mouseReleased(MouseEvent e) {
+					if (referenceDragColumn >= 0) {
+						releaseReference(e);
+						return;
+					}
 					if (!editingStrip)
 						return;
 					editingStrip = false;
@@ -333,7 +360,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 				@Override
 				public void mouseWheelMoved(MouseWheelEvent e) {
 					if (suspended || !hasKymographs() || !inEditableStrip(e.getY(), getHeight())
-							|| moveMode() != MoveMode.RANGE)
+							|| moveMode() != MoveMode.RANGE || pickReference.isSelected())
 						return;
 					int steps = e.getWheelRotation();
 					if (steps == 0)
@@ -369,10 +396,11 @@ public final class MeniscusRefinementPanel extends JPanel {
 						width);
 				g.setColor(Color.DARK_GRAY);
 				g.drawString(
-						"Correlated preview"
-								+ (correlations.containsKey(selected) ? "" : " (out of date - Run correlation)"),
+						(referenceResults.containsKey(selected) ? "Reference alignment preview" : "Correlated preview")
+								+ (correlations.containsKey(selected) || referenceResults.containsKey(selected) ? "" : " (out of date - Run correlation)"),
 						10, correlatedTop(height) - 4);
 				paintEditableStrip(g, selected, width, height);
+				paintReferenceTracking(g, selected, width, height);
 				g.setColor(Color.DARK_GRAY);
 				g.drawString("Topraw - editable", 10, stripTop(height) - 4);
 			}
@@ -467,6 +495,15 @@ public final class MeniscusRefinementPanel extends JPanel {
 		methods.add(new JLabel("Correlation method"));
 		methods.add(correlationMethod);
 		header.add(methods);
+		JPanel reference = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		reference.add(pickReference);
+		reference.add(referenceModel);
+		reference.add(new JLabel("Smooth +/- columns"));
+		reference.add(referenceSmoothness);
+		reference.add(previewReference);
+		reference.add(applyReference);
+		reference.add(clearReference);
+		header.add(reference);
 		header.add(actions);
 		header.add(hint);
 		updateHint();
@@ -510,6 +547,23 @@ public final class MeniscusRefinementPanel extends JPanel {
 		showOriginal.addActionListener(e -> updateOverlays());
 		showProposed.addActionListener(e -> updateOverlays());
 		runCorrelation.addActionListener(e -> runCorrelation());
+		pickReference.setToolTipText("Click to add a reference point; drag a yellow dot to move it. Right-click removes the nearest anchor.");
+		referenceSmoothness.setToolTipText("Half-width of the local straight-line fit, in sampled columns. Larger values remove longer fluctuations while preserving slopes.");
+		referenceModel.setToolTipText("Exponential fits B + A*(1-exp(-t/tau)) to the reference trajectory in strip coordinates. Manual columns remain fixed; short segments use a straight line.");
+		previewReference.setToolTipText("Track the selected feature in the original image and preview smooth alignment for the current capillary only.");
+		applyReference.setToolTipText("Transfer the reference preview to editable topraw. Manual columns stay fixed. Validate saves it.");
+		pickReference.addActionListener(e -> {
+			clearReferenceDrag();
+			commitStroke(); clearStroke(); clearSelection(); updateHint(); buttons(); plot.repaint();
+		});
+		referenceSmoothness.addChangeListener(e -> invalidateCorrelation());
+		referenceModel.addActionListener(e -> invalidateCorrelation());
+		previewReference.addActionListener(e -> runReferenceTracking());
+		applyReference.addActionListener(e -> applyReferenceTracking());
+		clearReference.addActionListener(e -> {
+			referenceAnchors.remove(cap()); invalidateCorrelation(); plot.repaint();
+			status.setText("Reference cleared for this capillary.");
+		});
 		applyCorrelation.addActionListener(e -> applyCorrelation());
 		accept.addActionListener(e -> apply(false));
 		undo.addActionListener(e -> apply(true));
@@ -531,6 +585,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 			plot.repaint();
 		});
 		capillaries.addActionListener(e -> {
+			clearReferenceDrag();
 			commitStroke();
 			clearSelection();
 			clearStroke();
@@ -587,7 +642,14 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private void buttons() {
 		List<Capillary> caps = scope();
 		boolean busy = suspended || !hasKymographs() || worker != null || previewTimer.isRunning();
-		runCorrelation.setEnabled(!closed && !busy && !caps.isEmpty()
+		boolean current = cap() != null && MeniscusRefinement.isCurrent(cap(), proposals.get(cap()));
+		pickReference.setEnabled(!closed && !busy && current);
+		referenceSmoothness.setEnabled(!closed && !busy && referenceModel.getSelectedItem() == MeniscusReferenceTracking.Model.LOCAL);
+		referenceModel.setEnabled(!closed && !busy);
+		previewReference.setEnabled(!closed && !busy && current && referenceAnchors.containsKey(cap()));
+		applyReference.setEnabled(!closed && !busy && current && referenceResults.containsKey(cap()));
+		clearReference.setEnabled(!closed && !busy && referenceAnchors.containsKey(cap()));
+		runCorrelation.setEnabled(!closed && !busy && !pickReference.isSelected() && !caps.isEmpty()
 				&& caps.stream().allMatch(c -> MeniscusRefinement.isCurrent(c, proposals.get(c))));
 		applyCorrelation.setEnabled(!closed && !busy && !caps.isEmpty() && caps.stream()
 				.allMatch(c -> correlations.containsKey(c) && MeniscusRefinement.isCurrent(c, proposals.get(c))));
@@ -599,9 +661,10 @@ public final class MeniscusRefinementPanel extends JPanel {
 		defineToolTips();
 		previousButton.setEnabled(capillaries.getSelectedIndex() > 0);
 		nextButton.setEnabled(capillaries.getSelectedIndex() + 1 < capillaries.getItemCount());
-		previewAlignment.setEnabled(!closed && !busy && hasStroke() && !alignmentPreview);
+		previewAlignment.setEnabled(!closed && !busy && !pickReference.isSelected() && hasStroke() && !alignmentPreview);
 		backAlignment.setEnabled(!closed && !busy && alignmentPreview);
-		profileChoice.setEnabled(!closed && moveMode() != MoveMode.RANGE);
+		profileChoice.setEnabled(!closed && !pickReference.isSelected() && moveMode() != MoveMode.RANGE);
+		moveMode.setEnabled(!closed && !busy && !pickReference.isSelected());
 	}
 
 	private void readyStatus() {
@@ -624,11 +687,15 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private void reset() {
+		clearReferenceDrag();
 		previewTimer.stop();
 		cancel();
 		clearStroke();
 
 		proposals.clear();
+		referenceAnchors.clear();
+		referenceResults.clear();
+		referenceInputs.clear();
 		{
 			aligned.clear();
 			correlatedStrips.clear();
@@ -665,6 +732,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 	 * Keep the draft and validation history while another experiment is displayed.
 	 */
 	void suspendSession() {
+		clearReferenceDrag();
 		previewTimer.stop();
 		cancel();
 		commitStroke();
@@ -721,6 +789,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 					throw new IllegalStateException("Detect topraw first.");
 				BufferedImage source = MeniscusRefinement.image(experiment.getSeqKymos().getSequence(), c, raw.npoints);
 				sources.put(c, source);
+				referenceAnchors.remove(c);
+				referenceResults.remove(c);
+				referenceInputs.remove(c);
 				proposals.put(c, MeniscusRefinement.editable(raw, source, c.getTopRaw().getRefinementQuality()));
 				correlations.remove(c);
 				correlatedStrips.remove(c);
@@ -742,6 +813,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private void invalidateCorrelation() {
 		cancel();
 		correlations.clear();
+		for (Capillary c : referenceResults.keySet()) correlatedStrips.remove(c);
+		referenceResults.clear();
+		referenceInputs.clear();
 		buttons();
 		plot.repaint();
 	}
@@ -753,10 +827,193 @@ public final class MeniscusRefinementPanel extends JPanel {
 		refreshComparison();
 	}
 
+	private void pickReference(MouseEvent e) {
+		Capillary c = cap();
+		MeniscusRefinement.Proposal p = proposals.get(c);
+		if (worker != null || p == null || !MeniscusRefinement.isCurrent(c, p)) return;
+		int column = columnAt(e.getX(), p.columnCount(), plot.getWidth());
+		Map<Integer, Double> anchors = referenceAnchors.computeIfAbsent(c, key -> new LinkedHashMap<>());
+		if (SwingUtilities.isLeftMouseButton(e)) {
+			double[] levels = p.refined();
+			double scale = (stripBottom(plot.getHeight())-stripTop(plot.getHeight()))/(2*stripRadius()+1.0);
+			double mid = (stripTop(plot.getHeight())+stripBottom(plot.getHeight()))/2.0;
+			double nearestDistance = 81;
+			for (Map.Entry<Integer, Double> anchor : anchors.entrySet()) {
+				int x = 10+(int)((anchor.getKey()+.5)*(plot.getWidth()-20.0)/levels.length);
+				int y = (int)Math.round(mid+(anchor.getValue()-levels[anchor.getKey()])*scale);
+				double distance = Math.pow(e.getX()-x, 2)+Math.pow(e.getY()-y, 2);
+				if (distance < nearestDistance) {
+					nearestDistance = distance; referenceDragColumn = anchor.getKey();
+					referenceDragY = anchor.getValue();
+				}
+			}
+			if (referenceDragColumn >= 0) {
+				referenceDragCapillary = c; referenceDragTarget = referenceDragColumn;
+				referenceDragOffset = referenceDragY-levels[referenceDragColumn];
+				referencePressX = e.getX(); referencePressY = e.getY();
+				return;
+			}
+		}
+		if (SwingUtilities.isRightMouseButton(e)) {
+			Integer nearest = null;
+			for (Integer x : anchors.keySet())
+				if (nearest == null || Math.abs(x-column) < Math.abs(nearest-column)) nearest = x;
+			if (nearest != null) anchors.remove(nearest);
+			if (anchors.isEmpty()) referenceAnchors.remove(c);
+		} else {
+			double offset = (e.getY() - (stripTop(plot.getHeight()) + stripBottom(plot.getHeight()))/2.0)
+					* (2*stripRadius()+1.0)/(stripBottom(plot.getHeight()) - stripTop(plot.getHeight()));
+			double y = p.refined()[column] + offset;
+			if (y < 4 || y > sources.get(c).getHeight()-5) {
+				if (anchors.isEmpty()) referenceAnchors.remove(c);
+				status.setText("Click a feature at least four pixels from the original image edge.");
+				return;
+			}
+			anchors.put(column, y);
+		}
+		invalidateCorrelation();
+		status.setText("Reference points updated. Preview reference tracks the feature; extra points correct its path.");
+		plot.repaint();
+	}
+
+	private void clearReferenceDrag() {
+		referenceDragColumn = -1; referenceDragCapillary = null; referenceDragged = false;
+	}
+
+	private void dragReference(MouseEvent e) {
+		MeniscusRefinement.Proposal p = proposals.get(referenceDragCapillary);
+		if (!pickReference.isSelected() || suspended || worker != null || cap() != referenceDragCapillary
+				|| !MeniscusRefinement.isCurrent(referenceDragCapillary, p)) {
+			clearReferenceDrag(); plot.repaint(); return;
+		}
+		int dx = e.getX()-referencePressX, dy = e.getY()-referencePressY;
+		if (!referenceDragged && Math.abs(dx) < DRAG_LOCK_PX && Math.abs(dy) < DRAG_LOCK_PX) return;
+		referenceDragged = true;
+		int x = 10+(int)((referenceDragColumn+.5)*(plot.getWidth()-20.0)/p.columnCount());
+		referenceDragTarget = columnAt(x+dx, p.columnCount(), plot.getWidth());
+		double offset = referenceDragOffset + dy*(2*stripRadius()+1.0)
+				/(stripBottom(plot.getHeight())-stripTop(plot.getHeight()));
+		referenceDragY = Math.max(4, Math.min(sources.get(referenceDragCapillary).getHeight()-5,
+				p.refined()[referenceDragTarget]+offset));
+		plot.repaint();
+	}
+
+	private void releaseReference(MouseEvent e) {
+		dragReference(e);
+		if (referenceDragColumn >= 0 && referenceDragged) {
+			Map<Integer, Double> anchors = referenceAnchors.get(referenceDragCapillary);
+			if (anchors != null && (referenceDragTarget == referenceDragColumn || !anchors.containsKey(referenceDragTarget))) {
+				anchors.remove(referenceDragColumn); anchors.put(referenceDragTarget, referenceDragY);
+				invalidateCorrelation();
+				status.setText("Reference point moved. Preview reference to update the alignment.");
+			} else status.setText("That column already has a reference point; the dragged point was kept in place.");
+		}
+		clearReferenceDrag(); plot.repaint();
+	}
+
+	private void runReferenceTracking() {
+		commitStroke(); clearStroke();
+		final Capillary c = cap();
+		final MeniscusRefinement.Proposal p = proposals.get(c);
+		if (worker != null || p == null || !MeniscusRefinement.isCurrent(c, p)
+				|| !referenceAnchors.containsKey(c)) return;
+		invalidateCorrelation();
+		final double[] input = p.refined();
+		final boolean[] fixed = p.placedColumns();
+		final Map<Integer, Double> anchors = new LinkedHashMap<>(referenceAnchors.get(c));
+		final BufferedImage image = sources.get(c);
+		final int smooth = ((Number)referenceSmoothness.getValue()).intValue();
+		final MeniscusReferenceTracking.Model model = (MeniscusReferenceTracking.Model)referenceModel.getSelectedItem();
+		worker = new SwingWorker<MeniscusRefinement.Proposal, Void>() {
+			private MeniscusReferenceTracking.Result result;
+			@Override protected MeniscusRefinement.Proposal doInBackground() {
+				result = MeniscusReferenceTracking.analyze(image, input, anchors, smooth, fixed, model);
+				return null;
+			}
+			@Override protected void done() {
+				if (worker != this || closed) return;
+				worker = null;
+				try {
+					get();
+					if (!MeniscusRefinement.isCurrent(c, p) || proposals.get(c) != p
+							|| !Arrays.equals(input, p.refined()))
+						throw new IllegalStateException("Topraw changed; preview the reference again.");
+					referenceResults.put(c, result); referenceInputs.put(c, input);
+					correlatedStrips.put(c, MeniscusRefinement.stabilized(image, result.refined, stripRadius()));
+					int good = 0; for (boolean ok : result.reliable) if (ok) good++;
+					status.setText(model + ": " + good + "/" + input.length
+							+ " tracked; " + result.fixedColumns + " manual columns unchanged. Orange: detected; cyan: target."
+							+ (result.linearFallbackSegments > 0 ? " " + result.linearFallbackSegments + " short segments use a straight line." : ""));
+				} catch (Exception error) { status.setText(message(error)); }
+				buttons(); plot.repaint();
+			}
+		};
+		worker.execute(); buttons();
+		status.setText("Tracking reference in the original kymograph...");
+	}
+
+	private void applyReferenceTracking() {
+		Capillary c = cap();
+		MeniscusRefinement.Proposal p = proposals.get(c);
+		MeniscusReferenceTracking.Result r = referenceResults.get(c);
+		if (r == null || p == null || !MeniscusRefinement.isCurrent(c, p)
+				|| !Arrays.equals(referenceInputs.get(c), p.refined())) {
+			status.setText("Topraw changed; preview the reference again."); return;
+		}
+		p.replaceCorrelation(MeniscusRefinement.editable(new Level2D(p.x(), r.refined, p.columnCount()),
+				sources.get(c), r.reliable));
+		invalidateCorrelation(); rebuildStrips(); publishEdits(); buttons();
+		status.setText("Reference alignment applied to this capillary's draft. Uncheck Track reference and use Range for intake blocks; Validate saves the selected scope.");
+	}
+
+	private void paintReferenceTracking(Graphics2D g, Capillary c, int width, int height) {
+		MeniscusRefinement.Proposal p = proposals.get(c);
+		if (p == null) return;
+		double[] levels = p.refined();
+		int n = levels.length, top = stripTop(height), bottom = stripBottom(height);
+		double scale = (bottom-top)/(2*stripRadius()+1.0), mid = (top+bottom)/2.0;
+		java.awt.Shape clip = g.getClip(); g.clipRect(10, top, width-20, bottom-top);
+		MeniscusReferenceTracking.Result r = referenceResults.get(c);
+		if (r != null) {
+			for (int i = 1; i < n; i++) {
+				int x0 = 10+(int)((i-.5)*(width-20.0)/n), x1 = 10+(int)((i+.5)*(width-20.0)/n);
+				if (r.reliable[i-1] && r.reliable[i]) {
+					g.setColor(Color.ORANGE);
+					g.drawLine(x0, (int)Math.round(mid+(r.tracked[i-1]-levels[i-1])*scale),
+							x1, (int)Math.round(mid+(r.tracked[i]-levels[i])*scale));
+					g.setColor(Color.CYAN);
+					g.drawLine(x0, (int)Math.round(mid+r.target[i-1]*scale), x1, (int)Math.round(mid+r.target[i]*scale));
+				}
+			}
+		}
+		Map<Integer, Double> anchors = referenceAnchors.get(c);
+		if (pickReference.isSelected() && anchors != null) for (Map.Entry<Integer, Double> point : anchors.entrySet()) {
+			int i = point.getKey(); if (i >= n) continue;
+			double nativeY = point.getValue();
+			if (c == referenceDragCapillary && i == referenceDragColumn) {
+				i = referenceDragTarget; nativeY = referenceDragY;
+			}
+			int x = 10+(int)((i+.5)*(width-20.0)/n), y = (int)Math.round(mid+(nativeY-levels[i])*scale);
+			g.setColor(Color.YELLOW); g.fillOval(x-4, y-4, 8, 8);
+			g.setColor(Color.BLACK); g.drawOval(x-4, y-4, 8, 8);
+		}
+		g.setClip(clip);
+		if (r != null) {
+			g.setColor(Color.RED);
+			for (int i = 0; i < n; i++) if (!r.reliable[i]) {
+				int x = 10+(int)((i+.5)*(width-20.0)/n);
+				g.drawLine(x, correlatedTop(height), x, correlatedTop(height)+7);
+			}
+		}
+	}
+
 	private void runCorrelation() {
 		commitStroke();
 		if (worker != null)
 			return;
+		if (pickReference.isSelected())
+			return;
+		invalidateCorrelation();
 		final Map<Capillary, Level2D> inputs = new LinkedHashMap<>();
 		final Map<Capillary, boolean[]> fixed = new LinkedHashMap<>();
 		for (Capillary c : scope()) {
@@ -1192,6 +1449,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 			double[] raw = correlated == null ? null : correlated.refined();
 			if (raw != null)
 				correlatedStrips.put(entry.getKey(), MeniscusRefinement.stabilized(source, raw, radius));
+			MeniscusReferenceTracking.Result reference = referenceResults.get(entry.getKey());
+			if (reference != null)
+				correlatedStrips.put(entry.getKey(), MeniscusRefinement.stabilized(source, reference.refined, radius));
 		}
 		plot.repaint();
 	}
@@ -1244,7 +1504,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 	}
 
 	private void updateHint() {
-		if (moveMode() == MoveMode.RAMP)
+		if (pickReference.isSelected())
+			hint.setText("Click a reference feature, or drag a yellow dot, then Preview reference. Right-click removes an anchor. Uncheck Track reference to shift intake blocks.");
+		else if (moveMode() == MoveMode.RAMP)
 			hint.setText(
 					"Source (orange) is the edge to move. Final (blue) is where it should land. Drag the selected profile. The shift is final minus source.");
 		else if (moveMode() == MoveMode.CURVE)

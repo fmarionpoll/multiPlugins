@@ -22,6 +22,15 @@ public final class EvaporationCurveFitter {
 	 * @return model Level2D, or null on failure
 	 */
 	public static Level2D fit(double[] yAlreadyZeroAtT0) {
+		return fit(yAlreadyZeroAtT0, false);
+	}
+
+	/** Same exponential family with a fitted intercept: B + A*(1-exp(-t/tau)). */
+	public static Level2D fitWithOffset(double[] values) {
+		return fit(values, true);
+	}
+
+	private static Level2D fit(double[] yAlreadyZeroAtT0, boolean freeOffset) {
 		if (yAlreadyZeroAtT0 == null || yAlreadyZeroAtT0.length < MIN_POINTS)
 			return null;
 		int n = yAlreadyZeroAtT0.length;
@@ -32,6 +41,7 @@ public final class EvaporationCurveFitter {
 
 		double bestTau = Double.NaN;
 		double bestA = Double.NaN;
+		double bestOffset = 0;
 		double bestCost = Double.POSITIVE_INFINITY;
 
 		double tauMin = Math.max(2.0, n / 50.0);
@@ -53,14 +63,16 @@ public final class EvaporationCurveFitter {
 					double tau = lo + s * step;
 					if (!(tau > 0) || !Double.isFinite(tau))
 						continue;
-					double a = solveA(y, weights, tau);
+					double[] parameters = solveParameters(y, weights, tau, freeOffset);
+					double a = parameters[0], offset = parameters[1];
 					if (!Double.isFinite(a))
 						continue;
-					double cost = weightedSse(y, weights, a, tau);
+					double cost = weightedSse(y, weights, a, tau, offset);
 					if (cost < bestCost) {
 						bestCost = cost;
 						bestTau = tau;
 						bestA = a;
+						bestOffset = offset;
 					}
 				}
 				if (!Double.isFinite(bestTau))
@@ -73,19 +85,19 @@ public final class EvaporationCurveFitter {
 				return null;
 
 			if (round < HUBER_ROUNDS)
-				updateHuberWeights(y, weights, bestA, bestTau);
+				updateHuberWeights(y, weights, bestA, bestTau, bestOffset);
 		}
 
 		if (!Double.isFinite(bestTau) || !Double.isFinite(bestA))
 			return null;
-		if (Math.abs(bestA) < 1e-12 && residualRms(y) > 1e-6)
+		if (!freeOffset && Math.abs(bestA) < 1e-12 && residualRms(y) > 1e-6)
 			return null;
 
 		double[] x = new double[n];
 		double[] model = new double[n];
 		for (int t = 0; t < n; t++) {
 			x[t] = t;
-			model[t] = bestA * (1.0 - Math.exp(-t / bestTau));
+			model[t] = bestOffset + bestA * (1.0 - Math.exp(-t / bestTau));
 		}
 		return new Level2D(x, model, n);
 	}
@@ -99,40 +111,48 @@ public final class EvaporationCurveFitter {
 		return fit(y);
 	}
 
-	private static double solveA(double[] y, double[] w, double tau) {
+	private static double[] solveParameters(double[] y, double[] w, double tau, boolean freeOffset) {
 		double num = 0;
 		double den = 0;
+		double sumWeight = 0, sumU = 0, sumY = 0;
 		for (int t = 0; t < y.length; t++) {
 			if (!Double.isFinite(y[t]) || !(w[t] > 0))
 				continue;
 			double u = 1.0 - Math.exp(-t / tau);
 			num += w[t] * y[t] * u;
 			den += w[t] * u * u;
+			sumWeight += w[t]; sumU += w[t]*u; sumY += w[t]*y[t];
+		}
+		if (freeOffset) {
+			double determinant = den*sumWeight-sumU*sumU;
+			if (!(determinant > 1e-18)) return new double[] {Double.NaN, Double.NaN};
+			double a = (num*sumWeight-sumU*sumY)/determinant;
+			return new double[] {a, (sumY-a*sumU)/sumWeight};
 		}
 		if (!(den > 1e-18))
-			return Double.NaN;
-		return num / den;
+			return new double[] {Double.NaN, 0};
+		return new double[] {num / den, 0};
 	}
 
-	private static double weightedSse(double[] y, double[] w, double a, double tau) {
+	private static double weightedSse(double[] y, double[] w, double a, double tau, double offset) {
 		double sse = 0;
 		for (int t = 0; t < y.length; t++) {
 			if (!Double.isFinite(y[t]) || !(w[t] > 0))
 				continue;
-			double pred = a * (1.0 - Math.exp(-t / tau));
+			double pred = offset + a * (1.0 - Math.exp(-t / tau));
 			double r = y[t] - pred;
 			sse += w[t] * r * r;
 		}
 		return sse;
 	}
 
-	private static void updateHuberWeights(double[] y, double[] w, double a, double tau) {
+	private static void updateHuberWeights(double[] y, double[] w, double a, double tau, double offset) {
 		double sumSq = 0;
 		int n = 0;
 		for (int t = 0; t < y.length; t++) {
 			if (!Double.isFinite(y[t]))
 				continue;
-			double r = y[t] - a * (1.0 - Math.exp(-t / tau));
+			double r = y[t] - offset - a * (1.0 - Math.exp(-t / tau));
 			sumSq += r * r;
 			n++;
 		}
@@ -145,7 +165,7 @@ public final class EvaporationCurveFitter {
 				w[t] = 0;
 				continue;
 			}
-			double r = Math.abs(y[t] - a * (1.0 - Math.exp(-t / tau)));
+			double r = Math.abs(y[t] - offset - a * (1.0 - Math.exp(-t / tau)));
 			w[t] = r <= delta ? 1.0 : delta / r;
 		}
 	}
