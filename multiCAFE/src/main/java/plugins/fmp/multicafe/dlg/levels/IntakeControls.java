@@ -3,8 +3,10 @@ package plugins.fmp.multicafe.dlg.levels;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
 import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Insets;
+
 import javax.swing.BoxLayout;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
@@ -16,13 +18,17 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JTabbedPane;
 import javax.swing.SpinnerNumberModel;
+
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 
-/** Widgets and task layout only. Detection, session state and persistence live outside this view. */
+/**
+ * Widgets and task layout only. Detection, session state and persistence live
+ * outside this view.
+ */
 final class IntakeControls {
 	final JTabbedPane tasks = new JTabbedPane();
-	final JComboBox<String> experimentMode = new JComboBox<>(new String[] {
-			"Automatic detection", "Current thresholds and edits" });
+	final JComboBox<String> experimentMode = new JComboBox<>(
+			new String[] { "Automatic detection", "Current thresholds and edits" });
 	final JComboBox<String> saveScope = new JComboBox<>(new String[] { "This capillary", "Whole experiment" });
 	final JLabel thresholdMode = new JLabel("Automatic");
 	final JLabel warningSummary = new JLabel();
@@ -58,7 +64,7 @@ final class IntakeControls {
 	final JLabel source = new JLabel(" "),
 			status = new JLabel("Select a capillary to analyze its accepted topraw levels.");
 
-    IntakeControls() {
+	IntakeControls() {
 		capillaries.setRenderer(new DefaultListCellRenderer() {
 			private static final long serialVersionUID = 1L;
 
@@ -73,7 +79,7 @@ final class IntakeControls {
 				return this;
 			}
 		});
-    }
+	}
 
 	/** Task controls stay separate from the shared plot and kymograph. */
 	JPanel buildControls() {
@@ -81,11 +87,17 @@ final class IntakeControls {
 		reviewTask.setLayout(new BoxLayout(reviewTask, BoxLayout.Y_AXIS));
 		previousButton.setMargin(new Insets(0, 6, 0, 6));
 		nextButton.setMargin(new Insets(0, 6, 0, 6));
+		int bWidth = 30;
+		int bHeight = 21;
+		previousButton.setPreferredSize(new Dimension(bWidth, bHeight));
+		nextButton.setPreferredSize(new Dimension(bWidth, bHeight));
+
 		reviewTask.add(row(new JLabel("Capillary"), previousButton, capillaries, nextButton,
 				new JLabel("Threshold (pixels/min)"), threshold, thresholdMode, automatic));
 		reviewTask.add(row(addGulp, review, resetManualGulps, export));
 		reviewTask.add(row(new JLabel("Apply to"), saveScope, save, copyToGulps));
-		saveScope.setToolTipText("Whole experiment uses each capillary's current threshold and retained manual edits, including edits made before changing capillary.");
+		saveScope.setToolTipText(
+				"Whole experiment uses each capillary's current threshold and retained manual edits, including edits made before changing capillary.");
 		saveScope.addActionListener(e -> updateSaveScopeLabels());
 		updateSaveScopeLabels();
 		batchControls.add(detectAll);
@@ -98,7 +110,8 @@ final class IntakeControls {
 		JPanel experimentCards = new JPanel(new CardLayout());
 		experimentCards.add(automaticTask, "automatic");
 		experimentCards.add(row(saveAllEdited, copyAllEdited), "edited");
-		JLabel experimentHelp = new JLabel("<html>Recompute every capillary with its automatic threshold.<br>Saving replaces previous intake results. Ordinary gulps change only with Replace all gulps.</html>");
+		JLabel experimentHelp = new JLabel(
+				"<html>Recompute every capillary with its automatic threshold.<br>Saving replaces previous intake results. Ordinary gulps change only with Replace all gulps.</html>");
 		experimentHelp.setAlignmentX(Component.LEFT_ALIGNMENT);
 		experimentCards.setAlignmentX(Component.LEFT_ALIGNMENT);
 		experimentMode.addActionListener(e -> {
@@ -113,9 +126,12 @@ final class IntakeControls {
 		experimentTask.add(row(new JLabel("Results"), experimentMode, exportExperiment));
 		experimentTask.add(experimentCards);
 		experimentTask.add(experimentHelp);
-		seriesControls.add(row(new JLabel("Range"), seriesRange, runSeriesSave, runSeries, stopSeries), BorderLayout.NORTH);
+		seriesControls.add(row(new JLabel("Range"), seriesRange, runSeriesSave, runSeries, stopSeries),
+				BorderLayout.NORTH);
 		seriesControls.add(seriesStatus, BorderLayout.CENTER);
-		seriesControls.add(new JLabel("<html>Automatic thresholds for every capillary; previous intake results are replaced.<br>Stop finishes any save already started.</html>"), BorderLayout.SOUTH);
+		seriesControls.add(new JLabel(
+				"<html>Automatic thresholds for every capillary; previous intake results are replaced.<br>Stop finishes any save already started.</html>"),
+				BorderLayout.SOUTH);
 		tasks.addTab("Review & edit", reviewTask);
 		tasks.addTab("Experiment", experimentTask);
 		tasks.addTab("Series", seriesControls);
@@ -150,10 +166,12 @@ final class IntakeControls {
 		boolean wholeExperiment = saveScope.getSelectedIndex() == 1;
 		save.setText(wholeExperiment ? "Save experiment intake..." : "Save capillary intake");
 		copyToGulps.setText(wholeExperiment ? "Replace experiment gulps..." : "Replace capillary gulps...");
-		save.setToolTipText(wholeExperiment ? "Save intake for every capillary using current thresholds and manual edits."
-				: "Save intake for the selected capillary.");
-		copyToGulps.setToolTipText(wholeExperiment ? "Confirm replacement of ordinary gulps for every capillary, then save."
-				: "Confirm replacement of ordinary gulps for the selected capillary, then save.");
+		save.setToolTipText(
+				wholeExperiment ? "Save intake for every capillary using current thresholds and manual edits."
+						: "Save intake for the selected capillary.");
+		copyToGulps.setToolTipText(
+				wholeExperiment ? "Confirm replacement of ordinary gulps for every capillary, then save."
+						: "Confirm replacement of ordinary gulps for the selected capillary, then save.");
 	}
 
 	private static JPanel row(Component... components) {
@@ -164,8 +182,7 @@ final class IntakeControls {
 		return panel;
 	}
 
-
-    JPanel buildFooter() {
+	JPanel buildFooter() {
 		JPanel footer = new JPanel(new BorderLayout(4, 4));
 		footer.add(status, BorderLayout.NORTH);
 		JLabel legend = new JLabel("<html>Blue: intake; grey: evaporation + cumulative intake. "
@@ -183,5 +200,5 @@ final class IntakeControls {
 		footer.add(details, BorderLayout.EAST);
 		footer.add(legend, BorderLayout.SOUTH);
 		return footer;
-    }
+	}
 }
