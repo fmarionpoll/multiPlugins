@@ -17,6 +17,7 @@ import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.timebase.FrameTimeScale;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
@@ -115,5 +116,23 @@ public class IntakeWorkflowTest {
         SwingUtilities.invokeAndWait(() -> assertFalse(snapshot.install(IntakePersistence.Destination.REPLACE_GULPS_AND_SAVE)));
         for (Capillary cap : experiment.getCapillaries().getList())
             assertFalse(cap.getIntakes().hasMeasures());
+    }
+
+    @Test public void toprawShiftAbsorbsStoredOffsetAndPreservesHandPlacedBars() {
+        CapillaryIntakes original = new CapillaryIntakes();
+        original.set(new double[] {0, 2, 3}, 0, 0, .75, true);
+        original.setBottomPositions(new double[] {Double.NaN, 21.5, 24});
+        ManualIntakeEdits edits = new ManualIntakeEdits();
+        edits.shiftPositions(1.5, false);
+        edits.replace(2, 2, 3, 24);
+        original.setMethodOptions("v6.2,source=accepted_topraw" + edits.options() + ",scale=1.0");
+
+        CapillaryIntakes rebased = IntakePersistence.rebaseStoredIntake(original, new double[] {18, 20, 23}, 2, 0);
+        assertEquals(21.5, original.bottomAt(1, -1), 0);
+        assertEquals(22, rebased.bottomAt(1, -1), 0);
+        assertEquals(24, rebased.bottomAt(2, -1), 0);
+        assertArrayEquals(new double[] {0, 2, 3}, rebased.getEvents().getHeightSeries().ypoints, 0);
+        assertEquals(.75, rebased.getThresholdPxPerMin(), 0);
+        assertEquals("v6.2,source=accepted_topraw,manual_intakes=2:2:3.0:24.0,scale=1.0", rebased.getMethodOptions());
     }
 }

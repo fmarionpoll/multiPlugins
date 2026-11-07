@@ -83,9 +83,8 @@ public final class ManualGulpDialog {
 			boolean delete = action == 1;
 			try {
 				from.commitEdit(); to.commitEdit(); editBin.commitEdit();
-				if (!delete) {
-					amplitude.commitEdit(); position.commitEdit();
-				}
+				if (!delete && !measurement.commitBinEditors())
+					throw new IllegalArgumentException("Enter a valid intake size and position.");
 				if (!sourcesCurrent.getAsBoolean()) return new Result(remembered, true, null);
 				int selectedFirst = ((Number) from.getValue()).intValue(), selectedLast = ((Number) to.getValue()).intValue();
 				if (selectedFirst > selectedLast) throw new IllegalArgumentException("First bin must not exceed last bin.");

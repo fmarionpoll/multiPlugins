@@ -54,6 +54,11 @@ final class IntakeControls {
 	final JButton copyAllEdited = new JButton("Replace gulps for all capillaries...");
 	final JButton save = new JButton("Save intake"), copyToGulps = new JButton("Replace gulps...");
 	final JCheckBox addGulp = new JCheckBox("Edit intakes");
+	final JCheckBox previewPlacement = new JCheckBox("Preview image alignment");
+	final JSpinner positionOffset = new JSpinner(new SpinnerNumberModel(0.0, -20.0, 20.0, .25));
+	final JCheckBox includeManualPositions = new JCheckBox("Include hand-placed bars");
+	final JButton applyPositionOffset = new JButton("Apply offset");
+	final JButton applyToprawOffset = new JButton("Apply to topraw");
 	final JButton resetManualGulps = new JButton("Reset edits...");
 	final JCheckBox persistentEpisodes = new JCheckBox("Persistent episodes (1-6 bins)", true);
 	final JCheckBox localEvaporation = new JCheckBox("Local evaporation", false);
@@ -95,6 +100,15 @@ final class IntakeControls {
 		reviewTask.add(row(new JLabel("Capillary"), previousButton, capillaries, nextButton,
 				new JLabel("Threshold (pixels/min)"), threshold, thresholdMode, automatic));
 		reviewTask.add(row(addGulp, review, resetManualGulps, export));
+		previewPlacement.setToolTipText("Preview a vertical shift for automatic bars using nearby image edges. "
+				+ "Amber dots mark bars without a confident shift. Accept a position in Edit intakes to keep it.");
+		reviewTask.add(row(previewPlacement));
+		positionOffset.setToolTipText("Preview an additional vertical offset on this capillary. Negative moves up; positive moves down.");
+		includeManualPositions.setToolTipText("Also move intake bars that already have a manual position.");
+		applyPositionOffset.setToolTipText("Keep the previewed positions as edits for this capillary. Save intake to store them.");
+		applyToprawOffset.setToolTipText("Move topraw by the total previewed offset and recalculate intake from it. Save intake to store both.");
+		reviewTask.add(row(new JLabel("Offset preview (px)"), positionOffset, includeManualPositions, applyPositionOffset,
+				applyToprawOffset));
 		reviewTask.add(row(new JLabel("Apply to"), saveScope, save, copyToGulps));
 		saveScope.setToolTipText(
 				"Whole experiment uses each capillary's current threshold and retained manual edits, including edits made before changing capillary.");

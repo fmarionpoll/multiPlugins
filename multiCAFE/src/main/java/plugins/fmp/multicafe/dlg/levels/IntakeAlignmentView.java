@@ -89,6 +89,10 @@ final class IntakeAlignmentView extends JPanel {
 	}
 
 	private int[] cropBounds() {
+		return cropBounds(host.placementPreview(), host.candidateAmplitudes());
+	}
+
+	private int[] cropBounds(IntakePlacementPreview placement, double[] amplitudes) {
 		CorrelationGulpPreview preview = preview();
 		int height = preview.image.getHeight();
 		int min = height - 1;
@@ -98,11 +102,21 @@ final class IntakeAlignmentView extends JPanel {
 				min = Math.min(min, (int) v - 8);
 				max = Math.max(max, (int) v + 9);
 			}
-		double[] amplitudes = host.candidateAmplitudes(), bottoms = host.candidateBottoms();
+		if (placement.shiftedTopraw != null)
+			for (double v : placement.shiftedTopraw)
+				if (Double.isFinite(v)) {
+					min = Math.min(min, (int) v - 2);
+					max = Math.max(max, (int) Math.ceil(v) + 3);
+				}
+		double[] bottoms = placement.bottoms;
 		for (int i = 1; i < amplitudes.length; i++)
 			if (amplitudes[i] > 0 && Double.isFinite(bottoms[i])) {
 				min = Math.min(min, (int) Math.floor(bottoms[i] - amplitudes[i]) - 2);
 				max = Math.max(max, (int) Math.ceil(bottoms[i]) + 3);
+				if (placement.previousBottoms != null && Double.isFinite(placement.previousBottoms[i])) {
+					min = Math.min(min, (int) Math.floor(placement.previousBottoms[i] - amplitudes[i]) - 2);
+					max = Math.max(max, (int) Math.ceil(placement.previousBottoms[i]) + 3);
+				}
 			}
 		min = Math.max(0, min);
 		max = Math.min(height, Math.max(min + 1, max));
@@ -123,15 +137,23 @@ final class IntakeAlignmentView extends JPanel {
 		CorrelationGulpPreview preview = preview();
 		if (preview == null)
 			return;
-		int[] crop = cropBounds();
+		IntakePlacementPreview placement = host.placementPreview();
+		double[] amplitudes = host.candidateAmplitudes();
+		int[] crop = cropBounds(placement, amplitudes);
 		int cropHeight = Math.max(1, crop[1] - crop[0]) * COLUMN_PX;
 		int width = imageWidth();
-		boolean[] chosen = host.candidates();
 		g.setColor(Color.DARK_GRAY);
-		g.drawString("Kymograph: blue = intake; grey = evaporation + cumulative intake, anchored at t=0", LEFT, 18);
+		String legend;
+		if (placement.shiftedTopraw != null)
+			legend = "Orange = topraw  |  Green = shifted topraw  |  Blue = intake  |  White = previous bar position";
+		else if (placement.previousBottoms != null)
+			legend = "Offset preview   White = previous position  |  Blue = preview  |  Grey = evaporation + cumulative intake";
+		else
+			legend = "Blue = intake  |  Orange dot = no local shift  |  Grey = evaporation + cumulative intake";
+		g.drawString(legend, LEFT, 18);
 		g.drawImage(preview.image, LEFT, 25, LEFT + width, 25 + cropHeight, 0, crop[0], preview.image.getWidth(),
 				crop[1], null);
-		drawIntakeOverlay(g, chosen, crop, 25, cropHeight);
+		drawIntakeOverlay(g, placement, amplitudes, crop, 25, cropHeight);
 		g.setColor(Color.YELLOW);
 		g.drawLine(xOf(host.selectedFrame()), 25, xOf(host.selectedFrame()), 25 + cropHeight);
 		g.setColor(Color.DARK_GRAY);
@@ -140,16 +162,16 @@ final class IntakeAlignmentView extends JPanel {
 				LEFT, getHeight() - 7);
 	}
 
-	private void drawIntakeOverlay(Graphics graphics, boolean[] chosen, int[] crop, int top, int height) {
+	private void drawIntakeOverlay(Graphics graphics, IntakePlacementPreview placement, double[] amplitudes,
+			int[] crop, int top, int height) {
 		CorrelationGulpPreview preview = preview();
-		double[] amplitudes = host.candidateAmplitudes();
-		double[] bottoms = host.candidateBottoms();
+		double[] bottoms = placement.bottoms;
 		Graphics2D g = (Graphics2D) graphics.create();
 		g.clipRect(LEFT, top, imageWidth(), height);
 		g.setColor(IntakeEvaporationOverlay.COLOR);
 		g.setStroke(new BasicStroke(1));
 		List<List<java.awt.geom.Point2D>> paths = preview.hasEvaporationReference
-				? IntakeEvaporationOverlay.paths(host.candidateAmplitudes(), preview.raw, preview.evaporation,
+				? IntakeEvaporationOverlay.paths(amplitudes, preview.raw, preview.evaporation,
 						host.compensateEvaporation())
 				: java.util.Collections.emptyList();
 		for (List<java.awt.geom.Point2D> points : paths) {
@@ -165,14 +187,42 @@ final class IntakeAlignmentView extends JPanel {
 			}
 			g.draw(path);
 		}
+		double scale = (double) height / (crop[1] - crop[0]);
+		if (placement.shiftedTopraw != null) {
+			g.setColor(new Color(180, 90, 0));
+			drawTopraw(g, preview.raw, crop[0], top, scale);
+			g.setColor(new Color(0, 120, 35));
+			drawTopraw(g, placement.shiftedTopraw, crop[0], top, scale);
+		}
+		if (placement.previousBottoms != null) {
+			g.setColor(Color.WHITE);
+			for (int i = 1; i < amplitudes.length; i++)
+				if (Double.isFinite(placement.previousBottoms[i])) {
+					int x = xOf(i) - 2;
+					double bottom = top + scale * (placement.previousBottoms[i] - crop[0]);
+					g.draw(new java.awt.geom.Line2D.Double(x, bottom, x, bottom - scale * amplitudes[i]));
+				}
+		}
 		g.setColor(CapillaryIntakes.ROI_COLOR);
 		g.setStroke(new BasicStroke(2));
-		for (int i = 1; i < chosen.length; i++)
-			if (chosen[i] && Double.isFinite(bottoms[i])) {
-				double bottom = top + height * (bottoms[i] - crop[0]) / (crop[1] - crop[0]);
-				double tip = bottom - height * amplitudes[i] / (crop[1] - crop[0]);
+		for (int i = 1; i < amplitudes.length; i++)
+			if (amplitudes[i] > 0 && Double.isFinite(bottoms[i])) {
+				double bottom = top + scale * (bottoms[i] - crop[0]);
+				double tip = bottom - scale * amplitudes[i];
 				g.draw(new java.awt.geom.Line2D.Double(xOf(i), bottom, xOf(i), tip));
+				if (placement.uncertain[i]) {
+					g.setColor(new Color(190, 100, 0));
+					g.fillOval(xOf(i) - 2, (int) Math.round(tip) - 6, 5, 5);
+					g.setColor(CapillaryIntakes.ROI_COLOR);
+				}
 			}
 		g.dispose();
+	}
+
+	private void drawTopraw(Graphics2D g, double[] levels, int firstRow, int top, double scale) {
+		for (int i = 1; i < levels.length; i++)
+			if (Double.isFinite(levels[i - 1]) && Double.isFinite(levels[i]))
+				g.draw(new java.awt.geom.Line2D.Double(xOf(i - 1), top + scale * (levels[i - 1] - firstRow),
+						xOf(i), top + scale * (levels[i] - firstRow)));
 	}
 }

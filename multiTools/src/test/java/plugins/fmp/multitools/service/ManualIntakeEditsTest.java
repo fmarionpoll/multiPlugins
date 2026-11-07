@@ -57,4 +57,25 @@ public class ManualIntakeEditsTest {
         ManualIntakeEdits edits = ManualIntakeEdits.fromOptions(",manual_intakes=0:2:4:20|2:99:4:20|2:3:NaN:20|bad", 8);
         assertTrue(edits.isEmpty());
     }
+
+    @Test public void sharedOffsetSurvivesReloadWithoutChangingAmountsOrManualPositions() {
+        ManualIntakeEdits edits = new ManualIntakeEdits();
+        edits.replace(2, 2, 3, 24);
+        edits.shiftPositions(1.5, false);
+        edits = ManualIntakeEdits.fromOptions(edits.options(), 4);
+        double[] amounts = {0, 2, 5, 0};
+        double[] bottoms = {18, 20, 21, 22};
+        edits.apply(amounts, bottoms);
+        assertArrayEquals(new double[] {0, 2, 3, 0}, amounts, 0);
+        assertArrayEquals(new double[] {18, 21.5, 24, 22}, bottoms, 0);
+        assertFalse(edits.covers(1));
+
+        edits.shiftPositions(-.5, true);
+        edits = ManualIntakeEdits.fromOptions(edits.options(), 4);
+        amounts = new double[] {0, 2, 5, 0};
+        bottoms = new double[] {18, 20, 21, 22};
+        edits.apply(amounts, bottoms);
+        assertArrayEquals(new double[] {0, 2, 3, 0}, amounts, 0);
+        assertArrayEquals(new double[] {18, 21, 23.5, 22}, bottoms, 0);
+    }
 }

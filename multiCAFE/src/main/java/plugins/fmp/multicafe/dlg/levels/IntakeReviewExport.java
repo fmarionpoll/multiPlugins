@@ -119,7 +119,7 @@ public final class IntakeReviewExport {
 				"frame;elapsed_min;raw_px;refined_px;shift_px;evaporation_increment_px;excess_px_per_min;correlation;reliable;reason;automatic_threshold_px_per_min;chosen_threshold_px_per_min;candidate;candidate_amplitude_px;searched_range_px;fitted_meniscus_px;intake_top_px;intake_bottom_px;diagnostic_excess_px;diagnostic_reliable;diagnostic_types;image_profile;topraw_fallback;automatic_net_intake_px;detector_net_before_edits_px;edited_net_intake_px;manual_override;edit_action\n");
 		for (int i = 0; i < preview.raw.length; i++) {
 			double evap = i == 0 ? Double.NaN : preview.evaporation[i] - preview.evaporation[i - 1];
-			String change = !edits.covers(i) ? "unchanged"
+			String change = !edits.covers(i) ? (selected[i] && edits.automaticOffset() != 0 ? "position_shifted" : "unchanged")
 					: !(beforeEdits[i] > 0) && amplitudes[i] > 0 ? "added"
 							: beforeEdits[i] > 0 && !(amplitudes[i] > 0) ? "removed"
 									: Math.abs(amplitudes[i] - beforeEdits[i]) > 1e-4 ? "resized" : "manual_override";

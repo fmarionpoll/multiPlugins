@@ -34,7 +34,7 @@ interface IntakeChartHost {
 
 	double[] candidateAmplitudes();
 
-	double[] candidateBottoms();
+	IntakePlacementPreview placementPreview();
 
 	List<IntakeDiagnostics.Warning> diagnostics();
 

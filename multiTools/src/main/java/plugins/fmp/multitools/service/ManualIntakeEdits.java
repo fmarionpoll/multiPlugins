@@ -6,7 +6,9 @@ import java.util.List;
 /** Explicit user geometry, applied after automatic detection without quality gates. */
 public final class ManualIntakeEdits {
     private static final String KEY = ",manual_intakes=";
+    private static final String OFFSET_KEY = ",intake_y_offset=";
     private final List<double[]> regions = new ArrayList<>();
+    private double automaticOffset;
 
     public static final class BinMeasures {
         public final double[] amplitudes, bottoms;
@@ -46,6 +48,10 @@ public final class ManualIntakeEdits {
     }
 
     public void apply(double[] amplitudes, double[] bottoms) {
+        if (bottoms != null && automaticOffset != 0)
+            for (int i = 1; i < amplitudes.length; i++)
+                if (amplitudes[i] > 0)
+                    bottoms[i] += automaticOffset;
         for (double[] region : regions) {
             int first = (int) region[0], last = (int) region[1];
             if (last >= amplitudes.length) continue;
@@ -55,7 +61,37 @@ public final class ManualIntakeEdits {
         }
     }
 
-    public boolean isEmpty() { return regions.isEmpty(); }
+    public void shiftPositions(double offset, boolean includeManual) {
+        if (!Double.isFinite(automaticOffset + offset))
+            throw new IllegalArgumentException("Invalid intake position offset");
+        automaticOffset += offset;
+        if (includeManual)
+            shiftManualPositions(offset);
+    }
+
+    /** The new topraw already includes the automatic bar offset. */
+    public void rebaseToTopraw(double manualShift) {
+        automaticOffset = 0;
+        shiftManualPositions(manualShift);
+    }
+
+    private void shiftManualPositions(double offset) {
+        for (double[] region : regions)
+            if (region[2] > 0)
+                region[3] += offset;
+    }
+
+    public String replaceOptionsIn(String previous) {
+        String base = previous.replaceAll(",(?:manual_intakes|intake_y_offset)=[^,]*", "");
+        int scale = base.indexOf(",scale=");
+        return scale < 0 ? base + options() : base.substring(0, scale) + options() + base.substring(scale);
+    }
+
+    public double automaticOffset() { return automaticOffset; }
+
+    public boolean hasManualOverrides() { return !regions.isEmpty(); }
+
+    public boolean isEmpty() { return automaticOffset == 0 && regions.isEmpty(); }
 
     public boolean covers(int frame) {
         for (double[] region : regions)
@@ -65,10 +101,12 @@ public final class ManualIntakeEdits {
 
     /** Numeric-only metadata travels with the existing correlation measures. */
     public String options() {
-        if (regions.isEmpty()) return "";
-        StringBuilder text = new StringBuilder(KEY);
+        String offset = automaticOffset == 0 ? "" : OFFSET_KEY + automaticOffset;
+        if (regions.isEmpty()) return offset;
+        StringBuilder text = new StringBuilder(offset).append(KEY);
+        int start = text.length();
         for (double[] r : regions) {
-            if (text.length() > KEY.length()) text.append('|');
+            if (text.length() > start) text.append('|');
             text.append((int) r[0]).append(':').append((int) r[1]).append(':')
                     .append(r[2]).append(':').append(r[3]);
         }
@@ -77,6 +115,13 @@ public final class ManualIntakeEdits {
 
     public static ManualIntakeEdits fromOptions(String options, int samples) {
         ManualIntakeEdits edits = new ManualIntakeEdits();
+        int offsetStart = options.indexOf(OFFSET_KEY);
+        if (offsetStart >= 0) {
+            try {
+                double offset = Double.parseDouble(options.substring(offsetStart + OFFSET_KEY.length()).split(",", 2)[0]);
+                if (Double.isFinite(offset)) edits.automaticOffset = offset;
+            } catch (NumberFormatException ignored) { /* Ignore invalid metadata. */ }
+        }
         int start = options.indexOf(KEY);
         if (start < 0) return edits;
         String encoded = options.substring(start + KEY.length()).split(",", 2)[0];

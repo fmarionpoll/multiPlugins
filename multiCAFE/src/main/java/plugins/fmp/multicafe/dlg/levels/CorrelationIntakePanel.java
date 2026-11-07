@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -43,6 +44,7 @@ import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.IntakeDiagnostics;
 import plugins.fmp.multitools.service.IntakeEpisodes;
 import plugins.fmp.multitools.service.ManualIntakeEdits;
+import plugins.fmp.multitools.service.MeniscusRefinement;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.JComponents.RichTooltipLayoutGuard;
 import plugins.fmp.multitools.tools.polyline.Level2D;
@@ -58,6 +60,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	private final IntakeOverlayController overlays = new IntakeOverlayController();
 	private final IntakeControls controls = new IntakeControls();
 	private boolean persistenceFailed;
+	private boolean toprawNeedsSave;
 	private JComboBox<?> experimentBrowser;
 
 	private volatile boolean seriesStopping;
@@ -211,6 +214,11 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 				setThreshold(preview.noise.automatic, false);
 		});
 		controls.showRois.addActionListener(e -> updateRois());
+		controls.previewPlacement.addActionListener(e -> refreshPlacement());
+		controls.positionOffset.addChangeListener(e -> refreshPlacement());
+		controls.includeManualPositions.addActionListener(e -> refreshPlacement());
+		controls.applyPositionOffset.addActionListener(e -> applyPositionOffset());
+		controls.applyToprawOffset.addActionListener(e -> applyToprawOffset());
 		controls.compensateEvaporation.addActionListener(e -> {
 			alignment.repaint();
 			updateRois();
@@ -232,7 +240,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 				"Export one CSV with automatic detection, current detector settings, edited intake and per-bin change labels for review.");
 		controls.review.addActionListener(e -> reviewInterval());
 		controls.resetManualGulps.addActionListener(e -> {
-			if (JOptionPane.showConfirmDialog(this, "Discard manual intake overrides for this capillary?",
+			if (JOptionPane.showConfirmDialog(this, "Discard intake edits and any applied offset for this capillary?",
 					"Reset edits", JOptionPane.OK_CANCEL_OPTION) != JOptionPane.OK_OPTION)
 				return;
 			resetManualEdits();
@@ -240,7 +248,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		controls.addGulp.setToolTipText(
 				"Select a region, then confirm its net intake (after evaporation subtraction) and bottom position in pixels. Overrides automatic detection, including x-marked bins. Save intake or Replace gulps to persist.");
 		controls.resetManualGulps.setToolTipText(
-				"Discard manual overrides on this capillary and return to automatic detection at the current threshold; save to persist the reset.");
+				"Discard manual overrides and the applied offset for this capillary. Save intake to keep the reset.");
 		controls.showGaps.setToolTipText(
 				"Amber: abrupt steps. Teal: gradual drift. Purple: initial-anchor or reconstruction offsets in either direction. Diagnostics are not intake.");
 		controls.showGaps.addActionListener(e -> {
@@ -268,6 +276,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 
 	private void resetManualEdits() {
 		session.edits(computedCapillary, new ManualIntakeEdits());
+		controls.positionOffset.setValue(0.0);
 		invalidateBatch();
 		refresh();
 	}
@@ -497,6 +506,10 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		controls.save.setEnabled(editable);
 		controls.copyToGulps.setEnabled(editable);
 		controls.addGulp.setEnabled(reviewing);
+		controls.positionOffset.setEnabled(reviewing);
+		controls.includeManualPositions.setEnabled(reviewing);
+		controls.applyPositionOffset.setEnabled(reviewing);
+		controls.applyToprawOffset.setEnabled(reviewing);
 		controls.resetManualGulps.setEnabled(editable);
 		// Retain the user's editing mode while another capillary is loading.
 	}
@@ -618,6 +631,10 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	}
 
 	private void display(Capillary cap, CorrelationGulpPreview result) {
+		if (computedCapillary != cap) {
+			controls.positionOffset.setValue(0.0);
+			controls.includeManualPositions.setSelected(false);
+		}
 		preview = result;
 		previewSequence = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
 		computedCapillary = cap;
@@ -997,11 +1014,126 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 				value(), manual, controls.persistentEpisodes.isSelected() ? episodeDetection() : null);
 	}
 
-	@Override
 	public double[] candidateBottoms() {
-		double[] positions = detectionResult().bottoms.clone();
-		manualEdits().apply(new double[positions.length], positions);
-		return positions;
+		AutomaticIntakeResult detected = detectionResult();
+		manualEdits().apply(detected.amplitudes, detected.bottoms);
+		return detected.bottoms;
+	}
+
+	@Override
+	public IntakePlacementPreview placementPreview() {
+		AutomaticIntakeResult detected = detectionResult();
+		ManualIntakeEdits edits = manualEdits();
+		edits.apply(detected.amplitudes, detected.bottoms);
+		IntakePlacementPreview placement = new IntakePlacementPreview(detected.bottoms);
+		double offset = positionOffset();
+		double toprawShift = edits.automaticOffset() + offset;
+		if (toprawShift != 0)
+			placement.shiftedTopraw = Arrays.stream(preview.raw)
+					.map(y -> Double.isFinite(y) ? y + toprawShift : y).toArray();
+		if (offset != 0) {
+			placement.previousBottoms = new double[placement.bottoms.length];
+			Arrays.fill(placement.previousBottoms, Double.NaN);
+			for (int i = 1; i < placement.bottoms.length; i++) {
+				if (!(detected.amplitudes[i] > 0) || !Double.isFinite(placement.bottoms[i])
+						|| (!controls.includeManualPositions.isSelected() && edits.covers(i)))
+					continue;
+				placement.previousBottoms[i] = placement.bottoms[i];
+				placement.bottoms[i] += offset;
+				placement.shiftedBars++;
+				placement.outsideImage |= placement.bottoms[i] - detected.amplitudes[i] < 0
+						|| placement.bottoms[i] > preview.image.getHeight() - 1;
+			}
+			return placement;
+		}
+		if (!controls.previewPlacement.isSelected() || edits.automaticOffset() != 0)
+			return placement;
+		for (int i = 1; i < placement.bottoms.length; i++) {
+			if (!(detected.amplitudes[i] > 0) || edits.covers(i))
+				continue;
+			double bottom = placement.bottoms[i];
+			double shift = IntakePlacementPreview.offset(preview.image, preview.raw, i,
+					bottom - detected.amplitudes[i], bottom);
+			if (Double.isFinite(shift))
+				placement.bottoms[i] += shift;
+			else
+				placement.uncertain[i] = true;
+		}
+		return placement;
+	}
+
+	private double positionOffset() {
+		return ((Number) controls.positionOffset.getValue()).doubleValue();
+	}
+
+	private void refreshPlacement() {
+		alignment.revalidate();
+		alignment.repaint();
+		scheduleRoiUpdate();
+	}
+
+	private void applyPositionOffset() {
+		if (!commitPositionOffset() || positionOffset() == 0)
+			return;
+		IntakePlacementPreview placement = placementPreview();
+		if (placement.shiftedBars == 0 || placement.outsideImage) {
+			JOptionPane.showMessageDialog(this, placement.outsideImage
+					? "This offset moves a bar outside the image. Choose a smaller offset."
+					: "There are no bars to shift with the current selection.");
+			return;
+		}
+		manualEdits().shiftPositions(positionOffset(), controls.includeManualPositions.isSelected());
+		controls.positionOffset.setValue(0.0);
+		invalidateBatch();
+		refresh();
+	}
+
+	private boolean commitPositionOffset() {
+		if (preview == null || isBackgroundBusy())
+			return false;
+		try {
+			controls.positionOffset.commitEdit();
+		} catch (java.text.ParseException error) {
+			JOptionPane.showMessageDialog(this, "Enter an offset between -20 and 20 pixels.");
+			return false;
+		}
+		checkSources();
+		return preview != null;
+	}
+
+	private void applyToprawOffset() {
+		if (!commitPositionOffset())
+			return;
+		IntakePlacementPreview placement = placementPreview();
+		if (placement.shiftedTopraw == null)
+			return;
+		int lastRow = preview.image.getHeight() - 1;
+		if (placement.outsideImage || Arrays.stream(placement.shiftedTopraw)
+				.anyMatch(y -> Double.isFinite(y) && (y < 0 || y > lastRow))) {
+			JOptionPane.showMessageDialog(this, "This offset moves topraw or an intake bar outside the image.");
+			return;
+		}
+		Capillary cap = computedCapillary;
+		ManualIntakeEdits edits = manualEdits();
+		double toprawShift = edits.automaticOffset() + positionOffset();
+		double manualShift = controls.includeManualPositions.isSelected() ? positionOffset() : 0;
+		CapillaryIntakes rebased = IntakePersistence.rebaseStoredIntake(cap.getIntakes(), preview.raw, toprawShift, manualShift);
+		boolean[] quality = cap.getTopRaw().getRefinementQuality();
+		MeniscusRefinement.Proposal proposal = MeniscusRefinement.editable(cap.getTopRaw().polylineLevel, preview.image, quality);
+		proposal.replaceLevels(placement.shiftedTopraw, quality);
+		MeniscusRefinement.accept(cap, proposal);
+		cap.getTopRaw().setRefinementQuality(quality);
+		cap.getIntakes().copy(rebased);
+		edits.rebaseToTopraw(manualShift);
+		toprawNeedsSave = true;
+
+		controls.positionOffset.setValue(0.0);
+		controls.previewPlacement.setSelected(false);
+		invalidateBatch();
+		cache.clear();
+		experiment.getSeqKymos().replaceCapillaryMeasureRoisAtT(cap.getKymographIndex(), experiment.getCapillaries());
+		overlays.forget();
+		startCompute(cap, true);
 	}
 
 	private boolean isStoredCurrent() {
@@ -1147,7 +1279,8 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		last = Math.max(first, Math.min(preview.raw.length - 1, last));
 		final CorrelationGulpPreview edited = preview;
 		final Capillary cap = computedCapillary;
-		double bottom = candidateBottoms()[last];
+		double[] reviewBottoms = first == last ? placementPreview().bottoms : candidateBottoms();
+		double bottom = reviewBottoms[last];
 		if (!Double.isFinite(bottom))
 			bottom = preview.image.getHeight() / 2.;
 		double binEvaporation = preview.evaporation[last] - preview.evaporation[last - 1];
@@ -1158,7 +1291,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		if (!Double.isFinite(amount) || amount <= 0)
 			amount = 1;
 		ManualGulpDialog.Result result = ManualGulpDialog.show(this, edited, first, last, amount, bottom,
-				candidateAmplitudes(), candidateBottoms(), manualGulpContextMinutes,
+				candidateAmplitudes(), reviewBottoms, manualGulpContextMinutes,
 				() -> preview == edited && computedCapillary == cap && edited.matchesSources(experiment));
 		manualGulpContextMinutes = result.contextMinutes;
 		if (result.stale) {
@@ -1207,7 +1340,8 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 			if (v)
 				good++;
 		CapillaryIntakes stored = computedCapillary.getIntakes();
-		String storage = jobs.save != null ? "saving..." : persistenceFailed ? "save failed; retry saving" : isStoredCurrent() ? "saved"
+		String storage = jobs.save != null ? "saving..." : persistenceFailed ? "save failed; retry saving"
+				: toprawNeedsSave ? "topraw updated in memory; use Save intake" : isStoredCurrent() ? "saved"
 				: stored.hasMeasures()
 						? "not saved (stored: " + stored.countEvents() + " events, window "
 								+ stored.getWindowRadius() + ", max shift " + format(stored.getMaxShiftPx())
@@ -1234,7 +1368,9 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 				+ format(value()) + " px/min (" + (manual ? "manual" : "automatic") + ") | time "
 				+ format(preview.minutes[selectedFrame]) + " min | method " + IntakeEpisodes.METHOD_VERSION
 				+ " | bin " + selectedFrame + ": " + preview.motion.reason[selectedFrame]
-				+ (!manualEdits().isEmpty() ? " | manual gulp overrides active" : "")
+				+ (manualEdits().automaticOffset() != 0
+						? " | applied bar offset " + format(manualEdits().automaticOffset()) + " px" : "")
+				+ (manualEdits().hasManualOverrides() ? " | manual intake overrides active" : "")
 				+ (controls.persistentEpisodes.isSelected() ? " / persistent episodes" : " / single-bin (persistence off)")
 				+ " | " + storage + "</html>";
 	}
@@ -1285,7 +1421,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		boolean active = !released && !suspended && preview != null && selected == computedCapillary;
 		overlays.update(experiment, selected, active ? preview : null, released || suspended,
 				controls.showRois.isSelected(), controls.compensateEvaporation.isSelected(), controls.showGaps.isSelected(),
-				active ? candidateAmplitudes() : null, active ? candidateBottoms() : null);
+				active ? candidateAmplitudes() : null, active ? placementPreview().bottoms : null);
 	}
 
 	private void persistEditedIntake(boolean copy) {
@@ -1370,6 +1506,8 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 					failure = error.getCause() == null ? error : error.getCause();
 				}
 				persistenceFailed = !saved;
+				if (saved)
+					toprawNeedsSave = false;
 				if (released) return;
 				updateModeControls();
 				refresh();
