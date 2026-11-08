@@ -2,6 +2,7 @@ package plugins.fmp.multitools.service;
 
 import static org.junit.Assert.*;
 import java.awt.image.BufferedImage;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.Test;
@@ -92,6 +93,42 @@ public class MeniscusReferenceTrackingTest {
             assertEquals(r.tracked[i]-raw[i],r.target[i],0);
         }
         assertEquals(41,r.fixedColumns);
+    }
+
+    @Test public void boundedExponentialMatchesAnIndependentFitOfTheSelectedColumns() {
+        int n = 101, first = 25, last = 75, anchor = 40;
+        BufferedImage image = image(n, -1);
+        double[] raw = new double[n];
+        for (int i = 0; i < n; i++)
+            raw[i] = 20+.05*i+15*(1-Math.exp(-i/18.0))+.8*Math.sin(i*2.1)
+                    + (i < first || i > last ? 10 : 0);
+        Map<Integer, Double> anchors = seed(anchor);
+        anchors.put(10, 0.0);
+        MeniscusReferenceTracking.Result bounded = MeniscusReferenceTracking.analyze(image, raw, anchors, 9,
+                null, MeniscusReferenceTracking.Model.EXPONENTIAL, first, last);
+        int width = last - first + 1;
+        Map<Integer, Double> croppedAnchors = new LinkedHashMap<>();
+        croppedAnchors.put(anchor - first, anchors.get(anchor));
+        MeniscusReferenceTracking.Result cropped = MeniscusReferenceTracking.analyze(
+                image.getSubimage(first, 0, width, image.getHeight()), Arrays.copyOfRange(raw, first, last + 1),
+                croppedAnchors, 9, null, MeniscusReferenceTracking.Model.EXPONENTIAL);
+        assertEquals(0, bounded.linearFallbackSegments);
+        for (int i = 0; i < n; i++) {
+            if (i >= first && i <= last) {
+                assertTrue(bounded.reliable[i]);
+                assertEquals(cropped.refined[i - first], bounded.refined[i], 0);
+            } else {
+                assertFalse(bounded.reliable[i]);
+                assertTrue(Double.isNaN(bounded.tracked[i]));
+                assertTrue(Double.isNaN(bounded.target[i]));
+                assertEquals(raw[i], bounded.refined[i], 0);
+            }
+        }
+    }
+
+    @Test(expected=IllegalArgumentException.class) public void boundedTrackingRequiresAnAnchorWithinTheRange() {
+        MeniscusReferenceTracking.analyze(image(50, -1), new double[50], seed(10), 12, null,
+                MeniscusReferenceTracking.Model.EXPONENTIAL, 15, 30);
     }
 
     @Test public void shortExponentialSegmentFallsBackToOneStraightLine() {

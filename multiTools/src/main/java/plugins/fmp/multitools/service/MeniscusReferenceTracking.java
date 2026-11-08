@@ -24,8 +24,11 @@ public final class MeniscusReferenceTracking {
     public static final class Result {
         public final double[] tracked, target, refined;
         public final boolean[] reliable;
+        public final int firstColumn, lastColumn;
         public int fixedColumns, linearFallbackSegments;
-        private Result(int n) {
+        private Result(int n, int firstColumn, int lastColumn) {
+            this.firstColumn = firstColumn;
+            this.lastColumn = lastColumn;
             tracked = new double[n]; target = new double[n]; refined = new double[n];
             reliable = new boolean[n];
             Arrays.fill(tracked, Double.NaN); Arrays.fill(target, Double.NaN);
@@ -39,35 +42,49 @@ public final class MeniscusReferenceTracking {
 
     public static Result analyze(BufferedImage image, double[] levels, Map<Integer, Double> anchors,
             int smoothRadius, boolean[] fixed, Model model) {
+        return analyze(image, levels, anchors, smoothRadius, fixed, model, 0, levels == null ? -1 : levels.length - 1);
+    }
+
+    /** Track and fit only the inclusive range, using anchors in that range. */
+    public static Result analyze(BufferedImage image, double[] levels, Map<Integer, Double> anchors,
+            int smoothRadius, boolean[] fixed, Model model, int first, int last) {
         if (image == null || levels == null || levels.length != image.getWidth()
                 || anchors == null || anchors.isEmpty() || smoothRadius < 1 || model == null
                 || (fixed != null && fixed.length != levels.length))
             throw new IllegalArgumentException("Select a reference feature first.");
-        SortedMap<Integer, Double> seeds = new TreeMap<>(anchors);
-        for (Map.Entry<Integer, Double> seed : seeds.entrySet()) {
+        if (first < 0 || last < first || last >= levels.length)
+            throw new IllegalArgumentException("Reference range must be within the record.");
+        SortedMap<Integer, Double> seeds = new TreeMap<>();
+        for (Map.Entry<Integer, Double> seed : anchors.entrySet()) {
             int x = seed.getKey(); double y = seed.getValue();
-            if (x < 0 || x >= levels.length || !inside(image, y) || !Double.isFinite(levels[x]))
+            if (x < 0 || x >= levels.length)
+                throw new IllegalArgumentException("Reference point is outside the record.");
+            if (x < first || x > last) continue;
+            if (!inside(image, y) || !Double.isFinite(levels[x]))
                 throw new IllegalArgumentException("Reference point is too close to the image edge or has no topraw.");
             if (contrast(profile(image, x, y)) < 2)
                 throw new IllegalArgumentException("Reference point has too little contrast; click an edge or dark line.");
+            seeds.put(x, y);
         }
-        Result r = new Result(levels.length);
+        if (seeds.isEmpty())
+            throw new IllegalArgumentException("Place at least one reference point within the selected range.");
+        Result r = new Result(levels.length, first, last);
         Integer[] columns = seeds.keySet().toArray(new Integer[0]);
         for (int k = 0; k < columns.length; k++) {
             int seed = columns[k];
             r.tracked[seed] = seeds.get(seed); r.reliable[seed] = true;
-            int left = k == 0 ? 0 : (columns[k - 1] + seed) / 2 + 1;
-            int right = k + 1 == columns.length ? levels.length - 1 : (seed + columns[k + 1]) / 2;
+            int left = k == 0 ? first : (columns[k - 1] + seed) / 2 + 1;
+            int right = k + 1 == columns.length ? last : (seed + columns[k + 1]) / 2;
             follow(image, seed, seeds.get(seed), left, -1, levels, r);
             follow(image, seed, seeds.get(seed), right, 1, levels, r);
         }
         double[] offset = new double[levels.length];
-        for (int i = 0; i < levels.length; i++) offset[i] = r.tracked[i] - levels[i];
+        for (int i = first; i <= last; i++) offset[i] = r.tracked[i] - levels[i];
         // Never fit across a missing track or across a manual block boundary.
-        for (int start = 0; start < levels.length;) {
+        for (int start = first; start <= last;) {
             if (!r.reliable[start] || !Double.isFinite(offset[start])) { start++; continue; }
             int end = start;
-            while (end + 1 < levels.length && r.reliable[end + 1] && Double.isFinite(offset[end + 1])
+            while (end < last && r.reliable[end + 1] && Double.isFinite(offset[end + 1])
                     && (fixed == null || fixed[end + 1] == fixed[end])) end++;
             int fitRadius = smoothRadius;
             if (model == Model.EXPONENTIAL && (fixed == null || !fixed[start])) {
@@ -94,8 +111,8 @@ public final class MeniscusReferenceTracking {
             }
             start = end + 1;
         }
-        for (int i = 0; i < levels.length; i++) {
-            r.refined[i] = levels[i];
+        System.arraycopy(levels, 0, r.refined, 0, levels.length);
+        for (int i = first; i <= last; i++) {
             if (fixed != null && fixed[i] && r.reliable[i]) { r.target[i] = offset[i]; r.fixedColumns++; }
             if (r.reliable[i] && Double.isFinite(r.target[i]) && (fixed == null || !fixed[i])) {
                 double y = r.tracked[i] - r.target[i];

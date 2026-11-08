@@ -16,6 +16,7 @@ import java.awt.event.MouseWheelEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -29,6 +30,7 @@ import javax.swing.JComboBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
@@ -88,6 +90,8 @@ public final class MeniscusRefinementPanel extends JPanel {
 	private final JCheckBox pickReference = new JCheckBox("Track reference");
 	private final JSpinner referenceSmoothness = new JSpinner(new SpinnerNumberModel(12, 1, 200, 1));
 	private final JComboBox<MeniscusReferenceTracking.Model> referenceModel = new JComboBox<>(MeniscusReferenceTracking.Model.values());
+	private final JButton referenceRange = new JButton("Reference range: all");
+	private final Map<Capillary, int[]> referenceRanges = new LinkedHashMap<>();
 	private final JButton previewReference = new JButton("Preview reference"),
 			applyReference = new JButton("Apply reference"), clearReference = new JButton("Clear reference");
 	private final Map<Capillary, Map<Integer, Double>> referenceAnchors = new LinkedHashMap<>();
@@ -498,6 +502,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		JPanel reference = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		reference.add(pickReference);
 		reference.add(referenceModel);
+		reference.add(referenceRange);
 		reference.add(new JLabel("Smooth +/- columns"));
 		reference.add(referenceSmoothness);
 		reference.add(previewReference);
@@ -549,6 +554,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		runCorrelation.addActionListener(e -> runCorrelation());
 		pickReference.setToolTipText("Click to add a reference point; drag a yellow dot to move it. Right-click removes the nearest anchor.");
 		referenceSmoothness.setToolTipText("Half-width of the local straight-line fit, in sampled columns. Larger values remove longer fluctuations while preserving slopes.");
+		referenceRange.setToolTipText("Choose the inclusive kymograph column range for tracking and fitting the reference.");
 		referenceModel.setToolTipText("Exponential fits B + A*(1-exp(-t/tau)) to the reference trajectory in strip coordinates. Manual columns remain fixed; short segments use a straight line.");
 		previewReference.setToolTipText("Track the selected feature in the original image and preview smooth alignment for the current capillary only.");
 		applyReference.setToolTipText("Transfer the reference preview to editable topraw. Manual columns stay fixed. Validate saves it.");
@@ -558,6 +564,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		});
 		referenceSmoothness.addChangeListener(e -> invalidateCorrelation());
 		referenceModel.addActionListener(e -> invalidateCorrelation());
+		referenceRange.addActionListener(e -> chooseReferenceRange());
 		previewReference.addActionListener(e -> runReferenceTracking());
 		applyReference.addActionListener(e -> applyReferenceTracking());
 		clearReference.addActionListener(e -> {
@@ -646,6 +653,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 		pickReference.setEnabled(!closed && !busy && current);
 		referenceSmoothness.setEnabled(!closed && !busy && referenceModel.getSelectedItem() == MeniscusReferenceTracking.Model.LOCAL);
 		referenceModel.setEnabled(!closed && !busy);
+		int[] range = referenceRanges.get(cap());
+		referenceRange.setText(range == null ? "Reference range: all" : "Reference range: " + range[0] + "-" + range[1]);
+		referenceRange.setEnabled(!closed && !busy && current && columnCount() > 0);
 		previewReference.setEnabled(!closed && !busy && current && referenceAnchors.containsKey(cap()));
 		applyReference.setEnabled(!closed && !busy && current && referenceResults.containsKey(cap()));
 		clearReference.setEnabled(!closed && !busy && referenceAnchors.containsKey(cap()));
@@ -694,6 +704,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 
 		proposals.clear();
 		referenceAnchors.clear();
+		referenceRanges.clear();
 		referenceResults.clear();
 		referenceInputs.clear();
 		{
@@ -790,6 +801,9 @@ public final class MeniscusRefinementPanel extends JPanel {
 				BufferedImage source = MeniscusRefinement.image(experiment.getSeqKymos().getSequence(), c, raw.npoints);
 				sources.put(c, source);
 				referenceAnchors.remove(c);
+				int[] range = referenceRanges.get(c);
+				if (range != null && range[1] >= raw.npoints)
+					referenceRanges.remove(c);
 				referenceResults.remove(c);
 				referenceInputs.remove(c);
 				proposals.put(c, MeniscusRefinement.editable(raw, source, c.getTopRaw().getRefinementQuality()));
@@ -911,6 +925,42 @@ public final class MeniscusRefinementPanel extends JPanel {
 		clearReferenceDrag(); plot.repaint();
 	}
 
+	private void chooseReferenceRange() {
+		int lastColumn = columnCount() - 1;
+		if (lastColumn < 0) return;
+		Capillary selected = cap();
+		int[] range = referenceRanges.get(selected);
+		JSpinner first = new JSpinner(new SpinnerNumberModel(range == null ? 0 : range[0], 0, lastColumn, 1));
+		JSpinner last = new JSpinner(new SpinnerNumberModel(range == null ? lastColumn : range[1], 0, lastColumn, 1));
+		JPanel fields = new JPanel(new GridLayout(0, 2, 8, 4));
+		fields.add(new JLabel("First column (0-based)"));
+		fields.add(first);
+		fields.add(new JLabel("Last column (inclusive)"));
+		fields.add(last);
+		Object[] options = { "Use range", "Whole record", "Cancel" };
+		int choice = JOptionPane.showOptionDialog(this, fields, "Reference range", JOptionPane.DEFAULT_OPTION,
+				JOptionPane.PLAIN_MESSAGE, null, options, options[0]);
+		if (choice == 0) {
+			try {
+				first.commitEdit();
+				last.commitEdit();
+			} catch (ParseException error) {
+				status.setText("Enter valid column numbers for the reference range.");
+				return;
+			}
+			int start = (Integer) first.getValue(), end = (Integer) last.getValue();
+			if (start > end) {
+				status.setText("The first reference column must be at or before the last.");
+				return;
+			}
+			referenceRanges.put(selected, new int[] { start, end });
+		} else if (choice == 1)
+			referenceRanges.remove(selected);
+		else return;
+		invalidateCorrelation();
+		status.setText("Place a reference point within the range, then click Preview reference.");
+	}
+
 	private void runReferenceTracking() {
 		commitStroke(); clearStroke();
 		final Capillary c = cap();
@@ -919,6 +969,8 @@ public final class MeniscusRefinementPanel extends JPanel {
 				|| !referenceAnchors.containsKey(c)) return;
 		invalidateCorrelation();
 		final double[] input = p.refined();
+		int[] range = referenceRanges.get(c);
+		final int first = range == null ? 0 : range[0], last = range == null ? input.length - 1 : range[1];
 		final boolean[] fixed = p.placedColumns();
 		final Map<Integer, Double> anchors = new LinkedHashMap<>(referenceAnchors.get(c));
 		final BufferedImage image = sources.get(c);
@@ -927,7 +979,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 		worker = new SwingWorker<MeniscusRefinement.Proposal, Void>() {
 			private MeniscusReferenceTracking.Result result;
 			@Override protected MeniscusRefinement.Proposal doInBackground() {
-				result = MeniscusReferenceTracking.analyze(image, input, anchors, smooth, fixed, model);
+				result = MeniscusReferenceTracking.analyze(image, input, anchors, smooth, fixed, model, first, last);
 				return null;
 			}
 			@Override protected void done() {
@@ -941,7 +993,7 @@ public final class MeniscusRefinementPanel extends JPanel {
 					referenceResults.put(c, result); referenceInputs.put(c, input);
 					correlatedStrips.put(c, MeniscusRefinement.stabilized(image, result.refined, stripRadius()));
 					int good = 0; for (boolean ok : result.reliable) if (ok) good++;
-					status.setText(model + ": " + good + "/" + input.length
+					status.setText(model + ": " + good + "/" + (last - first + 1)
 							+ " tracked; " + result.fixedColumns + " manual columns unchanged. Orange: detected; cyan: target."
 							+ (result.linearFallbackSegments > 0 ? " " + result.linearFallbackSegments + " short segments use a straight line." : ""));
 				} catch (Exception error) { status.setText(message(error)); }
@@ -960,8 +1012,10 @@ public final class MeniscusRefinementPanel extends JPanel {
 				|| !Arrays.equals(referenceInputs.get(c), p.refined())) {
 			status.setText("Topraw changed; preview the reference again."); return;
 		}
+		boolean[] quality = p.quality();
+		System.arraycopy(r.reliable, r.firstColumn, quality, r.firstColumn, r.lastColumn - r.firstColumn + 1);
 		p.replaceCorrelation(MeniscusRefinement.editable(new Level2D(p.x(), r.refined, p.columnCount()),
-				sources.get(c), r.reliable));
+				sources.get(c), quality));
 		invalidateCorrelation(); rebuildStrips(); publishEdits(); buttons();
 		status.setText("Reference alignment applied to this capillary's draft. Uncheck Track reference and use Range for intake blocks; Validate saves the selected scope.");
 	}
