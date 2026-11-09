@@ -23,7 +23,28 @@ final class IntakeAlignmentView extends JPanel {
 	private static final int COLUMN_PX = 4;
 	private static final int LEFT = 65;
 	private static final int RIGHT = 25;
+	private static final BasicStroke CURSOR_STROKE = new BasicStroke(1, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER,
+			10, new float[] { 4, 4 }, 0);
 	private final IntakeChartHost host;
+	private BarColor intakeColor = BarColor.YELLOW;
+
+	enum BarColor {
+		YELLOW("Yellow", Color.YELLOW),
+		BLUE("Blue", CapillaryIntakes.ROI_COLOR);
+
+		private final String label;
+		private final Color color;
+
+		BarColor(String label, Color color) {
+			this.label = label;
+			this.color = color;
+		}
+
+		@Override
+		public String toString() {
+			return label;
+		}
+	}
 
 	IntakeAlignmentView(IntakeChartHost host) {
 		this.host = host;
@@ -55,6 +76,11 @@ final class IntakeAlignmentView extends JPanel {
 			}
 		};
 		addMouseListener(mouse);
+	}
+
+	void setIntakeColor(BarColor color) {
+		intakeColor = color;
+		repaint();
 	}
 
 	private CorrelationGulpPreview preview() {
@@ -145,17 +171,23 @@ final class IntakeAlignmentView extends JPanel {
 		g.setColor(Color.DARK_GRAY);
 		String legend;
 		if (placement.shiftedTopraw != null)
-			legend = "Orange = topraw  |  Green = shifted topraw  |  Blue = intake  |  White = previous bar position";
+			legend = "Orange = topraw  |  Green = shifted topraw  |  " + intakeColor
+					+ " = intake  |  White = previous bar position";
 		else if (placement.previousBottoms != null)
-			legend = "Offset preview   White = previous position  |  Blue = preview  |  Grey = evaporation + cumulative intake";
+			legend = "Offset preview   White = previous position  |  " + intakeColor
+					+ " = preview  |  Grey = evaporation + cumulative intake";
 		else
-			legend = "Blue = intake  |  Orange dot = no local shift  |  Grey = evaporation + cumulative intake";
+			legend = intakeColor + " = intake  |  Orange dot = no local shift  |  Grey = evaporation + cumulative intake";
 		g.drawString(legend, LEFT, 18);
 		g.drawImage(preview.image, LEFT, 25, LEFT + width, 25 + cropHeight, 0, crop[0], preview.image.getWidth(),
 				crop[1], null);
 		drawIntakeOverlay(g, placement, amplitudes, crop, 25, cropHeight);
-		g.setColor(Color.YELLOW);
-		g.drawLine(xOf(host.selectedFrame()), 25, xOf(host.selectedFrame()), 25 + cropHeight);
+		Graphics2D cursor = (Graphics2D) g.create();
+		cursor.setColor(Color.YELLOW);
+		cursor.setStroke(CURSOR_STROKE);
+		int selectedX = xOf(host.selectedFrame());
+		cursor.drawLine(selectedX, 25, selectedX, 25 + cropHeight);
+		cursor.dispose();
 		g.setColor(Color.DARK_GRAY);
 		g.drawString(
 				"Time axis: at least 4 pixels per column; scroll horizontally for longer kymographs. Grey columns: missing level or image border.",
@@ -203,7 +235,7 @@ final class IntakeAlignmentView extends JPanel {
 					g.draw(new java.awt.geom.Line2D.Double(x, bottom, x, bottom - scale * amplitudes[i]));
 				}
 		}
-		g.setColor(CapillaryIntakes.ROI_COLOR);
+		g.setColor(intakeColor.color);
 		g.setStroke(new BasicStroke(2));
 		for (int i = 1; i < amplitudes.length; i++)
 			if (amplitudes[i] > 0 && Double.isFinite(bottoms[i])) {
@@ -213,7 +245,7 @@ final class IntakeAlignmentView extends JPanel {
 				if (placement.uncertain[i]) {
 					g.setColor(new Color(190, 100, 0));
 					g.fillOval(xOf(i) - 2, (int) Math.round(tip) - 6, 5, 5);
-					g.setColor(CapillaryIntakes.ROI_COLOR);
+					g.setColor(intakeColor.color);
 				}
 			}
 		g.dispose();

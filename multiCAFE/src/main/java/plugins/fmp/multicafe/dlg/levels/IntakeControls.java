@@ -53,7 +53,8 @@ final class IntakeControls {
 	final JButton saveAllEdited = new JButton("Save intake for all capillaries...");
 	final JButton copyAllEdited = new JButton("Replace gulps for all capillaries...");
 	final JButton save = new JButton("Save intake"), copyToGulps = new JButton("Replace gulps...");
-	final JCheckBox addGulp = new JCheckBox("Edit intakes");
+	final JCheckBox addGulp = new JCheckBox("Edit intakes", true);
+	final JComboBox<IntakeAlignmentView.BarColor> intakeColor = new JComboBox<>(IntakeAlignmentView.BarColor.values());
 	final JCheckBox previewPlacement = new JCheckBox("Preview image alignment");
 	final JSpinner positionOffset = new JSpinner(new SpinnerNumberModel(0.0, -20.0, 20.0, .25));
 	final JCheckBox includeManualPositions = new JCheckBox("Include hand-placed bars");
@@ -70,6 +71,7 @@ final class IntakeControls {
 			status = new JLabel("Select a capillary to analyze its accepted topraw levels.");
 
 	IntakeControls() {
+		saveScope.setSelectedIndex(1);
 		capillaries.setRenderer(new DefaultListCellRenderer() {
 			private static final long serialVersionUID = 1L;
 
@@ -99,16 +101,18 @@ final class IntakeControls {
 
 		reviewTask.add(row(new JLabel("Capillary"), previousButton, capillaries, nextButton,
 				new JLabel("Threshold (pixels/min)"), threshold, thresholdMode, automatic));
-		reviewTask.add(row(addGulp, review, resetManualGulps, export));
+		JLabel intakeColorLabel = new JLabel("Intake bar color");
+		intakeColorLabel.setLabelFor(intakeColor);
+		intakeColor.setToolTipText("Choose the intake bar color in the kymograph preview.");
+		reviewTask.add(row(addGulp, review, resetManualGulps, export, intakeColorLabel, intakeColor));
 		previewPlacement.setToolTipText("Preview a vertical shift for automatic bars using nearby image edges. "
 				+ "Amber dots mark bars without a confident shift. Accept a position in Edit intakes to keep it.");
-		reviewTask.add(row(previewPlacement));
 		positionOffset.setToolTipText("Preview an additional vertical offset on this capillary. Negative moves up; positive moves down.");
 		includeManualPositions.setToolTipText("Also move intake bars that already have a manual position.");
 		applyPositionOffset.setToolTipText("Keep the previewed positions as edits for this capillary. Save intake to store them.");
 		applyToprawOffset.setToolTipText("Move topraw by the total previewed offset and recalculate intake from it. Save intake to store both.");
-		reviewTask.add(row(new JLabel("Offset preview (px)"), positionOffset, includeManualPositions, applyPositionOffset,
-				applyToprawOffset));
+		reviewTask.add(row(previewPlacement, new JLabel("Offset preview (px)"), positionOffset, includeManualPositions,
+				applyPositionOffset, applyToprawOffset));
 		reviewTask.add(row(new JLabel("Apply to"), saveScope, save, copyToGulps));
 		saveScope.setToolTipText(
 				"Whole experiment uses each capillary's current threshold and retained manual edits, including edits made before changing capillary.");
@@ -199,7 +203,7 @@ final class IntakeControls {
 	JPanel buildFooter() {
 		JPanel footer = new JPanel(new BorderLayout(4, 4));
 		footer.add(status, BorderLayout.NORTH);
-		JLabel legend = new JLabel("<html>Blue: intake; grey: evaporation + cumulative intake. "
+		JLabel legend = new JLabel("<html>Grey: evaporation + cumulative intake. "
 				+ "Amber: steps; teal: drift; purple: anchor/offset warnings.<br>"
 				+ "Drag the red line to change threshold; click a time point to inspect it. "
 				+ "Save intake stores separate results; Replace gulps installs them in ordinary measures.</html>");

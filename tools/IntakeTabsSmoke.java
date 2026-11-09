@@ -49,12 +49,26 @@ public class IntakeTabsSmoke {
                 check(tabs.getTitleAt(0).equals("Review & edit") && tabs.getTitleAt(1).equals("Experiment")
                         && tabs.getTitleAt(2).equals("Series"), "Task names changed");
                 JComboBox<?> scope = (JComboBox<?>) get(panel, "saveScope");
-                check(((JButton) get(panel, "save")).getText().equals("Save capillary intake"), "Single-capillary save is ambiguous");
-                scope.setSelectedIndex(1);
+                check("Whole experiment".equals(scope.getSelectedItem()), "Expected whole-experiment scope by default");
                 check(((JButton) get(panel, "save")).getText().equals("Save experiment intake..."), "Experiment save scope is ambiguous");
                 check(((JButton) get(panel, "copyToGulps")).getText().equals("Replace experiment gulps..."), "Experiment replacement scope is ambiguous");
+                scope.setSelectedIndex(0);
+                check(((JButton) get(panel, "save")).getText().equals("Save capillary intake"), "Single-capillary save is ambiguous");
+                scope.setSelectedIndex(1);
                 JCheckBox edit = (JCheckBox) get(panel, "addGulp");
-                edit.setSelected(true);
+                check(edit.isSelected(), "Expected intake editing to be selected by default");
+                JCheckBox alignmentPreview = (JCheckBox) get(panel, "previewPlacement");
+                JSpinner offset = (JSpinner) get(panel, "positionOffset");
+                check(alignmentPreview.getParent() == offset.getParent()
+                        && offset.getParent().getComponentZOrder(offset) == 2,
+                        "Offset preview should follow the image alignment checkbox and offset label");
+                JComboBox<?> color = (JComboBox<?>) get(panel, "intakeColor");
+                Object alignment = get(panel, "alignment");
+                check("Yellow".equals(color.getSelectedItem().toString())
+                        && color.getSelectedItem() == get(alignment, "intakeColor"), "Expected yellow intake bars by default");
+                color.setSelectedIndex(1);
+                check("Blue".equals(get(alignment, "intakeColor").toString()), "Color selector did not update the kymograph preview");
+                color.setSelectedIndex(0);
                 for (int width : new int[] {1180, 920}) {
                     for (int tab = 0; tab < 3; tab++) {
                         tabs.setSelectedIndex(tab);
@@ -82,7 +96,7 @@ public class IntakeTabsSmoke {
             } catch (Exception error) { throw new RuntimeException(error); }
             finally { panel.close(); }
         });
-        System.out.println("PASS: three tasks; editing limited to review; retained editing mode; controls fit at 1180 and 920 pixels; expanded settings and edited-experiment controls.");
+        System.out.println("PASS: task defaults, alignment controls, color selection, retained editing mode, and layout at 1180 and 920 pixels.");
         System.exit(0);
     }
 }

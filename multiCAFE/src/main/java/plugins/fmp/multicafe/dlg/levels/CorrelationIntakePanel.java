@@ -215,6 +215,8 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		});
 		controls.showRois.addActionListener(e -> updateRois());
 		controls.previewPlacement.addActionListener(e -> refreshPlacement());
+		controls.intakeColor.addActionListener(
+				e -> alignment.setIntakeColor((IntakeAlignmentView.BarColor) controls.intakeColor.getSelectedItem()));
 		controls.positionOffset.addChangeListener(e -> refreshPlacement());
 		controls.includeManualPositions.addActionListener(e -> refreshPlacement());
 		controls.applyPositionOffset.addActionListener(e -> applyPositionOffset());
