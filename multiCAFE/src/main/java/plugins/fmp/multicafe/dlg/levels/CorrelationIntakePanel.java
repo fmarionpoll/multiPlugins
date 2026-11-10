@@ -90,7 +90,6 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	private Capillary computedCapillary;
 	private boolean released, suspended;
 	private boolean waitingForSources;
-	private Sequence previewSequence;
 	private int selectedFrame;
 	private int revealedFrame = -1;
 	private boolean settingThreshold, manual, syncingSelection;
@@ -213,6 +212,14 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 			if (preview != null && Double.isFinite(preview.noise.automatic))
 				setThreshold(preview.noise.automatic, false);
 		});
+		controls.refreshDetection.addActionListener(e -> {
+			checkSources();
+			if (preview != null) {
+				invalidateBatch();
+				cache.remove(computedCapillary);
+				startCompute(computedCapillary, true, !manual);
+			}
+		});
 		controls.showRois.addActionListener(e -> updateRois());
 		controls.previewPlacement.addActionListener(e -> refreshPlacement());
 		controls.intakeColor.addActionListener(
@@ -318,6 +325,8 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		controls.threshold.setToolTipText(
 				"Sensitivity setting in pixels/min. In episode mode, control-calibrated thresholds and sustained plateau checks also apply; crossing the red line alone does not accept a gulp.");
 		controls.automatic.setToolTipText("Quiet-period median + 3 robust noise SD, with a no-fly control noise floor.");
+		controls.refreshDetection.setToolTipText(
+				"Recompute this capillary's intake preview from the loaded kymographs and accepted topraw using the current threshold mode.");
 		controls.previousButton.setToolTipText("previous capillary");
 		controls.nextButton.setToolTipText("select next capillary");
 	}
@@ -362,11 +371,6 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		if (tooltipLayoutGuard == null)
 			tooltipLayoutGuard = new RichTooltipLayoutGuard();
 		refreshCapillaries();
-		Sequence currentSequence = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
-		if (preview != null && previewSequence != currentSequence) {
-			cache.clear();
-			clearPreview();
-		}
 		waitingForSources = !hasAcceptedInput();
 		if (waitingForSources) {
 			clearPreview();
@@ -499,6 +503,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 		boolean editable = enabled && !isBackgroundBusy();
 		boolean reviewing = editable && controls.tasks.getSelectedIndex() == 0;
 		controls.automatic.setEnabled(editable && preview != null && Double.isFinite(preview.noise.automatic));
+		controls.refreshDetection.setEnabled(reviewing);
 		controls.export.setEnabled(enabled);
 		controls.exportExperiment.setEnabled(enabled && !isBackgroundBusy());
 		controls.saveAllEdited.setEnabled(editable);
@@ -537,7 +542,12 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 				session.edits(cap, new ManualIntakeEdits());
 			cache.clear();
 			clearPreview();
-			analyzeSelected();
+			refreshCapillaries();
+			waitingForSources = !hasAcceptedInput();
+			if (waitingForSources)
+				controls.status.setText("Load this experiment's kymographs and accepted topraw to analyze intake.");
+			else
+				analyzeSelected();
 		}
 	}
 
@@ -585,6 +595,10 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	}
 
 	private void startCompute(Capillary cap, boolean interactive) {
+		startCompute(cap, interactive, false);
+	}
+
+	private void startCompute(Capillary cap, boolean interactive, boolean useAutomatic) {
 		if (jobs.preview != null)
 			jobs.preview.cancel(true);
 		clearPreview();
@@ -609,11 +623,17 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 						return;
 					CorrelationGulpPreview result = get();
 					if (!result.matchesSources(experiment) || result.localEvaporation != controls.localEvaporation.isSelected()) {
-						startCompute(cap, false);
+						refreshCapillaries();
+						if (cap != controls.capillaries.getSelectedItem())
+							analyzeSelected();
+						else if (hasAcceptedInput())
+							startCompute(cap, interactive, useAutomatic);
+						else
+							waitingForSources = true;
 						return;
 					}
 					cache.put(cap, result);
-					display(cap, result);
+					display(cap, result, useAutomatic);
 				} catch (CancellationException ignored) {
 					controls.status.setText("Computation cancelled.");
 				} catch (InterruptedException e) {
@@ -633,21 +653,24 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 	}
 
 	private void display(Capillary cap, CorrelationGulpPreview result) {
+		display(cap, result, false);
+	}
+
+	private void display(Capillary cap, CorrelationGulpPreview result, boolean useAutomatic) {
 		if (computedCapillary != cap) {
 			controls.positionOffset.setValue(0.0);
 			controls.includeManualPositions.setSelected(false);
 		}
 		preview = result;
-		previewSequence = experiment.getSeqKymos() == null ? null : experiment.getSeqKymos().getSequence();
 		computedCapillary = cap;
 		selectedFrame = 0;
 
 		alignment.revalidate();
-		Double saved = session.threshold(cap);
+		Double saved = useAutomatic ? null : session.threshold(cap);
 		CapillaryIntakes stored = cap.getIntakes();
 		if (!session.hasEdits(cap))
 			session.edits(cap, ManualIntakeEdits.fromOptions(stored.getMethodOptions(), preview.raw.length));
-		if (saved == null && stored.hasMeasures() && stored.isManualThreshold()
+		if (!useAutomatic && saved == null && stored.hasMeasures() && stored.isManualThreshold()
 				&& sameSettings(stored) && Double.isFinite(stored.getThresholdPxPerMin()))
 			saved = stored.getThresholdPxPerMin();
 		double initial = saved != null ? saved : preview.noise.automatic;

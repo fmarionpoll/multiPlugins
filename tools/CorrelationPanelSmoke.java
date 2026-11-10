@@ -29,6 +29,7 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.timebase.FrameTimeScale;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
+import plugins.fmp.multitools.service.IntakeEpisodes;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
@@ -258,6 +259,17 @@ public class CorrelationPanelSmoke {
             if(result.matchesSources(exp))throw new AssertionError("Control edit did not invalidate intake snapshot");
             control.getTopRaw().polylineLevel.ypoints[1]=original;
         }
+        SwingUtilities.invokeAndWait(() -> {
+            int frame = caps.get("1L").getKymographIndex();
+            IcyBufferedImage original = sequence.getImage(frame, 0);
+            sequence.setImage(frame, 0, IcyBufferedImage.createFrom(result.image));
+            try {
+                if (result.matchesSources(exp))
+                    throw new AssertionError("Replacing the kymograph did not invalidate the intake snapshot");
+            } finally {
+                sequence.setImage(frame, 0, original);
+            }
+        });
         if(exp.getActiveBinDescription().isKymoFromNormedBlue() && !result.referenceDescription.contains("resampled RGB"))
             throw new AssertionError("Resampled calibration was not selected");
         render(panel, output.resolve("panel_1L_automatic.png"));
@@ -274,10 +286,15 @@ public class CorrelationPanelSmoke {
         double[] intakeAmplitudes = (double[]) amplitudesMethod.invoke(panel);
         Method bottomsMethod = panel.getClass().getDeclaredMethod("candidateBottoms"); bottomsMethod.setAccessible(true);
         double[] bottoms = (double[]) bottomsMethod.invoke(panel);
-        Method reviewPanelMethod=panel.getClass().getDeclaredMethod("reviewPanel");reviewPanelMethod.setAccessible(true);
+        Method reviewPanelMethod = Class.forName("plugins.fmp.multicafe.dlg.levels.IntakeReviewDialog").getDeclaredMethod(
+                "panel", CorrelationGulpPreview.class, IntakeEpisodes.Detection.class, boolean.class, int.class, java.util.List.class);
+        reviewPanelMethod.setAccessible(true);
+        Method detectionMethod = panel.getClass().getDeclaredMethod("episodeDetection");
+        detectionMethod.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> {
             try {
-                javax.swing.JPanel reviewContent=(javax.swing.JPanel)reviewPanelMethod.invoke(panel);
+                javax.swing.JPanel reviewContent = (javax.swing.JPanel) reviewPanelMethod.invoke(null, result,
+                        detectionMethod.invoke(panel), caps.get("1L").getNFlies() == 0, panel.selectedFrame(), panel.diagnostics());
                 reviewContent.setSize(780,470);layout(reviewContent);
                 BufferedImage reviewImage=new BufferedImage(780,470,BufferedImage.TYPE_INT_RGB);
                 Graphics2D graphics=reviewImage.createGraphics();reviewContent.printAll(graphics);graphics.dispose();
@@ -337,18 +354,21 @@ public class CorrelationPanelSmoke {
         Component plot = (Component) field(panel, "plot");
         Method y = plot.getClass().getDeclaredMethod("y", double.class); y.setAccessible(true);
         int initialY = (Integer) y.invoke(plot, initial);
+        javax.swing.JCheckBox editIntakes = (javax.swing.JCheckBox) field(panel, "addGulp");
         SwingUtilities.invokeAndWait(() -> {
+            editIntakes.setSelected(true);
             long now = System.currentTimeMillis();
-            plot.dispatchEvent(new MouseEvent(plot, MouseEvent.MOUSE_PRESSED, now, 0, 400, initialY, 1, false));
+            plot.dispatchEvent(new MouseEvent(plot, MouseEvent.MOUSE_PRESSED, now, 0, 400, initialY, 1, false, MouseEvent.BUTTON1));
             plot.dispatchEvent(new MouseEvent(plot, MouseEvent.MOUSE_DRAGGED, now+1, 0, 400, initialY-20, 0, false));
-            plot.dispatchEvent(new MouseEvent(plot, MouseEvent.MOUSE_RELEASED, now+2, 0, 400, initialY-20, 1, false));
+            plot.dispatchEvent(new MouseEvent(plot, MouseEvent.MOUSE_RELEASED, now+2, 0, 400, initialY-20, 1, false, MouseEvent.BUTTON1));
         });
-        if (((Number) threshold.getValue()).doubleValue() <= initial) throw new AssertionError("Threshold drag failed");
+        if (((Number) threshold.getValue()).doubleValue() <= initial || !editIntakes.isSelected())
+            throw new AssertionError("Threshold drag failed with Edit intakes enabled");
         Method export = panel.getClass().getDeclaredMethod("writeCsv", Path.class); export.setAccessible(true);
         SwingUtilities.invokeAndWait(() -> { try { export.invoke(panel, output.resolve("panel_preview.csv")); } catch (Exception e) { throw new RuntimeException(e); } });
         String csv = new String(Files.readAllBytes(output.resolve("panel_preview.csv")), StandardCharsets.UTF_8);
-        if (!csv.contains("diagnostic_types") || !csv.contains("manual=true") || !csv.contains("grey_subtract_intake_evaporation=true")
-                || csv.split("\n").length != result.raw.length + 4) throw new AssertionError("CSV preview incomplete");
+        if (!csv.contains("diagnostic_types") || !csv.contains("manual=true") || !csv.contains("detector_net_before_edits_px")
+                || csv.split("\n").length != result.raw.length + 5) throw new AssertionError("CSV preview incomplete");
         SwingUtilities.invokeAndWait(() -> threshold.setValue(100.));
         Method candidates = panel.getClass().getDeclaredMethod("candidates"); candidates.setAccessible(true);
         for (boolean b : (boolean[]) candidates.invoke(panel)) if (b) throw new AssertionError("Candidate preview did not update with threshold");
@@ -363,6 +383,12 @@ public class CorrelationPanelSmoke {
         if (baselines != 1) throw new AssertionError("Pure evaporation model should remain without candidates");
         SwingUtilities.invokeAndWait(() -> { try { ((JButton) field(panel,"automatic")).doClick(); } catch (Exception e) { throw new RuntimeException(e); } });
         if (Math.abs(((Number) threshold.getValue()).doubleValue()-initial)>1e-10) throw new AssertionError("Automatic reset failed");
+        Object beforeRefresh = field(panel, "preview");
+        JButton refreshDetection = (JButton) field(panel, "refreshDetection");
+        SwingUtilities.invokeAndWait(refreshDetection::doClick);
+        compute(panel);
+        if (field(panel, "preview") == beforeRefresh || Math.abs(((Number) threshold.getValue()).doubleValue()-initial)>1e-10)
+            throw new AssertionError("Refresh did not recompute this capillary at its automatic threshold");
         SwingUtilities.invokeAndWait(() -> { try { ((JComboBox<?>) field(panel,"capillaries")).setSelectedItem(caps.get("7L")); } catch (Exception e) { throw new RuntimeException(e); } });
         compute(panel); render(panel, output.resolve("panel_7L_automatic.png"));
         SwingUtilities.invokeAndWait(() -> panel.showCapillary(caps.get("2L")));

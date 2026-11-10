@@ -48,6 +48,7 @@ final class IntakeControls {
 	final JButton nextButton = new JButton(">");
 	final JSpinner threshold = new JSpinner(new SpinnerNumberModel(1.0, 0.0, 10000.0, .05));
 	final JButton automatic = new JButton("Use automatic"), export = new JButton("Export CSV...");
+	final JButton refreshDetection = new JButton("Refresh detection");
 	final JButton review = new JButton("Review interval...");
 	final JButton exportExperiment = new JButton("Export experiment review...");
 	final JButton saveAllEdited = new JButton("Save intake for all capillaries...");
@@ -100,7 +101,7 @@ final class IntakeControls {
 		nextButton.setPreferredSize(new Dimension(bWidth, bHeight));
 
 		reviewTask.add(row(new JLabel("Capillary"), previousButton, capillaries, nextButton,
-				new JLabel("Threshold (pixels/min)"), threshold, thresholdMode, automatic));
+				new JLabel("Threshold (pixels/min)"), threshold, thresholdMode, automatic, refreshDetection));
 		JLabel intakeColorLabel = new JLabel("Intake bar color");
 		intakeColorLabel.setLabelFor(intakeColor);
 		intakeColor.setToolTipText("Choose the intake bar color in the kymograph preview.");

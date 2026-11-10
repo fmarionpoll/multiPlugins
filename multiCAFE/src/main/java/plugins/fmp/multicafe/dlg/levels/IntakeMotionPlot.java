@@ -32,16 +32,17 @@ final class IntakeMotionPlot extends JPanel {
 				CorrelationGulpPreview preview = host.preview();
 				if (preview == null)
 					return;
-				if (host.addGulpArmed() && SwingUtilities.isLeftMouseButton(e) && e.getX() >= 65
-						&& e.getX() <= getWidth() - 25) {
-					editStart = frameAt(e.getX());
-					return;
+				if (SwingUtilities.isLeftMouseButton(e) && e.getX() >= 65 && e.getX() <= getWidth() - 25) {
+					if (host.thresholdEditable() && Math.abs(e.getY() - y(host.thresholdValue())) < 12) {
+						dragging = true;
+						return;
+					}
+					if (host.addGulpArmed()) {
+						editStart = frameAt(e.getX());
+						return;
+					}
 				}
-				dragging = host.thresholdEditable() && Math.abs(e.getY() - y(host.thresholdValue())) < 12;
-				if (!dragging) {
-					double time = preview.minutes[0] + (e.getX() - 65.) / Math.max(1, getWidth() - 90) * duration();
-					host.selectFrame(closest(time));
-				}
+				host.selectFrame(frameAt(e.getX()));
 			}
 
 			@Override

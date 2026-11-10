@@ -20,7 +20,14 @@ public final class CorrelationGulpPreview {
     private final java.util.Map<Capillary,double[]> sourceLevels = new java.util.IdentityHashMap<>();
     private final java.util.Map<Capillary,boolean[]> sourceQuality = new java.util.IdentityHashMap<>();
     private final java.util.Map<Capillary,double[]> sourceColumns = new java.util.IdentityHashMap<>();
+    private final java.util.Map<Capillary,IcyBufferedImage> sourceImages = new java.util.IdentityHashMap<>();
+    private Sequence sourceSequence;
     public boolean matchesSources(Experiment experiment) {
+        if (experiment.getSeqKymos() == null || experiment.getSeqKymos().getSequence() != sourceSequence)
+            return false;
+        for (Capillary cap : sourceImages.keySet())
+            if (sourceSequence.getImage(cap.getKymographIndex(), 0) != sourceImages.get(cap))
+                return false;
         if(sourceLevels.size()!=experiment.getCapillaries().getList().size())return false;
         for(Capillary cap:experiment.getCapillaries().getList())
             if(!sourceLevels.containsKey(cap) || !Arrays.equals(sourceLevels.get(cap),levels(cap))
@@ -106,6 +113,8 @@ public final class CorrelationGulpPreview {
         if (scale == null || scale.isEmpty()) scale = FrameTimeScale.load(exp.getResultsDirectory());
         IcyBufferedImage nativeImage=sequence.getImage(selected.getKymographIndex(),0);
         if(nativeImage==null) throw new IllegalArgumentException("Kymograph image is missing for "+selected.getKymographName());
+        java.util.Map<Capillary,IcyBufferedImage> images = new java.util.IdentityHashMap<>();
+        images.put(selected, nativeImage);
         validateNativeTopraw(selected.getTopRaw().polylineLevel,scale,nativeImage.getSizeX(),selected.getLast2ofCapillaryName());
         double[] minutes = scale.toMinutes();
         for (int i = 1; i < minutes.length; i++)
@@ -123,6 +132,7 @@ public final class CorrelationGulpPreview {
             if (y == null || y.length != raw.length || !Double.isFinite(y[0])) continue;
             IcyBufferedImage controlImage=sequence.getImage(cap.getKymographIndex(),0);
             if(controlImage==null) throw new IllegalArgumentException("Missing control kymograph: "+cap.getLast2ofCapillaryName());
+            images.put(cap, controlImage);
             validateNativeTopraw(cap.getTopRaw().polylineLevel,scale,controlImage.getSizeX(),"Control "+cap.getLast2ofCapillaryName());
             double factor = pixelScale(exp, cap) / targetScale;
             for (int i = y.length - 1; i >= 0; i--) y[i] = (y[i] - y[0]) * factor;
@@ -185,6 +195,8 @@ public final class CorrelationGulpPreview {
         CorrelationGulpPreview result = new CorrelationGulpPreview(image, raw, minutes, reference, motion,
                 controlResiduals.stream().mapToDouble(Double::doubleValue).toArray(), usableControls, !curves.isEmpty(), description, controlRates, local, localEvaporation);
         result.sourceLevels.putAll(inputs);result.sourceQuality.putAll(qualities);result.sourceColumns.putAll(coordinates);
+        result.sourceSequence = sequence;
+        result.sourceImages.putAll(images);
         return result;
     }
 
