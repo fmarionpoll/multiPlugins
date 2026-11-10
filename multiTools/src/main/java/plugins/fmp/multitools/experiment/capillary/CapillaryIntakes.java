@@ -69,6 +69,8 @@ public class CapillaryIntakes {
 	}
 
     public void setBottomPositions(double[] positions) { events.setBottomPositions(positions); }
+	/** Moves stored absolute meniscus positions. Event amplitudes stay unchanged. */
+	public void addConstantBottomOffset(double dy) { events.addConstantBottomOffset(dy); }
     public double bottomAt(int i, double fallback) { return events.bottomAt(i, fallback); }
 
     public String getMethodOptions() { return methodOptions; }

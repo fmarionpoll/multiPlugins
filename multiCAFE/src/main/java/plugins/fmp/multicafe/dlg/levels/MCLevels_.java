@@ -106,7 +106,8 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 		tabAdjust.init(capLayout, parent0);
 		tabAdjust.addPropertyChangeListener(this);
-		tabsPane.addTab("Adjust", null, tabAdjust, "Resize/crop capillary level curves to match kymograph width");
+		tabsPane.addTab("Adjust", null, tabAdjust,
+				"Resize, crop, or shift capillary level curves to match the kymograph");
 
 		tabGraphs.init(capLayout, parent0);
 		tabGraphs.addPropertyChangeListener(this);
@@ -171,6 +172,20 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 
 	public void onKymographCapillaryShown(Capillary cap) {
 		tabDetectGulps.followCapillary(cap);
+	}
+
+	/** Take a level-offset preview off the ROIs before they are copied into measures. */
+	public void unapplyLevelOffsetPreview(Experiment exp) {
+		tabAdjust.unapplyLevelOffsetPreview(exp);
+	}
+
+	/** Put the preview back after kymograph ROIs were rebuilt from stored measures. */
+	public void onKymographRoisRebuilt(Experiment exp) {
+		tabAdjust.onKymographRoisRebuilt(exp);
+	}
+
+	public void discardLevelOffsetPreview() {
+		tabAdjust.discardLevelOffsetPreview();
 	}
 
 	public void clearLevelsV1View() {

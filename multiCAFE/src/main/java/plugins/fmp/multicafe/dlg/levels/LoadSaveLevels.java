@@ -61,6 +61,8 @@ public class LoadSaveLevels extends JPanel {
 
 	public boolean dlg_levels_loadCapillaries_Measures(Experiment exp) {
 		ProgressFrame progress = new ProgressFrame("load capillary measures");
+		parent0.paneLevels.unapplyLevelOffsetPreview(exp);
+		parent0.paneLevels.discardLevelOffsetPreview();
 		boolean flag = exp.load_capillaries_description_and_measures();
 		if (flag && exp.getSeqKymos() != null)
 			exp.getSeqKymos().syncROIsForCurrentFrame(0, exp.getCapillaries());
@@ -74,10 +76,12 @@ public class LoadSaveLevels extends JPanel {
 			ProgressFrame progress = new ProgressFrame("save capillary measures");
 			// Pull ROI state, fill cut gaps, refresh display, then write.
 			// Detector/CleanGaps saves use Experiment.save_* and do not fill.
+			parent0.paneLevels.unapplyLevelOffsetPreview(exp);
 			exp.getSeqKymos().transferKymosRoisToCapillaries_Measures(exp.getCapillaries());
 			EditLevels.fillInvalidMeasuresForAllCapillaries(exp);
 			EditLevels.refreshLinearRoisFromMeasures(exp);
 			flag = exp.save_capillaries_description_and_measures();
+			parent0.paneLevels.onKymographRoisRebuilt(exp);
 			progress.close();
 		}
 		return flag;

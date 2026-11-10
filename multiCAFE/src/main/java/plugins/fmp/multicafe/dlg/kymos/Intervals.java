@@ -523,14 +523,19 @@ public class Intervals extends JPanel implements ViewerListener {
 				t = v.getPositionT();
 				if (t != isel && t >= 0) {
 					Capillary capOld = seqKymos.getCapillaryForFrame(t, exp.getCapillaries());
+					if (parent0.paneLevels != null)
+						parent0.paneLevels.unapplyLevelOffsetPreview(exp);
 					if (capOld != null && capOld.isGulpMeasuresDirty()) {
 						String[] options = new String[] { "Save", "Discard", "Cancel" };
 						int choice = JOptionPane.showOptionDialog(this,
 								"Unsaved edits to ordinary gulps in the kymograph viewer.\n"
 										+ "These are separate from correlation intake. Save, Discard, or Cancel?", "Ordinary gulp changes",
 								JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
-						if (choice == 2 || choice == JOptionPane.CLOSED_OPTION)
+						if (choice == 2 || choice == JOptionPane.CLOSED_OPTION) {
+							if (parent0.paneLevels != null)
+								parent0.paneLevels.onKymographRoisRebuilt(exp);
 							return t;
+						}
 						if (choice == 0)
 							seqKymos.validateGulpROIsAtT(exp, t);
 						else
@@ -543,7 +548,10 @@ public class Intervals extends JPanel implements ViewerListener {
 				if (t != isel)
 					v.setPositionT(isel);
 			}
+			int frameBeforeSync = seqKymos.getCurrentFrame();
 			seqKymos.syncROIsForCurrentFrame(isel, exp.getCapillaries());
+			if (frameBeforeSync != isel && parent0.paneLevels != null)
+				parent0.paneLevels.onKymographRoisRebuilt(exp);
 		} finally {
 			seq.endUpdate();
 		}
@@ -627,8 +635,14 @@ public class Intervals extends JPanel implements ViewerListener {
 			// combo/validation path (including its action listener) during inspection.
 			if (parent0.paneKymos.tabInspector.isInspecting(v.getSequence()))
 				return;
-			if (exp != null)
+			if (exp != null) {
+				int frameBefore = exp.getSeqKymos() == null ? tNew : exp.getSeqKymos().getCurrentFrame();
+				if (frameBefore != tNew && parent0.paneLevels != null)
+					parent0.paneLevels.unapplyLevelOffsetPreview(exp);
 				exp.onViewerTPositionChanged(v, tNew, false, parent0.viewOptions.toCafeViewOptionsDTO());
+				if (frameBefore != tNew && parent0.paneLevels != null)
+					parent0.paneLevels.onKymographRoisRebuilt(exp);
+			}
 			if (tNew >= 0 && tNew < kymographsCombo.getItemCount()) {
 				selectKymographComboItem(tNew);
 				String title = kymographsCombo.getItemAt(tNew) + "  :" + viewsCombo.getSelectedItem() + " s";

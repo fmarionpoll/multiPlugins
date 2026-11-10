@@ -374,6 +374,35 @@ public class Capillary implements Comparable<Capillary> {
 		measurements.ptsTopCorrected = m;
 	}
 
+	/**
+	 * Adds the same vertical offset, in pixels, to top raw, bottom raw, and a
+	 * stored corrected top. Positive moves the curves down. Gulp and intake
+	 * heights stay as they are; stored absolute meniscus positions move with the
+	 * levels.
+	 *
+	 * @return true when at least one raw curve had samples to move
+	 */
+	public boolean addConstantLevelOffset(double dy) {
+		if (!Double.isFinite(dy) || dy == 0)
+			return false;
+		int moved = 0;
+		if (measurements.ptsTop != null)
+			moved += measurements.ptsTop.addConstantYOffset(dy);
+		if (measurements.ptsBottom != null)
+			moved += measurements.ptsBottom.addConstantYOffset(dy);
+		if (moved == 0)
+			return false;
+		if (measurements.ptsTopCorrected != null)
+			measurements.ptsTopCorrected.addConstantYOffset(dy);
+		if (measurements.ptsGulps != null)
+			measurements.ptsGulps.addConstantBottomOffset(dy);
+		if (measurements.ptsIntakes != null)
+			measurements.ptsIntakes.addConstantBottomOffset(dy);
+		if (hasT00YPixels())
+			setT00YPixels(getT00YPixels() + dy);
+		return true;
+	}
+
 	// Delegate getters for metadata
 	public ROI2D getRoi() {
 		return metadata.roiCap;

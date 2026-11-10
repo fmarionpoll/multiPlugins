@@ -244,14 +244,19 @@ public class EditLevels extends JPanel {
 			return;
 
 		Capillary cap = exp.getCapillaries().getList().get(t);
-		seqKymos.transferKymosRoisToCapillaries_Measures(exp.getCapillaries());
+		parent0.paneLevels.unapplyLevelOffsetPreview(exp);
+		try {
+			seqKymos.transferKymosRoisToCapillaries_Measures(exp.getCapillaries());
 
-		int lastX = findLastXLeftOfRoi(cap, roiRef);
-		cap.cropMeasuresToNPoints(lastX + 1);
+			int lastX = findLastXLeftOfRoi(cap, roiRef);
+			cap.cropMeasuresToNPoints(lastX + 1);
 
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopRaw());
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomRaw());
-		seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
+			seqKymos.updateROIFromCapillaryMeasure(cap, cap.getTopRaw());
+			seqKymos.updateROIFromCapillaryMeasure(cap, cap.getBottomRaw());
+			seqKymos.updateROIFromCapillaryMeasure(cap, cap.getDerivative());
+		} finally {
+			parent0.paneLevels.onKymographRoisRebuilt(exp);
+		}
 	}
 
 	int findLastXLeftOfRoi(Capillary cap, ROI2D roiRef) {
@@ -401,6 +406,8 @@ public class EditLevels extends JPanel {
 		MeasureEditTarget target = getMeasureEditTarget();
 		if (target == null)
 			return;
+		parent0.paneLevels.unapplyLevelOffsetPreview(exp);
+		try {
 		switch (target) {
 		case GULPS:
 			ctx.seqKymos.validateGulpROIsAtT(ctx.cap);
@@ -423,6 +430,9 @@ public class EditLevels extends JPanel {
 			exp.save_capillaries_description_and_measures();
 			break;
 		}
+		} finally {
+			parent0.paneLevels.onKymographRoisRebuilt(exp);
+		}
 		Viewer v = ctx.seqKymos.getSequence().getFirstViewer();
 		if (v != null)
 			parent0.paneKymos.tabIntervals.applyCentralViewOptionsToKymosViewer(v);
@@ -436,6 +446,8 @@ public class EditLevels extends JPanel {
 		if (target == null)
 			return;
 		int t = ctx.getCurrentFrame();
+		parent0.paneLevels.unapplyLevelOffsetPreview(exp);
+		try {
 		switch (target) {
 		case GULPS:
 			List<ROI> list = getGulpsWithinRoi(ctx.selectedROI, ctx.seqKymos.getSequence(), t);
@@ -469,6 +481,9 @@ public class EditLevels extends JPanel {
 			// Persist cut gaps as NaN; linear fill is deferred to Validate / Load-Save.
 			exp.save_capillaries_description_and_measures();
 			break;
+		}
+		} finally {
+			parent0.paneLevels.onKymographRoisRebuilt(exp);
 		}
 	}
 

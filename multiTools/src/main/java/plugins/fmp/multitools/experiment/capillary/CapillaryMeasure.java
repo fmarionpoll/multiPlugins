@@ -218,6 +218,43 @@ public class CapillaryMeasure {
 		polylineLevel = new Level2D(pol);
 	}
 
+	/**
+	 * Adds {@code dy} to every finite Y sample. Missing (NaN) samples stay missing,
+	 * and refinement-quality flags stay on the same points.
+	 *
+	 * @return number of finite samples moved
+	 */
+	public int addConstantYOffset(double dy) {
+		if (!Double.isFinite(dy) || dy == 0)
+			return 0;
+		int changed = shiftFiniteY(polylineLevel, dy, true);
+		shiftFiniteY(polyline_old, dy, false);
+		if (changed > 0 && limit != null && polylineLevel != null && limit.length == polylineLevel.npoints) {
+			for (int i = 0; i < limit.length; i++) {
+				if (Double.isFinite(polylineLevel.ypoints[i]))
+					limit[i] = (int) polylineLevel.ypoints[i];
+			}
+		}
+		return changed;
+	}
+
+	private int shiftFiniteY(Level2D level, double dy, boolean keepQuality) {
+		if (level == null || level.npoints == 0 || level.ypoints == null)
+			return 0;
+		boolean[] quality = keepQuality ? getRefinementQuality() : null;
+		int n = Math.min(level.npoints, level.ypoints.length);
+		int changed = 0;
+		for (int i = 0; i < n; i++) {
+			if (Double.isFinite(level.ypoints[i])) {
+				level.ypoints[i] += dy;
+				changed++;
+			}
+		}
+		if (quality != null)
+			setRefinementQuality(quality);
+		return changed;
+	}
+
 	public void copy(CapillaryMeasure cap) {
 		if (cap.polylineLevel != null)
 			polylineLevel = cap.polylineLevel.clone();

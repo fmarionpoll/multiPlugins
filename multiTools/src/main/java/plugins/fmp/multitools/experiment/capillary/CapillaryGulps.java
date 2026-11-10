@@ -73,6 +73,16 @@ public class CapillaryGulps {
                 ? bottomPositions[i] : fallback;
     }
 
+	/** Moves stored absolute meniscus positions. Heights stay unchanged. */
+	public void addConstantBottomOffset(double dy) {
+		if (bottomPositions == null || !Double.isFinite(dy) || dy == 0)
+			return;
+		for (int i = 0; i < bottomPositions.length; i++) {
+			if (Double.isFinite(bottomPositions[i]))
+				bottomPositions[i] += dy;
+		}
+	}
+
 	public void ensureSize(int npoints) {
         if (gulpHeights == null || gulpHeights.npoints != npoints) bottomPositions = null;
 		if (npoints <= 0) {
