@@ -233,11 +233,15 @@ public final class IntakeEpisodes {
         }
         double[] amounts = fitted.net.clone(), positions = fitted.position.clone();
         for (Candidate c : selected) {
+            // The plateau fit tests persistence and places the bar. A long
+            // drift between plateaus must not add volume to this transition.
+            double total = Math.min(fitted.net[c.boundary], c.amount);
+            amounts[c.boundary] = total;
             if (c.first == c.last) continue;
-            double total = fitted.net[c.boundary], weight = 0;
+            double weight = 0;
             for (int k = c.first; k <= c.last; k++)
                 weight += Math.max(0, rate[k] * (times[k] - times[k - 1]));
-            double position = fitted.position[c.boundary - 1];
+            double position = fitted.position[c.boundary] - total;
             for (int k = c.first; k <= c.last; k++) {
                 amounts[k] = total * Math.max(0, rate[k] * (times[k] - times[k - 1])) / weight;
                 position += amounts[k];

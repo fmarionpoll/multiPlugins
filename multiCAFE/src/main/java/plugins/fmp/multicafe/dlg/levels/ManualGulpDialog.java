@@ -107,7 +107,7 @@ public final class ManualGulpDialog {
 		((JSpinner.NumberEditor) position.getEditor()).getTextField().setColumns(10);
 		JPanel fields = new JPanel(new java.awt.GridLayout(0, 2, 6, 6));
 		from.setName("manualIntakeFirstBin"); to.setName("manualIntakeLastBin");
-		from.setToolTipText("Changing the range measures every selected bin again from saved levels.");
+		from.setToolTipText("Changing the range keeps measurements in bins that remain selected and measures newly selected bins from saved levels.");
 		to.setToolTipText(from.getToolTipText());
 		((JSpinner.NumberEditor) from.getEditor()).getTextField().setColumns(4);
 		((JSpinner.NumberEditor) to.getEditor()).getTextField().setColumns(4);
@@ -359,11 +359,14 @@ public final class ManualGulpDialog {
 
 		private void setRange(int from, int to) {
 			if (from == first && to == last) return;
-			first = from; last = to;
-			ManualIntakeEdits.BinMeasures measured = ManualIntakeEdits.measureBins(preview.raw, preview.evaporation, first, last);
-			for (int i = first; i <= last; i++) {
+			if (active >= from && active <= to)
+				commitBinEditors();
+			ManualIntakeEdits.BinMeasures measured = ManualIntakeEdits.measureBins(preview.raw, preview.evaporation, from, to);
+			for (int i = from; i <= to; i++) {
+				if (i >= first && i <= last) continue;
 				measuredAmplitudes[i] = measured.amplitudes[i]; measuredBottoms[i] = measured.bottoms[i];
 			}
+			first = from; last = to;
 			active = Math.max(first, Math.min(last, active));
 			loadBin();
 		}

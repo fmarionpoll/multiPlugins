@@ -94,6 +94,14 @@ public class IntakeEpisodesTest {
         IntakeEpisodes.Detection d = accepted(r, valid(60));
         assertTrue(d.net[20] > 1.4);
     }
+    @Test public void gradualMovementOutsideAnEpisodeDoesNotIncreaseItsAmplitude() {
+        double[] r = new double[60];
+        Arrays.fill(r, 1, r.length, .12);
+        r[30] = 1.6;
+        IntakeEpisodes.Detection d = accepted(r, valid(r.length));
+        assertEquals(1, d.episodes);
+        assertEquals(1.6, d.net[30], 1e-9);
+    }
     @Test public void acceptedLevelsRejectOneAndTwoBinExcursionsInBothDirections() {
         for (int duration : new int[] { 1, 2 }) for (int direction : new int[] { -1, 1 }) {
             double[] r = new double[60]; r[20] = direction * 3; r[20 + duration] = -direction * 3;

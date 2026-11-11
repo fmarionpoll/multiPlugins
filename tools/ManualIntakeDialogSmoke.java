@@ -108,6 +108,11 @@ public class ManualIntakeDialogSmoke {
                                             "Dragging lower blue endpoint did not preserve upper position");
                                     JSpinner from = (JSpinner) named((Container) window, "manualIntakeFirstBin");
                                     JSpinner to = (JSpinner) named((Container) window, "manualIntakeLastBin");
+                                    double originalAmount = ((Number) amount.getValue()).doubleValue();
+                                    from.setValue(29); to.setValue(32);
+                                    CorrelationIntakeBatchSmoke.check(((Number) amount.getValue()).doubleValue() == originalAmount
+                                            && ((Number) bottom.getValue()).doubleValue() == 42,
+                                            "Expanding the range changed the original bin's intake or position");
                                     from.setValue(35);
                                     CorrelationIntakeBatchSmoke.check(((Number) to.getValue()).intValue() == 35,
                                             "First bin beyond last did not maintain a valid interval");
