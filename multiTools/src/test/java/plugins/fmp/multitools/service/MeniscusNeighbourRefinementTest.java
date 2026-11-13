@@ -38,6 +38,23 @@ public class MeniscusNeighbourRefinementTest {
         assertTrue(r.neighbourSupport[25]>=4);
     }
 
+    @Test public void brightnessEdgeSupportsRefinementWithoutAColorTransition() {
+        int columns = 30;
+        BufferedImage image = new BufferedImage(columns, 90, BufferedImage.TYPE_INT_RGB);
+        double[] edge = new double[columns], raw = new double[columns];
+        for (int x = 0; x < columns; x++) {
+            edge[x] = x < 15 ? 40 : 44;
+            raw[x] = edge[x] + (x % 2 == 0 ? 1 : -1);
+            for (int y = 0; y < image.getHeight(); y++) {
+                int gray = (int) Math.round(180 - 65 / (1 + Math.exp((edge[x] - y) / 1.2)));
+                image.setRGB(x, y, gray * 0x010101);
+            }
+        }
+        VerticalCorrelation.Result result = MeniscusNeighbourRefinement.analyze(image, raw, 10, 3, true, null);
+        assertTrue(error(result.refined, edge) < .35);
+        assertEquals(4, result.refined[15] - result.refined[14], .3);
+    }
+
     @Test public void blankNeighbourDoesNotInvalidateOtherIndependentImageMatches() {
         double[] edge=new double[25];for(int i=0;i<edge.length;i++) edge[i]=40+.1*i;
         double[] raw=edge.clone();raw[11]+=2;

@@ -129,16 +129,126 @@ public final class MeniscusReferenceTracking {
         for (int x = seed + direction; direction > 0 ? x <= end : x >= end; x += direction) {
             if (Thread.currentThread().isInterrupted()) throw new CancellationException();
             if (!Double.isFinite(levels[x])) break;
-            double best = -2, position = y;
-            for (int j = 0; j <= 2*SEARCH*4; j++) {
-                double candidate = y - SEARCH + j*.25;
-                double score = inside(image, candidate) ? score(template, profile(image, x, candidate)) : -2;
-                if (score > best) { best = score; position = candidate; }
-            }
-            // Stop rather than transferring the lock to an unrelated feature.
-            if (best < .80 || Math.abs(position - y) >= SEARCH) break;
+            double position = match(image, x, y, SEARCH, template);
+            if (!Double.isFinite(position)) break;
             y = position; r.tracked[x] = y; r.reliable[x] = true;
         }
+    }
+
+    /** Match independently in each column near the closest anchor of a fixed feature. */
+    static double[] trackFixedFeature(BufferedImage image, Map<Integer, Double> anchors, int first, int last,
+            int searchRadius, boolean useNearbyEdges) {
+        SortedMap<Integer, Double> seeds = new TreeMap<>();
+        for (Map.Entry<Integer, Double> anchor : anchors.entrySet()) {
+            int x = anchor.getKey();
+            if (x < first || x > last) continue;
+            double y = anchor.getValue();
+            if (!inside(image, y))
+                throw new IllegalArgumentException("Place reference points at least four pixels from the top and bottom.");
+            if (!useNearbyEdges && contrast(profile(image, x, y)) < 2)
+                throw new IllegalArgumentException("Reference point has too little contrast. Click an edge or dark line.");
+            seeds.put(x, y);
+        }
+        if (seeds.isEmpty())
+            throw new IllegalArgumentException("Place at least one reference point within the selected range.");
+
+        double[] tracked = new double[image.getWidth()];
+        Arrays.fill(tracked, Double.NaN);
+        int start = first;
+        Integer[] columns = seeds.keySet().toArray(new Integer[0]);
+        for (int i = 0; i < columns.length; i++) {
+            int seed = columns[i];
+            int end = i + 1 == columns.length ? last : seed + (columns[i + 1] - seed) / 2;
+            double center = seeds.get(seed);
+            double[] template = profile(image, seed, center);
+            double[] rows = useNearbyEdges ? referenceRows(image, seed, center) : new double[] { center };
+            double[][] templates = new double[rows.length][];
+            for (int j = 0; j < rows.length; j++)
+                templates[j] = rows[j] == center ? template : profile(image, seed, rows[j]);
+            double[] votes = new double[rows.length];
+            for (int x = start; x <= end; x++) {
+                if (Thread.currentThread().isInterrupted()) throw new CancellationException();
+                double shift = x == seed ? 0 : consensusShift(image, x, searchRadius, rows, templates, votes);
+                tracked[x] = center + shift;
+            }
+            start = end + 1;
+        }
+        return tracked;
+    }
+
+    private static double[] referenceRows(BufferedImage image, int x, double center) {
+        // Use spatially distinct profiles so a change in one edge cannot outvote the rest.
+        double[] rows = new double[7];
+        double[] strengths = new double[rows.length];
+        int count = 0;
+        double primary = contrast(profile(image, x, center));
+        if (primary >= 2) {
+            rows[count] = center;
+            strengths[count++] = primary;
+        }
+        for (int side : new int[] { -1, 1 }) {
+            for (int band = 1; band <= 3; band++) {
+                double strongest = 3;
+                double row = Double.NaN;
+                for (int dy = 10 * band - 2; dy <= 10 * band + 2; dy++) {
+                    double candidate = center + side * dy;
+                    if (!inside(image, candidate))
+                        continue;
+                    double energy = contrast(profile(image, x, candidate));
+                    if (energy > strongest) {
+                        strongest = energy;
+                        row = candidate;
+                    }
+                }
+                if (Double.isFinite(row) && (count == 0 || Math.abs(row - rows[count - 1]) >= 8)) {
+                    rows[count] = row;
+                    strengths[count++] = strongest;
+                }
+            }
+        }
+        if (count == 0)
+            throw new IllegalArgumentException("Too little contrast near the reference. Click a fixed edge or dark band.");
+        double minimumStrength = .25 * Arrays.stream(strengths).max().getAsDouble();
+        int retained = 0;
+        for (int j = 0; j < count; j++) {
+            if (strengths[j] >= minimumStrength)
+                rows[retained++] = rows[j];
+        }
+        return Arrays.copyOf(rows, retained);
+    }
+
+    private static double consensusShift(BufferedImage image, int x, int radius, double[] rows,
+            double[][] templates, double[] votes) {
+        int count = 0;
+        for (int j = 0; j < rows.length; j++) {
+            double position = match(image, x, rows[j], radius, templates[j]);
+            if (Double.isFinite(position))
+                votes[count++] = position - rows[j];
+        }
+        if (count == 0 || count * 2 <= rows.length)
+            return Double.NaN;
+        Arrays.sort(votes, 0, count);
+        double median = (votes[(count - 1) / 2] + votes[count / 2]) / 2;
+        int agreeing = 0;
+        for (int j = 0; j < count; j++) {
+            if (Math.abs(votes[j] - median) <= .5)
+                agreeing++;
+        }
+        return agreeing * 2 > rows.length ? median : Double.NaN;
+    }
+
+    private static double match(BufferedImage image, int x, double center, int radius, double[] template) {
+        double best = -2, position = center;
+        for (int j = -4 * radius; j <= 4 * radius; j++) {
+            double candidate = center + j * .25;
+            double correlation = inside(image, candidate) ? score(template, profile(image, x, candidate)) : -2;
+            if (correlation > best + 1e-9 || (Math.abs(correlation - best) <= 1e-9
+                    && Math.abs(candidate - center) < Math.abs(position - center))) {
+                best = correlation;
+                position = candidate;
+            }
+        }
+        return best >= .80 && Math.abs(position - center) < radius ? position : Double.NaN;
     }
 
     private static boolean inside(BufferedImage image, double y) {

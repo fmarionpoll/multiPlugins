@@ -28,9 +28,11 @@ public final class MeniscusNeighbourRefinement {
             throw new IllegalArgumentException("Manual anchor has no finite meniscus position at column "+i);
         double[][][] color=new double[n][2][h];
         for(int t=0;t<n;t++) for(int y=0;y<h;y++) {
-            int rgb=image.getRGB(t,y),red=(rgb>>16)&255;
-            color[t][0][y]=((rgb>>8)&255)-red;
-            color[t][1][y]=(rgb&255)-red;
+            int rgb=image.getRGB(t,y),red=(rgb>>16)&255,green=(rgb>>8)&255,blue=rgb&255;
+            // The visible boundary can move independently of fine chromatic
+            // texture within the meniscus. Include its brightness transition.
+            color[t][0][y]=(red+green+blue)/3.0;
+            color[t][1][y]=(green+blue)/2.0-red;
         }
         List<Edge> edges=new ArrayList<>();
         VerticalCorrelation.Result result=new VerticalCorrelation.Result(n);

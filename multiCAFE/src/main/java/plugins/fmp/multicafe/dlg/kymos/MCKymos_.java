@@ -52,6 +52,14 @@ public class MCKymos_ extends JPanel implements PropertyChangeListener, ChangeLi
 		tabIntervals.addPropertyChangeListener(this);
 		tabsPane.addTab("Intervals", null, tabIntervals, "Display options of data & kymographs");
 
+		JPanel adjustLauncher = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JButton openAdjust = new JButton("Adjust kymograph...");
+		openAdjust.setToolTipText("Track a fixed feature and preview vertical alignment before applying it.");
+		openAdjust.addActionListener(e -> KymographAdjustmentDialog.open(this,
+				parent0.expListComboLazy.getSelectedItem(), tabIntervals.kymographsCombo.getSelectedIndex()));
+		adjustLauncher.add(openAdjust);
+		tabsPane.addTab("Adjust", null, adjustLauncher, "Correct vertical camera vibration in a kymograph");
+
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);
 		tabsPane.addTab("Load/Save", null, tabLoadSave, "Load/Save xml file with capillaries descriptors");
