@@ -40,6 +40,10 @@ final class IntakeAlignmentView extends JPanel {
 			this.color = color;
 		}
 
+		Color color() {
+			return color;
+		}
+
 		@Override
 		public String toString() {
 			return label;

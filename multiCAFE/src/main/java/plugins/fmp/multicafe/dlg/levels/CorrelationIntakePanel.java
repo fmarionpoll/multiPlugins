@@ -1317,6 +1317,7 @@ public final class CorrelationIntakePanel extends JPanel implements IntakeChartH
 			amount = 1;
 		ManualGulpDialog.Result result = ManualGulpDialog.show(this, edited, first, last, amount, bottom,
 				candidateAmplitudes(), reviewBottoms, manualGulpContextMinutes,
+				(IntakeAlignmentView.BarColor) controls.intakeColor.getSelectedItem(),
 				() -> preview == edited && computedCapillary == cap && edited.matchesSources(experiment));
 		manualGulpContextMinutes = result.contextMinutes;
 		if (result.stale) {

@@ -28,7 +28,7 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 
-import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
+import plugins.fmp.multicafe.dlg.levels.IntakeAlignmentView.BarColor;
 import plugins.fmp.multitools.service.CorrelationGulpPreview;
 import plugins.fmp.multitools.service.ManualIntakeEdits;
 
@@ -65,6 +65,13 @@ public final class ManualGulpDialog {
 
 	public static Result show(Component parent, CorrelationGulpPreview preview, int first, int last, double amount, double bottom,
 			double[] otherAmplitudes, double[] otherBottoms, double contextMinutes, BooleanSupplier sourcesCurrent) {
+		return show(parent, preview, first, last, amount, bottom, otherAmplitudes, otherBottoms, contextMinutes,
+				BarColor.BLUE, sourcesCurrent);
+	}
+
+	static Result show(Component parent, CorrelationGulpPreview preview, int first, int last, double amount, double bottom,
+			double[] otherAmplitudes, double[] otherBottoms, double contextMinutes, BarColor intakeColor,
+			BooleanSupplier sourcesCurrent) {
 		JSpinner amplitude = new JSpinner(new SpinnerNumberModel(amount, 0., Double.MAX_VALUE, .1));
 		JSpinner position = new JSpinner(new SpinnerNumberModel(bottom, -Double.MAX_VALUE, Double.MAX_VALUE, .1));
 		JSpinner from = new JSpinner(new SpinnerNumberModel(first, 1, preview.raw.length - 1, 1));
@@ -72,7 +79,8 @@ public final class ManualGulpDialog {
 		JSpinner editBin = new JSpinner(new SpinnerNumberModel(last, first, last, 1));
 		JSpinner context = new JSpinner(new SpinnerNumberModel(contextMinutes, 0.,
 				Math.max(contextMinutes, preview.minutes[preview.minutes.length - 1] - preview.minutes[0]), .5));
-		JPanel fields = editor(preview, from, to, editBin, amplitude, position, context, otherAmplitudes, otherBottoms);
+		JPanel fields = editor(preview, from, to, editBin, amplitude, position, context, otherAmplitudes, otherBottoms,
+				intakeColor);
 		Zoom measurement = (Zoom) fields.getClientProperty("manualIntakeMeasurement");
 		Object[] actions = { "OK", "Delete intake event", "Cancel" };
 		while (true) {
@@ -132,10 +140,11 @@ public final class ManualGulpDialog {
 	}
 
 	private static JPanel editor(CorrelationGulpPreview preview, JSpinner from, JSpinner to, JSpinner editBin, JSpinner amplitude,
-			JSpinner position, JSpinner context, double[] otherAmplitudes, double[] otherBottoms) {
+			JSpinner position, JSpinner context, double[] otherAmplitudes, double[] otherBottoms, BarColor intakeColor) {
 		JPanel editor = new JPanel(new BorderLayout(4, 6));
 		editor.add(manualGulpFields(from, to, editBin, amplitude, position), BorderLayout.NORTH);
-		Zoom image = new Zoom(preview, from, to, editBin, amplitude, position, otherAmplitudes, otherBottoms);
+		Zoom image = new Zoom(preview, from, to, editBin, amplitude, position, otherAmplitudes, otherBottoms,
+				intakeColor.color());
 		editor.putClientProperty("manualIntakeMeasurement", image);
 		((JButton) named(editor, "manualIntakeSaveBin")).addActionListener(e -> image.saveActiveBin());
 		((JButton) named(editor, "manualIntakeDeleteBin")).addActionListener(e -> image.deleteActiveBin());
@@ -207,7 +216,7 @@ public final class ManualGulpDialog {
 		footer.add(controls, BorderLayout.NORTH);
 		JPanel legend = new JPanel(new java.awt.GridLayout(0, 1));
 		legend.add(selectedTime);
-		legend.add(new JLabel("Blue: intake bins; handles: bin to edit. Orange: saved level. Click a bin to edit."));
+		legend.add(new JLabel(intakeColor + ": intake bins; handles: bin to edit. Orange: saved level. Click a bin to edit."));
 		footer.add(legend, BorderLayout.SOUTH);
 		editor.add(footer, BorderLayout.SOUTH);
 		SwingUtilities.invokeLater(image::revealLine);
@@ -234,6 +243,7 @@ public final class ManualGulpDialog {
 		private static final long serialVersionUID = 1L;
 		private static final int MARGIN = 12;
 		private final CorrelationGulpPreview preview;
+		private final Color intakeColor;
 		private int first, last;
 		private final int originalFirst, originalLast;
 		private int left, right;
@@ -248,8 +258,9 @@ public final class ManualGulpDialog {
 		private double fixedTop;
 
 		Zoom(CorrelationGulpPreview preview, JSpinner from, JSpinner to, JSpinner editBin, JSpinner amplitude, JSpinner position,
-				double[] otherAmplitudes, double[] otherBottoms) {
+				double[] otherAmplitudes, double[] otherBottoms, Color intakeColor) {
 			this.preview = preview; first = ((Number) from.getValue()).intValue(); last = ((Number) to.getValue()).intValue();
+			this.intakeColor = intakeColor;
 			originalFirst = first; originalLast = last;
 			active = last; this.editBin = editBin;
 			this.otherAmplitudes = otherAmplitudes.clone(); this.otherBottoms = otherBottoms.clone();
@@ -283,7 +294,7 @@ public final class ManualGulpDialog {
 			setContextMinutes(8);
 			setName("manualIntakeZoom");
 			setBackground(Color.DARK_GRAY);
-			setToolTipText("Each selected bin is measured separately. Click a bin or use Bin to edit; the intake and position of the bin you leave are kept. Then adjust its fields or drag its vertical blue endpoints.");
+			setToolTipText("Each selected bin is measured separately. Click a bin or use Bin to edit; the intake and position of the bin you leave are kept. Then adjust its fields or drag its vertical endpoints.");
 			MouseAdapter mouse = new MouseAdapter() {
 				@Override public void mousePressed(MouseEvent e) {
 					if (!SwingUtilities.isLeftMouseButton(e)) return;
@@ -407,7 +418,7 @@ public final class ManualGulpDialog {
 				if (Double.isFinite(preview.raw[i - 1]) && Double.isFinite(preview.raw[i]))
 					g.drawLine(MARGIN + (int) ((i - left - .5) * scale), y(preview.raw[i - 1]),
 							MARGIN + (int) ((i - left + .5) * scale), y(preview.raw[i]));
-			g.setColor(CapillaryIntakes.ROI_COLOR); g.setStroke(new BasicStroke(2));
+			g.setColor(intakeColor); g.setStroke(new BasicStroke(2));
 			for (int i = Math.max(1, left); i < right; i++)
 				if ((i < first || i > last) && (i < originalFirst || i > originalLast)
 						&& otherAmplitudes[i] > 0 && Double.isFinite(otherBottoms[i]))
@@ -416,7 +427,7 @@ public final class ManualGulpDialog {
 				if (i != active && measuredAmplitudes[i] > 0 && Double.isFinite(measuredAmplitudes[i]) && Double.isFinite(measuredBottoms[i]))
 					g.drawLine(columnX(i), y(measuredBottoms[i]), columnX(i), y(measuredBottoms[i] - measuredAmplitudes[i]));
 			int x = lineX(), bottom = y(number(position)), top = y(number(position) - fullAmplitude());
-			g.setColor(CapillaryIntakes.ROI_COLOR); g.setStroke(new BasicStroke(3));
+			g.setStroke(new BasicStroke(3));
 			g.drawLine(x, top, x, bottom);
 			g.fillOval(x - 5, top - 5, 10, 10); g.fillOval(x - 5, bottom - 5, 10, 10);
 			g.dispose();

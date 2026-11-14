@@ -40,6 +40,8 @@ public class ManualIntakeDialogSmoke {
         return null;
     }
     public static void main(String[] args) throws Exception {
+        boolean blue = args.length > 0 && "blue".equalsIgnoreCase(args[0]);
+        Color expectedColor = blue ? plugins.fmp.multitools.experiment.capillary.CapillaryIntakes.ROI_COLOR : Color.YELLOW;
         System.setProperty("java.util.prefs.PreferencesFactory", CorrelationPanelSmoke.MemoryPreferencesFactory.class.getName());
         icy.preferences.IcyPreferences.init();
         Experiment exp = CorrelationIntakeBatchSmoke.fixture(new int[1]);
@@ -56,6 +58,8 @@ public class ManualIntakeDialogSmoke {
         try {
             SwingUtilities.invokeAndWait(() -> {
                 CorrelationIntakePanel panel = new CorrelationIntakePanel(exp, cap);
+                JComboBox<?> intakeColor = (JComboBox<?>) CorrelationIntakeBatchSmoke.get(panel, "intakeColor");
+                if (blue) intakeColor.setSelectedIndex(1);
                 Timer accept = new Timer(300, event -> {
                     for (Window window : Window.getWindows())
                         if (window instanceof JDialog && window.isShowing()
@@ -89,9 +93,12 @@ public class ManualIntakeDialogSmoke {
                                     Method columnX = image.getClass().getDeclaredMethod("columnX", int.class); columnX.setAccessible(true);
                                     Method neighbourY = image.getClass().getDeclaredMethod("y", double.class); neighbourY.setAccessible(true);
                                     int neighbourX = (Integer) columnX.invoke(image, 27), neighbourRow = (Integer) neighbourY.invoke(image, 39.);
-                                    CorrelationIntakeBatchSmoke.check(painted.getRGB(neighbourX, neighbourRow)
-                                            == plugins.fmp.multitools.experiment.capillary.CapillaryIntakes.ROI_COLOR.getRGB(),
-                                            "Neighbouring intake line was not painted in blue");
+                                    CorrelationIntakeBatchSmoke.check(painted.getRGB(neighbourX, neighbourRow) == expectedColor.getRGB(),
+                                            "Neighbouring intake line did not use the selected color");
+                                    int handleX = (Integer) columnX.invoke(image, 30);
+                                    int handleY = (Integer) neighbourY.invoke(image, ((Number) bottom.getValue()).doubleValue());
+                                    CorrelationIntakeBatchSmoke.check(painted.getRGB(handleX, handleY) == expectedColor.getRGB(),
+                                            "Active intake handle did not use the selected color");
                                     amount.setValue(2.); bottom.setValue(40.);
                                     Method xMethod = image.getClass().getDeclaredMethod("lineX"); xMethod.setAccessible(true);
                                     Method topXMethod = image.getClass().getDeclaredMethod("topX"); topXMethod.setAccessible(true);
@@ -100,12 +107,12 @@ public class ManualIntakeDialogSmoke {
                                     int top = (Integer) yMethod.invoke(image, 40 - 2 - (preview.evaporation[30] - preview.evaporation[29]));
                                     drag(image, (Integer) topXMethod.invoke(image), top, top - 12);
                                     CorrelationIntakeBatchSmoke.check(Math.abs(((Number) amount.getValue()).doubleValue() - 3) < .05,
-                                            "Dragging upper blue endpoint did not update intake");
+                                            "Dragging upper endpoint did not update intake");
                                     int lower = (Integer) yMethod.invoke(image, 40.);
                                     drag(image, x, lower, lower + 24);
                                     CorrelationIntakeBatchSmoke.check(Math.abs(((Number) amount.getValue()).doubleValue() - 5) < .05
                                             && ((Number) bottom.getValue()).doubleValue() == 42,
-                                            "Dragging lower blue endpoint did not preserve upper position");
+                                            "Dragging lower endpoint did not preserve upper position");
                                     JSpinner from = (JSpinner) named((Container) window, "manualIntakeFirstBin");
                                     JSpinner to = (JSpinner) named((Container) window, "manualIntakeLastBin");
                                     double originalAmount = ((Number) amount.getValue()).doubleValue();

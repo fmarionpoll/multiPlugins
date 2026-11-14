@@ -104,7 +104,7 @@ final class IntakeControls {
 				new JLabel("Threshold (pixels/min)"), threshold, thresholdMode, automatic, refreshDetection));
 		JLabel intakeColorLabel = new JLabel("Intake bar color");
 		intakeColorLabel.setLabelFor(intakeColor);
-		intakeColor.setToolTipText("Choose the intake bar color in the kymograph preview.");
+		intakeColor.setToolTipText("Choose the intake bar color in the kymograph preview and manual intake dialog.");
 		reviewTask.add(row(addGulp, review, resetManualGulps, export, intakeColorLabel, intakeColor));
 		previewPlacement.setToolTipText("Preview a vertical shift for automatic bars using nearby image edges. "
 				+ "Amber dots mark bars without a confident shift. Accept a position in Edit intakes to keep it.");
