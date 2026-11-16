@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,24 +147,56 @@ public final class CsvNormalizedExport {
 		// Raw series stay on kymo/camera-frame indices; do not resample onto Cam_sample_s.
 		long kymoBinMs = exp.getKymoBin_ms();
 		int rawStepMs = (int) Math.max(1L, kymoBinMs > 0 ? kymoBinMs : nativeStepMs);
+		FrameIndexes frameIndexes = new FrameIndexes(exp, rawStepMs);
 		// Bin grid follows dialog analysis interval when enabled; no auto COARSER/NATIVE gate.
 		boolean writeBin = options.forceCsvBinGrid;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
 		if (mode == Mode.LEVELS || options.lrPI) {
-			exportCageWide(exp, options, charSeries, csv, builder, rawStepMs, binStepMs, writeBin, wantCageLevels,
+			exportCageWide(exp, options, charSeries, csv, builder, frameIndexes, rawStepMs, binStepMs, writeBin, wantCageLevels,
 					wantCageGulps);
 		}
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
 			exportCapillaryMeasures(exp, options, charSeries, mode, csv, denseCols, wantGulpEvents, builder,
-					rawStepMs, binStepMs, writeBin);
+					frameIndexes, rawStepMs, binStepMs, writeBin);
 		}
 		if (wantGulpEvents) {
 			exportEventBins(exp, options, charSeries, csv, builder, rawStepMs, false);
 		}
 		if (mode == Mode.GULPS && options.intake) {
 			exportEventBins(exp, options, charSeries, csv, builder, rawStepMs, true);
+		}
+	}
+
+	/** The same camera-frame mapping used by the capillary series builder. */
+	private static final class FrameIndexes {
+		private final Map<Long, Integer> byTimeMs = new HashMap<>();
+		private final int subsampleFactor;
+		private final long kymoOriginMs;
+		private final int kymoStepMs;
+
+		FrameIndexes(Experiment exp, int kymoStepMs) {
+			this.subsampleFactor = Math.max(1, exp.getKymoSubsampleFactor());
+			this.kymoOriginMs = exp.getKymoFirst_ms();
+			this.kymoStepMs = kymoStepMs;
+			double[] times = exp.getMeasureTimeMinutes();
+			if (times != null) {
+				for (int frame = 0; frame < times.length; frame += subsampleFactor) {
+					byTimeMs.putIfAbsent(Math.round(times[frame] * 60000.0), frame);
+				}
+			}
+		}
+
+		Integer at(long timeMs) {
+			if (!byTimeMs.isEmpty()) {
+				return byTimeMs.get(timeMs);
+			}
+			long sinceOriginMs = timeMs - kymoOriginMs;
+			if (sinceOriginMs < 0 || sinceOriginMs % kymoStepMs != 0) {
+				return null;
+			}
+			return (int) (sinceOriginMs / kymoStepMs * subsampleFactor);
 		}
 	}
 
@@ -207,12 +240,14 @@ public final class CsvNormalizedExport {
 					if (!(v > 0)) {
 						continue;
 					}
+					double start = i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN;
+					double end = raw.getX(i).doubleValue();
+					long frameIndex = CapillaryPixelScale.frameOfColumn(i, Math.max(1, exp.getKymoSubsampleFactor()));
 					if (intakeEvents) {
-						csv.writeIntake(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN, raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+						csv.writeIntake(expKey, cageId, capId, start, end, frameIndex, v, valueAt(series[1], i),
 								valueAt(series[2], i), valueAt(series[3], i));
 					} else {
-						csv.writeGulpEvent(expKey, cageId, capId, i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN,
-								raw.getX(i).doubleValue(), v, valueAt(series[1], i),
+						csv.writeGulpEvent(expKey, cageId, capId, start, end, frameIndex, v, valueAt(series[1], i),
 								valueAt(series[2], i), valueAt(series[3], i));
 					}
 				}
@@ -226,7 +261,7 @@ public final class CsvNormalizedExport {
 
 	private static void exportCapillaryMeasures(Experiment exp, ResultsOptions options, String charSeries, Mode mode,
 			CsvNormalizedExportSupport csv, List<String> denseCols, boolean wantGulpEvents,
-			CageCapillarySeriesBuilder builder, int nativeStepMs, long binStepMs, boolean writeBin)
+			CageCapillarySeriesBuilder builder, FrameIndexes frameIndexes, int nativeStepMs, long binStepMs, boolean writeBin)
 			throws IOException {
 
 		Map<EnumResults, String> denseTypes = denseResultTypes(options, mode);
@@ -271,11 +306,12 @@ public final class CsvNormalizedExport {
 						Double evap = evaporationUl.get(row.getKey());
 						if (evap != null)
 							row.getValue().put(CsvNormalizedExportSupport.COL_EVAPORATION_UL, evap);
-						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0, row.getValue(),
-								t00Suitable);
+						csv.writeMeasureCapRowRaw(expKey, cageId, capId, row.getKey() / 60000.0,
+								frameIndexes.at(row.getKey()), row.getValue(), t00Suitable);
 					}
 					if (writeBin && !byTime.isEmpty()) {
-						writeMeasureCapBinned(csv, expKey, cageId, capId, byTime, denseCols, binStepMs, t00Suitable);
+						writeMeasureCapBinned(csv, expKey, cageId, capId, byTime, frameIndexes, denseCols, binStepMs,
+								t00Suitable);
 					}
 				}
 			}
@@ -283,7 +319,8 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void writeMeasureCapBinned(CsvNormalizedExportSupport csv, String expKey, int cageId, String capId,
-			Map<Long, Map<String, Double>> byTime, List<String> denseCols, long binStepMs, boolean t00Suitable)
+			Map<Long, Map<String, Double>> byTime, FrameIndexes frameIndexes, List<String> denseCols, long binStepMs,
+			boolean t00Suitable)
 			throws IOException {
 		int n = byTime.size();
 		long[] timesMs = new long[n];
@@ -337,7 +374,8 @@ public final class CsvNormalizedExport {
 				}
 			}
 			if (any) {
-				csv.writeMeasureCapRowBin(expKey, cageId, capId, starts[b] / 60000.0, row, t00Suitable);
+				Integer frameIndex = byTime.containsKey(starts[b]) ? frameIndexes.at(starts[b]) : null;
+				csv.writeMeasureCapRowBin(expKey, cageId, capId, starts[b] / 60000.0, frameIndex, row, t00Suitable);
 			}
 		}
 	}
@@ -362,7 +400,8 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void exportCageWide(Experiment exp, ResultsOptions options, String charSeries,
-			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, int nativeStepMs, long binStepMs,
+			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, FrameIndexes frameIndexes,
+			int nativeStepMs, long binStepMs,
 			boolean writeBin, boolean wantLevels, boolean wantGulps) throws IOException {
 		for (Cage cage : exp.getCages().getCageList()) {
 			if (cage == null) {
@@ -427,7 +466,7 @@ public final class CsvNormalizedExport {
 				if (allNaN(v)) {
 					continue;
 				}
-				csv.writeMeasureCageSummary(true, expKey, cageId, e.getKey() / 60000.0, v,
+				csv.writeMeasureCageSummary(true, expKey, cageId, e.getKey() / 60000.0, frameIndexes.at(e.getKey()), v,
 						t00Suitable, cageEvaporationUl(evaporationByCap, e.getKey()));
 			}
 
@@ -450,7 +489,7 @@ public final class CsvNormalizedExport {
 					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_INTAKE_BIN_CORR, nativeStepMs, builder, cageId, 10, 11, true);
 				}
 				if (!byTimeSides.isEmpty()) {
-					writeMeasureCageBinned(csv, expKey, cageId, byTimeSides, binStepMs, t00Suitable);
+					writeMeasureCageBinned(csv, expKey, cageId, byTimeSides, frameIndexes, binStepMs, t00Suitable);
 				}
 			}
 		}
@@ -551,7 +590,8 @@ public final class CsvNormalizedExport {
 	}
 
 	private static void writeMeasureCageBinned(CsvNormalizedExportSupport csv, String expKey, int cageId,
-			Map<Long, double[]> byTimeSides, long binStepMs, boolean t00Suitable) throws IOException {
+			Map<Long, double[]> byTimeSides, FrameIndexes frameIndexes, long binStepMs, boolean t00Suitable)
+			throws IOException {
 		int n = byTimeSides.size();
 		long[] timesMs = new long[n];
 		double[][] cols = new double[12][n];
@@ -578,7 +618,9 @@ public final class CsvNormalizedExport {
 				values[c + 1] = CageCapillariesComputation.computePiFromSides(binned[c][b], binned[c + 1][b]);
 			}
 			if (!allNaN(values)) {
-				csv.writeMeasureCageSummary(false, expKey, cageId, starts[b] / 60000.0, values, t00Suitable, Double.NaN);
+				Integer frameIndex = byTimeSides.containsKey(starts[b]) ? frameIndexes.at(starts[b]) : null;
+				csv.writeMeasureCageSummary(false, expKey, cageId, starts[b] / 60000.0, frameIndex, values,
+						t00Suitable, Double.NaN);
 			}
 		}
 	}

@@ -79,8 +79,8 @@ public class IntakeExportTest {
     @Test public void csvKeepsIndependentFilesAndProvenance() throws Exception {
         Path folder = Files.createTempDirectory("intake-export");
         try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder, Collections.emptyList(), 60000, false)) {
-            csv.writeGulpEvent("expA", 2, "L", 0, 1.5, 9, 8, 9, 8);
-            csv.writeIntake("expA", 2, "L", 0, 1.5, 2.25, Double.NaN, 3, 2);
+            csv.writeGulpEvent("expA", 2, "L", 0, 1.5, 1, 9, 8, 9, 8);
+            csv.writeIntake("expA", 2, "L", 0, 1.5, 1, 2.25, Double.NaN, 3, 2);
             csv.writeIntakeMetadata(IntakeMetadata.row("expA", 2, "L", capillary()));
         }
         String saved = new String(Files.readAllBytes(folder.resolve("intakeevents.csv")), java.nio.charset.StandardCharsets.UTF_8);
@@ -149,6 +149,7 @@ public class IntakeExportTest {
                         for (org.apache.commons.csv.CSVRecord row : parser) {
                             assertTrue(row.isConsistent());
                             if (Double.parseDouble(row.get("time_min")) == 1) {
+                                assertEquals("1", row.get("frame_index"));
                                 assertEquals(0.045, Double.parseDouble(row.get("sum_intake_raw_uL")), 1e-12);
                                 assertEquals(0, Double.parseDouble(row.get("pi_intake_raw")), 1e-12);
                                 assertEquals("", row.get("sum_intake_corr_uL"));
@@ -212,22 +213,24 @@ public class IntakeExportTest {
         String[] fields = lines.get(1).split(",");
         assertEquals(1, Double.parseDouble(fields[3]), 0);
         assertEquals(4, Double.parseDouble(fields[4]), 0);
-        assertEquals(0.0225, Double.parseDouble(fields[5]), 1e-12);
-        assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,"
+        assertEquals("2", fields[5]);
+        assertEquals(0.0225, Double.parseDouble(fields[6]), 1e-12);
+        assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,frame_index,"
             + "intake_bin_raw_uL,intake_bin_corr_uL,sum_intake_bin_raw_uL,sum_intake_bin_corr_uL", lines.get(0));
         assertFalse(Files.exists(folder.resolve("legacy_gulps.csv")));
         assertFalse(Files.exists(folder.resolve("intakebins.csv")));
         java.util.List<String> gulpLines = Files.readAllLines(folder.resolve("gulpevents.csv"));
         assertEquals(3, gulpLines.size()); // the 0.25-pixel event must survive
         String[] gulp = gulpLines.get(2).split(",", -1);
-        assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,"
+        assertEquals("experiment_id,cage_id,capillary_id,interval_start_min,interval_end_min,frame_index,"
             + "gulp_raw_uL,gulp_corr_uL,sum_gulp_raw_uL,sum_gulp_corr_uL", gulpLines.get(0));
         assertEquals(1, Double.parseDouble(gulp[3]), 0);
         assertEquals(4, Double.parseDouble(gulp[4]), 0);
-        assertEquals(0.0275, Double.parseDouble(gulp[5]), 1e-12);
-        assertEquals("", gulp[6]); // no evaporation curve
-        assertEquals(0.03, Double.parseDouble(gulp[7]), 1e-12);
-        assertEquals("", gulp[8]);
+        assertEquals("2", gulp[5]);
+        assertEquals(0.0275, Double.parseDouble(gulp[6]), 1e-12);
+        assertEquals("", gulp[7]); // no evaporation curve
+        assertEquals(0.03, Double.parseDouble(gulp[8]), 1e-12);
+        assertEquals("", gulp[9]);
         XLSExportMeasuresFromGulp exporter = new XLSExportMeasuresFromGulp();
         exporter.options = options;
         try (plugins.fmp.multitools.tools.toExcel.utils.ExcelResourceManager manager =

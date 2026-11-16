@@ -29,6 +29,7 @@ import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromFlyPosition;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromGulp;
 import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExport;
 import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExportSupport;
+import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedFlyPositionExport;
 import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 
@@ -110,18 +111,25 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 			return;
 
 		if (evt.getPropertyName().equals("EXPORT_MOVEDATA")) {
-			String file = defineXlsFileName(exp, "_move.xlsx");
+			boolean csv = tabCommonOptions.isExportLayoutNormalized();
+			String file = defineExportFileName(exp, csv ? null : "_move.xlsx", csv ? "measure_flyposition" : null);
 			if (file == null)
 				return;
 			updateParametersCurrentExperiment(exp);
+			ResultsOptions opts = getMoveOptions(exp);
+			if (csv && tabMove.deadEmptyCheckBox.isSelected())
+				opts.onlyalive = true;
 			ThreadUtil.bgRun(new Runnable() {
 				@Override
 				public void run() {
-					XLSExportMeasuresFromFlyPosition xlsExport = new XLSExportMeasuresFromFlyPosition();
 					try {
-						xlsExport.exportToFile(file, getMoveOptions(exp));
+						if (csv) {
+							Path folder = CsvNormalizedExportSupport.resolveCsvFolder(file);
+							CsvNormalizedFlyPositionExport.exportToFolder(folder, opts);
+						} else {
+							new XLSExportMeasuresFromFlyPosition().exportToFile(file, opts);
+						}
 					} catch (ExcelExportException e) {
-						// TODO Auto-generated catch block
 						e.printStackTrace();
 					}
 				}
@@ -206,10 +214,6 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 			e.printStackTrace();
 		}
 		return tentativeName;
-	}
-
-	private String defineXlsFileName(Experiment exp, String pattern) {
-		return defineExportFileName(exp, pattern, null);
 	}
 
 	private void updateParametersCurrentExperiment(Experiment exp) {

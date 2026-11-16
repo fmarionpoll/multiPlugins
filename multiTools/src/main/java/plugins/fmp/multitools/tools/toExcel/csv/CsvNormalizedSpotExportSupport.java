@@ -103,32 +103,33 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	}
 
 	public void writeSpotRow(boolean kymo, boolean bin, String expKey, int cageId, String spotId, double tMinutes,
-			Map<String, Double> values) throws IOException {
+			Integer frameIndex, Map<String, Double> values) throws IOException {
 		List<String> cols = kymo ? kymoColumns : cameraColumns;
 		if (cols.isEmpty() || (bin && !writeBinFiles)) {
 			return;
 		}
 		CSVPrinter printer = kymo ? (bin ? measureSpotKymoBinPrinter() : measureSpotKymoRawPrinter())
 				: (bin ? measureSpotBinPrinter() : measureSpotRawPrinter());
-		printMeasureRow(printer, cols, expKey, cageId, spotId, tMinutes, values);
+		printMeasureRow(printer, cols, expKey, cageId, spotId, tMinutes, frameIndex, values);
 	}
 
 	public void writeGroupRow(boolean bin, String expKey, int cageId, String groupId, double tMinutes,
-			Map<String, Double> values) throws IOException {
+			Integer frameIndex, Map<String, Double> values) throws IOException {
 		if (groupColumns.isEmpty() || (bin && !writeBinFiles)) {
 			return;
 		}
 		CSVPrinter printer = bin ? measureGroupBinPrinter() : measureGroupRawPrinter();
-		printMeasureRow(printer, groupColumns, expKey, cageId, groupId, tMinutes, values);
+		printMeasureRow(printer, groupColumns, expKey, cageId, groupId, tMinutes, frameIndex, values);
 	}
 
 	private static void printMeasureRow(CSVPrinter printer, List<String> cols, String expKey, int cageId, String entityId,
-			double tMinutes, Map<String, Double> values) throws IOException {
-		List<Object> row = new ArrayList<>(4 + cols.size());
+			double tMinutes, Integer frameIndex, Map<String, Double> values) throws IOException {
+		List<Object> row = new ArrayList<>(5 + cols.size());
 		row.add(expKey);
 		row.add(cageId);
 		row.add(entityId);
 		row.add(tMinutes);
+		row.add(frameIndex);
 		boolean any = false;
 		for (String col : cols) {
 			Double v = values != null ? values.get(col) : null;
@@ -215,6 +216,7 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 		header.add(CsvNormalizedExportSupport.COL_CAGE_ID);
 		header.add(entityColumn);
 		header.add(CsvNormalizedExportSupport.COL_TIME_MIN);
+		header.add(CsvNormalizedExportSupport.COL_FRAME_INDEX);
 		header.addAll(measureColumns);
 		return openPrinter(descriptor, header.toArray(new String[0]));
 	}

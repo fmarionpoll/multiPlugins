@@ -63,6 +63,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_CAPILLARY_ID = "capillary_id";
 	public static final String COL_CAPILLARY_LABEL = "capillary_label";
 	public static final String COL_TIME_MIN = "time_min";
+	public static final String COL_FRAME_INDEX = "frame_index";
 	public static final String COL_CAPILLARY_VOLUME_UL = "capillary_volume_uL";
 	public static final String COL_CAPILLARY_LENGTH_PX = "capillary_length_px";
 	public static final String COL_T0_LIQUID_COLUMN_LENGTH_PX = "t0_liquid_column_length_px";
@@ -240,29 +241,31 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 				capillary.getNFlies());
 	}
 
-	public void writeMeasureCapRowRaw(String expKey, int cageId, String capId, double tMinutes,
+	public void writeMeasureCapRowRaw(String expKey, int cageId, String capId, double tMinutes, Integer frameIndex,
 			java.util.Map<String, Double> values, boolean t00Suitable) throws IOException {
-		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, values, t00Suitable, true);
+		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, frameIndex, values, t00Suitable, true);
 	}
 
-	public void writeMeasureCapRowBin(String expKey, int cageId, String capId, double tMinutes,
+	public void writeMeasureCapRowBin(String expKey, int cageId, String capId, double tMinutes, Integer frameIndex,
 			java.util.Map<String, Double> values, boolean t00Suitable) throws IOException {
 		if (!writeBinFiles) {
 			return;
 		}
-		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, values, t00Suitable, false);
+		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, frameIndex, values, t00Suitable, false);
 	}
 
 	private void writeMeasureCapRow(CSVPrinter p, String expKey, int cageId, String capId, double tMinutes,
+			Integer frameIndex,
 			java.util.Map<String, Double> values, boolean t00Suitable, boolean includeEvaporation) throws IOException {
 		if (measureCapColumns.isEmpty()) {
 			return;
 		}
-		List<Object> row = new ArrayList<>(4 + measureCapColumns.size());
+		List<Object> row = new ArrayList<>(5 + measureCapColumns.size());
 		row.add(expKey);
 		row.add(cageId);
 		row.add(capId);
 		row.add(tMinutes);
+		row.add(frameIndex);
 		for (String col : measureCapColumns) {
 			if (COL_T00_SUITABLE.equals(col)) {
 				row.add(t00Suitable ? "TRUE" : "FALSE");
@@ -302,25 +305,26 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, double sum, double pi,
 			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
 			boolean t00Suitable, boolean includeEvaporation, double evaporationUl) throws IOException {
-		writeMeasureCageSummary(p, expKey, cageId, tMinutes,
+		writeMeasureCageSummary(p, expKey, cageId, tMinutes, null,
 				new double[] {sum, pi, sumTopraw, piTopraw, sumGulps, piGulps, sum00, pi00,
 						Double.NaN, Double.NaN, Double.NaN, Double.NaN}, t00Suitable, includeEvaporation, evaporationUl);
 	}
 
 	/** Values are sum/PI pairs for levels, raw levels, gulps, T00, raw intake and corrected intake. */
-	public void writeMeasureCageSummary(boolean raw, String expKey, int cageId, double time,
+	public void writeMeasureCageSummary(boolean raw, String expKey, int cageId, double time, Integer frameIndex,
 			double[] values, boolean suitable, double evaporation) throws IOException {
 		if (!raw && !writeBinFiles) return;
 		writeMeasureCageSummary(raw ? measureCageRawPrinter() : measureCageBinPrinter(), expKey, cageId,
-				time, values, suitable, raw, evaporation);
+				time, frameIndex, values, suitable, raw, evaporation);
 	}
 
-	private void writeMeasureCageSummary(CSVPrinter printer, String expKey, int cageId, double time,
+	private void writeMeasureCageSummary(CSVPrinter printer, String expKey, int cageId, double time, Integer frameIndex,
 			double[] values, boolean suitable, boolean raw, double evaporation) throws IOException {
 		List<Object> row = new ArrayList<>();
 		row.add(expKey);
 		row.add(cageId);
 		row.add(time);
+		row.add(frameIndex);
 		for (int i = 0; i < 8; i++) row.add(nanToNull(values[i]));
 		row.add(suitable ? "TRUE" : "FALSE");
 		if (raw) row.add(nanToNull(evaporation));
@@ -332,19 +336,19 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		return Double.isNaN(v) ? null : v;
 	}
 
-	public void writeGulpEvent(String expKey, int cageId, String capId, double start, double end,
+	public void writeGulpEvent(String expKey, int cageId, String capId, double start, double end, long frameIndex,
 			double raw, double corr, double sumRaw, double sumCorr) throws IOException {
 		CSVPrinter p = gulpEventsPrinter();
-		p.printRecord(expKey, cageId, capId, nanToNull(start), end,
+		p.printRecord(expKey, cageId, capId, nanToNull(start), end, frameIndex,
 				nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr));
 	}
 
-	public void writeIntake(String expKey, int cageId, String capId, double start, double end, double raw, double corr,
-			double sumRaw, double sumCorr) throws IOException {
+	public void writeIntake(String expKey, int cageId, String capId, double start, double end, long frameIndex,
+			double raw, double corr, double sumRaw, double sumCorr) throws IOException {
 		if (intakePrinter == null) intakePrinter = openPrinter("intakeevents", COL_EXPERIMENT_ID,
-				COL_CAGE_ID, COL_CAPILLARY_ID, "interval_start_min", "interval_end_min",
+				COL_CAGE_ID, COL_CAPILLARY_ID, "interval_start_min", "interval_end_min", COL_FRAME_INDEX,
 				"intake_bin_raw_uL", "intake_bin_corr_uL", "sum_intake_bin_raw_uL", "sum_intake_bin_corr_uL");
-		intakePrinter.printRecord(expKey, cageId, capId, nanToNull(start), end,
+		intakePrinter.printRecord(expKey, cageId, capId, nanToNull(start), end, frameIndex,
 				nanToNull(raw), nanToNull(corr), nanToNull(sumRaw), nanToNull(sumCorr));
 	}
 
@@ -419,6 +423,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		header.add(COL_CAGE_ID);
 		header.add(COL_CAPILLARY_ID);
 		header.add(COL_TIME_MIN);
+		header.add(COL_FRAME_INDEX);
 		header.addAll(measureCapColumns);
 		return header;
 	}
@@ -429,7 +434,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 
 	private CSVPrinter measureCageRawPrinter() throws IOException {
 		if (measureCageRawPrinter == null) {
-			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN, "sum",
+			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN,
+					COL_FRAME_INDEX, "sum",
 					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00", COL_T00_SUITABLE,
 					COL_EVAPORATION_UL, "sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
 		}
@@ -439,7 +445,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter measureCageBinPrinter() throws IOException {
 		if (measureCageBinPrinter == null) {
 			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, COL_EXPERIMENT_ID, COL_CAGE_ID,
-					COL_TIME_MIN, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00",
+					COL_TIME_MIN, COL_FRAME_INDEX, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00",
 					COL_T00_SUITABLE, "sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
 		}
 		return measureCageBinPrinter;
@@ -448,14 +454,14 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter gulpEventsPrinter() throws IOException {
 		if (!gulpEventsOpen) {
 			gulpEventsPrinter = openPrinter(GULP_EVENTS, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID,
-					"interval_start_min", "interval_end_min", "gulp_raw_uL", "gulp_corr_uL",
+					"interval_start_min", "interval_end_min", COL_FRAME_INDEX, "gulp_raw_uL", "gulp_corr_uL",
 					"sum_gulp_raw_uL", "sum_gulp_corr_uL");
 			gulpEventsOpen = true;
 		}
 		return gulpEventsPrinter;
 	}
 
-	private CSVPrinter openPrinter(String descriptor, String... header) throws IOException {
+	CSVPrinter openPrinter(String descriptor, String... header) throws IOException {
 		Path file = folder.resolve(descriptor + ".csv");
 		BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
 				StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
