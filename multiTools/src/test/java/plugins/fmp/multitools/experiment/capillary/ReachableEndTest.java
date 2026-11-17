@@ -36,6 +36,30 @@ public class ReachableEndTest {
 	}
 
 	@Test
+	public void temporaryRiseFollowedByRecoveryIsNotACutoff() {
+		double[] bottom = constant(60, 100);
+		Arrays.fill(bottom, 15, 30, 80);
+		assertEquals(ReachableEnd.UNSET, ReachableEnd.find(bottom, constant(60, 20), 60));
+	}
+
+	@Test
+	public void temporaryRiseDoesNotMoveCutoffBeforeFinalRise() {
+		double[] bottom = constant(70, 100);
+		Arrays.fill(bottom, 15, 30, 80);
+		Arrays.fill(bottom, 40, 70, 80);
+		bottom[50] = Double.NaN;
+		bottom[55] = 100;
+		assertEquals(40, ReachableEnd.find(bottom, constant(70, 20), 70));
+	}
+
+	@Test
+	public void finalRiseCanBeDetectedWithOnlyAnEarlyTopTrace() {
+		double[] bottom = constant(120, 100);
+		Arrays.fill(bottom, 14, 120, 80);
+		assertEquals(14, ReachableEnd.find(bottom, constant(12, 20), 120));
+	}
+
+	@Test
 	public void applyIfUnsetKeepsAnExistingCutoff() {
 		double[] bottom = constant(40, 100);
 		Arrays.fill(bottom, 20, 40, 80);

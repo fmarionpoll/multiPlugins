@@ -16,6 +16,9 @@ public final class ReachableEnd {
 	public static final double MIN_PIXELS = 3.0;
 	public static final double MAD_K = 3.0;
 	public static final int RUN_LENGTH = 5;
+	private static final int BASELINE_SAMPLES = 10;
+	private static final int RECOVERY_SAMPLES = 3;
+	private static final double MIN_DEPARTURE_FRACTION = 0.8;
 
 	private ReachableEnd() {
 	}
@@ -25,9 +28,13 @@ public final class ReachableEnd {
 	 * the rise rule finds a frame.
 	 */
 	public static boolean isReviewCandidate(Capillary cap) {
+		return findReviewFrame(cap) >= 0;
+	}
+
+	public static int findReviewFrame(Capillary cap) {
 		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed())
-			return false;
-		return find(cap) >= 0;
+			return UNSET;
+		return find(cap);
 	}
 
 	/**
@@ -36,9 +43,7 @@ public final class ReachableEnd {
 	 * @return true when a cutoff was stored
 	 */
 	public static boolean applyIfUnset(Capillary cap) {
-		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed())
-			return false;
-		int found = find(cap);
+		int found = findReviewFrame(cap);
 		if (found < 0)
 			return false;
 		cap.setNValid(found);
@@ -56,70 +61,67 @@ public final class ReachableEnd {
 	}
 
 	public static int find(Level2D bottom, Level2D top) {
-		if (bottom == null || top == null || bottom.ypoints == null || top.ypoints == null)
+		if (bottom == null || top == null)
 			return UNSET;
-		int n = Math.min(bottom.npoints, top.npoints);
-		n = Math.min(n, Math.min(bottom.ypoints.length, top.ypoints.length));
-		return find(bottom.ypoints, top.ypoints, n);
+		return find(bottom.ypoints, bottom.npoints, top.ypoints, top.npoints);
 	}
 
 	public static int find(double[] bottomY, double[] topY, int n) {
-		if (bottomY == null || topY == null || n <= 0)
-			return UNSET;
-		int limit = Math.min(n, Math.min(bottomY.length, topY.length));
-		if (limit <= 0)
-			return UNSET;
+		return find(bottomY, n, topY, n);
+	}
 
-		int finite = 0;
-		for (int i = 0; i < limit; i++) {
-			if (Double.isFinite(bottomY[i]))
-				finite++;
-		}
-		if (finite == 0)
+	private static int find(double[] bottomY, int bottomLength, double[] topY, int topLength) {
+		if (bottomY == null || topY == null)
 			return UNSET;
-
-		int prefixN = Math.min(finite, Math.max(10, finite / 4));
-		double[] prefixBottom = new double[prefixN];
-		double[] prefixTop = new double[prefixN];
+		int limit = Math.min(bottomLength, bottomY.length);
+		int topLimit = Math.min(topLength, topY.length);
+		int prefixSize = Math.min(BASELINE_SAMPLES, Math.max(3, limit / 4));
+		double[] prefixBottom = new double[prefixSize];
+		double[] prefixTop = new double[prefixSize];
 		int topCount = 0;
 		int filled = 0;
-		for (int i = 0; i < limit && filled < prefixN; i++) {
+		int start = 0;
+		for (; start < limit && filled < prefixSize; start++) {
+			if (!Double.isFinite(bottomY[start]))
+				continue;
+			prefixBottom[filled++] = bottomY[start];
+			if (start < topLimit && Double.isFinite(topY[start]))
+				prefixTop[topCount++] = topY[start];
+		}
+		if (filled < prefixSize || topCount == 0 || limit - start < RUN_LENGTH)
+			return UNSET;
+
+		double baseline = median(prefixBottom, prefixSize);
+		double direction = Math.signum(median(prefixTop, topCount) - baseline);
+		if (direction == 0.0)
+			return UNSET;
+		double threshold = Math.max(MIN_PIXELS, MAD_K * mad(prefixBottom, prefixSize, baseline));
+
+		int end = limit - 1;
+		while (end >= start && !Double.isFinite(bottomY[end]))
+			end--;
+		if (end - start + 1 < RUN_LENGTH || limit - end > RUN_LENGTH
+				|| (bottomY[end] - baseline) * direction <= threshold)
+			return UNSET;
+
+		// Work back from the end of the recording so a temporary rise followed
+		// by a return to the baseline cannot contribute to the final departure.
+		int departed = 0;
+		int recovery = 0;
+		int onset = UNSET;
+		for (int i = end; i >= start; i--) {
 			if (!Double.isFinite(bottomY[i]))
 				continue;
-			prefixBottom[filled] = bottomY[i];
-			if (Double.isFinite(topY[i]))
-				prefixTop[topCount++] = topY[i];
-			filled++;
-		}
-		if (topCount == 0)
-			return UNSET;
-
-		double baseline = median(prefixBottom, prefixN);
-		double topMedian = median(prefixTop, topCount);
-		double direction = Math.signum(topMedian - baseline);
-		if (direction == 0.0 || !Double.isFinite(baseline))
-			return UNSET;
-
-		double mad = mad(prefixBottom, prefixN, baseline);
-		double scale = Double.isFinite(mad) ? mad : 0.0;
-		double threshold = Math.max(MIN_PIXELS, MAD_K * scale);
-
-		int run = 0;
-		int runStart = -1;
-		for (int i = 0; i < limit; i++) {
-			double y = bottomY[i];
-			boolean departs = Double.isFinite(y) && (y - baseline) * direction > threshold;
-			if (departs) {
-				if (run == 0)
-					runStart = i;
-				run++;
-				if (run >= RUN_LENGTH)
-					return runStart;
-			} else {
-				run = 0;
+			if ((bottomY[i] - baseline) * direction > threshold) {
+				recovery = 0;
+				departed++;
+				if (departed >= RUN_LENGTH && departed >= MIN_DEPARTURE_FRACTION * (end - i + 1))
+					onset = i;
+			} else if (++recovery >= RECOVERY_SAMPLES) {
+				break;
 			}
 		}
-		return UNSET;
+		return onset;
 	}
 
 	private static double median(double[] values, int n) {
