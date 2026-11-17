@@ -93,9 +93,13 @@ final class BottomDriftReviewPanel extends JPanel {
 		JPanel actions = new JPanel(new GridLayout(0, 1));
 		actions.add(row(status));
 		actions.add(row(previous, next, showKymograph));
-		actions.add(row(new JLabel("First unreachable frame (0-based)"), firstInvalidFrame, validate, dismiss));
-		actions.add(row(computeCurrentButton, computeAllButton, clearBaselineButton,
-				new JLabel("Y"), baselineYSpinner, setBaselineButton));
+		JLabel cutoffLabel = new JLabel("First unreachable frame (0-based)");
+		cutoffLabel.setLabelFor(firstInvalidFrame);
+		actions.add(row(cutoffLabel, firstInvalidFrame, validate, dismiss));
+		JLabel baselineYLabel = new JLabel("Baseline Y (px)");
+		baselineYLabel.setLabelFor(baselineYSpinner);
+		actions.add(row(computeCurrentButton, computeAllButton, clearBaselineButton, baselineYLabel, baselineYSpinner,
+				setBaselineButton));
 		actions.add(row(prevNoiseButton, nextNoiseButton, qcLabel));
 		add(actions, BorderLayout.SOUTH);
 
@@ -116,9 +120,45 @@ final class BottomDriftReviewPanel extends JPanel {
 		setBaselineButton.addActionListener(e -> setManualBaseline());
 		prevNoiseButton.addActionListener(e -> navigateNoise(-1));
 		nextNoiseButton.addActionListener(e -> navigateNoise(1));
-		validate.setToolTipText("Exclude this frame and all subsequent frames.");
-		dismiss.setToolTipText("Keep the recording valid and skip this candidate in future searches.");
+		configureToolTips(cutoffLabel, baselineYLabel);
 		updateControls();
+	}
+
+	private void configureToolTips(JLabel cutoffLabel, JLabel baselineYLabel) {
+		search.setToolTipText("Find recordings where the detected bottom meniscus moves toward the top meniscus and stays displaced.");
+		scanRemaining.setToolTipText("Checked scans from the selected experiment through the end of the list. Unchecked scans only the selected experiment.");
+		candidates.setToolTipText("Select a candidate to open its kymograph. Each row shows the experiment, capillary, and proposed first unreachable frame.");
+		previous.setToolTipText("Open the previous drift candidate and its kymograph.");
+		next.setToolTipText("Open the next drift candidate and its kymograph.");
+		showKymograph.setToolTipText("Open the selected candidate's kymograph with the orange cutoff marker.");
+		String cutoffTip = "<html>First excluded frame, shown by the orange vertical line.<br>"
+				+ "Frame 0 is the leftmost column of the kymograph. Adjust the frame before validating.</html>";
+		cutoffLabel.setToolTipText(cutoffTip);
+		setSpinnerToolTip(firstInvalidFrame, cutoffTip);
+		validate.setToolTipText("Save the cutoff. This frame and all subsequent frames are excluded from the usable range.");
+		dismiss.setToolTipText("Save this candidate as reviewed, keep the full recording usable, and skip it in future searches.");
+
+		computeCurrentButton.setToolTipText("Estimate and save the bottom baseline for the capillary shown in the kymograph.");
+		computeAllButton.setToolTipText("Estimate and save bottom baselines for all capillaries in the selected experiment.");
+		clearBaselineButton.setToolTipText("Remove the saved bottom baselines and their noise statistics for all capillaries in the selected experiment.");
+		String baselineTip = "<html>Vertical pixel coordinate of the bottom reference line in the kymograph, measured from the top.<br>"
+				+ "An automatic baseline is the median of detected bottom positions after outlier filtering.<br>"
+				+ "Use Set Y to save an entered value. The baseline is shown as a horizontal magenta line during review.</html>";
+		baselineYLabel.setToolTipText(baselineTip);
+		setSpinnerToolTip(baselineYSpinner, baselineTip);
+		setBaselineButton.setToolTipText("Save the entered Y as the bottom baseline for the capillary shown in the kymograph.");
+		prevNoiseButton.setToolTipText("Show the previous capillary in the selected experiment's noise ranking, which starts with the noisiest.");
+		nextNoiseButton.setToolTipText("Show the next capillary in the selected experiment's noise ranking, which starts with the noisiest.");
+		qcLabel.setToolTipText("<html>Quality control shows the noise rank, number of capillaries with bottom measures, and capillary name.<br>"
+				+ "Y is the saved bottom baseline in kymograph pixels. MAD is the median absolute deviation of<br>"
+				+ "the points used to estimate that baseline, in pixels. NaN indicates an unavailable value.</html>");
+	}
+
+	private static void setSpinnerToolTip(JSpinner spinner, String tip) {
+		spinner.setToolTipText(tip);
+		((JSpinner.DefaultEditor) spinner.getEditor()).getTextField().setToolTipText(tip);
+		spinner.addPropertyChangeListener("editor",
+				e -> ((JSpinner.DefaultEditor) e.getNewValue()).getTextField().setToolTipText(tip));
 	}
 
 	private static JPanel row(Component... components) {
