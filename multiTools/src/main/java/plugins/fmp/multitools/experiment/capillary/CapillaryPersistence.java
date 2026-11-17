@@ -176,6 +176,7 @@ public class CapillaryPersistence {
 		row2.add("cap_measured_y1");
 		row2.add("cap_measured_x2");
 		row2.add("cap_measured_y2");
+		row2.add("n_valid");
 		row2.add("cap_length_x1");
 		row2.add("cap_length_y1");
 		row2.add("cap_length_x2");
@@ -299,6 +300,7 @@ public class CapillaryPersistence {
 		row.add(measuredStart != null ? Double.toString(measuredStart.getY()) : "");
 		row.add(measuredEnd != null ? Double.toString(measuredEnd.getX()) : "");
 		row.add(measuredEnd != null ? Double.toString(measuredEnd.getY()) : "");
+		row.add(props.getNValid() >= 0 ? Integer.toString(props.getNValid()) : "");
 
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
@@ -609,12 +611,23 @@ public class CapillaryPersistence {
 		double endY = parseOptionalDouble(data, endpointStart + 3, Double.NaN);
 		if (Double.isFinite(startX) && Double.isFinite(startY) && Double.isFinite(endX) && Double.isFinite(endY))
 			props.setMeasuredEndpoints(new Point2D.Double(startX, startY), new Point2D.Double(endX, endY));
+		props.setNValid(parseOptionalInt(data, endpointStart + 4, -1));
 	}
 
 	private static boolean parseOptionalBoolean(String[] data, int index, boolean defaultValue) {
 		if (data == null || index < 0 || index >= data.length || data[index] == null || data[index].isEmpty())
 			return defaultValue;
 		return Boolean.parseBoolean(data[index].trim());
+	}
+
+	private static int parseOptionalInt(String[] data, int index, int defaultValue) {
+		if (data == null || index < 0 || index >= data.length || data[index] == null || data[index].isEmpty())
+			return defaultValue;
+		try {
+			return Integer.parseInt(data[index].trim());
+		} catch (NumberFormatException e) {
+			return defaultValue;
+		}
 	}
 
 	private static double parseOptionalDouble(String[] data, int index, double defaultValue) {

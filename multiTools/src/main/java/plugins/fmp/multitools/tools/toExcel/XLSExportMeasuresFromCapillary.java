@@ -575,6 +575,8 @@ public class XLSExportMeasuresFromCapillary extends XLSExport {
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAP_STIM, transpose, capillary.getStimulus());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAP_CONC, transpose, capillary.getConcentration());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAP_NFLIES, transpose, capillary.getNFlies());
+		if (capillary.getNValid() >= 0)
+			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAP_N_VALID, transpose, capillary.getNValid());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.DUM4, transpose, resultType.toString());
 	}
 

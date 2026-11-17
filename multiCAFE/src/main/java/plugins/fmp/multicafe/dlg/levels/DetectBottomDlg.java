@@ -31,6 +31,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesSequenceMapper;
 import plugins.fmp.multitools.experiment.capillary.BottomBaselineEstimator;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
+import plugins.fmp.multitools.experiment.capillary.ReachableEnd;
 import plugins.fmp.multitools.series.DetectLevels;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
@@ -66,6 +67,10 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 	private JButton computeCurrentButton = new JButton("Baseline current");
 	private JButton clearBaselineButton = new JButton("Clear baseline");
 	private JButton setBaselineButton = new JButton("Set Y");
+	private JButton findReachableButton = new JButton("Find reachable");
+	private JSpinner reachableEndSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 1000000, 1));
+	private JButton setReachableButton = new JButton("Set");
+	private JButton clearReachableButton = new JButton("Clear");
 	private JButton prevNoiseButton = new JButton("< noisy");
 	private JButton nextNoiseButton = new JButton("noisy >");
 	private JLabel qcLabel = new JLabel("QC: --");
@@ -80,7 +85,7 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 
 	void init(GridLayout ignored, MultiCAFE parent0) {
 		this.parent0 = parent0;
-		setLayout(new GridLayout(5, 1));
+		setLayout(new GridLayout(6, 1));
 		FlowLayout layoutLeft = new FlowLayout(FlowLayout.LEFT);
 		layoutLeft.setVgap(0);
 		JPanel panel0 = new JPanel(layoutLeft);
@@ -114,6 +119,13 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		JPanel panel4 = new JPanel(layoutLeft);
 		panel4.add(new JLabel("Tip marker = median of bottom series after MAD outlier rejection."));
 		add(panel4);
+		JPanel panel5 = new JPanel(layoutLeft);
+		panel5.add(findReachableButton);
+		panel5.add(new JLabel("end frame"));
+		panel5.add(reachableEndSpinner);
+		panel5.add(setReachableButton);
+		panel5.add(clearReachableButton);
+		add(panel5);
 		transformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		defineToolTips();
 		defineActionListeners();
@@ -137,6 +149,11 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 	private void defineToolTips() {
 		detectButton.setToolTipText("Re-detect bottom level only (does not overwrite top).");
 		searchFromBottomSpinner.setToolTipText("0 = full height; greater than 0 restricts tip search band.");
+		findReachableButton.setToolTipText(
+				"Store the first frame where the bottom meniscus stays up toward the top. Skips a capillary that already has a cutoff. Current kymograph, or every capillary in this experiment when ALL is checked.");
+		setReachableButton.setToolTipText("Store the end frame as this capillary's reachable cutoff.");
+		clearReachableButton.setToolTipText(
+				"Clear the cutoff so the whole series stays valid. Current kymograph, or every capillary when ALL is checked.");
 	}
 
 	private void defineActionListeners() {
@@ -157,6 +174,9 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		setBaselineButton.addActionListener(e -> setManualBaseline());
 		prevNoiseButton.addActionListener(e -> navigateNoise(-1));
 		nextNoiseButton.addActionListener(e -> navigateNoise(1));
+		findReachableButton.addActionListener(e -> findReachableEnd());
+		setReachableButton.addActionListener(e -> setReachableEnd());
+		clearReachableButton.addActionListener(e -> clearReachableEnd());
 
 		transformCombo.addActionListener(e -> {
 			if (suppressDisplayUpdate)
@@ -340,6 +360,61 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 			baselineYSpinner.setValue(cap.getBottomBaselineY());
 	}
 
+	private void findReachableEnd() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		if (allSeriesCheckBox.isSelected()) {
+			for (Capillary cap : exp.getCapillaries().getList())
+				ReachableEnd.applyIfUnset(cap);
+		} else {
+			Capillary cap = getCurrentCapillary(exp);
+			if (cap == null)
+				return;
+			ReachableEnd.applyIfUnset(cap);
+			updateReachableSpinner(cap);
+		}
+		saveCapillaryMeasures(exp);
+	}
+
+	private void setReachableEnd() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Capillary cap = getCurrentCapillary(exp);
+		if (cap == null)
+			return;
+		int frame = ((Number) reachableEndSpinner.getValue()).intValue();
+		if (frame < 0)
+			frame = 0;
+		cap.setNValid(frame);
+		saveCapillaryMeasures(exp);
+	}
+
+	private void clearReachableEnd() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null)
+			return;
+		if (allSeriesCheckBox.isSelected()) {
+			for (Capillary cap : exp.getCapillaries().getList())
+				cap.setNValid(ReachableEnd.UNSET);
+		} else {
+			Capillary cap = getCurrentCapillary(exp);
+			if (cap == null)
+				return;
+			cap.setNValid(ReachableEnd.UNSET);
+		}
+		saveCapillaryMeasures(exp);
+	}
+
+	private void updateReachableSpinner(Capillary cap) {
+		if (cap != null && cap.getNValid() >= 0)
+			reachableEndSpinner.setValue(cap.getNValid());
+	}
+
+	private void saveCapillaryMeasures(Experiment exp) {
+		exp.save_capillaries_description_and_measures();
+		exp.saveMCCapillaries_Only();
+	}
+
 	private void refreshQcList(Experiment exp) {
 		rankedCaps = BottomBaselineEstimator.rankByBottomNoise(exp != null ? exp.getCapillaries().getList() : null);
 		if (rankedIndex >= rankedCaps.size())
@@ -385,6 +460,7 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 			parent0.paneKymos.tabIntervals.selectKymographImage(t, false);
 		parent0.paneLevels.selectCapillaryForDetectionDialogs(cap);
 		updateBaselineSpinner(cap);
+		updateReachableSpinner(cap);
 		updateQcLabel();
 		showBaselineOnCurrentKymo(exp);
 		if (exp.getSeqKymos() != null)

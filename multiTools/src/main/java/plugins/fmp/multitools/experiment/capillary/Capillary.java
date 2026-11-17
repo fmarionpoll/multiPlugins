@@ -273,6 +273,15 @@ public class Capillary implements Comparable<Capillary> {
 		properties.clearBottomBaseline();
 	}
 
+	/** Frames still reachable, [0, nValid). -1 means the whole series. */
+	public int getNValid() {
+		return properties.getNValid();
+	}
+
+	public void setNValid(int nValid) {
+		properties.setNValid(nValid);
+	}
+
 	public boolean isDescriptionOK() {
 		return properties.isDescriptionOK();
 	}

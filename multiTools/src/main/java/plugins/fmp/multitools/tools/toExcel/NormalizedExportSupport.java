@@ -278,6 +278,9 @@ public final class NormalizedExportSupport {
 					capillary.getConcentration());
 			setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAP_NFLIES.getValue() + DESCRIPTOR_COL0,
 					capillary.getNFlies());
+			if (capillary.getNValid() >= 0)
+				setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAP_N_VALID.getValue() + DESCRIPTOR_COL0,
+						capillary.getNValid());
 		} else {
 			setCellString(seriesSheet, row, EnumXLSColumnHeader.CAP.getValue() + DESCRIPTOR_COL0, "cage_LR");
 		}

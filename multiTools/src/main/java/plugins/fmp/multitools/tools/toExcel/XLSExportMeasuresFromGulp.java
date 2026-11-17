@@ -670,6 +670,9 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAP_CONC.getValue(), transpose,
 				capillary.getConcentration());
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAP_NFLIES.getValue(), transpose, capillary.getNFlies());
+		if (capillary.getNValid() >= 0)
+			XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAP_N_VALID.getValue(), transpose,
+					capillary.getNValid());
 	}
 
 	/**

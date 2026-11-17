@@ -30,6 +30,8 @@ public class CapillaryProperties {
 	private double bottomBaselineY = Double.NaN;
 	private double bottomBaselineMad = Double.NaN;
 	private double bottomBaselineOutlierFrac = Double.NaN;
+	/** Leading frames still reachable, [0, nValid). -1 means the whole series. */
+	private int nValid = -1;
 	private boolean descriptionOK = false;
 	private boolean valid = true;
 	private int versionInfos = 0;
@@ -54,6 +56,7 @@ public class CapillaryProperties {
 	private static final String ID_BOTTOM_BASELINE_Y = "bottomBaselineY";
 	private static final String ID_BOTTOM_BASELINE_MAD = "bottomBaselineMad";
 	private static final String ID_BOTTOM_BASELINE_OUTLIER_FRAC = "bottomBaselineOutlierFrac";
+	private static final String ID_N_VALID = "nValid";
 
 	// === METHODS ===
 
@@ -76,6 +79,7 @@ public class CapillaryProperties {
 		this.bottomBaselineY = source.bottomBaselineY;
 		this.bottomBaselineMad = source.bottomBaselineMad;
 		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
+		this.nValid = source.nValid;
 		this.descriptionOK = source.descriptionOK;
 		this.versionInfos = source.versionInfos;
 		this.limitsOptions = source.limitsOptions; // BuildSeriesOptions might need deep copy if mutable and shared
@@ -97,6 +101,7 @@ public class CapillaryProperties {
 		this.bottomBaselineY = source.bottomBaselineY;
 		this.bottomBaselineMad = source.bottomBaselineMad;
 		this.bottomBaselineOutlierFrac = source.bottomBaselineOutlierFrac;
+		this.nValid = source.nValid;
 		this.descriptionOK = source.descriptionOK;
 		this.versionInfos = source.versionInfos;
 		this.limitsOptions = source.limitsOptions;
@@ -126,6 +131,7 @@ public class CapillaryProperties {
 		bottomBaselineMad = XMLUtil.getElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_MAD, Double.NaN);
 		bottomBaselineOutlierFrac = XMLUtil.getElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_OUTLIER_FRAC,
 				Double.NaN);
+		nValid = XMLUtil.getElementIntValue(nodeMeta, ID_N_VALID, -1);
 
 		limitsOptions.loadFromXML(nodeMeta);
 
@@ -153,6 +159,7 @@ public class CapillaryProperties {
 		XMLUtil.setElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_Y, bottomBaselineY);
 		XMLUtil.setElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_MAD, bottomBaselineMad);
 		XMLUtil.setElementDoubleValue(nodeMeta, ID_BOTTOM_BASELINE_OUTLIER_FRAC, bottomBaselineOutlierFrac);
+		XMLUtil.setElementIntValue(nodeMeta, ID_N_VALID, nValid);
 
 		limitsOptions.saveToXML(nodeMeta);
 
@@ -295,6 +302,14 @@ public class CapillaryProperties {
 		bottomBaselineY = Double.NaN;
 		bottomBaselineMad = Double.NaN;
 		bottomBaselineOutlierFrac = Double.NaN;
+	}
+
+	public int getNValid() {
+		return nValid;
+	}
+
+	public void setNValid(int nValid) {
+		this.nValid = nValid;
 	}
 
 	public boolean isDescriptionOK() {

@@ -70,6 +70,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_CAPILLARY_STIMULUS = "capillary_stimulus";
 	public static final String COL_CAPILLARY_CONCENTRATION = "capillary_concentration";
 	public static final String COL_CAPILLARY_N_FLIES = "capillary_n_flies";
+	public static final String COL_N_VALID = "n_valid";
 	public static final String COL_CONSUMPTION_RAW_UL = "consumption_raw_uL";
 	public static final String COL_CONSUMPTION_CORRECTED_UL = "consumption_corrected_uL";
 	public static final String COL_CONSUMPTION_RAW00_UL = "consumption_raw00_uL";
@@ -236,9 +237,10 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 			name = capId;
 		}
 		Double t0LiquidColumnPx = CagesCapillariesComputation.emptyFillLengthPx(capillary);
+		Integer nValid = capillary.getNValid() >= 0 ? Integer.valueOf(capillary.getNValid()) : null;
 		p.printRecord(expKey, cageId, capId, name, capillary.getVolume(), capillary.getPixels(), t0LiquidColumnPx,
 				nullToEmpty(capillary.getStimulus()), nullToEmpty(capillary.getConcentration()),
-				capillary.getNFlies());
+				capillary.getNFlies(), nValid);
 	}
 
 	public void writeMeasureCapRowRaw(String expKey, int cageId, String capId, double tMinutes, Integer frameIndex,
@@ -396,7 +398,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (idcapPrinter == null) {
 			idcapPrinter = openPrinter(IDCAP, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_CAPILLARY_ID, COL_CAPILLARY_LABEL,
 					COL_CAPILLARY_VOLUME_UL, COL_CAPILLARY_LENGTH_PX, COL_T0_LIQUID_COLUMN_LENGTH_PX,
-					COL_CAPILLARY_STIMULUS, COL_CAPILLARY_CONCENTRATION, COL_CAPILLARY_N_FLIES);
+					COL_CAPILLARY_STIMULUS, COL_CAPILLARY_CONCENTRATION, COL_CAPILLARY_N_FLIES, COL_N_VALID);
 		}
 		return idcapPrinter;
 	}
