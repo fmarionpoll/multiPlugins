@@ -94,6 +94,18 @@ public final class CapillaryPixelScale {
 		return cap.getVolume() / scale;
 	}
 
+	/** Full calibrated capillary length expressed in the measurement's pixel units. */
+	public static double nativePixelsPerCapillary(Capillary cap, long t, MeasurePixelSource source,
+			double expansionRatio) {
+		if (source == MeasurePixelSource.BLUE_NORMED_KYMO) {
+			double e = finiteExpansion(expansionRatio);
+			int height = NormedBlueKymoGeometry.maxExpandedLengthPx(cap, e);
+			return height > 0 ? Math.max(2, height) / (1.0 + e) : Double.NaN;
+		}
+		double length = blueLengthPx(cap, t);
+		return length > 0 ? length : Double.NaN;
+	}
+
 	public static double absoluteRowOffset(Capillary cap, MeasurePixelSource source, double expansionRatio) {
 		if (source != MeasurePixelSource.BLUE_NORMED_KYMO)
 			return 0;
@@ -139,7 +151,7 @@ public final class CapillaryPixelScale {
 		case BOTTOMLEVEL:
 			return true;
 		default:
-			// Top levels already subtract t0 or t00; the expansion origin cancels.
+			// Top levels already subtract t0; the expansion origin cancels.
 			return false;
 		}
 	}

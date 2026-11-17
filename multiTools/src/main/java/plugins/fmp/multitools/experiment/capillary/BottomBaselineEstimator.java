@@ -3,7 +3,9 @@ package plugins.fmp.multitools.experiment.capillary;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * CODEX Robust constant tip marker from a noisy bottom-level series (median
@@ -108,16 +110,19 @@ public final class BottomBaselineEstimator {
 		List<Capillary> ranked = new ArrayList<>();
 		if (capillaries == null)
 			return ranked;
+		Map<Capillary, Double> scores = new HashMap<>();
 		for (Capillary cap : capillaries) {
 			if (cap == null)
 				continue;
-			if (cap.getBottomRaw() != null && cap.getBottomRaw().isThereAnyMeasuresDone())
+			if (cap.getBottomRaw() != null && cap.getBottomRaw().isThereAnyMeasuresDone()) {
 				ranked.add(cap);
+				scores.put(cap, noiseScore(cap));
+			}
 		}
 		ranked.sort(new Comparator<Capillary>() {
 			@Override
 			public int compare(Capillary a, Capillary b) {
-				return Double.compare(noiseScore(b), noiseScore(a));
+				return Double.compare(scores.get(b), scores.get(a));
 			}
 		});
 		return ranked;
@@ -126,11 +131,10 @@ public final class BottomBaselineEstimator {
 	public static double noiseScore(Capillary cap) {
 		if (cap == null)
 			return Double.POSITIVE_INFINITY;
-		if (!Double.isFinite(cap.getBottomBaselineY()))
+		Result result = estimate(cap.getBottomRaw());
+		if (!result.isValid())
 			return Double.POSITIVE_INFINITY;
-		double mad = Double.isFinite(cap.getBottomBaselineMad()) ? cap.getBottomBaselineMad() : 0;
-		double frac = Double.isFinite(cap.getBottomBaselineOutlierFrac()) ? cap.getBottomBaselineOutlierFrac() : 0;
-		return mad + 100.0 * frac;
+		return result.mad + 100.0 * result.outlierFrac;
 	}
 
 	private static Result empty() {

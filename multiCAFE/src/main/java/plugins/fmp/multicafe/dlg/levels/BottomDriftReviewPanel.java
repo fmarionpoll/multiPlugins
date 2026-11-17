@@ -50,6 +50,7 @@ final class BottomDriftReviewPanel extends JPanel {
 	private JDialog dialog;
 	private final JCheckBox scanRemaining = new JCheckBox("Current experiment through last");
 	private final JButton search = new JButton("Search drift");
+	private final JSpinner minimumRisePercent = new JSpinner(new SpinnerNumberModel(100.0 * 10.0 / 430.0, 0.01, 100.0, 0.1));
 	private final DefaultListModel<DriftHit> hits = new DefaultListModel<>();
 	private final JList<DriftHit> candidates = new JList<>(hits);
 	private final JLabel status = new JLabel("Search for bottom meniscus drift.");
@@ -66,24 +67,24 @@ final class BottomDriftReviewPanel extends JPanel {
 	private int displayedProposal;
 	private Sequence markerSequence;
 	private ROI2DLine cutoffMarker;
-	private Sequence baselineSequence;
-	private ROI2DLine baselineMarker;
-	private final JSpinner baselineYSpinner = new JSpinner(new SpinnerNumberModel(0.0, 0.0, 10000.0, 1.0));
 	private List<Capillary> rankedCaps = new ArrayList<>();
 	private int rankedIndex = -1;
-	private final JButton computeAllButton = new JButton("Baseline all");
-	private final JButton computeCurrentButton = new JButton("Baseline current");
-	private final JButton clearBaselineButton = new JButton("Clear baseline");
-	private final JButton setBaselineButton = new JButton("Set Y");
 	private final JButton prevNoiseButton = new JButton("< noisy");
 	private final JButton nextNoiseButton = new JButton("noisy >");
 	private final JLabel qcLabel = new JLabel("QC: no bottom measures");
+	private final JLabel riseLabel = new JLabel("Bottom rise: select a capillary");
 
 	BottomDriftReviewPanel(MultiCAFE parent, Component owner) {
 		this.parent0 = parent;
 		this.owner = owner;
 		setLayout(new BorderLayout());
-		add(row(search, scanRemaining), BorderLayout.NORTH);
+		JPanel searchControls = new JPanel(new GridLayout(0, 1));
+		searchControls.add(row(search, scanRemaining));
+		JLabel minimumRiseLabel = new JLabel("Minimum rise (% capillary length)");
+		minimumRiseLabel.setLabelFor(minimumRisePercent);
+		minimumRisePercent.setEditor(new JSpinner.NumberEditor(minimumRisePercent, "0.###"));
+		searchControls.add(row(minimumRiseLabel, minimumRisePercent));
+		add(searchControls, BorderLayout.NORTH);
 
 		candidates.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		JScrollPane list = new JScrollPane(candidates);
@@ -93,14 +94,11 @@ final class BottomDriftReviewPanel extends JPanel {
 		JPanel actions = new JPanel(new GridLayout(0, 1));
 		actions.add(row(status));
 		actions.add(row(previous, next, showKymograph));
-		JLabel cutoffLabel = new JLabel("First unreachable frame (0-based)");
+		JLabel cutoffLabel = new JLabel("Proposed cutoff frame (0-based)");
 		cutoffLabel.setLabelFor(firstInvalidFrame);
 		actions.add(row(cutoffLabel, firstInvalidFrame, validate, dismiss));
-		JLabel baselineYLabel = new JLabel("Baseline Y (px)");
-		baselineYLabel.setLabelFor(baselineYSpinner);
-		actions.add(row(computeCurrentButton, computeAllButton, clearBaselineButton, baselineYLabel, baselineYSpinner,
-				setBaselineButton));
 		actions.add(row(prevNoiseButton, nextNoiseButton, qcLabel));
+		actions.add(row(riseLabel));
 		add(actions, BorderLayout.SOUTH);
 
 		search.addActionListener(e -> search());
@@ -114,18 +112,29 @@ final class BottomDriftReviewPanel extends JPanel {
 		firstInvalidFrame.addChangeListener(e -> updateCutoffMarker());
 		validate.addActionListener(e -> decide(true));
 		dismiss.addActionListener(e -> decide(false));
-		computeCurrentButton.addActionListener(e -> computeBaseline(false));
-		computeAllButton.addActionListener(e -> computeBaseline(true));
-		clearBaselineButton.addActionListener(e -> clearBaselines());
-		setBaselineButton.addActionListener(e -> setManualBaseline());
 		prevNoiseButton.addActionListener(e -> navigateNoise(-1));
 		nextNoiseButton.addActionListener(e -> navigateNoise(1));
-		configureToolTips(cutoffLabel, baselineYLabel);
+		minimumRisePercent.addChangeListener(e -> {
+			clearCandidates();
+			status.setText("Rise threshold changed. Search again to update the candidates.");
+			updateControls();
+			refreshRise(selectedExperiment());
+		});
+		String riseTip = "<html>Movement toward the top meniscus divided by the calibrated full capillary length.<br>"
+				+ "10 pixels / 430 pixels = 2.326%. The reference is the median of the first few valid bottom samples (up to 10).<br>"
+				+ "Search requires a sustained rise that also exceeds the early measurement noise.<br>"
+				+ "Use this adjustable rule of thumb to find candidates for review.</html>";
+		minimumRiseLabel.setToolTipText(riseTip);
+		setSpinnerToolTip(minimumRisePercent, riseTip);
+		riseLabel.setToolTipText("<html>Bottom movement relative to its early position, as a percentage of the calibrated capillary length.<br>"
+				+ "Positive values indicate movement toward the top meniscus. The inspected frame is shown beside the value.<br>"
+				+ "Calibration uses the blue geometry or the stored capillary pixel length and accounts for normalized kymographs.</html>");
+		configureToolTips(cutoffLabel);
 		updateControls();
 	}
 
-	private void configureToolTips(JLabel cutoffLabel, JLabel baselineYLabel) {
-		search.setToolTipText("Find recordings where the detected bottom meniscus moves toward the top meniscus and stays displaced.");
+	private void configureToolTips(JLabel cutoffLabel) {
+		search.setToolTipText("Find sustained bottom rises reaching the minimum percentage of capillary length. Review each proposed cutoff.");
 		scanRemaining.setToolTipText("Checked scans from the selected experiment through the end of the list. Unchecked scans only the selected experiment.");
 		candidates.setToolTipText("Select a candidate to open its kymograph. Each row shows the experiment, capillary, and proposed first unreachable frame.");
 		previous.setToolTipText("Open the previous drift candidate and its kymograph.");
@@ -137,21 +146,10 @@ final class BottomDriftReviewPanel extends JPanel {
 		setSpinnerToolTip(firstInvalidFrame, cutoffTip);
 		validate.setToolTipText("Save the cutoff. This frame and all subsequent frames are excluded from the usable range.");
 		dismiss.setToolTipText("Save this candidate as reviewed, keep the full recording usable, and skip it in future searches.");
-
-		computeCurrentButton.setToolTipText("Estimate and save the bottom baseline for the capillary shown in the kymograph.");
-		computeAllButton.setToolTipText("Estimate and save bottom baselines for all capillaries in the selected experiment.");
-		clearBaselineButton.setToolTipText("Remove the saved bottom baselines and their noise statistics for all capillaries in the selected experiment.");
-		String baselineTip = "<html>Vertical pixel coordinate of the bottom reference line in the kymograph, measured from the top.<br>"
-				+ "An automatic baseline is the median of detected bottom positions after outlier filtering.<br>"
-				+ "Use Set Y to save an entered value. The baseline is shown as a horizontal magenta line during review.</html>";
-		baselineYLabel.setToolTipText(baselineTip);
-		setSpinnerToolTip(baselineYSpinner, baselineTip);
-		setBaselineButton.setToolTipText("Save the entered Y as the bottom baseline for the capillary shown in the kymograph.");
 		prevNoiseButton.setToolTipText("Show the previous capillary in the selected experiment's noise ranking, which starts with the noisiest.");
 		nextNoiseButton.setToolTipText("Show the next capillary in the selected experiment's noise ranking, which starts with the noisiest.");
-		qcLabel.setToolTipText("<html>Quality control shows the noise rank, number of capillaries with bottom measures, and capillary name.<br>"
-				+ "Y is the saved bottom baseline in kymograph pixels. MAD is the median absolute deviation of<br>"
-				+ "the points used to estimate that baseline, in pixels. NaN indicates an unavailable value.</html>");
+		qcLabel.setToolTipText("<html>Noise rank and statistics are calculated from the current bottom measurements.<br>"
+				+ "MAD is the median absolute deviation after outlier filtering, expressed as a percentage of capillary length.</html>");
 	}
 
 	private static void setSpinnerToolTip(JSpinner spinner, String tip) {
@@ -185,13 +183,11 @@ final class BottomDriftReviewPanel extends JPanel {
 					status.setText("Search canceled.");
 				}
 				clearCutoffMarker();
-				clearBaselineMarker();
 				displayedHit = null;
 				dialog = null;
 			}
 		});
-		refreshQcList(selectedExperiment());
-		updateBaselineSpinner(getCurrentCapillary(selectedExperiment()));
+		refreshRise(selectedExperiment());
 		updateControls();
 		dialog.pack();
 		dialog.setLocationRelativeTo(owner);
@@ -205,7 +201,6 @@ final class BottomDriftReviewPanel extends JPanel {
 		if (running) {
 			cancelScan();
 			clearCandidates();
-			clearBaselineMarker();
 			status.setText("Search again after bottom detection finishes.");
 		}
 		updateControls();
@@ -223,6 +218,13 @@ final class BottomDriftReviewPanel extends JPanel {
 	}
 
 	private void search() {
+		try {
+			minimumRisePercent.commitEdit();
+		} catch (ParseException ex) {
+			status.setText("Enter a rise percentage between 0.01 and 100.");
+			return;
+		}
+		double minimumFraction = minimumRiseFraction();
 		int start = parent0.expListComboLazy.getSelectedIndex();
 		if (start < 0) {
 			status.setText("Select an experiment first.");
@@ -237,14 +239,20 @@ final class BottomDriftReviewPanel extends JPanel {
 		status.setText("Scanning 0 / " + experiments.size());
 		scan = new SwingWorker<List<DriftHit>, Integer>() {
 			private int unreadableCount;
+			private int uncalibratedCount;
 
 			@Override
 			protected List<DriftHit> doInBackground() {
 				List<DriftHit> found = new ArrayList<>();
 				for (int i = 0; i < experiments.size() && !isCancelled(); i++) {
 					Experiment experiment = experiments.get(i);
-					if (experiment != null && !scanExperiment(experiment, i == 0, found))
-						unreadableCount++;
+					if (experiment != null) {
+						int skipped = scanExperiment(experiment, i == 0, minimumFraction, found);
+						if (skipped < 0)
+							unreadableCount++;
+						else
+							uncalibratedCount += skipped;
+					}
 					publish(i + 1);
 				}
 				return found;
@@ -267,6 +275,8 @@ final class BottomDriftReviewPanel extends JPanel {
 					String summary = hits.isEmpty() ? "No drift candidates." : hits.size() + " drift candidate(s).";
 					if (unreadableCount > 0)
 						summary += " Could not load " + unreadableCount + " experiment(s).";
+					if (uncalibratedCount > 0)
+						summary += " Missing length calibration for " + uncalibratedCount + " capillary/capillaries.";
 					status.setText(summary);
 				} catch (InterruptedException ex) {
 					Thread.currentThread().interrupt();
@@ -282,7 +292,7 @@ final class BottomDriftReviewPanel extends JPanel {
 		scan.execute();
 	}
 
-	private boolean scanExperiment(Experiment experiment, boolean current, List<DriftHit> found) {
+	private int scanExperiment(Experiment experiment, boolean current, double minimumFraction, List<DriftHit> found) {
 		Experiment source = experiment;
 		boolean hasBottom = current && experiment.getCapillaries().getList().stream()
 				.anyMatch(cap -> cap.getBottomRaw().isThereAnyMeasuresDone());
@@ -298,14 +308,24 @@ final class BottomDriftReviewPanel extends JPanel {
 				source.setBinDirectory(experiment.getBinDirectory());
 			}
 			if (!source.load_capillaries_description_and_measures())
-				return false;
+				return -1;
+			source.loadBinDescription(source.getBinDirectory());
 		}
+		int uncalibrated = 0;
 		for (Capillary cap : source.getCapillaries().getList()) {
-			int frame = ReachableEnd.findReviewFrame(cap);
+			if (!Double.isFinite(ReachableEnd.capillaryLengthPixels(cap, source))) {
+				uncalibrated++;
+				continue;
+			}
+			int frame = ReachableEnd.findReviewFrame(cap, source, minimumFraction);
 			if (frame >= 0)
 				found.add(new DriftHit(experiment, cap.getRoiName(), frame));
 		}
-		return true;
+		return uncalibrated;
+	}
+
+	private double minimumRiseFraction() {
+		return ((Number) minimumRisePercent.getValue()).doubleValue() / 100.0;
 	}
 
 	private void clearCandidates() {
@@ -325,7 +345,6 @@ final class BottomDriftReviewPanel extends JPanel {
 
 	private void openCandidate() {
 		clearCutoffMarker();
-		clearBaselineMarker();
 		displayedHit = null;
 		updateControls();
 		DriftHit hit = candidates.getSelectedValue();
@@ -366,7 +385,7 @@ final class BottomDriftReviewPanel extends JPanel {
 			status.setText("Could not open this kymograph. Use Show kymograph to retry.");
 			return;
 		}
-		int proposal = ReachableEnd.findReviewFrame(cap);
+		int proposal = ReachableEnd.findReviewFrame(cap, hit.experiment, minimumRiseFraction());
 		if (proposal < 0 || proposal >= sequence.getSizeX()) {
 			status.setText("The candidate changed. Run a new search.");
 			return;
@@ -374,11 +393,9 @@ final class BottomDriftReviewPanel extends JPanel {
 		firstInvalidFrame.setModel(new SpinnerNumberModel(proposal, 0, sequence.getSizeX() - 1, 1));
 		displayedHit = hit;
 		displayedProposal = proposal;
-		updateBaselineSpinner(cap);
-		refreshQcList(hit.experiment);
+		refreshRise(hit.experiment);
 		status.setText("Candidate " + (candidates.getSelectedIndex() + 1) + " / " + hits.size()
 				+ "   Proposed frame " + proposal);
-		showBaseline(hit.experiment, cap);
 		updateCutoffMarker();
 		updateControls();
 	}
@@ -392,7 +409,7 @@ final class BottomDriftReviewPanel extends JPanel {
 
 	private void decide(boolean accept) {
 		Capillary cap = displayedCapillary();
-		if (cap == null || ReachableEnd.findReviewFrame(cap) != displayedProposal) {
+		if (cap == null || ReachableEnd.findReviewFrame(cap, displayedHit.experiment, minimumRiseFraction()) != displayedProposal) {
 			clearCutoffMarker();
 			status.setText("The candidate is no longer displayed or has changed. Reopen it to review.");
 			return;
@@ -435,6 +452,7 @@ final class BottomDriftReviewPanel extends JPanel {
 		int index = candidates.getSelectedIndex();
 		search.setEnabled(ready);
 		scanRemaining.setEnabled(ready);
+		minimumRisePercent.setEnabled(ready);
 		candidates.setEnabled(ready);
 		previous.setEnabled(ready && index > 0);
 		next.setEnabled(ready && index + 1 < hits.size());
@@ -442,9 +460,8 @@ final class BottomDriftReviewPanel extends JPanel {
 		firstInvalidFrame.setEnabled(ready && displayedHit != null);
 		validate.setEnabled(firstInvalidFrame.isEnabled());
 		dismiss.setEnabled(firstInvalidFrame.isEnabled());
-		for (Component control : new Component[] { computeCurrentButton, computeAllButton, clearBaselineButton,
-				baselineYSpinner, setBaselineButton, prevNoiseButton, nextNoiseButton })
-			control.setEnabled(ready);
+		prevNoiseButton.setEnabled(ready && !rankedCaps.isEmpty());
+		nextNoiseButton.setEnabled(ready && !rankedCaps.isEmpty());
 	}
 
 	private void updateCutoffMarker() {
@@ -459,6 +476,7 @@ final class BottomDriftReviewPanel extends JPanel {
 		cutoffMarker.setReadOnly(true);
 		cutoffMarker.setT(currentViewerFrame(markerSequence));
 		markerSequence.addROI(cutoffMarker);
+		refreshRise(displayedHit.experiment);
 	}
 
 	private void clearCutoffMarker() {
@@ -482,79 +500,35 @@ final class BottomDriftReviewPanel extends JPanel {
 		return index < 0 ? null : exp.getSeqKymos().getCapillaryForFrame(index, exp.getCapillaries());
 	}
 
-	private void computeBaseline(boolean all) {
-		Experiment exp = selectedExperiment();
-		if (exp == null)
-			return;
-		Capillary current = getCurrentCapillary(exp);
-		if (all) {
-			for (Capillary cap : exp.getCapillaries().getList())
-				BottomBaselineEstimator.estimateAndApply(cap);
-		} else if (current != null) {
-			BottomBaselineEstimator.estimateAndApply(current);
-		} else {
-			return;
-		}
-		saveBaselines(exp);
-	}
-
-	private void clearBaselines() {
-		Experiment exp = selectedExperiment();
-		if (exp == null)
-			return;
-		for (Capillary cap : exp.getCapillaries().getList())
-			cap.clearBottomBaseline();
-		saveBaselines(exp);
-	}
-
-	private void setManualBaseline() {
-		Experiment exp = selectedExperiment();
-		Capillary cap = getCurrentCapillary(exp);
-		if (cap == null)
-			return;
-		try {
-			baselineYSpinner.commitEdit();
-		} catch (ParseException ex) {
-			status.setText("Enter a valid baseline Y coordinate.");
-			return;
-		}
-		cap.setBottomBaselineY(((Number) baselineYSpinner.getValue()).doubleValue());
-		cap.setBottomBaselineMad(Double.NaN);
-		cap.setBottomBaselineOutlierFrac(Double.NaN);
-		saveBaselines(exp);
-	}
-
-	private void saveBaselines(Experiment exp) {
-		if (!CapillariesPersistence.Persistence.saveDescription(exp.getCapillaries(), exp.getResultsDirectory()))
-			status.setText("Could not save the bottom baseline.");
-		Capillary cap = getCurrentCapillary(exp);
-		updateBaselineSpinner(cap);
-		refreshQcList(exp);
-		showBaseline(exp, cap);
-	}
-
-	private void updateBaselineSpinner(Capillary cap) {
-		if (cap != null && Double.isFinite(cap.getBottomBaselineY()))
-			baselineYSpinner.setValue(cap.getBottomBaselineY());
-	}
-
-	private void refreshQcList(Experiment exp) {
+	private void refreshRise(Experiment exp) {
 		Capillary visible = getCurrentCapillary(exp);
 		rankedCaps = BottomBaselineEstimator.rankByBottomNoise(exp == null ? null : exp.getCapillaries().getList());
 		rankedIndex = rankedCaps.indexOf(visible);
-		if (rankedIndex < 0) {
+		if (visible == null || !visible.getBottomRaw().isThereAnyMeasuresDone()) {
 			qcLabel.setText(rankedCaps.isEmpty() ? "QC: no bottom measures" : "QC: " + rankedCaps.size() + " capillaries");
+			riseLabel.setText("Bottom rise: select a capillary with bottom measures");
 			return;
 		}
-		qcLabel.setText(String.format("QC: %d/%d  %s  Y=%.1f  MAD=%.1f", rankedIndex + 1, rankedCaps.size(),
-				visible.getRoiName(), visible.getBottomBaselineY(), visible.getBottomBaselineMad()));
+		double length = ReachableEnd.capillaryLengthPixels(visible, exp);
+		BottomBaselineEstimator.Result bottom = BottomBaselineEstimator.estimate(visible.getBottomRaw());
+		qcLabel.setText(String.format("QC: %d/%d  %s  MAD=%.2f%% length", rankedIndex + 1, rankedCaps.size(),
+				visible.getRoiName(), 100.0 * bottom.mad / length));
+		int frame = visible.getBottomRaw().polylineLevel.npoints - 1;
+		if (displayedCapillary() == visible)
+			frame = ((Number) firstInvalidFrame.getValue()).intValue();
+		double rise = 100.0 * ReachableEnd.riseFraction(visible, exp, frame);
+		if (Double.isFinite(rise))
+			riseLabel.setText(String.format("Bottom rise at frame %d: %.2f%% length (%.1f px / %.1f px)", frame, rise,
+					rise * length / 100.0, length));
+		else
+			riseLabel.setText("Bottom rise unavailable. Check the length calibration and early top/bottom measures.");
 	}
 
 	private void navigateNoise(int delta) {
 		Experiment exp = selectedExperiment();
 		if (exp == null)
 			return;
-		refreshQcList(exp);
+		refreshRise(exp);
 		if (rankedCaps.isEmpty())
 			return;
 		int target = rankedIndex < 0 ? 0 : Math.floorMod(rankedIndex + delta, rankedCaps.size());
@@ -564,34 +538,10 @@ final class BottomDriftReviewPanel extends JPanel {
 			return;
 		clearCutoffMarker();
 		displayedHit = null;
-		updateControls();
 		parent0.paneLevels.selectCapillaryForDetectionDialogs(cap);
-		updateBaselineSpinner(cap);
-		refreshQcList(exp);
 		CapillariesSequenceMapper.transferMeasuresToKymos(exp.getCapillaries(), exp.getSeqKymos());
-		showBaseline(exp, cap);
-	}
-
-	private void showBaseline(Experiment exp, Capillary cap) {
-		clearBaselineMarker();
-		Sequence sequence = kymographSequence(exp);
-		if (sequence == null || cap == null || !Double.isFinite(cap.getBottomBaselineY()))
-			return;
-		double y = cap.getBottomBaselineY();
-		baselineSequence = sequence;
-		baselineMarker = new ROI2DLine(0, y, Math.max(1, sequence.getSizeX() - 1), y);
-		baselineMarker.setName("bottom_baseline");
-		baselineMarker.setColor(Color.MAGENTA);
-		baselineMarker.setReadOnly(true);
-		baselineMarker.setT(currentViewerFrame(sequence));
-		sequence.addROI(baselineMarker);
-	}
-
-	private void clearBaselineMarker() {
-		if (baselineMarker != null)
-			baselineSequence.removeROI(baselineMarker);
-		baselineMarker = null;
-		baselineSequence = null;
+		refreshRise(exp);
+		updateControls();
 	}
 
 	private static final class DriftHit {

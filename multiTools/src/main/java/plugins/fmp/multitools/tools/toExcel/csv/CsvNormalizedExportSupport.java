@@ -21,7 +21,6 @@ import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.ExperimentProperties;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
-import plugins.fmp.multitools.experiment.cages.CagesCapillariesComputation;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
 import plugins.fmp.multitools.tools.toExcel.enums.EnumXLSColumnHeader;
@@ -73,8 +72,6 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_N_VALID = "n_valid";
 	public static final String COL_CONSUMPTION_RAW_UL = "consumption_raw_uL";
 	public static final String COL_CONSUMPTION_CORRECTED_UL = "consumption_corrected_uL";
-	public static final String COL_CONSUMPTION_RAW00_UL = "consumption_raw00_uL";
-	public static final String COL_CONSUMPTION_CORRECTED00_UL = "consumption_corrected00_uL";
 	public static final String COL_BOTTOM_LEVEL_UL = "bottom_level_uL";
 	public static final String COL_CONSUMPTION_FROM_GULPS_UL = "consumption_from_gulps_uL";
 	public static final String COL_GULP_AMPLITUDE = "gulp_amplitude_uL";
@@ -82,10 +79,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	public static final String COL_GULP_BIN_CORR_UL = "gulp_bin_corr_uL";
 	public static final String COL_SUM_GULP_BIN_RAW_UL = "sum_gulp_bin_raw_uL";
 	public static final String COL_SUM_GULP_BIN_CORR_UL = "sum_gulp_bin_corr_uL";
-	public static final String COL_T00_SUITABLE = "t00_suitable";
 	public static final String COL_EVAPORATION_UL = "evaporation_uL";
-	public static final String COL_T00_REFERENCE_UL = "t00_reference_uL";
-	public static final String COL_T00_N_VALID_REFERENCE = "t00_n_valid_reference";
 
 	private final Path folder;
 	private final long binStepMs;
@@ -206,9 +200,6 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		row.add(prop(props, EnumXLSColumnHeader.EXP_STRAIN));
 		row.add(prop(props, EnumXLSColumnHeader.EXP_SEX));
 		row.addAll(DetectionProvenanceSupport.idexptProvenanceValues(exp));
-		double refUl = exp != null ? exp.getT00ReferenceUl() : Double.NaN;
-		row.add(Double.isFinite(refUl) ? refUl : null);
-		row.add(exp != null ? Integer.valueOf(exp.getT00NSuitable()) : Integer.valueOf(0));
 		return row.toArray();
 	}
 
@@ -236,29 +227,36 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (name == null || name.isEmpty()) {
 			name = capId;
 		}
-		Double t0LiquidColumnPx = CagesCapillariesComputation.emptyFillLengthPx(capillary);
+		Double t0LiquidColumnPx = initialLiquidColumnLengthPx(capillary);
 		Integer nValid = capillary.getNValid() >= 0 ? Integer.valueOf(capillary.getNValid()) : null;
 		p.printRecord(expKey, cageId, capId, name, capillary.getVolume(), capillary.getPixels(), t0LiquidColumnPx,
 				nullToEmpty(capillary.getStimulus()), nullToEmpty(capillary.getConcentration()),
 				capillary.getNFlies(), nValid);
 	}
 
+	private static Double initialLiquidColumnLengthPx(Capillary cap) {
+		if (cap.getBottomRaw().getNPoints() == 0 || cap.getTopRaw().getNPoints() == 0)
+			return null;
+		double length = cap.getBottomRaw().getValueAt(0) - cap.getTopRaw().getValueAt(0);
+		return Double.isFinite(length) ? length : null;
+	}
+
 	public void writeMeasureCapRowRaw(String expKey, int cageId, String capId, double tMinutes, Integer frameIndex,
-			java.util.Map<String, Double> values, boolean t00Suitable) throws IOException {
-		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, frameIndex, values, t00Suitable, true);
+			java.util.Map<String, Double> values) throws IOException {
+		writeMeasureCapRow(measureCapRawPrinter(), expKey, cageId, capId, tMinutes, frameIndex, values, true);
 	}
 
 	public void writeMeasureCapRowBin(String expKey, int cageId, String capId, double tMinutes, Integer frameIndex,
-			java.util.Map<String, Double> values, boolean t00Suitable) throws IOException {
+			java.util.Map<String, Double> values) throws IOException {
 		if (!writeBinFiles) {
 			return;
 		}
-		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, frameIndex, values, t00Suitable, false);
+		writeMeasureCapRow(measureCapBinPrinter(), expKey, cageId, capId, tMinutes, frameIndex, values, false);
 	}
 
 	private void writeMeasureCapRow(CSVPrinter p, String expKey, int cageId, String capId, double tMinutes,
 			Integer frameIndex,
-			java.util.Map<String, Double> values, boolean t00Suitable, boolean includeEvaporation) throws IOException {
+			java.util.Map<String, Double> values, boolean includeEvaporation) throws IOException {
 		if (measureCapColumns.isEmpty()) {
 			return;
 		}
@@ -269,10 +267,6 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		row.add(tMinutes);
 		row.add(frameIndex);
 		for (String col : measureCapColumns) {
-			if (COL_T00_SUITABLE.equals(col)) {
-				row.add(t00Suitable ? "TRUE" : "FALSE");
-				continue;
-			}
 			Double v = values != null ? values.get(col) : null;
 			if (COL_GULP_AMPLITUDE.equals(col)) {
 				row.add(v != null && !Double.isNaN(v) ? v : 0.0);
@@ -287,50 +281,24 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		p.printRecord(row);
 	}
 
-	public void writeMeasureCageRowRaw(String expKey, int cageId, double tMinutes, double sum, double pi,
-			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
-			boolean t00Suitable, double evaporationUl) throws IOException {
-		writeMeasureCageRow(measureCageRawPrinter(), expKey, cageId, tMinutes, sum, pi, sumTopraw, piTopraw, sumGulps,
-				piGulps, sum00, pi00, t00Suitable, true, evaporationUl);
-	}
-
-	public void writeMeasureCageRowBin(String expKey, int cageId, double tMinutes, double sum, double pi,
-			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
-			boolean t00Suitable) throws IOException {
-		if (!writeBinFiles) {
-			return;
-		}
-		writeMeasureCageRow(measureCageBinPrinter(), expKey, cageId, tMinutes, sum, pi, sumTopraw, piTopraw, sumGulps,
-				piGulps, sum00, pi00, t00Suitable, false, Double.NaN);
-	}
-
-	private void writeMeasureCageRow(CSVPrinter p, String expKey, int cageId, double tMinutes, double sum, double pi,
-			double sumTopraw, double piTopraw, double sumGulps, double piGulps, double sum00, double pi00,
-			boolean t00Suitable, boolean includeEvaporation, double evaporationUl) throws IOException {
-		writeMeasureCageSummary(p, expKey, cageId, tMinutes, null,
-				new double[] {sum, pi, sumTopraw, piTopraw, sumGulps, piGulps, sum00, pi00,
-						Double.NaN, Double.NaN, Double.NaN, Double.NaN}, t00Suitable, includeEvaporation, evaporationUl);
-	}
-
-	/** Values are sum/PI pairs for levels, raw levels, gulps, T00, raw intake and corrected intake. */
+	/** Values are sum/PI pairs for levels, raw levels, gulps, raw intake and corrected intake. */
 	public void writeMeasureCageSummary(boolean raw, String expKey, int cageId, double time, Integer frameIndex,
-			double[] values, boolean suitable, double evaporation) throws IOException {
+			double[] values, double evaporation) throws IOException {
 		if (!raw && !writeBinFiles) return;
 		writeMeasureCageSummary(raw ? measureCageRawPrinter() : measureCageBinPrinter(), expKey, cageId,
-				time, frameIndex, values, suitable, raw, evaporation);
+				time, frameIndex, values, raw, evaporation);
 	}
 
 	private void writeMeasureCageSummary(CSVPrinter printer, String expKey, int cageId, double time, Integer frameIndex,
-			double[] values, boolean suitable, boolean raw, double evaporation) throws IOException {
+			double[] values, boolean raw, double evaporation) throws IOException {
 		List<Object> row = new ArrayList<>();
 		row.add(expKey);
 		row.add(cageId);
 		row.add(time);
 		row.add(frameIndex);
-		for (int i = 0; i < 8; i++) row.add(nanToNull(values[i]));
-		row.add(suitable ? "TRUE" : "FALSE");
+		for (int i = 0; i < 6; i++) row.add(nanToNull(values[i]));
 		if (raw) row.add(nanToNull(evaporation));
-		for (int i = 8; i < 12; i++) row.add(nanToNull(values[i]));
+		for (int i = 6; i < 10; i++) row.add(nanToNull(values[i]));
 		printer.printRecord(row);
 	}
 
@@ -379,8 +347,6 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 			header.add(COL_STRAIN);
 			header.add(COL_SEX);
 			header.addAll(DetectionProvenanceSupport.IDEXPT_PROVENANCE_COLUMNS);
-			header.add(COL_T00_REFERENCE_UL);
-			header.add(COL_T00_N_VALID_REFERENCE);
 			idexptPrinter = openPrinter(IDEXPT, header.toArray(new String[0]));
 		}
 		return idexptPrinter;
@@ -438,7 +404,7 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 		if (measureCageRawPrinter == null) {
 			measureCageRawPrinter = openPrinter(MEASURE_CAGE_RAW, COL_EXPERIMENT_ID, COL_CAGE_ID, COL_TIME_MIN,
 					COL_FRAME_INDEX, "sum",
-					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00", COL_T00_SUITABLE,
+					"pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps",
 					COL_EVAPORATION_UL, "sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
 		}
 		return measureCageRawPrinter;
@@ -447,8 +413,8 @@ public final class CsvNormalizedExportSupport implements AutoCloseable {
 	private CSVPrinter measureCageBinPrinter() throws IOException {
 		if (measureCageBinPrinter == null) {
 			measureCageBinPrinter = openPrinter("measure_cage_" + binDescriptor, COL_EXPERIMENT_ID, COL_CAGE_ID,
-					COL_TIME_MIN, COL_FRAME_INDEX, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps", "sum00", "pi00",
-					COL_T00_SUITABLE, "sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
+					COL_TIME_MIN, COL_FRAME_INDEX, "sum", "pi", "sum_topraw", "pi_topraw", "sum_gulps", "pi_gulps",
+					"sum_intake_raw_uL", "pi_intake_raw", "sum_intake_corr_uL", "pi_intake_corr");
 		}
 		return measureCageBinPrinter;
 	}

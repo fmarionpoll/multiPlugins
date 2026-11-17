@@ -27,7 +27,6 @@ public class LevelOffsetTest {
 		cap.getGulps().setBottomPositions(new double[] { Double.NaN, 20, 21 });
 		cap.getIntakes().set(new double[] { 0, 3, 0 }, 1, 6, 1, false);
 		cap.getIntakes().setBottomPositions(new double[] { 8, 9, 10 });
-		cap.setT00YPixels(7);
 
 		assertFalse(cap.addConstantLevelOffset(0));
 		assertTrue(cap.addConstantLevelOffset(5));
@@ -45,7 +44,6 @@ public class LevelOffsetTest {
 		assertEquals(-1, cap.getGulps().bottomAt(0, -1), 0);
 		assertEquals(3, cap.getIntakes().getEvents().getHeightSeries().ypoints[1], 0);
 		assertEquals(14, cap.getIntakes().bottomAt(1, -1), 0);
-		assertEquals(12, cap.getT00YPixels(), 0);
 	}
 
 	@Test

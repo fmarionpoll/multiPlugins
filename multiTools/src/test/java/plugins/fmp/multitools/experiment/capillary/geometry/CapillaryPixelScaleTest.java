@@ -21,6 +21,24 @@ public class CapillaryPixelScaleTest {
 	}
 
 	@Test
+	public void driftLengthUsesStoredCalibrationAndNormalizedKymographScale() {
+		Capillary stored = new Capillary();
+		stored.setPixels(430);
+		assertEquals(430, CapillaryPixelScale.nativePixelsPerCapillary(stored, 0,
+				MeasurePixelSource.GREEN_KYMO, 0.10), 1e-9);
+		Capillary measured = capillaryWithTwoBlues();
+		assertEquals(40, CapillaryPixelScale.nativePixelsPerCapillary(measured, 0,
+				MeasurePixelSource.GREEN_KYMO, 0.10), 1e-9);
+		assertEquals(60, CapillaryPixelScale.nativePixelsPerCapillary(measured, 0,
+				MeasurePixelSource.BLUE_NORMED_KYMO, 0.10), 1e-9);
+		measured.setVolume(10);
+		assertEquals(60, CapillaryPixelScale.nativePixelsPerCapillary(measured, 0,
+				MeasurePixelSource.BLUE_NORMED_KYMO, 0.10), 1e-9);
+		assertTrue(Double.isNaN(CapillaryPixelScale.nativePixelsPerCapillary(stored, 0,
+				MeasurePixelSource.BLUE_NORMED_KYMO, 0.10)));
+	}
+
+	@Test
 	public void greenSourceFollowsBlueLengthAtT() {
 		Capillary cap = capillaryWithTwoBlues();
 		assertEquals(40, CapillaryPixelScale.pixelsFor32mm(cap, 0, MeasurePixelSource.GREEN_KYMO), 1e-9);
@@ -88,8 +106,7 @@ public class CapillaryPixelScaleTest {
 	public void relativeTopLevelsDoNotSubtractExpansionOriginTwice() {
 		Capillary cap = capillaryWithTwoBlues();
 		cap.setVolume(5.0);
-		for (EnumResults type : new EnumResults[] { EnumResults.TOPRAW, EnumResults.TOPLEVEL,
-				EnumResults.TOPRAW00, EnumResults.TOPLEVEL00 }) {
+		for (EnumResults type : new EnumResults[] { EnumResults.TOPRAW, EnumResults.TOPLEVEL }) {
 			boolean absolute = CapillaryPixelScale.isAbsoluteLevel(type);
 			assertEquals(type.toString(), 0.0,
 					CapillaryPixelScale.toUl(0, cap, 0, MeasurePixelSource.BLUE_NORMED_KYMO, 0.10, absolute), 1e-12);

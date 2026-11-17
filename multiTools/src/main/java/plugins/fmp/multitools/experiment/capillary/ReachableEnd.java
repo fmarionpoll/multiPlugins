@@ -2,6 +2,8 @@ package plugins.fmp.multitools.experiment.capillary;
 
 import java.util.Arrays;
 
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPixelScale;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 /**
@@ -35,6 +37,40 @@ public final class ReachableEnd {
 		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed())
 			return UNSET;
 		return find(cap);
+	}
+
+	/** Review using a minimum rise expressed as a fraction of the initial capillary length. */
+	public static int findReviewFrame(Capillary cap, Experiment exp, double minimumRiseFraction) {
+		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed()
+				|| !Double.isFinite(minimumRiseFraction) || minimumRiseFraction <= 0)
+			return UNSET;
+		double length = capillaryLengthPixels(cap, exp);
+		if (!Double.isFinite(length))
+			return UNSET;
+		Level2D bottom = cap.getBottomRaw().polylineLevel;
+		Level2D top = cap.getTopRaw().polylineLevel;
+		if (bottom == null || top == null)
+			return UNSET;
+		return find(bottom.ypoints, bottom.npoints, top.ypoints, top.npoints, minimumRiseFraction * length);
+	}
+
+	public static double capillaryLengthPixels(Capillary cap, Experiment exp) {
+		return CapillaryPixelScale.nativePixelsPerCapillary(cap, 0, CapillaryPixelScale.sourceOf(exp),
+				CapillaryPixelScale.expansionRatioOf(exp));
+	}
+
+	/** Signed movement toward the top meniscus relative to the early bottom position. */
+	public static double riseFraction(Capillary cap, Experiment exp, int frame) {
+		if (cap == null)
+			return Double.NaN;
+		Level2D bottom = cap.getBottomRaw().polylineLevel;
+		Level2D top = cap.getTopRaw().polylineLevel;
+		if (bottom == null || top == null || frame < 0 || frame >= bottom.npoints || frame >= bottom.ypoints.length)
+			return Double.NaN;
+		InitialBottom initial = initialBottom(bottom.ypoints, bottom.npoints, top.ypoints, top.npoints);
+		if (initial == null)
+			return Double.NaN;
+		return (bottom.ypoints[frame] - initial.y) * initial.direction / capillaryLengthPixels(cap, exp);
 	}
 
 	/**
@@ -71,8 +107,48 @@ public final class ReachableEnd {
 	}
 
 	private static int find(double[] bottomY, int bottomLength, double[] topY, int topLength) {
-		if (bottomY == null || topY == null)
+		return find(bottomY, bottomLength, topY, topLength, MIN_PIXELS);
+	}
+
+	private static int find(double[] bottomY, int bottomLength, double[] topY, int topLength, double minimumRisePixels) {
+		InitialBottom initial = initialBottom(bottomY, bottomLength, topY, topLength);
+		if (initial == null)
 			return UNSET;
+		int limit = Math.min(bottomLength, bottomY.length);
+		int start = initial.start;
+		double baseline = initial.y;
+		double direction = initial.direction;
+		double threshold = Math.max(minimumRisePixels, MAD_K * initial.mad);
+
+		int end = limit - 1;
+		while (end >= start && !Double.isFinite(bottomY[end]))
+			end--;
+		if (end - start + 1 < RUN_LENGTH || limit - end > RUN_LENGTH
+				|| (bottomY[end] - baseline) * direction < threshold)
+			return UNSET;
+
+		// Work back from the end so a temporary rise followed by recovery is ignored.
+		int departed = 0;
+		int recovery = 0;
+		int onset = UNSET;
+		for (int i = end; i >= start; i--) {
+			if (!Double.isFinite(bottomY[i]))
+				continue;
+			if ((bottomY[i] - baseline) * direction >= threshold) {
+				recovery = 0;
+				departed++;
+				if (departed >= RUN_LENGTH && departed >= MIN_DEPARTURE_FRACTION * (end - i + 1))
+					onset = i;
+			} else if (++recovery >= RECOVERY_SAMPLES) {
+				break;
+			}
+		}
+		return onset;
+	}
+
+	private static InitialBottom initialBottom(double[] bottomY, int bottomLength, double[] topY, int topLength) {
+		if (bottomY == null || topY == null)
+			return null;
 		int limit = Math.min(bottomLength, bottomY.length);
 		int topLimit = Math.min(topLength, topY.length);
 		int prefixSize = Math.min(BASELINE_SAMPLES, Math.max(3, limit / 4));
@@ -89,39 +165,27 @@ public final class ReachableEnd {
 				prefixTop[topCount++] = topY[start];
 		}
 		if (filled < prefixSize || topCount == 0 || limit - start < RUN_LENGTH)
-			return UNSET;
+			return null;
 
 		double baseline = median(prefixBottom, prefixSize);
 		double direction = Math.signum(median(prefixTop, topCount) - baseline);
 		if (direction == 0.0)
-			return UNSET;
-		double threshold = Math.max(MIN_PIXELS, MAD_K * mad(prefixBottom, prefixSize, baseline));
+			return null;
+		return new InitialBottom(baseline, direction, mad(prefixBottom, prefixSize, baseline), start);
+	}
 
-		int end = limit - 1;
-		while (end >= start && !Double.isFinite(bottomY[end]))
-			end--;
-		if (end - start + 1 < RUN_LENGTH || limit - end > RUN_LENGTH
-				|| (bottomY[end] - baseline) * direction <= threshold)
-			return UNSET;
+	private static final class InitialBottom {
+		final double y;
+		final double direction;
+		final double mad;
+		final int start;
 
-		// Work back from the end of the recording so a temporary rise followed
-		// by a return to the baseline cannot contribute to the final departure.
-		int departed = 0;
-		int recovery = 0;
-		int onset = UNSET;
-		for (int i = end; i >= start; i--) {
-			if (!Double.isFinite(bottomY[i]))
-				continue;
-			if ((bottomY[i] - baseline) * direction > threshold) {
-				recovery = 0;
-				departed++;
-				if (departed >= RUN_LENGTH && departed >= MIN_DEPARTURE_FRACTION * (end - i + 1))
-					onset = i;
-			} else if (++recovery >= RECOVERY_SAMPLES) {
-				break;
-			}
+		InitialBottom(double y, double direction, double mad, int start) {
+			this.y = y;
+			this.direction = direction;
+			this.mad = mad;
+			this.start = start;
 		}
-		return onset;
 	}
 
 	private static double median(double[] values, int n) {

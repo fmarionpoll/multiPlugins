@@ -53,11 +53,6 @@ public class Capillary implements Comparable<Capillary> {
 	private final TimelineT<AlongT> greenTimeline = TimelineT.wrapOrderedList(
 			this::storedGreenPhases, AlongT::getStart, value -> value);
 
-	/**
-	 * Session cache: putative full meniscus Y (pixels) = tip − experiment median
-	 * empty fill length. {@link Double#NaN} when t00 is unsuitable or tip missing.
-	 */
-	private transient double t00YPixels = Double.NaN;
 	private final CapillaryPhaseGeometryModel phaseGeometry = new CapillaryPhaseGeometryModel();
 
 	// === PUBLIC FIELDS (Deprecated/Moved logic) ===
@@ -237,18 +232,6 @@ public class Capillary implements Comparable<Capillary> {
 		return properties.getBottomBaselineY();
 	}
 
-	public double getT00YPixels() {
-		return t00YPixels;
-	}
-
-	public void setT00YPixels(double t00YPixels) {
-		this.t00YPixels = t00YPixels;
-	}
-
-	public boolean hasT00YPixels() {
-		return Double.isFinite(t00YPixels);
-	}
-
 	public void setBottomBaselineY(double y) {
 		properties.setBottomBaselineY(y);
 	}
@@ -415,8 +398,6 @@ public class Capillary implements Comparable<Capillary> {
 			measurements.ptsGulps.addConstantBottomOffset(dy);
 		if (measurements.ptsIntakes != null)
 			measurements.ptsIntakes.addConstantBottomOffset(dy);
-		if (hasT00YPixels())
-			setT00YPixels(getT00YPixels() + dy);
 		return true;
 	}
 
@@ -582,7 +563,6 @@ public class Capillary implements Comparable<Capillary> {
 		if (measurements.ptsTopCorrected != null) {
 			measurements.ptsTopCorrected.clear();
 		}
-		t00YPixels = Double.NaN;
 	}
 
 	public void setRoiName(String name) {
@@ -804,11 +784,6 @@ public class Capillary implements Comparable<Capillary> {
 		case SUMGULPS_PI:
 		case TOPLEVELDELTA_LR:
 		case TOPLEVEL_LR:
-		case TOPLEVEL00_LR:
-		case TOPLEVEL_SUM00:
-		case TOPLEVEL_PI00:
-		case TOPLEVEL_SUM_AND_00:
-		case TOPLEVEL_PI_AND_00:
 		case TOPRAW_LR:
 			if (side.equals("L"))
 				value = "sum";
@@ -875,10 +850,6 @@ public class Capillary implements Comparable<Capillary> {
 			yes = measurements.ptsBottom.isThereAnyMeasuresDone();
 			break;
 		case TOPLEVEL:
-		case TOPLEVEL00:
-		case TOPRAW00:
-		case TOPRAW_AND_00:
-		case TOPLEVEL_AND_00:
 		default:
 			yes = measurements.ptsTop.isThereAnyMeasuresDone();
 			break;
@@ -1708,29 +1679,6 @@ public class Capillary implements Comparable<Capillary> {
 			measure.copy(measurements.ptsTop);
 			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
 				measure.polylineLevel.offsetToStartWithZeroAmplitude();
-			break;
-
-		case TOPLEVEL00:
-			if (!hasT00YPixels())
-				return null;
-			if (measurements.ptsTopCorrected != null && measurements.ptsTopCorrected.isThereAnyMeasuresDone()) {
-				measure = new CapillaryMeasure(measurements.ptsTopCorrected.capName);
-				measure.copy(measurements.ptsTopCorrected);
-			} else {
-				measure = new CapillaryMeasure(measurements.ptsTop.capName);
-				measure.copy(measurements.ptsTop);
-			}
-			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
-				measure.polylineLevel.offsetByConstant(t00YPixels);
-			break;
-
-		case TOPRAW00:
-			if (!hasT00YPixels())
-				return null;
-			measure = new CapillaryMeasure(measurements.ptsTop.capName);
-			measure.copy(measurements.ptsTop);
-			if (measure.polylineLevel != null && measure.polylineLevel.npoints > 0)
-				measure.polylineLevel.offsetByConstant(t00YPixels);
 			break;
 
 		case TOPLEVELDELTA:

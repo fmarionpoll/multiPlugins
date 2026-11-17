@@ -68,15 +68,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 			return buildLR(exp, cage, options);
 		}
 
-		if (options.resultType == EnumResults.TOPRAW_AND_00 || options.resultType == EnumResults.TOPLEVEL_AND_00) {
-			return buildWithT00Overlay(exp, cage, options);
-		}
-
-		if (options.resultType == EnumResults.TOPLEVEL_SUM_AND_00
-				|| options.resultType == EnumResults.TOPLEVEL_PI_AND_00) {
-			return buildSumPiWithT00Overlay(exp, cage, options);
-		}
-
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		int i = 0;
 		for (Capillary cap : capillaries) {
@@ -128,90 +119,12 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		}
 	}
 
-	private static XYSeriesCollection buildWithT00Overlay(Experiment exp, Cage cage, ResultsOptions options) {
-		XYSeriesCollection dataset = new XYSeriesCollection();
-		EnumResults baseType = options.resultType == EnumResults.TOPRAW_AND_00 ? EnumResults.TOPRAW
-				: EnumResults.TOPLEVEL;
-		EnumResults t00Type = options.resultType == EnumResults.TOPRAW_AND_00 ? EnumResults.TOPRAW00
-				: EnumResults.TOPLEVEL00;
-
-		ResultsOptions baseOpts = new ResultsOptions();
-		baseOpts.copy(options);
-		baseOpts.resultType = baseType;
-		ResultsOptions t00Opts = new ResultsOptions();
-		t00Opts.copy(options);
-		t00Opts.resultType = t00Type;
-
-		Capillaries allCapillaries = exp.getCapillaries();
-		List<Capillary> capillaries = new ArrayList<>(cage.getCapillaries(allCapillaries));
-		Collections.sort(capillaries, new Comparators.Capillary_ROIName());
-		int i = 0;
-		for (Capillary cap : capillaries) {
-			XYSeries solid = createXYSeriesFromCapillaryMeasure(exp, cap, baseOpts, CapillaryChartSeriesKeys.key(cap));
-			if (solid != null) {
-				solid.setDescription(buildSeriesDescription(cage, cap, i));
-				dataset.addSeries(solid);
-			}
-			XYSeries dashed = createXYSeriesFromCapillaryMeasure(exp, cap, t00Opts,
-					CapillaryChartSeriesKeys.keyT00(cap));
-			if (dashed != null) {
-				dashed.setDescription(buildSeriesDescription(cage, cap, i));
-				dataset.addSeries(dashed);
-			}
-			i++;
-		}
-		appendEvaporationReferenceSeries(dataset, exp, cage, options);
-		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
-		return dataset;
-	}
-
-	/** Overlay SUM or PI (solid, t−t0) with SUM00/PI00 (dashed, t−t00). */
-	private static XYSeriesCollection buildSumPiWithT00Overlay(Experiment exp, Cage cage, ResultsOptions options) {
-		boolean wantSum = options.resultType == EnumResults.TOPLEVEL_SUM_AND_00;
-		String suffix = wantSum ? "_Sum" : "_PI";
-
-		ResultsOptions solidOpts = new ResultsOptions();
-		solidOpts.copy(options);
-		solidOpts.resultType = wantSum ? EnumResults.TOPLEVEL_SUM : EnumResults.TOPLEVEL_PI;
-
-		ResultsOptions dashedOpts = new ResultsOptions();
-		dashedOpts.copy(options);
-		dashedOpts.resultType = wantSum ? EnumResults.TOPLEVEL_SUM00 : EnumResults.TOPLEVEL_PI00;
-
-		XYSeriesCollection solid = buildLR(exp, cage, solidOpts);
-		XYSeriesCollection dashed = buildLR(exp, cage, dashedOpts);
-		XYSeriesCollection dataset = new XYSeriesCollection();
-		for (int i = 0; i < solid.getSeriesCount(); i++) {
-			XYSeries s = solid.getSeries(i);
-			if (s.getKey() != null && s.getKey().toString().endsWith(suffix)) {
-				dataset.addSeries(s);
-			}
-		}
-		for (int i = 0; i < dashed.getSeriesCount(); i++) {
-			XYSeries s = dashed.getSeries(i);
-			if (s.getKey() == null || !s.getKey().toString().endsWith(suffix)) {
-				continue;
-			}
-			String key = s.getKey().toString() + "*00";
-			XYSeries renamed = new XYSeries(key, false);
-			renamed.setDescription(s.getDescription());
-			for (int j = 0; j < s.getItemCount(); j++) {
-				renamed.add(s.getX(j), s.getY(j));
-			}
-			dataset.addSeries(renamed);
-		}
-		appendEvaporationReferenceSeries(dataset, exp, cage, options);
-		ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
-		return dataset;
-	}
-
 	private static boolean includesEvaporationReferenceChart(EnumResults resultType) {
 		if (resultType == null) {
 			return false;
 		}
 		switch (resultType) {
 		case TOPRAW:
-		case TOPRAW_AND_00:
 			return true;
 		default:
 			return false;
@@ -243,10 +156,8 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 
 		XYSeriesCollection sumAndPI = buildSumAndPISeries(cage, parts);
 		if (options.resultType == EnumResults.TOPLEVEL_SUM || options.resultType == EnumResults.TOPLEVEL_PI
-				|| options.resultType == EnumResults.TOPLEVEL_SUM00 || options.resultType == EnumResults.TOPLEVEL_PI00
 				|| options.resultType == EnumResults.SUMGULPS_SUM || options.resultType == EnumResults.SUMGULPS_PI) {
 			boolean sum = options.resultType == EnumResults.TOPLEVEL_SUM
-					|| options.resultType == EnumResults.TOPLEVEL_SUM00
 					|| options.resultType == EnumResults.SUMGULPS_SUM;
 			String suffix = sum ? "_Sum" : "_PI";
 			XYSeriesCollection filtered = new XYSeriesCollection();
@@ -272,10 +183,6 @@ public class CageCapillarySeriesBuilder implements CageSeriesBuilder {
 		case TOPLEVEL_SUM:
 		case TOPLEVEL_PI:
 			return EnumResults.TOPLEVEL;
-		case TOPLEVEL00_LR:
-		case TOPLEVEL_SUM00:
-		case TOPLEVEL_PI00:
-			return EnumResults.TOPLEVEL00;
 		case TOPRAW_LR:
 			return EnumResults.TOPRAW;
 		case TOPLEVELDELTA_LR:

@@ -17,6 +17,48 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 public class ReachableEndTest {
 
 	@Test
+	public void normalizedReviewUsesTheSameFractionAcrossResolutionsAndOrigins() {
+		for (int scale : new int[] { 1, 2 }) {
+			double[] bottom = constant(40, 437 * scale + 100);
+			Arrays.fill(bottom, 20, 40, 427 * scale + 100);
+			Capillary cap = capillary(bottom, constant(40, 100));
+			cap.setPixels(430 * scale);
+			assertEquals(20, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+			assertEquals(10.0 / 430.0, ReachableEnd.riseFraction(cap, null, 20), 1e-12);
+			assertEquals(0, ReachableEnd.riseFraction(cap, null, 0), 1e-12);
+		}
+	}
+
+	@Test
+	public void normalizedReviewRejectsSmallerRisesAndMissingCalibration() {
+		double[] bottom = constant(40, 437);
+		Arrays.fill(bottom, 20, 40, 428);
+		Capillary cap = capillary(bottom, constant(40, 20));
+		cap.setPixels(430);
+		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+		cap.setPixels(0);
+		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+		assertTrue(Double.isNaN(ReachableEnd.riseFraction(cap, null, 20)));
+	}
+
+	@Test
+	public void normalizedReviewStillRequiresSustainedDepartureAndHonorsDecisions() {
+		double[] bottom = constant(60, 437);
+		Arrays.fill(bottom, 15, 30, 427);
+		Capillary cap = capillary(bottom, constant(60, 20));
+		cap.setPixels(430);
+		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+		Arrays.fill(bottom, 40, 60, 427);
+		cap.getBottomRaw().polylineLevel = level(bottom);
+		assertEquals(40, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+		cap.setDriftDismissed(true);
+		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+		cap.setDriftDismissed(false);
+		cap.setNValid(40);
+		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
+	}
+
+	@Test
 	public void flatBottomStaysUnset() {
 		assertEquals(ReachableEnd.UNSET, ReachableEnd.find(constant(40, 100), constant(40, 20), 40));
 	}

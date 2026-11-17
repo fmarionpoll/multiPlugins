@@ -91,7 +91,7 @@ public class MCLevels_ extends JPanel implements PropertyChangeListener {
 		tabDetectBottom.init(capLayout, parent0);
 		tabDetectBottom.addPropertyChangeListener(this);
 		tabsPane.addTab("Bottom", null, tabDetectBottom,
-				"Detect bottom tip independently and estimate bottomBaselineY");
+				"Detect bottom level and review sustained bottom drift");
 
 		tabCleanGaps.init(capLayout, parent0);
 		tabsPane.addTab("Clean gaps", null, tabCleanGaps, "remove night gaps from measures");

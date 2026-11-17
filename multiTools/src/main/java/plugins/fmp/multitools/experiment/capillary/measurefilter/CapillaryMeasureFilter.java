@@ -52,16 +52,6 @@ public final class CapillaryMeasureFilter {
 			if (exp.getCapillaries() == null || exp.getCapillaries().getList() == null)
 				continue;
 
-			if (rule.source.requiresT00() && exp.getCages() != null) {
-				try {
-					exp.getCages().computeT00References(exp);
-				} catch (Exception e) {
-					Logger.warn("CapillaryMeasureFilter: t00 compute failed for " + safeExpLabel(exp) + ": "
-							+ e.getMessage());
-					continue;
-				}
-			}
-
 			String expLabel = shortExpLabel(exp);
 			for (Capillary cap : exp.getCapillaries().getList()) {
 				if (cap == null)
@@ -131,45 +121,27 @@ public final class CapillaryMeasureFilter {
 	}
 
 	private static Double computeScalar(Capillary cap, MeasureFilterRule rule) {
+		BottomBaselineEstimator.Result bottom = BottomBaselineEstimator.estimate(cap.getBottomRaw());
 		double v;
 		switch (rule.source) {
 		case BOTTOM_BASELINE_Y:
-			v = cap.getBottomBaselineY();
+			v = bottom.baselineY;
 			if (rule.op == MeasureFilterOp.IS_NAN && rule.requireBottomSeriesIfBaselineMissing) {
-				CapillaryMeasure bottom = cap.getBottomRaw();
-				if (bottom == null || !bottom.isThereAnyMeasuresDone())
+				CapillaryMeasure measures = cap.getBottomRaw();
+				if (measures == null || !measures.isThereAnyMeasuresDone())
 					return null;
 			}
 			break;
 		case BOTTOM_BASELINE_MAD:
-			v = cap.getBottomBaselineMad();
+			v = bottom.mad;
 			break;
 		case BOTTOM_BASELINE_OUTLIER_FRAC:
-			v = cap.getBottomBaselineOutlierFrac();
+			v = bottom.outlierFrac;
 			break;
-		case T00_MINUS_T0_FILL_PX:
-			return computeT00MinusT0FillPx(cap);
 		default:
 			return null;
 		}
 		return v;
-	}
-
-	/**
-	 * Meniscus Y difference (pixels): {@code Y_top[t0] − Y_t00} with
-	 * {@code Y_t00 = tip − h}. Positive ⇒ lower fill than t00 reference at t0
-	 * (early drink / underfill). Negative ⇒ fuller than reference.
-	 */
-	public static Double computeT00MinusT0FillPx(Capillary cap) {
-		if (cap == null || !cap.hasT00YPixels())
-			return null;
-		CapillaryMeasure top = cap.getTopRaw();
-		if (top == null || top.polylineLevel == null || top.polylineLevel.npoints <= 0)
-			return null;
-		Level2D poly = top.polylineLevel;
-		if (poly.ypoints == null || poly.ypoints.length == 0 || !Double.isFinite(poly.ypoints[0]))
-			return null;
-		return poly.ypoints[0] - cap.getT00YPixels();
 	}
 
 	private static CapillaryMeasure getSeries(Capillary cap, MeasureFilterSource source) {
