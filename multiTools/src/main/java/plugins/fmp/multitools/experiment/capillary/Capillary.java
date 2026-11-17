@@ -282,6 +282,14 @@ public class Capillary implements Comparable<Capillary> {
 		properties.setNValid(nValid);
 	}
 
+	public boolean isDriftDismissed() {
+		return properties.isDriftDismissed();
+	}
+
+	public void setDriftDismissed(boolean driftDismissed) {
+		properties.setDriftDismissed(driftDismissed);
+	}
+
 	public boolean isDescriptionOK() {
 		return properties.isDescriptionOK();
 	}

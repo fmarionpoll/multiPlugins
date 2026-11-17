@@ -75,13 +75,43 @@ public class ReachableEndTest {
 		assertEquals(ReachableEnd.UNSET, legacy.getNValid());
 
 		String header = CapillaryPersistence.csvExportCapillarySubSectionHeader(";");
-		assertTrue(header.contains("cap_measured_y2;n_valid;cap_length_x1"));
+		assertTrue(header.contains("cap_measured_y2;n_valid;drift_dismissed;cap_length_x1"));
+		assertFalse(loaded.isDriftDismissed());
+
+		row.add("true");
+		Capillary dismissed = new Capillary();
+		CapillaryPersistence.csvImportCapillaryDescription(dismissed, row.toArray(new String[0]));
+		assertEquals(42, dismissed.getNValid());
+		assertTrue(dismissed.isDriftDismissed());
+
+		Capillary missingFlag = new Capillary();
+		missingFlag.setDriftDismissed(true);
+		CapillaryPersistence.csvImportCapillaryDescription(missingFlag,
+				row.subList(0, row.size() - 1).toArray(new String[0]));
+		assertFalse(missingFlag.isDriftDismissed());
 
 		Capillary written = new Capillary();
 		written.setNValid(42);
-		assertTrue(CapillaryPersistence.csvExportCapillaryDescription(written, ";").trim().endsWith(";42"));
+		written.setDriftDismissed(true);
+		assertTrue(CapillaryPersistence.csvExportCapillaryDescription(written, ";").trim().endsWith(";42;true"));
 		written.setNValid(ReachableEnd.UNSET);
-		assertTrue(CapillaryPersistence.csvExportCapillaryDescription(written, ";").trim().endsWith(";"));
+		written.setDriftDismissed(false);
+		assertTrue(CapillaryPersistence.csvExportCapillaryDescription(written, ";").trim().endsWith(";false"));
+	}
+
+	@Test
+	public void validatedOrDismissedCapillaryIsNotACandidate() {
+		double[] bottom = constant(40, 100);
+		Arrays.fill(bottom, 20, 40, 80);
+		Capillary cap = capillary(bottom, constant(40, 20));
+		assertTrue(ReachableEnd.isReviewCandidate(cap));
+		cap.setNValid(20);
+		assertFalse(ReachableEnd.isReviewCandidate(cap));
+		cap.setNValid(ReachableEnd.UNSET);
+		cap.setDriftDismissed(true);
+		assertFalse(ReachableEnd.isReviewCandidate(cap));
+		assertFalse(ReachableEnd.applyIfUnset(cap));
+		assertEquals(ReachableEnd.UNSET, cap.getNValid());
 	}
 
 	private static Capillary capillary(double[] bottom, double[] top) {

@@ -21,12 +21,22 @@ public final class ReachableEnd {
 	}
 
 	/**
-	 * Writes a cutoff only when the capillary still has {@code nValid < 0}.
+	 * A capillary still waiting for review: no stored cutoff, not dismissed, and
+	 * the rise rule finds a frame.
+	 */
+	public static boolean isReviewCandidate(Capillary cap) {
+		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed())
+			return false;
+		return find(cap) >= 0;
+	}
+
+	/**
+	 * Writes a cutoff only when the capillary is still a review candidate.
 	 *
 	 * @return true when a cutoff was stored
 	 */
 	public static boolean applyIfUnset(Capillary cap) {
-		if (cap == null || cap.getNValid() >= 0)
+		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed())
 			return false;
 		int found = find(cap);
 		if (found < 0)

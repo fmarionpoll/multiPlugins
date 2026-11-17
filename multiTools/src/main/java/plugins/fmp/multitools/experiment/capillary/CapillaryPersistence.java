@@ -177,6 +177,7 @@ public class CapillaryPersistence {
 		row2.add("cap_measured_x2");
 		row2.add("cap_measured_y2");
 		row2.add("n_valid");
+		row2.add("drift_dismissed");
 		row2.add("cap_length_x1");
 		row2.add("cap_length_y1");
 		row2.add("cap_length_x2");
@@ -301,6 +302,7 @@ public class CapillaryPersistence {
 		row.add(measuredEnd != null ? Double.toString(measuredEnd.getX()) : "");
 		row.add(measuredEnd != null ? Double.toString(measuredEnd.getY()) : "");
 		row.add(props.getNValid() >= 0 ? Integer.toString(props.getNValid()) : "");
+		row.add(Boolean.toString(props.isDriftDismissed()));
 
 		sbf.append(String.join(sep, row));
 		sbf.append("\n");
@@ -612,6 +614,7 @@ public class CapillaryPersistence {
 		if (Double.isFinite(startX) && Double.isFinite(startY) && Double.isFinite(endX) && Double.isFinite(endY))
 			props.setMeasuredEndpoints(new Point2D.Double(startX, startY), new Point2D.Double(endX, endY));
 		props.setNValid(parseOptionalInt(data, endpointStart + 4, -1));
+		props.setDriftDismissed(parseOptionalBoolean(data, endpointStart + 5, false));
 	}
 
 	private static boolean parseOptionalBoolean(String[] data, int index, boolean defaultValue) {

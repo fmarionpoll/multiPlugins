@@ -17,6 +17,8 @@ import javax.swing.JPanel;
 import javax.swing.JSpinner;
 import javax.swing.JToggleButton;
 import javax.swing.SpinnerNumberModel;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 
@@ -28,6 +30,7 @@ import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.capillaries.CapillariesSequenceMapper;
 import plugins.fmp.multitools.experiment.capillary.BottomBaselineEstimator;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
@@ -42,6 +45,7 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
 public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 	private static final String BASELINE_ROI_NAME = "bottom_baseline";
+	private static final String DRIFT_ROI_NAME = "reachable_end";
 
 	private ImageTransformEnums[] transformChoices = new ImageTransformEnums[] { ImageTransformEnums.R_RGB,
 			ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB, ImageTransformEnums.B_MINUS_MINRG,
@@ -67,10 +71,13 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 	private JButton computeCurrentButton = new JButton("Baseline current");
 	private JButton clearBaselineButton = new JButton("Clear baseline");
 	private JButton setBaselineButton = new JButton("Set Y");
-	private JButton findReachableButton = new JButton("Find reachable");
+	private JButton searchDriftButton = new JButton("Search drift");
+	private JButton prevDriftButton = new JButton("<");
+	private JButton nextDriftButton = new JButton(">");
+	private JLabel driftStatusLabel = new JLabel("no drift candidates");
 	private JSpinner reachableEndSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 1000000, 1));
-	private JButton setReachableButton = new JButton("Set");
-	private JButton clearReachableButton = new JButton("Clear");
+	private JButton validateDriftButton = new JButton("Validate");
+	private JButton dismissDriftButton = new JButton("Not a drift");
 	private JButton prevNoiseButton = new JButton("< noisy");
 	private JButton nextNoiseButton = new JButton("noisy >");
 	private JLabel qcLabel = new JLabel("QC: --");
@@ -82,6 +89,11 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 	private int rankedIndex = -1;
 	private OverlayThreshold overlayThreshold = null;
 	private boolean suppressDisplayUpdate = false;
+	private final List<DriftHit> driftHits = new ArrayList<>();
+	private int driftIndex = -1;
+	private int driftScanTotal = 0;
+	private boolean suppressDriftMarkerUpdate = false;
+	private SwingWorker<List<DriftHit>, Integer> driftSearch = null;
 
 	void init(GridLayout ignored, MultiCAFE parent0) {
 		this.parent0 = parent0;
@@ -120,11 +132,14 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		panel4.add(new JLabel("Tip marker = median of bottom series after MAD outlier rejection."));
 		add(panel4);
 		JPanel panel5 = new JPanel(layoutLeft);
-		panel5.add(findReachableButton);
-		panel5.add(new JLabel("end frame"));
+		panel5.add(searchDriftButton);
+		panel5.add(prevDriftButton);
+		panel5.add(nextDriftButton);
+		panel5.add(driftStatusLabel);
+		panel5.add(new JLabel("frame"));
 		panel5.add(reachableEndSpinner);
-		panel5.add(setReachableButton);
-		panel5.add(clearReachableButton);
+		panel5.add(validateDriftButton);
+		panel5.add(dismissDriftButton);
 		add(panel5);
 		transformCombo.setSelectedItem(ImageTransformEnums.RGB_DIFFS);
 		defineToolTips();
@@ -144,16 +159,21 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 				updateOverlayThreshold();
 			}
 		});
+		reachableEndSpinner.addChangeListener(e -> {
+			if (!suppressDriftMarkerUpdate)
+				refreshDriftMarkerFromSpinner();
+		});
 	}
 
 	private void defineToolTips() {
 		detectButton.setToolTipText("Re-detect bottom level only (does not overwrite top).");
 		searchFromBottomSpinner.setToolTipText("0 = full height; greater than 0 restricts tip search band.");
-		findReachableButton.setToolTipText(
-				"Store the first frame where the bottom meniscus stays up toward the top. Skips a capillary that already has a cutoff. Current kymograph, or every capillary in this experiment when ALL is checked.");
-		setReachableButton.setToolTipText("Store the end frame as this capillary's reachable cutoff.");
-		clearReachableButton.setToolTipText(
-				"Clear the cutoff so the whole series stays valid. Current kymograph, or every capillary when ALL is checked.");
+		searchDriftButton.setToolTipText(
+				"List capillaries whose bottom meniscus trips the rise rule. Does not store a cutoff. Current experiment, or current through last when ALL is checked.");
+		validateDriftButton.setToolTipText("Store the frame spinner as this capillary's reachable cutoff.");
+		dismissDriftButton.setToolTipText(
+				"This rise is not a real drift. Leave the whole series valid and skip it on the next search.");
+		reachableEndSpinner.setToolTipText("Proposed last reachable frame. Nudge it before Validate.");
 	}
 
 	private void defineActionListeners() {
@@ -174,9 +194,11 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		setBaselineButton.addActionListener(e -> setManualBaseline());
 		prevNoiseButton.addActionListener(e -> navigateNoise(-1));
 		nextNoiseButton.addActionListener(e -> navigateNoise(1));
-		findReachableButton.addActionListener(e -> findReachableEnd());
-		setReachableButton.addActionListener(e -> setReachableEnd());
-		clearReachableButton.addActionListener(e -> clearReachableEnd());
+		searchDriftButton.addActionListener(e -> searchDrift());
+		prevDriftButton.addActionListener(e -> stepDrift(-1));
+		nextDriftButton.addActionListener(e -> stepDrift(1));
+		validateDriftButton.addActionListener(e -> validateDrift());
+		dismissDriftButton.addActionListener(e -> dismissDrift());
 
 		transformCombo.addActionListener(e -> {
 			if (suppressDisplayUpdate)
@@ -360,26 +382,113 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 			baselineYSpinner.setValue(cap.getBottomBaselineY());
 	}
 
-	private void findReachableEnd() {
-		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null)
+	private void searchDrift() {
+		if (parent0 == null || parent0.expListComboLazy == null)
 			return;
-		if (allSeriesCheckBox.isSelected()) {
-			for (Capillary cap : exp.getCapillaries().getList())
-				ReachableEnd.applyIfUnset(cap);
-		} else {
-			Capillary cap = getCurrentCapillary(exp);
-			if (cap == null)
-				return;
-			ReachableEnd.applyIfUnset(cap);
-			updateReachableSpinner(cap);
-		}
-		saveCapillaryMeasures(exp);
+		if (driftSearch != null && !driftSearch.isDone())
+			driftSearch.cancel(true);
+		final int start = parent0.expListComboLazy.getSelectedIndex();
+		if (start < 0)
+			return;
+		final int last = parent0.expListComboLazy.getItemCount() - 1;
+		final int end = allSeriesCheckBox.isSelected() ? last : start;
+		driftScanTotal = Math.max(0, end - start + 1);
+		searchDriftButton.setEnabled(false);
+		driftStatusLabel.setText("scanning 0/" + driftScanTotal);
+		driftSearch = new SwingWorker<List<DriftHit>, Integer>() {
+			@Override
+			protected List<DriftHit> doInBackground() {
+				List<DriftHit> found = new ArrayList<>();
+				int seen = 0;
+				for (int i = start; i <= end && !isCancelled(); i++) {
+					Experiment exp = parent0.expListComboLazy.getItemAtNoLoad(i);
+					if (exp instanceof LazyExperiment)
+						((LazyExperiment) exp).loadIfNeeded();
+					if (exp != null)
+						exp.load_capillaries_description_and_measures();
+					if (exp != null && exp.getCapillaries() != null && exp.getCapillaries().getList() != null) {
+						for (Capillary cap : exp.getCapillaries().getList()) {
+							if (cap == null || !ReachableEnd.isReviewCandidate(cap))
+								continue;
+							int frame = ReachableEnd.find(cap);
+							if (frame < 0)
+								continue;
+							int t = cap.getKymographIndex();
+							found.add(new DriftHit(i, t, frame));
+						}
+					}
+					seen++;
+					publish(seen);
+				}
+				return found;
+			}
+
+			@Override
+			protected void process(List<Integer> chunks) {
+				if (chunks == null || chunks.isEmpty())
+					return;
+				int seen = chunks.get(chunks.size() - 1);
+				driftStatusLabel.setText("scanning " + seen + "/" + driftScanTotal);
+			}
+
+			@Override
+			protected void done() {
+				if (isCancelled() || driftSearch != this)
+					return;
+				searchDriftButton.setEnabled(true);
+				try {
+					List<DriftHit> found = get();
+					driftHits.clear();
+					if (found != null)
+						driftHits.addAll(found);
+				} catch (Exception ex) {
+					Logger.warn("Drift search failed: " + ex.getMessage());
+					driftHits.clear();
+				}
+				driftIndex = driftHits.isEmpty() ? -1 : 0;
+				if (driftIndex < 0)
+					showNoDriftCandidates();
+				else
+					openDriftHit(driftHits.get(driftIndex));
+			}
+		};
+		driftSearch.execute();
 	}
 
-	private void setReachableEnd() {
+	private void stepDrift(int delta) {
+		if (driftHits.isEmpty())
+			return;
+		if (driftIndex < 0)
+			driftIndex = 0;
+		else
+			driftIndex = (driftIndex + delta + driftHits.size()) % driftHits.size();
+		openDriftHit(driftHits.get(driftIndex));
+	}
+
+	private void openDriftHit(DriftHit hit) {
+		if (hit == null || parent0 == null || parent0.expListComboLazy == null)
+			return;
+		int current = parent0.expListComboLazy.getSelectedIndex();
+		if (current != hit.experimentIndex)
+			parent0.expListComboLazy.setSelectedIndex(hit.experimentIndex);
+		SwingUtilities.invokeLater(() -> showOpenedDriftHit(hit));
+	}
+
+	private void showOpenedDriftHit(DriftHit hit) {
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		Capillary cap = getCurrentCapillary(exp);
+		if (hit.kymographIndex >= 0 && parent0.paneKymos != null && parent0.paneKymos.tabIntervals != null)
+			parent0.paneKymos.tabIntervals.selectKymographImage(hit.kymographIndex, false);
+		suppressDriftMarkerUpdate = true;
+		reachableEndSpinner.setValue(hit.proposedFrame);
+		suppressDriftMarkerUpdate = false;
+		updateDriftLabel(hit);
+		showDriftMarker(exp, hit.kymographIndex, hit.proposedFrame);
+	}
+
+	private void validateDrift() {
+		DriftHit hit = currentDriftHit();
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		Capillary cap = capillaryForHit(exp, hit);
 		if (cap == null)
 			return;
 		int frame = ((Number) reachableEndSpinner.getValue()).intValue();
@@ -387,27 +496,94 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 			frame = 0;
 		cap.setNValid(frame);
 		saveCapillaryMeasures(exp);
+		advanceAfterDriftDecision();
 	}
 
-	private void clearReachableEnd() {
+	private void dismissDrift() {
+		DriftHit hit = currentDriftHit();
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-		if (exp == null)
+		Capillary cap = capillaryForHit(exp, hit);
+		if (cap == null)
 			return;
-		if (allSeriesCheckBox.isSelected()) {
-			for (Capillary cap : exp.getCapillaries().getList())
-				cap.setNValid(ReachableEnd.UNSET);
-		} else {
-			Capillary cap = getCurrentCapillary(exp);
-			if (cap == null)
-				return;
-			cap.setNValid(ReachableEnd.UNSET);
-		}
+		cap.setDriftDismissed(true);
 		saveCapillaryMeasures(exp);
+		advanceAfterDriftDecision();
 	}
 
-	private void updateReachableSpinner(Capillary cap) {
-		if (cap != null && cap.getNValid() >= 0)
-			reachableEndSpinner.setValue(cap.getNValid());
+	private void advanceAfterDriftDecision() {
+		if (driftIndex >= 0 && driftIndex < driftHits.size())
+			driftHits.remove(driftIndex);
+		if (driftHits.isEmpty()) {
+			driftIndex = -1;
+			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+			removeDriftMarker(exp);
+			showNoDriftCandidates();
+			return;
+		}
+		if (driftIndex >= driftHits.size())
+			driftIndex = driftHits.size() - 1;
+		openDriftHit(driftHits.get(driftIndex));
+	}
+
+	private DriftHit currentDriftHit() {
+		if (driftIndex < 0 || driftIndex >= driftHits.size())
+			return null;
+		return driftHits.get(driftIndex);
+	}
+
+	private Capillary capillaryForHit(Experiment exp, DriftHit hit) {
+		if (exp == null || hit == null || exp.getCapillaries() == null)
+			return null;
+		if (hit.kymographIndex >= 0)
+			return exp.getCapillaries().getCapillaryAtT(hit.kymographIndex);
+		return getCurrentCapillary(exp);
+	}
+
+	private void updateDriftLabel(DriftHit hit) {
+		int shown = driftIndex + 1;
+		driftStatusLabel.setText(shown + "/" + driftHits.size() + "  frame " + hit.proposedFrame);
+	}
+
+	private void showNoDriftCandidates() {
+		driftStatusLabel.setText("no drift candidates");
+	}
+
+	private void refreshDriftMarkerFromSpinner() {
+		DriftHit hit = currentDriftHit();
+		if (hit == null || parent0 == null)
+			return;
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		int frame = ((Number) reachableEndSpinner.getValue()).intValue();
+		showDriftMarker(exp, hit.kymographIndex, frame);
+	}
+
+	private void showDriftMarker(Experiment exp, int kymographIndex, int frame) {
+		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return;
+		removeDriftMarker(exp);
+		Sequence seq = exp.getSeqKymos().getSequence();
+		Rectangle bounds = seq.getBounds2D();
+		double x = Math.max(0, frame);
+		double y1 = Math.max(1, bounds.height - 1);
+		ROI2DLine line = new ROI2DLine(x, 0, x, y1);
+		line.setName(DRIFT_ROI_NAME);
+		line.setColor(Color.ORANGE);
+		if (kymographIndex >= 0)
+			line.setT(kymographIndex);
+		seq.addROI(line);
+	}
+
+	private void removeDriftMarker(Experiment exp) {
+		if (exp == null || exp.getSeqKymos() == null || exp.getSeqKymos().getSequence() == null)
+			return;
+		Sequence seq = exp.getSeqKymos().getSequence();
+		List<ROI> toRemove = new ArrayList<>();
+		for (ROI roi : seq.getROIs()) {
+			if (roi != null && DRIFT_ROI_NAME.equals(roi.getName()))
+				toRemove.add(roi);
+		}
+		for (ROI roi : toRemove)
+			seq.removeROI(roi);
 	}
 
 	private void saveCapillaryMeasures(Experiment exp) {
@@ -460,7 +636,6 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 			parent0.paneKymos.tabIntervals.selectKymographImage(t, false);
 		parent0.paneLevels.selectCapillaryForDetectionDialogs(cap);
 		updateBaselineSpinner(cap);
-		updateReachableSpinner(cap);
 		updateQcLabel();
 		showBaselineOnCurrentKymo(exp);
 		if (exp.getSeqKymos() != null)
@@ -632,5 +807,17 @@ public class DetectBottomDlg extends JPanel implements PropertyChangeListener {
 		updateBaselineSpinner(cap);
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		resetDisplayToRaw(exp);
+	}
+
+	private static final class DriftHit {
+		final int experimentIndex;
+		final int kymographIndex;
+		final int proposedFrame;
+
+		DriftHit(int experimentIndex, int kymographIndex, int proposedFrame) {
+			this.experimentIndex = experimentIndex;
+			this.kymographIndex = kymographIndex;
+			this.proposedFrame = proposedFrame;
+		}
 	}
 }
