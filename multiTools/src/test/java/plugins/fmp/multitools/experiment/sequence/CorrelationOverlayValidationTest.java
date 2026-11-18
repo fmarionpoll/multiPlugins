@@ -16,6 +16,10 @@ import plugins.fmp.multitools.tools.polyline.Level2D;
 import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 
 public class CorrelationOverlayValidationTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @Test public void linearValidationCommitsCanonicalColumnsAfterEndpointDrag() {
         Sequence seq=new Sequence();
         try {

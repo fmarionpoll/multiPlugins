@@ -13,6 +13,10 @@ import icy.image.IcyBufferedImage;
 import icy.type.DataType;
 
 public class KymographAlignmentTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 	@Test
 	public void nearbyEdgesRejectAnIndentationThatMovesIndependently() {
 		BufferedImage image = new BufferedImage(12, 72, BufferedImage.TYPE_INT_RGB);

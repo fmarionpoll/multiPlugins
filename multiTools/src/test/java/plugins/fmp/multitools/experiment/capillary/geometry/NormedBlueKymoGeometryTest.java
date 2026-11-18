@@ -15,6 +15,10 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class NormedBlueKymoGeometryTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 
 	@BeforeClass
 	public static void initializeIcy() {

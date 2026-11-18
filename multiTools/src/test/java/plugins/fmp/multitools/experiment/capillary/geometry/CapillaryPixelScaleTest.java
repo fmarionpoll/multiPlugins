@@ -14,6 +14,10 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
 public class CapillaryPixelScaleTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 
 	@BeforeClass
 	public static void initializeIcy() {

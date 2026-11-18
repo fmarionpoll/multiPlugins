@@ -18,6 +18,10 @@ import plugins.fmp.multitools.experiment.capillary.CapillaryPersistence;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class CapillaryGroundTruthWidthsTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @Rule public TemporaryFolder temporary = new TemporaryFolder();
     @BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
 

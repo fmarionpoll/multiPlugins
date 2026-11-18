@@ -26,6 +26,10 @@ import plugins.fmp.multitools.service.CapillaryLengthDetector.TipFind;
  * without a length prior.
  */
 public class CapillaryLengthDetectorTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 	@org.junit.BeforeClass
 	public static void initializeIcy() {
 		icy.preferences.IcyPreferences.init();

@@ -11,6 +11,10 @@ import plugins.fmp.multitools.experiment.capillary.CapillaryIntakes;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class GulpRoiEditListenerTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multicafe.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multicafe.test.InMemoryImageRule();
+
     @org.junit.BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
 
     @Test public void viewingGulpDoesNotDirtyMeasuresButMovingItDoes() throws Exception {

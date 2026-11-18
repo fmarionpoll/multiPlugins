@@ -9,6 +9,10 @@ import org.junit.rules.TemporaryFolder;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 
 public class IntakeSaveFailureTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @Rule public TemporaryFolder files = new TemporaryFolder();
     @org.junit.BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
 

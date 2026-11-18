@@ -13,6 +13,10 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
 import plugins.kernel.roi.roi2d.ROI2DPolygon;
 
 public class CapillaryOutlineOverlayTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @BeforeClass
     public static void initializeIcy() {
         icy.preferences.IcyPreferences.init();

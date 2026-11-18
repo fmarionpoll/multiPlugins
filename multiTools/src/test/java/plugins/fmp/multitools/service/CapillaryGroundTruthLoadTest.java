@@ -14,6 +14,10 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class CapillaryGroundTruthLoadTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @Rule public TemporaryFolder temp = new TemporaryFolder();
     @BeforeClass public static void init() { icy.preferences.IcyPreferences.init(); }
     private Capillary cap(String id) {

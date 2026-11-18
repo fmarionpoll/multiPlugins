@@ -25,6 +25,10 @@ import plugins.fmp.multitools.service.ManualIntakeEdits;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class IntakeWorkflowTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multicafe.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multicafe.test.InMemoryImageRule();
+
     private Experiment experiment;
     private Sequence sequence;
 

@@ -19,6 +19,10 @@ import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class MeniscusComparisonChartTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @Test public void proposedSeriesUsesSameTimeCalibrationAndAnchorWithoutChangingData() {
         icy.preferences.IcyPreferences.init();
         for(boolean resampled:new boolean[]{false,true}) {

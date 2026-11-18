@@ -17,6 +17,10 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class NormedBlueKymographBuilderTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 
 	@BeforeClass
 	public static void initializeIcy() {

@@ -23,6 +23,10 @@ import plugins.fmp.multitools.experiment.timebase.FrameTimeScale;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class CsvNormalizedFlyPositionExportTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 	@Rule
 	public TemporaryFolder output = new TemporaryFolder();
 

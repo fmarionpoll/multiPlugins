@@ -23,6 +23,10 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class CsvNormalizedCapillaryExportTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 
 	@Rule
 	public TemporaryFolder output = new TemporaryFolder();

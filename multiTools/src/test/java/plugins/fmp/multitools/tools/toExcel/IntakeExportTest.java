@@ -14,6 +14,10 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.csv.CsvNormalizedExportSupport;
 
 public class IntakeExportTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @org.junit.BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
     private Capillary capillary() {
         Capillary cap = new Capillary();

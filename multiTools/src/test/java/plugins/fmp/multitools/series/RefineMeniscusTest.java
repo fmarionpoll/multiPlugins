@@ -18,6 +18,10 @@ import plugins.fmp.multitools.service.MeniscusRefinement;
 import plugins.fmp.multitools.tools.polyline.Level2D;
 
 public class RefineMeniscusTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
 
     @Rule public TemporaryFolder temporary = new TemporaryFolder();

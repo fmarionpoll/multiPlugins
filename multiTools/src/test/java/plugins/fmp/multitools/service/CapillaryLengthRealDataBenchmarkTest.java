@@ -33,6 +33,10 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
  * deliberately data-independent during normal CI runs.
  */
 public class CapillaryLengthRealDataBenchmarkTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
 
 	/** Read-only wall-fit diagnostic; does not require annotations or save experiment files. */
 	@Test

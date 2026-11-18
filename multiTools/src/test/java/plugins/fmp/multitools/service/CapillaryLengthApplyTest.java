@@ -12,6 +12,10 @@ import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeomet
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class CapillaryLengthApplyTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @org.junit.BeforeClass public static void initializeIcy() {
         icy.preferences.IcyPreferences.init();
     }

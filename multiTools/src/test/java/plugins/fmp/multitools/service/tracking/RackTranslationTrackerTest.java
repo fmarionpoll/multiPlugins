@@ -18,6 +18,10 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeometryPersistence;
 
 public class RackTranslationTrackerTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @org.junit.BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
     private static final int W = 800, H = 320;
 

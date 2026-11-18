@@ -17,6 +17,10 @@ import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class CapillaryGroundTruthSaveTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @Rule public TemporaryFolder temporary = new TemporaryFolder();
     @BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
 
@@ -43,9 +47,9 @@ public class CapillaryGroundTruthSaveTest {
         Path truth = directory.resolve("CapillariesDescription-groundtruth.csv");
         String content = new String(Files.readAllBytes(truth), java.nio.charset.StandardCharsets.UTF_8);
         assertTrue(content.contains("cap_length_x1;cap_length_y1;cap_length_x2;cap_length_y2"));
-        assertTrue(content.contains(";10.0;5.5;10.0;125.5\n"));
+        assertTrue(content.contains(";10.0;5.5;10.0;125.5;;false\n"));
         assertTrue(content.contains("cap_width_px;cap_measured_x1"));
-        assertTrue(content.contains(";8.5;10.0;5.5;10.0;125.5\n"));
+        assertTrue(content.contains(";8.5;10.0;5.5;10.0;125.5;;false\n"));
         try (java.util.stream.Stream<Path> files = Files.list(directory)) {
             assertEquals(original.size() + 1, files.count());
         }

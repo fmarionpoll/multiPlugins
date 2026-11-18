@@ -172,6 +172,8 @@ public final class CapillaryGroundTruthLoader {
 			int omitted = aliases && fields.length == columns.size() + 2 * points - 4 ? 4 : 0;
 			if (fields.length != columns.size() + 2 * points - omitted)
 				throw new IllegalArgumentException("invalid capillary row length");
+			if (omitted > 0 && column >= endpointsColumn && column < endpointsColumn + 4)
+				return measuredColumn + 2 * points + column - endpointsColumn;
 			return column + (column > 13 ? 2 * points : 0)
 					- (omitted > 0 && column >= measuredColumn + 4 ? omitted : 0);
 		}

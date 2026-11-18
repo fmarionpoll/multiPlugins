@@ -11,6 +11,10 @@ import plugins.fmp.multitools.experiment.capillary.geometry.CapillaryPhaseGeomet
 import plugins.kernel.roi.roi2d.ROI2DLine;
 
 public class PhysicalCapillaryPhasesTest {
+    @org.junit.ClassRule
+    public static final plugins.fmp.multitools.test.InMemoryImageRule imageMemory =
+            new plugins.fmp.multitools.test.InMemoryImageRule();
+
     @BeforeClass public static void initializeIcy() { icy.preferences.IcyPreferences.init(); }
 
     private Capillary cap(String name, double x) {
