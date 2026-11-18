@@ -44,6 +44,13 @@ public final class ReachableEnd {
 		if (cap == null || cap.getNValid() >= 0 || cap.isDriftDismissed()
 				|| !Double.isFinite(minimumRiseFraction) || minimumRiseFraction <= 0)
 			return UNSET;
+		return find(cap, exp, minimumRiseFraction);
+	}
+
+	/** Detects a rise independently of the capillary's saved review decision. */
+	public static int find(Capillary cap, Experiment exp, double minimumRiseFraction) {
+		if (cap == null || !Double.isFinite(minimumRiseFraction) || minimumRiseFraction <= 0)
+			return UNSET;
 		double length = capillaryLengthPixels(cap, exp);
 		if (!Double.isFinite(length))
 			return UNSET;

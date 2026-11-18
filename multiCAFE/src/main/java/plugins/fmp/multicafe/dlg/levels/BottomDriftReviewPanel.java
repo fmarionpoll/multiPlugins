@@ -19,6 +19,7 @@ import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JDialog;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
@@ -51,6 +52,10 @@ final class BottomDriftReviewPanel extends JPanel {
 	private final JCheckBox scanRemaining = new JCheckBox("Current experiment through last");
 	private final JButton search = new JButton("Search drift");
 	private final JSpinner minimumRisePercent = new JSpinner(new SpinnerNumberModel(100.0 * 10.0 / 430.0, 0.01, 100.0, 0.1));
+	private final List<DriftHit> allHits = new ArrayList<>();
+	private final JComboBox<String> reviewFilter = new JComboBox<>(new String[] { "Pending", "Validated drift", "Dismissed", "All", "Tagged" });
+	private final JButton showTagged = new JButton("Show tagged");
+	private final JButton resetReview = new JButton("Reset review");
 	private final DefaultListModel<DriftHit> hits = new DefaultListModel<>();
 	private final JList<DriftHit> candidates = new JList<>(hits);
 	private final JLabel status = new JLabel("Search for bottom meniscus drift.");
@@ -79,7 +84,7 @@ final class BottomDriftReviewPanel extends JPanel {
 		this.owner = owner;
 		setLayout(new BorderLayout());
 		JPanel searchControls = new JPanel(new GridLayout(0, 1));
-		searchControls.add(row(search, scanRemaining));
+		searchControls.add(row(search, showTagged, scanRemaining, new JLabel("Show"), reviewFilter));
 		JLabel minimumRiseLabel = new JLabel("Minimum rise (% capillary length)");
 		minimumRiseLabel.setLabelFor(minimumRisePercent);
 		minimumRisePercent.setEditor(new JSpinner.NumberEditor(minimumRisePercent, "0.###"));
@@ -96,12 +101,21 @@ final class BottomDriftReviewPanel extends JPanel {
 		actions.add(row(previous, next, showKymograph));
 		JLabel cutoffLabel = new JLabel("Proposed cutoff frame (0-based)");
 		cutoffLabel.setLabelFor(firstInvalidFrame);
-		actions.add(row(cutoffLabel, firstInvalidFrame, validate, dismiss));
+		actions.add(row(cutoffLabel, firstInvalidFrame, validate, dismiss, resetReview));
 		actions.add(row(prevNoiseButton, nextNoiseButton, qcLabel));
 		actions.add(row(riseLabel));
 		add(actions, BorderLayout.SOUTH);
 
 		search.addActionListener(e -> search());
+		showTagged.addActionListener(e -> {
+			reviewFilter.setSelectedItem("Tagged");
+			search();
+		});
+		showTagged.setToolTipText("Scan the selected experiment range and list all saved cutoffs and dismissals.");
+		reviewFilter.addActionListener(e -> filterHits(null));
+		resetReview.addActionListener(e -> resetReview());
+		resetReview.setToolTipText("Clear the saved cutoff and dismissal. The whole recording becomes valid again.");
+		reviewFilter.setToolTipText("Show pending candidates, saved cutoffs, dismissed capillaries, or all review entries.");
 		candidates.addListSelectionListener(e -> {
 			if (!e.getValueIsAdjusting() && !updatingList)
 				openCandidate();
@@ -271,8 +285,9 @@ final class BottomDriftReviewPanel extends JPanel {
 				scan = null;
 				try {
 					for (DriftHit hit : get())
-						hits.addElement(hit);
-					String summary = hits.isEmpty() ? "No drift candidates." : hits.size() + " drift candidate(s).";
+						allHits.add(hit);
+					filterHits(null);
+					String summary = allHits.isEmpty() ? "No drift candidates or reviewed capillaries." : allHits.size() + " review entries found.";
 					if (unreadableCount > 0)
 						summary += " Could not load " + unreadableCount + " experiment(s).";
 					if (uncalibratedCount > 0)
@@ -313,13 +328,17 @@ final class BottomDriftReviewPanel extends JPanel {
 		}
 		int uncalibrated = 0;
 		for (Capillary cap : source.getCapillaries().getList()) {
+			if (cap.getNValid() >= 0 || cap.isDriftDismissed()) {
+				found.add(new DriftHit(experiment, cap, ReachableEnd.find(cap, source, minimumFraction)));
+				continue;
+			}
 			if (!Double.isFinite(ReachableEnd.capillaryLengthPixels(cap, source))) {
 				uncalibrated++;
 				continue;
 			}
 			int frame = ReachableEnd.findReviewFrame(cap, source, minimumFraction);
 			if (frame >= 0)
-				found.add(new DriftHit(experiment, cap.getRoiName(), frame));
+				found.add(new DriftHit(experiment, cap, frame));
 		}
 		return uncalibrated;
 	}
@@ -333,6 +352,7 @@ final class BottomDriftReviewPanel extends JPanel {
 		displayedHit = null;
 		updatingList = true;
 		hits.clear();
+		allHits.clear();
 		updatingList = false;
 	}
 
@@ -383,9 +403,16 @@ final class BottomDriftReviewPanel extends JPanel {
 		if (cap == null || parent0.paneKymos.tabIntervals.selectKymographImage(kymoIndex, false) != kymoIndex
 				|| currentViewerFrame(sequence) != kymoIndex) {
 			status.setText("Could not open this kymograph. Use Show kymograph to retry.");
+			updateControls();
 			return;
 		}
-		int proposal = ReachableEnd.findReviewFrame(cap, hit.experiment, minimumRiseFraction());
+		hit.nValid = cap.getNValid();
+		hit.dismissed = cap.isDriftDismissed();
+		hit.proposedFrame = ReachableEnd.find(cap, hit.experiment, minimumRiseFraction());
+		int proposal = cap.getNValid() >= 0 ? cap.getNValid()
+				: hit.proposedFrame;
+		if (proposal < 0 && hit.reviewed())
+			proposal = 0;
 		if (proposal < 0 || proposal >= sequence.getSizeX()) {
 			status.setText("The candidate changed. Run a new search.");
 			return;
@@ -397,6 +424,9 @@ final class BottomDriftReviewPanel extends JPanel {
 		status.setText("Candidate " + (candidates.getSelectedIndex() + 1) + " / " + hits.size()
 				+ "   Proposed frame " + proposal);
 		updateCutoffMarker();
+		if (hit.reviewed())
+			status.setText(hit.nValid >= 0 ? "Saved cutoff frame " + hit.nValid + ". Adjust it or reset the review."
+					: "Dismissed capillary. Reset the review to allow detection again.");
 		updateControls();
 	}
 
@@ -409,11 +439,15 @@ final class BottomDriftReviewPanel extends JPanel {
 
 	private void decide(boolean accept) {
 		Capillary cap = displayedCapillary();
-		if (cap == null || ReachableEnd.findReviewFrame(cap, displayedHit.experiment, minimumRiseFraction()) != displayedProposal) {
+		if (cap == null || cap.getNValid() != displayedHit.nValid || cap.isDriftDismissed() != displayedHit.dismissed
+				|| (!displayedHit.reviewed() && ReachableEnd.findReviewFrame(cap, displayedHit.experiment,
+						minimumRiseFraction()) != displayedProposal)) {
 			clearCutoffMarker();
 			status.setText("The candidate is no longer displayed or has changed. Reopen it to review.");
 			return;
 		}
+		int previousCutoff = cap.getNValid();
+		boolean previousDismissal = cap.isDriftDismissed();
 		if (accept) {
 			try {
 				firstInvalidFrame.commitEdit();
@@ -422,35 +456,87 @@ final class BottomDriftReviewPanel extends JPanel {
 				return;
 			}
 			cap.setNValid(((Number) firstInvalidFrame.getValue()).intValue());
+			cap.setDriftDismissed(false);
 		} else {
+			cap.setNValid(ReachableEnd.UNSET);
 			cap.setDriftDismissed(true);
 		}
 		Experiment exp = displayedHit.experiment;
 		if (!CapillariesPersistence.Persistence.saveDescription(exp.getCapillaries(), exp.getResultsDirectory())) {
-			cap.setNValid(ReachableEnd.UNSET);
-			cap.setDriftDismissed(false);
+			cap.setNValid(previousCutoff);
+			cap.setDriftDismissed(previousDismissal);
 			status.setText("Could not save the decision. Check the experiment folder and retry.");
 			return;
 		}
 
-		int index = candidates.getSelectedIndex();
+		DriftHit decided = displayedHit;
+		decided.nValid = cap.getNValid();
+		decided.dismissed = cap.isDriftDismissed();
+		filterHits(null);
+		status.setText("Decision saved. Use the review filter to reopen it.");
+	}
+
+	private void filterHits(DriftHit selected) {
 		clearCutoffMarker();
 		displayedHit = null;
 		updatingList = true;
-		candidates.clearSelection();
-		hits.remove(index);
+		hits.clear();
+		int filter = reviewFilter.getSelectedIndex();
+		for (DriftHit hit : allHits) {
+			if (filter == 3 || (filter == 4 && hit.reviewed()) || (filter == 0 && !hit.reviewed())
+					|| (filter == 1 && hit.nValid >= 0)
+					|| (filter == 2 && hit.nValid < 0 && hit.dismissed))
+				hits.addElement(hit);
+		}
 		updatingList = false;
-		if (hits.isEmpty())
-			status.setText("All drift candidates reviewed.");
-		else
-			selectCandidate(Math.min(index, hits.size() - 1));
+		if (selected != null)
+			candidates.setSelectedValue(selected, true);
 		updateControls();
 	}
 
+	private Capillary selectedReviewCapillary() {
+		DriftHit hit = candidates.getSelectedValue();
+		if (hit == null || selectedExperiment() != hit.experiment)
+			return null;
+		for (Capillary cap : hit.experiment.getCapillaries().getList()) {
+			if (Objects.equals(hit.capillaryName, cap.getRoiName()))
+				return cap;
+		}
+		return null;
+	}
+
+	private void resetReview() {
+		DriftHit hit = candidates.getSelectedValue();
+		Capillary cap = selectedReviewCapillary();
+		if (cap == null || hit == null) {
+			status.setText("Open the selected experiment before resetting its review.");
+			return;
+		}
+		int previousCutoff = cap.getNValid();
+		boolean previousDismissal = cap.isDriftDismissed();
+		cap.setNValid(ReachableEnd.UNSET);
+		cap.setDriftDismissed(false);
+		if (!CapillariesPersistence.Persistence.saveDescription(hit.experiment.getCapillaries(),
+				hit.experiment.getResultsDirectory())) {
+			cap.setNValid(previousCutoff);
+			cap.setDriftDismissed(previousDismissal);
+			status.setText("Could not save the reset. Check the experiment folder and retry.");
+			return;
+		}
+		hit.nValid = ReachableEnd.UNSET;
+		hit.dismissed = false;
+		hit.proposedFrame = ReachableEnd.findReviewFrame(cap, hit.experiment, minimumRiseFraction());
+		filterHits(null);
+		status.setText("Review reset. The full recording is valid. Search again to refresh drift candidates.");
+	}
 	private void updateControls() {
 		boolean ready = scan == null && !detectionRunning;
 		int index = candidates.getSelectedIndex();
 		search.setEnabled(ready);
+		reviewFilter.setEnabled(ready);
+		showTagged.setEnabled(ready);
+		Capillary selected = selectedReviewCapillary();
+		resetReview.setEnabled(ready && selected != null && (selected.getNValid() >= 0 || selected.isDriftDismissed()));
 		scanRemaining.setEnabled(ready);
 		minimumRisePercent.setEnabled(ready);
 		candidates.setEnabled(ready);
@@ -547,17 +633,27 @@ final class BottomDriftReviewPanel extends JPanel {
 	private static final class DriftHit {
 		final Experiment experiment;
 		final String capillaryName;
-		final int proposedFrame;
+		int proposedFrame;
+		int nValid;
+		boolean dismissed;
 
-		DriftHit(Experiment experiment, String capillaryName, int proposedFrame) {
+		boolean reviewed() {
+			return nValid >= 0 || dismissed;
+		}
+
+		DriftHit(Experiment experiment, Capillary cap, int proposedFrame) {
 			this.experiment = experiment;
-			this.capillaryName = capillaryName;
+			this.capillaryName = cap.getRoiName();
+			this.nValid = cap.getNValid();
+			this.dismissed = cap.isDriftDismissed();
 			this.proposedFrame = proposedFrame;
 		}
 
 		@Override
 		public String toString() {
-			return experiment + "  |  " + capillaryName + "  |  frame " + proposedFrame;
+			String review = nValid >= 0 ? "Validated drift, cutoff " + nValid
+					: dismissed ? "Dismissed" : "Pending, proposed frame " + proposedFrame;
+			return experiment + "  |  " + capillaryName + "  |  " + review;
 		}
 	}
 }

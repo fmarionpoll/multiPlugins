@@ -54,7 +54,10 @@ public class ReachableEndTest {
 		cap.setDriftDismissed(true);
 		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
 		cap.setDriftDismissed(false);
+		assertEquals(40, ReachableEnd.find(cap, null, 10.0 / 430.0));
 		cap.setNValid(40);
+		assertEquals(40, ReachableEnd.find(cap, null, 10.0 / 430.0));
+		assertEquals(40, cap.getNValid());
 		assertEquals(ReachableEnd.UNSET, ReachableEnd.findReviewFrame(cap, null, 10.0 / 430.0));
 	}
 
