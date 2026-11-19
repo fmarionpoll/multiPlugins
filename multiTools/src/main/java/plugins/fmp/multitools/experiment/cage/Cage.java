@@ -243,6 +243,21 @@ public class Cage implements Comparable<Cage>, AutoCloseable {
 		return result;
 	}
 
+	/**
+	 * Last frame usable across all capillaries in this cage. Unset capillary
+	 * cutoffs impose no limit. Returns -1 when none has a cutoff, or 0 when
+	 * a capillary excludes every frame.
+	 */
+	public int getLastValidFrame(Capillaries allCapillaries) {
+		int lastValid = -1;
+		for (Capillary cap : getCapillaries(allCapillaries)) {
+			int capLastValid = cap.getLastValidFrame();
+			if (capLastValid >= 0 && (lastValid < 0 || capLastValid < lastValid))
+				lastValid = capLastValid;
+		}
+		return lastValid;
+	}
+
 //	// Backward-compatible getters (deprecated, use ID-based methods)
 //	@Deprecated
 //	public SpotsArray getSpotsArray() {

@@ -52,8 +52,9 @@ public enum EnumXLSColumnHeader {
 	CAP_CONC("Cap_concentration", 27, EnumColumnType.CAP), //
 	CAP_NFLIES("Cap_nflies", 28, EnumColumnType.CAP), //
 	CAP_COMMENT("Cap_comment", 29, EnumColumnType.CAP), //
-	CAP_N_VALID("Cap_n_valid", 30, EnumColumnType.CAP),
-	DUM4("Cap_measure", 31, EnumColumnType.CAP);
+	CAP_LAST_VALID_FRAME("cap_last_valid_frame", 30, EnumColumnType.CAP),
+	CAGE_LAST_VALID_FRAME("cage_last_valid_frame", 31, EnumColumnType.CAP),
+	DUM4("Cap_measure", 32, EnumColumnType.CAP);
 
 	private final String name;
 	private int value;

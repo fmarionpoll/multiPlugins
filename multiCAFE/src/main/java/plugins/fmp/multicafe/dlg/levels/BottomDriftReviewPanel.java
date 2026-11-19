@@ -6,9 +6,15 @@ import java.awt.Component;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.FontMetrics;
+import java.awt.Graphics2D;
 import java.awt.GridLayout;
+import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.awt.geom.AffineTransform;
+import java.awt.geom.Point2D;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
@@ -30,7 +36,10 @@ import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
+import icy.canvas.IcyCanvas;
+import icy.canvas.IcyCanvas2D;
 import icy.gui.viewer.Viewer;
+import icy.painter.Overlay;
 import icy.sequence.Sequence;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.experiment.Experiment;
@@ -72,6 +81,7 @@ final class BottomDriftReviewPanel extends JPanel {
 	private int displayedProposal;
 	private Sequence markerSequence;
 	private ROI2DLine cutoffMarker;
+	private Overlay cutoffRiseOverlay;
 	private List<Capillary> rankedCaps = new ArrayList<>();
 	private int rankedIndex = -1;
 	private final JButton prevNoiseButton = new JButton("< noisy");
@@ -155,6 +165,7 @@ final class BottomDriftReviewPanel extends JPanel {
 		next.setToolTipText("Open the next drift candidate and its kymograph.");
 		showKymograph.setToolTipText("Open the selected candidate's kymograph with the orange cutoff marker.");
 		String cutoffTip = "<html>First excluded frame, shown by the orange vertical line.<br>"
+				+ "The label where it crosses the bottom trace shows the rise as a percentage of capillary length.<br>"
 				+ "Frame 0 is the leftmost column of the kymograph. Adjust the frame before validating.</html>";
 		cutoffLabel.setToolTipText(cutoffTip);
 		setSpinnerToolTip(firstInvalidFrame, cutoffTip);
@@ -552,7 +563,8 @@ final class BottomDriftReviewPanel extends JPanel {
 
 	private void updateCutoffMarker() {
 		clearCutoffMarker();
-		if (displayedCapillary() == null)
+		Capillary cap = displayedCapillary();
+		if (cap == null)
 			return;
 		markerSequence = kymographSequence(displayedHit.experiment);
 		int frame = ((Number) firstInvalidFrame.getValue()).intValue();
@@ -562,10 +574,19 @@ final class BottomDriftReviewPanel extends JPanel {
 		cutoffMarker.setReadOnly(true);
 		cutoffMarker.setT(currentViewerFrame(markerSequence));
 		markerSequence.addROI(cutoffMarker);
+		double risePercent = 100.0 * ReachableEnd.riseFraction(cap, displayedHit.experiment, frame);
+		if (Double.isFinite(risePercent)) {
+			double bottomY = cap.getBottomRaw().getValueAt(frame);
+			cutoffRiseOverlay = new CutoffRiseOverlay(frame, bottomY, risePercent, currentViewerFrame(markerSequence));
+			markerSequence.addOverlay(cutoffRiseOverlay);
+		}
 		refreshRise(displayedHit.experiment);
 	}
 
 	private void clearCutoffMarker() {
+		if (cutoffRiseOverlay != null)
+			markerSequence.removeOverlay(cutoffRiseOverlay);
+		cutoffRiseOverlay = null;
 		if (cutoffMarker != null)
 			markerSequence.removeROI(cutoffMarker);
 		cutoffMarker = null;
@@ -628,6 +649,60 @@ final class BottomDriftReviewPanel extends JPanel {
 		CapillariesSequenceMapper.transferMeasuresToKymos(exp.getCapillaries(), exp.getSeqKymos());
 		refreshRise(exp);
 		updateControls();
+	}
+
+	private static final class CutoffRiseOverlay extends Overlay {
+		private final Point2D crossing;
+		private final String label;
+		private final int kymograph;
+
+		CutoffRiseOverlay(int frame, double bottomY, double risePercent, int kymograph) {
+			super("Bottom rise at cutoff", OverlayPriority.TEXT_TOP);
+			crossing = new Point2D.Double(frame, bottomY);
+			label = String.format("Rise %.2f%% of length", risePercent);
+			this.kymograph = kymograph;
+			setPersistent(false);
+			setReadOnly(true);
+		}
+
+		@Override
+		public void paint(Graphics2D graphics, Sequence sequence, IcyCanvas canvas) {
+			if (graphics == null || !(canvas instanceof IcyCanvas2D) || canvas.getPositionT() != kymograph)
+				return;
+			Graphics2D g = (Graphics2D) graphics.create();
+			try {
+				// Keep the label and crossing marker at a readable size at every zoom level.
+				Point2D point = g.getTransform().transform(crossing, null);
+				g.setTransform(new AffineTransform());
+				Rectangle clip = g.getClipBounds();
+				if (clip != null && !clip.contains(point))
+					return;
+				g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				g.setFont(g.getFont().deriveFont(13f));
+				FontMetrics metrics = g.getFontMetrics();
+				int width = metrics.stringWidth(label) + 12;
+				int height = metrics.getHeight() + 6;
+				int x = (int) Math.round(point.getX());
+				int y = (int) Math.round(point.getY());
+				int left = x + 10;
+				int top = y - height - 10;
+				if (clip != null) {
+					left = Math.max(clip.x, Math.min(left, clip.x + clip.width - width));
+					top = Math.max(clip.y, Math.min(top, clip.y + clip.height - height));
+				}
+				g.setColor(Color.ORANGE);
+				g.drawLine(x, y, Math.max(left, Math.min(x, left + width)),
+						Math.max(top, Math.min(y, top + height)));
+				g.fillOval(x - 3, y - 3, 6, 6);
+				g.setColor(new Color(0, 0, 0, 210));
+				g.fillRoundRect(left, top, width, height, 6, 6);
+				g.setColor(Color.ORANGE);
+				g.drawRoundRect(left, top, width, height, 6, 6);
+				g.drawString(label, left + 6, top + 3 + metrics.getAscent());
+			} finally {
+				g.dispose();
+			}
+		}
 	}
 
 	private static final class DriftHit {

@@ -259,6 +259,8 @@ public final class NormalizedExportSupport {
 			setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAGE_AGE.getValue() + DESCRIPTOR_COL0, cp.getFlyAge());
 			setCellString(seriesSheet, row, EnumXLSColumnHeader.CAGE_COMMENT.getValue() + DESCRIPTOR_COL0,
 					cp.getComment());
+			setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAGE_LAST_VALID_FRAME.getValue() + DESCRIPTOR_COL0,
+					cage.getLastValidFrame(exp != null ? exp.getCapillaries() : null));
 		}
 		if (capillary != null) {
 			String name = capillary.getKymographName();
@@ -278,9 +280,8 @@ public final class NormalizedExportSupport {
 					capillary.getConcentration());
 			setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAP_NFLIES.getValue() + DESCRIPTOR_COL0,
 					capillary.getNFlies());
-			if (capillary.getNValid() >= 0)
-				setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAP_N_VALID.getValue() + DESCRIPTOR_COL0,
-						capillary.getNValid());
+			setCellInt(seriesSheet, row, EnumXLSColumnHeader.CAP_LAST_VALID_FRAME.getValue() + DESCRIPTOR_COL0,
+					capillary.getLastValidFrame());
 		} else {
 			setCellString(seriesSheet, row, EnumXLSColumnHeader.CAP.getValue() + DESCRIPTOR_COL0, "cage_LR");
 		}

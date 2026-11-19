@@ -19,6 +19,7 @@ import plugins.fmp.multitools.experiment.timebase.TimestepResolutionContext;
 import plugins.fmp.multitools.experiment.timebase.TimestepResolver;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageProperties;
+import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -563,6 +564,16 @@ public abstract class XLSExport {
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_SEX, transpose, props.getFlySex());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_AGE, transpose, props.getFlyAge());
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_COMMENT, transpose, props.getComment());
+	}
+
+	protected void writeValidityLimits(SXSSFSheet sheet, Point pt, boolean transpose, Experiment exp, Cage cage,
+			Capillary capillary) {
+		Integer capLastValid = capillary != null ? capillary.getLastValidFrame() : null;
+		if (capLastValid != null)
+			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAP_LAST_VALID_FRAME, transpose, capLastValid);
+		Integer cageLastValid = cage != null ? cage.getLastValidFrame(exp.getCapillaries()) : null;
+		if (cageLastValid != null)
+			XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.CAGE_LAST_VALID_FRAME, transpose, cageLastValid);
 	}
 
 	/**

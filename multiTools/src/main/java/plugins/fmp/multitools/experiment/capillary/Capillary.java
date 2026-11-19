@@ -261,6 +261,14 @@ public class Capillary implements Comparable<Capillary> {
 		return properties.getNValid();
 	}
 
+	/** Last included frame, -1 for no cutoff, or 0 when every frame is excluded. */
+	public int getLastValidFrame() {
+		int cutoff = getNValid();
+		if (cutoff < 0)
+			return -1;
+		return Math.max(0, cutoff - 1);
+	}
+
 	public void setNValid(int nValid) {
 		properties.setNValid(nValid);
 	}

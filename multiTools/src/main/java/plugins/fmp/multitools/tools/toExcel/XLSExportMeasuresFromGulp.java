@@ -617,6 +617,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 
 		// Write capillary properties (same as capillary export)
 		writeCapillaryProperties(sheet, x, y, transpose, capillary, charSeries, resultType);
+		writeValidityLimits(sheet, pt, transpose, exp, cage, capillary);
 
 		pt.y = y + getDescriptorRowCount();
 		return pt;
@@ -670,9 +671,6 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAP_CONC.getValue(), transpose,
 				capillary.getConcentration());
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAP_NFLIES.getValue(), transpose, capillary.getNFlies());
-		if (capillary.getNValid() >= 0)
-			XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.CAP_N_VALID.getValue(), transpose,
-					capillary.getNValid());
 	}
 
 	/**
@@ -1045,6 +1043,7 @@ public class XLSExportMeasuresFromGulp extends XLSExport {
 
 		// Write capillary properties
 		writeCapillaryProperties(sheet, x, y, transpose, capillary, charSeries, EnumResults.MARKOV_CHAIN);
+		writeValidityLimits(sheet, pt, transpose, exp, cage, capillary);
 
 		// Write transition type to Dum4 column
 		XLSUtils.setValue(sheet, x, y + EnumXLSColumnHeader.DUM4.getValue(), transpose, transitionType);
