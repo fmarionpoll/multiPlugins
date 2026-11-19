@@ -241,8 +241,8 @@ public class MCExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.amplitudeGulps = false;
 		resultsOptions.topLevel = tabLevels.topLevelCheckBox.isSelected();
 		resultsOptions.bottomLevel = tabLevels.bottomLevelCheckBox.isSelected();
-		resultsOptions.sumGulps = tabLevels.sumGulpsCheckBox.isSelected();
-		resultsOptions.sumGulpsLr = tabLevels.sumGulpsLrCheckBox.isSelected();
+		resultsOptions.sumGulps = false;
+		resultsOptions.sumGulpsLr = false;
 		resultsOptions.lrPI = tabLevels.lrPICheckBox.isSelected();
 		resultsOptions.lrPIThreshold = (double) tabLevels.lrPIThresholdJSpinner.getValue();
 		resultsOptions.sumPerCage = tabLevels.sumPerCageCheckBox.isSelected();

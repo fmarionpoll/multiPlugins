@@ -140,12 +140,16 @@ public class IntakeExportTest {
             }
             assertTrue(Files.exists(folder.resolve("gulpevents.csv")));
             assertTrue(Files.exists(folder.resolve("intakeevents.csv")));
-            assertEquals(selected, Files.exists(folder.resolve("measure_cage_raw.csv")));
+            assertFalse(Files.exists(folder.resolve("measure_cage_raw.csv")));
+            assertEquals(selected, Files.exists(folder.resolve("cage_gulpevents.csv")));
+            assertEquals(selected, Files.exists(folder.resolve("cage_intakeevents.csv")));
             try (java.util.stream.Stream<Path> paths = Files.list(folder)) {
                 java.util.List<Path> cageFiles = paths.filter(path -> path.getFileName().toString().startsWith("measure_cage_"))
                     .collect(java.util.stream.Collectors.toList());
-                assertEquals(selected ? 2 : 0, cageFiles.size());
-                for (Path file : cageFiles) {
+                assertEquals(0, cageFiles.size());
+            }
+            if (selected) {
+                for (Path file : Collections.singletonList(folder.resolve("cage_intakeevents.csv"))) {
                     try (java.io.Reader reader = Files.newBufferedReader(file);
                             org.apache.commons.csv.CSVParser parser = org.apache.commons.csv.CSVFormat.DEFAULT.builder()
                                 .setHeader().setSkipHeaderRecord(true).build().parse(reader)) {

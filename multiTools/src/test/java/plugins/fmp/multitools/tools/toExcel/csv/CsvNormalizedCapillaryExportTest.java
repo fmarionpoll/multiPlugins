@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.toExcel.csv;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -54,6 +55,35 @@ public class CsvNormalizedCapillaryExportTest {
 				assertEquals(file.contains("raw") ? 15 : 14, parser.getHeaderMap().size());
 				for (int i = 0; i < columns.length; i++)
 					assertEquals(values[i], Double.parseDouble(row.get(columns[i])), 0);
+				if (file.contains("raw"))
+					assertEquals(0.25, Double.parseDouble(row.get("evaporation_uL")), 0);
+			}
+		}
+	}
+
+	@Test
+	public void levelsCageSummaryOmitsGulpsAndIntakeAndKeepsLevelsAligned() throws Exception {
+		Path folder = output.getRoot().toPath();
+		double[] values = { 1, 0.1, 2, 0.2, 3, 0.3, 4, 0.4, 5, 0.5 };
+		try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(folder,
+				Collections.emptyList(), 60000, true, false)) {
+			csv.writeMeasureCageSummary(true, "experiment", 2, 0, 0, values, 0.25);
+			csv.writeMeasureCageSummary(false, "experiment", 2, 0, 0, values, Double.NaN);
+		}
+		String[] columns = { "sum", "pi", "sum_topraw", "pi_topraw" };
+		double[] expected = { 1, 0.1, 2, 0.2 };
+		for (String file : new String[] { "measure_cage_raw.csv", "measure_cage_bin60.csv" }) {
+			try (CSVParser parser = read(folder.resolve(file))) {
+				CSVRecord row = parser.getRecords().get(0);
+				assertTrue(row.isConsistent());
+				assertEquals(file.contains("raw") ? 9 : 8, parser.getHeaderMap().size());
+				assertFalse(parser.getHeaderMap().containsKey("sum_gulps"));
+				assertFalse(parser.getHeaderMap().containsKey("pi_gulps"));
+				for (String column : new String[] { "sum_intake_raw_uL", "pi_intake_raw",
+						"sum_intake_corr_uL", "pi_intake_corr" })
+					assertFalse(parser.getHeaderMap().containsKey(column));
+				for (int i = 0; i < columns.length; i++)
+					assertEquals(expected[i], Double.parseDouble(row.get(columns[i])), 0);
 				if (file.contains("raw"))
 					assertEquals(0.25, Double.parseDouble(row.get("evaporation_uL")), 0);
 			}

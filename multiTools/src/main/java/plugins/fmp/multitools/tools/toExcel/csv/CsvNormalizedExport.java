@@ -39,11 +39,10 @@ import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
  * Normalized CSV export for multiCAFE capillary levels and gulps.
  * <p>
  * Capillary ({@code measure_cap_*}) files include consumption_raw_uL /
- * consumption_corrected_uL / bottom_level_uL / consumption_from_gulps_uL /
- * gulp_amplitude_uL (0 when no gulp at that time), plus derivative if selected.
+ * consumption_corrected_uL / bottom_level_uL, plus derivative if selected.
  * Cage ({@code measure_cage_*}) files are wide: {@code sum}/{@code pi}
- * (toplevel), {@code sum_topraw}/{@code pi_topraw},
- * {@code sum_gulps}/{@code pi_gulps}. Levels-tab checkboxes do not gate the
+ * (toplevel), {@code sum_topraw}/{@code pi_topraw}. These files are written
+ * only in Levels mode. Levels-tab checkboxes do not gate the
  * standard columns; optional extras (derivative, gulp events) still follow
  * options. {@code measure_cap_raw.csv} and {@code measure_cage_raw.csv} also
  * carry {@code evaporation_uL}: the no-fly curve subtracted from topraw, in uL,
@@ -73,7 +72,7 @@ public final class CsvNormalizedExport {
 		List<String> denseCols = denseMeasureColumns(options, mode);
 		boolean wantGulpEvents = mode == Mode.GULPS && (options.amplitudeGulps || options.nbGulps);
 		boolean wantCageLevels = mode == Mode.LEVELS;
-		boolean wantCageGulps = true;
+		boolean wantCageGulps = mode == Mode.GULPS;
 		long binStepMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 60000L;
 
 		Logger.info("CsvNormalizedExport: start -> " + csvFolder);
@@ -93,7 +92,8 @@ public final class CsvNormalizedExport {
 		int[] bx = expList.getExportExperimentIndexBounds(options);
 		int progressLen = (bx[1] >= bx[0]) ? (bx[1] - bx[0] + 1) : nbexpts;
 
-		try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(csvFolder, denseCols, binStepMs, true)) {
+		try (CsvNormalizedExportSupport csv = new CsvNormalizedExportSupport(csvFolder, denseCols, binStepMs, true,
+				wantCageGulps)) {
 			progress.setLength(Math.max(1, progressLen));
 			int iSeries = 0;
 			for (int index = options.experimentIndexFirst; index <= options.experimentIndexLast; index++) {
@@ -150,7 +150,7 @@ public final class CsvNormalizedExport {
 		boolean writeBin = options.forceCsvBinGrid;
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
-		if (mode == Mode.LEVELS || options.lrPI) {
+		if (mode == Mode.LEVELS) {
 			exportCageWide(exp, options, charSeries, csv, builder, frameIndexes, rawStepMs, binStepMs, writeBin, wantCageLevels,
 					wantCageGulps);
 		}
@@ -250,7 +250,48 @@ public final class CsvNormalizedExport {
 					}
 				}
 			}
+			if (options.lrPI) {
+				exportCageEventTotals(exp, cage, csv, datasets[2], datasets[3], expKey, intakeEvents, nativeStepMs);
+			}
 		}
+	}
+
+	/** Aggregate the same cumulative uL series used in the capillary event files. */
+	private static void exportCageEventTotals(Experiment exp, Cage cage, CsvNormalizedExportSupport csv,
+			XYSeriesCollection raw, XYSeriesCollection corrected, String expKey, boolean intake, int stepMs)
+			throws IOException {
+		XYSeriesCollection rawSides = CageCapillarySeriesBuilder.buildSideTotalSeries(cage, raw);
+		XYSeriesCollection corrSides = CageCapillarySeriesBuilder.buildSideTotalSeries(cage, corrected);
+		int cageId = cage.getCageID();
+		XYSeries left = findSeriesByKey(rawSides, cageId + "_L");
+		XYSeries right = findSeriesByKey(rawSides, cageId + "_R");
+		XYSeries corrLeft = findSeriesByKey(corrSides, cageId + "_L");
+		XYSeries corrRight = findSeriesByKey(corrSides, cageId + "_R");
+		if (left == null || right == null)
+			return;
+		FrameIndexes frames = new FrameIndexes(exp, stepMs);
+		for (int i = 0; i < left.getItemCount(); i++) {
+			double time = left.getX(i).doubleValue();
+			double l = left.getY(i).doubleValue();
+			double r = valueAtTime(right, time);
+			if (!Double.isFinite(l) || !Double.isFinite(r))
+				continue;
+			double cl = valueAtTime(corrLeft, time);
+			double cr = valueAtTime(corrRight, time);
+			double corrSum = Double.isFinite(cl) && Double.isFinite(cr) ? cl + cr : Double.NaN;
+			csv.writeCageEvent(intake, expKey, cageId, time, frames.at(Math.round(time * 60000.0)),
+					l + r, eventPreferenceIndex(l, r), corrSum, eventPreferenceIndex(cl, cr));
+		}
+	}
+
+	private static double valueAtTime(XYSeries series, double time) {
+		int index = series != null ? series.indexOf(time) : -1;
+		return index >= 0 ? series.getY(index).doubleValue() : Double.NaN;
+	}
+
+	private static double eventPreferenceIndex(double left, double right) {
+		double sum = left + right;
+		return Double.isFinite(sum) && sum != 0 ? (left - right) / sum : Double.NaN;
 	}
 
 	private static double valueAt(XYSeries series, int index) {
@@ -730,8 +771,6 @@ public final class CsvNormalizedExport {
 			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_RAW_UL);
 			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED_UL);
 			cols.add(CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
-			cols.add(CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
-			cols.add(CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
 			if (options.derivative) {
 				cols.add(colName(EnumResults.DERIVEDVALUES));
 			}
@@ -745,8 +784,6 @@ public final class CsvNormalizedExport {
 			map.put(EnumResults.TOPRAW, CsvNormalizedExportSupport.COL_CONSUMPTION_RAW_UL);
 			map.put(EnumResults.TOPLEVEL, CsvNormalizedExportSupport.COL_CONSUMPTION_CORRECTED_UL);
 			map.put(EnumResults.BOTTOMLEVEL, CsvNormalizedExportSupport.COL_BOTTOM_LEVEL_UL);
-			map.put(EnumResults.SUMGULPS, CsvNormalizedExportSupport.COL_CONSUMPTION_FROM_GULPS_UL);
-			map.put(EnumResults.AMPLITUDEGULPS, CsvNormalizedExportSupport.COL_GULP_AMPLITUDE);
 			if (options.derivative) {
 				map.put(EnumResults.DERIVEDVALUES, colName(EnumResults.DERIVEDVALUES));
 			}

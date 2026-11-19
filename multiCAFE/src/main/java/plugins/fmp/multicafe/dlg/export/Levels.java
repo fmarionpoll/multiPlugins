@@ -24,8 +24,6 @@ public class Levels extends JPanel {
 	JComboBox<EvaporationCorrectionMethod> evapMethodComboBox = new JComboBox<>(
 			EvaporationCorrectionMethod.values());
 	JCheckBox derivativeCheckBox = new JCheckBox("temporal change", false);
-	JCheckBox sumGulpsCheckBox = new JCheckBox("sum gulps", false);
-	JCheckBox sumGulpsLrCheckBox = new JCheckBox("sum gulps L+R", false);
 	JCheckBox lrPICheckBox = new JCheckBox("L+R & pref index", true);
 	JLabel lrPILabel = new JLabel("compute PI only if L+R > ");
 	JCheckBox sumPerCageCheckBox = new JCheckBox("sum/cage", false);
@@ -45,8 +43,6 @@ public class Levels extends JPanel {
 
 		JPanel panel1 = new JPanel(flowLayout0);
 		panel1.add(derivativeCheckBox);
-		panel1.add(sumGulpsCheckBox);
-		panel1.add(sumGulpsLrCheckBox);
 		add(panel1);
 
 		JPanel panel2 = new JPanel(flowLayout0);
