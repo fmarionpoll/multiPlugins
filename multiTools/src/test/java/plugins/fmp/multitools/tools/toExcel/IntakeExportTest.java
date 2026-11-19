@@ -99,7 +99,7 @@ public class IntakeExportTest {
         assertTrue(metadata.contains("version=test,manual=1;edited"));
     }
 
-    @Test public void cageCsvRequiresLrSelectionAndIncludesIntake() throws Exception {
+    @Test public void cageEventCsvAccompaniesCapillaryEventsAndIncludesIntake() throws Exception {
         Experiment exp = new Experiment();
         exp.setFrameTimeScale(plugins.fmp.multitools.experiment.timebase.FrameTimeScale.fromArrays(0,
             new long[] {0, 60000, 120000, 180000}, new String[] {"a", "b", "c", "d"}, 0, 4));
@@ -141,14 +141,14 @@ public class IntakeExportTest {
             assertTrue(Files.exists(folder.resolve("gulpevents.csv")));
             assertTrue(Files.exists(folder.resolve("intakeevents.csv")));
             assertFalse(Files.exists(folder.resolve("measure_cage_raw.csv")));
-            assertEquals(selected, Files.exists(folder.resolve("cage_gulpevents.csv")));
-            assertEquals(selected, Files.exists(folder.resolve("cage_intakeevents.csv")));
+            assertTrue(Files.exists(folder.resolve("cage_gulpevents.csv")));
+            assertTrue(Files.exists(folder.resolve("cage_intakeevents.csv")));
             try (java.util.stream.Stream<Path> paths = Files.list(folder)) {
                 java.util.List<Path> cageFiles = paths.filter(path -> path.getFileName().toString().startsWith("measure_cage_"))
                     .collect(java.util.stream.Collectors.toList());
                 assertEquals(0, cageFiles.size());
             }
-            if (selected) {
+            {
                 for (Path file : Collections.singletonList(folder.resolve("cage_intakeevents.csv"))) {
                     try (java.io.Reader reader = Files.newBufferedReader(file);
                             org.apache.commons.csv.CSVParser parser = org.apache.commons.csv.CSVFormat.DEFAULT.builder()

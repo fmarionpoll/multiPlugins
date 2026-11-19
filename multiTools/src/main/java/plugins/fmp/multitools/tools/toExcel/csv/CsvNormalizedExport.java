@@ -151,8 +151,7 @@ public final class CsvNormalizedExport {
 		CageCapillarySeriesBuilder builder = new CageCapillarySeriesBuilder();
 
 		if (mode == Mode.LEVELS) {
-			exportCageWide(exp, options, charSeries, csv, builder, frameIndexes, rawStepMs, binStepMs, writeBin, wantCageLevels,
-					wantCageGulps);
+			exportCageWide(exp, options, charSeries, csv, builder, frameIndexes, rawStepMs, binStepMs, writeBin);
 		}
 
 		if (!denseCols.isEmpty() || wantGulpEvents) {
@@ -219,6 +218,9 @@ public final class CsvNormalizedExport {
 			}
 			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
 			int cageId = cage.getProperties().getCageID();
+			XYSeriesCollection observations = buildDataset(exp, cage, options, EnumResults.TOPRAW, nativeStepMs, builder);
+			Map<Long, Integer> validCageFrames = cageObservationFrames(exp, cage, observations,
+					new FrameIndexes(exp, nativeStepMs));
 			for (Capillary cap : capillaries) {
 				XYSeries[] series = new XYSeries[types.length];
 				for (int k = 0; k < types.length; k++) {
@@ -241,6 +243,10 @@ public final class CsvNormalizedExport {
 					double start = i > 0 ? raw.getX(i - 1).doubleValue() : Double.NaN;
 					double end = raw.getX(i).doubleValue();
 					long frameIndex = CapillaryPixelScale.frameOfColumn(i, Math.max(1, exp.getKymoSubsampleFactor()));
+					if (!isValidCapillaryFrame(cap, (int) frameIndex)
+							|| !validCageFrames.containsKey(Math.round(end * 60000.0))
+							|| !Double.isFinite(valueAtTime(findSeriesByKey(observations, CapillaryChartSeriesKeys.key(cap)), end)))
+						continue;
 					if (intakeEvents) {
 						csv.writeIntake(expKey, cageId, capId, start, end, frameIndex, v, valueAt(series[1], i),
 								valueAt(series[2], i), valueAt(series[3], i));
@@ -250,37 +256,79 @@ public final class CsvNormalizedExport {
 					}
 				}
 			}
-			if (options.lrPI) {
-				exportCageEventTotals(exp, cage, csv, datasets[2], datasets[3], expKey, intakeEvents, nativeStepMs);
-			}
+			for (Capillary cap : capillaries)
+				csv.ensureDescriptors(exp, charSeries, cage, cap);
+			exportCageEventTotals(exp, cage, csv, observations, datasets[2], datasets[3], expKey, intakeEvents, nativeStepMs);
 		}
 	}
 
-	/** Aggregate the same cumulative uL series used in the capillary event files. */
+	/** Native observation coverage and validity policy shared by both cage exports. */
+	private static Map<Long, Integer> cageObservationFrames(Experiment exp, Cage cage,
+			XYSeriesCollection observations, FrameIndexes frames) {
+		List<Capillary> caps = cage.getCapillaries(exp.getCapillaries());
+		Map<Long, Integer> validTimes = new TreeMap<>();
+		if (caps.isEmpty()) return validTimes;
+		XYSeries first = findSeriesByKey(observations, CapillaryChartSeriesKeys.key(caps.get(0)));
+		if (first == null) return validTimes;
+		for (int i = 0; i < first.getItemCount(); i++) {
+			double time = first.getX(i).doubleValue();
+			long timeMs = Math.round(time * 60000.0);
+			Integer frame = frames.at(timeMs);
+			boolean valid = frame != null;
+			for (Capillary cap : caps) {
+				String key = CapillaryChartSeriesKeys.key(cap);
+				if (!isValidCapillaryFrame(cap, frame)
+						|| (!CapillaryChartSeriesKeys.isLeftSideKey(key) && !CapillaryChartSeriesKeys.isRightSideKey(key))
+						|| !Double.isFinite(valueAtTime(findSeriesByKey(observations, key), time))) {
+					valid = false;
+					break;
+				}
+			}
+			if (valid) validTimes.put(timeMs, frame);
+		}
+		return validTimes;
+	}
+
+	/** nValid is exclusive; its last included frame is nValid - 1. */
+	private static boolean isValidCapillaryFrame(Capillary cap, Integer frame) {
+		return frame != null && frame >= 0 && (cap.getNValid() < 0 || frame < cap.getNValid());
+	}
+
+	/** Missing physical sides contribute zero; missing measurements remain unavailable. */
+	private static double[] cageSides(List<Capillary> caps, XYSeriesCollection dataset, double time,
+			boolean emptyEventsAreZero) {
+		double[] sides = new double[2];
+		for (Capillary cap : caps) {
+			String key = CapillaryChartSeriesKeys.key(cap);
+			XYSeries series = findSeriesByKey(dataset, key);
+			double value = series == null && emptyEventsAreZero ? 0.0 : valueAtTime(series, time);
+			sides[CapillaryChartSeriesKeys.isLeftSideKey(key) ? 0 : 1] += value;
+		}
+		return sides;
+	}
+
+	/** Observed, valid frames define coverage, including cages with no events. */
 	private static void exportCageEventTotals(Experiment exp, Cage cage, CsvNormalizedExportSupport csv,
-			XYSeriesCollection raw, XYSeriesCollection corrected, String expKey, boolean intake, int stepMs)
-			throws IOException {
-		XYSeriesCollection rawSides = CageCapillarySeriesBuilder.buildSideTotalSeries(cage, raw);
-		XYSeriesCollection corrSides = CageCapillarySeriesBuilder.buildSideTotalSeries(cage, corrected);
-		int cageId = cage.getCageID();
-		XYSeries left = findSeriesByKey(rawSides, cageId + "_L");
-		XYSeries right = findSeriesByKey(rawSides, cageId + "_R");
-		XYSeries corrLeft = findSeriesByKey(corrSides, cageId + "_L");
-		XYSeries corrRight = findSeriesByKey(corrSides, cageId + "_R");
-		if (left == null || right == null)
-			return;
+			XYSeriesCollection observations, XYSeriesCollection raw, XYSeriesCollection corrected,
+			String expKey, boolean intake, int stepMs) throws IOException {
+		List<Capillary> caps = cage.getCapillaries(exp.getCapillaries());
 		FrameIndexes frames = new FrameIndexes(exp, stepMs);
-		for (int i = 0; i < left.getItemCount(); i++) {
-			double time = left.getX(i).doubleValue();
-			double l = left.getY(i).doubleValue();
-			double r = valueAtTime(right, time);
-			if (!Double.isFinite(l) || !Double.isFinite(r))
-				continue;
-			double cl = valueAtTime(corrLeft, time);
-			double cr = valueAtTime(corrRight, time);
-			double corrSum = Double.isFinite(cl) && Double.isFinite(cr) ? cl + cr : Double.NaN;
-			csv.writeCageEvent(intake, expKey, cageId, time, frames.at(Math.round(time * 60000.0)),
-					l + r, eventPreferenceIndex(l, r), corrSum, eventPreferenceIndex(cl, cr));
+		boolean hasCorrection = evaporationSeries(exp) != null;
+		for (Map.Entry<Long, Integer> entry : cageObservationFrames(exp, cage, observations, frames).entrySet()) {
+			double time = entry.getKey() / 60000.0;
+			double[] sides = cageSides(caps, raw, time, true);
+			double[] corrSides = new double[2];
+			for (Capillary cap : caps) {
+				String key = CapillaryChartSeriesKeys.key(cap);
+				XYSeries cumulative = findSeriesByKey(raw, key);
+				XYSeries corr = findSeriesByKey(corrected, key);
+				double value = corr != null ? valueAtTime(corr, time)
+						: cumulative == null && hasCorrection ? 0.0 : Double.NaN;
+				corrSides[CapillaryChartSeriesKeys.isLeftSideKey(key) ? 0 : 1] += value;
+			}
+			csv.writeCageEvent(intake, expKey, cage.getCageID(), time, entry.getValue(),
+					sides[0] + sides[1], eventPreferenceIndex(sides[0], sides[1]),
+					corrSides[0] + corrSides[1], eventPreferenceIndex(corrSides[0], corrSides[1]));
 		}
 	}
 
@@ -338,7 +386,8 @@ public final class CsvNormalizedExport {
 						XYSeries series = findSeriesForCapillary(ds, exp, cage, cap, e.getKey());
 						mergeSeriesNative(byTime, series, e.getValue());
 					}
-					byTime.entrySet().removeIf(row -> !hasRawMeasureValues(row.getValue()));
+					byTime.entrySet().removeIf(row -> !hasRawMeasureValues(row.getValue())
+							|| !isValidCapillaryFrame(cap, frameIndexes.at(row.getKey())));
 					Map<Long, Double> evaporationUl = evaporationUlByTime(exp, cap, nativeStepMs);
 					for (Map.Entry<Long, Map<String, Double>> row : byTime.entrySet()) {
 						Double evap = evaporationUl.get(row.getKey());
@@ -431,175 +480,45 @@ public final class CsvNormalizedExport {
 	private static void exportCageWide(Experiment exp, ResultsOptions options, String charSeries,
 			CsvNormalizedExportSupport csv, CageCapillarySeriesBuilder builder, FrameIndexes frameIndexes,
 			int nativeStepMs, long binStepMs,
-			boolean writeBin, boolean wantLevels, boolean wantGulps) throws IOException {
+			boolean writeBin) throws IOException {
 		for (Cage cage : exp.getCages().getCageList()) {
-			if (cage == null) {
-				continue;
-			}
-			List<Capillary> capillaries = cage.getCapillaries(exp.getCapillaries());
-			if (capillaries == null || capillaries.isEmpty()) {
-				continue;
-			}
-			csv.ensureDescriptors(exp, charSeries, cage, capillaries.get(0));
+			if (cage == null) continue;
+			List<Capillary> caps = cage.getCapillaries(exp.getCapillaries());
+			if (caps == null || caps.isEmpty()) continue;
+			XYSeriesCollection raw = buildDataset(exp, cage, options, EnumResults.TOPRAW, nativeStepMs, builder);
+			XYSeriesCollection corrected = buildDataset(exp, cage, options, EnumResults.TOPLEVEL, nativeStepMs, builder);
+			for (Capillary cap : caps) csv.ensureDescriptors(exp, charSeries, cage, cap);
 			String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
-			int cageId = cage.getProperties().getCageID();
 			List<Map<Long, Double>> evaporationByCap = new ArrayList<>();
-			for (Capillary cap : capillaries)
-				evaporationByCap.add(evaporationUlByTime(exp, cap, nativeStepMs));
-
-			XYSeries levelSum = null;
-			XYSeries levelPi = null;
-			XYSeries toprawSum = null;
-			XYSeries toprawPi = null;
-			XYSeries gulpSum = null;
-			XYSeries gulpPi = null;
-			if (wantLevels) {
-				XYSeriesCollection ds = buildDataset(exp, cage, options, EnumResults.TOPLEVEL_LR, nativeStepMs,
-						builder);
-				levelSum = findSeriesByKey(ds, cageId + "_Sum");
-				levelPi = findSeriesByKey(ds, cageId + "_PI");
-				XYSeriesCollection rawDs = buildDataset(exp, cage, options, EnumResults.TOPRAW_LR, nativeStepMs,
-						builder);
-				toprawSum = findSeriesByKey(rawDs, cageId + "_Sum");
-				toprawPi = findSeriesByKey(rawDs, cageId + "_PI");
+			for (Capillary cap : caps) evaporationByCap.add(evaporationUlByTime(exp, cap, nativeStepMs));
+			Map<Long, double[]> byTimeSides = new TreeMap<>();
+			for (Map.Entry<Long, Integer> entry : cageObservationFrames(exp, cage, raw, frameIndexes).entrySet()) {
+				double time = entry.getKey() / 60000.0;
+				double[] rawSides = cageSides(caps, raw, time, false);
+				double[] correctedSides = cageSides(caps, corrected, time, false);
+				double[] sides = newNaNRow(10);
+				sides[0] = correctedSides[0];
+				sides[1] = correctedSides[1];
+				sides[2] = rawSides[0];
+				sides[3] = rawSides[1];
+				byTimeSides.put(entry.getKey(), sides);
+				double[] values = newNaNRow(10);
+				values[0] = sides[0] + sides[1];
+				values[1] = levelPreferenceIndex(sides[0], sides[1]);
+				values[2] = sides[2] + sides[3];
+				values[3] = levelPreferenceIndex(sides[2], sides[3]);
+				csv.writeMeasureCageSummary(true, expKey, cage.getCageID(), time, entry.getValue(), values,
+						cageEvaporationUl(evaporationByCap, entry.getKey()));
 			}
-			if (wantGulps) {
-				XYSeriesCollection ds = buildDataset(exp, cage, options, EnumResults.SUMGULPS_LR, nativeStepMs,
-						builder);
-				gulpSum = findSeriesByKey(ds, cageId + "_Sum");
-				gulpPi = findSeriesByKey(ds, cageId + "_PI");
-			}
-
-			Map<Long, double[]> byTime = new TreeMap<>();
-			mergeCagePair(byTime, levelSum, levelPi, 0, 1, true);
-			mergeCagePair(byTime, toprawSum, toprawPi, 2, 3, true);
-			mergeCagePair(byTime, gulpSum, gulpPi, 4, 5, !wantLevels);
-			if (options.intake) {
-				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_INTAKE_BIN_RAW, nativeStepMs, builder, 6);
-				mergeIntakeCagePair(byTime, exp, cage, options, EnumResults.SUM_INTAKE_BIN_CORR, nativeStepMs, builder, 8);
-			}
-			if (byTime.isEmpty()) {
-				continue;
-			}
-
-			for (Map.Entry<Long, double[]> e : byTime.entrySet()) {
-				double[] v = e.getValue();
-				if (allNaN(v)) {
-					continue;
-				}
-				csv.writeMeasureCageSummary(true, expKey, cageId, e.getKey() / 60000.0, frameIndexes.at(e.getKey()), v,
-						cageEvaporationUl(evaporationByCap, e.getKey()));
-			}
-
-			if (writeBin) {
-				Map<Long, double[]> byTimeSides = new TreeMap<>();
-				if (wantLevels) {
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.TOPLEVEL, nativeStepMs, builder,
-							cageId, 0, 1, true);
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.TOPRAW, nativeStepMs, builder,
-							cageId, 2, 3, true);
-				}
-				if (wantGulps) {
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUMGULPS, nativeStepMs, builder,
-							cageId, 4, 5, !wantLevels);
-				}
-				if (options.intake) {
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_INTAKE_BIN_RAW, nativeStepMs, builder, cageId, 6, 7, true);
-					mergeCageSidePair(byTimeSides, exp, cage, options, EnumResults.SUM_INTAKE_BIN_CORR, nativeStepMs, builder, cageId, 8, 9, true);
-				}
-				if (!byTimeSides.isEmpty()) {
-					writeMeasureCageBinned(csv, expKey, cageId, byTimeSides, frameIndexes, binStepMs);
-				}
-			}
+			if (writeBin && !byTimeSides.isEmpty())
+				writeMeasureCageBinned(csv, expKey, cage.getCageID(), byTimeSides, frameIndexes, binStepMs);
 		}
 	}
 
-	/** Intake uses the same L/R aggregation as ordinary cumulative gulps. */
-	private static void mergeIntakeCagePair(Map<Long, double[]> byTime, Experiment exp, Cage cage,
-			ResultsOptions options, EnumResults type, int stepMs, CageCapillarySeriesBuilder builder, int offset) {
-		Map<Long, double[]> sides = new TreeMap<>();
-		mergeCageSidePair(sides, exp, cage, options, type, stepMs, builder, cage.getCageID(), offset, offset + 1, true);
-		for (Map.Entry<Long, double[]> entry : sides.entrySet()) {
-			double[] pair = entry.getValue();
-			if (!Double.isFinite(pair[offset]) || !Double.isFinite(pair[offset + 1])) continue;
-			double[] row = byTime.computeIfAbsent(entry.getKey(), key -> newNaNRow(10));
-			row[offset] = CageCapillariesComputation.computeSumFromSides(pair[offset], pair[offset + 1]);
-			row[offset + 1] = CageCapillariesComputation.computePiFromSides(pair[offset], pair[offset + 1]);
-		}
-	}
-
-	private static void mergeCageSidePair(Map<Long, double[]> byTime, Experiment exp, Cage cage,
-			ResultsOptions options, EnumResults baseType, int stepMs, CageCapillarySeriesBuilder builder, int cageId,
-			int lIdx, int rIdx, boolean createKeys) {
-		XYSeriesCollection parts = buildCapillaryParts(exp, cage, options, baseType, stepMs, builder);
-		XYSeriesCollection sides = CageCapillarySeriesBuilder.buildSideTotalSeries(cage, parts);
-		mergeCageSides(byTime, findSeriesByKey(sides, cageId + "_L"), findSeriesByKey(sides, cageId + "_R"), lIdx,
-				rIdx, createKeys);
-	}
-
-	private static XYSeriesCollection buildCapillaryParts(Experiment exp, Cage cage, ResultsOptions base,
-			EnumResults baseType, int stepMs, CageCapillarySeriesBuilder builder) {
-		ResultsOptions ro = new ResultsOptions();
-		ro.buildExcelStepMs = stepMs;
-		ro.relativeToMaximum = false;
-		ro.subtractT0 = false;
-		ro.correctEvaporation = (baseType == EnumResults.TOPLEVEL);
-		ro.evaporationCorrectionMethod = base != null ? base.evaporationCorrectionMethod
-				: ro.evaporationCorrectionMethod;
-		ro.resultType = baseType;
-		ro.exportLayoutMode = ExportLayoutMode.NORMALIZED;
-		ro.lrPIThreshold = base != null ? base.lrPIThreshold : 0.0;
-		exp.getCages().prepareComputations(exp, ro);
-		return builder.build(exp, cage, ro);
-	}
-
-	private static void mergeCageSides(Map<Long, double[]> byTime, XYSeries seriesL, XYSeries seriesR, int lIdx,
-			int rIdx, boolean createKeys) {
-		if (seriesL == null || seriesR == null || seriesL.getItemCount() == 0) {
-			return;
-		}
-		for (int i = 0; i < seriesL.getItemCount(); i++) {
-			long tMs = Math.round(seriesL.getX(i).doubleValue() * 60000.0);
-			int idxR = seriesR.indexOf(seriesL.getX(i));
-			if (idxR < 0) {
-				continue;
-			}
-			double[] row = byTime.get(tMs);
-			if (row == null) {
-				if (!createKeys) {
-					continue;
-				}
-				row = newNaNRow(10);
-				byTime.put(tMs, row);
-			}
-			row[lIdx] = seriesL.getY(i).doubleValue();
-			row[rIdx] = seriesR.getY(idxR).doubleValue();
-		}
-	}
-
-	private static void mergeCagePair(Map<Long, double[]> byTime, XYSeries seriesSum, XYSeries seriesPi, int sumIdx,
-			int piIdx, boolean createKeys) {
-		if (seriesSum == null || seriesSum.getItemCount() == 0) {
-			return;
-		}
-		for (int i = 0; i < seriesSum.getItemCount(); i++) {
-			long tMs = Math.round(seriesSum.getX(i).doubleValue() * 60000.0);
-			double[] row = byTime.get(tMs);
-			if (row == null) {
-				if (!createKeys) {
-					continue;
-				}
-				row = newNaNRow(10);
-				byTime.put(tMs, row);
-			}
-			row[sumIdx] = seriesSum.getY(i).doubleValue();
-			if (seriesPi != null) {
-				int idx = seriesPi.indexOf(seriesSum.getX(i));
-				if (idx >= 0) {
-					row[piIdx] = seriesPi.getY(idx).doubleValue();
-				}
-			}
-		}
+	/** Preserve the Levels PI convention for negative apparent consumption; zero feeding is undefined. */
+	private static double levelPreferenceIndex(double left, double right) {
+		if (left + right == 0) return Double.NaN;
+		return CageCapillariesComputation.computePiFromSides(left, right);
 	}
 
 	private static double[] newNaNRow(int n) {
@@ -634,7 +553,7 @@ public final class CsvNormalizedExport {
 			for (int c = 0; c < values.length; c += 2) {
 				if (c >= 6 && (!Double.isFinite(binned[c][b]) || !Double.isFinite(binned[c + 1][b]))) continue;
 				values[c] = CageCapillariesComputation.computeSumFromSides(binned[c][b], binned[c + 1][b]);
-				values[c + 1] = CageCapillariesComputation.computePiFromSides(binned[c][b], binned[c + 1][b]);
+				values[c + 1] = levelPreferenceIndex(binned[c][b], binned[c + 1][b]);
 			}
 			if (!allNaN(values)) {
 				Integer frameIndex = byTimeSides.containsKey(starts[b]) ? frameIndexes.at(starts[b]) : null;
