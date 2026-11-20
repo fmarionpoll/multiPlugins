@@ -1713,7 +1713,7 @@ public class Cages {
 					continue;
 				}
 				CageSpotStimulusAggregation.AggregateSeries nativeAgg = new CageSpotStimulusAggregation.AggregateSeries(
-						agg.key, new ArrayList<>(), agg.nSpotsExposed);
+						agg.key, new ArrayList<>(), agg.nSpotsExposed, agg.validCounts);
 				for (int j = 0; j < agg.values.length; j++) {
 					nativeAgg.values.add(agg.values[j]);
 				}

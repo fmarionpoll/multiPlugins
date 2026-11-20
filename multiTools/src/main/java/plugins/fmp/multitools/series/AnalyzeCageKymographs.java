@@ -3,6 +3,7 @@ package plugins.fmp.multitools.series;
 import java.util.List;
 
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.service.CageKymoAnalyzer;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
@@ -41,7 +42,19 @@ public class AnalyzeCageKymographs extends BuildSeries {
 			KymoAnalysisResult result = CageKymoAnalyzer.analyze(exp, analyzerParams);
 			if (result != null && !result.byCageId.isEmpty()) {
 				KymoMeasuresCommit.apply(result, exp);
-				exp.save_kymo_spot_measures();
+				if (exp.save_kymo_spot_measures()) {
+					SpotDetectionProvenance.recordKymograph(exp, SpotDetectionProvenance.Family.KYMO_STRIP,
+							getClass().getSimpleName(), "metric_transform", analyzerParams.metricTransform,
+							"metric_threshold", analyzerParams.metricThreshold,
+							"min_rgb_sum", analyzerParams.minSumRgbForValidPixel,
+							"min_valid_rows", analyzerParams.minValidRowsPerColumn,
+							"row_occlusion_fill", analyzerParams.rowwiseOcclusionFill,
+							"max_occlusion_gap_bins", analyzerParams.maxRowOcclusionGapColumns,
+							"insect_gate", analyzerParams.insectMetricGateEnabled,
+							"insect_transform", analyzerParams.insectMetricTransform,
+							"insect_threshold", analyzerParams.insectMetricThreshold,
+							"insect_threshold_above", analyzerParams.insectMetricThresholdUp);
+				}
 				lastResult = result;
 				Logger.info("AnalyzeCageKymographs: " + result.byCageId.size() + " cage(s), " + result.widthBins
 						+ " bin(s) — " + exp.getResultsDirectory());

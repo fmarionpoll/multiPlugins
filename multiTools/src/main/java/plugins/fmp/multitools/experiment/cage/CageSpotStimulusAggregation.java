@@ -62,11 +62,13 @@ public final class CageSpotStimulusAggregation {
 		public final StimulusConcKey key;
 		public final ArrayList<Double> values;
 		public final int nSpotsExposed;
+		public final int[] validCounts;
 
-		public AggregateSeries(StimulusConcKey key, ArrayList<Double> values, int nSpotsExposed) {
+		public AggregateSeries(StimulusConcKey key, ArrayList<Double> values, int nSpotsExposed, int[] validCounts) {
 			this.key = key;
 			this.values = values;
 			this.nSpotsExposed = nSpotsExposed;
+			this.validCounts = validCounts;
 		}
 	}
 
@@ -155,6 +157,7 @@ public final class CageSpotStimulusAggregation {
 				continue;
 			}
 			ArrayList<Double> sum = initNanSeries(n);
+			int[] validCounts = new int[n];
 			int nExposed = 0;
 			for (Spot s : spots) {
 				if (s == null || s.getProperties() == null) {
@@ -170,10 +173,10 @@ public final class CageSpotStimulusAggregation {
 				if (norm == null) {
 					continue;
 				}
-				addFiniteInPlace(sum, norm);
+				addFiniteInPlace(sum, norm, validCounts);
 				nExposed++;
 			}
-			out.add(new AggregateSeries(k, sum, nExposed));
+			out.add(new AggregateSeries(k, sum, nExposed, validCounts));
 		}
 		return out;
 	}
@@ -198,8 +201,7 @@ public final class CageSpotStimulusAggregation {
 	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin,
 			ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_FILTER_DEPLETION;
-		int n = Integer.MAX_VALUE;
-		boolean found = false;
+		int n = 0;
 		for (Spot s : spots) {
 			if (s == null || s.getProperties() == null) {
 				continue;
@@ -221,11 +223,10 @@ public final class CageSpotStimulusAggregation {
 				count = Math.min(count, camTimeMin.length);
 			}
 			if (count > 0) {
-				n = Math.min(n, count);
-				found = true;
+				n = Math.max(n, count);
 			}
 		}
-		return found ? n : 0;
+		return n;
 	}
 
 	private static ArrayList<Double> computeNormalizedConsumptionNative(Experiment exp, Spot spot, ResultsOptions options,
@@ -427,7 +428,7 @@ public final class CageSpotStimulusAggregation {
 	/**
 	 * Sums finite addend values per bin. Bins where no addend contributed a finite value stay NaN.
 	 */
-	private static void addFiniteInPlace(ArrayList<Double> acc, ArrayList<Double> add) {
+	private static void addFiniteInPlace(ArrayList<Double> acc, ArrayList<Double> add, int[] validCounts) {
 		if (acc == null || add == null) {
 			return;
 		}
@@ -438,6 +439,7 @@ public final class CageSpotStimulusAggregation {
 			if (!Double.isFinite(b)) {
 				continue;
 			}
+			validCounts[i]++;
 			Double av = acc.get(i);
 			double a = (av != null) ? av.doubleValue() : Double.NaN;
 			if (!Double.isFinite(a)) {
@@ -473,6 +475,7 @@ public final class CageSpotStimulusAggregation {
 				continue;
 			}
 			ArrayList<Double> sum = initNanSeries(n);
+			int[] validCounts = new int[n];
 			int nExposed = 0;
 			for (Spot s : spots) {
 				if (s == null || s.getProperties() == null) {
@@ -487,17 +490,16 @@ public final class CageSpotStimulusAggregation {
 				if (row == null) {
 					continue;
 				}
-				addFiniteInPlace(sum, row);
+				addFiniteInPlace(sum, row, validCounts);
 				nExposed++;
 			}
-			out.add(new AggregateSeries(k, sum, nExposed));
+			out.add(new AggregateSeries(k, sum, nExposed, validCounts));
 		}
 		return out;
 	}
 
 	private static int nativeAggregateLengthForAreaCountV5(List<Spot> spots, StimulusConcKey key, double[] camTimeMin) {
-		int n = Integer.MAX_VALUE;
-		boolean found = false;
+		int n = 0;
 		for (Spot s : spots) {
 			if (s == null || s.getProperties() == null) {
 				continue;
@@ -519,11 +521,10 @@ public final class CageSpotStimulusAggregation {
 				c = Math.min(c, camTimeMin.length);
 			}
 			if (c > 0) {
-				n = Math.min(n, c);
-				found = true;
+				n = Math.max(n, c);
 			}
 		}
-		return found ? n : 0;
+		return n;
 	}
 
 	private static ArrayList<Double> areaCountV5ValuesForBins(Spot s, int n, double[] camTimeMin) {
@@ -541,11 +542,9 @@ public final class CageSpotStimulusAggregation {
 		if (camTimeMin != null) {
 			avail = Math.min(avail, camTimeMin.length);
 		}
-		if (avail < n) {
-			return null;
-		}
-		ArrayList<Double> out = new ArrayList<>(n);
-		for (int i = 0; i < n; i++) {
+		int count = Math.min(avail, n);
+		ArrayList<Double> out = new ArrayList<>(count);
+		for (int i = 0; i < count; i++) {
 			out.add(intensity.getValueAt(i));
 		}
 		return out;
@@ -566,6 +565,7 @@ public final class CageSpotStimulusAggregation {
 				continue;
 			}
 			ArrayList<Double> sum = initNanSeries(n);
+			int[] validCounts = new int[n];
 			int nExposed = 0;
 			for (Spot s : spots) {
 				if (s == null || s.getProperties() == null) {
@@ -580,17 +580,16 @@ public final class CageSpotStimulusAggregation {
 				if (row == null) {
 					continue;
 				}
-				addFiniteInPlace(sum, row);
+				addFiniteInPlace(sum, row, validCounts);
 				nExposed++;
 			}
-			out.add(new AggregateSeries(k, sum, nExposed));
+			out.add(new AggregateSeries(k, sum, nExposed, validCounts));
 		}
 		return out;
 	}
 
 	private static int nativeAggregateLengthForAreaCountV6(List<Spot> spots, StimulusConcKey key, double[] camTimeMin) {
-		int n = Integer.MAX_VALUE;
-		boolean found = false;
+		int n = 0;
 		for (Spot s : spots) {
 			if (s == null || s.getProperties() == null) {
 				continue;
@@ -612,11 +611,10 @@ public final class CageSpotStimulusAggregation {
 				c = Math.min(c, camTimeMin.length);
 			}
 			if (c > 0) {
-				n = Math.min(n, c);
-				found = true;
+				n = Math.max(n, c);
 			}
 		}
-		return found ? n : 0;
+		return n;
 	}
 
 	private static ArrayList<Double> areaCountV6ValuesForBins(Spot s, int n, double[] camTimeMin) {
@@ -634,11 +632,9 @@ public final class CageSpotStimulusAggregation {
 		if (camTimeMin != null) {
 			avail = Math.min(avail, camTimeMin.length);
 		}
-		if (avail < n) {
-			return null;
-		}
-		ArrayList<Double> out = new ArrayList<>(n);
-		for (int i = 0; i < n; i++) {
+		int count = Math.min(avail, n);
+		ArrayList<Double> out = new ArrayList<>(count);
+		for (int i = 0; i < count; i++) {
 			out.add(intensity.getValueAt(i));
 		}
 		return out;

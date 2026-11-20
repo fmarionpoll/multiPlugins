@@ -15,12 +15,14 @@ public final class CageSpotAggregateSeries {
 	private final CageSpotStimulusAggregation.StimulusConcKey key;
 	private final SpotMeasure measure;
 	private final int nSpotsExposed;
+	private final int[] validCounts;
 
 	public CageSpotAggregateSeries(CageSpotStimulusAggregation.StimulusConcKey key, SpotMeasure measure,
-			int nSpotsExposed) {
+			int nSpotsExposed, int[] validCounts) {
 		this.key = key;
 		this.measure = measure;
 		this.nSpotsExposed = nSpotsExposed;
+		this.validCounts = validCounts;
 	}
 
 	public CageSpotStimulusAggregation.StimulusConcKey getKey() {
@@ -33,6 +35,11 @@ public final class CageSpotAggregateSeries {
 
 	public int getNSpotsExposed() {
 		return nSpotsExposed;
+	}
+
+
+	public int getValidCount(int sample) {
+		return validCounts != null && sample >= 0 && sample < validCounts.length ? validCounts[sample] : 0;
 	}
 
 	public static CageSpotAggregateSeries fromNativeAggregate(CageSpotStimulusAggregation.AggregateSeries agg) {
@@ -53,7 +60,7 @@ public final class CageSpotAggregateSeries {
 			vals[i] = (dv != null && Double.isFinite(dv.doubleValue())) ? dv.doubleValue() : Double.NaN;
 		}
 		m.setValues(vals);
-		return new CageSpotAggregateSeries(agg.key, m, agg.nSpotsExposed);
+		return new CageSpotAggregateSeries(agg.key, m, agg.nSpotsExposed, agg.validCounts);
 	}
 
 	/**
@@ -72,6 +79,6 @@ public final class CageSpotAggregateSeries {
 			vals[i] = (dv != null && Double.isFinite(dv.doubleValue())) ? dv.doubleValue() : Double.NaN;
 		}
 		m.setValues(vals);
-		return new CageSpotAggregateSeries(key, m, nSpotsInCage);
+		return new CageSpotAggregateSeries(key, m, nSpotsInCage, null);
 	}
 }

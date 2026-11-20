@@ -30,6 +30,7 @@ public class SpotsAreasPanel extends JPanel {
 //	JCheckBox areaV2CheckBox = new JCheckBox(EnumResults.FILTER_GREY_CONTRAST.toDisplayLabel(), false);
 //	JCheckBox sumNoFlyV2CheckBox = new JCheckBox(EnumResults.FILTER_GREY_CONTRAST_MASKED.toDisplayLabel(), false);
 //	JCheckBox sumCleanV2CheckBox = new JCheckBox(EnumResults.FILTER_GREY_CONTRAST_SMOOTHED.toDisplayLabel(), false);
+	JCheckBox includeGroupsCheckBox = new JCheckBox("Include group SUM, PI and PInorm (CSV)", false);
 	JCheckBox t0CheckBox = new JCheckBox("(max-t)/max", true);
 	JCheckBox discardNoFlyCageCheckBox = new JCheckBox("discard cages with no fly", true);
 
@@ -62,6 +63,8 @@ public class SpotsAreasPanel extends JPanel {
 		FlowLayout flowLayout2 = new FlowLayout(FlowLayout.RIGHT);
 		flowLayout2.setVgap(0);
 		JPanel panel2 = new JPanel(flowLayout2);
+		includeGroupsCheckBox.setToolTipText("Include camera and kymograph group results in the normalized CSV package.");
+		panel2.add(includeGroupsCheckBox);
 		panel2.add(exportToXLSButton2);
 		add(panel2);
 

@@ -16,6 +16,7 @@ import icy.sequence.Sequence;
 import icy.system.SystemUtil;
 import icy.system.thread.Processor;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -154,7 +155,10 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 		exp.getCages().medianFilterFromSumToSumClean(exp.getSpots());
 
 		exp.saveExperimentDescriptors();
-		exp.save_spots_description_and_measures();
+		if (exp.save_spots_description_and_measures()) {
+			SpotDetectionProvenance.recordCamera(exp, SpotDetectionProvenance.Family.FILTER,
+					getClass().getSimpleName(), options);
+		}
 	}
 
 	private void initMeasureSpots(Experiment exp) {

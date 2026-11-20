@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
+import java.util.TreeSet;
 import java.util.Set;
 
 import org.apache.commons.csv.CSVFormat;
@@ -53,6 +55,7 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 
 	private final Set<String> writtenSpots = new LinkedHashSet<>();
 	private final Set<String> writtenGroups = new LinkedHashSet<>();
+	private final Set<String> writtenDetectionParameters = new LinkedHashSet<>();
 
 	private CSVPrinter idspotPrinter;
 	private CSVPrinter idspotGroupPrinter;
@@ -62,6 +65,9 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	private CSVPrinter measureSpotKymoBinPrinter;
 	private CSVPrinter measureGroupRawPrinter;
 	private CSVPrinter measureGroupBinPrinter;
+	private CSVPrinter preferencePrinter;
+	private CSVPrinter detectionRunsPrinter;
+	private CSVPrinter detectionParametersPrinter;
 
 	public CsvNormalizedSpotExportSupport(Path folder, List<String> cameraColumns, List<String> kymoColumns,
 			List<String> groupColumns, boolean groupKymo, long binStepMs, boolean writeBinFiles) throws IOException {
@@ -120,6 +126,71 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 		}
 		CSVPrinter printer = bin ? measureGroupBinPrinter() : measureGroupRawPrinter();
 		printMeasureRow(printer, groupColumns, expKey, cageId, groupId, tMinutes, frameIndex, values);
+	}
+
+	public void writePreference(String experimentId, int cageId, String groupA, String groupB, double timeMinutes,
+			Integer frameIndex, String measure, double sumA, double sumB, int countA, int countB) throws IOException {
+		if (preferencePrinter == null) {
+			String name = groupKymo ? "measure_spotgroup_kymo_pi_raw" : "measure_spotgroup_pi_raw";
+			preferencePrinter = openPrinter(name, "experiment_id", "cage_id", "group_a_id", "group_b_id",
+					CsvNormalizedExportSupport.COL_TIME_MIN, CsvNormalizedExportSupport.COL_FRAME_INDEX, "measure",
+					"sum_a", "sum_b", "n_valid_a", "n_valid_b", "pi", "pi_norm");
+		}
+		preferencePrinter.printRecord(experimentId, cageId, groupA, groupB, timeMinutes, frameIndex, measure,
+				finiteOrNull(sumA), finiteOrNull(sumB), countA, countB,
+				preferenceIndex(sumA, sumB, countA, countB, false),
+				preferenceIndex(sumA, sumB, countA, countB, true));
+	}
+
+	static Double preferenceIndex(double sumA, double sumB, int countA, int countB, boolean normalized) {
+		if (countA <= 0 || countB <= 0 || !Double.isFinite(sumA) || !Double.isFinite(sumB)) {
+			return null;
+		}
+		double a = normalized ? sumA / countA : sumA;
+		double b = normalized ? sumB / countB : sumB;
+		double denominator = a + b;
+		return denominator == 0.0 ? null : finiteOrNull((a - b) / denominator);
+	}
+
+	public void writeDetectionSettings(String experimentId, String family, Properties settings) throws IOException {
+		if (detectionRunsPrinter == null) {
+			detectionRunsPrinter = openPrinter("detection_runs", "experiment_id", "measurement_family", "run_id",
+					"method", "recorded_at_utc", "status");
+			detectionParametersPrinter = openPrinter("detection_parameters", "experiment_id", "run_id",
+					"parameter", "value", "unit");
+		}
+		String runId = settings.getProperty("run_id");
+		detectionRunsPrinter.printRecord(experimentId, family, runId, settings.getProperty("method"),
+				settings.getProperty("recorded_at_utc"), runId != null ? "recorded" : "unavailable");
+		if (runId == null || !writtenDetectionParameters.add(experimentId + "|" + runId)) {
+			return;
+		}
+		for (String key : new TreeSet<>(settings.stringPropertyNames())) {
+			if (key.startsWith("parameter.")) {
+				String parameter = key.substring("parameter.".length());
+				detectionParametersPrinter.printRecord(experimentId, runId, parameter, settings.getProperty(key),
+						parameterUnit(parameter));
+			}
+		}
+	}
+
+	private static String parameterUnit(String parameter) {
+		int suffix = parameter.lastIndexOf('_');
+		if (suffix >= 0) {
+			switch (parameter.substring(suffix + 1)) {
+			case "ms":
+				return "ms";
+			case "px":
+				return "px";
+			case "bins":
+				return "bins";
+			case "percent":
+				return "%";
+			default:
+				break;
+			}
+		}
+		return "";
 	}
 
 	private static void printMeasureRow(CSVPrinter printer, List<String> cols, String expKey, int cageId, String entityId,
@@ -251,6 +322,9 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 		closeQuietly(measureSpotKymoBinPrinter);
 		closeQuietly(measureGroupRawPrinter);
 		closeQuietly(measureGroupBinPrinter);
+		closeQuietly(preferencePrinter);
+		closeQuietly(detectionRunsPrinter);
+		closeQuietly(detectionParametersPrinter);
 	}
 
 	private static void closeQuietly(CSVPrinter printer) throws IOException {

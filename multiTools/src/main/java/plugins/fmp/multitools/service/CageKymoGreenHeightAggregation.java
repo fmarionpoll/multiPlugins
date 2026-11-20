@@ -22,11 +22,13 @@ public final class CageKymoGreenHeightAggregation {
 		public final StimulusConcKey key;
 		public final double[] values;
 		public final int nSpotsExposed;
+		public final int[] validCounts;
 
-		public SumSeries(StimulusConcKey key, double[] values, int nSpotsExposed) {
+		public SumSeries(StimulusConcKey key, double[] values, int nSpotsExposed, int[] validCounts) {
 			this.key = key;
 			this.values = values;
 			this.nSpotsExposed = nSpotsExposed;
+			this.validCounts = validCounts;
 		}
 	}
 
@@ -140,6 +142,7 @@ public final class CageKymoGreenHeightAggregation {
 			for (int j = 0; j < nBins; j++) {
 				sum[j] = Double.NaN;
 			}
+			int[] validCounts = new int[nBins];
 			int nExposed = 0;
 			for (RatioSource src : sources) {
 				if (src == null || !k.equals(keyForSpot(src.spot))) {
@@ -158,10 +161,11 @@ public final class CageKymoGreenHeightAggregation {
 						sum[j] = 0.0;
 					}
 					sum[j] += conso;
+					validCounts[j]++;
 				}
 			}
 			if (nExposed > 0) {
-				out.add(new SumSeries(k, sum, nExposed));
+				out.add(new SumSeries(k, sum, nExposed, validCounts));
 			}
 		}
 		return out;

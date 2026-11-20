@@ -12,12 +12,114 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.junit.ClassRule;
 import org.junit.Test;
 
+import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
+import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.test.InMemoryImageRule;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 public class CsvNormalizedSpotExportTest {
+
+	@ClassRule
+	public static final InMemoryImageRule imageMemory = new InMemoryImageRule();
+
+	@Test
+	public void nativeKymoExportComputesSumsAndUsesOnlyExactlyTwoConfiguredCategories() throws Exception {
+		Path folder = Files.createTempDirectory("spot-group-export");
+		Experiment exp = new Experiment();
+		exp.setResultsDirectory(folder.toString());
+		exp.setKymoBin_ms(60000);
+		addCage(exp, 2);
+		addCage(exp, 3);
+		addSpot(exp, 2, "A", 0.75, Double.NaN);
+		addSpot(exp, 2, "A", 0.75, 0.75);
+		addSpot(exp, 2, "B", 0.75, 0.75);
+		addSpot(exp, 3, "A", 0.75);
+		addSpot(exp, 3, "B", 0.75);
+		addSpot(exp, 3, "C");
+		EnumResults measure = EnumResults.AGG_KYMO_HEIGHT_LOSS;
+		String column = CsvNormalizedSpotExport.columnName(measure);
+		try (CsvNormalizedExportSupport descriptors = new CsvNormalizedExportSupport(folder,
+				Collections.emptyList(), 60000, false);
+				CsvNormalizedSpotExportSupport csv = new CsvNormalizedSpotExportSupport(folder,
+						Collections.emptyList(), Collections.emptyList(), Arrays.asList(column, column + "_n_valid"),
+						true, 60000, false)) {
+			CsvNormalizedSpotExport.exportAggregates(exp, new ResultsOptions(), "A", descriptors, csv, csv,
+					new EnumResults[] { measure }, false);
+		}
+		String groups = read(folder.resolve("idspotgroup.csv"));
+		assertTrue(groups.contains(",2,A__1,A,1,2,"));
+		assertTrue(groups.contains(",3,C__1,C,1,1,"));
+		String sums = read(folder.resolve("measure_spotgroup_kymo_raw.csv"));
+		assertTrue(sums.contains(",2,A__1,0.0,,0.5,2.0"));
+		assertTrue(sums.contains(",2,A__1,1.0,,0.25,1.0"));
+		String pi = read(folder.resolve("measure_spotgroup_kymo_pi_raw.csv"));
+		assertTrue(pi.contains(",2,A__1,B__1,0.0,,agg_greenheight_conso,0.5,0.25,2,1,0.3333333333333333,0.0"));
+		assertTrue(pi.contains(",2,A__1,B__1,1.0,,agg_greenheight_conso,0.25,0.25,1,1,0.0,0.0"));
+		assertFalse(pi.contains(",3,A__1,B__1"));
+	}
+
+	@Test
+	public void savedDetectionSettingsRetainIdentityAndParameters() throws Exception {
+		Experiment exp = new Experiment();
+		exp.setResultsDirectory(Files.createTempDirectory("spot-detection").toString());
+		BuildSeriesOptions options = new BuildSeriesOptions();
+		options.spotThreshold = 42;
+		SpotDetectionProvenance.recordCamera(exp, SpotDetectionProvenance.Family.FILTER, "test", options);
+		java.util.Properties filter = SpotDetectionProvenance.load(exp, SpotDetectionProvenance.Family.FILTER);
+		assertEquals("42", filter.getProperty("parameter.spot_threshold"));
+		assertEquals("test", filter.getProperty("method"));
+		assertTrue(filter.containsKey("run_id"));
+		assertEquals(filter.getProperty("run_id"),
+				SpotDetectionProvenance.load(exp, SpotDetectionProvenance.Family.FLY_MASK).getProperty("run_id"));
+		assertTrue(SpotDetectionProvenance.load(exp, SpotDetectionProvenance.Family.COLOR).isEmpty());
+	}
+
+	private static void addCage(Experiment exp, int cageId) {
+		Cage cage = new Cage();
+		cage.getProperties().setCageID(cageId);
+		exp.getCages().getCageList().add(cage);
+	}
+
+	private static void addSpot(Experiment exp, int cageId, String compound, double... ratios) {
+		Spot spot = new Spot();
+		spot.getProperties().setCageID(cageId);
+		spot.getProperties().setStimulus(compound);
+		spot.getProperties().setConcentration("1");
+		spot.getGreenMaskHeightToPeakRatio().setValues(ratios);
+		exp.getSpots().addSpot(spot);
+	}
+
+	@Test
+	public void preferenceUsesTotalOrPerContributorAndLeavesMissingResultsBlank() throws Exception {
+		assertEquals(1.0 / 3.0,
+				CsvNormalizedSpotExportSupport.preferenceIndex(0.4, 0.2, 2, 1, false), 1e-9);
+		assertEquals(0.0, CsvNormalizedSpotExportSupport.preferenceIndex(0.4, 0.2, 2, 1, true), 1e-9);
+		assertNull(CsvNormalizedSpotExportSupport.preferenceIndex(0.4, Double.NaN, 2, 0, true));
+		assertNull(CsvNormalizedSpotExportSupport.preferenceIndex(0.0, 0.0, 2, 1, false));
+		Path folder = Files.createTempDirectory("spot-preference");
+		try (CsvNormalizedSpotExportSupport csv = new CsvNormalizedSpotExportSupport(folder, Collections.emptyList(),
+				Collections.emptyList(), Collections.emptyList(), false, 60000, false)) {
+			csv.writePreference("expA", 2, "A__1", "B__1", 0.0, 0, "agg_sumclean", 0.4, 0.2, 2, 1);
+			csv.writePreference("expA", 2, "A__1", "B__1", 1.0, 1, "agg_sumclean", 0.4, Double.NaN, 2, 0);
+			java.util.Properties settings = new java.util.Properties();
+			settings.setProperty("run_id", "run1");
+			settings.setProperty("parameter.bin_ms", "60000");
+			csv.writeDetectionSettings("expA", "image_filter", settings);
+			csv.writeDetectionSettings("expA", "kymograph_strip", new java.util.Properties());
+		}
+		String preferences = read(folder.resolve("measure_spotgroup_pi_raw.csv"));
+		assertTrue(preferences.contains("expA,2,A__1,B__1,0.0,0,agg_sumclean,0.4,0.2,2,1,"));
+		assertTrue(preferences.contains("expA,2,A__1,B__1,1.0,1,agg_sumclean,0.4,,2,0,,"));
+		assertTrue(read(folder.resolve("detection_runs.csv")).contains("expA,kymograph_strip,,,,unavailable"));
+		assertTrue(read(folder.resolve("detection_parameters.csv")).contains("expA,run1,bin_ms,60000,ms"));
+	}
 
 	@Test
 	public void aggregateRenamesPreserveExportIdentifiers() {

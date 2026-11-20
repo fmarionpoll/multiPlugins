@@ -9,6 +9,7 @@ import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
@@ -221,7 +222,10 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 		String directory = exp.getDirectoryToSaveResults();
 		if (directory != null) {
 			exp.saveExperimentDescriptors();
-			exp.save_spots_description_and_measures();
+			if (exp.save_spots_description_and_measures()) {
+				SpotDetectionProvenance.recordCamera(exp, SpotDetectionProvenance.Family.FILTER_V5,
+						getClass().getSimpleName(), options);
+			}
 		}
 		final long tPostEnd = System.nanoTime();
 

@@ -9,6 +9,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.type.collection.array.Array1DUtil;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
 import plugins.fmp.multitools.experiment.ExperimentDirectories;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
@@ -154,6 +155,15 @@ public class AnalyzeSpotRims extends BuildSeries {
 			}
 			ensureKymoBinDirectory(exp);
 			lastSaved = exp.save_kymo_spot_measures();
+			if (lastSaved) {
+				SpotDetectionProvenance.recordKymograph(exp, SpotDetectionProvenance.Family.KYMO_RIM,
+						getClass().getSimpleName(), "initial_bins", analyzerParams.initialBins,
+						"smoothing_bins", analyzerParams.smoothBins, "mad_multiplier", analyzerParams.madMultiplier,
+						"insect_gate", analyzerParams.insectGate, "insect_transform", analyzerParams.insectTransform,
+						"insect_threshold", analyzerParams.insectThreshold, "insect_threshold_above",
+						analyzerParams.insectAbove, "rim_width_px", analyzerParams.rimWidthPx, "outer_px", analyzerParams.outerPx,
+						"floor_width_px", analyzerParams.floorWidthPx, "track_plate", analyzerParams.trackPlate);
+			}
 			if (!lastSaved) {
 				Logger.warn("AnalyzeSpotRims: ratios computed but SpotsMeasures.csv was not saved for "
 						+ exp.getResultsDirectory());

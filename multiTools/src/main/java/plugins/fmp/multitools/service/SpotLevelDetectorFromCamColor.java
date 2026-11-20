@@ -9,6 +9,7 @@ import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
 import icy.image.IcyBufferedImageCursor;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
@@ -186,7 +187,10 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 		String directory = exp.getDirectoryToSaveResults();
 		if (directory != null) {
 			exp.saveExperimentDescriptors();
-			exp.save_spots_description_and_measures();
+			if (exp.save_spots_description_and_measures()) {
+				SpotDetectionProvenance.recordCamera(exp, SpotDetectionProvenance.Family.COLOR,
+						getClass().getSimpleName(), options);
+			}
 		}
 		final long tPostEnd = System.nanoTime();
 

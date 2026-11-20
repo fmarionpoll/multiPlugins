@@ -142,7 +142,10 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 					ResultsOptions o = optionsFor(mode, current);
 					if (o.exportLayoutMode == ExportLayoutMode.NORMALIZED) {
 						Path folder = CsvNormalizedExportSupport.resolveCsvFolder(file);
-						CsvNormalizedSpotExport.exportToFolder(folder, o, mode);
+						CsvNormalizedSpotExport.Mode csvMode = mode == CsvNormalizedSpotExport.Mode.SPOTS
+								&& spotsAreasPanel.includeGroupsCheckBox.isSelected()
+										? CsvNormalizedSpotExport.Mode.SPOTS_WITH_GROUPS : mode;
+						CsvNormalizedSpotExport.exportToFolder(folder, o, csvMode);
 					} else if (mode == CsvNormalizedSpotExport.Mode.SPOTS) {
 						new XLSExportMeasuresFromSpot().exportToFile(file, o);
 					} else {
@@ -215,13 +218,14 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 //		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
 //		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
 //		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();
-		resultsOptions.relativeToMaximum = spotsAreasPanel.t0CheckBox.isSelected();
+		resultsOptions.relativeToMaximum = !excelOptionsPanel.isExportLayoutNormalized() && spotsAreasPanel.t0CheckBox.isSelected();
 		resultsOptions.onlyalive = spotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		resultsOptions.spotAggregateByStimulusConc = false;
 		resultsOptions.resultType = null;
-		resultsOptions.spotBaselineWindowMinutes = 2;
-		resultsOptions.spotBaselineStopWhenStable = false;
-		resultsOptions.spotBaselineStableBins = 3;
+		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner
+				.getValue()).intValue();
+		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreasPanel.stopWhenStableCheckBox.isSelected();
+		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreasPanel.stableBinsSpinner.getValue()).intValue();
 
 		getCommonOptions(resultsOptions, exp);
 
