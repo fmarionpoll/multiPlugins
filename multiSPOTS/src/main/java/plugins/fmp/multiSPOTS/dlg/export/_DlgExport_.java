@@ -69,6 +69,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		tabsPane.addTab("Aggregated spots", null, aggregatedSpotsAreasPanel,
 				"Export total estimated depletion by compound and concentration within each cage");
 		aggregatedSpotsAreasPanel.addPropertyChangeListener(this);
+		aggregatedSpotsAreasPanel.setCsvMode(excelOptionsPanel.isExportLayoutNormalized());
 
 		transferResultsPanel = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
 			@Override
@@ -112,11 +113,17 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 
 	@Override
 	public void propertyChange(PropertyChangeEvent evt) {
+		if (evt.getPropertyName().equals("EXPORT_LAYOUT_CHANGED")) {
+			aggregatedSpotsAreasPanel.setCsvMode(excelOptionsPanel.isExportLayoutNormalized());
+			return;
+		}
 		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 		if (exp == null)
 			return;
 
-		if (evt.getPropertyName().equals("EXPORT_SPOTSMEASURES")) {
+		if (evt.getPropertyName().equals("EXPORT_AGGREGATED_CSV_SPOTSMEASURES")) {
+			startExport(exp, "_spots_aggregate.xlsx", "measure_spotgroups", CsvNormalizedSpotExport.Mode.AGGREGATE_ALL);
+		} else if (evt.getPropertyName().equals("EXPORT_SPOTSMEASURES")) {
 			startExport(exp, "_spotsareas.xlsx", "measure_spots", CsvNormalizedSpotExport.Mode.SPOTS);
 		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES")) {
 			startExport(exp, "_spots_kymo_aggregate.xlsx", "measure_spotgroups_kymo",
@@ -162,7 +169,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE_KYMO) {
 			return getAggregatedKymoSpotsOptions(exp);
 		}
-		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE) {
+		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE || mode == CsvNormalizedSpotExport.Mode.AGGREGATE_ALL) {
 			return getAggregatedSpotsOptions(exp);
 		}
 		return getSpotsOptions(exp);

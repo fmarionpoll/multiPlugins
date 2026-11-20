@@ -61,6 +61,18 @@ public final class KymoSpotChartSupport {
 		return x;
 	}
 
+	private static double[] buildMeasureXAxisMinutes(Experiment exp, EnumResults type, int count) {
+		if (!plugins.fmp.multitools.experiment.spot.SpotLineSampling.usesCameraFrames(exp, type))
+			return buildKymoXAxisMinutes(exp, count);
+		ResultsOptions options = new ResultsOptions();
+		options.resultType = EnumResults.FILTER_GREY;
+		long[] times = plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline
+				.buildForSpotExport(exp, options).getFrameElapsedMsRelative();
+		double[] x = new double[count];
+		for (int i = 0; i < count; i++) x[i] = i < times.length ? times[i] / 60000.0 : Double.NaN;
+		return x;
+	}
+
 	/**
 	 * Camera frame under a kymograph chart click. {@code timeMinutes} is the chart
 	 * domain value, not a frame index.
@@ -68,6 +80,13 @@ public final class KymoSpotChartSupport {
 	public static int cameraFrameForChartMinute(Experiment exp, EnumResults resultType, double timeMinutes) {
 		if (exp == null || !(timeMinutes >= 0.0) || Double.isNaN(timeMinutes)) {
 			return -1;
+		}
+		if (plugins.fmp.multitools.experiment.spot.SpotLineSampling.usesCameraFrames(exp, resultType)) {
+			ResultsOptions camera = new ResultsOptions();
+			camera.resultType = EnumResults.FILTER_GREY;
+			long[] times = plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline
+					.buildForSpotExport(exp, camera).getFrameElapsedMsRelative();
+			return nearestFrame(times, times.length, Math.round(timeMinutes * 60000.0));
 		}
 		EnumResults spotType = persistedSpotMeasure(resultType);
 		int nBins = 0;
@@ -246,7 +265,7 @@ public final class KymoSpotChartSupport {
 			return dataset;
 		}
 		int nBins = maxKymoBinsForSpots(spots, rt);
-		double[] x = buildKymoXAxisMinutes(exp, nBins);
+		double[] x = buildMeasureXAxisMinutes(exp, rt, nBins);
 		for (int si = 0; si < spots.size(); si++) {
 			Spot spot = spots.get(si);
 			String key = SpotChartSeriesKeys.key(spot, si);
@@ -294,7 +313,7 @@ public final class KymoSpotChartSupport {
 				continue;
 			}
 			int nBins = maxKymoBinsForSpots(cageSpots, rt);
-			double[] x = buildKymoXAxisMinutes(exp, nBins);
+			double[] x = buildMeasureXAxisMinutes(exp, rt, nBins);
 			for (int si = 0; si < cageSpots.size(); si++) {
 				Spot spot = cageSpots.get(si);
 				String key = SpotChartSeriesKeys.key(spot, si);
@@ -319,7 +338,7 @@ public final class KymoSpotChartSupport {
 		if (nBins <= 0) {
 			return;
 		}
-		double[] x = buildKymoXAxisMinutes(exp, nBins);
+		double[] x = buildMeasureXAxisMinutes(exp, aggregateType, nBins);
 		List<CageSpotAggregateSeries> cached = cage.getSpotAggregates().getEntries();
 		if (cached != null && !cached.isEmpty() && cacheMatches(cached, aggregateType)) {
 			addCachedAggregates(cage, spots, x, cached, options, dataset);

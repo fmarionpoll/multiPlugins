@@ -51,7 +51,7 @@ import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 public final class CsvNormalizedSpotExport {
 
 	public enum Mode {
-		SPOTS, SPOTS_WITH_GROUPS, AGGREGATE, AGGREGATE_KYMO
+		SPOTS, SPOTS_WITH_GROUPS, AGGREGATE, AGGREGATE_KYMO, AGGREGATE_ALL
 	}
 
 	private CsvNormalizedSpotExport() {
@@ -63,6 +63,7 @@ public final class CsvNormalizedSpotExport {
 
 	/** Kymograph strip series and kymograph aggregates. Fly presence stays on the camera clock. */
 	public static boolean isKymoSeries(EnumResults resultType) {
+		if (plugins.fmp.multitools.experiment.spot.SpotLineSampling.isLineMeasure(resultType)) return false;
 		if (resultType == null || resultType == EnumResults.FLY_PIXEL_COUNT) {
 			return false;
 		}
@@ -107,17 +108,16 @@ public final class CsvNormalizedSpotExport {
 
 		boolean primary = useMode == Mode.SPOTS || useMode == Mode.SPOTS_WITH_GROUPS;
 		boolean withGroups = useMode == Mode.SPOTS_WITH_GROUPS;
+		boolean allGroups = withGroups || useMode == Mode.AGGREGATE_ALL;
 		List<String> cameraCols = new ArrayList<>();
 		List<String> kymoCols = new ArrayList<>();
 		if (primary) {
 			splitColumns(primaryTypes(), cameraCols, kymoCols);
 		}
 		boolean groupKymo = useMode == Mode.AGGREGATE_KYMO;
-		EnumResults[] cameraGroups = withGroups ? new EnumResults[] {
-				EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_FILTER_V5_DEPLETION, EnumResults.AGG_COLOR_DEPLETION,
-				EnumResults.AGG_FILTER_V5_PIXEL_SUM, EnumResults.AGG_COLOR_PIXEL_SUM }
+		EnumResults[] cameraGroups = allGroups ? allCameraAggregateTypes()
 				: primary ? new EnumResults[0] : aggregateTypes(options, useMode);
-		EnumResults[] kymoGroups = withGroups ? aggregateTypes(options, Mode.AGGREGATE_KYMO) : new EnumResults[0];
+		EnumResults[] kymoGroups = allGroups ? aggregateTypes(options, Mode.AGGREGATE_KYMO) : new EnumResults[0];
 
 		long binStepMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 60000L;
 		boolean writeBin = options.forceCsvBinGrid;
@@ -142,7 +142,7 @@ public final class CsvNormalizedSpotExport {
 				binStepMs, false);
 				CsvNormalizedSpotExportSupport spots = new CsvNormalizedSpotExportSupport(csvFolder, cameraCols, kymoCols,
 						aggregateColumns(cameraGroups), groupKymo, binStepMs, writeBin);
-				CsvNormalizedSpotExportSupport kymoGroupWriter = withGroups ? new CsvNormalizedSpotExportSupport(
+				CsvNormalizedSpotExportSupport kymoGroupWriter = allGroups ? new CsvNormalizedSpotExportSupport(
 						csvFolder, Collections.emptyList(), Collections.emptyList(), aggregateColumns(kymoGroups),
 						true, binStepMs, writeBin) : null) {
 			progress.setLength(Math.max(1, progressLen));
@@ -204,11 +204,16 @@ public final class CsvNormalizedSpotExport {
 
 	private static EnumResults[] aggregateTypes(ResultsOptions options, Mode mode) {
 		if (mode == Mode.AGGREGATE_KYMO) {
-			return new EnumResults[] { EnumResults.AGG_KYMO_HEIGHT_LOSS, EnumResults.AGG_KYMO_CROSS_LOSS,
-					EnumResults.AGG_KYMO_RIM_LOSS };
+			return new EnumResults[] { EnumResults.AGG_KYMO_HEIGHT_LOSS };
 		}
 		EnumResults rt = options.resultType != null ? options.resultType : EnumResults.AGG_FILTER_DEPLETION;
 		return new EnumResults[] { rt };
+	}
+
+	private static EnumResults[] allCameraAggregateTypes() {
+		return new EnumResults[] { EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_FILTER_V5_DEPLETION,
+				EnumResults.AGG_COLOR_DEPLETION, EnumResults.AGG_FILTER_V5_PIXEL_SUM, EnumResults.AGG_COLOR_PIXEL_SUM,
+				EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
 	}
 
 	private static void exportSpots(Experiment exp, ResultsOptions options, String charSeries,
@@ -259,7 +264,7 @@ public final class CsvNormalizedSpotExport {
 		}
 	}
 
-	private static void writeSpotFamily(Experiment exp, ResultsOptions options, CsvNormalizedSpotExportSupport csv,
+	static void writeSpotFamily(Experiment exp, ResultsOptions options, CsvNormalizedSpotExportSupport csv,
 			String expKey, Cage cage, int cageId, Spot spot, String spotId, List<EnumResults> types, boolean kymo,
 			boolean writeBin, long[] cameraTimes, KymoFrameIndexes kymoFrames) throws IOException {
 		Map<Long, NativeRow> raw = new TreeMap<>();
@@ -278,7 +283,7 @@ public final class CsvNormalizedSpotExport {
 					if (!inWindow(times[i], options) || !Double.isFinite(value)) {
 						continue;
 					}
-					Integer frameIndex = kymo ? kymoFrames.at(i, count) : Integer.valueOf(i);
+					Integer frameIndex = usesKymoGrid(exp, rt) ? kymoFrames.at(i, count) : Integer.valueOf(i);
 					raw.computeIfAbsent(times[i], k -> new NativeRow()).put(frameIndex, col, value);
 				}
 			}
@@ -378,7 +383,7 @@ public final class CsvNormalizedSpotExport {
 						}
 						mergeNativeGroup(acc.raw, col, s,
 								rawTimes(exp, options, rt, s.getMeasure().getCount(), cameraTimes), options, scale,
-								isKymoSeries(rt) ? kymoFrames : null);
+								usesKymoGrid(exp, rt) ? kymoFrames : null);
 						if (writeBin && grid != null) {
 							mergeBinned(acc.binned, col, s.getMeasure().getValuesResampledToExcelGrid(grid), grid,
 									scale);
@@ -551,14 +556,16 @@ public final class CsvNormalizedSpotExport {
 		if (n < 1) {
 			return new long[0];
 		}
-		if (isKymoSeries(resultType)) {
+		if (usesKymoGrid(exp, resultType)) {
 			long delta = exp != null ? exp.getKymoBin_ms() : 0L;
 			if (delta <= 0L) {
 				delta = 60000L;
 			}
 			long[] times = new long[n];
+			long origin = exp != null && plugins.fmp.multitools.experiment.spot.SpotLineSampling.isLineMeasure(resultType)
+					? Math.max(0, exp.getKymoFirst_ms()) : 0;
 			for (int i = 0; i < n; i++) {
-				times[i] = (long) i * delta;
+				times[i] = origin + (long) i * delta;
 			}
 			return times;
 		}
@@ -574,6 +581,12 @@ public final class CsvNormalizedSpotExport {
 			times[i] = (long) i * step;
 		}
 		return times;
+	}
+
+	private static boolean usesKymoGrid(Experiment exp, EnumResults type) {
+		if (plugins.fmp.multitools.experiment.spot.SpotLineSampling.isLineMeasure(type))
+			return !plugins.fmp.multitools.experiment.spot.SpotLineSampling.usesCameraFrames(exp, type);
+		return isKymoSeries(type);
 	}
 
 	private static long[] cameraFrameTimes(Experiment exp, ResultsOptions options) {

@@ -19,6 +19,11 @@ public class SpotMeasure {
 	private double factor;
 	private int measuredFromNSpots = 1;
 	private String name;
+	private boolean cameraSampled;
+
+	/** Explicit marker for X-line/rim runs made on every camera frame. */
+	public boolean isCameraSampled() { return cameraSampled; }
+	public void setCameraSampled(boolean value) { cameraSampled = value; }
 
 	private SpotLevel2D spotLevel2D = null;
 
@@ -42,6 +47,7 @@ public class SpotMeasure {
 		if (source == null) {
 			return;
 		}
+		cameraSampled = source.cameraSampled;
 		if (source.values != null && source.values.length > 0) {
 			this.values = Arrays.copyOf(source.values, source.values.length);
 		}
@@ -431,12 +437,13 @@ public class SpotMeasure {
 			return false;
 		SpotMeasure other = (SpotMeasure) obj;
 		return Objects.equals(name, other.name) && Double.compare(factor, other.factor) == 0
+				&& cameraSampled == other.cameraSampled
 				&& Arrays.equals(values, other.values) && Arrays.equals(isPresent, other.isPresent);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(name, factor, Arrays.hashCode(values), Arrays.hashCode(isPresent));
+		return Objects.hash(name, factor, cameraSampled, Arrays.hashCode(values), Arrays.hashCode(isPresent));
 	}
 
 	@Override
@@ -498,6 +505,7 @@ public class SpotMeasure {
 			sbf.append(values[i]);
 		}
 
+		if (cameraSampled) sbf.append(separator).append("sampling=camera");
 		return true;
 	}
 
@@ -565,7 +573,8 @@ public class SpotMeasure {
 		}
 
 		try {
-			int npoints = data.length - startAt;
+			cameraSampled = data[data.length - 1].equals("sampling=camera");
+			int npoints = data.length - startAt - (cameraSampled ? 1 : 0);
 			if (values == null || values.length != npoints)
 				values = new double[npoints];
 

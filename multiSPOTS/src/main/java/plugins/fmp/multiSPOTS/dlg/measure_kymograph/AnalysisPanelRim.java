@@ -294,7 +294,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 					+ " outline(s). SpotsMeasures.csv was not saved.");
 		} else {
 			statusLabel.setText(
-					"Done: " + cages + " cage(s), " + bins + " bin(s), " + outlines + " outline(s). Chart KYMO_RIM_RATIO.");
+					"Done: " + cages + " cage(s), " + bins + " camera frame(s), " + outlines + " outline(s). Chart RIM_LINE_RATIO.");
 		}
 		showRimsButton.setSelected(true);
 		refreshRims();

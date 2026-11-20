@@ -291,25 +291,25 @@ public enum EnumResults {
 			"Kymograph: cage mean of peak-normalized green height ratio across spots",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO"),
 	/**
-	 * Horizontal line through a row of spots: red-deficit integral divided by its
-	 * median over the initial window. Zero is the floor outside the circles.
+	 * X-shaped pair of diagonals through each spot: coverage above the surrounding
+	 * floor, divided by its median over the initial window.
 	 */
-	KYMO_CROSS_RATIO("KYMO_LINE_RATIO", "I / I0",
-			"Line: fraction of the cross above the floor, relative to the initial window",
+	KYMO_CROSS_RATIO("X_LINE_RATIO", "I / I0",
+			"X line: fraction of the cross above the floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT),
 	/**
 	 * Rim of the physical spot: fraction of the outline still above the outer
 	 * floor band, relative to the initial window.
 	 */
-	KYMO_RIM_RATIO("KYMO_RIM_RATIO", "I / I0",
+	KYMO_RIM_RATIO("RIM_LINE_RATIO", "I / I0",
 			"Rim: fraction of the outline above the outer floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_RIM_RATIO(), "KYMO_RIM_RATIO", PersistenceDomain.SPOT),
 	/**
 	 * Line analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_CROSS_RATIO)},
 	 * grouped by (stimulus, concentration) per cage.
 	 */
-	AGG_KYMO_CROSS_LOSS("AGG_LINE_CONSO", "Σ (1−I/I0)",
-			"Sum of per-spot cross-line signal loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
+	AGG_KYMO_CROSS_LOSS("AGG_X_LINE_CONSO", "Σ (1−I/I0)",
+			"Sum of per-spot X-line signal loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_LINE_CONSO"),
 	/**
 	 * Rim analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_RIM_RATIO)},
@@ -398,7 +398,7 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT_RATIO:
 			return "Green mask height relative to peak";
 		case KYMO_CROSS_RATIO:
-			return "Cross-line signal relative to initial baseline";
+			return "X-line signal relative to initial baseline";
 		case KYMO_RIM_RATIO:
 			return "Rim coverage relative to initial baseline";
 		case AGG_FILTER_DEPLETION:
@@ -414,7 +414,7 @@ public enum EnumResults {
 		case AGG_KYMO_HEIGHT_LOSS:
 			return "Total relative green-mask height loss";
 		case AGG_KYMO_CROSS_LOSS:
-			return "Total relative cross-line signal loss";
+			return "Total relative X-line signal loss";
 		case AGG_KYMO_RIM_LOSS:
 			return "Total relative rim coverage loss";
 		case CAGE_GREY_MEDIAN:
@@ -631,6 +631,14 @@ public enum EnumResults {
 			}
 		}
 		switch (abbr) {
+		case "KYMO_X_LINE_RATIO":
+			return KYMO_CROSS_RATIO;
+		case "KYMO_RIM_RATIO":
+			return KYMO_RIM_RATIO;
+		case "KYMO_LINE_RATIO":
+			return KYMO_CROSS_RATIO;
+		case "AGG_LINE_CONSO":
+			return AGG_KYMO_CROSS_LOSS;
 		case "KYMO_CHROMA_FRACT":
 			return KYMO_ROW_FRACTION;
 		case "KYMO_CHROMA_ABS_DELTA":

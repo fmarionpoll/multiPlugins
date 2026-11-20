@@ -23,7 +23,6 @@ import icy.sequence.Sequence;
 import icy.util.StringUtil;
 import plugins.fmp.multicafe.MultiCAFE;
 import plugins.fmp.multitools.canvas2D.Canvas2D_3Transforms;
-import plugins.fmp.multitools.experiment.capillaries.DetectionProvenanceSupport;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.DetectLevels;
@@ -41,10 +40,10 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 	private ImageTransformEnums[] transformPass1 = new ImageTransformEnums[] { //
 			ImageTransformEnums.R_RGB, ImageTransformEnums.G_RGB, ImageTransformEnums.B_RGB,
-			ImageTransformEnums.B_MINUS_MINRG, ImageTransformEnums.B_MINUS_MEANGREY_CTR,
-			ImageTransformEnums.R2MINUS_GB, ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG,
-			ImageTransformEnums.RGB, ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G,
-			ImageTransformEnums.RGMINUS_2B, ImageTransformEnums.RGB_DIFFS, //
+			ImageTransformEnums.B_MINUS_MINRG, ImageTransformEnums.B_MINUS_MEANGREY_CTR, ImageTransformEnums.R2MINUS_GB,
+			ImageTransformEnums.G2MINUS_RB, ImageTransformEnums.B2MINUS_RG, ImageTransformEnums.RGB,
+			ImageTransformEnums.GBMINUS_2R, ImageTransformEnums.RBMINUS_2G, ImageTransformEnums.RGMINUS_2B,
+			ImageTransformEnums.RGB_DIFFS, //
 			ImageTransformEnums.H_HSB, ImageTransformEnums.S_HSB, ImageTransformEnums.B_HSB };
 	public JComboBox<ImageTransformEnums> transformComboBox = new JComboBox<ImageTransformEnums>(transformPass1);
 	private JToggleButton viewButton = new JToggleButton("View");
@@ -98,7 +97,8 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		samplingPanel.add(new JLabel("expansion (%)"));
 		samplingPanel.add(expansionSpinner);
 		expansionSpinner.setEnabled(false);
-		expansionSpinner.setToolTipText("Total extra blue-line length, split equally between both ends (10% = 5% per end).");
+		expansionSpinner
+				.setToolTipText("Total extra blue-line length, split equally between both ends (10% = 5% per end).");
 		samplingComboBox.setToolTipText("Use the selected ROI geometry at each camera frame.");
 		samplingComboBox.addActionListener(e -> expansionSpinner.setEnabled(samplingComboBox.getSelectedIndex() == 2));
 

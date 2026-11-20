@@ -228,7 +228,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 			statusLabel.setText("Done: " + cages + " cage(s), " + bins
 					+ " bin(s). SpotsMeasures.csv was not saved (no kymograph bin).");
 		} else {
-			statusLabel.setText("Done: " + cages + " cage(s), " + bins + " bin(s). Chart KYMO_LINE_RATIO.");
+			statusLabel.setText("Done: " + cages + " cage(s), " + bins + " camera frame(s). Chart X_LINE_RATIO.");
 		}
 		pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
 	}

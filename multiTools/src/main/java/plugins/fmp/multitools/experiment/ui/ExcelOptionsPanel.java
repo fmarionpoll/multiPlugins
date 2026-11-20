@@ -165,7 +165,10 @@ public class ExcelOptionsPanel extends JPanel {
 			collateSeriesCheckBox.addActionListener(event -> padIntervalsCheckBox.setEnabled(collateSeriesCheckBox.isSelected()));
 		}
 
-		ActionListener layoutListener = e -> updateForceCsvBinEnabled();;
+		ActionListener layoutListener = e -> {
+			updateForceCsvBinEnabled();
+			firePropertyChange("EXPORT_LAYOUT_CHANGED", false, true);
+		};
 		layoutNormalizedButton.addActionListener(layoutListener);
 		layoutWideButton.addActionListener(layoutListener);
 

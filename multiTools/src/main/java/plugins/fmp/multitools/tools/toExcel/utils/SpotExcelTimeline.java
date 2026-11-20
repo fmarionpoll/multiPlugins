@@ -79,7 +79,10 @@ public final class SpotExcelTimeline {
 	}
 
 	public static SpotExcelGrid buildForSpotExport(Experiment exp, ResultsOptions opt) {
-		if (opt != null && opt.resultType != null && opt.resultType.isPersistedKymographSpotMeasure()) {
+		EnumResults source = opt == null ? null : plugins.fmp.multitools.experiment.spot.SpotLineSampling.source(opt.resultType);
+		if (source == EnumResults.AGG_KYMO_HEIGHT_LOSS) source = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+		if (source != null && source.isPersistedKymographSpotMeasure()
+				&& !plugins.fmp.multitools.experiment.spot.SpotLineSampling.usesCameraFrames(exp, source)) {
 			return buildForKymoSpotExport(exp, opt);
 		}
 		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getImageLoader() == null) {
@@ -151,6 +154,8 @@ public final class SpotExcelTimeline {
 		int nativeBins = 0;
 		if (exp != null && exp.getSpots() != null) {
 			EnumResults rt = opt != null ? opt.resultType : EnumResults.KYMO_GREEN_HEIGHT_RATIO;
+			rt = plugins.fmp.multitools.experiment.spot.SpotLineSampling.source(rt);
+			if (rt == EnumResults.AGG_KYMO_HEIGHT_LOSS) rt = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
 			for (Spot spot : exp.getSpots().getSpotList()) {
 				if (spot == null) {
 					continue;
@@ -165,11 +170,16 @@ public final class SpotExcelTimeline {
 			nativeBins = 1;
 		}
 		long[] t = new long[nativeBins];
+		long nativeStep = exp != null ? exp.getKymoBin_ms() : delta;
+		if (nativeStep <= 0) nativeStep = 60_000L;
+		long origin = exp != null && opt != null
+				&& plugins.fmp.multitools.experiment.spot.SpotLineSampling.isLineMeasure(opt.resultType)
+				? Math.max(0, exp.getKymoFirst_ms()) : 0;
 		for (int j = 0; j < nativeBins; j++) {
-			t[j] = (long) j * delta;
+			t[j] = origin + (long) j * nativeStep;
 		}
 		long tLast = t[nativeBins - 1];
-		long lo = 0L;
+		long lo = origin;
 		long hi = tLast;
 		if (opt != null && opt.fixedIntervals) {
 			lo = clampMs(opt.startAll_Ms, 0L, tLast);

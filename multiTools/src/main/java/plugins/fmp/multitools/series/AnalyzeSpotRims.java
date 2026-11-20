@@ -156,7 +156,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			ensureKymoBinDirectory(exp);
 			lastSaved = exp.save_kymo_spot_measures();
 			if (lastSaved) {
-				SpotDetectionProvenance.recordKymograph(exp, SpotDetectionProvenance.Family.KYMO_RIM,
+				SpotDetectionProvenance.recordCameraLine(exp, SpotDetectionProvenance.Family.KYMO_RIM,
 						getClass().getSimpleName(), "initial_bins", analyzerParams.initialBins,
 						"smoothing_bins", analyzerParams.smoothBins, "mad_multiplier", analyzerParams.madMultiplier,
 						"insect_gate", analyzerParams.insectGate, "insect_transform", analyzerParams.insectTransform,
@@ -519,47 +519,9 @@ public class AnalyzeSpotRims extends BuildSeries {
 	}
 
 	static List<Integer> binFrames(Experiment exp) {
-		SequenceCamData seq = exp.getSeqCamData();
-		int nTotal = seq.getImageLoader().getNTotalFrames();
-		long[] cam = exp.getCamImages_ms();
-		long first = exp.getKymoFirst_ms();
-		long last = exp.getKymoLast_ms();
-		long step = exp.getKymoBin_ms();
-		if (step <= 0) {
-			step = 60_000L;
-		}
-		List<Integer> frames = new ArrayList<>();
-		if (last > first && cam != null && nTotal > 0) {
-			int previous = -1;
-			for (long t = first; t <= last; t += step) {
-				int idx = closestFrame(cam, nTotal, t);
-				if (idx >= 0 && idx != previous) {
-					frames.add(idx);
-					previous = idx;
-				}
-			}
-		}
-		if (frames.isEmpty()) {
-			for (int i = 0; i < nTotal; i++) {
-				frames.add(i);
-			}
-		}
-		return frames;
+		return plugins.fmp.multitools.experiment.spot.SpotLineSampling.cameraFrames(exp);
 	}
 
-	private static int closestFrame(long[] camMs, int nTotal, long t) {
-		int n = Math.min(nTotal, camMs.length);
-		int best = -1;
-		long bestDist = Long.MAX_VALUE;
-		for (int i = 0; i < n; i++) {
-			long dist = Math.abs(camMs[i] - t);
-			if (dist < bestDist) {
-				bestDist = dist;
-				best = i;
-			}
-		}
-		return best;
-	}
 
 	private static void copyDoubles(SpotMeasure measure, double[] src) {
 		if (measure == null) {
@@ -570,6 +532,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			return;
 		}
 		measure.setValues(src.clone());
+		measure.setCameraSampled(true);
 	}
 
 	private static final class PlateTrack {

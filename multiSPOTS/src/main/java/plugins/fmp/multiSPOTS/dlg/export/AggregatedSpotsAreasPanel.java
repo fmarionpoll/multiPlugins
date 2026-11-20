@@ -11,14 +11,15 @@ import javax.swing.JSpinner;
 import javax.swing.SpinnerNumberModel;
 
 /**
- * Excel export for cage-level spot series aggregated by (stimulus,
- * concentration) — AGG_FILTER_DEPLETION.
+ * Excel and CSV export for spot series grouped by stimulus and concentration
+ * within each cage.
  */
 public class AggregatedSpotsAreasPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	JButton exportAggregatedButton = new JButton("Save filter depletion XLS");
 	JButton exportKymoAggButton = new JButton("Save kymograph height loss XLS");
+	JButton exportCsvButton = new JButton("Save CSV");
 	JSpinner baselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
 	JCheckBox stopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
 	JSpinner stableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
@@ -48,13 +49,25 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 		exportKymoAggButton.setToolTipText("Group spots by compound and concentration within each cage.");
 		panel2.add(exportAggregatedButton);
 		panel2.add(exportKymoAggButton);
+		exportCsvButton.setToolTipText("Save all grouped aggregates: filter, V5, color, green height, X-line and rim, with SUM, PI and PInorm.");
+		panel2.add(exportCsvButton);
 		add(panel2);
 		defineActionListeners();
+		setCsvMode(false);
+	}
+
+	void setCsvMode(boolean csv) {
+		exportAggregatedButton.setEnabled(!csv);
+		exportKymoAggButton.setEnabled(!csv);
+		exportCsvButton.setVisible(csv);
+		stableBinsSpinner.setEnabled(stopWhenStableCheckBox.isSelected());
 	}
 
 	private void defineActionListeners() {
 
 		exportAggregatedButton.addActionListener(e -> firePropertyChange("EXPORT_AGGREGATED_SPOTSMEASURES", false, true));
 		exportKymoAggButton.addActionListener(e -> firePropertyChange("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES", false, true));
+		exportCsvButton.addActionListener(e -> firePropertyChange("EXPORT_AGGREGATED_CSV_SPOTSMEASURES", false, true));
+		stopWhenStableCheckBox.addActionListener(e -> stableBinsSpinner.setEnabled(stopWhenStableCheckBox.isSelected()));
 	}
 }

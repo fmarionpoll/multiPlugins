@@ -129,7 +129,15 @@ public class CsvNormalizedSpotExportTest {
 		assertAggregateIdentifier(EnumResults.AGG_FILTER_V5_PIXEL_SUM, "AGG_AREA_COUNT_V5");
 		assertAggregateIdentifier(EnumResults.AGG_COLOR_PIXEL_SUM, "AGG_AREA_COUNT_COLOR");
 		assertAggregateIdentifier(EnumResults.AGG_KYMO_HEIGHT_LOSS, "AGG_GREENHEIGHT_CONSO");
-		assertAggregateIdentifier(EnumResults.AGG_KYMO_CROSS_LOSS, "AGG_LINE_CONSO");
+		assertEquals("agg_x_line_conso", CsvNormalizedSpotExport.columnName(EnumResults.AGG_KYMO_CROSS_LOSS));
+		assertEquals("x_line_ratio", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_CROSS_RATIO));
+		assertEquals("rim_line_ratio", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_RIM_RATIO));
+		assertEquals("AGG_LINE_CONSO", EnumResults.AGG_KYMO_CROSS_LOSS.toPersistenceKey());
+		assertEquals("KYMO_LINE_RATIO", EnumResults.KYMO_CROSS_RATIO.toPersistenceKey());
+		assertEquals(EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.findByPersistenceKey("AGG_LINE_CONSO"));
+		assertEquals(EnumResults.KYMO_CROSS_RATIO, EnumResults.findByPersistenceKey("KYMO_LINE_RATIO"));
+		assertEquals(EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.findByText("AGG_LINE_CONSO"));
+		assertEquals(EnumResults.KYMO_CROSS_RATIO, EnumResults.findByText("KYMO_LINE_RATIO"));
 		assertAggregateIdentifier(EnumResults.AGG_KYMO_RIM_LOSS, "AGG_RIM");
 		assertAggregateIdentifier(EnumResults.CAGE_GREY_MEDIAN, "AGG_MEDIANREF");
 	}

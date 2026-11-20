@@ -103,6 +103,16 @@ public final class SpotDetectionProvenance {
 		save(experiment, family, settings);
 	}
 
+	public static void recordCameraLine(Experiment experiment, Family family, String method, Object... parameters) {
+		Properties settings = new Properties();
+		put(settings, "sampling", "camera_frames", "first_ms", 0, "last_ms",
+				Math.max(0, experiment.getCamImageLast_ms() - experiment.getCamImageFirst_ms()),
+				"bin_ms", experiment.getCamImageBin_ms(), "subsample_factor", 1);
+		put(settings, parameters);
+		addRunMetadata(settings, method);
+		save(experiment, family, settings);
+	}
+
 	private static void put(Properties settings, Object... parameters) {
 		for (int i = 0; i < parameters.length; i += 2) {
 			Object value = parameters[i + 1];
