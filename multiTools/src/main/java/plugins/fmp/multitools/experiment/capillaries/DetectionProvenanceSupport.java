@@ -89,6 +89,9 @@ public final class DetectionProvenanceSupport {
 			return;
 		}
 		dest.levelTracking = src.levelTracking;
+		dest.directSampling = src.directSampling;
+		dest.directBlueExpansionRatio = src.directBlueExpansionRatio;
+		dest.profilePerpendicular = src.profilePerpendicular;
 		dest.levelSmoothing = src.levelSmoothing;
 		dest.levelV2 = src.levelV2.copy();
 		dest.pass1 = src.pass1;
@@ -116,13 +119,14 @@ public final class DetectionProvenanceSupport {
 		plugins.fmp.multitools.series.options.LevelDetectV2Options v = o.levelV2;
 		return "levels:" + o.levelTracking + "|" + o.levelSmoothing + "|" + o.detectBottom + "|"
 				+ v.removeHorizontalAverage + "|" + v.tapePrepass + "|" + v.runBackwards + "|"
-				+ v.edgePeak + "|" + v.trackUp + "|" + v.trackDown + "|" + v.medianWindow + "|" + v.maxSpikePx;
+				+ v.edgePeak + "|" + v.trackUp + "|" + v.trackDown + "|" + v.medianWindow + "|" + v.maxSpikePx
+				+ "|" + o.directSampling.name() + "|" + o.directBlueExpansionRatio + "|" + o.profilePerpendicular;
 	}
 
 	public static void importUnifiedLevelRecipe(BuildSeriesOptions o, String value) {
 		if (value == null || !value.startsWith("levels:")) return;
 		String[] f = value.substring(7).split("\\|", -1);
-		if (f.length != 11) return;
+		if (f.length != 11 && f.length != 14) return;
 		try {
 			plugins.fmp.multitools.series.options.LevelDetectV2Options v = o.levelV2.copy();
 			v.removeHorizontalAverage = Boolean.parseBoolean(f[3]);
@@ -137,7 +141,12 @@ public final class DetectionProvenanceSupport {
 			o.levelSmoothing = Boolean.parseBoolean(f[1]);
 			o.detectBottom = Boolean.parseBoolean(f[2]);
 			o.levelV2 = v;
-		} catch (NumberFormatException ignored) { /* Keep the existing recipe on malformed rows. */ }
+			if (f.length == 14) {
+				o.directSampling = BuildSeriesOptions.DirectSampling.valueOf(f[11]);
+				o.directBlueExpansionRatio = Double.parseDouble(f[12]);
+				o.profilePerpendicular = Boolean.parseBoolean(f[13]);
+			}
+		} catch (IllegalArgumentException ignored) { /* Ignore malformed optional settings. */ }
 	}
 
 	public static void copyGulpRecipeTo(BuildSeriesOptions dest, BuildSeriesOptions src) {

@@ -4,10 +4,13 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import icy.image.IcyBufferedImage;
+import icy.roi.ROI2D;
 import icy.system.SystemUtil;
 import icy.system.thread.Processor;
 import icy.type.DataType;
@@ -18,15 +21,13 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Comparators;
-import plugins.fmp.multitools.tools.Logger;
-import plugins.fmp.multitools.tools.ROI2D.AlongT;
 import plugins.fmp.multitools.tools.imageTransform.CanvasImageTransformOptions;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
  * Detects capillary liquid levels directly from cam images (no kymograph). For
  * each time bin, loads the cam frame, extracts a 1D profile along each
- * capillary ROI, applies pass1/pass2 transforms and transition detection, and
+	 * capillary ROI, applies the selected transform and transition detection, and
  * stores the same polylineLevel format as LevelDetector.
  */
 public class LevelDetectorFromCam {
@@ -84,8 +85,20 @@ public class LevelDetectorFromCam {
 		final List<Capillary> toProcess = built;
 		if (toProcess.isEmpty())
 			return;
+		int[] cameraFrames = new int[nTimeBins];
+		for (int t = 0; t < nTimeBins; t++) {
+			cameraFrames[t] = exp.findNearestIntervalWithBinarySearch(firstMs + t * stepMs, 0, nCamFrames - 1);
+			// Validate blue geometry before replacing any measurements.
+			for (Capillary cap : toProcess)
+				DirectCapillarySampling.roiAt(cap, cameraFrames[t], options);
+		}
+		Map<Capillary, double[]> pixelSteps = new HashMap<>();
+		Map<Capillary, double[]> originOffsets = new HashMap<>();
 
 		for (Capillary cap : toProcess) {
+			cap.clearKymoMeasuresOnly();
+			pixelSteps.put(cap, new double[nTimeBins]);
+			originOffsets.put(cap, new double[nTimeBins]);
 			DetectionProvenanceSupport.copyLevelRecipeTo(cap.getProperties().getLimitsOptions(), options);
 			cap.getTopRaw().limit = new int[nTimeBins];
 			cap.getBottomRaw().limit = new int[nTimeBins];
@@ -95,55 +108,65 @@ public class LevelDetectorFromCam {
 		ImageTransformInterface transformPass1 = options.transform01.getFunction();
 
 		int diskRadius = Math.max(0, options.diskRadius);
-		LevelDetectorFromKymo levelDetector = new LevelDetectorFromKymo();
 
 		Processor processor = new Processor(SystemUtil.getNumberOfCPUs());
 		processor.setThreadName("detectlevel-cam");
 		processor.setPriority(Processor.NORM_PRIORITY);
 		ArrayList<Future<?>> futures = new ArrayList<>();
 
-		for (int t = 0; t < nTimeBins; t++) {
-			long timeMs = firstMs + t * stepMs;
-			final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
-			if (camFrameIndex < 0 || camFrameIndex >= nCamFrames)
-				continue;
+		try {
+			for (int t = 0; t < nTimeBins; t++) {
+				final int camFrameIndex = cameraFrames[t];
+				if (camFrameIndex < 0 || camFrameIndex >= nCamFrames)
+					continue;
 
-			String path = exp.getSeqCamData().getFileNameFromImageList(camFrameIndex);
-			final IcyBufferedImage camImage = loader.imageIORead(path);
-			if (camImage == null)
-				continue;
+				String path = exp.getSeqCamData().getFileNameFromImageList(camFrameIndex);
+				final IcyBufferedImage camImage = loader.imageIORead(path);
+				if (camImage == null)
+					continue;
 
-			final int timeIndex = t;
-			final int camW = camImage.getSizeX();
-			final int camH = camImage.getSizeY();
+				final int timeIndex = t;
+				final int camW = camImage.getSizeX();
+				final int camH = camImage.getSizeY();
 
-			futures.add(processor.submit(() -> {
-				for (int capIdx = 0; capIdx < toProcess.size(); capIdx++) {
-					Capillary cap = toProcess.get(capIdx);
-					AlongT at = cap.getAlongTAtT(camFrameIndex);
-					if (at == null || at.getRoi() == null)
-						continue;
-					List<ArrayList<int[]>> masks = options.profilePerpendicular
-							? CapillaryProfileExtractor.buildMasksAlongRoiPerpendicular(at.getRoi(), camW, camH,
-									diskRadius)
-							: CapillaryProfileExtractor.buildMasksAlongRoi(at.getRoi(), camW, camH, diskRadius);
-					if (masks.isEmpty())
-						continue;
-					int[][] rgbProfile = CapillaryProfileExtractor.extractRgbProfileFromMasks(camImage, masks);
-					if (rgbProfile == null || rgbProfile[0].length == 0)
-						continue;
+				futures.add(processor.submit(() -> {
+					for (int capIdx = 0; capIdx < toProcess.size(); capIdx++) {
+						Capillary cap = toProcess.get(capIdx);
+						ROI2D samplingRoi = DirectCapillarySampling.roiAt(cap, camFrameIndex, options);
+						if (samplingRoi == null)
+							continue;
+						List<ArrayList<int[]>> masks = options.profilePerpendicular
+								? CapillaryProfileExtractor.buildMasksAlongRoiPerpendicular(samplingRoi, camW, camH,
+										diskRadius)
+								: CapillaryProfileExtractor.buildMasksAlongRoi(samplingRoi, camW, camH, diskRadius);
+						if (masks.isEmpty())
+							continue;
+						int[][] rgbProfile = CapillaryProfileExtractor.extractRgbProfileFromMasks(camImage, masks);
+						if (rgbProfile == null || rgbProfile[0].length == 0)
+							continue;
 
-					IcyBufferedImage thinImage = rgbProfileToImage(rgbProfile);
-					int profileLen = rgbProfile[0].length;
-					Rectangle searchRect = new Rectangle(0, 0, 1, profileLen);
-					detectPass1OneColumn(thinImage, transformPass1, cap, profileLen, searchRect, timeIndex, options,
-							levelDetector);
+						IcyBufferedImage thinImage = rgbProfileToImage(rgbProfile);
+						int profileLen = rgbProfile[0].length;
+						pixelSteps.get(cap)[timeIndex] = DirectCapillarySampling.pixelStep(samplingRoi, profileLen, options);
+						originOffsets.get(cap)[timeIndex] = DirectCapillarySampling.originOffset(samplingRoi, options);
+						int previousLevel = timeIndex > 0 ? cap.getTopRaw().limit[timeIndex - 1] : 0;
+						if (timeIndex > 0 && options.directSampling != BuildSeriesOptions.DirectSampling.GREEN) {
+							double previousStep = pixelSteps.get(cap)[timeIndex - 1];
+							double nativeLevel = previousLevel * previousStep - originOffsets.get(cap)[timeIndex - 1];
+							previousLevel = previousStep > 0 ? (int) Math.round((nativeLevel
+									+ originOffsets.get(cap)[timeIndex]) / pixelSteps.get(cap)[timeIndex]) : 0;
+						}
+						Rectangle searchRect = new Rectangle(0, 0, 1, profileLen);
+						detectPass1OneColumn(thinImage, transformPass1, cap, profileLen, searchRect, timeIndex, options,
+								previousLevel);
 
-				}
-			}));
-		}
-
-		waitFutures(processor, futures);
+					}
+				}));
+				// Detection uses the preceding frame's level: finish it before advancing.
+				waitFutures(futures);
+				futures.clear();
+			}
+		} finally { processor.shutdown(); }
 
 		int columnFirst = 0;
 		int columnLast = nTimeBins - 1;
@@ -159,10 +182,22 @@ public class LevelDetectorFromCam {
 			}
 			cap.getTopRaw().limit = null;
 			cap.getBottomRaw().limit = null;
+			if (options.directSampling != BuildSeriesOptions.DirectSampling.GREEN) {
+				for (int t = 0; t < nTimeBins; t++) {
+					double scale = pixelSteps.get(cap)[t];
+					double offset = originOffsets.get(cap)[t];
+					cap.getTopRaw().polylineLevel.ypoints[t] = scale > 0
+							? cap.getTopRaw().polylineLevel.ypoints[t] * scale - offset : Double.NaN;
+					cap.getBottomRaw().polylineLevel.ypoints[t] = scale > 0
+							? cap.getBottomRaw().polylineLevel.ypoints[t] * scale - offset : Double.NaN;
+				}
+			}
 		}
 
 		exp.save_capillaries_description_and_measures();
 		exp.saveMCCapillaries_Only();
+		exp.applyLevelDetectionDefaultsFrom(options);
+		exp.saveExperimentDescriptors();
 	}
 
 	private static List<Capillary> buildCapillariesToProcess(Capillaries capillaries, BuildSeriesOptions options) {
@@ -197,7 +232,7 @@ public class LevelDetectorFromCam {
 
 	private static void detectPass1OneColumn(IcyBufferedImage thinImage, ImageTransformInterface transformPass1,
 			Capillary capi, int profileLen, Rectangle searchRect, int timeIndex, BuildSeriesOptions options,
-			LevelDetectorFromKymo levelDetector) {
+			int topSearchFrom) {
 		CanvasImageTransformOptions transformOptions = new CanvasImageTransformOptions();
 		IcyBufferedImage transformed = transformPass1.getTransformedImage(thinImage, transformOptions);
 		Object data = transformed.getDataXY(0);
@@ -206,7 +241,6 @@ public class LevelDetectorFromCam {
 		int imageWidth = 1;
 		int imageHeight = profileLen;
 		int ix = 0;
-		int topSearchFrom = timeIndex > 0 ? capi.getTopRaw().limit[timeIndex - 1] : 0;
 		int iyTop = detectThresholdFromTop(ix, topSearchFrom, JITTER_PASS1, arr, imageWidth, imageHeight, options,
 				searchRect);
 		int iyBottom = detectThresholdFromBottom(ix, JITTER_PASS1, arr, imageWidth, imageHeight, options, searchRect);
@@ -248,14 +282,16 @@ public class LevelDetectorFromCam {
 		return y;
 	}
 
-	private static void waitFutures(Processor processor, ArrayList<Future<?>> futures) {
+	private static void waitFutures(ArrayList<Future<?>> futures) {
 		for (Future<?> f : futures) {
 			try {
 				f.get();
-			} catch (ExecutionException | InterruptedException e) {
-				Logger.error("LevelDetectorFromCam:waitFutures", e);
+			} catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+				throw new IllegalStateException("Direct detection interrupted", e);
+			} catch (ExecutionException e) {
+				throw new IllegalStateException("Direct detection failed", e.getCause());
 			}
 		}
-		processor.shutdown();
 	}
 }

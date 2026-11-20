@@ -54,6 +54,9 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 	private String detectString = "        Detect     ";
 	private JButton detectButton = new JButton(detectString);
 	private JCheckBox profilePerpendicularCheckBox = new JCheckBox("profile perpendicular to capillary", true);
+	private final JComboBox<String> samplingComboBox = new JComboBox<>(
+			new String[] { "Green corridor", "Blue line", "Expanded blue line" });
+	private final JSpinner expansionSpinner = new JSpinner(new SpinnerNumberModel(10.0, 0.0, 50.0, 1.0));
 
 	private JCheckBox allCheckBox = new JCheckBox("ALL (current to last)", false);
 	private JCheckBox leftCheckBox = new JCheckBox("L", true);
@@ -89,10 +92,20 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 
 		JPanel panel02 = new JPanel(layoutLeft);
 		panel02.add(profilePerpendicularCheckBox);
+		JPanel samplingPanel = new JPanel(layoutLeft);
+		samplingPanel.add(new JLabel("Sample along"));
+		samplingPanel.add(samplingComboBox);
+		samplingPanel.add(new JLabel("expansion (%)"));
+		samplingPanel.add(expansionSpinner);
+		expansionSpinner.setEnabled(false);
+		expansionSpinner.setToolTipText("Total extra blue-line length, split equally between both ends (10% = 5% per end).");
+		samplingComboBox.setToolTipText("Use the selected ROI geometry at each camera frame.");
+		samplingComboBox.addActionListener(e -> expansionSpinner.setEnabled(samplingComboBox.getSelectedIndex() == 2));
 
 		add(panel0);
 		add(panel01);
 		add(panel02);
+		add(samplingPanel);
 
 		transformComboBox.setSelectedItem(ImageTransformEnums.GBMINUS_2R);
 		defineListeners();
@@ -205,6 +218,8 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 			leftCheckBox.setSelected(options.detectL);
 			rightCheckBox.setSelected(options.detectR);
 			profilePerpendicularCheckBox.setSelected(options.profilePerpendicular);
+			samplingComboBox.setSelectedIndex(options.directSampling.ordinal());
+			expansionSpinner.setValue(options.directBlueExpansionRatio * 100.0);
 		} finally {
 			suppressDisplayUpdate = false;
 		}
@@ -230,6 +245,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		options.detectL = leftCheckBox.isSelected();
 		options.detectR = rightCheckBox.isSelected();
 		options.profilePerpendicular = profilePerpendicularCheckBox.isSelected();
+		setSamplingOptions(options);
 	}
 
 	private BuildSeriesOptions initBuildParameters(Experiment exp) {
@@ -264,6 +280,7 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		options.runBackwards = false;
 		options.profilePerpendicular = profilePerpendicularCheckBox.isSelected();
 		options.sourceCamDirect = true;
+		setSamplingOptions(options);
 		options.detectTop = true;
 		options.detectBottom = true;
 		options.transformBottom = options.transform01;
@@ -271,6 +288,11 @@ public class DetectLevelsDlgFromCam extends JPanel implements PropertyChangeList
 		options.detectLevelBottomThreshold = options.detectLevel1Threshold;
 		options.bottomSearchFromBottomPx = 0;
 		return options;
+	}
+
+	private void setSamplingOptions(BuildSeriesOptions options) {
+		options.directSampling = BuildSeriesOptions.DirectSampling.values()[samplingComboBox.getSelectedIndex()];
+		options.directBlueExpansionRatio = ((Number) expansionSpinner.getValue()).doubleValue() / 100.0;
 	}
 
 	void startLevelsDetection() {

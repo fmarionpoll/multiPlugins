@@ -55,6 +55,10 @@ public class BuildSeriesOptions implements XMLPersistent {
 	}
 
 	public boolean isFrameFixed = false;
+	public enum DirectSampling { GREEN, BLUE, EXPANDED_BLUE }
+	public DirectSampling directSampling = DirectSampling.GREEN;
+	/** Total extra length, split equally between both ends of the blue line. */
+	public double directBlueExpansionRatio = 0.10;
 	public long t_Ms_First = 0;
 	public long t_Ms_Last = 0;
 	public long t_Ms_BinDuration = 1;
@@ -591,6 +595,11 @@ public class BuildSeriesOptions implements XMLPersistent {
 		detectLevel1Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel1Threshold", detectLevel1Threshold);
 		detectLevel2Threshold = XMLUtil.getElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
 		levelTracking = XMLUtil.getElementBooleanValue(nodeMeta, "levelTracking", false);
+		try {
+			directSampling = DirectSampling.valueOf(XMLUtil.getElementValue(nodeMeta, "directSampling", "GREEN"));
+		} catch (IllegalArgumentException e) { directSampling = DirectSampling.GREEN; }
+		directBlueExpansionRatio = XMLUtil.getElementDoubleValue(nodeMeta, "directBlueExpansionRatio", 0.10);
+		profilePerpendicular = XMLUtil.getElementBooleanValue(nodeMeta, "profilePerpendicular", profilePerpendicular);
 		levelSmoothing = XMLUtil.getElementBooleanValue(nodeMeta, "levelSmoothing", false);
 		levelV2.removeHorizontalAverage = XMLUtil.getElementBooleanValue(nodeMeta, "levelV2_removeHorizontalAverage",
 				levelV2.removeHorizontalAverage);
@@ -700,6 +709,9 @@ public class BuildSeriesOptions implements XMLPersistent {
 		XMLUtil.setElementIntValue(nodeMeta, "detectLevel1Threshold", detectLevel1Threshold);
 		XMLUtil.setElementIntValue(nodeMeta, "detectLevel2Threshold", detectLevel2Threshold);
 		XMLUtil.setElementBooleanValue(nodeMeta, "levelTracking", levelTracking);
+		XMLUtil.setElementValue(nodeMeta, "directSampling", directSampling.name());
+		XMLUtil.setElementDoubleValue(nodeMeta, "directBlueExpansionRatio", directBlueExpansionRatio);
+		XMLUtil.setElementBooleanValue(nodeMeta, "profilePerpendicular", profilePerpendicular);
 		XMLUtil.setElementBooleanValue(nodeMeta, "levelSmoothing", levelSmoothing);
 		XMLUtil.setElementBooleanValue(nodeMeta, "levelV2_removeHorizontalAverage", levelV2.removeHorizontalAverage);
 		XMLUtil.setElementBooleanValue(nodeMeta, "levelV2_tapePrepass", levelV2.tapePrepass);

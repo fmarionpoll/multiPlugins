@@ -14,10 +14,7 @@ public class DetectLevels extends BuildSeries {
 		if (options.sourceCamDirect) {
 			exp.xmlLoad_MCExperiment();
 			exp.load_capillaries_description_and_measures();
-			// Direct-from-cam detection now writes standard TOPLEVEL/BOTTOMLEVEL measures.
-			// Clear existing kymograph-based measures so results are fully replaced.
-			exp.getCapillaries().clearKymoMeasuresOnly(-1, -1, options.detectL, options.detectR, options.detectTop,
-					options.detectBottom);
+			// The detector validates sampling geometry before replacing the selected capillaries.
 			exp.getSeqCamData().loadImages();
 			exp.getFileIntervalsFromSeqCamData();
 			exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(exp.getSeqCamData().getFirstImageMs());
