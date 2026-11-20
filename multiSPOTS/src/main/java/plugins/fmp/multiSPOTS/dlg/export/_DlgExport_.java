@@ -13,6 +13,7 @@ import java.time.format.DateTimeFormatter;
 
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
 
 import icy.gui.component.PopupPanel;
 import icy.system.thread.ThreadUtil;
@@ -22,8 +23,8 @@ import plugins.fmp.multitools.experiment.ui.ExcelOptionsPanel;
 import plugins.fmp.multitools.experiment.ui.TransferResultsHost;
 import plugins.fmp.multitools.experiment.ui.TransferResultsPanel;
 import plugins.fmp.multitools.tools.JComponents.Dialog;
+import plugins.fmp.multitools.tools.JComponents.SelectedTabHeightPane;
 import plugins.fmp.multitools.tools.JComponents.exceptions.FileDialogException;
-import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpot;
 import plugins.fmp.multitools.tools.toExcel.XLSExportMeasuresFromSpotAggregatedByStimulusConc;
@@ -38,7 +39,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	 */
 	private static final long serialVersionUID = -4296207607692017074L;
 	public PopupPanel capPopupPanel = null;
-	private JTabbedPane tabsPane = new JTabbedPane();
+	private JTabbedPane tabsPane = new SelectedTabHeightPane();
 	public ExcelOptionsPanel excelOptionsPanel = new ExcelOptionsPanel(ExcelOptionsPanel.Features.spots96Defaults());
 	private SpotsAreasPanel spotsAreasPanel = new SpotsAreasPanel();
 	private AggregatedSpotsAreasPanel aggregatedSpotsAreasPanel = new AggregatedSpotsAreasPanel();
@@ -100,6 +101,14 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 
 		capPanel.add(tabsPane);
 		tabsPane.setSelectedIndex(0);
+		tabsPane.addChangeListener(e -> {
+			capPopupPanel.revalidate();
+			SwingUtilities.invokeLater(() -> {
+				parent0.mainFrame.revalidate();
+				parent0.mainFrame.pack();
+				parent0.mainFrame.repaint();
+			});
+		});
 
 		capPopupPanel.addComponentListener(new ComponentAdapter() {
 			@Override
@@ -121,15 +130,10 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		if (exp == null)
 			return;
 
-		if (evt.getPropertyName().equals("EXPORT_AGGREGATED_CSV_SPOTSMEASURES")) {
+		if (evt.getPropertyName().equals("EXPORT_AGGREGATED_SPOTSMEASURES")) {
 			startExport(exp, "_spots_aggregate.xlsx", "measure_spotgroups", CsvNormalizedSpotExport.Mode.AGGREGATE_ALL);
 		} else if (evt.getPropertyName().equals("EXPORT_SPOTSMEASURES")) {
 			startExport(exp, "_spotsareas.xlsx", "measure_spots", CsvNormalizedSpotExport.Mode.SPOTS);
-		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_KYMO_SPOTSMEASURES")) {
-			startExport(exp, "_spots_kymo_aggregate.xlsx", "measure_spotgroups_kymo",
-					CsvNormalizedSpotExport.Mode.AGGREGATE_KYMO);
-		} else if (evt.getPropertyName().equals("EXPORT_AGGREGATED_SPOTSMEASURES")) {
-			startExport(exp, "_spots_aggregate.xlsx", "measure_spotgroups", CsvNormalizedSpotExport.Mode.AGGREGATE);
 		}
 	}
 
@@ -141,17 +145,16 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 			return;
 		}
 		updateParametersCurrentExperiment(exp);
+		// Snapshot Swing controls before dispatching the export to a background thread.
+		ResultsOptions o = optionsFor(mode, exp);
+		CsvNormalizedSpotExport.Mode csvMode = mode == CsvNormalizedSpotExport.Mode.SPOTS
+				&& spotsAreasPanel.includeGroups() ? CsvNormalizedSpotExport.Mode.SPOTS_WITH_GROUPS : mode;
 		ThreadUtil.bgRun(new Runnable() {
 			@Override
 			public void run() {
 				try {
-					Experiment current = (Experiment) parent0.expListComboLazy.getSelectedItem();
-					ResultsOptions o = optionsFor(mode, current);
 					if (o.exportLayoutMode == ExportLayoutMode.NORMALIZED) {
 						Path folder = CsvNormalizedExportSupport.resolveCsvFolder(file);
-						CsvNormalizedSpotExport.Mode csvMode = mode == CsvNormalizedSpotExport.Mode.SPOTS
-								&& spotsAreasPanel.includeGroupsCheckBox.isSelected()
-										? CsvNormalizedSpotExport.Mode.SPOTS_WITH_GROUPS : mode;
 						CsvNormalizedSpotExport.exportToFolder(folder, o, csvMode);
 					} else if (mode == CsvNormalizedSpotExport.Mode.SPOTS) {
 						new XLSExportMeasuresFromSpot().exportToFile(file, o);
@@ -166,9 +169,6 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	}
 
 	private ResultsOptions optionsFor(CsvNormalizedSpotExport.Mode mode, Experiment exp) {
-		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE_KYMO) {
-			return getAggregatedKymoSpotsOptions(exp);
-		}
 		if (mode == CsvNormalizedSpotExport.Mode.AGGREGATE || mode == CsvNormalizedSpotExport.Mode.AGGREGATE_ALL) {
 			return getAggregatedSpotsOptions(exp);
 		}
@@ -211,60 +211,21 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 	private ResultsOptions getSpotsOptions(Experiment exp) {
 		ResultsOptions resultsOptions = new ResultsOptions();
 
-		resultsOptions.spotAreas = true;
-		resultsOptions.sum = spotsAreasPanel.areaCheckBox.isSelected();
-		resultsOptions.spotSumNoFly = spotsAreasPanel.sumNoFlyCheckBox.isSelected();
-		resultsOptions.spotSumClean = spotsAreasPanel.sumCleanCheckBox.isSelected();
-		resultsOptions.spotAreaCountV5 = spotsAreasPanel.areaCountV5CheckBox.isSelected();
-		resultsOptions.spotGreySumV5 = spotsAreasPanel.greySumV5CheckBox.isSelected();
-		resultsOptions.spotGreySumCleanV5 = spotsAreasPanel.greySumCleanV5CheckBox.isSelected();
-		resultsOptions.spotKymoFract = spotsAreasPanel.kymoFractCheckBox.isSelected();
-		resultsOptions.spotKymoAbsDelta = spotsAreasPanel.kymoAbsDeltaCheckBox.isSelected();
-		resultsOptions.spotKymoGreenHeight = spotsAreasPanel.kymoGreenHeightCheckBox.isSelected();
-		resultsOptions.spotKymoGreenHeightRatio = spotsAreasPanel.kymoGreenHeightRatioCheckBox.isSelected();
-//		resultsOptions.sumV2 = spotsAreas.areaV2CheckBox.isSelected();
-//		resultsOptions.spotSumNoFlyV2 = spotsAreas.sumNoFlyV2CheckBox.isSelected();
-//		resultsOptions.spotSumCleanV2 = spotsAreas.sumCleanV2CheckBox.isSelected();
-		resultsOptions.relativeToMaximum = !excelOptionsPanel.isExportLayoutNormalized() && spotsAreasPanel.t0CheckBox.isSelected();
-		resultsOptions.onlyalive = spotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
+		spotsAreasPanel.applyTo(resultsOptions);
+		if (excelOptionsPanel.isExportLayoutNormalized())
+			resultsOptions.relativeToMaximum = false;
 		resultsOptions.spotAggregateByStimulusConc = false;
 		resultsOptions.resultType = null;
-		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner
-				.getValue()).intValue();
-		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreasPanel.stopWhenStableCheckBox.isSelected();
-		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreasPanel.stableBinsSpinner.getValue()).intValue();
+		aggregatedSpotsAreasPanel.applyBaselineTo(resultsOptions);
 
 		getCommonOptions(resultsOptions, exp);
 
-		return resultsOptions;
-	}
-
-	private ResultsOptions getAggregatedKymoSpotsOptions(Experiment exp) {
-		ResultsOptions resultsOptions = new ResultsOptions();
-		resultsOptions.spotAreas = true;
-		resultsOptions.spotAggregateByStimulusConc = true;
-		resultsOptions.resultType = EnumResults.AGG_KYMO_HEIGHT_LOSS;
-		resultsOptions.relativeToMaximum = false;
-		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
-		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}
 
 	private ResultsOptions getAggregatedSpotsOptions(Experiment exp) {
 		ResultsOptions resultsOptions = new ResultsOptions();
-		resultsOptions.spotAreas = true;
-		resultsOptions.sum = false;
-		resultsOptions.spotSumNoFly = false;
-		resultsOptions.spotSumClean = true;
-		resultsOptions.relativeToMaximum = false;
-		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
-		resultsOptions.spotAggregateByStimulusConc = true;
-		resultsOptions.resultType = EnumResults.AGG_FILTER_DEPLETION;
-		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner
-				.getValue()).intValue();
-		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreasPanel.stopWhenStableCheckBox.isSelected();
-		resultsOptions.spotBaselineStableBins = ((Number) aggregatedSpotsAreasPanel.stableBinsSpinner.getValue())
-				.intValue();
+		aggregatedSpotsAreasPanel.applyTo(resultsOptions);
 		getCommonOptions(resultsOptions, exp);
 		return resultsOptions;
 	}

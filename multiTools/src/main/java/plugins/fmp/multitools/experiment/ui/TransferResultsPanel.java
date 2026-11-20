@@ -36,7 +36,7 @@ public class TransferResultsPanel extends JPanel {
 	}
 
 	private void buildUi() {
-		GridLayout capLayout = new GridLayout(3, 2);
+		GridLayout capLayout = new GridLayout(0, 1, 0, 6);
 		setLayout(capLayout);
 
 		// setLayout(new BorderLayout());

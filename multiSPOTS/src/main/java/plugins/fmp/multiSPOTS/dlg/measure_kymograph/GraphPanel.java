@@ -47,8 +47,7 @@ public class GraphPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO,
-			EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS, EnumResults.KYMO_GREEN_HEIGHT_RATIO,
+	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_GREEN_HEIGHT_RATIO,
 			EnumResults.AGG_KYMO_HEIGHT_LOSS,
 			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE,
 			EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,

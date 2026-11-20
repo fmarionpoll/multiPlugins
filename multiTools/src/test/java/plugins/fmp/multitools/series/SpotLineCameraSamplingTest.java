@@ -89,18 +89,34 @@ public class SpotLineCameraSamplingTest {
         exp.getCages().getCageList().add(cage);
         Spot spot = new Spot();
         spot.getProperties().setCageID(1);
-        spot.getCrossLineSignalToBaselineRatio().setValues(new double[] { 1, 0.8, 0.6, 0.4 });
-        spot.getCrossLineSignalToBaselineRatio().setCameraSampled(true);
+        for (EnumResults type : new EnumResults[] { EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO }) {
+            spot.getMeasurements(type).setValues(new double[] { 1, 0.8, 0.6, 0.4 });
+            spot.getMeasurements(type).setCameraSampled(true);
+        }
         exp.getSpots().getSpotList().add(spot);
         ResultsOptions options = new ResultsOptions();
-        for (EnumResults type : new EnumResults[] { EnumResults.KYMO_CROSS_RATIO, EnumResults.AGG_KYMO_CROSS_LOSS }) {
+        for (EnumResults type : new EnumResults[] { EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO,
+                EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS }) {
             options.resultType = type;
-            org.jfree.data.xy.XYSeriesCollection data = KymoSpotChartSupport.buildCageDataset(exp, cage,
-                    exp.getSpots(), options);
+            org.jfree.data.xy.XYSeriesCollection data =
+                    new plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder().build(exp, cage, options);
             assertEquals(1, data.getSeriesCount());
             assertEquals(4, data.getSeries(0).getItemCount());
             assertEquals(0.75, data.getSeries(0).getX(2).doubleValue(), 1e-9);
             assertEquals(1, data.getSeries(0).getX(3).doubleValue(), 1e-9);
+            org.jfree.data.xy.XYSeriesCollection overlay = KymoSpotChartSupport.buildOverlayForSpots(exp, options,
+                    Arrays.asList(spot));
+            assertEquals(4, overlay.getSeries(0).getItemCount());
+            assertEquals(0.75, overlay.getSeries(0).getX(2).doubleValue(), 1e-9);
+            assertEquals(type == EnumResults.KYMO_CROSS_RATIO || type == EnumResults.KYMO_RIM_RATIO ? 0.6 : 0.4,
+                    overlay.getSeries(0).getY(2).doubleValue(), 1e-9);
+            spot.getMeasurements(plugins.fmp.multitools.experiment.spot.SpotLineSampling.source(type))
+                    .setCameraSampled(false);
+            data = new plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder().build(exp, cage, options);
+            assertEquals(40000 / 60000.0, data.getSeries(0).getX(0).doubleValue(), 1e-9);
+            assertEquals(160000 / 60000.0, data.getSeries(0).getX(2).doubleValue(), 1e-9);
+            spot.getMeasurements(plugins.fmp.multitools.experiment.spot.SpotLineSampling.source(type))
+                    .setCameraSampled(true);
         }
         assertEquals(2, KymoSpotChartSupport.cameraFrameForChartMinute(exp, EnumResults.KYMO_CROSS_RATIO, 0.75));
     }

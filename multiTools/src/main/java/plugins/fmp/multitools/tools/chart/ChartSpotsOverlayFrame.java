@@ -18,6 +18,7 @@ import java.util.prefs.Preferences;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
@@ -35,9 +36,11 @@ import icy.gui.util.GuiUtil;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotLineSampling;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
+import plugins.fmp.multitools.tools.chart.builders.KymoSpotChartSupport;
 import plugins.fmp.multitools.tools.chart.interaction.SpotOverlayChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -259,12 +262,16 @@ public class ChartSpotsOverlayFrame {
 		refreshSpotSelectorModel(false);
 		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
 
-		row1.add(cbSum);
-		row1.add(cbNoFly);
-		row1.add(cbClean);
-		row1.add(cbCleanV3);
-		row1.add(cbFlyPresent);
-		row1.add(cbDepletion);
+		if (SpotLineSampling.isLineMeasure(options.resultType)) {
+			row1.add(new JLabel(options.resultType.toDisplayLabel()));
+		} else {
+			row1.add(cbSum);
+			row1.add(cbNoFly);
+			row1.add(cbClean);
+			row1.add(cbCleanV3);
+			row1.add(cbFlyPresent);
+			row1.add(cbDepletion);
+		}
 		row1.add(spotSelectorCombo);
 		row1.add(updateButton);
 
@@ -298,7 +305,7 @@ public class ChartSpotsOverlayFrame {
 
 	protected void setCheckboxDefaults(ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : null;
-		if (isV5NativeSpotChartMeasure(rt)) {
+		if (isV5NativeSpotChartMeasure(rt) || SpotLineSampling.isLineMeasure(rt)) {
 			cbSum.setSelected(false);
 			cbNoFly.setSelected(false);
 			cbClean.setSelected(false);
@@ -667,6 +674,9 @@ public class ChartSpotsOverlayFrame {
 	}
 
 	protected List<EnumResults> getEnabledMeasures(ResultsOptions options) {
+		if (options != null && SpotLineSampling.isLineMeasure(options.resultType)) {
+			return Collections.singletonList(options.resultType);
+		}
 		List<EnumResults> out = new ArrayList<>();
 		if (cbSum.isSelected())
 			addResultIfDefined(out, "AREA_SUM");
@@ -699,6 +709,10 @@ public class ChartSpotsOverlayFrame {
 
 	private XYSeriesCollection buildDatasetForMeasures(Experiment exp, ResultsOptions options, List<Spot> selectedSpots,
 			List<EnumResults> enabledMeasures, boolean flyOnly, boolean overlaySpots, boolean overlayMeasures) {
+		if (SpotLineSampling.isLineMeasure(options.resultType)) {
+			// Shared sampling support preserves camera timestamps and older saved kymo grids.
+			return KymoSpotChartSupport.buildOverlayForSpots(exp, options, selectedSpots);
+		}
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		if (overlaySpots) {
 			EnumResults chosen = enabledMeasures.isEmpty() ? options.resultType : enabledMeasures.get(0);

@@ -47,6 +47,14 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		if (resultsOptions == null || exp == null) {
 			return startColumn;
 		}
+		if (resultsOptions.spotAggregateMeasures != null) {
+			int lastColumn = startColumn;
+			for (EnumResults type : resultsOptions.spotAggregateMeasures) {
+				lastColumn = Math.max(lastColumn,
+						exportResultType(exp, startColumn, charSeries, type, "spot_aggregate"));
+			}
+			return lastColumn;
+		}
 		boolean aggregateExport = resultsOptions.spotAggregateByStimulusConc
 				|| resultsOptions.resultType == EnumResults.AGG_FILTER_DEPLETION
 				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION

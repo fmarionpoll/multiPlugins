@@ -3,7 +3,6 @@ package plugins.fmp.multitools.tools.toExcel.csv;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -34,6 +33,7 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
+import plugins.fmp.multitools.tools.toExcel.XLSExportSpots;
 import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
 import plugins.fmp.multitools.tools.toExcel.exceptions.ExcelExportException;
 import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
@@ -112,12 +112,18 @@ public final class CsvNormalizedSpotExport {
 		List<String> cameraCols = new ArrayList<>();
 		List<String> kymoCols = new ArrayList<>();
 		if (primary) {
-			splitColumns(primaryTypes(), cameraCols, kymoCols);
+			splitColumns(primaryTypes(options), cameraCols, kymoCols);
 		}
 		boolean groupKymo = useMode == Mode.AGGREGATE_KYMO;
 		EnumResults[] cameraGroups = allGroups ? allCameraAggregateTypes()
 				: primary ? new EnumResults[0] : aggregateTypes(options, useMode);
 		EnumResults[] kymoGroups = allGroups ? aggregateTypes(options, Mode.AGGREGATE_KYMO) : new EnumResults[0];
+		if (!primary && options.spotAggregateMeasures != null) {
+			cameraGroups = selectedAggregateTypes(options, false);
+			kymoGroups = selectedAggregateTypes(options, true);
+			groupKymo = false;
+			allGroups = true;
+		}
 
 		long binStepMs = options.buildExcelStepMs > 0 ? options.buildExcelStepMs : 60000L;
 		boolean writeBin = options.forceCsvBinGrid;
@@ -225,7 +231,7 @@ public final class CsvNormalizedSpotExport {
 		exp.ensureFrameTimeScale();
 		Spots allSpots = exp.getSpots();
 		String expKey = NormalizedExportSupport.buildExpKey(exp, charSeries);
-		EnumResults[] types = primaryTypes();
+		EnumResults[] types = primaryTypes(options);
 		List<EnumResults> cameraTypes = new ArrayList<>();
 		List<EnumResults> kymoTypes = new ArrayList<>();
 		for (EnumResults rt : types) {
@@ -465,8 +471,12 @@ public final class CsvNormalizedSpotExport {
 		}
 	}
 
-	private static EnumResults[] primaryTypes() {
-		return Arrays.stream(EnumResults.values()).filter(result -> result.isPersistedIn(EnumResults.PersistenceDomain.SPOT))
+	static EnumResults[] primaryTypes(ResultsOptions options) {
+		return XLSExportSpots.spotMeasureTypes(options);
+	}
+
+	static EnumResults[] selectedAggregateTypes(ResultsOptions options, boolean kymo) {
+		return options.spotAggregateMeasures.stream().filter(type -> isKymoSeries(type) == kymo)
 				.toArray(EnumResults[]::new);
 	}
 

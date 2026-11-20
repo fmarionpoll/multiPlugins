@@ -27,6 +27,7 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotLineSampling;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
@@ -48,7 +49,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			// EnumResults.FILTER_GREY_CONTRAST, EnumResults.FILTER_GREY_CONTRAST_MASKED,
 			// EnumResults.FILTER_GREY_CONTRAST_SMOOTHED, //
 			EnumResults.FLY_PIXEL_COUNT, EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_FILTER_V5_DEPLETION,
-			EnumResults.CAGE_GREY_MEDIAN };
+			EnumResults.CAGE_GREY_MEDIAN, EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO,
+			EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS parent0 = null;
@@ -256,7 +258,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs)
 				.withResultType(exportType).withCageRange(first, last).build();
-		options.relativeToMaximum = !agg && relativeToCheckbox.isSelected();
+		options.relativeToMaximum = !agg && !SpotLineSampling.isLineMeasure(exportType) && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
 		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
@@ -309,7 +311,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
 		options.relativeToMaximum = exportType != EnumResults.AGG_FILTER_DEPLETION && exportType != EnumResults.AGG_FILTER_V5_DEPLETION
-				&& exportType != EnumResults.CAGE_GREY_MEDIAN && relativeToCheckbox.isSelected();
+				&& exportType != EnumResults.CAGE_GREY_MEDIAN && !SpotLineSampling.isLineMeasure(exportType)
+				&& relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
@@ -372,8 +375,10 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		boolean aggMedianUi = exportTypeComboBox != null
 				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
 						|| exportTypeComboBox.getSelectedItem() == EnumResults.CAGE_GREY_MEDIAN);
-		relativeToCheckbox.setEnabled(!aggStep);
-		if (aggStep) {
+		boolean lineMeasure = exportTypeComboBox != null
+				&& SpotLineSampling.isLineMeasure((EnumResults) exportTypeComboBox.getSelectedItem());
+		relativeToCheckbox.setEnabled(!aggStep && !lineMeasure);
+		if (aggStep || lineMeasure) {
 			relativeToCheckbox.setSelected(false);
 		}
 		displaySelectedSpotsButton.setEnabled(!aggStep);
@@ -444,7 +449,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
 		EnumResults probe = option == EnumResults.AGG_FILTER_DEPLETION ? EnumResults.FILTER_GREY_SMOOTHED
 				: option == EnumResults.AGG_FILTER_V5_DEPLETION ? EnumResults.FILTER_V5_GREY_SMOOTHED
-						: option == EnumResults.CAGE_GREY_MEDIAN ? EnumResults.FILTER_GREY : option;
+						: option == EnumResults.CAGE_GREY_MEDIAN ? EnumResults.FILTER_GREY : SpotLineSampling.source(option);
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

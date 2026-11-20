@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.results;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.cages.EvaporationCorrectionMethod;
@@ -39,6 +40,8 @@ public class ResultsOptions {
 	 * of cages × spots.
 	 */
 	public boolean spotAggregateByStimulusConc = false;
+	/** Explicit aggregate selection; null keeps legacy export defaults, empty exports none. */
+	public List<EnumResults> spotAggregateMeasures = null;
 
 	/**
 	 * Baseline window length (minutes) used to compute per-spot max reference.
@@ -200,6 +203,10 @@ public class ResultsOptions {
 	public boolean spotKymoGreenHeight = false;
 	/** Spot Excel export: {@code KYMO_GREEN_HEIGHT_RATIO}. */
 	public boolean spotKymoGreenHeightRatio = false;
+	/** Direct line-sampling export: {@code X_LINE_RATIO}. */
+	public boolean spotCrossRatio = false;
+	/** Direct line-sampling export: {@code RIM_LINE_RATIO}. */
+	public boolean spotRimRatio = false;
 
 	public void copy(ResultsOptions resultsOptions) {
 		this.xyImage = resultsOptions.xyImage;
@@ -222,6 +229,8 @@ public class ResultsOptions {
 		this.spotSumNoFlyV2 = resultsOptions.spotSumNoFlyV2;
 		this.spotSumCleanV2 = resultsOptions.spotSumCleanV2;
 		this.spotAggregateByStimulusConc = resultsOptions.spotAggregateByStimulusConc;
+		this.spotAggregateMeasures = resultsOptions.spotAggregateMeasures == null ? null
+				: new ArrayList<>(resultsOptions.spotAggregateMeasures);
 		this.spotAreaCountV5 = resultsOptions.spotAreaCountV5;
 		this.spotGreySumV5 = resultsOptions.spotGreySumV5;
 		this.spotGreySumCleanV5 = resultsOptions.spotGreySumCleanV5;
@@ -232,6 +241,8 @@ public class ResultsOptions {
 		this.spotKymoAbsDelta = resultsOptions.spotKymoAbsDelta;
 		this.spotKymoGreenHeight = resultsOptions.spotKymoGreenHeight;
 		this.spotKymoGreenHeightRatio = resultsOptions.spotKymoGreenHeightRatio;
+		this.spotCrossRatio = resultsOptions.spotCrossRatio;
+		this.spotRimRatio = resultsOptions.spotRimRatio;
 		this.spotBaselineWindowMinutes = resultsOptions.spotBaselineWindowMinutes;
 		this.spotBaselineStopWhenStable = resultsOptions.spotBaselineStopWhenStable;
 		this.spotBaselineStableBins = resultsOptions.spotBaselineStableBins;
