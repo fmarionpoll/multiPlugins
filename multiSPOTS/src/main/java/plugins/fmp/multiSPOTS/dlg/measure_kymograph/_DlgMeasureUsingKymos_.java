@@ -42,16 +42,15 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 		mainPanel.add(capPopupPanel);
 		GridLayout capLayout = new GridLayout(3, 1);
 
-		tabCreate.init(capLayout, parent0);
+		tabCreate.init(new GridLayout(3, 1), parent0);
 		tabCreate.addPropertyChangeListener(this);
-		tabsPane.addTab("Build", null, tabCreate, "Build stacked cage kymographs from spot ROIs");
 
 		tabKymoAnalysis = new AnalysisPanel(parent0);
 		tabKymoAnalysis2 = new AnalysisPanel2(parent0);
 		tabKymoRim = new AnalysisPanelRim(parent0);
 		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabKymoAnalysis2, tabKymoRim);
-		tabsPane.addTab("Kymo", null, tabKymoAnalysis,
-				"Measure the vertical line on the cage kymograph TIFF");
+		tabsPane.addTab("Kymo", null, new VerticalLinePanel(tabCreate, tabKymoAnalysis),
+				"Vertical line through each spot: build the cage kymograph, then measure it.");
 		tabsPane.addTab("Cross", null, tabKymoAnalysis2,
 				"Measure the X on the camera frames; floor from the tips outside the circles");
 		tabsPane.addTab("Rim", null, tabKymoRim,

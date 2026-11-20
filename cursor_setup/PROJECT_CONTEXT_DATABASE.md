@@ -37,12 +37,7 @@
    - Plugin-specific code: dialogs (dlg/), experiment (experiment/), series (series/), tools
    - Depends on: m_multiTools
 
-4. **m_multiSPOTS96** - MultiSPOTS96 plugin module
-   - Package: `plugins.fmp.multispots96.*`
-   - Most comprehensive plugin with extensive codebase
-   - Plugin-specific code: dialogs, experiment (55 files), series (31 files), tools
-   - Includes test suite
-   - Depends on: m_multiTools
+multiSPOTS96 is retired and is not a module of this workspace. Do not treat it as current code.
 
 ## Key Technologies & Dependencies
 
@@ -69,7 +64,6 @@
 - **Plugin-specific code:**
   - m_multiCAFE: `plugins.fmp.multicafe.*`
   - m_multiSPOTS: `plugins.fmp.multispots.*`
-  - m_multiSPOTS96: `plugins.fmp.multispots96.*`
 
 ## Build System
 
@@ -95,7 +89,6 @@ Each module produces its own JAR:
 - `m_multiTools/target/m_multiTools-2.2.3.jar`
 - `m_multiCAFE/target/m_multiCAFE-2.2.3.jar`
 - `m_multiSPOTS/target/m_multiSPOTS-<version>.jar`
-- `m_multiSPOTS96/target/m_multiSPOTS96-<version>.jar`
 
 ## Development Environment
 
@@ -111,13 +104,12 @@ Each module produces its own JAR:
    - m_multiTools
    - m_multiCAFE
    - m_multiSPOTS
-   - m_multiSPOTS96
 
 ### Code Organization
 
 - **Source:** `src/main/java/`
 - **Resources:** `src/main/resources/`
-- **Tests:** `src/test/java/` (present in m_multiSPOTS96)
+- **Tests:** `src/test/java/` in the modules that include them
 
 ## Migration History
 
@@ -141,7 +133,7 @@ Previously, each plugin had duplicate `fmp_*` packages. These have been consolid
 - ✅ Multi-module Maven structure created
 - ✅ m_multiTools shared library extracted and consolidated
 - ✅ m_multiCAFE migrated to new structure
-- ✅ m_multiSPOTS and m_multiSPOTS96 added to parent POM
+- ✅ m_multiSPOTS added to parent POM
 - ✅ Package refactoring completed
 
 ### Known Structure
@@ -217,8 +209,7 @@ For end users:
 - Single workspace for all plugins enables easy cross-module refactoring
 
 ### Testing
-- Test suites present in `m_multiSPOTS96/src/test/java/`
-- Can be extended to other modules as needed
+- Test suites live under `src/test/java/` in the modules that include them
 
 ## License & Organization
 
@@ -229,6 +220,6 @@ For end users:
 ## Notes
 
 - Avoid redundant comments (user preference)
-- Original projects at `C:\Users\fred\git\MultiCAFE\`, `C:\Users\fred\git\multiSPOTS\`, `C:\Users\fred\git\multiSPOTS96\` are separate and unchanged
+- Original projects at `C:\Users\fred\git\MultiCAFE\` and `C:\Users\fred\git\multiSPOTS\` are separate and unchanged
 - `m_multiPlugins/` is the active development location
 - Code in `m_multiPlugins/` is a copy, not linked to originals
