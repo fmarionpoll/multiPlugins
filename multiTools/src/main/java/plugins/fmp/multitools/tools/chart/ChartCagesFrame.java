@@ -218,7 +218,7 @@ public class ChartCagesFrame extends IcyFrame {
 		// Set layout using strategy
 		layoutStrategy.setLayoutOnPanel(mainChartPanel, nPanelsAlongX, nPanelsAlongY);
 
-		String rt = options.resultType != null ? options.resultType.toString() : "";
+		String rt = options.resultType != null ? options.resultType.toDisplayLabel() : "";
 		String finalTitle = title + ": " + rt;
 
 		// Reuse existing frame if it's still valid
@@ -286,8 +286,8 @@ public class ChartCagesFrame extends IcyFrame {
 			col = col * experiment.getCages().nColumnsPerCage;
 		}
 		String unit = resultsOptions.resultType != null ? resultsOptions.resultType.toUnit() : "";
-		if (resultsOptions.resultType == EnumResults.AGG_MEDIANREF) {
-			unit = EnumResults.AGG_SUMCLEAN.toUnit();
+		if (resultsOptions.resultType == EnumResults.CAGE_GREY_MEDIAN) {
+			unit = EnumResults.AGG_FILTER_DEPLETION.toUnit();
 		}
 		String kymoUnit = CageKymoSeriesBuilder.kymoChartRangeAxisLabel(resultsOptions);
 		if (kymoUnit != null) {
@@ -300,7 +300,7 @@ public class ChartCagesFrame extends IcyFrame {
 			yAxis.setLabel(yLegend);
 		}
 
-		if (resultsOptions.resultType == EnumResults.AREA_FLYPRESENT) {
+		if (resultsOptions.resultType == EnumResults.FLY_PIXEL_COUNT) {
 			yAxis.setAutoRange(false);
 			yAxis.setRange(0.0, 100.0);
 			yAxis.setAutoRangeIncludesZero(true);
@@ -466,12 +466,12 @@ public class ChartCagesFrame extends IcyFrame {
 		}
 
 		ChartCageBuild.initMaxMin();
-		if ((resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5
-				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_COLOR
-				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR
-				|| resultsOptions.resultType == EnumResults.AGG_MEDIANREF) && experiment != null
+		if ((resultsOptions.resultType == EnumResults.AGG_FILTER_DEPLETION
+				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION
+				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
+				|| resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION
+				|| resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
+				|| resultsOptions.resultType == EnumResults.CAGE_GREY_MEDIAN) && experiment != null
 				&& experiment.getSpots() != null) {
 			resultsOptions.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
 					.globalStimulusConcKeysFirstSeenOrder(experiment, experiment.getSpots());
@@ -700,7 +700,7 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected void updateFrameTitle() {
 		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
-			String rt = currentOptions.resultType != null ? currentOptions.resultType.toString() : "";
+			String rt = currentOptions.resultType != null ? currentOptions.resultType.toDisplayLabel() : "";
 			String finalTitle = baseTitle + ": " + rt;
 			mainChartFrame.setTitle(finalTitle);
 		}

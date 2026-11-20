@@ -110,14 +110,14 @@ public class ChartSpotsOverlayFrame {
 	private ChartPanel chartPanel = null;
 
 	private JPanel topControlsPanel = null;
-	protected JCheckBox cbSum = new JCheckBox("sum");
-	protected JCheckBox cbNoFly = new JCheckBox("sumNoFly");
-	protected JCheckBox cbClean = new JCheckBox("clean");
-	protected JCheckBox cbCleanV3 = new JCheckBox("cleanV3");
+	protected JCheckBox cbSum = new JCheckBox(EnumResults.FILTER_GREY.toDisplayLabel());
+	protected JCheckBox cbNoFly = new JCheckBox(EnumResults.FILTER_GREY_FLY_MASKED.toDisplayLabel());
+	protected JCheckBox cbClean = new JCheckBox(EnumResults.FILTER_GREY_SMOOTHED.toDisplayLabel());
+	protected JCheckBox cbCleanV3 = new JCheckBox(EnumResults.FILTER_GREY_RESIDUAL.toDisplayLabel());
 //	private JCheckBox cbSumV2 = new JCheckBox("sumV2");
 //	private JCheckBox cbNoFlyV2 = new JCheckBox("sumNoFlyV2");
 //	private JCheckBox cbCleanV2 = new JCheckBox("cleanV2");
-	protected JCheckBox cbFlyPresent = new JCheckBox("flyPresent");
+	protected JCheckBox cbFlyPresent = new JCheckBox(EnumResults.FLY_PIXEL_COUNT.toDisplayLabel());
 	protected JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
 	protected JComboBox<SpotChoice> spotSelectorCombo = null;
 	protected JButton updateButton = new JButton("Update");
@@ -153,7 +153,7 @@ public class ChartSpotsOverlayFrame {
 		this.baseTitle = title;
 
 		mainChartPanel = new JPanel(new BorderLayout());
-		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.toString() : "");
+		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.toDisplayLabel() : "");
 		if (mainChartFrame != null && (mainChartFrame.getParent() != null || mainChartFrame.isVisible())) {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
@@ -323,10 +323,10 @@ public class ChartSpotsOverlayFrame {
 
 	/** V5/V6 per-spot scalars: chart uses {@link ResultsOptions#resultType}. */
 	protected static boolean isV5NativeSpotChartMeasure(EnumResults rt) {
-		return rt == EnumResults.AREA_COUNT_V5 || rt == EnumResults.GREY_SUM_V5 || rt == EnumResults.GREY_SUM_V5_PREFLY
-				|| rt == EnumResults.GREY_SUM_CLEAN_V5 || rt == EnumResults.AREA_COUNT_COLOR
-				|| rt == EnumResults.GREY_SUM_COLOR || rt == EnumResults.GREY_SUM_COLOR_PREFLY
-				|| rt == EnumResults.GREY_SUM_CLEAN_COLOR;
+		return rt == EnumResults.FILTER_V5_PIXEL_COUNT || rt == EnumResults.FILTER_V5_GREY || rt == EnumResults.FILTER_V5_GREY_PRE_GATE
+				|| rt == EnumResults.FILTER_V5_GREY_SMOOTHED || rt == EnumResults.COLOR_PIXEL_COUNT
+				|| rt == EnumResults.COLOR_GREY || rt == EnumResults.COLOR_GREY_PRE_GATE
+				|| rt == EnumResults.COLOR_GREY_SMOOTHED;
 	}
 
 	protected static boolean resultLabelEquals(EnumResults r, String label) {
@@ -618,7 +618,7 @@ public class ChartSpotsOverlayFrame {
 					continue;
 				if (sb.length() > 0)
 					sb.append(", ");
-				sb.append(r.toString());
+				sb.append(r.toDisplayLabel());
 			}
 			measuresLabel = sb.toString();
 		}
@@ -737,7 +737,7 @@ public class ChartSpotsOverlayFrame {
 
 			Color color = pickMeasureColor(resultType);
 			XYSeries series = createXYSeriesFromSpotMeasure(exp, spot, options, resultType, cbDepletion.isSelected(),
-					spot.getName() + SpotChartSeriesKeys.SEP + resultType.name());
+					spot.getName() + SpotChartSeriesKeys.SEP + resultType.toPersistenceKey());
 			if (series == null)
 				continue;
 			applySpotStyle(exp, spot, series, color);
@@ -758,22 +758,22 @@ public class ChartSpotsOverlayFrame {
 	protected Color pickMeasureColor(EnumResults resultType) {
 		if (resultType == null)
 			return Color.BLACK;
-		switch (resultType.name()) {
-		case "AREA_SUM":
+		switch (resultType) {
+		case FILTER_GREY:
 			return new Color(0, 0, 0);
-		case "AREA_SUMNOFLY":
+		case FILTER_GREY_FLY_MASKED:
 			return new Color(0, 102, 204);
-		case "AREA_SUMCLEAN":
+		case FILTER_GREY_SMOOTHED:
 			return new Color(0, 153, 0);
-		case "AREA_SUMCLEAN_V3":
+		case FILTER_GREY_RESIDUAL:
 			return new Color(90, 170, 130);
-		case "AREA_SUM_V2":
+		case FILTER_GREY_CONTRAST:
 			return new Color(80, 80, 80);
-		case "AREA_SUMNOFLY_V2":
+		case FILTER_GREY_CONTRAST_MASKED:
 			return new Color(60, 140, 230);
-		case "AREA_SUMCLEAN_V2":
+		case FILTER_GREY_CONTRAST_SMOOTHED:
 			return new Color(60, 180, 90);
-		case "AREA_FLYPRESENT":
+		case FLY_PIXEL_COUNT:
 			return new Color(153, 0, 153);
 		default:
 			return Color.BLACK;

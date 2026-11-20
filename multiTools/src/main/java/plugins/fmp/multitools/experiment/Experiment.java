@@ -1438,13 +1438,12 @@ public class Experiment {
 	public boolean save_spots_description_and_measures() {
 		String resultsDir = getResultsDirectory();
 		boolean descriptionsSaved = spots.getPersistence().saveDescriptions(spots, resultsDir);
-
-		if (resultsDir != null) {
-			spots.getPersistence().saveMeasures(spots, resultsDir);
-		}
-		save_kymo_spot_measures();
-
-		return descriptionsSaved;
+		boolean sharedDirectory = spotsUseResultsDirectoryForKymographs();
+		boolean measuresSaved = spots.getPersistence().saveMeasures(spots, resultsDir, sharedDirectory);
+		boolean kymographsSaved = sharedDirectory || spots.getSpotList().stream()
+				.noneMatch(spot -> spot != null && spot.getKymographMeasurements().hasAnyData())
+				|| save_kymo_spot_measures();
+		return descriptionsSaved && measuresSaved && kymographsSaved;
 	}
 
 	/**
@@ -1459,7 +1458,18 @@ public class Experiment {
 		if (kymoBin == null) {
 			return false;
 		}
+		if (spotsUseResultsDirectoryForKymographs()) {
+			return spots.getPersistence().saveMeasures(spots, kymoBin, true);
+		}
 		return spots.getPersistence().saveKymoMeasures(spots, kymoBin);
+	}
+
+	private boolean spotsUseResultsDirectoryForKymographs() {
+		String resultsDir = getResultsDirectory();
+		String kymoBin = getKymosBinFullDirectory();
+		return resultsDir != null && kymoBin != null
+				&& Paths.get(resultsDir).toAbsolutePath().normalize()
+						.equals(Paths.get(kymoBin).toAbsolutePath().normalize());
 	}
 
 	// -------------------------------

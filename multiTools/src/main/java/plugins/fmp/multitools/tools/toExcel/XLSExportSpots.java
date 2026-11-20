@@ -33,28 +33,28 @@ public abstract class XLSExportSpots extends XLSExport {
 
 	private static boolean usesSpotSubsamplingTimeline(EnumResults resultType) {
 		switch (resultType) {
-			case AREA_SUM:
-			case AREA_SUMNOFLY:
-			case AREA_SUMCLEAN:
-			case AREA_SUM_V2:
-			case AREA_SUMNOFLY_V2:
-			case AREA_SUMCLEAN_V2:
-			case AREA_SUMCLEAN_V3:
-			case AREA_FLYPRESENT:
-			case AREA_COUNT_V5:
-			case GREY_SUM_V5:
-			case GREY_SUM_V5_PREFLY:
-			case GREY_SUM_CLEAN_V5:
-			case AGG_SUMCLEAN:
-			case AGG_SUMCLEAN_V5:
-			case AGG_AREA_COUNT_V5:
-			case AREA_COUNT_COLOR:
-			case GREY_SUM_COLOR:
-			case GREY_SUM_COLOR_PREFLY:
-			case GREY_SUM_CLEAN_COLOR:
-			case AGG_SUMCLEAN_COLOR:
-			case AGG_AREA_COUNT_COLOR:
-			case AGG_MEDIANREF:
+			case FILTER_GREY:
+			case FILTER_GREY_FLY_MASKED:
+			case FILTER_GREY_SMOOTHED:
+			case FILTER_GREY_CONTRAST:
+			case FILTER_GREY_CONTRAST_MASKED:
+			case FILTER_GREY_CONTRAST_SMOOTHED:
+			case FILTER_GREY_RESIDUAL:
+			case FLY_PIXEL_COUNT:
+			case FILTER_V5_PIXEL_COUNT:
+			case FILTER_V5_GREY:
+			case FILTER_V5_GREY_PRE_GATE:
+			case FILTER_V5_GREY_SMOOTHED:
+			case AGG_FILTER_DEPLETION:
+			case AGG_FILTER_V5_DEPLETION:
+			case AGG_FILTER_V5_PIXEL_SUM:
+			case COLOR_PIXEL_COUNT:
+			case COLOR_GREY:
+			case COLOR_GREY_PRE_GATE:
+			case COLOR_GREY_SMOOTHED:
+			case AGG_COLOR_DEPLETION:
+			case AGG_COLOR_PIXEL_SUM:
+			case CAGE_GREY_MEDIAN:
 				return true;
 			default:
 				return false;
@@ -102,46 +102,46 @@ public abstract class XLSExportSpots extends XLSExport {
 			return new EnumResults[0];
 		}
 		if (o.sum) {
-			list.add(EnumResults.AREA_SUM);
+			list.add(EnumResults.FILTER_GREY);
 		}
 		if (o.spotSumNoFly) {
-			list.add(EnumResults.AREA_SUMNOFLY);
+			list.add(EnumResults.FILTER_GREY_FLY_MASKED);
 		}
 		if (o.spotSumClean) {
-			list.add(EnumResults.AREA_SUMCLEAN);
+			list.add(EnumResults.FILTER_GREY_SMOOTHED);
 		}
 		if (o.sumV2) {
-			list.add(EnumResults.AREA_SUM_V2);
+			list.add(EnumResults.FILTER_GREY_CONTRAST);
 		}
 		if (o.spotSumNoFlyV2) {
-			list.add(EnumResults.AREA_SUMNOFLY_V2);
+			list.add(EnumResults.FILTER_GREY_CONTRAST_MASKED);
 		}
 		if (o.spotSumCleanV2) {
-			list.add(EnumResults.AREA_SUMCLEAN_V2);
+			list.add(EnumResults.FILTER_GREY_CONTRAST_SMOOTHED);
 		}
 		if (o.spotAreaCountV5) {
-			list.add(EnumResults.AREA_COUNT_V5);
+			list.add(EnumResults.FILTER_V5_PIXEL_COUNT);
 		}
 		if (o.spotGreySumV5) {
-			list.add(EnumResults.GREY_SUM_V5);
+			list.add(EnumResults.FILTER_V5_GREY);
 		}
 		if (o.spotGreySumCleanV5) {
-			list.add(EnumResults.GREY_SUM_CLEAN_V5);
+			list.add(EnumResults.FILTER_V5_GREY_SMOOTHED);
 		}
 		if (o.spotAreaCountColor) {
-			list.add(EnumResults.AREA_COUNT_COLOR);
+			list.add(EnumResults.COLOR_PIXEL_COUNT);
 		}
 		if (o.spotGreySumColor) {
-			list.add(EnumResults.GREY_SUM_COLOR);
+			list.add(EnumResults.COLOR_GREY);
 		}
 		if (o.spotGreySumCleanColor) {
-			list.add(EnumResults.GREY_SUM_CLEAN_COLOR);
+			list.add(EnumResults.COLOR_GREY_SMOOTHED);
 		}
 		if (o.spotKymoFract) {
-			list.add(EnumResults.KYMO_FRACT);
+			list.add(EnumResults.KYMO_ROW_FRACTION);
 		}
 		if (o.spotKymoAbsDelta) {
-			list.add(EnumResults.KYMO_ABS_DELTA);
+			list.add(EnumResults.KYMO_ROW_FRACTION_CHANGE);
 		}
 		if (o.spotKymoGreenHeight) {
 			list.add(EnumResults.KYMO_GREEN_HEIGHT);
@@ -153,7 +153,7 @@ public abstract class XLSExportSpots extends XLSExport {
 				|| o.spotAreaCountV5 || o.spotGreySumV5 || o.spotGreySumCleanV5 || o.spotAreaCountColor
 				|| o.spotGreySumColor || o.spotGreySumCleanColor || o.spotKymoFract || o.spotKymoAbsDelta
 				|| o.spotKymoGreenHeight || o.spotKymoGreenHeightRatio) {
-			list.add(EnumResults.AREA_FLYPRESENT);
+			list.add(EnumResults.FLY_PIXEL_COUNT);
 		}
 		return list.toArray(new EnumResults[0]);
 	}

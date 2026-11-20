@@ -19,7 +19,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 /**
  * Builds cage-level spot aggregates grouped by (stimulus, concentration).
  *
- * Aggregation is defined (for AREA_SUMCLEAN) as the sum over spots in the group of
+ * Aggregation is defined (for FILTER_GREY_SMOOTHED) as the sum over spots in the group of
  * per-spot normalized consumption:
  *
  *   c(t) = (maxBaseline - v(t)) / maxBaseline
@@ -74,10 +74,10 @@ public final class CageSpotStimulusAggregation {
 	}
 
 	public static boolean supportsAggregateResultType(EnumResults resultType) {
-		return resultType == EnumResults.AREA_SUMCLEAN || resultType == EnumResults.AGG_SUMCLEAN
-				|| resultType == EnumResults.AGG_SUMCLEAN_V5 || resultType == EnumResults.AGG_AREA_COUNT_V5
-				|| resultType == EnumResults.AGG_SUMCLEAN_COLOR || resultType == EnumResults.AGG_AREA_COUNT_COLOR
-				|| resultType == EnumResults.AGG_MEDIANREF;
+		return resultType == EnumResults.FILTER_GREY_SMOOTHED || resultType == EnumResults.AGG_FILTER_DEPLETION
+				|| resultType == EnumResults.AGG_FILTER_V5_DEPLETION || resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
+				|| resultType == EnumResults.AGG_COLOR_DEPLETION || resultType == EnumResults.AGG_COLOR_PIXEL_SUM
+				|| resultType == EnumResults.CAGE_GREY_MEDIAN;
 	}
 
 	/**
@@ -104,7 +104,7 @@ public final class CageSpotStimulusAggregation {
 
 	/**
 	 * Builds aggregates directly on the stored spot sample index. This is the path used by
-	 * charts so AGG_SUMCLEAN / AGG_SUMCLEAN_V5 / AGG_AREA_COUNT_V5 share the same time base as the underlying per-spot series.
+	 * charts so AGG_FILTER_DEPLETION / AGG_FILTER_V5_DEPLETION / AGG_FILTER_V5_PIXEL_SUM share the same time base as the underlying per-spot series.
 	 */
 	public static List<AggregateSeries> buildAggregatesOnNativeSamples(Experiment exp, Cage cage, Spots allSpots,
 			ResultsOptions options) {
@@ -119,10 +119,10 @@ public final class CageSpotStimulusAggregation {
 
 		double[] camTimeMin = camTimeMinutesForExperiment(exp);
 
-		if (options.resultType == EnumResults.AGG_AREA_COUNT_V5) {
+		if (options.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM) {
 			return buildAreaCountV5AggregatesOnNativeSamples(spots, camTimeMin);
 		}
-		if (options.resultType == EnumResults.AGG_AREA_COUNT_COLOR) {
+		if (options.resultType == EnumResults.AGG_COLOR_PIXEL_SUM) {
 			return buildAreaCountV6AggregatesOnNativeSamples(spots, camTimeMin);
 		}
 
@@ -182,22 +182,22 @@ public final class CageSpotStimulusAggregation {
 		if (s == null) {
 			return null;
 		}
-		if (buildResultType == EnumResults.AGG_SUMCLEAN_V5) {
-			return s.getGreySumCleanV5();
+		if (buildResultType == EnumResults.AGG_FILTER_V5_DEPLETION) {
+			return s.getSmoothedFilterV5GreySignal();
 		}
-		if (buildResultType == EnumResults.AGG_SUMCLEAN_COLOR) {
-			return s.getGreySumCleanColor();
+		if (buildResultType == EnumResults.AGG_COLOR_DEPLETION) {
+			return s.getSmoothedColorDistanceGreySignal();
 		}
-		return s.getSumClean();
+		return s.getSmoothedFlyPixelExcludedGreySignal();
 	}
 
 	private static boolean isV5DepletionAggregate(EnumResults buildResultType) {
-		return buildResultType == EnumResults.AGG_SUMCLEAN_V5 || buildResultType == EnumResults.AGG_SUMCLEAN_COLOR;
+		return buildResultType == EnumResults.AGG_FILTER_V5_DEPLETION || buildResultType == EnumResults.AGG_COLOR_DEPLETION;
 	}
 
 	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin,
 			ResultsOptions options) {
-		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
+		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_FILTER_DEPLETION;
 		int n = Integer.MAX_VALUE;
 		boolean found = false;
 		for (Spot s : spots) {
@@ -285,7 +285,7 @@ public final class CageSpotStimulusAggregation {
 	}
 
 	private static int minBinCountAllSpots(List<Spot> spots, double[] camTimeMin, ResultsOptions options) {
-		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
+		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_FILTER_DEPLETION;
 		int n = Integer.MAX_VALUE;
 		boolean found = false;
 		for (Spot s : spots) {
@@ -327,7 +327,7 @@ public final class CageSpotStimulusAggregation {
 
 	private static double[] medianDepletionIntensityPerBin(List<Spot> spots, int n, StimulusConcKey filterKey,
 			ResultsOptions options) {
-		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
+		EnumResults rt = options != null ? options.resultType : EnumResults.AGG_FILTER_DEPLETION;
 		double[] out = new double[n];
 		double[] scratch = new double[spots.size()];
 		for (int i = 0; i < n; i++) {
@@ -398,10 +398,10 @@ public final class CageSpotStimulusAggregation {
 	}
 
 	private static double flyOccupancyFraction(Spot spot, int binIndex) {
-		if (spot == null || spot.getFlyPresent() == null) {
+		if (spot == null || spot.getFlyCoveredPixelCount() == null) {
 			return 0.0;
 		}
-		SpotMeasure fp = spot.getFlyPresent();
+		SpotMeasure fp = spot.getFlyCoveredPixelCount();
 		if (binIndex < 0 || binIndex >= fp.getCount()) {
 			return 0.0;
 		}
@@ -502,7 +502,7 @@ public final class CageSpotStimulusAggregation {
 			if (s == null || s.getProperties() == null) {
 				continue;
 			}
-			SpotMeasure intensity = s.getAreaCountV5();
+			SpotMeasure intensity = s.getFilterV5SelectedPixelCount();
 			if (intensity == null) {
 				continue;
 			}
@@ -530,7 +530,7 @@ public final class CageSpotStimulusAggregation {
 		if (s == null || n <= 0) {
 			return null;
 		}
-		SpotMeasure intensity = s.getAreaCountV5();
+		SpotMeasure intensity = s.getFilterV5SelectedPixelCount();
 		if (intensity == null || intensity.getValues() == null) {
 			return null;
 		}
@@ -595,7 +595,7 @@ public final class CageSpotStimulusAggregation {
 			if (s == null || s.getProperties() == null) {
 				continue;
 			}
-			SpotMeasure intensity = s.getAreaCountColor();
+			SpotMeasure intensity = s.getColorDistanceSelectedPixelCount();
 			if (intensity == null) {
 				continue;
 			}
@@ -623,7 +623,7 @@ public final class CageSpotStimulusAggregation {
 		if (s == null || n <= 0) {
 			return null;
 		}
-		SpotMeasure intensity = s.getAreaCountColor();
+		SpotMeasure intensity = s.getColorDistanceSelectedPixelCount();
 		if (intensity == null || intensity.getValues() == null) {
 			return null;
 		}

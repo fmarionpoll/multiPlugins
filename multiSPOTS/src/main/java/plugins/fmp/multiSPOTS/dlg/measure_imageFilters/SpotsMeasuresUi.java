@@ -1,10 +1,16 @@
 package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
 
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JComboBox;
+import javax.swing.JList;
 import javax.swing.JPanel;
+
+import plugins.fmp.multitools.tools.results.EnumResults;
 
 /**
  * Tab panels used to share a {@link java.awt.GridLayout}(4,1) root, which forces
@@ -14,6 +20,25 @@ import javax.swing.JPanel;
 public final class SpotsMeasuresUi {
 
 	private SpotsMeasuresUi() {
+	}
+
+	public static void showMeasurementLabels(JComboBox<EnumResults> selector) {
+		selector.setRenderer(new DefaultListCellRenderer() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+					boolean selected, boolean hasFocus) {
+				Object label = value instanceof EnumResults ? ((EnumResults) value).toDisplayLabel() : value;
+				return super.getListCellRendererComponent(list, label, index, selected, hasFocus);
+			}
+		});
+		Runnable updateTooltip = () -> {
+			Object selected = selector.getSelectedItem();
+			selector.setToolTipText(selected instanceof EnumResults ? ((EnumResults) selected).toTitle() : null);
+		};
+		selector.addActionListener(event -> updateTooltip.run());
+		updateTooltip.run();
 	}
 
 	public static void layoutStackedRows(JPanel root, JPanel... rows) {

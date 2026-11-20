@@ -301,7 +301,7 @@ public class ChartCagesCombinedFrame {
 
 	private void updateFrameTitle() {
 		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
-			String rt = currentOptions.resultType != null ? currentOptions.resultType.toString() : "";
+			String rt = currentOptions.resultType != null ? currentOptions.resultType.toDisplayLabel() : "";
 			mainChartFrame.setTitle(baseTitle + ": " + rt);
 		}
 	}
@@ -341,39 +341,39 @@ public class ChartCagesCombinedFrame {
 		if (resultType == null)
 			return false;
 		switch (resultType) {
-		case AREA_SUM:
-		case AREA_SUMNOFLY:
-		case AREA_SUMCLEAN:
-		case AREA_SUMCLEAN_V3:
+		case FILTER_GREY:
+		case FILTER_GREY_FLY_MASKED:
+		case FILTER_GREY_SMOOTHED:
+		case FILTER_GREY_RESIDUAL:
 		case AREA_OUT:
 		case AREA_DIFF:
-		case AREA_FLYPRESENT:
-		case AREA_COUNT_V5:
-		case GREY_SUM_V5:
-		case GREY_SUM_V5_PREFLY:
-		case GREY_SUM_CLEAN_V5:
-		case AGG_SUMCLEAN:
-		case AGG_SUMCLEAN_V5:
-		case AGG_AREA_COUNT_V5:
-		case AREA_COUNT_COLOR:
-		case GREY_SUM_COLOR:
-		case GREY_SUM_COLOR_PREFLY:
-		case GREY_SUM_CLEAN_COLOR:
-		case AGG_SUMCLEAN_COLOR:
-		case AGG_AREA_COUNT_COLOR:
-		case AGG_MEDIANREF:
-		case KYMO_FRACT:
-		case KYMO_ABS_DELTA:
+		case FLY_PIXEL_COUNT:
+		case FILTER_V5_PIXEL_COUNT:
+		case FILTER_V5_GREY:
+		case FILTER_V5_GREY_PRE_GATE:
+		case FILTER_V5_GREY_SMOOTHED:
+		case AGG_FILTER_DEPLETION:
+		case AGG_FILTER_V5_DEPLETION:
+		case AGG_FILTER_V5_PIXEL_SUM:
+		case COLOR_PIXEL_COUNT:
+		case COLOR_GREY:
+		case COLOR_GREY_PRE_GATE:
+		case COLOR_GREY_SMOOTHED:
+		case AGG_COLOR_DEPLETION:
+		case AGG_COLOR_PIXEL_SUM:
+		case CAGE_GREY_MEDIAN:
+		case KYMO_ROW_FRACTION:
+		case KYMO_ROW_FRACTION_CHANGE:
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_LINE_RATIO:
+		case KYMO_CROSS_RATIO:
 		case KYMO_RIM_RATIO:
-		case AGG_GREENHEIGHT_CONSO:
-		case AGG_LINE_CONSO:
-		case AGG_RIM:
+		case AGG_KYMO_HEIGHT_LOSS:
+		case AGG_KYMO_CROSS_LOSS:
+		case AGG_KYMO_RIM_LOSS:
 			return true;
 		default:
 			return false;

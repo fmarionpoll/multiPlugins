@@ -146,7 +146,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 					if (i < ratios.length) {
 						SpotLineDeficitAnalyzer.suppressRebound(ratios[i]);
 					}
-					copyDoubles(cage.spots.get(i).getKymoRimRatio(), i < ratios.length ? ratios[i] : null);
+					copyDoubles(cage.spots.get(i).getRimCoverageToBaselineRatio(), i < ratios.length ? ratios[i] : null);
 				}
 			}
 			if (exp.getCages() != null) {

@@ -176,7 +176,7 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 
 		for (Spot spot : toProcess) {
 			if (spot != null) {
-				spot.getMeasurementsColor().rebuildGreySumCleanFromGreySum(options);
+				spot.getColorDistanceMeasurements().rebuildGreySumCleanFromGreySum(options);
 			}
 		}
 
@@ -229,8 +229,8 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 			if (spot == null) {
 				continue;
 			}
-			SpotMeasure grey = spot.getGreySumColor();
-			SpotMeasure area = spot.getAreaCountColor();
+			SpotMeasure grey = spot.getColorDistanceGreySignal();
+			SpotMeasure area = spot.getColorDistanceSelectedPixelCount();
 			if (grey == null || area == null) {
 				continue;
 			}
@@ -318,17 +318,17 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 
 	private void initializeSpotArrays(List<Spot> spotsToProcess, int nTimeBins) {
 		for (Spot spot : spotsToProcess) {
-			if (spot.getAreaCountColor() != null) {
-				spot.getAreaCountColor().setValues(new double[nTimeBins]);
+			if (spot.getColorDistanceSelectedPixelCount() != null) {
+				spot.getColorDistanceSelectedPixelCount().setValues(new double[nTimeBins]);
 			}
-			if (spot.getGreySumColorPreFly() != null) {
-				spot.getGreySumColorPreFly().setValues(new double[nTimeBins]);
+			if (spot.getColorDistanceGreySignalBeforeOccupancyCheck() != null) {
+				spot.getColorDistanceGreySignalBeforeOccupancyCheck().setValues(new double[nTimeBins]);
 			}
-			if (spot.getGreySumColor() != null) {
-				spot.getGreySumColor().setValues(new double[nTimeBins]);
+			if (spot.getColorDistanceGreySignal() != null) {
+				spot.getColorDistanceGreySignal().setValues(new double[nTimeBins]);
 			}
-			if (spot.getFlyPresent() != null) {
-				spot.getFlyPresent().setIsPresent(new int[nTimeBins]);
+			if (spot.getFlyCoveredPixelCount() != null) {
+				spot.getFlyCoveredPixelCount().setIsPresent(new int[nTimeBins]);
 			}
 		}
 	}
@@ -429,15 +429,15 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 		if (nPointsIn > 0) {
 			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
 			double greyVal = sumOverThreshold / (double) nPointsIn;
-			spot.getGreySumColorPreFly().setValueAt(timeIndex, greyVal);
+			spot.getColorDistanceGreySignalBeforeOccupancyCheck().setValueAt(timeIndex, greyVal);
 			if (nPointsFlyPresent >= minFlyPx) {
-				spot.getAreaCountColor().setValueAt(timeIndex, Double.NaN);
-				spot.getGreySumColor().setValueAt(timeIndex, Double.NaN);
+				spot.getColorDistanceSelectedPixelCount().setValueAt(timeIndex, Double.NaN);
+				spot.getColorDistanceGreySignal().setValueAt(timeIndex, Double.NaN);
 			} else {
-				spot.getAreaCountColor().setValueAt(timeIndex, nOver);
-				spot.getGreySumColor().setValueAt(timeIndex, greyVal);
+				spot.getColorDistanceSelectedPixelCount().setValueAt(timeIndex, nOver);
+				spot.getColorDistanceGreySignal().setValueAt(timeIndex, greyVal);
 			}
-			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
 

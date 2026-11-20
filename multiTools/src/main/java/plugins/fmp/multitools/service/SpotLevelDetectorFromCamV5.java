@@ -26,21 +26,21 @@ import plugins.fmp.multitools.tools.imageTransform.transforms.RoiMaskedLocalSumD
 import plugins.fmp.multitools.tools.imageTransform.transforms.SumDiffLocalMeanRgb;
 
 /**
- * Light-path detector for V5 spot measures: {@code AREA_COUNT_V5}, {@code GREY_SUM_V5},
- * {@code GREY_SUM_V5_PREFLY} (same grey scalar before the fly-occupancy NaN gate), and
- * {@code GREY_SUM_CLEAN_V5} (causal upward spike trim vs past-only median when enabled, then running-median smooth;
+ * Light-path detector for V5 spot measures: {@code FILTER_V5_PIXEL_COUNT}, {@code FILTER_V5_GREY},
+ * {@code FILTER_V5_GREY_PRE_GATE} (same grey scalar before the fly-occupancy NaN gate), and
+ * {@code FILTER_V5_GREY_SMOOTHED} (causal upward spike trim vs past-only median when enabled, then running-median smooth;
  * same running-median span as legacy {@code sumClean} from {@code sumNoFly}).
  * When fly-pixel count in the ROI for a bin reaches the same occupancy gate as legacy {@code sumNoFly}
  * reconstruction ({@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate},
- * from {@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}), {@code AREA_COUNT_V5} and
- * {@code GREY_SUM_V5} are set to {@code NaN} for that bin (prefly grey retains the finite value for diagnostics).
+ * from {@link BuildSeriesOptions#getFlyOccupancyFractionForSpotSumNoFly()}), {@code FILTER_V5_PIXEL_COUNT} and
+ * {@code FILTER_V5_GREY} are set to {@code NaN} for that bin (prefly grey retains the finite value for diagnostics).
  * Optional adaptive border trim: finite bins within
- * {@link BuildSeriesOptions#v5FlyNaNDilationBins} of a fly NaN are cleared only when {@code GREY_SUM_V5} is an
+ * {@link BuildSeriesOptions#v5FlyNaNDilationBins} of a fly NaN are cleared only when {@code FILTER_V5_GREY} is an
  * <strong>upward</strong> outlier (strictly above the previous finite grey and above a local median ×
  * {@link BuildSeriesOptions#v5FlyNaNBorderSpikeRatio}); genuine downward steps from feeding are never cleared.
- * {@code GREY_SUM_V5} matches legacy {@code AREA_SUM} scaling: sum of over-threshold spot-channel values divided
+ * {@code FILTER_V5_GREY} matches legacy {@code FILTER_GREY} scaling: sum of over-threshold spot-channel values divided
  * by the total number of ROI mask pixels ({@code sumOverThreshold / nPointsIn}).
- * After all bins are filled, {@code GREY_SUM_CLEAN_V5} is rebuilt from {@code GREY_SUM_V5}.
+ * After all bins are filled, {@code FILTER_V5_GREY_SMOOTHED} is rebuilt from {@code FILTER_V5_GREY}.
  * Legacy sum/sumClean pipelines are not written here.
  * <p>
  * Optional CPU test path: when {@link BuildSeriesOptions#v5SpotLocalMeanRestrictedToRoi} is true and the spot
@@ -247,7 +247,7 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 	}
 
 	/**
-	 * Clears {@code GREY_SUM_V5} / {@code AREA_COUNT_V5} only for finite bins near a fly-gated NaN where grey is an
+	 * Clears {@code FILTER_V5_GREY} / {@code FILTER_V5_PIXEL_COUNT} only for finite bins near a fly-gated NaN where grey is an
 	 * <strong>upward</strong> outlier vs. a local median and vs. the previous finite grey (genuine consumption drops
 	 * are never trimmed).
 	 */
@@ -264,8 +264,8 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 			if (spot == null) {
 				continue;
 			}
-			SpotMeasure grey = spot.getGreySumV5();
-			SpotMeasure area = spot.getAreaCountV5();
+			SpotMeasure grey = spot.getFilterV5GreySignal();
+			SpotMeasure area = spot.getFilterV5SelectedPixelCount();
 			if (grey == null || area == null) {
 				continue;
 			}
@@ -353,17 +353,17 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 
 	private void initializeSpotArrays(List<Spot> spotsToProcess, int nTimeBins) {
 		for (Spot spot : spotsToProcess) {
-			if (spot.getAreaCountV5() != null) {
-				spot.getAreaCountV5().setValues(new double[nTimeBins]);
+			if (spot.getFilterV5SelectedPixelCount() != null) {
+				spot.getFilterV5SelectedPixelCount().setValues(new double[nTimeBins]);
 			}
-			if (spot.getGreySumV5PreFly() != null) {
-				spot.getGreySumV5PreFly().setValues(new double[nTimeBins]);
+			if (spot.getFilterV5GreySignalBeforeOccupancyCheck() != null) {
+				spot.getFilterV5GreySignalBeforeOccupancyCheck().setValues(new double[nTimeBins]);
 			}
-			if (spot.getGreySumV5() != null) {
-				spot.getGreySumV5().setValues(new double[nTimeBins]);
+			if (spot.getFilterV5GreySignal() != null) {
+				spot.getFilterV5GreySignal().setValues(new double[nTimeBins]);
 			}
-			if (spot.getFlyPresent() != null) {
-				spot.getFlyPresent().setIsPresent(new int[nTimeBins]);
+			if (spot.getFlyCoveredPixelCount() != null) {
+				spot.getFlyCoveredPixelCount().setIsPresent(new int[nTimeBins]);
 			}
 		}
 	}
@@ -466,15 +466,15 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 		if (nPointsIn > 0) {
 			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
 			double greyVal = sumOverThreshold / (double) nPointsIn;
-			spot.getGreySumV5PreFly().setValueAt(timeIndex, greyVal);
+			spot.getFilterV5GreySignalBeforeOccupancyCheck().setValueAt(timeIndex, greyVal);
 			if (nPointsFlyPresent >= minFlyPx) {
-				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
-				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
+				spot.getFilterV5SelectedPixelCount().setValueAt(timeIndex, Double.NaN);
+				spot.getFilterV5GreySignal().setValueAt(timeIndex, Double.NaN);
 			} else {
-				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
-				spot.getGreySumV5().setValueAt(timeIndex, greyVal);
+				spot.getFilterV5SelectedPixelCount().setValueAt(timeIndex, nOver);
+				spot.getFilterV5GreySignal().setValueAt(timeIndex, greyVal);
 			}
-			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
 
@@ -547,15 +547,15 @@ public class SpotLevelDetectorFromCamV5 implements SpotLevelDetectionRunner {
 		if (nPointsIn > 0) {
 			int minFlyPx = Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly());
 			double greyVal = sumOverThreshold / (double) nPointsIn;
-			spot.getGreySumV5PreFly().setValueAt(timeIndex, greyVal);
+			spot.getFilterV5GreySignalBeforeOccupancyCheck().setValueAt(timeIndex, greyVal);
 			if (nPointsFlyPresent >= minFlyPx) {
-				spot.getAreaCountV5().setValueAt(timeIndex, Double.NaN);
-				spot.getGreySumV5().setValueAt(timeIndex, Double.NaN);
+				spot.getFilterV5SelectedPixelCount().setValueAt(timeIndex, Double.NaN);
+				spot.getFilterV5GreySignal().setValueAt(timeIndex, Double.NaN);
 			} else {
-				spot.getAreaCountV5().setValueAt(timeIndex, nOver);
-				spot.getGreySumV5().setValueAt(timeIndex, greyVal);
+				spot.getFilterV5SelectedPixelCount().setValueAt(timeIndex, nOver);
+				spot.getFilterV5GreySignal().setValueAt(timeIndex, greyVal);
 			}
-			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
 

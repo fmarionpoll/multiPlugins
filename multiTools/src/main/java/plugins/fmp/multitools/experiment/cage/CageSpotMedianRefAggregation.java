@@ -11,8 +11,8 @@ import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
- * Cage-level reference curve: per time bin, median of {@code AREA_SUM} across spots in a cage,
- * excluding bins where the fly is present on that spot ({@code AREA_FLYPRESENT} pixel count &gt; 0).
+ * Cage-level reference curve: per time bin, median of {@code FILTER_GREY} across spots in a cage,
+ * excluding bins where the fly is present on that spot ({@code FLY_PIXEL_COUNT} pixel count &gt; 0).
  * Optional centered moving average over time reduces high-frequency noise from small spot pools.
  */
 public final class CageSpotMedianRefAggregation {
@@ -74,7 +74,7 @@ public final class CageSpotMedianRefAggregation {
 				if (isFlyPresentAt(s, t)) {
 					continue;
 				}
-				SpotMeasure sum = s.getSum();
+				SpotMeasure sum = s.getRoiNormalizedGreySignal();
 				if (sum == null || t >= sum.getCount()) {
 					continue;
 				}
@@ -124,7 +124,7 @@ public final class CageSpotMedianRefAggregation {
 	}
 
 	private static boolean isFlyPresentAt(Spot s, int binIndex) {
-		SpotMeasure fp = s.getFlyPresent();
+		SpotMeasure fp = s.getFlyCoveredPixelCount();
 		if (fp == null || binIndex < 0 || binIndex >= fp.getCount()) {
 			return false;
 		}
@@ -136,10 +136,10 @@ public final class CageSpotMedianRefAggregation {
 		int n = Integer.MAX_VALUE;
 		boolean found = false;
 		for (Spot s : spots) {
-			if (s == null || s.getSum() == null) {
+			if (s == null || s.getRoiNormalizedGreySignal() == null) {
 				continue;
 			}
-			int c = s.getSum().getCount();
+			int c = s.getRoiNormalizedGreySignal().getCount();
 			if (c <= 0) {
 				continue;
 			}

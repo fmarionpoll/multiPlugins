@@ -36,18 +36,18 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 	}
 
 	public static boolean isKymoMetricMeasure(EnumResults rt) {
-		return rt == EnumResults.KYMO_FRACT || rt == EnumResults.KYMO_ABS_DELTA || rt == EnumResults.KYMO_CAGE_MEAN_FRACT
+		return rt == EnumResults.KYMO_ROW_FRACTION || rt == EnumResults.KYMO_ROW_FRACTION_CHANGE || rt == EnumResults.KYMO_CAGE_MEAN_FRACT
 				|| rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA || rt == EnumResults.KYMO_GREEN_HEIGHT
 				|| rt == EnumResults.KYMO_GREEN_HEIGHT_RATIO || rt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO
-				|| rt == EnumResults.AGG_GREENHEIGHT_CONSO;
+				|| rt == EnumResults.AGG_KYMO_HEIGHT_LOSS;
 	}
 
 	private static boolean useKymoAggGreenHeightConso(EnumResults rt) {
-		return rt == EnumResults.AGG_GREENHEIGHT_CONSO;
+		return rt == EnumResults.AGG_KYMO_HEIGHT_LOSS;
 	}
 
 	private static boolean useAbsDelta(EnumResults rt) {
-		return rt == EnumResults.KYMO_ABS_DELTA || rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA;
+		return rt == EnumResults.KYMO_ROW_FRACTION_CHANGE || rt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA;
 	}
 
 	private static boolean useCageMean(EnumResults rt) {
@@ -122,7 +122,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (x.length == 0) {
 			return dataset;
 		}
-		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_FRACT;
+		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_ROW_FRACTION;
 		List<SpotKymoSeries> rows = result.curvesForCage(cageId);
 		if (rows.isEmpty()) {
 			return dataset;
@@ -297,7 +297,7 @@ public final class CageKymoSeriesBuilder implements CageSeriesBuilder {
 		if (x.length == 0) {
 			return dataset;
 		}
-		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_FRACT;
+		EnumResults rt = options != null && options.resultType != null ? options.resultType : EnumResults.KYMO_ROW_FRACTION;
 		if (useKymoAggGreenHeightConso(rt)) {
 			java.util.HashMap<Integer, java.util.ArrayList<Spot>> byCage = new java.util.HashMap<>();
 			for (Spot spot : spots) {

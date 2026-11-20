@@ -3,7 +3,7 @@ package plugins.fmp.multitools.experiment.spot;
 /**
  * Per-spot kymograph strip measures (one sample per kymograph column).
  */
-public final class SpotMeasurementsKymo {
+public final class SpotKymographMeasurements {
 
 	private final SpotMeasure kymoFract;
 	private final SpotMeasure kymoAbsDelta;
@@ -12,7 +12,7 @@ public final class SpotMeasurementsKymo {
 	private final SpotMeasure kymoLineRatio;
 	private final SpotMeasure kymoRimRatio;
 
-	public SpotMeasurementsKymo() {
+	public SpotKymographMeasurements() {
 		this.kymoFract = new SpotMeasure("kymoFract");
 		this.kymoAbsDelta = new SpotMeasure("kymoAbsDelta");
 		this.kymoGreenHeight = new SpotMeasure("kymoGreenHeight");
@@ -21,7 +21,7 @@ public final class SpotMeasurementsKymo {
 		this.kymoRimRatio = new SpotMeasure("kymoRimRatio");
 	}
 
-	public SpotMeasurementsKymo(SpotMeasurementsKymo source, boolean includeData) {
+	public SpotKymographMeasurements(SpotKymographMeasurements source, boolean includeData) {
 		this.kymoFract = new SpotMeasure("kymoFract");
 		this.kymoAbsDelta = new SpotMeasure("kymoAbsDelta");
 		this.kymoGreenHeight = new SpotMeasure("kymoGreenHeight");
@@ -33,7 +33,7 @@ public final class SpotMeasurementsKymo {
 		}
 	}
 
-	public void copyFrom(SpotMeasurementsKymo source) {
+	public void copyFrom(SpotKymographMeasurements source) {
 		if (source == null) {
 			return;
 		}
@@ -45,27 +45,27 @@ public final class SpotMeasurementsKymo {
 		kymoRimRatio.copyMeasures(source.kymoRimRatio);
 	}
 
-	public SpotMeasure getKymoFract() {
+	public SpotMeasure getAboveThresholdStripRowFraction() {
 		return kymoFract;
 	}
 
-	public SpotMeasure getKymoAbsDelta() {
+	public SpotMeasure getAbsoluteStripRowFractionChange() {
 		return kymoAbsDelta;
 	}
 
-	public SpotMeasure getKymoGreenHeight() {
+	public SpotMeasure getGreenMaskHeight() {
 		return kymoGreenHeight;
 	}
 
-	public SpotMeasure getKymoGreenHeightRatio() {
+	public SpotMeasure getGreenMaskHeightToPeakRatio() {
 		return kymoGreenHeightRatio;
 	}
 
-	public SpotMeasure getKymoLineRatio() {
+	public SpotMeasure getCrossLineSignalToBaselineRatio() {
 		return kymoLineRatio;
 	}
 
-	public SpotMeasure getKymoRimRatio() {
+	public SpotMeasure getRimCoverageToBaselineRatio() {
 		return kymoRimRatio;
 	}
 

@@ -7,6 +7,8 @@ import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 
+import plugins.fmp.multitools.tools.results.EnumResults;
+
 public class SpotsAreasPanel extends JPanel {
 	/**
 	 * 
@@ -15,19 +17,19 @@ public class SpotsAreasPanel extends JPanel {
 
 	JButton exportToXLSButton2 = new JButton("save");
 
-	JCheckBox areaCheckBox = new JCheckBox("AREA_SUM", true);
-	JCheckBox sumNoFlyCheckBox = new JCheckBox("AREA_SUMNOFLY", false);
-	JCheckBox sumCleanCheckBox = new JCheckBox("AREA_SUMCLEAN", false);
-	JCheckBox areaCountV5CheckBox = new JCheckBox("AREA_COUNT_V5", false);
-	JCheckBox greySumV5CheckBox = new JCheckBox("GREY_SUM_V5", false);
-	JCheckBox greySumCleanV5CheckBox = new JCheckBox("GREY_SUM_CLEAN_V5", false);
-	JCheckBox kymoFractCheckBox = new JCheckBox("KYMO_FRACT", false);
-	JCheckBox kymoAbsDeltaCheckBox = new JCheckBox("KYMO_ABS_DELTA", false);
-	JCheckBox kymoGreenHeightCheckBox = new JCheckBox("KYMO_GREEN_HEIGHT", false);
-	JCheckBox kymoGreenHeightRatioCheckBox = new JCheckBox("KYMO_GREEN_HEIGHT_RATIO", false);
-//	JCheckBox areaV2CheckBox = new JCheckBox("AREA_SUM_V2", false);
-//	JCheckBox sumNoFlyV2CheckBox = new JCheckBox("AREA_SUMNOFLY_V2", false);
-//	JCheckBox sumCleanV2CheckBox = new JCheckBox("AREA_SUMCLEAN_V2", false);
+	JCheckBox areaCheckBox = new JCheckBox(EnumResults.FILTER_GREY.toDisplayLabel(), true);
+	JCheckBox sumNoFlyCheckBox = new JCheckBox(EnumResults.FILTER_GREY_FLY_MASKED.toDisplayLabel(), false);
+	JCheckBox sumCleanCheckBox = new JCheckBox(EnumResults.FILTER_GREY_SMOOTHED.toDisplayLabel(), false);
+	JCheckBox areaCountV5CheckBox = new JCheckBox(EnumResults.FILTER_V5_PIXEL_COUNT.toDisplayLabel(), false);
+	JCheckBox greySumV5CheckBox = new JCheckBox(EnumResults.FILTER_V5_GREY.toDisplayLabel(), false);
+	JCheckBox greySumCleanV5CheckBox = new JCheckBox(EnumResults.FILTER_V5_GREY_SMOOTHED.toDisplayLabel(), false);
+	JCheckBox kymoFractCheckBox = new JCheckBox(EnumResults.KYMO_ROW_FRACTION.toDisplayLabel(), false);
+	JCheckBox kymoAbsDeltaCheckBox = new JCheckBox(EnumResults.KYMO_ROW_FRACTION_CHANGE.toDisplayLabel(), false);
+	JCheckBox kymoGreenHeightCheckBox = new JCheckBox(EnumResults.KYMO_GREEN_HEIGHT.toDisplayLabel(), false);
+	JCheckBox kymoGreenHeightRatioCheckBox = new JCheckBox(EnumResults.KYMO_GREEN_HEIGHT_RATIO.toDisplayLabel(), false);
+//	JCheckBox areaV2CheckBox = new JCheckBox(EnumResults.FILTER_GREY_CONTRAST.toDisplayLabel(), false);
+//	JCheckBox sumNoFlyV2CheckBox = new JCheckBox(EnumResults.FILTER_GREY_CONTRAST_MASKED.toDisplayLabel(), false);
+//	JCheckBox sumCleanV2CheckBox = new JCheckBox(EnumResults.FILTER_GREY_CONTRAST_SMOOTHED.toDisplayLabel(), false);
 	JCheckBox t0CheckBox = new JCheckBox("(max-t)/max", true);
 	JCheckBox discardNoFlyCageCheckBox = new JCheckBox("discard cages with no fly", true);
 

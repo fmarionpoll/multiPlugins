@@ -30,7 +30,7 @@ public class XLSExportFactory {
     private static final int BYTES_PER_SPOT_PER_TIME_POINT = 24; // Double + ArrayList overhead
     private static final int AVERAGE_TIME_POINTS_PER_SPOT = 1000;
     private static final int SPOTS_PER_EXPERIMENT = 96;
-    private static final int EXPORT_TYPES = 3; // AREA_SUM, AREA_FLYPRESENT, AREA_SUMCLEAN
+    private static final int EXPORT_TYPES = 3; // FILTER_GREY, FLY_PIXEL_COUNT, FILTER_GREY_SMOOTHED
 
     /**
      * Creates the most appropriate XLSExport implementation based on dataset characteristics.

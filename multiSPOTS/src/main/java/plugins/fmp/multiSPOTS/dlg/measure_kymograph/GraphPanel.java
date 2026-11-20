@@ -18,6 +18,7 @@ import icy.roi.ROI2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.AxisOptions;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.SpotSequenceRois;
+import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
@@ -46,10 +47,10 @@ public class GraphPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_LINE_RATIO, EnumResults.KYMO_RIM_RATIO,
-			EnumResults.AGG_LINE_CONSO, EnumResults.AGG_RIM, EnumResults.KYMO_GREEN_HEIGHT_RATIO,
-			EnumResults.AGG_GREENHEIGHT_CONSO,
-			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_FRACT, EnumResults.KYMO_ABS_DELTA,
+	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO,
+			EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS, EnumResults.KYMO_GREEN_HEIGHT_RATIO,
+			EnumResults.AGG_KYMO_HEIGHT_LOSS,
+			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE,
 			EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,
 			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
@@ -103,6 +104,7 @@ public class GraphPanel extends JPanel {
 		p2.add(graphStatusLabel);
 		add(p2);
 
+		SpotsMeasuresUi.showMeasurementLabels(measureComboBox);
 		measureComboBox.setSelectedItem(EnumResults.KYMO_GREEN_HEIGHT_RATIO);
 
 		analysisPanel.addKymoResultListener(e -> maybeRefreshVisibleCharts());
@@ -144,15 +146,15 @@ public class GraphPanel extends JPanel {
 
 	private EnumResults selectedMeasure() {
 		Object o = measureComboBox.getSelectedItem();
-		return o instanceof EnumResults ? (EnumResults) o : EnumResults.KYMO_FRACT;
+		return o instanceof EnumResults ? (EnumResults) o : EnumResults.KYMO_ROW_FRACTION;
 	}
 
 	private static void applyKymoAggregateChartOptions(Experiment exp, ResultsOptions options) {
 		if (options == null || exp == null || exp.getSpots() == null) {
 			return;
 		}
-		if (options.resultType == EnumResults.AGG_GREENHEIGHT_CONSO
-				|| options.resultType == EnumResults.AGG_LINE_CONSO || options.resultType == EnumResults.AGG_RIM) {
+		if (options.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS
+				|| options.resultType == EnumResults.AGG_KYMO_CROSS_LOSS || options.resultType == EnumResults.AGG_KYMO_RIM_LOSS) {
 			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation
 					.globalStimulusConcKeysFirstSeenOrder(exp, exp.getSpots());
 		} else {

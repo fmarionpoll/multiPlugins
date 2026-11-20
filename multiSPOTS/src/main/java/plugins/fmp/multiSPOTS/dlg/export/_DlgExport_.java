@@ -67,7 +67,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 
 		aggregatedSpotsAreasPanel.init(capLayout);
 		tabsPane.addTab("Aggregated spots", null, aggregatedSpotsAreasPanel,
-				"Export AGG_SUMCLEAN (cage \u00d7 stimulus/concentration groups)");
+				"Export total estimated depletion by compound and concentration within each cage");
 		aggregatedSpotsAreasPanel.addPropertyChangeListener(this);
 
 		transferResultsPanel = new TransferResultsPanel(parent0.expListComboLazy, new TransferResultsHost() {
@@ -232,7 +232,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		ResultsOptions resultsOptions = new ResultsOptions();
 		resultsOptions.spotAreas = true;
 		resultsOptions.spotAggregateByStimulusConc = true;
-		resultsOptions.resultType = EnumResults.AGG_GREENHEIGHT_CONSO;
+		resultsOptions.resultType = EnumResults.AGG_KYMO_HEIGHT_LOSS;
 		resultsOptions.relativeToMaximum = false;
 		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		getCommonOptions(resultsOptions, exp);
@@ -248,7 +248,7 @@ public class _DlgExport_ extends JPanel implements PropertyChangeListener {
 		resultsOptions.relativeToMaximum = false;
 		resultsOptions.onlyalive = aggregatedSpotsAreasPanel.discardNoFlyCageCheckBox.isSelected();
 		resultsOptions.spotAggregateByStimulusConc = true;
-		resultsOptions.resultType = EnumResults.AGG_SUMCLEAN;
+		resultsOptions.resultType = EnumResults.AGG_FILTER_DEPLETION;
 		resultsOptions.spotBaselineWindowMinutes = ((Number) aggregatedSpotsAreasPanel.baselineMinutesSpinner
 				.getValue()).intValue();
 		resultsOptions.spotBaselineStopWhenStable = aggregatedSpotsAreasPanel.stopWhenStableCheckBox.isSelected();

@@ -61,7 +61,7 @@ public final class CsvNormalizedSpotExport {
 
 	/** Kymograph strip series and kymograph aggregates. Fly presence stays on the camera clock. */
 	public static boolean isKymoSeries(EnumResults resultType) {
-		if (resultType == null || resultType == EnumResults.AREA_FLYPRESENT) {
+		if (resultType == null || resultType == EnumResults.FLY_PIXEL_COUNT) {
 			return false;
 		}
 		return resultType.isPersistedKymographSpotMeasure() || EnumResults.isKymographMeasure(resultType);
@@ -186,10 +186,10 @@ public final class CsvNormalizedSpotExport {
 
 	private static EnumResults[] aggregateTypes(ResultsOptions options, Mode mode) {
 		if (mode == Mode.AGGREGATE_KYMO) {
-			return new EnumResults[] { EnumResults.AGG_GREENHEIGHT_CONSO, EnumResults.AGG_LINE_CONSO,
-					EnumResults.AGG_RIM };
+			return new EnumResults[] { EnumResults.AGG_KYMO_HEIGHT_LOSS, EnumResults.AGG_KYMO_CROSS_LOSS,
+					EnumResults.AGG_KYMO_RIM_LOSS };
 		}
-		EnumResults rt = options.resultType != null ? options.resultType : EnumResults.AGG_SUMCLEAN;
+		EnumResults rt = options.resultType != null ? options.resultType : EnumResults.AGG_FILTER_DEPLETION;
 		return new EnumResults[] { rt };
 	}
 
@@ -255,7 +255,7 @@ public final class CsvNormalizedSpotExport {
 			SpotMeasure measure = spot.getMeasurements(rt);
 			if (measure != null && measure.getCount() > 0) {
 				double scale = allSpots.getScalingFactorToPhysicalUnits(rt);
-				boolean relative = options.relativeToMaximum && rt != EnumResults.AREA_FLYPRESENT;
+				boolean relative = options.relativeToMaximum && rt != EnumResults.FLY_PIXEL_COUNT;
 				double[] values = preparedNative(measure, relative, scale);
 				long[] times = rawTimes(exp, options, rt, values.length, cameraTimes);
 				int n = Math.min(values.length, times.length);
@@ -517,7 +517,7 @@ public final class CsvNormalizedSpotExport {
 			return new long[0];
 		}
 		EnumResults saved = options.resultType;
-		options.resultType = EnumResults.AREA_SUM;
+		options.resultType = EnumResults.FILTER_GREY;
 		try {
 			return SpotExcelTimeline.buildForSpotExport(exp, options).getFrameElapsedMsRelative();
 		} finally {

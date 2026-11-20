@@ -13,7 +13,7 @@ package plugins.fmp.multitools.tools.toExcel.enums;
  */
 public enum ExportType {
 	/**
-	 * Spot measurements (AREA_SUM, AREA_FLYPRESENT, AREA_SUMCLEAN)
+	 * Spot measurements (FILTER_GREY, FLY_PIXEL_COUNT, FILTER_GREY_SMOOTHED)
 	 */
 	SPOT,
 

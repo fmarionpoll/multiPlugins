@@ -50,7 +50,7 @@ public final class SpotChartSeriesKeys {
 		return seriesKey != null && seriesKey.endsWith(MEDIAN_REF_SERIES_SUFFIX);
 	}
 
-	/** Synthetic series: median of {@code AREA_SUM} across cage spots (see {@code AGG_MEDIANREF}). */
+	/** Synthetic series: median of {@code FILTER_GREY} across cage spots (see {@code CAGE_GREY_MEDIAN}). */
 	public static String keyMedianRef(int cageId) {
 		return "median ref (AREA_SUM)" + SEP + "cage" + cageId + MEDIAN_REF_SERIES_SUFFIX;
 	}
@@ -76,7 +76,7 @@ public final class SpotChartSeriesKeys {
 				return byId;
 			}
 		} catch (NumberFormatException ignored) {
-			// multi-measure overlay keys use suffix like AREA_SUM
+			// multi-measure overlay keys use suffix like FILTER_GREY
 		}
 		if (suffix.startsWith("s")) {
 			try {

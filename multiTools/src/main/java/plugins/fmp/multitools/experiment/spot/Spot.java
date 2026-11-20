@@ -43,10 +43,10 @@ public class Spot implements Comparable<Spot> {
 //	private final List<ROI2DAlongT> roiAlongTList = new ArrayList<>();
 
 	private final SpotProperties properties;
-	private final SpotMeasurements measurements;
+	private final SpotFilterMeasurements filterMeasurements;
 	private final SpotMeasurementsV5 measurementsV5;
-	private final SpotMeasurementsColor measurementsColor;
-	private final SpotMeasurementsKymo measurementsKymo;
+	private final SpotColorDistanceMeasurements colorDistanceMeasurements;
+	private final SpotKymographMeasurements kymographMeasurements;
 	private final SpotMetadata metadata;
 	private final SpotRimGeometry rimGeometry;
 
@@ -61,10 +61,10 @@ public class Spot implements Comparable<Spot> {
 	public Spot(ROI2DShape roi) {
 		this.spotROI2D = Objects.requireNonNull(roi, "ROI cannot be null");
 		this.properties = new SpotProperties();
-		this.measurements = new SpotMeasurements();
+		this.filterMeasurements = new SpotFilterMeasurements();
 		this.measurementsV5 = new SpotMeasurementsV5();
-		this.measurementsColor = new SpotMeasurementsColor();
-		this.measurementsKymo = new SpotMeasurementsKymo();
+		this.colorDistanceMeasurements = new SpotColorDistanceMeasurements();
+		this.kymographMeasurements = new SpotKymographMeasurements();
 		this.metadata = new SpotMetadata();
 		this.rimGeometry = new SpotRimGeometry();
 	}
@@ -74,10 +74,10 @@ public class Spot implements Comparable<Spot> {
 	 */
 	public Spot() {
 		this.properties = new SpotProperties();
-		this.measurements = new SpotMeasurements();
+		this.filterMeasurements = new SpotFilterMeasurements();
 		this.measurementsV5 = new SpotMeasurementsV5();
-		this.measurementsColor = new SpotMeasurementsColor();
-		this.measurementsKymo = new SpotMeasurementsKymo();
+		this.colorDistanceMeasurements = new SpotColorDistanceMeasurements();
+		this.kymographMeasurements = new SpotKymographMeasurements();
 		this.metadata = new SpotMetadata();
 		this.rimGeometry = new SpotRimGeometry();
 	}
@@ -92,10 +92,10 @@ public class Spot implements Comparable<Spot> {
 	public Spot(Spot sourceSpot, boolean includeMeasurements) {
 		Objects.requireNonNull(sourceSpot, "Source spot cannot be null");
 		this.properties = new SpotProperties(sourceSpot.properties);
-		this.measurements = new SpotMeasurements(sourceSpot.measurements, includeMeasurements);
+		this.filterMeasurements = new SpotFilterMeasurements(sourceSpot.filterMeasurements, includeMeasurements);
 		this.measurementsV5 = new SpotMeasurementsV5(sourceSpot.measurementsV5, includeMeasurements);
-		this.measurementsColor = new SpotMeasurementsColor(sourceSpot.measurementsColor, includeMeasurements);
-		this.measurementsKymo = new SpotMeasurementsKymo(sourceSpot.measurementsKymo, includeMeasurements);
+		this.colorDistanceMeasurements = new SpotColorDistanceMeasurements(sourceSpot.colorDistanceMeasurements, includeMeasurements);
+		this.kymographMeasurements = new SpotKymographMeasurements(sourceSpot.kymographMeasurements, includeMeasurements);
 		this.metadata = new SpotMetadata(sourceSpot.metadata);
 		this.rimGeometry = sourceSpot.rimGeometry.copy();
 
@@ -150,9 +150,9 @@ public class Spot implements Comparable<Spot> {
 		this.rimGeometry.copyFrom(sourceSpot.rimGeometry);
 
 		if (includeMeasurements) {
-			this.measurements.copyFrom(sourceSpot.measurements);
+			this.filterMeasurements.copyFrom(sourceSpot.filterMeasurements);
 			this.measurementsV5.copyFrom(sourceSpot.measurementsV5);
-			this.measurementsColor.copyFrom(sourceSpot.measurementsColor);
+			this.colorDistanceMeasurements.copyFrom(sourceSpot.colorDistanceMeasurements);
 		}
 	}
 
@@ -163,9 +163,9 @@ public class Spot implements Comparable<Spot> {
 	 */
 	public void addMeasurements(Spot sourceSpot) {
 		Objects.requireNonNull(sourceSpot, "Source spot cannot be null");
-		this.measurements.addFrom(sourceSpot.measurements);
+		this.filterMeasurements.addFrom(sourceSpot.filterMeasurements);
 		this.measurementsV5.addFrom(sourceSpot.measurementsV5);
-		this.measurementsColor.addFrom(sourceSpot.measurementsColor);
+		this.colorDistanceMeasurements.addFrom(sourceSpot.colorDistanceMeasurements);
 		this.getProperties().setCountAggregatedSpots(this.getProperties().getCountAggregatedSpots() + 1);
 	}
 
@@ -180,9 +180,9 @@ public class Spot implements Comparable<Spot> {
 		Objects.requireNonNull(spot2, "Spot2 cannot be null");
 		int n1 = spot1.getProperties().getCountAggregatedSpots();
 		int n2 = spot2.getProperties().getCountAggregatedSpots();
-		this.measurements.computePI(spot1.measurements, n1, spot2.measurements, n2);
+		this.filterMeasurements.computePI(spot1.filterMeasurements, n1, spot2.filterMeasurements, n2);
 		this.measurementsV5.computePI(spot1.measurementsV5, n1, spot2.measurementsV5, n2);
-		this.measurementsColor.computePI(spot1.measurementsColor, n1, spot2.measurementsColor, n2);
+		this.colorDistanceMeasurements.computePI(spot1.colorDistanceMeasurements, n1, spot2.colorDistanceMeasurements, n2);
 	}
 
 	/**
@@ -196,15 +196,15 @@ public class Spot implements Comparable<Spot> {
 		Objects.requireNonNull(spot2, "Spot2 cannot be null");
 		int n1 = spot1.getProperties().getCountAggregatedSpots();
 		int n2 = spot2.getProperties().getCountAggregatedSpots();
-		this.measurements.computeSUM(spot1.measurements, n1, spot2.measurements, n2);
+		this.filterMeasurements.computeSUM(spot1.filterMeasurements, n1, spot2.filterMeasurements, n2);
 		this.measurementsV5.computeSUM(spot1.measurementsV5, n1, spot2.measurementsV5, n2);
-		this.measurementsColor.computeSUM(spot1.measurementsColor, n1, spot2.measurementsColor, n2);
+		this.colorDistanceMeasurements.computeSUM(spot1.colorDistanceMeasurements, n1, spot2.colorDistanceMeasurements, n2);
 	}
 
 	public void normalizeMeasures() {
-		this.measurements.normalizeMeasures();
+		this.filterMeasurements.normalizeMeasures();
 		this.measurementsV5.normalizeMeasures();
-		this.measurementsColor.normalizeMeasures();
+		this.colorDistanceMeasurements.normalizeMeasures();
 	}
 
 	// === ROI MANAGEMENT ===
@@ -513,49 +513,49 @@ public class Spot implements Comparable<Spot> {
 
 	public long isThereAnyMeasuresDone(EnumResults resultType) {
 		switch (resultType) {
-		case AREA_SUM:
-			return measurements.getSumIn().getCount();
-		case AREA_SUMNOFLY:
-			return measurements.getSumNoFly().getCount();
-		case AREA_SUMCLEAN:
-		case AGG_SUMCLEAN:
-			return measurements.getSumClean().getCount();
-		case GREY_SUM_CLEAN_V5:
+		case FILTER_GREY:
+			return filterMeasurements.getRoiNormalizedGreySignal().getCount();
+		case FILTER_GREY_FLY_MASKED:
+			return filterMeasurements.getFlyPixelExcludedGreySignal().getCount();
+		case FILTER_GREY_SMOOTHED:
+		case AGG_FILTER_DEPLETION:
+			return filterMeasurements.getSmoothedFlyPixelExcludedGreySignal().getCount();
+		case FILTER_V5_GREY_SMOOTHED:
 			return measurementsV5.getGreySumClean().getCount();
-		case GREY_SUM_V5_PREFLY:
+		case FILTER_V5_GREY_PRE_GATE:
 			return measurementsV5.getGreySumPreFly().getCount();
-		case AGG_SUMCLEAN_V5:
+		case AGG_FILTER_V5_DEPLETION:
 			return measurementsV5.getGreySumClean().getCount();
-		case AGG_AREA_COUNT_V5:
+		case AGG_FILTER_V5_PIXEL_SUM:
 			return measurementsV5.getAreaCount().getCount();
-		case GREY_SUM_CLEAN_COLOR:
-			return measurementsColor.getGreySumClean().getCount();
-		case GREY_SUM_COLOR_PREFLY:
-			return measurementsColor.getGreySumPreFly().getCount();
-		case AGG_SUMCLEAN_COLOR:
-			return measurementsColor.getGreySumClean().getCount();
-		case AGG_AREA_COUNT_COLOR:
-			return measurementsColor.getAreaCount().getCount();
-		case AGG_MEDIANREF:
-			return measurements.getSumIn().getCount();
-		case AREA_SUM_V2:
-			return measurements.getSumInV2().getCount();
-		case AREA_SUMNOFLY_V2:
-			return measurements.getSumNoFlyV2().getCount();
-		case AREA_SUMCLEAN_V2:
-			return measurements.getSumCleanV2().getCount();
-		case AREA_SUMCLEAN_V3:
-			return measurements.getSumCleanV3().getCount();
-		case AREA_FLYPRESENT:
-			return measurements.getFlyPresent().getCount();
-		case AREA_COUNT_V5:
+		case COLOR_GREY_SMOOTHED:
+			return colorDistanceMeasurements.getGreySumClean().getCount();
+		case COLOR_GREY_PRE_GATE:
+			return colorDistanceMeasurements.getGreySumPreFly().getCount();
+		case AGG_COLOR_DEPLETION:
+			return colorDistanceMeasurements.getGreySumClean().getCount();
+		case AGG_COLOR_PIXEL_SUM:
+			return colorDistanceMeasurements.getAreaCount().getCount();
+		case CAGE_GREY_MEDIAN:
+			return filterMeasurements.getRoiNormalizedGreySignal().getCount();
+		case FILTER_GREY_CONTRAST:
+			return filterMeasurements.getBackgroundCorrectedForegroundGrey().getCount();
+		case FILTER_GREY_CONTRAST_MASKED:
+			return filterMeasurements.getFlyPixelExcludedForegroundContrast().getCount();
+		case FILTER_GREY_CONTRAST_SMOOTHED:
+			return filterMeasurements.getSmoothedForegroundContrast().getCount();
+		case FILTER_GREY_RESIDUAL:
+			return filterMeasurements.getGreySignalPooledMedianResidual().getCount();
+		case FLY_PIXEL_COUNT:
+			return filterMeasurements.getFlyCoveredPixelCount().getCount();
+		case FILTER_V5_PIXEL_COUNT:
 			return measurementsV5.getAreaCount().getCount();
-		case GREY_SUM_V5:
+		case FILTER_V5_GREY:
 			return measurementsV5.getGreySum().getCount();
-		case AREA_COUNT_COLOR:
-			return measurementsColor.getAreaCount().getCount();
-		case GREY_SUM_COLOR:
-			return measurementsColor.getGreySum().getCount();
+		case COLOR_PIXEL_COUNT:
+			return colorDistanceMeasurements.getAreaCount().getCount();
+		case COLOR_GREY:
+			return colorDistanceMeasurements.getGreySum().getCount();
 		default:
 			return 0;
 		}
@@ -566,12 +566,12 @@ public class Spot implements Comparable<Spot> {
 	 * 
 	 * @return the sum measurements
 	 */
-	public SpotMeasure getSum() {
-		return measurements.getSumIn();
+	public SpotMeasure getRoiNormalizedGreySignal() {
+		return filterMeasurements.getRoiNormalizedGreySignal();
 	}
 
-	public SpotMeasure getSumV2() {
-		return measurements.getSumInV2();
+	public SpotMeasure getBackgroundCorrectedForegroundGrey() {
+		return filterMeasurements.getBackgroundCorrectedForegroundGrey();
 	}
 
 	/**
@@ -579,16 +579,16 @@ public class Spot implements Comparable<Spot> {
 	 * 
 	 * @return the clean measurements
 	 */
-	public SpotMeasure getSumClean() {
-		return measurements.getSumClean();
+	public SpotMeasure getSmoothedFlyPixelExcludedGreySignal() {
+		return filterMeasurements.getSmoothedFlyPixelExcludedGreySignal();
 	}
 
-	public SpotMeasure getSumCleanV2() {
-		return measurements.getSumCleanV2();
+	public SpotMeasure getSmoothedForegroundContrast() {
+		return filterMeasurements.getSmoothedForegroundContrast();
 	}
 
-	public SpotMeasure getSumCleanV3() {
-		return measurements.getSumCleanV3();
+	public SpotMeasure getGreySignalPooledMedianResidual() {
+		return filterMeasurements.getGreySignalPooledMedianResidual();
 	}
 
 	/**
@@ -596,12 +596,12 @@ public class Spot implements Comparable<Spot> {
 	 * 
 	 * @return the no-fly measurements
 	 */
-	public SpotMeasure getSumNoFly() {
-		return measurements.getSumNoFly();
+	public SpotMeasure getFlyPixelExcludedGreySignal() {
+		return filterMeasurements.getFlyPixelExcludedGreySignal();
 	}
 
-	public SpotMeasure getSumNoFlyV2() {
-		return measurements.getSumNoFlyV2();
+	public SpotMeasure getFlyPixelExcludedForegroundContrast() {
+		return filterMeasurements.getFlyPixelExcludedForegroundContrast();
 	}
 
 	/**
@@ -609,23 +609,23 @@ public class Spot implements Comparable<Spot> {
 	 * 
 	 * @return the fly presence measurements
 	 */
-	public SpotMeasure getFlyPresent() {
-		return measurements.getFlyPresent();
+	public SpotMeasure getFlyCoveredPixelCount() {
+		return filterMeasurements.getFlyCoveredPixelCount();
 	}
 
-	public SpotMeasure getAreaCountV5() {
+	public SpotMeasure getFilterV5SelectedPixelCount() {
 		return measurementsV5.getAreaCount();
 	}
 
-	public SpotMeasure getGreySumV5() {
+	public SpotMeasure getFilterV5GreySignal() {
 		return measurementsV5.getGreySum();
 	}
 
-	public SpotMeasure getGreySumV5PreFly() {
+	public SpotMeasure getFilterV5GreySignalBeforeOccupancyCheck() {
 		return measurementsV5.getGreySumPreFly();
 	}
 
-	public SpotMeasure getGreySumCleanV5() {
+	public SpotMeasure getSmoothedFilterV5GreySignal() {
 		return measurementsV5.getGreySumClean();
 	}
 
@@ -636,56 +636,56 @@ public class Spot implements Comparable<Spot> {
 		return measurementsV5;
 	}
 
-	public SpotMeasure getAreaCountColor() {
-		return measurementsColor.getAreaCount();
+	public SpotMeasure getColorDistanceSelectedPixelCount() {
+		return colorDistanceMeasurements.getAreaCount();
 	}
 
-	public SpotMeasure getGreySumColor() {
-		return measurementsColor.getGreySum();
+	public SpotMeasure getColorDistanceGreySignal() {
+		return colorDistanceMeasurements.getGreySum();
 	}
 
-	public SpotMeasure getGreySumColorPreFly() {
-		return measurementsColor.getGreySumPreFly();
+	public SpotMeasure getColorDistanceGreySignalBeforeOccupancyCheck() {
+		return colorDistanceMeasurements.getGreySumPreFly();
 	}
 
-	public SpotMeasure getGreySumCleanColor() {
-		return measurementsColor.getGreySumClean();
+	public SpotMeasure getSmoothedColorDistanceGreySignal() {
+		return colorDistanceMeasurements.getGreySumClean();
 	}
 
-	public SpotMeasurementsColor getMeasurementsColor() {
-		return measurementsColor;
+	public SpotColorDistanceMeasurements getColorDistanceMeasurements() {
+		return colorDistanceMeasurements;
 	}
 
-	public SpotMeasure getKymoFract() {
-		return measurementsKymo.getKymoFract();
+	public SpotMeasure getAboveThresholdStripRowFraction() {
+		return kymographMeasurements.getAboveThresholdStripRowFraction();
 	}
 
-	public SpotMeasure getKymoAbsDelta() {
-		return measurementsKymo.getKymoAbsDelta();
+	public SpotMeasure getAbsoluteStripRowFractionChange() {
+		return kymographMeasurements.getAbsoluteStripRowFractionChange();
 	}
 
-	public SpotMeasure getKymoGreenHeight() {
-		return measurementsKymo.getKymoGreenHeight();
+	public SpotMeasure getGreenMaskHeight() {
+		return kymographMeasurements.getGreenMaskHeight();
 	}
 
-	public SpotMeasure getKymoGreenHeightRatio() {
-		return measurementsKymo.getKymoGreenHeightRatio();
+	public SpotMeasure getGreenMaskHeightToPeakRatio() {
+		return kymographMeasurements.getGreenMaskHeightToPeakRatio();
 	}
 
-	public SpotMeasure getKymoLineRatio() {
-		return measurementsKymo.getKymoLineRatio();
+	public SpotMeasure getCrossLineSignalToBaselineRatio() {
+		return kymographMeasurements.getCrossLineSignalToBaselineRatio();
 	}
 
-	public SpotMeasure getKymoRimRatio() {
-		return measurementsKymo.getKymoRimRatio();
+	public SpotMeasure getRimCoverageToBaselineRatio() {
+		return kymographMeasurements.getRimCoverageToBaselineRatio();
 	}
 
 	public SpotRimGeometry getRimGeometry() {
 		return rimGeometry;
 	}
 
-	public SpotMeasurementsKymo getMeasurementsKymo() {
-		return measurementsKymo;
+	public SpotKymographMeasurements getKymographMeasurements() {
+		return kymographMeasurements;
 	}
 
 	/**
@@ -698,62 +698,62 @@ public class Spot implements Comparable<Spot> {
 		Objects.requireNonNull(resultType, "Export option cannot be null");
 
 		switch (resultType) {
-		case AREA_SUM:
-			return measurements.getSumIn();
-		case AREA_SUMNOFLY:
-			return measurements.getSumNoFly();
-		case AREA_SUMCLEAN:
-			return measurements.getSumClean();
-		case AREA_SUM_V2:
-			return measurements.getSumInV2();
-		case AREA_SUMNOFLY_V2:
-			return measurements.getSumNoFlyV2();
-		case AREA_SUMCLEAN_V2:
-			return measurements.getSumCleanV2();
-		case AREA_SUMCLEAN_V3:
-			return measurements.getSumCleanV3();
-		case AGG_SUMCLEAN:
-			return measurements.getSumClean();
-		case GREY_SUM_CLEAN_V5:
+		case FILTER_GREY:
+			return filterMeasurements.getRoiNormalizedGreySignal();
+		case FILTER_GREY_FLY_MASKED:
+			return filterMeasurements.getFlyPixelExcludedGreySignal();
+		case FILTER_GREY_SMOOTHED:
+			return filterMeasurements.getSmoothedFlyPixelExcludedGreySignal();
+		case FILTER_GREY_CONTRAST:
+			return filterMeasurements.getBackgroundCorrectedForegroundGrey();
+		case FILTER_GREY_CONTRAST_MASKED:
+			return filterMeasurements.getFlyPixelExcludedForegroundContrast();
+		case FILTER_GREY_CONTRAST_SMOOTHED:
+			return filterMeasurements.getSmoothedForegroundContrast();
+		case FILTER_GREY_RESIDUAL:
+			return filterMeasurements.getGreySignalPooledMedianResidual();
+		case AGG_FILTER_DEPLETION:
+			return filterMeasurements.getSmoothedFlyPixelExcludedGreySignal();
+		case FILTER_V5_GREY_SMOOTHED:
 			return measurementsV5.getGreySumClean();
-		case AGG_SUMCLEAN_V5:
+		case AGG_FILTER_V5_DEPLETION:
 			return measurementsV5.getGreySumClean();
-		case AGG_AREA_COUNT_V5:
+		case AGG_FILTER_V5_PIXEL_SUM:
 			return measurementsV5.getAreaCount();
-		case AGG_MEDIANREF:
-			return measurements.getSumIn();
-		case AREA_FLYPRESENT:
-			return measurements.getFlyPresent();
-		case AREA_COUNT_V5:
+		case CAGE_GREY_MEDIAN:
+			return filterMeasurements.getRoiNormalizedGreySignal();
+		case FLY_PIXEL_COUNT:
+			return filterMeasurements.getFlyCoveredPixelCount();
+		case FILTER_V5_PIXEL_COUNT:
 			return measurementsV5.getAreaCount();
-		case GREY_SUM_V5:
+		case FILTER_V5_GREY:
 			return measurementsV5.getGreySum();
-		case GREY_SUM_V5_PREFLY:
+		case FILTER_V5_GREY_PRE_GATE:
 			return measurementsV5.getGreySumPreFly();
-		case AREA_COUNT_COLOR:
-			return measurementsColor.getAreaCount();
-		case GREY_SUM_COLOR:
-			return measurementsColor.getGreySum();
-		case GREY_SUM_COLOR_PREFLY:
-			return measurementsColor.getGreySumPreFly();
-		case GREY_SUM_CLEAN_COLOR:
-			return measurementsColor.getGreySumClean();
-		case AGG_SUMCLEAN_COLOR:
-			return measurementsColor.getGreySumClean();
-		case AGG_AREA_COUNT_COLOR:
-			return measurementsColor.getAreaCount();
-		case KYMO_FRACT:
-			return measurementsKymo.getKymoFract();
-		case KYMO_ABS_DELTA:
-			return measurementsKymo.getKymoAbsDelta();
+		case COLOR_PIXEL_COUNT:
+			return colorDistanceMeasurements.getAreaCount();
+		case COLOR_GREY:
+			return colorDistanceMeasurements.getGreySum();
+		case COLOR_GREY_PRE_GATE:
+			return colorDistanceMeasurements.getGreySumPreFly();
+		case COLOR_GREY_SMOOTHED:
+			return colorDistanceMeasurements.getGreySumClean();
+		case AGG_COLOR_DEPLETION:
+			return colorDistanceMeasurements.getGreySumClean();
+		case AGG_COLOR_PIXEL_SUM:
+			return colorDistanceMeasurements.getAreaCount();
+		case KYMO_ROW_FRACTION:
+			return kymographMeasurements.getAboveThresholdStripRowFraction();
+		case KYMO_ROW_FRACTION_CHANGE:
+			return kymographMeasurements.getAbsoluteStripRowFractionChange();
 		case KYMO_GREEN_HEIGHT:
-			return measurementsKymo.getKymoGreenHeight();
+			return kymographMeasurements.getGreenMaskHeight();
 		case KYMO_GREEN_HEIGHT_RATIO:
-			return measurementsKymo.getKymoGreenHeightRatio();
-		case KYMO_LINE_RATIO:
-			return measurementsKymo.getKymoLineRatio();
+			return kymographMeasurements.getGreenMaskHeightToPeakRatio();
+		case KYMO_CROSS_RATIO:
+			return kymographMeasurements.getCrossLineSignalToBaselineRatio();
 		case KYMO_RIM_RATIO:
-			return measurementsKymo.getKymoRimRatio();
+			return kymographMeasurements.getRimCoverageToBaselineRatio();
 		default:
 			return null;
 		}
@@ -912,20 +912,20 @@ public class Spot implements Comparable<Spot> {
 	 * Restores clipped spot measures.
 	 */
 	public void restoreClippedMeasures() {
-		measurements.restoreClippedMeasures();
+		filterMeasurements.restoreClippedMeasures();
 		measurementsV5.restoreClippedMeasures();
-		measurementsColor.restoreClippedMeasures();
-		measurementsKymo.restoreClippedMeasures();
+		colorDistanceMeasurements.restoreClippedMeasures();
+		kymographMeasurements.restoreClippedMeasures();
 	}
 
 	/**
 	 * Transfers ROI measures to Level2D.
 	 */
 	public void transferRoiMeasuresToLevel2D() {
-		measurements.transferRoiMeasuresToLevel2D();
+		filterMeasurements.transferRoiMeasuresToLevel2D();
 		measurementsV5.transferRoiMeasuresToLevel2D();
-		measurementsColor.transferRoiMeasuresToLevel2D();
-		measurementsKymo.transferRoiMeasuresToLevel2D();
+		colorDistanceMeasurements.transferRoiMeasuresToLevel2D();
+		kymographMeasurements.transferRoiMeasuresToLevel2D();
 	}
 
 	// === IMAGE PROCESSING ===
@@ -936,10 +936,10 @@ public class Spot implements Comparable<Spot> {
 	 * @param imageWidth the image width
 	 */
 	public void adjustLevel2DMeasuresToImageWidth(int imageWidth) {
-		measurements.adjustLevel2DMeasuresToImageWidth(imageWidth);
+		filterMeasurements.adjustLevel2DMeasuresToImageWidth(imageWidth);
 		measurementsV5.adjustLevel2DMeasuresToImageWidth(imageWidth);
-		measurementsColor.adjustLevel2DMeasuresToImageWidth(imageWidth);
-		measurementsKymo.adjustLevel2DMeasuresToImageWidth(imageWidth);
+		colorDistanceMeasurements.adjustLevel2DMeasuresToImageWidth(imageWidth);
+		kymographMeasurements.adjustLevel2DMeasuresToImageWidth(imageWidth);
 	}
 
 	/**
@@ -948,27 +948,27 @@ public class Spot implements Comparable<Spot> {
 	 * @param imageWidth the image width
 	 */
 	public void cropLevel2DMeasuresToImageWidth(int imageWidth) {
-		measurements.cropLevel2DMeasuresToImageWidth(imageWidth);
+		filterMeasurements.cropLevel2DMeasuresToImageWidth(imageWidth);
 		measurementsV5.cropLevel2DMeasuresToImageWidth(imageWidth);
-		measurementsColor.cropLevel2DMeasuresToImageWidth(imageWidth);
+		colorDistanceMeasurements.cropLevel2DMeasuresToImageWidth(imageWidth);
 	}
 
 	/**
 	 * Initializes Level2D measures.
 	 */
 	public void initializeLevel2DMeasures() {
-		measurements.initializeLevel2DMeasures();
+		filterMeasurements.initializeLevel2DMeasures();
 		measurementsV5.initializeLevel2DMeasures();
-		measurementsColor.initializeLevel2DMeasures();
+		colorDistanceMeasurements.initializeLevel2DMeasures();
 	}
 
 	/**
 	 * Transfer measures to Level2D.
 	 */
 	public void transferMeasuresToLevel2D() {
-		measurements.transferMeasuresToLevel2D();
+		filterMeasurements.transferMeasuresToLevel2D();
 		measurementsV5.transferMeasuresToLevel2D();
-		measurementsColor.transferMeasuresToLevel2D();
+		colorDistanceMeasurements.transferMeasuresToLevel2D();
 	}
 
 	/**
@@ -978,7 +978,7 @@ public class Spot implements Comparable<Spot> {
 	 * @return the list of ROIs
 	 */
 	public List<ROI2D> transferMeasuresToRois(int imageHeight) {
-		return measurements.transferLevel2DToRois(imageHeight);
+		return filterMeasurements.transferLevel2DToRois(imageHeight);
 	}
 
 	/**
@@ -988,9 +988,9 @@ public class Spot implements Comparable<Spot> {
 	 * @param imageHeight the image height
 	 */
 	public void transferRoiToMeasures(ROI2D roi, int imageHeight) {
-		measurements.transferRoiToMeasures(roi, imageHeight);
+		filterMeasurements.transferRoiToMeasures(roi, imageHeight);
 		measurementsV5.transferRoiToMeasures(roi, imageHeight);
-		measurementsColor.transferRoiToMeasures(roi, imageHeight);
+		colorDistanceMeasurements.transferRoiToMeasures(roi, imageHeight);
 	}
 
 	// === CSV EXPORT/IMPORT ===
@@ -1038,7 +1038,7 @@ public class Spot implements Comparable<Spot> {
 	 * @return true if successful
 	 */
 	public boolean loadMeasurementsFromXml(Node node) {
-		return measurements.loadFromXml(node);
+		return filterMeasurements.loadFromXml(node);
 	}
 
 	/**
@@ -1048,7 +1048,7 @@ public class Spot implements Comparable<Spot> {
 	 * @return true if successful
 	 */
 	public boolean saveMeasurementsToXml(Node node) {
-		return measurements.saveToXml(node);
+		return filterMeasurements.saveToXml(node);
 	}
 
 	/**
@@ -1076,7 +1076,7 @@ public class Spot implements Comparable<Spot> {
 	/**
 	 * Encapsulates spot measurements with clean separation of concerns.
 	 */
-	private static class SpotMeasurements {
+	private static class SpotFilterMeasurements {
 		private final SpotMeasure sumIn;
 		private final SpotMeasure sumNoFly;
 		private final SpotMeasure sumClean;
@@ -1086,7 +1086,7 @@ public class Spot implements Comparable<Spot> {
 		private final SpotMeasure sumCleanV3;
 		private final SpotMeasure flyPresent;
 
-		SpotMeasurements() {
+		SpotFilterMeasurements() {
 			this.sumIn = new SpotMeasure("sum");
 			this.sumNoFly = new SpotMeasure("sumNoFly");
 			this.sumClean = new SpotMeasure("clean");
@@ -1097,7 +1097,7 @@ public class Spot implements Comparable<Spot> {
 			this.flyPresent = new SpotMeasure("flyPresent");
 		}
 
-		SpotMeasurements(SpotMeasurements source, boolean includeData) {
+		SpotFilterMeasurements(SpotFilterMeasurements source, boolean includeData) {
 			this.sumIn = new SpotMeasure("sum");
 			this.sumNoFly = new SpotMeasure("sumNoFly");
 			this.sumClean = new SpotMeasure("clean");
@@ -1112,7 +1112,7 @@ public class Spot implements Comparable<Spot> {
 			}
 		}
 
-		void copyFrom(SpotMeasurements source) {
+		void copyFrom(SpotFilterMeasurements source) {
 			sumIn.copyMeasures(source.sumIn);
 			sumNoFly.copyMeasures(source.sumNoFly);
 			sumClean.copyMeasures(source.sumClean);
@@ -1123,7 +1123,7 @@ public class Spot implements Comparable<Spot> {
 			flyPresent.copyMeasures(source.flyPresent);
 		}
 
-		void addFrom(SpotMeasurements source) {
+		void addFrom(SpotFilterMeasurements source) {
 			sumIn.addMeasures(source.sumIn);
 			sumNoFly.addMeasures(source.sumNoFly);
 			sumClean.addMeasures(source.sumClean);
@@ -1134,7 +1134,7 @@ public class Spot implements Comparable<Spot> {
 			flyPresent.addMeasures(source.flyPresent);
 		}
 
-		void computePI(SpotMeasurements measure1, int n1, SpotMeasurements measure2, int n2) {
+		void computePI(SpotFilterMeasurements measure1, int n1, SpotFilterMeasurements measure2, int n2) {
 			sumIn.computePI(measure1.sumIn, measure2.sumIn);
 			sumNoFly.computePI(measure1.sumNoFly, measure2.sumNoFly);
 			sumClean.computePI(measure1.sumClean, measure2.sumClean);
@@ -1144,7 +1144,7 @@ public class Spot implements Comparable<Spot> {
 			sumCleanV3.computePI(measure1.sumCleanV3, measure2.sumCleanV3);
 		}
 
-		void computeSUM(SpotMeasurements measure1, int n1, SpotMeasurements measure2, int n2) {
+		void computeSUM(SpotFilterMeasurements measure1, int n1, SpotFilterMeasurements measure2, int n2) {
 			sumIn.computeSUM(measure1.sumIn, n1, measure2.sumIn, n2);
 			sumNoFly.computeSUM(measure1.sumNoFly, n1, measure2.sumNoFly, n2);
 			sumClean.computeSUM(measure1.sumClean, n1, measure2.sumClean, n2);
@@ -1165,35 +1165,35 @@ public class Spot implements Comparable<Spot> {
 			sumCleanV3.normalizeValues();
 		}
 
-		SpotMeasure getSumIn() {
+		SpotMeasure getRoiNormalizedGreySignal() {
 			return sumIn;
 		}
 
-		SpotMeasure getSumNoFly() {
+		SpotMeasure getFlyPixelExcludedGreySignal() {
 			return sumNoFly;
 		}
 
-		SpotMeasure getSumClean() {
+		SpotMeasure getSmoothedFlyPixelExcludedGreySignal() {
 			return sumClean;
 		}
 
-		SpotMeasure getSumInV2() {
+		SpotMeasure getBackgroundCorrectedForegroundGrey() {
 			return sumInV2;
 		}
 
-		SpotMeasure getSumNoFlyV2() {
+		SpotMeasure getFlyPixelExcludedForegroundContrast() {
 			return sumNoFlyV2;
 		}
 
-		SpotMeasure getSumCleanV2() {
+		SpotMeasure getSmoothedForegroundContrast() {
 			return sumCleanV2;
 		}
 
-		SpotMeasure getSumCleanV3() {
+		SpotMeasure getGreySignalPooledMedianResidual() {
 			return sumCleanV3;
 		}
 
-		SpotMeasure getFlyPresent() {
+		SpotMeasure getFlyCoveredPixelCount() {
 			return flyPresent;
 		}
 

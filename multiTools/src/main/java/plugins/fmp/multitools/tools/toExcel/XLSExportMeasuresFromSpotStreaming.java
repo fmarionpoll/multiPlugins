@@ -184,7 +184,7 @@ public class XLSExportMeasuresFromSpotStreaming extends XLSExportSpots {
 		}
 
 		// Apply relative to T0 if needed
-		if (options.relativeToMaximum && resultType != EnumResults.AREA_FLYPRESENT) {
+		if (options.relativeToMaximum && resultType != EnumResults.FLY_PIXEL_COUNT) {
 			dataIterator = applyRelativeToMaximumStreaming(dataIterator);
 		}
 

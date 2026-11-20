@@ -134,7 +134,7 @@ public final class CageChartPlotFactory {
 		XYPlot xyPlot = new XYPlot(primary, xAxis, yAxis, primaryRenderer);
 
 		XYLineAndShapeRenderer medianRenderer = createRenderer(median);
-		NumberAxis yMedian = new NumberAxis(EnumResults.AGG_MEDIANREF.toUnit());
+		NumberAxis yMedian = new NumberAxis(EnumResults.CAGE_GREY_MEDIAN.toUnit());
 		yMedian.setInverted(true);
 		yMedian.setAutoRange(true);
 		yMedian.setAutoRangeIncludesZero(true);

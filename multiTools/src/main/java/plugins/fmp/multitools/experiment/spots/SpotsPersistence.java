@@ -134,6 +134,10 @@ public class SpotsPersistence {
 		return Persistence.saveMeasures(spots, binDirectory);
 	}
 
+	public boolean saveMeasures(Spots spots, String directory, boolean includeKymographs) {
+		return Persistence.saveMeasures(spots, directory, includeKymographs);
+	}
+
 	/**
 	 * Loads only kymograph spot measure sections from {@code SpotsMeasures.csv} in the given directory,
 	 * merging into existing per-spot camera measures without clearing them.
@@ -143,7 +147,7 @@ public class SpotsPersistence {
 	}
 
 	/**
-	 * Saves kymograph strip measures ({@link EnumResults#KYMO_FRACT}, etc.) to {@code SpotsMeasures.csv}
+	 * Saves kymograph strip measures ({@link EnumResults#KYMO_ROW_FRACTION}, etc.) to {@code SpotsMeasures.csv}
 	 * in the kymographs bin directory.
 	 */
 	public boolean saveKymoMeasures(Spots spots, String kymoBinDirectory) {
@@ -475,20 +479,12 @@ public class SpotsPersistence {
 			}
 		}
 
-		/**
-		 * Saves spot measures to SpotsMeasures.csv in bin directory.
-		 * <p>
-		 * Persistence policy:
-		 * <ul>
-		 * <li>Persist {@code AREA_SUM} (raw)</li>
-		 * <li>Persist {@code AREA_SUMNOFLY} (no-fly)</li>
-		 * <li>Persist {@code AREA_FLYPRESENT} (fly mask support)</li>
-		 * <li>Persist {@code AREA_SUMCLEAN_V3} (Tier A residual vs pooled median; pool chosen at recompute)</li>
-		 * <li>Persist {@code AREA_COUNT_V5} / {@code GREY_SUM_V5} / {@code GREY_SUM_V5_PREFLY} / {@code GREY_SUM_CLEAN_V5} (parallel V5 stack)</li>
-		 * <li>Persist {@code AREA_COUNT_V6} / {@code GREY_SUM_V6} / {@code GREY_SUM_V6_PREFLY} / {@code GREY_SUM_CLEAN_V6} (V6 color-distance stack)</li>
-		 * </ul>
-		 */
+		/** Saves image-based spot measurements to {@code SpotsMeasures.csv}. */
 		public static boolean saveMeasures(Spots spotsArray, String binDirectory) {
+			return saveMeasures(spotsArray, binDirectory, false);
+		}
+
+		private static boolean saveMeasures(Spots spotsArray, String binDirectory, boolean includeKymographs) {
 			if (binDirectory == null) {
 				Logger.warn("SpotsArrayPersistence:save_SpotsArrayMeasures() directory is null");
 				return false;
@@ -504,52 +500,11 @@ public class SpotsPersistence {
 			Path csvPath = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
 				writer.write("#;version;" + CSV_VERSION + "\n");
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_SUM, ";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_SUMNOFLY,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_FLYPRESENT,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_SUMCLEAN_V3,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_COUNT_V5,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_V5,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_V5_PREFLY,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_CLEAN_V5,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.AREA_COUNT_COLOR,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_COLOR,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_COLOR_PREFLY,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.GREY_SUM_CLEAN_COLOR,
-						";")) {
-					return false;
+				for (EnumResults measure : EnumResults.values()) {
+					if (measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)
+							&& (includeKymographs || !measure.isPersistedKymographSpotMeasure())) {
+						SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, measure, ";");
+					}
 				}
 				Logger.debug("SpotsArrayPersistence:save_SpotsArrayMeasures() saved measures to "
 						+ ID_V2_SPOTSARRAYMEASURES_CSV);
@@ -571,16 +526,16 @@ public class SpotsPersistence {
 				return false;
 			}
 			if (spotsArray == null || !spotsArray.getSpotList().stream()
-					.anyMatch(s -> s != null && s.getMeasurementsKymo().hasAnyData())) {
+					.anyMatch(s -> s != null && s.getKymographMeasurements().hasAnyData())) {
 				return false;
 			}
 			Path csvPath = Paths.get(kymoBinDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 			try (FileWriter writer = new FileWriter(csvPath.toFile())) {
 				writer.write("#;version;" + CSV_VERSION + "\n");
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_FRACT, ";")) {
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_ROW_FRACTION, ";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_ABS_DELTA,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_ROW_FRACTION_CHANGE,
 						";")) {
 					return false;
 				}
@@ -592,7 +547,7 @@ public class SpotsPersistence {
 						EnumResults.KYMO_GREEN_HEIGHT_RATIO, ";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_LINE_RATIO,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_CROSS_RATIO,
 						";")) {
 					return false;
 				}

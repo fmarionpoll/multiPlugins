@@ -74,11 +74,11 @@ public class EditKymos extends JPanel implements PropertyChangeListener {
 //		Spot spot = exp.getCages().getSpotAtGlobalIndex(t);
 //		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 //		if (optionSelected.contains("sum"))
-//			removeAndUpdate(seqKymos, spot, spot.getSum(), roiRect);
+//			removeAndUpdate(seqKymos, spot, spot.getRoiNormalizedGreySignal(), roiRect);
 //		else if (optionSelected.contains("clean"))
-//			removeAndUpdate(seqKymos, spot, spot.getSumClean(), roiRect);
+//			removeAndUpdate(seqKymos, spot, spot.getSmoothedFlyPixelExcludedGreySignal(), roiRect);
 //		else if (optionSelected.contains("fly"))
-//			removeAndUpdate(seqKymos, spot, spot.getFlyPresent(), roiRect);
+//			removeAndUpdate(seqKymos, spot, spot.getFlyCoveredPixelCount(), roiRect);
 	}
 
 	void compensate(Experiment exp) {
@@ -91,11 +91,11 @@ public class EditKymos extends JPanel implements PropertyChangeListener {
 //		Spot spot = exp.getCages().getSpotAtGlobalIndex(t);
 //		String optionSelected = (String) roiTypeCombo.getSelectedItem();
 //		if (optionSelected.contains("sum"))
-//			compensateAndUpdate(seqKymos, spot, spot.getSum(), roiRect);
+//			compensateAndUpdate(seqKymos, spot, spot.getRoiNormalizedGreySignal(), roiRect);
 //		else if (optionSelected.contains("clean"))
-//			compensateAndUpdate(seqKymos, spot, spot.getSumClean(), roiRect);
+//			compensateAndUpdate(seqKymos, spot, spot.getSmoothedFlyPixelExcludedGreySignal(), roiRect);
 //		else if (optionSelected.contains("fly"))
-//			compensateAndUpdate(seqKymos, spot, spot.getFlyPresent(), roiRect);
+//			compensateAndUpdate(seqKymos, spot, spot.getFlyCoveredPixelCount(), roiRect);
 	}
 
 //	private void removeAndUpdate(SequenceKymos seqKymos, Spot spot, SpotMeasure spotMeasure, ROI2D roi) {

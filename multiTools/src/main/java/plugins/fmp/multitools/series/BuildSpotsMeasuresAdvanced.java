@@ -376,10 +376,10 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 							cursorToDetectFly, roiT, transformToMeasureArea);
 
 					if (results.npoints_in > 0) {
-						spot.getFlyPresent().setIsPresentAt(ii_local, results.nPoints_fly_present);
-						spot.getSum().setValueAt(ii_local, results.sumOverThreshold / results.npoints_in);
+						spot.getFlyCoveredPixelCount().setIsPresentAt(ii_local, results.nPoints_fly_present);
+						spot.getRoiNormalizedGreySignal().setValueAt(ii_local, results.sumOverThreshold / results.npoints_in);
 						if (results.nPoints_no_fly != results.npoints_in)
-							spot.getSum().setValueAt(ii_local,
+							spot.getRoiNormalizedGreySignal().setValueAt(ii_local,
 									results.sumTot_no_fly_over_threshold / results.nPoints_no_fly);
 					}
 				}
@@ -522,9 +522,9 @@ public class BuildSpotsMeasuresAdvanced extends BuildSeries {
 			for (Spot spot : spots) {
 				spot.getProperties().setCageID(cage.getProperties().getCageID());
 				spot.getProperties().setSpotArrayIndex(spotArrayGlobalIndex);
-				spot.getSum().setValues(new double[nFrames]);
-				spot.getSumClean().setValues(new double[nFrames]);
-				spot.getFlyPresent().setIsPresent(new int[nFrames]);
+				spot.getRoiNormalizedGreySignal().setValues(new double[nFrames]);
+				spot.getSmoothedFlyPixelExcludedGreySignal().setValues(new double[nFrames]);
+				spot.getFlyCoveredPixelCount().setIsPresent(new int[nFrames]);
 				spotArrayGlobalIndex++;
 			}
 		}

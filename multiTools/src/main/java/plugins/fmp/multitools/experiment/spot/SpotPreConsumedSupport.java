@@ -167,12 +167,12 @@ public final class SpotPreConsumedSupport {
 		if (spot == null || !Double.isFinite(reference)) {
 			return;
 		}
-		setMeasureT0(spot.getSumClean(), reference);
-		setMeasureT0(spot.getSum(), reference);
-		setMeasureT0(spot.getSumNoFly(), reference);
-		setMeasureT0(spot.getSumCleanV2(), reference);
-		setMeasureT0(spot.getSumV2(), reference);
-		setMeasureT0(spot.getSumNoFlyV2(), reference);
+		setMeasureT0(spot.getSmoothedFlyPixelExcludedGreySignal(), reference);
+		setMeasureT0(spot.getRoiNormalizedGreySignal(), reference);
+		setMeasureT0(spot.getFlyPixelExcludedGreySignal(), reference);
+		setMeasureT0(spot.getSmoothedForegroundContrast(), reference);
+		setMeasureT0(spot.getBackgroundCorrectedForegroundGrey(), reference);
+		setMeasureT0(spot.getFlyPixelExcludedForegroundContrast(), reference);
 	}
 
 	private static void setMeasureT0(SpotMeasure measure, double reference) {
@@ -261,7 +261,7 @@ public final class SpotPreConsumedSupport {
 	}
 
 	private static double cleanValueAtT0(Spot spot) {
-		SpotMeasure clean = spot.getSumClean();
+		SpotMeasure clean = spot.getSmoothedFlyPixelExcludedGreySignal();
 		if (clean == null || clean.getCount() < 1) {
 			return Double.NaN;
 		}

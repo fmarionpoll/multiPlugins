@@ -302,9 +302,9 @@ public class Spots {
 		for (Spot spot : copySpotListForRead()) {
 			if (spot == null)
 				continue;
-			clearSpotMeasureAtDarkFrames(spot.getSum(), lightStatusPerFrame);
-			clearSpotMeasureAtDarkFrames(spot.getSumClean(), lightStatusPerFrame);
-			clearSpotMeasureAtDarkFrames(spot.getFlyPresent(), lightStatusPerFrame);
+			clearSpotMeasureAtDarkFrames(spot.getRoiNormalizedGreySignal(), lightStatusPerFrame);
+			clearSpotMeasureAtDarkFrames(spot.getSmoothedFlyPixelExcludedGreySignal(), lightStatusPerFrame);
+			clearSpotMeasureAtDarkFrames(spot.getFlyCoveredPixelCount(), lightStatusPerFrame);
 		}
 	}
 
@@ -961,7 +961,7 @@ public class Spots {
 		if (s == null || !s.isReadyForAnalysis()) {
 			return false;
 		}
-		SpotMeasure sc = s.getSumClean();
+		SpotMeasure sc = s.getSmoothedFlyPixelExcludedGreySignal();
 		if (sc == null) {
 			return false;
 		}
@@ -988,7 +988,7 @@ public class Spots {
 		}
 		int n = Integer.MAX_VALUE;
 		for (Spot s : pool) {
-			n = Math.min(n, s.getSumClean().getCount());
+			n = Math.min(n, s.getSmoothedFlyPixelExcludedGreySignal().getCount());
 		}
 		if (n <= 0) {
 			return;
@@ -1004,7 +1004,7 @@ public class Spots {
 			int m = 0;
 			for (int i = 0; i < nPool; i++) {
 				Spot s = pool.get(i);
-				double val = s.getSumClean().getValueAt(t);
+				double val = s.getSmoothedFlyPixelExcludedGreySignal().getValueAt(t);
 				if (Double.isFinite(val)) {
 					scratch[m++] = val - spotBaseline[i];
 				}
@@ -1019,7 +1019,7 @@ public class Spots {
 		for (int i = 0; i < nPool; i++) {
 			Spot s = pool.get(i);
 			double bi = spotBaseline[i];
-			double[] clean = s.getSumClean().getValues();
+			double[] clean = s.getSmoothedFlyPixelExcludedGreySignal().getValues();
 			double[] out = new double[n];
 			for (int t = 0; t < n; t++) {
 				double c = t < clean.length ? clean[t] : Double.NaN;
@@ -1030,14 +1030,14 @@ public class Spots {
 					out[t] = Double.NaN;
 				}
 			}
-			if (s.getSumCleanV3() != null) {
-				s.getSumCleanV3().setValues(out);
+			if (s.getGreySignalPooledMedianResidual() != null) {
+				s.getGreySignalPooledMedianResidual().setValues(out);
 			}
 		}
 	}
 
 	private static double sumCleanPerSpotBaselineMedian(Spot s, int nBins) {
-		SpotMeasure sc = s.getSumClean();
+		SpotMeasure sc = s.getSmoothedFlyPixelExcludedGreySignal();
 		if (sc == null) {
 			return 0.0;
 		}
@@ -1112,7 +1112,7 @@ public class Spots {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure m = v2 ? spot.getSumNoFlyV2() : spot.getSumNoFly();
+		SpotMeasure m = v2 ? spot.getFlyPixelExcludedForegroundContrast() : spot.getFlyPixelExcludedGreySignal();
 		if (m == null) {
 			return;
 		}
@@ -1120,7 +1120,7 @@ public class Spots {
 		if (values == null || values.length == 0) {
 			return;
 		}
-		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+		int[] fly = spot.getFlyCoveredPixelCount() != null ? spot.getFlyCoveredPixelCount().getIsPresent() : null;
 		if (fly == null || fly.length != values.length) {
 			return;
 		}
@@ -1188,7 +1188,7 @@ public class Spots {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure sumNoFly = spot.getSumNoFly();
+		SpotMeasure sumNoFly = spot.getFlyPixelExcludedGreySignal();
 		if (sumNoFly == null) {
 			return;
 		}
@@ -1212,16 +1212,16 @@ public class Spots {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure sumNoFly = spot.getSumNoFly();
+		SpotMeasure sumNoFly = spot.getFlyPixelExcludedGreySignal();
 		if (sumNoFly == null) {
 			return;
 		}
-		double[] sumIn = spot.getSum() != null ? spot.getSum().getValues() : null;
+		double[] sumIn = spot.getRoiNormalizedGreySignal() != null ? spot.getRoiNormalizedGreySignal().getValues() : null;
 		if (sumIn == null || sumIn.length == 0) {
 			return;
 		}
 
-		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+		int[] fly = spot.getFlyCoveredPixelCount() != null ? spot.getFlyCoveredPixelCount().getIsPresent() : null;
 		double[] reconstructed;
 		if (fly != null && fly.length == sumIn.length) {
 			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot,
@@ -1229,7 +1229,7 @@ public class Spots {
 			reconstructed = reconstructSumNoFly(sumIn, fly, minFlyPx);
 		} else {
 			if (allowLegacyFallbacks) {
-				double[] legacyClean = spot.getSumClean() != null ? spot.getSumClean().getValues() : null;
+				double[] legacyClean = spot.getSmoothedFlyPixelExcludedGreySignal() != null ? spot.getSmoothedFlyPixelExcludedGreySignal().getValues() : null;
 				if (legacyClean != null && legacyClean.length == sumIn.length) {
 					reconstructed = java.util.Arrays.copyOf(legacyClean, legacyClean.length);
 				} else {
@@ -1246,16 +1246,16 @@ public class Spots {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure sumNoFlyV2 = spot.getSumNoFlyV2();
+		SpotMeasure sumNoFlyV2 = spot.getFlyPixelExcludedForegroundContrast();
 		if (sumNoFlyV2 == null) {
 			return;
 		}
-		double[] sumV2 = spot.getSumV2() != null ? spot.getSumV2().getValues() : null;
+		double[] sumV2 = spot.getBackgroundCorrectedForegroundGrey() != null ? spot.getBackgroundCorrectedForegroundGrey().getValues() : null;
 		if (sumV2 == null || sumV2.length == 0) {
 			return;
 		}
 
-		int[] fly = spot.getFlyPresent() != null ? spot.getFlyPresent().getIsPresent() : null;
+		int[] fly = spot.getFlyCoveredPixelCount() != null ? spot.getFlyCoveredPixelCount().getIsPresent() : null;
 		double[] reconstructed;
 		if (fly != null && fly.length == sumV2.length) {
 			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot,
@@ -1279,8 +1279,8 @@ public class Spots {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure sumNoFly = spot.getSumNoFly();
-		SpotMeasure sumClean = spot.getSumClean();
+		SpotMeasure sumNoFly = spot.getFlyPixelExcludedGreySignal();
+		SpotMeasure sumClean = spot.getSmoothedFlyPixelExcludedGreySignal();
 		if (sumNoFly == null || sumClean == null) {
 			return;
 		}
@@ -1298,8 +1298,8 @@ public class Spots {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure sumNoFly = spot.getSumNoFlyV2();
-		SpotMeasure sumClean = spot.getSumCleanV2();
+		SpotMeasure sumNoFly = spot.getFlyPixelExcludedForegroundContrast();
+		SpotMeasure sumClean = spot.getSmoothedForegroundContrast();
 		if (sumNoFly == null || sumClean == null) {
 			return;
 		}
@@ -1490,7 +1490,7 @@ public class Spots {
 	}
 
 	/**
-	 * Recomputes {@code GREY_SUM_CLEAN_V5} from {@code GREY_SUM_V5} for the given
+	 * Recomputes {@code FILTER_V5_GREY_SMOOTHED} from {@code FILTER_V5_GREY} for the given
 	 * spots (same smoothing as legacy sumClean).
 	 */
 	public void rebuildGreySumCleanV5OnlyForSpots(List<Spot> targets) {

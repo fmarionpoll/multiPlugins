@@ -36,7 +36,7 @@ public final class CageSpotAggregateSeries {
 	}
 
 	public static CageSpotAggregateSeries fromNativeAggregate(CageSpotStimulusAggregation.AggregateSeries agg) {
-		return fromNativeAggregate(agg, EnumResults.AGG_SUMCLEAN);
+		return fromNativeAggregate(agg, EnumResults.AGG_FILTER_DEPLETION);
 	}
 
 	public static CageSpotAggregateSeries fromNativeAggregate(CageSpotStimulusAggregation.AggregateSeries agg,
@@ -44,7 +44,7 @@ public final class CageSpotAggregateSeries {
 		if (agg == null || agg.key == null || agg.values == null || agg.values.isEmpty()) {
 			return null;
 		}
-		EnumResults tag = measureTag != null ? measureTag : EnumResults.AGG_SUMCLEAN;
+		EnumResults tag = measureTag != null ? measureTag : EnumResults.AGG_FILTER_DEPLETION;
 		SpotMeasure m = new SpotMeasure(tag.name());
 		int n = agg.values.size();
 		double[] vals = new double[n];
@@ -57,7 +57,7 @@ public final class CageSpotAggregateSeries {
 	}
 
 	/**
-	 * Cage-wide median reference of {@code AREA_SUM} (fly-masked), one series per cage.
+	 * Cage-wide median reference of {@code FILTER_GREY} (fly-masked), one series per cage.
 	 */
 	public static CageSpotAggregateSeries fromMedianRef(ArrayList<Double> values, int nSpotsInCage) {
 		if (values == null || values.isEmpty()) {
@@ -65,7 +65,7 @@ public final class CageSpotAggregateSeries {
 		}
 		CageSpotStimulusAggregation.StimulusConcKey key = new CageSpotStimulusAggregation.StimulusConcKey(
 				CageSpotMedianRefAggregation.class.getSimpleName(), "");
-		SpotMeasure m = new SpotMeasure(EnumResults.AGG_MEDIANREF.name());
+		SpotMeasure m = new SpotMeasure(EnumResults.CAGE_GREY_MEDIAN.name());
 		double[] vals = new double[values.size()];
 		for (int i = 0; i < values.size(); i++) {
 			Double dv = values.get(i);

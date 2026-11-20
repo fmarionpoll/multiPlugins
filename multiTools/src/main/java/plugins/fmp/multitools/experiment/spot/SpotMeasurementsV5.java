@@ -8,13 +8,13 @@ import icy.roi.ROI2D;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 
 /**
- * Spot measures for the parallel V5 pipeline ({@code AREA_COUNT_V5}, {@code GREY_SUM_V5},
- * {@code GREY_SUM_V5_PREFLY}, {@code GREY_SUM_CLEAN_V5}).
+ * Spot measures for the parallel V5 pipeline ({@code FILTER_V5_PIXEL_COUNT}, {@code FILTER_V5_GREY},
+ * {@code FILTER_V5_GREY_PRE_GATE}, {@code FILTER_V5_GREY_SMOOTHED}).
  * Kept separate from legacy {@link Spot} inner measurements so legacy CSV and behavior stay isolated.
- * {@code GREY_SUM_V5} is stored on the same scale as legacy {@code AREA_SUM}: sum on over-threshold pixels
+ * {@code FILTER_V5_GREY} is stored on the same scale as legacy {@code FILTER_GREY}: sum on over-threshold pixels
  * divided by total ROI mask pixel count.
- * {@code GREY_SUM_V5_PREFLY} holds the same scalar before the fly-occupancy gate turns bins into NaN.
- * {@code GREY_SUM_CLEAN_V5} is built from {@code GREY_SUM_V5} by (1) linear interpolation across NaN runs
+ * {@code FILTER_V5_GREY_PRE_GATE} holds the same scalar before the fly-occupancy gate turns bins into NaN.
+ * {@code FILTER_V5_GREY_SMOOTHED} is built from {@code FILTER_V5_GREY} by (1) linear interpolation across NaN runs
  * (including leading/trailing plateaus from the first/last finite sample), (2) optional upward spike
  * suppression vs a <strong>prior-only</strong> local median (see {@link BuildSeriesOptions#v5GreySumCleanSpikeMedianHalfWidth}),
  * then (3) the same span-10 NaN-robust running median as legacy {@code sumClean} from {@code sumNoFly} in

@@ -146,33 +146,11 @@ public class SpotPersistence {
 	}
 
 	public static String csvExportMeasureSectionHeader(EnumResults measureType, String sep) {
-		switch (measureType) {
-		case AREA_SUM:
-		case AREA_SUMNOFLY:
-		case AREA_SUMCLEAN:
-		case AREA_SUMCLEAN_V3:
-		case AREA_FLYPRESENT:
-		case AREA_COUNT_V5:
-		case GREY_SUM_V5:
-		case GREY_SUM_V5_PREFLY:
-		case GREY_SUM_CLEAN_V5:
-		case AREA_COUNT_COLOR:
-		case GREY_SUM_COLOR:
-		case GREY_SUM_COLOR_PREFLY:
-		case GREY_SUM_CLEAN_COLOR:
-			return "#" + sep + "#\n" + "#" + sep + measureType.toString() + sep + "v0\n" + "name" + sep + "index" + sep
-					+ "npts" + sep + "yi\n";
-		case KYMO_FRACT:
-		case KYMO_ABS_DELTA:
-		case KYMO_GREEN_HEIGHT:
-		case KYMO_GREEN_HEIGHT_RATIO:
-		case KYMO_LINE_RATIO:
-		case KYMO_RIM_RATIO:
-			return "#" + sep + "#\n" + "#" + sep + measureType.toPersistenceKey() + sep + "v0\n" + "name" + sep
-					+ "index" + sep + "npts" + sep + "yi\n";
-		default:
+		if (!measureType.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 			return "#" + sep + "UNDEFINED\n";
 		}
+		return "#" + sep + "#\n" + "#" + sep + measureType.toPersistenceKey() + sep + "v0\n" + "name" + sep
+				+ "index" + sep + "npts" + sep + "yi\n";
 	}
 
 	public static String csvExportMeasuresOneType(Spot spot, EnumResults measureType, String sep) {
@@ -180,62 +158,71 @@ public class SpotPersistence {
 		String name = spot.getProperties().getName() != null ? spot.getProperties().getName() : "";
 		sbf.append(name).append(sep).append(spot.getProperties().getSpotArrayIndex()).append(sep);
 		switch (measureType) {
-		case AREA_SUM:
-			spot.getSum().exportYDataToCsv(sbf, sep);
+		case FILTER_GREY:
+			spot.getRoiNormalizedGreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_SUMNOFLY:
-			spot.getSumNoFly().exportYDataToCsv(sbf, sep);
+		case FILTER_GREY_FLY_MASKED:
+			spot.getFlyPixelExcludedGreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_SUMCLEAN:
-			spot.getSumClean().exportYDataToCsv(sbf, sep);
+		case FILTER_GREY_SMOOTHED:
+			spot.getSmoothedFlyPixelExcludedGreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_SUMCLEAN_V3:
-			spot.getSumCleanV3().exportYDataToCsv(sbf, sep);
+		case FILTER_GREY_CONTRAST:
+			spot.getBackgroundCorrectedForegroundGrey().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_FLYPRESENT:
-			spot.getFlyPresent().exportIsPresentToCsv(sbf, sep);
+		case FILTER_GREY_CONTRAST_MASKED:
+			spot.getFlyPixelExcludedForegroundContrast().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_COUNT_V5:
-			spot.getAreaCountV5().exportYDataToCsv(sbf, sep);
+		case FILTER_GREY_CONTRAST_SMOOTHED:
+			spot.getSmoothedForegroundContrast().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_V5:
-			spot.getGreySumV5().exportYDataToCsv(sbf, sep);
+		case FILTER_GREY_RESIDUAL:
+			spot.getGreySignalPooledMedianResidual().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_V5_PREFLY:
-			spot.getGreySumV5PreFly().exportYDataToCsv(sbf, sep);
+		case FLY_PIXEL_COUNT:
+			spot.getFlyCoveredPixelCount().exportIsPresentToCsv(sbf, sep);
 			break;
-		case GREY_SUM_CLEAN_V5:
-			spot.getGreySumCleanV5().exportYDataToCsv(sbf, sep);
+		case FILTER_V5_PIXEL_COUNT:
+			spot.getFilterV5SelectedPixelCount().exportYDataToCsv(sbf, sep);
 			break;
-		case AREA_COUNT_COLOR:
-			spot.getAreaCountColor().exportYDataToCsv(sbf, sep);
+		case FILTER_V5_GREY:
+			spot.getFilterV5GreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_COLOR:
-			spot.getGreySumColor().exportYDataToCsv(sbf, sep);
+		case FILTER_V5_GREY_PRE_GATE:
+			spot.getFilterV5GreySignalBeforeOccupancyCheck().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_COLOR_PREFLY:
-			spot.getGreySumColorPreFly().exportYDataToCsv(sbf, sep);
+		case FILTER_V5_GREY_SMOOTHED:
+			spot.getSmoothedFilterV5GreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case GREY_SUM_CLEAN_COLOR:
-			spot.getGreySumCleanColor().exportYDataToCsv(sbf, sep);
+		case COLOR_PIXEL_COUNT:
+			spot.getColorDistanceSelectedPixelCount().exportYDataToCsv(sbf, sep);
 			break;
-		case KYMO_FRACT:
-			spot.getKymoFract().exportYDataToCsv(sbf, sep);
+		case COLOR_GREY:
+			spot.getColorDistanceGreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case KYMO_ABS_DELTA:
-			spot.getKymoAbsDelta().exportYDataToCsv(sbf, sep);
+		case COLOR_GREY_PRE_GATE:
+			spot.getColorDistanceGreySignalBeforeOccupancyCheck().exportYDataToCsv(sbf, sep);
+			break;
+		case COLOR_GREY_SMOOTHED:
+			spot.getSmoothedColorDistanceGreySignal().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_ROW_FRACTION:
+			spot.getAboveThresholdStripRowFraction().exportYDataToCsv(sbf, sep);
+			break;
+		case KYMO_ROW_FRACTION_CHANGE:
+			spot.getAbsoluteStripRowFractionChange().exportYDataToCsv(sbf, sep);
 			break;
 		case KYMO_GREEN_HEIGHT:
-			spot.getKymoGreenHeight().exportYDataToCsv(sbf, sep);
+			spot.getGreenMaskHeight().exportYDataToCsv(sbf, sep);
 			break;
 		case KYMO_GREEN_HEIGHT_RATIO:
-			spot.getKymoGreenHeightRatio().exportYDataToCsv(sbf, sep);
+			spot.getGreenMaskHeightToPeakRatio().exportYDataToCsv(sbf, sep);
 			break;
-		case KYMO_LINE_RATIO:
-			spot.getKymoLineRatio().exportYDataToCsv(sbf, sep);
+		case KYMO_CROSS_RATIO:
+			spot.getCrossLineSignalToBaselineRatio().exportYDataToCsv(sbf, sep);
 			break;
 		case KYMO_RIM_RATIO:
-			spot.getKymoRimRatio().exportYDataToCsv(sbf, sep);
+			spot.getRimCoverageToBaselineRatio().exportYDataToCsv(sbf, sep);
 			break;
 		default:
 			break;
@@ -477,117 +464,138 @@ public class SpotPersistence {
 
 	public static void csvImportSpotData(Spot spot, EnumResults measureType, String[] data, boolean x, boolean y) {
 		switch (measureType) {
-		case AREA_SUM:
+		case FILTER_GREY:
 			if (x && y) {
-				spot.getSum().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getRoiNormalizedGreySignal().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getSum().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getRoiNormalizedGreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_SUMNOFLY:
+		case FILTER_GREY_FLY_MASKED:
 			if (x && y) {
-				spot.getSumNoFly().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getFlyPixelExcludedGreySignal().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getSumNoFly().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getFlyPixelExcludedGreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_SUMCLEAN:
+		case FILTER_GREY_SMOOTHED:
 			if (x && y) {
-				spot.getSumClean().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getSmoothedFlyPixelExcludedGreySignal().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getSumClean().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getSmoothedFlyPixelExcludedGreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_SUMCLEAN_V3:
+		case FILTER_GREY_CONTRAST:
 			if (x && y) {
-				spot.getSumCleanV3().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getBackgroundCorrectedForegroundGrey().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getSumCleanV3().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getBackgroundCorrectedForegroundGrey().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_FLYPRESENT:
+		case FILTER_GREY_CONTRAST_MASKED:
+			if (x && y) {
+				spot.getFlyPixelExcludedForegroundContrast().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getFlyPixelExcludedForegroundContrast().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case FILTER_GREY_CONTRAST_SMOOTHED:
+			if (x && y) {
+				spot.getSmoothedForegroundContrast().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getSmoothedForegroundContrast().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case FILTER_GREY_RESIDUAL:
+			if (x && y) {
+				spot.getGreySignalPooledMedianResidual().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getGreySignalPooledMedianResidual().importYDataFromCsv(data, DATA_OFFSET);
+			}
+			break;
+		case FLY_PIXEL_COUNT:
 			if (x && y) {
 				// FlyPresent is stored as presence array; ignore X and import presence.
-				spot.getFlyPresent().importIsPresentFromCsv(data, DATA_OFFSET);
+				spot.getFlyCoveredPixelCount().importIsPresentFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getFlyPresent().importIsPresentFromCsv(data, DATA_OFFSET);
+				spot.getFlyCoveredPixelCount().importIsPresentFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_COUNT_V5:
+		case FILTER_V5_PIXEL_COUNT:
 			if (x && y) {
-				spot.getAreaCountV5().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getFilterV5SelectedPixelCount().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getAreaCountV5().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getFilterV5SelectedPixelCount().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case GREY_SUM_V5:
+		case FILTER_V5_GREY:
 			if (x && y) {
-				spot.getGreySumV5().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getFilterV5GreySignal().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumV5().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getFilterV5GreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
 			break;
-		case GREY_SUM_V5_PREFLY:
+		case FILTER_V5_GREY_PRE_GATE:
 			if (x && y) {
-				spot.getGreySumV5PreFly().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getFilterV5GreySignalBeforeOccupancyCheck().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumV5PreFly().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getFilterV5GreySignalBeforeOccupancyCheck().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case GREY_SUM_CLEAN_V5:
+		case FILTER_V5_GREY_SMOOTHED:
 			if (x && y) {
-				spot.getGreySumCleanV5().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getSmoothedFilterV5GreySignal().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumCleanV5().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getSmoothedFilterV5GreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case AREA_COUNT_COLOR:
+		case COLOR_PIXEL_COUNT:
 			if (x && y) {
-				spot.getAreaCountColor().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getColorDistanceSelectedPixelCount().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getAreaCountColor().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getColorDistanceSelectedPixelCount().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case GREY_SUM_COLOR:
+		case COLOR_GREY:
 			if (x && y) {
-				spot.getGreySumColor().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getColorDistanceGreySignal().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumColor().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getColorDistanceGreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
-			spot.getMeasurementsColor().rebuildGreySumCleanFromGreySum();
+			spot.getColorDistanceMeasurements().rebuildGreySumCleanFromGreySum();
 			break;
-		case GREY_SUM_COLOR_PREFLY:
+		case COLOR_GREY_PRE_GATE:
 			if (x && y) {
-				spot.getGreySumColorPreFly().importXYDataFromCsv(data, DATA_OFFSET);
+				spot.getColorDistanceGreySignalBeforeOccupancyCheck().importXYDataFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
-				spot.getGreySumColorPreFly().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case GREY_SUM_CLEAN_COLOR:
-			if (x && y) {
-				spot.getGreySumCleanColor().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getGreySumCleanColor().importYDataFromCsv(data, DATA_OFFSET);
+				spot.getColorDistanceGreySignalBeforeOccupancyCheck().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case KYMO_FRACT:
-			importKymoY(spot.getKymoFract(), data, x, y);
+		case COLOR_GREY_SMOOTHED:
+			if (x && y) {
+				spot.getSmoothedColorDistanceGreySignal().importXYDataFromCsv(data, DATA_OFFSET);
+			} else if (!x && y) {
+				spot.getSmoothedColorDistanceGreySignal().importYDataFromCsv(data, DATA_OFFSET);
+			}
 			break;
-		case KYMO_ABS_DELTA:
-			importKymoY(spot.getKymoAbsDelta(), data, x, y);
+		case KYMO_ROW_FRACTION:
+			importKymoY(spot.getAboveThresholdStripRowFraction(), data, x, y);
+			break;
+		case KYMO_ROW_FRACTION_CHANGE:
+			importKymoY(spot.getAbsoluteStripRowFractionChange(), data, x, y);
 			break;
 		case KYMO_GREEN_HEIGHT:
-			importKymoY(spot.getKymoGreenHeight(), data, x, y);
+			importKymoY(spot.getGreenMaskHeight(), data, x, y);
 			break;
 		case KYMO_GREEN_HEIGHT_RATIO:
-			importKymoY(spot.getKymoGreenHeightRatio(), data, x, y);
+			importKymoY(spot.getGreenMaskHeightToPeakRatio(), data, x, y);
 			break;
-		case KYMO_LINE_RATIO:
-			importKymoY(spot.getKymoLineRatio(), data, x, y);
+		case KYMO_CROSS_RATIO:
+			importKymoY(spot.getCrossLineSignalToBaselineRatio(), data, x, y);
 			break;
 		case KYMO_RIM_RATIO:
-			importKymoY(spot.getKymoRimRatio(), data, x, y);
+			importKymoY(spot.getRimCoverageToBaselineRatio(), data, x, y);
 			break;
 		default:
 			break;

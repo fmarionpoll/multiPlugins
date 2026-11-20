@@ -180,7 +180,7 @@ public class Results {
 	public void getDataFromSpot(Spot spot, SpotExcelTimeline.SpotExcelGrid grid, ResultsOptions resultsOptions) {
 		dataValues = new ArrayList<>(
 				spot.getMeasuresForExcelPass1(resultsOptions.resultType, grid));
-		if (resultsOptions.relativeToMaximum && resultsOptions.resultType != EnumResults.AREA_FLYPRESENT) {
+		if (resultsOptions.relativeToMaximum && resultsOptions.resultType != EnumResults.FLY_PIXEL_COUNT) {
 			relativeToMaximum();
 		}
 	}
@@ -224,7 +224,7 @@ public class Results {
 			}
 		}
 
-		if (resultsOptions.relativeToMaximum && resultsOptions.resultType != EnumResults.AREA_FLYPRESENT) {
+		if (resultsOptions.relativeToMaximum && resultsOptions.resultType != EnumResults.FLY_PIXEL_COUNT) {
 			relativeToMaximum();
 		}
 	}

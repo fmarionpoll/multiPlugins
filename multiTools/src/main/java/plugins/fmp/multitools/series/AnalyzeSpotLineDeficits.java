@@ -28,7 +28,7 @@ import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Samples each spot disk on the camera frames. The zero is the floor on the
- * extended row line, outside the circles. Stores {@code KYMO_LINE_RATIO}.
+ * extended row line, outside the circles. Stores {@code KYMO_CROSS_RATIO}.
  */
 public class AnalyzeSpotLineDeficits extends BuildSeries {
 
@@ -90,7 +90,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 							SpotLineDeficitAnalyzer.suppressRebound(row);
 						}
 					}
-					copyDoubles(cage.spots.get(i).getKymoLineRatio(), row);
+					copyDoubles(cage.spots.get(i).getCrossLineSignalToBaselineRatio(), row);
 				}
 			}
 			if (exp.getCages() != null) {

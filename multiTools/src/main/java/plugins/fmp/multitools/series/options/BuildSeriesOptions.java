@@ -328,7 +328,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	/**
 	 * V5 only: when a finite bin lies within {@link #v5FlyNaNDilationBins} of a fly
-	 * NaN, it is cleared only if {@code GREY_SUM_V5} is an <strong>upward</strong>
+	 * NaN, it is cleared only if {@code FILTER_V5_GREY} is an <strong>upward</strong>
 	 * outlier: strictly greater than the previous finite grey (if any) and greater
 	 * than a local median × this ratio. Genuine downward steps (fly eating) are
 	 * never cleared. Invalid values ({@code <= 1}) fall back to {@code 1.35}.
@@ -337,7 +337,7 @@ public class BuildSeriesOptions implements XMLPersistent {
 
 	/**
 	 * V5 only: controls lookback for upward spike suppression before
-	 * {@code GREY_SUM_CLEAN_V5}: the median baseline uses up to
+	 * {@code FILTER_V5_GREY_SMOOTHED}: the median baseline uses up to
 	 * {@code 2 × halfWidth + 1} <strong>prior</strong> finite bins only (current
 	 * bin excluded), so wide spikes are not mistaken for a raised local level.
 	 * {@code 0} disables this pre-pass (running median only).

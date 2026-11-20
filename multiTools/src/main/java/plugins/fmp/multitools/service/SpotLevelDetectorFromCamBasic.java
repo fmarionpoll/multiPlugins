@@ -201,29 +201,29 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 	private void initializeSpotArrays(List<Spot> spotsToProcess, int nTimeBins) {
 		for (Spot spot : spotsToProcess) {
-			if (spot.getSum() != null) {
-				spot.getSum().setValues(new double[nTimeBins]);
+			if (spot.getRoiNormalizedGreySignal() != null) {
+				spot.getRoiNormalizedGreySignal().setValues(new double[nTimeBins]);
 			}
-			if (spot.getSumV2() != null) {
-				spot.getSumV2().setValues(new double[nTimeBins]);
+			if (spot.getBackgroundCorrectedForegroundGrey() != null) {
+				spot.getBackgroundCorrectedForegroundGrey().setValues(new double[nTimeBins]);
 			}
-			if (spot.getSumNoFly() != null) {
-				spot.getSumNoFly().setValues(new double[nTimeBins]);
+			if (spot.getFlyPixelExcludedGreySignal() != null) {
+				spot.getFlyPixelExcludedGreySignal().setValues(new double[nTimeBins]);
 			}
-			if (spot.getSumNoFlyV2() != null) {
-				spot.getSumNoFlyV2().setValues(new double[nTimeBins]);
+			if (spot.getFlyPixelExcludedForegroundContrast() != null) {
+				spot.getFlyPixelExcludedForegroundContrast().setValues(new double[nTimeBins]);
 			}
-			if (spot.getSumClean() != null) {
-				spot.getSumClean().setValues(new double[nTimeBins]);
+			if (spot.getSmoothedFlyPixelExcludedGreySignal() != null) {
+				spot.getSmoothedFlyPixelExcludedGreySignal().setValues(new double[nTimeBins]);
 			}
-			if (spot.getSumCleanV2() != null) {
-				spot.getSumCleanV2().setValues(new double[nTimeBins]);
+			if (spot.getSmoothedForegroundContrast() != null) {
+				spot.getSmoothedForegroundContrast().setValues(new double[nTimeBins]);
 			}
-			if (spot.getSumCleanV3() != null) {
-				spot.getSumCleanV3().setValues(new double[nTimeBins]);
+			if (spot.getGreySignalPooledMedianResidual() != null) {
+				spot.getGreySignalPooledMedianResidual().setValues(new double[nTimeBins]);
 			}
-			if (spot.getFlyPresent() != null) {
-				spot.getFlyPresent().setIsPresent(new int[nTimeBins]);
+			if (spot.getFlyCoveredPixelCount() != null) {
+				spot.getFlyCoveredPixelCount().setIsPresent(new int[nTimeBins]);
 			}
 		}
 	}
@@ -370,14 +370,14 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		if (nPointsIn > 0) {
 			double meanAll = sumOverThreshold / nPointsIn;
-			spot.getSum().setValueAt(timeIndex, meanAll);
+			spot.getRoiNormalizedGreySignal().setValueAt(timeIndex, meanAll);
 
 			// Compute sumNoFly directly by excluding fly pixels (avoids long interpolation ramps).
 			if (nNoFly > 0) {
 				double meanNoFly = sumOverThresholdNoFly / nNoFly;
-				spot.getSumNoFly().setValueAt(timeIndex, meanNoFly);
+				spot.getFlyPixelExcludedGreySignal().setValueAt(timeIndex, meanNoFly);
 			} else {
-				spot.getSumNoFly().setValueAt(timeIndex, Double.NaN);
+				spot.getFlyPixelExcludedGreySignal().setValueAt(timeIndex, Double.NaN);
 			}
 
 			// V2: estimate foreground on over-threshold pixels (avoid dilution by ROI background)
@@ -385,30 +385,30 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 			if (nOver <= 0) {
 				// When stain is not detected, keep the curve continuous by holding last finite value.
 				// This avoids a drop to 0 (looks like "eaten") and avoids long NaN gaps.
-				double prev = (timeIndex > 0 && spot.getSumV2() != null) ? spot.getSumV2().getValueAt(timeIndex - 1)
+				double prev = (timeIndex > 0 && spot.getBackgroundCorrectedForegroundGrey() != null) ? spot.getBackgroundCorrectedForegroundGrey().getValueAt(timeIndex - 1)
 						: Double.NaN;
-				spot.getSumV2().setValueAt(timeIndex, Double.isFinite(prev) ? prev : Double.NaN);
+				spot.getBackgroundCorrectedForegroundGrey().setValueAt(timeIndex, Double.isFinite(prev) ? prev : Double.NaN);
 			} else {
 				double fg = sumOverThreshold / nOver;
 				double bg = (nBgAnnulus > 0) ? (sumBgAnnulus / nBgAnnulus)
 						: (nUnder > 0) ? (sumUnderThreshold / nUnder) : 0.0;
-				spot.getSumV2().setValueAt(timeIndex, Math.max(0.0, fg - bg));
+				spot.getBackgroundCorrectedForegroundGrey().setValueAt(timeIndex, Math.max(0.0, fg - bg));
 			}
 
 			// V2 no-fly: same as V2 but exclude fly pixels.
 			if (nOverNoFly <= 0) {
-				double prev = (timeIndex > 0 && spot.getSumNoFlyV2() != null)
-						? spot.getSumNoFlyV2().getValueAt(timeIndex - 1)
+				double prev = (timeIndex > 0 && spot.getFlyPixelExcludedForegroundContrast() != null)
+						? spot.getFlyPixelExcludedForegroundContrast().getValueAt(timeIndex - 1)
 						: Double.NaN;
-				spot.getSumNoFlyV2().setValueAt(timeIndex, Double.isFinite(prev) ? prev : Double.NaN);
+				spot.getFlyPixelExcludedForegroundContrast().setValueAt(timeIndex, Double.isFinite(prev) ? prev : Double.NaN);
 			} else {
 				double fg = sumOverThresholdNoFly / nOverNoFly;
 				double bg = (nBgAnnulusNoFly > 0) ? (sumBgAnnulusNoFly / nBgAnnulusNoFly)
 						: (nUnderNoFly > 0) ? (sumUnderThresholdNoFly / nUnderNoFly) : 0.0;
-				spot.getSumNoFlyV2().setValueAt(timeIndex, Math.max(0.0, fg - bg));
+				spot.getFlyPixelExcludedForegroundContrast().setValueAt(timeIndex, Math.max(0.0, fg - bg));
 			}
 
-			spot.getFlyPresent().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
 		}
 	}
 

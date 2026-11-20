@@ -105,7 +105,7 @@ public class KymoOverlayFrame {
 		}
 		this.baseTitle = title;
 		mainChartPanel = new JPanel(new BorderLayout());
-		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.toString() : "");
+		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.toDisplayLabel() : "");
 		if (mainChartFrame != null && (mainChartFrame.getParent() != null || mainChartFrame.isVisible())) {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
@@ -442,8 +442,8 @@ public class KymoOverlayFrame {
 		if (options == null || exp == null || exp.getSpots() == null) {
 			return;
 		}
-		if (options.resultType == EnumResults.AGG_GREENHEIGHT_CONSO
-				|| options.resultType == EnumResults.AGG_LINE_CONSO || options.resultType == EnumResults.AGG_RIM) {
+		if (options.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS
+				|| options.resultType == EnumResults.AGG_KYMO_CROSS_LOSS || options.resultType == EnumResults.AGG_KYMO_RIM_LOSS) {
 			options.spotAggregateGlobalKeyOrder = CageSpotStimulusAggregation.globalStimulusConcKeysFirstSeenOrder(exp,
 					exp.getSpots());
 		} else {

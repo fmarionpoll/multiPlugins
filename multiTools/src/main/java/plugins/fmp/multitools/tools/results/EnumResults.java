@@ -131,33 +131,33 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_VISIBLE_FLY_COUNT()),
 
 	// === SPOT AREA MEASURES (stored data) ===
-	AREA_SUM("AREA_SUM", "grey value", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUM(),
+	FILTER_GREY("AREA_SUM", "grey value", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUM(),
 			"AREA_SUM", PersistenceDomain.SPOT),
-	AREA_SUMNOFLY("AREA_SUMNOFLY", "grey value - no fly, filter", "Consumption (estimated/threshold)",
+	FILTER_GREY_FLY_MASKED("AREA_SUMNOFLY", "grey value - no fly, filter", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMNOFLY(), "AREA_SUMNOFLY", PersistenceDomain.SPOT),
-	AREA_SUMCLEAN("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
+	FILTER_GREY_SMOOTHED("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN(), "AREA_SUMCLEAN", PersistenceDomain.SPOT),
 	/**
 	 * V2 spot consumption signal (separate channel): background-corrected and/or
-	 * robust statistics version of AREA_SUM. Used for side-by-side comparison with
-	 * legacy AREA_SUM without changing legacy outputs.
+	 * robust statistics version of FILTER_GREY. Used for side-by-side comparison with
+	 * legacy FILTER_GREY without changing legacy outputs.
 	 */
-	AREA_SUM_V2("AREA_SUM_V2", "grey value", "Consumption V2 (comparison channel)",
+	FILTER_GREY_CONTRAST("AREA_SUM_V2", "grey value", "Consumption V2 (comparison channel)",
 			StoredDataAccessors.accessStored_AREA_SUM_V2(), "AREA_SUM_V2", PersistenceDomain.SPOT),
-	AREA_SUMNOFLY_V2("AREA_SUMNOFLY_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
+	FILTER_GREY_CONTRAST_MASKED("AREA_SUMNOFLY_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMNOFLY_V2(), "AREA_SUMNOFLY_V2", PersistenceDomain.SPOT),
-	AREA_SUMCLEAN_V2("AREA_SUMCLEAN_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
+	FILTER_GREY_CONTRAST_SMOOTHED("AREA_SUMCLEAN_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V2(), "AREA_SUMCLEAN_V2", PersistenceDomain.SPOT),
 	/**
 	 * V3 Tier A: per-spot {@code sumClean} shifted by an early-bin median, minus
 	 * the per-bin median of those shifted values over a pool (whole experiment or
 	 * per cage), optionally smoothed.
 	 */
-	AREA_SUMCLEAN_V3("AREA_SUMCLEAN_V3", "grey value - median (V3)", "Consumption V3 (residual vs pooled median)",
+	FILTER_GREY_RESIDUAL("AREA_SUMCLEAN_V3", "grey value - median (V3)", "Consumption V3 (residual vs pooled median)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V3(), "AREA_SUMCLEAN_V3", PersistenceDomain.SPOT),
 	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
 	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
-	AREA_FLYPRESENT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
+	FLY_PIXEL_COUNT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
 			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT),
 
 	/**
@@ -165,94 +165,94 @@ public enum EnumResults {
 	 * legacy occupancy gate, see
 	 * {@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate}).
 	 */
-	AREA_COUNT_V5("AREA_COUNT_V5", "pixels", "Over-threshold spot pixels (V5)",
+	FILTER_V5_PIXEL_COUNT("AREA_COUNT_V5", "pixels", "Over-threshold spot pixels (V5)",
 			StoredDataAccessors.accessStored_AREA_COUNT_V5(), "AREA_COUNT_V5", PersistenceDomain.SPOT),
 	/**
 	 * V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel
-	 * count (same scale as legacy {@code AREA_SUM}; NaN under same fly gate as
-	 * {@link #AREA_COUNT_V5}).
+	 * count (same scale as legacy {@code FILTER_GREY}; NaN under same fly gate as
+	 * {@link #FILTER_V5_PIXEL_COUNT}).
 	 */
-	GREY_SUM_V5("GREY_SUM_V5", "grey / ROI px",
+	FILTER_V5_GREY("GREY_SUM_V5", "grey / ROI px",
 			"Grey on over-threshold pixels / all ROI pixels (V5, legacy AREA_SUM scale)",
 			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
 	/**
-	 * V5 diagnostic: same grey as {@link #GREY_SUM_V5} but written before the
+	 * V5 diagnostic: same grey as {@link #FILTER_V5_GREY} but written before the
 	 * fly-occupancy gate sets bins to NaN (still NaN where the fly mask prevents
 	 * computing scalars). Filled during camera V5 detection.
 	 */
-	GREY_SUM_V5_PREFLY("GREY_SUM_V5_PREFLY", "grey / ROI px",
+	FILTER_V5_GREY_PRE_GATE("GREY_SUM_V5_PREFLY", "grey / ROI px",
 			"V5 grey on over-threshold pixels / ROI before fly-occupancy NaN gate",
 			StoredDataAccessors.accessStored_GREY_SUM_V5_PREFLY(), "GREY_SUM_V5_PREFLY", PersistenceDomain.SPOT),
 	/**
-	 * V5: running-median smooth of {@link #GREY_SUM_V5} (span 10, NaN-robust; same
-	 * spirit as legacy {@code AREA_SUMCLEAN} from {@code sumNoFly}).
+	 * V5: running-median smooth of {@link #FILTER_V5_GREY} (span 10, NaN-robust; same
+	 * spirit as legacy {@code FILTER_GREY_SMOOTHED} from {@code sumNoFly}).
 	 */
-	GREY_SUM_CLEAN_V5("GREY_SUM_CLEAN_V5", "grey / ROI px",
+	FILTER_V5_GREY_SMOOTHED("GREY_SUM_CLEAN_V5", "grey / ROI px",
 			"V5 grey: NaN gaps bridged, optional upward spike trim vs local median, then running median of GREY_SUM_V5",
 			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V5(), "GREY_SUM_CLEAN_V5", PersistenceDomain.SPOT),
 
 	/**
 	 * Computed cage-level aggregate: sum over spots grouped by (stimulus,
-	 * concentration) of normalized AREA_SUMCLEAN consumption (not persisted as its
+	 * concentration) of normalized FILTER_GREY_SMOOTHED consumption (not persisted as its
 	 * own spot field).
 	 */
-	AGG_SUMCLEAN("AGG_SUMCLEAN", "spots consumed (0..N)",
-			"CLEAN aggregate: sum of per-spot normalized consumption by (stimulus, conc) per cage",
-			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	AGG_FILTER_DEPLETION("AGG_SUMCLEAN", "spots consumed (0..N)",
+			"Sum of per-spot normalized depletion by compound and concentration within each cage.",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_SUMCLEAN"),
 
 	/**
-	 * Same grouping and normalization as {@link #AGG_SUMCLEAN}, but each spot's
-	 * intensity trace is {@link #GREY_SUM_CLEAN_V5} (median-smoothed V5 grey)
-	 * instead of legacy {@code AREA_SUMCLEAN}.
+	 * Same grouping and normalization as {@link #AGG_FILTER_DEPLETION}, but each spot's
+	 * intensity trace is {@link #FILTER_V5_GREY_SMOOTHED} (median-smoothed V5 grey)
+	 * instead of legacy {@code FILTER_GREY_SMOOTHED}.
 	 */
-	AGG_SUMCLEAN_V5("AGG_SUMCLEAN_V5", "spots consumed (0..N)",
-			"V5 CLEAN aggregate: sum of per-spot normalized consumption from GREY_SUM_CLEAN_V5 by (stimulus, conc) per cage",
-			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	AGG_FILTER_V5_DEPLETION("AGG_SUMCLEAN_V5", "spots consumed (0..N)",
+			"Sum of per-spot normalized depletion from the smoothed V5 grey signal by compound and concentration within each cage.",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_SUMCLEAN_V5"),
 
 	/**
 	 * Cage-level aggregate: sum over spots grouped by (stimulus, concentration) of
-	 * per-bin {@link #AREA_COUNT_V5} (over-threshold pixel counts). Not persisted
+	 * per-bin {@link #FILTER_V5_PIXEL_COUNT} (over-threshold pixel counts). Not persisted
 	 * on spots.
 	 */
-	AGG_AREA_COUNT_V5("AGG_AREA_COUNT_V5", "pixels",
-			"V5: summed over-threshold pixel counts by (stimulus, conc) per cage",
-			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	AGG_FILTER_V5_PIXEL_SUM("AGG_AREA_COUNT_V5", "pixels",
+			"Sum of selected pixel counts by compound and concentration within each cage.",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_AREA_COUNT_V5"),
 
 	/**
 	 * Color-distance spot detection — same roles as V5 counterparts. On-disk keys
 	 * remain {@code *_V6}.
 	 */
-	AREA_COUNT_COLOR("AREA_COUNT_COLOR", "pixels", "Over-threshold spot pixels (color-distance)",
+	COLOR_PIXEL_COUNT("AREA_COUNT_COLOR", "pixels", "Over-threshold spot pixels (color-distance)",
 			StoredDataAccessors.accessStored_AREA_COUNT_V6(), "AREA_COUNT_V6", PersistenceDomain.SPOT),
-	GREY_SUM_COLOR("GREY_SUM_COLOR", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (color-distance)",
+	COLOR_GREY("GREY_SUM_COLOR", "grey / ROI px", "Grey on over-threshold pixels / all ROI pixels (color-distance)",
 			StoredDataAccessors.accessStored_GREY_SUM_V6(), "GREY_SUM_V6", PersistenceDomain.SPOT),
-	GREY_SUM_COLOR_PREFLY("GREY_SUM_COLOR_PREFLY", "grey / ROI px", "Color-distance grey before fly-occupancy NaN gate",
+	COLOR_GREY_PRE_GATE("GREY_SUM_COLOR_PREFLY", "grey / ROI px", "Color-distance grey before fly-occupancy NaN gate",
 			StoredDataAccessors.accessStored_GREY_SUM_V6_PREFLY(), "GREY_SUM_V6_PREFLY", PersistenceDomain.SPOT),
-	GREY_SUM_CLEAN_COLOR("GREY_SUM_CLEAN_COLOR", "grey / ROI px",
+	COLOR_GREY_SMOOTHED("GREY_SUM_CLEAN_COLOR", "grey / ROI px",
 			"Color-distance grey: cleaned from GREY_SUM_COLOR (same pipeline as V5)",
 			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V6(), "GREY_SUM_CLEAN_V6", PersistenceDomain.SPOT),
-	AGG_SUMCLEAN_COLOR("AGG_SUMCLEAN_COLOR", "spots consumed (0..N)",
-			"CLEAN aggregate from GREY_SUM_CLEAN_COLOR by (stimulus, conc) per cage",
-			StoredDataAccessors.notImplemented_TTOGULP_LR()),
-	AGG_AREA_COUNT_COLOR("AGG_AREA_COUNT_COLOR", "pixels",
-			"Summed over-threshold pixel counts by (stimulus, conc) per cage (color-distance)",
-			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	AGG_COLOR_DEPLETION("AGG_SUMCLEAN_COLOR", "spots consumed (0..N)",
+			"Sum of per-spot normalized depletion from the smoothed color-distance grey signal by compound and concentration within each cage.",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_SUMCLEAN_COLOR"),
+	AGG_COLOR_PIXEL_SUM("AGG_AREA_COUNT_COLOR", "pixels",
+			"Sum of selected pixel counts by compound and concentration within each cage.",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_AREA_COUNT_COLOR"),
 
 	/**
-	 * Computed cage-level curve: per-bin median of {@code AREA_SUM} across spots,
-	 * excluding bins with fly on spot ({@code AREA_FLYPRESENT}); shown with
+	 * Computed cage-level curve: per-bin median of {@code FILTER_GREY} across spots,
+	 * excluding bins with fly on spot ({@code FLY_PIXEL_COUNT}); shown with
 	 * consumption aggregate (inverted axis).
 	 */
-	AGG_MEDIANREF("AGG_MEDIANREF", "grey value", "Median spot AREA_SUM per cage (fly-occluded bins excluded)",
-			StoredDataAccessors.notImplemented_TTOGULP_LR()),
+	CAGE_GREY_MEDIAN("AGG_MEDIANREF", "grey value", "Median normalized grey signal across the cage's spots, excluding fly-occluded samples.",
+			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_MEDIANREF"),
 
 	/**
 	 * Kymograph: per-bin sum of per-spot consumption
 	 * {@code Σ (1 − KYMO_GREEN_HEIGHT_RATIO)}, grouped by (stimulus, concentration)
 	 * per cage.
 	 */
-	AGG_GREENHEIGHT_CONSO("AGG_GREENHEIGHT_CONSO", "Σ (1−h/h_max)",
-			"Kymograph: sum of per-spot (1 − peak-normalized height) by (stimulus, conc) per cage",
+	AGG_KYMO_HEIGHT_LOSS("AGG_GREENHEIGHT_CONSO", "Σ (1−h/h_max)",
+			"Sum of per-spot height loss relative to each spot's peak, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_GREENHEIGHT_CONSO"),
 
 	/**
@@ -260,10 +260,10 @@ public enum EnumResults {
 	 * (not persisted on spots). {@link #toPersistenceKey()} remains
 	 * {@code KYMO_CHROMA_FRACT} for saved data compatibility.
 	 */
-	KYMO_FRACT("KYMO_FRACT", "fraction (0-1)", "Kymograph: fraction of rows with selected metric above threshold",
+	KYMO_ROW_FRACTION("KYMO_FRACT", "fraction (0-1)", "Kymograph: fraction of rows with selected metric above threshold",
 			StoredDataAccessors.accessStored_KYMO_FRACT(), "KYMO_CHROMA_FRACT", PersistenceDomain.SPOT),
 	/** Kymograph: absolute bin-to-bin change in metric fraction. */
-	KYMO_ABS_DELTA("KYMO_ABS_DELTA", "|Δf|", "Kymograph: |Δf| of metric fraction between consecutive time bins",
+	KYMO_ROW_FRACTION_CHANGE("KYMO_ABS_DELTA", "|Δf|", "Kymograph: |Δf| of metric fraction between consecutive time bins",
 			StoredDataAccessors.accessStored_KYMO_ABS_DELTA(), "KYMO_CHROMA_ABS_DELTA", PersistenceDomain.SPOT),
 	/** Kymograph: per-bin mean of per-spot metric fractions within a cage. */
 	KYMO_CAGE_MEAN_FRACT("KYMO_CAGE_MEAN", "fraction (0-1)", "Kymograph: cage mean of spot metric fractions",
@@ -294,7 +294,7 @@ public enum EnumResults {
 	 * Horizontal line through a row of spots: red-deficit integral divided by its
 	 * median over the initial window. Zero is the floor outside the circles.
 	 */
-	KYMO_LINE_RATIO("KYMO_LINE_RATIO", "I / I0",
+	KYMO_CROSS_RATIO("KYMO_LINE_RATIO", "I / I0",
 			"Line: fraction of the cross above the floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT),
 	/**
@@ -305,18 +305,18 @@ public enum EnumResults {
 			"Rim: fraction of the outline above the outer floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_RIM_RATIO(), "KYMO_RIM_RATIO", PersistenceDomain.SPOT),
 	/**
-	 * Line analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_LINE_RATIO)},
+	 * Line analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_CROSS_RATIO)},
 	 * grouped by (stimulus, concentration) per cage.
 	 */
-	AGG_LINE_CONSO("AGG_LINE_CONSO", "Σ (1−I/I0)",
-			"Line: sum of per-spot (1 − initial cross fraction) by (stimulus, conc) per cage",
+	AGG_KYMO_CROSS_LOSS("AGG_LINE_CONSO", "Σ (1−I/I0)",
+			"Sum of per-spot cross-line signal loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_LINE_CONSO"),
 	/**
 	 * Rim analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_RIM_RATIO)},
 	 * grouped by (stimulus, concentration) per cage.
 	 */
-	AGG_RIM("AGG_RIM", "Σ (1−I/I0)",
-			"Rim: sum of per-spot (1 − rim fraction) by (stimulus, conc) per cage",
+	AGG_KYMO_RIM_LOSS("AGG_RIM", "Σ (1−I/I0)",
+			"Sum of per-spot rim coverage loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_RIM");
 
 	public enum PersistenceDomain {
@@ -352,6 +352,76 @@ public enum EnumResults {
 
 	public String toString() {
 		return label;
+	}
+
+	/** Measurement name shown in selectors and charts. */
+	public String toDisplayLabel() {
+		switch (this) {
+		case FILTER_GREY:
+			return "Normalized grey signal";
+		case FILTER_GREY_FLY_MASKED:
+			return "Normalized grey signal (fly pixels excluded)";
+		case FILTER_GREY_SMOOTHED:
+			return "Normalized grey signal (median-smoothed)";
+		case FILTER_GREY_CONTRAST:
+			return "Background-corrected foreground grey";
+		case FILTER_GREY_CONTRAST_MASKED:
+			return "Background-corrected grey (fly pixels excluded)";
+		case FILTER_GREY_CONTRAST_SMOOTHED:
+			return "Background-corrected grey (median-smoothed)";
+		case FILTER_GREY_RESIDUAL:
+			return "Grey-signal residual vs. pooled median";
+		case FLY_PIXEL_COUNT:
+			return "Fly coverage (%)";
+		case FILTER_V5_PIXEL_COUNT:
+			return "Selected pixel count (filter V5)";
+		case FILTER_V5_GREY:
+			return "Normalized grey signal (V5, occupied bins omitted)";
+		case FILTER_V5_GREY_PRE_GATE:
+			return "Normalized grey signal (V5, before occupancy check)";
+		case FILTER_V5_GREY_SMOOTHED:
+			return "Normalized grey signal (V5, gap-filled and smoothed)";
+		case COLOR_PIXEL_COUNT:
+			return "Selected pixel count (color distance)";
+		case COLOR_GREY:
+			return "Normalized grey signal (color distance, occupied bins omitted)";
+		case COLOR_GREY_PRE_GATE:
+			return "Normalized grey signal (color distance, before occupancy check)";
+		case COLOR_GREY_SMOOTHED:
+			return "Normalized grey signal (color distance, gap-filled and smoothed)";
+		case KYMO_ROW_FRACTION:
+			return "Fraction of strip rows above threshold";
+		case KYMO_ROW_FRACTION_CHANGE:
+			return "Absolute change in row fraction per time bin";
+		case KYMO_GREEN_HEIGHT:
+			return "Green mask height (rows)";
+		case KYMO_GREEN_HEIGHT_RATIO:
+			return "Green mask height relative to peak";
+		case KYMO_CROSS_RATIO:
+			return "Cross-line signal relative to initial baseline";
+		case KYMO_RIM_RATIO:
+			return "Rim coverage relative to initial baseline";
+		case AGG_FILTER_DEPLETION:
+			return "Total estimated depletion · Image filter";
+		case AGG_FILTER_V5_DEPLETION:
+			return "Total estimated depletion · Image filter V5";
+		case AGG_COLOR_DEPLETION:
+			return "Total estimated depletion · Color distance";
+		case AGG_FILTER_V5_PIXEL_SUM:
+			return "Total selected pixels · Image filter V5";
+		case AGG_COLOR_PIXEL_SUM:
+			return "Total selected pixels · Color distance";
+		case AGG_KYMO_HEIGHT_LOSS:
+			return "Total relative green-mask height loss";
+		case AGG_KYMO_CROSS_LOSS:
+			return "Total relative cross-line signal loss";
+		case AGG_KYMO_RIM_LOSS:
+			return "Total relative rim coverage loss";
+		case CAGE_GREY_MEDIAN:
+			return "Cage median grey signal";
+		default:
+			return label;
+		}
 	}
 
 	public String toUnit() {
@@ -396,36 +466,36 @@ public enum EnumResults {
 	 */
 	public boolean isSpotIntensityVersusBlackMeasure() {
 		switch (this) {
-		case AREA_SUM:
-		case AREA_SUMNOFLY:
-		case AREA_SUMCLEAN:
-		case AREA_FLYPRESENT:
-		case AREA_COUNT_V5:
-		case GREY_SUM_V5:
-		case GREY_SUM_V5_PREFLY:
-		case GREY_SUM_CLEAN_V5:
-		case AGG_SUMCLEAN:
-		case AGG_SUMCLEAN_V5:
-		case AGG_AREA_COUNT_V5:
-		case AREA_COUNT_COLOR:
-		case GREY_SUM_COLOR:
-		case GREY_SUM_COLOR_PREFLY:
-		case GREY_SUM_CLEAN_COLOR:
-		case AGG_SUMCLEAN_COLOR:
-		case AGG_AREA_COUNT_COLOR:
-		case AGG_MEDIANREF:
-		case AGG_GREENHEIGHT_CONSO:
-		case KYMO_FRACT:
-		case KYMO_ABS_DELTA:
+		case FILTER_GREY:
+		case FILTER_GREY_FLY_MASKED:
+		case FILTER_GREY_SMOOTHED:
+		case FLY_PIXEL_COUNT:
+		case FILTER_V5_PIXEL_COUNT:
+		case FILTER_V5_GREY:
+		case FILTER_V5_GREY_PRE_GATE:
+		case FILTER_V5_GREY_SMOOTHED:
+		case AGG_FILTER_DEPLETION:
+		case AGG_FILTER_V5_DEPLETION:
+		case AGG_FILTER_V5_PIXEL_SUM:
+		case COLOR_PIXEL_COUNT:
+		case COLOR_GREY:
+		case COLOR_GREY_PRE_GATE:
+		case COLOR_GREY_SMOOTHED:
+		case AGG_COLOR_DEPLETION:
+		case AGG_COLOR_PIXEL_SUM:
+		case CAGE_GREY_MEDIAN:
+		case AGG_KYMO_HEIGHT_LOSS:
+		case KYMO_ROW_FRACTION:
+		case KYMO_ROW_FRACTION_CHANGE:
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_LINE_RATIO:
+		case KYMO_CROSS_RATIO:
 		case KYMO_RIM_RATIO:
-		case AGG_LINE_CONSO:
-		case AGG_RIM:
+		case AGG_KYMO_CROSS_LOSS:
+		case AGG_KYMO_RIM_LOSS:
 			return true;
 		default:
 			return false;
@@ -437,7 +507,19 @@ public enum EnumResults {
 			return null;
 		}
 		if ("AGG_GREENHEIGHT_RATIO".equals(key)) {
-			return AGG_GREENHEIGHT_CONSO;
+			return AGG_KYMO_HEIGHT_LOSS;
+		}
+		switch (key) {
+		case "AREA_COUNT_COLOR":
+			return COLOR_PIXEL_COUNT;
+		case "GREY_SUM_COLOR":
+			return COLOR_GREY;
+		case "GREY_SUM_COLOR_PREFLY":
+			return COLOR_GREY_PRE_GATE;
+		case "GREY_SUM_CLEAN_COLOR":
+			return COLOR_GREY_SMOOTHED;
+		default:
+			break;
 		}
 		for (EnumResults v : values()) {
 			if (key.equals(v.toPersistenceKey())) {
@@ -449,8 +531,8 @@ public enum EnumResults {
 
 	/** Per-spot kymograph strip series persisted in {@code SpotsMeasures.csv}. */
 	public boolean isPersistedKymographSpotMeasure() {
-		return this == KYMO_FRACT || this == KYMO_ABS_DELTA || this == KYMO_GREEN_HEIGHT
-				|| this == KYMO_GREEN_HEIGHT_RATIO || this == KYMO_LINE_RATIO || this == KYMO_RIM_RATIO;
+		return this == KYMO_ROW_FRACTION || this == KYMO_ROW_FRACTION_CHANGE || this == KYMO_GREEN_HEIGHT
+				|| this == KYMO_GREEN_HEIGHT_RATIO || this == KYMO_CROSS_RATIO || this == KYMO_RIM_RATIO;
 	}
 
 	public static boolean isKymographMeasure(EnumResults resultType) {
@@ -458,18 +540,18 @@ public enum EnumResults {
 			return false;
 		}
 		switch (resultType) {
-		case KYMO_FRACT:
-		case KYMO_ABS_DELTA:
+		case KYMO_ROW_FRACTION:
+		case KYMO_ROW_FRACTION_CHANGE:
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_LINE_RATIO:
+		case KYMO_CROSS_RATIO:
 		case KYMO_RIM_RATIO:
-		case AGG_GREENHEIGHT_CONSO:
-		case AGG_LINE_CONSO:
-		case AGG_RIM:
+		case AGG_KYMO_HEIGHT_LOSS:
+		case AGG_KYMO_CROSS_LOSS:
+		case AGG_KYMO_RIM_LOSS:
 			return true;
 		default:
 			return false;
@@ -550,9 +632,9 @@ public enum EnumResults {
 		}
 		switch (abbr) {
 		case "KYMO_CHROMA_FRACT":
-			return KYMO_FRACT;
+			return KYMO_ROW_FRACTION;
 		case "KYMO_CHROMA_ABS_DELTA":
-			return KYMO_ABS_DELTA;
+			return KYMO_ROW_FRACTION_CHANGE;
 		case "KYMO_CHROMA_CAGE_MEAN_FRACT":
 			return KYMO_CAGE_MEAN_FRACT;
 		case "KYMO_CHROMA_CAGE_MEAN_ABS_DELTA":

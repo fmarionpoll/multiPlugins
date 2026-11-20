@@ -44,9 +44,9 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 public class ChartsColorPanel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_COUNT_COLOR, EnumResults.GREY_SUM_COLOR,
-			EnumResults.GREY_SUM_COLOR_PREFLY, EnumResults.GREY_SUM_CLEAN_COLOR, EnumResults.AGG_SUMCLEAN_COLOR,
-			EnumResults.AGG_AREA_COUNT_COLOR, EnumResults.AREA_FLYPRESENT };
+	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.COLOR_PIXEL_COUNT, EnumResults.COLOR_GREY,
+			EnumResults.COLOR_GREY_PRE_GATE, EnumResults.COLOR_GREY_SMOOTHED, EnumResults.AGG_COLOR_DEPLETION,
+			EnumResults.AGG_COLOR_PIXEL_SUM, EnumResults.FLY_PIXEL_COUNT };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartColorSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS parent0 = null;
@@ -65,6 +65,7 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 		layout.setVgap(0);
 
 		exportTypeComboBox = new JComboBox<>(SPOT_CHART_RESULTS);
+		SpotsMeasuresUi.showMeasurementLabels(exportTypeComboBox);
 
 		JPanel panel01 = new JPanel(layout);
 		panel01.add(new JLabel("Measure"));
@@ -185,7 +186,7 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if ((exportType == EnumResults.AGG_SUMCLEAN_COLOR || exportType == EnumResults.AGG_AREA_COUNT_COLOR)
+		if ((exportType == EnumResults.AGG_COLOR_DEPLETION || exportType == EnumResults.AGG_COLOR_PIXEL_SUM)
 				&& displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
@@ -212,8 +213,8 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 		int chartStepMs = resolveSpotChartStepMs(exp);
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
 				.withCageRange(first, last).build();
-		options.relativeToMaximum = relativeToCheckbox.isSelected() && exportType != EnumResults.AREA_FLYPRESENT
-				&& exportType != EnumResults.AGG_SUMCLEAN_COLOR && exportType != EnumResults.AGG_AREA_COUNT_COLOR;
+		options.relativeToMaximum = relativeToCheckbox.isSelected() && exportType != EnumResults.FLY_PIXEL_COUNT
+				&& exportType != EnumResults.AGG_COLOR_DEPLETION && exportType != EnumResults.AGG_COLOR_PIXEL_SUM;
 		options.spotAggregateByStimulusConc = false;
 
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
@@ -259,8 +260,8 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(resolveSpotChartStepMs(exp))
 				.withResultType(exportType).withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AREA_FLYPRESENT && exportType != EnumResults.AGG_SUMCLEAN_COLOR
-				&& exportType != EnumResults.AGG_AREA_COUNT_COLOR && relativeToCheckbox.isSelected();
+		options.relativeToMaximum = exportType != EnumResults.FLY_PIXEL_COUNT && exportType != EnumResults.AGG_COLOR_DEPLETION
+				&& exportType != EnumResults.AGG_COLOR_PIXEL_SUM && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartColorSpotsOverlayFrame();
@@ -317,7 +318,7 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 
 	private void updateMeasureDependentControls() {
 		EnumResults sel = exportTypeComboBox != null ? (EnumResults) exportTypeComboBox.getSelectedItem() : null;
-		boolean agg = sel == EnumResults.AGG_SUMCLEAN_COLOR || sel == EnumResults.AGG_AREA_COUNT_COLOR;
+		boolean agg = sel == EnumResults.AGG_COLOR_DEPLETION || sel == EnumResults.AGG_COLOR_PIXEL_SUM;
 		relativeToCheckbox.setEnabled(!agg);
 		if (agg) {
 			relativeToCheckbox.setSelected(false);
@@ -385,8 +386,8 @@ public class ChartsColorPanel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_SUMCLEAN_COLOR ? EnumResults.GREY_SUM_CLEAN_COLOR
-				: option == EnumResults.AGG_AREA_COUNT_COLOR ? EnumResults.AREA_COUNT_COLOR : option;
+		EnumResults probe = option == EnumResults.AGG_COLOR_DEPLETION ? EnumResults.COLOR_GREY_SMOOTHED
+				: option == EnumResults.AGG_COLOR_PIXEL_SUM ? EnumResults.COLOR_PIXEL_COUNT : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

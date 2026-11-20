@@ -12,13 +12,13 @@ import javax.swing.SpinnerNumberModel;
 
 /**
  * Excel export for cage-level spot series aggregated by (stimulus,
- * concentration) — AGG_SUMCLEAN.
+ * concentration) — AGG_FILTER_DEPLETION.
  */
 public class AggregatedSpotsAreasPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
-	JButton exportAggregatedButton = new JButton("save XLS");
-	JButton exportKymoAggButton = new JButton("save kymo AGG XLS");
+	JButton exportAggregatedButton = new JButton("Save filter depletion XLS");
+	JButton exportKymoAggButton = new JButton("Save kymograph height loss XLS");
 	JSpinner baselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
 	JCheckBox stopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
 	JSpinner stableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
@@ -28,10 +28,6 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 		setLayout(capLayout);
 		FlowLayout flow = new FlowLayout(FlowLayout.LEFT);
 		flow.setVgap(0);
-
-//		JPanel intro = new JPanel(flow);
-//		intro.add(new JLabel("Export AGG_SUMCLEAN: one column per cage \u00d7 (stimulus, conc.) group."));
-//		add(intro);
 
 		JPanel panel0 = new JPanel(flow);
 		panel0.add(new JLabel("baseline (min)"));
@@ -48,6 +44,8 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 		FlowLayout actionsLayout = new FlowLayout(FlowLayout.RIGHT);
 		actionsLayout.setVgap(0);
 		JPanel panel2 = new JPanel(actionsLayout);
+		exportAggregatedButton.setToolTipText("Group spots by compound and concentration within each cage.");
+		exportKymoAggButton.setToolTipText("Group spots by compound and concentration within each cage.");
 		panel2.add(exportAggregatedButton);
 		panel2.add(exportKymoAggButton);
 		add(panel2);

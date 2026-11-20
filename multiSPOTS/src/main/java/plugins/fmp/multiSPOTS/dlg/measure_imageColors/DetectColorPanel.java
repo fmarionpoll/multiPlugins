@@ -525,7 +525,7 @@ public class DetectColorPanel extends JPanel implements PropertyChangeListener {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				exp.load_spots_description_and_measures();
-				parent0.dlgMeasureV5.chartsColorPanel.displayChartPanels(exp);
+				parent0.dlgMeasureColor.chartsColorPanel.displayChartPanels(exp);
 			}
 			processorRef = null;
 		}

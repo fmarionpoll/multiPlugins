@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Transient cage-level spot aggregates (e.g. AGG_SUMCLEAN by stimulus/concentration),
+ * Transient cage-level spot aggregates (e.g. AGG_FILTER_DEPLETION by stimulus/concentration),
  * computed from per-spot measures on the native sample index. Refreshed by
  * {@link plugins.fmp.multitools.experiment.cages.Cages#prepareSpotAggregates}.
  */

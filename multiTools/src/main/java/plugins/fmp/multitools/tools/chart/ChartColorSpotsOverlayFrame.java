@@ -24,15 +24,15 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  * Selected-spot overlay for color-distance spot measures. Uses explicit checkboxes for
  * on-disk keys {@code AREA_COUNT_V6}, {@code GREY_SUM_V6}, {@code GREY_SUM_V6_PREFLY},
  * {@code GREY_SUM_CLEAN_V6}, and fly presence,
- * plus a second row for legacy area series {@code AREA_SUM}, {@code AREA_SUMNOFLY},
- * {@code AREA_SUMCLEAN} (same as {@link ChartSpotsOverlayFrame}).
+ * plus a second row for legacy area series {@code FILTER_GREY}, {@code FILTER_GREY_FLY_MASKED},
+ * {@code FILTER_GREY_SMOOTHED} (same as {@link ChartSpotsOverlayFrame}).
  */
 public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
-	private final JCheckBox cbAreaCountColor = new JCheckBox("AREA_COUNT_V6");
-	private final JCheckBox cbGreySumColor = new JCheckBox("GREY_SUM_V6");
-	private final JCheckBox cbGreySumColorPreFly = new JCheckBox("GREY_SUM_V6_PREFLY");
-	private final JCheckBox cbGreySumCleanColor = new JCheckBox("GREY_SUM_CLEAN_V6");
+	private final JCheckBox cbAreaCountColor = new JCheckBox(EnumResults.COLOR_PIXEL_COUNT.toDisplayLabel());
+	private final JCheckBox cbGreySumColor = new JCheckBox(EnumResults.COLOR_GREY.toDisplayLabel());
+	private final JCheckBox cbGreySumColorPreFly = new JCheckBox(EnumResults.COLOR_GREY_PRE_GATE.toDisplayLabel());
+	private final JCheckBox cbGreySumCleanColor = new JCheckBox(EnumResults.COLOR_GREY_SMOOTHED.toDisplayLabel());
 
 	/** When several spots are overlaid, prefer the measure the user just toggled on. */
 	private JCheckBox lastOverlayMeasureActionSource = null;
@@ -109,13 +109,13 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		cbNoFly.setSelected(false);
 		cbClean.setSelected(false);
 
-		if (rt == EnumResults.AREA_COUNT_COLOR) {
+		if (rt == EnumResults.COLOR_PIXEL_COUNT) {
 			cbAreaCountColor.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_COLOR) {
+		} else if (rt == EnumResults.COLOR_GREY) {
 			cbGreySumColor.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_COLOR_PREFLY) {
+		} else if (rt == EnumResults.COLOR_GREY_PRE_GATE) {
 			cbGreySumColorPreFly.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_CLEAN_COLOR) {
+		} else if (rt == EnumResults.COLOR_GREY_SMOOTHED) {
 			cbGreySumCleanColor.setSelected(true);
 		} else if (resultLabelEquals(rt, "AREA_FLYPRESENT")) {
 			cbFlyPresent.setSelected(true);
@@ -196,16 +196,16 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	protected List<EnumResults> getEnabledMeasures(ResultsOptions options) {
 		List<EnumResults> out = new ArrayList<>();
 		if (cbAreaCountColor.isSelected()) {
-			out.add(EnumResults.AREA_COUNT_COLOR);
+			out.add(EnumResults.COLOR_PIXEL_COUNT);
 		}
 		if (cbGreySumColor.isSelected()) {
-			out.add(EnumResults.GREY_SUM_COLOR);
+			out.add(EnumResults.COLOR_GREY);
 		}
 		if (cbGreySumColorPreFly.isSelected()) {
-			out.add(EnumResults.GREY_SUM_COLOR_PREFLY);
+			out.add(EnumResults.COLOR_GREY_PRE_GATE);
 		}
 		if (cbGreySumCleanColor.isSelected()) {
-			out.add(EnumResults.GREY_SUM_CLEAN_COLOR);
+			out.add(EnumResults.COLOR_GREY_SMOOTHED);
 		}
 		if (cbFlyPresent.isSelected()) {
 			addResultIfDefined(out, "AREA_FLYPRESENT");
@@ -261,7 +261,7 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		if (r == null) {
 			return false;
 		}
-		String n = r.name();
+		String n = r.toPersistenceKey();
 		return "AREA_SUM".equals(n) || "AREA_SUMNOFLY".equals(n) || "AREA_SUMCLEAN".equals(n);
 	}
 
@@ -279,14 +279,14 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		if (resultType == null) {
 			return Color.BLACK;
 		}
-		switch (resultType.name()) {
-		case "AREA_COUNT_COLOR":
+		switch (resultType) {
+		case COLOR_PIXEL_COUNT:
 			return new Color(0, 102, 153);
-		case "GREY_SUM_COLOR":
+		case COLOR_GREY:
 			return new Color(0, 120, 70);
-		case "GREY_SUM_COLOR_PREFLY":
+		case COLOR_GREY_PRE_GATE:
 			return new Color(180, 95, 20);
-		case "GREY_SUM_CLEAN_COLOR":
+		case COLOR_GREY_SMOOTHED:
 			return new Color(0, 170, 95);
 		default:
 			return super.pickMeasureColor(resultType);

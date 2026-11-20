@@ -23,7 +23,7 @@ import plugins.fmp.multitools.tools.toExcel.utils.XLSUtils;
 /**
  * Excel export for spot measures aggregated at cage level by (stimulus, concentration).
  *
- * For AREA_SUMCLEAN, builds the sum of per-spot normalized consumption series on the native
+ * For FILTER_GREY_SMOOTHED, builds the sum of per-spot normalized consumption series on the native
  * spot/camera sample index, then resamples it onto the requested Excel export grid:
  *   (maxBaseline - v(t)) / maxBaseline
  * where maxBaseline is computed from the beginning of the series (see {@link ResultsOptions} parameters).
@@ -48,49 +48,49 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			return startColumn;
 		}
 		boolean aggregateExport = resultsOptions.spotAggregateByStimulusConc
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5
-				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5
-				|| resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_COLOR
-				|| resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR
-				|| resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO
-				|| resultsOptions.resultType == EnumResults.AGG_LINE_CONSO
-				|| resultsOptions.resultType == EnumResults.AGG_RIM;
+				|| resultsOptions.resultType == EnumResults.AGG_FILTER_DEPLETION
+				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION
+				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
+				|| resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION
+				|| resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
+				|| resultsOptions.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS
+				|| resultsOptions.resultType == EnumResults.AGG_KYMO_CROSS_LOSS
+				|| resultsOptions.resultType == EnumResults.AGG_KYMO_RIM_LOSS;
 		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
 		}
-		if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
+		if (resultsOptions.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS) {
 			// exportResultType overwrites options.resultType. Restore it so later
 			// experiments still take this branch and write both sheets.
 			EnumResults savedType = resultsOptions.resultType;
 			try {
-				int heightCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_GREENHEIGHT_CONSO,
+				int heightCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_KYMO_HEIGHT_LOSS,
 						"spot_aggregate");
-				int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_LINE_CONSO,
+				int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_KYMO_CROSS_LOSS,
 						"spot_aggregate");
-				int rimCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_RIM, "spot_aggregate");
+				int rimCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_KYMO_RIM_LOSS, "spot_aggregate");
 				return Math.max(heightCol, Math.max(lineCol, rimCol));
 			} finally {
 				resultsOptions.resultType = savedType;
 			}
 		}
 		EnumResults gridProbe;
-		if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_V5) {
-			gridProbe = EnumResults.GREY_SUM_CLEAN_V5;
-		} else if (resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_V5) {
-			gridProbe = EnumResults.AREA_COUNT_V5;
-		} else if (resultsOptions.resultType == EnumResults.AGG_SUMCLEAN_COLOR) {
-			gridProbe = EnumResults.GREY_SUM_CLEAN_COLOR;
-		} else if (resultsOptions.resultType == EnumResults.AGG_AREA_COUNT_COLOR) {
-			gridProbe = EnumResults.AREA_COUNT_COLOR;
-		} else if (resultsOptions.resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
+		if (resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION) {
+			gridProbe = EnumResults.FILTER_V5_GREY_SMOOTHED;
+		} else if (resultsOptions.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM) {
+			gridProbe = EnumResults.FILTER_V5_PIXEL_COUNT;
+		} else if (resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION) {
+			gridProbe = EnumResults.COLOR_GREY_SMOOTHED;
+		} else if (resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM) {
+			gridProbe = EnumResults.COLOR_PIXEL_COUNT;
+		} else if (resultsOptions.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS) {
 			gridProbe = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
-		} else if (resultsOptions.resultType == EnumResults.AGG_LINE_CONSO) {
-			gridProbe = EnumResults.KYMO_LINE_RATIO;
-		} else if (resultsOptions.resultType == EnumResults.AGG_RIM) {
+		} else if (resultsOptions.resultType == EnumResults.AGG_KYMO_CROSS_LOSS) {
+			gridProbe = EnumResults.KYMO_CROSS_RATIO;
+		} else if (resultsOptions.resultType == EnumResults.AGG_KYMO_RIM_LOSS) {
 			gridProbe = EnumResults.KYMO_RIM_RATIO;
 		} else {
-			gridProbe = EnumResults.AREA_SUMCLEAN;
+			gridProbe = EnumResults.FILTER_GREY_SMOOTHED;
 		}
 		EnumResults exportType = resultsOptions.resultType != null ? resultsOptions.resultType : gridProbe;
 		int colmax = exportResultType(exp, startColumn, charSeries, exportType, "spot_aggregate");
@@ -100,15 +100,15 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 	@Override
 	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
-		if (resultType != EnumResults.AREA_SUMCLEAN && resultType != EnumResults.GREY_SUM_V5
-				&& resultType != EnumResults.GREY_SUM_V5_PREFLY && resultType != EnumResults.GREY_SUM_CLEAN_V5
-				&& resultType != EnumResults.AREA_COUNT_V5
-				&& resultType != EnumResults.GREY_SUM_COLOR && resultType != EnumResults.GREY_SUM_COLOR_PREFLY
-				&& resultType != EnumResults.GREY_SUM_CLEAN_COLOR && resultType != EnumResults.AREA_COUNT_COLOR
-				&& resultType != EnumResults.AGG_SUMCLEAN && resultType != EnumResults.AGG_SUMCLEAN_V5
-				&& resultType != EnumResults.AGG_AREA_COUNT_V5 && resultType != EnumResults.AGG_SUMCLEAN_COLOR
-				&& resultType != EnumResults.AGG_AREA_COUNT_COLOR 				&& resultType != EnumResults.AGG_GREENHEIGHT_CONSO
-				&& resultType != EnumResults.AGG_LINE_CONSO && resultType != EnumResults.AGG_RIM
+		if (resultType != EnumResults.FILTER_GREY_SMOOTHED && resultType != EnumResults.FILTER_V5_GREY
+				&& resultType != EnumResults.FILTER_V5_GREY_PRE_GATE && resultType != EnumResults.FILTER_V5_GREY_SMOOTHED
+				&& resultType != EnumResults.FILTER_V5_PIXEL_COUNT
+				&& resultType != EnumResults.COLOR_GREY && resultType != EnumResults.COLOR_GREY_PRE_GATE
+				&& resultType != EnumResults.COLOR_GREY_SMOOTHED && resultType != EnumResults.COLOR_PIXEL_COUNT
+				&& resultType != EnumResults.AGG_FILTER_DEPLETION && resultType != EnumResults.AGG_FILTER_V5_DEPLETION
+				&& resultType != EnumResults.AGG_FILTER_V5_PIXEL_SUM && resultType != EnumResults.AGG_COLOR_DEPLETION
+				&& resultType != EnumResults.AGG_COLOR_PIXEL_SUM 				&& resultType != EnumResults.AGG_KYMO_HEIGHT_LOSS
+				&& resultType != EnumResults.AGG_KYMO_CROSS_LOSS && resultType != EnumResults.AGG_KYMO_RIM_LOSS
 				&& resultType != EnumResults.KYMO_GREEN_HEIGHT_RATIO) {
 			return col0;
 		}

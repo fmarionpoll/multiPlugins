@@ -20,14 +20,34 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 public class CsvNormalizedSpotExportTest {
 
 	@Test
+	public void aggregateRenamesPreserveExportIdentifiers() {
+		assertAggregateIdentifier(EnumResults.AGG_FILTER_DEPLETION, "AGG_SUMCLEAN");
+		assertAggregateIdentifier(EnumResults.AGG_FILTER_V5_DEPLETION, "AGG_SUMCLEAN_V5");
+		assertAggregateIdentifier(EnumResults.AGG_COLOR_DEPLETION, "AGG_SUMCLEAN_COLOR");
+		assertAggregateIdentifier(EnumResults.AGG_FILTER_V5_PIXEL_SUM, "AGG_AREA_COUNT_V5");
+		assertAggregateIdentifier(EnumResults.AGG_COLOR_PIXEL_SUM, "AGG_AREA_COUNT_COLOR");
+		assertAggregateIdentifier(EnumResults.AGG_KYMO_HEIGHT_LOSS, "AGG_GREENHEIGHT_CONSO");
+		assertAggregateIdentifier(EnumResults.AGG_KYMO_CROSS_LOSS, "AGG_LINE_CONSO");
+		assertAggregateIdentifier(EnumResults.AGG_KYMO_RIM_LOSS, "AGG_RIM");
+		assertAggregateIdentifier(EnumResults.CAGE_GREY_MEDIAN, "AGG_MEDIANREF");
+	}
+
+	private static void assertAggregateIdentifier(EnumResults result, String identifier) {
+		assertEquals(identifier, result.toPersistenceKey());
+		assertEquals(identifier.toLowerCase(java.util.Locale.ROOT), CsvNormalizedSpotExport.columnName(result));
+		assertEquals(result, EnumResults.findByPersistenceKey(identifier));
+		assertFalse(result.isPersistedIn(EnumResults.PersistenceDomain.SPOT));
+	}
+
+	@Test
 	public void cameraAndKymoColumnsStayOnSeparateClocks() {
-		assertEquals("area_sum", CsvNormalizedSpotExport.columnName(EnumResults.AREA_SUM));
-		assertEquals("kymo_fract", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_FRACT));
-		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AREA_FLYPRESENT));
-		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AREA_SUMCLEAN));
+		assertEquals("area_sum", CsvNormalizedSpotExport.columnName(EnumResults.FILTER_GREY));
+		assertEquals("kymo_fract", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_ROW_FRACTION));
+		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.FLY_PIXEL_COUNT));
+		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.FILTER_GREY_SMOOTHED));
 		assertTrue(CsvNormalizedSpotExport.isKymoSeries(EnumResults.KYMO_GREEN_HEIGHT_RATIO));
-		assertTrue(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AGG_GREENHEIGHT_CONSO));
-		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AGG_SUMCLEAN));
+		assertTrue(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AGG_KYMO_HEIGHT_LOSS));
+		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AGG_FILTER_DEPLETION));
 	}
 
 	@Test
@@ -37,14 +57,14 @@ public class CsvNormalizedSpotExportTest {
 		options.sum = true;
 		options.spotKymoFract = true;
 		EnumResults[] types = plugins.fmp.multitools.tools.toExcel.XLSExportSpots.spotMeasureTypes(options);
-		assertEquals(EnumResults.AREA_SUM, types[0]);
-		assertEquals(EnumResults.KYMO_FRACT, types[1]);
-		assertEquals(EnumResults.AREA_FLYPRESENT, types[2]);
+		assertEquals(EnumResults.FILTER_GREY, types[0]);
+		assertEquals(EnumResults.KYMO_ROW_FRACTION, types[1]);
+		assertEquals(EnumResults.FLY_PIXEL_COUNT, types[2]);
 	}
 
 	@Test
 	public void kymoRawTimesUseTheKymographBin() {
-		long[] times = CsvNormalizedSpotExport.rawTimes(null, new ResultsOptions(), EnumResults.KYMO_FRACT, 3, null);
+		long[] times = CsvNormalizedSpotExport.rawTimes(null, new ResultsOptions(), EnumResults.KYMO_ROW_FRACTION, 3, null);
 		assertEquals(0L, times[0]);
 		assertEquals(60000L, times[1]);
 		assertEquals(120000L, times[2]);

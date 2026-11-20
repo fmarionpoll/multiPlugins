@@ -23,15 +23,15 @@ public class ResultsOptions {
 	public boolean sum = true;
 	public boolean sum2 = true;
 	public boolean nPixels = true;
-	/** Spot Excel export: AREA_SUMNOFLY. */
+	/** Spot Excel export: FILTER_GREY_FLY_MASKED. */
 	public boolean spotSumNoFly = false;
-	/** Spot Excel export: AREA_SUMCLEAN. */
+	/** Spot Excel export: FILTER_GREY_SMOOTHED. */
 	public boolean spotSumClean = false;
-	/** Spot Excel export (V2 channel): AREA_SUM_V2. */
+	/** Spot Excel export (V2 channel): FILTER_GREY_CONTRAST. */
 	public boolean sumV2 = false;
-	/** Spot Excel export (V2 channel): AREA_SUMNOFLY_V2. */
+	/** Spot Excel export (V2 channel): FILTER_GREY_CONTRAST_MASKED. */
 	public boolean spotSumNoFlyV2 = false;
-	/** Spot Excel export (V2 channel): AREA_SUMCLEAN_V2. */
+	/** Spot Excel export (V2 channel): FILTER_GREY_CONTRAST_SMOOTHED. */
 	public boolean spotSumCleanV2 = false;
 	/**
 	 * Spot Excel export: aggregate spots by (stimulus, concentration) at cage
@@ -139,12 +139,12 @@ public class ResultsOptions {
 	 * Kymograph chart: which fraction trace to plot when
 	 * {@link plugins.fmp.multitools.service.KymoAnalysisResult.SpotKymoSeries}
 	 * includes diagnostic arrays. Ignored for non-fraction kymograph measures (e.g.
-	 * {@link EnumResults#KYMO_ABS_DELTA}).
+	 * {@link EnumResults#KYMO_ROW_FRACTION_CHANGE}).
 	 */
 	public KymoFractionTraceMode kymoFractionTraceMode = KymoFractionTraceMode.FINAL;
 
 	/**
-	 * When charting {@link EnumResults#AGG_SUMCLEAN}, filled by
+	 * When charting {@link EnumResults#AGG_FILTER_DEPLETION}, filled by
 	 * {@link plugins.fmp.multitools.tools.chart.ChartCagesFrame} so each cage
 	 * subplot uses the same (stimulus,conc) color index.
 	 */
@@ -152,7 +152,7 @@ public class ResultsOptions {
 
 	/**
 	 * V4 / evaluation: how per-spot depletion is formed before summing into
-	 * {@code AGG_SUMCLEAN}.
+	 * {@code AGG_FILTER_DEPLETION}.
 	 */
 	public AggSumCleanPolicy aggSumCleanPolicy = AggSumCleanPolicy.LEGACY;
 	/**
@@ -174,17 +174,17 @@ public class ResultsOptions {
 	/** Reference concentration label for {@link AggSumCleanPolicy#V4_REF_STIM}. */
 	public String aggRefConcentration = "";
 	/**
-	 * Native-bin window for temporal smoothing of {@link EnumResults#AGG_MEDIANREF}
+	 * Native-bin window for temporal smoothing of {@link EnumResults#CAGE_GREY_MEDIAN}
 	 * (centered mean over finite samples in the window). Use {@code 1} for no
 	 * smoothing.
 	 */
 	public int aggMedianRefSmoothWindowBins = 5;
 
-	/** Spot Excel export: {@code AREA_COUNT_V5}. */
+	/** Spot Excel export: {@code FILTER_V5_PIXEL_COUNT}. */
 	public boolean spotAreaCountV5 = false;
-	/** Spot Excel export: {@code GREY_SUM_V5}. */
+	/** Spot Excel export: {@code FILTER_V5_GREY}. */
 	public boolean spotGreySumV5 = false;
-	/** Spot Excel export: {@code GREY_SUM_CLEAN_V5}. */
+	/** Spot Excel export: {@code FILTER_V5_GREY_SMOOTHED}. */
 	public boolean spotGreySumCleanV5 = false;
 	/** Spot Excel export: on-disk {@code AREA_COUNT_V6}. */
 	public boolean spotAreaCountColor = false;

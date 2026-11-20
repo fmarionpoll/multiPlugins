@@ -223,8 +223,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_SUM data from Spot measurements. Used via:
-	 * spot.getMeasurements(AREA_SUM)
+	 * Accesses stored FILTER_GREY data from Spot measurements. Used via:
+	 * spot.getMeasurements(FILTER_GREY)
 	 */
 	public static MeasurementComputation accessStored_AREA_SUM() {
 		return (exp, cap, options) -> {
@@ -241,8 +241,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_SUMCLEAN data from Spot measurements. Used via:
-	 * spot.getMeasurements(AREA_SUMCLEAN)
+	 * Accesses stored FILTER_GREY_SMOOTHED data from Spot measurements. Used via:
+	 * spot.getMeasurements(FILTER_GREY_SMOOTHED)
 	 */
 	public static MeasurementComputation accessStored_AREA_SUMNOFLY() {
 		return (exp, cap, options) -> {
@@ -259,8 +259,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_SUMCLEAN data from Spot measurements. Used via:
-	 * spot.getMeasurements(AREA_SUMCLEAN)
+	 * Accesses stored FILTER_GREY_SMOOTHED data from Spot measurements. Used via:
+	 * spot.getMeasurements(FILTER_GREY_SMOOTHED)
 	 */
 	public static MeasurementComputation accessStored_AREA_SUMCLEAN() {
 		return (exp, cap, options) -> {
@@ -306,8 +306,8 @@ public class StoredDataAccessors {
 	}
 
 	/**
-	 * Accesses stored AREA_FLYPRESENT data from Spot measurements. Used via:
-	 * spot.getMeasurements(AREA_FLYPRESENT)
+	 * Accesses stored FLY_PIXEL_COUNT data from Spot measurements. Used via:
+	 * spot.getMeasurements(FLY_PIXEL_COUNT)
 	 */
 	public static MeasurementComputation accessStored_AREA_FLYPRESENT() {
 		return (exp, cap, options) -> {

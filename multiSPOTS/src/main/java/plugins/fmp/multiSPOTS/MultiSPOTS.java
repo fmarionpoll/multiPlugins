@@ -48,7 +48,7 @@ public class MultiSPOTS extends PluginActionable {
 	public _DlgExperiment_ dlgExperiment = new _DlgExperiment_();
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();
 	public _DlgMeasureUsingFilters_ dlgMeasure = new _DlgMeasureUsingFilters_();
-	public _DlgMeasureUsingColors_ dlgMeasureV5 = new _DlgMeasureUsingColors_();
+	public _DlgMeasureUsingColors_ dlgMeasureColor = new _DlgMeasureUsingColors_();
 	public _DlgMeasureUsingKymos_ dlgKymos = new _DlgMeasureUsingKymos_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 	public _DlgDetectFlies_ dlgDetectFlies = new _DlgDetectFlies_();
@@ -73,8 +73,8 @@ public class MultiSPOTS extends PluginActionable {
 			dlgMeasure.chartsPanel.closeAllCharts();
 		if (dlgMeasure != null && dlgMeasure.chartsV5Panel != null)
 			dlgMeasure.chartsV5Panel.closeAllCharts();
-		if (dlgMeasureV5 != null && dlgMeasureV5.chartsColorPanel != null)
-			dlgMeasureV5.chartsColorPanel.closeAllCharts();
+		if (dlgMeasureColor != null && dlgMeasureColor.chartsColorPanel != null)
+			dlgMeasureColor.chartsColorPanel.closeAllCharts();
 		if (dlgKymos != null && dlgKymos.tabKymoGraph != null)
 			dlgKymos.tabKymoGraph.closeAllCharts();
 		if (dlgDetectFlies != null && dlgDetectFlies.tabGraphics != null)
@@ -99,9 +99,9 @@ public class MultiSPOTS extends PluginActionable {
 		dlgBrowse.init(mainPanel, "Browse", this);
 		dlgExperiment.init(mainPanel, "Experiment", this);
 		dlgSpots.init(mainPanel, "Define spots", this);
-		dlgMeasure.init(mainPanel, "Measure: image filter", this);
-		dlgMeasureV5.init(mainPanel, "Measure: image colors", this);
-		dlgKymos.init(mainPanel, "Measure: lines over spots", this);
+		dlgMeasure.init(mainPanel, "Measure: image filters", this);
+		dlgMeasureColor.init(mainPanel, "Measure: color distance", this);
+		dlgKymos.init(mainPanel, "Measure: spot kymographs", this);
 		dlgDetectFlies.init(mainPanel, "Fly detection", this);
 		dlgExcel.init(mainPanel, "Export", this);
 

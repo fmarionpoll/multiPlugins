@@ -38,7 +38,7 @@ public final class KymoSpotChartSupport {
 			return false;
 		}
 		for (Spot spot : exp.getSpots().getSpotList()) {
-			if (spot != null && spot.getMeasurementsKymo().hasAnyData()) {
+			if (spot != null && spot.getKymographMeasurements().hasAnyData()) {
 				return true;
 			}
 		}
@@ -132,15 +132,15 @@ public final class KymoSpotChartSupport {
 		if (resultType.isPersistedKymographSpotMeasure()) {
 			return resultType;
 		}
-		if (resultType == EnumResults.AGG_LINE_CONSO || resultType == EnumResults.AGG_RIM
-				|| resultType == EnumResults.AGG_GREENHEIGHT_CONSO) {
+		if (resultType == EnumResults.AGG_KYMO_CROSS_LOSS || resultType == EnumResults.AGG_KYMO_RIM_LOSS
+				|| resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS) {
 			return CageKymoGreenHeightAggregation.sourceOf(resultType);
 		}
 		if (resultType == EnumResults.KYMO_CAGE_MEAN_FRACT) {
-			return EnumResults.KYMO_FRACT;
+			return EnumResults.KYMO_ROW_FRACTION;
 		}
 		if (resultType == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA) {
-			return EnumResults.KYMO_ABS_DELTA;
+			return EnumResults.KYMO_ROW_FRACTION_CHANGE;
 		}
 		if (resultType == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO) {
 			return EnumResults.KYMO_GREEN_HEIGHT_RATIO;
@@ -232,8 +232,8 @@ public final class KymoSpotChartSupport {
 			return dataset;
 		}
 		EnumResults rt = options.resultType;
-		if (rt == EnumResults.AGG_GREENHEIGHT_CONSO || rt == EnumResults.AGG_LINE_CONSO
-				|| rt == EnumResults.AGG_RIM) {
+		if (rt == EnumResults.AGG_KYMO_HEIGHT_LOSS || rt == EnumResults.AGG_KYMO_CROSS_LOSS
+				|| rt == EnumResults.AGG_KYMO_RIM_LOSS) {
 			addConsoAggregates(exp, cage, spots, options, dataset, rt);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;
@@ -268,7 +268,7 @@ public final class KymoSpotChartSupport {
 		if (exp == null || options == null || spots == null || spots.isEmpty()) {
 			return dataset;
 		}
-		EnumResults rt = options.resultType != null ? options.resultType : EnumResults.KYMO_FRACT;
+		EnumResults rt = options.resultType != null ? options.resultType : EnumResults.KYMO_ROW_FRACTION;
 		java.util.HashMap<Integer, java.util.ArrayList<Spot>> byCage = new java.util.HashMap<>();
 		for (Spot spot : spots) {
 			if (spot == null || spot.getProperties() == null) {
@@ -282,8 +282,8 @@ public final class KymoSpotChartSupport {
 				continue;
 			}
 			List<Spot> cageSpots = e.getValue();
-			if (rt == EnumResults.AGG_GREENHEIGHT_CONSO || rt == EnumResults.AGG_LINE_CONSO
-					|| rt == EnumResults.AGG_RIM) {
+			if (rt == EnumResults.AGG_KYMO_HEIGHT_LOSS || rt == EnumResults.AGG_KYMO_CROSS_LOSS
+					|| rt == EnumResults.AGG_KYMO_RIM_LOSS) {
 				addConsoAggregates(exp, cage, cageSpots, options, dataset, rt);
 				continue;
 			}
@@ -502,12 +502,12 @@ public final class KymoSpotChartSupport {
 
 	private static EnumResults underlyingSpotType(EnumResults cageMeanRt) {
 		if (cageMeanRt == EnumResults.KYMO_CAGE_MEAN_ABS_DELTA) {
-			return EnumResults.KYMO_ABS_DELTA;
+			return EnumResults.KYMO_ROW_FRACTION_CHANGE;
 		}
 		if (cageMeanRt == EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO) {
 			return EnumResults.KYMO_GREEN_HEIGHT_RATIO;
 		}
-		return EnumResults.KYMO_FRACT;
+		return EnumResults.KYMO_ROW_FRACTION;
 	}
 
 	private static Color aggregatePaletteColor(int index) {

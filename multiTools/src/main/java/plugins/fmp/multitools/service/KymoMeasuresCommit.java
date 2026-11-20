@@ -39,10 +39,10 @@ public final class KymoMeasuresCommit {
 
 	private static void copyRow(SpotKymoSeries row) {
 		Spot spot = row.spot;
-		copyDoubles(spot.getKymoFract(), row.fraction);
-		copyDoubles(spot.getKymoAbsDelta(), row.absDeltaFraction);
-		copyIntsAsDoubles(spot.getKymoGreenHeight(), row.greenHeight);
-		copyDoubles(spot.getKymoGreenHeightRatio(), row.greenHeightRatio);
+		copyDoubles(spot.getAboveThresholdStripRowFraction(), row.fraction);
+		copyDoubles(spot.getAbsoluteStripRowFractionChange(), row.absDeltaFraction);
+		copyIntsAsDoubles(spot.getGreenMaskHeight(), row.greenHeight);
+		copyDoubles(spot.getGreenMaskHeightToPeakRatio(), row.greenHeightRatio);
 	}
 
 	private static void copyDoubles(SpotMeasure measure, double[] src) {

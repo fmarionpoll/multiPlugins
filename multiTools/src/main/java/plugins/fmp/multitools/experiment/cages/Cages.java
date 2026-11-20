@@ -1573,8 +1573,8 @@ public class Cages {
 
 	/**
 	 * Fills each cage's transient {@link Cage#getSpotAggregates()} when
-	 * charting/exporting spot aggregates (AGG_SUMCLEAN, AGG_SUMCLEAN_V5,
-	 * AGG_AREA_COUNT_V5, AGG_SUMCLEAN_V6, AGG_AREA_COUNT_V6, AGG_MEDIANREF, or
+	 * charting/exporting spot aggregates (AGG_FILTER_DEPLETION, AGG_FILTER_V5_DEPLETION,
+	 * AGG_FILTER_V5_PIXEL_SUM, AGG_SUMCLEAN_V6, AGG_AREA_COUNT_V6, CAGE_GREY_MEDIAN, or
 	 * stimulus/conc aggregate export). Series are built on the native spot/camera
 	 * sample index (same basis as spot charts). Clears caches otherwise.
 	 */
@@ -1590,11 +1590,11 @@ public class Cages {
 			}
 			return;
 		}
-		boolean need = opt.resultType == EnumResults.AGG_SUMCLEAN || opt.resultType == EnumResults.AGG_SUMCLEAN_V5
-				|| opt.resultType == EnumResults.AGG_AREA_COUNT_V5 || opt.resultType == EnumResults.AGG_SUMCLEAN_COLOR
-				|| opt.resultType == EnumResults.AGG_AREA_COUNT_COLOR || opt.resultType == EnumResults.AGG_MEDIANREF
-				|| opt.resultType == EnumResults.AGG_GREENHEIGHT_CONSO || opt.resultType == EnumResults.AGG_LINE_CONSO
-				|| opt.resultType == EnumResults.AGG_RIM
+		boolean need = opt.resultType == EnumResults.AGG_FILTER_DEPLETION || opt.resultType == EnumResults.AGG_FILTER_V5_DEPLETION
+				|| opt.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM || opt.resultType == EnumResults.AGG_COLOR_DEPLETION
+				|| opt.resultType == EnumResults.AGG_COLOR_PIXEL_SUM || opt.resultType == EnumResults.CAGE_GREY_MEDIAN
+				|| opt.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS || opt.resultType == EnumResults.AGG_KYMO_CROSS_LOSS
+				|| opt.resultType == EnumResults.AGG_KYMO_RIM_LOSS
 				|| opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
@@ -1606,32 +1606,32 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
-		if (savedRt == EnumResults.AGG_GREENHEIGHT_CONSO || savedRt == EnumResults.AGG_LINE_CONSO
-				|| savedRt == EnumResults.AGG_RIM) {
+		if (savedRt == EnumResults.AGG_KYMO_HEIGHT_LOSS || savedRt == EnumResults.AGG_KYMO_CROSS_LOSS
+				|| savedRt == EnumResults.AGG_KYMO_RIM_LOSS) {
 			prepareKymoConsoAggregates(allSpots, savedRt);
 			return;
 		}
 		EnumResults buildRt;
-		if (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF) {
-			buildRt = EnumResults.AGG_SUMCLEAN;
-		} else if (savedRt == EnumResults.AGG_SUMCLEAN_V5) {
-			buildRt = EnumResults.AGG_SUMCLEAN_V5;
-		} else if (savedRt == EnumResults.AGG_AREA_COUNT_V5) {
-			buildRt = EnumResults.AGG_AREA_COUNT_V5;
-		} else if (savedRt == EnumResults.AGG_SUMCLEAN_COLOR) {
-			buildRt = EnumResults.AGG_SUMCLEAN_COLOR;
-		} else if (savedRt == EnumResults.AGG_AREA_COUNT_COLOR) {
-			buildRt = EnumResults.AGG_AREA_COUNT_COLOR;
-		} else if (savedRt == EnumResults.GREY_SUM_CLEAN_V5 && opt.spotAggregateByStimulusConc) {
-			buildRt = EnumResults.AGG_SUMCLEAN_V5;
-		} else if (savedRt == EnumResults.GREY_SUM_CLEAN_COLOR && opt.spotAggregateByStimulusConc) {
-			buildRt = EnumResults.AGG_SUMCLEAN_COLOR;
-		} else if (savedRt == EnumResults.AREA_COUNT_V5 && opt.spotAggregateByStimulusConc) {
-			buildRt = EnumResults.AGG_AREA_COUNT_V5;
-		} else if (savedRt == EnumResults.AREA_COUNT_COLOR && opt.spotAggregateByStimulusConc) {
-			buildRt = EnumResults.AGG_AREA_COUNT_COLOR;
+		if (savedRt == EnumResults.AGG_FILTER_DEPLETION || savedRt == EnumResults.CAGE_GREY_MEDIAN) {
+			buildRt = EnumResults.AGG_FILTER_DEPLETION;
+		} else if (savedRt == EnumResults.AGG_FILTER_V5_DEPLETION) {
+			buildRt = EnumResults.AGG_FILTER_V5_DEPLETION;
+		} else if (savedRt == EnumResults.AGG_FILTER_V5_PIXEL_SUM) {
+			buildRt = EnumResults.AGG_FILTER_V5_PIXEL_SUM;
+		} else if (savedRt == EnumResults.AGG_COLOR_DEPLETION) {
+			buildRt = EnumResults.AGG_COLOR_DEPLETION;
+		} else if (savedRt == EnumResults.AGG_COLOR_PIXEL_SUM) {
+			buildRt = EnumResults.AGG_COLOR_PIXEL_SUM;
+		} else if (savedRt == EnumResults.FILTER_V5_GREY_SMOOTHED && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_FILTER_V5_DEPLETION;
+		} else if (savedRt == EnumResults.COLOR_GREY_SMOOTHED && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_COLOR_DEPLETION;
+		} else if (savedRt == EnumResults.FILTER_V5_PIXEL_COUNT && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_FILTER_V5_PIXEL_SUM;
+		} else if (savedRt == EnumResults.COLOR_PIXEL_COUNT && opt.spotAggregateByStimulusConc) {
+			buildRt = EnumResults.AGG_COLOR_PIXEL_SUM;
 		} else {
-			buildRt = EnumResults.AREA_SUMCLEAN;
+			buildRt = EnumResults.FILTER_GREY_SMOOTHED;
 		}
 		opt.resultType = buildRt;
 		try {
@@ -1647,20 +1647,20 @@ public class Cages {
 						allSpots, opt);
 				List<CageSpotAggregateSeries> entries = new ArrayList<>(nativeList.size());
 				EnumResults aggTag;
-				if (savedRt == EnumResults.AGG_SUMCLEAN_V5
-						|| (savedRt == EnumResults.GREY_SUM_CLEAN_V5 && opt.spotAggregateByStimulusConc)) {
-					aggTag = EnumResults.AGG_SUMCLEAN_V5;
-				} else if (savedRt == EnumResults.AGG_SUMCLEAN_COLOR
-						|| (savedRt == EnumResults.GREY_SUM_CLEAN_COLOR && opt.spotAggregateByStimulusConc)) {
-					aggTag = EnumResults.AGG_SUMCLEAN_COLOR;
-				} else if (savedRt == EnumResults.AGG_AREA_COUNT_V5
-						|| (savedRt == EnumResults.AREA_COUNT_V5 && opt.spotAggregateByStimulusConc)) {
-					aggTag = EnumResults.AGG_AREA_COUNT_V5;
-				} else if (savedRt == EnumResults.AGG_AREA_COUNT_COLOR
-						|| (savedRt == EnumResults.AREA_COUNT_COLOR && opt.spotAggregateByStimulusConc)) {
-					aggTag = EnumResults.AGG_AREA_COUNT_COLOR;
+				if (savedRt == EnumResults.AGG_FILTER_V5_DEPLETION
+						|| (savedRt == EnumResults.FILTER_V5_GREY_SMOOTHED && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_FILTER_V5_DEPLETION;
+				} else if (savedRt == EnumResults.AGG_COLOR_DEPLETION
+						|| (savedRt == EnumResults.COLOR_GREY_SMOOTHED && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_COLOR_DEPLETION;
+				} else if (savedRt == EnumResults.AGG_FILTER_V5_PIXEL_SUM
+						|| (savedRt == EnumResults.FILTER_V5_PIXEL_COUNT && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_FILTER_V5_PIXEL_SUM;
+				} else if (savedRt == EnumResults.AGG_COLOR_PIXEL_SUM
+						|| (savedRt == EnumResults.COLOR_PIXEL_COUNT && opt.spotAggregateByStimulusConc)) {
+					aggTag = EnumResults.AGG_COLOR_PIXEL_SUM;
 				} else {
-					aggTag = EnumResults.AGG_SUMCLEAN;
+					aggTag = EnumResults.AGG_FILTER_DEPLETION;
 				}
 				for (AggregateSeries a : nativeList) {
 					CageSpotAggregateSeries row = CageSpotAggregateSeries.fromNativeAggregate(a, aggTag);
@@ -1669,7 +1669,7 @@ public class Cages {
 					}
 				}
 				cage.getSpotAggregates().setEntries(entries);
-				if (savedRt == EnumResults.AGG_SUMCLEAN || savedRt == EnumResults.AGG_MEDIANREF) {
+				if (savedRt == EnumResults.AGG_FILTER_DEPLETION || savedRt == EnumResults.CAGE_GREY_MEDIAN) {
 					ArrayList<Double> medVals = CageSpotMedianRefAggregation.buildMedianRefFromAreaSum(exp, cage,
 							allSpots, opt);
 					int nSpots = cage.getSpotList(allSpots).size();

@@ -11,7 +11,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
  * Spot measures for the color-distance pipeline ({@code EnumResults} keys {@code AREA_COUNT_V6}, {@code GREY_SUM_V6},
  * {@code GREY_SUM_V6_PREFLY}, {@code GREY_SUM_CLEAN_V6} on disk).
  * Kept separate from legacy {@link Spot} inner measurements so legacy CSV and behavior stay isolated.
- * {@code GREY_SUM_V6} is stored on the same scale as legacy {@code AREA_SUM}: sum on over-threshold pixels
+ * {@code GREY_SUM_V6} is stored on the same scale as legacy {@code FILTER_GREY}: sum on over-threshold pixels
  * divided by total ROI mask pixel count.
  * {@code GREY_SUM_V6_PREFLY} holds the same scalar before the fly-occupancy gate turns bins into NaN.
  * {@code GREY_SUM_CLEAN_V6} is built from {@code GREY_SUM_V6} by (1) linear interpolation across NaN runs
@@ -20,7 +20,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
  * then (3) the same span-10 NaN-robust running median as legacy {@code sumClean} from {@code sumNoFly} in
  * {@link plugins.fmp.multitools.experiment.spots.Spots}.
  */
-public final class SpotMeasurementsColor {
+public final class SpotColorDistanceMeasurements {
 
 	/** Same half-window as legacy {@code rebuildSumCleanFromSumNoFlyForSpot} (span 10). */
 	private static final int GREY_SUM_CLEAN_MEDIAN_SPAN = 10;
@@ -35,14 +35,14 @@ public final class SpotMeasurementsColor {
 	private final SpotMeasure greySum;
 	private final SpotMeasure greySumClean;
 
-	public SpotMeasurementsColor() {
+	public SpotColorDistanceMeasurements() {
 		this.areaCount = new SpotMeasure("areaCountV6");
 		this.greySumPreFly = new SpotMeasure("greySumV6PreFly");
 		this.greySum = new SpotMeasure("greySumV6");
 		this.greySumClean = new SpotMeasure("greySumCleanV6");
 	}
 
-	public SpotMeasurementsColor(SpotMeasurementsColor source, boolean includeData) {
+	public SpotColorDistanceMeasurements(SpotColorDistanceMeasurements source, boolean includeData) {
 		this.areaCount = new SpotMeasure("areaCountV6");
 		this.greySumPreFly = new SpotMeasure("greySumV6PreFly");
 		this.greySum = new SpotMeasure("greySumV6");
@@ -52,7 +52,7 @@ public final class SpotMeasurementsColor {
 		}
 	}
 
-	public void copyFrom(SpotMeasurementsColor source) {
+	public void copyFrom(SpotColorDistanceMeasurements source) {
 		if (source == null) {
 			return;
 		}
@@ -62,7 +62,7 @@ public final class SpotMeasurementsColor {
 		rebuildGreySumCleanFromGreySum();
 	}
 
-	public void addFrom(SpotMeasurementsColor source) {
+	public void addFrom(SpotColorDistanceMeasurements source) {
 		if (source == null) {
 			return;
 		}
@@ -72,7 +72,7 @@ public final class SpotMeasurementsColor {
 		rebuildGreySumCleanFromGreySum();
 	}
 
-	public void computePI(SpotMeasurementsColor m1, int n1, SpotMeasurementsColor m2, int n2) {
+	public void computePI(SpotColorDistanceMeasurements m1, int n1, SpotColorDistanceMeasurements m2, int n2) {
 		if (m1 == null || m2 == null) {
 			return;
 		}
@@ -82,7 +82,7 @@ public final class SpotMeasurementsColor {
 		rebuildGreySumCleanFromGreySum();
 	}
 
-	public void computeSUM(SpotMeasurementsColor m1, int n1, SpotMeasurementsColor m2, int n2) {
+	public void computeSUM(SpotColorDistanceMeasurements m1, int n1, SpotColorDistanceMeasurements m2, int n2) {
 		if (m1 == null || m2 == null) {
 			return;
 		}

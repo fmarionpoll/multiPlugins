@@ -22,17 +22,17 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
 
 /**
  * Selected-spot overlay for V5 spot measures. Uses explicit checkboxes for
- * {@code AREA_COUNT_V5}, {@code GREY_SUM_V5}, {@code GREY_SUM_V5_PREFLY} (grey before fly-occupancy NaN),
- * {@code GREY_SUM_CLEAN_V5}, and fly presence,
- * plus a second row for legacy area series {@code AREA_SUM}, {@code AREA_SUMNOFLY},
- * {@code AREA_SUMCLEAN} (same as {@link ChartSpotsOverlayFrame}).
+ * {@code FILTER_V5_PIXEL_COUNT}, {@code FILTER_V5_GREY}, {@code FILTER_V5_GREY_PRE_GATE} (grey before fly-occupancy NaN),
+ * {@code FILTER_V5_GREY_SMOOTHED}, and fly presence,
+ * plus a second row for legacy area series {@code FILTER_GREY}, {@code FILTER_GREY_FLY_MASKED},
+ * {@code FILTER_GREY_SMOOTHED} (same as {@link ChartSpotsOverlayFrame}).
  */
 public class ChartV5SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
-	private final JCheckBox cbAreaCountV5 = new JCheckBox("AREA_COUNT_V5");
-	private final JCheckBox cbGreySumV5 = new JCheckBox("GREY_SUM_V5");
-	private final JCheckBox cbGreySumV5PreFly = new JCheckBox("GREY_SUM_V5_PREFLY");
-	private final JCheckBox cbGreySumCleanV5 = new JCheckBox("GREY_SUM_CLEAN_V5");
+	private final JCheckBox cbAreaCountV5 = new JCheckBox(EnumResults.FILTER_V5_PIXEL_COUNT.toDisplayLabel());
+	private final JCheckBox cbGreySumV5 = new JCheckBox(EnumResults.FILTER_V5_GREY.toDisplayLabel());
+	private final JCheckBox cbGreySumV5PreFly = new JCheckBox(EnumResults.FILTER_V5_GREY_PRE_GATE.toDisplayLabel());
+	private final JCheckBox cbGreySumCleanV5 = new JCheckBox(EnumResults.FILTER_V5_GREY_SMOOTHED.toDisplayLabel());
 
 	/** When several spots are overlaid, prefer the measure the user just toggled on. */
 	private JCheckBox lastOverlayMeasureActionSource = null;
@@ -109,13 +109,13 @@ public class ChartV5SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		cbNoFly.setSelected(false);
 		cbClean.setSelected(false);
 
-		if (rt == EnumResults.AREA_COUNT_V5) {
+		if (rt == EnumResults.FILTER_V5_PIXEL_COUNT) {
 			cbAreaCountV5.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_V5) {
+		} else if (rt == EnumResults.FILTER_V5_GREY) {
 			cbGreySumV5.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_V5_PREFLY) {
+		} else if (rt == EnumResults.FILTER_V5_GREY_PRE_GATE) {
 			cbGreySumV5PreFly.setSelected(true);
-		} else if (rt == EnumResults.GREY_SUM_CLEAN_V5) {
+		} else if (rt == EnumResults.FILTER_V5_GREY_SMOOTHED) {
 			cbGreySumCleanV5.setSelected(true);
 		} else if (resultLabelEquals(rt, "AREA_FLYPRESENT")) {
 			cbFlyPresent.setSelected(true);
@@ -196,16 +196,16 @@ public class ChartV5SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	protected List<EnumResults> getEnabledMeasures(ResultsOptions options) {
 		List<EnumResults> out = new ArrayList<>();
 		if (cbAreaCountV5.isSelected()) {
-			out.add(EnumResults.AREA_COUNT_V5);
+			out.add(EnumResults.FILTER_V5_PIXEL_COUNT);
 		}
 		if (cbGreySumV5.isSelected()) {
-			out.add(EnumResults.GREY_SUM_V5);
+			out.add(EnumResults.FILTER_V5_GREY);
 		}
 		if (cbGreySumV5PreFly.isSelected()) {
-			out.add(EnumResults.GREY_SUM_V5_PREFLY);
+			out.add(EnumResults.FILTER_V5_GREY_PRE_GATE);
 		}
 		if (cbGreySumCleanV5.isSelected()) {
-			out.add(EnumResults.GREY_SUM_CLEAN_V5);
+			out.add(EnumResults.FILTER_V5_GREY_SMOOTHED);
 		}
 		if (cbFlyPresent.isSelected()) {
 			addResultIfDefined(out, "AREA_FLYPRESENT");
@@ -261,7 +261,7 @@ public class ChartV5SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		if (r == null) {
 			return false;
 		}
-		String n = r.name();
+		String n = r.toPersistenceKey();
 		return "AREA_SUM".equals(n) || "AREA_SUMNOFLY".equals(n) || "AREA_SUMCLEAN".equals(n);
 	}
 
@@ -279,14 +279,14 @@ public class ChartV5SpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		if (resultType == null) {
 			return Color.BLACK;
 		}
-		switch (resultType.name()) {
-		case "AREA_COUNT_V5":
+		switch (resultType) {
+		case FILTER_V5_PIXEL_COUNT:
 			return new Color(0, 102, 153);
-		case "GREY_SUM_V5":
+		case FILTER_V5_GREY:
 			return new Color(0, 120, 70);
-		case "GREY_SUM_V5_PREFLY":
+		case FILTER_V5_GREY_PRE_GATE:
 			return new Color(180, 95, 20);
-		case "GREY_SUM_CLEAN_V5":
+		case FILTER_V5_GREY_SMOOTHED:
 			return new Color(0, 170, 95);
 		default:
 			return super.pickMeasureColor(resultType);

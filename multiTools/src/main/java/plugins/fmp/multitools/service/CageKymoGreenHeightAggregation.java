@@ -14,7 +14,7 @@ import plugins.fmp.multitools.tools.results.EnumResults;
  * CODEX Cage-level kymograph aggregates of per-spot
  * {@code 1 − KYMO_GREEN_HEIGHT_RATIO}, grouped by (stimulus, concentration).
  * Each bin sums finite per-spot consumption values (same role as
- * {@code AGG_SUMCLEAN} on camera traces).
+ * {@code AGG_FILTER_DEPLETION} on camera traces).
  */
 public final class CageKymoGreenHeightAggregation {
 
@@ -60,7 +60,7 @@ public final class CageKymoGreenHeightAggregation {
 			if (spot == null) {
 				continue;
 			}
-			double[] ratio = spot.getKymoGreenHeightRatio().getValues();
+			double[] ratio = spot.getGreenMaskHeightToPeakRatio().getValues();
 			sources.add(new RatioSource(spot, ratio));
 		}
 		return buildSumConsoByStimulusConcFromSources(sources, nBins);
@@ -70,7 +70,7 @@ public final class CageKymoGreenHeightAggregation {
 	 * Same stimulus/conc sums from persisted per-spot line ratios.
 	 */
 	public static List<SumSeries> buildSumConsoByStimulusConcFromLineRatios(List<Spot> spots, int nBins) {
-		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.KYMO_LINE_RATIO);
+		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.KYMO_CROSS_RATIO);
 	}
 
 	/** Same stimulus/conc sums from persisted per-spot rim ratios. */
@@ -79,20 +79,20 @@ public final class CageKymoGreenHeightAggregation {
 	}
 
 	public static List<SumSeries> sumsFor(List<Spot> spots, int nBins, EnumResults aggregateType) {
-		if (aggregateType == EnumResults.AGG_LINE_CONSO) {
+		if (aggregateType == EnumResults.AGG_KYMO_CROSS_LOSS) {
 			return buildSumConsoByStimulusConcFromLineRatios(spots, nBins);
 		}
-		if (aggregateType == EnumResults.AGG_RIM) {
+		if (aggregateType == EnumResults.AGG_KYMO_RIM_LOSS) {
 			return buildSumConsoByStimulusConcFromRimRatios(spots, nBins);
 		}
 		return buildSumConsoByStimulusConcFromSpots(spots, nBins);
 	}
 
 	public static EnumResults sourceOf(EnumResults aggregateType) {
-		if (aggregateType == EnumResults.AGG_LINE_CONSO) {
-			return EnumResults.KYMO_LINE_RATIO;
+		if (aggregateType == EnumResults.AGG_KYMO_CROSS_LOSS) {
+			return EnumResults.KYMO_CROSS_RATIO;
 		}
-		if (aggregateType == EnumResults.AGG_RIM) {
+		if (aggregateType == EnumResults.AGG_KYMO_RIM_LOSS) {
 			return EnumResults.KYMO_RIM_RATIO;
 		}
 		return EnumResults.KYMO_GREEN_HEIGHT_RATIO;

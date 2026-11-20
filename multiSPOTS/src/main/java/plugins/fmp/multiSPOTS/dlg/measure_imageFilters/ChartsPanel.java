@@ -43,12 +43,12 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 public class ChartsPanel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
-	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.AREA_SUM, EnumResults.AREA_SUMNOFLY,
-			EnumResults.AREA_SUMCLEAN, EnumResults.AREA_SUMCLEAN_V3, //
-			// EnumResults.AREA_SUM_V2, EnumResults.AREA_SUMNOFLY_V2,
-			// EnumResults.AREA_SUMCLEAN_V2, //
-			EnumResults.AREA_FLYPRESENT, EnumResults.AGG_SUMCLEAN, EnumResults.AGG_SUMCLEAN_V5,
-			EnumResults.AGG_MEDIANREF };
+	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.FILTER_GREY, EnumResults.FILTER_GREY_FLY_MASKED,
+			EnumResults.FILTER_GREY_SMOOTHED, EnumResults.FILTER_GREY_RESIDUAL, //
+			// EnumResults.FILTER_GREY_CONTRAST, EnumResults.FILTER_GREY_CONTRAST_MASKED,
+			// EnumResults.FILTER_GREY_CONTRAST_SMOOTHED, //
+			EnumResults.FLY_PIXEL_COUNT, EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_FILTER_V5_DEPLETION,
+			EnumResults.CAGE_GREY_MEDIAN };
 	private ChartCagesFrame chartCageArrayFrame = null;
 	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS parent0 = null;
@@ -71,6 +71,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		layout.setVgap(0);
 
 		exportTypeComboBox = new JComboBox<>(SPOT_CHART_RESULTS);
+		SpotsMeasuresUi.showMeasurementLabels(exportTypeComboBox);
 
 		JPanel panel01 = new JPanel(layout);
 		panel01.add(new JLabel("Measure"));
@@ -226,8 +227,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if ((exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_SUMCLEAN_V5
-				|| exportType == EnumResults.AGG_MEDIANREF) && displaySelectedSpotsButton.isSelected()) {
+		if ((exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.AGG_FILTER_V5_DEPLETION
+				|| exportType == EnumResults.CAGE_GREY_MEDIAN) && displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
 
@@ -250,8 +251,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		boolean agg = exportType == EnumResults.AGG_SUMCLEAN || exportType == EnumResults.AGG_SUMCLEAN_V5
-				|| exportType == EnumResults.AGG_MEDIANREF;
+		boolean agg = exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.AGG_FILTER_V5_DEPLETION
+				|| exportType == EnumResults.CAGE_GREY_MEDIAN;
 		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs)
 				.withResultType(exportType).withCageRange(first, last).build();
@@ -307,8 +308,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AGG_SUMCLEAN && exportType != EnumResults.AGG_SUMCLEAN_V5
-				&& exportType != EnumResults.AGG_MEDIANREF && relativeToCheckbox.isSelected();
+		options.relativeToMaximum = exportType != EnumResults.AGG_FILTER_DEPLETION && exportType != EnumResults.AGG_FILTER_V5_DEPLETION
+				&& exportType != EnumResults.CAGE_GREY_MEDIAN && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
 		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
@@ -365,12 +366,12 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 	private void updateMeasureDependentControls() {
 		boolean aggStep = exportTypeComboBox != null
-				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
-						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN_V5
-						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
+				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
+						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_V5_DEPLETION
+						|| exportTypeComboBox.getSelectedItem() == EnumResults.CAGE_GREY_MEDIAN);
 		boolean aggMedianUi = exportTypeComboBox != null
-				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_SUMCLEAN
-						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_MEDIANREF);
+				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
+						|| exportTypeComboBox.getSelectedItem() == EnumResults.CAGE_GREY_MEDIAN);
 		relativeToCheckbox.setEnabled(!aggStep);
 		if (aggStep) {
 			relativeToCheckbox.setSelected(false);
@@ -441,9 +442,9 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_SUMCLEAN ? EnumResults.AREA_SUMCLEAN
-				: option == EnumResults.AGG_SUMCLEAN_V5 ? EnumResults.GREY_SUM_CLEAN_V5
-						: option == EnumResults.AGG_MEDIANREF ? EnumResults.AREA_SUM : option;
+		EnumResults probe = option == EnumResults.AGG_FILTER_DEPLETION ? EnumResults.FILTER_GREY_SMOOTHED
+				: option == EnumResults.AGG_FILTER_V5_DEPLETION ? EnumResults.FILTER_V5_GREY_SMOOTHED
+						: option == EnumResults.CAGE_GREY_MEDIAN ? EnumResults.FILTER_GREY : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {
