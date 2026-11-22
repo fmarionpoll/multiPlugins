@@ -394,7 +394,7 @@ public class KymoOverlayFrame {
 			return;
 		}
 		XYSeriesCollection ds = KymoSpotChartSupport.buildOverlayForSpots(lastExperiment, lastOptions, spots);
-		NumberAxis xAxis = new NumberAxis("");
+		NumberAxis xAxis = new NumberAxis("Time (min)");
 		xAxis.setAutoRangeIncludesZero(false);
 		EnumResults rt = lastOptions.resultType;
 		String yUnit = CageKymoSeriesBuilder.kymoChartRangeAxisLabel(lastOptions);

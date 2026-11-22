@@ -53,29 +53,10 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 		if (nCamFrames <= 0)
 			return;
 
-		// Build time grid similar to LevelDetectorFromCam
-		long firstMs = exp.getKymoFirst_ms();
-		long lastMs = exp.getKymoLast_ms();
-		long stepMs = exp.getKymoBin_ms();
-		if (stepMs <= 0)
-			stepMs = 1;
-		if (firstMs == 0 && lastMs == 0) {
-			long camFirst = exp.getCamImageFirst_ms();
-			long camLast = exp.getCamImageLast_ms();
-			if (camFirst >= 0 && camLast > camFirst) {
-				firstMs = 0;
-				lastMs = camLast - camFirst;
-				long camBin = exp.getCamImageBin_ms();
-				if (camBin > 0)
-					stepMs = camBin;
-			} else {
-				firstMs = 0;
-				lastMs = (nCamFrames - 1) * stepMs;
-			}
-		}
-		int nTimeBins = (int) ((lastMs - firstMs) / stepMs + 1);
-		if (nTimeBins <= 0)
-			return;
+		// One sample per analysis-interval camera frame, matching X-line/rim and
+		// the timestamps used by spot charts/export. A nominal time grid can skip
+		// or duplicate frames when acquisition intervals vary.
+		int nTimeBins = nCamFrames;
 
 		// Timing: global detector start
 		final long tGlobalStart = System.nanoTime();
@@ -115,15 +96,8 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 		final long tLoopStart = System.nanoTime();
 		try {
 			for (int t = 0; t < nTimeBins; t++) {
-				progress.setMessage("Interval " + (t + 1) + " / " + nTimeBins);
-
-				long timeMs = firstMs + t * stepMs;
-				final int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0,
-						Math.max(0, nCamFrames - 1));
-				if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
-					progress.incPosition();
-					continue;
-				}
+				progress.setMessage("Frame " + (t + 1) + " / " + nTimeBins);
+				final int camFrameIndex = t;
 
 				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
 				if (path == null) {

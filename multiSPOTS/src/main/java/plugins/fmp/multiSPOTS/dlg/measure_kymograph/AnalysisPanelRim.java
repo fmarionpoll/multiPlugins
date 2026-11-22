@@ -58,7 +58,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 
 	private static final long serialVersionUID = 1L;
 
-	private static final String ANALYZE_LABEL = "Analyze";
+	private static final String ANALYZE_LABEL = "Analyze measures";
 	private static final String STOP_LABEL = "STOP";
 	private static final String OUTLINE_PREFIX = "rimOutline_";
 	private static final String FLOOR_PREFIX = "rimFloor_";
@@ -81,7 +81,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 			KymoImageTransforms.METRIC_CHOICES);
 	private final JComboBox<String> insectDirectionCombo = new JComboBox<>(new String[] { "metric ≤", "metric >" });
 	private final JSpinner insectThresholdSpinner = new JSpinner(new SpinnerNumberModel(50, 0, 512, 1));
-	private final JButton detectButton = new JButton("Detect");
+	private final JButton detectButton = new JButton("Detect rims (current)");
 	private final JButton analyzeButton = new JButton(ANALYZE_LABEL);
 	private final JToggleButton showRimsButton = new JToggleButton("Show rims");
 	private final JButton editRimButton = new JButton("Edit rim...");
@@ -101,7 +101,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 	private final JCheckBox trackPlateCheckBox = new JCheckBox("Track plate movement", false);
 
 	public AnalysisPanelRim(MultiSPOTS parent0) {
-		super(new GridLayout(5, 1));
+		super(new GridLayout(6, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);
 		left.setVgap(0);
@@ -115,12 +115,16 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		insectTransformCombo.setSelectedItem(ImageTransformEnums.B_RGB);
 		defineToolTips();
 
+		JPanel outlines = new JPanel(left);
+		outlines.add(detectButton);
+		outlines.add(showRimsButton);
+		outlines.add(editRimButton);
+		outlines.add(new JLabel("Current experiment only"));
+		add(outlines);
+
 		JPanel actions = new JPanel(left);
-		actions.add(detectButton);
 		actions.add(analyzeButton);
 		actions.add(allSeriesCheckBox);
-		actions.add(new JLabel("Status: "));
-		actions.add(statusLabel);
 		add(actions);
 
 		JPanel params = new JPanel(left);
@@ -145,13 +149,13 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 
 		JPanel track = new JPanel(left);
 		track.add(trackPlateCheckBox);
+		track.add(new JLabel("Blue = dye outline (editable). Green = floor."));
 		add(track);
 
-		JPanel hint = new JPanel(left);
-		hint.add(showRimsButton);
-		hint.add(editRimButton);
-		hint.add(new JLabel("Blue = dye outline (editable). Green = floor."));
-		add(hint);
+		JPanel status = new JPanel(left);
+		status.add(new JLabel("Status: "));
+		status.add(statusLabel);
+		add(status);
 		rimWidthSpinner.addChangeListener(e -> onBandChanged());
 		outerPxSpinner.addChangeListener(e -> onBandChanged());
 		floorWidthSpinner.addChangeListener(e -> onBandChanged());
@@ -175,6 +179,12 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineToolTips() {
+		detectButton.setToolTipText(
+				"Detect and replace rim outlines in the current experiment, then show them for editing. Does not measure signals or process ALL series.");
+		analyzeButton.setToolTipText(
+				"Measure rim signals on every camera frame using the saved outlines. Missing outlines are detected automatically. ALL series applies to this action.");
+		allSeriesCheckBox.setToolTipText(
+				"Analyze measures for every experiment from the current one to the last. Detect rims always uses only the current experiment.");
 		insectGateCheckBox.setToolTipText(
 				"Leave flies out of the floor and out of the rim. A bin is dropped when a fly covers at least 8% of the rim. Uncheck to keep those pixels.");
 		trackPlateCheckBox.setToolTipText(
@@ -223,7 +233,10 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		analyzeThread.execute();
 		analyzeButton.setText(STOP_LABEL);
 		detectButton.setEnabled(false);
-		statusLabel.setText(detectOnly ? "Detecting…" : "Analyzing…");
+		allSeriesCheckBox.setEnabled(false);
+		editRimButton.setEnabled(false);
+		statusLabel.setText(detectOnly ? "Detecting rims in current experiment…"
+				: allSeriesCheckBox.isSelected() ? "Analyzing measures: current to last…" : "Analyzing measures: current experiment…");
 	}
 
 	private void stopAnalyze() {
@@ -258,9 +271,10 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		if (!StringUtil.equals("thread_ended", name) && !StringUtil.equals("thread_done", name)) {
 			return;
 		}
-		analyzeButton.setText(ANALYZE_LABEL);
-		detectButton.setEnabled(true);
 		final AnalyzeSpotRims finished = analyzeThread;
+		if (finished == null) {
+			return;
+		}
 		analyzeThread = null;
 		final int recallIndex = finished != null ? finished.getSelectedExperimentIndex() : -1;
 		final int cages = finished != null ? finished.lastCageCount : 0;
@@ -268,23 +282,29 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 		final int outlines = finished != null ? finished.lastOutlineCount : 0;
 		final boolean saved = finished != null && finished.lastSaved;
 		final boolean detectOnly = finished != null && finished.detectOnly;
-		SwingUtilities.invokeLater(() -> onFinished(recallIndex, cages, bins, outlines, saved, detectOnly));
+		SwingUtilities.invokeLater(() -> {
+			analyzeButton.setText(ANALYZE_LABEL);
+			detectButton.setEnabled(true);
+			allSeriesCheckBox.setEnabled(true);
+			editRimButton.setEnabled(true);
+			onFinished(recallIndex, cages, bins, outlines, saved, detectOnly);
+		});
 	}
 
 	private void onFinished(int recallIndex, int cages, int bins, int outlines, boolean saved, boolean detectOnly) {
 		if (recallIndex >= 0) {
 			parent0.dlgBrowse.browsePanel.openExperimentAtIndex(recallIndex);
 		}
+		showRimsButton.setSelected(true);
+		refreshRims();
 		if (detectOnly) {
 			if (outlines <= 0) {
 				statusLabel.setText("No outline: dye was not found inside the spot circles.");
 			} else if (!saved) {
 				statusLabel.setText(outlines + " outline(s). Description was not saved.");
 			} else {
-				statusLabel.setText(outlines + " outline(s). Blue is editable; green is the floor.");
+				statusLabel.setText(outlines + " rim(s) saved for current experiment. Review, then Analyze measures.");
 			}
-			showRimsButton.setSelected(true);
-			refreshRims();
 			return;
 		}
 		if (cages <= 0 || bins <= 0 || outlines <= 0) {
@@ -296,8 +316,6 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 			statusLabel.setText(
 					"Done: " + cages + " cage(s), " + bins + " camera frame(s), " + outlines + " outline(s). Chart RIM_LINE_RATIO.");
 		}
-		showRimsButton.setSelected(true);
-		refreshRims();
 		pcs.firePropertyChange(PROPERTY_KYMO_RESULT_UPDATED, false, true);
 	}
 

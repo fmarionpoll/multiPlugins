@@ -18,8 +18,6 @@ import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation;
 import plugins.fmp.multitools.service.CageKymoGreenHeightAggregation.SumSeries;
-import plugins.fmp.multitools.service.CageKymographStripLayoutCsv;
-import plugins.fmp.multitools.service.CageKymographStripLayoutCsv.PersistedKymoGrid;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -46,19 +44,11 @@ public final class KymoSpotChartSupport {
 	}
 
 	/**
-	 * X-axis in minutes for kymograph strip columns. Prefers {@link CageKymographStripLayoutCsv} when
-	 * present; otherwise {@link Experiment#getKymoFirst_ms()} and {@link Experiment#getKymoBin_ms()}.
+	 * X-axis in minutes for kymograph strip columns, using source-frame timestamps
+	 * when available and the legacy kymograph time grid otherwise.
 	 */
 	public static double[] buildKymoXAxisMinutes(Experiment exp, int nBins) {
-		if (nBins <= 0) {
-			return new double[0];
-		}
-		long[] axis = kymoOriginAndStep(exp, nBins);
-		double[] x = new double[nBins];
-		for (int j = 0; j < nBins; j++) {
-			x[j] = (axis[0] + (long) j * axis[1]) / 60000.0;
-		}
-		return x;
+		return plugins.fmp.multitools.service.CageKymographTimeline.minutes(exp, nBins);
 	}
 
 	private static double[] buildMeasureXAxisMinutes(Experiment exp, EnumResults type, int count) {
@@ -94,12 +84,14 @@ public final class KymoSpotChartSupport {
 			nBins = maxKymoBinsForSpots(exp.getSpots().getSpotList(), spotType);
 		}
 		int nFrames = cameraFrameCount(exp);
-		long[] axis = kymoOriginAndStep(exp, nBins > 0 ? nBins : nFrames);
-		long firstMs = axis[0];
-		long stepMs = axis[1];
+		double[] axis = buildKymoXAxisMinutes(exp, nBins > 0 ? nBins : nFrames);
+		long firstMs = axis.length > 0 ? Math.round(axis[0] * 60000.0) : 0L;
+		long stepMs = axis.length > 1 ? Math.max(1L, Math.round((axis[1] - axis[0]) * 60000.0))
+				: Math.max(1L, exp.getKymoBin_ms());
 		long tMs = Math.round(timeMinutes * 60000.0);
 		int bin = binIndexAtMinute(timeMinutes, firstMs, stepMs, nFrames);
-		long[] cam = cameraTimes(exp, stepMs);
+		long[] cam = exp.getCamImages_ms();
+		if (cam == null || cam.length == 0) cam = cameraTimes(exp, stepMs);
 		if (cam != null) {
 			return nearestFrame(cam, nFrames, tMs);
 		}
@@ -119,29 +111,6 @@ public final class KymoSpotChartSupport {
 			bin = nFrames - 1;
 		}
 		return bin;
-	}
-
-	private static long[] kymoOriginAndStep(Experiment exp, int nBins) {
-		long stepMs;
-		long firstMs;
-		String binDir = exp != null ? exp.getKymosBinFullDirectory() : null;
-		PersistedKymoGrid grid = binDir != null && nBins > 0
-				? CageKymographStripLayoutCsv.readPersistedKymoGridOrNull(binDir, nBins)
-				: null;
-		if (grid != null && grid.columnCount == nBins) {
-			stepMs = Math.max(1L, grid.stepMs);
-			firstMs = Math.max(0L, grid.firstMs);
-		} else {
-			stepMs = exp != null ? exp.getKymoBin_ms() : 0;
-			if (stepMs <= 0) {
-				stepMs = 60_000L;
-			}
-			firstMs = exp != null ? exp.getKymoFirst_ms() : 0;
-			if (firstMs < 0) {
-				firstMs = 0;
-			}
-		}
-		return new long[] { firstMs, stepMs };
 	}
 
 	private static EnumResults persistedSpotMeasure(EnumResults resultType) {

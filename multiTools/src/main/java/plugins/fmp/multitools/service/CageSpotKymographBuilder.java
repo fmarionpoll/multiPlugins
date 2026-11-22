@@ -256,6 +256,7 @@ public class CageSpotKymographBuilder {
 		}
 		CageKymographStripLayoutCsv.write(directory, cages, spots, refSizex, refSizey, expectedWidth, first_ms,
 				last_ms, step_ms);
+		CageKymographTimeline.write(directory, camImages_ms, frameIndices);
 		return true;
 	}
 

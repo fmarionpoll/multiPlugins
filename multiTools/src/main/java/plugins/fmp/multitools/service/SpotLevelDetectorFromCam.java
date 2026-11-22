@@ -32,9 +32,8 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * Memory-light detector that computes per-spot measures directly from camera
  * images, following the streaming pattern used in {@link LevelDetectorFromCam}.
  * <p>
- * For each time bin, this detector:
+ * For each camera frame in the analysis interval, this detector:
  * <ul>
- * <li>Finds the nearest camera frame.</li>
  * <li>Loads a single cam image from disk.</li>
  * <li>Applies two transforms (spot / fly).</li>
  * <li>Iterates over precomputed ROI masks for all spots and updates their
@@ -65,32 +64,9 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		if (nCamFrames <= 0)
 			return;
 
-		// Build time grid similar to LevelDetectorFromCam
-		long firstMs = exp.getKymoFirst_ms();
-		long lastMs = exp.getKymoLast_ms();
-		long stepMs = exp.getKymoBin_ms();
-		if (stepMs <= 0)
-			stepMs = 1;
-		if (firstMs == 0 && lastMs == 0) {
-			long camFirst = exp.getCamImageFirst_ms();
-			long camLast = exp.getCamImageLast_ms();
-			if (camFirst >= 0 && camLast > camFirst) {
-				firstMs = 0;
-				lastMs = camLast - camFirst;
-				long camBin = exp.getCamImageBin_ms();
-				if (camBin > 0)
-					stepMs = camBin;
-			} else {
-				firstMs = 0;
-				lastMs = (nCamFrames - 1) * stepMs;
-			}
-		}
-		final long firstMsFinal = firstMs;
-		final long stepMsFinal = stepMs;
-
-		int nTimeBins = (int) ((lastMs - firstMsFinal) / stepMsFinal + 1);
-		if (nTimeBins <= 0)
-			return;
+		// Keep the same native frame indexing as X-line/rim measurements and
+		// spot chart/export timestamps; do not resample onto the kymograph grid.
+		int nTimeBins = nCamFrames;
 
 		// Timing: global detector start
 		final long tGlobalStart = System.nanoTime();
@@ -128,12 +104,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		Thread producer = new Thread(() -> {
 			try {
 				for (int t = 0; t < nTimeBins; t++) {
-					long timeMs = firstMsFinal + t * stepMsFinal;
-					int camFrameIndex = exp.findNearestIntervalWithBinarySearch(timeMs, 0, Math.max(0, nCamFrames - 1));
-					if (camFrameIndex < 0 || camFrameIndex >= nCamFrames) {
-						continue;
-					}
-					queue.put(new FrameJob(t, camFrameIndex));
+					queue.put(new FrameJob(t, t));
 					progress.incPosition();
 				}
 			} catch (InterruptedException e) {

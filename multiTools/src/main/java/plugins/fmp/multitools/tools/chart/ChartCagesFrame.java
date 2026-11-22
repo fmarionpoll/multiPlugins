@@ -554,7 +554,7 @@ public class ChartCagesFrame extends IcyFrame {
 			return chartPanel;
 		}
 
-		NumberAxis xAxis = setXaxis("", resultsOptions);
+		NumberAxis xAxis = setXaxis(EnumResults.isKymographMeasure(resultsOptions.resultType) ? "Time (min)" : "", resultsOptions);
 		NumberAxis yAxis = setYaxis("", row, col, resultsOptions);
 
 		if (!resultsOptions.relativeToMaximum && !resultsOptions.relativeToMedianT0) {
