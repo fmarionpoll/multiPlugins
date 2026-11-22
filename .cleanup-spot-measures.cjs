@@ -1,0 +1,26 @@
+const fs = require('fs');
+const path = require('path');
+const base = process.cwd();
+const mt = 'multiTools/src/main/java/plugins/fmp/multitools/';
+const ms = 'multiSPOTS/src/main/java/plugins/fmp/multiSPOTS/';
+function edit(f, fn) { const p=path.join(base,f); const s=fs.readFileSync(p,'utf8').replace(/\r\n/g,'\n'); const out=fn(s); if(out!==s) fs.writeFileSync(p,out); }
+function mask(s) {return s.replace(/\/\*[\s\S]*?\*\/|\/\/[^\n]*|"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'/g,x=>x.replace(/[^\n]/g,' '));}
+function blockEnd(s, at) {const m=mask(s); let n=0; for(let i=at;i<m.length;i++){if(m[i]==='{')n++; if(m[i]==='}'&&!--n)return i+1;} throw Error('unclosed block');}
+function removeMembers(s, names) {for(const name of names){let re=new RegExp('^([\\t ]*)(?:(?:public|private|protected|static|final|synchronized)\\s+)*(?:[\\w<>\\[\\],.?]+\\s+)?'+name+'\\s*\\([^;{}]*\\)\\s*(?:throws[^{}]+)?\\{','m');let match;while((match=re.exec(mask(s)))){let start=match.index, end=blockEnd(s, s.indexOf('{',start)); const prefix=s.slice(0,start); const doc=/\/\*\*[\s\S]*?\*\/\s*$/.exec(prefix); if(doc && !doc[0].slice(3,-2).includes('*/'))start=doc.index; s=s.slice(0,start)+s.slice(end).replace(/^\n/,'');}}return s;}
+function removeEnum(s,name){const re=new RegExp('^\\t'+name+'\\s*\\(','m'),m=re.exec(s);if(!m)return s;let start=m.index;const prefix=s.slice(0,start);const doc=/\/\*\*[^]*?\*\/\s*$/.exec(prefix);if(doc&&!doc[0].slice(3,-2).includes('*/'))start=doc.index; const masked=mask(s);let n=0,seen=false;for(let i=m.index;i<s.length;i++){if(masked[i]==='('){n++;seen=true;}if(masked[i]===')')n--;if(seen&&n===0&&masked[i]===',')return s.slice(0,start)+s.slice(i+1).replace(/^\n/,'');}throw Error(name);}
+const dead=['FILTER_GREY_CONTRAST','FILTER_GREY_CONTRAST_MASKED','FILTER_GREY_CONTRAST_SMOOTHED','FILTER_GREY_RESIDUAL','FILTER_V5_PIXEL_COUNT','FILTER_V5_GREY','FILTER_V5_GREY_PRE_GATE','FILTER_V5_GREY_SMOOTHED','AGG_FILTER_V5_DEPLETION','AGG_FILTER_V5_PIXEL_SUM','AREA_OUT','AREA_DIFF'];
+const oldGetters=['getMeasurementsV5','getFilterV5SelectedPixelCount','getFilterV5GreySignal','getFilterV5GreySignalBeforeOccupancyCheck','getSmoothedFilterV5GreySignal','getBackgroundCorrectedForegroundGrey','getFlyPixelExcludedForegroundContrast','getSmoothedForegroundContrast','getGreySignalPooledMedianResidual'];
+const deleted=[mt+'experiment/spot/SpotMeasurementsV5.java',mt+'service/SpotLevelDetectorFromCamV5.java',mt+'series/BuildSpotsMeasuresV5.java',mt+'tools/chart/ChartV5SpotsOverlayFrame.java',ms+'dlg/measure_imageFilters/ThresholdV5Panel.java',ms+'dlg/measure_imageFilters/ChartsV5Panel.java',ms+'dlg/measure_imageFilters/ThresholdLightV2.java',ms+'dlg/measure_imageFilters/ConsumptionV3Panel.java'];
+for(const f of deleted)fs.unlinkSync(path.join(base,f));
+edit(mt+'tools/results/EnumResults.java',s=>{for(const n of dead)s=removeEnum(s,n);return s;});
+// Remove obsolete switch arms, retaining bodies shared with surviving cases.
+function removeCases(s){const re=/^(\s*)case (\w+):[^]*?(?=^\s*(?:case \w+:|default:)|^\t{1,3}\})/gm;return s.replace(re,(chunk,indent,name)=>{if(!dead.includes(name))return chunk;const body=chunk.slice(chunk.indexOf(':')+1);return body.trim()===''?'':body.trim().startsWith('case ')?body:'';});}
+function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):e.name.endsWith('.java')?[path.join(dir,e.name)]:[]);}
+const java=[...walk('multiTools/src'),...walk('multiSPOTS/src')];
+for(const f of java)edit(f,s=>removeCases(s));
+edit(mt+'tools/results/StoredDataAccessors.java',s=>removeMembers(s,['accessStored_AREA_SUM_V2','accessStored_AREA_SUMNOFLY_V2','accessStored_AREA_SUMCLEAN_V2','accessStored_AREA_SUMCLEAN_V3','accessStored_AREA_OUT','accessStored_AREA_DIFF','accessStored_AREA_COUNT_V5','accessStored_GREY_SUM_V5','accessStored_GREY_SUM_V5_PREFLY','accessStored_GREY_SUM_CLEAN_V5']));
+edit(mt+'experiment/spot/Spot.java',s=>{s=removeMembers(s,oldGetters); return s.split('\n').filter(l=>!(/measurementsV5|sumInV2|sumNoFlyV2|sumCleanV2|sumCleanV3/.test(l))).join('\n');});
+edit(mt+'experiment/spots/Spots.java',s=>{s=removeMembers(s,['applyFlyInterpolationSumNoFlyAndSumCleanForSpotsV2','rebuildSumCleanOnlyForSpotsV2','applyFlyPlateauOnSumNoFlyV2ForSpots','fillSumNoFlyFromSumV2AndFlyPresent','rebuildSumCleanFromSumNoFlyV2ForSpot','rebuildGreySumCleanV5OnlyForSpots']);const a=s.indexOf('\t/**\n\t * Prefix length (bins)');const b=s.indexOf('\t/**\n\t * Inflates t0 measures',a);if(a<0||b<0)throw Error('V3 section');s=s.slice(0,a)+s.slice(b);s=s.replace('Spot spot, boolean v2, double flyOccupancyFractionOfRoi','Spot spot, double flyOccupancyFractionOfRoi').replace('spot, false, f','spot, f').replace('v2 ? spot.getFlyPixelExcludedForegroundContrast() : spot.getFlyPixelExcludedGreySignal()','spot.getFlyPixelExcludedGreySignal()');s=s.replace(/\t\tfor \(Spot spot : copySpotListForRead\(\)\) \{\n\t\t\tif \(spot != null\) \{\n\t\t\t\tspot.getMeasurementsV5\(\).rebuildGreySumCleanFromGreySum\(\);\n\t\t\t\}\n\t\t\}\n/,'');return s;});
+// Retain color cleaning options, with names reflecting their surviving consumer.
+for(const f of java) if(fs.existsSync(f))edit(f,s=>s.replace(/v5(GreySumClean\w*|FlyNaN\w*)/g,(_,tail)=>'color'+tail));
+module.exports={edit,mt,ms,removeMembers,removeEnum,dead,java,mask,blockEnd};

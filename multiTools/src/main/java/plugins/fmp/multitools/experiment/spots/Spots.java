@@ -782,23 +782,6 @@ public class Spots {
 	}
 
 	/**
-	 * V2 channel: for each spot, rebuild {@code sumNoFlyV2} from {@code sumV2} and
-	 * {@code flyPresent} via {@link #reconstructSumNoFly(double[], int[], int)},
-	 * then {@code sumCleanV2} = running median of {@code sumNoFlyV2}.
-	 */
-	public void applyFlyInterpolationSumNoFlyAndSumCleanForSpotsV2(List<Spot> targets,
-			double flyOccupancyFractionOfRoi) {
-		if (targets == null) {
-			return;
-		}
-		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
-		for (Spot spot : targets) {
-			fillSumNoFlyFromSumV2AndFlyPresent(spot, f);
-			rebuildSumCleanFromSumNoFlyV2ForSpot(spot);
-		}
-	}
-
-	/**
 	 * Recomputes {@code sumClean} from the current {@code sumNoFly} with the usual
 	 * running median (does not change {@code sumNoFly}).
 	 */
@@ -809,264 +792,6 @@ public class Spots {
 		for (Spot spot : targets) {
 			rebuildSumCleanFromSumNoFlyForSpot(spot);
 		}
-	}
-
-	public void rebuildSumCleanOnlyForSpotsV2(List<Spot> targets) {
-		if (targets == null) {
-			return;
-		}
-		for (Spot spot : targets) {
-			rebuildSumCleanFromSumNoFlyV2ForSpot(spot);
-		}
-	}
-
-	/**
-	 * Prefix length (bins) used to estimate per-spot {@code sumClean} level before
-	 * pooling medians for V3.
-	 * <p>
-	 * Heterogeneous illumination shifts absolute grey levels per ROI; subtracting
-	 * each spot's median over these early bins approximates a local
-	 * background/consumption baseline before the pooled median step.
-	 */
-	public static final int SUMCLEAN_V3_BASELINE_PREFIX_BINS = 10;
-
-	/**
-	 * Outcome of
-	 * {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} for UI
-	 * / diagnostics.
-	 */
-	public static final class SumCleanV3MedianRebuildSummary {
-		public final boolean requestedPerCagePool;
-		public final int readySpotCount;
-		/** Spots rebuilt using a cage-local median pool (each spot counted once). */
-		public final int spotsInCageMedianPools;
-		/**
-		 * Spots rebuilt using the final pooled median among spots that matched no cage
-		 * list.
-		 */
-		public final int spotsInOrphanPool;
-
-		public SumCleanV3MedianRebuildSummary(boolean requestedPerCagePool, int readySpotCount,
-				int spotsInCageMedianPools, int spotsInOrphanPool) {
-			this.requestedPerCagePool = requestedPerCagePool;
-			this.readySpotCount = readySpotCount;
-			this.spotsInCageMedianPools = spotsInCageMedianPools;
-			this.spotsInOrphanPool = spotsInOrphanPool;
-		}
-
-		/**
-		 * When per-cage pooling was requested but every ready spot was rebuilt in a
-		 * single experiment-wide orphan pool (same numeric result as leaving per-cage
-		 * off).
-		 */
-		public boolean fellBackToExperimentWidePoolOnly() {
-			return requestedPerCagePool && readySpotCount > 0 && spotsInCageMedianPools == 0
-					&& spotsInOrphanPool == readySpotCount;
-		}
-
-		public String statusSuffix() {
-			if (readySpotCount == 0) {
-				return " — no ready spots for V3";
-			}
-			if (!requestedPerCagePool) {
-				return " — median pool: whole experiment (" + readySpotCount + " spots)";
-			}
-			if (fellBackToExperimentWidePoolOnly()) {
-				return " — median pool: whole experiment (per-cage requested but cages unavailable or no spot matched any cage list; same as off)";
-			}
-			if (spotsInOrphanPool == 0) {
-				return " — median pool: per-cage only (" + spotsInCageMedianPools + " spots)";
-			}
-			return " — median pool: per-cage (" + spotsInCageMedianPools + " spots) + unmatched (" + spotsInOrphanPool
-					+ " spots)";
-		}
-	}
-
-	/**
-	 * Tier A V3 (experiment-wide pool): same as
-	 * {@link #rebuildV3ResidualFromSumCleanMedian(Experiment, int, boolean)} with
-	 * {@code perCageReference=false}.
-	 */
-	public SumCleanV3MedianRebuildSummary rebuildV3ResidualFromSumCleanExperimentMedian(int wSmoothBins) {
-		return rebuildV3ResidualFromSumCleanMedian(null, wSmoothBins, false);
-	}
-
-	/**
-	 * Tier A V3: per-spot {@code sumClean} shifted by early-bin median (see
-	 * {@link #SUMCLEAN_V3_BASELINE_PREFIX_BINS}), then per time bin a median of
-	 * shifted values across a <em>pool</em>, smoothed with a running median of
-	 * width {@code wSmoothBins} (odd, enforced). Finally {@code sumCleanV3} =
-	 * shifted {@code sumClean} minus that smoothed reference.
-	 * <p>
-	 * When {@code perCageReference} is true, the pool is the spots in each
-	 * {@link Cage} separately (handles different lighting per cage on the same
-	 * plate). Spots not assigned to any cage list still participate in a final
-	 * experiment-wide pool among themselves.
-	 *
-	 * @param exp              may be null when {@code perCageReference} is false
-	 * @param wSmoothBins      smoothing window on the pooled median series
-	 * @param perCageReference if true, uses {@code exp.getCages()} when non-null;
-	 *                         otherwise same as false
-	 * @return summary of which median pools were used (see
-	 *         {@link SumCleanV3MedianRebuildSummary})
-	 */
-	public SumCleanV3MedianRebuildSummary rebuildV3ResidualFromSumCleanMedian(Experiment exp, int wSmoothBins,
-			boolean perCageReference) {
-		if (exp == null)
-			return null;
-
-		List<Spot> globalReady = collectSpotsReadyForSumCleanV3();
-		int nReady = globalReady.size();
-		boolean perCage = perCageReference && exp != null && exp.getCages() != null;
-		if (!perCage) {
-			rebuildV3ResidualForSpotPool(globalReady, wSmoothBins);
-			return new SumCleanV3MedianRebuildSummary(perCageReference, nReady, 0, nReady);
-		}
-		Set<Spot> done = Collections.newSetFromMap(new IdentityHashMap<Spot, Boolean>());
-
-		for (Cage cage : exp.getCages().getCageList()) {
-			if (cage == null) {
-				continue;
-			}
-			List<Spot> pool = filterSpotsReadyForSumCleanV3(cage.getSpotList(this));
-			if (pool.isEmpty()) {
-				continue;
-			}
-			rebuildV3ResidualForSpotPool(pool, wSmoothBins);
-			done.addAll(pool);
-		}
-		List<Spot> orphans = new ArrayList<>();
-		for (Spot s : globalReady) {
-			if (!done.contains(s)) {
-				orphans.add(s);
-			}
-		}
-		if (!orphans.isEmpty()) {
-			rebuildV3ResidualForSpotPool(orphans, wSmoothBins);
-		}
-		return new SumCleanV3MedianRebuildSummary(true, nReady, done.size(), orphans.size());
-	}
-
-	private List<Spot> collectSpotsReadyForSumCleanV3() {
-		List<Spot> pool = new ArrayList<>();
-		for (Spot s : copySpotListForRead()) {
-			if (isSpotReadyForSumCleanV3(s)) {
-				pool.add(s);
-			}
-		}
-		return pool;
-	}
-
-	private static boolean isSpotReadyForSumCleanV3(Spot s) {
-		if (s == null || !s.isReadyForAnalysis()) {
-			return false;
-		}
-		SpotMeasure sc = s.getSmoothedFlyPixelExcludedGreySignal();
-		if (sc == null) {
-			return false;
-		}
-		double[] v = sc.getValues();
-		return v != null && v.length > 0;
-	}
-
-	private static List<Spot> filterSpotsReadyForSumCleanV3(List<Spot> in) {
-		List<Spot> pool = new ArrayList<>();
-		if (in == null) {
-			return pool;
-		}
-		for (Spot s : in) {
-			if (isSpotReadyForSumCleanV3(s)) {
-				pool.add(s);
-			}
-		}
-		return pool;
-	}
-
-	private void rebuildV3ResidualForSpotPool(List<Spot> pool, int wSmoothBins) {
-		if (pool == null || pool.isEmpty()) {
-			return;
-		}
-		int n = Integer.MAX_VALUE;
-		for (Spot s : pool) {
-			n = Math.min(n, s.getSmoothedFlyPixelExcludedGreySignal().getCount());
-		}
-		if (n <= 0) {
-			return;
-		}
-		int nPool = pool.size();
-		double[] spotBaseline = new double[nPool];
-		for (int i = 0; i < nPool; i++) {
-			spotBaseline[i] = sumCleanPerSpotBaselineMedian(pool.get(i), n);
-		}
-		double[] rRaw = new double[n];
-		double[] scratch = new double[nPool];
-		for (int t = 0; t < n; t++) {
-			int m = 0;
-			for (int i = 0; i < nPool; i++) {
-				Spot s = pool.get(i);
-				double val = s.getSmoothedFlyPixelExcludedGreySignal().getValueAt(t);
-				if (Double.isFinite(val)) {
-					scratch[m++] = val - spotBaseline[i];
-				}
-			}
-			rRaw[t] = medianOfFirstM(scratch, m);
-		}
-		int span = Math.max(1, wSmoothBins);
-		if ((span & 1) == 0) {
-			span++;
-		}
-		double[] rSmooth = runningMedianIgnoringNaN(rRaw, span);
-		for (int i = 0; i < nPool; i++) {
-			Spot s = pool.get(i);
-			double bi = spotBaseline[i];
-			double[] clean = s.getSmoothedFlyPixelExcludedGreySignal().getValues();
-			double[] out = new double[n];
-			for (int t = 0; t < n; t++) {
-				double c = t < clean.length ? clean[t] : Double.NaN;
-				double r = rSmooth[t];
-				if (Double.isFinite(c) && Double.isFinite(bi) && Double.isFinite(r)) {
-					out[t] = (c - bi) - r;
-				} else {
-					out[t] = Double.NaN;
-				}
-			}
-			if (s.getGreySignalPooledMedianResidual() != null) {
-				s.getGreySignalPooledMedianResidual().setValues(out);
-			}
-		}
-	}
-
-	private static double sumCleanPerSpotBaselineMedian(Spot s, int nBins) {
-		SpotMeasure sc = s.getSmoothedFlyPixelExcludedGreySignal();
-		if (sc == null) {
-			return 0.0;
-		}
-		int len = Math.min(sc.getCount(), nBins);
-		if (len <= 0) {
-			return 0.0;
-		}
-		int take = Math.min(SUMCLEAN_V3_BASELINE_PREFIX_BINS, len);
-		double[] scratch = new double[take];
-		int m = 0;
-		for (int t = 0; t < take; t++) {
-			double v = sc.getValueAt(t);
-			if (Double.isFinite(v)) {
-				scratch[m++] = v;
-			}
-		}
-		if (m == 0) {
-			return 0.0;
-		}
-		Arrays.sort(scratch, 0, m);
-		return scratch[m / 2];
-	}
-
-	private static double medianOfFirstM(double[] scratch, int m) {
-		if (m <= 0) {
-			return Double.NaN;
-		}
-		java.util.Arrays.sort(scratch, 0, m);
-		return scratch[m / 2];
 	}
 
 	/**
@@ -1094,25 +819,15 @@ public class Spots {
 		}
 		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
 		for (Spot spot : targets) {
-			applyFlyPlateauOnSpotMeasure(spot, false, f);
+			applyFlyPlateauOnSpotMeasure(spot, f);
 		}
 	}
 
-	public void applyFlyPlateauOnSumNoFlyV2ForSpots(List<Spot> targets, double flyOccupancyFractionOfRoi) {
-		if (targets == null) {
-			return;
-		}
-		double f = clampFlyOccupancyFraction(flyOccupancyFractionOfRoi);
-		for (Spot spot : targets) {
-			applyFlyPlateauOnSpotMeasure(spot, true, f);
-		}
-	}
-
-	private void applyFlyPlateauOnSpotMeasure(Spot spot, boolean v2, double flyOccupancyFractionOfRoi) {
+	private void applyFlyPlateauOnSpotMeasure(Spot spot, double flyOccupancyFractionOfRoi) {
 		if (spot == null) {
 			return;
 		}
-		SpotMeasure m = v2 ? spot.getFlyPixelExcludedForegroundContrast() : spot.getFlyPixelExcludedGreySignal();
+		SpotMeasure m = spot.getFlyPixelExcludedGreySignal();
 		if (m == null) {
 			return;
 		}
@@ -1242,38 +957,6 @@ public class Spots {
 		sumNoFly.setValues(reconstructed);
 	}
 
-	private void fillSumNoFlyFromSumV2AndFlyPresent(Spot spot, double flyOccupancyFractionOfRoi) {
-		if (spot == null) {
-			return;
-		}
-		SpotMeasure sumNoFlyV2 = spot.getFlyPixelExcludedForegroundContrast();
-		if (sumNoFlyV2 == null) {
-			return;
-		}
-		double[] sumV2 = spot.getBackgroundCorrectedForegroundGrey() != null ? spot.getBackgroundCorrectedForegroundGrey().getValues() : null;
-		if (sumV2 == null || sumV2.length == 0) {
-			return;
-		}
-
-		int[] fly = spot.getFlyCoveredPixelCount() != null ? spot.getFlyCoveredPixelCount().getIsPresent() : null;
-		double[] reconstructed;
-		if (fly != null && fly.length == sumV2.length) {
-			int minFlyPx = computeMinFlyPixelsToTreatOccupiedForReconstruction(spot,
-					clampFlyOccupancyFraction(flyOccupancyFractionOfRoi));
-			reconstructed = reconstructSumNoFly(sumV2, fly, minFlyPx);
-		} else {
-			reconstructed = java.util.Arrays.copyOf(sumV2, sumV2.length);
-		}
-		// V2 is a background-corrected consumption-like signal; clamp to non-negative.
-		for (int i = 0; i < reconstructed.length; i++) {
-			double v = reconstructed[i];
-			if (Double.isFinite(v) && v < 0.0) {
-				reconstructed[i] = 0.0;
-			}
-		}
-		sumNoFlyV2.setValues(reconstructed);
-	}
-
 	private void rebuildSumCleanFromSumNoFlyForSpot(Spot spot) {
 		final int span = 10;
 		if (spot == null) {
@@ -1289,31 +972,6 @@ public class Spots {
 			return;
 		}
 		double[] out = runningMedianIgnoringNaN(in, span);
-		fillNaNPlateausFromFirstLastFinite(out);
-		sumClean.setValues(out);
-	}
-
-	private void rebuildSumCleanFromSumNoFlyV2ForSpot(Spot spot) {
-		final int span = 10;
-		if (spot == null) {
-			return;
-		}
-		SpotMeasure sumNoFly = spot.getFlyPixelExcludedForegroundContrast();
-		SpotMeasure sumClean = spot.getSmoothedForegroundContrast();
-		if (sumNoFly == null || sumClean == null) {
-			return;
-		}
-		double[] in = sumNoFly.getValues();
-		if (in == null || in.length == 0) {
-			return;
-		}
-		double[] out = runningMedianIgnoringNaN(in, span);
-		for (int i = 0; i < out.length; i++) {
-			double v = out[i];
-			if (Double.isFinite(v) && v < 0.0) {
-				out[i] = 0.0;
-			}
-		}
 		fillNaNPlateausFromFirstLastFinite(out);
 		sumClean.setValues(out);
 	}
@@ -1482,26 +1140,6 @@ public class Spots {
 	public void medianFilterFromSumToSumClean() {
 		// Backward-compatible name: sumClean from sumNoFly via running median.
 		rebuildSumCleanFromSumNoFly();
-		for (Spot spot : copySpotListForRead()) {
-			if (spot != null) {
-				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
-			}
-		}
-	}
-
-	/**
-	 * Recomputes {@code FILTER_V5_GREY_SMOOTHED} from {@code FILTER_V5_GREY} for the given
-	 * spots (same smoothing as legacy sumClean).
-	 */
-	public void rebuildGreySumCleanV5OnlyForSpots(List<Spot> targets) {
-		if (targets == null) {
-			return;
-		}
-		for (Spot spot : targets) {
-			if (spot != null) {
-				spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
-			}
-		}
 	}
 
 	public double getScalingFactorToPhysicalUnits(EnumResults resultType) {

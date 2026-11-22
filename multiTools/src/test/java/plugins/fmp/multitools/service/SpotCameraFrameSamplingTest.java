@@ -51,16 +51,6 @@ public class SpotCameraFrameSamplingTest {
 	}
 
 	@Test(timeout = 30000)
-	public void v5UsesAllCameraFrames() throws Exception {
-		checkDetector(new SpotLevelDetectorFromCamV5(), false);
-	}
-
-	@Test(timeout = 30000)
-	public void v5IgnoresClippedKymographGrid() throws Exception {
-		checkDetector(new SpotLevelDetectorFromCamV5(), true);
-	}
-
-	@Test(timeout = 30000)
 	public void colorUsesAllCameraFrames() throws Exception {
 		checkDetector(new SpotLevelDetectorFromCamColor(), false);
 	}
@@ -123,8 +113,7 @@ public class SpotCameraFrameSamplingTest {
 		options.spotColorReferenceList.add(new Color(160, 0, 0));
 		detector.detectSpots(exp, options);
 
-		SpotMeasure signal = detector instanceof SpotLevelDetectorFromCamV5 ? spot.getFilterV5GreySignal()
-				: detector instanceof SpotLevelDetectorFromCamColor ? spot.getColorDistanceGreySignal()
+		SpotMeasure signal = detector instanceof SpotLevelDetectorFromCamColor ? spot.getColorDistanceGreySignal()
 				: spot.getRoiNormalizedGreySignal();
 		assertEquals(SpotLineSampling.cameraFrames(exp).size(), signal.getCount());
 		assertEquals(369, spot.getFlyCoveredPixelCount().getCount());

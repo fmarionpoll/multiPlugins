@@ -26,7 +26,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
 
 /**
  * Color-distance spot measures from camera using {@link ImageTransformEnums#THRESHOLD_COLORS} (multi-reference color distance)
- * for the spot mask and the same fly gating / grey-clean pipeline shape as {@link SpotLevelDetectorFromCamV5}.
+ * for the spot mask, with fly exclusion and a cleaned grey signal.
  *
  * <p>
  * {@link plugins.fmp.multitools.tools.imageTransform.transforms.ThresholdColors} encodes <strong>near reference</strong>
@@ -143,8 +143,8 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 		}
 		final long tLoopEnd = System.nanoTime();
 
-		applyColorFlyNanBorderAdaptiveTrim(toProcess, options.v5FlyNaNDilationBins,
-				options.v5FlyNaNBorderMedianHalfWidth, options.v5FlyNaNBorderSpikeRatio);
+		applyColorFlyNanBorderAdaptiveTrim(toProcess, options.colorFlyNaNDilationBins,
+				options.colorFlyNaNBorderMedianHalfWidth, options.colorFlyNaNBorderSpikeRatio);
 
 		for (Spot spot : toProcess) {
 			if (spot != null) {

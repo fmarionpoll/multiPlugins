@@ -16,7 +16,7 @@ import plugins.fmp.multitools.series.options.BuildSeriesOptions;
  * {@code GREY_SUM_V6_PREFLY} holds the same scalar before the fly-occupancy gate turns bins into NaN.
  * {@code GREY_SUM_CLEAN_V6} is built from {@code GREY_SUM_V6} by (1) linear interpolation across NaN runs
  * (including leading/trailing plateaus from the first/last finite sample), (2) optional upward spike
- * suppression vs a <strong>prior-only</strong> local median (see {@link BuildSeriesOptions#v5GreySumCleanSpikeMedianHalfWidth}),
+ * suppression vs a <strong>prior-only</strong> local median (see {@link BuildSeriesOptions#colorGreySumCleanSpikeMedianHalfWidth}),
  * then (3) the same span-10 NaN-robust running median as legacy {@code sumClean} from {@code sumNoFly} in
  * {@link plugins.fmp.multitools.experiment.spots.Spots}.
  */
@@ -117,9 +117,9 @@ public final class SpotColorDistanceMeasurements {
 		if (in == null || in.length == 0) {
 			return;
 		}
-		int spikeHw = opts != null ? opts.v5GreySumCleanSpikeMedianHalfWidth : DEFAULT_SPIKE_MEDIAN_HALF_WIDTH;
-		double spikeRatio = opts != null ? opts.v5GreySumCleanSpikeRatio : DEFAULT_SPIKE_RATIO;
-		int spikePasses = opts != null ? opts.v5GreySumCleanSpikePasses : DEFAULT_SPIKE_PASSES;
+		int spikeHw = opts != null ? opts.colorGreySumCleanSpikeMedianHalfWidth : DEFAULT_SPIKE_MEDIAN_HALF_WIDTH;
+		double spikeRatio = opts != null ? opts.colorGreySumCleanSpikeRatio : DEFAULT_SPIKE_RATIO;
+		int spikePasses = opts != null ? opts.colorGreySumCleanSpikePasses : DEFAULT_SPIKE_PASSES;
 		if (!Double.isFinite(spikeRatio)) {
 			spikeRatio = DEFAULT_SPIKE_RATIO;
 		}

@@ -57,8 +57,6 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 		}
 		boolean aggregateExport = resultsOptions.spotAggregateByStimulusConc
 				|| resultsOptions.resultType == EnumResults.AGG_FILTER_DEPLETION
-				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION
-				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
 				|| resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION
 				|| resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| resultsOptions.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS
@@ -83,11 +81,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			}
 		}
 		EnumResults gridProbe;
-		if (resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION) {
-			gridProbe = EnumResults.FILTER_V5_GREY_SMOOTHED;
-		} else if (resultsOptions.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM) {
-			gridProbe = EnumResults.FILTER_V5_PIXEL_COUNT;
-		} else if (resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION) {
+		if (resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION) {
 			gridProbe = EnumResults.COLOR_GREY_SMOOTHED;
 		} else if (resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM) {
 			gridProbe = EnumResults.COLOR_PIXEL_COUNT;
@@ -108,13 +102,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 	@Override
 	protected int exportResultTypeToSheet(Experiment exp, SXSSFSheet sheet, EnumResults resultType, int col0,
 			String charSeries) {
-		if (resultType != EnumResults.FILTER_GREY_SMOOTHED && resultType != EnumResults.FILTER_V5_GREY
-				&& resultType != EnumResults.FILTER_V5_GREY_PRE_GATE && resultType != EnumResults.FILTER_V5_GREY_SMOOTHED
-				&& resultType != EnumResults.FILTER_V5_PIXEL_COUNT
-				&& resultType != EnumResults.COLOR_GREY && resultType != EnumResults.COLOR_GREY_PRE_GATE
+		if (resultType != EnumResults.FILTER_GREY_SMOOTHED && resultType != EnumResults.COLOR_GREY && resultType != EnumResults.COLOR_GREY_PRE_GATE
 				&& resultType != EnumResults.COLOR_GREY_SMOOTHED && resultType != EnumResults.COLOR_PIXEL_COUNT
-				&& resultType != EnumResults.AGG_FILTER_DEPLETION && resultType != EnumResults.AGG_FILTER_V5_DEPLETION
-				&& resultType != EnumResults.AGG_FILTER_V5_PIXEL_SUM && resultType != EnumResults.AGG_COLOR_DEPLETION
+				&& resultType != EnumResults.AGG_FILTER_DEPLETION && resultType != EnumResults.AGG_COLOR_DEPLETION
 				&& resultType != EnumResults.AGG_COLOR_PIXEL_SUM 				&& resultType != EnumResults.AGG_KYMO_HEIGHT_LOSS
 				&& resultType != EnumResults.AGG_KYMO_CROSS_LOSS && resultType != EnumResults.AGG_KYMO_RIM_LOSS
 				&& resultType != EnumResults.KYMO_GREEN_HEIGHT_RATIO) {

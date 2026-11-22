@@ -355,17 +355,8 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case FILTER_GREY:
 		case FILTER_GREY_FLY_MASKED:
 		case FILTER_GREY_SMOOTHED:
-		case FILTER_GREY_RESIDUAL:
-		case AREA_OUT:
-		case AREA_DIFF:
 		case FLY_PIXEL_COUNT:
-		case FILTER_V5_PIXEL_COUNT:
-		case FILTER_V5_GREY:
-		case FILTER_V5_GREY_PRE_GATE:
-		case FILTER_V5_GREY_SMOOTHED:
 		case AGG_FILTER_DEPLETION:
-		case AGG_FILTER_V5_DEPLETION:
-		case AGG_FILTER_V5_PIXEL_SUM:
 		case COLOR_PIXEL_COUNT:
 		case COLOR_GREY:
 		case COLOR_GREY_PRE_GATE:
@@ -400,8 +391,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 			return;
 		}
 		EnumResults rt = opts != null ? opts.resultType : null;
-		if (rt == EnumResults.AGG_FILTER_DEPLETION || rt == EnumResults.AGG_FILTER_V5_DEPLETION || rt == EnumResults.AGG_FILTER_V5_PIXEL_SUM
-				|| rt == EnumResults.AGG_COLOR_DEPLETION || rt == EnumResults.AGG_COLOR_PIXEL_SUM
+		if (rt == EnumResults.AGG_FILTER_DEPLETION || rt == EnumResults.AGG_COLOR_DEPLETION || rt == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| rt == EnumResults.CAGE_GREY_MEDIAN || rt == EnumResults.AGG_KYMO_HEIGHT_LOSS
 				|| rt == EnumResults.AGG_KYMO_CROSS_LOSS || rt == EnumResults.AGG_KYMO_RIM_LOSS) {
 			if (dataset != null && dataset.getSeriesCount() > 0) {

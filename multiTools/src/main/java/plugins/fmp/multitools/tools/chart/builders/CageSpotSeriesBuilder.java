@@ -47,7 +47,6 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		}
 
 		if (options != null && (options.resultType == EnumResults.AGG_FILTER_DEPLETION
-				|| options.resultType == EnumResults.AGG_FILTER_V5_DEPLETION || options.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
 				|| options.resultType == EnumResults.AGG_COLOR_DEPLETION || options.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| options.resultType == EnumResults.CAGE_GREY_MEDIAN)) {
 			XYSeriesCollection dataset = new XYSeriesCollection();

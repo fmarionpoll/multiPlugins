@@ -15,7 +15,7 @@ import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.LoadSavePanel;
 import plugins.fmp.multitools.experiment.Experiment;
 
 /**
- * Parallel UI for V5 and color-distance spot measures (detection + charts
+ * UI for color-distance spot measures (detection + charts
  * only).
  */
 public class _DlgMeasureUsingColors_ extends JPanel {

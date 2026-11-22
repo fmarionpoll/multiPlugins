@@ -28,12 +28,7 @@ public class ResultsOptions {
 	public boolean spotSumNoFly = false;
 	/** Spot Excel export: FILTER_GREY_SMOOTHED. */
 	public boolean spotSumClean = false;
-	/** Spot Excel export (V2 channel): FILTER_GREY_CONTRAST. */
-	public boolean sumV2 = false;
-	/** Spot Excel export (V2 channel): FILTER_GREY_CONTRAST_MASKED. */
-	public boolean spotSumNoFlyV2 = false;
-	/** Spot Excel export (V2 channel): FILTER_GREY_CONTRAST_SMOOTHED. */
-	public boolean spotSumCleanV2 = false;
+
 	/**
 	 * Spot Excel export: aggregate spots by (stimulus, concentration) at cage
 	 * level. When enabled, the export iterates cages × distinct (stim,conc) instead
@@ -183,12 +178,6 @@ public class ResultsOptions {
 	 */
 	public int aggMedianRefSmoothWindowBins = 5;
 
-	/** Spot Excel export: {@code FILTER_V5_PIXEL_COUNT}. */
-	public boolean spotAreaCountV5 = false;
-	/** Spot Excel export: {@code FILTER_V5_GREY}. */
-	public boolean spotGreySumV5 = false;
-	/** Spot Excel export: {@code FILTER_V5_GREY_SMOOTHED}. */
-	public boolean spotGreySumCleanV5 = false;
 	/** Spot Excel export: on-disk {@code AREA_COUNT_V6}. */
 	public boolean spotAreaCountColor = false;
 	/** Spot Excel export: on-disk {@code GREY_SUM_V6}. */
@@ -225,15 +214,9 @@ public class ResultsOptions {
 		this.nPixels = resultsOptions.nPixels;
 		this.spotSumNoFly = resultsOptions.spotSumNoFly;
 		this.spotSumClean = resultsOptions.spotSumClean;
-		this.sumV2 = resultsOptions.sumV2;
-		this.spotSumNoFlyV2 = resultsOptions.spotSumNoFlyV2;
-		this.spotSumCleanV2 = resultsOptions.spotSumCleanV2;
 		this.spotAggregateByStimulusConc = resultsOptions.spotAggregateByStimulusConc;
 		this.spotAggregateMeasures = resultsOptions.spotAggregateMeasures == null ? null
 				: new ArrayList<>(resultsOptions.spotAggregateMeasures);
-		this.spotAreaCountV5 = resultsOptions.spotAreaCountV5;
-		this.spotGreySumV5 = resultsOptions.spotGreySumV5;
-		this.spotGreySumCleanV5 = resultsOptions.spotGreySumCleanV5;
 		this.spotAreaCountColor = resultsOptions.spotAreaCountColor;
 		this.spotGreySumColor = resultsOptions.spotGreySumColor;
 		this.spotGreySumCleanColor = resultsOptions.spotGreySumCleanColor;

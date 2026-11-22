@@ -11,12 +11,11 @@ public class CsvSpotMeasureSelectionTest {
 	@Test
 	public void aggregateSelectionSplitsFileFamiliesAndCopiesIndependently() {
 		ResultsOptions options = new ResultsOptions();
-		options.spotAggregateMeasures = new ArrayList<>(Arrays.asList(EnumResults.AGG_FILTER_V5_DEPLETION,
-				EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS, EnumResults.AGG_KYMO_HEIGHT_LOSS));
+		options.spotAggregateMeasures = new ArrayList<>(Arrays.asList(EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS, EnumResults.AGG_KYMO_HEIGHT_LOSS));
 		ResultsOptions copy = new ResultsOptions();
 		copy.copy(options);
 		options.spotAggregateMeasures.clear();
-		assertEquals(Arrays.asList(EnumResults.AGG_FILTER_V5_DEPLETION, EnumResults.AGG_KYMO_CROSS_LOSS,
+		assertEquals(Arrays.asList(EnumResults.AGG_KYMO_CROSS_LOSS,
 				EnumResults.AGG_KYMO_RIM_LOSS), Arrays.asList(CsvNormalizedSpotExport.selectedAggregateTypes(copy, false)));
 		assertEquals(Arrays.asList(EnumResults.AGG_KYMO_HEIGHT_LOSS),
 				Arrays.asList(CsvNormalizedSpotExport.selectedAggregateTypes(copy, true)));

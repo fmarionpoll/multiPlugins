@@ -20,12 +20,8 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 public final class SpotDetectionProvenance {
 	public enum Family {
 		FILTER("image_filter", false, EnumResults.FILTER_GREY, EnumResults.FILTER_GREY_FLY_MASKED,
-				EnumResults.FILTER_GREY_SMOOTHED, EnumResults.FILTER_GREY_CONTRAST,
-				EnumResults.FILTER_GREY_CONTRAST_MASKED, EnumResults.FILTER_GREY_CONTRAST_SMOOTHED,
-				EnumResults.FILTER_GREY_RESIDUAL),
+				EnumResults.FILTER_GREY_SMOOTHED),
 		FLY_MASK("fly_mask", false, EnumResults.FLY_PIXEL_COUNT),
-		FILTER_V5("image_filter_v5", false, EnumResults.FILTER_V5_GREY, EnumResults.FILTER_V5_PIXEL_COUNT,
-				EnumResults.FILTER_V5_GREY_PRE_GATE, EnumResults.FILTER_V5_GREY_SMOOTHED),
 		COLOR("color_distance", false, EnumResults.COLOR_GREY, EnumResults.COLOR_PIXEL_COUNT,
 				EnumResults.COLOR_GREY_PRE_GATE, EnumResults.COLOR_GREY_SMOOTHED),
 		KYMO_STRIP("kymograph_strip", true, EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE,
@@ -80,14 +76,13 @@ public final class SpotDetectionProvenance {
 					"color_excluded", options.spotColorExcludeList,
 					"color_exclude_distance_max", options.spotColorExcludeDistanceMax);
 		}
-		if (family == Family.FILTER_V5 || family == Family.COLOR) {
-			put(settings, "local_mean_in_roi", options.v5SpotLocalMeanRestrictedToRoi,
-					"fly_nan_dilation_bins", options.v5FlyNaNDilationBins,
-					"fly_border_median_half_width_bins", options.v5FlyNaNBorderMedianHalfWidth,
-					"fly_border_spike_ratio", options.v5FlyNaNBorderSpikeRatio,
-					"clean_spike_median_half_width_bins", options.v5GreySumCleanSpikeMedianHalfWidth,
-					"clean_spike_ratio", options.v5GreySumCleanSpikeRatio,
-					"clean_spike_passes", options.v5GreySumCleanSpikePasses);
+		if (family == Family.COLOR) {
+			put(settings, "fly_nan_dilation_bins", options.colorFlyNaNDilationBins,
+					"fly_border_median_half_width_bins", options.colorFlyNaNBorderMedianHalfWidth,
+					"fly_border_spike_ratio", options.colorFlyNaNBorderSpikeRatio,
+					"clean_spike_median_half_width_bins", options.colorGreySumCleanSpikeMedianHalfWidth,
+					"clean_spike_ratio", options.colorGreySumCleanSpikeRatio,
+					"clean_spike_passes", options.colorGreySumCleanSpikePasses);
 		}
 		addRunMetadata(settings, method);
 		save(experiment, family, settings);

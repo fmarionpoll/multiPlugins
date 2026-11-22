@@ -167,32 +167,8 @@ public class SpotPersistence {
 		case FILTER_GREY_SMOOTHED:
 			spot.getSmoothedFlyPixelExcludedGreySignal().exportYDataToCsv(sbf, sep);
 			break;
-		case FILTER_GREY_CONTRAST:
-			spot.getBackgroundCorrectedForegroundGrey().exportYDataToCsv(sbf, sep);
-			break;
-		case FILTER_GREY_CONTRAST_MASKED:
-			spot.getFlyPixelExcludedForegroundContrast().exportYDataToCsv(sbf, sep);
-			break;
-		case FILTER_GREY_CONTRAST_SMOOTHED:
-			spot.getSmoothedForegroundContrast().exportYDataToCsv(sbf, sep);
-			break;
-		case FILTER_GREY_RESIDUAL:
-			spot.getGreySignalPooledMedianResidual().exportYDataToCsv(sbf, sep);
-			break;
 		case FLY_PIXEL_COUNT:
 			spot.getFlyCoveredPixelCount().exportIsPresentToCsv(sbf, sep);
-			break;
-		case FILTER_V5_PIXEL_COUNT:
-			spot.getFilterV5SelectedPixelCount().exportYDataToCsv(sbf, sep);
-			break;
-		case FILTER_V5_GREY:
-			spot.getFilterV5GreySignal().exportYDataToCsv(sbf, sep);
-			break;
-		case FILTER_V5_GREY_PRE_GATE:
-			spot.getFilterV5GreySignalBeforeOccupancyCheck().exportYDataToCsv(sbf, sep);
-			break;
-		case FILTER_V5_GREY_SMOOTHED:
-			spot.getSmoothedFilterV5GreySignal().exportYDataToCsv(sbf, sep);
 			break;
 		case COLOR_PIXEL_COUNT:
 			spot.getColorDistanceSelectedPixelCount().exportYDataToCsv(sbf, sep);
@@ -485,69 +461,12 @@ public class SpotPersistence {
 				spot.getSmoothedFlyPixelExcludedGreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
-		case FILTER_GREY_CONTRAST:
-			if (x && y) {
-				spot.getBackgroundCorrectedForegroundGrey().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getBackgroundCorrectedForegroundGrey().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case FILTER_GREY_CONTRAST_MASKED:
-			if (x && y) {
-				spot.getFlyPixelExcludedForegroundContrast().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getFlyPixelExcludedForegroundContrast().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case FILTER_GREY_CONTRAST_SMOOTHED:
-			if (x && y) {
-				spot.getSmoothedForegroundContrast().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getSmoothedForegroundContrast().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case FILTER_GREY_RESIDUAL:
-			if (x && y) {
-				spot.getGreySignalPooledMedianResidual().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getGreySignalPooledMedianResidual().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
 		case FLY_PIXEL_COUNT:
 			if (x && y) {
 				// FlyPresent is stored as presence array; ignore X and import presence.
 				spot.getFlyCoveredPixelCount().importIsPresentFromCsv(data, DATA_OFFSET);
 			} else if (!x && y) {
 				spot.getFlyCoveredPixelCount().importIsPresentFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case FILTER_V5_PIXEL_COUNT:
-			if (x && y) {
-				spot.getFilterV5SelectedPixelCount().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getFilterV5SelectedPixelCount().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case FILTER_V5_GREY:
-			if (x && y) {
-				spot.getFilterV5GreySignal().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getFilterV5GreySignal().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			spot.getMeasurementsV5().rebuildGreySumCleanFromGreySum();
-			break;
-		case FILTER_V5_GREY_PRE_GATE:
-			if (x && y) {
-				spot.getFilterV5GreySignalBeforeOccupancyCheck().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getFilterV5GreySignalBeforeOccupancyCheck().importYDataFromCsv(data, DATA_OFFSET);
-			}
-			break;
-		case FILTER_V5_GREY_SMOOTHED:
-			if (x && y) {
-				spot.getSmoothedFilterV5GreySignal().importXYDataFromCsv(data, DATA_OFFSET);
-			} else if (!x && y) {
-				spot.getSmoothedFilterV5GreySignal().importYDataFromCsv(data, DATA_OFFSET);
 			}
 			break;
 		case COLOR_PIXEL_COUNT:

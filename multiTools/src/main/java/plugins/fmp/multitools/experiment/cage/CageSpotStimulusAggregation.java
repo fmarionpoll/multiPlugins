@@ -77,7 +77,6 @@ public final class CageSpotStimulusAggregation {
 
 	public static boolean supportsAggregateResultType(EnumResults resultType) {
 		return resultType == EnumResults.FILTER_GREY_SMOOTHED || resultType == EnumResults.AGG_FILTER_DEPLETION
-				|| resultType == EnumResults.AGG_FILTER_V5_DEPLETION || resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
 				|| resultType == EnumResults.AGG_COLOR_DEPLETION || resultType == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| resultType == EnumResults.CAGE_GREY_MEDIAN;
 	}
@@ -104,10 +103,6 @@ public final class CageSpotStimulusAggregation {
 		return new ArrayList<>(keys);
 	}
 
-	/**
-	 * Builds aggregates directly on the stored spot sample index. This is the path used by
-	 * charts so AGG_FILTER_DEPLETION / AGG_FILTER_V5_DEPLETION / AGG_FILTER_V5_PIXEL_SUM share the same time base as the underlying per-spot series.
-	 */
 	public static List<AggregateSeries> buildAggregatesOnNativeSamples(Experiment exp, Cage cage, Spots allSpots,
 			ResultsOptions options) {
 		Objects.requireNonNull(cage, "cage");
@@ -121,9 +116,6 @@ public final class CageSpotStimulusAggregation {
 
 		double[] camTimeMin = camTimeMinutesForExperiment(exp);
 
-		if (options.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM) {
-			return buildAreaCountV5AggregatesOnNativeSamples(spots, camTimeMin);
-		}
 		if (options.resultType == EnumResults.AGG_COLOR_PIXEL_SUM) {
 			return buildAreaCountV6AggregatesOnNativeSamples(spots, camTimeMin);
 		}
@@ -185,17 +177,15 @@ public final class CageSpotStimulusAggregation {
 		if (s == null) {
 			return null;
 		}
-		if (buildResultType == EnumResults.AGG_FILTER_V5_DEPLETION) {
-			return s.getSmoothedFilterV5GreySignal();
-		}
+
 		if (buildResultType == EnumResults.AGG_COLOR_DEPLETION) {
 			return s.getSmoothedColorDistanceGreySignal();
 		}
 		return s.getSmoothedFlyPixelExcludedGreySignal();
 	}
 
-	private static boolean isV5DepletionAggregate(EnumResults buildResultType) {
-		return buildResultType == EnumResults.AGG_FILTER_V5_DEPLETION || buildResultType == EnumResults.AGG_COLOR_DEPLETION;
+	private static boolean isColorDepletionAggregate(EnumResults buildResultType) {
+		return buildResultType == EnumResults.AGG_COLOR_DEPLETION;
 	}
 
 	private static int nativeAggregateLength(List<Spot> spots, StimulusConcKey key, double[] camTimeMin,
@@ -237,7 +227,7 @@ public final class CageSpotStimulusAggregation {
 		}
 		int count = Math.min(n, intensity.getCount());
 		double maxBaseline;
-		if (isV5DepletionAggregate(options.resultType)) {
+		if (isColorDepletionAggregate(options.resultType)) {
 			maxBaseline = SpotPreConsumedSupport.computeBaselineMaxFromMeasure(intensity, camTimeMin, options);
 		} else {
 			maxBaseline = SpotPreConsumedSupport.computeBaselineMaxValue(exp, spot, intensity, camTimeMin, options);
@@ -458,96 +448,6 @@ public final class CageSpotStimulusAggregation {
 			exp.getSeqCamData().build_MsTimesArray_From_FileNamesList();
 		}
 		return exp.getSeqCamData().getTimeManager().getCamImagesTime_Minutes();
-	}
-
-	private static List<AggregateSeries> buildAreaCountV5AggregatesOnNativeSamples(List<Spot> spots,
-			double[] camTimeMin) {
-		Set<StimulusConcKey> keys = new LinkedHashSet<>();
-		for (Spot s : spots) {
-			if (s != null && s.getProperties() != null) {
-				keys.add(new StimulusConcKey(s.getProperties().getStimulus(), s.getProperties().getConcentration()));
-			}
-		}
-		List<AggregateSeries> out = new ArrayList<>(keys.size());
-		for (StimulusConcKey k : keys) {
-			int n = nativeAggregateLengthForAreaCountV5(spots, k, camTimeMin);
-			if (n <= 0) {
-				continue;
-			}
-			ArrayList<Double> sum = initNanSeries(n);
-			int[] validCounts = new int[n];
-			int nExposed = 0;
-			for (Spot s : spots) {
-				if (s == null || s.getProperties() == null) {
-					continue;
-				}
-				StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
-						s.getProperties().getConcentration());
-				if (!k.equals(keySpot)) {
-					continue;
-				}
-				ArrayList<Double> row = areaCountV5ValuesForBins(s, n, camTimeMin);
-				if (row == null) {
-					continue;
-				}
-				addFiniteInPlace(sum, row, validCounts);
-				nExposed++;
-			}
-			out.add(new AggregateSeries(k, sum, nExposed, validCounts));
-		}
-		return out;
-	}
-
-	private static int nativeAggregateLengthForAreaCountV5(List<Spot> spots, StimulusConcKey key, double[] camTimeMin) {
-		int n = 0;
-		for (Spot s : spots) {
-			if (s == null || s.getProperties() == null) {
-				continue;
-			}
-			SpotMeasure intensity = s.getFilterV5SelectedPixelCount();
-			if (intensity == null) {
-				continue;
-			}
-			StimulusConcKey keySpot = new StimulusConcKey(s.getProperties().getStimulus(),
-					s.getProperties().getConcentration());
-			if (!key.equals(keySpot)) {
-				continue;
-			}
-			int c = intensity.getCount();
-			if (c <= 0) {
-				continue;
-			}
-			if (camTimeMin != null) {
-				c = Math.min(c, camTimeMin.length);
-			}
-			if (c > 0) {
-				n = Math.max(n, c);
-			}
-		}
-		return n;
-	}
-
-	private static ArrayList<Double> areaCountV5ValuesForBins(Spot s, int n, double[] camTimeMin) {
-		if (s == null || n <= 0) {
-			return null;
-		}
-		SpotMeasure intensity = s.getFilterV5SelectedPixelCount();
-		if (intensity == null || intensity.getValues() == null) {
-			return null;
-		}
-		int avail = intensity.getCount();
-		if (avail <= 0) {
-			return null;
-		}
-		if (camTimeMin != null) {
-			avail = Math.min(avail, camTimeMin.length);
-		}
-		int count = Math.min(avail, n);
-		ArrayList<Double> out = new ArrayList<>(count);
-		for (int i = 0; i < count; i++) {
-			out.add(intensity.getValueAt(i));
-		}
-		return out;
 	}
 
 	private static List<AggregateSeries> buildAreaCountV6AggregatesOnNativeSamples(List<Spot> spots,

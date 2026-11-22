@@ -99,7 +99,6 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	@Override
 	protected void setCheckboxDefaults(ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : null;
-		cbCleanV3.setSelected(false);
 		cbAreaCountColor.setSelected(false);
 		cbGreySumColor.setSelected(false);
 		cbGreySumColorPreFly.setSelected(false);
@@ -123,7 +122,7 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 			cbSum.setSelected(true);
 		} else if (resultLabelEquals(rt, "AREA_SUMNOFLY")) {
 			cbNoFly.setSelected(true);
-		} else if (resultLabelEquals(rt, "AREA_SUMCLEAN") || resultLabelEquals(rt, "AREA_SUMCLEAN_V3")) {
+		} else if (resultLabelEquals(rt, "AREA_SUMCLEAN")) {
 			cbClean.setSelected(true);
 		} else {
 			cbGreySumCleanColor.setSelected(true);
@@ -245,13 +244,11 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = String.valueOf(dataset.getSeriesKey(i));
-			boolean v2v3 = key.contains("AREA_SUM_V2") || key.contains("AREA_SUMNOFLY_V2")
-					|| key.contains("AREA_SUMCLEAN_V2") || key.contains("_V2") || key.contains("AREA_SUMCLEAN_V3");
 			boolean legacyDashed = overlaySpots ? isLegacySecondRowAreaMeasure(overlayChosen)
 					: seriesKeyUsesLegacySecondRowMeasure(key);
 			if (legacyDashed) {
 				renderer.setSeriesStroke(i, dashed);
-			} else if (!v2v3) {
+			} else {
 				renderer.setSeriesStroke(i, solid);
 			}
 		}

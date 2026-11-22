@@ -31,14 +31,9 @@ public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeLi
 	public ChartsPanel chartsPanel = new ChartsPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 
-	ConsumptionV3Panel consumptionV3Panel = new ConsumptionV3Panel();
 	ConsumptionAggV4Panel consumptionAggV4Panel = new ConsumptionAggV4Panel();
-	public ThresholdV5Panel thresholdV5Panel = new ThresholdV5Panel();
-	public ChartsV5Panel chartsV5Panel = new ChartsV5Panel();
 
 	private int id_threshold = 1;
-	private int idThresholdTabV5 = 0;
-	private int idKymographsTab = -1;
 	private MultiSPOTS parent0 = null;
 
 	public void init(JPanel mainPanel, String string, MultiSPOTS parent0) {
@@ -77,27 +72,6 @@ public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeLi
 		tabsPane.addTab("Load/Save", null, loadSavePanel, "Load/Save xml file with spots descriptors");
 		order++;
 
-//		consumptionV3Panel.init(gridLayout, parent0);
-//		consumptionV3Panel.addPropertyChangeListener(this);
-//		tabsPane.addTab("V3", null, consumptionV3Panel, "Consumption V3 (experiment-median residual)");
-//		order++;
-//
-//		consumptionAggV4Panel.init(gridLayout, parent0);
-//		consumptionAggV4Panel.addPropertyChangeListener(this);
-//		tabsPane.addTab("V4 (AGG)", null, consumptionAggV4Panel, "AGG_SUMCLEAN evaluation policies");
-//		order++;
-//
-//		thresholdV5Panel.init(gridLayout, parent0);
-//		thresholdV5Panel.addPropertyChangeListener(this);
-//		tabsPane.addTab("V5 threshold", null, thresholdV5Panel, "V5 spot measures from camera");
-//		idThresholdTabV5 = order;
-//		order++;
-//
-//		chartsV5Panel.init(gridLayout, parent0);
-//		chartsV5Panel.addPropertyChangeListener(this);
-//		tabsPane.addTab("V5 charts", null, chartsV5Panel, "Display V5 spot results");
-//		order++;
-
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		capPanel.add(tabsPane);
 		tabsPane.addChangeListener(this);
@@ -132,15 +106,7 @@ public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeLi
 			}
 		} else if (n.equals("SPOTS_ROIS_SAVE")) {
 			tabsPane.setSelectedIndex(id_threshold);
-		} else if ("SPOTS_ROIS_OPEN".equals(n) || "CAP_ROIS_OPEN".equals(n)) {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				displaySpotsInformation(exp);
-				tabsPane.setSelectedIndex(idThresholdTabV5);
-				parent0.dlgExperiment.intervalsPanel.getExptParms(exp);
-			}
-		} else if ("SPOTS_ROIS_SAVE".equals(n) || "CAP_ROIS_SAVE".equals(n)) {
-			tabsPane.setSelectedIndex(idThresholdTabV5);
+
 		}
 	}
 
@@ -162,13 +128,6 @@ public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeLi
 			boolean displayCapillaries = (selectedIndex == id_threshold);
 			if (displayCapillaries) // && exp.getSpots().getSpotsList().size() < 1)
 				exp.loadCamDataSpots();
-			else {
-				boolean loadCam = (selectedIndex == idThresholdTabV5
-						|| (idKymographsTab >= 0 && selectedIndex == idKymographsTab));
-				if (loadCam) {
-					exp.loadCamDataSpots();
-				}
-			}
 			exp.getSeqCamData().displaySpecificROIs(true, "spots");
 		}
 	}

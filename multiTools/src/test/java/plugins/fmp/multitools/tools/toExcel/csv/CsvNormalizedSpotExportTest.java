@@ -29,10 +29,12 @@ public class CsvNormalizedSpotExportTest {
 	@ClassRule
 	public static final InMemoryImageRule imageMemory = new InMemoryImageRule();
 
-	@Test
+	@Test(timeout = 10000)
 	public void nativeKymoExportComputesSumsAndUsesOnlyExactlyTwoConfiguredCategories() throws Exception {
 		Path folder = Files.createTempDirectory("spot-group-export");
-		Experiment exp = new Experiment();
+		Experiment exp = new Experiment() {
+			@Override public String getKymosBinFullDirectory() { return folder.toString(); }
+		};
 		exp.setResultsDirectory(folder.toString());
 		exp.setKymoBin_ms(60000);
 		addCage(exp, 2);
@@ -65,7 +67,7 @@ public class CsvNormalizedSpotExportTest {
 		assertFalse(pi.contains(",3,A__1,B__1"));
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void savedDetectionSettingsRetainIdentityAndParameters() throws Exception {
 		Experiment exp = new Experiment();
 		exp.setResultsDirectory(Files.createTempDirectory("spot-detection").toString());
@@ -96,7 +98,7 @@ public class CsvNormalizedSpotExportTest {
 		exp.getSpots().addSpot(spot);
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void preferenceUsesTotalOrPerContributorAndLeavesMissingResultsBlank() throws Exception {
 		assertEquals(1.0 / 3.0,
 				CsvNormalizedSpotExportSupport.preferenceIndex(0.4, 0.2, 2, 1, false), 1e-9);
@@ -121,12 +123,10 @@ public class CsvNormalizedSpotExportTest {
 		assertTrue(read(folder.resolve("detection_parameters.csv")).contains("expA,run1,bin_ms,60000,ms"));
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void aggregateRenamesPreserveExportIdentifiers() {
 		assertAggregateIdentifier(EnumResults.AGG_FILTER_DEPLETION, "AGG_SUMCLEAN");
-		assertAggregateIdentifier(EnumResults.AGG_FILTER_V5_DEPLETION, "AGG_SUMCLEAN_V5");
 		assertAggregateIdentifier(EnumResults.AGG_COLOR_DEPLETION, "AGG_SUMCLEAN_COLOR");
-		assertAggregateIdentifier(EnumResults.AGG_FILTER_V5_PIXEL_SUM, "AGG_AREA_COUNT_V5");
 		assertAggregateIdentifier(EnumResults.AGG_COLOR_PIXEL_SUM, "AGG_AREA_COUNT_COLOR");
 		assertAggregateIdentifier(EnumResults.AGG_KYMO_HEIGHT_LOSS, "AGG_GREENHEIGHT_CONSO");
 		assertEquals("agg_x_line_conso", CsvNormalizedSpotExport.columnName(EnumResults.AGG_KYMO_CROSS_LOSS));
@@ -149,7 +149,7 @@ public class CsvNormalizedSpotExportTest {
 		assertFalse(result.isPersistedIn(EnumResults.PersistenceDomain.SPOT));
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void cameraAndKymoColumnsStayOnSeparateClocks() {
 		assertEquals("area_sum", CsvNormalizedSpotExport.columnName(EnumResults.FILTER_GREY));
 		assertEquals("kymo_fract", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_ROW_FRACTION));
@@ -160,7 +160,7 @@ public class CsvNormalizedSpotExportTest {
 		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.AGG_FILTER_DEPLETION));
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void spotMeasureTypesIncludeFlyPresenceWithTheSelectedBoxes() {
 		ResultsOptions options = new ResultsOptions();
 		options.spotAreas = true;
@@ -172,7 +172,7 @@ public class CsvNormalizedSpotExportTest {
 		assertEquals(EnumResults.FLY_PIXEL_COUNT, types[2]);
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void kymoRawTimesUseTheKymographBin() {
 		long[] times = CsvNormalizedSpotExport.rawTimes(null, new ResultsOptions(), EnumResults.KYMO_ROW_FRACTION, 3, null);
 		assertEquals(0L, times[0]);
@@ -180,7 +180,7 @@ public class CsvNormalizedSpotExportTest {
 		assertEquals(120000L, times[2]);
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void kymoFrameIndexesAccountForClippingAndSubsampling() {
 		long[] cameraTimes = { 0L, 1000L, 3000L, 7000L, 8000L, 11000L };
 		CsvNormalizedSpotExport.KymoFrameIndexes frames =
@@ -191,7 +191,7 @@ public class CsvNormalizedSpotExportTest {
 		assertNull(frames.at(0, 1));
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void spotFilesUseExperimentCageAndSpotKeys() throws Exception {
 		Path folder = Files.createTempDirectory("spot-csv");
 		try (CsvNormalizedSpotExportSupport csv = new CsvNormalizedSpotExportSupport(folder, Arrays.asList("area_sum"),
@@ -231,7 +231,7 @@ public class CsvNormalizedSpotExportTest {
 		return new String(Files.readAllBytes(file), java.nio.charset.StandardCharsets.UTF_8);
 	}
 
-	@Test
+	@Test(timeout = 10000)
 	public void groupIdJoinsStimulusAndConcentration() {
 		assertEquals("quinine__10mM", CsvNormalizedSpotExport.buildGroupId("quinine", "10mM"));
 	}

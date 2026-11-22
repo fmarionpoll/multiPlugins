@@ -116,10 +116,6 @@ public class ChartSpotsOverlayFrame {
 	protected JCheckBox cbSum = new JCheckBox(EnumResults.FILTER_GREY.toDisplayLabel());
 	protected JCheckBox cbNoFly = new JCheckBox(EnumResults.FILTER_GREY_FLY_MASKED.toDisplayLabel());
 	protected JCheckBox cbClean = new JCheckBox(EnumResults.FILTER_GREY_SMOOTHED.toDisplayLabel());
-	protected JCheckBox cbCleanV3 = new JCheckBox(EnumResults.FILTER_GREY_RESIDUAL.toDisplayLabel());
-//	private JCheckBox cbSumV2 = new JCheckBox("sumV2");
-//	private JCheckBox cbNoFlyV2 = new JCheckBox("sumNoFlyV2");
-//	private JCheckBox cbCleanV2 = new JCheckBox("cleanV2");
 	protected JCheckBox cbFlyPresent = new JCheckBox(EnumResults.FLY_PIXEL_COUNT.toDisplayLabel());
 	protected JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
 	protected JComboBox<SpotChoice> spotSelectorCombo = null;
@@ -268,7 +264,6 @@ public class ChartSpotsOverlayFrame {
 			row1.add(cbSum);
 			row1.add(cbNoFly);
 			row1.add(cbClean);
-			row1.add(cbCleanV3);
 			row1.add(cbFlyPresent);
 			row1.add(cbDepletion);
 		}
@@ -283,7 +278,6 @@ public class ChartSpotsOverlayFrame {
 		cbSum.addActionListener(e -> onMeasureCheckboxChanged());
 		cbNoFly.addActionListener(e -> onMeasureCheckboxChanged());
 		cbClean.addActionListener(e -> onMeasureCheckboxChanged());
-		cbCleanV3.addActionListener(e -> onMeasureCheckboxChanged());
 		cbFlyPresent.addActionListener(e -> onMeasureCheckboxChanged());
 		cbDepletion.addActionListener(e -> refreshChart());
 
@@ -305,33 +299,25 @@ public class ChartSpotsOverlayFrame {
 
 	protected void setCheckboxDefaults(ResultsOptions options) {
 		EnumResults rt = options != null ? options.resultType : null;
-		if (isV5NativeSpotChartMeasure(rt) || SpotLineSampling.isLineMeasure(rt)) {
+		if (isColorSpotChartMeasure(rt) || SpotLineSampling.isLineMeasure(rt)) {
 			cbSum.setSelected(false);
 			cbNoFly.setSelected(false);
 			cbClean.setSelected(false);
-			cbCleanV3.setSelected(false);
 			cbFlyPresent.setSelected(false);
 			return;
 		}
 		cbSum.setSelected(resultLabelEquals(rt, "AREA_SUM"));
 		cbNoFly.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY"));
 		cbClean.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN"));
-		cbCleanV3.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN_V3"));
-//		cbSumV2.setSelected(resultLabelEquals(rt, "AREA_SUM_V2"));
-//		cbNoFlyV2.setSelected(resultLabelEquals(rt, "AREA_SUMNOFLY_V2"));
-//		cbCleanV2.setSelected(resultLabelEquals(rt, "AREA_SUMCLEAN_V2"));
 		cbFlyPresent.setSelected(resultLabelEquals(rt, "AREA_FLYPRESENT"));
-		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbCleanV3.isSelected() //
-//				&& !cbSumV2.isSelected()&& !cbNoFlyV2.isSelected() && !cbCleanV2.isSelected() //
-				&& !cbFlyPresent.isSelected()) {
+		if (!cbSum.isSelected() && !cbNoFly.isSelected() && !cbClean.isSelected() && !cbFlyPresent.isSelected()) {
 			cbClean.setSelected(true);
 		}
 	}
 
-	/** V5/V6 per-spot scalars: chart uses {@link ResultsOptions#resultType}. */
-	protected static boolean isV5NativeSpotChartMeasure(EnumResults rt) {
-		return rt == EnumResults.FILTER_V5_PIXEL_COUNT || rt == EnumResults.FILTER_V5_GREY || rt == EnumResults.FILTER_V5_GREY_PRE_GATE
-				|| rt == EnumResults.FILTER_V5_GREY_SMOOTHED || rt == EnumResults.COLOR_PIXEL_COUNT
+	/** Color per-spot scalars: chart uses {@link ResultsOptions#resultType}. */
+	protected static boolean isColorSpotChartMeasure(EnumResults rt) {
+		return rt == EnumResults.COLOR_PIXEL_COUNT
 				|| rt == EnumResults.COLOR_GREY || rt == EnumResults.COLOR_GREY_PRE_GATE
 				|| rt == EnumResults.COLOR_GREY_SMOOTHED;
 	}
@@ -358,20 +344,11 @@ public class ChartSpotsOverlayFrame {
 			return;
 
 		// Keep the first checked in a stable priority order.
-		JCheckBox keep = // cbCleanV2.isSelected() ? cbCleanV2
-				// : cbNoFlyV2.isSelected() ? cbNoFlyV2
-				// : cbSumV2.isSelected() ? cbSumV2
-				// : //
-				cbCleanV3.isSelected() ? cbCleanV3
-						: cbClean.isSelected() ? cbClean
+		JCheckBox keep = cbClean.isSelected() ? cbClean
 								: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
 		cbSum.setSelected(keep == cbSum);
 		cbNoFly.setSelected(keep == cbNoFly);
 		cbClean.setSelected(keep == cbClean);
-		cbCleanV3.setSelected(keep == cbCleanV3);
-//		cbSumV2.setSelected(keep == cbSumV2);
-//		cbNoFlyV2.setSelected(keep == cbNoFlyV2);
-//		cbCleanV2.setSelected(keep == cbCleanV2);
 		cbFlyPresent.setSelected(keep == cbFlyPresent);
 	}
 
@@ -383,13 +360,9 @@ public class ChartSpotsOverlayFrame {
 			n++;
 		if (cbClean.isSelected())
 			n++;
-		if (cbCleanV3.isSelected())
 			n++;
-//		if (cbSumV2.isSelected())
 //			n++;
-//		if (cbNoFlyV2.isSelected())
 //			n++;
-//		if (cbCleanV2.isSelected())
 //			n++;
 		if (cbFlyPresent.isSelected())
 			n++;
@@ -684,17 +657,9 @@ public class ChartSpotsOverlayFrame {
 			addResultIfDefined(out, "AREA_SUMNOFLY");
 		if (cbClean.isSelected())
 			addResultIfDefined(out, "AREA_SUMCLEAN");
-		if (cbCleanV3.isSelected())
-			addResultIfDefined(out, "AREA_SUMCLEAN_V3");
-//		if (cbSumV2.isSelected())
-//			addResultIfDefined(out, "AREA_SUM_V2");
-//		if (cbNoFlyV2.isSelected())
-//			addResultIfDefined(out, "AREA_SUMNOFLY_V2");
-//		if (cbCleanV2.isSelected())
-//			addResultIfDefined(out, "AREA_SUMCLEAN_V2");
 		if (cbFlyPresent.isSelected())
 			addResultIfDefined(out, "AREA_FLYPRESENT");
-		if (out.isEmpty() && options != null && isV5NativeSpotChartMeasure(options.resultType)) {
+		if (out.isEmpty() && options != null && isColorSpotChartMeasure(options.resultType)) {
 			out.add(options.resultType);
 		}
 		return out;
@@ -779,14 +744,6 @@ public class ChartSpotsOverlayFrame {
 			return new Color(0, 102, 204);
 		case FILTER_GREY_SMOOTHED:
 			return new Color(0, 153, 0);
-		case FILTER_GREY_RESIDUAL:
-			return new Color(90, 170, 130);
-		case FILTER_GREY_CONTRAST:
-			return new Color(80, 80, 80);
-		case FILTER_GREY_CONTRAST_MASKED:
-			return new Color(60, 140, 230);
-		case FILTER_GREY_CONTRAST_SMOOTHED:
-			return new Color(60, 180, 90);
 		case FLY_PIXEL_COUNT:
 			return new Color(153, 0, 153);
 		default:
@@ -798,33 +755,15 @@ public class ChartSpotsOverlayFrame {
 			List<EnumResults> enabledMeasures, boolean flyDatasetSlice) {
 		XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
 		SeriesStyleCodec.applySeriesPaintsFromDescription(dataset, renderer);
-		applyV2StrokeHints(dataset, renderer);
 		customizeSpotOverlayRendererStrokes(dataset, renderer, overlaySpots, enabledMeasures, flyDatasetSlice);
 		return renderer;
 	}
 
 	/**
-	 * Optional per-subclass styling after {@link #applyV2StrokeHints}. {@code flyDatasetSlice} is true for the
 	 * fly-only range axis dataset when split axes are used.
 	 */
 	protected void customizeSpotOverlayRendererStrokes(XYSeriesCollection dataset, XYLineAndShapeRenderer renderer,
 			boolean overlaySpots, List<EnumResults> enabledMeasures, boolean flyDatasetSlice) {
-	}
-
-	private static void applyV2StrokeHints(XYSeriesCollection dataset, XYLineAndShapeRenderer renderer) {
-		if (dataset == null || renderer == null) {
-			return;
-		}
-		java.awt.Stroke solid = new java.awt.BasicStroke(1.6f);
-		java.awt.Stroke dashed = new java.awt.BasicStroke(1.6f, java.awt.BasicStroke.CAP_BUTT,
-				java.awt.BasicStroke.JOIN_BEVEL, 0f, new float[] { 6f, 5f }, 0f);
-		for (int i = 0; i < dataset.getSeriesCount(); i++) {
-			String key = String.valueOf(dataset.getSeriesKey(i));
-			boolean v2 = key.contains("AREA_SUM_V2") || key.contains("AREA_SUMNOFLY_V2")
-					|| key.contains("AREA_SUMCLEAN_V2") || key.contains("_V2");
-			boolean v3 = key.contains("AREA_SUMCLEAN_V3");
-			renderer.setSeriesStroke(i, (v2 || v3) ? dashed : solid);
-		}
 	}
 
 	private static void applySpotStyle(Experiment exp, Spot spot, XYSeries series, Color color) {

@@ -137,59 +137,9 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_AREA_SUMNOFLY(), "AREA_SUMNOFLY", PersistenceDomain.SPOT),
 	FILTER_GREY_SMOOTHED("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMCLEAN(), "AREA_SUMCLEAN", PersistenceDomain.SPOT),
-	/**
-	 * V2 spot consumption signal (separate channel): background-corrected and/or
-	 * robust statistics version of FILTER_GREY. Used for side-by-side comparison with
-	 * legacy FILTER_GREY without changing legacy outputs.
-	 */
-	FILTER_GREY_CONTRAST("AREA_SUM_V2", "grey value", "Consumption V2 (comparison channel)",
-			StoredDataAccessors.accessStored_AREA_SUM_V2(), "AREA_SUM_V2", PersistenceDomain.SPOT),
-	FILTER_GREY_CONTRAST_MASKED("AREA_SUMNOFLY_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
-			StoredDataAccessors.accessStored_AREA_SUMNOFLY_V2(), "AREA_SUMNOFLY_V2", PersistenceDomain.SPOT),
-	FILTER_GREY_CONTRAST_SMOOTHED("AREA_SUMCLEAN_V2", "grey value - no fly, filter", "Consumption V2 (estimated/threshold)",
-			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V2(), "AREA_SUMCLEAN_V2", PersistenceDomain.SPOT),
-	/**
-	 * V3 Tier A: per-spot {@code sumClean} shifted by an early-bin median, minus
-	 * the per-bin median of those shifted values over a pool (whole experiment or
-	 * per cage), optionally smoothed.
-	 */
-	FILTER_GREY_RESIDUAL("AREA_SUMCLEAN_V3", "grey value - median (V3)", "Consumption V3 (residual vs pooled median)",
-			StoredDataAccessors.accessStored_AREA_SUMCLEAN_V3(), "AREA_SUMCLEAN_V3", PersistenceDomain.SPOT),
-	AREA_OUT("AREA_OUT", "pixel grey value", "background", StoredDataAccessors.accessStored_AREA_OUT()),
-	AREA_DIFF("AREA_DIFF", "grey value - background", "diff", StoredDataAccessors.accessStored_AREA_DIFF()),
+
 	FLY_PIXEL_COUNT("AREA_FLYPRESENT", "% of spot ROI", "Fly occupancy over the spot (% of ROI pixels)",
 			StoredDataAccessors.accessStored_AREA_FLYPRESENT(), "AREA_FLYPRESENT", PersistenceDomain.SPOT),
-
-	/**
-	 * V5: count of ROI pixels above spot threshold (NaN when fly-pixel count ≥
-	 * legacy occupancy gate, see
-	 * {@link plugins.fmp.multitools.experiment.spots.Spots#getMinFlyPixelsForOccupancyGate}).
-	 */
-	FILTER_V5_PIXEL_COUNT("AREA_COUNT_V5", "pixels", "Over-threshold spot pixels (V5)",
-			StoredDataAccessors.accessStored_AREA_COUNT_V5(), "AREA_COUNT_V5", PersistenceDomain.SPOT),
-	/**
-	 * V5: sum of spot-channel grey on over-threshold pixels, divided by ROI pixel
-	 * count (same scale as legacy {@code FILTER_GREY}; NaN under same fly gate as
-	 * {@link #FILTER_V5_PIXEL_COUNT}).
-	 */
-	FILTER_V5_GREY("GREY_SUM_V5", "grey / ROI px",
-			"Grey on over-threshold pixels / all ROI pixels (V5, legacy AREA_SUM scale)",
-			StoredDataAccessors.accessStored_GREY_SUM_V5(), "GREY_SUM_V5", PersistenceDomain.SPOT),
-	/**
-	 * V5 diagnostic: same grey as {@link #FILTER_V5_GREY} but written before the
-	 * fly-occupancy gate sets bins to NaN (still NaN where the fly mask prevents
-	 * computing scalars). Filled during camera V5 detection.
-	 */
-	FILTER_V5_GREY_PRE_GATE("GREY_SUM_V5_PREFLY", "grey / ROI px",
-			"V5 grey on over-threshold pixels / ROI before fly-occupancy NaN gate",
-			StoredDataAccessors.accessStored_GREY_SUM_V5_PREFLY(), "GREY_SUM_V5_PREFLY", PersistenceDomain.SPOT),
-	/**
-	 * V5: running-median smooth of {@link #FILTER_V5_GREY} (span 10, NaN-robust; same
-	 * spirit as legacy {@code FILTER_GREY_SMOOTHED} from {@code sumNoFly}).
-	 */
-	FILTER_V5_GREY_SMOOTHED("GREY_SUM_CLEAN_V5", "grey / ROI px",
-			"V5 grey: NaN gaps bridged, optional upward spike trim vs local median, then running median of GREY_SUM_V5",
-			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V5(), "GREY_SUM_CLEAN_V5", PersistenceDomain.SPOT),
 
 	/**
 	 * Computed cage-level aggregate: sum over spots grouped by (stimulus,
@@ -201,25 +151,7 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_SUMCLEAN"),
 
 	/**
-	 * Same grouping and normalization as {@link #AGG_FILTER_DEPLETION}, but each spot's
-	 * intensity trace is {@link #FILTER_V5_GREY_SMOOTHED} (median-smoothed V5 grey)
-	 * instead of legacy {@code FILTER_GREY_SMOOTHED}.
-	 */
-	AGG_FILTER_V5_DEPLETION("AGG_SUMCLEAN_V5", "spots consumed (0..N)",
-			"Sum of per-spot normalized depletion from the smoothed V5 grey signal by compound and concentration within each cage.",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_SUMCLEAN_V5"),
-
-	/**
-	 * Cage-level aggregate: sum over spots grouped by (stimulus, concentration) of
-	 * per-bin {@link #FILTER_V5_PIXEL_COUNT} (over-threshold pixel counts). Not persisted
-	 * on spots.
-	 */
-	AGG_FILTER_V5_PIXEL_SUM("AGG_AREA_COUNT_V5", "pixels",
-			"Sum of selected pixel counts by compound and concentration within each cage.",
-			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_AREA_COUNT_V5"),
-
-	/**
-	 * Color-distance spot detection — same roles as V5 counterparts. On-disk keys
+	 * Color-distance spot detection. On-disk keys
 	 * remain {@code *_V6}.
 	 */
 	COLOR_PIXEL_COUNT("AREA_COUNT_COLOR", "pixels", "Over-threshold spot pixels (color-distance)",
@@ -229,7 +161,7 @@ public enum EnumResults {
 	COLOR_GREY_PRE_GATE("GREY_SUM_COLOR_PREFLY", "grey / ROI px", "Color-distance grey before fly-occupancy NaN gate",
 			StoredDataAccessors.accessStored_GREY_SUM_V6_PREFLY(), "GREY_SUM_V6_PREFLY", PersistenceDomain.SPOT),
 	COLOR_GREY_SMOOTHED("GREY_SUM_CLEAN_COLOR", "grey / ROI px",
-			"Color-distance grey: cleaned from GREY_SUM_COLOR (same pipeline as V5)",
+			"Color-distance grey: cleaned from GREY_SUM_COLOR",
 			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V6(), "GREY_SUM_CLEAN_V6", PersistenceDomain.SPOT),
 	AGG_COLOR_DEPLETION("AGG_SUMCLEAN_COLOR", "spots consumed (0..N)",
 			"Sum of per-spot normalized depletion from the smoothed color-distance grey signal by compound and concentration within each cage.",
@@ -363,24 +295,8 @@ public enum EnumResults {
 			return "Normalized grey signal (fly pixels excluded)";
 		case FILTER_GREY_SMOOTHED:
 			return "Normalized grey signal (median-smoothed)";
-		case FILTER_GREY_CONTRAST:
-			return "Background-corrected foreground grey";
-		case FILTER_GREY_CONTRAST_MASKED:
-			return "Background-corrected grey (fly pixels excluded)";
-		case FILTER_GREY_CONTRAST_SMOOTHED:
-			return "Background-corrected grey (median-smoothed)";
-		case FILTER_GREY_RESIDUAL:
-			return "Grey-signal residual vs. pooled median";
 		case FLY_PIXEL_COUNT:
 			return "Fly coverage (%)";
-		case FILTER_V5_PIXEL_COUNT:
-			return "Selected pixel count (filter V5)";
-		case FILTER_V5_GREY:
-			return "Normalized grey signal (V5, occupied bins omitted)";
-		case FILTER_V5_GREY_PRE_GATE:
-			return "Normalized grey signal (V5, before occupancy check)";
-		case FILTER_V5_GREY_SMOOTHED:
-			return "Normalized grey signal (V5, gap-filled and smoothed)";
 		case COLOR_PIXEL_COUNT:
 			return "Selected pixel count (color distance)";
 		case COLOR_GREY:
@@ -403,12 +319,8 @@ public enum EnumResults {
 			return "Rim coverage relative to initial baseline";
 		case AGG_FILTER_DEPLETION:
 			return "Total estimated depletion · Image filter";
-		case AGG_FILTER_V5_DEPLETION:
-			return "Total estimated depletion · Image filter V5";
 		case AGG_COLOR_DEPLETION:
 			return "Total estimated depletion · Color distance";
-		case AGG_FILTER_V5_PIXEL_SUM:
-			return "Total selected pixels · Image filter V5";
 		case AGG_COLOR_PIXEL_SUM:
 			return "Total selected pixels · Color distance";
 		case AGG_KYMO_HEIGHT_LOSS:
@@ -470,13 +382,7 @@ public enum EnumResults {
 		case FILTER_GREY_FLY_MASKED:
 		case FILTER_GREY_SMOOTHED:
 		case FLY_PIXEL_COUNT:
-		case FILTER_V5_PIXEL_COUNT:
-		case FILTER_V5_GREY:
-		case FILTER_V5_GREY_PRE_GATE:
-		case FILTER_V5_GREY_SMOOTHED:
 		case AGG_FILTER_DEPLETION:
-		case AGG_FILTER_V5_DEPLETION:
-		case AGG_FILTER_V5_PIXEL_SUM:
 		case COLOR_PIXEL_COUNT:
 		case COLOR_GREY:
 		case COLOR_GREY_PRE_GATE:

@@ -2,6 +2,7 @@ package plugins.fmp.multitools.experiment.spot;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -12,7 +13,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.test.InMemoryImageRule;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -23,16 +23,12 @@ public class SpotMeasurementsPersistenceTest {
 	@ClassRule
 	public static final InMemoryImageRule imageMemory = new InMemoryImageRule();
 
-
-
 	@Rule
 	public TemporaryFolder folder = new TemporaryFolder();
 
-	@Test
-	public void spotMeasurementsRoundTripThroughSharedResultsDirectory() {
-		Experiment experiment = new Experiment();
-		experiment.setResultsDirectory(folder.getRoot().getAbsolutePath());
-		Spots spots = experiment.getSpots();
+	@Test(timeout = 10000)
+	public void spotMeasurementsRoundTripThroughSharedResultsDirectory() throws Exception {
+		Spots spots = new Spots();
 		Spot spot = new Spot();
 		spot.getProperties().setName("spotA");
 		spots.addSpot(spot);
@@ -43,8 +39,12 @@ public class SpotMeasurementsPersistenceTest {
 				spot.getMeasurements(result).setValues(new double[] { result.ordinal(), Double.NaN, 0.5 });
 			}
 		}
-		assertTrue(experiment.save_spots_description_and_measures());
-		assertTrue(experiment.save_kymo_spot_measures());
+		assertTrue(spots.getPersistence().saveMeasures(spots, folder.getRoot().getAbsolutePath(), true));
+		String persisted = new String(Files.readAllBytes(folder.getRoot().toPath().resolve("SpotsMeasures.csv")),
+				StandardCharsets.UTF_8);
+		assertFalse(persisted.matches("(?s).*_(?:V2|V3|V5)(?:;|_).*"));
+		assertFalse(persisted.contains("AREA_OUT"));
+		assertFalse(persisted.contains("AREA_DIFF"));
 
 		Spots reloaded = new Spots();
 		assertTrue(reloaded.getPersistence().loadMeasures(reloaded, folder.getRoot().getAbsolutePath()));

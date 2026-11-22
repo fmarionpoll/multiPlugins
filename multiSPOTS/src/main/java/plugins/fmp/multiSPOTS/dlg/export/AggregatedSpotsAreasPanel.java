@@ -27,8 +27,8 @@ public class AggregatedSpotsAreasPanel extends JPanel {
 	private static final long serialVersionUID = 1L;
 
 	private static final EnumResults[] FRAME_MEASURES = { EnumResults.AGG_FILTER_DEPLETION,
-			EnumResults.AGG_FILTER_V5_DEPLETION, EnumResults.AGG_COLOR_DEPLETION,
-			EnumResults.AGG_FILTER_V5_PIXEL_SUM, EnumResults.AGG_COLOR_PIXEL_SUM,
+			EnumResults.AGG_COLOR_DEPLETION,
+			EnumResults.AGG_COLOR_PIXEL_SUM,
 			EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
 	private static final EnumResults[] KYMO_MEASURES = { EnumResults.AGG_KYMO_HEIGHT_LOSS };
 

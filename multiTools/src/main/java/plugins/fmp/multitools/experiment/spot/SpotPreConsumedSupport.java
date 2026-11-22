@@ -170,9 +170,6 @@ public final class SpotPreConsumedSupport {
 		setMeasureT0(spot.getSmoothedFlyPixelExcludedGreySignal(), reference);
 		setMeasureT0(spot.getRoiNormalizedGreySignal(), reference);
 		setMeasureT0(spot.getFlyPixelExcludedGreySignal(), reference);
-		setMeasureT0(spot.getSmoothedForegroundContrast(), reference);
-		setMeasureT0(spot.getBackgroundCorrectedForegroundGrey(), reference);
-		setMeasureT0(spot.getFlyPixelExcludedForegroundContrast(), reference);
 	}
 
 	private static void setMeasureT0(SpotMeasure measure, double reference) {

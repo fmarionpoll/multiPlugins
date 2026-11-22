@@ -36,18 +36,8 @@ public abstract class XLSExportSpots extends XLSExport {
 			case FILTER_GREY:
 			case FILTER_GREY_FLY_MASKED:
 			case FILTER_GREY_SMOOTHED:
-			case FILTER_GREY_CONTRAST:
-			case FILTER_GREY_CONTRAST_MASKED:
-			case FILTER_GREY_CONTRAST_SMOOTHED:
-			case FILTER_GREY_RESIDUAL:
 			case FLY_PIXEL_COUNT:
-			case FILTER_V5_PIXEL_COUNT:
-			case FILTER_V5_GREY:
-			case FILTER_V5_GREY_PRE_GATE:
-			case FILTER_V5_GREY_SMOOTHED:
 			case AGG_FILTER_DEPLETION:
-			case AGG_FILTER_V5_DEPLETION:
-			case AGG_FILTER_V5_PIXEL_SUM:
 			case COLOR_PIXEL_COUNT:
 			case COLOR_GREY:
 			case COLOR_GREY_PRE_GATE:
@@ -85,9 +75,7 @@ public abstract class XLSExportSpots extends XLSExport {
 	}
 
 	public static boolean hasAnySpotMeasureSelected(ResultsOptions o) {
-		return o != null && o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.sumV2 || o.spotSumNoFlyV2
-				|| o.spotSumCleanV2 || o.spotAggregateByStimulusConc || o.spotAreaCountV5 || o.spotGreySumV5
-				|| o.spotGreySumCleanV5 || o.spotAreaCountColor || o.spotGreySumColor || o.spotGreySumCleanColor
+		return o != null && o.spotAreas && (o.sum || o.spotSumNoFly || o.spotSumClean || o.spotAggregateByStimulusConc || o.spotAreaCountColor || o.spotGreySumColor || o.spotGreySumCleanColor
 				|| o.spotKymoFract || o.spotKymoAbsDelta || o.spotKymoGreenHeight || o.spotKymoGreenHeightRatio
 				|| o.spotCrossRatio || o.spotRimRatio);
 	}
@@ -111,24 +99,7 @@ public abstract class XLSExportSpots extends XLSExport {
 		if (o.spotSumClean) {
 			list.add(EnumResults.FILTER_GREY_SMOOTHED);
 		}
-		if (o.sumV2) {
-			list.add(EnumResults.FILTER_GREY_CONTRAST);
-		}
-		if (o.spotSumNoFlyV2) {
-			list.add(EnumResults.FILTER_GREY_CONTRAST_MASKED);
-		}
-		if (o.spotSumCleanV2) {
-			list.add(EnumResults.FILTER_GREY_CONTRAST_SMOOTHED);
-		}
-		if (o.spotAreaCountV5) {
-			list.add(EnumResults.FILTER_V5_PIXEL_COUNT);
-		}
-		if (o.spotGreySumV5) {
-			list.add(EnumResults.FILTER_V5_GREY);
-		}
-		if (o.spotGreySumCleanV5) {
-			list.add(EnumResults.FILTER_V5_GREY_SMOOTHED);
-		}
+
 		if (o.spotAreaCountColor) {
 			list.add(EnumResults.COLOR_PIXEL_COUNT);
 		}
@@ -239,7 +210,7 @@ public abstract class XLSExportSpots extends XLSExport {
 
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_NFLIES, transpose,
 				cage.getProperties().getCageNFlies());
-		
+
 		XLSUtils.setValueAtColumn(sheet, pt, EnumXLSColumnHeader.SPOT_COLOR, transpose,
 				ColorUtils.getFriendlyColorName(resolveSpotColor(spot)));
 

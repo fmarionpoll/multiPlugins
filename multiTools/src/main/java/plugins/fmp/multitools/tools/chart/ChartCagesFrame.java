@@ -467,8 +467,6 @@ public class ChartCagesFrame extends IcyFrame {
 
 		ChartCageBuild.initMaxMin();
 		if ((resultsOptions.resultType == EnumResults.AGG_FILTER_DEPLETION
-				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_DEPLETION
-				|| resultsOptions.resultType == EnumResults.AGG_FILTER_V5_PIXEL_SUM
 				|| resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION
 				|| resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| resultsOptions.resultType == EnumResults.CAGE_GREY_MEDIAN) && experiment != null

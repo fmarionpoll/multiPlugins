@@ -21,8 +21,7 @@ public class SpotsAreasPanel extends JPanel {
 	private static final long serialVersionUID = 1290058998782225526L;
 
 	private static final EnumResults[] FRAME_MEASURES = { EnumResults.FILTER_GREY, EnumResults.FILTER_GREY_FLY_MASKED,
-			EnumResults.FILTER_GREY_SMOOTHED, EnumResults.FILTER_V5_PIXEL_COUNT, EnumResults.FILTER_V5_GREY,
-			EnumResults.FILTER_V5_GREY_SMOOTHED, EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO };
+			EnumResults.FILTER_GREY_SMOOTHED, EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO };
 
 	private static final EnumResults[] KYMO_MEASURES = { EnumResults.KYMO_ROW_FRACTION,
 			EnumResults.KYMO_ROW_FRACTION_CHANGE, EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_GREEN_HEIGHT_RATIO };
@@ -69,9 +68,6 @@ public class SpotsAreasPanel extends JPanel {
 		options.sum = exports(EnumResults.FILTER_GREY);
 		options.spotSumNoFly = exports(EnumResults.FILTER_GREY_FLY_MASKED);
 		options.spotSumClean = exports(EnumResults.FILTER_GREY_SMOOTHED);
-		options.spotAreaCountV5 = exports(EnumResults.FILTER_V5_PIXEL_COUNT);
-		options.spotGreySumV5 = exports(EnumResults.FILTER_V5_GREY);
-		options.spotGreySumCleanV5 = exports(EnumResults.FILTER_V5_GREY_SMOOTHED);
 		options.spotCrossRatio = exports(EnumResults.KYMO_CROSS_RATIO);
 		options.spotRimRatio = exports(EnumResults.KYMO_RIM_RATIO);
 		options.spotKymoFract = exports(EnumResults.KYMO_ROW_FRACTION);

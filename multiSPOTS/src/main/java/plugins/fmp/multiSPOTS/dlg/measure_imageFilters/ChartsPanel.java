@@ -45,10 +45,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;
 
 	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.FILTER_GREY, EnumResults.FILTER_GREY_FLY_MASKED,
-			EnumResults.FILTER_GREY_SMOOTHED, EnumResults.FILTER_GREY_RESIDUAL, //
-			// EnumResults.FILTER_GREY_CONTRAST, EnumResults.FILTER_GREY_CONTRAST_MASKED,
-			// EnumResults.FILTER_GREY_CONTRAST_SMOOTHED, //
-			EnumResults.FLY_PIXEL_COUNT, EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_FILTER_V5_DEPLETION,
+			EnumResults.FILTER_GREY_SMOOTHED, EnumResults.FLY_PIXEL_COUNT, EnumResults.AGG_FILTER_DEPLETION,
 			EnumResults.CAGE_GREY_MEDIAN, EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO,
 			EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
 	private ChartCagesFrame chartCageArrayFrame = null;
@@ -229,8 +226,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if ((exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.AGG_FILTER_V5_DEPLETION
-				|| exportType == EnumResults.CAGE_GREY_MEDIAN) && displaySelectedSpotsButton.isSelected()) {
+		if ((exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.CAGE_GREY_MEDIAN) && displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
 
@@ -253,8 +249,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		boolean agg = exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.AGG_FILTER_V5_DEPLETION
-				|| exportType == EnumResults.CAGE_GREY_MEDIAN;
+		boolean agg = exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.CAGE_GREY_MEDIAN;
 		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs)
 				.withResultType(exportType).withCageRange(first, last).build();
@@ -310,8 +305,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
 				.withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AGG_FILTER_DEPLETION && exportType != EnumResults.AGG_FILTER_V5_DEPLETION
-				&& exportType != EnumResults.CAGE_GREY_MEDIAN && !SpotLineSampling.isLineMeasure(exportType)
+		options.relativeToMaximum = exportType != EnumResults.AGG_FILTER_DEPLETION && exportType != EnumResults.CAGE_GREY_MEDIAN && !SpotLineSampling.isLineMeasure(exportType)
 				&& relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
@@ -370,7 +364,6 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	private void updateMeasureDependentControls() {
 		boolean aggStep = exportTypeComboBox != null
 				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
-						|| exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_V5_DEPLETION
 						|| exportTypeComboBox.getSelectedItem() == EnumResults.CAGE_GREY_MEDIAN);
 		boolean aggMedianUi = exportTypeComboBox != null
 				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
@@ -448,7 +441,6 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
 		EnumResults probe = option == EnumResults.AGG_FILTER_DEPLETION ? EnumResults.FILTER_GREY_SMOOTHED
-				: option == EnumResults.AGG_FILTER_V5_DEPLETION ? EnumResults.FILTER_V5_GREY_SMOOTHED
 						: option == EnumResults.CAGE_GREY_MEDIAN ? EnumResults.FILTER_GREY : SpotLineSampling.source(option);
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {

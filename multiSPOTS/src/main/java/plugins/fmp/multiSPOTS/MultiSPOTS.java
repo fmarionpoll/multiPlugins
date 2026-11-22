@@ -71,8 +71,6 @@ public class MultiSPOTS extends PluginActionable {
 	public void closeAllGraphWindows() {
 		if (dlgMeasure != null && dlgMeasure.chartsPanel != null)
 			dlgMeasure.chartsPanel.closeAllCharts();
-		if (dlgMeasure != null && dlgMeasure.chartsV5Panel != null)
-			dlgMeasure.chartsV5Panel.closeAllCharts();
 		if (dlgMeasureColor != null && dlgMeasureColor.chartsColorPanel != null)
 			dlgMeasureColor.chartsColorPanel.closeAllCharts();
 		if (dlgKymos != null && dlgKymos.tabKymoGraph != null)

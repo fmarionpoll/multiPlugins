@@ -217,8 +217,7 @@ public final class CsvNormalizedSpotExport {
 	}
 
 	private static EnumResults[] allCameraAggregateTypes() {
-		return new EnumResults[] { EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_FILTER_V5_DEPLETION,
-				EnumResults.AGG_COLOR_DEPLETION, EnumResults.AGG_FILTER_V5_PIXEL_SUM, EnumResults.AGG_COLOR_PIXEL_SUM,
+		return new EnumResults[] { EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_COLOR_DEPLETION, EnumResults.AGG_COLOR_PIXEL_SUM,
 				EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
 	}
 
@@ -454,7 +453,7 @@ public final class CsvNormalizedSpotExport {
 			NativeRow rowB = b.raw.get(time);
 			Integer frame = rowA != null ? rowA.frameIndex : rowB.frameIndex;
 			for (EnumResults type : types) {
-				if (type == EnumResults.AGG_FILTER_V5_PIXEL_SUM || type == EnumResults.AGG_COLOR_PIXEL_SUM) {
+				if (type == EnumResults.AGG_COLOR_PIXEL_SUM) {
 					continue;
 				}
 				String col = columnName(type);

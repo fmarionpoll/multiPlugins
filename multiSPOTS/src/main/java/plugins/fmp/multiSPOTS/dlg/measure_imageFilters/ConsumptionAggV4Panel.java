@@ -20,11 +20,6 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.results.AggSumCleanPolicy;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 
-/**
- * V4: evaluation policies for {@code AGG_FILTER_DEPLETION} and {@code AGG_FILTER_V5_DEPLETION}
- * (baseline skip, common-mode drift, fly guard, reference-stimulus drift).
- * Charts read policy via {@link #applyPolicyInto(ResultsOptions)}.
- */
 public class ConsumptionAggV4Panel extends JPanel implements PropertyChangeListener {
 	private static final long serialVersionUID = 1L;
 

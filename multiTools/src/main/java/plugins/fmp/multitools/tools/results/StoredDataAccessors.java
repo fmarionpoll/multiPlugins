@@ -233,13 +233,6 @@ public class StoredDataAccessors {
 		};
 	}
 
-	public static MeasurementComputation accessStored_AREA_SUM_V2() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_SUM_V2 uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
 	/**
 	 * Accesses stored FILTER_GREY_SMOOTHED data from Spot measurements. Used via:
 	 * spot.getMeasurements(FILTER_GREY_SMOOTHED)
@@ -248,13 +241,6 @@ public class StoredDataAccessors {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
 					"AREA_SUMNOFLY uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	public static MeasurementComputation accessStored_AREA_SUMNOFLY_V2() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_SUMNOFLY_V2 uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
 		};
 	}
 
@@ -269,42 +255,6 @@ public class StoredDataAccessors {
 		};
 	}
 
-	public static MeasurementComputation accessStored_AREA_SUMCLEAN_V2() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_SUMCLEAN_V2 uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	public static MeasurementComputation accessStored_AREA_SUMCLEAN_V3() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_SUMCLEAN_V3 uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	/**
-	 * Accesses stored AREA_OUT data from Spot measurements. Used via:
-	 * spot.getMeasurements(AREA_OUT)
-	 */
-	public static MeasurementComputation accessStored_AREA_OUT() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_OUT uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	/**
-	 * Accesses stored AREA_DIFF data from Spot measurements. Used via:
-	 * spot.getMeasurements(AREA_DIFF)
-	 */
-	public static MeasurementComputation accessStored_AREA_DIFF() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_DIFF uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
 	/**
 	 * Accesses stored FLY_PIXEL_COUNT data from Spot measurements. Used via:
 	 * spot.getMeasurements(FLY_PIXEL_COUNT)
@@ -313,34 +263,6 @@ public class StoredDataAccessors {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(
 					"AREA_FLYPRESENT uses stored data from Spot measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	public static MeasurementComputation accessStored_AREA_COUNT_V5() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"AREA_COUNT_V5 uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	public static MeasurementComputation accessStored_GREY_SUM_V5() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"GREY_SUM_V5 uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	public static MeasurementComputation accessStored_GREY_SUM_V5_PREFLY() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"GREY_SUM_V5_PREFLY uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
-		};
-	}
-
-	public static MeasurementComputation accessStored_GREY_SUM_CLEAN_V5() {
-		return (exp, cap, options) -> {
-			throw new UnsupportedOperationException(
-					"GREY_SUM_CLEAN_V5 uses stored data from Spot V5 measurements - access via spot.getMeasurements(), not computation");
 		};
 	}
 

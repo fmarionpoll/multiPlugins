@@ -29,10 +29,6 @@ public class AxisOptions extends JPanel {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	/**
-	 * Wide bounds so measures like {@code FILTER_V5_GREY} (large sums) stay within the
-	 * {@link SpinnerNumberModel}; otherwise the editor becomes invalid and appears disabled.
-	 */
 	private static final double AXIS_SPINNER_MIN = -1e15;
 	private static final double AXIS_SPINNER_MAX = 1e15;
 
