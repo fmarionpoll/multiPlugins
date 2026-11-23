@@ -7,6 +7,8 @@ import java.awt.Insets;
 
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
+import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
 
@@ -31,6 +33,31 @@ public final class SpotsMeasuresUi {
 					boolean selected, boolean hasFocus) {
 				Object label = value instanceof EnumResults ? ((EnumResults) value).toDisplayLabel() : value;
 				return super.getListCellRendererComponent(list, label, index, selected, hasFocus);
+			}
+		});
+		Runnable updateTooltip = () -> {
+			Object selected = selector.getSelectedItem();
+			selector.setToolTipText(selected instanceof EnumResults ? ((EnumResults) selected).toTitle() : null);
+		};
+		selector.addActionListener(event -> updateTooltip.run());
+		updateTooltip.run();
+	}
+
+	/** Short measure token in the list, explanation from {@link EnumResults#toTitle()} on the tooltip. */
+	public static void showMeasurementNames(JComboBox<EnumResults> selector) {
+		selector.setRenderer(new DefaultListCellRenderer() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected,
+					boolean hasFocus) {
+				Component row = super.getListCellRendererComponent(list, value, index, selected, hasFocus);
+				if (value instanceof EnumResults && row instanceof JLabel) {
+					EnumResults measure = (EnumResults) value;
+					((JLabel) row).setText(measure.toString());
+					((JComponent) row).setToolTipText(measure.toTitle());
+				}
+				return row;
 			}
 		});
 		Runnable updateTooltip = () -> {

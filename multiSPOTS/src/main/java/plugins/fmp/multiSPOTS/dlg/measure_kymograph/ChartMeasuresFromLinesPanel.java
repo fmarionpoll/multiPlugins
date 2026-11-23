@@ -51,7 +51,8 @@ public class ChartMeasuresFromLinesPanel extends JPanel {
 			EnumResults.AGG_KYMO_HEIGHT_LOSS,
 			EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE,
 			EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,
-			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
+			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA, EnumResults.KYMO_CROSS_RATIO, EnumResults.AGG_KYMO_CROSS_LOSS,
+			EnumResults.KYMO_RIM_RATIO, EnumResults.AGG_KYMO_RIM_LOSS };
 
 	private final MultiSPOTS parent0;
 	private final KymoAnalysisPanel analysisPanel;
@@ -103,7 +104,7 @@ public class ChartMeasuresFromLinesPanel extends JPanel {
 		p2.add(graphStatusLabel);
 		add(p2);
 
-		SpotsMeasuresUi.showMeasurementLabels(measureComboBox);
+		SpotsMeasuresUi.showMeasurementNames(measureComboBox);
 		measureComboBox.setSelectedItem(EnumResults.KYMO_GREEN_HEIGHT_RATIO);
 
 		analysisPanel.addKymoResultListener(e -> maybeRefreshVisibleCharts());
@@ -392,6 +393,7 @@ public class ChartMeasuresFromLinesPanel extends JPanel {
 		ComboBoxUIControlsFactory ui = new ComboBoxUIControlsFactory();
 		ui.setMeasurementTypes(KYMO_MEASURES);
 		ui.setParentComboBox(measureComboBox);
+		ui.showMeasureNamesWithTitles();
 		ui.setSingleCageSelectionListener((exp, cage) -> parent0.dlgSpots.onChartSingleCageSelected(exp, cage));
 		return ui;
 	}

@@ -35,6 +35,7 @@ import icy.gui.frame.IcyFrame;
 import icy.gui.util.GuiUtil;
 import icy.roi.ROI2D;
 import icy.sequence.Sequence;
+import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation;
@@ -157,6 +158,7 @@ public class KymoOverlayFrame {
 				: new EnumResults[] { options != null && options.resultType != null ? options.resultType
 						: EnumResults.KYMO_GREEN_HEIGHT_RATIO };
 		measureComboBox = new JComboBox<>(types);
+		SpotsMeasuresUi.showMeasurementNames(measureComboBox);
 		if (options != null && options.resultType != null) {
 			measureComboBox.setSelectedItem(options.resultType);
 		}

@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.tools.chart.strategies;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Graphics;
@@ -16,10 +17,12 @@ import java.util.Map;
 import icy.roi.ROI2D;
 
 import javax.swing.ComboBoxModel;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JPanel;
 
 import org.jfree.chart.ChartColor;
@@ -66,6 +69,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	private ActionListener optionsChangeListener;
 	private SingleCageSelectionListener singleCageSelectionListener;
 	private boolean updatingCageCombo;
+	private boolean measureNamesWithTitles;
 
 	/**
 	 * Sets the current experiment for legend generation.
@@ -136,6 +140,35 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		this.measurementTypes = types;
 	}
 
+	/** List the short measure token and put {@link EnumResults#toTitle()} on the tooltip. */
+	public void showMeasureNamesWithTitles() {
+		this.measureNamesWithTitles = true;
+	}
+
+	private static void showMeasurementNames(JComboBox<EnumResults> selector) {
+		selector.setRenderer(new DefaultListCellRenderer() {
+			private static final long serialVersionUID = 1L;
+
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean selected,
+					boolean hasFocus) {
+				Component row = super.getListCellRendererComponent(list, value, index, selected, hasFocus);
+				if (value instanceof EnumResults && row instanceof JLabel) {
+					EnumResults measure = (EnumResults) value;
+					((JLabel) row).setText(measure.toString());
+					((JComponent) row).setToolTipText(measure.toTitle());
+				}
+				return row;
+			}
+		});
+		selector.setToolTipText(titleOf(selector.getSelectedItem()));
+		selector.addActionListener(event -> selector.setToolTipText(titleOf(selector.getSelectedItem())));
+	}
+
+	private static String titleOf(Object value) {
+		return value instanceof EnumResults ? ((EnumResults) value).toTitle() : null;
+	}
+
 	@Override
 	public JPanel createTopPanel(ResultsOptions currentOptions, ActionListener changeListener) {
 		this.boundOptions = currentOptions;
@@ -145,6 +178,9 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
 		EnumResults[] typesToUse = getMeasurementTypes();
 		resultTypeComboBox = new JComboBox<EnumResults>(typesToUse);
+		if (measureNamesWithTitles) {
+			showMeasurementNames(resultTypeComboBox);
+		}
 		if (currentOptions != null && currentOptions.resultType != null) {
 			resultTypeComboBox.setSelectedItem(currentOptions.resultType);
 		}
