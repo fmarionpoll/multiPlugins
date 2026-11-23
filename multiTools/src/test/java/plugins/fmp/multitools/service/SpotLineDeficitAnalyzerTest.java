@@ -16,6 +16,59 @@ import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.SpotGeom;
 public class SpotLineDeficitAnalyzerTest {
 
 	@Test
+	public void occupiedOpeningCannotCalibrateFromTheRemainingEmptyPixels() {
+		Layout layout = new Layout(4, 1, new int[][] { new int[0] }, new int[][] { { 0, 1, 2, 3 } });
+		int[] red = { 0, 100, 100, 100 };
+		int[] other = { 100, 100, 100, 100 };
+		boolean[] fly = { true, false, false, false };
+		assertTrue(Double.isNaN(SpotLineDeficitAnalyzer.medianSignalExcess(
+				layout, 0, red, other, other, 0.0, fly)));
+		assertTrue(SpotLineDeficitAnalyzer.medianSignalExcess(layout, 0, red, other, other, 0.0, null) > 0);
+	}
+
+	@Test
+	public void initialOcclusionLongerThanOpeningWindowDoesNotLockTheTraceAtZero() {
+		double[][] integral = { { Double.NaN, Double.NaN, Double.NaN, 0.8, 0.8, 0.4, 0.0 } };
+		double[] ratio = SpotLineDeficitAnalyzer.ratiosFromIntegrals(integral, 2, 3)[0];
+		SpotLineDeficitAnalyzer.finalizeRatio(ratio, 40.0, 1.0, false);
+		assertTrue(Double.isNaN(ratio[0]));
+		assertTrue(Double.isNaN(ratio[2]));
+		assertEquals(1.0, ratio[3], 1e-9);
+		assertEquals(0.5, ratio[5], 1e-9);
+	}
+
+	@Test
+	public void unavailableOpeningIsUnknownWhileClearEmptyOpeningIsZero() {
+		double unknown = SpotLineDeficitAnalyzer.referenceExcess(new double[] { Double.NaN, Double.NaN });
+		assertTrue(Double.isNaN(unknown));
+		double[] ratio = { 1.0, 0.5 };
+		SpotLineDeficitAnalyzer.finalizeRatio(ratio, unknown, 1.0, false);
+		assertTrue(Double.isNaN(ratio[0]));
+		assertTrue(Double.isNaN(ratio[1]));
+		SpotLineDeficitAnalyzer.finalizeRatio(ratio, 0.0, 1.0, false);
+		assertEquals(0.0, ratio[0], 0.0);
+		assertEquals(0.0, ratio[1], 0.0);
+	}
+
+	@Test
+	public void manuallyPreConsumedSpotUsesSyntheticFullT0EvenWhenOccluded() {
+		double[] ratio = { Double.NaN, 1.0, 1.0 };
+		SpotLineDeficitAnalyzer.finalizeRatio(ratio, Double.NaN, 1.0, true);
+		assertEquals(1.0, ratio[0], 0.0);
+		assertEquals(0.0, ratio[1], 0.0);
+		assertEquals(0.0, ratio[2], 0.0);
+	}
+
+	@Test
+	public void unknownFloorIsNotMeasuredAsEmpty() {
+		Layout layout = new Layout(1, 1, new int[][] { new int[0] }, new int[][] { { 0 } });
+		double[][] integral = new double[1][1];
+		SpotLineDeficitAnalyzer.integrate(layout, new int[] { 0 }, new int[] { 100 }, new int[] { 100 },
+				new double[] { Double.NaN }, 0.0, integral, 0);
+		assertTrue(Double.isNaN(integral[0][0]));
+	}
+
+	@Test
 	public void unchangedDipsStayNearOneAndRemovedPaleDipFalls() {
 		int width = 200;
 		int height = 40;

@@ -479,7 +479,7 @@ public final class SpotLineDeficitAnalyzer {
 				cursor += len;
 			}
 			double value = Double.NaN;
-			if (used > 0 && insectCount < FLY_OCCUPANCY_FRACTION * total) {
+			if (Double.isFinite(floor) && used > 0 && insectCount < FLY_OCCUPANCY_FRACTION * total) {
 				value = above / (double) used;
 			}
 			if (time >= 0 && time < integral[s].length) {
@@ -497,7 +497,7 @@ public final class SpotLineDeficitAnalyzer {
 		return cut;
 	}
 
-	/** Upper-quartile excess on the cross for one frame. NaN when the cross is empty. */
+	/** Upper-quartile excess; the same fly occupancy gate as integration protects calibration. */
 	public static double medianSignalExcess(Layout layout, int spot, int[] red, int[] green, int[] blue, double floor,
 			boolean[] insect) {
 		if (layout == null || layout.spotPix == null || spot < 0 || spot >= layout.spotPix.length || red == null) {
@@ -511,9 +511,13 @@ public final class SpotLineDeficitAnalyzer {
 		}
 		double[] excess = new double[total];
 		int n = 0;
+		int insectCount = 0;
 		int cursor = 0;
 		for (int i = 0; i < total; i++) {
 			int len = stationLength(run, i);
+			if (cursor < pix.length && isInsect(insect, pix[cursor])) {
+				insectCount++;
+			}
 			if (cursor < pix.length && !isInsect(insect, pix[cursor])) {
 				double deficit = stationDeficit(pix, cursor, len, red, green, blue, insect);
 				if (Double.isFinite(deficit)) {
@@ -522,13 +526,16 @@ public final class SpotLineDeficitAnalyzer {
 			}
 			cursor += len;
 		}
-		if (n == 0) {
+		if (n == 0 || insectCount >= FLY_OCCUPANCY_FRACTION * total) {
 			return Double.NaN;
 		}
 		return quantile(Arrays.copyOf(excess, n), DYE_REFERENCE_QUANTILE);
 	}
 
 	public static double referenceExcess(double[] frameMedians) {
+		if (frameMedians == null || Arrays.stream(frameMedians).noneMatch(Double::isFinite)) {
+			return Double.NaN;
+		}
 		return median(frameMedians);
 	}
 
@@ -560,7 +567,8 @@ public final class SpotLineDeficitAnalyzer {
 
 	/**
 	 * Moving median of {@code smoothBins}, then each bin divided by the dye level
-	 * in the first {@code initialBins} raw samples. Bins already emptied inside
+	 * in the first {@code initialBins} finite raw samples. Occluded frames do not
+	 * use up the opening window. Bins already emptied inside
 	 * that window are left out of the reference, so a drop eaten in the first
 	 * minute still starts at 1.
 	 */
@@ -582,10 +590,35 @@ public final class SpotLineDeficitAnalyzer {
 				continue;
 			}
 			for (int t = 0; t < nFrames; t++) {
-				ratio[s][t] = smoothed[t] / i0;
+				if (Double.isFinite(integral[s][t])) {
+					ratio[s][t] = smoothed[t] / i0;
+				}
 			}
 		}
 		return ratio;
+	}
+
+	/**
+	 * Unknown dye stays unknown; a clear, empty opening is zero. A manually marked
+	 * pre-consumed spot uses the existing synthetic t0 convention (full at t0,
+	 * empty afterwards), expressed here in normalized remaining-signal units.
+	 */
+	public static void finalizeRatio(double[] ratio, double dye, double noise, boolean preConsumed) {
+		if (ratio == null) {
+			return;
+		}
+		if (preConsumed) {
+			Arrays.fill(ratio, 0.0);
+			if (ratio.length > 0) {
+				ratio[0] = 1.0;
+			}
+		} else if (!Double.isFinite(dye)) {
+			Arrays.fill(ratio, Double.NaN);
+		} else if (!openingShowsDye(dye, noise)) {
+			Arrays.fill(ratio, 0.0);
+		} else {
+			suppressRebound(ratio);
+		}
 	}
 
 	/**
@@ -624,7 +657,13 @@ public final class SpotLineDeficitAnalyzer {
 
 	/** Median of opening samples that still hold at least half the opening peak. */
 	static double openingReference(double[] values, int window) {
-		int n = values != null ? Math.min(Math.max(0, window), values.length) : 0;
+		int n = 0;
+		int valid = 0;
+		while (values != null && n < values.length && valid < Math.max(0, window)) {
+			if (Double.isFinite(values[n++])) {
+				valid++;
+			}
+		}
 		double peak = Double.NEGATIVE_INFINITY;
 		int finite = 0;
 		for (int i = 0; i < n; i++) {

@@ -179,6 +179,8 @@ public class RimAnalysisPanel extends JPanel implements PropertyChangeListener {
 	}
 
 	private void defineToolTips() {
+		initialBinsSpinner.setToolTipText(
+				"Number of unobscured frames used for each spot's initial signal reference. Fly-covered frames extend calibration to later clear views. Automatic outlines obscured throughout the opening window are retried after the fly leaves. Pre-consumed spots use a full reference at t0 and zero afterwards.");
 		detectButton.setToolTipText(
 				"Detect and replace rim outlines in the current experiment, then show them for editing. Does not measure signals or process ALL series.");
 		analyzeButton.setToolTipText(
@@ -307,7 +309,7 @@ public class RimAnalysisPanel extends JPanel implements PropertyChangeListener {
 			}
 			return;
 		}
-		if (cages <= 0 || bins <= 0 || outlines <= 0) {
+		if (cages <= 0 || bins <= 0 || (outlines <= 0 && !saved)) {
 			statusLabel.setText("No data: open an experiment with spot circles and camera frames.");
 		} else if (!saved) {
 			statusLabel.setText("Done: " + cages + " cage(s), " + bins + " bin(s), " + outlines

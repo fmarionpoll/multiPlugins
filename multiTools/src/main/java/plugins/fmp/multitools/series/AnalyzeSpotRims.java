@@ -3,6 +3,7 @@ package plugins.fmp.multitools.series;
 import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import icy.gui.frame.progress.ProgressFrame;
@@ -30,7 +31,7 @@ import plugins.fmp.multitools.tools.Logger;
 /**
  * Samples the physical rim of each spot on the camera frames. The zero is the
  * outward band. Stores {@code KYMO_RIM_RATIO}. When {@link #detectOnly} is
- * set, only missing outlines are written.
+ * set, outlines are detected again for the current experiment.
  */
 public class AnalyzeSpotRims extends BuildSeries {
 
@@ -87,6 +88,17 @@ public class AnalyzeSpotRims extends BuildSeries {
 			PlateTrack plate = alignOpening(cages, opening, width, height);
 			List<String> concave = new ArrayList<>();
 			lastOutlineCount = ensureOutlines(exp, cages, width, height, opening, detectOnly, concave);
+			// Retry only outlines provisionally generated under a fly in this run.
+			// Saved (possibly hand-edited) outlines are never candidates here.
+			PlateTrack outlineTrack = plate.copy();
+			for (int t = window; t < nFrames && hasPendingOutlines(cages); t++) {
+				if (stopFlag) {
+					return;
+				}
+				showFrame(progress, t, nFrames);
+				FramePixels frame = outlineTrack.follow(readFrame(seq, loader, frames.get(t)), width, height);
+				retryOutlines(cages, frame, width, height, analyzerParams.madMultiplier, concave);
+			}
 			reportConcave(exp, concave);
 			lastCageCount = cages.size();
 			lastBinCount = nFrames;
@@ -97,7 +109,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 						+ exp.getResultsDirectory());
 				return;
 			}
-			if (lastOutlineCount <= 0) {
+			if (lastOutlineCount <= 0 && !hasPreConsumedSpots(cages)) {
 				Logger.warn("AnalyzeSpotRims: no outline for " + exp.getResultsDirectory());
 				return;
 			}
@@ -107,6 +119,13 @@ public class AnalyzeSpotRims extends BuildSeries {
 				cage.flanks = new double[nFrames][];
 				cage.integral = new double[cage.spots.size()][nFrames];
 				cage.openingExcess = new double[cage.spots.size()][window];
+				cage.openingCount = new int[cage.spots.size()];
+				for (double[] values : cage.integral) {
+					Arrays.fill(values, Double.NaN);
+				}
+				for (double[] values : cage.openingExcess) {
+					Arrays.fill(values, Double.NaN);
+				}
 			}
 			for (int t = 0; t < window; t++) {
 				sampleOpening(cages, opening[t], t);
@@ -115,7 +134,16 @@ public class AnalyzeSpotRims extends BuildSeries {
 				cage.refFloor = SpotLineDeficitAnalyzer.referenceFloors(cage.layout, cage.flanks, window);
 			}
 			for (int t = 0; t < window; t++) {
-				sampleOpening(cages, opening[t], t);
+				collectOpening(cages, opening[t], t);
+			}
+			PlateTrack calibrationTrack = plate.copy();
+			for (int t = window; t < nFrames && !openingComplete(cages, window); t++) {
+				if (stopFlag) {
+					return;
+				}
+				showFrame(progress, t, nFrames);
+				FramePixels frame = calibrationTrack.follow(readFrame(seq, loader, frames.get(t)), width, height);
+				collectOpening(cages, frame, t);
 			}
 			for (CageRims cage : cages) {
 				cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
@@ -141,11 +169,9 @@ public class AnalyzeSpotRims extends BuildSeries {
 				double[][] ratios = SpotLineDeficitAnalyzer.ratiosFromIntegrals(cage.integral,
 						analyzerParams.initialBins, analyzerParams.smoothBins);
 				for (int i = 0; i < cage.spots.size(); i++) {
-					if (!cage.spots.get(i).getRimGeometry().hasOutline()) {
-						continue;
-					}
 					if (i < ratios.length) {
-						SpotLineDeficitAnalyzer.suppressRebound(ratios[i]);
+						SpotLineDeficitAnalyzer.finalizeRatio(ratios[i], cage.dyeLevel[i], cage.noise,
+								cage.spots.get(i).isConsumedBeforeRecording());
 					}
 					copyDoubles(cage.spots.get(i).getRimCoverageToBaselineRatio(), i < ratios.length ? ratios[i] : null);
 				}
@@ -274,9 +300,10 @@ public class AnalyzeSpotRims extends BuildSeries {
 					SpotRimAnalyzer.Detection found = SpotRimAnalyzer.detect(ellipse, width, height, red, green, blue,
 							insect, containers, analyzerParams.madMultiplier);
 					if (found != null && found.flyFallback) {
+						cage.retryOutline[i] = !spot.isConsumedBeforeRecording();
 						rim.setOutline(found.x, found.y);
 						Logger.warn(experimentNumber(exp) + " " + directoryName(exp) + " " + spot.getName()
-								+ " fly covers this spot in every opening frame; blue outline set to the spot ROI minus 30%");
+								+ " fly covers this spot in every opening frame; provisional outline set to the spot ROI minus 30%; later frames will be checked");
 					} else if (found != null) {
 						double[][] filled = SpotRimGeometry.withoutInwardBite(found.x, found.y,
 								SpotRimGeometry.INWARD_BITE_PX);
@@ -297,6 +324,63 @@ public class AnalyzeSpotRims extends BuildSeries {
 		return outlines;
 	}
 
+	private static boolean hasPendingOutlines(List<CageRims> cages) {
+		for (CageRims cage : cages) {
+			for (boolean pending : cage.retryOutline) {
+				if (pending) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private static boolean hasPreConsumedSpots(List<CageRims> cages) {
+		for (CageRims cage : cages) {
+			for (Spot spot : cage.spots) {
+				if (spot.isConsumedBeforeRecording()) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	static void retryOutlines(List<CageRims> cages, FramePixels frame, int width, int height,
+			double madMultiplier, List<String> concave) {
+		if (frame == null || frame.red == null) {
+			return;
+		}
+		EllipseGeom[] containers = allEllipses(cages).toArray(new EllipseGeom[0]);
+		for (CageRims cage : cages) {
+			for (int s = 0; s < cage.spots.size(); s++) {
+				if (!cage.retryOutline[s]) {
+					continue;
+				}
+				SpotRimAnalyzer.Detection found = SpotRimAnalyzer.detect(cage.ellipses.get(s), width, height,
+						new int[][] { frame.red }, new int[][] { frame.green }, new int[][] { frame.blue },
+						new boolean[][] { frame.insect }, containers, madMultiplier);
+				if (found != null && found.flyFallback) {
+					continue;
+				}
+				// If the first clear view is empty, retain the provisional ellipse
+				// so the spot can still be measured as empty.
+				cage.retryOutline[s] = false;
+				if (found != null) {
+					Spot spot = cage.spots.get(s);
+					double[][] filled = SpotRimGeometry.withoutInwardBite(found.x, found.y,
+							SpotRimGeometry.INWARD_BITE_PX);
+					spot.getRimGeometry().setOutline(filled != null ? filled[0] : found.x,
+							filled != null ? filled[1] : found.y);
+					spot.getRimGeometry().setRimWidthPx(found.pathWidthPx);
+					if (filled != null) {
+						concave.add(cageLabel(cage) + " / " + spot.getName());
+					}
+				}
+			}
+		}
+	}
+
 	private static String cageLabel(CageRims cage) {
 		if (cage.cage == null) {
 			return "cage ?";
@@ -315,20 +399,51 @@ public class AnalyzeSpotRims extends BuildSeries {
 			}
 			cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
 					frame.insect);
-			if (cage.openingExcess != null && t < cage.openingExcess[0].length) {
+		}
+	}
+
+	static void collectOpening(List<CageRims> cages, FramePixels frame, int t) {
+		sampleOpening(cages, frame, t);
+		for (CageRims cage : cages) {
+			if (cage.openingExcess != null) {
+				double[] current = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+				for (int s = 0; s < cage.refFloor.length; s++) {
+					if (!Double.isFinite(cage.refFloor[s]) && Double.isFinite(current[s])) {
+						cage.refFloor[s] = current[s];
+					}
+				}
 				double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t],
 						cage.refFloor);
 				for (int s = 0; s < cage.openingExcess.length; s++) {
-					double floor = floors != null && s < floors.length ? floors[s] : Double.NaN;
-					if (!Double.isFinite(floor)) {
-						cage.openingExcess[s][t] = Double.NaN;
+					int count = cage.openingCount[s];
+					if (count >= cage.openingExcess[s].length || cage.spots.get(s).isConsumedBeforeRecording()) {
 						continue;
 					}
-					cage.openingExcess[s][t] = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
+					double floor = floors != null && s < floors.length ? floors[s] : Double.NaN;
+					if (!Double.isFinite(floor)) {
+						continue;
+					}
+					double excess = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
 							frame.green, frame.blue, floor, frame.insect);
+					if (Double.isFinite(excess)) {
+						cage.openingExcess[s][count] = excess;
+						cage.openingCount[s]++;
+					}
 				}
 			}
 		}
+	}
+
+	static boolean openingComplete(List<CageRims> cages, int window) {
+		for (CageRims cage : cages) {
+			for (int s = 0; s < cage.spots.size(); s++) {
+				if (cage.spots.get(s).getRimGeometry().hasOutline()
+						&& !cage.spots.get(s).isConsumedBeforeRecording() && cage.openingCount[s] < window) {
+					return false;
+				}
+			}
+		}
+		return true;
 	}
 
 	private static void integrateFrame(List<CageRims> cages, FramePixels frame, int t) {
@@ -547,6 +662,12 @@ public class AnalyzeSpotRims extends BuildSeries {
 			this.pose = pose;
 		}
 
+		PlateTrack copy() {
+			PlateTrack copy = new PlateTrack(tracking, referenceEllipses, pose);
+			copy.prevRaw = prevRaw;
+			return copy;
+		}
+
 		FramePixels follow(FramePixels frame, int width, int height) {
 			if (!tracking || frame == null || frame.red == null) {
 				return frame;
@@ -573,7 +694,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 		}
 	}
 
-	private static final class FramePixels {
+	static final class FramePixels {
 		final int[] red;
 		final int[] green;
 		final int[] blue;
@@ -587,7 +708,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 		}
 	}
 
-	private static final class CageRims {
+	static final class CageRims {
 		final Cage cage;
 		final List<Spot> spots;
 		final List<EllipseGeom> ellipses;
@@ -598,11 +719,14 @@ public class AnalyzeSpotRims extends BuildSeries {
 		double[] refFloor;
 		double[] dyeLevel;
 		double[][] openingExcess;
+		int[] openingCount;
+		final boolean[] retryOutline;
 
 		CageRims(Cage cage, List<Spot> spots, List<EllipseGeom> ellipses) {
 			this.cage = cage;
 			this.spots = spots;
 			this.ellipses = ellipses;
+			this.retryOutline = new boolean[spots.size()];
 		}
 	}
 }

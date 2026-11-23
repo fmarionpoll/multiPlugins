@@ -134,6 +134,8 @@ public class CrossAnalysisPanel extends JPanel implements PropertyChangeListener
 	}
 
 	private void defineToolTips() {
+		initialBinsSpinner.setToolTipText(
+				"Number of unobscured frames used for each spot's initial reference. Fly-covered frames are skipped, extending the window until clear views are available. Spots marked consumed before recording use a full reference at t0 and zero afterwards.");
 		bandWidthSpinner.setToolTipText(
 				"Pixels averaged across each arm of the X. 1 is the single-pixel line. 3 averages the line and one pixel on each side, the same idea as the vertical kymograph strip. Wider bands reduce pixel noise until the band is wider than the dye.");
 		insectGateCheckBox.setToolTipText(
