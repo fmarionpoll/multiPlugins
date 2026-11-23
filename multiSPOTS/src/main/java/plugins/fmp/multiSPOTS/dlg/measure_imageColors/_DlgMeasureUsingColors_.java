@@ -26,7 +26,7 @@ public class _DlgMeasureUsingColors_ extends JPanel {
 	JTabbedPane tabsPane = new JTabbedPane();
 
 	public DetectColorPanel detectColorPanel = new DetectColorPanel();
-	public ChartsColorPanel chartsColorPanel = new ChartsColorPanel();
+	public ChartsMeasuresFromColorsPanel chartsColorPanel = new ChartsMeasuresFromColorsPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 
 	/**

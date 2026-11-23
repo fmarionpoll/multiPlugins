@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.measure_imageFilters;
+package plugins.fmp.multiSPOTS.dlg.measure_imageColors;
 
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
@@ -14,8 +14,6 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
-import javax.swing.JSpinner;
-import javax.swing.SpinnerNumberModel;
 
 import icy.gui.viewer.Viewer;
 import icy.roi.ROI2D;
@@ -23,16 +21,18 @@ import icy.sequence.Sequence;
 import icy.sequence.SequenceEvent;
 import icy.sequence.SequenceListener;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
+import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.AxisOptions;
+import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.SpotSequenceRois;
+import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.SpotsMeasuresUi;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageString;
 import plugins.fmp.multitools.experiment.spot.Spot;
-import plugins.fmp.multitools.experiment.spot.SpotLineSampling;
 import plugins.fmp.multitools.tools.chart.ChartCagePair;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.ChartInteractionHandlerFactory;
-import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
+import plugins.fmp.multitools.tools.chart.ChartColorSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
@@ -41,25 +41,20 @@ import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
 import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
-public class ChartsPanel extends JPanel implements SequenceListener {
-	private static final long serialVersionUID = -7079184380174992501L;
+public class ChartsMeasuresFromColorsPanel extends JPanel implements SequenceListener {
+	private static final long serialVersionUID = 1L;
 
-	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.FILTER_GREY, EnumResults.FILTER_GREY_FLY_MASKED,
-			EnumResults.FILTER_GREY_SMOOTHED, EnumResults.FLY_PIXEL_COUNT, EnumResults.AGG_FILTER_DEPLETION,
-			EnumResults.CAGE_GREY_MEDIAN, EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO,
-			EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
+	private static final EnumResults[] SPOT_CHART_RESULTS = { EnumResults.COLOR_PIXEL_COUNT, EnumResults.COLOR_GREY,
+			EnumResults.COLOR_GREY_PRE_GATE, EnumResults.COLOR_GREY_SMOOTHED, EnumResults.AGG_COLOR_DEPLETION,
+			EnumResults.AGG_COLOR_PIXEL_SUM, EnumResults.FLY_PIXEL_COUNT };
 	private ChartCagesFrame chartCageArrayFrame = null;
-	private ChartSpotsOverlayFrame chartSpotsOverlayFrame = null;
+	private ChartColorSpotsOverlayFrame chartSpotsOverlayFrame = null;
 	private MultiSPOTS parent0 = null;
 	private JButton displayResultsButton = new JButton("Display results");
 	private JButton axisOptionsButton = new JButton("Axis options");
 	private AxisOptions graphOptions = null;
 	private JComboBox<EnumResults> exportTypeComboBox = null;
 	private JCheckBox relativeToCheckbox = new JCheckBox("relative to max", false);
-	private JSpinner chartBaselineMinutesSpinner = new JSpinner(new SpinnerNumberModel(2, 0, 120, 1));
-	private JCheckBox chartStopWhenStableCheckBox = new JCheckBox("stop when max stable", false);
-	private JSpinner chartStableBinsSpinner = new JSpinner(new SpinnerNumberModel(3, 1, 60, 1));
-	private JSpinner medianRefSmoothBinsSpinner = new JSpinner(new SpinnerNumberModel(5, 1, 99, 1));
 	private JRadioButton displayAllButton = new JRadioButton("all cages");
 	private JRadioButton displaySelectedCageButton = new JRadioButton("cage selected");
 	private JRadioButton displaySelectedSpotsButton = new JRadioButton("spot(s) selected");
@@ -83,19 +78,10 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		panel02.add(displaySelectedCageButton);
 		panel02.add(displaySelectedSpotsButton);
 
-		JPanel panel02b = new JPanel(layout);
-		panel02b.add(new JLabel("AGG baseline (min)"));
-		panel02b.add(chartBaselineMinutesSpinner);
-		panel02b.add(chartStopWhenStableCheckBox);
-		panel02b.add(new JLabel("stable bins"));
-		panel02b.add(chartStableBinsSpinner);
-		panel02b.add(new JLabel("median ref smooth (bins)"));
-		panel02b.add(medianRefSmoothBinsSpinner);
-
 		JPanel panel04 = new JPanel(layout);
 		panel04.add(displayResultsButton);
 		panel04.add(axisOptionsButton);
-		SpotsMeasuresUi.layoutStackedRows(this, panel01, panel02, panel02b, panel04);
+		SpotsMeasuresUi.layoutStackedRows(this, panel01, panel02, panel04);
 
 		ButtonGroup group1 = new ButtonGroup();
 		group1.add(displayAllButton);
@@ -142,32 +128,6 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null)
 				displayChartPanels(exp);
-		});
-
-		ActionListener baselineRefresh = e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				displayChartPanels(exp);
-			}
-		};
-		chartBaselineMinutesSpinner.addChangeListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				displayChartPanels(exp);
-			}
-		});
-		chartStopWhenStableCheckBox.addActionListener(baselineRefresh);
-		chartStableBinsSpinner.addChangeListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				displayChartPanels(exp);
-			}
-		});
-		medianRefSmoothBinsSpinner.addChangeListener(e -> {
-			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
-			if (exp != null) {
-				displayChartPanels(exp);
-			}
 		});
 
 		ActionListener refreshOnChange = e -> {
@@ -226,7 +186,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			iChart.getMainChartFrame().dispose();
 		}
 
-		if ((exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.CAGE_GREY_MEDIAN) && displaySelectedSpotsButton.isSelected()) {
+		if ((exportType == EnumResults.AGG_COLOR_DEPLETION || exportType == EnumResults.AGG_COLOR_PIXEL_SUM)
+				&& displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
 
@@ -249,19 +210,13 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 			last = first;
 		}
 
-		boolean agg = exportType == EnumResults.AGG_FILTER_DEPLETION || exportType == EnumResults.CAGE_GREY_MEDIAN;
-		int chartStepMs = agg ? resolveSpotChartStepMs(exp) : 60000;
-		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs)
-				.withResultType(exportType).withCageRange(first, last).build();
-		options.relativeToMaximum = !agg && !SpotLineSampling.isLineMeasure(exportType) && relativeToCheckbox.isSelected();
+		int chartStepMs = resolveSpotChartStepMs(exp);
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(chartStepMs).withResultType(exportType)
+				.withCageRange(first, last).build();
+		options.relativeToMaximum = relativeToCheckbox.isSelected() && exportType != EnumResults.FLY_PIXEL_COUNT
+				&& exportType != EnumResults.AGG_COLOR_DEPLETION && exportType != EnumResults.AGG_COLOR_PIXEL_SUM;
 		options.spotAggregateByStimulusConc = false;
-		options.spotBaselineWindowMinutes = ((Number) chartBaselineMinutesSpinner.getValue()).intValue();
-		options.spotBaselineStopWhenStable = chartStopWhenStableCheckBox.isSelected();
-		options.spotBaselineStableBins = ((Number) chartStableBinsSpinner.getValue()).intValue();
-		options.aggMedianRefSmoothWindowBins = ((Number) medianRefSmoothBinsSpinner.getValue()).intValue();
-//		if (agg && parent0 != null && parent0.dlgMeasure != null) {
-//			parent0.dlgMeasure.applyAggV4PolicyInto(options);
-//		}
+
 		ChartInteractionHandlerFactory handlerFactory = new ChartInteractionHandlerFactory() {
 			@Override
 			public ChartInteractionHandler createHandler(Experiment exp, ResultsOptions options,
@@ -273,7 +228,7 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 
 		iChart = new ChartCagesFrame(new CageSpotSeriesBuilder(), handlerFactory, new GridLayoutStrategy(),
 				createChartUIControlsFactory());
-		iChart.createMainChartPanel("Spots measures", exp, options);
+		iChart.createMainChartPanel("Spots measures (color-distance)", exp, options);
 		iChart.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
 		iChart.displayData(exp, options);
 		if (iChart.getMainChartFrame() != null) {
@@ -303,21 +258,21 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 		if (selectedSpots.isEmpty())
 			return null;
 
-		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(60000).withResultType(exportType)
-				.withCageRange(0, 0).build();
-		options.relativeToMaximum = exportType != EnumResults.AGG_FILTER_DEPLETION && exportType != EnumResults.CAGE_GREY_MEDIAN && !SpotLineSampling.isLineMeasure(exportType)
-				&& relativeToCheckbox.isSelected();
+		ResultsOptions options = ResultsOptionsBuilder.forChart().withBuildExcelStepMs(resolveSpotChartStepMs(exp))
+				.withResultType(exportType).withCageRange(0, 0).build();
+		options.relativeToMaximum = exportType != EnumResults.FLY_PIXEL_COUNT && exportType != EnumResults.AGG_COLOR_DEPLETION
+				&& exportType != EnumResults.AGG_COLOR_PIXEL_SUM && relativeToCheckbox.isSelected();
 		options.spotAggregateByStimulusConc = false;
 
-		chartSpotsOverlayFrame = new ChartSpotsOverlayFrame();
-		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (selected)", options);
+		chartSpotsOverlayFrame = new ChartColorSpotsOverlayFrame();
+		chartSpotsOverlayFrame.createMainChartPanel("Spots measures (color-distance, selected)", options);
 		chartSpotsOverlayFrame.setSelectedSpotsProvider(
-				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
+				() -> ChartColorSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.selectedSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setAvailableSpotsProvider(
-				() -> ChartSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
+				() -> ChartColorSpotsOverlayFrame.dedupeSpots(SpotSequenceRois.allSpotsFromSequence(exp)));
 		chartSpotsOverlayFrame.setSpotExclusiveSelectionController(spot -> selectExclusiveSpotRoi(exp, spot));
 		chartSpotsOverlayFrame.setChartUpperLeftLocation(getInitialUpperLeftPosition(exp));
-		chartSpotsOverlayFrame.displayData(exp, options, ChartSpotsOverlayFrame.dedupeSpots(selectedSpots));
+		chartSpotsOverlayFrame.displayData(exp, options, ChartColorSpotsOverlayFrame.dedupeSpots(selectedSpots));
 		return null;
 	}
 
@@ -362,26 +317,17 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private void updateMeasureDependentControls() {
-		boolean aggStep = exportTypeComboBox != null
-				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
-						|| exportTypeComboBox.getSelectedItem() == EnumResults.CAGE_GREY_MEDIAN);
-		boolean aggMedianUi = exportTypeComboBox != null
-				&& (exportTypeComboBox.getSelectedItem() == EnumResults.AGG_FILTER_DEPLETION
-						|| exportTypeComboBox.getSelectedItem() == EnumResults.CAGE_GREY_MEDIAN);
-		boolean lineMeasure = exportTypeComboBox != null
-				&& SpotLineSampling.isLineMeasure((EnumResults) exportTypeComboBox.getSelectedItem());
-		relativeToCheckbox.setEnabled(!aggStep && !lineMeasure);
-		if (aggStep || lineMeasure) {
+		EnumResults sel = exportTypeComboBox != null ? (EnumResults) exportTypeComboBox.getSelectedItem() : null;
+		boolean agg = sel == EnumResults.AGG_COLOR_DEPLETION || sel == EnumResults.AGG_COLOR_PIXEL_SUM;
+		relativeToCheckbox.setEnabled(!agg);
+		if (agg) {
 			relativeToCheckbox.setSelected(false);
 		}
-		displaySelectedSpotsButton.setEnabled(!aggStep);
-		if (aggStep && displaySelectedSpotsButton.isSelected()) {
+		// Per-spot overlay is only meaningful for native spot series, not cage aggregates.
+		displaySelectedSpotsButton.setEnabled(true);
+		if (agg && displaySelectedSpotsButton.isSelected()) {
 			displayAllButton.setSelected(true);
 		}
-		chartBaselineMinutesSpinner.setEnabled(aggStep);
-		chartStopWhenStableCheckBox.setEnabled(aggStep);
-		chartStableBinsSpinner.setEnabled(aggStep);
-		medianRefSmoothBinsSpinner.setEnabled(aggMedianUi);
 	}
 
 	private static Cage findCageFromSelectedSpotRoisOnSequence(Experiment exp) {
@@ -440,8 +386,8 @@ public class ChartsPanel extends JPanel implements SequenceListener {
 	}
 
 	private boolean isThereAnyDataToDisplay(Experiment exp, EnumResults option) {
-		EnumResults probe = option == EnumResults.AGG_FILTER_DEPLETION ? EnumResults.FILTER_GREY_SMOOTHED
-						: option == EnumResults.CAGE_GREY_MEDIAN ? EnumResults.FILTER_GREY : SpotLineSampling.source(option);
+		EnumResults probe = option == EnumResults.AGG_COLOR_DEPLETION ? EnumResults.COLOR_GREY_SMOOTHED
+				: option == EnumResults.AGG_COLOR_PIXEL_SUM ? EnumResults.COLOR_PIXEL_COUNT : option;
 		for (Cage cage : exp.getCages().cagesList) {
 			for (Spot spot : cage.getSpotList(exp.getSpots())) {
 				if (spot.isThereAnyMeasuresDone(probe) > 0) {

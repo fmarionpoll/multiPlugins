@@ -28,7 +28,7 @@ public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeLi
 	ThresholdLightPanel thresholdLightPanel = new ThresholdLightPanel();
 	CleanGapsSpotsPanel cleanGapsSpotsPanel = new CleanGapsSpotsPanel();
 	EditSpotMeasuresPanel editSpotsPanel = new EditSpotMeasuresPanel();
-	public ChartsPanel chartsPanel = new ChartsPanel();
+	public ChartsMeasuresFromFilterPanel chartsPanel = new ChartsMeasuresFromFilterPanel();
 	public LoadSavePanel loadSavePanel = new LoadSavePanel();
 
 	ConsumptionAggV4Panel consumptionAggV4Panel = new ConsumptionAggV4Panel();

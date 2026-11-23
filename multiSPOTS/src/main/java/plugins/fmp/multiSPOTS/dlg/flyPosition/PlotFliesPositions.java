@@ -37,7 +37,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 
 /**
  * Fly-position charts in a scrollable per-cage grid (same approach as kymograph
- * {@link plugins.fmp.multiSPOTS.dlg.measure_kymograph.GraphPanel}).
+ * {@link plugins.fmp.multiSPOTS.dlg.measure_kymograph.ChartMeasuresFromLinesPanel}).
  */
 public class PlotFliesPositions extends JPanel implements SequenceListener {
 	private static final long serialVersionUID = -7079184380174992501L;

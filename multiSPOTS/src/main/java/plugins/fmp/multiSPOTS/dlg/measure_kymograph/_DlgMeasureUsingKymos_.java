@@ -29,7 +29,7 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 	public KymoAnalysisPanel tabKymoAnalysis = null;
 	public CrossAnalysisPanel tabCrossAnalysis = null;
 	public RimAnalysisPanel tabRimAnalysis = null;
-	public GraphPanel tabKymoGraph = null;
+	public ChartMeasuresFromLinesPanel tabKymoGraph = null;
 
 	private MultiSPOTS parent0 = null;
 
@@ -48,7 +48,7 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 		tabKymoAnalysis = new KymoAnalysisPanel(parent0);
 		tabCrossAnalysis = new CrossAnalysisPanel(parent0);
 		tabRimAnalysis = new RimAnalysisPanel(parent0);
-		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabCrossAnalysis, tabRimAnalysis);
+		tabKymoGraph = new ChartMeasuresFromLinesPanel(parent0, tabKymoAnalysis, tabCrossAnalysis, tabRimAnalysis);
 		tabsPane.addTab("Kymo", null, new VerticalLinePanel(tabCreate, tabKymoAnalysis),
 				"Vertical line through each spot: build the cage kymograph, then measure it.");
 		tabsPane.addTab("Cross", null, tabCrossAnalysis,

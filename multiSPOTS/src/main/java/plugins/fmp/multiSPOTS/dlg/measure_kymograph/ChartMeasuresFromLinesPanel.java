@@ -43,7 +43,7 @@ import plugins.fmp.multitools.tools.results.ResultsOptionsBuilder;
 /**
  * Kymograph metric charts: measure, display mode, and chart windows (cages or spot overlay).
  */
-public class GraphPanel extends JPanel {
+public class ChartMeasuresFromLinesPanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
@@ -70,7 +70,7 @@ public class GraphPanel extends JPanel {
 	private KymoOverlayFrame overlayFrame;
 	private AxisOptions graphOptions;
 
-	public GraphPanel(MultiSPOTS parent0, KymoAnalysisPanel analysisPanel, CrossAnalysisPanel analysisPanel2,
+	public ChartMeasuresFromLinesPanel(MultiSPOTS parent0, KymoAnalysisPanel analysisPanel, CrossAnalysisPanel analysisPanel2,
 			RimAnalysisPanel analysisPanelRim) {
 		super(new GridLayout(3, 1));
 		this.parent0 = parent0;
