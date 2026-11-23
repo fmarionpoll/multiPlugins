@@ -43,6 +43,8 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	public static final String COL_STIMULUS_INDEX = "stimulus_index";
 	public static final String COL_GROUP_ID = "group_id";
 	public static final String COL_N_SPOTS = "n_spots";
+	/** Acquisition clock versus the historical nominal kymograph interval. Kymograph files only. */
+	public static final String COL_TIME_BASIS = "time_basis";
 
 	private final Path folder;
 	private final long binStepMs;
@@ -108,38 +110,70 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 				finiteOrNull(volume));
 	}
 
-	public void writeSpotRow(boolean kymo, boolean bin, String expKey, int cageId, String spotId, double tMinutes,
-			Integer frameIndex, Map<String, Double> values) throws IOException {
+	public void writeSpotRow(boolean kymo, boolean bin, String expKey, int cageId, String spotId, Double tMinutes,
+			Integer frameIndex, String timeBasis, Map<String, Double> values) throws IOException {
 		List<String> cols = kymo ? kymoColumns : cameraColumns;
 		if (cols.isEmpty() || (bin && !writeBinFiles)) {
 			return;
 		}
 		CSVPrinter printer = kymo ? (bin ? measureSpotKymoBinPrinter() : measureSpotKymoRawPrinter())
 				: (bin ? measureSpotBinPrinter() : measureSpotRawPrinter());
-		printMeasureRow(printer, cols, expKey, cageId, spotId, tMinutes, frameIndex, values);
+		printMeasureRow(printer, cols, expKey, cageId, spotId, tMinutes, frameIndex, kymo ? timeBasis : null, kymo,
+				values);
 	}
 
-	public void writeGroupRow(boolean bin, String expKey, int cageId, String groupId, double tMinutes,
-			Integer frameIndex, Map<String, Double> values) throws IOException {
+	public void writeGroupRow(boolean bin, String expKey, int cageId, String groupId, Double tMinutes,
+			Integer frameIndex, String timeBasis, Map<String, Double> values) throws IOException {
 		if (groupColumns.isEmpty() || (bin && !writeBinFiles)) {
 			return;
 		}
 		CSVPrinter printer = bin ? measureGroupBinPrinter() : measureGroupRawPrinter();
-		printMeasureRow(printer, groupColumns, expKey, cageId, groupId, tMinutes, frameIndex, values);
+		printMeasureRow(printer, groupColumns, expKey, cageId, groupId, tMinutes, frameIndex,
+				groupKymo ? timeBasis : null, groupKymo, values);
 	}
 
-	public void writePreference(String experimentId, int cageId, String groupA, String groupB, double timeMinutes,
-			Integer frameIndex, String measure, double sumA, double sumB, int countA, int countB) throws IOException {
+	public void writePreference(String experimentId, int cageId, String groupA, String groupB, Double timeMinutes,
+			Integer frameIndex, String timeBasis, String measure, double sumA, double sumB, int countA, int countB)
+			throws IOException {
 		if (preferencePrinter == null) {
 			String name = groupKymo ? "measure_spotgroup_kymo_pi_raw" : "measure_spotgroup_pi_raw";
-			preferencePrinter = openPrinter(name, "experiment_id", "cage_id", "group_a_id", "group_b_id",
-					CsvNormalizedExportSupport.COL_TIME_MIN, CsvNormalizedExportSupport.COL_FRAME_INDEX, "measure",
-					"sum_a", "sum_b", "n_valid_a", "n_valid_b", "pi", "pi_norm");
+			List<String> header = new ArrayList<>();
+			header.add("experiment_id");
+			header.add("cage_id");
+			header.add("group_a_id");
+			header.add("group_b_id");
+			header.add(CsvNormalizedExportSupport.COL_TIME_MIN);
+			header.add(CsvNormalizedExportSupport.COL_FRAME_INDEX);
+			if (groupKymo) {
+				header.add(COL_TIME_BASIS);
+			}
+			header.add("measure");
+			header.add("sum_a");
+			header.add("sum_b");
+			header.add("n_valid_a");
+			header.add("n_valid_b");
+			header.add("pi");
+			header.add("pi_norm");
+			preferencePrinter = openPrinter(name, header.toArray(new String[0]));
 		}
-		preferencePrinter.printRecord(experimentId, cageId, groupA, groupB, timeMinutes, frameIndex, measure,
-				finiteOrNull(sumA), finiteOrNull(sumB), countA, countB,
-				preferenceIndex(sumA, sumB, countA, countB, false),
-				preferenceIndex(sumA, sumB, countA, countB, true));
+		List<Object> record = new ArrayList<>();
+		record.add(experimentId);
+		record.add(cageId);
+		record.add(groupA);
+		record.add(groupB);
+		record.add(timeMinutes);
+		record.add(frameIndex);
+		if (groupKymo) {
+			record.add(timeBasis);
+		}
+		record.add(measure);
+		record.add(finiteOrNull(sumA));
+		record.add(finiteOrNull(sumB));
+		record.add(countA);
+		record.add(countB);
+		record.add(preferenceIndex(sumA, sumB, countA, countB, false));
+		record.add(preferenceIndex(sumA, sumB, countA, countB, true));
+		preferencePrinter.printRecord(record);
 	}
 
 	static Double preferenceIndex(double sumA, double sumB, int countA, int countB, boolean normalized) {
@@ -194,13 +228,17 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	}
 
 	private static void printMeasureRow(CSVPrinter printer, List<String> cols, String expKey, int cageId, String entityId,
-			double tMinutes, Integer frameIndex, Map<String, Double> values) throws IOException {
-		List<Object> row = new ArrayList<>(5 + cols.size());
+			Double tMinutes, Integer frameIndex, String timeBasis, boolean includeTimeBasis, Map<String, Double> values)
+			throws IOException {
+		List<Object> row = new ArrayList<>(6 + cols.size());
 		row.add(expKey);
 		row.add(cageId);
 		row.add(entityId);
 		row.add(tMinutes);
 		row.add(frameIndex);
+		if (includeTimeBasis) {
+			row.add(timeBasis);
+		}
 		boolean any = false;
 		for (String col : cols) {
 			Double v = values != null ? values.get(col) : null;
@@ -251,7 +289,7 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 
 	private CSVPrinter measureSpotKymoRawPrinter() throws IOException {
 		if (measureSpotKymoRawPrinter == null) {
-			measureSpotKymoRawPrinter = openMeasurePrinter(MEASURE_SPOT_KYMO_RAW, COL_SPOT_ID, kymoColumns);
+			measureSpotKymoRawPrinter = openMeasurePrinter(MEASURE_SPOT_KYMO_RAW, COL_SPOT_ID, kymoColumns, true);
 		}
 		return measureSpotKymoRawPrinter;
 	}
@@ -259,7 +297,7 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	private CSVPrinter measureSpotKymoBinPrinter() throws IOException {
 		if (measureSpotKymoBinPrinter == null) {
 			measureSpotKymoBinPrinter = openMeasurePrinter("measure_spot_kymo_" + binDescriptor, COL_SPOT_ID,
-					kymoColumns);
+					kymoColumns, true);
 		}
 		return measureSpotKymoBinPrinter;
 	}
@@ -267,7 +305,7 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	private CSVPrinter measureGroupRawPrinter() throws IOException {
 		if (measureGroupRawPrinter == null) {
 			String name = groupKymo ? MEASURE_SPOTGROUP_KYMO_RAW : MEASURE_SPOTGROUP_RAW;
-			measureGroupRawPrinter = openMeasurePrinter(name, COL_GROUP_ID, groupColumns);
+			measureGroupRawPrinter = openMeasurePrinter(name, COL_GROUP_ID, groupColumns, groupKymo);
 		}
 		return measureGroupRawPrinter;
 	}
@@ -275,19 +313,27 @@ public final class CsvNormalizedSpotExportSupport implements AutoCloseable {
 	private CSVPrinter measureGroupBinPrinter() throws IOException {
 		if (measureGroupBinPrinter == null) {
 			String name = (groupKymo ? "measure_spotgroup_kymo_" : "measure_spotgroup_") + binDescriptor;
-			measureGroupBinPrinter = openMeasurePrinter(name, COL_GROUP_ID, groupColumns);
+			measureGroupBinPrinter = openMeasurePrinter(name, COL_GROUP_ID, groupColumns, groupKymo);
 		}
 		return measureGroupBinPrinter;
 	}
 
 	private CSVPrinter openMeasurePrinter(String descriptor, String entityColumn, List<String> measureColumns)
 			throws IOException {
+		return openMeasurePrinter(descriptor, entityColumn, measureColumns, false);
+	}
+
+	private CSVPrinter openMeasurePrinter(String descriptor, String entityColumn, List<String> measureColumns,
+			boolean includeTimeBasis) throws IOException {
 		List<String> header = new ArrayList<>();
 		header.add(CsvNormalizedExportSupport.COL_EXPERIMENT_ID);
 		header.add(CsvNormalizedExportSupport.COL_CAGE_ID);
 		header.add(entityColumn);
 		header.add(CsvNormalizedExportSupport.COL_TIME_MIN);
 		header.add(CsvNormalizedExportSupport.COL_FRAME_INDEX);
+		if (includeTimeBasis) {
+			header.add(COL_TIME_BASIS);
+		}
 		header.addAll(measureColumns);
 		return openPrinter(descriptor, header.toArray(new String[0]));
 	}

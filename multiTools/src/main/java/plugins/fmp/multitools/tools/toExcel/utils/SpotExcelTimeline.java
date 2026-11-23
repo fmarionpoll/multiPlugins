@@ -34,7 +34,7 @@ public final class SpotExcelTimeline {
 			this.frameElapsedMsRelative = frameElapsedMsRelative;
 			this.excelDeltaMs = excelDeltaMs;
 			this.clipStartMs = clipStartMs;
-			this.nBins = Math.max(1, nBins);
+			this.nBins = Math.max(0, nBins);
 		}
 
 		public long[] getFrameElapsedMsRelative() {
@@ -169,17 +169,14 @@ public final class SpotExcelTimeline {
 		if (nativeBins < 1) {
 			nativeBins = 1;
 		}
-		long[] t = new long[nativeBins];
-		long nativeStep = exp != null ? exp.getKymoBin_ms() : delta;
-		if (nativeStep <= 0) nativeStep = 60_000L;
-		long origin = exp != null && opt != null
-				&& plugins.fmp.multitools.experiment.spot.SpotLineSampling.isLineMeasure(opt.resultType)
-				? Math.max(0, exp.getKymoFirst_ms()) : 0;
-		for (int j = 0; j < nativeBins; j++) {
-			t[j] = origin + (long) j * nativeStep;
+		plugins.fmp.multitools.service.CageKymographTimeline.Clock clock =
+				plugins.fmp.multitools.service.CageKymographTimeline.resolve(exp, nativeBins, cameraElapsed(exp));
+		if (clock.elapsedMs == null) {
+			return new SpotExcelGrid(new long[0], delta, 0L, 0);
 		}
+		long[] t = clock.elapsedMs;
 		long tLast = t[nativeBins - 1];
-		long lo = origin;
+		long lo = t[0];
 		long hi = tLast;
 		if (opt != null && opt.fixedIntervals) {
 			lo = clampMs(opt.startAll_Ms, 0L, tLast);
@@ -213,6 +210,13 @@ public final class SpotExcelTimeline {
 			max = Math.max(max, computeSpotExcelBinCount(exp, opt));
 		}
 		return max;
+	}
+
+	private static long[] cameraElapsed(Experiment exp) {
+		if (exp == null || exp.getSeqCamData() == null || exp.getSeqCamData().getImageLoader() == null) {
+			return new long[0];
+		}
+		return resolveFrameElapsedMsArray(exp);
 	}
 
 	static long[] resolveFrameElapsedMsArray(Experiment exp) {

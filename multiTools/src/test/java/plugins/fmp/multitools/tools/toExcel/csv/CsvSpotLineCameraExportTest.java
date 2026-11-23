@@ -45,8 +45,10 @@ public class CsvSpotLineCameraExportTest {
         for (EnumResults type : types) {
             assertArrayEquals(cameraTimes, CsvNormalizedSpotExport.rawTimes(exp, new ResultsOptions(), type, 3, cameraTimes));
             spot.getMeasurements(type).setCameraSampled(false);
+            assertArrayEquals(cameraTimes, CsvNormalizedSpotExport.rawTimes(exp, new ResultsOptions(), type, 3, cameraTimes));
+            long[] unmatched = { 0, 20000, 45000, 70000, 90000, 120000 };
             assertArrayEquals(new long[] { 40000, 100000, 160000 },
-                    CsvNormalizedSpotExport.rawTimes(exp, new ResultsOptions(), type, 3, cameraTimes));
+                    CsvNormalizedSpotExport.rawTimes(exp, new ResultsOptions(), type, 3, unmatched));
         }
     }
 }

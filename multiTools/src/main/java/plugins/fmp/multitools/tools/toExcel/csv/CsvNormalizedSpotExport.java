@@ -32,6 +32,8 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.results.Results;
 import plugins.fmp.multitools.tools.results.ResultsOptions;
+import plugins.fmp.multitools.service.CageKymographTimeline;
+import plugins.fmp.multitools.service.CageKymographTimeline.Clock;
 import plugins.fmp.multitools.tools.toExcel.NormalizedExportSupport;
 import plugins.fmp.multitools.tools.toExcel.XLSExportSpots;
 import plugins.fmp.multitools.tools.toExcel.enums.ExportLayoutMode;
@@ -47,6 +49,10 @@ import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
  * wide Excel export. Native CSV values retain their stored scale.
  * The frame index is zero-based. A resampled row uses the index of a native
  * measurement at the same time when that index can be determined.
+ * Kymograph {@code time_min} follows {@link CageKymographTimeline}: the column-time
+ * file, otherwise source-frame acquisition times, otherwise the nominal bin.
+ * Kymograph files name that choice in {@code time_basis}. A column-time file that
+ * does not match the series is not replaced with a synthetic clock.
  */
 public final class CsvNormalizedSpotExport {
 
@@ -274,47 +280,71 @@ public final class CsvNormalizedSpotExport {
 			boolean writeBin, long[] cameraTimes, KymoFrameIndexes kymoFrames) throws IOException {
 		Map<Long, NativeRow> raw = new TreeMap<>();
 		Map<Long, Map<String, Double>> binned = new TreeMap<>();
+		Map<Long, String> binnedBasis = new TreeMap<>();
 		Spots allSpots = exp.getSpots();
 		for (EnumResults rt : types) {
 			String col = columnName(rt);
 			SpotMeasure measure = spot.getMeasurements(rt);
+			Clock clock = null;
 			if (measure != null && measure.getCount() > 0) {
 				double scale = allSpots.getScalingFactorToPhysicalUnits(rt);
 				int count = measure.getCount();
-				long[] times = rawTimes(exp, options, rt, count, cameraTimes);
-				int n = Math.min(count, times.length);
-				for (int i = 0; i < n; i++) {
-					double value = measure.getValueAt(i) * scale;
-					if (!inWindow(times[i], options) || !Double.isFinite(value)) {
-						continue;
+				clock = sampleClock(exp, rt, count, cameraTimes);
+				boolean rejected = clock != null && clock.elapsedMs == null;
+				int n = rejected ? count : Math.min(count, clock == null ? 0 : clock.elapsedMs.length);
+				if (!rejected && clock == null) {
+					long[] times = rawTimes(exp, options, rt, count, cameraTimes);
+					n = Math.min(count, times.length);
+					for (int i = 0; i < n; i++) {
+						double value = measure.getValueAt(i) * scale;
+						if (!inWindow(times[i], options) || !Double.isFinite(value)) {
+							continue;
+						}
+						raw.computeIfAbsent(times[i], k -> new NativeRow()).put(Integer.valueOf(i), times[i], null, col,
+								value);
 					}
-					Integer frameIndex = usesKymoGrid(exp, rt) ? kymoFrames.at(i, count) : Integer.valueOf(i);
-					raw.computeIfAbsent(times[i], k -> new NativeRow()).put(frameIndex, col, value);
+				} else {
+					for (int i = 0; i < n; i++) {
+						double value = measure.getValueAt(i) * scale;
+						Long timeMs = rejected ? null : clock.elapsedMs[i];
+						if (timeMs != null && (!inWindow(timeMs, options) || !Double.isFinite(value))) {
+							continue;
+						}
+						if (timeMs == null && !Double.isFinite(value)) {
+							continue;
+						}
+						Integer frameIndex = usesKymoGrid(exp, rt) ? kymoFrames.at(i, count) : Integer.valueOf(i);
+						long key = timeMs != null ? timeMs : Long.MIN_VALUE + i;
+						String basis = clock == null ? null : clock.basis.exportId;
+						raw.computeIfAbsent(key, k -> new NativeRow()).put(frameIndex, timeMs, basis, col, value);
+					}
 				}
 			}
-			if (writeBin) {
+			if (writeBin && (clock == null || clock.elapsedMs != null)) {
 				double[] excel = excelSpotValues(exp, options, cage, spot, rt);
 				SpotExcelTimeline.SpotExcelGrid grid = gridFor(exp, options, rt);
-				if (excel != null) {
+				if (excel != null && grid.getNBins() > 0 && grid.getFrameElapsedMsRelative().length > 0) {
 					int nBins = Math.min(excel.length, grid.getNBins());
+					String basis = clock == null ? null : clock.basis.exportId;
 					for (int k = 0; k < nBins; k++) {
 						if (!Double.isFinite(excel[k])) {
 							continue;
 						}
 						long tMs = grid.getHeaderElapsedMs(k);
 						binned.computeIfAbsent(tMs, key -> new LinkedHashMap<>()).put(col, excel[k]);
+						binnedBasis.putIfAbsent(tMs, basis);
 					}
 				}
 			}
 		}
 		for (Map.Entry<Long, NativeRow> row : raw.entrySet()) {
-			csv.writeSpotRow(kymo, false, expKey, cageId, spotId, row.getKey() / 60000.0,
-					row.getValue().frameIndex, row.getValue().values);
+			csv.writeSpotRow(kymo, false, expKey, cageId, spotId, minutesOf(row.getValue().timeMs),
+					row.getValue().frameIndex, row.getValue().timeBasis, row.getValue().values);
 		}
 		if (writeBin) {
 			for (Map.Entry<Long, Map<String, Double>> row : binned.entrySet()) {
-				csv.writeSpotRow(kymo, true, expKey, cageId, spotId, row.getKey() / 60000.0,
-						frameIndexAt(raw, row.getKey()), row.getValue());
+				csv.writeSpotRow(kymo, true, expKey, cageId, spotId, minutesOf(row.getKey()),
+						frameIndexAt(raw, row.getKey()), binnedBasis.get(row.getKey()), row.getValue());
 			}
 		}
 	}
@@ -386,12 +416,18 @@ public final class CsvNormalizedSpotExport {
 						if (acc == null) {
 							continue;
 						}
-						mergeNativeGroup(acc.raw, col, s,
-								rawTimes(exp, options, rt, s.getMeasure().getCount(), cameraTimes), options, scale,
-								usesKymoGrid(exp, rt) ? kymoFrames : null);
-						if (writeBin && grid != null) {
-							mergeBinned(acc.binned, col, s.getMeasure().getValuesResampledToExcelGrid(grid), grid,
-									scale);
+						Clock clock = sampleClock(exp, rt, s.getMeasure().getCount(), cameraTimes);
+						boolean rejected = clock != null && clock.elapsedMs == null;
+						long[] times = clock == null
+								? rawTimes(exp, options, rt, s.getMeasure().getCount(), cameraTimes)
+								: clock.elapsedMs;
+						mergeNativeGroup(acc.raw, col, s, times, clock == null ? null : clock.basis.exportId, options,
+								scale, usesKymoGrid(exp, rt) ? kymoFrames : null);
+						if (writeBin && grid != null && !rejected && grid.getNBins() > 0
+								&& grid.getFrameElapsedMsRelative().length > 0) {
+							mergeBinned(acc.binned, acc.binBasis, col,
+									s.getMeasure().getValuesResampledToExcelGrid(grid), grid, scale,
+									clock == null ? null : clock.basis.exportId);
 						}
 					}
 				}
@@ -406,13 +442,13 @@ public final class CsvNormalizedSpotExport {
 				groupIds.ensureIdspotGroup(expKey, acc.cageId, acc.groupId, acc.stimulus, acc.concentration, acc.nSpots,
 						acc.volumeCount > 0 ? acc.totalVolume / acc.volumeCount : Double.NaN);
 				for (Map.Entry<Long, NativeRow> row : acc.raw.entrySet()) {
-					csv.writeGroupRow(false, expKey, acc.cageId, acc.groupId, row.getKey() / 60000.0,
-							row.getValue().frameIndex, row.getValue().values);
+					csv.writeGroupRow(false, expKey, acc.cageId, acc.groupId, minutesOf(row.getValue().timeMs),
+							row.getValue().frameIndex, row.getValue().timeBasis, row.getValue().values);
 				}
 				if (writeBin) {
 					for (Map.Entry<Long, Map<String, Double>> row : acc.binned.entrySet()) {
-						csv.writeGroupRow(true, expKey, acc.cageId, acc.groupId, row.getKey() / 60000.0,
-								frameIndexAt(acc.raw, row.getKey()), row.getValue());
+						csv.writeGroupRow(true, expKey, acc.cageId, acc.groupId, minutesOf(row.getKey()),
+								frameIndexAt(acc.raw, row.getKey()), acc.binBasis.get(row.getKey()), row.getValue());
 					}
 				}
 			}
@@ -463,7 +499,11 @@ public final class CsvNormalizedSpotExport {
 				int countB = rowB == null ? 0 : rowB.values.getOrDefault(col + "_n_valid", 0.0).intValue();
 				if ((rowA != null && rowA.values.containsKey(col + "_n_valid"))
 						|| (rowB != null && rowB.values.containsKey(col + "_n_valid"))) {
-					csv.writePreference(expKey, a.cageId, a.groupId, b.groupId, time / 60000.0, frame, col,
+					Long timeMs = rowA != null && rowA.timeMs != null ? rowA.timeMs
+							: rowB != null ? rowB.timeMs : null;
+					String basis = rowA != null && rowA.timeBasis != null ? rowA.timeBasis
+							: rowB != null ? rowB.timeBasis : null;
+					csv.writePreference(expKey, a.cageId, a.groupId, b.groupId, minutesOf(timeMs), frame, basis, col,
 							sumA, sumB, countA, countB);
 				}
 			}
@@ -489,24 +529,32 @@ public final class CsvNormalizedSpotExport {
 		return columns;
 	}
 
-	private static void mergeNativeGroup(Map<Long, NativeRow> byTime, String col, CageSpotAggregateSeries series, long[] times,
-			ResultsOptions options, double scale, KymoFrameIndexes kymoFrames) {
+	private static void mergeNativeGroup(Map<Long, NativeRow> byTime, String col, CageSpotAggregateSeries series,
+			long[] times, String timeBasis, ResultsOptions options, double scale, KymoFrameIndexes kymoFrames) {
 		SpotMeasure measure = series.getMeasure();
-		if (measure == null || times == null) {
+		if (measure == null) {
 			return;
 		}
-		int n = Math.min(measure.getCount(), times.length);
+		int count = measure.getCount();
+		boolean rejected = times == null;
+		if (!rejected && times.length == 0) {
+			return;
+		}
+		int n = rejected ? count : Math.min(count, times.length);
+		String basis = timeBasis;
 		for (int i = 0; i < n; i++) {
-			double v = measure.getValueAt(i);
-			if (!inWindow(times[i], options)) {
+			Long timeMs = rejected ? null : times[i];
+			if (timeMs != null && !inWindow(timeMs, options)) {
 				continue;
 			}
-			Integer frameIndex = kymoFrames == null ? Integer.valueOf(i) : kymoFrames.at(i, measure.getCount());
-			NativeRow row = byTime.computeIfAbsent(times[i], k -> new NativeRow());
+			Integer frameIndex = kymoFrames == null ? Integer.valueOf(i) : kymoFrames.at(i, count);
+			long key = timeMs != null ? timeMs : Long.MIN_VALUE + i;
+			NativeRow row = byTime.computeIfAbsent(key, k -> new NativeRow());
+			double v = measure.getValueAt(i);
 			if (Double.isFinite(v)) {
-				row.put(frameIndex, col, v * scale);
+				row.put(frameIndex, timeMs, basis, col, v * scale);
 			}
-			row.put(frameIndex, col + "_n_valid", series.getValidCount(i));
+			row.put(frameIndex, timeMs, basis, col + "_n_valid", series.getValidCount(i));
 		}
 	}
 
@@ -515,8 +563,8 @@ public final class CsvNormalizedSpotExport {
 		return row == null ? null : row.frameIndex;
 	}
 
-	private static void mergeBinned(Map<Long, Map<String, Double>> byTime, String col, List<Double> values,
-			SpotExcelTimeline.SpotExcelGrid grid, double scale) {
+	private static void mergeBinned(Map<Long, Map<String, Double>> byTime, Map<Long, String> basisByTime, String col,
+			List<Double> values, SpotExcelTimeline.SpotExcelGrid grid, double scale, String timeBasis) {
 		if (values == null || grid == null) {
 			return;
 		}
@@ -526,7 +574,9 @@ public final class CsvNormalizedSpotExport {
 			if (v == null || !Double.isFinite(v)) {
 				continue;
 			}
-			byTime.computeIfAbsent(grid.getHeaderElapsedMs(k), key -> new LinkedHashMap<>()).put(col, v * scale);
+			long tMs = grid.getHeaderElapsedMs(k);
+			byTime.computeIfAbsent(tMs, key -> new LinkedHashMap<>()).put(col, v * scale);
+			basisByTime.putIfAbsent(tMs, timeBasis);
 		}
 	}
 
@@ -566,17 +616,8 @@ public final class CsvNormalizedSpotExport {
 			return new long[0];
 		}
 		if (usesKymoGrid(exp, resultType)) {
-			long delta = exp != null ? exp.getKymoBin_ms() : 0L;
-			if (delta <= 0L) {
-				delta = 60000L;
-			}
-			long[] times = new long[n];
-			long origin = exp != null && plugins.fmp.multitools.experiment.spot.SpotLineSampling.isLineMeasure(resultType)
-					? Math.max(0, exp.getKymoFirst_ms()) : 0;
-			for (int i = 0; i < n; i++) {
-				times[i] = origin + (long) i * delta;
-			}
-			return times;
+			Clock clock = CageKymographTimeline.resolve(exp, n, cameraTimes);
+			return clock.elapsedMs != null ? clock.elapsedMs : new long[0];
 		}
 		long[] frames = cameraTimes != null ? cameraTimes : new long[0];
 		if (frames.length >= n) {
@@ -590,6 +631,18 @@ public final class CsvNormalizedSpotExport {
 			times[i] = (long) i * step;
 		}
 		return times;
+	}
+
+	/** Kymograph column clock, or null when this measure stays on the camera timeline. */
+	private static Clock sampleClock(Experiment exp, EnumResults resultType, int n, long[] cameraTimes) {
+		if (!usesKymoGrid(exp, resultType)) {
+			return null;
+		}
+		return CageKymographTimeline.resolve(exp, n, cameraTimes);
+	}
+
+	private static Double minutesOf(Long timeMs) {
+		return timeMs == null ? null : timeMs / 60000.0;
 	}
 
 	private static boolean usesKymoGrid(Experiment exp, EnumResults type) {
@@ -635,50 +688,48 @@ public final class CsvNormalizedSpotExport {
 
 	/** Recover the source camera frames for a kymograph built from a clipped stack. */
 	static final class KymoFrameIndexes {
-		private final int firstFrame;
-		private final int frameCount;
+		private final long[] cameraTimes;
+		private final long startMs;
+		private final long endMs;
 		private final int factor;
 
 		KymoFrameIndexes(long[] cameraTimes, long startMs, long endMs, int factor) {
-			int start = 0;
-			int end = cameraTimes.length;
-			if (endMs > startMs) {
-				while (start < end && cameraTimes[start] < startMs) {
-					start++;
-				}
-				while (end > start && cameraTimes[end - 1] > endMs) {
-					end--;
-				}
-			}
-			// The builder uses the full stack when the requested window selects no frames.
-			this.firstFrame = end > start ? start : 0;
-			this.frameCount = end > start ? end - start : cameraTimes.length;
-			this.factor = Math.max(1, factor);
+			this.cameraTimes = cameraTimes != null ? cameraTimes : new long[0];
+			this.startMs = startMs;
+			this.endMs = endMs;
+			this.factor = factor;
 		}
 
 		Integer at(int column, int width) {
-			if (width == frameCount) {
-				return firstFrame + column;
+			int[] frames = CageKymographTimeline.sourceFrames(width, cameraTimes, startMs, endMs, factor);
+			if (frames == null || column < 0 || column >= frames.length) {
+				return null;
 			}
-			// Older bins can report a factor inferred from the nominal interval.
-			// Require it to agree with the saved series width before applying it.
-			if (frameCount > 0 && width == 1 + (frameCount - 1) / factor) {
-				return firstFrame + column * factor;
-			}
-			return null;
+			return frames[column];
 		}
 	}
 
 	private static final class NativeRow {
 		final Map<String, Double> values = new LinkedHashMap<>();
 		Integer frameIndex;
+		Long timeMs;
+		String timeBasis;
 
-		void put(Integer index, String column, double value) {
+		void put(Integer index, Long timeMs, String timeBasis, String column, double value) {
 			if (values.isEmpty()) {
 				frameIndex = index;
-			} else if (!Objects.equals(frameIndex, index)) {
-				// A timestamp shared by different frames has no single frame index.
-				frameIndex = null;
+				this.timeMs = timeMs;
+				this.timeBasis = timeBasis;
+			} else {
+				if (!Objects.equals(frameIndex, index)) {
+					frameIndex = null;
+				}
+				if (!Objects.equals(this.timeMs, timeMs)) {
+					this.timeMs = null;
+				}
+				if (!Objects.equals(this.timeBasis, timeBasis)) {
+					this.timeBasis = null;
+				}
 			}
 			values.put(column, value);
 		}
@@ -694,6 +745,7 @@ public final class CsvNormalizedSpotExport {
 		int volumeCount;
 		final Map<Long, NativeRow> raw = new TreeMap<>();
 		final Map<Long, Map<String, Double>> binned = new TreeMap<>();
+		final Map<Long, String> binBasis = new TreeMap<>();
 
 		GroupRows(int cageId, String groupId, String stimulus, String concentration) {
 			this.cageId = cageId;

@@ -1,5 +1,6 @@
 package plugins.fmp.multitools.tools.toExcel.csv;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -7,9 +8,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.ClassRule;
@@ -18,6 +21,9 @@ import org.junit.Test;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.service.CageKymographTimeline;
+import plugins.fmp.multitools.service.CageKymographTimeline.Basis;
+import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
 import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.test.InMemoryImageRule;
@@ -59,11 +65,11 @@ public class CsvNormalizedSpotExportTest {
 		assertTrue(groups.contains(",2,A__1,A,1,2,"));
 		assertTrue(groups.contains(",3,C__1,C,1,1,"));
 		String sums = read(folder.resolve("measure_spotgroup_kymo_raw.csv"));
-		assertTrue(sums.contains(",2,A__1,0.0,,0.5,2.0"));
-		assertTrue(sums.contains(",2,A__1,1.0,,0.25,1.0"));
+		assertTrue(sums.contains(",2,A__1,0.0,,nominal_bin,0.5,2.0"));
+		assertTrue(sums.contains(",2,A__1,1.0,,nominal_bin,0.25,1.0"));
 		String pi = read(folder.resolve("measure_spotgroup_kymo_pi_raw.csv"));
-		assertTrue(pi.contains(",2,A__1,B__1,0.0,,agg_greenheight_conso,0.5,0.25,2,1,0.3333333333333333,0.0"));
-		assertTrue(pi.contains(",2,A__1,B__1,1.0,,agg_greenheight_conso,0.25,0.25,1,1,0.0,0.0"));
+		assertTrue(pi.contains(",2,A__1,B__1,0.0,,nominal_bin,agg_greenheight_conso,0.5,0.25,2,1,0.3333333333333333,0.0"));
+		assertTrue(pi.contains(",2,A__1,B__1,1.0,,nominal_bin,agg_greenheight_conso,0.25,0.25,1,1,0.0,0.0"));
 		assertFalse(pi.contains(",3,A__1,B__1"));
 	}
 
@@ -108,8 +114,8 @@ public class CsvNormalizedSpotExportTest {
 		Path folder = Files.createTempDirectory("spot-preference");
 		try (CsvNormalizedSpotExportSupport csv = new CsvNormalizedSpotExportSupport(folder, Collections.emptyList(),
 				Collections.emptyList(), Collections.emptyList(), false, 60000, false)) {
-			csv.writePreference("expA", 2, "A__1", "B__1", 0.0, 0, "agg_sumclean", 0.4, 0.2, 2, 1);
-			csv.writePreference("expA", 2, "A__1", "B__1", 1.0, 1, "agg_sumclean", 0.4, Double.NaN, 2, 0);
+			csv.writePreference("expA", 2, "A__1", "B__1", 0.0, 0, null, "agg_sumclean", 0.4, 0.2, 2, 1);
+			csv.writePreference("expA", 2, "A__1", "B__1", 1.0, 1, null, "agg_sumclean", 0.4, Double.NaN, 2, 0);
 			java.util.Properties settings = new java.util.Properties();
 			settings.setProperty("run_id", "run1");
 			settings.setProperty("parameter.bin_ms", "60000");
@@ -178,6 +184,8 @@ public class CsvNormalizedSpotExportTest {
 		assertEquals(0L, times[0]);
 		assertEquals(60000L, times[1]);
 		assertEquals(120000L, times[2]);
+		assertEquals(plugins.fmp.multitools.service.CageKymographTimeline.Basis.NOMINAL_BIN,
+				plugins.fmp.multitools.service.CageKymographTimeline.resolve(null, 3, null).basis);
 	}
 
 	@Test(timeout = 10000)
@@ -199,15 +207,15 @@ public class CsvNormalizedSpotExportTest {
 			csv.ensureIdspot("expA", 2, "r0c1", "spot", 0, 1, 0.5, 12, "quinine", "10mM", "green", 1, "0");
 			Map<String, Double> row = new LinkedHashMap<>();
 			row.put("area_sum", 3.5);
-			csv.writeSpotRow(false, false, "expA", 2, "r0c1", 1.0, 4, row);
-			csv.writeSpotRow(false, true, "expA", 2, "r0c1", 0.0, 0, row);
-			csv.writeSpotRow(false, true, "expA", 2, "r0c1", 2.0, null, row);
+			csv.writeSpotRow(false, false, "expA", 2, "r0c1", 1.0, 4, null, row);
+			csv.writeSpotRow(false, true, "expA", 2, "r0c1", 0.0, 0, null, row);
+			csv.writeSpotRow(false, true, "expA", 2, "r0c1", 2.0, null, null, row);
 			Map<String, Double> empty = new LinkedHashMap<>();
 			empty.put("area_sum", Double.NaN);
-			csv.writeSpotRow(false, false, "expA", 2, "r0c1", 2.0, 5, empty);
+			csv.writeSpotRow(false, false, "expA", 2, "r0c1", 2.0, 5, null, empty);
 			Map<String, Double> group = Collections.singletonMap("agg_sumclean", 3.5);
-			csv.writeGroupRow(false, "expA", 2, "quinine__10mM", 1.0, 4, group);
-			csv.writeGroupRow(true, "expA", 2, "quinine__10mM", 2.0, null, group);
+			csv.writeGroupRow(false, "expA", 2, "quinine__10mM", 1.0, 4, null, group);
+			csv.writeGroupRow(true, "expA", 2, "quinine__10mM", 2.0, null, null, group);
 		}
 
 		String idspot = read(folder.resolve("idspot.csv"));
@@ -229,6 +237,136 @@ public class CsvNormalizedSpotExportTest {
 
 	private static String read(Path file) throws Exception {
 		return new String(Files.readAllBytes(file), java.nio.charset.StandardCharsets.UTF_8);
+	}
+
+	@Test(timeout = 10000)
+	public void matchingColumnsUseCameraTimesAndKeepFrameIndexes() throws Exception {
+		Experiment exp = new Experiment();
+		exp.setKymoBin_ms(60000);
+		exp.setKymoSubsampleFactor(3);
+		long[] camera = new long[369];
+		for (int i = 0; i < camera.length; i++) {
+			camera[i] = Math.round(i * 7642000.0 / 368);
+		}
+		long[] times = CsvNormalizedSpotExport.rawTimes(exp, new ResultsOptions(), EnumResults.KYMO_GREEN_HEIGHT, 369,
+				camera);
+		assertEquals(7642000L, times[368]);
+		assertEquals(Basis.CAMERA_FRAME, CageKymographTimeline.resolve(exp, 369, camera).basis);
+		CsvNormalizedSpotExport.KymoFrameIndexes frames = new CsvNormalizedSpotExport.KymoFrameIndexes(camera, 0, 0, 3);
+		assertEquals(Integer.valueOf(0), frames.at(0, 369));
+		assertEquals(Integer.valueOf(368), frames.at(368, 369));
+
+		Spot spot = new Spot();
+		spot.getMeasurements(EnumResults.KYMO_GREEN_HEIGHT).setValues(new double[] { 5, 4, 3 });
+		long[] shortCamera = { 0L, 21000L, 43000L };
+		Path folder = Files.createTempDirectory("greenheight-camera");
+		try (CsvNormalizedSpotExportSupport csv = new CsvNormalizedSpotExportSupport(folder, Collections.emptyList(),
+				Arrays.asList("kymo_green_height"), Collections.emptyList(), false, 60000, false)) {
+			CsvNormalizedSpotExport.writeSpotFamily(exp, new ResultsOptions(), csv, "camA2_A", new Cage(), 1, spot, "s",
+					Arrays.asList(EnumResults.KYMO_GREEN_HEIGHT), true, false, shortCamera,
+					new CsvNormalizedSpotExport.KymoFrameIndexes(shortCamera, 0, 0, 3));
+		}
+		List<String> lines = Files.readAllLines(folder.resolve("measure_spot_kymo_raw.csv"));
+		assertEquals("experiment_id,cage_id,spot_id,time_min,frame_index,time_basis,kymo_green_height", lines.get(0));
+		assertTrue(lines.get(1).contains("camA2_A,1,s,0.0,0,camera_frame,5.0"));
+		assertTrue(lines.get(2).contains("camA2_A,1,s,0.35,1,camera_frame,4.0"));
+		assertFalse(lines.get(2).contains(",1.0,1,"));
+	}
+
+	@Test(timeout = 10000)
+	public void columnFileOutranksCameraAndNominalClocks() throws Exception {
+		Path directory = Files.createTempDirectory("kymo-columns");
+		CageKymographTimeline.write(directory.toString(), new long[] { 0, 21000, 43000, 64000, 86000 },
+				Arrays.asList(0, 2, 4));
+		Experiment exp = new Experiment() {
+			@Override
+			public String getKymosBinFullDirectory() {
+				return directory.toString();
+			}
+		};
+		exp.setKymoBin_ms(60000);
+		long[] camera = { 0L, 21000L, 43000L, 64000L, 86000L };
+		CageKymographTimeline.Clock clock = CageKymographTimeline.resolve(exp, 3, camera);
+		assertEquals(Basis.COLUMN_FILE, clock.basis);
+		assertArrayEquals(new long[] { 0L, 43000L, 86000L }, clock.elapsedMs);
+	}
+
+	@Test(timeout = 10000)
+	public void mismatchedColumnFileIsNotReplacedWithSyntheticTimes() throws Exception {
+		Path directory = Files.createTempDirectory("kymo-columns-bad");
+		CageKymographTimeline.write(directory.toString(), new long[] { 0, 21000 }, Arrays.asList(0, 1));
+		Experiment exp = new Experiment() {
+			@Override
+			public String getKymosBinFullDirectory() {
+				return directory.toString();
+			}
+		};
+		exp.setKymoBin_ms(60000);
+		long[] camera = { 0L, 21000L, 42000L, 64000L };
+		CageKymographTimeline.Clock clock = CageKymographTimeline.resolve(exp, 4, camera);
+		assertEquals(Basis.COLUMN_FILE_REJECTED, clock.basis);
+		assertNull(clock.elapsedMs);
+		assertEquals(0, CsvNormalizedSpotExport.rawTimes(exp, new ResultsOptions(), EnumResults.KYMO_GREEN_HEIGHT, 4,
+				camera).length);
+
+		Spot spot = new Spot();
+		spot.getMeasurements(EnumResults.KYMO_GREEN_HEIGHT).setValues(new double[] { 1, 2, 3, 4 });
+		Path folder = Files.createTempDirectory("greenheight-rejected");
+		try (CsvNormalizedSpotExportSupport csv = new CsvNormalizedSpotExportSupport(folder, Collections.emptyList(),
+				Arrays.asList("kymo_green_height"), Collections.emptyList(), false, 600000, true)) {
+			CsvNormalizedSpotExport.writeSpotFamily(exp, new ResultsOptions(), csv, "camA2_A", new Cage(), 1, spot, "s",
+					Arrays.asList(EnumResults.KYMO_GREEN_HEIGHT), true, true, camera,
+					new CsvNormalizedSpotExport.KymoFrameIndexes(camera, 0, 0, 1));
+		}
+		String raw = read(folder.resolve("measure_spot_kymo_raw.csv"));
+		assertTrue(raw.contains("camA2_A,1,s,,0,column_file_rejected,1.0"));
+		assertTrue(raw.contains("camA2_A,1,s,,3,column_file_rejected,4.0"));
+		assertFalse(raw.contains("nominal_bin"));
+		assertFalse(raw.contains(",1.0,1,"));
+		assertFalse(Files.exists(folder.resolve("measure_spot_kymo_bin600.csv")));
+	}
+
+	@Test(timeout = 10000)
+	public void subsampledColumnsUseTheSourceFrameTimestamp() {
+		Experiment exp = new Experiment();
+		exp.setKymoBin_ms(60000);
+		exp.setKymoSubsampleFactor(2);
+		long[] camera = { 0L, 21000L, 42000L, 63000L, 84000L, 105000L };
+		CageKymographTimeline.Clock clock = CageKymographTimeline.resolve(exp, 3, camera);
+		assertEquals(Basis.CAMERA_FRAME, clock.basis);
+		assertArrayEquals(new long[] { 0L, 42000L, 84000L }, clock.elapsedMs);
+		CageKymographTimeline.Clock nominal = CageKymographTimeline.resolve(exp, 2, camera);
+		assertEquals(Basis.NOMINAL_BIN, nominal.basis);
+		assertArrayEquals(new long[] { 0L, 60000L }, nominal.elapsedMs);
+	}
+
+	@Test(timeout = 10000)
+	public void sixHundredSecondBinsFollowTheAcquisitionSpan() {
+		Experiment exp = new Experiment() {
+			@Override
+			public void loadFileIntervalsFromSeqCamData() {
+			}
+		};
+		List<String> names = new ArrayList<>();
+		long[] camera = new long[369];
+		for (int i = 0; i < camera.length; i++) {
+			names.add("frame" + i + ".jpg");
+			camera[i] = Math.round(i * 7642000.0 / 368);
+		}
+		exp.getSeqCamData().setImagesList(names);
+		exp.getSeqCamData().getTimeManager().setCamImagesTime_Ms(camera);
+		exp.setCamImages_ms(camera);
+		exp.setKymoBin_ms(60000);
+		Spot spot = new Spot();
+		spot.getMeasurements(EnumResults.KYMO_GREEN_HEIGHT).setValues(new double[369]);
+		exp.getSpots().getSpotList().add(spot);
+		ResultsOptions options = new ResultsOptions();
+		options.resultType = EnumResults.KYMO_GREEN_HEIGHT;
+		options.buildExcelStepMs = 600000;
+		SpotExcelTimeline.SpotExcelGrid grid = SpotExcelTimeline.buildForSpotExport(exp, options);
+		assertEquals(7642000L, grid.getFrameElapsedMsRelative()[368]);
+		assertEquals(13, grid.getNBins());
+		assertEquals(12L * 600000L, grid.getHeaderElapsedMs(12));
 	}
 
 	@Test(timeout = 10000)
