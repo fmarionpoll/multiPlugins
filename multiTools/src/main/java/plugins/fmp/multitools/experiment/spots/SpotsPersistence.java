@@ -547,11 +547,11 @@ public class SpotsPersistence {
 						EnumResults.KYMO_GREEN_HEIGHT_RATIO, ";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_CROSS_RATIO,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.X_LINE_RATIO,
 						";")) {
 					return false;
 				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.KYMO_RIM_RATIO,
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.RIM_LINE_RATIO,
 						";")) {
 					return false;
 				}

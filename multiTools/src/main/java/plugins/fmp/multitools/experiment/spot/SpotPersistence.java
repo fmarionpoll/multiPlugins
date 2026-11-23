@@ -194,10 +194,10 @@ public class SpotPersistence {
 		case KYMO_GREEN_HEIGHT_RATIO:
 			spot.getGreenMaskHeightToPeakRatio().exportYDataToCsv(sbf, sep);
 			break;
-		case KYMO_CROSS_RATIO:
+		case X_LINE_RATIO:
 			spot.getCrossLineSignalToBaselineRatio().exportYDataToCsv(sbf, sep);
 			break;
-		case KYMO_RIM_RATIO:
+		case RIM_LINE_RATIO:
 			spot.getRimCoverageToBaselineRatio().exportYDataToCsv(sbf, sep);
 			break;
 		default:
@@ -510,10 +510,10 @@ public class SpotPersistence {
 		case KYMO_GREEN_HEIGHT_RATIO:
 			importKymoY(spot.getGreenMaskHeightToPeakRatio(), data, x, y);
 			break;
-		case KYMO_CROSS_RATIO:
+		case X_LINE_RATIO:
 			importKymoY(spot.getCrossLineSignalToBaselineRatio(), data, x, y);
 			break;
-		case KYMO_RIM_RATIO:
+		case RIM_LINE_RATIO:
 			importKymoY(spot.getRimCoverageToBaselineRatio(), data, x, y);
 			break;
 		default:

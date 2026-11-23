@@ -135,16 +135,16 @@ public class CsvNormalizedSpotExportTest {
 		assertAggregateIdentifier(EnumResults.AGG_COLOR_DEPLETION, "AGG_SUMCLEAN_COLOR");
 		assertAggregateIdentifier(EnumResults.AGG_COLOR_PIXEL_SUM, "AGG_AREA_COUNT_COLOR");
 		assertAggregateIdentifier(EnumResults.AGG_KYMO_HEIGHT_LOSS, "AGG_GREENHEIGHT_CONSO");
-		assertEquals("agg_x_line_conso", CsvNormalizedSpotExport.columnName(EnumResults.AGG_KYMO_CROSS_LOSS));
-		assertEquals("x_line_ratio", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_CROSS_RATIO));
-		assertEquals("rim_line_ratio", CsvNormalizedSpotExport.columnName(EnumResults.KYMO_RIM_RATIO));
-		assertEquals("AGG_LINE_CONSO", EnumResults.AGG_KYMO_CROSS_LOSS.toPersistenceKey());
-		assertEquals("KYMO_LINE_RATIO", EnumResults.KYMO_CROSS_RATIO.toPersistenceKey());
-		assertEquals(EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.findByPersistenceKey("AGG_LINE_CONSO"));
-		assertEquals(EnumResults.KYMO_CROSS_RATIO, EnumResults.findByPersistenceKey("KYMO_LINE_RATIO"));
-		assertEquals(EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.findByText("AGG_LINE_CONSO"));
-		assertEquals(EnumResults.KYMO_CROSS_RATIO, EnumResults.findByText("KYMO_LINE_RATIO"));
-		assertAggregateIdentifier(EnumResults.AGG_KYMO_RIM_LOSS, "AGG_RIM");
+		assertEquals("agg_x_line_conso", CsvNormalizedSpotExport.columnName(EnumResults.AGG_X_LINE_CONSO));
+		assertEquals("x_line_ratio", CsvNormalizedSpotExport.columnName(EnumResults.X_LINE_RATIO));
+		assertEquals("rim_line_ratio", CsvNormalizedSpotExport.columnName(EnumResults.RIM_LINE_RATIO));
+		assertEquals("AGG_LINE_CONSO", EnumResults.AGG_X_LINE_CONSO.toPersistenceKey());
+		assertEquals("KYMO_LINE_RATIO", EnumResults.X_LINE_RATIO.toPersistenceKey());
+		assertEquals(EnumResults.AGG_X_LINE_CONSO, EnumResults.findByPersistenceKey("AGG_LINE_CONSO"));
+		assertEquals(EnumResults.X_LINE_RATIO, EnumResults.findByPersistenceKey("KYMO_LINE_RATIO"));
+		assertEquals(EnumResults.AGG_X_LINE_CONSO, EnumResults.findByText("AGG_LINE_CONSO"));
+		assertEquals(EnumResults.X_LINE_RATIO, EnumResults.findByText("KYMO_LINE_RATIO"));
+		assertAggregateIdentifier(EnumResults.AGG_RIM_LINE_CONSO, "AGG_RIM");
 		assertAggregateIdentifier(EnumResults.CAGE_GREY_MEDIAN, "AGG_MEDIANREF");
 	}
 

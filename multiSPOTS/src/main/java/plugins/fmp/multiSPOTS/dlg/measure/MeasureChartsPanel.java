@@ -127,7 +127,6 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 		private final JSpinner smoothBins = new JSpinner(new SpinnerNumberModel(5, 1, 99, 2));
 		private final JPanel baselineRow = row();
 		private final JPanel medianRow = row();
-		private final JLabel population = new JLabel();
 		private final JLabel status = new JLabel(" ");
 		private Experiment currentExperiment;
 		private boolean updating;
@@ -138,7 +137,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 		ChartView(boolean summary) {
 			this.summary = summary;
 			measure = new JComboBox<>(family.measures(summary));
-			SpotsMeasuresUi.showMeasurementLabels(measure);
+			SpotsMeasuresUi.showMeasurementNames(measure);
 			if (!summary && family == Family.FILTER) measure.setSelectedItem(EnumResults.FILTER_GREY_FLY_MASKED);
 			if (!summary && family == Family.COLORS) measure.setSelectedItem(EnumResults.COLOR_GREY);
 			JPanel scope = row();
@@ -154,8 +153,6 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			metric.add(new JLabel(summary ? "Summary" : "Measure"));
 			metric.add(measure);
 			if (!summary && family != Family.LINES) metric.add(relative);
-			JPanel explanation = row();
-			explanation.add(population);
 			baselineRow.add(new JLabel("Baseline (min)"));
 			baselineRow.add(baseline);
 			baselineRow.add(stopStable);
@@ -169,7 +166,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			JPanel actions = row();
 			actions.add(display); actions.add(refresh); actions.add(axis);
 			JPanel message = row(); message.add(status);
-			SpotsMeasuresUi.layoutStackedRows(this, scope, metric, explanation, baselineRow, medianRow, actions, message);
+			SpotsMeasuresUi.layoutStackedRows(this, scope, metric, baselineRow, medianRow, actions, message);
 			display.addActionListener(e -> display(selectedExperiment()));
 			refresh.addActionListener(e -> display(selectedExperiment()));
 			axis.addActionListener(e -> openAxes());
@@ -195,8 +192,6 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			baselineRow.setVisible(depletion || (!summary && family != Family.LINES && relative.isSelected()));
 			stableBins.setEnabled(stopStable.isSelected());
 			medianRow.setVisible(result == EnumResults.CAGE_GREY_MEDIAN || result == EnumResults.AGG_FILTER_DEPLETION);
-			population.setText(summary ? SpotChartMeasures.populationLabel(result)
-					: "Individual spot curves; use Cage summaries for aggregates, means and references");
 			cage.setVisible(cageView.isSelected());
 			revalidate();
 		}
@@ -289,7 +284,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 				close();
 				ComboBoxUIControlsFactory controls = new ComboBoxUIControlsFactory();
 				controls.setMeasurementTypes(family.measures(summary));
-				controls.showMeasurementLabels();
+				controls.showMeasureNamesWithTitles();
 				controls.setMeasurementSelectionListener(result -> measure.setSelectedItem(result));
 				controls.setSingleCageSelectionListener((experiment, selected) -> {
 					updating = true;

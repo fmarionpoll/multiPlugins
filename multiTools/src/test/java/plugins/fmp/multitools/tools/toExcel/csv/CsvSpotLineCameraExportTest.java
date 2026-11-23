@@ -21,7 +21,7 @@ public class CsvSpotLineCameraExportTest {
         exp.setKymoBin_ms(60000);
         Spot spot = new Spot();
         exp.getSpots().getSpotList().add(spot);
-        List<EnumResults> types = Arrays.asList(EnumResults.KYMO_CROSS_RATIO, EnumResults.KYMO_RIM_RATIO);
+        List<EnumResults> types = Arrays.asList(EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO);
         for (EnumResults type : types) {
             spot.getMeasurements(type).setValues(new double[] { 1, 0.8, 0.5 });
             spot.getMeasurements(type).setCameraSampled(true);

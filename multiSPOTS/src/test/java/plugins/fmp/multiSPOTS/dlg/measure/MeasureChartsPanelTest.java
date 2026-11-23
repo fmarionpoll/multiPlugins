@@ -108,8 +108,20 @@ public class MeasureChartsPanelTest {
 
 	private static void assertOptions(Container root, boolean summary) {
 		JComboBox<?> combo = measureCombo(root);
-		for (int i = 0; i < combo.getItemCount(); i++)
-			assertEquals(summary, ((EnumResults) combo.getItemAt(i)).isCageSpotSummary());
+		for (int i = 0; i < combo.getItemCount(); i++) {
+			EnumResults result = (EnumResults) combo.getItemAt(i);
+			assertEquals(summary, result.isCageSpotSummary());
+			assertMeasureLabel(combo, result, i);
+		}
+		assertNotNull(combo.getToolTipText());
+	}
+
+	@SuppressWarnings({ "rawtypes", "unchecked" })
+	private static void assertMeasureLabel(JComboBox combo, EnumResults result, int index) {
+		javax.swing.JLabel label = (javax.swing.JLabel) combo.getRenderer().getListCellRendererComponent(
+				new javax.swing.JList(), result, index, false, false);
+		assertEquals(result.name(), label.getText());
+		assertEquals(result.toTitle(), label.getToolTipText());
 	}
 
 	private static JComboBox<?> measureCombo(Container root) {

@@ -60,8 +60,8 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				|| resultsOptions.resultType == EnumResults.AGG_COLOR_DEPLETION
 				|| resultsOptions.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| resultsOptions.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS
-				|| resultsOptions.resultType == EnumResults.AGG_KYMO_CROSS_LOSS
-				|| resultsOptions.resultType == EnumResults.AGG_KYMO_RIM_LOSS;
+				|| resultsOptions.resultType == EnumResults.AGG_X_LINE_CONSO
+				|| resultsOptions.resultType == EnumResults.AGG_RIM_LINE_CONSO;
 		if (!resultsOptions.spotAreas || !aggregateExport) {
 			return startColumn;
 		}
@@ -72,9 +72,9 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			try {
 				int heightCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_KYMO_HEIGHT_LOSS,
 						"spot_aggregate");
-				int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_KYMO_CROSS_LOSS,
+				int lineCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_X_LINE_CONSO,
 						"spot_aggregate");
-				int rimCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_KYMO_RIM_LOSS, "spot_aggregate");
+				int rimCol = exportResultType(exp, startColumn, charSeries, EnumResults.AGG_RIM_LINE_CONSO, "spot_aggregate");
 				return Math.max(heightCol, Math.max(lineCol, rimCol));
 			} finally {
 				resultsOptions.resultType = savedType;
@@ -87,10 +87,10 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 			gridProbe = EnumResults.COLOR_PIXEL_COUNT;
 		} else if (resultsOptions.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS) {
 			gridProbe = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
-		} else if (resultsOptions.resultType == EnumResults.AGG_KYMO_CROSS_LOSS) {
-			gridProbe = EnumResults.KYMO_CROSS_RATIO;
-		} else if (resultsOptions.resultType == EnumResults.AGG_KYMO_RIM_LOSS) {
-			gridProbe = EnumResults.KYMO_RIM_RATIO;
+		} else if (resultsOptions.resultType == EnumResults.AGG_X_LINE_CONSO) {
+			gridProbe = EnumResults.X_LINE_RATIO;
+		} else if (resultsOptions.resultType == EnumResults.AGG_RIM_LINE_CONSO) {
+			gridProbe = EnumResults.RIM_LINE_RATIO;
 		} else {
 			gridProbe = EnumResults.FILTER_GREY_SMOOTHED;
 		}
@@ -106,7 +106,7 @@ public class XLSExportMeasuresFromSpotAggregatedByStimulusConc extends XLSExport
 				&& resultType != EnumResults.COLOR_GREY_SMOOTHED && resultType != EnumResults.COLOR_PIXEL_COUNT
 				&& resultType != EnumResults.AGG_FILTER_DEPLETION && resultType != EnumResults.AGG_COLOR_DEPLETION
 				&& resultType != EnumResults.AGG_COLOR_PIXEL_SUM 				&& resultType != EnumResults.AGG_KYMO_HEIGHT_LOSS
-				&& resultType != EnumResults.AGG_KYMO_CROSS_LOSS && resultType != EnumResults.AGG_KYMO_RIM_LOSS
+				&& resultType != EnumResults.AGG_X_LINE_CONSO && resultType != EnumResults.AGG_RIM_LINE_CONSO
 				&& resultType != EnumResults.KYMO_GREEN_HEIGHT_RATIO) {
 			return col0;
 		}

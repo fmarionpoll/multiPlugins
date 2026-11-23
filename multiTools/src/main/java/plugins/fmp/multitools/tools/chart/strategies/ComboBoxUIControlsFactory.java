@@ -165,7 +165,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 				Component row = super.getListCellRendererComponent(list, value, index, selected, hasFocus);
 				if (value instanceof EnumResults && row instanceof JLabel) {
 					EnumResults measure = (EnumResults) value;
-					((JLabel) row).setText(measure.toString());
+					((JLabel) row).setText(measure.name());
 					((JComponent) row).setToolTipText(measure.toTitle());
 				}
 				return row;
@@ -432,11 +432,11 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_CROSS_RATIO:
-		case KYMO_RIM_RATIO:
+		case X_LINE_RATIO:
+		case RIM_LINE_RATIO:
 		case AGG_KYMO_HEIGHT_LOSS:
-		case AGG_KYMO_CROSS_LOSS:
-		case AGG_KYMO_RIM_LOSS:
+		case AGG_X_LINE_CONSO:
+		case AGG_RIM_LINE_CONSO:
 			return true;
 		default:
 			return false;
@@ -454,7 +454,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		EnumResults rt = opts != null ? opts.resultType : null;
 		if (rt == EnumResults.AGG_FILTER_DEPLETION || rt == EnumResults.AGG_COLOR_DEPLETION || rt == EnumResults.AGG_COLOR_PIXEL_SUM
 				|| rt == EnumResults.CAGE_GREY_MEDIAN || rt == EnumResults.AGG_KYMO_HEIGHT_LOSS
-				|| rt == EnumResults.AGG_KYMO_CROSS_LOSS || rt == EnumResults.AGG_KYMO_RIM_LOSS) {
+				|| rt == EnumResults.AGG_X_LINE_CONSO || rt == EnumResults.AGG_RIM_LINE_CONSO) {
 			if (dataset != null && dataset.getSeriesCount() > 0) {
 				List<String> seen = new ArrayList<>();
 				int palette = 0;

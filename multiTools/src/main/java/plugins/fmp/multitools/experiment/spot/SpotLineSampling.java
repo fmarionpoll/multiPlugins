@@ -17,14 +17,14 @@ public final class SpotLineSampling {
     }
 
     public static EnumResults source(EnumResults type) {
-        if (type == EnumResults.AGG_KYMO_CROSS_LOSS) return EnumResults.KYMO_CROSS_RATIO;
-        if (type == EnumResults.AGG_KYMO_RIM_LOSS) return EnumResults.KYMO_RIM_RATIO;
+        if (type == EnumResults.AGG_X_LINE_CONSO) return EnumResults.X_LINE_RATIO;
+        if (type == EnumResults.AGG_RIM_LINE_CONSO) return EnumResults.RIM_LINE_RATIO;
         return type;
     }
 
     public static boolean isLineMeasure(EnumResults type) {
         EnumResults value = source(type);
-        return value == EnumResults.KYMO_CROSS_RATIO || value == EnumResults.KYMO_RIM_RATIO;
+        return value == EnumResults.X_LINE_RATIO || value == EnumResults.RIM_LINE_RATIO;
     }
 
     public static boolean usesCameraFrames(Experiment exp, EnumResults type) {

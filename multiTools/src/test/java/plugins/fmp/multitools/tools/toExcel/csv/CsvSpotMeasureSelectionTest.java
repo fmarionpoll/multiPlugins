@@ -11,12 +11,12 @@ public class CsvSpotMeasureSelectionTest {
 	@Test
 	public void aggregateSelectionSplitsFileFamiliesAndCopiesIndependently() {
 		ResultsOptions options = new ResultsOptions();
-		options.spotAggregateMeasures = new ArrayList<>(Arrays.asList(EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS, EnumResults.AGG_KYMO_HEIGHT_LOSS));
+		options.spotAggregateMeasures = new ArrayList<>(Arrays.asList(EnumResults.AGG_X_LINE_CONSO, EnumResults.AGG_RIM_LINE_CONSO, EnumResults.AGG_KYMO_HEIGHT_LOSS));
 		ResultsOptions copy = new ResultsOptions();
 		copy.copy(options);
 		options.spotAggregateMeasures.clear();
-		assertEquals(Arrays.asList(EnumResults.AGG_KYMO_CROSS_LOSS,
-				EnumResults.AGG_KYMO_RIM_LOSS), Arrays.asList(CsvNormalizedSpotExport.selectedAggregateTypes(copy, false)));
+		assertEquals(Arrays.asList(EnumResults.AGG_X_LINE_CONSO,
+				EnumResults.AGG_RIM_LINE_CONSO), Arrays.asList(CsvNormalizedSpotExport.selectedAggregateTypes(copy, false)));
 		assertEquals(Arrays.asList(EnumResults.AGG_KYMO_HEIGHT_LOSS),
 				Arrays.asList(CsvNormalizedSpotExport.selectedAggregateTypes(copy, true)));
 		assertEquals(0, CsvNormalizedSpotExport.selectedAggregateTypes(options, false).length);
@@ -28,18 +28,18 @@ public class CsvSpotMeasureSelectionTest {
 		options.sum = false;
 		assertEquals(0, CsvNormalizedSpotExport.primaryTypes(options).length);
 		options.spotCrossRatio = true;
-		assertEquals(Arrays.asList(EnumResults.KYMO_CROSS_RATIO, EnumResults.FLY_PIXEL_COUNT),
+		assertEquals(Arrays.asList(EnumResults.X_LINE_RATIO, EnumResults.FLY_PIXEL_COUNT),
 				Arrays.asList(CsvNormalizedSpotExport.primaryTypes(options)));
 		options.spotRimRatio = true;
 		options.spotKymoGreenHeight = true;
 		ResultsOptions copy = new ResultsOptions();
 		copy.copy(options);
-		assertEquals(Arrays.asList(EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_CROSS_RATIO,
-				EnumResults.KYMO_RIM_RATIO, EnumResults.FLY_PIXEL_COUNT),
+		assertEquals(Arrays.asList(EnumResults.KYMO_GREEN_HEIGHT, EnumResults.X_LINE_RATIO,
+				EnumResults.RIM_LINE_RATIO, EnumResults.FLY_PIXEL_COUNT),
 				Arrays.asList(CsvNormalizedSpotExport.primaryTypes(copy)));
 		assertTrue(plugins.fmp.multitools.tools.toExcel.XLSExportSpots.hasAnySpotMeasureSelected(copy));
-		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.KYMO_CROSS_RATIO));
-		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.KYMO_RIM_RATIO));
+		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.X_LINE_RATIO));
+		assertFalse(CsvNormalizedSpotExport.isKymoSeries(EnumResults.RIM_LINE_RATIO));
 		assertTrue(CsvNormalizedSpotExport.isKymoSeries(EnumResults.KYMO_GREEN_HEIGHT));
 		options.spotCrossRatio = false;
 		options.spotRimRatio = false;

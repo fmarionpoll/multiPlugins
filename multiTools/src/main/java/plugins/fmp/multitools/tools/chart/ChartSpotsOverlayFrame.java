@@ -119,10 +119,10 @@ public class ChartSpotsOverlayFrame {
 	private JCheckBox lastMeasureAction;
 
 	private JPanel topControlsPanel = null;
-	protected JCheckBox cbSum = new JCheckBox(EnumResults.FILTER_GREY.toDisplayLabel());
-	protected JCheckBox cbNoFly = new JCheckBox(EnumResults.FILTER_GREY_FLY_MASKED.toDisplayLabel());
-	protected JCheckBox cbClean = new JCheckBox(EnumResults.FILTER_GREY_SMOOTHED.toDisplayLabel());
-	protected JCheckBox cbFlyPresent = new JCheckBox(EnumResults.FLY_PIXEL_COUNT.toDisplayLabel());
+	protected JCheckBox cbSum = measureCheckBox(EnumResults.FILTER_GREY);
+	protected JCheckBox cbNoFly = measureCheckBox(EnumResults.FILTER_GREY_FLY_MASKED);
+	protected JCheckBox cbClean = measureCheckBox(EnumResults.FILTER_GREY_SMOOTHED);
+	protected JCheckBox cbFlyPresent = measureCheckBox(EnumResults.FLY_PIXEL_COUNT);
 	protected JCheckBox cbDepletion = new JCheckBox("(max-v)/max");
 	protected JComboBox<SpotChoice> spotSelectorCombo = null;
 	protected JButton updateButton = new JButton("Update");
@@ -136,6 +136,12 @@ public class ChartSpotsOverlayFrame {
 	protected SpotExclusiveSelectionController spotExclusiveSelectionController = null;
 	protected boolean isUpdatingSpotComboModel = false;
 	protected boolean isUpdatingMeasureCheckboxes = false;
+
+	protected static JCheckBox measureCheckBox(EnumResults result) {
+		JCheckBox check = new JCheckBox(result.name());
+		check.setToolTipText(result.toTitle());
+		return check;
+	}
 
 	public void setSelectedSpotsProvider(SelectedSpotsProvider provider) {
 		this.selectedSpotsProvider = provider;
@@ -158,7 +164,7 @@ public class ChartSpotsOverlayFrame {
 		this.baseTitle = title;
 
 		mainChartPanel = new JPanel(new BorderLayout());
-		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.toDisplayLabel() : "");
+		String finalTitle = title + ": " + (options.resultType != null ? options.resultType.name() : "");
 		if (mainChartFrame != null && (mainChartFrame.getParent() != null || mainChartFrame.isVisible())) {
 			mainChartFrame.setTitle(finalTitle);
 			mainChartFrame.removeAll();
@@ -314,7 +320,7 @@ public class ChartSpotsOverlayFrame {
 
 
 		if (SpotLineSampling.isLineMeasure(options.resultType)) {
-			row1.add(new JLabel(options.resultType.toDisplayLabel()));
+			row1.add(new JLabel(options.resultType.name()));
 		} else {
 			row1.add(cbSum);
 			row1.add(cbNoFly);
@@ -665,7 +671,7 @@ public class ChartSpotsOverlayFrame {
 					continue;
 				if (sb.length() > 0)
 					sb.append(", ");
-				sb.append(r.toDisplayLabel());
+				sb.append(r.name());
 			}
 			measuresLabel = sb.toString();
 		}

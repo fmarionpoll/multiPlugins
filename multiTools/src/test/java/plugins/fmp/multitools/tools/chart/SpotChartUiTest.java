@@ -71,7 +71,7 @@ public class SpotChartUiTest {
 			ResultsOptions options = new ResultsOptions(); options.resultType = EnumResults.FILTER_GREY_SMOOTHED;
 			JPanel controls = filter.createTopControlsPanel(options);
 			filter.lastSelectedSpots = Arrays.asList(spot(1, "a"), spot(1, "b"));
-			findCheck(controls, EnumResults.FILTER_GREY.toDisplayLabel()).doClick();
+			findCheck(controls, EnumResults.FILTER_GREY.name()).doClick();
 			assertEquals(Collections.singletonList(EnumResults.FILTER_GREY), filter.getEnabledMeasures(options));
 			assertEquals(1, filter.countSelectedMeasures());
 		});
@@ -83,11 +83,11 @@ public class SpotChartUiTest {
 			ResultsOptions options = new ResultsOptions(); options.resultType = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
 			JPanel controls = lines.createTopControlsPanel(options);
 			lines.lastSelectedSpots = Collections.singletonList(spot(1, "a"));
-			findCheck(controls, EnumResults.KYMO_CROSS_RATIO.toDisplayLabel()).doClick();
+			findCheck(controls, EnumResults.X_LINE_RATIO.name()).doClick();
 			assertEquals(2, lines.getEnabledMeasures(options).size());
 			lines.lastSelectedSpots = Arrays.asList(spot(1, "a"), spot(1, "b"));
-			findCheck(controls, EnumResults.KYMO_RIM_RATIO.toDisplayLabel()).doClick();
-			assertEquals(Collections.singletonList(EnumResults.KYMO_RIM_RATIO), lines.getEnabledMeasures(options));
+			findCheck(controls, EnumResults.RIM_LINE_RATIO.name()).doClick();
+			assertEquals(Collections.singletonList(EnumResults.RIM_LINE_RATIO), lines.getEnabledMeasures(options));
 		});
 	}
 
@@ -104,7 +104,7 @@ public class SpotChartUiTest {
 			ResultsOptions options = new ResultsOptions(); options.resultType = EnumResults.KYMO_GREEN_HEIGHT_RATIO;
 			RenderedLine lines = new RenderedLine();
 			JPanel controls = lines.start(exp, spot, options);
-			findCheck(controls, EnumResults.KYMO_GREEN_HEIGHT.toDisplayLabel()).doClick();
+			findCheck(controls, EnumResults.KYMO_GREEN_HEIGHT.name()).doClick();
 			org.jfree.chart.plot.XYPlot plot = lines.getChartPanel().getChart().getXYPlot();
 			assertEquals(2, plot.getRangeAxisCount());
 			assertEquals(0.5, plot.getDataset(0).getYValue(0, 1), 1e-9);
@@ -118,7 +118,10 @@ public class SpotChartUiTest {
 	}
 
 	private static JCheckBox findCheck(Container root, String label) {
-		for (JCheckBox check : SpotChartUiTest.<JCheckBox>descendants(root, JCheckBox.class)) if (label.equals(check.getText())) return check;
+		for (JCheckBox check : SpotChartUiTest.<JCheckBox>descendants(root, JCheckBox.class)) if (label.equals(check.getText())) {
+			assertNotNull(check.getToolTipText());
+			return check;
+		}
 		throw new AssertionError("Checkbox not found: " + label);
 	}
 

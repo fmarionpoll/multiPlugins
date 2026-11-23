@@ -120,7 +120,7 @@ public final class KymoSpotChartSupport {
 		if (resultType.isPersistedKymographSpotMeasure()) {
 			return resultType;
 		}
-		if (resultType == EnumResults.AGG_KYMO_CROSS_LOSS || resultType == EnumResults.AGG_KYMO_RIM_LOSS
+		if (resultType == EnumResults.AGG_X_LINE_CONSO || resultType == EnumResults.AGG_RIM_LINE_CONSO
 				|| resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS) {
 			return CageKymoGreenHeightAggregation.sourceOf(resultType);
 		}
@@ -220,8 +220,8 @@ public final class KymoSpotChartSupport {
 			return dataset;
 		}
 		EnumResults rt = options.resultType;
-		if (rt == EnumResults.AGG_KYMO_HEIGHT_LOSS || rt == EnumResults.AGG_KYMO_CROSS_LOSS
-				|| rt == EnumResults.AGG_KYMO_RIM_LOSS) {
+		if (rt == EnumResults.AGG_KYMO_HEIGHT_LOSS || rt == EnumResults.AGG_X_LINE_CONSO
+				|| rt == EnumResults.AGG_RIM_LINE_CONSO) {
 			addConsoAggregates(exp, cage, spots, options, dataset, rt);
 			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
 			return dataset;

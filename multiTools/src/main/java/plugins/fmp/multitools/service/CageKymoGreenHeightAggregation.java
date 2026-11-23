@@ -72,30 +72,30 @@ public final class CageKymoGreenHeightAggregation {
 	 * Same stimulus/conc sums from persisted per-spot line ratios.
 	 */
 	public static List<SumSeries> buildSumConsoByStimulusConcFromLineRatios(List<Spot> spots, int nBins) {
-		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.KYMO_CROSS_RATIO);
+		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.X_LINE_RATIO);
 	}
 
 	/** Same stimulus/conc sums from persisted per-spot rim ratios. */
 	public static List<SumSeries> buildSumConsoByStimulusConcFromRimRatios(List<Spot> spots, int nBins) {
-		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.KYMO_RIM_RATIO);
+		return buildSumConsoByStimulusConcFromMeasure(spots, nBins, EnumResults.RIM_LINE_RATIO);
 	}
 
 	public static List<SumSeries> sumsFor(List<Spot> spots, int nBins, EnumResults aggregateType) {
-		if (aggregateType == EnumResults.AGG_KYMO_CROSS_LOSS) {
+		if (aggregateType == EnumResults.AGG_X_LINE_CONSO) {
 			return buildSumConsoByStimulusConcFromLineRatios(spots, nBins);
 		}
-		if (aggregateType == EnumResults.AGG_KYMO_RIM_LOSS) {
+		if (aggregateType == EnumResults.AGG_RIM_LINE_CONSO) {
 			return buildSumConsoByStimulusConcFromRimRatios(spots, nBins);
 		}
 		return buildSumConsoByStimulusConcFromSpots(spots, nBins);
 	}
 
 	public static EnumResults sourceOf(EnumResults aggregateType) {
-		if (aggregateType == EnumResults.AGG_KYMO_CROSS_LOSS) {
-			return EnumResults.KYMO_CROSS_RATIO;
+		if (aggregateType == EnumResults.AGG_X_LINE_CONSO) {
+			return EnumResults.X_LINE_RATIO;
 		}
-		if (aggregateType == EnumResults.AGG_KYMO_RIM_LOSS) {
-			return EnumResults.KYMO_RIM_RATIO;
+		if (aggregateType == EnumResults.AGG_RIM_LINE_CONSO) {
+			return EnumResults.RIM_LINE_RATIO;
 		}
 		return EnumResults.KYMO_GREEN_HEIGHT_RATIO;
 	}

@@ -301,7 +301,7 @@ public class ChartCagesCombinedFrame {
 
 	private void updateFrameTitle() {
 		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
-			String rt = currentOptions.resultType != null ? currentOptions.resultType.toDisplayLabel() : "";
+			String rt = currentOptions.resultType != null ? currentOptions.resultType.name() : "";
 			mainChartFrame.setTitle(baseTitle + ": " + rt);
 		}
 	}
@@ -360,11 +360,11 @@ public class ChartCagesCombinedFrame {
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_CROSS_RATIO:
-		case KYMO_RIM_RATIO:
+		case X_LINE_RATIO:
+		case RIM_LINE_RATIO:
 		case AGG_KYMO_HEIGHT_LOSS:
-		case AGG_KYMO_CROSS_LOSS:
-		case AGG_KYMO_RIM_LOSS:
+		case AGG_X_LINE_CONSO:
+		case AGG_RIM_LINE_CONSO:
 			return true;
 		default:
 			return false;

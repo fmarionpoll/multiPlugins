@@ -122,10 +122,10 @@ public abstract class XLSExportSpots extends XLSExport {
 			list.add(EnumResults.KYMO_GREEN_HEIGHT_RATIO);
 		}
 		if (o.spotCrossRatio) {
-			list.add(EnumResults.KYMO_CROSS_RATIO);
+			list.add(EnumResults.X_LINE_RATIO);
 		}
 		if (o.spotRimRatio) {
-			list.add(EnumResults.KYMO_RIM_RATIO);
+			list.add(EnumResults.RIM_LINE_RATIO);
 		}
 		if (!list.isEmpty()) {
 			list.add(EnumResults.FLY_PIXEL_COUNT);

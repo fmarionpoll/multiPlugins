@@ -224,7 +224,7 @@ public final class CsvNormalizedSpotExport {
 
 	private static EnumResults[] allCameraAggregateTypes() {
 		return new EnumResults[] { EnumResults.AGG_FILTER_DEPLETION, EnumResults.AGG_COLOR_DEPLETION, EnumResults.AGG_COLOR_PIXEL_SUM,
-				EnumResults.AGG_KYMO_CROSS_LOSS, EnumResults.AGG_KYMO_RIM_LOSS };
+				EnumResults.AGG_X_LINE_CONSO, EnumResults.AGG_RIM_LINE_CONSO };
 	}
 
 	private static void exportSpots(Experiment exp, ResultsOptions options, String charSeries,

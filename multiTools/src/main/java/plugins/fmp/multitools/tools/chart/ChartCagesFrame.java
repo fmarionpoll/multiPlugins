@@ -218,7 +218,7 @@ public class ChartCagesFrame extends IcyFrame {
 		// Set layout using strategy
 		layoutStrategy.setLayoutOnPanel(mainChartPanel, nPanelsAlongX, nPanelsAlongY);
 
-		String rt = options.resultType != null ? options.resultType.toDisplayLabel() : "";
+		String rt = options.resultType != null ? options.resultType.name() : "";
 		String finalTitle = title + ": " + rt;
 
 		// Reuse existing frame if it's still valid
@@ -703,7 +703,7 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected void updateFrameTitle() {
 		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
-			String rt = currentOptions.resultType != null ? currentOptions.resultType.toDisplayLabel() : "";
+			String rt = currentOptions.resultType != null ? currentOptions.resultType.name() : "";
 			String finalTitle = baseTitle + ": " + rt;
 			mainChartFrame.setTitle(finalTitle);
 		}

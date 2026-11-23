@@ -35,8 +35,8 @@ public class CageSummaryChartTest {
 			second.getMeasurements(source).setValues(new double[] { 1, 0.8 });
 			ResultsOptions options = new ResultsOptions(); options.resultType = result;
 			cage.getSpotAggregates().clear();
-			boolean sum = result == EnumResults.AGG_KYMO_HEIGHT_LOSS || result == EnumResults.AGG_KYMO_CROSS_LOSS
-					|| result == EnumResults.AGG_KYMO_RIM_LOSS;
+			boolean sum = result == EnumResults.AGG_KYMO_HEIGHT_LOSS || result == EnumResults.AGG_X_LINE_CONSO
+					|| result == EnumResults.AGG_RIM_LINE_CONSO;
 			XYSeriesCollection nativeData = KymoSpotChartSupport.buildCageDataset(exp, cage, exp.getSpots(), options);
 			assertEquals(result.name(), 1, nativeData.getSeriesCount());
 			assertEquals(sum ? 0.8 : 0.6, nativeData.getYValue(0, 1), 1e-9);

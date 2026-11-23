@@ -29,10 +29,10 @@ import plugins.fmp.multitools.tools.results.ResultsOptions;
  */
 public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 
-	private final JCheckBox cbAreaCountColor = new JCheckBox(EnumResults.COLOR_PIXEL_COUNT.toDisplayLabel());
-	private final JCheckBox cbGreySumColor = new JCheckBox(EnumResults.COLOR_GREY.toDisplayLabel());
-	private final JCheckBox cbGreySumColorPreFly = new JCheckBox(EnumResults.COLOR_GREY_PRE_GATE.toDisplayLabel());
-	private final JCheckBox cbGreySumCleanColor = new JCheckBox(EnumResults.COLOR_GREY_SMOOTHED.toDisplayLabel());
+	private final JCheckBox cbAreaCountColor = measureCheckBox(EnumResults.COLOR_PIXEL_COUNT);
+	private final JCheckBox cbGreySumColor = measureCheckBox(EnumResults.COLOR_GREY);
+	private final JCheckBox cbGreySumColorPreFly = measureCheckBox(EnumResults.COLOR_GREY_PRE_GATE);
+	private final JCheckBox cbGreySumCleanColor = measureCheckBox(EnumResults.COLOR_GREY_SMOOTHED);
 
 	/** When several spots are overlaid, prefer the measure the user just toggled on. */
 	private JCheckBox lastOverlayMeasureActionSource = null;

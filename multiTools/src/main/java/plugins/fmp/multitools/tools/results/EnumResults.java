@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Objects;
 
-import plugins.fmp.multitools.experiment.capillaries.computations.CorrelationComputation;
 import plugins.fmp.multitools.experiment.capillaries.computations.CapillaryEventMeasureComputation;
+import plugins.fmp.multitools.experiment.capillaries.computations.CorrelationComputation;
 
 /**
  * Enumeration of all available measurement types.
@@ -86,8 +86,7 @@ public enum EnumResults {
 			CapillaryEventMeasureComputation.computeGulpBins(true, false)),
 	SUM_GULP_BIN_RAW("sum_gulp_bin_raw", "volume (ul)", "cumulated volume of gulp bins, raw (t-t0)",
 			CapillaryEventMeasureComputation.computeGulpBins(false, true)),
-	SUM_GULP_BIN_CORR("sum_gulp_bin_corr", "volume (ul)",
-			"cumulated volume of gulp bins, minus evaporation (t-t0)",
+	SUM_GULP_BIN_CORR("sum_gulp_bin_corr", "volume (ul)", "cumulated volume of gulp bins, minus evaporation (t-t0)",
 			CapillaryEventMeasureComputation.computeGulpBins(true, true)),
 	// Intake events are stored separately from the ordinary gulps.
 	INTAKE_BIN_RAW("intake_bin_raw", "volume (ul)", "volume per intake bin, raw (at t)",
@@ -96,7 +95,8 @@ public enum EnumResults {
 			CapillaryEventMeasureComputation.computeIntakeBins(true, false)),
 	SUM_INTAKE_BIN_RAW("sum_intake_bin_raw", "volume (ul)", "cumulated volume of intake bins, raw (t-t0)",
 			CapillaryEventMeasureComputation.computeIntakeBins(false, true)),
-	SUM_INTAKE_BIN_CORR("sum_intake_bin_corr", "volume (ul)", "cumulated volume of intake bins, minus evaporation (t-t0)",
+	SUM_INTAKE_BIN_CORR("sum_intake_bin_corr", "volume (ul)",
+			"cumulated volume of intake bins, minus evaporation (t-t0)",
 			CapillaryEventMeasureComputation.computeIntakeBins(true, true)),
 	TTOGULP("tToGulp", "minutes", "time to previous gulp(at t)", CapillaryEventMeasureComputation.computeTToGulp()),
 	TTOGULP_LR("tToGulp_LR", "minutes", "time to previous gulp of either capillary (at t)",
@@ -131,8 +131,8 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_VISIBLE_FLY_COUNT()),
 
 	// === SPOT AREA MEASURES (stored data) ===
-	FILTER_GREY("AREA_SUM", "grey value", "Consumption (estimated/threshold)", StoredDataAccessors.accessStored_AREA_SUM(),
-			"AREA_SUM", PersistenceDomain.SPOT),
+	FILTER_GREY("AREA_SUM", "grey value", "Consumption (estimated/threshold)",
+			StoredDataAccessors.accessStored_AREA_SUM(), "AREA_SUM", PersistenceDomain.SPOT),
 	FILTER_GREY_FLY_MASKED("AREA_SUMNOFLY", "grey value - no fly, filter", "Consumption (estimated/threshold)",
 			StoredDataAccessors.accessStored_AREA_SUMNOFLY(), "AREA_SUMNOFLY", PersistenceDomain.SPOT),
 	FILTER_GREY_SMOOTHED("AREA_SUMCLEAN", "grey value - no fly, filter", "Consumption (estimated/threshold)",
@@ -143,16 +143,15 @@ public enum EnumResults {
 
 	/**
 	 * Computed cage-level aggregate: sum over spots grouped by (stimulus,
-	 * concentration) of normalized FILTER_GREY_SMOOTHED consumption (not persisted as its
-	 * own spot field).
+	 * concentration) of normalized FILTER_GREY_SMOOTHED consumption (not persisted
+	 * as its own spot field).
 	 */
 	AGG_FILTER_DEPLETION("AGG_SUMCLEAN", "spots consumed (0..N)",
 			"Sum of per-spot normalized depletion by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_SUMCLEAN"),
 
 	/**
-	 * Color-distance spot detection. On-disk keys
-	 * remain {@code *_V6}.
+	 * Color-distance spot detection. On-disk keys remain {@code *_V6}.
 	 */
 	COLOR_PIXEL_COUNT("AREA_COUNT_COLOR", "pixels", "Over-threshold spot pixels (color-distance)",
 			StoredDataAccessors.accessStored_AREA_COUNT_V6(), "AREA_COUNT_V6", PersistenceDomain.SPOT),
@@ -160,8 +159,7 @@ public enum EnumResults {
 			StoredDataAccessors.accessStored_GREY_SUM_V6(), "GREY_SUM_V6", PersistenceDomain.SPOT),
 	COLOR_GREY_PRE_GATE("GREY_SUM_COLOR_PREFLY", "grey / ROI px", "Color-distance grey before fly-occupancy NaN gate",
 			StoredDataAccessors.accessStored_GREY_SUM_V6_PREFLY(), "GREY_SUM_V6_PREFLY", PersistenceDomain.SPOT),
-	COLOR_GREY_SMOOTHED("GREY_SUM_CLEAN_COLOR", "grey / ROI px",
-			"Color-distance grey: cleaned from GREY_SUM_COLOR",
+	COLOR_GREY_SMOOTHED("GREY_SUM_CLEAN_COLOR", "grey / ROI px", "Color-distance grey: cleaned from GREY_SUM_COLOR",
 			StoredDataAccessors.accessStored_GREY_SUM_CLEAN_V6(), "GREY_SUM_CLEAN_V6", PersistenceDomain.SPOT),
 	AGG_COLOR_DEPLETION("AGG_SUMCLEAN_COLOR", "spots consumed (0..N)",
 			"Sum of per-spot normalized depletion from the smoothed color-distance grey signal by compound and concentration within each cage.",
@@ -171,11 +169,12 @@ public enum EnumResults {
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_AREA_COUNT_COLOR"),
 
 	/**
-	 * Computed cage-level curve: per-bin median of {@code FILTER_GREY} across spots,
-	 * excluding bins with fly on spot ({@code FLY_PIXEL_COUNT}); shown with
+	 * Computed cage-level curve: per-bin median of {@code FILTER_GREY} across
+	 * spots, excluding bins with fly on spot ({@code FLY_PIXEL_COUNT}); shown with
 	 * consumption aggregate (inverted axis).
 	 */
-	CAGE_GREY_MEDIAN("AGG_MEDIANREF", "grey value", "Median normalized grey signal across the cage's spots, excluding fly-occluded samples.",
+	CAGE_GREY_MEDIAN("AGG_MEDIANREF", "grey value",
+			"Median normalized grey signal across the cage's spots, excluding fly-occluded samples.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_MEDIANREF"),
 
 	/**
@@ -192,10 +191,12 @@ public enum EnumResults {
 	 * (not persisted on spots). {@link #toPersistenceKey()} remains
 	 * {@code KYMO_CHROMA_FRACT} for saved data compatibility.
 	 */
-	KYMO_ROW_FRACTION("KYMO_FRACT", "fraction (0-1)", "Kymograph: fraction of rows with selected metric above threshold",
+	KYMO_ROW_FRACTION("KYMO_FRACT", "fraction (0-1)",
+			"Kymograph: fraction of rows with selected metric above threshold",
 			StoredDataAccessors.accessStored_KYMO_FRACT(), "KYMO_CHROMA_FRACT", PersistenceDomain.SPOT),
 	/** Kymograph: absolute bin-to-bin change in metric fraction. */
-	KYMO_ROW_FRACTION_CHANGE("KYMO_ABS_DELTA", "|Δf|", "Kymograph: |Δf| of metric fraction between consecutive time bins",
+	KYMO_ROW_FRACTION_CHANGE("KYMO_ABS_DELTA", "|Δf|",
+			"Kymograph: |Δf| of metric fraction between consecutive time bins",
 			StoredDataAccessors.accessStored_KYMO_ABS_DELTA(), "KYMO_CHROMA_ABS_DELTA", PersistenceDomain.SPOT),
 	/** Kymograph: per-bin mean of per-spot metric fractions within a cage. */
 	KYMO_CAGE_MEAN_FRACT("KYMO_CAGE_MEAN", "fraction (0-1)", "Kymograph: cage mean of spot metric fractions",
@@ -226,28 +227,30 @@ public enum EnumResults {
 	 * X-shaped pair of diagonals through each spot: coverage above the surrounding
 	 * floor, divided by its median over the initial window.
 	 */
-	KYMO_CROSS_RATIO("X_LINE_RATIO", "I / I0",
+	X_LINE_RATIO("X_LINE_RATIO", "I / I0",
 			"X line: fraction of the cross above the floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT),
 	/**
-	 * Rim of the physical spot: fraction of the outline still above the outer
-	 * floor band, relative to the initial window.
+	 * Rim of the physical spot: fraction of the outline still above the outer floor
+	 * band, relative to the initial window.
 	 */
-	KYMO_RIM_RATIO("RIM_LINE_RATIO", "I / I0",
+	RIM_LINE_RATIO("RIM_LINE_RATIO", "I / I0",
 			"Rim: fraction of the outline above the outer floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_RIM_RATIO(), "KYMO_RIM_RATIO", PersistenceDomain.SPOT),
 	/**
-	 * Line analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_CROSS_RATIO)},
-	 * grouped by (stimulus, concentration) per cage.
+	 * Line analysis: per-bin sum of per-spot consumption
+	 * {@code Σ (1 − KYMO_CROSS_RATIO)}, grouped by (stimulus, concentration) per
+	 * cage.
 	 */
-	AGG_KYMO_CROSS_LOSS("AGG_X_LINE_CONSO", "Σ (1−I/I0)",
+	AGG_X_LINE_CONSO("AGG_X_LINE_CONSO", "Σ (1−I/I0)",
 			"Sum of per-spot X-line signal loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_LINE_CONSO"),
 	/**
-	 * Rim analysis: per-bin sum of per-spot consumption {@code Σ (1 − KYMO_RIM_RATIO)},
-	 * grouped by (stimulus, concentration) per cage.
+	 * Rim analysis: per-bin sum of per-spot consumption
+	 * {@code Σ (1 − KYMO_RIM_RATIO)}, grouped by (stimulus, concentration) per
+	 * cage.
 	 */
-	AGG_KYMO_RIM_LOSS("AGG_RIM", "Σ (1−I/I0)",
+	AGG_RIM_LINE_CONSO("AGG_RIM_LINE_CONSO", "Σ (1−I/I0)",
 			"Sum of per-spot rim coverage loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_RIM");
 
@@ -313,9 +316,9 @@ public enum EnumResults {
 			return "Green mask height (rows)";
 		case KYMO_GREEN_HEIGHT_RATIO:
 			return "Green mask height relative to peak";
-		case KYMO_CROSS_RATIO:
+		case X_LINE_RATIO:
 			return "X-line signal relative to initial baseline";
-		case KYMO_RIM_RATIO:
+		case RIM_LINE_RATIO:
 			return "Rim coverage relative to initial baseline";
 		case AGG_FILTER_DEPLETION:
 			return "Total estimated depletion · Image filter";
@@ -325,9 +328,9 @@ public enum EnumResults {
 			return "Total selected pixels · Color distance";
 		case AGG_KYMO_HEIGHT_LOSS:
 			return "Total relative green-mask height loss";
-		case AGG_KYMO_CROSS_LOSS:
+		case AGG_X_LINE_CONSO:
 			return "Total relative X-line signal loss";
-		case AGG_KYMO_RIM_LOSS:
+		case AGG_RIM_LINE_CONSO:
 			return "Total relative rim coverage loss";
 		case CAGE_GREY_MEDIAN:
 			return "Cage median grey signal";
@@ -354,8 +357,8 @@ public enum EnumResults {
 		case AGG_COLOR_PIXEL_SUM:
 		case CAGE_GREY_MEDIAN:
 		case AGG_KYMO_HEIGHT_LOSS:
-		case AGG_KYMO_CROSS_LOSS:
-		case AGG_KYMO_RIM_LOSS:
+		case AGG_X_LINE_CONSO:
+		case AGG_RIM_LINE_CONSO:
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
@@ -423,10 +426,10 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_CROSS_RATIO:
-		case KYMO_RIM_RATIO:
-		case AGG_KYMO_CROSS_LOSS:
-		case AGG_KYMO_RIM_LOSS:
+		case X_LINE_RATIO:
+		case RIM_LINE_RATIO:
+		case AGG_X_LINE_CONSO:
+		case AGG_RIM_LINE_CONSO:
 			return true;
 		default:
 			return false;
@@ -463,7 +466,7 @@ public enum EnumResults {
 	/** Per-spot kymograph strip series persisted in {@code SpotsMeasures.csv}. */
 	public boolean isPersistedKymographSpotMeasure() {
 		return this == KYMO_ROW_FRACTION || this == KYMO_ROW_FRACTION_CHANGE || this == KYMO_GREEN_HEIGHT
-				|| this == KYMO_GREEN_HEIGHT_RATIO || this == KYMO_CROSS_RATIO || this == KYMO_RIM_RATIO;
+				|| this == KYMO_GREEN_HEIGHT_RATIO || this == X_LINE_RATIO || this == RIM_LINE_RATIO;
 	}
 
 	public static boolean isKymographMeasure(EnumResults resultType) {
@@ -478,11 +481,11 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
-		case KYMO_CROSS_RATIO:
-		case KYMO_RIM_RATIO:
+		case X_LINE_RATIO:
+		case RIM_LINE_RATIO:
 		case AGG_KYMO_HEIGHT_LOSS:
-		case AGG_KYMO_CROSS_LOSS:
-		case AGG_KYMO_RIM_LOSS:
+		case AGG_X_LINE_CONSO:
+		case AGG_RIM_LINE_CONSO:
 			return true;
 		default:
 			return false;
@@ -563,13 +566,13 @@ public enum EnumResults {
 		}
 		switch (abbr) {
 		case "KYMO_X_LINE_RATIO":
-			return KYMO_CROSS_RATIO;
+			return X_LINE_RATIO;
 		case "KYMO_RIM_RATIO":
-			return KYMO_RIM_RATIO;
+			return RIM_LINE_RATIO;
 		case "KYMO_LINE_RATIO":
-			return KYMO_CROSS_RATIO;
+			return X_LINE_RATIO;
 		case "AGG_LINE_CONSO":
-			return AGG_KYMO_CROSS_LOSS;
+			return AGG_X_LINE_CONSO;
 		case "KYMO_CHROMA_FRACT":
 			return KYMO_ROW_FRACTION;
 		case "KYMO_CHROMA_ABS_DELTA":

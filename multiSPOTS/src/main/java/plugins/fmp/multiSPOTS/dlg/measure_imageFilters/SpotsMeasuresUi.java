@@ -54,7 +54,7 @@ public final class SpotsMeasuresUi {
 				Component row = super.getListCellRendererComponent(list, value, index, selected, hasFocus);
 				if (value instanceof EnumResults && row instanceof JLabel) {
 					EnumResults measure = (EnumResults) value;
-					((JLabel) row).setText(measure.toString());
+					((JLabel) row).setText(measure.name());
 					((JComponent) row).setToolTipText(measure.toTitle());
 				}
 				return row;

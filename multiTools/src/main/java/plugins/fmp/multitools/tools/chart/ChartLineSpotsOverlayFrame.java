@@ -37,8 +37,8 @@ public class ChartLineSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		JPanel panel = new JPanel(new BorderLayout());
 		JPanel choices = new JPanel(new GridLayout(0, 2));
 		for (EnumResults result : Family.LINES.measures(false)) {
-			JCheckBox check = new JCheckBox(result.toDisplayLabel(), result == options.resultType);
-			check.setToolTipText(result.toTitle());
+			JCheckBox check = measureCheckBox(result);
+			check.setSelected(result == options.resultType);
 			measures.put(result, check);
 			choices.add(check);
 			check.addActionListener(e -> {
@@ -49,7 +49,7 @@ public class ChartLineSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		JPanel navigation = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		addSpotNavigation(navigation);
 		navigation.add(updateButton);
-		navigation.add(new JLabel("One spot: compare measures. Selected ROI(s): compare spots using one measure."));
+		navigation.setToolTipText("One spot: compare measures. Selected ROI(s): compare spots using one measure.");
 		updateButton.addActionListener(e -> refreshChart());
 		panel.add(choices, BorderLayout.NORTH);
 		panel.add(navigation, BorderLayout.SOUTH);
@@ -120,7 +120,7 @@ public class ChartLineSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 			for (int i = 0; i < dataset.getSeriesCount(); i++) {
 				XYSeries series = dataset.getSeries(i);
 				if (lastSelectedSpots.size() == 1)
-					series.setKey(lastSelectedSpots.get(0).getName() + "::" + result.toDisplayLabel());
+					series.setKey(lastSelectedSpots.get(0).getName() + "::" + result.name());
 				renderer.setSeriesPaint(i, colors[(lastSelectedSpots.size() > 1 ? i : datasetIndex) % colors.length]);
 			}
 			plot.setDataset(datasetIndex, dataset);

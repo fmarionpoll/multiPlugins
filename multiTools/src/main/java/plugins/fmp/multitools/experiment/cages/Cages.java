@@ -1585,8 +1585,8 @@ public class Cages {
 		}
 		boolean need = opt.resultType == EnumResults.AGG_FILTER_DEPLETION || opt.resultType == EnumResults.AGG_COLOR_DEPLETION
 				|| opt.resultType == EnumResults.AGG_COLOR_PIXEL_SUM || opt.resultType == EnumResults.CAGE_GREY_MEDIAN
-				|| opt.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS || opt.resultType == EnumResults.AGG_KYMO_CROSS_LOSS
-				|| opt.resultType == EnumResults.AGG_KYMO_RIM_LOSS
+				|| opt.resultType == EnumResults.AGG_KYMO_HEIGHT_LOSS || opt.resultType == EnumResults.AGG_X_LINE_CONSO
+				|| opt.resultType == EnumResults.AGG_RIM_LINE_CONSO
 				|| opt.spotAggregateByStimulusConc;
 		if (!need) {
 			for (Cage cage : cagesList) {
@@ -1598,8 +1598,8 @@ public class Cages {
 		}
 		Spots allSpots = exp.getSpots();
 		EnumResults savedRt = opt.resultType;
-		if (savedRt == EnumResults.AGG_KYMO_HEIGHT_LOSS || savedRt == EnumResults.AGG_KYMO_CROSS_LOSS
-				|| savedRt == EnumResults.AGG_KYMO_RIM_LOSS) {
+		if (savedRt == EnumResults.AGG_KYMO_HEIGHT_LOSS || savedRt == EnumResults.AGG_X_LINE_CONSO
+				|| savedRt == EnumResults.AGG_RIM_LINE_CONSO) {
 			prepareKymoConsoAggregates(allSpots, savedRt);
 			return;
 		}
