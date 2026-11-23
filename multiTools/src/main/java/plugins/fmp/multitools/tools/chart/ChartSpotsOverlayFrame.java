@@ -4,6 +4,7 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.event.ComponentAdapter;
@@ -21,6 +22,8 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.JList;
 
 import org.jfree.chart.ChartPanel;
 import org.jfree.chart.JFreeChart;
@@ -107,10 +110,13 @@ public class ChartSpotsOverlayFrame {
 	}
 
 	private IcyFrame mainChartFrame = null;
-	private JPanel mainChartPanel = null;
+	protected JPanel mainChartPanel = null;
 
 	private Point graphLocation = new Point(0, 0);
-	private ChartPanel chartPanel = null;
+	protected ChartPanel chartPanel = null;
+	private JComboBox<Integer> cageSelectorCombo;
+	private boolean updatingCages;
+	private JCheckBox lastMeasureAction;
 
 	private JPanel topControlsPanel = null;
 	protected JCheckBox cbSum = new JCheckBox(EnumResults.FILTER_GREY.toDisplayLabel());
@@ -181,12 +187,21 @@ public class ChartSpotsOverlayFrame {
 	public void displayData(Experiment exp, ResultsOptions options, List<Spot> selectedSpots) {
 		if (mainChartPanel == null || mainChartFrame == null)
 			throw new IllegalStateException("createMainChartPanel must be called first");
-		if (exp == null || options == null || selectedSpots == null || selectedSpots.isEmpty())
+		if (options != null && options.resultType != null && options.resultType.isCageSpotSummary())
+			throw new IllegalArgumentException("Cage summaries cannot be displayed as individual spot measurements");
+		if (exp == null || options == null || selectedSpots == null)
 			return;
 
+		boolean firstDisplay = lastExperiment != exp;
+		if (lastOptions != null && lastOptions.resultType != options.resultType) setCheckboxDefaults(options);
 		this.lastExperiment = exp;
 		this.lastOptions = options;
 		this.lastSelectedSpots = selectedSpots;
+		cbDepletion.setEnabled(options.relativeToMaximum);
+		refreshCageSelectorModel();
+		refreshSpotSelectorModel(!firstDisplay);
+		List<Spot> actual = getSelectedSpotsFromProvider();
+		if (firstDisplay && (actual == null || actual.isEmpty())) maybeSelectSingleSpotInCombo(selectedSpots);
 
 		refreshChart();
 
@@ -238,6 +253,49 @@ public class ChartSpotsOverlayFrame {
 		return mainChartFrame;
 	}
 
+	public ChartPanel getChartPanel() { return chartPanel; }
+
+	/** Shared hierarchical navigation, also used by color and line overlays. */
+	protected void addSpotNavigation(JPanel row) {
+		cageSelectorCombo = new JComboBox<>();
+		cageSelectorCombo.setRenderer(new DefaultListCellRenderer() {
+			private static final long serialVersionUID = 1L;
+			@Override public java.awt.Component getListCellRendererComponent(JList<?> list, Object value,
+					int index, boolean selected, boolean focus) {
+				Object label = value == null || Integer.valueOf(-1).equals(value) ? "All cages" : "Cage " + value;
+				return super.getListCellRendererComponent(list, label, index, selected, focus);
+			}
+		});
+		spotSelectorCombo = new JComboBox<>();
+		refreshCageSelectorModel();
+		refreshSpotSelectorModel(false);
+		cageSelectorCombo.addActionListener(e -> {
+			if (updatingCages) return;
+			refreshSpotSelectorModel(false);
+			if (spotSelectorCombo.getItemCount() > 1) spotSelectorCombo.setSelectedIndex(1);
+			else refreshChart();
+		});
+		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
+		row.add(new JLabel("Cage")); row.add(cageSelectorCombo);
+		row.add(new JLabel("Spot")); row.add(spotSelectorCombo);
+	}
+
+	private void refreshCageSelectorModel() {
+		if (cageSelectorCombo == null) return;
+		Integer previous = (Integer) cageSelectorCombo.getSelectedItem();
+		updatingCages = true;
+		try {
+			cageSelectorCombo.removeAllItems();
+			cageSelectorCombo.addItem(-1);
+			java.util.Set<Integer> ids = new java.util.TreeSet<>();
+			List<Spot> available = getAvailableSpotsFromProvider();
+			if (available != null) for (Spot spot : available)
+				if (spot != null && spot.getProperties() != null) ids.add(spot.getProperties().getCageID());
+			for (Integer id : ids) cageSelectorCombo.addItem(id);
+			if (previous != null && ids.contains(previous)) cageSelectorCombo.setSelectedItem(previous);
+		} finally { updatingCages = false; }
+	}
+
 	public void dispose() {
 		if (mainChartFrame != null) {
 			mainChartFrame.dispose();
@@ -249,14 +307,11 @@ public class ChartSpotsOverlayFrame {
 
 	protected JPanel createTopControlsPanel(ResultsOptions options) {
 		JPanel panel = new JPanel(new BorderLayout());
-		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel row1 = new JPanel(new GridLayout(0, 2));
 		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
 		setCheckboxDefaults(options);
 
-		spotSelectorCombo = new JComboBox<>();
-		refreshSpotSelectorModel(false);
-		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
 
 		if (SpotLineSampling.isLineMeasure(options.resultType)) {
 			row1.add(new JLabel(options.resultType.toDisplayLabel()));
@@ -267,21 +322,26 @@ public class ChartSpotsOverlayFrame {
 			row1.add(cbFlyPresent);
 			row1.add(cbDepletion);
 		}
-		row1.add(spotSelectorCombo);
-		row1.add(updateButton);
+		addSpotNavigation(row2);
+		row2.add(updateButton);
 
 		panel.add(row1, BorderLayout.NORTH);
 		panel.add(row2, BorderLayout.SOUTH);
 
 		updateButton.addActionListener(e -> refreshChart());
 
-		cbSum.addActionListener(e -> onMeasureCheckboxChanged());
-		cbNoFly.addActionListener(e -> onMeasureCheckboxChanged());
-		cbClean.addActionListener(e -> onMeasureCheckboxChanged());
-		cbFlyPresent.addActionListener(e -> onMeasureCheckboxChanged());
+		cbSum.addActionListener(e -> onMeasureAction(cbSum));
+		cbNoFly.addActionListener(e -> onMeasureAction(cbNoFly));
+		cbClean.addActionListener(e -> onMeasureAction(cbClean));
+		cbFlyPresent.addActionListener(e -> onMeasureAction(cbFlyPresent));
 		cbDepletion.addActionListener(e -> refreshChart());
 
 		return panel;
+	}
+
+	private void onMeasureAction(JCheckBox source) {
+		lastMeasureAction = source;
+		try { onMeasureCheckboxChanged(); } finally { lastMeasureAction = null; }
 	}
 
 	protected void onMeasureCheckboxChanged() {
@@ -344,7 +404,8 @@ public class ChartSpotsOverlayFrame {
 			return;
 
 		// Keep the first checked in a stable priority order.
-		JCheckBox keep = cbClean.isSelected() ? cbClean
+		JCheckBox keep = lastMeasureAction != null && lastMeasureAction.isSelected() ? lastMeasureAction
+				: cbClean.isSelected() ? cbClean
 								: cbNoFly.isSelected() ? cbNoFly : cbSum.isSelected() ? cbSum : cbFlyPresent;
 		cbSum.setSelected(keep == cbSum);
 		cbNoFly.setSelected(keep == cbNoFly);
@@ -360,10 +421,6 @@ public class ChartSpotsOverlayFrame {
 			n++;
 		if (cbClean.isSelected())
 			n++;
-			n++;
-//			n++;
-//			n++;
-//			n++;
 		if (cbFlyPresent.isSelected())
 			n++;
 		return n;
@@ -443,6 +500,9 @@ public class ChartSpotsOverlayFrame {
 			for (Spot s : sorted) {
 				if (s == null)
 					continue;
+				Integer cageId = cageSelectorCombo != null ? (Integer) cageSelectorCombo.getSelectedItem() : null;
+				if (cageId != null && cageId >= 0 && (s.getProperties() == null || s.getProperties().getCageID() != cageId))
+					continue;
 				spotSelectorCombo.addItem(SpotChoice.fixedSpot(s));
 			}
 
@@ -461,12 +521,9 @@ public class ChartSpotsOverlayFrame {
 		}
 	}
 
-	protected void refreshChart() {
-		if (mainChartPanel == null || mainChartFrame == null || lastExperiment == null || lastOptions == null
-				|| lastSelectedSpots == null || lastSelectedSpots.isEmpty()) {
-			return;
-		}
-
+	protected boolean refreshSelection() {
+		if (mainChartPanel == null || lastExperiment == null || lastOptions == null) return false;
+		refreshCageSelectorModel();
 		refreshSpotSelectorModel(true);
 
 		SpotChoice choice = getCurrentSpotChoice();
@@ -474,18 +531,24 @@ public class ChartSpotsOverlayFrame {
 
 		if (followSelection) {
 			List<Spot> refreshed = getSelectedSpotsFromProvider();
-			if (refreshed != null && !refreshed.isEmpty()) {
-				lastSelectedSpots = refreshed;
-			}
-			// UX: when the sequence selection yields a single spot, select that spot
-			// explicitly in the combo
-			// so users can immediately see which spot's curve they're looking at.
-			maybeSelectSingleSpotInCombo(lastSelectedSpots);
+			lastSelectedSpots = refreshed != null ? dedupeSpots(refreshed) : Collections.emptyList();
 		} else if (choice != null && choice.mode == SpotChoiceMode.FIXED_SPOT && choice.spot != null) {
 			List<Spot> fixed = new ArrayList<>();
 			fixed.add(choice.spot);
 			lastSelectedSpots = fixed;
 		}
+		if (lastSelectedSpots == null || lastSelectedSpots.isEmpty()) {
+			mainChartPanel.removeAll();
+			chartPanel = null;
+			mainChartPanel.add(new JLabel("Select spot ROI(s), or choose a cage and spot."), BorderLayout.CENTER);
+			mainChartPanel.revalidate(); mainChartPanel.repaint();
+			return false;
+		}
+		return true;
+	}
+
+	protected void refreshChart() {
+		if (!refreshSelection()) return;
 
 		maybeEnforceSingleMeasureSelection();
 
@@ -564,19 +627,23 @@ public class ChartSpotsOverlayFrame {
 			}
 		}
 
+		if (lastOptions.relativeToMaximum && hasContinuous)
+			yAxis0.setLabel(cbDepletion.isSelected() ? "Spot depletion / baseline maximum" : "Value / baseline maximum");
 		JFreeChart chart = new JFreeChart(plot);
 		updateFrameTitleWithSelection(enabledMeasures, lastSelectedSpots);
 
 		chartPanel = new ChartPanel(chart, 900, 500, 300, 200, 2000, 2000, true, true, true, true, false, true);
 		chartPanel.addChartMouseListener(
-				new SpotOverlayChartInteractionHandler(lastExperiment, lastOptions).createMouseListener());
+				new SpotOverlayChartInteractionHandler(lastExperiment, lastOptions,
+						spotExclusiveSelectionController == null ? null : spotExclusiveSelectionController::selectExclusiveSpot)
+						.createMouseListener());
 		mainChartPanel.add(chartPanel, BorderLayout.CENTER);
 
 		mainChartPanel.revalidate();
 		mainChartPanel.repaint();
 	}
 
-	private void updateFrameTitleWithSelection(List<EnumResults> enabledMeasures, List<Spot> selectedSpots) {
+	protected void updateFrameTitleWithSelection(List<EnumResults> enabledMeasures, List<Spot> selectedSpots) {
 		if (mainChartFrame == null) {
 			return;
 		}

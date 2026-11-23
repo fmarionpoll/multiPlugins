@@ -4,13 +4,13 @@ import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.Stroke;
 import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.swing.JCheckBox;
-import javax.swing.JComboBox;
 import javax.swing.JPanel;
 
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
@@ -40,14 +40,11 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 	@Override
 	protected JPanel createTopControlsPanel(ResultsOptions options) {
 		JPanel panel = new JPanel(new BorderLayout());
-		JPanel row1 = new JPanel(new FlowLayout(FlowLayout.LEFT));
+		JPanel row1 = new JPanel(new GridLayout(0, 2));
 		JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT));
 
 		setCheckboxDefaults(options);
 
-		spotSelectorCombo = new JComboBox<>();
-		refreshSpotSelectorModel(false);
-		spotSelectorCombo.addActionListener(e -> onSpotSelectorChanged());
 
 		row1.add(cbAreaCountColor);
 		row1.add(cbGreySumColor);
@@ -55,12 +52,11 @@ public class ChartColorSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		row1.add(cbGreySumCleanColor);
 		row1.add(cbFlyPresent);
 		row1.add(cbDepletion);
-		row1.add(spotSelectorCombo);
-		row1.add(updateButton);
-
-		row2.add(cbSum);
-		row2.add(cbNoFly);
-		row2.add(cbClean);
+		row1.add(cbSum);
+		row1.add(cbNoFly);
+		row1.add(cbClean);
+		addSpotNavigation(row2);
+		row2.add(updateButton);
 
 		panel.add(row1, BorderLayout.NORTH);
 		panel.add(row2, BorderLayout.SOUTH);

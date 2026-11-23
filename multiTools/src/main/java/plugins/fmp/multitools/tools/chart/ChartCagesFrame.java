@@ -286,9 +286,9 @@ public class ChartCagesFrame extends IcyFrame {
 			col = col * experiment.getCages().nColumnsPerCage;
 		}
 		String unit = resultsOptions.resultType != null ? resultsOptions.resultType.toUnit() : "";
-		if (resultsOptions.resultType == EnumResults.CAGE_GREY_MEDIAN) {
-			unit = EnumResults.AGG_FILTER_DEPLETION.toUnit();
-		}
+		boolean baselineNormalizedSpot = resultsOptions.relativeToMaximum && resultsOptions.resultType != null
+				&& resultsOptions.resultType.isPersistedIn(EnumResults.PersistenceDomain.SPOT);
+		if (baselineNormalizedSpot) unit = "Value / baseline maximum";
 		String kymoUnit = CageKymoSeriesBuilder.kymoChartRangeAxisLabel(resultsOptions);
 		if (kymoUnit != null) {
 			unit = kymoUnit;
@@ -303,6 +303,10 @@ public class ChartCagesFrame extends IcyFrame {
 		if (resultsOptions.resultType == EnumResults.FLY_PIXEL_COUNT) {
 			yAxis.setAutoRange(false);
 			yAxis.setRange(0.0, 100.0);
+			yAxis.setAutoRangeIncludesZero(true);
+		} else if (baselineNormalizedSpot) {
+			// A later value may exceed the baseline maximum; do not clip it to 1.
+			yAxis.setAutoRange(true);
 			yAxis.setAutoRangeIncludesZero(true);
 		} else if (resultsOptions.relativeToMaximum || resultsOptions.relativeToMedianT0) {
 			yAxis.setAutoRange(false);
@@ -355,6 +359,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 		this.experiment = exp;
 		this.currentOptions = resultsOptions;
+		updateFrameTitle();
 
 		// Update experiment reference in factory if it supports it
 		if (uiControlsFactory instanceof ComboBoxUIControlsFactory) {

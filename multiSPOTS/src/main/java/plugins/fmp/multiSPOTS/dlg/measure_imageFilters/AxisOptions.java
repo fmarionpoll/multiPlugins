@@ -6,6 +6,7 @@ import java.awt.GridLayout;
 import java.util.function.Supplier;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JSpinner;
@@ -44,6 +45,7 @@ public class AxisOptions extends JPanel {
 			new SpinnerNumberModel(1000., AXIS_SPINNER_MIN, AXIS_SPINNER_MAX, 1.));
 	private JButton setYaxis = new JButton("set Y axis values");
 	private JButton setXaxis = new JButton("set X axis values");
+	private final JComboBox<String> yAxisChoice = new JComboBox<>();
 
 	public void initialize(MultiSPOTS parent0, ChartCagesFrame chartSpots) {
 		this.parent0 = parent0;
@@ -72,6 +74,16 @@ public class AxisOptions extends JPanel {
 
 		JPanel panel2 = new JPanel(flowLayout);
 		panel2.add(new JLabel("y axis values:"));
+		ChartPanel single = currentSingleChart();
+		if (single != null && single.getChart() != null && single.getChart().getPlot() instanceof XYPlot) {
+			XYPlot plot = single.getChart().getXYPlot();
+			for (int i = 0; i < plot.getRangeAxisCount(); i++) {
+				ValueAxis axis = plot.getRangeAxis(i);
+				yAxisChoice.addItem(axis != null ? axis.getLabel() : "Axis " + (i + 1));
+			}
+			if (yAxisChoice.getItemCount() > 1) panel2.add(yAxisChoice);
+		}
+		yAxisChoice.addActionListener(e -> collectValuesFromAllCharts());
 		panel2.add(lowerYSpinner);
 		panel2.add(upperYSpinner);
 		panel2.add(setYaxis);
@@ -170,12 +182,12 @@ public class AxisOptions extends JPanel {
 		setYaxis.setEnabled(true);
 	}
 
-	private static Range rangeOf(ChartPanel chartPanel, boolean domain) {
+	private Range rangeOf(ChartPanel chartPanel, boolean domain) {
 		if (chartPanel == null || chartPanel.getChart() == null || !(chartPanel.getChart().getPlot() instanceof XYPlot)) {
 			return null;
 		}
 		XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
-		ValueAxis axis = domain ? plot.getDomainAxis() : plot.getRangeAxis();
+		ValueAxis axis = domain ? plot.getDomainAxis() : plot.getRangeAxis(Math.max(0, yAxisChoice.getSelectedIndex()));
 		return axis != null ? axis.getRange() : null;
 	}
 
@@ -226,7 +238,7 @@ public class AxisOptions extends JPanel {
 		return singleChartPanel != null ? singleChartPanel.get() : null;
 	}
 
-	private static void setAxisRange(ChartPanel chartPanel, boolean domain, double lower, double upper) {
+	private void setAxisRange(ChartPanel chartPanel, boolean domain, double lower, double upper) {
 		if (chartPanel == null || chartPanel.getChart() == null || !(chartPanel.getChart().getPlot() instanceof XYPlot)) {
 			return;
 		}
@@ -236,7 +248,7 @@ public class AxisOptions extends JPanel {
 			upper = swap;
 		}
 		XYPlot plot = (XYPlot) chartPanel.getChart().getPlot();
-		ValueAxis axis = domain ? plot.getDomainAxis() : plot.getRangeAxis();
+		ValueAxis axis = domain ? plot.getDomainAxis() : plot.getRangeAxis(Math.max(0, yAxisChoice.getSelectedIndex()));
 		if (!(axis instanceof NumberAxis)) {
 			return;
 		}

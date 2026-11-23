@@ -17,6 +17,7 @@ import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.Aggreg
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.experiment.spot.SpotPreConsumedSupport;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
@@ -45,10 +46,15 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 		if (options != null && EnumResults.isKymographMeasure(options.resultType)) {
 			return KymoSpotChartSupport.buildCageDataset(exp, cage, allSpots, options);
 		}
+		if (options != null && options.resultType == EnumResults.CAGE_GREY_MEDIAN) {
+			XYSeriesCollection dataset = new XYSeriesCollection();
+			appendMedianRefSeries(exp, cage, dataset);
+			ChartCageBuild.updateGlobalExtremaFromDataset(dataset);
+			return dataset;
+		}
 
 		if (options != null && (options.resultType == EnumResults.AGG_FILTER_DEPLETION
-				|| options.resultType == EnumResults.AGG_COLOR_DEPLETION || options.resultType == EnumResults.AGG_COLOR_PIXEL_SUM
-				|| options.resultType == EnumResults.CAGE_GREY_MEDIAN)) {
+				|| options.resultType == EnumResults.AGG_COLOR_DEPLETION || options.resultType == EnumResults.AGG_COLOR_PIXEL_SUM)) {
 			XYSeriesCollection dataset = new XYSeriesCollection();
 			addAggregateSeries(exp, cage, allSpots, options, dataset);
 			updateGlobalExtremaExcludingMedianRef(dataset);
@@ -112,7 +118,7 @@ public class CageSpotSeriesBuilder implements CageSeriesBuilder {
 
 		double divider = 1.0;
 		if (resultOptions.relativeToMaximum && resultOptions.resultType != EnumResults.FLY_PIXEL_COUNT) {
-			divider = spotMeasure.getMaximumValue();
+			divider = SpotPreConsumedSupport.computeBaselineMaxValue(exp, spot, spotMeasure, camImages_time_min, resultOptions);
 			if (divider == 0)
 				divider = 1.0;
 		}

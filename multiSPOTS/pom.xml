@@ -55,6 +55,12 @@
 
     <!-- List of project's dependencies -->
     <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.13.2</version>
+            <scope>test</scope>
+        </dependency>
         <!-- Multi Tools shared library -->
         <dependency>
             <groupId>plugins.fmp</groupId>

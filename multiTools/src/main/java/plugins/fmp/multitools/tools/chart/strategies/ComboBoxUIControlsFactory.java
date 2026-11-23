@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import icy.roi.ROI2D;
 
@@ -70,6 +71,15 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	private SingleCageSelectionListener singleCageSelectionListener;
 	private boolean updatingCageCombo;
 	private boolean measureNamesWithTitles;
+	private boolean measurementLabels;
+	private Consumer<EnumResults> measurementSelectionListener;
+
+	/** Route user changes through the owning panel's option builder. */
+	public void setMeasurementSelectionListener(Consumer<EnumResults> listener) {
+		this.measurementSelectionListener = listener;
+	}
+
+	public void showMeasurementLabels() { measurementLabels = true; }
 
 	/**
 	 * Sets the current experiment for legend generation.
@@ -178,6 +188,17 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 
 		EnumResults[] typesToUse = getMeasurementTypes();
 		resultTypeComboBox = new JComboBox<EnumResults>(typesToUse);
+		if (measurementLabels) {
+			resultTypeComboBox.setRenderer(new DefaultListCellRenderer() {
+				private static final long serialVersionUID = 1L;
+				@Override public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+						boolean selected, boolean focus) {
+					return super.getListCellRendererComponent(list,
+							value instanceof EnumResults ? ((EnumResults) value).toDisplayLabel() : value,
+							index, selected, focus);
+				}
+			});
+		}
 		if (measureNamesWithTitles) {
 			showMeasurementNames(resultTypeComboBox);
 		}
@@ -189,8 +210,12 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 			@Override
 			public void actionPerformed(ActionEvent e) {
 				EnumResults selectedType = (EnumResults) resultTypeComboBox.getSelectedItem();
-				if (selectedType != null && currentOptions != null) {
-					currentOptions.resultType = selectedType;
+				if (selectedType != null && boundOptions != null) {
+					if (measurementSelectionListener != null) {
+						if (boundOptions.resultType != selectedType) measurementSelectionListener.accept(selectedType);
+						return;
+					}
+					boundOptions.resultType = selectedType;
 
 					// Synchronize with parent combobox if it exists
 					if (parentComboBox != null && parentComboBox.getSelectedItem() != selectedType) {

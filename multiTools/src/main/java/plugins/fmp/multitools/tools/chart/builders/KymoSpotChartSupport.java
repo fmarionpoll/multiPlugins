@@ -252,6 +252,8 @@ public final class KymoSpotChartSupport {
 	}
 
 	public static XYSeriesCollection buildOverlayForSpots(Experiment exp, ResultsOptions options, List<Spot> spots) {
+		if (options != null && options.resultType != null && options.resultType.isCageSpotSummary())
+			throw new IllegalArgumentException("Cage summaries require a whole-cage dataset, not selected spots");
 		XYSeriesCollection dataset = new XYSeriesCollection();
 		if (exp == null || options == null || spots == null || spots.isEmpty()) {
 			return dataset;
@@ -270,17 +272,6 @@ public final class KymoSpotChartSupport {
 				continue;
 			}
 			List<Spot> cageSpots = e.getValue();
-			if (rt == EnumResults.AGG_KYMO_HEIGHT_LOSS || rt == EnumResults.AGG_KYMO_CROSS_LOSS
-					|| rt == EnumResults.AGG_KYMO_RIM_LOSS) {
-				addConsoAggregates(exp, cage, cageSpots, options, dataset, rt);
-				continue;
-			}
-			if (isCageMean(rt)) {
-				int nBins = maxKymoBinsForSpots(cageSpots, underlyingSpotType(rt));
-				double[] x = buildKymoXAxisMinutes(exp, nBins);
-				addCageMeanSeries(cage, x, cageSpots, rt, options, dataset);
-				continue;
-			}
 			int nBins = maxKymoBinsForSpots(cageSpots, rt);
 			double[] x = buildMeasureXAxisMinutes(exp, rt, nBins);
 			for (int si = 0; si < cageSpots.size(); si++) {

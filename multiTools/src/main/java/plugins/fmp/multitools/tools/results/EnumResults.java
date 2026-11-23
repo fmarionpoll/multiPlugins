@@ -331,6 +331,12 @@ public enum EnumResults {
 			return "Total relative rim coverage loss";
 		case CAGE_GREY_MEDIAN:
 			return "Cage median grey signal";
+		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+			return "Mean relative green-mask height";
+		case KYMO_CAGE_MEAN_FRACT:
+			return "Mean row fraction";
+		case KYMO_CAGE_MEAN_ABS_DELTA:
+			return "Mean absolute change in row fraction";
 		default:
 			return label;
 		}
@@ -338,6 +344,25 @@ public enum EnumResults {
 
 	public String toUnit() {
 		return unit;
+	}
+
+	/** Cage populations, never valid as an individual spot measurement. */
+	public boolean isCageSpotSummary() {
+		switch (this) {
+		case AGG_FILTER_DEPLETION:
+		case AGG_COLOR_DEPLETION:
+		case AGG_COLOR_PIXEL_SUM:
+		case CAGE_GREY_MEDIAN:
+		case AGG_KYMO_HEIGHT_LOSS:
+		case AGG_KYMO_CROSS_LOSS:
+		case AGG_KYMO_RIM_LOSS:
+		case KYMO_CAGE_MEAN_FRACT:
+		case KYMO_CAGE_MEAN_ABS_DELTA:
+		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+			return true;
+		default:
+			return false;
+		}
 	}
 
 	public String toTitle() {

@@ -107,13 +107,15 @@ public final class CageChartPlotFactory {
 		if (dataset == null) {
 			return false;
 		}
+		boolean median = false;
+		boolean primary = false;
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			String key = (String) dataset.getSeriesKey(i);
 			if (SpotChartSeriesKeys.isMedianRefSeriesKey(key)) {
-				return true;
-			}
+				median = true;
+			} else primary = true;
 		}
-		return false;
+		return median && primary;
 	}
 
 	private static XYPlot buildXYPlotAggMedianRef(XYSeriesCollection dataset, NumberAxis xAxis, NumberAxis yAxis) {
