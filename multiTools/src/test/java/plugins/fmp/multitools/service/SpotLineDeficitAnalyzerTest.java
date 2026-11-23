@@ -316,7 +316,7 @@ public class SpotLineDeficitAnalyzerTest {
 				new Params(5.0, 3, 40, 1, 1));
 		double[][] band = SpotLineDeficitAnalyzer.analyze(spots, width, height, red, green, blue,
 				new Params(5.0, 3, 40, 1, 3));
-		assertTrue(Double.isNaN(thin[0][0]));
+		assertEquals(0.0, thin[0][0], 0.0);
 		assertTrue(band[0][0] > 0.6);
 		assertTrue(band[0][5] < 0.15);
 	}
@@ -469,9 +469,13 @@ public class SpotLineDeficitAnalyzerTest {
 	}
 
 	private static void addDip(int[] red, int width, int y, int x0, int x1, int depth) {
-		for (int x = x0; x <= x1; x++) {
-			int pix = y * width + x;
-			red[pix] = Math.max(0, red[pix] - depth);
+		// A small 2D dye strip supplies spatial evidence, unlike an isolated
+		// single-pixel intersection of the strip and the X.
+		for (int yy = y - 1; yy <= y + 1; yy++) {
+			for (int x = x0; x <= x1; x++) {
+				int pix = yy * width + x;
+				red[pix] = Math.max(0, red[pix] - depth);
+			}
 		}
 	}
 

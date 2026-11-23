@@ -257,14 +257,19 @@ public final class SpotLineDeficitAnalyzer {
 		}
 		int window = Math.min(p.initialBins, n);
 		double noise = p.madMultiplier * mad(pool(flanks, window));
-		double[] dye = dyeReference(layout, red, green, blue, flanks, window);
+		SpotLineDyeReference reference = new SpotLineDyeReference(layout, window);
+		for (int t = 0; t < n; t++) {
+			double[] floors = spotFloors(layout, flanks[t]);
+			for (int s = 0; s < layout.nSpots; s++)
+				reference.observe(s, t, channel(red, t), channel(green, t), channel(blue, t), floors[s], noise, null);
+		}
 		double[][] integral = new double[layout.nSpots][n];
 		for (int t = 0; t < n; t++) {
 			double[] floors = spotFloors(layout, flanks[t]);
-			integrate(layout, channel(red, t), channel(green, t), channel(blue, t), floors, noise, integral, t, null,
-					dye);
+			for (int s = 0; s < layout.nSpots; s++)
+				integral[s][t] = reference.measure(s, channel(red, t), channel(green, t), channel(blue, t), floors[s], noise, null);
 		}
-		return ratiosFromIntegrals(integral, window, p.smoothBins);
+		return ratiosFromDyeIntegrals(integral, window, p.smoothBins);
 	}
 
 	/** Deficits on flank pixels, concatenated in spot order. Insect pixels are skipped. */
@@ -566,13 +571,22 @@ public final class SpotLineDeficitAnalyzer {
 	}
 
 	/**
-	 * Moving median of {@code smoothBins}, then each bin divided by the dye level
+	 * Legacy moving median, then divided by the dye level
 	 * in the first {@code initialBins} finite raw samples. Occluded frames do not
 	 * use up the opening window. Bins already emptied inside
 	 * that window are left out of the reference, so a drop eaten in the first
 	 * minute still starts at 1.
 	 */
 	public static double[][] ratiosFromIntegrals(double[][] integral, int initialBins, int smoothBins) {
+		return normalizedIntegrals(integral, initialBins, smoothBins, false);
+	}
+
+	/** X-line uses a symmetric median within visible runs and preserves measured empty bins. */
+	public static double[][] ratiosFromDyeIntegrals(double[][] integral, int initialBins, int smoothBins) {
+		return normalizedIntegrals(integral, initialBins, smoothBins, true);
+	}
+
+	private static double[][] normalizedIntegrals(double[][] integral, int initialBins, int smoothBins, boolean preserveVisibility) {
 		int nSpots = integral != null ? integral.length : 0;
 		int nFrames = nSpots > 0 && integral[0] != null ? integral[0].length : 0;
 		double[][] ratio = new double[nSpots][nFrames];
@@ -584,9 +598,14 @@ public final class SpotLineDeficitAnalyzer {
 		}
 		int window = Math.min(Math.max(1, initialBins), nFrames);
 		for (int s = 0; s < nSpots; s++) {
-			double[] smoothed = movingMedian(integral[s], smoothBins);
+			double[] smoothed = preserveVisibility ? movingMedianWithinVisibleRuns(integral[s], smoothBins) : movingMedian(integral[s], smoothBins);
 			double i0 = openingReference(integral[s], window);
 			if (!(i0 > 0.0)) {
+				if (preserveVisibility) {
+					for (int t = 0; t < nFrames; t++) {
+						if (integral[s][t] == 0.0) ratio[s][t] = 0.0;
+					}
+				}
 				continue;
 			}
 			for (int t = 0; t < nFrames; t++) {
@@ -604,6 +623,14 @@ public final class SpotLineDeficitAnalyzer {
 	 * empty afterwards), expressed here in normalized remaining-signal units.
 	 */
 	public static void finalizeRatio(double[] ratio, double dye, double noise, boolean preConsumed) {
+		finalizeRatio(ratio, dye, noise, preConsumed, false);
+	}
+
+	public static void finalizeDyeRatio(double[] ratio, double dye, double noise, boolean preConsumed) {
+		finalizeRatio(ratio, dye, noise, preConsumed, true);
+	}
+
+	private static void finalizeRatio(double[] ratio, double dye, double noise, boolean preConsumed, boolean preserveVisibility) {
 		if (ratio == null) {
 			return;
 		}
@@ -615,32 +642,60 @@ public final class SpotLineDeficitAnalyzer {
 		} else if (!Double.isFinite(dye)) {
 			Arrays.fill(ratio, Double.NaN);
 		} else if (!openingShowsDye(dye, noise)) {
-			Arrays.fill(ratio, 0.0);
+			if (preserveVisibility) {
+				for (int t = 0; t < ratio.length; t++) {
+					if (Double.isFinite(ratio[t])) ratio[t] = 0.0;
+				}
+			} else {
+				Arrays.fill(ratio, 0.0);
+			}
 		} else {
-			suppressRebound(ratio);
+			if (preserveVisibility) suppressDyeRebound(ratio);
+			else suppressRebound(ratio);
+		}
+	}
+
+	/** Legacy behavior retained for the rim method. */
+	public static void suppressRebound(double[] ratio) {
+		if (ratio == null) return;
+		double low = Double.POSITIVE_INFINITY;
+		boolean gone = false;
+		for (int t = 0; t < ratio.length; t++) {
+			double y = ratio[t];
+			if (!Double.isFinite(y)) continue;
+			if (!gone) {
+				low = Math.min(low, y);
+				if (low <= REBOUND_FLOOR) gone = true;
+			} else if (y > low) {
+				ratio[t] = low;
+			} else {
+				low = y;
+			}
 		}
 	}
 
 	/**
-	 * Once the ratio has fallen to a quarter of the start, later samples cannot
-	 * rise. An empty well does not refill.
+	 * Two adjacent reliable samples below a quarter establish disappearance.
+	 * A single low outlier or observations separated by an occlusion cannot lock
+	 * the trace down permanently.
 	 */
-	public static void suppressRebound(double[] ratio) {
+	public static void suppressDyeRebound(double[] ratio) {
 		if (ratio == null) {
 			return;
 		}
 		double low = Double.POSITIVE_INFINITY;
 		boolean gone = false;
+		int lowCount = 0;
 		for (int t = 0; t < ratio.length; t++) {
 			double y = ratio[t];
 			if (!Double.isFinite(y)) {
+				lowCount = 0;
 				continue;
 			}
 			if (!gone) {
-				if (y < low) {
-					low = y;
-				}
-				if (low <= REBOUND_FLOOR) {
+				lowCount = y <= REBOUND_FLOOR ? lowCount + 1 : 0;
+				if (lowCount >= 2) {
+					low = Math.min(ratio[t - 1], y);
 					gone = true;
 				}
 				continue;
@@ -694,6 +749,23 @@ public final class SpotLineDeficitAnalyzer {
 	static double[] movingMedian(double[] values, int window) {
 		int n = values != null ? values.length : 0;
 		double[] out = new double[n];
+		int w = Math.max(1, window);
+		if ((w & 1) == 0) w++;
+		int half = w / 2;
+		double[] buf = new double[w];
+		for (int i = 0; i < n; i++) {
+			int count = 0;
+			for (int j = Math.max(0, i - half); j <= Math.min(n - 1, i + half); j++) {
+				if (Double.isFinite(values[j])) buf[count++] = values[j];
+			}
+			out[i] = count == 0 ? Double.NaN : median(Arrays.copyOf(buf, count));
+		}
+		return out;
+	}
+
+	static double[] movingMedianWithinVisibleRuns(double[] values, int window) {
+		int n = values != null ? values.length : 0;
+		double[] out = new double[n];
 		if (n == 0) {
 			return out;
 		}
@@ -704,9 +776,18 @@ public final class SpotLineDeficitAnalyzer {
 		int half = w / 2;
 		double[] buf = new double[w];
 		for (int i = 0; i < n; i++) {
+			if (!Double.isFinite(values[i])) {
+				out[i] = Double.NaN;
+				continue;
+			}
+			// Symmetric support prevents later empty frames erasing the first view.
+			// Missing frames are boundaries, not gaps to silently smooth across.
+			int reach = 0;
+			while (reach < half && i - reach - 1 >= 0 && i + reach + 1 < n
+					&& Double.isFinite(values[i - reach - 1]) && Double.isFinite(values[i + reach + 1])) reach++;
 			int count = 0;
-			int from = Math.max(0, i - half);
-			int to = Math.min(n - 1, i + half);
+			int from = i - reach;
+			int to = i + reach;
 			for (int j = from; j <= to; j++) {
 				if (Double.isFinite(values[j])) {
 					buf[count++] = values[j];
@@ -946,7 +1027,7 @@ public final class SpotLineDeficitAnalyzer {
 	 * there drops the station. Other fly pixels in the band are left out of the
 	 * mean. NaN when the line pixel is a fly or no finite pixel remains.
 	 */
-	private static double stationDeficit(int[] pix, int start, int len, int[] red, int[] green, int[] blue,
+	static double stationDeficit(int[] pix, int start, int len, int[] red, int[] green, int[] blue,
 			boolean[] insect) {
 		if (pix == null || len <= 0 || start < 0 || start >= pix.length) {
 			return Double.NaN;

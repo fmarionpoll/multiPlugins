@@ -113,7 +113,7 @@ public class CrossAnalysisPanel extends JPanel implements PropertyChangeListener
 
 		JPanel hint = new JPanel(left);
 		hint.add(showLinesButton);
-		hint.add(new JLabel("Cyan = cross on each spot, green = floor used as zero."));
+		hint.add(new JLabel("Cyan = ROI cross; green = preferred background. Dye footprint and fallback patches are not shown."));
 		add(hint);
 		flankPxSpinner.addChangeListener(e -> refreshLinesIfShown());
 		bandWidthSpinner.addChangeListener(e -> refreshLinesIfShown());
@@ -135,11 +135,11 @@ public class CrossAnalysisPanel extends JPanel implements PropertyChangeListener
 
 	private void defineToolTips() {
 		initialBinsSpinner.setToolTipText(
-				"Number of unobscured frames used for each spot's initial reference. Fly-covered frames are skipped, extending the window until clear views are available. Spots marked consumed before recording use a full reference at t0 and zero afterwards.");
+				"Number of reliable views used to learn the initial dye footprint on the X. Later empty views do not erase early dye evidence. Occluded views are skipped. Spots marked consumed before recording use a synthetic full t0 and zero afterwards.");
 		bandWidthSpinner.setToolTipText(
 				"Pixels averaged across each arm of the X. 1 is the single-pixel line. 3 averages the line and one pixel on each side, the same idea as the vertical kymograph strip. Wider bands reduce pixel noise until the band is wider than the dye.");
 		insectGateCheckBox.setToolTipText(
-				"Leave flies out of the floor and out of the cross. A bin is dropped when a fly covers at least 8% of the cross. Uncheck to keep those pixels.");
+				"Exclude flies from signal and background. After calibration, occlusion is assessed on the learned dye footprint with a 2 px movement margin, rather than the whole ROI. Signal mask expansion is 1 px; background expansion is 4 px. At least 8% footprint occlusion drops the frame. Until dye is learned, the whole cross is checked conservatively.");
 	}
 
 	public void addKymoResultListener(java.beans.PropertyChangeListener listener) {
@@ -283,7 +283,7 @@ public class CrossAnalysisPanel extends JPanel implements PropertyChangeListener
 			}
 		}
 		String widthNote = band > 1 ? ", width " + band + " px" : "";
-		statusLabel.setText(nLines + " cross(es)" + widthNote + ". Green tips are the floor.");
+		statusLabel.setText(nLines + " cross(es)" + widthNote + ". Green tips are preferred background; fallback patches are not shown.");
 		Viewer viewer = seq.getFirstViewer();
 		if (viewer != null) {
 			viewer.toFront();

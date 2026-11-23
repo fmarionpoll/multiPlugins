@@ -2,6 +2,10 @@ package plugins.fmp.multitools.series;
 
 import java.awt.Rectangle;
 import java.io.File;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,14 +26,17 @@ import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.service.KymoMetricGate;
 import plugins.fmp.multitools.service.SequenceLoaderService;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer;
+import plugins.fmp.multitools.service.SpotBackgroundEstimator;
+import plugins.fmp.multitools.service.SpotBackgroundEstimator.Sample;
+import plugins.fmp.multitools.service.SpotLineDyeReference;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Layout;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.Params;
 import plugins.fmp.multitools.service.SpotLineDeficitAnalyzer.SpotGeom;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Samples each spot disk on the camera frames. The zero is the floor on the
- * extended row line, outside the circles. Stores {@code KYMO_CROSS_RATIO}.
+ * Samples each spot's X on camera frames. Background comes from clean branches,
+ * nearby cage-interior patches, or a validated opening reference, in that order.
  */
 public class AnalyzeSpotLineDeficits extends BuildSeries {
 
@@ -71,6 +78,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			int nFrames = frames.size();
 			for (CageLines cage : cages) {
 				cage.flanks = new double[nFrames][];
+				cage.backgrounds = new Sample[nFrames];
 				cage.integral = new double[cage.spots.size()][nFrames];
 			}
 			SequenceLoaderService loader = new SequenceLoaderService();
@@ -79,13 +87,13 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				return;
 			}
 			for (CageLines cage : cages) {
-				double[][] ratios = SpotLineDeficitAnalyzer.ratiosFromIntegrals(cage.integral,
+				double[][] ratios = SpotLineDeficitAnalyzer.ratiosFromDyeIntegrals(cage.integral,
 						analyzerParams.initialBins, analyzerParams.smoothBins);
 				for (int i = 0; i < cage.spots.size(); i++) {
 					double[] row = i < ratios.length ? ratios[i] : null;
 					if (row != null) {
 						double dye = cage.dyeLevel != null && i < cage.dyeLevel.length ? cage.dyeLevel[i] : Double.NaN;
-						SpotLineDeficitAnalyzer.finalizeRatio(row, dye, cage.noise,
+						SpotLineDeficitAnalyzer.finalizeDyeRatio(row, dye, cage.noise,
 								cage.spots.get(i).isConsumedBeforeRecording());
 					}
 					copyDoubles(cage.spots.get(i).getCrossLineSignalToBaselineRatio(), row);
@@ -98,12 +106,24 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			String binDir = exp.getKymosBinFullDirectory();
 			lastSaved = exp.save_kymo_spot_measures();
 			if (lastSaved) {
+				writeBackgroundDiagnostics(binDir, frames, cages);
 				SpotDetectionProvenance.recordCameraLine(exp, SpotDetectionProvenance.Family.KYMO_CROSS,
 						getClass().getSimpleName(), "initial_bins", analyzerParams.initialBins,
 						"smoothing_bins", analyzerParams.smoothBins, "mad_multiplier", analyzerParams.madMultiplier,
 						"insect_gate", analyzerParams.insectGate, "insect_transform", analyzerParams.insectTransform,
 						"insect_threshold", analyzerParams.insectThreshold, "insect_threshold_above",
-						analyzerParams.insectAbove, "flank_px", analyzerParams.flankPx, "band_width_px", analyzerParams.bandWidthPx);
+						analyzerParams.insectAbove, "flank_px", analyzerParams.flankPx, "band_width_px", analyzerParams.bandWidthPx,
+						"background_method", "branches_then_cage_patches_v1", "background_patch_size", SpotBackgroundEstimator.PATCH_SIZE,
+						"background_roi_clearance", SpotBackgroundEstimator.ROI_CLEARANCE,
+						"background_patch_step", SpotBackgroundEstimator.PATCH_STEP,
+						"background_min_patches", SpotBackgroundEstimator.MIN_PATCHES,
+						"background_max_patches", SpotBackgroundEstimator.MAX_PATCHES,
+						"background_min_clean_branch_fraction", SpotBackgroundEstimator.MIN_CLEAN_BRANCH_FRACTION,
+						"signal_method", "opening_dye_footprint_v1",
+						"signal_mask_dilate_px", SpotLineDyeReference.SIGNAL_MASK_DILATE_PX,
+						"signal_movement_margin_px", SpotLineDyeReference.MOVEMENT_MARGIN_PX,
+						"signal_min_dye_stations", SpotLineDyeReference.MIN_DYE_STATIONS,
+						"signal_min_dye_excess", SpotLineDyeReference.MIN_DYE_EXCESS);
 			}
 			lastCageCount = cages.size();
 			lastBinCount = nFrames;
@@ -127,12 +147,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		int n = frames.size();
 		int window = Math.min(analyzerParams.initialBins, n);
 		for (CageLines cage : cages) {
-			int nSpots = cage.spots.size();
-			cage.openingExcess = new double[nSpots][window];
-			cage.openingCount = new int[nSpots];
-			for (double[] samples : cage.openingExcess) {
-				Arrays.fill(samples, Double.NaN);
-			}
+			cage.reference = new SpotLineDyeReference(cage.layout, window);
 			for (double[] values : cage.integral) {
 				Arrays.fill(values, Double.NaN);
 			}
@@ -145,19 +160,19 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		for (CageLines cage : cages) {
 			cage.noise = SpotLineDeficitAnalyzer.poolMad(cage.flanks, window, analyzerParams.madMultiplier);
-			cage.refFloor = SpotLineDeficitAnalyzer.referenceFloors(cage.layout, cage.flanks, window);
+			cage.refFloor = openingBackground(cage, window);
 		}
 		// Each spot gets its own opening window of unobscured frames. A fly may
 		// remain on one spot longer than the nominal opening window.
 		for (int t = 0; t < n; t++) {
-			if (!fillOpeningExcess(seq, loader, frames, cages, t)) {
+			if (!fillOpeningReference(seq, loader, frames, cages, t)) {
 				return false;
 			}
 			showFrame(progress, t, n);
 			boolean complete = true;
 			for (CageLines cage : cages) {
 				for (int s = 0; s < cage.spots.size(); s++) {
-					if (!cage.spots.get(s).isConsumedBeforeRecording() && cage.openingCount[s] < window) {
+					if (!cage.spots.get(s).isConsumedBeforeRecording() && !cage.reference.complete(s)) {
 						complete = false;
 					}
 				}
@@ -170,7 +185,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			int nSpots = cage.spots.size();
 			cage.dyeLevel = new double[nSpots];
 			for (int s = 0; s < nSpots; s++) {
-				cage.dyeLevel[s] = SpotLineDeficitAnalyzer.referenceExcess(cage.openingExcess[s]);
+				cage.dyeLevel[s] = cage.reference.dyeLevel(s);
 			}
 		}
 		for (int t = 0; t < window; t++) {
@@ -186,11 +201,10 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			FramePixels frame = readFrame(seq, loader, frames.get(t));
 			for (CageLines cage : cages) {
 				cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green,
-					frame.blue, frame.insect);
-				double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t],
-						cage.refFloor);
-				SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors,
-					cage.noise, cage.integral, t, frame.insect, cage.dyeLevel);
+						frame.blue, frame.backgroundInsect);
+				cage.backgrounds[t] = cage.background.sample(frame.red, frame.green, frame.blue, frame.backgroundInsect, cage.flanks[t]);
+				double[] floors = cage.backgrounds[t].withReference(cage.refFloor);
+				measureFrame(cage, frame, floors, t);
 			}
 		}
 		return true;
@@ -204,48 +218,97 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		FramePixels frame = readFrame(seq, loader, frames.get(t));
 		for (CageLines cage : cages) {
 			cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green, frame.blue,
-				frame.insect);
+					frame.backgroundInsect);
+			cage.backgrounds[t] = cage.background.sample(frame.red, frame.green, frame.blue, frame.backgroundInsect, cage.flanks[t]);
 		}
 		return true;
 	}
 
-	private boolean fillOpeningExcess(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
+	/** Calibrate only from frame backgrounds that passed the same checks used later. */
+	private static double[] openingBackground(CageLines cage, int window) {
+		double[] result = new double[cage.spots.size()];
+		Arrays.fill(result, Double.NaN);
+		for (int s = 0; s < result.length; s++) {
+			double[] values = new double[window];
+			int n = 0;
+			for (int t = 0; t < window; t++) {
+				double floor = cage.backgrounds[t].floors[s];
+				if (Double.isFinite(floor)) values[n++] = floor;
+			}
+			if (n > 0) {
+				Arrays.sort(values, 0, n);
+				result[s] = (values[(n - 1) / 2] + values[n / 2]) * 0.5;
+			}
+		}
+		return result;
+	}
+
+	private static void writeBackgroundDiagnostics(String binDir, List<Integer> frames, List<CageLines> cages) {
+		if (binDir == null) return;
+		try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(binDir, "XLineBackground.csv"), StandardCharsets.UTF_8)) {
+			writer.write("camera_frame,spot,background_source,background_deficit,clean_branch_stations,total_branch_stations,candidate_patches,clean_patches,selected_patch_centers,raw_signal_fraction,dye_reference,footprint_stations,first_clear_frame,first_dye_frame,calibration_frames\n");
+			for (CageLines cage : cages) {
+				for (int t = 0; t < frames.size(); t++) {
+					Sample sample = cage.backgrounds[t];
+					double[] floors = sample.withReference(cage.refFloor);
+					for (int s = 0; s < cage.spots.size(); s++) {
+						StringBuilder centers = new StringBuilder();
+						for (int patch : sample.selectedPatches[s]) {
+							java.awt.Point p = cage.background.patchCenter(patch);
+							if (centers.length() > 0) centers.append(';');
+							centers.append(p.x).append(':').append(p.y);
+						}
+						writer.write(frames.get(t) + ",\"" + cage.spots.get(s).getName().replace("\"", "\"\"") + "\","
+								+ sample.sourceWithReference(s, cage.refFloor) + ","
+								+ (Double.isFinite(floors[s]) ? Double.toString(floors[s]) : "") + ","
+								+ sample.cleanBranches[s] + "," + sample.totalBranches[s] + "," + cage.background.patchCount() + "," + sample.cleanPatches
+								+ ",\"" + centers + "\"," + finiteCsv(cage.integral[s][t]) + "," + finiteCsv(cage.reference.dyeLevel(s))
+								+ "," + cage.reference.footprintStations(s) + "," + cage.reference.firstClearFrame(s)
+								+ "," + cage.reference.firstDyeFrame(s) + "," + cage.reference.acceptedFrames(s) + "\n");
+					}
+				}
+			}
+		} catch (IOException e) {
+			Logger.warn("AnalyzeSpotLineDeficits: could not save background diagnostics: " + e.getMessage());
+		}
+	}
+
+	private static String finiteCsv(double value) {
+		return Double.isFinite(value) ? Double.toString(value) : "";
+	}
+
+	private boolean fillOpeningReference(SequenceCamData seq, SequenceLoaderService loader, List<Integer> frames,
 		List<CageLines> cages, int t) {
 		if (stopFlag) {
 			return false;
 		}
 		FramePixels frame = readFrame(seq, loader, frames.get(t));
 		for (CageLines cage : cages) {
-			if (cage.openingExcess == null || cage.openingExcess.length == 0) {
+			if (cage.reference == null) {
 				continue;
 			}
 			if (cage.flanks[t] == null) {
 				cage.flanks[t] = SpotLineDeficitAnalyzer.sampleFlanks(cage.layout, frame.red, frame.green,
-						frame.blue, frame.insect);
+						frame.blue, frame.backgroundInsect);
+				cage.backgrounds[t] = cage.background.sample(frame.red, frame.green, frame.blue, frame.backgroundInsect, cage.flanks[t]);
 			}
 			// Recover a missing opening floor once a clear view of the arm exists.
-			double[] currentFloors = SpotLineDeficitAnalyzer.spotFloors(cage.layout, cage.flanks[t]);
+			double[] currentFloors = cage.backgrounds[t].floors;
 			for (int s = 0; s < cage.refFloor.length; s++) {
 				if (!Double.isFinite(cage.refFloor[s]) && Double.isFinite(currentFloors[s])) {
 					cage.refFloor[s] = currentFloors[s];
 				}
 			}
-			double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t], cage.refFloor);
-			for (int s = 0; s < cage.openingExcess.length; s++) {
-				int count = cage.openingCount[s];
-				if (count >= cage.openingExcess[s].length || cage.spots.get(s).isConsumedBeforeRecording()) {
+			double[] floors = cage.backgrounds[t].withReference(cage.refFloor);
+			for (int s = 0; s < cage.spots.size(); s++) {
+				if (cage.reference.complete(s) || cage.spots.get(s).isConsumedBeforeRecording()) {
 					continue;
 				}
 				double floor = floors != null && s < floors.length ? floors[s] : Double.NaN;
 				if (!Double.isFinite(floor)) {
 					continue;
 				}
-				double excess = SpotLineDeficitAnalyzer.medianSignalExcess(cage.layout, s, frame.red,
-						frame.green, frame.blue, floor, frame.insect);
-				if (Double.isFinite(excess)) {
-					cage.openingExcess[s][count] = excess;
-					cage.openingCount[s]++;
-				}
+				cage.reference.observe(s, t, frame.red, frame.green, frame.blue, floor, cage.noise, frame.insect);
 			}
 		}
 		return true;
@@ -258,11 +321,16 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		FramePixels frame = readFrame(seq, loader, frames.get(t));
 		for (CageLines cage : cages) {
-			double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t], cage.refFloor);
-			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
-				cage.integral, t, frame.insect, cage.dyeLevel);
+			double[] floors = cage.backgrounds[t].withReference(cage.refFloor);
+			measureFrame(cage, frame, floors, t);
 		}
 		return true;
+	}
+
+	private static void measureFrame(CageLines cage, FramePixels frame, double[] floors, int t) {
+		for (int s = 0; s < cage.spots.size(); s++) {
+			cage.integral[s][t] = cage.reference.measure(s, frame.red, frame.green, frame.blue, floors[s], cage.noise, frame.insect);
+		}
 	}
 
 	private static void showFrame(ProgressFrame progress, int t, int n) {
@@ -275,14 +343,17 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		IcyBufferedImage img = name != null ? loader.imageIORead(name) : null;
 		if (img == null) {
 			Logger.warn("AnalyzeSpotLineDeficits: could not read frame " + frameIndex);
-			return new FramePixels(null, null, null, null);
+			return new FramePixels(null, null, null, null, null);
 		}
 		int nC = Math.max(1, img.getSizeC());
 		boolean signed = img.isSignedDataType();
 		int[] red = Array1DUtil.arrayToIntArray(img.getDataXY(0), signed);
 		int[] green = nC > 1 ? Array1DUtil.arrayToIntArray(img.getDataXY(1), signed) : red;
 		int[] blue = nC > 2 ? Array1DUtil.arrayToIntArray(img.getDataXY(2), signed) : red;
-		return new FramePixels(red, green, blue, insectMask(img));
+		boolean[] insect = insectMask(img);
+		return new FramePixels(red, green, blue,
+				SpotLineDeficitAnalyzer.dilateInsects(insect, img.getSizeX(), img.getSizeY(), SpotLineDyeReference.SIGNAL_MASK_DILATE_PX),
+				SpotLineDeficitAnalyzer.dilateInsects(insect, img.getSizeX(), img.getSizeY(), SpotLineDeficitAnalyzer.FLY_FLOOR_DILATE_PX));
 	}
 
 	/** Same rule as the kymograph insect filter. Null when the filter is off. */
@@ -300,8 +371,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		for (int i = 0; i < metric.length; i++) {
 			insect[i] = KymoMetricGate.directedFinite(metric[i], p.insectThreshold, p.insectAbove);
 		}
-		return SpotLineDeficitAnalyzer.dilateInsects(insect, img.getSizeX(), img.getSizeY(),
-				SpotLineDeficitAnalyzer.FLY_FLOOR_DILATE_PX);
+		return insect;
 	}
 
 	private static final class FramePixels {
@@ -309,12 +379,14 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		final int[] green;
 		final int[] blue;
 		final boolean[] insect;
+		final boolean[] backgroundInsect;
 
-		FramePixels(int[] red, int[] green, int[] blue, boolean[] insect) {
+		FramePixels(int[] red, int[] green, int[] blue, boolean[] insect, boolean[] backgroundInsect) {
 			this.red = red;
 			this.green = green;
 			this.blue = blue;
 			this.insect = insect;
+			this.backgroundInsect = backgroundInsect;
 		}
 	}
 
@@ -446,7 +518,9 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				geoms.add(geomOf(spot));
 			}
 			Layout layout = SpotLineDeficitAnalyzer.layout(geoms, width, height, params.flankPx, params.bandWidthPx);
-			out.add(new CageLines(spots, layout));
+			SpotBackgroundEstimator background = new SpotBackgroundEstimator(layout, geoms, height,
+					cage.getRoi() != null ? (x, y) -> cage.getRoi().contains(x, y) : null);
+			out.add(new CageLines(spots, layout, background));
 		}
 		return out;
 	}
@@ -486,17 +560,19 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 	private static final class CageLines {
 		final List<Spot> spots;
 		final Layout layout;
+		final SpotBackgroundEstimator background;
+		Sample[] backgrounds;
 		double[][] flanks;
 		double[][] integral;
 		double noise;
 		double[] refFloor;
 		double[] dyeLevel;
-		double[][] openingExcess;
-		int[] openingCount;
+		SpotLineDyeReference reference;
 
-		CageLines(List<Spot> spots, Layout layout) {
+		CageLines(List<Spot> spots, Layout layout, SpotBackgroundEstimator background) {
 			this.spots = spots;
 			this.layout = layout;
+			this.background = background;
 		}
 	}
 }
