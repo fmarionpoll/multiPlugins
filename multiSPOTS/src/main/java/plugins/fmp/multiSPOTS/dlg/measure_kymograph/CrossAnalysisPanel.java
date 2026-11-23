@@ -44,7 +44,7 @@ import plugins.kernel.roi.roi2d.ROI2DLine;
  * Line analysis: an X through each spot. Each sample is the mean of a band
  * across the line. Floor is the tips outside the circles.
  */
-public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
+public class CrossAnalysisPanel extends JPanel implements PropertyChangeListener {
 
 	private static final long serialVersionUID = 1L;
 
@@ -73,7 +73,7 @@ public class AnalysisPanel2 extends JPanel implements PropertyChangeListener {
 
 	private AnalyzeSpotLineDeficits analyzeThread;
 
-	public AnalysisPanel2(MultiSPOTS parent0) {
+	public CrossAnalysisPanel(MultiSPOTS parent0) {
 		super(new GridLayout(4, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);

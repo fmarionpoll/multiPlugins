@@ -29,7 +29,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS Nov 22, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS Nov 23, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();
@@ -99,7 +99,7 @@ public class MultiSPOTS extends PluginActionable {
 		dlgSpots.init(mainPanel, "Define spots", this);
 		dlgMeasure.init(mainPanel, "Measure: image filters", this);
 		dlgMeasureColor.init(mainPanel, "Measure: color distance", this);
-		dlgKymos.init(mainPanel, "Measure: spot kymographs", this);
+		dlgKymos.init(mainPanel, "Measure: intensity along lines", this);
 		dlgDetectFlies.init(mainPanel, "Fly detection", this);
 		dlgExcel.init(mainPanel, "Export", this);
 

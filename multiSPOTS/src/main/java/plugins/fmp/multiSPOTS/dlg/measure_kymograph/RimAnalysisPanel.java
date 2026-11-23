@@ -54,7 +54,7 @@ import plugins.kernel.roi.roi2d.ROI2DPolyLine;
 /**
  * Rim analysis: a closed outline inside each spot, floor on the outward band.
  */
-public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
+public class RimAnalysisPanel extends JPanel implements PropertyChangeListener {
 
 	private static final long serialVersionUID = 1L;
 
@@ -100,7 +100,7 @@ public class AnalysisPanelRim extends JPanel implements PropertyChangeListener {
 
 	private final JCheckBox trackPlateCheckBox = new JCheckBox("Track plate movement", false);
 
-	public AnalysisPanelRim(MultiSPOTS parent0) {
+	public RimAnalysisPanel(MultiSPOTS parent0) {
 		super(new GridLayout(6, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);

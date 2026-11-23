@@ -42,7 +42,7 @@ import plugins.fmp.multitools.tools.overlay.KymoMetricThresholdOverlay;
 /**
  * Kymograph metric: row-wise occlusion lift, preview overlays, and analysis.
  */
-public class AnalysisPanel extends JPanel implements PropertyChangeListener {
+public class KymoAnalysisPanel extends JPanel implements PropertyChangeListener {
 
 	private static final long serialVersionUID = 1L;
 
@@ -83,7 +83,7 @@ public class AnalysisPanel extends JPanel implements PropertyChangeListener {
 	private KymoMetricThresholdOverlay kymoMetricOverlay;
 	private KymoInsectMetricOverlay kymoInsectOverlay;
 
-	public AnalysisPanel(MultiSPOTS parent0) {
+	public KymoAnalysisPanel(MultiSPOTS parent0) {
 		super(new GridLayout(5, 1));
 		this.parent0 = parent0;
 		FlowLayout left = new FlowLayout(FlowLayout.LEFT);

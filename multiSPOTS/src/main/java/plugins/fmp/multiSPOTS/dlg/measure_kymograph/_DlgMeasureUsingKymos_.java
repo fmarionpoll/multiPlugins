@@ -26,9 +26,9 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 	JTabbedPane tabsPane = new JTabbedPane();
 	public BuildPanel tabCreate = new BuildPanel();
 	public LoadSavePanel tabLoadSave = new LoadSavePanel();
-	public AnalysisPanel tabKymoAnalysis = null;
-	public AnalysisPanel2 tabKymoAnalysis2 = null;
-	public AnalysisPanelRim tabKymoRim = null;
+	public KymoAnalysisPanel tabKymoAnalysis = null;
+	public CrossAnalysisPanel tabCrossAnalysis = null;
+	public RimAnalysisPanel tabRimAnalysis = null;
 	public GraphPanel tabKymoGraph = null;
 
 	private MultiSPOTS parent0 = null;
@@ -45,18 +45,17 @@ public class _DlgMeasureUsingKymos_ extends JPanel implements PropertyChangeList
 		tabCreate.init(new GridLayout(3, 1), parent0);
 		tabCreate.addPropertyChangeListener(this);
 
-		tabKymoAnalysis = new AnalysisPanel(parent0);
-		tabKymoAnalysis2 = new AnalysisPanel2(parent0);
-		tabKymoRim = new AnalysisPanelRim(parent0);
-		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabKymoAnalysis2, tabKymoRim);
+		tabKymoAnalysis = new KymoAnalysisPanel(parent0);
+		tabCrossAnalysis = new CrossAnalysisPanel(parent0);
+		tabRimAnalysis = new RimAnalysisPanel(parent0);
+		tabKymoGraph = new GraphPanel(parent0, tabKymoAnalysis, tabCrossAnalysis, tabRimAnalysis);
 		tabsPane.addTab("Kymo", null, new VerticalLinePanel(tabCreate, tabKymoAnalysis),
 				"Vertical line through each spot: build the cage kymograph, then measure it.");
-		tabsPane.addTab("Cross", null, tabKymoAnalysis2,
+		tabsPane.addTab("Cross", null, tabCrossAnalysis,
 				"Measure the X on the camera frames; floor from the tips outside the circles");
-		tabsPane.addTab("Rim", null, tabKymoRim,
-				"Measure the physical rim inside each spot; floor is the outer band");
-		tabsPane.addTab("Charts", null, tabKymoGraph,
-				"Display Kymo (h/h_max), Cross and Rim (I/I0)");
+		tabsPane.addTab("Rim", null, tabRimAnalysis,
+				"Measure the physical rim inside each spot on the camera frames; floor is the outer band");
+		tabsPane.addTab("Charts", null, tabKymoGraph, "Display Kymo (h/h_max), Cross and Rim (I/I0)");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);

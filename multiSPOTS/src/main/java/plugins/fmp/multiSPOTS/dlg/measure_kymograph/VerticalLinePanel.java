@@ -24,14 +24,14 @@ public class VerticalLinePanel extends JPanel {
 	private static final String TIP_MEASURE = "Open the controls that measure that vertical-line kymograph.";
 
 	private final BuildPanel buildPanel;
-	private final AnalysisPanel analysisPanel;
+	private final KymoAnalysisPanel analysisPanel;
 	private final JButton buildButton = new JButton("Build kymographs");
 	private final JButton measureButton = new JButton("Measure");
 
 	private JDialog buildDialog;
 	private JDialog measureDialog;
 
-	public VerticalLinePanel(BuildPanel buildPanel, AnalysisPanel analysisPanel) {
+	public VerticalLinePanel(BuildPanel buildPanel, KymoAnalysisPanel analysisPanel) {
 		super(new FlowLayout(FlowLayout.LEFT));
 		this.buildPanel = buildPanel;
 		this.analysisPanel = analysisPanel;

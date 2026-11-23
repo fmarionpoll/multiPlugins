@@ -54,9 +54,9 @@ public class GraphPanel extends JPanel {
 			EnumResults.KYMO_CAGE_MEAN_ABS_DELTA };
 
 	private final MultiSPOTS parent0;
-	private final AnalysisPanel analysisPanel;
-	private final AnalysisPanel2 analysisPanel2;
-	private final AnalysisPanelRim analysisPanelRim;
+	private final KymoAnalysisPanel analysisPanel;
+	private final CrossAnalysisPanel analysisPanel2;
+	private final RimAnalysisPanel analysisPanelRim;
 
 	private final JComboBox<EnumResults> measureComboBox = new JComboBox<>(KYMO_MEASURES);
 	private final JRadioButton displayAllButton = new JRadioButton("all cages", true);
@@ -70,8 +70,8 @@ public class GraphPanel extends JPanel {
 	private KymoOverlayFrame overlayFrame;
 	private AxisOptions graphOptions;
 
-	public GraphPanel(MultiSPOTS parent0, AnalysisPanel analysisPanel, AnalysisPanel2 analysisPanel2,
-			AnalysisPanelRim analysisPanelRim) {
+	public GraphPanel(MultiSPOTS parent0, KymoAnalysisPanel analysisPanel, CrossAnalysisPanel analysisPanel2,
+			RimAnalysisPanel analysisPanelRim) {
 		super(new GridLayout(3, 1));
 		this.parent0 = parent0;
 		this.analysisPanel = analysisPanel;
