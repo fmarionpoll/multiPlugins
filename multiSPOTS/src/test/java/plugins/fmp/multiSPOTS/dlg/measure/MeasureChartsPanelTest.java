@@ -116,6 +116,28 @@ public class MeasureChartsPanelTest {
 		assertNotNull(combo.getToolTipText());
 	}
 
+	@Test public void summaryChecklistKeepsItsSelectionAcrossScopesAndLeavesSpotControlsIndependent() throws Exception {
+		SwingUtilities.invokeAndWait(() -> {
+			MeasureChartsPanel panel = new MeasureChartsPanel(null, Family.LINES);
+			JTabbedPane tabs = (JTabbedPane) panel.getComponent(0);
+			Container summary = (Container) tabs.getComponentAt(1);
+			plugins.fmp.multitools.tools.chart.MeasureSelectionButton selector =
+					MeasureChartsPanelTest.<plugins.fmp.multitools.tools.chart.MeasureSelectionButton>descendants(summary,
+							plugins.fmp.multitools.tools.chart.MeasureSelectionButton.class).get(0);
+			javax.swing.JPopupMenu popup = selector.createPopup();
+			List<javax.swing.JCheckBox> boxes = descendants(popup, javax.swing.JCheckBox.class);
+			boxes.get(1).doClick(); boxes.get(2).doClick();
+			MeasureChartsPanelTest.<javax.swing.JButton>descendants(popup, javax.swing.JButton.class).get(0).doClick();
+			assertEquals(3, selector.getSelection().size());
+			for (JRadioButton button : MeasureChartsPanelTest.<JRadioButton>descendants(summary, JRadioButton.class)) button.doClick();
+			assertEquals(3, selector.getSelection().size());
+			assertTrue(MeasureChartsPanelTest.<plugins.fmp.multitools.tools.chart.MeasureSelectionButton>descendants(
+					(Container) tabs.getComponentAt(0), plugins.fmp.multitools.tools.chart.MeasureSelectionButton.class).isEmpty());
+			measureCombo(summary).setSelectedItem(EnumResults.AGG_RIM_LINE_CONSO);
+			assertEquals(java.util.Collections.singletonList(EnumResults.AGG_RIM_LINE_CONSO), selector.getSelection());
+		});
+	}
+
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private static void assertMeasureLabel(JComboBox combo, EnumResults result, int index) {
 		javax.swing.JLabel label = (javax.swing.JLabel) combo.getRenderer().getListCellRendererComponent(

@@ -132,6 +132,8 @@ public class ResultsOptions {
 	public boolean trim_alive = false;
 	public boolean compensateEvaporation = false;
 	public EnumResults resultType = null;
+	/** Chart-only overlay of cage summaries; empty preserves single-measure behavior. */
+	public List<EnumResults> cageSummaryMeasures = new ArrayList<>();
 
 	/**
 	 * Kymograph chart: which fraction trace to plot when
@@ -271,6 +273,8 @@ public class ResultsOptions {
 		this.trim_alive = resultsOptions.trim_alive;
 		this.compensateEvaporation = resultsOptions.compensateEvaporation;
 		this.resultType = resultsOptions.resultType;
+		this.cageSummaryMeasures = resultsOptions.cageSummaryMeasures == null ? new ArrayList<>()
+				: new ArrayList<>(resultsOptions.cageSummaryMeasures);
 		this.kymoFractionTraceMode = resultsOptions.kymoFractionTraceMode;
 		this.spotAggregateGlobalKeyOrder = resultsOptions.spotAggregateGlobalKeyOrder;
 

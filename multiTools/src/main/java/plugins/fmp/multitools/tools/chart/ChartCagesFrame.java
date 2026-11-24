@@ -36,6 +36,7 @@ import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
 import plugins.fmp.multitools.tools.chart.builders.CageKymoSeriesBuilder;
 import plugins.fmp.multitools.tools.chart.builders.CageSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CageSummaryOverlay;
 import plugins.fmp.multitools.tools.chart.plot.CageChartPlotFactory;
 import plugins.fmp.multitools.tools.chart.strategies.ChartLayoutStrategy;
 import plugins.fmp.multitools.tools.chart.strategies.ChartUIControlsFactory;
@@ -121,6 +122,7 @@ public class ChartCagesFrame extends IcyFrame {
 
 	/** X-axis range for charts */
 	private Range xRange = null;
+	private final Map<String, Range> summaryOverlayRanges = new HashMap<>();
 
 	/** Chart location */
 	private Point graphLocation = new Point(0, 0);
@@ -218,7 +220,7 @@ public class ChartCagesFrame extends IcyFrame {
 		// Set layout using strategy
 		layoutStrategy.setLayoutOnPanel(mainChartPanel, nPanelsAlongX, nPanelsAlongY);
 
-		String rt = options.resultType != null ? options.resultType.name() : "";
+		String rt = summaryTitle(options);
 		String finalTitle = title + ": " + rt;
 
 		// Reuse existing frame if it's still valid
@@ -489,6 +491,23 @@ public class ChartCagesFrame extends IcyFrame {
 			XYSeriesCollection xyDataSetList = dataBuilder.build(experiment, cage, resultsOptions);
 			datasets.put(cage, xyDataSetList);
 		}
+		summaryOverlayRanges.clear();
+		if (CageSummaryOverlay.measures(resultsOptions).size() > 1) {
+			for (XYSeriesCollection dataset : datasets.values()) {
+				if (dataset == null) continue;
+				for (int s = 0; s < dataset.getSeriesCount(); s++) {
+					org.jfree.data.xy.XYSeries series = dataset.getSeries(s);
+					EnumResults measure = CageSummaryOverlay.measure(series);
+					if (measure == null) continue;
+					String unit = CageSummaryOverlay.unit(measure);
+					for (int i = 0; i < series.getItemCount(); i++) {
+						Number value = series.getY(i);
+						if (value == null || !Double.isFinite(value.doubleValue())) continue;
+						summaryOverlayRanges.put(unit, Range.expandToInclude(summaryOverlayRanges.get(unit), value.doubleValue()));
+					}
+				}
+			}
+		}
 
 		// Create chart panels - iterate over existing cages only
 		// Use sequential positioning based on available cages with valid data
@@ -578,6 +597,16 @@ public class ChartCagesFrame extends IcyFrame {
 		}
 
 		XYPlot xyPlot = CageChartPlotFactory.buildXYPlot(xyDataSetList, xAxis, yAxis);
+		for (int a = 0; a < xyPlot.getRangeAxisCount(); a++) {
+			org.jfree.chart.axis.ValueAxis axis = xyPlot.getRangeAxis(a);
+			if (axis == null) continue;
+			Range range = summaryOverlayRanges.get(axis.getLabel());
+			if (range == null) continue;
+			double padding = Math.max(1e-9, range.getLength() == 0 ? 0.05 : range.getLength() * 0.05);
+			double low = range.getLowerBound() - padding;
+			if (range.getLowerBound() >= 0) low = Math.max(0, low);
+			axis.setRange(low, range.getUpperBound() + padding);
+		}
 
 		JFreeChart chart = new JFreeChart(null, null, xyPlot, false);
 
@@ -703,7 +732,7 @@ public class ChartCagesFrame extends IcyFrame {
 	 */
 	protected void updateFrameTitle() {
 		if (mainChartFrame != null && baseTitle != null && currentOptions != null) {
-			String rt = currentOptions.resultType != null ? currentOptions.resultType.name() : "";
+			String rt = summaryTitle(currentOptions);
 			String finalTitle = baseTitle + ": " + rt;
 			mainChartFrame.setTitle(finalTitle);
 		}
@@ -714,7 +743,28 @@ public class ChartCagesFrame extends IcyFrame {
 			return;
 		}
 		XYSeriesCollection ds = findFirstNonEmptyDatasetFromChartPairs();
+		if (CageSummaryOverlay.measures(resultsOptions).size() > 1 && chartPanelArray != null) {
+			ds = new XYSeriesCollection();
+			java.util.Set<Comparable<?>> keys = new java.util.HashSet<>();
+			for (ChartCagePair[] row : chartPanelArray) for (ChartCagePair pair : row) {
+				if (pair == null || pair.getChartPanel() == null || pair.getChartPanel().getChart() == null) continue;
+				XYPlot plot = pair.getChartPanel().getChart().getXYPlot();
+				for (int d = 0; d < plot.getDatasetCount(); d++) {
+					if (!(plot.getDataset(d) instanceof XYSeriesCollection)) continue;
+					XYSeriesCollection slice = (XYSeriesCollection) plot.getDataset(d);
+					for (int i = 0; i < slice.getSeriesCount(); i++) {
+						org.jfree.data.xy.XYSeries series = slice.getSeries(i);
+						if (keys.add(series.getKey())) ds.addSeries(series);
+					}
+				}
+			}
+		}
 		uiControlsFactory.refreshLegendFromDataset(experiment, resultsOptions, ds);
+	}
+
+	private static String summaryTitle(ResultsOptions options) {
+		return CageSummaryOverlay.measures(options).stream().filter(java.util.Objects::nonNull)
+				.map(EnumResults::name).collect(java.util.stream.Collectors.joining(" + "));
 	}
 
 	private XYSeriesCollection findFirstNonEmptyDatasetFromChartPairs() {

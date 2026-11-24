@@ -73,6 +73,52 @@ Levels, Gulps, and Fly Positions CSVs that report `time_min` also report the zer
 
 Excel exports include separate intake raw/corrected and cumulative sheets, an `intake_metadata` sheet, and an `intake_intervals` sheet with both boundaries at native resolution, including zero-intake intervals. Summary sheets still follow the selected export bin size. Corrected values are blank when no evaporation correction is available; raw values remain available.
 
+## Overlaying cage summary measures
+
+In **Charts > Cage summaries**, use **Measures…**, tick the summaries to compare,
+then click **Apply**. The same checklist is available in the chart window. It
+works in both **Cage** and **Experiment (all cages)** views, and the selection is
+retained when switching cages or refreshing. Choosing the ordinary Summary
+dropdown returns to a single measure.
+
+Stimulus/concentration colors are retained; line patterns and full legend labels
+distinguish measures. Consumption summaries share a spot-equivalent axis. Measures
+with different units have separate labelled axes, with consistent ranges across
+the cages in the experiment view. Each measure uses its own native timestamps and
+aggregate computation; this display does not resample or change saved measures.
+
+## Experimental kymograph analysis
+
+In **Measure: lines > Kymo**, the existing **Analyze** button runs the original
+height method. **Analyze new (current)** runs the experimental color integral on
+the selected experiment and opens an old/new comparison for each cage or spot.
+The original panel is retained as `KymoAnalysisPanel_old`; the stable panel entry
+point now extends `KymoAnalysisPanel_new`. The original `CageKymoAnalyzer` remains
+unchanged, with explicit `_old` and `_new` entry points alongside it.
+
+Choose a verified period with no feeding for **Baseline (min)**. The initial
+10–20 minute selection is a trial default, not an automatically detected baseline.
+The new method sums color above the median strip-edge background and divides by
+the median of at least three observed baseline columns. `S(diffRGB)` is evaluated
+without 8-bit saturation. It does not threshold spot pixels or normalize to a peak.
+The insect controls exclude entire contaminated columns; enabling row lift allows
+time-weighted interpolation of short bounded gaps in the integral, without RGB
+lifting or leading/trailing extrapolation. Negative losses are retained.
+
+Each new cage curve uses a fixed cohort of spots with usable baselines. By default,
+the green curve shows the **observed subtotal**, excluding unavailable members;
+this is not an estimate of the full cage total. A lower plot shows the number of
+missing baseline spots. Line segments are broken whenever the contributing spots
+change, including swaps that leave the same count. **Require all baseline spots**
+switches back to the complete-cohort total, which is missing if any member is
+unobserved after permitted gap interpolation. The comparison also includes the old
+curve for the same baseline cohort when exclusions occur. CSVs retain the complete
+total and add the observed subtotal, missing count and membership-change flag.
+Separate `kymo_analysis_new_spots.csv`, `kymo_analysis_new_cages.csv`, and
+`kymo_analysis_new.properties` files are written into the kymograph bin; these trial
+measures are not substituted into the standard Charts/Excel measures. This trial
+changes analysis only; it does not change drift correction or rebuild source images.
+
 ## Eclipse Setup
 
 1. Select **File > Import > Existing Maven Projects**.

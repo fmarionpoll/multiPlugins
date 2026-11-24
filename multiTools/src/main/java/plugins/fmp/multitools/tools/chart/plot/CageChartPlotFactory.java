@@ -3,6 +3,8 @@ package plugins.fmp.multitools.tools.chart.plot;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Stroke;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.XYPlot;
@@ -11,6 +13,7 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
+import plugins.fmp.multitools.tools.chart.builders.CageSummaryOverlay;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
@@ -49,6 +52,9 @@ public final class CageChartPlotFactory {
 		if (yAxis == null)
 			throw new IllegalArgumentException("Y-axis cannot be null");
 
+		if (dataset.getSeriesCount() > 0 && CageSummaryOverlay.measure(dataset.getSeries(0)) != null)
+			return buildSummaryOverlay(dataset, xAxis, yAxis);
+
 		if (isLRData(dataset)) {
 			return buildXYPlotLR(dataset, xAxis, yAxis);
 		}
@@ -80,6 +86,36 @@ public final class CageChartPlotFactory {
 			}
 		}
 		return hasPi && hasSum;
+	}
+
+	private static XYPlot buildSummaryOverlay(XYSeriesCollection dataset, NumberAxis xAxis, NumberAxis yAxis) {
+		Map<String, XYSeriesCollection> units = new LinkedHashMap<>();
+		for (int i = 0; i < dataset.getSeriesCount(); i++) {
+			XYSeries series = dataset.getSeries(i);
+			units.computeIfAbsent(CageSummaryOverlay.unit(CageSummaryOverlay.measure(series)), k -> new XYSeriesCollection()).addSeries(series);
+		}
+		XYPlot plot = new XYPlot();
+		plot.setDomainAxis(xAxis);
+		xAxis.setLabel("Time (min)");
+		int axisIndex = 0;
+		for (Map.Entry<String, XYSeriesCollection> entry : units.entrySet()) {
+			NumberAxis axis = axisIndex == 0 ? yAxis : new NumberAxis();
+			axis.setLabel(entry.getKey());
+			// A global range across different units is meaningless. Each axis must fit its own data.
+			if (units.size() > 1) { axis.setAutoRange(true); axis.setAutoRangeIncludesZero(false); }
+			XYSeriesCollection slice = entry.getValue();
+			if (CageSummaryOverlay.measure(slice.getSeries(0)) == EnumResults.CAGE_GREY_MEDIAN) axis.setInverted(true);
+			XYLineAndShapeRenderer renderer = createRenderer(slice);
+			for (int i = 0; i < slice.getSeriesCount(); i++)
+				renderer.setSeriesStroke(i, CageSummaryOverlay.stroke(CageSummaryOverlay.measure(slice.getSeries(i))));
+			plot.setDataset(axisIndex, slice);
+			plot.setRenderer(axisIndex, renderer);
+			plot.setRangeAxis(axisIndex, axis);
+			plot.mapDatasetToRangeAxis(axisIndex, axisIndex);
+			axisIndex++;
+		}
+		updatePlotBackgroundAccordingToNFlies(dataset, plot);
+		return plot;
 	}
 
 	private static boolean isPiOnly(XYSeriesCollection dataset) {

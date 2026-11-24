@@ -1,6 +1,9 @@
 package plugins.fmp.multitools.tools.chart.strategies;
 
 import java.awt.Color;
+import java.awt.BasicStroke;
+import java.awt.Stroke;
+import java.awt.Graphics2D;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
@@ -38,6 +41,8 @@ import plugins.fmp.multitools.experiment.capillaries.Capillaries;
 import plugins.fmp.multitools.experiment.capillary.Capillary;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.ChartCageBuild;
+import plugins.fmp.multitools.tools.chart.MeasureSelectionButton;
+import plugins.fmp.multitools.tools.chart.builders.CageSummaryOverlay;
 import plugins.fmp.multitools.tools.chart.builders.SpotChartSeriesKeys;
 import plugins.fmp.multitools.tools.chart.style.SeriesStyleCodec;
 import plugins.fmp.multitools.tools.results.EnumResults;
@@ -73,6 +78,12 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	private boolean measureNamesWithTitles;
 	private boolean measurementLabels;
 	private Consumer<EnumResults> measurementSelectionListener;
+	private Consumer<List<EnumResults>> multipleMeasurementSelectionListener;
+	private MeasureSelectionButton multipleMeasures;
+
+	public void setMultipleMeasurementSelectionListener(Consumer<List<EnumResults>> listener) {
+		multipleMeasurementSelectionListener = listener;
+	}
 
 	/** Route user changes through the owning panel's option builder. */
 	public void setMeasurementSelectionListener(Consumer<EnumResults> listener) {
@@ -238,6 +249,11 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		});
 
 		topPanel.add(resultTypeComboBox);
+		if (multipleMeasurementSelectionListener != null) {
+			multipleMeasures = new MeasureSelectionButton(typesToUse, multipleMeasurementSelectionListener);
+			multipleMeasures.setSelection(CageSummaryOverlay.measures(currentOptions));
+			topPanel.add(multipleMeasures);
+		}
 
 		JButton updateButton = new JButton("Update");
 		updateButton.addActionListener(new ActionListener() {
@@ -280,6 +296,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 	@Override
 	public void updateControls(EnumResults newResultType, ResultsOptions currentOptions) {
 		this.boundOptions = currentOptions;
+		if (multipleMeasures != null) multipleMeasures.setSelection(CageSummaryOverlay.measures(currentOptions));
 		if (resultTypeComboBox != null && newResultType != null) {
 			resultTypeComboBox.setSelectedItem(newResultType);
 		}
@@ -383,6 +400,19 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		}
 
 		bottomPanel.removeAll();
+		if (dataset != null && dataset.getSeriesCount() > 0 && CageSummaryOverlay.measure(dataset.getSeries(0)) != null) {
+			java.util.Set<String> labels = new java.util.LinkedHashSet<>();
+			for (int i = 0; i < dataset.getSeriesCount(); i++) {
+				XYSeries series = dataset.getSeries(i);
+				String label = CageSummaryOverlay.label(series);
+				if (labels.add(label)) bottomPanel.add(new LegendItem(label,
+						SeriesStyleCodec.tryParseColor(series.getDescription()).orElse(Color.BLACK),
+						CageSummaryOverlay.stroke(CageSummaryOverlay.measure(series))));
+			}
+			bottomPanel.revalidate();
+			bottomPanel.repaint();
+			return;
+		}
 
 		if (currentOptions.resultType == EnumResults.TOPLEVEL_SUM
 				|| currentOptions.resultType == EnumResults.SUMGULPS_SUM) {
@@ -777,6 +807,7 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 		private static final long serialVersionUID = 1L;
 		private String text;
 		private Color color;
+		private Stroke stroke = new BasicStroke(1f);
 
 		public LegendItem(String text, Color color) {
 			this.text = text;
@@ -784,11 +815,21 @@ public class ComboBoxUIControlsFactory implements ChartUIControlsFactory {
 			setPreferredSize(new Dimension(100, 20));
 		}
 
+		public LegendItem(String text, Color color, Stroke stroke) {
+			this(text, color);
+			this.stroke = stroke;
+			setToolTipText(text);
+			setPreferredSize(new Dimension(new JLabel(text).getPreferredSize().width + 36, 20));
+		}
+
 		@Override
 		protected void paintComponent(Graphics g) {
 			super.paintComponent(g);
 			g.setColor(color);
+			Stroke previous = ((Graphics2D) g).getStroke();
+			((Graphics2D) g).setStroke(stroke);
 			g.drawLine(0, 10, 20, 10);
+			((Graphics2D) g).setStroke(previous);
 			g.setColor(Color.BLACK);
 			g.drawString(text, 25, 15);
 		}

@@ -30,12 +30,14 @@ import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.tools.chart.ChartCagesFrame;
+import plugins.fmp.multitools.tools.chart.MeasureSelectionButton;
 import plugins.fmp.multitools.tools.chart.ChartColorSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.ChartLineSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.ChartSpotsOverlayFrame;
 import plugins.fmp.multitools.tools.chart.SpotChartMeasures;
 import plugins.fmp.multitools.tools.chart.SpotChartMeasures.Family;
 import plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder;
+import plugins.fmp.multitools.tools.chart.builders.CageSummaryOverlay;
 import plugins.fmp.multitools.tools.chart.interaction.SpotChartInteractionHandler;
 import plugins.fmp.multitools.tools.chart.strategies.ComboBoxUIControlsFactory;
 import plugins.fmp.multitools.tools.chart.strategies.GridLayoutStrategy;
@@ -116,6 +118,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 		private static final long serialVersionUID = 1L;
 		private final boolean summary;
 		private final JComboBox<EnumResults> measure;
+		private final MeasureSelectionButton multipleMeasures;
 		private final JRadioButton experimentView = new JRadioButton("Experiment (all cages)", true);
 		private final JRadioButton cageView = new JRadioButton("Cage");
 		private final JRadioButton spotView = new JRadioButton("Spot(s)");
@@ -137,6 +140,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 		ChartView(boolean summary) {
 			this.summary = summary;
 			measure = new JComboBox<>(family.measures(summary));
+			multipleMeasures = summary ? new MeasureSelectionButton(family.measures(true), this::selectSummaries) : null;
 			SpotsMeasuresUi.showMeasurementNames(measure);
 			if (!summary && family == Family.FILTER) measure.setSelectedItem(EnumResults.FILTER_GREY_FLY_MASKED);
 			if (!summary && family == Family.COLORS) measure.setSelectedItem(EnumResults.COLOR_GREY);
@@ -152,6 +156,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			JPanel metric = row();
 			metric.add(new JLabel(summary ? "Summary" : "Measure"));
 			metric.add(measure);
+			if (multipleMeasures != null) metric.add(multipleMeasures);
 			if (!summary && family != Family.LINES) metric.add(relative);
 			baselineRow.add(new JLabel("Baseline (min)"));
 			baselineRow.add(baseline);
@@ -170,7 +175,11 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			display.addActionListener(e -> display(selectedExperiment()));
 			refresh.addActionListener(e -> display(selectedExperiment()));
 			axis.addActionListener(e -> openAxes());
-			measure.addActionListener(e -> { updateControls(); refresh(); });
+			measure.addActionListener(e -> {
+				if (updating) return;
+				if (multipleMeasures != null) multipleMeasures.setSelection(java.util.Collections.singletonList((EnumResults) measure.getSelectedItem()));
+				updateControls(); refresh();
+			});
 			relative.addActionListener(e -> { updateControls(); refresh(); });
 			experimentView.addActionListener(e -> scopeChanged());
 			cageView.addActionListener(e -> scopeChanged());
@@ -188,12 +197,22 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			boolean normalized = result != EnumResults.FLY_PIXEL_COUNT;
 			relative.setEnabled(normalized);
 			if (!normalized) relative.setSelected(false);
-			boolean depletion = result == EnumResults.AGG_FILTER_DEPLETION || result == EnumResults.AGG_COLOR_DEPLETION;
+			List<EnumResults> enabled = summary ? multipleMeasures.getSelection() : java.util.Collections.singletonList(result);
+			boolean depletion = enabled.contains(EnumResults.AGG_FILTER_DEPLETION) || enabled.contains(EnumResults.AGG_COLOR_DEPLETION);
 			baselineRow.setVisible(depletion || (!summary && family != Family.LINES && relative.isSelected()));
 			stableBins.setEnabled(stopStable.isSelected());
-			medianRow.setVisible(result == EnumResults.CAGE_GREY_MEDIAN || result == EnumResults.AGG_FILTER_DEPLETION);
+			medianRow.setVisible(enabled.contains(EnumResults.CAGE_GREY_MEDIAN) || enabled.contains(EnumResults.AGG_FILTER_DEPLETION));
 			cage.setVisible(cageView.isSelected());
 			revalidate();
+		}
+
+		private void selectSummaries(List<EnumResults> selected) {
+			multipleMeasures.setSelection(selected);
+			updating = true;
+			try { measure.setSelectedItem(selected.get(0)); }
+			finally { updating = false; }
+			updateControls();
+			refresh();
 		}
 
 		private void refresh() {
@@ -242,6 +261,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 					.withCageRange(id, id).withBuildExcelStepMs((int) Math.min(Integer.MAX_VALUE, Math.max(1L, bin)))
 					.withKymoFractionTraceMode(KymoFractionTraceMode.FINAL).build();
 			options.relativeToMaximum = !summary && family != Family.LINES && relative.isSelected();
+			if (summary) options.cageSummaryMeasures = multipleMeasures.getSelection();
 			options.spotAggregateByStimulusConc = false;
 			options.spotBaselineWindowMinutes = ((Number) baseline.getValue()).intValue();
 			options.spotBaselineStopWhenStable = stopStable.isSelected();
@@ -262,12 +282,14 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			if (cage.getItemCount() == 0) { close(); status.setText("No cages available."); return; }
 			ResultsOptions options = options(exp);
 			if (family != Family.LINES) {
-				EnumResults source = SpotChartMeasures.sourceOf(options.resultType);
 				boolean data = false;
-				for (Cage value : exp.getCages().getCageList()) {
-					if (cageView.isSelected() && value.getCageID() != options.cageIndexFirst) continue;
-					for (Spot spot : value.getSpotList(exp.getSpots()))
-						if (spot != null && spot.getMeasurements(source) != null && spot.getMeasurements(source).getCount() > 0) data = true;
+				for (EnumResults selected : CageSummaryOverlay.measures(options)) {
+					EnumResults source = SpotChartMeasures.sourceOf(selected);
+					for (Cage value : exp.getCages().getCageList()) {
+						if (cageView.isSelected() && value.getCageID() != options.cageIndexFirst) continue;
+						for (Spot spot : value.getSpotList(exp.getSpots()))
+							if (spot != null && spot.getMeasurements(source) != null && spot.getMeasurements(source).getCount() > 0) data = true;
+					}
 				}
 				if (!data) { close(); status.setText("No data for this measurement and view. Run analysis or load saved measures."); return; }
 			}
@@ -288,6 +310,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 				controls.setMeasurementTypes(family.measures(summary));
 				controls.showMeasureNamesWithTitles();
 				controls.setMeasurementSelectionListener(result -> measure.setSelectedItem(result));
+				if (summary) controls.setMultipleMeasurementSelectionListener(this::selectSummaries);
 				controls.setSingleCageSelectionListener((experiment, selected) -> {
 					updating = true;
 					try {
@@ -296,7 +319,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 					} finally { updating = false; }
 					owner.dlgSpots.onChartSingleCageSelected(experiment, selected);
 				});
-				cageFrame = new ChartCagesFrame(new CageSpotSeriesBuilder(),
+				cageFrame = new ChartCagesFrame(new CageSummaryOverlay(new CageSpotSeriesBuilder()),
 						(experiment, settings, charts) -> new SpotChartInteractionHandler(experiment, settings, charts,
 								spot -> owner.dlgSpots.onMeasureChartSpotClicked(spot)),
 						new GridLayoutStrategy(), controls);
