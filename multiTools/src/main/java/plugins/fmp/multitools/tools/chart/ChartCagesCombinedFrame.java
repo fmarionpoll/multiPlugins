@@ -360,7 +360,9 @@ public class ChartCagesCombinedFrame {
 		case KYMO_CAGE_MEAN_FRACT:
 		case KYMO_CAGE_MEAN_ABS_DELTA:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+		case X_LINE_FRACTION:
 		case X_LINE_RATIO:
+		case RIM_LINE_FRACTION:
 		case RIM_LINE_RATIO:
 		case AGG_KYMO_HEIGHT_LOSS:
 		case AGG_X_LINE_CONSO:

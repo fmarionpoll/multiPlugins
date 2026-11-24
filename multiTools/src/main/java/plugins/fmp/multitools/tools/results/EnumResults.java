@@ -227,6 +227,9 @@ public enum EnumResults {
 	 * X-shaped pair of diagonals through each spot: coverage above the surrounding
 	 * floor, divided by its median over the initial window.
 	 */
+	X_LINE_FRACTION("X_LINE_FRACTION", "fraction (0-1)",
+			"Measured X-line signal fraction before smoothing and baseline normalization",
+			StoredDataAccessors.accessStored_X_LINE_FRACTION(), "X_LINE_FRACTION", PersistenceDomain.SPOT),
 	X_LINE_RATIO("X_LINE_RATIO", "I / I0",
 			"X line: fraction of the cross above the floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_LINE_RATIO(), "KYMO_LINE_RATIO", PersistenceDomain.SPOT),
@@ -234,6 +237,9 @@ public enum EnumResults {
 	 * Rim of the physical spot: fraction of the outline still above the outer floor
 	 * band, relative to the initial window.
 	 */
+	RIM_LINE_FRACTION("RIM_LINE_FRACTION", "fraction (0-1)",
+			"Measured rim coverage fraction before smoothing and baseline normalization",
+			StoredDataAccessors.accessStored_RIM_LINE_FRACTION(), "RIM_LINE_FRACTION", PersistenceDomain.SPOT),
 	RIM_LINE_RATIO("RIM_LINE_RATIO", "I / I0",
 			"Rim: fraction of the outline above the outer floor, relative to the initial window",
 			StoredDataAccessors.accessStored_KYMO_RIM_RATIO(), "KYMO_RIM_RATIO", PersistenceDomain.SPOT),
@@ -316,8 +322,12 @@ public enum EnumResults {
 			return "Green mask height (rows)";
 		case KYMO_GREEN_HEIGHT_RATIO:
 			return "Green mask height relative to peak";
+		case X_LINE_FRACTION:
+			return "X-line signal fraction (before normalization)";
 		case X_LINE_RATIO:
 			return "X-line signal relative to initial baseline";
+		case RIM_LINE_FRACTION:
+			return "Rim coverage fraction (before normalization)";
 		case RIM_LINE_RATIO:
 			return "Rim coverage relative to initial baseline";
 		case AGG_FILTER_DEPLETION:
@@ -426,7 +436,9 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+		case X_LINE_FRACTION:
 		case X_LINE_RATIO:
+		case RIM_LINE_FRACTION:
 		case RIM_LINE_RATIO:
 		case AGG_X_LINE_CONSO:
 		case AGG_RIM_LINE_CONSO:
@@ -466,7 +478,8 @@ public enum EnumResults {
 	/** Per-spot kymograph strip series persisted in {@code SpotsMeasures.csv}. */
 	public boolean isPersistedKymographSpotMeasure() {
 		return this == KYMO_ROW_FRACTION || this == KYMO_ROW_FRACTION_CHANGE || this == KYMO_GREEN_HEIGHT
-				|| this == KYMO_GREEN_HEIGHT_RATIO || this == X_LINE_RATIO || this == RIM_LINE_RATIO;
+				|| this == KYMO_GREEN_HEIGHT_RATIO || this == X_LINE_FRACTION || this == X_LINE_RATIO
+				|| this == RIM_LINE_FRACTION || this == RIM_LINE_RATIO;
 	}
 
 	public static boolean isKymographMeasure(EnumResults resultType) {
@@ -481,7 +494,9 @@ public enum EnumResults {
 		case KYMO_GREEN_HEIGHT:
 		case KYMO_GREEN_HEIGHT_RATIO:
 		case KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO:
+		case X_LINE_FRACTION:
 		case X_LINE_RATIO:
+		case RIM_LINE_FRACTION:
 		case RIM_LINE_RATIO:
 		case AGG_KYMO_HEIGHT_LOSS:
 		case AGG_X_LINE_CONSO:

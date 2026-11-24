@@ -555,6 +555,12 @@ public class SpotsPersistence {
 						";")) {
 					return false;
 				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.X_LINE_FRACTION, ";")) {
+					return false;
+				}
+				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.RIM_LINE_FRACTION, ";")) {
+					return false;
+				}
 				Logger.debug("SpotsArrayPersistence:saveKymoMeasures() saved to " + ID_V2_SPOTSARRAYMEASURES_CSV);
 				return true;
 			} catch (IOException e) {

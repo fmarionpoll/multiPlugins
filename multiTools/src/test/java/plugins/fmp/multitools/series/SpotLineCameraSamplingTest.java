@@ -40,7 +40,7 @@ public class SpotLineCameraSamplingTest {
         Spots spots = new Spots();
         Spot spot = new Spot();
         spot.getProperties().setName("spotA");
-        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
+        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_FRACTION, EnumResults.RIM_LINE_FRACTION, EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
             SpotMeasure measure = spot.getMeasurements(type);
             measure.setValues(new double[] { 1, 0.8, 0.6, 0.4 });
             measure.setCameraSampled(true);
@@ -51,7 +51,7 @@ public class SpotLineCameraSamplingTest {
         assertTrue(loaded.getPersistence().loadMeasures(loaded, directory));
         Spot restored = loaded.findSpotByName("spotA");
         assertNotNull(restored);
-        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
+        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_FRACTION, EnumResults.RIM_LINE_FRACTION, EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
             assertTrue(restored.getMeasurements(type).isCameraSampled());
             assertArrayEquals(spot.getMeasurements(type).getValues(), restored.getMeasurements(type).getValues(), 0);
             SpotMeasure copy = new SpotMeasure("copy");
@@ -66,7 +66,7 @@ public class SpotLineCameraSamplingTest {
         exp.getSpots().getSpotList().add(spot);
         ResultsOptions options = new ResultsOptions();
         options.buildExcelStepMs = 30000;
-        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
+        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_FRACTION, EnumResults.RIM_LINE_FRACTION, EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
             SpotMeasure measure = spot.getMeasurements(type);
             measure.setValues(new double[] { 1, 0.8, 0.6, 0.4 });
             measure.setCameraSampled(true);
@@ -89,13 +89,13 @@ public class SpotLineCameraSamplingTest {
         exp.getCages().getCageList().add(cage);
         Spot spot = new Spot();
         spot.getProperties().setCageID(1);
-        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
+        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_FRACTION, EnumResults.RIM_LINE_FRACTION, EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO }) {
             spot.getMeasurements(type).setValues(new double[] { 1, 0.8, 0.6, 0.4 });
             spot.getMeasurements(type).setCameraSampled(true);
         }
         exp.getSpots().getSpotList().add(spot);
         ResultsOptions options = new ResultsOptions();
-        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO,
+        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_FRACTION, EnumResults.RIM_LINE_FRACTION, EnumResults.X_LINE_RATIO, EnumResults.RIM_LINE_RATIO,
                 EnumResults.AGG_X_LINE_CONSO, EnumResults.AGG_RIM_LINE_CONSO }) {
             options.resultType = type;
             org.jfree.data.xy.XYSeriesCollection data =
@@ -104,12 +104,17 @@ public class SpotLineCameraSamplingTest {
             assertEquals(4, data.getSeries(0).getItemCount());
             assertEquals(0.75, data.getSeries(0).getX(2).doubleValue(), 1e-9);
             assertEquals(1, data.getSeries(0).getX(3).doubleValue(), 1e-9);
+            if (!type.isCageSpotSummary()) {
             org.jfree.data.xy.XYSeriesCollection overlay = KymoSpotChartSupport.buildOverlayForSpots(exp, options,
                     Arrays.asList(spot));
             assertEquals(4, overlay.getSeries(0).getItemCount());
             assertEquals(0.75, overlay.getSeries(0).getX(2).doubleValue(), 1e-9);
-            assertEquals(type == EnumResults.X_LINE_RATIO || type == EnumResults.RIM_LINE_RATIO ? 0.6 : 0.4,
+            assertEquals(0.6,
                     overlay.getSeries(0).getY(2).doubleValue(), 1e-9);
+            } else {
+                assertThrows(IllegalArgumentException.class, () ->
+                        KymoSpotChartSupport.buildOverlayForSpots(exp, options, Arrays.asList(spot)));
+            }
             spot.getMeasurements(plugins.fmp.multitools.experiment.spot.SpotLineSampling.source(type))
                     .setCameraSampled(false);
             data = new plugins.fmp.multitools.tools.chart.builders.CageSpotSeriesBuilder().build(exp, cage, options);
@@ -118,6 +123,8 @@ public class SpotLineCameraSamplingTest {
             spot.getMeasurements(plugins.fmp.multitools.experiment.spot.SpotLineSampling.source(type))
                     .setCameraSampled(true);
         }
-        assertEquals(2, KymoSpotChartSupport.cameraFrameForChartMinute(exp, EnumResults.X_LINE_RATIO, 0.75));
+        for (EnumResults type : new EnumResults[] { EnumResults.X_LINE_RATIO, EnumResults.X_LINE_FRACTION,
+                EnumResults.RIM_LINE_FRACTION })
+            assertEquals(2, KymoSpotChartSupport.cameraFrameForChartMinute(exp, type, 0.75));
     }
 }

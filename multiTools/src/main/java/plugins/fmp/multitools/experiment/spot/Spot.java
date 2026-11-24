@@ -662,8 +662,12 @@ public class Spot implements Comparable<Spot> {
 			return kymographMeasurements.getGreenMaskHeight();
 		case KYMO_GREEN_HEIGHT_RATIO:
 			return kymographMeasurements.getGreenMaskHeightToPeakRatio();
+		case X_LINE_FRACTION:
+			return kymographMeasurements.getCrossLineSignalFraction();
 		case X_LINE_RATIO:
 			return kymographMeasurements.getCrossLineSignalToBaselineRatio();
+		case RIM_LINE_FRACTION:
+			return kymographMeasurements.getRimCoverageFraction();
 		case RIM_LINE_RATIO:
 			return kymographMeasurements.getRimCoverageToBaselineRatio();
 		default:

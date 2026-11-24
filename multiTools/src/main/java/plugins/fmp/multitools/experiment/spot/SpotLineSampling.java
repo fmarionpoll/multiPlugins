@@ -24,7 +24,8 @@ public final class SpotLineSampling {
 
     public static boolean isLineMeasure(EnumResults type) {
         EnumResults value = source(type);
-        return value == EnumResults.X_LINE_RATIO || value == EnumResults.RIM_LINE_RATIO;
+        return value == EnumResults.RIM_LINE_FRACTION || value == EnumResults.X_LINE_FRACTION
+                || value == EnumResults.X_LINE_RATIO || value == EnumResults.RIM_LINE_RATIO;
     }
 
     public static boolean usesCameraFrames(Experiment exp, EnumResults type) {

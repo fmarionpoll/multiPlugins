@@ -12,8 +12,8 @@ public final class SpotChartMeasures {
 				EnumResults.COLOR_GREY_PRE_GATE, EnumResults.COLOR_GREY_SMOOTHED, EnumResults.FLY_PIXEL_COUNT },
 				new EnumResults[] { EnumResults.AGG_COLOR_DEPLETION, EnumResults.AGG_COLOR_PIXEL_SUM }),
 		LINES("Lines", new EnumResults[] { EnumResults.KYMO_GREEN_HEIGHT_RATIO, EnumResults.KYMO_GREEN_HEIGHT,
-				EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE, EnumResults.X_LINE_RATIO,
-				EnumResults.RIM_LINE_RATIO }, new EnumResults[] { EnumResults.AGG_KYMO_HEIGHT_LOSS,
+				EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE, EnumResults.X_LINE_RATIO, EnumResults.X_LINE_FRACTION,
+				EnumResults.RIM_LINE_RATIO, EnumResults.RIM_LINE_FRACTION }, new EnumResults[] { EnumResults.AGG_KYMO_HEIGHT_LOSS,
 				EnumResults.AGG_X_LINE_CONSO, EnumResults.AGG_RIM_LINE_CONSO,
 				EnumResults.KYMO_CAGE_MEAN_GREEN_HEIGHT_RATIO, EnumResults.KYMO_CAGE_MEAN_FRACT,
 				EnumResults.KYMO_CAGE_MEAN_ABS_DELTA });

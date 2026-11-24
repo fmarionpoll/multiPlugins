@@ -322,6 +322,18 @@ public class StoredDataAccessors {
 		};
 	}
 
+	public static MeasurementComputation accessStored_X_LINE_FRACTION() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException("X_LINE_FRACTION is accessed via spot.getMeasurements()");
+		};
+	}
+
+	public static MeasurementComputation accessStored_RIM_LINE_FRACTION() {
+		return (exp, cap, options) -> {
+			throw new UnsupportedOperationException("RIM_LINE_FRACTION is accessed via spot.getMeasurements()");
+		};
+	}
+
 	public static MeasurementComputation accessStored_KYMO_LINE_RATIO() {
 		return (exp, cap, options) -> {
 			throw new UnsupportedOperationException(

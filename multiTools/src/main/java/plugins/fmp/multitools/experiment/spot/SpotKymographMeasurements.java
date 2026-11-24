@@ -5,6 +5,8 @@ package plugins.fmp.multitools.experiment.spot;
  */
 public final class SpotKymographMeasurements {
 
+	private final SpotMeasure xLineFraction;
+	private final SpotMeasure rimLineFraction;
 	private final SpotMeasure kymoFract;
 	private final SpotMeasure kymoAbsDelta;
 	private final SpotMeasure kymoGreenHeight;
@@ -13,6 +15,8 @@ public final class SpotKymographMeasurements {
 	private final SpotMeasure kymoRimRatio;
 
 	public SpotKymographMeasurements() {
+		this.xLineFraction = new SpotMeasure("xLineFraction");
+		this.rimLineFraction = new SpotMeasure("rimLineFraction");
 		this.kymoFract = new SpotMeasure("kymoFract");
 		this.kymoAbsDelta = new SpotMeasure("kymoAbsDelta");
 		this.kymoGreenHeight = new SpotMeasure("kymoGreenHeight");
@@ -22,6 +26,8 @@ public final class SpotKymographMeasurements {
 	}
 
 	public SpotKymographMeasurements(SpotKymographMeasurements source, boolean includeData) {
+		this.xLineFraction = new SpotMeasure("xLineFraction");
+		this.rimLineFraction = new SpotMeasure("rimLineFraction");
 		this.kymoFract = new SpotMeasure("kymoFract");
 		this.kymoAbsDelta = new SpotMeasure("kymoAbsDelta");
 		this.kymoGreenHeight = new SpotMeasure("kymoGreenHeight");
@@ -37,12 +43,22 @@ public final class SpotKymographMeasurements {
 		if (source == null) {
 			return;
 		}
+		xLineFraction.copyMeasures(source.xLineFraction);
+		rimLineFraction.copyMeasures(source.rimLineFraction);
 		kymoFract.copyMeasures(source.kymoFract);
 		kymoAbsDelta.copyMeasures(source.kymoAbsDelta);
 		kymoGreenHeight.copyMeasures(source.kymoGreenHeight);
 		kymoGreenHeightRatio.copyMeasures(source.kymoGreenHeightRatio);
 		kymoLineRatio.copyMeasures(source.kymoLineRatio);
 		kymoRimRatio.copyMeasures(source.kymoRimRatio);
+	}
+
+	public SpotMeasure getCrossLineSignalFraction() {
+		return xLineFraction;
+	}
+
+	public SpotMeasure getRimCoverageFraction() {
+		return rimLineFraction;
 	}
 
 	public SpotMeasure getAboveThresholdStripRowFraction() {
@@ -70,6 +86,8 @@ public final class SpotKymographMeasurements {
 	}
 
 	public void restoreClippedMeasures() {
+		restoreClippedMeasure(xLineFraction);
+		restoreClippedMeasure(rimLineFraction);
 		restoreClippedMeasure(kymoFract);
 		restoreClippedMeasure(kymoAbsDelta);
 		restoreClippedMeasure(kymoGreenHeight);
@@ -93,7 +111,7 @@ public final class SpotKymographMeasurements {
 	}
 
 	public boolean hasAnyData() {
-		return hasData(kymoFract) || hasData(kymoAbsDelta) || hasData(kymoGreenHeight)
+		return hasData(rimLineFraction) || hasData(xLineFraction) || hasData(kymoFract) || hasData(kymoAbsDelta) || hasData(kymoGreenHeight)
 				|| hasData(kymoGreenHeightRatio) || hasData(kymoLineRatio) || hasData(kymoRimRatio);
 	}
 

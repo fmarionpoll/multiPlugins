@@ -96,6 +96,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 						SpotLineDeficitAnalyzer.finalizeDyeRatio(row, dye, cage.noise,
 								cage.spots.get(i).isConsumedBeforeRecording());
 					}
+					copyDoubles(cage.spots.get(i).getKymographMeasurements().getCrossLineSignalFraction(), cage.integral[i]);
 					copyDoubles(cage.spots.get(i).getCrossLineSignalToBaselineRatio(), row);
 				}
 			}

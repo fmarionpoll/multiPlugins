@@ -173,6 +173,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 						SpotLineDeficitAnalyzer.finalizeRatio(ratios[i], cage.dyeLevel[i], cage.noise,
 								cage.spots.get(i).isConsumedBeforeRecording());
 					}
+					copyDoubles(cage.spots.get(i).getKymographMeasurements().getRimCoverageFraction(), cage.integral[i]);
 					copyDoubles(cage.spots.get(i).getRimCoverageToBaselineRatio(), i < ratios.length ? ratios[i] : null);
 				}
 			}
