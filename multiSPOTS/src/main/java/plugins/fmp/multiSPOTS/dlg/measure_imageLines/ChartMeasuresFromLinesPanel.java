@@ -2,6 +2,7 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageLines;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multiSPOTS.dlg.measure.MeasureChartsPanel;
+import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.tools.chart.SpotChartMeasures.Family;
 
 /** Line-analysis entry point; chart state and navigation are shared with image measures. */
@@ -20,6 +21,6 @@ public class ChartMeasuresFromLinesPanel extends MeasureChartsPanel {
 
     void maybeRefreshVisibleCharts() { refreshVisibleCharts(); }
     public void displayChartsOnExperimentOpen() {
-        displayChartPanels((plugins.fmp.multitools.experiment.Experiment) owner.expListComboLazy.getSelectedItem());
+        displayChartPanels((Experiment) owner.expListComboLazy.getSelectedItem());
     }
 }

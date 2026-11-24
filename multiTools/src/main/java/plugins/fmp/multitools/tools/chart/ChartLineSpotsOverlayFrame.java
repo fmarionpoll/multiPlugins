@@ -99,6 +99,7 @@ public class ChartLineSpotsOverlayFrame extends ChartSpotsOverlayFrame {
 		time.setAutoRangeIncludesZero(false);
 		if (keepX != null) time.setRange(keepX);
 		XYPlot plot = new XYPlot(null, time, null, null);
+		plot.setNoDataMessage("No data");
 		Map<String, Integer> axes = new LinkedHashMap<>();
 		Color[] colors = { Color.BLUE, Color.RED, new Color(0, 130, 0), Color.MAGENTA, Color.ORANGE, Color.CYAN };
 		int datasetIndex = 0;

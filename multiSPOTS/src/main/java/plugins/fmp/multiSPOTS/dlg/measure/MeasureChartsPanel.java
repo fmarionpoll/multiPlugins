@@ -261,14 +261,16 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener {
 			listenTo(exp);
 			if (cage.getItemCount() == 0) { close(); status.setText("No cages available."); return; }
 			ResultsOptions options = options(exp);
-			EnumResults source = SpotChartMeasures.sourceOf(options.resultType);
-			boolean data = false;
-			for (Cage value : exp.getCages().getCageList()) {
-				if (cageView.isSelected() && value.getCageID() != options.cageIndexFirst) continue;
-				for (Spot spot : value.getSpotList(exp.getSpots()))
-					if (spot != null && spot.getMeasurements(source) != null && spot.getMeasurements(source).getCount() > 0) data = true;
+			if (family != Family.LINES) {
+				EnumResults source = SpotChartMeasures.sourceOf(options.resultType);
+				boolean data = false;
+				for (Cage value : exp.getCages().getCageList()) {
+					if (cageView.isSelected() && value.getCageID() != options.cageIndexFirst) continue;
+					for (Spot spot : value.getSpotList(exp.getSpots()))
+						if (spot != null && spot.getMeasurements(source) != null && spot.getMeasurements(source).getCount() > 0) data = true;
+				}
+				if (!data) { close(); status.setText("No data for this measurement and view. Run analysis or load saved measures."); return; }
 			}
-			if (!data) { close(); status.setText("No data for this measurement and view. Run analysis or load saved measures."); return; }
 			if (!summary && spotView.isSelected()) {
 				status.setText(" ");
 				displaySpots(exp, options);

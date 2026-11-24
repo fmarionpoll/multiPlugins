@@ -21,7 +21,6 @@ import javax.swing.JCheckBox;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JScrollPane;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.JList;
 
@@ -175,7 +174,7 @@ public class ChartSpotsOverlayFrame {
 		mainChartFrame.setLayout(new BorderLayout());
 		topControlsPanel = createTopControlsPanel(options);
 		mainChartFrame.add(topControlsPanel, BorderLayout.NORTH);
-		mainChartFrame.add(new JScrollPane(mainChartPanel), BorderLayout.CENTER);
+		mainChartFrame.add(mainChartPanel, BorderLayout.CENTER);
 
 		mainChartFrame.addComponentListener(new ComponentAdapter() {
 			@Override
@@ -199,6 +198,7 @@ public class ChartSpotsOverlayFrame {
 			return;
 
 		boolean firstDisplay = lastExperiment != exp;
+		boolean restoreWindowBounds = lastOptions == null || !mainChartFrame.isVisible();
 		if (lastOptions != null && lastOptions.resultType != options.resultType) setCheckboxDefaults(options);
 		this.lastExperiment = exp;
 		this.lastOptions = options;
@@ -211,8 +211,9 @@ public class ChartSpotsOverlayFrame {
 
 		refreshChart();
 
-		mainChartFrame.pack();
-		loadOverlayWindowPreferences();
+		if (restoreWindowBounds) {
+			loadOverlayWindowPreferences();
+		}
 		if (mainChartFrame.getParent() == null) {
 			mainChartFrame.addToDesktopPane();
 		}
