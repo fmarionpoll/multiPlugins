@@ -20,7 +20,7 @@ import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS.dlg.flyPosition._DlgDetectFlies_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageColors._DlgMeasureUsingColors_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters._DlgMeasureUsingFilters_;
-import plugins.fmp.multiSPOTS.dlg.measure_kymograph._DlgMeasureUsingKymos_;
+import plugins.fmp.multiSPOTS.dlg.measure_imageLines._DlgMeasureUsingKymos_;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
@@ -29,7 +29,7 @@ import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class MultiSPOTS extends PluginActionable {
 
-	public IcyFrame mainFrame = new IcyFrame("multiSPOTS Nov 23, 2026", true, true, true, true);
+	public IcyFrame mainFrame = new IcyFrame("multiSPOTS Nov 24, 2026", true, true, true, true);
 	public JComboBoxExperimentLazy expListComboLazy = new JComboBoxExperimentLazy();
 	public DescriptorIndex descriptorIndex = new DescriptorIndex();
 	public ViewOptionsHolder viewOptions = new ViewOptionsHolder();

@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.measure_kymograph;
+package plugins.fmp.multiSPOTS.dlg.measure_imageLines;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multiSPOTS.dlg.measure.MeasureChartsPanel;

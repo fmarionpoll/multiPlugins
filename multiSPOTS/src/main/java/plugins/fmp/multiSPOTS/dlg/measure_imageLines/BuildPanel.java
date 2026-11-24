@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.measure_kymograph;
+package plugins.fmp.multiSPOTS.dlg.measure_imageLines;
 
 import java.awt.Desktop;
 import java.awt.Dimension;

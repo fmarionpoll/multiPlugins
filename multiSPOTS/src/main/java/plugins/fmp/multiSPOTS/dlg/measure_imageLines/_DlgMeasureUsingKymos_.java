@@ -1,4 +1,4 @@
-package plugins.fmp.multiSPOTS.dlg.measure_kymograph;
+package plugins.fmp.multiSPOTS.dlg.measure_imageLines;
 
 import java.awt.BorderLayout;
 import java.awt.GridLayout;
