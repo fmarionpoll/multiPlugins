@@ -3,9 +3,10 @@
 The shared model is in `plugins.fmp.multitools.experiment.spot.measurement`.
 `Spot.getMethodMeasurements()` owns the method results for one spot. This is an
 additive migration: the active filter, color, vertical kymograph, X-line and rim
-acquisition paths now populate this model before temporal cleanup. Existing
-charts, editing tools and exporters continue using the legacy `SpotMeasure`
-containers. Existing CSV sections are unchanged. Primary data are saved in a
+acquisition paths now populate this model before temporal cleanup. Collection
+charts now use valid primary observations and method-specific fly evidence;
+the fraction workspace owns ratios and aggregates. Legacy editing tools and
+exporters retain their compatibility containers. Existing CSV sections are unchanged. Primary data are saved in a
 versioned XML sidecar alongside those compatibility files.
 
 ## Ownership and acquisition
@@ -41,7 +42,8 @@ normalization cannot mutate these primary results.
 ## Shared post-processing
 
 `SpotMeasurements.derive(method, quantityId, settings)` uses the common
-`SpotSeriesProcessor`. Both future charts and exporters should use this API.
+`SpotSeriesProcessor`. Fraction calculations use this shared processing layer;
+future exporters should use the same calculated results.
 The original values, fly evidence and flags remain unchanged.
 
 Processing order:
@@ -157,11 +159,11 @@ samples stay unavailable rather than becoming valid zeros. The unused historical
 `BuildSpotsMeasuresAdvanced` pipeline is not an active UI entry point and remains
 legacy-only.
 
-UI and export integration is next: settings selection, baseline review, manual
-quality editing, chart styling and export columns need to use the shared API.
-Until then, legacy cleanup behavior and CSV output values remain unchanged.
-Processing preferences are explicit API inputs; saving UI preferences is deferred
-until those controls are designed.
+The common fraction workspace now saves processing choices, reference decisions
+and review lists. Collection charts show measures with gaps and fly evidence;
+calculation charts show ratios and complete-cohort aggregates. See
+[the fraction workflow](spot-fraction-workflow.md). Legacy editing and export
+integration remain separate steps; existing CSV output values are unchanged.
 
 ## Verification in Eclipse and Maven
 
@@ -193,9 +195,9 @@ Biological validation and visual checks of the new UI remain later steps.
 
 The wider existing suites also expose unrelated failures in untouched code:
 `CsvNormalizedSpotExportTest.aggregateRenamesPreserveExportIdentifiers` expects
-`AGG_RIM` where the current enum supplies `AGG_RIM_LINE_CONSO`, and
-`MeasureChartsPanelTest.spotDisplayFallsBackWhenCameraIsOpenAndNoSpotRoiIsSelected`
-expects a different spot order. Some capillary/export tests time out while Java
+`AGG_RIM` where the current enum supplies `AGG_RIM_LINE_CONSO`.
+The former collection-chart selection-order failure is resolved by deterministic
+spot selection in the acquisition-only chart UI. Some capillary/export tests time out while Java
 initializes Windows registry preferences in the restricted execution environment.
 These do not establish a clean full-suite baseline; they were not changed as part
 of the primary-data migration.

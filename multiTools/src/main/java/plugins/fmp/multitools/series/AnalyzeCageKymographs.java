@@ -42,6 +42,7 @@ public class AnalyzeCageKymographs extends BuildSeries {
 			KymoAnalysisResult result = CageKymoAnalyzer.analyze(exp, analyzerParams);
 			if (result != null && !result.byCageId.isEmpty()) {
 				KymoMeasuresCommit.apply(result, exp);
+				MeasurementProgress.phase("Saving measurements");
 				if (exp.save_kymo_spot_measures()) {
 					SpotDetectionProvenance.recordKymograph(exp, SpotDetectionProvenance.Family.KYMO_STRIP,
 							getClass().getSimpleName(), "metric_transform", analyzerParams.metricTransform,

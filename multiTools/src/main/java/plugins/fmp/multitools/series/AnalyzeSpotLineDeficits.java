@@ -106,6 +106,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			}
 			SequenceLoaderService loader = new SequenceLoaderService();
 			progress = new ProgressFrame("Analyze line ratio");
+			MeasurementProgress.phase("Finding initial spot references");
 			if (!readMeasures(seq, loader, frames, cages, progress)) {
 				return;
 			}
@@ -132,6 +133,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			}
 			ensureKymoBinDirectory(exp);
 			String binDir = exp.getKymosBinFullDirectory();
+			MeasurementProgress.phase("Saving measurements");
 			lastSaved = exp.save_kymo_spot_measures();
 			if (lastSaved) {
 				writeBackgroundDiagnostics(binDir, frames, cages);
@@ -180,6 +182,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				Arrays.fill(values, Double.NaN);
 			}
 		}
+		MeasurementProgress.phase("Reading initial images");
 		for (int t = 0; t < window; t++) {
 			if (!sampleFlanksAt(seq, loader, frames, cages, t)) {
 				return false;
@@ -192,6 +195,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		// Each spot gets its own opening window of unobscured frames. A fly may
 		// remain on one spot longer than the nominal opening window.
+		MeasurementProgress.phase("Finding clear spot references");
 		for (int t = 0; t < n; t++) {
 			if (!fillOpeningReference(seq, loader, frames, cages, t)) {
 				return false;
@@ -216,6 +220,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 				cage.dyeLevel[s] = cage.reference.dyeLevel(s);
 			}
 		}
+		MeasurementProgress.phase("Measuring images");
 		for (int t = 0; t < window; t++) {
 			if (!integrateAt(seq, loader, frames, cages, t)) {
 				return false;
@@ -374,7 +379,10 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 	}
 
 	private static void showFrame(ProgressFrame progress, int t, int n) {
+		MeasurementProgress.images(t + 1, n);
 		if (progress != null) {
+			progress.setLength(n);
+			progress.setPosition(t + 1);
 			progress.setMessage("Analyze frame: " + (t + 1) + "//" + n);
 		}
 	}

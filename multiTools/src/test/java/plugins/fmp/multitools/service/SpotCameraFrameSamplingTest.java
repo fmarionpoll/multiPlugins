@@ -1,6 +1,7 @@
 package plugins.fmp.multitools.service;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.awt.geom.Ellipse2D;
 import java.awt.Color;
@@ -111,7 +112,19 @@ public class SpotCameraFrameSamplingTest {
 		options.spotColorReferenceList.add(new Color(40, 0, 0));
 		options.spotColorReferenceList.add(new Color(100, 0, 0));
 		options.spotColorReferenceList.add(new Color(160, 0, 0));
-		detector.detectSpots(exp, options);
+		List<Integer> completedImages = java.util.Collections.synchronizedList(new ArrayList<>());
+		List<String> phases = java.util.Collections.synchronizedList(new ArrayList<>());
+		try (plugins.fmp.multitools.series.MeasurementProgress.Scope reporting = plugins.fmp.multitools.series.MeasurementProgress.install(
+				(phase, unit, completed, total) -> {
+					if ("Image".equals(unit)) { assertEquals(369, total); completedImages.add(completed); }
+					if (phase != null) phases.add(phase);
+				})) {
+			detector.detectSpots(exp, options);
+		}
+		assertEquals(369, completedImages.size());
+		for (int i = 0; i < 369; i++) assertEquals(i + 1, completedImages.get(i).intValue());
+		assertTrue(phases.contains("Measuring images"));
+		assertTrue(phases.contains("Finalizing and saving measurements"));
 		plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod primaryMethod =
 				detector instanceof SpotLevelDetectorFromCamColor
 				? plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.COLOR

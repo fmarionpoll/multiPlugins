@@ -15,6 +15,7 @@ import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.MeasurementProgress;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
@@ -97,6 +98,8 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels (color-distance)");
 		progress.setLength(nTimeBins);
+		progress.setPosition(0);
+		MeasurementProgress.phase("Measuring images");
 
 		IcyBufferedImage camImage = null;
 		IcyBufferedImage spotImage = null;
@@ -106,6 +109,7 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 		try {
 			for (int t = 0; t < nTimeBins; t++) {
 				progress.setMessage("Frame " + (t + 1) + " / " + nTimeBins);
+				MeasurementProgress.images(t + 1, nTimeBins);
 
 				final int camFrameIndex = t;
 
@@ -151,6 +155,7 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 		applyColorFlyNanBorderAdaptiveTrim(toProcess, options.colorFlyNaNDilationBins,
 				options.colorFlyNaNBorderMedianHalfWidth, options.colorFlyNaNBorderSpikeRatio);
 
+		MeasurementProgress.phase("Finalizing and saving measurements");
 		primaryCapture.publish();
 		for (Spot spot : toProcess) {
 			if (spot != null) {

@@ -56,11 +56,11 @@ import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation;
+import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation.Group;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionCalculator;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionCalculator.Input;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionCalculator.Row;
-import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation;
-import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation.Group;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionData;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Illumination;
@@ -80,9 +80,9 @@ import plugins.fmp.multitools.experiment.spot.measurement.SpotProcessingSettings
  * Common second stage: preview, calculate, review and save without running
  * image detection.
  */
-public final class CalculateSpotFractionsPanel extends JPanel {
+public final class _DlgCalculateFractions_ extends JPanel {
 	private static final long serialVersionUID = 1L;
-	private final MultiSPOTS parent;
+	private MultiSPOTS parent = null;
 	final JComboBox<SpotMeasurementMethod> method = new JComboBox<>(SpotMeasurementMethod.values());
 	final JComboBox<String> quantity = new JComboBox<>();
 	final JComboBox<GapPolicy> similar = new JComboBox<>(GapPolicy.values()),
@@ -99,7 +99,8 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 	final JComboBox<SpotFractionChart.View> view = new JComboBox<>(SpotFractionChart.fractionViews());
 	final JComboBox<SpotFractionChart.View> diagnosticView = new JComboBox<>(SpotFractionChart.diagnosticViews());
 	final JComboBox<Group> aggregateGroup = new JComboBox<>();
-	final JComboBox<SpotFractionAggregation.Measure> aggregateMeasure = new JComboBox<>(SpotFractionAggregation.Measure.values());
+	final JComboBox<SpotFractionAggregation.Measure> aggregateMeasure = new JComboBox<>(
+			SpotFractionAggregation.Measure.values());
 	final JCheckBox connectSimilar = new JCheckBox("Connect similar endpoints visually", true);
 	private final JLabel status = new JLabel("Load saved measurements to calculate spot fractions."),
 			referenceStatus = new JLabel(" ");
@@ -122,9 +123,8 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 	private String reviewSpotToSelect;
 	private IcyFrame workspace;
 
-	public CalculateSpotFractionsPanel(MultiSPOTS parent) {
+	public _DlgCalculateFractions_() {
 		super(new BorderLayout(4, 4));
-		this.parent = parent;
 		method.setRenderer(renderer());
 		quantity.setRenderer(renderer());
 		similar.setRenderer(renderer());
@@ -189,9 +189,12 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 		calculation.add(reference, BorderLayout.SOUTH);
 		tabs.addTab("Calculation and reference review", calculation);
 		JPanel aggregates = new JPanel(new BorderLayout(3, 3));
-		aggregates.add(row(new JLabel("Group"), aggregateGroup, new JLabel("Fraction aggregate"), aggregateMeasure), BorderLayout.NORTH);
+		aggregates.add(row(new JLabel("Group"), aggregateGroup, new JLabel("Fraction aggregate"), aggregateMeasure),
+				BorderLayout.NORTH);
 		aggregates.add(aggregateChart, BorderLayout.CENTER);
-		aggregates.add(new JLabel("Fixed membership by cage, stimulus and concentration. Totals require every non-excluded spot; coverage is shown below."), BorderLayout.SOUTH);
+		aggregates.add(new JLabel(
+				"Fixed membership by cage, stimulus and concentration. Totals require every non-excluded spot; coverage is shown below."),
+				BorderLayout.SOUTH);
 		tabs.addTab("Aggregated fractions", aggregates);
 		JPanel diagnostics = new JPanel(new BorderLayout(3, 3));
 		diagnostics.add(row(new JLabel("Selected spot: correction diagnostic"), diagnosticView), BorderLayout.NORTH);
@@ -235,7 +238,10 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 		view.addActionListener(e -> updateChart());
 		connectSimilar.addActionListener(e -> updateChart());
 		diagnosticView.addActionListener(e -> updateChart());
-		aggregateGroup.addActionListener(e -> { if (!updating) updateAggregateChart(); });
+		aggregateGroup.addActionListener(e -> {
+			if (!updating)
+				updateAggregateChart();
+		});
 		aggregateMeasure.addActionListener(e -> updateAggregateChart());
 		chart.addChartMouseListener(new ChartMouseListener() {
 			@Override
@@ -266,8 +272,9 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 		setQuantities();
 	}
 
-	public void init(JPanel mainPanel) {
-		PopupPanel popup = new PopupPanel("Calculate spot fractions");
+	public void init(JPanel mainPanel, String title, MultiSPOTS parent0) {
+		this.parent = parent0;
+		PopupPanel popup = new PopupPanel(title);
 		popup.getMainPanel().setLayout(new BorderLayout());
 		JButton open = new JButton("Open calculation workspace");
 		open.addActionListener(event -> {
@@ -298,6 +305,7 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 				status.setText("Load saved or preview this experiment; other experiments keep their saved settings.");
 			}
 		});
+		setQuantities();
 	}
 
 	private void setQuantities() {
@@ -624,7 +632,8 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 							row.markedChanges });
 		readControls(state.plan.settingsFor(state.selection));
 		aggregateGroup.removeAllItems();
-		for (Group group : state.groups) aggregateGroup.addItem(group);
+		for (Group group : state.groups)
+			aggregateGroup.addItem(group);
 		updating = false;
 		updateAggregateChart();
 		if (!state.rows.isEmpty()) {
@@ -666,14 +675,16 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 		if (row != null) {
 			chart.setChart(SpotFractionChart.create(row, (SpotFractionChart.View) view.getSelectedItem(),
 					connectSimilar.isSelected()));
-			diagnosticsChart.setChart(SpotFractionChart.create(row, (SpotFractionChart.View) diagnosticView.getSelectedItem(), false));
+			diagnosticsChart.setChart(
+					SpotFractionChart.create(row, (SpotFractionChart.View) diagnosticView.getSelectedItem(), false));
 		}
 	}
 
 	private void updateAggregateChart() {
 		Group group = (Group) aggregateGroup.getSelectedItem();
-		aggregateChart.setChart(group == null ? null : SpotFractionAggregateChart.create(group,
-				(SpotFractionAggregation.Measure) aggregateMeasure.getSelectedItem()));
+		aggregateChart.setChart(group == null ? null
+				: SpotFractionAggregateChart.create(group,
+						(SpotFractionAggregation.Measure) aggregateMeasure.getSelectedItem()));
 	}
 
 	private Map<String, Input> inputMap() {
@@ -865,7 +876,9 @@ public final class CalculateSpotFractionsPanel extends JPanel {
 	private void clearRows() {
 		spotModel.setRowCount(0);
 		chart.setChart(null);
-		aggregateGroup.removeAllItems(); aggregateChart.setChart(null); diagnosticsChart.setChart(null);
+		aggregateGroup.removeAllItems();
+		aggregateChart.setChart(null);
+		diagnosticsChart.setChart(null);
 		referenceStatus.setText(" ");
 		context.setText("Load or preview the selected experiment and measurement quantity.");
 	}

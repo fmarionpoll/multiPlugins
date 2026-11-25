@@ -81,6 +81,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			int window = Math.min(analyzerParams.initialBins, nFrames);
 			SequenceLoaderService loader = new SequenceLoaderService();
 			progress = new ProgressFrame(detectOnly ? "Detect rims" : "Analyze rim ratio");
+			MeasurementProgress.phase("Finding spot rims");
 			FramePixels[] opening = new FramePixels[window];
 			for (int t = 0; t < window; t++) {
 				if (stopFlag) {
@@ -118,6 +119,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 				return;
 			}
 			List<EllipseGeom> all = allEllipses(cages);
+			MeasurementProgress.phase("Finding initial spot references");
 			double[] primaryTimes = SpotAcquisitionTimeline.camera(exp, frames);
 			for (CageRims cage : cages) {
 				cage.layout = SpotRimAnalyzer.layoutFor(width, height, cage.spots, cage.ellipses, all);
@@ -182,6 +184,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 			for (int t = 0; t < window; t++) {
 				integrateFrame(cages, opening[t], t);
 			}
+			MeasurementProgress.phase("Measuring images");
 			for (int t = window; t < nFrames; t++) {
 				if (stopFlag) {
 					return;
@@ -210,6 +213,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 				exp.getCages().clearSpotAggregatesCache();
 			}
 			ensureKymoBinDirectory(exp);
+			MeasurementProgress.phase("Saving measurements");
 			lastSaved = exp.save_kymo_spot_measures();
 			if (lastSaved) {
 				SpotDetectionProvenance.recordCameraLine(exp, SpotDetectionProvenance.Family.KYMO_RIM,
@@ -542,7 +546,10 @@ public class AnalyzeSpotRims extends BuildSeries {
 	}
 
 	private static void showFrame(ProgressFrame progress, int t, int n) {
+		MeasurementProgress.images(t + 1, n);
 		if (progress != null) {
+			progress.setLength(n);
+			progress.setPosition(t + 1);
 			progress.setMessage("Analyze frame: " + (t + 1) + "//" + n);
 		}
 	}

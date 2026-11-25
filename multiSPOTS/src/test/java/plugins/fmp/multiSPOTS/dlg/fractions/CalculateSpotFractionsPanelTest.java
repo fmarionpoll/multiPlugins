@@ -28,7 +28,7 @@ public class CalculateSpotFractionsPanelTest {
     }
     @Test public void commonWorkspaceSeparatesPreviewSaveRangeAndReferenceActions() throws Exception {
         SwingUtilities.invokeAndWait(() -> {
-            CalculateSpotFractionsPanel panel = new CalculateSpotFractionsPanel(null);
+            _DlgCalculateFractions_ panel = new _DlgCalculateFractions_();
             Set<String> buttons = new HashSet<>(); collect(panel, buttons);
             assertTrue(buttons.containsAll(Arrays.asList("Preview current", "Calculate & save current", "Apply & save range",
                     "Saved review list", "Approve reference", "Borrow initial reference", "Exclude failed deposit")));
@@ -66,7 +66,7 @@ public class CalculateSpotFractionsPanelTest {
         saved.settings.put(other, Settings.DEFAULT); saved.settings.put(key.forSpot("A"), Settings.DEFAULT);
         saved.review.add(new Review(other.forSpot("B"), "Other method still needs review"));
         preview.settings.put(key, Settings.DEFAULT); preview.review.add(new Review(key.forSpot("A"), "Initial occlusion"));
-        SpotFractionPlan merged = CalculateSpotFractionsPanel.mergeSelection(saved, preview, key);
+        SpotFractionPlan merged = _DlgCalculateFractions_.mergeSelection(saved, preview, key);
         assertTrue(merged.settings.containsKey(other)); assertFalse(merged.settings.containsKey(key.forSpot("A")));
         assertEquals(2, merged.review.size());
     }

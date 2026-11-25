@@ -12,6 +12,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
+import plugins.fmp.multitools.series.MeasurementProgress;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ROI2D.ProcessingException;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
@@ -87,6 +88,8 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels (basic)");
 		progress.setLength(nTimeBins);
+		progress.setPosition(0);
+		MeasurementProgress.phase("Measuring images");
 
 		IcyBufferedImage camImage = null;
 		IcyBufferedImage spotImage = null;
@@ -96,6 +99,7 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 		try {
 			for (int t = 0; t < nTimeBins; t++) {
 				progress.setMessage("Frame " + (t + 1) + " / " + nTimeBins);
+				MeasurementProgress.images(t + 1, nTimeBins);
 				final int camFrameIndex = t;
 
 				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
@@ -135,6 +139,7 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		// sumNoFly from sum + fly (same as Edit / load), then sumClean = sumNoFly; then Level2D
 		final long tPostStart = System.nanoTime();
+		MeasurementProgress.phase("Finalizing and saving measurements");
 		primaryCapture.publish();
 		// Pixel-level no-fly: apply conservative plateau correction on bins with high fly occupancy,
 		// then rebuild CLEAN from the corrected sumNoFly.

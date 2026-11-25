@@ -8,6 +8,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import plugins.fmp.multitools.series.MeasurementProgress;
 
 import icy.gui.frame.progress.ProgressFrame;
 import icy.image.IcyBufferedImage;
@@ -94,6 +96,10 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels");
 		progress.setLength(nTimeBins);
+		progress.setPosition(0);
+		MeasurementProgress.phase("Measuring images");
+		MeasurementProgress.Listener reporting = MeasurementProgress.current();
+		AtomicInteger completedFrames = new AtomicInteger();
 
 		final int queueCapacity = options.batchSize > 0 ? options.batchSize : 16;
 		final BlockingQueue<FrameJob> queue = new ArrayBlockingQueue<>(queueCapacity);
@@ -103,7 +109,6 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			try {
 				for (int t = 0; t < nTimeBins; t++) {
 					queue.put(new FrameJob(t, t));
-					progress.incPosition();
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
@@ -133,6 +138,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 						continue;
 					}
 
+					try {
 					String path = seqCamData.getFileNameFromImageList(job.camFrameIndex);
 					if (path == null) {
 						primaryCapture.missingImage(job.timeIndex);
@@ -162,6 +168,14 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 					updateSpotsAtTimeIndex(toProcess, cursorSpotLocal, cursorFlyLocal, spotImageLocal, job.timeIndex,
 							options);
+					} finally {
+						synchronized (completedFrames) {
+							int completed = completedFrames.incrementAndGet();
+							progress.setPosition(completed);
+							progress.setMessage("Image " + completed + " / " + nTimeBins);
+							reporting.update(null, "Image", completed, nTimeBins);
+						}
+					}
 				}
 			} catch (InterruptedException e) {
 				Thread.currentThread().interrupt();
@@ -185,6 +199,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		final long tLoopEnd = System.nanoTime();
 
 		final long tPostStart = System.nanoTime();
+		MeasurementProgress.phase("Finalizing and saving measurements");
 		primaryCapture.publish();
 		spots.applyFlyPlateauOnSumNoFlyForSpots(toProcess, options.getFlyOccupancyFractionForSpotSumNoFly());
 		spots.rebuildSumCleanOnlyForSpots(toProcess);

@@ -14,6 +14,7 @@ import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.tools.Logger;
+import plugins.fmp.multitools.series.MeasurementProgress;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 /**
@@ -120,6 +121,7 @@ public final class CageKymoAnalyzer {
 		double[] xAxis = new double[0];
 
 		for (int t = 0; t < nT; t++) {
+			MeasurementProgress.current().update("Loading cage kymographs", "Image", t + 1, nT);
 			String fn = sk.getFileNameFromImageList(t);
 			Cage cage = KymocageCageResolver.resolveCageFromKymographPath(fn, exp.getCages());
 			if (cage == null) {
@@ -153,6 +155,7 @@ public final class CageKymoAnalyzer {
 			}
 
 			int cageId = cage.getProperties() != null ? cage.getProperties().getCageID() : -1;
+			MeasurementProgress.phase("Measuring vertical lines in cage " + cageId);
 			int useW = widthBins > 0 ? Math.min(imgW, widthBins) : imgW;
 			List<KymoAnalysisResult.SpotKymoSeries> series = computeForImage(img, bands, params, useW, xAxis,
 					CageKymographTimeline.resolve(exp, widthBins, null).basis.exportId);
@@ -327,6 +330,7 @@ public final class CageKymoAnalyzer {
 		List<KymoAnalysisResult.SpotKymoSeries> list = new ArrayList<>();
 		int si = 0;
 		for (CageKymographSpotBands band : bands) {
+			MeasurementProgress.current().update(null, "Spot", si + 1, bands.size());
 			Spot spot = band.spot;
 			ColumnMetrics cols = computeColumnMetrics(data, band, params, imgW);
 			double[] df = new double[imgW];

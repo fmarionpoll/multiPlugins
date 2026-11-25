@@ -22,6 +22,7 @@ import icy.image.IcyBufferedImage;
 import icy.sequence.Sequence;
 import icy.system.thread.Processor;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.LazyExperiment;
 import plugins.fmp.multitools.series.options.BuildSeriesOptions;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.ViewerFMP;
@@ -67,7 +68,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 	protected Integer doInBackground() throws Exception {
 		int nbiterations = 0;
 		final JComboBoxExperimentLazy expList = options.expList;
-		ProgressFrame progress = new ProgressFrame("Analyze series");
+		ProgressFrame progress = createSeriesProgress();
 		final ArrayList<Experiment> experimentsBatch = new ArrayList<>();
 		final ArrayList<Integer> experimentComboIndices = new ArrayList<>();
 		final int[] listSizeHolder = new int[1];
@@ -84,7 +85,8 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 						return;
 					}
 					for (int i = i0; i <= i1; i++) {
-						Experiment e = expList.getItemAt(i);
+						// Reading the Swing model is quick; file preparation must not block progress painting.
+						Experiment e = expList.getItemAtNoLoad(i);
 						if (e != null) {
 							experimentsBatch.add(e);
 							experimentComboIndices.add(i);
@@ -99,6 +101,7 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			if (e instanceof InterruptedException) {
 				Thread.currentThread().interrupt();
 			}
+			progress.close();
 			return 0;
 		}
 
@@ -109,15 +112,39 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 
 			batchTotalSize = experimentsBatch.size();
 			int listSize = listSizeHolder[0] > 0 ? listSizeHolder[0] : experimentsBatch.size();
+			progress.setLength(Math.max(1, batchTotalSize));
+			progress.setPosition(0);
+			// Preserve preparation order while allowing the EDT to display and update progress.
+			for (int i = 0; i < experimentsBatch.size(); i++) {
+				if (stopFlag) break;
+				Experiment exp = experimentsBatch.get(i);
+				progress.setMessage(MeasurementProgress.message(i + 1, batchTotalSize, experimentComboIndices.get(i) + 1,
+						listSize, progressName(exp), "Preparing experiment", null, 0, 0));
+				progress.setToolTipText(exp.getResultsDirectory());
+				if (exp instanceof LazyExperiment) ((LazyExperiment) exp).loadIfNeeded();
+			}
 			for (int i = 0; i < experimentsBatch.size(); i++) {
 				if (stopFlag)
 					break;
 				long startTimeInNs = System.nanoTime();
 				Experiment exp = experimentsBatch.get(i);
 				int absIndex = experimentComboIndices.get(i) + 1;
-				progress.setMessage("Processing file: " + absIndex + "//" + listSize);
-
-				analyzeExperiment(exp);
+				final int ordinal = i + 1;
+				MeasurementProgress.Listener listener = new MeasurementProgress.Listener() {
+					private String phase = "Loading measurements";
+					@Override public synchronized void update(String nextPhase, String unit, int completed, int total) {
+						if (nextPhase != null) phase = nextPhase;
+						progress.setMessage(MeasurementProgress.message(ordinal, batchTotalSize, absIndex, listSize,
+								progressName(exp), phase, unit, completed, total));
+					}
+				};
+				listener.update("Loading measurements", null, 0, 0);
+				progress.setToolTipText(exp.getResultsDirectory());
+				try (MeasurementProgress.Scope reporting = MeasurementProgress.install(listener)) {
+					analyzeExperiment(exp);
+				}
+				progress.setPosition(ordinal);
+				setProgress(ordinal * 100 / batchTotalSize);
 				long endTime2InNs = System.nanoTime();
 				Logger.debug("BuildSeries (" + absIndex + " / " + listSize
 						+ "):doInBackground process ended - duration: " + ((endTime2InNs - startTimeInNs) / 1000000000f)
@@ -140,6 +167,17 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 			progress.close();
 			selectList(expList, selectedExperimentIndex);
 		}
+	}
+
+	private static String progressName(Experiment exp) {
+		String directory = exp.getResultsDirectory();
+		if (directory == null) return "";
+		File file = new File(directory); File parent = file.getParentFile();
+		return parent == null ? file.getName() : parent.getName() + "/" + file.getName();
+	}
+
+	protected ProgressFrame createSeriesProgress() {
+		return new ProgressFrame("Preparing experiment list...");
 	}
 
 	private void selectList(JComboBoxExperimentLazy expList, int index) {
