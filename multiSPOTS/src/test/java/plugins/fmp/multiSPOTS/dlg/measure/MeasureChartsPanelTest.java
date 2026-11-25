@@ -12,6 +12,7 @@ import plugins.fmp.multitools.tools.chart.SpotAcquisitionCharts.Measure;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.kernel.roi.roi2d.ROI2DRectangle;
 import plugins.kernel.roi.roi2d.ROI2DEllipse;
 import icy.sequence.Sequence;
 
@@ -163,6 +164,50 @@ public class MeasureChartsPanelTest {
         spot.getProperties().setStimulus(stimulus);
         spot.getProperties().setConcentration(concentration);
         return spot;
+    }
+    @Test public void experimentChartsFollowCagePositionsAndCanShrinkToTwelveByEight() {
+        Dimension screen = new Dimension(1920, 1080);
+        assertEquals(new Dimension(124, 104), MeasureChartsPanel.experimentCell(screen));
+        assertEquals(MeasureChartsPanel.experimentCell(screen), MeasureChartsPanel.experimentChartSize(30, screen));
+        assertEquals(new Dimension(500, 320), MeasureChartsPanel.experimentChartSize(100, screen));
+        assertEquals(30, MeasureChartsPanel.percentThatFits(12, 8, 40, screen));
+        assertEquals(40, MeasureChartsPanel.percentThatFits(3, 2, 40, screen));
+        MeasureChartsPanel.CageChartGrid grid = MeasureChartsPanel.cageGrid(Arrays.asList(
+                box(3, 350, 100), box(1, 50, 110), box(2, 200, 90), box(4, 50, 400), box(6, 350, 410)));
+        assertEquals(2, grid.rows);
+        assertEquals(3, grid.columns);
+        assertEquals(1, grid.ids[0][0]);
+        assertEquals(2, grid.ids[0][1]);
+        assertEquals(3, grid.ids[0][2]);
+        assertEquals(4, grid.ids[1][0]);
+        assertEquals(-1, grid.ids[1][1]);
+        assertEquals(6, grid.ids[1][2]);
+        MeasureChartsPanel.CageChartGrid indexed = MeasureChartsPanel.cageGrid(Arrays.asList(
+                new MeasureChartsPanel.CageBox(8, 0, 0, 0, 0, 1, 0),
+                new MeasureChartsPanel.CageBox(7, 0, 0, 0, 0, 0, 1),
+                new MeasureChartsPanel.CageBox(9, 0, 0, 0, 0, 0, 0)));
+        assertEquals(9, indexed.ids[0][0]);
+        assertEquals(7, indexed.ids[0][1]);
+        assertEquals(8, indexed.ids[1][0]);
+        MeasureChartsPanel.CageChartGrid plain = MeasureChartsPanel.cageGrid(Arrays.asList(
+                new MeasureChartsPanel.CageBox(3, 0, 0, 0, 0, -1, -1),
+                new MeasureChartsPanel.CageBox(1, 0, 0, 0, 0, -1, -1),
+                new MeasureChartsPanel.CageBox(2, 0, 0, 0, 0, -1, -1)));
+        assertEquals(1, plain.ids[0][0]);
+        assertEquals(2, plain.ids[0][1]);
+        assertEquals(3, plain.ids[1][0]);
+        Cage cage = new Cage();
+        ROI2DRectangle roi = new ROI2DRectangle(new java.awt.geom.Point2D.Double(10, 20), new java.awt.geom.Point2D.Double(110, 100));
+        roi.setName("cage004");
+        cage.setCageRoi(roi);
+        MeasureChartsPanel.CageBox read = MeasureChartsPanel.boxOf(cage);
+        assertEquals(60, read.x, 0.01);
+        assertEquals(60, read.y, 0.01);
+        assertEquals(100, read.width, 0.01);
+        assertEquals(80, read.height, 0.01);
+    }
+    private static MeasureChartsPanel.CageBox box(int id, double x, double y) {
+        return new MeasureChartsPanel.CageBox(id, x, y, 140, 180, -1, -1);
     }
     @Test public void collectionUiOffersOnlyMeasurementsAndFlyPresenceWithoutDerivedControls() throws Exception {
         SwingUtilities.invokeAndWait(() -> {

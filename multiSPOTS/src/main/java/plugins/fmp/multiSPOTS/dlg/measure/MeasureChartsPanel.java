@@ -26,6 +26,7 @@ import org.jfree.data.xy.XYSeriesCollection;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.AxisOptions;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult;
@@ -51,10 +52,13 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
     private final JLabel status = new JLabel("Occlusions remain gaps. Calculate spot fractions provides ratios and aggregates.");
     private static final int CHART_BASE_WIDTH = 500;
     private static final int CHART_BASE_HEIGHT = 320;
+    private static final int CHART_GAP = 4;
     static final int CHART_SCALE_MIN = 30;
     static final int CHART_SCALE_MAX = 100;
-    private final JPanel plots = new JPanel(new GridLayout(0, 2, 4, 4));
+    private final JPanel plots = new JPanel(new GridLayout(0, 2, CHART_GAP, CHART_GAP));
     private int chartScalePercent = 40;
+    private JSlider chartScale;
+    private boolean honorChartScale;
     private JLabel measureBand;
     private JPanel navRow;
     private JComboBox<Measure> chartMeasure;
@@ -139,8 +143,23 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         for (Spot spot : selected) if (spot.getMethodMeasurements().get(chosen.method) != null
                 && (chosen.flyOnly || spot.getMethodMeasurements().get(chosen.method).getQuantities().containsKey(chosen.quantity)))
             groups.computeIfAbsent(spot.getProperties().getCageID(), key -> new ArrayList<>()).add(spot);
-        plots.setLayout(new GridLayout(0, groups.size() > 1 ? 2 : 1, 4, 4));
+        boolean experimentView = scope.getSelectedIndex() == 0;
+        Dimension screen = screenSize();
+        CageChartGrid grid = experimentView ? experimentGrid(exp, groups.keySet()) : null;
+        if (experimentView && grid.columns > 0 && !honorChartScale) {
+            int fit = percentThatFits(grid.columns, grid.rows, chartScalePercent, screen);
+            if (fit != chartScalePercent) {
+                updating = true;
+                chartScalePercent = fit;
+                if (chartScale != null) chartScale.setValue(fit);
+                updating = false;
+            }
+        }
+        Dimension chartPx = experimentView ? experimentChartSize(chartScalePercent, screen) : chartSize(chartScalePercent);
+        float titleSize = experimentView ? Math.max(8f, 16f * chartPx.width / (float) CHART_BASE_WIDTH)
+                : Math.max(11f, 16f * chartScalePercent / 100f);
         plots.removeAll(); frameCursors.clear(); activeChart = null;
+        Map<Integer, ChartPanel> charts = new TreeMap<>();
         for (Map.Entry<Integer, List<Spot>> group : groups.entrySet()) {
             List<Spot> spots = group.getValue(); spots.sort(Comparator.comparing(Spot::getName));
             XYSeriesCollection data = SpotAcquisitionCharts.data(spots, chosen, chosen.flyOnly);
@@ -163,10 +182,10 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
                 paintFlyPresence(flyRenderer, flyData.getSeriesCount());
                 plot.setRenderer(1, flyRenderer); plot.mapDatasetToRangeAxis(1, 1);
             }
-            float titleSize = Math.max(11f, 16f * chartScalePercent / 100f);
             ChartPanel panel = new ChartPanel(new JFreeChart(cageTitle(group.getKey()),
                     JFreeChart.DEFAULT_TITLE_FONT.deriveFont(Font.BOLD, titleSize), plot, true));
-            Dimension size = chartSize(chartScalePercent);
+            if (experimentView) fitChartText(panel.getChart(), titleSize);
+            Dimension size = chartPx;
             panel.setPreferredSize(size);
             panel.setMinimumDrawWidth(size.width); panel.setMinimumDrawHeight(size.height);
             panel.setMaximumDrawWidth(Math.max(size.width, 1024)); panel.setMaximumDrawHeight(Math.max(size.height, 768));
@@ -192,8 +211,9 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
                     }
                 }
             });
-            plots.add(panel); if (activeChart == null) activeChart = panel;
+            charts.put(group.getKey(), panel); if (activeChart == null) activeChart = panel;
         }
+        placeCharts(experimentView ? grid : null, charts, chartPx);
         if (activeChart == null && !single) {
             if (frame != null) frame.setVisible(false);
             status.setText("No primary measurements for this view. Collect or load the method's primary measurements."); return;
@@ -226,7 +246,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
     public void closeAllCharts() {
         if (axes != null) axes.close(); axes = null;
         if (frame != null) frame.dispose(); frame = null; measureBand = null; navRow = null;
-        chartMeasure = null; chartCage = null; chartSpot = null; activeChart = null;
+        chartMeasure = null; chartCage = null; chartSpot = null; chartScale = null; activeChart = null;
         cursorGesture = false; draggingCursor = false; listen(null);
     }
     private void listen(Sequence sequence) {
@@ -367,13 +387,15 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         measureBand = new JLabel(band, SwingConstants.LEADING);
         measureBand.setFont(measureBand.getFont().deriveFont(Font.BOLD, 16f));
         title.add(measureBand, BorderLayout.CENTER);
-        JSlider scale = new JSlider(CHART_SCALE_MIN, CHART_SCALE_MAX, chartScalePercent);
+        chartScale = new JSlider(CHART_SCALE_MIN, CHART_SCALE_MAX, chartScalePercent);
+        JSlider scale = chartScale;
         scale.setOpaque(false);
         scale.setPreferredSize(new Dimension(140, 24));
         JLabel percent = new JLabel(chartScalePercent + "%");
         scale.addChangeListener(e -> {
             percent.setText(scale.getValue() + "%");
             if (updating || scale.getValueIsAdjusting() || scale.getValue() == chartScalePercent) return;
+            if (scope.getSelectedIndex() == 0) honorChartScale = true;
             chartScalePercent = scale.getValue();
             refreshIfDisplayed(chartExperiment());
         });
@@ -411,7 +433,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
 
     void bindExperiment(Experiment exp) {
         if (exp == null || exp == current) return;
-        closeAllCharts(); current = exp;
+        closeAllCharts(); current = exp; honorChartScale = false;
         updating = true;
         try {
             cage.removeAllItems(); spotChoice.removeAllItems();
@@ -638,5 +660,253 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
             List<Spot> all = new ArrayList<>(exp.getSpots().getSpotList()); all.sort(Comparator.comparing(Spot::getName)); selected.add(all.get(0));
         }
         return selected;
+    }
+
+    private void placeCharts(CageChartGrid grid, Map<Integer, ChartPanel> charts, Dimension chartPx) {
+        if (grid != null && grid.rows > 0 && grid.columns > 0) {
+            plots.setLayout(new GridLayout(grid.rows, grid.columns, CHART_GAP, CHART_GAP));
+            for (int row = 0; row < grid.rows; row++) for (int column = 0; column < grid.columns; column++) {
+                ChartPanel panel = charts.get(Integer.valueOf(grid.ids[row][column]));
+                if (panel != null) plots.add(panel);
+                else {
+                    JPanel blank = new JPanel();
+                    blank.setPreferredSize(chartPx);
+                    blank.setOpaque(false);
+                    plots.add(blank);
+                }
+            }
+            return;
+        }
+        plots.setLayout(new GridLayout(0, charts.size() > 1 ? 2 : 1, CHART_GAP, CHART_GAP));
+        for (ChartPanel panel : charts.values()) plots.add(panel);
+    }
+
+    private static void fitChartText(JFreeChart chart, float titleSize) {
+        if (chart.getTitle() != null)
+            chart.getTitle().setFont(JFreeChart.DEFAULT_TITLE_FONT.deriveFont(Font.BOLD, titleSize));
+        float item = Math.max(7f, titleSize - 2f);
+        if (chart.getLegend() != null) chart.getLegend().setItemFont(chart.getLegend().getItemFont().deriveFont(item));
+        XYPlot plot = chart.getXYPlot();
+        Font label = plot.getDomainAxis().getLabelFont().deriveFont(item);
+        Font tick = plot.getDomainAxis().getTickLabelFont().deriveFont(Math.max(7f, item - 1f));
+        for (int i = 0; i < plot.getDomainAxisCount(); i++) if (plot.getDomainAxis(i) != null) {
+            plot.getDomainAxis(i).setLabelFont(label);
+            plot.getDomainAxis(i).setTickLabelFont(tick);
+        }
+        for (int i = 0; i < plot.getRangeAxisCount(); i++) if (plot.getRangeAxis(i) != null) {
+            plot.getRangeAxis(i).setLabelFont(label);
+            plot.getRangeAxis(i).setTickLabelFont(tick);
+        }
+    }
+
+    private static Dimension screenSize() {
+        Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
+        if (screen == null || screen.width < 100 || screen.height < 100) return new Dimension(1920, 1080);
+        return screen;
+    }
+
+    static Dimension experimentCell(Dimension screen) {
+        int width = (int) Math.floor((screen.width * 0.8 - CHART_GAP * 11) / 12.0);
+        int height = (int) Math.floor((screen.height * 0.8 - CHART_GAP * 7) / 8.0);
+        return new Dimension(Math.max(1, Math.min(CHART_BASE_WIDTH, width)), Math.max(1, Math.min(CHART_BASE_HEIGHT, height)));
+    }
+
+    static Dimension experimentChartSize(int percent, Dimension screen) {
+        int scale = Math.max(CHART_SCALE_MIN, Math.min(CHART_SCALE_MAX, percent));
+        Dimension floor = experimentCell(screen);
+        double t = (scale - CHART_SCALE_MIN) / (double) (CHART_SCALE_MAX - CHART_SCALE_MIN);
+        int width = (int) Math.round(floor.width + t * (CHART_BASE_WIDTH - floor.width));
+        int height = (int) Math.round(floor.height + t * (CHART_BASE_HEIGHT - floor.height));
+        return new Dimension(Math.max(1, width), Math.max(1, height));
+    }
+
+    static int percentThatFits(int columns, int rows, int requested, Dimension screen) {
+        int upper = Math.max(CHART_SCALE_MIN, Math.min(CHART_SCALE_MAX, requested));
+        for (int percent = upper; percent >= CHART_SCALE_MIN; percent--) {
+            Dimension size = experimentChartSize(percent, screen);
+            int width = size.width * Math.max(1, columns) + CHART_GAP * Math.max(0, columns - 1);
+            int height = size.height * Math.max(1, rows) + CHART_GAP * Math.max(0, rows - 1);
+            if (width <= screen.width * 0.8 && height <= screen.height * 0.8) return percent;
+        }
+        return CHART_SCALE_MIN;
+    }
+
+    static CageChartGrid experimentGrid(Experiment exp, Set<Integer> chartIds) {
+        boolean physical = exp.getCages() != null && exp.getCages().cagesList != null && !exp.getCages().cagesList.isEmpty();
+        List<CageBox> boxes = boxesFor(exp, physical ? null : chartIds);
+        CageChartGrid grid = cageGrid(boxes);
+        if (!chartIds.isEmpty() && !grid.containsAny(chartIds)) grid = cageGrid(boxesFor(exp, chartIds));
+        List<CageBox> missing = new ArrayList<>();
+        for (Integer id : chartIds) if (id != null && !grid.contains(id.intValue()))
+            missing.add(new CageBox(id.intValue(), 0, 0, 0, 0, -1, -1));
+        return missing.isEmpty() ? grid : appendUnplaced(grid, missing);
+    }
+
+    static List<CageBox> boxesFor(Experiment exp, Set<Integer> limit) {
+        Map<Integer, CageBox> byId = new LinkedHashMap<>();
+        if (exp.getCages() != null && exp.getCages().cagesList != null) {
+            for (Cage cage : exp.getCages().cagesList) {
+                if (cage == null || (limit != null && !limit.contains(cage.getCageID()))) continue;
+                CageBox box = boxOf(cage);
+                CageBox previous = byId.get(box.cageId);
+                if (previous == null || (previous.width <= 0 && box.width > 0)) byId.put(box.cageId, box);
+            }
+        }
+        if (limit != null) for (Integer id : limit) if (id != null) byId.putIfAbsent(id, new CageBox(id, 0, 0, 0, 0, -1, -1));
+        return new ArrayList<>(byId.values());
+    }
+
+    static CageBox boxOf(Cage cage) {
+        double x = 0, y = 0, width = 0, height = 0;
+        if (cage.getRoi() != null && cage.getRoi().getBounds2D() != null) {
+            Rectangle2D bounds = cage.getRoi().getBounds2D();
+            if (bounds.getWidth() > 0 && bounds.getHeight() > 0) {
+                x = bounds.getCenterX(); y = bounds.getCenterY(); width = bounds.getWidth(); height = bounds.getHeight();
+            }
+        }
+        int row = cage.getProperties() == null ? -1 : cage.getProperties().getArrayRow();
+        int column = cage.getProperties() == null ? -1 : cage.getProperties().getArrayColumn();
+        return new CageBox(cage.getCageID(), x, y, width, height, row, column);
+    }
+
+    static CageChartGrid cageGrid(List<CageBox> boxes) {
+        List<CageBox> roi = new ArrayList<>();
+        List<CageBox> rest = new ArrayList<>();
+        if (boxes != null) for (CageBox box : boxes) {
+            if (box == null) continue;
+            if (box.width > 0 && box.height > 0) roi.add(box);
+            else rest.add(box);
+        }
+        if (!roi.isEmpty()) {
+            CageChartGrid grid = gridFromCenters(roi);
+            return rest.isEmpty() ? grid : appendUnplaced(grid, rest);
+        }
+        boolean indexed = !rest.isEmpty();
+        for (CageBox box : rest) if (box.arrayRow < 0 || box.arrayColumn < 0) indexed = false;
+        if (indexed) return gridFromIndices(rest);
+        return gridById(rest);
+    }
+
+    private static CageChartGrid gridFromCenters(List<CageBox> boxes) {
+        double[] x = new double[boxes.size()], y = new double[boxes.size()];
+        List<Double> widths = new ArrayList<>(), heights = new ArrayList<>();
+        for (int i = 0; i < boxes.size(); i++) {
+            x[i] = boxes.get(i).x; y[i] = boxes.get(i).y;
+            widths.add(boxes.get(i).width); heights.add(boxes.get(i).height);
+        }
+        int[] columns = cluster(x, Math.max(1, median(widths) * 0.5));
+        int[] rows = cluster(y, Math.max(1, median(heights) * 0.5));
+        int rowCount = max(rows) + 1, columnCount = max(columns) + 1;
+        int[][] ids = new int[rowCount][columnCount];
+        for (int[] row : ids) Arrays.fill(row, -1);
+        List<CageBox> lost = new ArrayList<>();
+        for (int i = 0; i < boxes.size(); i++) {
+            if (ids[rows[i]][columns[i]] >= 0) lost.add(boxes.get(i));
+            else ids[rows[i]][columns[i]] = boxes.get(i).cageId;
+        }
+        CageChartGrid grid = new CageChartGrid(rowCount, columnCount, ids);
+        return lost.isEmpty() ? grid : appendUnplaced(grid, lost);
+    }
+
+    private static CageChartGrid gridFromIndices(List<CageBox> boxes) {
+        int rowCount = 0, columnCount = 0;
+        for (CageBox box : boxes) {
+            rowCount = Math.max(rowCount, box.arrayRow + 1);
+            columnCount = Math.max(columnCount, box.arrayColumn + 1);
+        }
+        int[][] ids = new int[rowCount][columnCount];
+        for (int[] row : ids) Arrays.fill(row, -1);
+        List<CageBox> lost = new ArrayList<>();
+        for (CageBox box : boxes) {
+            if (ids[box.arrayRow][box.arrayColumn] >= 0) lost.add(box);
+            else ids[box.arrayRow][box.arrayColumn] = box.cageId;
+        }
+        CageChartGrid grid = new CageChartGrid(rowCount, columnCount, ids);
+        return lost.isEmpty() ? grid : appendUnplaced(grid, lost);
+    }
+
+    private static CageChartGrid gridById(List<CageBox> boxes) {
+        List<CageBox> ordered = new ArrayList<>(boxes);
+        ordered.sort(Comparator.comparingInt(box -> box.cageId));
+        int count = ordered.size();
+        int columns = count > 1 ? 2 : Math.max(1, count);
+        int rows = count == 0 ? 0 : (count + columns - 1) / columns;
+        int[][] ids = rows == 0 ? new int[0][0] : new int[rows][columns];
+        for (int[] row : ids) Arrays.fill(row, -1);
+        for (int i = 0; i < count; i++) ids[i / columns][i % columns] = ordered.get(i).cageId;
+        return new CageChartGrid(rows, columns, ids);
+    }
+
+    private static CageChartGrid appendUnplaced(CageChartGrid grid, List<CageBox> rest) {
+        List<CageBox> ordered = new ArrayList<>(rest);
+        ordered.sort(Comparator.comparingInt(box -> box.cageId));
+        int columns = Math.max(grid.columns, ordered.size());
+        int rows = grid.rows + 1;
+        int[][] ids = new int[rows][columns];
+        for (int[] row : ids) Arrays.fill(row, -1);
+        for (int row = 0; row < grid.rows; row++)
+            for (int column = 0; column < grid.columns; column++) ids[row][column] = grid.ids[row][column];
+        for (int i = 0; i < ordered.size(); i++) ids[grid.rows][i] = ordered.get(i).cageId;
+        return new CageChartGrid(rows, columns, ids);
+    }
+
+    private static int[] cluster(double[] values, double threshold) {
+        Integer[] order = new Integer[values.length];
+        for (int i = 0; i < values.length; i++) order[i] = i;
+        Arrays.sort(order, Comparator.comparingDouble(index -> values[index]));
+        int[] clusters = new int[values.length];
+        if (values.length == 0) return clusters;
+        int current = 0;
+        double anchor = values[order[0]];
+        clusters[order[0]] = 0;
+        for (int i = 1; i < order.length; i++) {
+            if (values[order[i]] - anchor > threshold) {
+                current++;
+                anchor = values[order[i]];
+            }
+            clusters[order[i]] = current;
+        }
+        return clusters;
+    }
+
+    private static int max(int[] values) {
+        int best = 0;
+        for (int value : values) best = Math.max(best, value);
+        return best;
+    }
+
+    private static double median(List<Double> values) {
+        if (values.isEmpty()) return 0;
+        List<Double> sorted = new ArrayList<>(values);
+        Collections.sort(sorted);
+        int middle = sorted.size() / 2;
+        if (sorted.size() % 2 == 1) return sorted.get(middle);
+        return (sorted.get(middle - 1) + sorted.get(middle)) / 2.0;
+    }
+
+    static final class CageBox {
+        final int cageId;
+        final double x, y, width, height;
+        final int arrayRow, arrayColumn;
+        CageBox(int cageId, double x, double y, double width, double height, int arrayRow, int arrayColumn) {
+            this.cageId = cageId; this.x = x; this.y = y; this.width = width; this.height = height;
+            this.arrayRow = arrayRow; this.arrayColumn = arrayColumn;
+        }
+    }
+
+    static final class CageChartGrid {
+        final int rows, columns;
+        final int[][] ids;
+        CageChartGrid(int rows, int columns, int[][] ids) {
+            this.rows = rows; this.columns = columns; this.ids = ids;
+        }
+        boolean containsAny(Set<Integer> cageIds) {
+            for (int[] row : ids) for (int id : row) if (cageIds.contains(id)) return true;
+            return false;
+        }
+        boolean contains(int cageId) {
+            for (int[] row : ids) for (int id : row) if (id == cageId) return true;
+            return false;
+        }
     }
 }
