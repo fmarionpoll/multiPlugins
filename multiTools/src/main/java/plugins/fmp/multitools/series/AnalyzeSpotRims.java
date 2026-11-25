@@ -16,6 +16,10 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodRecording;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotSampleFlags;
+import plugins.fmp.multitools.service.SpotAcquisitionTimeline;
 import plugins.fmp.multitools.experiment.spot.SpotRimGeometry;
 import plugins.fmp.multitools.service.KymoImageTransforms;
 import plugins.fmp.multitools.service.KymoMetricGate;
@@ -114,10 +118,33 @@ public class AnalyzeSpotRims extends BuildSeries {
 				return;
 			}
 			List<EllipseGeom> all = allEllipses(cages);
+			double[] primaryTimes = SpotAcquisitionTimeline.camera(exp, frames);
 			for (CageRims cage : cages) {
 				cage.layout = SpotRimAnalyzer.layoutFor(width, height, cage.spots, cage.ellipses, all);
 				cage.flanks = new double[nFrames][];
 				cage.integral = new double[cage.spots.size()][nFrames];
+				cage.rawIntegral = new double[cage.spots.size()][nFrames];
+				for (double[] values : cage.rawIntegral) { Arrays.fill(values, Double.NaN); }
+				cage.insectGate = analyzerParams.insectGate;
+				cage.primary = new SpotMethodRecording[cage.spots.size()];
+				for (int s = 0; s < cage.primary.length; s++) {
+					cage.primary[s] = new SpotMethodRecording(SpotMeasurementMethod.RIM_LINES, primaryTimes, "occupancy_fraction")
+							.parameter("implementation", getClass().getSimpleName())
+							.parameter("timeline_basis", "camera_acquisition_times")
+							.parameter("insect_gate", String.valueOf(analyzerParams.insectGate))
+							.parameter("insect_transform", String.valueOf(analyzerParams.insectTransform))
+							.parameter("insect_threshold", String.valueOf(analyzerParams.insectThreshold))
+							.parameter("insect_above", String.valueOf(analyzerParams.insectAbove))
+							.parameter("initial_bins", String.valueOf(analyzerParams.initialBins))
+							.parameter("mad_multiplier", String.valueOf(analyzerParams.madMultiplier))
+							.parameter("rim_width_px", String.valueOf(analyzerParams.rimWidthPx))
+							.parameter("outer_px", String.valueOf(analyzerParams.outerPx))
+							.parameter("floor_width_px", String.valueOf(analyzerParams.floorWidthPx))
+							.parameter("track_plate", String.valueOf(analyzerParams.trackPlate))
+							.parameter("occlusion_fraction", String.valueOf(SpotLineDeficitAnalyzer.FLY_OCCUPANCY_FRACTION))
+							.quantity("signal_fraction", "fraction").quantity("visible_signal_fraction", "fraction")
+							.quantity("background", "color_deficit_units");
+				}
 				cage.openingExcess = new double[cage.spots.size()][window];
 				cage.openingCount = new int[cage.spots.size()];
 				for (double[] values : cage.integral) {
@@ -175,6 +202,8 @@ public class AnalyzeSpotRims extends BuildSeries {
 					}
 					copyDoubles(cage.spots.get(i).getKymographMeasurements().getRimCoverageFraction(), cage.integral[i]);
 					copyDoubles(cage.spots.get(i).getRimCoverageToBaselineRatio(), i < ratios.length ? ratios[i] : null);
+					cage.primary[i].parameter("noise", String.valueOf(cage.noise)).parameter("dye_level", String.valueOf(cage.dyeLevel[i]));
+					cage.spots.get(i).getMethodMeasurements().put(cage.primary[i].build());
 				}
 			}
 			if (exp.getCages() != null) {
@@ -455,6 +484,19 @@ public class AnalyzeSpotRims extends BuildSeries {
 			double[] floors = SpotLineDeficitAnalyzer.floorsWithReference(cage.layout, cage.flanks[t], cage.refFloor);
 			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
 					cage.integral, t, frame.insect, cage.dyeLevel);
+			SpotLineDeficitAnalyzer.integrate(cage.layout, frame.red, frame.green, frame.blue, floors, cage.noise,
+					cage.rawIntegral, t, null, cage.dyeLevel);
+			for (int s = 0; s < cage.spots.size(); s++) {
+				double occupancy = frame.insect != null ? SpotLineDeficitAnalyzer.flyOccupancy(cage.layout, s, frame.insect) : Double.NaN;
+				int flags = frame.red == null ? SpotSampleFlags.MISSING_IMAGE : 0;
+				if (!Double.isFinite(floors[s])) { flags |= SpotSampleFlags.INVALID_BACKGROUND; }
+				if (Double.isFinite(occupancy) && occupancy >= SpotLineDeficitAnalyzer.FLY_OCCUPANCY_FRACTION) { flags |= SpotSampleFlags.OCCLUDED; }
+				if (frame.red != null && frame.insect == null && cage.insectGate) { flags |= SpotSampleFlags.QUALITY_UNKNOWN; }
+				cage.primary[s].recordFlyEvidence(t, occupancy);
+				cage.primary[s].record("signal_fraction", t, cage.rawIntegral[s][t], flags);
+				cage.primary[s].record("visible_signal_fraction", t, cage.integral[s][t], flags);
+				cage.primary[s].record("background", t, floors[s], frame.red == null ? SpotSampleFlags.MISSING_IMAGE : 0);
+			}
 		}
 	}
 
@@ -716,6 +758,9 @@ public class AnalyzeSpotRims extends BuildSeries {
 		Layout layout;
 		double[][] flanks;
 		double[][] integral;
+		double[][] rawIntegral;
+		SpotMethodRecording[] primary;
+		boolean insectGate;
 		double noise;
 		double[] refFloor;
 		double[] dyeLevel;

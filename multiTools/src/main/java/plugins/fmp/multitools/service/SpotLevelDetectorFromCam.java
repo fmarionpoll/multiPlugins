@@ -41,6 +41,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * ROI masks and per-frame transformed images are kept in memory.
  */
 public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
+	private SpotCameraMeasurementCapture primaryCapture;
 
 	public void detectSpots(Experiment exp, BuildSeriesOptions options) {
 		if (exp == null || options == null)
@@ -88,6 +89,8 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
 		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
+		primaryCapture = new SpotCameraMeasurementCapture(exp, toProcess, nTimeBins,
+				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.FILTER, options, getClass().getSimpleName());
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels");
 		progress.setLength(nTimeBins);
@@ -132,11 +135,13 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 
 					String path = seqCamData.getFileNameFromImageList(job.camFrameIndex);
 					if (path == null) {
+						primaryCapture.missingImage(job.timeIndex);
 						continue;
 					}
 
 					camImageLocal = loaderLocal.imageIORead(path);
 					if (camImageLocal == null) {
+						primaryCapture.missingImage(job.timeIndex);
 						continue;
 					}
 
@@ -180,6 +185,7 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 		final long tLoopEnd = System.nanoTime();
 
 		final long tPostStart = System.nanoTime();
+		primaryCapture.publish();
 		spots.applyFlyPlateauOnSumNoFlyForSpots(toProcess, options.getFlyOccupancyFractionForSpotSumNoFly());
 		spots.rebuildSumCleanOnlyForSpots(toProcess);
 		spots.applyPreConsumedReferenceAtT0(exp);
@@ -337,6 +343,9 @@ public class SpotLevelDetectorFromCam implements SpotLevelDetectionRunner {
 			}
 
 			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			primaryCapture.record(spot, timeIndex, nPointsFlyPresent,
+					nPointsFlyPresent >= Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly()),
+					meanAll, nNoFly > 0 ? sumOverThresholdNoFly / nNoFly : Double.NaN);
 		}
 	}
 

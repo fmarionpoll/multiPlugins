@@ -1,12 +1,12 @@
-# Spot measurement model: internal foundation
+# Spot measurement model and primary-data migration
 
 The shared model is in `plugins.fmp.multitools.experiment.spot.measurement`.
 `Spot.getMethodMeasurements()` owns the method results for one spot. This is an
-additive first stage: existing acquisition algorithms, CSV persistence, charts,
-editing tools and exporters still use the legacy `SpotMeasure` containers.
-They are not silently redirected to the new model. Consequently, the new
-method results are currently in memory only; existing save/load operations do
-not persist them. No experimental file format is changed by this stage.
+additive migration: the active filter, color, vertical kymograph, X-line and rim
+acquisition paths now populate this model before temporal cleanup. Existing
+charts, editing tools and exporters continue using the legacy `SpotMeasure`
+containers. Existing CSV sections are unchanged. Primary data are saved in a
+versioned XML sidecar alongside those compatibility files.
 
 ## Ownership and acquisition
 
@@ -114,16 +114,54 @@ before existing temporal pixel reconstruction or fly gating destroys information
 Old processed series cannot be relabeled as raw measurements, and a historical
 shared fly series cannot be duplicated as independent per-method detections.
 
-## Subsequent migration decisions
+## Persistence and compatibility
 
-Acquisition integration and persistence need to be migrated together so newly
-captured primary data are not lost at save/reload. The persistence discussion
-must settle schema/versioning, independent method timelines, parameter and manual
-decision storage, processing preferences, partial method updates and legacy files
-that lack original data. Derived caches do not need to be persisted.
+`SpotsPrimaryMeasurements.xml` version 1 stores original values, independent
+method timelines, raw fly evidence and its unit, acquisition flags, manual
+rejections, units and acquisition parameters. Double precision and NaNs survive
+round trips. Derived caches are not saved. Files are streamed and replaced through
+a temporary file; atomic replacement is used when the filesystem supports it.
+Malformed or unsupported existing primary files are never silently overwritten.
 
-UI and export integration follows those decisions. Until migrated, legacy
-cleanup behavior is unchanged; adding this API does not change existing results.
+Camera saves update filter/color primary data; line saves update vertical/X/rim
+data. Partial saves merge into existing primary data and preserve other methods.
+Omitting a method from an in-memory registry does not delete its stored result;
+an explicit persisted-deletion operation remains a future UI decision. Loading a
+scope replaces that scope in memory, including clearing stale primary data when
+the loaded historical file has no primary sidecar. Kymograph merges preserve
+camera results. Parsing completes before any primary results are replaced.
+
+Historical cleaned CSV values and the historical shared fly series are not
+promoted to raw per-method data. Existing experiments remain readable, but need
+reanalysis to acquire primary measurements. Primary-only files can also be loaded.
+
+Filter acquisition preserves both the original signal and the spatially
+fly-excluded signal. Color acquisition preserves the pre-gate grey signal and
+selected area, including when the legacy path turns those points into NaN.
+X/rim acquisition preserves pre-gate and visible signal fractions, background
+samples, and method-specific occupancy fractions. Learned dye/noise references
+remain acquisition calibration, with their values recorded in metadata.
+Vertical acquisition measures the original TIFF pixels before row reconstruction
+and records row fraction, height, and fly occupancy. For this path, any detected
+fly row invalidates the column; this conservative rule is recorded in metadata.
+
+The experimental vertical color-integral trial retains original integrals and
+fly evidence in the same model. Its trial save operation writes
+`SpotsPrimaryMeasurementsTrial.xml` beside the existing trial CSVs. It does not
+overwrite the committed standard vertical method. Trial CSV calculations and
+baseline options remain unchanged.
+
+Acquisition uses the existing physical camera timestamps, never an export grid,
+and refuses an absent or non-increasing clock. Missing images and unprocessed
+samples stay unavailable rather than becoming valid zeros. The unused historical
+`BuildSpotsMeasuresAdvanced` pipeline is not an active UI entry point and remains
+legacy-only.
+
+UI and export integration is next: settings selection, baseline review, manual
+quality editing, chart styling and export columns need to use the shared API.
+Until then, legacy cleanup behavior and CSV output values remain unchanged.
+Processing preferences are explicit API inputs; saving UI preferences is deferred
+until those controls are designed.
 
 ## Verification in Eclipse and Maven
 
@@ -133,16 +171,31 @@ the following test classes with **Run As > JUnit Test**:
 
 - `SpotMeasurementModelTest`
 - `SpotSeriesProcessorTest`
+- `SpotPrimaryPersistenceTest`
+- `SpotPrimaryAcquisitionTest`
+- `SpotCameraFrameSamplingTest`
 - `SpotMeasurementsPersistenceTest` (existing file-format compatibility)
 
 From the repository root:
 
 ```text
-mvn -o -pl multiTools -am test -Dtest=SpotMeasurementModelTest,SpotSeriesProcessorTest,SpotMeasurementsPersistenceTest -Dsurefire.failIfNoSpecifiedTests=false
+mvn -o -pl multiTools -am test -Dtest=SpotMeasurementModelTest,SpotSeriesProcessorTest,SpotPrimaryPersistenceTest,SpotPrimaryAcquisitionTest,SpotCameraFrameSamplingTest,SpotMeasurementsPersistenceTest -Dsurefire.failIfNoSpecifiedTests=false
 ```
 
 These tests exercise physical-time interpolation, endpoint preservation,
 occlusion versus other rejection causes, leading/trailing/entire gaps, display-only
 connection metadata, baseline review, missing-data defaults, immutability,
-manual decisions, method independence, copying and cache invalidation. Image/UI
-validation belongs to the later acquisition and UI migrations.
+manual decisions, method independence, copying and cache invalidation. Synthetic
+camera images exercise both filter implementations and colors on irregular
+timestamps. Synthetic strips verify that original fly-contaminated measurements
+survive separately from the masked or filled values, including trial persistence.
+Biological validation and visual checks of the new UI remain later steps.
+
+The wider existing suites also expose unrelated failures in untouched code:
+`CsvNormalizedSpotExportTest.aggregateRenamesPreserveExportIdentifiers` expects
+`AGG_RIM` where the current enum supplies `AGG_RIM_LINE_CONSO`, and
+`MeasureChartsPanelTest.spotDisplayFallsBackWhenCameraIsOpenAndNoSpotRoiIsSelected`
+expects a different spot order. Some capillary/export tests time out while Java
+initializes Windows registry preferences in the restricted execution environment.
+These do not establish a clean full-suite baseline; they were not changed as part
+of the primary-data migration.

@@ -112,6 +112,14 @@ public class SpotCameraFrameSamplingTest {
 		options.spotColorReferenceList.add(new Color(100, 0, 0));
 		options.spotColorReferenceList.add(new Color(160, 0, 0));
 		detector.detectSpots(exp, options);
+		plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod primaryMethod =
+				detector instanceof SpotLevelDetectorFromCamColor
+				? plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.COLOR
+				: plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.FILTER;
+		plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult primary = spot.getMethodMeasurements().get(primaryMethod);
+		assertEquals(369, primary.getTimesSeconds().length);
+		assertEquals(times[368] / 1000.0, primary.getTimesSeconds()[368], 1e-8);
+		assertEquals(369, primary.getFlyEvidence().length);
 
 		SpotMeasure signal = detector instanceof SpotLevelDetectorFromCamColor ? spot.getColorDistanceGreySignal()
 				: spot.getRoiNormalizedGreySignal();

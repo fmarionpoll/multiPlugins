@@ -39,6 +39,7 @@ public final class KymoMeasuresCommit {
 
 	private static void copyRow(SpotKymoSeries row) {
 		Spot spot = row.spot;
+		if (row.primary != null) { spot.getMethodMeasurements().put(row.primary); }
 		copyDoubles(spot.getAboveThresholdStripRowFraction(), row.fraction);
 		copyDoubles(spot.getAbsoluteStripRowFractionChange(), row.absDeltaFraction);
 		copyIntsAsDoubles(spot.getGreenMaskHeight(), row.greenHeight);

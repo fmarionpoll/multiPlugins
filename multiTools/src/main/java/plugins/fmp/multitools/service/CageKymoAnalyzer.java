@@ -154,7 +154,8 @@ public final class CageKymoAnalyzer {
 
 			int cageId = cage.getProperties() != null ? cage.getProperties().getCageID() : -1;
 			int useW = widthBins > 0 ? Math.min(imgW, widthBins) : imgW;
-			List<KymoAnalysisResult.SpotKymoSeries> series = computeForImage(img, bands, params, useW);
+			List<KymoAnalysisResult.SpotKymoSeries> series = computeForImage(img, bands, params, useW, xAxis,
+					CageKymographTimeline.resolve(exp, widthBins, null).basis.exportId);
 			out.put(cageId, series);
 		}
 
@@ -318,7 +319,9 @@ public final class CageKymoAnalyzer {
 	}
 
 	private static List<KymoAnalysisResult.SpotKymoSeries> computeForImage(IcyBufferedImage img,
-			List<CageKymographSpotBands> bands, Params params, int imgW) {
+			List<CageKymographSpotBands> bands, Params params, int imgW, double[] minutes, String timelineBasis) {
+		double[] seconds = new double[imgW];
+		for (int x = 0; x < imgW; x++) { seconds[x] = minutes[x] * 60; }
 		IcyBufferedImage data = params.rowwiseOcclusionFill ? KymoStripRowwiseOcclusionFill.apply(img, bands, params)
 				: img;
 		List<KymoAnalysisResult.SpotKymoSeries> list = new ArrayList<>();
@@ -329,7 +332,7 @@ public final class CageKymoAnalyzer {
 			double[] df = new double[imgW];
 			recomputeDfFromF(cols.fraction, df);
 			list.add(new KymoAnalysisResult.SpotKymoSeries(spot, si, cols.fraction, df, cols.greenHeight,
-					cols.greenHeightRatio));
+					cols.greenHeightRatio, SpotVerticalMeasurementCapture.capture(img, band, params, seconds, timelineBasis)));
 			si++;
 		}
 		return list;

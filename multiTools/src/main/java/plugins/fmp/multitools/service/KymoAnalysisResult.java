@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult;
 
 /**
  * CODEX In-memory per-spot kymograph metric fraction series (and optional
@@ -50,15 +51,23 @@ public final class KymoAnalysisResult {
 		 * occupancy).
 		 */
 		public final double[] greenHeightRatio;
+		/** Original acquisition result, independent of the legacy cleaned columns. */
+		public final SpotMethodResult primary;
 
 		public SpotKymoSeries(Spot spot, int indexInCage, double[] fraction, double[] absDeltaFraction,
 				int[] greenHeight, double[] greenHeightRatio) {
+			this(spot, indexInCage, fraction, absDeltaFraction, greenHeight, greenHeightRatio, null);
+		}
+
+		public SpotKymoSeries(Spot spot, int indexInCage, double[] fraction, double[] absDeltaFraction,
+				int[] greenHeight, double[] greenHeightRatio, SpotMethodResult primary) {
 			this.spot = spot;
 			this.indexInCage = indexInCage;
 			this.fraction = fraction;
 			this.absDeltaFraction = absDeltaFraction;
 			this.greenHeight = greenHeight != null ? greenHeight : new int[0];
 			this.greenHeightRatio = greenHeightRatio != null ? greenHeightRatio : new double[0];
+			this.primary = primary;
 		}
 	}
 }

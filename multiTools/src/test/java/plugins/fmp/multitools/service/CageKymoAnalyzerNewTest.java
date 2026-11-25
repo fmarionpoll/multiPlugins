@@ -20,6 +20,36 @@ import plugins.fmp.multitools.service.CageKymoAnalyzer_new.*;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
 public class CageKymoAnalyzerNewTest {
+    @Test public void trialPersistsOriginalIntegralAndFlyEvidenceWithoutReplacingStandardData() throws Exception {
+        IcyBufferedImage image = image();
+        for (int x = 0; x < 6; x++) for (int y = 3; y < 7; y++) pixel(image, x, y, 0, 50, 100);
+        pixel(image, 1, 4, 0, 0, 0);
+        Params p = params();
+        p.insectMetricGateEnabled = true;
+        p.insectMetricThreshold = 20;
+        p.insectMetricThresholdUp = false;
+        p.rowwiseOcclusionFill = true;
+        Settings settings = new Settings(0, 5);
+        Signal signal = analyze(image, p, settings);
+        assertTrue(Double.isNaN(signal.observed[1]));
+        assertEquals(600, signal.primary.getQuantity("color_integral").getRawValues()[1], 0);
+        assertEquals(0.1, signal.primary.getFlyEvidence()[1], 0);
+        assertEquals(plugins.fmp.multitools.experiment.spot.measurement.SpotSampleFlags.OCCLUDED,
+                signal.primary.getQuantity("color_integral").getEffectiveFlags()[1]);
+        plugins.fmp.multitools.experiment.spot.Spot spot = new plugins.fmp.multitools.experiment.spot.Spot();
+        spot.getProperties().setName("trialSpot");
+        Result result = new Result(new double[] { 0, 1, 2, 3, 4, 5 },
+                Collections.singletonList(new Row(1, spot, signal, new double[6])), settings);
+        Path directory = temporary.newFolder("primary-trial").toPath();
+        KymoAnalysisCsvExport_new.write(directory, result, p);
+        plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult restored =
+                plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml
+                    .read(directory.resolve("SpotsPrimaryMeasurementsTrial.xml")).get("trialSpot")
+                    .get(plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.VERTICAL_LINE);
+        assertEquals(600, restored.getQuantity("color_integral").getRawValues()[1], 0);
+        assertFalse(Files.exists(directory.resolve("SpotsPrimaryMeasurements.xml")));
+        assertTrue(spot.getMethodMeasurements().snapshot().isEmpty());
+    }
     @ClassRule public static final plugins.fmp.multitools.test.InMemoryImageRule memory =
             new plugins.fmp.multitools.test.InMemoryImageRule();
     @Rule public TemporaryFolder temporary = new TemporaryFolder();

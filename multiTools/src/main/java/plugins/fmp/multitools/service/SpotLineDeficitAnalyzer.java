@@ -26,7 +26,7 @@ public final class SpotLineDeficitAnalyzer {
 	public static final int DEFAULT_SMOOTH_BINS = 9;
 
 	/** Same cutoff as the other spot measures: a fly on at least this fraction of the cross drops the bin. */
-	static final double FLY_OCCUPANCY_FRACTION = 0.08;
+	public static final double FLY_OCCUPANCY_FRACTION = 0.08;
 
 	/**
 	 * Radius, in pixels, added around each detected fly before the floor and the
@@ -491,6 +491,18 @@ public final class SpotLineDeficitAnalyzer {
 				integral[s][time] = value;
 			}
 		}
+	}
+
+	/** Fraction of central sampling stations obscured, using the same geometry as integration. */
+	public static double flyOccupancy(Layout layout, int spot, boolean[] insect) {
+		int[] pix = layout.spotPix[spot];
+		int[] run = runAt(layout.spotRun, spot);
+		int total = stationCount(pix, run), masked = 0, cursor = 0;
+		for (int i = 0; i < total; i++) {
+			if (pix != null && cursor < pix.length && isInsect(insect, pix[cursor])) { masked++; }
+			cursor += stationLength(run, i);
+		}
+		return total > 0 ? masked / (double) total : Double.NaN;
 	}
 
 	static double cutFor(double noise, double[] dyeLevel, int spot) {

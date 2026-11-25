@@ -86,7 +86,9 @@ public class SpotsPersistence {
 	 * @return true if successful
 	 */
 	public boolean loadMeasures(Spots spots, String binDirectory) {
-		return Persistence.loadMeasures(spots, binDirectory);
+		boolean legacy = Persistence.loadMeasures(spots, binDirectory);
+		return SpotPrimaryMeasurementsPersistence.load(spots, binDirectory, SpotPrimaryMeasurementsPersistence.ALL)
+				&& (legacy || hasPrimaryMeasurements(binDirectory));
 	}
 
 	/**
@@ -99,6 +101,7 @@ public class SpotsPersistence {
 		if (binDirectory == null) {
 			return false;
 		}
+		if (hasPrimaryMeasurements(binDirectory)) { return true; }
 
 		Path v2Path = Paths.get(binDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
 		if (Files.exists(v2Path)) {
@@ -131,11 +134,13 @@ public class SpotsPersistence {
 	 * @return true if successful
 	 */
 	public boolean saveMeasures(Spots spots, String binDirectory) {
-		return Persistence.saveMeasures(spots, binDirectory);
+		return saveMeasures(spots, binDirectory, false);
 	}
 
 	public boolean saveMeasures(Spots spots, String directory, boolean includeKymographs) {
-		return Persistence.saveMeasures(spots, directory, includeKymographs);
+		return SpotPrimaryMeasurementsPersistence.save(spots, directory,
+				includeKymographs ? SpotPrimaryMeasurementsPersistence.ALL : SpotPrimaryMeasurementsPersistence.CAMERA)
+				&& Persistence.saveMeasures(spots, directory, includeKymographs);
 	}
 
 	/**
@@ -143,7 +148,14 @@ public class SpotsPersistence {
 	 * merging into existing per-spot camera measures without clearing them.
 	 */
 	public boolean loadMeasuresMergeKymo(Spots spots, String binDirectory) {
-		return Persistence.loadMeasures(spots, binDirectory, true);
+		boolean legacy = Persistence.loadMeasures(spots, binDirectory, true);
+		return SpotPrimaryMeasurementsPersistence.load(spots, binDirectory, SpotPrimaryMeasurementsPersistence.LINES)
+				&& (legacy || hasPrimaryMeasurements(binDirectory));
+	}
+
+	private static boolean hasPrimaryMeasurements(String directory) {
+		return directory != null && Files.isRegularFile(Paths.get(directory,
+				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml.FILENAME));
 	}
 
 	/**
@@ -151,7 +163,8 @@ public class SpotsPersistence {
 	 * in the kymographs bin directory.
 	 */
 	public boolean saveKymoMeasures(Spots spots, String kymoBinDirectory) {
-		return Persistence.saveKymoMeasures(spots, kymoBinDirectory);
+		return SpotPrimaryMeasurementsPersistence.save(spots, kymoBinDirectory, SpotPrimaryMeasurementsPersistence.LINES)
+				&& Persistence.saveKymoMeasures(spots, kymoBinDirectory);
 	}
 
 	// ========================================================================

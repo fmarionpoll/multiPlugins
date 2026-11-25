@@ -13,6 +13,10 @@ import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cage.CageSpotStimulusAggregation.StimulusConcKey;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodRecording;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotSampleFlags;
 import plugins.fmp.multitools.service.CageKymoAnalyzer.Params;
 import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
 
@@ -43,13 +47,20 @@ public final class CageKymoAnalyzer_new {
         public final double[] ratio;
         public final double baseline;
         public final int baselineSamples;
+        /** Original trial measurements, kept separate from the committed standard method. */
+        public final SpotMethodResult primary;
 
         Signal(double[] observed, double[] integrated, double[] ratio, double baseline, int samples) {
+            this(observed, integrated, ratio, baseline, samples, null);
+        }
+
+        Signal(double[] observed, double[] integrated, double[] ratio, double baseline, int samples, SpotMethodResult primary) {
             this.observed = observed;
             this.integrated = integrated;
             this.ratio = ratio;
             this.baseline = baseline;
             baselineSamples = samples;
+            this.primary = primary;
         }
     }
 
@@ -219,32 +230,56 @@ public final class CageKymoAnalyzer_new {
     static Signal compute(IcyBufferedImage image, CageKymographSpotBands band, double[] metric,
             double[] insect, Params params, double[] minutes, Settings settings) {
         int w = image.getWidth(), y0 = Math.max(0, band.y0), y1 = Math.min(image.getHeight(), band.y1Exclusive);
+        if (minutes.length != w) { throw new IllegalArgumentException("Signal and clock lengths differ."); }
         double[] observed = missing(w);
+        double[] seconds = new double[minutes.length];
+        for (int x = 0; x < seconds.length; x++) { seconds[x] = minutes[x] * 60; }
+        SpotMethodRecording recording = new SpotMethodRecording(SpotMeasurementMethod.VERTICAL_LINE, seconds, "occupancy_fraction")
+                .parameter("implementation", "CageKymoAnalyzer_new")
+                .parameter("metric_transform", String.valueOf(params.metricTransform))
+                .parameter("metric_precision", params.metricTransform == ImageTransformEnums.RGB_DIFFS ? "full_precision_RGB_DIFFS" : "image_transform")
+                .parameter("insect_gate", String.valueOf(params.insectMetricGateEnabled))
+                .parameter("insect_transform", String.valueOf(params.insectMetricTransform))
+                .parameter("insect_threshold", String.valueOf(params.insectMetricThreshold))
+                .parameter("insect_above", String.valueOf(params.insectMetricThresholdUp))
+                .parameter("min_rgb_sum", String.valueOf(params.minSumRgbForValidPixel))
+                .parameter("min_valid_rows", String.valueOf(params.minValidRowsPerColumn))
+                .parameter("background_method", "median_of_outer_20_percent_rows_each_edge")
+                .quantity("color_integral", "metric_units_times_pixels").quantity("background", "metric_units");
         if (!band.geometryMissing && metric != null && y1 > y0) {
             double[] r = channel(image, 0), g = channel(image, Math.min(1, image.getSizeC() - 1)),
                     b = channel(image, Math.min(2, image.getSizeC() - 1));
             int edge = Math.max(1, (y1 - y0) / 5);
             for (int x = 0; x < w; x++) {
                 double[] floor = new double[2 * edge];
-                int floorCount = 0, valid = 0;
+                int floorCount = 0, valid = 0, fly = 0;
                 boolean contaminated = false;
                 for (int y = y0; y < y1; y++) {
                     int i = y * w + x;
+                    if (insect != null && KymoMetricGate.directedFinite(insect[i], params.insectMetricThreshold,
+                            params.insectMetricThresholdUp)) { contaminated = true; fly++; }
                     if (!Double.isFinite(metric[i]) || r[i] + g[i] + b[i] < params.minSumRgbForValidPixel) continue;
                     valid++;
-                    if (insect != null && KymoMetricGate.directedFinite(insect[i], params.insectMetricThreshold,
-                            params.insectMetricThresholdUp)) contaminated = true;
                     if (y < y0 + edge || y >= y1 - edge) floor[floorCount++] = metric[i];
                 }
                 // Partial observations would systematically underestimate the strip integral.
-                if (contaminated || valid != y1 - y0 || valid < params.minValidRowsPerColumn || floorCount == 0) continue;
-                double background = median(floor, floorCount), sum = 0;
-                for (int y = y0; y < y1; y++) sum += Math.max(0, metric[y * w + x] - background);
-                observed[x] = sum;
+                boolean usable = valid == y1 - y0 && valid >= params.minValidRowsPerColumn && floorCount > 0;
+                double background = usable ? median(floor, floorCount) : Double.NaN, sum = Double.NaN;
+                if (usable) {
+                    sum = 0;
+                    for (int y = y0; y < y1; y++) sum += Math.max(0, metric[y * w + x] - background);
+                    if (!contaminated) observed[x] = sum;
+                }
+                int flags = (usable ? 0 : SpotSampleFlags.DETECTION_FAILED) | (contaminated ? SpotSampleFlags.OCCLUDED : 0);
+                recording.recordFlyEvidence(x, insect != null ? fly / (double) (y1 - y0) : Double.NaN);
+                recording.record("color_integral", x, sum, flags);
+                recording.record("background", x, background, usable ? 0 : SpotSampleFlags.INVALID_BACKGROUND);
             }
         }
-        return normalize(observed, minutes, settings,
+        Signal normalized = normalize(observed, minutes, settings,
                 params.rowwiseOcclusionFill ? params.maxRowOcclusionGapColumns : 0);
+        return new Signal(normalized.observed, normalized.integrated, normalized.ratio,
+                normalized.baseline, normalized.baselineSamples, recording.build());
     }
 
     /** Baseline uses observations only (at least three), never interpolated or peak values. */

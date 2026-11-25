@@ -27,6 +27,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * usage.
  */
 public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
+	private SpotCameraMeasurementCapture primaryCapture;
 
 	// V2 background estimation: use an annulus inside the (ellipse) ROI bounds.
 	// Fractions are in normalized ellipse radius units (0=center, 1=ellipse boundary).
@@ -81,6 +82,8 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
 		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
+		primaryCapture = new SpotCameraMeasurementCapture(exp, toProcess, nTimeBins,
+				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.FILTER, options, getClass().getSimpleName());
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels (basic)");
 		progress.setLength(nTimeBins);
@@ -97,12 +100,14 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
 				if (path == null) {
+					primaryCapture.missingImage(t);
 					progress.incPosition();
 					continue;
 				}
 
 				camImage = loader.imageIORead(path);
 				if (camImage == null) {
+					primaryCapture.missingImage(t);
 					progress.incPosition();
 					continue;
 				}
@@ -130,6 +135,7 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 
 		// sumNoFly from sum + fly (same as Edit / load), then sumClean = sumNoFly; then Level2D
 		final long tPostStart = System.nanoTime();
+		primaryCapture.publish();
 		// Pixel-level no-fly: apply conservative plateau correction on bins with high fly occupancy,
 		// then rebuild CLEAN from the corrected sumNoFly.
 		spots.applyFlyPlateauOnSumNoFlyForSpots(toProcess, options.getFlyOccupancyFractionForSpotSumNoFly());
@@ -291,6 +297,9 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 			}
 
 			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			primaryCapture.record(spot, timeIndex, nPointsFlyPresent,
+					nPointsFlyPresent >= Spots.getMinFlyPixelsForOccupancyGate(spot, options.getFlyOccupancyFractionForSpotSumNoFly()),
+					meanAll, nNoFly > 0 ? sumOverThresholdNoFly / nNoFly : Double.NaN);
 		}
 	}
 

@@ -64,6 +64,8 @@ public class SpotLineDyeReferenceTest {
 		boolean[] fly = new boolean[other.length];
 		for (int y = 45; y <= 55; y++) for (int x = 45; x <= 55; x++) fly[y * SIZE + x] = true;
 		assertTrue(Double.isNaN(reference.measure(0, red, other, other, 0, 1, fly)));
+		assertTrue(reference.flyOccupancy(0, fly) >= SpotLineDeficitAnalyzer.FLY_OCCUPANCY_FRACTION);
+		assertTrue(Double.isFinite(reference.measure(0, red, other, other, 0, 1, null)));
 		reference.observe(0, 1, red, other, other, 0, 1, fly);
 		assertEquals(1, reference.acceptedFrames(0));
 	}

@@ -124,6 +124,12 @@ public final class SpotLineDyeReference {
 	}
 
 	private boolean visible(int spot, boolean[] insect) {
+		double fraction = flyOccupancy(spot, insect);
+		return Double.isFinite(fraction) && fraction < SpotLineDeficitAnalyzer.FLY_OCCUPANCY_FRACTION;
+	}
+
+	/** Fraction of the learned measurement footprint obscured by the signal mask. */
+	public double flyOccupancy(int spot, boolean[] insect) {
 		boolean learned = footprintStations(spot) > 0;
 		int total = 0, masked = 0;
 		for (int i = 0; i < centers[spot].length; i++) {
@@ -131,7 +137,7 @@ public final class SpotLineDyeReference {
 			total++;
 			if (blocked(spot, i, insect)) masked++;
 		}
-		return total > 0 && masked < SpotLineDeficitAnalyzer.FLY_OCCUPANCY_FRACTION * total;
+		return total > 0 ? masked / (double) total : Double.NaN;
 	}
 
 	private boolean enoughValues(int spot, double[] values) {

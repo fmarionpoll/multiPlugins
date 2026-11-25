@@ -6,6 +6,12 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
+import java.util.Map;
+import java.util.LinkedHashMap;
+import java.util.Collections;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
@@ -21,6 +27,16 @@ public final class KymoAnalysisCsvExport_new {
 
     public static void write(Path directory, Result result, Params params) throws IOException {
         Files.createDirectories(directory);
+        Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> primary = new LinkedHashMap<>();
+        for (Row row : result.rows) {
+            if (row.spot != null && row.signal.primary != null) {
+                if (primary.put(row.spot.getName(), Collections.singletonMap(SpotMeasurementMethod.VERTICAL_LINE, row.signal.primary)) != null) {
+                    throw new IOException("Duplicate spot name in primary trial measurements: " + row.spot.getName());
+                }
+            }
+        }
+        // Trials retain their own raw sidecar and never replace the committed standard measurements.
+        if (!primary.isEmpty()) { SpotMeasurementXml.write(directory.resolve("SpotsPrimaryMeasurementsTrial.xml"), primary); }
         try (CSVPrinter out = new CSVPrinter(Files.newBufferedWriter(directory.resolve("kymo_analysis_new_spots.csv"),
                 StandardCharsets.UTF_8), CSVFormat.DEFAULT)) {
             out.printRecord("cage_id", "spot_name", "stimulus", "concentration", "time_min", "observed_integral",

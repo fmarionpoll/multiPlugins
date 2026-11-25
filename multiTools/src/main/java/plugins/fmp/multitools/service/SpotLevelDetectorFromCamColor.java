@@ -35,6 +35,7 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformInterface;
  * {@code 255 - binaryValue} so the UI direction stays consistent with the overlay preview.
  */
 public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
+	private SpotCameraMeasurementCapture primaryCapture;
 
 	@Override
 	public void detectSpots(Experiment exp, BuildSeriesOptions options) {
@@ -91,6 +92,8 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 
 		final CanvasImageTransformOptions transformOptionsSpot = ImageTransformUtils.buildCanvasOptionsForSpot(options);
 		final CanvasImageTransformOptions transformOptionsFly = ImageTransformUtils.buildCanvasOptionsForFly(options);
+		primaryCapture = new SpotCameraMeasurementCapture(exp, toProcess, nTimeBins,
+				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.COLOR, options, getClass().getSimpleName());
 
 		ProgressFrame progress = new ProgressFrame("Detecting spot levels (color-distance)");
 		progress.setLength(nTimeBins);
@@ -108,12 +111,14 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 
 				String path = seqCamData.getFileNameFromImageList(camFrameIndex);
 				if (path == null) {
+					primaryCapture.missingImage(t);
 					progress.incPosition();
 					continue;
 				}
 
 				camImage = loader.imageIORead(path);
 				if (camImage == null) {
+					primaryCapture.missingImage(t);
 					progress.incPosition();
 					continue;
 				}
@@ -146,6 +151,7 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 		applyColorFlyNanBorderAdaptiveTrim(toProcess, options.colorFlyNaNDilationBins,
 				options.colorFlyNaNBorderMedianHalfWidth, options.colorFlyNaNBorderSpikeRatio);
 
+		primaryCapture.publish();
 		for (Spot spot : toProcess) {
 			if (spot != null) {
 				spot.getColorDistanceMeasurements().rebuildGreySumCleanFromGreySum(options);
@@ -413,6 +419,7 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 				spot.getColorDistanceGreySignal().setValueAt(timeIndex, greyVal);
 			}
 			spot.getFlyCoveredPixelCount().setIsPresentAt(timeIndex, nPointsFlyPresent);
+			primaryCapture.record(spot, timeIndex, nPointsFlyPresent, nPointsFlyPresent >= minFlyPx, greyVal, nOver);
 		}
 	}
 
