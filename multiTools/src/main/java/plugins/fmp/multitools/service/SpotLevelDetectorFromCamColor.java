@@ -336,8 +336,8 @@ public class SpotLevelDetectorFromCamColor implements SpotLevelDetectionRunner {
 				roiMask.buildMask2DFromInputRoi();
 				spot.setROIMask(roiMask);
 			} catch (ValidationException | ProcessingException e) {
-				Logger.warn("SpotLevelDetectorFromCamColor: failed to build mask for spot " + spot.getName() + " - "
-						+ e.getMessage());
+				Logger.warn(SpotDetectorLog.maskFailure("SpotLevelDetectorFromCamColor", exp, spot.getName(),
+						e.getMessage()));
 			}
 		}
 	}

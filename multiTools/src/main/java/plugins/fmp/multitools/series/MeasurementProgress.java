@@ -8,7 +8,15 @@ public final class MeasurementProgress {
     }
     private static final Listener NONE = (phase, unit, completed, total) -> { };
     private static final ThreadLocal<Listener> CURRENT = new ThreadLocal<>();
+    private static final ThreadLocal<ListPosition> LIST_POSITION = new ThreadLocal<>();
     private MeasurementProgress() { }
+
+    /** 1-based position of the experiment in the combo list while a batch step is running. */
+    public static final class ListPosition {
+        public final int index;
+        public final int size;
+        public ListPosition(int index, int size) { this.index = index; this.size = size; }
+    }
 
     /** Capture on the batch thread before starting parallel frame workers. */
     public static Listener current() {
@@ -16,12 +24,26 @@ public final class MeasurementProgress {
     }
     public static void phase(String phase) { current().update(phase, null, 0, 0); }
     public static void images(int completed, int total) { current().update(null, "Image", completed, total); }
-    public static Scope install(Listener listener) { return new Scope(listener); }
+    public static ListPosition listPosition() { return LIST_POSITION.get(); }
+    public static Scope install(Listener listener) { return new Scope(listener, null); }
+    public static Scope install(Listener listener, ListPosition position) { return new Scope(listener, position); }
 
     public static final class Scope implements AutoCloseable {
         private final Listener previous;
-        private Scope(Listener listener) { previous = CURRENT.get(); CURRENT.set(listener); }
-        @Override public void close() { if (previous == null) CURRENT.remove(); else CURRENT.set(previous); }
+        private final ListPosition previousPosition;
+        private final boolean setsPosition;
+        private Scope(Listener listener, ListPosition position) {
+            previous = CURRENT.get();
+            CURRENT.set(listener);
+            previousPosition = LIST_POSITION.get();
+            setsPosition = position != null;
+            if (setsPosition) LIST_POSITION.set(position);
+        }
+        @Override public void close() {
+            if (previous == null) CURRENT.remove(); else CURRENT.set(previous);
+            if (!setsPosition) return;
+            if (previousPosition == null) LIST_POSITION.remove(); else LIST_POSITION.set(previousPosition);
+        }
     }
 
     static String message(int ordinal, int batchSize, int listIndex, int listSize, String name,

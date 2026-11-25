@@ -215,8 +215,8 @@ public class SpotLevelDetectorFromCamBasic implements SpotLevelDetectionRunner {
 				roiMask.buildMask2DFromInputRoi();
 				spot.setROIMask(roiMask);
 			} catch (ValidationException | ProcessingException e) {
-				Logger.warn("SpotLevelDetectorFromCamBasic: failed to build mask for spot " + spot.getName() + " - "
-						+ e.getMessage());
+				Logger.warn(SpotDetectorLog.maskFailure("SpotLevelDetectorFromCamBasic", exp, spot.getName(),
+						e.getMessage()));
 			}
 		}
 	}

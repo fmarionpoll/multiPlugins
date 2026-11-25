@@ -140,7 +140,8 @@ public abstract class BuildSeries extends SwingWorker<Integer, Integer> {
 				};
 				listener.update("Loading measurements", null, 0, 0);
 				progress.setToolTipText(exp.getResultsDirectory());
-				try (MeasurementProgress.Scope reporting = MeasurementProgress.install(listener)) {
+				try (MeasurementProgress.Scope reporting = MeasurementProgress.install(listener,
+						new MeasurementProgress.ListPosition(absIndex, listSize))) {
 					analyzeExperiment(exp);
 				}
 				progress.setPosition(ordinal);
