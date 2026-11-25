@@ -18,6 +18,7 @@ import plugins.fmp.multiSPOTS.dlg.define_spots._DlgSpots_;
 import plugins.fmp.multiSPOTS.dlg.experiment._DlgExperiment_;
 import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS.dlg.flyPosition._DlgDetectFlies_;
+import plugins.fmp.multiSPOTS.dlg.fractions.CalculateSpotFractionsPanel;
 import plugins.fmp.multiSPOTS.dlg.measure_imageColors._DlgMeasureUsingColors_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters._DlgMeasureUsingFilters_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageLines._DlgMeasureUsingLines_;
@@ -52,6 +53,7 @@ public class MultiSPOTS extends PluginActionable {
 	public _DlgMeasureUsingLines_ dlgKymos = new _DlgMeasureUsingLines_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 	public _DlgDetectFlies_ dlgDetectFlies = new _DlgDetectFlies_();
+	public CalculateSpotFractionsPanel dlgFractions = new CalculateSpotFractionsPanel(this);
 
 	public JTabbedPane tabsPane = new JTabbedPane();
 
@@ -97,9 +99,10 @@ public class MultiSPOTS extends PluginActionable {
 		dlgBrowse.init(mainPanel, "Browse", this);
 		dlgExperiment.init(mainPanel, "Experiment", this);
 		dlgSpots.init(mainPanel, "Define spots", this);
-		dlgMeasure.init(mainPanel, "Measure: image filters", this);
-		dlgMeasureColor.init(mainPanel, "Measure: color distance", this);
-		dlgKymos.init(mainPanel, "Measure: intensity along lines", this);
+		dlgMeasure.init(mainPanel, "Collect measurements: image filters", this);
+		dlgMeasureColor.init(mainPanel, "Collect measurements: color distance", this);
+		dlgKymos.init(mainPanel, "Collect measurements: intensity along lines", this);
+		dlgFractions.init(mainPanel);
 		dlgDetectFlies.init(mainPanel, "Fly detection", this);
 		dlgExcel.init(mainPanel, "Export", this);
 

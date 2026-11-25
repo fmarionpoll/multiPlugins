@@ -65,12 +65,18 @@ public final class SpotSeriesProcessor {
                     && times[cursor] - times[start - 1] <= settings.maximumGapSeconds;
             boolean connectable = eligible && Math.abs(values[cursor] - values[start - 1]) <= settings.noiseTolerance;
             gaps.add(new Gap(start, end, kind, connectable));
-            if (!eligible || settings.gapPolicy == GapPolicy.NONE) { continue; }
+            if (kind == GapKind.TRAILING && pureOcclusion && start > 0
+                    && settings.tailPolicy == SpotProcessingSettings.TailPolicy.HOLD_PREVIOUS
+                    && times[end] - times[start - 1] <= settings.maximumGapSeconds) {
+                for (int i = start; i <= end; i++) { values[i] = values[start - 1]; estimated[i] = true; }
+            }
+            GapPolicy policy = connectable ? settings.similarGapPolicy : settings.gapPolicy;
+            if (!eligible || policy == GapPolicy.NONE) { continue; }
             double left = values[start - 1];
             double right = values[cursor];
             for (int i = start; i <= end; i++) {
                 double fraction = (times[i] - times[start - 1]) / (times[cursor] - times[start - 1]);
-                values[i] = settings.gapPolicy == GapPolicy.HOLD_PREVIOUS ? left : left + fraction * (right - left);
+                values[i] = policy == GapPolicy.HOLD_PREVIOUS ? left : left + fraction * (right - left);
                 estimated[i] = true;
             }
         }
