@@ -18,7 +18,7 @@
     <packaging>pom</packaging>
 
     <name>Multi Plugins Parent</name>
-    <description>Parent project for m_multiCAFE, m_multiSPOTS and m_multiTools shared library</description>
+    <description>Parent project for multiCAFE, multiSPOTS, and the multiTools shared library</description>
 
     <organization>
         <name>IDEEV UMR EGCE (CNRS-IRD-Paris-Saclay)</name>

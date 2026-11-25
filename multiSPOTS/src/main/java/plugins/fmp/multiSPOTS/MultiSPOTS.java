@@ -20,7 +20,7 @@ import plugins.fmp.multiSPOTS.dlg.export._DlgExport_;
 import plugins.fmp.multiSPOTS.dlg.flyPosition._DlgDetectFlies_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageColors._DlgMeasureUsingColors_;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters._DlgMeasureUsingFilters_;
-import plugins.fmp.multiSPOTS.dlg.measure_imageLines._DlgMeasureUsingKymos_;
+import plugins.fmp.multiSPOTS.dlg.measure_imageLines._DlgMeasureUsingLines_;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ui.FrameGeometryPreferences;
 import plugins.fmp.multitools.series.CageKymographViewerUtil;
@@ -49,7 +49,7 @@ public class MultiSPOTS extends PluginActionable {
 	public _DlgSpots_ dlgSpots = new _DlgSpots_();
 	public _DlgMeasureUsingFilters_ dlgMeasure = new _DlgMeasureUsingFilters_();
 	public _DlgMeasureUsingColors_ dlgMeasureColor = new _DlgMeasureUsingColors_();
-	public _DlgMeasureUsingKymos_ dlgKymos = new _DlgMeasureUsingKymos_();
+	public _DlgMeasureUsingLines_ dlgKymos = new _DlgMeasureUsingLines_();
 	public _DlgExport_ dlgExcel = new _DlgExport_();
 	public _DlgDetectFlies_ dlgDetectFlies = new _DlgDetectFlies_();
 
