@@ -14,6 +14,7 @@ import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.ids.SpotID;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurements;
 import plugins.fmp.multitools.tools.ROI2D.ROI2DWithMask;
 import plugins.fmp.multitools.tools.results.EnumResults;
 import plugins.fmp.multitools.tools.toExcel.utils.SpotExcelTimeline;
@@ -48,6 +49,12 @@ public class Spot implements Comparable<Spot> {
 	private final SpotKymographMeasurements kymographMeasurements;
 	private final SpotMetadata metadata;
 	private final SpotRimGeometry rimGeometry;
+	/** Primary method results; legacy fields below remain the chart/export compatibility API. */
+	private final SpotMeasurements methodMeasurements = new SpotMeasurements();
+
+	public SpotMeasurements getMethodMeasurements() {
+		return methodMeasurements;
+	}
 
 	// === CONSTRUCTORS ===
 
@@ -94,6 +101,9 @@ public class Spot implements Comparable<Spot> {
 		this.kymographMeasurements = new SpotKymographMeasurements(sourceSpot.kymographMeasurements, includeMeasurements);
 		this.metadata = new SpotMetadata(sourceSpot.metadata);
 		this.rimGeometry = sourceSpot.rimGeometry.copy();
+		if (includeMeasurements) {
+			this.methodMeasurements.copyFrom(sourceSpot.methodMeasurements);
+		}
 
 		if (sourceSpot.spotROI2D != null) {
 			this.spotROI2D = (ROI2DShape) sourceSpot.spotROI2D.getCopy();
@@ -146,6 +156,7 @@ public class Spot implements Comparable<Spot> {
 		this.rimGeometry.copyFrom(sourceSpot.rimGeometry);
 
 		if (includeMeasurements) {
+			this.methodMeasurements.copyFrom(sourceSpot.methodMeasurements);
 			this.filterMeasurements.copyFrom(sourceSpot.filterMeasurements);
 			this.colorDistanceMeasurements.copyFrom(sourceSpot.colorDistanceMeasurements);
 		}
