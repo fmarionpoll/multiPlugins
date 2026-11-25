@@ -12,18 +12,14 @@ import plugins.fmp.multitools.experiment.spot.measurement.*;
 
 /** Fraction charts preserve missing values, negative consumption, and explicit estimated segments. */
 public final class SpotFractionChart {
-    public enum View { RAW_MEASUREMENT, VALID_MEASUREMENTS, FRACTION_REMAINING, FRACTION_CONSUMED, ILLUMINATION_FACTOR, SUPPORTING_SPOTS }
+    public enum View { FRACTION_REMAINING, FRACTION_CONSUMED, ILLUMINATION_FACTOR, SUPPORTING_SPOTS }
+    public static View[] fractionViews() { return new View[] { View.FRACTION_REMAINING, View.FRACTION_CONSUMED }; }
+    public static View[] diagnosticViews() { return new View[] { View.ILLUMINATION_FACTOR, View.SUPPORTING_SPOTS }; }
     private SpotFractionChart() { }
 
     public static XYSeriesCollection data(Row row, View view, boolean connectSimilar) {
         double[] values;
         switch (view) {
-        case RAW_MEASUREMENT: values = row.input.result.getQuantity(row.key.quantity).getRawValues(); break;
-        case VALID_MEASUREMENTS:
-            values = row.input.result.getQuantity(row.key.quantity).getRawValues();
-            int[] flags = row.input.result.getQuantity(row.key.quantity).getEffectiveFlags();
-            for (int i = 0; i < values.length; i++) if (flags[i] != 0) values[i] = Double.NaN;
-            break;
         case FRACTION_REMAINING: values = row.remaining(); break;
         case FRACTION_CONSUMED: values = row.consumed(); break;
         case ILLUMINATION_FACTOR: values = row.factors(); break;
@@ -56,11 +52,10 @@ public final class SpotFractionChart {
     }
 
     public static JFreeChart create(Row row, View view, boolean connectSimilar) {
-        String unit = row.input.result.getQuantity(row.key.quantity).getUnit();
         String label = view == View.FRACTION_CONSUMED ? "Fraction consumed (1 - signal/reference)"
                 : view == View.FRACTION_REMAINING ? "Fraction remaining (signal/reference)"
                 : view == View.ILLUMINATION_FACTOR ? "Estimated multiplicative drift factor"
-                : view == View.SUPPORTING_SPOTS ? "Supporting spots (count)" : "Measurement (" + unit.replace('_', ' ') + ")";
+                : "Supporting spots (count)";
         XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer(true, false);
         renderer.setSeriesPaint(0, new Color(40, 80, 120)); renderer.setSeriesPaint(1, new Color(160, 95, 30));
         renderer.setSeriesStroke(1, new BasicStroke(1.5f, BasicStroke.CAP_BUTT, BasicStroke.JOIN_MITER, 10, new float[] { 5, 4 }, 0));
@@ -68,13 +63,7 @@ public final class SpotFractionChart {
         renderer.setDefaultToolTipGenerator((dataset, series, item) -> "Time " + dataset.getXValue(series, item)
                 + " min; value " + dataset.getY(series, item) + "; " + validity(flags[item])
                 + (series == 1 ? "; estimated or display-only connection" : ""));
-        XYPlot measures = new XYPlot(data(row, view, connectSimilar), null, new NumberAxis(label), renderer);
-        XYSeries fly = new XYSeries("Fly evidence", false); double[] times = row.input.result.getTimesSeconds(), evidence = row.input.result.getFlyEvidence();
-        for (int i = 0; i < times.length; i++) fly.add(times[i] / 60, Double.isFinite(evidence[i]) ? Double.valueOf(evidence[i]) : null);
-        XYPlot occupancy = new XYPlot(new XYSeriesCollection(fly), null,
-                new NumberAxis("Fly (" + row.input.result.getFlyEvidenceUnit().replace('_', ' ') + ")"), new XYLineAndShapeRenderer(true, false));
-        CombinedDomainXYPlot combined = new CombinedDomainXYPlot(new NumberAxis("Elapsed time (minutes)"));
-        combined.add(measures, 3); combined.add(occupancy, 1);
+        XYPlot measures = new XYPlot(data(row, view, connectSimilar), new NumberAxis("Elapsed time (minutes)"), new NumberAxis(label), renderer);
         String status = row.excluded ? " — excluded deposit" : !row.issues.isEmpty() ? " — review required" : "";
         if (row.reference != null && !row.excluded) {
             if (row.reference.kind == plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.ReferenceKind.DELAYED)
@@ -83,7 +72,7 @@ public final class SpotFractionChart {
                     || row.reference.kind == plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.ReferenceKind.PRECONSUMED)
                 status += " — estimated initial reference";
         }
-        return new JFreeChart(row.input.name + status, JFreeChart.DEFAULT_TITLE_FONT, combined, true);
+        return new JFreeChart(row.input.name + status, JFreeChart.DEFAULT_TITLE_FONT, measures, true);
     }
     private static String validity(int flags) {
         if (flags == 0) return "valid observation";

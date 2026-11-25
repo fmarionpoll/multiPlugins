@@ -37,6 +37,11 @@ public class CalculateSpotFractionsPanelTest {
             panel.toleranceMode.setSelectedItem(Tolerance.ROBUST_NOISE); assertFalse(panel.tolerance.isEnabled());
             panel.method.setSelectedItem(SpotMeasurementMethod.VERTICAL_LINE);
             assertEquals(2, ((DefaultComboBoxModel<String>) panel.quantity.getModel()).getIndexOf("color_integral"));
+            assertEquals(2, panel.view.getItemCount());
+            assertEquals(SpotFractionChart.View.FRACTION_REMAINING, panel.view.getItemAt(0));
+            assertEquals(SpotFractionChart.View.FRACTION_CONSUMED, panel.view.getItemAt(1));
+            assertEquals(2, panel.diagnosticView.getItemCount());
+            assertEquals(4, panel.aggregateMeasure.getItemCount());
         });
     }
     @Test public void chartNeverClampsNegativeConsumptionAndMarksFilledSegmentsSeparately() {
@@ -64,6 +69,17 @@ public class CalculateSpotFractionsPanelTest {
         SpotFractionPlan merged = CalculateSpotFractionsPanel.mergeSelection(saved, preview, key);
         assertTrue(merged.settings.containsKey(other)); assertFalse(merged.settings.containsKey(key.forSpot("A")));
         assertEquals(2, merged.review.size());
+    }
+    @Test public void aggregatePlotsDoNotTreatVisualConnectionsAsCalculatedContributions() {
+        Settings settings = new Settings(GapPolicy.NONE, GapPolicy.NONE, TailPolicy.KEEP_MISSING, 600,
+                Tolerance.PERCENT_REFERENCE, 8, 0, Illumination.NONE);
+        Row row = row(new double[] {100, 900, 100}, new int[] {0, 1, 0}, settings);
+        plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation.Group group =
+                plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation.build(Collections.singletonList(row.input),
+                        Collections.singletonList(row), key, new SpotFractionPlan()).get(0);
+        XYSeriesCollection data = SpotFractionAggregateChart.data(group,
+                plugins.fmp.multitools.experiment.spot.fraction.SpotFractionAggregation.Measure.SUM_CONSUMED);
+        assertNull(data.getY(0, 1)); assertNull(data.getY(1, 1)); assertEquals(0, group.availableSpots()[1]);
     }
     private void collect(Container container, Set<String> buttons) {
         for (Component child : container.getComponents()) {

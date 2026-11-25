@@ -3,8 +3,10 @@
 Measurement collection and conversion to fractions are now separate stages.
 The three method panels are labelled **Collect measurements**. The new
 **Calculate spot fractions** section opens a resizable calculation workspace.
-Existing collection charts and exports remain available as compatibility paths;
-exports have not yet been switched to these fraction calculations.
+Collection chart menus now show only primary measurements with gaps and
+method-specific fly presence. Legacy result identifiers remain available to
+compatibility builders and exports; exports have not yet been switched to these
+fraction calculations.
 
 ## Starting with one experiment
 
@@ -17,11 +19,12 @@ exports have not yet been switched to these fraction calculations.
    the trial primary sidecar without replacing standard vertical measurements.
 3. Use **Load saved** to recover the experiment's choices and calculate from them.
    **Preview current** applies the controls without writing files.
-4. Inspect the spot list and chart. Display raw measurements, valid observations,
-   fraction remaining, fraction consumed, estimated drift factors or supporting
-   spot counts. Fly evidence is aligned below the curve. Observations are solid;
-   estimates and optional display-only connections are dashed. Missing values and
-   negative apparent consumption are preserved.
+4. Inspect the spot list and fraction chart. The main display offers fraction
+   remaining and fraction consumed. Observations are solid; estimates and optional
+   display-only connections are dashed. Missing values and negative apparent
+   consumption are preserved. Drift factors and supporting counts are on a
+   separate **Correction diagnostics** tab. Inspect measured values and fly
+   presence from the collection chart panels.
 5. Resolve initial references where necessary. Clicking a valid positive chart
    sample fills the reference fields from its original measurement, not from the
    plotted normalized or reconstructed value. Approve it, enter a justified
@@ -29,6 +32,31 @@ exports have not yet been switched to these fraction calculations.
    Reference decisions are staged until saved.
 6. Use **Calculate & save current** to persist processing choices, references and
    pending review items. Primary values are not modified.
+
+## Charts by processing stage
+
+The collection chart panels contain one acquisition-only selector. Filters and
+colors expose their native signal/area measures and fly evidence; the line family
+exposes vertical height/coverage, X coverage and rim coverage with independent
+fly traces for each geometry. The terms "coverage" and "row coverage" here name
+direct image measurements, not normalization to the initial spot. Rejected values
+are null samples in the plots, including internal and edge occlusions. Native
+method timestamps and units are preserved. There are no smoothing, baseline,
+relative-to-maximum or aggregate controls in these panels. Use experiment, cage
+or selected-spot scope, with optional matching-color dashed fly traces on a second
+axis. Primary data are required: cleaned legacy series are not substituted.
+
+**Aggregated fractions** belongs to the calculation workspace. It offers sums
+(spot equivalents) and means (fractions) of remaining or consumed signal by cage,
+stimulus and concentration. Each group's membership is fixed to the configured
+spots, excluding explicitly failed deposits. Missing primary data, missing
+observations and unapproved or stale references do not silently drop members:
+the complete total and mean remain missing until every expected member contributes.
+An aligned lower plot shows available and expected counts. Values align at exact
+native timestamps; no resampling or interpolation is introduced by aggregation.
+Estimates from filling or borrowed initial references are marked. Visual-only
+connections never count as measured or calculated contributions. Spots without
+an assigned cage are not pooled into an invented group.
 
 The fraction conversion is explicitly linear: remaining = signal / reference,
 consumed = 1 - remaining. It is a fraction inferred from the selected image

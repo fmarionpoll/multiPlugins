@@ -99,11 +99,11 @@ public class MultiSPOTS extends PluginActionable {
 		dlgBrowse.init(mainPanel, "Browse", this);
 		dlgExperiment.init(mainPanel, "Experiment", this);
 		dlgSpots.init(mainPanel, "Define spots", this);
-		dlgMeasure.init(mainPanel, "Collect measurements: image filters", this);
-		dlgMeasureColor.init(mainPanel, "Collect measurements: color distance", this);
-		dlgKymos.init(mainPanel, "Collect measurements: intensity along lines", this);
+		dlgMeasure.init(mainPanel, "Measure: image filters", this);
+		dlgMeasureColor.init(mainPanel, "Measure: color distance", this);
+		dlgKymos.init(mainPanel, "Measure: intensity along lines", this);
 		dlgFractions.init(mainPanel);
-		dlgDetectFlies.init(mainPanel, "Fly detection", this);
+		dlgDetectFlies.init(mainPanel, "Detect flies", this);
 		dlgExcel.init(mainPanel, "Export", this);
 
 		mainFrame.setLayout(new BorderLayout());

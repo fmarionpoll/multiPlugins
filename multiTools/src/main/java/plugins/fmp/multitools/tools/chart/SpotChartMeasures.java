@@ -2,7 +2,7 @@ package plugins.fmp.multitools.tools.chart;
 
 import plugins.fmp.multitools.tools.results.EnumResults;
 
-/** One catalog for dialog controls, chart-window controls and request validation. */
+/** Legacy result identifiers for compatibility builders and exports. Collection charts use SpotAcquisitionCharts. */
 public final class SpotChartMeasures {
 	public enum Family {
 		FILTER("Image filter", new EnumResults[] { EnumResults.FILTER_GREY,
