@@ -3,9 +3,10 @@
 ## Frozen design decisions — 26 November 2026
 
 This section records the agreed target workflow and persistence responsibilities.
-It takes precedence over the descriptions of the current interface below.
-The primary-measurement CSV change is implemented; the interface reorganization,
-targeted fraction corrections and fraction-result CSV persistence remain to be built.
+It takes precedence over the descriptions of the implemented interface below.
+The primary-measurement CSV split and the calculation-workspace reorganization
+are implemented. Targeted fraction corrections and fraction-result CSV
+persistence are not implemented.
 
 ### Interface and workflow
 
@@ -29,8 +30,10 @@ The section will have three main tabs:
   diagnostics. Move the main fraction chart out of the calculation panel. Share
   the selected experiment, method, quantity and spot with the calculation panels.
 - **Load/save**: restore and save fraction results, correction operations and
-  calculation decisions. Primary-measurement loading belongs to the respective
-  collection subsections; the ambiguous **Load saved** action will be replaced.
+  calculation decisions. Until `SpotsFractionMeasurements.csv` exists, the tab
+  restores and saves settings and references only. Primary-measurement loading
+  belongs to the respective collection subsections; the ambiguous **Load saved**
+  action is replaced by those explicit labels.
 
 The panels share a working state. Users can return to earlier steps without
 intermediate saving. Correction tools show their scope and preview, with
@@ -83,15 +86,101 @@ The exact correction-tool inventory, CSV section layout, image-index base and
 ordering/overlap rules for multiple operations still need implementation design.
 These details must preserve the responsibilities and behavior agreed above.
 
-## Current implementation (before the planned interface reorganization)
+## Implemented interface
 
-Measurement collection and conversion to fractions are now separate stages.
-The three method panels are labelled **Collect measurements**. The new
-**Calculate spot fractions** section opens a resizable calculation workspace.
-Collection chart menus now show only primary measurements with gaps and
-method-specific fly presence. Legacy result identifiers remain available to
-compatibility builders and exports; exports have not yet been switched to these
-fraction calculations.
+Measurement collection and conversion to fractions are separate stages.
+The three method panels are labelled **Collect measurements**. **Calculate spot
+fractions** opens one resizable workspace. That workspace reads existing primary
+files and does not acquire images or rewrite them. Collection chart menus show
+only primary measurements with gaps and method-specific fly presence. Legacy
+result identifiers remain available to compatibility builders and exports;
+exports have not yet been switched to these fraction calculations.
+
+The workspace has three main tabs. Experiment, method, quantity, selected spot,
+settings, reference decisions, preview results and review issues stay in one
+working state. Changing tabs or calculation steps does not discard edits or
+reload the file.
+
+### Calculate fractions
+
+Three numbered buttons switch panels inside the workspace:
+
+1. **Find hmax - initial reference.** hmax is the original unconsumed deposit for
+   the selected spot, method and quantity, not the largest measurement in the
+   recording. This panel holds reference status, value, time and source,
+   approval, donor selection, pre-consumed handling and failed-deposit exclusion.
+   It distinguishes initial, delayed, borrowed, external, pre-consumed,
+   unresolved and excluded references. Approving a delayed observation does not
+   recover earlier consumption. Maximum-observation and baseline-median
+   estimators stay in an advanced area, with their limitations stated. Saved
+   estimator choices are still read and written.
+2. **Handle occlusions.** Similar endpoints, changed endpoints, tolerance,
+   maximum gap duration and the final gap are here, together with the
+   selected-spot override. Initial gaps stay missing. Missing images and failed
+   detections are not treated as ordinary fly occlusions. Median smoothing and
+   common multiplicative drift are in an advanced area.
+3. **Edit/view fractions.** This shows calculated status and outstanding issues,
+   and can return to the reference or occlusion panel for the selected issue.
+   It does not edit sample values. The future correction toolbox is described
+   here and is not implemented; there is no correction button.
+
+**Preview calculation** applies the visible settings to the working calculation
+and refreshes results. It does not write a file. Approve, borrow, pre-consumed,
+exclude and remove-override validate those reference decisions into the same
+working state. **Back to the three steps** returns to the overview. The selected
+spot and its status stay available from the header and the spot list.
+
+### Charts
+
+The fraction display is no longer inside the calculation panel. Subordinate
+views are:
+
+- **Individual fractions** for remaining and consumed fractions.
+- **Aggregated fractions.**
+- **Correction diagnostics.**
+
+Estimate markers, missing values, negative apparent consumption, display-only
+connections, aggregate coverage counts and **Locate spot** are unchanged.
+Clicking a valid positive observation copies its original measurement into the
+reference fields. The plotted fraction is not used. **Open Find hmax - initial
+reference** returns to that panel.
+
+### Load/save
+
+- **Restore saved fraction settings and references** reads
+  `SpotFractionSettings.xml`.
+- **Save fraction settings and references** writes that file.
+
+Those labels match what is stored today: processing settings, reference
+decisions and the saved review list. They do not write
+`SpotsFractionMeasurements.csv`. Experiment-range processing, the saved review
+list, the batch report and **Stop after current experiment** are separate
+sections on this tab. The old **Load saved** label is gone.
+
+Changing experiment, method or quantity, restoring the file, or closing the
+workspace asks Save, Discard or Cancel when there are unsaved edits. A failed
+save keeps the edits and leaves the workspace open. Preview and save keep
+staged reference decisions. After preview or save, the controls and the
+calculated rows use the same settings.
+
+The header shows the input method, quantity, source file and whether that file
+is present. Filter, color, X-line and rim-line inputs and settings stay in
+`results` and ignore kymograph bin selection. Only vertical measurements use
+`results/bin_xx`.
+
+## Remaining work
+
+- Targeted interval corrections, including the correction toolbox modeled on
+  multiCAFE Edit and fly-detection Edit. Edit/view fractions only reports issues
+  and routes back to the general rules.
+- `SpotsFractionMeasurements.csv`, including calculated remaining and consumed
+  fractions and the active correction-operation section. No fraction-result file
+  is written yet.
+- The exact correction-tool inventory, CSV section layout, image-index base and
+  overlap rules.
+- Switching exports from legacy result identifiers to these fraction calculations.
+- Validation in the Icy application against camera viewers and biological
+  recordings. The automated tests do not open an Icy workspace.
 
 ## Starting with one experiment
 
@@ -104,24 +193,25 @@ fraction calculations.
    combined CSV and measurement XML files are ignored; rerun collection to
    generate the per-method CSVs. Small calculation decisions remain in
    `SpotFractionSettings.xml`.
-2. Open the calculation workspace and choose the method and measured quantity.
-   The experimental vertical color integral can be selected separately; it reads
-   the trial primary sidecar without replacing standard vertical measurements.
-3. Use **Load saved** to recover the experiment's choices and calculate from them.
-   **Preview current** applies the controls without writing files.
-4. Inspect the spot list and fraction chart. The main display offers fraction
-   remaining and fraction consumed. Observations are solid; estimates and optional
-   display-only connections are dashed. Missing values and negative apparent
-   consumption are preserved. Drift factors and supporting counts are on a
-   separate **Correction diagnostics** tab. Inspect measured values and fly
-   presence from the collection chart panels.
+2. Open the calculation workspace. The header shows the method, quantity, source
+   file and whether it is available. The experimental vertical color integral
+   can be selected separately; it reads the trial primary sidecar without
+   replacing standard vertical measurements.
+3. Use **Restore saved fraction settings and references** to recover the
+   experiment's choices and calculate from them. **Preview calculation** applies
+   the visible controls to the working state without writing a file.
+4. Use **Find hmax - initial reference**, then **Handle occlusions**. Inspect
+   individual, aggregated and diagnostic charts on the Charts tab. Observations
+   are solid; estimates and optional display-only connections are dashed.
+   Missing values and negative apparent consumption are preserved.
 5. Resolve initial references where necessary. Clicking a valid positive chart
    sample fills the reference fields from its original measurement, not from the
    plotted normalized or reconstructed value. Approve it, enter a justified
    external reference, choose comparable donors, or identify a failed deposit.
-   Reference decisions are staged until saved.
-6. Use **Calculate & save current** to persist processing choices, references and
-   pending review items. Primary values are not modified.
+   Those decisions stay in the working state until saved.
+6. Use **Save fraction settings and references** to persist processing choices,
+   references and pending review items. Primary values are not modified, and no
+   fraction-result CSV is written.
 
 ## Charts by processing stage
 
@@ -257,6 +347,10 @@ In Eclipse, run these JUnit 4 classes:
 Tests cover reference review, source changes, donor provenance, pre-consumed and
 failed deposits, quiet/changing/internal/trailing gaps, raw immutability, negative
 consumption, drift support and two-changing-spot cases, persistence, local settings,
-and charts that distinguish estimates and display-only connections. Native Icy
-workspace/viewer interaction and validation against biological recordings still
-need testing in the application.
+and charts that distinguish estimates and display-only connections. The workspace
+test also covers step navigation, raw chart picks, save/reload, discard/cancel,
+failed saves, spot versus experiment occlusion settings, bin-independent X/rim
+paths, batch stop, and saved-review navigation. Native Icy workspace/viewer
+interaction and validation against biological recordings still need testing in
+the application. The automated run does not open a camera viewer or click
+through the live workspace.
