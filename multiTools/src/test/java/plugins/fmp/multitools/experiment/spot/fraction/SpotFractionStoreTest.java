@@ -55,7 +55,7 @@ public class SpotFractionStoreTest {
     @Test public void primaryOnlyBatchLoadDoesNotRequireImages() throws Exception {
         Path directory = folder.getRoot().toPath();
         SpotMethodResult primary = spot("A", 1, false, new double[] {100, 50}).getMethodMeasurements().get(KEY.method);
-        SpotMeasurementXml.write(directory.resolve(SpotMeasurementXml.FILENAME), Collections.singletonMap("A", Collections.singletonMap(KEY.method, primary)));
+        SpotMeasurementCsv.write(directory.resolve(SpotMeasurementCsv.FILENAME), Collections.singletonMap("A", Collections.singletonMap(KEY.method, primary)));
         List<SpotFractionCalculator.Input> inputs = SpotFractionData.read(directory, directory, KEY.method);
         assertEquals(1, inputs.size());
         assertArrayEquals(new double[] {0, .5}, SpotFractionCalculator.calculate(inputs, KEY, new SpotFractionPlan()).get(0).consumed(), 0);
@@ -69,16 +69,34 @@ public class SpotFractionStoreTest {
         SpotMethodResult trial = new SpotMethodResult(method, new double[] {0, 1}, new double[] {0, 0}, "fraction",
                 Collections.emptyMap(), Collections.singletonList(new SpotMeasuredQuantity("color_integral", "metric_pixels",
                         new double[] {200, 80}, new int[2])));
-        Path standard = directory.resolve(SpotMeasurementXml.FILENAME);
-        SpotMeasurementXml.write(standard, Collections.singletonMap("A", Collections.singletonMap(method, current)));
-        SpotMeasurementXml.write(directory.resolve("SpotsPrimaryMeasurementsTrial.xml"),
+        Path standard = directory.resolve(SpotMeasurementCsv.FILENAME);
+        SpotMeasurementCsv.write(standard, Collections.singletonMap("A", Collections.singletonMap(method, current)));
+        SpotMeasurementCsv.write(directory.resolve("SpotsPrimaryMeasurementsTrial.csv"),
                 Collections.singletonMap("A", Collections.singletonMap(method, trial)));
         byte[] saved = Files.readAllBytes(standard);
         assertEquals(100, SpotFractionData.read(directory, directory, method, "color_integral")
                 .get(0).result.getQuantity("color_integral").getRawValues()[0], 0);
         assertArrayEquals(saved, Files.readAllBytes(standard));
-        SpotMeasurementXml.write(standard, Collections.emptyMap());
+        SpotMeasurementCsv.write(standard, Collections.emptyMap());
         assertEquals(200, SpotFractionData.read(directory, directory, method, "color_integral")
                 .get(0).result.getQuantity("color_integral").getRawValues()[0], 0);
+    }
+
+    @Test public void imageFractionInputAlwaysComesFromResultsDespiteSelectedBin() throws Exception {
+        Path root = folder.getRoot().toPath(), bin20 = folder.newFolder("bin_20").toPath(), bin60 = folder.newFolder("bin_60").toPath();
+        for (SpotMeasurementMethod method : SpotMeasurementMethod.values()) {
+            if (method.isKymographDerived()) continue;
+            SpotMethodResult observed = new SpotMethodResult(method, new double[] { 0, 2 }, new double[] { 0, 0 },
+                    "fraction", Collections.emptyMap(), Collections.singletonList(
+                            new SpotMeasuredQuantity("signal", "intensity", new double[] { 100, 50 }, new int[2])));
+            SpotMeasurementCsv.write(root.resolve(SpotMeasurementCsv.FILENAME), Collections.singletonMap("A", Collections.singletonMap(method, observed)));
+            // A leftover file in a bin must neither override image inputs nor become a fallback.
+            SpotMethodResult decoy = observed.withQuantity(new SpotMeasuredQuantity("signal", "intensity", new double[] { 900, 800 }, new int[2]));
+            SpotMeasurementCsv.write(bin20.resolve(SpotMeasurementCsv.FILENAME), Collections.singletonMap("A", Collections.singletonMap(method, decoy)));
+            for (Path bin : new Path[] { bin20, bin60 })
+                assertEquals(100, SpotFractionData.read(root, bin, method).get(0).result.getQuantity("signal").getRawValues()[0], 0);
+            Files.delete(root.resolve(SpotMeasurementCsv.FILENAME));
+            assertTrue(SpotFractionData.read(root, bin20, method).isEmpty());
+        }
     }
 }

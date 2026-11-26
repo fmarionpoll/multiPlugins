@@ -111,7 +111,7 @@ public final class GeometryMeasurementReset {
                 || n.equals("spotsarray.csv") || n.equals("spotfractionsettings.xml")
                 || n.equals("xlinebackground.csv") || n.equals("cagekymographcolumntimes.csv")
                 || n.equals("cagekymographstriplayout.csv")
-                || n.startsWith("spotsprimarymeasurements") && n.endsWith(".xml")
+                || n.startsWith("spotsprimarymeasurements") && (n.endsWith(".csv") || n.endsWith(".xml"))
                 || n.startsWith("spotdetection-") && n.endsWith(".properties")
                 || (n.startsWith("kymocage_") || n.startsWith("spot"))
                         && (n.endsWith(".tif") || n.endsWith(".tiff"))) return true;

@@ -43,11 +43,11 @@ public class CageKymoAnalyzerNewTest {
         Path directory = temporary.newFolder("primary-trial").toPath();
         KymoAnalysisCsvExport_new.write(directory, result, p);
         plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult restored =
-                plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml
-                    .read(directory.resolve("SpotsPrimaryMeasurementsTrial.xml")).get("trialSpot")
+                plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementCsv
+                    .read(directory.resolve("SpotsPrimaryMeasurementsTrial.csv")).get("trialSpot")
                     .get(plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.VERTICAL_LINE);
         assertEquals(600, restored.getQuantity("color_integral").getRawValues()[1], 0);
-        assertFalse(Files.exists(directory.resolve("SpotsPrimaryMeasurements.xml")));
+        assertFalse(Files.exists(directory.resolve("SpotsPrimaryMeasurements.csv")));
         assertTrue(spot.getMethodMeasurements().snapshot().isEmpty());
     }
     @ClassRule public static final plugins.fmp.multitools.test.InMemoryImageRule memory =

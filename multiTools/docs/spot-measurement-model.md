@@ -118,20 +118,56 @@ shared fly series cannot be duplicated as independent per-method detections.
 
 ## Persistence and compatibility
 
-`SpotsPrimaryMeasurements.xml` version 1 stores original values, independent
+`SpotsPrimaryMeasurements.csv` version 1 is the authoritative primary-data file.
+It stores original values, independent
 method timelines, raw fly evidence and its unit, acquisition flags, manual
 rejections, units and acquisition parameters. Double precision and NaNs survive
 round trips. Derived caches are not saved. Files are streamed and replaced through
 a temporary file; atomic replacement is used when the filesystem supports it.
 Malformed or unsupported existing primary files are never silently overwritten.
 
-Camera saves update filter/color primary data; line saves update vertical/X/rim
-data. Partial saves merge into existing primary data and preserve other methods.
+The short-lived `SpotsPrimaryMeasurements.xml` and
+`SpotsPrimaryMeasurementsTrial.xml` formats are no longer read or written. Rerun
+measurement collection (batch mode is supported) to create primary CSV files;
+old XML files can remain on disk but are ignored. Cleaned compatibility values
+in `SpotsMeasures.csv` are not substitutes for these original observations.
+Small parameter/decision files such as `SpotFractionSettings.xml` remain XML.
+
+The UTF-8, comma-delimited CSV starts with `SPOT_PRIMARY_MEASUREMENTS,1`.
+Each `METHOD,spotid,method,fly_unit` block contains zero or more
+`PARAMETER,name,value` records, one `TIMES` row (elapsed seconds), one `FLY` row,
+and one or more quantity blocks. Each quantity starts with `QUANTITY,id,unit`,
+followed by `RAW`, `FLAGS` and `MANUAL` rows with one field per native sample.
+`END_METHOD` closes the method block, including empty timelines; `END_FILE`
+marks a complete file so truncation at a block boundary is rejected. Manual decisions
+are 0/1; unavailable numeric values are `NaN`. Text uses standard CSV quoting,
+including embedded commas, quotes and newlines. Series rows avoid repeating spot
+identifiers and timestamps for every quantity/sample. This is an application
+persistence format, separate from rectangular analysis/export CSVs.
+
+Direct-image saves update filter/color/X-line/rim-line primary data in
+`results/SpotsPrimaryMeasurements.csv`. Their compatibility series in
+`SpotsMeasures.csv`, detection provenance and `XLineBackground.csv` also belong
+in `results`. X-line and rim-line analysis samples the original camera images;
+neither depends on kymographs or the selected kymograph bin.
+
+Only vertical measurements derived from kymographs belong in
+`results/bin_xx/SpotsPrimaryMeasurements.csv` (and that bin's compatibility CSV).
+Loading another bin replaces only vertical data, preserving image-based data.
+Image-method fraction settings and inputs likewise use `results`; vertical
+fraction settings and inputs use the selected bin. Changing a kymograph interval
+cannot select another X-line/rim-line acquisition or reference set.
+No relocation or fallback for recent X/rim files in old bins is provided: rerun
+those analyses to write the corrected locations. Old bin copies are ignored for
+image-based methods. When the bin and results directory coincide, a shared file
+can hold all methods.
+
+Partial saves merge into existing primary data and preserve other methods.
 Omitting a method from an in-memory registry does not delete its stored result;
 an explicit persisted-deletion operation remains a future UI decision. Loading a
 scope replaces that scope in memory, including clearing stale primary data when
 the loaded historical file has no primary sidecar. Kymograph merges preserve
-camera results. Parsing completes before any primary results are replaced.
+image-based results. Parsing completes before any primary results are replaced.
 
 Historical cleaned CSV values and the historical shared fly series are not
 promoted to raw per-method data. Existing experiments remain readable, but need
@@ -149,7 +185,7 @@ fly row invalidates the column; this conservative rule is recorded in metadata.
 
 The experimental vertical color-integral trial retains original integrals and
 fly evidence in the same model. Its trial save operation writes
-`SpotsPrimaryMeasurementsTrial.xml` beside the existing trial CSVs. It does not
+`SpotsPrimaryMeasurementsTrial.csv` beside the existing trial CSVs. It does not
 overwrite the committed standard vertical method. Trial CSV calculations and
 baseline options remain unchanged.
 

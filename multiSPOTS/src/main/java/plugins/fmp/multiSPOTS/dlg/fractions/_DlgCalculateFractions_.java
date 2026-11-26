@@ -414,7 +414,7 @@ public final class _DlgCalculateFractions_ extends JPanel {
 			throw new IllegalArgumentException("Experiment has no results directory");
 		Path results = Paths.get(exp.getResultsDirectory());
 		Path measurements = results;
-		if (method != SpotMeasurementMethod.FILTER && method != SpotMeasurementMethod.COLOR) {
+		if (method.isKymographDerived()) {
 			String bin = parent.expListComboLazy.expListBinSubDirectory;
 			if (bin != null && !bin.isEmpty())
 				measurements = results.resolve(bin);

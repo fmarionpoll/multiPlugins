@@ -154,7 +154,7 @@ public class SpotsPersistence {
 
 	public boolean saveMeasures(Spots spots, String directory, boolean includeKymographs) {
 		return SpotPrimaryMeasurementsPersistence.save(spots, directory,
-				includeKymographs ? SpotPrimaryMeasurementsPersistence.ALL : SpotPrimaryMeasurementsPersistence.CAMERA)
+				includeKymographs ? SpotPrimaryMeasurementsPersistence.ALL : SpotPrimaryMeasurementsPersistence.IMAGE)
 				&& Persistence.saveMeasures(spots, directory, includeKymographs);
 	}
 
@@ -164,13 +164,13 @@ public class SpotsPersistence {
 	 */
 	public boolean loadMeasuresMergeKymo(Spots spots, String binDirectory) {
 		boolean legacy = Persistence.loadMeasures(spots, binDirectory, true);
-		return SpotPrimaryMeasurementsPersistence.load(spots, binDirectory, SpotPrimaryMeasurementsPersistence.LINES)
+		return SpotPrimaryMeasurementsPersistence.load(spots, binDirectory, SpotPrimaryMeasurementsPersistence.KYMOGRAPH)
 				&& (legacy || hasPrimaryMeasurements(binDirectory));
 	}
 
 	private static boolean hasPrimaryMeasurements(String directory) {
 		return directory != null && Files.isRegularFile(Paths.get(directory,
-				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml.FILENAME));
+				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementCsv.FILENAME));
 	}
 
 	/**
@@ -178,8 +178,16 @@ public class SpotsPersistence {
 	 * in the kymographs bin directory.
 	 */
 	public boolean saveKymoMeasures(Spots spots, String kymoBinDirectory) {
-		return SpotPrimaryMeasurementsPersistence.save(spots, kymoBinDirectory, SpotPrimaryMeasurementsPersistence.LINES)
+		return SpotPrimaryMeasurementsPersistence.save(spots, kymoBinDirectory, SpotPrimaryMeasurementsPersistence.KYMOGRAPH)
 				&& Persistence.saveKymoMeasures(spots, kymoBinDirectory);
+	}
+
+	/** X/rim series share a historical container with vertical series, but are image-based. */
+	public boolean hasVerticalMeasurements(Spots spots) {
+		return spots != null && spots.getSpotList().stream().anyMatch(spot -> spot != null
+				&& (spot.getMethodMeasurements().get(SpotMeasurementMethod.VERTICAL_LINE) != null
+						|| java.util.Arrays.stream(EnumResults.values()).anyMatch(type ->
+								type.isPersistedVerticalSpotMeasure() && spot.getMeasurements(type).getCount() > 0)));
 	}
 
 	/**
@@ -672,7 +680,7 @@ public class SpotsPersistence {
 							if (measure == null || !measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
 								continue;
 							}
-							if (kymoSectionsOnly && !measure.isPersistedKymographSpotMeasure()) {
+							if (kymoSectionsOnly && !measure.isPersistedVerticalSpotMeasure()) {
 								continue;
 							}
 							SpotsPersistenceLegacy.csvLoad_Spots_Measures(spotsArray, reader, measure, sep);
@@ -741,7 +749,7 @@ public class SpotsPersistence {
 				writer.write("#;version;" + CSV_VERSION + "\n");
 				for (EnumResults measure : EnumResults.values()) {
 					if (measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)
-							&& (includeKymographs || !measure.isPersistedKymographSpotMeasure())) {
+							&& (includeKymographs || !measure.isPersistedVerticalSpotMeasure())) {
 						SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, measure, ";");
 					}
 				}
@@ -764,8 +772,7 @@ public class SpotsPersistence {
 				Logger.warn("SpotsArrayPersistence:saveKymoMeasures() directory does not exist: " + kymoBinDirectory);
 				return false;
 			}
-			if (spotsArray == null || !spotsArray.getSpotList().stream()
-					.anyMatch(s -> s != null && s.getKymographMeasurements().hasAnyData())) {
+			if (spotsArray == null || !spotsArray.getPersistence().hasVerticalMeasurements(spotsArray)) {
 				return false;
 			}
 			Path csvPath = Paths.get(kymoBinDirectory, ID_V2_SPOTSARRAYMEASURES_CSV);
@@ -784,20 +791,6 @@ public class SpotsPersistence {
 				}
 				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer,
 						EnumResults.KYMO_GREEN_HEIGHT_RATIO, ";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.X_LINE_RATIO,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.RIM_LINE_RATIO,
-						";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.X_LINE_FRACTION, ";")) {
-					return false;
-				}
-				if (!SpotsPersistenceLegacy.csvSave_MeasuresSection(spotsArray, writer, EnumResults.RIM_LINE_FRACTION, ";")) {
 					return false;
 				}
 				Logger.debug("SpotsArrayPersistence:saveKymoMeasures() saved to " + ID_V2_SPOTSARRAYMEASURES_CSV);

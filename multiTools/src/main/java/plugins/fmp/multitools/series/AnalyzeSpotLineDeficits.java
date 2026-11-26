@@ -1,7 +1,6 @@
 package plugins.fmp.multitools.series;
 
 import java.awt.Rectangle;
-import java.io.File;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -131,10 +130,9 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			if (exp.getCages() != null) {
 				exp.getCages().clearSpotAggregatesCache();
 			}
-			ensureKymoBinDirectory(exp);
-			String binDir = exp.getKymosBinFullDirectory();
+			String binDir = exp.getResultsDirectory();
 			MeasurementProgress.phase("Saving measurements");
-			lastSaved = exp.save_kymo_spot_measures();
+			lastSaved = exp.save_image_spot_measures();
 			if (lastSaved) {
 				writeBackgroundDiagnostics(binDir, frames, cages);
 				SpotDetectionProvenance.recordCameraLine(exp, SpotDetectionProvenance.Family.KYMO_CROSS,
@@ -439,7 +437,7 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 	}
 
 	private boolean prepareExperiment(Experiment exp) {
-		applySessionBinName(exp);
+
 		exp.adoptBinSubdirectoryContainingCageKymographTiffs();
 		exp.load_cages_description_and_measures();
 		exp.load_spots_description_and_measures();
@@ -467,26 +465,6 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 		}
 		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(firstValidEpochMs);
 		return true;
-	}
-
-	/**
-	 * The session bin is often the absolute folder of the experiment that was open
-	 * when kymographs were built. Storing that path on every later experiment makes
-	 * {@code save_kymo_spot_measures} overwrite the first experiment's CSV.
-	 */
-	private void applySessionBinName(Experiment exp) {
-		if (options == null || options.expList == null) {
-			return;
-		}
-		String sessionBin = options.expList.expListBinSubDirectory;
-		if (sessionBin == null || sessionBin.isEmpty()) {
-			return;
-		}
-		String binName = Paths.get(sessionBin).getFileName().toString();
-		if (binName.isEmpty() || ".".equals(binName)) {
-			return;
-		}
-		exp.setBinSubDirectory(binName);
 	}
 
 	private static void ensureImageList(Experiment exp, SequenceCamData seqData) {
@@ -527,20 +505,6 @@ public class AnalyzeSpotLineDeficits extends BuildSeries {
 			return null;
 		}
 		return new int[] { img.getSizeX(), img.getSizeY() };
-	}
-
-	private static void ensureKymoBinDirectory(Experiment exp) {
-		String bin = exp.getKymosBinFullDirectory();
-		if (bin == null) {
-			return;
-		}
-		File dir = new File(bin);
-		if (dir.isDirectory()) {
-			return;
-		}
-		if (!dir.mkdirs()) {
-			Logger.warn("AnalyzeSpotLineDeficits: could not create kymograph bin " + bin);
-		}
 	}
 
 	static List<Integer> binFrames(Experiment exp) {

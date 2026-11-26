@@ -46,7 +46,7 @@ public class SpotLineCameraSamplingTest {
             measure.setCameraSampled(true);
         }
         spots.getSpotList().add(spot);
-        assertTrue(spots.getPersistence().saveKymoMeasures(spots, directory));
+        assertTrue(spots.getPersistence().saveMeasures(spots, directory));
         Spots loaded = new Spots();
         assertTrue(loaded.getPersistence().loadMeasures(loaded, directory));
         Spot restored = loaded.findSpotByName("spotA");

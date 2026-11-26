@@ -26,8 +26,8 @@ public final class SpotDetectionProvenance {
 				EnumResults.COLOR_GREY_PRE_GATE, EnumResults.COLOR_GREY_SMOOTHED),
 		KYMO_STRIP("kymograph_strip", true, EnumResults.KYMO_ROW_FRACTION, EnumResults.KYMO_ROW_FRACTION_CHANGE,
 				EnumResults.KYMO_GREEN_HEIGHT, EnumResults.KYMO_GREEN_HEIGHT_RATIO),
-		KYMO_CROSS("kymograph_cross", true, EnumResults.X_LINE_RATIO, EnumResults.X_LINE_FRACTION),
-		KYMO_RIM("kymograph_rim", true, EnumResults.RIM_LINE_RATIO, EnumResults.RIM_LINE_FRACTION);
+		KYMO_CROSS("kymograph_cross", false, EnumResults.X_LINE_RATIO, EnumResults.X_LINE_FRACTION),
+		KYMO_RIM("kymograph_rim", false, EnumResults.RIM_LINE_RATIO, EnumResults.RIM_LINE_FRACTION);
 
 		public final String id;
 		private final EnumResults[] measures;

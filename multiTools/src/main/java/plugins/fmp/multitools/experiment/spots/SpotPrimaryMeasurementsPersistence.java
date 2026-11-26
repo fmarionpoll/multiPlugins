@@ -13,22 +13,22 @@ import java.util.Set;
 
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
-import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementCsv;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult;
 import plugins.fmp.multitools.tools.Logger;
 
 /** Adds primary-data persistence alongside the unchanged legacy CSV compatibility files. */
 final class SpotPrimaryMeasurementsPersistence {
-    static final EnumSet<SpotMeasurementMethod> CAMERA = EnumSet.of(SpotMeasurementMethod.FILTER, SpotMeasurementMethod.COLOR);
-    static final EnumSet<SpotMeasurementMethod> LINES = EnumSet.complementOf(CAMERA);
+    static final EnumSet<SpotMeasurementMethod> KYMOGRAPH = EnumSet.of(SpotMeasurementMethod.VERTICAL_LINE);
+    static final EnumSet<SpotMeasurementMethod> IMAGE = EnumSet.complementOf(KYMOGRAPH);
     static final EnumSet<SpotMeasurementMethod> ALL = EnumSet.allOf(SpotMeasurementMethod.class);
     private SpotPrimaryMeasurementsPersistence() { }
 
     static boolean save(Spots spots, String directory, EnumSet<SpotMeasurementMethod> scope) {
         if (directory == null || spots == null) { return false; }
-        Path path = Paths.get(directory, SpotMeasurementXml.FILENAME);
+        Path path = Paths.get(directory, SpotMeasurementCsv.FILENAME);
         try {
-            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementXml.read(path);
+            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementCsv.read(path);
             boolean changed = false;
             Set<String> names = new HashSet<>();
             for (Spot spot : spots.getSpotList()) {
@@ -45,7 +45,7 @@ final class SpotPrimaryMeasurementsPersistence {
                 }
             }
             // Legacy-only saves neither create an empty sidecar nor destroy existing raw measurements.
-            if (changed) { SpotMeasurementXml.write(path, saved); }
+            if (changed) { SpotMeasurementCsv.write(path, saved); }
             return true;
         } catch (IOException | RuntimeException e) {
             Logger.error("Cannot save primary spot measurements: " + path, e);
@@ -55,10 +55,10 @@ final class SpotPrimaryMeasurementsPersistence {
 
     static boolean load(Spots spots, String directory, EnumSet<SpotMeasurementMethod> scope) {
         if (directory == null || spots == null) { return false; }
-        Path path = Paths.get(directory, SpotMeasurementXml.FILENAME);
+        Path path = Paths.get(directory, SpotMeasurementCsv.FILENAME);
         try {
             // Parse and validate the complete file before replacing any in-memory primary results.
-            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementXml.read(path);
+            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementCsv.read(path);
             for (Spot spot : spots.getSpotList()) {
                 for (SpotMeasurementMethod method : scope) { spot.getMethodMeasurements().remove(method); }
             }
@@ -86,10 +86,10 @@ final class SpotPrimaryMeasurementsPersistence {
     /** Removes methods from the sidecar. An empty sidecar is deleted. Other methods stay. */
     static boolean delete(String directory, EnumSet<SpotMeasurementMethod> methods) {
         if (directory == null || methods == null || methods.isEmpty()) { return false; }
-        Path path = Paths.get(directory, SpotMeasurementXml.FILENAME);
+        Path path = Paths.get(directory, SpotMeasurementCsv.FILENAME);
         if (!Files.isRegularFile(path)) { return true; }
         try {
-            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementXml.read(path);
+            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementCsv.read(path);
             boolean changed = false;
             Iterator<Map.Entry<String, Map<SpotMeasurementMethod, SpotMethodResult>>> spots = saved.entrySet().iterator();
             while (spots.hasNext()) {
@@ -104,7 +104,7 @@ final class SpotPrimaryMeasurementsPersistence {
                 Files.deleteIfExists(path);
                 return true;
             }
-            SpotMeasurementXml.write(path, saved);
+            SpotMeasurementCsv.write(path, saved);
             return true;
         } catch (IOException | RuntimeException e) {
             Logger.error("Cannot delete primary spot measurements: " + path, e);

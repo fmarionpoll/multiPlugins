@@ -1367,7 +1367,7 @@ public class Experiment {
 			ensureBinDirectoryForLoading();
 			String binDir = getKymosBinFullDirectory();
 			if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
-				if (spots.getPersistence().loadMeasures(spots, binDir)) loadedMeasuresDirectory = binDir;
+				if (spots.getPersistence().loadMeasuresMergeKymo(spots, binDir)) loadedMeasuresDirectory = binDir;
 			}
 		}
 		spots.ensureSumNoFlyPresent();
@@ -1386,7 +1386,7 @@ public class Experiment {
 		ensureBinDirectoryForLoading();
 		String kymoBin = getKymosBinFullDirectory();
 		// loadMeasures already includes line measurements. Do not parse the same
-		// CSV and primary XML again when the camera fallback used this bin.
+		// CSV and primary data again when the fallback used this bin.
 		if (kymoBin != null && loadedMeasuresDirectory != null
 				&& Paths.get(kymoBin).toAbsolutePath().normalize()
 						.equals(Paths.get(loadedMeasuresDirectory).toAbsolutePath().normalize())) return;
@@ -1451,10 +1451,27 @@ public class Experiment {
 		boolean descriptionsSaved = spots.getPersistence().saveDescriptions(spots, resultsDir);
 		boolean sharedDirectory = spotsUseResultsDirectoryForKymographs();
 		boolean measuresSaved = spots.getPersistence().saveMeasures(spots, resultsDir, sharedDirectory);
-		boolean kymographsSaved = sharedDirectory || spots.getSpotList().stream()
-				.noneMatch(spot -> spot != null && spot.getKymographMeasurements().hasAnyData())
+		boolean kymographsSaved = sharedDirectory || !spots.getPersistence().hasVerticalMeasurements(spots)
 				|| save_kymo_spot_measures();
 		return descriptionsSaved && measuresSaved && kymographsSaved;
+	}
+
+	/** Saves direct-image methods (filters, colors, X and rim) independently of kymograph bins. */
+	public boolean save_image_spot_measures() {
+		if (spots == null || getResultsDirectory() == null) return false;
+		try {
+			Files.createDirectories(Paths.get(getResultsDirectory()));
+			return spots.getPersistence().saveMeasures(spots, getResultsDirectory(),
+					spotsUseResultsDirectoryForKymographs());
+		} catch (IOException e) {
+			Logger.error("Cannot create image measurement directory: " + getResultsDirectory(), e);
+			return false;
+		}
+	}
+
+	/** Canonical acquisition directory; changing kymograph bins cannot change image-based inputs. */
+	public String getSpotMeasurementsDirectory(SpotMeasurementMethod method) {
+		return method.isKymographDerived() ? getKymosBinFullDirectory() : getResultsDirectory();
 	}
 
 	/**
@@ -1483,14 +1500,18 @@ public class Experiment {
 
 	/**
 	 * Removes the selected acquisition methods from memory and from the results
-	 * directory and the kymograph bin. Other methods stay.
+	 * appropriate acquisition directory. Other methods stay.
 	 */
 	public boolean clearSpotMeasurements(EnumSet<SpotMeasurementMethod> methods) {
 		if (spots == null || methods == null || methods.isEmpty()) {
 			return false;
 		}
 		for (String directory : measureDirectories()) {
-			if (!spots.getPersistence().deleteStoredMeasures(directory, methods)) {
+			EnumSet<SpotMeasurementMethod> scoped = EnumSet.noneOf(SpotMeasurementMethod.class);
+			for (SpotMeasurementMethod method : methods) {
+				if (sameDirectory(directory, getSpotMeasurementsDirectory(method))) scoped.add(method);
+			}
+			if (!scoped.isEmpty() && !spots.getPersistence().deleteStoredMeasures(directory, scoped)) {
 				return false;
 			}
 		}

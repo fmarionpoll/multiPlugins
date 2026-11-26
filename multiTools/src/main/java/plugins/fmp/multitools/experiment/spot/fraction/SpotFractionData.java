@@ -17,16 +17,17 @@ public final class SpotFractionData {
     public static List<SpotFractionCalculator.Input> read(Path descriptionsDirectory, Path measurementsDirectory,
             SpotMeasurementMethod method, String quantity) throws IOException {
         Spots spots = new Spots();
+        if (!method.isKymographDerived()) measurementsDirectory = descriptionsDirectory;
         spots.getPersistence().loadDescriptions(spots, descriptionsDirectory.toString());
-        Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> primary = SpotMeasurementXml.read(
-                measurementsDirectory.resolve(SpotMeasurementXml.FILENAME));
+        Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> primary = SpotMeasurementCsv.read(
+                measurementsDirectory.resolve(SpotMeasurementCsv.FILENAME));
         // Read old trial captures only as a fallback. New acquisition saves all quantities in the standard sidecar.
         if (method == SpotMeasurementMethod.VERTICAL_LINE && "color_integral".equals(quantity)) {
             boolean needsTrial = primary.isEmpty() || primary.values().stream().anyMatch(methods ->
                     !methods.containsKey(method) || !methods.get(method).getQuantities().containsKey(quantity));
             if (needsTrial) {
-                Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> trial = SpotMeasurementXml.read(
-                        measurementsDirectory.resolve("SpotsPrimaryMeasurementsTrial.xml"));
+                Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> trial = SpotMeasurementCsv.read(
+                        measurementsDirectory.resolve("SpotsPrimaryMeasurementsTrial.csv"));
                 for (Map.Entry<String, Map<SpotMeasurementMethod, SpotMethodResult>> entry : trial.entrySet()) {
                     Map<SpotMeasurementMethod, SpotMethodResult> methods = primary.computeIfAbsent(entry.getKey(),
                             key -> new EnumMap<>(SpotMeasurementMethod.class));

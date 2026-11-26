@@ -1,6 +1,5 @@
 package plugins.fmp.multitools.series;
 
-import java.io.File;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -212,9 +211,8 @@ public class AnalyzeSpotRims extends BuildSeries {
 			if (exp.getCages() != null) {
 				exp.getCages().clearSpotAggregatesCache();
 			}
-			ensureKymoBinDirectory(exp);
 			MeasurementProgress.phase("Saving measurements");
-			lastSaved = exp.save_kymo_spot_measures();
+			lastSaved = exp.save_image_spot_measures();
 			if (lastSaved) {
 				SpotDetectionProvenance.recordCameraLine(exp, SpotDetectionProvenance.Family.KYMO_RIM,
 						getClass().getSimpleName(), "initial_bins", analyzerParams.initialBins,
@@ -588,7 +586,7 @@ public class AnalyzeSpotRims extends BuildSeries {
 	}
 
 	private boolean prepareExperiment(Experiment exp) {
-		applySessionBinName(exp);
+
 		exp.adoptBinSubdirectoryContainingCageKymographTiffs();
 		exp.load_cages_description_and_measures();
 		exp.load_spots_description_and_measures();
@@ -613,21 +611,6 @@ public class AnalyzeSpotRims extends BuildSeries {
 		}
 		exp.build_MsTimeIntervalsArray_From_SeqCamData_FileNamesList(firstValidEpochMs);
 		return true;
-	}
-
-	private void applySessionBinName(Experiment exp) {
-		if (options == null || options.expList == null) {
-			return;
-		}
-		String sessionBin = options.expList.expListBinSubDirectory;
-		if (sessionBin == null || sessionBin.isEmpty()) {
-			return;
-		}
-		String binName = Paths.get(sessionBin).getFileName().toString();
-		if (binName.isEmpty() || ".".equals(binName)) {
-			return;
-		}
-		exp.setBinSubDirectory(binName);
 	}
 
 	private static void ensureImageList(Experiment exp, SequenceCamData seqData) {
@@ -667,20 +650,6 @@ public class AnalyzeSpotRims extends BuildSeries {
 			return null;
 		}
 		return new int[] { img.getSizeX(), img.getSizeY() };
-	}
-
-	private static void ensureKymoBinDirectory(Experiment exp) {
-		String bin = exp.getKymosBinFullDirectory();
-		if (bin == null) {
-			return;
-		}
-		File dir = new File(bin);
-		if (dir.isDirectory()) {
-			return;
-		}
-		if (!dir.mkdirs()) {
-			Logger.warn("AnalyzeSpotRims: could not create kymograph bin " + bin);
-		}
 	}
 
 	static List<Integer> binFrames(Experiment exp) {

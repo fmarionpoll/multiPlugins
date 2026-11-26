@@ -9,7 +9,7 @@ import java.util.Properties;
 import java.util.Map;
 import java.util.LinkedHashMap;
 import java.util.Collections;
-import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementXml;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementCsv;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMethodResult;
 
@@ -37,7 +37,7 @@ public final class KymoAnalysisCsvExport_new {
             }
         }
         // Trials retain their own raw sidecar and never replace the committed standard measurements.
-        if (!primary.isEmpty()) { SpotMeasurementXml.write(directory.resolve("SpotsPrimaryMeasurementsTrial.xml"), primary); }
+        if (!primary.isEmpty()) { SpotMeasurementCsv.write(directory.resolve("SpotsPrimaryMeasurementsTrial.csv"), primary); }
         try (CSVPrinter out = new CSVPrinter(Files.newBufferedWriter(directory.resolve("kymo_analysis_new_spots.csv"),
                 StandardCharsets.UTF_8), CSVFormat.DEFAULT)) {
             out.printRecord("cage_id", "spot_name", "stimulus", "concentration", "time_min", "observed_integral",

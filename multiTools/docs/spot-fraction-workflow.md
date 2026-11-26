@@ -1,5 +1,85 @@
 # Calculate spot fractions
 
+## Frozen design decisions — 26 November 2026
+
+This section records the agreed target workflow and persistence responsibilities.
+It takes precedence over the descriptions of the current interface below.
+The primary-measurement CSV change is implemented; the interface reorganization,
+targeted fraction corrections and fraction-result CSV persistence remain to be built.
+
+### Interface and workflow
+
+The section will have three main tabs:
+
+- **Calculate fractions**, with three numbered buttons opening dedicated panels:
+  1. **Find hmax — initial reference**: establish and approve the original,
+     unconsumed-deposit reference for each spot, method and measured quantity.
+     Here hmax means the initial reference, not the largest observation over the
+     recording. Distinguish an obstructed start, pre-consumption, a failed deposit
+     and an unresolved reference. A delayed observation cannot recover earlier
+     consumption. Borrowed or external references retain their justification.
+  2. **Handle occlusions**: apply general rules for internal gaps with similar or
+     changed endpoints, initial gaps and final gaps. Make tolerance, maximum gap
+     duration and the distinction between measurements and estimates explicit.
+  3. **Edit/view fractions**: provide targeted, semi-automatic correction procedures
+     for exceptional spots or image ranges, following the correction-toolbox model
+     of the multiCAFE Edit tab and the fly-detection Edit tab. This supplements the
+     general rules in step 2. It is more than a numerical value editor.
+- **Charts**: display individual and aggregated fractions and optional correction
+  diagnostics. Move the main fraction chart out of the calculation panel. Share
+  the selected experiment, method, quantity and spot with the calculation panels.
+- **Load/save**: restore and save fraction results, correction operations and
+  calculation decisions. Primary-measurement loading belongs to the respective
+  collection subsections; the ambiguous **Load saved** action will be replaced.
+
+The panels share a working state. Users can return to earlier steps without
+intermediate saving. Correction tools show their scope and preview, with
+**Validate** and **Restore** actions. Validation updates the working result;
+writing to disk is a separate Load/save action. Show unsaved changes and provide
+tooltips explaining each operation and its consequences. Preserve primary data.
+Keep optional drift correction and smoothing in an advanced area.
+
+### Persistence
+
+- **`SpotsPrimaryMeasurements.csv`** is the authoritative original-measurement
+  file. Camera and line collection, loading and batch fraction input use CSV.
+  The short-lived primary-measurement XML formats are no longer read or written;
+  rerun collection in batch mode to generate the primary CSVs. Existing XML files
+  are left untouched. Cleaned compatibility series in `SpotsMeasures.csv` cannot
+  substitute for original measurements.
+- Direct-image methods (filters, colors, X-lines and rim-lines) use the primary
+  CSV, fraction settings and future fraction CSV in `results`, independently of
+  kymograph bin selection. Only vertical measurements derived from kymographs
+  use the corresponding `bin_xx`. No relocation is implemented for the recent
+  X/rim files saved in bins; rerun those measurements.
+- **`SpotsFractionMeasurements.csv`** will store calculated remaining and consumed
+  fractions, identified by spot, method, quantity and native timestamp. Preserve
+  missing values and distinguish observed contributions from estimated ones.
+  The file represents the validated calculation result and is refreshed on
+  recalculation; the source observations remain in the primary CSV.
+- **`SpotFractionSettings.xml`** may remain the small parameter/decision file for
+  processing settings, initial-reference values and their approval/provenance,
+  spot overrides and pending review items. XML is acceptable for small settings
+  files, not the bulk measurement arrays. Each category has one authoritative
+  location rather than independently maintained CSV and XML copies.
+
+The fraction CSV will include a dedicated section for active, validated correction
+operations. With no special corrections, that section has no data rows. Each entry
+identifies the spot and inclusive image range (`t1`, `t2`; equal for one image),
+the structured operation and parameters needed to reapply it, and a readable
+comment. Identify method and quantity in the enclosing section or explicit fields.
+Use original recording image indices and document the numbering convention.
+Generate an operation description automatically and allow a user explanation.
+Free text alone is not sufficient to reproduce corrections after recalculation.
+Restoring/removing a correction removes its active entry. This is an active
+correction list, not a complete historical audit of undone actions.
+
+The exact correction-tool inventory, CSV section layout, image-index base and
+ordering/overlap rules for multiple operations still need implementation design.
+These details must preserve the responsibilities and behavior agreed above.
+
+## Current implementation (before the planned interface reorganization)
+
 Measurement collection and conversion to fractions are now separate stages.
 The three method panels are labelled **Collect measurements**. The new
 **Calculate spot fractions** section opens a resizable calculation workspace.
@@ -14,6 +94,9 @@ fraction calculations.
    filters, colors, vertical lines, X lines or rim lines. Historical cleaned CSVs
    cannot substitute for the original measurements; reanalysis is necessary if
    the primary-data sidecar is missing.
+   The authoritative primary sidecar is now `SpotsPrimaryMeasurements.csv`.
+   The recent measurement XML files are ignored; rerun collection to generate
+   primary CSVs. Small calculation decisions remain in `SpotFractionSettings.xml`.
 2. Open the calculation workspace and choose the method and measured quantity.
    The experimental vertical color integral can be selected separately; it reads
    the trial primary sidecar without replacing standard vertical measurements.
@@ -135,7 +218,7 @@ loaded. Unresolved cases do not stop the batch. Errors are reported per experime
 to resume processing.
 
 **Saved review list** scans the selected experiments' calculation files, including
-the active line-analysis bin, without loading primary series or images. These are
+the active vertical-kymograph bin, without loading primary series or images. These are
 the pending items from the last saved calculation; newly acquired or changed data
 need recalculation to refresh them. Open an item to recover its method, quantity
 and spot, and use **Locate spot** with the existing image viewer when needed.
@@ -144,8 +227,8 @@ Loading only a subset of experiments does not alter the others' saved decisions.
 ## Persistence and verification
 
 `SpotFractionSettings.xml` is a versioned XML properties file beside the primary
-measurements: in the results directory for filters/colors and in the selected bin
-for line measurements. It contains experiment settings, spot overrides, reference
+measurements: in the results directory for filters/colors/X-lines/rim-lines and
+in the selected bin for vertical kymograph measurements. It contains experiment settings, spot overrides, reference
 values/times/sources/donors/approvals/fingerprints, and unresolved review reasons.
 Derived curves are recomputed. Writes use a temporary file and atomic replacement
 where supported, and reject unsupported or unreadable existing files. Saving one

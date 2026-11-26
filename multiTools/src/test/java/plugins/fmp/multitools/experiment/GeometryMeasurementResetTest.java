@@ -30,8 +30,8 @@ public class GeometryMeasurementResetTest {
     @Test public void archivesAllBinsWithoutTouchingImagesOrPreviousBackups() throws Exception {
         Path root = folder.newFolder("results").toPath();
         Path bin = root.resolve("bin_60"), other = root.resolve("bin_20");
-        file(root, "SpotsPrimaryMeasurements.xml");
-        file(bin, "SpotsPrimaryMeasurementsTrial.xml");
+        file(root, "SpotsPrimaryMeasurements.csv");
+        file(bin, "SpotsPrimaryMeasurementsTrial.csv");
         file(other, "SpotsArrayMeasures.csv");
         file(bin, "kymocage_1.tiff");
         file(bin, "spot_000_001.tiff");
@@ -40,10 +40,10 @@ public class GeometryMeasurementResetTest {
         Path positions = file(bin, "CagesMeasures.csv");
         Path image = file(root, "Frame.jpg");
         Path description = file(root, "SpotsDescription.csv");
-        Path previous = file(root.resolve("geometry-backups/previous"), "SpotsPrimaryMeasurements.xml");
+        Path previous = file(root.resolve("geometry-backups/previous"), "SpotsPrimaryMeasurements.csv");
         Path backup = GeometryMeasurementReset.archive(root, bin, false);
-        assertFalse(Files.exists(root.resolve("SpotsPrimaryMeasurements.xml")));
-        assertFalse(Files.exists(bin.resolve("SpotsPrimaryMeasurementsTrial.xml")));
+        assertFalse(Files.exists(root.resolve("SpotsPrimaryMeasurements.csv")));
+        assertFalse(Files.exists(bin.resolve("SpotsPrimaryMeasurementsTrial.csv")));
         assertFalse(Files.exists(other.resolve("SpotsArrayMeasures.csv")));
         assertFalse(Files.exists(bin.resolve("kymocage_1.tiff")));
         assertFalse(Files.exists(bin.resolve("spot_000_001.tiff")));
@@ -53,11 +53,11 @@ public class GeometryMeasurementResetTest {
         assertTrue(Files.exists(image));
         assertTrue(Files.exists(description));
         assertTrue(Files.exists(previous));
-        assertEquals("SpotsPrimaryMeasurements.xml", new String(Files.readAllBytes(
-                backup.resolve("results/SpotsPrimaryMeasurements.xml")), StandardCharsets.UTF_8));
+        assertEquals("SpotsPrimaryMeasurements.csv", new String(Files.readAllBytes(
+                backup.resolve("results/SpotsPrimaryMeasurements.csv")), StandardCharsets.UTF_8));
         GeometryMeasurementReset.archive(root, bin, true);
         assertFalse(Files.exists(positions));
-        assertTrue(Files.exists(backup.resolve("results/SpotsPrimaryMeasurements.xml")));
+        assertTrue(Files.exists(backup.resolve("results/SpotsPrimaryMeasurements.csv")));
     }
 
     @Test(timeout = 20000) public void recreatedGeometryCannotReloadOrResaveOldMeasurements() throws Exception {
@@ -80,7 +80,7 @@ public class GeometryMeasurementResetTest {
         assertTrue(exp.getSpots().getSpotList().isEmpty());
         assertTrue(cage.getSpotIDs().isEmpty());
         assertTrue(exp.getSpots().getPersistence().saveMeasures(exp.getSpots(), root.toString()));
-        assertFalse(Files.exists(root.resolve("SpotsPrimaryMeasurements.xml")));
+        assertFalse(Files.exists(root.resolve("SpotsPrimaryMeasurements.csv")));
         exp.load_spots_description_and_measures();
         assertTrue(exp.getSpots().getSpotList().isEmpty());
         Spot replacement = new Spot();
@@ -93,7 +93,7 @@ public class GeometryMeasurementResetTest {
     @Test(timeout = 20000) public void failedBackupLeavesGeometryAndMeasurementsIntact() throws Exception {
         Path root = folder.newFolder("blocked").toPath();
         file(root, "geometry-backups"); // A file prevents creating the backup directory.
-        Path measurements = file(root, "SpotsPrimaryMeasurements.xml");
+        Path measurements = file(root, "SpotsPrimaryMeasurements.csv");
         Experiment exp = new Experiment();
         exp.setResultsDirectory(root.toString());
         Spot original = new Spot();

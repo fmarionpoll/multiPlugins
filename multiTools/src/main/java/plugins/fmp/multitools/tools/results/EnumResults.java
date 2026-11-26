@@ -476,6 +476,12 @@ public enum EnumResults {
 	}
 
 	/** Per-spot kymograph strip series persisted in {@code SpotsMeasures.csv}. */
+	public boolean isPersistedVerticalSpotMeasure() {
+		return this == KYMO_ROW_FRACTION || this == KYMO_ROW_FRACTION_CHANGE || this == KYMO_GREEN_HEIGHT
+				|| this == KYMO_GREEN_HEIGHT_RATIO;
+	}
+
+	/** Historical line-family grouping; X/rim belong in results, not a kymograph bin. */
 	public boolean isPersistedKymographSpotMeasure() {
 		return this == KYMO_ROW_FRACTION || this == KYMO_ROW_FRACTION_CHANGE || this == KYMO_GREEN_HEIGHT
 				|| this == KYMO_GREEN_HEIGHT_RATIO || this == X_LINE_FRACTION || this == X_LINE_RATIO
