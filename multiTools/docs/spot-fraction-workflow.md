@@ -41,17 +41,22 @@ Keep optional drift correction and smoothing in an advanced area.
 
 ### Persistence
 
-- **`SpotsPrimaryMeasurements.csv`** is the authoritative original-measurement
-  file. Camera and line collection, loading and batch fraction input use CSV.
-  The short-lived primary-measurement XML formats are no longer read or written;
-  rerun collection in batch mode to generate the primary CSVs. Existing XML files
-  are left untouched. Cleaned compatibility series in `SpotsMeasures.csv` cannot
-  substitute for original measurements.
-- Direct-image methods (filters, colors, X-lines and rim-lines) use the primary
-  CSV, fraction settings and future fraction CSV in `results`, independently of
-  kymograph bin selection. Only vertical measurements derived from kymographs
-  use the corresponding `bin_xx`. No relocation is implemented for the recent
-  X/rim files saved in bins; rerun those measurements.
+- Original measurements are one version-1 CSV per acquisition method:
+  `results/SpotsPrimaryFilter.csv`, `results/SpotsPrimaryColor.csv`,
+  `results/SpotsPrimaryXLine.csv`, `results/SpotsPrimaryRimLine.csv`, and
+  `results/bin_xx/SpotsPrimaryVertical.csv`. Camera and line collection, loading
+  and batch fraction input use those files. The short-lived primary-measurement
+  XML formats, and the recent combined `SpotsPrimaryMeasurements.csv`, are no
+  longer read or written; rerun collection to generate the per-method CSVs.
+  Existing XML and combined files are left untouched. Cleaned compatibility
+  series in `SpotsMeasures.csv` cannot substitute for original measurements.
+- Direct-image methods (filters, colors, X-lines and rim-lines) use their own
+  primary CSV, fraction settings and future fraction CSV in `results`,
+  independently of kymograph bin selection. Only vertical measurements derived
+  from kymographs use `SpotsPrimaryVertical.csv` in the corresponding `bin_xx`.
+  No relocation is implemented for the recent combined file or for X/rim files
+  saved in bins; rerun those measurements. A missing method file means that
+  method is unavailable.
 - **`SpotsFractionMeasurements.csv`** will store calculated remaining and consumed
   fractions, identified by spot, method, quantity and native timestamp. Preserve
   missing values and distinguish observed contributions from estimated ones.
@@ -94,9 +99,11 @@ fraction calculations.
    filters, colors, vertical lines, X lines or rim lines. Historical cleaned CSVs
    cannot substitute for the original measurements; reanalysis is necessary if
    the primary-data sidecar is missing.
-   The authoritative primary sidecar is now `SpotsPrimaryMeasurements.csv`.
-   The recent measurement XML files are ignored; rerun collection to generate
-   primary CSVs. Small calculation decisions remain in `SpotFractionSettings.xml`.
+   Each method has its own primary CSV: filter, color, X-line and rim-line files
+   in `results`, and `SpotsPrimaryVertical.csv` in the selected bin. The recent
+   combined CSV and measurement XML files are ignored; rerun collection to
+   generate the per-method CSVs. Small calculation decisions remain in
+   `SpotFractionSettings.xml`.
 2. Open the calculation workspace and choose the method and measured quantity.
    The experimental vertical color integral can be selected separately; it reads
    the trial primary sidecar without replacing standard vertical measurements.

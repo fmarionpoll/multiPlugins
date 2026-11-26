@@ -34,9 +34,15 @@ public class SpotMeasurementDirectoriesTest {
         spot.getMeasurements(EnumResults.X_LINE_RATIO).setValues(new double[] { .8 });
         spot.getMeasurements(EnumResults.RIM_LINE_RATIO).setValues(new double[] { .9 });
         assertTrue(exp.save_image_spot_measures());
-        assertFalse(Files.exists(bin20.resolve(SpotMeasurementCsv.FILENAME)));
-        assertFalse(Files.exists(bin60.resolve(SpotMeasurementCsv.FILENAME)));
-        assertEquals(4, SpotMeasurementCsv.read(root.resolve(SpotMeasurementCsv.FILENAME)).get("A").size());
+        assertFalse(Files.exists(root.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName())));
+        for (SpotMeasurementMethod method : SpotMeasurementMethod.values()) {
+            assertFalse(Files.exists(bin20.resolve(method.fileName())));
+            assertFalse(Files.exists(bin60.resolve(method.fileName())));
+            if (!method.isKymographDerived()) {
+                Map<SpotMeasurementMethod, SpotMethodResult> saved = SpotMeasurementCsv.read(root.resolve(method.fileName())).get("A");
+                assertEquals(Collections.singleton(method), saved.keySet());
+            }
+        }
         SpotDetectionProvenance.recordCameraLine(exp, Family.KYMO_CROSS, "test-X", "threshold", 5);
         SpotDetectionProvenance.recordCameraLine(exp, Family.KYMO_RIM, "test-rim", "threshold", 6);
         Files.write(root.resolve("XLineBackground.csv"), new byte[] { 1 });
@@ -46,13 +52,14 @@ public class SpotMeasurementDirectoriesTest {
         assertEquals(root.toString(), exp.getSpotMeasurementsDirectory(SpotMeasurementMethod.X_LINES));
         assertEquals(root.toString(), exp.getSpotMeasurementsDirectory(SpotMeasurementMethod.RIM_LINES));
         assertEquals(bin60.toString(), exp.getSpotMeasurementsDirectory(SpotMeasurementMethod.VERTICAL_LINE));
+        byte[] rim = Files.readAllBytes(root.resolve(SpotMeasurementMethod.RIM_LINES.fileName()));
+        byte[] filter = Files.readAllBytes(root.resolve(SpotMeasurementMethod.FILTER.fileName()));
         assertTrue(exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.X_LINES)));
         assertFalse(Files.exists(root.resolve("XLineBackground.csv")));
+        assertFalse(Files.exists(root.resolve(SpotMeasurementMethod.X_LINES.fileName())));
         assertTrue(SpotDetectionProvenance.load(exp, Family.KYMO_CROSS).isEmpty());
         assertFalse(SpotDetectionProvenance.load(exp, Family.KYMO_RIM).isEmpty());
-        Map<SpotMeasurementMethod, SpotMethodResult> saved = SpotMeasurementCsv.read(root.resolve(SpotMeasurementCsv.FILENAME)).get("A");
-        assertFalse(saved.containsKey(SpotMeasurementMethod.X_LINES));
-        assertTrue(saved.containsKey(SpotMeasurementMethod.RIM_LINES));
-        assertTrue(saved.containsKey(SpotMeasurementMethod.FILTER));
+        assertArrayEquals(rim, Files.readAllBytes(root.resolve(SpotMeasurementMethod.RIM_LINES.fileName())));
+        assertArrayEquals(filter, Files.readAllBytes(root.resolve(SpotMeasurementMethod.FILTER.fileName())));
     }
 }

@@ -169,8 +169,15 @@ public class SpotsPersistence {
 	}
 
 	private static boolean hasPrimaryMeasurements(String directory) {
-		return directory != null && Files.isRegularFile(Paths.get(directory,
-				plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementCsv.FILENAME));
+		if (directory == null) {
+			return false;
+		}
+		for (SpotMeasurementMethod method : SpotMeasurementMethod.values()) {
+			if (Files.isRegularFile(Paths.get(directory, method.fileName()))) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**

@@ -37,7 +37,7 @@ public class SpotMeasurementCsvTest {
         SpotMethodResult original = new SpotMethodResult(SpotMeasurementMethod.COLOR, times, fly, unit, parameters,
                 Arrays.asList(new SpotMeasuredQuantity("signal", unit, raw, flags, manual),
                         new SpotMeasuredQuantity("area", "pixels", fly, flags)));
-        Path file = folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME);
+        Path file = folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName());
         SpotMeasurementCsv.write(file, Collections.singletonMap(spot, Collections.singletonMap(original.getMethod(), original)));
         SpotMethodResult restored = SpotMeasurementCsv.read(file).get(spot).get(original.getMethod());
         assertArrayEquals(times, restored.getTimesSeconds(), 0);
@@ -52,7 +52,7 @@ public class SpotMeasurementCsvTest {
     }
 
     @Test public void emptyFileAndEmptyTimelineAreDistinct() throws Exception {
-        Path path = folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME);
+        Path path = folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName());
         SpotMeasurementCsv.write(path, Collections.emptyMap());
         assertTrue(SpotMeasurementCsv.read(path).isEmpty());
         SpotMethodResult result = new SpotMethodResult(SpotMeasurementMethod.FILTER,
@@ -76,7 +76,7 @@ public class SpotMeasurementCsvTest {
             valid.replace("TIMES,0,1", "PARAMETER,a,1\nPARAMETER,a,2\nTIMES,0,1"),
             valid + "UNKNOWN\n"
         };
-        Path path = folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME);
+        Path path = folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName());
         for (String text : invalid) {
             byte[] bytes = text.getBytes(StandardCharsets.UTF_8);
             Files.write(path, bytes);

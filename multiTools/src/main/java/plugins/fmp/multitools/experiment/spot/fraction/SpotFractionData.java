@@ -20,8 +20,8 @@ public final class SpotFractionData {
         if (!method.isKymographDerived()) measurementsDirectory = descriptionsDirectory;
         spots.getPersistence().loadDescriptions(spots, descriptionsDirectory.toString());
         Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> primary = SpotMeasurementCsv.read(
-                measurementsDirectory.resolve(SpotMeasurementCsv.FILENAME));
-        // Read old trial captures only as a fallback. New acquisition saves all quantities in the standard sidecar.
+                measurementsDirectory.resolve(method.fileName()));
+        // Trial captures stay in their own file. They fill a missing vertical color integral in memory only.
         if (method == SpotMeasurementMethod.VERTICAL_LINE && "color_integral".equals(quantity)) {
             boolean needsTrial = primary.isEmpty() || primary.values().stream().anyMatch(methods ->
                     !methods.containsKey(method) || !methods.get(method).getQuantities().containsKey(quantity));

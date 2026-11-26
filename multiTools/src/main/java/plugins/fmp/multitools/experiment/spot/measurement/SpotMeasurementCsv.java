@@ -20,9 +20,8 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.CSVRecord;
 
-/** Lossless primary measurements. Series occupy separate CSV rows on native timelines. */
+/** Lossless primary measurements. Series occupy separate CSV rows on native timelines. Callers choose one file per method. */
 public final class SpotMeasurementCsv {
-    public static final String FILENAME = "SpotsPrimaryMeasurements.csv";
     private SpotMeasurementCsv() { }
 
     public static Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> read(Path path) throws IOException {

@@ -48,6 +48,8 @@ public class CageKymoAnalyzerNewTest {
                     .get(plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.VERTICAL_LINE);
         assertEquals(600, restored.getQuantity("color_integral").getRawValues()[1], 0);
         assertFalse(Files.exists(directory.resolve("SpotsPrimaryMeasurements.csv")));
+        assertFalse(Files.exists(directory.resolve(
+                plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod.VERTICAL_LINE.fileName())));
         assertTrue(spot.getMethodMeasurements().snapshot().isEmpty());
     }
     @ClassRule public static final plugins.fmp.multitools.test.InMemoryImageRule memory =

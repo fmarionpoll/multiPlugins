@@ -105,13 +105,20 @@ public final class GeometryMeasurementReset {
         return backup;
     }
 
+    private static boolean primaryMeasurementFile(String name) {
+        return name.equals("spotsprimaryfilter.csv") || name.equals("spotsprimarycolor.csv")
+                || name.equals("spotsprimaryxline.csv") || name.equals("spotsprimaryrimline.csv")
+                || name.equals("spotsprimaryvertical.csv")
+                || name.startsWith("spotsprimarymeasurements") && (name.endsWith(".csv") || name.endsWith(".xml"));
+    }
+
     private static boolean invalidatedFile(String name, boolean cages) {
         String n = name.toLowerCase(Locale.ROOT);
         if (n.equals("spotsmeasures.csv") || n.equals("spotsarraymeasures.csv")
                 || n.equals("spotsarray.csv") || n.equals("spotfractionsettings.xml")
                 || n.equals("xlinebackground.csv") || n.equals("cagekymographcolumntimes.csv")
                 || n.equals("cagekymographstriplayout.csv")
-                || n.startsWith("spotsprimarymeasurements") && (n.endsWith(".csv") || n.endsWith(".xml"))
+                || primaryMeasurementFile(n)
                 || n.startsWith("spotdetection-") && n.endsWith(".properties")
                 || (n.startsWith("kymocage_") || n.startsWith("spot"))
                         && (n.endsWith(".tif") || n.endsWith(".tiff"))) return true;

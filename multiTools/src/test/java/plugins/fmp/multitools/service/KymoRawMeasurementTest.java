@@ -47,7 +47,7 @@ public class KymoRawMeasurementTest {
         KymoMeasuresCommit.apply(result, null);
         assertEquals(0, spot.getGreenMaskHeightToPeakRatio().getValues().length);
         Path directory = temporary.getRoot().toPath();
-        Path file = directory.resolve(SpotMeasurementCsv.FILENAME);
+        Path file = directory.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName());
         plugins.fmp.multitools.experiment.spots.Spots spots = new plugins.fmp.multitools.experiment.spots.Spots();
         spots.addSpot(spot);
         assertTrue(spots.getPersistence().saveKymoMeasures(spots, directory.toString()));

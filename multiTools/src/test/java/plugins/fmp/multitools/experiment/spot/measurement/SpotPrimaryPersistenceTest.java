@@ -45,6 +45,12 @@ public class SpotPrimaryPersistenceTest {
         }
         spot.getRoiNormalizedGreySignal().setValues(new double[] { 7, 8, 9 });
         assertTrue(original.getPersistence().saveMeasures(original, folder.getRoot().getAbsolutePath(), true));
+        assertFalse(Files.exists(folder.getRoot().toPath().resolve("SpotsPrimaryMeasurements.csv")));
+        for (SpotMeasurementMethod method : SpotMeasurementMethod.values()) {
+            Map<SpotMeasurementMethod, SpotMethodResult> stored = SpotMeasurementCsv.read(
+                    folder.getRoot().toPath().resolve(method.fileName())).get(spot.getName());
+            assertEquals(Collections.singleton(method), stored.keySet());
+        }
         Spots loaded = new Spots();
         assertTrue(loaded.getPersistence().loadMeasures(loaded, folder.getRoot().getAbsolutePath()));
         Spot restored = loaded.findSpotByName(spot.getName());
@@ -104,19 +110,24 @@ public class SpotPrimaryPersistenceTest {
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.RIM_LINES, 4));
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.COLOR, 3));
         assertTrue(spots.getPersistence().saveMeasures(spots, folder.getRoot().getAbsolutePath(), true));
+        byte[] color = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName()));
+        byte[] rim = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.RIM_LINES.fileName()));
         Spots cameraOnly = new Spots();
         spot(cameraOnly, "spotA").getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 9));
         assertTrue(cameraOnly.getPersistence().saveMeasures(cameraOnly, folder.getRoot().getAbsolutePath()));
-        Map<SpotMeasurementMethod, SpotMethodResult> saved = SpotMeasurementCsv.read(
-                folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME)).get("spotA");
-        assertEquals(3, saved.size());
-        assertEquals(4, saved.get(SpotMeasurementMethod.RIM_LINES).getQuantity("signal").getRawValues()[0], 0);
-        assertEquals(9, saved.get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
+        assertArrayEquals(color, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName())));
+        assertArrayEquals(rim, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.RIM_LINES.fileName())));
+        assertEquals(4, SpotMeasurementCsv.read(folder.getRoot().toPath().resolve(SpotMeasurementMethod.RIM_LINES.fileName()))
+                .get("spotA").get(SpotMeasurementMethod.RIM_LINES).getQuantity("signal").getRawValues()[0], 0);
+        assertEquals(3, SpotMeasurementCsv.read(folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName()))
+                .get("spotA").get(SpotMeasurementMethod.COLOR).getQuantity("signal").getRawValues()[0], 0);
+        assertEquals(9, SpotMeasurementCsv.read(folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName()))
+                .get("spotA").get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
     }
 
     @Test
     public void kymographMergePreservesCameraDataAndLoadsPrimaryOnlyFiles() throws Exception {
-        Path path = folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME);
+        Path path = folder.getRoot().toPath().resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName());
         SpotMeasurementCsv.write(path, Collections.singletonMap("spotA",
                 Collections.singletonMap(SpotMeasurementMethod.VERTICAL_LINE, result(SpotMeasurementMethod.VERTICAL_LINE, 4))));
         Spots spots = new Spots();
@@ -134,7 +145,9 @@ public class SpotPrimaryPersistenceTest {
         Spot spot = spot(spots, "spotA");
         spot.getRoiNormalizedGreySignal().setValues(new double[] { 100 });
         assertTrue(spots.getPersistence().saveMeasures(spots, folder.getRoot().getAbsolutePath()));
-        assertFalse(Files.exists(folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME)));
+        for (SpotMeasurementMethod method : SpotMeasurementMethod.values())
+            assertFalse(Files.exists(folder.getRoot().toPath().resolve(method.fileName())));
+        assertFalse(Files.exists(folder.getRoot().toPath().resolve("SpotsPrimaryMeasurements.csv")));
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 999));
         assertTrue(spots.getPersistence().loadMeasures(spots, folder.getRoot().getAbsolutePath()));
         assertTrue(spot.getMethodMeasurements().snapshot().isEmpty());
@@ -147,7 +160,7 @@ public class SpotPrimaryPersistenceTest {
         Spot spot = spot(spots, "spotA");
         SpotMethodResult original = result(SpotMeasurementMethod.COLOR, 7);
         spot.getMethodMeasurements().put(original);
-        Path path = folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME);
+        Path path = folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName());
         byte[] corrupt = "SPOT_PRIMARY_MEASUREMENTS,999\r\n".getBytes(StandardCharsets.UTF_8);
         Files.write(path, corrupt);
         assertFalse(spots.getPersistence().saveMeasures(spots, folder.getRoot().getAbsolutePath()));
@@ -169,6 +182,8 @@ public class SpotPrimaryPersistenceTest {
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.COLOR, 3));
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.X_LINES, 5));
         assertTrue(spots.getPersistence().saveMeasures(spots, directory, true));
+        byte[] colorFile = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName()));
+        byte[] xFile = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.X_LINES.fileName()));
         Files.write(folder.getRoot().toPath().resolve("SpotDetection-image_filter.properties"),
                 "method=filter".getBytes(StandardCharsets.UTF_8));
         Files.write(folder.getRoot().toPath().resolve("SpotDetection-color_distance.properties"),
@@ -187,11 +202,13 @@ public class SpotPrimaryPersistenceTest {
         assertFalse(csv.contains("AREA_FLYPRESENT"));
         assertTrue(csv.contains("GREY_SUM_V6"));
         assertTrue(csv.contains("KYMO_LINE_RATIO"));
-        Map<SpotMeasurementMethod, SpotMethodResult> primary = SpotMeasurementCsv.read(
-                folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME)).get("spotA");
-        assertFalse(primary.containsKey(SpotMeasurementMethod.FILTER));
-        assertTrue(primary.containsKey(SpotMeasurementMethod.COLOR));
-        assertTrue(primary.containsKey(SpotMeasurementMethod.X_LINES));
+        assertFalse(Files.exists(folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName())));
+        assertArrayEquals(colorFile, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName())));
+        assertArrayEquals(xFile, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.X_LINES.fileName())));
+        assertEquals(3, SpotMeasurementCsv.read(folder.getRoot().toPath().resolve(SpotMeasurementMethod.COLOR.fileName()))
+                .get("spotA").get(SpotMeasurementMethod.COLOR).getQuantity("signal").getRawValues()[0], 0);
+        assertEquals(5, SpotMeasurementCsv.read(folder.getRoot().toPath().resolve(SpotMeasurementMethod.X_LINES.fileName()))
+                .get("spotA").get(SpotMeasurementMethod.X_LINES).getQuantity("signal").getRawValues()[0], 0);
         assertFalse(Files.exists(folder.getRoot().toPath().resolve("SpotDetection-image_filter.properties")));
         assertTrue(Files.exists(folder.getRoot().toPath().resolve("SpotDetection-color_distance.properties")));
 
@@ -222,6 +239,9 @@ public class SpotPrimaryPersistenceTest {
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.X_LINES, 4));
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.RIM_LINES, 7));
         assertTrue(spots.getPersistence().saveMeasures(spots, directory, true));
+        byte[] filterFile = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName()));
+        byte[] verticalFile = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName()));
+        byte[] rimFile = Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.RIM_LINES.fileName()));
         Files.write(folder.getRoot().toPath().resolve("XLineBackground.csv"), "x".getBytes(StandardCharsets.UTF_8));
 
         assertTrue(spots.getPersistence().deleteStoredMeasures(directory, EnumSet.of(SpotMeasurementMethod.X_LINES)));
@@ -233,12 +253,10 @@ public class SpotPrimaryPersistenceTest {
         assertTrue(csv.contains("KYMO_RIM_RATIO"));
         assertTrue(csv.contains("AREA_SUM"));
         assertFalse(Files.exists(folder.getRoot().toPath().resolve("XLineBackground.csv")));
-        Map<SpotMeasurementMethod, SpotMethodResult> saved = SpotMeasurementCsv.read(
-                folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME)).get("spotA");
-        assertNull(saved.get(SpotMeasurementMethod.X_LINES));
-        assertEquals(2, saved.get(SpotMeasurementMethod.VERTICAL_LINE).getQuantity("signal").getRawValues()[0], 0);
-        assertEquals(7, saved.get(SpotMeasurementMethod.RIM_LINES).getQuantity("signal").getRawValues()[0], 0);
-        assertEquals(8, saved.get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
+        assertFalse(Files.exists(folder.getRoot().toPath().resolve(SpotMeasurementMethod.X_LINES.fileName())));
+        assertArrayEquals(filterFile, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName())));
+        assertArrayEquals(verticalFile, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName())));
+        assertArrayEquals(rimFile, Files.readAllBytes(folder.getRoot().toPath().resolve(SpotMeasurementMethod.RIM_LINES.fileName())));
 
         Spots loaded = new Spots();
         assertTrue(loaded.getPersistence().loadMeasures(loaded, directory));
@@ -262,7 +280,7 @@ public class SpotPrimaryPersistenceTest {
         assertTrue(spots.getPersistence().saveMeasures(spots, directory, true));
 
         assertTrue(spots.getPersistence().deleteStoredMeasures(directory, EnumSet.of(SpotMeasurementMethod.FILTER)));
-        assertFalse(Files.exists(folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME)));
+        assertFalse(Files.exists(folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName())));
         String csv = new String(Files.readAllBytes(folder.getRoot().toPath().resolve("SpotsMeasures.csv")), StandardCharsets.UTF_8);
         assertTrue(csv.contains("version"));
         assertFalse(csv.contains("AREA_SUM"));
@@ -302,8 +320,9 @@ public class SpotPrimaryPersistenceTest {
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 8));
         assertTrue(spots.getPersistence().saveMeasures(spots, directory.toString()));
         assertArrayEquals(obsolete, Files.readAllBytes(xml));
-        assertTrue(Files.exists(directory.resolve(SpotMeasurementCsv.FILENAME)));
-        assertEquals(8, SpotMeasurementCsv.read(directory.resolve(SpotMeasurementCsv.FILENAME))
+        assertFalse(Files.exists(directory.resolve("SpotsPrimaryMeasurements.csv")));
+        assertTrue(Files.exists(directory.resolve(SpotMeasurementMethod.FILTER.fileName())));
+        assertEquals(8, SpotMeasurementCsv.read(directory.resolve(SpotMeasurementMethod.FILTER.fileName()))
                 .get("A").get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
     }
 
@@ -322,16 +341,29 @@ public class SpotPrimaryPersistenceTest {
         spot.getMeasurements(EnumResults.RIM_LINE_RATIO).setCameraSampled(true);
         spot.getMeasurements(EnumResults.KYMO_GREEN_HEIGHT).setValues(new double[] { 20, 19 });
         assertTrue(original.getPersistence().saveMeasures(original, root.toString()));
+        byte[][] imageBytes = new byte[4][];
+        SpotMeasurementMethod[] imageMethods = new SpotMeasurementMethod[] {
+                SpotMeasurementMethod.FILTER, SpotMeasurementMethod.COLOR,
+                SpotMeasurementMethod.X_LINES, SpotMeasurementMethod.RIM_LINES };
+        for (int i = 0; i < imageMethods.length; i++)
+            imageBytes[i] = Files.readAllBytes(root.resolve(imageMethods[i].fileName()));
         assertTrue(original.getPersistence().saveKymoMeasures(original, bin20.toString()));
+        byte[] bin20Vertical = Files.readAllBytes(bin20.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName()));
         spot.getMethodMeasurements().put(result(SpotMeasurementMethod.VERTICAL_LINE, 60));
         spot.getMeasurements(EnumResults.KYMO_GREEN_HEIGHT).setValues(new double[] { 60, 59 });
         assertTrue(original.getPersistence().saveKymoMeasures(original, bin60.toString()));
+        for (int i = 0; i < imageMethods.length; i++)
+            assertArrayEquals(imageBytes[i], Files.readAllBytes(root.resolve(imageMethods[i].fileName())));
+        assertArrayEquals(bin20Vertical, Files.readAllBytes(bin20.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName())));
+        assertFalse(Files.exists(root.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName())));
 
-        Map<SpotMeasurementMethod, SpotMethodResult> image = SpotMeasurementCsv.read(root.resolve(SpotMeasurementCsv.FILENAME)).get("A");
-        assertEquals(4, image.size());
-        assertFalse(image.containsKey(SpotMeasurementMethod.VERTICAL_LINE));
+        for (SpotMeasurementMethod method : imageMethods) {
+            Map<SpotMeasurementMethod, SpotMethodResult> image = SpotMeasurementCsv.read(root.resolve(method.fileName())).get("A");
+            assertEquals(Collections.singleton(method), image.keySet());
+        }
         for (Path bin : new Path[] { bin20, bin60 }) {
-            Map<SpotMeasurementMethod, SpotMethodResult> vertical = SpotMeasurementCsv.read(bin.resolve(SpotMeasurementCsv.FILENAME)).get("A");
+            Map<SpotMeasurementMethod, SpotMethodResult> vertical = SpotMeasurementCsv.read(
+                    bin.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName())).get("A");
             assertEquals(Collections.singleton(SpotMeasurementMethod.VERTICAL_LINE), vertical.keySet());
             String csv = new String(Files.readAllBytes(bin.resolve("SpotsMeasures.csv")), StandardCharsets.UTF_8);
             assertFalse(csv.contains("KYMO_LINE_RATIO"));
@@ -353,14 +385,69 @@ public class SpotPrimaryPersistenceTest {
             assertEquals(bin.equals(bin20) ? 12 : 60,
                     restored.getMethodMeasurements().get(SpotMeasurementMethod.VERTICAL_LINE).getQuantity("signal").getRawValues()[0], 0);
         }
+        byte[] rimBeforeDelete = Files.readAllBytes(root.resolve(SpotMeasurementMethod.RIM_LINES.fileName()));
         assertTrue(loaded.getPersistence().deleteStoredMeasures(root.toString(), EnumSet.of(SpotMeasurementMethod.X_LINES)));
-        assertTrue(SpotMeasurementCsv.read(root.resolve(SpotMeasurementCsv.FILENAME)).get("A").containsKey(SpotMeasurementMethod.RIM_LINES));
-        assertTrue(SpotMeasurementCsv.read(bin20.resolve(SpotMeasurementCsv.FILENAME)).get("A").containsKey(SpotMeasurementMethod.VERTICAL_LINE));
+        assertFalse(Files.exists(root.resolve(SpotMeasurementMethod.X_LINES.fileName())));
+        assertArrayEquals(rimBeforeDelete, Files.readAllBytes(root.resolve(SpotMeasurementMethod.RIM_LINES.fileName())));
+        assertArrayEquals(bin20Vertical, Files.readAllBytes(bin20.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName())));
+        assertEquals(12, SpotMeasurementCsv.read(bin20.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName()))
+                .get("A").get(SpotMeasurementMethod.VERTICAL_LINE).getQuantity("signal").getRawValues()[0], 0);
+        assertEquals(60, SpotMeasurementCsv.read(bin60.resolve(SpotMeasurementMethod.VERTICAL_LINE.fileName()))
+                .get("A").get(SpotMeasurementMethod.VERTICAL_LINE).getQuantity("signal").getRawValues()[0], 0);
+    }
+
+    @Test
+    public void missingAndMalformedFilesStayIndependent() throws Exception {
+        Path root = folder.getRoot().toPath();
+        Spots spots = new Spots();
+        Spot spot = spot(spots, "spotA");
+        spot.getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 4));
+        spot.getMethodMeasurements().put(result(SpotMeasurementMethod.COLOR, 6));
+        assertTrue(spots.getPersistence().saveMeasures(spots, root.toString()));
+        Files.delete(root.resolve(SpotMeasurementMethod.COLOR.fileName()));
+        SpotMethodResult color = result(SpotMeasurementMethod.COLOR, 6);
+        spot.getMethodMeasurements().put(color);
+        assertTrue(spots.getPersistence().loadMeasures(spots, root.toString()));
+        assertNull(spot.getMethodMeasurements().get(SpotMeasurementMethod.COLOR));
+        assertEquals(4, spot.getMethodMeasurements().get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
+
+        byte[] truncated = "SPOT_PRIMARY_MEASUREMENTS,1\r\nMETHOD,spotA,COLOR,fraction\r\nTIMES,0\r\n"
+                .getBytes(StandardCharsets.UTF_8);
+        Files.write(root.resolve(SpotMeasurementMethod.COLOR.fileName()), truncated);
+        byte[] filterBytes = Files.readAllBytes(root.resolve(SpotMeasurementMethod.FILTER.fileName()));
+        spot.getMethodMeasurements().put(color);
+        assertFalse(spots.getPersistence().loadMeasures(spots, root.toString()));
+        assertSame(color, spot.getMethodMeasurements().get(SpotMeasurementMethod.COLOR));
+        assertEquals(4, spot.getMethodMeasurements().get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
+        assertArrayEquals(truncated, Files.readAllBytes(root.resolve(SpotMeasurementMethod.COLOR.fileName())));
+        assertArrayEquals(filterBytes, Files.readAllBytes(root.resolve(SpotMeasurementMethod.FILTER.fileName())));
+        spot.getMethodMeasurements().remove(SpotMeasurementMethod.FILTER);
+        assertFalse(spots.getPersistence().saveMeasures(spots, root.toString()));
+        assertArrayEquals(truncated, Files.readAllBytes(root.resolve(SpotMeasurementMethod.COLOR.fileName())));
+        assertArrayEquals(filterBytes, Files.readAllBytes(root.resolve(SpotMeasurementMethod.FILTER.fileName())));
+    }
+
+    @Test
+    public void combinedPrimaryFileIsNeitherReadNorRewritten() throws Exception {
+        Path directory = folder.getRoot().toPath();
+        Path combined = directory.resolve("SpotsPrimaryMeasurements.csv");
+        byte[] obsolete = ("SPOT_PRIMARY_MEASUREMENTS,1\r\nMETHOD,A,FILTER,fraction\r\nTIMES,0\r\nFLY,0\r\n"
+                + "QUANTITY,signal,intensity\r\nRAW,5\r\nFLAGS,0\r\nMANUAL,0\r\nEND_METHOD\r\nEND_FILE\r\n")
+                .getBytes(StandardCharsets.UTF_8);
+        Files.write(combined, obsolete);
+        Spots spots = new Spots();
+        assertFalse(spots.getPersistence().loadMeasures(spots, directory.toString()));
+        assertTrue(spots.getSpotList().isEmpty());
+        Spot spot = spot(spots, "A");
+        spot.getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 8));
+        assertTrue(spots.getPersistence().saveMeasures(spots, directory.toString()));
+        assertArrayEquals(obsolete, Files.readAllBytes(combined));
+        assertTrue(Files.exists(directory.resolve(SpotMeasurementMethod.FILTER.fileName())));
     }
 
     @Test(expected = IOException.class)
     public void truncatedFileIsRejected() throws Exception {
-        Path path = folder.getRoot().toPath().resolve(SpotMeasurementCsv.FILENAME);
+        Path path = folder.getRoot().toPath().resolve(SpotMeasurementMethod.FILTER.fileName());
         Files.write(path, "SPOT_PRIMARY_MEASUREMENTS,1\r\nMETHOD,A,FILTER,pixels\r\nTIMES,0\r\n".getBytes(StandardCharsets.UTF_8));
         SpotMeasurementCsv.read(path);
     }

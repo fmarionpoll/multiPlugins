@@ -118,13 +118,14 @@ shared fly series cannot be duplicated as independent per-method detections.
 
 ## Persistence and compatibility
 
-`SpotsPrimaryMeasurements.csv` version 1 is the authoritative primary-data file.
-It stores original values, independent
-method timelines, raw fly evidence and its unit, acquisition flags, manual
-rejections, units and acquisition parameters. Double precision and NaNs survive
-round trips. Derived caches are not saved. Files are streamed and replaced through
-a temporary file; atomic replacement is used when the filesystem supports it.
-Malformed or unsupported existing primary files are never silently overwritten.
+Each acquisition method has its own version-1 primary CSV. The files store
+original values, independent method timelines, raw fly evidence and its unit,
+acquisition flags, manual rejections, units and acquisition parameters. Double
+precision and NaNs survive round trips. Derived caches are not saved. Files are
+streamed and replaced through a temporary file; atomic replacement is used when
+the filesystem supports it. A malformed or unsupported file is never silently
+overwritten, and it does not replace that method's valid in-memory data.
+Saving or deleting one method neither reads nor rewrites another method's file.
 
 The short-lived `SpotsPrimaryMeasurements.xml` and
 `SpotsPrimaryMeasurementsTrial.xml` formats are no longer read or written. Rerun
@@ -145,29 +146,38 @@ including embedded commas, quotes and newlines. Series rows avoid repeating spot
 identifiers and timestamps for every quantity/sample. This is an application
 persistence format, separate from rectangular analysis/export CSVs.
 
-Direct-image saves update filter/color/X-line/rim-line primary data in
-`results/SpotsPrimaryMeasurements.csv`. Their compatibility series in
-`SpotsMeasures.csv`, detection provenance and `XLineBackground.csv` also belong
-in `results`. X-line and rim-line analysis samples the original camera images;
-neither depends on kymographs or the selected kymograph bin.
+Direct-image saves write one file per method in `results`:
+
+- `SpotsPrimaryFilter.csv`
+- `SpotsPrimaryColor.csv`
+- `SpotsPrimaryXLine.csv`
+- `SpotsPrimaryRimLine.csv`
+
+Their compatibility series in `SpotsMeasures.csv`, detection provenance and
+`XLineBackground.csv` also belong in `results`. X-line and rim-line analysis
+samples the original camera images; neither depends on kymographs or the
+selected kymograph bin.
 
 Only vertical measurements derived from kymographs belong in
-`results/bin_xx/SpotsPrimaryMeasurements.csv` (and that bin's compatibility CSV).
+`results/bin_xx/SpotsPrimaryVertical.csv` (and that bin's compatibility CSV).
 Loading another bin replaces only vertical data, preserving image-based data.
-Image-method fraction settings and inputs likewise use `results`; vertical
-fraction settings and inputs use the selected bin. Changing a kymograph interval
-cannot select another X-line/rim-line acquisition or reference set.
-No relocation or fallback for recent X/rim files in old bins is provided: rerun
-those analyses to write the corrected locations. Old bin copies are ignored for
-image-based methods. When the bin and results directory coincide, a shared file
-can hold all methods.
+Two bins can therefore hold different vertical series while the four image files
+stay unchanged. Image-method fraction settings and inputs likewise use
+`results`; vertical fraction settings and inputs use the selected bin. Changing
+a kymograph interval cannot select another X-line/rim-line acquisition or
+reference set. No relocation or fallback reads the previous combined
+`SpotsPrimaryMeasurements.csv`, measurement XML, or X/rim files left in old
+bins: rerun those analyses. A missing method file means that method is
+unavailable. When the bin and results directory coincide, the five files still
+remain separate in that directory.
 
-Partial saves merge into existing primary data and preserve other methods.
-Omitting a method from an in-memory registry does not delete its stored result;
-an explicit persisted-deletion operation remains a future UI decision. Loading a
-scope replaces that scope in memory, including clearing stale primary data when
-the loaded historical file has no primary sidecar. Kymograph merges preserve
-image-based results. Parsing completes before any primary results are replaced.
+A partial save updates only the methods present in memory, merging each one into
+its own existing file and leaving every other primary file byte-for-byte
+unchanged. Omitting a method from an in-memory registry does not delete its
+stored file; deletion removes that method's file, or the method inside it, and
+does not open the others. Loading image measurements may read all four image
+files. Each file is parsed before that method's in-memory results are replaced.
+A malformed file is reported and leaves that method's memory and bytes alone.
 
 Historical cleaned CSV values and the historical shared fly series are not
 promoted to raw per-method data. Existing experiments remain readable, but need
