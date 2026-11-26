@@ -60,10 +60,12 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
     private JSlider chartScale;
     private boolean honorChartScale;
     private JLabel measureBand;
-    private JPanel navRow;
-    private JComboBox<Measure> chartMeasure;
-    private JComboBox<Integer> chartCage;
-    private JComboBox<Spot> chartSpot;
+    JPanel navRow;
+    JComboBox<Measure> chartMeasure;
+    JLabel chartCageCaption;
+    JComboBox<Integer> chartCage;
+    JComboBox<Spot> chartSpot;
+    JLabel chartSpotCaption;
     private IcyFrame frame;
     private ChartPanel activeChart;
     private AxisOptions axes;
@@ -130,6 +132,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         if (exp == null) { status.setText("No experiment selected."); return; }
         bindExperiment(exp);
         boolean single = scope.getSelectedIndex() == 2;
+        boolean experimentView = scope.getSelectedIndex() == 0;
         if (single) selectSpotForCurrentView(exp);
         Measure chosen = (Measure) measure.getSelectedItem();
         List<Spot> selected = new ArrayList<>();
@@ -143,7 +146,6 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         for (Spot spot : selected) if (spot.getMethodMeasurements().get(chosen.method) != null
                 && (chosen.flyOnly || spot.getMethodMeasurements().get(chosen.method).getQuantities().containsKey(chosen.quantity)))
             groups.computeIfAbsent(spot.getProperties().getCageID(), key -> new ArrayList<>()).add(spot);
-        boolean experimentView = scope.getSelectedIndex() == 0;
         Dimension screen = screenSize();
         CageChartGrid grid = experimentView ? experimentGrid(exp, groups.keySet()) : null;
         if (experimentView && grid.columns > 0 && !honorChartScale) {
@@ -214,11 +216,13 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
             charts.put(group.getKey(), panel); if (activeChart == null) activeChart = panel;
         }
         placeCharts(experimentView ? grid : null, charts, chartPx);
-        if (activeChart == null && !single) {
+        if (activeChart == null && !single && (frame == null || !frame.isVisible())) {
             if (frame != null) frame.setVisible(false);
             status.setText("No primary measurements for this view. Collect or load the method's primary measurements."); return;
         }
-        if (activeChart == null) plots.add(new JLabel("No primary measurements for this spot."));
+        String empty = single ? "No primary measurements for this spot."
+                : experimentView ? "No primary measurements for this experiment." : "No primary measurements for this cage.";
+        if (activeChart == null) plots.add(new JLabel(empty));
         String band = parameterBand(chosen.label, SpotAcquisitionCharts.unit(selected, chosen, chosen.flyOnly));
         if (frame == null || !frame.isVisible()) {
             if (frame != null) frame.dispose();
@@ -232,7 +236,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         mirrorNavigationToChart();
         frame.setVisible(true); plots.revalidate(); plots.repaint();
         if (activeChart == null) {
-            status.setText("No primary measurements for this spot.");
+            status.setText(empty);
             listen(exp.getSeqCamData() == null ? null : exp.getSeqCamData().getSequence());
             return;
         }
@@ -246,7 +250,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
     public void closeAllCharts() {
         if (axes != null) axes.close(); axes = null;
         if (frame != null) frame.dispose(); frame = null; measureBand = null; navRow = null;
-        chartMeasure = null; chartCage = null; chartSpot = null; chartScale = null; activeChart = null;
+        chartMeasure = null; chartCageCaption = null; chartCage = null; chartSpot = null; chartSpotCaption = null; chartScale = null; activeChart = null;
         cursorGesture = false; draggingCursor = false; listen(null);
     }
     private void listen(Sequence sequence) {
@@ -374,7 +378,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         listenedViewer = null;
         refreshFrameCursor();
     }
-    private JPanel chartHeader(String band) {
+    JPanel chartHeader(String band) {
         JPanel header = new JPanel();
         header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
         header.setBackground(new Color(230, 236, 242));
@@ -420,11 +424,13 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         chartSpot.addActionListener(e -> { if (!updating && chartSpot.getSelectedItem() instanceof Spot) spotChoice.setSelectedItem(chartSpot.getSelectedItem()); });
         JButton update = new JButton("Update");
         update.addActionListener(e -> displayChartPanels(chartExperiment()));
+        chartCageCaption = new JLabel("Cage");
+        chartSpotCaption = new JLabel("Spot");
         navRow.add(chartMeasure);
-        navRow.add(new JLabel("Cage")); navRow.add(chartCage);
-        navRow.add(new JLabel("Spot")); navRow.add(chartSpot);
+        navRow.add(chartCageCaption); navRow.add(chartCage);
+        navRow.add(chartSpotCaption); navRow.add(chartSpot);
         navRow.add(update);
-        navRow.setVisible(scope.getSelectedIndex() == 2);
+        applyChartPickers(navRow, chartCageCaption, chartCage, chartSpotCaption, chartSpot, scope.getSelectedIndex());
         header.add(navRow);
         return header;
     }
@@ -485,7 +491,7 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
         if (owner != null) owner.dlgSpots.onMeasureChartSpotClicked(spot);
     }
 
-    private void mirrorNavigationToChart() {
+    void mirrorNavigationToChart() {
         if (chartMeasure == null || chartCage == null || chartSpot == null) return;
         updating = true;
         try {
@@ -496,8 +502,20 @@ public class MeasureChartsPanel extends JPanel implements SequenceListener, View
             chartSpot.removeAllItems();
             for (int i = 0; i < spotChoice.getItemCount(); i++) chartSpot.addItem(spotChoice.getItemAt(i));
             chartSpot.setSelectedItem(spotChoice.getSelectedItem());
-            if (navRow != null) navRow.setVisible(scope.getSelectedIndex() == 2);
+            applyChartPickers(navRow, chartCageCaption, chartCage, chartSpotCaption, chartSpot, scope.getSelectedIndex());
         } finally { updating = false; }
+    }
+
+    static void applyChartPickers(JComponent row, JComponent cageCaption, JComponent cageChoice,
+            JComponent spotCaption, JComponent spotChoice, int scopeIndex) {
+        boolean spotView = scopeIndex == 2;
+        boolean cageChoiceVisible = scopeIndex == 1 || spotView;
+        row.setVisible(true);
+        if (cageCaption != null) cageCaption.setVisible(cageChoiceVisible);
+        if (cageChoice != null) cageChoice.setVisible(cageChoiceVisible);
+        if (spotCaption != null) spotCaption.setVisible(spotView);
+        if (spotChoice != null) spotChoice.setVisible(spotView);
+        if (row.getParent() != null) row.getParent().revalidate();
     }
 
     private static DefaultListCellRenderer cageRenderer() {

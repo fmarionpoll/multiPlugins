@@ -158,6 +158,44 @@ public class MeasureChartsPanelTest {
             });
         } finally { sequence.close(); }
     }
+    @Test public void cageChartKeepsMeasureAndCagePickersAndHidesTheSpotPicker() throws Exception {
+        SwingUtilities.invokeAndWait(() -> {
+            MeasureChartsPanel panel = new MeasureChartsPanel(null, Family.FILTER);
+            panel.scope.setSelectedIndex(1);
+            panel.cage.addItem(Integer.valueOf(1));
+            panel.cage.addItem(Integer.valueOf(4));
+            panel.cage.setSelectedItem(Integer.valueOf(4));
+            panel.chartHeader("Signal on visible pixels (transform units per visible pixel)");
+            panel.mirrorNavigationToChart();
+            assertTrue(panel.navRow.isVisible());
+            assertTrue(panel.chartMeasure.isVisible());
+            assertTrue(panel.chartCageCaption.isVisible());
+            assertTrue(panel.chartCage.isVisible());
+            assertFalse(panel.chartSpotCaption.isVisible());
+            assertFalse(panel.chartSpot.isVisible());
+            assertEquals(panel.measure.getItemCount(), panel.chartMeasure.getItemCount());
+            assertEquals(Integer.valueOf(4), panel.chartCage.getSelectedItem());
+            Measure next = panel.measure.getItemAt(1);
+            panel.chartMeasure.setSelectedItem(next);
+            assertSame(next, panel.measure.getSelectedItem());
+            panel.chartCage.setSelectedItem(Integer.valueOf(1));
+            assertEquals(Integer.valueOf(1), panel.cage.getSelectedItem());
+            panel.scope.setSelectedIndex(2);
+            panel.mirrorNavigationToChart();
+            assertTrue(panel.navRow.isVisible());
+            assertTrue(panel.chartSpot.isVisible());
+            panel.scope.setSelectedIndex(0);
+            panel.mirrorNavigationToChart();
+            assertTrue(panel.navRow.isVisible());
+            assertTrue(panel.chartMeasure.isVisible());
+            assertFalse(panel.chartCageCaption.isVisible());
+            assertFalse(panel.chartCage.isVisible());
+            assertFalse(panel.chartSpotCaption.isVisible());
+            assertFalse(panel.chartSpot.isVisible());
+            assertTrue(hasButton(panel.navRow, "Update"));
+            panel.closeAllCharts();
+        });
+    }
     private static Spot named(Experiment exp, Sequence sequence, String name, int cageId, String stimulus, String concentration) {
         Spot spot = spot(exp, sequence, name);
         spot.getProperties().setCageID(cageId);
@@ -225,6 +263,12 @@ public class MeasureChartsPanelTest {
                 assertFalse(labels.contains("Baseline (min)")); panel.closeAllCharts();
             }
         });
+    }
+    private static boolean hasButton(Container container, String text) {
+        for (Component component : container.getComponents())
+            if (component instanceof AbstractButton && text.equals(((AbstractButton) component).getText()) && component.isVisible())
+                return true;
+        return false;
     }
     private static void labels(Container container, List<String> labels) {
         for (Component component : container.getComponents()) {
