@@ -332,6 +332,8 @@ public class SpotsPersistenceLegacy {
 
 			Spot spot = spots.findSpotByName(spotName);
 			if (spot == null) {
+				if (spots.hasLoadedDescriptions())
+					continue;
 				spot = new Spot();
 				spot.getProperties().setName(spotName);
 				if (spot.getSpotUniqueID() == null) {

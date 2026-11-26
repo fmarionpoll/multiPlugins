@@ -34,6 +34,9 @@ public class GeometryMeasurementResetTest {
         file(bin, "SpotsPrimaryMeasurementsTrial.xml");
         file(other, "SpotsArrayMeasures.csv");
         file(bin, "kymocage_1.tiff");
+        file(bin, "spot_000_001.tiff");
+        file(bin, "CageKymographStripLayout.csv");
+        file(other, "spot_001_002.tif");
         Path positions = file(bin, "CagesMeasures.csv");
         Path image = file(root, "Frame.jpg");
         Path description = file(root, "SpotsDescription.csv");
@@ -43,6 +46,9 @@ public class GeometryMeasurementResetTest {
         assertFalse(Files.exists(bin.resolve("SpotsPrimaryMeasurementsTrial.xml")));
         assertFalse(Files.exists(other.resolve("SpotsArrayMeasures.csv")));
         assertFalse(Files.exists(bin.resolve("kymocage_1.tiff")));
+        assertFalse(Files.exists(bin.resolve("spot_000_001.tiff")));
+        assertFalse(Files.exists(bin.resolve("CageKymographStripLayout.csv")));
+        assertFalse(Files.exists(other.resolve("spot_001_002.tif")));
         assertTrue(Files.exists(positions));
         assertTrue(Files.exists(image));
         assertTrue(Files.exists(description));

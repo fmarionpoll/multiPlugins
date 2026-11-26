@@ -64,6 +64,8 @@ final class SpotPrimaryMeasurementsPersistence {
                 if (entry.getValue().keySet().stream().noneMatch(scope::contains)) { continue; }
                 Spot spot = spots.findSpotByName(entry.getKey());
                 if (spot == null) {
+                    // Measurements must never resurrect geometry removed from a description.
+                    if (spots.hasLoadedDescriptions()) { continue; }
                     spot = new Spot();
                     spot.getProperties().setName(entry.getKey());
                     spots.addSpot(spot);

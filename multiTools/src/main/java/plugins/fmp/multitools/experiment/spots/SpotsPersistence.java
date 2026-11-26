@@ -44,7 +44,10 @@ public class SpotsPersistence {
 	 * @return true if successful
 	 */
 	public boolean loadDescriptions(Spots spots, String resultsDirectory) {
-		return Persistence.loadDescription(spots, resultsDirectory);
+		spots.setDescriptionsLoaded(false);
+		boolean loaded = Persistence.loadDescription(spots, resultsDirectory);
+		spots.setDescriptionsLoaded(loaded);
+		return loaded;
 	}
 
 	/**

@@ -64,6 +64,16 @@ public class Spots {
 	private final List<Spot> spotList;
 	private SpotsPersistence persistence = new SpotsPersistence();
 	private int cachedMaxSpotId = -1;
+	private boolean descriptionsLoaded;
+
+	/** A loaded description, including an empty one, owns the current geometry. */
+	public boolean hasLoadedDescriptions() {
+		return descriptionsLoaded;
+	}
+
+	void setDescriptionsLoaded(boolean loaded) {
+		descriptionsLoaded = loaded;
+	}
 
 	// === CONSTRUCTORS ===
 
@@ -161,6 +171,7 @@ public class Spots {
 	}
 
 	public void clearSpotList() {
+		descriptionsLoaded = false;
 		synchronized (this) {
 			spotList.clear();
 			cachedMaxSpotId = -1;

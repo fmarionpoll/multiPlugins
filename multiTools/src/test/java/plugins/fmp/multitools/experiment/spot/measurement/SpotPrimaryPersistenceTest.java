@@ -61,6 +61,41 @@ public class SpotPrimaryPersistenceTest {
     }
 
     @Test
+    public void descriptionsPreventOldCsvAndPrimaryMeasurementsFromResurrectingRemovedSpots() throws Exception {
+        String directory = folder.getRoot().getAbsolutePath();
+        Spots original = new Spots();
+        Spot retained = spot(original, "spot_000_000");
+        retained.getProperties().setCageID(0);
+        retained.getRoiNormalizedGreySignal().setValues(new double[] { 12 });
+        retained.getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 12));
+        Spot removed = spot(original, "spot_000_001");
+        removed.getRoiNormalizedGreySignal().setValues(new double[] { 99 });
+        removed.getMethodMeasurements().put(result(SpotMeasurementMethod.FILTER, 99));
+        removed.getMethodMeasurements().put(result(SpotMeasurementMethod.X_LINES, 99));
+        assertTrue(original.getPersistence().saveMeasures(original, directory, true));
+        original.removeSpot(removed);
+        assertTrue(original.getPersistence().saveDescriptions(original, directory));
+
+        Spots loaded = new Spots();
+        assertTrue(loaded.getPersistence().loadDescriptions(loaded, directory));
+        assertTrue(loaded.getPersistence().loadMeasures(loaded, directory));
+        assertTrue(loaded.getPersistence().loadMeasuresMergeKymo(loaded, directory));
+        assertEquals(1, loaded.getSpotListCount());
+        assertNull(loaded.findSpotByName(removed.getName()));
+        assertEquals(12, loaded.findSpotByName(retained.getName()).getMethodMeasurements()
+                .get(SpotMeasurementMethod.FILTER).getQuantity("signal").getRawValues()[0], 0);
+
+        // An explicitly empty description must also block all saved spot resurrection.
+        original.clearSpotList();
+        assertTrue(original.getPersistence().saveDescriptions(original, directory));
+        loaded.clearSpotList();
+        assertTrue(loaded.getPersistence().loadDescriptions(loaded, directory));
+        assertTrue(loaded.getPersistence().loadMeasures(loaded, directory));
+        assertTrue(loaded.getPersistence().loadMeasuresMergeKymo(loaded, directory));
+        assertTrue(loaded.isSpotListEmpty());
+    }
+
+    @Test
     public void partialCameraSaveRetainsOtherMethodsAlreadyOnDisk() throws Exception {
         Spots spots = new Spots();
         Spot spot = spot(spots, "spotA");

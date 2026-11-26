@@ -110,9 +110,11 @@ public final class GeometryMeasurementReset {
         if (n.equals("spotsmeasures.csv") || n.equals("spotsarraymeasures.csv")
                 || n.equals("spotsarray.csv") || n.equals("spotfractionsettings.xml")
                 || n.equals("xlinebackground.csv") || n.equals("cagekymographcolumntimes.csv")
+                || n.equals("cagekymographstriplayout.csv")
                 || n.startsWith("spotsprimarymeasurements") && n.endsWith(".xml")
                 || n.startsWith("spotdetection-") && n.endsWith(".properties")
-                || n.startsWith("kymocage_") && (n.endsWith(".tif") || n.endsWith(".tiff"))) return true;
+                || (n.startsWith("kymocage_") || n.startsWith("spot"))
+                        && (n.endsWith(".tif") || n.endsWith(".tiff"))) return true;
         // Combined legacy files can restore measurements even when current CSVs are absent.
         if (n.equals("ms96_cages.xml")) return true;
         return cages && (n.equals("cagesmeasures.csv") || n.equals("cagesarraymeasures.csv")
