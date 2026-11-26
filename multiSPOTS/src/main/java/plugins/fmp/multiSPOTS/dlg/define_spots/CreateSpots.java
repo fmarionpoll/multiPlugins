@@ -20,6 +20,7 @@ import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.GeometryMeasurementReset;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
 import plugins.fmp.multitools.experiment.spots.Spots;
@@ -115,10 +116,16 @@ public class CreateSpots extends JPanel {
 		createSpotsButton.addActionListener(e -> {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
+				if (roiGrid == null || roiGrid.getSelectedAreaRois().isEmpty()) return;
+				if (!GeometryMeasurementReset.beforeRecreation(exp, false)) return;
+				parent0.closeAllGraphWindows();
 				exp.getSeqCamData().removeROIsContainingString("spot");
 				createSpotsForAllCages(exp, roiGrid, referencePosition);
 				ExperimentUtils.transferSpotsToCamDataSequence(exp);
 				exp.getSeqCamData().removeROIsContainingString("carre");
+				exp.getSpots().getPersistence().saveDescriptions(exp.getSpots(), exp.getResultsDirectory());
+				exp.saveCages_File();
+				parent0.dlgSpots.updateDialogs(exp);
 			}
 		});
 

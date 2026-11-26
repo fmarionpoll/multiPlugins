@@ -22,6 +22,7 @@ import javax.swing.event.TableModelListener;
 import icy.gui.frame.IcyFrame;
 import icy.roi.ROI;
 import icy.roi.ROI2D;
+import plugins.kernel.roi.roi2d.ROI2DShape;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.spot.Spot;
@@ -119,7 +120,9 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 			Experiment exp = (Experiment) expListComboLazy.getSelectedItem();
 			if (exp != null) {
 				Spots allSpots = exp.getSpots();
-				allSpotsCopy = exp.getCages().getAllSpotsArray(allSpots);
+				Spots live = exp.getCages().getAllSpotsArray(allSpots);
+				allSpotsCopy = new Spots();
+				allSpotsCopy.copySpotsInfo(live);
 				pasteButton.setEnabled(true);
 			}
 		});
@@ -266,16 +269,57 @@ public class InfosSpotTable extends JPanel implements ListSelectionListener {
 
 	private void measureNPixelsForAllSpots(Experiment exp) {
 		Spots allSpots = exp.getSpots();
+		if (allSpots == null || spotTable == null || spotTable.spotTableModel == null) {
+			return;
+		}
+		List<Spot> spots = exp.getCages() != null ? exp.getCages().getSpotsInCageOrder(allSpots)
+				: allSpots.copySpotListForRead();
 		int columnIndex = 1;
-		for (Spot spot : allSpots.getSpotList()) {
+		for (Spot spot : spots) {
+			ROI2D roi = resolveSpotRoi(exp, spot);
+			if (roi == null) {
+				continue;
+			}
 			try {
-				int value = (int) spot.getRoi().getNumberOfPoints();
+				int value = (int) roi.getNumberOfPoints();
 				spotTable.spotTableModel.setValueAt(value, spot, columnIndex);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		spotTable.spotTableModel.fireTableDataChanged();
+	}
+
+	/**
+	 * Spot used by the properties table. Detected outlines live on the sequence; a
+	 * failed descriptor paste can leave {@link Spot#getRoi()} null while that outline
+	 * is still on the image.
+	 */
+	private ROI2D resolveSpotRoi(Experiment exp, Spot spot) {
+		if (spot == null) {
+			return null;
+		}
+		ROI2D roi = spot.getRoi();
+		if (roi != null) {
+			return roi;
+		}
+		String name = spot.getProperties() != null ? spot.getProperties().getName() : null;
+		if (name == null || name.isEmpty() || exp.getSeqCamData() == null) {
+			return null;
+		}
+		try {
+			for (ROI2D candidate : exp.getSeqCamData().findROIsMatchingNamePattern(name)) {
+				if (candidate != null && name.equals(candidate.getName())) {
+					if (candidate instanceof ROI2DShape) {
+						spot.setRoi((ROI2DShape) candidate);
+					}
+					return candidate;
+				}
+			}
+		} catch (IllegalStateException ex) {
+			return null;
+		}
+		return null;
 	}
 
 	private void transferFromSpot(Spot spotTo, Spot spotFrom) {

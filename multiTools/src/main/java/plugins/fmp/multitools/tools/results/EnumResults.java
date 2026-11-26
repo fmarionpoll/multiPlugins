@@ -256,7 +256,7 @@ public enum EnumResults {
 	 * {@code Σ (1 − KYMO_RIM_RATIO)}, grouped by (stimulus, concentration) per
 	 * cage.
 	 */
-	AGG_RIM_LINE_CONSO("AGG_RIM_LINE_CONSO", "Σ (1−I/I0)",
+	AGG_RIM_LINE_CONSO("AGG_RIM", "Σ (1−I/I0)",
 			"Sum of per-spot rim coverage loss relative to each spot's initial baseline, grouped by compound and concentration within each cage.",
 			StoredDataAccessors.notImplemented_TTOGULP_LR(), "AGG_RIM");
 
@@ -588,6 +588,8 @@ public enum EnumResults {
 			return X_LINE_RATIO;
 		case "AGG_LINE_CONSO":
 			return AGG_X_LINE_CONSO;
+		case "AGG_RIM_LINE_CONSO":
+			return AGG_RIM_LINE_CONSO;
 		case "KYMO_CHROMA_FRACT":
 			return KYMO_ROW_FRACTION;
 		case "KYMO_CHROMA_ABS_DELTA":

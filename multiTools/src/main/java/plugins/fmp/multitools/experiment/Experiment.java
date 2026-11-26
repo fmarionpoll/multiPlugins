@@ -1354,14 +1354,16 @@ public class Experiment {
 
 		boolean descriptionsLoaded = spots.getPersistence().loadDescriptions(spots, resultsDir);
 		boolean measuresLoaded = false;
+		String loadedMeasuresDirectory = null;
 		if (spots.getPersistence().hasSpotsMeasuresFiles(resultsDir)) {
 			measuresLoaded = spots.getPersistence().loadMeasures(spots, resultsDir);
+			if (measuresLoaded) loadedMeasuresDirectory = resultsDir;
 		}
 		if (!measuresLoaded) {
 			ensureBinDirectoryForLoading();
 			String binDir = getKymosBinFullDirectory();
 			if (binDir != null && spots.getPersistence().hasSpotsMeasuresFiles(binDir)) {
-				spots.getPersistence().loadMeasures(spots, binDir);
+				if (spots.getPersistence().loadMeasures(spots, binDir)) loadedMeasuresDirectory = binDir;
 			}
 		}
 		spots.ensureSumNoFlyPresent();
@@ -1372,13 +1374,18 @@ public class Experiment {
 			cages.ensureSpotROIsFromCageGeometry(spots);
 			spots.applyPreConsumedRoiStyles();
 		}
-		mergeKymoSpotMeasuresFromBin();
+		mergeKymoSpotMeasuresFromBin(loadedMeasuresDirectory);
 		return descriptionsLoaded;
 	}
 
-	private void mergeKymoSpotMeasuresFromBin() {
+	private void mergeKymoSpotMeasuresFromBin(String loadedMeasuresDirectory) {
 		ensureBinDirectoryForLoading();
 		String kymoBin = getKymosBinFullDirectory();
+		// loadMeasures already includes line measurements. Do not parse the same
+		// CSV and primary XML again when the camera fallback used this bin.
+		if (kymoBin != null && loadedMeasuresDirectory != null
+				&& Paths.get(kymoBin).toAbsolutePath().normalize()
+						.equals(Paths.get(loadedMeasuresDirectory).toAbsolutePath().normalize())) return;
 		if (kymoBin != null && spots.getPersistence().hasSpotsMeasuresFiles(kymoBin)) {
 			spots.getPersistence().loadMeasuresMergeKymo(spots, kymoBin);
 		}

@@ -30,6 +30,7 @@ import icy.type.geom.Polygon2D;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
 import plugins.fmp.multitools.experiment.ExperimentUtils;
+import plugins.fmp.multitools.experiment.GeometryMeasurementReset;
 import plugins.fmp.multitools.experiment.cage.Cage;
 import plugins.fmp.multitools.experiment.cages.Cages;
 import plugins.fmp.multitools.tools.ROI2D.GeometryException;
@@ -127,9 +128,10 @@ public class CreateCagesPanel extends JPanel {
 		createCagesButton.addActionListener(e -> {
 			Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
 			if (exp != null) {
-				createCages(exp);
+				if (!createCages(exp)) return;
 				removeGrid(exp);
 				exp.saveCages_File();
+				parent0.dlgSpots.updateDialogs(exp);
 			}
 		});
 
@@ -211,14 +213,16 @@ public class CreateCagesPanel extends JPanel {
 		exp.getSeqCamData().getSequence().removeROIs(roiGrid.getVerticalRois(), false);
 	}
 
-	private void createCages(Experiment exp) {
+	private boolean createCages(Experiment exp) {
 		polygon2D = getPolygonFromCagesPerimeterRoi(exp);
 		if (polygon2D != null) {
 			if (roiGrid == null)
 				createGrid(exp);
-			createCagesFromGrid(exp, roiGrid);
+			if (!createCagesFromGrid(exp, roiGrid)) return false;
 			ExperimentUtils.transferCagesToCamDataSequence(exp);
+			return true;
 		}
+		return false;
 	}
 
 	private Polygon2D getPolygonFromCagesPerimeterRoi(Experiment exp) {
@@ -276,7 +280,7 @@ public class CreateCagesPanel extends JPanel {
 		return polygon2D;
 	}
 
-	private void createCagesFromGrid(Experiment exp, ROI2DGrid roiGrid) {
+	private boolean createCagesFromGrid(Experiment exp, ROI2DGrid roiGrid) {
 		int n_columns = 10;
 		int n_rows = 1;
 		try {
@@ -286,13 +290,19 @@ public class CreateCagesPanel extends JPanel {
 			height_interval = width_interval;
 		} catch (Exception e) {
 			new AnnounceFrame("Can't interpret ROI parameters value");
+			return false;
 		}
 
+		Point2D.Double[][] points = roiGrid.getGridPoints();
+		if (points == null || points.length != n_columns + 1 || points[0].length != n_rows + 1) return false;
+		if (!GeometryMeasurementReset.beforeRecreation(exp, true)) return false;
+		parent0.closeAllGraphWindows();
 		// erase existing cages
 		exp.getSeqCamData().removeROIsContainingString("cage");
 		exp.getCages().cagesList.clear();
 		exp.setCages(new Cages(n_columns, n_rows));
 		createCagesArrayFromGrid(exp, roiGrid, n_columns, n_rows, width_interval, height_interval);
+		return true;
 	}
 
 	private void createCagesArrayFromGrid(Experiment exp, ROI2DGrid roiGrid, int ncolumns, int nrows,

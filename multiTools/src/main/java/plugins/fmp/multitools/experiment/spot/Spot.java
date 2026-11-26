@@ -12,6 +12,7 @@ import org.w3c.dom.Node;
 
 import icy.image.IcyBufferedImage;
 import icy.roi.BooleanMask2D;
+import icy.roi.ROI;
 import icy.roi.ROI2D;
 import plugins.fmp.multitools.experiment.ids.SpotID;
 import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurements;
@@ -105,9 +106,7 @@ public class Spot implements Comparable<Spot> {
 			this.methodMeasurements.copyFrom(sourceSpot.methodMeasurements);
 		}
 
-		if (sourceSpot.spotROI2D != null) {
-			this.spotROI2D = (ROI2DShape) sourceSpot.spotROI2D.getCopy();
-		}
+		this.spotROI2D = copyRoi(sourceSpot.spotROI2D);
 	}
 
 	// === COMPARISON ===
@@ -150,8 +149,11 @@ public class Spot implements Comparable<Spot> {
 
 		this.properties.copyFrom(sourceSpot.properties);
 
-		if (sourceSpot.spotROI2D != null) {
-			this.spotROI2D = (ROI2DShape) sourceSpot.spotROI2D.getCopy();
+		if (sourceSpot != this) {
+			ROI2DShape copiedRoi = copyRoi(sourceSpot.spotROI2D);
+			if (copiedRoi != null) {
+				this.spotROI2D = copiedRoi;
+			}
 		}
 		this.rimGeometry.copyFrom(sourceSpot.rimGeometry);
 
@@ -238,6 +240,22 @@ public class Spot implements Comparable<Spot> {
 	 */
 	public void setRoi(ROI2DShape roi) {
 		this.spotROI2D = roi;
+	}
+
+	/**
+	 * Icy {@link ROI#getCopy()} clones through XML and returns null when that fails.
+	 * A null result must not be stored: callers such as descriptor paste would otherwise
+	 * drop a detected spot outline.
+	 */
+	private static ROI2DShape copyRoi(ROI2DShape roi) {
+		if (roi == null) {
+			return null;
+		}
+		ROI copied = roi.getCopy();
+		if (copied instanceof ROI2DShape) {
+			return (ROI2DShape) copied;
+		}
+		return null;
 	}
 
 	/**

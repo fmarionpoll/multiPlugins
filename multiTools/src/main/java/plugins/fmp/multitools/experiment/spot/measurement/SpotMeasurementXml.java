@@ -1,6 +1,8 @@
 package plugins.fmp.multitools.experiment.spot.measurement;
 
 import java.io.IOException;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.AtomicMoveNotSupportedException;
@@ -31,7 +33,7 @@ public final class SpotMeasurementXml {
         XMLInputFactory factory = XMLInputFactory.newFactory();
         factory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
         factory.setProperty("javax.xml.stream.isSupportingExternalEntities", false);
-        try (InputStream input = Files.newInputStream(path)) {
+        try (InputStream input = new BufferedInputStream(Files.newInputStream(path), 65536)) {
             XMLStreamReader reader = factory.createXMLStreamReader(input, "UTF-8");
             try {
                 reader.nextTag();
@@ -118,7 +120,9 @@ public final class SpotMeasurementXml {
         Path target = path.toAbsolutePath();
         Path temporary = Files.createTempFile(target.getParent(), ".spot-primary-", ".xml.tmp");
         try {
-            try (OutputStream output = Files.newOutputStream(temporary)) {
+            // StAX may emit individual bytes while escaping text. Buffer before the
+            // file stream so a multi-megabyte recording does not cause millions of writes.
+            try (OutputStream output = new BufferedOutputStream(Files.newOutputStream(temporary), 65536)) {
                 XMLStreamWriter writer = XMLOutputFactory.newFactory().createXMLStreamWriter(output, "UTF-8");
                 try {
                     writer.writeStartDocument("UTF-8", "1.0");

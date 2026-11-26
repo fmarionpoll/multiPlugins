@@ -176,16 +176,22 @@ public class ChartCageBuild {
 		for (int i = 0; i < dataset.getSeriesCount(); i++) {
 			XYSeries series = dataset.getSeries(i);
 			for (int j = 0; j < series.getItemCount(); j++) {
-				double y = series.getY(j).doubleValue();
-				double x = series.getX(j).doubleValue();
-				if (!Double.isNaN(y)) {
-					if (Double.isNaN(ymax) || y > ymax)
-						ymax = y;
-					if (Double.isNaN(ymin) || y < ymin)
-						ymin = y;
+				Number yNumber = series.getY(j);
+				Number xNumber = series.getX(j);
+				if (yNumber != null) {
+					double y = yNumber.doubleValue();
+					if (!Double.isNaN(y)) {
+						if (Double.isNaN(ymax) || y > ymax)
+							ymax = y;
+						if (Double.isNaN(ymin) || y < ymin)
+							ymin = y;
+					}
 				}
-				if (x > xmax)
-					xmax = x;
+				if (xNumber != null) {
+					double x = xNumber.doubleValue();
+					if (x > xmax)
+						xmax = x;
+				}
 			}
 		}
 		updateGlobalMaxMin();
