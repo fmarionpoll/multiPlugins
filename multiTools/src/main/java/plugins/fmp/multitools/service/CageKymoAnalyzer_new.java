@@ -24,7 +24,9 @@ import plugins.fmp.multitools.tools.imageTransform.ImageTransformEnums;
  * Experimental strip integral, kept separate from the stored height measurements.
  * No spot threshold, peak normalization, cage-wide subtraction, or RGB row lift
  * is applied to this signal. Insect-contaminated columns are missing observations.
+ * @deprecated Historical trial replay. Acquire with CageKymoAnalyzer.measure and derive with SpotFractionCalculator.
  */
+@Deprecated
 public final class CageKymoAnalyzer_new {
     private CageKymoAnalyzer_new() { }
 

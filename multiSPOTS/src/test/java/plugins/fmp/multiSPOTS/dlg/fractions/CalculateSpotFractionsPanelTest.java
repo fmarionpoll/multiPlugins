@@ -37,6 +37,14 @@ public class CalculateSpotFractionsPanelTest {
             panel.toleranceMode.setSelectedItem(Tolerance.ROBUST_NOISE); assertFalse(panel.tolerance.isEnabled());
             panel.method.setSelectedItem(SpotMeasurementMethod.VERTICAL_LINE);
             assertEquals(2, ((DefaultComboBoxModel<String>) panel.quantity.getModel()).getIndexOf("color_integral"));
+            assertEquals(ReferenceEstimation.INITIAL_OBSERVATION, panel.controls().referenceEstimation);
+            assertFalse(panel.baselineStart.isEnabled());
+            panel.referenceEstimation.setSelectedItem(ReferenceEstimation.BASELINE_MEDIAN);
+            assertTrue(panel.baselineStart.isEnabled());
+            panel.baselineStart.setValue(5.0);
+            panel.baselineEnd.setValue(15.0);
+            assertEquals(300, panel.controls().baselineStartSeconds, 0);
+            assertEquals(900, panel.controls().baselineEndSeconds, 0);
             assertEquals(2, panel.view.getItemCount());
             assertEquals(SpotFractionChart.View.FRACTION_REMAINING, panel.view.getItemAt(0));
             assertEquals(SpotFractionChart.View.FRACTION_CONSUMED, panel.view.getItemAt(1));

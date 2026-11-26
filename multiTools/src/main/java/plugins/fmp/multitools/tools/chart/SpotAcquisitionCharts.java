@@ -31,6 +31,8 @@ public final class SpotAcquisitionCharts {
             fly(measures, SpotMeasurementMethod.COLOR, "Fly presence");
         } else {
             add(measures, SpotMeasurementMethod.VERTICAL_LINE, "green_height", "Vertical line: measured height");
+            add(measures, SpotMeasurementMethod.VERTICAL_LINE, "color_integral", "Vertical line: measured color integral");
+            add(measures, SpotMeasurementMethod.VERTICAL_LINE, "background", "Vertical line: measured background");
             add(measures, SpotMeasurementMethod.VERTICAL_LINE, "row_fraction", "Vertical line: measured row coverage");
             fly(measures, SpotMeasurementMethod.VERTICAL_LINE, "Vertical line: fly presence");
             add(measures, SpotMeasurementMethod.X_LINES, "signal_fraction", "X lines: measured coverage");

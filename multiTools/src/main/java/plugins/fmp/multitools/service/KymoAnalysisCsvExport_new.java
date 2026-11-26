@@ -22,6 +22,7 @@ import plugins.fmp.multitools.service.CageKymoAnalyzer_new.Result;
 import plugins.fmp.multitools.service.CageKymoAnalyzer_new.Row;
 
 /** Explicitly named trial exports; no reuse of the old green-height persistence keys. */
+@Deprecated // Historical trial exports only; current acquisition writes the standard primary sidecar.
 public final class KymoAnalysisCsvExport_new {
     private KymoAnalysisCsvExport_new() { }
 

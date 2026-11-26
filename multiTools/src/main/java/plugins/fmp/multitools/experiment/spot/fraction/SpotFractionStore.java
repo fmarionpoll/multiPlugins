@@ -19,14 +19,19 @@ public final class SpotFractionStore {
         Properties p = new Properties();
         try (InputStream in = Files.newInputStream(file)) { p.loadFromXML(in); }
         try {
-            if (!"1".equals(required(p, "version"))) throw new IllegalArgumentException("Unsupported version");
+            String version = required(p, "version");
+            if (!"1".equals(version) && !"2".equals(version)) throw new IllegalArgumentException("Unsupported version");
             for (int i = 0, n = count(p, "settings"); i < n; i++) {
                 String prefix = "setting." + i + "."; Key key = key(p, prefix);
                 Settings s = new Settings(GapPolicy.valueOf(required(p, prefix + "similar")),
                         GapPolicy.valueOf(required(p, prefix + "changing")), TailPolicy.valueOf(required(p, prefix + "tail")),
                         number(p, prefix + "maxSeconds"), Tolerance.valueOf(required(p, prefix + "toleranceMode")),
                         number(p, prefix + "tolerance"), Integer.parseInt(required(p, prefix + "medianRadius")),
-                        Illumination.valueOf(required(p, prefix + "illumination")));
+                        Illumination.valueOf(required(p, prefix + "illumination")),
+                        "1".equals(version) ? ReferenceEstimation.INITIAL_OBSERVATION
+                                : ReferenceEstimation.valueOf(required(p, prefix + "referenceEstimation")),
+                        "1".equals(version) ? 600 : number(p, prefix + "baselineStartSeconds"),
+                        "1".equals(version) ? 1200 : number(p, prefix + "baselineEndSeconds"));
                 if (plan.settings.put(key, s) != null) throw new IllegalArgumentException("Duplicate settings");
             }
             for (int i = 0, n = count(p, "references"); i < n; i++) {
@@ -50,13 +55,16 @@ public final class SpotFractionStore {
     public static void write(Path directory, SpotFractionPlan plan) throws IOException {
         // Refuse to overwrite an unreadable or newer file, including when a preview was created earlier.
         read(directory);
-        Properties p = new Properties(); p.setProperty("version", "1"); p.setProperty("conversion", "linear_remaining_signal_over_initial_reference");
+        Properties p = new Properties(); p.setProperty("version", "2"); p.setProperty("conversion", "linear_remaining_signal_over_reference");
         p.setProperty("settings", Integer.toString(plan.settings.size())); int i = 0;
         for (Map.Entry<Key, Settings> entry : plan.settings.entrySet()) {
             String prefix = "setting." + i++ + "."; putKey(p, prefix, entry.getKey()); Settings s = entry.getValue();
             put(p, prefix + "similar", s.similarGap); put(p, prefix + "changing", s.changingGap); put(p, prefix + "tail", s.tail);
             put(p, prefix + "maxSeconds", s.maximumGapSeconds); put(p, prefix + "toleranceMode", s.toleranceMode);
             put(p, prefix + "tolerance", s.tolerance); put(p, prefix + "medianRadius", s.medianRadius); put(p, prefix + "illumination", s.illumination);
+            // Persist enum names, independently of user-facing labels.
+            put(p, prefix + "referenceEstimation", s.referenceEstimation.name());
+            put(p, prefix + "baselineStartSeconds", s.baselineStartSeconds); put(p, prefix + "baselineEndSeconds", s.baselineEndSeconds);
         }
         p.setProperty("references", Integer.toString(plan.references.size())); i = 0;
         for (Map.Entry<Key, Reference> entry : plan.references.entrySet()) {

@@ -2,7 +2,7 @@ package plugins.fmp.multiSPOTS.dlg.measure_imageLines;
 
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 
-/** Stable entry point; the experimental panel also retains the original workflow. */
+/** Stable entry point for raw kymograph measurements. */
 public class KymoAnalysisPanel extends KymoAnalysisPanel_new {
     private static final long serialVersionUID = 1L;
 

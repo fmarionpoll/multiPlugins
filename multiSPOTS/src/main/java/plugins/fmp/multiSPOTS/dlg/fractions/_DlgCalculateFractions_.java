@@ -67,6 +67,7 @@ import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Illumina
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Key;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Reference;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.ReferenceKind;
+import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.ReferenceEstimation;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Review;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Settings;
 import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.Tolerance;
@@ -90,6 +91,9 @@ public final class _DlgCalculateFractions_ extends JPanel {
 	final JComboBox<TailPolicy> tail = new JComboBox<>(TailPolicy.values());
 	final JComboBox<Tolerance> toleranceMode = new JComboBox<>(Tolerance.values());
 	final JComboBox<Illumination> illumination = new JComboBox<>(Illumination.values());
+	final JComboBox<ReferenceEstimation> referenceEstimation = new JComboBox<>(ReferenceEstimation.values());
+	final JSpinner baselineStart = new JSpinner(new SpinnerNumberModel(10.0, 0.0, 100000.0, 1.0));
+	final JSpinner baselineEnd = new JSpinner(new SpinnerNumberModel(20.0, 0.0, 100000.0, 1.0));
 	final JSpinner tolerance = new JSpinner(new SpinnerNumberModel(8.0, 0.0, 1000000.0, .5));
 	final JSpinner maximumGap = new JSpinner(new SpinnerNumberModel(10.0, 0.0, 1000000.0, 1.0));
 	final JSpinner median = new JSpinner(new SpinnerNumberModel(0, 0, 1000, 1));
@@ -106,7 +110,7 @@ public final class _DlgCalculateFractions_ extends JPanel {
 			referenceStatus = new JLabel(" ");
 	private final JLabel context = new JLabel("Experiment: none loaded in this workspace");
 	private final JTextArea report = new JTextArea(4, 60);
-	private final DefaultTableModel spotModel = tableModel("Spot", "Cage", "Initial reference", "Reference source",
+	private final DefaultTableModel spotModel = tableModel("Spot", "Cage", "Reference", "Reference source",
 			"State", "Marked gaps");
 	private final DefaultTableModel reviewModel = tableModel("Experiment", "Spot", "Method", "Quantity", "Reason");
 	final JTable spots = new JTable(spotModel), reviews = new JTable(reviewModel);
@@ -139,6 +143,13 @@ public final class _DlgCalculateFractions_ extends JPanel {
 		controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
 		controls.add(row(new JLabel("Measurements"), method, new JLabel("Quantity"), quantity));
 		controls.add(context);
+		controls.add(row(new JLabel("Estimate reference"), referenceEstimation));
+		controls.add(row(new JLabel("Baseline period (minutes)"), baselineStart, new JLabel("to"), baselineEnd));
+		referenceEstimation.setToolTipText("Reference estimation uses valid raw observations only, before gap filling or smoothing. Explicit and borrowed references remain in effect.");
+		baselineStart.setToolTipText("Choose a verified period with no feeding. At least three unflagged observations and a positive median are required per spot.");
+		baselineEnd.setToolTipText(baselineStart.getToolTipText());
+		referenceEstimation.addActionListener(e -> syncBaselineControls());
+		syncBaselineControls();
 		controls.add(row(new JLabel("Similar endpoints"), similar, new JLabel("Changed endpoints"), changing));
 		controls.add(row(new JLabel("Tolerance"), toleranceMode, tolerance, new JLabel("Maximum gap (minutes)"),
 				maximumGap));
@@ -341,10 +352,25 @@ public final class _DlgCalculateFractions_ extends JPanel {
 	}
 
 	Settings controls() {
+		try {
+			baselineStart.commitEdit();
+			baselineEnd.commitEdit();
+		} catch (java.text.ParseException ex) {
+			throw new IllegalArgumentException("Enter a valid baseline period", ex);
+		}
 		return new Settings((GapPolicy) similar.getSelectedItem(), (GapPolicy) changing.getSelectedItem(),
 				(TailPolicy) tail.getSelectedItem(), ((Number) maximumGap.getValue()).doubleValue() * 60,
 				(Tolerance) toleranceMode.getSelectedItem(), ((Number) tolerance.getValue()).doubleValue(),
-				((Number) median.getValue()).intValue(), (Illumination) illumination.getSelectedItem());
+				((Number) median.getValue()).intValue(), (Illumination) illumination.getSelectedItem(),
+				(ReferenceEstimation) referenceEstimation.getSelectedItem(),
+				((Number) baselineStart.getValue()).doubleValue() * 60,
+				((Number) baselineEnd.getValue()).doubleValue() * 60);
+	}
+
+	private void syncBaselineControls() {
+		boolean enabled = referenceEstimation.getSelectedItem() == ReferenceEstimation.BASELINE_MEDIAN;
+		baselineStart.setEnabled(enabled);
+		baselineEnd.setEnabled(enabled);
 	}
 
 	private void readControls(Settings settings) {
@@ -356,6 +382,9 @@ public final class _DlgCalculateFractions_ extends JPanel {
 		tolerance.setValue(settings.tolerance);
 		median.setValue(settings.medianRadius);
 		illumination.setSelectedItem(settings.illumination);
+		referenceEstimation.setSelectedItem(settings.referenceEstimation);
+		baselineStart.setValue(settings.baselineStartSeconds / 60);
+		baselineEnd.setValue(settings.baselineEndSeconds / 60);
 	}
 
 	private Key selection() {
@@ -703,7 +732,8 @@ public final class _DlgCalculateFractions_ extends JPanel {
 					time = Double.parseDouble(referenceTime.getText().trim());
 			ReferenceKind kind = row.reference != null && value == row.reference.value
 					&& time == row.reference.timeSeconds ? row.reference.kind : ReferenceKind.EXPLICIT;
-			if (kind == ReferenceKind.FAILED_DEPOSIT)
+			if (kind == ReferenceKind.FAILED_DEPOSIT || kind == ReferenceKind.OBSERVED_MAXIMUM
+					|| kind == ReferenceKind.BASELINE_MEDIAN)
 				kind = ReferenceKind.EXPLICIT;
 			if (kind == ReferenceKind.INITIAL
 					&& (row.input.result.getQuantity(row.key.quantity).getRawValues()[0] != value
@@ -945,13 +975,15 @@ public final class _DlgCalculateFractions_ extends JPanel {
 		if (value == TailPolicy.REVIEW)
 			return "Request review";
 		if (value == Tolerance.PERCENT_REFERENCE)
-			return "% of initial reference";
+			return "% of reference";
 		if (value == Tolerance.ABSOLUTE)
 			return "Measurement units";
 		if (value == Tolerance.ROBUST_NOISE)
 			return "Estimated noise (3 sigma)";
 		if ("color_integral".equals(value))
-			return "Color integral (experimental vertical line)";
+			return "Color integral (vertical line)";
+		if (value instanceof ReferenceEstimation)
+			return value.toString();
 		return String.valueOf(value).toLowerCase(Locale.ROOT).replace('_', ' ');
 	}
 }

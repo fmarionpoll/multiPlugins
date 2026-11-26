@@ -39,7 +39,15 @@ public final class KymoMeasuresCommit {
 
 	private static void copyRow(SpotKymoSeries row) {
 		Spot spot = row.spot;
-		if (row.primary != null) { spot.getMethodMeasurements().put(row.primary); }
+		if (row.primary != null) {
+			spot.getMethodMeasurements().put(row.primary);
+			// Compatibility columns contain observations only. Clear previous derived estimates on remeasurement.
+			copyDoubles(spot.getAboveThresholdStripRowFraction(), observed(row.primary.getQuantity("row_fraction")));
+			copyDoubles(spot.getGreenMaskHeight(), observed(row.primary.getQuantity("green_height")));
+			copyDoubles(spot.getAbsoluteStripRowFractionChange(), null);
+			copyDoubles(spot.getGreenMaskHeightToPeakRatio(), null);
+			return;
+		}
 		copyDoubles(spot.getAboveThresholdStripRowFraction(), row.fraction);
 		copyDoubles(spot.getAbsoluteStripRowFractionChange(), row.absDeltaFraction);
 		copyIntsAsDoubles(spot.getGreenMaskHeight(), row.greenHeight);
@@ -55,6 +63,13 @@ public final class KymoMeasuresCommit {
 			return;
 		}
 		measure.setValues(src.clone());
+	}
+
+	private static double[] observed(plugins.fmp.multitools.experiment.spot.measurement.SpotMeasuredQuantity quantity) {
+		double[] values = quantity.getRawValues();
+		int[] flags = quantity.getEffectiveFlags();
+		for (int i = 0; i < values.length; i++) if (flags[i] != 0) values[i] = Double.NaN;
+		return values;
 	}
 
 	private static void copyIntsAsDoubles(SpotMeasure measure, int[] src) {

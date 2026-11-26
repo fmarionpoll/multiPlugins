@@ -55,7 +55,7 @@ public class _DlgMeasureUsingLines_ extends JPanel implements PropertyChangeList
 				"Measure the X on the camera frames; floor from the tips outside the circles");
 		tabsPane.addTab("Rim", null, tabRimAnalysis,
 				"Measure the physical rim inside each spot on the camera frames; floor is the outer band");
-		tabsPane.addTab("Charts", null, tabKymoGraph, "Display Kymo (h/h_max), Cross and Rim (I/I0)");
+		tabsPane.addTab("Charts", null, tabKymoGraph, "Display raw measurements and fly presence; calculate ratios in section 5");
 
 		tabLoadSave.init(capLayout, parent0);
 		tabLoadSave.addPropertyChangeListener(this);

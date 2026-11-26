@@ -72,14 +72,33 @@ public final class SpotFractionCalculator {
         // Establish visible initial references first so donor selection does not depend on spot order.
         for (Input in : available) {
             Key key = selection.forSpot(in.name);
+            Settings settings = plan.settingsFor(key);
+            Reference existing = plan.references.get(key);
+            if (existing != null && automatic(existing.kind) && !sameReferenceRecipe(existing, settings)) {
+                plan.references.remove(key);
+            }
             if (!plan.references.containsKey(key) && !in.preconsumed) {
                 double[] raw = in.result.getQuantity(selection.quantity).getRawValues();
                 int[] flags = in.result.getQuantity(selection.quantity).getEffectiveFlags();
-                int first = firstPositive(raw, flags);
-                if (first >= 0) {
-                    plan.references.put(key, reference(in, selection.quantity, first == 0 ? ReferenceKind.INITIAL : ReferenceKind.DELAYED,
-                            raw[first], in.result.getTimesSeconds()[first], first == 0 ? "Initial valid observation" : "First valid observation (delayed)",
-                            first == 0, Collections.emptyList(), byName));
+                if (settings.referenceEstimation == ReferenceEstimation.INITIAL_OBSERVATION) {
+                    int first = firstPositive(raw, flags);
+                    if (first >= 0) {
+                        plan.references.put(key, reference(in, selection.quantity, first == 0 ? ReferenceKind.INITIAL : ReferenceKind.DELAYED,
+                                raw[first], in.result.getTimesSeconds()[first], first == 0 ? "Initial valid observation" : "First valid observation (delayed)",
+                                first == 0, Collections.emptyList(), byName));
+                    }
+                } else if (settings.referenceEstimation == ReferenceEstimation.OBSERVED_MAXIMUM) {
+                    int peak = -1;
+                    for (int i = 0; i < raw.length; i++)
+                        if (flags[i] == 0 && Double.isFinite(raw[i]) && raw[i] > 0 && (peak < 0 || raw[i] > raw[peak])) peak = i;
+                    if (peak >= 0) plan.references.put(key, reference(in, selection.quantity, ReferenceKind.OBSERVED_MAXIMUM,
+                            raw[peak], in.result.getTimesSeconds()[peak], "Maximum valid observation; not an estimate of the original deposit",
+                            true, Collections.emptyList(), byName));
+                } else {
+                    double baseline = baselineMedian(raw, flags, in.result.getTimesSeconds(), settings);
+                    if (Double.isFinite(baseline) && baseline > 0) plan.references.put(key,
+                            reference(in, selection.quantity, ReferenceKind.BASELINE_MEDIAN, baseline,
+                                    settings.baselineStartSeconds, baselineSource(settings), true, Collections.emptyList(), byName));
                 }
             }
         }
@@ -111,8 +130,11 @@ public final class SpotFractionCalculator {
             boolean excluded = ref != null && ref.kind == ReferenceKind.FAILED_DEPOSIT;
             boolean matched = Boolean.TRUE.equals(unchanged.get(in.name));
             if (!excluded) {
-                if (ref == null) issues.add(in.preconsumed ? "Pre-consumed spot needs a comparable initial reference" : "Initial spot absent or unmeasurable: identify failed deposit, pre-consumption or another reference");
-                else if (!matched) issues.add("Primary measurements or donor measurements changed; reapprove the initial reference");
+                if (ref == null) issues.add(in.preconsumed ? "Pre-consumed spot needs a comparable initial reference"
+                        : settings.referenceEstimation == ReferenceEstimation.BASELINE_MEDIAN
+                                ? "Baseline needs at least three valid observed samples and a positive median; review the baseline period"
+                                : "Initial spot absent or unmeasurable: identify failed deposit, pre-consumption or another reference");
+                else if (!matched) issues.add("Primary measurements or donor measurements changed; reapprove the reference");
                 else if (!ref.approved) issues.add("Initial reference is delayed or provisional; review required");
             }
             double[] values = in.result.getQuantity(selection.quantity).getRawValues();
@@ -147,7 +169,10 @@ public final class SpotFractionCalculator {
                 if (settings.illumination != Illumination.NONE) {
                     double[] clock = in.result.getTimesSeconds();
                     int referenceSample = Arrays.binarySearch(clock, ref.timeSeconds);
-                    if (referenceSample >= 0) {
+                    if (ref.kind == ReferenceKind.BASELINE_MEDIAN) {
+                        normalizedReference = baselineMedian(values, flags, clock, settings);
+                        if (!(normalizedReference > 0)) issues.add("Illumination correction is unavailable for the baseline period");
+                    } else if (referenceSample >= 0) {
                         if (Double.isFinite(factors[referenceSample])) normalizedReference /= factors[referenceSample];
                         else { normalizedReference = Double.NaN; issues.add("Illumination correction is unavailable at the reference time"); }
                     } else if (clock.length > 0 && ref.timeSeconds >= clock[0] && ref.timeSeconds <= clock[clock.length - 1]) {
@@ -181,6 +206,33 @@ public final class SpotFractionCalculator {
     public static Reference reference(Input input, String quantity, ReferenceKind kind, double value, double time,
             String source, boolean approved, List<String> donors, Map<String, Input> inputs) {
         return new Reference(kind, value, time, source, approved, fingerprint(input, quantity, donors, inputs), donors);
+    }
+
+    private static boolean automatic(ReferenceKind kind) {
+        return kind == ReferenceKind.INITIAL || kind == ReferenceKind.DELAYED
+                || kind == ReferenceKind.OBSERVED_MAXIMUM || kind == ReferenceKind.BASELINE_MEDIAN;
+    }
+
+    private static boolean sameReferenceRecipe(Reference ref, Settings settings) {
+        switch (settings.referenceEstimation) {
+        case INITIAL_OBSERVATION: return ref.kind == ReferenceKind.INITIAL || ref.kind == ReferenceKind.DELAYED;
+        case OBSERVED_MAXIMUM: return ref.kind == ReferenceKind.OBSERVED_MAXIMUM;
+        case BASELINE_MEDIAN: return ref.kind == ReferenceKind.BASELINE_MEDIAN && ref.source.equals(baselineSource(settings));
+        default: throw new IllegalArgumentException("Unknown reference estimation");
+        }
+    }
+
+    private static String baselineSource(Settings settings) {
+        return "Median of valid observations from " + settings.baselineStartSeconds + " to "
+                + settings.baselineEndSeconds + " seconds (at least 3 samples)";
+    }
+
+    private static double baselineMedian(double[] raw, int[] flags, double[] times, Settings settings) {
+        double[] samples = new double[raw.length]; int n = 0;
+        for (int i = 0; i < raw.length; i++)
+            if (times[i] >= settings.baselineStartSeconds && times[i] <= settings.baselineEndSeconds
+                    && flags[i] == 0 && Double.isFinite(raw[i])) samples[n++] = raw[i];
+        return n >= 3 ? median(Arrays.copyOf(samples, n)) : Double.NaN;
     }
 
     public static Reference borrow(Input target, Key selection, List<String> donors, SpotFractionPlan plan,

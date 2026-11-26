@@ -67,7 +67,11 @@ public class CombinedExperiment extends Experiment {
 
 	}
 
-	public void loadFlyPositions() {
+	@Override
+	public boolean loadFlyPositions() {
+		if (experimentList == null || experimentList.isEmpty() || getCages() == null) {
+			return false;
+		}
 		long time_start_ms = getFirstImage_FileTime().toMillis();
 		Experiment exp = experimentList.get(0);
 		exp.initTmsForFlyPositions(time_start_ms);
@@ -88,7 +92,7 @@ public class CombinedExperiment extends Experiment {
 				}
 			}
 		}
-
+		return true;
 	}
 
 }

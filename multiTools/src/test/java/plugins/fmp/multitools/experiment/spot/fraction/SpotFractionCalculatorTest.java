@@ -11,6 +11,50 @@ import plugins.fmp.multitools.experiment.spot.measurement.SpotProcessingSettings
 import plugins.fmp.multitools.experiment.spot.measurement.SpotProcessingSettings.TailPolicy;
 
 public class SpotFractionCalculatorTest {
+    private static Settings referenceSettings(ReferenceEstimation estimation, double start, double end) {
+        return new Settings(GapPolicy.LINEAR, GapPolicy.LINEAR, TailPolicy.KEEP_MISSING, 600,
+                Tolerance.PERCENT_REFERENCE, 8, 0, Illumination.NONE, estimation, start, end);
+    }
+    @Test public void maximumReferenceUsesOnlyValidObservationsAndCanReplaceInitialEstimation() {
+        SpotFractionPlan plan = new SpotFractionPlan();
+        Spot source = spot("A", 1, false, new double[] {80, 999, 100, 50}, 0, SpotSampleFlags.OCCLUDED, 0, 0);
+        assertEquals(80, calculate(plan, source).get(0).reference.value, 0);
+        plan.settings.put(KEY, referenceSettings(ReferenceEstimation.OBSERVED_MAXIMUM, 0, 3));
+        Row row = calculate(plan, source).get(0);
+        assertEquals(100, row.reference.value, 0);
+        assertEquals(ReferenceKind.OBSERVED_MAXIMUM, row.reference.kind);
+        assertEquals(.5, row.remaining()[3], 0);
+        assertArrayEquals(new double[] {80, 999, 100, 50}, source.getMethodMeasurements().get(KEY.method).getQuantity("signal").getRawValues(), 0);
+    }
+    @Test public void baselineMedianPrecedesGapFillingAndChangesOnlyWhenItsRecipeChanges() {
+        SpotFractionPlan plan = new SpotFractionPlan();
+        plan.settings.put(KEY, referenceSettings(ReferenceEstimation.BASELINE_MEDIAN, 0, 3));
+        Spot source = spot("A", 1, false, new double[] {100, 999, 120, 100, 50}, 0, SpotSampleFlags.OCCLUDED, 0, 0, 0);
+        Row row = calculate(plan, source).get(0);
+        assertEquals(100, row.reference.value, 0);
+        assertEquals(ReferenceKind.BASELINE_MEDIAN, row.reference.kind);
+        assertEquals(-.2, row.consumed()[2], 1e-12);
+        assertEquals(.5, row.consumed()[4], 0);
+        assertTrue(row.fractions.getEstimatedSamples()[1]);
+        plan.settings.put(KEY, referenceSettings(ReferenceEstimation.BASELINE_MEDIAN, 0, 2));
+        row = calculate(plan, source).get(0);
+        assertNull(row.reference); // Two valid samples; the filled gap must not count toward the baseline.
+        assertFalse(row.issues.isEmpty());
+    }
+    @Test public void changedDataInvalidatesBaselineReferencesAndExplicitReferencesSurviveRecipeChanges() {
+        SpotFractionPlan plan = new SpotFractionPlan();
+        plan.settings.put(KEY, referenceSettings(ReferenceEstimation.BASELINE_MEDIAN, 0, 2));
+        Row row = calculate(plan, spot("A", 1, false, new double[] {100, 100, 100, 50})).get(0);
+        row = calculate(plan, spot("A", 1, false, new double[] {200, 200, 200, 100})).get(0);
+        assertEquals(100, row.reference.value, 0);
+        assertFalse(row.issues.isEmpty());
+        plan.references.put(row.key, SpotFractionCalculator.reference(row.input, KEY.quantity, ReferenceKind.EXPLICIT,
+                250, 0, "Approved deposit reference", true, Collections.emptyList(), Collections.singletonMap("A", row.input)));
+        plan.settings.put(KEY, referenceSettings(ReferenceEstimation.OBSERVED_MAXIMUM, 0, 2));
+        row = calculate(plan, spot("A", 1, false, new double[] {200, 200, 200, 100})).get(0);
+        assertEquals(ReferenceKind.EXPLICIT, row.reference.kind);
+        assertEquals(250, row.reference.value, 0);
+    }
     public static final Key KEY = new Key(SpotMeasurementMethod.FILTER, "signal", "");
     public static Spot spot(String name, int cage, boolean consumed, double[] values, int... flags) {
         Spot spot = new Spot(); spot.getProperties().setName(name); spot.getProperties().setCageID(cage);

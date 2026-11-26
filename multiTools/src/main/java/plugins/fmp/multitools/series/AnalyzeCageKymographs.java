@@ -13,15 +13,17 @@ import plugins.fmp.multitools.tools.Logger;
 
 /**
  * Batch worker: analyze stacked cage kymographs ({@code kymocage_*.tif*}), commit per-spot kymograph
- * measures, and save {@code SpotsMeasures.csv} in the kymographs bin.
+ * raw measurements, and save the primary sidecar and compatibility CSV in the kymographs bin.
  */
 public class AnalyzeCageKymographs extends BuildSeries {
 
-	/** Analyzer parameters (metric transform, thresholds, row lift, insect gate). */
+	/** Acquisition parameters (metric transform, thresholds and insect gate). */
 	public Params analyzerParams;
 
 	/** Last non-empty result (last experiment in the batch that produced data). */
 	public volatile KymoAnalysisResult lastResult;
+	public volatile int savedExperiments, failedExperiments;
+	public String lastFailure;
 
 	@Override
 	void analyzeExperiment(Experiment exp) {
@@ -31,15 +33,13 @@ public class AnalyzeCageKymographs extends BuildSeries {
 		try {
 			exp.releaseKymographSequence();
 			if (!prepareExperimentForCageKymoAnalysis(exp)) {
-				Logger.warn("AnalyzeCageKymographs: could not prepare experiment " + exp.getResultsDirectory());
-				return;
+				throw new IllegalStateException("Could not prepare experiment");
 			}
 			if (!exp.loadCageSpotKymographs()) {
-				Logger.warn("AnalyzeCageKymographs: could not load cage kymographs for " + exp.getResultsDirectory());
-				return;
+				throw new IllegalStateException("Build/load cage kymographs first");
 			}
 
-			KymoAnalysisResult result = CageKymoAnalyzer.analyze(exp, analyzerParams);
+			KymoAnalysisResult result = CageKymoAnalyzer.measure(exp, analyzerParams);
 			if (result != null && !result.byCageId.isEmpty()) {
 				KymoMeasuresCommit.apply(result, exp);
 				MeasurementProgress.phase("Saving measurements");
@@ -49,19 +49,26 @@ public class AnalyzeCageKymographs extends BuildSeries {
 							"metric_threshold", analyzerParams.metricThreshold,
 							"min_rgb_sum", analyzerParams.minSumRgbForValidPixel,
 							"min_valid_rows", analyzerParams.minValidRowsPerColumn,
-							"row_occlusion_fill", analyzerParams.rowwiseOcclusionFill,
-							"max_occlusion_gap_bins", analyzerParams.maxRowOcclusionGapColumns,
+							"measurement_stage", "raw_height_and_color_integral",
+							"row_occlusion_fill", false,
 							"insect_gate", analyzerParams.insectMetricGateEnabled,
 							"insect_transform", analyzerParams.insectMetricTransform,
 							"insect_threshold", analyzerParams.insectMetricThreshold,
 							"insect_threshold_above", analyzerParams.insectMetricThresholdUp);
+				} else {
+					throw new IllegalStateException("Could not save raw measurements");
 				}
+				savedExperiments++;
 				lastResult = result;
 				Logger.info("AnalyzeCageKymographs: " + result.byCageId.size() + " cage(s), " + result.widthBins
 						+ " bin(s) — " + exp.getResultsDirectory());
 			} else {
-				Logger.warn("AnalyzeCageKymographs: no strip data for " + exp.getResultsDirectory());
+				throw new IllegalStateException("No spot strips were found");
 			}
+		} catch (Exception ex) {
+			failedExperiments++;
+			lastFailure = exp.getResultsDirectory() + ": " + ex.getMessage();
+			Logger.error("Kymograph measurement failed: " + lastFailure, ex);
 		} finally {
 			exp.releaseKymographSequence();
 			exp.closeSequences();

@@ -9,7 +9,14 @@ import plugins.fmp.multitools.experiment.spot.measurement.SpotProcessingSettings
 public final class SpotFractionPlan {
     public enum Tolerance { PERCENT_REFERENCE, ABSOLUTE, ROBUST_NOISE }
     public enum Illumination { NONE, CAGE, EXPERIMENT }
-    public enum ReferenceKind { INITIAL, DELAYED, EXPLICIT, BORROWED, PRECONSUMED, FAILED_DEPOSIT }
+    public enum ReferenceKind { INITIAL, DELAYED, EXPLICIT, BORROWED, PRECONSUMED, FAILED_DEPOSIT, OBSERVED_MAXIMUM, BASELINE_MEDIAN }
+    public enum ReferenceEstimation {
+        INITIAL_OBSERVATION("Initial valid observation"), OBSERVED_MAXIMUM("Maximum valid observation (hmax / signal max)"),
+        BASELINE_MEDIAN("Median of baseline period (at least 3 valid samples)");
+        private final String label;
+        ReferenceEstimation(String label) { this.label = label; }
+        @Override public String toString() { return label; }
+    }
 
     public static final class Key {
         public final SpotMeasurementMethod method;
@@ -36,14 +43,27 @@ public final class SpotFractionPlan {
         public final Tolerance toleranceMode;
         public final int medianRadius;
         public final Illumination illumination;
+        public final ReferenceEstimation referenceEstimation;
+        public final double baselineStartSeconds, baselineEndSeconds;
         public Settings(GapPolicy similar, GapPolicy changing, TailPolicy tail, double maxSeconds,
                 Tolerance mode, double tolerance, int medianRadius, Illumination illumination) {
+            this(similar, changing, tail, maxSeconds, mode, tolerance, medianRadius, illumination,
+                    ReferenceEstimation.INITIAL_OBSERVATION, 600, 1200);
+        }
+        public Settings(GapPolicy similar, GapPolicy changing, TailPolicy tail, double maxSeconds,
+                Tolerance mode, double tolerance, int medianRadius, Illumination illumination,
+                ReferenceEstimation referenceEstimation, double baselineStartSeconds, double baselineEndSeconds) {
             this.similarGap = Objects.requireNonNull(similar); this.changingGap = Objects.requireNonNull(changing);
             this.tail = Objects.requireNonNull(tail); this.toleranceMode = Objects.requireNonNull(mode);
             this.illumination = Objects.requireNonNull(illumination);
             if (!Double.isFinite(maxSeconds) || maxSeconds < 0 || !Double.isFinite(tolerance) || tolerance < 0 || medianRadius < 0)
                 throw new IllegalArgumentException("Gap duration, tolerance and smoothing radius must be nonnegative");
             this.maximumGapSeconds = maxSeconds; this.tolerance = tolerance; this.medianRadius = medianRadius;
+            this.referenceEstimation = Objects.requireNonNull(referenceEstimation);
+            if (!Double.isFinite(baselineStartSeconds) || baselineStartSeconds < 0
+                    || !Double.isFinite(baselineEndSeconds) || baselineEndSeconds <= baselineStartSeconds)
+                throw new IllegalArgumentException("Baseline end must be later than its nonnegative start");
+            this.baselineStartSeconds = baselineStartSeconds; this.baselineEndSeconds = baselineEndSeconds;
         }
     }
 

@@ -11,6 +11,26 @@ import plugins.fmp.multitools.experiment.spot.fraction.SpotFractionPlan.*;
 import plugins.fmp.multitools.experiment.spot.measurement.*;
 
 public class SpotFractionStoreTest {
+    @Test public void baselineRecipeSurvivesReloadAndVersionOneKeepsItsInitialReferencePolicy() throws Exception {
+        Path directory = folder.getRoot().toPath();
+        SpotFractionPlan plan = new SpotFractionPlan();
+        Settings old = Settings.DEFAULT;
+        plan.settings.put(KEY, new Settings(old.similarGap, old.changingGap, old.tail, old.maximumGapSeconds,
+                old.toleranceMode, old.tolerance, old.medianRadius, old.illumination,
+                ReferenceEstimation.BASELINE_MEDIAN, 300, 900));
+        SpotFractionStore.write(directory, plan);
+        Settings restored = SpotFractionStore.read(directory).settingsFor(KEY);
+        assertEquals(ReferenceEstimation.BASELINE_MEDIAN, restored.referenceEstimation);
+        assertEquals(300, restored.baselineStartSeconds, 0);
+        assertEquals(900, restored.baselineEndSeconds, 0);
+        Path file = directory.resolve(SpotFractionStore.FILENAME);
+        Properties p = new Properties();
+        try (InputStream in = Files.newInputStream(file)) { p.loadFromXML(in); }
+        p.setProperty("version", "1");
+        p.remove("setting.0.referenceEstimation"); p.remove("setting.0.baselineStartSeconds"); p.remove("setting.0.baselineEndSeconds");
+        try (OutputStream out = Files.newOutputStream(file)) { p.storeToXML(out, "Previous format"); }
+        assertEquals(ReferenceEstimation.INITIAL_OBSERVATION, SpotFractionStore.read(directory).settingsFor(KEY).referenceEstimation);
+    }
     @Rule public TemporaryFolder folder = new TemporaryFolder();
     @Test public void choicesReferencesAndReviewQueueSurviveReloadWithoutChangingOtherExperiments() throws Exception {
         Path first = folder.newFolder("first").toPath(), second = folder.newFolder("second").toPath();
@@ -39,5 +59,26 @@ public class SpotFractionStoreTest {
         List<SpotFractionCalculator.Input> inputs = SpotFractionData.read(directory, directory, KEY.method);
         assertEquals(1, inputs.size());
         assertArrayEquals(new double[] {0, .5}, SpotFractionCalculator.calculate(inputs, KEY, new SpotFractionPlan()).get(0).consumed(), 0);
+    }
+    @Test public void integralLoadPrefersStandardCaptureAndFallsBackToOlderTrialData() throws Exception {
+        Path directory = folder.getRoot().toPath();
+        SpotMeasurementMethod method = SpotMeasurementMethod.VERTICAL_LINE;
+        SpotMethodResult current = new SpotMethodResult(method, new double[] {0, 1}, new double[] {0, 0}, "fraction",
+                Collections.emptyMap(), Collections.singletonList(new SpotMeasuredQuantity("color_integral", "metric_pixels",
+                        new double[] {100, 50}, new int[2])));
+        SpotMethodResult trial = new SpotMethodResult(method, new double[] {0, 1}, new double[] {0, 0}, "fraction",
+                Collections.emptyMap(), Collections.singletonList(new SpotMeasuredQuantity("color_integral", "metric_pixels",
+                        new double[] {200, 80}, new int[2])));
+        Path standard = directory.resolve(SpotMeasurementXml.FILENAME);
+        SpotMeasurementXml.write(standard, Collections.singletonMap("A", Collections.singletonMap(method, current)));
+        SpotMeasurementXml.write(directory.resolve("SpotsPrimaryMeasurementsTrial.xml"),
+                Collections.singletonMap("A", Collections.singletonMap(method, trial)));
+        byte[] saved = Files.readAllBytes(standard);
+        assertEquals(100, SpotFractionData.read(directory, directory, method, "color_integral")
+                .get(0).result.getQuantity("color_integral").getRawValues()[0], 0);
+        assertArrayEquals(saved, Files.readAllBytes(standard));
+        SpotMeasurementXml.write(standard, Collections.emptyMap());
+        assertEquals(200, SpotFractionData.read(directory, directory, method, "color_integral")
+                .get(0).result.getQuantity("color_integral").getRawValues()[0], 0);
     }
 }

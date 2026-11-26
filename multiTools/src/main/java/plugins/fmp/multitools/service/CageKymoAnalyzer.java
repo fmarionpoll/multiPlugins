@@ -86,6 +86,21 @@ public final class CageKymoAnalyzer {
 	}
 
 	public static KymoAnalysisResult analyze(Experiment exp, Params params) {
+		return measure(exp, params);
+	}
+
+	/** Historical replay only. Application measurement uses {@link #measure}. */
+	@Deprecated
+	public static KymoAnalysisResult analyzeLegacy(Experiment exp, Params params) {
+		return analyze(exp, params, false);
+	}
+
+	/** Image acquisition only; derived references and fractions are calculated in section 5. */
+	public static KymoAnalysisResult measure(Experiment exp, Params params) {
+		return analyze(exp, params, true);
+	}
+
+	private static KymoAnalysisResult analyze(Experiment exp, Params params, boolean rawOnly) {
 		if (exp == null || params == null) {
 			return new KymoAnalysisResult(Map.of(), new double[0], 0);
 		}
@@ -158,7 +173,7 @@ public final class CageKymoAnalyzer {
 			MeasurementProgress.phase("Measuring vertical lines in cage " + cageId);
 			int useW = widthBins > 0 ? Math.min(imgW, widthBins) : imgW;
 			List<KymoAnalysisResult.SpotKymoSeries> series = computeForImage(img, bands, params, useW, xAxis,
-					CageKymographTimeline.resolve(exp, widthBins, null).basis.exportId);
+					CageKymographTimeline.resolve(exp, widthBins, null).basis.exportId, rawOnly);
 			out.put(cageId, series);
 		}
 
@@ -322,16 +337,21 @@ public final class CageKymoAnalyzer {
 	}
 
 	private static List<KymoAnalysisResult.SpotKymoSeries> computeForImage(IcyBufferedImage img,
-			List<CageKymographSpotBands> bands, Params params, int imgW, double[] minutes, String timelineBasis) {
+			List<CageKymographSpotBands> bands, Params params, int imgW, double[] minutes, String timelineBasis, boolean rawOnly) {
 		double[] seconds = new double[imgW];
 		for (int x = 0; x < imgW; x++) { seconds[x] = minutes[x] * 60; }
-		IcyBufferedImage data = params.rowwiseOcclusionFill ? KymoStripRowwiseOcclusionFill.apply(img, bands, params)
+		IcyBufferedImage data = !rawOnly && params.rowwiseOcclusionFill ? KymoStripRowwiseOcclusionFill.apply(img, bands, params)
 				: img;
 		List<KymoAnalysisResult.SpotKymoSeries> list = new ArrayList<>();
 		int si = 0;
 		for (CageKymographSpotBands band : bands) {
 			MeasurementProgress.current().update(null, "Spot", si + 1, bands.size());
 			Spot spot = band.spot;
+			if (rawOnly) {
+				list.add(new KymoAnalysisResult.SpotKymoSeries(spot, si++, null, null, null, null,
+						SpotVerticalMeasurementCapture.capture(img, band, params, seconds, timelineBasis)));
+				continue;
+			}
 			ColumnMetrics cols = computeColumnMetrics(data, band, params, imgW);
 			double[] df = new double[imgW];
 			recomputeDfFromF(cols.fraction, df);

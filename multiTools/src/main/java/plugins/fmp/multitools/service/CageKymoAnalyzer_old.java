@@ -10,7 +10,7 @@ public final class CageKymoAnalyzer_old {
     private CageKymoAnalyzer_old() { }
 
     public static KymoAnalysisResult analyze(Experiment experiment, CageKymoAnalyzer.Params params) {
-        return CageKymoAnalyzer.analyze(experiment, params);
+        return CageKymoAnalyzer.analyzeLegacy(experiment, params);
     }
 
     public static List<CageKymoAnalyzer.ColumnMetrics> analyzeImage(IcyBufferedImage image,

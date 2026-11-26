@@ -19,33 +19,31 @@ import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
 import icy.file.Saver;
-import icy.gui.util.FontUtil;
 import icy.gui.frame.progress.ProgressFrame;
+import icy.gui.util.FontUtil;
 import icy.image.IcyBufferedImage;
 import icy.system.thread.ThreadUtil;
 import loci.formats.FormatException;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
-import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.experiment.KymographKind;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.service.KymographService;
 import plugins.fmp.multitools.tools.Logger;
 
 /**
- * Load / save cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the current results bin,
- * analogous to multiCAFE {@code dlg.kymos.LoadSave} for capillary line kymographs.
+ * Load / save cage stacked kymograph TIFFs ({@code kymocage_*.tif*}) from the
+ * current results bin, analogous to multiCAFE {@code dlg.kymos.LoadSave} for
+ * capillary line kymographs.
  */
 public class LoadSavePanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
 	private enum ClearChoice {
-		IMAGES("Cage kymograph images"),
-		VERTICAL("Vertical measures"),
-		X_LINE("X-line measures"),
-		RIM("Rim measures"),
+		IMAGES("Cage kymograph images"), VERTICAL("Vertical measures"), X_LINE("X-line measures"), RIM("Rim measures"),
 		ALL("All");
 
 		final String label;
@@ -70,7 +68,7 @@ public class LoadSavePanel extends JPanel {
 		setLayout(capLayout);
 		this.parent0 = parent0;
 
-		JLabel loadsaveText = new JLabel("-> Cage kymographs (TIFF) ", SwingConstants.RIGHT);
+		JLabel loadsaveText = new JLabel("-> Cage kymographs (TIFF), spot measurees (CSV) ", SwingConstants.RIGHT);
 		loadsaveText.setFont(FontUtil.setStyle(loadsaveText.getFont(), Font.ITALIC));
 
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.RIGHT);
@@ -157,14 +155,14 @@ public class LoadSavePanel extends JPanel {
 			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.RIM_LINES));
 			break;
 		default:
-			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.VERTICAL_LINE, SpotMeasurementMethod.X_LINES,
-					SpotMeasurementMethod.RIM_LINES));
+			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.VERTICAL_LINE,
+					SpotMeasurementMethod.X_LINES, SpotMeasurementMethod.RIM_LINES));
 			ok = exp.clearCageKymographImages() && ok;
 			break;
 		}
 		if (!ok) {
-			JOptionPane.showMessageDialog(this, "Could not erase the selected measurements.",
-					"Clear measurements", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, "Could not erase the selected measurements.", "Clear measurements",
+					JOptionPane.ERROR_MESSAGE);
 			return;
 		}
 		if (parent0.dlgKymos != null && parent0.dlgKymos.tabKymoGraph != null) {
@@ -232,8 +230,9 @@ public class LoadSavePanel extends JPanel {
 	}
 
 	/**
-	 * Loads {@code kymocage_*} files from the current kymographs bin into {@code seqKymos}, mirroring
-	 * the multiCAFE kymograph Load/Save panel behaviour for capillary stacks.
+	 * Loads {@code kymocage_*} files from the current kymographs bin into
+	 * {@code seqKymos}, mirroring the multiCAFE kymograph Load/Save panel behaviour
+	 * for capillary stacks.
 	 */
 	public boolean loadDefaultCageKymographs(Experiment exp) {
 		if (exp.getCages() == null || exp.getCages().cagesList == null || exp.getCages().cagesList.isEmpty()) {
