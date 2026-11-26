@@ -12,11 +12,14 @@ import java.nio.file.Paths;
 import java.nio.file.attribute.FileTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -56,6 +59,7 @@ import plugins.fmp.multitools.experiment.sequence.ROIsAtTProvider;
 import plugins.fmp.multitools.experiment.sequence.SequenceCamData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
 import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.experiment.spots.Spots;
 import plugins.fmp.multitools.experiment.spots.SpotsPersistenceLegacy;
 import plugins.fmp.multitools.experiment.spots.SpotsSequenceMapper;
@@ -1474,9 +1478,69 @@ public class Experiment {
 	private boolean spotsUseResultsDirectoryForKymographs() {
 		String resultsDir = getResultsDirectory();
 		String kymoBin = getKymosBinFullDirectory();
-		return resultsDir != null && kymoBin != null
-				&& Paths.get(resultsDir).toAbsolutePath().normalize()
-						.equals(Paths.get(kymoBin).toAbsolutePath().normalize());
+		return sameDirectory(resultsDir, kymoBin);
+	}
+
+	/**
+	 * Removes the selected acquisition methods from memory and from the results
+	 * directory and the kymograph bin. Other methods stay.
+	 */
+	public boolean clearSpotMeasurements(EnumSet<SpotMeasurementMethod> methods) {
+		if (spots == null || methods == null || methods.isEmpty()) {
+			return false;
+		}
+		for (String directory : measureDirectories()) {
+			if (!spots.getPersistence().deleteStoredMeasures(directory, methods)) {
+				return false;
+			}
+		}
+		spots.getPersistence().clearMeasuresInMemory(spots, methods);
+		if (cages != null) {
+			cages.clearSpotAggregatesCache();
+		}
+		return true;
+	}
+
+	/** Closes the kymograph viewer and deletes cage kymograph images and layout files. */
+	public boolean clearCageKymographImages() {
+		releaseKymographSequence();
+		String bin = getKymosBinFullDirectory();
+		if (bin == null || spots == null) {
+			return false;
+		}
+		return spots.getPersistence().deleteCageKymographImages(bin);
+	}
+
+	private Set<String> measureDirectories() {
+		Set<String> directories = new LinkedHashSet<>();
+		if (getResultsDirectory() != null) {
+			directories.add(getResultsDirectory());
+		}
+		String bin = getKymosBinFullDirectory();
+		if (bin != null) {
+			boolean alreadyListed = false;
+			for (String directory : directories) {
+				if (sameDirectory(directory, bin)) {
+					alreadyListed = true;
+					break;
+				}
+			}
+			if (!alreadyListed) {
+				directories.add(bin);
+			}
+		}
+		return directories;
+	}
+
+	private static boolean sameDirectory(String left, String right) {
+		if (left == null || right == null) {
+			return false;
+		}
+		try {
+			return Paths.get(left).toAbsolutePath().normalize().equals(Paths.get(right).toAbsolutePath().normalize());
+		} catch (RuntimeException e) {
+			return left.equals(right);
+		}
 	}
 
 	// -------------------------------
@@ -3219,6 +3283,62 @@ public class Experiment {
 		}
 
 		return descriptionsSaved;
+	}
+
+	/**
+	 * Loads fly positions into the cages already in memory. Cage outlines are not read again.
+	 */
+	public boolean loadFlyPositions() {
+		if (cages == null) {
+			return false;
+		}
+		String resultsDir = getResultsDirectory();
+		boolean measuresLoaded = false;
+		if (resultsDir != null) {
+			measuresLoaded = cages.getPersistence().loadMeasures(cages, resultsDir);
+		}
+		if (!measuresLoaded) {
+			String binDir = getKymosBinFullDirectory();
+			if (binDir != null && !sameDirectory(resultsDir, binDir)) {
+				measuresLoaded = cages.getPersistence().loadMeasures(cages, binDir);
+			}
+		}
+		if (measuresLoaded && seqCamData != null && seqCamData.getSequence() != null) {
+			initTmsForFlyPositions(seqCamData.getFirstImageMs());
+		}
+		if (measuresLoaded) {
+			cages.applyFlyScaleToExistingPositions(getFlyMmPerPixelX(), getFlyMmPerPixelY());
+		}
+		return measuresLoaded;
+	}
+
+	/** Writes {@code CagesMeasures.csv} only. Cage descriptions stay unchanged. */
+	public boolean saveFlyPositions() {
+		String resultsDir = getResultsDirectory();
+		if (cages == null || resultsDir == null) {
+			return false;
+		}
+		return cages.getPersistence().saveMeasures(cages, resultsDir);
+	}
+
+	/** Erases fly positions in memory and in the position files. Cage outlines stay. */
+	public boolean clearFlyPositions() {
+		if (cages == null) {
+			return false;
+		}
+		for (Cage cage : cages.getCageList()) {
+			if (cage != null && cage.getFlyPositions() != null) {
+				cage.getFlyPositions().clear();
+			}
+		}
+		cleanPreviousDetectedFliesROIs();
+		boolean saved = saveFlyPositions();
+		String bin = getKymosBinFullDirectory();
+		String resultsDir = getResultsDirectory();
+		if (bin != null && !sameDirectory(resultsDir, bin) && Files.isDirectory(Paths.get(bin))) {
+			saved = cages.getPersistence().saveMeasures(cages, bin) && saved;
+		}
+		return saved;
 	}
 
 	public void saveCagesAndMeasures() {

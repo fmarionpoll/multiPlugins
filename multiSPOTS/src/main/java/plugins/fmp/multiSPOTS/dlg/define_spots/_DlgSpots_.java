@@ -88,7 +88,8 @@ public class _DlgSpots_ extends JPanel implements PropertyChangeListener, Change
 
 		loadSaveSpotsPanel.init(gridLayout, parent0);
 		loadSaveSpotsPanel.addPropertyChangeListener(this);
-		tabbedPane.addTab("Load/Save", null, loadSaveSpotsPanel, "Load/Save cage & spots descriptors (xml file)");
+		tabbedPane.addTab("Load/Save", null, loadSaveSpotsPanel,
+				"Load or save cage outlines, spot geometry, and spot measures");
 		order++;
 
 		tabbedPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);

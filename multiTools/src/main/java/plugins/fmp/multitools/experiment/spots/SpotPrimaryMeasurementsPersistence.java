@@ -1,10 +1,12 @@
 package plugins.fmp.multitools.experiment.spots;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.EnumMap;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
@@ -77,6 +79,35 @@ final class SpotPrimaryMeasurementsPersistence {
             return true;
         } catch (IOException | RuntimeException e) {
             Logger.error("Cannot load primary spot measurements: " + path, e);
+            return false;
+        }
+    }
+
+    /** Removes methods from the sidecar. An empty sidecar is deleted. Other methods stay. */
+    static boolean delete(String directory, EnumSet<SpotMeasurementMethod> methods) {
+        if (directory == null || methods == null || methods.isEmpty()) { return false; }
+        Path path = Paths.get(directory, SpotMeasurementXml.FILENAME);
+        if (!Files.isRegularFile(path)) { return true; }
+        try {
+            Map<String, Map<SpotMeasurementMethod, SpotMethodResult>> saved = SpotMeasurementXml.read(path);
+            boolean changed = false;
+            Iterator<Map.Entry<String, Map<SpotMeasurementMethod, SpotMethodResult>>> spots = saved.entrySet().iterator();
+            while (spots.hasNext()) {
+                Map<SpotMeasurementMethod, SpotMethodResult> stored = spots.next().getValue();
+                for (SpotMeasurementMethod method : methods) {
+                    if (stored.remove(method) != null) { changed = true; }
+                }
+                if (stored.isEmpty()) { spots.remove(); changed = true; }
+            }
+            if (!changed) { return true; }
+            if (saved.isEmpty()) {
+                Files.deleteIfExists(path);
+                return true;
+            }
+            SpotMeasurementXml.write(path, saved);
+            return true;
+        } catch (IOException | RuntimeException e) {
+            Logger.error("Cannot delete primary spot measurements: " + path, e);
             return false;
         }
     }

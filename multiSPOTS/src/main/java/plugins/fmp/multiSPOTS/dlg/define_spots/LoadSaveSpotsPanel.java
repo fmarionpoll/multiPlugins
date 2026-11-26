@@ -31,7 +31,7 @@ public class LoadSaveSpotsPanel extends JPanel {
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
 		setLayout(capLayout);
 
-		JLabel loadsaveText = new JLabel("-> Spots, polylines (xml) ", SwingConstants.RIGHT);
+		JLabel loadsaveText = new JLabel("-> Cages and spots (csv) ", SwingConstants.RIGHT);
 		loadsaveText.setFont(FontUtil.setStyle(loadsaveText.getFont(), Font.ITALIC));
 		FlowLayout flowLayout = new FlowLayout(FlowLayout.RIGHT);
 		flowLayout.setVgap(0);

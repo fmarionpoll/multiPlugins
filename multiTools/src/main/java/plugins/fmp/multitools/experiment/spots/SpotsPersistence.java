@@ -4,10 +4,22 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.EnumSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
+import plugins.fmp.multitools.experiment.spot.Spot;
+import plugins.fmp.multitools.experiment.spot.SpotDetectionProvenance;
+import plugins.fmp.multitools.experiment.spot.SpotMeasure;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.tools.Logger;
 import plugins.fmp.multitools.tools.results.EnumResults;
 
@@ -168,6 +180,217 @@ public class SpotsPersistence {
 	public boolean saveKymoMeasures(Spots spots, String kymoBinDirectory) {
 		return SpotPrimaryMeasurementsPersistence.save(spots, kymoBinDirectory, SpotPrimaryMeasurementsPersistence.LINES)
 				&& Persistence.saveKymoMeasures(spots, kymoBinDirectory);
+	}
+
+	/**
+	 * Drops one or more acquisition methods from the measure files in {@code directory}.
+	 * Other methods in those files are left in place. Does not change in-memory spots.
+	 */
+	public boolean deleteStoredMeasures(String directory, EnumSet<SpotMeasurementMethod> methods) {
+		if (directory == null || methods == null || methods.isEmpty()) {
+			return false;
+		}
+		Path dir = Paths.get(directory);
+		if (!Files.isDirectory(dir)) {
+			return true;
+		}
+		try {
+			EnumSet<EnumResults> sections = legacySections(methods);
+			stripMeasureFile(dir.resolve(ID_V2_SPOTSARRAYMEASURES_CSV), sections);
+			Path legacy = dir.resolve(ID_SPOTSARRAYMEASURES_CSV);
+			boolean legacyHadMeasures = Files.isRegularFile(legacy);
+			boolean legacyMeasuresRemain = stripMeasureFile(legacy, sections);
+			if (legacyHadMeasures && !legacyMeasuresRemain && !Files.isRegularFile(dir.resolve(ID_V2_SPOTSARRAYMEASURES_CSV))) {
+				writeVersionOnly(dir.resolve(ID_V2_SPOTSARRAYMEASURES_CSV));
+			}
+			if (!SpotPrimaryMeasurementsPersistence.delete(directory, methods)) {
+				return false;
+			}
+			for (SpotDetectionProvenance.Family family : provenance(methods)) {
+				Files.deleteIfExists(dir.resolve("SpotDetection-" + family.id + ".properties"));
+			}
+			if (methods.contains(SpotMeasurementMethod.X_LINES)) {
+				Files.deleteIfExists(dir.resolve("XLineBackground.csv"));
+			}
+			return true;
+		} catch (IOException e) {
+			Logger.error("SpotsPersistence:deleteStoredMeasures() Failed: " + e.getMessage(), e, true);
+			return false;
+		}
+	}
+
+	/** Empties the legacy series and primary results for {@code methods}. Disk files are unchanged. */
+	public void clearMeasuresInMemory(Spots spots, EnumSet<SpotMeasurementMethod> methods) {
+		if (spots == null || methods == null || methods.isEmpty()) {
+			return;
+		}
+		EnumSet<EnumResults> sections = legacySections(methods);
+		for (Spot spot : spots.getSpotList()) {
+			if (spot == null) {
+				continue;
+			}
+			for (EnumResults section : sections) {
+				SpotMeasure measure = spot.getMeasurements(section);
+				if (measure != null) {
+					measure.clear();
+				}
+			}
+			for (SpotMeasurementMethod method : methods) {
+				spot.getMethodMeasurements().remove(method);
+			}
+		}
+	}
+
+	/**
+	 * Deletes cage kymograph TIFFs and their layout files. Measure CSVs are kept.
+	 *
+	 * @return true when the directory is absent or every matching file was removed
+	 */
+	public boolean deleteCageKymographImages(String directory) {
+		if (directory == null) {
+			return false;
+		}
+		Path dir = Paths.get(directory);
+		if (!Files.isDirectory(dir)) {
+			return false;
+		}
+		try {
+			Files.deleteIfExists(dir.resolve("CageKymographStripLayout.csv"));
+			Files.deleteIfExists(dir.resolve("CageKymographColumnTimes.csv"));
+			List<Path> images = new ArrayList<>();
+			try (Stream<Path> files = Files.list(dir)) {
+				Iterator<Path> iterator = files.iterator();
+				while (iterator.hasNext()) {
+					Path file = iterator.next();
+					if (!Files.isRegularFile(file)) {
+						continue;
+					}
+					String name = file.getFileName().toString().toLowerCase(Locale.ROOT);
+					if (name.startsWith("kymocage_") && (name.endsWith(".tif") || name.endsWith(".tiff"))) {
+						images.add(file);
+					}
+				}
+			}
+			for (Path image : images) {
+				Files.deleteIfExists(image);
+			}
+			return true;
+		} catch (IOException e) {
+			Logger.error("SpotsPersistence:deleteCageKymographImages() Failed: " + e.getMessage(), e, true);
+			return false;
+		}
+	}
+
+	private static EnumSet<EnumResults> legacySections(EnumSet<SpotMeasurementMethod> methods) {
+		EnumSet<EnumResults> sections = EnumSet.noneOf(EnumResults.class);
+		if (methods.contains(SpotMeasurementMethod.FILTER)) {
+			sections.add(EnumResults.FILTER_GREY);
+			sections.add(EnumResults.FILTER_GREY_FLY_MASKED);
+			sections.add(EnumResults.FILTER_GREY_SMOOTHED);
+			sections.add(EnumResults.FLY_PIXEL_COUNT);
+		}
+		if (methods.contains(SpotMeasurementMethod.COLOR)) {
+			sections.add(EnumResults.COLOR_PIXEL_COUNT);
+			sections.add(EnumResults.COLOR_GREY);
+			sections.add(EnumResults.COLOR_GREY_PRE_GATE);
+			sections.add(EnumResults.COLOR_GREY_SMOOTHED);
+		}
+		if (methods.contains(SpotMeasurementMethod.VERTICAL_LINE)) {
+			sections.add(EnumResults.KYMO_ROW_FRACTION);
+			sections.add(EnumResults.KYMO_ROW_FRACTION_CHANGE);
+			sections.add(EnumResults.KYMO_GREEN_HEIGHT);
+			sections.add(EnumResults.KYMO_GREEN_HEIGHT_RATIO);
+		}
+		if (methods.contains(SpotMeasurementMethod.X_LINES)) {
+			sections.add(EnumResults.X_LINE_FRACTION);
+			sections.add(EnumResults.X_LINE_RATIO);
+		}
+		if (methods.contains(SpotMeasurementMethod.RIM_LINES)) {
+			sections.add(EnumResults.RIM_LINE_FRACTION);
+			sections.add(EnumResults.RIM_LINE_RATIO);
+		}
+		return sections;
+	}
+
+	private static List<SpotDetectionProvenance.Family> provenance(EnumSet<SpotMeasurementMethod> methods) {
+		List<SpotDetectionProvenance.Family> families = new ArrayList<>();
+		if (methods.contains(SpotMeasurementMethod.FILTER)) {
+			families.add(SpotDetectionProvenance.Family.FILTER);
+			families.add(SpotDetectionProvenance.Family.FLY_MASK);
+		}
+		if (methods.contains(SpotMeasurementMethod.COLOR)) {
+			families.add(SpotDetectionProvenance.Family.COLOR);
+		}
+		if (methods.contains(SpotMeasurementMethod.VERTICAL_LINE)) {
+			families.add(SpotDetectionProvenance.Family.KYMO_STRIP);
+		}
+		if (methods.contains(SpotMeasurementMethod.X_LINES)) {
+			families.add(SpotDetectionProvenance.Family.KYMO_CROSS);
+		}
+		if (methods.contains(SpotMeasurementMethod.RIM_LINES)) {
+			families.add(SpotDetectionProvenance.Family.KYMO_RIM);
+		}
+		return families;
+	}
+
+	/**
+	 * @return true when a spot-measure section remains in the file. A missing file counts as none remaining.
+	 */
+	private static boolean stripMeasureFile(Path csvPath, EnumSet<EnumResults> drop) throws IOException {
+		if (!Files.isRegularFile(csvPath)) {
+			return false;
+		}
+		List<String> lines = Files.readAllLines(csvPath, StandardCharsets.UTF_8);
+		String versionLine = "#;version;" + CSV_VERSION;
+		List<String> kept = new ArrayList<>();
+		boolean skipping = false;
+		boolean measureRemains = false;
+		boolean otherContent = false;
+		for (String line : lines) {
+			if (line.startsWith("#") && line.length() > 1) {
+				skipping = false;
+				String separator = Pattern.quote(String.valueOf(line.charAt(1)));
+				String[] data = line.split(separator, -1);
+				if (data.length > 1 && "version".equals(data[1])) {
+					versionLine = line;
+					kept.add(line);
+					continue;
+				}
+				EnumResults measure = data.length > 1 ? EnumResults.findByPersistenceKey(data[1]) : null;
+				if (measure != null && measure.isPersistedIn(EnumResults.PersistenceDomain.SPOT)) {
+					if (drop.contains(measure)) {
+						skipping = true;
+						continue;
+					}
+					measureRemains = true;
+				} else if (!isSectionSeparator(data)) {
+					otherContent = true;
+				}
+			} else if (skipping) {
+				continue;
+			} else if (!line.trim().isEmpty()) {
+				otherContent = true;
+			}
+			kept.add(line);
+		}
+		if (!measureRemains && !otherContent) {
+			writeVersionOnly(csvPath, versionLine);
+			return false;
+		}
+		Files.write(csvPath, kept, StandardCharsets.UTF_8);
+		return measureRemains;
+	}
+
+	private static boolean isSectionSeparator(String[] data) {
+		return data.length > 1 && "#".equals(data[1]);
+	}
+
+	private static void writeVersionOnly(Path csvPath) throws IOException {
+		writeVersionOnly(csvPath, "#;version;" + CSV_VERSION);
+	}
+
+	private static void writeVersionOnly(Path csvPath, String versionLine) throws IOException {
+		Files.write(csvPath, (versionLine + "\n").getBytes(StandardCharsets.UTF_8));
 	}
 
 	// ========================================================================

@@ -13,6 +13,7 @@ import icy.gui.component.PopupPanel;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multiSPOTS.dlg.measure_imageFilters.LoadSavePanel;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 
 /**
  * UI for color-distance spot measures (detection + charts
@@ -57,9 +58,10 @@ public class _DlgMeasureUsingColors_ extends JPanel {
 		tabsPane.addTab("Color charts", null, chartsColorPanel, "Display color-distance spot results");
 //		order++;
 
-		loadSavePanel.init(gridLayout, parent0);
+		loadSavePanel.init(gridLayout, parent0, SpotMeasurementMethod.COLOR);
 //		loadSavePanel.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, loadSavePanel, "Load/Save xml file with spots descriptors");
+		tabsPane.addTab("Load/Save", null, loadSavePanel,
+				"Load or save spot measures (filter and color are stored together)");
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);
 		capPanel.add(tabsPane);

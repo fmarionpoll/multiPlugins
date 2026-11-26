@@ -102,7 +102,8 @@ public class _DlgDetectFlies_ extends JPanel implements PropertyChangeListener {
 		iTab++;
 		tabFile.init(capLayout, parent0);
 		tabFile.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, tabFile, "Load/save flies position");
+		tabsPane.addTab("Load/Save", null, tabFile,
+				"Load or save fly positions. Cage outlines stay in Define spots.");
 	}
 
 	@Override

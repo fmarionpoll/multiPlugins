@@ -219,6 +219,15 @@ public class SpotMeasure {
 		this.isPresent = isPresent;
 	}
 
+	public void clear() {
+		values = null;
+		isPresent = null;
+		cameraSampled = false;
+		if (spotLevel2D != null) {
+			spotLevel2D.clearLevel2D();
+		}
+	}
+
 	public int getIsPresentAt(int index) {
 		return isPresent[index];
 	}

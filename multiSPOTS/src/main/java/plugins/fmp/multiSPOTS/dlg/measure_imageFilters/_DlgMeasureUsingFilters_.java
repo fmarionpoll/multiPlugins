@@ -69,7 +69,8 @@ public class _DlgMeasureUsingFilters_ extends JPanel implements PropertyChangeLi
 
 		loadSavePanel.init(gridLayout, parent0);
 		loadSavePanel.addPropertyChangeListener(this);
-		tabsPane.addTab("Load/Save", null, loadSavePanel, "Load/Save xml file with spots descriptors");
+		tabsPane.addTab("Load/Save", null, loadSavePanel,
+				"Load or save spot measures (filter and color are stored together)");
 		order++;
 
 		tabsPane.setTabLayoutPolicy(JTabbedPane.SCROLL_TAB_LAYOUT);

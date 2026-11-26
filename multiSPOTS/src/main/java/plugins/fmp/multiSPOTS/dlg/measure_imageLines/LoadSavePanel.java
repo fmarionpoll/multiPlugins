@@ -7,11 +7,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.EnumSet;
 import java.util.List;
 
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
 
@@ -23,6 +26,7 @@ import icy.system.thread.ThreadUtil;
 import loci.formats.FormatException;
 import plugins.fmp.multiSPOTS.MultiSPOTS;
 import plugins.fmp.multitools.experiment.Experiment;
+import plugins.fmp.multitools.experiment.spot.measurement.SpotMeasurementMethod;
 import plugins.fmp.multitools.experiment.KymographKind;
 import plugins.fmp.multitools.experiment.sequence.ImageFileData;
 import plugins.fmp.multitools.experiment.sequence.SequenceKymos;
@@ -37,8 +41,29 @@ public class LoadSavePanel extends JPanel {
 
 	private static final long serialVersionUID = 1L;
 
+	private enum ClearChoice {
+		IMAGES("Cage kymograph images"),
+		VERTICAL("Vertical measures"),
+		X_LINE("X-line measures"),
+		RIM("Rim measures"),
+		ALL("All");
+
+		final String label;
+
+		ClearChoice(String label) {
+			this.label = label;
+		}
+
+		@Override
+		public String toString() {
+			return label;
+		}
+	}
+
 	private JButton openButtonKymos = new JButton("Load...");
 	private JButton saveButtonKymos = new JButton("Save...");
+	private JComboBox<ClearChoice> clearChoice = new JComboBox<>(ClearChoice.values());
+	private JButton clearButton = new JButton("Clear...");
 	private MultiSPOTS parent0;
 
 	void init(GridLayout capLayout, MultiSPOTS parent0) {
@@ -56,6 +81,12 @@ public class LoadSavePanel extends JPanel {
 		panel1.add(saveButtonKymos);
 		panel1.validate();
 		add(panel1);
+
+		JPanel panelClear = new JPanel(flowLayout);
+		panelClear.add(clearChoice);
+		panelClear.add(clearButton);
+		panelClear.validate();
+		add(panelClear);
 
 		defineActionListeners();
 	}
@@ -76,6 +107,69 @@ public class LoadSavePanel extends JPanel {
 				firePropertyChange("KYMOS_SAVE", false, true);
 			}
 		});
+
+		clearButton.addActionListener(e -> clearSelected());
+	}
+
+	private void clearSelected() {
+		Experiment exp = (Experiment) parent0.expListComboLazy.getSelectedItem();
+		if (exp == null) {
+			return;
+		}
+		ClearChoice choice = (ClearChoice) clearChoice.getSelectedItem();
+		if (choice == null) {
+			return;
+		}
+		String message;
+		switch (choice) {
+		case IMAGES:
+			message = "Erase cage kymograph images for this experiment?\nVertical, X-line, and rim measurements are kept.";
+			break;
+		case VERTICAL:
+			message = "Erase vertical kymograph measurements?\nImages, X-line, and rim measurements are kept.";
+			break;
+		case X_LINE:
+			message = "Erase X-line measurements?\nImages, vertical, and rim measurements are kept.";
+			break;
+		case RIM:
+			message = "Erase rim measurements?\nImages, vertical, and X-line measurements are kept.";
+			break;
+		default:
+			message = "Erase cage kymograph images and vertical, X-line, and rim measurements?";
+			break;
+		}
+		if (JOptionPane.showConfirmDialog(this, message, "Clear measurements", JOptionPane.OK_CANCEL_OPTION,
+				JOptionPane.WARNING_MESSAGE) != JOptionPane.OK_OPTION) {
+			return;
+		}
+		boolean ok = true;
+		switch (choice) {
+		case IMAGES:
+			ok = exp.clearCageKymographImages();
+			break;
+		case VERTICAL:
+			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.VERTICAL_LINE));
+			break;
+		case X_LINE:
+			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.X_LINES));
+			break;
+		case RIM:
+			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.RIM_LINES));
+			break;
+		default:
+			ok = exp.clearSpotMeasurements(EnumSet.of(SpotMeasurementMethod.VERTICAL_LINE, SpotMeasurementMethod.X_LINES,
+					SpotMeasurementMethod.RIM_LINES));
+			ok = exp.clearCageKymographImages() && ok;
+			break;
+		}
+		if (!ok) {
+			JOptionPane.showMessageDialog(this, "Could not erase the selected measurements.",
+					"Clear measurements", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+		if (parent0.dlgKymos != null && parent0.dlgKymos.tabKymoGraph != null) {
+			parent0.dlgKymos.tabKymoGraph.closeAllCharts();
+		}
 	}
 
 	void saveKymographFiles(String directory) {
