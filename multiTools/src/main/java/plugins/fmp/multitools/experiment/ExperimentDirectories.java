@@ -18,12 +18,16 @@ import javax.swing.JOptionPane;
 
 import icy.file.FileUtil;
 import icy.gui.dialog.LoaderDialog;
+import icy.gui.dialog.LoaderOptionPanel.LoaderLoadingType;
+import icy.preferences.ApplicationPreferences;
 import plugins.fmp.multitools.tools.Directories;
 import plugins.fmp.multitools.tools.JComponents.JComboBoxExperimentLazy;
 
 public class ExperimentDirectories {
 	private static final Preferences PREFS = Preferences.userNodeForPackage(ExperimentDirectories.class);
 	private static final String PREF_LAST_BIN_SUBDIR = "lastSelectedBinSubDirectory";
+	private static final String ICY_IMAGE_LOADER_PREF = "frame/imageLoader";
+	private static final String ICY_LOAD_TYPE_KEY = "loadtype";
 
 	private String cameraImagesDirectory = null;
 	public List<String> cameraImagesList = null;
@@ -116,6 +120,7 @@ public class ExperimentDirectories {
 
 	public List<String> getImagesListFromDialog(String strPath) {
 		List<String> list = new ArrayList<String>();
+		selectIcyGroupFilesNoOrdering();
 		LoaderDialog dialog = new LoaderDialog(false);
 		if (strPath != null)
 			dialog.setCurrentDirectory(new File(strPath));
@@ -328,6 +333,15 @@ public class ExperimentDirectories {
 		}
 	}
 
+	/**
+	 * Icy builds the Load type combo from this preference and otherwise defaults to
+	 * "Group files", which parses Z, T and C out of file names.
+	 */
+	private static void selectIcyGroupFilesNoOrdering() {
+		ApplicationPreferences.getPreferences().node(ICY_IMAGE_LOADER_PREF).putInt(ICY_LOAD_TYPE_KEY,
+				LoaderLoadingType.GROUP_NO_ORDERING.ordinal());
+	}
+
 	private String selectSubDirDialog(List<String> expList, String title, String type, boolean editable) {
 		List<String> filtered = expList;
 		if (filtered != null && Experiment.BIN.equalsIgnoreCase(type)) {
@@ -403,6 +417,7 @@ public class ExperimentDirectories {
 
 	public List<String> getV2ImagesListFromDialog(String strPath) {
 		List<String> list = new ArrayList<String>();
+		selectIcyGroupFilesNoOrdering();
 		LoaderDialog dialog = new LoaderDialog(false);
 		if (strPath != null)
 			dialog.setCurrentDirectory(new File(strPath));
